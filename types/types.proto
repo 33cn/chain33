@@ -15,15 +15,35 @@ message Block {
 	repeated Transaction txs = 4;
 }
 
+
+
 message Transaction {
 	bytes Payload =1;
 	bytes Signature = 2;
 	bytes Account = 3;
 }
 
-
 message ChainStatus {
 	int64 currentHeight = 1;
 	int64 mempoolSize = 2;
 	int64 msgQueueSize = 3;
+}
+
+message RequestHash {
+	bytes hash = 1;
+}
+
+message MerkleProof {
+	repeated bytes hashs = 1;
+}
+
+//req
+message RequestBlocks {
+	int64 start = 1;
+	int64 end = 2;
+}
+
+//resp
+message Blocks {
+	repeated Block items = 1;
 }

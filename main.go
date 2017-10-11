@@ -14,6 +14,7 @@ import (
 	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/rpc"
+	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -37,14 +38,16 @@ func main() {
 	network.SetQueue(q)
 
 	//jsonrpc, grpc, channel 三种模式
-	api := rpc.New("channel")
+	api := rpc.New("channel", "")
 	api.SetQueue(q)
 
 	go func() {
 		//jsonrpc, grpc, channel 三种模式
-		client := rpc.NewClient("channel")
+		client := rpc.NewClient("channel", "")
 		//同步接口
-		client.SendTx([]byte("hello"))
+		client.SetQueue(q)
+		tx := &types.Transaction{}
+		client.SendTx(tx)
 	}()
 	q.Start()
 }
