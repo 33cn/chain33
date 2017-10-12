@@ -47,3 +47,20 @@ message RequestBlocks {
 message Blocks {
 	repeated Block items = 1;
 }
+
+message Reply {
+	bool isOk = 1;
+	bytes msg = 2;
+}
+
+message ReplyBlockHeight {
+	int64 height =1;
+}
+
+message RequestTxList {
+	int64 count = 1;
+}
+
+message ReplyTxList {
+	repeated Transaction txs = 1;
+}
