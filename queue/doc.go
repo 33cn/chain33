@@ -1,7 +1,6 @@
 package queue
 
-<<<<<<< HEAD
-/* 
+/*
 =======
 /*
 >>>>>>> 16b55f7927e9031b05202f9eeee0bf8e538f339c
