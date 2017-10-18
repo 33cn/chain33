@@ -15,8 +15,6 @@ message Block {
 	repeated Transaction txs = 4;
 }
 
-
-
 message Transaction {
 	bytes Payload =1;
 	bytes Signature = 2;
