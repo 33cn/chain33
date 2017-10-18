@@ -8,45 +8,49 @@ import (
 //多对多消息队列
 //消息：topic
 
+//1. 队列特点：
+//1.1 一个topic 只有一个订阅者（以后会变成多个）目前基本够用，模块都只有一个实例.
+//1.2 消息的回复直接通过消息自带的channel 回复
+
 const DefaultChanBuffer = 1024
 
 type Queue struct {
-	chans  map[string]chan Message
-	replys map[string]chan Message
-	mu     sync.Mutex
+	chans map[string]chan Message
+	mu    sync.Mutex
+	done  chan struct{}
 }
 
 func New(name string) *Queue {
 	chs := make(map[string]chan Message)
-	reps := make(map[string]chan Message)
-	return &Queue{chans: chs, replys: reps}
+	return &Queue{chans: chs, done: make(chan struct{})}
 }
 
 func (q *Queue) Start() {
-	select {}
+	select {
+	case <-q.done:
+		break
+	}
 }
 
-func (q *Queue) getChannel(topic string) (chan Message, chan Message) {
+func (q *Queue) Close() {
+	q.done <- struct{}{}
+	close(q.done)
+}
+
+func (q *Queue) getChannel(topic string) chan Message {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	_, ok := q.chans[topic]
 	if !ok {
 		q.chans[topic] = make(chan Message, DefaultChanBuffer)
-		q.replys[topic] = make(chan Message, DefaultChanBuffer)
 	}
 	ch1 := q.chans[topic]
-	ch2 := q.replys[topic]
-
-	return ch1, ch2
+	return ch1
 }
 
 func (q *Queue) Send(msg Message) {
-	chrecv, chreply := q.getChannel(msg.Topic)
-	if msg.ParentId == 0 {
-		chrecv <- msg
-	} else {
-		chreply <- msg
-	}
+	chrecv := q.getChannel(msg.Topic)
+	chrecv <- msg
 }
 
 func (q *Queue) GetClient() IClient {
@@ -54,23 +58,27 @@ func (q *Queue) GetClient() IClient {
 }
 
 type Message struct {
-	Topic    string
-	Ty       int64
-	Id       int64
-	ParentId int64
-	Data     interface{}
+	Topic   string
+	Ty      int64
+	Id      int64
+	Data    interface{}
+	ChReply chan Message
 }
 
-func (msg *Message) GetData() interface{} {
+func (msg Message) GetData() interface{} {
 	if _, ok := msg.Data.(error); ok {
 		return nil
 	}
 	return msg.Data
 }
 
-func (msg *Message) Err() error {
+func (msg Message) Err() error {
 	if err, ok := msg.Data.(error); ok {
 		return err
 	}
 	return nil
+}
+
+func (msg Message) Reply(replyMsg Message) {
+	msg.ChReply <- replyMsg
 }
