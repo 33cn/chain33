@@ -1,6 +1,13 @@
 syntax = "proto3";
 package types;
 
+//add by bangzhu.li
+service grpcservice{
+	rpc SendTransaction(Transaction) returns (Reply){}
+	rpc QueryTransaction(RequestHash) returns (Reply){}
+	rpc GetBlocks(Block) returns (Reply){}
+}
+//end
 
 message Header {
 	bytes parentHash = 1;

@@ -1,85 +1,96 @@
 package rpc
 
 import (
-	"fmt"
 	"log"
-	"types"
+
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 type JRpcRequest struct {
 	jserver *jsonrpcServer
 }
-type Pdata struct {
-	From  string
-	TO    string
-	Value string
-}
 
 //发送交易信息到topic=channel 的queue 中
-func (req JRpcRequest) SendTransaction(p Pdata, result *interface{}) error {
+type JTransparm struct {
+	Accout    string
+	Payload   string
+	Signature string
+}
 
+func (req JRpcRequest) SendTransaction(in JTransparm, result *interface{}) error {
+
+	var data types.Transaction
+	data.Account = []byte(in.Accout)
+	data.Payload = []byte(in.Payload)
+	data.Signature = []byte(in.Signature)
 	iclient := req.jserver.c
-	message := iclient.NewMessage("channel", types.EventTx, 0, p)
+	message := iclient.NewMessage("rpc", types.EventTx, &data)
 	err := iclient.Send(message, true)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return err
 	}
-	log.Print("msg.id:", message.Id)
-	msg, err := iclient.Wait(message.Id)
+
+	reply, err := iclient.Wait(message)
 	if err != nil {
-		fmt.Println("wait err:", err.Error())
+		log.Println("wait err:", err.Error())
 		return err
 	}
 
-	*result = msg.GetData()
-	return msg.Err()
+	*result = string(reply.GetData().(types.Reply).Msg)
+	return reply.Err()
 
 }
 
-type Qparam struct {
+type QueryParm struct {
+	hash string
 }
 
-func (req JRpcRequest) QueryTransaction(p Qparam, result *interface{}) error {
+func (req JRpcRequest) QueryTransaction(in QueryParm, result *interface{}) error {
+	var data types.RequestHash
+	data.Hash = []byte(in.hash)
 	iclient := req.jserver.c
-	message := iclient.NewMessage("channel", types.EventQueryTx, 0, p)
+	message := iclient.NewMessage("rpc", types.EventQueryTx, &data)
 	err := iclient.Send(message, true)
 	if err != nil {
 		log.Fatal(err.Error())
 		return err
 	}
 
-	msg, err := iclient.Wait(message.Id)
+	reply, err := iclient.Wait(message)
 	if err != nil {
-		log.Fatal("wait err:", err.Error())
+		log.Println("wait err:", err.Error())
 		return err
 	}
 
-	*result = msg.GetData()
-	return msg.Err()
+	*result = reply.GetData().(*types.MerkleProof)
+	return reply.Err()
 }
 
-type Gparam struct {
+type BlockParam struct {
 	Start int64
 	End   int64
 }
 
-func (req JRpcRequest) GetBlocks(p Gparam, result *interface{}) error {
+func (req JRpcRequest) GetBlocks(in BlockParam, result *interface{}) error {
+	var data types.RequestBlocks
+	data.End = in.End
+	data.Start = in.Start
 	iclient := req.jserver.c
-	message := iclient.NewMessage("channel", types.EventGetBlocks, 0, p)
+	message := iclient.NewMessage("rpc", types.EventGetBlocks, &data)
 	err := iclient.Send(message, true)
 	if err != nil {
 		log.Fatal(err.Error())
 		return err
 	}
 
-	msg, err := iclient.Wait(message.Id)
+	reply, err := iclient.Wait(message)
 	if err != nil {
 		log.Fatal("wait err:", err.Error())
 		return err
 	}
 
-	*result = msg.GetData()
-	return msg.Err()
+	*result = reply.GetData().(*types.Blocks)
+	return reply.Err()
 
 }

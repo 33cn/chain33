@@ -1,16 +1,16 @@
-package  test
+package main
 
 import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-        "testing"
+	"testing"
 )
 
 func Test_SendTransaction(t *testing.T) {
 	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(
-		`{"jsonrpc":"2.0","id":2,"method":"JRpcRequest.SendTransaction","params":[{"from":"bangzhu","to":"tongtong","value":"9999"}]}`,
+		`{"jsonrpc":"2.0","id":2,"method":"JRpcRequest.SendTransaction","params":[{"account":"bangzhu","payload":"tongtong","signature":"9999"}]}`,
 	))
 	if err != nil {
 		panic(err)
