@@ -1,7 +1,16 @@
 package blockchain
 
-import "code.aliyun.com/chain33/chain33/queue"
 
+import (
+	//. "common"
+	dbm "common/db"
+	"container/list"
+	"errors"
+	"fmt"
+	"queue"
+	"time"
+	"types"
+)
 type BlockChain struct{}
 
 func New() *BlockChain {
