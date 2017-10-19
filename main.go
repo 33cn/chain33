@@ -38,16 +38,18 @@ func main() {
 	network.SetQueue(q)
 
 	//jsonrpc, grpc, channel 三种模式
-	api := rpc.New("channel", "")
+    api := rpc.NewServer("jsonrpc", ":8801")
 	api.SetQueue(q)
+	gapi := rpc.NewServer("grpc", ":8802")
+	gapi.SetQueue(q)
 
 	go func() {
 		//jsonrpc, grpc, channel 三种模式
 		client := rpc.NewClient("channel", "")
 		//同步接口
 		client.SetQueue(q)
-		tx := &types.Transaction{}
-		client.SendTx(tx)
+		//tx := &types.Transaction{}
+		//client.SendTx(tx)
 	}()
 	q.Start()
 }
