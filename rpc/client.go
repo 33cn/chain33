@@ -1,8 +1,7 @@
 package rpc
 
 import (
-	"fmt"
-	"types"
+	"code.aliyun.com/chain33/chain33/types"
 )
 import "queue"
 
@@ -44,6 +43,7 @@ func NewClient(name string, addr string) IRClient {
 func (client *channelClient) SetQueue(q *queue.Queue) {
 
 	client.qclient = q.GetClient()
+	client.qclient.Sub("rpc")
 	go func() {
 		for msg := range client.qclient.Recv() {
 
@@ -51,30 +51,28 @@ func (client *channelClient) SetQueue(q *queue.Queue) {
 			switch msgty {
 			case types.EventTx:
 
-				//TODO:
-				//单独测试的时候，可以把此行代码注释掉，模拟数据直接返回
-				//var tr types.Transaction
-				//tr.Account = []byte(msg.Data.(Pdata).TO)
-				//resp := client.SendTx(&tr)
-				msg.Data = "测试交易成功"
-				resp := msg
-				resp.ParentId = msg.Id
-				client.qclient.Send(resp, false)
+				resp := client.SendTx(msg.GetData().(*types.Transaction))
+				msg.Reply(client.qclient.NewMessage("channel", types.EventTx, resp.GetData()))
 			case types.EventQueryTx:
-				//TODO：
-				msg.Data = "测试查询交易信息成功"
-				msg.ParentId = msg.Id
-				client.qclient.Send(msg, false)
+
+				proof, err := client.QueryTx(msg.GetData().([]byte))
+				if err != nil {
+					msg.Reply(client.qclient.NewMessage("channel", types.EventTx, types.Reply{false, []byte(err.Error())}))
+					return
+				}
+				msg.Reply(client.qclient.NewMessage("channel", types.EventQueryTx, proof))
 			case types.EventGetBlocks:
-				//TODO：
-				msg.Data = "测试查询区块信息成功"
-				msg.ParentId = msg.Id
-				client.qclient.Send(msg, false)
+
+				blocks, err := client.GetBlocks(msg.GetData().(types.RequestBlocks).Start, msg.Data.(types.RequestBlocks).End)
+				if err != nil {
+					msg.Reply(client.qclient.NewMessage("channel", types.EventTx, types.Reply{false, []byte(err.Error())}))
+					return
+				}
+				msg.Reply(client.qclient.NewMessage("channel", types.EventGetBlocks, blocks))
 
 			default:
-				msg.Data = fmt.Errorf("wrong type")
-				msg.ParentId = msg.Id
-				client.qclient.Send(msg, false)
+
+				msg.Reply(client.qclient.NewMessage("channel", types.EventTx, types.Reply{false, []byte("wrong type")}))
 
 			}
 		}
@@ -87,11 +85,12 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("mempool", types.EventTx, 0, tx)
+	msg := client.qclient.NewMessage("mempool", types.EventTx, tx)
 	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg.Id)
+	resp, err := client.qclient.Wait(msg)
 	if err != nil {
-		//	resp.Err().
+
+		resp.Data = err
 		return resp
 	}
 
@@ -99,9 +98,9 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 }
 
 func (client *channelClient) GetBlocks(start int64, end int64) (blocks *types.Blocks, err error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, 0, &types.RequestBlocks{start, end})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.RequestBlocks{start, end})
 	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg.Id)
+	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +111,9 @@ func (client *channelClient) GetBlocks(start int64, end int64) (blocks *types.Bl
 }
 
 func (client *channelClient) QueryTx(hash []byte) (proof *types.MerkleProof, err error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventQueryTx, 0, &types.RequestHash{hash})
+	msg := client.qclient.NewMessage("blockchain", types.EventQueryTx, &types.RequestHash{hash})
 	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg.Id)
+	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
 	}

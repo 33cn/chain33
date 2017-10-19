@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"net/rpc"
 	"net/rpc/jsonrpc"
+
+	pb "code.aliyun.com/chain33/chain33/types"
+
+	"google.golang.org/grpc"
 )
 
 // adapt HTTP connection to ReadWriteCloser
@@ -22,7 +26,6 @@ func (c *HttpConn) Close() error                      { return nil }
 func (jrpc *jsonrpcServer) CreateServer(addr string) {
 	server := rpc.NewServer()
 	server.Register(&JRpcRequest{jserver: jrpc})
-
 	listener, e := net.Listen("tcp", addr)
 	if e != nil {
 		log.Fatal("listen error:", e)
@@ -37,11 +40,23 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 			err := server.ServeRequest(serverCodec)
 			if err != nil {
 				log.Printf("Error while serving JSON request: %v", err)
-				http.Error(w, "Error while serving JSON request, details have been logged.", 500)
 				return
 			}
 		}
 
 	}))
+
+}
+
+func (grpcx *grpcServer) CreateServer(addr string) {
+
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal("failed to listen: %v", err)
+	}
+
+	s := grpc.NewServer()
+	pb.RegisterGrpcserviceServer(s, &Grpc{gserver: grpcx})
+	go s.Serve(listener)
 
 }
