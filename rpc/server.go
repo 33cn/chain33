@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"queue"
+	"code.aliyun.com/chain33/chain33/queue"
 )
 
 func NewServer(name string, addr string) IServer {
@@ -33,7 +33,6 @@ func newChannelServer() *channelServer {
 func (server *channelServer) SetQueue(q *queue.Queue) {
 	server.q = q
 	server.c = q.GetClient() //创建一个Queue Client
-	server.c.Sub("channel")  //订阅channal 的replay 消息
 
 }
 func (server *channelServer) GetQueue() *queue.Queue {
@@ -50,7 +49,9 @@ type jsonrpcServer struct {
 }
 
 func newGrpcServer(addr string) *grpcServer {
-	return &grpcServer{}
+	server := &grpcServer{}
+	server.CreateServer(addr)
+	return server
 }
 
 func newJsonrpcServer(addr string) *jsonrpcServer {
