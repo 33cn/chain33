@@ -3,7 +3,7 @@ package blockchain
 
 import (
 	//. "common"
-	dbm "common/db"
+	//dbm "common/db"
 	"container/list"
 	"errors"
 	"fmt"
