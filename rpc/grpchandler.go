@@ -28,7 +28,8 @@ func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.RequestHash) (*pb.
 	if err != nil {
 		return nil, err
 	}
-    return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(pb.Reply).Msg}, nil
+
+	return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(pb.Reply).Msg}, nil
 
 }
 
@@ -45,4 +46,3 @@ func (req *Grpc) GetBlocks(ctx context.Context, in *pb.RequestBlocks) (*pb.Reply
 	return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(pb.Reply).Msg}, nil
 
 }
-
