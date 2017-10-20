@@ -5,7 +5,7 @@ package types;
 service grpcservice{
 	rpc SendTransaction(Transaction) returns (Reply){}
 	rpc QueryTransaction(RequestHash) returns (Reply){}
-	rpc GetBlocks(Block) returns (Reply){}
+	rpc GetBlocks(RequestBlocks) returns (Reply){}
 }
 //end
 
