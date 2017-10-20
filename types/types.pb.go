@@ -75,6 +75,7 @@ type Block struct {
 	ParentHash []byte         `protobuf:"bytes,1,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
 	TxHash     []byte         `protobuf:"bytes,2,opt,name=txHash,proto3" json:"txHash,omitempty"`
 	BlockTime  int64          `protobuf:"varint,3,opt,name=blockTime" json:"blockTime,omitempty"`
+	Height     int64          `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
 	Txs        []*Transaction `protobuf:"bytes,4,rep,name=txs" json:"txs,omitempty"`
 }
 
@@ -100,6 +101,12 @@ func (m *Block) GetTxHash() []byte {
 func (m *Block) GetBlockTime() int64 {
 	if m != nil {
 		return m.BlockTime
+	}
+	return 0
+}
+func (m *Block) GetHeight() int64 {
+	if m != nil {
+		return m.Height
 	}
 	return 0
 }
@@ -319,6 +326,12 @@ func (m *ReplyTxList) GetTxs() []*Transaction {
 		return m.Txs
 	}
 	return nil
+}
+
+type TxResult struct {
+	Height int64        `json:"height"`
+	Index  int32        `json:"index"`
+	Tx     *Transaction `json:"tx"`
 }
 
 func init() {
