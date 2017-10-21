@@ -10,10 +10,10 @@ type Consumer interface {
 }
 
 // 查询区块相关信息接口
-type ReadLeadger interface {
-	GetPreBlock()
-	QueryTransaction()
-}
+//type ReadLeadger interface {
+//	GetPreBlock()
+//	QueryTransaction()
+//}
 
 // 广播消息接口
 type Communicator interface {

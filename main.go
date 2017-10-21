@@ -9,8 +9,7 @@ package main
 
 import (
 	"code.aliyun.com/chain33/chain33/blockchain"
-	"code.aliyun.com/chain33/chain33/consensus"
-	"code.aliyun.com/chain33/chain33/consensus/solo"
+	"code.aliyun.com/chain33/chain33/consensus/controller"
 	"code.aliyun.com/chain33/chain33/mempool"
 	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -29,18 +28,7 @@ func main() {
 	chain.SetQueue(q)
 
 	log.Info("loading consensus module")
-	// TODO: Get configuration for consensus type
-	consensusType := "solo"
-	if consensusType == "solo" {
-		conSolo := solo.NewSolo()
-		conSolo.SetQueue(q)
-	} else if consensusType == "raft" {
-		// TODO:
-	} else if consensusType == "pbft" {
-		// TODO:
-	} else {
-		panic("不支持的共识类型")
-	}
+	con := controller.NewPlugin("solo", q)
 
 	mem := mempool.New()
 	mem.SetQueue(q)
