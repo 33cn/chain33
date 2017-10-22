@@ -16,34 +16,44 @@ func NewSolo() *SoloClient {
 }
 
 func (client *SoloClient) SetQueue(q *queue.Queue) {
+	client.qclient = q.GetClient()
 
 	// TODO: solo模式下判断当前节点是否主节点，主节点打包区块，其余节点不用做
-	client.qclient = q.GetClient()
+
 	// Get transaction list size
-	listSize := 10000
+	listSize := 100
 
 	go func() {
 		for {
-			// 循环从mempool里取交易列表
+			// Get transaction list from mempool
 			resp, err := client.RequestTx(listSize)
 			if err != nil {
-				log.Fatal("error")
+				log.Fatal("error happens when get txs from mempool")
 			}
 
-			// TODO: 需要评估取数据的时间和下面处理数据的时间
-			// TODO:剔除账本中已经存在的重复交易
+			// TODO:Check the duplicated transaction
 			//QueryTransaction(resp.Data)
 
-			// TODO:对交易列表中交易进行排序
+			// TODO:sort the transaction
 			// sortTransaction(txlist)
 
-			// 创建新区块
-			client.processBlock(resp.GetData().(types.ReplyTxList))
+			// create the next block
+			block := client.ProcessBlock(resp.GetData().(types.ReplyTxList))
+			msg := client.qclient.NewMessage("blockchain", types.EventAddBlock, block)
+			client.qclient.Send(msg, true)
+			resp, err = client.qclient.Wait(msg)
+
+			if err != nil {
+				return
+			}
+			if !(resp.GetData().(types.Reply).IsOk) {
+				log.Fatal("Blockchian return fail when write block")
+			}
 		}
 	}()
 }
 
-// 向mempool发起RequestTxList请求消息，返回对应的交易列表
+// Get transaction list from mempool
 func (client *SoloClient) RequestTx(txNum int) (queue.Message, error) {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
@@ -53,18 +63,45 @@ func (client *SoloClient) RequestTx(txNum int) (queue.Message, error) {
 	return client.qclient.Wait(msg)
 }
 
-// 创建区块
-func (i *SoloClient) processBlock(reply types.ReplyTxList) {
-	txs := reply.GetTxs()
-	log.Println(len(txs))
+// Create the block
+func (client *SoloClient) ProcessBlock(reply types.ReplyTxList) (block *types.Block) {
 
+	msg := client.qclient.NewMessage("blockchian", types.EventGetBlockHeight, nil)
+	client.qclient.Send(msg, true)
+	replyHeight, err := client.qclient.Wait(msg)
+
+	if err != nil {
+		log.Fatal("error happens when get height from blockchain")
+		return
+	}
+	// Get the blockchain height
+	height := replyHeight.GetData().(types.ReplyBlockHeight).Height
+
+	newblock := &types.Block{}
+
+	if height == 0 {
+		// create the genesis block
+		newblock.Height = 0
+		// TODO: ??
+		newblock.Txs = nil
+	} else {
+		msg = client.qclient.NewMessage("blockchian", types.EventGetBlocks, types.RequestBlocks{height - 1, height})
+		client.qclient.Send(msg, true)
+		replyblock, err := client.qclient.Wait(msg)
+
+		if err != nil {
+			return
+		}
+
+		preblock := replyblock.GetData().(types.Blocks).Items[0]
+		// TODO: ??
+		newblock.ParentHash = preblock.TxHash
+		newblock.Height = height
+		newblock.Txs = reply.GetTxs()
+	}
+
+	return newblock
 }
-
-//func (client *SoloClient) GetPreBlock() (int, err) {
-//	//	msg := client.qclient.NewMessage("blockchain", types., 0, )
-//	//	client.qclient.Send(msg, true)
-//	//	resp, err := client.qclient.Wait(msg.Id)
-//}
 
 //func (client *SoloClient) QueryTransaction(txs []*types.Transaction) (proof *types.MerkleProof, err error) {
 
