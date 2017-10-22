@@ -4,6 +4,7 @@ import "code.aliyun.com/chain33/chain33/queue"
 import "code.aliyun.com/chain33/chain33/consensus/solo"
 
 func NewPlugin(consensusType string, q *queue.Queue) {
+
 	if consensusType == "solo" {
 		con := solo.NewSolo()
 		con.SetQueue(q)
