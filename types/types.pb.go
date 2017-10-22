@@ -75,7 +75,8 @@ type Block struct {
 	ParentHash []byte         `protobuf:"bytes,1,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
 	TxHash     []byte         `protobuf:"bytes,2,opt,name=txHash,proto3" json:"txHash,omitempty"`
 	BlockTime  int64          `protobuf:"varint,3,opt,name=blockTime" json:"blockTime,omitempty"`
-	Txs        []*Transaction `protobuf:"bytes,4,rep,name=txs" json:"txs,omitempty"`
+	Height     int64          `protobuf:"varint,4,opt,name=height" json:"height,omitempty"`
+	Txs        []*Transaction `protobuf:"bytes,5,rep,name=txs" json:"txs,omitempty"`
 }
 
 func (m *Block) Reset()                    { *m = Block{} }

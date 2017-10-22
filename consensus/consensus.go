@@ -1,6 +1,5 @@
 package consensus
 
-import "code.aliyun.com/chain33/chain33/consensus/solo"
 import "code.aliyun.com/chain33/chain33/queue"
 
 // 从mempool获取消息接口
@@ -17,5 +16,5 @@ type Consumer interface {
 
 // 广播消息接口
 type Communicator interface {
-	BroadcastBlock() error
+	ProcessBlock(reply types.ReplyTxList) (block *types.Block)
 }
