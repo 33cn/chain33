@@ -1,7 +1,9 @@
 package controller
 
-import "code.aliyun.com/chain33/chain33/queue"
-import "code.aliyun.com/chain33/chain33/consensus/solo"
+import (
+	"code.aliyun.com/chain33/chain33/consensus/solo"
+	"code.aliyun.com/chain33/chain33/queue"
+)
 
 func NewPlugin(consensusType string, q *queue.Queue) {
 
@@ -13,6 +15,6 @@ func NewPlugin(consensusType string, q *queue.Queue) {
 	} else if consensusType == "pbft" {
 		// TODO:
 	} else {
-		panic("不支持的共识类型")
+		panic("Unsupported consensus type")
 	}
 }
