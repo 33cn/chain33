@@ -31,7 +31,8 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 				log.Fatal("error happens when get txs from mempool")
 			}
 
-			// TODO:Check the duplicated transaction
+			// TODO:Check the duplicated transaction.
+			// The efficiency will be relatively low when check the txs one by one??
 			//QueryTransaction(resp.Data)
 
 			// TODO:sort the transaction
@@ -82,6 +83,7 @@ func (client *SoloClient) ProcessBlock(reply types.ReplyTxList) (block *types.Bl
 	if height == 0 {
 		// create the genesis block
 		newblock.Height = 0
+		newblock.ParentHash = nil
 		// TODO: ??
 		newblock.Txs = nil
 	} else {
