@@ -2,9 +2,10 @@ package solo
 
 import (
 	"log"
+
+	"code.aliyun.com/chain33/chain33/queue"
+	"code.aliyun.com/chain33/chain33/types"
 )
-import "code.aliyun.com/chain33/chain33/queue"
-import "code.aliyun.com/chain33/chain33/types"
 
 type SoloClient struct {
 	qclient queue.IClient
@@ -20,7 +21,7 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 
 	// TODO: solo模式下判断当前节点是否主节点，主节点打包区块，其余节点不用做
 
-	// Get transaction list size
+	// TODO: Get transaction list size
 	listSize := 100
 
 	go func() {
@@ -33,10 +34,7 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 
 			// TODO:Check the duplicated transaction.
 			// The efficiency will be relatively low when check the txs one by one??
-			//QueryTransaction(resp.Data)
-
-			// TODO:sort the transaction
-			// sortTransaction(txlist)
+			//CheckDuplicatedTxs(resp.GetData().(types.ReplyTxList))
 
 			// create the next block
 			block := client.ProcessBlock(resp.GetData().(types.ReplyTxList))
@@ -87,6 +85,7 @@ func (client *SoloClient) ProcessBlock(reply types.ReplyTxList) (block *types.Bl
 		// TODO: ??
 		newblock.Txs = nil
 	} else {
+		// TODO: It's better supply the function of getBlockbyHeight
 		msg = client.qclient.NewMessage("blockchian", types.EventGetBlocks, types.RequestBlocks{height - 1, height})
 		client.qclient.Send(msg, true)
 		replyblock, err := client.qclient.Wait(msg)
@@ -104,17 +103,3 @@ func (client *SoloClient) ProcessBlock(reply types.ReplyTxList) (block *types.Bl
 
 	return newblock
 }
-
-//func (client *SoloClient) QueryTransaction(txs []*types.Transaction) (proof *types.MerkleProof, err error) {
-
-//}
-
-//func (client *SoloClient) sortTransaction() {
-
-//}
-
-//func (client *SoloClient) BroadcastBlock() {
-//	msg := client.qclient.NewMessage("p2p", types.EventGetBlocks, 0, &types.RequestBlocks{start, end})
-//	client.qclient.Send(msg, true)
-//	resp, err := client.qclient.Wait(msg.Id)
-//}
