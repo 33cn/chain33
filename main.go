@@ -9,7 +9,7 @@ package main
 
 import (
 	"code.aliyun.com/chain33/chain33/blockchain"
-	"code.aliyun.com/chain33/chain33/consensus/controller"
+	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/mempool"
 	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -28,7 +28,7 @@ func main() {
 	chain.SetQueue(q)
 
 	log.Info("loading consensus module")
-	con := controller.NewPlugin("solo", q)
+	consensus.New("solo", q)
 
 	mem := mempool.New()
 	mem.SetQueue(q)
