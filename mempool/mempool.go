@@ -14,51 +14,54 @@ type MClient interface {
 	SendTx(tx *types.Transaction) queue.Message
 }
 
-type ChannelClient struct {
+type channelClient struct {
 	qclient queue.IClient
 }
 
 type Mempool struct {
 	proxyMtx sync.Mutex
-	cache    *TxCache
+	cache    *txCache
 }
 
-type TxCache struct {
-	mtx  sync.Mutex
+type txCache struct {
+	// mtx  sync.Mutex
 	size int
 	map_ map[*types.Transaction]struct{}
-	list *list.List // to remove oldest tx when cache gets too big
+	txs  []types.Transaction
+	// list *list.List
 }
 
-// NewTxCache returns a new TxCache.
-func NewTxCache(cacheSize int) *TxCache {
-	return &TxCache{
+// NewTxCache returns a new txCache.
+func NewTxCache(cacheSize int) *txCache {
+	return &txCache{
 		size: cacheSize,
 		map_: make(map[*types.Transaction]struct{}, cacheSize),
-		list: list.New(),
+		txs:  make([]types.Transaction, cacheSize),
+		// list: list.New(),
 	}
 }
 
-// Reset resets the TxCache to empty.
-func (cache *TxCache) Reset() {
-	cache.mtx.Lock()
+// Reset resets the txCache to empty.
+func (cache *txCache) Reset() {
+	// cache.mtx.Lock()
 	cache.map_ = make(map[*types.Transaction]struct{}, cacheSize)
-	cache.list.Init()
-	cache.mtx.Unlock()
+	cache.txs = make([]types.Transaction, cacheSize)
+	// cache.list.Init()
+	// cache.mtx.Unlock()
 }
 
 // Exists returns true if the given tx is cached.
-func (cache *TxCache) Exists(tx *types.Transaction) bool {
-	cache.mtx.Lock()
+func (cache *txCache) Exists(tx *types.Transaction) bool {
+	// cache.mtx.Lock()
 	_, exists := cache.map_[tx]
-	cache.mtx.Unlock()
+	// cache.mtx.Unlock()
 	return exists
 }
 
-// Push adds the given tx to the TxCache. It returns false if tx is already in the cache.
-func (cache *TxCache) Push(tx *types.Transaction) bool {
-	cache.mtx.Lock()
-	defer cache.mtx.Unlock()
+// Push adds the given tx to the txCache. It returns false if tx is already in the cache.
+func (cache *txCache) Push(tx *types.Transaction) bool {
+	// cache.mtx.Lock()
+	// defer cache.mtx.Unlock()
 
 	if _, exists := cache.map_[tx]; exists {
 		return false
@@ -70,19 +73,39 @@ func (cache *TxCache) Push(tx *types.Transaction) bool {
 		// NOTE: the tx may have already been removed from the map
 		// but deleting a non-existent element is fine
 		delete(cache.map_, poppedTx)
-		cache.list.Remove(popped)
+		// cache.list.Remove(popped)
+		cache.txs = cache.txs[1:]
 	}
 
 	cache.map_[tx] = struct{}{}
-	cache.list.PushBack(tx)
+	// cache.list.PushBack(tx)
+	cache.txs = append(cache.txs, tx)
 	return true
 }
 
 // Remove removes the given tx from the cache.
-func (cache *TxCache) Remove(tx *types.Transaction) {
-	cache.mtx.Lock()
-	delete(cache.map_, tx)
-	cache.mtx.Unlock()
+// func (cache *txCache) Remove(tx *types.Transaction) {
+// 	// cache.mtx.Lock()
+// 	delete(cache.map_, tx)
+// 	// cache.mtx.Unlock()
+// }
+
+func (cache *txCache) Size() int {
+	// return cache.list.Len()
+	return len(cache.txs)
+}
+
+func (cache *txCache) GetTxList(txListSize int) []types.Transaction {
+	txsSize := cache.Size()
+	if txsSize <= txListSize {
+		result := cache.txs
+		mem.Flush()
+		return result
+	} else {
+		result := cache.txs[:txListSize]
+		cache.txs = cache.txs[txListSize:]
+		return result
+	}
 }
 
 func (mem *Mempool) Lock() {
@@ -94,7 +117,7 @@ func (mem *Mempool) Unlock() {
 }
 
 func (mem *Mempool) Size() int {
-	return mem.cache.list.Len()
+	return mem.cache.Size()
 }
 
 func (mem *Mempool) Flush() {
@@ -102,11 +125,11 @@ func (mem *Mempool) Flush() {
 	defer mem.proxyMtx.Unlock()
 	mem.cache.Reset()
 
-	var next *list.Element
-    for e := mem.cache.list.Front(); e != nil; e = next {
-        next = e.Next()
-        mem.cache.list.Remove(e)
-    }
+	// var next *list.Element
+ //    for e := mem.cache.list.Front(); e != nil; e = next {
+ //        next = e.Next()
+ //        mem.cache.list.Remove(e)
+ //    }
 }
 
 func (mem *Mempool) CheckTx(tx *types.Transaction) bool {
@@ -123,7 +146,7 @@ func (mem *Mempool) CheckTx(tx *types.Transaction) bool {
 	return true
 }
 
-func (client *ChannelClient) SendTx(tx *types.Transaction) queue.Message {
+func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
@@ -140,7 +163,7 @@ func (client *ChannelClient) SendTx(tx *types.Transaction) queue.Message {
 }
 
 func (mem *Mempool) SetQueue(q *queue.Queue) {
-	var chanClient *ChannelClient = new(ChannelClient)
+	var chanClient *channelClient = new(channelClient)
 	client := q.GetClient()
 	client.Sub("mempool")
 	go func () {
@@ -159,8 +182,8 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					msg.Reply(client.NewMessage("rpc", types.EventReply, types.Reply{true, []byte("error")}))
 				}
 			} else if msg.Ty == types.EventTxList {
-				msg.Reply(client.NewMessage("consense", types.EventTxListReply, types.ReplyTxList, mem.cache.list))
-				mem.Flush()
+				msg.Reply(client.NewMessage("consense", types.EventTxListReply, types.ReplyTxList, mem.cache.GetTxList(10000)))
+				// mem.Flush()
 			}
 		}
 	}()
