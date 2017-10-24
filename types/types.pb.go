@@ -112,6 +112,22 @@ func (m *Block) GetTxs() []*Transaction {
 	return nil
 }
 
+type TransactionBlock struct {
+	Transactions []*Transaction `protobuf:"bytes,1,rep,name=transactions" json:"transactions,omitempty"`
+}
+
+func (m *TransactionBlock) Reset()                    { *m = TransactionBlock{} }
+func (m *TransactionBlock) String() string            { return proto.CompactTextString(m) }
+func (*TransactionBlock) ProtoMessage()               {}
+func (*TransactionBlock) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *TransactionBlock) GetTransactions() []*Transaction {
+	if m != nil {
+		return m.Transactions
+	}
+	return nil
+}
+
 type Transaction struct {
 	Payload   []byte `protobuf:"bytes,1,opt,name=Payload,proto3" json:"Payload,omitempty"`
 	Signature []byte `protobuf:"bytes,2,opt,name=Signature,proto3" json:"Signature,omitempty"`
