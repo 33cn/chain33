@@ -12,7 +12,8 @@ message Block {
 	bytes parentHash = 1;
 	bytes txHash = 2;
 	int64 blockTime = 3;
-	repeated Transaction txs = 4;
+	int64 height =4;
+	repeated Transaction txs = 5;
 }
 
 message Transaction {
@@ -62,3 +63,10 @@ message RequestTxList {
 message ReplyTxList {
 	repeated Transaction txs = 1;
 }
+
+message TxResult {
+	int64 height =1;
+	int32 index = 2;
+	Transaction tx = 3;
+}
+
