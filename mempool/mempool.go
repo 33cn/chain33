@@ -1,7 +1,7 @@
 package mempool
 
 import (
-	"container/list"
+	// "container/list"
 	"sync"
 	"code.aliyun.com/chain33/chain33/types"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -67,19 +67,19 @@ func (cache *txCache) Push(tx *types.Transaction) bool {
 		return false
 	}
 
-	if cache.list.Len() >= cache.size {
-		popped := cache.list.Front()
-		poppedTx := popped.Value.(*types.Transaction)
+	if len(cache.txs) >= cache.size {
+		popped := cache.txs[0]
+		// poppedTx := popped.Value.(*types.Transaction)
 		// NOTE: the tx may have already been removed from the map
 		// but deleting a non-existent element is fine
-		delete(cache.map_, poppedTx)
+		delete(cache.map_, &popped)
 		// cache.list.Remove(popped)
 		cache.txs = cache.txs[1:]
 	}
 
 	cache.map_[tx] = struct{}{}
 	// cache.list.PushBack(tx)
-	cache.txs = append(cache.txs, tx)
+	cache.txs = append(cache.txs, *tx)
 	return true
 }
 
@@ -95,15 +95,23 @@ func (cache *txCache) Size() int {
 	return len(cache.txs)
 }
 
-func (cache *txCache) GetTxList(txListSize int) []types.Transaction {
-	txsSize := cache.Size()
-	if txsSize <= txListSize {
-		result := cache.txs
+func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
+	txsSize := mem.cache.Size()
+	var result []*types.Transaction
+	var i int
+	if txsSize <= txListSize {	
+		for i = 0; i < txsSize; i++ {
+			result[i] = &mem.cache.txs[i]
+		}
+		// result := mem.cache.txs
 		mem.Flush()
 		return result
 	} else {
-		result := cache.txs[:txListSize]
-		cache.txs = cache.txs[txListSize:]
+		for i = 0; i < txListSize; i++ {
+			result[i] = &mem.cache.txs[i]
+		}
+		// result := mem.cache.txs[:txListSize]
+		mem.cache.txs = mem.cache.txs[txListSize:]
 		return result
 	}
 }
@@ -182,7 +190,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					msg.Reply(client.NewMessage("rpc", types.EventReply, types.Reply{true, []byte("error")}))
 				}
 			} else if msg.Ty == types.EventTxList {
-				msg.Reply(client.NewMessage("consense", types.EventTxListReply, types.ReplyTxList, mem.cache.GetTxList(10000)))
+				msg.Reply(client.NewMessage("consense", types.EventTxListReply, types.ReplyTxList{mem.GetTxList(10000)}))
 				// mem.Flush()
 			}
 		}
