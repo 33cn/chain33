@@ -5,7 +5,7 @@ import (
 
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
-	//"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 var height int64
@@ -100,6 +100,9 @@ func (client *SoloClient) ProcessBlock(reply types.ReplyTxList) (block *types.Bl
 		newblock.ParentHash = preblock.TxHash
 		newblock.Height = height
 		newblock.Txs = reply.GetTxs()
+		txs := &types.TransactionBlock{Transactions: reply.GetTxs()}
+		txsHash, _ := proto.Marshal(txs)
+		newblock.TxHash = txsHash
 	}
 
 	return newblock
