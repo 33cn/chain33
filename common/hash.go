@@ -125,8 +125,9 @@ func Bytes2Hex(d []byte) string {
 	return hex.EncodeToString(d)
 }
 
-func Sha256(b []byte) Hash {
-	return sha256.Sum256(b)
+func Sha256(b []byte) []byte {
+	data := sha256.Sum256(b)
+	return data[:]
 }
 
 func Hex2Bytes(str string) []byte {
