@@ -19,6 +19,7 @@ func (block *Block) Hash() []byte {
 	head.ParentHash = block.ParentHash
 	head.TxHash = block.TxHash
 	head.BlockTime = block.BlockTime
+	head.Height = block.Height
 	data, err := proto.Marshal(head)
 	if err != nil {
 		panic(err)
