@@ -62,3 +62,7 @@ message RequestTxList {
 message ReplyTxList {
 	repeated Transaction txs = 1;
 }
+
+message TxHashList {
+	repeated bytes hashes = 1;
+}
