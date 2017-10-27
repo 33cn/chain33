@@ -13,15 +13,17 @@ message Header {
 	int64 version = 1;
 	bytes parentHash = 2;
 	bytes txHash = 3;
-	int64 blockTime = 4;
+	int64 height = 4;
+	int64 blockTime = 5;
 }
 
 message Block {
 	int64 version = 1;
 	bytes parentHash = 2;
 	bytes txHash = 3;
-	int64 blockTime = 4;
-	repeated Transaction txs = 5;
+	int64 height = 4;
+	int64 blockTime = 5;
+	repeated Transaction txs = 6;
 }
 
 message Transaction {
