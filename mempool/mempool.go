@@ -106,6 +106,8 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 
 // Mempool.Size返回Mempool中txCache大小
 func (mem *Mempool) Size() int {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
 	return mem.cache.Size()
 }
 
