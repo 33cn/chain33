@@ -11,7 +11,7 @@ type DB interface {
 	Delete([]byte)
 	DeleteSync([]byte)
 	Close()
-	NewBatch() Batch
+	NewBatch(sync bool) Batch
 
 	// For debugging
 	Print()
