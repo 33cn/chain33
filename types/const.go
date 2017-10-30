@@ -25,4 +25,7 @@ const (
 
 	EventFetchBlocks
 	EventAddBlocks
+
+	EventTxHashList
+	EventTxHashListReply
 )

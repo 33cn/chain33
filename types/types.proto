@@ -1,19 +1,29 @@
 syntax = "proto3";
 package types;
 
+//add by bangzhu.li
+service grpcservice{
+	rpc SendTransaction(Transaction) returns (Reply){}
+	rpc QueryTransaction(RequestHash) returns (Reply){}
+	rpc GetBlocks(RequestBlocks) returns (Reply){}
+}
+//end
 
 message Header {
-	bytes parentHash = 1;
-	bytes txHash = 2;
-	int64 blockTime = 3;
+	int64 version = 1;
+	bytes parentHash = 2;
+	bytes txHash = 3;
+	int64 height = 4;
+	int64 blockTime = 5;
 }
 
 message Block {
-	bytes parentHash = 1;
-	bytes txHash = 2;
-	int64 blockTime = 3;
-	int64 height =4;
-	repeated Transaction txs = 5;
+	int64 version = 1;
+	bytes parentHash = 2;
+	bytes txHash = 3;
+	int64 height = 4;
+	int64 blockTime = 5;
+	repeated Transaction txs = 6;
 }
 
 message Transaction {
@@ -62,6 +72,10 @@ message RequestTxList {
 
 message ReplyTxList {
 	repeated Transaction txs = 1;
+}
+
+message TxHashList {
+	repeated bytes hashes = 1;
 }
 
 message TxResult {

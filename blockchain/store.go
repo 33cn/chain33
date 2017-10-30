@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	. "common"
+	//. "common"
 	dbm "common/db"
 	"encoding/json"
 	"errors"
@@ -114,20 +114,13 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, block *types.Block) error {
 	txlen := len(block.Txs)
 
 	for index := 0; index < txlen; index++ {
-		// 计算txhash值
-		txbyte, err := proto.Marshal(block.Txs[index])
-		if err != nil {
-			storelog.Error("indexTxs Encode tx err", "Height", block.Height, "index", index)
-			return err
-		}
-		//计算tx hash值
-		txhash := BytesToHash(txbyte)
-		txhashbyte := txhash.Bytes()
+		//计算tx hash
+		txhash := block.Txs[index].Hash()
 
 		//构造txresult 信息保存到db中
 		var txresult types.TxResult
 		txresult.Height = block.Height
-		txresult.Index = int32(index + 1)
+		txresult.Index = int32(index)
 		txresult.Tx = block.Txs[index]
 
 		txresultbyte, err := proto.Marshal(&txresult)
@@ -135,9 +128,9 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, block *types.Block) error {
 			storelog.Error("indexTxs Encode txresult err", "Height", block.Height, "index", index)
 			return err
 		}
-		testtxhash = txhashbyte //test
 
-		storeBatch.Set(txhashbyte, txresultbyte)
+
+		storeBatch.Set(txhash, txresultbyte)
 
 		//storelog.Debug("indexTxs Set txresult", "Height", block.Height, "index", index, "txhashbyte", txhashbyte)
 	}
