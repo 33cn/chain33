@@ -4,8 +4,8 @@ import (
 	"container/list"
 	"sync"
 
-	"../queue"
-	"../types"
+	"code.aliyun.com/chain33/chain33/queue"
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 const cacheSize = 300000 // mempool容量
@@ -28,7 +28,6 @@ type txCache struct {
 	// mtx  sync.Mutex
 	size int
 	map_ map[string]struct{}
-	//	txs  []types.Transaction
 	list *list.List
 }
 
@@ -37,7 +36,6 @@ func NewTxCache(cacheSize int) *txCache {
 	return &txCache{
 		size: cacheSize,
 		map_: make(map[string]struct{}, cacheSize),
-		//		txs:  nil,
 		list: list.New(),
 	}
 }
@@ -62,15 +60,12 @@ func (cache *txCache) Push(tx *types.Transaction) bool {
 	if cache.list.Len() >= cache.size {
 		popped := cache.list.Front()
 		poppedTx := popped.Value.(*types.Transaction)
-		//		popped := cache.txs[0]
 		delete(cache.map_, string(poppedTx.Hash()))
-		//		cache.txs = cache.txs[1:]
 		cache.list.Remove(popped)
 	}
 
 	cache.map_[string(tx.Hash())] = struct{}{}
 	cache.list.PushBack(tx)
-	//	cache.txs = append(cache.txs, *tx)
 	return true
 }
 
@@ -83,9 +78,11 @@ func (cache *txCache) Size() int {
 func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
+
 	txsSize := mem.cache.Size()
 	var result []*types.Transaction
 	var i int
+
 	if txsSize <= txListSize {
 		for i = 0; i < txsSize; i++ {
 			popped := mem.cache.list.Front()
@@ -103,7 +100,6 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 			mem.cache.list.Remove(popped)
 			delete(mem.cache.map_, string(poppedTx.Hash()))
 		}
-		//		mem.cache.txs = mem.cache.txs[txListSize:]
 		return result
 	}
 }
@@ -119,7 +115,6 @@ func (mem *Mempool) Flush() {
 	defer mem.proxyMtx.Unlock()
 	mem.cache.map_ = make(map[string]struct{}, cacheSize)
 	mem.cache.list.Init()
-	//	mem.cache.txs = nil
 }
 
 // Mempool.CheckTx坚持tx有效性并加入Mempool中
