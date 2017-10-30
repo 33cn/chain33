@@ -1,13 +1,14 @@
 package mempool
 
 import (
-	// "container/list"
+	"container/list"
 	"sync"
-	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/queue"
+
+	"../queue"
+	"../types"
 )
 
-const cacheSize = 300000
+const cacheSize = 300000 // mempool容量
 
 type MClient interface {
 	SetQueue(q *queue.Queue)
@@ -26,134 +27,140 @@ type Mempool struct {
 type txCache struct {
 	// mtx  sync.Mutex
 	size int
-	map_ map[*types.Transaction]struct{}
-	txs  []types.Transaction
-	// list *list.List
+	map_ map[string]struct{}
+	//	txs  []types.Transaction
+	list *list.List
 }
 
-// NewTxCache returns a new txCache.
+// NewTxCache初始化txCache
 func NewTxCache(cacheSize int) *txCache {
 	return &txCache{
 		size: cacheSize,
-		map_: make(map[*types.Transaction]struct{}, cacheSize),
-		txs:  make([]types.Transaction, cacheSize),
-		// list: list.New(),
+		map_: make(map[string]struct{}, cacheSize),
+		//		txs:  nil,
+		list: list.New(),
 	}
 }
 
-// Reset resets the txCache to empty.
-func (cache *txCache) Reset() {
-	// cache.mtx.Lock()
-	cache.map_ = make(map[*types.Transaction]struct{}, cacheSize)
-	cache.txs = make([]types.Transaction, cacheSize)
-	// cache.list.Init()
-	// cache.mtx.Unlock()
-}
-
-// Exists returns true if the given tx is cached.
+// txCache.Exists判断txCache中是否存在给定tx
 func (cache *txCache) Exists(tx *types.Transaction) bool {
 	// cache.mtx.Lock()
-	_, exists := cache.map_[tx]
+	_, exists := cache.map_[string(tx.Hash())]
 	// cache.mtx.Unlock()
 	return exists
 }
 
-// Push adds the given tx to the txCache. It returns false if tx is already in the cache.
+// txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
 func (cache *txCache) Push(tx *types.Transaction) bool {
 	// cache.mtx.Lock()
 	// defer cache.mtx.Unlock()
 
-	if _, exists := cache.map_[tx]; exists {
+	if _, exists := cache.map_[string(tx.Hash())]; exists {
 		return false
 	}
 
-	if len(cache.txs) >= cache.size {
-		popped := cache.txs[0]
-		// poppedTx := popped.Value.(*types.Transaction)
-		// NOTE: the tx may have already been removed from the map
-		// but deleting a non-existent element is fine
-		delete(cache.map_, &popped)
-		// cache.list.Remove(popped)
-		cache.txs = cache.txs[1:]
+	if cache.list.Len() >= cache.size {
+		popped := cache.list.Front()
+		poppedTx := popped.Value.(*types.Transaction)
+		//		popped := cache.txs[0]
+		delete(cache.map_, string(poppedTx.Hash()))
+		//		cache.txs = cache.txs[1:]
+		cache.list.Remove(popped)
 	}
 
-	cache.map_[tx] = struct{}{}
-	// cache.list.PushBack(tx)
-	cache.txs = append(cache.txs, *tx)
+	cache.map_[string(tx.Hash())] = struct{}{}
+	cache.list.PushBack(tx)
+	//	cache.txs = append(cache.txs, *tx)
 	return true
 }
 
-// Remove removes the given tx from the cache.
-// func (cache *txCache) Remove(tx *types.Transaction) {
-// 	// cache.mtx.Lock()
-// 	delete(cache.map_, tx)
-// 	// cache.mtx.Unlock()
-// }
-
+// txCache.Size返回txCache中已存tx数目
 func (cache *txCache) Size() int {
-	// return cache.list.Len()
-	return len(cache.txs)
+	return cache.list.Len()
 }
 
+// Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
 func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
 	txsSize := mem.cache.Size()
 	var result []*types.Transaction
 	var i int
-	if txsSize <= txListSize {	
+	if txsSize <= txListSize {
 		for i = 0; i < txsSize; i++ {
-			result[i] = &mem.cache.txs[i]
+			popped := mem.cache.list.Front()
+			poppedTx := popped.Value.(*types.Transaction)
+			result[i] = poppedTx
+			mem.cache.list.Remove(popped)
 		}
-		// result := mem.cache.txs
 		mem.Flush()
 		return result
 	} else {
 		for i = 0; i < txListSize; i++ {
-			result[i] = &mem.cache.txs[i]
+			popped := mem.cache.list.Front()
+			poppedTx := popped.Value.(*types.Transaction)
+			result[i] = poppedTx
+			mem.cache.list.Remove(popped)
+			delete(mem.cache.map_, string(poppedTx.Hash()))
 		}
-		// result := mem.cache.txs[:txListSize]
-		mem.cache.txs = mem.cache.txs[txListSize:]
+		//		mem.cache.txs = mem.cache.txs[txListSize:]
 		return result
 	}
 }
 
-func (mem *Mempool) Lock() {
-	mem.proxyMtx.Lock()
-}
-
-func (mem *Mempool) Unlock() {
-	mem.proxyMtx.Unlock()
-}
-
+// Mempool.Size返回Mempool中txCache大小
 func (mem *Mempool) Size() int {
 	return mem.cache.Size()
 }
 
+// Mempool.Flush清空Mempool中的tx
 func (mem *Mempool) Flush() {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	mem.cache.Reset()
-
-	// var next *list.Element
- //    for e := mem.cache.list.Front(); e != nil; e = next {
- //        next = e.Next()
- //        mem.cache.list.Remove(e)
- //    }
+	mem.cache.map_ = make(map[string]struct{}, cacheSize)
+	mem.cache.list.Init()
+	//	mem.cache.txs = nil
 }
 
+// Mempool.CheckTx坚持tx有效性并加入Mempool中
 func (mem *Mempool) CheckTx(tx *types.Transaction) bool {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 
-	// CACHE
 	if mem.cache.Exists(tx) {
-		return false // TODO: return an error (?)
+		return false
 	}
 	mem.cache.Push(tx)
-	// END CACHE
 
 	return true
 }
 
+// txCache.Remove移除txCache中给定tx
+func (cache *txCache) Remove(tx *types.Transaction) {
+	// cache.mtx.Lock()
+	delete(cache.map_, string(tx.Hash()))
+	for e := cache.list.Front(); e != nil; e = e.Next() {
+		if string(e.Value.(*types.Transaction).Hash()) == string(tx.Hash()) {
+			cache.list.Remove(e)
+		}
+	}
+	// cache.mtx.Unlock()
+}
+
+//Mempool.RemoveTxsOfBlock移除Mempool中已被Blockchain打包的tx
+func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	for tx := range block.Txs {
+		exist := mem.cache.Exists(block.Txs[tx])
+		if exist {
+			mem.cache.Remove(block.Txs[tx])
+		}
+	}
+	return true
+}
+
+// channelClient.SendTx向"p2p"发送消息
 func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
@@ -162,7 +169,7 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 	msg := client.qclient.NewMessage("p2p", types.EventTxBroadcast, tx)
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
-	
+
 	if err != nil {
 		resp.Data = err
 	}
@@ -174,24 +181,33 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	var chanClient *channelClient = new(channelClient)
 	client := q.GetClient()
 	client.Sub("mempool")
-	go func () {
+	go func() {
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
 				if mem.CheckTx(msg.GetData().(*types.Transaction)) {
 					chanClient.SendTx(msg.GetData().(*types.Transaction))
-					msg.Reply(client.NewMessage("rpc", types.EventReply, types.Reply{true, []byte("OK")}))
+					msg.Reply(client.NewMessage("rpc", types.EventReply,
+						types.Reply{true, nil}))
 				} else {
-					msg.Reply(client.NewMessage("rpc", types.EventReply, types.Reply{true, []byte("error")}))
+					msg.Reply(client.NewMessage("rpc", types.EventReply,
+						types.Reply{false, []byte("transaction exists")}))
 				}
 			} else if msg.Ty == types.EventTxAddMempool {
 				if mem.CheckTx(msg.GetData().(*types.Transaction)) {
-					msg.Reply(client.NewMessage("rpc", types.EventReply, types.Reply{true, []byte("OK")}))
+					msg.Reply(client.NewMessage("rpc", types.EventReply,
+						types.Reply{true, nil}))
 				} else {
-					msg.Reply(client.NewMessage("rpc", types.EventReply, types.Reply{true, []byte("error")}))
+					msg.Reply(client.NewMessage("rpc", types.EventReply,
+						types.Reply{false, []byte("transaction exists")}))
 				}
 			} else if msg.Ty == types.EventTxList {
-				msg.Reply(client.NewMessage("consense", types.EventTxListReply, types.ReplyTxList{mem.GetTxList(10000)}))
-				// mem.Flush()
+				msg.Reply(client.NewMessage("consense", types.EventTxListReply,
+					types.ReplyTxList{mem.GetTxList(10000)}))
+			} else if msg.Ty == types.TxAddBlock {
+				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
+				msg.Reply(client.NewMessage("blockchain", types.EventReply,
+					types.Reply{true, nil}))
+
 			}
 		}
 	}()
