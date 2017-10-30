@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	dbm "common/db"
+	"common/merkle"
 	"container/list"
 	"errors"
 	"fmt"
@@ -136,6 +137,11 @@ func (chain *BlockChain) ProcRecvMsg() {
 			replyBlockHeight.Height = chain.GetBlockHeight()
 			msg.Reply(chain.qclient.NewMessage("blockchain", types.EventReplyBlockHeight, &replyBlockHeight))
 
+		case types.EventTxHashList:
+			txhashlist := (msg.Data).(*types.TxHashList)
+			duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
+			msg.Reply(chain.qclient.NewMessage("blockchain", types.EventTxHashListReply, duptxhashlist))
+
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -194,6 +200,9 @@ FOR_LOOP:
 				if block != nil {
 					chain.cacheBlock(block)
 				}
+				//通知mempool和consense模块
+				chain.SendAddBlockEvent(block)
+
 				chain.blockPool.DelBlock(j)
 			}
 			continue FOR_LOOP
@@ -218,11 +227,26 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.MerkleProof
 	if err != nil {
 		return nil, err
 	}
-	merkleproof, err := GetMerkleProof(block.Txs, txhash, txresult.Index)
+	merkleproof, err := GetMerkleProof(block.Txs, txresult.Index)
 	if err != nil {
 		return nil, err
 	}
 	return merkleproof, nil
+}
+
+func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList) {
+
+	var dupTxHashList types.TxHashList
+
+	for _, txhash := range txhashlist.Hashes {
+		txresult, err := chain.GetTxResultFromDb(txhash)
+		if err == nil && txresult != nil {
+			dupTxHashList.Hashes = append(dupTxHashList.Hashes, txhash)
+			//chainlog.Debug("GetDuplicateTxHashList txresult", "height", txresult.Height, "index", txresult.Index)
+			//chainlog.Debug("GetDuplicateTxHashList txresult  tx", "txinfo", txresult.Tx.String())
+		}
+	}
+	return &dupTxHashList
 }
 
 /*
@@ -305,6 +329,9 @@ func (chain *BlockChain) ProcAddBlockMsg(block *types.Block) (err error) {
 		//删除此block的超时机制
 		chain.RemoveReqBlk(block.Height, block.Height)
 
+		//通知mempool和consense模块
+		chain.SendAddBlockEvent(block)
+
 		return nil
 	} else {
 		// 将此block 先添加到缓存中blockpool中。
@@ -352,6 +379,36 @@ func (chain *BlockChain) FetchBlock(reqblk *types.RequestBlocks) (err error) {
 		return err
 	}
 	return resp.Err()
+}
+
+//blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
+func (chain *BlockChain) SendAddBlockEvent(block *types.Block) (err error) {
+	if chain.qclient == nil {
+		fmt.Println("chain client not bind message queue.")
+		err := errors.New("chain client not bind message queue")
+		return err
+	}
+	if block == nil {
+		chainlog.Error("SendAddBlockEvent block is null")
+		return nil
+	}
+	chainlog.Debug("SendAddBlockEvent", "Height", block.Height)
+
+	msg := chain.qclient.NewMessage("mempool", types.EventAddBlock, block)
+	chain.qclient.Send(msg, true)
+	_, err = chain.qclient.Wait(msg)
+	if err != nil {
+		chainlog.Error("SendAddBlockEvent", "send to mempool err:", err)
+	}
+
+	msg = chain.qclient.NewMessage("consense", types.EventAddBlock, block)
+	chain.qclient.Send(msg, true)
+	_, err = chain.qclient.Wait(msg)
+	if err != nil {
+		chainlog.Error("SendAddBlockEvent", "send to consense err:", err)
+	}
+
+	return nil
 }
 
 func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
@@ -515,8 +572,20 @@ func (bpReqBlk *bpRequestBlk) onTimeout() {
 	bpReqBlk.didTimeout = true
 }
 
-// 打桩先，后面实现merkletree相关的代码
-func GetMerkleProof(blockTxs []*types.Transaction, txhash []byte, index int32) (*types.MerkleProof, error) {
+//  获取指定txindex  在txs中的merkleproof ，注释：index从0开始
+func GetMerkleProof(Txs []*types.Transaction, index int32) (*types.MerkleProof, error) {
 
-	return nil, nil
+	var txproof types.MerkleProof
+	txlen := len(Txs)
+
+	//计算tx的hash值
+	leaves := make([][]byte, txlen)
+	for index, tx := range Txs {
+		leaves[index] = tx.Hash()
+		//chainlog.Info("GetMerkleProof txhash", "index", index, "txhash", tx.Hash())
+	}
+
+	merkleproof, _ := merkle.ComputeMerkleBranch(leaves, int(index))
+	txproof.Hashs = merkleproof
+	return &txproof, nil
 }

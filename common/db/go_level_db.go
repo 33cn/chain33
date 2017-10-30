@@ -117,9 +117,10 @@ func (db *GoLevelDB) Iterator() Iterator {
 	return db.db.NewIterator(nil, nil)
 }
 
-func (db *GoLevelDB) NewBatch() Batch {
+func (db *GoLevelDB) NewBatch(sync bool) Batch {
 	batch := new(leveldb.Batch)
-	return &goLevelDBBatch{db, batch}
+	wop := &opt.WriteOptions{Sync: sync}
+	return &goLevelDBBatch{db, batch, wop}
 }
 
 //--------------------------------------------------------------------------------
@@ -127,6 +128,7 @@ func (db *GoLevelDB) NewBatch() Batch {
 type goLevelDBBatch struct {
 	db    *GoLevelDB
 	batch *leveldb.Batch
+	wop   *opt.WriteOptions
 }
 
 func (mBatch *goLevelDBBatch) Set(key, value []byte) {
@@ -138,7 +140,7 @@ func (mBatch *goLevelDBBatch) Delete(key []byte) {
 }
 
 func (mBatch *goLevelDBBatch) Write() {
-	err := mBatch.db.db.Write(mBatch.batch, nil)
+	err := mBatch.db.db.Write(mBatch.batch, mBatch.wop)
 	if err != nil {
 		fmt.Println(err)
 	}
