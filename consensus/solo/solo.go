@@ -74,7 +74,7 @@ func (client *SoloClient) RequestTx(txChannel chan<- types.ReplyTxList) {
 func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 
 	// 监听blockchain模块，获取当前最高区块
-	client.qclient.Sub("blockchain")
+	client.qclient.Sub("consensus")
 
 	go func() {
 		for msg := range client.qclient.Recv() {
