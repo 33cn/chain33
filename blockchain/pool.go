@@ -2,7 +2,8 @@ package blockchain
 
 import (
 	"sync"
-	"types"
+
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 type BlockPool struct {
