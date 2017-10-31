@@ -8,7 +8,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-const cacheSize = 300000 // mempool容量
+const poolCacheSize = 300000 // mempool容量
 
 type MClient interface {
 	SetQueue(q *queue.Queue)
@@ -32,7 +32,7 @@ type txCache struct {
 }
 
 // NewTxCache初始化txCache
-func NewTxCache(cacheSize int) *txCache {
+func newTxCache(cacheSize int) *txCache {
 	return &txCache{
 		size: cacheSize,
 		map_: make(map[string]struct{}, cacheSize),
@@ -72,6 +72,12 @@ func (cache *txCache) Push(tx *types.Transaction) bool {
 // txCache.Size返回txCache中已存tx数目
 func (cache *txCache) Size() int {
 	return cache.list.Len()
+}
+
+func New() *Mempool {
+	pool := &Mempool{}
+	pool.cache = newTxCache(poolCacheSize)
+	return pool
 }
 
 // Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
@@ -115,7 +121,7 @@ func (mem *Mempool) Size() int {
 func (mem *Mempool) Flush() {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	mem.cache.map_ = make(map[string]struct{}, cacheSize)
+	mem.cache.map_ = make(map[string]struct{}, mem.cache.size)
 	mem.cache.list.Init()
 }
 
@@ -200,7 +206,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			} else if msg.Ty == types.EventTxList {
 				msg.Reply(client.NewMessage("consense", types.EventTxListReply,
 					types.ReplyTxList{mem.GetTxList(10000)}))
-			} else if msg.Ty == types.TxAddBlock {
+			} else if msg.Ty == types.EventAddBlock {
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
 				msg.Reply(client.NewMessage("blockchain", types.EventReply,
 					types.Reply{true, nil}))
