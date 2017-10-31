@@ -376,38 +376,6 @@ func (m *TxHashList) GetHashes() [][]byte {
 	return nil
 }
 
-type TxResult struct {
-	Height int64        `protobuf:"varint,1,opt,name=height" json:"height,omitempty"`
-	Index  int32        `protobuf:"varint,2,opt,name=index" json:"index,omitempty"`
-	Tx     *Transaction `protobuf:"bytes,3,opt,name=tx" json:"tx,omitempty"`
-}
-
-func (m *TxResult) Reset()                    { *m = TxResult{} }
-func (m *TxResult) String() string            { return proto.CompactTextString(m) }
-func (*TxResult) ProtoMessage()               {}
-func (*TxResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
-
-func (m *TxResult) GetHeight() int64 {
-	if m != nil {
-		return m.Height
-	}
-	return 0
-}
-
-func (m *TxResult) GetIndex() int32 {
-	if m != nil {
-		return m.Index
-	}
-	return 0
-}
-
-func (m *TxResult) GetTx() *Transaction {
-	if m != nil {
-		return m.Tx
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterType((*Header)(nil), "types.Header")
 	proto.RegisterType((*Block)(nil), "types.Block")
