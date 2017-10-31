@@ -1,23 +1,23 @@
 package blockchain
 
 import (
-	dbm "common/db"
-	"common/merkle"
+	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/common/merkle"
+	"code.aliyun.com/chain33/chain33/queue"
+	"code.aliyun.com/chain33/chain33/types"
 	"container/list"
 	"errors"
 	"fmt"
-	"queue"
 	"time"
-	"types"
 
 	log "github.com/inconshreveable/log15"
 )
 
 var (
-	//cache ´æÖüµÄblock¸öÊı
+	//cache å­˜è´®çš„blockä¸ªæ•°
 	DefCacheSize int = 500
 
-	//Ò»´Î×î¶àÉêÇë»ñÈ¡block¸öÊı
+	//ä¸€æ¬¡æœ€å¤šç”³è¯·è·å–blockä¸ªæ•°
 	MaxFetchBlockNum  int64  = 100
 	TimeoutSeconds    int64  = 15
 	BatchBlockNum     int64  = 100
@@ -32,24 +32,24 @@ const trySyncIntervalMS = 1000
 type BlockChain struct {
 	qclient queue.IClient
 
-	// ÓÀ¾Ã´æ´¢Êı¾İµ½dbÖĞ
+	// æ°¸ä¹…å­˜å‚¨æ•°æ®åˆ°dbä¸­
 	blockStore *BlockStore
 
-	//cache  »º´æblock·½±ã¿ìËÙ²éÑ¯
+	//cache  ç¼“å­˜blockæ–¹ä¾¿å¿«é€ŸæŸ¥è¯¢
 	cache      map[string]*list.Element
 	cacheSize  int
 	cacheQueue *list.List
 
-	//Block Í¬²½½×¶ÎÓÃÓÚ»º´æblockĞÅÏ¢£¬
+	//Block åŒæ­¥é˜¶æ®µç”¨äºç¼“å­˜blockä¿¡æ¯ï¼Œ
 	blockPool *BlockPool
 
-	//ÓÃÓÚÇëÇóblock³¬Ê±µÄ´¦Àí
+	//ç”¨äºè¯·æ±‚blockè¶…æ—¶çš„å¤„ç†
 	reqBlk map[int64]*bpRequestBlk
 }
 
 func New() *BlockChain {
 
-	//³õÊ¼»¯blockstore ºÍtxindex  db
+	//åˆå§‹åŒ–blockstore å’Œtxindex  db
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", Datadir)
 	blockStore := NewBlockStore(blockStoreDB)
 
@@ -70,10 +70,10 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	chain.qclient = q.GetClient()
 	chain.qclient.Sub("blockchain")
 
-	//recv ÏûÏ¢µÄ´¦Àí
+	//recv æ¶ˆæ¯çš„å¤„ç†
 	go chain.ProcRecvMsg()
 
-	// ¶¨Ê±Í¬²½»º´æÖĞµÄblock to db
+	// å®šæ—¶åŒæ­¥ç¼“å­˜ä¸­çš„block to db
 	go chain.poolRoutine()
 }
 func (chain *BlockChain) ProcRecvMsg() {
@@ -154,53 +154,53 @@ FOR_LOOP:
 	for {
 		select {
 		case <-trySyncTicker.C:
-			// ¶¨Ê±Í¬²½»º´æÖĞµÄblockĞÅÏ¢µ½dbÊı¾İ¿âÖĞ
+			// å®šæ—¶åŒæ­¥ç¼“å­˜ä¸­çš„blockä¿¡æ¯åˆ°dbæ•°æ®åº“ä¸­
 			newbatch := chain.blockStore.NewBatch(true)
 			var stratblockheight int64 = 0
 			var endblockheight int64 = 0
 			var i int64
-			// ¿ÉÒÔÅúÁ¿´¦ÀíBatchBlockNum¸öblockµ½dbÖĞ
+			// å¯ä»¥æ‰¹é‡å¤„ç†BatchBlockNumä¸ªblockåˆ°dbä¸­
 			currentheight := chain.blockStore.Height()
 			for i = 1; i <= BatchBlockNum; i++ {
 
 				block := chain.blockPool.GetBlock(currentheight + i)
-				if block == nil && i == 1 { //ĞèÒª¼ÓÔØµÄµÚÒ»¸önextblock²»´æÔÚ£¬ÍË³öforÑ­»·½øÈëÏÂÒ»¸ö³¬Ê±
+				if block == nil && i == 1 { //éœ€è¦åŠ è½½çš„ç¬¬ä¸€ä¸ªnextblockä¸å­˜åœ¨ï¼Œé€€å‡ºforå¾ªç¯è¿›å…¥ä¸‹ä¸€ä¸ªè¶…æ—¶
 					continue FOR_LOOP
 				}
-				// »º´æÖĞÁ¬ĞøµÄblockÊıĞ¡ÓÚBatchBlockNumÊ±£¬Í¬²½ÏÖÓĞµÄblockµ½dbÖĞ
+				// ç¼“å­˜ä¸­è¿ç»­çš„blockæ•°å°äºBatchBlockNumæ—¶ï¼ŒåŒæ­¥ç°æœ‰çš„blockåˆ°dbä¸­
 				if block == nil {
 					break
 				}
-				//ÓÃÓÚ¼ÇÂ¼Í¬²½¿ªÊ¼µÄµÚÒ»¸öblock¸ß¶È£¬ÓÃÓÚÍ¬²½Íê³ÉÖ®ºóÉ¾³ı»º´æÖĞµÄblock¼ÇÂ¼
+				//ç”¨äºè®°å½•åŒæ­¥å¼€å§‹çš„ç¬¬ä¸€ä¸ªblocké«˜åº¦ï¼Œç”¨äºåŒæ­¥å®Œæˆä¹‹ååˆ é™¤ç¼“å­˜ä¸­çš„blockè®°å½•
 				if i == 1 {
 					stratblockheight = block.Height
 				}
-				//±£´ætxĞÅÏ¢µ½dbÖĞ
+				//ä¿å­˜txä¿¡æ¯åˆ°dbä¸­
 				err := chain.blockStore.indexTxs(newbatch, block)
 				if err != nil {
 					break
 				}
-				//±£´æblockĞÅÏ¢µ½dbÖĞ
+				//ä¿å­˜blockä¿¡æ¯åˆ°dbä¸­
 				err = chain.blockStore.SaveBlock(newbatch, block)
 				if err != nil {
 					break
 				}
-				//¼ÇÂ¼Í¬²½½áÊøÊ±×îºóÒ»¸öblockµÄ¸ß¶È£¬ÓÃÓÚÍ¬²½Íê³ÉÖ®ºóÉ¾³ı»º´æÖĞµÄblock¼ÇÂ¼
+				//è®°å½•åŒæ­¥ç»“æŸæ—¶æœ€åä¸€ä¸ªblockçš„é«˜åº¦ï¼Œç”¨äºåŒæ­¥å®Œæˆä¹‹ååˆ é™¤ç¼“å­˜ä¸­çš„blockè®°å½•
 				endblockheight = block.Height
 			}
 			newbatch.Write()
 
-			//¸üĞÂdbÖĞµÄblockheightµ½blockStore.Height
+			//æ›´æ–°dbä¸­çš„blockheightåˆ°blockStore.Height
 			chain.blockStore.UpdateHeight()
 
-			//É¾³ı»º´æÖĞµÄblock
+			//åˆ é™¤ç¼“å­˜ä¸­çš„block
 			for j := stratblockheight; j <= endblockheight; j++ {
-				//½«ÒÑ¾­´æ´¢µÄblocksÌí¼Óµ½list»º´æÖĞ±ãÓÚ²éÕÒ
+				//å°†å·²ç»å­˜å‚¨çš„blocksæ·»åŠ åˆ°listç¼“å­˜ä¸­ä¾¿äºæŸ¥æ‰¾
 				block := chain.blockPool.GetBlock(j)
 				if block != nil {
 					chain.cacheBlock(block)
 				}
-				//Í¨ÖªmempoolºÍconsenseÄ£¿é
+				//é€šçŸ¥mempoolå’Œconsenseæ¨¡å—
 				chain.SendAddBlockEvent(block)
 
 				chain.blockPool.DelBlock(j)
@@ -211,10 +211,10 @@ FOR_LOOP:
 }
 
 /*
-º¯Êı¹¦ÄÜ£º
-EventQueryTx(types.RequestHash) : rpcÄ£¿é»áÏò blockchain Ä£¿é ·¢ËÍ EventQueryTx(types.RequestHash) ÏûÏ¢ £¬
-²éÑ¯½»Ò×µÄÄ¬¿Ë¶ûÊ÷£¬»Ø¸´ÏûÏ¢ EventMerkleProof(types.MerkleProof)
-½á¹¹Ìå£º
+å‡½æ•°åŠŸèƒ½ï¼š
+EventQueryTx(types.RequestHash) : rpcæ¨¡å—ä¼šå‘ blockchain æ¨¡å— å‘é€ EventQueryTx(types.RequestHash) æ¶ˆæ¯ ï¼Œ
+æŸ¥è¯¢äº¤æ˜“çš„é»˜å…‹å°”æ ‘ï¼Œå›å¤æ¶ˆæ¯ EventMerkleProof(types.MerkleProof)
+ç»“æ„ä½“ï¼š
 type RequestHash struct {Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`}
 type MerkleProof struct {Hashs [][]byte `protobuf:"bytes,1,rep,name=hashs,proto3" json:"hashs,omitempty"}
 */
@@ -250,8 +250,8 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 }
 
 /*
-EventGetBlocks(types.RequestGetBlock): rpc Ä£¿é »áÏò blockchain Ä£¿é·¢ËÍ EventGetBlocks(types.RequestGetBlock) ÏûÏ¢£¬
-¹¦ÄÜÊÇ²éÑ¯ Çø¿éµÄĞÅÏ¢, »Ø¸´ÏûÏ¢ÊÇ EventBlocks(types.Blocks)
+EventGetBlocks(types.RequestGetBlock): rpc æ¨¡å— ä¼šå‘ blockchain æ¨¡å—å‘é€ EventGetBlocks(types.RequestGetBlock) æ¶ˆæ¯ï¼Œ
+åŠŸèƒ½æ˜¯æŸ¥è¯¢ åŒºå—çš„ä¿¡æ¯, å›å¤æ¶ˆæ¯æ˜¯ EventBlocks(types.Blocks)
 type RequestBlocks struct {
 	Start int64 `protobuf:"varint,1,opt,name=start" json:"start,omitempty"`
 	End   int64 `protobuf:"varint,2,opt,name=end" json:"end,omitempty"`}
@@ -288,8 +288,8 @@ func (chain *BlockChain) ProcGetBlocksMsg(requestblock *types.RequestBlocks) (re
 }
 
 /*
-EventAddBlock(types.Block), P2PÄ£¿é»áÏòÏµÍ³·¢ËÍ EventAddBlock(types.Block) µÄÇëÇó£¬±íÊ¾Ìí¼ÓÒ»¸öÇø¿é¡£
-ÓĞÊ±ºò£¬¹ã²¥¹ıÀ´µÄÇø¿é²»ÊÇµ±Ç°¸ß¶È+1£¬ÔÚµÈ´ıÒ»¸ö³¬Ê±Ê±¼äÒÔºó¡£¿ÉÒÔÖ÷¶¯ÇëÇóÇø¿é¡£
+EventAddBlock(types.Block), P2Pæ¨¡å—ä¼šå‘ç³»ç»Ÿå‘é€ EventAddBlock(types.Block) çš„è¯·æ±‚ï¼Œè¡¨ç¤ºæ·»åŠ ä¸€ä¸ªåŒºå—ã€‚
+æœ‰æ—¶å€™ï¼Œå¹¿æ’­è¿‡æ¥çš„åŒºå—ä¸æ˜¯å½“å‰é«˜åº¦+1ï¼Œåœ¨ç­‰å¾…ä¸€ä¸ªè¶…æ—¶æ—¶é—´ä»¥åã€‚å¯ä»¥ä¸»åŠ¨è¯·æ±‚åŒºå—ã€‚
 type Block struct {
 	ParentHash []byte         `protobuf:"bytes,1,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
 	TxHash     []byte         `protobuf:"bytes,2,opt,name=txHash,proto3" json:"txHash,omitempty"`
@@ -300,43 +300,43 @@ type Block struct {
 func (chain *BlockChain) ProcAddBlockMsg(block *types.Block) (err error) {
 	currentheight := chain.GetBlockHeight()
 
-	//²»ÊÇÎÒÃÇĞèÒªµÄ¸ß¶ÈÖ±½Ó·µ»Ø
+	//ä¸æ˜¯æˆ‘ä»¬éœ€è¦çš„é«˜åº¦ç›´æ¥è¿”å›
 	if currentheight >= block.Height {
 		outstr := fmt.Sprintf("input add height :%d ,current store height:%d", block.Height, currentheight)
 		err = errors.New(outstr)
 		return err
-	} else if block.Height == currentheight+1 { //ÎÒÃÇĞèÒªµÄ¸ß¶È£¬Ö±½Ó´æ´¢µ½dbÖĞ
+	} else if block.Height == currentheight+1 { //æˆ‘ä»¬éœ€è¦çš„é«˜åº¦ï¼Œç›´æ¥å­˜å‚¨åˆ°dbä¸­
 		newbatch := chain.blockStore.NewBatch(true)
 
-		//±£´ætxĞÅÏ¢µ½dbÖĞ
+		//ä¿å­˜txä¿¡æ¯åˆ°dbä¸­
 		chain.blockStore.indexTxs(newbatch, block)
 		if err != nil {
 			return err
 		}
-		//±£´æblockĞÅÏ¢µ½dbÖĞ
+		//ä¿å­˜blockä¿¡æ¯åˆ°dbä¸­
 		err := chain.blockStore.SaveBlock(newbatch, block)
 		if err != nil {
 			return err
 		}
 		newbatch.Write()
 
-		//¸üĞÂdbÖĞµÄblockheightµ½blockStore.Height
+		//æ›´æ–°dbä¸­çš„blockheightåˆ°blockStore.Height
 		chain.blockStore.UpdateHeight()
 
-		//½«´ËblockÌí¼Óµ½»º´æÖĞ±ãÓÚ²éÕÒ
+		//å°†æ­¤blockæ·»åŠ åˆ°ç¼“å­˜ä¸­ä¾¿äºæŸ¥æ‰¾
 		chain.cacheBlock(block)
 
-		//É¾³ı´ËblockµÄ³¬Ê±»úÖÆ
+		//åˆ é™¤æ­¤blockçš„è¶…æ—¶æœºåˆ¶
 		chain.RemoveReqBlk(block.Height, block.Height)
 
-		//Í¨ÖªmempoolºÍconsenseÄ£¿é
+		//é€šçŸ¥mempoolå’Œconsenseæ¨¡å—
 		chain.SendAddBlockEvent(block)
 
 		return nil
 	} else {
-		// ½«´Ëblock ÏÈÌí¼Óµ½»º´æÖĞblockpoolÖĞ¡£
-		//Æô¶¯Ò»¸ö³¬Ê±¶¨Ê±Æ÷£¬Èç¹ûÔÚ¹æ¶¨Ê±¼äÄÚÃ»ÓĞÊÕµ½¾Í·¢ËÍÒ»¸öFetchBlockÏûÏ¢¸øp2pÄ£¿é
-		//ÇëÇócurrentheight+1 µ½ block.Height-1Ö®¼äµÄblocks
+		// å°†æ­¤block å…ˆæ·»åŠ åˆ°ç¼“å­˜ä¸­blockpoolä¸­ã€‚
+		//å¯åŠ¨ä¸€ä¸ªè¶…æ—¶å®šæ—¶å™¨ï¼Œå¦‚æœåœ¨è§„å®šæ—¶é—´å†…æ²¡æœ‰æ”¶åˆ°å°±å‘é€ä¸€ä¸ªFetchBlockæ¶ˆæ¯ç»™p2pæ¨¡å—
+		//è¯·æ±‚currentheight+1 åˆ° block.Height-1ä¹‹é—´çš„blocks
 		chain.blockPool.AddBlock(block)
 		chain.WaitReqBlk(currentheight+1, block.Height-1)
 	}
@@ -344,13 +344,13 @@ func (chain *BlockChain) ProcAddBlockMsg(block *types.Block) (err error) {
 }
 
 /*
-º¯Êı¹¦ÄÜ£º
-Í¨¹ıÏòP2PÄ£¿éËÍ EventFetchBlock(types.RequestGetBlock)£¬ÏòÆäËû½ÚµãÖ÷¶¯ÇëÇóÇø¿é£¬
-P2PÇø¿éÊÕµ½Õâ¸öÏûÏ¢ºó£¬»áÏòblockchain Ä£¿é»Ø¸´£¬ EventReply¡£
-ÆäËû½ÚµãÈç¹ûÓĞÕâ¸ö·¶Î§µÄÇø¿é£¬P2PÄ£¿éÊÕµ½ÆäËû½Úµã·¢À´µÄÊı¾İ£¬
-»á·¢ËÍËÍEventAddBlocks(types.Blocks) ¸ø blockchain Ä£¿é£¬
-blockchain Ä£¿é»Ø¸´ EventReply
-½á¹¹Ìå£º
+å‡½æ•°åŠŸèƒ½ï¼š
+é€šè¿‡å‘P2Pæ¨¡å—é€ EventFetchBlock(types.RequestGetBlock)ï¼Œå‘å…¶ä»–èŠ‚ç‚¹ä¸»åŠ¨è¯·æ±‚åŒºå—ï¼Œ
+P2PåŒºå—æ”¶åˆ°è¿™ä¸ªæ¶ˆæ¯åï¼Œä¼šå‘blockchain æ¨¡å—å›å¤ï¼Œ EventReplyã€‚
+å…¶ä»–èŠ‚ç‚¹å¦‚æœæœ‰è¿™ä¸ªèŒƒå›´çš„åŒºå—ï¼ŒP2Pæ¨¡å—æ”¶åˆ°å…¶ä»–èŠ‚ç‚¹å‘æ¥çš„æ•°æ®ï¼Œ
+ä¼šå‘é€é€EventAddBlocks(types.Blocks) ç»™ blockchain æ¨¡å—ï¼Œ
+blockchain æ¨¡å—å›å¤ EventReply
+ç»“æ„ä½“ï¼š
 */
 func (chain *BlockChain) FetchBlock(reqblk *types.RequestBlocks) (err error) {
 	if chain.qclient == nil {
@@ -381,7 +381,7 @@ func (chain *BlockChain) FetchBlock(reqblk *types.RequestBlocks) (err error) {
 	return resp.Err()
 }
 
-//blockchain Ä£¿éadd blockµ½dbÖ®ºóÍ¨Öªmempool ºÍconsenseÄ£¿é×öÏàÓ¦µÄ¸üĞÂ
+//blockchain æ¨¡å—add blockåˆ°dbä¹‹åé€šçŸ¥mempool å’Œconsenseæ¨¡å—åšç›¸åº”çš„æ›´æ–°
 func (chain *BlockChain) SendAddBlockEvent(block *types.Block) (err error) {
 	if chain.qclient == nil {
 		fmt.Println("chain client not bind message queue.")
@@ -413,7 +413,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.Block) (err error) {
 
 func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
 
-	//Ê×ÏÈ»º´æµ½poolÖĞ,ÓÉpoolRoutine¶¨Ê±Í¬²½µ½dbÖĞ,blocksÌ«¶à´ËÊ±Ğ´Èëdb»áºÄÊ±ºÜ³¤
+	//é¦–å…ˆç¼“å­˜åˆ°poolä¸­,ç”±poolRoutineå®šæ—¶åŒæ­¥åˆ°dbä¸­,blockså¤ªå¤šæ­¤æ—¶å†™å…¥dbä¼šè€—æ—¶å¾ˆé•¿
 	blocklen := len(blocks.Items)
 	startblockheight := blocks.Items[0].Height
 	endblockheight := blocks.Items[blocklen-1].Height
@@ -421,7 +421,7 @@ func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
 	for _, block := range blocks.Items {
 		chain.blockPool.AddBlock(block)
 	}
-	//É¾³ı´ËblocksµÄ³¬Ê±»úÖÆ
+	//åˆ é™¤æ­¤blocksçš„è¶…æ—¶æœºåˆ¶
 	chain.RemoveReqBlk(startblockheight, endblockheight)
 
 	return nil
@@ -431,7 +431,7 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 	return chain.blockStore.height
 }
 
-//ÓÃÓÚ»ñÈ¡Ö¸¶¨¸ß¶ÈµÄblock£¬Ê×ÏÈÔÚ»º´æÖĞ»ñÈ¡£¬Èç¹û²»´æÔÚ¾Í´ÓdbÖĞ»ñÈ¡
+//ç”¨äºè·å–æŒ‡å®šé«˜åº¦çš„blockï¼Œé¦–å…ˆåœ¨ç¼“å­˜ä¸­è·å–ï¼Œå¦‚æœä¸å­˜åœ¨å°±ä»dbä¸­è·å–
 
 func (chain *BlockChain) GetBlock(height int64) (block *types.Block, err error) {
 
@@ -442,7 +442,7 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.Block, err error) 
 		chain.cacheQueue.MoveToBack(elem)
 		return elem.Value.(*types.Block), nil
 	} else {
-		//´Óblockstore dbÖĞÍ¨¹ıblock height»ñÈ¡block
+		//ä»blockstore dbä¸­é€šè¿‡block heightè·å–block
 		blockinfo := chain.blockStore.LoadBlock(height)
 		if blockinfo != nil {
 			chain.cacheBlock(blockinfo)
@@ -453,7 +453,7 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.Block, err error) 
 	return nil, err
 }
 
-//Ìí¼Óblockµ½cacheÖĞ£¬·½±ã¿ìËÙ²éÑ¯
+//æ·»åŠ blockåˆ°cacheä¸­ï¼Œæ–¹ä¾¿å¿«é€ŸæŸ¥è¯¢
 func (chain *BlockChain) cacheBlock(block *types.Block) {
 
 	// Create entry in cache and append to cacheQueue.
@@ -468,7 +468,7 @@ func (chain *BlockChain) cacheBlock(block *types.Block) {
 }
 
 /*
-Í¨¹ıtxhash ´Ótxindex dbÖĞ»ñÈ¡txĞÅÏ¢
+é€šè¿‡txhash ä»txindex dbä¸­è·å–txä¿¡æ¯
 type TxResult struct {
 	Height int64                 `json:"height"`
 	Index  int32                 `json:"index"`
@@ -484,14 +484,14 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 	return txinfo, nil
 }
 
-//É¾³ı¶ÔÓ¦blockµÄ³¬Ê±ÇëÇó»úÖÆ
+//åˆ é™¤å¯¹åº”blockçš„è¶…æ—¶è¯·æ±‚æœºåˆ¶
 func (chain *BlockChain) RemoveReqBlk(startheight int64, endheight int64) {
 	chainlog.Debug("RemoveReqBlk", "startheight", startheight, "endheight", endheight)
 
 	delete(chain.reqBlk, startheight)
 }
 
-//Æô¶¯¶ÔÓ¦blockµÄ³¬Ê±ÇëÇó»úÖÆ
+//å¯åŠ¨å¯¹åº”blockçš„è¶…æ—¶è¯·æ±‚æœºåˆ¶
 func (chain *BlockChain) WaitReqBlk(start int64, end int64) {
 	chainlog.Debug("WaitReqBlk", "startheight", start, "endheight", end)
 
@@ -506,7 +506,7 @@ func (chain *BlockChain) WaitReqBlk(start int64, end int64) {
 			chain.reqBlk[start] = requestBlk
 			(chain.reqBlk[start]).resetTimeout()
 
-		} else { //ĞèÒª¶à´Î·¢ËÍÇëÇó
+		} else { //éœ€è¦å¤šæ¬¡å‘é€è¯·æ±‚
 			multiple := blockcount / MaxFetchBlockNum
 			remainder := blockcount % MaxFetchBlockNum
 			var count int64
@@ -518,7 +518,7 @@ func (chain *BlockChain) WaitReqBlk(start int64, end int64) {
 				chain.reqBlk[startheight] = requestBlk
 				(chain.reqBlk[startheight]).resetTimeout()
 			}
-			//  ĞèÒª´¦ÀíÓĞÓàÊıµÄÇé¿ö
+			//  éœ€è¦å¤„ç†æœ‰ä½™æ•°çš„æƒ…å†µ
 			if count == multiple && remainder != 0 {
 				startheight := count*MaxFetchBlockNum + start
 				endheight := startheight + remainder - 1
@@ -531,7 +531,7 @@ func (chain *BlockChain) WaitReqBlk(start int64, end int64) {
 	}
 }
 
-//¶ÔÓ¦blockÇëÇó³¬Ê±·¢ÆğFetchBlock
+//å¯¹åº”blockè¯·æ±‚è¶…æ—¶å‘èµ·FetchBlock
 func (chain *BlockChain) sendTimeout(startheight int64, endheight int64) {
 
 	var reqBlock types.RequestBlocks
@@ -547,7 +547,7 @@ type bpRequestBlk struct {
 	startheight int64
 	endheight   int64
 	timeout     *time.Timer
-	didTimeout  bool //ÓÃÓÚÅĞ¶Ï·¢ËÍÒ»´Îºó£¬³¬Ê±ÁË»¹Òª²»ÒªÔÙ´Î·¢ËÍ
+	didTimeout  bool //ç”¨äºåˆ¤æ–­å‘é€ä¸€æ¬¡åï¼Œè¶…æ—¶äº†è¿˜è¦ä¸è¦å†æ¬¡å‘é€
 }
 
 func newBPRequestBlk(chain *BlockChain, startheight int64, endheight int64) *bpRequestBlk {
@@ -572,13 +572,13 @@ func (bpReqBlk *bpRequestBlk) onTimeout() {
 	bpReqBlk.didTimeout = true
 }
 
-//  »ñÈ¡Ö¸¶¨txindex  ÔÚtxsÖĞµÄmerkleproof £¬×¢ÊÍ£ºindex´Ó0¿ªÊ¼
+//  è·å–æŒ‡å®štxindex  åœ¨txsä¸­çš„merkleproof ï¼Œæ³¨é‡Šï¼šindexä»0å¼€å§‹
 func GetMerkleProof(Txs []*types.Transaction, index int32) (*types.MerkleProof, error) {
 
 	var txproof types.MerkleProof
 	txlen := len(Txs)
 
-	//¼ÆËãtxµÄhashÖµ
+	//è®¡ç®—txçš„hashå€¼
 	leaves := make([][]byte, txlen)
 	for index, tx := range Txs {
 		leaves[index] = tx.Hash()
