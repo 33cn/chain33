@@ -1,6 +1,7 @@
 package solo
 
 import (
+	"bytes"
 	"log"
 
 	"code.aliyun.com/chain33/chain33/queue"
@@ -88,16 +89,57 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 				if height == preHeight+1 {
 
 					txlist := <-txChannel
-
+					// 待检查交易列表（Hash过后）
+					var checkHashList types.TxHashList
+					// 去重后的交易列表
+					var transactonList types.ReplyTxList
 					if len(txlist.Txs) > 0 {
-						// TODO: 交易验重,将交易列表hash后发给blockchain，blockchain返回重复交易hash
+						for _, transaction := range txlist.Txs {
+							checkHashList.Hashes = append(checkHashList.Hashes, (*types.Transaction)(transaction).Hash())
+						}
+
+						// 发送Hash过后的交易列表给blockchain模块
+						hashList := client.qclient.NewMessage("blockchian", types.EventTxHashList, checkHashList)
+						client.qclient.Send(hashList, true)
+						dupTxList, _ := client.qclient.Wait(hashList)
+
+						// 取出blockchain返回的重复交易列表
+						dupTxListData := dupTxList.GetData().(types.TxHashList).Hashes
+
+						// 存在重复记录，由于consensus模块，blockchain模块都是顺序处理交易列表
+						// 切片中的元素下标是固定的，所以根据重复列表中元素去找到对应下标，并重组切片
+						if len(dupTxListData) > 0 {
+							var byteA []byte
+							var byteB []byte
+							index := 0
+							endIndex := len(checkHashList.Hashes)
+							for i := 0; i < len(dupTxListData); i++ {
+								byteA = dupTxListData[i]
+								for j := 0; j < len(checkHashList.Hashes); j++ {
+									byteB = checkHashList.Hashes[j]
+									if bytes.Equal(byteA, byteB) {
+										if j < endIndex-1 {
+											transactonList.Txs = append(transactonList.Txs, txlist.Txs[index:j]...)
+											index = j + 1
+											break
+										} else if j == endIndex-1 {
+											// 列表中最后一个元素重复
+											transactonList.Txs = append(transactonList.Txs, txlist.Txs[index:endIndex]...)
+											break
+										}
+
+									}
+								}
+							}
+						}
+
 					}
 
 					// 打包新区块
 					newblock := &types.Block{}
 					newblock.ParentHash = block.TxHash
 					newblock.Height = height
-					newblock.Txs = txlist.Txs
+					newblock.Txs = transactonList.Txs
 					// TODO: 交易hash设置，等待API
 					//newblock.TxHash =
 
