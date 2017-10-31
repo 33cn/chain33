@@ -2,12 +2,12 @@ package blockchain
 
 import (
 	//. "common"
-	dbm "common/db"
+	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/types"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
-	"types"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -30,14 +30,14 @@ func NewBlockStore(db dbm.DB) *BlockStore {
 	}
 }
 
-// ·µ»ØBlockStore±£´æµÄµ±Ç°block¸ß¶È
+// è¿”å›BlockStoreä¿å­˜çš„å½“å‰blocké«˜åº¦
 func (bs *BlockStore) Height() int64 {
 	bs.mtx.RLock()
 	defer bs.mtx.RUnlock()
 	return bs.height
 }
 
-// ¸üĞÂdbÖĞµÄblock¸ß¶Èµ½BlockStore.Height
+// æ›´æ–°dbä¸­çš„blocké«˜åº¦åˆ°BlockStore.Height
 func (bs *BlockStore) UpdateHeight() {
 	height := LoadBlockStoreHeight(bs.db)
 	bs.mtx.Lock()
@@ -46,7 +46,7 @@ func (bs *BlockStore) UpdateHeight() {
 	storelog.Info("UpdateHeight", "curblockheight", height)
 }
 
-//´ÓdbÊı¾İ¿âÖĞ»ñÈ¡Ö¸¶¨¸ß¶ÈµÄblockĞÅÏ¢
+//ä»dbæ•°æ®åº“ä¸­è·å–æŒ‡å®šé«˜åº¦çš„blockä¿¡æ¯
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 
 	var block types.Block
@@ -62,7 +62,7 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 	return &block
 }
 
-//  ÅúÁ¿±£´æblocksĞÅÏ¢µ½dbÊı¾İ¿âÖĞ
+//  æ‰¹é‡ä¿å­˜blocksä¿¡æ¯åˆ°dbæ•°æ®åº“ä¸­
 func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, block *types.Block) error {
 
 	height := block.Height
@@ -84,7 +84,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, block *types.Block) error 
 	return nil
 }
 
-// Í¨¹ıtx hash ´ÓdbÊı¾İ¿âÖĞ»ñÈ¡tx½»Ò×ĞÅÏ¢
+// é€šè¿‡tx hash ä»dbæ•°æ®åº“ä¸­è·å–txäº¤æ˜“ä¿¡æ¯
 func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	if len(hash) == 0 {
 		err := errors.New("input hash is null")
@@ -108,16 +108,16 @@ func (bs *BlockStore) NewBatch(sync bool) dbm.Batch {
 	return storeBatch
 }
 
-// Í¨¹ıÅúÁ¿´æ´¢txĞÅÏ¢µ½dbÖĞ
+// é€šè¿‡æ‰¹é‡å­˜å‚¨txä¿¡æ¯åˆ°dbä¸­
 func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, block *types.Block) error {
 
 	txlen := len(block.Txs)
 
 	for index := 0; index < txlen; index++ {
-		//¼ÆËãtx hash
+		//è®¡ç®—tx hash
 		txhash := block.Txs[index].Hash()
 
-		//¹¹Ôìtxresult ĞÅÏ¢±£´æµ½dbÖĞ
+		//æ„é€ txresult ä¿¡æ¯ä¿å­˜åˆ°dbä¸­
 		var txresult types.TxResult
 		txresult.Height = block.Height
 		txresult.Index = int32(index)
@@ -128,7 +128,6 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, block *types.Block) error {
 			storelog.Error("indexTxs Encode txresult err", "Height", block.Height, "index", index)
 			return err
 		}
-
 
 		storeBatch.Set(txhash, txresultbyte)
 
