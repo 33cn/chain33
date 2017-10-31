@@ -76,9 +76,6 @@ message ReplyTxList {
 
 message TxHashList {
 	repeated bytes hashes = 1;
-<<<<<<< HEAD
-}
-=======
 }
 
 message TxResult {
@@ -86,5 +83,3 @@ message TxResult {
 	int32 index = 2;
 	Transaction tx = 3;
 }
-
->>>>>>> a67efbdb655872e9d431a5d780e32cddcd139538
