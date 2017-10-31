@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 
+	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -93,6 +94,8 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 					var checkHashList types.TxHashList
 					// 去重后的交易列表
 					var transactonList types.ReplyTxList
+					// 去重后的Hash列表
+					var txWithoutdup types.TxHashList
 					if len(txlist.Txs) > 0 {
 						for _, transaction := range txlist.Txs {
 							checkHashList.Hashes = append(checkHashList.Hashes, (*types.Transaction)(transaction).Hash())
@@ -120,19 +123,23 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 									if bytes.Equal(byteA, byteB) {
 										if j < endIndex-1 {
 											transactonList.Txs = append(transactonList.Txs, txlist.Txs[index:j]...)
+											txWithoutdup.Hashes = append(txWithoutdup.Hashes, checkHashList.Hashes[index:j]...)
 											index = j + 1
 											break
 										} else if j == endIndex-1 {
 											// 列表中最后一个元素重复
 											transactonList.Txs = append(transactonList.Txs, txlist.Txs[index:endIndex]...)
+											txWithoutdup.Hashes = append(txWithoutdup.Hashes, checkHashList.Hashes[index:endIndex]...)
 											break
 										}
 
 									}
 								}
 							}
+						} else {
+							transactonList = txlist
+							txWithoutdup = checkHashList
 						}
-
 					}
 
 					// 打包新区块
@@ -140,8 +147,8 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 					newblock.ParentHash = block.TxHash
 					newblock.Height = height
 					newblock.Txs = transactonList.Txs
-					// TODO: 交易hash设置，等待API
-					//newblock.TxHash =
+					// 求交易的rootHash
+					newblock.TxHash = merkle.GenerateMerkle(txWithoutdup.Hashes)[0]
 
 					client.writeBlock(newblock)
 
