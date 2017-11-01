@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"context"
+	"golang.org/x/net/context"
 
 	pb "code.aliyun.com/chain33/chain33/types"
 )
