@@ -6,9 +6,12 @@ import (
 
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	log "github.com/inconshreveable/log15"
 )
 
 const poolCacheSize = 300000 // mempool容量
+
+var mlog = log.New("module", "mempool")
 
 type MClient interface {
 	SetQueue(q *queue.Queue)
@@ -98,7 +101,6 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 			result[i] = poppedTx
 			mem.cache.txList.Remove(popped)
 		}
-		mem.Flush()
 		return result
 	} else {
 		for i = 0; i < txListSize; i++ {
@@ -117,14 +119,6 @@ func (mem *Mempool) Size() int {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	return mem.cache.Size()
-}
-
-// Mempool.Flush清空Mempool中的tx
-func (mem *Mempool) Flush() {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	mem.cache.txMap = make(map[string]*list.Element, mem.cache.size)
-	mem.cache.txList.Init()
 }
 
 // Mempool.CheckTx坚持tx有效性并加入Mempool中
@@ -171,14 +165,13 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 }
 
 func (mem *Mempool) SetQueue(q *queue.Queue) {
-	var chanClient *channelClient = new(channelClient)
 	client := q.GetClient()
 	client.Sub("mempool")
 	go func() {
 		for msg := range client.Recv() {
+			mlog.Info("mempool recv", "msg", msg)
 			if msg.Ty == types.EventTx {
 				if mem.CheckTx(msg.GetData().(*types.Transaction)) {
-					chanClient.SendTx(msg.GetData().(*types.Transaction))
 					msg.Reply(client.NewMessage("rpc", types.EventReply,
 						types.Reply{true, nil}))
 				} else {

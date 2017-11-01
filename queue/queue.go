@@ -2,6 +2,8 @@ package queue
 
 import (
 	"sync"
+
+	log "github.com/inconshreveable/log15"
 )
 
 //消息队列：
@@ -11,6 +13,7 @@ import (
 //1. 队列特点：
 //1.1 一个topic 只有一个订阅者（以后会变成多个）目前基本够用，模块都只有一个实例.
 //1.2 消息的回复直接通过消息自带的channel 回复
+var qlog = log.New("module", "queue")
 
 const DefaultChanBuffer = 1024
 
@@ -51,6 +54,7 @@ func (q *Queue) getChannel(topic string) chan Message {
 func (q *Queue) Send(msg Message) {
 	chrecv := q.getChannel(msg.Topic)
 	chrecv <- msg
+	qlog.Info("send ok", "msg", msg)
 }
 
 func (q *Queue) GetClient() IClient {
@@ -81,4 +85,5 @@ func (msg Message) Err() error {
 
 func (msg Message) Reply(replyMsg Message) {
 	msg.ChReply <- replyMsg
+	qlog.Info("reply msg ok", "msg", msg)
 }
