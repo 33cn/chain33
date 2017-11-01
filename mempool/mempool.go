@@ -145,6 +145,7 @@ func (cache *txCache) Remove(tx *types.Transaction) {
 	for e := cache.list.Front(); e != nil; e = e.Next() {
 		if string(e.Value.(*types.Transaction).Hash()) == string(tx.Hash()) {
 			cache.list.Remove(e)
+			break
 		}
 	}
 	// cache.mtx.Unlock()
