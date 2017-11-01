@@ -1,31 +1,31 @@
 package types
 
 const (
-	EventTx = iota + 1
+	EventTx = 1
 
-	EventGetBlocks
-	EventBlocks
+	EventGetBlocks = 2
+	EventBlocks    = 3
 
-	EventGetBlockHeight
-	EventReplyBlockHeight
+	EventGetBlockHeight   = 4
+	EventReplyBlockHeight = 5
 
-	EventQueryTx
-	EventMerkleProof
+	EventQueryTx     = 6
+	EventMerkleProof = 7
 
-	EventReply
+	EventReply = 8
 
-	EventTxBroadcast
-	EventTxAddMempool
+	EventTxBroadcast  = 9
+	EventTxAddMempool = 10
 
-	EventTxList
-	EventTxListReply
+	EventTxList      = 11
+	EventTxListReply = 12
 
-	EventAddBlock
-	EventBlockBroadcast
+	EventAddBlock       = 13
+	EventBlockBroadcast = 14
 
-	EventFetchBlocks
-	EventAddBlocks
+	EventFetchBlocks = 15
+	EventAddBlocks   = 16
 
-	EventTxHashList
-	EventTxHashListReply
+	EventTxHashList      = 17
+	EventTxHashListReply = 18
 )

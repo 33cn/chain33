@@ -79,6 +79,7 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 }
 func (chain *BlockChain) ProcRecvMsg() {
 	for msg := range chain.qclient.Recv() {
+		chainlog.Info("blockchain recv", "msg", msg)
 		msgtype := msg.Ty
 		switch msgtype {
 		case types.EventQueryTx:

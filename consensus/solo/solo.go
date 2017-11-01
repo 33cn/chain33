@@ -9,6 +9,8 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+var slog = log.New("module", "solo")
+
 var (
 	height int64 = 0
 	// 交易列表大小
@@ -79,6 +81,7 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 	client.qclient.Sub("consensus")
 	go func() {
 		for msg := range client.qclient.Recv() {
+			slog.Info("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
 				var block *types.Block
 				block = msg.GetData().(*types.Block)
@@ -171,12 +174,12 @@ func (client *SoloClient) getInitHeight() int64 {
 
 	client.qclient.Send(msg, true)
 	replyHeight, err := client.qclient.Wait(msg)
-
+	height := replyHeight.GetData().(*types.ReplyBlockHeight).Height
+	slog.Info("init = ", "height", height)
 	if err != nil {
 		panic("error happens when get height from blockchain")
 	}
-
-	return replyHeight.GetData().(*types.ReplyBlockHeight).Height
+	return height
 }
 
 // 向blockchain写区块
