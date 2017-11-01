@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func Test_grpcSendTransaction() {
+func Test_grpcSendTransaction(t *testing.T) {
 	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
