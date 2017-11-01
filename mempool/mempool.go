@@ -26,52 +26,48 @@ type Mempool struct {
 
 type txCache struct {
 	// mtx  sync.Mutex
-	size int
-	map_ map[string]struct{}
-	list *list.List
+	size   int
+	txMap  map[string]*list.Element
+	txList *list.List
 }
 
 // NewTxCache初始化txCache
 func newTxCache(cacheSize int) *txCache {
 	return &txCache{
-		size: cacheSize,
-		map_: make(map[string]struct{}, cacheSize),
-		list: list.New(),
+		size:   cacheSize,
+		txMap:  make(map[string]*list.Element, cacheSize),
+		txList: list.New(),
 	}
 }
 
 // txCache.Exists判断txCache中是否存在给定tx
 func (cache *txCache) Exists(tx *types.Transaction) bool {
-	// cache.mtx.Lock()
-	_, exists := cache.map_[string(tx.Hash())]
-	// cache.mtx.Unlock()
+	_, exists := cache.txMap[string(tx.Hash())]
 	return exists
 }
 
 // txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
 func (cache *txCache) Push(tx *types.Transaction) bool {
-	// cache.mtx.Lock()
-	// defer cache.mtx.Unlock()
-
-	if _, exists := cache.map_[string(tx.Hash())]; exists {
+	if _, exists := cache.txMap[string(tx.Hash())]; exists {
 		return false
 	}
 
-	if cache.list.Len() >= cache.size {
-		popped := cache.list.Front()
+	if cache.txList.Len() >= cache.size {
+		popped := cache.txList.Front()
 		poppedTx := popped.Value.(*types.Transaction)
-		delete(cache.map_, string(poppedTx.Hash()))
-		cache.list.Remove(popped)
+		delete(cache.txMap, string(poppedTx.Hash()))
+		cache.txList.Remove(popped)
 	}
 
-	cache.map_[string(tx.Hash())] = struct{}{}
-	cache.list.PushBack(tx)
+	txElement := cache.txList.PushBack(tx)
+	cache.txMap[string(tx.Hash())] = txElement
+
 	return true
 }
 
 // txCache.Size返回txCache中已存tx数目
 func (cache *txCache) Size() int {
-	return cache.list.Len()
+	return cache.txList.Len()
 }
 
 func New() *Mempool {
@@ -91,20 +87,20 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 
 	if txsSize <= txListSize {
 		for i = 0; i < txsSize; i++ {
-			popped := mem.cache.list.Front()
+			popped := mem.cache.txList.Front()
 			poppedTx := popped.Value.(*types.Transaction)
 			result[i] = poppedTx
-			mem.cache.list.Remove(popped)
+			mem.cache.txList.Remove(popped)
 		}
 		mem.Flush()
 		return result
 	} else {
 		for i = 0; i < txListSize; i++ {
-			popped := mem.cache.list.Front()
+			popped := mem.cache.txList.Front()
 			poppedTx := popped.Value.(*types.Transaction)
 			result[i] = poppedTx
-			mem.cache.list.Remove(popped)
-			delete(mem.cache.map_, string(poppedTx.Hash()))
+			mem.cache.txList.Remove(popped)
+			delete(mem.cache.txMap, string(poppedTx.Hash()))
 		}
 		return result
 	}
@@ -121,8 +117,8 @@ func (mem *Mempool) Size() int {
 func (mem *Mempool) Flush() {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	mem.cache.map_ = make(map[string]struct{}, mem.cache.size)
-	mem.cache.list.Init()
+	mem.cache.txMap = make(map[string]*list.Element, mem.cache.size)
+	mem.cache.txList.Init()
 }
 
 // Mempool.CheckTx坚持tx有效性并加入Mempool中
@@ -140,15 +136,8 @@ func (mem *Mempool) CheckTx(tx *types.Transaction) bool {
 
 // txCache.Remove移除txCache中给定tx
 func (cache *txCache) Remove(tx *types.Transaction) {
-	// cache.mtx.Lock()
-	delete(cache.map_, string(tx.Hash()))
-	for e := cache.list.Front(); e != nil; e = e.Next() {
-		if string(e.Value.(*types.Transaction).Hash()) == string(tx.Hash()) {
-			cache.list.Remove(e)
-			break
-		}
-	}
-	// cache.mtx.Unlock()
+	cache.txList.Remove(cache.txMap[string(tx.Hash())])
+	delete(cache.txMap, string(tx.Hash()))
 }
 
 //Mempool.RemoveTxsOfBlock移除Mempool中已被Blockchain打包的tx
@@ -211,7 +200,6 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
 				msg.Reply(client.NewMessage("blockchain", types.EventReply,
 					types.Reply{true, nil}))
-
 			}
 		}
 	}()
