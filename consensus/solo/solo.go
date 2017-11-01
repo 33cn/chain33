@@ -2,11 +2,11 @@ package solo
 
 import (
 	"bytes"
-	"log"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	log "github.com/inconshreveable/log15"
 )
 
 var (
@@ -20,19 +20,24 @@ type SoloClient struct {
 }
 
 func NewSolo() *SoloClient {
-	log.Println("consensus/solo")
+	log.Info("Enter consensus solo")
 	return &SoloClient{}
 }
 
 func (client *SoloClient) SetQueue(q *queue.Queue) {
+	log.Info("Enter SetQueue method of consensus")
 	client.qclient = q.GetClient()
 
 	// TODO: solo模式下通过配置判断是否主节点，主节点打包区块，其余节点不用做
 
 	// 程序初始化时，先从blockchain取区块链高度
+
 	height = client.getInitHeight()
 
-	if height == 0 {
+	// TODO: 配置文件中读取
+	listSize = 100
+
+	if height == -1 {
 		// 创世区块
 		newblock := &types.Block{}
 
@@ -43,18 +48,14 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		newblock.TxHash = nil
 
 		client.writeBlock(newblock)
-
-	} else {
-		// TODO: 配置文件中读取
-		listSize = 100
-
-		txsChannel := make(chan types.ReplyTxList)
-		// 从mempool中取交易列表
-		go client.RequestTx(txsChannel)
-
-		// 对交易列表验重，并打包发给blockchain
-		client.ProcessBlock(txsChannel)
 	}
+
+	txsChannel := make(chan types.ReplyTxList)
+	// 从mempool中取交易列表
+	go client.RequestTx(txsChannel)
+	// 对交易列表验重，并打包发给blockchain
+	go client.ProcessBlock(txsChannel)
+
 }
 
 // Mempool中取交易列表
@@ -74,10 +75,8 @@ func (client *SoloClient) RequestTx(txChannel chan<- types.ReplyTxList) {
 
 // 准备新区块
 func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
-
 	// 监听blockchain模块，获取当前最高区块
 	client.qclient.Sub("consensus")
-
 	go func() {
 		for msg := range client.qclient.Recv() {
 			if msg.Ty == types.EventAddBlock {
@@ -102,12 +101,12 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 						}
 
 						// 发送Hash过后的交易列表给blockchain模块
-						hashList := client.qclient.NewMessage("blockchian", types.EventTxHashList, checkHashList)
+						hashList := client.qclient.NewMessage("blockchain", types.EventTxHashList, checkHashList)
 						client.qclient.Send(hashList, true)
 						dupTxList, _ := client.qclient.Wait(hashList)
 
 						// 取出blockchain返回的重复交易列表
-						dupTxListData := dupTxList.GetData().(types.TxHashList).Hashes
+						dupTxListData := dupTxList.GetData().(*types.TxHashList).Hashes
 
 						// 存在重复记录，由于consensus模块，blockchain模块都是顺序处理交易列表
 						// 切片中的元素下标是固定的，所以根据重复列表中元素去找到对应下标，并重组切片
@@ -152,11 +151,13 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 
 					client.writeBlock(newblock)
 
+					break
+
 				} else if height > preHeight+1 {
-					log.Println("Not the latest block, continue.")
+					log.Info("Not the latest block, continue.")
 
 				} else {
-					log.Println("This will not happen")
+					log.Info("This will not happen")
 				}
 			}
 		}
@@ -166,7 +167,8 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 // solo初始化时，取一次区块高度放在内存中，后面自增长，不用再重复去blockchain取
 func (client *SoloClient) getInitHeight() int64 {
 
-	msg := client.qclient.NewMessage("blockchian", types.EventGetBlockHeight, nil)
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHeight, nil)
+
 	client.qclient.Send(msg, true)
 	replyHeight, err := client.qclient.Wait(msg)
 
@@ -174,7 +176,7 @@ func (client *SoloClient) getInitHeight() int64 {
 		panic("error happens when get height from blockchain")
 	}
 
-	return replyHeight.GetData().(types.ReplyBlockHeight).Height
+	return replyHeight.GetData().(*types.ReplyBlockHeight).Height
 }
 
 // 向blockchain写区块
@@ -184,12 +186,12 @@ func (client *SoloClient) writeBlock(block *types.Block) {
 		client.qclient.Send(msg, true)
 		resp, _ := client.qclient.Wait(msg)
 
-		if resp.GetData().(types.Reply).IsOk {
+		if resp.GetData().(*types.Reply).IsOk {
 			// 写区块返回成功，高度增长
 			height++
 			break
 		} else {
-			log.Fatal("Send block to blockchian return fail,retry!")
+			log.Info("Send block to blockchian return fail,retry!")
 		}
 	}
 }
