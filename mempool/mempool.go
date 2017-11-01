@@ -65,6 +65,12 @@ func (cache *txCache) Push(tx *types.Transaction) bool {
 	return true
 }
 
+// txCache.Remove移除txCache中给定tx
+func (cache *txCache) Remove(tx *types.Transaction) {
+	cache.txList.Remove(cache.txMap[string(tx.Hash())])
+	delete(cache.txMap, string(tx.Hash()))
+}
+
 // txCache.Size返回txCache中已存tx数目
 func (cache *txCache) Size() int {
 	return cache.txList.Len()
@@ -132,12 +138,6 @@ func (mem *Mempool) CheckTx(tx *types.Transaction) bool {
 	mem.cache.Push(tx)
 
 	return true
-}
-
-// txCache.Remove移除txCache中给定tx
-func (cache *txCache) Remove(tx *types.Transaction) {
-	cache.txList.Remove(cache.txMap[string(tx.Hash())])
-	delete(cache.txMap, string(tx.Hash()))
 }
 
 //Mempool.RemoveTxsOfBlock移除Mempool中已被Blockchain打包的tx
