@@ -1,14 +1,15 @@
 package blockchain
 
 import (
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/common/merkle"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	"container/list"
 	"errors"
 	"fmt"
 	"time"
+
+	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/common/merkle"
+	"code.aliyun.com/chain33/chain33/queue"
+	"code.aliyun.com/chain33/chain33/types"
 
 	log "github.com/inconshreveable/log15"
 )
@@ -401,7 +402,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.Block) (err error) {
 		chainlog.Error("SendAddBlockEvent", "send to mempool err:", err)
 	}
 
-	msg = chain.qclient.NewMessage("consense", types.EventAddBlock, block)
+	msg = chain.qclient.NewMessage("consensus", types.EventAddBlock, block)
 	chain.qclient.Send(msg, true)
 	_, err = chain.qclient.Wait(msg)
 	if err != nil {
