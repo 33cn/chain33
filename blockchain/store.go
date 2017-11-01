@@ -2,12 +2,13 @@ package blockchain
 
 import (
 	//. "common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/types"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
+
+	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/types"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -152,7 +153,7 @@ func LoadBlockStoreHeight(db dbm.DB) int64 {
 	var height int64
 	bytes := db.Get(blockStoreKey)
 	if bytes == nil {
-		return 0
+		return -1
 	}
 
 	err := json.Unmarshal(bytes, &height)
