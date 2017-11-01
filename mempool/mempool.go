@@ -204,7 +204,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 						types.Reply{false, []byte("transaction exists")}))
 				}
 			} else if msg.Ty == types.EventTxList {
-				msg.Reply(client.NewMessage("consense", types.EventTxListReply,
+				msg.Reply(client.NewMessage("consensus", types.EventTxListReply,
 					types.ReplyTxList{mem.GetTxList(10000)}))
 			} else if msg.Ty == types.EventAddBlock {
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
