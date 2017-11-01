@@ -93,25 +93,23 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 	txsSize := mem.cache.Size()
 	var result []*types.Transaction
 	var i int
+	var minSize int
 
 	if txsSize <= txListSize {
-		for i = 0; i < txsSize; i++ {
-			popped := mem.cache.txList.Front()
-			poppedTx := popped.Value.(*types.Transaction)
-			result[i] = poppedTx
-			mem.cache.txList.Remove(popped)
-		}
-		return result
+		minSize = txsSize
 	} else {
-		for i = 0; i < txListSize; i++ {
-			popped := mem.cache.txList.Front()
-			poppedTx := popped.Value.(*types.Transaction)
-			result[i] = poppedTx
-			mem.cache.txList.Remove(popped)
-			delete(mem.cache.txMap, string(poppedTx.Hash()))
-		}
-		return result
+		minSize = txListSize
 	}
+
+	for i = 0; i < minSize; i++ {
+		popped := mem.cache.txList.Front()
+		poppedTx := popped.Value.(*types.Transaction)
+		result[i] = poppedTx
+		mem.cache.txList.Remove(popped)
+		delete(mem.cache.txMap, string(poppedTx.Hash()))
+	}
+
+	return result
 }
 
 // Mempool.Size返回Mempool中txCache大小
