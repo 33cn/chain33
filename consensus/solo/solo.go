@@ -82,7 +82,7 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 
 	// TODO:当系统重启后，读区块最后一个block，增加一个触发事件,让blockchain触发EventAddBlock
 	//
-	//	newblock := &types.Block{}
+	newblock := &types.Block{}
 	//	newblock.Height = height + 1
 	//	newblock.ParentHash = nil
 	//	newblock.Txs = nil
