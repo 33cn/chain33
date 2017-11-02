@@ -81,16 +81,16 @@ func (chain *BlockChain) ProcRecvMsg() {
 		msgtype := msg.Ty
 		switch msgtype {
 		case types.EventQueryTx:
-			txhash := (msg.Data).(types.RequestHash)
+			txhash := (msg.Data).(*types.RequestHash)
 			merkleproof, err := chain.ProcQueryTxMsg(txhash.Hash)
 			if err != nil {
 				chainlog.Error("ProcQueryTxMsg", "err", err.Error())
 				var reply types.Reply
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
-				msg.Reply(chain.qclient.NewMessage("blockchain", types.EventReply, &reply))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReply, &reply))
 			} else {
-				msg.Reply(chain.qclient.NewMessage("blockchain", types.EventMerkleProof, merkleproof))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventMerkleProof, merkleproof))
 			}
 
 		case types.EventGetBlocks:
@@ -101,9 +101,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 				var reply types.Reply
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
-				msg.Reply(chain.qclient.NewMessage("blockchain", types.EventReply, &reply))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReply, &reply))
 			} else {
-				msg.Reply(chain.qclient.NewMessage("blockchain", types.EventBlocks, blocks))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, blocks))
 			}
 
 		case types.EventAddBlock:
@@ -117,7 +117,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
-			msg.Reply(chain.qclient.NewMessage("blockchain", types.EventReply, &reply))
+			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReply, &reply))
 
 		case types.EventAddBlocks:
 			var blocks *types.Blocks
@@ -130,17 +130,17 @@ func (chain *BlockChain) ProcRecvMsg() {
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
-			msg.Reply(chain.qclient.NewMessage("blockchain", types.EventReply, &reply))
+			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		case types.EventGetBlockHeight:
 			var replyBlockHeight types.ReplyBlockHeight
 			replyBlockHeight.Height = chain.GetBlockHeight()
-			msg.Reply(chain.qclient.NewMessage("blockchain", types.EventReplyBlockHeight, &replyBlockHeight))
+			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReplyBlockHeight, &replyBlockHeight))
 
 		case types.EventTxHashList:
 			txhashlist := (msg.Data).(*types.TxHashList)
 			duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
-			msg.Reply(chain.qclient.NewMessage("blockchain", types.EventTxHashListReply, duptxhashlist))
+			msg.Reply(chain.qclient.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -395,18 +395,10 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.Block) (err error) {
 	chainlog.Debug("SendAddBlockEvent", "Height", block.Height)
 
 	msg := chain.qclient.NewMessage("mempool", types.EventAddBlock, block)
-	chain.qclient.Send(msg, true)
-	_, err = chain.qclient.Wait(msg)
-	if err != nil {
-		chainlog.Error("SendAddBlockEvent", "send to mempool err:", err)
-	}
+	chain.qclient.Send(msg, false)
 
-	msg = chain.qclient.NewMessage("consense", types.EventAddBlock, block)
-	chain.qclient.Send(msg, true)
-	_, err = chain.qclient.Wait(msg)
-	if err != nil {
-		chainlog.Error("SendAddBlockEvent", "send to consense err:", err)
-	}
+	msg = chain.qclient.NewMessage("consensus", types.EventAddBlock, block)
+	chain.qclient.Send(msg, false)
 
 	return nil
 }
@@ -585,7 +577,7 @@ func GetMerkleProof(Txs []*types.Transaction, index int32) (*types.MerkleProof, 
 		//chainlog.Info("GetMerkleProof txhash", "index", index, "txhash", tx.Hash())
 	}
 
-	merkleproof, _ := merkle.ComputeMerkleBranch(leaves, int(index))
+	merkleproof := merkle.GetMerkleBranch(leaves, uint32(index))
 	txproof.Hashs = merkleproof
 	return &txproof, nil
 }
