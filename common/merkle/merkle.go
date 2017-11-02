@@ -1,167 +1,175 @@
-// NCNL is No Copyright and No License
-
 package merkle
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"math"
+"bytes"
+"crypto/sha256"
 
-	"code.aliyun.com/chain33/chain33/types"
+log "github.com/inconshreveable/log15"
 )
 
-//var zeroHash crypto.Hash
+var merklelog = log.New("module", "merkle")
 
-func calculateLeafNumber(n int) int {
-	if n&(n-1) == 0 {
-		return n
-	}
-	return 1 << (uint(math.Log2(float64(n))) + 1)
+/*     WARNING! If you're reading this because you're learning about crypto
+and/or designing a new system that will use merkle trees, keep in mind
+that the following merkle tree algorithm has a serious flaw related to
+duplicate txids, resulting in a vulnerability (CVE-2012-2459).
+
+The reason is that if the number of hashes in the list at a given time
+is odd, the last one is duplicated before computing the next level (which
+is unusual in Merkle trees). This results in certain sequences of
+transactions leading to the same merkle root. For example, these two
+trees:
+
+A               A
+/  \            /   \
+B     C         B       C
+/ \    |        / \     / \
+D   E   F       D   E   F   F
+/ \ / \ / \     / \ / \ / \ / \
+1 2 3 4 5 6     1 2 3 4 5 6 5 6
+
+for transaction lists [1,2,3,4,5,6] and [1,2,3,4,5,6,5,6] (where 5 and
+6 are repeated) result in the same root hash A (because the hash of both
+of (F) and (F,F) is C).
+
+The vulnerability results from being able to send a block with such a
+transaction list, with the same merkle root, and the same block hash as
+the original without duplication, resulting in failed validation. If the
+receiving node proceeds to mark that block as permanently invalid
+however, it will fail to accept further unmodified (and thus potentially
+valid) versions of the same block. We defend against this by detecting
+the case where we would hash two identical hashes at the end of the list
+together, and treating that identically to the block having an invalid
+merkle root. Assuming no double-SHA256 collisions, this will detect all
+known ways of changing the transactions without affecting the merkle
+root.
+*/
+
+/* This implements a constant-space merkle root/path calculator, limited to 2^32 leaves. */
+//flage =1 只计算roothash  flage =2 只计算branch  flage =3 计算roothash 和 branch
+func MerkleComputation(leaves [][]byte, flage int, branchpos uint32) (roothash []byte, mutated bool, pbranch [][]byte) {
+if len(leaves) == 0 {
+return nil, false, nil
+}
+if flage < 1 || flage > 3 {
+return nil, false, nil
 }
 
-func sumChildHash(left, right []byte) []byte {
-	leftlen := len(left)
-	rightlen := len(right)
-	data := make([]byte, leftlen+rightlen)
-	copy(data, left[:])
-	copy(data[leftlen:], right[:])
-	h := sha256.Sum256(data)
-	return h[:]
+var count int = 0
+var branch [][]byte
+var level uint32
+var h []byte
+inner := make([][]byte, 32)
+var matchlevel uint32 = 0xff
+mutated = false
+var matchh bool
+for count, h = range leaves {
+
+if (uint32(count) == branchpos) && (flage&2) != 0 {
+matchh = true
+} else {
+matchh = false
 }
-func SumChildHash(left, right []byte) []byte {
-	leftlen := len(left)
-	rightlen := len(right)
-	data := make([]byte, leftlen+rightlen)
-	copy(data, left[:])
-	copy(data[leftlen:], right[:])
-	h := sha256.Sum256(data)
-	return h[:]
+count++
+// 1左移level位
+for level = 0; 0 == ((count) & (1 << uint32(level))); level++ {
+//需要计算branch
+if (flage & 2) != 0 {
+if matchh == true {
+branch = append(branch, inner[level])
+} else if matchlevel == level {
+branch = append(branch, h)
+matchh = true
 }
-
-//
-// func generateMerkle generate a merkle tree like
-// 				 root
-//			   /	  \
-//			n1			n2
-//		  /    \      /    \
-//		l1		l2	l3		l4
-//
-// the tree return use a slice: [root][n1][n2][l1][l2][l3][l4]
-//
-func GenerateMerkle(hashs [][]byte) [][]byte {
-	n := len(hashs)
-	if n == 0 {
-		return nil
-	}
-
-	treeSize := calculateLeafNumber(n)*2 - 1
-	merkle := make([][]byte, treeSize)
-
-	p := treeSize / 2
-	for i, h := range hashs {
-		index := p + i
-		merkle[index] = h
-	}
-
-	for i := 4; i <= treeSize+1; i *= 2 {
-		p := treeSize / i
-		for j := p; j < p*2+1; j++ {
-			left := j*2 + 1
-			right := left + 1
-			if merkle[left] == nil {
-				merkle[j] = nil
-				continue
-			}
-			if merkle[right] == nil {
-				merkle[j] = merkle[left]
-				continue
-			}
-			merkle[j] = sumChildHash(merkle[left], merkle[right])
-		}
-	}
-	return merkle
+}
+if bytes.Equal(inner[level], h) {
+mutated = true
+}
+//计算inner[level] + h 的hash值
+h = GetHashFromTwoHash(inner[level], h)
+}
+inner[level] = h
+if matchh {
+matchlevel = level
+}
 }
 
-// calculate tx and branch root
-// br is tx's branch and i is index of tx in the tx list
-func BranchRoot(br [][]byte, tx []byte, i int) []byte {
-	r := tx
-	for _, h := range br {
-		if h != nil {
-			if i%2 == 0 {
-				r = sumChildHash(r, h)
-			} else {
-				r = sumChildHash(h, r)
-			}
-		}
-		i >>= 1
-	}
-	return r
+for level = 0; 0 == (count & (1 << level)); level++ {
+}
+h = inner[level]
+matchh = matchlevel == level
+for count != (1 << level) {
+if (flage&2) != 0 && matchh {
+branch = append(branch, h)
+}
+h = GetHashFromTwoHash(h, h)
+count += (1 << level)
+level++
+// And propagate the result upwards accordingly.
+for 0 == (count & (1 << level)) {
+if (flage & 2) != 0 {
+if matchh {
+branch = append(branch, inner[level])
+} else if matchlevel == level {
+branch = append(branch, h)
+matchh = true
+}
+}
+h = GetHashFromTwoHash(inner[level], h)
+level++
+}
+}
+return h, mutated, branch
 }
 
-// 				 root
-//			   /	  \
-//			n1			n2
-//		  /    \      /    \
-//		l1		l2	l3		l4
-//
-// l2't branch is [l1][n2], l3's branch is [l4][n1]
-// merkle is slice of merkle tree, i is index of tx in the merkle tree
-func MerkleBranch(merkle [][]byte, i int) [][]byte {
-	var hashs [][]byte
-	for i > 0 {
-		if i%2 != 0 {
-			hashs = append(hashs, merkle[i+1]) // right
-		} else {
-			hashs = append(hashs, merkle[i-1]) // left
-		}
-		i = (i - 1) / 2
-	}
-	return hashs
+//计算左右节点hash的父hash
+func GetHashFromTwoHash(left []byte, right []byte) []byte {
+if left == nil || right == nil {
+return nil
+}
+leftlen := len(left)
+rightlen := len(right)
+
+parent := make([]byte, leftlen+rightlen)
+
+copy(parent, left)
+copy(parent[leftlen:], right)
+hash := sha256.Sum256(parent)
+parenthash := sha256.Sum256(hash[:])
+return parenthash[:]
 }
 
-// 				 root
-//			   /	  \
-//			n1			n2
-//		  /    \      /    \
-//		l1		l2	l3		l4
-//
-// l2't branch is [l1][n2], l3's branch is [l4][n1]
-// txs is hashs of tx list, i is index of the tx in the txs
-func ComputeMerkleBranch(txs [][]byte, i int) ([][]byte, int) {
-	m := GenerateMerkle(txs)
-	index := len(m)/2 + i
-	return MerkleBranch(m, index), index
+//获取merkle roothash
+func GetMerkleRoot(leaves [][]byte) (roothash []byte) {
+if leaves == nil {
+return nil
+}
+proothash, _, _ := MerkleComputation(leaves, 1, 0)
+return proothash
 }
 
-func Unmatch(m1, m2 [][]byte, i int) (hs [][]byte) {
-	if i >= len(m1) {
-		return
-	}
-	//if m1[i].String() != m2[i].String() {
-	if !bytes.Equal(m1[i], m2[i]) {
-		if i >= len(m1)/2 {
-			hs = append(hs, m1[i])
-		} else {
-			lhs := Unmatch(m1, m2, i*2+1) // left child
-			hs = append(hs, lhs...)
-			rhs := Unmatch(m1, m2, i*2+2) // right child
-			hs = append(hs, rhs...)
-		}
-	}
-	return
+//获取指定txindex的branch position 从0开始
+func GetMerkleBranch(leaves [][]byte, position uint32) [][]byte {
+_, _, branchs := MerkleComputation(leaves, 2, position)
+return branchs
 }
 
-var zeroHash [32]byte
+// 通过branch 获取对应的roothash 用于指定txhash的proof证明
+func GetMerkleRootFromBranch(merkleBranch [][]byte, leaf []byte, Index uint32) []byte {
+hash := leaf
+for _, branch := range merkleBranch {
+if (Index & 1) != 0 {
+hash = GetHashFromTwoHash(branch, hash)
+} else {
+hash = GetHashFromTwoHash(hash, branch)
+}
+Index >>= 1
+}
+return hash
+}
 
-func CalcMerkleRoot(txs []*types.Transaction) []byte {
-	var hashes [][]byte
-	for _, tx := range txs {
-		hashes = append(hashes, tx.Hash())
-	}
-	merkleroot := GenerateMerkle(hashes)
-	if merkleroot == nil {
-		return zeroHash[:]
-	}
-	return merkleroot[0]
+//获取merkle roothash 以及指定tx index的branch，注释：position从0开始
+func GetMerkleRootAndBranch(leaves [][]byte, position uint32) (roothash []byte, branchs [][]byte) {
+roothash, _, branchs = MerkleComputation(leaves, 3, position)
+return
 }
