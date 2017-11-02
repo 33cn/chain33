@@ -100,10 +100,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			blocks, err := chain.ProcGetBlocksMsg(requestblocks)
 			if err != nil {
 				chainlog.Error("ProcGetBlocksMsg", "err", err.Error())
-				var reply types.Reply
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-				msg.Reply(chain.qclient.NewMessage("blockchain", types.EventReply, &reply))
+				msg.Reply(chain.qclient.NewMessage("blockchain", types.EventBlocks, err))
 			} else {
 				msg.Reply(chain.qclient.NewMessage("blockchain", types.EventBlocks, blocks))
 			}
@@ -261,13 +258,13 @@ type Blocks struct {Items []*Block `protobuf:"bytes,1,rep,name=items" json:"item
 */
 func (chain *BlockChain) ProcGetBlocksMsg(requestblock *types.RequestBlocks) (respblocks *types.Blocks, err error) {
 	blockhight := chain.GetBlockHeight()
-	if requestblock.Start >= blockhight {
+	if requestblock.Start > blockhight {
 		outstr := fmt.Sprintf("input Start height :%d  but current height:%d", requestblock.Start, blockhight)
 		err = errors.New(outstr)
 		return nil, err
 	}
 	end := requestblock.End
-	if requestblock.End >= blockhight {
+	if requestblock.End > blockhight {
 		end = blockhight
 	}
 	start := requestblock.Start

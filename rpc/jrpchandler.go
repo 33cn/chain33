@@ -24,7 +24,7 @@ func (req JRpcRequest) SendTransaction(in JTransparm, result *interface{}) error
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply := cli.SendTx(&data)
-	*result = string(reply.GetData().(types.Reply).Msg)
+	*result = string(reply.GetData().(*types.Reply).Msg)
 	return reply.Err()
 
 }
