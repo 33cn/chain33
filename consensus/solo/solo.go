@@ -148,7 +148,7 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 					newblock.Height = height
 					newblock.Txs = transactonList.Txs
 					// 求交易的rootHash
-					newblock.TxHash = merkle.GenerateMerkle(txWithoutdup.Hashes)[0]
+					newblock.TxHash = merkle.GetMerkleRoot(txWithoutdup.Hashes)
 
 					client.writeBlock(newblock)
 
