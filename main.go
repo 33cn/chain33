@@ -18,10 +18,11 @@ import (
 )
 
 const Version = "v0.0.1"
+
 func main() {
 	//channel, rabitmq 等
 	log.Info("chain33 " + Version)
-    log.Info("loading queue")
+	log.Info("loading queue")
 	q := queue.New("channel")
 
 	log.Info("loading blockchain module")
