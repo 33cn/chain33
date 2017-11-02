@@ -46,24 +46,6 @@ func TestUshieldSm2(t *testing.T) {
 	require.Equal(true, ok)
 }
 
-func TestSimSm2(t *testing.T) {
-	pubKeyStr := "37E9CCB6C7FC4E730424E1637BB8969FBF91D6A26237D993FE313231BF2B0328ED6CAE6A892C21F11F718B2C9A2C30105ED3F74E04DDCA0E14F68BEA613D163B"
-	signStr := "D38B358AA4962D55CF94467952542590F41FE975BB6E02439A0198F01B69E871337A91DE2255ED18AF15FD0BD2C632A4D7CB8844D718458199272DEC1A041EDA"
-	msg := "abcdef"
-
-	require := require.New(t)
-
-	pubBytes, err := hex.DecodeString(pubKeyStr)
-	require.Nil(err)
-
-	signBytes, err := hex.DecodeString(signStr)
-	require.Nil(err)
-
-	t.Logf("sm2 sign: %v\n", len(signBytes))
-	ok := Verify("sm2", pubBytes, []byte(msg), signBytes)
-	require.Equal(true, ok)
-}
-
 func TestSm3Hash(t *testing.T) {
 	msg := "abcd"
 	trueVal := "82ec580fe6d36ae4f81cae3c73f4a5b3b5a09c943172dc9053c69fd8e18dca1e"
