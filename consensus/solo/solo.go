@@ -80,13 +80,14 @@ func (client *SoloClient) ProcessBlock(txChannel <-chan types.ReplyTxList) {
 	// 监听blockchain模块，获取当前最高区块
 	client.qclient.Sub("consensus")
 
-	// 当系统重启后，增加一个触发事件,让blockchain触发EventAddBlock
-	newblock := &types.Block{}
-	newblock.Height = height + 1
-	newblock.ParentHash = nil
-	newblock.Txs = nil
-	newblock.TxHash = nil
-	client.writeBlock(newblock)
+	// TODO:当系统重启后，读区块最后一个block，增加一个触发事件,让blockchain触发EventAddBlock
+	//
+	//	newblock := &types.Block{}
+	//	newblock.Height = height + 1
+	//	newblock.ParentHash = nil
+	//	newblock.Txs = nil
+	//	newblock.TxHash = nil
+	//	client.writeBlock(newblock)
 
 	go func() {
 		for msg := range client.qclient.Recv() {
