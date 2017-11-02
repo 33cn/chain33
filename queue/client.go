@@ -63,7 +63,7 @@ func (client *Client) Wait(msg Message) (Message, error) {
 		return Message{}, errors.New("empty wait channel")
 	}
 	msg = <-msg.ChReply
-	return msg, nil
+	return msg, msg.Err()
 }
 
 func (client *Client) Recv() chan Message {

@@ -16,7 +16,7 @@ func (req *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.R
 	cli.SetQueue(req.gserver.q)
 
 	reply := cli.SendTx(in)
-	return &pb.Reply{IsOk: true, Msg: reply.GetData().(pb.Reply).Msg}, reply.Err()
+	return &pb.Reply{IsOk: true, Msg: reply.GetData().(*pb.Reply).Msg}, reply.Err()
 
 }
 
@@ -29,7 +29,7 @@ func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.RequestHash) (*pb.
 		return nil, err
 	}
 
-	return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(pb.Reply).Msg}, nil
+	return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(*pb.Reply).Msg}, nil
 
 }
 
@@ -43,6 +43,6 @@ func (req *Grpc) GetBlocks(ctx context.Context, in *pb.RequestBlocks) (*pb.Reply
 		return nil, err
 	}
 
-	return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(pb.Reply).Msg}, nil
+	return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(*pb.Reply).Msg}, nil
 
 }
