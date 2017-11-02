@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"testing"
 	"time"
-	"flag"
 )
+
 var thread = flag.Int("thread", 1, "threadnum")
 var n = flag.Int("num", 1, "times")
 
@@ -56,41 +57,40 @@ func Test_RandSendTransaction(t *testing.T) {
 
 func Test_RandSendTransactionBench(t *testing.T) {
 
-        flag.Parse()
-        fmt.Println("*thread:", *thread, "count:", *n)
-        var accounts = []string{"xiaoming", "xiaowang", "xiaoli", "xiaosi", "zhangsan", "wang2", "xiaohe", "liangliang", "bobo", "shuoshuo"}
-        var times int
-        times = *n
-        var chans = make(chan bool, *thread)
-        for i := 0; i < *thread; i++ {
-                go func(n,threadnum int) {
-                        for i := 0; i < n; i++ {
-                                bigi, err := rand.Int(rand.Reader, big.NewInt(int64(len(accounts))))
-                                if err != nil {
-                                        fmt.Println(err.Error())
-                                        continue
-                                }
-                                index := bigi.Int64()
-                                var payload uint32
-                                var paybytes [4]byte
-                                rand.Read(paybytes[:])
-                                binary.Read(bytes.NewBuffer(paybytes[:]), binary.LittleEndian, &payload)
-                                SendTransaction(accounts[index], fmt.Sprintf("%s", payload), fmt.Sprintf("%s", index))
-                                fmt.Println("account:", accounts[index],"payload:",payload)
-                                //time.Sleep(time.Second * 1)
+	flag.Parse()
+	fmt.Println("*thread:", *thread, "count:", *n)
+	var accounts = []string{"xiaoming", "xiaowang", "xiaoli", "xiaosi", "zhangsan", "wang2", "xiaohe", "liangliang", "bobo", "shuoshuo"}
+	var times int
+	times = *n
+	var chans = make(chan bool, *thread)
+	for i := 0; i < *thread; i++ {
+		go func(n, threadnum int) {
+			for i := 0; i < n; i++ {
+				bigi, err := rand.Int(rand.Reader, big.NewInt(int64(len(accounts))))
+				if err != nil {
+					fmt.Println(err.Error())
+					continue
+				}
+				index := bigi.Int64()
+				var payload uint32
+				var paybytes [4]byte
+				rand.Read(paybytes[:])
+				binary.Read(bytes.NewBuffer(paybytes[:]), binary.LittleEndian, &payload)
+				SendTransaction(accounts[index], fmt.Sprintf("%s", payload), fmt.Sprintf("%s", index))
+				fmt.Println("account:", accounts[index], "payload:", payload)
+				//time.Sleep(time.Second * 1)
 
-                        }
-                        chans <- true
-                }(times,i)
+			}
+			chans <- true
+		}(times, i)
 
-        }
-        var tcount=0
-        for{
-              <-chans
-              tcount++
-              if tcount==*thread{
-                  break
-              }
-        }
+	}
+	var tcount = 0
+	for {
+		<-chans
+		tcount++
+		if tcount == *thread {
+			break
+		}
+	}
 }
-

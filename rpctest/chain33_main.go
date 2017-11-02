@@ -1,9 +1,9 @@
 package main
 
 import (
-	"log"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/rpc"
+	"log"
 
 	"code.aliyun.com/chain33/chain33/types"
 )
