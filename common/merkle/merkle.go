@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"math"
+
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 //var zeroHash crypto.Hash
@@ -148,4 +150,18 @@ func Unmatch(m1, m2 [][]byte, i int) (hs [][]byte) {
 		}
 	}
 	return
+}
+
+var zeroHash [32]byte
+
+func CalcMerkleRoot(txs []*types.Transaction) []byte {
+	var hashes [][]byte
+	for _, tx := range txs {
+		hashes = append(hashes, tx.Hash())
+	}
+	merkleroot := GenerateMerkle(hashes)
+	if merkleroot == nil {
+		return zeroHash[:]
+	}
+	return merkleroot[0]
 }

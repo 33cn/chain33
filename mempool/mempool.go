@@ -104,7 +104,7 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 	for i = 0; i < minSize; i++ {
 		popped := mem.cache.txList.Front()
 		poppedTx := popped.Value.(*types.Transaction)
-		result[i] = poppedTx
+		result = append(result, poppedTx)
 		mem.cache.txList.Remove(popped)
 		delete(mem.cache.txMap, string(poppedTx.Hash()))
 	}
@@ -171,26 +171,26 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			if msg.Ty == types.EventTx {
 				if mem.CheckTx(msg.GetData().(*types.Transaction)) {
 					msg.Reply(client.NewMessage("rpc", types.EventReply,
-						types.Reply{true, nil}))
+						&types.Reply{true, nil}))
 				} else {
 					msg.Reply(client.NewMessage("rpc", types.EventReply,
-						types.Reply{false, []byte("transaction exists")}))
+						&types.Reply{false, []byte("transaction exists")}))
 				}
 			} else if msg.Ty == types.EventTxAddMempool {
 				if mem.CheckTx(msg.GetData().(*types.Transaction)) {
 					msg.Reply(client.NewMessage("rpc", types.EventReply,
-						types.Reply{true, nil}))
+						&types.Reply{true, nil}))
 				} else {
 					msg.Reply(client.NewMessage("rpc", types.EventReply,
-						types.Reply{false, []byte("transaction exists")}))
+						&types.Reply{false, []byte("transaction exists")}))
 				}
 			} else if msg.Ty == types.EventTxList {
 				msg.Reply(client.NewMessage("consensus", types.EventTxListReply,
-					types.ReplyTxList{mem.GetTxList(10000)}))
+					&types.ReplyTxList{mem.GetTxList(10000)}))
 			} else if msg.Ty == types.EventAddBlock {
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
 				msg.Reply(client.NewMessage("blockchain", types.EventReply,
-					types.Reply{true, nil}))
+					&types.Reply{true, nil}))
 			}
 		}
 	}()
