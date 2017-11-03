@@ -87,10 +87,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			merkleproof, err := chain.ProcQueryTxMsg(txhash.Hash)
 			if err != nil {
 				chainlog.Error("ProcQueryTxMsg", "err", err.Error())
-				var reply types.Reply
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReply, &reply))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventMerkleProof, err))
 			} else {
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventMerkleProof, merkleproof))
 			}
@@ -146,10 +143,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			headers, err := chain.ProcGetHeadersMsg(requestblocks)
 			if err != nil {
 				chainlog.Error("ProcGetHeadersMsg", "err", err.Error())
-				var reply types.Reply
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReply, &reply))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, err))
 			} else {
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, headers))
 			}
