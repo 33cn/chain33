@@ -117,10 +117,7 @@ func (client *SoloClient) eventLoop() {
 			slog.Info("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.Block)
-				if block.Height == 0 || block.Height > currentBlock.Height {
-					setCurrentBlock(block)
-				}
-
+				setCurrentBlock(block)
 			}
 		}
 	}()
@@ -174,9 +171,7 @@ func (client *SoloClient) writeBlock(block *types.Block) {
 		resp, _ := client.qclient.Wait(msg)
 
 		if resp.GetData().(*types.Reply).IsOk {
-			if block.Height == 0 || block.Height > currentBlock.Height {
-				setCurrentBlock(block)
-			}
+			setCurrentBlock(block)
 			break
 		} else {
 			log.Info("Send block to blockchian return fail,retry!")
@@ -186,7 +181,9 @@ func (client *SoloClient) writeBlock(block *types.Block) {
 
 func setCurrentBlock(b *types.Block) {
 	mulock.Lock()
-	currentBlock = b
+	if currentBlock == nil || currentBlock.Height <= b.Height {
+		currentBlock = b
+	}
 	mulock.Unlock()
 }
 
