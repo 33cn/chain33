@@ -83,3 +83,10 @@ message TxResult {
 	int32 index = 2;
 	Transaction tx = 3;
 }
+
+//resp
+message Headers {
+        repeated Header items = 1;
+}
+
+
