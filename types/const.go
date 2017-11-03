@@ -28,6 +28,9 @@ const (
 
 	EventTxHashList      = 17
 	EventTxHashListReply = 18
+
+	EventGetHeaders = 19
+        EventHeaders    = 20
 )
 
 var eventname = map[int]string{
@@ -49,6 +52,8 @@ var eventname = map[int]string{
 	16: "EventAddBlocks",
 	17: "EventTxHashList",
 	18: "EventTxHashListReply",
+	19: "EventGetHeaders",
+        20: "EventHeaders",
 }
 
 func GetEventName(event int) string {
