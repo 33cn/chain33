@@ -29,3 +29,32 @@ const (
 	EventTxHashList      = 17
 	EventTxHashListReply = 18
 )
+
+var eventname = map[int]string{
+	1:  "EventTx",
+	2:  "EventGetBlocks",
+	3:  "EventBlocks",
+	4:  "EventGetBlockHeight",
+	5:  "EventReplyBlockHeight",
+	6:  "EventQueryTx",
+	7:  "EventMerkleProof",
+	8:  "EventReply",
+	9:  "EventTxBroadcast",
+	10: "EventTxAddMempool",
+	11: "EventTxList",
+	12: "EventTxListReply",
+	13: "EventAddBlock",
+	14: "EventBlockBroadcast",
+	15: "EventFetchBlocks",
+	16: "EventAddBlocks",
+	17: "EventTxHashList",
+	18: "EventTxHashListReply",
+}
+
+func GetEventName(event int) string {
+	name, ok := eventname[event]
+	if ok {
+		return name
+	}
+	return "unknow-event"
+}

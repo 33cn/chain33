@@ -1,7 +1,10 @@
 package queue
 
 import (
+	"fmt"
 	"sync"
+
+	"code.aliyun.com/chain33/chain33/types"
 
 	log "github.com/inconshreveable/log15"
 )
@@ -86,4 +89,9 @@ func (msg Message) Err() error {
 func (msg Message) Reply(replyMsg Message) {
 	msg.ChReply <- replyMsg
 	qlog.Info("reply msg ok", "msg", msg)
+}
+
+func (msg Message) String() string {
+	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v}", msg.Topic,
+		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err())
 }
