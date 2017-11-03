@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"fmt"
 	"log"
 	"testing"
 
@@ -62,4 +63,13 @@ func TestMultiTopic(t *testing.T) {
 	}()
 	log.Println("start")
 	q.Start()
+}
+
+func TestPrintMessage(t *testing.T) {
+	q := New("channel")
+	client := q.GetClient()
+	msg := client.NewMessage("mempool", types.EventReply, types.Reply{true, []byte("word")})
+	if fmt.Sprint(msg) != "{topic:mempool, Ty:EventReply, Id:1, Err:<nil>}" {
+		t.Error("msg print err")
+	}
 }
