@@ -189,8 +189,6 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					&types.ReplyTxList{mem.GetTxList(10000)}))
 			} else if msg.Ty == types.EventAddBlock {
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
-				msg.Reply(client.NewMessage("blockchain", types.EventReply,
-					&types.Reply{true, nil}))
 			}
 		}
 	}()
