@@ -1,15 +1,15 @@
 package main
 
 import (
-	"context"
-	"log"
-	"time"
-    "testing"
 	pb "code.aliyun.com/chain33/chain33/types"
+	"context"
 	"google.golang.org/grpc"
+	"log"
+	"testing"
+	"time"
 )
 
-func Test_grpcSendTransaction() {
+func Test_grpcSendTransaction(t *testing.T) {
 	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
