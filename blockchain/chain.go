@@ -87,10 +87,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			merkleproof, err := chain.ProcQueryTxMsg(txhash.Hash)
 			if err != nil {
 				chainlog.Error("ProcQueryTxMsg", "err", err.Error())
-				var reply types.Reply
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReply, &reply))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventMerkleProof, err))
 			} else {
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventMerkleProof, merkleproof))
 			}
@@ -100,7 +97,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			blocks, err := chain.ProcGetBlocksMsg(requestblocks)
 			if err != nil {
 				chainlog.Error("ProcGetBlocksMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("blockchain", types.EventBlocks, err))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, err))
 			} else {
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, blocks))
 			}
@@ -141,6 +138,15 @@ func (chain *BlockChain) ProcRecvMsg() {
 			duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
 			msg.Reply(chain.qclient.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 
+		case types.EventGetHeaders:
+			requestblocks := (msg.Data).(*types.RequestBlocks)
+			headers, err := chain.ProcGetHeadersMsg(requestblocks)
+			if err != nil {
+				chainlog.Error("ProcGetHeadersMsg", "err", err.Error())
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, err))
+			} else {
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, headers))
+			}
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -579,4 +585,51 @@ func GetMerkleProof(Txs []*types.Transaction, index int32) (*types.MerkleProof, 
 	merkleproof := merkle.GetMerkleBranch(leaves, uint32(index))
 	txproof.Hashs = merkleproof
 	return &txproof, nil
+}
+
+/*
+type Header struct {
+	Version    int64  `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	ParentHash []byte `protobuf:"bytes,2,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
+	TxHash     []byte `protobuf:"bytes,3,opt,name=txHash,proto3" json:"txHash,omitempty"`
+	Height     int64  `protobuf:"varint,4,opt,name=height" json:"height,omitempty"`
+	BlockTime  int64  `protobuf:"varint,5,opt,name=blockTime" json:"blockTime,omitempty"`
+}
+*/
+func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.RequestBlocks) (respheaders *types.Headers, err error) {
+	blockhight := chain.GetBlockHeight()
+	if requestblock.Start > blockhight {
+		outstr := fmt.Sprintf("input Start height :%d  but current height:%d", requestblock.Start, blockhight)
+		err = errors.New(outstr)
+		return nil, err
+	}
+	end := requestblock.End
+	if requestblock.End > blockhight {
+		end = blockhight
+	}
+	start := requestblock.Start
+	count := end - start + 1
+	chainlog.Debug("ProcGetBlocksMsg", "blockscount", count)
+
+	var headers types.Headers
+	headers.Items = make([]*types.Header, count)
+	j := 0
+	for i := start; i <= end; i++ {
+		block, err := chain.GetBlock(i)
+		if err == nil && block != nil {
+			//获取header的信息从block中
+			head := &types.Header{}
+			head.Version = block.Version
+			head.ParentHash = block.ParentHash
+			head.TxHash = block.TxHash
+			head.BlockTime = block.BlockTime
+			head.Height = block.Height
+
+			headers.Items[j] = head
+		} else {
+			return nil, err
+		}
+		j++
+	}
+	return &headers, nil
 }
