@@ -189,6 +189,9 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					&types.ReplyTxList{mem.GetTxList(10000)}))
 			} else if msg.Ty == types.EventAddBlock {
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
+			} else if msg.Ty == types.EventGetMempoolSize {
+				msg.Reply(client.NewMessage("rpc", types.EventMempoolSize,
+					&types.MempoolSize{int64(mem.Size())}))
 			}
 		}
 	}()
