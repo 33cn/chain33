@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"log"
 	"testing"
 
 	"code.aliyun.com/chain33/chain33/queue"
@@ -16,6 +15,7 @@ var tx1 = &types.Transaction{Account: []byte("tester1"), Payload: []byte("mempoo
 var tx2 = &types.Transaction{Account: []byte("tester2"), Payload: []byte("mempool"), Signature: []byte("2017110102")}
 var tx3 = &types.Transaction{Account: []byte("tester3"), Payload: []byte("mempool"), Signature: []byte("2017110103")}
 var tx4 = &types.Transaction{Account: []byte("tester4"), Payload: []byte("mempool"), Signature: []byte("2017110104")}
+var tx5 = &types.Transaction{Account: []byte("tester5"), Payload: []byte("mempool"), Signature: []byte("2017110105")}
 
 var blk = &types.Block{
 	Version:    1,
@@ -23,7 +23,14 @@ var blk = &types.Block{
 	TxHash:     []byte("tx hash"),
 	Height:     1,
 	BlockTime:  1,
-	Txs:        []*types.Transaction{tx1, tx3},
+	Txs:        []*types.Transaction{tx3, tx5},
+}
+
+func TestSetMempoolSize(t *testing.T) {
+	mem.cache.SetMempoolSize(4)
+	if mem.cache.size != 4 {
+		t.Error("TestSetMempoolSize failed")
+	}
 }
 
 func TestAddTx(t *testing.T) {
@@ -31,7 +38,10 @@ func TestAddTx(t *testing.T) {
 	qclient.Send(msg, true)
 	mem.SetQueue(q)
 	qclient.Wait(msg)
-	log.Printf("1. size of mempool: %d", mem.Size())
+
+	if mem.Size() != 1 {
+		t.Error("TestAddTx failed")
+	}
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
@@ -45,7 +55,10 @@ func TestAddDuplicatedTx(t *testing.T) {
 
 	qclient.Wait(msg1)
 	qclient.Wait(msg2)
-	log.Printf("2. size of mempool: %d", mem.Size())
+
+	if mem.Size() != 2 {
+		t.Error("TestAddDuplicatedTx failed")
+	}
 }
 
 func TestAddMempool(t *testing.T) {
@@ -53,7 +66,10 @@ func TestAddMempool(t *testing.T) {
 	qclient.Send(msg, true)
 	mem.SetQueue(q)
 	qclient.Wait(msg)
-	log.Printf("3. size of mempool: %d", mem.Size())
+
+	if mem.Size() != 3 {
+		t.Error("TestAddMempool failed")
+	}
 }
 
 func TestAddDuplicatedTxToMempool(t *testing.T) {
@@ -67,7 +83,10 @@ func TestAddDuplicatedTxToMempool(t *testing.T) {
 
 	qclient.Wait(msg1)
 	qclient.Wait(msg2)
-	log.Printf("4. size of mempool: %d", mem.Size())
+
+	if mem.Size() != 4 {
+		t.Error("TestAddDuplicatedTxToMempool failed")
+	}
 }
 
 func TestGetTxList(t *testing.T) {
@@ -75,14 +94,18 @@ func TestGetTxList(t *testing.T) {
 	qclient.Send(msg, true)
 	mem.SetQueue(q)
 	_, err := qclient.Wait(msg)
+
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	log.Printf("5. size of mempool: %d", mem.Size())
+
+	if mem.Size() != 0 {
+		t.Error("TestGetTxList failed")
+	}
 }
 
-func TestRemoveTxOfBlock(t *testing.T) {
+func TestAddMoreTxThanPoolSize(t *testing.T) {
 	msg1 := qclient.NewMessage("mempool", types.EventTx, tx1)
 	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
 	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
@@ -100,13 +123,21 @@ func TestRemoveTxOfBlock(t *testing.T) {
 	qclient.Wait(msg3)
 	qclient.Wait(msg4)
 
-	log.Printf("6. size of mempool: %d", mem.Size())
+	msg5 := qclient.NewMessage("mempool", types.EventTx, tx5)
+	qclient.Send(msg5, true)
+	mem.SetQueue(q)
+	qclient.Wait(msg5)
 
+	if mem.Size() != 4 || mem.cache.Exists(tx1) {
+		t.Error("TestAddMoreTxThanPoolSize failed")
+	}
+}
+
+func TestRemoveTxOfBlock(t *testing.T) {
 	msg5 := qclient.NewMessage("mempool", types.EventAddBlock, blk)
 	qclient.Send(msg5, false)
 	mem.SetQueue(q)
-	memSize := mem.Size()
-	log.Printf("7. size of mempool: %d", memSize)
+	TestGetMempoolSize(t)
 }
 
 func TestGetMempoolSize(t *testing.T) {
@@ -114,10 +145,13 @@ func TestGetMempoolSize(t *testing.T) {
 	qclient.Send(msg, true)
 	mem.SetQueue(q)
 	reply, err := qclient.Wait(msg)
+
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	t.Log(string(reply.GetData().(*types.MempoolSize).Size))
-	log.Printf("8. size of mempool: %d", mem.Size())
+
+	if reply.GetData().(*types.MempoolSize).Size != 2 {
+		t.Error("TestGetMempoolSize failed")
+	}
 }

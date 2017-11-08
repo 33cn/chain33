@@ -79,6 +79,14 @@ func (cache *txCache) Size() int {
 	return cache.txList.Len()
 }
 
+// txCache.SetMempoolSize用来设置Mempool容量
+func (cache *txCache) SetMempoolSize(newSize int) {
+	if cache.txList.Len() > 0 {
+		return
+	}
+	cache.size = newSize
+}
+
 func New() *Mempool {
 	pool := &Mempool{}
 	pool.cache = newTxCache(poolCacheSize)
