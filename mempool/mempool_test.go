@@ -74,7 +74,11 @@ func TestGetTxList(t *testing.T) {
 	msg := qclient.NewMessage("mempool", types.EventTxList, 100)
 	qclient.Send(msg, true)
 	mem.SetQueue(q)
-	qclient.Wait(msg)
+	_, err := qclient.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	log.Printf("5. size of mempool: %d", mem.Size())
 }
 
@@ -103,4 +107,17 @@ func TestRemoveTxOfBlock(t *testing.T) {
 	mem.SetQueue(q)
 	memSize := mem.Size()
 	log.Printf("7. size of mempool: %d", memSize)
+}
+
+func TestGetMempoolSize(t *testing.T) {
+	msg := qclient.NewMessage("mempool", types.EventGetMempoolSize, nil)
+	qclient.Send(msg, true)
+	mem.SetQueue(q)
+	reply, err := qclient.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Log(string(reply.GetData().(*types.MempoolSize).Size))
+	log.Printf("8. size of mempool: %d", mem.Size())
 }
