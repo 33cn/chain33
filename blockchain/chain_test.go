@@ -22,9 +22,9 @@ func Test_BlockChainModule(t *testing.T) {
 	//b.StartTimer()
 	fmt.Println("start")
 
-	go Testroutline(chain)
-	q.Start()
+	Testroutline(chain)
 }
+
 func Testroutline(chain *BlockChain) {
 	//测试add block
 	chainlog.Info("testProcAddBlockMsg begin --------------------")
@@ -53,8 +53,8 @@ func Testroutline(chain *BlockChain) {
 	// 测试AddBlocks
 	chainlog.Info("testAddBlocks begin --------------------")
 	testAddBlocks(chain)
-
 }
+
 func testProcAddBlockMsg(chain *BlockChain) {
 	curheight := chain.GetBlockHeight()
 
