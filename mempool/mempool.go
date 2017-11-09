@@ -13,6 +13,14 @@ const poolCacheSize = 300000 // mempool容量
 
 var mlog = log.New("module", "mempool")
 
+func SetLogLevel(level int) {
+
+}
+
+func DisableLog() {
+	mlog.SetHandler(log.DiscardHandler())
+}
+
 type MClient interface {
 	SetQueue(q *queue.Queue)
 	SendTx(tx *types.Transaction) queue.Message
@@ -80,9 +88,9 @@ func (cache *txCache) Size() int {
 }
 
 // txCache.SetMempoolSize用来设置Mempool容量
-func (cache *txCache) SetMempoolSize(newSize int) {
+func (cache *txCache) SetSize(newSize int) {
 	if cache.txList.Len() > 0 {
-		return
+		panic("only can set a empty size")
 	}
 	cache.size = newSize
 }
@@ -91,6 +99,10 @@ func New() *Mempool {
 	pool := &Mempool{}
 	pool.cache = newTxCache(poolCacheSize)
 	return pool
+}
+
+func (mem *Mempool) Resize(size int) {
+	mem.cache.SetSize(size)
 }
 
 // Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
