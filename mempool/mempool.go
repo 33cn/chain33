@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"sync"
 
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -13,8 +14,8 @@ const poolCacheSize = 300000 // mempool容量
 
 var mlog = log.New("module", "mempool")
 
-func SetLogLevel(level int) {
-
+func SetLogLevel(level string) {
+	common.SetLogLevel(level)
 }
 
 func DisableLog() {
