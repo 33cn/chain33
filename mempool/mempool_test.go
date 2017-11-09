@@ -24,7 +24,13 @@ var blk = &types.Block{
 
 func init() {
 	queue.DisableLog()
-	DisableLog()
+	//	DisableLog() // 不输出任何log
+	//	SetLogLevel("debug") // 输出DBUG(含)以下log
+	//	SetLogLevel("info") // 输出INFO(含)以下log
+	//	SetLogLevel("warn") // 输出WARN(含)以下log
+	//	SetLogLevel("eror") // 输出EROR(含)以下log
+	//	SetLogLevel("crit") // 输出CRIT(含)以下log
+	SetLogLevel("") // 输出所有log
 }
 
 func initEnv(size int) (*Mempool, *queue.Queue) {
