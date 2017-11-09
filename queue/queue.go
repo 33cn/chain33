@@ -20,6 +20,14 @@ var qlog = log.New("module", "queue")
 
 const DefaultChanBuffer = 1024
 
+func SetLogLevel(level int) {
+
+}
+
+func DisableLog() {
+	qlog.SetHandler(log.DiscardHandler())
+}
+
 type Queue struct {
 	chans map[string]chan Message
 	mu    sync.Mutex
