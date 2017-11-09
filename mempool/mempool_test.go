@@ -7,10 +7,6 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-var mem = New()
-var q = queue.New("channel")
-var qclient = q.GetClient()
-
 var tx1 = &types.Transaction{Account: []byte("tester1"), Payload: []byte("mempool"), Signature: []byte("2017110101")}
 var tx2 = &types.Transaction{Account: []byte("tester2"), Payload: []byte("mempool"), Signature: []byte("2017110102")}
 var tx3 = &types.Transaction{Account: []byte("tester3"), Payload: []byte("mempool"), Signature: []byte("2017110103")}
@@ -26,78 +22,120 @@ var blk = &types.Block{
 	Txs:        []*types.Transaction{tx3, tx5},
 }
 
-func TestSetMempoolSize(t *testing.T) {
-	mem.cache.SetMempoolSize(4)
-	if mem.cache.size != 4 {
-		t.Error("TestSetMempoolSize failed")
+func init() {
+	queue.DisableLog()
+	DisableLog()
+}
+
+func initEnv(size int) (*Mempool, *queue.Queue) {
+	var q = queue.New("channel")
+	mem := New()
+	mem.SetQueue(q)
+	if size > 0 {
+		mem.Resize(size)
 	}
+	return mem, q
 }
 
 func TestAddTx(t *testing.T) {
+	mem, q := initEnv(0)
+	qclient := q.GetClient()
+
 	msg := qclient.NewMessage("mempool", types.EventTx, tx1)
 	qclient.Send(msg, true)
-	mem.SetQueue(q)
 	qclient.Wait(msg)
-
 	if mem.Size() != 1 {
 		t.Error("TestAddTx failed")
 	}
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
+	mem, q := initEnv(0)
+	qclient := q.GetClient()
+
 	msg1 := qclient.NewMessage("mempool", types.EventTx, tx2)
-	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
-
 	qclient.Send(msg1, true)
-	qclient.Send(msg2, true)
-
-	mem.SetQueue(q)
-
 	qclient.Wait(msg1)
+
+	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
+	qclient.Send(msg2, true)
 	qclient.Wait(msg2)
 
-	if mem.Size() != 2 {
+	if mem.Size() != 1 {
 		t.Error("TestAddDuplicatedTx failed")
 	}
 }
 
 func TestAddMempool(t *testing.T) {
+	mem, q := initEnv(0)
+	qclient := q.GetClient()
+
 	msg := qclient.NewMessage("mempool", types.EventTxAddMempool, tx3)
 	qclient.Send(msg, true)
-	mem.SetQueue(q)
 	qclient.Wait(msg)
 
-	if mem.Size() != 3 {
+	if mem.Size() != 1 {
 		t.Error("TestAddMempool failed")
 	}
 }
 
 func TestAddDuplicatedTxToMempool(t *testing.T) {
+	mem, q := initEnv(0)
+	qclient := q.GetClient()
+
 	msg1 := qclient.NewMessage("mempool", types.EventTxAddMempool, tx4)
-	msg2 := qclient.NewMessage("mempool", types.EventTxAddMempool, tx4)
-
 	qclient.Send(msg1, true)
-	qclient.Send(msg2, true)
-
-	mem.SetQueue(q)
-
 	qclient.Wait(msg1)
+
+	msg2 := qclient.NewMessage("mempool", types.EventTxAddMempool, tx4)
+	qclient.Send(msg2, true)
 	qclient.Wait(msg2)
 
-	if mem.Size() != 4 {
+	if mem.Size() != 1 {
 		t.Error("TestAddDuplicatedTxToMempool failed")
 	}
 }
 
+func add4Tx(qclient queue.IClient) {
+	msg1 := qclient.NewMessage("mempool", types.EventTx, tx1)
+	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
+	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
+	msg4 := qclient.NewMessage("mempool", types.EventTx, tx4)
+
+	qclient.Send(msg1, true)
+	qclient.Wait(msg1)
+
+	qclient.Send(msg2, true)
+	qclient.Wait(msg2)
+
+	qclient.Send(msg3, true)
+	qclient.Wait(msg3)
+
+	qclient.Send(msg4, true)
+	qclient.Wait(msg4)
+}
+
 func TestGetTxList(t *testing.T) {
+
+	mem, q := initEnv(0)
+	qclient := q.GetClient()
+
+	//add tx
+	add4Tx(qclient)
+
 	msg := qclient.NewMessage("mempool", types.EventTxList, 100)
 	qclient.Send(msg, true)
-	mem.SetQueue(q)
-	_, err := qclient.Wait(msg)
+	data, err := qclient.Wait(msg)
 
 	if err != nil {
 		t.Error(err)
 		return
+	}
+
+	txs := data.GetData().(*types.ReplyTxList).GetTxs()
+
+	if len(txs) != 4 {
+		t.Error("get txlist number error")
 	}
 
 	if mem.Size() != 0 {
@@ -106,26 +144,14 @@ func TestGetTxList(t *testing.T) {
 }
 
 func TestAddMoreTxThanPoolSize(t *testing.T) {
-	msg1 := qclient.NewMessage("mempool", types.EventTx, tx1)
-	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
-	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
-	msg4 := qclient.NewMessage("mempool", types.EventTx, tx4)
 
-	qclient.Send(msg1, true)
-	qclient.Send(msg2, true)
-	qclient.Send(msg3, true)
-	qclient.Send(msg4, true)
+	mem, q := initEnv(4)
+	qclient := q.GetClient()
 
-	mem.SetQueue(q)
-
-	qclient.Wait(msg1)
-	qclient.Wait(msg2)
-	qclient.Wait(msg3)
-	qclient.Wait(msg4)
+	add4Tx(qclient)
 
 	msg5 := qclient.NewMessage("mempool", types.EventTx, tx5)
 	qclient.Send(msg5, true)
-	mem.SetQueue(q)
 	qclient.Wait(msg5)
 
 	if mem.Size() != 4 || mem.cache.Exists(tx1) {
@@ -134,15 +160,17 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 }
 
 func TestRemoveTxOfBlock(t *testing.T) {
+	mem, q := initEnv(0)
+	qclient := q.GetClient()
+
+	add4Tx(qclient)
+
 	msg5 := qclient.NewMessage("mempool", types.EventAddBlock, blk)
 	qclient.Send(msg5, false)
-	mem.SetQueue(q)
-	TestGetMempoolSize(t)
-}
 
-func TestGetMempoolSize(t *testing.T) {
 	msg := qclient.NewMessage("mempool", types.EventGetMempoolSize, nil)
 	qclient.Send(msg, true)
+
 	mem.SetQueue(q)
 	reply, err := qclient.Wait(msg)
 
@@ -151,7 +179,7 @@ func TestGetMempoolSize(t *testing.T) {
 		return
 	}
 
-	if reply.GetData().(*types.MempoolSize).Size != 2 {
+	if reply.GetData().(*types.MempoolSize).Size != 3 {
 		t.Error("TestGetMempoolSize failed")
 	}
 }
