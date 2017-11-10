@@ -5,58 +5,26 @@ import (
 	"fmt"
 	"testing"
 
-	//"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-func Test_BlockChainModule(t *testing.T) {
-	//b.StopTimer()
-
-	q := queue.New("channel")
-
-	fmt.Println("loading blockchain module")
-	chain := New()
-	chain.SetQueue(q)
-	//b.StartTimer()
-	fmt.Println("start")
-
-	Testroutline(chain)
+func init() {
+	queue.DisableLog()
 }
 
-func Testroutline(chain *BlockChain) {
-	//测试add block
+func initEnv() (*BlockChain, *queue.Queue) {
+	var q = queue.New("channel")
+	blockchain := New()
+	blockchain.SetQueue(q)
+	return blockchain, q
+}
+
+func TestProcAddBlockMsg(t *testing.T) {
 	chainlog.Info("testProcAddBlockMsg begin --------------------")
-	testProcAddBlockMsg(chain)
-
-	//测试testGetBlock 获取当前高度的block信息
-	chainlog.Info("testGetBlock begin --------------------")
-	testGetBlock(chain)
-
-	//测试当前高度的index=0的tx
-	chainlog.Info("testGetTx begin --------------------")
-	testGetTx(chain)
-
-	//测试当前高度的tx重复
-	chainlog.Info("testGetTxHashList begin --------------------")
-	testGetTxHashList(chain)
-
-	// 测试txproof已经verify
-	chainlog.Info("testProcQueryTxMsg begin --------------------")
-	testProcQueryTxMsg(chain)
-
-	//测试GetBlocksMsg
-	chainlog.Info("testGetBlocksMsg begin --------------------")
-	testGetBlocksMsg(chain)
-
-	// 测试AddBlocks
-	chainlog.Info("testAddBlocks begin --------------------")
-	testAddBlocks(chain)
-}
-
-func testProcAddBlockMsg(chain *BlockChain) {
-	curheight := chain.GetBlockHeight()
+	blockchain, _ := initEnv()
+	curheight := blockchain.GetBlockHeight()
 
 	addblockheight := curheight + 1
 	chainlog.Info("testProcAddBlockMsg", "addblockheight", addblockheight)
@@ -88,11 +56,15 @@ func testProcAddBlockMsg(chain *BlockChain) {
 
 		block.TxHash = merkle.GetMerkleRoot(txhashs)
 
-		chain.ProcAddBlockMsg(&block)
+		blockchain.ProcAddBlockMsg(&block)
 	}
+	chainlog.Info("testProcAddBlockMsg end --------------------")
+	blockchain.Close()
 }
 
-func testGetBlock(blockchain *BlockChain) {
+func TestGetBlock(t *testing.T) {
+	chainlog.Info("testGetBlock begin --------------------")
+	blockchain, _ := initEnv()
 	curheight := blockchain.GetBlockHeight()
 	chainlog.Info("testGetBlock ", "curheight", curheight)
 	block, err := blockchain.GetBlock(curheight)
@@ -111,9 +83,13 @@ func testGetBlock(blockchain *BlockChain) {
 			fmt.Println("tx.Account:", string(transaction.Account))
 		}
 	}
+	chainlog.Info("testGetBlock end --------------------")
+	blockchain.Close()
 }
 
-func testGetTx(blockchain *BlockChain) {
+func TestGetTx(t *testing.T) {
+	chainlog.Info("TestGetTx begin --------------------")
+	blockchain, _ := initEnv()
 	//构建txhash
 	curheight := blockchain.GetBlockHeight()
 	j := 0
@@ -140,9 +116,13 @@ func testGetTx(blockchain *BlockChain) {
 		fmt.Println("tx.Account:", string(txresult.Tx.Account))
 
 	}
+	chainlog.Info("TestGetTx end --------------------")
+	blockchain.Close()
 }
 
-func testGetTxHashList(blockchain *BlockChain) {
+func TestGetTxHashList(t *testing.T) {
+	chainlog.Info("TestGetTxHashList begin --------------------")
+	blockchain, _ := initEnv()
 	var txhashlist types.TxHashList
 	total := 10
 	Txs := make([]*types.Transaction, total)
@@ -172,9 +152,13 @@ func testGetTxHashList(blockchain *BlockChain) {
 			}
 		}
 	}
+	chainlog.Info("TestGetTxHashList end --------------------")
+	blockchain.Close()
 }
 
-func testProcQueryTxMsg(blockchain *BlockChain) {
+func TestProcQueryTxMsg(t *testing.T) {
+	chainlog.Info("TestProcQueryTxMsg begin --------------------")
+	blockchain, _ := initEnv()
 	curheight := blockchain.GetBlockHeight()
 	var merkleroothash []byte
 	var txhash []byte
@@ -205,10 +189,13 @@ func testProcQueryTxMsg(blockchain *BlockChain) {
 	if bytes.Equal(merkleroothash, brroothash) {
 		chainlog.Info("testProcQueryTxMsg merkleroothash ==  brroothash  ")
 	}
-
+	chainlog.Info("TestProcQueryTxMsg end --------------------")
+	blockchain.Close()
 }
 
-func testGetBlocksMsg(blockchain *BlockChain) {
+func TestGetBlocksMsg(t *testing.T) {
+	chainlog.Info("TestGetBlocksMsg begin --------------------")
+	blockchain, _ := initEnv()
 	curheight := blockchain.GetBlockHeight()
 	var reqBlock types.RequestBlocks
 	if curheight >= 5 {
@@ -234,17 +221,116 @@ func testGetBlocksMsg(blockchain *BlockChain) {
 
 		}
 	}
+	chainlog.Info("TestGetBlocksMsg end --------------------")
+	blockchain.Close()
+
 }
 
-func testAddBlocks(blockchain *BlockChain) {
+func TestProcGetHeadersMsg(t *testing.T) {
+	chainlog.Info("TestProcGetHeadersMsg begin --------------------")
+	blockchain, _ := initEnv()
 
 	curheight := blockchain.GetBlockHeight()
-	fmt.Println("testAddBlocks start: curheight ", curheight)
+	var reqBlock types.RequestBlocks
+	if curheight >= 5 {
+		reqBlock.Start = curheight - 5
+	}
+	reqBlock.End = curheight
 
-	end := curheight + 5
-	start := curheight + 1
+	blockheaders, err := blockchain.ProcGetHeadersMsg(&reqBlock)
+	if err == nil && blockheaders != nil {
+		for _, head := range blockheaders.Items {
+			fmt.Println("TestProcGetHeadersMsg info:.")
+			fmt.Println("head.ParentHash:", string(head.ParentHash))
+			fmt.Println("head.TxHash:", head.TxHash)
+			fmt.Println("head.BlockTime:", head.BlockTime)
+			fmt.Println("head.Height:", head.Height)
+			fmt.Println("head.Version:", head.Version)
+		}
+	}
+	chainlog.Info("TestProcGetHeadersMsg end --------------------")
+	blockchain.Close()
+}
 
-	fmt.Println("testAddBlocks start: end ", start, end)
+// 测试addblock，addblocks以及fetchblocks
+func TestFetchBlock(t *testing.T) {
+	chainlog.Info("TestFetchBlock begin --------------------")
+	//blockchain.SetQueue(q)
+	blockchain, q := initEnv()
+
+	curheight := blockchain.GetBlockHeight()
+	chainlog.Info("TestFetchBlock", "curheight", curheight)
+
+	//添加一个curheight +10的block给blockchain模块，从而出发blockchain向 p2p模块发送FetchBlock消息
+	addheight := curheight + 10
+	go addBlock(blockchain, addheight)
+	var requestblocks *types.RequestBlocks
+	//p2p
+	go func() {
+		client := q.GetClient()
+		client.Sub("p2p")
+		for msg := range client.Recv() {
+			if msg.Ty == types.EventFetchBlocks {
+				chainlog.Info("TestFetchBlock", "msg.Ty", msg.Ty)
+				requestblocks = (msg.Data).(*types.RequestBlocks)
+				go addBlocks(blockchain, requestblocks)
+				msg.Reply(client.NewMessage("blockchain", types.EventAddBlocks, &types.Reply{true, nil}))
+			}
+		}
+	}()
+
+	for {
+		curheight := blockchain.GetBlockHeight()
+		if addheight == curheight {
+			break
+		}
+	}
+	chainlog.Info("TestFetchBlock end --------------------")
+	blockchain.Close()
+}
+
+func addBlock(blockchain *BlockChain, addblockheight int64) {
+	chainlog.Info("addBlock", "addblockheight", addblockheight)
+
+	for i := addblockheight; i <= addblockheight; i++ {
+		var block types.Block
+		parenthash := fmt.Sprintf("ParentHash :%d!", i)
+		block.ParentHash = []byte(parenthash)
+		block.BlockTime = int64(i)
+		block.Height = int64(i)
+		block.Version = 100
+
+		total := 5
+		block.Txs = make([]*types.Transaction, total)
+		txhashs := make([][]byte, total)
+		for j := 0; j < total; j++ {
+			var transaction types.Transaction
+			payload := fmt.Sprintf("Payload :%d:%d!", i, j)
+			signature := fmt.Sprintf("Signature :%d:%d!", i, j)
+			account := fmt.Sprintf("Account :%d:%d!", i, j)
+
+			transaction.Payload = []byte(payload)
+			transaction.Signature = []byte(signature)
+			transaction.Account = []byte(account)
+
+			block.Txs[j] = &transaction
+			txhashs[j] = transaction.Hash()
+		}
+
+		block.TxHash = merkle.GetMerkleRoot(txhashs)
+
+		blockchain.ProcAddBlockMsg(&block)
+	}
+}
+
+func addBlocks(blockchain *BlockChain, requestblock *types.RequestBlocks) {
+	if requestblock == nil {
+		chainlog.Info("addBlocks requestblock is null")
+		return
+	}
+	end := requestblock.End
+	start := requestblock.Start
+	chainlog.Info("addBlocks", "start", start, "end", end)
 	var blocks types.Blocks
 	count := end - start + 1
 	blocks.Items = make([]*types.Block, count)
@@ -276,4 +362,5 @@ func testAddBlocks(blockchain *BlockChain) {
 		j++
 	}
 	blockchain.ProcAddBlocksMsg(&blocks)
+	chainlog.Info("addBlocks ok")
 }

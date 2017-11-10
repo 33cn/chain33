@@ -20,7 +20,7 @@ var (
 
 	//一次最多申请获取block个数
 	MaxFetchBlockNum  int64  = 100
-	TimeoutSeconds    int64  = 15
+	TimeoutSeconds    int64  = 5
 	BatchBlockNum     int64  = 100
 	reqTimeoutSeconds        = time.Duration(TimeoutSeconds)
 	Datadir           string = "datadir"
@@ -28,7 +28,7 @@ var (
 
 var chainlog = log.New("module", "blockchain")
 
-const trySyncIntervalMS = 1000
+const trySyncIntervalMS = 5000
 
 type BlockChain struct {
 	qclient queue.IClient
@@ -65,6 +65,9 @@ func New() *BlockChain {
 		blockPool:  pool,
 		reqBlk:     reqblk,
 	}
+}
+func (chain *BlockChain) Close() {
+	chain.blockStore.db.Close()
 }
 
 func (chain *BlockChain) SetQueue(q *queue.Queue) {
@@ -530,7 +533,7 @@ func (chain *BlockChain) WaitReqBlk(start int64, end int64) {
 
 //对应block请求超时发起FetchBlock
 func (chain *BlockChain) sendTimeout(startheight int64, endheight int64) {
-
+	//chainlog.Debug("sendTimeout", "startheight", startheight, "endheight", endheight)
 	var reqBlock types.RequestBlocks
 	reqBlock.Start = startheight
 	reqBlock.End = endheight
@@ -558,6 +561,7 @@ func newBPRequestBlk(chain *BlockChain, startheight int64, endheight int64) *bpR
 
 func (bpReqBlk *bpRequestBlk) resetTimeout() {
 	if bpReqBlk.timeout == nil {
+		//chainlog.Debug("resetTimeout", "startheight", bpReqBlk.startheight, "endheight", bpReqBlk.endheight)
 		bpReqBlk.timeout = time.AfterFunc(time.Second*reqTimeoutSeconds, bpReqBlk.onTimeout)
 	} else {
 		bpReqBlk.timeout.Reset(time.Second * reqTimeoutSeconds)
@@ -565,6 +569,7 @@ func (bpReqBlk *bpRequestBlk) resetTimeout() {
 }
 
 func (bpReqBlk *bpRequestBlk) onTimeout() {
+	//chainlog.Debug("onTimeout", "startheight", bpReqBlk.startheight, "endheight", bpReqBlk.endheight)
 	bpReqBlk.blockchain.sendTimeout(bpReqBlk.startheight, bpReqBlk.endheight)
 	bpReqBlk.didTimeout = true
 }
