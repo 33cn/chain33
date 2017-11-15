@@ -6,7 +6,7 @@ import "os"
 var mainHandler log15.Handler
 
 func init() {
-	resetWithLogLevel("error")
+	//resetWithLogLevel("error")
 }
 
 // 设置log输出级别
