@@ -42,6 +42,11 @@ message RequestHash {
 	bytes hash = 1;
 }
 
+message ReplyHash {
+	bytes hash = 1;
+}
+
+
 message MerkleProof {
 	repeated bytes hashs = 1;
 }
@@ -86,11 +91,28 @@ message TxResult {
 
 //resp
 message Headers {
-        repeated Header items = 1;
+    repeated Header items = 1;
 }
 
 message MempoolSize {
     int64 size = 1;
 }
 
+message StoreSet {
+	bytes stateHash = 1;
+	repeated KeyValue KV = 2;
+}
 
+message StoreGet {
+	bytes stateHash = 1;
+	repeated bytes keys = 2;
+}
+
+message StoreReplyValue {
+	repeated bytes values = 2;
+}
+
+message KeyValue {
+	bytes key = 1;
+	bytes value = 2;
+}

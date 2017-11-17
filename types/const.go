@@ -34,6 +34,11 @@ const (
 
 	EventGetMempoolSize = 21
 	EventMempoolSize    = 22
+
+	EventStoreGet      = 23
+	EventStoreSet      = 24
+	EventStoreGetReply = 25
+	EventStoreSetReply = 26
 )
 
 var eventname = map[int]string{
@@ -59,6 +64,10 @@ var eventname = map[int]string{
 	20: "EventHeaders",
 	21: "EventGetMempoolSize",
 	22: "EventMempoolSize",
+	23: "EventStoreGet",
+	24: "EventStoreSet",
+	25: "EventStoreGetReply",
+	26: "EventStoreSetReply",
 }
 
 func GetEventName(event int) string {
