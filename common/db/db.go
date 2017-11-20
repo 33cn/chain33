@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+type KVDB interface {
+	Get(key []byte) (value []byte, err error)
+	Set(key []byte, value []byte) (err error)
+}
+
 type DB interface {
 	Get([]byte) []byte
 	Set([]byte, []byte)
