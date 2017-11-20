@@ -1,5 +1,9 @@
 package types
 
+import "errors"
+
+var ErrNotFound = errors.New("ErrNotFound")
+
 const (
 	EventTx = 1
 
@@ -40,6 +44,7 @@ const (
 	EventStoreGetReply = 25
 	EventStoreSetReply = 26
 	EventReceipts      = 27
+	EventExecTxList    = 28
 )
 
 var eventname = map[int]string{
@@ -70,6 +75,7 @@ var eventname = map[int]string{
 	25: "EventStoreGetReply",
 	26: "EventStoreSetReply",
 	27: "EventReceipts",
+	28: "EventExecTxList",
 }
 
 func GetEventName(event int) string {
@@ -78,9 +84,4 @@ func GetEventName(event int) string {
 		return name
 	}
 	return "unknow-event"
-}
-
-
-const {
-	
 }
