@@ -11,19 +11,17 @@ package execs
 执行的过程中，会产生一些Event，Event作为交易的Receipt
 
 //input
-EventBlock
+ReplyTxList
 
 //output
-Receipts
-KVStore
+Receipts->(IsOk, EventLogs, KVSet)
 
 var kvs types.KV
 var receipts types.Receipts
 for tx := range txs {
-	storeSet, events := execTx(tx) //对于错误的交易 events 就是：InvalidTx
+	storeSet, events, ok := execTx(tx) //对于错误的交易 events 就是：InvalidTx
 	//执行的过程中，会更新内存模拟数据库，这里主要是余额信息
 }
-
 
 执行器的设计原则：
 

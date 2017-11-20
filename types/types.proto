@@ -27,9 +27,11 @@ message Block {
 }
 
 message Transaction {
-	bytes Payload =1;
-	bytes Signature = 2;
-	bytes Account = 3;
+	bytes  execer = 1;
+	bytes  payload =2;
+	bytes  signature = 3;
+	int64  maxFee = 4;
+	bytes  account = 5;
 }
 
 message ChainStatus {
@@ -115,4 +117,20 @@ message StoreReplyValue {
 message KeyValue {
 	bytes key = 1;
 	bytes value = 2;
+}
+
+
+message ReceiptLog {
+	int32 ty = 1;
+	bytes log = 2;
+}
+
+message Receipt {
+	bool isOk = 1;
+	repeated KeyValue KV = 2;
+	repeated ReceiptLog logs = 3;
+}
+
+message Receipts {
+	repeated Receipt receipts = 1;
 }

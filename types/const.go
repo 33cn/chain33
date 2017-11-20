@@ -39,6 +39,7 @@ const (
 	EventStoreSet      = 24
 	EventStoreGetReply = 25
 	EventStoreSetReply = 26
+	EventReceipts      = 27
 )
 
 var eventname = map[int]string{
@@ -68,6 +69,7 @@ var eventname = map[int]string{
 	24: "EventStoreSet",
 	25: "EventStoreGetReply",
 	26: "EventStoreSetReply",
+	27: "EventReceipts",
 }
 
 func GetEventName(event int) string {
@@ -76,4 +78,9 @@ func GetEventName(event int) string {
 		return name
 	}
 	return "unknow-event"
+}
+
+
+const {
+	
 }
