@@ -1,7 +1,12 @@
 package types
 
-import proto "github.com/golang/protobuf/proto"
-import "code.aliyun.com/chain33/chain33/common"
+import (
+	"code.aliyun.com/chain33/chain33/common/crypto"
+	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
+	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
+	_ "code.aliyun.com/chain33/chain33/common/crypto/sm2"
+	proto "github.com/golang/protobuf/proto"
+)
 
 func (tx *Transaction) Hash() []byte {
 	copytx := *tx
@@ -11,6 +16,32 @@ func (tx *Transaction) Hash() []byte {
 		panic(err)
 	}
 	return common.Sha256(data)
+}
+
+func (tx *Transaction) CheckSign() bool {
+	copytx := *tx
+	copytx.Signature = nil
+	data, err := proto.Marshal(&copytx)
+	if err != nil {
+		panic(err)
+	}
+
+	sign := tx.GetSignature()
+	c, err := crypto.New(types.GetSignatureName(sign.Ty))
+	if err != nil {
+		return false
+	}
+
+	pub, err := crypto.PubKeyFromBytes(sign.PubKey)
+	if err != nil {
+		return false
+	}
+
+	signbytes, err := c.SignatureFromBytes(sign.Signature)
+	if err != nil {
+		return false
+	}
+	return pub.VerifyBytes(data, signbytes)
 }
 
 func (block *Block) Hash() []byte {

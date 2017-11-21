@@ -3,6 +3,7 @@ package types
 import "errors"
 
 var ErrNotFound = errors.New("ErrNotFound")
+var ErrNoBalance = errors.New("ErrNoBalance")
 
 const (
 	EventTx = 1
