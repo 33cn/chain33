@@ -32,9 +32,10 @@ func (n *None) Exec(tx *types.Transaction) *types.Receipt {
 		return errReceipt(err)
 	}
 	if acc.GetBalance()-tx.Fee >= 0 {
-		acc.SetBalance(acc.GetBalance() - tx.Fee)
+		receiptBalance := &types.ReceiptBalance{acc.GetBalance(), acc.GetBalance() - tx.Fee, tx.Fee}
+		acc.Balance = acc.GetBalance() - tx.Fee
 		account.SaveAccount(n.db, acc)
-		return cutFeeReceipt(acc, tx)
+		return cutFeeReceipt(acc, receiptBalance)
 	} else {
 		return errReceipt(types.ErrNoBalance)
 	}
@@ -42,4 +43,15 @@ func (n *None) Exec(tx *types.Transaction) *types.Receipt {
 
 func (n *None) SetDB(db dbm.KVDB) {
 	n.db = db
+}
+
+func errReceipt(err error) *types.Receipt {
+	berr := err.Error()
+	errlog := &types.ReceiptLog{types.TyLogErr, []byte(berr)}
+	return &types.Receipt{types.ExecErr, nil, []*types.ReceiptLog{errlog}}
+}
+
+func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
+	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
+	return &types.Receipt{types.ExecErr, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
