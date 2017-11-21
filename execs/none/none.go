@@ -10,6 +10,10 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
+var keyBuf [200]byte
+
+var perfix = []byte("merkle-tree-")
+
 func init() {
 	execs.Register("none", newNone())
 }
@@ -23,6 +27,12 @@ func newNone() *None {
 }
 
 func (n *None) Exec(tx *types.Transaction) *types.Receipt {
+	buf := append(keyBuf[:], perfix...)
+	buf = append(buf, tx.Account...)
+	data, err := n.db.Get(buf)
+	if err != nil {
+		//account not exist
+	}
 	return nil
 }
 
