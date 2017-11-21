@@ -1,6 +1,7 @@
 package types
 
 import (
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
@@ -27,12 +28,12 @@ func (tx *Transaction) CheckSign() bool {
 	}
 
 	sign := tx.GetSignature()
-	c, err := crypto.New(types.GetSignatureName(sign.Ty))
+	c, err := crypto.New(GetSignatureTypeName(int(sign.Ty)))
 	if err != nil {
 		return false
 	}
 
-	pub, err := crypto.PubKeyFromBytes(sign.PubKey)
+	pub, err := c.PubKeyFromBytes(sign.Pubkey)
 	if err != nil {
 		return false
 	}
@@ -56,4 +57,16 @@ func (block *Block) Hash() []byte {
 		panic(err)
 	}
 	return common.Sha256(data)
+}
+
+func Encode(data proto.Message) []byte {
+	b, err := proto.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func Decode(data []byte, msg proto.Message) error {
+	return proto.Unmarshal(data, msg)
 }
