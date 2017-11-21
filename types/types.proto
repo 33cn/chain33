@@ -157,7 +157,13 @@ message ExecTxList {
 //currency = 0 -> origin account
 
 message Account {
-	int32 currency
-	int64 balance
-	int64 frozen
+	int32 currency = 1;
+	int64 balance = 2;
+	int64 frozen = 3;
+}
+
+message ReceiptBalance {
+	int64 prev = 1;
+	int64 current = 2;
+	int64 delt = 3;
 }

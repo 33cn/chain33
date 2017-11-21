@@ -5,9 +5,10 @@
 package gosm2
 
 /*
-#cgo CFLAGS: -I /usr/local/include
-#cgo LDFLAGS: -L /usr/local/lib -lcrypto -lssl
+#cgo CFLAGS: -I /usr/local/include -Wimplicit-function-declaration
+#cgo LDFLAGS: -L /usr/local/lib -lcrypto -lssl -Wimplicit-function-declaration
 
+#include <openssl/pem.h>
 #include <openssl/ec.h>
 #include <openssl/bn.h>
 #include <openssl/evp.h>

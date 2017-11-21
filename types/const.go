@@ -86,3 +86,38 @@ func GetEventName(event int) string {
 	}
 	return "unknow-event"
 }
+
+//ty = 1 -> secp256k1
+//ty = 2 -> ed25519
+//ty = 3 -> sm2
+const (
+	SECP256K1 = 1
+	ED25519   = 2
+	SM2       = 3
+)
+
+func GetSignatureTypeName(signType int) string {
+	if signType == 1 {
+		return "secp256k1"
+	} else if signType == 2 {
+		return "ed25519"
+	} else if signType == 3 {
+		return "sm2"
+	} else {
+		return "unknow"
+	}
+}
+
+//log type
+const (
+	TyLogErr = 1
+	TyLogFee = 2
+)
+
+//exec type
+
+const (
+	ExecErr  = 0
+	ExecPack = 1
+	ExecOk   = 2
+)
