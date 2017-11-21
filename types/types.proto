@@ -13,8 +13,9 @@ message Header {
 	int64 version = 1;
 	bytes parentHash = 2;
 	bytes txHash = 3;
-	int64 height = 4;
-	int64 blockTime = 5;
+	bytes stateHash = 4;
+	int64 height = 5;
+	int64 blockTime = 6;
 }
 
 message Block {
@@ -29,9 +30,19 @@ message Block {
 message Transaction {
 	bytes  execer = 1;
 	bytes  payload =2;
-	bytes  signature = 3;
-	int64  maxFee = 4;
+	Signature  signature = 3;
+	int64  fee = 4;
 	bytes  account = 5;
+}
+
+//三种签名支持
+//ty = 1 -> secp256k1
+//ty = 2 -> ed25519 
+//ty = 3 -> sm2
+message Signature {
+	int32 ty = 1;
+	bytes pubkey = 2;
+	bytes signature = 3;
 }
 
 message ChainStatus {
@@ -125,8 +136,11 @@ message ReceiptLog {
 	bytes log = 2;
 }
 
+//ty = 0 -> error Receipt
+//ty = 1 -> CutFee //cut fee ,bug exec not ok
+//ty = 2 -> exec ok
 message Receipt {
-	bool isOk = 1;
+	int32 ty = 1;
 	repeated KeyValue KV = 2;
 	repeated ReceiptLog logs = 3;
 }
@@ -138,4 +152,12 @@ message Receipts {
 message ExecTxList {
 	bytes stateHash = 1;
 	repeated Transaction txs = 2;
+}
+
+//currency = 0 -> origin account
+
+message Account {
+	int32 currency
+	int64 balance
+	int64 frozen
 }
