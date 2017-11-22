@@ -22,10 +22,7 @@ func (tx *Transaction) Hash() []byte {
 func (tx *Transaction) CheckSign() bool {
 	copytx := *tx
 	copytx.Signature = nil
-	data, err := proto.Marshal(&copytx)
-	if err != nil {
-		panic(err)
-	}
+	data := Encode(&copytx)
 
 	sign := tx.GetSignature()
 	c, err := crypto.New(GetSignatureTypeName(int(sign.Ty)))
