@@ -19,11 +19,11 @@ const (
 
 	EventReply = 8
 
-	EventTxBroadcast  = 9
-	EventTxAddMempool = 10
+	EventTxBroadcast = 9
+	//EventTxAddMempool = 10
 
 	EventTxList      = 11
-	EventTxListReply = 12
+	EventReplyTxList = 12
 
 	EventAddBlock       = 13
 	EventBlockBroadcast = 14
@@ -49,18 +49,18 @@ const (
 )
 
 var eventname = map[int]string{
-	1:  "EventTx",
-	2:  "EventGetBlocks",
-	3:  "EventBlocks",
-	4:  "EventGetBlockHeight",
-	5:  "EventReplyBlockHeight",
-	6:  "EventQueryTx",
-	7:  "EventMerkleProof",
-	8:  "EventReply",
-	9:  "EventTxBroadcast",
-	10: "EventTxAddMempool",
+	1: "EventTx",
+	2: "EventGetBlocks",
+	3: "EventBlocks",
+	4: "EventGetBlockHeight",
+	5: "EventReplyBlockHeight",
+	6: "EventQueryTx",
+	7: "EventMerkleProof",
+	8: "EventReply",
+	9: "EventTxBroadcast",
+	//10: "EventTxAddMempool",
 	11: "EventTxList",
-	12: "EventTxListReply",
+	12: "EventReplyTxList",
 	13: "EventAddBlock",
 	14: "EventBlockBroadcast",
 	15: "EventFetchBlocks",
