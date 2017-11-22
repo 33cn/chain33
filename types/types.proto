@@ -32,7 +32,6 @@ message Transaction {
 	bytes  payload =2;
 	Signature  signature = 3;
 	int64  fee = 4;
-	bytes  account = 5;
 }
 
 //三种签名支持
