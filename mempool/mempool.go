@@ -197,14 +197,6 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					msg.Reply(client.NewMessage("rpc", types.EventReply,
 						&types.Reply{false, []byte("transaction exists")}))
 				}
-			} else if msg.Ty == types.EventTxAddMempool {
-				if mem.CheckTx(msg.GetData().(*types.Transaction)) {
-					msg.Reply(client.NewMessage("rpc", types.EventReply,
-						&types.Reply{true, nil}))
-				} else {
-					msg.Reply(client.NewMessage("rpc", types.EventReply,
-						&types.Reply{false, []byte("transaction exists")}))
-				}
 			} else if msg.Ty == types.EventTxList {
 				msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
 					&types.ReplyTxList{mem.GetTxList(10000)}))
