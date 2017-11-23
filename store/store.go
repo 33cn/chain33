@@ -4,6 +4,7 @@ package store
 import (
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/common/mavl"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -53,23 +54,12 @@ func (store *Store) SetQueue(q *queue.Queue) {
 			slog.Info("stroe recv", "msg", msg)
 			if msg.Ty == types.EventStoreSet {
 				datas := msg.GetData().(*types.StoreSet)
-				batch := store.db.NewBatch(true)
-				for i := 0; i < len(datas.KV); i++ {
-					batch.Set(datas.KV[i].Key, datas.KV[i].Key)
-				}
-				batch.Write()
-				//response
-				msg.Reply(client.NewMessage("", types.EventStoreSetReply,
-					&types.ReplyHash{zeroHash[:]}))
+				hash := mavl.SetKVPair(store.db, datas)
+				msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 			} else if msg.Ty == types.EventStoreGet {
 				datas := msg.GetData().(*types.StoreGet)
-				var values [][]byte
-				for i := 0; i < len(datas.Keys); i++ {
-					value := store.db.Get(datas.Keys[i])
-					values = append(values, value)
-				}
-				msg.Reply(client.NewMessage("", types.EventStoreGetReply,
-					&types.StoreReplyValue{values}))
+				values := mavl.GetKVPair(store.db, datas)
+				msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
 			}
 		}
 	}()
