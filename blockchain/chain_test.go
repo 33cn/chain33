@@ -44,11 +44,13 @@ func TestProcAddBlockMsg(t *testing.T) {
 			var transaction types.Transaction
 			payload := fmt.Sprintf("Payload :%d:%d!", i, j)
 			signature := fmt.Sprintf("Signature :%d:%d!", i, j)
-			account := fmt.Sprintf("Account :%d:%d!", i, j)
+			//account := fmt.Sprintf("Account :%d:%d!", i, j)
 
 			transaction.Payload = []byte(payload)
-			transaction.Signature = []byte(signature)
-			transaction.Account = []byte(account)
+			var signature1 types.Signature
+			signature1.Signature = []byte(signature)
+			transaction.Signature = &signature1
+			//transaction.Account = []byte(account)
 
 			block.Txs[j] = &transaction
 			txhashs[j] = transaction.Hash()
@@ -79,8 +81,8 @@ func TestGetBlock(t *testing.T) {
 		for _, tx := range block.Txs {
 			transaction := tx
 			fmt.Println("tx.Payload:", string(transaction.Payload))
-			fmt.Println("tx.Signature:", string(transaction.Signature))
-			fmt.Println("tx.Account:", string(transaction.Account))
+			fmt.Println("tx.Signature:", transaction.Signature.String())
+			//fmt.Println("tx.Account:", string(transaction.Account))
 		}
 	}
 	chainlog.Info("testGetBlock end --------------------")
@@ -96,11 +98,14 @@ func TestGetTx(t *testing.T) {
 	var transaction types.Transaction
 	payload := fmt.Sprintf("Payload :%d:%d!", curheight, j)
 	signature := fmt.Sprintf("Signature :%d:%d!", curheight, j)
-	account := fmt.Sprintf("Account :%d:%d!", curheight, j)
+	//account := fmt.Sprintf("Account :%d:%d!", curheight, j)
 
 	transaction.Payload = []byte(payload)
-	transaction.Signature = []byte(signature)
-	transaction.Account = []byte(account)
+	var signature1 types.Signature
+	signature1.Signature = []byte(signature)
+	transaction.Signature = &signature1
+
+	//transaction.Account = []byte(account)
 
 	txhash := transaction.Hash()
 	fmt.Println("testGetTx curheight:", curheight)
@@ -112,8 +117,8 @@ func TestGetTx(t *testing.T) {
 		fmt.Println("txresult.Height:", txresult.Height)
 
 		fmt.Println("tx.Payload:", string(txresult.Tx.Payload))
-		fmt.Println("tx.Signature:", string(txresult.Tx.Signature))
-		fmt.Println("tx.Account:", string(txresult.Tx.Account))
+		fmt.Println("tx.Signature:", txresult.Tx.Signature.String())
+		//fmt.Println("tx.Account:", string(txresult.Tx.Account))
 
 	}
 	chainlog.Info("TestGetTx end --------------------")
@@ -133,11 +138,13 @@ func TestGetTxHashList(t *testing.T) {
 		var transaction types.Transaction
 		payload := fmt.Sprintf("Payload :%d:%d!", i, j)
 		signature := fmt.Sprintf("Signature :%d:%d!", i, j)
-		account := fmt.Sprintf("Account :%d:%d!", i, j)
+		//account := fmt.Sprintf("Account :%d:%d!", i, j)
 
 		transaction.Payload = []byte(payload)
-		transaction.Signature = []byte(signature)
-		transaction.Account = []byte(account)
+		var signature1 types.Signature
+		signature1.Signature = []byte(signature)
+		transaction.Signature = &signature1
+		//transaction.Account = []byte(account)
 
 		Txs[j] = &transaction
 		txhash := Txs[j].Hash()
@@ -173,8 +180,8 @@ func TestProcQueryTxMsg(t *testing.T) {
 		fmt.Println("txs len:", len(block.Txs))
 		for index, transaction := range block.Txs {
 			fmt.Println("tx.Payload:", string(transaction.Payload))
-			fmt.Println("tx.Signature:", string(transaction.Signature))
-			fmt.Println("tx.Account:", string(transaction.Account))
+			fmt.Println("tx.Signature:", transaction.Signature.String())
+			//fmt.Println("tx.Account:", string(transaction.Account))
 			txhash = transaction.Hash()
 			txindex = index
 		}
@@ -215,8 +222,8 @@ func TestGetBlocksMsg(t *testing.T) {
 			for _, tx := range block.Txs {
 				transaction := tx
 				fmt.Println("tx.Payload:", string(transaction.Payload))
-				fmt.Println("tx.Signature:", string(transaction.Signature))
-				fmt.Println("tx.Account:", string(transaction.Account))
+				fmt.Println("tx.Signature:", transaction.Signature.String())
+				//fmt.Println("tx.Account:", string(transaction.Account))
 			}
 
 		}
@@ -307,11 +314,13 @@ func addBlock(blockchain *BlockChain, addblockheight int64) {
 			var transaction types.Transaction
 			payload := fmt.Sprintf("Payload :%d:%d!", i, j)
 			signature := fmt.Sprintf("Signature :%d:%d!", i, j)
-			account := fmt.Sprintf("Account :%d:%d!", i, j)
+			//account := fmt.Sprintf("Account :%d:%d!", i, j)
 
 			transaction.Payload = []byte(payload)
-			transaction.Signature = []byte(signature)
-			transaction.Account = []byte(account)
+			var signature1 types.Signature
+			signature1.Signature = []byte(signature)
+			transaction.Signature = &signature1
+			//transaction.Account = []byte(account)
 
 			block.Txs[j] = &transaction
 			txhashs[j] = transaction.Hash()
@@ -346,11 +355,13 @@ func addBlocks(blockchain *BlockChain, requestblock *types.RequestBlocks) {
 		var transaction types.Transaction
 		payload := fmt.Sprintf("Payload :%d!", i)
 		signature := fmt.Sprintf("Signature :%d!", i)
-		account := fmt.Sprintf("Account :%d!", i)
+		//account := fmt.Sprintf("Account :%d!", i)
 
 		transaction.Payload = []byte(payload)
-		transaction.Signature = []byte(signature)
-		transaction.Account = []byte(account)
+		var signature1 types.Signature
+		signature1.Signature = []byte(signature)
+		transaction.Signature = &signature1
+		//transaction.Account = []byte(account)
 
 		block.Txs = make([]*types.Transaction, 1)
 		block.Txs[0] = &transaction

@@ -66,3 +66,18 @@ func Encode(data proto.Message) []byte {
 func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
 }
+
+func (leafnode *LeafNode) Hash() []byte {
+	data, err := proto.Marshal(leafnode)
+	if err != nil {
+		panic(err)
+	}
+	return common.Sha256(data)
+}
+func (innernode *InnerNode) Hash() []byte {
+	data, err := proto.Marshal(innernode)
+	if err != nil {
+		panic(err)
+	}
+	return common.Sha256(data)
+}
