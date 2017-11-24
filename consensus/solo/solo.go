@@ -47,7 +47,8 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		var tx types.Transaction
 		tx.Payload = []byte("first block 2017-11-01 @fzm")
 		newblock.Txs = append(newblock.Txs, &tx)
-		newblock.TxHash = execBlock(q, zeroHash, newblock.Txs, false)
+		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		execBlock(q, zeroHash, newblock, false)
 		client.writeBlock(newblock)
 	} else {
 		block := client.RequestBlock(height)
