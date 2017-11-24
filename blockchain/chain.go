@@ -150,6 +150,14 @@ func (chain *BlockChain) ProcRecvMsg() {
 			} else {
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, headers))
 			}
+		case types.EventGetLastHeader:
+			header, err := chain.ProcGetLastHeaderMsg()
+			if err != nil {
+				chainlog.Error("ProcGetLastHeaderMsg", "err", err.Error())
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeader, err))
+			} else {
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeader, header))
+			}
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -627,6 +635,7 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.RequestBlocks) (r
 			head.Version = block.Version
 			head.ParentHash = block.ParentHash
 			head.TxHash = block.TxHash
+			head.StateHash = nil // toda
 			head.BlockTime = block.BlockTime
 			head.Height = block.Height
 
@@ -637,4 +646,34 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.RequestBlocks) (r
 		j++
 	}
 	return &headers, nil
+}
+
+/*
+type Header struct {
+	Version    int64  `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	ParentHash []byte `protobuf:"bytes,2,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
+	TxHash     []byte `protobuf:"bytes,3,opt,name=txHash,proto3" json:"txHash,omitempty"`
+	StateHash  []byte `protobuf:"bytes,4,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Height     int64  `protobuf:"varint,5,opt,name=height" json:"height,omitempty"`
+	BlockTime  int64  `protobuf:"varint,6,opt,name=blockTime" json:"blockTime,omitempty"`
+}
+*/
+func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err error) {
+	head := &types.Header{}
+	blockhight := chain.GetBlockHeight()
+	block, err := chain.GetBlock(blockhight)
+	if err == nil && block != nil {
+		//获取header的信息从block中
+
+		head.Version = block.Version
+		head.ParentHash = block.ParentHash
+		head.TxHash = block.TxHash
+		head.StateHash = nil // toda
+		head.BlockTime = block.BlockTime
+		head.Height = block.Height
+
+	} else {
+		return nil, err
+	}
+	return head, nil
 }
