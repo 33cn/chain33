@@ -22,9 +22,10 @@ message Block {
 	int64 version = 1;
 	bytes parentHash = 2;
 	bytes txHash = 3;
-	int64 height = 4;
-	int64 blockTime = 5;
-	repeated Transaction txs = 6;
+	bytes stateHash = 4;
+	int64 height = 5;
+	int64 blockTime = 6;
+	repeated Transaction txs = 7;
 }
 
 message Transaction {
