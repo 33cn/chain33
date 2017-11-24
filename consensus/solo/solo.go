@@ -7,6 +7,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	"code.aliyun.com/chain33/chain33/util"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -21,6 +22,7 @@ var (
 
 type SoloClient struct {
 	qclient queue.IClient
+	q       *queue.Queue
 }
 
 func NewSolo() *SoloClient {
@@ -31,7 +33,7 @@ func NewSolo() *SoloClient {
 func (client *SoloClient) SetQueue(q *queue.Queue) {
 	log.Info("Enter SetQueue method of consensus")
 	client.qclient = q.GetClient()
-
+	client.q = q
 	// TODO: solo模式下通过配置判断是否主节点，主节点打包区块，其余节点不用做
 
 	// 程序初始化时，先从blockchain取区块链高度
@@ -48,8 +50,7 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		tx.Payload = []byte("first block 2017-11-01 @fzm")
 		newblock.Txs = append(newblock.Txs, &tx)
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		execBlock(q, zeroHash, newblock, false)
-		client.writeBlock(newblock)
+		client.writeBlock(zeroHash[:], newblock)
 	} else {
 		block := client.RequestBlock(height)
 		setCurrentBlock(block)
@@ -105,7 +106,7 @@ func (client *SoloClient) createBlock() {
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		client.writeBlock(&newblock)
+		client.writeBlock(lastBlock.StateHash, &newblock)
 	}
 }
 
@@ -164,12 +165,14 @@ func (client *SoloClient) getInitHeight() int64 {
 	return h
 }
 
-func (client *SoloClient) 
-
 // 向blockchain写区块
-func (client *SoloClient) writeBlock(block *types.Block) {
+func (client *SoloClient) writeBlock(prevHash []byte, block *types.Block) {
+	blockdetail, err := util.ExecBlock(client.q, prevHash, block, false)
+	if err != nil { //never happen
+		panic(err)
+	}
 	for {
-		msg := client.qclient.NewMessage("blockchain", types.EventAddBlock, block)
+		msg := client.qclient.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
 		client.qclient.Send(msg, true)
 		resp, _ := client.qclient.Wait(msg)
 
@@ -177,7 +180,7 @@ func (client *SoloClient) writeBlock(block *types.Block) {
 			setCurrentBlock(block)
 			break
 		} else {
-			log.Info("Send block to blockchian return fail,retry!")
+			log.Info("Send block to blockchian return fail, retry!")
 		}
 	}
 }
