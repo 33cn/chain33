@@ -20,7 +20,7 @@ const (
 	EventReply = 8
 
 	EventTxBroadcast = 9
-	//EventTxAddMempool = 10
+	EventPeerInfo    = 10
 
 	EventTxList      = 11
 	EventReplyTxList = 12
@@ -46,19 +46,20 @@ const (
 	EventStoreSetReply = 26
 	EventReceipts      = 27
 	EventExecTxList    = 28
+	EventPeerList      = 29
 )
 
 var eventname = map[int]string{
-	1: "EventTx",
-	2: "EventGetBlocks",
-	3: "EventBlocks",
-	4: "EventGetBlockHeight",
-	5: "EventReplyBlockHeight",
-	6: "EventQueryTx",
-	7: "EventMerkleProof",
-	8: "EventReply",
-	9: "EventTxBroadcast",
-	//10: "EventTxAddMempool",
+	1:  "EventTx",
+	2:  "EventGetBlocks",
+	3:  "EventBlocks",
+	4:  "EventGetBlockHeight",
+	5:  "EventReplyBlockHeight",
+	6:  "EventQueryTx",
+	7:  "EventMerkleProof",
+	8:  "EventReply",
+	9:  "EventTxBroadcast",
+	10: "EventPeerInfo",
 	11: "EventTxList",
 	12: "EventReplyTxList",
 	13: "EventAddBlock",
@@ -77,6 +78,7 @@ var eventname = map[int]string{
 	26: "EventStoreSetReply",
 	27: "EventReceipts",
 	28: "EventExecTxList",
+	29: "EventPeerList",
 }
 
 func GetEventName(event int) string {
