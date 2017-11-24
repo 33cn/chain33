@@ -167,3 +167,16 @@ message ReceiptBalance {
 	int64 current = 2;
 	int64 delt = 3;
 }
+
+//p2p
+message Peer {
+	string addr = 1;
+	int32  port = 2;
+	string name = 3;
+	int32  mempoolSize = 4;
+	Header header = 5;
+}
+
+message PeerList {
+	repeated Peer peers
+}
