@@ -47,6 +47,7 @@ const (
 	EventReceipts      = 27
 	EventExecTxList    = 28
 	EventPeerList      = 29
+	EventGetLastHeader = 30
 )
 
 var eventname = map[int]string{
@@ -79,6 +80,7 @@ var eventname = map[int]string{
 	27: "EventReceipts",
 	28: "EventExecTxList",
 	29: "EventPeerList",
+	30: "EventGetLastHeader",
 }
 
 func GetEventName(event int) string {

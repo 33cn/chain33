@@ -160,6 +160,7 @@ message Account {
 	int32 currency = 1;
 	int64 balance = 2;
 	int64 frozen = 3;
+	string addr = 4;
 }
 
 message ReceiptBalance {
@@ -178,5 +179,5 @@ message Peer {
 }
 
 message PeerList {
-	repeated Peer peers
+	repeated Peer peers =1;
 }
