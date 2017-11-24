@@ -145,6 +145,16 @@ message Receipt {
 	repeated ReceiptLog logs = 3;
 }
 
+message ReceiptData {
+	int32 ty = 1;
+	repeated ReceiptLog logs = 3;
+}
+
+message BlockDetail {
+	Block block = 1;
+	repeated ReceiptData receipts = 2;
+}
+
 message Receipts {
 	repeated Receipt receipts = 1;
 }
