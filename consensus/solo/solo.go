@@ -47,7 +47,7 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		var tx types.Transaction
 		tx.Payload = []byte("first block 2017-11-01 @fzm")
 		newblock.Txs = append(newblock.Txs, &tx)
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		newblock.TxHash = execBlock(q, zeroHash, newblock.Txs, false)
 		client.writeBlock(newblock)
 	} else {
 		block := client.RequestBlock(height)
@@ -162,6 +162,8 @@ func (client *SoloClient) getInitHeight() int64 {
 	}
 	return h
 }
+
+func (client *SoloClient) 
 
 // 向blockchain写区块
 func (client *SoloClient) writeBlock(block *types.Block) {

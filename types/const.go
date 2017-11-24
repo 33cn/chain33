@@ -4,6 +4,8 @@ import "errors"
 
 var ErrNotFound = errors.New("ErrNotFound")
 var ErrNoBalance = errors.New("ErrNoBalance")
+var ErrBlockExec = errors.New("ErrBlockExec")
+var ErrCheckStateHash = errors.New("ErrCheckStateHash")
 
 const (
 	EventTx = 1
@@ -40,15 +42,16 @@ const (
 	EventGetMempoolSize = 21
 	EventMempoolSize    = 22
 
-	EventStoreGet      = 23
-	EventStoreSet      = 24
-	EventStoreGetReply = 25
-	EventStoreSetReply = 26
-	EventReceipts      = 27
-	EventExecTxList    = 28
-	EventPeerList      = 29
-	EventGetLastHeader = 30
-	EventHeader        = 31
+	EventStoreGet       = 23
+	EventStoreSet       = 24
+	EventStoreGetReply  = 25
+	EventStoreSetReply  = 26
+	EventReceipts       = 27
+	EventExecTxList     = 28
+	EventPeerList       = 29
+	EventGetLastHeader  = 30
+	EventHeader         = 31
+	EventAddBlockDetail = 32
 )
 
 var eventname = map[int]string{
@@ -83,6 +86,7 @@ var eventname = map[int]string{
 	29: "EventPeerList",
 	30: "EventGetLastHeader",
 	31: "EventHeader",
+	32: "EventAddBlockDetail",
 }
 
 func GetEventName(event int) string {
