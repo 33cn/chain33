@@ -9,18 +9,28 @@ type JRpcRequest struct {
 }
 
 //发送交易信息到topic=rpc 的queue 中
+
+//{"execer":"xxx","palyload":"xx","signature":{"ty":1,"pubkey":"xx","signature":"xxx"},"Fee":12}
 type JTransparm struct {
-	Accout    string
+	Execer    string
 	Payload   string
+	Signature *Signature
+	Fee       int64
+}
+type Signature struct {
+	Ty        int32
+	Pubkey    string
 	Signature string
 }
 
 func (req JRpcRequest) SendTransaction(in JTransparm, result *interface{}) error {
 
 	var data types.Transaction
-	data.Account = []byte(in.Accout)
+	data.Execer = []byte(in.Execer)
 	data.Payload = []byte(in.Payload)
-	data.Signature = []byte(in.Signature)
+	data.Signature.Signature = []byte(in.Signature.Signature)
+	data.Signature.Ty = in.Signature.Ty
+	data.Signature.Pubkey = []byte(in.Signature.Pubkey)
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply := cli.SendTx(&data)
