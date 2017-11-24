@@ -38,7 +38,7 @@ type Store struct {
 }
 
 func New() *Store {
-	db := dbm.NewDB("store", "leveldb", "")
+	db := dbm.NewDB("store", "leveldb", "mavltree")
 	store := &Store{db: db}
 	return store
 }
