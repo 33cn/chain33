@@ -15,19 +15,34 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-func LoadAccount(db dbm.KVDB, addr []byte) (*types.Account, error) {
-	return nil, nil
+func LoadAccount(db dbm.KVDB, addr string) (*types.Account, error) {
+	value, err := db.Get(AccountKey(addr))
+	if err != nil {
+		return nil, err
+	}
+	var acc types.Account
+	err = types.Decode(value, &acc)
+	if err != nil {
+		return nil, err
+	}
+	return &acc, nil
 }
 
 func SaveAccount(db dbm.KVDB, acc *types.Account) {
-
+	set := GetKVSet(acc)
+	for i := 0; i < len(set); i++ {
+		db.Set(set[i].GetKey(), set[i].Value)
+	}
 }
 
 func GetKVSet(acc *types.Account) (kvset []*types.KeyValue) {
-	return nil
+	value := types.Encode(acc)
+	kvset = append(kvset, &types.KeyValue{AccountKey(acc.Addr), value})
+	return kvset
 }
 
 func PubKeyToAddress(in []byte) *Address {
@@ -37,6 +52,50 @@ func PubKeyToAddress(in []byte) *Address {
 	a.Version = 0
 	a.Hash160 = common.Rimp160AfterSha256(in)
 	return a
+}
+
+func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err error) {
+	client := q.GetClient()
+	//get current head ->
+	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	client.Send(msg, true)
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	get := types.StoreGet{}
+	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+	for i := 0; i < len(addrs); i++ {
+		get.Keys = append(get.Keys, AccountKey(addrs[i]))
+	}
+	msg = client.NewMessage("store", types.EventStoreGet, &get)
+	client.Send(msg, true)
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	values := msg.GetData().(*types.StoreReplyValue)
+	for i := 0; i < len(values.Values); i++ {
+		value := values.Values[i]
+		if value == nil {
+			accs = append(accs, &types.Account{})
+		} else {
+			var acc types.Account
+			err := types.Decode(value, &acc)
+			if err != nil {
+				return nil, err
+			}
+			accs = append(accs, &acc)
+		}
+	}
+	return accs, nil
+}
+
+//address to save key
+func AccountKey(address string) (key []byte) {
+	key = append(key, []byte("mavl-acc-")...)
+	key = append(key, []byte(address)...)
+	return key
 }
 
 type Address struct {
