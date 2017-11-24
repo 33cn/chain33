@@ -36,6 +36,11 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 			}
 		}
 	}
+	//check TxHash
+	calcHash := merkle.CalcMerkleRoot(block.Txs)
+	if errReturn && bytes.Equal(calcHash, block.TxHash) {
+		return nil, types.ErrCheckTxHash
+	}
 	//删除无效的交易
 	if len(deltxlist) > 0 {
 		var newtx []*types.Transaction
@@ -56,7 +61,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 		block.StateHash = ExecKVSet(q, prevStateRoot, kvset)
 	}
 	if errReturn && bytes.Equal(currentHash, block.StateHash) {
-		return nil, ErrCheckStateHash
+		return nil, types.ErrCheckStateHash
 	}
 	detail.Block = block
 	detail.Receipts = rdata

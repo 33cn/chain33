@@ -6,6 +6,7 @@ var ErrNotFound = errors.New("ErrNotFound")
 var ErrNoBalance = errors.New("ErrNoBalance")
 var ErrBlockExec = errors.New("ErrBlockExec")
 var ErrCheckStateHash = errors.New("ErrCheckStateHash")
+var ErrCheckTxHash = errors.New("ErrCheckTxHash")
 
 const (
 	EventTx = 1
