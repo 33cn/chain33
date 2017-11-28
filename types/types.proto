@@ -221,3 +221,15 @@ message MAVLProof {
 	repeated InnerNode innerNodes = 2;
 	bytes rootHash =3;
 }
+
+message InvData {
+	oneof value {
+		Transaction tx = 1;
+		Block block = 2;
+	}
+	int32 ty = 3;
+}
+
+message InvDatas {
+	repeated InvData items = 1;
+}
