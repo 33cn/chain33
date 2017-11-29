@@ -7,6 +7,10 @@ var ErrNoBalance = errors.New("ErrNoBalance")
 var ErrBlockExec = errors.New("ErrBlockExec")
 var ErrCheckStateHash = errors.New("ErrCheckStateHash")
 var ErrCheckTxHash = errors.New("ErrCheckTxHash")
+var ErrReRunGenesis = errors.New("ErrReRunGenesis")
+var ErrActionNotSupport = errors.New("ErrActionNotSupport")
+
+const Coin int64 = 1e8
 
 const (
 	EventTx = 1
@@ -124,6 +128,7 @@ const (
 	TyLogErr      = 1
 	TyLogFee      = 2
 	TyLogTransfer = 3
+	TyLogGenesis  = 4
 )
 
 //exec type
@@ -132,4 +137,10 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
+)
+
+//coinsaction
+const (
+	CoinsActionTransfer = 1
+	CoinsActionGenesis  = 2
 )
