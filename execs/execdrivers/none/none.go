@@ -26,13 +26,9 @@ func newNone() *None {
 }
 
 func (n *None) Exec(tx *types.Transaction) *types.Receipt {
-	acc, err := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
-	if err != nil {
-		//account not exist
-		return errReceipt(err)
-	}
+	acc := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
 	if acc.GetBalance()-tx.Fee >= 0 {
-		receiptBalance := &types.ReceiptBalance{acc.GetBalance(), acc.GetBalance() - tx.Fee, tx.Fee}
+		receiptBalance := &types.ReceiptBalance{acc.GetBalance(), acc.GetBalance() - tx.Fee, -tx.Fee}
 		acc.Balance = acc.GetBalance() - tx.Fee
 		account.SaveAccount(n.db, acc)
 		return cutFeeReceipt(acc, receiptBalance)

@@ -35,30 +35,50 @@ func newCoins() *Coins {
 }
 
 func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
-	acc, err := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
-	if err != nil {
-		//account not exist
-		return errReceipt(err)
-	}
-	var transfer types.CoinsTransfer
-	err = types.Decode(tx.Payload, &transfer)
+	var action types.CoinsAction
+	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return errReceipt(err)
 	}
-	b := acc.GetBalance() - tx.Fee - transfer.Amount
-	if b >= 0 {
-		receiptBalance := &types.ReceiptBalance{acc.GetBalance(), b, tx.Fee + transfer.Amount}
-		acc.Balance = b
-		account.SaveAccount(n.db, acc)
-		return transferReceipt(acc, receiptBalance)
-	} else if acc.GetBalance()-tx.Fee >= 0 {
-		receiptBalance := &types.ReceiptBalance{acc.GetBalance(), acc.GetBalance() - tx.Fee, tx.Fee}
-		acc.Balance = acc.GetBalance() - tx.Fee
-		account.SaveAccount(n.db, acc)
-		return cutFeeReceipt(acc, receiptBalance)
-	} else {
-		return errReceipt(types.ErrNoBalance)
+	if action.Ty == types.CoinsActionTransfer {
+		transfer := action.GetTransfer()
+		accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
+		accTo := account.LoadAccount(n.db, transfer.Toaddr)
+
+		b := accFrom.GetBalance() - tx.Fee - transfer.Amount
+		if b >= 0 {
+			receiptBalanceFrom := &types.ReceiptBalance{accFrom.GetBalance(), b, -tx.Fee - transfer.Amount}
+			accFrom.Balance = b
+			tob := accTo.GetBalance() + transfer.Amount
+			receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, transfer.Amount}
+			accTo.Balance = tob
+			account.SaveAccount(n.db, accFrom)
+			account.SaveAccount(n.db, accTo)
+			return transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo)
+		} else if accFrom.GetBalance()-tx.Fee >= 0 {
+			receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
+			accFrom.Balance = accFrom.GetBalance() - tx.Fee
+			account.SaveAccount(n.db, accFrom)
+			return cutFeeReceipt(accFrom, receiptBalance)
+		} else {
+			return errReceipt(types.ErrNoBalance)
+		}
+	} else if action.Ty == types.CoinsActionGenesis {
+		genesis := action.GetGenesis()
+		g := account.GetGenesis(n.db)
+		if g.Isrun {
+			return errReceipt(types.ErrReRunGenesis)
+		}
+		g.Isrun = true
+		account.SaveGenesis(n.db, g)
+		accTo := account.LoadAccount(n.db, genesis.Toaddr)
+		tob := accTo.GetBalance() + genesis.Amount
+		receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, genesis.Amount}
+		accTo.Balance = tob
+		account.SaveAccount(n.db, accTo)
+		return genesisReceipt(accTo, receiptBalanceTo, g)
 	}
+	return errReceipt(types.ErrActionNotSupport)
 }
 
 func (n *Coins) SetDB(db dbm.KVDB) {
@@ -76,7 +96,18 @@ func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *ty
 	return &types.Receipt{types.ExecErr, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
-func transferReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
-	tlog := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalance)}
-	return &types.Receipt{types.ExecOk, account.GetKVSet(acc), []*types.ReceiptLog{tlog}}
+func transferReceipt(accFrom, accTo *types.Account, receiptBalanceFrom, receiptBalanceTo *types.ReceiptBalance) *types.Receipt {
+	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceFrom)}
+	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceTo)}
+	kv := account.GetKVSet(accFrom)
+	kv = append(kv, account.GetKVSet(accTo)...)
+	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
+}
+
+func genesisReceipt(accTo *types.Account, receiptBalanceTo *types.ReceiptBalance, g *types.Genesis) *types.Receipt {
+	log1 := &types.ReceiptLog{types.TyLogGenesis, nil}
+	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceTo)}
+	kv := account.GetGenesisKVSet(g)
+	kv = append(kv, account.GetKVSet(accTo)...)
+	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
 }

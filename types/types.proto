@@ -222,6 +222,21 @@ message MAVLProof {
 	bytes rootHash =3;
 }
 
+message CoinsAction {
+	oneof value {
+		CoinsTransfer  transfer = 1;
+		CoinsGenesis   genesis = 2;
+	}
+	int32 ty = 3;
+}
+
+//给某个地址凭空打币
+//只能执行一次，不能执行第二次
+message CoinsGenesis {
+	string toaddr = 1;
+	int64 amount = 2;
+}
+
 message CoinsTransfer {
 	string toaddr = 1;
 	int64 amount = 2;
@@ -237,4 +252,8 @@ message InvData {
 
 message InvDatas {
 	repeated InvData items = 1;
+}
+
+message Genesis {
+	bool isrun = 1;
 }
