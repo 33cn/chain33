@@ -11,6 +11,8 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+const genesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
 var slog = log.New("module", "solo")
 
 var (
@@ -46,9 +48,8 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		newblock.Height = 0
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
-		var tx types.Transaction
-		tx.Payload = []byte("first block 2017-11-01 @fzm")
-		newblock.Txs = append(newblock.Txs, &tx)
+		tx := createGenesisTx()
+		newblock.Txs = append(newblock.Txs, tx)
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		client.writeBlock(zeroHash[:], newblock)
 	} else {
@@ -204,4 +205,14 @@ func getCurrentHeight() int64 {
 	start := currentBlock.Height
 	mulock.Unlock()
 	return start
+}
+
+func createGenesisTx() *types.Transaction {
+	var tx types.Transaction
+	tx.Execer = []byte("coins")
+	//gen payload
+	g := &types.CoinsAction_Genesis{}
+	g.Genesis = &types.CoinsGenesis{genesisAddr, 1e8 * types.Coin}
+	tx.Payload = types.Encode(&types.CoinsAction{Value: g})
+	return &tx
 }
