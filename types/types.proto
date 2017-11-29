@@ -226,3 +226,15 @@ message CoinsTransfer {
 	string toaddr = 1;
 	int64 amount = 2;
 }
+
+message InvData {
+	oneof value {
+		Transaction tx = 1;
+		Block block = 2;
+	}
+	int32 ty = 3;
+}
+
+message InvDatas {
+	repeated InvData items = 1;
+}
