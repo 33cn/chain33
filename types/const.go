@@ -121,8 +121,9 @@ func GetSignatureTypeName(signType int) string {
 
 //log type
 const (
-	TyLogErr = 1
-	TyLogFee = 2
+	TyLogErr      = 1
+	TyLogFee      = 2
+	TyLogTransfer = 3
 )
 
 //exec type
