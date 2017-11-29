@@ -221,3 +221,8 @@ message MAVLProof {
 	repeated InnerNode innerNodes = 2;
 	bytes rootHash =3;
 }
+
+message CoinsTransfer {
+	string toaddr = 1;
+	int64 amount = 2;
+}
