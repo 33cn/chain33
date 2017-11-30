@@ -1,6 +1,7 @@
 package mavl
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -10,6 +11,7 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+var ErrNodeNotExist = errors.New("ErrNodeNotExist")
 var treelog = log.New("module", "mavl")
 
 //merkle avl tree
@@ -108,12 +110,13 @@ func (t *MAVLTree) Save() []byte {
 }
 
 // 从db中加载rootnode
-func (t *MAVLTree) Load(hash []byte) {
+func (t *MAVLTree) Load(hash []byte) (err error) {
 	if len(hash) == 0 {
 		t.root = nil
 	} else {
-		t.root = t.ndb.GetNode(t, hash)
+		t.root, err = t.ndb.GetNode(t, hash)
 	}
+	return
 }
 
 //通过key获取leaf节点信息
@@ -164,14 +167,14 @@ func newNodeDB(db dbm.DB) *nodeDB {
 	return ndb
 }
 
-func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) *MAVLNode {
+func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
 	// Doesn't exist, load from db.
 	buf := ndb.db.Get(hash)
 	if len(buf) == 0 {
-		panic(fmt.Sprintf("Value missing for key %X", hash))
+		return nil, ErrNodeNotExist
 	}
 	node, err := MakeMAVLNode(buf, t)
 	if err != nil {
@@ -179,7 +182,7 @@ func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) *MAVLNode {
 	}
 	node.hash = hash
 	node.persisted = true
-	return node
+	return node, nil
 
 }
 
@@ -220,12 +223,15 @@ func SetKVPair(db dbm.DB, storeSet *types.StoreSet) []byte {
 
 func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
 	tree := NewMAVLTree(db)
-	tree.Load(storeGet.StateHash)
-	var values [][]byte
+	err := tree.Load(storeGet.StateHash)
+	values := make([][]byte, len(storeGet.Keys))
+	if err != nil {
+		return values
+	}
 	for i := 0; i < len(storeGet.Keys); i++ {
 		_, value, exit := tree.Get(storeGet.Keys[i])
 		if exit {
-			values = append(values, value)
+			values[i] = value
 		}
 	}
 	return values

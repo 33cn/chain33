@@ -282,7 +282,11 @@ func (node *MAVLNode) getLeftNode(t *MAVLTree) *MAVLNode {
 	if node.leftNode != nil {
 		return node.leftNode
 	} else {
-		return t.ndb.GetNode(t, node.leftHash)
+		leftNode, err := t.ndb.GetNode(t, node.leftHash)
+		if err != nil {
+			panic(err) //数据库已经损坏
+		}
+		return leftNode
 	}
 }
 
@@ -290,7 +294,11 @@ func (node *MAVLNode) getRightNode(t *MAVLTree) *MAVLNode {
 	if node.rightNode != nil {
 		return node.rightNode
 	} else {
-		return t.ndb.GetNode(t, node.rightHash)
+		rightNode, err := t.ndb.GetNode(t, node.rightHash)
+		if err != nil {
+			panic(err)
+		}
+		return rightNode
 	}
 }
 

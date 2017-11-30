@@ -213,6 +213,6 @@ func createGenesisTx() *types.Transaction {
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
 	g.Genesis = &types.CoinsGenesis{genesisAddr, 1e8 * types.Coin}
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g})
+	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	return &tx
 }

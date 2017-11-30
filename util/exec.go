@@ -90,7 +90,7 @@ func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Rec
 func ExecKVSet(q *queue.Queue, prevStateRoot []byte, kvset []*types.KeyValue) []byte {
 	client := q.GetClient()
 	set := &types.StoreSet{prevStateRoot, kvset}
-	msg := client.NewMessage("store", types.EventStoreSet, &set)
+	msg := client.NewMessage("store", types.EventStoreSet, set)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
 	if err != nil {
