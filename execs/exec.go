@@ -77,6 +77,7 @@ func NewExecute(stateHash []byte, q *queue.Queue) *Execute {
 }
 
 func (e *Execute) Exec(tx *types.Transaction) *types.Receipt {
+	elog.Info("exec", "execer", string(tx.Execer))
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))
 	if err != nil {
 		exec, err = execdrivers.LoadExecute("none")
