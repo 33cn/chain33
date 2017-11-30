@@ -18,6 +18,14 @@ func (tx *Transaction) Hash() []byte {
 	return common.Sha256(data)
 }
 
+func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
+	tx.Signature = nil
+	data := Encode(tx)
+	pub := priv.PubKey()
+	sign := priv.Sign(data)
+	tx.Signature = &Signature{ty, pub.Bytes(), sign.Bytes()}
+}
+
 func (tx *Transaction) CheckSign() bool {
 	copytx := *tx
 	copytx.Signature = nil
