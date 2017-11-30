@@ -6,7 +6,10 @@ import (
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	log "github.com/inconshreveable/log15"
 )
+
+var ulog = log.New("module", "util")
 
 func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
@@ -38,7 +41,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	}
 	//check TxHash
 	calcHash := merkle.CalcMerkleRoot(block.Txs)
-	if errReturn && bytes.Equal(calcHash, block.TxHash) {
+	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, types.ErrCheckTxHash
 	}
 	//删除无效的交易
@@ -50,7 +53,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 			}
 		}
 		block.Txs = newtx
-		block.TxHash = merkle.CalcMerkleRoot(newtx)
+		block.TxHash = merkle.CalcMerkleRoot(block.Txs)
 	}
 
 	var detail types.BlockDetail
@@ -67,13 +70,14 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	detail.Receipts = rdata
 	//get receipts
 	//save kvset and get state hash
+	ulog.Info("blockdetail-->", "detail=", detail)
 	return &detail, nil
 }
 
 func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	client := q.GetClient()
 	list := &types.ExecTxList{prevStateRoot, block.Txs}
-	msg := client.NewMessage("execs", types.EventExecTxList, &list)
+	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
 	if err != nil {

@@ -4,3 +4,4 @@ datadir
 *.log
 *.exe
 common/mavl/datastore
+mavltree
