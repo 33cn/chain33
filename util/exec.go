@@ -63,7 +63,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	} else {
 		block.StateHash = ExecKVSet(q, prevStateRoot, kvset)
 	}
-	if errReturn && bytes.Equal(currentHash, block.StateHash) {
+	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
 		return nil, types.ErrCheckStateHash
 	}
 	detail.Block = block
