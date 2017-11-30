@@ -18,7 +18,7 @@ func TestAddress(t *testing.T) {
 		t.Error(err)
 		return
 	}
-        t.Logf("%X", key.Bytes())
+	t.Logf("%X", key.Bytes())
 	addr := PubKeyToAddress(key.PubKey().Bytes())
 	t.Log(addr)
 }
