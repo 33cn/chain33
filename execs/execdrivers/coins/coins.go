@@ -18,7 +18,10 @@ import (
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	"code.aliyun.com/chain33/chain33/types"
+	log "github.com/inconshreveable/log15"
 )
+
+var clog = log.New("module", "execs.coins")
 
 var keyBuf [200]byte
 
@@ -40,6 +43,7 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 	if err != nil {
 		return errReceipt(err)
 	}
+	clog.Info("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer {
 		transfer := action.GetTransfer()
 		accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
