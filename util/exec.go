@@ -38,7 +38,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	}
 	//check TxHash
 	calcHash := merkle.CalcMerkleRoot(block.Txs)
-	if errReturn && bytes.Equal(calcHash, block.TxHash) {
+	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, types.ErrCheckTxHash
 	}
 	//删除无效的交易
@@ -60,7 +60,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	} else {
 		block.StateHash = ExecKVSet(q, prevStateRoot, kvset)
 	}
-	if errReturn && bytes.Equal(currentHash, block.StateHash) {
+	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
 		return nil, types.ErrCheckStateHash
 	}
 	detail.Block = block
@@ -73,7 +73,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	client := q.GetClient()
 	list := &types.ExecTxList{prevStateRoot, block.Txs}
-	msg := client.NewMessage("execs", types.EventExecTxList, &list)
+	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
 	if err != nil {
