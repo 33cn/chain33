@@ -140,14 +140,14 @@ func (client *SoloClient) RequestBlock(start int64) *types.Block {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.RequestBlocks{start, start})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.RequestBlocks{start, start, false})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		panic(err)
 	}
-	blocks := resp.GetData().(*types.Blocks)
-	return blocks.Items[0]
+	blocks := resp.GetData().(*types.BlockDetails)
+	return blocks.Items[0].Block
 }
 
 // solo初始化时，取一次区块高度放在内存中，后面自增长，不用再重复去blockchain取

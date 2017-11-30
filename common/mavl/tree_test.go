@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"testing"
 
 	. "code.aliyun.com/chain33/chain33/common"
@@ -45,7 +46,11 @@ func randstr(length int) string {
 	return RandStr(length)
 }
 
-func i2b(i int) []byte {
+func RandInt32() uint32 {
+	return uint32(rand.Uint32())
+}
+
+func i2b(i int32) []byte {
 
 	b_buf := bytes.NewBuffer([]byte{})
 	binary.Write(b_buf, binary.BigEndian, i)
@@ -57,49 +62,6 @@ func b2i(bz []byte) int {
 	b_buf := bytes.NewBuffer(bz)
 	binary.Read(b_buf, binary.BigEndian, &x)
 	return x
-}
-
-// Convenience for a new node
-func N(l, r interface{}) *MAVLNode {
-	var left, right *MAVLNode
-	if _, ok := l.(*MAVLNode); ok {
-		left = l.(*MAVLNode)
-	} else {
-		left = NewMAVLNode(i2b(l.(int)), nil)
-	}
-	if _, ok := r.(*MAVLNode); ok {
-		right = r.(*MAVLNode)
-	} else {
-		right = NewMAVLNode(i2b(r.(int)), nil)
-	}
-
-	n := &MAVLNode{
-		key:       right.lmd(nil).key,
-		value:     nil,
-		leftNode:  left,
-		rightNode: right,
-	}
-	n.calcHeightAndSize(nil)
-	return n
-}
-
-// Setup a deep node
-func T(n *MAVLNode) *MAVLTree {
-	d := db.NewDB("test", db.MemDBBackendStr, "")
-	t := NewMAVLTree(d)
-
-	n.Hash(t)
-	t.root = n
-	return t
-}
-
-// Convenience for simple printing of keys & tree structure
-func P(n *MAVLNode) string {
-	if n.height == 0 {
-		return fmt.Sprintf("%v", b2i(n.key))
-	} else {
-		return fmt.Sprintf("(%v %v)", P(n.leftNode), P(n.rightNode))
-	}
 }
 
 // 测试set和get功能
@@ -572,6 +534,65 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 		exit := VerifyKVPairProof(db, newhash, keyvalue, proof)
 		if !exit {
 			treelog.Info("TestGetAndVerifyKVPairProof  Verify proof fail!", "keyvalue", keyvalue.String(), "newhash", newhash)
+		}
+	}
+	db.Close()
+}
+
+func BenchmarkSetMerkleAvlTree(b *testing.B) {
+	b.StopTimer()
+
+	db := db.NewDB("test", "leveldb", "./")
+	t := NewMAVLTree(db)
+
+	for i := 0; i < 10000; i++ {
+		key := i2b(int32(RandInt32()))
+		t.Set(key, nil)
+		if i%1000 == 999 {
+			t.Save()
+		}
+	}
+	t.Save()
+
+	fmt.Println("BenchmarkSetMerkleAvlTree, starting")
+
+	runtime.GC()
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		ri := i2b(int32(RandInt32()))
+		t.Set(ri, nil)
+		if i%1000 == 999 {
+			t.Save()
+		}
+	}
+	t.Save()
+	db.Close()
+}
+
+func BenchmarkGetMerkleAvlTree(b *testing.B) {
+	b.StopTimer()
+
+	db := db.NewDB("test", "leveldb", "./")
+	t := NewMAVLTree(db)
+	var key []byte
+	for i := 0; i < 10000; i++ {
+		key = i2b(int32(RandInt32()))
+		t.Set(key, nil)
+		if i%100 == 99 {
+			t.Save()
+		}
+	}
+	t.Save()
+	fmt.Println("BenchmarkGetMerkleAvlTree, starting")
+
+	runtime.GC()
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, exit := t.Get(key)
+		if !exit {
+			fmt.Println("BenchmarkGetMerkleAvlTree no exit!")
 		}
 	}
 	db.Close()
