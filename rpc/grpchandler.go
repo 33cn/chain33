@@ -38,7 +38,7 @@ func (req *Grpc) GetBlocks(ctx context.Context, in *pb.RequestBlocks) (*pb.Reply
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.gserver.q)
 
-	reply, err := cli.GetBlocks(in.Start, in.End)
+	reply, err := cli.GetBlocks(in.Start, in.End, in.Isdetail)
 	if err != nil {
 		return nil, err
 	}

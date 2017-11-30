@@ -70,7 +70,7 @@ func (req JRpcRequest) GetBlocks(in BlockParam, result *interface{}) error {
 
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
-	reply, err := cli.GetBlocks(data.Start, data.End)
+	reply, err := cli.GetBlocks(data.Start, data.End, false)
 	if err != nil {
 		return err
 	}

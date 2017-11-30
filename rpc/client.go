@@ -14,7 +14,7 @@ type IRClient interface {
 	SendTx(tx *types.Transaction) queue.Message
 	SetQueue(q *queue.Queue)
 	QueryTx(hash []byte) (proof *types.MerkleProof, err error)
-	GetBlocks(start int64, end int64) (blocks *types.Blocks, err error)
+	GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error)
 }
 
 type channelClient struct {
@@ -62,8 +62,8 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 	return resp
 }
 
-func (client *channelClient) GetBlocks(start int64, end int64) (blocks *types.Blocks, err error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.RequestBlocks{start, end})
+func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error) {
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.RequestBlocks{start, end, isdetail})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
@@ -72,7 +72,7 @@ func (client *channelClient) GetBlocks(start int64, end int64) (blocks *types.Bl
 	if resp.Err() != nil {
 		return nil, resp.Err()
 	}
-	return resp.Data.(*types.Blocks), nil
+	return resp.Data.(*types.BlockDetails), nil
 }
 
 func (client *channelClient) QueryTx(hash []byte) (proof *types.MerkleProof, err error) {
