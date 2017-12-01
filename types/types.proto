@@ -262,6 +262,7 @@ message CoinsGenesis {
 message CoinsTransfer {
 	string toaddr = 1;
 	int64 amount = 2;
+	string note = 3;
 }
 
 message InvData {
@@ -278,4 +279,58 @@ message InvDatas {
 
 message Genesis {
 	bool isrun = 1;
+}
+
+//Wallet Module
+message WalletAccounts {
+	repeated WalletAccount wallets = 1;
+}
+
+message ReqNewAccount {
+	string label = 1;
+}
+
+message ReqWalletTransactionList {
+	bytes fromTx = 1; //从这个txId 开始读。默认从最后一个数据。
+	int32 count = 2;
+}
+
+message ReqWalletImportprivkey {
+	string privkey = 1; //bitcoin 的私钥格式
+	string label = 2;
+}
+
+message ReqWalletSendToAddress {
+	string from = 1;
+	string to = 2;
+	int64 amount = 3;
+	string note = 4;
+}
+
+message ReqWalletSetFee {
+	int64 amount = 1;
+}
+
+message ReqWalletSetLabel {
+	string addr = 1;
+	string label = 2;
+}
+
+message ReqWalletMergeBalance {
+	string to = 1;
+}
+
+message ReplyHashes {
+	repeated bytes hashes = 1;
+}
+
+
+message ReqWalletSetPasswd {
+	string oldpass = 1;
+	string newpass = 2;
+}
+
+message WalletUnLock {
+	string passwd = 1;
+	int64 timeout = 2;
 }
