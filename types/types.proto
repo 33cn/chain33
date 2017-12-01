@@ -29,10 +29,12 @@ message Block {
 }
 
 message Transaction {
-	bytes  execer = 1;
-	bytes  payload =2;
+	bytes      execer = 1;
+	bytes      payload =2;
 	Signature  signature = 3;
-	int64  fee = 4;
+	int64      fee = 4;
+	int32      expire  = 5;
+	int32      nonce = 6; //随机ID，可以防止payload 相同的时候，交易重复
 }
 
 //三种签名支持
@@ -55,10 +57,23 @@ message RequestHash {
 	bytes hash = 1;
 }
 
+message ReqAddr {
+	string addr = 1;
+}
+
+message ReqHashes {
+	repeated bytes hashes = 1;
+}
+
 message ReplyHash {
 	bytes hash = 1;
 }
 
+message ReplyTxInfo {
+	bytes hash = 1;
+	int64 height = 2;
+	int64 index = 3;
+}
 
 message MerkleProof {
 	repeated bytes hashs = 1;
@@ -173,6 +188,11 @@ message Account {
 	int64 balance = 2;
 	int64 frozen = 3;
 	string addr = 4;
+}
+
+message WalletAccount {
+	Account acc = 1;
+	string label = 2;
 }
 
 message ReceiptBalance {

@@ -8,10 +8,9 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+//hash 这里包含了签名自己
 func (tx *Transaction) Hash() []byte {
-	copytx := *tx
-	copytx.Signature = nil
-	data, err := proto.Marshal(&copytx)
+	data, err := proto.Marshal(tx)
 	if err != nil {
 		panic(err)
 	}
@@ -82,6 +81,7 @@ func (leafnode *LeafNode) Hash() []byte {
 	}
 	return common.Sha256(data)
 }
+
 func (innernode *InnerNode) Hash() []byte {
 	data, err := proto.Marshal(innernode)
 	if err != nil {

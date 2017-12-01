@@ -47,16 +47,20 @@ const (
 	EventGetMempoolSize = 21
 	EventMempoolSize    = 22
 
-	EventStoreGet       = 23
-	EventStoreSet       = 24
-	EventStoreGetReply  = 25
-	EventStoreSetReply  = 26
-	EventReceipts       = 27
-	EventExecTxList     = 28
-	EventPeerList       = 29
-	EventGetLastHeader  = 30
-	EventHeader         = 31
-	EventAddBlockDetail = 32
+	EventStoreGet             = 23
+	EventStoreSet             = 24
+	EventStoreGetReply        = 25
+	EventStoreSetReply        = 26
+	EventReceipts             = 27
+	EventExecTxList           = 28
+	EventPeerList             = 29
+	EventGetLastHeader        = 30
+	EventHeader               = 31
+	EventAddBlockDetail       = 32
+	EventGetMempool           = 33
+	EventGetTransactionByAddr = 34
+	EventGetTransactionByHash = 35
+	EventReplyTxInfo          = 36
 )
 
 var eventname = map[int]string{
@@ -92,6 +96,10 @@ var eventname = map[int]string{
 	30: "EventGetLastHeader",
 	31: "EventHeader",
 	32: "EventAddBlockDetail",
+	33: "EventGetMempool",
+	34: "EventGetTransactionByAddr",
+	35: "EventGetTransactionByHash",
+	36: "EventReplyTxInfo",
 }
 
 func GetEventName(event int) string {
