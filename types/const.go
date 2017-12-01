@@ -61,6 +61,23 @@ const (
 	EventGetTransactionByAddr = 34
 	EventGetTransactionByHash = 35
 	EventReplyTxInfo          = 36
+	//wallet event
+	EventWalletGetAccountList  = 37
+	EventWalletAccountList     = 38
+	EventNewAccount            = 39
+	EventWalletAccount         = 40
+	EventWalletTransactionList = 41
+	EventReplyTxList           = 42
+	EventWalletImportprivkey   = 43
+	EventWalletSendToAddress   = 44
+	EventWalletSetFee          = 45
+	EventWalletSetLabel        = 46
+	EventWalletAccount         = 47
+	EventWalletMergeBalance    = 48
+	EventReplyHashes           = 49
+	EventWalletSetPasswd       = 50
+	EventWalletLock            = 51
+	EventWalletUnLock          = 52
 )
 
 var eventname = map[int]string{
@@ -100,6 +117,22 @@ var eventname = map[int]string{
 	34: "EventGetTransactionByAddr",
 	35: "EventGetTransactionByHash",
 	36: "EventReplyTxInfo",
+	37: "EventWalletGetAccountList",
+	38: "EventWalletAccountList",
+	39: "EventNewAccount",
+	40: "EventWalletAccount",
+	41: "EventWalletTransactionList",
+	42: "EventReplyTxList",
+	43: "EventWalletImportprivkey",
+	44: "EventWalletSendToAddress",
+	45: "EventWalletSetFee",
+	46: "EventWalletSetLabel",
+	47: "EventWalletAccount",
+	48: "EventWalletMergeBalance",
+	49: "EventReplyHashes",
+	50: "EventWalletSetPasswd",
+	51: "EventWalletLock",
+	52: "EventWalletUnLock",
 }
 
 func GetEventName(event int) string {
@@ -140,7 +173,6 @@ const (
 )
 
 //exec type
-
 const (
 	ExecErr  = 0
 	ExecPack = 1
