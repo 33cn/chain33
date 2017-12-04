@@ -254,7 +254,7 @@ func TestGetBlocksMsg(t *testing.T) {
 	chainlog.Info("TestGetBlocksMsg begin --------------------")
 	blockchain, _ := initEnv()
 	curheight := blockchain.GetBlockHeight()
-	var reqBlock types.RequestBlocks
+	var reqBlock types.ReqBlocks
 	if curheight >= 5 {
 		reqBlock.Start = curheight - 5
 	}
@@ -276,7 +276,7 @@ func TestProcGetHeadersMsg(t *testing.T) {
 	blockchain, _ := initEnv()
 
 	curheight := blockchain.GetBlockHeight()
-	var reqBlock types.RequestBlocks
+	var reqBlock types.ReqBlocks
 	if curheight >= 5 {
 		reqBlock.Start = curheight - 5
 	}
@@ -354,7 +354,7 @@ func TestFetchBlock(t *testing.T) {
 	//parentHash := block.Block.Hash()
 	//go addBlock(blockchain, parentHash, addheight)
 	CurHeight = curheight
-	var requestblocks *types.RequestBlocks
+	var requestblocks *types.ReqBlocks
 	//p2p
 	go func() {
 		client := q.GetClient()
@@ -362,7 +362,7 @@ func TestFetchBlock(t *testing.T) {
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventFetchBlocks {
 				chainlog.Info("TestFetchBlock", "msg.Ty", msg.Ty)
-				requestblocks = (msg.Data).(*types.RequestBlocks)
+				requestblocks = (msg.Data).(*types.ReqBlocks)
 				go addBlocks(blockchain, requestblocks)
 				msg.Reply(client.NewMessage("blockchain", types.EventAddBlocks, &types.Reply{true, nil}))
 			} else if msg.Ty == types.EventPeerInfo {
@@ -393,7 +393,7 @@ func addBlock(blockchain *BlockChain, parentHash []byte, addblockheight int64) {
 	}
 }
 
-func addBlocks(blockchain *BlockChain, requestblock *types.RequestBlocks) {
+func addBlocks(blockchain *BlockChain, requestblock *types.ReqBlocks) {
 	if requestblock == nil {
 		chainlog.Info("addBlocks requestblock is null")
 		return

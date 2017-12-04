@@ -67,18 +67,18 @@ const (
 	EventNewAccount            = 39
 	EventWalletAccount         = 40
 	EventWalletTransactionList = 41
-	EventReplyTxList           = 42
-	EventWalletImportPrivKey   = 43
-	EventWalletSendToAddress   = 44
-	EventWalletSetFee          = 45
-	EventWalletSetLabel        = 46
-	EventWalletAccount         = 47
-	EventWalletMergeBalance    = 48
-	EventReplyHashes           = 49
-	EventWalletSetPasswd       = 50
-	EventWalletLock            = 51
-	EventWalletUnLock          = 52
-	EventTransactionDetails    = 53
+	//EventReplyTxList           = 42
+	EventWalletImportprivkey = 43
+	EventWalletSendToAddress = 44
+	EventWalletSetFee        = 45
+	EventWalletSetLabel      = 46
+	//EventWalletAccount       = 47
+	EventWalletMergeBalance = 48
+	EventReplyHashes        = 49
+	EventWalletSetPasswd    = 50
+	EventWalletLock         = 51
+	EventWalletUnLock       = 52
+	EventTransactionDetails = 53
 )
 
 var eventname = map[int]string{
@@ -123,12 +123,12 @@ var eventname = map[int]string{
 	39: "EventNewAccount",
 	40: "EventWalletAccount",
 	41: "EventWalletTransactionList",
-	42: "EventReplyTxList",
+	//42: "EventReplyTxList",
 	43: "EventWalletImportPrivKey",
 	44: "EventWalletSendToAddress",
 	45: "EventWalletSetFee",
 	46: "EventWalletSetLabel",
-	47: "EventWalletAccount",
+	//47: "EventWalletAccount",
 	48: "EventWalletMergeBalance",
 	49: "EventReplyHashes",
 	50: "EventWalletSetPasswd",
