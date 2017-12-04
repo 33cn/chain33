@@ -4,8 +4,8 @@ package types;
 //add by bangzhu.li
 service grpcservice{
 	rpc SendTransaction(Transaction) returns (Reply){}
-	rpc QueryTransaction(RequestHash) returns (Reply){}
-	rpc GetBlocks(RequestBlocks) returns (Reply){}
+	rpc QueryTransaction(ReqHash) returns (Reply){}
+	rpc GetBlocks(ReqBlocks) returns (Reply){}
 }
 //end
 
@@ -35,6 +35,7 @@ message Transaction {
 	int64      fee = 4;
 	int32      expire  = 5;
 	int32      nonce = 6; //随机ID，可以防止payload 相同的时候，交易重复
+	string 	   toaddr = 7; //对方地址，如果没有对方地址，可以为空
 }
 
 //三种签名支持
@@ -53,7 +54,7 @@ message ChainStatus {
 	int64 msgQueueSize = 3;
 }
 
-message RequestHash {
+message ReqHash {
 	bytes hash = 1;
 }
 
@@ -75,12 +76,18 @@ message ReplyTxInfo {
 	int64 index = 3;
 }
 
-message MerkleProof {
-	repeated bytes hashs = 1;
+message TransactionDetail {
+	Transaction tx = 1;
+	ReceiptData receipt = 2;
+	repeated bytes proofs = 3;
+}
+
+message TransactionDetails {
+	repeated Transaction txs = 1;
 }
 
 //req
-message RequestBlocks {
+message ReqBlocks {
 	int64 start = 1;
 	int64 end = 2;
 	bool  Isdetail =3;
@@ -100,7 +107,7 @@ message ReplyBlockHeight {
 	int64 height =1;
 }
 
-message RequestTxList {
+message ReqTxList {
 	int64 count = 1;
 }
 
@@ -255,12 +262,10 @@ message CoinsAction {
 //给某个地址凭空打币
 //只能执行一次，不能执行第二次
 message CoinsGenesis {
-	string toaddr = 1;
 	int64 amount = 2;
 }
 
 message CoinsTransfer {
-	string toaddr = 1;
 	int64 amount = 2;
 	string note = 3;
 }
@@ -295,7 +300,7 @@ message ReqWalletTransactionList {
 	int32 count = 2;
 }
 
-message ReqWalletImportprivkey {
+message ReqWalletImportPrivKey {
 	string privkey = 1; //bitcoin 的私钥格式
 	string label = 2;
 }
