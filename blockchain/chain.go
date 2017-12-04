@@ -92,17 +92,17 @@ func (chain *BlockChain) ProcRecvMsg() {
 		msgtype := msg.Ty
 		switch msgtype {
 		case types.EventQueryTx:
-			txhash := (msg.Data).(*types.RequestHash)
-			merkleproof, err := chain.ProcQueryTxMsg(txhash.Hash)
+			txhash := (msg.Data).(*types.ReqHash)
+			TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
 			if err != nil {
 				chainlog.Error("ProcQueryTxMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventMerkleProof, err))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, err))
 			} else {
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventMerkleProof, merkleproof))
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, TransactionDetail))
 			}
 
 		case types.EventGetBlocks:
-			requestblocks := (msg.Data).(*types.RequestBlocks)
+			requestblocks := (msg.Data).(*types.ReqBlocks)
 			blocks, err := chain.ProcGetBlockDetailsMsg(requestblocks)
 			if err != nil {
 				chainlog.Error("ProcGetBlockDetailsMsg", "err", err.Error())
@@ -148,7 +148,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			msg.Reply(chain.qclient.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 
 		case types.EventGetHeaders:
-			requestblocks := (msg.Data).(*types.RequestBlocks)
+			requestblocks := (msg.Data).(*types.ReqBlocks)
 			headers, err := chain.ProcGetHeadersMsg(requestblocks)
 			if err != nil {
 				chainlog.Error("ProcGetHeadersMsg", "err", err.Error())
@@ -276,13 +276,13 @@ FOR_LOOP:
 
 /*
 函数功能：
-EventQueryTx(types.RequestHash) : rpc模块会向 blockchain 模块 发送 EventQueryTx(types.RequestHash) 消息 ，
-查询交易的默克尔树，回复消息 EventMerkleProof(types.MerkleProof)
+EventQueryTx(types.ReqHash) : rpc模块会向 blockchain 模块 发送 EventQueryTx(types.ReqHash) 消息 ，
+查询交易的默克尔树，回复消息 EventTransactionDetail(types.TransactionDetail)
 结构体：
-type RequestHash struct {Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`}
-type MerkleProof struct {Hashs [][]byte `protobuf:"bytes,1,rep,name=hashs,proto3" json:"hashs,omitempty"}
+type ReqHash struct {Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`}
+type TransactionDetail struct {Hashs [][]byte `protobuf:"bytes,1,rep,name=hashs,proto3" json:"hashs,omitempty"}
 */
-func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.MerkleProof, err error) {
+func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.TransactionDetail, err error) {
 	txresult, err := chain.GetTxResultFromDb(txhash)
 	if err != nil {
 		return nil, err
@@ -291,11 +291,11 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.MerkleProof
 	if err != nil {
 		return nil, err
 	}
-	merkleproof, err := GetMerkleProof(block.Block.Txs, txresult.Index)
+	TransactionDetail, err := GetTransactionDetail(block.Block.Txs, txresult.Index)
 	if err != nil {
 		return nil, err
 	}
-	return merkleproof, nil
+	return TransactionDetail, nil
 }
 
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList) {
@@ -316,12 +316,12 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 /*
 EventGetBlocks(types.RequestGetBlock): rpc 模块 会向 blockchain 模块发送 EventGetBlocks(types.RequestGetBlock) 消息，
 功能是查询 区块的信息, 回复消息是 EventBlocks(types.Blocks)
-type RequestBlocks struct {
+type ReqBlocks struct {
 	Start int64 `protobuf:"varint,1,opt,name=start" json:"start,omitempty"`
 	End   int64 `protobuf:"varint,2,opt,name=end" json:"end,omitempty"`}
 type Blocks struct {Items []*Block `protobuf:"bytes,1,rep,name=items" json:"items,omitempty"`}
 */
-func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.RequestBlocks) (respblocks *types.BlockDetails, err error) {
+func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (respblocks *types.BlockDetails, err error) {
 	blockhight := chain.GetBlockHeight()
 	if requestblock.Start > blockhight {
 		outstr := fmt.Sprintf("input Start height :%d  but current height:%d", requestblock.Start, blockhight)
@@ -460,7 +460,7 @@ P2P区块收到这个消息后，会向blockchain 模块回复， EventReply。
 blockchain 模块回复 EventReply
 结构体：
 */
-func (chain *BlockChain) FetchBlock(reqblk *types.RequestBlocks) (err error) {
+func (chain *BlockChain) FetchBlock(reqblk *types.ReqBlocks) (err error) {
 	if chain.qclient == nil {
 		fmt.Println("chain client not bind message queue.")
 		err := errors.New("chain client not bind message queue")
@@ -474,7 +474,7 @@ func (chain *BlockChain) FetchBlock(reqblk *types.RequestBlocks) (err error) {
 		err := errors.New("FetchBlock blockcount > MaxFetchBlockNum")
 		return err
 	}
-	var requestblock types.RequestBlocks
+	var requestblock types.ReqBlocks
 
 	requestblock.Start = reqblk.Start
 	requestblock.End = reqblk.End
@@ -639,7 +639,7 @@ func (chain *BlockChain) sendTimeout(startheight int64, endheight int64) {
 		chain.RemoveReqBlk(startheight, endheight)
 		return
 	}
-	var reqBlock types.RequestBlocks
+	var reqBlock types.ReqBlocks
 	reqBlock.Start = startheight
 	reqBlock.End = endheight
 	chain.FetchBlock(&reqBlock)
@@ -679,22 +679,22 @@ func (bpReqBlk *bpRequestBlk) onTimeout() {
 	bpReqBlk.didTimeout = true
 }
 
-//  获取指定txindex  在txs中的merkleproof ，注释：index从0开始
-func GetMerkleProof(Txs []*types.Transaction, index int32) (*types.MerkleProof, error) {
+//  获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
+func GetTransactionDetail(Txs []*types.Transaction, index int32) (*types.TransactionDetail, error) {
 
-	var txproof types.MerkleProof
+	var txdetail types.TransactionDetail
 	txlen := len(Txs)
 
 	//计算tx的hash值
 	leaves := make([][]byte, txlen)
 	for index, tx := range Txs {
 		leaves[index] = tx.Hash()
-		//chainlog.Info("GetMerkleProof txhash", "index", index, "txhash", tx.Hash())
+		//chainlog.Info("GetTransactionDetail txhash", "index", index, "txhash", tx.Hash())
 	}
 
-	merkleproof := merkle.GetMerkleBranch(leaves, uint32(index))
-	txproof.Hashs = merkleproof
-	return &txproof, nil
+	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
+	txdetail.Proofs = proofs
+	return &txdetail, nil
 }
 
 //type Header struct {
@@ -704,7 +704,7 @@ func GetMerkleProof(Txs []*types.Transaction, index int32) (*types.MerkleProof, 
 //	Height     int64
 //	BlockTime  int64
 //}
-func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.RequestBlocks) (respheaders *types.Headers, err error) {
+func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (respheaders *types.Headers, err error) {
 	blockhight := chain.GetBlockHeight()
 	if requestblock.Start > blockhight {
 		outstr := fmt.Sprintf("input Start height :%d  but current height:%d", requestblock.Start, blockhight)

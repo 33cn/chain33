@@ -44,7 +44,7 @@ type QueryParm struct {
 }
 
 func (req JRpcRequest) QueryTransaction(in QueryParm, result *interface{}) error {
-	var data types.RequestHash
+	var data types.ReqHash
 	data.Hash = []byte(in.hash)
 
 	cli := NewClient("channel", "")
@@ -64,7 +64,7 @@ type BlockParam struct {
 }
 
 func (req JRpcRequest) GetBlocks(in BlockParam, result *interface{}) error {
-	var data types.RequestBlocks
+	var data types.ReqBlocks
 	data.End = in.End
 	data.Start = in.Start
 

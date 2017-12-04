@@ -47,7 +47,7 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 	if action.Ty == types.CoinsActionTransfer {
 		transfer := action.GetTransfer()
 		accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
-		accTo := account.LoadAccount(n.db, transfer.Toaddr)
+		accTo := account.LoadAccount(n.db, tx.To)
 
 		b := accFrom.GetBalance() - tx.Fee - transfer.Amount
 		if b >= 0 {
@@ -75,7 +75,7 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 		}
 		g.Isrun = true
 		account.SaveGenesis(n.db, g)
-		accTo := account.LoadAccount(n.db, genesis.Toaddr)
+		accTo := account.LoadAccount(n.db, tx.To)
 		tob := accTo.GetBalance() + genesis.Amount
 		receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, genesis.Amount}
 		accTo.Balance = tob

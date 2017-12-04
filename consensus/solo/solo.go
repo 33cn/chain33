@@ -141,7 +141,7 @@ func (client *SoloClient) RequestBlock(start int64) *types.Block {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.RequestBlocks{start, start, false})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
@@ -210,9 +210,10 @@ func getCurrentHeight() int64 {
 func createGenesisTx() *types.Transaction {
 	var tx types.Transaction
 	tx.Execer = []byte("coins")
+	tx.To = genesisAddr
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{genesisAddr, 1e8 * types.Coin}
+	g.Genesis = &types.CoinsGenesis{1e8 * types.Coin}
 	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	return &tx
 }
