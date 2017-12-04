@@ -13,7 +13,7 @@ import (
 type IRClient interface {
 	SendTx(tx *types.Transaction) queue.Message
 	SetQueue(q *queue.Queue)
-	QueryTx(hash []byte) (proof *types.MerkleProof, err error)
+	QueryTx(hash []byte) (proof *types.TransactionDetail, err error)
 	GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error)
 }
 
@@ -63,7 +63,7 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 }
 
 func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.RequestBlocks{start, end, isdetail})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
@@ -75,8 +75,8 @@ func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (b
 	return resp.Data.(*types.BlockDetails), nil
 }
 
-func (client *channelClient) QueryTx(hash []byte) (proof *types.MerkleProof, err error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventQueryTx, &types.RequestHash{hash})
+func (client *channelClient) QueryTx(hash []byte) (proof *types.TransactionDetail, err error) {
+	msg := client.qclient.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
@@ -85,5 +85,5 @@ func (client *channelClient) QueryTx(hash []byte) (proof *types.MerkleProof, err
 	if resp.Err() != nil {
 		return nil, resp.Err()
 	}
-	return resp.Data.(*types.MerkleProof), nil
+	return resp.Data.(*types.TransactionDetail), nil
 }

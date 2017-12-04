@@ -20,7 +20,7 @@ func (req *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.R
 
 }
 
-func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.RequestHash) (*pb.Reply, error) {
+func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.Reply, error) {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.gserver.q)
 
@@ -33,7 +33,7 @@ func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.RequestHash) (*pb.
 
 }
 
-func (req *Grpc) GetBlocks(ctx context.Context, in *pb.RequestBlocks) (*pb.Reply, error) {
+func (req *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, error) {
 
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.gserver.q)

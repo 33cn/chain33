@@ -35,7 +35,7 @@ message Transaction {
 	int64      fee = 4;
 	int32      expire  = 5;
 	int32      nonce = 6; //随机ID，可以防止payload 相同的时候，交易重复
-	string 	   toaddr = 7; //对方地址，如果没有对方地址，可以为空
+	string 	   to = 7; //对方地址，如果没有对方地址，可以为空
 }
 
 //三种签名支持
