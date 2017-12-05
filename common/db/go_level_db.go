@@ -25,7 +25,7 @@ type GoLevelDB struct {
 func NewGoLevelDB(name string, dir string) (*GoLevelDB, error) {
 	dbPath := path.Join(dir, name+".db")
 	cache := 128
-	handles := 64
+	handles := 128
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(dbPath, &opt.Options{
 		OpenFilesCacheCapacity: handles,
