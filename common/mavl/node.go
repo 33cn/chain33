@@ -50,7 +50,7 @@ func MakeMAVLNode(buf []byte, t *MAVLTree) (node *MAVLNode, err error) {
 	node.size = storeNode.Size
 	node.key = storeNode.Key
 
-	//leaf
+	//leaf(叶子节点保存数据)
 	if node.height == 0 {
 		node.value = storeNode.Value
 	} else {
