@@ -24,7 +24,7 @@ var genesisKey = []byte("mavl-acc-genesis")
 func LoadAccount(db dbm.KVDB, addr string) *types.Account {
 	value, err := db.Get(AccountKey(addr))
 	if err != nil {
-		return &types.Account{}
+		return &types.Account{Addr: addr}
 	}
 	var acc types.Account
 	err = types.Decode(value, &acc)

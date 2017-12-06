@@ -263,3 +263,18 @@ func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proo
 	}
 	return istrue
 }
+
+func PrintTreeLeaf(db dbm.DB, roothash []byte) {
+	tree := NewMAVLTree(db)
+	tree.Load(roothash)
+	var i int32 = 0
+	if tree.root != nil {
+		leafs := tree.root.size
+		treelog.Info("PrintTreeLeaf info")
+		for i = 0; i < leafs; i++ {
+			key, value := tree.GetByIndex(i)
+			treelog.Info("leaf:", "index:", i, "key", string(key), "value", string(value))
+		}
+	}
+	return
+}

@@ -13,6 +13,7 @@ var ulog = log.New("module", "util")
 
 func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
+	ulog.Info("query state root", "rootHash", prevStateRoot)
 	receipts := ExecTx(q, prevStateRoot, block)
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
@@ -20,6 +21,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	var rdata []*types.ReceiptData //save to db receipt log
 	for i := 0; i < len(receipts.Receipts); i++ {
 		receipt := receipts.Receipts[i]
+		ulog.Info("exec status", "status", receipt.Ty)
 		if receipt.Ty == types.ExecErr {
 			if errReturn { //认为这个是一个错误的区块
 				return nil, types.ErrBlockExec
@@ -40,10 +42,12 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 		}
 	}
 	//check TxHash
+
 	calcHash := merkle.CalcMerkleRoot(block.Txs)
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, types.ErrCheckTxHash
 	}
+	block.TxHash = calcHash
 	//删除无效的交易
 	if len(deltxlist) > 0 {
 		var newtx []*types.Transaction
