@@ -41,15 +41,16 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 	var action types.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return errReceipt(err)
+		goto cutFee //尽量收取手续费
 	}
 	clog.Info("exec transaction=", "tx=", action)
-	if action.Ty == types.CoinsActionTransfer {
+	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
 		accTo := account.LoadAccount(n.db, tx.To)
 
 		b := accFrom.GetBalance() - tx.Fee - transfer.Amount
+		clog.Info("balance ", "from", accFrom.GetBalance(), "fee", tx.Fee, "amount", transfer.Amount)
 		if b >= 0 {
 			receiptBalanceFrom := &types.ReceiptBalance{accFrom.GetBalance(), b, -tx.Fee - transfer.Amount}
 			accFrom.Balance = b
@@ -59,29 +60,31 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 			account.SaveAccount(n.db, accFrom)
 			account.SaveAccount(n.db, accTo)
 			return transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo)
-		} else if accFrom.GetBalance()-tx.Fee >= 0 {
-			receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
-			accFrom.Balance = accFrom.GetBalance() - tx.Fee
-			account.SaveAccount(n.db, accFrom)
-			return cutFeeReceipt(accFrom, receiptBalance)
-		} else {
-			return errReceipt(types.ErrNoBalance)
 		}
-	} else if action.Ty == types.CoinsActionGenesis {
+	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		g := account.GetGenesis(n.db)
-		if g.Isrun {
-			return errReceipt(types.ErrReRunGenesis)
+		if !g.Isrun {
+			g.Isrun = true
+			account.SaveGenesis(n.db, g)
+			accTo := account.LoadAccount(n.db, tx.To)
+			tob := accTo.GetBalance() + genesis.Amount
+			receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, genesis.Amount}
+			accTo.Balance = tob
+			account.SaveAccount(n.db, accTo)
+			return genesisReceipt(accTo, receiptBalanceTo, g)
 		}
-		g.Isrun = true
-		account.SaveGenesis(n.db, g)
-		accTo := account.LoadAccount(n.db, tx.To)
-		tob := accTo.GetBalance() + genesis.Amount
-		receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, genesis.Amount}
-		accTo.Balance = tob
-		account.SaveAccount(n.db, accTo)
-		return genesisReceipt(accTo, receiptBalanceTo, g)
 	}
+
+cutFee:
+	accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
+	if accFrom.GetBalance()-tx.Fee >= 0 {
+		receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
+		accFrom.Balance = accFrom.GetBalance() - tx.Fee
+		account.SaveAccount(n.db, accFrom)
+		return cutFeeReceipt(accFrom, receiptBalance)
+	}
+	//return error
 	return errReceipt(types.ErrActionNotSupport)
 }
 
@@ -95,9 +98,10 @@ func errReceipt(err error) *types.Receipt {
 	return &types.Receipt{types.ExecErr, nil, []*types.ReceiptLog{errlog}}
 }
 
+//only pack the transaction, exec is error.
 func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
-	return &types.Receipt{types.ExecErr, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
+	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
 func transferReceipt(accFrom, accTo *types.Account, receiptBalanceFrom, receiptBalanceTo *types.ReceiptBalance) *types.Receipt {

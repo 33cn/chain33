@@ -57,6 +57,7 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 				var receipts []*types.Receipt
 				for i := 0; i < len(datas.Txs); i++ {
 					receipt := execute.Exec(datas.Txs[i])
+					elog.Info("receipt of tx", "receipt=", receipt)
 					receipts = append(receipts, receipt)
 				}
 				msg.Reply(client.NewMessage("", types.EventReceipts,
