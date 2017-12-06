@@ -182,9 +182,12 @@ func CalcMerkleRoot(txs []*types.Transaction) []byte {
 	for _, tx := range txs {
 		hashes = append(hashes, tx.Hash())
 	}
+	if hashes == nil {
+		return zeroHash[:]
+	}
 	merkleroot := GetMerkleRoot(hashes)
 	if merkleroot == nil {
-		return zeroHash[:]
+		panic("calc merkle root error")
 	}
 	return merkleroot
 }
