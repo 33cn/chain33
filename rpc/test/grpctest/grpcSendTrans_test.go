@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
 	"testing"
-	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -53,13 +51,9 @@ func TestGrpcSendToAddress(t *testing.T) {
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: addrto.String()}
 	tx.Sign(types.SECP256K1, priv)
 	// Contact the server and print out its response.
-	r, err := c.SendTransaction(context.Background(), tx)
+	_, err = c.SendTransaction(context.Background(), tx)
 	if err != nil {
-		log.Fatalf("could not greet: %v", err)
+		t.Error(err)
 	}
-	log.Printf("####### get server Greeting response: %s", string(r.Msg))
-	time.Sleep(time.Second * 1)
 	conn.Close()
-	log.Printf("closed")
-	time.Sleep(time.Second * 1)
 }
