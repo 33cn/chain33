@@ -8,12 +8,11 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
-//hash 这里包含了签名自己
+//hash 不包含签名，用户通过修改签名无法重新发送交易
 func (tx *Transaction) Hash() []byte {
-	data, err := proto.Marshal(tx)
-	if err != nil {
-		panic(err)
-	}
+	copytx := *tx
+	copytx.Signature = nil
+	data := Encode(&copytx)
 	return common.Sha256(data)
 }
 
