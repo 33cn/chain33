@@ -6,23 +6,21 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-func New(consensusType string, q *queue.Queue) {
-
+func New() Consumer {
+	consensusType := "solo"
 	if consensusType == "solo" {
 		con := solo.NewSolo()
-		con.SetQueue(q)
+		return con
 	} else if consensusType == "raft" {
 		// TODO:
 	} else if consensusType == "pbft" {
 		// TODO:
-	} else {
-		panic("Unsupported consensus type")
 	}
+	panic("Unsupported consensus type")
 }
 
 type Consumer interface {
 	SetQueue(q *queue.Queue)
-	RequestTx(txNum int64) queue.Message
 }
 
 //type ReadLeadger interface {
