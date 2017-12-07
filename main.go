@@ -48,7 +48,8 @@ func main() {
 	s.SetQueue(q)
 
 	log.Info("loading consensus module")
-	consensus.New("solo", q)
+	cs := consensus.New()
+	cs.SetQueue(q)
 
 	//jsonrpc, grpc, channel 三种模式
 	api := rpc.NewServer("jsonrpc", ":8801")

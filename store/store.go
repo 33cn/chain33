@@ -37,6 +37,8 @@ type Store struct {
 	qclient queue.IClient
 }
 
+//driver
+//dbpath
 func New() *Store {
 	db := dbm.NewDB("store", "leveldb", "mavltree")
 	store := &Store{db: db}
