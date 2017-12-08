@@ -9,7 +9,6 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	pb "code.aliyun.com/chain33/chain33/types"
-	cmn "github.com/tmlibs/common"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -21,9 +20,9 @@ type MConnection struct {
 	config        *MConnConfig
 	key           string //pubkey
 	quit          chan bool
-	remoteAddress *NetAddress      //peer 的地址
-	pingTimer     *cmn.RepeatTimer // send pings periodically
-	versionTimer  *cmn.RepeatTimer
+	remoteAddress *NetAddress  //peer 的地址
+	pingTimer     *RepeatTimer // send pings periodically
+	versionTimer  *RepeatTimer
 	peer          *peer
 	sendMonitor   *Monitor
 }
@@ -52,7 +51,7 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MCon
 	mconn := &MConnection{
 		gconn:       conn,
 		conn:        pb.NewP2PgserviceClient(conn),
-		pingTimer:   cmn.NewRepeatTimer("ping", pingTimeout),
+		pingTimer:   NewRepeatTimer("ping", pingTimeout),
 		sendMonitor: NewMonitor(),
 		peer:        peer,
 		quit:        make(chan bool),
