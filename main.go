@@ -8,7 +8,11 @@ package main
 //rpc 服务也是可以插拔的
 
 import (
+	"flag"
+	"runtime"
+
 	"code.aliyun.com/chain33/chain33/blockchain"
+	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/execs"
 	"code.aliyun.com/chain33/chain33/mempool"
@@ -19,9 +23,19 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+var (
+	CPUNUM     = runtime.NumCPU()
+	configpath = flag.String("f", "chain33.toml", "configfile")
+)
+
 const Version = "v0.0.2"
 
 func main() {
+
+	flag.PrintDefaults()
+	flag.Parse()
+	cfg := config.InitCfg(*configpath)
+
 	//channel, rabitmq 等
 	log.Info("chain33 " + Version)
 	log.Info("loading queue")
@@ -30,13 +44,12 @@ func main() {
 	log.Info("loading blockchain module")
 	chain := blockchain.New()
 	chain.SetQueue(q)
-
 	log.Info("loading mempool module")
 	mem := mempool.New()
 	mem.SetQueue(q)
 
 	log.Info("loading p2p module")
-	network := p2p.New()
+	network := p2p.New(cfg.GetP2P())
 	network.SetQueue(q)
 
 	log.Info("loading execs module")
@@ -50,7 +63,6 @@ func main() {
 	log.Info("loading consensus module")
 	cs := consensus.New()
 	cs.SetQueue(q)
-
 	//jsonrpc, grpc, channel 三种模式
 	api := rpc.NewServer("jsonrpc", ":8801")
 	api.SetQueue(q)
