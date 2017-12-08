@@ -7,30 +7,11 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-type JRpcRequest struct {
+type chain33 struct {
 	jserver *jsonrpcServer
 }
 
-//发送交易信息到topic=rpc 的queue 中
-
-//{"execer":"xxx","palyload":"xx","signature":{"ty":1,"pubkey":"xx","signature":"xxx"},"Fee":12}
-type JTransparm struct {
-	Execer    string
-	Payload   string
-	Signature *Signature
-	Fee       int64
-}
-type Signature struct {
-	Ty        int32
-	Pubkey    string
-	Signature string
-}
-
-type RawParm struct {
-	Data string
-}
-
-func (req JRpcRequest) SendTransaction(in RawParm, result *interface{}) error {
+func (req chain33) SendTransaction(in RawParm, result *interface{}) error {
 	fmt.Println("jrpc transaction:", in)
 	var parm types.Transaction
 	types.Decode([]byte(in.Data), &parm)
@@ -47,7 +28,7 @@ type QueryParm struct {
 	hash string
 }
 
-func (req JRpcRequest) QueryTransaction(in QueryParm, result *interface{}) error {
+func (req chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 
 	data.Hash = common.FromHex(in.hash)
@@ -57,7 +38,33 @@ func (req JRpcRequest) QueryTransaction(in QueryParm, result *interface{}) error
 	if err != nil {
 		return err
 	}
-	*result = reply
+	{ //重新格式化数据
+
+		var transDetail TransactionDetail
+		transDetail.Tx = &Transaction{
+			Execer:  common.ToHex(reply.Tx.Execer),
+			Payload: common.ToHex(reply.Tx.Payload),
+			Fee:     reply.Tx.Fee,
+			Expire:  reply.Tx.Expire,
+			Nonce:   reply.Tx.Nonce,
+			To:      reply.Tx.To,
+			Signature: &Signature{Ty: reply.Tx.Signature.Ty,
+				Pubkey:    common.ToHex(reply.Tx.Signature.Pubkey),
+				Signature: common.ToHex(reply.Tx.Signature.Signature)}}
+
+		transDetail.Receipt = &ReceiptData{Ty: reply.Receipt.Ty}
+		for _, log := range reply.Receipt.Logs {
+			transDetail.Receipt.Logs = append(transDetail.Receipt.Logs,
+				&ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
+		}
+
+		for _, proof := range reply.Proofs {
+			transDetail.Proofs = append(transDetail.Proofs, common.ToHex(proof))
+		}
+
+		*result = &transDetail
+	}
+
 	return nil
 
 }
@@ -68,7 +75,7 @@ type BlockParam struct {
 	Isdetail bool
 }
 
-func (req JRpcRequest) GetBlocks(in BlockParam, result *interface{}) error {
+func (req chain33) GetBlocks(in BlockParam, result *interface{}) error {
 	var data types.ReqBlocks
 	data.End = in.End
 	data.Start = in.Start
@@ -79,19 +86,72 @@ func (req JRpcRequest) GetBlocks(in BlockParam, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
+	{
+
+		var blockDetails BlockDetails
+		var bdtl BlockDetail
+		for _, item := range reply.Items {
+			var block Block
+			block.BlockTime = item.Block.GetBlockTime()
+			block.Height = item.Block.GetBlockTime()
+			block.Version = item.Block.GetVersion()
+			block.ParentHash = common.ToHex(item.Block.GetParentHash())
+			block.StateHash = common.ToHex(item.Block.GetStateHash())
+			block.TxHash = common.ToHex(item.Block.GetTxHash())
+			for _, tx := range item.Block.Txs {
+				block.Txs = append(block.Txs,
+					&Transaction{
+						Execer:  common.ToHex(tx.GetExecer()),
+						Payload: common.ToHex(tx.GetPayload()),
+						Fee:     tx.Fee,
+						Expire:  tx.Expire,
+						Nonce:   tx.Nonce,
+						To:      tx.To,
+						Signature: &Signature{Ty: tx.GetSignature().GetTy(),
+							Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+							Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+
+			}
+			bdtl.Block = &block
+
+			for _, rp := range item.Receipts {
+				var recp ReceiptData
+				recp.Ty = rp.GetTy()
+				for _, log := range rp.Logs {
+					recp.Logs = append(recp.Logs,
+						&ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
+				}
+				bdtl.Receipts = append(bdtl.Receipts, &recp)
+			}
+
+			blockDetails.Items = append(blockDetails.Items, &bdtl)
+		}
+		*result = &blockDetails
+	}
+
 	return nil
 
 }
 
-func (req JRpcRequest) GetLastHeader(result *interface{}) error {
+func (req chain33) GetLastHeader(result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetLastHeader()
 	if err != nil {
 		return err
 	}
-	*result = reply
+
+	{
+		var header Header
+		header.BlockTime = reply.GetBlockTime()
+		header.Height = reply.GetHeight()
+		header.ParentHash = common.ToHex(reply.GetParentHash())
+		header.StateHash = common.ToHex(reply.GetStateHash())
+		header.TxHash = common.ToHex(reply.GetTxHash())
+		header.Version = reply.GetVersion()
+		*result = &header
+	}
+
 	return nil
 }
 
@@ -100,7 +160,7 @@ type ReqAddr struct {
 }
 
 //GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
-func (req JRpcRequest) GetTxByAddr(in ReqAddr, result *interface{}) error {
+func (req chain33) GetTxByAddr(in ReqAddr, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	var parm types.ReqAddr
@@ -109,7 +169,14 @@ func (req JRpcRequest) GetTxByAddr(in ReqAddr, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
+	{
+		var txinfo ReplyTxInfo
+		txinfo.Hash = common.ToHex(reply.GetHash())
+		txinfo.Height = reply.GetHeight()
+		txinfo.Index = reply.GetIndex()
+		*result = &txinfo
+	}
+
 	return nil
 }
 
@@ -123,7 +190,7 @@ type ReqHashes struct {
 	Hashes []string
 }
 
-func (req JRpcRequest) GetTxByHashes(in ReqHashes, result *interface{}) error {
+func (req chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	var parm types.ReqHashes
@@ -137,22 +204,59 @@ func (req JRpcRequest) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
+	{
+		var txdetails TransactionDetails
+		for _, tx := range reply.Txs {
+
+			txdetails.Txs = append(txdetails.Txs,
+				&Transaction{
+					Execer:  common.ToHex(tx.GetExecer()),
+					Payload: common.ToHex(tx.GetPayload()),
+					Fee:     tx.Fee,
+					Expire:  tx.Expire,
+					Nonce:   tx.Nonce,
+					To:      tx.To,
+					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
+						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+
+		}
+
+		*result = &txdetails
+	}
+
 	return nil
 }
 
-func (req JRpcRequest) GetMempool(result *interface{}) error {
+func (req chain33) GetMempool(result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetMempool()
 	if err != nil {
 		return err
 	}
-	*result = reply
+	{
+		var txlist ReplyTxList
+		for _, tx := range reply.Txs {
+			txlist.Txs = append(txlist.Txs,
+				&Transaction{
+					Execer:  common.ToHex(tx.GetExecer()),
+					Payload: common.ToHex(tx.GetPayload()),
+					Fee:     tx.Fee,
+					Expire:  tx.Expire,
+					Nonce:   tx.Nonce,
+					To:      tx.To,
+					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
+						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+		}
+		*result = &txlist
+	}
+
 	return nil
 }
 
-func (req JRpcRequest) GetAccounts(in *types.ReqNil, result *interface{}) error {
+func (req chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetAccounts()
@@ -171,7 +275,7 @@ func (req JRpcRequest) GetAccounts(in *types.ReqNil, result *interface{}) error 
 
 */
 
-func (req JRpcRequest) NewAccount(in types.ReqNewAccount, result *interface{}) error {
+func (req chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 
@@ -183,7 +287,7 @@ func (req JRpcRequest) NewAccount(in types.ReqNewAccount, result *interface{}) e
 	return nil
 }
 
-func (req JRpcRequest) WalletTxList(in types.ReqWalletTransactionList, result *interface{}) error {
+func (req chain33) WalletTxList(in types.ReqWalletTransactionList, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 
@@ -191,11 +295,30 @@ func (req JRpcRequest) WalletTxList(in types.ReqWalletTransactionList, result *i
 	if err != nil {
 		return err
 	}
-	*result = reply
+	{
+		var txdetails TransactionDetails
+		for _, tx := range reply.Txs {
+			txdetails.Txs = append(txdetails.Txs,
+				&Transaction{
+					Execer:  common.ToHex(tx.GetExecer()),
+					Payload: common.ToHex(tx.GetPayload()),
+					Fee:     tx.Fee,
+					Expire:  tx.Expire,
+					Nonce:   tx.Nonce,
+					To:      tx.To,
+					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
+						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+
+		}
+
+		*result = &txdetails
+	}
+
 	return nil
 }
 
-func (req JRpcRequest) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interface{}) error {
+func (req chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 
@@ -214,14 +337,15 @@ type ReqWalletSendToAddress struct {
 	Note   string `protobuf:"bytes,4,opt,name=note" json:"note,omitempty"`
 }
 
-func (req JRpcRequest) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
+func (req chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.SendToAddress(&in)
 	if err != nil {
 		return err
 	}
-	*result = reply
+
+	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
 	return nil
 }
 
@@ -232,7 +356,7 @@ func (req JRpcRequest) SendToAddress(in types.ReqWalletSendToAddress, result *in
 	SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error)
 */
 
-func (req JRpcRequest) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
+func (req chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.SetTxFee(&in)
@@ -243,7 +367,7 @@ func (req JRpcRequest) SetTxFee(in types.ReqWalletSetFee, result *interface{}) e
 	return nil
 }
 
-func (req JRpcRequest) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error {
+func (req chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.SetLabl(&in)
@@ -254,18 +378,25 @@ func (req JRpcRequest) SetLabl(in types.ReqWalletSetLabel, result *interface{}) 
 	return nil
 }
 
-func (req JRpcRequest) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
+func (req chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.MergeBalance(&in)
 	if err != nil {
 		return err
 	}
-	*result = reply
+	{
+		var hashes ReplyHashes
+		for _, has := range reply.Hashes {
+			hashes.Hashes = append(hashes.Hashes, common.ToHex(has))
+		}
+		*result = &hashes
+	}
+
 	return nil
 }
 
-func (req JRpcRequest) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) error {
+func (req chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.SetPasswd(&in)
@@ -282,7 +413,7 @@ func (req JRpcRequest) SetPasswd(in types.ReqWalletSetPasswd, result *interface{
 	GetPeerInfo() (*types.PeerList, error)
 */
 
-func (req JRpcRequest) Lock(result *interface{}) error {
+func (req chain33) Lock(result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.Lock()
@@ -293,7 +424,7 @@ func (req JRpcRequest) Lock(result *interface{}) error {
 	return nil
 }
 
-func (req JRpcRequest) UnLock(in types.WalletUnLock, result *interface{}) error {
+func (req chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.UnLock(&in)
@@ -304,13 +435,34 @@ func (req JRpcRequest) UnLock(in types.WalletUnLock, result *interface{}) error 
 	return nil
 }
 
-func (req JRpcRequest) GetPeerInfo(result *interface{}) error {
+func (req chain33) GetPeerInfo(result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetPeerInfo()
 	if err != nil {
 		return err
 	}
-	*result = reply
+	{
+
+		var peerlist PeerList
+		for _, peer := range reply.Peers {
+			var pr Peer
+			pr.Addr = peer.GetAddr()
+			pr.MempoolSize = peer.GetMempoolSize()
+			pr.Name = peer.GetName()
+			pr.Port = peer.GetPort()
+			pr.Header = &Header{
+				BlockTime:  peer.Header.GetBlockTime(),
+				Height:     peer.Header.GetHeight(),
+				ParentHash: common.ToHex(peer.GetHeader().GetParentHash()),
+				StateHash:  common.ToHex(peer.GetHeader().GetStateHash()),
+				TxHash:     common.ToHex(peer.GetHeader().GetTxHash()),
+				Version:    peer.GetHeader().GetVersion(),
+			}
+			peerlist.Peers = append(peerlist.Peers, &pr)
+		}
+		*result = &peerlist
+	}
+
 	return nil
 }
