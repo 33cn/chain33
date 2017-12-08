@@ -123,6 +123,7 @@ func (m *msg) GetBlocks(msg *queue.Message) {
 			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
+
 		peer.mconn.sendMonitor.Update(true)
 		for _, item := range invdatas.Items {
 			blocks = append(blocks, item.GetBlock())
