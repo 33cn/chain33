@@ -1,18 +1,41 @@
 package mempool
 
 import (
-	"container/list"
+	"container/heap"
+	"runtime"
 	"sync"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
 
-const poolCacheSize = 300000 // mempool容量
+const (
+	poolCacheSize = 10240      // mempool容量
+	channelSize   = 1024       // channel缓存大小
+	minTxFee      = 10000000   // 最低交易费
+	maxMsgByte    = 100000     // 交易消息最大字节数
+	expireBound   = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
+)
 
-var mlog = log.New("module", "mempool")
+// error codes
+const (
+	e00 = "success"
+	e01 = "transaction exists"
+	e02 = "low transaction fee"
+	e03 = "you have too many transactions"
+	e04 = "wrong signature"
+	e05 = "low balance"
+	e06 = "message too big"
+	e07 = "message expired"
+)
+
+var (
+	mlog       = log.New("module", "mempool")
+	processNum = runtime.NumCPU()
+)
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -27,143 +50,11 @@ type MClient interface {
 	SendTx(tx *types.Transaction) queue.Message
 }
 
+//--------------------------------------------------------------------------------
+// Module channelClient
+
 type channelClient struct {
 	qclient queue.IClient
-}
-
-type Mempool struct {
-	proxyMtx sync.Mutex
-	cache    *txCache
-}
-
-type txCache struct {
-	// mtx  sync.Mutex
-	size   int
-	txMap  map[string]*list.Element
-	txList *list.List
-}
-
-// NewTxCache初始化txCache
-func newTxCache(cacheSize int) *txCache {
-	return &txCache{
-		size:   cacheSize,
-		txMap:  make(map[string]*list.Element, cacheSize),
-		txList: list.New(),
-	}
-}
-
-// txCache.Exists判断txCache中是否存在给定tx
-func (cache *txCache) Exists(tx *types.Transaction) bool {
-	_, exists := cache.txMap[string(tx.Hash())]
-	return exists
-}
-
-// txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
-func (cache *txCache) Push(tx *types.Transaction) bool {
-	if _, exists := cache.txMap[string(tx.Hash())]; exists {
-		return false
-	}
-
-	if cache.txList.Len() >= cache.size {
-		popped := cache.txList.Front()
-		poppedTx := popped.Value.(*types.Transaction)
-		delete(cache.txMap, string(poppedTx.Hash()))
-		cache.txList.Remove(popped)
-	}
-
-	txElement := cache.txList.PushBack(tx)
-	cache.txMap[string(tx.Hash())] = txElement
-
-	return true
-}
-
-// txCache.Remove移除txCache中给定tx
-func (cache *txCache) Remove(tx *types.Transaction) {
-	cache.txList.Remove(cache.txMap[string(tx.Hash())])
-	delete(cache.txMap, string(tx.Hash()))
-}
-
-// txCache.Size返回txCache中已存tx数目
-func (cache *txCache) Size() int {
-	return cache.txList.Len()
-}
-
-// txCache.SetMempoolSize用来设置Mempool容量
-func (cache *txCache) SetSize(newSize int) {
-	if cache.txList.Len() > 0 {
-		panic("only can set a empty size")
-	}
-	cache.size = newSize
-}
-
-func New() *Mempool {
-	pool := &Mempool{}
-	pool.cache = newTxCache(poolCacheSize)
-	return pool
-}
-
-func (mem *Mempool) Resize(size int) {
-	mem.cache.SetSize(size)
-}
-
-// Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
-func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-
-	txsSize := mem.cache.Size()
-	var result []*types.Transaction
-	var i int
-	var minSize int
-
-	if txsSize <= txListSize {
-		minSize = txsSize
-	} else {
-		minSize = txListSize
-	}
-
-	for i = 0; i < minSize; i++ {
-		popped := mem.cache.txList.Front()
-		poppedTx := popped.Value.(*types.Transaction)
-		result = append(result, poppedTx)
-		mem.cache.txList.Remove(popped)
-		delete(mem.cache.txMap, string(poppedTx.Hash()))
-	}
-
-	return result
-}
-
-// Mempool.Size返回Mempool中txCache大小
-func (mem *Mempool) Size() int {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	return mem.cache.Size()
-}
-
-// Mempool.CheckTx坚持tx有效性并加入Mempool中
-func (mem *Mempool) CheckTx(tx *types.Transaction) bool {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-
-	if mem.cache.Exists(tx) {
-		return false
-	}
-	mem.cache.Push(tx)
-
-	return true
-}
-
-//Mempool.RemoveTxsOfBlock移除Mempool中已被Blockchain打包的tx
-func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	for tx := range block.Txs {
-		exist := mem.cache.Exists(block.Txs[tx])
-		if exist {
-			mem.cache.Remove(block.Txs[tx])
-		}
-	}
-	return true
 }
 
 // channelClient.SendTx向"p2p"发送消息
@@ -183,28 +74,329 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 	return resp
 }
 
+// channelClient.GetLastHeader获取LastHeader的height和blockTime
+func (client *channelClient) GetLastHeader() (bool, interface{}) {
+	if client.qclient == nil {
+		panic("client not bind message queue.")
+	}
+
+	msg := client.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+
+	if err != nil {
+		return false, nil
+	}
+
+	return true, resp
+}
+
+//--------------------------------------------------------------------------------
+// Module Mempool
+
+type Mempool struct {
+	proxyMtx  sync.Mutex
+	cache     *txCache
+	txChan    chan queue.Message
+	signChan  chan queue.Message
+	badChan   chan queue.Message
+	balanChan chan queue.Message
+	goodChan  chan queue.Message
+	memQueue  *queue.Queue
+	height    int64
+	blockTime int64
+	minFee    int64
+}
+
+func New() *Mempool {
+	pool := &Mempool{}
+	pool.cache = newTxCache(poolCacheSize)
+	pool.txChan = make(chan queue.Message, channelSize)
+	pool.signChan = make(chan queue.Message, channelSize)
+	pool.badChan = make(chan queue.Message, channelSize)
+	pool.balanChan = make(chan queue.Message, channelSize)
+	pool.goodChan = make(chan queue.Message, channelSize)
+	pool.minFee = minTxFee
+	return pool
+}
+
+// Mempool.Resize设置Mempool容量
+func (mem *Mempool) Resize(size int) {
+	mem.proxyMtx.Lock()
+	mem.cache.SetSize(size)
+	mem.proxyMtx.Unlock()
+}
+
+// Mempool.SetMinFee设置最小交易费用
+func (mem *Mempool) SetMinFee(fee int64) {
+	mem.proxyMtx.Lock()
+	mem.minFee = fee
+	mem.proxyMtx.Unlock()
+}
+
+// Mempool.GetMinFee获取最小交易费用
+func (mem *Mempool) GetMinFee() int64 {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.minFee
+}
+
+// Mempool.Height获取区块高度
+func (mem *Mempool) Height() int64 {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.height
+}
+
+// Mempool.BlockTime获取区块时间
+func (mem *Mempool) BlockTime() int64 {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.blockTime
+}
+
+// Mempool.LowestFee获取当前Mempool中最低的交易Fee
+func (mem *Mempool) LowestFee() int64 {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.LowestFee()
+}
+
+// Mempool.Size返回Mempool中txCache大小
+func (mem *Mempool) Size() int {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.Size()
+}
+
+// Mempool.TxNumOfAccount返回账户在Mempool中交易数量
+func (mem *Mempool) TxNumOfAccount(addr *account.Address) int64 {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.TxNumOfAccount(addr)
+}
+
+// Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
+func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+
+	txsSize := mem.cache.Size()
+	var result []*types.Transaction
+	var i int
+	var minSize int
+
+	if txsSize <= txListSize {
+		minSize = txsSize
+	} else {
+		minSize = txListSize
+	}
+
+	for i = 0; i < minSize; i++ {
+		popped := heap.Pop(mem.cache.txHeap)
+		poppedTx := popped.(*Item).value
+		result = append(result, poppedTx)
+		delete(mem.cache.txMap, string(poppedTx.Hash()))
+	}
+
+	return result
+}
+
+// Mempool.DuplicateMempoolTxs复制并返回Mempool内交易
+func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+
+	var result []*types.Transaction
+	for _, v := range *mem.cache.txHeap {
+		result = append(result, v.value)
+	}
+
+	return result
+}
+
+// Mempool.RemoveTxsOfBlock移除Mempool中已被Blockchain打包的tx
+func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+
+	mem.height = block.GetHeight()
+	mem.blockTime = block.GetBlockTime()
+
+	for tx := range block.Txs {
+		exist := mem.cache.Exists(block.Txs[tx])
+		if exist {
+			mem.cache.Remove(block.Txs[tx])
+		}
+	}
+	return true
+}
+
+// Mempool.PushTx将交易推入Mempool，成功返回true，失败返回false和失败原因
+func (mem *Mempool) PushTx(tx *types.Transaction) (bool, string) {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	ok, err := mem.cache.Push(tx)
+	return ok, err
+}
+
+//--------------------------------------------------------------------------------
+// Module txCache
+
+type txCache struct {
+	size       int
+	txMap      map[string]*Item
+	txHeap     *PriorityQueue
+	accountMap map[*account.Address]int64
+}
+
+// NewTxCache初始化txCache
+func newTxCache(cacheSize int) *txCache {
+	return &txCache{
+		size:       cacheSize,
+		txMap:      make(map[string]*Item, cacheSize),
+		txHeap:     new(PriorityQueue),
+		accountMap: make(map[*account.Address]int64),
+	}
+}
+
+// txCache.LowestFee返回txHeap第一个元素的交易Fee
+func (cache *txCache) LowestFee() int64 {
+	return cache.txHeap.Top().(*Item).priority
+}
+
+// txCache.TxNumOfAccount返回账户在Mempool中交易数量
+func (cache *txCache) TxNumOfAccount(addr *account.Address) int64 {
+	return cache.accountMap[addr]
+}
+
+// txCache.Exists判断txCache中是否存在给定tx
+func (cache *txCache) Exists(tx *types.Transaction) bool {
+	_, exists := cache.txMap[string(tx.Hash())]
+	return exists
+}
+
+// txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
+func (cache *txCache) Push(tx *types.Transaction) (bool, string) {
+	if _, exists := cache.txMap[string(tx.Hash())]; exists {
+		return false, e01
+	}
+
+	if cache.txHeap.Len() >= cache.size {
+		if tx.Fee <= cache.LowestFee() {
+			return false, e02
+		}
+		popped := heap.Pop(cache.txHeap)
+		poppedTx := popped.(*Item).value
+		delete(cache.txMap, string(poppedTx.Hash()))
+	}
+
+	it := &Item{value: tx, priority: tx.Fee, index: cache.Size()}
+	cache.txHeap.Push(it)
+	cache.txMap[string(tx.Hash())] = it
+
+	// 账户交易数量
+	accountAddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey())
+	if _, ok := cache.accountMap[accountAddr]; ok {
+		cache.accountMap[accountAddr]++
+	} else {
+		cache.accountMap[accountAddr] = 1
+	}
+
+	return true, e00
+}
+
+// txCache.Remove移除txCache中给定tx
+func (cache *txCache) Remove(tx *types.Transaction) {
+	removed := cache.txMap[string(tx.Hash())].index
+	cache.txHeap.Remove(removed)
+	delete(cache.txMap, string(tx.Hash()))
+}
+
+// txCache.Size返回txCache中已存tx数目
+func (cache *txCache) Size() int {
+	return cache.txHeap.Len()
+}
+
+// txCache.SetSize用来设置Mempool容量
+func (cache *txCache) SetSize(newSize int) {
+	if cache.txHeap.Len() > 0 {
+		panic("only can set a empty size")
+	}
+	cache.size = newSize
+}
+
+//--------------------------------------------------------------------------------
+
 func (mem *Mempool) SetQueue(q *queue.Queue) {
+	mem.memQueue = q
+	var chanClient *channelClient = new(channelClient)
+	chanClient.qclient = q.GetClient()
 	client := q.GetClient()
 	client.Sub("mempool")
+
+	go func() {
+		for {
+			flag, lastHeader := chanClient.GetLastHeader()
+			if flag {
+				mem.proxyMtx.Lock()
+				mem.height = lastHeader.(queue.Message).Data.(*types.Header).GetHeight()
+				mem.blockTime = lastHeader.(queue.Message).Data.(*types.Header).GetBlockTime()
+				mem.proxyMtx.Unlock()
+				return
+			}
+		}
+	}()
+
+	go mem.CheckTxList()
+	go mem.CheckSignList()
+	go mem.CheckBalanList()
+
+	// 从badChan读取坏消息，并回复错误信息
+	go func() {
+		for m := range mem.badChan {
+			m.Reply(client.NewMessage("rpc", types.EventReply,
+				&types.Reply{false, []byte(m.Err().Error())}))
+		}
+	}()
+
+	// 从goodChan读取好消息，并回复正确信息
+	go func() {
+		for m := range mem.goodChan {
+			chanClient.SendTx(m.GetData().(*types.Transaction))
+			m.Reply(client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
+		}
+	}()
+
 	go func() {
 		for msg := range client.Recv() {
 			mlog.Info("mempool recv", "msg", msg)
 			if msg.Ty == types.EventTx {
-				if mem.CheckTx(msg.GetData().(*types.Transaction)) {
-					msg.Reply(client.NewMessage("rpc", types.EventReply,
-						&types.Reply{true, nil}))
+				// 消息类型EventTx：申请添加交易到Mempool
+				valid := mem.CheckExpire(msg) // 检查交易是否过期
+				if valid {
+					// 未过期，交易消息传入txChan，待检查
+					mem.txChan <- msg
 				} else {
-					msg.Reply(client.NewMessage("rpc", types.EventReply,
-						&types.Reply{false, []byte("transaction exists")}))
+					mem.badChan <- msg
 				}
+			} else if msg.Ty == types.EventGetMempool {
+				// 消息类型EventGetMempool：获取Mempool内所有交易
+				msg.Reply(client.NewMessage("rpc", types.EventReplyTxList,
+					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
 			} else if msg.Ty == types.EventTxList {
+				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
 					&types.ReplyTxList{mem.GetTxList(10000)}))
 			} else if msg.Ty == types.EventAddBlock {
+				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
 			} else if msg.Ty == types.EventGetMempoolSize {
+				// 消息类型EventGetMempoolSize：获取Mempool大小
 				msg.Reply(client.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{int64(mem.Size())}))
+			} else {
+				continue
 			}
 		}
 	}()

@@ -8,9 +8,10 @@ import (
 	"testing"
 )
 
+//{"jsonrpc":"2.0","id":2,"execer":"xxx","palyload":"xx","signature":{"ty":1,"pubkey":"xx","signature":"xxx"},"Fee":12}
 func Test_SendTransaction(t *testing.T) {
 	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(
-		`{"jsonrpc":"2.0","id":2,"method":"JRpcRequest.SendTransaction","params":[{"account":"bangzhu","payload":"tongtong","signature":"9999"}]}`,
+		`{"jsonrpc":"2.0","id":2,"method":"JRpcRequest.SendTransaction","params":[{"execer":"xxx","palyload":"xx","signature":{"ty":1,"pubkey":"xx","signature":"xxx"},"Fee":12}]}`,
 	))
 	if err != nil {
 		panic(err)

@@ -34,6 +34,7 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 	go http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		if r.URL.Path == "/" {
+
 			serverCodec := jsonrpc.NewServerCodec(&HttpConn{in: r.Body, out: w})
 			w.Header().Set("Content-type", "application/json")
 			w.WriteHeader(200)
