@@ -3,9 +3,165 @@ package types;
 
 //add by bangzhu.li
 service grpcservice{
-	rpc SendTransaction(Transaction) returns (Reply){}
-	rpc QueryTransaction(ReqHash) returns (Reply){}
+	//chain33 对外提供服务的接口
+	//区块链接口
 	rpc GetBlocks(ReqBlocks) returns (Reply){}
+	rpc GetLastHeader(ReqNil)returns(Header){}
+	//交易接口
+	rpc QueryTransaction(ReqHash) returns (TransactionDetail){}
+	rpc SendTransaction(Transaction) returns (Reply){}
+	rpc GetTransactionByAddr(ReqAddr)returns(ReplyTxInfo){}
+	rpc GetTransactionByHashes(ReqHashes)returns(TransactionDetails){}
+	//缓存接口
+	rpc GetMemPool(ReqNil)returns(ReplyTxList){}
+	//钱包接口
+	rpc GetAccounts(ReqNil)returns(WalletAccounts){}
+	rpc NewAccount(ReqNewAccount)returns(WalletAccount){}
+	rpc WalletTransactionList(ReqWalletTransactionList)returns(TransactionDetails){}
+	rpc ImportPrivKey(ReqWalletImportPrivKey)returns(WalletAccount){}
+	rpc SendToAddress(ReqWalletSendToAddress)returns(ReplyHash){}
+	rpc SetTxFee(ReqWalletSetFee)returns(Reply){}
+	rpc SetLabl(ReqWalletSetLabel)returns(WalletAccount){}
+	rpc MergeBalance(ReqWalletMergeBalance)returns(ReplyHashes){}
+	rpc SetPasswd(ReqWalletSetPasswd)returns(Reply){}
+	rpc Lock(ReqNil)returns(Reply){}
+	rpc UnLock(WalletUnLock)returns(Reply){}
+	rpc GetPeerInfo(ReqNil)returns(PeerList){}
+	
+}
+
+
+service p2premoteaddr{
+	//获取远程地址
+	rpc RemotePeerAddr(P2PGetAddr)returns(P2PAddr){}
+}
+service p2pgservice{
+	
+	//广播交易
+	rpc BroadCastTx(P2PTx)returns(Reply){}
+	rpc BroadCastBlock(P2PBlock)returns(Reply){}
+	//PING 
+	rpc Ping(P2PPing)returns(P2PPong){}
+	//获取地址
+	rpc GetAddr(P2PGetAddr)returns(P2PAddr){}
+	//版本
+	rpc Version(P2PVersion)returns(P2PVerAck){}
+	rpc Version2(P2PVersion)returns(P2PVersion){}
+	//获取区块，最高200
+	rpc GetBlocks(P2PGetBlocks)returns(P2PInv){}
+	
+	//
+	rpc GetMemPool(P2PGetMempool)returns(P2PInv){}
+	
+	//获取数据
+	rpc GetData(P2PGetData)returns(InvDatas){}
+	
+	
+	//获取头部
+	rpc GetHeaders(P2PGetHeaders)returns(P2PHeaders){}
+	//获取 peerinfo
+	rpc GetPeerInfo(P2PGetPeerInfo)returns(P2PPeerInfo){}
+	
+	
+	
+	
+}
+
+message ReqNil{
+	
+}
+message P2PGetPeerInfo{
+	int32 version=1;
+}
+
+message P2PPeerInfo{
+	string addr=1;
+	int32 port=2;
+	string name=3;
+	int32 mempoolSize=4;
+	Header header=5;
+}
+message P2PVersion{
+	int32 version=1;
+	int64 service=2;
+	int64 timestamp=3;
+	string addrRecv=4;
+	string addrFrom=5;
+	int64 nonce=6;
+	string userAgent =7;
+	int64 startHeight=8;
+}
+
+message P2PVerAck {
+	int32 version=1;
+	int64 service=2;
+	int64 nonce=3;
+}
+
+message P2PPing {
+	int64  nonce  =1;
+	string addr=2;
+	int32  port=3;
+	Signature sign=4;
+
+}
+
+message P2PPong{
+	int64 nonce=1;
+}
+
+message P2PGetAddr{
+	int64 nonce=1;
+}
+
+message P2PAddr{
+	int64 nonce=1;
+	repeated string addrlist=2;
+	
+}
+
+message P2PGetBlocks {
+	int32 version=1;
+	int64 startHeight=2;
+	int64 endHeight=3;
+}
+
+message P2PGetMempool{
+	int32 version=1;
+}
+
+message P2PInv{
+	repeated Inventory invs=1;
+	
+}
+//ty=MSG_TX MSG_BLOCK
+message Inventory{
+	int32 ty=1; 
+	bytes hash=2;
+	int64 height=3;
+}
+
+message P2PGetData{
+	int32 version=1;
+	repeated Inventory invs=2;
+}
+
+message P2PTx {
+	 Transaction tx=1;
+}
+
+message P2PBlock {
+	 Block block=1;
+}
+
+message P2PGetHeaders{
+	int32 version=1;
+	int64 startHeight=2;
+	int64 endHeigh=3;
+}
+
+message P2PHeaders {
+	repeated Header headers=1;
 }
 //end
 
@@ -62,41 +218,8 @@ message ReqAddr {
 	string addr = 1;
 }
 
-message ReqNil {
-	
-}
-
 message ReqHashes {
 	repeated bytes hashes = 1;
-}
-
-//req
-message ReqBlocks {
-	int64 start = 1;
-	int64 end = 2;
-	bool  Isdetail =3;
-}
-
-message ReqTxList {
-	int64 count = 1;
-}
-
-message ReqWalletSetFee {
-	int64 amount = 1;
-}
-
-message ReqWalletSetLabel {
-	string addr = 1;
-	string label = 2;
-}
-
-message ReqWalletMergeBalance {
-	string to = 1;
-}
-
-message ReqWalletSetPasswd {
-	string oldpass = 1;
-	string newpass = 2;
 }
 
 message ReplyHash {
@@ -119,6 +242,14 @@ message TransactionDetails {
 	repeated Transaction txs = 1;
 }
 
+//req
+message ReqBlocks {
+	int64 start = 1;
+	int64 end = 2;
+	bool  Isdetail =3;
+}
+
+//resp
 message BlockDetails {
 	repeated BlockDetail items = 1;
 }
@@ -130,6 +261,10 @@ message Reply {
 
 message ReplyBlockHeight {
 	int64 height =1;
+}
+
+message ReqTxList {
+	int64 count = 1;
 }
 
 message ReplyTxList {
@@ -147,6 +282,7 @@ message TxResult {
 	ReceiptData receiptdate =4;
 }
 
+//resp
 message Headers {
     repeated Header items = 1;
 }
@@ -332,11 +468,72 @@ message ReqWalletSendToAddress {
 	string note = 4;
 }
 
+message ReqWalletSetFee {
+	int64 amount = 1;
+}
+
+message ReqWalletSetLabel {
+	string addr = 1;
+	string label = 2;
+}
+
+message ReqWalletMergeBalance {
+	string to = 1;
+}
+
 message ReplyHashes {
 	repeated bytes hashes = 1;
+}
+
+
+message ReqWalletSetPasswd {
+	string oldpass = 1;
+	string newpass = 2;
 }
 
 message WalletUnLock {
 	string passwd = 1;
 	int64 timeout = 2;
+}
+
+message Config {
+	string title=1;
+	Store  store=2;
+	Consensus consensus=3;
+	MemPool memPool=4;
+	BlockChain blockChain=5;
+	Wallet wallet=6;
+	P2P p2p=7;
+}
+message P2P {	
+	int32  seedPort=1;
+	string dbPath=2;
+	bool isSeed=3;
+	repeated string seeds=4;
+}
+
+message Wallet{
+	int64 minFee=1;
+	string dbPath=2;
+}
+message Store {
+	string diver=1;
+	string dbPath=2;
+}
+
+message Consensus {
+	string name=1;
+	string genesis=2;
+}
+
+message MemPool {
+	int32 poolSize=1;
+	int32 Minfee=2;
+}
+
+message BlockChain {
+	int32 defCacheSize=1;
+	int32 maxFetchBlockNum=2;
+	int32 timeoutSseconds=3;
+	int32 batchbloBlockNum=4;
 }
