@@ -205,21 +205,27 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 		return nil, errors.New("out of range")
 	}
 
-	cli := rpc.NewClient("channel", "")
-	cli.SetQueue(s.q)
-	//TODO
-	blocks, err := cli.GetBlocks(in.GetStartHeight(), in.GetEndHeight(), false)
+	//TODO GetHeaders
+	client := s.q.GetClient()
+	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
+		Isdetail: false})
+	client.Send(msg, true)
+	resp, err := client.Wait(msg)
 	if err != nil {
-		log.Error("GetBlocks Err", "Err", err.Error())
 		return nil, err
 	}
 
+	if resp.Err() != nil {
+		return nil, resp.Err()
+	}
+
+	headers := resp.Data.(*pb.Headers)
 	var invs = make([]*pb.Inventory, 0)
-	for _, item := range blocks.Items {
+	for _, item := range headers.Items {
 		var inv pb.Inventory
 		inv.Ty = MSG_BLOCK
-		inv.Hash = item.Block.Hash()
-		inv.Height = item.Block.GetHeight()
+		//inv.Hash = item.Block.Hash()
+		inv.Height = item.GetHeight()
 		invs = append(invs, &inv)
 	}
 	return &pb.P2PInv{Invs: invs}, nil
@@ -252,11 +258,14 @@ func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvData
 	client := s.q.GetClient()
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
 	client.Send(msg, true)
-	txresp, err := client.Wait(msg)
+	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	txlist := txresp.GetData().(*pb.ReplyTxList)
+	if resp.Err() != nil {
+		return nil, resp.Err()
+	}
+	txlist := resp.GetData().(*pb.ReplyTxList)
 	txs := txlist.GetTxs()
 	var txmap = make(map[string]*pb.Transaction)
 	for _, tx := range txs {
@@ -310,7 +319,9 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 	if err != nil {
 		return nil, err
 	}
-
+	if resp.Err() != nil {
+		return nil, resp.Err()
+	}
 	headers := resp.GetData().(*pb.Headers)
 
 	return &pb.P2PHeaders{Headers: headers.GetItems()}, nil
@@ -326,7 +337,9 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	if err != nil {
 		return nil, err
 	}
-
+	if resp.Err() != nil {
+		return nil, resp.Err()
+	}
 	meminfo := resp.GetData().(*pb.MempoolSize)
 	var peerinfo pb.P2PPeerInfo
 
@@ -341,6 +354,9 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	resp, err = client.Wait(msg)
 	if err != nil {
 		return nil, err
+	}
+	if resp.Err() != nil {
+		return nil, resp.Err()
 	}
 	header := resp.GetData().(*pb.Header)
 
@@ -360,6 +376,8 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 	if err != nil {
 		return nil, err
 	}
-
+	if resp.Err() != nil {
+		return nil, resp.Err()
+	}
 	return resp.GetData().(*pb.Reply), nil
 }
