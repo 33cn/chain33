@@ -363,7 +363,6 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {
-			mlog.Warn("bad chan reply", "err", m.Err())
 			m.Reply(client.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
 		}
@@ -372,8 +371,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	// 从goodChan读取好消息，并回复正确信息
 	go func() {
 		for m := range mem.goodChan {
-			mlog.Warn("good chan reply")
-			chanClient.SendTx(m.GetData().(*types.Transaction))
+			// chanClient.SendTx(m.GetData().(*types.Transaction))
 			m.Reply(client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
 		}
 	}()
