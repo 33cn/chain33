@@ -7,14 +7,14 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-type chain33 struct {
+type Chain33 struct {
 	jserver *jsonrpcServer
 }
 
-func (req chain33) SendTransaction(in RawParm, result *interface{}) error {
+func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	fmt.Println("jrpc transaction:", in)
 	var parm types.Transaction
-	types.Decode([]byte(in.Data), &parm)
+	types.Decode(common.FromHex(in.Data), &parm)
 	fmt.Println("parm", parm)
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
@@ -28,7 +28,7 @@ type QueryParm struct {
 	hash string
 }
 
-func (req chain33) QueryTransaction(in QueryParm, result *interface{}) error {
+func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 
 	data.Hash = common.FromHex(in.hash)
@@ -75,7 +75,7 @@ type BlockParam struct {
 	Isdetail bool
 }
 
-func (req chain33) GetBlocks(in BlockParam, result *interface{}) error {
+func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 	var data types.ReqBlocks
 	data.End = in.End
 	data.Start = in.Start
@@ -133,7 +133,7 @@ func (req chain33) GetBlocks(in BlockParam, result *interface{}) error {
 
 }
 
-func (req chain33) GetLastHeader(result *interface{}) error {
+func (req Chain33) GetLastHeader(result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetLastHeader()
@@ -160,7 +160,7 @@ type ReqAddr struct {
 }
 
 //GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
-func (req chain33) GetTxByAddr(in ReqAddr, result *interface{}) error {
+func (req Chain33) GetTxByAddr(in ReqAddr, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	var parm types.ReqAddr
@@ -190,7 +190,7 @@ type ReqHashes struct {
 	Hashes []string
 }
 
-func (req chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
+func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	var parm types.ReqHashes
@@ -228,7 +228,7 @@ func (req chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	return nil
 }
 
-func (req chain33) GetMempool(result *interface{}) error {
+func (req Chain33) GetMempool(result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetMempool()
@@ -256,7 +256,7 @@ func (req chain33) GetMempool(result *interface{}) error {
 	return nil
 }
 
-func (req chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
+func (req Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetAccounts()
@@ -275,7 +275,7 @@ func (req chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
 
 */
 
-func (req chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error {
+func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 
@@ -287,7 +287,7 @@ func (req chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error
 	return nil
 }
 
-func (req chain33) WalletTxList(in types.ReqWalletTransactionList, result *interface{}) error {
+func (req Chain33) WalletTxList(in types.ReqWalletTransactionList, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 
@@ -318,7 +318,7 @@ func (req chain33) WalletTxList(in types.ReqWalletTransactionList, result *inter
 	return nil
 }
 
-func (req chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interface{}) error {
+func (req Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 
@@ -337,7 +337,8 @@ type ReqWalletSendToAddress struct {
 	Note   string `protobuf:"bytes,4,opt,name=note" json:"note,omitempty"`
 }
 
-func (req chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
+func (req Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
+	log.Debug("Rpc SendToAddress", "Tx", in)
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.SendToAddress(&in)
@@ -356,7 +357,7 @@ func (req chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interf
 	SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error)
 */
 
-func (req chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
+func (req Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.SetTxFee(&in)
@@ -367,7 +368,7 @@ func (req chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error
 	return nil
 }
 
-func (req chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error {
+func (req Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.SetLabl(&in)
@@ -378,7 +379,7 @@ func (req chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) erro
 	return nil
 }
 
-func (req chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
+func (req Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.MergeBalance(&in)
@@ -396,7 +397,7 @@ func (req chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interfac
 	return nil
 }
 
-func (req chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) error {
+func (req Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.SetPasswd(&in)
@@ -413,7 +414,7 @@ func (req chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) e
 	GetPeerInfo() (*types.PeerList, error)
 */
 
-func (req chain33) Lock(result *interface{}) error {
+func (req Chain33) Lock(result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.Lock()
@@ -424,7 +425,7 @@ func (req chain33) Lock(result *interface{}) error {
 	return nil
 }
 
-func (req chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
+func (req Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.UnLock(&in)
@@ -435,7 +436,7 @@ func (req chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 	return nil
 }
 
-func (req chain33) GetPeerInfo(result *interface{}) error {
+func (req Chain33) GetPeerInfo(result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetPeerInfo()

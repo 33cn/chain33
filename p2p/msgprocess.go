@@ -26,6 +26,7 @@ func (m *msg) TransToBroadCast(msg *queue.Message) {
 		_, err := peer.mconn.conn.BroadCastTx(context.Background(), msg.GetData().(*pb.P2PTx))
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
+			msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte(err.Error())}))
 			continue
 		}
 		peer.mconn.sendMonitor.Update(true)
@@ -109,6 +110,8 @@ func (m *msg) GetPeerInfo(msg *queue.Message) {
 }
 
 func (m *msg) GetBlocks(msg *queue.Message) {
+
+	//TODO 第一步获取下载列表，第二步分配不同的节点分段下载需要的数据
 	var blocks = make([]*pb.Block, 0)
 	requst := msg.GetData().(*pb.ReqBlocks)
 	for _, peer := range m.network.node.outBound {
@@ -129,7 +132,7 @@ func (m *msg) GetBlocks(msg *queue.Message) {
 			blocks = append(blocks, item.GetBlock())
 		}
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventBlocks, blocks))
-
+		break
 	}
 
 }
@@ -140,9 +143,11 @@ func (m *msg) BlockBroadcast(msg *queue.Message) {
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
 		if err != nil {
 			log.Error("SendBlock", "Error", err.Error())
+			msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte(err.Error())}))
 			continue
 		}
 
 		log.Debug("SendBlock", "Resp", resp)
+		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 	}
 }
