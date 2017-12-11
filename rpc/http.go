@@ -2,7 +2,7 @@ package rpc
 
 import (
 	"io"
-	"log"
+
 	"net"
 	"net/http"
 	"net/rpc"
@@ -25,10 +25,10 @@ func (c *HttpConn) Close() error                      { return nil }
 
 func (jrpc *jsonrpcServer) CreateServer(addr string) {
 	server := rpc.NewServer()
-	server.Register(&chain33{jserver: jrpc})
+	server.Register(&Chain33{jserver: jrpc})
 	listener, e := net.Listen("tcp", addr)
 	if e != nil {
-		log.Fatal("listen error:", e)
+		log.Crit("listen error:", e)
 	}
 
 	go http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +40,7 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 			w.WriteHeader(200)
 			err := server.ServeRequest(serverCodec)
 			if err != nil {
-				log.Printf("Error while serving JSON request: %v", err)
+				log.Debug("Error while serving JSON request: %v", err)
 				return
 			}
 		}
@@ -53,7 +53,7 @@ func (grpcx *grpcServer) CreateServer(addr string) {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatal("failed to listen: %v", err)
+		log.Crit("failed to listen: %v", err)
 	}
 
 	s := grpc.NewServer()
