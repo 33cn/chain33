@@ -1,11 +1,12 @@
 package mempool
 
 import (
+	"flag"
 	"testing"
-
 	//	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
+	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/execs"
@@ -58,20 +59,26 @@ func init() {
 	//	SetLogLevel("warn") // 输出WARN(含)以下log
 	//	SetLogLevel("eror") // 输出EROR(含)以下log
 	//	SetLogLevel("crit") // 输出CRIT(含)以下log
-	SetLogLevel("") // 输出所有log
+	SetLogLevel("warn") // 输出所有log
 }
 
 func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain) {
 	var q = queue.New("channel")
-	chain := blockchain.New()
+	flag.Parse()
+	cfg := config.InitCfg("chain33.toml")
+	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueue(q)
+
 	exec := execs.New()
 	exec.SetQueue(q)
-	s := store.New()
+
+	s := store.New(cfg.Store)
 	s.SetQueue(q)
-	cs := consensus.New()
+
+	cs := consensus.New(cfg.Consensus)
 	cs.SetQueue(q)
-	mem := New()
+
+	mem := New(cfg.MemPool)
 	mem.SetQueue(q)
 
 	if size > 0 {
