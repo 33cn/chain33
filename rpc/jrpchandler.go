@@ -19,8 +19,12 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply := cli.SendTx(&parm)
-	*result = string(reply.GetData().(*types.Reply).Msg)
-	return reply.Err()
+	if reply.GetData().(*types.Reply).IsOk {
+		*result = string(reply.GetData().(*types.Reply).Msg)
+		return nil
+	} else {
+		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
+	}
 
 }
 
@@ -38,6 +42,7 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	{ //重新格式化数据
 
 		var transDetail TransactionDetail
