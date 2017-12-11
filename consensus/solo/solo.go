@@ -11,7 +11,7 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-const genesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+var genesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 var slog = log.New("module", "solo")
 
@@ -27,7 +27,10 @@ type SoloClient struct {
 	q       *queue.Queue
 }
 
-func NewSolo() *SoloClient {
+func NewSolo(cfg *types.Consensus) *SoloClient {
+	if cfg.Genesis != "" {
+		genesisAddr = cfg.Genesis
+	}
 	log.Info("Enter consensus solo")
 	return &SoloClient{}
 }
