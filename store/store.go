@@ -39,8 +39,8 @@ type Store struct {
 
 //driver
 //dbpath
-func New() *Store {
-	db := dbm.NewDB("store", "leveldb", "mavltree")
+func New(cfg *types.Store) *Store {
+	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath)
 	store := &Store{db: db}
 	return store
 }

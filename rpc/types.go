@@ -30,8 +30,8 @@ type Transaction struct {
 	Payload   string
 	Signature *Signature
 	Fee       int64
-	Expire    int32
-	Nonce     int32
+	Expire    int64
+	Nonce     int64
 	To        string
 }
 type ReceiptLog struct {

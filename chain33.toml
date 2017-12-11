@@ -6,8 +6,8 @@ defCacheSize=500
 maxFetchBlockNum=100
 timeoutSeconds=5
 batchBlockNum=100
+driver="leveldb"
 dbPath="datadir"
-
 
 [p2p]
 seeds=["114.55.101.159:13802"]
@@ -16,13 +16,13 @@ seedPort=13802
 dbPath="datadir/addrbook"
 
 [mempool]
-poolSize=1024
-minFee=1000000
+poolCacheSize=1024
+minTxFee=1000000
 
 
 [consensus]
 name="solo"
-genesis="14sdfswersdfsfwefwjkpojo"
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [store]
 driver="leveldb"

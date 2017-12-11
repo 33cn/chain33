@@ -28,7 +28,7 @@ var (
 	configpath = flag.String("f", "chain33.toml", "configfile")
 )
 
-const Version = "v0.0.2"
+const Version = "v0.1.0"
 
 func main() {
 
@@ -42,14 +42,14 @@ func main() {
 	q := queue.New("channel")
 
 	log.Info("loading blockchain module")
-	chain := blockchain.New()
+	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueue(q)
 	log.Info("loading mempool module")
-	mem := mempool.New()
+	mem := mempool.New(cfg.MemPool)
 	mem.SetQueue(q)
 
 	log.Info("loading p2p module")
-	network := p2p.New(cfg.GetP2P())
+	network := p2p.New(cfg.P2P)
 	network.SetQueue(q)
 
 	log.Info("loading execs module")
@@ -57,11 +57,11 @@ func main() {
 	exec.SetQueue(q)
 
 	log.Info("loading store module")
-	s := store.New()
+	s := store.New(cfg.Store)
 	s.SetQueue(q)
 
 	log.Info("loading consensus module")
-	cs := consensus.New()
+	cs := consensus.New(cfg.Consensus)
 	cs.SetQueue(q)
 	//jsonrpc, grpc, channel 三种模式
 	api := rpc.NewServer("jsonrpc", ":8801")
