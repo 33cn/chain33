@@ -17,18 +17,22 @@ func (mem *Mempool) CheckTxList() {
 		if len(types.Encode(tx)) > int(maxMsgByte) {
 			data.Data = errors.New(e06)
 			mem.badChan <- data
+			break
 		}
 
 		// 检查交易费是否小于最低值
 		if tx.Fee < mem.GetMinFee() {
 			data.Data = errors.New(e02)
+			mlog.Error("jinru")
 			mem.badChan <- data
+			break
 		}
 
 		// 检查交易账户在Mempool中是否存在过多交易
 		if mem.TxNumOfAccount(account.PubKeyToAddress(tx.GetSignature().GetPubkey())) >= 10 {
 			data.Data = errors.New(e03)
 			mem.badChan <- data
+			break
 		}
 
 		// 传入signChan，待检查签名
