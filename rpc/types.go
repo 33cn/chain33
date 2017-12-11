@@ -1,5 +1,11 @@
 package rpc
 
+import (
+	l "github.com/inconshreveable/log15"
+)
+
+var log = l.New("module", "rpc")
+
 type JTransparm struct {
 	Execer    string
 	Payload   string
