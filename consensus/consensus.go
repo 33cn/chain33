@@ -6,10 +6,10 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-func New() Consumer {
-	consensusType := "solo"
+func New(cfg *types.Consensus) Consumer {
+	consensusType := cfg.Name
 	if consensusType == "solo" {
-		con := solo.NewSolo()
+		con := solo.NewSolo(cfg)
 		return con
 	} else if consensusType == "raft" {
 		// TODO:

@@ -12,13 +12,11 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-const (
-	poolCacheSize = 10240      // mempool容量
-	channelSize   = 1024       // channel缓存大小
-	minTxFee      = 10000000   // 最低交易费
-	maxMsgByte    = 100000     // 交易消息最大字节数
-	expireBound   = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
-)
+var poolCacheSize int64 = 10240    // mempool容量
+var channelSize int64 = 1024       // channel缓存大小
+var minTxFee int64 = 10000000      // 最低交易费
+var maxMsgByte int64 = 100000      // 交易消息最大字节数
+var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 // error codes
 const (
@@ -108,8 +106,9 @@ type Mempool struct {
 	minFee    int64
 }
 
-func New() *Mempool {
+func New(cfg *types.MemPool) *Mempool {
 	pool := &Mempool{}
+	initConfig(cfg)
 	pool.cache = newTxCache(poolCacheSize)
 	pool.txChan = make(chan queue.Message, channelSize)
 	pool.signChan = make(chan queue.Message, channelSize)
@@ -118,6 +117,15 @@ func New() *Mempool {
 	pool.goodChan = make(chan queue.Message, channelSize)
 	pool.minFee = minTxFee
 	return pool
+}
+
+func initConfig(cfg *types.MemPool) {
+	if cfg.PoolCacheSize > 0 {
+		poolCacheSize = cfg.PoolCacheSize
+	}
+	if cfg.MinTxFee > 0 {
+		minTxFee = cfg.MinTxFee
+	}
 }
 
 // Mempool.Resize设置Mempool容量
@@ -251,9 +259,9 @@ type txCache struct {
 }
 
 // NewTxCache初始化txCache
-func newTxCache(cacheSize int) *txCache {
+func newTxCache(cacheSize int64) *txCache {
 	return &txCache{
-		size:       cacheSize,
+		size:       int(cacheSize),
 		txMap:      make(map[string]*Item, cacheSize),
 		txHeap:     new(PriorityQueue),
 		accountMap: make(map[*account.Address]int64),

@@ -14,7 +14,7 @@ func (mem *Mempool) CheckTxList() {
 		tx := data.GetData().(*types.Transaction)
 
 		// 检查交易消息是否过大
-		if len(types.Encode(tx)) > maxMsgByte {
+		if len(types.Encode(tx)) > int(maxMsgByte) {
 			data.Data = errors.New(e06)
 			mem.badChan <- data
 		}
@@ -125,7 +125,7 @@ func (mem *Mempool) CheckExpire(msg queue.Message) bool {
 
 	if valid <= expireBound {
 		// Expire小于1e9，为height
-		if valid > int32(mem.Height()) { // 未过期
+		if valid > (mem.Height()) { // 未过期
 			return true
 		} else { // 过期
 			msg.Data = errors.New(e07)
@@ -133,7 +133,7 @@ func (mem *Mempool) CheckExpire(msg queue.Message) bool {
 		}
 	} else {
 		// Expire大于1e9，为blockTime
-		if valid > int32(mem.BlockTime()) { // 未过期
+		if valid > (mem.BlockTime()) { // 未过期
 			return true
 		} else { // 过期
 			msg.Data = errors.New(e07)

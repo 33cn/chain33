@@ -189,8 +189,8 @@ message Transaction {
 	bytes      payload =2;
 	Signature  signature = 3;
 	int64      fee = 4;
-	int32      expire  = 5;
-	int32      nonce = 6; //随机ID，可以防止payload 相同的时候，交易重复
+	int64      expire  = 5;
+	int64      nonce = 6; //随机ID，可以防止payload 相同的时候，交易重复
 	string 	   to = 7; //对方地址，如果没有对方地址，可以为空
 }
 
@@ -505,19 +505,21 @@ message Config {
 	Wallet wallet=6;
 	P2P p2p=7;
 }
+
 message P2P {	
-	int32  seedPort=1;
-	string dbPath=2;
-	bool isSeed=3;
+	int32           seedPort=1;
+	string          dbPath=2;
+	bool            isSeed=3;
 	repeated string seeds=4;
 }
 
 message Wallet{
-	int64 minFee=1;
+	int64  minFee=1;
 	string dbPath=2;
 }
+
 message Store {
-	string diver=1;
+	string driver=1;
 	string dbPath=2;
 }
 
@@ -527,13 +529,15 @@ message Consensus {
 }
 
 message MemPool {
-	int32 poolSize=1;
-	int32 Minfee=2;
+	int64 poolCacheSize=1;
+	int64 minTxFee=2;
 }
 
 message BlockChain {
-	int32 defCacheSize=1;
-	int32 maxFetchBlockNum=2;
-	int32 timeoutSseconds=3;
-	int32 batchbloBlockNum=4;
+	int64 defCacheSize=1;
+	int64 maxFetchBlockNum=2;
+	int64 timeoutSeconds=3;
+	int64 batchBlockNum=4;
+	string driver = 5;
+	string dbPath = 6;
 }

@@ -17,14 +17,13 @@ import (
 
 var (
 	//cache 存贮的block个数
-	DefCacheSize int = 500
+	DefCacheSize int64 = 500
 
 	//一次最多申请获取block个数
-	MaxFetchBlockNum  int64  = 100
-	TimeoutSeconds    int64  = 5
-	BatchBlockNum     int64  = 100
-	reqTimeoutSeconds        = time.Duration(TimeoutSeconds)
-	Datadir           string = "datadir"
+	MaxFetchBlockNum  int64 = 100
+	TimeoutSeconds    int64 = 5
+	BatchBlockNum     int64 = 100
+	reqTimeoutSeconds       = time.Duration(TimeoutSeconds)
 )
 
 var chainlog = log.New("module", "blockchain")
@@ -40,7 +39,7 @@ type BlockChain struct {
 
 	//cache  缓存block方便快速查询
 	cache      map[string]*list.Element
-	cacheSize  int
+	cacheSize  int64
 	cacheQueue *list.List
 
 	//Block 同步阶段用于缓存block信息，
@@ -53,12 +52,12 @@ type BlockChain struct {
 	recvLastBlockHeight int64
 }
 
-func New() *BlockChain {
+func New(cfg *types.BlockChain) *BlockChain {
 
 	//初始化blockstore 和txindex  db
-	blockStoreDB := dbm.NewDB("blockchain", "leveldb", Datadir)
+	blockStoreDB := dbm.NewDB("blockchain", cfg.Driver, cfg.DbPath)
 	blockStore := NewBlockStore(blockStoreDB)
-
+	initConfig(cfg)
 	pool := NewBlockPool()
 	reqblk := make(map[int64]*bpRequestBlk)
 
@@ -72,6 +71,25 @@ func New() *BlockChain {
 		recvLastBlockHeight: 0,
 	}
 }
+
+func initConfig(cfg *types.BlockChain) {
+	if cfg.DefCacheSize > 0 {
+		DefCacheSize = cfg.DefCacheSize
+	}
+
+	if cfg.MaxFetchBlockNum > 0 {
+		MaxFetchBlockNum = cfg.MaxFetchBlockNum
+	}
+
+	if cfg.TimeoutSeconds > 0 {
+		TimeoutSeconds = cfg.TimeoutSeconds
+	}
+
+	if cfg.BatchBlockNum > 0 {
+		BatchBlockNum = cfg.BatchBlockNum
+	}
+}
+
 func (chain *BlockChain) Close() {
 	chain.blockStore.db.Close()
 }
@@ -560,7 +578,7 @@ func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 	chain.cache[string(blockdetail.Block.Height)] = elem
 
 	// Maybe expire an item.
-	if chain.cacheQueue.Len() > chain.cacheSize {
+	if int64(chain.cacheQueue.Len()) > chain.cacheSize {
 		height := chain.cacheQueue.Remove(chain.cacheQueue.Front()).(*types.BlockDetail).Block.Height
 		delete(chain.cache, string(height))
 	}
