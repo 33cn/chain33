@@ -109,11 +109,11 @@ func TestAddTx(t *testing.T) {
 	msg := qclient.NewMessage("mempool", types.EventTx, tx1)
 	qclient.Send(msg, true)
 	qclient.Wait(msg)
-
+	mlog.Warn("wait ok")
 	if mem.Size() != 1 {
 		t.Error("TestAddTx failed")
 	}
-
+	mlog.Warn("chain close")
 	chain.Close()
 }
 
