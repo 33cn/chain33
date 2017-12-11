@@ -15,21 +15,18 @@ func (mem *Mempool) CheckTxList() {
 
 		// 检查交易消息是否过大
 		if len(types.Encode(tx)) > int(maxMsgByte) {
-			mlog.Warn("tx size too big")
 			data.Data = errors.New(e06)
 			mem.badChan <- data
 		}
 
 		// 检查交易费是否小于最低值
 		if tx.Fee < mem.GetMinFee() {
-			mlog.Warn("tx fee too low")
 			data.Data = errors.New(e02)
 			mem.badChan <- data
 		}
 
 		// 检查交易账户在Mempool中是否存在过多交易
 		if mem.TxNumOfAccount(account.PubKeyToAddress(tx.GetSignature().GetPubkey())) >= 10 {
-			mlog.Warn("too may tx of one account")
 			data.Data = errors.New(e03)
 			mem.badChan <- data
 		}
@@ -50,7 +47,6 @@ func (mem *Mempool) CheckSignList() {
 					mem.balanChan <- data
 				} else {
 					data.Data = errors.New(e04)
-					mlog.Warn("check tx sign error")
 					mem.badChan <- data
 				}
 			}
@@ -92,15 +88,17 @@ func (mem *Mempool) CheckBalanList() {
 		var msgs [1024]queue.Message
 		var addrs [1024]string
 		n, err := readToChan(mem.balanChan, msgs[:], 1024)
+
 		if err != nil {
 			return
 		}
-		mlog.Warn("read msgs n", "n", n)
+
 		for i := 0; i < n; i++ {
 			data := msgs[i]
 			pubKey := data.GetData().(*types.Transaction).GetSignature().GetPubkey()
 			addrs[i] = account.PubKeyToAddress(pubKey).String()
 		}
+
 		mem.checkBalance(msgs[0:n], addrs[0:n])
 	}
 }
@@ -110,7 +108,7 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 	accs, _ := account.LoadAccounts(mem.memQueue, addrs)
 	for i := range msgs {
 		tx := msgs[i].GetData().(*types.Transaction)
-		mlog.Warn("account", "balance", accs[i])
+
 		if accs[i].Balance >= 10*tx.Fee {
 			// 交易账户余额充足，推入Mempool
 			ok, err := mem.PushTx(tx)
@@ -118,12 +116,10 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 				// 推入Mempool成功，传入goodChan，待回复消息
 				mem.goodChan <- msgs[i]
 			} else {
-				mlog.Warn("mempool error = ", "err", err)
 				msgs[i].Data = errors.New(err)
 				mem.badChan <- msgs[i]
 			}
 		} else {
-			mlog.Warn("balance too low")
 			msgs[i].Data = errors.New(e05)
 			mem.badChan <- msgs[i]
 		}
