@@ -23,7 +23,6 @@ func (mem *Mempool) CheckTxList() {
 		// 检查交易费是否小于最低值
 		if tx.Fee < mem.GetMinFee() {
 			data.Data = errors.New(e02)
-			mlog.Error("jinru")
 			mem.badChan <- data
 			break
 		}
