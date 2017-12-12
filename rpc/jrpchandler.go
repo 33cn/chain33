@@ -215,15 +215,15 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 
 			txdetails.Txs = append(txdetails.Txs,
 				&Transaction{
-					Execer:  common.ToHex(tx.GetExecer()),
-					Payload: common.ToHex(tx.GetPayload()),
-					Fee:     tx.Fee,
-					Expire:  tx.Expire,
-					Nonce:   tx.Nonce,
-					To:      tx.To,
-					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
-						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+					Execer:  common.ToHex(tx.Tx.GetExecer()),
+					Payload: common.ToHex(tx.Tx.GetPayload()),
+					Fee:     tx.Tx.Fee,
+					Expire:  tx.Tx.Expire,
+					Nonce:   tx.Tx.Nonce,
+					To:      tx.Tx.To,
+					Signature: &Signature{Ty: tx.Tx.GetSignature().GetTy(),
+						Pubkey:    common.ToHex(tx.Tx.GetSignature().GetPubkey()),
+						Signature: common.ToHex(tx.Tx.GetSignature().GetSignature())}})
 
 		}
 
@@ -305,15 +305,15 @@ func (req Chain33) WalletTxList(in types.ReqWalletTransactionList, result *inter
 		for _, tx := range reply.Txs {
 			txdetails.Txs = append(txdetails.Txs,
 				&Transaction{
-					Execer:  common.ToHex(tx.GetExecer()),
-					Payload: common.ToHex(tx.GetPayload()),
-					Fee:     tx.Fee,
-					Expire:  tx.Expire,
-					Nonce:   tx.Nonce,
-					To:      tx.To,
-					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
-						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+					Execer:  common.ToHex(tx.Tx.GetExecer()),
+					Payload: common.ToHex(tx.Tx.GetPayload()),
+					Fee:     tx.Tx.Fee,
+					Expire:  tx.Tx.Expire,
+					Nonce:   tx.Tx.Nonce,
+					To:      tx.Tx.To,
+					Signature: &Signature{Ty: tx.Tx.GetSignature().GetTy(),
+						Pubkey:    common.ToHex(tx.Tx.GetSignature().GetPubkey()),
+						Signature: common.ToHex(tx.Tx.GetSignature().GetSignature())}})
 
 		}
 
