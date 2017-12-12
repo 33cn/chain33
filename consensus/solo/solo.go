@@ -63,6 +63,10 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 	go client.createBlock()
 }
 
+func (client *SoloClient) Close() {
+
+}
+
 func (client *SoloClient) checkTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
 	var checkHashList types.TxHashList
 	txMap := make(map[string]*types.Transaction)

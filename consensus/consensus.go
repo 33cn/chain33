@@ -8,6 +8,9 @@ import (
 
 func New(cfg *types.Consensus) Consumer {
 	consensusType := cfg.Name
+	if !cfg.Minerstart {
+		return &nopMiner{}
+	}
 	if consensusType == "solo" {
 		con := solo.NewSolo(cfg)
 		return con
@@ -19,14 +22,17 @@ func New(cfg *types.Consensus) Consumer {
 	panic("Unsupported consensus type")
 }
 
-type Consumer interface {
-	SetQueue(q *queue.Queue)
+type nopMiner struct{}
+
+func (m *nopMiner) SetQueue(q *queue.Queue) {
+
 }
 
-//type ReadLeadger interface {
-//	CheckDuplicatedTxs() bool
-//}
+func (m *nopMiner) Close() {
 
-type Communicator interface {
-	ProcessBlock(reply types.ReplyTxList) (block *types.Block)
+}
+
+type Consumer interface {
+	SetQueue(q *queue.Queue)
+	Close()
 }

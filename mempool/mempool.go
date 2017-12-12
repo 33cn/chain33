@@ -248,6 +248,10 @@ func (mem *Mempool) PushTx(tx *types.Transaction) (bool, string) {
 	return ok, err
 }
 
+func (mem *Mempool) Close() {
+
+}
+
 //--------------------------------------------------------------------------------
 // Module txCache
 
