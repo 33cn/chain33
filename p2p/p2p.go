@@ -23,11 +23,13 @@ func New(cfg *types.P2P) *P2p {
 		log.Error(err.Error())
 		return nil
 	}
-
 	return &P2p{
 		//TODO
 		node: node,
 	}
+}
+
+func (network *P2p) Close() {
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
