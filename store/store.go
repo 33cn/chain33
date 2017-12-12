@@ -45,6 +45,10 @@ func New(cfg *types.Store) *Store {
 	return store
 }
 
+func (store *Store) Close() {
+	store.db.Close()
+}
+
 func (store *Store) SetQueue(q *queue.Queue) {
 	store.qclient = q.GetClient()
 	client := store.qclient
