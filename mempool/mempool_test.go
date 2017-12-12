@@ -15,13 +15,13 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-var amount = int64(1e8)
+//----------------------------- data for testing ---------------------------------
 
+var amount = int64(1e8)
 var v = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 var transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 var tx1 = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0}
 
-//&types.Transaction{Execer: []byte("tester1"), Payload: []byte("mempool"), Fee: 20000000, Expire: 0}
 var tx2 = &types.Transaction{Execer: []byte("tester2"), Payload: []byte("mempool"), Fee: 40000000, Expire: 0}
 var tx3 = &types.Transaction{Execer: []byte("tester3"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
 var tx4 = &types.Transaction{Execer: []byte("tester4"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
@@ -32,7 +32,7 @@ var tx8 = &types.Transaction{Execer: []byte("tester8"), Payload: []byte("mempool
 var tx9 = &types.Transaction{Execer: []byte("tester9"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
 var tx10 = &types.Transaction{Execer: []byte("tester10"), Payload: []byte("mempool"), Fee: 20000000, Expire: 0}
 var tx11 = &types.Transaction{Execer: []byte("tester11"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-var tx12 = &types.Transaction{Execer: []byte("tester12"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
+var tx12 = &types.Transaction{Execer: []byte("tester12"), Payload: []byte("mempool"), Fee: 10000000000000000, Expire: 0}
 
 var c, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 var hex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
@@ -40,7 +40,6 @@ var privKey, _ = c.PrivKeyFromBytes(common.FromHex(hex))
 
 //var privTo, _ = c.GenKey()
 //var ad = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
-//var acc1 = &types.Account{Currency: 1, Balance: 1000000000, Frozen: 0, Addr: ad}
 
 var blk = &types.Block{
 	Version:    1,
@@ -52,14 +51,14 @@ var blk = &types.Block{
 }
 
 func init() {
-	//	queue.DisableLog()
+	queue.DisableLog()
 	//	DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log
 	//	SetLogLevel("info") // 输出INFO(含)以下log
-	//	SetLogLevel("warn") // 输出WARN(含)以下log
+	SetLogLevel("warn") // 输出WARN(含)以下log
 	//	SetLogLevel("eror") // 输出EROR(含)以下log
 	//	SetLogLevel("crit") // 输出CRIT(含)以下log
-	SetLogLevel("warn") // 输出所有log
+	//  SetLogLevel("") // 输出所有log
 }
 
 func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.Store) {
@@ -98,6 +97,7 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 	tx9.Sign(types.SECP256K1, privKey)
 	tx10.Sign(types.SECP256K1, privKey)
 	tx11.Sign(types.SECP256K1, privKey)
+	tx12.Sign(types.SECP256K1, privKey)
 
 	return mem, q, chain, s
 }
@@ -190,7 +190,7 @@ func TestGetTxList(t *testing.T) {
 	mem, q, chain, s := initEnv(0)
 	qclient := q.GetClient()
 
-	//add tx
+	// add tx
 	add4Tx(qclient)
 
 	msg := qclient.NewMessage("mempool", types.EventTxList, 100)
@@ -240,7 +240,8 @@ func TestRemoveTxOfBlock(t *testing.T) {
 
 	add4Tx(qclient)
 
-	msg5 := qclient.NewMessage("mempool", types.EventAddBlock, blk)
+	blkDetail := &types.BlockDetail{Block: blk}
+	msg5 := qclient.NewMessage("mempool", types.EventAddBlock, blkDetail)
 	qclient.Send(msg5, false)
 
 	msg := qclient.NewMessage("mempool", types.EventGetMempoolSize, nil)
@@ -267,78 +268,93 @@ func TestRemoveTxOfBlock(t *testing.T) {
 //	qclient := q.GetClient()
 //}
 
-//func TestCheckLowFee(t *testing.T) {
-//	mem, q, chain, s := initEnv(0)
-//	qclient := q.GetClient()
+func TestCheckLowFee(t *testing.T) {
+	mem, q, chain, s := initEnv(0)
+	qclient := q.GetClient()
 
-//	mem.SetMinFee(1000)
+	mem.SetMinFee(1000)
 
-//	tx11.Fee = 100
-//	msg := qclient.NewMessage("mempool", types.EventTx, tx11)
-//	qclient.Send(msg, true)
+	tx11.Fee = 100 // make low tx fee
+	msg := qclient.NewMessage("mempool", types.EventTx, tx11)
+	qclient.Send(msg, true)
+	resp, _ := qclient.Wait(msg)
 
-//	_, err := qclient.Wait(msg)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e02 {
+		t.Error("TestCheckLowFee failed")
+	}
 
-//	if err.Error() != e02 {
-//		t.Error("TestCheckLowFee failed")
-//	}
+	chain.Close()
+	s.Close()
+}
 
-//	chain.Close()
-//	s.Close()
-//}
+func TestCheckManyTxs(t *testing.T) {
+	mem, q, chain, s := initEnv(0)
+	qclient := q.GetClient()
 
-//func TestCheckManyTxs(t *testing.T) {
-//	_, q, chain, s := initEnv(0)
-//	qclient := q.GetClient()
+	// add 10 txs for the same account
+	add10Tx(qclient)
 
-//	add10Tx(qclient)
+	msg11 := qclient.NewMessage("mempool", types.EventTx, tx11)
+	qclient.Send(msg11, true)
+	resp, _ := qclient.Wait(msg11)
 
-//	msg11 := qclient.NewMessage("mempool", types.EventTx, tx11)
-//	qclient.Send(msg11, true)
-//	_, err := qclient.Wait(msg11)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e03 || mem.Size() != 10 {
+		t.Error("TestCheckManyTxs failed")
+	}
 
-//	if err.Error() != e03 {
-//		t.Error("TestCheckManyTxs failed")
-//	}
+	chain.Close()
+	s.Close()
+}
 
-//	chain.Close()
-//	s.Close()
-//}
+func TestCheckSignature(t *testing.T) {
+	_, q, chain, s := initEnv(0)
+	qclient := q.GetClient()
 
-//func TestCheckSignature(t *testing.T) {
-//	_, q, chain, s := initEnv(0)
-//	qclient := q.GetClient()
+	// make wrong signature
+	tx11.Signature.Signature[0] = 0
+	tx11.Signature.Signature[1] = 0
 
-//	msg := qclient.NewMessage("mempool", types.EventTx, tx12)
-//	qclient.Send(msg, true)
-//	_, err := qclient.Wait(msg)
+	msg := qclient.NewMessage("mempool", types.EventTx, tx11)
+	qclient.Send(msg, true)
+	resp, _ := qclient.Wait(msg)
 
-//	if err.Error() != e04 {
-//		t.Error("TestCheckSignature failed")
-//	}
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e04 {
+		t.Error("TestCheckSignature failed")
+	}
 
-//	chain.Close()
-//	s.Close()
-//}
+	chain.Close()
+	s.Close()
+}
 
-//func TestCheckBalance(t *testing.T) {
-//	mem, q, chain := initEnv(0)
-//	qclient := q.GetClient()
-//}
+func TestCheckBalance(t *testing.T) {
+	_, q, chain, s := initEnv(0)
+	qclient := q.GetClient()
 
-//func TestCheckExpire(t *testing.T) {
-//	_, q, chain, s := initEnv(4)
-//	qclient := q.GetClient()
+	msg := qclient.NewMessage("mempool", types.EventTx, tx12)
+	qclient.Send(msg, true)
+	resp, _ := qclient.Wait(msg)
 
-//	tx11.Expire = 1
-//	msg := qclient.NewMessage("mempool", types.EventTx, tx11)
-//	qclient.Send(msg, true)
-//	_, err := qclient.Wait(msg)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e05 {
+		t.Error("TestCheckBalance failed")
+	}
 
-//	if err.Error() != e07 {
-//		t.Error("TestCheckExpire failed")
-//	}
+	chain.Close()
+	s.Close()
+}
 
-//	chain.Close()
-//	s.Close()
-//}
+func TestCheckExpire(t *testing.T) {
+	_, q, chain, s := initEnv(0)
+	qclient := q.GetClient()
+
+	tx11.Expire = -1 // make tx expired
+	msg := qclient.NewMessage("mempool", types.EventTx, tx11)
+	qclient.Send(msg, true)
+	resp, _ := qclient.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e07 {
+		t.Error("TestCheckExpire failed")
+	}
+
+	chain.Close()
+	s.Close()
+}
