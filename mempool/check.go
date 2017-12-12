@@ -28,7 +28,7 @@ func (mem *Mempool) CheckTxList() {
 		}
 
 		// 检查交易账户在Mempool中是否存在过多交易
-		if mem.TxNumOfAccount(account.PubKeyToAddress(tx.GetSignature().GetPubkey())) >= 10 {
+		if mem.TxNumOfAccount(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()) >= 10 {
 			data.Data = errors.New(e03)
 			mem.badChan <- data
 			continue
@@ -142,7 +142,6 @@ func (mem *Mempool) CheckExpire(msg queue.Message) bool {
 		if valid > (mem.Height()) { // 未过期
 			return true
 		} else { // 过期
-			msg.Data = errors.New(e07)
 			return false
 		}
 	} else {
@@ -150,7 +149,6 @@ func (mem *Mempool) CheckExpire(msg queue.Message) bool {
 		if valid > (mem.BlockTime()) { // 未过期
 			return true
 		} else { // 过期
-			msg.Data = errors.New(e07)
 			return false
 		}
 	}
