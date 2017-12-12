@@ -8,6 +8,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 func init() {
@@ -133,6 +134,49 @@ func (db *GoLevelDB) NewBatch(sync bool) Batch {
 	batch := new(leveldb.Batch)
 	wop := &opt.WriteOptions{Sync: sync}
 	return &goLevelDBBatch{db, batch, wop}
+}
+
+func (db *GoLevelDB) PrefixScan(key []byte) (txhashs [][]byte) {
+	iter := db.db.NewIterator(util.BytesPrefix(key), nil)
+	for iter.Next() {
+		value := iter.Value()
+		//fmt.Printf("PrefixScan:%s\n", string(iter.Key()))
+		value1 := make([]byte, len(value))
+		copy(value1, value)
+		txhashs = append(txhashs, value1)
+	}
+	iter.Release()
+	err := iter.Error()
+	if err != nil {
+		return nil
+	}
+	return txhashs
+}
+func (db *GoLevelDB) IteratorScan(key []byte, count int32, direction int32) (values [][]byte) {
+	iter := db.db.NewIterator(nil, nil)
+	var i int32 = 0
+	for ok := iter.Seek(key); ok; {
+		value := iter.Value()
+		//fmt.Printf("PrefixScan:%v\n", value)
+		value1 := make([]byte, len(value))
+		copy(value1, value)
+		values = append(values, value1)
+		if direction == 0 {
+			ok = iter.Prev()
+		} else {
+			ok = iter.Next()
+		}
+		i++
+		if i >= count {
+			break
+		}
+	}
+	iter.Release()
+	err := iter.Error()
+	if err != nil {
+		return nil
+	}
+	return values
 }
 
 //--------------------------------------------------------------------------------
