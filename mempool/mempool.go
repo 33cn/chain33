@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"container/heap"
+	"errors"
 	"runtime"
 	"sync"
 
@@ -178,7 +179,7 @@ func (mem *Mempool) Size() int {
 }
 
 // Mempool.TxNumOfAccount返回账户在Mempool中交易数量
-func (mem *Mempool) TxNumOfAccount(addr *account.Address) int64 {
+func (mem *Mempool) TxNumOfAccount(addr string) int64 {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	return mem.cache.TxNumOfAccount(addr)
@@ -205,6 +206,8 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 		poppedTx := popped.(*Item).value
 		result = append(result, poppedTx)
 		delete(mem.cache.txMap, string(poppedTx.Hash()))
+		// 账户交易数量减1
+		mem.cache.AccountTxNumDecrease(account.PubKeyToAddress(poppedTx.GetSignature().GetPubkey()).String())
 	}
 
 	return result
@@ -259,7 +262,7 @@ type txCache struct {
 	size       int
 	txMap      map[string]*Item
 	txHeap     *PriorityQueue
-	accountMap map[*account.Address]int64
+	accountMap map[string]int64
 }
 
 // NewTxCache初始化txCache
@@ -268,7 +271,7 @@ func newTxCache(cacheSize int64) *txCache {
 		size:       int(cacheSize),
 		txMap:      make(map[string]*Item, cacheSize),
 		txHeap:     new(PriorityQueue),
-		accountMap: make(map[*account.Address]int64),
+		accountMap: make(map[string]int64),
 	}
 }
 
@@ -278,7 +281,7 @@ func (cache *txCache) LowestFee() int64 {
 }
 
 // txCache.TxNumOfAccount返回账户在Mempool中交易数量
-func (cache *txCache) TxNumOfAccount(addr *account.Address) int64 {
+func (cache *txCache) TxNumOfAccount(addr string) int64 {
 	return cache.accountMap[addr]
 }
 
@@ -308,7 +311,7 @@ func (cache *txCache) Push(tx *types.Transaction) (bool, string) {
 	cache.txMap[string(tx.Hash())] = it
 
 	// 账户交易数量
-	accountAddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey())
+	accountAddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	if _, ok := cache.accountMap[accountAddr]; ok {
 		cache.accountMap[accountAddr]++
 	} else {
@@ -323,6 +326,8 @@ func (cache *txCache) Remove(tx *types.Transaction) {
 	removed := cache.txMap[string(tx.Hash())].index
 	cache.txHeap.Remove(removed)
 	delete(cache.txMap, string(tx.Hash()))
+	// 账户交易数量减1
+	cache.AccountTxNumDecrease(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String())
 }
 
 // txCache.Size返回txCache中已存tx数目
@@ -336,6 +341,17 @@ func (cache *txCache) SetSize(newSize int) {
 		panic("only can set a empty size")
 	}
 	cache.size = newSize
+}
+
+// txCache.AccountTxNumDecrease使得账户的交易计数减一
+func (cache *txCache) AccountTxNumDecrease(addr string) {
+	if value, ok := cache.accountMap[addr]; ok {
+		if value > 1 {
+			cache.accountMap[addr]--
+		} else {
+			delete(cache.accountMap, addr)
+		}
+	}
 }
 
 //--------------------------------------------------------------------------------
@@ -390,6 +406,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					// 未过期，交易消息传入txChan，待检查
 					mem.txChan <- msg
 				} else {
+					msg.Data = errors.New(e07)
 					mem.badChan <- msg
 				}
 			} else if msg.Ty == types.EventGetMempool {
