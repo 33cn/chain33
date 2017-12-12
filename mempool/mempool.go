@@ -415,7 +415,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					&types.ReplyTxList{mem.GetTxList(10000)}))
 			} else if msg.Ty == types.EventAddBlock {
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
-				mem.RemoveTxsOfBlock(msg.GetData().(*types.Block))
+				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
 			} else if msg.Ty == types.EventGetMempoolSize {
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				msg.Reply(client.NewMessage("rpc", types.EventMempoolSize,

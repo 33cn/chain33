@@ -22,6 +22,8 @@ type DB interface {
 	Print()
 	Iterator() Iterator
 	Stats() map[string]string
+	PrefixScan(key []byte) [][]byte
+	IteratorScan(key []byte, count int32, direction int32) [][]byte
 }
 
 type Batch interface {
