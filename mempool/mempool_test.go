@@ -240,7 +240,8 @@ func TestRemoveTxOfBlock(t *testing.T) {
 
 	add4Tx(qclient)
 
-	msg5 := qclient.NewMessage("mempool", types.EventAddBlock, blk)
+	blkDetail := &types.BlockDetail{Block: blk}
+	msg5 := qclient.NewMessage("mempool", types.EventAddBlock, blkDetail)
 	qclient.Send(msg5, false)
 
 	msg := qclient.NewMessage("mempool", types.EventGetMempoolSize, nil)
