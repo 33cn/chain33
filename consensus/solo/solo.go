@@ -122,7 +122,7 @@ func (client *SoloClient) eventLoop() {
 		for msg := range client.qclient.Recv() {
 			slog.Info("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
-				block := msg.GetData().(*types.Block)
+				block := msg.GetData().(*types.BlockDetail).Block
 				setCurrentBlock(block)
 			}
 		}

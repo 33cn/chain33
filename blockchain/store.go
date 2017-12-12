@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 
@@ -136,6 +137,40 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDet
 		}
 
 		storeBatch.Set(txhash, txresultbyte)
+
+		//存储key:addr:flag:height ,value:txhash
+		//flag :0-->from,1--> to
+		//height=height*10000+index 存储账户地址相关的交易
+		if "coins" == string(blockdetail.Block.Txs[index].Execer) {
+			var txinf types.ReplyTxInfo
+			txinf.Hash = txhash
+			txinf.Height = blockdetail.Block.Height
+			txinf.Index = int64(index)
+			txinfobyte, err := proto.Marshal(&txinf)
+			if err != nil {
+				storelog.Error("indexTxs Encode txinf err", "Height", blockdetail.Block.Height, "index", index)
+				return err
+			}
+
+			blockheight := blockdetail.Block.Height*100000 + int64(index)
+			heightstr := fmt.Sprintf("%018d", blockheight)
+
+			//from addr
+			pubkey := blockdetail.Block.Txs[index].Signature.GetPubkey()
+			addr := account.PubKeyToAddress(pubkey)
+			fromaddress := addr.String()
+			if len(fromaddress) != 0 {
+				fromkey := fmt.Sprintf("%s:0:%s", fromaddress, heightstr)
+				storeBatch.Set([]byte(fromkey), txinfobyte)
+				//storelog.Debug("indexTxs address ", "fromkey", fromkey, "value", txhash)
+			}
+			//toaddr
+			toaddr := blockdetail.Block.Txs[index].GetTo()
+			if len(toaddr) != 0 {
+				tokey := fmt.Sprintf("%s:1:%s", toaddr, heightstr)
+				storeBatch.Set([]byte(tokey), txinfobyte)
+			}
+		}
 		//storelog.Debug("indexTxs Set txresult", "Height", blockdetail.Block.Height, "index", index, "txhashbyte", txhash)
 	}
 	return nil
@@ -155,6 +190,34 @@ func (bs *BlockStore) GetHeightByBlockHash(hash []byte) int64 {
 	}
 	return height
 }
+
+// 通过addr前缀查找本地址参与的所有交易
+func (bs *BlockStore) GetTxsByAddr(addr []byte) (*types.ReplyTxInfos, error) {
+	if len(addr) == 0 {
+		err := errors.New("input addr is null")
+		return nil, err
+	}
+
+	Txinfos := bs.db.PrefixScan(addr)
+	if len(Txinfos) == 0 {
+		err := errors.New("does not exist tx!")
+		return nil, err
+	}
+	var replyTxInfos types.ReplyTxInfos
+	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(Txinfos))
+
+	for index, txinfobyte := range Txinfos {
+		var replyTxInfo types.ReplyTxInfo
+		err := proto.Unmarshal(txinfobyte, &replyTxInfo)
+		if err != nil {
+			storelog.Error("GetTxsByAddr proto.Unmarshal!", "err:", err)
+			return nil, err
+		}
+		replyTxInfos.TxInfos[index] = &replyTxInfo
+	}
+	return &replyTxInfos, nil
+}
+
 func calcBlockHashKey(hash []byte) []byte {
 	return []byte(fmt.Sprintf("Hash:%v", hash))
 }

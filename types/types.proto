@@ -239,7 +239,7 @@ message TransactionDetail {
 }
 
 message TransactionDetails {
-	repeated Transaction txs = 1;
+	repeated TransactionDetail txs = 1;
 }
 
 //req
@@ -454,6 +454,7 @@ message ReqNewAccount {
 message ReqWalletTransactionList {
 	bytes fromTx = 1; //从这个txId 开始读。默认从最后一个数据。
 	int32 count = 2;
+	int32 direction=3;
 }
 
 message ReqWalletImportPrivKey {
@@ -540,4 +541,25 @@ message BlockChain {
 	int64 batchBlockNum=4;
 	string driver = 5;
 	string dbPath = 6;
+}
+message ReplyTxInfos {
+	repeated ReplyTxInfo txInfos = 1;
+}
+
+message WalletTxDetail {
+	Transaction tx = 1;
+	ReceiptData receipt = 2;
+	int64       height  = 3;
+	int64       index   = 4;
+}
+
+message WalletTxDetails {
+	repeated WalletTxDetail txDetails = 1;
+}
+
+message WalletAccountStore {
+	string privkey = 1;
+	string label = 2;
+	string addr = 3;
+	string timeStamp = 4;
 }
