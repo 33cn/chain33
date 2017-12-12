@@ -2,6 +2,8 @@ package queue
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
 
 	"code.aliyun.com/chain33/chain33/types"
@@ -36,12 +38,19 @@ type Queue struct {
 
 func New(name string) *Queue {
 	chs := make(map[string]chan Message)
-	return &Queue{chans: chs, done: make(chan struct{})}
+	return &Queue{chans: chs, done: make(chan struct{}, 1)}
 }
 
 func (q *Queue) Start() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	// Block until a signal is received.
 	select {
 	case <-q.done:
+		break
+	case s := <-c:
+		fmt.Println("Got signal:", s)
 		break
 	}
 }

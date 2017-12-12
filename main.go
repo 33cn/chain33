@@ -69,4 +69,15 @@ func main() {
 	gapi := rpc.NewServer("grpc", ":8802")
 	gapi.SetQueue(q)
 	q.Start()
+
+	//close all module,clean some resource
+	chain.Close()
+	mem.Close()
+	network.Close()
+	exec.Close()
+	s.Close()
+	cs.Close()
+	api.Close()
+	gapi.Close()
+	q.Close()
 }

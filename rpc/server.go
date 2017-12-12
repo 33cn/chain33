@@ -18,6 +18,7 @@ func NewServer(name string, addr string) IServer {
 type IServer interface {
 	SetQueue(q *queue.Queue)
 	GetQueue() *queue.Queue
+	Close()
 }
 
 //channelServer 不需要做任何的事情，grpc 和 jsonrpc 需要建立服务，监听
@@ -35,9 +36,12 @@ func (server *channelServer) SetQueue(q *queue.Queue) {
 	server.c = q.GetClient() //创建一个Queue Client
 
 }
-func (server *channelServer) GetQueue() *queue.Queue {
 
+func (server *channelServer) GetQueue() *queue.Queue {
 	return server.q
+}
+
+func (server *channelServer) Close() {
 }
 
 type grpcServer struct {
@@ -54,9 +58,17 @@ func newGrpcServer(addr string) *grpcServer {
 	return server
 }
 
+func (r *grpcServer) Close() {
+
+}
+
 func newJsonrpcServer(addr string) *jsonrpcServer {
 	server := &jsonrpcServer{}
 	server.CreateServer(addr)
 
 	return server
+}
+
+func (r *jsonrpcServer) Close() {
+
 }

@@ -67,6 +67,10 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 	}()
 }
 
+func (exec *Execs) Close() {
+
+}
+
 //执行器 -> db 环境
 type Execute struct {
 	cache map[string][]byte

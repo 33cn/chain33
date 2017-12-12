@@ -70,6 +70,7 @@ service p2pgservice{
 message ReqNil{
 	
 }
+
 message P2PGetPeerInfo{
 	int32 version=1;
 }
@@ -527,6 +528,7 @@ message Store {
 message Consensus {
 	string name=1;
 	string genesis=2;
+	bool minerstart = 3;
 }
 
 message MemPool {
