@@ -11,6 +11,7 @@ dbPath="datadir"
 
 [p2p]
 seeds=["114.55.101.159:13802"]
+enable=false
 isSeed=false
 seedPort=13802
 dbPath="datadir/addrbook"
@@ -22,7 +23,7 @@ minTxFee=1000000
 
 [consensus]
 name="solo"
-minerstart=false
+minerstart=true
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [store]
