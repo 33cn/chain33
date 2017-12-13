@@ -565,3 +565,8 @@ message WalletAccountStore {
 	string addr = 3;
 	string timeStamp = 4;
 }
+
+message Blocks {
+	repeated Block items = 1;
+}
+

@@ -2,9 +2,9 @@ package blockchain
 
 import (
 	"bytes"
-	//"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -25,7 +25,7 @@ func initEnv() (*BlockChain, *queue.Queue) {
 	cfg.DefCacheSize = 500
 	cfg.MaxFetchBlockNum = 100
 	cfg.TimeoutSeconds = 5
-	cfg.BatchBlockNum = 100
+	cfg.BatchBlockNum = 10
 	cfg.Driver = "leveldb"
 	cfg.DbPath = "datadir"
 
@@ -55,10 +55,8 @@ type ReceiptData struct {
 	Logs []*ReceiptLog
 }
 */
-func ConstructionBlock(Pubkey string, toaddr string, parentHash []byte, height int64, txcount int) *types.BlockDetail {
-	var blockdetail types.BlockDetail
+func ConstructionBlock(Pubkey string, toaddr string, parentHash []byte, height int64, txcount int) *types.Block {
 	var block types.Block
-	blockdetail.Receipts = nil
 
 	block.BlockTime = height
 	block.Height = height
@@ -97,6 +95,55 @@ func ConstructionBlock(Pubkey string, toaddr string, parentHash []byte, height i
 		txhashs[j] = transaction.Hash()
 	}
 	block.TxHash = merkle.GetMerkleRoot(txhashs)
+	return &block
+}
+
+func ConstructionBlockDetail(Pubkey string, toaddr string, parentHash []byte, height int64, txcount int) *types.BlockDetail {
+	var blockdetail types.BlockDetail
+	var block types.Block
+
+	blockdetail.Receipts = make([]*types.ReceiptData, txcount)
+
+	block.BlockTime = height
+	block.Height = height
+	block.Version = 100
+	block.StateHash = common.Hash{}.Bytes()
+	block.ParentHash = parentHash
+
+	block.Txs = make([]*types.Transaction, txcount)
+	txhashs := make([][]byte, txcount)
+	for j := 0; j < txcount; j++ {
+		var transaction types.Transaction
+
+		payload := fmt.Sprintf("Payload :%d:%d!", height, j)
+		transaction.Payload = []byte(payload)
+
+		var signature1 types.Signature
+
+		signature := fmt.Sprintf("Signature :%d:%d!", height, j)
+		signature1.Signature = []byte(signature)
+		var pubkey string
+		if len(Pubkey) == 0 {
+			pubkey = fmt.Sprintf("Pubkey :%d:%d!", height, j)
+		} else {
+			pubkey = Pubkey
+		}
+		signature1.Pubkey = []byte(pubkey)
+
+		if len(toaddr) == 0 {
+			transaction.To = fmt.Sprintf("toaddr :%d:%d!", height, j)
+		} else {
+			transaction.To = toaddr
+		}
+		transaction.Signature = &signature1
+		transaction.Execer = []byte("coins")
+		block.Txs[j] = &transaction
+		txhashs[j] = transaction.Hash()
+
+		ReceiptData := types.ReceiptData{Ty: 2}
+		blockdetail.Receipts[j] = &ReceiptData
+	}
+	block.TxHash = merkle.GetMerkleRoot(txhashs)
 	blockdetail.Block = &block
 	return &blockdetail
 }
@@ -131,13 +178,14 @@ func PrintBlockInfo(block *types.BlockDetail) {
 	}
 }
 
+//同步过来的block
 func TestProcAddBlockMsg(t *testing.T) {
 	chainlog.Info("testProcAddBlockMsg begin --------------------")
 	blockchain, q := initEnv()
 
 	execprocess(q)
 	curheight := blockchain.GetBlockHeight()
-
+	chainlog.Info("testProcAddBlockMsg", "curheight", curheight)
 	addblockheight := curheight + 10
 	var parentHash []byte
 	block, err := blockchain.GetBlock(curheight)
@@ -149,10 +197,55 @@ func TestProcAddBlockMsg(t *testing.T) {
 	chainlog.Info("testProcAddBlockMsg", "addblockheight", addblockheight)
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block := ConstructionBlock("", "", parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(block)
+		blockchain.ProcAddBlockMsg(false, block)
+		parentHash = block.Hash()
+	}
+
+	curheight = blockchain.GetBlockHeight()
+	chainlog.Info("testProcAddBlockMsg ", "curheight", curheight)
+	block, err = blockchain.GetBlock(curheight)
+	if err != nil {
+		chainlog.Error("testProcAddBlockMsg GetBlock err", "err", err)
+	}
+	PrintBlockInfo(block)
+
+	chainlog.Info("testProcAddBlockMsg end --------------------")
+	blockchain.Close()
+}
+
+//共识模块发过来的block
+func TestProcAddBlockDetail(t *testing.T) {
+	chainlog.Info("TestProcAddBlockDetail begin --------------------")
+	blockchain, q := initEnv()
+
+	execprocess(q)
+	curheight := blockchain.GetBlockHeight()
+
+	addblockheight := curheight + 1
+	var parentHash []byte
+	block, err := blockchain.GetBlock(curheight)
+	if err != nil {
+		parentHash = zeroHash[:]
+	} else {
 		parentHash = block.Block.Hash()
 	}
-	chainlog.Info("testProcAddBlockMsg end --------------------")
+	chainlog.Info("TestProcAddBlockDetail", "addblockheight", addblockheight)
+	for i := curheight + 1; i <= addblockheight; i++ {
+		block := ConstructionBlockDetail("", "", parentHash, i, 5)
+		blockchain.ProcAddBlockDetail(true, block)
+		parentHash = block.Block.Hash()
+	}
+
+	//print
+	curheight = blockchain.GetBlockHeight()
+	chainlog.Info("TestProcAddBlockDetail ", "curheight", curheight)
+	block, err = blockchain.GetBlock(curheight)
+	if err != nil {
+		chainlog.Error("TestProcAddBlockDetail GetBlock err", "err", err)
+	}
+	PrintBlockInfo(block)
+
+	chainlog.Info("TestProcAddBlockDetail end --------------------")
 	blockchain.Close()
 }
 
@@ -376,9 +469,9 @@ func TestProcGetTransactionByHashes(t *testing.T) {
 	j := 0
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block := ConstructionBlock(pubkey, toaddr, parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(block)
-		parentHash = block.Block.Hash()
-		txhashs[j] = block.Block.Txs[0].Hash()
+		blockchain.ProcAddBlockMsg(false, block)
+		parentHash = block.Hash()
+		txhashs[j] = block.Txs[0].Hash()
 		j++
 	}
 
@@ -413,8 +506,8 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 	addblockheight := curheight + 5
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block := ConstructionBlock(pubkey, toaddr, parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(block)
-		parentHash = block.Block.Hash()
+		blockchain.ProcAddBlockMsg(false, block)
+		parentHash = block.Hash()
 	}
 	addr := account.PubKeyToAddress([]byte(pubkey))
 	address := addr.String()
@@ -443,8 +536,8 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 	addblockheight = curheight + 5
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block := ConstructionBlock(pubkey, toaddr, parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(block)
-		parentHash = block.Block.Hash()
+		blockchain.ProcAddBlockMsg(false, block)
+		parentHash = block.Hash()
 	}
 	addr = account.PubKeyToAddress([]byte(pubkey))
 	address = addr.String()
@@ -507,13 +600,14 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 
 var CurHeight int64 = 0
 
+//广播一个block
 func addBlock(blockchain *BlockChain, parentHash []byte, addblockheight int64) {
 	chainlog.Info("addBlock", "addblockheight", addblockheight)
 
 	for i := addblockheight; i <= addblockheight; i++ {
 		block := ConstructionBlock("", "", parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(block)
-		parentHash = block.Block.Hash()
+		blockchain.ProcAddBlockMsg(true, block)
+		parentHash = block.Hash()
 	}
 }
 
@@ -525,9 +619,9 @@ func addBlocks(blockchain *BlockChain, requestblock *types.ReqBlocks) {
 	end := requestblock.End
 	start := requestblock.Start
 	chainlog.Info("addBlocks", "start", start, "end", end)
-	var blocks types.BlockDetails
+	var blocks types.Blocks
 	count := end - start + 1
-	blocks.Items = make([]*types.BlockDetail, count)
+	blocks.Items = make([]*types.Block, count)
 
 	curheight := blockchain.GetBlockHeight()
 	block, _ := blockchain.GetBlock(curheight)
@@ -536,7 +630,7 @@ func addBlocks(blockchain *BlockChain, requestblock *types.ReqBlocks) {
 	for i := start; i <= end; i++ {
 		block := ConstructionBlock("", "", parentHash, i, 5)
 		blocks.Items[j] = block
-		parentHash = block.Block.Hash()
+		parentHash = block.Hash()
 		j++
 	}
 	blockchain.ProcAddBlocksMsg(&blocks)
@@ -621,6 +715,7 @@ func testExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, err
 
 // 测试addblock，addblocks以及fetchblocks
 func TestFetchBlock(t *testing.T) {
+	time.Sleep(time.Second * 5)
 	chainlog.Info("TestFetchBlock begin --------------------")
 	//blockchain.SetQueue(q)
 	blockchain, q := initEnv()
@@ -631,7 +726,7 @@ func TestFetchBlock(t *testing.T) {
 	chainlog.Info("TestFetchBlock", "curheight", curheight)
 
 	//添加一个curheight +10的block给blockchain模块，从而出发blockchain向 p2p模块发送FetchBlock消息
-	addheight := curheight + 10
+	addheight := curheight + 100
 	block, _ := blockchain.GetBlock(curheight)
 	parentHash := block.Block.Hash()
 	go addBlock(blockchain, parentHash, addheight)
@@ -658,6 +753,7 @@ func TestFetchBlock(t *testing.T) {
 	for {
 		curheight := blockchain.GetBlockHeight()
 		if addheight == curheight {
+			time.Sleep(time.Second * 1)
 			break
 		}
 	}
