@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"io"
-
 	"net"
 	"net/http"
 	"net/rpc"
@@ -30,8 +29,11 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 	}
 	jrpc.listener = listener
 	server := rpc.NewServer()
-
-	server.Register(&Chain33{jserver: jrpc})
+	var chain33 Chain33
+	chain33.cli = NewClient("channel", "")
+	chain33.cli.SetQueue(jrpc.q)
+	chain33.jserver = jrpc
+	server.Register(&chain33)
 
 	go http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -62,7 +64,11 @@ func (grpcx *grpcServer) CreateServer(addr string) {
 	}
 	grpcx.listener = listener
 	s := grpc.NewServer()
-	pb.RegisterGrpcserviceServer(s, &Grpc{gserver: grpcx})
+	var grpc Grpc
+	grpc.cli = NewClient("channel", "")
+	grpc.cli.SetQueue(grpcx.q)
+	grpc.gserver = grpcx
+	pb.RegisterGrpcserviceServer(s, &grpc)
 	go s.Serve(listener)
 
 }

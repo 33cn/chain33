@@ -73,10 +73,10 @@ func main() {
 	walletm.SetQueue(q)
 
 	//jsonrpc, grpc, channel 三种模式
-	api := rpc.NewServer("jsonrpc", ":8801")
-	api.SetQueue(q)
-	gapi := rpc.NewServer("grpc", ":8802")
-	gapi.SetQueue(q)
+	api := rpc.NewServer("jsonrpc", ":8801",q)
+	//api.SetQueue(q)
+	gapi := rpc.NewServer("grpc", ":8802",q)
+	//gapi.SetQueue(q)
 	q.Start()
 
 	//close all module,clean some resource

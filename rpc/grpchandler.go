@@ -8,27 +8,23 @@ import (
 
 type Grpc struct {
 	gserver *grpcServer
+	cli     IRClient
 }
 
 func (req *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply := cli.SendTx(in)
+
+	reply := req.cli.SendTx(in)
 	return &pb.Reply{IsOk: true, Msg: reply.GetData().(*pb.Reply).Msg}, reply.Err()
 
 }
 func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.TransactionDetail, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	return cli.QueryTx(in.Hash)
+
+	return req.cli.QueryTx(in.Hash)
 }
 
 func (req *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, error) {
 
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-
-	reply, err := cli.GetBlocks(in.Start, in.End, in.Isdetail)
+	reply, err := req.cli.GetBlocks(in.Start, in.End, in.Isdetail)
 	if err != nil {
 		return nil, err
 	}
@@ -38,9 +34,8 @@ func (req *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, er
 }
 
 func (req *Grpc) GetLastHeader(ctx context.Context, in *pb.ReqNil) (*pb.Header, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.GetLastHeader()
+
+	reply, err := req.cli.GetLastHeader()
 	if err != nil {
 		return nil, err
 	}
@@ -49,9 +44,8 @@ func (req *Grpc) GetLastHeader(ctx context.Context, in *pb.ReqNil) (*pb.Header, 
 }
 
 func (req *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.ReplyTxInfo, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.GetTxByAddr(in)
+
+	reply, err := req.cli.GetTxByAddr(in)
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +53,8 @@ func (req *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.
 	return reply, nil
 }
 func (req *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.TransactionDetails, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.GetTxByHashes(in)
+
+	reply, err := req.cli.GetTxByHashes(in)
 	if err != nil {
 		return nil, err
 	}
@@ -70,9 +63,8 @@ func (req *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (
 }
 
 func (req *Grpc) GetMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.GetMempool()
+
+	reply, err := req.cli.GetMempool()
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +73,8 @@ func (req *Grpc) GetMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList
 }
 
 func (req *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAccounts, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.GetAccounts()
+
+	reply, err := req.cli.GetAccounts()
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +83,8 @@ func (req *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAcco
 }
 
 func (req *Grpc) NewAccount(ctx context.Context, in *pb.ReqNewAccount) (*pb.WalletAccount, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.NewAccount(in)
+
+	reply, err := req.cli.NewAccount(in)
 	if err != nil {
 		return nil, err
 	}
@@ -104,9 +94,7 @@ func (req *Grpc) NewAccount(ctx context.Context, in *pb.ReqNewAccount) (*pb.Wall
 
 func (req *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTransactionList) (*pb.TransactionDetails, error) {
 
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.WalletTxList(in)
+	reply, err := req.cli.WalletTxList(in)
 	if err != nil {
 		return nil, err
 	}
@@ -115,9 +103,8 @@ func (req *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTran
 }
 
 func (req *Grpc) ImportPrivKey(ctx context.Context, in *pb.ReqWalletImportPrivKey) (*pb.WalletAccount, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.ImportPrivkey(in)
+
+	reply, err := req.cli.ImportPrivkey(in)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +113,8 @@ func (req *Grpc) ImportPrivKey(ctx context.Context, in *pb.ReqWalletImportPrivKe
 }
 
 func (req *Grpc) SendToAddress(ctx context.Context, in *pb.ReqWalletSendToAddress) (*pb.ReplyHash, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.SendToAddress(in)
+
+	reply, err := req.cli.SendToAddress(in)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +123,8 @@ func (req *Grpc) SendToAddress(ctx context.Context, in *pb.ReqWalletSendToAddres
 }
 
 func (req *Grpc) SetTxFee(ctx context.Context, in *pb.ReqWalletSetFee) (*pb.Reply, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.SetTxFee(in)
+
+	reply, err := req.cli.SetTxFee(in)
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +133,8 @@ func (req *Grpc) SetTxFee(ctx context.Context, in *pb.ReqWalletSetFee) (*pb.Repl
 }
 
 func (req *Grpc) SetLabl(ctx context.Context, in *pb.ReqWalletSetLabel) (*pb.WalletAccount, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.SetLabl(in)
+
+	reply, err := req.cli.SetLabl(in)
 	if err != nil {
 		return nil, err
 	}
@@ -159,9 +143,8 @@ func (req *Grpc) SetLabl(ctx context.Context, in *pb.ReqWalletSetLabel) (*pb.Wal
 }
 
 func (req *Grpc) MergeBalance(ctx context.Context, in *pb.ReqWalletMergeBalance) (*pb.ReplyHashes, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.MergeBalance(in)
+
+	reply, err := req.cli.MergeBalance(in)
 	if err != nil {
 		return nil, err
 	}
@@ -170,9 +153,8 @@ func (req *Grpc) MergeBalance(ctx context.Context, in *pb.ReqWalletMergeBalance)
 }
 
 func (req *Grpc) SetPasswd(ctx context.Context, in *pb.ReqWalletSetPasswd) (*pb.Reply, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.SetPasswd(in)
+
+	reply, err := req.cli.SetPasswd(in)
 	if err != nil {
 		return nil, err
 	}
@@ -181,9 +163,8 @@ func (req *Grpc) SetPasswd(ctx context.Context, in *pb.ReqWalletSetPasswd) (*pb.
 }
 
 func (req *Grpc) Lock(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.Lock()
+
+	reply, err := req.cli.Lock()
 	if err != nil {
 		return nil, err
 	}
@@ -191,9 +172,8 @@ func (req *Grpc) Lock(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	return reply, nil
 }
 func (req *Grpc) UnLock(ctx context.Context, in *pb.WalletUnLock) (*pb.Reply, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.UnLock(in)
+
+	reply, err := req.cli.UnLock(in)
 	if err != nil {
 		return nil, err
 	}
@@ -202,9 +182,8 @@ func (req *Grpc) UnLock(ctx context.Context, in *pb.WalletUnLock) (*pb.Reply, er
 }
 
 func (req *Grpc) GetPeerInfo(ctx context.Context, in *pb.ReqNil) (*pb.PeerList, error) {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.gserver.q)
-	reply, err := cli.GetPeerInfo()
+
+	reply, err := req.cli.GetPeerInfo()
 	if err != nil {
 		return nil, err
 	}

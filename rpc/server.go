@@ -6,13 +6,13 @@ import (
 	"code.aliyun.com/chain33/chain33/queue"
 )
 
-func NewServer(name string, addr string) IServer {
+func NewServer(name string, addr string, q *queue.Queue) IServer {
 	if name == "channel" {
-		return newChannelServer()
+		return newChannelServer(q)
 	} else if name == "grpc" {
-		return newGrpcServer(addr)
+		return newGrpcServer(addr, q)
 	} else if name == "jsonrpc" {
-		return newJsonrpcServer(addr)
+		return newJsonrpcServer(addr, q)
 	}
 	panic("server name not support")
 }
@@ -30,8 +30,8 @@ type channelServer struct {
 	listener net.Listener
 }
 
-func newChannelServer() *channelServer {
-	return &channelServer{}
+func newChannelServer(q *queue.Queue) *channelServer {
+	return &channelServer{q: q}
 }
 
 func (server *channelServer) SetQueue(q *queue.Queue) {
@@ -56,8 +56,9 @@ type jsonrpcServer struct {
 	channelServer
 }
 
-func newGrpcServer(addr string) *grpcServer {
+func newGrpcServer(addr string, q *queue.Queue) *grpcServer {
 	server := &grpcServer{}
+	server.q = q
 	server.CreateServer(addr)
 	return server
 }
@@ -66,9 +67,9 @@ func (r *grpcServer) Close() {
 	r.listener.Close()
 }
 
-func newJsonrpcServer(addr string) *jsonrpcServer {
+func newJsonrpcServer(addr string, q *queue.Queue) *jsonrpcServer {
 	server := &jsonrpcServer{}
+	server.q = q
 	server.CreateServer(addr)
-
 	return server
 }

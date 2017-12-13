@@ -9,17 +9,16 @@ import (
 
 type Chain33 struct {
 	jserver *jsonrpcServer
+	cli     IRClient
 }
 
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	fmt.Println("jrpc transaction:", in)
 	var parm types.Transaction
 	types.Decode(common.FromHex(in.Data), &parm)
-	fmt.Println("parm", parm)
-	cli := NewClient("channel", "")
+	log.Debug("SendTransaction", "parm", parm)
 
-	cli.SetQueue(req.jserver.q)
-	reply := cli.SendTx(&parm)
+	reply := req.cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
 		*result = string(reply.GetData().(*types.Reply).Msg)
 		return nil
@@ -37,9 +36,7 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 
 	data.Hash = common.FromHex(in.hash)
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.QueryTx(data.Hash)
+	reply, err := req.cli.QueryTx(data.Hash)
 	if err != nil {
 		return err
 	}
@@ -86,9 +83,7 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 	data.End = in.End
 	data.Start = in.Start
 	data.Isdetail = in.Isdetail
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.GetBlocks(data.Start, data.End, data.Isdetail)
+	reply, err := req.cli.GetBlocks(data.Start, data.End, data.Isdetail)
 	if err != nil {
 		return err
 	}
@@ -140,9 +135,8 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 }
 
 func (req Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.GetLastHeader()
+
+	reply, err := req.cli.GetLastHeader()
 	if err != nil {
 		return err
 	}
@@ -167,11 +161,10 @@ type ReqAddr struct {
 
 //GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
 func (req Chain33) GetTxByAddr(in ReqAddr, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
+
 	var parm types.ReqAddr
 	parm.Addr = in.Addr
-	reply, err := cli.GetTxByAddr(&parm)
+	reply, err := req.cli.GetTxByAddr(&parm)
 	if err != nil {
 		return err
 	}
@@ -197,8 +190,7 @@ type ReqHashes struct {
 }
 
 func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
+
 	var parm types.ReqHashes
 	parm.Hashes = make([][]byte, 0)
 	for _, v := range in.Hashes {
@@ -206,7 +198,7 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		parm.Hashes = append(parm.Hashes, hb)
 
 	}
-	reply, err := cli.GetTxByHashes(&parm)
+	reply, err := req.cli.GetTxByHashes(&parm)
 	if err != nil {
 		return err
 	}
@@ -235,9 +227,8 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 }
 
 func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.GetMempool()
+
+	reply, err := req.cli.GetMempool()
 	if err != nil {
 		return err
 	}
@@ -263,9 +254,8 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 }
 
 func (req Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.GetAccounts()
+
+	reply, err := req.cli.GetAccounts()
 	if err != nil {
 		return err
 	}
@@ -282,10 +272,7 @@ func (req Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
 */
 
 func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-
-	reply, err := cli.NewAccount(&in)
+	reply, err := req.cli.NewAccount(&in)
 	if err != nil {
 		return err
 	}
@@ -304,9 +291,7 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 	parm.FromTx = common.FromHex(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.WalletTxList(&parm)
+	reply, err := req.cli.WalletTxList(&parm)
 	if err != nil {
 		return err
 	}
@@ -334,10 +319,7 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 }
 
 func (req Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-
-	reply, err := cli.ImportPrivkey(&in)
+	reply, err := req.cli.ImportPrivkey(&in)
 	if err != nil {
 		return err
 	}
@@ -347,9 +329,7 @@ func (req Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interf
 
 func (req Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
 	log.Debug("Rpc SendToAddress", "Tx", in)
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.SendToAddress(&in)
+	reply, err := req.cli.SendToAddress(&in)
 	if err != nil {
 		return err
 	}
@@ -366,9 +346,7 @@ func (req Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interf
 */
 
 func (req Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.SetTxFee(&in)
+	reply, err := req.cli.SetTxFee(&in)
 	if err != nil {
 		return err
 	}
@@ -377,9 +355,7 @@ func (req Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error
 }
 
 func (req Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.SetLabl(&in)
+	reply, err := req.cli.SetLabl(&in)
 	if err != nil {
 		return err
 	}
@@ -388,9 +364,7 @@ func (req Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) erro
 }
 
 func (req Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.MergeBalance(&in)
+	reply, err := req.cli.MergeBalance(&in)
 	if err != nil {
 		return err
 	}
@@ -406,9 +380,7 @@ func (req Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interfac
 }
 
 func (req Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.SetPasswd(&in)
+	reply, err := req.cli.SetPasswd(&in)
 	if err != nil {
 		return err
 	}
@@ -423,9 +395,7 @@ func (req Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) e
 */
 
 func (req Chain33) Lock(in types.ReqNil, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.Lock()
+	reply, err := req.cli.Lock()
 	if err != nil {
 		return err
 	}
@@ -434,9 +404,7 @@ func (req Chain33) Lock(in types.ReqNil, result *interface{}) error {
 }
 
 func (req Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.UnLock(&in)
+	reply, err := req.cli.UnLock(&in)
 	if err != nil {
 		return err
 	}
@@ -445,9 +413,7 @@ func (req Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 }
 
 func (req Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
-	cli := NewClient("channel", "")
-	cli.SetQueue(req.jserver.q)
-	reply, err := cli.GetPeerInfo()
+	reply, err := req.cli.GetPeerInfo()
 	if err != nil {
 		return err
 	}
