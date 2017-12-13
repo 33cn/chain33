@@ -44,52 +44,6 @@ func DisableLog() {
 	mlog.SetHandler(log.DiscardHandler())
 }
 
-type MClient interface {
-	SetQueue(q *queue.Queue)
-	SendTx(tx *types.Transaction) queue.Message
-}
-
-//--------------------------------------------------------------------------------
-// Module channelClient
-
-type channelClient struct {
-	qclient queue.IClient
-}
-
-// channelClient.SendTx向"p2p"发送消息
-func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
-	if client.qclient == nil {
-		panic("client not bind message queue.")
-	}
-
-	msg := client.qclient.NewMessage("p2p", types.EventTxBroadcast, tx)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
-
-	if err != nil {
-		resp.Data = err
-	}
-
-	return resp
-}
-
-// channelClient.GetLastHeader获取LastHeader的height和blockTime
-func (client *channelClient) GetLastHeader() (bool, interface{}) {
-	if client.qclient == nil {
-		panic("client not bind message queue.")
-	}
-
-	msg := client.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
-
-	if err != nil {
-		return false, nil
-	}
-
-	return true, resp
-}
-
 //--------------------------------------------------------------------------------
 // Module Mempool
 
@@ -102,6 +56,7 @@ type Mempool struct {
 	balanChan chan queue.Message
 	goodChan  chan queue.Message
 	memQueue  *queue.Queue
+	qclient   queue.IClient
 	height    int64
 	blockTime int64
 	minFee    int64
@@ -251,6 +206,34 @@ func (mem *Mempool) PushTx(tx *types.Transaction) (bool, string) {
 	return ok, err
 }
 
+// Mempool.SendTxToP2P向"p2p"发送消息
+func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
+	if mem.qclient == nil {
+		panic("client not bind message queue.")
+	}
+
+	msg := mem.qclient.NewMessage("p2p", types.EventTxBroadcast, tx)
+	mem.qclient.Send(msg, false)
+}
+
+// Mempool.GetLastHeader获取LastHeader的height和blockTime
+func (mem *Mempool) GetLastHeader() (bool, interface{}) {
+	if mem.qclient == nil {
+		panic("client not bind message queue.")
+	}
+
+	msg := mem.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	mem.qclient.Send(msg, true)
+	resp, err := mem.qclient.Wait(msg)
+
+	if err != nil {
+		return false, nil
+	}
+
+	return true, resp
+}
+
+// Mempool.Close关闭Mempool
 func (mem *Mempool) Close() {
 
 }
@@ -358,14 +341,12 @@ func (cache *txCache) AccountTxNumDecrease(addr string) {
 
 func (mem *Mempool) SetQueue(q *queue.Queue) {
 	mem.memQueue = q
-	var chanClient *channelClient = new(channelClient)
-	chanClient.qclient = q.GetClient()
-	client := q.GetClient()
-	client.Sub("mempool")
+	mem.qclient = q.GetClient()
+	mem.qclient.Sub("mempool")
 
 	go func() {
 		for {
-			flag, lastHeader := chanClient.GetLastHeader()
+			flag, lastHeader := mem.GetLastHeader()
 			if flag {
 				mem.proxyMtx.Lock()
 				mem.height = lastHeader.(queue.Message).Data.(*types.Header).GetHeight()
@@ -383,7 +364,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {
-			m.Reply(client.NewMessage("rpc", types.EventReply,
+			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
 		}
 	}()
@@ -391,13 +372,13 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	// 从goodChan读取好消息，并回复正确信息
 	go func() {
 		for m := range mem.goodChan {
-			// chanClient.SendTx(m.GetData().(*types.Transaction))
-			m.Reply(client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
+			mem.SendTxToP2P(m.GetData().(*types.Transaction))
+			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
 		}
 	}()
 
 	go func() {
-		for msg := range client.Recv() {
+		for msg := range mem.qclient.Recv() {
 			mlog.Info("mempool recv", "msg", msg)
 			if msg.Ty == types.EventTx {
 				// 消息类型EventTx：申请添加交易到Mempool
@@ -411,18 +392,18 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				}
 			} else if msg.Ty == types.EventGetMempool {
 				// 消息类型EventGetMempool：获取Mempool内所有交易
-				msg.Reply(client.NewMessage("rpc", types.EventReplyTxList,
+				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
 			} else if msg.Ty == types.EventTxList {
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
-				msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
+				msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 					&types.ReplyTxList{mem.GetTxList(10000)}))
 			} else if msg.Ty == types.EventAddBlock {
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
 			} else if msg.Ty == types.EventGetMempoolSize {
 				// 消息类型EventGetMempoolSize：获取Mempool大小
-				msg.Reply(client.NewMessage("rpc", types.EventMempoolSize,
+				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{int64(mem.Size())}))
 			} else {
 				continue
