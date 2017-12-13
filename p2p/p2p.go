@@ -35,12 +35,10 @@ func (network *P2p) Close() {
 func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.GetClient()
 	network.q = q
-
 	//network.node.q = network.q
 	network.node.setQueue(q)
 	network.node.Start()
 	network.subP2pMsg()
-
 }
 
 func (network *P2p) subP2pMsg() {
