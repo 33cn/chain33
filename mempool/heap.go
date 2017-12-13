@@ -57,11 +57,13 @@ func (pq *PriorityQueue) Remove(index int) interface{} {
 	return p
 }
 
+// 返回第一个元素
 func (pq *PriorityQueue) Top() interface{} {
 	p := *pq
 	return p[0]
 }
 
+// 查找指定位置的元素
 func (pq *PriorityQueue) Find(i int) interface{} {
 	p := *pq
 	return p[i]
