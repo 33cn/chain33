@@ -513,6 +513,7 @@ message P2P {
 	string          dbPath=2;
 	bool            isSeed=3;
 	repeated string seeds=4;
+	bool enable=5;
 }
 
 message Wallet{

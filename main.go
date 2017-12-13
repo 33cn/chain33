@@ -20,6 +20,7 @@ import (
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/store"
+	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -48,9 +49,12 @@ func main() {
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueue(q)
 
-	log.Info("loading p2p module")
-	network := p2p.New(cfg.P2P)
-	network.SetQueue(q)
+	var network *p2p.P2p
+	if cfg.P2P.Enable {
+		log.Info("loading p2p module")
+		network = p2p.New(cfg.P2P)
+		network.SetQueue(q)
+	}
 
 	log.Info("loading execs module")
 	exec := execs.New()
@@ -63,6 +67,11 @@ func main() {
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus)
 	cs.SetQueue(q)
+
+	log.Info("loading wallet module")
+	walletm := wallet.New(cfg.Wallet)
+	walletm.SetQueue(q)
+
 	//jsonrpc, grpc, channel 三种模式
 	api := rpc.NewServer("jsonrpc", ":8801")
 	api.SetQueue(q)
@@ -73,11 +82,14 @@ func main() {
 	//close all module,clean some resource
 	chain.Close()
 	mem.Close()
-	network.Close()
+	if cfg.P2P.Enable {
+		network.Close()
+	}
 	exec.Close()
 	s.Close()
 	cs.Close()
 	api.Close()
 	gapi.Close()
 	q.Close()
+	walletm.Close()
 }
