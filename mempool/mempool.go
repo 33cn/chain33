@@ -57,20 +57,20 @@ type channelClient struct {
 }
 
 // channelClient.SendTx向"p2p"发送消息
-func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
+func (client *channelClient) SendTx(tx *types.Transaction) {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
 
 	msg := client.qclient.NewMessage("p2p", types.EventTxBroadcast, tx)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	client.qclient.Send(msg, false)
+	//	resp, err := client.qclient.Wait(msg)
 
-	if err != nil {
-		resp.Data = err
-	}
+	//	if err != nil {
+	//		resp.Data = err
+	//	}
 
-	return resp
+	//	return resp
 }
 
 // channelClient.GetLastHeader获取LastHeader的height和blockTime
@@ -391,7 +391,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	// 从goodChan读取好消息，并回复正确信息
 	go func() {
 		for m := range mem.goodChan {
-			// chanClient.SendTx(m.GetData().(*types.Transaction))
+			chanClient.SendTx(m.GetData().(*types.Transaction))
 			m.Reply(client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
 		}
 	}()
