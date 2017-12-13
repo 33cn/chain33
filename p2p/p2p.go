@@ -30,6 +30,7 @@ func New(cfg *types.P2P) *P2p {
 }
 
 func (network *P2p) Close() {
+	network.node.Stop()
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {

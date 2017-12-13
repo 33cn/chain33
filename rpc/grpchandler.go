@@ -11,10 +11,8 @@ type Grpc struct {
 }
 
 func (req *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
-
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.gserver.q)
-
 	reply := cli.SendTx(in)
 	return &pb.Reply{IsOk: true, Msg: reply.GetData().(*pb.Reply).Msg}, reply.Err()
 

@@ -11,17 +11,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-func newconn() (conn *grpc.ClientConn, c types.GrpcserviceClient) {
+func TestGrpcSendToAddress(t *testing.T) {
 	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
 	if err != nil {
-		panic(err)
+		t.Error(err)
+		return
 	}
 	//defer conn.Close()
-	c = types.NewGrpcserviceClient(conn)
-	return conn, c
-}
-
-func TestGrpcSendToAddress(t *testing.T) {
+	c := types.NewGrpcserviceClient(conn)
 
 	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
@@ -54,23 +51,9 @@ func TestGrpcSendToAddress(t *testing.T) {
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: addrto.String()}
 	tx.Sign(types.SECP256K1, priv)
 	// Contact the server and print out its response.
-	conn, c := newconn()
-	defer conn.Close()
 	_, err = c.SendTransaction(context.Background(), tx)
 	if err != nil {
 		t.Error(err)
 	}
-}
-
-func TestWalletNewAccount(t *testing.T) {
-	req := &types.ReqNewAccount{}
-	req.Label = "hello"
-
-	conn, c := newconn()
-	defer conn.Close()
-	acc, err := c.NewAccount(context.Background(), req)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Log(acc)
+	conn.Close()
 }
