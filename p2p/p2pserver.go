@@ -114,7 +114,7 @@ func (s p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error
 
 		log.Debug("RemoteAddr", "Addr", remoteaddr)
 		if s.checkSign(in) == true {
-			//TODO	s.update(remoteaddr)
+			//TODO	待处理详细逻辑
 			log.Debug("PING CHECK SIGN SUCCESS")
 		}
 
@@ -215,10 +215,6 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 		return nil, err
 	}
 
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-
 	headers := resp.Data.(*pb.Headers)
 	var invs = make([]*pb.Inventory, 0)
 	for _, item := range headers.Items {
@@ -262,9 +258,7 @@ func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvData
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	txlist := resp.GetData().(*pb.ReplyTxList)
 	txs := txlist.GetTxs()
 	var txmap = make(map[string]*pb.Transaction)
@@ -319,9 +313,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	headers := resp.GetData().(*pb.Headers)
 
 	return &pb.P2PHeaders{Headers: headers.GetItems()}, nil
@@ -337,9 +329,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	meminfo := resp.GetData().(*pb.MempoolSize)
 	var peerinfo pb.P2PPeerInfo
 
@@ -370,14 +360,12 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
 	client := s.q.GetClient()
-	msg := client.NewMessage("blockchain", pb.EventBlockBroadcast, in.GetBlock())
+	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.GetData().(*pb.Reply), nil
 }

@@ -127,6 +127,13 @@ func initAddr(cfg *pb.P2P) {
 
 		defer log.Debug("Addrs", "LocalAddr", LOCALADDR, "ExternalAddr", EXTERNALADDR)
 		time.Sleep(time.Second * 10)
+		if len(cfg.Seeds) == 0 {
+			return
+		}
+		//TODO 增加校验IP格式的方法,目前临时方法，不完善
+		if strings.Contains(cfg.Seeds[0], ":") == false {
+			return
+		}
 		serveraddr := strings.Split(cfg.Seeds[0], ":")[0]
 		var trytimes uint = 3
 		for {
