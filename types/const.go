@@ -79,6 +79,7 @@ const (
 	EventWalletLock         = 51
 	EventWalletUnLock       = 52
 	EventTransactionDetails = 53
+	EventBroadcastAddBlock  = 54
 )
 
 var eventname = map[int]string{
@@ -135,6 +136,7 @@ var eventname = map[int]string{
 	51: "EventWalletLock",
 	52: "EventWalletUnLock",
 	53: "EventTransactionDetails",
+	54: "EventBroadcastAddBlock",
 }
 
 func GetEventName(event int) string {
