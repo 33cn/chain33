@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"net"
+
 	"code.aliyun.com/chain33/chain33/queue"
 )
 
@@ -23,8 +25,9 @@ type IServer interface {
 
 //channelServer 不需要做任何的事情，grpc 和 jsonrpc 需要建立服务，监听
 type channelServer struct {
-	q *queue.Queue
-	c queue.IClient
+	q        *queue.Queue
+	c        queue.IClient
+	listener net.Listener
 }
 
 func newChannelServer() *channelServer {
@@ -42,6 +45,7 @@ func (server *channelServer) GetQueue() *queue.Queue {
 }
 
 func (server *channelServer) Close() {
+	server.listener.Close()
 }
 
 type grpcServer struct {
@@ -59,7 +63,7 @@ func newGrpcServer(addr string) *grpcServer {
 }
 
 func (r *grpcServer) Close() {
-
+	r.listener.Close()
 }
 
 func newJsonrpcServer(addr string) *jsonrpcServer {
@@ -67,8 +71,4 @@ func newJsonrpcServer(addr string) *jsonrpcServer {
 	server.CreateServer(addr)
 
 	return server
-}
-
-func (r *jsonrpcServer) Close() {
-
 }

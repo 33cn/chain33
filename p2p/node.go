@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
+
 	"time"
 
 	"net"
@@ -56,7 +55,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	node := &Node{
 
 		outBound:     make(map[string]*peer),
-		addrBook:     NewAddrBook(cfg.GetDbPath()+"addrbook.json", true),
+		addrBook:     NewAddrBook(cfg.GetDbPath()+"/addrbook.json", true),
 		localPort:    uint16(rand.Intn(64512) + 1023),
 		externalPort: uint16(rand.Intn(64512) + 1023),
 	}
@@ -338,11 +337,8 @@ func (n *Node) Start() {
 	//连接种子节点，或者导入远程节点文件信息
 	log.Debug("Load", "Load addrbook")
 	n.loadAddrBook()
-	//n.dialSeeds(p2pconf.Seed.Seeds)
-	//peer 的管理
-
 	go n.monitor()
-	go catchSignal(n)
+
 	return
 }
 
@@ -353,19 +349,5 @@ func (n *Node) Stop() {
 	for _, peer := range n.outBound {
 		peer.Stop()
 	}
-
-}
-
-func catchSignal(n *Node) {
-	go func(n *Node) {
-		c := make(chan os.Signal)
-		signal.Notify(c, syscall.SIGINT, syscall.SIGHUP) //Ctr+C,kill
-
-		catch := <-c
-		log.Warn("Warn", "Game Over", "Process Will Done In 2 Secondes...", "Signal:", catch)
-		time.Sleep(time.Second * 2)
-		n.Stop()
-		os.Exit(0)
-	}(n)
 
 }

@@ -10,7 +10,10 @@ import (
 )
 
 type msg struct {
-	network *P2p
+	network   *P2p
+	msgStatus chan bool
+	tempdata  map[interface{}]*pb.Block
+	peers     []*peer
 }
 
 func NewInTrans(network *P2p) *msg {
@@ -20,6 +23,10 @@ func NewInTrans(network *P2p) *msg {
 }
 
 func (m *msg) TransToBroadCast(msg *queue.Message) {
+	if len(m.network.node.outBound) == 0 {
+		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
+		return
+	}
 	//开始广播消息
 	//log.Debug("TransToBroadCast", "start broadcast", data)
 	for _, peer := range m.network.node.outBound {
@@ -110,34 +117,115 @@ func (m *msg) GetPeerInfo(msg *queue.Message) {
 }
 
 func (m *msg) GetBlocks(msg *queue.Message) {
-
+	if len(m.network.node.outBound) == 0 {
+		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventAddBlocks, pb.Reply{false, []byte("no peers")}))
+		return
+	}
 	//TODO 第一步获取下载列表，第二步分配不同的节点分段下载需要的数据
-	var blocks = make([]*pb.Block, 0)
+	//var blocks = make([]*pb.Block, 0)
+	var blocks pb.Blocks
 	requst := msg.GetData().(*pb.ReqBlocks)
+	var MaxInvs = new(pb.P2PInv)
+	m.peers = make([]*peer, 0)
+	//获取最大的下载列表
 	for _, peer := range m.network.node.outBound {
+
 		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: requst.GetStart(), EndHeight: requst.GetEnd()})
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
 		peer.mconn.sendMonitor.Update(true)
-		invdatas, err := peer.mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: invs.GetInvs()})
-		if err != nil {
-			peer.mconn.sendMonitor.Update(false)
-			continue
+		if len(invs.Invs) > len(MaxInvs.Invs) {
+			MaxInvs = invs
+			if len(MaxInvs.GetInvs()) == int(requst.GetEnd()-requst.GetStart())+1 {
+				break
+			}
 		}
 
-		peer.mconn.sendMonitor.Update(true)
-		for _, item := range invdatas.Items {
-			blocks = append(blocks, item.GetBlock())
-		}
-		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventBlocks, blocks))
-		break
 	}
 
+	m.LoadPeers()
+	intervals := m.CaculateInterval(len(MaxInvs.GetInvs()))
+	m.msgStatus = make(chan bool, len(intervals))
+	//分段下载
+	for k, info := range intervals {
+		go m.DownloadBlock(k, info, MaxInvs)
+	}
+	//等待所有 goroutin 结束
+	m.Wait(len(intervals))
+	//返回数据
+	for _, block := range m.tempdata {
+		blocks.Items = append(blocks.Items, block)
+	}
+	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventBlocks, &blocks))
+
+}
+func (m *msg) LoadPeers() {
+	for _, peer := range m.network.node.outBound {
+		m.peers = append(m.peers, peer)
+	}
+}
+func (m *msg) Wait(thnum int) {
+	var count int
+	for {
+		<-m.msgStatus
+		count++
+		if count == thnum {
+			break
+		}
+	}
 }
 
+type intervalInfo struct {
+	start int
+	end   int
+}
+
+func (m *msg) DownloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
+	for i := 0; i < len(m.network.node.outBound); i++ {
+		index = index % len(m.network.node.outBound)
+		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: invs.Invs[interval.start:interval.end]})
+		if err != nil {
+			m.peers[index].mconn.sendMonitor.Update(false)
+			index++
+			continue
+		}
+		for _, item := range invdatas.Items {
+			m.tempdata[item.GetBlock().Hash()] = item.GetBlock()
+		}
+		break
+	}
+	m.msgStatus <- true
+
+}
+func (m *msg) CaculateInterval(invsNum int) map[int]*intervalInfo {
+	var result = make(map[int]*intervalInfo)
+	peerNum := len(m.network.node.outBound)
+	if invsNum < peerNum {
+		result[0] = &intervalInfo{start: 0, end: invsNum}
+		return result
+	}
+	var interval = invsNum / len(m.network.node.outBound)
+	var start, end int
+	end = interval
+	for i := 0; i < len(m.network.node.outBound); i++ {
+		end += start
+		if end > invsNum || i == len(m.network.node.outBound)-1 {
+			end = invsNum
+		}
+		result[i] = &intervalInfo{start: start, end: end}
+		start += end
+	}
+
+	return result
+
+}
 func (m *msg) BlockBroadcast(msg *queue.Message) {
+	if len(m.network.node.outBound) == 0 {
+		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
+		return
+	}
 	block := msg.GetData().(*pb.Block)
 	for _, peer := range m.network.node.outBound {
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})

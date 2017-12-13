@@ -17,6 +17,7 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	types.Decode(common.FromHex(in.Data), &parm)
 	fmt.Println("parm", parm)
 	cli := NewClient("channel", "")
+
 	cli.SetQueue(req.jserver.q)
 	reply := cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
@@ -138,7 +139,7 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 
 }
 
-func (req Chain33) GetLastHeader(result *interface{}) error {
+func (req Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetLastHeader()
@@ -233,7 +234,7 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetMempool(result *interface{}) error {
+func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetMempool()
@@ -292,11 +293,20 @@ func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error
 	return nil
 }
 
-func (req Chain33) WalletTxList(in types.ReqWalletTransactionList, result *interface{}) error {
+type ReqWalletTransactionList struct {
+	FromTx    string
+	Count     int32
+	Direction int32
+}
+
+func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}) error {
+	var parm types.ReqWalletTransactionList
+	parm.FromTx = common.FromHex(in.FromTx)
+	parm.Count = in.Count
+	parm.Direction = in.Direction
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
-
-	reply, err := cli.WalletTxList(&in)
+	reply, err := cli.WalletTxList(&parm)
 	if err != nil {
 		return err
 	}
@@ -333,13 +343,6 @@ func (req Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interf
 	}
 	*result = reply
 	return nil
-}
-
-type ReqWalletSendToAddress struct {
-	From   string `protobuf:"bytes,1,opt,name=from" json:"from,omitempty"`
-	To     string `protobuf:"bytes,2,opt,name=to" json:"to,omitempty"`
-	Amount int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
-	Note   string `protobuf:"bytes,4,opt,name=note" json:"note,omitempty"`
 }
 
 func (req Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
@@ -419,7 +422,7 @@ func (req Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) e
 	GetPeerInfo() (*types.PeerList, error)
 */
 
-func (req Chain33) Lock(result *interface{}) error {
+func (req Chain33) Lock(in types.ReqNil, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.Lock()
@@ -441,7 +444,7 @@ func (req Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetPeerInfo(result *interface{}) error {
+func (req Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
 	cli := NewClient("channel", "")
 	cli.SetQueue(req.jserver.q)
 	reply, err := cli.GetPeerInfo()
