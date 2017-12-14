@@ -2,9 +2,6 @@ package p2p
 
 import (
 	"time"
-
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 )
 
 var (
@@ -26,7 +23,6 @@ var (
 	DefaultPort  = 13802
 	LOCALADDR    string
 	EXTERNALADDR string
-	pbase        *NodeBase
 )
 
 const (
@@ -52,38 +48,3 @@ const (
 var (
 	SERVICE int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
 )
-
-type NodeBase struct {
-	pubKey       []byte      `json:"pub_key"`
-	network      string      `json:"network"`
-	externalAddr *NetAddress `json:"remote_addr"`
-	listenAddr   *NetAddress `json:"listen_addr"`
-	version      string      `json:"version"` // major.minor.revision
-	monitorChan  chan *peer
-	cfg          *types.P2P
-	q            *queue.Queue
-	other        []string `json:"other"` // other application specific data
-}
-
-func (b *NodeBase) Set(n *NodeBase) {
-	b = n
-}
-
-func (b *NodeBase) Get() *NodeBase {
-	return b
-}
-func (b *NodeBase) SetExternalAddr(addr *NetAddress) {
-	b.externalAddr = addr
-}
-
-func (b *NodeBase) GetExternalAddr() *NetAddress {
-	return b.externalAddr
-}
-
-func (b *NodeBase) SetListenAddr(addr *NetAddress) {
-	b.listenAddr = addr
-}
-
-func (b *NodeBase) GetListenAddr() *NetAddress {
-	return b.listenAddr
-}

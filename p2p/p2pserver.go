@@ -9,20 +9,15 @@ import (
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/rpc"
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
 	pr "google.golang.org/grpc/peer"
 )
 
 type p2pServer struct {
-	imtx     sync.Mutex
-	q        *queue.Queue
-	book     *AddrBook
-	nodeinfo *NodeBase
-	InBound  map[string]*pb.P2PVersion
-	OutBound map[string]*peer
+	imtx    sync.Mutex
+	node    *Node
+	InBound map[string]*pb.P2PVersion
 }
 
 func (s *p2pServer) addInBound(in *pb.P2PVersion) {
@@ -128,21 +123,24 @@ func (s p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error
 
 // 获取地址
 func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
-	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", len(s.OutBound))
-	var addrlist = make([]string, 0)
-	if len(s.OutBound) != 0 {
-		for peeraddr, _ := range s.OutBound {
-			addrlist = append(addrlist, peeraddr)
-		}
-	}
+	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", s.node.Size())
+	addrBucket := make(map[string]bool, 0)
+	peers := s.node.GetPeers()
+	for _, peer := range peers {
+		addrBucket[peer.Addr()] = true
 
-	for peeraddr, _ := range s.book.addrPeer {
-		addrlist = append(addrlist, peeraddr)
-		if len(addrlist) > MaxAddrListNum { //最多一次性返回256个地址
+	}
+	addrList := s.node.addrBook.GetAddrs()
+	for _, addr := range addrList {
+		addrBucket[addr] = true
+		if len(addrBucket) > MaxAddrListNum { //最多一次性返回256个地址
 			break
 		}
 	}
-
+	var addrlist = make([]string, 0)
+	for addr, _ := range addrBucket {
+		addrlist = append(addrlist, addr)
+	}
 	return &pb.P2PAddr{Nonce: in.Nonce, Addrlist: addrlist}, nil
 }
 
@@ -154,7 +152,7 @@ func (s *p2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 	remoteNetwork, _ := NewNetAddressString(remoteaddr)
 
 	log.Debug("RECV PEER VERSION", "VERSION", *in)
-	s.book.addAddress(remoteNetwork)
+	s.node.addrBook.addAddress(remoteNetwork)
 	return &pb.P2PVerAck{Version: Version, Service: 6, Nonce: in.Nonce}, nil
 }
 func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
@@ -170,7 +168,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
 		remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 		if err == nil && in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM {
-			s.book.addAddress(remoteNetwork)
+			s.node.addrBook.addAddress(remoteNetwork)
 		}
 	}
 
@@ -190,7 +188,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("RECV TRANSACTION", "in", in)
 	//发送给消息队列Queue
-	client := s.q.GetClient()
+	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
@@ -206,7 +204,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 	}
 
 	//TODO GetHeaders
-	client := s.q.GetClient()
+	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
 		Isdetail: false})
 	client.Send(msg, true)
@@ -230,7 +228,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 //服务端查询本地mempool
 func (s *p2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
 	log.Debug("GetMempool", "version", in)
-	client := s.q.GetClient()
+	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
@@ -251,7 +249,7 @@ func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvData
 	log.Debug("GetDataTx", "p2p version", in.GetVersion())
 	var p2pInvData = make([]*pb.InvData, 0)
 	//先获取本地mempool 模块的交易
-	client := s.q.GetClient()
+	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
@@ -279,14 +277,16 @@ func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvData
 			}
 
 		} else if inv.GetTy() == MSG_BLOCK {
-			cli := rpc.NewClient("channel", "")
-			cli.SetQueue(s.q)
 			height := inv.GetHeight() //TODO
-			blocks, err := cli.GetBlocks(height, height, false)
+			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false})
+			client.Send(msg, true)
+			resp, err := client.Wait(msg)
 			if err != nil {
 				log.Error("GetBlocks Err", "Err", err.Error())
 				continue
 			}
+
+			blocks := resp.Data.(*pb.BlockDetails)
 			for _, item := range blocks.Items {
 				invdata.Ty = MSG_BLOCK
 				invdata.Value = &pb.InvData_Block{Block: item.Block}
@@ -306,7 +306,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 		return nil, fmt.Errorf("out of range")
 	}
 
-	client := s.q.GetClient()
+	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeigh()})
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
@@ -322,7 +322,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
 	//log.Debug("GetPeerInfo", "p2p version", in.version)
 
-	client := s.q.GetClient()
+	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
@@ -333,7 +333,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	meminfo := resp.GetData().(*pb.MempoolSize)
 	var peerinfo pb.P2PPeerInfo
 
-	pub, err := Pubkey(s.book.key)
+	pub, err := Pubkey(s.node.addrBook.key)
 	if err != nil {
 		log.Error("getpubkey", "error", err.Error())
 	}
@@ -354,12 +354,12 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	peerinfo.Name = pub
 	peerinfo.MempoolSize = int32(meminfo.GetSize())
 	peerinfo.Addr = EXTERNALADDR
-	peerinfo.Port = int32(s.nodeinfo.externalAddr.Port)
+	peerinfo.Port = int32(s.node.nodeInfo.externalAddr.Port)
 	return &peerinfo, nil
 }
 
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
-	client := s.q.GetClient()
+	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)

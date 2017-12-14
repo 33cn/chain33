@@ -23,13 +23,14 @@ func NewInTrans(network *P2p) *msg {
 }
 
 func (m *msg) TransToBroadCast(msg *queue.Message) {
-	if len(m.network.node.outBound) == 0 {
+	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
 	//开始广播消息
 	//log.Debug("TransToBroadCast", "start broadcast", data)
-	for _, peer := range m.network.node.outBound {
+	peers := m.network.node.GetPeers()
+	for _, peer := range peers {
 		_, err := peer.mconn.conn.BroadCastTx(context.Background(), msg.GetData().(*pb.P2PTx))
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
@@ -47,7 +48,8 @@ func (m *msg) GetMemPool(msg *queue.Message) {
 
 	var Txs = make([]*pb.Transaction, 0)
 	var needhash = make([]*pb.Inventory, 0)
-	for _, peer := range m.network.node.outBound {
+	peers := m.network.node.GetPeers()
+	for _, peer := range peers {
 		//获取远程 peer invs
 		resp, err := peer.mconn.conn.GetMemPool(context.Background(), &pb.P2PGetMempool{Version: Version})
 		if err != nil {
@@ -98,7 +100,8 @@ func (m *msg) GetMemPool(msg *queue.Message) {
 //收到BlockChain 模块的请求，获取PeerInfo
 func (m *msg) GetPeerInfo(msg *queue.Message) {
 	var peerlist = make([]*pb.Peer, 0)
-	for _, peer := range m.network.node.outBound {
+	peers := m.network.node.GetPeers()
+	for _, peer := range peers {
 		//peer.mconn.conn.get
 		peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
 		if err != nil {
@@ -124,11 +127,13 @@ func (m *msg) GetBlocks(msg *queue.Message) {
 	//TODO 第一步获取下载列表，第二步分配不同的节点分段下载需要的数据
 	//var blocks = make([]*pb.Block, 0)
 	var blocks pb.Blocks
+
 	requst := msg.GetData().(*pb.ReqBlocks)
 	var MaxInvs = new(pb.P2PInv)
 	m.peers = make([]*peer, 0)
 	//获取最大的下载列表
-	for _, peer := range m.network.node.outBound {
+	peers := m.network.node.GetPeers()
+	for _, peer := range peers {
 
 		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: requst.GetStart(), EndHeight: requst.GetEnd()})
 		if err != nil {
@@ -162,9 +167,8 @@ func (m *msg) GetBlocks(msg *queue.Message) {
 
 }
 func (m *msg) LoadPeers() {
-	for _, peer := range m.network.node.outBound {
-		m.peers = append(m.peers, peer)
-	}
+
+	m.peers = append(m.peers, m.network.node.GetPeers()...)
 }
 func (m *msg) Wait(thnum int) {
 	var count int
@@ -183,8 +187,9 @@ type intervalInfo struct {
 }
 
 func (m *msg) DownloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
-	for i := 0; i < len(m.network.node.outBound); i++ {
-		index = index % len(m.network.node.outBound)
+	peersize := m.network.node.Size()
+	for i := 0; i < peersize; i++ {
+		index = index % peersize
 		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: invs.Invs[interval.start:interval.end]})
 		if err != nil {
 			m.peers[index].mconn.sendMonitor.Update(false)
@@ -201,7 +206,7 @@ func (m *msg) DownloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 }
 func (m *msg) CaculateInterval(invsNum int) map[int]*intervalInfo {
 	var result = make(map[int]*intervalInfo)
-	peerNum := len(m.network.node.outBound)
+	peerNum := m.network.node.Size()
 	if invsNum < peerNum {
 		result[0] = &intervalInfo{start: 0, end: invsNum}
 		return result
@@ -222,12 +227,13 @@ func (m *msg) CaculateInterval(invsNum int) map[int]*intervalInfo {
 
 }
 func (m *msg) BlockBroadcast(msg *queue.Message) {
-	if len(m.network.node.outBound) == 0 {
+	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
 	block := msg.GetData().(*pb.Block)
-	for _, peer := range m.network.node.outBound {
+	peers := m.network.node.GetPeers()
+	for _, peer := range peers {
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
 		if err != nil {
 			log.Error("SendBlock", "Error", err.Error())
