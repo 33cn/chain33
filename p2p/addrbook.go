@@ -19,13 +19,12 @@ const (
 
 //peer address manager
 type AddrBook struct {
-	mtx               sync.Mutex
-	ourAddrs          map[string]*NetAddress
-	addrPeer          map[string]*knownAddress
-	routabilityStrict bool
-	filePath          string
-	key               string
-	Quit              chan struct{}
+	mtx      sync.Mutex
+	ourAddrs map[string]*NetAddress
+	addrPeer map[string]*knownAddress
+	filePath string
+	key      string
+	Quit     chan struct{}
 }
 
 type knownAddress struct {
@@ -36,14 +35,13 @@ type knownAddress struct {
 	LastSuccess time.Time
 }
 
-func NewAddrBook(filePath string, routabilityStrict bool) *AddrBook {
+func NewAddrBook(filePath string) *AddrBook {
 	peers := make(map[string]*knownAddress, 0)
 	a := &AddrBook{
-		ourAddrs:          make(map[string]*NetAddress),
-		addrPeer:          peers,
-		filePath:          filePath,
-		routabilityStrict: routabilityStrict,
-		Quit:              make(chan struct{}),
+		ourAddrs: make(map[string]*NetAddress),
+		addrPeer: peers,
+		filePath: filePath,
+		Quit:     make(chan struct{}),
 	}
 
 	a.init()
@@ -233,7 +231,7 @@ func (a *AddrBook) addAddress(addr *NetAddress) {
 		return
 	}
 
-	if a.routabilityStrict && !addr.Routable() {
+	if !addr.Routable() {
 		log.Error("Cannot add non-routable address %v", addr)
 		return
 	}
@@ -267,4 +265,24 @@ func (a *AddrBook) RemoveAddr(peeraddr string) {
 		delete(a.addrPeer, peeraddr)
 	}
 
+}
+
+func (a *AddrBook) GetPeers() []*NetAddress {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	peerlist := make([]*NetAddress, 0)
+	for _, peer := range a.addrPeer {
+		peerlist = append(peerlist, peer.Addr)
+	}
+	return peerlist
+}
+
+func (a *AddrBook) GetAddrs() []string {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	addrlist := make([]string, 0)
+	for _, peer := range a.addrPeer {
+		addrlist = append(addrlist, peer.Addr.String())
+	}
+	return addrlist
 }

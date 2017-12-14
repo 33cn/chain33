@@ -14,7 +14,7 @@ import (
 )
 
 type MConnection struct {
-	nodeInfo      **NodeBase
+	nodeInfo      **NodeInfo
 	gconn         *grpc.ClientConn
 	conn          pb.P2PgserviceClient // source connection
 	config        *MConnConfig
