@@ -28,26 +28,26 @@ func (m *msg) TransToBroadCast(msg *queue.Message) {
 		return
 	}
 	//开始广播消息
-	//log.Debug("TransToBroadCast", "start broadcast", data)
+	log.Debug("TransToBroadCast", "start broadcast", msg.GetData())
 	peers := m.network.node.GetPeers()
 	for _, peer := range peers {
-		_, err := peer.mconn.conn.BroadCastTx(context.Background(), msg.GetData().(*pb.P2PTx))
+		_, err := peer.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
-			msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte(err.Error())}))
 			continue
 		}
 		peer.mconn.sendMonitor.Update(true)
-		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 	}
+
+	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 
 }
 
-//收到Mempool 模块获取mempool 的请求
+//TODO 收到Mempool 模块获取mempool 的请求,从高度最高的节点 下载invs
 func (m *msg) GetMemPool(msg *queue.Message) {
 
 	var Txs = make([]*pb.Transaction, 0)
-	var needhash = make([]*pb.Inventory, 0)
+	var ableInv = make([]*pb.Inventory, 0)
 	peers := m.network.node.GetPeers()
 	for _, peer := range peers {
 		//获取远程 peer invs
@@ -58,7 +58,7 @@ func (m *msg) GetMemPool(msg *queue.Message) {
 		}
 		peer.mconn.sendMonitor.Update(true)
 		invs := resp.GetInvs()
-		//TODO 与本地mempool 对比 tx数组
+		//与本地mempool 对比 tx数组
 		msg := m.network.c.NewMessage("mempool", pb.EventGetMempool, nil)
 		m.network.c.Send(msg, true)
 		txresp, err := m.network.c.Wait(msg)
@@ -69,31 +69,26 @@ func (m *msg) GetMemPool(msg *queue.Message) {
 		txs := txlist.GetTxs()
 		var txmap = make(map[string]*pb.Transaction)
 		for _, tx := range txs {
-			//txhash=tx.Hash()
 			txmap[hex.EncodeToString(tx.Hash())] = tx
 		}
-		//check
+
+		//去重过滤
 		for _, inv := range invs {
 			if _, ok := txmap[hex.EncodeToString(inv.Hash)]; !ok {
-
-				needhash = append(needhash, inv)
+				ableInv = append(ableInv, inv)
 			}
 		}
-		//TODO 获取真正的交易Tx
-		//call GetData
-		p2pInvDatas, err := peer.mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: needhash, Version: Version})
+		//获取真正的交易Tx call GetData
+		p2pInvDatas, err := peer.mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: ableInv, Version: Version})
 		if err != nil {
 			continue
 		}
 		for _, invdata := range p2pInvDatas.Items {
 			Txs = append(Txs, invdata.GetTx())
 		}
-
+		break
 	}
-	//	pb.ReplyTxList.Txs
-	var rtxlist pb.ReplyTxList
-	rtxlist.Txs = Txs
-	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReplyTxList, rtxlist))
+	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
 
 }
 
@@ -108,7 +103,6 @@ func (m *msg) GetPeerInfo(msg *queue.Message) {
 			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
-
 		peer.mconn.sendMonitor.Update(true)
 		peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 
@@ -119,23 +113,23 @@ func (m *msg) GetPeerInfo(msg *queue.Message) {
 	return
 }
 
+//TODO 立刻返回数据 ，然后把下载的数据用事件通知对方,异步操作
 func (m *msg) GetBlocks(msg *queue.Message) {
 	if len(m.network.node.outBound) == 0 {
-		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventAddBlocks, pb.Reply{false, []byte("no peers")}))
+		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
-	//TODO 第一步获取下载列表，第二步分配不同的节点分段下载需要的数据
-	//var blocks = make([]*pb.Block, 0)
-	var blocks pb.Blocks
+	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
-	requst := msg.GetData().(*pb.ReqBlocks)
+	// 第一步获取下载列表，第二步分配不同的节点分段下载需要的数据
+	var blocks pb.Blocks
+	req := msg.GetData().(*pb.ReqBlocks)
 	var MaxInvs = new(pb.P2PInv)
 	m.peers = make([]*peer, 0)
 	//获取最大的下载列表
 	peers := m.network.node.GetPeers()
 	for _, peer := range peers {
-
-		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: requst.GetStart(), EndHeight: requst.GetEnd()})
+		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd()})
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
 			continue
@@ -143,34 +137,35 @@ func (m *msg) GetBlocks(msg *queue.Message) {
 		peer.mconn.sendMonitor.Update(true)
 		if len(invs.Invs) > len(MaxInvs.Invs) {
 			MaxInvs = invs
-			if len(MaxInvs.GetInvs()) == int(requst.GetEnd()-requst.GetStart())+1 {
+			if len(MaxInvs.GetInvs()) == int(req.GetEnd()-req.GetStart())+1 {
 				break
 			}
 		}
-
 	}
 
-	m.LoadPeers()
-	intervals := m.CaculateInterval(len(MaxInvs.GetInvs()))
+	m.loadPeers()
+	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
 	m.msgStatus = make(chan bool, len(intervals))
 	//分段下载
-	for k, info := range intervals {
-		go m.DownloadBlock(k, info, MaxInvs)
+	for index, interval := range intervals {
+		go m.downloadBlock(index, interval, MaxInvs)
 	}
 	//等待所有 goroutin 结束
-	m.Wait(len(intervals))
+	m.wait(len(intervals))
 	//返回数据
 	for _, block := range m.tempdata {
 		blocks.Items = append(blocks.Items, block)
 	}
-	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventBlocks, &blocks))
+
+	//作为事件，发送给blockchain,事件是 EventAddBlocks
+	newmsg := m.network.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventAddBlocks, &blocks)
+	m.network.node.nodeInfo.qclient.Send(newmsg, false)
 
 }
-func (m *msg) LoadPeers() {
-
+func (m *msg) loadPeers() {
 	m.peers = append(m.peers, m.network.node.GetPeers()...)
 }
-func (m *msg) Wait(thnum int) {
+func (m *msg) wait(thnum int) {
 	var count int
 	for {
 		<-m.msgStatus
@@ -186,7 +181,7 @@ type intervalInfo struct {
 	end   int
 }
 
-func (m *msg) DownloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
+func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
 	peersize := m.network.node.Size()
 	for i := 0; i < peersize; i++ {
 		index = index % peersize
@@ -204,19 +199,19 @@ func (m *msg) DownloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 	m.msgStatus <- true
 
 }
-func (m *msg) CaculateInterval(invsNum int) map[int]*intervalInfo {
+func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {
 	var result = make(map[int]*intervalInfo)
 	peerNum := m.network.node.Size()
 	if invsNum < peerNum {
 		result[0] = &intervalInfo{start: 0, end: invsNum}
 		return result
 	}
-	var interval = invsNum / len(m.network.node.outBound)
+	var interval = invsNum / peerNum
 	var start, end int
 	end = interval
-	for i := 0; i < len(m.network.node.outBound); i++ {
+	for i := 0; i < peerNum; i++ {
 		end += start
-		if end > invsNum || i == len(m.network.node.outBound)-1 {
+		if end > invsNum || i == peerNum-1 {
 			end = invsNum
 		}
 		result[i] = &intervalInfo{start: start, end: end}
@@ -236,12 +231,10 @@ func (m *msg) BlockBroadcast(msg *queue.Message) {
 	for _, peer := range peers {
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
 		if err != nil {
-			log.Error("SendBlock", "Error", err.Error())
-			msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte(err.Error())}))
+			log.Error("BlockBroadcast", "Error", err.Error())
 			continue
 		}
-
-		log.Debug("SendBlock", "Resp", resp)
-		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
+		log.Debug("BlockBroadcast", "Resp", resp)
 	}
+	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 }
