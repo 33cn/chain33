@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"code.aliyun.com/chain33/chain33/p2p/nat"
-	"code.aliyun.com/chain33/chain33/queue"
+	//"code.aliyun.com/chain33/chain33/queue"
 	pb "code.aliyun.com/chain33/chain33/types"
 
 	"google.golang.org/grpc"
@@ -21,8 +21,7 @@ type Listener interface {
 // Implements Listener
 type DefaultListener struct {
 	listener net.Listener
-	nodeInfo *NodeBase
-	q        *queue.Queue
+	nodeInfo *NodeInfo
 	c        chan struct{}
 	n        *Node
 }
@@ -39,7 +38,6 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	dl := &DefaultListener{
 		listener: listener,
 		nodeInfo: node.nodeInfo,
-		q:        node.q,
 		c:        C,
 		n:        node,
 	}
@@ -91,10 +89,10 @@ func (l *DefaultListener) listenRoutine() {
 	log.Debug("LISTENING", "Start Listening+++++++++++++++++Port", l.nodeInfo.listenAddr.Port)
 
 	pServer := NewP2pServer()
-	pServer.q = l.q
-	pServer.book = l.n.addrBook
-	pServer.OutBound = l.n.outBound
-	pServer.nodeinfo = l.nodeInfo
+	//pServer.q = l.nodeInfo.q
+	//pServer.book = l.n.addrBook
+	pServer.node = l.n
+	//pServer.nodeinfo = l.nodeInfo
 	pServer.Monitor()
 	server := grpc.NewServer()
 	pb.RegisterP2PgserviceServer(server, pServer)

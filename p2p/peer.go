@@ -16,7 +16,7 @@ type Peer interface {
 }
 
 type peer struct {
-	nodeInfo   **NodeBase
+	nodeInfo   **NodeInfo
 	outbound   bool
 	conn       *grpc.ClientConn // source connection
 	persistent bool
@@ -63,7 +63,7 @@ func dial(addr *NetAddress) (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
-func dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeBase) (*peer, error) {
+func dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*peer, error) {
 
 	log.Debug("DialPerrWithAddress", "Dial peer address", addr.String())
 
@@ -82,7 +82,7 @@ func dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeBase)
 }
 
 //连接server out=往其他节点连接
-func newOutboundPeer(addr *NetAddress, nodeinfo **NodeBase) (*peer, error) {
+func newOutboundPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
 	conn, err := dial(addr)
 	if err != nil {
@@ -98,7 +98,7 @@ func newOutboundPeer(addr *NetAddress, nodeinfo **NodeBase) (*peer, error) {
 	return peer, nil
 }
 
-func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress, nodeinfo **NodeBase) (*peer, error) {
+func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
 	conn := rawConn
 
@@ -113,7 +113,7 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 
 	return p, nil
 }
-func DialPeer(addr *NetAddress, nodeinfo **NodeBase) (*peer, error) {
+func DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 	log.Debug("dialPeer", "peer addr", addr.String())
 	var persistent bool
 	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化

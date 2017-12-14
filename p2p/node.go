@@ -18,15 +18,13 @@ import (
 type Node struct {
 	omtx         sync.Mutex
 	addrBook     *AddrBook // known peers
-	q            *queue.Queue
-	nodeInfo     *NodeBase
+	nodeInfo     *NodeInfo
 	localAddr    string
 	extaddr      string
 	localPort    uint16 //listen
 	externalPort uint16 //nat map
 	outBound     map[string]*peer
 	l            Listener
-	cfg          *types.P2P
 	rListener    RemoteListener
 }
 
@@ -43,8 +41,8 @@ func localBindAddr() string {
 }
 
 func (n *Node) setQueue(q *queue.Queue) {
-	n.q = q
 	n.nodeInfo.q = q
+	n.nodeInfo.qclient = q.GetClient()
 }
 
 func newNode(cfg *types.P2P) (*Node, error) {
@@ -55,7 +53,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	node := &Node{
 
 		outBound:     make(map[string]*peer),
-		addrBook:     NewAddrBook(cfg.GetDbPath()+"/addrbook.json", true),
+		addrBook:     NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
 		localPort:    uint16(rand.Intn(64512) + 1023),
 		externalPort: uint16(rand.Intn(64512) + 1023),
 	}
@@ -69,8 +67,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 		}
 
 	}
-	node.cfg = cfg
-	node.nodeInfo = new(NodeBase)
+	node.nodeInfo = new(NodeInfo)
 	exaddr := fmt.Sprintf("%v:%v", EXTERNALADDR, node.externalPort)
 	node.nodeInfo.externalAddr, _ = NewNetAddressString(exaddr)
 	node.nodeInfo.listenAddr, _ = NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, node.localPort))
@@ -183,6 +180,12 @@ func (n *Node) AddPeer(pr *peer) {
 
 }
 
+func (n *Node) Size() int {
+	defer n.omtx.Unlock()
+	n.omtx.Lock()
+	return len(n.outBound)
+}
+
 func (n *Node) Has(paddr string) bool {
 	defer n.omtx.Unlock()
 	n.omtx.Lock()
@@ -203,7 +206,16 @@ func (n *Node) Get(peerAddr string) *peer {
 	}
 	return nil
 }
+func (n *Node) GetPeers() []*peer {
+	defer n.omtx.Unlock()
+	n.omtx.Lock()
+	var peers = make([]*peer, 0)
+	for _, peer := range n.outBound {
+		peers = append(peers, peer)
+	}
 
+	return peers
+}
 func (n *Node) Remove(peerAddr string) {
 	defer n.omtx.Unlock()
 	n.omtx.Lock()
@@ -255,7 +267,7 @@ func (n *Node) monitor() {
 
 		if n.needMore() {
 			var savelist = make([]string, 0)
-			for _, seed := range n.cfg.Seeds {
+			for _, seed := range n.nodeInfo.cfg.Seeds {
 				if n.Has(seed) == false {
 					savelist = append(savelist, seed)
 				}
@@ -288,7 +300,7 @@ func (n *Node) monitor() {
 			}
 		} else {
 			//close seed conn
-			for _, seed := range n.cfg.Seeds {
+			for _, seed := range n.nodeInfo.cfg.Seeds {
 				if _, ok := n.outBound[seed]; ok {
 					n.Remove(seed)
 				}
