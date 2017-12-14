@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -27,6 +28,8 @@ var (
 )
 
 var chainlog = log.New("module", "blockchain")
+var cachelock sync.Mutex
+var castlock sync.Mutex
 
 const trySyncIntervalMS = 5000
 const blockUpdateIntervalSeconds = 60
@@ -48,8 +51,8 @@ type BlockChain struct {
 	//用于请求block超时的处理
 	reqBlk map[int64]*bpRequestBlk
 
-	//记录收到的最新block高度,用于节点追赶active链
-	recvLastBlockHeight int64
+	//记录收到的最新广播的block高度,用于节点追赶active链
+	rcvLastBlockHeight int64
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -62,13 +65,13 @@ func New(cfg *types.BlockChain) *BlockChain {
 	reqblk := make(map[int64]*bpRequestBlk)
 
 	return &BlockChain{
-		blockStore:          blockStore,
-		cache:               make(map[string]*list.Element),
-		cacheSize:           DefCacheSize,
-		cacheQueue:          list.New(),
-		blockPool:           pool,
-		reqBlk:              reqblk,
-		recvLastBlockHeight: 0,
+		blockStore:         blockStore,
+		cache:              make(map[string]*list.Element),
+		cacheSize:          DefCacheSize,
+		cacheQueue:         list.New(),
+		blockPool:          pool,
+		reqBlk:             reqblk,
+		rcvLastBlockHeight: 0,
 	}
 }
 
@@ -109,6 +112,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		chainlog.Info("blockchain recv", "msg", msg)
 		msgtype := msg.Ty
 		switch msgtype {
+
 		case types.EventQueryTx:
 			txhash := (msg.Data).(*types.ReqHash)
 			TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
@@ -129,12 +133,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, blocks))
 			}
 
-		case types.EventAddBlock:
-			var block *types.BlockDetail
+		case types.EventAddBlock: // block
+			var block *types.Block
 			var reply types.Reply
 			reply.IsOk = true
-			block = msg.Data.(*types.BlockDetail)
-			err := chain.ProcAddBlockMsg(block)
+			block = msg.Data.(*types.Block)
+			err := chain.ProcAddBlockMsg(false, block)
 			if err != nil {
 				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 				reply.IsOk = false
@@ -142,11 +146,11 @@ func (chain *BlockChain) ProcRecvMsg() {
 			}
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
-		case types.EventAddBlocks:
-			var blocks *types.BlockDetails
+		case types.EventAddBlocks: //block
+			var blocks *types.Blocks
 			var reply types.Reply
 			reply.IsOk = true
-			blocks = msg.Data.(*types.BlockDetails)
+			blocks = msg.Data.(*types.Blocks)
 			err := chain.ProcAddBlocksMsg(blocks)
 			if err != nil {
 				chainlog.Error("ProcAddBlocksMsg", "err", err.Error())
@@ -183,13 +187,13 @@ func (chain *BlockChain) ProcRecvMsg() {
 			} else {
 				msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, header))
 			}
-
+			//本节点共识模块发送过来的blockdetail，需要广播到全网
 		case types.EventAddBlockDetail:
 			var blockDetail *types.BlockDetail
 			var reply types.Reply
 			reply.IsOk = true
 			blockDetail = msg.Data.(*types.BlockDetail)
-			err := chain.ProcAddBlockDetailMsg(blockDetail)
+			err := chain.ProcAddBlockDetail(true, blockDetail)
 			if err != nil {
 				chainlog.Error("ProcAddBlockDetailMsg", "err", err.Error())
 				reply.IsOk = false
@@ -216,6 +220,21 @@ func (chain *BlockChain) ProcRecvMsg() {
 			} else {
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
 			}
+
+			//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
+		case types.EventBroadcastAddBlock: //block
+			var block *types.Block
+			var reply types.Reply
+			reply.IsOk = true
+			block = msg.Data.(*types.Block)
+			err := chain.ProcAddBlockMsg(true, block)
+			if err != nil {
+				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+			}
+			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
+
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -406,10 +425,11 @@ type Block struct {
 	Txs        []*Transaction `protobuf:"bytes,4,rep,name=txs" json:"txs,omitempty"`
 }
 */
-func (chain *BlockChain) ProcAddBlockMsg(blockdetail *types.BlockDetail) (err error) {
+func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockinfo *types.Block) (err error) {
 	currentheight := chain.GetBlockHeight()
 	var prevstateHash []byte
-	if blockdetail.Block.Height == currentheight+1 {
+	var blockdetail types.BlockDetail
+	if blockinfo.Height == currentheight+1 {
 		//获取前一个block的statehash
 		if currentheight == -1 {
 			prevstateHash = common.Hash{}.Bytes()
@@ -421,18 +441,21 @@ func (chain *BlockChain) ProcAddBlockMsg(blockdetail *types.BlockDetail) (err er
 			}
 			prevstateHash = block.Block.StateHash
 		}
-		blockdetail, err = util.ExecBlock(chain.q, prevstateHash, blockdetail.Block, true)
+		blockDetail, err := util.ExecBlock(chain.q, prevstateHash, blockinfo, true)
 		if err != nil {
 			chainlog.Error("ProcAddBlockMsg ExecBlock err!", "err", err)
 			return err
 		}
+		err = chain.ProcAddBlockDetailMsg(broadcast, blockDetail)
+	} else {
+		blockdetail.Block = blockinfo
+		err = chain.ProcAddBlockDetailMsg(broadcast, &blockdetail)
 	}
-
-	err = chain.ProcAddBlockDetailMsg(blockdetail)
 	return err
 }
 
-func (chain *BlockChain) ProcAddBlockDetailMsg(blockDetail *types.BlockDetail) (err error) {
+//处理从peer对端同步过来的block消息
+func (chain *BlockChain) ProcAddBlockDetailMsg(broadcast bool, blockDetail *types.BlockDetail) (err error) {
 	currentheight := chain.GetBlockHeight()
 
 	//不是我们需要的高度直接返回
@@ -468,25 +491,79 @@ func (chain *BlockChain) ProcAddBlockDetailMsg(blockDetail *types.BlockDetail) (
 		//通知mempool和consense模块
 		chain.SendAddBlockEvent(blockDetail)
 
+		//广播此block到网络中
+		if broadcast {
+			chain.SendBlockBroadcast(blockDetail)
+		}
+
 		return nil
 	} else {
 		// 首先将此block缓存到blockpool中。
 		chain.blockPool.AddBlock(blockDetail.Block)
 
-		// block.Height之前的block已经被请求了，此时不需要再次请求,避免在追赶的时候多次请求同一个block
-		if chain.recvLastBlockHeight+1 == blockDetail.Block.Height && chain.recvLastBlockHeight != 0 {
-			chain.recvLastBlockHeight = blockDetail.Block.Height
-			return
+		//广播block的处理
+		if broadcast {
+			// block.Height之前的block已经被请求了，此时不需要再次请求,避免在追赶的时候多次请求同一个block
+			castblockheight := chain.GetRcvLastCastBlkHeight()
+			if castblockheight+1 == blockDetail.Block.Height && castblockheight != 0 {
+				chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
+				return nil
+			}
+
+			// 记录收到peer广播的最新block高度，用于block的同步
+			if castblockheight < blockDetail.Block.Height {
+				chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
+
+				//启动一个超时定时器，如果在规定时间内没有收到就发送一个FetchBlock消息给p2p模块
+				//请求currentheight+1 到 block.Height-1之间的blocks
+				chain.WaitReqBlk(currentheight+1, blockDetail.Block.Height-1)
+			}
+		}
+	}
+	return nil
+}
+
+//处理共识模块发过来addblock的消息，需要广播到全网
+func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.BlockDetail) (err error) {
+	currentheight := chain.GetBlockHeight()
+
+	//我们需要的高度，直接存储到db中
+	if blockDetail.Block.Height == currentheight+1 {
+		newbatch := chain.blockStore.NewBatch(true)
+
+		//保存tx交易结果信息到db中
+		chain.blockStore.indexTxs(newbatch, blockDetail)
+		if err != nil {
+			chainlog.Error("ProcAddBlockDetail", "err", err)
+			return err
 		}
 
-		// 记录收到peer广播的最新block高度，用于block的同步
-		if chain.recvLastBlockHeight < blockDetail.Block.Height {
-			chain.recvLastBlockHeight = blockDetail.Block.Height
-
-			//启动一个超时定时器，如果在规定时间内没有收到就发送一个FetchBlock消息给p2p模块
-			//请求currentheight+1 到 block.Height-1之间的blocks
-			chain.WaitReqBlk(currentheight+1, blockDetail.Block.Height-1)
+		//保存block信息到db中
+		err := chain.blockStore.SaveBlock(newbatch, blockDetail)
+		if err != nil {
+			chainlog.Error("ProcAddBlockDetail", "err", err)
+			return err
 		}
+		newbatch.Write()
+
+		//更新db中的blockheight到blockStore.Height
+		chain.blockStore.UpdateHeight()
+
+		//将此block添加到缓存中便于查找
+		chain.cacheBlock(blockDetail)
+
+		//通知mempool和consense以及wallet模块
+		chain.SendAddBlockEvent(blockDetail)
+
+		//广播此block到网络中
+		chain.SendBlockBroadcast(blockDetail)
+
+		return nil
+	} else {
+		outstr := fmt.Sprintf("input height :%d ,current store height:%d", blockDetail.Block.Height, currentheight)
+		err = errors.New(outstr)
+		chainlog.Error("ProcAddBlockDetail", "err", err)
+		return err
 	}
 	return nil
 }
@@ -554,15 +631,33 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	return nil
 }
 
-func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.BlockDetails) (err error) {
+//blockchain模块广播此block到网络中
+func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
+	if chain.qclient == nil {
+		fmt.Println("chain client not bind message queue.")
+		return
+	}
+	if block == nil {
+		chainlog.Error("SendBlockBroadcast block is null")
+		return
+	}
+	chainlog.Debug("SendBlockBroadcast", "Height", block.Block.Height)
 
-	//首先缓存到pool中,由poolRoutine定时同步到db中,blocks太多此时写入db会耗时很长
+	msg := chain.qclient.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
+	chain.qclient.Send(msg, false)
+	return
+}
+
+//处理从peer对端同步过来的blocks
+//首先缓存到pool中,由poolRoutine定时同步到db中,blocks太多此时写入db会耗时很长
+func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
+
 	blocklen := len(blocks.Items)
-	startblockheight := blocks.Items[0].Block.Height
-	endblockheight := blocks.Items[blocklen-1].Block.Height
+	startblockheight := blocks.Items[0].Height
+	endblockheight := blocks.Items[blocklen-1].Height
 
 	for _, block := range blocks.Items {
-		chain.blockPool.AddBlock(block.Block)
+		chain.blockPool.AddBlock(block)
 	}
 	//删除此blocks的超时机制
 	chain.RemoveReqBlk(startblockheight, endblockheight)
@@ -577,12 +672,9 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 //用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
 func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err error) {
 
-	// Check the cache.
-	elem, ok := chain.cache[string(height)]
-	if ok {
-		// Already exists. Move to back of cacheQueue.
-		chain.cacheQueue.MoveToBack(elem)
-		return elem.Value.(*types.BlockDetail), nil
+	blockdetail := chain.CheckcacheBlock(height)
+	if block != nil {
+		return blockdetail, nil
 	} else {
 		//从blockstore db中通过block height获取block
 		blockinfo := chain.blockStore.LoadBlock(height)
@@ -595,8 +687,24 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 	return nil, err
 }
 
+//从cache缓存中获取block信息
+func (chain *BlockChain) CheckcacheBlock(height int64) (block *types.BlockDetail) {
+	cachelock.Lock()
+	defer cachelock.Unlock()
+
+	elem, ok := chain.cache[string(height)]
+	if ok {
+		// Already exists. Move to back of cacheQueue.
+		chain.cacheQueue.MoveToBack(elem)
+		return elem.Value.(*types.BlockDetail)
+	}
+	return nil
+}
+
 //添加block到cache中，方便快速查询
 func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
+	cachelock.Lock()
+	defer cachelock.Unlock()
 
 	// Create entry in cache and append to cacheQueue.
 	elem := chain.cacheQueue.PushBack(blockdetail)
@@ -848,8 +956,9 @@ func (chain *BlockChain) FetchPeerList() {
 			maxPeerHeight = peer.Header.Height
 		}
 	}
-	//如果没有收到peer广播的block 并且本节点高度落后于peer ，主动发起同步blokc的请求
-	if chain.recvLastBlockHeight == 0 && maxPeerHeight > currentheight {
+	//如果没有收到peer广播的block 并且本节点高度落后于peer ，主动发起同步block的请求
+	castblockheight := chain.GetRcvLastCastBlkHeight()
+	if castblockheight == 0 && maxPeerHeight > currentheight {
 		chainlog.Info("FetchPeerList WaitReqBlk ", "startheight", currentheight+1, "endheight", maxPeerHeight)
 		chain.WaitReqBlk(currentheight+1, maxPeerHeight)
 	}
@@ -858,8 +967,8 @@ func (chain *BlockChain) FetchPeerList() {
 		chainlog.Info("FetchPeerList CaughtUp ok!")
 	}
 	//异常情况打印日志记录
-	if chain.recvLastBlockHeight != 0 && maxPeerHeight > currentheight+5 {
-		chainlog.Info("FetchPeerList", "recvLastBlockHeight", chain.recvLastBlockHeight, "maxPeerHeight", maxPeerHeight, "storecurheight", currentheight)
+	if castblockheight != 0 && maxPeerHeight > currentheight+5 {
+		chainlog.Info("FetchPeerList", "recvLastBlockHeight", castblockheight, "maxPeerHeight", maxPeerHeight, "storecurheight", currentheight)
 	}
 	return
 }
@@ -920,4 +1029,15 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 		}
 	}
 	return &txDetails, nil
+}
+
+func (chain *BlockChain) GetRcvLastCastBlkHeight() int64 {
+	castlock.Lock()
+	defer castlock.Unlock()
+	return chain.rcvLastBlockHeight
+}
+func (chain *BlockChain) UpdateRcvCastBlkHeight(height int64) {
+	castlock.Lock()
+	defer castlock.Unlock()
+	chain.rcvLastBlockHeight = height
 }
