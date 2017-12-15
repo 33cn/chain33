@@ -14,7 +14,7 @@ type msg struct {
 	mtx       sync.Mutex
 	network   *P2p
 	msgStatus chan bool
-	tempdata  map[string]*pb.Block
+	tempdata  map[int64]*pb.Block
 	peers     []*peer
 }
 
@@ -146,11 +146,12 @@ func (m *msg) GetBlocks(msg queue.Message) {
 			}
 		}
 	}
-
+	log.Debug("GetBlocks", "invs", MaxInvs.GetInvs())
 	m.loadPeers()
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
+	log.Debug("GetBlocks", "intervals", intervals)
 	m.msgStatus = make(chan bool, len(intervals))
-	m.tempdata = make(map[string]*pb.Block)
+	m.tempdata = make(map[int64]*pb.Block)
 	//分段下载
 	for index, interval := range intervals {
 		go m.downloadBlock(index, interval, MaxInvs)
@@ -158,8 +159,9 @@ func (m *msg) GetBlocks(msg queue.Message) {
 	//等待所有 goroutin 结束
 	m.wait(len(intervals))
 	//返回数据
-	for _, block := range m.tempdata {
-		blocks.Items = append(blocks.Items, block)
+	keys := m.sortKeys()
+	for _, k := range keys {
+		blocks.Items = append(blocks.Items, m.tempdata[k])
 	}
 
 	//作为事件，发送给blockchain,事件是 EventAddBlocks
@@ -186,6 +188,16 @@ type intervalInfo struct {
 	end   int
 }
 
+func (m *msg) sortKeys() []int64 {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	var keys []int64
+	for k, _ := range m.tempdata {
+		keys = append(keys, k)
+	}
+	return keys
+
+}
 func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
 	peersize := m.network.node.Size()
 	for i := 0; i < peersize; i++ {
@@ -199,7 +211,8 @@ func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 		m.mtx.Lock()
 		defer m.mtx.Unlock()
 		for _, item := range invdatas.Items {
-			m.tempdata[hex.EncodeToString(item.GetBlock().Hash())] = item.GetBlock()
+
+			m.tempdata[item.GetBlock().GetHeight()] = item.GetBlock()
 		}
 		break
 	}
