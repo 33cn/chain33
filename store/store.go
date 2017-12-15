@@ -47,6 +47,7 @@ func New(cfg *types.Store) *Store {
 
 func (store *Store) Close() {
 	store.db.Close()
+	slog.Info("store module closed")
 }
 
 func (store *Store) SetQueue(q *queue.Queue) {

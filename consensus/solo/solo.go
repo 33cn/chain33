@@ -64,7 +64,7 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 }
 
 func (client *SoloClient) Close() {
-
+	log.Info("consensus solo closed")
 }
 
 func (client *SoloClient) checkTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
