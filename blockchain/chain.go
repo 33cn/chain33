@@ -120,6 +120,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Error("ProcQueryTxMsg", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, err))
 			} else {
+				chainlog.Info("ProcQueryTxMsg", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, TransactionDetail))
 			}
 
@@ -130,6 +131,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Error("ProcGetBlockDetailsMsg", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, err))
 			} else {
+				chainlog.Info("ProcGetBlockDetailsMsg", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, blocks))
 			}
 
@@ -144,6 +146,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
+			chainlog.Info("EventAddBlock", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		case types.EventAddBlocks: //block
@@ -157,16 +160,19 @@ func (chain *BlockChain) ProcRecvMsg() {
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
+			chainlog.Info("EventAddBlocks", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		case types.EventGetBlockHeight:
 			var replyBlockHeight types.ReplyBlockHeight
 			replyBlockHeight.Height = chain.GetBlockHeight()
+			chainlog.Info("EventGetBlockHeight", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReplyBlockHeight, &replyBlockHeight))
 
 		case types.EventTxHashList:
 			txhashlist := (msg.Data).(*types.TxHashList)
 			duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
+			chainlog.Info("EventTxHashList", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 
 		case types.EventGetHeaders:
@@ -176,6 +182,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Error("ProcGetHeadersMsg", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, err))
 			} else {
+				chainlog.Info("EventGetHeaders", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, headers))
 			}
 
@@ -185,6 +192,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Error("ProcGetLastHeaderMsg", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, err))
 			} else {
+				chainlog.Info("EventGetLastHeader", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, header))
 			}
 			//本节点共识模块发送过来的blockdetail，需要广播到全网
@@ -199,6 +207,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
+			chainlog.Info("EventAddBlockDetail", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReply, &reply))
 
 		case types.EventGetTransactionByAddr:
@@ -208,6 +217,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Error("ProcGetTransactionByAddr", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, err))
 			} else {
+				chainlog.Info("EventGetTransactionByAddr", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, replyTxInfos))
 			}
 
@@ -218,6 +228,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Error("ProcGetTransactionByHashes", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, err))
 			} else {
+				chainlog.Info("EventGetTransactionByHash", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
 			}
 
@@ -233,6 +244,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
+			chainlog.Info("EventBroadcastAddBlock", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		default:
@@ -348,6 +360,7 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	if err != nil {
 		return nil, err
 	}
+	//获取指定tx在txlist中的proof
 	TransactionDetail, err := GetTransactionDetail(block.Block.Txs, txresult.Index)
 	if err != nil {
 		return nil, err
