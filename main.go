@@ -12,6 +12,7 @@ import (
 	"runtime"
 
 	"code.aliyun.com/chain33/chain33/blockchain"
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/execs"
@@ -35,8 +36,9 @@ func main() {
 
 	flag.PrintDefaults()
 	flag.Parse()
-	cfg := config.InitCfg(*configpath)
 
+	cfg := config.InitCfg(*configpath)
+	common.SetLogLevel(cfg.Loglevel)
 	//channel, rabitmq 等
 	log.Info("chain33 " + Version)
 	log.Info("loading queue")

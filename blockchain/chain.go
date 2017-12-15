@@ -53,6 +53,9 @@ type BlockChain struct {
 
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
+
+	recvdone  chan struct{}
+	poolclose chan struct{}
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -72,6 +75,8 @@ func New(cfg *types.BlockChain) *BlockChain {
 		blockPool:          pool,
 		reqBlk:             reqblk,
 		rcvLastBlockHeight: 0,
+		recvdone: make(chan struct{}, 0)
+		poolclose: make(chan struct{}, 0)
 	}
 }
 
@@ -94,6 +99,11 @@ func initConfig(cfg *types.BlockChain) {
 }
 
 func (chain *BlockChain) Close() {
+	//wait recv done
+	chrecv := chain.qclient.Recv()
+	<-chain.recvdone
+
+	//wait
 	chain.blockStore.db.Close()
 	chainlog.Info("blockchain module closed")
 }
@@ -108,7 +118,11 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	// 定时同步缓存中的block to db
 	go chain.poolRoutine()
 }
+
 func (chain *BlockChain) ProcRecvMsg() {
+	defer func() {
+		chain.recvdone <- struct{}{}
+	}()
 	for msg := range chain.qclient.Recv() {
 		chainlog.Info("blockchain recv", "msg", msg)
 		msgtype := msg.Ty
