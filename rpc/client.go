@@ -16,7 +16,7 @@ type IRClient interface {
 	QueryTx(hash []byte) (proof *types.TransactionDetail, err error)
 	GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error)
 	GetLastHeader() (*types.Header, error)
-	GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
+	GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfos, error)
 	GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
 	GetMempool() (*types.ReplyTxList, error)
 	GetAccounts() (*types.WalletAccounts, error)
@@ -117,7 +117,7 @@ func (client *channelClient) GetLastHeader() (*types.Header, error) {
 	return resp.Data.(*types.Header), nil
 }
 
-func (client *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error) {
+func (client *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetTransactionByAddr, parm)
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
@@ -127,7 +127,7 @@ func (client *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInf
 	if resp.Err() != nil {
 		return nil, resp.Err()
 	}
-	return resp.Data.(*types.ReplyTxInfo), nil
+	return resp.Data.(*types.ReplyTxInfos), nil
 }
 
 func (client *channelClient) GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error) {
