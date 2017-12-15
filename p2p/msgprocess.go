@@ -202,6 +202,8 @@ func (m *msg) sortKeys() []int {
 }
 func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
 	peersize := m.network.node.Size()
+	maxInvDatas := new(pb.InvDatas)
+
 	for i := 0; i < peersize; i++ {
 		index = index % peersize
 		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: invs.Invs[interval.start:interval.end]})
@@ -210,13 +212,17 @@ func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 			index++
 			continue
 		}
-		m.mtx.Lock()
-		defer m.mtx.Unlock()
-		for _, item := range invdatas.Items {
-
-			m.tempdata[item.GetBlock().GetHeight()] = item.GetBlock()
+		if len(invdatas.GetItems()) > len(maxInvDatas.Items) ||
+			len(invdatas.GetItems()) == interval.end-interval.start+1 {
+			maxInvDatas = invdatas
+			break
 		}
-		break
+
+	}
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	for _, item := range maxInvDatas.Items {
+		m.tempdata[item.GetBlock().GetHeight()] = item.GetBlock()
 	}
 	m.msgStatus <- true
 
