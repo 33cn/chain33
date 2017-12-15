@@ -101,7 +101,7 @@ func (s p2pServer) checkSign(in *pb.P2PPing) bool {
 }
 
 func (s p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	log.Debug("PING", "RECV PING", in)
+	log.Debug("p2pServer PING", "RECV PING", in)
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		log.Debug("PING addr", "Addr", getctx.Addr.String())
@@ -186,7 +186,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 //grpc 接收广播交易
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
-	log.Debug("RECV TRANSACTION", "in", in)
+	log.Debug("p2pServer RECV TRANSACTION", "in", in)
 	//发送给消息队列Queue
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
@@ -195,6 +195,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
+	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
 	if in.GetEndHeight()-in.GetStartHeight() > 100 {
 		return nil, errors.New("out of range")
 	}
@@ -221,7 +222,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 
 //服务端查询本地mempool
 func (s *p2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
-	log.Debug("GetMempool", "version", in)
+	log.Debug("p2pServer Recv GetMempool", "version", in)
 	memtx, err := s.loadMempool()
 	if err != nil {
 		return nil, err
@@ -237,6 +238,7 @@ func (s *p2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P
 
 func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	//获取本地mempool 模块的交易
+
 	var txmap = make(map[string]*pb.Transaction)
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
@@ -255,7 +257,7 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	return txmap, nil
 }
 func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvDatas, error) {
-	log.Debug("GetDataTx", "p2p version", in.GetVersion())
+	log.Debug("p2pServer Recv GetDataTx", "p2p version", in.GetVersion())
 	var p2pInvData = make([]*pb.InvData, 0)
 	var count = 0
 	invs := in.GetInvs()
@@ -304,7 +306,7 @@ func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvData
 }
 
 func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
-	log.Debug("GetHeaders", "p2p version", in.GetVersion())
+	log.Debug("p2pServer GetHeaders", "p2p version", in.GetVersion())
 	if in.GetEndHeigh()-in.GetStartHeight() > 2000 || in.GetEndHeigh() < in.GetStartHeight() {
 		return nil, fmt.Errorf("out of range")
 	}
@@ -323,7 +325,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 }
 
 func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
-	//log.Debug("GetPeerInfo", "p2p version", in.version)
+	log.Debug("p2pServer GetPeerInfo", "p2p version", in.GetVersion())
 
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)

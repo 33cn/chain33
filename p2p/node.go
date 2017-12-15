@@ -57,6 +57,9 @@ func newNode(cfg *types.P2P) (*Node, error) {
 		localPort:    uint16(rand.Intn(64512) + 1023),
 		externalPort: uint16(rand.Intn(64512) + 1023),
 	}
+	log.Debug("newNode", "localport", node.localPort)
+	log.Debug("newNode", "externalPort", node.externalPort)
+
 	if cfg.GetIsSeed() == true {
 		if cfg.GetSeedPort() != 0 {
 			node.localPort = uint16(cfg.GetSeedPort())
