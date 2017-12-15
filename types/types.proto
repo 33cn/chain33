@@ -500,12 +500,13 @@ message WalletUnLock {
 
 message Config {
 	string title=1;
-	Store  store=2;
-	Consensus consensus=3;
-	MemPool memPool=4;
-	BlockChain blockChain=5;
-	Wallet wallet=6;
-	P2P p2p=7;
+	string loglevel = 2;
+	Store  store=3;
+	Consensus consensus=4;
+	MemPool memPool=5;
+	BlockChain blockChain=6;
+	Wallet wallet=7;
+	P2P p2p=8;
 }
 
 message P2P {	
