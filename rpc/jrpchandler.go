@@ -29,13 +29,13 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 }
 
 type QueryParm struct {
-	hash string
+	Hash string
 }
 
 func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 
-	data.Hash = common.FromHex(in.hash)
+	data.Hash = common.FromHex(in.Hash)
 	reply, err := req.cli.QueryTx(data.Hash)
 	if err != nil {
 		return err
