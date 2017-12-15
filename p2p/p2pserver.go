@@ -190,20 +190,15 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 	//发送给消息队列Queue
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
-	client.Send(msg, true)
-	resp, err := client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	return resp.GetData().(*pb.Reply), nil
+	client.Send(msg, false)
+	return &pb.Reply{IsOk: true, Msg: []byte("ok")}, nil
 }
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
 	if in.GetEndHeight()-in.GetStartHeight() > 100 {
 		return nil, errors.New("out of range")
 	}
-
-	//TODO GetHeaders
+	// GetHeaders
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
 		Isdetail: false})
@@ -212,7 +207,6 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 	if err != nil {
 		return nil, err
 	}
-
 	headers := resp.Data.(*pb.Headers)
 	var invs = make([]*pb.Inventory, 0)
 	for _, item := range headers.Items {
@@ -228,56 +222,66 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 //服务端查询本地mempool
 func (s *p2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
 	log.Debug("GetMempool", "version", in)
-	client := s.node.nodeInfo.qclient
-	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
-	client.Send(msg, true)
-	resp, err := client.Wait(msg)
+	memtx, err := s.loadMempool()
 	if err != nil {
 		return nil, err
 	}
-	var invlist = make([]*pb.Inventory, 0)
-	txlist := resp.GetData().(*pb.ReplyTxList)
-	for _, tx := range txlist.GetTxs() {
 
+	var invlist = make([]*pb.Inventory, 0)
+	for _, tx := range memtx {
 		invlist = append(invlist, &pb.Inventory{Hash: tx.Hash(), Ty: MSG_TX})
 	}
 
 	return &pb.P2PInv{Invs: invlist}, nil
 }
 
-func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvDatas, error) {
-	log.Debug("GetDataTx", "p2p version", in.GetVersion())
-	var p2pInvData = make([]*pb.InvData, 0)
-	//先获取本地mempool 模块的交易
+func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
+	//获取本地mempool 模块的交易
+	var txmap = make(map[string]*pb.Transaction)
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
 	if err != nil {
-		return nil, err
+		return txmap, err
 	}
 
 	txlist := resp.GetData().(*pb.ReplyTxList)
 	txs := txlist.GetTxs()
-	var txmap = make(map[string]*pb.Transaction)
+
 	for _, tx := range txs {
 		txmap[hex.EncodeToString(tx.Hash())] = tx
 	}
-
+	return txmap, nil
+}
+func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvDatas, error) {
+	log.Debug("GetDataTx", "p2p version", in.GetVersion())
+	var p2pInvData = make([]*pb.InvData, 0)
+	var count = 0
 	invs := in.GetInvs()
+	client := s.node.nodeInfo.qclient
 	for _, inv := range invs { //过滤掉不需要的数据
 		var invdata pb.InvData
-		if inv.GetTy() == MSG_TX {
+		var memtx = make(map[string]*pb.Transaction)
+		if inv.GetTy() == MSG_TX { //doOnce
+			//loadMempool
+			if count == 0 {
+				var err error
+				memtx, err = s.loadMempool()
+				if err != nil {
+					continue
+				}
+			}
+			count++
 			txhash := hex.EncodeToString(inv.GetHash())
-			if tx, ok := txmap[txhash]; ok {
-
+			if tx, ok := memtx[txhash]; ok {
 				invdata.Value = &pb.InvData_Tx{Tx: tx}
 				invdata.Ty = MSG_TX
 				p2pInvData = append(p2pInvData, &invdata)
 			}
 
 		} else if inv.GetTy() == MSG_BLOCK {
-			height := inv.GetHeight() //TODO
+			height := inv.GetHeight()
 			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false})
 			client.Send(msg, true)
 			resp, err := client.Wait(msg)
@@ -294,7 +298,6 @@ func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvData
 			}
 
 		}
-
 	}
 
 	return &pb.InvDatas{Items: p2pInvData}, nil

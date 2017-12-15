@@ -10,7 +10,7 @@ service grpcservice{
 	//交易接口
 	rpc QueryTransaction(ReqHash) returns (TransactionDetail){}
 	rpc SendTransaction(Transaction) returns (Reply){}
-	rpc GetTransactionByAddr(ReqAddr)returns(ReplyTxInfo){}
+	rpc GetTransactionByAddr(ReqAddr)returns(ReplyTxInfos){}
 	rpc GetTransactionByHashes(ReqHashes)returns(TransactionDetails){}
 	//缓存接口
 	rpc GetMemPool(ReqNil)returns(ReplyTxList){}

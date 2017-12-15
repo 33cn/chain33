@@ -43,7 +43,7 @@ func (req *Grpc) GetLastHeader(ctx context.Context, in *pb.ReqNil) (*pb.Header, 
 	return reply, nil
 }
 
-func (req *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.ReplyTxInfo, error) {
+func (req *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.ReplyTxInfos, error) {
 
 	reply, err := req.cli.GetTxByAddr(in)
 	if err != nil {

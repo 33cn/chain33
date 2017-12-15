@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-//通过最原始的交易接口完成一笔交易
 func TestGrpcSendToAddress(t *testing.T) {
 	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
 	if err != nil {
@@ -57,9 +56,4 @@ func TestGrpcSendToAddress(t *testing.T) {
 		t.Error(err)
 	}
 	conn.Close()
-}
-
-//创建一个账户
-func TestGrpcWalletNewAccount(t *testing.T) {
-
 }
