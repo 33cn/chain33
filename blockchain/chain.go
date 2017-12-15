@@ -95,6 +95,7 @@ func initConfig(cfg *types.BlockChain) {
 
 func (chain *BlockChain) Close() {
 	chain.blockStore.db.Close()
+	chainlog.Info("blockchain module closed")
 }
 
 func (chain *BlockChain) SetQueue(q *queue.Queue) {

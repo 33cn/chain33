@@ -68,7 +68,7 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 }
 
 func (exec *Execs) Close() {
-
+	elog.Info("exec module closed")
 }
 
 //执行器 -> db 环境

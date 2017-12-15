@@ -58,6 +58,7 @@ func (q *Queue) Start() {
 func (q *Queue) Close() {
 	q.done <- struct{}{}
 	close(q.done)
+	qlog.Info("queue module closed")
 }
 
 func (q *Queue) getChannel(topic string) chan Message {
