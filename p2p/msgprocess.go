@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"sort"
 	"sync"
 
 	"code.aliyun.com/chain33/chain33/queue"
@@ -161,7 +162,7 @@ func (m *msg) GetBlocks(msg queue.Message) {
 	//返回数据
 	keys := m.sortKeys()
 	for _, k := range keys {
-		blocks.Items = append(blocks.Items, m.tempdata[k])
+		blocks.Items = append(blocks.Items, m.tempdata[int64(k)])
 	}
 
 	//作为事件，发送给blockchain,事件是 EventAddBlocks
@@ -188,13 +189,14 @@ type intervalInfo struct {
 	end   int
 }
 
-func (m *msg) sortKeys() []int64 {
+func (m *msg) sortKeys() []int {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-	var keys []int64
+	var keys []int
 	for k, _ := range m.tempdata {
-		keys = append(keys, k)
+		keys = append(keys, int(k))
 	}
+	sort.Ints(keys)
 	return keys
 
 }
