@@ -6,11 +6,11 @@ import (
 	"fmt"
 	//	"io/ioutil"
 	//	"net/http"
-	"net/rpc/jsonrpc"
+	"encoding/json"
 	"os"
 	"strconv"
 
-	pram "code.aliyun.com/chain33/chain33/rpc"
+	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
@@ -166,7 +166,7 @@ func LoadHelp() {
 }
 
 func Lock() {
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -201,7 +201,7 @@ func UnLock(passwd string, timeout string) {
 		return
 	}
 	prams := types.WalletUnLock{Passwd: passwd, Timeout: timeoutInt64}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -237,7 +237,7 @@ func UnLock(passwd string, timeout string) {
 
 func SetPasswd(oldpass string, newpass string) {
 	prams := types.ReqWalletSetPasswd{Oldpass: oldpass, Newpass: newpass}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -268,7 +268,7 @@ func SetPasswd(oldpass string, newpass string) {
 
 func SetLabl(addr string, label string) {
 	prams := types.ReqWalletSetLabel{Addr: addr, Label: label}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -299,7 +299,7 @@ func SetLabl(addr string, label string) {
 
 func NewAccount(lb string) {
 	prams := types.ReqNewAccount{Label: lb}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -329,7 +329,7 @@ func NewAccount(lb string) {
 }
 
 func GetAccounts() {
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -359,7 +359,7 @@ func GetAccounts() {
 
 func MergeBalance(to string) {
 	prams := types.ReqWalletMergeBalance{To: to}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -395,7 +395,7 @@ func SetTxFee(amount string) {
 		return
 	}
 	prams := types.ReqWalletSetFee{Amount: amountInt64}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -431,7 +431,7 @@ func SendToAddress(from string, to string, amount string, note string) {
 		return
 	}
 	prams := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -462,7 +462,7 @@ func SendToAddress(from string, to string, amount string, note string) {
 
 func ImportPrivKey(privkey string, label string) {
 	prams := types.ReqWalletImportPrivKey{Privkey: privkey, Label: label}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -502,13 +502,13 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		panic(err)
 		return
 	}
-	prams := pram.ReqWalletTransactionList{FromTx: fromTx, Count: int32(countInt32), Direction: int32(directionInt32)}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	prams := jsonrpc.ReqWalletTransactionList{FromTx: fromTx, Count: int32(countInt32), Direction: int32(directionInt32)}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
 	}
-	var res *pram.TransactionDetails
+	var res *jsonrpc.TransactionDetails
 	err = rpc.Call("Chain33.WalletTxList", prams, res)
 	if err != nil {
 		panic(err)
@@ -543,12 +543,12 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 }
 
 func GetMemPool() {
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
 	}
-	var res *pram.ReplyTxList
+	var res *jsonrpc.ReplyTxList
 	err = rpc.Call("Chain33.GetMemPool", nil, res)
 	if err != nil {
 		panic(err)
@@ -572,8 +572,8 @@ func GetMemPool() {
 }
 
 func SendTransaction(data string) {
-	prams := pram.RawParm{Data: data}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	prams := jsonrpc.RawParm{Data: data}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
@@ -603,13 +603,13 @@ func SendTransaction(data string) {
 }
 
 func QueryTransaction(h string) {
-	prams := pram.QueryParm{Hash: h}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	prams := jsonrpc.QueryParm{Hash: h}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
 	}
-	var res *pram.TransactionDetail
+	var res *jsonrpc.TransactionDetail
 	err = rpc.Call("Chain33.QueryTransaction", prams, res)
 	if err != nil {
 		panic(err)
@@ -634,13 +634,13 @@ func QueryTransaction(h string) {
 }
 
 func GetTransactionByAddr(addr string) {
-	prams := pram.ReqAddr{Addr: addr}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	prams := jsonrpc.ReqAddr{Addr: addr}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
 	}
-	var res *pram.ReplyTxInfos
+	var res *jsonrpc.ReplyTxInfos
 	err = rpc.Call("Chain33.GetTxByAddr", prams, res)
 	if err != nil {
 		panic(err)
@@ -665,13 +665,13 @@ func GetTransactionByAddr(addr string) {
 }
 
 func GetTransactionByHashes(hashes []string) {
-	prams := pram.ReqHashes{Hashes: hashes}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	prams := jsonrpc.ReqHashes{Hashes: hashes}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
 	}
-	var res *pram.TransactionDetails
+	var res *jsonrpc.TransactionDetails
 	err = rpc.Call("Chain33.GetTxByHashes", prams, res)
 	if err != nil {
 		panic(err)
@@ -722,13 +722,13 @@ func GetBlocks(start string, end string, detail string) {
 		panic(err)
 		return
 	}
-	prams := pram.BlockParam{Start: startInt64, End: endInt64, Isdetail: detailBool}
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	prams := jsonrpc.BlockParam{Start: startInt64, End: endInt64, Isdetail: detailBool}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
 	}
-	var res *pram.BlockDetails
+	var res *jsonrpc.BlockDetails
 	err = rpc.Call("Chain33.GetBlocks", prams, res)
 	if err != nil {
 		panic(err)
@@ -768,18 +768,22 @@ func GetBlocks(start string, end string, detail string) {
 }
 
 func GetLastHeader() {
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
 	}
-	var res *pram.Header
-	err = rpc.Call("Chain33.GetLastHeader", nil, res)
+	var res jsonrpc.Header
+	err = rpc.Call("Chain33.GetLastHeader", nil, &res)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetLastHeader","params":[]}`)
 	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
@@ -797,12 +801,12 @@ func GetLastHeader() {
 }
 
 func GetPeerInfo() {
-	rpc, err := jsonrpc.Dial("jsonrpc", "localhost:8801")
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		panic(err)
 		return
 	}
-	var res *pram.PeerList
+	var res *jsonrpc.PeerList
 	err = rpc.Call("Chain33.GetPeerInfo", nil, res)
 	if err != nil {
 		panic(err)
