@@ -72,6 +72,10 @@ type TransactionDetail struct {
 	Proofs  []string
 }
 
+type ReplyTxInfos struct {
+	TxInfos []*ReplyTxInfo `protobuf:"bytes,1,rep,name=txInfos" json:"txInfos,omitempty"`
+}
+
 type ReplyTxInfo struct {
 	Hash   string
 	Height int64

@@ -169,11 +169,14 @@ func (req Chain33) GetTxByAddr(in ReqAddr, result *interface{}) error {
 		return err
 	}
 	{
-		var txinfo ReplyTxInfo
-		txinfo.Hash = common.ToHex(reply.GetHash())
-		txinfo.Height = reply.GetHeight()
-		txinfo.Index = reply.GetIndex()
-		*result = &txinfo
+		var txinfos ReplyTxInfos
+		infos := reply.GetTxInfos()
+		for _, info := range infos {
+			txinfos.TxInfos = append(txinfos.TxInfos, &ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
+				Height: info.GetHeight(), Index: info.GetIndex()})
+		}
+
+		*result = &txinfos
 	}
 
 	return nil

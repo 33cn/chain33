@@ -36,10 +36,12 @@ func (network *P2p) Close() {
 func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.GetClient()
 	network.q = q
+
 	//network.node.q = network.q
 	network.node.setQueue(q)
 	network.node.Start()
 	network.subP2pMsg()
+
 }
 
 func (network *P2p) subP2pMsg() {
@@ -58,7 +60,10 @@ func (network *P2p) subP2pMsg() {
 			case types.EventBlockBroadcast: //广播block
 				intrans := NewInTrans(network)
 				go intrans.BlockBroadcast(&msg)
-			case types.EventGetBlocks:
+				//case types.EventGetBlocks:
+				//intrans := NewInTrans(network)
+				//go intrans.GetBlocks(&msg)
+			case types.EventFetchBlocks:
 				intrans := NewInTrans(network)
 				go intrans.GetBlocks(&msg)
 			case types.EventGetMempool:
