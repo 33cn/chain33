@@ -265,13 +265,18 @@ FOR_LOOP:
 			var stratblockheight int64 = 0
 			var endblockheight int64 = 0
 			var i int64
+			var prevHash []byte
 			// 可以批量处理BatchBlockNum个block到db中
 			currentheight := chain.blockStore.Height()
-			curblock, err := chain.GetBlock(currentheight)
-			if err != nil {
-				continue FOR_LOOP
+			if currentheight == -1 {
+				prevHash = common.Hash{}.Bytes()
+			} else {
+				curblock, err := chain.GetBlock(currentheight)
+				if err != nil {
+					continue FOR_LOOP
+				}
+				prevHash = curblock.Block.StateHash
 			}
-			prevHash := curblock.Block.StateHash
 			for i = 1; i <= BatchBlockNum; i++ {
 
 				block := chain.blockPool.GetBlock(currentheight + i)
