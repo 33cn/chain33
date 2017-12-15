@@ -151,17 +151,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventAddBlocks: //block
 			var blocks *types.Blocks
-			var reply types.Reply
-			reply.IsOk = true
 			blocks = msg.Data.(*types.Blocks)
 			err := chain.ProcAddBlocksMsg(blocks)
 			if err != nil {
 				chainlog.Error("ProcAddBlocksMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
 			}
 			chainlog.Info("EventAddBlocks", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		case types.EventGetBlockHeight:
 			var replyBlockHeight types.ReplyBlockHeight
