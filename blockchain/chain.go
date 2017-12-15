@@ -679,7 +679,7 @@ func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
 }
 
 func (chain *BlockChain) GetBlockHeight() int64 {
-	return chain.blockStore.height
+	return chain.blockStore.Height()
 }
 
 //用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
