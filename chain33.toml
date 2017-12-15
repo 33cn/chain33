@@ -1,5 +1,6 @@
 
 Title="chain33"
+Loglevel="info"
 
 [blockchain]
 defCacheSize=500
@@ -11,11 +12,10 @@ dbPath="datadir"
 
 [p2p]
 seeds=["114.55.101.159:13802"]
-enable=false
+enable=true
 isSeed=false
 seedPort=13802
 dbPath="datadir/addrbook"
-
 
 [mempool]
 poolCacheSize=1024
