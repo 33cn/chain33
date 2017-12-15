@@ -5,6 +5,7 @@ import (
 	"errors"
 	"runtime"
 	"sync"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -217,20 +218,14 @@ func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 }
 
 // Mempool.GetLastHeader获取LastHeader的height和blockTime
-func (mem *Mempool) GetLastHeader() (bool, interface{}) {
+func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	if mem.qclient == nil {
 		panic("client not bind message queue.")
 	}
 
 	msg := mem.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	mem.qclient.Send(msg, true)
-	resp, err := mem.qclient.Wait(msg)
-
-	if err != nil {
-		return false, nil
-	}
-
-	return true, resp
+	return mem.qclient.Wait(msg)
 }
 
 // Mempool.Close关闭Mempool
@@ -346,14 +341,18 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 
 	go func() {
 		for {
-			flag, lastHeader := mem.GetLastHeader()
-			if flag {
-				mem.proxyMtx.Lock()
-				mem.height = lastHeader.(queue.Message).Data.(*types.Header).GetHeight()
-				mem.blockTime = lastHeader.(queue.Message).Data.(*types.Header).GetBlockTime()
-				mem.proxyMtx.Unlock()
-				return
+			lastHeader, err := mem.GetLastHeader()
+			if err != nil {
+				mlog.Error(err.Error())
+				time.Sleep(time.Second)
+				continue
 			}
+
+			mem.proxyMtx.Lock()
+			mem.height = lastHeader.(queue.Message).Data.(*types.Header).GetHeight()
+			mem.blockTime = lastHeader.(queue.Message).Data.(*types.Header).GetBlockTime()
+			mem.proxyMtx.Unlock()
+			return
 		}
 	}()
 
