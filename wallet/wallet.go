@@ -62,6 +62,7 @@ func New(cfg *types.Wallet) *Wallet {
 
 func (wallet *Wallet) Close() {
 	wallet.walletStore.db.Close()
+	walletlog.Info("wallet module closed")
 }
 
 func (wallet *Wallet) IsLocked() bool {

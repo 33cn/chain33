@@ -73,23 +73,33 @@ func main() {
 	walletm.SetQueue(q)
 
 	//jsonrpc, grpc, channel 三种模式
-	api := rpc.NewServer("jsonrpc", ":8801",q)
+	api := rpc.NewServer("jsonrpc", ":8801", q)
 	//api.SetQueue(q)
-	gapi := rpc.NewServer("grpc", ":8802",q)
+	gapi := rpc.NewServer("grpc", ":8802", q)
 	//gapi.SetQueue(q)
 	q.Start()
 
 	//close all module,clean some resource
+	log.Info("begin close blockchain module")
 	chain.Close()
+	log.Info("begin close mempool module")
 	mem.Close()
 	if cfg.P2P.Enable {
+		log.Info("begin close P2P module")
 		network.Close()
 	}
+	log.Info("begin close execs module")
 	exec.Close()
+	log.Info("begin close store module")
 	s.Close()
+	log.Info("begin close consensus module")
 	cs.Close()
+	log.Info("begin close jsonrpc module")
 	api.Close()
+	log.Info("begin close grpc module")
 	gapi.Close()
+	log.Info("begin close queue module")
 	q.Close()
+	log.Info("begin close wallet module")
 	walletm.Close()
 }

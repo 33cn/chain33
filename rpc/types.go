@@ -104,3 +104,27 @@ type Peer struct {
 	MempoolSize int32
 	Header      *Header
 }
+
+type BlockParam struct {
+	Start    int64
+	End      int64
+	Isdetail bool
+}
+
+type ReqAddr struct {
+	Addr string
+}
+
+type QueryParm struct {
+	hash string
+}
+
+type ReqHashes struct {
+	Hashes []string
+}
+
+type ReqWalletTransactionList struct {
+	FromTx    string
+	Count     int32
+	Direction int32
+}

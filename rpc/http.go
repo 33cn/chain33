@@ -52,10 +52,6 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 
 }
 
-func (jrpc *jsonrpcServer) Close() {
-	jrpc.listener.Close()
-}
-
 func (grpcx *grpcServer) CreateServer(addr string) {
 
 	listener, err := net.Listen("tcp", addr)

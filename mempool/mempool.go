@@ -230,7 +230,7 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 
 // Mempool.Close关闭Mempool
 func (mem *Mempool) Close() {
-
+	mlog.Info("mempool module closed")
 }
 
 //--------------------------------------------------------------------------------

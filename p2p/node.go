@@ -48,7 +48,7 @@ func (n *Node) setQueue(q *queue.Queue) {
 func newNode(cfg *types.P2P) (*Node, error) {
 
 	initAddr(cfg)
-	os.MkdirAll(cfg.GetDbPath(), 0666)
+	os.MkdirAll(cfg.GetDbPath(), 0755)
 	rand.Seed(time.Now().Unix())
 	node := &Node{
 

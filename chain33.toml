@@ -16,6 +16,7 @@ isSeed=false
 seedPort=13802
 dbPath="datadir/addrbook"
 
+
 [mempool]
 poolCacheSize=1024
 minTxFee=1000000

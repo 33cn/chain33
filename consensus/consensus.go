@@ -4,6 +4,7 @@ import (
 	"code.aliyun.com/chain33/chain33/consensus/solo"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	log "github.com/inconshreveable/log15"
 )
 
 func New(cfg *types.Consensus) Consumer {
@@ -29,7 +30,7 @@ func (m *nopMiner) SetQueue(q *queue.Queue) {
 }
 
 func (m *nopMiner) Close() {
-
+	log.Info("consensus module closed")
 }
 
 type Consumer interface {
