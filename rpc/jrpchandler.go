@@ -17,8 +17,9 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	var parm types.Transaction
 	types.Decode(common.FromHex(in.Data), &parm)
 	log.Debug("SendTransaction", "parm", parm)
-
+	log.Debug("SendTransaction", "Befor SendTx", "BeforBeforBeforBeforBeforBeforBeforBeforBefor")
 	reply := req.cli.SendTx(&parm)
+	log.Debug("SendTransaction", "After SendTx", "AfterAfterAfterAfterAfterAfterAfterAfterAfterAft")
 	if reply.GetData().(*types.Reply).IsOk {
 		*result = string(reply.GetData().(*types.Reply).Msg)
 		return nil
