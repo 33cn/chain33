@@ -285,7 +285,7 @@ func SetTxFee(amount string) {
 		return
 	}
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SetTxFee",
-		"params":[{"amount":"%d"}]}`, amountInt64)
+		"params":[{"amount":%d}]}`, amountInt64)
 	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
 	if err != nil {
 		panic(err)
@@ -307,7 +307,7 @@ func SendToAddress(from string, to string, amount string, note string) {
 		return
 	}
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SendToAddress",
-		"params":[{"from":"%s","to":"%s","amount":"%d","note":"%s"}]}`, from, to, amountInt64, note)
+		"params":[{"from":"%s","to":"%s","amount":%d,"note":"%s"}]}`, from, to, amountInt64, note)
 	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
 	if err != nil {
 		panic(err)
@@ -346,7 +346,7 @@ func WalletTransactionList(fromTx string, count string) {
 		return
 	}
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.WalletTransactionList",
-		"params":[{"fromTx":"%s","count":"%d"}]}`, fromTx, countInt32)
+		"params":[{"fromTx":"%s","count":%d}]}`, fromTx, countInt32)
 	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
 	if err != nil {
 		panic(err)
@@ -362,7 +362,7 @@ func WalletTransactionList(fromTx string, count string) {
 }
 
 func GetMemPool() {
-	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetMemPool","params":[]}`)
+	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetMempool","params":[]}`)
 	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
 	if err != nil {
 		panic(err)
@@ -429,6 +429,7 @@ func GetTransactionByAddr(addr string) {
 }
 
 func GetTransactionByHashes(hashes []string) {
+	//TODO
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetTransactionByHashes",
 		"params":[{"addr":"%v"}]}`, hashes)
 	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
@@ -462,7 +463,7 @@ func GetBlocks(start string, end string, detail string) {
 		return
 	}
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetBlocks",
-		"params":[{"start":"%d","end":"%d","isdetail":"%t"}]}`, startInt64, endInt64, detailBool)
+		"params":[{"start":%d,"end":%d,"isdetail":%t}]}`, startInt64, endInt64, detailBool)
 	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
 	if err != nil {
 		panic(err)
