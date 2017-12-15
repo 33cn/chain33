@@ -23,6 +23,7 @@ func NewInTrans(network *P2p) *msg {
 }
 
 func (m *msg) TransToBroadCast(msg *queue.Message) {
+	log.Debug("TransToBroadCast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
@@ -45,7 +46,7 @@ func (m *msg) TransToBroadCast(msg *queue.Message) {
 
 //TODO 收到Mempool 模块获取mempool 的请求,从高度最高的节点 下载invs
 func (m *msg) GetMemPool(msg *queue.Message) {
-
+	log.Debug("GetMemPool", "SendTOP2P", msg.GetData())
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
 	peers := m.network.node.GetPeers()
@@ -94,6 +95,7 @@ func (m *msg) GetMemPool(msg *queue.Message) {
 
 //收到BlockChain 模块的请求，获取PeerInfo
 func (m *msg) GetPeerInfo(msg *queue.Message) {
+	log.Debug("GetPeerInfo", "SendTOP2P", msg.GetData())
 	var peerlist = make([]*pb.Peer, 0)
 	peers := m.network.node.GetPeers()
 	for _, peer := range peers {
@@ -115,6 +117,7 @@ func (m *msg) GetPeerInfo(msg *queue.Message) {
 
 //TODO 立刻返回数据 ，然后把下载的数据用事件通知对方,异步操作
 func (m *msg) GetBlocks(msg *queue.Message) {
+	log.Debug("GetBlocks", "SendTOP2P", msg.GetData())
 	if len(m.network.node.outBound) == 0 {
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
@@ -222,6 +225,7 @@ func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {
 
 }
 func (m *msg) BlockBroadcast(msg *queue.Message) {
+	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return

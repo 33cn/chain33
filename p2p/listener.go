@@ -28,6 +28,7 @@ type DefaultListener struct {
 
 func NewDefaultListener(protocol string, node *Node) Listener {
 	// Create listener
+	log.Debug("NewDefaultListener", "localPort", node.localPort)
 	listener, err := net.Listen(protocol, fmt.Sprintf(":%v", node.localPort))
 	if err != nil {
 		log.Crit("Failed to listen", "Error", err.Error())
@@ -65,8 +66,8 @@ func (l *DefaultListener) NatMapPort() {
 				l.n.localPort = uint16(rand.Intn(64512) + 1023)
 				l.n.externalPort = uint16(rand.Intn(64512) + 1023)
 				l.n.flushNodeInfo()
-				log.Debug("newLocalPort", "Port", l.n.localPort)
-				log.Debug("newExternalPort", "Port", l.n.externalPort)
+				log.Debug("NatMapPort", "Port", l.n.localPort)
+				log.Debug("NatMapPort", "Port", l.n.externalPort)
 			}
 
 			continue
