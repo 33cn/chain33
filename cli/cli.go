@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/rpc/jsonrpc"
 	"os"
 	"strconv"
+
+	pram "code.aliyun.com/chain33/chain33/rpc"
 )
 
 func main() {
@@ -462,20 +465,33 @@ func GetBlocks(start string, end string, detail string) {
 		panic(err)
 		return
 	}
-	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetBlocks",
-		"params":[{"start":%d,"end":%d,"isdetail":%t}]}`, startInt64, endInt64, detailBool)
-	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
+	prams := &pram.BlockParam{Start: startInt64, End: endInt64, Isdetail: detailBool}
+	rpc, err := jsonrpc.Dial("jsonrpc", "http://localhost:8801")
+	var res int
+	err = rpc.Call("Chain33.GetBlocks", prams, &res)
 	if err != nil {
 		panic(err)
-		return
 	}
-	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-		return
-	}
-	fmt.Printf(string(b))
+
+	//	for b := range res.Items {
+	//		fmt.Println(res.Items[b].Block.TxHash)
+	//	}
+	fmt.Printf(string(res))
+
+	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetBlocks",
+	//		"params":[{"start":%d,"end":%d,"isdetail":%t}]}`, startInt64, endInt64, detailBool)
+	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
+	//	if err != nil {
+	//		panic(err)
+	//		return
+	//	}
+	//	defer resp.Body.Close()
+	//	b, err := ioutil.ReadAll(resp.Body)
+	//	if err != nil {
+	//		panic(err)
+	//		return
+	//	}
+	//	fmt.Printf(string(b))
 }
 
 func GetLastHeader() {
