@@ -21,18 +21,21 @@ var (
 	DefCacheSize int64 = 500
 
 	//一次最多申请获取block个数
-	MaxFetchBlockNum  int64 = 100
-	TimeoutSeconds    int64 = 5
-	BatchBlockNum     int64 = 100
-	reqTimeoutSeconds       = time.Duration(TimeoutSeconds)
+	MaxFetchBlockNum int64 = 100
+	TimeoutSeconds   int64 = 5
+	BatchBlockNum    int64 = 100
+	blockSynSeconds        = time.Duration(TimeoutSeconds)
 )
 
 var chainlog = log.New("module", "blockchain")
+
 var cachelock sync.Mutex
 var castlock sync.Mutex
+var synBlocklock sync.Mutex
+var peerMaxBlklock sync.Mutex
 
-const trySyncIntervalMS = 5000
-const blockUpdateIntervalSeconds = 60
+const poolToDbMS = 500          //从blockpool写block到db的定时器
+const fetchPeerListSeconds = 60 //一分钟获取一次peerlist最新block高度
 
 type BlockChain struct {
 	qclient queue.IClient
@@ -41,18 +44,21 @@ type BlockChain struct {
 	blockStore *BlockStore
 
 	//cache  缓存block方便快速查询
-	cache      map[string]*list.Element
+	cache      map[int64]*list.Element
 	cacheSize  int64
 	cacheQueue *list.List
 
 	//Block 同步阶段用于缓存block信息，
 	blockPool *BlockPool
 
-	//用于请求block超时的处理
-	reqBlk map[int64]*bpRequestBlk
-
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
+
+	//记录本节点已经同步的block高度,用于节点追赶active链
+	synBlockHeight int64
+
+	//记录peer的最新block高度,用于节点追赶active链
+	peerMaxBlkHeight int64
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -62,16 +68,16 @@ func New(cfg *types.BlockChain) *BlockChain {
 	blockStore := NewBlockStore(blockStoreDB)
 	initConfig(cfg)
 	pool := NewBlockPool()
-	reqblk := make(map[int64]*bpRequestBlk)
 
 	return &BlockChain{
 		blockStore:         blockStore,
-		cache:              make(map[string]*list.Element),
+		cache:              make(map[int64]*list.Element),
 		cacheSize:          DefCacheSize,
 		cacheQueue:         list.New(),
 		blockPool:          pool,
-		reqBlk:             reqblk,
-		rcvLastBlockHeight: 0,
+		rcvLastBlockHeight: -1,
+		synBlockHeight:     -1,
+		peerMaxBlkHeight:   -1,
 	}
 }
 
@@ -249,15 +255,24 @@ func (chain *BlockChain) ProcRecvMsg() {
 }
 
 func (chain *BlockChain) poolRoutine() {
-	trySyncTicker := time.NewTicker(trySyncIntervalMS * time.Millisecond)
-	blockUpdateTicker := time.NewTicker(blockUpdateIntervalSeconds * time.Second)
+	//blockpool->db的定时器，默认500ms
+	trySyncTicker := time.NewTicker(poolToDbMS * time.Millisecond)
+	//获取peerlist的定时器，默认1分钟
+	fetchPeerListTicker := time.NewTicker(fetchPeerListSeconds * time.Second)
+	//向peer请求同步block的定时器，默认5s
+	blockSynTicker := time.NewTicker(time.Duration(blockSynSeconds) * time.Second)
 
 FOR_LOOP:
 	for {
 		select {
-		case _ = <-blockUpdateTicker.C:
+		case _ = <-blockSynTicker.C:
+			//chainlog.Info("blockSynTicker")
+			go chain.SynBlocksFromPeers()
+
+		case _ = <-fetchPeerListTicker.C:
 			//chainlog.Info("blockUpdateTicker")
 			go chain.FetchPeerList()
+
 		case _ = <-trySyncTicker.C:
 			//chainlog.Info("trySyncTicker")
 			// 定时同步缓存中的block信息到db数据库中
@@ -400,6 +415,9 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		err = errors.New(outstr)
 		return nil, err
 	}
+
+	chainlog.Debug("ProcGetBlocksMsg", "Start", requestblock.Start, "End", requestblock.End)
+
 	end := requestblock.End
 	if requestblock.End > blockhight {
 		end = blockhight
@@ -498,9 +516,6 @@ func (chain *BlockChain) ProcAddBlockDetailMsg(broadcast bool, blockDetail *type
 		//将此block添加到缓存中便于查找
 		chain.cacheBlock(blockDetail)
 
-		//删除此block的超时机制
-		chain.RemoveReqBlk(blockDetail.Block.Height, blockDetail.Block.Height)
-
 		//通知mempool和consense模块
 		chain.SendAddBlockEvent(blockDetail)
 
@@ -516,20 +531,10 @@ func (chain *BlockChain) ProcAddBlockDetailMsg(broadcast bool, blockDetail *type
 
 		//广播block的处理
 		if broadcast {
-			// block.Height之前的block已经被请求了，此时不需要再次请求,避免在追赶的时候多次请求同一个block
+			//记录收到的广播的block的最新高度
 			castblockheight := chain.GetRcvLastCastBlkHeight()
-			if castblockheight+1 == blockDetail.Block.Height && castblockheight != 0 {
-				chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
-				return nil
-			}
-
-			// 记录收到peer广播的最新block高度，用于block的同步
 			if castblockheight < blockDetail.Block.Height {
 				chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
-
-				//启动一个超时定时器，如果在规定时间内没有收到就发送一个FetchBlock消息给p2p模块
-				//请求currentheight+1 到 block.Height-1之间的blocks
-				chain.WaitReqBlk(currentheight+1, blockDetail.Block.Height-1)
 			}
 		}
 	}
@@ -590,25 +595,27 @@ P2P区块收到这个消息后，会向blockchain 模块回复， EventReply。
 blockchain 模块回复 EventReply
 结构体：
 */
-func (chain *BlockChain) FetchBlock(reqblk *types.ReqBlocks) (err error) {
+//func (chain *BlockChain) FetchBlock(reqblk *types.ReqBlocks) (err error) {
+func (chain *BlockChain) FetchBlock(start int64, end int64) (err error) {
 	if chain.qclient == nil {
 		fmt.Println("chain client not bind message queue.")
 		err := errors.New("chain client not bind message queue")
 		return err
 	}
 
-	chainlog.Debug("FetchBlock", "StartHeight", reqblk.Start, "EndHeight", reqblk.End)
-	blockcount := reqblk.End - reqblk.Start
-	if blockcount > MaxFetchBlockNum {
-		chainlog.Error("FetchBlock", "blockscount", blockcount, "MaxFetchBlockNum", MaxFetchBlockNum)
-		err := errors.New("FetchBlock blockcount > MaxFetchBlockNum")
-		return err
-	}
+	chainlog.Debug("FetchBlock input", "StartHeight", start, "EndHeight", end)
+	blockcount := end - start
+
 	var requestblock types.ReqBlocks
+	requestblock.Start = start
+	requestblock.Isdetail = false
 
-	requestblock.Start = reqblk.Start
-	requestblock.End = reqblk.End
-
+	if blockcount > MaxFetchBlockNum {
+		requestblock.End = start + MaxFetchBlockNum
+	} else {
+		requestblock.End = end
+	}
+	chainlog.Debug("FetchBlock", "Start", requestblock.Start, "End", requestblock.End)
 	msg := chain.qclient.NewMessage("p2p", types.EventFetchBlocks, &requestblock)
 	chain.qclient.Send(msg, true)
 	resp, err := chain.qclient.Wait(msg)
@@ -664,17 +671,20 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 //处理从peer对端同步过来的blocks
 //首先缓存到pool中,由poolRoutine定时同步到db中,blocks太多此时写入db会耗时很长
 func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
-
-	blocklen := len(blocks.Items)
-	startblockheight := blocks.Items[0].Height
-	endblockheight := blocks.Items[blocklen-1].Height
-
-	for _, block := range blocks.Items {
-		chain.blockPool.AddBlock(block)
+	var preheight int64
+	preheight = blocks.Items[0].Height
+	//我们只处理连续的block，不连续时直接忽略掉
+	for index, block := range blocks.Items {
+		if index == 0 {
+			chain.blockPool.AddBlock(block)
+		} else if preheight+1 == block.GetHeight() {
+			preheight = block.GetHeight()
+			chain.blockPool.AddBlock(block)
+		} else {
+			chainlog.Error("ProcAddBlocksMsg Height is not continuous", "preheight", preheight, "nextheight", block.GetHeight())
+			break
+		}
 	}
-	//删除此blocks的超时机制
-	chain.RemoveReqBlk(startblockheight, endblockheight)
-
 	return nil
 }
 
@@ -686,7 +696,7 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err error) {
 
 	blockdetail := chain.CheckcacheBlock(height)
-	if block != nil {
+	if blockdetail != nil {
 		return blockdetail, nil
 	} else {
 		//从blockstore db中通过block height获取block
@@ -705,7 +715,7 @@ func (chain *BlockChain) CheckcacheBlock(height int64) (block *types.BlockDetail
 	cachelock.Lock()
 	defer cachelock.Unlock()
 
-	elem, ok := chain.cache[string(height)]
+	elem, ok := chain.cache[height]
 	if ok {
 		// Already exists. Move to back of cacheQueue.
 		chain.cacheQueue.MoveToBack(elem)
@@ -721,12 +731,12 @@ func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 
 	// Create entry in cache and append to cacheQueue.
 	elem := chain.cacheQueue.PushBack(blockdetail)
-	chain.cache[string(blockdetail.Block.Height)] = elem
+	chain.cache[blockdetail.Block.Height] = elem
 
 	// Maybe expire an item.
 	if int64(chain.cacheQueue.Len()) > chain.cacheSize {
 		height := chain.cacheQueue.Remove(chain.cacheQueue.Front()).(*types.BlockDetail).Block.Height
-		delete(chain.cache, string(height))
+		delete(chain.cache, height)
 	}
 }
 
@@ -745,102 +755,6 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 		return nil, err
 	}
 	return txinfo, nil
-}
-
-//删除对应block的超时请求机制
-func (chain *BlockChain) RemoveReqBlk(startheight int64, endheight int64) {
-	chainlog.Debug("RemoveReqBlk", "startheight", startheight, "endheight", endheight)
-
-	delete(chain.reqBlk, startheight)
-}
-
-//启动对应block的超时请求机制
-func (chain *BlockChain) WaitReqBlk(start int64, end int64) {
-	chainlog.Debug("WaitReqBlk", "startheight", start, "endheight", end)
-
-	reqblk := chain.reqBlk[start]
-	if reqblk != nil {
-		(chain.reqBlk[start]).resetTimeout()
-	} else {
-		blockcount := end - start + 1
-
-		if blockcount <= MaxFetchBlockNum {
-			requestBlk := newBPRequestBlk(chain, start, end)
-			chain.reqBlk[start] = requestBlk
-			(chain.reqBlk[start]).resetTimeout()
-
-		} else { //需要多次发送请求
-			multiple := blockcount / MaxFetchBlockNum
-			remainder := blockcount % MaxFetchBlockNum
-			var count int64
-			for count = 0; count < multiple; count++ {
-				startheight := count*MaxFetchBlockNum + start
-				endheight := startheight + MaxFetchBlockNum - 1
-
-				requestBlk := newBPRequestBlk(chain, startheight, endheight)
-				chain.reqBlk[startheight] = requestBlk
-				(chain.reqBlk[startheight]).resetTimeout()
-			}
-			//  需要处理有余数的情况
-			if count == multiple && remainder != 0 {
-				startheight := count*MaxFetchBlockNum + start
-				endheight := startheight + remainder - 1
-
-				requestBlk := newBPRequestBlk(chain, startheight, endheight)
-				chain.reqBlk[startheight] = requestBlk
-				(chain.reqBlk[startheight]).resetTimeout()
-			}
-		}
-	}
-}
-
-//对应block请求超时发起FetchBlock
-func (chain *BlockChain) sendTimeout(startheight int64, endheight int64) {
-	//chainlog.Debug("sendTimeout", "startheight", startheight, "endheight", endheight)
-	//此时判断需要请求的block高度是否大于本节点已经存储的高度，小于就直接删除对应的请求超时机制，直接返回
-	curheight := chain.GetBlockHeight()
-	if curheight > endheight {
-		chain.RemoveReqBlk(startheight, endheight)
-		return
-	}
-	var reqBlock types.ReqBlocks
-	reqBlock.Start = startheight
-	reqBlock.End = endheight
-	chain.FetchBlock(&reqBlock)
-}
-
-//-------------------------------------
-
-type bpRequestBlk struct {
-	blockchain  *BlockChain
-	startheight int64
-	endheight   int64
-	timeout     *time.Timer
-	didTimeout  bool //用于判断发送一次后，超时了还要不要再次发送
-}
-
-func newBPRequestBlk(chain *BlockChain, startheight int64, endheight int64) *bpRequestBlk {
-	bprequestBlk := &bpRequestBlk{
-		blockchain:  chain,
-		startheight: startheight,
-		endheight:   endheight,
-	}
-	return bprequestBlk
-}
-
-func (bpReqBlk *bpRequestBlk) resetTimeout() {
-	if bpReqBlk.timeout == nil {
-		//chainlog.Debug("resetTimeout", "startheight", bpReqBlk.startheight, "endheight", bpReqBlk.endheight)
-		bpReqBlk.timeout = time.AfterFunc(time.Second*reqTimeoutSeconds, bpReqBlk.onTimeout)
-	} else {
-		bpReqBlk.timeout.Reset(time.Second * reqTimeoutSeconds)
-	}
-}
-
-func (bpReqBlk *bpRequestBlk) onTimeout() {
-	//chainlog.Debug("onTimeout", "startheight", bpReqBlk.startheight, "endheight", bpReqBlk.endheight)
-	bpReqBlk.blockchain.sendTimeout(bpReqBlk.startheight, bpReqBlk.endheight)
-	bpReqBlk.didTimeout = true
 }
 
 //  获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
@@ -950,9 +864,6 @@ func (chain *BlockChain) FetchPeerList() {
 		return
 	}
 	//chainlog.Info("FetchPeerList")
-
-	currentheight := chain.GetBlockHeight()
-
 	msg := chain.qclient.NewMessage("p2p", types.EventPeerInfo, nil)
 	chain.qclient.Send(msg, true)
 	resp, err := chain.qclient.Wait(msg)
@@ -963,27 +874,15 @@ func (chain *BlockChain) FetchPeerList() {
 	peerlist := resp.GetData().(*types.PeerList)
 
 	//获取peerlist中最新的高度
-	var maxPeerHeight int64 = 0
+	var maxPeerHeight int64 = -1
 	for _, peer := range peerlist.Peers {
 		if peer != nil && maxPeerHeight < peer.Header.Height {
 			maxPeerHeight = peer.Header.Height
 		}
 	}
-	//如果没有收到peer广播的block 并且本节点高度落后于peer ，主动发起同步block的请求
-	castblockheight := chain.GetRcvLastCastBlkHeight()
-	if castblockheight == 0 && maxPeerHeight > currentheight {
-		chainlog.Info("FetchPeerList WaitReqBlk ", "startheight", currentheight+1, "endheight", maxPeerHeight)
-		chain.WaitReqBlk(currentheight+1, maxPeerHeight)
+	if maxPeerHeight != -1 {
+		chain.UpdatePeerMaxBlkHeight(maxPeerHeight)
 	}
-	//本节点已经追赶上active链，此时可以考虑退出block同步的poolRoutine
-	if currentheight != 0 && currentheight >= maxPeerHeight {
-		chainlog.Info("FetchPeerList CaughtUp ok!")
-	}
-	//异常情况打印日志记录
-	if castblockheight != 0 && maxPeerHeight > currentheight+5 {
-		chainlog.Info("FetchPeerList", "recvLastBlockHeight", castblockheight, "maxPeerHeight", maxPeerHeight, "storecurheight", currentheight)
-	}
-	return
 }
 func (chain *BlockChain) GetTxsListByAddr(addr []byte) (txs []*types.TxResult) {
 	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
@@ -1044,6 +943,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	return &txDetails, nil
 }
 
+//存储广播的block最新高度
 func (chain *BlockChain) GetRcvLastCastBlkHeight() int64 {
 	castlock.Lock()
 	defer castlock.Unlock()
@@ -1053,4 +953,57 @@ func (chain *BlockChain) UpdateRcvCastBlkHeight(height int64) {
 	castlock.Lock()
 	defer castlock.Unlock()
 	chain.rcvLastBlockHeight = height
+}
+
+//存储已经通同步到db的block高度
+func (chain *BlockChain) GetsynBlkHeight() int64 {
+	synBlocklock.Lock()
+	defer synBlocklock.Unlock()
+	return chain.synBlockHeight
+}
+func (chain *BlockChain) UpdatesynBlkHeight(height int64) {
+	synBlocklock.Lock()
+	defer synBlocklock.Unlock()
+	chain.synBlockHeight = height
+}
+
+//存储peer的最新block高度
+func (chain *BlockChain) GetPeerMaxBlkHeight() int64 {
+	peerMaxBlklock.Lock()
+	defer peerMaxBlklock.Unlock()
+	return chain.peerMaxBlkHeight
+}
+func (chain *BlockChain) UpdatePeerMaxBlkHeight(height int64) {
+	peerMaxBlklock.Lock()
+	defer peerMaxBlklock.Unlock()
+	chain.peerMaxBlkHeight = height
+}
+
+//blockSynSeconds时间检测一次本节点的height是否有增长，没有增长就需要通过对端peerlist获取最新高度，发起同步
+func (chain *BlockChain) SynBlocksFromPeers() {
+
+	GetsynBlkHeight := chain.GetsynBlkHeight()
+	curheight := chain.GetBlockHeight()
+	chainlog.Info("SynBlocksFromPeers", "synBlkHeight", GetsynBlkHeight, "curheight", curheight)
+
+	//如果上个周期已经同步的block高度小于等于当前高度
+	//说明本节点在这个周期没有收到block需要主动发起同步
+	if curheight >= GetsynBlkHeight {
+		RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
+		//首先和广播的block高度做比较，小于广播的block高度就直接发送block同步的请求
+		if curheight < RcvLastCastBlkHeight {
+			chain.FetchBlock(curheight+1, RcvLastCastBlkHeight)
+		} else {
+			//大于等于广播的block高度时，需要获取peer的最新高度继续做校验
+			//获取peers的最新高度.处理没有收到广播block的情况
+			peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
+			if curheight < peerMaxBlkHeight {
+				chain.FetchBlock(curheight+1, peerMaxBlkHeight)
+			}
+		}
+		chain.UpdatesynBlkHeight(curheight)
+	} else {
+		chainlog.Error("SynBlocksFromPeers", "synBlkHeight", GetsynBlkHeight, "curheight", curheight)
+	}
+	return
 }

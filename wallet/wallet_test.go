@@ -437,15 +437,16 @@ func TestProcWalletLock(t *testing.T) {
 		WalletSetFee.Amount = 10000000
 		err := wallet.ProcWalletSetFee(&WalletSetFee)
 		if err == nil {
-			walletlog.Info("ProcWalletSetFee success")
-			break
-		} else {
 			if flag == 0 {
-				walletlog.Info("ProcWalletSetFee", "err", err)
+				walletlog.Info("ProcWalletSetFee success")
 				flag = 1
 			}
+		} else {
+			walletlog.Info("ProcWalletSetFee", "err", err)
+			break
 		}
 	}
+
 	walletlog.Info("TestProcWalletLock end --------------------")
 	wallet.Close()
 }
