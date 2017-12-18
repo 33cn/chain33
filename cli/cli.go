@@ -529,7 +529,7 @@ func ImportPrivKey(privkey string, label string) {
 		return
 	}
 	var res types.WalletAccount
-	err = rpc.Call("Chain33.ImportPrivKey", prams, &res)
+	err = rpc.Call("Chain33.ImportPrivkey", prams, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
