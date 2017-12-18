@@ -21,15 +21,15 @@ var maxMsgByte int64 = 100000      // 交易消息最大字节数
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 // error codes
-const (
-	e00 = "success"
-	e01 = "transaction exists"
-	e02 = "low transaction fee"
-	e03 = "you have too many transactions"
-	e04 = "wrong signature"
-	e05 = "low balance"
-	e06 = "message too big"
-	e07 = "message expired"
+var (
+	//	e00 = errors.New("success")
+	e01 = errors.New("transaction exists")
+	e02 = errors.New("low transaction fee")
+	e03 = errors.New("you have too many transactions")
+	e04 = errors.New("wrong signature")
+	e05 = errors.New("low balance")
+	e06 = errors.New("message too big")
+	e07 = errors.New("message expired")
 )
 
 var (
@@ -200,11 +200,11 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 }
 
 // Mempool.PushTx将交易推入Mempool，成功返回true，失败返回false和失败原因
-func (mem *Mempool) PushTx(tx *types.Transaction) (bool, string) {
+func (mem *Mempool) PushTx(tx *types.Transaction) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	ok, err := mem.cache.Push(tx)
-	return ok, err
+	err := mem.cache.Push(tx)
+	return err
 }
 
 // Mempool.SendTxToP2P向"p2p"发送消息
@@ -270,14 +270,14 @@ func (cache *txCache) Exists(tx *types.Transaction) bool {
 }
 
 // txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
-func (cache *txCache) Push(tx *types.Transaction) (bool, string) {
+func (cache *txCache) Push(tx *types.Transaction) error {
 	if _, exists := cache.txMap[string(tx.Hash())]; exists {
-		return false, e01
+		return e01
 	}
 
 	if cache.txHeap.Len() >= cache.size {
 		if tx.Fee <= cache.LowestFee() {
-			return false, e02
+			return e02
 		}
 		popped := heap.Pop(cache.txHeap)
 		poppedTx := popped.(*Item).value
@@ -296,7 +296,7 @@ func (cache *txCache) Push(tx *types.Transaction) (bool, string) {
 		cache.accountMap[accountAddr] = 1
 	}
 
-	return true, e00
+	return nil
 }
 
 // txCache.Remove移除txCache中给定tx
@@ -386,7 +386,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					// 未过期，交易消息传入txChan，待检查
 					mem.txChan <- msg
 				} else {
-					msg.Data = errors.New(e07)
+					msg.Data = e07
 					mem.badChan <- msg
 				}
 			} else if msg.Ty == types.EventGetMempool {
