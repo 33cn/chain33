@@ -201,6 +201,7 @@ func (m *msg) sortKeys() []int {
 
 }
 func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
+	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "invs", invs)
 	peersize := m.network.node.Size()
 	maxInvDatas := new(pb.InvDatas)
 
@@ -228,6 +229,7 @@ func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 
 }
 func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {
+	log.Debug("caculateInterval", "invsNum", invsNum)
 	var result = make(map[int]*intervalInfo)
 	peerNum := m.network.node.Size()
 	if invsNum < peerNum {
@@ -242,8 +244,10 @@ func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {
 		if end > invsNum || i == peerNum-1 {
 			end = invsNum
 		}
+
 		result[i] = &intervalInfo{start: start, end: end}
-		start += end
+		log.Debug("caculateInterval", "createinfo", result[i])
+		start = end
 	}
 
 	return result
