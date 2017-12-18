@@ -1,21 +1,19 @@
 package main
 
 import (
-	//	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
-	//	"io/ioutil"
-	//	"net/http"
-	"encoding/json"
 	"os"
 	"strconv"
 
+	"code.aliyun.com/chain33/chain33/common"
 	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
 func main() {
-
+	common.SetLogLevel("eror")
 	//	argsWithProg := os.Args
 	argsWithoutProg := os.Args[1:]
 	switch argsWithoutProg[0] {
@@ -125,7 +123,7 @@ func main() {
 			return
 		}
 		GetBlocks(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
-	case "getlastheader": //获取上一去块头
+	case "getlastheader": //获取上一区块头
 		if len(argsWithoutProg) != 1 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
@@ -168,16 +166,23 @@ func LoadHelp() {
 func Lock() {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.Reply
-	err = rpc.Call("Chain33.Lock", nil, res)
+	var res types.Reply
+	err = rpc.Call("Chain33.Lock", nil, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.Lock","params":[]}`)
 	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
@@ -197,22 +202,29 @@ func Lock() {
 func UnLock(passwd string, timeout string) {
 	timeoutInt64, err := strconv.ParseInt(timeout, 10, 64)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	prams := types.WalletUnLock{Passwd: passwd, Timeout: timeoutInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.Reply
-	err = rpc.Call("Chain33.UnLock", prams, res)
+	var res types.Reply
+	err = rpc.Call("Chain33.UnLock", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	timeoutInt64, err := strconv.ParseInt(timeout, 10, 64)
 	//	if err != nil {
@@ -239,16 +251,23 @@ func SetPasswd(oldpass string, newpass string) {
 	prams := types.ReqWalletSetPasswd{Oldpass: oldpass, Newpass: newpass}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.Reply
-	err = rpc.Call("Chain33.SetPasswd", prams, res)
+	var res types.Reply
+	err = rpc.Call("Chain33.SetPasswd", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SetPasswd",
 	//		"params":[{"oldpass":"%s","newpass":"%s"}]}`, oldpass, newpass)
@@ -270,16 +289,23 @@ func SetLabl(addr string, label string) {
 	prams := types.ReqWalletSetLabel{Addr: addr, Label: label}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.WalletAccount
-	err = rpc.Call("Chain33.SetLabl", prams, res)
+	var res types.WalletAccount
+	err = rpc.Call("Chain33.SetLabl", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SetLabl",
 	//		"params":[{"addr":"%s","label":"%s"}]}`, addr, label)
@@ -301,16 +327,23 @@ func NewAccount(lb string) {
 	prams := types.ReqNewAccount{Label: lb}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.WalletAccount
-	err = rpc.Call("Chain33.NewAccount", prams, res)
+	var res types.WalletAccount
+	err = rpc.Call("Chain33.NewAccount", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.NewAccount",
 	//		"params":[{"label":"%s"}]}`, lb)
@@ -331,16 +364,23 @@ func NewAccount(lb string) {
 func GetAccounts() {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.WalletAccounts
-	err = rpc.Call("Chain33.GetAccounts", nil, res)
+	var res types.WalletAccounts
+	err = rpc.Call("Chain33.GetAccounts", nil, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetAccounts","params":[]}`)
 	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
@@ -361,16 +401,23 @@ func MergeBalance(to string) {
 	prams := types.ReqWalletMergeBalance{To: to}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.ReplyHashes
-	err = rpc.Call("Chain33.MergeBalance", prams, res)
+	var res types.ReplyHashes
+	err = rpc.Call("Chain33.MergeBalance", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.MergeBalance",
 	//		"params":[{"to":"%s"}]}`, to)
@@ -391,22 +438,29 @@ func MergeBalance(to string) {
 func SetTxFee(amount string) {
 	amountInt64, err := strconv.ParseInt(amount, 10, 64)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	prams := types.ReqWalletSetFee{Amount: amountInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res *types.Reply
 	err = rpc.Call("Chain33.SetTxFee", prams, res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SetTxFee",
 	//		"params":[{"amount":%d}]}`, amountInt64)
@@ -427,22 +481,29 @@ func SetTxFee(amount string) {
 func SendToAddress(from string, to string, amount string, note string) {
 	amountInt64, err := strconv.ParseInt(amount, 10, 64)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	prams := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.ReplyHash
-	err = rpc.Call("Chain33.SendToAddress", prams, res)
+	var res types.ReplyHash
+	err = rpc.Call("Chain33.SendToAddress", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SendToAddress",
 	//		"params":[{"from":"%s","to":"%s","amount":%d,"note":"%s"}]}`, from, to, amountInt64, note)
@@ -464,16 +525,23 @@ func ImportPrivKey(privkey string, label string) {
 	prams := types.ReqWalletImportPrivKey{Privkey: privkey, Label: label}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.WalletAccount
-	err = rpc.Call("Chain33.ImportPrivKey", prams, res)
+	var res types.WalletAccount
+	err = rpc.Call("Chain33.ImportPrivKey", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.ImportPrivKey",
 	//		"params":[{"privkey":"%s","label":"%s"}]}`, privkey, label)
@@ -494,27 +562,34 @@ func ImportPrivKey(privkey string, label string) {
 func WalletTransactionList(fromTx string, count string, direction string) {
 	countInt32, err := strconv.ParseInt(count, 10, 32)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	directionInt32, err := strconv.ParseInt(direction, 10, 32)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	prams := jsonrpc.ReqWalletTransactionList{FromTx: fromTx, Count: int32(countInt32), Direction: int32(directionInt32)}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *jsonrpc.TransactionDetails
-	err = rpc.Call("Chain33.WalletTxList", prams, res)
+	var res jsonrpc.TransactionDetails
+	err = rpc.Call("Chain33.WalletTxList", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	countInt32, err := strconv.ParseInt(count, 10, 32)
 	//	if err != nil {
@@ -545,16 +620,23 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 func GetMemPool() {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *jsonrpc.ReplyTxList
-	err = rpc.Call("Chain33.GetMemPool", nil, res)
+	var res jsonrpc.ReplyTxList
+	err = rpc.Call("Chain33.GetMemPool", nil, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetMempool","params":[]}`)
 	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
@@ -571,20 +653,27 @@ func GetMemPool() {
 	//	fmt.Print(string(b))
 }
 
-func SendTransaction(data string) {
-	prams := jsonrpc.RawParm{Data: data}
+func SendTransaction(tran string) {
+	prams := jsonrpc.RawParm{Data: tran}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *string
-	err = rpc.Call("Chain33.SendTransaction", prams, res)
+	var res string
+	err = rpc.Call("Chain33.SendTransaction", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SendTransaction",
 	//		"params":[{"data":"%s"}]}`, data)
@@ -606,16 +695,23 @@ func QueryTransaction(h string) {
 	prams := jsonrpc.QueryParm{Hash: h}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *jsonrpc.TransactionDetail
-	err = rpc.Call("Chain33.QueryTransaction", prams, res)
+	var res jsonrpc.TransactionDetail
+	err = rpc.Call("Chain33.QueryTransaction", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.QueryTransaction",
 	//		"params":[{"hash":"%s"}]}`, hash)
@@ -637,16 +733,23 @@ func GetTransactionByAddr(addr string) {
 	prams := jsonrpc.ReqAddr{Addr: addr}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *jsonrpc.ReplyTxInfos
-	err = rpc.Call("Chain33.GetTxByAddr", prams, res)
+	var res jsonrpc.ReplyTxInfos
+	err = rpc.Call("Chain33.GetTxByAddr", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetTxByAddr",
 	//		"params":[{"addr":"%s"}]}`, addr)
@@ -668,16 +771,23 @@ func GetTransactionByHashes(hashes []string) {
 	prams := jsonrpc.ReqHashes{Hashes: hashes}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *jsonrpc.TransactionDetails
-	err = rpc.Call("Chain33.GetTxByHashes", prams, res)
+	var res jsonrpc.TransactionDetails
+	err = rpc.Call("Chain33.GetTxByHashes", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	var buf bytes.Buffer
 	//	buf.WriteString("[")
@@ -709,32 +819,39 @@ func GetTransactionByHashes(hashes []string) {
 func GetBlocks(start string, end string, detail string) {
 	startInt64, err := strconv.ParseInt(start, 10, 64)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	endInt64, err := strconv.ParseInt(end, 10, 64)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	detailBool, err := strconv.ParseBool(detail)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	prams := jsonrpc.BlockParam{Start: startInt64, End: endInt64, Isdetail: detailBool}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *jsonrpc.BlockDetails
-	err = rpc.Call("Chain33.GetBlocks", prams, res)
+	var res jsonrpc.BlockDetails
+	err = rpc.Call("Chain33.GetBlocks", prams, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	startInt64, err := strconv.ParseInt(start, 10, 64)
 	//	if err != nil {
@@ -770,19 +887,22 @@ func GetBlocks(start string, end string, detail string) {
 func GetLastHeader() {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.Header
 	err = rpc.Call("Chain33.GetLastHeader", nil, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
+
 	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetLastHeader","params":[]}`)
@@ -803,16 +923,23 @@ func GetLastHeader() {
 func GetPeerInfo() {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *jsonrpc.PeerList
-	err = rpc.Call("Chain33.GetPeerInfo", nil, res)
+	var res jsonrpc.PeerList
+	err = rpc.Call("Chain33.GetPeerInfo", nil, &res)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	fmt.Print(res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 
 	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetPeerInfo","params":[]}`)
 	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
