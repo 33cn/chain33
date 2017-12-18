@@ -692,9 +692,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 //	Newpass string
 //设置或者修改密码
 func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) error {
-	if wallet.IsLocked() {
-		return WalletIsLocked
-	}
+
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -718,13 +716,16 @@ func (wallet *Wallet) ProcWalletLock() error {
 //type WalletUnLock struct {
 //	Passwd  string
 //	Timeout int64
-//解锁钱包
+//解锁钱包Timeout时间，超时后继续锁住
 func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 	if WalletUnLock.Passwd != wallet.Password {
 		err := errors.New("Input Password error!")
 		return err
 	}
-	wallet.resetTimeout(WalletUnLock.Timeout)
+	wallet.isLocked = false
+	if WalletUnLock.Timeout != 0 {
+		wallet.resetTimeout(WalletUnLock.Timeout)
+	}
 	return nil
 
 }
@@ -732,7 +733,7 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 func (wallet *Wallet) resetTimeout(Timeout int64) {
 	if wallet.timeout == nil {
 		wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-			wallet.isLocked = false
+			wallet.isLocked = true
 		})
 	} else {
 		wallet.timeout.Reset(time.Second * time.Duration(Timeout))
