@@ -91,11 +91,11 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 	{
 
 		var blockDetails BlockDetails
-		var bdtl BlockDetail
 		for _, item := range reply.Items {
+			var bdtl BlockDetail
 			var block Block
 			block.BlockTime = item.Block.GetBlockTime()
-			block.Height = item.Block.GetBlockTime()
+			block.Height = item.Block.GetHeight()
 			block.Version = item.Block.GetVersion()
 			block.ParentHash = common.ToHex(item.Block.GetParentHash())
 			block.StateHash = common.ToHex(item.Block.GetStateHash())
