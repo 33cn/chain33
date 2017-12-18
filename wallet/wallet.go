@@ -772,14 +772,14 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 			addr := account.PubKeyToAddress(pubkey)
 			fromaddress := addr.String()
 			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-				newbatch.Set([]byte(heightstr), txdetailbyte)
+				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
 				walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
 				continue
 			}
 			//toaddr
 			toaddr := block.Block.Txs[index].GetTo()
 			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-				newbatch.Set([]byte(heightstr), txdetailbyte)
+				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
 				walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
 			}
 		}
@@ -862,7 +862,7 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 			storelog.Error("ReqTxDetailByAddr Marshal txdetail err", "Height", height, "index", txindex)
 			return
 		}
-		newbatch.Set([]byte(heightstr), txdetailbyte)
+		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
 		walletlog.Info("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
