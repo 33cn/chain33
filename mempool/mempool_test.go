@@ -278,7 +278,7 @@ func TestCheckLowFee(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != e02 {
+	if resp.Err() != e02 {
 		t.Error("TestCheckLowFee failed")
 	}
 
@@ -297,7 +297,7 @@ func TestCheckManyTxs(t *testing.T) {
 	mem.qclient.Send(msg11, true)
 	resp, _ := mem.qclient.Wait(msg11)
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != e03 || mem.Size() != 10 {
+	if resp.Err() != e03 || mem.Size() != 10 {
 		t.Error("TestCheckManyTxs failed")
 	}
 
@@ -317,7 +317,7 @@ func TestCheckSignature(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != e04 {
+	if resp.Err() != e04 {
 		t.Error("TestCheckSignature failed")
 	}
 
@@ -333,7 +333,7 @@ func TestCheckBalance(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != e05 {
+	if resp.Err() != e05 {
 		t.Error("TestCheckBalance failed")
 	}
 
@@ -350,7 +350,7 @@ func TestCheckExpire(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != e07 {
+	if resp.Err() != e07 {
 		t.Error("TestCheckExpire failed")
 	}
 
