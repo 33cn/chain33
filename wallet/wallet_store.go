@@ -80,12 +80,12 @@ func (ws *WalletStore) GetFeeAmount() int64 {
 	var FeeAmount int64
 	bytes := ws.db.Get(WalletFeeAmount)
 	if bytes == nil {
-		return -1
+		return  1000000
 	}
 	err := json.Unmarshal(bytes, &FeeAmount)
 	if err != nil {
 		walletlog.Error("GetFeeAmount unmarshal", "err", err)
-		return -1
+		return 1000000
 	}
 	return FeeAmount
 }
