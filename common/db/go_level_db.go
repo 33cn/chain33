@@ -179,6 +179,29 @@ func (db *GoLevelDB) IteratorScan(key []byte, count int32, direction int32) (val
 	return values
 }
 
+func (db *GoLevelDB) IteratorScanFromLast(key []byte, count int32, direction int32) (values [][]byte) {
+	iter := db.db.NewIterator(util.BytesPrefix(key), nil)
+	var i int32 = 0
+	for ok := iter.Last(); ok; {
+		value := iter.Value()
+		//fmt.Printf("IteratorScanFromLast:%v\n", string(iter.Key()))
+		value1 := make([]byte, len(value))
+		copy(value1, value)
+		values = append(values, value1)
+		ok = iter.Prev()
+		i++
+		if i >= count {
+			break
+		}
+	}
+	iter.Release()
+	err := iter.Error()
+	if err != nil {
+		return nil
+	}
+	return values
+}
+
 //--------------------------------------------------------------------------------
 
 type goLevelDBBatch struct {
