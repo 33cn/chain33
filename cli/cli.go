@@ -15,8 +15,16 @@ import (
 func main() {
 	common.SetLogLevel("debug")
 	//	argsWithProg := os.Args
+	if len(os.Args) == 1 {
+		LoadHelp()
+		return
+	}
 	argsWithoutProg := os.Args[1:]
 	switch argsWithoutProg[0] {
+	case "-h": //使用帮助
+		LoadHelp()
+	case "--help": //使用帮助
+		LoadHelp()
 	case "help": //使用帮助
 		LoadHelp()
 	case "lock": //锁定
@@ -490,7 +498,7 @@ func SendToAddress(from string, to string, amount string, note string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res prams.ReplyHash
+	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.SendToAddress", prams, &res)
 	if err != nil {
 		fmt.Println(err.Error())
