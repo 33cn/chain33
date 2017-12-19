@@ -460,7 +460,7 @@ func GetMemPool() {
 		return
 	}
 	var res jsonrpc.ReplyTxList
-	err = rpc.Call("Chain33.GetMemPool", nil, &res)
+	err = rpc.Call("Chain33.GetMempool", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
