@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	common.SetLogLevel("debug")
+	common.SetLogLevel("eror")
 	//	argsWithProg := os.Args
 	if len(os.Args) == 1 {
 		LoadHelp()
