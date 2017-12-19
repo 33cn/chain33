@@ -172,7 +172,7 @@ func LoadHelp() {
 	fmt.Println("gettransactionbyhashes [hashes...]            : 按哈希列表获取交易")
 	fmt.Println("getblocks [start, end, isdetail]              : 获取区块")
 	fmt.Println("getlastheader []                              : 获取上一区块头")
-	fmt.Println("getheaders []                                 : 获取指定高度区间的区块头部信息")
+	fmt.Println("getheaders [start, end, isdetail]             : 获取指定高度区间的区块头部信息")
 	fmt.Println("getpeerinfo []                                : 获取对等点信息")
 }
 
