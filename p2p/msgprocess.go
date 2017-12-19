@@ -2,6 +2,8 @@ package p2p
 
 import (
 	"encoding/hex"
+	"sort"
+	"sync"
 
 	"code.aliyun.com/chain33/chain33/queue"
 
@@ -10,9 +12,10 @@ import (
 )
 
 type msg struct {
+	mtx       sync.Mutex
 	network   *P2p
 	msgStatus chan bool
-	tempdata  map[interface{}]*pb.Block
+	tempdata  map[int64]*pb.Block
 	peers     []*peer
 }
 
@@ -22,14 +25,13 @@ func NewInTrans(network *P2p) *msg {
 	}
 }
 
-func (m *msg) TransToBroadCast(msg *queue.Message) {
+func (m *msg) TransToBroadCast(msg queue.Message) {
 	log.Debug("TransToBroadCast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
 	//开始广播消息
-	log.Debug("TransToBroadCast", "start broadcast", msg.GetData())
 	peers := m.network.node.GetPeers()
 	for _, peer := range peers {
 		_, err := peer.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
@@ -45,7 +47,7 @@ func (m *msg) TransToBroadCast(msg *queue.Message) {
 }
 
 //TODO 收到Mempool 模块获取mempool 的请求,从高度最高的节点 下载invs
-func (m *msg) GetMemPool(msg *queue.Message) {
+func (m *msg) GetMemPool(msg queue.Message) {
 	log.Debug("GetMemPool", "SendTOP2P", msg.GetData())
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
@@ -94,7 +96,7 @@ func (m *msg) GetMemPool(msg *queue.Message) {
 }
 
 //收到BlockChain 模块的请求，获取PeerInfo
-func (m *msg) GetPeerInfo(msg *queue.Message) {
+func (m *msg) GetPeerInfo(msg queue.Message) {
 	log.Debug("GetPeerInfo", "SendTOP2P", msg.GetData())
 	var peerlist = make([]*pb.Peer, 0)
 	peers := m.network.node.GetPeers()
@@ -116,7 +118,7 @@ func (m *msg) GetPeerInfo(msg *queue.Message) {
 }
 
 //TODO 立刻返回数据 ，然后把下载的数据用事件通知对方,异步操作
-func (m *msg) GetBlocks(msg *queue.Message) {
+func (m *msg) GetBlocks(msg queue.Message) {
 	log.Debug("GetBlocks", "SendTOP2P", msg.GetData())
 	if len(m.network.node.outBound) == 0 {
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no peers")}))
@@ -145,10 +147,12 @@ func (m *msg) GetBlocks(msg *queue.Message) {
 			}
 		}
 	}
-
+	log.Debug("GetBlocks", "invs", MaxInvs.GetInvs())
 	m.loadPeers()
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
+	log.Debug("GetBlocks", "intervals", intervals)
 	m.msgStatus = make(chan bool, len(intervals))
+	m.tempdata = make(map[int64]*pb.Block)
 	//分段下载
 	for index, interval := range intervals {
 		go m.downloadBlock(index, interval, MaxInvs)
@@ -156,8 +160,9 @@ func (m *msg) GetBlocks(msg *queue.Message) {
 	//等待所有 goroutin 结束
 	m.wait(len(intervals))
 	//返回数据
-	for _, block := range m.tempdata {
-		blocks.Items = append(blocks.Items, block)
+	keys := m.sortKeys()
+	for _, k := range keys {
+		blocks.Items = append(blocks.Items, m.tempdata[int64(k)])
 	}
 
 	//作为事件，发送给blockchain,事件是 EventAddBlocks
@@ -184,8 +189,22 @@ type intervalInfo struct {
 	end   int
 }
 
+func (m *msg) sortKeys() []int {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	var keys []int
+	for k, _ := range m.tempdata {
+		keys = append(keys, int(k))
+	}
+	sort.Ints(keys)
+	return keys
+
+}
 func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
+	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "invs", invs)
 	peersize := m.network.node.Size()
+	maxInvDatas := new(pb.InvDatas)
+
 	for i := 0; i < peersize; i++ {
 		index = index % peersize
 		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: invs.Invs[interval.start:interval.end]})
@@ -194,15 +213,23 @@ func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 			index++
 			continue
 		}
-		for _, item := range invdatas.Items {
-			m.tempdata[item.GetBlock().Hash()] = item.GetBlock()
+		if len(invdatas.GetItems()) > len(maxInvDatas.Items) ||
+			len(invdatas.GetItems()) == interval.end-interval.start+1 {
+			maxInvDatas = invdatas
+			break
 		}
-		break
+
+	}
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	for _, item := range maxInvDatas.Items {
+		m.tempdata[item.GetBlock().GetHeight()] = item.GetBlock()
 	}
 	m.msgStatus <- true
 
 }
 func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {
+	log.Debug("caculateInterval", "invsNum", invsNum)
 	var result = make(map[int]*intervalInfo)
 	peerNum := m.network.node.Size()
 	if invsNum < peerNum {
@@ -217,14 +244,16 @@ func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {
 		if end > invsNum || i == peerNum-1 {
 			end = invsNum
 		}
+
 		result[i] = &intervalInfo{start: start, end: end}
-		start += end
+		log.Debug("caculateInterval", "createinfo", result[i])
+		start = end
 	}
 
 	return result
 
 }
-func (m *msg) BlockBroadcast(msg *queue.Message) {
+func (m *msg) BlockBroadcast(msg queue.Message) {
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))

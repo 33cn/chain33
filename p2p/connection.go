@@ -119,7 +119,7 @@ FOR_LOOP:
 			if err != nil {
 				c.sendMonitor.Update(false)
 				log.Error("ERR PING", "ERROR", err.Error())
-				if pingtimes == 3 {
+				if pingtimes == 0 {
 					(*c.nodeInfo).monitorChan <- c.peer
 
 				}
