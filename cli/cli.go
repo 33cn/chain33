@@ -87,7 +87,7 @@ func main() {
 			return
 		}
 		ImportPrivKey(argsWithoutProg[1], argsWithoutProg[2])
-	case "wallettransactionlist": //钱包交易列表
+	case "wallettxlist": //钱包交易列表
 		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
@@ -111,13 +111,13 @@ func main() {
 			return
 		}
 		QueryTransaction(argsWithoutProg[1])
-	case "gettransactionbyaddr": //根据地址获取交易
+	case "gettxbyaddr": //根据地址获取交易
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
 		GetTransactionByAddr(argsWithoutProg[1])
-	case "gettransactionbyhashes": //根据哈希数组获取交易
+	case "gettxbyhashes": //根据哈希数组获取交易
 		if len(argsWithoutProg) < 2 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
@@ -154,26 +154,26 @@ func main() {
 
 func LoadHelp() {
 	fmt.Println("Available Commands:")
-	fmt.Println("lock []                                       : 锁定")
-	fmt.Println("unlock [password, timeout]                    : 解锁")
-	fmt.Println("setpasswd [oldpassword, newpassword]          : 设置密码")
-	fmt.Println("setlabl [address, label]                      : 设置标签")
-	fmt.Println("newaccount [labelname]                        : 新建账户")
-	fmt.Println("getaccounts []                                : 获取账户列表")
-	fmt.Println("mergebalance [to]                             : 合并余额")
-	fmt.Println("settxfee [amount]                             : 设置交易费")
-	fmt.Println("sendtoaddress [from, to, amount, note]        : 发送到地址")
-	fmt.Println("importprivkey [privkey, label]                : 引入私钥")
-	fmt.Println("wallettransactionlist [from, count, direction]: 钱包交易列表")
-	fmt.Println("getmempool []                                 : 获取内存池")
-	fmt.Println("sendtransaction [data]                        : 发送交易")
-	fmt.Println("querytransaction [hash]                       : 查询交易")
-	fmt.Println("gettransactionbyaddr [address]                : 按地址获取交易")
-	fmt.Println("gettransactionbyhashes [hashes...]            : 按哈希列表获取交易")
-	fmt.Println("getblocks [start, end, isdetail]              : 获取区块")
-	fmt.Println("getlastheader []                              : 获取上一区块头")
-	fmt.Println("getheaders [start, end, isdetail]             : 获取指定高度区间的区块头部信息")
-	fmt.Println("getpeerinfo []                                : 获取对等点信息")
+	fmt.Println("lock []                                : 锁定")
+	fmt.Println("unlock [password, timeout]             : 解锁")
+	fmt.Println("setpasswd [oldpassword, newpassword]   : 设置密码")
+	fmt.Println("setlabl [address, label]               : 设置标签")
+	fmt.Println("newaccount [labelname]                 : 新建账户")
+	fmt.Println("getaccounts []                         : 获取账户列表")
+	fmt.Println("mergebalance [to]                      : 合并余额")
+	fmt.Println("settxfee [amount]                      : 设置交易费")
+	fmt.Println("sendtoaddress [from, to, amount, note] : 发送交易到地址")
+	fmt.Println("importprivkey [privkey, label]         : 引入私钥")
+	fmt.Println("wallettxlist [from, count, direction]  : 钱包交易列表")
+	fmt.Println("getmempool []                          : 获取内存池")
+	fmt.Println("sendtransaction [data]                 : 发送交易")
+	fmt.Println("querytransaction [hash]                : 按哈希查询交易")
+	fmt.Println("gettxbyaddr [address]                  : 按地址获取交易")
+	fmt.Println("gettxbyhashes [hashes...]              : 按哈希列表获取交易")
+	fmt.Println("getblocks [start, end, isdetail]       : 获取指定区间区块")
+	fmt.Println("getlastheader []                       : 获取最新区块头")
+	fmt.Println("getheaders [start, end, isdetail]      : 获取指定区间区块头")
+	fmt.Println("getpeerinfo []                         : 获取远程节点信息")
 }
 
 func Lock() {
