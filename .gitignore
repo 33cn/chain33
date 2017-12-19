@@ -5,3 +5,5 @@ datadir
 *.exe
 common/mavl/datastore
 mavltree
+cli/cli
+cli/run.sh
