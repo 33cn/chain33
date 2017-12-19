@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	common.SetLogLevel("eror")
+	common.SetLogLevel("debug")
 	//	argsWithProg := os.Args
 	argsWithoutProg := os.Args[1:]
 	switch argsWithoutProg[0] {
@@ -447,8 +447,8 @@ func SetTxFee(amount string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.Reply
-	err = rpc.Call("Chain33.SetTxFee", prams, res)
+	var res types.Reply
+	err = rpc.Call("Chain33.SetTxFee", prams, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -490,9 +490,10 @@ func SendToAddress(from string, to string, amount string, note string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplyHash
+	var res prams.ReplyHash
 	err = rpc.Call("Chain33.SendToAddress", prams, &res)
 	if err != nil {
+		fmt.Println(err.Error())
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
