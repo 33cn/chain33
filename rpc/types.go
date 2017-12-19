@@ -116,7 +116,7 @@ type ReqAddr struct {
 }
 
 type QueryParm struct {
-	hash string
+	Hash string
 }
 
 type ReqHashes struct {
@@ -127,4 +127,24 @@ type ReqWalletTransactionList struct {
 	FromTx    string
 	Count     int32
 	Direction int32
+}
+
+// Wallet Module
+type WalletAccounts struct {
+	Wallets []*WalletAccount `protobuf:"bytes,1,rep,name=wallets" json:"wallets,omitempty"`
+}
+type WalletAccount struct {
+	Acc   *Account `protobuf:"bytes,1,opt,name=acc" json:"acc,omitempty"`
+	Label string   `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
+}
+
+type Account struct {
+	Currency int32  `protobuf:"varint,1,opt,name=currency" json:"currency,omitempty"`
+	Balance  int64  `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
+	Frozen   int64  `protobuf:"varint,3,opt,name=frozen" json:"frozen,omitempty"`
+	Addr     string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
+}
+type Reply struct {
+	IsOk bool   `protobuf:"varint,1,opt,name=isOk" json:"isOk,omitempty"`
+	Msg  string `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
 }

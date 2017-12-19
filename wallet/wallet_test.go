@@ -265,12 +265,27 @@ func TestProcWalletTxList(t *testing.T) {
 	wallet, _ := initEnv()
 	var TxList types.ReqWalletTransactionList
 	TxList.Count = 5
+
 	TxList.Direction = 1 //
-	TxList.FromTx = []byte("000000000001000009")
+	TxList.FromTx = []byte("")
+	var FromTxstr string
+
+	walletlog.Info("TestProcWalletTxList dir last-------")
+	//(*types.WalletTxDetails, error)
+	WalletTxDetails, err := wallet.ProcWalletTxList(&TxList)
+	if err == nil {
+		for _, WalletTxDetail := range WalletTxDetails.TxDetails {
+			walletlog.Info("TestProcWalletTxList", "Direction", TxList.Direction, "WalletTxDetail", WalletTxDetail.String())
+			FromTxstr = fmt.Sprintf("%018d", WalletTxDetail.GetHeight()*100000+WalletTxDetail.GetIndex())
+		}
+	}
+
+	TxList.Direction = 1 //
+	TxList.FromTx = []byte(FromTxstr)
 
 	walletlog.Info("TestProcWalletTxList dir next-------")
 	//(*types.WalletTxDetails, error)
-	WalletTxDetails, err := wallet.ProcWalletTxList(&TxList)
+	WalletTxDetails, err = wallet.ProcWalletTxList(&TxList)
 	if err == nil {
 		for _, WalletTxDetail := range WalletTxDetails.TxDetails {
 			walletlog.Info("TestProcWalletTxList", "Direction", TxList.Direction, "WalletTxDetail", WalletTxDetail.String())
@@ -422,15 +437,16 @@ func TestProcWalletLock(t *testing.T) {
 		WalletSetFee.Amount = 10000000
 		err := wallet.ProcWalletSetFee(&WalletSetFee)
 		if err == nil {
-			walletlog.Info("ProcWalletSetFee success")
-			break
-		} else {
 			if flag == 0 {
-				walletlog.Info("ProcWalletSetFee", "err", err)
+				walletlog.Info("ProcWalletSetFee success")
 				flag = 1
 			}
+		} else {
+			walletlog.Info("ProcWalletSetFee", "err", err)
+			break
 		}
 	}
+
 	walletlog.Info("TestProcWalletLock end --------------------")
 	wallet.Close()
 }

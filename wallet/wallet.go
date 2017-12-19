@@ -3,6 +3,7 @@ package wallet
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -511,7 +512,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto,Nonce: rand.Int63()}
 	tx.Sign(types.SECP256K1, priv)
 
 	//发送交易信息给mempool模块
@@ -669,7 +670,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 
-		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto}
+		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto,Nonce: rand.Int63()}
 		tx.Sign(types.SECP256K1, priv)
 
 		//发送交易信息给mempool模块
@@ -693,9 +694,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 //	Newpass string
 //设置或者修改密码
 func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) error {
-	if wallet.IsLocked() {
-		return WalletIsLocked
-	}
+
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -719,13 +718,16 @@ func (wallet *Wallet) ProcWalletLock() error {
 //type WalletUnLock struct {
 //	Passwd  string
 //	Timeout int64
-//解锁钱包
+//解锁钱包Timeout时间，超时后继续锁住
 func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 	if WalletUnLock.Passwd != wallet.Password {
 		err := errors.New("Input Password error!")
 		return err
 	}
-	wallet.resetTimeout(WalletUnLock.Timeout)
+	wallet.isLocked = false
+	if WalletUnLock.Timeout != 0 {
+		wallet.resetTimeout(WalletUnLock.Timeout)
+	}
 	return nil
 
 }
@@ -733,7 +735,7 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 func (wallet *Wallet) resetTimeout(Timeout int64) {
 	if wallet.timeout == nil {
 		wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-			wallet.isLocked = false
+			wallet.isLocked = true
 		})
 	} else {
 		wallet.timeout.Reset(time.Second * time.Duration(Timeout))
@@ -773,14 +775,14 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 			addr := account.PubKeyToAddress(pubkey)
 			fromaddress := addr.String()
 			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-				newbatch.Set([]byte(heightstr), txdetailbyte)
+				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
 				walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
 				continue
 			}
 			//toaddr
 			toaddr := block.Block.Txs[index].GetTo()
 			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-				newbatch.Set([]byte(heightstr), txdetailbyte)
+				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
 				walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
 			}
 		}
@@ -863,7 +865,7 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 			storelog.Error("ReqTxDetailByAddr Marshal txdetail err", "Height", height, "index", txindex)
 			return
 		}
-		newbatch.Set([]byte(heightstr), txdetailbyte)
+		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
 		walletlog.Info("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()

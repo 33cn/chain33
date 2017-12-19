@@ -26,14 +26,20 @@ func calcAccountKey(timestamp string, addr string) []byte {
 	return []byte(fmt.Sprintf("Account:%s:%s", timestamp, addr))
 }
 
-//通过制定addr地址查询Account账户信息
+//通过addr地址查询Account账户信息
 func calcAddrKey(addr string) []byte {
 	return []byte(fmt.Sprintf("Addr:%s", addr))
 }
 
-//通过制定label查询Account账户信息
+//通过label查询Account账户信息
 func calcLabelKey(label string) []byte {
 	return []byte(fmt.Sprintf("Label:%s", label))
+}
+
+//通过height*100000+index 查询Tx交易信息
+//key:Tx:height*100000+index
+func calcTxKey(key string) []byte {
+	return []byte(fmt.Sprintf("Tx:%s", key))
 }
 
 func NewWalletStore(db dbm.DB) *WalletStore {
@@ -74,12 +80,12 @@ func (ws *WalletStore) GetFeeAmount() int64 {
 	var FeeAmount int64
 	bytes := ws.db.Get(WalletFeeAmount)
 	if bytes == nil {
-		return -1
+		return  1000000
 	}
 	err := json.Unmarshal(bytes, &FeeAmount)
 	if err != nil {
 		walletlog.Error("GetFeeAmount unmarshal", "err", err)
-		return -1
+		return 1000000
 	}
 	return FeeAmount
 }
@@ -181,15 +187,25 @@ func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountSt
 //迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
 func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	var txDetails types.WalletTxDetails
-	if TxList == nil || len(TxList.FromTx) == 0 {
+	if TxList == nil {
 		err := errors.New("GetTxDetailByIter TxList is null")
 		return nil, err
 	}
 
-	txbytes := ws.db.IteratorScan(TxList.FromTx, TxList.Count, TxList.Direction)
-	if len(txbytes) == 0 {
-		err := errors.New("does not exist tx!")
-		return nil, err
+	var txbytes [][]byte
+	//FromTx是空字符串时。默认从最新的交易开始取count个
+	if len(TxList.FromTx) == 0 {
+		txbytes = ws.db.IteratorScanFromLast([]byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		if len(txbytes) == 0 {
+			err := errors.New("does not exist tx!")
+			return nil, err
+		}
+	} else {
+		txbytes = ws.db.IteratorScan([]byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		if len(txbytes) == 0 {
+			err := errors.New("does not exist tx!")
+			return nil, err
+		}
 	}
 
 	txDetails.TxDetails = make([]*types.WalletTxDetail, len(txbytes))

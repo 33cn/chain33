@@ -17,7 +17,6 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	var parm types.Transaction
 	types.Decode(common.FromHex(in.Data), &parm)
 	log.Debug("SendTransaction", "parm", parm)
-
 	reply := req.cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
 		*result = string(reply.GetData().(*types.Reply).Msg)
@@ -31,7 +30,7 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 
-	data.Hash = common.FromHex(in.hash)
+	data.Hash = common.FromHex(in.Hash)
 	reply, err := req.cli.QueryTx(data.Hash)
 	if err != nil {
 		return err
@@ -80,11 +79,11 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 	{
 
 		var blockDetails BlockDetails
-		var bdtl BlockDetail
 		for _, item := range reply.Items {
+			var bdtl BlockDetail
 			var block Block
 			block.BlockTime = item.Block.GetBlockTime()
-			block.Height = item.Block.GetBlockTime()
+			block.Height = item.Block.GetHeight()
 			block.Version = item.Block.GetVersion()
 			block.ParentHash = common.ToHex(item.Block.GetParentHash())
 			block.StateHash = common.ToHex(item.Block.GetStateHash())
@@ -244,7 +243,13 @@ func (req Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
+	var accounts WalletAccounts
+	for _, wallet := range reply.Wallets {
+		accounts.Wallets = append(accounts.Wallets, &WalletAccount{Label: wallet.GetLabel(),
+			Acc: &Account{Currency: wallet.GetAcc().GetCurrency(), Balance: wallet.GetAcc().GetBalance(),
+				Frozen: wallet.GetAcc().GetFrozen(), Addr: wallet.GetAcc().GetAddr()}})
+	}
+	*result = &accounts
 	return nil
 }
 
@@ -261,6 +266,7 @@ func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error
 	if err != nil {
 		return err
 	}
+
 	*result = reply
 	return nil
 }
@@ -310,10 +316,12 @@ func (req Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interf
 	log.Debug("Rpc SendToAddress", "Tx", in)
 	reply, err := req.cli.SendToAddress(&in)
 	if err != nil {
+		log.Debug("SendToAddress", "Error", err.Error())
 		return err
 	}
-
+	log.Debug("sendtoaddr", "msg", reply.String())
 	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
+	log.Debug("SendToAddress", "resulrt", *result)
 	return nil
 }
 
@@ -329,7 +337,10 @@ func (req Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error
 	if err != nil {
 		return err
 	}
-	*result = reply
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }
 
@@ -363,7 +374,10 @@ func (req Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) e
 	if err != nil {
 		return err
 	}
-	*result = reply
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }
 
@@ -378,7 +392,10 @@ func (req Chain33) Lock(in types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }
 
@@ -387,7 +404,10 @@ func (req Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }
 
