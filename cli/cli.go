@@ -39,8 +39,6 @@ func main() {
 			return
 		}
 		UnLock(argsWithoutProg[1], argsWithoutProg[2])
-	//case "Status":
-	//	Status() //获取是否为锁定状态
 	case "setpasswd": //重设密码
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -151,7 +149,7 @@ func main() {
 func LoadHelp() {
 	fmt.Println("Available Commands:")
 	fmt.Println("lock []                                       : 锁定")
-	fmt.Println("unlock [password]                             : 解锁")
+	fmt.Println("unlock [password, timeout]                    : 解锁")
 	fmt.Println("setpasswd [oldpassword, newpassword]          : 设置密码")
 	fmt.Println("setlabl [address, label]                      : 设置标签")
 	fmt.Println("newaccount [labelname]                        : 新建账户")
@@ -177,7 +175,7 @@ func Lock() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.Reply
+	var res jsonrpc.Reply
 	err = rpc.Call("Chain33.Lock", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -191,20 +189,6 @@ func Lock() {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.Lock","params":[]}`)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func UnLock(passwd string, timeout string) {
@@ -219,7 +203,7 @@ func UnLock(passwd string, timeout string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.Reply
+	var res jsonrpc.Reply
 	err = rpc.Call("Chain33.UnLock", prams, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -233,26 +217,6 @@ func UnLock(passwd string, timeout string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	timeoutInt64, err := strconv.ParseInt(timeout, 10, 64)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.UnLock",
-	//		"params":[{"passwd":"%s","timeout":%d}]}`, passwd, timeoutInt64)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func SetPasswd(oldpass string, newpass string) {
@@ -262,7 +226,7 @@ func SetPasswd(oldpass string, newpass string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.Reply
+	var res jsonrpc.Reply
 	err = rpc.Call("Chain33.SetPasswd", prams, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -276,21 +240,6 @@ func SetPasswd(oldpass string, newpass string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SetPasswd",
-	//		"params":[{"oldpass":"%s","newpass":"%s"}]}`, oldpass, newpass)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func SetLabl(addr string, label string) {
@@ -314,21 +263,6 @@ func SetLabl(addr string, label string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SetLabl",
-	//		"params":[{"addr":"%s","label":"%s"}]}`, addr, label)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func NewAccount(lb string) {
@@ -352,21 +286,6 @@ func NewAccount(lb string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.NewAccount",
-	//		"params":[{"label":"%s"}]}`, lb)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func GetAccounts() {
@@ -375,7 +294,7 @@ func GetAccounts() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.WalletAccounts
+	var res jsonrpc.WalletAccounts
 	err = rpc.Call("Chain33.GetAccounts", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -389,20 +308,6 @@ func GetAccounts() {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetAccounts","params":[]}`)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func MergeBalance(to string) {
@@ -412,7 +317,7 @@ func MergeBalance(to string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplyHashes
+	var res jsonrpc.ReplyHashes
 	err = rpc.Call("Chain33.MergeBalance", prams, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -426,21 +331,6 @@ func MergeBalance(to string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.MergeBalance",
-	//		"params":[{"to":"%s"}]}`, to)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func SetTxFee(amount string) {
@@ -455,7 +345,7 @@ func SetTxFee(amount string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.Reply
+	var res jsonrpc.Reply
 	err = rpc.Call("Chain33.SetTxFee", prams, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -469,21 +359,6 @@ func SetTxFee(amount string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SetTxFee",
-	//		"params":[{"amount":%d}]}`, amountInt64)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func SendToAddress(from string, to string, amount string, note string) {
@@ -513,21 +388,6 @@ func SendToAddress(from string, to string, amount string, note string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SendToAddress",
-	//		"params":[{"from":"%s","to":"%s","amount":%d,"note":"%s"}]}`, from, to, amountInt64, note)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func ImportPrivKey(privkey string, label string) {
@@ -551,21 +411,6 @@ func ImportPrivKey(privkey string, label string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.ImportPrivKey",
-	//		"params":[{"privkey":"%s","label":"%s"}]}`, privkey, label)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func WalletTransactionList(fromTx string, count string, direction string) {
@@ -599,31 +444,6 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	countInt32, err := strconv.ParseInt(count, 10, 32)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	directionInt32, err := strconv.ParseInt(direction, 10, 32)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.WalletTxList",
-	//		"params":[{"fromTx":"%s","count":%d,"direction":&d}]}`, fromTx, countInt32, directionInt32)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func GetMemPool() {
@@ -646,20 +466,6 @@ func GetMemPool() {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetMempool","params":[]}`)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func SendTransaction(tran string) {
@@ -683,21 +489,6 @@ func SendTransaction(tran string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.SendTransaction",
-	//		"params":[{"data":"%s"}]}`, data)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func QueryTransaction(h string) {
@@ -721,21 +512,6 @@ func QueryTransaction(h string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.QueryTransaction",
-	//		"params":[{"hash":"%s"}]}`, hash)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func GetTransactionByAddr(addr string) {
@@ -759,21 +535,6 @@ func GetTransactionByAddr(addr string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetTxByAddr",
-	//		"params":[{"addr":"%s"}]}`, addr)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func GetTransactionByHashes(hashes []string) {
@@ -797,32 +558,6 @@ func GetTransactionByHashes(hashes []string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	var buf bytes.Buffer
-	//	buf.WriteString("[")
-	//	for h := range hashes {
-	//		buf.WriteString(hashes[h] + ",")
-	//	}
-	//	strHashes := buf.String()
-	//	length := len(strHashes)
-	//	if length > 1 {
-	//		strHashes = strHashes[:length-1]
-	//	}
-	//	strHashes += "]"
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetTxByHashes",
-	//		"params":[{"addr":"%s"}]}`, strHashes)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func GetBlocks(start string, end string, detail string) {
@@ -861,36 +596,6 @@ func GetBlocks(start string, end string, detail string) {
 	}
 
 	fmt.Println(string(data))
-
-	//	startInt64, err := strconv.ParseInt(start, 10, 64)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	endInt64, err := strconv.ParseInt(end, 10, 64)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	detailBool, err := strconv.ParseBool(detail)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetBlocks",
-	//		"params":[{"start":%d,"end":%d,"isdetail":%t}]}`, startInt64, endInt64, detailBool)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func GetLastHeader() {
@@ -913,20 +618,6 @@ func GetLastHeader() {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetLastHeader","params":[]}`)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
 
 func GetPeerInfo() {
@@ -949,18 +640,4 @@ func GetPeerInfo() {
 	}
 
 	fmt.Println(string(data))
-
-	//	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":0,"method":"Chain33.GetPeerInfo","params":[]}`)
-	//	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	defer resp.Body.Close()
-	//	b, err := ioutil.ReadAll(resp.Body)
-	//	if err != nil {
-	//		panic(err)
-	//		return
-	//	}
-	//	fmt.Print(string(b))
 }
