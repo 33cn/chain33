@@ -15,21 +15,21 @@ func (mem *Mempool) CheckTxList() {
 
 		// 检查交易消息是否过大
 		if len(types.Encode(tx)) > int(maxMsgByte) {
-			data.Data = errors.New(e06)
+			data.Data = e06
 			mem.badChan <- data
 			continue
 		}
 
 		// 检查交易费是否小于最低值
 		if tx.Fee < mem.GetMinFee() {
-			data.Data = errors.New(e02)
+			data.Data = e02
 			mem.badChan <- data
 			continue
 		}
 
 		// 检查交易账户在Mempool中是否存在过多交易
 		if mem.TxNumOfAccount(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()) >= 10 {
-			data.Data = errors.New(e03)
+			data.Data = e03
 			mem.badChan <- data
 			continue
 		}
@@ -49,7 +49,7 @@ func (mem *Mempool) CheckSignList() {
 					// 签名正确，传入balanChan，待检查余额
 					mem.balanChan <- data
 				} else {
-					data.Data = errors.New(e04)
+					data.Data = e04
 					mem.badChan <- data
 				}
 			}
@@ -114,16 +114,16 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 
 		if accs[i].Balance >= 10*tx.Fee {
 			// 交易账户余额充足，推入Mempool
-			ok, err := mem.PushTx(tx)
-			if ok {
+			err := mem.PushTx(tx)
+			if err == nil {
 				// 推入Mempool成功，传入goodChan，待回复消息
 				mem.goodChan <- msgs[i]
 			} else {
-				msgs[i].Data = errors.New(err)
+				msgs[i].Data = err
 				mem.badChan <- msgs[i]
 			}
 		} else {
-			msgs[i].Data = errors.New(e05)
+			msgs[i].Data = e05
 			mem.badChan <- msgs[i]
 		}
 	}
