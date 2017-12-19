@@ -62,12 +62,12 @@ func (store *Store) SetQueue(q *queue.Queue) {
 			if msg.Ty == types.EventStoreSet {
 				datas := msg.GetData().(*types.StoreSet)
 				hash := mavl.SetKVPair(store.db, datas)
-				mavl.PrintTreeLeaf(store.db, hash)
+				//mavl.PrintTreeLeaf(store.db, hash)
 				msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 			} else if msg.Ty == types.EventStoreGet {
 				datas := msg.GetData().(*types.StoreGet)
 				values := mavl.GetKVPair(store.db, datas)
-				mavl.PrintTreeLeaf(store.db, datas.StateHash)
+				//mavl.PrintTreeLeaf(store.db, datas.StateHash)
 				msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
 			}
 		}
