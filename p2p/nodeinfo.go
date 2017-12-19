@@ -12,6 +12,7 @@ type NodeInfo struct {
 	listenAddr   *NetAddress `json:"listen_addr"`
 	version      string      `json:"version"` // major.minor.revision
 	monitorChan  chan *peer
+	versionChan  chan struct{}
 	cfg          *types.P2P
 	q            *queue.Queue
 	qclient      queue.IClient
