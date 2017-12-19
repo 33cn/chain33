@@ -22,14 +22,16 @@ type IClient interface {
 	Wait(msg Message) (Message, error)       //等待消息处理完成
 	Recv() chan Message
 	Sub(topic string) //订阅消息
+	Close()
 	NewMessage(topic string, ty int64, data interface{}) (msg Message)
 }
 
 type Client struct {
-	q    *Queue
-	recv chan Message
-	id   int64
-	mu   sync.Mutex
+	q        *Queue
+	recv     chan Message
+	id       int64
+	mu       sync.Mutex
+	isclosed int32
 }
 
 func newClient(q *Queue) IClient {
@@ -70,11 +72,18 @@ func (client *Client) Recv() chan Message {
 	return client.recv
 }
 
+func (client *Client) Close() {
+	atomic.StoreInt32(&client.isclosed, 1)
+	close(client.recv)
+}
+
 func (client *Client) Sub(topic string) {
 	recv := client.q.getChannel(topic)
 	go func() {
 		for msg := range recv {
-			client.recv <- msg
+			if atomic.LoadInt32(&client.isclosed) == 0 {
+				client.recv <- msg
+			}
 		}
 	}()
 }

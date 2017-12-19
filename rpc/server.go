@@ -45,6 +45,7 @@ func (server *channelServer) GetQueue() *queue.Queue {
 }
 
 func (server *channelServer) Close() {
+	server.listener.Close()
 }
 
 type grpcServer struct {
@@ -64,7 +65,6 @@ func newGrpcServer(addr string, q *queue.Queue) *grpcServer {
 
 func (r *grpcServer) Close() {
 	r.listener.Close()
-	log.Info("grpc module closed")
 }
 
 func newJsonrpcServer(addr string, q *queue.Queue) *jsonrpcServer {
@@ -72,9 +72,4 @@ func newJsonrpcServer(addr string, q *queue.Queue) *jsonrpcServer {
 	server.q = q
 	server.CreateServer(addr)
 	return server
-}
-
-func (r *jsonrpcServer) Close() {
-	r.listener.Close()
-	log.Info("jsonrpc module closed")
 }
