@@ -27,10 +27,6 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 
 }
 
-type QueryParm struct {
-	Hash string
-}
-
 func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 
@@ -69,12 +65,6 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 
 	return nil
 
-}
-
-type BlockParam struct {
-	Start    int64
-	End      int64
-	Isdetail bool
 }
 
 func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
@@ -154,10 +144,6 @@ func (req Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-type ReqAddr struct {
-	Addr string
-}
-
 //GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
 func (req Chain33) GetTxByAddr(in ReqAddr, result *interface{}) error {
 
@@ -186,10 +172,6 @@ GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
 	GetMempool() (*types.ReplyTxList, error)
 	GetAccounts() (*types.WalletAccounts, error)
 */
-
-type ReqHashes struct {
-	Hashes []string
-}
 
 func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 
@@ -287,12 +269,6 @@ func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error
 
 	*result = reply
 	return nil
-}
-
-type ReqWalletTransactionList struct {
-	FromTx    string
-	Count     int32
-	Direction int32
 }
 
 func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}) error {

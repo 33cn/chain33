@@ -16,6 +16,14 @@ type JTransparm struct {
 type RawParm struct {
 	Data string
 }
+type QueryParm struct {
+	Hash string
+}
+type BlockParam struct {
+	Start    int64
+	End      int64
+	Isdetail bool
+}
 
 type Header struct {
 	Version    int64
@@ -126,4 +134,18 @@ type Reply struct {
 }
 type Headers struct {
 	Items []*Header `protobuf:"bytes,1,rep,name=items" json:"items,omitempty"`
+}
+
+type ReqAddr struct {
+	Addr string
+}
+
+type ReqHashes struct {
+	Hashes []string
+}
+
+type ReqWalletTransactionList struct {
+	FromTx    string
+	Count     int32
+	Direction int32
 }
