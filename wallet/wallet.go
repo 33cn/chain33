@@ -3,6 +3,7 @@ package wallet
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -510,7 +511,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto,Nonce: rand.Int63()}
 	tx.Sign(types.SECP256K1, priv)
 
 	//发送交易信息给mempool模块
@@ -668,7 +669,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 
-		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto}
+		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto,Nonce: rand.Int63()}
 		tx.Sign(types.SECP256K1, priv)
 
 		//发送交易信息给mempool模块
