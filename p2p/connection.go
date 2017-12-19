@@ -129,12 +129,15 @@ FOR_LOOP:
 			log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
 			c.sendMonitor.Update(true)
 			pingtimes++
-			//Send to Version,Once
-			if pingtimes == 5 {
-				c.ExChangeVersion(in)
-			}
 			c.pingTimer.Reset()
-
+		case <-(*c.nodeInfo).versionChan:
+			randNonce := rand.Int31n(102040)
+			in, err := c.Signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: EXTERNALADDR, Port: int32((*c.nodeInfo).externalAddr.Port)})
+			if err != nil {
+				log.Error("Signature", "Error", err.Error())
+				continue
+			}
+			c.ExChangeVersion(in)
 		case <-c.quit:
 			break FOR_LOOP
 
