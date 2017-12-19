@@ -31,6 +31,7 @@ type IRClient interface {
 	Lock() (*types.Reply, error)
 	UnLock(parm *types.WalletUnLock) (*types.Reply, error)
 	GetPeerInfo() (*types.PeerList, error)
+	GetHeaders(*types.ReqBlocks) (*types.Headers, error)
 }
 
 type channelClient struct {
@@ -85,9 +86,7 @@ func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (b
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.BlockDetails), nil
 }
 
@@ -98,9 +97,7 @@ func (client *channelClient) QueryTx(hash []byte) (proof *types.TransactionDetai
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.TransactionDetail), nil
 }
 
@@ -111,9 +108,7 @@ func (client *channelClient) GetLastHeader() (*types.Header, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.Header), nil
 }
 
@@ -124,9 +119,7 @@ func (client *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInf
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.ReplyTxInfos), nil
 }
 
@@ -138,9 +131,7 @@ func (client *channelClient) GetTxByHashes(parm *types.ReqHashes) (*types.Transa
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.TransactionDetails), nil
 }
 
@@ -151,9 +142,7 @@ func (client *channelClient) GetMempool() (*types.ReplyTxList, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.ReplyTxList), nil
 }
 
@@ -164,9 +153,7 @@ func (client *channelClient) GetAccounts() (*types.WalletAccounts, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.WalletAccounts), nil
 }
 
@@ -177,9 +164,7 @@ func (client *channelClient) NewAccount(parm *types.ReqNewAccount) (*types.Walle
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.WalletAccount), nil
 }
 
@@ -190,9 +175,7 @@ func (client *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) 
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.TransactionDetails), nil
 }
 
@@ -203,9 +186,7 @@ func (client *channelClient) ImportPrivkey(parm *types.ReqWalletImportPrivKey) (
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.WalletAccount), nil
 }
 
@@ -216,9 +197,7 @@ func (client *channelClient) SendToAddress(parm *types.ReqWalletSendToAddress) (
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.ReplyHash), nil
 }
 
@@ -229,9 +208,7 @@ func (client *channelClient) SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.Reply), nil
 
 }
@@ -256,9 +233,7 @@ func (client *channelClient) MergeBalance(parm *types.ReqWalletMergeBalance) (*t
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.ReplyHashes), nil
 }
 
@@ -269,9 +244,7 @@ func (client *channelClient) SetPasswd(parm *types.ReqWalletSetPasswd) (*types.R
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.Reply), nil
 }
 
@@ -282,9 +255,7 @@ func (client *channelClient) Lock() (*types.Reply, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.Reply), nil
 }
 
@@ -295,9 +266,7 @@ func (client *channelClient) UnLock(parm *types.WalletUnLock) (*types.Reply, err
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.Reply), nil
 }
 
@@ -308,8 +277,16 @@ func (client *channelClient) GetPeerInfo() (*types.PeerList, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
 	return resp.Data.(*types.PeerList), nil
+}
+
+func (client *channelClient) GetHeaders(in *types.ReqBlocks) (*types.Headers, error) {
+	msg := client.qclient.NewMessage("blockchain", types.EventGetHeaders, &types.ReqBlocks{Start: in.GetStart(), End: in.GetEnd(),
+		Isdetail: in.GetIsdetail()})
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.Headers), nil
 }

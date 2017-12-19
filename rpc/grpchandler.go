@@ -190,3 +190,12 @@ func (req *Grpc) GetPeerInfo(ctx context.Context, in *pb.ReqNil) (*pb.PeerList, 
 
 	return reply, nil
 }
+
+func (req *Grpc) GetHeaders(ctx context.Context, in *pb.ReqBlocks) (*pb.Headers, error) {
+	reply, err := req.cli.GetHeaders(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}

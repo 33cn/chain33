@@ -3,14 +3,14 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
+	"net"
 	"os"
 	"sync"
 
+	"strings"
 	"time"
 
-	"net"
-	"strings"
-
+	"code.aliyun.com/chain33/chain33/p2p/nat"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -46,8 +46,7 @@ func (n *Node) setQueue(q *queue.Queue) {
 }
 
 func newNode(cfg *types.P2P) (*Node, error) {
-
-	initAddr(cfg)
+	DetectionNodeAddr(cfg)
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	rand.Seed(time.Now().Unix())
 	node := &Node{
@@ -75,6 +74,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	node.nodeInfo.externalAddr, _ = NewNetAddressString(exaddr)
 	node.nodeInfo.listenAddr, _ = NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, node.localPort))
 	node.nodeInfo.monitorChan = make(chan *peer, 1024)
+	node.nodeInfo.versionChan = make(chan struct{})
 	node.nodeInfo.cfg = cfg
 	node.localAddr = fmt.Sprintf("%s:%v", LOCALADDR, node.localPort)
 
@@ -84,7 +84,27 @@ func (n *Node) flushNodeInfo() {
 	n.nodeInfo.externalAddr, _ = NewNetAddressString(fmt.Sprintf("%v:%v", EXTERNALADDR, n.externalPort))
 	n.nodeInfo.listenAddr, _ = NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, n.localPort))
 }
+func (n *Node) makeService() {
+	//确认自己的服务范围1，2，4
+	go func() {
+		for i := 0; i < 10; i++ {
+			exnet, err := nat.Any().ExternalIP()
+			if err == nil {
+				if exnet.String() != EXTERNALADDR && exnet.String() != LOCALADDR {
+					SERVICE -= NODE_NETWORK
+					break
+				}
+				log.Debug("makeService", "SERVICE", SERVICE)
+				n.nodeInfo.versionChan <- struct{}{}
+				log.Debug("makeService", "Sig", "Ok")
+				break
+			} else {
+				log.Error("ExternalIp", "Error", err.Error())
+			}
+		}
+	}()
 
+}
 func (n *Node) DialPeers(addrs []string) error {
 	if len(addrs) == 0 {
 		return nil
@@ -161,10 +181,6 @@ func (n *Node) dialSeeds(addrs []string) error {
 			}
 
 			n.AddPeer(peer)
-			//不添加到文件中
-			//n.addrBook.AddAddress(netAddr, selfaddr)
-			//n.addrBook.Save()
-
 		}
 
 	}
@@ -346,6 +362,7 @@ func (n *Node) loadAddrBook() bool {
 //3.如果配置了种子节点，则连接种子节点
 //4.启动监控远程节点
 func (n *Node) Start() {
+	n.makeService()
 	n.rListener = NewRemotePeerAddrServer()
 	n.l = NewDefaultListener(Protocol, n)
 

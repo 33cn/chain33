@@ -105,30 +105,6 @@ type Peer struct {
 	Header      *Header
 }
 
-type BlockParam struct {
-	Start    int64
-	End      int64
-	Isdetail bool
-}
-
-type ReqAddr struct {
-	Addr string
-}
-
-type QueryParm struct {
-	Hash string
-}
-
-type ReqHashes struct {
-	Hashes []string
-}
-
-type ReqWalletTransactionList struct {
-	FromTx    string
-	Count     int32
-	Direction int32
-}
-
 // Wallet Module
 type WalletAccounts struct {
 	Wallets []*WalletAccount `protobuf:"bytes,1,rep,name=wallets" json:"wallets,omitempty"`
@@ -147,4 +123,7 @@ type Account struct {
 type Reply struct {
 	IsOk bool   `protobuf:"varint,1,opt,name=isOk" json:"isOk,omitempty"`
 	Msg  string `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
+}
+type Headers struct {
+	Items []*Header `protobuf:"bytes,1,rep,name=items" json:"items,omitempty"`
 }
