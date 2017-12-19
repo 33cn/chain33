@@ -106,8 +106,7 @@ func initConfig(cfg *types.BlockChain) {
 
 func (chain *BlockChain) Close() {
 	//wait recv done
-	chrecv := chain.qclient.Recv()
-	close(chrecv)
+	chain.qclient.Close()
 	<-chain.recvdone
 
 	//wait

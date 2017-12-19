@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+
 	"strings"
 	"time"
 
@@ -101,60 +102,39 @@ func (l *DefaultListener) listenRoutine() {
 
 }
 
-func initAddr(cfg *pb.P2P) {
+func DetectionNodeAddr(cfg *pb.P2P) {
 
 	LOCALADDR = localBindAddr()
 	log.Debug("LOCALADDR", "addr:", LOCALADDR)
-	// Determine external address...
-	for i := 0; i < 30; i++ {
-		if cfg.GetIsSeed() {
-			EXTERNALADDR = LOCALADDR
-			return
-		}
-		exnet, err := nat.Any().ExternalIP()
-		if err == nil {
-			EXTERNALADDR = exnet.String()
-			log.Debug("EXTERNALADDR", "Addr", EXTERNALADDR)
-			break
-		} else {
-			log.Error("ExternalIp", "Error", err.Error())
-		}
+	if cfg.GetIsSeed() {
+		EXTERNALADDR = LOCALADDR
 	}
-	//获取外网失败，默认本地与外网地址一致
-	//确认自己的服务范围1，2，4
-	go func() {
 
-		defer log.Debug("Addrs", "LocalAddr", LOCALADDR, "ExternalAddr", EXTERNALADDR)
-		time.Sleep(time.Second * 10)
-		if len(cfg.Seeds) == 0 {
-			return
+	if len(cfg.Seeds) == 0 {
+		return
+	}
+	//TODO 增加校验IP格式的方法,目前临时方法，不完善
+	if strings.Contains(cfg.Seeds[0], ":") == false {
+		return
+	}
+	serveraddr := strings.Split(cfg.Seeds[0], ":")[0]
+	var trytimes uint = 3
+	for {
+		selfexaddrs := getSelfExternalAddr(fmt.Sprintf("%v:%v", serveraddr, DefalutP2PRemotePort))
+		if len(selfexaddrs) != 0 {
+			log.Debug("getSelfExternalAddr", "Addr", selfexaddrs[0])
+			EXTERNALADDR = selfexaddrs[0]
+			log.Debug("DetectionNodeAddr", "LocalAddr", LOCALADDR, "ExternalAddr", EXTERNALADDR)
+			break
 		}
-		//TODO 增加校验IP格式的方法,目前临时方法，不完善
-		if strings.Contains(cfg.Seeds[0], ":") == false {
-			return
+		trytimes--
+		if trytimes == 0 {
+			break
 		}
-		serveraddr := strings.Split(cfg.Seeds[0], ":")[0]
-		var trytimes uint = 3
-		for {
-			selfexaddrs := getSelfExternalAddr(fmt.Sprintf("%v:%v", serveraddr, DefalutP2PRemotePort))
-			if len(selfexaddrs) != 0 {
-				log.Debug("GetSelfExternalAddr", "Addr", selfexaddrs[0])
-				if selfexaddrs[0] != EXTERNALADDR && selfexaddrs[0] != LOCALADDR {
-					SERVICE -= NODE_NETWORK
-				}
-				EXTERNALADDR = selfexaddrs[0]
-				break
-			}
-			trytimes--
-			if trytimes == 0 {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
-		if len(EXTERNALADDR) == 0 {
-			EXTERNALADDR = LOCALADDR
-		}
-	}()
-
+		time.Sleep(time.Second * 2)
+	}
+	//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
+	if len(EXTERNALADDR) == 0 {
+		EXTERNALADDR = LOCALADDR
+	}
 }
