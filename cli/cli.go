@@ -135,6 +135,12 @@ func main() {
 			return
 		}
 		GetLastHeader()
+	case "getheaders":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetHeaders(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
 	case "getpeerinfo": //获取对等点信息
 		if len(argsWithoutProg) != 1 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -166,6 +172,7 @@ func LoadHelp() {
 	fmt.Println("gettransactionbyhashes [hashes...]            : 按哈希列表获取交易")
 	fmt.Println("getblocks [start, end, isdetail]              : 获取区块")
 	fmt.Println("getlastheader []                              : 获取上一区块头")
+	fmt.Println("getheaders []                                 : 获取指定高度区间的区块头部信息")
 	fmt.Println("getpeerinfo []                                : 获取对等点信息")
 }
 
@@ -197,14 +204,14 @@ func UnLock(passwd string, timeout string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	prams := types.WalletUnLock{Passwd: passwd, Timeout: timeoutInt64}
+	params := types.WalletUnLock{Passwd: passwd, Timeout: timeoutInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.Reply
-	err = rpc.Call("Chain33.UnLock", prams, &res)
+	err = rpc.Call("Chain33.UnLock", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -220,14 +227,14 @@ func UnLock(passwd string, timeout string) {
 }
 
 func SetPasswd(oldpass string, newpass string) {
-	prams := types.ReqWalletSetPasswd{Oldpass: oldpass, Newpass: newpass}
+	params := types.ReqWalletSetPasswd{Oldpass: oldpass, Newpass: newpass}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.Reply
-	err = rpc.Call("Chain33.SetPasswd", prams, &res)
+	err = rpc.Call("Chain33.SetPasswd", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -243,14 +250,14 @@ func SetPasswd(oldpass string, newpass string) {
 }
 
 func SetLabl(addr string, label string) {
-	prams := types.ReqWalletSetLabel{Addr: addr, Label: label}
+	params := types.ReqWalletSetLabel{Addr: addr, Label: label}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res types.WalletAccount
-	err = rpc.Call("Chain33.SetLabl", prams, &res)
+	err = rpc.Call("Chain33.SetLabl", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -266,14 +273,14 @@ func SetLabl(addr string, label string) {
 }
 
 func NewAccount(lb string) {
-	prams := types.ReqNewAccount{Label: lb}
+	params := types.ReqNewAccount{Label: lb}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res types.WalletAccount
-	err = rpc.Call("Chain33.NewAccount", prams, &res)
+	err = rpc.Call("Chain33.NewAccount", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -311,14 +318,14 @@ func GetAccounts() {
 }
 
 func MergeBalance(to string) {
-	prams := types.ReqWalletMergeBalance{To: to}
+	params := types.ReqWalletMergeBalance{To: to}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.ReplyHashes
-	err = rpc.Call("Chain33.MergeBalance", prams, &res)
+	err = rpc.Call("Chain33.MergeBalance", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -339,14 +346,14 @@ func SetTxFee(amount string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	prams := types.ReqWalletSetFee{Amount: amountInt64}
+	params := types.ReqWalletSetFee{Amount: amountInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.Reply
-	err = rpc.Call("Chain33.SetTxFee", prams, &res)
+	err = rpc.Call("Chain33.SetTxFee", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -367,14 +374,14 @@ func SendToAddress(from string, to string, amount string, note string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	prams := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
+	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.ReplyHash
-	err = rpc.Call("Chain33.SendToAddress", prams, &res)
+	err = rpc.Call("Chain33.SendToAddress", params, &res)
 	if err != nil {
 		fmt.Println(err.Error())
 		fmt.Fprintln(os.Stderr, err)
@@ -391,14 +398,14 @@ func SendToAddress(from string, to string, amount string, note string) {
 }
 
 func ImportPrivKey(privkey string, label string) {
-	prams := types.ReqWalletImportPrivKey{Privkey: privkey, Label: label}
+	params := types.ReqWalletImportPrivKey{Privkey: privkey, Label: label}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res types.WalletAccount
-	err = rpc.Call("Chain33.ImportPrivkey", prams, &res)
+	err = rpc.Call("Chain33.ImportPrivkey", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -424,14 +431,14 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	prams := jsonrpc.ReqWalletTransactionList{FromTx: fromTx, Count: int32(countInt32), Direction: int32(directionInt32)}
+	params := jsonrpc.ReqWalletTransactionList{FromTx: fromTx, Count: int32(countInt32), Direction: int32(directionInt32)}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.TransactionDetails
-	err = rpc.Call("Chain33.WalletTxList", prams, &res)
+	err = rpc.Call("Chain33.WalletTxList", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -469,14 +476,14 @@ func GetMemPool() {
 }
 
 func SendTransaction(tran string) {
-	prams := jsonrpc.RawParm{Data: tran}
+	params := jsonrpc.RawParm{Data: tran}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res string
-	err = rpc.Call("Chain33.SendTransaction", prams, &res)
+	err = rpc.Call("Chain33.SendTransaction", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -492,14 +499,14 @@ func SendTransaction(tran string) {
 }
 
 func QueryTransaction(h string) {
-	prams := jsonrpc.QueryParm{Hash: h}
+	params := jsonrpc.QueryParm{Hash: h}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.TransactionDetail
-	err = rpc.Call("Chain33.QueryTransaction", prams, &res)
+	err = rpc.Call("Chain33.QueryTransaction", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -515,14 +522,14 @@ func QueryTransaction(h string) {
 }
 
 func GetTransactionByAddr(addr string) {
-	prams := jsonrpc.ReqAddr{Addr: addr}
+	params := jsonrpc.ReqAddr{Addr: addr}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.ReplyTxInfos
-	err = rpc.Call("Chain33.GetTxByAddr", prams, &res)
+	err = rpc.Call("Chain33.GetTxByAddr", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -538,14 +545,14 @@ func GetTransactionByAddr(addr string) {
 }
 
 func GetTransactionByHashes(hashes []string) {
-	prams := jsonrpc.ReqHashes{Hashes: hashes}
+	params := jsonrpc.ReqHashes{Hashes: hashes}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.TransactionDetails
-	err = rpc.Call("Chain33.GetTxByHashes", prams, &res)
+	err = rpc.Call("Chain33.GetTxByHashes", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -576,14 +583,14 @@ func GetBlocks(start string, end string, detail string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	prams := jsonrpc.BlockParam{Start: startInt64, End: endInt64, Isdetail: detailBool}
+	params := jsonrpc.BlockParam{Start: startInt64, End: endInt64, Isdetail: detailBool}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	var res jsonrpc.BlockDetails
-	err = rpc.Call("Chain33.GetBlocks", prams, &res)
+	err = rpc.Call("Chain33.GetBlocks", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -606,6 +613,46 @@ func GetLastHeader() {
 	}
 	var res jsonrpc.Header
 	err = rpc.Call("Chain33.GetLastHeader", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetHeaders(start string, end string, detail string) {
+	startInt64, err := strconv.ParseInt(start, 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	endInt64, err := strconv.ParseInt(end, 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	detailBool, err := strconv.ParseBool(detail)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	//
+	params := jsonrpc.BlockParam{Start: startInt64, End: endInt64, Isdetail: detailBool}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	//
+	var res jsonrpc.BlockDetails
+	err = rpc.Call("Chain33.GetHeaders", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
