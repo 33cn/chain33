@@ -643,15 +643,13 @@ func GetHeaders(start string, end string, detail string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	//
-	params := jsonrpc.BlockParam{Start: startInt64, End: endInt64, Isdetail: detailBool}
+	params := types.ReqBlocks{Start: startInt64, End: endInt64, Isdetail: detailBool}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	//
-	var res jsonrpc.BlockDetails
+	var res jsonrpc.Headers
 	err = rpc.Call("Chain33.GetHeaders", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
