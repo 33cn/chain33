@@ -24,7 +24,7 @@ minTxFee=1000000
 
 [consensus]
 name="solo"
-minerstart=true
+minerstart=false
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [store]
