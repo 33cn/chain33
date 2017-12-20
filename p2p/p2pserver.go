@@ -16,8 +16,46 @@ import (
 
 type p2pServer struct {
 	imtx    sync.Mutex
+	smtx    sync.Mutex
 	node    *Node
 	InBound map[string]*pb.P2PVersion
+	streams map[pb.P2Pgservice_RouteChatServer]chan *pb.P2PBlock
+}
+
+func (s *p2pServer) addStream(stream pb.P2Pgservice_RouteChatServer) {
+	defer s.smtx.Unlock()
+	s.smtx.Lock()
+	s.streams[stream] = make(chan *pb.P2PBlock, 1024)
+
+}
+func (s *p2pServer) addStreamBlock(block *pb.P2PBlock) {
+	defer s.smtx.Unlock()
+	s.smtx.Lock()
+	for stream, _ := range s.streams {
+		timetikc := time.NewTicker(time.Second * 1)
+		select {
+		case s.streams[stream] <- block:
+		case <-timetikc.C:
+			continue
+		}
+
+	}
+
+}
+func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
+	defer s.smtx.Unlock()
+	s.smtx.Lock()
+	delete(s.streams, stream)
+}
+
+func (s *p2pServer) GetStreams() []pb.P2Pgservice_RouteChatServer {
+	defer s.smtx.Unlock()
+	s.smtx.Lock()
+	var streamarr []pb.P2Pgservice_RouteChatServer
+	for k, _ := range s.streams {
+		streamarr = append(streamarr, k)
+	}
+	return streamarr
 }
 
 func (s *p2pServer) addInBound(in *pb.P2PVersion) {
@@ -52,7 +90,7 @@ func (s *p2pServer) inBoundSize() int {
 	s.imtx.Lock()
 	return len(s.InBound)
 }
-func (s *p2pServer) Monitor() {
+func (s *p2pServer) monitor() {
 	go func() {
 		for {
 			for addr, peerinfo := range s.InBound {
@@ -79,8 +117,16 @@ func (s *p2pServer) update(peer string) {
 func NewP2pServer() *p2pServer {
 	return &p2pServer{
 		InBound: make(map[string]*pb.P2PVersion),
+		streams: make(map[pb.P2Pgservice_RouteChatServer]chan *pb.P2PBlock),
 	}
 
+}
+func (s *p2pServer) innerBroadBlock() {
+	go func() {
+		for block := range s.node.nodeInfo.p2pBlockChan {
+			s.addStreamBlock(block)
+		}
+	}()
 }
 
 func (s p2pServer) checkSign(in *pb.P2PPing) bool {
@@ -370,7 +416,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 }
 
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
-	s.node.nodeInfo.p2pBlockChan <- in
+	s.addStreamBlock(in)
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
 	client.Send(msg, true)
@@ -383,16 +429,17 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 
 func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
-
-	//等待要广播的区块
-	for {
-		p2pblock := <-s.node.nodeInfo.p2pBlockChan
-		log.Debug("RouteChat", "RouteChat", "RouteChat Befor")
-		err := stream.Send(p2pblock)
+	log.Debug("RouteChat", "stream", stream)
+	s.addStream(stream)
+	for block := range s.streams[stream] {
+		err := stream.Send(block)
 		if err != nil {
+			log.Error("RouteChat", "Err", err.Error())
+			s.deleteStream(stream)
 			return err
 		}
-		log.Debug("RouteChat", "RouteChat", "RouteChat After")
 	}
+
 	return nil
+
 }
