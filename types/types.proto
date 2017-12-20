@@ -28,6 +28,7 @@ service grpcservice{
 	rpc UnLock(WalletUnLock)returns(Reply){}
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	
+	
 }
 
 
@@ -61,7 +62,7 @@ service p2pgservice{
 	rpc GetHeaders(P2PGetHeaders)returns(P2PHeaders){}
 	//获取 peerinfo
 	rpc GetPeerInfo(P2PGetPeerInfo)returns(P2PPeerInfo){}
-	
+	rpc RouteChat(ReqNil) returns (stream P2PBlock) {}
 	
 	
 	
