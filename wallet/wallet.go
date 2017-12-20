@@ -88,6 +88,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Error("ProcGetAccountList", "err", err.Error())
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, err))
 			} else {
+				walletlog.Info("process WalletAccounts OK")
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
 
@@ -147,6 +148,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventWalletSetLabel:
 			WalletSetLabel := msg.Data.(*types.ReqWalletSetLabel)
 			WalletAccount, err := wallet.ProcWalletSetLabel(WalletSetLabel)
+
 			if err != nil {
 				walletlog.Error("ProcWalletSetLabel", "err", err.Error())
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccount, err))
