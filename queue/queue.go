@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/types"
 
@@ -74,7 +75,12 @@ func (q *Queue) getChannel(topic string) chan Message {
 
 func (q *Queue) Send(msg Message) {
 	chrecv := q.getChannel(msg.Topic)
-	chrecv <- msg
+	timeout := time.After(time.Second * 5)
+	select {
+	case chrecv <- msg:
+	case <-timeout:
+		panic("wait for message timeout.")
+	}
 	qlog.Info("send ok", "msg", msg)
 }
 
