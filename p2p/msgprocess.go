@@ -24,7 +24,8 @@ type msg struct {
 
 func NewInTrans(network *P2p) *msg {
 	pmsg := &msg{
-		network: network,
+		network:   network,
+		peerInfos: make(map[string]*pb.Peer),
 	}
 	go pmsg.monitorPeerInfo()
 	return pmsg
