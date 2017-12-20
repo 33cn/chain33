@@ -91,11 +91,9 @@ func (l *DefaultListener) listenRoutine() {
 	log.Debug("LISTENING", "Start Listening+++++++++++++++++Port", l.nodeInfo.listenAddr.Port)
 
 	pServer := NewP2pServer()
-	//pServer.q = l.nodeInfo.q
-	//pServer.book = l.n.addrBook
 	pServer.node = l.n
-	pServer.Monitor()
-
+	pServer.monitor()
+	pServer.innerBroadBlock()
 	server := grpc.NewServer()
 	pb.RegisterP2PgserviceServer(server, pServer)
 	server.Serve(l.listener)

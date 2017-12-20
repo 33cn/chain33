@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"sort"
 	"sync"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/queue"
 
@@ -13,10 +14,12 @@ import (
 
 type msg struct {
 	mtx       sync.Mutex
+	pmtx      sync.Mutex
 	network   *P2p
 	msgStatus chan bool
 	tempdata  map[int64]*pb.Block
 	peers     []*peer
+	peerInfos []*pb.Peer
 }
 
 func NewInTrans(network *P2p) *msg {
@@ -94,26 +97,46 @@ func (m *msg) GetMemPool(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
 
 }
+func (m *msg) flushPeerInfos(in []*pb.Peer) {
+	defer m.pmtx.Unlock()
+	m.pmtx.Lock()
+	m.peerInfos = append(m.peerInfos, in...)
+
+}
+func (m *msg) getPeerInfos() []*pb.Peer {
+	defer m.pmtx.Unlock()
+	m.pmtx.Lock()
+	return m.peerInfos
+}
+func (m *msg) monitorPeerInfo() {
+	go func() {
+		ticker := time.NewTicker(time.Second * 10)
+		for {
+			select {
+			case <-ticker.C:
+				var peerlist = make([]*pb.Peer, 0)
+				peers := m.network.node.GetPeers()
+				for _, peer := range peers {
+					peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
+					if err != nil {
+						peer.mconn.sendMonitor.Update(false)
+						continue
+					}
+					peer.mconn.sendMonitor.Update(true)
+					peerlist = append(peerlist, (*pb.Peer)(peerinfo))
+
+				}
+				m.flushPeerInfos(peerlist)
+			}
+
+		}
+	}()
+}
 
 //收到BlockChain 模块的请求，获取PeerInfo
 func (m *msg) GetPeerInfo(msg queue.Message) {
 	log.Debug("GetPeerInfo", "SendTOP2P", msg.GetData())
-	var peerlist = make([]*pb.Peer, 0)
-	peers := m.network.node.GetPeers()
-	for _, peer := range peers {
-		//peer.mconn.conn.get
-		peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
-		if err != nil {
-			peer.mconn.sendMonitor.Update(false)
-			continue
-		}
-		peer.mconn.sendMonitor.Update(true)
-		peerlist = append(peerlist, (*pb.Peer)(peerinfo))
-
-	}
-
-	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peerlist}))
-
+	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.getPeerInfos()}))
 	return
 }
 

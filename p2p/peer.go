@@ -43,7 +43,7 @@ func (p *peer) subStreamBlock() {
 		default:
 			block, err := resp.Recv()
 			if err != nil {
-				log.Error("SubStreamBlock", "Recv Err", err.Error())
+				//log.Error("SubStreamBlock", "Recv Err", err.Error())
 				time.Sleep(time.Second * 1)
 				continue
 
