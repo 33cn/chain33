@@ -59,7 +59,7 @@ func (l *DefaultListener) NatMapPort() {
 	if l.nodeInfo.cfg.GetIsSeed() == true {
 		return
 	}
-	for i := 0; i < tryMapPortTimes; i++ {
+	for i := 0; i < TryMapPortTimes; i++ {
 
 		if nat.Map(nat.Any(), l.c, "TCP", int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port), "chain33 p2p") != nil {
 
@@ -94,8 +94,8 @@ func (l *DefaultListener) listenRoutine() {
 	//pServer.q = l.nodeInfo.q
 	//pServer.book = l.n.addrBook
 	pServer.node = l.n
-	//pServer.nodeinfo = l.nodeInfo
 	pServer.Monitor()
+
 	server := grpc.NewServer()
 	pb.RegisterP2PgserviceServer(server, pServer)
 	server.Serve(l.listener)

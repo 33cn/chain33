@@ -4,16 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	pb "code.aliyun.com/chain33/chain33/types"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
-
-type Peer interface {
-
-	//	IsOutbound() bool
-	//	IsPersistent() bool
-	//NodeInfo() *NodeInfo
-	//	Send(byte, interface{}) bool
-}
 
 type peer struct {
 	nodeInfo   **NodeInfo
@@ -23,16 +17,56 @@ type peer struct {
 	key        string
 	mconn      *MConnection
 	peerAddr   *NetAddress
+	streamDone chan struct{}
 	Data       map[string]interface{}
 }
 
 func (p *peer) Start() error {
 	p.mconn.key = p.key
 	err := p.mconn.Start()
+	go p.subStreamBlock()
 	return err
+}
+func (p *peer) subStreamBlock() {
+	log.Debug("subStreamBlock", "sub", "block")
+	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
+	if err != nil {
+		log.Error("SubStreamBlock", "call RouteChat err", err.Error())
+		return
+	}
+	for {
+		select {
+		case <-p.streamDone:
+			log.Debug("SubStreamBlock", "break", "peerdone")
+			resp.CloseSend()
+			return
+		default:
+			block, err := resp.Recv()
+			if err != nil {
+				log.Error("SubStreamBlock", "Recv Err", err.Error())
+				time.Sleep(time.Second * 1)
+				continue
+
+			}
+			log.Info("SubStreamBlock", "recv blockXXXXXXXXXXXXXXXXXXXXXXXXX", block)
+
+			msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+			(*p.nodeInfo).qclient.Send(msg, true)
+			_, err = (*p.nodeInfo).qclient.Wait(msg)
+			if err != nil {
+				continue
+			}
+		}
+	}
+
+}
+
+func (p *peer) StreamStop() {
+	p.streamDone <- struct{}{}
 }
 
 func (p *peer) Stop() {
+	p.StreamStop()
 	p.mconn.Stop()
 
 }
@@ -56,7 +90,7 @@ func (p *peer) IsPersistent() bool {
 }
 
 func dial(addr *NetAddress) (*grpc.ClientConn, error) {
-	conn, err := addr.DialTimeout(DialTimeout * time.Second)
+	conn, err := addr.DialTimeout(DialTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -65,14 +99,14 @@ func dial(addr *NetAddress) (*grpc.ClientConn, error) {
 
 func dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*peer, error) {
 
-	log.Debug("DialPerrWithAddress", "Dial peer address", addr.String())
+	log.Debug("dialPeerWithAddress", "Dial peer address", addr.String())
 
 	peer, err := newOutboundPeer(addr, nodeinfo)
 	if err != nil {
-		log.Error("Failed to dial peer", "address", addr, "err", err)
+		log.Error("dialPeerWithAddress", "address", addr, "err", err)
 		return nil, err
 	}
-	log.Debug("newOutboundpeer", "peer", *peer, "persistent:", persistent)
+	log.Debug("dialPeerWithAddress", "peer", *peer, "persistent:", persistent)
 
 	if persistent {
 		peer.makePersistent()
@@ -101,7 +135,6 @@ func newOutboundPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
 	conn := rawConn
-
 	// Key and NodeInfo are set after Handshake
 	p := &peer{
 		outbound: outbound,
@@ -114,7 +147,7 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 	return p, nil
 }
 func DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
-	log.Debug("dialPeer", "peer addr", addr.String())
+	log.Debug("DialPeer", "peer addr", addr.String())
 	var persistent bool
 	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
 		if seed == addr.String() {
@@ -123,10 +156,10 @@ func DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 	}
 	peer, err := dialPeerWithAddress(addr, persistent, nodeinfo)
 	if err != nil {
-		log.Error("DialPeerWithAddress", "dial peer err:", err.Error())
+		log.Error("DialPeer", "dial peer err:", err.Error())
 		return nil, err
 	}
 	//获取远程节点的信息 peer
-	log.Debug("Dial peer Success", "Peer", peer)
+	log.Debug("DialPeer", "Peer info", peer)
 	return peer, nil
 }
