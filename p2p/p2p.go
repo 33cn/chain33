@@ -48,21 +48,19 @@ func (network *P2p) subP2pMsg() {
 
 	network.c.Sub("p2p")
 	go func() {
+		intrans := NewInTrans(network)
 		for msg := range network.c.Recv() {
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
-			intrans := NewInTrans(network)
+
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
 				log.Debug("QUEUE P2P EventTxBroadcast", "Recv from mempool message EventTxBroadcast will broadcast outnet")
-
 				go intrans.TransToBroadCast(msg)
 			case types.EventBlockBroadcast: //广播block
 				go intrans.BlockBroadcast(msg)
 			case types.EventFetchBlocks:
-
 				go intrans.GetBlocks(msg)
 			case types.EventGetMempool:
-
 				go intrans.GetMemPool(msg)
 			case types.EventPeerInfo:
 				go intrans.GetPeerInfo(msg)
