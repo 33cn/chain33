@@ -26,7 +26,7 @@ func NewInTrans(network *P2p) *msg {
 	pmsg := &msg{
 		network: network,
 	}
-	pmsg.monitorPeerInfo()
+	go pmsg.monitorPeerInfo()
 	return pmsg
 }
 
@@ -111,30 +111,31 @@ func (m *msg) getPeerInfos() []*pb.Peer {
 	return m.peerInfos
 }
 func (m *msg) monitorPeerInfo() {
-	go func() {
+
+	for {
 		ticker := time.NewTicker(time.Second * 10)
-		for {
-			select {
-			case <-ticker.C:
-				log.Debug("monitorPeerInfo", "getpeerinfo", "info")
-				var peerlist = make([]*pb.Peer, 0)
-				peers := m.network.node.GetPeers()
-				for _, peer := range peers {
-					peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
-					if err != nil {
-						peer.mconn.sendMonitor.Update(false)
-						continue
-					}
-					peer.mconn.sendMonitor.Update(true)
-					peerlist = append(peerlist, (*pb.Peer)(peerinfo))
+		select {
 
+		case <-ticker.C:
+			log.Debug("monitorPeerInfo", "getpeerinfo", "info")
+			var peerlist = make([]*pb.Peer, 0)
+			peers := m.network.node.GetPeers()
+			for _, peer := range peers {
+				peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
+				if err != nil {
+					peer.mconn.sendMonitor.Update(false)
+					continue
 				}
-				log.Debug("monitorPeerInfo", "peerlist", peerlist)
-				m.flushPeerInfos(peerlist)
-			}
+				peer.mconn.sendMonitor.Update(true)
+				peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 
+			}
+			log.Debug("monitorPeerInfo", "peerlist", peerlist)
+			m.flushPeerInfos(peerlist)
 		}
-	}()
+
+	}
+
 }
 
 //收到BlockChain 模块的请求，获取PeerInfo
