@@ -10,9 +10,10 @@ type NodeInfo struct {
 	network      string      `json:"network"`
 	externalAddr *NetAddress `json:"remote_addr"`
 	listenAddr   *NetAddress `json:"listen_addr"`
-	version      string      `json:"version"` // major.minor.revision
+	version      string      `json:"version"`
 	monitorChan  chan *peer
 	versionChan  chan struct{}
+	p2pBlockChan chan *types.P2PBlock
 	cfg          *types.P2P
 	q            *queue.Queue
 	qclient      queue.IClient

@@ -47,16 +47,20 @@ func (s *p2pServer) getBounds() []string {
 	return inbounds
 
 }
-
+func (s *p2pServer) inBoundSize() int {
+	defer s.imtx.Unlock()
+	s.imtx.Lock()
+	return len(s.InBound)
+}
 func (s *p2pServer) Monitor() {
 	go func() {
 		for {
 			for addr, peerinfo := range s.InBound {
 				if (time.Now().Unix() - peerinfo.GetTimestamp()) > 120 {
 					s.deleteInBound(addr)
-
 				}
-				time.Sleep(time.Second)
+				log.Info("Monitor", "inBounds", s.inBoundSize())
+				time.Sleep(time.Second * 10)
 			}
 		}
 	}()
@@ -126,12 +130,16 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", s.node.Size())
 	addrBucket := make(map[string]bool, 0)
 	peers := s.node.GetPeers()
+
 	for _, peer := range peers {
-		addrBucket[peer.Addr()] = true
+		if peer.mconn.sendMonitor.count == 0 {
+			addrBucket[peer.Addr()] = true
+		}
 
 	}
 	addrList := s.node.addrBook.GetAddrs()
 	for _, addr := range addrList {
+
 		addrBucket[addr] = true
 		if len(addrBucket) > MaxAddrListNum { //最多一次性返回256个地址
 			break
@@ -148,7 +156,6 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 func (s *p2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerAck, error) {
 
 	remoteaddr := in.AddrRecv
-	//localNetwork, _ := NewNetAddressString(localaddr)
 	remoteNetwork, _ := NewNetAddressString(remoteaddr)
 
 	log.Debug("RECV PEER VERSION", "VERSION", *in)
@@ -161,8 +168,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	var peeraddr string
 	if ok {
 		peeraddr = strings.Split(getctx.Addr.String(), ":")[0]
-		log.Debug("Peer addr", "Addr", peeraddr)
-
+		log.Debug("Version2", "Addr", peeraddr)
 	}
 	//in.AddrFrom 表示远程客户端的地址,如果客户端的远程地址与自己定义的addrfrom 地址一直，则认为在外网
 	if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
@@ -173,7 +179,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 
 	log.Debug("RECV PEER VERSION", "VERSION", *in)
-	if in.Version > Version {
+	if Version < in.Version {
 		//Not support this Version
 		log.Error("VersionCheck", "Error", "Version not Support")
 		return nil, fmt.Errorf("Version No Support")
@@ -196,7 +202,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
 	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
-	if in.GetEndHeight()-in.GetStartHeight() > 100 {
+	if in.GetEndHeight()-in.GetStartHeight() > MaxRangeBlockNum { //
 		return nil, errors.New("out of range")
 	}
 	// GetHeaders
@@ -364,6 +370,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 }
 
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
+	s.node.nodeInfo.p2pBlockChan <- in
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
 	client.Send(msg, true)
@@ -373,4 +380,19 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 	}
 
 	return resp.GetData().(*pb.Reply), nil
+}
+
+func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
+
+	//等待要广播的区块
+	for {
+		p2pblock := <-s.node.nodeInfo.p2pBlockChan
+		log.Debug("RouteChat", "RouteChat", "RouteChat Befor")
+		err := stream.Send(p2pblock)
+		if err != nil {
+			return err
+		}
+		log.Debug("RouteChat", "RouteChat", "RouteChat After")
+	}
+	return nil
 }

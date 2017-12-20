@@ -253,14 +253,18 @@ func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {
 	return result
 
 }
+
 func (m *msg) BlockBroadcast(msg queue.Message) {
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
+
 	block := msg.GetData().(*pb.Block)
 	peers := m.network.node.GetPeers()
+	//stream blockbroadcast
+	m.network.node.nodeInfo.p2pBlockChan <- &pb.P2PBlock{Block: block}
 	for _, peer := range peers {
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
 		if err != nil {

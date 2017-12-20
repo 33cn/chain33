@@ -5,38 +5,32 @@ import (
 )
 
 var (
-	updateState        = 2 * time.Second
-	pingTimeout        = 14 * time.Second
-	defaultSendTimeout = 10 * time.Second
-	//p2pconf            types.P2P
+	UpdateState        = 2 * time.Second
+	PingTimeout        = 14 * time.Second
+	DefaultSendTimeout = 10 * time.Second
+	DialTimeout        = 15 * time.Second
 )
 
 const (
-	MSG_TX                 = 1
-	MSG_BLOCK              = 2
-	numBufferedConnections = 25
-	tryListenSeconds       = 5
-	tryMapPortTimes        = 30
+	MSG_TX          = 1
+	MSG_BLOCK       = 2
+	TryMapPortTimes = 30
 )
 
 var (
-	DefaultPort  = 13802
 	LOCALADDR    string
 	EXTERNALADDR string
 )
 
 const (
+	DefaultPort          = 13802
 	DefalutP2PRemotePort = 14802
 	Protocol             = "tcp"
 	MixOutBoundNum       = 5
 	MaxOutBoundNum       = 25
 	StableBoundNum       = 5
 	MaxAddrListNum       = 256
-)
-
-const (
-	DialTimeout      = 15
-	HandshakeTimeout = 20
+	MaxRangeBlockNum     = 100
 )
 
 const (

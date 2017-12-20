@@ -13,10 +13,6 @@ import (
 	pb "code.aliyun.com/chain33/chain33/types"
 )
 
-const (
-	needAddressThreshold = 25
-)
-
 //peer address manager
 type AddrBook struct {
 	mtx      sync.Mutex
@@ -28,8 +24,7 @@ type AddrBook struct {
 }
 
 type knownAddress struct {
-	Addr *NetAddress
-	//Src         *NetAddress
+	Addr        *NetAddress
 	Attempts    uint
 	LastAttempt time.Time
 	LastSuccess time.Time
@@ -103,10 +98,6 @@ func (a *AddrBook) Size() int {
 	return len(a.addrPeer)
 }
 
-//func (a *AddrBook) NeedMoreAddrs() bool {
-//	return a.Size() < needAddressThreshold
-//}
-
 type addrBookJSON struct {
 	Key   string
 	Addrs []*knownAddress
@@ -135,9 +126,9 @@ func (a *AddrBook) saveToFile(filePath string) {
 		log.Error("Failed to save AddrBook to file", "err", err)
 		return
 	}
-	log.Debug("jsonBytes", string(jsonBytes), "")
+	log.Info("saveToFile", string(jsonBytes), "")
 
-	err = a.writeFile(filePath, jsonBytes, 0644)
+	err = a.writeFile(filePath, jsonBytes, 0755)
 	if err != nil {
 		log.Error("Error", "Failed to save AddrBook to file", "file", filePath, "err", err)
 	}
@@ -282,7 +273,10 @@ func (a *AddrBook) GetAddrs() []string {
 	defer a.mtx.Unlock()
 	addrlist := make([]string, 0)
 	for _, peer := range a.addrPeer {
-		addrlist = append(addrlist, peer.Addr.String())
+		if peer.Attempts == 0 {
+			addrlist = append(addrlist, peer.Addr.String())
+		}
+
 	}
 	return addrlist
 }
