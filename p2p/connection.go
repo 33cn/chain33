@@ -51,7 +51,7 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MCon
 	mconn := &MConnection{
 		gconn:       conn,
 		conn:        pb.NewP2PgserviceClient(conn),
-		pingTimer:   NewRepeatTimer("ping", pingTimeout),
+		pingTimer:   NewRepeatTimer("ping", PingTimeout),
 		sendMonitor: NewMonitor(),
 		peer:        peer,
 		quit:        make(chan bool),

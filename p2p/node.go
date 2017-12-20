@@ -75,6 +75,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	node.nodeInfo.listenAddr, _ = NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, node.localPort))
 	node.nodeInfo.monitorChan = make(chan *peer, 1024)
 	node.nodeInfo.versionChan = make(chan struct{})
+	node.nodeInfo.p2pBlockChan = make(chan *types.P2PBlock, 1024)
 	node.nodeInfo.cfg = cfg
 	node.localAddr = fmt.Sprintf("%s:%v", LOCALADDR, node.localPort)
 
