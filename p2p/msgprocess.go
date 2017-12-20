@@ -116,6 +116,7 @@ func (m *msg) monitorPeerInfo() {
 		for {
 			select {
 			case <-ticker.C:
+				log.Debug("monitorPeerInfo", "getpeerinfo", "info")
 				var peerlist = make([]*pb.Peer, 0)
 				peers := m.network.node.GetPeers()
 				for _, peer := range peers {
@@ -128,6 +129,7 @@ func (m *msg) monitorPeerInfo() {
 					peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 
 				}
+				log.Debug("monitorPeerInfo", "peerlist", peerlist)
 				m.flushPeerInfos(peerlist)
 			}
 
