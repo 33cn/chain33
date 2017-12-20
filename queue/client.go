@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 //消息队列的主要作用是解耦合，让各个模块相对的独立运行。
@@ -64,8 +65,14 @@ func (client *Client) Wait(msg Message) (Message, error) {
 	if msg.ChReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
-	msg = <-msg.ChReply
-	return msg, msg.Err()
+	timeout := time.After(time.Second * 60)
+	select {
+	case msg = <-msg.ChReply:
+		msg = <-msg.ChReply
+		return msg, msg.Err()
+	case <-timeout:
+		panic("wait for message timeout.")
+	}
 }
 
 func (client *Client) Recv() chan Message {
