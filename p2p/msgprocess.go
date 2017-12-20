@@ -23,9 +23,11 @@ type msg struct {
 }
 
 func NewInTrans(network *P2p) *msg {
-	return &msg{
+	pmsg := &msg{
 		network: network,
 	}
+	pmsg.monitorPeerInfo()
+	return pmsg
 }
 
 func (m *msg) TransToBroadCast(msg queue.Message) {
