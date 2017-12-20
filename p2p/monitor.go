@@ -55,7 +55,8 @@ func (m *Monitor) Start() {
 			case <-tick.C:
 				if m.lastop-m.lastok > 600 || m.count > 30 {
 
-					m.Stop()
+					m.isrunning = false
+					return
 
 				}
 			case <-m.done:

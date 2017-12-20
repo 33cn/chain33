@@ -31,10 +31,11 @@ func (s *p2pServer) addStream(stream pb.P2Pgservice_RouteChatServer) {
 func (s *p2pServer) addStreamBlock(block *pb.P2PBlock) {
 	defer s.smtx.Unlock()
 	s.smtx.Lock()
+	timetikc := time.NewTicker(time.Second * 1)
 	for stream, _ := range s.streams {
-		timetikc := time.NewTicker(time.Second * 1)
 		select {
 		case s.streams[stream] <- block:
+			log.Warn("addStreamBlock", "stream", stream)
 		case <-timetikc.C:
 			continue
 		}
@@ -124,6 +125,7 @@ func NewP2pServer() *p2pServer {
 func (s *p2pServer) innerBroadBlock() {
 	go func() {
 		for block := range s.node.nodeInfo.p2pBlockChan {
+			log.Warn("innerBroadBlock", "Block", block)
 			s.addStreamBlock(block)
 		}
 	}()
@@ -151,7 +153,7 @@ func (s p2pServer) checkSign(in *pb.P2PPing) bool {
 }
 
 func (s p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	log.Debug("p2pServer PING", "RECV PING", in)
+	log.Debug("p2pServer PING", "RECV PING", *in)
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		log.Debug("PING addr", "Addr", getctx.Addr.String())
@@ -429,7 +431,7 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 
 func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
-	log.Debug("RouteChat", "stream", stream)
+	log.Warn("RouteChat", "stream", stream)
 	s.addStream(stream)
 	for block := range s.streams[stream] {
 		err := stream.Send(block)
