@@ -176,6 +176,22 @@ func LoadHelp() {
 	fmt.Println("getpeerinfo []                         : 获取远程节点信息")
 }
 
+type AccountsResult struct {
+	Wallets []WalletResult
+}
+
+type WalletResult struct {
+	Acc   AccountResult
+	Label string
+}
+
+type AccountResult struct {
+	Currency int32
+	Balance  string
+	Frozen   string
+	Addr     string
+}
+
 func Lock() {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
@@ -263,7 +279,12 @@ func SetLabl(addr string, label string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
+	accResult := AccountResult{Addr: res.GetAcc().GetAddr(), Currency: res.GetAcc().GetCurrency(), Balance: balanceResult, Frozen: frozenResult}
+	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -286,7 +307,12 @@ func NewAccount(lb string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
+	accResult := AccountResult{Addr: res.GetAcc().GetAddr(), Currency: res.GetAcc().GetCurrency(), Balance: balanceResult, Frozen: frozenResult}
+	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -308,7 +334,16 @@ func GetAccounts() {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	var result AccountsResult
+
+	for _, r := range res.Wallets {
+		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance)/float64(1e8), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen)/float64(1e8), 'f', 4, 64)
+		accResult := AccountResult{Currency: r.Acc.Currency, Addr: r.Acc.Addr, Balance: balanceResult, Frozen: frozenResult}
+		result.Wallets = append(result.Wallets, WalletResult{Acc: accResult, Label: r.Label})
+	}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -346,7 +381,7 @@ func SetTxFee(amount string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := types.ReqWalletSetFee{Amount: amountInt64}
+	params := types.ReqWalletSetFee{Amount: amountInt64 * 1e8}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -374,7 +409,7 @@ func SendToAddress(from string, to string, amount string, note string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
+	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64 * 1e8, Note: note}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -411,7 +446,12 @@ func ImportPrivKey(privkey string, label string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
+	accResult := AccountResult{Addr: res.GetAcc().GetAddr(), Currency: res.GetAcc().GetCurrency(), Balance: balanceResult, Frozen: frozenResult}
+	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
