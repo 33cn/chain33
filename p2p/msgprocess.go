@@ -19,7 +19,7 @@ type msg struct {
 	msgStatus chan bool
 	tempdata  map[int64]*pb.Block
 	peers     []*peer
-	peerInfos []*pb.Peer
+	peerInfos map[string]*pb.Peer
 }
 
 func NewInTrans(network *P2p) *msg {
@@ -102,13 +102,20 @@ func (m *msg) GetMemPool(msg queue.Message) {
 func (m *msg) flushPeerInfos(in []*pb.Peer) {
 	defer m.pmtx.Unlock()
 	m.pmtx.Lock()
-	m.peerInfos = append(m.peerInfos, in...)
+
+	for _, peer := range in {
+		m.peerInfos[peer.GetName()] = peer
+	}
 
 }
 func (m *msg) getPeerInfos() []*pb.Peer {
 	defer m.pmtx.Unlock()
 	m.pmtx.Lock()
-	return m.peerInfos
+	var peers []*pb.Peer
+	for _, peer := range m.peerInfos {
+		peers = append(peers, peer)
+	}
+	return peers
 }
 func (m *msg) monitorPeerInfo() {
 
@@ -117,7 +124,7 @@ func (m *msg) monitorPeerInfo() {
 		select {
 
 		case <-ticker.C:
-			log.Debug("monitorPeerInfo", "getpeerinfo", "info")
+
 			var peerlist = make([]*pb.Peer, 0)
 			peers := m.network.node.GetPeers()
 			for _, peer := range peers {
