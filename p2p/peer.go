@@ -14,6 +14,7 @@ type peer struct {
 	outbound   bool
 	conn       *grpc.ClientConn // source connection
 	persistent bool
+	isrunning  bool
 	key        string
 	mconn      *MConnection
 	peerAddr   *NetAddress
@@ -28,11 +29,16 @@ func (p *peer) Start() error {
 	return err
 }
 func (p *peer) subStreamBlock() {
+BEGIN:
 	log.Debug("subStreamBlock", "sub", "block")
 	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
 	if err != nil {
-		log.Error("SubStreamBlock", "call RouteChat err", err.Error())
-		return
+		log.Error("SubStreamBlock", "call RouteChat err", err.Error()+p.Addr())
+		if p.isrunning == false {
+			return
+		} else {
+			goto BEGIN
+		}
 	}
 	for {
 		select {
@@ -43,9 +49,10 @@ func (p *peer) subStreamBlock() {
 		default:
 			block, err := resp.Recv()
 			if err != nil {
-				//log.Error("SubStreamBlock", "Recv Err", err.Error())
+				log.Error("SubStreamBlock", "Recv Err", err.Error())
 				time.Sleep(time.Second * 1)
-				continue
+				resp.CloseSend()
+				goto BEGIN
 
 			}
 			log.Info("SubStreamBlock", "recv blockXXXXXXXXXXXXXXXXXXXXXXXXX", block)
@@ -66,8 +73,9 @@ func (p *peer) StreamStop() {
 }
 
 func (p *peer) Stop() {
-	p.StreamStop()
-	p.mconn.Stop()
+	p.isrunning = false
+	go p.StreamStop()
+	go p.mconn.Stop()
 
 }
 
@@ -137,10 +145,12 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 	conn := rawConn
 	// Key and NodeInfo are set after Handshake
 	p := &peer{
-		outbound: outbound,
-		conn:     conn,
-		Data:     make(map[string]interface{}),
-		nodeInfo: nodeinfo,
+		outbound:   outbound,
+		conn:       conn,
+		Data:       make(map[string]interface{}),
+		streamDone: make(chan struct{}, 1),
+		nodeInfo:   nodeinfo,
+		isrunning:  true,
 	}
 	p.mconn = NewMConnection(conn, remote, p)
 

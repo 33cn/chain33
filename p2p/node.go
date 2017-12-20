@@ -249,42 +249,48 @@ func (n *Node) Remove(peerAddr string) {
 	return
 
 }
-
-func (n *Node) monitor() {
-	go func() {
-		for {
-			peer := <-n.nodeInfo.monitorChan
-			log.Debug("RemoveBadPeer", "REMOVE", peer.Addr())
-			n.Remove(peer.Addr())
-			n.addrBook.RemoveAddr(peer.Addr())
-			n.addrBook.Save()
-		}
-	}()
-
+func (n *Node) checkActivePeers() {
 	for {
-		time.Sleep(time.Second * 15)
-		//TODO 稍后开发节点数量动态平衡功能
-		for _, peer := range n.outBound {
+		peers := n.GetPeers()
+		for _, peer := range peers {
 			if peer.mconn == nil {
 				n.addrBook.RemoveAddr(peer.Addr())
 				n.Remove(peer.Addr())
 				continue
 			}
-			log.Debug("ISRUNNING", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.isrunning)
+
+			log.Info("ISRUNNING", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.isrunning)
 			if peer.mconn.sendMonitor.isrunning == false && peer.IsPersistent() == false {
 				n.addrBook.RemoveAddr(peer.Addr())
 				n.addrBook.Save()
 				n.Remove(peer.Addr())
 			}
-
 			if _, ok := n.addrBook.addrPeer[peer.Addr()]; ok {
 				n.addrBook.addrPeer[peer.Addr()].Attempts = peer.mconn.sendMonitor.count
 				n.addrBook.addrPeer[peer.Addr()].LastAttempt = time.Unix(int64(peer.mconn.sendMonitor.lastop), 0)
 				n.addrBook.addrPeer[peer.Addr()].LastSuccess = time.Unix(int64(peer.mconn.sendMonitor.lastok), 0)
+
 			}
 
 		}
+		time.Sleep(time.Second * 5)
+	}
+}
+func (n *Node) deletePingErr() {
+	for {
+		peer := <-n.nodeInfo.monitorChan
+		log.Warn("RemoveBadPeer", "REMOVE", peer.Addr())
+		n.addrBook.RemoveAddr(peer.Addr())
+		n.addrBook.Save()
+		n.Remove(peer.Addr())
+	}
+}
+func (n *Node) monitor() {
+	go n.deletePingErr()
+	go n.checkActivePeers()
 
+	for {
+		time.Sleep(time.Second * 5)
 		if n.needMore() {
 			var savelist = make([]string, 0)
 			for _, seed := range n.nodeInfo.cfg.Seeds {
@@ -294,25 +300,23 @@ func (n *Node) monitor() {
 			}
 			log.Debug("OUTBOUND NUM", "NUM", len(n.outBound), "start getaddr from peer", n.addrBook.addrPeer)
 			log.Debug("OutBound", "peers", n.outBound)
-			for peeraddr, _ := range n.addrBook.addrPeer {
-				if _, ok := n.outBound[peeraddr]; !ok {
+			peeraddrs := n.addrBook.GetAddrs()
+			for _, peeraddr := range peeraddrs {
+				if n.Has(peeraddr) == false {
 					savelist = append(savelist, peeraddr)
 				}
 				//对存储的地址列表进行重新捡漏
 				log.Debug("SaveList", "list", savelist)
 			}
-
 			n.DialPeers(savelist)
-			if !n.needMore() {
-				break
-			}
-			for _, bound := range n.outBound { //向其他节点发起请求，获取地址列表
-				addrlist, err := bound.mconn.GetAddr()
+			peers := n.GetPeers()
+			for _, peer := range peers { //向其他节点发起请求，获取地址列表
+				addrlist, err := peer.mconn.GetAddr()
 				if err != nil {
 					log.Error("GetAddr", "ERROR", err.Error())
 					continue
 				}
-				log.Debug("ADDRLIST", "LIST", addrlist)
+				log.Warn("ADDRLIST", "LIST", addrlist)
 				n.DialPeers(addrlist) //对获取的地址列表发起连接
 				if !n.needMore() {
 					break
