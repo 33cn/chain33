@@ -19,16 +19,17 @@ type p2pServer struct {
 	smtx    sync.Mutex
 	node    *Node
 	InBound map[string]*pb.P2PVersion
-	streams map[pb.P2Pgservice_RouteChatServer]chan *pb.P2PBlock
+	streams map[pb.P2Pgservice_RouteChatServer]chan interface{}
 }
 
-func (s *p2pServer) addStream(stream pb.P2Pgservice_RouteChatServer) {
+func (s *p2pServer) addStream(stream pb.P2Pgservice_RouteChatServer) chan interface{} {
 	defer s.smtx.Unlock()
 	s.smtx.Lock()
-	s.streams[stream] = make(chan *pb.P2PBlock, 1024)
+	s.streams[stream] = make(chan interface{}, 1024)
+	return s.streams[stream]
 
 }
-func (s *p2pServer) addStreamBlock(block *pb.P2PBlock) {
+func (s *p2pServer) addStreamBlock(block interface{}) {
 	defer s.smtx.Unlock()
 	s.smtx.Lock()
 	timetikc := time.NewTicker(time.Second * 1)
@@ -91,7 +92,6 @@ func (s *p2pServer) inBoundSize() int {
 	s.imtx.Lock()
 	return len(s.InBound)
 }
-
 func (s *p2pServer) monitor() {
 	go func() {
 		for {
@@ -121,13 +121,13 @@ func (s *p2pServer) update(peer string) {
 func NewP2pServer() *p2pServer {
 	return &p2pServer{
 		InBound: make(map[string]*pb.P2PVersion),
-		streams: make(map[pb.P2Pgservice_RouteChatServer]chan *pb.P2PBlock),
+		streams: make(map[pb.P2Pgservice_RouteChatServer]chan interface{}),
 	}
 
 }
 func (s *p2pServer) innerBroadBlock() {
 	go func() {
-		for block := range s.node.nodeInfo.p2pBlockChan {
+		for block := range s.node.nodeInfo.p2pBroadcastChan {
 			log.Warn("innerBroadBlock", "Block", block)
 			s.addStreamBlock(block)
 		}
@@ -244,6 +244,8 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 //grpc 接收广播交易
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
+	//添加到stream 中
+	s.addStreamBlock(in)
 	//发送给消息队列Queue
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
@@ -435,9 +437,18 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 
 func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
 	log.Warn("RouteChat", "stream", stream)
-	s.addStream(stream)
-	for block := range s.streams[stream] {
-		err := stream.Send(block)
+	dataChain := s.addStream(stream)
+	for data := range dataChain {
+		p2pdata := new(pb.BroadCastData)
+		if block, ok := data.(*pb.P2PBlock); ok {
+			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+		} else if tx, ok := data.(*pb.P2PTx); ok {
+			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+		} else {
+			continue
+		}
+
+		err := stream.Send(p2pdata)
 		if err != nil {
 			log.Error("RouteChat", "Err", err.Error())
 			s.deleteStream(stream)
