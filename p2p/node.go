@@ -267,11 +267,11 @@ func (n *Node) Get(peerAddr string) *peer {
 func (n *Node) GetPeers() []*peer {
 	defer n.omtx.Unlock()
 	n.omtx.Lock()
-	var peers = make([]*peer, 0)
+	var peers []*peer
 	for _, peer := range n.outBound {
 		peers = append(peers, peer)
 	}
-
+	log.Debug("GetPeers", "node", peers)
 	return peers
 }
 func (n *Node) Remove(peerAddr string) {
