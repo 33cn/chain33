@@ -117,10 +117,7 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 			err := mem.PushTx(tx)
 			if err == nil {
 				// 推入Mempool成功，传入goodChan，待回复消息
-				// mem.goodChan <- msgs[i]
-				mem.SendTxToP2P(msgs[i].GetData().(*types.Transaction))
-				msgs[i].Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
-				// mlog.Warn("reply ok", "msg", msgs[i])
+				mem.goodChan <- msgs[i]
 			} else {
 				msgs[i].Data = err
 				mem.badChan <- msgs[i]
