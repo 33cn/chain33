@@ -365,6 +365,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 		for m := range mem.badChan {
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
+			mlog.Warn("reply ok", "msg", m)
 		}
 	}()
 
@@ -373,6 +374,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 		for m := range mem.goodChan {
 			mem.SendTxToP2P(m.GetData().(*types.Transaction))
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
+			mlog.Warn("reply ok", "msg", m)
 		}
 	}()
 
