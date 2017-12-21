@@ -103,8 +103,7 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 }
 
 func TestAddTx(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx1)
 	mem.qclient.Send(msg, true)
@@ -119,8 +118,7 @@ func TestAddTx(t *testing.T) {
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	msg1 := mem.qclient.NewMessage("mempool", types.EventTx, tx2)
 	mem.qclient.Send(msg1, true)
@@ -187,8 +185,7 @@ func add10Tx(qclient queue.IClient) {
 }
 
 func TestGetTxList(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	// add tx
 	add4Tx(mem.qclient)
@@ -217,8 +214,7 @@ func TestGetTxList(t *testing.T) {
 }
 
 func TestAddMoreTxThanPoolSize(t *testing.T) {
-	mem, q, chain, s := initEnv(4)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(4)
 
 	add4Tx(mem.qclient)
 
@@ -235,8 +231,7 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 }
 
 func TestRemoveTxOfBlock(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	add4Tx(mem.qclient)
 
@@ -268,8 +263,7 @@ func TestRemoveTxOfBlock(t *testing.T) {
 //}
 
 func TestCheckLowFee(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	mem.SetMinFee(1000)
 
@@ -287,8 +281,7 @@ func TestCheckLowFee(t *testing.T) {
 }
 
 func TestCheckManyTxs(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	// add 10 txs for the same account
 	add10Tx(mem.qclient)
@@ -306,8 +299,7 @@ func TestCheckManyTxs(t *testing.T) {
 }
 
 func TestCheckSignature(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	// make wrong signature
 	tx11.Signature.Signature[0] = 0
@@ -326,8 +318,7 @@ func TestCheckSignature(t *testing.T) {
 }
 
 func TestCheckBalance(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx12)
 	mem.qclient.Send(msg, true)
@@ -342,8 +333,7 @@ func TestCheckBalance(t *testing.T) {
 }
 
 func TestCheckExpire(t *testing.T) {
-	mem, q, chain, s := initEnv(0)
-	mem.qclient = q.GetClient()
+	mem, _, chain, s := initEnv(0)
 
 	tx11.Expire = -1 // make tx expired
 	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx11)

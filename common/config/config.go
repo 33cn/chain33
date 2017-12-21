@@ -15,6 +15,5 @@ func InitCfg(path string) *types.Config {
 		os.Exit(0)
 
 	}
-	fmt.Printf("%+v\n", cfg)
 	return &cfg
 }
