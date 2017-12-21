@@ -18,14 +18,17 @@ type msg struct {
 	network   *P2p
 	msgStatus chan bool
 	tempdata  map[int64]*pb.Block
+	peermtx   sync.Mutex
 	peers     []*peer
 	peerInfos map[string]*pb.Peer
+	done      chan struct{}
 }
 
 func NewInTrans(network *P2p) *msg {
 	pmsg := &msg{
 		network:   network,
 		peerInfos: make(map[string]*pb.Peer),
+		done:      make(chan struct{}, 1),
 	}
 
 	return pmsg
@@ -102,17 +105,17 @@ func (m *msg) GetMemPool(msg queue.Message) {
 
 }
 func (m *msg) flushPeerInfos(in []*pb.Peer) {
-	defer m.pmtx.Unlock()
 	m.pmtx.Lock()
-
+	defer m.pmtx.Unlock()
 	for _, peer := range in {
+		log.Info("flushPeerInfos", "info", peer)
 		m.peerInfos[peer.GetName()] = peer
 	}
 
 }
 func (m *msg) getPeerInfos() []*pb.Peer {
-	defer m.pmtx.Unlock()
 	m.pmtx.Lock()
+	defer m.pmtx.Unlock()
 	var peers []*pb.Peer
 	for _, peer := range m.peerInfos {
 		peers = append(peers, peer)
@@ -120,27 +123,33 @@ func (m *msg) getPeerInfos() []*pb.Peer {
 	return peers
 }
 func (m *msg) monitorPeerInfo() {
-
+	log.Info("monitorPeerInfo", "XX(((99999999", "0000000")
+FOR_LOOP:
 	for {
-		ticker := time.NewTicker(time.Second * 10)
+		ticker := time.NewTicker(time.Second * 1)
 		select {
 
 		case <-ticker.C:
-
-			var peerlist = make([]*pb.Peer, 0)
+			var peerlist []*pb.Peer
 			peers := m.network.node.GetPeers()
+			log.Info("monitorPeerInfo", "peers", peers)
 			for _, peer := range peers {
 				peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
 				if err != nil {
 					peer.mconn.sendMonitor.Update(false)
+					log.Error("monitorPeerInfo", "error", err.Error())
 					continue
 				}
+				log.Info("monitorPeerInfo", "info", peerinfo)
 				peer.mconn.sendMonitor.Update(true)
 				peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 
 			}
 			log.Debug("monitorPeerInfo", "peerlist", peerlist)
 			m.flushPeerInfos(peerlist)
+		case <-m.done:
+			log.Error("monitorPeerInfo", "done", "close")
+			break FOR_LOOP
 		}
 
 	}
@@ -149,7 +158,8 @@ func (m *msg) monitorPeerInfo() {
 
 //收到BlockChain 模块的请求，获取PeerInfo
 func (m *msg) GetPeerInfo(msg queue.Message) {
-	log.Debug("GetPeerInfo", "SendTOP2P", msg.GetData())
+
+	log.Warn("GetPeerInfo", "info", m.getPeerInfos())
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.getPeerInfos()}))
 	return
 }
@@ -158,6 +168,7 @@ func (m *msg) GetPeerInfo(msg queue.Message) {
 func (m *msg) GetBlocks(msg queue.Message) {
 	log.Debug("GetBlocks", "SendTOP2P", msg.GetData())
 	if len(m.network.node.outBound) == 0 {
+		log.Debug("GetBlocks", "boundNum", 0)
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
@@ -166,16 +177,21 @@ func (m *msg) GetBlocks(msg queue.Message) {
 	// 第一步获取下载列表，第二步分配不同的节点分段下载需要的数据
 	var blocks pb.Blocks
 	req := msg.GetData().(*pb.ReqBlocks)
+	log.Debug("GetBlocks", "req", req)
 	var MaxInvs = new(pb.P2PInv)
-	m.peers = make([]*peer, 0)
+	//m.peers = make([]*peer, 0)
 	//获取最大的下载列表
 	peers := m.network.node.GetPeers()
+	log.Debug("GetBlocks", "peers", len(peers))
 	for _, peer := range peers {
+		//log.Debug("GetBlocks", "Peer", peer)
 		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd()})
 		if err != nil {
+			log.Error("GetBlocks", "Err", err.Error())
 			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
+		//log.Debug("GetBlocks", "invs", invs)
 		peer.mconn.sendMonitor.Update(true)
 		if len(invs.Invs) > len(MaxInvs.Invs) {
 			MaxInvs = invs
@@ -184,10 +200,11 @@ func (m *msg) GetBlocks(msg queue.Message) {
 			}
 		}
 	}
-	log.Debug("GetBlocks", "invs", MaxInvs.GetInvs())
+	//log.Debug("GetBlocks", "invs ok", MaxInvs.GetInvs())
 	m.loadPeers()
+	//	log.Debug("GetBlocks", "Afer loadpeer", m.peers)
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
-	log.Debug("GetBlocks", "intervals", intervals)
+	//log.Debug("GetBlocks", "intervals++", intervals)
 	m.msgStatus = make(chan bool, len(intervals))
 	m.tempdata = make(map[int64]*pb.Block)
 	//分段下载
@@ -208,6 +225,8 @@ func (m *msg) GetBlocks(msg queue.Message) {
 
 }
 func (m *msg) loadPeers() {
+	m.peermtx.Lock()
+	defer m.peermtx.Unlock()
 	m.peers = append(m.peers, m.network.node.GetPeers()...)
 }
 func (m *msg) wait(thnum int) {
@@ -238,6 +257,8 @@ func (m *msg) sortKeys() []int {
 
 }
 func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
+	m.peermtx.Lock()
+	defer m.peermtx.Unlock()
 	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "invs", invs)
 	peersize := m.network.node.Size()
 	log.Debug("downloadBlock", "peersize", peersize)
@@ -245,8 +266,10 @@ func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 	for i := 0; i < peersize; i++ {
 		index = index % peersize
 		log.Debug("downloadBlock", "index", index)
+
 		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: invs.Invs[interval.start:interval.end]})
 		if err != nil {
+			log.Error("downloadBlock", "err", err.Error())
 			m.peers[index].mconn.sendMonitor.Update(false)
 			index++
 			continue
@@ -271,16 +294,17 @@ func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {
 	var result = make(map[int]*intervalInfo)
 	peerNum := m.network.node.Size()
 	if invsNum < peerNum {
-		result[0] = &intervalInfo{start: 0, end: invsNum}
+		result[0] = &intervalInfo{start: 0, end: invsNum - 1}
 		return result
 	}
 	var interval = invsNum / peerNum
 	var start, end int
+
 	end = interval
 	for i := 0; i < peerNum; i++ {
 		end += start
-		if end > invsNum || i == peerNum-1 {
-			end = invsNum
+		if end >= invsNum || i == peerNum-1 {
+			end = invsNum - 1
 		}
 
 		result[i] = &intervalInfo{start: start, end: end}

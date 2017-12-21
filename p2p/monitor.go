@@ -53,10 +53,10 @@ func (m *Monitor) Start() {
 			tick := time.NewTicker(time.Second * 5)
 			select {
 			case <-tick.C:
-				m.mtx.Lock()
+				//	m.mtx.Lock()
 				if m.lastop-m.lastok > 600 || m.count > 30 {
 					m.isrunning = false
-					m.mtx.Unlock()
+					//	m.mtx.Unlock()
 					return
 
 				}
