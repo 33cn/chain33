@@ -23,15 +23,15 @@ type p2pServer struct {
 }
 
 func (s *p2pServer) addStream(stream pb.P2Pgservice_RouteChatServer) chan interface{} {
-	defer s.smtx.Unlock()
 	s.smtx.Lock()
+	defer s.smtx.Unlock()
 	s.streams[stream] = make(chan interface{}, 1024)
 	return s.streams[stream]
 
 }
 func (s *p2pServer) addStreamBlock(block interface{}) {
-	defer s.smtx.Unlock()
 	s.smtx.Lock()
+	defer s.smtx.Unlock()
 	timetikc := time.NewTicker(time.Second * 1)
 	for stream, _ := range s.streams {
 		select {
@@ -45,14 +45,14 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 
 }
 func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
-	defer s.smtx.Unlock()
 	s.smtx.Lock()
+	defer s.smtx.Unlock()
 	delete(s.streams, stream)
 }
 
 func (s *p2pServer) GetStreams() []pb.P2Pgservice_RouteChatServer {
-	defer s.smtx.Unlock()
 	s.smtx.Lock()
+	defer s.smtx.Unlock()
 	var streamarr []pb.P2Pgservice_RouteChatServer
 	for k, _ := range s.streams {
 		streamarr = append(streamarr, k)
@@ -61,14 +61,14 @@ func (s *p2pServer) GetStreams() []pb.P2Pgservice_RouteChatServer {
 }
 
 func (s *p2pServer) addInBound(in *pb.P2PVersion) {
-	defer s.imtx.Unlock()
 	s.imtx.Lock()
+	defer s.imtx.Unlock()
 	s.InBound[in.AddrFrom] = in
 }
 
 func (s *p2pServer) deleteInBound(addr string) {
-	defer s.imtx.Unlock()
 	s.imtx.Lock()
+	defer s.imtx.Unlock()
 	if _, ok := s.InBound[addr]; ok {
 		delete(s.InBound, addr)
 	}
@@ -78,8 +78,8 @@ func (s *p2pServer) deleteInBound(addr string) {
 func (s *p2pServer) getBounds() []string {
 	var inbounds = make([]string, 0)
 
-	defer s.imtx.Unlock()
 	s.imtx.Lock()
+	defer s.imtx.Unlock()
 	for addr, _ := range s.InBound {
 		inbounds = append(inbounds, addr)
 	}
@@ -88,29 +88,29 @@ func (s *p2pServer) getBounds() []string {
 
 }
 func (s *p2pServer) inBoundSize() int {
-	defer s.imtx.Unlock()
 	s.imtx.Lock()
+	defer s.imtx.Unlock()
 	return len(s.InBound)
 }
 func (s *p2pServer) monitor() {
-	go func() {
-		for {
-			s.imtx.Lock()
-			for addr, peerinfo := range s.InBound {
-				if (time.Now().Unix() - peerinfo.GetTimestamp()) > 120 {
-					delete(s.InBound, addr)
-				}
-				log.Info("Monitor", "inBounds", len(s.InBound))
+
+	for {
+		s.imtx.Lock()
+		for addr, peerinfo := range s.InBound {
+			if (time.Now().Unix() - peerinfo.GetTimestamp()) > 120 {
+				delete(s.InBound, addr)
 			}
-			s.imtx.Unlock()
-			time.Sleep(time.Second * 10)
+			log.Info("Monitor", "inBounds", len(s.InBound))
 		}
-	}()
+		s.imtx.Unlock()
+		time.Sleep(time.Second * 10)
+	}
+
 }
 
 func (s *p2pServer) update(peer string) {
-	defer s.imtx.Unlock()
 	s.imtx.Lock()
+	defer s.imtx.Unlock()
 
 	if peerinfo, ok := s.InBound[peer]; ok {
 		peerinfo.Timestamp = time.Now().Unix()
@@ -418,7 +418,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	peerinfo.Name = pub
 	peerinfo.MempoolSize = int32(meminfo.GetSize())
 	peerinfo.Addr = EXTERNALADDR
-	peerinfo.Port = int32(s.node.nodeInfo.externalAddr.Port)
+	peerinfo.Port = int32(s.node.nodeInfo.GetExternalAddr().Port)
 	return &peerinfo, nil
 }
 

@@ -24,10 +24,21 @@ type AddrBook struct {
 }
 
 type knownAddress struct {
+	kmtx        sync.Mutex
 	Addr        *NetAddress
 	Attempts    uint
 	LastAttempt time.Time
 	LastSuccess time.Time
+}
+
+func (a *AddrBook) getPeerStat(addr string) *knownAddress {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	if peer, ok := a.addrPeer[addr]; ok {
+		return peer
+	}
+	return nil
+
 }
 
 func NewAddrBook(filePath string) *AddrBook {
@@ -67,6 +78,8 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 	}
 }
 func (ka *knownAddress) markGood() {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
 	now := time.Now()
 	ka.LastAttempt = now
 	ka.Attempts = 0
@@ -74,9 +87,24 @@ func (ka *knownAddress) markGood() {
 }
 
 func (ka *knownAddress) markAttempt() {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
 	now := time.Now()
 	ka.LastAttempt = now
 	ka.Attempts += 1
+}
+func (ka *knownAddress) flushPeerStatus(m *Monitor) {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
+	ka.Attempts = m.count
+	ka.LastAttempt = time.Unix(int64(m.lastop), 0)
+	ka.LastSuccess = time.Unix(int64(m.lastok), 0)
+}
+
+func (ka *knownAddress) GetAttempts() uint {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
+	return ka.Attempts
 }
 
 // OnStart implements Service.
@@ -272,7 +300,7 @@ func (a *AddrBook) GetAddrs() []string {
 	defer a.mtx.Unlock()
 	addrlist := make([]string, 0)
 	for _, peer := range a.addrPeer {
-		if peer.Attempts == 0 {
+		if peer.GetAttempts() == 0 {
 			addrlist = append(addrlist, peer.Addr.String())
 		}
 
