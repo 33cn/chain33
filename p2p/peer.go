@@ -48,7 +48,8 @@ BEGIN:
 			resp.CloseSend()
 			return
 		default:
-			block, err := resp.Recv()
+
+			data, err := resp.Recv()
 			if err != nil {
 				log.Error("SubStreamBlock", "Recv Err", err.Error())
 				time.Sleep(time.Second * 1)
@@ -56,14 +57,27 @@ BEGIN:
 				goto BEGIN
 
 			}
-			log.Info("SubStreamBlock", "recv blockXXXXXXXXXXXXXXXXXXXXXXXXX", block)
+			log.Info("SubStreamBlock", "recv blockorTxXXXXXXXXXXXXXXXXXXXXXXXXX", data)
 
-			msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-			(*p.nodeInfo).qclient.Send(msg, true)
-			_, err = (*p.nodeInfo).qclient.Wait(msg)
-			if err != nil {
-				continue
+			if block := data.GetBlock(); block != nil {
+				if block.GetBlock() != nil {
+					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					(*p.nodeInfo).qclient.Send(msg, true)
+					_, err = (*p.nodeInfo).qclient.Wait(msg)
+					if err != nil {
+						continue
+					}
+				}
+
+			} else if tx := data.GetTx(); tx != nil {
+				log.Debug("SubStreamBlock", "tx", tx.GetTx())
+				if tx.GetTx() != nil {
+					msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					(*p.nodeInfo).qclient.Send(msg, false)
+				}
+
 			}
+
 		}
 	}
 
