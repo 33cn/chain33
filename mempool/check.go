@@ -108,7 +108,18 @@ func (mem *Mempool) CheckBalanList() {
 
 // Mempool.checkBalance检查交易账户余额
 func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
-	accs, _ := account.LoadAccounts(mem.memQueue, addrs)
+	accs, err := account.LoadAccounts(mem.memQueue, addrs)
+
+	if err != nil {
+		mlog.Error("loadaccounts", "err", err)
+
+		for m := range msgs {
+			mem.badChan <- msgs[m]
+		}
+
+		return
+	}
+
 	for i := range msgs {
 		tx := msgs[i].GetData().(*types.Transaction)
 
