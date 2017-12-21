@@ -31,6 +31,7 @@ var (
 	e06 = errors.New("message too big")
 	e07 = errors.New("message expired")
 	e08 = errors.New("loadacconts error")
+	e09 = errors.New("empty transaction")
 )
 
 var (
@@ -383,6 +384,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			if msg.Ty == types.EventTx {
 				// 消息类型EventTx：申请添加交易到Mempool
 				if msg.GetData() == nil { // 判断消息是否含有nil交易
+					msg.Data = e09
 					mem.badChan <- msg
 					continue
 				}
