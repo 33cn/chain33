@@ -55,7 +55,7 @@ type Mempool struct {
 	signChan  chan queue.Message
 	badChan   chan queue.Message
 	balanChan chan queue.Message
-	// goodChan  chan queue.Message
+	goodChan  chan queue.Message
 	memQueue  *queue.Queue
 	qclient   queue.IClient
 	height    int64
@@ -71,7 +71,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.signChan = make(chan queue.Message, channelSize)
 	pool.badChan = make(chan queue.Message, channelSize)
 	pool.balanChan = make(chan queue.Message, channelSize)
-	// pool.goodChan = make(chan queue.Message, channelSize)
+	pool.goodChan = make(chan queue.Message, channelSize)
 	pool.minFee = minTxFee
 	return pool
 }
@@ -365,18 +365,16 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 		for m := range mem.badChan {
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
-			// mlog.Warn("reply ok", "msg", m)
 		}
 	}()
 
 	// 从goodChan读取好消息，并回复正确信息
-	//	go func() {
-	//		for m := range mem.goodChan {
-	//			mem.SendTxToP2P(m.GetData().(*types.Transaction))
-	//			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
-	//			mlog.Warn("reply ok", "msg", m)
-	//		}
-	//	}()
+	go func() {
+		for m := range mem.goodChan {
+			mem.SendTxToP2P(m.GetData().(*types.Transaction))
+			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
+		}
+	}()
 
 	go func() {
 		for msg := range mem.qclient.Recv() {
@@ -395,12 +393,10 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
-				// mlog.Warn("reply ok", "msg", m)
 			} else if msg.Ty == types.EventTxList {
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 					&types.ReplyTxList{mem.GetTxList(10000)}))
-				// mlog.Warn("reply ok", "msg", m)
 			} else if msg.Ty == types.EventAddBlock {
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
@@ -408,7 +404,6 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{int64(mem.Size())}))
-				// mlog.Warn("reply ok", "msg", m)
 			} else {
 				continue
 			}
