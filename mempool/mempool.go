@@ -30,6 +30,7 @@ var (
 	e05 = errors.New("low balance")
 	e06 = errors.New("message too big")
 	e07 = errors.New("message expired")
+	e08 = errors.New("loadacconts error")
 )
 
 var (
