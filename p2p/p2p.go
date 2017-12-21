@@ -14,7 +14,7 @@ type P2p struct {
 	c        queue.IClient
 	node     *Node
 	addrBook *AddrBook // known peers
-
+	done     chan struct{}
 }
 
 func New(cfg *types.P2P) *P2p {
@@ -25,11 +25,13 @@ func New(cfg *types.P2P) *P2p {
 	}
 	return &P2p{
 		node: node,
+		done: make(chan struct{}, 1),
 	}
 }
 
 func (network *P2p) Close() {
 	network.node.Stop()
+	network.done <- struct{}{}
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
