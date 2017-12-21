@@ -91,6 +91,7 @@ func (s *p2pServer) inBoundSize() int {
 	s.imtx.Lock()
 	return len(s.InBound)
 }
+
 func (s *p2pServer) monitor() {
 	go func() {
 		for {
@@ -99,8 +100,8 @@ func (s *p2pServer) monitor() {
 					s.deleteInBound(addr)
 				}
 				log.Info("Monitor", "inBounds", s.inBoundSize())
-				time.Sleep(time.Second * 10)
 			}
+			time.Sleep(time.Second * 10)
 		}
 	}()
 }
