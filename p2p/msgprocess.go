@@ -27,7 +27,7 @@ func NewInTrans(network *P2p) *msg {
 		network:   network,
 		peerInfos: make(map[string]*pb.Peer),
 	}
-	go pmsg.monitorPeerInfo()
+
 	return pmsg
 }
 
@@ -239,10 +239,11 @@ func (m *msg) sortKeys() []int {
 func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
 	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "invs", invs)
 	peersize := m.network.node.Size()
+	log.Debug("downloadBlock", "peersize", peersize)
 	maxInvDatas := new(pb.InvDatas)
-
 	for i := 0; i < peersize; i++ {
 		index = index % peersize
+		log.Debug("downloadBlock", "index", index)
 		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: invs.Invs[interval.start:interval.end]})
 		if err != nil {
 			m.peers[index].mconn.sendMonitor.Update(false)
