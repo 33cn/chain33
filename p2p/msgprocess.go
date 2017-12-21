@@ -37,6 +37,7 @@ func (m *msg) TransToBroadCast(msg queue.Message) {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
+	m.network.node.nodeInfo.p2pBroadcastChan <- &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}
 	//开始广播消息
 	peers := m.network.node.GetPeers()
 	for _, peer := range peers {
@@ -301,7 +302,7 @@ func (m *msg) BlockBroadcast(msg queue.Message) {
 	block := msg.GetData().(*pb.Block)
 	peers := m.network.node.GetPeers()
 	//stream blockbroadcast
-	m.network.node.nodeInfo.p2pBlockChan <- &pb.P2PBlock{Block: block}
+	m.network.node.nodeInfo.p2pBroadcastChan <- &pb.P2PBlock{Block: block}
 	for _, peer := range peers {
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
 		if err != nil {

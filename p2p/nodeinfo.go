@@ -6,18 +6,18 @@ import (
 )
 
 type NodeInfo struct {
-	pubKey       []byte      `json:"pub_key"`
-	network      string      `json:"network"`
-	externalAddr *NetAddress `json:"remote_addr"`
-	listenAddr   *NetAddress `json:"listen_addr"`
-	version      string      `json:"version"`
-	monitorChan  chan *peer
-	versionChan  chan struct{}
-	p2pBlockChan chan *types.P2PBlock
-	cfg          *types.P2P
-	q            *queue.Queue
-	qclient      queue.IClient
-	other        []string `json:"other"` // other application specific data
+	pubKey           []byte      `json:"pub_key"`
+	network          string      `json:"network"`
+	externalAddr     *NetAddress `json:"remote_addr"`
+	listenAddr       *NetAddress `json:"listen_addr"`
+	version          string      `json:"version"`
+	monitorChan      chan *peer
+	versionChan      chan struct{}
+	p2pBroadcastChan chan interface{}
+	cfg              *types.P2P
+	q                *queue.Queue
+	qclient          queue.IClient
+	other            []string `json:"other"` // other application specific data
 }
 
 func (b *NodeInfo) Set(n *NodeInfo) {
