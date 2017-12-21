@@ -381,6 +381,10 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			mlog.Info("mempool recv", "msg", msg)
 			if msg.Ty == types.EventTx {
 				// 消息类型EventTx：申请添加交易到Mempool
+				if msg.GetData() == nil { // 判断消息是否含有nil交易
+					mem.badChan <- msg
+					continue
+				}
 				valid := mem.CheckExpire(msg) // 检查交易是否过期
 				if valid {
 					// 未过期，交易消息传入txChan，待检查
@@ -388,6 +392,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				} else {
 					msg.Data = e07
 					mem.badChan <- msg
+					continue
 				}
 			} else if msg.Ty == types.EventGetMempool {
 				// 消息类型EventGetMempool：获取Mempool内所有交易
