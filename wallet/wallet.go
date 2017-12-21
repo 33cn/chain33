@@ -1,6 +1,8 @@
 package wallet
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -18,7 +20,7 @@ import (
 )
 
 var (
-	MinFee           int64 = 5
+	MinFee           int64 = 1000000
 	MaxTxNumPerBlock int64 = 100000
 )
 
@@ -35,6 +37,7 @@ type Wallet struct {
 	isLocked    bool
 	Password    string
 	FeeAmount   int64
+	EncryptFlag int64
 	walletStore *WalletStore
 }
 
@@ -56,8 +59,8 @@ func New(cfg *types.Wallet) *Wallet {
 	return &Wallet{
 		walletStore: walletStore,
 		isLocked:    false,
-		Password:    walletStore.GetWalletPassword(),
 		FeeAmount:   walletStore.GetFeeAmount(),
+		EncryptFlag: walletStore.GetEncryptionFlag(),
 	}
 }
 
@@ -294,7 +297,11 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 		walletlog.Error("ProcCreatNewAccount Label is nil")
 		return nil, ErrInputPara
 	}
-
+	// 钱包已经加密需要先通过password 解锁钱包
+	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
+		err := errors.New("UnLock Wallet first!")
+		return nil, err
+	}
 	//首先校验label是否已被使用
 	WalletAccStores, err := wallet.walletStore.GetAccountByLabel(Label.GetLabel())
 	if WalletAccStores != nil {
@@ -329,7 +336,9 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 	walletAccount.Acc = &Account
 	walletAccount.Label = Label.GetLabel()
 
-	WalletAccStore.Privkey = common.ToHex(priv.Bytes())
+	//使用钱包的password对私钥加密 aes cbc
+	Encrypted := EncrypterPrivkey([]byte(wallet.Password), priv.Bytes())
+	WalletAccStore.Privkey = common.ToHex(Encrypted)
 	WalletAccStore.Label = Label.GetLabel()
 	WalletAccStore.Addr = addr.String()
 
@@ -393,6 +402,13 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 		walletlog.Error("ProcImportPrivKey input parameter is nil!")
 		return nil, ErrInputPara
 	}
+
+	// 钱包已经加密需要先通过password 解锁钱包
+	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
+		err := errors.New("UnLock Wallet first!")
+		return nil, err
+	}
+
 	//校验label是否已经被使用
 	Account, err := wallet.walletStore.GetAccountByLabel(PrivKey.GetLabel())
 	if Account != nil {
@@ -414,10 +430,13 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	}
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes())
 
+	//对私钥加密
+	Encryptered := EncrypterPrivkey([]byte(wallet.Password), common.FromHex(PrivKey.Privkey))
+	Encrypteredstr := common.ToHex(Encryptered)
 	//校验PrivKey对应的addr是否已经存在钱包中
 	Account, err = wallet.walletStore.GetAccountByAddr(addr.String())
 	if Account != nil {
-		if Account.Privkey == PrivKey.Privkey {
+		if Account.Privkey == Encrypteredstr {
 			walletlog.Error("ProcImportPrivKey Privkey is exist in wallet!")
 			Err := errors.New("Privkey Has exists in wallet!")
 			return nil, Err
@@ -430,7 +449,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 
 	var walletaccount types.WalletAccount
 	var WalletAccStore types.WalletAccountStore
-	WalletAccStore.Privkey = PrivKey.GetPrivkey()
+	WalletAccStore.Privkey = Encrypteredstr //存储加密后的私钥
 	WalletAccStore.Label = PrivKey.GetLabel()
 	WalletAccStore.Addr = addr.String()
 	//存储Addr:label+privkey+addr到数据库
@@ -486,6 +505,13 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		walletlog.Error("ProcSendToAddress input para From or To is nil!")
 		return nil, ErrInputPara
 	}
+
+	// 钱包已经加密需要先通过password 解锁钱包
+	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
+		err := errors.New("UnLock Wallet first!")
+		return nil, err
+	}
+
 	var hash types.ReplyHash
 
 	//获取指定地址在钱包里的账户信息
@@ -495,21 +521,38 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		return nil, err
 	}
 
+	//通过password解密存储的私钥
+	privkey := DecrypterPrivkey([]byte(wallet.Password), common.FromHex(Accountstor.GetPrivkey()))
+	walletlog.Error("ProcSendToAddress", "DecrypterPrivkey privkey", common.ToHex(privkey))
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
 	}
-	priv, err := cr.PrivKeyFromBytes(common.FromHex(Accountstor.GetPrivkey()))
+	priv, err := cr.PrivKeyFromBytes(privkey)
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "PrivKeyFromBytes err", err)
 		return nil, err
 	}
+	//获取from账户的余额从account模块，校验余额是否充足
+	addrs := make([]string, 1)
+	addrs[0] = SendToAddress.GetFrom()
+
+	accounts, err := account.LoadAccounts(wallet.q, addrs)
+	if err != nil || len(accounts) == 0 {
+		walletlog.Error("ProcMergeBalance", "LoadAccounts err", err)
+		return nil, err
+	}
+	Balance := accounts[0].Balance
+	amount := SendToAddress.GetAmount()
+	if Balance < amount+wallet.FeeAmount {
+		Err := errors.New("Insufficient balance!")
+		return nil, Err
+	}
 
 	addrto := SendToAddress.GetTo()
 	note := SendToAddress.GetNote()
-	amount := SendToAddress.GetAmount()
 
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
@@ -586,9 +629,13 @@ func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*ty
 	//获取地址对应的账户信息从钱包中,然后修改label
 	Account, err = wallet.walletStore.GetAccountByAddr(SetLabel.Addr)
 	if err == nil && Account != nil {
+		oldLabel := Account.Label
 		Account.Label = SetLabel.GetLabel()
 		err := wallet.walletStore.SetWalletAccount(true, SetLabel.Addr, Account)
 		if err == nil {
+			//新的label设置成功之后需要删除旧的label在db的数据
+			wallet.walletStore.DelAccountByLabel(oldLabel)
+
 			//获取地址对应的账户详细信息从account模块
 			addrs := make([]string, 1)
 			addrs[0] = SetLabel.Addr
@@ -624,6 +671,13 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		walletlog.Error("ProcMergeBalance input para is nil!")
 		return nil, ErrInputPara
 	}
+
+	// 钱包已经加密需要先通过password 解锁钱包
+	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
+		err := errors.New("UnLock Wallet first!")
+		return nil, err
+	}
+
 	//获取钱包上的所有账户信息
 	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
 	if err != nil || len(WalletAccStores) == 0 {
@@ -659,20 +713,28 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 	note := "MergeBalance"
 
 	var ReplyHashes types.ReplyHashes
-	ReplyHashes.Hashes = make([][]byte, len(accounts))
+	//ReplyHashes.Hashes = make([][]byte, len(accounts))
 
 	for index, Account := range accounts {
 		Privkey := WalletAccStores[index].Privkey
-		priv, err := cr.PrivKeyFromBytes(common.FromHex(Privkey))
+		//解密存储的私钥
+		privkey := DecrypterPrivkey([]byte(wallet.Password), common.FromHex(Privkey))
+		priv, err := cr.PrivKeyFromBytes(privkey)
 		if err != nil {
 			walletlog.Error("ProcMergeBalance", "PrivKeyFromBytes err", err, "index", index)
-			ReplyHashes.Hashes[index] = common.Hash{}.Bytes()
+			//ReplyHashes.Hashes[index] = common.Hash{}.Bytes()
 			continue
 		}
-
-		//获取账户的余额
+		//过滤掉to地址
+		if Account.Addr == addrto {
+			continue
+		}
+		//获取账户的余额，过滤掉余额不足的地址
 		amount := Account.GetBalance()
-
+		if amount < wallet.FeeAmount {
+			continue
+		}
+		amount = amount - wallet.FeeAmount
 		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 
@@ -685,11 +747,11 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		_, err = wallet.qclient.Wait(msg)
 		if err != nil {
 			walletlog.Error("ProcMergeBalance", "Send tx err", err, "index", index)
-			ReplyHashes.Hashes[index] = common.Hash{}.Bytes()
+			//ReplyHashes.Hashes[index] = common.Hash{}.Bytes()
 			continue
 		}
 
-		ReplyHashes.Hashes[index] = tx.Hash()
+		ReplyHashes.Hashes = append(ReplyHashes.Hashes, tx.Hash())
 	}
 	return &ReplyHashes, nil
 }
@@ -700,18 +762,62 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 //	Newpass string
 //设置或者修改密码
 func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) error {
-
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	if Passwd.Oldpass == wallet.Password {
-		wallet.walletStore.SetWalletPassword(Passwd.Newpass)
-		wallet.Password = Passwd.Newpass
-		return nil
+	// 钱包已经加密需要验证oldpass的正确性
+	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
+		isok := wallet.walletStore.VerifyPasswordHash(Passwd.Oldpass)
+		if !isok {
+			walletlog.Error("ProcWalletSetPasswd Verify Oldpasswd fail!")
+			err := errors.New("Verify Oldpasswd fail!")
+			return err
+		}
 	}
-	walletlog.Error("ProcWalletSetPasswd Oldpass err!")
-	err := errors.New("ProcWalletSetPasswd Oldpass err!")
-	return err
+
+	if len(wallet.Password) != 0 && Passwd.Oldpass != wallet.Password {
+		walletlog.Error("ProcWalletSetPasswd Oldpass err!")
+		err := errors.New("ProcWalletSetPasswd Oldpass err!")
+		return err
+	}
+
+	//使用新的密码生成passwdhash用于下次密码的验证
+	err := wallet.walletStore.SetPasswordHash(Passwd.Newpass)
+	if err != nil {
+		walletlog.Error("ProcWalletSetPasswd", "SetPasswordHash err", err)
+		return err
+	}
+	//设置钱包加密标志位
+	err = wallet.walletStore.SetEncryptionFlag()
+	if err != nil {
+		walletlog.Error("ProcWalletSetPasswd", "SetEncryptionFlag err", err)
+		return err
+	}
+	//对所有存储的私钥重新使用新的密码加密
+	//通过Account前缀查找获取钱包中的所有账户信息
+	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
+	if err != nil || len(WalletAccStores) == 0 {
+		walletlog.Info("ProcWalletSetPasswd", "GetAccountByPrefix:err", err)
+		//return err
+	}
+	if WalletAccStores != nil {
+		for _, AccStore := range WalletAccStores {
+
+			//使用old Password解密存储的私钥
+			storekey := common.FromHex(AccStore.GetPrivkey())
+			Decrypter := DecrypterPrivkey([]byte(wallet.Password), storekey)
+
+			//使用新的密码重新加密私钥
+			Encrypter := EncrypterPrivkey([]byte(Passwd.Newpass), Decrypter)
+			AccStore.Privkey = common.ToHex(Encrypter)
+			err := wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
+			if err != nil {
+				walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "SetWalletAccount err", err)
+			}
+		}
+	}
+	wallet.Password = Passwd.Newpass
+	return nil
 }
 
 //锁定钱包
@@ -726,9 +832,24 @@ func (wallet *Wallet) ProcWalletLock() error {
 //	Timeout int64
 //解锁钱包Timeout时间，超时后继续锁住
 func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
-	if WalletUnLock.Passwd != wallet.Password {
+	// 钱包已经加密需要验证passwd的正确性
+	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
+		isok := wallet.walletStore.VerifyPasswordHash(WalletUnLock.Passwd)
+		if !isok {
+			walletlog.Error("ProcWalletUnLock Verify Oldpasswd fail!")
+			err := errors.New("Verify Oldpasswd fail!")
+			return err
+		}
+	}
+
+	//内存中已经记录password时的校验
+	if len(wallet.Password) != 0 && WalletUnLock.Passwd != wallet.Password {
 		err := errors.New("Input Password error!")
 		return err
+	}
+	//本钱包没有设置密码加密过,只需要解锁不需要记录解锁密码
+	if len(wallet.Password) != 0 || wallet.EncryptFlag != 0 {
+		wallet.Password = WalletUnLock.Passwd
 	}
 	wallet.isLocked = false
 	if WalletUnLock.Timeout != 0 {
@@ -872,7 +993,47 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 			return
 		}
 		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
-		walletlog.Info("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
+		//walletlog.Info("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
+}
+
+//使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey
+func EncrypterPrivkey(password []byte, privkey []byte) []byte {
+	key := make([]byte, 32)
+	Encrypted := make([]byte, len(privkey))
+	if len(password) > 32 {
+		key = password[0:32]
+	} else {
+		copy(key, password)
+	}
+
+	block, _ := aes.NewCipher(key)
+	iv := key[:block.BlockSize()]
+
+	//walletlog.Info("EncrypterPrivkey", "password", string(key), "Privkey", common.ToHex(privkey))
+
+	encrypter := cipher.NewCBCEncrypter(block, iv)
+	encrypter.CryptBlocks(Encrypted, privkey)
+
+	//walletlog.Info("EncrypterPrivkey", "Encrypted", common.ToHex(Encrypted))
+	return Encrypted
+}
+
+//使用钱包的password对私钥进行aes cbc解密,返回解密后的privkey
+func DecrypterPrivkey(password []byte, privkey []byte) []byte {
+	key := make([]byte, 32)
+	if len(password) > 32 {
+		key = password[0:32]
+	} else {
+		copy(key, password)
+	}
+
+	block, _ := aes.NewCipher(key)
+	iv := key[:block.BlockSize()]
+	decryptered := make([]byte, len(privkey))
+	decrypter := cipher.NewCBCDecrypter(block, iv)
+	decrypter.CryptBlocks(decryptered, privkey)
+	//walletlog.Info("DecrypterPrivkey", "password", string(key), "Encrypted", common.ToHex(privkey), "decryptered", common.ToHex(decryptered))
+	return decryptered
 }

@@ -1,9 +1,12 @@
 package wallet
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	dbm "code.aliyun.com/chain33/chain33/common/db"
@@ -13,6 +16,9 @@ import (
 
 var WalletPassKey = []byte("WalletPassWord")
 var WalletFeeAmount = []byte("WalletFeeAmount")
+var EncryptionFlag = []byte("Encryption")
+
+var PasswordHash = []byte("PasswordHash")
 
 var storelog = walletlog.New("submodule", "store")
 
@@ -58,31 +64,31 @@ func (ws *WalletStore) SetWalletPassword(newpass string) {
 }
 
 func (ws *WalletStore) GetWalletPassword() string {
-	bytes := ws.db.Get(WalletPassKey)
-	if bytes == nil {
+	Passwordbytes := ws.db.Get(WalletPassKey)
+	if Passwordbytes == nil {
 		return ""
 	}
-	return string(bytes)
+	return string(Passwordbytes)
 }
 
 func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
-	bytes, err := json.Marshal(FeeAmount)
+	FeeAmountbytes, err := json.Marshal(FeeAmount)
 	if err != nil {
 		walletlog.Error("SetFeeAmount marshal FeeAmount", "err", err)
 		return err
 	}
 
-	ws.db.SetSync(WalletFeeAmount, bytes)
+	ws.db.SetSync(WalletFeeAmount, FeeAmountbytes)
 	return nil
 }
 
 func (ws *WalletStore) GetFeeAmount() int64 {
 	var FeeAmount int64
-	bytes := ws.db.Get(WalletFeeAmount)
-	if bytes == nil {
-		return  1000000
+	FeeAmountbytes := ws.db.Get(WalletFeeAmount)
+	if FeeAmountbytes == nil {
+		return 1000000
 	}
-	err := json.Unmarshal(bytes, &FeeAmount)
+	err := json.Unmarshal(FeeAmountbytes, &FeeAmount)
 	if err != nil {
 		walletlog.Error("GetFeeAmount unmarshal", "err", err)
 		return 1000000
@@ -219,4 +225,75 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 		txDetails.TxDetails[index] = &txdetail
 	}
 	return &txDetails, nil
+}
+
+func (ws *WalletStore) SetEncryptionFlag() error {
+	var flag int64 = 1
+	bytes, err := json.Marshal(flag)
+	if err != nil {
+		walletlog.Error("SetEncryptionFlag marshal flag", "err", err)
+		return err
+	}
+
+	ws.db.SetSync(EncryptionFlag, bytes)
+	return nil
+}
+
+func (ws *WalletStore) GetEncryptionFlag() int64 {
+	var flag int64
+	bytes := ws.db.Get(EncryptionFlag)
+	if bytes == nil {
+		return 0
+	}
+	err := json.Unmarshal(bytes, &flag)
+	if err != nil {
+		walletlog.Error("GetEncryptionFlag unmarshal", "err", err)
+		return 0
+	}
+	return flag
+}
+
+func (ws *WalletStore) SetPasswordHash(password string) error {
+	var WalletPwHash types.WalletPwHash
+	//获取一个随机字符串
+	randstr := fmt.Sprintf("fuzamei:$@%d:%d", rand.Int63(), rand.Float64())
+	WalletPwHash.Randstr = randstr
+
+	//通过password和随机字符串生成一个hash值
+	pwhashstr := fmt.Sprintf("%s:%s", password, WalletPwHash.Randstr)
+	pwhash := sha256.Sum256([]byte(pwhashstr))
+	WalletPwHash.PwHash = pwhash[:]
+
+	pwhashbytes, err := json.Marshal(WalletPwHash)
+	if err != nil {
+		walletlog.Error("SetEncryptionFlag marshal flag", "err", err)
+		return err
+	}
+
+	ws.db.SetSync(PasswordHash, pwhashbytes)
+	return nil
+}
+func (ws *WalletStore) VerifyPasswordHash(password string) bool {
+	var WalletPwHash types.WalletPwHash
+	pwhashbytes := ws.db.Get(PasswordHash)
+	if pwhashbytes == nil {
+		return false
+	}
+	err := json.Unmarshal(pwhashbytes, &WalletPwHash)
+	if err != nil {
+		walletlog.Error("GetEncryptionFlag unmarshal", "err", err)
+		return false
+	}
+	pwhashstr := fmt.Sprintf("%s:%s", password, WalletPwHash.Randstr)
+	pwhash := sha256.Sum256([]byte(pwhashstr))
+	Pwhash := pwhash[:]
+	//通过新的密码计算pwhash最对比
+	if bytes.Equal(WalletPwHash.GetPwHash(), Pwhash) {
+		return true
+	}
+	return false
+
+}
+func (ws *WalletStore) DelAccountByLabel(label string) {
+	ws.db.DeleteSync(calcLabelKey(label))
 }

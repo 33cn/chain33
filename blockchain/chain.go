@@ -35,7 +35,7 @@ var synBlocklock sync.Mutex
 var peerMaxBlklock sync.Mutex
 
 const poolToDbMS = 500          //从blockpool写block到db的定时器
-const fetchPeerListSeconds = 60 //一分钟获取一次peerlist最新block高度
+const fetchPeerListSeconds = 30 //获取一次peerlist最新block高度
 
 type BlockChain struct {
 	qclient queue.IClient
@@ -62,6 +62,7 @@ type BlockChain struct {
 
 	recvdone  chan struct{}
 	poolclose chan struct{}
+	quit      chan struct{}
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -83,6 +84,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		peerMaxBlkHeight:   -1,
 		recvdone:           make(chan struct{}, 0),
 		poolclose:          make(chan struct{}, 0),
+		quit:               make(chan struct{}, 0),
 	}
 }
 
@@ -108,7 +110,8 @@ func (chain *BlockChain) Close() {
 	//wait recv done
 	chain.qclient.Close()
 	<-chain.recvdone
-
+	//退出线程
+	close(chain.quit)
 	//wait
 	chain.blockStore.db.Close()
 	chainlog.Info("blockchain module closed")
@@ -280,6 +283,9 @@ func (chain *BlockChain) poolRoutine() {
 FOR_LOOP:
 	for {
 		select {
+		case <-chain.quit:
+			//chainlog.Info("quit poolRoutine!")
+			return
 		case _ = <-blockSynTicker.C:
 			//chainlog.Info("blockSynTicker")
 			go chain.SynBlocksFromPeers()
@@ -537,6 +543,11 @@ func (chain *BlockChain) ProcAddBlockDetailMsg(broadcast bool, blockDetail *type
 		//广播此block到网络中
 		if broadcast {
 			chain.SendBlockBroadcast(blockDetail)
+			//记录收到的广播的block的最新高度
+			castblockheight := chain.GetRcvLastCastBlkHeight()
+			if castblockheight < blockDetail.Block.Height {
+				chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
+			}
 		}
 
 		return nil
@@ -687,10 +698,11 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 //首先缓存到pool中,由poolRoutine定时同步到db中,blocks太多此时写入db会耗时很长
 func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
 	var preheight int64
-	preheight = blocks.Items[0].Height
+	chainlog.Debug("ProcAddBlocksMsg", "blockcount", len(blocks.Items))
 	//我们只处理连续的block，不连续时直接忽略掉
 	for index, block := range blocks.Items {
 		if index == 0 {
+			preheight = block.GetHeight()
 			chain.blockPool.AddBlock(block)
 		} else if preheight+1 == block.GetHeight() {
 			preheight = block.GetHeight()
@@ -999,19 +1011,23 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 
 	GetsynBlkHeight := chain.GetsynBlkHeight()
 	curheight := chain.GetBlockHeight()
+	RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
+	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
+
 	chainlog.Info("SynBlocksFromPeers", "synBlkHeight", GetsynBlkHeight, "curheight", curheight)
+	chainlog.Info("SynBlocksFromPeers", "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", curheight)
 
 	//如果上个周期已经同步的block高度小于等于当前高度
 	//说明本节点在这个周期没有收到block需要主动发起同步
 	if curheight >= GetsynBlkHeight {
-		RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
+		//RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
 		//首先和广播的block高度做比较，小于广播的block高度就直接发送block同步的请求
 		if curheight < RcvLastCastBlkHeight {
 			chain.FetchBlock(curheight+1, RcvLastCastBlkHeight)
 		} else {
 			//大于等于广播的block高度时，需要获取peer的最新高度继续做校验
 			//获取peers的最新高度.处理没有收到广播block的情况
-			peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
+			//peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 			if curheight < peerMaxBlkHeight {
 				chain.FetchBlock(curheight+1, peerMaxBlkHeight)
 			}
