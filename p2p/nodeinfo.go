@@ -1,11 +1,14 @@
 package p2p
 
 import (
+	"sync"
+
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
 type NodeInfo struct {
+	mtx              sync.Mutex
 	pubKey           []byte      `json:"pub_key"`
 	network          string      `json:"network"`
 	externalAddr     *NetAddress `json:"remote_addr"`
@@ -20,25 +23,37 @@ type NodeInfo struct {
 	other            []string `json:"other"` // other application specific data
 }
 
-func (b *NodeInfo) Set(n *NodeInfo) {
-	b = n
+func (nf *NodeInfo) Set(n *NodeInfo) {
+	nf.mtx.Lock()
+	defer nf.mtx.Unlock()
+	nf = n
 }
 
-func (b *NodeInfo) Get() *NodeInfo {
-	return b
+func (nf *NodeInfo) Get() *NodeInfo {
+	nf.mtx.Lock()
+	defer nf.mtx.Unlock()
+	return nf
 }
-func (b *NodeInfo) SetExternalAddr(addr *NetAddress) {
-	b.externalAddr = addr
-}
-
-func (b *NodeInfo) GetExternalAddr() *NetAddress {
-	return b.externalAddr
-}
-
-func (b *NodeInfo) SetListenAddr(addr *NetAddress) {
-	b.listenAddr = addr
+func (nf *NodeInfo) SetExternalAddr(addr *NetAddress) {
+	nf.mtx.Lock()
+	defer nf.mtx.Unlock()
+	nf.externalAddr = addr
 }
 
-func (b *NodeInfo) GetListenAddr() *NetAddress {
-	return b.listenAddr
+func (nf *NodeInfo) GetExternalAddr() *NetAddress {
+	nf.mtx.Lock()
+	defer nf.mtx.Unlock()
+	return nf.externalAddr
+}
+
+func (nf *NodeInfo) SetListenAddr(addr *NetAddress) {
+	nf.mtx.Lock()
+	defer nf.mtx.Unlock()
+	nf.listenAddr = addr
+}
+
+func (nf *NodeInfo) GetListenAddr() *NetAddress {
+	nf.mtx.Lock()
+	defer nf.mtx.Unlock()
+	return nf.listenAddr
 }
