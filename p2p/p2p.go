@@ -49,6 +49,7 @@ func (network *P2p) subP2pMsg() {
 	network.c.Sub("p2p")
 	go func() {
 		intrans := NewInTrans(network)
+		go intrans.monitorPeerInfo()
 		for msg := range network.c.Recv() {
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
@@ -59,7 +60,8 @@ func (network *P2p) subP2pMsg() {
 			case types.EventBlockBroadcast: //广播block
 				go intrans.BlockBroadcast(msg)
 			case types.EventFetchBlocks:
-				go intrans.GetBlocks(msg)
+				tempIntrans := NewInTrans(network)
+				go tempIntrans.GetBlocks(msg)
 			case types.EventGetMempool:
 				go intrans.GetMemPool(msg)
 			case types.EventPeerInfo:
