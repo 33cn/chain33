@@ -92,7 +92,7 @@ func (l *DefaultListener) listenRoutine() {
 
 	pServer := NewP2pServer()
 	pServer.node = l.n
-	pServer.monitor()
+	go pServer.monitor()
 	pServer.innerBroadBlock()
 	server := grpc.NewServer()
 	pb.RegisterP2PgserviceServer(server, pServer)
