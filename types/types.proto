@@ -62,7 +62,7 @@ service p2pgservice{
 	rpc GetHeaders(P2PGetHeaders)returns(P2PHeaders){}
 	//获取 peerinfo
 	rpc GetPeerInfo(P2PGetPeerInfo)returns(P2PPeerInfo){}
-	rpc RouteChat(ReqNil) returns (stream P2PBlock) {}
+	rpc RouteChat(ReqNil) returns (stream BroadCastData) {}
 	
 	
 	
@@ -155,7 +155,12 @@ message P2PTx {
 message P2PBlock {
 	 Block block=1;
 }
-
+message BroadCastData{
+	oneof value{
+		P2PTx tx=1;
+		P2PBlock block=2;
+	}
+}
 message P2PGetHeaders{
 	int32 version=1;
 	int64 startHeight=2;
@@ -436,6 +441,7 @@ message InvData {
 	int32 ty = 3;
 }
 
+
 message InvDatas {
 	repeated InvData items = 1;
 }
@@ -573,7 +579,3 @@ message Blocks {
 	repeated Block items = 1;
 }
 
-message WalletPwHash {
-	bytes pwHash = 1;
-	string randstr = 2;
-}
