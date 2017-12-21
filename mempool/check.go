@@ -114,6 +114,7 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 		mlog.Error("loadaccounts", "err", err)
 
 		for m := range msgs {
+			msgs[m].Data = e08
 			mem.badChan <- msgs[m]
 		}
 
