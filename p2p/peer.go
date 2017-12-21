@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	pb "code.aliyun.com/chain33/chain33/types"
@@ -10,6 +11,7 @@ import (
 )
 
 type peer struct {
+	pmutx      sync.Mutex
 	nodeInfo   **NodeInfo
 	outbound   bool
 	conn       *grpc.ClientConn // source connection
@@ -19,14 +21,12 @@ type peer struct {
 	mconn      *MConnection
 	peerAddr   *NetAddress
 	streamDone chan struct{}
-	Data       map[string]interface{}
 }
 
 func (p *peer) Start() error {
 	p.mconn.key = p.key
-	err := p.mconn.Start()
 	go p.subStreamBlock()
-	return err
+	return p.mconn.Start()
 }
 func (p *peer) subStreamBlock() {
 BEGIN:
@@ -60,6 +60,7 @@ BEGIN:
 			log.Info("SubStreamBlock", "recv blockorTxXXXXXXXXXXXXXXXXXXXXXXXXX", data)
 
 			if block := data.GetBlock(); block != nil {
+				log.Debug("SubStreamBlock", "block", block.GetBlock())
 				if block.GetBlock() != nil {
 					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 					(*p.nodeInfo).qclient.Send(msg, true)
@@ -88,10 +89,15 @@ func (p *peer) StreamStop() {
 }
 
 func (p *peer) Stop() {
-	p.isrunning = false
-	go p.StreamStop()
-	go p.mconn.Stop()
+	p.SetRunning(false)
+	p.StreamStop()
+	p.mconn.Stop()
 
+}
+func (p *peer) SetRunning(run bool) {
+	p.pmutx.Lock()
+	defer p.pmutx.Unlock()
+	p.isrunning = run
 }
 
 // makePersistent marks the peer as persistent.
@@ -160,13 +166,13 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 	conn := rawConn
 	// Key and NodeInfo are set after Handshake
 	p := &peer{
-		outbound:   outbound,
-		conn:       conn,
-		Data:       make(map[string]interface{}),
+		outbound: outbound,
+		conn:     conn,
+
 		streamDone: make(chan struct{}, 1),
 		nodeInfo:   nodeinfo,
-		isrunning:  true,
 	}
+	p.SetRunning(true)
 	p.mconn = NewMConnection(conn, remote, p)
 
 	return p, nil

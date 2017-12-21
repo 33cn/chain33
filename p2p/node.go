@@ -17,6 +17,7 @@ import (
 
 type Node struct {
 	omtx         sync.Mutex
+	portmtx      sync.Mutex
 	addrBook     *AddrBook // known peers
 	nodeInfo     *NodeInfo
 	localAddr    string
@@ -50,40 +51,51 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	rand.Seed(time.Now().Unix())
 	node := &Node{
-
-		outBound:     make(map[string]*peer),
-		addrBook:     NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
 		localPort:    uint16(rand.Intn(64512) + 1023),
 		externalPort: uint16(rand.Intn(64512) + 1023),
+		outBound:     make(map[string]*peer),
+		addrBook:     NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
 	}
 	log.Debug("newNode", "localport", node.localPort)
 	log.Debug("newNode", "externalPort", node.externalPort)
 
 	if cfg.GetIsSeed() == true {
 		if cfg.GetSeedPort() != 0 {
-			node.localPort = uint16(cfg.GetSeedPort())
-			node.externalPort = uint16(cfg.GetSeedPort())
+			node.SetPort(uint(cfg.GetSeedPort()), uint(cfg.GetSeedPort()))
+
 		} else {
-			node.localPort = uint16(DefaultPort)
-			node.externalPort = uint16(DefaultPort)
+			node.SetPort(DefaultPort, DefaultPort)
 		}
 
 	}
+
+	exaddr := fmt.Sprintf("%v:%v", EXTERNALADDR, node.GetExterPort())
 	node.nodeInfo = new(NodeInfo)
-	exaddr := fmt.Sprintf("%v:%v", EXTERNALADDR, node.externalPort)
-	node.nodeInfo.externalAddr, _ = NewNetAddressString(exaddr)
-	node.nodeInfo.listenAddr, _ = NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, node.localPort))
+	if exaddr, err := NewNetAddressString(exaddr); err == nil {
+		node.nodeInfo.SetExternalAddr(exaddr)
+	}
+	if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, node.GetLocalPort())); err == nil {
+		node.nodeInfo.SetListenAddr(listaddr)
+	}
+
 	node.nodeInfo.monitorChan = make(chan *peer, 1024)
 	node.nodeInfo.versionChan = make(chan struct{})
 	node.nodeInfo.p2pBroadcastChan = make(chan interface{}, 1024)
 	node.nodeInfo.cfg = cfg
-	node.localAddr = fmt.Sprintf("%s:%v", LOCALADDR, node.localPort)
+	node.localAddr = fmt.Sprintf("%s:%v", LOCALADDR, node.GetLocalPort())
 
 	return node, nil
 }
 func (n *Node) flushNodeInfo() {
-	n.nodeInfo.externalAddr, _ = NewNetAddressString(fmt.Sprintf("%v:%v", EXTERNALADDR, n.externalPort))
-	n.nodeInfo.listenAddr, _ = NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, n.localPort))
+
+	if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", EXTERNALADDR, n.externalPort)); err == nil {
+		n.nodeInfo.SetExternalAddr(exaddr)
+	}
+
+	if listenAddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, n.localPort)); err == nil {
+		n.nodeInfo.SetListenAddr(listenAddr)
+	}
+
 }
 func (n *Node) makeService() {
 	//确认自己的服务范围1，2，4
@@ -188,6 +200,32 @@ func (n *Node) dialSeeds(addrs []string) error {
 
 	return nil
 }
+
+func (n *Node) SetPort(localport, exterport uint) {
+	n.portmtx.Lock()
+	defer n.portmtx.Unlock()
+	n.localPort = uint16(localport)
+	n.externalPort = uint16(exterport)
+}
+
+func (n *Node) GetPort() (uint16, uint16) {
+	n.portmtx.Lock()
+	defer n.portmtx.Unlock()
+	return n.localPort, n.externalPort
+}
+
+func (n *Node) GetLocalPort() uint16 {
+	n.portmtx.Lock()
+	defer n.portmtx.Unlock()
+	return n.localPort
+}
+
+func (n *Node) GetExterPort() uint16 {
+	n.portmtx.Lock()
+	defer n.portmtx.Unlock()
+	return n.externalPort
+}
+
 func (n *Node) AddPeer(pr *peer) {
 	if pr.outbound == true {
 		defer n.omtx.Unlock()
@@ -247,8 +285,8 @@ func (n *Node) Remove(peerAddr string) {
 	}
 
 	return
-
 }
+
 func (n *Node) checkActivePeers() {
 	for {
 		peers := n.GetPeers()
@@ -260,15 +298,14 @@ func (n *Node) checkActivePeers() {
 			}
 
 			log.Info("ISRUNNING", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.isrunning)
-			if peer.mconn.sendMonitor.isrunning == false && peer.IsPersistent() == false {
+			if peer.mconn.sendMonitor.IsRunning() == false && peer.IsPersistent() == false {
 				n.addrBook.RemoveAddr(peer.Addr())
 				n.addrBook.Save()
 				n.Remove(peer.Addr())
 			}
-			if _, ok := n.addrBook.addrPeer[peer.Addr()]; ok {
-				n.addrBook.addrPeer[peer.Addr()].Attempts = peer.mconn.sendMonitor.count
-				n.addrBook.addrPeer[peer.Addr()].LastAttempt = time.Unix(int64(peer.mconn.sendMonitor.lastop), 0)
-				n.addrBook.addrPeer[peer.Addr()].LastSuccess = time.Unix(int64(peer.mconn.sendMonitor.lastok), 0)
+
+			if peerStat := n.addrBook.getPeerStat(peer.Addr()); peerStat != nil {
+				peerStat.flushPeerStatus(peer.mconn.sendMonitor.MonitorInfo())
 
 			}
 
