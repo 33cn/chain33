@@ -418,7 +418,6 @@ func SendToAddress(from string, to string, amount string, note string) {
 	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.SendToAddress", params, &res)
 	if err != nil {
-		fmt.Println(err.Error())
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
