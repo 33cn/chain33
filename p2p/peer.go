@@ -35,7 +35,7 @@ BEGIN:
 	if err != nil {
 		log.Error("SubStreamBlock", "call RouteChat err", err.Error()+p.Addr())
 		time.Sleep(time.Second)
-		if p.isrunning == false {
+		if p.GetRunning() == false {
 			return
 		} else {
 			goto BEGIN
@@ -98,6 +98,11 @@ func (p *peer) SetRunning(run bool) {
 	p.pmutx.Lock()
 	defer p.pmutx.Unlock()
 	p.isrunning = run
+}
+func (p *peer) GetRunning() bool {
+	p.pmutx.Lock()
+	defer p.pmutx.Unlock()
+	return p.isrunning
 }
 
 // makePersistent marks the peer as persistent.
