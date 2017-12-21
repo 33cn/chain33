@@ -367,6 +367,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 		for m := range mem.badChan {
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
+			mlog.Warn("reply ok", "msg", m)
 		}
 	}()
 
@@ -374,7 +375,9 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	go func() {
 		for m := range mem.goodChan {
 			mem.SendTxToP2P(m.GetData().(*types.Transaction))
+			mlog.Warn("send to p2p ok", "msg", m)
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
+			mlog.Warn("reply ok", "msg", m)
 		}
 	}()
 
@@ -384,6 +387,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			if msg.Ty == types.EventTx {
 				// 消息类型EventTx：申请添加交易到Mempool
 				if msg.GetData() == nil { // 判断消息是否含有nil交易
+					mlog.Error("wrong tx", "err", e09)
 					msg.Data = e09
 					mem.badChan <- msg
 					continue
@@ -391,8 +395,10 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				valid := mem.CheckExpire(msg) // 检查交易是否过期
 				if valid {
 					// 未过期，交易消息传入txChan，待检查
+					mlog.Warn("check tx", "txChan", msg)
 					mem.txChan <- msg
 				} else {
+					mlog.Error("wrong tx", "err", e07)
 					msg.Data = e07
 					mem.badChan <- msg
 					continue
@@ -401,10 +407,12 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
+				mlog.Warn("reply ok", "msg", msg)
 			} else if msg.Ty == types.EventTxList {
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 					&types.ReplyTxList{mem.GetTxList(10000)}))
+				mlog.Warn("reply ok", "msg", msg)
 			} else if msg.Ty == types.EventAddBlock {
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
@@ -412,6 +420,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{int64(mem.Size())}))
+				mlog.Warn("reply ok", "msg", msg)
 			} else {
 				continue
 			}
