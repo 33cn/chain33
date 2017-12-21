@@ -42,6 +42,8 @@ func storeModProc(q *queue.Queue) *store.Store {
 var Statehash []byte
 var CutHeight int64 = 0
 var FromAddr string = ""
+var ToAddr1 string = ""
+var ToAddr2 string = ""
 
 func blockchainModProc(q *queue.Queue) {
 	//store
@@ -145,7 +147,13 @@ func TestProcCreatNewAccount(t *testing.T) {
 		Walletacc.Acc.Currency = int32(i)
 		Walletacc.Acc.Frozen = int64(i)
 		accs[i] = Walletacc.Acc
-		FromAddr = Walletacc.Acc.Addr
+		//FromAddr = Walletacc.Acc.Addr
+		if i == 0 {
+			ToAddr1 = Walletacc.Acc.Addr
+		}
+		if i == 1 {
+			ToAddr2 = Walletacc.Acc.Addr
+		}
 		walletlog.Info("ProcCreatNewAccount:", "Walletacc", Walletacc.String())
 	}
 
@@ -160,10 +168,10 @@ func TestProcCreatNewAccount(t *testing.T) {
 		walletlog.Error("ProcImportPrivKey", "PrivKeyFromBytes err", err)
 	}
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes())
-
+	FromAddr = addr.String()
 	var acc types.Account
 	acc.Addr = addr.String()
-	acc.Balance = int64(10)
+	acc.Balance = int64(1000000000)
 	acc.Currency = int32(10)
 	acc.Frozen = int64(10)
 
@@ -184,8 +192,11 @@ func TestProcCreatNewAccount(t *testing.T) {
 	for i := 0; i < total; i++ {
 		label := fmt.Sprintf("hybaccount:%d", i)
 		Account, err := wallet.walletStore.GetAccountByLabel(label)
-		if err == nil && Accounts != nil {
+		if err == nil && Account != nil {
 			walletlog.Info("TestProcCreatNewAccount:", "label", label, "label->Account", Account.String())
+			Decrypter := DecrypterPrivkey([]byte(wallet.Password), common.FromHex(Account.GetPrivkey()))
+			walletlog.Info("TestProcCreatNewAccount:", "privkey", common.ToHex(Decrypter))
+
 		}
 	}
 	//测试GetAccountByAddr函数
@@ -310,17 +321,25 @@ func TestProcSendToAddress(t *testing.T) {
 	wallet, q := initEnv()
 	//启动mempoolModProc
 	mempoolModProc(q)
+	stor := storeModProc(q)
+	blockchainModProc(q)
+
 	var SendToAddress types.ReqWalletSendToAddress
 	SendToAddress.Amount = 1000
 	SendToAddress.From = FromAddr
 	SendToAddress.Note = "test"
 	SendToAddress.To = "1L1zEgVcjqdM2KkQixENd7SZTaudKkcyDu"
+	walletlog.Info("TestProcSendToAddress", "FromAddr", FromAddr)
+
 	ReplyHash, err := wallet.ProcSendToAddress(&SendToAddress)
 	if err == nil {
 		walletlog.Info("TestProcSendToAddress", "ReplyHash", ReplyHash)
+	} else {
+		walletlog.Info("TestProcSendToAddress", "ProcSendToAddress err ", err)
 	}
 	walletlog.Info("TestProcSendToAddress end --------------------")
 	wallet.Close()
+	stor.Close()
 }
 
 //ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
@@ -328,7 +347,7 @@ func TestProcWalletSetFee(t *testing.T) {
 	walletlog.Info("TestProcWalletSetFee begin --------------------")
 	wallet, _ := initEnv()
 	var WalletSetFee types.ReqWalletSetFee
-	WalletSetFee.Amount = 90000000
+	WalletSetFee.Amount = 1000000
 	err := wallet.ProcWalletSetFee(&WalletSetFee)
 	if err == nil {
 		walletlog.Info("TestProcWalletSetFee success")
@@ -365,6 +384,42 @@ func TestProcWalletSetLabel(t *testing.T) {
 		}
 	}
 
+	//再次设置
+	SetLabel.Label = "hybaccount:001"
+	Acc, err = wallet.ProcWalletSetLabel(&SetLabel)
+	if err == nil && Acc != nil {
+		walletlog.Info("TestProcWalletSetLabel success", "account", Acc.String())
+
+	} else if err != nil {
+		walletlog.Info("TestProcWalletSetLabel", "err", err)
+	}
+
+	//测试ProcGetAccountList函数
+	Accounts, err = wallet.ProcGetAccountList()
+	if err == nil && Accounts != nil {
+		for _, Account := range Accounts.Wallets {
+			walletlog.Info("TestProcWalletSetLabel:", "Account", Account.String())
+		}
+	}
+
+	//再次设置成
+	SetLabel.Label = "hybaccount:000"
+	Acc, err = wallet.ProcWalletSetLabel(&SetLabel)
+	if err == nil && Acc != nil {
+		walletlog.Info("TestProcWalletSetLabel success", "account", Acc.String())
+
+	} else if err != nil {
+		walletlog.Info("TestProcWalletSetLabel", "err", err)
+	}
+
+	//测试ProcGetAccountList函数
+	Accounts, err = wallet.ProcGetAccountList()
+	if err == nil && Accounts != nil {
+		for _, Account := range Accounts.Wallets {
+			walletlog.Info("TestProcWalletSetLabel:", "Account", Account.String())
+		}
+	}
+
 	walletlog.Info("TestProcWalletSetLabel end --------------------")
 	wallet.Close()
 	stor.Close()
@@ -380,13 +435,15 @@ func TestProcMergeBalance(t *testing.T) {
 	blockchainModProc(q)
 
 	var MergeBalance types.ReqWalletMergeBalance
-	MergeBalance.To = "14ZTV2wHG3uPHnA5cBJmNxAxxvbzS7Z5mE"
+	MergeBalance.To = ToAddr2 //"14ZTV2wHG3uPHnA5cBJmNxAxxvbzS7Z5mE"
 
 	hashs, err := wallet.ProcMergeBalance(&MergeBalance)
 	if err == nil {
 		for _, hash := range hashs.Hashes {
 			walletlog.Info("TestProcMergeBalance", "hash", hash)
 		}
+	} else {
+		walletlog.Info("TestProcMergeBalance", "err", err)
 	}
 	walletlog.Info("TestProcMergeBalance end --------------------")
 	wallet.Close()
@@ -396,7 +453,12 @@ func TestProcMergeBalance(t *testing.T) {
 //ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) error {
 func TestProcWalletSetPasswd(t *testing.T) {
 	walletlog.Info("TestProcWalletSetPasswd begin --------------------")
-	wallet, _ := initEnv()
+	wallet, q := initEnv()
+
+	mempoolModProc(q)
+	stor := storeModProc(q)
+	blockchainModProc(q)
+
 	var Passwd types.ReqWalletSetPasswd
 	Passwd.Oldpass = ""
 	Passwd.Newpass = "Newpass"
@@ -405,7 +467,22 @@ func TestProcWalletSetPasswd(t *testing.T) {
 	if err == nil {
 		walletlog.Info("TestProcWalletSetPasswd ok ", "Newpass", wallet.Password)
 	}
+
+	walletlog.Info("TestProcWalletSetPasswd TestProcMergeBalance  --------------------")
+	//wallet.Close()
+	var MergeBalance types.ReqWalletMergeBalance
+	MergeBalance.To = ToAddr1 //"14ZTV2wHG3uPHnA5cBJmNxAxxvbzS7Z5mE"
+
+	hashs, err := wallet.ProcMergeBalance(&MergeBalance)
+	if err == nil {
+		for _, hash := range hashs.Hashes {
+			walletlog.Info("TestProcWalletSetPasswd TestProcMergeBalance", "hash", hash)
+		}
+	} else {
+		walletlog.Info("TestProcWalletSetPasswd TestProcMergeBalance", "err", err)
+	}
 	walletlog.Info("TestProcWalletSetPasswd end --------------------")
+	stor.Close()
 	wallet.Close()
 }
 
@@ -419,12 +496,12 @@ func TestProcWalletLock(t *testing.T) {
 		walletlog.Info("ProcWalletLock ok ")
 	}
 	_, err = wallet.ProcGetAccountList()
-	if err == nil {
+	if err != nil {
 		walletlog.Info("TestProcWalletLock", "err", err)
 	}
 	//解锁
 	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = wallet.Password
+	WalletUnLock.Passwd = "Newpass" //wallet.Password
 	WalletUnLock.Timeout = 1
 	err = wallet.ProcWalletUnLock(&WalletUnLock)
 	if err == nil {
