@@ -7,3 +7,5 @@ common/mavl/datastore
 mavltree
 cli/cli
 cli/run.sh
+datadir2/
+rpc/test/1.png

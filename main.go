@@ -9,6 +9,8 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	_ "net/http/pprof"
 	"runtime"
 
 	"code.aliyun.com/chain33/chain33/blockchain"
@@ -34,7 +36,9 @@ const Version = "v0.1.0"
 
 func main() {
 
-	flag.PrintDefaults()
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 	flag.Parse()
 
 	cfg := config.InitCfg(*configpath)
