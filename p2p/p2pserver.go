@@ -95,12 +95,14 @@ func (s *p2pServer) inBoundSize() int {
 func (s *p2pServer) monitor() {
 	go func() {
 		for {
+			s.imtx.Lock()
 			for addr, peerinfo := range s.InBound {
 				if (time.Now().Unix() - peerinfo.GetTimestamp()) > 120 {
-					s.deleteInBound(addr)
+					delete(s.InBound, addr)
 				}
-				log.Info("Monitor", "inBounds", s.inBoundSize())
+				log.Info("Monitor", "inBounds", len(s.InBound))
 			}
+			s.imtx.Unlock()
 			time.Sleep(time.Second * 10)
 		}
 	}()
