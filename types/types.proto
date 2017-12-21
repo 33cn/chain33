@@ -579,3 +579,8 @@ message Blocks {
 	repeated Block items = 1;
 }
 
+message WalletPwHash {
+	bytes pwHash = 1;
+	string randstr = 2;
+}
+
