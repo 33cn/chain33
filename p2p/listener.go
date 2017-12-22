@@ -5,11 +5,7 @@ import (
 	"math/rand"
 	"net"
 
-	"strings"
-	"time"
-
 	"code.aliyun.com/chain33/chain33/p2p/nat"
-	//"code.aliyun.com/chain33/chain33/queue"
 	pb "code.aliyun.com/chain33/chain33/types"
 
 	"google.golang.org/grpc"
@@ -98,41 +94,4 @@ func (l *DefaultListener) listenRoutine() {
 	pb.RegisterP2PgserviceServer(server, pServer)
 	server.Serve(l.listener)
 
-}
-
-func DetectionNodeAddr(cfg *pb.P2P) {
-
-	LOCALADDR = localBindAddr()
-	log.Debug("LOCALADDR", "addr:", LOCALADDR)
-	if cfg.GetIsSeed() {
-		EXTERNALADDR = LOCALADDR
-	}
-
-	if len(cfg.Seeds) == 0 {
-		return
-	}
-	//TODO 增加校验IP格式的方法,目前临时方法，不完善
-	if strings.Contains(cfg.Seeds[0], ":") == false {
-		return
-	}
-	serveraddr := strings.Split(cfg.Seeds[0], ":")[0]
-	var trytimes uint = 3
-	for {
-		selfexaddrs := getSelfExternalAddr(fmt.Sprintf("%v:%v", serveraddr, DefalutP2PRemotePort))
-		if len(selfexaddrs) != 0 {
-			log.Debug("getSelfExternalAddr", "Addr", selfexaddrs[0])
-			EXTERNALADDR = selfexaddrs[0]
-			log.Debug("DetectionNodeAddr", "LocalAddr", LOCALADDR, "ExternalAddr", EXTERNALADDR)
-			break
-		}
-		trytimes--
-		if trytimes == 0 {
-			break
-		}
-		time.Sleep(time.Second * 2)
-	}
-	//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
-	if len(EXTERNALADDR) == 0 {
-		EXTERNALADDR = LOCALADDR
-	}
 }
