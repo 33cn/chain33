@@ -281,22 +281,39 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 		return err
 	}
 	{
-		var txdetails TransactionDetails
-		for _, tx := range reply.Txs {
-			txdetails.Txs = append(txdetails.Txs,
-				&Transaction{
-					Execer:  common.ToHex(tx.Tx.GetExecer()),
-					Payload: common.ToHex(tx.Tx.GetPayload()),
-					Fee:     tx.Tx.Fee,
-					Expire:  tx.Tx.Expire,
-					Nonce:   tx.Tx.Nonce,
-					To:      tx.Tx.To,
-					Signature: &Signature{Ty: tx.Tx.GetSignature().GetTy(),
-						Pubkey:    common.ToHex(tx.Tx.GetSignature().GetPubkey()),
-						Signature: common.ToHex(tx.Tx.GetSignature().GetSignature())}})
+
+		var txdetails WalletTxDetails
+
+		for _, tx := range reply.TxDetails {
+			var recp ReceiptData
+			logs := tx.GetReceipt().GetLogs()
+
+			for _, lg := range logs {
+				recp.Ty = lg.GetTy()
+
+				recp.Logs = append(recp.Logs,
+					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+			}
+
+			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
+				Tx: &Transaction{
+					Execer:  common.ToHex(tx.GetTx().GetExecer()),
+					Payload: common.ToHex(tx.GetTx().GetPayload()),
+					Fee:     tx.GetTx().GetFee(),
+					Expire:  tx.GetTx().GetExpire(),
+					Nonce:   tx.GetTx().GetNonce(),
+					To:      tx.GetTx().GetTo(),
+					Signature: &Signature{
+						Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
+						Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature()),
+					},
+				},
+				Receipt: &recp,
+				Height:  tx.GetHeight(),
+				Index:   tx.GetIndex(),
+			})
 
 		}
-
 		*result = &txdetails
 	}
 
