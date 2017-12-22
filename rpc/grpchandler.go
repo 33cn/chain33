@@ -92,7 +92,7 @@ func (req *Grpc) NewAccount(ctx context.Context, in *pb.ReqNewAccount) (*pb.Wall
 	return reply, nil
 }
 
-func (req *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTransactionList) (*pb.TransactionDetails, error) {
+func (req *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTransactionList) (*pb.WalletTxDetails, error) {
 
 	reply, err := req.cli.WalletTxList(in)
 	if err != nil {

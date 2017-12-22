@@ -365,9 +365,10 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {
+			mlog.Warn("reply ok beg=================", "msg", m, "chain len", len(mem.badChan))
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
-			mlog.Warn("reply ok", "msg", m)
+			mlog.Warn("reply ok======================", "msg", m, "chain len", len(mem.badChan))
 		}
 	}()
 
@@ -383,7 +384,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 
 	go func() {
 		for msg := range mem.qclient.Recv() {
-			mlog.Info("mempool recv", "msg", msg)
+			mlog.Warn("mempool recv", "msg", msg)
 			if msg.Ty == types.EventTx {
 				// 消息类型EventTx：申请添加交易到Mempool
 				if msg.GetData() == nil { // 判断消息是否含有nil交易
