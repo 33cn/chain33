@@ -108,7 +108,7 @@ func (m *msg) flushPeerInfos(in []*pb.Peer) {
 	m.pmtx.Lock()
 	defer m.pmtx.Unlock()
 	for _, peer := range in {
-		log.Info("flushPeerInfos", "info", peer)
+		log.Debug("flushPeerInfos", "info", peer)
 		m.peerInfos[peer.GetName()] = peer
 	}
 
@@ -140,7 +140,7 @@ FOR_LOOP:
 					log.Error("monitorPeerInfo", "error", err.Error())
 					continue
 				}
-				log.Info("monitorPeerInfo", "info", peerinfo)
+				log.Debug("monitorPeerInfo", "info", peerinfo)
 				peer.mconn.sendMonitor.Update(true)
 				peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 
@@ -159,7 +159,7 @@ FOR_LOOP:
 //收到BlockChain 模块的请求，获取PeerInfo
 func (m *msg) GetPeerInfo(msg queue.Message) {
 
-	log.Warn("GetPeerInfo", "info", m.getPeerInfos())
+	log.Debug("GetPeerInfo", "info", m.getPeerInfos())
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.getPeerInfos()}))
 	return
 }
