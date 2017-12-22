@@ -89,10 +89,19 @@ func (s *p2pServer) GetStreams() []pb.P2Pgservice_RouteChatServer {
 	return streamarr
 }
 
-func (s *p2pServer) addInBound(in *P2pVersion) {
+func (s *p2pServer) addInBound(in *pb.P2PVersion) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
-	s.InBound[in.AddrFrom] = in
+	var v P2pVersion
+	v.AddrFrom = in.AddrFrom
+	v.AddrRecv = in.AddrRecv
+	v.Nonce = in.Nonce
+	v.Service = in.Service
+	v.Timestamp = in.Timestamp
+	v.UserAgent = in.UserAgent
+	v.Version = in.Version
+
+	s.InBound[in.AddrFrom] = &v
 }
 
 func (s *p2pServer) deleteInBound(addr string) {
@@ -277,7 +286,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		log.Error("VersionCheck", "Error", "Version not Support")
 		return nil, fmt.Errorf("Version No Support")
 	}
-	s.addInBound(interface{}(in).(*P2pVersion))
+	s.addInBound(in)
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
 	return &pb.P2PVersion{Version: Version, Service: SERVICE, Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
