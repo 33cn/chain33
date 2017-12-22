@@ -123,7 +123,7 @@ func (m *msg) getPeerInfos() []*pb.Peer {
 	return peers
 }
 func (m *msg) monitorPeerInfo() {
-	log.Debug("monitorPeerInfo", "XX(((99999999", "0000000")
+
 FOR_LOOP:
 	for {
 		ticker := time.NewTicker(time.Second * 1)
@@ -132,7 +132,7 @@ FOR_LOOP:
 		case <-ticker.C:
 			var peerlist []*pb.Peer
 			peers := m.network.node.GetPeers()
-			log.Debug("monitorPeerInfo", "peers", peers)
+			//log.Info("monitorPeerInfo", "peers", peers)
 			for _, peer := range peers {
 				peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
 				if err != nil {
@@ -145,7 +145,7 @@ FOR_LOOP:
 				peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 
 			}
-			log.Debug("monitorPeerInfo", "peerlist", peerlist)
+			//log.Debug("monitorPeerInfo", "peerlist", peerlist)
 			m.flushPeerInfos(peerlist)
 		case <-m.done:
 			log.Error("monitorPeerInfo", "done", "close")
