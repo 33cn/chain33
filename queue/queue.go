@@ -111,11 +111,15 @@ func (msg Message) Err() error {
 }
 
 func (msg Message) Reply(replyMsg Message) {
+	if msg.ChReply == nil {
+		qlog.Error("reply a empty chreply", "msg", msg)
+		return
+	}
 	msg.ChReply <- replyMsg
 	qlog.Info("reply msg ok", "msg", msg)
 }
 
 func (msg Message) String() string {
-	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v}", msg.Topic,
-		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err())
+	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v, Ch:%v}", msg.Topic,
+		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.ChReply)
 }
