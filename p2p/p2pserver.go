@@ -14,12 +14,41 @@ import (
 	pr "google.golang.org/grpc/peer"
 )
 
+type P2pVersion struct {
+	vmtx        sync.Mutex
+	Version     int32  `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	Service     int64  `protobuf:"varint,2,opt,name=service" json:"service,omitempty"`
+	Timestamp   int64  `protobuf:"varint,3,opt,name=timestamp" json:"timestamp,omitempty"`
+	AddrRecv    string `protobuf:"bytes,4,opt,name=addrRecv" json:"addrRecv,omitempty"`
+	AddrFrom    string `protobuf:"bytes,5,opt,name=addrFrom" json:"addrFrom,omitempty"`
+	Nonce       int64  `protobuf:"varint,6,opt,name=nonce" json:"nonce,omitempty"`
+	UserAgent   string `protobuf:"bytes,7,opt,name=userAgent" json:"userAgent,omitempty"`
+	StartHeight int64  `protobuf:"varint,8,opt,name=startHeight" json:"startHeight,omitempty"`
+}
+
+func (v *P2pVersion) GetTimestamp() int64 {
+	v.vmtx.Lock()
+	defer v.vmtx.Unlock()
+	return v.Timestamp
+}
+func (v *P2pVersion) SetTimestamp(t int64) {
+	v.vmtx.Lock()
+	defer v.vmtx.Unlock()
+	v.Timestamp = t
+}
+func (v *P2pVersion) GetAddrFrom() string {
+	v.vmtx.Lock()
+	defer v.vmtx.Unlock()
+	return v.AddrFrom
+}
+
 type p2pServer struct {
-	imtx    sync.Mutex
-	smtx    sync.Mutex
-	node    *Node
-	InBound map[string]*pb.P2PVersion
-	streams map[pb.P2Pgservice_RouteChatServer]chan interface{}
+	imtx        sync.Mutex
+	smtx        sync.Mutex
+	node        *Node
+	InBound     map[string]*P2pVersion
+	streams     map[pb.P2Pgservice_RouteChatServer]chan interface{}
+	deleteSChan chan pb.P2Pgservice_RouteChatServer
 }
 
 func (s *p2pServer) addStream(stream pb.P2Pgservice_RouteChatServer) chan interface{} {
@@ -60,7 +89,7 @@ func (s *p2pServer) GetStreams() []pb.P2Pgservice_RouteChatServer {
 	return streamarr
 }
 
-func (s *p2pServer) addInBound(in *pb.P2PVersion) {
+func (s *p2pServer) addInBound(in *P2pVersion) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
 	s.InBound[in.AddrFrom] = in
@@ -93,19 +122,32 @@ func (s *p2pServer) inBoundSize() int {
 	return len(s.InBound)
 }
 func (s *p2pServer) monitor() {
+	go func() {
+		for stream := range s.deleteSChan {
+			s.deleteStream(stream)
+		}
+	}()
 
 	for {
-		s.imtx.Lock()
-		for addr, peerinfo := range s.InBound {
-			if (time.Now().Unix() - peerinfo.GetTimestamp()) > 120 {
-				delete(s.InBound, addr)
-			}
-			log.Info("Monitor", "inBounds", len(s.InBound))
-		}
-		s.imtx.Unlock()
+		//		ticker := time.NewTicker(time.Second * 10)
+		//		select {
+		//		case <-ticker.C:
+		//			s.checkOnline()
+		//		}
+		s.checkOnline()
 		time.Sleep(time.Second * 10)
 	}
+}
+func (s *p2pServer) checkOnline() {
+	s.imtx.Lock()
+	defer s.imtx.Unlock()
+	for addr, peerinfo := range s.InBound {
+		if (time.Now().Unix() - peerinfo.GetTimestamp()) > 120 {
+			delete(s.InBound, addr)
+		}
 
+	}
+	log.Info("Monitor", "inBounds", len(s.InBound))
 }
 
 func (s *p2pServer) update(peer string) {
@@ -113,15 +155,16 @@ func (s *p2pServer) update(peer string) {
 	defer s.imtx.Unlock()
 
 	if peerinfo, ok := s.InBound[peer]; ok {
-		peerinfo.Timestamp = time.Now().Unix()
+		peerinfo.SetTimestamp(time.Now().Unix())
 	}
 
 }
 
 func NewP2pServer() *p2pServer {
 	return &p2pServer{
-		InBound: make(map[string]*pb.P2PVersion),
-		streams: make(map[pb.P2Pgservice_RouteChatServer]chan interface{}),
+		InBound:     make(map[string]*P2pVersion),
+		streams:     make(map[pb.P2Pgservice_RouteChatServer]chan interface{}),
+		deleteSChan: make(chan pb.P2Pgservice_RouteChatServer, 1024),
 	}
 
 }
@@ -167,7 +210,6 @@ func (s p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error
 			//TODO	待处理详细逻辑
 			log.Debug("PING CHECK SIGN SUCCESS")
 		}
-
 	}
 
 	s.update(fmt.Sprintf("%v:%v", in.Addr, in.Port))
@@ -183,7 +225,8 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 	peers := s.node.GetPeers()
 
 	for _, peer := range peers {
-		if peer.mconn.sendMonitor.count == 0 {
+
+		if peer.mconn.sendMonitor.GetCount() == 0 {
 			addrBucket[peer.Addr()] = true
 		}
 
@@ -235,7 +278,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		log.Error("VersionCheck", "Error", "Version not Support")
 		return nil, fmt.Errorf("Version No Support")
 	}
-	s.addInBound(in)
+	s.addInBound(interface{}(in).(*P2pVersion))
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
 	return &pb.P2PVersion{Version: Version, Service: SERVICE, Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
@@ -451,7 +494,7 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 		err := stream.Send(p2pdata)
 		if err != nil {
 			log.Error("RouteChat", "Err", err.Error())
-			s.deleteStream(stream)
+			s.deleteSChan <- stream
 			return err
 		}
 	}
