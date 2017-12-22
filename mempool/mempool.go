@@ -365,10 +365,9 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {
-			mlog.Warn("reply ok beg=================", "msg", m, "chain len", len(mem.badChan))
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
-			mlog.Warn("reply ok======================", "msg", m, "chain len", len(mem.badChan))
+			mlog.Warn("reply ok", "msg", m)
 		}
 	}()
 

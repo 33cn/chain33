@@ -139,7 +139,7 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 				mlog.Warn("check tx", "goodChan", msgs[i])
 				mem.goodChan <- msgs[i]
 			} else {
-				mlog.Error("wrong tx", "err", err, "msg", msgs[i])
+				mlog.Error("wrong tx", "err", err)
 				msgs[i].Data = err
 				mem.badChan <- msgs[i]
 			}
