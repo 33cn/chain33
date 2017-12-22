@@ -96,9 +96,9 @@ func (ka *knownAddress) markAttempt() {
 func (ka *knownAddress) flushPeerStatus(m *Monitor) {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
-	ka.Attempts = m.count
-	ka.LastAttempt = time.Unix(int64(m.lastop), 0)
-	ka.LastSuccess = time.Unix(int64(m.lastok), 0)
+	ka.Attempts = m.GetCount()
+	ka.LastAttempt = time.Unix(int64(m.GetLastOp()), 0)
+	ka.LastSuccess = time.Unix(int64(m.GetLastOk()), 0)
 }
 
 func (ka *knownAddress) GetAttempts() uint {
