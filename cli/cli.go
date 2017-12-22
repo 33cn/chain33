@@ -376,12 +376,13 @@ func MergeBalance(to string) {
 }
 
 func SetTxFee(amount string) {
-	amountInt64, err := strconv.ParseInt(amount, 10, 64)
+	amountFloat64, err := strconv.ParseFloat(amount, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := types.ReqWalletSetFee{Amount: amountInt64 * 1e8}
+	amountInt64 := int64(amountFloat64 * 1e8)
+	params := types.ReqWalletSetFee{Amount: amountInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -404,12 +405,13 @@ func SetTxFee(amount string) {
 }
 
 func SendToAddress(from string, to string, amount string, note string) {
-	amountInt64, err := strconv.ParseInt(amount, 10, 64)
+	amountFloat64, err := strconv.ParseFloat(amount, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64 * 1e8, Note: note}
+	amountInt64 := int64(amountFloat64 * 1e8)
+	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
