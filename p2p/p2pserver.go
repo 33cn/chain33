@@ -114,14 +114,12 @@ func (s *p2pServer) deleteInBound(addr string) {
 }
 
 func (s *p2pServer) getBounds() []string {
-	var inbounds = make([]string, 0)
-
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
+	var inbounds []string
 	for addr, _ := range s.InBound {
 		inbounds = append(inbounds, addr)
 	}
-
 	return inbounds
 
 }
@@ -130,23 +128,19 @@ func (s *p2pServer) inBoundSize() int {
 	defer s.imtx.Unlock()
 	return len(s.InBound)
 }
+
 func (s *p2pServer) monitor() {
 	go func() {
 		for stream := range s.deleteSChan {
 			s.deleteStream(stream)
 		}
 	}()
-
 	for {
-		//		ticker := time.NewTicker(time.Second * 10)
-		//		select {
-		//		case <-ticker.C:
-		//			s.checkOnline()
-		//		}
 		s.checkOnline()
 		time.Sleep(time.Second * 10)
 	}
 }
+
 func (s *p2pServer) checkOnline() {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
@@ -154,7 +148,6 @@ func (s *p2pServer) checkOnline() {
 		if (time.Now().Unix() - peerinfo.GetTimestamp()) > 120 {
 			delete(s.InBound, addr)
 		}
-
 	}
 	log.Info("Monitor", "inBounds", len(s.InBound))
 }
@@ -162,11 +155,9 @@ func (s *p2pServer) checkOnline() {
 func (s *p2pServer) update(peer string) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
-
 	if peerinfo, ok := s.InBound[peer]; ok {
 		peerinfo.SetTimestamp(time.Now().Unix())
 	}
-
 }
 
 func NewP2pServer() *p2pServer {
@@ -186,7 +177,7 @@ func (s *p2pServer) innerBroadBlock() {
 	}()
 }
 
-func (s p2pServer) checkSign(in *pb.P2PPing) bool {
+func (s *p2pServer) checkSign(in *pb.P2PPing) bool {
 	data := pb.Encode(in)
 	sign := in.GetSign()
 	if sign == nil {
@@ -207,7 +198,7 @@ func (s p2pServer) checkSign(in *pb.P2PPing) bool {
 	return pub.VerifyBytes(data, signbytes)
 }
 
-func (s p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
+func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 	log.Debug("p2pServer PING", "RECV PING", *in)
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
@@ -224,7 +215,6 @@ func (s p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error
 	s.update(fmt.Sprintf("%v:%v", in.Addr, in.Port))
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
 	return &pb.P2PPong{Nonce: in.GetNonce()}, nil
-
 }
 
 // 获取地址
