@@ -47,7 +47,7 @@ func TestSendTransaction(t *testing.T) {
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
 		common.ToHex(types.Encode(tx)))
 
-	resp, err := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
+	resp, err := http.Post("http://114.55.101.159:8801", "application/json", bytes.NewBufferString(poststr))
 	if err != nil {
 		panic(err)
 	}

@@ -108,7 +108,7 @@ func (m *msg) flushPeerInfos(in []*pb.Peer) {
 	m.pmtx.Lock()
 	defer m.pmtx.Unlock()
 	for _, peer := range in {
-		log.Debug("flushPeerInfos", "info", peer)
+		log.Info("flushPeerInfos", "info", peer)
 		m.peerInfos[peer.GetName()] = peer
 	}
 
@@ -140,7 +140,7 @@ FOR_LOOP:
 					log.Error("monitorPeerInfo", "error", err.Error())
 					continue
 				}
-				log.Debug("monitorPeerInfo", "info", peerinfo)
+				log.Info("monitorPeerInfo", "info", peerinfo)
 				peer.mconn.sendMonitor.Update(true)
 				peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 

@@ -21,7 +21,7 @@ type IRClient interface {
 	GetMempool() (*types.ReplyTxList, error)
 	GetAccounts() (*types.WalletAccounts, error)
 	NewAccount(parm *types.ReqNewAccount) (*types.WalletAccount, error)
-	WalletTxList(parm *types.ReqWalletTransactionList) (*types.TransactionDetails, error)
+	WalletTxList(parm *types.ReqWalletTransactionList) (*types.WalletTxDetails, error)
 	ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error)
 	SendToAddress(parm *types.ReqWalletSendToAddress) (*types.ReplyHash, error)
 	SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error)
@@ -168,7 +168,7 @@ func (client *channelClient) NewAccount(parm *types.ReqNewAccount) (*types.Walle
 	return resp.Data.(*types.WalletAccount), nil
 }
 
-func (client *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) (*types.TransactionDetails, error) {
+func (client *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletTransactionList, parm)
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
@@ -176,7 +176,7 @@ func (client *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) 
 		return nil, err
 	}
 
-	return resp.Data.(*types.TransactionDetails), nil
+	return resp.Data.(*types.WalletTxDetails), nil
 }
 
 func (client *channelClient) ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
