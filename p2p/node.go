@@ -413,7 +413,7 @@ func (n *Node) Start() {
 
 	//连接种子节点，或者导入远程节点文件信息
 	log.Debug("Load", "Load addrbook")
-	n.loadAddrBook()
+	go n.loadAddrBook()
 	go n.monitor()
 
 	return
