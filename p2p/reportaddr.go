@@ -83,7 +83,7 @@ func (p *p2pRemote) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 
 func getSelfExternalAddr(serveraddr string) []string {
 	var addrlist = make([]string, 0)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, serveraddr, grpc.WithInsecure())
 	if err != nil {
@@ -92,7 +92,7 @@ func getSelfExternalAddr(serveraddr string) []string {
 	}
 	defer conn.Close()
 	gconn := pb.NewP2PremoteaddrClient(conn)
-	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12})
+	resp, err := gconn.RemotePeerAddr(ctx, &pb.P2PGetAddr{Nonce: 12})
 	if err != nil {
 		return addrlist
 	}
