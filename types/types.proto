@@ -17,7 +17,7 @@ service grpcservice{
 	//钱包接口
 	rpc GetAccounts(ReqNil)returns(WalletAccounts){}
 	rpc NewAccount(ReqNewAccount)returns(WalletAccount){}
-	rpc WalletTransactionList(ReqWalletTransactionList)returns(TransactionDetails){}
+	rpc WalletTransactionList(ReqWalletTransactionList)returns(WalletTxDetails){}
 	rpc ImportPrivKey(ReqWalletImportPrivKey)returns(WalletAccount){}
 	rpc SendToAddress(ReqWalletSendToAddress)returns(ReplyHash){}
 	rpc SetTxFee(ReqWalletSetFee)returns(Reply){}
