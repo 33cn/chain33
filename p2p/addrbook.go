@@ -54,6 +54,19 @@ func NewAddrBook(filePath string) *AddrBook {
 	a.Start()
 	return a
 }
+
+func (a *AddrBook) setKey(key string) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.key = key
+}
+
+func (a *AddrBook) getKey() string {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.key
+}
+
 func (a *AddrBook) init() {
 	c, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
 	if err != nil {
@@ -66,10 +79,9 @@ func (a *AddrBook) init() {
 		log.Error("GenKey", "Error", err)
 		return
 	}
-
-	a.key = hex.EncodeToString((key.Bytes()))
-
+	a.setKey(hex.EncodeToString((key.Bytes())))
 }
+
 func newKnownAddress(addr *NetAddress) *knownAddress {
 	return &knownAddress{
 		Addr:        addr,
@@ -77,6 +89,7 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 		LastAttempt: time.Now(),
 	}
 }
+
 func (ka *knownAddress) markGood() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -86,6 +99,14 @@ func (ka *knownAddress) markGood() {
 	ka.LastSuccess = now
 }
 
+func (ka *knownAddress) Copy() *knownAddress {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
+	copytmp := *ka
+	copytmp.Addr = copytmp.Addr.Copy()
+	return &copytmp
+}
+
 func (ka *knownAddress) markAttempt() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -93,6 +114,7 @@ func (ka *knownAddress) markAttempt() {
 	ka.LastAttempt = now
 	ka.Attempts += 1
 }
+
 func (ka *knownAddress) flushPeerStatus(m *Monitor) {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -120,6 +142,7 @@ func (a *AddrBook) AddOurAddress(addr *NetAddress) {
 	log.Info("Add our address to book", "addr", addr)
 	a.ourAddrs[addr.String()] = addr
 }
+
 func (a *AddrBook) Size() int {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -139,7 +162,7 @@ func (a *AddrBook) saveToFile(filePath string) {
 	// Compile Addrs
 	addrs := []*knownAddress{}
 	for _, ka := range a.addrPeer {
-		addrs = append(addrs, ka)
+		addrs = append(addrs, ka.Copy())
 	}
 	if len(addrs) == 0 {
 		return
@@ -192,12 +215,12 @@ func (a *AddrBook) writeFile(filePath string, bytes []byte, mode os.FileMode) er
 // Returns false if file does not exist.
 // cmn.Panics if file is corrupt.
 func (a *AddrBook) loadFromFile() bool {
-
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	_, err := os.Stat(a.filePath)
 	if os.IsNotExist(err) {
 		return false
 	}
-
 	r, err := os.Open(a.filePath)
 	if err != nil {
 		log.Crit("Error opening file %s: %v", a.filePath, err)
@@ -245,6 +268,7 @@ out:
 func (a *AddrBook) Stop() {
 	a.Quit <- struct{}{}
 }
+
 func (a *AddrBook) addAddress(addr *NetAddress) {
 	if addr == nil {
 		return

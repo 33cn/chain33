@@ -158,6 +158,7 @@ func (n *Node) DialPeers(addrs []string) error {
 	}
 	return nil
 }
+
 func (n *Node) dialSeeds(addrs []string) error {
 	netAddrs, err := NewNetAddressStrings(addrs)
 	if err != nil {
