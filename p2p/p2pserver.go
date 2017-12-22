@@ -145,7 +145,6 @@ func (s *p2pServer) checkOnline() {
 		if (time.Now().Unix() - peerinfo.GetTimestamp()) > 120 {
 			delete(s.InBound, addr)
 		}
-
 	}
 	log.Info("Monitor", "inBounds", len(s.InBound))
 }
@@ -166,8 +165,8 @@ func NewP2pServer() *p2pServer {
 		streams:     make(map[pb.P2Pgservice_RouteChatServer]chan interface{}),
 		deleteSChan: make(chan pb.P2Pgservice_RouteChatServer, 1024),
 	}
-
 }
+
 func (s *p2pServer) innerBroadBlock() {
 	go func() {
 		for block := range s.node.nodeInfo.p2pBroadcastChan {
