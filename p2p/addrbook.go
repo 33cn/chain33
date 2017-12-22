@@ -81,7 +81,6 @@ func (a *AddrBook) init() {
 	}
 	a.setKey(hex.EncodeToString((key.Bytes())))
 }
-
 func newKnownAddress(addr *NetAddress) *knownAddress {
 	return &knownAddress{
 		Addr:        addr,
@@ -89,7 +88,6 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 		LastAttempt: time.Now(),
 	}
 }
-
 func (ka *knownAddress) markGood() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -114,7 +112,6 @@ func (ka *knownAddress) markAttempt() {
 	ka.LastAttempt = now
 	ka.Attempts += 1
 }
-
 func (ka *knownAddress) flushPeerStatus(m *Monitor) {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -142,7 +139,6 @@ func (a *AddrBook) AddOurAddress(addr *NetAddress) {
 	log.Info("Add our address to book", "addr", addr)
 	a.ourAddrs[addr.String()] = addr
 }
-
 func (a *AddrBook) Size() int {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -221,6 +217,7 @@ func (a *AddrBook) loadFromFile() bool {
 	if os.IsNotExist(err) {
 		return false
 	}
+
 	r, err := os.Open(a.filePath)
 	if err != nil {
 		log.Crit("Error opening file %s: %v", a.filePath, err)
@@ -268,7 +265,6 @@ out:
 func (a *AddrBook) Stop() {
 	a.Quit <- struct{}{}
 }
-
 func (a *AddrBook) addAddress(addr *NetAddress) {
 	if addr == nil {
 		return
