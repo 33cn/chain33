@@ -202,7 +202,7 @@ func (m *msg) GetBlocks(msg queue.Message) {
 	}
 	//log.Debug("GetBlocks", "invs ok", MaxInvs.GetInvs())
 	m.loadPeers()
-	//	log.Debug("GetBlocks", "Afer loadpeer", m.peers)
+
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
 	//log.Debug("GetBlocks", "intervals++", intervals)
 	m.msgStatus = make(chan bool, len(intervals))
@@ -266,8 +266,13 @@ func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 	for i := 0; i < peersize; i++ {
 		index = index % peersize
 		log.Debug("downloadBlock", "index", index)
-
-		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: invs.Invs[interval.start:interval.end]})
+		var p2pdata pb.P2PGetData
+		if interval.end >= len(invs.GetInvs()) {
+			p2pdata.Invs = invs.Invs[interval.start:]
+		} else {
+			p2pdata.Invs = invs.Invs[interval.start:interval.end]
+		}
+		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &p2pdata)
 		if err != nil {
 			log.Error("downloadBlock", "err", err.Error())
 			m.peers[index].mconn.sendMonitor.Update(false)
