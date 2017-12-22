@@ -108,7 +108,7 @@ func (m *msg) flushPeerInfos(in []*pb.Peer) {
 	m.pmtx.Lock()
 	defer m.pmtx.Unlock()
 	for _, peer := range in {
-		log.Info("flushPeerInfos", "info", peer)
+		log.Debug("flushPeerInfos", "info", peer)
 		m.peerInfos[peer.GetName()] = peer
 	}
 
@@ -123,7 +123,7 @@ func (m *msg) getPeerInfos() []*pb.Peer {
 	return peers
 }
 func (m *msg) monitorPeerInfo() {
-	log.Info("monitorPeerInfo", "XX(((99999999", "0000000")
+	log.Debug("monitorPeerInfo", "XX(((99999999", "0000000")
 FOR_LOOP:
 	for {
 		ticker := time.NewTicker(time.Second * 1)
@@ -132,7 +132,7 @@ FOR_LOOP:
 		case <-ticker.C:
 			var peerlist []*pb.Peer
 			peers := m.network.node.GetPeers()
-			log.Info("monitorPeerInfo", "peers", peers)
+			log.Debug("monitorPeerInfo", "peers", peers)
 			for _, peer := range peers {
 				peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
 				if err != nil {
@@ -140,7 +140,7 @@ FOR_LOOP:
 					log.Error("monitorPeerInfo", "error", err.Error())
 					continue
 				}
-				log.Info("monitorPeerInfo", "info", peerinfo)
+				log.Debug("monitorPeerInfo", "info", peerinfo)
 				peer.mconn.sendMonitor.Update(true)
 				peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 
