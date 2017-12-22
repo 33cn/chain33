@@ -66,6 +66,21 @@ func (m *Monitor) Start() {
 
 }
 
+func (m *Monitor) GetCount() uint {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	return m.count
+}
+func (m *Monitor) GetLastOp() time.Duration {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	return m.lastop
+}
+func (m *Monitor) GetLastOk() time.Duration {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	return m.lastok
+}
 func (m *Monitor) MonitorInfo() *Monitor {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()

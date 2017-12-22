@@ -362,18 +362,20 @@ func (n *Node) monitor() {
 		} else {
 			//close seed conn
 			for _, seed := range n.nodeInfo.cfg.Seeds {
-				if _, ok := n.outBound[seed]; ok {
+
+				if n.Has(seed) == true {
 					n.Remove(seed)
 				}
 			}
 		}
 
-		log.Debug("Node Monitor process", "outbound num", len(n.outBound))
+		log.Debug("Node Monitor process", "outbound num", n.Size())
 	}
 }
 
 func (n *Node) needMore() bool {
-	if len(n.outBound) > MaxOutBoundNum || len(n.outBound) >= StableBoundNum {
+	outBoundNum := n.Size()
+	if outBoundNum > MaxOutBoundNum || outBoundNum >= StableBoundNum {
 		return false
 	}
 	return true
