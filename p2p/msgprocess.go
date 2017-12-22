@@ -267,7 +267,7 @@ func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 		index = index % peersize
 		log.Debug("downloadBlock", "index", index)
 		var p2pdata pb.P2PGetData
-		if interval.end >= len(invs.GetInvs()) {
+		if interval.end >= len(invs.GetInvs()) || len(invs.GetInvs()) == 1 {
 			p2pdata.Invs = invs.Invs[interval.start:]
 		} else {
 			p2pdata.Invs = invs.Invs[interval.start:interval.end]
