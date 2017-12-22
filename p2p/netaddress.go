@@ -130,6 +130,11 @@ func (na *NetAddress) Dial() (*grpc.ClientConn, error) {
 
 }
 
+func (na *NetAddress) Copy() *NetAddress {
+	copytmp := *na
+	return &copytmp
+}
+
 // DialTimeout calls net.DialTimeout on the address.
 func (na *NetAddress) DialTimeout(timeout time.Duration) (*grpc.ClientConn, error) {
 

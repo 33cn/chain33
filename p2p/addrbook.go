@@ -54,6 +54,19 @@ func NewAddrBook(filePath string) *AddrBook {
 	a.Start()
 	return a
 }
+
+func (a *AddrBook) setKey(key string) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.key = key
+}
+
+func (a *AddrBook) getKey() string {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.key
+}
+
 func (a *AddrBook) init() {
 	c, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
 	if err != nil {
@@ -66,9 +79,7 @@ func (a *AddrBook) init() {
 		log.Error("GenKey", "Error", err)
 		return
 	}
-
-	a.key = hex.EncodeToString((key.Bytes()))
-
+	a.setKey(hex.EncodeToString((key.Bytes())))
 }
 func newKnownAddress(addr *NetAddress) *knownAddress {
 	return &knownAddress{
@@ -84,6 +95,14 @@ func (ka *knownAddress) markGood() {
 	ka.LastAttempt = now
 	ka.Attempts = 0
 	ka.LastSuccess = now
+}
+
+func (ka *knownAddress) Copy() *knownAddress {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
+	copytmp := *ka
+	copytmp.Addr = copytmp.Addr.Copy()
+	return &copytmp
 }
 
 func (ka *knownAddress) markAttempt() {
@@ -139,7 +158,7 @@ func (a *AddrBook) saveToFile(filePath string) {
 	// Compile Addrs
 	addrs := []*knownAddress{}
 	for _, ka := range a.addrPeer {
-		addrs = append(addrs, ka)
+		addrs = append(addrs, ka.Copy())
 	}
 	if len(addrs) == 0 {
 		return
@@ -192,7 +211,8 @@ func (a *AddrBook) writeFile(filePath string, bytes []byte, mode os.FileMode) er
 // Returns false if file does not exist.
 // cmn.Panics if file is corrupt.
 func (a *AddrBook) loadFromFile() bool {
-
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	_, err := os.Stat(a.filePath)
 	if os.IsNotExist(err) {
 		return false

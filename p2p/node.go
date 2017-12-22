@@ -47,7 +47,6 @@ func (n *Node) setQueue(q *queue.Queue) {
 }
 
 func newNode(cfg *types.P2P) (*Node, error) {
-	DetectionNodeAddr(cfg)
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	rand.Seed(time.Now().Unix())
 	node := &Node{
@@ -68,21 +67,11 @@ func newNode(cfg *types.P2P) (*Node, error) {
 		}
 
 	}
-
-	exaddr := fmt.Sprintf("%v:%v", EXTERNALADDR, node.GetExterPort())
 	node.nodeInfo = new(NodeInfo)
-	if exaddr, err := NewNetAddressString(exaddr); err == nil {
-		node.nodeInfo.SetExternalAddr(exaddr)
-	}
-	if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, node.GetLocalPort())); err == nil {
-		node.nodeInfo.SetListenAddr(listaddr)
-	}
-
 	node.nodeInfo.monitorChan = make(chan *peer, 1024)
 	node.nodeInfo.versionChan = make(chan struct{})
 	node.nodeInfo.p2pBroadcastChan = make(chan interface{}, 1024)
 	node.nodeInfo.cfg = cfg
-	node.localAddr = fmt.Sprintf("%s:%v", LOCALADDR, node.GetLocalPort())
 
 	return node, nil
 }
@@ -135,11 +124,11 @@ func (n *Node) DialPeers(addrs []string) error {
 	for i, netAddr := range netAddrs {
 		//will not add self addr
 		if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
-			log.Debug("DialPeers", "Check Equal", "Find Local Addr", netAddr.String())
+			//log.Debug("DialPeers", "Check Equal", "Find Local Addr", netAddr.String())
 			continue
 		}
 		//不对已经连接上的地址重新发起连接
-		if _, ok := n.outBound[netAddr.String()]; ok {
+		if n.Has(netAddr.String()) {
 			continue
 		}
 
@@ -165,7 +154,7 @@ func (n *Node) dialSeeds(addrs []string) error {
 		return err
 	}
 
-	if len(n.outBound) < MaxOutBoundNum {
+	if n.Size() < MaxOutBoundNum {
 		//没有存储其他任何远程机节点的地址信息
 		selfaddr, err := NewNetAddressString(n.localAddr)
 		if err != nil {
@@ -178,12 +167,13 @@ func (n *Node) dialSeeds(addrs []string) error {
 
 			//will not add self addr
 			if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
-				log.Debug("DialSeeds", "Check Equal", "Find Local Addr", netAddr.String())
-				time.Sleep(time.Second * 10)
+				//log.Debug("DialSeeds", "Check Equal", "Find Local Addr", netAddr.String())
+				//time.Sleep(time.Second * 10)
 				continue
 			}
 			//不对已经连接上的地址重新发起连接
-			if _, ok := n.outBound[netAddr.String()]; ok {
+
+			if n.Has(netAddr.String()) {
 				continue
 			}
 
@@ -316,7 +306,7 @@ func (n *Node) checkActivePeers() {
 func (n *Node) deletePingErr() {
 	for {
 		peer := <-n.nodeInfo.monitorChan
-		log.Warn("RemoveBadPeer", "REMOVE", peer.Addr())
+		log.Warn("deletePingErr", "REMOVE", peer.Addr())
 		n.addrBook.RemoveAddr(peer.Addr())
 		n.addrBook.Save()
 		n.Remove(peer.Addr())
@@ -399,6 +389,52 @@ func (n *Node) loadAddrBook() bool {
 	return false
 
 }
+func (n *Node) detectionNodeAddr() {
+	cfg := n.nodeInfo.cfg
+	LOCALADDR = localBindAddr()
+	log.Debug("LOCALADDR", "addr:", LOCALADDR)
+	if cfg.GetIsSeed() {
+		EXTERNALADDR = LOCALADDR
+	}
+
+	if len(cfg.Seeds) == 0 {
+		return
+	}
+	//TODO 增加校验IP格式的方法,目前临时方法，不完善
+	if strings.Contains(cfg.Seeds[0], ":") == false {
+		return
+	}
+	serveraddr := strings.Split(cfg.Seeds[0], ":")[0]
+	var trytimes uint = 3
+	for {
+		selfexaddrs := getSelfExternalAddr(fmt.Sprintf("%v:%v", serveraddr, DefalutP2PRemotePort))
+		if len(selfexaddrs) != 0 {
+			log.Debug("getSelfExternalAddr", "Addr", selfexaddrs[0])
+			EXTERNALADDR = selfexaddrs[0]
+			log.Debug("DetectionNodeAddr", "LocalAddr", LOCALADDR, "ExternalAddr", EXTERNALADDR)
+			break
+		}
+		trytimes--
+		if trytimes == 0 {
+			break
+		}
+
+	}
+	//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
+	if len(EXTERNALADDR) == 0 {
+		EXTERNALADDR = LOCALADDR
+	}
+	exaddr := fmt.Sprintf("%v:%v", EXTERNALADDR, n.GetExterPort())
+
+	if exaddr, err := NewNetAddressString(exaddr); err == nil {
+		n.nodeInfo.SetExternalAddr(exaddr)
+	}
+	if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LOCALADDR, n.GetLocalPort())); err == nil {
+		n.nodeInfo.SetListenAddr(listaddr)
+	}
+
+	n.localAddr = fmt.Sprintf("%s:%v", LOCALADDR, n.GetLocalPort())
+}
 
 // 启动Node节点
 //1.启动监听GRPC Server
@@ -406,6 +442,7 @@ func (n *Node) loadAddrBook() bool {
 //3.如果配置了种子节点，则连接种子节点
 //4.启动监控远程节点
 func (n *Node) Start() {
+	n.detectionNodeAddr()
 	n.makeService()
 	n.rListener = NewRemotePeerAddrServer()
 	n.l = NewDefaultListener(Protocol, n)
