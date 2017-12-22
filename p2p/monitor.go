@@ -53,10 +53,7 @@ func (m *Monitor) Start() {
 			tick := time.NewTicker(time.Second * 5)
 			select {
 			case <-tick.C:
-
 				m.ChangeRunning()
-				return
-
 			case <-m.done:
 				break
 			}
