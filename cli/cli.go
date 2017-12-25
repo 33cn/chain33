@@ -803,7 +803,7 @@ func GetBlocks(start string, end string, detail string) {
 		result.Items = append(result.Items, bd)
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
