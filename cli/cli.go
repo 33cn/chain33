@@ -177,58 +177,58 @@ func LoadHelp() {
 }
 
 type AccountsResult struct {
-	Wallets []WalletResult
+	Wallets []WalletResult `protobuf:"bytes,1,rep,name=wallets" json:"wallets"`
 }
 
 type WalletResult struct {
-	Acc   AccountResult
-	Label string
+	Acc   AccountResult `protobuf:"bytes,1,opt,name=acc" json:"acc,omitempty"`
+	Label string        `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
 }
 
 type AccountResult struct {
-	Currency int32
-	Balance  string
-	Frozen   string
-	Addr     string
+	Currency int32  `protobuf:"varint,1,opt,name=currency" json:"currency,omitempty"`
+	Balance  string `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
+	Frozen   string `protobuf:"varint,3,opt,name=frozen" json:"frozen,omitempty"`
+	Addr     string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
 }
 
 type TxListResult struct {
-	Txs []TxResult
+	Txs []TxResult `json:"txs"`
 }
 
 type TxResult struct {
-	Execer    string
-	Payload   string
-	Signature *jsonrpc.Signature
-	Fee       float64
-	Expire    int64
-	Nonce     int64
-	To        string
+	Execer    string             `json:"execer"`
+	Payload   string             `json:"payload"`
+	Signature *jsonrpc.Signature `json:"signature"`
+	Fee       float64            `json:"fee"`
+	Expire    int64              `json:"expire"`
+	Nonce     int64              `json:"nonce"`
+	To        string             `json:"to"`
 }
 
 type TxDetailResult struct {
-	Tx      TxResult
+	Tx      TxResult             `json:"tx"`
 	Receipt *jsonrpc.ReceiptData `json:"receipt"`
 	Proofs  []string             `json:"proofs"`
 }
 
 type BlockResult struct {
-	Version    int64
-	ParentHash string
-	TxHash     string
-	StateHash  string
-	Height     int64
-	BlockTime  int64
-	Txs        []TxResult
+	Version    int64      `json:"version"`
+	ParentHash string     `json:"parenthash"`
+	TxHash     string     `json:"txhash"`
+	StateHash  string     `json:"statehash"`
+	Height     int64      `json:"height"`
+	BlockTime  int64      `json:"blocktime"`
+	Txs        []TxResult `json:"txs"`
 }
 
 type BlockDetailResult struct {
-	Block    BlockResult
-	Receipts []*jsonrpc.ReceiptData
+	Block    BlockResult            `json:"block"`
+	Receipts []*jsonrpc.ReceiptData `json:"receipts"`
 }
 
 type BlockDetailsResult struct {
-	Items []BlockDetailResult
+	Items []BlockDetailResult `json:"items"`
 }
 
 func Lock() {
