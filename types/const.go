@@ -9,6 +9,7 @@ var ErrCheckStateHash = errors.New("ErrCheckStateHash")
 var ErrCheckTxHash = errors.New("ErrCheckTxHash")
 var ErrReRunGenesis = errors.New("ErrReRunGenesis")
 var ErrActionNotSupport = errors.New("ErrActionNotSupport")
+var ErrChannelFull = errors.New("ErrChannelFull")
 
 const Coin int64 = 1e8
 
