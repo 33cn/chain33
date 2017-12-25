@@ -1,6 +1,7 @@
 package solo
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -119,7 +120,11 @@ func (client *SoloClient) createBlock() {
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
-		client.writeBlock(lastBlock.StateHash, &newblock)
+		err := client.writeBlock(lastBlock.StateHash, &newblock)
+		if err != nil {
+			issleep = true
+			continue
+		}
 	}
 }
 
@@ -179,23 +184,29 @@ func (client *SoloClient) getInitHeight() int64 {
 }
 
 // 向blockchain写区块
-func (client *SoloClient) writeBlock(prevHash []byte, block *types.Block) {
+func (client *SoloClient) writeBlock(prevHash []byte, block *types.Block) error {
 	blockdetail, err := util.ExecBlock(client.q, prevHash, block, false)
 	if err != nil { //never happen
 		panic(err)
 	}
-	for {
-		msg := client.qclient.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
-		client.qclient.Send(msg, true)
-		resp, _ := client.qclient.Wait(msg)
-
-		if resp.GetData().(*types.Reply).IsOk {
-			setCurrentBlock(block)
-			break
-		} else {
-			log.Info("Send block to blockchian return fail, retry!")
-		}
+	if len(blockdetail.Block.Txs) == 0 {
+		return errors.New("ErrNoTxs")
 	}
+	msg := client.qclient.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return err
+	}
+	if resp.GetData().(*types.Reply).IsOk {
+		setCurrentBlock(block)
+	} else {
+		//TODO:
+		//把txs写回mempool
+		reply := resp.GetData().(*types.Reply)
+		return errors.New(string(reply.GetMsg()))
+	}
+	return nil
 }
 
 func setCurrentBlock(b *types.Block) {
