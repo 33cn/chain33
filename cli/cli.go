@@ -200,16 +200,19 @@ type TxResult struct {
 	Execer    string             `json:"execer"`
 	Payload   string             `json:"payload"`
 	Signature *jsonrpc.Signature `json:"signature"`
-	Fee       float64            `json:"fee"`
+	Fee       string             `json:"fee"`
 	Expire    int64              `json:"expire"`
 	Nonce     int64              `json:"nonce"`
 	To        string             `json:"to"`
 }
 
 type TxDetailResult struct {
-	Tx      TxResult             `json:"tx"`
-	Receipt *jsonrpc.ReceiptData `json:"receipt"`
-	Proofs  []string             `json:"proofs"`
+	Tx        TxResult             `json:"tx"`
+	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
+	Proofs    []string             `json:"proofs"`
+	Height    int64                `json:"height"`
+	Index     int64                `json:"index"`
+	Blocktime int64                `json:"blocktime"`
 }
 
 type BlockResult struct {
@@ -235,10 +238,13 @@ type WalletTxDetailsResult struct {
 	TxDetails []WalletTxDetailResult `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
 }
 type WalletTxDetailResult struct {
-	Tx      TxResult             `protobuf:"bytes,1,opt,name=tx" json:"tx"`
-	Receipt *jsonrpc.ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
-	Height  int64                `protobuf:"varint,3,opt,name=height" json:"height"`
-	Index   int64                `protobuf:"varint,4,opt,name=index" json:"index"`
+	Tx        TxResult             `protobuf:"bytes,1,opt,name=tx" json:"tx"`
+	Receipt   *jsonrpc.ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
+	Height    int64                `protobuf:"varint,3,opt,name=height" json:"height"`
+	Index     int64                `protobuf:"varint,4,opt,name=index" json:"index"`
+	Blocktime int64                `json:"blocktime"`
+	Amount    string               `json:"amount"`
+	Fromaddr  string               `json:"fromaddr"`
 }
 
 func Lock() {
@@ -560,7 +566,7 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 
 	var result WalletTxDetailsResult
 	for _, v := range res.TxDetails {
-		feeResult := float64(v.Tx.Fee) / float64(1e8)
+		feeResult := strconv.FormatFloat(float64(v.Tx.Fee)/float64(1e8), 'f', 4, 64)
 		t := TxResult{
 			Execer:    v.Tx.Execer,
 			Payload:   v.Tx.Payload,
@@ -570,11 +576,15 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 			To:        v.Tx.To,
 			Fee:       feeResult,
 		}
+		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		wtxd := WalletTxDetailResult{
-			Tx:      t,
-			Receipt: v.Receipt,
-			Height:  v.Height,
-			Index:   v.Index,
+			Tx:        t,
+			Receipt:   v.Receipt,
+			Height:    v.Height,
+			Index:     v.Index,
+			Blocktime: v.Blocktime,
+			Amount:    amountResult,
+			Fromaddr:  v.Fromaddr,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
 	}
@@ -603,7 +613,7 @@ func GetMemPool() {
 
 	var result TxListResult
 	for _, v := range res.Txs {
-		feeResult := float64(v.Fee) / float64(1e8)
+		feeResult := strconv.FormatFloat(float64(v.Fee)/float64(1e8), 'f', 4, 64)
 		t := TxResult{
 			Execer:    v.Execer,
 			Payload:   v.Payload,
@@ -662,7 +672,7 @@ func QueryTransaction(h string) {
 		return
 	}
 
-	feeResult := float64(res.Tx.Fee) / float64(1e8)
+	feeResult := strconv.FormatFloat(float64(res.Tx.Fee)/float64(1e8), 'f', 4, 64)
 	t := TxResult{
 		Execer:    res.Tx.Execer,
 		Payload:   res.Tx.Payload,
@@ -672,7 +682,14 @@ func QueryTransaction(h string) {
 		To:        res.Tx.To,
 		Fee:       feeResult,
 	}
-	result := TxDetailResult{Tx: t, Receipt: res.Receipt, Proofs: res.Proofs}
+	result := TxDetailResult{
+		Tx:        t,
+		Receipt:   res.Receipt,
+		Proofs:    res.Proofs,
+		Height:    res.Height,
+		Index:     res.Index,
+		Blocktime: res.Blocktime,
+	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
@@ -722,7 +739,7 @@ func GetTransactionByHashes(hashes []string) {
 
 	var result TxListResult
 	for _, v := range res.Txs {
-		feeResult := float64(v.Fee) / float64(1e8)
+		feeResult := strconv.FormatFloat(float64(v.Fee)/float64(1e8), 'f', 4, 64)
 		t := TxResult{
 			Execer:    v.Execer,
 			Payload:   v.Payload,
@@ -777,7 +794,7 @@ func GetBlocks(start string, end string, detail string) {
 	for _, vItem := range res.Items {
 		var bd BlockDetailResult
 		for _, vTx := range vItem.Block.Txs {
-			feeResult := float64(vTx.Fee) / float64(1e8)
+			feeResult := strconv.FormatFloat(float64(vTx.Fee)/float64(1e8), 'f', 4, 64)
 			t := TxResult{
 				Execer:    vTx.Execer,
 				Payload:   vTx.Payload,
