@@ -126,7 +126,7 @@ func (m *msg) monitorPeerInfo() {
 
 FOR_LOOP:
 	for {
-		ticker := time.NewTicker(time.Second * 1)
+		ticker := time.NewTicker(time.Second * 20)
 		select {
 
 		case <-ticker.C:
