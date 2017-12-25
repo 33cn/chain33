@@ -86,6 +86,7 @@ func (m *Monitor) MonitorInfo() *Monitor {
 func (m *Monitor) ChangeRunning() {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
+	log.Debug("Monitor", "count", m.count)
 	if m.lastop-m.lastok > 600 || m.count > 30 {
 		m.isrunning = false
 	}
