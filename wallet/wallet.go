@@ -557,7 +557,10 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: rand.Int63()}
+	//初始化随机数
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
 	tx.Sign(types.SECP256K1, priv)
 
 	//发送交易信息给mempool模块
@@ -871,8 +874,8 @@ func (wallet *Wallet) resetTimeout(Timeout int64) {
 
 //wallet模块收到blockchain广播的addblock消息，需要解析钱包相关的tx并存储到db中
 func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
+	//wallet.mtx.Lock()
+	//defer wallet.mtx.Unlock()
 
 	if block == nil {
 		walletlog.Error("ProcWalletAddBlock input para is nil!")
@@ -891,15 +894,31 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 			txdetail.Height = block.Block.Height
 			txdetail.Index = int64(index)
 			txdetail.Receipt = block.Receipts[index]
+			txdetail.Blocktime = block.Block.BlockTime
+
+			//获取Amount
+			var action types.CoinsAction
+			err := types.Decode(txdetail.Tx.GetPayload(), &action)
+			if err != nil {
+				walletlog.Error("ProcWalletAddBlock Decode err!", "Height", txdetail.Height, "txindex", index, "err", err)
+				continue
+			}
+			if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+				transfer := action.GetTransfer()
+				txdetail.Amount = transfer.Amount
+			}
+			//获取from地址
+			pubkey := block.Block.Txs[index].Signature.GetPubkey()
+			addr := account.PubKeyToAddress(pubkey)
+			txdetail.Fromaddr = addr.String()
+
 			txdetailbyte, err := proto.Marshal(&txdetail)
 			if err != nil {
 				storelog.Error("ProcWalletAddBlock Marshal txdetail err", "Height", block.Block.Height, "index", index)
-				return
+				continue
 			}
 
 			//from addr
-			pubkey := block.Block.Txs[index].Signature.GetPubkey()
-			addr := account.PubKeyToAddress(pubkey)
 			fromaddress := addr.String()
 			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
 				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
@@ -987,6 +1006,24 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 		txdetail.Height = height
 		txdetail.Index = int64(txindex)
 		txdetail.Receipt = txdetal.GetReceipt()
+		txdetail.Blocktime = txdetal.GetBlocktime()
+
+		//获取Amount
+		var action types.CoinsAction
+		err := types.Decode(txdetail.Tx.GetPayload(), &action)
+		if err != nil {
+			walletlog.Error("ReqTxDetailByAddr Decode err!", "Height", txdetail.Height, "txindex", txindex, "err", err)
+			continue
+		}
+		if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+			transfer := action.GetTransfer()
+			txdetail.Amount = transfer.Amount
+		}
+		//获取from地址
+		pubkey := txdetal.GetTx().Signature.GetPubkey()
+		addr := account.PubKeyToAddress(pubkey)
+		txdetail.Fromaddr = addr.String()
+
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
 			storelog.Error("ReqTxDetailByAddr Marshal txdetail err", "Height", height, "index", txindex)
