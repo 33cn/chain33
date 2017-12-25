@@ -176,20 +176,59 @@ func LoadHelp() {
 	fmt.Println("getpeerinfo []                         : 获取远程节点信息")
 }
 
-type AccountsResult struct {
-	Wallets []WalletResult
+type accountsResult struct {
+	wallets []walletResult
 }
 
-type WalletResult struct {
-	Acc   AccountResult
-	Label string
+type walletResult struct {
+	acc   accountResult
+	label string
 }
 
-type AccountResult struct {
-	Currency int32
-	Balance  string
-	Frozen   string
-	Addr     string
+type accountResult struct {
+	currency int32
+	balance  string
+	frozen   string
+	addr     string
+}
+
+type txListResult struct {
+	txs []txResult
+}
+
+type txResult struct {
+	execer    string
+	payload   string
+	signature *jsonrpc.Signature
+	fee       float64
+	expire    int64
+	nonce     int64
+	to        string
+}
+
+type txDetailResult struct {
+	tx      txResult
+	receipt *jsonrpc.ReceiptData `json:"receipt"`
+	proofs  []string             `json:"proofs"`
+}
+
+type blockResult struct {
+	version    int64
+	parentHash string
+	txHash     string
+	stateHash  string
+	height     int64
+	blockTime  int64
+	txs        []txResult
+}
+
+type blockDetailResult struct {
+	block    blockResult
+	receipts []*jsonrpc.ReceiptData
+}
+
+type blockDetailsResult struct {
+	items []blockDetailResult
 }
 
 func Lock() {
@@ -281,8 +320,13 @@ func SetLabl(addr string, label string) {
 
 	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
-	accResult := AccountResult{Addr: res.GetAcc().GetAddr(), Currency: res.GetAcc().GetCurrency(), Balance: balanceResult, Frozen: frozenResult}
-	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
+	accResult := accountResult{
+		addr:     res.GetAcc().GetAddr(),
+		currency: res.GetAcc().GetCurrency(),
+		balance:  balanceResult,
+		frozen:   frozenResult,
+	}
+	result := walletResult{acc: accResult, label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
@@ -309,8 +353,13 @@ func NewAccount(lb string) {
 
 	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
-	accResult := AccountResult{Addr: res.GetAcc().GetAddr(), Currency: res.GetAcc().GetCurrency(), Balance: balanceResult, Frozen: frozenResult}
-	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
+	accResult := accountResult{
+		addr:     res.GetAcc().GetAddr(),
+		currency: res.GetAcc().GetCurrency(),
+		balance:  balanceResult,
+		frozen:   frozenResult,
+	}
+	result := walletResult{acc: accResult, label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
@@ -334,13 +383,18 @@ func GetAccounts() {
 		return
 	}
 
-	var result AccountsResult
+	var result accountsResult
 
 	for _, r := range res.Wallets {
 		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance)/float64(1e8), 'f', 4, 64)
 		frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen)/float64(1e8), 'f', 4, 64)
-		accResult := AccountResult{Currency: r.Acc.Currency, Addr: r.Acc.Addr, Balance: balanceResult, Frozen: frozenResult}
-		result.Wallets = append(result.Wallets, WalletResult{Acc: accResult, Label: r.Label})
+		accResult := accountResult{
+			currency: r.Acc.Currency,
+			addr:     r.Acc.Addr,
+			balance:  balanceResult,
+			frozen:   frozenResult,
+		}
+		result.wallets = append(result.wallets, walletResult{acc: accResult, label: r.Label})
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -449,8 +503,13 @@ func ImportPrivKey(privkey string, label string) {
 
 	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
-	accResult := AccountResult{Addr: res.GetAcc().GetAddr(), Currency: res.GetAcc().GetCurrency(), Balance: balanceResult, Frozen: frozenResult}
-	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
+	accResult := accountResult{
+		addr:     res.GetAcc().GetAddr(),
+		currency: res.GetAcc().GetCurrency(),
+		balance:  balanceResult,
+		frozen:   frozenResult,
+	}
+	result := walletResult{acc: accResult, label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
@@ -461,6 +520,7 @@ func ImportPrivKey(privkey string, label string) {
 	fmt.Println(string(data))
 }
 
+// TODO
 func WalletTransactionList(fromTx string, count string, direction string) {
 	countInt32, err := strconv.ParseInt(count, 10, 32)
 	if err != nil {
@@ -472,7 +532,11 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := jsonrpc.ReqWalletTransactionList{FromTx: fromTx, Count: int32(countInt32), Direction: int32(directionInt32)}
+	params := jsonrpc.ReqWalletTransactionList{
+		FromTx:    fromTx,
+		Count:     int32(countInt32),
+		Direction: int32(directionInt32),
+	}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -485,7 +549,22 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	var result txListResult
+	for _, v := range res.Txs {
+		feeResult := float64(v.Fee) / float64(1e8)
+		t := txResult{
+			execer:    v.Execer,
+			payload:   v.Payload,
+			signature: v.Signature,
+			expire:    v.Expire,
+			nonce:     v.Nonce,
+			to:        v.To,
+			fee:       feeResult,
+		}
+		result.txs = append(result.txs, t)
+	}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -507,7 +586,22 @@ func GetMemPool() {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	var result txListResult
+	for _, v := range res.Txs {
+		feeResult := float64(v.Fee) / float64(1e8)
+		t := txResult{
+			execer:    v.Execer,
+			payload:   v.Payload,
+			signature: v.Signature,
+			expire:    v.Expire,
+			nonce:     v.Nonce,
+			to:        v.To,
+			fee:       feeResult,
+		}
+		result.txs = append(result.txs, t)
+	}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -553,7 +647,19 @@ func QueryTransaction(h string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	feeResult := float64(res.Tx.Fee) / float64(1e8)
+	t := txResult{
+		execer:    res.Tx.Execer,
+		payload:   res.Tx.Payload,
+		signature: res.Tx.Signature,
+		expire:    res.Tx.Expire,
+		nonce:     res.Tx.Nonce,
+		to:        res.Tx.To,
+		fee:       feeResult,
+	}
+	result := txDetailResult{tx: t, receipt: res.Receipt, proofs: res.Proofs}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -599,7 +705,22 @@ func GetTransactionByHashes(hashes []string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	var result txListResult
+	for _, v := range res.Txs {
+		feeResult := float64(v.Fee) / float64(1e8)
+		t := txResult{
+			execer:    v.Execer,
+			payload:   v.Payload,
+			signature: v.Signature,
+			expire:    v.Expire,
+			nonce:     v.Nonce,
+			to:        v.To,
+			fee:       feeResult,
+		}
+		result.txs = append(result.txs, t)
+	}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -635,6 +756,36 @@ func GetBlocks(start string, end string, detail string) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
+	}
+
+	var result blockDetailsResult
+	for _, vItem := range res.Items {
+		var bd blockDetailResult
+		for _, vTx := range vItem.Block.Txs {
+			feeResult := float64(vTx.Fee) / float64(1e8)
+			t := txResult{
+				execer:    vTx.Execer,
+				payload:   vTx.Payload,
+				signature: vTx.Signature,
+				expire:    vTx.Expire,
+				nonce:     vTx.Nonce,
+				to:        vTx.To,
+				fee:       feeResult,
+			}
+			b := blockResult{
+				version:    vItem.Block.Version,
+				parentHash: vItem.Block.ParentHash,
+				txHash:     vItem.Block.TxHash,
+				stateHash:  vItem.Block.StateHash,
+				height:     vItem.Block.Height,
+				blockTime:  vItem.Block.BlockTime,
+			}
+			b.txs = append(b.txs, t)
+
+			bd.block = b
+			bd.receipts = vItem.Receipts
+		}
+		result.items = append(result.items, bd)
 	}
 
 	data, err := json.MarshalIndent(res, "", "    ")
