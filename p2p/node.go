@@ -287,7 +287,7 @@ func (n *Node) checkActivePeers() {
 				continue
 			}
 
-			log.Info("ISRUNNING", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.isrunning)
+			log.Info("ISRUNNING", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.IsRunning())
 			if peer.mconn.sendMonitor.IsRunning() == false && peer.IsPersistent() == false {
 				n.addrBook.RemoveAddr(peer.Addr())
 				n.addrBook.Save()
