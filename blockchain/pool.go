@@ -7,8 +7,8 @@ import (
 )
 
 type BlockPool struct {
-	mtx sync.Mutex
-
+	mtx      sync.Mutex
+	synblock chan struct{}
 	// 存储需要缓存的block
 	recvBlocks map[int64]*types.Block
 }
@@ -18,6 +18,7 @@ var poollog = chainlog.New("submodule", "pool")
 func NewBlockPool() *BlockPool {
 	bp := &BlockPool{
 		recvBlocks: make(map[int64]*types.Block),
+		synblock:   make(chan struct{}, 0),
 	}
 	return bp
 }

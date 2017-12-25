@@ -68,6 +68,9 @@ func (bs *BlockStore) LoadBlock(height int64) *types.BlockDetail {
 func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDetail) error {
 
 	height := blockdetail.Block.Height
+	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
+		storelog.Error("SaveBlock Receipts is nil ", "height", blockdetail.Block.Height)
+	}
 	// Save block
 	blockbytes, err := proto.Marshal(blockdetail)
 	if err != nil {
@@ -129,7 +132,7 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDet
 		txresult.Index = int32(index)
 		txresult.Tx = blockdetail.Block.Txs[index]
 		txresult.Receiptdate = blockdetail.Receipts[index]
-
+		txresult.Blocktime = blockdetail.Block.BlockTime
 		txresultbyte, err := proto.Marshal(&txresult)
 		if err != nil {
 			storelog.Error("indexTxs Encode txresult err", "Height", blockdetail.Block.Height, "index", index)

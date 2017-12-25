@@ -201,7 +201,7 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	var txbytes [][]byte
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
-		txbytes = ws.db.IteratorScanFromLast([]byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		txbytes = ws.db.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
 			err := errors.New("does not exist tx!")
 			return nil, err
@@ -223,6 +223,8 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 			return nil, err
 		}
 		txDetails.TxDetails[index] = &txdetail
+		//print
+		walletlog.Debug("GetTxDetailByIter", "txdetail:", txdetail.String())
 	}
 	return &txDetails, nil
 }
