@@ -1,6 +1,7 @@
 package solo
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -49,6 +50,7 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
+		newblock.BlockTime = time.Now().Unix()
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
 		tx := createGenesisTx()
@@ -114,7 +116,15 @@ func (client *SoloClient) createBlock() {
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		client.writeBlock(lastBlock.StateHash, &newblock)
+		newblock.BlockTime = time.Now().Unix()
+		if lastBlock.BlockTime >= newblock.BlockTime {
+			newblock.BlockTime = lastBlock.BlockTime + 1
+		}
+		err := client.writeBlock(lastBlock.StateHash, &newblock)
+		if err != nil {
+			issleep = true
+			continue
+		}
 	}
 }
 
@@ -174,23 +184,29 @@ func (client *SoloClient) getInitHeight() int64 {
 }
 
 // 向blockchain写区块
-func (client *SoloClient) writeBlock(prevHash []byte, block *types.Block) {
+func (client *SoloClient) writeBlock(prevHash []byte, block *types.Block) error {
 	blockdetail, err := util.ExecBlock(client.q, prevHash, block, false)
 	if err != nil { //never happen
 		panic(err)
 	}
-	for {
-		msg := client.qclient.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
-		client.qclient.Send(msg, true)
-		resp, _ := client.qclient.Wait(msg)
-
-		if resp.GetData().(*types.Reply).IsOk {
-			setCurrentBlock(block)
-			break
-		} else {
-			log.Info("Send block to blockchian return fail, retry!")
-		}
+	if len(blockdetail.Block.Txs) == 0 {
+		return errors.New("ErrNoTxs")
 	}
+	msg := client.qclient.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return err
+	}
+	if resp.GetData().(*types.Reply).IsOk {
+		setCurrentBlock(block)
+	} else {
+		//TODO:
+		//把txs写回mempool
+		reply := resp.GetData().(*types.Reply)
+		return errors.New(string(reply.GetMsg()))
+	}
+	return nil
 }
 
 func setCurrentBlock(b *types.Block) {
