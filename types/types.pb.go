@@ -1148,9 +1148,12 @@ func (m *ReplyTxInfo) GetIndex() int64 {
 }
 
 type TransactionDetail struct {
-	Tx      *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
-	Receipt *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt,omitempty"`
-	Proofs  [][]byte     `protobuf:"bytes,3,rep,name=proofs,proto3" json:"proofs,omitempty"`
+	Tx        *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
+	Receipt   *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt,omitempty"`
+	Proofs    [][]byte     `protobuf:"bytes,3,rep,name=proofs,proto3" json:"proofs,omitempty"`
+	Height    int64        `protobuf:"varint,4,opt,name=height" json:"height,omitempty"`
+	Index     int64        `protobuf:"varint,5,opt,name=index" json:"index,omitempty"`
+	Blocktime int64        `protobuf:"varint,6,opt,name=blocktime" json:"blocktime,omitempty"`
 }
 
 func (m *TransactionDetail) Reset()                    { *m = TransactionDetail{} }
@@ -1177,6 +1180,27 @@ func (m *TransactionDetail) GetProofs() [][]byte {
 		return m.Proofs
 	}
 	return nil
+}
+
+func (m *TransactionDetail) GetHeight() int64 {
+	if m != nil {
+		return m.Height
+	}
+	return 0
+}
+
+func (m *TransactionDetail) GetIndex() int64 {
+	if m != nil {
+		return m.Index
+	}
+	return 0
+}
+
+func (m *TransactionDetail) GetBlocktime() int64 {
+	if m != nil {
+		return m.Blocktime
+	}
+	return 0
 }
 
 type TransactionDetails struct {
@@ -1338,6 +1362,7 @@ type TxResult struct {
 	Index       int32        `protobuf:"varint,2,opt,name=index" json:"index,omitempty"`
 	Tx          *Transaction `protobuf:"bytes,3,opt,name=tx" json:"tx,omitempty"`
 	Receiptdate *ReceiptData `protobuf:"bytes,4,opt,name=receiptdate" json:"receiptdate,omitempty"`
+	Blocktime   int64        `protobuf:"varint,5,opt,name=blocktime" json:"blocktime,omitempty"`
 }
 
 func (m *TxResult) Reset()                    { *m = TxResult{} }
@@ -1371,6 +1396,13 @@ func (m *TxResult) GetReceiptdate() *ReceiptData {
 		return m.Receiptdate
 	}
 	return nil
+}
+
+func (m *TxResult) GetBlocktime() int64 {
+	if m != nil {
+		return m.Blocktime
+	}
+	return 0
 }
 
 // resp
@@ -2849,10 +2881,13 @@ func (m *ReplyTxInfos) GetTxInfos() []*ReplyTxInfo {
 }
 
 type WalletTxDetail struct {
-	Tx      *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
-	Receipt *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt,omitempty"`
-	Height  int64        `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
-	Index   int64        `protobuf:"varint,4,opt,name=index" json:"index,omitempty"`
+	Tx        *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
+	Receipt   *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt,omitempty"`
+	Height    int64        `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
+	Index     int64        `protobuf:"varint,4,opt,name=index" json:"index,omitempty"`
+	Blocktime int64        `protobuf:"varint,5,opt,name=blocktime" json:"blocktime,omitempty"`
+	Amount    int64        `protobuf:"varint,6,opt,name=amount" json:"amount,omitempty"`
+	Fromaddr  string       `protobuf:"bytes,7,opt,name=fromaddr" json:"fromaddr,omitempty"`
 }
 
 func (m *WalletTxDetail) Reset()                    { *m = WalletTxDetail{} }
@@ -2886,6 +2921,27 @@ func (m *WalletTxDetail) GetIndex() int64 {
 		return m.Index
 	}
 	return 0
+}
+
+func (m *WalletTxDetail) GetBlocktime() int64 {
+	if m != nil {
+		return m.Blocktime
+	}
+	return 0
+}
+
+func (m *WalletTxDetail) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *WalletTxDetail) GetFromaddr() string {
+	if m != nil {
+		return m.Fromaddr
+	}
+	return ""
 }
 
 type WalletTxDetails struct {
