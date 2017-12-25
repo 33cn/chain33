@@ -191,6 +191,12 @@ message Block {
 	repeated Transaction txs = 7;
 }
 
+message BlockOverview {
+	Header head = 1;
+	int64  txCount = 2;
+	repeated bytes txHashes = 3;
+}
+
 message Transaction {
 	bytes      execer = 1;
 	bytes      payload =2;
@@ -221,6 +227,10 @@ message ReqHash {
 	bytes hash = 1;
 }
 
+message ReqInt {
+	int64 height = 1;
+}
+
 message ReqAddr {
 	string addr = 1;
 }
@@ -231,6 +241,12 @@ message ReqHashes {
 
 message ReplyHash {
 	bytes hash = 1;
+}
+
+message AddrOverview {
+	int64 reciver = 1;
+	int64 balance = 2;
+	int64 txCount = 3;
 }
 
 message ReplyTxInfo {
