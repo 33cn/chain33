@@ -40,7 +40,7 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 
 		var transDetail TransactionDetail
 		transDetail.Tx = &Transaction{
-			Execer:  common.ToHex(reply.Tx.Execer),
+			Execer:  string(reply.Tx.Execer),
 			Payload: common.ToHex(reply.Tx.Payload),
 			Fee:     reply.Tx.Fee,
 			Expire:  reply.Tx.Expire,
@@ -59,7 +59,9 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 		for _, proof := range reply.Proofs {
 			transDetail.Proofs = append(transDetail.Proofs, common.ToHex(proof))
 		}
-
+		transDetail.Height = reply.GetHeight()
+		transDetail.Index = reply.GetIndex()
+		transDetail.Blocktime = reply.GetBlocktime()
 		*result = &transDetail
 	}
 
@@ -308,9 +310,12 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 						Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature()),
 					},
 				},
-				Receipt: &recp,
-				Height:  tx.GetHeight(),
-				Index:   tx.GetIndex(),
+				Receipt:   &recp,
+				Height:    tx.GetHeight(),
+				Index:     tx.GetIndex(),
+				Blocktime: tx.GetBlocktime(),
+				Amount:    tx.GetAmount(),
+				Fromaddr:  tx.GetFromaddr(),
 			})
 
 		}
