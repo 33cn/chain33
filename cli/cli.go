@@ -231,6 +231,16 @@ type BlockDetailsResult struct {
 	Items []BlockDetailResult `json:"items"`
 }
 
+type WalletTxDetailsResult struct {
+	TxDetails []WalletTxDetailResult `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
+}
+type WalletTxDetailResult struct {
+	Tx      TxResult             `protobuf:"bytes,1,opt,name=tx" json:"tx"`
+	Receipt *jsonrpc.ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
+	Height  int64                `protobuf:"varint,3,opt,name=height" json:"height"`
+	Index   int64                `protobuf:"varint,4,opt,name=index" json:"index"`
+}
+
 func Lock() {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
@@ -541,26 +551,32 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res jsonrpc.TransactionDetails
+	var res jsonrpc.WalletTxDetails
 	err = rpc.Call("Chain33.WalletTxList", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	var result TxListResult
-	for _, v := range res.Txs {
-		feeResult := float64(v.Fee) / float64(1e8)
+	var result WalletTxDetailsResult
+	for _, v := range res.TxDetails {
+		feeResult := float64(v.Tx.Fee) / float64(1e8)
 		t := TxResult{
-			Execer:    v.Execer,
-			Payload:   v.Payload,
-			Signature: v.Signature,
-			Expire:    v.Expire,
-			Nonce:     v.Nonce,
-			To:        v.To,
+			Execer:    v.Tx.Execer,
+			Payload:   v.Tx.Payload,
+			Signature: v.Tx.Signature,
+			Expire:    v.Tx.Expire,
+			Nonce:     v.Tx.Nonce,
+			To:        v.Tx.To,
 			Fee:       feeResult,
 		}
-		result.Txs = append(result.Txs, t)
+		wtxd := WalletTxDetailResult{
+			Tx:      t,
+			Receipt: v.Receipt,
+			Height:  v.Height,
+			Index:   v.Index,
+		}
+		result.TxDetails = append(result.TxDetails, wtxd)
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
