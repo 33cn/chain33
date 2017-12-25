@@ -150,7 +150,7 @@ func (s *p2pServer) checkOnline() {
 		}
 
 	}
-	log.Info("Monitor", "inBounds", len(s.InBound))
+	log.Debug("Monitor", "inBounds", len(s.InBound))
 }
 
 func (s *p2pServer) update(peer string) {
@@ -174,7 +174,7 @@ func NewP2pServer() *p2pServer {
 func (s *p2pServer) innerBroadBlock() {
 	go func() {
 		for block := range s.node.nodeInfo.p2pBroadcastChan {
-			log.Warn("innerBroadBlock", "Block", block)
+			log.Debug("innerBroadBlock", "Block", block)
 			s.addStreamBlock(block)
 		}
 	}()
@@ -290,8 +290,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 //grpc 接收广播交易
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
-	//添加到stream 中
-	s.addStreamBlock(in)
+
 	//发送给消息队列Queue
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
@@ -469,7 +468,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 }
 
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
-	s.addStreamBlock(in)
+	//s.addStreamBlock(in)
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
 	client.Send(msg, true)
