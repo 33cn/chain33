@@ -26,7 +26,13 @@ func New(cfg *types.Consensus) Consumer {
 type nopMiner struct{}
 
 func (m *nopMiner) SetQueue(q *queue.Queue) {
-
+	client := q.GetClient()
+	client.Sub("consensus")
+	go func() {
+		for msg := range client.Recv() {
+			log.Info("consensus recv", "msg", msg)
+		}
+	}()
 }
 
 func (m *nopMiner) Close() {
