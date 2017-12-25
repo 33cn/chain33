@@ -243,6 +243,9 @@ message TransactionDetail {
 	Transaction tx = 1;
 	ReceiptData receipt = 2;
 	repeated bytes proofs = 3;
+	int64 height = 4;
+	int64 index = 5;
+	int64 blocktime =6;
 }
 
 message TransactionDetails {
@@ -287,6 +290,7 @@ message TxResult {
 	int32 index = 2;
 	Transaction tx = 3;
 	ReceiptData receiptdate =4;
+	int64 blocktime =5;
 }
 
 //resp
@@ -562,6 +566,9 @@ message WalletTxDetail {
 	ReceiptData receipt = 2;
 	int64       height  = 3;
 	int64       index   = 4;
+	int64       blocktime   = 5;
+	int64       amount   = 6;
+	string      fromaddr   = 7;
 }
 
 message WalletTxDetails {
