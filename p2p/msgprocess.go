@@ -159,7 +159,7 @@ FOR_LOOP:
 //收到BlockChain 模块的请求，获取PeerInfo
 func (m *msg) GetPeerInfo(msg queue.Message) {
 
-	log.Debug("GetPeerInfo", "info", m.getPeerInfos())
+	log.Warn("GetPeerInfo", "info", m.getPeerInfos())
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.getPeerInfos()}))
 	return
 }
@@ -179,7 +179,6 @@ func (m *msg) GetBlocks(msg queue.Message) {
 	req := msg.GetData().(*pb.ReqBlocks)
 	log.Debug("GetBlocks", "req", req)
 	var MaxInvs = new(pb.P2PInv)
-	//m.peers = make([]*peer, 0)
 	//获取最大的下载列表
 	peers := m.network.node.GetPeers()
 	log.Debug("GetBlocks", "peers", len(peers))
@@ -200,7 +199,10 @@ func (m *msg) GetBlocks(msg queue.Message) {
 			}
 		}
 	}
-	//log.Debug("GetBlocks", "invs ok", MaxInvs.GetInvs())
+	if len(MaxInvs.GetInvs()) == 0 {
+		log.Error("GetBlocks", "getInvs", 0)
+		return
+	}
 	m.loadPeers()
 
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
