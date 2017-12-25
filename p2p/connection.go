@@ -72,7 +72,7 @@ func NewMConnectionWithConfig(cfg *MConnConfig) *MConnection {
 	return mconn
 }
 
-func (c *MConnection) Signature(in *pb.P2PPing) (*pb.P2PPing, error) {
+func (c *MConnection) signature(in *pb.P2PPing) (*pb.P2PPing, error) {
 	data := pb.Encode(in)
 
 	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
@@ -109,7 +109,7 @@ FOR_LOOP:
 			randNonce := rand.Int31n(102040)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
-			in, err := c.Signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: EXTERNALADDR, Port: int32((*c.nodeInfo).externalAddr.Port)})
+			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: EXTERNALADDR, Port: int32((*c.nodeInfo).externalAddr.Port)})
 			if err != nil {
 				log.Error("Signature", "Error", err.Error())
 				continue
@@ -133,12 +133,12 @@ FOR_LOOP:
 			c.pingTimer.Reset()
 		case <-(*c.nodeInfo).versionChan:
 			randNonce := rand.Int31n(102040)
-			in, err := c.Signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: EXTERNALADDR, Port: int32((*c.nodeInfo).externalAddr.Port)})
+			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: EXTERNALADDR, Port: int32((*c.nodeInfo).externalAddr.Port)})
 			if err != nil {
 				log.Error("Signature", "Error", err.Error())
 				continue
 			}
-			c.ExChangeVersion(in)
+			c.sendVersion(in)
 		case <-c.quit:
 			break FOR_LOOP
 
@@ -147,42 +147,42 @@ FOR_LOOP:
 	}
 
 }
-func (c *MConnection) ExChangeVersion(in *pb.P2PPing) {
-	//var once sync.Once
-	//get blockheight
-	f := func() {
-		client := (*c.nodeInfo).q.GetClient()
-		msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
-		client.Send(msg, true)
-		rsp, err := client.Wait(msg)
-		if err != nil {
-			log.Error("GetHeight", "Error", err.Error())
-			return
-		}
 
-		blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
-		resp, err := c.conn.Version2(context.Background(), &pb.P2PVersion{Version: Version, Service: SERVICE, Timestamp: time.Now().Unix(),
-			AddrRecv: c.remoteAddress.String(), AddrFrom: fmt.Sprintf("%v:%v", EXTERNALADDR, (*c.nodeInfo).externalAddr.Port), Nonce: int64(rand.Int31n(102040)),
-			UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
-		if err != nil {
-			c.peer.persistent = false
-			c.Stop()
-			log.Error("SendVersion2", "Error", err.Error())
-
-			return
-		}
-		selfExternAddr := resp.AddrRecv
-		log.Info("Version SelfAddr", "Addr", selfExternAddr)
-		log.Debug("SHOW VERSION BACK", "VersionBack", resp)
+func (c *MConnection) sendVersion(in *pb.P2PPing) {
+	client := (*c.nodeInfo).q.GetClient()
+	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
+	client.Send(msg, true)
+	rsp, err := client.Wait(msg)
+	if err != nil {
+		log.Error("GetHeight", "Error", err.Error())
 		return
 	}
+
+	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
+	resp, err := c.conn.Version2(context.Background(), &pb.P2PVersion{Version: Version, Service: SERVICE, Timestamp: time.Now().Unix(),
+		AddrRecv: c.remoteAddress.String(), AddrFrom: fmt.Sprintf("%v:%v", EXTERNALADDR, (*c.nodeInfo).externalAddr.Port), Nonce: int64(rand.Int31n(102040)),
+		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
+	if err != nil {
+		c.peer.persistent = false
+		c.stop()
+		log.Error("SendVersion2", "Error", err.Error())
+
+		return
+	}
+	selfExternAddr := resp.AddrRecv
+	log.Info("Version SelfAddr", "Addr", selfExternAddr)
+	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
+	return
+}
+func (c *MConnection) exChangeVersion(in *pb.P2PPing) {
+
 	go func() {
-		f()
+
 		for {
-			ticker := time.NewTicker(time.Minute * 1)
+			ticker := time.NewTicker(time.Second * 60)
 			select {
 			case <-ticker.C:
-				f()
+				c.sendVersion(in)
 			}
 		}
 
@@ -190,7 +190,7 @@ func (c *MConnection) ExChangeVersion(in *pb.P2PPing) {
 
 }
 
-func (c *MConnection) GetAddr() ([]string, error) {
+func (c *MConnection) getAddr() ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	resp, err := c.conn.GetAddr(ctx, &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))})
@@ -207,16 +207,16 @@ func (c *MConnection) GetAddr() ([]string, error) {
 }
 
 // OnStart implements BaseService
-func (c *MConnection) Start() error { //启动Mconnection，每一个MConnection 会在启动的时候启动SendRoutine,RecvRoutine
+func (c *MConnection) start() error { //启动Mconnection，每一个MConnection 会在启动的时候启动SendRoutine,RecvRoutine
 
 	go c.pingRoutine() //创建发送Routine
 	return nil
 }
 
-func (c *MConnection) Close() {
+func (c *MConnection) close() {
 	c.gconn.Close()
 }
-func (c *MConnection) Stop() {
+func (c *MConnection) stop() {
 
 	c.pingTimer.Stop()
 	c.gconn.Close()

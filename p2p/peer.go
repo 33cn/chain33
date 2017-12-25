@@ -26,7 +26,7 @@ type peer struct {
 func (p *peer) Start() error {
 	p.mconn.key = p.key
 	go p.subStreamBlock()
-	return p.mconn.Start()
+	return p.mconn.start()
 }
 func (p *peer) subStreamBlock() {
 BEGIN:
@@ -84,17 +84,17 @@ BEGIN:
 
 }
 
-func (p *peer) StreamStop() {
+func (p *peer) streamStop() {
 	p.streamDone <- struct{}{}
 }
 
 func (p *peer) Stop() {
-	p.SetRunning(false)
-	p.StreamStop()
-	p.mconn.Stop()
+	p.setRunning(false)
+	p.streamStop()
+	p.mconn.stop()
 
 }
-func (p *peer) SetRunning(run bool) {
+func (p *peer) setRunning(run bool) {
 	p.pmutx.Lock()
 	defer p.pmutx.Unlock()
 	p.isrunning = run
@@ -177,7 +177,7 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 		streamDone: make(chan struct{}, 1),
 		nodeInfo:   nodeinfo,
 	}
-	p.SetRunning(true)
+	p.setRunning(true)
 	p.mconn = NewMConnection(conn, remote, p)
 
 	return p, nil

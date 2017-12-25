@@ -167,8 +167,7 @@ func (n *Node) dialSeeds(addrs []string) error {
 
 			//will not add self addr
 			if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
-				//log.Debug("DialSeeds", "Check Equal", "Find Local Addr", netAddr.String())
-				//time.Sleep(time.Second * 10)
+
 				continue
 			}
 			//不对已经连接上的地址重新发起连接
@@ -287,7 +286,7 @@ func (n *Node) checkActivePeers() {
 				continue
 			}
 
-			log.Info("ISRUNNING", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.IsRunning())
+			log.Info("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.IsRunning())
 			if peer.mconn.sendMonitor.IsRunning() == false && peer.IsPersistent() == false {
 				n.addrBook.RemoveAddr(peer.Addr())
 				n.addrBook.Save()
@@ -319,14 +318,13 @@ func (n *Node) monitor() {
 	for {
 		time.Sleep(time.Second * 5)
 		if n.needMore() {
-			var savelist = make([]string, 0)
+			var savelist []string
 			for _, seed := range n.nodeInfo.cfg.Seeds {
 				if n.Has(seed) == false {
 					savelist = append(savelist, seed)
 				}
 			}
-			log.Debug("OUTBOUND NUM", "NUM", len(n.outBound), "start getaddr from peer", n.addrBook.addrPeer)
-			log.Debug("OutBound", "peers", n.outBound)
+			log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
 			peeraddrs := n.addrBook.GetAddrs()
 			for _, peeraddr := range peeraddrs {
 				if n.Has(peeraddr) == false {
@@ -338,12 +336,12 @@ func (n *Node) monitor() {
 			n.DialPeers(savelist)
 			peers := n.GetPeers()
 			for _, peer := range peers { //向其他节点发起请求，获取地址列表
-				addrlist, err := peer.mconn.GetAddr()
+				addrlist, err := peer.mconn.getAddr()
 				if err != nil {
-					log.Error("GetAddr", "ERROR", err.Error())
+					log.Error("monitor", "ERROR", err.Error())
 					continue
 				}
-				log.Warn("ADDRLIST", "LIST", addrlist)
+				log.Debug("monitor", "ADDRLIST", addrlist)
 				n.DialPeers(addrlist) //对获取的地址列表发起连接
 				if !n.needMore() {
 					break
@@ -352,7 +350,7 @@ func (n *Node) monitor() {
 		} else {
 			//close seed conn
 			for _, seed := range n.nodeInfo.cfg.Seeds {
-
+				//如果达到稳定节点数量，则断开种子节点
 				if n.Has(seed) == true {
 					n.Remove(seed)
 				}
@@ -372,7 +370,7 @@ func (n *Node) needMore() bool {
 }
 
 func (n *Node) loadAddrBook() bool {
-	var peeraddrs = make([]string, 0)
+	var peeraddrs []string
 	if n.addrBook.Size() != 0 {
 		for peeraddr, _ := range n.addrBook.addrPeer {
 			peeraddrs = append(peeraddrs, peeraddr)
@@ -392,7 +390,7 @@ func (n *Node) loadAddrBook() bool {
 func (n *Node) detectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LOCALADDR = localBindAddr()
-	log.Debug("LOCALADDR", "addr:", LOCALADDR)
+	log.Debug("detectionNodeAddr", "addr:", LOCALADDR)
 	if cfg.GetIsSeed() {
 		EXTERNALADDR = LOCALADDR
 	}
@@ -411,7 +409,7 @@ func (n *Node) detectionNodeAddr() {
 		if len(selfexaddrs) != 0 {
 			log.Debug("getSelfExternalAddr", "Addr", selfexaddrs[0])
 			EXTERNALADDR = selfexaddrs[0]
-			log.Debug("DetectionNodeAddr", "LocalAddr", LOCALADDR, "ExternalAddr", EXTERNALADDR)
+			log.Debug("detectionNodeAddr", "LocalAddr", LOCALADDR, "ExternalAddr", EXTERNALADDR)
 			break
 		}
 		trytimes--
@@ -451,7 +449,6 @@ func (n *Node) Start() {
 	log.Debug("Load", "Load addrbook")
 	go n.loadAddrBook()
 	go n.monitor()
-
 	return
 }
 

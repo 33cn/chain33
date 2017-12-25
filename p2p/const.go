@@ -28,7 +28,7 @@ const (
 	Protocol             = "tcp"
 	MixOutBoundNum       = 5
 	MaxOutBoundNum       = 25
-	StableBoundNum       = 5
+	StableBoundNum       = 15
 	MaxAddrListNum       = 256
 	MaxRangeBlockNum     = 100
 )
