@@ -88,6 +88,7 @@ func (q *Queue) SendAsyn(msg Message) error {
 	chrecv := q.getChannel(msg.Topic)
 	select {
 	case chrecv <- msg:
+		return nil
 	default:
 		return types.ErrChannelFull
 	}
