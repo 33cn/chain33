@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
-	"sync"
+	//"sync"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -148,9 +148,9 @@ FOR_LOOP:
 
 }
 func (c *MConnection) ExChangeVersion(in *pb.P2PPing) {
-	var once sync.Once
+	//var once sync.Once
+	//get blockheight
 	f := func() {
-		//get blockheight
 		client := (*c.nodeInfo).q.GetClient()
 		msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 		client.Send(msg, true)
@@ -175,9 +175,19 @@ func (c *MConnection) ExChangeVersion(in *pb.P2PPing) {
 		log.Info("Version SelfAddr", "Addr", selfExternAddr)
 		log.Debug("SHOW VERSION BACK", "VersionBack", resp)
 		return
-
 	}
-	once.Do(f)
+	go func() {
+		f()
+		for {
+			ticker := time.NewTicker(time.Minute * 1)
+			select {
+			case <-ticker.C:
+				f()
+			}
+		}
+
+	}()
+
 }
 
 func (c *MConnection) GetAddr() ([]string, error) {

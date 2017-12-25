@@ -114,10 +114,9 @@ func (s *p2pServer) deleteInBound(addr string) {
 }
 
 func (s *p2pServer) getBounds() []string {
-	var inbounds = make([]string, 0)
-
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
+	var inbounds []string
 	for addr, _ := range s.InBound {
 		inbounds = append(inbounds, addr)
 	}
@@ -138,11 +137,6 @@ func (s *p2pServer) monitor() {
 	}()
 
 	for {
-		//		ticker := time.NewTicker(time.Second * 10)
-		//		select {
-		//		case <-ticker.C:
-		//			s.checkOnline()
-		//		}
 		s.checkOnline()
 		time.Sleep(time.Second * 10)
 	}
@@ -186,7 +180,7 @@ func (s *p2pServer) innerBroadBlock() {
 	}()
 }
 
-func (s p2pServer) checkSign(in *pb.P2PPing) bool {
+func (s *p2pServer) checkSign(in *pb.P2PPing) bool {
 	data := pb.Encode(in)
 	sign := in.GetSign()
 	if sign == nil {
@@ -207,7 +201,7 @@ func (s p2pServer) checkSign(in *pb.P2PPing) bool {
 	return pub.VerifyBytes(data, signbytes)
 }
 
-func (s p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
+func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 	log.Debug("p2pServer PING", "RECV PING", *in)
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
