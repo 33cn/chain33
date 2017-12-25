@@ -84,6 +84,15 @@ func (q *Queue) Send(msg Message) {
 	qlog.Info("send ok", "msg", msg)
 }
 
+func (q *Queue) SendAsyn(msg Message) error {
+	chrecv := q.getChannel(msg.Topic)
+	select {
+	case chrecv <- msg:
+	default:
+		return types.ErrChannelFull
+	}
+}
+
 func (q *Queue) GetClient() IClient {
 	return newClient(q)
 }
