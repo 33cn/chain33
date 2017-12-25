@@ -151,7 +151,7 @@ type addrBookJSON struct {
 }
 
 func (a *AddrBook) saveToFile(filePath string) {
-	log.Debug("Saving AddrBook to file", "size", a.Size())
+	log.Info("Saving AddrBook to file", "size", a.Size())
 
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -173,7 +173,7 @@ func (a *AddrBook) saveToFile(filePath string) {
 		log.Error("Failed to save AddrBook to file", "err", err)
 		return
 	}
-	log.Debug("saveToFile", string(jsonBytes), "")
+	log.Info("saveToFile", string(jsonBytes), "")
 
 	err = a.writeFile(filePath, jsonBytes, 0755)
 	if err != nil {

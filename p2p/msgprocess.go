@@ -107,6 +107,11 @@ func (m *msg) GetMemPool(msg queue.Message) {
 func (m *msg) flushPeerInfos(in []*pb.Peer) {
 	m.pmtx.Lock()
 	defer m.pmtx.Unlock()
+	//首先清空之前的数据
+	for k, _ := range m.peerInfos {
+		delete(m.peerInfos, k)
+	}
+	//重新插入新数据
 	for _, peer := range in {
 		log.Debug("flushPeerInfos", "info", peer)
 		m.peerInfos[peer.GetName()] = peer
@@ -261,6 +266,9 @@ func (m *msg) sortKeys() []int {
 func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
 	m.peermtx.Lock()
 	defer m.peermtx.Unlock()
+	if interval.end < interval.start {
+		return
+	}
 	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "invs", invs)
 	peersize := m.network.node.Size()
 	log.Debug("downloadBlock", "peersize", peersize)
