@@ -220,7 +220,7 @@ func (c *MConnection) close() {
 	c.gconn.Close()
 }
 func (c *MConnection) stop() {
-
+	c.sendMonitor.Stop()
 	c.pingTimer.Stop()
 	c.gconn.Close()
 	c.quit <- false
