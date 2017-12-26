@@ -138,8 +138,10 @@ FOR_LOOP:
 				log.Error("Signature", "Error", err.Error())
 				continue
 			}
-			c.sendVersion(in)
-			c.exChangeVersion(in)
+			if c.sendVersion(in) == nil {
+				c.exChangeVersion(in)
+			}
+
 		case <-c.quit:
 			break FOR_LOOP
 
@@ -149,14 +151,14 @@ FOR_LOOP:
 
 }
 
-func (c *MConnection) sendVersion(in *pb.P2PPing) {
+func (c *MConnection) sendVersion(in *pb.P2PPing) err {
 	client := (*c.nodeInfo).q.GetClient()
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	client.Send(msg, true)
 	rsp, err := client.Wait(msg)
 	if err != nil {
 		log.Error("GetHeight", "Error", err.Error())
-		return
+		return err
 	}
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
@@ -167,13 +169,12 @@ func (c *MConnection) sendVersion(in *pb.P2PPing) {
 		c.peer.persistent = false
 		c.stop()
 		log.Error("SendVersion2", "Error", err.Error())
-
-		return
+		return err
 	}
 	selfExternAddr := resp.AddrRecv
 	log.Info("Version SelfAddr", "Addr", selfExternAddr)
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
-	return
+	return nil
 }
 func (c *MConnection) exChangeVersion(in *pb.P2PPing) {
 

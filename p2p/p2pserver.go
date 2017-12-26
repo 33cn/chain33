@@ -275,7 +275,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 
 	log.Debug("RECV PEER VERSION", "VERSION", *in)
-	if Version < in.Version {
+	if Version > in.Version {
 		//Not support this Version
 		log.Error("VersionCheck", "Error", "Version not Support")
 		return nil, fmt.Errorf("Version No Support")
