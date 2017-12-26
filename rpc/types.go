@@ -93,7 +93,8 @@ type ReplyTxInfo struct {
 	Index  int64  `json:"index"`
 }
 type TransactionDetails struct {
-	Txs []*Transaction `json:"txs"`
+	//Txs []*Transaction `json:"txs"`
+	Txs []*TransactionDetail `protobuf:"bytes,1,rep,name=txs" json:"txs"`
 }
 
 type ReplyTxList struct {

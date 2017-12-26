@@ -224,11 +224,10 @@ func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 // 获取地址
 func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
 	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", s.node.Size())
-	addrBucket := make(map[string]bool, 0)
+	addrBucket := make(map[string]bool)
 	peers := s.node.GetPeers()
-
+	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
-
 		if peer.mconn.sendMonitor.GetCount() == 0 {
 			addrBucket[peer.Addr()] = true
 		}
@@ -242,7 +241,7 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 			break
 		}
 	}
-	var addrlist = make([]string, 0)
+	var addrlist []string
 	for addr, _ := range addrBucket {
 		addrlist = append(addrlist, addr)
 	}
