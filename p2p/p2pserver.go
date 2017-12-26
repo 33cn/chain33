@@ -255,7 +255,7 @@ func (s *p2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 	remoteNetwork, _ := NewNetAddressString(remoteaddr)
 
 	log.Debug("RECV PEER VERSION", "VERSION", *in)
-	s.node.addrBook.addAddress(remoteNetwork)
+	s.node.addrBook.AddAddress(remoteNetwork)
 	return &pb.P2PVerAck{Version: Version, Service: 6, Nonce: in.Nonce}, nil
 }
 func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
@@ -270,7 +270,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
 		remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 		if err == nil && in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM {
-			s.node.addrBook.addAddress(remoteNetwork)
+			s.node.addrBook.AddAddress(remoteNetwork)
 		}
 	}
 

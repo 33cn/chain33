@@ -62,6 +62,8 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 		transDetail.Height = reply.GetHeight()
 		transDetail.Index = reply.GetIndex()
 		transDetail.Blocktime = reply.GetBlocktime()
+		transDetail.Amount = reply.GetAmount()
+		transDetail.Fromaddr = reply.GetFromaddr()
 		*result = &transDetail
 	}
 
@@ -222,6 +224,8 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 					Blocktime: tx.GetBlocktime(),
 					Receipt:   &recp,
 					Proofs:    proofs,
+					Amount:    tx.GetAmount(),
+					Fromaddr:  tx.GetFromaddr(),
 				})
 
 		}
@@ -336,6 +340,7 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 				Blocktime: tx.GetBlocktime(),
 				Amount:    tx.GetAmount(),
 				Fromaddr:  tx.GetFromaddr(),
+				Txhash:    common.ToHex(tx.GetTxhash()),
 			})
 
 		}

@@ -342,9 +342,14 @@ func (n *Node) monitor() {
 				//对存储的地址列表进行重新捡漏
 				log.Debug("SaveList", "list", savelist)
 			}
+			log.Debug("monitor", "befor ddialpeers", savelist, "len peers", len(savelist))
+			if len(savelist) == 0 {
+				continue
+			}
 			n.DialPeers(savelist)
 			peers := n.GetPeers()
 			for _, peer := range peers { //向其他节点发起请求，获取地址列表
+				log.Debug("Getpeer", "addr", peer.Addr())
 				addrlist, err := peer.mconn.getAddr()
 				if err != nil {
 					log.Error("monitor", "ERROR", err.Error())

@@ -265,7 +265,13 @@ out:
 func (a *AddrBook) Stop() {
 	a.Quit <- struct{}{}
 }
-func (a *AddrBook) addAddress(addr *NetAddress) {
+
+// NOTE: addr must not be nil
+func (a *AddrBook) AddAddress(addr *NetAddress) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	log.Debug("Add address to book", "addr", addr)
+	//a.addAddress(addr)
 	if addr == nil {
 		return
 	}
@@ -274,6 +280,7 @@ func (a *AddrBook) addAddress(addr *NetAddress) {
 		log.Error("Cannot add non-routable address %v", addr)
 		return
 	}
+
 	if _, ok := a.ourAddrs[addr.String()]; ok {
 		// Ignore our own listener address.
 		return
@@ -286,14 +293,6 @@ func (a *AddrBook) addAddress(addr *NetAddress) {
 	ka := newKnownAddress(addr)
 	a.addrPeer[ka.Addr.String()] = ka
 	return
-}
-
-// NOTE: addr must not be nil
-func (a *AddrBook) AddAddress(addr *NetAddress) {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	log.Info("Add address to book", "addr", addr)
-	a.addAddress(addr)
 }
 
 func (a *AddrBook) RemoveAddr(peeraddr string) {

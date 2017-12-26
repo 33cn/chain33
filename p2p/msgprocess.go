@@ -43,8 +43,10 @@ func (m *msg) TransToBroadCast(msg queue.Message) {
 	m.network.node.nodeInfo.p2pBroadcastChan <- &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}
 	//开始广播消息
 	peers := m.network.node.GetPeers()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	for _, peer := range peers {
-		_, err := peer.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
+		_, err := peer.mconn.conn.BroadCastTx(ctx, &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
 			continue
@@ -62,9 +64,11 @@ func (m *msg) GetMemPool(msg queue.Message) {
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
 	peers := m.network.node.GetPeers()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 	for _, peer := range peers {
 		//获取远程 peer invs
-		resp, err := peer.mconn.conn.GetMemPool(context.Background(), &pb.P2PGetMempool{Version: Version})
+		resp, err := peer.mconn.conn.GetMemPool(ctx, &pb.P2PGetMempool{Version: Version})
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
 			continue
@@ -92,7 +96,7 @@ func (m *msg) GetMemPool(msg queue.Message) {
 			}
 		}
 		//获取真正的交易Tx call GetData
-		p2pInvDatas, err := peer.mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: ableInv, Version: Version})
+		p2pInvDatas, err := peer.mconn.conn.GetData(ctx, &pb.P2PGetData{Invs: ableInv, Version: Version})
 		if err != nil {
 			continue
 		}
@@ -132,14 +136,17 @@ func (m *msg) monitorPeerInfo() {
 FOR_LOOP:
 	for {
 		ticker := time.NewTicker(time.Second * 20)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
 		select {
 
 		case <-ticker.C:
 			var peerlist []*pb.Peer
 			peers := m.network.node.GetPeers()
 			//log.Info("monitorPeerInfo", "peers", peers)
+
 			for _, peer := range peers {
-				peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
+				peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: Version})
 				if err != nil {
 					peer.mconn.sendMonitor.Update(false)
 					log.Error("monitorPeerInfo", "error", err.Error())
