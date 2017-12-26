@@ -290,7 +290,6 @@ func (n *Node) checkActivePeers() {
 				if peer.mconn == nil {
 					n.addrBook.RemoveAddr(peer.Addr())
 					n.Remove(peer.Addr())
-
 					continue
 				}
 
