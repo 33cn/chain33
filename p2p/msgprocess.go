@@ -135,21 +135,23 @@ func (m *msg) monitorPeerInfo() {
 
 FOR_LOOP:
 	for {
+
 		ticker := time.NewTicker(time.Second * 20)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
+
 		select {
 
 		case <-ticker.C:
+			log.Debug("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 			var peerlist []*pb.Peer
 			peers := m.network.node.GetPeers()
-			//log.Info("monitorPeerInfo", "peers", peers)
+			log.Warn("monitorPeerInfo", "peers", peers)
 
 			for _, peer := range peers {
-				peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: Version})
+				peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
 				if err != nil {
 					peer.mconn.sendMonitor.Update(false)
 					log.Error("monitorPeerInfo", "error", err.Error())
+
 					continue
 				}
 				log.Debug("monitorPeerInfo", "info", peerinfo)
