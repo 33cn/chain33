@@ -151,7 +151,7 @@ FOR_LOOP:
 
 }
 
-func (c *MConnection) sendVersion(in *pb.P2PPing) err {
+func (c *MConnection) sendVersion(in *pb.P2PPing) error {
 	client := (*c.nodeInfo).q.GetClient()
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	client.Send(msg, true)
