@@ -874,9 +874,6 @@ func (wallet *Wallet) resetTimeout(Timeout int64) {
 
 //wallet模块收到blockchain广播的addblock消息，需要解析钱包相关的tx并存储到db中
 func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
-	//wallet.mtx.Lock()
-	//defer wallet.mtx.Unlock()
-
 	if block == nil {
 		walletlog.Error("ProcWalletAddBlock input para is nil!")
 		return
@@ -1007,22 +1004,22 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 		txdetail.Index = int64(txindex)
 		txdetail.Receipt = txdetal.GetReceipt()
 		txdetail.Blocktime = txdetal.GetBlocktime()
-
+		txdetail.Amount = txdetal.GetAmount()
+		txdetail.Fromaddr = txdetal.GetFromaddr()
 		//获取Amount
-		var action types.CoinsAction
-		err := types.Decode(txdetail.Tx.GetPayload(), &action)
-		if err != nil {
-			walletlog.Error("ReqTxDetailByAddr Decode err!", "Height", txdetail.Height, "txindex", txindex, "err", err)
-			continue
-		}
-		if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-			transfer := action.GetTransfer()
-			txdetail.Amount = transfer.Amount
-		}
+		//var action types.CoinsAction
+		//err := types.Decode(txdetail.Tx.GetPayload(), &action)
+		//if err != nil {
+		//	walletlog.Error("ReqTxDetailByAddr Decode err!", "Height", txdetail.Height, "txindex", txindex, "err", err)
+		//	continue
+		//}
+		//if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+		//	transfer := action.GetTransfer()
+		//	txdetail.Amount = transfer.Amount
+		//}
 		//获取from地址
-		pubkey := txdetal.GetTx().Signature.GetPubkey()
-		addr := account.PubKeyToAddress(pubkey)
-		txdetail.Fromaddr = addr.String()
+		//pubkey := txdetal.GetTx().Signature.GetPubkey()
+		//addr := account.PubKeyToAddress(pubkey)
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
@@ -1030,7 +1027,7 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 			return
 		}
 		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
-		//walletlog.Info("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
+		walletlog.Info("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
 }

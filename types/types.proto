@@ -262,6 +262,8 @@ message TransactionDetail {
 	int64 height = 4;
 	int64 index = 5;
 	int64 blocktime =6;
+	int64  amount   = 7;
+	string fromaddr   = 8;
 }
 
 message TransactionDetails {
@@ -585,6 +587,7 @@ message WalletTxDetail {
 	int64       blocktime   = 5;
 	int64       amount   = 6;
 	string      fromaddr   = 7;
+	bytes 	    txhash	  =8;
 }
 
 message WalletTxDetails {
