@@ -81,6 +81,8 @@ type TransactionDetail struct {
 	Height    int64        `json:"height"`
 	Index     int64        `json:"index"`
 	Blocktime int64        `json:"blocktime"`
+	Amount    int64        `json:"amount"`
+	Fromaddr  string       `json:"fromaddr"`
 }
 
 type ReplyTxInfos struct {
@@ -164,4 +166,5 @@ type WalletTxDetail struct {
 	Blocktime int64        `json:"blocktime"`
 	Amount    int64        `json:"amount"`
 	Fromaddr  string       `json:"fromaddr"`
+	Txhash    string       `json:"txhash"`
 }

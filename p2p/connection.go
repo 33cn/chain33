@@ -162,13 +162,19 @@ func (c *MConnection) sendVersion(in *pb.P2PPing) error {
 	}
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
-	resp, err := c.conn.Version2(context.Background(), &pb.P2PVersion{Version: Version, Service: SERVICE, Timestamp: time.Now().Unix(),
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	resp, err := c.conn.Version2(ctx, &pb.P2PVersion{Version: Version, Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: c.remoteAddress.String(), AddrFrom: fmt.Sprintf("%v:%v", EXTERNALADDR, (*c.nodeInfo).externalAddr.Port), Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	if err != nil {
-		c.peer.persistent = false
-		c.stop()
-		log.Error("SendVersion2", "Error", err.Error())
+
+		if c.peer.persistent == false {
+			log.Error("sendVersion", "close", "ok")
+			c.stop()
+			log.Error("SendVersion2", "Error", err.Error())
+		}
+
 		return err
 	}
 	selfExternAddr := resp.AddrRecv
@@ -220,6 +226,7 @@ func (c *MConnection) close() {
 	c.gconn.Close()
 }
 func (c *MConnection) stop() {
+	
 	c.sendMonitor.Stop()
 	c.pingTimer.Stop()
 	c.gconn.Close()
