@@ -37,7 +37,7 @@ func (m *Monitor) Update(op bool) {
 func NewMonitor() *Monitor {
 
 	var m = &Monitor{
-		done:      make(chan bool),
+		done:      make(chan bool, 1),
 		lastok:    time.Duration(time.Now().Unix()),
 		lastop:    time.Duration(time.Now().Unix()),
 		count:     0,
