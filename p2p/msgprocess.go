@@ -64,15 +64,17 @@ func (m *msg) GetMemPool(msg queue.Message) {
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
 	peers := m.network.node.GetPeers()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+
 	for _, peer := range peers {
 		//获取远程 peer invs
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		resp, err := peer.mconn.conn.GetMemPool(ctx, &pb.P2PGetMempool{Version: Version})
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
+			cancel()
 			continue
 		}
+		cancel()
 		peer.mconn.sendMonitor.Update(true)
 		invs := resp.GetInvs()
 		//与本地mempool 对比 tx数组
@@ -96,10 +98,13 @@ func (m *msg) GetMemPool(msg queue.Message) {
 			}
 		}
 		//获取真正的交易Tx call GetData
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*10)
 		p2pInvDatas, err := peer.mconn.conn.GetData(ctx, &pb.P2PGetData{Invs: ableInv, Version: Version})
 		if err != nil {
+			cancel()
 			continue
 		}
+		cancel()
 		for _, invdata := range p2pInvDatas.Items {
 			Txs = append(Txs, invdata.GetTx())
 		}
@@ -147,13 +152,15 @@ FOR_LOOP:
 			log.Warn("monitorPeerInfo", "peers", peers)
 
 			for _, peer := range peers {
-				peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: Version})
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+				peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: Version})
 				if err != nil {
+					cancel()
 					peer.mconn.sendMonitor.Update(false)
 					log.Error("monitorPeerInfo", "error", err.Error())
-
 					continue
 				}
+				cancel()
 				log.Debug("monitorPeerInfo", "info", peerinfo)
 				peer.mconn.sendMonitor.Update(true)
 				peerlist = append(peerlist, (*pb.Peer)(peerinfo))
@@ -198,6 +205,7 @@ func (m *msg) GetBlocks(msg queue.Message) {
 	log.Debug("GetBlocks", "peers", len(peers))
 	for _, peer := range peers {
 		//log.Debug("GetBlocks", "Peer", peer)
+
 		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd()})
 		if err != nil {
 			log.Error("GetBlocks", "Err", err.Error())
