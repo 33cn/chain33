@@ -139,6 +139,7 @@ FOR_LOOP:
 				continue
 			}
 			c.sendVersion(in)
+			c.exChangeVersion(in)
 		case <-c.quit:
 			break FOR_LOOP
 
@@ -176,17 +177,18 @@ func (c *MConnection) sendVersion(in *pb.P2PPing) {
 }
 func (c *MConnection) exChangeVersion(in *pb.P2PPing) {
 
-	go func() {
+	go func(in *pb.P2PPing) {
 
 		for {
-			ticker := time.NewTicker(time.Second * 60)
+			ticker := time.NewTicker(time.Second * 20)
 			select {
 			case <-ticker.C:
+				log.Debug("exChangeVersion", "sendVersion", "version")
 				c.sendVersion(in)
 			}
 		}
 
-	}()
+	}(in)
 
 }
 
