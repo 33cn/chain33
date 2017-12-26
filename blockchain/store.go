@@ -1,7 +1,6 @@
 package blockchain
 
 import (
-	//. "common"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -172,6 +171,16 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDet
 			if len(toaddr) != 0 {
 				tokey := fmt.Sprintf("%s:1:%s", toaddr, heightstr)
 				storeBatch.Set([]byte(tokey), txinfobyte)
+
+				//更新地址收到的amount
+				var action types.CoinsAction
+				err := types.Decode(blockdetail.Block.Txs[index].GetPayload(), &action)
+				if err == nil {
+					if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+						transfer := action.GetTransfer()
+						bs.UpdateAddrReciver(toaddr, transfer.Amount)
+					}
+				}
 			}
 		}
 		//storelog.Debug("indexTxs Set txresult", "Height", blockdetail.Block.Height, "index", index, "txhashbyte", txhash)
@@ -249,4 +258,53 @@ func LoadBlockStoreHeight(db dbm.DB) int64 {
 		storelog.Error("LoadBlockStoreHeight Could not unmarshal height bytes", "error", err)
 	}
 	return height
+}
+
+func calcAddrKey(addr string) []byte {
+	return []byte(fmt.Sprintf("Addr:%s", addr))
+}
+
+//获取地址收到的amount
+func (bs *BlockStore) GetAddrReciver(addr string) (int64, error) {
+	if len(addr) == 0 {
+		err := errors.New("input addr is null")
+		return 0, err
+	}
+	var Reciveramount int64
+	AddrReciver := bs.db.Get(calcAddrKey(addr))
+	if len(AddrReciver) == 0 {
+		err := errors.New("does not exist AddrReciver!")
+		return 0, err
+	}
+	err := json.Unmarshal(AddrReciver, &Reciveramount)
+	if err != nil {
+		storelog.Error("GetAddrReciver unmarshal", "error", err)
+		return 0, nil
+	}
+	return Reciveramount, nil
+}
+
+//更新地址收到的amount
+func (bs *BlockStore) UpdateAddrReciver(addr string, amount int64) error {
+	if len(addr) == 0 {
+		err := errors.New("input addr is null")
+		return err
+	}
+	var Reciveramount int64 = 0
+	AddrReciver := bs.db.Get(calcAddrKey(addr))
+	if len(AddrReciver) != 0 {
+		err := json.Unmarshal(AddrReciver, &Reciveramount)
+		if err != nil {
+			storelog.Error("UpdateAddrReciver unmarshal", "error", err)
+			return err
+		}
+	}
+	Reciveramount = Reciveramount + amount
+	bytes, err := json.Marshal(Reciveramount)
+	if err != nil {
+		storelog.Error("UpdateAddrReciver marshal", "error", err)
+		return err
+	}
+	bs.db.SetSync(calcAddrKey(addr), bytes)
+	return nil
 }

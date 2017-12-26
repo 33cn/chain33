@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/common/merkle"
@@ -266,6 +267,27 @@ func (chain *BlockChain) ProcRecvMsg() {
 			chainlog.Info("EventBroadcastAddBlock", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
+		case types.EventGetBlockOverview: //BlockOverview
+			ReqInt := (msg.Data).(*types.ReqInt)
+			BlockOverview, err := chain.ProcGetBlockOverview(ReqInt)
+			if err != nil {
+				chainlog.Error("ProcGetBlockOverview", "err", err.Error())
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, err))
+			} else {
+				chainlog.Info("ProcGetBlockOverview", "success", "ok")
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, BlockOverview))
+			}
+		case types.EventGetAddrOverview: //AddrOverview
+			addr := (msg.Data).(*types.ReqAddr)
+			AddrOverview, err := chain.ProcGetAddrOverview(addr)
+			if err != nil {
+				chainlog.Error("ProcGetAddrOverview", "err", err.Error())
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, err))
+			} else {
+				chainlog.Info("ProcGetAddrOverview", "success", "ok")
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, AddrOverview))
+			}
+
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -298,7 +320,6 @@ FOR_LOOP:
 			newbatch := chain.blockStore.NewBatch(true)
 			var stratblockheight int64 = 0
 			var endblockheight int64 = 0
-			var i int64
 			var prevHash []byte
 			// 可以批量处理BatchBlockNum个block到db中
 			currentheight := chain.blockStore.Height()
@@ -313,7 +334,6 @@ FOR_LOOP:
 			}
 			prevheight := currentheight
 			for {
-
 				block := chain.blockPool.GetBlock(prevheight + 1)
 
 				//需要加载的第一个nextblock不存在，退出for循环进入下一个超时
@@ -326,13 +346,13 @@ FOR_LOOP:
 					//chainlog.Info("trySyncTicker block is nil")
 					break
 				}
-				//用于记录同步开始的第一个block高度，用于同步完成之后删除缓存中的block记录
-				if i == 1 {
-					stratblockheight = block.Height
-				}
+
 				blockdetail, err := util.ExecBlock(chain.q, prevHash, block, true)
 				if err != nil {
 					chainlog.Info("trySyncTicker ExecBlock is err!", "height", block.Height, "err", err)
+					//block校验不过需要从blockpool中删除，重新发起请求
+					chain.blockPool.DelBlock(block.GetHeight())
+					go chain.FetchBlock(block.GetHeight(), block.GetHeight())
 					break
 				}
 
@@ -355,7 +375,10 @@ FOR_LOOP:
 
 				prevHash = block.StateHash
 
-				//记录同步结束时最后一个block的高度，用于同步完成之后删除缓存中的block记录
+				//记录同步开始的第一个block高度和最后一个block的高度，用于同步完成之后删除缓存中的block记录
+				if prevheight == currentheight {
+					stratblockheight = block.Height
+				}
 				endblockheight = blockdetail.Block.Height
 				prevheight = blockdetail.Block.Height
 			}
@@ -1053,4 +1076,91 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		chainlog.Error("SynBlocksFromPeers", "synBlkHeight", GetsynBlkHeight, "curheight", curheight)
 	}
 	return
+}
+
+//type  BlockOverview {
+//	Header head = 1;
+//	int64  txCount = 2;
+//	repeated bytes txHashes = 3;}
+//获取BlockOverview
+func (chain *BlockChain) ProcGetBlockOverview(ReqInt *types.ReqInt) (*types.BlockOverview, error) {
+
+	if ReqInt == nil {
+		err := errors.New("ProcGetBlockOverview input err!")
+		return nil, err
+	}
+
+	var blockOverview types.BlockOverview
+	//通过height获取block
+	block, err := chain.GetBlock(ReqInt.GetHeight())
+	if err != nil || block == nil {
+		chainlog.Error("ProcGetBlockOverview", "GetBlock err ", err)
+		return nil, err
+	}
+
+	//获取header的信息从block中
+	var header types.Header
+	header.Version = block.Block.Version
+	header.ParentHash = block.Block.ParentHash
+	header.TxHash = block.Block.TxHash
+	header.StateHash = block.Block.StateHash
+	header.BlockTime = block.Block.BlockTime
+	header.Height = block.Block.Height
+	blockOverview.Head = &header
+
+	blockOverview.TxCount = int64(len(block.Block.GetTxs()))
+
+	txhashs := make([][]byte, blockOverview.TxCount)
+	for index, tx := range block.Block.Txs {
+		txhashs[index] = tx.Hash()
+	}
+	blockOverview.TxHashes = txhashs
+	chainlog.Error("ProcGetBlockOverview", "blockOverview:", blockOverview.String())
+	return &blockOverview, nil
+}
+
+//type  AddrOverview {
+//	int64 reciver = 1;
+//	int64 balance = 2;
+//	int64 txCount = 3;}
+//获取addrOverview
+func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOverview, error) {
+
+	if addr == nil || len(addr.Addr) == 0 {
+		err := errors.New("ProcGetAddrOverview input err!")
+		return nil, err
+	}
+	var addrOverview types.AddrOverview
+
+	//获取地址的reciver
+	amount, err := chain.blockStore.GetAddrReciver(addr.Addr)
+	if err != nil {
+		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
+		return nil, err
+	}
+	addrOverview.Reciver = amount
+
+	//获取地址的balance从account模块
+	addrs := make([]string, 1)
+	addrs[0] = addr.Addr
+	accounts, err := account.LoadAccounts(chain.q, addrs)
+	if err != nil {
+		chainlog.Error("ProcGetAddrOverview", "LoadAccounts err", err)
+		return nil, err
+	}
+	if len(accounts) != 0 {
+		addrOverview.Balance = accounts[0].Balance
+	}
+
+	//获取地址对应的交易count
+	txinfos, err := chain.blockStore.GetTxsByAddr([]byte(addr.Addr))
+	if err != nil {
+		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
+		return nil, err
+	}
+	addrOverview.TxCount = int64(len(txinfos.GetTxInfos()))
+
+	chainlog.Info("ProcGetAddrOverview", "addrOverview", addrOverview.String())
+
+	return &addrOverview, nil
 }
