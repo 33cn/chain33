@@ -213,6 +213,8 @@ type TxDetailResult struct {
 	Height    int64                `json:"height"`
 	Index     int64                `json:"index"`
 	Blocktime int64                `json:"blocktime"`
+	Amount    int64                `json:"amount"`
+	Fromaddr  string               `json:"fromaddr"`
 }
 
 type BlockResult struct {
@@ -245,6 +247,7 @@ type WalletTxDetailResult struct {
 	Blocktime int64                `json:"blocktime"`
 	Amount    string               `json:"amount"`
 	Fromaddr  string               `json:"fromaddr"`
+	Txhash    string               `json:"txhash"`
 }
 
 func Lock() {
@@ -585,6 +588,7 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 			Blocktime: v.Blocktime,
 			Amount:    amountResult,
 			Fromaddr:  v.Fromaddr,
+			Txhash:    v.Txhash,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
 	}
@@ -689,6 +693,8 @@ func QueryTransaction(h string) {
 		Height:    res.Height,
 		Index:     res.Index,
 		Blocktime: res.Blocktime,
+		Amount:    res.Amount,
+		Fromaddr:  res.Fromaddr,
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
