@@ -308,7 +308,7 @@ func (a *AddrBook) RemoveAddr(peeraddr string) {
 func (a *AddrBook) GetPeers() []*NetAddress {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	peerlist := make([]*NetAddress, 0)
+	var peerlist []*NetAddress
 	for _, peer := range a.addrPeer {
 		peerlist = append(peerlist, peer.Addr)
 	}
@@ -318,7 +318,7 @@ func (a *AddrBook) GetPeers() []*NetAddress {
 func (a *AddrBook) GetAddrs() []string {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	addrlist := make([]string, 0)
+	var addrlist []string
 	for _, peer := range a.addrPeer {
 		if peer.GetAttempts() == 0 {
 			addrlist = append(addrlist, peer.Addr.String())
