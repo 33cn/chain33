@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"code.aliyun.com/chain33/chain33/consensus/raft"
 	"code.aliyun.com/chain33/chain33/consensus/solo"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
@@ -16,7 +17,8 @@ func New(cfg *types.Consensus) Consumer {
 		con := solo.NewSolo(cfg)
 		return con
 	} else if consensusType == "raft" {
-		// TODO:
+		con := raft.NewRaftCluster(cfg)
+		return con
 	} else if consensusType == "pbft" {
 		// TODO:
 	}
@@ -26,13 +28,7 @@ func New(cfg *types.Consensus) Consumer {
 type nopMiner struct{}
 
 func (m *nopMiner) SetQueue(q *queue.Queue) {
-	client := q.GetClient()
-	client.Sub("consensus")
-	go func() {
-		for msg := range client.Recv() {
-			log.Info("consensus recv", "msg", msg)
-		}
-	}()
+
 }
 
 func (m *nopMiner) Close() {
