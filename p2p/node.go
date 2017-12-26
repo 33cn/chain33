@@ -216,26 +216,28 @@ func (n *Node) GetExterPort() uint16 {
 }
 
 func (n *Node) AddPeer(pr *peer) {
-	if pr.outbound == true {
-		defer n.omtx.Unlock()
-		n.omtx.Lock()
-		n.outBound[pr.Addr()] = pr
-		pr.key = n.addrBook.key
-		pr.Start()
+	n.omtx.Lock()
+	defer n.omtx.Unlock()
+	if pr.outbound == false {
 		return
 	}
+	n.outBound[pr.Addr()] = pr
+	pr.key = n.addrBook.key
+	pr.Start()
+	return
 
 }
 
 func (n *Node) Size() int {
-	defer n.omtx.Unlock()
+
 	n.omtx.Lock()
+	defer n.omtx.Unlock()
 	return len(n.outBound)
 }
 
 func (n *Node) Has(paddr string) bool {
-	defer n.omtx.Unlock()
 	n.omtx.Lock()
+	defer n.omtx.Unlock()
 	if _, ok := n.outBound[paddr]; ok {
 		return true
 	}
@@ -254,8 +256,8 @@ func (n *Node) Get(peerAddr string) *peer {
 	return nil
 }
 func (n *Node) GetPeers() []*peer {
-	defer n.omtx.Unlock()
 	n.omtx.Lock()
+	defer n.omtx.Unlock()
 	var peers []*peer
 	for _, peer := range n.outBound {
 		peers = append(peers, peer)
@@ -264,8 +266,9 @@ func (n *Node) GetPeers() []*peer {
 	return peers
 }
 func (n *Node) Remove(peerAddr string) {
-	defer n.omtx.Unlock()
+
 	n.omtx.Lock()
+	defer n.omtx.Unlock()
 	peer, ok := n.outBound[peerAddr]
 	if ok {
 		peer.Stop()
@@ -277,29 +280,35 @@ func (n *Node) Remove(peerAddr string) {
 }
 
 func (n *Node) checkActivePeers() {
+
 	for {
-		peers := n.GetPeers()
-		for _, peer := range peers {
-			if peer.mconn == nil {
-				n.addrBook.RemoveAddr(peer.Addr())
-				n.Remove(peer.Addr())
-				continue
+		ticker := time.NewTicker(time.Second * 5)
+		select {
+		case <-ticker.C:
+			peers := n.GetPeers()
+			for _, peer := range peers {
+				if peer.mconn == nil {
+					n.addrBook.RemoveAddr(peer.Addr())
+					n.Remove(peer.Addr())
+
+					continue
+				}
+
+				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.IsRunning())
+				if peer.mconn.sendMonitor.IsRunning() == false && peer.IsPersistent() == false {
+					n.addrBook.RemoveAddr(peer.Addr())
+					n.addrBook.Save()
+					n.Remove(peer.Addr())
+				}
+
+				if peerStat := n.addrBook.getPeerStat(peer.Addr()); peerStat != nil {
+					peerStat.flushPeerStatus(peer.mconn.sendMonitor.MonitorInfo())
+
+				}
+
 			}
-
-			log.Info("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.IsRunning())
-			if peer.mconn.sendMonitor.IsRunning() == false && peer.IsPersistent() == false {
-				n.addrBook.RemoveAddr(peer.Addr())
-				n.addrBook.Save()
-				n.Remove(peer.Addr())
-			}
-
-			if peerStat := n.addrBook.getPeerStat(peer.Addr()); peerStat != nil {
-				peerStat.flushPeerStatus(peer.mconn.sendMonitor.MonitorInfo())
-
-			}
-
 		}
-		time.Sleep(time.Second * 5)
+
 	}
 }
 func (n *Node) deletePingErr() {
@@ -343,12 +352,10 @@ func (n *Node) monitor() {
 				}
 				log.Debug("monitor", "ADDRLIST", addrlist)
 				n.DialPeers(addrlist) //对获取的地址列表发起连接
-				if !n.needMore() {
-					break
-				}
+
 			}
 		} else {
-			//close seed conn
+			log.Debug("monitor", "nodestable", n.needMore())
 			for _, seed := range n.nodeInfo.cfg.Seeds {
 				//如果达到稳定节点数量，则断开种子节点
 				if n.Has(seed) == true {
