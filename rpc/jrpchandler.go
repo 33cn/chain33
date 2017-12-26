@@ -191,18 +191,38 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	{
 		var txdetails TransactionDetails
 		for _, tx := range reply.Txs {
+			var recp ReceiptData
+			logs := tx.GetReceipt().GetLogs()
+			for _, lg := range logs {
+				recp.Ty = lg.GetTy()
+				recp.Logs = append(recp.Logs,
+					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+			}
+
+			var proofs []string
+			for _, proof := range tx.Proofs {
+				proofs = append(proofs, common.ToHex(proof))
+			}
 
 			txdetails.Txs = append(txdetails.Txs,
-				&Transaction{
-					Execer:  common.ToHex(tx.Tx.GetExecer()),
-					Payload: common.ToHex(tx.Tx.GetPayload()),
-					Fee:     tx.Tx.Fee,
-					Expire:  tx.Tx.Expire,
-					Nonce:   tx.Tx.Nonce,
-					To:      tx.Tx.To,
-					Signature: &Signature{Ty: tx.Tx.GetSignature().GetTy(),
-						Pubkey:    common.ToHex(tx.Tx.GetSignature().GetPubkey()),
-						Signature: common.ToHex(tx.Tx.GetSignature().GetSignature())}})
+				&TransactionDetail{
+					Tx: &Transaction{
+						Execer:  string(tx.Tx.GetExecer()),
+						Payload: common.ToHex(tx.Tx.GetPayload()),
+						Fee:     tx.Tx.Fee,
+						Expire:  tx.Tx.Expire,
+						Nonce:   tx.Tx.Nonce,
+						To:      tx.Tx.To,
+						Signature: &Signature{Ty: tx.Tx.GetSignature().GetTy(),
+							Pubkey:    common.ToHex(tx.Tx.GetSignature().GetPubkey()),
+							Signature: common.ToHex(tx.Tx.GetSignature().GetSignature())},
+					},
+					Height:    tx.GetHeight(),
+					Index:     tx.GetIndex(),
+					Blocktime: tx.GetBlocktime(),
+					Receipt:   &recp,
+					Proofs:    proofs,
+				})
 
 		}
 
