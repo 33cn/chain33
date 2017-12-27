@@ -310,11 +310,7 @@ func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error
 
 func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}) error {
 	var parm types.ReqWalletTransactionList
-	fromtx, err := common.FromHex(in.FromTx)
-	if err != nil {
-		return err
-	}
-	parm.FromTx = fromtx
+	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
 	reply, err := req.cli.WalletTxList(&parm)
