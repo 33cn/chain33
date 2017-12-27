@@ -25,7 +25,10 @@ func BytesToHash(b []byte) Hash {
 
 func StringToHash(s string) Hash { return BytesToHash([]byte(s)) }
 func BigToHash(b *big.Int) Hash  { return BytesToHash(b.Bytes()) }
-func HexToHash(s string) Hash    { return BytesToHash(FromHex(s)) }
+func HexToHash(s string) Hash {
+	b, _ := FromHex(s)
+	return BytesToHash(b)
+}
 
 // Get the string representation of the underlying hash
 func (h Hash) Str() string   { return string(h[:]) }
@@ -89,7 +92,7 @@ func ToHex(b []byte) string {
 	return "0x" + hex
 }
 
-func FromHex(s string) []byte {
+func FromHex(s string) ([]byte, error) {
 	if len(s) > 1 {
 		if s[0:2] == "0x" || s[0:2] == "0X" {
 			s = s[2:]
@@ -99,7 +102,7 @@ func FromHex(s string) []byte {
 		}
 		return Hex2Bytes(s)
 	}
-	return nil
+	return nil, nil
 }
 
 // Copy bytes
