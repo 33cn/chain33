@@ -15,7 +15,11 @@ type Chain33 struct {
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	fmt.Println("jrpc transaction:", in)
 	var parm types.Transaction
-	types.Decode(common.FromHex(in.Data), &parm)
+	data, err := common.FromHex(in.Data)
+	if err != nil {
+		return err
+	}
+	types.Decode(data, &parm)
 	log.Debug("SendTransaction", "parm", parm)
 	reply := req.cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
@@ -29,8 +33,12 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 
 func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
+	hash, err := common.FromHex(in.Data)
+	if err != nil {
+		return err
+	}
 
-	data.Hash = common.FromHex(in.Hash)
+	data.Hash = hash
 	reply, err := req.cli.QueryTx(data.Hash)
 	if err != nil {
 		return err
@@ -181,7 +189,11 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	var parm types.ReqHashes
 	parm.Hashes = make([][]byte, 0)
 	for _, v := range in.Hashes {
-		hb := common.FromHex(v)
+		//hb := common.FromHex(v)
+		hb, err := common.FromHex(v)
+		if err != nil {
+			continue
+		}
 		parm.Hashes = append(parm.Hashes, hb)
 
 	}
@@ -298,7 +310,11 @@ func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error
 
 func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}) error {
 	var parm types.ReqWalletTransactionList
-	parm.FromTx = common.FromHex(in.FromTx)
+	fromtx, err := common.FromHex(in.FromTx)
+	if err != nil {
+		return err
+	}
+	parm.FromTx = fromtx
 	parm.Count = in.Count
 	parm.Direction = in.Direction
 	reply, err := req.cli.WalletTxList(&parm)
