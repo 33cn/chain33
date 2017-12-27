@@ -95,7 +95,7 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			for _, tx := range item.Block.Txs {
 				block.Txs = append(block.Txs,
 					&Transaction{
-						Execer:  string(reply.Tx.Execer),
+						Execer:  string(tx.GetExecer()),
 						Payload: common.ToHex(tx.GetPayload()),
 						Fee:     tx.Fee,
 						Expire:  tx.Expire,
@@ -247,7 +247,7 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 		for _, tx := range reply.Txs {
 			txlist.Txs = append(txlist.Txs,
 				&Transaction{
-					Execer:  string(reply.Tx.Execer),
+					Execer:  string(tx.GetExecer()),
 					Payload: common.ToHex(tx.GetPayload()),
 					Fee:     tx.Fee,
 					Expire:  tx.Expire,
@@ -323,7 +323,7 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 
 			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
 				Tx: &Transaction{
-					Execer:  string(reply.Tx.Execer),
+					Execer:  string(tx.GetTx().GetExecer()),
 					Payload: common.ToHex(tx.GetTx().GetPayload()),
 					Fee:     tx.GetTx().GetFee(),
 					Expire:  tx.GetTx().GetExpire(),
