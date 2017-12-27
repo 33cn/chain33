@@ -46,10 +46,9 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 			Expire:  reply.Tx.Expire,
 			Nonce:   reply.Tx.Nonce,
 			To:      reply.Tx.To,
-			Signature: &Signature{Ty: reply.Tx.Signature.Ty,
-				Pubkey:    common.ToHex(reply.Tx.Signature.Pubkey),
-				Signature: common.ToHex(reply.Tx.Signature.Signature)}}
-
+			Signature: &Signature{Ty: reply.Tx.Signature.GetTy(),
+				Pubkey:    common.ToHex(reply.Tx.Signature.GetPubkey()),
+				Signature: common.ToHex(reply.Tx.Signature.GetSignature())}}
 		transDetail.Receipt = &ReceiptData{Ty: reply.Receipt.Ty}
 		for _, log := range reply.Receipt.Logs {
 			transDetail.Receipt.Logs = append(transDetail.Receipt.Logs,
