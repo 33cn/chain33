@@ -423,7 +423,12 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 		walletlog.Error("ProcImportPrivKey", "err", err)
 		return nil, err
 	}
-	priv, err := cr.PrivKeyFromBytes(common.FromHex(PrivKey.Privkey))
+	privkeybyte, err := common.FromHex(PrivKey.Privkey)
+	if err != nil || len(privkeybyte) == 0 {
+		walletlog.Error("ProcImportPrivKey", "FromHex err", err)
+		return nil, err
+	}
+	priv, err := cr.PrivKeyFromBytes(privkeybyte)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "PrivKeyFromBytes err", err)
 		return nil, err
@@ -431,7 +436,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes())
 
 	//对私钥加密
-	Encryptered := EncrypterPrivkey([]byte(wallet.Password), common.FromHex(PrivKey.Privkey))
+	Encryptered := EncrypterPrivkey([]byte(wallet.Password), privkeybyte)
 	Encrypteredstr := common.ToHex(Encryptered)
 	//校验PrivKey对应的addr是否已经存在钱包中
 	Account, err = wallet.walletStore.GetAccountByAddr(addr.String())
@@ -522,7 +527,13 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	}
 
 	//通过password解密存储的私钥
-	privkey := DecrypterPrivkey([]byte(wallet.Password), common.FromHex(Accountstor.GetPrivkey()))
+	prikeybyte, err := common.FromHex(Accountstor.GetPrivkey())
+	if err != nil || len(prikeybyte) == 0 {
+		walletlog.Error("ProcSendToAddress", "FromHex err", err)
+		return nil, err
+	}
+
+	privkey := DecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	walletlog.Error("ProcSendToAddress", "DecrypterPrivkey privkey", common.ToHex(privkey))
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
@@ -721,7 +732,13 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 	for index, Account := range accounts {
 		Privkey := WalletAccStores[index].Privkey
 		//解密存储的私钥
-		privkey := DecrypterPrivkey([]byte(wallet.Password), common.FromHex(Privkey))
+		prikeybyte, err := common.FromHex(Privkey)
+		if err != nil || len(prikeybyte) == 0 {
+			walletlog.Error("ProcMergeBalance", "FromHex err", err)
+			return nil, err
+		}
+
+		privkey := DecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 		priv, err := cr.PrivKeyFromBytes(privkey)
 		if err != nil {
 			walletlog.Error("ProcMergeBalance", "PrivKeyFromBytes err", err, "index", index)
@@ -808,13 +825,17 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		for _, AccStore := range WalletAccStores {
 
 			//使用old Password解密存储的私钥
-			storekey := common.FromHex(AccStore.GetPrivkey())
+			storekey, err := common.FromHex(AccStore.GetPrivkey())
+			if err != nil || len(storekey) == 0 {
+				walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
+				continue
+			}
 			Decrypter := DecrypterPrivkey([]byte(wallet.Password), storekey)
 
 			//使用新的密码重新加密私钥
 			Encrypter := EncrypterPrivkey([]byte(Passwd.Newpass), Decrypter)
 			AccStore.Privkey = common.ToHex(Encrypter)
-			err := wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
+			err = wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
 			if err != nil {
 				walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "SetWalletAccount err", err)
 			}
