@@ -49,7 +49,7 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		if transfer.Amount <= 0 || transfer.Amount >= MAX_COIN {
-			return errReceipt(types.ErrAmount)
+			return types.NewErrReceipt(types.ErrAmount)
 		}
 		accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
 		accTo := account.LoadAccount(n.db, tx.To)
@@ -89,17 +89,11 @@ cutFee:
 		return cutFeeReceipt(accFrom, receiptBalance)
 	}
 	//return error
-	return errReceipt(types.ErrActionNotSupport)
+	return types.NewErrReceipt(types.ErrActionNotSupport)
 }
 
 func (n *Coins) SetDB(db dbm.KVDB) {
 	n.db = db
-}
-
-func errReceipt(err error) *types.Receipt {
-	berr := err.Error()
-	errlog := &types.ReceiptLog{types.TyLogErr, []byte(berr)}
-	return &types.Receipt{types.ExecErr, nil, []*types.ReceiptLog{errlog}}
 }
 
 //only pack the transaction, exec is error.

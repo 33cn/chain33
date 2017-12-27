@@ -15,11 +15,10 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-var poolCacheSize int64 = 10240    // mempool容量
-var channelSize int64 = 1024       // channel缓存大小
-var minTxFee int64 = 10000000      // 最低交易费
-var maxMsgByte int64 = 100000      // 交易消息最大字节数
-var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
+var poolCacheSize int64 = 10240 // mempool容量
+var channelSize int64 = 1024    // channel缓存大小
+var minTxFee int64 = 10000000   // 最低交易费
+var maxMsgByte int64 = 100000   // 交易消息最大字节数
 
 // error codes
 var (
@@ -393,7 +392,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					mem.badChan <- msg
 					continue
 				}
-				valid := mem.CheckExpire(msg) // 检查交易是否过期
+				valid := mem.CheckExpireValid(msg) // 检查交易是否过期
 				if valid {
 					// 未过期，交易消息传入txChan，待检查
 					mlog.Warn("check tx", "txChan", msg)
