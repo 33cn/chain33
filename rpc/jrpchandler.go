@@ -33,7 +33,7 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 
 func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
-	hash, err := common.FromHex(in.Data)
+	hash, err := common.FromHex(in.Hash)
 	if err != nil {
 		return err
 	}
