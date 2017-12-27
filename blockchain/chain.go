@@ -268,8 +268,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		case types.EventGetBlockOverview: //BlockOverview
-			ReqInt := (msg.Data).(*types.ReqInt)
-			BlockOverview, err := chain.ProcGetBlockOverview(ReqInt)
+			ReqHash := (msg.Data).(*types.ReqHash)
+			BlockOverview, err := chain.ProcGetBlockOverview(ReqHash)
 			if err != nil {
 				chainlog.Error("ProcGetBlockOverview", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, err))
@@ -287,7 +287,16 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Info("ProcGetAddrOverview", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, AddrOverview))
 			}
-
+		case types.EventGetBlockHash: //GetBlockHash
+			height := (msg.Data).(*types.ReqInt)
+			replyhash, err := chain.ProcGetBlockHash(height)
+			if err != nil {
+				chainlog.Error("ProcGetBlockHash", "err", err.Error())
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, err))
+			} else {
+				chainlog.Info("ProcGetBlockHash", "success", "ok")
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, replyhash))
+			}
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -504,8 +513,10 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 			if requestblock.Isdetail {
 				blocks.Items[j] = block
 			} else {
-				block.Receipts = nil
-				blocks.Items[j] = block
+				var blockdetail types.BlockDetail
+				blockdetail.Block = block.Block
+				blockdetail.Receipts = nil
+				blocks.Items[j] = &blockdetail
 			}
 		} else {
 			return nil, err
@@ -807,6 +818,10 @@ func (chain *BlockChain) CheckcacheBlock(height int64) (block *types.BlockDetail
 func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 	cachelock.Lock()
 	defer cachelock.Unlock()
+
+	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
+		chainlog.Debug("cacheBlock  Receipts ==0", "height", blockdetail.Block.GetHeight())
+	}
 
 	// Create entry in cache and append to cacheQueue.
 	elem := chain.cacheQueue.PushBack(blockdetail)
@@ -1116,16 +1131,21 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 //	int64  txCount = 2;
 //	repeated bytes txHashes = 3;}
 //获取BlockOverview
-func (chain *BlockChain) ProcGetBlockOverview(ReqInt *types.ReqInt) (*types.BlockOverview, error) {
+func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.BlockOverview, error) {
 
-	if ReqInt == nil {
+	if ReqHash == nil {
 		err := errors.New("ProcGetBlockOverview input err!")
 		return nil, err
 	}
-
+	//通过blockhash获取blockheight
+	height := chain.blockStore.GetHeightByBlockHash(ReqHash.Hash)
+	if height <= -1 {
+		err := errors.New("ProcGetBlockOverview:GetHeightByBlockHash err")
+		return nil, err
+	}
 	var blockOverview types.BlockOverview
 	//通过height获取block
-	block, err := chain.GetBlock(ReqInt.GetHeight())
+	block, err := chain.GetBlock(height)
 	if err != nil || block == nil {
 		chainlog.Error("ProcGetBlockOverview", "GetBlock err ", err)
 		return nil, err
@@ -1196,4 +1216,19 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	chainlog.Info("ProcGetAddrOverview", "addrOverview", addrOverview.String())
 
 	return &addrOverview, nil
+}
+
+//通过blockheight 获取blockhash
+func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHash, error) {
+	if height == nil {
+		err := errors.New("ProcGetBlockHash input err!")
+		return nil, err
+	}
+	var ReplyHash types.ReplyHash
+	block, err := chain.GetBlock(height.GetHeight())
+	if err != nil {
+		return nil, err
+	}
+	ReplyHash.Hash = block.Block.Hash()
+	return &ReplyHash, nil
 }
