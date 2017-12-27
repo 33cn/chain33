@@ -36,7 +36,9 @@ var tx12 = &types.Transaction{Execer: []byte("tester12"), Payload: []byte("mempo
 
 var c, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 var hex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-var privKey, _ = c.PrivKeyFromBytes(common.FromHex(hex))
+
+var a, _ = common.FromHex(hex)
+var privKey, _ = c.PrivKeyFromBytes(a)
 
 //var privTo, _ = c.GenKey()
 //var ad = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
@@ -272,7 +274,7 @@ func TestCheckLowFee(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if resp.Err() != e02 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e02.Error() {
 		t.Error("TestCheckLowFee failed")
 	}
 
@@ -290,7 +292,7 @@ func TestCheckManyTxs(t *testing.T) {
 	mem.qclient.Send(msg11, true)
 	resp, _ := mem.qclient.Wait(msg11)
 
-	if resp.Err() != e03 || mem.Size() != 10 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e03.Error() || mem.Size() != 10 {
 		t.Error("TestCheckManyTxs failed")
 	}
 
@@ -309,7 +311,7 @@ func TestCheckSignature(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if resp.Err() != e04 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e04.Error() {
 		t.Error("TestCheckSignature failed")
 	}
 
@@ -324,7 +326,7 @@ func TestCheckBalance(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if resp.Err() != e05 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e05.Error() {
 		t.Error("TestCheckBalance failed")
 	}
 
@@ -340,7 +342,7 @@ func TestCheckExpire(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if resp.Err() != e07 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e07.Error() {
 		t.Error("TestCheckExpire failed")
 	}
 

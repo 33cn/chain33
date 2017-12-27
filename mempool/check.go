@@ -151,6 +151,7 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 	}
 }
 
+// Mempool.CheckExpireValid检查交易过期有效性，过期返回false，未过期返回true
 func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
