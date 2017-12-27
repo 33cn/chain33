@@ -458,8 +458,8 @@ func SetTxFee(amount string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountFloat64 * 1e8)
-	params := types.ReqWalletSetFee{Amount: amountInt64}
+	amountInt64 := int64(amountFloat64 * 1e4)
+	params := types.ReqWalletSetFee{Amount: amountInt64 * 1e4}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -487,8 +487,8 @@ func SendToAddress(from string, to string, amount string, note string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountFloat64 * 1e8)
-	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
+	amountInt64 := int64(amountFloat64 * 1e4)
+	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64 * 1e4, Note: note}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
