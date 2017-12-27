@@ -134,12 +134,8 @@ func Sha256(b []byte) []byte {
 	return data[:]
 }
 
-func Hex2Bytes(str string) []byte {
-	h, err := hex.DecodeString(str)
-	if err != nil {
-		panic(err)
-	}
-	return h
+func Hex2Bytes(str string) ([]byte, error) {
+	return hex.DecodeString(str)
 }
 
 func sha2Hash(b []byte, out []byte) {
