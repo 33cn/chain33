@@ -146,7 +146,7 @@ FOR_LOOP:
 		select {
 
 		case <-ticker.C:
-			log.Debug("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
 			var peerlist []*pb.Peer
 			peers := m.network.node.GetPeers()
 			log.Warn("monitorPeerInfo", "peers", peers)
