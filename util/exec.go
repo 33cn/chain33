@@ -80,7 +80,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 
 func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	client := q.GetClient()
-	list := &types.ExecTxList{prevStateRoot, block.Txs}
+	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)

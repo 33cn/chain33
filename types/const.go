@@ -11,6 +11,7 @@ var ErrReRunGenesis = errors.New("ErrReRunGenesis")
 var ErrActionNotSupport = errors.New("ErrActionNotSupport")
 var ErrChannelFull = errors.New("ErrChannelFull")
 var ErrAmount = errors.New("ErrAmount")
+var ErrTxExpire = errors.New("ErrTxExpire")
 
 const Coin int64 = 1e8
 

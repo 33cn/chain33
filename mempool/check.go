@@ -151,27 +151,12 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 	}
 }
 
-// Mempool.CheckExpire检查交易是否过期，未过期返回true，过期返回false
-func (mem *Mempool) CheckExpire(msg queue.Message) bool {
-	valid := msg.GetData().(*types.Transaction).Expire
-	// Expire为0，返回true
-	if valid == 0 {
-		return true
+func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	tx := msg.GetData().(*types.Transaction)
+	if tx.IsExpire(mem.height, mem.blockTime) {
+		return false
 	}
-
-	if valid <= expireBound {
-		// Expire小于1e9，为height
-		if valid > (mem.Height()) { // 未过期
-			return true
-		} else { // 过期
-			return false
-		}
-	} else {
-		// Expire大于1e9，为blockTime
-		if valid > (mem.BlockTime()) { // 未过期
-			return true
-		} else { // 过期
-			return false
-		}
-	}
+	return true
 }
