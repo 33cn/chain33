@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"container/list"
 	"errors"
 	"fmt"
@@ -329,17 +330,20 @@ FOR_LOOP:
 			newbatch := chain.blockStore.NewBatch(true)
 			var stratblockheight int64 = 0
 			var endblockheight int64 = 0
-			var prevHash []byte
+			var prevStateHash []byte
+			var prevblkHash []byte
 			// 可以批量处理BatchBlockNum个block到db中
 			currentheight := chain.blockStore.Height()
 			if currentheight == -1 {
-				prevHash = common.Hash{}.Bytes()
+				prevStateHash = common.Hash{}.Bytes()
+				prevblkHash = common.Hash{}.Bytes()
 			} else {
 				curblock, err := chain.GetBlock(currentheight)
 				if err != nil {
 					continue FOR_LOOP
 				}
-				prevHash = curblock.Block.StateHash
+				prevStateHash = curblock.Block.GetStateHash()
+				prevblkHash = curblock.Block.Hash()
 			}
 			prevheight := currentheight
 			for {
@@ -355,10 +359,16 @@ FOR_LOOP:
 					//chainlog.Info("trySyncTicker block is nil")
 					break
 				}
-
-				blockdetail, err := util.ExecBlock(chain.q, prevHash, block, true)
+				if !bytes.Equal(prevblkHash, block.GetParentHash()) {
+					chainlog.Error("trySyncTicker ParentHash err!", "height", block.Height)
+					//blockhash校验不过需要从blockpool中删除，重新发起请求
+					chain.blockPool.DelBlock(block.GetHeight())
+					go chain.FetchBlock(block.GetHeight(), block.GetHeight())
+					break
+				}
+				blockdetail, err := util.ExecBlock(chain.q, prevStateHash, block, true)
 				if err != nil {
-					chainlog.Info("trySyncTicker ExecBlock is err!", "height", block.Height, "err", err)
+					chainlog.Error("trySyncTicker ExecBlock is err!", "height", block.Height, "err", err)
 					//block校验不过需要从blockpool中删除，重新发起请求
 					chain.blockPool.DelBlock(block.GetHeight())
 					go chain.FetchBlock(block.GetHeight(), block.GetHeight())
@@ -382,14 +392,15 @@ FOR_LOOP:
 				//将已经存储的blocks添加到list缓存中便于查找
 				chain.cacheBlock(blockdetail)
 
-				prevHash = block.StateHash
+				prevStateHash = blockdetail.Block.GetStateHash()
+				prevblkHash = blockdetail.Block.Hash()
+				prevheight = blockdetail.Block.Height
 
 				//记录同步开始的第一个block高度和最后一个block的高度，用于同步完成之后删除缓存中的block记录
 				if prevheight == currentheight {
 					stratblockheight = block.Height
 				}
 				endblockheight = blockdetail.Block.Height
-				prevheight = blockdetail.Block.Height
 			}
 			newbatch.Write()
 
@@ -547,16 +558,25 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (er
 	} else if block.Height == currentheight+1 { //我们需要的高度，直接存储到db中
 		//通过前一个block的statehash来执行此block
 		var prevstateHash []byte
+		var prevblkHash []byte
 		if currentheight == -1 {
 			prevstateHash = common.Hash{}.Bytes()
+			prevblkHash = common.Hash{}.Bytes()
 		} else {
 			prvblock, err := chain.GetBlock(currentheight)
 			if err != nil {
 				chainlog.Error("ProcAddBlockDetailMsg", "err", err)
 				return err
 			}
-			prevstateHash = prvblock.Block.StateHash
+			prevstateHash = prvblock.Block.GetStateHash()
+			prevblkHash = prvblock.Block.Hash()
 		}
+		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
+			outstr := fmt.Sprintf("ProcAddBlockMsg ParentHash err height:%d", block.Height)
+			err := errors.New(outstr)
+			return err
+		}
+
 		blockDetail, err := util.ExecBlock(chain.q, prevstateHash, block, true)
 		if err != nil {
 			chainlog.Error("ProcAddBlockMsg ExecBlock err!", "err", err)
@@ -622,6 +642,23 @@ func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.B
 
 	//我们需要的高度，直接存储到db中
 	if blockDetail.Block.Height == currentheight+1 {
+		//校验block的ParentHash值
+		var prevblkHash []byte
+		if currentheight == -1 {
+			prevblkHash = common.Hash{}.Bytes()
+		} else {
+			curblock, err := chain.GetBlock(currentheight)
+			if err != nil {
+				return err
+			}
+			prevblkHash = curblock.Block.Hash()
+		}
+		if !bytes.Equal(prevblkHash, blockDetail.Block.GetParentHash()) {
+			outstr := fmt.Sprintf("ProcAddBlockDetail ParentHash err height:%d", blockDetail.Block.Height)
+			err := errors.New(outstr)
+			return err
+		}
+
 		newbatch := chain.blockStore.NewBatch(true)
 
 		//保存tx交易结果信息到db中
