@@ -1,12 +1,14 @@
 package mempool
 
 import (
-	"container/heap"
+	//	"container/heap"
 	"errors"
 	"reflect"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/petar/GoLLRB/llrb"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -160,8 +162,7 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 	}
 
 	for i = 0; i < minSize; i++ {
-		popped := heap.Pop(mem.cache.txHeap)
-		poppedTx := popped.(*Item).value
+		poppedTx := mem.cache.txLlrb.DeleteMax().(*Item).value
 		result = append(result, poppedTx)
 		delete(mem.cache.txMap, string(poppedTx.Hash()))
 		// 账户交易数量减1
@@ -177,7 +178,7 @@ func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
 	defer mem.proxyMtx.Unlock()
 
 	var result []*types.Transaction
-	for _, v := range *mem.cache.txHeap {
+	for _, v := range mem.cache.txMap {
 		result = append(result, v.value)
 	}
 
@@ -241,7 +242,7 @@ func (mem *Mempool) Close() {
 type txCache struct {
 	size       int
 	txMap      map[string]*Item
-	txHeap     *PriorityQueue
+	txLlrb     *llrb.LLRB
 	accountMap map[string]int64
 }
 
@@ -250,14 +251,14 @@ func newTxCache(cacheSize int64) *txCache {
 	return &txCache{
 		size:       int(cacheSize),
 		txMap:      make(map[string]*Item, cacheSize),
-		txHeap:     new(PriorityQueue),
+		txLlrb:     llrb.New(),
 		accountMap: make(map[string]int64),
 	}
 }
 
 // txCache.LowestFee返回txHeap第一个元素的交易Fee
 func (cache *txCache) LowestFee() int64 {
-	return cache.txHeap.Top().(*Item).priority
+	return cache.txLlrb.Min().(*Item).priority
 }
 
 // txCache.TxNumOfAccount返回账户在Mempool中交易数量
@@ -277,17 +278,16 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		return e01
 	}
 
-	if cache.txHeap.Len() >= cache.size {
+	if cache.txLlrb.Len() >= cache.size {
 		if tx.Fee <= cache.LowestFee() {
 			return e02
 		}
-		popped := heap.Pop(cache.txHeap)
-		poppedTx := popped.(*Item).value
+		poppedTx := cache.txLlrb.DeleteMin().(*Item).value
 		delete(cache.txMap, string(poppedTx.Hash()))
 	}
 
-	it := &Item{value: tx, priority: tx.Fee, index: cache.Size()}
-	cache.txHeap.Push(it)
+	it := &Item{value: tx, priority: tx.Fee}
+	cache.txLlrb.InsertNoReplace(it)
 	cache.txMap[string(tx.Hash())] = it
 
 	// 账户交易数量
@@ -303,8 +303,8 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 
 // txCache.Remove移除txCache中给定tx
 func (cache *txCache) Remove(tx *types.Transaction) {
-	removed := cache.txMap[string(tx.Hash())].index
-	cache.txHeap.Remove(removed)
+	removed := cache.txMap[string(tx.Hash())]
+	cache.txLlrb.Delete(removed)
 	delete(cache.txMap, string(tx.Hash()))
 	// 账户交易数量减1
 	cache.AccountTxNumDecrease(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String())
@@ -312,12 +312,12 @@ func (cache *txCache) Remove(tx *types.Transaction) {
 
 // txCache.Size返回txCache中已存tx数目
 func (cache *txCache) Size() int {
-	return cache.txHeap.Len()
+	return cache.txLlrb.Len()
 }
 
 // txCache.SetSize用来设置Mempool容量
 func (cache *txCache) SetSize(newSize int) {
-	if cache.txHeap.Len() > 0 {
+	if cache.txLlrb.Len() > 0 {
 		panic("only can set a empty size")
 	}
 	cache.size = newSize
@@ -332,6 +332,18 @@ func (cache *txCache) AccountTxNumDecrease(addr string) {
 			delete(cache.accountMap, addr)
 		}
 	}
+}
+
+//--------------------------------------------------------------------------------
+// Module LLRB
+
+type Item struct {
+	value    *types.Transaction
+	priority int64
+}
+
+func (i Item) Less(it llrb.Item) bool {
+	return i.priority < it.(*Item).priority
 }
 
 //--------------------------------------------------------------------------------
