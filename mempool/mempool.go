@@ -8,13 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/petar/GoLLRB/llrb"
-
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"github.com/petar/GoLLRB/llrb"
 )
 
 var poolCacheSize int64 = 10240 // mempool容量
@@ -231,6 +230,13 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	return mem.qclient.Wait(msg)
 }
 
+// Mempool.GetLatestTx返回最新十条加入到Mempool的交易
+func (mem *Mempool) GetLatestTx() []*types.Transaction {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.GetLatestTx()
+}
+
 // Mempool.Close关闭Mempool
 func (mem *Mempool) Close() {
 	mlog.Info("mempool module closed")
@@ -243,6 +249,7 @@ type txCache struct {
 	size       int
 	txMap      map[string]*Item
 	txLlrb     *llrb.LLRB
+	txFrontTen []*types.Transaction
 	accountMap map[string]int64
 }
 
@@ -252,6 +259,7 @@ func newTxCache(cacheSize int64) *txCache {
 		size:       int(cacheSize),
 		txMap:      make(map[string]*Item, cacheSize),
 		txLlrb:     llrb.New(),
+		txFrontTen: make([]*types.Transaction, 0),
 		accountMap: make(map[string]int64),
 	}
 }
@@ -279,14 +287,26 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	}
 
 	if cache.txLlrb.Len() >= cache.size {
+		//		expired := 0
+		//		for _, v := range cache.txMap {
+		//			if time.Now().UnixNano()/1000000-v.enterTime >= 60000 {
+		//				cache.txLlrb.Delete(v)
+		//				delete(cache.txMap, string(v.value.Hash()))
+		//				expired++
+		//			}
+		//		}
 		if tx.Fee <= cache.LowestFee() {
 			return e02
 		}
+		//		if expired == 0 {
+		//			poppedTx := cache.txLlrb.DeleteMin().(*Item).value
+		//			delete(cache.txMap, string(poppedTx.Hash()))
+		//		}
 		poppedTx := cache.txLlrb.DeleteMin().(*Item).value
 		delete(cache.txMap, string(poppedTx.Hash()))
 	}
 
-	it := &Item{value: tx, priority: tx.Fee}
+	it := &Item{value: tx, priority: tx.Fee, enterTime: time.Now().UnixNano() / 1000000}
 	cache.txLlrb.InsertNoReplace(it)
 	cache.txMap[string(tx.Hash())] = it
 
@@ -298,7 +318,17 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		cache.accountMap[accountAddr] = 1
 	}
 
+	if len(cache.txFrontTen) >= 10 {
+		cache.txFrontTen = cache.txFrontTen[len(cache.txFrontTen)-10:]
+	}
+	cache.txFrontTen = append(cache.txFrontTen, tx)
+
 	return nil
+}
+
+// txCache.GetLatestTx返回最新十条加入到txCache的交易
+func (cache *txCache) GetLatestTx() []*types.Transaction {
+	return cache.txFrontTen
 }
 
 // txCache.Remove移除txCache中给定tx
@@ -338,8 +368,9 @@ func (cache *txCache) AccountTxNumDecrease(addr string) {
 // Module LLRB
 
 type Item struct {
-	value    *types.Transaction
-	priority int64
+	value     *types.Transaction
+	priority  int64
+	enterTime int64
 }
 
 func (i Item) Less(it llrb.Item) bool {
@@ -396,7 +427,8 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	go func() {
 		for msg := range mem.qclient.Recv() {
 			mlog.Warn("mempool recv", "msg", msg)
-			if msg.Ty == types.EventTx {
+			switch msg.Ty {
+			case types.EventTx:
 				// 消息类型EventTx：申请添加交易到Mempool
 				if msg.GetData() == nil { // 判断消息是否含有nil交易
 					mlog.Error("wrong tx", "err", e09)
@@ -415,12 +447,12 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					mem.badChan <- msg
 					continue
 				}
-			} else if msg.Ty == types.EventGetMempool {
+			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
 				mlog.Warn("reply EventGetMempool ok", "msg", msg)
-			} else if msg.Ty == types.EventTxList {
+			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				if reflect.TypeOf(msg.GetData()).String() != "int" {
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
@@ -439,15 +471,21 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 					&types.ReplyTxList{Txs: txList}))
 				mlog.Warn("reply EventTxList ok", "msg", msg)
-			} else if msg.Ty == types.EventAddBlock {
+			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
-			} else if msg.Ty == types.EventGetMempoolSize {
+			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{int64(mem.Size())}))
 				mlog.Warn("reply EventGetMempoolSize ok", "msg", msg)
-			} else {
+			case /*types.EventGetLastMempool*/ 404:
+				// 消息类型EventGetLastMempool：获取最新十条加入到Mempool的交易
+				txList := mem.GetLatestTx()
+				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
+					&types.ReplyTxList{Txs: txList}))
+				mlog.Warn("reply EventGetLastMempool ok", "msg", msg)
+			default:
 				continue
 			}
 		}

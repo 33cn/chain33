@@ -259,6 +259,30 @@ func TestRemoveTxOfBlock(t *testing.T) {
 	s.Close()
 }
 
+func TestDuplicateMempool(t *testing.T) {
+	mem, _, chain, s := initEnv(0)
+
+	// add 10 txs
+	add10Tx(mem.qclient)
+
+	msg := mem.qclient.NewMessage("mempool", types.EventGetMempool, nil)
+	mem.qclient.Send(msg, true)
+
+	reply, err := mem.qclient.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 {
+		t.Error("TestDuplicateMempool failed")
+	}
+
+	chain.Close()
+	s.Close()
+}
+
 //func TestBigMessage(t *testing.T) {
 //	mem, q, chain := initEnv(0)
 //	mem.qclient := q.GetClient()
