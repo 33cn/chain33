@@ -740,8 +740,9 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		amount = amount - wallet.FeeAmount
 		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-
-		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: rand.Int63()}
+		//初始化随机数
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
 		tx.Sign(types.SECP256K1, priv)
 
 		//发送交易信息给mempool模块
@@ -1006,20 +1007,6 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 		txdetail.Blocktime = txdetal.GetBlocktime()
 		txdetail.Amount = txdetal.GetAmount()
 		txdetail.Fromaddr = txdetal.GetFromaddr()
-		//获取Amount
-		//var action types.CoinsAction
-		//err := types.Decode(txdetail.Tx.GetPayload(), &action)
-		//if err != nil {
-		//	walletlog.Error("ReqTxDetailByAddr Decode err!", "Height", txdetail.Height, "txindex", txindex, "err", err)
-		//	continue
-		//}
-		//if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-		//	transfer := action.GetTransfer()
-		//	txdetail.Amount = transfer.Amount
-		//}
-		//获取from地址
-		//pubkey := txdetal.GetTx().Signature.GetPubkey()
-		//addr := account.PubKeyToAddress(pubkey)
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
@@ -1027,7 +1014,7 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 			return
 		}
 		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
-		walletlog.Info("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
+		walletlog.Debug("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
 }
