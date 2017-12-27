@@ -319,10 +319,27 @@ func (n *Node) deletePingErr() {
 		n.Remove(peer.Addr())
 	}
 }
-func (n *Node) monitor() {
-	go n.deletePingErr()
-	go n.checkActivePeers()
+func (n *Node) getAddrFromOnline() {
+	for {
+		time.Sleep(time.Second * 5)
+		if n.needMore() {
+			peers := n.GetPeers()
+			for _, peer := range peers { //向其他节点发起请求，获取地址列表
+				log.Debug("Getpeer", "addr", peer.Addr())
+				addrlist, err := peer.mconn.getAddr()
+				if err != nil {
+					log.Error("monitor", "ERROR", err.Error())
+					continue
+				}
+				log.Debug("monitor", "ADDRLIST", addrlist)
+				n.DialPeers(addrlist) //对获取的地址列表发起连接
 
+			}
+		}
+	}
+}
+
+func (n *Node) getAddrFromOffline() {
 	for {
 		time.Sleep(time.Second * 5)
 		if n.needMore() {
@@ -338,26 +355,12 @@ func (n *Node) monitor() {
 				if n.Has(peeraddr) == false {
 					savelist = append(savelist, peeraddr)
 				}
-				//对存储的地址列表进行重新捡漏
 				log.Debug("SaveList", "list", savelist)
 			}
-			log.Debug("monitor", "befor ddialpeers", savelist, "len peers", len(savelist))
 			if len(savelist) == 0 {
 				continue
 			}
 			n.DialPeers(savelist)
-			peers := n.GetPeers()
-			for _, peer := range peers { //向其他节点发起请求，获取地址列表
-				log.Debug("Getpeer", "addr", peer.Addr())
-				addrlist, err := peer.mconn.getAddr()
-				if err != nil {
-					log.Error("monitor", "ERROR", err.Error())
-					continue
-				}
-				log.Debug("monitor", "ADDRLIST", addrlist)
-				n.DialPeers(addrlist) //对获取的地址列表发起连接
-
-			}
 		} else {
 			log.Debug("monitor", "nodestable", n.needMore())
 			for _, seed := range n.nodeInfo.cfg.Seeds {
@@ -370,6 +373,13 @@ func (n *Node) monitor() {
 
 		log.Debug("Node Monitor process", "outbound num", n.Size())
 	}
+}
+func (n *Node) monitor() {
+	go n.deletePingErr()
+	go n.checkActivePeers()
+	go n.getAddrFromOnline()
+	go n.getAddrFromOffline()
+
 }
 
 func (n *Node) needMore() bool {
