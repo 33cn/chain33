@@ -33,18 +33,12 @@ func (n *None) Exec(tx *types.Transaction) *types.Receipt {
 		account.SaveAccount(n.db, acc)
 		return cutFeeReceipt(acc, receiptBalance)
 	} else {
-		return errReceipt(types.ErrNoBalance)
+		return types.NewErrReceipt(types.ErrNoBalance)
 	}
 }
 
 func (n *None) SetDB(db dbm.KVDB) {
 	n.db = db
-}
-
-func errReceipt(err error) *types.Receipt {
-	berr := err.Error()
-	errlog := &types.ReceiptLog{types.TyLogErr, []byte(berr)}
-	return &types.Receipt{types.ExecErr, nil, []*types.ReceiptLog{errlog}}
 }
 
 func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
