@@ -153,7 +153,7 @@ func (db *GoLevelDB) PrefixScan(key []byte) (txhashs [][]byte) {
 	return txhashs
 }
 func (db *GoLevelDB) IteratorScan(key []byte, count int32, direction int32) (values [][]byte) {
-	iter := db.db.NewIterator(nil, nil)
+	iter := db.db.NewIterator(util.BytesPrefix([]byte("Tx:")), nil)
 	var i int32 = 0
 	for ok := iter.Seek(key); ok; {
 		value := iter.Value()
