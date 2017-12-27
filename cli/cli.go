@@ -814,7 +814,14 @@ func GetBlocks(start string, end string, detail string) {
 
 	var result BlockDetailsResult
 	for _, vItem := range res.Items {
-		var bd *BlockDetailResult
+		b := &BlockResult{
+			Version:    vItem.Block.Version,
+			ParentHash: vItem.Block.ParentHash,
+			TxHash:     vItem.Block.TxHash,
+			StateHash:  vItem.Block.StateHash,
+			Height:     vItem.Block.Height,
+			BlockTime:  vItem.Block.BlockTime,
+		}
 		for _, vTx := range vItem.Block.Txs {
 			feeResult := strconv.FormatFloat(float64(vTx.Fee)/float64(1e8), 'f', 4, 64)
 			t := &TxResult{
@@ -826,19 +833,9 @@ func GetBlocks(start string, end string, detail string) {
 				To:        vTx.To,
 				Fee:       feeResult,
 			}
-			b := &BlockResult{
-				Version:    vItem.Block.Version,
-				ParentHash: vItem.Block.ParentHash,
-				TxHash:     vItem.Block.TxHash,
-				StateHash:  vItem.Block.StateHash,
-				Height:     vItem.Block.Height,
-				BlockTime:  vItem.Block.BlockTime,
-			}
 			b.Txs = append(b.Txs, t)
-
-			bd.Block = b
-			bd.Receipts = vItem.Receipts
 		}
+		bd := &BlockDetailResult{Block: b, Receipts: vItem.Receipts}
 		result.Items = append(result.Items, bd)
 	}
 
