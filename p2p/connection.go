@@ -20,6 +20,7 @@ type MConnection struct {
 	config        *MConnConfig
 	key           string //pubkey
 	quit          chan bool
+	versionDone   chan struct{}
 	remoteAddress *NetAddress  //peer 的地址
 	pingTimer     *RepeatTimer // send pings periodically
 	versionTimer  *RepeatTimer
@@ -109,7 +110,7 @@ FOR_LOOP:
 			randNonce := rand.Int31n(102040)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
-			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: EXTERNALADDR, Port: int32((*c.nodeInfo).externalAddr.Port)})
+			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
 			if err != nil {
 				log.Error("Signature", "Error", err.Error())
 				continue
@@ -122,7 +123,6 @@ FOR_LOOP:
 				if pingtimes == 0 {
 					log.Warn("ERR PING", "ERROR", err.Error())
 					(*c.nodeInfo).monitorChan <- c.peer
-
 				}
 				continue
 			}
@@ -131,16 +131,6 @@ FOR_LOOP:
 			c.sendMonitor.Update(true)
 			pingtimes++
 			c.pingTimer.Reset()
-		case <-(*c.nodeInfo).versionChan:
-			randNonce := rand.Int31n(102040)
-			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: EXTERNALADDR, Port: int32((*c.nodeInfo).externalAddr.Port)})
-			if err != nil {
-				log.Error("Signature", "Error", err.Error())
-				continue
-			}
-			if c.sendVersion(in) == nil {
-				c.exChangeVersion(in)
-			}
 
 		case <-c.quit:
 			break FOR_LOOP
@@ -151,7 +141,7 @@ FOR_LOOP:
 
 }
 
-func (c *MConnection) sendVersion(in *pb.P2PPing) error {
+func (c *MConnection) sendVersion() error {
 	client := (*c.nodeInfo).q.GetClient()
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	client.Send(msg, true)
@@ -164,39 +154,24 @@ func (c *MConnection) sendVersion(in *pb.P2PPing) error {
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	resp, err := c.conn.Version2(ctx, &pb.P2PVersion{Version: Version, Service: SERVICE, Timestamp: time.Now().Unix(),
-		AddrRecv: c.remoteAddress.String(), AddrFrom: fmt.Sprintf("%v:%v", EXTERNALADDR, (*c.nodeInfo).externalAddr.Port), Nonce: int64(rand.Int31n(102040)),
-		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
+	randNonce := rand.Int31n(102040)
+	in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
 	if err != nil {
-
-		if c.peer.persistent == false {
-			log.Error("sendVersion", "close", "ok")
-			c.stop()
-			log.Error("SendVersion2", "Error", err.Error())
-		}
-
+		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-	selfExternAddr := resp.AddrRecv
-	log.Info("Version SelfAddr", "Addr", selfExternAddr)
+
+	resp, err := c.conn.Version2(ctx, &pb.P2PVersion{Version: (*c.nodeInfo).cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
+		AddrRecv: c.remoteAddress.String(), AddrFrom: fmt.Sprintf("%v:%v", ExternalAddr, (*c.nodeInfo).externalAddr.Port), Nonce: int64(rand.Int31n(102040)),
+		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
+	if err != nil {
+		log.Error("sendVersion", "close", "ok", "err", err.Error())
+		(*c.nodeInfo).monitorChan <- c.peer
+		return err
+	}
+
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
-}
-func (c *MConnection) exChangeVersion(in *pb.P2PPing) {
-
-	go func(in *pb.P2PPing) {
-
-		for {
-			ticker := time.NewTicker(time.Second * 20)
-			select {
-			case <-ticker.C:
-				log.Debug("exChangeVersion", "sendVersion", "version")
-				c.sendVersion(in)
-			}
-		}
-
-	}(in)
-
 }
 
 func (c *MConnection) getAddr() ([]string, error) {
