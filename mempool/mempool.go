@@ -16,10 +16,11 @@ import (
 	"github.com/petar/GoLLRB/llrb"
 )
 
-var poolCacheSize int64 = 10240 // mempool容量
-var channelSize int64 = 1024    // channel缓存大小
-var minTxFee int64 = 10000000   // 最低交易费
-var maxMsgByte int64 = 100000   // 交易消息最大字节数
+var poolCacheSize int64 = 10240           // mempool容量
+var channelSize int64 = 1024              // channel缓存大小
+var minTxFee int64 = 10000000             // 最低交易费
+var maxMsgByte int64 = 100000             // 交易消息最大字节数
+var mempoolExpiredInterval int64 = 600000 // mempool内交易过期时间，10分钟
 
 // error codes
 var (
@@ -287,23 +288,23 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	}
 
 	if cache.txLlrb.Len() >= cache.size {
-		//		expired := 0
-		//		for _, v := range cache.txMap {
-		//			if time.Now().UnixNano()/1000000-v.enterTime >= 60000 {
-		//				cache.txLlrb.Delete(v)
-		//				delete(cache.txMap, string(v.value.Hash()))
-		//				expired++
-		//			}
-		//		}
+		expired := 0
+		for _, v := range cache.txMap {
+			if time.Now().UnixNano()/1000000-v.enterTime >= mempoolExpiredInterval {
+				cache.txLlrb.Delete(v)
+				delete(cache.txMap, string(v.value.Hash()))
+				mlog.Warn("Delete expired unpacked tx", "tx", v.value)
+				expired++
+			}
+		}
 		if tx.Fee <= cache.LowestFee() {
 			return e02
 		}
-		//		if expired == 0 {
-		//			poppedTx := cache.txLlrb.DeleteMin().(*Item).value
-		//			delete(cache.txMap, string(poppedTx.Hash()))
-		//		}
-		poppedTx := cache.txLlrb.DeleteMin().(*Item).value
-		delete(cache.txMap, string(poppedTx.Hash()))
+		if expired == 0 {
+			poppedTx := cache.txLlrb.DeleteMin().(*Item).value
+			delete(cache.txMap, string(poppedTx.Hash()))
+			mlog.Warn("Delete lowest-fee unpacked tx", "tx", poppedTx)
+		}
 	}
 
 	it := &Item{value: tx, priority: tx.Fee, enterTime: time.Now().UnixNano() / 1000000}
@@ -479,7 +480,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{int64(mem.Size())}))
 				mlog.Warn("reply EventGetMempoolSize ok", "msg", msg)
-			case /*types.EventGetLastMempool*/ 404:
+			case types.EventGetLastMempool:
 				// 消息类型EventGetLastMempool：获取最新十条加入到Mempool的交易
 				txList := mem.GetLatestTx()
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
