@@ -147,6 +147,12 @@ func main() {
 			return
 		}
 		GetPeerInfo()
+	case "getlastmempool":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetLastMempool()
 	default:
 		fmt.Print("指令错误")
 	}
@@ -174,6 +180,7 @@ func LoadHelp() {
 	fmt.Println("getlastheader []                       : 获取最新区块头")
 	fmt.Println("getheaders [start, end, isdetail]      : 获取指定区间区块头")
 	fmt.Println("getpeerinfo []                         : 获取远程节点信息")
+	fmt.Println("getlastmempool []                      : 获取最新加入到内存池中的十条交易")
 }
 
 type AccountsResult struct {
@@ -922,6 +929,43 @@ func GetPeerInfo() {
 	}
 
 	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetLastMempool() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyTxList
+	err = rpc.Call("Chain33.GetLastMemPool", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var result TxListResult
+	for _, v := range res.Txs {
+		feeResult := strconv.FormatFloat(float64(v.Fee)/float64(1e8), 'f', 4, 64)
+		t := &TxResult{
+			Execer:    v.Execer,
+			Payload:   v.Payload,
+			Signature: v.Signature,
+			Expire:    v.Expire,
+			Nonce:     v.Nonce,
+			To:        v.To,
+			Fee:       feeResult,
+		}
+		result.Txs = append(result.Txs, t)
+	}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
