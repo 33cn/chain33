@@ -36,7 +36,9 @@ var tx12 = &types.Transaction{Execer: []byte("tester12"), Payload: []byte("mempo
 
 var c, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 var hex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-var privKey, _ = c.PrivKeyFromBytes(common.FromHex(hex))
+
+var a, _ = common.FromHex(hex)
+var privKey, _ = c.PrivKeyFromBytes(a)
 
 //var privTo, _ = c.GenKey()
 //var ad = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
@@ -58,7 +60,7 @@ func init() {
 	SetLogLevel("warn") // 输出WARN(含)以下log
 	//	SetLogLevel("eror") // 输出EROR(含)以下log
 	//	SetLogLevel("crit") // 输出CRIT(含)以下log
-	//  SetLogLevel("") // 输出所有log
+	//	SetLogLevel("") // 输出所有log
 }
 
 func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.Store) {
@@ -115,6 +117,7 @@ func TestAddTx(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
@@ -134,6 +137,7 @@ func TestAddDuplicatedTx(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func add4Tx(qclient queue.IClient) {
@@ -211,6 +215,7 @@ func TestGetTxList(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestAddMoreTxThanPoolSize(t *testing.T) {
@@ -228,6 +233,7 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestRemoveTxOfBlock(t *testing.T) {
@@ -255,6 +261,57 @@ func TestRemoveTxOfBlock(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
+}
+
+func TestDuplicateMempool(t *testing.T) {
+	mem, _, chain, s := initEnv(0)
+
+	// add 10 txs
+	add10Tx(mem.qclient)
+
+	msg := mem.qclient.NewMessage("mempool", types.EventGetMempool, nil)
+	mem.qclient.Send(msg, true)
+
+	reply, err := mem.qclient.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 10 {
+		t.Error("TestDuplicateMempool failed")
+	}
+
+	chain.Close()
+	s.Close()
+	mem.Close()
+}
+
+func TestGetLatestTx(t *testing.T) {
+	mem, _, chain, s := initEnv(0)
+
+	// add 10 txs
+	add10Tx(mem.qclient)
+
+	msg := mem.qclient.NewMessage("mempool", types.EventGetLastMempool, nil)
+	mem.qclient.Send(msg, true)
+
+	reply, err := mem.qclient.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 10 {
+		t.Error("TestGetLatestTx failed")
+	}
+
+	chain.Close()
+	s.Close()
+	mem.Close()
 }
 
 //func TestBigMessage(t *testing.T) {
@@ -272,12 +329,13 @@ func TestCheckLowFee(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if resp.Err() != e02 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e02.Error() {
 		t.Error("TestCheckLowFee failed")
 	}
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestCheckManyTxs(t *testing.T) {
@@ -290,12 +348,13 @@ func TestCheckManyTxs(t *testing.T) {
 	mem.qclient.Send(msg11, true)
 	resp, _ := mem.qclient.Wait(msg11)
 
-	if resp.Err() != e03 || mem.Size() != 10 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e03.Error() || mem.Size() != 10 {
 		t.Error("TestCheckManyTxs failed")
 	}
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestCheckSignature(t *testing.T) {
@@ -309,12 +368,13 @@ func TestCheckSignature(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if resp.Err() != e04 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e04.Error() {
 		t.Error("TestCheckSignature failed")
 	}
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestCheckBalance(t *testing.T) {
@@ -324,12 +384,13 @@ func TestCheckBalance(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if resp.Err() != e05 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e05.Error() {
 		t.Error("TestCheckBalance failed")
 	}
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestCheckExpire(t *testing.T) {
@@ -340,10 +401,11 @@ func TestCheckExpire(t *testing.T) {
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
-	if resp.Err() != e07 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e07.Error() {
 		t.Error("TestCheckExpire failed")
 	}
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }

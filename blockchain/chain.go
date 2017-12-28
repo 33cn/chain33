@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"container/list"
 	"errors"
 	"fmt"
@@ -268,8 +269,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		case types.EventGetBlockOverview: //BlockOverview
-			ReqInt := (msg.Data).(*types.ReqInt)
-			BlockOverview, err := chain.ProcGetBlockOverview(ReqInt)
+			ReqHash := (msg.Data).(*types.ReqHash)
+			BlockOverview, err := chain.ProcGetBlockOverview(ReqHash)
 			if err != nil {
 				chainlog.Error("ProcGetBlockOverview", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, err))
@@ -287,7 +288,16 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Info("ProcGetAddrOverview", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, AddrOverview))
 			}
-
+		case types.EventGetBlockHash: //GetBlockHash
+			height := (msg.Data).(*types.ReqInt)
+			replyhash, err := chain.ProcGetBlockHash(height)
+			if err != nil {
+				chainlog.Error("ProcGetBlockHash", "err", err.Error())
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, err))
+			} else {
+				chainlog.Info("ProcGetBlockHash", "success", "ok")
+				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, replyhash))
+			}
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -320,17 +330,20 @@ FOR_LOOP:
 			newbatch := chain.blockStore.NewBatch(true)
 			var stratblockheight int64 = 0
 			var endblockheight int64 = 0
-			var prevHash []byte
+			var prevStateHash []byte
+			var prevblkHash []byte
 			// 可以批量处理BatchBlockNum个block到db中
 			currentheight := chain.blockStore.Height()
 			if currentheight == -1 {
-				prevHash = common.Hash{}.Bytes()
+				prevStateHash = common.Hash{}.Bytes()
+				prevblkHash = common.Hash{}.Bytes()
 			} else {
 				curblock, err := chain.GetBlock(currentheight)
 				if err != nil {
 					continue FOR_LOOP
 				}
-				prevHash = curblock.Block.StateHash
+				prevStateHash = curblock.Block.GetStateHash()
+				prevblkHash = curblock.Block.Hash()
 			}
 			prevheight := currentheight
 			for {
@@ -346,10 +359,16 @@ FOR_LOOP:
 					//chainlog.Info("trySyncTicker block is nil")
 					break
 				}
-
-				blockdetail, err := util.ExecBlock(chain.q, prevHash, block, true)
+				if !bytes.Equal(prevblkHash, block.GetParentHash()) {
+					chainlog.Error("trySyncTicker ParentHash err!", "height", block.Height)
+					//blockhash校验不过需要从blockpool中删除，重新发起请求
+					chain.blockPool.DelBlock(block.GetHeight())
+					go chain.FetchBlock(block.GetHeight(), block.GetHeight())
+					break
+				}
+				blockdetail, err := util.ExecBlock(chain.q, prevStateHash, block, true)
 				if err != nil {
-					chainlog.Info("trySyncTicker ExecBlock is err!", "height", block.Height, "err", err)
+					chainlog.Error("trySyncTicker ExecBlock is err!", "height", block.Height, "err", err)
 					//block校验不过需要从blockpool中删除，重新发起请求
 					chain.blockPool.DelBlock(block.GetHeight())
 					go chain.FetchBlock(block.GetHeight(), block.GetHeight())
@@ -373,14 +392,15 @@ FOR_LOOP:
 				//将已经存储的blocks添加到list缓存中便于查找
 				chain.cacheBlock(blockdetail)
 
-				prevHash = block.StateHash
+				prevStateHash = blockdetail.Block.GetStateHash()
+				prevblkHash = blockdetail.Block.Hash()
+				prevheight = blockdetail.Block.Height
 
 				//记录同步开始的第一个block高度和最后一个block的高度，用于同步完成之后删除缓存中的block记录
 				if prevheight == currentheight {
 					stratblockheight = block.Height
 				}
 				endblockheight = blockdetail.Block.Height
-				prevheight = blockdetail.Block.Height
 			}
 			newbatch.Write()
 
@@ -433,6 +453,22 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	TransactionDetail.Height = txresult.GetHeight()
 	TransactionDetail.Index = int64(txresult.GetIndex())
 	TransactionDetail.Blocktime = txresult.GetBlocktime()
+
+	//获取Amount
+	var action types.CoinsAction
+	err = types.Decode(txresult.GetTx().GetPayload(), &action)
+	if err != nil {
+		chainlog.Error("ProcQueryTxMsg Decode err!", "Height", txresult.GetHeight(), "txindex", txresult.GetIndex(), "err", err)
+	}
+	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+		transfer := action.GetTransfer()
+		TransactionDetail.Amount = transfer.Amount
+	}
+	//获取from地址
+	pubkey := txresult.GetTx().Signature.GetPubkey()
+	addr := account.PubKeyToAddress(pubkey)
+	TransactionDetail.Fromaddr = addr.String()
+
 	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
 
 	return &TransactionDetail, nil
@@ -488,8 +524,10 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 			if requestblock.Isdetail {
 				blocks.Items[j] = block
 			} else {
-				block.Receipts = nil
-				blocks.Items[j] = block
+				var blockdetail types.BlockDetail
+				blockdetail.Block = block.Block
+				blockdetail.Receipts = nil
+				blocks.Items[j] = &blockdetail
 			}
 		} else {
 			return nil, err
@@ -520,16 +558,25 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (er
 	} else if block.Height == currentheight+1 { //我们需要的高度，直接存储到db中
 		//通过前一个block的statehash来执行此block
 		var prevstateHash []byte
+		var prevblkHash []byte
 		if currentheight == -1 {
 			prevstateHash = common.Hash{}.Bytes()
+			prevblkHash = common.Hash{}.Bytes()
 		} else {
 			prvblock, err := chain.GetBlock(currentheight)
 			if err != nil {
 				chainlog.Error("ProcAddBlockDetailMsg", "err", err)
 				return err
 			}
-			prevstateHash = prvblock.Block.StateHash
+			prevstateHash = prvblock.Block.GetStateHash()
+			prevblkHash = prvblock.Block.Hash()
 		}
+		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
+			outstr := fmt.Sprintf("ProcAddBlockMsg ParentHash err height:%d", block.Height)
+			err := errors.New(outstr)
+			return err
+		}
+
 		blockDetail, err := util.ExecBlock(chain.q, prevstateHash, block, true)
 		if err != nil {
 			chainlog.Error("ProcAddBlockMsg ExecBlock err!", "err", err)
@@ -595,6 +642,23 @@ func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.B
 
 	//我们需要的高度，直接存储到db中
 	if blockDetail.Block.Height == currentheight+1 {
+		//校验block的ParentHash值
+		var prevblkHash []byte
+		if currentheight == -1 {
+			prevblkHash = common.Hash{}.Bytes()
+		} else {
+			curblock, err := chain.GetBlock(currentheight)
+			if err != nil {
+				return err
+			}
+			prevblkHash = curblock.Block.Hash()
+		}
+		if !bytes.Equal(prevblkHash, blockDetail.Block.GetParentHash()) {
+			outstr := fmt.Sprintf("ProcAddBlockDetail ParentHash err height:%d", blockDetail.Block.Height)
+			err := errors.New(outstr)
+			return err
+		}
+
 		newbatch := chain.blockStore.NewBatch(true)
 
 		//保存tx交易结果信息到db中
@@ -791,6 +855,10 @@ func (chain *BlockChain) CheckcacheBlock(height int64) (block *types.BlockDetail
 func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 	cachelock.Lock()
 	defer cachelock.Unlock()
+
+	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
+		chainlog.Debug("cacheBlock  Receipts ==0", "height", blockdetail.Block.GetHeight())
+	}
 
 	// Create entry in cache and append to cacheQueue.
 	elem := chain.cacheQueue.PushBack(blockdetail)
@@ -1002,7 +1070,24 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			txDetail.Blocktime = txresult.GetBlocktime()
 			txDetail.Height = txresult.GetHeight()
 			txDetail.Index = int64(txresult.GetIndex())
-			//chainlog.Info("ProcGetTransactionByHashes", "txDetail", txDetail.String())
+
+			//获取Amount
+			var action types.CoinsAction
+			err := types.Decode(txresult.GetTx().GetPayload(), &action)
+			if err != nil {
+				chainlog.Error("ProcGetTransactionByHashes Decode err!", "Height", txresult.GetHeight(), "txindex", txresult.GetIndex(), "err", err)
+				continue
+			}
+			if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+				transfer := action.GetTransfer()
+				txDetail.Amount = transfer.Amount
+			}
+			//获取from地址
+			pubkey := txresult.GetTx().Signature.GetPubkey()
+			addr := account.PubKeyToAddress(pubkey)
+			txDetail.Fromaddr = addr.String()
+
+			chainlog.Info("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs[index] = &txDetail
 		}
 	}
@@ -1083,16 +1168,21 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 //	int64  txCount = 2;
 //	repeated bytes txHashes = 3;}
 //获取BlockOverview
-func (chain *BlockChain) ProcGetBlockOverview(ReqInt *types.ReqInt) (*types.BlockOverview, error) {
+func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.BlockOverview, error) {
 
-	if ReqInt == nil {
+	if ReqHash == nil {
 		err := errors.New("ProcGetBlockOverview input err!")
 		return nil, err
 	}
-
+	//通过blockhash获取blockheight
+	height := chain.blockStore.GetHeightByBlockHash(ReqHash.Hash)
+	if height <= -1 {
+		err := errors.New("ProcGetBlockOverview:GetHeightByBlockHash err")
+		return nil, err
+	}
 	var blockOverview types.BlockOverview
 	//通过height获取block
-	block, err := chain.GetBlock(ReqInt.GetHeight())
+	block, err := chain.GetBlock(height)
 	if err != nil || block == nil {
 		chainlog.Error("ProcGetBlockOverview", "GetBlock err ", err)
 		return nil, err
@@ -1163,4 +1253,19 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	chainlog.Info("ProcGetAddrOverview", "addrOverview", addrOverview.String())
 
 	return &addrOverview, nil
+}
+
+//通过blockheight 获取blockhash
+func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHash, error) {
+	if height == nil {
+		err := errors.New("ProcGetBlockHash input err!")
+		return nil, err
+	}
+	var ReplyHash types.ReplyHash
+	block, err := chain.GetBlock(height.GetHeight())
+	if err != nil {
+		return nil, err
+	}
+	ReplyHash.Hash = block.Block.Hash()
+	return &ReplyHash, nil
 }

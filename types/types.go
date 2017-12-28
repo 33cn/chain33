@@ -47,6 +47,33 @@ func (tx *Transaction) CheckSign() bool {
 	return pub.VerifyBytes(data, signbytes)
 }
 
+var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
+
+//检查交易是否过期，过期返回true，未过期返回false
+func (tx *Transaction) IsExpire(height, blocktime int64) bool {
+	valid := tx.Expire
+	// Expire为0，返回true
+	if valid == 0 {
+		return false
+	}
+
+	if valid <= expireBound {
+		//Expire小于1e9，为height
+		if valid > height { // 未过期
+			return false
+		} else { // 过期
+			return true
+		}
+	} else {
+		// Expire大于1e9，为blockTime
+		if valid > blocktime { // 未过期
+			return false
+		} else { // 过期
+			return true
+		}
+	}
+}
+
 func (block *Block) Hash() []byte {
 	head := &Header{}
 	head.Version = block.Version
@@ -87,4 +114,10 @@ func (innernode *InnerNode) Hash() []byte {
 		panic(err)
 	}
 	return common.Sha256(data)
+}
+
+func NewErrReceipt(err error) *Receipt {
+	berr := err.Error()
+	errlog := &ReceiptLog{TyLogErr, []byte(berr)}
+	return &Receipt{ExecErr, nil, []*ReceiptLog{errlog}}
 }
