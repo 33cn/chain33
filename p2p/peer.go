@@ -11,6 +11,7 @@ import (
 )
 
 type peer struct {
+	wg         sync.WaitGroup
 	pmutx      sync.Mutex
 	nodeInfo   **NodeInfo
 	outbound   bool
@@ -25,12 +26,13 @@ type peer struct {
 
 func (p *peer) Start() error {
 	p.mconn.key = p.key
+	//p.wg.Add(1)
 	go p.subStreamBlock()
 	return p.mconn.start()
 }
 func (p *peer) subStreamBlock() {
 BEGIN:
-	//log.Debug("subStreamBlock", "sub", "block")
+	//defer p.wg.Done()
 	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
 	if err != nil {
 		log.Error("SubStreamBlock", "call RouteChat err", err.Error()+p.Addr())
@@ -47,6 +49,7 @@ BEGIN:
 			log.Debug("SubStreamBlock", "break", "peerdone")
 			resp.CloseSend()
 			return
+
 		default:
 
 			data, err := resp.Recv()
@@ -57,7 +60,7 @@ BEGIN:
 				goto BEGIN
 
 			}
-			log.Info("SubStreamBlock", "recv blockorTxXXXXXXXXXXXXXXXXXXXXXXXXX", data)
+			log.Debug("SubStreamBlock", "recv blockorTxXXXXXXXXXXXXXXXXXXXXXXXXX", data)
 
 			if block := data.GetBlock(); block != nil {
 				log.Debug("SubStreamBlock", "block", block.GetBlock())
@@ -84,13 +87,9 @@ BEGIN:
 
 }
 
-func (p *peer) streamStop() {
-	p.streamDone <- struct{}{}
-}
-
 func (p *peer) Stop() {
+	close(p.streamDone)
 	p.setRunning(false)
-	p.streamStop()
 	p.mconn.stop()
 
 }

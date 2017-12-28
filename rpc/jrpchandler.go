@@ -519,3 +519,29 @@ func (req Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
 	}
 	return nil
 }
+
+func (req Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
+	reply, err := req.cli.GetLastMemPool(&in)
+	if err != nil {
+		return err
+	}
+
+	{
+		var txlist ReplyTxList
+		for _, tx := range reply.Txs {
+			txlist.Txs = append(txlist.Txs,
+				&Transaction{
+					Execer:  string(tx.GetExecer()),
+					Payload: common.ToHex(tx.GetPayload()),
+					Fee:     tx.Fee,
+					Expire:  tx.Expire,
+					Nonce:   tx.Nonce,
+					To:      tx.To,
+					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
+						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+		}
+		*result = &txlist
+	}
+	return nil
+}
