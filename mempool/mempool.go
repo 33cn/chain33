@@ -1,7 +1,7 @@
 package mempool
 
 import (
-	"container/heap"
+	//	"container/heap"
 	"errors"
 	"reflect"
 	"runtime"
@@ -13,13 +13,14 @@ import (
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"github.com/petar/GoLLRB/llrb"
 )
 
-var poolCacheSize int64 = 10240    // mempool容量
-var channelSize int64 = 1024       // channel缓存大小
-var minTxFee int64 = 10000000      // 最低交易费
-var maxMsgByte int64 = 100000      // 交易消息最大字节数
-var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
+var poolCacheSize int64 = 10240           // mempool容量
+var channelSize int64 = 1024              // channel缓存大小
+var minTxFee int64 = 10000000             // 最低交易费
+var maxMsgByte int64 = 100000             // 交易消息最大字节数
+var mempoolExpiredInterval int64 = 600000 // mempool内交易过期时间，10分钟
 
 // error codes
 var (
@@ -161,8 +162,7 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 	}
 
 	for i = 0; i < minSize; i++ {
-		popped := heap.Pop(mem.cache.txHeap)
-		poppedTx := popped.(*Item).value
+		poppedTx := mem.cache.txLlrb.DeleteMax().(*Item).value
 		result = append(result, poppedTx)
 		delete(mem.cache.txMap, string(poppedTx.Hash()))
 		// 账户交易数量减1
@@ -178,7 +178,7 @@ func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
 	defer mem.proxyMtx.Unlock()
 
 	var result []*types.Transaction
-	for _, v := range *mem.cache.txHeap {
+	for _, v := range mem.cache.txMap {
 		result = append(result, v.value)
 	}
 
@@ -231,6 +231,13 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	return mem.qclient.Wait(msg)
 }
 
+// Mempool.GetLatestTx返回最新十条加入到Mempool的交易
+func (mem *Mempool) GetLatestTx() []*types.Transaction {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.GetLatestTx()
+}
+
 // Mempool.Close关闭Mempool
 func (mem *Mempool) Close() {
 	mlog.Info("mempool module closed")
@@ -242,7 +249,8 @@ func (mem *Mempool) Close() {
 type txCache struct {
 	size       int
 	txMap      map[string]*Item
-	txHeap     *PriorityQueue
+	txLlrb     *llrb.LLRB
+	txFrontTen []*types.Transaction
 	accountMap map[string]int64
 }
 
@@ -251,14 +259,15 @@ func newTxCache(cacheSize int64) *txCache {
 	return &txCache{
 		size:       int(cacheSize),
 		txMap:      make(map[string]*Item, cacheSize),
-		txHeap:     new(PriorityQueue),
+		txLlrb:     llrb.New(),
+		txFrontTen: make([]*types.Transaction, 0),
 		accountMap: make(map[string]int64),
 	}
 }
 
 // txCache.LowestFee返回txHeap第一个元素的交易Fee
 func (cache *txCache) LowestFee() int64 {
-	return cache.txHeap.Top().(*Item).priority
+	return cache.txLlrb.Min().(*Item).priority
 }
 
 // txCache.TxNumOfAccount返回账户在Mempool中交易数量
@@ -278,17 +287,28 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		return e01
 	}
 
-	if cache.txHeap.Len() >= cache.size {
+	if cache.txLlrb.Len() >= cache.size {
+		expired := 0
+		for _, v := range cache.txMap {
+			if time.Now().UnixNano()/1000000-v.enterTime >= mempoolExpiredInterval {
+				cache.txLlrb.Delete(v)
+				delete(cache.txMap, string(v.value.Hash()))
+				mlog.Warn("Delete expired unpacked tx", "tx", v.value)
+				expired++
+			}
+		}
 		if tx.Fee <= cache.LowestFee() {
 			return e02
 		}
-		popped := heap.Pop(cache.txHeap)
-		poppedTx := popped.(*Item).value
-		delete(cache.txMap, string(poppedTx.Hash()))
+		if expired == 0 {
+			poppedTx := cache.txLlrb.DeleteMin().(*Item).value
+			delete(cache.txMap, string(poppedTx.Hash()))
+			mlog.Warn("Delete lowest-fee unpacked tx", "tx", poppedTx)
+		}
 	}
 
-	it := &Item{value: tx, priority: tx.Fee, index: cache.Size()}
-	cache.txHeap.Push(it)
+	it := &Item{value: tx, priority: tx.Fee, enterTime: time.Now().UnixNano() / 1000000}
+	cache.txLlrb.InsertNoReplace(it)
 	cache.txMap[string(tx.Hash())] = it
 
 	// 账户交易数量
@@ -299,13 +319,23 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		cache.accountMap[accountAddr] = 1
 	}
 
+	if len(cache.txFrontTen) >= 10 {
+		cache.txFrontTen = cache.txFrontTen[len(cache.txFrontTen)-10:]
+	}
+	cache.txFrontTen = append(cache.txFrontTen, tx)
+
 	return nil
+}
+
+// txCache.GetLatestTx返回最新十条加入到txCache的交易
+func (cache *txCache) GetLatestTx() []*types.Transaction {
+	return cache.txFrontTen
 }
 
 // txCache.Remove移除txCache中给定tx
 func (cache *txCache) Remove(tx *types.Transaction) {
-	removed := cache.txMap[string(tx.Hash())].index
-	cache.txHeap.Remove(removed)
+	removed := cache.txMap[string(tx.Hash())]
+	cache.txLlrb.Delete(removed)
 	delete(cache.txMap, string(tx.Hash()))
 	// 账户交易数量减1
 	cache.AccountTxNumDecrease(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String())
@@ -313,12 +343,12 @@ func (cache *txCache) Remove(tx *types.Transaction) {
 
 // txCache.Size返回txCache中已存tx数目
 func (cache *txCache) Size() int {
-	return cache.txHeap.Len()
+	return cache.txLlrb.Len()
 }
 
 // txCache.SetSize用来设置Mempool容量
 func (cache *txCache) SetSize(newSize int) {
-	if cache.txHeap.Len() > 0 {
+	if cache.txLlrb.Len() > 0 {
 		panic("only can set a empty size")
 	}
 	cache.size = newSize
@@ -333,6 +363,19 @@ func (cache *txCache) AccountTxNumDecrease(addr string) {
 			delete(cache.accountMap, addr)
 		}
 	}
+}
+
+//--------------------------------------------------------------------------------
+// Module LLRB
+
+type Item struct {
+	value     *types.Transaction
+	priority  int64
+	enterTime int64
+}
+
+func (i Item) Less(it llrb.Item) bool {
+	return i.priority < it.(*Item).priority
 }
 
 //--------------------------------------------------------------------------------
@@ -385,7 +428,8 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	go func() {
 		for msg := range mem.qclient.Recv() {
 			mlog.Warn("mempool recv", "msg", msg)
-			if msg.Ty == types.EventTx {
+			switch msg.Ty {
+			case types.EventTx:
 				// 消息类型EventTx：申请添加交易到Mempool
 				if msg.GetData() == nil { // 判断消息是否含有nil交易
 					mlog.Error("wrong tx", "err", e09)
@@ -393,7 +437,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					mem.badChan <- msg
 					continue
 				}
-				valid := mem.CheckExpire(msg) // 检查交易是否过期
+				valid := mem.CheckExpireValid(msg) // 检查交易是否过期
 				if valid {
 					// 未过期，交易消息传入txChan，待检查
 					mlog.Warn("check tx", "txChan", msg)
@@ -404,12 +448,12 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					mem.badChan <- msg
 					continue
 				}
-			} else if msg.Ty == types.EventGetMempool {
+			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
 				mlog.Warn("reply EventGetMempool ok", "msg", msg)
-			} else if msg.Ty == types.EventTxList {
+			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				if reflect.TypeOf(msg.GetData()).String() != "int" {
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
@@ -428,15 +472,21 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 					&types.ReplyTxList{Txs: txList}))
 				mlog.Warn("reply EventTxList ok", "msg", msg)
-			} else if msg.Ty == types.EventAddBlock {
+			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
-			} else if msg.Ty == types.EventGetMempoolSize {
+			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{int64(mem.Size())}))
 				mlog.Warn("reply EventGetMempoolSize ok", "msg", msg)
-			} else {
+			case types.EventGetLastMempool:
+				// 消息类型EventGetLastMempool：获取最新十条加入到Mempool的交易
+				txList := mem.GetLatestTx()
+				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
+					&types.ReplyTxList{Txs: txList}))
+				mlog.Warn("reply EventGetLastMempool ok", "msg", msg)
+			default:
 				continue
 			}
 		}

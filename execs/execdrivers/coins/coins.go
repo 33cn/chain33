@@ -25,6 +25,8 @@ var clog = log.New("module", "execs.coins")
 
 var keyBuf [200]byte
 
+const MAX_COIN int64 = 1e16
+
 func init() {
 	execdrivers.Register("coins", newCoins())
 }
@@ -46,9 +48,11 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 	clog.Info("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
+		if transfer.Amount <= 0 || transfer.Amount >= MAX_COIN {
+			return types.NewErrReceipt(types.ErrAmount)
+		}
 		accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
 		accTo := account.LoadAccount(n.db, tx.To)
-
 		b := accFrom.GetBalance() - tx.Fee - transfer.Amount
 		clog.Info("balance ", "from", accFrom.GetBalance(), "fee", tx.Fee, "amount", transfer.Amount)
 		if b >= 0 {
@@ -85,17 +89,11 @@ cutFee:
 		return cutFeeReceipt(accFrom, receiptBalance)
 	}
 	//return error
-	return errReceipt(types.ErrActionNotSupport)
+	return types.NewErrReceipt(types.ErrActionNotSupport)
 }
 
 func (n *Coins) SetDB(db dbm.KVDB) {
 	n.db = db
-}
-
-func errReceipt(err error) *types.Receipt {
-	berr := err.Error()
-	errlog := &types.ReceiptLog{types.TyLogErr, []byte(berr)}
-	return &types.Receipt{types.ExecErr, nil, []*types.ReceiptLog{errlog}}
 }
 
 //only pack the transaction, exec is error.

@@ -255,7 +255,7 @@ func (s *p2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 	remoteNetwork, _ := NewNetAddressString(remoteaddr)
 
 	log.Debug("RECV PEER VERSION", "VERSION", *in)
-	s.node.addrBook.addAddress(remoteNetwork)
+	s.node.addrBook.AddAddress(remoteNetwork)
 	return &pb.P2PVerAck{Version: Version, Service: 6, Nonce: in.Nonce}, nil
 }
 func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
@@ -266,23 +266,22 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		peeraddr = strings.Split(getctx.Addr.String(), ":")[0]
 		log.Debug("Version2", "Addr", peeraddr)
 	}
+
+	log.Debug("RECV PEER VERSION", "VERSION", *in)
+	if in.Version > s.node.nodeInfo.cfg.GetVerMax() || in.Version < s.node.nodeInfo.cfg.GetVerMix() {
+		log.Error("VersionCheck", "Error", "Version not Support")
+		return nil, fmt.Errorf("Version No Support")
+	}
 	//in.AddrFrom 表示远程客户端的地址,如果客户端的远程地址与自己定义的addrfrom 地址一直，则认为在外网
 	if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
 		remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 		if err == nil && in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM {
-			s.node.addrBook.addAddress(remoteNetwork)
+			s.node.addrBook.AddAddress(remoteNetwork)
 		}
-	}
-
-	log.Debug("RECV PEER VERSION", "VERSION", *in)
-	if Version > in.Version {
-		//Not support this Version
-		log.Error("VersionCheck", "Error", "Version not Support")
-		return nil, fmt.Errorf("Version No Support")
 	}
 	s.addInBound(in)
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
-	return &pb.P2PVersion{Version: Version, Service: SERVICE, Nonce: in.Nonce,
+	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: SERVICE, Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
 }
 
@@ -461,7 +460,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	peerinfo.Header = header
 	peerinfo.Name = pub
 	peerinfo.MempoolSize = int32(meminfo.GetSize())
-	peerinfo.Addr = EXTERNALADDR
+	peerinfo.Addr = ExternalAddr
 	peerinfo.Port = int32(s.node.nodeInfo.GetExternalAddr().Port)
 	return &peerinfo, nil
 }
