@@ -1,7 +1,7 @@
 syntax = "proto3";
 package types;
 
-//add by bangzhu.li
+
 service grpcservice{
 	//chain33 对外提供服务的接口
 	//区块链接口
@@ -27,7 +27,7 @@ service grpcservice{
 	rpc Lock(ReqNil)returns(Reply){}
 	rpc UnLock(WalletUnLock)returns(Reply){}
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
-	
+	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
 	
 }
 
@@ -546,6 +546,9 @@ message P2P {
 	bool            isSeed=3;
 	repeated string seeds=4;
 	bool enable=5;
+	int32 version=6;
+	int32 verMix=7;
+	int32 verMax=8;
 }
 
 message Wallet{
