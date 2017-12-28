@@ -275,8 +275,32 @@ func TestDuplicateMempool(t *testing.T) {
 		return
 	}
 
-	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 {
+	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 10 {
 		t.Error("TestDuplicateMempool failed")
+	}
+
+	chain.Close()
+	s.Close()
+}
+
+func TestGetLatestTx(t *testing.T) {
+	mem, _, chain, s := initEnv(0)
+
+	// add 10 txs
+	add10Tx(mem.qclient)
+
+	msg := mem.qclient.NewMessage("mempool", types.EventGetLastMempool, nil)
+	mem.qclient.Send(msg, true)
+
+	reply, err := mem.qclient.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 10 {
+		t.Error("TestGetLatestTx failed")
 	}
 
 	chain.Close()
