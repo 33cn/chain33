@@ -55,7 +55,7 @@ func (m *Monitor) Start() {
 			case <-tick.C:
 				m.ChangeRunning()
 			case <-m.done:
-				break
+				return
 			}
 		}
 
@@ -101,4 +101,5 @@ func (m *Monitor) Stop() {
 	defer m.mtx.Unlock()
 	m.isrunning = false
 	m.done <- false
+	log.Debug("monitor", "close", "ok")
 }

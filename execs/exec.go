@@ -56,6 +56,11 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 				execute := NewExecute(datas.StateHash, q)
 				var receipts []*types.Receipt
 				for i := 0; i < len(datas.Txs); i++ {
+					if datas.Height > 0 && datas.BlockTime > 0 && datas.Txs[i].IsExpire(datas.Height, datas.BlockTime) { //如果已经过期
+						receipt := types.NewErrReceipt(types.ErrTxExpire)
+						receipts = append(receipts, receipt)
+						continue
+					}
 					receipt := execute.Exec(datas.Txs[i])
 					elog.Info("receipt of tx", "receipt=", receipt)
 					receipts = append(receipts, receipt)

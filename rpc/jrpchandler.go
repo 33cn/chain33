@@ -15,7 +15,11 @@ type Chain33 struct {
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	fmt.Println("jrpc transaction:", in)
 	var parm types.Transaction
-	types.Decode(common.FromHex(in.Data), &parm)
+	data, err := common.FromHex(in.Data)
+	if err != nil {
+		return err
+	}
+	types.Decode(data, &parm)
 	log.Debug("SendTransaction", "parm", parm)
 	reply := req.cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
@@ -29,8 +33,12 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 
 func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
+	hash, err := common.FromHex(in.Hash)
+	if err != nil {
+		return err
+	}
 
-	data.Hash = common.FromHex(in.Hash)
+	data.Hash = hash
 	reply, err := req.cli.QueryTx(data.Hash)
 	if err != nil {
 		return err
@@ -46,10 +54,9 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 			Expire:  reply.Tx.Expire,
 			Nonce:   reply.Tx.Nonce,
 			To:      reply.Tx.To,
-			Signature: &Signature{Ty: reply.Tx.Signature.Ty,
-				Pubkey:    common.ToHex(reply.Tx.Signature.Pubkey),
-				Signature: common.ToHex(reply.Tx.Signature.Signature)}}
-
+			Signature: &Signature{Ty: reply.Tx.Signature.GetTy(),
+				Pubkey:    common.ToHex(reply.Tx.Signature.GetPubkey()),
+				Signature: common.ToHex(reply.Tx.Signature.GetSignature())}}
 		transDetail.Receipt = &ReceiptData{Ty: reply.Receipt.Ty}
 		for _, log := range reply.Receipt.Logs {
 			transDetail.Receipt.Logs = append(transDetail.Receipt.Logs,
@@ -62,6 +69,8 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 		transDetail.Height = reply.GetHeight()
 		transDetail.Index = reply.GetIndex()
 		transDetail.Blocktime = reply.GetBlocktime()
+		transDetail.Amount = reply.GetAmount()
+		transDetail.Fromaddr = reply.GetFromaddr()
 		*result = &transDetail
 	}
 
@@ -93,7 +102,7 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			for _, tx := range item.Block.Txs {
 				block.Txs = append(block.Txs,
 					&Transaction{
-						Execer:  common.ToHex(tx.GetExecer()),
+						Execer:  string(tx.GetExecer()),
 						Payload: common.ToHex(tx.GetPayload()),
 						Fee:     tx.Fee,
 						Expire:  tx.Expire,
@@ -180,7 +189,11 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	var parm types.ReqHashes
 	parm.Hashes = make([][]byte, 0)
 	for _, v := range in.Hashes {
-		hb := common.FromHex(v)
+		//hb := common.FromHex(v)
+		hb, err := common.FromHex(v)
+		if err != nil {
+			continue
+		}
 		parm.Hashes = append(parm.Hashes, hb)
 
 	}
@@ -222,6 +235,8 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 					Blocktime: tx.GetBlocktime(),
 					Receipt:   &recp,
 					Proofs:    proofs,
+					Amount:    tx.GetAmount(),
+					Fromaddr:  tx.GetFromaddr(),
 				})
 
 		}
@@ -243,7 +258,7 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 		for _, tx := range reply.Txs {
 			txlist.Txs = append(txlist.Txs,
 				&Transaction{
-					Execer:  common.ToHex(tx.GetExecer()),
+					Execer:  string(tx.GetExecer()),
 					Payload: common.ToHex(tx.GetPayload()),
 					Fee:     tx.Fee,
 					Expire:  tx.Expire,
@@ -295,7 +310,7 @@ func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error
 
 func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}) error {
 	var parm types.ReqWalletTransactionList
-	parm.FromTx = common.FromHex(in.FromTx)
+	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
 	reply, err := req.cli.WalletTxList(&parm)
@@ -319,7 +334,7 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 
 			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
 				Tx: &Transaction{
-					Execer:  common.ToHex(tx.GetTx().GetExecer()),
+					Execer:  string(tx.GetTx().GetExecer()),
 					Payload: common.ToHex(tx.GetTx().GetPayload()),
 					Fee:     tx.GetTx().GetFee(),
 					Expire:  tx.GetTx().GetExpire(),
@@ -336,6 +351,7 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 				Blocktime: tx.GetBlocktime(),
 				Amount:    tx.GetAmount(),
 				Fromaddr:  tx.GetFromaddr(),
+				Txhash:    common.ToHex(tx.GetTxhash()),
 			})
 
 		}
@@ -500,6 +516,32 @@ func (req Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
 				Version:    item.GetVersion()})
 		}
 		*result = &headers
+	}
+	return nil
+}
+
+func (req Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
+	reply, err := req.cli.GetLastMemPool(&in)
+	if err != nil {
+		return err
+	}
+
+	{
+		var txlist ReplyTxList
+		for _, tx := range reply.Txs {
+			txlist.Txs = append(txlist.Txs,
+				&Transaction{
+					Execer:  string(tx.GetExecer()),
+					Payload: common.ToHex(tx.GetPayload()),
+					Fee:     tx.Fee,
+					Expire:  tx.Expire,
+					Nonce:   tx.Nonce,
+					To:      tx.To,
+					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
+						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+		}
+		*result = &txlist
 	}
 	return nil
 }

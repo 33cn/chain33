@@ -16,7 +16,9 @@ enable=true
 isSeed=false
 seedPort=13802
 dbPath="datadir/addrbook"
-
+version=8
+verMix=7
+verMax=8
 [mempool]
 poolCacheSize=1024
 minTxFee=1000000
