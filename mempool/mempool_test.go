@@ -60,7 +60,7 @@ func init() {
 	SetLogLevel("warn") // 输出WARN(含)以下log
 	//	SetLogLevel("eror") // 输出EROR(含)以下log
 	//	SetLogLevel("crit") // 输出CRIT(含)以下log
-	//  SetLogLevel("") // 输出所有log
+	//	SetLogLevel("") // 输出所有log
 }
 
 func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.Store) {
@@ -117,6 +117,7 @@ func TestAddTx(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
@@ -136,6 +137,7 @@ func TestAddDuplicatedTx(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func add4Tx(qclient queue.IClient) {
@@ -213,6 +215,7 @@ func TestGetTxList(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestAddMoreTxThanPoolSize(t *testing.T) {
@@ -230,6 +233,7 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestRemoveTxOfBlock(t *testing.T) {
@@ -257,6 +261,7 @@ func TestRemoveTxOfBlock(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestDuplicateMempool(t *testing.T) {
@@ -281,6 +286,7 @@ func TestDuplicateMempool(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestGetLatestTx(t *testing.T) {
@@ -305,6 +311,7 @@ func TestGetLatestTx(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 //func TestBigMessage(t *testing.T) {
@@ -328,6 +335,7 @@ func TestCheckLowFee(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestCheckManyTxs(t *testing.T) {
@@ -346,6 +354,7 @@ func TestCheckManyTxs(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestCheckSignature(t *testing.T) {
@@ -365,6 +374,7 @@ func TestCheckSignature(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestCheckBalance(t *testing.T) {
@@ -380,6 +390,7 @@ func TestCheckBalance(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
 
 func TestCheckExpire(t *testing.T) {
@@ -396,4 +407,5 @@ func TestCheckExpire(t *testing.T) {
 
 	chain.Close()
 	s.Close()
+	mem.Close()
 }
