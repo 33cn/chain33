@@ -18,8 +18,10 @@ const (
 )
 
 var (
-	LOCALADDR    string
-	EXTERNALADDR string
+	LocalAddr    string
+	ExternalAddr string
+	//LOCALADDR    string
+	//EXTERNALADDR string
 )
 
 const (

@@ -32,6 +32,7 @@ type IRClient interface {
 	UnLock(parm *types.WalletUnLock) (*types.Reply, error)
 	GetPeerInfo() (*types.PeerList, error)
 	GetHeaders(*types.ReqBlocks) (*types.Headers, error)
+	GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, error)
 }
 
 type channelClient struct {
@@ -289,4 +290,14 @@ func (client *channelClient) GetHeaders(in *types.ReqBlocks) (*types.Headers, er
 		return nil, err
 	}
 	return resp.Data.(*types.Headers), nil
+}
+
+func (client *channelClient) GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, error) {
+	msg := client.qclient.NewMessage("mempool", types.EventGetLastMempool, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.ReplyTxList), nil
 }
