@@ -89,6 +89,7 @@ const (
 	EventReplyAddrOverview  = 58
 	EventGetBlockHash       = 59
 	EventBlockHash          = 60
+	EventGetLastMempool     = 61
 )
 
 var eventname = map[int]string{
@@ -152,6 +153,7 @@ var eventname = map[int]string{
 	58: "EventReplyAddrOverview",
 	59: "EventGetBlockHash",
 	60: "EventBlockHash",
+	61: "EventGetLastMempool",
 }
 
 func GetEventName(event int) string {

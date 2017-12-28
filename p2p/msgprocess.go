@@ -15,8 +15,8 @@ import (
 type msg struct {
 	mtx       sync.Mutex
 	pmtx      sync.Mutex
+	wg        sync.WaitGroup
 	network   *P2p
-	msgStatus chan bool
 	tempdata  map[int64]*pb.Block
 	peermtx   sync.Mutex
 	peers     []*peer
@@ -141,7 +141,7 @@ func (m *msg) monitorPeerInfo() {
 FOR_LOOP:
 	for {
 
-		ticker := time.NewTicker(time.Second * 20)
+		ticker := time.NewTicker(time.Second * 10)
 
 		select {
 
@@ -149,7 +149,7 @@ FOR_LOOP:
 
 			var peerlist []*pb.Peer
 			peers := m.network.node.GetPeers()
-			log.Warn("monitorPeerInfo", "peers", peers)
+			log.Debug("monitorPeerInfo", "peers", peers)
 
 			for _, peer := range peers {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -166,7 +166,7 @@ FOR_LOOP:
 				peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 
 			}
-			//log.Debug("monitorPeerInfo", "peerlist", peerlist)
+
 			m.flushPeerInfos(peerlist)
 		case <-m.done:
 			log.Error("monitorPeerInfo", "done", "close")
@@ -204,15 +204,13 @@ func (m *msg) GetBlocks(msg queue.Message) {
 	peers := m.network.node.GetPeers()
 	log.Debug("GetBlocks", "peers", len(peers))
 	for _, peer := range peers {
-		//log.Debug("GetBlocks", "Peer", peer)
-
 		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd()})
 		if err != nil {
 			log.Error("GetBlocks", "Err", err.Error())
 			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
-		//log.Debug("GetBlocks", "invs", invs)
+
 		peer.mconn.sendMonitor.Update(true)
 		if len(invs.Invs) > len(MaxInvs.Invs) {
 			MaxInvs = invs
@@ -228,15 +226,15 @@ func (m *msg) GetBlocks(msg queue.Message) {
 	m.loadPeers()
 
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
-	//log.Debug("GetBlocks", "intervals++", intervals)
-	m.msgStatus = make(chan bool, len(intervals))
+
 	m.tempdata = make(map[int64]*pb.Block)
 	//分段下载
 	for index, interval := range intervals {
+		m.wg.Add(1)
 		go m.downloadBlock(index, interval, MaxInvs)
 	}
 	//等待所有 goroutin 结束
-	m.wait(len(intervals))
+	m.wait()
 	//返回数据
 	keys := m.sortKeys()
 	for _, k := range keys {
@@ -253,15 +251,8 @@ func (m *msg) loadPeers() {
 	defer m.peermtx.Unlock()
 	m.peers = append(m.peers, m.network.node.GetPeers()...)
 }
-func (m *msg) wait(thnum int) {
-	var count int
-	for {
-		<-m.msgStatus
-		count++
-		if count == thnum {
-			break
-		}
-	}
+func (m *msg) wait() {
+	m.wg.Wait()
 }
 
 type intervalInfo struct {
@@ -283,6 +274,7 @@ func (m *msg) sortKeys() []int {
 func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) {
 	m.peermtx.Lock()
 	defer m.peermtx.Unlock()
+	defer m.wg.Done()
 	if interval.end < interval.start {
 		return
 	}
@@ -318,7 +310,6 @@ func (m *msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 	for _, item := range maxInvDatas.Items {
 		m.tempdata[item.GetBlock().GetHeight()] = item.GetBlock()
 	}
-	m.msgStatus <- true
 
 }
 func (m *msg) caculateInterval(invsNum int) map[int]*intervalInfo {

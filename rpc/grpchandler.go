@@ -199,3 +199,12 @@ func (req *Grpc) GetHeaders(ctx context.Context, in *pb.ReqBlocks) (*pb.Headers,
 
 	return reply, nil
 }
+
+func (req *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
+	reply, err := req.cli.GetLastMemPool(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
