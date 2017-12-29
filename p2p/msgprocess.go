@@ -187,8 +187,8 @@ func (m *msg) GetPeerInfo(msg queue.Message) {
 
 //TODO 立刻返回数据 ，然后把下载的数据用事件通知对方,异步操作
 func (m *msg) GetBlocks(msg queue.Message) {
-	log.Debug("GetBlocks", "SendTOP2P", msg.GetData())
-	if len(m.network.node.outBound) == 0 {
+
+	if m.network.node.Size() == 0 {
 		log.Debug("GetBlocks", "boundNum", 0)
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
