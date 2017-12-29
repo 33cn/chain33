@@ -38,8 +38,8 @@ func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.GetClient()
 	network.q = q
 	network.node.setQueue(q)
-	network.node.Start()
 	network.subP2pMsg()
+	network.node.Start()
 
 }
 
