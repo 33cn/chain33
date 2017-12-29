@@ -12,6 +12,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"github.com/petar/GoLLRB/llrb"
 )
@@ -21,6 +22,7 @@ var channelSize int64 = 1024              // channel缓存大小
 var minTxFee int64 = 10000000             // 最低交易费
 var maxMsgByte int64 = 100000             // 交易消息最大字节数
 var mempoolExpiredInterval int64 = 600000 // mempool内交易过期时间，10分钟
+var mempoolAddedTxSize int = 102400       // 已添加过的交易缓存大小
 
 // error codes
 var (
@@ -34,6 +36,7 @@ var (
 	e07 = errors.New("message expired")
 	e08 = errors.New("loadacconts error")
 	e09 = errors.New("empty transaction")
+	e10 = errors.New("duplicated transaction")
 )
 
 var (
@@ -65,6 +68,7 @@ type Mempool struct {
 	height    int64
 	blockTime int64
 	minFee    int64
+	addedTxs  *lru.Cache
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -77,6 +81,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.balanChan = make(chan queue.Message, channelSize)
 	pool.goodChan = make(chan queue.Message, channelSize)
 	pool.minFee = minTxFee
+	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	return pool
 }
 
@@ -206,7 +211,16 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 func (mem *Mempool) PushTx(tx *types.Transaction) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
+
+	if mem.addedTxs.Contains(string(tx.Hash())) {
+		return e10
+	}
+
 	err := mem.cache.Push(tx)
+	if err == nil {
+		mem.addedTxs.Add(string(tx.Hash()), nil)
+	}
+
 	return err
 }
 
@@ -283,7 +297,7 @@ func (cache *txCache) Exists(tx *types.Transaction) bool {
 
 // txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
 func (cache *txCache) Push(tx *types.Transaction) error {
-	if _, exists := cache.txMap[string(tx.Hash())]; exists {
+	if cache.Exists(tx) {
 		return e01
 	}
 
