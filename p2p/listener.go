@@ -18,6 +18,7 @@ type Listener interface {
 // Implements Listener
 type DefaultListener struct {
 	listener net.Listener
+	server   *grpc.Server
 	nodeInfo *NodeInfo
 	c        chan struct{}
 	n        *Node
@@ -79,8 +80,13 @@ func (l *DefaultListener) NatMapPort() {
 
 }
 func (l *DefaultListener) Stop() bool {
+	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
 	nat.Any().DeleteMapping(Protocol, int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port))
+	log.Debug("stop", "closed natport", "close")
+	l.server.Stop()
+	log.Debug("stop", "closed grpc server", "close")
 	l.listener.Close()
+	log.Debug("stop", "DefaultListener", "close")
 	return true
 }
 
@@ -92,8 +98,8 @@ func (l *DefaultListener) listenRoutine() {
 	pServer.node = l.n
 	go pServer.monitor()
 	pServer.innerBroadBlock()
-	server := grpc.NewServer()
-	pb.RegisterP2PgserviceServer(server, pServer)
-	server.Serve(l.listener)
+	l.server = grpc.NewServer()
+	pb.RegisterP2PgserviceServer(l.server, pServer)
+	l.server.Serve(l.listener)
 
 }

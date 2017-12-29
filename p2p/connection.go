@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"strings"
 	//"sync"
 	"time"
 
@@ -166,7 +167,11 @@ func (c *MConnection) sendVersion() error {
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	if err != nil {
 		log.Error("sendVersion", "close", "ok", "err", err.Error())
-		(*c.nodeInfo).monitorChan <- c.peer
+		if strings.EqualFold(err.Error(), VersionNotSupport) == true {
+			c.peer.version.Set(false)
+			(*c.nodeInfo).monitorChan <- c.peer
+		}
+
 		return err
 	}
 

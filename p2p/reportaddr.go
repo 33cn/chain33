@@ -59,18 +59,18 @@ func NewRemotePeerAddrServer() RemoteListener {
 }
 
 func (r *RemoteAddrListener) Start() {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
+	go r.listenRoutine()
+}
+func (r *RemoteAddrListener) listenRoutine() {
+
 	r.server = grpc.NewServer()
 	pb.RegisterP2PremoteaddrServer(r.server, &p2pRemote{})
 	r.server.Serve(r.listener)
-
 }
-
 func (r *RemoteAddrListener) Stop() bool {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
+
 	r.server.Stop()
+	r.listener.Close()
 	return true
 }
 
