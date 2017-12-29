@@ -185,6 +185,7 @@ func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
 	var result []*types.Transaction
 	for _, v := range mem.cache.txMap {
 		if time.Now().UnixNano()/1000000-v.enterTime >= mempoolExpiredInterval {
+			// 清理滞留Mempool中超过10分钟的交易
 			mem.cache.Remove(v.value)
 		} else {
 			result = append(result, v.value)
@@ -228,6 +229,63 @@ func (mem *Mempool) PushTx(tx *types.Transaction) error {
 	return err
 }
 
+// Mempool.GetLatestTx返回最新十条加入到Mempool的交易
+func (mem *Mempool) GetLatestTx() []*types.Transaction {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.GetLatestTx()
+}
+
+// Mempool.RemoveLeftOverTxs每隔10分钟清理一次滞留时间过长的交易
+func (mem *Mempool) RemoveLeftOverTxs() {
+	for {
+		time.Sleep(time.Minute * 10)
+		mem.DuplicateMempoolTxs()
+	}
+}
+
+// Mempool.RemoveBlockedTxs每隔1分钟清理一次已打包的交易
+func (mem *Mempool) RemoveBlockedTxs() {
+	if mem.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	for {
+		time.Sleep(time.Minute * 1)
+		txs := mem.DuplicateMempoolTxs()
+		var checkHashList types.TxHashList
+
+		for _, tx := range txs {
+			hash := tx.Hash()
+			checkHashList.Hashes = append(checkHashList.Hashes, hash)
+		}
+
+		if len(checkHashList.Hashes) == 0 {
+			continue
+		}
+
+		// 发送Hash过后的交易列表给blockchain模块
+		hashList := mem.qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
+		mem.qclient.Send(hashList, true)
+		dupTxList, _ := mem.qclient.Wait(hashList)
+
+		// 取出blockchain返回的重复交易列表
+		dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
+
+		if len(dupTxs) == 0 {
+			continue
+		}
+
+		mem.proxyMtx.Lock()
+		for _, t := range dupTxs {
+			txValue, exists := mem.cache.txMap[string(t)]
+			if exists {
+				mem.cache.Remove(txValue.value)
+			}
+		}
+		mem.proxyMtx.Unlock()
+	}
+}
+
 // Mempool.SendTxToP2P向"p2p"发送消息
 func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 	if mem.qclient == nil {
@@ -247,13 +305,6 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	msg := mem.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	mem.qclient.Send(msg, true)
 	return mem.qclient.Wait(msg)
-}
-
-// Mempool.GetLatestTx返回最新十条加入到Mempool的交易
-func (mem *Mempool) GetLatestTx() []*types.Transaction {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	return mem.cache.GetLatestTx()
 }
 
 // Mempool.Close关闭Mempool
@@ -512,52 +563,4 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			}
 		}
 	}()
-}
-
-func (mem *Mempool) RemoveLeftOverTxs() {
-	for {
-		time.Sleep(time.Minute * 10)
-		mem.DuplicateMempoolTxs()
-	}
-}
-
-func (mem *Mempool) RemoveBlockedTxs() {
-	if mem.qclient == nil {
-		panic("client not bind message queue.")
-	}
-	for {
-		time.Sleep(time.Minute * 1)
-		txs := mem.DuplicateMempoolTxs()
-		var checkHashList types.TxHashList
-
-		for _, tx := range txs {
-			hash := tx.Hash()
-			checkHashList.Hashes = append(checkHashList.Hashes, hash)
-		}
-
-		if len(checkHashList.Hashes) == 0 {
-			continue
-		}
-
-		// 发送Hash过后的交易列表给blockchain模块
-		hashList := mem.qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-		mem.qclient.Send(hashList, true)
-		dupTxList, _ := mem.qclient.Wait(hashList)
-
-		// 取出blockchain返回的重复交易列表
-		dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
-
-		if len(dupTxs) == 0 {
-			continue
-		}
-
-		mem.proxyMtx.Lock()
-		for _, t := range dupTxs {
-			txValue, exists := mem.cache.txMap[string(t)]
-			if exists {
-				mem.cache.Remove(txValue.value)
-			}
-		}
-		mem.proxyMtx.Unlock()
-	}
 }
