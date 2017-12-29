@@ -223,7 +223,7 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 				&TransactionDetail{
 					Tx: &Transaction{
 						Execer:  string(tx.GetTx().GetExecer()),
-						Payload: common.ToHex(tx.Tx.GetPayload()),
+						Payload: common.ToHex(tx.GetTx().GetPayload()),
 						Fee:     tx.GetTx().Fee,
 						Expire:  tx.GetTx().Expire,
 						Nonce:   tx.GetTx().Nonce,
