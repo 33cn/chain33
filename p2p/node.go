@@ -341,10 +341,13 @@ func (n *Node) deleteErrPeer() {
 	for {
 		peer := <-n.nodeInfo.monitorChan
 		log.Warn("deleteErrPeer", "REMOVE", peer.Addr())
-		n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
+		if peer.version.Get() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
+			n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
+		}
 		n.addrBook.RemoveAddr(peer.Addr())
 		n.addrBook.Save()
 		n.Remove(peer.Addr())
+
 	}
 }
 func (n *Node) getAddrFromOnline() {
@@ -361,7 +364,14 @@ func (n *Node) getAddrFromOnline() {
 					continue
 				}
 				log.Debug("monitor", "ADDRLIST", addrlist)
-				n.DialPeers(addrlist) //对获取的地址列表发起连接
+				//过滤黑名单的地址
+				var whitlist []string
+				for _, addr := range addrlist {
+					if n.nodeInfo.blacklist.Has(addr) == false {
+						whitlist = append(whitlist, addr)
+					}
+				}
+				n.DialPeers(whitlist) //对获取的地址列表发起连接
 
 			}
 		}
@@ -500,21 +510,27 @@ func (n *Node) Start() {
 
 	//连接种子节点，或者导入远程节点文件信息
 	log.Debug("Load", "Load addrbook")
-	go n.makeService()
 	go n.loadAddrBook()
 	go n.monitor()
 	go n.exChangeVersion()
+	go n.makeService()
 	return
 }
 
 func (n *Node) Stop() {
 	close(n.versionDone)
+	log.Debug("stop", "versionDone", "close")
 	n.l.Stop()
+	log.Debug("stop", "listen", "close")
 	n.rListener.Stop()
+	log.Debug("stop", "remotelisten", "close")
 	n.addrBook.Stop()
+	log.Debug("stop", "addrBook", "close")
 	peers := n.GetPeers()
 	for _, peer := range peers {
+		addr := peer.Addr()
 		peer.Stop()
+		log.Debug("stop", "peer", addr, "close")
 	}
 
 }

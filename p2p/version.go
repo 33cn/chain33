@@ -1,3 +1,3 @@
 package p2p
 
-const Version = 07
+const VERSION = 07

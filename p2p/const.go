@@ -41,6 +41,10 @@ const (
 	NODE_BLOOM   = 4
 )
 
+const (
+	VersionNotSupport = "Version No Support"
+)
+
 var (
 	SERVICE int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
 )
