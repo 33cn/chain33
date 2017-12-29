@@ -53,14 +53,16 @@ func (l *DefaultListener) Start() {
 
 func (l *DefaultListener) NatMapPort() {
 	if l.nodeInfo.cfg.GetIsSeed() == true {
+
 		return
 	}
+
 	for i := 0; i < TryMapPortTimes; i++ {
 
-		if nat.Map(nat.Any(), l.c, "TCP", int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port), "chain33 p2p") != nil {
+		if nat.Map(nat.Any(), l.c, "TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33 p2p") != nil {
 
 			{
-				l.n.localPort = uint16(rand.Intn(64512) + 1023)
+				//l.n.localPort = uint16(rand.Intn(64512) + 1023)
 				l.n.externalPort = uint16(rand.Intn(64512) + 1023)
 				l.n.flushNodeInfo()
 				log.Debug("NatMapPort", "Port", l.n.localPort)
@@ -71,8 +73,8 @@ func (l *DefaultListener) NatMapPort() {
 		}
 
 	}
-	//TODO
-	//MAP FAILED
+	l.n.externalPort = DefaultPort
+	l.n.flushNodeInfo()
 	log.Error("Nat Map", "Error Map Port Failed ----------------")
 
 }

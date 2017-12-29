@@ -213,7 +213,8 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 
 			var proofs []string
-			for _, proof := range tx.Proofs {
+			txProofs := tx.GetProofs()
+			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
 			}
 
