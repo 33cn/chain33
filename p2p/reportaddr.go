@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -39,6 +40,7 @@ type RemoteListener interface {
 	Stop() bool
 }
 type RemoteAddrListener struct {
+	mtx      sync.Mutex
 	server   *grpc.Server
 	listener net.Listener
 }
@@ -57,6 +59,8 @@ func NewRemotePeerAddrServer() RemoteListener {
 }
 
 func (r *RemoteAddrListener) Start() {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
 	r.server = grpc.NewServer()
 	pb.RegisterP2PremoteaddrServer(r.server, &p2pRemote{})
 	r.server.Serve(r.listener)
@@ -64,6 +68,8 @@ func (r *RemoteAddrListener) Start() {
 }
 
 func (r *RemoteAddrListener) Stop() bool {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
 	r.server.Stop()
 	return true
 }
