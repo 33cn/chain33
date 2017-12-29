@@ -494,12 +494,13 @@ SET_ADDR:
 //4.启动监控远程节点
 func (n *Node) Start() {
 	n.detectionNodeAddr()
-	n.makeService()
+
 	n.rListener = NewRemotePeerAddrServer()
 	n.l = NewDefaultListener(Protocol, n)
 
 	//连接种子节点，或者导入远程节点文件信息
 	log.Debug("Load", "Load addrbook")
+	go n.makeService()
 	go n.loadAddrBook()
 	go n.monitor()
 	go n.exChangeVersion()
