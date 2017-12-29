@@ -14,7 +14,7 @@ var (
 const (
 	MSG_TX          = 1
 	MSG_BLOCK       = 2
-	TryMapPortTimes = 30
+	TryMapPortTimes = 20
 )
 
 var (

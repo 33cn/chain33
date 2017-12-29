@@ -51,7 +51,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	rand.Seed(time.Now().Unix())
 	node := &Node{
-		localPort:    uint16(rand.Intn(64512) + 1023),
+		localPort:    DefaultPort, //uint16(rand.Intn(64512) + 1023),
 		externalPort: uint16(rand.Intn(64512) + 1023),
 		outBound:     make(map[string]*peer),
 		addrBook:     NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
@@ -61,12 +61,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	log.Debug("newNode", "externalPort", node.externalPort)
 
 	if cfg.GetIsSeed() == true {
-		if cfg.GetSeedPort() != 0 {
-			node.SetPort(uint(cfg.GetSeedPort()), uint(cfg.GetSeedPort()))
-
-		} else {
-			node.SetPort(DefaultPort, DefaultPort)
-		}
+		node.SetPort(DefaultPort, DefaultPort)
 
 	}
 	node.nodeInfo = new(NodeInfo)
@@ -112,6 +107,10 @@ FOR_LOOP:
 }
 func (n *Node) makeService() {
 	//确认自己的服务范围1，2，4
+	if n.nodeInfo.cfg.GetIsSeed() == true {
+		n.nodeInfo.versionChan <- struct{}{}
+		return
+	}
 	go func() {
 		for i := 0; i < 10; i++ {
 			exnet, err := nat.Any().ExternalIP()
@@ -125,7 +124,12 @@ func (n *Node) makeService() {
 				log.Debug("makeService", "Sig", "Ok")
 				break
 			} else {
-				log.Error("ExternalIp", "Error", err.Error())
+				//如果ExternalAddr 与LocalAddr 相同，则认为在外网中
+				if ExternalAddr == LocalAddr {
+					n.nodeInfo.versionChan <- struct{}{}
+					break
+				}
+
 			}
 		}
 	}()
@@ -445,6 +449,8 @@ func (n *Node) detectionNodeAddr() {
 	log.Debug("detectionNodeAddr", "addr:", LocalAddr)
 	if cfg.GetIsSeed() {
 		ExternalAddr = LocalAddr
+
+		goto SET_ADDR
 	}
 
 	if len(cfg.Seeds) == 0 {
@@ -470,6 +476,7 @@ func (n *Node) detectionNodeAddr() {
 	if len(ExternalAddr) == 0 {
 		ExternalAddr = LocalAddr
 	}
+SET_ADDR:
 	exaddr := fmt.Sprintf("%v:%v", ExternalAddr, n.GetExterPort())
 	if exaddr, err := NewNetAddressString(exaddr); err == nil {
 		n.nodeInfo.SetExternalAddr(exaddr)
