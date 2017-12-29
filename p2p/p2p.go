@@ -14,6 +14,7 @@ type P2p struct {
 	c        queue.IClient
 	node     *Node
 	addrBook *AddrBook // known peers
+	msg      *Msg
 	done     chan struct{}
 }
 
@@ -23,23 +24,30 @@ func New(cfg *types.P2P) *P2p {
 		log.Error(err.Error())
 		return nil
 	}
-	return &P2p{
-		node: node,
-		done: make(chan struct{}, 1),
-	}
+	p2p := new(P2p)
+	p2p.node = node
+	p2p.done = make(chan struct{}, 1)
+	p2p.msg = NewInTrans(p2p)
+	return p2p
 }
 
 func (network *P2p) Close() {
-	network.node.Stop()
+
 	network.done <- struct{}{}
+	log.Debug("close", "network", "done")
+	network.msg.done <- struct{}{}
+	log.Debug("close", "msg", "done")
+	network.node.Stop()
+	log.Debug("close", "node", "done")
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.GetClient()
 	network.q = q
 	network.node.setQueue(q)
-	network.subP2pMsg()
 	network.node.Start()
+	network.subP2pMsg()
+	network.msg.monitorPeerInfo()
 
 }
 
@@ -50,24 +58,23 @@ func (network *P2p) subP2pMsg() {
 
 	network.c.Sub("p2p")
 	go func() {
-		intrans := NewInTrans(network)
-		go intrans.monitorPeerInfo()
+
 		for msg := range network.c.Recv() {
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
 				log.Debug("QUEUE P2P EventTxBroadcast", "Recv from mempool message EventTxBroadcast will broadcast outnet")
-				go intrans.TransToBroadCast(msg)
+				go network.msg.TransToBroadCast(msg)
 			case types.EventBlockBroadcast: //广播block
-				go intrans.BlockBroadcast(msg)
+				go network.msg.BlockBroadcast(msg)
 			case types.EventFetchBlocks:
 				tempIntrans := NewInTrans(network)
 				go tempIntrans.GetBlocks(msg)
 			case types.EventGetMempool:
-				go intrans.GetMemPool(msg)
+				go network.msg.GetMemPool(msg)
 			case types.EventPeerInfo:
-				go intrans.GetPeerInfo(msg)
+				go network.msg.GetPeerInfo(msg)
 
 			default:
 				log.Error("unknown msgtype:", msg.Ty)
