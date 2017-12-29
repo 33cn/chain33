@@ -1,6 +1,6 @@
 #!/bin/sh
-for((i=0;i<1000000;i++))
+for((i=0;i<10000;i++))
 do
-./cli sendtoaddress 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt 1DaetjMf4MwnJ2W33iMcJZwh5agNU9Jy3d 1 ceshi
+./cli sendtoaddress 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt 1FRWy3hEkZBz7ZWguPRLSuDxBV5qWfGVD1 1 ceshi
 echo "."
 done
