@@ -203,7 +203,8 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	}
 	{
 		var txdetails TransactionDetails
-		for _, tx := range reply.Txs {
+		txs := reply.GetTxs()
+		for _, tx := range txs {
 			var recp ReceiptData
 			logs := tx.GetReceipt().GetLogs()
 			for _, lg := range logs {
@@ -221,15 +222,15 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			txdetails.Txs = append(txdetails.Txs,
 				&TransactionDetail{
 					Tx: &Transaction{
-						Execer:  string(tx.Tx.GetExecer()),
+						Execer:  string(tx.GetTx().GetExecer()),
 						Payload: common.ToHex(tx.Tx.GetPayload()),
-						Fee:     tx.Tx.Fee,
-						Expire:  tx.Tx.Expire,
-						Nonce:   tx.Tx.Nonce,
-						To:      tx.Tx.To,
-						Signature: &Signature{Ty: tx.Tx.GetSignature().GetTy(),
-							Pubkey:    common.ToHex(tx.Tx.GetSignature().GetPubkey()),
-							Signature: common.ToHex(tx.Tx.GetSignature().GetSignature())},
+						Fee:     tx.GetTx().Fee,
+						Expire:  tx.GetTx().Expire,
+						Nonce:   tx.GetTx().Nonce,
+						To:      tx.GetTx().To,
+						Signature: &Signature{Ty: tx.GetTx().GetSignature().GetTy(),
+							Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
+							Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature())},
 					},
 					Height:    tx.GetHeight(),
 					Index:     tx.GetIndex(),
