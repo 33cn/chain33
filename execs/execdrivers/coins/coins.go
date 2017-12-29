@@ -45,6 +45,9 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 	if err != nil {
 		goto cutFee //尽量收取手续费
 	}
+	if err = account.CheckAddress(tx.To); err != nil {
+		goto cutFee
+	}
 	clog.Info("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
