@@ -18,23 +18,22 @@ func init() {
 }
 
 type None struct {
-	db dbm.KVDB
+	db        dbm.KVDB
+	height    int64
+	blocktime int64
 }
 
 func newNone() *None {
 	return &None{}
 }
 
-func (n *None) Exec(tx *types.Transaction) *types.Receipt {
-	acc := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
-	if acc.GetBalance()-tx.Fee >= 0 {
-		receiptBalance := &types.ReceiptBalance{acc.GetBalance(), acc.GetBalance() - tx.Fee, -tx.Fee}
-		acc.Balance = acc.GetBalance() - tx.Fee
-		account.SaveAccount(n.db, acc)
-		return cutFeeReceipt(acc, receiptBalance)
-	} else {
-		return types.NewErrReceipt(types.ErrNoBalance)
-	}
+func (n *None) SetEnv(height, blocktime int64) {
+	n.height = height
+	n.blocktime = blocktime
+}
+
+func (n *None) Exec(tx *types.Transaction) (*types.Receipt, error) {
+	return nil, types.ErrActionNotSupport
 }
 
 func (n *None) SetDB(db dbm.KVDB) {

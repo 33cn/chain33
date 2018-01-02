@@ -12,6 +12,11 @@ var ErrActionNotSupport = errors.New("ErrActionNotSupport")
 var ErrChannelFull = errors.New("ErrChannelFull")
 var ErrAmount = errors.New("ErrAmount")
 var ErrTxExpire = errors.New("ErrTxExpire")
+var ErrNoTicket = errors.New("ErrNoTicket")
+var ErrMinerIsStared = errors.New("ErrMinerIsStared")
+var ErrMinerNotStared = errors.New("ErrMinerNotStared")
+var ErrTicketCount = errors.New("ErrTicketCount")
+var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 
 const Coin int64 = 1e8
 
@@ -90,6 +95,10 @@ const (
 	EventGetBlockHash       = 59
 	EventBlockHash          = 60
 	EventGetLastMempool     = 61
+	EventWalletGetTickets   = 62
+	EventMinerStart         = 63
+	EventMinerStop          = 64
+	EventWalletTickets      = 65
 )
 
 var eventname = map[int]string{
@@ -154,6 +163,10 @@ var eventname = map[int]string{
 	59: "EventGetBlockHash",
 	60: "EventBlockHash",
 	61: "EventGetLastMempool",
+	62: "EventWalletGetTickets",
+	63: "EventMinerStart",
+	64: "EventMinerStop",
+	65: "EventWalletTickets",
 }
 
 func GetEventName(event int) string {
@@ -204,4 +217,14 @@ const (
 const (
 	CoinsActionTransfer = 1
 	CoinsActionGenesis  = 2
+)
+
+//ticket
+const (
+	TicketActionGenesis = 1
+	TicketActionOpen    = 2
+	TicketActionClose   = 3
+
+	TicketActionList  = 4 //读的接口不直接经过transaction
+	TicketActionInfos = 5 //读的接口不直接经过transaction
 )
