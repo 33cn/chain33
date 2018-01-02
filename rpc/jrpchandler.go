@@ -48,19 +48,20 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 
 		var transDetail TransactionDetail
 		transDetail.Tx = &Transaction{
-			Execer:  string(reply.Tx.Execer),
-			Payload: common.ToHex(reply.Tx.Payload),
-			Fee:     reply.Tx.Fee,
-			Expire:  reply.Tx.Expire,
-			Nonce:   reply.Tx.Nonce,
-			To:      reply.Tx.To,
-			Signature: &Signature{Ty: reply.Tx.Signature.GetTy(),
-				Pubkey:    common.ToHex(reply.Tx.Signature.GetPubkey()),
-				Signature: common.ToHex(reply.Tx.Signature.GetSignature())}}
-		transDetail.Receipt = &ReceiptData{Ty: reply.Receipt.Ty}
-		for _, log := range reply.Receipt.Logs {
+			Execer:  string(reply.GetTx().GetExecer()),
+			Payload: common.ToHex(reply.GetTx().GetPayload()),
+			Fee:     reply.GetTx().GetFee(),
+			Expire:  reply.GetTx().GetExpire(),
+			Nonce:   reply.GetTx().GetNonce(),
+			To:      reply.GetTx().GetTo(),
+			Signature: &Signature{Ty: reply.GetTx().GetSignature().GetTy(),
+				Pubkey:    common.ToHex(reply.GetTx().GetSignature().GetPubkey()),
+				Signature: common.ToHex(reply.GetTx().GetSignature().GetSignature())}}
+		transDetail.Receipt = &ReceiptData{Ty: reply.GetReceipt().GetTy()}
+		logs := reply.GetReceipt().GetLogs()
+		for _, log := range logs {
 			transDetail.Receipt.Logs = append(transDetail.Receipt.Logs,
-				&ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
+				&ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
 		}
 
 		for _, proof := range reply.Proofs {
@@ -90,7 +91,8 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 	{
 
 		var blockDetails BlockDetails
-		for _, item := range reply.Items {
+		items := reply.GetItems()
+		for _, item := range items {
 			var bdtl BlockDetail
 			var block Block
 			block.BlockTime = item.Block.GetBlockTime()
@@ -99,15 +101,16 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			block.ParentHash = common.ToHex(item.Block.GetParentHash())
 			block.StateHash = common.ToHex(item.Block.GetStateHash())
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
-			for _, tx := range item.Block.Txs {
+			txs := item.Block.GetTxs()
+			for _, tx := range txs {
 				block.Txs = append(block.Txs,
 					&Transaction{
 						Execer:  string(tx.GetExecer()),
 						Payload: common.ToHex(tx.GetPayload()),
-						Fee:     tx.Fee,
-						Expire:  tx.Expire,
-						Nonce:   tx.Nonce,
-						To:      tx.To,
+						Fee:     tx.GetFee(),
+						Expire:  tx.GetExpire(),
+						Nonce:   tx.GetNonce(),
+						To:      tx.GetTo(),
 						Signature: &Signature{Ty: tx.GetSignature().GetTy(),
 							Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
 							Signature: common.ToHex(tx.GetSignature().GetSignature())}})
@@ -203,7 +206,8 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	}
 	{
 		var txdetails TransactionDetails
-		for _, tx := range reply.Txs {
+		txs := reply.GetTxs()
+		for _, tx := range txs {
 			var recp ReceiptData
 			logs := tx.GetReceipt().GetLogs()
 			for _, lg := range logs {
@@ -213,22 +217,23 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 
 			var proofs []string
-			for _, proof := range tx.Proofs {
+			txProofs := tx.GetProofs()
+			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
 			}
 
 			txdetails.Txs = append(txdetails.Txs,
 				&TransactionDetail{
 					Tx: &Transaction{
-						Execer:  string(tx.Tx.GetExecer()),
-						Payload: common.ToHex(tx.Tx.GetPayload()),
-						Fee:     tx.Tx.Fee,
-						Expire:  tx.Tx.Expire,
-						Nonce:   tx.Tx.Nonce,
-						To:      tx.Tx.To,
-						Signature: &Signature{Ty: tx.Tx.GetSignature().GetTy(),
-							Pubkey:    common.ToHex(tx.Tx.GetSignature().GetPubkey()),
-							Signature: common.ToHex(tx.Tx.GetSignature().GetSignature())},
+						Execer:  string(tx.GetTx().GetExecer()),
+						Payload: common.ToHex(tx.GetTx().GetPayload()),
+						Fee:     tx.GetTx().GetFee(),
+						Expire:  tx.GetTx().GetExpire(),
+						Nonce:   tx.GetTx().GetNonce(),
+						To:      tx.GetTx().GetTo(),
+						Signature: &Signature{Ty: tx.GetTx().GetSignature().GetTy(),
+							Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
+							Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature())},
 					},
 					Height:    tx.GetHeight(),
 					Index:     tx.GetIndex(),
@@ -255,15 +260,16 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 	}
 	{
 		var txlist ReplyTxList
-		for _, tx := range reply.Txs {
+		txs := reply.GetTxs()
+		for _, tx := range txs {
 			txlist.Txs = append(txlist.Txs,
 				&Transaction{
 					Execer:  string(tx.GetExecer()),
 					Payload: common.ToHex(tx.GetPayload()),
-					Fee:     tx.Fee,
-					Expire:  tx.Expire,
-					Nonce:   tx.Nonce,
-					To:      tx.To,
+					Fee:     tx.GetFee(),
+					Expire:  tx.GetExpire(),
+					Nonce:   tx.GetNonce(),
+					To:      tx.GetTo(),
 					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
 						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
 						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
@@ -528,15 +534,16 @@ func (req Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 
 	{
 		var txlist ReplyTxList
-		for _, tx := range reply.Txs {
+		txs := reply.GetTxs()
+		for _, tx := range txs {
 			txlist.Txs = append(txlist.Txs,
 				&Transaction{
 					Execer:  string(tx.GetExecer()),
 					Payload: common.ToHex(tx.GetPayload()),
-					Fee:     tx.Fee,
-					Expire:  tx.Expire,
-					Nonce:   tx.Nonce,
-					To:      tx.To,
+					Fee:     tx.GetFee(),
+					Expire:  tx.GetExpire(),
+					Nonce:   tx.GetNonce(),
+					To:      tx.GetTo(),
 					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
 						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
 						Signature: common.ToHex(tx.GetSignature().GetSignature())}})

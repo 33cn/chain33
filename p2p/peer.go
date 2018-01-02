@@ -18,15 +18,30 @@ type peer struct {
 	conn       *grpc.ClientConn // source connection
 	persistent bool
 	isrunning  bool
+	version    *Version
 	key        string
 	mconn      *MConnection
 	peerAddr   *NetAddress
 	streamDone chan struct{}
 }
+type Version struct {
+	mtx            sync.Mutex
+	versionSupport bool
+}
 
+func (v *Version) Set(ok bool) {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	v.versionSupport = ok
+}
+
+func (v *Version) Get() bool {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	return v.versionSupport
+}
 func (p *peer) Start() error {
-	p.mconn.key = p.key
-	//p.wg.Add(1)
+	p.mconn.key = p.key //TODO setKey
 	go p.subStreamBlock()
 	return p.mconn.start()
 }
@@ -170,12 +185,13 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 	conn := rawConn
 	// Key and NodeInfo are set after Handshake
 	p := &peer{
-		outbound: outbound,
-		conn:     conn,
-
+		outbound:   outbound,
+		conn:       conn,
 		streamDone: make(chan struct{}, 1),
 		nodeInfo:   nodeinfo,
 	}
+	p.version = new(Version)
+	p.version.Set(true)
 	p.setRunning(true)
 	p.mconn = NewMConnection(conn, remote, p)
 

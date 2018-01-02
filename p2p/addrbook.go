@@ -173,11 +173,11 @@ func (a *AddrBook) saveToFile(filePath string) {
 		log.Error("Failed to save AddrBook to file", "err", err)
 		return
 	}
-	log.Info("saveToFile", string(jsonBytes), "")
+	//log.Info("saveToFile", string(jsonBytes), "")
 
-	err = a.writeFile(filePath, jsonBytes, 0755)
+	err = a.writeFile(filePath, jsonBytes, 0666)
 	if err != nil {
-		log.Error("Error", "Failed to save AddrBook to file", "file", filePath, "err", err)
+		log.Error("Error: Failed to save AddrBook to file", "file", filePath, "err", err)
 	}
 
 }
@@ -188,24 +188,27 @@ func (a *AddrBook) writeFile(filePath string, bytes []byte, mode os.FileMode) er
 	if err != nil {
 		return err
 	}
+	//write
 	_, err = f.Write(bytes)
-	if err == nil {
-		err = f.Sync()
+	if err != nil {
+		f.Close()
+		return err
 	}
-	if closeErr := f.Close(); err == nil {
-		err = closeErr
+	//close
+	err = f.Close()
+	if err != nil {
+		return err
 	}
-	if permErr := os.Chmod(f.Name(), mode); err == nil {
-		err = permErr
+	if permErr := os.Chmod(f.Name(), mode); permErr != nil {
+		return permErr
 	}
-	if err == nil {
-		err = os.Rename(f.Name(), filePath)
-	}
-	// any err should result in full cleanup
+	//rename
+	err = os.Rename(f.Name(), filePath)
 	if err != nil {
 		os.Remove(f.Name())
+		return err
 	}
-	return err
+	return nil
 }
 
 // Returns false if file does not exist.

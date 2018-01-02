@@ -12,6 +12,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"github.com/petar/GoLLRB/llrb"
 )
@@ -21,6 +22,7 @@ var channelSize int64 = 1024              // channel缓存大小
 var minTxFee int64 = 10000000             // 最低交易费
 var maxMsgByte int64 = 100000             // 交易消息最大字节数
 var mempoolExpiredInterval int64 = 600000 // mempool内交易过期时间，10分钟
+var mempoolAddedTxSize int = 102400       // 已添加过的交易缓存大小
 
 // error codes
 var (
@@ -34,6 +36,7 @@ var (
 	e07 = errors.New("message expired")
 	e08 = errors.New("loadacconts error")
 	e09 = errors.New("empty transaction")
+	e10 = errors.New("duplicated transaction")
 )
 
 var (
@@ -65,6 +68,7 @@ type Mempool struct {
 	height    int64
 	blockTime int64
 	minFee    int64
+	addedTxs  *lru.Cache
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -77,6 +81,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.balanChan = make(chan queue.Message, channelSize)
 	pool.goodChan = make(chan queue.Message, channelSize)
 	pool.minFee = minTxFee
+	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	return pool
 }
 
@@ -179,7 +184,12 @@ func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
 
 	var result []*types.Transaction
 	for _, v := range mem.cache.txMap {
-		result = append(result, v.value)
+		if time.Now().UnixNano()/1000000-v.enterTime >= mempoolExpiredInterval {
+			// 清理滞留Mempool中超过10分钟的交易
+			mem.cache.Remove(v.value)
+		} else {
+			result = append(result, v.value)
+		}
 	}
 
 	return result
@@ -206,8 +216,74 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 func (mem *Mempool) PushTx(tx *types.Transaction) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
+
+	if mem.addedTxs.Contains(string(tx.Hash())) {
+		return e10
+	}
+
 	err := mem.cache.Push(tx)
+	if err == nil {
+		mem.addedTxs.Add(string(tx.Hash()), nil)
+	}
+
 	return err
+}
+
+// Mempool.GetLatestTx返回最新十条加入到Mempool的交易
+func (mem *Mempool) GetLatestTx() []*types.Transaction {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.GetLatestTx()
+}
+
+// Mempool.RemoveLeftOverTxs每隔10分钟清理一次滞留时间过长的交易
+func (mem *Mempool) RemoveLeftOverTxs() {
+	for {
+		time.Sleep(time.Minute * 10)
+		mem.DuplicateMempoolTxs()
+	}
+}
+
+// Mempool.RemoveBlockedTxs每隔1分钟清理一次已打包的交易
+func (mem *Mempool) RemoveBlockedTxs() {
+	if mem.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	for {
+		time.Sleep(time.Minute * 1)
+		txs := mem.DuplicateMempoolTxs()
+		var checkHashList types.TxHashList
+
+		for _, tx := range txs {
+			hash := tx.Hash()
+			checkHashList.Hashes = append(checkHashList.Hashes, hash)
+		}
+
+		if len(checkHashList.Hashes) == 0 {
+			continue
+		}
+
+		// 发送Hash过后的交易列表给blockchain模块
+		hashList := mem.qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
+		mem.qclient.Send(hashList, true)
+		dupTxList, _ := mem.qclient.Wait(hashList)
+
+		// 取出blockchain返回的重复交易列表
+		dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
+
+		if len(dupTxs) == 0 {
+			continue
+		}
+
+		mem.proxyMtx.Lock()
+		for _, t := range dupTxs {
+			txValue, exists := mem.cache.txMap[string(t)]
+			if exists {
+				mem.cache.Remove(txValue.value)
+			}
+		}
+		mem.proxyMtx.Unlock()
+	}
 }
 
 // Mempool.SendTxToP2P向"p2p"发送消息
@@ -229,13 +305,6 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	msg := mem.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	mem.qclient.Send(msg, true)
 	return mem.qclient.Wait(msg)
-}
-
-// Mempool.GetLatestTx返回最新十条加入到Mempool的交易
-func (mem *Mempool) GetLatestTx() []*types.Transaction {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	return mem.cache.GetLatestTx()
 }
 
 // Mempool.Close关闭Mempool
@@ -283,7 +352,7 @@ func (cache *txCache) Exists(tx *types.Transaction) bool {
 
 // txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
 func (cache *txCache) Push(tx *types.Transaction) error {
-	if _, exists := cache.txMap[string(tx.Hash())]; exists {
+	if cache.Exists(tx) {
 		return e01
 	}
 
@@ -424,6 +493,9 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			mlog.Warn("reply EventTx ok", "msg", m)
 		}
 	}()
+
+	go mem.RemoveLeftOverTxs()
+	go mem.RemoveBlockedTxs()
 
 	go func() {
 		for msg := range mem.qclient.Recv() {

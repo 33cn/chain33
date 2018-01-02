@@ -363,7 +363,7 @@ FOR_LOOP:
 					chainlog.Error("trySyncTicker ParentHash err!", "height", block.Height)
 					//blockhash校验不过需要从blockpool中删除，重新发起请求
 					chain.blockPool.DelBlock(block.GetHeight())
-					go chain.FetchBlock(block.GetHeight(), block.GetHeight())
+					//go chain.FetchBlock(block.GetHeight(), block.GetHeight())
 					break
 				}
 				blockdetail, err := util.ExecBlock(chain.q, prevStateHash, block, true)
@@ -371,7 +371,7 @@ FOR_LOOP:
 					chainlog.Error("trySyncTicker ExecBlock is err!", "height", block.Height, "err", err)
 					//block校验不过需要从blockpool中删除，重新发起请求
 					chain.blockPool.DelBlock(block.GetHeight())
-					go chain.FetchBlock(block.GetHeight(), block.GetHeight())
+					//go chain.FetchBlock(block.GetHeight(), block.GetHeight())
 					break
 				}
 
