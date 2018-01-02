@@ -23,6 +23,7 @@ import (
 )
 
 var genesisKey = []byte("mavl-acc-genesis")
+var addrSeed = []byte("address seed bytes for public key")
 
 func LoadAccount(db dbm.KVDB, addr string) *types.Account {
 	value, err := db.Get(AccountKey(addr))
@@ -83,6 +84,18 @@ func PubKeyToAddress(in []byte) *Address {
 	a.Version = 0
 	a.Hash160 = common.Rimp160AfterSha256(in)
 	return a
+}
+
+var bname [200]byte
+
+func ExecAddress(name string) *Address {
+	if len(name) > 100 {
+		panic("name too long")
+	}
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := common.Sha2Sum(buf)
+	return PubKeyToAddress(hash[:])
 }
 
 func CheckAddress(addr string) error {
