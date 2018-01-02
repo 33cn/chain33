@@ -620,5 +620,42 @@ message CoinsTransfer {
 }
 
 
-//
+//message for execs.ticket
+message TicketAction {
+	oneof value {
+		TicketOpen  topen = 1;
+		TicketGenesis   genesis = 2;
+		TicketClose  tclose = 3;
+		TicketList tlist = 4;
+		TicketInfos infos = 5;
+	}
+	int32 ty = 10;
+}
 
+message TicketOpen {
+	string minerAddress = 1; //用户挖矿的ticket 地址
+	int32 count = 2; //购买ticket的数目
+}
+
+message TicketGenesis {
+	string minerAddress = 1;
+	string codeWallet = 2;
+	int32 count = 3;
+}
+
+message TicketClose {
+	repeated string ticketId = 1;
+}
+
+message TicketList {
+	string addr = 1;
+	bool isClosed = 2;
+}
+
+message TicketInfos {
+	repeated string ticketIds = 1;
+}
+
+message Ticket {
+	string ticketId = 1;
+}
