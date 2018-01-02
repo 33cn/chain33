@@ -36,4 +36,3 @@ TODO:
 2. 分析指令的独立性。大部分可能非关联。
 */
 
-//try to add hash locking
