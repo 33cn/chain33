@@ -11,6 +11,9 @@ package account
 //8. gen a private key -> private key to address (bitcoin likes)
 
 import (
+	"bytes"
+	"encoding/hex"
+	"errors"
 	"math/big"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -80,6 +83,37 @@ func PubKeyToAddress(in []byte) *Address {
 	a.Version = 0
 	a.Hash160 = common.Rimp160AfterSha256(in)
 	return a
+}
+
+func CheckAddress(addr string) error {
+	_, err := NewAddrFromString(addr)
+	return err
+}
+
+func NewAddrFromString(hs string) (a *Address, e error) {
+	dec := Decodeb58(hs)
+	if dec == nil {
+		e = errors.New("Cannot decode b58 string '" + hs + "'")
+		return
+	}
+	if len(dec) < 25 {
+		e = errors.New("Address too short " + hex.EncodeToString(dec))
+		return
+	}
+	if len(dec) == 25 {
+		sh := common.Sha2Sum(dec[0:21])
+		if !bytes.Equal(sh[:4], dec[21:25]) {
+			e = errors.New("Address Checksum error")
+		} else {
+			a = new(Address)
+			a.Version = dec[0]
+			copy(a.Hash160[:], dec[1:21])
+			a.Checksum = make([]byte, 4)
+			copy(a.Checksum, dec[21:25])
+			a.Enc58str = hs
+		}
+	}
+	return
 }
 
 func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err error) {

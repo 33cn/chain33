@@ -179,6 +179,7 @@ message Header {
 	bytes stateHash = 4;
 	int64 height = 5;
 	int64 blockTime = 6;
+	Signature  signature = 8;
 }
 
 message Block {
@@ -189,6 +190,7 @@ message Block {
 	int64 height = 5;
 	int64 blockTime = 6;
 	repeated Transaction txs = 7;
+	Signature  signature = 8;
 }
 
 message BlockOverview {

@@ -14,7 +14,6 @@ dbPath="datadir"
 seeds=["114.55.101.159:13802"]
 enable=true
 isSeed=false
-seedPort=13802
 dbPath="datadir/addrbook"
 version=8
 verMix=7

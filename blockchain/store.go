@@ -101,7 +101,8 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 
 	rawBytes := bs.db.Get(hash)
 	if rawBytes == nil {
-		return nil, nil
+		err := errors.New("tx not exit!")
+		return nil, err
 	}
 
 	var txresult types.TxResult
