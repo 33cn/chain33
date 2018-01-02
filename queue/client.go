@@ -17,6 +17,7 @@ import (
 // }
 
 // process 函数会调用 处理具体的消息逻辑
+var gId int64
 
 type IClient interface {
 	Send(msg Message, wait bool) (err error) //异步发送消息
@@ -30,7 +31,6 @@ type IClient interface {
 type Client struct {
 	q        *Queue
 	recv     chan Message
-	id       int64
 	mu       sync.Mutex
 	isclosed int32
 }
@@ -53,12 +53,8 @@ func (client *Client) Send(msg Message, wait bool) (err error) {
 }
 
 func (client *Client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
-	msg.Id = atomic.AddInt64(&client.id, 1)
-	msg.Ty = ty
-	msg.Data = data
-	msg.Topic = topic
-	msg.ChReply = make(chan Message, 1)
-	return msg
+	id := atomic.AddInt64(&gId, 1)
+	return NewMessage(id, topic, ty, data)
 }
 
 func (client *Client) Wait(msg Message) (Message, error) {
