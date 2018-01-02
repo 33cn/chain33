@@ -155,6 +155,8 @@ func (rc *raftNode) startRaft() {
 		Storage:         rc.raftStorage,
 		MaxSizePerMsg:   1024 * 1024,
 		MaxInflightMsgs: 256,
+		//设置成预投票，可以快速地当集群重启的话，选举出新的leader
+		PreVote: true,
 	}
 
 	if oldwal {
@@ -171,7 +173,7 @@ func (rc *raftNode) startRaft() {
 		ID:          typec.ID(rc.id),
 		ClusterID:   0x1000,
 		Raft:        rc,
-		ServerStats: stats.NewServerStats("", ""),
+		ServerStats: stats.NewServerStats("", strconv.Itoa(rc.id)),
 		LeaderStats: stats.NewLeaderStats(strconv.Itoa(rc.id)),
 		ErrorC:      make(chan error),
 	}
