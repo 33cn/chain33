@@ -110,6 +110,10 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
+		if len(argsWithoutProg[1]) != 66 {
+			fmt.Print(errors.New("哈希错误").Error())
+			return
+		}
 		QueryTransaction(argsWithoutProg[1])
 	case "gettxbyaddr": //根据地址获取交易
 		if len(argsWithoutProg) != 2 {
@@ -121,6 +125,12 @@ func main() {
 		if len(argsWithoutProg) < 2 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
+		}
+		for _, v := range argsWithoutProg[1:] {
+			if len(v) != 66 {
+				fmt.Print(errors.New("哈希错误").Error())
+				return
+			}
 		}
 		GetTransactionByHashes(argsWithoutProg[1:])
 	case "getblocks": //获取区块

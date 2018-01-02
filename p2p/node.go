@@ -51,7 +51,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	rand.Seed(time.Now().Unix())
 	node := &Node{
-		localPort:    uint16(rand.Intn(64512) + 1023),
+		localPort:    DefaultPort, //uint16(rand.Intn(64512) + 1023),
 		externalPort: uint16(rand.Intn(64512) + 1023),
 		outBound:     make(map[string]*peer),
 		addrBook:     NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
@@ -61,12 +61,7 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	log.Debug("newNode", "externalPort", node.externalPort)
 
 	if cfg.GetIsSeed() == true {
-		if cfg.GetSeedPort() != 0 {
-			node.SetPort(uint(cfg.GetSeedPort()), uint(cfg.GetSeedPort()))
-
-		} else {
-			node.SetPort(DefaultPort, DefaultPort)
-		}
+		node.SetPort(DefaultPort, DefaultPort)
 
 	}
 	node.nodeInfo = new(NodeInfo)
@@ -112,6 +107,10 @@ FOR_LOOP:
 }
 func (n *Node) makeService() {
 	//确认自己的服务范围1，2，4
+	if n.nodeInfo.cfg.GetIsSeed() == true {
+		n.nodeInfo.versionChan <- struct{}{}
+		return
+	}
 	go func() {
 		for i := 0; i < 10; i++ {
 			exnet, err := nat.Any().ExternalIP()
@@ -125,7 +124,12 @@ func (n *Node) makeService() {
 				log.Debug("makeService", "Sig", "Ok")
 				break
 			} else {
-				log.Error("ExternalIp", "Error", err.Error())
+				//如果ExternalAddr 与LocalAddr 相同，则认为在外网中
+				if ExternalAddr == LocalAddr {
+					n.nodeInfo.versionChan <- struct{}{}
+					break
+				}
+
 			}
 		}
 	}()
@@ -337,10 +341,13 @@ func (n *Node) deleteErrPeer() {
 	for {
 		peer := <-n.nodeInfo.monitorChan
 		log.Warn("deleteErrPeer", "REMOVE", peer.Addr())
-		n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
+		if peer.version.Get() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
+			n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
+		}
 		n.addrBook.RemoveAddr(peer.Addr())
 		n.addrBook.Save()
 		n.Remove(peer.Addr())
+
 	}
 }
 func (n *Node) getAddrFromOnline() {
@@ -357,7 +364,14 @@ func (n *Node) getAddrFromOnline() {
 					continue
 				}
 				log.Debug("monitor", "ADDRLIST", addrlist)
-				n.DialPeers(addrlist) //对获取的地址列表发起连接
+				//过滤黑名单的地址
+				var whitlist []string
+				for _, addr := range addrlist {
+					if n.nodeInfo.blacklist.Has(addr) == false {
+						whitlist = append(whitlist, addr)
+					}
+				}
+				n.DialPeers(whitlist) //对获取的地址列表发起连接
 
 			}
 		}
@@ -445,6 +459,8 @@ func (n *Node) detectionNodeAddr() {
 	log.Debug("detectionNodeAddr", "addr:", LocalAddr)
 	if cfg.GetIsSeed() {
 		ExternalAddr = LocalAddr
+
+		goto SET_ADDR
 	}
 
 	if len(cfg.Seeds) == 0 {
@@ -470,6 +486,7 @@ func (n *Node) detectionNodeAddr() {
 	if len(ExternalAddr) == 0 {
 		ExternalAddr = LocalAddr
 	}
+SET_ADDR:
 	exaddr := fmt.Sprintf("%v:%v", ExternalAddr, n.GetExterPort())
 	if exaddr, err := NewNetAddressString(exaddr); err == nil {
 		n.nodeInfo.SetExternalAddr(exaddr)
@@ -487,7 +504,7 @@ func (n *Node) detectionNodeAddr() {
 //4.启动监控远程节点
 func (n *Node) Start() {
 	n.detectionNodeAddr()
-	n.makeService()
+
 	n.rListener = NewRemotePeerAddrServer()
 	n.l = NewDefaultListener(Protocol, n)
 
@@ -496,17 +513,24 @@ func (n *Node) Start() {
 	go n.loadAddrBook()
 	go n.monitor()
 	go n.exChangeVersion()
+	go n.makeService()
 	return
 }
 
 func (n *Node) Stop() {
 	close(n.versionDone)
+	log.Debug("stop", "versionDone", "close")
 	n.l.Stop()
+	log.Debug("stop", "listen", "close")
 	n.rListener.Stop()
+	log.Debug("stop", "remotelisten", "close")
 	n.addrBook.Stop()
+	log.Debug("stop", "addrBook", "close")
 	peers := n.GetPeers()
 	for _, peer := range peers {
+		addr := peer.Addr()
 		peer.Stop()
+		log.Debug("stop", "peer", addr, "close")
 	}
 
 }

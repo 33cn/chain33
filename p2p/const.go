@@ -14,7 +14,7 @@ var (
 const (
 	MSG_TX          = 1
 	MSG_BLOCK       = 2
-	TryMapPortTimes = 30
+	TryMapPortTimes = 20
 )
 
 var (
@@ -39,6 +39,10 @@ const (
 	NODE_NETWORK = 1
 	NODE_GETUTXO = 2
 	NODE_BLOOM   = 4
+)
+
+const (
+	VersionNotSupport = "Version No Support"
 )
 
 var (

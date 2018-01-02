@@ -13,7 +13,7 @@ import (
 )
 
 var genesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-
+var genesisBlockTime int64 = 1514533394
 var slog = log.New("module", "solo")
 
 var (
@@ -50,7 +50,7 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
-		newblock.BlockTime = time.Now().Unix()
+		newblock.BlockTime = genesisBlockTime 
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
 		tx := createGenesisTx()
