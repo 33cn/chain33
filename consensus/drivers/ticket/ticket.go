@@ -3,6 +3,7 @@ package ticket
 import (
 	"time"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
 	"code.aliyun.com/chain33/chain33/types"
@@ -27,14 +28,40 @@ func (client *TicketClient) Close() {
 }
 
 func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
-	var tx types.Transaction
+	tx := types.Transaction{}
 	tx.Execer = []byte("coins")
-	tx.To = client.Cfg.Genesis
+
+	//给hotkey 10000 个币，作为miner的手续费
+	tx.To = client.Cfg.HotkeyAddr
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{1e8 * types.Coin}
+	g.Genesis = &types.CoinsGenesis{1e4 * types.Coin}
 	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx)
+
+	//给ticket 合约打 3亿 个币
+
+	tx = types.Transaction{}
+
+	tx.Execer = []byte("coins")
+
+	//给hotkey 10000 个币，作为miner的手续费
+	tx.To = account.ExecAddress("ticket").String()
+	//gen payload
+	g = &types.CoinsAction_Genesis{}
+	g.Genesis = &types.CoinsGenesis{3e8 * types.Coin}
+	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	ret = append(ret, &tx)
+
+	//产生30张初始化ticket
+	tx = types.Transaction{}
+	tx.Execer = []byte("ticket")
+	tx.To = account.ExecAddress("ticket").String()
+
+	gticket := &types.TicketAction_Genesis{}
+	gticket.Genesis = &types.TicketGenesis{client.Cfg.HotkeyAddr, client.Cfg.Genesis, 300000}
+
+	tx.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
 	return
 }
 

@@ -15,6 +15,8 @@ var ErrTxExpire = errors.New("ErrTxExpire")
 var ErrNoTicket = errors.New("ErrNoTicket")
 var ErrMinerIsStared = errors.New("ErrMinerIsStared")
 var ErrMinerNotStared = errors.New("ErrMinerNotStared")
+var ErrTicketCount = errors.New("ErrTicketCount")
+var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 
 const Coin int64 = 1e8
 
@@ -215,4 +217,14 @@ const (
 const (
 	CoinsActionTransfer = 1
 	CoinsActionGenesis  = 2
+)
+
+//ticket
+const (
+	TicketActionGenesis = 1
+	TicketActionOpen    = 2
+	TicketActionClose   = 3
+
+	TicketActionList  = 4 //读的接口不直接经过transaction
+	TicketActionInfos = 5 //读的接口不直接经过transaction
 )
