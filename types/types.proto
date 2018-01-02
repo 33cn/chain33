@@ -1,7 +1,6 @@
 syntax = "proto3";
 package types;
 
-
 service grpcservice{
 	//chain33 对外提供服务的接口
 	//区块链接口
@@ -30,7 +29,6 @@ service grpcservice{
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
 	
 }
-
 
 service p2premoteaddr{
 	//获取远程地址
@@ -440,24 +438,6 @@ message MAVLProof {
 	bytes rootHash =3;
 }
 
-message CoinsAction {
-	oneof value {
-		CoinsTransfer  transfer = 1;
-		CoinsGenesis   genesis = 2;
-	}
-	int32 ty = 3;
-}
-
-//给某个地址凭空打币
-//只能执行一次，不能执行第二次
-message CoinsGenesis {
-	int64 amount = 2;
-}
-
-message CoinsTransfer {
-	int64 amount = 2;
-	string note = 3;
-}
 
 message InvData {
 	oneof value {
@@ -567,6 +547,8 @@ message Consensus {
 	string name=1;
 	string genesis=2;
 	bool minerstart = 3;
+	int64 genesisBlockTime = 4;
+	string hotkeyAddr = 5;
 }
 
 message MemPool {
@@ -582,6 +564,7 @@ message BlockChain {
 	string driver = 5;
 	string dbPath = 6;
 }
+
 message ReplyTxInfos {
 	repeated ReplyTxInfo txInfos = 1;
 }
@@ -617,3 +600,66 @@ message WalletPwHash {
 	string randstr = 2;
 }
 
+//message for execs.coins
+message CoinsAction {
+	oneof value {
+		CoinsTransfer  transfer = 1;
+		CoinsGenesis   genesis = 2;
+	}
+	int32 ty = 3;
+}
+
+//给某个地址凭空打币
+//只能执行一次，不能执行第二次
+message CoinsGenesis {
+	int64 amount = 2;
+}
+
+message CoinsTransfer {
+	int64 amount = 2;
+	string note = 3;
+}
+
+//message for execs.ticket
+message TicketAction {
+	oneof value {
+		TicketOpen  topen = 1;
+		TicketGenesis   genesis = 2;
+		TicketClose  tclose = 3;
+		TicketList tlist = 4;
+		TicketInfos infos = 5;
+	}
+	int32 ty = 10;
+}
+
+message TicketOpen {
+	string minerAddress = 1; //用户挖矿的ticket 地址
+	int32 count = 2; //购买ticket的数目
+}
+
+message TicketGenesis {
+	string minerAddress = 1;
+	string codeWallet = 2;
+	int32 count = 3;
+}
+
+message TicketClose {
+	repeated string ticketId = 1;
+}
+
+message TicketList {
+	string addr = 1;
+	bool isClosed = 2;
+}
+
+message TicketInfos {
+	repeated string ticketIds = 1;
+}
+
+message Ticket {
+	string ticketId  = 1;
+	int32 status     = 2; //0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功
+	bool isGenesis   = 3; //genesis 创建的私钥比较特殊
+	int64 createTime = 4; //创建时间
+	int64 minerTime  = 5; //挖矿时间
+}

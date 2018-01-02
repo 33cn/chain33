@@ -23,7 +23,8 @@ func DisableLog() {
 
 type Executer interface {
 	SetDB(dbm.KVDB)
-	Exec(tx *types.Transaction) *types.Receipt
+	SetEnv(height, blocltime int64)
+	Exec(tx *types.Transaction) (*types.Receipt, error)
 }
 
 var (

@@ -77,9 +77,9 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 	wallet.qclient = q.GetClient()
 	wallet.qclient.Sub("wallet")
 	wallet.q = q
-
 	go wallet.ProcRecvMsg()
 }
+
 func (wallet *Wallet) ProcRecvMsg() {
 	for msg := range wallet.qclient.Recv() {
 		walletlog.Info("wallet recv", "msg", msg)
@@ -94,7 +94,15 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("process WalletAccounts OK")
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
-
+		case types.EventWalletGetTickets:
+			tickets, err := wallet.GetTickets()
+			if err != nil {
+				walletlog.Error("GetTickets", "err", err.Error())
+				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
+			} else {
+				walletlog.Info("process GetTickets OK")
+				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tickets))
+			}
 		case types.EventNewAccount:
 			NewAccount := msg.Data.(*types.ReqNewAccount)
 			WalletAccount, err := wallet.ProcCreatNewAccount(NewAccount)
@@ -1078,4 +1086,30 @@ func DecrypterPrivkey(password []byte, privkey []byte) []byte {
 	decrypter.CryptBlocks(decryptered, privkey)
 	//walletlog.Info("DecrypterPrivkey", "password", string(key), "Encrypted", common.ToHex(privkey), "decryptered", common.ToHex(decryptered))
 	return decryptered
+}
+
+func (wallet *Wallet) GetTickets() ([]*types.Ticket, error) {
+	accounts, err := wallet.ProcGetAccountList()
+	if err != nil {
+		return nil, err
+	}
+	//循环遍历所有的账户-->保证钱包已经解锁
+	var tickets []*types.Ticket
+	for _, account := range accounts.Wallets {
+		t, err := loadTicket(account.Acc.Addr)
+		if err != nil {
+			return nil, err
+		}
+		if t != nil {
+			tickets = append(tickets, t...)
+		}
+	}
+	if len(tickets) == 0 {
+		return nil, types.ErrNoTicket
+	}
+	return tickets, nil
+}
+
+func loadTicket(addr string) ([]*types.Ticket, error) {
+	return nil, nil
 }
