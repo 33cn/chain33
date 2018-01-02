@@ -1,10 +1,9 @@
-package solo
+package drivers
 
 import (
 	"errors"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -13,37 +12,45 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-var genesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-var genesisBlockTime int64 = 1514533394
-var slog = log.New("module", "solo")
+var tlog = log.New("module", "consensus")
 
 var (
-	listSize     int = 10000
-	zeroHash     [32]byte
-	currentBlock *types.Block
-	mulock       sync.Mutex
+	listSize int = 10000
+	zeroHash [32]byte
 )
 
-type SoloClient struct {
-	qclient    queue.IClient
-	q          *queue.Queue
-	minerStart int32
-	once       sync.Once
+type Miner interface {
+	CreateGenesisTx() []*types.Transaction
+	CreateBlock()
 }
 
-func NewSolo(cfg *types.Consensus) *SoloClient {
-	if cfg.Genesis != "" {
-		genesisAddr = cfg.Genesis
-	}
-	log.Info("Enter consensus solo")
+type BaseClient struct {
+	qclient      queue.IClient
+	q            *queue.Queue
+	minerStart   int32
+	once         sync.Once
+	Cfg          *types.Consensus
+	currentBlock *types.Block
+	mulock       sync.Mutex
+	child        Miner
+}
+
+func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	var flag int32
 	if cfg.Minerstart {
 		flag = 1
 	}
-	return &SoloClient{minerStart: flag}
+	client := &BaseClient{minerStart: flag}
+	client.Cfg = cfg
+	log.Info("Enter consensus solo")
+	return client
 }
 
-func (client *SoloClient) SetQueue(q *queue.Queue) {
+func (client *BaseClient) SetChild(c Miner) {
+	client.child = c
+}
+
+func (client *BaseClient) SetQueue(q *queue.Queue) {
 	log.Info("Enter SetQueue method of consensus")
 	client.qclient = q.GetClient()
 	client.q = q
@@ -56,33 +63,33 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		})
 	}
 	go client.eventLoop()
-	go client.createBlock()
+	go client.child.CreateBlock()
 }
 
-func (client *SoloClient) initBlock() {
+func (client *BaseClient) initBlock() {
 	height := client.getInitHeight()
 	if height == -1 {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
-		newblock.BlockTime = genesisBlockTime
+		newblock.BlockTime = client.Cfg.GenesisBlockTime
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
-		tx := createGenesisTx()
-		newblock.Txs = append(newblock.Txs, tx)
+		tx := client.child.CreateGenesisTx()
+		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		client.writeBlock(zeroHash[:], newblock)
+		client.WriteBlock(zeroHash[:], newblock)
 	} else {
 		block := client.RequestBlock(height)
-		setCurrentBlock(block)
+		client.SetCurrentBlock(block)
 	}
 }
 
-func (client *SoloClient) Close() {
+func (client *BaseClient) Close() {
 	log.Info("consensus solo closed")
 }
 
-func (client *SoloClient) checkTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
+func (client *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
 	var checkHashList types.TxHashList
 	txMap := make(map[string]*types.Transaction)
 	for _, tx := range txs {
@@ -90,7 +97,6 @@ func (client *SoloClient) checkTxDup(txs []*types.Transaction) (transactions []*
 		txMap[string(hash)] = tx
 		checkHashList.Hashes = append(checkHashList.Hashes, hash)
 	}
-
 	// 发送Hash过后的交易列表给blockchain模块
 	hashList := client.qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
 	client.qclient.Send(hashList, true)
@@ -109,54 +115,21 @@ func (client *SoloClient) checkTxDup(txs []*types.Transaction) (transactions []*
 	return transactions
 }
 
-func (client *SoloClient) createBlock() {
-	issleep := true
-	for {
-		if atomic.LoadInt32(&client.minerStart) == 0 {
-			time.Sleep(time.Second)
-			continue
-		}
-		if issleep {
-			time.Sleep(time.Second)
-		}
-		txs := client.RequestTx()
-		if len(txs) == 0 {
-			issleep = true
-			continue
-		}
-		issleep = false
-		//check dup
-		txs = client.checkTxDup(txs)
-		lastBlock := getCurrentBlock()
-		var newblock types.Block
-		newblock.ParentHash = lastBlock.Hash()
-		newblock.Height = lastBlock.Height + 1
-		newblock.Txs = txs
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		newblock.BlockTime = time.Now().Unix()
-		if lastBlock.BlockTime >= newblock.BlockTime {
-			newblock.BlockTime = lastBlock.BlockTime + 1
-		}
-		err := client.writeBlock(lastBlock.StateHash, &newblock)
-		if err != nil {
-			issleep = true
-			continue
-		}
-	}
+func (client *BaseClient) IsMining() bool {
+	return atomic.LoadInt32(&client.minerStart) == 1
 }
 
 // 准备新区块
-func (client *SoloClient) eventLoop() {
+func (client *BaseClient) eventLoop() {
 	// 监听blockchain模块，获取当前最高区块
 	client.qclient.Sub("consensus")
 	go func() {
 		for msg := range client.qclient.Recv() {
-			slog.Info("consensus recv", "msg", msg)
+			tlog.Info("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
-				setCurrentBlock(block)
+				client.SetCurrentBlock(block)
 			} else if msg.Ty == types.EventMinerStart {
-
 				if !atomic.CompareAndSwapInt32(&client.minerStart, 0, 1) {
 					msg.ReplyErr("EventMinerStart", types.ErrMinerIsStared)
 				} else {
@@ -177,7 +150,7 @@ func (client *SoloClient) eventLoop() {
 }
 
 // Mempool中取交易列表
-func (client *SoloClient) RequestTx() []*types.Transaction {
+func (client *BaseClient) RequestTx() []*types.Transaction {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
@@ -187,7 +160,7 @@ func (client *SoloClient) RequestTx() []*types.Transaction {
 	return resp.GetData().(*types.ReplyTxList).GetTxs()
 }
 
-func (client *SoloClient) RequestBlock(start int64) *types.Block {
+func (client *BaseClient) RequestBlock(start int64) *types.Block {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
@@ -202,14 +175,14 @@ func (client *SoloClient) RequestBlock(start int64) *types.Block {
 }
 
 // solo初始化时，取一次区块高度放在内存中，后面自增长，不用再重复去blockchain取
-func (client *SoloClient) getInitHeight() int64 {
+func (client *BaseClient) getInitHeight() int64 {
 
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHeight, nil)
 
 	client.qclient.Send(msg, true)
 	replyHeight, err := client.qclient.Wait(msg)
 	h := replyHeight.GetData().(*types.ReplyBlockHeight).Height
-	slog.Info("init = ", "height", h)
+	tlog.Info("init = ", "height", h)
 	if err != nil {
 		panic("error happens when get height from blockchain")
 	}
@@ -217,7 +190,7 @@ func (client *SoloClient) getInitHeight() int64 {
 }
 
 // 向blockchain写区块
-func (client *SoloClient) writeBlock(prevHash []byte, block *types.Block) error {
+func (client *BaseClient) WriteBlock(prevHash []byte, block *types.Block) error {
 	blockdetail, err := util.ExecBlock(client.q, prevHash, block, false)
 	if err != nil { //never happen
 		panic(err)
@@ -232,7 +205,7 @@ func (client *SoloClient) writeBlock(prevHash []byte, block *types.Block) error 
 		return err
 	}
 	if resp.GetData().(*types.Reply).IsOk {
-		setCurrentBlock(block)
+		client.SetCurrentBlock(block)
 	} else {
 		//TODO:
 		//把txs写回mempool
@@ -242,34 +215,23 @@ func (client *SoloClient) writeBlock(prevHash []byte, block *types.Block) error 
 	return nil
 }
 
-func setCurrentBlock(b *types.Block) {
-	mulock.Lock()
-	if currentBlock == nil || currentBlock.Height <= b.Height {
-		currentBlock = b
+func (client *BaseClient) SetCurrentBlock(b *types.Block) {
+	client.mulock.Lock()
+	if client.currentBlock == nil || client.currentBlock.Height <= b.Height {
+		client.currentBlock = b
 	}
-	mulock.Unlock()
+	client.mulock.Unlock()
 }
 
-func getCurrentBlock() (b *types.Block) {
-	mulock.Lock()
-	defer mulock.Unlock()
-	return currentBlock
+func (client *BaseClient) GetCurrentBlock() (b *types.Block) {
+	client.mulock.Lock()
+	defer client.mulock.Unlock()
+	return client.currentBlock
 }
 
-func getCurrentHeight() int64 {
-	mulock.Lock()
-	start := currentBlock.Height
-	mulock.Unlock()
+func (client *BaseClient) GetCurrentHeight() int64 {
+	client.mulock.Lock()
+	start := client.currentBlock.Height
+	client.mulock.Unlock()
 	return start
-}
-
-func createGenesisTx() *types.Transaction {
-	var tx types.Transaction
-	tx.Execer = []byte("coins")
-	tx.To = genesisAddr
-	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{1e8 * types.Coin}
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
-	return &tx
 }
