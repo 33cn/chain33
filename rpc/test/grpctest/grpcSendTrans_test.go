@@ -29,7 +29,7 @@ func init() {
 func TestGrpcSendToAddress(t *testing.T) {
 	priv := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	keymap := make(map[string]crypto.PrivKey)
-	N := 1
+	N := 100
 	header, err := getlastheader()
 	if err != nil {
 		t.Error(err)
@@ -64,7 +64,7 @@ func TestGrpcSendToAddress(t *testing.T) {
 	ch := make(chan struct{}, N)
 	for _, value := range keymap {
 		go func(pkey crypto.PrivKey) {
-			for i := 0; i < N*1; {
+			for i := 0; i < N*10; {
 				addrto, _ := genaddress()
 				err := sendtoaddress(pkey, addrto, 10000)
 				if err != nil {

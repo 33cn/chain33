@@ -3,6 +3,7 @@ package solo
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
@@ -24,8 +25,10 @@ var (
 )
 
 type SoloClient struct {
-	qclient queue.IClient
-	q       *queue.Queue
+	qclient    queue.IClient
+	q          *queue.Queue
+	minerStart int32
+	once       sync.Once
 }
 
 func NewSolo(cfg *types.Consensus) *SoloClient {
@@ -33,7 +36,11 @@ func NewSolo(cfg *types.Consensus) *SoloClient {
 		genesisAddr = cfg.Genesis
 	}
 	log.Info("Enter consensus solo")
-	return &SoloClient{}
+	var flag int32
+	if cfg.Minerstart {
+		flag = 1
+	}
+	return &SoloClient{minerStart: flag}
 }
 
 func (client *SoloClient) SetQueue(q *queue.Queue) {
@@ -43,14 +50,22 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 	// TODO: solo模式下通过配置判断是否主节点，主节点打包区块，其余节点不用做
 
 	// 程序初始化时，先从blockchain取区块链高度
+	if atomic.LoadInt32(&client.minerStart) == 1 {
+		client.once.Do(func() {
+			client.initBlock()
+		})
+	}
+	go client.eventLoop()
+	go client.createBlock()
+}
 
+func (client *SoloClient) initBlock() {
 	height := client.getInitHeight()
-
 	if height == -1 {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
-		newblock.BlockTime = genesisBlockTime 
+		newblock.BlockTime = genesisBlockTime
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
 		tx := createGenesisTx()
@@ -61,8 +76,6 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		block := client.RequestBlock(height)
 		setCurrentBlock(block)
 	}
-	go client.eventLoop()
-	go client.createBlock()
 }
 
 func (client *SoloClient) Close() {
@@ -99,6 +112,10 @@ func (client *SoloClient) checkTxDup(txs []*types.Transaction) (transactions []*
 func (client *SoloClient) createBlock() {
 	issleep := true
 	for {
+		if atomic.LoadInt32(&client.minerStart) == 0 {
+			time.Sleep(time.Second)
+			continue
+		}
 		if issleep {
 			time.Sleep(time.Second)
 		}
@@ -138,6 +155,22 @@ func (client *SoloClient) eventLoop() {
 			if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				setCurrentBlock(block)
+			} else if msg.Ty == types.EventMinerStart {
+
+				if !atomic.CompareAndSwapInt32(&client.minerStart, 0, 1) {
+					msg.ReplyErr("EventMinerStart", types.ErrMinerIsStared)
+				} else {
+					client.once.Do(func() {
+						client.initBlock()
+					})
+					msg.ReplyErr("EventMinerStart", nil)
+				}
+			} else if msg.Ty == types.EventMinerStop {
+				if !atomic.CompareAndSwapInt32(&client.minerStart, 1, 0) {
+					msg.ReplyErr("EventMinerStop", types.ErrMinerNotStared)
+				} else {
+					msg.ReplyErr("EventMinerStop", nil)
+				}
 			}
 		}
 	}()

@@ -9,9 +9,6 @@ import (
 
 func New(cfg *types.Consensus) Consumer {
 	consensusType := cfg.Name
-	if !cfg.Minerstart {
-		return &nopMiner{}
-	}
 	if consensusType == "solo" {
 		con := solo.NewSolo(cfg)
 		return con
