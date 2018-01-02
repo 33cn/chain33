@@ -17,6 +17,7 @@ var ErrMinerIsStared = errors.New("ErrMinerIsStared")
 var ErrMinerNotStared = errors.New("ErrMinerNotStared")
 var ErrTicketCount = errors.New("ErrTicketCount")
 var ErrFeeTooLow = errors.New("ErrFeeTooLow")
+var ErrNoPeer = errors.New("ErrNoPeer")
 
 const Coin int64 = 1e8
 

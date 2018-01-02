@@ -25,7 +25,8 @@ func (c *HttpConn) Close() error                      { return nil }
 func (jrpc *jsonrpcServer) CreateServer(addr string) {
 	listener, e := net.Listen("tcp", addr)
 	if e != nil {
-		log.Crit("listen error:", e)
+		log.Crit("listen:", "err", e)
+		panic(e)
 	}
 	jrpc.listener = listener
 	server := rpc.NewServer()
@@ -60,7 +61,8 @@ func (grpcx *grpcServer) CreateServer(addr string) {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Crit("failed to listen: %v", err)
+		log.Crit("failed to listen:", "err", err)
+		panic(err)
 	}
 	grpcx.listener = listener
 	s := grpc.NewServer()
