@@ -440,24 +440,6 @@ message MAVLProof {
 	bytes rootHash =3;
 }
 
-message CoinsAction {
-	oneof value {
-		CoinsTransfer  transfer = 1;
-		CoinsGenesis   genesis = 2;
-	}
-	int32 ty = 3;
-}
-
-//给某个地址凭空打币
-//只能执行一次，不能执行第二次
-message CoinsGenesis {
-	int64 amount = 2;
-}
-
-message CoinsTransfer {
-	int64 amount = 2;
-	string note = 3;
-}
 
 message InvData {
 	oneof value {
@@ -616,4 +598,27 @@ message WalletPwHash {
 	bytes pwHash = 1;
 	string randstr = 2;
 }
+
+//message for execs.coins
+message CoinsAction {
+	oneof value {
+		CoinsTransfer  transfer = 1;
+		CoinsGenesis   genesis = 2;
+	}
+	int32 ty = 3;
+}
+
+//给某个地址凭空打币
+//只能执行一次，不能执行第二次
+message CoinsGenesis {
+	int64 amount = 2;
+}
+
+message CoinsTransfer {
+	int64 amount = 2;
+	string note = 3;
+}
+
+
+//
 
