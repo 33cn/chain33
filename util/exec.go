@@ -26,6 +26,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 			if errReturn { //认为这个是一个错误的区块
 				return nil, types.ErrBlockExec
 			}
+			ulog.Error("exec tx err", "err", receipt)
 			deltxlist[i] = true
 			continue
 		}

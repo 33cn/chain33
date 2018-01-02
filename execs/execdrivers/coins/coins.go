@@ -4,8 +4,6 @@ package coins
 coins 是一个货币的exec。内置货币的执行器。
 
 主要提供两种操作：
-
-EventFee -> 扣除手续费
 EventTransfer -> 转移资产
 */
 
@@ -32,46 +30,55 @@ func init() {
 }
 
 type Coins struct {
-	db dbm.KVDB
+	db        dbm.KVDB
+	height    int64
+	blocktime int64
 }
 
 func newCoins() *Coins {
 	return &Coins{}
 }
 
-func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
+func (n *Coins) SetEnv(height, blocktime int64) {
+	n.height = height
+	n.blocktime = blocktime
+}
+
+func (n *Coins) Exec(tx *types.Transaction) (*types.Receipt, error) {
 	var action types.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		goto cutFee //尽量收取手续费
+		return nil, err
 	}
 	if err = account.CheckAddress(tx.To); err != nil {
-		goto cutFee
+		return nil, err
 	}
 	clog.Info("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		if transfer.Amount <= 0 || transfer.Amount >= MAX_COIN {
-			return types.NewErrReceipt(types.ErrAmount)
+			return nil, types.ErrAmount
 		}
 		accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
 		accTo := account.LoadAccount(n.db, tx.To)
-		b := accFrom.GetBalance() - tx.Fee - transfer.Amount
-		clog.Info("balance ", "from", accFrom.GetBalance(), "fee", tx.Fee, "amount", transfer.Amount)
+		b := accFrom.GetBalance() - transfer.Amount
+		clog.Info("balance ", "from", accFrom.GetBalance(), "amount", transfer.Amount)
 		if b >= 0 {
-			receiptBalanceFrom := &types.ReceiptBalance{accFrom.GetBalance(), b, -tx.Fee - transfer.Amount}
+			receiptBalanceFrom := &types.ReceiptBalance{accFrom.GetBalance(), b, -transfer.Amount}
 			accFrom.Balance = b
 			tob := accTo.GetBalance() + transfer.Amount
 			receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, transfer.Amount}
 			accTo.Balance = tob
 			account.SaveAccount(n.db, accFrom)
 			account.SaveAccount(n.db, accTo)
-			return transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo)
+			return transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
+		} else {
+			return nil, types.ErrNoBalance
 		}
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
-		g := account.GetGenesis(n.db)
-		if !g.Isrun {
+		if n.height == 0 {
+			g := &types.Genesis{}
 			g.Isrun = true
 			account.SaveGenesis(n.db, g)
 			accTo := account.LoadAccount(n.db, tx.To)
@@ -79,20 +86,13 @@ func (n *Coins) Exec(tx *types.Transaction) *types.Receipt {
 			receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, genesis.Amount}
 			accTo.Balance = tob
 			account.SaveAccount(n.db, accTo)
-			return genesisReceipt(accTo, receiptBalanceTo, g)
+			return genesisReceipt(accTo, receiptBalanceTo, g), nil
+		} else {
+			return nil, types.ErrReRunGenesis
 		}
+	} else {
+		return nil, types.ErrActionNotSupport
 	}
-
-cutFee:
-	accFrom := account.LoadAccount(n.db, account.PubKeyToAddress(tx.Signature.Pubkey).String())
-	if accFrom.GetBalance()-tx.Fee >= 0 {
-		receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
-		accFrom.Balance = accFrom.GetBalance() - tx.Fee
-		account.SaveAccount(n.db, accFrom)
-		return cutFeeReceipt(accFrom, receiptBalance)
-	}
-	//return error
-	return types.NewErrReceipt(types.ErrActionNotSupport)
 }
 
 func (n *Coins) SetDB(db dbm.KVDB) {
@@ -100,10 +100,6 @@ func (n *Coins) SetDB(db dbm.KVDB) {
 }
 
 //only pack the transaction, exec is error.
-func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
-	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
-	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
-}
 
 func transferReceipt(accFrom, accTo *types.Account, receiptBalanceFrom, receiptBalanceTo *types.ReceiptBalance) *types.Receipt {
 	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceFrom)}
