@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	MinFee           int64 = 1000000
-	MaxTxNumPerBlock int64 = 100000
+	MinFee            int64 = 1000000
+	MaxTxNumPerBlock  int64 = 100000
+	MaxTxHashsPerTime int64 = 100
 )
 
 var walletlog = log.New("module", "wallet")
@@ -380,6 +381,10 @@ func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (
 
 	if TxList == nil {
 		walletlog.Error("ProcWalletTxList TxList is nil!")
+		return nil, ErrInputPara
+	}
+	if TxList.GetDirection() != 0 && TxList.GetDirection() != 1 {
+		walletlog.Error("ProcWalletTxList Direction err!")
 		return nil, ErrInputPara
 	}
 	WalletTxDetails, err := wallet.walletStore.GetTxDetailByIter(TxList)
@@ -908,6 +913,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		walletlog.Error("ProcWalletAddBlock input para is nil!")
 		return
 	}
+	//walletlog.Error("ProcWalletAddBlock", "height", block.GetBlock().GetHeight())
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
 
@@ -974,41 +980,11 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 	}
 	return false
 }
-
-//从blockchain模块同步addr参与的所有交易详细信息
-func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
-	if len(addr) == 0 {
-		walletlog.Error("ReqTxInfosByAddr input addr is nil!")
-		return
-	}
-
-	//首先从blockchain模块获取地址对应的所有交易hashs列表
-	var ReqAddr types.ReqAddr
-	ReqAddr.Addr = addr
-	msg := wallet.qclient.NewMessage("blockchain", types.EventGetTransactionByAddr, &ReqAddr)
+func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
+	//通过txhashs获取对应的txdetail
+	msg := wallet.qclient.NewMessage("blockchain", types.EventGetTransactionByHash, ReqHashes)
 	wallet.qclient.Send(msg, true)
 	resp, err := wallet.qclient.Wait(msg)
-	if err != nil {
-		walletlog.Error("ReqTxInfosByAddr EventGetTransactionByAddr", "err", err, "addr", addr)
-		return
-	}
-
-	ReplyTxInfos := resp.GetData().(*types.ReplyTxInfos)
-	if ReplyTxInfos == nil {
-		walletlog.Info("ReqTxInfosByAddr ReplyTxInfos is nil")
-		return
-	}
-
-	var ReqHashes types.ReqHashes
-	ReqHashes.Hashes = make([][]byte, len(ReplyTxInfos.TxInfos))
-	for index, ReplyTxInfo := range ReplyTxInfos.TxInfos {
-		ReqHashes.Hashes[index] = ReplyTxInfo.GetHash()
-	}
-
-	//通过txhashs获取对应的txdetail
-	msg = wallet.qclient.NewMessage("blockchain", types.EventGetTransactionByHash, &ReqHashes)
-	wallet.qclient.Send(msg, true)
-	resp, err = wallet.qclient.Wait(msg)
 	if err != nil {
 		walletlog.Error("ReqTxInfosByAddr EventGetTransactionByHash", "err", err)
 		return
@@ -1021,17 +997,16 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 
 	//批量存储地址对应的所有交易的详细信息到wallet db中
 	newbatch := wallet.walletStore.NewBatch(true)
-	for index, txdetal := range TxDetails.Txs {
-		height := ReplyTxInfos.TxInfos[index].GetHeight()
-		txindex := ReplyTxInfos.TxInfos[index].GetIndex()
+	for _, txdetal := range TxDetails.Txs {
+		height := txdetal.GetHeight()
+		txindex := txdetal.GetIndex()
 
 		blockheight := height*MaxTxNumPerBlock + int64(txindex)
 		heightstr := fmt.Sprintf("%018d", blockheight)
-
 		var txdetail types.WalletTxDetail
 		txdetail.Tx = txdetal.GetTx()
-		txdetail.Height = height
-		txdetail.Index = int64(txindex)
+		txdetail.Height = txdetal.GetHeight()
+		txdetail.Index = txdetal.GetIndex()
 		txdetail.Receipt = txdetal.GetReceipt()
 		txdetail.Blocktime = txdetal.GetBlocktime()
 		txdetail.Amount = txdetal.GetAmount()
@@ -1046,6 +1021,60 @@ func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 		walletlog.Debug("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
+}
+
+//从blockchain模块同步addr参与的所有交易详细信息
+func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
+	if len(addr) == 0 {
+		walletlog.Error("ReqTxInfosByAddr input addr is nil!")
+		return
+	}
+	var txInfo types.ReplyTxInfo
+
+	i := 0
+	for {
+		//首先从blockchain模块获取地址对应的所有交易hashs列表,从最新的交易开始获取
+		var ReqAddr types.ReqAddr
+		ReqAddr.Addr = addr
+		ReqAddr.Flag = 0
+		ReqAddr.Direction = 0
+		ReqAddr.Count = int32(MaxTxHashsPerTime)
+		if i == 0 {
+			ReqAddr.Height = -1
+			ReqAddr.Index = 0
+		} else {
+			ReqAddr.Height = txInfo.GetHeight()
+			ReqAddr.Index = txInfo.GetIndex()
+		}
+		i++
+		msg := wallet.qclient.NewMessage("blockchain", types.EventGetTransactionByAddr, &ReqAddr)
+		wallet.qclient.Send(msg, true)
+		resp, err := wallet.qclient.Wait(msg)
+		if err != nil {
+			walletlog.Error("ReqTxInfosByAddr EventGetTransactionByAddr", "err", err, "addr", addr)
+			return
+		}
+
+		ReplyTxInfos := resp.GetData().(*types.ReplyTxInfos)
+		if ReplyTxInfos == nil {
+			walletlog.Info("ReqTxInfosByAddr ReplyTxInfos is nil")
+			return
+		}
+		txcount := len(ReplyTxInfos.TxInfos)
+
+		var ReqHashes types.ReqHashes
+		ReqHashes.Hashes = make([][]byte, len(ReplyTxInfos.TxInfos))
+		for index, ReplyTxInfo := range ReplyTxInfos.TxInfos {
+			ReqHashes.Hashes[index] = ReplyTxInfo.GetHash()
+			txInfo.Hash = ReplyTxInfo.GetHash()
+			txInfo.Height = ReplyTxInfo.GetHeight()
+			txInfo.Index = ReplyTxInfo.GetIndex()
+		}
+		wallet.GetTxDetailByHashs(&ReqHashes)
+		if txcount < int(MaxTxHashsPerTime) {
+			return
+		}
+	}
 }
 
 //使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey

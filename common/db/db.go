@@ -23,7 +23,7 @@ type DB interface {
 	Iterator() Iterator
 	Stats() map[string]string
 	PrefixScan(key []byte) [][]byte
-	IteratorScan(key []byte, count int32, direction int32) [][]byte
+	IteratorScan(Prefix []byte, key []byte, count int32, direction int32) [][]byte
 	IteratorScanFromLast(key []byte, count int32, direction int32) [][]byte
 }
 
