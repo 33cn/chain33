@@ -31,7 +31,8 @@ var tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(trans
 
 var c, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 var hex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-var privKey, _ = c.PrivKeyFromBytes(common.FromHex(hex))
+var data,_ =common.FromHex(hex)
+var privKey, _ = c.PrivKeyFromBytes(data)
 
 // 执行： go test -cover
 // 多次执行，需要删除之前的数据库文件，不然交易都是重复的
