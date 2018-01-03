@@ -56,59 +56,60 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 		for msg := range client.Recv() {
 			elog.Info("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
-				datas := msg.GetData().(*types.ExecTxList)
-				execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
-				var receipts []*types.Receipt
-				for i := 0; i < len(datas.Txs); i++ {
-					tx := datas.Txs[i]
-					if execute.height == 0 { //genesis block 不检查手续费
-						receipt, err := execute.Exec(tx)
-						if err != nil {
-							panic(err)
-						}
-						receipts = append(receipts, receipt)
-						continue
-					}
-					//正常的区块：
-					if datas.Height > 0 && datas.BlockTime > 0 && tx.IsExpire(datas.Height, datas.BlockTime) { //如果已经过期
-						receipt := types.NewErrReceipt(types.ErrTxExpire)
-						receipts = append(receipts, receipt)
-						continue
-					}
-					if tx.Fee < minFee {
-						receipt := types.NewErrReceipt(types.ErrFeeTooLow)
-						receipts = append(receipts, receipt)
-						continue
-					}
-					//处理交易手续费(先把手续费收了)
-					//如果收了手续费，表示receipt 至少是pack 级别
-					//收不了手续费的交易才是 error 级别
-					feelog, err := execute.ProcessFee(tx)
-					if err != nil {
-						receipt := types.NewErrReceipt(err)
-						receipts = append(receipts, receipt)
-						continue
-					}
-					receipt, err := execute.Exec(tx)
-					if err != nil {
-						elog.Error("exec tx error = ", "err", err, "tx", tx)
-						//add error log
-						errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
-						feelog.Logs = append(feelog.Logs, errlog)
-					} else {
-						//合并两个receipt，如果执行不返回错误，那么就认为成功
-						feelog.KV = append(feelog.KV, receipt.KV...)
-						feelog.Logs = append(feelog.Logs, receipt.Logs...)
-						feelog.Ty = receipt.Ty
-					}
-					elog.Info("receipt of tx", "receipt=", feelog)
-					receipts = append(receipts, feelog)
-				}
-				msg.Reply(client.NewMessage("", types.EventReceipts,
-					&types.Receipts{receipts}))
+				exec.processExecTxList(msg, q)
 			}
 		}
 	}()
+}
+
+func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
+	datas := msg.GetData().(*types.ExecTxList)
+	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	var receipts []*types.Receipt
+	for i := 0; i < len(datas.Txs); i++ {
+		tx := datas.Txs[i]
+		if execute.height == 0 { //genesis block 不检查手续费
+			receipt, err := execute.Exec(tx)
+			if err != nil {
+				panic(err)
+			}
+			//elog.Info("exec.receipt->", "receipt", receipt)
+			receipts = append(receipts, receipt)
+			continue
+		}
+		//正常的区块：
+		err := execute.checkTx(tx)
+		if err != nil {
+			receipt := types.NewErrReceipt(err)
+			receipts = append(receipts, receipt)
+			continue
+		}
+		//处理交易手续费(先把手续费收了)
+		//如果收了手续费，表示receipt 至少是pack 级别
+		//收不了手续费的交易才是 error 级别
+		feelog, err := execute.ProcessFee(tx)
+		if err != nil {
+			receipt := types.NewErrReceipt(err)
+			receipts = append(receipts, receipt)
+			continue
+		}
+		receipt, err := execute.Exec(tx)
+		if err != nil {
+			elog.Error("exec tx error = ", "err", err, "tx", tx)
+			//add error log
+			errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
+			feelog.Logs = append(feelog.Logs, errlog)
+		} else {
+			//合并两个receipt，如果执行不返回错误，那么就认为成功
+			feelog.KV = append(feelog.KV, receipt.KV...)
+			feelog.Logs = append(feelog.Logs, receipt.Logs...)
+			feelog.Ty = receipt.Ty
+		}
+		elog.Info("receipt of tx", "receipt=", feelog)
+		receipts = append(receipts, feelog)
+	}
+	msg.Reply(q.GetClient().NewMessage("", types.EventReceipts,
+		&types.Receipts{receipts}))
 }
 
 func (exec *Execs) Close() {
@@ -141,6 +142,19 @@ func (e *Execute) ProcessFee(tx *types.Transaction) (*types.Receipt, error) {
 func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
 	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
+}
+
+func (e *Execute) checkTx(tx *types.Transaction) error {
+	if !tx.CheckSign() {
+		return types.ErrSign
+	}
+	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) { //如果已经过期
+		return types.ErrTxExpire
+	}
+	if tx.Fee < minFee {
+		return types.ErrFeeTooLow
+	}
+	return nil
 }
 
 func (e *Execute) Exec(tx *types.Transaction) (*types.Receipt, error) {
