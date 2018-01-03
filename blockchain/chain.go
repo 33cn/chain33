@@ -233,7 +233,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetTransactionByAddr:
 			addr := (msg.Data).(*types.ReqAddr)
-			replyTxInfos, err := chain.ProcGetTransactionByAddr(addr.Addr)
+			replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
 			if err != nil {
 				chainlog.Error("ProcGetTransactionByAddr", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, err))
@@ -366,6 +366,8 @@ FOR_LOOP:
 					//go chain.FetchBlock(block.GetHeight(), block.GetHeight())
 					break
 				}
+				//chainlog.Info("trySyncTicker util.ExecBlock begin ", "height", block.GetHeight())
+
 				blockdetail, err := util.ExecBlock(chain.q, prevStateHash, block, true)
 				if err != nil {
 					chainlog.Error("trySyncTicker ExecBlock is err!", "height", block.Height, "err", err)
@@ -374,6 +376,7 @@ FOR_LOOP:
 					//go chain.FetchBlock(block.GetHeight(), block.GetHeight())
 					break
 				}
+				//chainlog.Info("trySyncTicker util.ExecBlock end ", "height", block.GetHeight())
 
 				//保存tx信息到db中
 				err = chain.blockStore.indexTxs(newbatch, blockdetail)
@@ -404,15 +407,17 @@ FOR_LOOP:
 
 			//更新db中的blockheight到blockStore.Height
 			chain.blockStore.UpdateHeight()
+			//chainlog.Info("trySyncTicker SendAddBlockEvent", "stratblockheight", stratblockheight, "endblockheight", endblockheight)
 
 			//删除缓存中的block
 			for j := stratblockheight; j <= endblockheight; j++ {
 				//block := chain.blockPool.GetBlock(j)
 				chain.blockPool.DelBlock(j)
-				block, err := chain.GetBlock(j)
-				if block != nil && err == nil {
+				blockinfo, err := chain.GetBlock(j)
+				if blockinfo != nil && err == nil {
 					//通知mempool和consense模块
-					chain.SendAddBlockEvent(block)
+					//chainlog.Info("trySyncTicker SendAddBlockEvent", "height", j)
+					chain.SendAddBlockEvent(blockinfo)
 				}
 			}
 			continue FOR_LOOP
@@ -499,6 +504,11 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 	blockhight := chain.GetBlockHeight()
 	if requestblock.Start > blockhight {
 		outstr := fmt.Sprintf("input Start height :%d  but current height:%d", requestblock.Start, blockhight)
+		err = errors.New(outstr)
+		return nil, err
+	}
+	if requestblock.GetStart() > requestblock.GetEnd() {
+		outstr := fmt.Sprintf("input must Start <= End: Startheight :%d  Endheight:%d", requestblock.Start, requestblock.End)
 		err = errors.New(outstr)
 		return nil, err
 	}
@@ -758,7 +768,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	msg = chain.qclient.NewMessage("consensus", types.EventAddBlock, block)
 	chain.qclient.Send(msg, false)
 
-	chainlog.Debug("SendAddBlockEvent -->>wallet")
+	chainlog.Debug("SendAddBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
 	msg = chain.qclient.NewMessage("wallet", types.EventAddBlock, block)
 	chain.qclient.Send(msg, false)
 
@@ -1024,36 +1034,33 @@ func (chain *BlockChain) fetchPeerList() error {
 	}
 	return nil
 }
-func (chain *BlockChain) GetTxsListByAddr(addr []byte) (txs []*types.TxResult) {
-	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
-	if err != nil {
-		chainlog.Info("GetTxsListByAddr does not exist tx!", "addr", string(addr), "err", err)
-		return nil
-	}
-	if txinfos == nil {
-		return nil
-	}
-	for _, txinfo := range txinfos.TxInfos {
-		txresult, err := chain.GetTxResultFromDb(txinfo.GetHash())
-		if err == nil {
-			txs = append(txs, txresult)
-		}
-		//chainlog.Info("GetTxsListByAddr txs", "txhash", tx)
-	}
-	return
-}
 
 //获取地址对应的所有交易信息
 //存储格式key:addr:flag:height ,value:txhash
 //key=addr :获取本地参与的所有交易
 //key=addr:0 :获取本地作为from方的所有交易
 //key=addr:1 :获取本地作为to方的所有交易
-func (chain *BlockChain) ProcGetTransactionByAddr(addr string) (*types.ReplyTxInfos, error) {
-	if len(addr) == 0 {
+func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
+	if addr == nil || len(addr.Addr) == 0 {
 		err := errors.New("ProcGetTransactionByAddr addr is nil")
 		return nil, err
 	}
-	txinfos, err := chain.blockStore.GetTxsByAddr([]byte(addr))
+	//入参数校验
+	curheigt := chain.GetBlockHeight()
+	if addr.GetHeight() > curheigt || addr.GetHeight() < -1 {
+		err := errors.New("ProcGetTransactionByAddr Height err")
+		return nil, err
+	}
+	if addr.GetDirection() != 0 && addr.GetDirection() != 1 {
+		err := errors.New("ProcGetTransactionByAddr Direction err")
+		return nil, err
+	}
+	if addr.GetIndex() < 0 || addr.GetIndex() > MaxTxsPerBlock {
+		err := errors.New("ProcGetTransactionByAddr Index err")
+		return nil, err
+	}
+
+	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -1253,7 +1260,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	}
 
 	//获取地址对应的交易count
-	txinfos, err := chain.blockStore.GetTxsByAddr([]byte(addr.Addr))
+	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
 		return nil, err

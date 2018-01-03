@@ -1,9 +1,11 @@
 package db
 
 import (
+	"bytes"
 	"fmt"
 	"path"
 
+	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
@@ -152,22 +154,29 @@ func (db *GoLevelDB) PrefixScan(key []byte) (txhashs [][]byte) {
 	}
 	return txhashs
 }
-func (db *GoLevelDB) IteratorScan(key []byte, count int32, direction int32) (values [][]byte) {
-	iter := db.db.NewIterator(util.BytesPrefix([]byte("Tx:")), nil)
+func (db *GoLevelDB) IteratorScan(Prefix []byte, key []byte, count int32, direction int32) (values [][]byte) {
+	iter := db.db.NewIterator(util.BytesPrefix(Prefix), nil)
 	var i int32 = 0
+	//log.Info("IteratorScan", "input key", string(key))
 	for ok := iter.Seek(key); ok; {
-		value := iter.Value()
-		//fmt.Printf("PrefixScan:%v\n", value)
-		value1 := make([]byte, len(value))
-		copy(value1, value)
-		values = append(values, value1)
+		if i == 0 && !bytes.Equal(key, iter.Key()) {
+			log.Info("IteratorScan Equal ", "key", string(iter.Key()))
+			return nil
+		}
+		if i != 0 {
+			value := iter.Value()
+			//log.Info("IteratorScan", "key", string(iter.Key()))
+			value1 := make([]byte, len(value))
+			copy(value1, value)
+			values = append(values, value1)
+		}
 		if direction == 0 {
 			ok = iter.Prev()
 		} else {
 			ok = iter.Next()
 		}
 		i++
-		if i >= count {
+		if i > count {
 			break
 		}
 	}

@@ -116,11 +116,13 @@ func main() {
 		}
 		QueryTransaction(argsWithoutProg[1])
 	case "gettxbyaddr": //根据地址获取交易
-		if len(argsWithoutProg) != 2 {
+		if len(argsWithoutProg) != 7 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		GetTransactionByAddr(argsWithoutProg[1])
+		GetTransactionByAddr(argsWithoutProg[1], argsWithoutProg[2],
+			argsWithoutProg[3], argsWithoutProg[4],
+			argsWithoutProg[5], argsWithoutProg[6])
 	case "gettxbyhashes": //根据哈希数组获取交易
 		if len(argsWithoutProg) < 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -170,27 +172,27 @@ func main() {
 
 func LoadHelp() {
 	fmt.Println("Available Commands:")
-	fmt.Println("lock []                                : 锁定")
-	fmt.Println("unlock [password, timeout]             : 解锁")
-	fmt.Println("setpasswd [oldpassword, newpassword]   : 设置密码")
-	fmt.Println("setlabl [address, label]               : 设置标签")
-	fmt.Println("newaccount [labelname]                 : 新建账户")
-	fmt.Println("getaccounts []                         : 获取账户列表")
-	fmt.Println("mergebalance [to]                      : 合并余额")
-	fmt.Println("settxfee [amount]                      : 设置交易费")
-	fmt.Println("sendtoaddress [from, to, amount, note] : 发送交易到地址")
-	fmt.Println("importprivkey [privkey, label]         : 引入私钥")
-	fmt.Println("wallettxlist [from, count, direction]  : 钱包交易列表")
-	fmt.Println("getmempool []                          : 获取内存池")
-	fmt.Println("sendtransaction [data]                 : 发送交易")
-	fmt.Println("querytransaction [hash]                : 按哈希查询交易")
-	fmt.Println("gettxbyaddr [address]                  : 按地址获取交易")
-	fmt.Println("gettxbyhashes [hashes...]              : 按哈希列表获取交易")
-	fmt.Println("getblocks [start, end, isdetail]       : 获取指定区间区块")
-	fmt.Println("getlastheader []                       : 获取最新区块头")
-	fmt.Println("getheaders [start, end, isdetail]      : 获取指定区间区块头")
-	fmt.Println("getpeerinfo []                         : 获取远程节点信息")
-	fmt.Println("getlastmempool []                      : 获取最新加入到内存池中的十条交易")
+	fmt.Println("lock []                                                     : 锁定")
+	fmt.Println("unlock [password, timeout]                                  : 解锁")
+	fmt.Println("setpasswd [oldpassword, newpassword]                        : 设置密码")
+	fmt.Println("setlabl [address, label]                                    : 设置标签")
+	fmt.Println("newaccount [labelname]                                      : 新建账户")
+	fmt.Println("getaccounts []                                              : 获取账户列表")
+	fmt.Println("mergebalance [to]                                           : 合并余额")
+	fmt.Println("settxfee [amount]                                           : 设置交易费")
+	fmt.Println("sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
+	fmt.Println("importprivkey [privkey, label]                              : 引入私钥")
+	fmt.Println("wallettxlist [from, count, direction]                       : 钱包交易列表")
+	fmt.Println("getmempool []                                               : 获取内存池")
+	fmt.Println("sendtransaction [data]                                      : 发送交易")
+	fmt.Println("querytransaction [hash]                                     : 按哈希查询交易")
+	fmt.Println("gettxbyaddr [address, flag, count, direction, height, index]: 按地址获取交易")
+	fmt.Println("gettxbyhashes [hashes...]                                   : 按哈希列表获取交易")
+	fmt.Println("getblocks [start, end, isdetail]                            : 获取指定区间区块")
+	fmt.Println("getlastheader []                                            : 获取最新区块头")
+	fmt.Println("getheaders [start, end, isdetail]                           : 获取指定区间区块头")
+	fmt.Println("getpeerinfo []                                              : 获取远程节点信息")
+	fmt.Println("getlastmempool []                                           : 获取最新加入到内存池中的十条交易")
 }
 
 type AccountsResult struct {
@@ -728,8 +730,20 @@ func QueryTransaction(h string) {
 	fmt.Println(string(data))
 }
 
-func GetTransactionByAddr(addr string) {
-	params := jsonrpc.ReqAddr{Addr: addr}
+func GetTransactionByAddr(addr string, flag string, count string, direction string, height string, index string) {
+	flagInt32, err := strconv.ParseInt(flag, 10, 32)
+	countInt32, err := strconv.ParseInt(count, 10, 32)
+	directionInt32, err := strconv.ParseInt(direction, 10, 32)
+	heightInt64, err := strconv.ParseInt(height, 10, 64)
+	indexInt64, err := strconv.ParseInt(index, 10, 64)
+	params := types.ReqAddr{
+		Addr:      addr,
+		Flag:      int32(flagInt32),
+		Count:     int32(countInt32),
+		Direction: int32(directionInt32),
+		Height:    heightInt64,
+		Index:     indexInt64,
+	}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
