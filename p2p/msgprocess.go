@@ -266,6 +266,12 @@ func (m *Msg) loadPeers() {
 
 	m.peers = append(m.peers, m.network.node.GetPeers()...)
 }
+func (m *Msg) getPeer(index int) *peer {
+	if index > len(m.peers) {
+		return nil
+	}
+	return m.peers[index]
+}
 func (m *Msg) peerSize() int {
 	m.peermtx.Lock()
 	defer m.peermtx.Unlock()
@@ -297,9 +303,9 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 	if interval.end < interval.start {
 		return
 	}
-	log.Debug("downloadBlock", "parminfo", index, "interval", interval)
+
 	peersize := m.network.node.Size()
-	log.Debug("downloadBlock", "peersize", peersize)
+	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "peersize", peersize)
 	maxInvDatas := new(pb.InvDatas)
 	for i := 0; i < peersize; i++ {
 		m.loadPeers()
@@ -317,19 +323,23 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 		if index >= m.peerSize() {
 			continue
 		}
-		ps := m.lastPeerInfo()
-		if peer, ok := ps[m.peers[index].Addr()]; ok {
-			if peer.GetHeader().GetHeight() < int64(interval.end) {
+		pinfos := m.lastPeerInfo()
+		mpeer := m.getPeer(index)
+		if mpeer == nil {
+			continue
+		}
+		if pinfo, ok := pinfos[mpeer.Addr()]; ok {
+			if pinfo.GetHeader().GetHeight() < int64(interval.end) {
 				continue
 			}
 		} else {
 			continue
 		}
 
-		invdatas, err := m.peers[index].mconn.conn.GetData(context.Background(), &p2pdata)
+		invdatas, err := mpeer.mconn.conn.GetData(context.Background(), &p2pdata)
 		if err != nil {
 			log.Error("downloadBlock", "err", err.Error())
-			m.peers[index].mconn.sendMonitor.Update(false)
+			mpeer.mconn.sendMonitor.Update(false)
 			index++
 			continue
 		}
