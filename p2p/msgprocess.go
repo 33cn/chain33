@@ -123,7 +123,7 @@ func (m *Msg) flushPeerInfos(in []*pb.Peer) {
 	}
 	//重新插入新数据
 	for _, peer := range in {
-		log.Debug("flushPeerInfos", "info", peer)
+		//log.Debug("flushPeerInfos", "info", peer)
 		m.peerInfos[peer.GetName()] = peer
 	}
 
@@ -148,7 +148,6 @@ func (m *Msg) monitorPeerInfo() {
 			select {
 
 			case <-ticker.C:
-
 				m.fetchPeerInfo()
 			case <-m.done:
 				log.Error("monitorPeerInfo", "done", "close")
@@ -252,7 +251,7 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 			continue
 		}
 		cancel()
-		log.Debug("monitorPeerInfo", "info", peerinfo)
+		//log.Debug("monitorPeerInfo", "info", peerinfo)
 		peer.mconn.sendMonitor.Update(true)
 		//peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = (*pb.Peer)(peerinfo)
