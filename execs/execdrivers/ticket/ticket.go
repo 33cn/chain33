@@ -14,8 +14,10 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
+	"fmt"
 	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -58,25 +60,28 @@ func (n *Ticket) Exec(tx *types.Transaction) (*types.Receipt, error) {
 		if genesis.Count <= 0 {
 			return nil, types.ErrTicketCount)
 		}
+		//new ticks
+		return genesisReceipt(tx.Hash(), genesis), nil
 	}
 	//return error
-	return types.ErrActionNotSupport
+	return nil, types.ErrActionNotSupport
 }
 
 func (n *Ticket) SetDB(db dbm.KVDB) {
 	n.db = db
 }
 
-//only pack the transaction, exec is error.
-func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
-	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
-	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
-}
-
-func genesisReceipt(accTo *types.Account, receiptBalanceTo *types.ReceiptBalance, g *types.Genesis) *types.Receipt {
-	log1 := &types.ReceiptLog{types.TyLogGenesis, nil}
-	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceTo)}
-	kv := account.GetGenesisKVSet(g)
-	kv = append(kv, account.GetKVSet(accTo)...)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
+func genesisReceipt(hash []byte, genesis *types.TicketGenesis) *types.Receipt {
+	prefix := common.ToHex(hash)
+	preifx = genesis.MinerAddress + ":" + prefix + ":"
+	var logs []*types.ReceiptLog
+	var kv   []*types.KeyValue
+	for i := 0; i < genesis.Count; i++ {
+		id := prefix + fmt.Sprintf("%010d", i)
+		t := ticketdb.NewTicket(id, genesis.MinerAddress, genesis.CodeWallet)
+		logs = append(logs, t.GetReceiptLog())
+		kv = append(kv, t.GetKVSet()...)
+	}
+	receipt := &types.Receipt{types.ExecOk, kv, logs}
+	return receipt
 }

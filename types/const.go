@@ -205,6 +205,9 @@ const (
 	TyLogFee      = 2
 	TyLogTransfer = 3
 	TyLogGenesis  = 4
+
+	//log for ticket
+	TyLogNewTicket = 5
 )
 
 //exec type
