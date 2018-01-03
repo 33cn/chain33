@@ -299,7 +299,7 @@ func (n *Node) GetPeers() []*peer {
 	for _, peer := range n.outBound {
 		peers = append(peers, peer)
 	}
-	log.Debug("GetPeers", "node", peers)
+	//log.Debug("GetPeers", "node", peers)
 	return peers
 }
 func (n *Node) Remove(peerAddr string) {

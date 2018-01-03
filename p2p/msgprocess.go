@@ -149,6 +149,7 @@ func (m *Msg) monitorPeerInfo() {
 
 			case <-ticker.C:
 				m.fetchPeerInfo()
+
 			case <-m.done:
 				log.Error("monitorPeerInfo", "done", "close")
 				break FOR_LOOP
@@ -239,7 +240,7 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
 	peers := m.network.node.GetPeers()
-	log.Debug("monitorPeerInfo", "peers", peers)
+	//log.Debug("monitorPeerInfo", "peers", peers)
 
 	for _, peer := range peers {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
