@@ -161,9 +161,10 @@ func (c *MConnection) sendVersion() error {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-
+	addrfrom := fmt.Sprintf("%v:%v", ExternalAddr, (*c.nodeInfo).externalAddr.Port)
+	(*c.nodeInfo).blacklist.Add(addrfrom)
 	resp, err := c.conn.Version2(ctx, &pb.P2PVersion{Version: (*c.nodeInfo).cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
-		AddrRecv: c.remoteAddress.String(), AddrFrom: fmt.Sprintf("%v:%v", ExternalAddr, (*c.nodeInfo).externalAddr.Port), Nonce: int64(rand.Int31n(102040)),
+		AddrRecv: c.remoteAddress.String(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	if err != nil {
 		log.Error("sendVersion", "close", "ok", "err", err.Error())

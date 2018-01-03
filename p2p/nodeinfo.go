@@ -69,6 +69,12 @@ func (bl *BlackList) Add(addr string) {
 	bl.badPeers[addr] = false
 }
 
+func (bl *BlackList) Delete(addr string) {
+	bl.mtx.Lock()
+	defer bl.mtx.Unlock()
+	delete(bl.badPeers, addr)
+}
+
 func (bl *BlackList) Has(addr string) bool {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
