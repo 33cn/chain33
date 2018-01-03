@@ -397,9 +397,7 @@ FOR_LOOP:
 				prevheight = blockdetail.Block.Height
 
 				//记录同步开始的第一个block高度和最后一个block的高度，用于同步完成之后删除缓存中的block记录
-				if prevheight == currentheight {
-					stratblockheight = block.Height
-				}
+				stratblockheight = currentheight + 1
 				endblockheight = blockdetail.Block.Height
 			}
 			newbatch.Write()
@@ -621,7 +619,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (er
 		// 首先将此block缓存到blockpool中。
 		chain.blockPool.AddBlock(block)
 
-		defer func() {
+		go func() {
 			chain.blockPool.synblock <- struct{}{}
 		}()
 
@@ -787,9 +785,6 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 //处理从peer对端同步过来的blocks
 //首先缓存到pool中,由poolRoutine定时同步到db中,blocks太多此时写入db会耗时很长
 func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
-	defer func() {
-		chain.blockPool.synblock <- struct{}{}
-	}()
 
 	var preheight int64
 	chainlog.Debug("ProcAddBlocksMsg", "blockcount", len(blocks.Items))
@@ -806,6 +801,9 @@ func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
 			break
 		}
 	}
+	go func() {
+		chain.blockPool.synblock <- struct{}{}
+	}()
 	return nil
 }
 
