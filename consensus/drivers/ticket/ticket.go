@@ -3,9 +3,9 @@ package ticket
 import (
 	"time"
 
-	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
+	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
@@ -28,40 +28,39 @@ func (client *TicketClient) Close() {
 }
 
 func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
-	tx := types.Transaction{}
-	tx.Execer = []byte("coins")
+	tx1 := types.Transaction{}
+	tx1.Execer = []byte("coins")
 
 	//给hotkey 10000 个币，作为miner的手续费
-	tx.To = client.Cfg.HotkeyAddr
+	tx1.To = client.Cfg.HotkeyAddr
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{1e4 * types.Coin}
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
-	ret = append(ret, &tx)
+	g.Genesis = &types.CoinsGenesis{Amount: 1e4 * types.Coin}
+	tx1.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	ret = append(ret, &tx1)
 
 	//给ticket 合约打 3亿 个币
 
-	tx = types.Transaction{}
+	tx2 := types.Transaction{}
 
-	tx.Execer = []byte("coins")
-
-	//给hotkey 10000 个币，作为miner的手续费
-	tx.To = account.ExecAddress("ticket").String()
+	tx2.Execer = []byte("coins")
+	tx2.To = execdrivers.ExecAddress("ticket").String()
 	//gen payload
 	g = &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{3e8 * types.Coin}
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
-	ret = append(ret, &tx)
+	g.Genesis = &types.CoinsGenesis{3e8 * types.Coin, client.Cfg.Genesis}
+	tx2.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	ret = append(ret, &tx2)
 
-	//产生30张初始化ticket
-	tx = types.Transaction{}
-	tx.Execer = []byte("ticket")
-	tx.To = account.ExecAddress("ticket").String()
+	//产生30w张初始化ticket
+	tx3 := types.Transaction{}
+	tx3.Execer = []byte("ticket")
+	tx3.To = execdrivers.ExecAddress("ticket").String()
 
 	gticket := &types.TicketAction_Genesis{}
 	gticket.Genesis = &types.TicketGenesis{client.Cfg.HotkeyAddr, client.Cfg.Genesis, 300000}
 
-	tx.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
+	tx3.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
+	ret = append(ret, &tx3)
 	return
 }
 

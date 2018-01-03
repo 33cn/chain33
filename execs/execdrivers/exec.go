@@ -4,6 +4,7 @@ package execdrivers
 import (
 	"fmt"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
@@ -12,6 +13,19 @@ import (
 
 var elog = log.New("module", "execs")
 var zeroHash [32]byte
+
+var bname [200]byte
+var addrSeed = []byte("address seed bytes for public key")
+
+func ExecAddress(name string) *account.Address {
+	if len(name) > 100 {
+		panic("name too long")
+	}
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := common.Sha2Sum(buf)
+	return account.PubKeyToAddress(hash[:])
+}
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -23,12 +37,14 @@ func DisableLog() {
 
 type Executer interface {
 	SetDB(dbm.KVDB)
+	GetName() string
 	SetEnv(height, blocltime int64)
 	Exec(tx *types.Transaction) (*types.Receipt, error)
 }
 
 var (
-	drivers = make(map[string]Executer)
+	drivers     = make(map[string]Executer)
+	execaddress = make(map[string]string)
 )
 
 func Register(name string, driver Executer) {
@@ -48,4 +64,19 @@ func LoadExecute(name string) (c Executer, err error) {
 		return
 	}
 	return c, nil
+}
+
+func RegisterAddress(name string) {
+	if len(name) == 0 {
+		panic("empty name string")
+	}
+	if _, dup := execaddress[name]; dup {
+		panic("Execute: Register called twice for driver " + name)
+	}
+	execaddress[ExecAddress(name).String()] = name
+}
+
+func IsExecAddress(addr string) bool {
+	_, ok := execaddress[addr]
+	return ok
 }
