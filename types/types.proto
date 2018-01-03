@@ -34,6 +34,7 @@ service p2premoteaddr{
 	//获取远程地址
 	rpc RemotePeerAddr(P2PGetAddr)returns(P2PAddr){}
 }
+
 service p2pgservice{
 	
 	//广播交易
@@ -81,6 +82,7 @@ message P2PPeerInfo{
 	int32 mempoolSize=4;
 	Header header=5;
 }
+
 message P2PVersion{
 	int32 version=1;
 	int64 service=2;
@@ -134,6 +136,7 @@ message P2PInv{
 	repeated Inventory invs=1;
 	
 }
+
 //ty=MSG_TX MSG_BLOCK
 message Inventory{
 	int32 ty=1; 
@@ -153,12 +156,14 @@ message P2PTx {
 message P2PBlock {
 	 Block block=1;
 }
+
 message BroadCastData{
 	oneof value{
 		P2PTx tx=1;
 		P2PBlock block=2;
 	}
 }
+
 message P2PGetHeaders{
 	int32 version=1;
 	int64 startHeight=2;
@@ -376,7 +381,6 @@ message ExecTxList {
 }
 
 //currency = 0 -> origin account
-
 message Account {
 	int32 currency = 1;
 	int64 balance = 2;
@@ -446,7 +450,6 @@ message InvData {
 	}
 	int32 ty = 3;
 }
-
 
 message InvDatas {
 	repeated InvData items = 1;
@@ -658,8 +661,14 @@ message TicketInfos {
 
 message Ticket {
 	string ticketId  = 1;
-	int32 status     = 2; //0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功
-	bool isGenesis   = 3; //genesis 创建的私钥比较特殊
-	int64 createTime = 4; //创建时间
-	int64 minerTime  = 5; //挖矿时间
+	int32  status     = 2;   //0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功
+	bool   isGenesis   = 3;  //genesis 创建的私钥比较特殊
+	int64  createTime = 4;   //创建时间
+	int64  minerTime  = 5;   //挖矿时间
+	string minerAddress = 6;
+	string returnWallet = 7; //return wallet
+}
+
+message NewTicketReceipt {
+	string ticketId = 1;
 }

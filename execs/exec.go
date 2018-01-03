@@ -7,6 +7,7 @@ import (
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/coins"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/none"
+	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
