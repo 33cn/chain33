@@ -19,7 +19,7 @@ type MConnection struct {
 	gconn         *grpc.ClientConn
 	conn          pb.P2PgserviceClient // source connection
 	config        *MConnConfig
-	key           string //pubkey
+	key           string //privkey
 	quit          chan bool
 	versionDone   chan struct{}
 	remoteAddress *NetAddress  //peer 的地址

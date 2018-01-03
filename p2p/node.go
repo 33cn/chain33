@@ -160,6 +160,8 @@ func (n *Node) DialPeers(addrs []string) error {
 	for i, netAddr := range netAddrs {
 		//will not add self addr
 		if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
+			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr())
+			//panic("find same addr")
 			continue
 		}
 		//不对已经连接上的地址重新发起连接
@@ -202,7 +204,7 @@ func (n *Node) dialSeeds(addrs []string) error {
 
 			//will not add self addr
 			if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
-
+				log.Debug("filter selfaddr", "addr", netAddr.String())
 				continue
 			}
 			//不对已经连接上的地址重新发起连接
@@ -370,7 +372,6 @@ FOR_LOOP:
 		case <-n.onlineDone:
 			break FOR_LOOP
 		case <-ticker.C:
-			//time.Sleep(time.Second * 5)
 			if n.needMore() {
 				peers := n.GetPeers()
 				log.Debug("getAddrFromOnline", "peers", peers)
