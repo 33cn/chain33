@@ -22,6 +22,7 @@ import (
 	"github.com/coreos/etcd/wal"
 	"github.com/coreos/etcd/wal/walpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -31,7 +32,6 @@ const (
 	IsLeader   = "0"
 	IsFollower = "1"
 )
-
 var (
 	wasLeader               bool   = false
 	defaultSnapCount        uint64 = 10000
@@ -97,38 +97,6 @@ func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), propose
 	return commitC, errorC, rc.snapshotterReady
 }
 
-//// 等待leader选举完成
-//func (rc *raftNode) waitForLeader() error {
-//	fmt.Printf("%p, %T\n", rc, rc)
-
-//	_, err := rc.Leader()
-//	if err == nil {
-//		return nil
-//	}
-
-//	ticker := time.NewTimer(50 * time.Millisecond)
-//	defer ticker.Stop()
-//	for err != nil {
-//		select {
-//		case <-ticker.C:
-//		}
-//		_, err = rc.Leader()
-
-//	}
-//	return nil
-//}
-
-//func (rc *raftNode) Leader() (uint64, error) {
-//	rc.stopMu.RLock()
-//	defer rc.stopMu.RUnlock()
-
-//	leader := rc.node.Status().Lead
-//	if leader == raft.None {
-//		return raft.None, errors.New("no elected cluster leader")
-//	}
-//	return leader, nil
-//}
-
 //  启动raft节点
 func (rc *raftNode) startRaft() {
 	// 有snapshot就打开，没有则创建
@@ -150,13 +118,15 @@ func (rc *raftNode) startRaft() {
 	}
 	c := &raft.Config{
 		ID:              uint64(rc.id),
-		ElectionTick:    10,
+		ElectionTick:    4,
 		HeartbeatTick:   1,
 		Storage:         rc.raftStorage,
 		MaxSizePerMsg:   1024 * 1024,
 		MaxInflightMsgs: 256,
 		//设置成预投票，可以快速地当集群重启的话，选举出新的leader
-		PreVote: true,
+		//PreVote: true,
+		CheckQuorum: true,
+
 	}
 
 	if oldwal {
@@ -189,6 +159,15 @@ func (rc *raftNode) startRaft() {
 	go rc.serveRaft()
 	go rc.serveChannels()
 
+	//获取leadId,讲leader的节点设置Validator节点
+    leadId,err :=rc.WaitForLeader()
+    if err !=nil {
+		log.Error("chain33_raft: (%v)", err)
+		return
+	}
+	if rc.id == int(leadId){
+		isValidator=true
+	}
 }
 
 // 网络监听
@@ -501,3 +480,25 @@ func (rc *raftNode) Process(ctx context.Context, m raftpb.Message) error {
 func (rc *raftNode) IsIDRemoved(id uint64) bool                           { return false }
 func (rc *raftNode) ReportUnreachable(id uint64)                          {}
 func (rc *raftNode) ReportSnapshot(id uint64, status raft.SnapshotStatus) {}
+
+// 等待集群中leader节点的选举结果，并返回leadId
+// 如果ctx在leader产生之前被取消，则返回错误信息
+func (rc *raftNode) WaitForLeader()(uint64,error){
+	leadId := rc.node.Status().Lead
+    if leadId !=raft.None{
+    	return leadId,nil
+	}
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+	for leadId == raft.None {
+		select {
+		case <-ticker.C:
+		}
+		leadId := rc.node.Status().Lead
+		if leadId != raft.None{
+			log.Info("=====chain-33-raft has elected cluster leader====.")
+			return leadId,nil
+		}
+	}
+	return leadId,errors.New("raft: no elected cluster leader")
+}

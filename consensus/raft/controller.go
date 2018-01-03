@@ -28,8 +28,6 @@ func NewRaftCluster(cfg *types.Consensus) *RaftClient {
 	// validator节点（客户端），此节点用来处理区块打包等工作，并把区块发往raft集群来做共识
 	// 相对于raft集群来说，发送区块的是客户端，客户端不用考虑raft的leader节点是哪个
 	// 就算发给follower也会自动移交给leader。
-	// TODO:目前实现方式：在应用启动时指定某节点为validator
-	isValidator = true
 
 	// propose channel
 	proposeC := make(chan *types.Block)
