@@ -63,11 +63,13 @@ func (l *DefaultListener) NatMapPort() {
 		if nat.Map(nat.Any(), l.c, "TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33 p2p") != nil {
 
 			{
-				//l.n.localPort = uint16(rand.Intn(64512) + 1023)
+
+				l.nodeInfo.blacklist.Delete(l.nodeInfo.GetExternalAddr().String())
 				l.n.externalPort = uint16(rand.Intn(64512) + 1023)
 				l.n.flushNodeInfo()
-				log.Debug("NatMapPort", "Port", l.n.localPort)
-				log.Debug("NatMapPort", "Port", l.n.externalPort)
+				l.nodeInfo.blacklist.Add(l.n.nodeInfo.GetExternalAddr().String())
+				log.Debug("NatMapPort", "Port", l.n.nodeInfo.GetExternalAddr())
+
 			}
 
 			continue

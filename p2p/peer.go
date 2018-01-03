@@ -198,7 +198,7 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 	return p, nil
 }
 func DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
-	log.Debug("DialPeer", "peer addr", addr.String())
+	log.Warn("DialPeer", "will connect", addr.String())
 	var persistent bool
 	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
 		if seed == addr.String() {
