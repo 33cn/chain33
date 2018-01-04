@@ -50,7 +50,7 @@ func (client *SoloClient) SetQueue(q *queue.Queue) {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
-		newblock.BlockTime = genesisBlockTime 
+		newblock.BlockTime = genesisBlockTime
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
 		tx := createGenesisTx()

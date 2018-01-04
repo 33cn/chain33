@@ -22,11 +22,12 @@ verMax=8
 poolCacheSize=1024
 minTxFee=1000000
 
-
 [consensus]
 name="raft"
 minerstart=true
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+nodeId=1
+peersURL="http://127.0.0.1:9021"
 
 [store]
 driver="leveldb"
