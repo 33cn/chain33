@@ -1,6 +1,6 @@
 
 Title="chain33"
-Loglevel="warn"
+Loglevel="info"
 
 [blockchain]
 defCacheSize=500
@@ -15,9 +15,9 @@ seeds=["114.55.101.159:13802"]
 enable=true
 isSeed=false
 dbPath="datadir/addrbook"
-version=8
-verMix=7
-verMax=8
+version=9
+verMix=9
+verMax=10
 [mempool]
 poolCacheSize=1024
 minTxFee=1000000
