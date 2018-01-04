@@ -91,7 +91,7 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 						feelog.Logs = append(feelog.Logs, receipt.Logs...)
 						feelog.Ty = receipt.Ty
 					}
-					elog.Info("receipt of tx", "receipt=", feelog)
+					elog.Debug("receipt of tx", "receipt=", feelog)
 					receipts = append(receipts, feelog)
 				}
 				msg.Reply(client.NewMessage("", types.EventReceipts,
