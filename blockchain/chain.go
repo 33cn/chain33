@@ -36,8 +36,8 @@ var castlock sync.Mutex
 var synBlocklock sync.Mutex
 var peerMaxBlklock sync.Mutex
 
-const poolToDbMS = 500          //从blockpool写block到db的定时器
-const fetchPeerListSeconds = 30 //获取一次peerlist最新block高度
+const poolToDbMS = 500         //从blockpool写block到db的定时器
+const fetchPeerListSeconds = 5 //获取一次peerlist最新block高度
 
 type BlockChain struct {
 	qclient queue.IClient
@@ -988,18 +988,26 @@ func (chain *BlockChain) ProcGetBlockByHashMsg(hash []byte) (respblock *types.Bl
 
 //从p2p模块获取peerlist，用于获取active链上最新的高度。
 //如果没有收到广播block就主动向p2p模块发送请求
+
 func (chain *BlockChain) FetchPeerList() {
-	if chain.qclient == nil {
-		chainlog.Error("FetchPeerList chain client not bind message queue.")
-		return
+	err := chain.fetchPeerList()
+	if err != nil {
+		time.Sleep(time.Second)
+		chain.fetchPeerList()
 	}
-	//chainlog.Info("FetchPeerList")
+}
+
+func (chain *BlockChain) fetchPeerList() error {
+	if chain.qclient == nil {
+		chainlog.Error("fetchPeerList chain client not bind message queue.")
+		return nil
+	}
 	msg := chain.qclient.NewMessage("p2p", types.EventPeerInfo, nil)
 	chain.qclient.Send(msg, true)
 	resp, err := chain.qclient.Wait(msg)
 	if err != nil {
-		chainlog.Error("FetchPeerList", "qclient.Wait err:", err)
-		return
+		chainlog.Error("fetchPeerList", "qclient.Wait err:", err)
+		return err
 	}
 	peerlist := resp.GetData().(*types.PeerList)
 
@@ -1013,6 +1021,10 @@ func (chain *BlockChain) FetchPeerList() {
 	if maxPeerHeight != -1 {
 		chain.UpdatePeerMaxBlkHeight(maxPeerHeight)
 	}
+	if maxPeerHeight == -1 {
+		return types.ErrNoPeer
+	}
+	return nil
 }
 func (chain *BlockChain) GetTxsListByAddr(addr []byte) (txs []*types.TxResult) {
 	txinfos, err := chain.blockStore.GetTxsByAddr(addr)

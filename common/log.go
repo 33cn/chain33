@@ -3,8 +3,6 @@ package common
 import "github.com/inconshreveable/log15"
 import "os"
 
-var mainHandler log15.Handler
-
 func init() {
 	//resetWithLogLevel("error")
 }
@@ -14,12 +12,40 @@ func SetLogLevel(logLevel string) {
 	resetWithLogLevel(logLevel)
 }
 
+func SetFileLog(file, logLevel string) {
+	if file == "" {
+		resetWithLogLevel(logLevel)
+	} else {
+		resetWithLogLevel2(file, logLevel)
+	}
+}
+
+/*
+srvlog.SetHandler(log.MultiHandler(
+    log.StreamHandler(os.Stderr, log.LogfmtFormat()),
+    log.LvlFilterHandler(
+        log.LvlError,
+        log.Must.FileHandler("errors.json", log.JsonFormat()))))
+*/
 func resetWithLogLevel(logLevel string) {
-	mainHandler = log15.LvlFilterHandler(
+	mainHandler := log15.LvlFilterHandler(
 		getLevel(logLevel),
 		log15.StreamHandler(os.Stdout, log15.TerminalFormat()),
 	)
 	log15.Root().SetHandler(mainHandler)
+}
+
+func resetWithLogLevel2(file, logLevel string) {
+	stdouth := log15.LvlFilterHandler(
+		getLevel(logLevel),
+		log15.StreamHandler(os.Stdout, log15.TerminalFormat()),
+	)
+
+	fileh := log15.LvlFilterHandler(
+		getLevel(logLevel),
+		log15.Must.FileHandler(file, log15.LogfmtFormat()),
+	)
+	log15.Root().SetHandler(log15.MultiHandler(stdouth, fileh))
 }
 
 func getLevel(lvlString string) log15.Lvl {
@@ -28,10 +54,6 @@ func getLevel(lvlString string) log15.Lvl {
 		return 5
 	}
 	return lvl
-}
-
-func MainHandler() log15.Handler {
-	return mainHandler
 }
 
 func New(ctx ...interface{}) log15.Logger {

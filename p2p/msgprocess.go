@@ -141,42 +141,39 @@ func (m *Msg) monitorPeerInfo() {
 	go func(m *Msg) {
 	FOR_LOOP:
 		for {
-
 			ticker := time.NewTicker(time.Second * 10)
-
 			select {
-
 			case <-ticker.C:
-
-				var peerlist []*pb.Peer
-				peers := m.network.node.GetPeers()
-				log.Debug("monitorPeerInfo", "peers", peers)
-
-				for _, peer := range peers {
-					ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-					peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
-					if err != nil {
-						cancel()
-						peer.mconn.sendMonitor.Update(false)
-						log.Error("monitorPeerInfo", "error", err.Error())
-						continue
-					}
-					cancel()
-					log.Debug("monitorPeerInfo", "info", peerinfo)
-					peer.mconn.sendMonitor.Update(true)
-					peerlist = append(peerlist, (*pb.Peer)(peerinfo))
-
-				}
-
-				m.flushPeerInfos(peerlist)
+				m.fetchPeerInfo()
 			case <-m.done:
 				log.Error("monitorPeerInfo", "done", "close")
 				break FOR_LOOP
 			}
-
 		}
 	}(m)
+}
 
+func (m *Msg) fetchPeerInfo() {
+	var peerlist []*pb.Peer
+	peers := m.network.node.GetPeers()
+	log.Debug("monitorPeerInfo", "peers", peers)
+
+	for _, peer := range peers {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		if err != nil {
+			cancel()
+			peer.mconn.sendMonitor.Update(false)
+			log.Error("monitorPeerInfo", "error", err.Error())
+			continue
+		}
+		cancel()
+		log.Debug("monitorPeerInfo", "info", peerinfo)
+		peer.mconn.sendMonitor.Update(true)
+		peerlist = append(peerlist, (*pb.Peer)(peerinfo))
+
+	}
+	m.flushPeerInfos(peerlist)
 }
 
 //收到BlockChain 模块的请求，获取PeerInfo
@@ -347,7 +344,6 @@ func (m *Msg) BlockBroadcast(msg queue.Message) {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
-
 	block := msg.GetData().(*pb.Block)
 	peers := m.network.node.GetPeers()
 	//stream blockbroadcast

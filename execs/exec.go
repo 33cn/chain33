@@ -2,10 +2,12 @@ package execs
 
 //store package store the world - state data
 import (
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/coins"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/none"
+	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -24,6 +26,8 @@ import (
 
 var elog = log.New("module", "execs")
 var zeroHash [32]byte
+
+const minFee int64 = 1e6
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -52,24 +56,60 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 		for msg := range client.Recv() {
 			elog.Info("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
-				datas := msg.GetData().(*types.ExecTxList)
-				execute := NewExecute(datas.StateHash, q)
-				var receipts []*types.Receipt
-				for i := 0; i < len(datas.Txs); i++ {
-					if datas.Height > 0 && datas.BlockTime > 0 && datas.Txs[i].IsExpire(datas.Height, datas.BlockTime) { //如果已经过期
-						receipt := types.NewErrReceipt(types.ErrTxExpire)
-						receipts = append(receipts, receipt)
-						continue
-					}
-					receipt := execute.Exec(datas.Txs[i])
-					elog.Info("receipt of tx", "receipt=", receipt)
-					receipts = append(receipts, receipt)
-				}
-				msg.Reply(client.NewMessage("", types.EventReceipts,
-					&types.Receipts{receipts}))
+				exec.processExecTxList(msg, q)
 			}
 		}
 	}()
+}
+
+func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
+	datas := msg.GetData().(*types.ExecTxList)
+	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	var receipts []*types.Receipt
+	for i := 0; i < len(datas.Txs); i++ {
+		tx := datas.Txs[i]
+		if execute.height == 0 { //genesis block 不检查手续费
+			receipt, err := execute.Exec(tx)
+			if err != nil {
+				panic(err)
+			}
+			//elog.Info("exec.receipt->", "receipt", receipt)
+			receipts = append(receipts, receipt)
+			continue
+		}
+		//正常的区块：
+		err := execute.checkTx(tx)
+		if err != nil {
+			receipt := types.NewErrReceipt(err)
+			receipts = append(receipts, receipt)
+			continue
+		}
+		//处理交易手续费(先把手续费收了)
+		//如果收了手续费，表示receipt 至少是pack 级别
+		//收不了手续费的交易才是 error 级别
+		feelog, err := execute.ProcessFee(tx)
+		if err != nil {
+			receipt := types.NewErrReceipt(err)
+			receipts = append(receipts, receipt)
+			continue
+		}
+		receipt, err := execute.Exec(tx)
+		if err != nil {
+			elog.Error("exec tx error = ", "err", err, "tx", tx)
+			//add error log
+			errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
+			feelog.Logs = append(feelog.Logs, errlog)
+		} else {
+			//合并两个receipt，如果执行不返回错误，那么就认为成功
+			feelog.KV = append(feelog.KV, receipt.KV...)
+			feelog.Logs = append(feelog.Logs, receipt.Logs...)
+			feelog.Ty = receipt.Ty
+		}
+		elog.Info("receipt of tx", "receipt=", feelog)
+		receipts = append(receipts, feelog)
+	}
+	msg.Reply(q.GetClient().NewMessage("", types.EventReceipts,
+		&types.Receipts{receipts}))
 }
 
 func (exec *Execs) Close() {
@@ -78,15 +118,46 @@ func (exec *Execs) Close() {
 
 //执行器 -> db 环境
 type Execute struct {
-	cache map[string][]byte
-	db    *DataBase
+	cache     map[string][]byte
+	db        *DataBase
+	height    int64
+	blocktime int64
 }
 
-func NewExecute(stateHash []byte, q *queue.Queue) *Execute {
-	return &Execute{make(map[string][]byte), NewDataBase(q, stateHash)}
+func NewExecute(stateHash []byte, q *queue.Queue, height, blocktime int64) *Execute {
+	return &Execute{make(map[string][]byte), NewDataBase(q, stateHash), height, blocktime}
 }
 
-func (e *Execute) Exec(tx *types.Transaction) *types.Receipt {
+func (e *Execute) ProcessFee(tx *types.Transaction) (*types.Receipt, error) {
+	accFrom := account.LoadAccount(e, account.PubKeyToAddress(tx.Signature.Pubkey).String())
+	if accFrom.GetBalance()-tx.Fee >= 0 {
+		receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
+		accFrom.Balance = accFrom.GetBalance() - tx.Fee
+		account.SaveAccount(e, accFrom)
+		return cutFeeReceipt(accFrom, receiptBalance), nil
+	}
+	return nil, types.ErrNoBalance
+}
+
+func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
+	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
+	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
+}
+
+func (e *Execute) checkTx(tx *types.Transaction) error {
+	if !tx.CheckSign() {
+		return types.ErrSign
+	}
+	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) { //如果已经过期
+		return types.ErrTxExpire
+	}
+	if tx.Fee < minFee {
+		return types.ErrFeeTooLow
+	}
+	return nil
+}
+
+func (e *Execute) Exec(tx *types.Transaction) (*types.Receipt, error) {
 	elog.Info("exec", "execer", string(tx.Execer))
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))
 	if err != nil {
@@ -96,6 +167,7 @@ func (e *Execute) Exec(tx *types.Transaction) *types.Receipt {
 		}
 	}
 	exec.SetDB(e)
+	exec.SetEnv(e.height, e.blocktime)
 	return exec.Exec(tx)
 }
 

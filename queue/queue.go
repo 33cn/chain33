@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/types"
@@ -106,6 +107,15 @@ type Message struct {
 	ChReply chan Message
 }
 
+func NewMessage(id int64, topic string, ty int64, data interface{}) (msg Message) {
+	msg.Id = id
+	msg.Ty = ty
+	msg.Data = data
+	msg.Topic = topic
+	msg.ChReply = make(chan Message, 1)
+	return msg
+}
+
 func (msg Message) GetData() interface{} {
 	if _, ok := msg.Data.(error); ok {
 		return nil
@@ -132,4 +142,18 @@ func (msg Message) Reply(replyMsg Message) {
 func (msg Message) String() string {
 	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v, Ch:%v}", msg.Topic,
 		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.ChReply)
+}
+
+func (msg Message) ReplyErr(title string, err error) {
+	var reply types.Reply
+	if err != nil {
+		qlog.Error(title, "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	} else {
+		qlog.Info(title, "success", "ok")
+		reply.IsOk = true
+	}
+	id := atomic.AddInt64(&gId, 1)
+	msg.Reply(NewMessage(id, "", types.EventReply, &reply))
 }

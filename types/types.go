@@ -121,3 +121,10 @@ func NewErrReceipt(err error) *Receipt {
 	errlog := &ReceiptLog{TyLogErr, []byte(berr)}
 	return &Receipt{ExecErr, nil, []*ReceiptLog{errlog}}
 }
+
+func CheckAmount(amount int64) bool {
+	if amount <= 0 || amount >= MaxCoin {
+		return false
+	}
+	return true
+}

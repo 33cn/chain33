@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -29,7 +30,7 @@ func init() {
 func TestGrpcSendToAddress(t *testing.T) {
 	priv := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	keymap := make(map[string]crypto.PrivKey)
-	N := 1
+	N := 100
 	header, err := getlastheader()
 	if err != nil {
 		t.Error(err)
@@ -64,7 +65,7 @@ func TestGrpcSendToAddress(t *testing.T) {
 	ch := make(chan struct{}, N)
 	for _, value := range keymap {
 		go func(pkey crypto.PrivKey) {
-			for i := 0; i < N*1; {
+			for i := 0; i < N*10; {
 				addrto, _ := genaddress()
 				err := sendtoaddress(pkey, addrto, 10000)
 				if err != nil {
@@ -115,7 +116,7 @@ func getprivkey(key string) crypto.PrivKey {
 
 func sendtoaddress(priv crypto.PrivKey, to string, amount int64) error {
 	//defer conn.Close()
-	fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
+	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
 	c := types.NewGrpcserviceClient(conn)
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
@@ -123,8 +124,15 @@ func sendtoaddress(priv crypto.PrivKey, to string, amount int64) error {
 	tx.Nonce = rand.Int63()
 	tx.Sign(types.SECP256K1, priv)
 	// Contact the server and print out its response.
-	_, err := c.SendTransaction(context.Background(), tx)
-	return err
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return err
+	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		return errors.New(string(reply.GetMsg()))
+	}
+	return nil
 }
 
 func getlastheader() (*types.Header, error) {
