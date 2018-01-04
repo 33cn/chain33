@@ -40,7 +40,7 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 		return msg
 	}
 	// 检查交易是否过期
-	valid := mem.CheckExpireValid(msg) 
+	valid := mem.CheckExpireValid(msg)
 	if !valid {
 		msg.Data = e07
 		return msg
@@ -121,12 +121,14 @@ func (mem *Mempool) CheckBalanList() {
 func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 	var msgTmp []queue.Message
 	var accTmp []*types.Account
-	for index, ad := range addrs {
-		if ac, exists := mem.accountCache[ad]; exists {
-			msgTmp = append(msgTmp, msgs[index])
-			accTmp = append(accTmp, ac)
-			msgs = append(msgs[:index], msgs[index+1:]...)
-			addrs = append(addrs[:index], addrs[index+1:]...)
+	if len(addrs) != 0 {
+		for index, ad := range addrs {
+			if ac, exists := mem.accountCache[ad]; exists {
+				msgTmp = append(msgTmp, msgs[index])
+				accTmp = append(accTmp, ac)
+				msgs = append(msgs[:index], msgs[index+1:]...)
+				addrs = append(addrs[:index], addrs[index+1:]...)
+			}
 		}
 	}
 	accs, err := account.LoadAccounts(mem.memQueue, addrs)
@@ -145,8 +147,10 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 		mem.accountCache[addrs[i]] = accs[i]
 	}
 
-	msgs = append(msgs, msgTmp...)
-	accs = append(accs, accTmp...)
+	if len(msgTmp) != 0 && len(accTmp) != 0 {
+		msgs = append(msgs, msgTmp...)
+		accs = append(accs, accTmp...)
+	}
 
 	for i := range msgs {
 		tx := msgs[i].GetData().(*types.Transaction)
