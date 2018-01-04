@@ -9,39 +9,39 @@ import (
 )
 
 // Mempool.CheckTxList初步检查并筛选交易消息
-func (mem *Mempool) CheckTxList() {
-	for data := range mem.txChan {
-		tx := data.GetData().(*types.Transaction)
-
-		// 检查交易消息是否过大
-		if len(types.Encode(tx)) > int(maxMsgByte) {
-			mlog.Error("wrong tx", "err", e06)
-			data.Data = e06
-			mem.badChan <- data
-			continue
-		}
-
-		// 检查交易费是否小于最低值
-		if tx.Fee < mem.GetMinFee() {
-			mlog.Error("wrong tx", "err", e02)
-			data.Data = e02
-			mem.badChan <- data
-			continue
-		}
-
-		// 检查交易账户在Mempool中是否存在过多交易
-		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-		if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
-			mlog.Error("wrong tx", "err", e03)
-			data.Data = e03
-			mem.badChan <- data
-			continue
-		}
-
-		// 传入signChan，待检查签名
-		mlog.Warn("check tx", "signChan", data)
-		mem.signChan <- data
+func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
+	if msg.GetData() == nil { // 判断消息是否含有nil交易 d
+		msg.Data = e09
+		return msg
 	}
+	tx := msg.GetData().(*types.Transaction)
+	// 检查交易消息是否过大
+	if mem.addedTxs.Contains(string(tx.Hash())) {
+		msg.Data = e10
+		return msg
+	}
+	mem.addedTxs.Add(string(tx.Hash()), nil)
+	if len(types.Encode(tx)) > int(maxMsgByte) {
+		msg.Data = e06
+		return msg
+	}
+	// 检查交易费是否小于最低值
+	if tx.Fee < mem.GetMinFee() {
+		msg.Data = e02
+		return msg
+	}
+	// 检查交易账户在Mempool中是否存在过多交易
+	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
+		msg.Data = e03
+		return msg
+	}
+	valid := mem.CheckExpireValid(msg) // 检查交易是否过期
+	if !valid {
+		msg.Data = e07
+		return msg
+	}
+	return msg
 }
 
 // Mempool.CheckSignList检查交易签名是否合法
@@ -52,10 +52,9 @@ func (mem *Mempool) CheckSignList() {
 				ok := data.GetData().(*types.Transaction).CheckSign()
 				if ok {
 					// 签名正确，传入balanChan，待检查余额
-					mlog.Warn("check tx", "balanChan", data)
 					mem.balanChan <- data
 				} else {
-					mlog.Error("wrong tx", "err", e04)
+					mlog.Info("wrong tx", "err", e04)
 					data.Data = e04
 					mem.badChan <- data
 				}
@@ -100,6 +99,7 @@ func (mem *Mempool) CheckBalanList() {
 		n, err := readToChan(mem.balanChan, msgs[:], 1024)
 
 		if err != nil {
+			mlog.Error("CheckBalanList.readToChan", "err", err)
 			return
 		}
 
@@ -129,9 +129,8 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 
 	if err != nil {
 		mlog.Error("loadaccounts", "err", err)
-
 		for m := range msgs {
-			mlog.Error("wrong tx", "err", e08)
+			mlog.Info("wrong tx", "err", e08)
 			msgs[m].Data = e08
 			mem.badChan <- msgs[m]
 		}
@@ -153,16 +152,14 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 			// 交易账户余额充足，推入Mempool
 			err := mem.PushTx(tx)
 			if err == nil {
-				// 推入Mempool成功，传入goodChan，待回复消息
-				mlog.Warn("check tx", "goodChan", msgs[i])
 				mem.goodChan <- msgs[i]
 			} else {
-				mlog.Error("wrong tx", "err", err)
+				mlog.Info("wrong tx", "err", err)
 				msgs[i].Data = err
 				mem.badChan <- msgs[i]
 			}
 		} else {
-			mlog.Error("wrong tx", "err", e05)
+			mlog.Info("wrong tx", "err", e05)
 			msgs[i].Data = e05
 			mem.badChan <- msgs[i]
 		}

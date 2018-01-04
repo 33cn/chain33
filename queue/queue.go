@@ -82,7 +82,7 @@ func (q *Queue) Send(msg Message) {
 	case <-timeout:
 		panic("wait for message timeout.")
 	}
-	qlog.Info("send ok", "msg", msg)
+	qlog.Debug("send ok", "msg", msg)
 }
 
 func (q *Queue) SendAsyn(msg Message) error {
@@ -136,7 +136,7 @@ func (msg Message) Reply(replyMsg Message) {
 		return
 	}
 	msg.ChReply <- replyMsg
-	qlog.Info("reply msg ok", "msg", msg)
+	qlog.Debug("reply msg ok", "msg", msg)
 }
 
 func (msg Message) String() string {
@@ -151,7 +151,7 @@ func (msg Message) ReplyErr(title string, err error) {
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {
-		qlog.Info(title, "success", "ok")
+		qlog.Debug(title, "success", "ok")
 		reply.IsOk = true
 	}
 	id := atomic.AddInt64(&gId, 1)
