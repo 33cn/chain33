@@ -20,8 +20,9 @@ import (
 var gId int64
 
 type IClient interface {
-	Send(msg Message, wait bool) (err error) //异步发送消息
-	Wait(msg Message) (Message, error)       //等待消息处理完成
+	Send(msg Message, wait bool) (err error)     //异步发送消息
+	SendAsyn(msg Message, wait bool) (err error) //异步发送消息
+	Wait(msg Message) (Message, error)           //等待消息处理完成
 	Recv() chan Message
 	Sub(topic string) //订阅消息
 	Close()
@@ -47,9 +48,17 @@ func newClient(q *Queue) IClient {
 func (client *Client) Send(msg Message, wait bool) (err error) {
 	if !wait {
 		msg.ChReply = nil
+		return client.q.SendAsyn(msg)
 	}
 	client.q.Send(msg)
 	return nil
+}
+
+func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
+	if !wait {
+		msg.ChReply = nil
+	}
+	return client.q.SendAsyn(msg)
 }
 
 func (client *Client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
@@ -61,7 +70,7 @@ func (client *Client) Wait(msg Message) (Message, error) {
 	if msg.ChReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
-	timeout := time.After(time.Second * 1)
+	timeout := time.After(time.Second * 5)
 	select {
 	case msg = <-msg.ChReply:
 		return msg, msg.Err()

@@ -33,9 +33,10 @@ func DisableLog() {
 }
 
 type Queue struct {
-	chans map[string]chan Message
-	mu    sync.Mutex
-	done  chan struct{}
+	chans   map[string]chan Message
+	mu      sync.Mutex
+	done    chan struct{}
+	isclose bool
 }
 
 func New(name string) *Queue {
@@ -57,9 +58,22 @@ func (q *Queue) Start() {
 	}
 }
 
+func (q *Queue) IsClosed() bool {
+	q.mu.Lock()
+	c := q.isclose
+	q.mu.Unlock()
+	return c
+}
+
 func (q *Queue) Close() {
+	for _, ch := range q.chans {
+		close(ch)
+	}
 	q.done <- struct{}{}
 	close(q.done)
+	q.mu.Lock()
+	q.isclose = true
+	q.mu.Unlock()
 	qlog.Info("queue module closed")
 }
 
@@ -75,6 +89,9 @@ func (q *Queue) getChannel(topic string) chan Message {
 }
 
 func (q *Queue) Send(msg Message) {
+	if q.IsClosed() {
+		return
+	}
 	chrecv := q.getChannel(msg.Topic)
 	timeout := time.After(time.Second * 5)
 	select {

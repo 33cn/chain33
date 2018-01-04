@@ -1,6 +1,6 @@
 
 Title="chain33"
-Loglevel="info"
+Loglevel="error"
 
 [blockchain]
 defCacheSize=500

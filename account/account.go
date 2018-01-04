@@ -166,6 +166,56 @@ func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err er
 	return accs, nil
 }
 
+type CacheDB struct {
+	header *types.Header
+	q      queue.IClient
+	cache  map[string][]byte
+}
+
+func NewCacheDB(q *queue.Queue, header *types.Header) *CacheDB {
+	return &CacheDB{header, q.GetClient(), make(map[string][]byte)}
+}
+
+func (db *CacheDB) Get(key []byte) (value []byte, err error) {
+	if value, ok := db.cache[string(key)]; ok {
+		return value, nil
+	}
+	value, err = db.get(key)
+	if err != nil {
+		return nil, err
+	}
+	db.cache[string(key)] = value
+	return value, err
+}
+
+func (db *CacheDB) Set(key []byte, value []byte) error {
+	db.cache[string(key)] = value
+	return nil
+}
+
+func (db *CacheDB) get(key []byte) (value []byte, err error) {
+	query := &types.StoreGet{db.header.StateHash, [][]byte{key}}
+	msg := db.q.NewMessage("store", types.EventStoreGet, query)
+	db.q.Send(msg, true)
+	resp, err := db.q.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	value = resp.GetData().(*types.StoreReplyValue).Values[0]
+	if value == nil {
+		return nil, types.ErrNotFound
+	}
+	return value, nil
+}
+
+func LoadAccountsDB(db dbm.KVDB, addrs []string) (accs []*types.Account, err error) {
+	for i := 0; i < len(addrs); i++ {
+		acc := LoadAccount(db, addrs[i])
+		accs = append(accs, acc)
+	}
+	return accs, nil
+}
+
 //address to save key
 func AccountKey(address string) (key []byte) {
 	key = append(key, []byte("mavl-acc-")...)

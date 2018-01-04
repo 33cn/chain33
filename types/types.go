@@ -96,6 +96,10 @@ func Encode(data proto.Message) []byte {
 	return b
 }
 
+func Size(data proto.Message) int {
+	return proto.Size(data)
+}
+
 func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
 }

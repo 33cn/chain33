@@ -151,7 +151,12 @@ func (e *Execute) Get(key []byte) (value []byte, err error) {
 	if value, ok := e.cache[string(key)]; ok {
 		return value, nil
 	}
-	return e.db.Get(key)
+	value, err = e.db.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	e.cache[string(key)] = value
+	return value, nil
 }
 
 func (e *Execute) Set(key []byte, value []byte) error {
