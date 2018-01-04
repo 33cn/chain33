@@ -3,7 +3,6 @@ package mempool
 import (
 	//	"container/heap"
 	"errors"
-	"reflect"
 	"runtime"
 	"sync"
 	"time"
@@ -528,12 +527,6 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				mlog.Warn("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
-				if reflect.TypeOf(msg.GetData()).String() != "int" {
-					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
-						errors.New("not an valid size")))
-					mlog.Warn("not an valid size", "msg", msg)
-					continue
-				}
 				txListSize := msg.GetData().(int)
 				if txListSize <= 0 {
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
