@@ -81,7 +81,7 @@ func BenchmarkGetKey(b *testing.B) {
 	var stateHash [32]byte
 	hash := stateHash[:]
 	var err error
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		key := []byte(fmt.Sprintf("%020d", i))
 		value := []byte(fmt.Sprintf("%020d", i))
 		hash, err = set(qclient, hash, key, value)
@@ -92,8 +92,8 @@ func BenchmarkGetKey(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		key := []byte(fmt.Sprintf("%020d", i%10000))
-		value := fmt.Sprintf("%020d", i%10000)
+		key := []byte(fmt.Sprintf("%020d", i%1000))
+		value := fmt.Sprintf("%020d", i%1000)
 		value2, err := get(qclient, hash, key)
 		if err != nil {
 			b.Error(err)
@@ -105,4 +105,21 @@ func BenchmarkGetKey(b *testing.B) {
 		}
 	}
 	s.Close()
+}
+
+func BenchmarkSetKeyOneByOne(b *testing.B) {
+	q, s := initEnv()
+	qclient := q.GetClient()
+	var stateHash [32]byte
+	hash := stateHash[:]
+	var err error
+	for i := 0; i < b.N; i++ {
+		key := []byte(fmt.Sprintf("%020d", i))
+		value := []byte(fmt.Sprintf("%020d", i))
+		hash, err = set(qclient, hash, key, value)
+		if err != nil {
+			b.Error(err)
+			return
+		}
+	}
 }
