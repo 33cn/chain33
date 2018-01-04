@@ -567,6 +567,8 @@ message Consensus {
 	string name=1;
 	string genesis=2;
 	bool minerstart = 3;
+	int64 nodeId = 4;
+	string peersURL = 5;
 }
 
 message MemPool {
@@ -616,4 +618,3 @@ message WalletPwHash {
 	bytes pwHash = 1;
 	string randstr = 2;
 }
-

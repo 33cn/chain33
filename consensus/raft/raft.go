@@ -22,18 +22,19 @@ import (
 	"github.com/coreos/etcd/wal"
 	"github.com/coreos/etcd/wal/walpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
 	log "github.com/inconshreveable/log15"
+	"github.com/pkg/errors"
 )
 
-var once sync.Once
+//var once sync.Once
 
-const (
-	IsLeader   = "0"
-	IsFollower = "1"
-)
+//const (
+//	IsLeader   = "0"
+//	IsFollower = "1"
+//)
+
 var (
-	wasLeader               bool   = false
+	//wasLeader               bool   = false
 	defaultSnapCount        uint64 = 10000
 	snapshotCatchUpEntriesN uint64 = 10000
 )
@@ -126,7 +127,6 @@ func (rc *raftNode) startRaft() {
 		//设置成预投票，可以快速地当集群重启的话，选举出新的leader
 		//PreVote: true,
 		CheckQuorum: true,
-
 	}
 
 	if oldwal {
@@ -160,24 +160,24 @@ func (rc *raftNode) startRaft() {
 	go rc.serveChannels()
 
 	//获取leadId,讲leader的节点设置Validator节点
-    leadId,err :=rc.WaitForLeader()
-    if err !=nil {
+	leadId, err := rc.WaitForLeader()
+	if err != nil {
 		log.Error("chain33_raft: (%v)", err)
 		return
 	}
-	if rc.id == int(leadId){
-		isValidator=true
+	if rc.id == int(leadId) {
+		isValidator = true
 	}
 }
 
 // 网络监听
 func (rc *raftNode) serveRaft() {
-	url, err := url.Parse(rc.peers[rc.id-1])
+	nodeURL, err := url.Parse(rc.peers[rc.id-1])
 	if err != nil {
 		log.Error("raft: Failed parsing URL (%v)", err)
 	}
 
-	ln, err := newStoppableListener(url.Host, rc.httpstopc)
+	ln, err := newStoppableListener(nodeURL.Host, rc.httpstopc)
 	if err != nil {
 		log.Error("raft: Failed to listen rafthttp (%v)", err)
 	}
@@ -192,13 +192,13 @@ func (rc *raftNode) serveRaft() {
 }
 
 func (rc *raftNode) serveChannels() {
-	snap, err := rc.raftStorage.Snapshot()
+	snapShot, err := rc.raftStorage.Snapshot()
 	if err != nil {
 		panic(err)
 	}
-	rc.confState = snap.Metadata.ConfState
-	rc.snapshotIndex = snap.Metadata.Index
-	rc.appliedIndex = snap.Metadata.Index
+	rc.confState = snapShot.Metadata.ConfState
+	rc.snapshotIndex = snapShot.Metadata.Index
+	rc.appliedIndex = snapShot.Metadata.Index
 
 	defer rc.wal.Close()
 
@@ -324,11 +324,11 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 	if err != nil {
 		log.Error("Err happened when get snapshot")
 	}
-	snap, err := rc.raftStorage.CreateSnapshot(rc.appliedIndex, &rc.confState, data)
+	snapShot, err := rc.raftStorage.CreateSnapshot(rc.appliedIndex, &rc.confState, data)
 	if err != nil {
 		panic(err)
 	}
-	if err := rc.saveSnap(snap); err != nil {
+	if err := rc.saveSnap(snapShot); err != nil {
 		panic(err)
 	}
 
@@ -482,11 +482,10 @@ func (rc *raftNode) ReportUnreachable(id uint64)                          {}
 func (rc *raftNode) ReportSnapshot(id uint64, status raft.SnapshotStatus) {}
 
 // 等待集群中leader节点的选举结果，并返回leadId
-// 如果ctx在leader产生之前被取消，则返回错误信息
-func (rc *raftNode) WaitForLeader()(uint64,error){
+func (rc *raftNode) WaitForLeader() (uint64, error) {
 	leadId := rc.node.Status().Lead
-    if leadId !=raft.None{
-    	return leadId,nil
+	if leadId != raft.None {
+		return leadId, nil
 	}
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
@@ -495,10 +494,10 @@ func (rc *raftNode) WaitForLeader()(uint64,error){
 		case <-ticker.C:
 		}
 		leadId := rc.node.Status().Lead
-		if leadId != raft.None{
+		if leadId != raft.None {
 			log.Info("=====chain-33-raft has elected cluster leader====.")
-			return leadId,nil
+			return leadId, nil
 		}
 	}
-	return leadId,errors.New("raft: no elected cluster leader")
+	return leadId, errors.New("raft: no elected cluster leader")
 }
