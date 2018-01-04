@@ -10,17 +10,20 @@ import (
 
 // Mempool.CheckTxList初步检查并筛选交易消息
 func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
-	if msg.GetData() == nil { // 判断消息是否含有nil交易 d
+	// 判断消息是否含有nil交易
+	if msg.GetData() == nil {
 		msg.Data = e09
 		return msg
 	}
+	// 检查交易是否为重复交易
 	tx := msg.GetData().(*types.Transaction)
-	// 检查交易消息是否过大
 	if mem.addedTxs.Contains(string(tx.Hash())) {
 		msg.Data = e10
 		return msg
 	}
+	// 添加交易到addedTxs缓存
 	mem.addedTxs.Add(string(tx.Hash()), nil)
+	// 检查交易消息是否过大
 	if len(types.Encode(tx)) > int(maxMsgByte) {
 		msg.Data = e06
 		return msg
@@ -36,7 +39,8 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 		msg.Data = e03
 		return msg
 	}
-	valid := mem.CheckExpireValid(msg) // 检查交易是否过期
+	// 检查交易是否过期
+	valid := mem.CheckExpireValid(msg) 
 	if !valid {
 		msg.Data = e07
 		return msg
@@ -134,7 +138,6 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 			msgs[m].Data = e08
 			mem.badChan <- msgs[m]
 		}
-
 		return
 	}
 
@@ -147,11 +150,11 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 
 	for i := range msgs {
 		tx := msgs[i].GetData().(*types.Transaction)
-
 		if accs[i].GetBalance() >= 10*tx.Fee {
 			// 交易账户余额充足，推入Mempool
 			err := mem.PushTx(tx)
 			if err == nil {
+				// 推入Mempool成功，传入goodChan，待回复消息
 				mem.goodChan <- msgs[i]
 			} else {
 				mlog.Info("wrong tx", "err", err)
