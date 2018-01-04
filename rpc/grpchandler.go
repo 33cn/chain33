@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"fmt"
+
 	"golang.org/x/net/context"
 
 	pb "code.aliyun.com/chain33/chain33/types"
@@ -14,7 +16,11 @@ type Grpc struct {
 func (req *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
 
 	reply := req.cli.SendTx(in)
-	return &pb.Reply{IsOk: true, Msg: reply.GetData().(*pb.Reply).Msg}, reply.Err()
+	if reply.GetData().(*pb.Reply).IsOk {
+		return reply.GetData().(*pb.Reply), nil
+	} else {
+		return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
+	}
 
 }
 func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.TransactionDetail, error) {
