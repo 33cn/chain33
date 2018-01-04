@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -14,14 +15,15 @@ var ulog = log.New("module", "util")
 func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
 	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
+	beg := time.Now()
 	receipts := ExecTx(q, prevStateRoot, block)
+	ulog.Info("ExecBlock", "cost", time.Now().Sub(beg))
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
 	var rdata []*types.ReceiptData //save to db receipt log
 	for i := 0; i < len(receipts.Receipts); i++ {
 		receipt := receipts.Receipts[i]
-		ulog.Info("exec status", "index", i, "status", receipt.Ty)
 		if receipt.Ty == types.ExecErr {
 			if errReturn { //认为这个是一个错误的区块
 				return nil, types.ErrBlockExec
