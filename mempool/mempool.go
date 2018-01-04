@@ -302,6 +302,23 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	return mem.qclient.Wait(msg)
 }
 
+// Mempool.pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
+func (mem *Mempool) pollLastHeader() {
+	for {
+		lastHeader, err := mem.GetLastHeader()
+		if err != nil {
+			mlog.Error(err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+		mem.proxyMtx.Lock()
+		mem.height = lastHeader.(queue.Message).Data.(*types.Header).GetHeight()
+		mem.blockTime = lastHeader.(queue.Message).Data.(*types.Header).GetBlockTime()
+		mem.proxyMtx.Unlock()
+		return
+	}
+}
+
 // Mempool.Close关闭Mempool
 func (mem *Mempool) Close() {
 	mlog.Info("mempool module closed")
@@ -443,22 +460,6 @@ func (i Item) Less(it llrb.Item) bool {
 }
 
 //--------------------------------------------------------------------------------
-
-func (mem *Mempool) pollLastHeader() {
-	for {
-		lastHeader, err := mem.GetLastHeader()
-		if err != nil {
-			mlog.Error(err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-		mem.proxyMtx.Lock()
-		mem.height = lastHeader.(queue.Message).Data.(*types.Header).GetHeight()
-		mem.blockTime = lastHeader.(queue.Message).Data.(*types.Header).GetBlockTime()
-		mem.proxyMtx.Unlock()
-		return
-	}
-}
 
 func (mem *Mempool) SetQueue(q *queue.Queue) {
 	mem.memQueue = q
