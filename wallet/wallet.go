@@ -217,6 +217,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventAddBlock:
 			block := msg.Data.(*types.BlockDetail)
 			wallet.ProcWalletAddBlock(block)
+			walletlog.Info("wallet add block --->", "height", block.Block.GetHeight())
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)

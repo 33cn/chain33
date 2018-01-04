@@ -12,17 +12,6 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-/*
-模块主要的功能：
-
-//批量写
-1. EventStoreSet(stateHash, (k1,v1),(k2,v2),(k3,v3)) -> 返回 stateHash
-
-//批量读
-2. EventStoreGet(stateHash, k1,k2,k3)
-
-*/
-
 var elog = log.New("module", "execs")
 var zeroHash [32]byte
 
@@ -58,8 +47,10 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 				datas := msg.GetData().(*types.ExecTxList)
 				execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
 				var receipts []*types.Receipt
+				elog.Warn("exec block begin", "ntx", len(datas.Txs))
 				for i := 0; i < len(datas.Txs); i++ {
 					tx := datas.Txs[i]
+					elog.Warn("exec tx", "index", i)
 					if execute.height == 0 { //genesis block 不检查手续费
 						receipt, err := execute.Exec(tx)
 						if err != nil {
@@ -100,7 +91,7 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 						feelog.Logs = append(feelog.Logs, receipt.Logs...)
 						feelog.Ty = receipt.Ty
 					}
-					elog.Info("receipt of tx", "receipt=", feelog)
+					elog.Debug("receipt of tx", "receipt=", feelog)
 					receipts = append(receipts, feelog)
 				}
 				msg.Reply(client.NewMessage("", types.EventReceipts,

@@ -37,6 +37,7 @@ var (
 	e08 = errors.New("loadacconts error")
 	e09 = errors.New("empty transaction")
 	e10 = errors.New("duplicated transaction")
+	e11 = errors.New("mempool not ready")
 )
 
 var (
@@ -205,10 +206,11 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	mem.height = block.GetHeight()
 	mem.blockTime = block.GetBlockTime()
 
-	for tx := range block.Txs {
-		exist := mem.cache.Exists(block.Txs[tx])
+	for _, tx := range block.Txs {
+		mem.addedTxs.Add(string(tx.Hash()), nil)
+		exist := mem.cache.Exists(tx)
 		if exist {
-			mem.cache.Remove(block.Txs[tx])
+			mem.cache.Remove(tx)
 		}
 	}
 	return true
@@ -218,16 +220,7 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 func (mem *Mempool) PushTx(tx *types.Transaction) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-
-	if mem.addedTxs.Contains(string(tx.Hash())) {
-		return e10
-	}
-
 	err := mem.cache.Push(tx)
-	if err == nil {
-		mem.addedTxs.Add(string(tx.Hash()), nil)
-	}
-
 	return err
 }
 
@@ -451,38 +444,35 @@ func (i Item) Less(it llrb.Item) bool {
 
 //--------------------------------------------------------------------------------
 
+func (mem *Mempool) pollLastHeader() {
+	for {
+		lastHeader, err := mem.GetLastHeader()
+		if err != nil {
+			mlog.Error(err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+		mem.proxyMtx.Lock()
+		mem.height = lastHeader.(queue.Message).Data.(*types.Header).GetHeight()
+		mem.blockTime = lastHeader.(queue.Message).Data.(*types.Header).GetBlockTime()
+		mem.proxyMtx.Unlock()
+		return
+	}
+}
+
 func (mem *Mempool) SetQueue(q *queue.Queue) {
 	mem.memQueue = q
 	mem.qclient = q.GetClient()
 	mem.qclient.Sub("mempool")
 
-	go func() {
-		for {
-			lastHeader, err := mem.GetLastHeader()
-			if err != nil {
-				mlog.Error(err.Error())
-				time.Sleep(time.Second)
-				continue
-			}
-
-			mem.proxyMtx.Lock()
-			mem.height = lastHeader.(queue.Message).Data.(*types.Header).GetHeight()
-			mem.blockTime = lastHeader.(queue.Message).Data.(*types.Header).GetBlockTime()
-			mem.proxyMtx.Unlock()
-			return
-		}
-	}()
-
-	go mem.CheckTxList()
-	go mem.CheckSignList()
-	go mem.CheckBalanList()
+	go mem.pollLastHeader()
 
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
-			mlog.Warn("reply EventTx ok", "msg", m)
+			//mlog.Warn("reply EventTx ok", "msg", m)
 		}
 	}()
 
@@ -490,43 +480,33 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	go func() {
 		for m := range mem.goodChan {
 			mem.SendTxToP2P(m.GetData().(*types.Transaction))
-			mlog.Warn("send to p2p ok", "msg", m)
 			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
-			mlog.Warn("reply EventTx ok", "msg", m)
 		}
 	}()
 
+	go mem.CheckSignList()
+	go mem.CheckBalanList()
 	go mem.RemoveLeftOverTxs()
 	go mem.RemoveBlockedTxs()
 
 	go func() {
+		i := 0
 		for msg := range mem.qclient.Recv() {
-			mlog.Warn("mempool recv", "msg", msg)
+			i = i + 1
+			mlog.Info("mempool recv", "count", i, "msg", msg)
 			switch msg.Ty {
 			case types.EventTx:
-				// 消息类型EventTx：申请添加交易到Mempool
-				if msg.GetData() == nil { // 判断消息是否含有nil交易
-					mlog.Error("wrong tx", "err", e09)
-					msg.Data = e09
+				msg := mem.CheckTx(msg)
+				if msg.Err() != nil {
 					mem.badChan <- msg
-					continue
-				}
-				valid := mem.CheckExpireValid(msg) // 检查交易是否过期
-				if valid {
-					// 未过期，交易消息传入txChan，待检查
-					mlog.Warn("check tx", "txChan", msg)
-					mem.txChan <- msg
 				} else {
-					mlog.Error("wrong tx", "err", e07)
-					msg.Data = e07
-					mem.badChan <- msg
-					continue
+					mem.signChan <- msg
 				}
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
-				mlog.Warn("reply EventGetMempool ok", "msg", msg)
+				mlog.Info("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				txListSize := msg.GetData().(int)
@@ -539,7 +519,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				txList := mem.GetTxList(txListSize)
 				msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 					&types.ReplyTxList{Txs: txList}))
-				mlog.Warn("reply EventTxList ok", "msg", msg)
+				mlog.Info("reply EventTxList ok", "msg", msg)
 			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				mem.accountCache = make(map[string]*types.Account)
