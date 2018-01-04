@@ -135,7 +135,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		chain.recvdone <- struct{}{}
 	}()
 	for msg := range chain.qclient.Recv() {
-		chainlog.Error("blockchain recv", "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Info("blockchain recv", "msg", types.GetEventName(int(msg.Ty)))
 		msgtype := msg.Ty
 		beg := time.Now()
 		switch msgtype {
@@ -302,7 +302,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
-		chainlog.Error("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}
 }
 

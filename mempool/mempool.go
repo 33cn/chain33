@@ -359,7 +359,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 		i := 0
 		for msg := range mem.qclient.Recv() {
 			i = i + 1
-			mlog.Error("mempool recv", "count", i, "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Info("mempool recv", "count", i, "msg", types.GetEventName(int(msg.Ty)))
 			beg := time.Now()
 			switch msg.Ty {
 			case types.EventTx:
@@ -405,7 +405,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				mlog.Warn("reply EventGetLastMempool ok", "msg", msg)
 			default:
 			}
-			mlog.Error("mempool", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Info("mempool", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }
