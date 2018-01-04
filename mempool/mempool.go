@@ -3,7 +3,6 @@ package mempool
 import (
 	//	"container/heap"
 	"errors"
-	"reflect"
 	"runtime"
 	"sync"
 	"time"
@@ -526,12 +525,6 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				mlog.Info("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
-				if reflect.TypeOf(msg.GetData()).String() != "int" {
-					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
-						errors.New("not an valid size")))
-					mlog.Warn("not an valid size", "msg", msg)
-					continue
-				}
 				txListSize := msg.GetData().(int)
 				if txListSize <= 0 {
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
@@ -548,8 +541,9 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
 			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
+				memSize := int64(mem.Size())
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
-					&types.MempoolSize{int64(mem.Size())}))
+					&types.MempoolSize{Size: memSize}))
 				mlog.Warn("reply EventGetMempoolSize ok", "msg", msg)
 			case types.EventGetLastMempool:
 				// 消息类型EventGetLastMempool：获取最新十条加入到Mempool的交易
