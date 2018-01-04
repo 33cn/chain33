@@ -296,7 +296,7 @@ func TestIAVLProof(t *testing.T) {
 
 	rootHashBytes := tree.Hash()
 	hashetr := ToHex(rootHashBytes)
-	hashbyte := FromHex(hashetr)
+	hashbyte, _ := FromHex(hashetr)
 
 	treelog.Info("TestIAVLProof", "rootHashBytes", rootHashBytes)
 	treelog.Info("TestIAVLProof", "hashetr", hashetr)
@@ -577,7 +577,7 @@ func BenchmarkGetMerkleAvlTree(b *testing.B) {
 	t := NewMAVLTree(db)
 	var key []byte
 	for i := 0; i < 10000; i++ {
-		key = i2b(int32(RandInt32()))
+		key = i2b(int32(i))
 		t.Set(key, nil)
 		if i%100 == 99 {
 			t.Save()
@@ -590,7 +590,7 @@ func BenchmarkGetMerkleAvlTree(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, exit := t.Get(key)
+		_, _, exit := t.Get(i2b(int32(i % 10000)))
 		if !exit {
 			fmt.Println("BenchmarkGetMerkleAvlTree no exit!")
 		}

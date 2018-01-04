@@ -9,3 +9,4 @@ cli/cli
 cli/run.sh
 datadir2/
 rpc/test/1.png
+common/mavl/test.db

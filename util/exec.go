@@ -75,7 +75,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	detail.Receipts = rdata
 	//get receipts
 	//save kvset and get state hash
-	ulog.Info("blockdetail-->", "detail=", detail)
+	//ulog.Info("blockdetail-->", "detail=", detail)
 	return &detail, nil
 }
 
