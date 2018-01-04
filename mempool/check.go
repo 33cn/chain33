@@ -21,10 +21,9 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 		msg.Data = e10
 		return msg
 	}
-	// 添加交易到addedTxs缓存
 	mem.addedTxs.Add(string(tx.Hash()), nil)
 	// 检查交易消息是否过大
-	if len(types.Encode(tx)) > int(maxMsgByte) {
+	if types.Size(tx) > int(maxMsgByte) {
 		msg.Data = e06
 		return msg
 	}
@@ -123,19 +122,7 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 		mlog.Error("msgs size not equals addrs size")
 		return
 	}
-	var msgTmp []queue.Message
-	var accTmp []*types.Account
-	var removedIndex []int
-	for index, ad := range addrs {
-		if ac, exists := mem.accountCache[ad]; exists {
-			msgTmp = append(msgTmp, msgs[index])
-			accTmp = append(accTmp, ac)
-			removedIndex = append(removedIndex, index)
-		}
-	}
-
-	accs, err := account.LoadAccounts(mem.memQueue, addrs)
-
+	accs, err := account.LoadAccountsDB(mem.GetDB(), addrs)
 	if err != nil {
 		mlog.Error("loadaccounts", "err", err)
 		for m := range msgs {
@@ -145,21 +132,6 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 		}
 		return
 	}
-
-	for i := range accs {
-		mem.accountCache[addrs[i]] = accs[i]
-	}
-
-	for i := len(removedIndex) - 1; i >= 0; i-- {
-		msgs = append(msgs[:i], msgs[i+1:]...)
-		addrs = append(addrs[:i], addrs[i+1:]...)
-	}
-
-	if len(msgTmp) != 0 && len(accTmp) != 0 {
-		msgs = append(msgs, msgTmp...)
-		accs = append(accs, accTmp...)
-	}
-
 	for i := range msgs {
 		tx := msgs[i].GetData().(*types.Transaction)
 		if accs[i].GetBalance() >= 10*tx.Fee {
@@ -179,15 +151,4 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 			mem.badChan <- msgs[i]
 		}
 	}
-}
-
-// Mempool.CheckExpireValid检查交易过期有效性，过期返回false，未过期返回true
-func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	tx := msg.GetData().(*types.Transaction)
-	if tx.IsExpire(mem.height, mem.blockTime) {
-		return false
-	}
-	return true
 }

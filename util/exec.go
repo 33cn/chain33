@@ -14,10 +14,10 @@ var ulog = log.New("module", "util")
 
 func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
-	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
+	ulog.Error("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	receipts := ExecTx(q, prevStateRoot, block)
-	ulog.Info("ExecBlock", "cost", time.Now().Sub(beg))
+	ulog.Error("ExecBlock", "cost", time.Now().Sub(beg))
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
@@ -84,6 +84,19 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	client := q.GetClient()
 	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height}
+	msg := client.NewMessage("execs", types.EventExecTxList, list)
+	client.Send(msg, true)
+	resp, err := client.Wait(msg)
+	if err != nil {
+		panic(err)
+	}
+	receipts := resp.GetData().(*types.Receipts)
+	return receipts
+}
+
+func ExecTxList(q *queue.Queue, prevStateRoot []byte, txs []*types.Transaction, header *types.Header) *types.Receipts {
+	client := q.GetClient()
+	list := &types.ExecTxList{prevStateRoot, txs, header.BlockTime, header.Height}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
