@@ -13,7 +13,7 @@ var ulog = log.New("module", "util")
 
 func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
-	ulog.Info("query state root", "rootHash", prevStateRoot)
+	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	receipts := ExecTx(q, prevStateRoot, block)
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
@@ -21,7 +21,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	var rdata []*types.ReceiptData //save to db receipt log
 	for i := 0; i < len(receipts.Receipts); i++ {
 		receipt := receipts.Receipts[i]
-		ulog.Info("exec status", "status", receipt.Ty)
+		ulog.Info("exec status", "index", i, "status", receipt.Ty)
 		if receipt.Ty == types.ExecErr {
 			if errReturn { //认为这个是一个错误的区块
 				return nil, types.ErrBlockExec
@@ -75,7 +75,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	detail.Receipts = rdata
 	//get receipts
 	//save kvset and get state hash
-	//ulog.Info("blockdetail-->", "detail=", detail)
+	ulog.Debug("blockdetail-->", "detail=", detail)
 	return &detail, nil
 }
 
