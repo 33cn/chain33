@@ -30,7 +30,8 @@ func (mem *Mempool) CheckTxList() {
 		}
 
 		// 检查交易账户在Mempool中是否存在过多交易
-		if mem.TxNumOfAccount(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()) >= 10 {
+		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+		if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
 			mlog.Error("wrong tx", "err", e03)
 			data.Data = e03
 			mem.badChan <- data

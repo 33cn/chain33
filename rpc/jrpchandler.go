@@ -13,7 +13,6 @@ type Chain33 struct {
 }
 
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
-	fmt.Println("jrpc transaction:", in)
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {

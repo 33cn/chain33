@@ -23,6 +23,7 @@ var minTxFee int64 = 10000000             // 最低交易费
 var maxMsgByte int64 = 100000             // 交易消息最大字节数
 var mempoolExpiredInterval int64 = 600000 // mempool内交易过期时间，10分钟
 var mempoolAddedTxSize int = 102400       // 已添加过的交易缓存大小
+var maxTxNumPerAccount int64 = 10
 
 // error codes
 var (

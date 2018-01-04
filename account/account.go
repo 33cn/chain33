@@ -11,16 +11,13 @@ package account
 //8. gen a private key -> private key to address (bitcoin likes)
 
 import (
-	"bytes"
-	"encoding/hex"
-	"errors"
-	"math/big"
-
-	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	log "github.com/inconshreveable/log15"
 )
+
+var alog = log.New("module", "account")
 
 var genesisKey = []byte("mavl-acc-genesis")
 
@@ -35,6 +32,60 @@ func LoadAccount(db dbm.KVDB, addr string) *types.Account {
 		panic(err) //数据库已经损坏
 	}
 	return &acc
+}
+
+func CheckTransfer(db dbm.KVDB, from, to string, amount int64) error {
+	if !types.CheckAmount(amount) {
+		return types.ErrAmount
+	}
+	accFrom := LoadAccount(db, from)
+	b := accFrom.GetBalance() - amount
+	if b < 0 {
+		return types.ErrNoBalance
+	}
+	return nil
+}
+
+func Transfer(db dbm.KVDB, from, to string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+	accFrom := LoadAccount(db, from)
+	accTo := LoadAccount(db, to)
+	b := accFrom.GetBalance() - amount
+	if b >= 0 {
+		receiptBalanceFrom := &types.ReceiptBalance{accFrom.GetBalance(), b, -amount}
+		accFrom.Balance = b
+		tob := accTo.GetBalance() + amount
+		receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, amount}
+		accTo.Balance = tob
+		SaveAccount(db, accFrom)
+		SaveAccount(db, accTo)
+		return transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
+	} else {
+		return nil, types.ErrNoBalance
+	}
+}
+
+func GenesisInit(db dbm.KVDB, addr string, amount int64) (*types.Receipt, error) {
+	g := &types.Genesis{}
+	g.Isrun = true
+	SaveGenesis(db, g)
+	accTo := LoadAccount(db, addr)
+	tob := accTo.GetBalance() + amount
+	receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, amount}
+	accTo.Balance = tob
+	SaveAccount(db, accTo)
+	receipt := genesisReceipt(accTo, receiptBalanceTo, g)
+	return receipt, nil
+}
+
+func transferReceipt(accFrom, accTo *types.Account, receiptBalanceFrom, receiptBalanceTo *types.ReceiptBalance) *types.Receipt {
+	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceFrom)}
+	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceTo)}
+	kv := GetKVSet(accFrom)
+	kv = append(kv, GetKVSet(accTo)...)
+	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
 }
 
 func GetGenesis(db dbm.KVDB) *types.Genesis {
@@ -74,46 +125,6 @@ func GetGenesisKVSet(g *types.Genesis) (kvset []*types.KeyValue) {
 	value := types.Encode(g)
 	kvset = append(kvset, &types.KeyValue{genesisKey, value})
 	return kvset
-}
-
-func PubKeyToAddress(in []byte) *Address {
-	a := new(Address)
-	a.Pubkey = make([]byte, len(in))
-	copy(a.Pubkey[:], in[:])
-	a.Version = 0
-	a.Hash160 = common.Rimp160AfterSha256(in)
-	return a
-}
-
-func CheckAddress(addr string) error {
-	_, err := NewAddrFromString(addr)
-	return err
-}
-
-func NewAddrFromString(hs string) (a *Address, e error) {
-	dec := Decodeb58(hs)
-	if dec == nil {
-		e = errors.New("Cannot decode b58 string '" + hs + "'")
-		return
-	}
-	if len(dec) < 25 {
-		e = errors.New("Address too short " + hex.EncodeToString(dec))
-		return
-	}
-	if len(dec) == 25 {
-		sh := common.Sha2Sum(dec[0:21])
-		if !bytes.Equal(sh[:4], dec[21:25]) {
-			e = errors.New("Address Checksum error")
-		} else {
-			a = new(Address)
-			a.Version = dec[0]
-			copy(a.Hash160[:], dec[1:21])
-			a.Checksum = make([]byte, 4)
-			copy(a.Checksum, dec[21:25])
-			a.Enc58str = hs
-		}
-	}
-	return
 }
 
 func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err error) {
@@ -158,88 +169,4 @@ func AccountKey(address string) (key []byte) {
 	key = append(key, []byte("mavl-acc-")...)
 	key = append(key, []byte(address)...)
 	return key
-}
-
-type Address struct {
-	Version  byte
-	Hash160  [20]byte // For a stealth address: it's HASH160
-	Checksum []byte   // Unused for a stealth address
-	Pubkey   []byte   // Unused for a stealth address
-	Enc58str string
-}
-
-func (a *Address) String() string {
-	if a.Enc58str == "" {
-		var ad [25]byte
-		ad[0] = a.Version
-		copy(ad[1:21], a.Hash160[:])
-		if a.Checksum == nil {
-			sh := common.Sha2Sum(ad[0:21])
-			a.Checksum = make([]byte, 4)
-			copy(a.Checksum, sh[:4])
-		}
-		copy(ad[21:25], a.Checksum[:])
-		a.Enc58str = Encodeb58(ad[:])
-	}
-	return a.Enc58str
-}
-
-var b58set []byte = []byte("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
-
-func b58chr2int(chr byte) int {
-	for i := range b58set {
-		if b58set[i] == chr {
-			return i
-		}
-	}
-	return -1
-}
-
-var bn0 *big.Int = big.NewInt(0)
-var bn58 *big.Int = big.NewInt(58)
-
-func Encodeb58(a []byte) (s string) {
-	idx := len(a)*138/100 + 1
-	buf := make([]byte, idx)
-	bn := new(big.Int).SetBytes(a)
-	var mo *big.Int
-	for bn.Cmp(bn0) != 0 {
-		bn, mo = bn.DivMod(bn, bn58, new(big.Int))
-		idx--
-		buf[idx] = b58set[mo.Int64()]
-	}
-	for i := range a {
-		if a[i] != 0 {
-			break
-		}
-		idx--
-		buf[idx] = b58set[0]
-	}
-
-	s = string(buf[idx:])
-
-	return
-}
-
-func Decodeb58(s string) (res []byte) {
-	bn := big.NewInt(0)
-	for i := range s {
-		v := b58chr2int(byte(s[i]))
-		if v < 0 {
-			return nil
-		}
-		bn = bn.Mul(bn, bn58)
-		bn = bn.Add(bn, big.NewInt(int64(v)))
-	}
-
-	// We want to "restore leading zeros" as satoshi's implementation does:
-	var i int
-	for i < len(s) && s[i] == b58set[0] {
-		i++
-	}
-	if i > 0 {
-		res = make([]byte, i)
-	}
-	res = append(res, bn.Bytes()...)
-	return
 }
