@@ -551,6 +551,75 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 	return &blocks, nil
 }
 
+//异步处理p2p广播发过来的block
+func (chain *BlockChain) AddP2PCastBlock(broadcast bool, block *types.Block) error {
+	//通过前一个block的statehash来执行此block
+	currentheight := chain.GetBlockHeight()
+	var prevstateHash []byte
+	var prevblkHash []byte
+	if currentheight == -1 {
+		prevstateHash = common.Hash{}.Bytes()
+		prevblkHash = common.Hash{}.Bytes()
+	} else {
+		prvblock, err := chain.GetBlock(currentheight)
+		if err != nil {
+			chainlog.Error("AddP2PCastBlock", "err", err)
+			return err
+		}
+		prevstateHash = prvblock.Block.GetStateHash()
+		prevblkHash = prvblock.Block.Hash()
+	}
+	if !bytes.Equal(prevblkHash, block.GetParentHash()) {
+		outstr := fmt.Sprintf("AddP2PCastBlock ParentHash err height:%d", block.Height)
+		err := errors.New(outstr)
+		return err
+	}
+
+	chainlog.Info("AddP2PCastBlock", "util.ExecBlock begin", block.GetHeight())
+
+	blockDetail, err := util.ExecBlock(chain.q, prevstateHash, block, true)
+	if err != nil {
+		chainlog.Error("AddP2PCastBlock ExecBlock err!", "err", err)
+		return err
+	}
+	chainlog.Info("AddP2PCastBlock", "util.ExecBlock end", block.GetHeight())
+
+	newbatch := chain.blockStore.NewBatch(true)
+	//保存tx交易结果信息到db中
+	chain.blockStore.indexTxs(newbatch, blockDetail)
+	if err != nil {
+		return err
+	}
+
+	//保存block信息到db中
+	err = chain.blockStore.SaveBlock(newbatch, blockDetail)
+	if err != nil {
+		return err
+	}
+	newbatch.Write()
+
+	//更新db中的blockheight到blockStore.Height
+	chain.blockStore.UpdateHeight()
+
+	//将此block添加到缓存中便于查找
+	chain.cacheBlock(blockDetail)
+
+	//通知mempool和consense模块
+	chain.SendAddBlockEvent(blockDetail)
+
+	//广播此block到网络中
+	if broadcast {
+		chain.SendBlockBroadcast(blockDetail)
+
+		//更新广播block的高度
+		castblockheight := chain.GetRcvLastCastBlkHeight()
+		if castblockheight < blockDetail.Block.Height {
+			chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
+		}
+	}
+	return nil
+}
+
 //处理从peer对端同步过来的block消息
 func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (err error) {
 	if block == nil {
@@ -564,67 +633,8 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (er
 		err = errors.New(outstr)
 		return err
 	} else if block.Height == currentheight+1 { //我们需要的高度，直接存储到db中
-		//通过前一个block的statehash来执行此block
-		var prevstateHash []byte
-		var prevblkHash []byte
-		if currentheight == -1 {
-			prevstateHash = common.Hash{}.Bytes()
-			prevblkHash = common.Hash{}.Bytes()
-		} else {
-			prvblock, err := chain.GetBlock(currentheight)
-			if err != nil {
-				chainlog.Error("ProcAddBlockDetailMsg", "err", err)
-				return err
-			}
-			prevstateHash = prvblock.Block.GetStateHash()
-			prevblkHash = prvblock.Block.Hash()
-		}
-		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
-			outstr := fmt.Sprintf("ProcAddBlockMsg ParentHash err height:%d", block.Height)
-			err := errors.New(outstr)
-			return err
-		}
-
-		blockDetail, err := util.ExecBlock(chain.q, prevstateHash, block, true)
-		if err != nil {
-			chainlog.Error("ProcAddBlockMsg ExecBlock err!", "err", err)
-			return err
-		}
-
-		newbatch := chain.blockStore.NewBatch(true)
-		//保存tx交易结果信息到db中
-		chain.blockStore.indexTxs(newbatch, blockDetail)
-		if err != nil {
-			return err
-		}
-
-		//保存block信息到db中
-		err = chain.blockStore.SaveBlock(newbatch, blockDetail)
-		if err != nil {
-			return err
-		}
-		newbatch.Write()
-
-		//更新db中的blockheight到blockStore.Height
-		chain.blockStore.UpdateHeight()
-
-		//将此block添加到缓存中便于查找
-		chain.cacheBlock(blockDetail)
-
-		//通知mempool和consense模块
-		chain.SendAddBlockEvent(blockDetail)
-
-		//广播此block到网络中
-		if broadcast {
-			chain.SendBlockBroadcast(blockDetail)
-
-			//更新广播block的高度
-			castblockheight := chain.GetRcvLastCastBlkHeight()
-			if castblockheight < blockDetail.Block.Height {
-				chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
-			}
-		}
-		return nil
+		//我们需要的高度，直接存储到db中，异步处理避免阻塞当前任务
+		go chain.AddP2PCastBlock(broadcast, block)
 	} else {
 		// 首先将此block缓存到blockpool中。
 		chain.blockPool.AddBlock(block)
