@@ -119,18 +119,21 @@ func (mem *Mempool) CheckBalanList() {
 
 // Mempool.checkBalance检查交易账户余额
 func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
+	if len(msgs) != len(addrs) {
+		mlog.Error("msgs size not equals addrs size")
+		return
+	}
 	var msgTmp []queue.Message
 	var accTmp []*types.Account
-	if len(addrs) != 0 {
-		for index, ad := range addrs {
-			if ac, exists := mem.accountCache[ad]; exists {
-				msgTmp = append(msgTmp, msgs[index])
-				accTmp = append(accTmp, ac)
-				msgs = append(msgs[:index], msgs[index+1:]...)
-				addrs = append(addrs[:index], addrs[index+1:]...)
-			}
+	var removedIndex []int
+	for index, ad := range addrs {
+		if ac, exists := mem.accountCache[ad]; exists {
+			msgTmp = append(msgTmp, msgs[index])
+			accTmp = append(accTmp, ac)
+			removedIndex = append(removedIndex, index)
 		}
 	}
+
 	accs, err := account.LoadAccounts(mem.memQueue, addrs)
 
 	if err != nil {
@@ -145,6 +148,11 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 
 	for i := range accs {
 		mem.accountCache[addrs[i]] = accs[i]
+	}
+
+	for i := len(removedIndex) - 1; i >= 0; i-- {
+		msgs = append(msgs[:i], msgs[i+1:]...)
+		addrs = append(addrs[:i], addrs[i+1:]...)
 	}
 
 	if len(msgTmp) != 0 && len(accTmp) != 0 {
