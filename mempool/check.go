@@ -115,6 +115,16 @@ func (mem *Mempool) CheckBalanList() {
 
 // Mempool.checkBalance检查交易账户余额
 func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
+	var msgTmp []queue.Message
+	var accTmp []*types.Account
+	for index, ad := range addrs {
+		if ac, exists := mem.accountCache[ad]; exists {
+			msgTmp = append(msgTmp, msgs[index])
+			accTmp = append(accTmp, ac)
+			msgs = append(msgs[:index], msgs[index+1:]...)
+			addrs = append(addrs[:index], addrs[index+1:]...)
+		}
+	}
 	accs, err := account.LoadAccounts(mem.memQueue, addrs)
 
 	if err != nil {
@@ -129,10 +139,17 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 		return
 	}
 
+	for i := range accs {
+		mem.accountCache[addrs[i]] = accs[i]
+	}
+
+	msgs = append(msgs, msgTmp...)
+	accs = append(accs, accTmp...)
+
 	for i := range msgs {
 		tx := msgs[i].GetData().(*types.Transaction)
 
-		if accs[i].Balance >= 10*tx.Fee {
+		if accs[i].GetBalance() >= 10*tx.Fee {
 			// 交易账户余额充足，推入Mempool
 			err := mem.PushTx(tx)
 			if err == nil {

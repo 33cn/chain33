@@ -56,19 +56,20 @@ func DisableLog() {
 // Module Mempool
 
 type Mempool struct {
-	proxyMtx  sync.Mutex
-	cache     *txCache
-	txChan    chan queue.Message
-	signChan  chan queue.Message
-	badChan   chan queue.Message
-	balanChan chan queue.Message
-	goodChan  chan queue.Message
-	memQueue  *queue.Queue
-	qclient   queue.IClient
-	height    int64
-	blockTime int64
-	minFee    int64
-	addedTxs  *lru.Cache
+	proxyMtx     sync.Mutex
+	cache        *txCache
+	txChan       chan queue.Message
+	signChan     chan queue.Message
+	badChan      chan queue.Message
+	balanChan    chan queue.Message
+	goodChan     chan queue.Message
+	memQueue     *queue.Queue
+	qclient      queue.IClient
+	height       int64
+	blockTime    int64
+	minFee       int64
+	addedTxs     *lru.Cache
+	accountCache map[string]*types.Account
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -82,6 +83,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.goodChan = make(chan queue.Message, channelSize)
 	pool.minFee = minTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
+	pool.accountCache = make(map[string]*types.Account)
 	return pool
 }
 
@@ -540,6 +542,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				mlog.Warn("reply EventTxList ok", "msg", msg)
 			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
+				mem.accountCache = make(map[string]*types.Account)
 				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
 			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
