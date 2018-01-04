@@ -171,7 +171,7 @@ func (m *Msg) fetchPeerInfo() {
 //收到BlockChain 模块的请求，获取PeerInfo
 func (m *Msg) GetPeerInfo(msg queue.Message) {
 
-	log.Warn("GetPeerInfo", "info", m.getPeerInfos())
+	log.Info("GetPeerInfo", "info", m.getPeerInfos())
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.getPeerInfos()}))
 	return
 }

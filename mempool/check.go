@@ -15,7 +15,7 @@ func (mem *Mempool) CheckTxList() {
 
 		// 检查交易消息是否过大
 		if len(types.Encode(tx)) > int(maxMsgByte) {
-			mlog.Error("wrong tx", "err", e06)
+			mlog.Info("wrong tx", "err", e06)
 			data.Data = e06
 			mem.badChan <- data
 			continue
@@ -23,7 +23,7 @@ func (mem *Mempool) CheckTxList() {
 
 		// 检查交易费是否小于最低值
 		if tx.Fee < mem.GetMinFee() {
-			mlog.Error("wrong tx", "err", e02)
+			mlog.Info("wrong tx", "err", e02)
 			data.Data = e02
 			mem.badChan <- data
 			continue
@@ -32,14 +32,14 @@ func (mem *Mempool) CheckTxList() {
 		// 检查交易账户在Mempool中是否存在过多交易
 		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 		if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
-			mlog.Error("wrong tx", "err", e03)
+			mlog.Info("wrong tx", "err", e03)
 			data.Data = e03
 			mem.badChan <- data
 			continue
 		}
 
 		// 传入signChan，待检查签名
-		mlog.Warn("check tx", "signChan", data)
+		mlog.Info("check tx", "signChan", data)
 		mem.signChan <- data
 	}
 }
@@ -52,10 +52,10 @@ func (mem *Mempool) CheckSignList() {
 				ok := data.GetData().(*types.Transaction).CheckSign()
 				if ok {
 					// 签名正确，传入balanChan，待检查余额
-					mlog.Warn("check tx", "balanChan", data)
+					mlog.Info("check tx", "balanChan", data)
 					mem.balanChan <- data
 				} else {
-					mlog.Error("wrong tx", "err", e04)
+					mlog.Info("wrong tx", "err", e04)
 					data.Data = e04
 					mem.badChan <- data
 				}
@@ -121,7 +121,7 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 		mlog.Error("loadaccounts", "err", err)
 
 		for m := range msgs {
-			mlog.Error("wrong tx", "err", e08)
+			mlog.Info("wrong tx", "err", e08)
 			msgs[m].Data = e08
 			mem.badChan <- msgs[m]
 		}
@@ -137,15 +137,15 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 			err := mem.PushTx(tx)
 			if err == nil {
 				// 推入Mempool成功，传入goodChan，待回复消息
-				mlog.Warn("check tx", "goodChan", msgs[i])
+				mlog.Info("check tx", "goodChan", msgs[i])
 				mem.goodChan <- msgs[i]
 			} else {
-				mlog.Error("wrong tx", "err", err)
+				mlog.Info("wrong tx", "err", err)
 				msgs[i].Data = err
 				mem.badChan <- msgs[i]
 			}
 		} else {
-			mlog.Error("wrong tx", "err", e05)
+			mlog.Info("wrong tx", "err", e05)
 			msgs[i].Data = e05
 			mem.badChan <- msgs[i]
 		}
