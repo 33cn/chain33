@@ -135,8 +135,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 		chain.recvdone <- struct{}{}
 	}()
 	for msg := range chain.qclient.Recv() {
-		chainlog.Info("blockchain recv", "msg", msg)
+		chainlog.Error("blockchain recv", "msg", types.GetEventName(int(msg.Ty)))
 		msgtype := msg.Ty
+		beg := time.Now()
 		switch msgtype {
 
 		case types.EventQueryTx:
@@ -301,6 +302,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
+		chainlog.Error("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}
 }
 
@@ -693,19 +695,14 @@ func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.B
 			return err
 		}
 		newbatch.Write()
-
 		//更新db中的blockheight到blockStore.Height
 		chain.blockStore.UpdateHeight()
-
 		//将此block添加到缓存中便于查找
 		chain.cacheBlock(blockDetail)
-
 		//通知mempool和consense以及wallet模块
 		chain.SendAddBlockEvent(blockDetail)
-
 		//广播此block到网络中
 		chain.SendBlockBroadcast(blockDetail)
-
 		return nil
 	} else {
 		outstr := fmt.Sprintf("input height :%d ,current store height:%d", blockDetail.Block.Height, currentheight)

@@ -2,14 +2,18 @@ package mempool
 
 import (
 	"flag"
+	"math/rand"
 	"testing"
+	"time"
 	//	"code.aliyun.com/chain33/chain33/account"
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/execs"
+	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/store"
 	"code.aliyun.com/chain33/chain33/types"
@@ -52,15 +56,66 @@ var blk = &types.Block{
 	Txs:        []*types.Transaction{tx3, tx5},
 }
 
+var random *rand.Rand
+var mainPriv crypto.PrivKey
+
 func init() {
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	queue.DisableLog()
 	//	DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log
 	//	SetLogLevel("info") // 输出INFO(含)以下log
-	SetLogLevel("warn") // 输出WARN(含)以下log
+	SetLogLevel("error") // 输出WARN(含)以下log
 	//	SetLogLevel("eror") // 输出EROR(含)以下log
 	//	SetLogLevel("crit") // 输出CRIT(含)以下log
 	//	SetLogLevel("") // 输出所有log
+	maxTxNumPerAccount = 10000
+	mainPriv = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
+}
+
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func initEnv2(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.Store, *p2p.P2p) {
+	var q = queue.New("channel")
+	flag.Parse()
+	cfg := config.InitCfg("chain33.toml")
+	chain := blockchain.New(cfg.BlockChain)
+	chain.SetQueue(q)
+
+	exec := execs.New()
+	exec.SetQueue(q)
+
+	s := store.New(cfg.Store)
+	s.SetQueue(q)
+
+	cs := consensus.New(cfg.Consensus)
+	cs.SetQueue(q)
+
+	mem := New(cfg.MemPool)
+	mem.SetQueue(q)
+
+	network := p2p.New(cfg.P2P)
+	network.SetQueue(q)
+
+	if size > 0 {
+		mem.Resize(size)
+	}
+	mem.SetMinFee(0)
+	return mem, q, chain, s, network
 }
 
 func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.Store) {
@@ -82,6 +137,9 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 	mem := New(cfg.MemPool)
 	mem.SetQueue(q)
 
+	network := p2p.New(cfg.P2P)
+	network.SetQueue(q)
+
 	if size > 0 {
 		mem.Resize(size)
 	}
@@ -102,6 +160,28 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 	tx12.Sign(types.SECP256K1, privKey)
 
 	return mem, q, chain, s
+}
+
+func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	tx.Nonce = rand.Int63()
+	tx.Sign(types.SECP256K1, priv)
+	return tx
+}
+
+func genaddress() (string, crypto.PrivKey) {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	privto, err := cr.GenKey()
+	if err != nil {
+		panic(err)
+	}
+	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	return addrto.String(), privto
 }
 
 func TestAddTx(t *testing.T) {
@@ -348,7 +428,7 @@ func TestCheckManyTxs(t *testing.T) {
 	mem.qclient.Send(msg11, true)
 	resp, _ := mem.qclient.Wait(msg11)
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != e03.Error() || mem.Size() != 10 {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != e03.Error() || mem.Size() != int(maxTxNumPerAccount) {
 		t.Error("TestCheckManyTxs failed")
 	}
 
@@ -408,4 +488,20 @@ func TestCheckExpire(t *testing.T) {
 	chain.Close()
 	s.Close()
 	mem.Close()
+}
+
+func TestBenchMempool(t *testing.T) {
+	mem, q, chain, s, network := initEnv2(0)
+	for i := 0; i < 1000000; i++ {
+		to, _ := genaddress()
+		tx := createTx(mainPriv, to, 10000)
+		msg := mem.qclient.NewMessage("mempool", types.EventTx, tx)
+		mem.qclient.Send(msg, true)
+	}
+	q.Start()
+	chain.Close()
+	mem.Close()
+	s.Close()
+	q.Close()
+	network.Close()
 }

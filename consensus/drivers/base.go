@@ -98,10 +98,12 @@ func (client *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*
 		checkHashList.Hashes = append(checkHashList.Hashes, hash)
 	}
 	// 发送Hash过后的交易列表给blockchain模块
+	//beg := time.Now()
+	//log.Error("----EventTxHashList----->[beg]", "time", beg)
 	hashList := client.qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
 	client.qclient.Send(hashList, true)
 	dupTxList, _ := client.qclient.Wait(hashList)
-
+	//log.Error("----EventTxHashList----->[end]", "time", time.Now().Sub(beg))
 	// 取出blockchain返回的重复交易列表
 	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
 
@@ -154,6 +156,8 @@ func (client *BaseClient) RequestTx() []*types.Transaction {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
+	//debug.PrintStack()
+	//tlog.Error("requestTx", "time", time.Now().Format(time.RFC3339Nano))
 	msg := client.qclient.NewMessage("mempool", types.EventTxList, listSize)
 	client.qclient.Send(msg, true)
 	resp, _ := client.qclient.Wait(msg)
