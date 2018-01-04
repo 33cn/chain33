@@ -122,4 +122,36 @@ func BenchmarkSetKeyOneByOne(b *testing.B) {
 			return
 		}
 	}
+	s.Close()
+}
+
+func BenchmarkSetKey1000(b *testing.B) {
+	q, s := initEnv()
+	qclient := q.GetClient()
+	var stateHash [32]byte
+	hash := stateHash[:]
+	set := &types.StoreSet{}
+
+	for i := 0; i < b.N; i++ {
+		key := []byte(fmt.Sprintf("%020d", i))
+		value := []byte(fmt.Sprintf("%020d", i))
+		kv := &types.KeyValue{key, value}
+		if i%1000 == 0 {
+			set = &types.StoreSet{}
+			set.StateHash = hash
+		}
+		set.KV = append(set.KV, kv)
+
+		if i > 0 && i%1000 == 0 {
+			msg := qclient.NewMessage("store", types.EventStoreSet, set)
+			qclient.Send(msg, true)
+			msg, err := qclient.Wait(msg)
+			if err != nil {
+				b.Error(err)
+				return
+			}
+			hash = msg.GetData().(*types.ReplyHash).GetHash()
+		}
+	}
+	s.Close()
 }
