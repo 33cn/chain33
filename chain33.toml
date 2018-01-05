@@ -16,7 +16,7 @@ dbPath="datadir"
 [p2p]
 seeds=["114.55.101.159:13802"]
 enable=true
-isSeed=false
+isSeed=true
 dbPath="datadir/addrbook"
 version=9
 verMix=9
