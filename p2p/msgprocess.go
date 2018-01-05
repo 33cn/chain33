@@ -253,7 +253,7 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 			cancel()
 			m.network.node.nodeInfo.monitorChan <- peer //直接删掉问题节点
 			//			peer.mconn.sendMonitor.Update(false)
-			log.Error("monitorPeerInfo", "error", err.Error())
+			log.Warn("monitorPeerInfo", "error", err.Error())
 			continue
 		}
 		cancel()
