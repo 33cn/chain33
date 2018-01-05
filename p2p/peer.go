@@ -53,9 +53,7 @@ BEGIN:
 	//defer p.wg.Done()
 	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
 	if err != nil {
-		log.Error("SubStreamBlock", "call RouteChat err", err.Error()+p.Addr())
 		(*p.nodeInfo).monitorChan <- p //直接删除节点
-
 		return
 	}
 	for {
@@ -103,9 +101,12 @@ BEGIN:
 }
 
 func (p *peer) Stop() {
-	close(p.streamDone)
 	p.setRunning(false)
 	p.mconn.stop()
+
+	if _, ok := <-p.streamDone; ok {
+		close(p.streamDone)
+	}
 
 }
 func (p *peer) setRunning(run bool) {
