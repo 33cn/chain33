@@ -24,6 +24,7 @@ type peer struct {
 	peerAddr   *NetAddress
 	streamDone chan struct{}
 }
+
 type Version struct {
 	mtx            sync.Mutex
 	versionSupport bool
@@ -40,11 +41,13 @@ func (v *Version) Get() bool {
 	defer v.mtx.Unlock()
 	return v.versionSupport
 }
+
 func (p *peer) Start() error {
 	p.mconn.key = p.key //TODO setKey
 	go p.subStreamBlock()
 	return p.mconn.start()
 }
+
 func (p *peer) subStreamBlock() {
 BEGIN:
 	//defer p.wg.Done()
@@ -197,6 +200,7 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 
 	return p, nil
 }
+
 func DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 	log.Warn("DialPeer", "will connect", addr.String())
 	var persistent bool

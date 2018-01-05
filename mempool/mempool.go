@@ -26,20 +26,19 @@ func DisableLog() {
 // Module Mempool
 
 type Mempool struct {
-	proxyMtx     sync.Mutex
-	cache        *txCache
-	txChan       chan queue.Message
-	signChan     chan queue.Message
-	badChan      chan queue.Message
-	balanChan    chan queue.Message
-	goodChan     chan queue.Message
-	memQueue     *queue.Queue
-	qclient      queue.IClient
-	header       *types.Header
-	minFee       int64
-	addedTxs     *lru.Cache
-	accountCache map[string]*types.Account
-	cacheDB      *account.CacheDB
+	proxyMtx  sync.Mutex
+	cache     *txCache
+	txChan    chan queue.Message
+	signChan  chan queue.Message
+	badChan   chan queue.Message
+	balanChan chan queue.Message
+	goodChan  chan queue.Message
+	memQueue  *queue.Queue
+	qclient   queue.IClient
+	header    *types.Header
+	minFee    int64
+	addedTxs  *lru.Cache
+	cacheDB   *account.CacheDB
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -53,7 +52,6 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.goodChan = make(chan queue.Message, channelSize)
 	pool.minFee = minTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
-	pool.accountCache = make(map[string]*types.Account)
 	return pool
 }
 
@@ -177,12 +175,6 @@ func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
 func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-
-	mem.header = &types.Header{}
-	mem.header.BlockTime = block.BlockTime
-	mem.header.Height = block.Height
-	mem.header.StateHash = block.StateHash
-
 	for _, tx := range block.Txs {
 		mem.addedTxs.Add(string(tx.Hash()), nil)
 		exist := mem.cache.Exists(tx)
@@ -300,12 +292,17 @@ func (mem *Mempool) pollLastHeader() {
 			time.Sleep(time.Second)
 			continue
 		}
-		mem.proxyMtx.Lock()
-		mem.header = lastHeader.(queue.Message).Data.(*types.Header)
-		mem.cacheDB = account.NewCacheDB(mem.memQueue, mem.header)
-		mem.proxyMtx.Unlock()
+		h := lastHeader.(queue.Message).Data.(*types.Header)
+		mem.setHeader(h)
 		return
 	}
+}
+
+func (mem *Mempool) setHeader(h *types.Header) {
+	mem.proxyMtx.Lock()
+	mem.header = h
+	mem.cacheDB = account.NewCacheDB(mem.memQueue, mem.header)
+	mem.proxyMtx.Unlock()
 }
 
 // Mempool.Close关闭Mempool
@@ -389,8 +386,15 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				}
 			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
-				mem.accountCache = make(map[string]*types.Account)
-				mem.RemoveTxsOfBlock(msg.GetData().(*types.BlockDetail).Block)
+				block := msg.GetData().(*types.BlockDetail).Block
+				if block.Height > mem.Height() {
+					header := &types.Header{}
+					header.BlockTime = block.BlockTime
+					header.Height = block.Height
+					header.StateHash = block.StateHash
+					mem.setHeader(header)
+				}
+				mem.RemoveTxsOfBlock(block)
 			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				memSize := int64(mem.Size())
