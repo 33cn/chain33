@@ -20,6 +20,7 @@ var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 var ErrNoPeer = errors.New("ErrNoPeer")
 var ErrSign = errors.New("ErrSign")
 var ErrExecNameNotMath = errors.New("ErrExecNameNotMath")
+var ErrChannelClosed = errors.New("ErrChannelClosed")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
