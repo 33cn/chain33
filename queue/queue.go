@@ -103,6 +103,9 @@ func (q *Queue) Send(msg Message) {
 }
 
 func (q *Queue) SendAsyn(msg Message) error {
+	if q.IsClosed() {
+		return types.ErrChannelClosed
+	}
 	chrecv := q.getChannel(msg.Topic)
 	select {
 	case chrecv <- msg:
