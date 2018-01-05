@@ -165,6 +165,7 @@ func (rc *raftNode) startRaft() {
 		log.Error("chain33_raft: (%v)", err)
 		return
 	}
+	log.Info("chain33_raft=====leaderId====:"+strconv.FormatUint(leadId,10))
 	if rc.id == int(leadId) {
 		isValidator = true
 	}
