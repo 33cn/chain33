@@ -251,7 +251,8 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 		peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		if err != nil {
 			cancel()
-			peer.mconn.sendMonitor.Update(false)
+			m.network.node.nodeInfo.monitorChan <- peer //直接删掉问题节点
+			//			peer.mconn.sendMonitor.Update(false)
 			log.Error("monitorPeerInfo", "error", err.Error())
 			continue
 		}
