@@ -2544,15 +2544,16 @@ func (m *WalletUnLock) GetTimeout() int64 {
 }
 
 type Config struct {
-	Title      string      `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
-	Loglevel   string      `protobuf:"bytes,2,opt,name=loglevel" json:"loglevel,omitempty"`
-	LogFile    string      `protobuf:"bytes,9,opt,name=logFile" json:"logFile,omitempty"`
-	Store      *Store      `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
-	Consensus  *Consensus  `protobuf:"bytes,4,opt,name=consensus" json:"consensus,omitempty"`
-	MemPool    *MemPool    `protobuf:"bytes,5,opt,name=memPool" json:"memPool,omitempty"`
-	BlockChain *BlockChain `protobuf:"bytes,6,opt,name=blockChain" json:"blockChain,omitempty"`
-	Wallet     *Wallet     `protobuf:"bytes,7,opt,name=wallet" json:"wallet,omitempty"`
-	P2P        *P2P        `protobuf:"bytes,8,opt,name=p2p" json:"p2p,omitempty"`
+	Title           string      `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Loglevel        string      `protobuf:"bytes,2,opt,name=loglevel" json:"loglevel,omitempty"`
+	LogConsoleLevel string      `protobuf:"bytes,2,opt,name=logConsoleLevel" json:"logConsoleLevel,omitempty"`
+	LogFile         string      `protobuf:"bytes,9,opt,name=logFile" json:"logFile,omitempty"`
+	Store           *Store      `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
+	Consensus       *Consensus  `protobuf:"bytes,4,opt,name=consensus" json:"consensus,omitempty"`
+	MemPool         *MemPool    `protobuf:"bytes,5,opt,name=memPool" json:"memPool,omitempty"`
+	BlockChain      *BlockChain `protobuf:"bytes,6,opt,name=blockChain" json:"blockChain,omitempty"`
+	Wallet          *Wallet     `protobuf:"bytes,7,opt,name=wallet" json:"wallet,omitempty"`
+	P2P             *P2P        `protobuf:"bytes,8,opt,name=p2p" json:"p2p,omitempty"`
 }
 
 func (m *Config) Reset()                    { *m = Config{} }
