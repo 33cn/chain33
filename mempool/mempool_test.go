@@ -497,6 +497,9 @@ func TestBenchMempool(t *testing.T) {
 		tx := createTx(mainPriv, to, 10000)
 		msg := mem.qclient.NewMessage("mempool", types.EventTx, tx)
 		mem.qclient.Send(msg, true)
+		if i%10000 == 0 {
+			println(i)
+		}
 	}
 	q.Start()
 	chain.Close()
