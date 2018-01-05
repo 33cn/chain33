@@ -12,36 +12,36 @@ import (
 func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	// 判断消息是否含有nil交易
 	if msg.GetData() == nil {
-		msg.Data = e09
+		msg.Data = emptyTxErr
 		return msg
 	}
 	// 检查交易是否为重复交易
 	tx := msg.GetData().(*types.Transaction)
 	if mem.addedTxs.Contains(string(tx.Hash())) {
-		msg.Data = e10
+		msg.Data = dupTxErr
 		return msg
 	}
 	mem.addedTxs.Add(string(tx.Hash()), nil)
 	// 检查交易消息是否过大
 	if types.Size(tx) > int(maxMsgByte) {
-		msg.Data = e06
+		msg.Data = bigMsgErr
 		return msg
 	}
 	// 检查交易费是否小于最低值
 	if tx.Fee < mem.GetMinFee() {
-		msg.Data = e02
+		msg.Data = lowFeeErr
 		return msg
 	}
 	// 检查交易账户在Mempool中是否存在过多交易
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
-		msg.Data = e03
+		msg.Data = manyTxErr
 		return msg
 	}
 	// 检查交易是否过期
 	valid := mem.CheckExpireValid(msg)
 	if !valid {
-		msg.Data = e07
+		msg.Data = expireErr
 		return msg
 	}
 	return msg
@@ -57,8 +57,8 @@ func (mem *Mempool) CheckSignList() {
 					// 签名正确，传入balanChan，待检查余额
 					mem.balanChan <- data
 				} else {
-					mlog.Info("wrong tx", "err", e04)
-					data.Data = e04
+					mlog.Info("wrong tx", "err", signErr)
+					data.Data = signErr
 					mem.badChan <- data
 				}
 			}
@@ -126,8 +126,8 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 	if err != nil {
 		mlog.Error("loadaccounts", "err", err)
 		for m := range msgs {
-			mlog.Info("wrong tx", "err", e08)
-			msgs[m].Data = e08
+			mlog.Info("wrong tx", "err", loadAccountsErr)
+			msgs[m].Data = loadAccountsErr
 			mem.badChan <- msgs[m]
 		}
 		return
@@ -146,8 +146,8 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 				mem.badChan <- msgs[i]
 			}
 		} else {
-			mlog.Info("wrong tx", "err", e05)
-			msgs[i].Data = e05
+			mlog.Info("wrong tx", "err", lowBalanceErr)
+			msgs[i].Data = lowBalanceErr
 			mem.badChan <- msgs[i]
 		}
 	}
