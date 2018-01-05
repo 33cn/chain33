@@ -143,10 +143,10 @@ func (m *Msg) monitorPeerInfo() {
 
 	go func(m *Msg) {
 		m.fetchPeerInfo()
+		ticker := time.NewTicker(time.Second * 10)
+		defer ticker.Stop()
 	FOR_LOOP:
 		for {
-
-			ticker := time.NewTicker(time.Second * 10)
 			select {
 			case <-ticker.C:
 				m.fetchPeerInfo()
