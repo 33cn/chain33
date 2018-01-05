@@ -103,10 +103,7 @@ BEGIN:
 func (p *peer) Stop() {
 	p.setRunning(false)
 	p.mconn.stop()
-
-	if _, ok := <-p.streamDone; ok {
-		close(p.streamDone)
-	}
+	close(p.streamDone)
 
 }
 func (p *peer) setRunning(run bool) {

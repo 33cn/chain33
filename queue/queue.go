@@ -152,7 +152,7 @@ func (msg Message) Err() error {
 
 func (msg Message) Reply(replyMsg Message) {
 	if msg.ChReply == nil {
-		qlog.Error("reply a empty chreply", "msg", msg)
+		qlog.Info("reply a empty chreply", "msg", msg)
 		return
 	}
 	msg.ChReply <- replyMsg
