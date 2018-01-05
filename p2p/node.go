@@ -120,26 +120,30 @@ func (n *Node) makeService() {
 		return
 	}
 	go func() {
+
 		for i := 0; i < 10; i++ {
 			exnet, err := nat.Any().ExternalIP()
 			if err == nil {
 				if exnet.String() != ExternalAddr && exnet.String() != LocalAddr {
 					SERVICE -= NODE_NETWORK
-					break
+					n.nodeInfo.versionChan <- struct{}{}
+					return
 				}
 				log.Debug("makeService", "SERVICE", SERVICE)
 				n.nodeInfo.versionChan <- struct{}{}
-				log.Debug("makeService", "Sig", "Ok")
-				break
+				return
 			} else {
 				//如果ExternalAddr 与LocalAddr 相同，则认为在外网中
 				if ExternalAddr == LocalAddr {
-					n.nodeInfo.versionChan <- struct{}{}
-					break
+					n.nodeInfo.versionChan <- struct{}{} //通知exchangeVersion 发送版本信息
+					return
 				}
 
 			}
 		}
+		//如果无法通过nat获取外网，并且externalAddr!=localAddr
+
+		n.nodeInfo.versionChan <- struct{}{}
 	}()
 
 }
@@ -161,18 +165,17 @@ func (n *Node) DialPeers(addrs []string) error {
 		//will not add self addr
 		log.Warn("DialPeers", "peeraddr", netAddr.String())
 		if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
-			log.Warn("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr(), "i", i)
-			//panic("find same addr")
+			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr(), "i", i)
 			continue
 		}
 		//不对已经连接上的地址重新发起连接
 		if n.Has(netAddr.String()) {
 			continue
 		}
-		log.Warn("NewNetAddressString", "i", i)
+		//log.Warn("NewNetAddressString", "i", i)
 		peer, err := DialPeer(netAddrs[i], &n.nodeInfo)
 		if err != nil {
-			log.Error("DialPeers", "XXXXXXXXXX", err.Error())
+			log.Error("DialPeers", "Err", err.Error())
 			continue
 		}
 		log.Debug("Addr perr", "peer", peer)
@@ -313,7 +316,7 @@ func (n *Node) deleteErrPeer() {
 	for {
 
 		peer := <-n.nodeInfo.monitorChan
-		log.Warn("deleteErrPeer", "REMOVE", peer.Addr())
+		log.Debug("deleteErrPeer", "REMOVE", peer.Addr())
 		if peer.version.Get() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
 			n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
 		}
