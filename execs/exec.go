@@ -134,9 +134,6 @@ func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *ty
 }
 
 func (e *Execute) checkTx(tx *types.Transaction) error {
-	if !tx.CheckSign() {
-		return types.ErrSign
-	}
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) { //如果已经过期
 		return types.ErrTxExpire
 	}
