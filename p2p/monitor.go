@@ -64,7 +64,6 @@ func (m *Monitor) Start() {
 	}(m)
 
 }
-}
 
 func (m *Monitor) GetCount() uint {
 	m.mtx.Lock()
