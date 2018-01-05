@@ -1,7 +1,11 @@
 
 Title="chain33"
+<<<<<<< HEAD
 Loglevel="info"
 LogConsoleLevel="eror"
+=======
+Loglevel="error"
+>>>>>>> d95a7ca832e3c8490aa28a7e9f305953624fff3e
 LogFile="chain33.log"
 
 [blockchain]
