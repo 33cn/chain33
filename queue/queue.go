@@ -97,7 +97,7 @@ func (q *Queue) Send(msg Message) {
 	select {
 	case chrecv <- msg:
 	case <-timeout:
-		panic("wait for message timeout.")
+		panic("send message timeout.")
 	}
 	qlog.Debug("send ok", "msg", msg)
 }
