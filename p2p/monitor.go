@@ -49,8 +49,10 @@ func NewMonitor() *Monitor {
 
 func (m *Monitor) Start() {
 	go func(m *Monitor) {
+		tick := time.NewTicker(time.Second * 5)
+		defer tick.Stop()
 		for {
-			tick := time.NewTicker(time.Second * 5)
+
 			select {
 			case <-tick.C:
 				m.ChangeRunning()
@@ -61,6 +63,7 @@ func (m *Monitor) Start() {
 
 	}(m)
 
+}
 }
 
 func (m *Monitor) GetCount() uint {
