@@ -27,15 +27,17 @@ func New(cfg *types.P2P) *P2p {
 	p2p := new(P2p)
 	p2p.node = node
 	p2p.done = make(chan struct{}, 1)
-	p2p.msg = NewInTrans(p2p)
+	p2p.msg = NewMsg(p2p)
 	return p2p
+}
+func (network *P2p) Stop() {
+	network.done <- struct{}{}
 }
 
 func (network *P2p) Close() {
-
-	network.done <- struct{}{}
+	network.Stop()
 	log.Debug("close", "network", "done")
-	network.msg.done <- struct{}{}
+	network.msg.Stop()
 	log.Debug("close", "msg", "done")
 	network.node.Stop()
 	log.Debug("close", "node", "done")
@@ -64,12 +66,12 @@ func (network *P2p) subP2pMsg() {
 
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
-				log.Debug("QUEUE P2P EventTxBroadcast", "Recv from mempool message EventTxBroadcast will broadcast outnet")
+				log.Debug("subP2pMsg", " EventTxBroadcast", "txmsg")
 				go network.msg.TransToBroadCast(msg)
 			case types.EventBlockBroadcast: //广播block
 				go network.msg.BlockBroadcast(msg)
 			case types.EventFetchBlocks:
-				tempIntrans := NewInTrans(network)
+				tempIntrans := NewMsg(network)
 				go tempIntrans.GetBlocks(msg)
 			case types.EventGetMempool:
 				go network.msg.GetMemPool(msg)

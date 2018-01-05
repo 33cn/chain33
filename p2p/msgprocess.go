@@ -25,7 +25,7 @@ type Msg struct {
 	done      chan struct{}
 }
 
-func NewInTrans(network *P2p) *Msg {
+func NewMsg(network *P2p) *Msg {
 	pmsg := &Msg{
 		network:   network,
 		peerInfos: make(map[string]*pb.Peer),
@@ -41,17 +41,20 @@ func (m *Msg) TransToBroadCast(msg queue.Message) {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
+	//通过grpc stream发送到各个节点
 	m.network.node.nodeInfo.p2pBroadcastChan <- &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}
 	//开始广播消息
 	peers := m.network.node.GetPeers()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+
 	for _, peer := range peers {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		_, err := peer.mconn.conn.BroadCastTx(ctx, &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 		if err != nil {
+			cancel()
 			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
+		cancel()
 		peer.mconn.sendMonitor.Update(true)
 	}
 
@@ -123,7 +126,6 @@ func (m *Msg) flushPeerInfos(in []*pb.Peer) {
 	}
 	//重新插入新数据
 	for _, peer := range in {
-		//log.Debug("flushPeerInfos", "info", peer)
 		m.peerInfos[peer.GetName()] = peer
 	}
 
@@ -144,9 +146,7 @@ func (m *Msg) monitorPeerInfo() {
 		for {
 
 			ticker := time.NewTicker(time.Second * 10)
-
 			select {
-
 			case <-ticker.C:
 				m.fetchPeerInfo()
 
@@ -158,6 +158,9 @@ func (m *Msg) monitorPeerInfo() {
 		}
 	}(m)
 
+}
+func (m *Msg) Stop() {
+	m.done <- struct{}{}
 }
 func (m *Msg) fetchPeerInfo() {
 	var peerlist []*pb.Peer
@@ -193,7 +196,7 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 	var MaxInvs = new(pb.P2PInv)
 	//获取最大的下载列表
 	peers := m.network.node.GetPeers()
-	log.Debug("GetBlocks", "peers", len(peers))
+	//log.Debug("GetBlocks", "peers", len(peers))
 	for _, peer := range peers {
 		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd()})
 		if err != nil {
@@ -220,7 +223,6 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 	//分段下载
 	for index, interval := range intervals {
 		m.wg.Add(1)
-
 		go m.downloadBlock(index, interval, MaxInvs)
 	}
 	//等待所有 goroutin 结束
@@ -240,8 +242,6 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
 	peers := m.network.node.GetPeers()
-	//log.Debug("monitorPeerInfo", "peers", peers)
-
 	for _, peer := range peers {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
@@ -252,20 +252,17 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 			continue
 		}
 		cancel()
-		//log.Debug("monitorPeerInfo", "info", peerinfo)
 		peer.mconn.sendMonitor.Update(true)
-		//peerlist = append(peerlist, (*pb.Peer)(peerinfo))
 		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = (*pb.Peer)(peerinfo)
-
 	}
 	return peerlist
 }
 func (m *Msg) loadPeers() {
 	m.peermtx.Lock()
 	defer m.peermtx.Unlock()
-
 	m.peers = append(m.peers, m.network.node.GetPeers()...)
 }
+
 func (m *Msg) getPeer(index int) *peer {
 	if index > len(m.peers) {
 		return nil

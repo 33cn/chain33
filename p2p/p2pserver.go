@@ -150,7 +150,7 @@ func (s *p2pServer) checkOnline() {
 		}
 
 	}
-	log.Debug("Monitor", "inBounds", len(s.InBound))
+	log.Debug("checkOnline", "inBounds", len(s.InBound))
 }
 
 func (s *p2pServer) update(peer string) {
@@ -479,7 +479,7 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 
 func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
-	log.Warn("RouteChat", "stream", stream)
+	log.Debug("RouteChat", "stream", stream)
 	dataChain := s.addStream(stream)
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)
