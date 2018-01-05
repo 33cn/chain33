@@ -67,6 +67,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 			}
 		}
 		if tx.Fee <= cache.LowestFee() {
+			mlog.Error("pushToPool", "tx.Fee", tx.Fee, "lowset", cache.LowestFee(), "tree.size", cache.txLlrb.Len())
 			return e02
 		}
 		if expired == 0 {

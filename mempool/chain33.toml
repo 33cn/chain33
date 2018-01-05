@@ -16,7 +16,7 @@ seedPort=13802
 dbPath="datadir/addrbook"
 
 [mempool]
-poolCacheSize=1024
+poolCacheSize=10240
 minTxFee=1000000
 
 
