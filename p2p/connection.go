@@ -193,7 +193,6 @@ func (c *MConnection) getAddr() ([]string, error) {
 	log.Debug("GetAddr Resp", "Resp", resp, "addrlist", resp.Addrlist)
 	c.sendMonitor.Update(true)
 	return resp.Addrlist, nil
-
 }
 
 // OnStart implements BaseService
@@ -206,6 +205,7 @@ func (c *MConnection) start() error { //启动Mconnection，每一个MConnection
 func (c *MConnection) close() {
 	c.gconn.Close()
 }
+
 func (c *MConnection) stop() {
 
 	c.sendMonitor.Stop()
