@@ -208,6 +208,29 @@ func (mem *Mempool) RemoveLeftOverTxs() {
 	}
 }
 
+func (mem *Mempool) ReTrySend() {
+	for {
+		time.Sleep(time.Minute * 2)
+		mem.ReTry()
+	}
+}
+
+func (mem *Mempool) ReTry() {
+	var result []*types.Transaction
+	mem.proxyMtx.Lock()
+	for _, v := range mem.cache.txMap {
+		if time.Now().UnixNano()/1000000-v.enterTime >= mempoolReSendInterval {
+			mem.cache.Remove(v.value)
+		} else {
+			result = append(result, v.value)
+		}
+	}
+	mem.proxyMtx.Unlock()
+	for _, tx := range result {
+		mem.SendTxToP2P(tx)
+	}
+}
+
 // Mempool.RemoveBlockedTxs每隔1分钟清理一次已打包的交易
 func (mem *Mempool) RemoveBlockedTxs() {
 	if mem.qclient == nil {
@@ -330,7 +353,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	mem.qclient.Sub("mempool")
 
 	go mem.pollLastHeader()
-
+	go mem.ReTrySend()
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {

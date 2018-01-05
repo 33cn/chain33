@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -39,9 +40,9 @@ func TestGrpcSendToAddress(t *testing.T) {
 	fmt.Println("before send...", header.Height)
 	for i := 0; i < N; i++ {
 		addrto, privkey := genaddress()
-		err := sendtoaddress(priv, addrto, 1e9)
+		err := sendtoaddress(priv, addrto, 1e10)
 		if err != nil {
-			t.Log(err)
+			fmt.Println(err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -55,21 +56,22 @@ func TestGrpcSendToAddress(t *testing.T) {
 	}
 	fmt.Println("after send...", header.Height)
 	fmt.Println("wait for balance pack\n")
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 	header, err = getlastheader()
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	var errcount int64
 	fmt.Println("after sleep header...", header.Height)
 	ch := make(chan struct{}, N)
 	for _, value := range keymap {
 		go func(pkey crypto.PrivKey) {
-			for i := 0; i < N*10; {
+			for i := 0; i < N; {
 				addrto, _ := genaddress()
 				err := sendtoaddress(pkey, addrto, 10000)
 				if err != nil {
-					t.Log(err)
+					atomic.AddInt64(&errcount, 1)
 					time.Sleep(time.Second)
 					continue
 				}
@@ -83,6 +85,7 @@ func TestGrpcSendToAddress(t *testing.T) {
 	for i := 0; i < N; i++ {
 		<-ch
 	}
+	fmt.Println("total err:", errcount)
 }
 
 func genaddress() (string, crypto.PrivKey) {
