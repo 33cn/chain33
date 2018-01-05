@@ -243,6 +243,9 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
 	peers := m.network.node.GetPeers()
 	for _, peer := range peers {
+		if peer.mconn.sendMonitor.GetCount() > 0 {
+			continue
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		if err != nil {
@@ -304,6 +307,7 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 	peersize := m.network.node.Size()
 	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "peersize", peersize)
 	maxInvDatas := new(pb.InvDatas)
+	pinfos := m.lastPeerInfo()
 	for i := 0; i < peersize; i++ {
 		m.loadPeers()
 		index = index % m.peerSize()
@@ -320,7 +324,7 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 		if index >= m.peerSize() {
 			continue
 		}
-		pinfos := m.lastPeerInfo()
+
 		mpeer := m.getPeer(index)
 		if mpeer == nil {
 			continue
