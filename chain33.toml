@@ -1,6 +1,6 @@
 
 Title="chain33"
-Loglevel="debug"
+Loglevel="info"
 LogFile="chain33.log"
 
 [blockchain]
@@ -19,6 +19,7 @@ dbPath="datadir/addrbook"
 version=9
 verMix=9
 verMax=10
+
 [mempool]
 poolCacheSize=1024
 minTxFee=1000000
