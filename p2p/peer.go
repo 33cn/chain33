@@ -54,12 +54,9 @@ BEGIN:
 	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
 	if err != nil {
 		log.Error("SubStreamBlock", "call RouteChat err", err.Error()+p.Addr())
-		time.Sleep(time.Second)
-		if p.GetRunning() == false {
-			return
-		} else {
-			goto BEGIN
-		}
+		(*p.nodeInfo).monitorChan <- p //直接删除节点
+
+		return
 	}
 	for {
 		select {
