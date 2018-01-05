@@ -98,9 +98,10 @@ func (n *Node) exChangeVersion() {
 	for _, peer := range peers {
 		peer.mconn.sendVersion()
 	}
+	ticker := time.NewTicker(time.Second * 20)
+	defer ticker.Stop()
 FOR_LOOP:
 	for {
-		ticker := time.NewTicker(time.Second * 20)
 		select {
 		case <-ticker.C:
 			log.Debug("exChangeVersion", "sendVersion", "version")
@@ -288,9 +289,10 @@ func (n *Node) RemoveAll() {
 	return
 }
 func (n *Node) checkActivePeers() {
+ticker := time.NewTicker(time.Second * 5)
+defer ticker.Stop()
 FOR_LOOP:
 	for {
-		ticker := time.NewTicker(time.Second * 5)
 		select {
 		case <-n.activeDone:
 			break FOR_LOOP
@@ -336,9 +338,10 @@ func (n *Node) deleteErrPeer() {
 
 }
 func (n *Node) getAddrFromOnline() {
+ticker := time.NewTicker(time.Second * 5)
+defer ticker.Stop()
 FOR_LOOP:
 	for {
-		ticker := time.NewTicker(time.Second * 10)
 		select {
 		case <-n.onlineDone:
 			break FOR_LOOP
@@ -373,9 +376,10 @@ FOR_LOOP:
 }
 
 func (n *Node) getAddrFromOffline() {
+ticker := time.NewTicker(time.Second * 5)
+defer ticker.Stop()
 FOR_LOOP:
 	for {
-		ticker := time.NewTicker(time.Second * 25)
 		select {
 		case <-n.offlineDone:
 			break FOR_LOOP
