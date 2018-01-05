@@ -34,6 +34,7 @@ service p2premoteaddr{
 	//获取远程地址
 	rpc RemotePeerAddr(P2PGetAddr)returns(P2PAddr){}
 }
+
 service p2pgservice{
 	
 	//广播交易
@@ -81,6 +82,7 @@ message P2PPeerInfo{
 	int32 mempoolSize=4;
 	Header header=5;
 }
+
 message P2PVersion{
 	int32 version=1;
 	int64 service=2;
@@ -134,6 +136,7 @@ message P2PInv{
 	repeated Inventory invs=1;
 	
 }
+
 //ty=MSG_TX MSG_BLOCK
 message Inventory{
 	int32 ty=1; 
@@ -153,12 +156,14 @@ message P2PTx {
 message P2PBlock {
 	 Block block=1;
 }
+
 message BroadCastData{
 	oneof value{
 		P2PTx tx=1;
 		P2PBlock block=2;
 	}
 }
+
 message P2PGetHeaders{
 	int32 version=1;
 	int64 startHeight=2;
@@ -381,7 +386,6 @@ message ExecTxList {
 }
 
 //currency = 0 -> origin account
-
 message Account {
 	int32 currency = 1;
 	int64 balance = 2;
@@ -398,6 +402,12 @@ message ReceiptBalance {
 	int64 prev = 1;
 	int64 current = 2;
 	int64 delt = 3;
+}
+
+message ReceiptExecAccount {
+	string execAddr = 1;
+	Account prev = 2;
+	Account current = 3;
 }
 
 //p2p
@@ -451,7 +461,6 @@ message InvData {
 	}
 	int32 ty = 3;
 }
-
 
 message InvDatas {
 	repeated InvData items = 1;
@@ -519,6 +528,7 @@ message WalletUnLock {
 message Config {
 	string title=1;
 	string loglevel = 2;
+	string logFile = 9;
 	Store  store=3;
 	Consensus consensus=4;
 	MemPool memPool=5;
@@ -618,6 +628,7 @@ message CoinsAction {
 //只能执行一次，不能执行第二次
 message CoinsGenesis {
 	int64 amount = 2;
+	string returnAddress = 3;
 }
 
 message CoinsTransfer {
@@ -644,7 +655,7 @@ message TicketOpen {
 
 message TicketGenesis {
 	string minerAddress = 1;
-	string codeWallet = 2;
+	string returnAddress = 2;
 	int32 count = 3;
 }
 
@@ -663,8 +674,14 @@ message TicketInfos {
 
 message Ticket {
 	string ticketId  = 1;
-	int32 status     = 2; //0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功
-	bool isGenesis   = 3; //genesis 创建的私钥比较特殊
-	int64 createTime = 4; //创建时间
-	int64 minerTime  = 5; //挖矿时间
+	int32  status     = 2;   //0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功
+	bool   isGenesis   = 3;  //genesis 创建的私钥比较特殊
+	int64  createTime = 4;   //创建时间
+	int64  minerTime  = 5;   //挖矿时间
+	string minerAddress = 6;
+	string returnAddress = 7; //return wallet
+}
+
+message ReceiptNewTicket {
+	string ticketId = 1;
 }
