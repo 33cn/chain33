@@ -142,6 +142,7 @@ func (m *Msg) getPeerInfos() []*pb.Peer {
 func (m *Msg) monitorPeerInfo() {
 
 	go func(m *Msg) {
+		m.fetchPeerInfo()
 	FOR_LOOP:
 		for {
 
