@@ -51,6 +51,7 @@ BEGIN:
 	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
 	if err != nil {
 		log.Error("SubStreamBlock", "call RouteChat err", err.Error()+p.Addr())
+		p.mconn.sendMonitor.Update(false)
 		time.Sleep(time.Second)
 		if p.GetRunning() == false {
 			return
