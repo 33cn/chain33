@@ -163,7 +163,7 @@ func (n *Node) DialPeers(addrs []string) error {
 	}
 	for i, netAddr := range netAddrs {
 		//will not add self addr
-		log.Warn("DialPeers", "peeraddr", netAddr.String())
+		log.Debug("DialPeers", "peeraddr", netAddr.String())
 		if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
 			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr(), "i", i)
 			continue
@@ -278,6 +278,15 @@ func (n *Node) Remove(peerAddr string) {
 	return
 }
 
+func (n *Node) RemoveAll() {
+	n.omtx.Lock()
+	defer n.omtx.Unlock()
+	for addr, peer := range n.outBound {
+		delete(n.outBound, addr)
+		peer.Stop()
+	}
+	return
+}
 func (n *Node) checkActivePeers() {
 FOR_LOOP:
 	for {
@@ -519,11 +528,12 @@ func (n *Node) Stop() {
 	log.Debug("stop", "remotelisten", "close")
 	n.addrBook.Stop()
 	log.Debug("stop", "addrBook", "close")
-	peers := n.GetPeers()
-	for _, peer := range peers {
-		addr := peer.Addr()
-		peer.Stop()
-		log.Debug("stop", "peer", addr, "close")
-	}
+	//	peers := n.GetPeers()
+	//	for _, peer := range peers {
+	//		addr := peer.Addr()
+	//		peer.Stop()
+	//		log.Debug("stop", "peer", addr, "close")
+	//	}
+	n.RemoveAll()
 
 }
