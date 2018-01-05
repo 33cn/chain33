@@ -62,6 +62,7 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
 	timetikc := time.NewTicker(time.Second * 1)
+	defer timetikc.Stop()
 	for stream, _ := range s.streams {
 		select {
 		case s.streams[stream] <- block:

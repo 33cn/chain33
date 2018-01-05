@@ -272,6 +272,7 @@ func (a *AddrBook) Save() {
 
 func (a *AddrBook) saveRoutine() {
 	dumpAddressTicker := time.NewTicker(10 * time.Second)
+	defer dumpAddressTicker.Stop()
 out:
 	for {
 		select {
