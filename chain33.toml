@@ -1,6 +1,7 @@
 
 Title="chain33"
 Loglevel="info"
+LogConsoleLevel="eror"
 LogFile="chain33.log"
 
 [blockchain]
@@ -21,7 +22,7 @@ verMix=9
 verMax=10
 
 [mempool]
-poolCacheSize=1024
+poolCacheSize=10240
 minTxFee=1000000
 
 
