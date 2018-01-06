@@ -33,13 +33,14 @@ type Client struct {
 	q        *Queue
 	recv     chan Message
 	mu       sync.Mutex
+	cache    []Message
 	isclosed int32
 }
 
 func newClient(q *Queue) IClient {
 	client := &Client{}
 	client.q = q
-	client.recv = make(chan Message, DefaultChanBuffer)
+	client.recv = make(chan Message, 2)
 	return client
 }
 
@@ -54,6 +55,9 @@ func (client *Client) Send(msg Message, wait bool) (err error) {
 	return nil
 }
 
+//系统设计出两种优先级别的消息发送
+//1. SendAsyn 低优先级
+//2. Send 高优先级别的发送消息
 func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
 	if !wait {
 		msg.ChReply = nil
@@ -89,11 +93,28 @@ func (client *Client) Close() {
 }
 
 func (client *Client) Sub(topic string) {
-	recv := client.q.getChannel(topic)
+	highChan, lowChan := client.q.getChannel(topic)
 	go func() {
-		for msg := range recv {
-			if atomic.LoadInt32(&client.isclosed) == 0 {
-				client.recv <- msg
+		for {
+			select {
+			case data := <-highChan:
+				if atomic.LoadInt32(&client.isclosed) == 1 {
+					return
+				}
+				client.recv <- data
+			default:
+				select {
+				case data := <-highChan:
+					if atomic.LoadInt32(&client.isclosed) == 1 {
+						return
+					}
+					client.recv <- data
+				case data := <-lowChan:
+					if atomic.LoadInt32(&client.isclosed) == 1 {
+						return
+					}
+					client.recv <- data
+				}
 			}
 		}
 	}()
