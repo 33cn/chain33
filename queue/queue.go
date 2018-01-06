@@ -23,6 +23,7 @@ import (
 var qlog = log.New("module", "queue")
 
 const DefaultChanBuffer = 64
+const DefaultLowChanBuffer = 40960
 
 func SetLogLevel(level int) {
 
@@ -33,21 +34,20 @@ func DisableLog() {
 }
 
 type Queue struct {
-	chans   map[string]chan Message
+	chans   map[string][]chan Message
 	mu      sync.Mutex
 	done    chan struct{}
 	isclose bool
 }
 
 func New(name string) *Queue {
-	chs := make(map[string]chan Message)
+	chs := make(map[string][]chan Message)
 	return &Queue{chans: chs, done: make(chan struct{}, 1)}
 }
 
 func (q *Queue) Start() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-
 	// Block until a signal is received.
 	select {
 	case <-q.done:
@@ -67,7 +67,8 @@ func (q *Queue) IsClosed() bool {
 
 func (q *Queue) Close() {
 	for _, ch := range q.chans {
-		close(ch)
+		close(ch[0])
+		close(ch[1])
 	}
 	q.done <- struct{}{}
 	close(q.done)
@@ -77,22 +78,23 @@ func (q *Queue) Close() {
 	qlog.Info("queue module closed")
 }
 
-func (q *Queue) getChannel(topic string) chan Message {
+func (q *Queue) getChannel(topic string) (chan Message, chan Message) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	_, ok := q.chans[topic]
 	if !ok {
-		q.chans[topic] = make(chan Message, DefaultChanBuffer)
+		q.chans[topic] = make([]chan Message, 2, 2)
+		q.chans[topic][0] = make(chan Message, DefaultChanBuffer)
+		q.chans[topic][1] = make(chan Message, DefaultLowChanBuffer)
 	}
-	ch1 := q.chans[topic]
-	return ch1
+	return q.chans[topic][0], q.chans[topic][1]
 }
 
 func (q *Queue) Send(msg Message) {
 	if q.IsClosed() {
 		return
 	}
-	chrecv := q.getChannel(msg.Topic)
+	chrecv, _ := q.getChannel(msg.Topic)
 	timeout := time.After(time.Second * 5)
 	select {
 	case chrecv <- msg:
@@ -106,13 +108,16 @@ func (q *Queue) SendAsyn(msg Message) error {
 	if q.IsClosed() {
 		return types.ErrChannelClosed
 	}
-	chrecv := q.getChannel(msg.Topic)
+	_, lowChan := q.getChannel(msg.Topic)
 	select {
-	case chrecv <- msg:
+	case lowChan <- msg:
+		qlog.Debug("send asyn ok", "msg", msg)
 		return nil
 	default:
+		qlog.Error("send asyn ok", "msg", msg)
 		return types.ErrChannelFull
 	}
+
 }
 
 func (q *Queue) GetClient() IClient {
@@ -161,7 +166,7 @@ func (msg Message) Reply(replyMsg Message) {
 
 func (msg Message) String() string {
 	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v, Ch:%v}", msg.Topic,
-		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.ChReply)
+		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.ChReply != nil)
 }
 
 func (msg Message) ReplyErr(title string, err error) {
