@@ -220,12 +220,11 @@ func (mem *Mempool) ReTry() {
 	mem.proxyMtx.Lock()
 	for _, v := range mem.cache.txMap {
 		if time.Now().UnixNano()/1000000-v.enterTime >= mempoolReSendInterval {
-			mem.cache.Remove(v.value)
-		} else {
 			result = append(result, v.value)
 		}
 	}
 	mem.proxyMtx.Unlock()
+	mlog.Error("retry send tx...")
 	for _, tx := range result {
 		mem.SendTxToP2P(tx)
 	}
