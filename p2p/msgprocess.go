@@ -14,13 +14,14 @@ import (
 )
 
 type Msg struct {
-	mtx       sync.Mutex
-	pmtx      sync.Mutex
-	wg        sync.WaitGroup
-	network   *P2p
-	tempdata  map[int64]*pb.Block
-	peermtx   sync.Mutex
-	peers     []*peer
+	mtx      sync.Mutex
+	pmtx     sync.Mutex
+	wg       sync.WaitGroup
+	network  *P2p
+	tempdata map[int64]*pb.Block
+	peermtx  sync.Mutex
+	peers    []*peer
+	//peers     map[string]*peer
 	peerInfos map[string]*pb.Peer
 	done      chan struct{}
 }
@@ -117,31 +118,32 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
 
 }
-
 func (m *Msg) flushPeerInfos(in []*pb.Peer) {
-	m.pmtx.Lock()
-	defer m.pmtx.Unlock()
-	//首先清空之前的数据
-	for k, _ := range m.peerInfos {
-		delete(m.peerInfos, k)
-	}
-	//重新插入新数据
-	for _, peer := range in {
-		m.peerInfos[peer.GetName()] = peer
-	}
+	m.network.node.nodeInfo.peerInfos.flushPeerInfos(in)
+	//	m.pmtx.Lock()
+	//	defer m.pmtx.Unlock()
+	//	//首先清空之前的数据
+
+	//	for k, _ := range m.network.node.nodeInfo.peerInfos {
+	//		delete(m.network.node.nodeInfo.peerInfos, k)
+	//	}
+	//	//重新插入新数据
+	//	for _, peer := range in {
+	//		m.network.node.nodeInfo.peerInfos[peer.GetName()] = peer
+	//	}
 
 }
 
 func (m *Msg) getPeerInfos() []*pb.Peer {
-	m.pmtx.Lock()
-	defer m.pmtx.Unlock()
+	//	m.pmtx.Lock()
+	//	defer m.pmtx.Unlock()
+	peerinfos := m.network.node.nodeInfo.peerInfos.getPeerInfos()
 	var peers []*pb.Peer
-	for _, peer := range m.peerInfos {
+	for _, peer := range peerinfos {
 		peers = append(peers, peer)
 	}
 	return peers
 }
-
 func (m *Msg) monitorPeerInfo() {
 
 	go func(m *Msg) {
@@ -163,11 +165,9 @@ func (m *Msg) monitorPeerInfo() {
 	}(m)
 
 }
-
 func (m *Msg) Stop() {
 	m.done <- struct{}{}
 }
-
 func (m *Msg) fetchPeerInfo() {
 	var peerlist []*pb.Peer
 	peerInfos := m.lastPeerInfo()
@@ -226,6 +226,7 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
 	m.tempdata = make(map[int64]*pb.Block)
+	m.loadPeers()
 	//分段下载
 	for index, interval := range intervals {
 		m.wg.Add(1)
@@ -247,7 +248,7 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 
 func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
-	peers := m.network.node.GetPeers()
+	peers := m.network.node.GetRegisterPeers()
 	for _, peer := range peers {
 		if peer.mconn.sendMonitor.GetCount() > 0 {
 			continue
@@ -258,7 +259,7 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 			cancel()
 			m.network.node.nodeInfo.monitorChan <- peer //直接删掉问题节点
 			//			peer.mconn.sendMonitor.Update(false)
-			log.Warn("monitorPeerInfo", "error", err.Error())
+			//log.Warn("monitorPeerInfo", "error", err.Error())
 			continue
 		}
 		cancel()
@@ -270,6 +271,7 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 func (m *Msg) loadPeers() {
 	m.peermtx.Lock()
 	defer m.peermtx.Unlock()
+	m.peers = nil
 	m.peers = append(m.peers, m.network.node.GetPeers()...)
 }
 
@@ -314,10 +316,11 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 	peersize := m.network.node.Size()
 	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "peersize", peersize)
 	maxInvDatas := new(pb.InvDatas)
-	pinfos := m.lastPeerInfo()
+	pinfos := m.network.node.nodeInfo.peerInfos.getPeerInfos()
+
 	for i := 0; i < peersize; i++ {
-		m.loadPeers()
-		index = index % m.peerSize()
+
+		index = index % peersize
 		log.Debug("downloadBlock", "index", index)
 		var p2pdata pb.P2PGetData
 		if interval.end >= len(invs.GetInvs()) || len(invs.GetInvs()) == 1 {
@@ -328,19 +331,22 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 		}
 		log.Debug("downloadBlock", "interval invs", p2pdata.Invs)
 		//判断请求的节点的高度是否在节点的实际范围内
-		if index >= m.peerSize() {
+		if index >= peersize {
 			continue
 		}
 
 		mpeer := m.getPeer(index)
 		if mpeer == nil {
+			index++
 			continue
 		}
 		if pinfo, ok := pinfos[mpeer.Addr()]; ok {
-			if pinfo.GetHeader().GetHeight() < int64(interval.end) {
+			if pinfo.GetHeader().GetHeight() < int64(invs.Invs[interval.end].GetHeight()) {
+				index++
 				continue
 			}
 		} else {
+			index++
 			continue
 		}
 
