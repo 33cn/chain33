@@ -101,6 +101,7 @@ func (l *DefaultListener) listenRoutine() {
 	go pServer.monitor()
 	pServer.innerBroadBlock()
 	l.server = grpc.NewServer()
+
 	pb.RegisterP2PgserviceServer(l.server, pServer)
 	l.server.Serve(l.listener)
 

@@ -110,24 +110,26 @@ FOR_LOOP:
 		case <-c.pingTimer.Ch:
 			randNonce := rand.Int31n(102040)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-			defer cancel()
+			//defer cancel()
 			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
 			if err != nil {
 				log.Error("Signature", "Error", err.Error())
+				cancel()
 				continue
 			}
 			log.Debug("SEND PING", "Peer", c.remoteAddress.String(), "nonce", randNonce)
 			r, err := c.conn.Ping(ctx, in)
 			if err != nil {
+				cancel()
 				c.sendMonitor.Update(false)
 
 				if pingtimes == 0 {
-					log.Warn("ERR PING", "ERROR", err.Error())
+					//log.Warn("ERR PING", "ERROR", err.Error())
 					(*c.nodeInfo).monitorChan <- c.peer
 				}
 				continue
 			}
-
+			cancel()
 			log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
 			c.sendMonitor.Update(true)
 			pingtimes++

@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"fmt"
 	"sync"
 
 	"code.aliyun.com/chain33/chain33/queue"
@@ -22,7 +23,46 @@ type NodeInfo struct {
 	q                *queue.Queue
 	qclient          queue.IClient
 	blacklist        *BlackList
+	peerInfos        *PeerInfos
 }
+type PeerInfos struct {
+	mtx   sync.Mutex
+	infos map[string]*types.Peer
+}
+
+func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	//首先清空之前的数据
+	for k, _ := range p.infos {
+		delete(p.infos, k)
+	}
+	//重新插入新数据
+	for _, peer := range in {
+		p.infos[fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())] = peer
+	}
+
+}
+
+func (p *PeerInfos) getPeerInfos() map[string]*types.Peer {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	//	var peers []*pb.Peer
+	//	for _, peer := range p.peerInfos {
+	//		peers = append(peers, peer)
+	//	}
+	return p.infos
+}
+
+func (p *PeerInfos) GetPeerInfo(key string) *types.Peer {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	if _, ok := p.infos[key]; ok {
+		return p.infos[key]
+	}
+	return nil
+}
+
 type BlackList struct {
 	mtx      sync.Mutex
 	badPeers map[string]bool

@@ -78,6 +78,8 @@ func newNode(cfg *types.P2P) (*Node, error) {
 	node.nodeInfo.p2pBroadcastChan = make(chan interface{}, 1024)
 	node.nodeInfo.blacklist = &BlackList{badPeers: make(map[string]bool)}
 	node.nodeInfo.cfg = cfg
+	node.nodeInfo.peerInfos = new(PeerInfos)
+	node.nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
 
 	return node, nil
 }
@@ -164,7 +166,7 @@ func (n *Node) DialPeers(addrs []string) error {
 	}
 	for i, netAddr := range netAddrs {
 		//will not add self addr
-		log.Debug("DialPeers", "peeraddr", netAddr.String())
+		//	log.Debug("DialPeers", "peeraddr", netAddr.String())
 		if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
 			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr(), "i", i)
 			continue
@@ -230,9 +232,9 @@ func (n *Node) AddPeer(pr *peer) {
 
 func (n *Node) Size() int {
 
-	n.omtx.Lock()
-	defer n.omtx.Unlock()
-	return len(n.outBound)
+	n.nodeInfo.peerInfos.mtx.Lock()
+	defer n.nodeInfo.peerInfos.mtx.Unlock()
+	return len(n.nodeInfo.peerInfos.infos)
 }
 
 func (n *Node) Has(paddr string) bool {
@@ -255,12 +257,30 @@ func (n *Node) Get(peerAddr string) *peer {
 	}
 	return nil
 }
+
+func (n *Node) GetRegisterPeers() []*peer {
+	n.omtx.Lock()
+	defer n.omtx.Unlock()
+	var peers []*peer
+	for _, peer := range n.outBound {
+		//if n.nodeInfo.peerInfos.GetPeerInfo(peeraddr) != nil {
+		peers = append(peers, peer)
+		//}
+
+	}
+	//log.Debug("GetPeers", "node", peers)
+	return peers
+}
+
 func (n *Node) GetPeers() []*peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
 	var peers []*peer
 	for _, peer := range n.outBound {
-		peers = append(peers, peer)
+		if n.nodeInfo.peerInfos.GetPeerInfo(peer.Addr()) != nil {
+			peers = append(peers, peer)
+		}
+
 	}
 	//log.Debug("GetPeers", "node", peers)
 	return peers
@@ -289,15 +309,15 @@ func (n *Node) RemoveAll() {
 	return
 }
 func (n *Node) checkActivePeers() {
-ticker := time.NewTicker(time.Second * 5)
-defer ticker.Stop()
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
 FOR_LOOP:
 	for {
 		select {
 		case <-n.activeDone:
 			break FOR_LOOP
 		case <-ticker.C:
-			peers := n.GetPeers()
+			peers := n.GetRegisterPeers()
 			for _, peer := range peers {
 				if peer.mconn == nil {
 					n.addrBook.RemoveAddr(peer.Addr())
@@ -338,8 +358,8 @@ func (n *Node) deleteErrPeer() {
 
 }
 func (n *Node) getAddrFromOnline() {
-ticker := time.NewTicker(time.Second * 5)
-defer ticker.Stop()
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
 FOR_LOOP:
 	for {
 		select {
@@ -376,8 +396,8 @@ FOR_LOOP:
 }
 
 func (n *Node) getAddrFromOffline() {
-ticker := time.NewTicker(time.Second * 5)
-defer ticker.Stop()
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
 FOR_LOOP:
 	for {
 		select {
