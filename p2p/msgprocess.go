@@ -117,6 +117,7 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
 
 }
+
 func (m *Msg) flushPeerInfos(in []*pb.Peer) {
 	m.pmtx.Lock()
 	defer m.pmtx.Unlock()
@@ -130,6 +131,7 @@ func (m *Msg) flushPeerInfos(in []*pb.Peer) {
 	}
 
 }
+
 func (m *Msg) getPeerInfos() []*pb.Peer {
 	m.pmtx.Lock()
 	defer m.pmtx.Unlock()
@@ -139,6 +141,7 @@ func (m *Msg) getPeerInfos() []*pb.Peer {
 	}
 	return peers
 }
+
 func (m *Msg) monitorPeerInfo() {
 
 	go func(m *Msg) {
@@ -160,9 +163,11 @@ func (m *Msg) monitorPeerInfo() {
 	}(m)
 
 }
+
 func (m *Msg) Stop() {
 	m.done <- struct{}{}
 }
+
 func (m *Msg) fetchPeerInfo() {
 	var peerlist []*pb.Peer
 	peerInfos := m.lastPeerInfo()
