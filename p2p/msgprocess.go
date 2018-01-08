@@ -271,9 +271,13 @@ func (m *Msg) loadPeers() {
 }
 
 func (m *Msg) getPeer(index int) *peer {
+	m.peermtx.Lock()
+	defer m.peermtx.Unlock()
+
 	if index > len(m.peers) {
 		return nil
 	}
+
 	return m.peers[index]
 }
 func (m *Msg) peerSize() int {
