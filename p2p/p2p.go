@@ -60,7 +60,7 @@ func (network *P2p) subP2pMsg() {
 
 	network.c.Sub("p2p")
 	go func() {
-
+		var EventQueryTask int64 = 666 //TODO
 		for msg := range network.c.Recv() {
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
@@ -71,13 +71,13 @@ func (network *P2p) subP2pMsg() {
 			case types.EventBlockBroadcast: //广播block
 				go network.msg.BlockBroadcast(msg)
 			case types.EventFetchBlocks:
-				tempIntrans := NewMsg(network)
-				go tempIntrans.GetBlocks(msg)
+				go network.msg.GetBlocks(msg)
 			case types.EventGetMempool:
 				go network.msg.GetMemPool(msg)
 			case types.EventPeerInfo:
 				go network.msg.GetPeerInfo(msg)
-
+			case EventQueryTask:
+				go network.msg.GetTaskInfo(msg)
 			default:
 				log.Error("unknown msgtype:", msg.Ty)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
