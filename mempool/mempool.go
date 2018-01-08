@@ -224,7 +224,9 @@ func (mem *Mempool) ReTry() {
 		}
 	}
 	mem.proxyMtx.Unlock()
-	mlog.Error("retry send tx...")
+	if len(result) > 0 {
+		mlog.Error("retry send tx...")
+	}
 	for _, tx := range result {
 		mem.SendTxToP2P(tx)
 	}

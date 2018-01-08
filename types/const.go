@@ -104,6 +104,9 @@ const (
 	EventMinerStart         = 63
 	EventMinerStop          = 64
 	EventWalletTickets      = 65
+	EventStoreMemSet        = 66
+	EventStoreRollback      = 67
+	EventStoreCommit        = 68
 )
 
 var eventname = map[int]string{
@@ -172,6 +175,9 @@ var eventname = map[int]string{
 	63: "EventMinerStart",
 	64: "EventMinerStop",
 	65: "EventWalletTickets",
+	66: "EventStoreMemSet",
+	67: "EventStoreRollback",
+	68: "EventStoreCommit",
 }
 
 func GetEventName(event int) string {
