@@ -58,7 +58,7 @@ func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
 		if execute.height == 0 { //genesis block 不检查手续费
-			receipt, err := execute.Exec(tx)
+			receipt, err := execute.Exec(tx, i)
 			if err != nil {
 				panic(err)
 			}
@@ -67,7 +67,7 @@ func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
 			continue
 		}
 		//正常的区块：
-		err := execute.checkTx(tx)
+		err := execute.checkTx(tx, i)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
 			receipts = append(receipts, receipt)
@@ -82,7 +82,7 @@ func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
 			receipts = append(receipts, receipt)
 			continue
 		}
-		receipt, err := execute.Exec(tx)
+		receipt, err := execute.Exec(tx, i)
 		if err != nil {
 			elog.Error("exec tx error = ", "err", err, "tx", tx)
 			//add error log
@@ -133,7 +133,7 @@ func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *ty
 	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
-func (e *Execute) checkTx(tx *types.Transaction) error {
+func (e *Execute) checkTx(tx *types.Transaction, index int) error {
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) { //如果已经过期
 		return types.ErrTxExpire
 	}
@@ -143,7 +143,7 @@ func (e *Execute) checkTx(tx *types.Transaction) error {
 	return nil
 }
 
-func (e *Execute) Exec(tx *types.Transaction) (*types.Receipt, error) {
+func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	elog.Info("exec", "execer", string(tx.Execer))
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))
 	if err != nil {
@@ -154,7 +154,7 @@ func (e *Execute) Exec(tx *types.Transaction) (*types.Receipt, error) {
 	}
 	exec.SetDB(e)
 	exec.SetEnv(e.height, e.blocktime)
-	return exec.Exec(tx)
+	return exec.Exec(tx, index)
 }
 
 func (e *Execute) Get(key []byte) (value []byte, err error) {

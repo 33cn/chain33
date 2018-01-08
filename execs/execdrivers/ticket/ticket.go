@@ -40,7 +40,7 @@ func (n *Ticket) GetName() string {
 	return "ticket"
 }
 
-func (n *Ticket) Exec(tx *types.Transaction) (*types.Receipt, error) {
+func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.TicketAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
