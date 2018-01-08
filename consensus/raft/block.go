@@ -31,7 +31,7 @@ type RaftClient struct {
 	validatorC   chan bool
 }
 
-func NewBlockstore(snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, leaderC <-chan int,validatorC chan bool) *RaftClient {
+func NewBlockstore(snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, leaderC chan int,validatorC chan bool) *RaftClient {
 	b := &RaftClient{proposeC: proposeC, snapshotter: snapshotter,validatorC: validatorC}
 	go b.readCommits(commitC, errorC, leaderC)
 	return b
@@ -259,7 +259,7 @@ func (client *RaftClient) propose(block *types.Block) {
 }
 
 // 从receive channel中读leader发来的block
-func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error, leaderC <-chan int) {
+func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error, leaderC chan int) {
 	var prevHash []byte
 	for data := range commitC {
 		rlog.Info("Get block from commit channel")
@@ -276,7 +276,11 @@ func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan erro
 			//			}
 			continue
 		}
-
+		if !isValidator{
+			log.Warn("I'm not the validator node, I don't need to writeBlock!==========================")
+			return
+		}
+		log.Warn("I'm the validator node, I need to writeBlock!==========================")
 		lastBlock := getCurrentBlock()
 		if lastBlock == nil {
 			prevHash = zeroHash[:]
