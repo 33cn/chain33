@@ -2,6 +2,8 @@ package store
 
 //store package store the world - state data
 import (
+	"errors"
+
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/common/mavl"
@@ -23,6 +25,7 @@ import (
 
 var slog = log.New("module", "store")
 var zeroHash [32]byte
+var ErrHashNotFound = errors.New("ErrHashNotFound")
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -35,6 +38,7 @@ func DisableLog() {
 type Store struct {
 	db      dbm.DB
 	qclient queue.IClient
+	trees   map[string]*mavl.MAVLTree
 }
 
 //driver
@@ -42,6 +46,7 @@ type Store struct {
 func New(cfg *types.Store) *Store {
 	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath)
 	store := &Store{db: db}
+	store.trees = make(map[string]*mavl.MAVLTree)
 	return store
 }
 
@@ -66,9 +71,51 @@ func (store *Store) SetQueue(q *queue.Queue) {
 				msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 			} else if msg.Ty == types.EventStoreGet {
 				datas := msg.GetData().(*types.StoreGet)
-				values := mavl.GetKVPair(store.db, datas)
-				//mavl.PrintTreeLeaf(store.db, datas.StateHash)
+				tree, ok := store.trees[string(datas.StateHash)]
+				var err error
+				values := make([][]byte, len(datas.Keys))
+				if !ok {
+					tree = mavl.NewMAVLTree(store.db)
+					err = tree.Load(datas.StateHash)
+				}
+				if err == nil {
+					for i := 0; i < len(datas.Keys); i++ {
+						_, value, exit := tree.Get(datas.Keys[i])
+						if exit {
+							values[i] = value
+						}
+					}
+				}
 				msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
+			} else if msg.Ty == types.EventStoreMemSet { //只是在内存中set 一下，并不改变状态
+				datas := msg.GetData().(*types.StoreSet)
+				tree := mavl.NewMAVLTree(store.db)
+				tree.Load(datas.StateHash)
+				for i := 0; i < len(datas.KV); i++ {
+					tree.Set(datas.KV[i].Key, datas.KV[i].Value)
+				}
+				hash := tree.Hash()
+				store.trees[string(hash)] = tree
+				msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
+			} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
+				hash := msg.GetData().(*types.ReqHash)
+				tree, ok := store.trees[string(hash.Hash)]
+				if !ok {
+					slog.Error("store commit", "err", ErrHashNotFound)
+					msg.Reply(client.NewMessage("", types.EventStoreCommit, ErrHashNotFound))
+				}
+				tree.Save()
+				delete(store.trees, string(hash.Hash))
+				msg.Reply(client.NewMessage("", types.EventStoreCommit, &types.ReplyHash{hash.Hash}))
+			} else if msg.Ty == types.EventStoreRollback {
+				hash := msg.GetData().(*types.ReqHash)
+				_, ok := store.trees[string(hash.Hash)]
+				if !ok {
+					slog.Error("store rollback", "err", ErrHashNotFound)
+					msg.Reply(client.NewMessage("", types.EventStoreRollback, ErrHashNotFound))
+				}
+				delete(store.trees, string(hash.Hash))
+				msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash.Hash}))
 			}
 		}
 	}()
