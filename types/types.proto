@@ -679,6 +679,7 @@ message Ticket {
 	bool   isGenesis   = 3;  //genesis 创建的私钥比较特殊
 	int64  createTime = 4;   //创建时间
 	int64  minerTime  = 5;   //挖矿时间
+	int64  minerValue = 8;   //挖到的币的数目
 	string minerAddress = 6;
 	string returnAddress = 7; //return wallet
 }
