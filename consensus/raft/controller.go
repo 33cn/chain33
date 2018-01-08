@@ -41,8 +41,8 @@ func NewRaftCluster(cfg *types.Consensus) *RaftClient {
 
 	// raft集群的建立,1. 初始化两条channel： propose channel用于客户端和raft底层交互, commit channel用于获取commit消息
 	// 2. raft集群中的节点之间建立http连接
-	commitC, errorC, snapshotterReady,leaderC,validatorC := NewRaft(int(cfg.NodeId), strings.Split(cfg.PeersURL, ","), getSnapshot, proposeC, confChangeC)
+	commitC, errorC, snapshotterReady,validatorC := NewRaft(int(cfg.NodeId), strings.Split(cfg.PeersURL, ","), getSnapshot, proposeC, confChangeC)
 	// 监听commit channel,取block
-	b = NewBlockstore(<-snapshotterReady, proposeC, commitC, errorC,leaderC,validatorC)
+	b = NewBlockstore(<-snapshotterReady, proposeC, commitC, errorC,validatorC)
 	return b
 }
