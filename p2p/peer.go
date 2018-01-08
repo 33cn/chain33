@@ -135,8 +135,8 @@ func (p *peer) IsPersistent() bool {
 	return p.persistent
 }
 
-func dial(addr *NetAddress) (*grpc.ClientConn, error) {
-	conn, err := addr.DialTimeout(DialTimeout)
+func dial(addr *NetAddress, conf grpc.ServiceConfig) (*grpc.ClientConn, error) {
+	conn, err := addr.DialTimeout(DialTimeout, conf)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo)
 //连接server out=往其他节点连接
 func newOutboundPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
-	conn, err := dial(addr)
+	conn, err := dial(addr, (*nodeinfo).GrpcConfig())
 	if err != nil {
 		return nil, fmt.Errorf("Error creating peer")
 	}

@@ -47,14 +47,14 @@ func (m *Msg) TransToBroadCast(msg queue.Message) {
 	peers := m.network.node.GetPeers()
 
 	for _, peer := range peers {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		_, err := peer.mconn.conn.BroadCastTx(ctx, &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
+		//ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+		_, err := peer.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 		if err != nil {
-			cancel()
+			//cancel()
 			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
-		cancel()
+		//cancel()
 		peer.mconn.sendMonitor.Update(true)
 	}
 
@@ -71,7 +71,7 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 
 	for _, peer := range peers {
 		//获取远程 peer invs
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 		resp, err := peer.mconn.conn.GetMemPool(ctx, &pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
@@ -102,14 +102,15 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 			}
 		}
 		//获取真正的交易Tx call GetData
-		ctx, cancel = context.WithTimeout(context.Background(), time.Second*10)
-		datacli, dataerr := peer.mconn.conn.GetData(ctx, &pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		//ctx, cancel = context.WithTimeout(context.Background(), time.Second*15)
+		datacli, dataerr := peer.mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		if dataerr != nil {
-			cancel()
+			log.Error("GetMemPool", "GetDataError", err.Error())
+			//cancel()
 			continue
 		}
 
-		cancel()
+		//cancel()
 		invdatas, recerr := datacli.Recv()
 		if recerr != nil {
 			log.Error("GetMemPool", "err", recerr.Error())
@@ -249,16 +250,14 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 		if peer.mconn.sendMonitor.GetCount() > 0 {
 			continue
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		peerinfo, err := peer.mconn.conn.GetPeerInfo(ctx, &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		//ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		if err != nil {
-			cancel()
+			//cancel()
 			m.network.node.nodeInfo.monitorChan <- peer //直接删掉问题节点
-			//			peer.mconn.sendMonitor.Update(false)
-			//log.Warn("monitorPeerInfo", "error", err.Error())
 			continue
 		}
-		cancel()
+		//cancel()
 		peer.mconn.sendMonitor.Update(true)
 		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = (*pb.Peer)(peerinfo)
 	}
