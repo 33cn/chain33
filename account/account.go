@@ -165,13 +165,13 @@ func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err er
 }
 
 type CacheDB struct {
-	header *types.Header
-	q      queue.IClient
-	cache  map[string][]byte
+	stateHash []byte
+	q         queue.IClient
+	cache     map[string][]byte
 }
 
-func NewCacheDB(q *queue.Queue, header *types.Header) *CacheDB {
-	return &CacheDB{header, q.GetClient(), make(map[string][]byte)}
+func NewCacheDB(q *queue.Queue, stateHash []byte) *CacheDB {
+	return &CacheDB{stateHash, q.GetClient(), make(map[string][]byte)}
 }
 
 func (db *CacheDB) Get(key []byte) (value []byte, err error) {
@@ -192,7 +192,7 @@ func (db *CacheDB) Set(key []byte, value []byte) error {
 }
 
 func (db *CacheDB) get(key []byte) (value []byte, err error) {
-	query := &types.StoreGet{db.header.StateHash, [][]byte{key}}
+	query := &types.StoreGet{db.stateHash, [][]byte{key}}
 	msg := db.q.NewMessage("store", types.EventStoreGet, query)
 	db.q.Send(msg, true)
 	resp, err := db.q.Wait(msg)

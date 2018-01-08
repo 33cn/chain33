@@ -40,6 +40,7 @@ type Executer interface {
 	GetName() string
 	SetEnv(height, blocltime int64)
 	Exec(tx *types.Transaction) (*types.Receipt, error)
+	Query(tx *types.Transaction) (types.Message, error)
 }
 
 var (

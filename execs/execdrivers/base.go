@@ -37,6 +37,10 @@ func (n *ExecBase) Exec(tx *types.Transaction) (*types.Receipt, error) {
 	return nil, types.ErrActionNotSupport
 }
 
+func (n *ExecBase) Query(tx *types.Transaction) (types.Message, error) {
+	return nil, types.ErrActionNotSupport
+}
+
 func (n *ExecBase) SetDB(db dbm.KVDB) {
 	n.db = db
 }
