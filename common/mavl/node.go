@@ -380,6 +380,66 @@ func (node *MAVLNode) balance(t *MAVLTree) (newSelf *MAVLNode) {
 	return node
 }
 
+// newHash/newNode: The new hash or node to replace node after remove.
+// newKey: new leftmost leaf key for tree after successfully removing 'key' if changed.
+// value: removed value.
+func (node *MAVLNode) remove(t *MAVLTree, key []byte) (
+	newHash []byte, newNode *MAVLNode, newKey []byte, value []byte, removed bool) {
+	if node.height == 0 {
+		if bytes.Compare(key, node.key) == 0 {
+			removeOrphan(t, node)
+			return nil, nil, nil, node.value, true
+		} else {
+			return node.hash, node, nil, nil, false
+		}
+	} else {
+		if bytes.Compare(key, node.key) < 0 {
+			var newLeftHash []byte
+			var newLeftNode *MAVLNode
+			newLeftHash, newLeftNode, newKey, value, removed = node.getLeftNode(t).remove(t, key)
+			if !removed {
+				return node.hash, node, nil, value, false
+			} else if newLeftHash == nil && newLeftNode == nil { // left node held value, was removed
+				return node.rightHash, node.rightNode, node.key, value, true
+			}
+			removeOrphan(t, node)
+			node = node._copy()
+			node.leftHash, node.leftNode = newLeftHash, newLeftNode
+			node.calcHeightAndSize(t)
+			node = node.balance(t)
+			return node.hash, node, newKey, value, true
+		} else {
+			var newRightHash []byte
+			var newRightNode *MAVLNode
+			newRightHash, newRightNode, newKey, value, removed = node.getRightNode(t).remove(t, key)
+			if !removed {
+				return node.hash, node, nil, value, false
+			} else if newRightHash == nil && newRightNode == nil { // right node held value, was removed
+				return node.leftHash, node.leftNode, nil, value, true
+			}
+			removeOrphan(t, node)
+			node = node._copy()
+			node.rightHash, node.rightNode = newRightHash, newRightNode
+			if newKey != nil {
+				node.key = newKey
+			}
+			node.calcHeightAndSize(t)
+			node = node.balance(t)
+			return node.hash, node, nil, value, true
+		}
+	}
+}
+
+func removeOrphan(t *MAVLTree, node *MAVLNode) {
+	if !node.persisted {
+		return
+	}
+	if t.ndb == nil {
+		return
+	}
+	t.ndb.RemoveNode(t, node)
+}
+
 // Only used in testing...
 func (node *MAVLNode) lmd(t *MAVLTree) *MAVLNode {
 	if node.height == 0 {
