@@ -59,22 +59,34 @@ func TicketKey(id string) (key []byte) {
 	return key
 }
 
-func GenesisInit(db dbm.KVDB, hash []byte, execaddr string, genesis *types.TicketGenesis, blocktime int64) (*types.Receipt, error) {
-	prefix := common.ToHex(hash)
+type TicketAction struct {
+	db        dbm.KVDB
+	txhash    []byte
+	blocktime int64
+	height    int64
+	execaddr  string
+}
+
+func NewTicketAction(db dbm.KVDB, hash []byte, execaddr string, blocktime, height int64) *TicketAction {
+	return &TicketAction{db, hash, blocktime, height, execaddr}
+}
+
+func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt, error) {
+	prefix := common.ToHex(action.txhash)
 	prefix = genesis.MinerAddress + ":" + prefix + ":"
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	for i := 0; i < int(genesis.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
-		t := NewTicket(id, genesis.MinerAddress, genesis.ReturnAddress, blocktime)
+		t := NewTicket(id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime)
 
 		//冻结子账户资金
-		receipt, err := account.ExecFrozen(db, genesis.ReturnAddress, execaddr, 1000*types.Coin)
+		receipt, err := account.ExecFrozen(action.db, genesis.ReturnAddress, action.execaddr, 1000*types.Coin)
 		if err != nil {
-			tlog.Error("GenesisInit.Frozen", "addr", genesis.ReturnAddress, "execaddr", execaddr)
+			tlog.Error("GenesisInit.Frozen", "addr", genesis.ReturnAddress, "execaddr", action.execaddr)
 			panic(err)
 		}
-		t.Save(db)
+		t.Save(action.db)
 		logs = append(logs, receipt.Logs...)
 		kv = append(kv, receipt.KV...)
 		logs = append(logs, t.GetReceiptLog())
@@ -82,4 +94,20 @@ func GenesisInit(db dbm.KVDB, hash []byte, execaddr string, genesis *types.Ticke
 	}
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
+}
+
+func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt, error) {
+	return nil, nil
+}
+
+func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Receipt, error) {
+	return nil, nil
+}
+
+func (action *TicketAction) TicketList(tlist *types.TicketList) (*types.Receipt, error) {
+	return nil, nil
+}
+
+func (action *TicketAction) TicketInfos(tinfos *types.TicketInfos) (*types.Receipt, error) {
+	return nil, nil
 }

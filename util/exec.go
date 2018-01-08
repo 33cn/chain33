@@ -68,11 +68,14 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	if kvset == nil {
 		block.StateHash = prevStateRoot
 	} else {
-		block.StateHash = ExecKVSet(q, prevStateRoot, kvset)
+		block.StateHash = ExecKVMemSet(q, prevStateRoot, kvset)
 	}
 	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
+		ExecKVSetRollback(q, block.StateHash)
 		return nil, types.ErrCheckStateHash
 	}
+	//save to db
+	ExecKVSetCommit(q, block.StateHash)
 	detail.Block = block
 	detail.Receipts = rdata
 	//get receipts
@@ -107,10 +110,10 @@ func ExecTxList(q *queue.Queue, prevStateRoot []byte, txs []*types.Transaction, 
 	return receipts
 }
 
-func ExecKVSet(q *queue.Queue, prevStateRoot []byte, kvset []*types.KeyValue) []byte {
+func ExecKVMemSet(q *queue.Queue, prevStateRoot []byte, kvset []*types.KeyValue) []byte {
 	client := q.GetClient()
 	set := &types.StoreSet{prevStateRoot, kvset}
-	msg := client.NewMessage("store", types.EventStoreSet, set)
+	msg := client.NewMessage("store", types.EventStoreMemSet, set)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
 	if err != nil {
@@ -118,4 +121,30 @@ func ExecKVSet(q *queue.Queue, prevStateRoot []byte, kvset []*types.KeyValue) []
 	}
 	hash := resp.GetData().(*types.ReplyHash)
 	return hash.GetHash()
+}
+
+func ExecKVSetCommit(q *queue.Queue, hash []byte) error {
+	qclient := q.GetClient()
+	req := &types.ReqHash{hash}
+	msg := qclient.NewMessage("store", types.EventStoreCommit, req)
+	qclient.Send(msg, true)
+	msg, err := qclient.Wait(msg)
+	if err != nil {
+		return err
+	}
+	hash = msg.GetData().(*types.ReplyHash).GetHash()
+	return nil
+}
+
+func ExecKVSetRollback(q *queue.Queue, hash []byte) error {
+	qclient := q.GetClient()
+	req := &types.ReqHash{hash}
+	msg := qclient.NewMessage("store", types.EventStoreRollback, req)
+	qclient.Send(msg, true)
+	msg, err := qclient.Wait(msg)
+	if err != nil {
+		return err
+	}
+	hash = msg.GetData().(*types.ReplyHash).GetHash()
+	return nil
 }

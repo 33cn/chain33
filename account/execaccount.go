@@ -128,6 +128,32 @@ func ExecTransfer(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.
 	return execReceipt2(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
 }
 
+//从自己冻结的钱里面扣除，转移到别人的活动钱包里面去
+func ExecTransferFrozen(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+	accFrom := LoadExecAccount(db, from, execaddr)
+	accTo := LoadExecAccount(db, to, execaddr)
+
+	b := accFrom.GetFrozen() - amount
+	if b < 0 {
+		return nil, types.ErrNoBalance
+	}
+	copyaccFrom := *accFrom
+	copyaccTo := *accTo
+
+	accFrom.Frozen = b
+	accTo.Balance = accTo.Balance + amount
+
+	receiptBalanceFrom := &types.ReceiptExecAccount{execaddr, &copyaccFrom, accFrom}
+	receiptBalanceTo := &types.ReceiptExecAccount{execaddr, &copyaccTo, accTo}
+
+	SaveExecAccount(db, execaddr, accFrom)
+	SaveExecAccount(db, execaddr, accTo)
+	return execReceipt2(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
+}
+
 func execDeposit(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
