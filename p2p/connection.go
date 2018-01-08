@@ -109,18 +109,18 @@ FOR_LOOP:
 		select {
 		case <-c.pingTimer.Ch:
 			randNonce := rand.Int31n(102040)
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			//ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			//defer cancel()
 			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
 			if err != nil {
 				log.Error("Signature", "Error", err.Error())
-				cancel()
+				//cancel()
 				continue
 			}
 			log.Debug("SEND PING", "Peer", c.remoteAddress.String(), "nonce", randNonce)
-			r, err := c.conn.Ping(ctx, in)
+			r, err := c.conn.Ping(context.Background(), in)
 			if err != nil {
-				cancel()
+				//cancel()
 				c.sendMonitor.Update(false)
 
 				if pingtimes == 0 {
@@ -129,7 +129,7 @@ FOR_LOOP:
 				}
 				continue
 			}
-			cancel()
+			//cancel()
 			log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
 			c.sendMonitor.Update(true)
 			pingtimes++
@@ -155,8 +155,8 @@ func (c *MConnection) sendVersion() error {
 	}
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+	//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	//	defer cancel()
 	randNonce := rand.Int31n(102040)
 	in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
 	if err != nil {
@@ -165,13 +165,13 @@ func (c *MConnection) sendVersion() error {
 	}
 	addrfrom := fmt.Sprintf("%v:%v", ExternalAddr, (*c.nodeInfo).externalAddr.Port)
 	(*c.nodeInfo).blacklist.Add(addrfrom)
-	resp, err := c.conn.Version2(ctx, &pb.P2PVersion{Version: (*c.nodeInfo).cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
+	resp, err := c.conn.Version2(context.Background(), &pb.P2PVersion{Version: (*c.nodeInfo).cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: c.remoteAddress.String(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	if err != nil {
-		log.Error("sendVersion", "close", "ok", "err", err.Error())
+		c.peer.version.Set(false)
+		//log.Error("sendVersion", "close", "ok", "err", err.Error())
 		if strings.EqualFold(err.Error(), VersionNotSupport) == true {
-			c.peer.version.Set(false)
 			(*c.nodeInfo).monitorChan <- c.peer
 		}
 
@@ -183,9 +183,9 @@ func (c *MConnection) sendVersion() error {
 }
 
 func (c *MConnection) getAddr() ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	resp, err := c.conn.GetAddr(ctx, &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))})
+	//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	//	defer cancel()
+	resp, err := c.conn.GetAddr(context.Background(), &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))})
 	if err != nil {
 		log.Error("GetAddr", "err", err.Error())
 		c.sendMonitor.Update(false)
