@@ -136,11 +136,14 @@ func (na *NetAddress) Copy() *NetAddress {
 }
 
 // DialTimeout calls net.DialTimeout on the address.
-func (na *NetAddress) DialTimeout(timeout time.Duration) (*grpc.ClientConn, error) {
+func (na *NetAddress) DialTimeout(timeout time.Duration, cfg grpc.ServiceConfig) (*grpc.ClientConn, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	conn, err := grpc.DialContext(ctx, na.String(), grpc.WithInsecure())
+	//grpc.DialOption
+	ch := make(chan grpc.ServiceConfig, 1)
+	ch <- cfg
+	conn, err := grpc.DialContext(ctx, na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch))
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect: %v", err)
 		return nil, err

@@ -552,12 +552,7 @@ func (n *Node) Stop() {
 	log.Debug("stop", "remotelisten", "close")
 	n.addrBook.Stop()
 	log.Debug("stop", "addrBook", "close")
-	//	peers := n.GetPeers()
-	//	for _, peer := range peers {
-	//		addr := peer.Addr()
-	//		peer.Stop()
-	//		log.Debug("stop", "peer", addr, "close")
-	//	}
+
 	n.RemoveAll()
 
 }
