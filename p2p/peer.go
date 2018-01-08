@@ -2,8 +2,8 @@ package p2p
 
 import (
 	"fmt"
+	"io"
 	"sync"
-	"time"
 
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
@@ -66,10 +66,12 @@ BEGIN:
 		default:
 
 			data, err := resp.Recv()
+			if err == io.EOF {
+				continue
+			}
 			if err != nil {
-				log.Error("SubStreamBlock", "Recv Err", err.Error())
-				time.Sleep(time.Second * 1)
 				resp.CloseSend()
+				log.Error("SubStreamBlock", "Recv Err", err.Error())
 				goto BEGIN
 
 			}

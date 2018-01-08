@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	//"sync"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -22,11 +21,11 @@ type MConnection struct {
 	key           string //privkey
 	quit          chan bool
 	versionDone   chan struct{}
-	remoteAddress *NetAddress  //peer 的地址
-	pingTimer     *RepeatTimer // send pings periodically
-	versionTimer  *RepeatTimer
-	peer          *peer
-	sendMonitor   *Monitor
+	remoteAddress *NetAddress //peer 的地址
+	//pingTimer     *RepeatTimer // send pings periodically
+	//versionTimer *RepeatTimer
+	peer        *peer
+	sendMonitor *Monitor
 }
 
 // MConnConfig is a MConnection configuration.
@@ -51,9 +50,9 @@ func NewTemMConnConfig(gconn *grpc.ClientConn, conn pb.P2PgserviceClient) *MConn
 func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MConnection {
 
 	mconn := &MConnection{
-		gconn:       conn,
-		conn:        pb.NewP2PgserviceClient(conn),
-		pingTimer:   NewRepeatTimer("ping", PingTimeout),
+		gconn: conn,
+		conn:  pb.NewP2PgserviceClient(conn),
+		//pingTimer:   NewRepeatTimer("ping", PingTimeout),
 		sendMonitor: NewMonitor(),
 		peer:        peer,
 		quit:        make(chan bool),
@@ -103,37 +102,32 @@ func (c *MConnection) signature(in *pb.P2PPing) (*pb.P2PPing, error) {
 func (c *MConnection) pingRoutine() {
 
 	var pingtimes int64
+	ticker := time.NewTicker(PingTimeout)
+	defer ticker.Stop()
 FOR_LOOP:
 	for {
 
 		select {
-		case <-c.pingTimer.Ch:
+		case <-ticker.C:
 			randNonce := rand.Int31n(102040)
-			//ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-			//defer cancel()
 			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
 			if err != nil {
 				log.Error("Signature", "Error", err.Error())
-				//cancel()
 				continue
 			}
 			log.Debug("SEND PING", "Peer", c.remoteAddress.String(), "nonce", randNonce)
 			r, err := c.conn.Ping(context.Background(), in)
 			if err != nil {
-				//cancel()
 				c.sendMonitor.Update(false)
-
 				if pingtimes == 0 {
-					//log.Warn("ERR PING", "ERROR", err.Error())
 					(*c.nodeInfo).monitorChan <- c.peer
 				}
 				continue
 			}
-			//cancel()
+
 			log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
 			c.sendMonitor.Update(true)
 			pingtimes++
-			c.pingTimer.Reset()
 
 		case <-c.quit:
 			break FOR_LOOP
@@ -155,8 +149,6 @@ func (c *MConnection) sendVersion() error {
 	}
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
-	//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	//	defer cancel()
 	randNonce := rand.Int31n(102040)
 	in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
 	if err != nil {
@@ -170,7 +162,6 @@ func (c *MConnection) sendVersion() error {
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	if err != nil {
 		c.peer.version.Set(false)
-		//log.Error("sendVersion", "close", "ok", "err", err.Error())
 		if strings.EqualFold(err.Error(), VersionNotSupport) == true {
 			(*c.nodeInfo).monitorChan <- c.peer
 		}
@@ -183,11 +174,9 @@ func (c *MConnection) sendVersion() error {
 }
 
 func (c *MConnection) getAddr() ([]string, error) {
-	//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-	//	defer cancel()
 	resp, err := c.conn.GetAddr(context.Background(), &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))})
 	if err != nil {
-		log.Error("GetAddr", "err", err.Error())
+
 		c.sendMonitor.Update(false)
 		return nil, err
 	}
@@ -211,7 +200,6 @@ func (c *MConnection) close() {
 func (c *MConnection) stop() {
 
 	c.sendMonitor.Stop()
-	c.pingTimer.Stop()
 	c.gconn.Close()
 	c.quit <- false
 	log.Debug("Mconnection", "Close", "^_^!")
