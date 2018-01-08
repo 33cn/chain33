@@ -108,18 +108,19 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 			cancel()
 			continue
 		}
-		defer datacli.CloseSend()
-		cancel()
 
+		cancel()
 		invdatas, recerr := datacli.Recv()
 		if recerr != nil {
 			log.Error("GetMemPool", "err", recerr.Error())
+			datacli.CloseSend()
 			continue
 		}
 
 		for _, invdata := range invdatas.Items {
 			Txs = append(Txs, invdata.GetTx())
 		}
+		datacli.CloseSend()
 		break
 	}
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
@@ -356,18 +357,20 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 			index++
 			continue
 		}
-		defer resp.CloseSend()
+
 		invdatas, err := resp.Recv()
 		if err != nil {
 			index++
+			resp.CloseSend()
 			continue
 		}
 		if len(invdatas.GetItems()) > len(maxInvDatas.Items) ||
 			len(invdatas.GetItems()) == interval.end-interval.start+1 {
 			maxInvDatas = invdatas
+			resp.CloseSend()
 			break
 		}
-
+		resp.CloseSend()
 	}
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
