@@ -325,7 +325,7 @@ func (mem *Mempool) pollLastHeader() {
 func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Lock()
 	mem.header = h
-	mem.cacheDB = account.NewCacheDB(mem.memQueue, mem.header)
+	mem.cacheDB = account.NewCacheDB(mem.memQueue, mem.header.StateHash)
 	mem.proxyMtx.Unlock()
 }
 
