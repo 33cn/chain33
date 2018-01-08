@@ -23,7 +23,7 @@ import (
 	"github.com/coreos/etcd/wal/walpb"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
-	"github.com/pkg/errors"
+	//"github.com/pkg/errors"
 )
 
 //var once sync.Once
@@ -65,17 +65,18 @@ type raftNode struct {
 	stopc            chan struct{}
 	httpstopc        chan struct{}
 	httpdonec        chan struct{}
-	leaderC          chan<- string
+	//备用的leaderC用于watch leader节点的变更，暂时没用
+	leaderC          chan int
+	validatorC       chan bool
 }
 
 func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
-	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter) {
+	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter,chan int,chan bool) {
 
 	log.Info("Enter consensus raft")
 	// commit channel
 	commitC := make(chan *types.Block)
 	errorC := make(chan error)
-
 	rc := &raftNode{
 		proposeC:    proposeC,
 		confChangeC: confChangeC,
@@ -90,12 +91,13 @@ func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), propose
 		stopc:       make(chan struct{}),
 		httpstopc:   make(chan struct{}),
 		httpdonec:   make(chan struct{}),
-
+        leaderC: make(chan int),
+		validatorC: make(chan bool),
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
 	}
 	go rc.startRaft()
 
-	return commitC, errorC, rc.snapshotterReady
+	return commitC, errorC, rc.snapshotterReady,rc.leaderC,rc.validatorC
 }
 
 //  启动raft节点
@@ -124,9 +126,9 @@ func (rc *raftNode) startRaft() {
 		Storage:         rc.raftStorage,
 		MaxSizePerMsg:   1024 * 1024,
 		MaxInflightMsgs: 256,
-		//设置成预投票，可以快速地当集群重启的话，选举出新的leader
+		//设置成预投票，当节点重连时，可以快速地重新加入集群
 		//PreVote: true,
-		CheckQuorum: true,
+		//CheckQuorum: true,
 	}
 
 	if oldwal {
@@ -159,16 +161,8 @@ func (rc *raftNode) startRaft() {
 	go rc.serveRaft()
 	go rc.serveChannels()
 
-	//获取leadId,讲leader的节点设置Validator节点
-	leadId, err := rc.WaitForLeader()
-	if err != nil {
-		log.Error("chain33_raft: (%v)", err)
-		return
-	}
-	log.Info("chain33_raft=====leaderId====:"+strconv.FormatUint(leadId,10))
-	if rc.id == int(leadId) {
-		isValidator = true
-	}
+	//定时轮询watch leader 状态是否改变，更新validator
+	go rc.updateValidator()
 }
 
 // 网络监听
@@ -265,6 +259,24 @@ func (rc *raftNode) serveChannels() {
 			rc.stop()
 			return
 		}
+	}
+}
+
+func (rc *raftNode)updateValidator(){
+    for {
+		leadId := rc.node.Status().Lead
+		//if leadId != raft.None {
+		//	//rc.leaderC <- int(leadId)
+		//}
+		log.Info("chain33_raft==========leaderId===========:"+strconv.FormatUint(leadId,10))
+		if rc.id == int(leadId){
+			log.Info("=====chain-33-raft has elected cluster leader====.")
+			log.Info("chain33_raft======4444444444444444444====leaderId===========:"+strconv.FormatUint(leadId,10))
+			rc.validatorC <-true
+		}else{
+			rc.validatorC <-false
+		}
+    	time.Sleep(time.Second)
 	}
 }
 
@@ -483,22 +495,23 @@ func (rc *raftNode) ReportUnreachable(id uint64)                          {}
 func (rc *raftNode) ReportSnapshot(id uint64, status raft.SnapshotStatus) {}
 
 // 等待集群中leader节点的选举结果，并返回leadId
-func (rc *raftNode) WaitForLeader() (uint64, error) {
-	leadId := rc.node.Status().Lead
-	if leadId != raft.None {
-		return leadId, nil
-	}
-	ticker := time.NewTicker(50 * time.Millisecond)
-	defer ticker.Stop()
-	for leadId == raft.None {
-		select {
-		case <-ticker.C:
-		}
-		leadId := rc.node.Status().Lead
-		if leadId != raft.None {
-			log.Info("=====chain-33-raft has elected cluster leader====.")
-			return leadId, nil
-		}
-	}
-	return leadId, errors.New("raft: no elected cluster leader")
-}
+//func (rc *raftNode) WaitForLeader() (uint64, error) {
+//	leadId := rc.node.Status().Lead
+//	if leadId != raft.None {
+//		return leadId, nil
+//	}
+//	ticker := time.NewTicker(50 * time.Millisecond)
+//	defer ticker.Stop()
+//	for leadId == raft.None {
+//		select {
+//		case <-ticker.C:
+//		}
+//		leadId := rc.node.Status().Lead
+//		log.Info("chain33_raft==========leaderId===========:"+strconv.FormatUint(leadId,10))
+//		if leadId != raft.None {
+//			log.Info("=====chain-33-raft has elected cluster leader====.")
+//			return leadId, nil
+//		}
+//	}
+//	return leadId, errors.New("raft: no elected cluster leader")
+//}

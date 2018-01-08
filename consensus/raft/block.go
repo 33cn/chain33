@@ -11,6 +11,7 @@ import (
 	"github.com/coreos/etcd/snap"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	//"github.com/robfig/cron"
 )
 
 var (
@@ -27,11 +28,12 @@ type RaftClient struct {
 	qclient     queue.IClient
 	q           *queue.Queue
 	snapshotter *snap.Snapshotter
+	validatorC   chan bool
 }
 
-func NewBlockstore(snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error) *RaftClient {
-	b := &RaftClient{proposeC: proposeC, snapshotter: snapshotter}
-	go b.readCommits(commitC, errorC)
+func NewBlockstore(snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, leaderC <-chan int,validatorC chan bool) *RaftClient {
+	b := &RaftClient{proposeC: proposeC, snapshotter: snapshotter,validatorC: validatorC}
+	go b.readCommits(commitC, errorC, leaderC)
 	return b
 }
 
@@ -44,35 +46,36 @@ func (client *RaftClient) getSnapshot() ([]byte, error) {
 func (client *RaftClient) SetQueue(q *queue.Queue) {
 	log.Info("Enter SetQueue method of consensus")
 	// 只有主节点打包区块，其余节点接受p2p广播过来的区块
-	if !isValidator {
-		return
-	}
-
+	//TODO:这里应该要改成轮询执行，当本台节点为Validator节点时则执行
 	client.qclient = q.GetClient()
 	client.q = q
-
-	// 程序初始化时，先从blockchain取区块链高度
-	height := client.getInitHeight()
-
-	if height == -1 {
-		// 创世区块
-		newblock := &types.Block{}
-		newblock.Height = 0
-		newblock.ParentHash = zeroHash[:]
-		tx := createGenesisTx()
-		newblock.Txs = append(newblock.Txs, tx)
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		// 通过propose channel把block传到raft核心
-		client.propose(newblock)
-		// 把区块放在内存中
-		setCurrentBlock(newblock)
-		//client.writeBlock(zeroHash[:], newblock)
-	} else {
-		block := client.RequestBlock(height)
-		setCurrentBlock(block)
-	}
-	go client.eventLoop()
-	go client.createBlock()
+	go client.pollingTask(q)
+	//client.qclient = q.GetClient()
+	//client.q = q
+	//
+	//// 程序初始化时，先从blockchain取区块链高度
+	//height := client.getInitHeight()
+	//
+	//if height == -1 {
+	//	// 创世区块
+	//	newblock := &types.Block{}
+	//	newblock.Height = 0
+	//	newblock.ParentHash = zeroHash[:]
+	//	tx := createGenesisTx()
+	//	newblock.Txs = append(newblock.Txs, tx)
+	//	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	//	// 通过propose channel把block传到raft核心
+	//	client.propose(newblock)
+	//	// 把区块放在内存中
+	//	setCurrentBlock(newblock)
+	//	//client.writeBlock(zeroHash[:], newblock)
+	//} else {
+	//	block := client.RequestBlock(height)
+	//	setCurrentBlock(block)
+	//}
+	//
+	//go client.eventLoop()
+	//go client.createBlock()
 }
 
 func (client *RaftClient) Close() {
@@ -109,6 +112,12 @@ func (client *RaftClient) checkTxDup(txs []*types.Transaction) (transactions []*
 func (client *RaftClient) createBlock() {
 	issleep := true
 	for {
+		//如果leader节点突然挂了，不是打包节点，需要退出
+		if !isValidator {
+			log.Warn("I'm not the validator node anymore,exit.=============================")
+			break
+		}
+		log.Info("==================start create new block!=====================")
 		if issleep {
 			time.Sleep(time.Second)
 		}
@@ -138,6 +147,11 @@ func (client *RaftClient) eventLoop() {
 	client.qclient.Sub("consensus")
 	go func() {
 		for msg := range client.qclient.Recv() {
+            //当本节点不再时leader节点时，需要退出。
+			if !isValidator {
+				log.Warn("I'm not the validator node anymore,exit.=============================")
+				break
+			}
 			rlog.Info("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
@@ -245,9 +259,8 @@ func (client *RaftClient) propose(block *types.Block) {
 }
 
 // 从receive channel中读leader发来的block
-func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error) {
+func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error, leaderC <-chan int) {
 	var prevHash []byte
-
 	for data := range commitC {
 		rlog.Info("Get block from commit channel")
 		if data == nil {
@@ -277,5 +290,47 @@ func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan erro
 
 	if err, ok := <-errorC; ok {
 		panic(err)
+	}
+}
+
+//轮询任务，去检测本机器是否为validator节点，如果是，则执行打包任务
+func (client *RaftClient) pollingTask(q *queue.Queue) {
+
+	for {
+		select {
+		case value := <-client.validatorC:
+			if !value{
+				log.Warn("I'm not the validator node!=====")
+				isValidator = false
+			}else if !isValidator&&value{
+				log.Info("==================start init block========================")
+				height := client.getInitHeight()
+
+				if height == -1 {
+					// 创世区块
+					newblock := &types.Block{}
+					newblock.Height = 0
+					newblock.ParentHash = zeroHash[:]
+					tx := createGenesisTx()
+					newblock.Txs = append(newblock.Txs, tx)
+					newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+					// 通过propose channel把block传到raft核心
+					client.propose(newblock)
+					// 把区块放在内存中
+					setCurrentBlock(newblock)
+					//client.writeBlock(zeroHash[:], newblock)
+				} else {
+					block := client.RequestBlock(height)
+					setCurrentBlock(block)
+				}
+				//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
+				// 老的leader中运行的打包程此刻应该被终止？
+				isValidator=true
+				go client.eventLoop()
+				go client.createBlock()
+
+			}
+
+		}
 	}
 }
