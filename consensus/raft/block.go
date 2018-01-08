@@ -28,12 +28,12 @@ type RaftClient struct {
 	qclient     queue.IClient
 	q           *queue.Queue
 	snapshotter *snap.Snapshotter
-	validatorC   chan bool
+	validatorC   <-chan bool
 }
 
-func NewBlockstore(snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, leaderC chan int,validatorC chan bool) *RaftClient {
+func NewBlockstore(snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan bool) *RaftClient {
 	b := &RaftClient{proposeC: proposeC, snapshotter: snapshotter,validatorC: validatorC}
-	go b.readCommits(commitC, errorC, leaderC)
+	go b.readCommits(commitC, errorC)
 	return b
 }
 
@@ -259,41 +259,48 @@ func (client *RaftClient) propose(block *types.Block) {
 }
 
 // 从receive channel中读leader发来的block
-func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error, leaderC chan int) {
+func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error) {
 	var prevHash []byte
-	for data := range commitC {
-		rlog.Info("Get block from commit channel")
-		if data == nil {
-			rlog.Info("data is nil")
-			//			snapshot, err := b.snapshotter.Load()
-			//			if err == snap.ErrNoSnapshot {
-			//				return
-			//			}
+	for {
+		select {
+           case data:= <-commitC:
+			   rlog.Info("Get block from commit channel")
+			   if data == nil {
+				   rlog.Info("data is nil")
+				   			//snapshot, err := b.snapshotter.Load()
+				   			//if err == snap.ErrNoSnapshot {
+				   			//	return
+				   			//}
+							   //
+				   			//log.Info("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
+				   			//if err := b.recoverFromSnapshot(snapshot.Data); err != nil {
+				   			//	panic(err)
+				   			//}
+				   continue
+			   }
+			   //TODO:这里有个极端的情况，就是readCommits 比我的validatorC早接收到消息，这样的话，
+			   // 在程序刚开始启动的时候有可能存在丢失数据的问题
+			   if !isValidator{
+				   log.Warn("I'm not the validator node, I don't need to writeBlock!==========================")
+				   continue
+			   }
+			   log.Warn("I'm the validator node, I need to writeBlock!==========================")
+			   lastBlock := getCurrentBlock()
+			   if lastBlock == nil {
+				   prevHash = zeroHash[:]
+			   } else {
+				   prevHash = lastBlock.StateHash
+			   }
+			   b.mu.Lock()
+			   b.writeBlock(prevHash, data)
+			   b.mu.Unlock()
+		case err, ok := <-errorC :
+			if ok{
+				panic(err)
+			}
 
-			//			log.Info("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
-			//			if err := b.recoverFromSnapshot(snapshot.Data); err != nil {
-			//				panic(err)
-			//			}
-			continue
-		}
-		if !isValidator{
-			log.Warn("I'm not the validator node, I don't need to writeBlock!==========================")
-			return
-		}
-		log.Warn("I'm the validator node, I need to writeBlock!==========================")
-		lastBlock := getCurrentBlock()
-		if lastBlock == nil {
-			prevHash = zeroHash[:]
-		} else {
-			prevHash = lastBlock.StateHash
-		}
-		b.mu.Lock()
-		b.writeBlock(prevHash, data)
-		b.mu.Unlock()
-	}
 
-	if err, ok := <-errorC; ok {
-		panic(err)
+	  }
 	}
 }
 

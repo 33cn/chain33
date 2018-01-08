@@ -71,7 +71,7 @@ type raftNode struct {
 }
 
 func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
-	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter,chan int,chan bool) {
+	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter,<-chan bool) {
 
 	log.Info("Enter consensus raft")
 	// commit channel
@@ -91,13 +91,13 @@ func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), propose
 		stopc:       make(chan struct{}),
 		httpstopc:   make(chan struct{}),
 		httpdonec:   make(chan struct{}),
-        leaderC: make(chan int),
+        //leaderC: make(chan int),
 		validatorC: make(chan bool),
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
 	}
 	go rc.startRaft()
 
-	return commitC, errorC, rc.snapshotterReady,rc.leaderC,rc.validatorC
+	return commitC, errorC, rc.snapshotterReady,rc.validatorC
 }
 
 //  启动raft节点
@@ -128,7 +128,7 @@ func (rc *raftNode) startRaft() {
 		MaxInflightMsgs: 256,
 		//设置成预投票，当节点重连时，可以快速地重新加入集群
 		//PreVote: true,
-		//CheckQuorum: true,
+		CheckQuorum: true,
 	}
 
 	if oldwal {
