@@ -70,6 +70,7 @@ func (store *Store) SetQueue(q *queue.Queue) {
 }
 
 func (store *Store) processMessage(msg queue.Message) {
+	client := store.qclient
 	if msg.Ty == types.EventStoreSet {
 		datas := msg.GetData().(*types.StoreSet)
 		hash := mavl.SetKVPair(store.db, datas)
