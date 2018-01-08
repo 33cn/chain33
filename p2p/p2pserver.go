@@ -359,7 +359,7 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	}
 	return txmap, nil
 }
-func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvDatas, error) {
+func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServer) error {
 	log.Debug("p2pServer Recv GetDataTx", "p2p version", in.GetVersion())
 	var p2pInvData = make([]*pb.InvData, 0)
 	var count = 0
@@ -405,8 +405,62 @@ func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvData
 		}
 	}
 
-	return &pb.InvDatas{Items: p2pInvData}, nil
+	err := stream.Send(&pb.InvDatas{Items: p2pInvData})
+	if err != nil {
+		return err
+	}
+	return nil
+	//	return &pb.InvDatas{Items: p2pInvData}, nil
 }
+
+//func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvDatas, error) {
+//	log.Debug("p2pServer Recv GetDataTx", "p2p version", in.GetVersion())
+//	var p2pInvData = make([]*pb.InvData, 0)
+//	var count = 0
+//	invs := in.GetInvs()
+//	client := s.node.nodeInfo.qclient
+//	for _, inv := range invs { //过滤掉不需要的数据
+//		var invdata pb.InvData
+//		var memtx = make(map[string]*pb.Transaction)
+//		if inv.GetTy() == MSG_TX { //doOnce
+//			//loadMempool
+//			if count == 0 {
+//				var err error
+//				memtx, err = s.loadMempool()
+//				if err != nil {
+//					continue
+//				}
+//			}
+//			count++
+//			txhash := hex.EncodeToString(inv.GetHash())
+//			if tx, ok := memtx[txhash]; ok {
+//				invdata.Value = &pb.InvData_Tx{Tx: tx}
+//				invdata.Ty = MSG_TX
+//				p2pInvData = append(p2pInvData, &invdata)
+//			}
+
+//		} else if inv.GetTy() == MSG_BLOCK {
+//			height := inv.GetHeight()
+//			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false})
+//			client.Send(msg, true)
+//			resp, err := client.Wait(msg)
+//			if err != nil {
+//				log.Error("GetBlocks Err", "Err", err.Error())
+//				continue
+//			}
+
+//			blocks := resp.Data.(*pb.BlockDetails)
+//			for _, item := range blocks.Items {
+//				invdata.Ty = MSG_BLOCK
+//				invdata.Value = &pb.InvData_Block{Block: item.Block}
+//				p2pInvData = append(p2pInvData, &invdata)
+//			}
+
+//		}
+//	}
+
+//	return &pb.InvDatas{Items: p2pInvData}, nil
+//}
 
 func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
 	log.Debug("p2pServer GetHeaders", "p2p version", in.GetVersion())
