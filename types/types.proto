@@ -528,6 +528,7 @@ message WalletUnLock {
 message Config {
 	string title=1;
 	string loglevel = 2;
+	string LogConsoleLevel = 10;
 	string logFile = 9;
 	Store  store=3;
 	Consensus consensus=4;
