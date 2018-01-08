@@ -196,19 +196,19 @@ func LoadHelp() {
 }
 
 type AccountsResult struct {
-	Wallets []*WalletResult `protobuf:"bytes,1,rep,name=wallets" json:"wallets"`
+	Wallets []*WalletResult `json:"wallets"`
 }
 
 type WalletResult struct {
-	Acc   *AccountResult `protobuf:"bytes,1,opt,name=acc" json:"acc,omitempty"`
-	Label string         `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
+	Acc   *AccountResult `json:"acc,omitempty"`
+	Label string         `json:"label,omitempty"`
 }
 
 type AccountResult struct {
-	Currency int32  `protobuf:"varint,1,opt,name=currency" json:"currency,omitempty"`
-	Balance  string `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
-	Frozen   string `protobuf:"varint,3,opt,name=frozen" json:"frozen,omitempty"`
-	Addr     string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
+	Currency int32  `json:"currency,omitempty"`
+	Balance  string `json:"balance,omitempty"`
+	Frozen   string `json:"frozen,omitempty"`
+	Addr     string `json:"addr,omitempty"`
 }
 
 type TxListResult struct {
@@ -237,7 +237,7 @@ type TxDetailResult struct {
 }
 
 type TxDetailsResult struct {
-	Txs []*TxDetailResult `protobuf:"bytes,1,rep,name=txs" json:"txs"`
+	Txs []*TxDetailResult `json:"txs"`
 }
 
 type BlockResult struct {
@@ -260,13 +260,13 @@ type BlockDetailsResult struct {
 }
 
 type WalletTxDetailsResult struct {
-	TxDetails []*WalletTxDetailResult `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
+	TxDetails []*WalletTxDetailResult `json:"txDetails"`
 }
 type WalletTxDetailResult struct {
-	Tx        *TxResult            `protobuf:"bytes,1,opt,name=tx" json:"tx"`
-	Receipt   *jsonrpc.ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
-	Height    int64                `protobuf:"varint,3,opt,name=height" json:"height"`
-	Index     int64                `protobuf:"varint,4,opt,name=index" json:"index"`
+	Tx        *TxResult            `json:"tx"`
+	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
+	Height    int64                `json:"height"`
+	Index     int64                `json:"index"`
 	Blocktime int64                `json:"blocktime"`
 	Amount    string               `json:"amount"`
 	Fromaddr  string               `json:"fromaddr"`
