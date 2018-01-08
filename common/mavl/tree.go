@@ -151,6 +151,27 @@ func (t *MAVLTree) Proof(key []byte) (value []byte, proofBytes []byte, exists bo
 	return value, proofBytes, true
 }
 
+//删除key对应的节点
+func (t *MAVLTree) Remove(key []byte) (value []byte, removed bool) {
+	if t.root == nil {
+		return nil, false
+	}
+	newRootHash, newRoot, _, value, removed := t.root.remove(t, key)
+	if !removed {
+		return nil, false
+	}
+	if newRoot == nil && newRootHash != nil {
+		root, err := t.ndb.GetNode(t, newRootHash)
+		if err != nil {
+			panic(err) //数据库已经损坏
+		}
+		t.root = root
+	} else {
+		t.root = newRoot
+	}
+	return value, true
+}
+
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
@@ -210,6 +231,19 @@ func (ndb *nodeDB) Commit() {
 	ndb.batch = ndb.db.NewBatch(true)
 }
 
+//将需要删除的节点从本tree中剔除，但不能删除数据中的数据，由于前tree还在使用
+func (ndb *nodeDB) RemoveNode(t *MAVLTree, node *MAVLNode) {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	if node.hash == nil {
+		treelog.Error(" RemoveNode Expected to find node.hash, but none found.")
+	}
+	if !node.persisted {
+		treelog.Error("RemoveNode Shouldn't be calling remove on a non-persisted node.")
+	}
+	treelog.Debug("RemoveNode", "key", string(node.key), "value", string(node.value))
+}
+
 //对外接口
 func SetKVPair(db dbm.DB, storeSet *types.StoreSet) []byte {
 	tree := NewMAVLTree(db)
@@ -245,6 +279,21 @@ func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
 		return proof
 	}
 	return nil
+}
+
+//剔除key对应的节点在本次tree中，返回新的roothash和key对应的value
+func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
+	tree := NewMAVLTree(db)
+	tree.Load(storeDel.StateHash)
+
+	values := make([][]byte, len(storeDel.Keys))
+	for i := 0; i < len(storeDel.Keys); i++ {
+		value, removed := tree.Remove(storeDel.Keys[i])
+		if removed {
+			values[i] = value
+		}
+	}
+	return tree.Save(), values
 }
 
 func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {

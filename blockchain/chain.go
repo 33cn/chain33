@@ -805,11 +805,18 @@ func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
 
 	var preheight int64
 	chainlog.Debug("ProcAddBlocksMsg", "blockcount", len(blocks.Items))
-	//我们只处理连续的block，不连续时直接忽略掉
-	for index, block := range blocks.Items {
-		if index == 0 {
+	CurHeight := chain.GetBlockHeight()
+	var flag bool = false
+	//我们只处理连续的block，不连续时直接忽略掉,小于当前高度的block也要被忽略掉
+	for _, block := range blocks.Items {
+		if CurHeight >= block.GetHeight() {
+			chainlog.Error("ProcAddBlocksMsg", "CurHeight", CurHeight, "synheight", block.GetHeight())
+			continue
+		}
+		if flag == false {
 			preheight = block.GetHeight()
 			chain.blockPool.AddBlock(block)
+			flag = true
 		} else if preheight+1 == block.GetHeight() {
 			preheight = block.GetHeight()
 			chain.blockPool.AddBlock(block)
@@ -1163,7 +1170,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 
 	chainlog.Info("SynBlocksFromPeers", "synBlkHeight", GetsynBlkHeight, "curheight", curheight)
-	chainlog.Info("SynBlocksFromPeers", "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", curheight)
+	chainlog.Info("SynBlocksFromPeers", "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 
 	//如果上个周期已经同步的block高度小于等于当前高度
 	//说明本节点在这个周期没有收到block需要主动发起同步
