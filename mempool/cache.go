@@ -67,8 +67,8 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 			}
 		}
 		if tx.Fee <= cache.LowestFee() {
-			//mlog.Error("pushToPool", "tx.Fee", tx.Fee, "lowset", cache.LowestFee(), "tree.size", cache.txLlrb.Len())
-			return lowFeeErr
+			mlog.Error("pushToPool", "tx.Fee", tx.Fee, "lowset", cache.LowestFee(), "tree.size", cache.txLlrb.Len())
+			return memFullErr
 		}
 		if expired == 0 {
 			poppedTx := cache.txLlrb.DeleteMin().(*Item).value
