@@ -14,14 +14,13 @@ import (
 )
 
 type Msg struct {
-	mtx      sync.Mutex
-	pmtx     sync.Mutex
-	wg       sync.WaitGroup
-	network  *P2p
-	tempdata map[int64]*pb.Block
-	peermtx  sync.Mutex
-	peers    []*peer
-	//peers     map[string]*peer
+	mtx       sync.Mutex
+	pmtx      sync.Mutex
+	wg        sync.WaitGroup
+	network   *P2p
+	tempdata  map[int64]*pb.Block
+	peermtx   sync.Mutex
+	peers     []*peer
 	peerInfos map[string]*pb.Peer
 	done      chan struct{}
 }
@@ -104,13 +103,21 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 		}
 		//获取真正的交易Tx call GetData
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second*10)
-		p2pInvDatas, err := peer.mconn.conn.GetData(ctx, &pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.cfg.GetVersion()})
-		if err != nil {
+		datacli, dataerr := peer.mconn.conn.GetData(ctx, &pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		if dataerr != nil {
 			cancel()
 			continue
 		}
+		defer datacli.CloseSend()
 		cancel()
-		for _, invdata := range p2pInvDatas.Items {
+
+		invdatas, recerr := datacli.Recv()
+		if recerr != nil {
+			log.Error("GetMemPool", "err", recerr.Error())
+			continue
+		}
+
+		for _, invdata := range invdatas.Items {
 			Txs = append(Txs, invdata.GetTx())
 		}
 		break
@@ -120,23 +127,11 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 }
 func (m *Msg) flushPeerInfos(in []*pb.Peer) {
 	m.network.node.nodeInfo.peerInfos.flushPeerInfos(in)
-	//	m.pmtx.Lock()
-	//	defer m.pmtx.Unlock()
-	//	//首先清空之前的数据
-
-	//	for k, _ := range m.network.node.nodeInfo.peerInfos {
-	//		delete(m.network.node.nodeInfo.peerInfos, k)
-	//	}
-	//	//重新插入新数据
-	//	for _, peer := range in {
-	//		m.network.node.nodeInfo.peerInfos[peer.GetName()] = peer
-	//	}
 
 }
 
 func (m *Msg) getPeerInfos() []*pb.Peer {
-	//	m.pmtx.Lock()
-	//	defer m.pmtx.Unlock()
+
 	peerinfos := m.network.node.nodeInfo.peerInfos.getPeerInfos()
 	var peers []*pb.Peer
 	for _, peer := range peerinfos {
@@ -350,10 +345,16 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv) 
 			continue
 		}
 
-		invdatas, err := mpeer.mconn.conn.GetData(context.Background(), &p2pdata)
+		resp, err := mpeer.mconn.conn.GetData(context.Background(), &p2pdata)
 		if err != nil {
-			log.Error("downloadBlock", "err", err.Error())
+			log.Error("downloadBlock", "GetData err", err.Error())
 			mpeer.mconn.sendMonitor.Update(false)
+			index++
+			continue
+		}
+		defer resp.CloseSend()
+		invdatas, err := resp.Recv()
+		if err != nil {
 			index++
 			continue
 		}

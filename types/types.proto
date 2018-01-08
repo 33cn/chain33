@@ -54,7 +54,7 @@ service p2pgservice{
 	rpc GetMemPool(P2PGetMempool)returns(P2PInv){}
 	
 	//获取数据
-	rpc GetData(P2PGetData)returns(InvDatas){}
+	rpc GetData(P2PGetData)returns(stream InvDatas){}
 	
 	
 	//获取头部
