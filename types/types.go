@@ -8,6 +8,8 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+type Message proto.Message
+
 //hash 不包含签名，用户通过修改签名无法重新发送交易
 func (tx *Transaction) Hash() []byte {
 	copytx := *tx

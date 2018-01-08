@@ -21,6 +21,9 @@ var ErrNoPeer = errors.New("ErrNoPeer")
 var ErrSign = errors.New("ErrSign")
 var ErrExecNameNotMath = errors.New("ErrExecNameNotMath")
 var ErrChannelClosed = errors.New("ErrChannelClosed")
+var ErrNotMinered = errors.New("ErrNotMinered")
+var ErrTime = errors.New("ErrTime")
+var ErrFromAddr = errors.New("ErrFromAddr")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
@@ -217,7 +220,9 @@ const (
 	TyLogGenesis  = 4
 
 	//log for ticket
-	TyLogNewTicket = 5
+	TyLogNewTicket   = 5
+	TyLogCloseTicket = 6
+	TyLogMinerTicket = 7
 )
 
 //exec type
