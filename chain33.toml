@@ -18,9 +18,9 @@ seeds=["114.55.101.159:13802"]
 enable=true
 isSeed=false
 dbPath="datadir/addrbook"
-version=9
-verMix=9
-verMax=10
+version=11
+verMix=11
+verMax=12
 
 [mempool]
 poolCacheSize=10240
