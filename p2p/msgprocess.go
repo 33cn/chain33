@@ -198,7 +198,8 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 		if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
 			continue
 		}
-		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd()})
+		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
+			Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		if err != nil {
 			log.Error("GetBlocks", "Err", err.Error())
 			peer.mconn.sendMonitor.Update(false)
