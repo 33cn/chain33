@@ -130,6 +130,7 @@ func (p *peer) makePersistent() {
 // Addr returns peer's remote network address.
 func (p *peer) Addr() string {
 	return p.peerAddr.String()
+
 }
 
 // IsPersistent returns true if the peer is persitent, false otherwise.
