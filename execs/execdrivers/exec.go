@@ -14,17 +14,8 @@ import (
 var elog = log.New("module", "execs")
 var zeroHash [32]byte
 
-var bname [200]byte
-var addrSeed = []byte("address seed bytes for public key")
-
 func ExecAddress(name string) *account.Address {
-	if len(name) > 100 {
-		panic("name too long")
-	}
-	buf := append(bname[:0], addrSeed...)
-	buf = append(buf, []byte(name)...)
-	hash := common.Sha2Sum(buf)
-	return account.PubKeyToAddress(hash[:])
+	return account.ExecAddress(name)
 }
 
 func SetLogLevel(level string) {
