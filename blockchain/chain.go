@@ -330,6 +330,7 @@ FOR_LOOP:
 			//chainlog.Info("trySyncTicker")
 			// 定时同步缓存中的block信息到db数据库中
 			newbatch := chain.blockStore.NewBatch(true)
+			cacheDB := NewCacheDB()
 			var stratblockheight int64 = 0
 			var endblockheight int64 = 0
 			var prevStateHash []byte
@@ -381,7 +382,7 @@ FOR_LOOP:
 				//chainlog.Info("trySyncTicker util.ExecBlock end ", "height", block.GetHeight())
 
 				//保存tx信息到db中
-				err = chain.blockStore.indexTxs(newbatch, blockdetail)
+				err = chain.blockStore.indexTxs(newbatch, cacheDB, blockdetail)
 				if err != nil {
 					chainlog.Info("trySyncTicker indexTxs err", "height", block.Height, "err", err)
 					break
@@ -405,6 +406,7 @@ FOR_LOOP:
 				stratblockheight = currentheight + 1
 				endblockheight = blockdetail.Block.Height
 			}
+			cacheDB.SetBatch(newbatch)
 			newbatch.Write()
 
 			//更新db中的blockheight到blockStore.Height
@@ -587,8 +589,9 @@ func (chain *BlockChain) AddP2PCastBlock(broadcast bool, block *types.Block) err
 	chainlog.Info("AddP2PCastBlock", "util.ExecBlock end", block.GetHeight())
 
 	newbatch := chain.blockStore.NewBatch(true)
+	cacheDB := NewCacheDB()
 	//保存tx交易结果信息到db中
-	chain.blockStore.indexTxs(newbatch, blockDetail)
+	chain.blockStore.indexTxs(newbatch, cacheDB, blockDetail)
 	if err != nil {
 		return err
 	}
@@ -598,6 +601,7 @@ func (chain *BlockChain) AddP2PCastBlock(broadcast bool, block *types.Block) err
 	if err != nil {
 		return err
 	}
+	cacheDB.SetBatch(newbatch)
 	newbatch.Write()
 
 	//更新db中的blockheight到blockStore.Height
@@ -680,9 +684,9 @@ func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.B
 		}
 
 		newbatch := chain.blockStore.NewBatch(true)
-
+		cacheDB := NewCacheDB()
 		//保存tx交易结果信息到db中
-		chain.blockStore.indexTxs(newbatch, blockDetail)
+		chain.blockStore.indexTxs(newbatch, cacheDB, blockDetail)
 		if err != nil {
 			chainlog.Error("ProcAddBlockDetail", "err", err)
 			return err
@@ -694,6 +698,7 @@ func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.B
 			chainlog.Error("ProcAddBlockDetail", "err", err)
 			return err
 		}
+		cacheDB.SetBatch(newbatch)
 		newbatch.Write()
 		//更新db中的blockheight到blockStore.Height
 		chain.blockStore.UpdateHeight()
@@ -804,7 +809,9 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
 
 	var preheight int64
-	chainlog.Debug("ProcAddBlocksMsg", "blockcount", len(blocks.Items))
+	if len(blocks.Items) != 0 {
+		chainlog.Debug("ProcAddBlocksMsg", "blockcount", len(blocks.Items), "startheight", blocks.Items[0].GetHeight())
+	}
 	CurHeight := chain.GetBlockHeight()
 	var flag bool = false
 	//我们只处理连续的block，不连续时直接忽略掉,小于当前高度的block也要被忽略掉
@@ -1274,6 +1281,10 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	}
 
 	//获取地址对应的交易count
+	addr.Flag = 0
+	addr.Count = 0x7fffffff
+	addr.Height = -1
+	addr.Index = 0
 	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
@@ -1281,7 +1292,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	}
 	addrOverview.TxCount = int64(len(txinfos.GetTxInfos()))
 
-	chainlog.Info("ProcGetAddrOverview", "addrOverview", addrOverview.String())
+	chainlog.Info("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
 
 	return &addrOverview, nil
 }
