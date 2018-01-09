@@ -278,6 +278,7 @@ func (n *Node) GetPeers() []*peer {
 	var peers []*peer
 	for _, peer := range n.outBound {
 		if n.nodeInfo.peerInfos.GetPeerInfo(peer.Addr()) != nil {
+			log.Error("GetPeers", "peer", peer.Addr())
 			peers = append(peers, peer)
 		}
 
