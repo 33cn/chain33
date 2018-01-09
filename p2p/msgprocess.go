@@ -191,7 +191,13 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 	var MaxInvs = new(pb.P2PInv)
 	//获取最大的下载列表
 	peers := m.network.node.GetPeers()
+	//log.Error("peers", "show", peers)
 	for _, peer := range peers {
+		log.Error("peer", "addr", peer.Addr())
+		peerinfo := m.network.node.nodeInfo.peerInfos.GetPeerInfo(peer.Addr())
+		if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
+			continue
+		}
 		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd()})
 		if err != nil {
 			log.Error("GetBlocks", "Err", err.Error())
