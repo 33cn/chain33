@@ -284,11 +284,11 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, 
 		return
 	}
 
-	peersize := m.network.node.Size()
 	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "peersize", peersize)
 	maxInvDatas := new(pb.InvDatas)
 	pinfos := m.network.node.nodeInfo.peerInfos.getPeerInfos()
 	peers := m.network.node.GetPeers()
+	peersize := len(peers)
 	for i := 0; i < peersize; i++ {
 
 		index = index % peersize
@@ -305,7 +305,7 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, 
 		if index >= peersize {
 			continue
 		}
-
+		log.Error("downloadBlock", "index", index, "peersize", peersize)
 		peer := peers[index]
 		if peer == nil {
 			index++
