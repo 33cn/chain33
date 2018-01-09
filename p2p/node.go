@@ -96,7 +96,7 @@ func (n *Node) flushNodeInfo() {
 }
 func (n *Node) exChangeVersion() {
 	<-n.nodeInfo.versionChan
-	peers := n.GetPeers()
+	peers, _ := n.GetPeers()
 	for _, peer := range peers {
 		peer.mconn.sendVersion()
 	}
@@ -107,7 +107,7 @@ FOR_LOOP:
 		select {
 		case <-ticker.C:
 			log.Debug("exChangeVersion", "sendVersion", "version")
-			peers := n.GetPeers()
+			peers, _ := n.GetPeers()
 			for _, peer := range peers {
 				peer.mconn.sendVersion()
 			}
@@ -272,18 +272,20 @@ func (n *Node) GetRegisterPeers() []*peer {
 	return peers
 }
 
-func (n *Node) GetPeers() []*peer {
+func (n *Node) GetPeers() ([]*peer, map[string]*types.Peer) {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
 	var peers []*peer
+	infos := n.nodeInfo.peerInfos.GetPeerInfos()
 	for _, peer := range n.outBound {
-		if n.nodeInfo.peerInfos.GetPeerInfo(peer.Addr()) != nil {
+		if _, ok := infos[peer.Addr()]; ok {
+			log.Error("GetPeers", "peer", peer.Addr())
 			peers = append(peers, peer)
 		}
 
 	}
 	//log.Debug("GetPeers", "node", peers)
-	return peers
+	return peers, infos
 }
 func (n *Node) Remove(peerAddr string) {
 
@@ -367,7 +369,7 @@ FOR_LOOP:
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
-				peers := n.GetPeers()
+				peers, _ := n.GetPeers()
 				log.Debug("getAddrFromOnline", "peers", peers)
 				for _, peer := range peers { //向其他节点发起请求，获取地址列表
 					log.Debug("Getpeer", "addr", peer.Addr())
