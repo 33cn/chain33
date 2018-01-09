@@ -1,6 +1,7 @@
 package ticket
 
 import (
+	"math/big"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
@@ -62,6 +63,50 @@ func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	tx3.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
 	ret = append(ret, &tx3)
 	return
+}
+
+func (client *TicketClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	//检查第一个笔交易的execs, 以及执行状态
+	if len(current.Block.Txs) == 0 {
+		return types.ErrEmptyTx
+	}
+	baseTx := current.Block.Txs[0]
+	if string(baseTx.Execer) != "ticket" {
+		return types.ErrCoinBaseExecer
+	}
+	//判断交易类型和执行情况
+	var ticketAction types.TicketAction
+	err := types.Decode(baseTx.GetPayload(), &ticketAction)
+	if err != nil {
+		return err
+	}
+	if ticketAction.GetTy() != types.TicketActionMiner {
+		return types.ErrCoinBaseTxType
+	}
+	//判断交易执行是否OK
+	if current.Receipts[0].Ty != types.ExecOk {
+		return types.ErrCoinBaseExecErr
+	}
+	//check reward 的值是否正确
+	miner := ticketAction.GetMiner()
+	if miner.Reward != types.CoinReward {
+		return types.ErrCoinbaseReward
+	}
+	//通过判断区块的难度difficult
+	diff := client.GetNextTarget(parent)
+	currentdiff := client.GetCurrentTarget(current.Block)
+	if currentdiff.Cmp(diff) > 0 {
+		return types.ErrCoinBaseTarget
+	}
+	return nil
+}
+
+func (client *TicketClient) GetNextTarget(block *types.Block) *big.Int {
+	return big.NewInt(0)
+}
+
+func (client *TicketClient) GetCurrentTarget(block *types.Block) *big.Int {
+	return big.NewInt(0)
 }
 
 func (client *TicketClient) CreateBlock() {
