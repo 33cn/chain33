@@ -104,8 +104,8 @@ func (nf *NodeInfo) GetListenAddr() *NetAddress {
 func (nf *NodeInfo) GrpcConfig() grpc.ServiceConfig {
 
 	var ready = true
-	var defaultRespSize = 1024 * 1024 * 10
-	var defaulttimeout = 30 * time.Second
+	var defaultRespSize = 1024 * 1024 * 60
+	var defaulttimeout = 60 * time.Second
 	var pingtimeout = 50 * time.Second
 	var MethodConf = map[string]grpc.MethodConfig{
 		"/types.p2pgservice/Ping":           grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout, MaxRespSize: &defaultRespSize},
