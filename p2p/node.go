@@ -279,7 +279,7 @@ func (n *Node) GetPeers() ([]*peer, map[string]*types.Peer) {
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
 	for _, peer := range n.outBound {
 		if _, ok := infos[peer.Addr()]; ok {
-			log.Error("GetPeers", "peer", peer.Addr())
+			log.Debug("GetPeers", "peer", peer.Addr())
 			peers = append(peers, peer)
 		}
 
