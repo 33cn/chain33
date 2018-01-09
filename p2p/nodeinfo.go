@@ -49,10 +49,7 @@ func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 func (p *PeerInfos) GetPeerInfos() map[string]*types.Peer {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
-	//	var peers []*pb.Peer
-	//	for _, peer := range p.peerInfos {
-	//		peers = append(peers, peer)
-	//	}
+
 	return p.infos
 }
 
@@ -107,17 +104,18 @@ func (nf *NodeInfo) GetListenAddr() *NetAddress {
 func (nf *NodeInfo) GrpcConfig() grpc.ServiceConfig {
 
 	var ready = true
+	var defaultRespSize = 1024 * 1024 * 10
 	var defaulttimeout = 30 * time.Second
 	var pingtimeout = 50 * time.Second
 	var MethodConf = map[string]grpc.MethodConfig{
-		"/types.p2pgservice/Ping":           grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout},
-		"/types.p2pgservice/Version2":       grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
-		"/types.p2pgservice/BroadCastTx":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
-		"/types.p2pgservice/GetMemPool":     grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
-		"/types.p2pgservice/GetData":        grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
-		"/types.p2pgservice/GetBlocks":      grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
-		"/types.p2pgservice/GetPeerInfo":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
-		"/types.p2pgservice/BroadCastBlock": grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
+		"/types.p2pgservice/Ping":           grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout, MaxRespSize: &defaultRespSize},
+		"/types.p2pgservice/Version2":       grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize},
+		"/types.p2pgservice/BroadCastTx":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize},
+		"/types.p2pgservice/GetMemPool":     grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize},
+		"/types.p2pgservice/GetData":        grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize},
+		"/types.p2pgservice/GetBlocks":      grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize},
+		"/types.p2pgservice/GetPeerInfo":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize},
+		"/types.p2pgservice/BroadCastBlock": grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize},
 	}
 
 	return grpc.ServiceConfig{Methods: MethodConf}
