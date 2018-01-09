@@ -1,6 +1,10 @@
 package types
 
-import "errors"
+import (
+	"errors"
+	"math/big"
+	"time"
+)
 
 var ErrNotFound = errors.New("ErrNotFound")
 var ErrNoBalance = errors.New("ErrNoBalance")
@@ -34,12 +38,19 @@ var ErrCoinbaseReward = errors.New("ErrCoinbaseReward")
 var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
 var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
 var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
+var ErrBlockNotFound = errors.New("ErrBlockNotFound")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
 const CoinReward int64 = 1e9
+const PowLimitBits uint32 = uint32(0)
+
+const TargetTimespan = 144 * 16 * time.Second
+const TargetTimePerBlock = 16 * time.Second
+const RetargetAdjustmentFactor = 4
 
 var AllowDepositExec = []string{"ticket"}
+var PowLimit = big.NewInt(0)
 
 const (
 	EventTx = 1
