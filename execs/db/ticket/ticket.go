@@ -153,6 +153,44 @@ func readTicket(db dbm.KVDB, id string) (*types.Ticket, error) {
 	return &ticket, nil
 }
 
+func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*types.Receipt, error) {
+	if index != 0 {
+		return nil, types.ErrCoinBaseIndex
+	}
+	ticket, err := readTicket(action.db, miner.TicketId)
+	if err != nil {
+		return nil, err
+	}
+	if ticket.Status != 1 {
+		return nil, types.ErrCoinBaseTicketStatus
+	}
+	if !ticket.IsGenesis {
+		if action.blocktime-ticket.GetCreateTime() < 86400*10 {
+			return nil, types.ErrTime
+		}
+	}
+	//check from address
+	if action.fromaddr != ticket.MinerAddress && action.fromaddr != ticket.ReturnAddress {
+		return nil, types.ErrFromAddr
+	}
+	ticket.Status = 2
+	ticket.MinerValue = miner.Reward
+	t := &Ticket{*ticket}
+	var logs []*types.ReceiptLog
+	var kv []*types.KeyValue
+	receipt, err := account.ExecDepositFrozen(action.db, t.ReturnAddress, action.execaddr, 1000*types.Coin)
+	if err != nil {
+		tlog.Error("TicketOpen.ExecActive", "addr", t.ReturnAddress, "execaddr", action.execaddr)
+		return nil, err
+	}
+	t.Save(action.db)
+	logs = append(logs, receipt.Logs...)
+	kv = append(kv, receipt.KV...)
+	logs = append(logs, t.GetReceiptLog())
+	kv = append(kv, t.GetKVSet()...)
+	return &types.Receipt{types.ExecOk, kv, logs}, nil
+}
+
 func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Receipt, error) {
 	var tickets []*Ticket
 	for i := 0; i < len(tclose.TicketId); i++ {
@@ -194,7 +232,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 	return receipt, nil
 }
 
-func (action *TicketAction) TicketList(tlist *types.TicketList) (*types.Receipt, error) {
+func TicketList(db dbm.KVDB, tlist *types.TicketList) (*types.Receipt, error) {
 	return nil, nil
 }
 

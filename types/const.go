@@ -31,10 +31,15 @@ var ErrCoinBaseTxType = errors.New("ErrCoinBaseTxType")
 var ErrCoinBaseExecErr = errors.New("ErrCoinBaseExecErr")
 var ErrCoinBaseTarget = errors.New("ErrCoinBaseTarget")
 var ErrCoinbaseReward = errors.New("ErrCoinbaseReward")
+var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
+var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
+var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
 const CoinReward int64 = 1e9
+
+var AllowDepositExec = []string{"ticket"}
 
 const (
 	EventTx = 1
