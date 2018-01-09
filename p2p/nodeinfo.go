@@ -46,7 +46,7 @@ func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 
 }
 
-func (p *PeerInfos) getPeerInfos() map[string]*types.Peer {
+func (p *PeerInfos) GetPeerInfos() map[string]*types.Peer {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 	//	var peers []*pb.Peer
