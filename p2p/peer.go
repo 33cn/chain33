@@ -2,7 +2,7 @@ package p2p
 
 import (
 	"fmt"
-	"io"
+
 	"sync"
 
 	pb "code.aliyun.com/chain33/chain33/types"
@@ -66,9 +66,6 @@ BEGIN:
 		default:
 
 			data, err := resp.Recv()
-			if err == io.EOF {
-				continue
-			}
 			if err != nil {
 				resp.CloseSend()
 				log.Error("SubStreamBlock", "Recv Err", err.Error())
