@@ -2,7 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
-	"errors"
+
 	"fmt"
 	"strings"
 	"sync"
@@ -269,8 +269,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 
 	log.Debug("RECV PEER VERSION", "VERSION", *in)
-	if in.Version > s.node.nodeInfo.cfg.GetVerMax() || in.Version < s.node.nodeInfo.cfg.GetVerMix() {
-		log.Error("VersionCheck", "Error", "Version not Support")
+	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
 	//in.AddrFrom 表示远程客户端的地址,如果客户端的远程地址与自己定义的addrfrom 地址一直，则认为在外网
@@ -299,8 +298,8 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
 	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
-	if in.GetEndHeight()-in.GetStartHeight() > MaxRangeBlockNum { //
-		return nil, errors.New("out of range")
+	if s.checkVersion(in.GetVersion()) == false {
+		return nil, fmt.Errorf(VersionNotSupport)
 	}
 	// GetHeaders
 	client := s.node.nodeInfo.qclient
@@ -326,6 +325,9 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 //服务端查询本地mempool
 func (s *p2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
 	log.Debug("p2pServer Recv GetMempool", "version", in)
+	if s.checkVersion(in.GetVersion()) == false {
+		return nil, fmt.Errorf(VersionNotSupport)
+	}
 	memtx, err := s.loadMempool()
 	if err != nil {
 		return nil, err
@@ -363,6 +365,9 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 	log.Debug("p2pServer Recv GetDataTx", "p2p version", in.GetVersion())
 	var p2pInvData = make([]*pb.InvData, 0)
 	var count = 0
+	if s.checkVersion(in.GetVersion()) == false {
+		return fmt.Errorf(VersionNotSupport)
+	}
 	invs := in.GetInvs()
 	client := s.node.nodeInfo.qclient
 	for _, inv := range invs { //过滤掉不需要的数据
@@ -399,22 +404,34 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 			for _, item := range blocks.Items {
 				invdata.Ty = MSG_BLOCK
 				invdata.Value = &pb.InvData_Block{Block: item.Block}
+
 				p2pInvData = append(p2pInvData, &invdata)
 			}
 
 		}
 	}
-
-	err := stream.Send(&pb.InvDatas{Items: p2pInvData})
-	if err != nil {
-		return err
+	var counts int
+	for _, invdata := range p2pInvData {
+		counts++
+		var InvDatas []*pb.InvData
+		InvDatas = append(InvDatas, invdata)
+		err := stream.Send(&pb.InvDatas{Items: InvDatas})
+		if err != nil {
+			log.Error("sendBlock", "err", err.Error())
+			return err
+		}
 	}
+	log.Debug("sendblock", "count", counts, "invs", len(invs))
+
 	return nil
 
 }
 
 func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
 	log.Debug("p2pServer GetHeaders", "p2p version", in.GetVersion())
+	if s.checkVersion(in.GetVersion()) == false {
+		return nil, fmt.Errorf(VersionNotSupport)
+	}
 	if in.GetEndHeigh()-in.GetStartHeight() > 2000 || in.GetEndHeigh() < in.GetStartHeight() {
 		return nil, fmt.Errorf("out of range")
 	}
@@ -434,7 +451,9 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 
 func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
 	log.Debug("p2pServer GetPeerInfo", "p2p version", in.GetVersion())
-
+	if s.checkVersion(in.GetVersion()) == false {
+		return nil, fmt.Errorf(VersionNotSupport)
+	}
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
 	client.Send(msg, true)
@@ -507,4 +526,13 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 
 	return nil
 
+}
+
+func (s *p2pServer) checkVersion(version int32) bool {
+	if version < s.node.nodeInfo.cfg.GetVerMix() || version > s.node.nodeInfo.cfg.GetVerMax() {
+		//版本不支持
+		return false
+	}
+
+	return true
 }
