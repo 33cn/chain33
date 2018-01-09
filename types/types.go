@@ -8,6 +8,8 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+type Message proto.Message
+
 //hash 不包含签名，用户通过修改签名无法重新发送交易
 func (tx *Transaction) Hash() []byte {
 	copytx := *tx
@@ -96,6 +98,10 @@ func Encode(data proto.Message) []byte {
 	return b
 }
 
+func Size(data proto.Message) int {
+	return proto.Size(data)
+}
+
 func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
 }
@@ -120,4 +126,11 @@ func NewErrReceipt(err error) *Receipt {
 	berr := err.Error()
 	errlog := &ReceiptLog{TyLogErr, []byte(berr)}
 	return &Receipt{ExecErr, nil, []*ReceiptLog{errlog}}
+}
+
+func CheckAmount(amount int64) bool {
+	if amount <= 0 || amount >= MaxCoin {
+		return false
+	}
+	return true
 }

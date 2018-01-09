@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/types"
@@ -21,7 +22,8 @@ import (
 //1.2 消息的回复直接通过消息自带的channel 回复
 var qlog = log.New("module", "queue")
 
-const DefaultChanBuffer = 1024
+const DefaultChanBuffer = 64
+const DefaultLowChanBuffer = 40960
 
 func SetLogLevel(level int) {
 
@@ -32,20 +34,20 @@ func DisableLog() {
 }
 
 type Queue struct {
-	chans map[string]chan Message
-	mu    sync.Mutex
-	done  chan struct{}
+	chans   map[string][]chan Message
+	mu      sync.Mutex
+	done    chan struct{}
+	isclose bool
 }
 
 func New(name string) *Queue {
-	chs := make(map[string]chan Message)
+	chs := make(map[string][]chan Message)
 	return &Queue{chans: chs, done: make(chan struct{}, 1)}
 }
 
 func (q *Queue) Start() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-
 	// Block until a signal is received.
 	select {
 	case <-q.done:
@@ -56,42 +58,66 @@ func (q *Queue) Start() {
 	}
 }
 
+func (q *Queue) IsClosed() bool {
+	q.mu.Lock()
+	c := q.isclose
+	q.mu.Unlock()
+	return c
+}
+
 func (q *Queue) Close() {
+	for _, ch := range q.chans {
+		close(ch[0])
+		close(ch[1])
+	}
 	q.done <- struct{}{}
 	close(q.done)
+	q.mu.Lock()
+	q.isclose = true
+	q.mu.Unlock()
 	qlog.Info("queue module closed")
 }
 
-func (q *Queue) getChannel(topic string) chan Message {
+func (q *Queue) getChannel(topic string) (chan Message, chan Message) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	_, ok := q.chans[topic]
 	if !ok {
-		q.chans[topic] = make(chan Message, DefaultChanBuffer)
+		q.chans[topic] = make([]chan Message, 2, 2)
+		q.chans[topic][0] = make(chan Message, DefaultChanBuffer)
+		q.chans[topic][1] = make(chan Message, DefaultLowChanBuffer)
 	}
-	ch1 := q.chans[topic]
-	return ch1
+	return q.chans[topic][0], q.chans[topic][1]
 }
 
 func (q *Queue) Send(msg Message) {
-	chrecv := q.getChannel(msg.Topic)
+	if q.IsClosed() {
+		return
+	}
+	chrecv, _ := q.getChannel(msg.Topic)
 	timeout := time.After(time.Second * 5)
 	select {
 	case chrecv <- msg:
 	case <-timeout:
-		panic("wait for message timeout.")
+		panic("send message timeout.")
 	}
-	qlog.Info("send ok", "msg", msg)
+	qlog.Debug("send ok", "msg", msg)
 }
 
 func (q *Queue) SendAsyn(msg Message) error {
-	chrecv := q.getChannel(msg.Topic)
+	if q.IsClosed() {
+		return types.ErrChannelClosed
+	}
+	_, lowChan := q.getChannel(msg.Topic)
 	select {
-	case chrecv <- msg:
+	case lowChan <- msg:
+		qlog.Debug("send asyn ok", "msg", msg)
 		return nil
 	default:
+		qlog.Error("send asyn ok", "msg", msg)
 		return types.ErrChannelFull
 	}
+
 }
 
 func (q *Queue) GetClient() IClient {
@@ -104,6 +130,15 @@ type Message struct {
 	Id      int64
 	Data    interface{}
 	ChReply chan Message
+}
+
+func NewMessage(id int64, topic string, ty int64, data interface{}) (msg Message) {
+	msg.Id = id
+	msg.Ty = ty
+	msg.Data = data
+	msg.Topic = topic
+	msg.ChReply = make(chan Message, 1)
+	return msg
 }
 
 func (msg Message) GetData() interface{} {
@@ -122,14 +157,28 @@ func (msg Message) Err() error {
 
 func (msg Message) Reply(replyMsg Message) {
 	if msg.ChReply == nil {
-		qlog.Error("reply a empty chreply", "msg", msg)
+		qlog.Info("reply a empty chreply", "msg", msg)
 		return
 	}
 	msg.ChReply <- replyMsg
-	qlog.Info("reply msg ok", "msg", msg)
+	qlog.Debug("reply msg ok", "msg", msg)
 }
 
 func (msg Message) String() string {
 	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v, Ch:%v}", msg.Topic,
-		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.ChReply)
+		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.ChReply != nil)
+}
+
+func (msg Message) ReplyErr(title string, err error) {
+	var reply types.Reply
+	if err != nil {
+		qlog.Error(title, "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	} else {
+		qlog.Debug(title, "success", "ok")
+		reply.IsOk = true
+	}
+	id := atomic.AddInt64(&gId, 1)
+	msg.Reply(NewMessage(id, "", types.EventReply, &reply))
 }

@@ -207,7 +207,7 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 			return nil, err
 		}
 	} else {
-		txbytes = ws.db.IteratorScan([]byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		txbytes = ws.db.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
 			err := errors.New("does not exist tx!")
 			return nil, err

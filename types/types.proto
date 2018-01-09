@@ -1,7 +1,6 @@
 syntax = "proto3";
 package types;
 
-
 service grpcservice{
 	//chain33 对外提供服务的接口
 	//区块链接口
@@ -31,11 +30,11 @@ service grpcservice{
 	
 }
 
-
 service p2premoteaddr{
 	//获取远程地址
 	rpc RemotePeerAddr(P2PGetAddr)returns(P2PAddr){}
 }
+
 service p2pgservice{
 	
 	//广播交易
@@ -55,7 +54,7 @@ service p2pgservice{
 	rpc GetMemPool(P2PGetMempool)returns(P2PInv){}
 	
 	//获取数据
-	rpc GetData(P2PGetData)returns(InvDatas){}
+	rpc GetData(P2PGetData)returns(stream InvDatas){}
 	
 	
 	//获取头部
@@ -83,6 +82,7 @@ message P2PPeerInfo{
 	int32 mempoolSize=4;
 	Header header=5;
 }
+
 message P2PVersion{
 	int32 version=1;
 	int64 service=2;
@@ -136,6 +136,7 @@ message P2PInv{
 	repeated Inventory invs=1;
 	
 }
+
 //ty=MSG_TX MSG_BLOCK
 message Inventory{
 	int32 ty=1; 
@@ -155,12 +156,14 @@ message P2PTx {
 message P2PBlock {
 	 Block block=1;
 }
+
 message BroadCastData{
 	oneof value{
 		P2PTx tx=1;
 		P2PBlock block=2;
 	}
 }
+
 message P2PGetHeaders{
 	int32 version=1;
 	int64 startHeight=2;
@@ -235,6 +238,11 @@ message ReqInt {
 
 message ReqAddr {
 	string addr = 1;
+	int32 flag  = 2;//表示取所有/from/to/其他的hash列表
+	int32 count = 3;
+	int32 direction=4;
+	int64 height = 5;
+	int64 index = 6;
 }
 
 message ReqHashes {
@@ -378,7 +386,6 @@ message ExecTxList {
 }
 
 //currency = 0 -> origin account
-
 message Account {
 	int32 currency = 1;
 	int64 balance = 2;
@@ -395,6 +402,12 @@ message ReceiptBalance {
 	int64 prev = 1;
 	int64 current = 2;
 	int64 delt = 3;
+}
+
+message ReceiptExecAccount {
+	string execAddr = 1;
+	Account prev = 2;
+	Account current = 3;
 }
 
 //p2p
@@ -440,24 +453,6 @@ message MAVLProof {
 	bytes rootHash =3;
 }
 
-message CoinsAction {
-	oneof value {
-		CoinsTransfer  transfer = 1;
-		CoinsGenesis   genesis = 2;
-	}
-	int32 ty = 3;
-}
-
-//给某个地址凭空打币
-//只能执行一次，不能执行第二次
-message CoinsGenesis {
-	int64 amount = 2;
-}
-
-message CoinsTransfer {
-	int64 amount = 2;
-	string note = 3;
-}
 
 message InvData {
 	oneof value {
@@ -466,7 +461,6 @@ message InvData {
 	}
 	int32 ty = 3;
 }
-
 
 message InvDatas {
 	repeated InvData items = 1;
@@ -534,6 +528,8 @@ message WalletUnLock {
 message Config {
 	string title=1;
 	string loglevel = 2;
+	string logConsoleLevel = 10;
+	string logFile = 9;
 	Store  store=3;
 	Consensus consensus=4;
 	MemPool memPool=5;
@@ -569,6 +565,8 @@ message Consensus {
 	bool minerstart = 3;
 	int64 nodeId = 4;
 	string peersURL = 5;
+	int64 genesisBlockTime = 6;
+	string hotkeyAddr = 7;
 }
 
 message MemPool {
@@ -584,6 +582,7 @@ message BlockChain {
 	string driver = 5;
 	string dbPath = 6;
 }
+
 message ReplyTxInfos {
 	repeated ReplyTxInfo txInfos = 1;
 }
@@ -618,3 +617,76 @@ message WalletPwHash {
 	bytes pwHash = 1;
 	string randstr = 2;
 }
+
+//message for execs.coins
+message CoinsAction {
+	oneof value {
+		CoinsTransfer  transfer = 1;
+		CoinsGenesis   genesis = 2;
+	}
+	int32 ty = 3;
+}
+
+//给某个地址凭空打币
+//只能执行一次，不能执行第二次
+message CoinsGenesis {
+	int64 amount = 2;
+	string returnAddress = 3;
+}
+
+message CoinsTransfer {
+	int64 amount = 2;
+	string note = 3;
+}
+
+//message for execs.ticket
+message TicketAction {
+	oneof value {
+		TicketOpen  topen = 1;
+		TicketGenesis   genesis = 2;
+		TicketClose  tclose = 3;
+		TicketList tlist = 4;
+		TicketInfos infos = 5;
+	}
+	int32 ty = 10;
+}
+
+message TicketOpen {
+	string minerAddress = 1; //用户挖矿的ticket 地址
+	int32 count = 2; //购买ticket的数目
+}
+
+message TicketGenesis {
+	string minerAddress = 1;
+	string returnAddress = 2;
+	int32 count = 3;
+}
+
+message TicketClose {
+	repeated string ticketId = 1;
+}
+
+message TicketList {
+	string addr = 1;
+	bool isClosed = 2;
+}
+
+message TicketInfos {
+	repeated string ticketIds = 1;
+}
+
+message Ticket {
+	string ticketId  = 1;
+	int32  status     = 2;   //0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
+	bool   isGenesis   = 3;  //genesis 创建的私钥比较特殊
+	int64  createTime = 4;   //创建时间
+	int64  minerTime  = 5;   //挖矿时间
+	int64  minerValue = 8;   //挖到的币的数目
+	string minerAddress = 6;
+	string returnAddress = 7; //return wallet
+}
+
+message ReceiptTicket {
+	string ticketId = 1;
+}
+

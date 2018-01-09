@@ -2,8 +2,8 @@ package p2p
 
 import (
 	"fmt"
+	"io"
 	"sync"
-	"time"
 
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
@@ -24,6 +24,7 @@ type peer struct {
 	peerAddr   *NetAddress
 	streamDone chan struct{}
 }
+
 type Version struct {
 	mtx            sync.Mutex
 	versionSupport bool
@@ -40,23 +41,20 @@ func (v *Version) Get() bool {
 	defer v.mtx.Unlock()
 	return v.versionSupport
 }
+
 func (p *peer) Start() error {
 	p.mconn.key = p.key //TODO setKey
 	go p.subStreamBlock()
 	return p.mconn.start()
 }
+
 func (p *peer) subStreamBlock() {
 BEGIN:
 	//defer p.wg.Done()
 	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
 	if err != nil {
-		log.Error("SubStreamBlock", "call RouteChat err", err.Error()+p.Addr())
-		time.Sleep(time.Second)
-		if p.GetRunning() == false {
-			return
-		} else {
-			goto BEGIN
-		}
+		(*p.nodeInfo).monitorChan <- p //直接删除节点
+		return
 	}
 	for {
 		select {
@@ -68,10 +66,12 @@ BEGIN:
 		default:
 
 			data, err := resp.Recv()
+			if err == io.EOF {
+				continue
+			}
 			if err != nil {
-				log.Error("SubStreamBlock", "Recv Err", err.Error())
-				time.Sleep(time.Second * 1)
 				resp.CloseSend()
+				log.Error("SubStreamBlock", "Recv Err", err.Error())
 				goto BEGIN
 
 			}
@@ -103,9 +103,9 @@ BEGIN:
 }
 
 func (p *peer) Stop() {
-	close(p.streamDone)
 	p.setRunning(false)
 	p.mconn.stop()
+	close(p.streamDone)
 
 }
 func (p *peer) setRunning(run bool) {
@@ -137,8 +137,8 @@ func (p *peer) IsPersistent() bool {
 	return p.persistent
 }
 
-func dial(addr *NetAddress) (*grpc.ClientConn, error) {
-	conn, err := addr.DialTimeout(DialTimeout)
+func dial(addr *NetAddress, conf grpc.ServiceConfig) (*grpc.ClientConn, error) {
+	conn, err := addr.DialTimeout(DialTimeout, conf)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo)
 //连接server out=往其他节点连接
 func newOutboundPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
-	conn, err := dial(addr)
+	conn, err := dial(addr, (*nodeinfo).GrpcConfig())
 	if err != nil {
 		return nil, fmt.Errorf("Error creating peer")
 	}
@@ -197,8 +197,9 @@ func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress
 
 	return p, nil
 }
+
 func DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
-	log.Debug("DialPeer", "peer addr", addr.String())
+	log.Warn("DialPeer", "will connect", addr.String())
 	var persistent bool
 	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
 		if seed == addr.String() {
