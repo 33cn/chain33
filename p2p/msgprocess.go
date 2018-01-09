@@ -310,21 +310,21 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, 
 		peer := peers[index]
 		if peer == nil {
 			index++
-			log.Error("download", "peer", "nil")
+			log.Debug("download", "peer", "nil")
 			continue
 		}
 		if pinfo, ok := pinfos[peer.Addr()]; ok {
 			if pinfo.GetHeader().GetHeight() < int64(invs.Invs[interval.end].GetHeight()) {
 				index++
-				log.Error("download", "much height", pinfo.GetHeader().GetHeight(), "invs height", int64(invs.Invs[interval.end].GetHeight()))
+				log.Debug("download", "much height", pinfo.GetHeader().GetHeight(), "invs height", int64(invs.Invs[interval.end].GetHeight()))
 				continue
 			}
 		} else {
-			log.Error("download", "pinfo", "no this addr", peer.Addr())
+			log.Debug("download", "pinfo", "no this addr", peer.Addr())
 			index++
 			continue
 		}
-		log.Error("downloadBlock", "index", index, "peersize", peersize, "peeraddr", peer.Addr(), "p2pdata", p2pdata)
+		log.Debug("downloadBlock", "index", index, "peersize", peersize, "peeraddr", peer.Addr(), "p2pdata", p2pdata)
 		resp, err := peer.mconn.conn.GetData(context.Background(), &p2pdata)
 		if err != nil {
 			log.Error("downloadBlock", "GetData err", err.Error())
@@ -345,7 +345,7 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, 
 			len(invdatas.GetItems()) == interval.end-interval.start+1 {
 			maxInvDatas = invdatas
 			resp.CloseSend()
-			log.Error("download", "success,invs", p2pdata.Invs)
+			log.Debug("download", "success,invs", p2pdata.Invs)
 			break
 		}
 		if len(invdatas.GetItems()) == 0 {
