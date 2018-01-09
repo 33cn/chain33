@@ -17,6 +17,8 @@ var blockStoreKey = []byte("blockStoreHeight")
 
 var storelog = chainlog.New("submodule", "store")
 
+var MaxTxsPerBlock int64 = 100000
+
 type BlockStore struct {
 	db     dbm.DB
 	mtx    sync.RWMutex
@@ -117,6 +119,16 @@ func (bs *BlockStore) NewBatch(sync bool) dbm.Batch {
 	return storeBatch
 }
 
+//用于存储地址相关的hash列表，key=TxAddrHash:addr:height*100000 + index
+func calcTxAddrHashKey(addr string, heightindex string) []byte {
+	return []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr, heightindex))
+}
+
+//用于存储地址相关的hash列表，key=TxAddrHash:addr:flag:height*100000 + index
+func calcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
+	return []byte(fmt.Sprintf("TxAddrDirHash:%s:%d:%s", addr, flag, heightindex))
+}
+
 // 通过批量存储tx信息到db中
 func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDetail) error {
 
@@ -155,7 +167,7 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDet
 				return err
 			}
 
-			blockheight := blockdetail.Block.Height*100000 + int64(index)
+			blockheight := blockdetail.Block.Height*MaxTxsPerBlock + int64(index)
 			heightstr := fmt.Sprintf("%018d", blockheight)
 
 			//from addr
@@ -163,15 +175,19 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDet
 			addr := account.PubKeyToAddress(pubkey)
 			fromaddress := addr.String()
 			if len(fromaddress) != 0 {
-				fromkey := fmt.Sprintf("%s:0:%s", fromaddress, heightstr)
-				storeBatch.Set([]byte(fromkey), txinfobyte)
+				fromkey := calcTxAddrDirHashKey(fromaddress, 1, heightstr)
+				//fmt.Sprintf("%s:0:%s", fromaddress, heightstr)
+				storeBatch.Set(fromkey, txinfobyte)
+				storeBatch.Set(calcTxAddrHashKey(fromaddress, heightstr), txinfobyte)
 				//storelog.Debug("indexTxs address ", "fromkey", fromkey, "value", txhash)
 			}
 			//toaddr
 			toaddr := blockdetail.Block.Txs[index].GetTo()
 			if len(toaddr) != 0 {
-				tokey := fmt.Sprintf("%s:1:%s", toaddr, heightstr)
+				tokey := calcTxAddrDirHashKey(toaddr, 2, heightstr)
+				//fmt.Sprintf("%s:1:%s", toaddr, heightstr)
 				storeBatch.Set([]byte(tokey), txinfobyte)
+				storeBatch.Set(calcTxAddrHashKey(toaddr, heightstr), txinfobyte)
 
 				//更新地址收到的amount
 				var action types.CoinsAction
@@ -189,32 +205,54 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	return nil
 }
 
-//从db数据库中获取指定hash对应的block高度
-func (bs *BlockStore) GetHeightByBlockHash(hash []byte) int64 {
-
-	heightbytes := bs.db.Get(calcBlockHashKey(hash))
-	if heightbytes == nil {
-		return -1
-	}
-	var height int64
-	err := json.Unmarshal(heightbytes, &height)
-	if err != nil {
-		storelog.Error("GetHeightByBlockHash Could not unmarshal height bytes", "error", err)
-	}
-	return height
-}
-
 // 通过addr前缀查找本地址参与的所有交易
-func (bs *BlockStore) GetTxsByAddr(addr []byte) (*types.ReplyTxInfos, error) {
-	if len(addr) == 0 {
-		err := errors.New("input addr is null")
-		return nil, err
-	}
+func (bs *BlockStore) GetTxsByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
 
-	Txinfos := bs.db.PrefixScan(addr)
-	if len(Txinfos) == 0 {
-		err := errors.New("does not exist tx!")
-		return nil, err
+	var Prefix []byte
+	var key []byte
+	var Txinfos [][]byte
+	//取最新的交易hash列表
+	if addr.GetHeight() == -1 {
+
+		if addr.Flag == 0 { //所有的交易hash列表
+			Prefix = calcTxAddrHashKey(addr.GetAddr(), "")
+		} else if addr.Flag == 1 { //from的交易hash列表
+			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 1, "")
+		} else if addr.Flag == 2 { //to的交易hash列表
+			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 2, "")
+		} else {
+			err := errors.New("Flag unknow!")
+			return nil, err
+		}
+
+		Txinfos = bs.db.IteratorScanFromLast(Prefix, addr.Count, addr.Direction)
+		if len(Txinfos) == 0 {
+			err := errors.New("does not exist tx!")
+			return nil, err
+		}
+	} else { //翻页查找指定的txhash列表
+		blockheight := addr.GetHeight()*MaxTxsPerBlock + int64(addr.GetIndex())
+		heightstr := fmt.Sprintf("%018d", blockheight)
+
+		if addr.Flag == 0 {
+			Prefix = calcTxAddrHashKey(addr.GetAddr(), "")
+			key = calcTxAddrHashKey(addr.GetAddr(), heightstr)
+		} else if addr.Flag == 1 { //from的交易hash列表
+			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 1, "")
+			key = calcTxAddrDirHashKey(addr.GetAddr(), 1, heightstr)
+		} else if addr.Flag == 2 { //to的交易hash列表
+			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 2, "")
+			key = calcTxAddrDirHashKey(addr.GetAddr(), 2, heightstr)
+		} else {
+			err := errors.New("Flag unknow!")
+			return nil, err
+		}
+
+		Txinfos = bs.db.IteratorScan(Prefix, key, addr.Count, addr.Direction)
+		if len(Txinfos) == 0 {
+			err := errors.New("does not exist tx!")
+			return nil, err
+		}
 	}
 	var replyTxInfos types.ReplyTxInfos
 	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(Txinfos))
@@ -231,10 +269,27 @@ func (bs *BlockStore) GetTxsByAddr(addr []byte) (*types.ReplyTxInfos, error) {
 	return &replyTxInfos, nil
 }
 
+//存储block hash对应的block height
 func calcBlockHashKey(hash []byte) []byte {
 	return []byte(fmt.Sprintf("Hash:%v", hash))
 }
 
+//从db数据库中获取指定hash对应的block高度
+func (bs *BlockStore) GetHeightByBlockHash(hash []byte) int64 {
+
+	heightbytes := bs.db.Get(calcBlockHashKey(hash))
+	if heightbytes == nil {
+		return -1
+	}
+	var height int64
+	err := json.Unmarshal(heightbytes, &height)
+	if err != nil {
+		storelog.Error("GetHeightByBlockHash Could not unmarshal height bytes", "error", err)
+	}
+	return height
+}
+
+//存储block height对应的block信息
 func calcBlockHeightKey(height int64) []byte {
 	return []byte(fmt.Sprintf("H:%v", height))
 }
@@ -261,6 +316,7 @@ func LoadBlockStoreHeight(db dbm.DB) int64 {
 	return height
 }
 
+//存储地址上收币的信息
 func calcAddrKey(addr string) []byte {
 	return []byte(fmt.Sprintf("Addr:%s", addr))
 }

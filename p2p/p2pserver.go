@@ -62,6 +62,7 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
 	timetikc := time.NewTicker(time.Second * 1)
+	defer timetikc.Stop()
 	for stream, _ := range s.streams {
 		select {
 		case s.streams[stream] <- block:
@@ -150,7 +151,7 @@ func (s *p2pServer) checkOnline() {
 		}
 
 	}
-	log.Debug("Monitor", "inBounds", len(s.InBound))
+	log.Debug("checkOnline", "inBounds", len(s.InBound))
 }
 
 func (s *p2pServer) update(peer string) {
@@ -358,7 +359,7 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	}
 	return txmap, nil
 }
-func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvDatas, error) {
+func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServer) error {
 	log.Debug("p2pServer Recv GetDataTx", "p2p version", in.GetVersion())
 	var p2pInvData = make([]*pb.InvData, 0)
 	var count = 0
@@ -404,7 +405,12 @@ func (s *p2pServer) GetData(ctx context.Context, in *pb.P2PGetData) (*pb.InvData
 		}
 	}
 
-	return &pb.InvDatas{Items: p2pInvData}, nil
+	err := stream.Send(&pb.InvDatas{Items: p2pInvData})
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
@@ -479,7 +485,7 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 
 func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
-	log.Warn("RouteChat", "stream", stream)
+	log.Debug("RouteChat", "stream", stream)
 	dataChain := s.addStream(stream)
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)

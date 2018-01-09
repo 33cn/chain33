@@ -13,7 +13,6 @@ type Chain33 struct {
 }
 
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
-	fmt.Println("jrpc transaction:", in)
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
@@ -159,11 +158,9 @@ func (req Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 }
 
 //GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
-func (req Chain33) GetTxByAddr(in ReqAddr, result *interface{}) error {
+func (req Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 
-	var parm types.ReqAddr
-	parm.Addr = in.Addr
-	reply, err := req.cli.GetTxByAddr(&parm)
+	reply, err := req.cli.GetTxByAddr(&in)
 	if err != nil {
 		return err
 	}
