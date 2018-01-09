@@ -44,7 +44,7 @@ func (m *Msg) TransToBroadCast(msg queue.Message) {
 	}
 	//通过grpc stream发送到各个节点
 	m.network.node.nodeInfo.p2pBroadcastChan <- &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}
-	peers := m.network.node.GetPeers()
+	peers, _ := m.network.node.GetPeers()
 
 	for _, peer := range peers {
 		_, err := peer.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
@@ -64,7 +64,7 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 	log.Debug("GetMemPool", "SendTOP2P", msg.GetData())
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
-	peers := m.network.node.GetPeers()
+	peers, _ := m.network.node.GetPeers()
 
 	for _, peer := range peers {
 		//获取远程 peer invs
@@ -127,7 +127,7 @@ func (m *Msg) flushPeerInfos(in []*pb.Peer) {
 
 func (m *Msg) getPeerInfos() []*pb.Peer {
 
-	peerinfos := m.network.node.nodeInfo.peerInfos.getPeerInfos()
+	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*pb.Peer
 	for _, peer := range peerinfos {
 		peers = append(peers, peer)
@@ -190,7 +190,7 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 	log.Debug("GetBlocks", "req", req)
 	var MaxInvs = new(pb.P2PInv)
 	//获取最大的下载列表
-	peers := m.network.node.GetPeers()
+	peers, _ := m.network.node.GetPeers()
 	//log.Error("peers", "show", peers)
 	for _, peer := range peers {
 		log.Error("peer", "addr", peer.Addr())
@@ -285,10 +285,10 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, 
 	}
 
 	maxInvDatas := new(pb.InvDatas)
-	pinfos := m.network.node.nodeInfo.peerInfos.getPeerInfos()
-	peers := m.network.node.GetPeers()
+	//pinfos := m.network.node.nodeInfo.peerInfos.getPeerInfos()
+	peers, pinfos := m.network.node.GetPeers()
 	peersize := len(peers)
-	log.Debug("downloadBlock", "parminfo", index, "interval", interval, "peersize", peersize)
+	log.Debug("downloadBlock", "download from index", index, "interval", interval, "peersize", peersize)
 	for i := 0; i < peersize; i++ {
 
 		index = index % peersize
@@ -305,7 +305,7 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, 
 		if index >= peersize {
 			continue
 		}
-		log.Error("downloadBlock", "index", index, "peersize", peersize)
+
 		peer := peers[index]
 		if peer == nil {
 			index++
@@ -320,7 +320,7 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, 
 			index++
 			continue
 		}
-
+		log.Error("downloadBlock", "index", index, "peersize", peersize, "peeraddr", peer.Addr())
 		resp, err := peer.mconn.conn.GetData(context.Background(), &p2pdata)
 		if err != nil {
 			log.Error("downloadBlock", "GetData err", err.Error())
@@ -335,14 +335,17 @@ func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, 
 			resp.CloseSend()
 			continue
 		}
+
 		if len(invdatas.GetItems()) > len(maxInvDatas.Items) ||
 			len(invdatas.GetItems()) == interval.end-interval.start+1 {
 			maxInvDatas = invdatas
 			resp.CloseSend()
+			log.Debug("download", "success,invs", p2pdata.Invs)
 			break
 		}
 		resp.CloseSend()
 	}
+
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	for _, item := range maxInvDatas.Items {
@@ -384,7 +387,7 @@ func (m *Msg) BlockBroadcast(msg queue.Message) {
 	}
 
 	block := msg.GetData().(*pb.Block)
-	peers := m.network.node.GetPeers()
+	peers, _ := m.network.node.GetPeers()
 	//stream blockbroadcast
 	m.network.node.nodeInfo.p2pBroadcastChan <- &pb.P2PBlock{Block: block}
 	for _, peer := range peers {
