@@ -25,10 +25,10 @@ type AddrBook struct {
 
 type knownAddress struct {
 	kmtx        sync.Mutex
-	Addr        *NetAddress
-	Attempts    uint
-	LastAttempt time.Time
-	LastSuccess time.Time
+	Addr        *NetAddress `json:"addr"`
+	Attempts    uint        `json:"attempts"`
+	LastAttempt time.Time   `json:"lastattempt"`
+	LastSuccess time.Time   `json:"lastsuccess"`
 }
 
 func (a *AddrBook) getPeerStat(addr string) *knownAddress {
@@ -146,8 +146,9 @@ func (a *AddrBook) Size() int {
 }
 
 type addrBookJSON struct {
-	Key   string
-	Addrs []*knownAddress
+	Key    string          `json:"key"`
+	Pubkey string          `json:"pubkey"`
+	Addrs  []*knownAddress `json:"addrs"`
 }
 
 func (a *AddrBook) saveToFile(filePath string) {
@@ -164,8 +165,9 @@ func (a *AddrBook) saveToFile(filePath string) {
 		return
 	}
 	aJSON := &addrBookJSON{
-		Key:   a.key,
-		Addrs: addrs,
+		Key:    a.key,
+		Pubkey: a.Pubkey(),
+		Addrs:  addrs,
 	}
 
 	jsonBytes, err := json.MarshalIndent(aJSON, "", "\t")
@@ -173,13 +175,32 @@ func (a *AddrBook) saveToFile(filePath string) {
 		log.Error("Failed to save AddrBook to file", "err", err)
 		return
 	}
-	//log.Info("saveToFile", string(jsonBytes), "")
+	log.Debug("saveToFile", string(jsonBytes), "")
 
 	err = a.writeFile(filePath, jsonBytes, 0666)
 	if err != nil {
 		log.Error("Error: Failed to save AddrBook to file", "file", filePath, "err", err)
 	}
 
+}
+func (a *AddrBook) Pubkey() string {
+	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+	if err != nil {
+		log.Error("CryPto Error", "Error", err.Error())
+		return ""
+	}
+	pribyts, err := hex.DecodeString(a.key)
+	if err != nil {
+		log.Error("DecodeString Error", "Error", err.Error())
+		return ""
+	}
+	priv, err := cr.PrivKeyFromBytes(pribyts)
+	if err != nil {
+		log.Error("Load PrivKey", "Error", err.Error())
+		return ""
+	}
+
+	return hex.EncodeToString(priv.PubKey().Bytes())
 }
 
 func (a *AddrBook) writeFile(filePath string, bytes []byte, mode os.FileMode) error {
@@ -251,6 +272,7 @@ func (a *AddrBook) Save() {
 
 func (a *AddrBook) saveRoutine() {
 	dumpAddressTicker := time.NewTicker(10 * time.Second)
+	defer dumpAddressTicker.Stop()
 out:
 	for {
 		select {

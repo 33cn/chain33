@@ -1,10 +1,13 @@
 package p2p
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	"google.golang.org/grpc"
 )
 
 type NodeInfo struct {
@@ -22,7 +25,46 @@ type NodeInfo struct {
 	q                *queue.Queue
 	qclient          queue.IClient
 	blacklist        *BlackList
+	peerInfos        *PeerInfos
 }
+type PeerInfos struct {
+	mtx   sync.Mutex
+	infos map[string]*types.Peer
+}
+
+func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	//首先清空之前的数据
+	for k, _ := range p.infos {
+		delete(p.infos, k)
+	}
+	//重新插入新数据
+	for _, peer := range in {
+		p.infos[fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())] = peer
+	}
+
+}
+
+func (p *PeerInfos) getPeerInfos() map[string]*types.Peer {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	//	var peers []*pb.Peer
+	//	for _, peer := range p.peerInfos {
+	//		peers = append(peers, peer)
+	//	}
+	return p.infos
+}
+
+func (p *PeerInfos) GetPeerInfo(key string) *types.Peer {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	if _, ok := p.infos[key]; ok {
+		return p.infos[key]
+	}
+	return nil
+}
+
 type BlackList struct {
 	mtx      sync.Mutex
 	badPeers map[string]bool
@@ -62,11 +104,36 @@ func (nf *NodeInfo) GetListenAddr() *NetAddress {
 	defer nf.mtx.Unlock()
 	return nf.listenAddr
 }
+func (nf *NodeInfo) GrpcConfig() grpc.ServiceConfig {
+
+	var ready = true
+	var defaulttimeout = 30 * time.Second
+	var pingtimeout = 50 * time.Second
+	var MethodConf = map[string]grpc.MethodConfig{
+		"/types.p2pgservice/Ping":           grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout},
+		"/types.p2pgservice/Version2":       grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
+		"/types.p2pgservice/BroadCastTx":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetMemPool":     grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetData":        grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetBlocks":      grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetPeerInfo":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
+		"/types.p2pgservice/BroadCastBlock": grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout},
+	}
+
+	return grpc.ServiceConfig{Methods: MethodConf}
+
+}
 
 func (bl *BlackList) Add(addr string) {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
 	bl.badPeers[addr] = false
+}
+
+func (bl *BlackList) Delete(addr string) {
+	bl.mtx.Lock()
+	defer bl.mtx.Unlock()
+	delete(bl.badPeers, addr)
 }
 
 func (bl *BlackList) Has(addr string) bool {

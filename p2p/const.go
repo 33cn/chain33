@@ -20,8 +20,6 @@ const (
 var (
 	LocalAddr    string
 	ExternalAddr string
-	//LOCALADDR    string
-	//EXTERNALADDR string
 )
 
 const (

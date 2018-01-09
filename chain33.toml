@@ -1,6 +1,9 @@
 
 Title="chain33"
+
 Loglevel="info"
+LogConsoleLevel="eror"
+LogFile="chain33.log"
 
 [blockchain]
 defCacheSize=500
@@ -13,21 +16,24 @@ dbPath="datadir"
 [p2p]
 seeds=["ec2-54-222-210-199.cn-north-1.compute.amazonaws.com.cn:13802"]
 enable=true
-isSeed=false
+isSeed=true
 dbPath="datadir/addrbook"
-version=8
-verMix=7
-verMax=8
+version=9
+verMix=9
+verMax=10
+
 [mempool]
-poolCacheSize=1024
+poolCacheSize=10240
 minTxFee=1000000
 
 [consensus]
 name="raft"
 minerstart=true
-genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"sssssss
 nodeId=1
 peersURL="http://127.0.0.1:9021"
+genesisBlockTime=1514533394
+hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
 [store]
 driver="leveldb"

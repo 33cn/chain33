@@ -23,7 +23,7 @@ type DB interface {
 	Iterator() Iterator
 	Stats() map[string]string
 	PrefixScan(key []byte) [][]byte
-	IteratorScan(key []byte, count int32, direction int32) [][]byte
+	IteratorScan(Prefix []byte, key []byte, count int32, direction int32) [][]byte
 	IteratorScanFromLast(key []byte, count int32, direction int32) [][]byte
 }
 
@@ -64,7 +64,8 @@ func registerDBCreator(backend string, creator dbCreator, force bool) {
 func NewDB(name string, backend string, dir string) DB {
 	db, err := backends[backend](name, dir)
 	if err != nil {
-		fmt.Println("Error initializing DB: %v", err)
+		fmt.Printf("Error initializing DB: %v\n", err)
+		panic("initializing DB error")
 	}
 	return db
 }

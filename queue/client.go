@@ -17,10 +17,12 @@ import (
 // }
 
 // process 函数会调用 处理具体的消息逻辑
+var gId int64
 
 type IClient interface {
-	Send(msg Message, wait bool) (err error) //异步发送消息
-	Wait(msg Message) (Message, error)       //等待消息处理完成
+	Send(msg Message, wait bool) (err error)     //异步发送消息
+	SendAsyn(msg Message, wait bool) (err error) //异步发送消息
+	Wait(msg Message) (Message, error)           //等待消息处理完成
 	Recv() chan Message
 	Sub(topic string) //订阅消息
 	Close()
@@ -30,15 +32,15 @@ type IClient interface {
 type Client struct {
 	q        *Queue
 	recv     chan Message
-	id       int64
 	mu       sync.Mutex
+	cache    []Message
 	isclosed int32
 }
 
 func newClient(q *Queue) IClient {
 	client := &Client{}
 	client.q = q
-	client.recv = make(chan Message, DefaultChanBuffer)
+	client.recv = make(chan Message, 2)
 	return client
 }
 
@@ -47,25 +49,32 @@ func newClient(q *Queue) IClient {
 func (client *Client) Send(msg Message, wait bool) (err error) {
 	if !wait {
 		msg.ChReply = nil
+		return client.q.SendAsyn(msg)
 	}
 	client.q.Send(msg)
 	return nil
 }
 
+//系统设计出两种优先级别的消息发送
+//1. SendAsyn 低优先级
+//2. Send 高优先级别的发送消息
+func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
+	if !wait {
+		msg.ChReply = nil
+	}
+	return client.q.SendAsyn(msg)
+}
+
 func (client *Client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
-	msg.Id = atomic.AddInt64(&client.id, 1)
-	msg.Ty = ty
-	msg.Data = data
-	msg.Topic = topic
-	msg.ChReply = make(chan Message, 1)
-	return msg
+	id := atomic.AddInt64(&gId, 1)
+	return NewMessage(id, topic, ty, data)
 }
 
 func (client *Client) Wait(msg Message) (Message, error) {
 	if msg.ChReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
-	timeout := time.After(time.Second * 5)
+	timeout := time.After(time.Second * 60)
 	select {
 	case msg = <-msg.ChReply:
 		return msg, msg.Err()
@@ -84,11 +93,28 @@ func (client *Client) Close() {
 }
 
 func (client *Client) Sub(topic string) {
-	recv := client.q.getChannel(topic)
+	highChan, lowChan := client.q.getChannel(topic)
 	go func() {
-		for msg := range recv {
-			if atomic.LoadInt32(&client.isclosed) == 0 {
-				client.recv <- msg
+		for {
+			select {
+			case data := <-highChan:
+				if atomic.LoadInt32(&client.isclosed) == 1 {
+					return
+				}
+				client.recv <- data
+			default:
+				select {
+				case data := <-highChan:
+					if atomic.LoadInt32(&client.isclosed) == 1 {
+						return
+					}
+					client.recv <- data
+				case data := <-lowChan:
+					if atomic.LoadInt32(&client.isclosed) == 1 {
+						return
+					}
+					client.recv <- data
+				}
 			}
 		}
 	}()

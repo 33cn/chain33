@@ -27,15 +27,17 @@ func New(cfg *types.P2P) *P2p {
 	p2p := new(P2p)
 	p2p.node = node
 	p2p.done = make(chan struct{}, 1)
-	p2p.msg = NewInTrans(p2p)
+	p2p.msg = NewMsg(p2p)
 	return p2p
+}
+func (network *P2p) Stop() {
+	network.done <- struct{}{}
 }
 
 func (network *P2p) Close() {
-
-	network.done <- struct{}{}
+	network.Stop()
 	log.Debug("close", "network", "done")
-	network.msg.done <- struct{}{}
+	network.msg.Stop()
 	log.Debug("close", "msg", "done")
 	network.node.Stop()
 	log.Debug("close", "node", "done")
@@ -58,24 +60,24 @@ func (network *P2p) subP2pMsg() {
 
 	network.c.Sub("p2p")
 	go func() {
-
+		var EventQueryTask int64 = 666 //TODO
 		for msg := range network.c.Recv() {
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
-				log.Debug("QUEUE P2P EventTxBroadcast", "Recv from mempool message EventTxBroadcast will broadcast outnet")
+				log.Debug("subP2pMsg", " EventTxBroadcast", "txmsg")
 				go network.msg.TransToBroadCast(msg)
 			case types.EventBlockBroadcast: //广播block
 				go network.msg.BlockBroadcast(msg)
 			case types.EventFetchBlocks:
-				tempIntrans := NewInTrans(network)
-				go tempIntrans.GetBlocks(msg)
+				go network.msg.GetBlocks(msg)
 			case types.EventGetMempool:
 				go network.msg.GetMemPool(msg)
 			case types.EventPeerInfo:
 				go network.msg.GetPeerInfo(msg)
-
+			case EventQueryTask:
+				go network.msg.GetTaskInfo(msg)
 			default:
 				log.Error("unknown msgtype:", msg.Ty)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
