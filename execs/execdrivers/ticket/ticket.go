@@ -64,6 +64,9 @@ func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 	} else if action.Ty == types.TicketActionClose && action.GetTclose() != nil {
 		tclose := action.GetTclose()
 		return actiondb.TicketClose(tclose)
+	} else if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+		miner := action.GetMiner()
+		return actiondb.TicketMiner(miner, index)
 	}
 	//return error
 	return nil, types.ErrActionNotSupport
