@@ -340,7 +340,6 @@ FOOR_LOOP:
 			index++
 			continue
 		}
-		//var InvDatas *pb.InvDatas
 		var count int
 		for {
 			count++
@@ -348,10 +347,6 @@ FOOR_LOOP:
 			if err == io.EOF {
 				log.Error("download", "recv", "IO.EOF", "count", count)
 				resp.CloseSend()
-				if count != (interval.end - interval.end + 1) {
-					index++
-					break
-				}
 
 				break FOOR_LOOP
 			}
