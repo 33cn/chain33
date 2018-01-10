@@ -287,7 +287,7 @@ out:
 	log.Warn("Address handler done")
 }
 
-func (a *AddrBook) Stop() {
+func (a *AddrBook) Close() {
 	a.Quit <- struct{}{}
 }
 

@@ -37,7 +37,7 @@ func Pubkey(key string) (string, error) {
 }
 
 type RemoteListener interface {
-	Stop() bool
+	Close() bool
 }
 type RemoteAddrListener struct {
 	mtx      sync.Mutex
@@ -67,7 +67,7 @@ func (r *RemoteAddrListener) listenRoutine() {
 	pb.RegisterP2PremoteaddrServer(r.server, &p2pRemote{})
 	r.server.Serve(r.listener)
 }
-func (r *RemoteAddrListener) Stop() bool {
+func (r *RemoteAddrListener) Close() bool {
 
 	r.server.Stop()
 	r.listener.Close()

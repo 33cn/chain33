@@ -14,9 +14,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-type Msg struct {
-	//	mtx sync.Mutex
-
+type P2pCli struct {
 	network   *P2p
 	peerInfos map[string]*pb.Peer
 	done      chan struct{}
@@ -26,25 +24,24 @@ type intervalInfo struct {
 	end   int
 }
 
-func NewMsg(network *P2p) *Msg {
-	pmsg := &Msg{
+func NewP2pCli(network *P2p) *P2pCli {
+	pcli := &P2pCli{
 		network: network,
-		//peerInfos: make(map[string]*pb.Peer),
-		done: make(chan struct{}, 1),
+		done:    make(chan struct{}, 1),
 	}
 
-	return pmsg
+	return pcli
 }
 
-func (m *Msg) TransToBroadCast(msg queue.Message) {
+func (m *P2pCli) BroadCastTx(msg queue.Message) {
 	log.Debug("TransToBroadCast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
-	//通过grpc stream发送到各个节点
-	m.network.node.nodeInfo.p2pBroadcastChan <- &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}
-	peers, _ := m.network.node.GetPeers()
+
+	m.broadcastByStream(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
+	peers, _ := m.network.node.GetActivePeers()
 
 	for _, peer := range peers {
 		_, err := peer.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
@@ -60,11 +57,11 @@ func (m *Msg) TransToBroadCast(msg queue.Message) {
 }
 
 //TODO 收到Mempool 模块获取mempool 的请求,从高度最高的节点 下载invs
-func (m *Msg) GetMemPool(msg queue.Message) {
+func (m *P2pCli) GetMemPool(msg queue.Message) {
 	log.Debug("GetMemPool", "SendTOP2P", msg.GetData())
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
-	peers, _ := m.network.node.GetPeers()
+	peers, _ := m.network.node.GetActivePeers()
 
 	for _, peer := range peers {
 		//获取远程 peer invs
@@ -120,12 +117,12 @@ func (m *Msg) GetMemPool(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
 
 }
-func (m *Msg) flushPeerInfos(in []*pb.Peer) {
+func (m *P2pCli) flushPeerInfos(in []*pb.Peer) {
 	m.network.node.nodeInfo.peerInfos.flushPeerInfos(in)
 
 }
 
-func (m *Msg) getPeerInfos() []*pb.Peer {
+func (m *P2pCli) PeerInfos() []*pb.Peer {
 
 	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*pb.Peer
@@ -134,9 +131,9 @@ func (m *Msg) getPeerInfos() []*pb.Peer {
 	}
 	return peers
 }
-func (m *Msg) monitorPeerInfo() {
+func (m *P2pCli) monitorPeerInfo() {
 
-	go func(m *Msg) {
+	go func(m *P2pCli) {
 		m.fetchPeerInfo()
 		ticker := time.NewTicker(time.Second * 10)
 		defer ticker.Stop()
@@ -155,10 +152,8 @@ func (m *Msg) monitorPeerInfo() {
 	}(m)
 
 }
-func (m *Msg) Stop() {
-	m.done <- struct{}{}
-}
-func (m *Msg) fetchPeerInfo() {
+
+func (m *P2pCli) fetchPeerInfo() {
 	var peerlist []*pb.Peer
 	peerInfos := m.lastPeerInfo()
 	for _, peerinfo := range peerInfos {
@@ -167,15 +162,13 @@ func (m *Msg) fetchPeerInfo() {
 	m.flushPeerInfos(peerlist)
 }
 
-//收到BlockChain 模块的请求，获取PeerInfo
-func (m *Msg) GetPeerInfo(msg queue.Message) {
-
-	log.Info("GetPeerInfo", "info", m.getPeerInfos())
-	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.getPeerInfos()}))
+func (m *P2pCli) GetPeerInfo(msg queue.Message) {
+	log.Info("GetPeerInfo", "info", m.PeerInfos())
+	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.PeerInfos()}))
 	return
 }
 
-func (m *Msg) GetBlocks(msg queue.Message) {
+func (m *P2pCli) GetBlocks(msg queue.Message) {
 
 	if m.network.node.Size() == 0 {
 		log.Debug("GetBlocks", "boundNum", 0)
@@ -185,11 +178,10 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
 	req := msg.GetData().(*pb.ReqBlocks)
-	log.Debug("GetBlocks", "req", req)
+
 	var MaxInvs = new(pb.P2PInv)
-	log.Error("peers", "show", "befor")
-	peers, pinfos := m.network.node.GetPeers()
-	log.Error("peers", "show", peers)
+
+	peers, pinfos := m.network.node.GetActivePeers()
 	for _, peer := range peers {
 		log.Error("peer", "addr", peer.Addr())
 		peerinfo := m.network.node.nodeInfo.peerInfos.GetPeerInfo(peer.Addr())
@@ -218,8 +210,7 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 	}
 
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
-	var bChan = make(chan *pb.Block, 256) //下次的区块不超过256个
-	//分段下载
+	var bChan = make(chan *pb.Block, 256)
 	log.Error("downloadblock", "intervals", intervals)
 	var gcount int
 	var wg sync.WaitGroup
@@ -228,26 +219,25 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 		wg.Add(1)
 		go m.downloadBlock(index, interval, MaxInvs, bChan, &wg, peers, pinfos)
 	}
-	//等待所有 goroutin 结束
+
 	log.Error("downloadblock", "wait", "befor", "groutin num", gcount)
 	m.wait(&wg)
 
-	//返回数据
 	log.Error("downloadblock", "wait", "after")
-	close(bChan)                   //关闭channal
-	bks, keys := m.sortKeys(bChan) //区块排序
+	close(bChan)
+	bks, keys := m.sortKeys(bChan)
 	var blocks pb.Blocks
 	for _, k := range keys {
 		log.Error("downloadblock", "index sort", int64(k))
 		blocks.Items = append(blocks.Items, bks[int64(k)])
 	}
-	//作为事件，发送给blockchain,事件是 EventAddBlocks
+
 	newmsg := m.network.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventAddBlocks, &blocks)
 	m.network.node.nodeInfo.qclient.Send(newmsg, false)
 
 }
 
-func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, bchan chan *pb.Block, wg *sync.WaitGroup,
+func (m *P2pCli) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, bchan chan *pb.Block, wg *sync.WaitGroup,
 	peers []*peer, pinfos map[string]*pb.Peer) {
 
 	defer wg.Done()
@@ -326,7 +316,7 @@ FOOR_LOOP:
 	log.Error("download", "out of func", "ok")
 }
 
-func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
+func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
 	peers := m.network.node.GetRegisterPeers()
 	for _, peer := range peers {
@@ -345,11 +335,11 @@ func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
 	return peerlist
 }
 
-func (m *Msg) wait(wg *sync.WaitGroup) {
+func (m *P2pCli) wait(wg *sync.WaitGroup) {
 	wg.Wait()
 }
 
-func (m *Msg) sortKeys(bchan chan *pb.Block) (map[int64]*pb.Block, []int) {
+func (m *P2pCli) sortKeys(bchan chan *pb.Block) (map[int64]*pb.Block, []int) {
 
 	var keys []int
 	var blocks = make(map[int64]*pb.Block)
@@ -363,7 +353,7 @@ func (m *Msg) sortKeys(bchan chan *pb.Block) (map[int64]*pb.Block, []int) {
 
 }
 
-func (m *Msg) caculateInterval(invsNum int) map[int]*intervalInfo {
+func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 	log.Debug("caculateInterval", "invsNum", invsNum)
 	var result = make(map[int]*intervalInfo)
 	peerNum := m.network.node.Size()
@@ -388,8 +378,15 @@ func (m *Msg) caculateInterval(invsNum int) map[int]*intervalInfo {
 	return result
 
 }
+func (m *P2pCli) broadcastByStream(data interface{}) {
+	if tx, ok := data.(*pb.P2PTx); ok {
+		m.network.node.nodeInfo.p2pBroadcastChan <- tx
+	} else if block, ok := data.(*pb.P2PBlock); ok {
+		m.network.node.nodeInfo.p2pBroadcastChan <- block
+	}
 
-func (m *Msg) BlockBroadcast(msg queue.Message) {
+}
+func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
@@ -397,9 +394,9 @@ func (m *Msg) BlockBroadcast(msg queue.Message) {
 	}
 
 	block := msg.GetData().(*pb.Block)
-	peers, _ := m.network.node.GetPeers()
-	//stream blockbroadcast
-	m.network.node.nodeInfo.p2pBroadcastChan <- &pb.P2PBlock{Block: block}
+	peers, _ := m.network.node.GetActivePeers()
+	m.broadcastByStream(&pb.P2PBlock{Block: block})
+
 	for _, peer := range peers {
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
 		if err != nil {
@@ -411,6 +408,9 @@ func (m *Msg) BlockBroadcast(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 }
 
-func (m *Msg) GetTaskInfo(msg queue.Message) {
+func (m *P2pCli) GetTaskInfo(msg queue.Message) {
 	//TODO  查询任务状态
+}
+func (m *P2pCli) Close() {
+	m.done <- struct{}{}
 }

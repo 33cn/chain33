@@ -1,8 +1,6 @@
 package p2p
 
 import (
-	"fmt"
-
 	"sync"
 
 	pb "code.aliyun.com/chain33/chain33/types"
@@ -99,9 +97,9 @@ BEGIN:
 
 }
 
-func (p *peer) Stop() {
+func (p *peer) Close() {
 	p.setRunning(false)
-	p.mconn.stop()
+	p.mconn.Close()
 	close(p.streamDone)
 
 }
@@ -110,7 +108,6 @@ func (p *peer) setRunning(run bool) {
 	defer p.pmutx.Unlock()
 	p.isrunning = run
 }
-
 func (p *peer) GetRunning() bool {
 	p.pmutx.Lock()
 	defer p.pmutx.Unlock()
@@ -134,83 +131,4 @@ func (p *peer) Addr() string {
 // IsPersistent returns true if the peer is persitent, false otherwise.
 func (p *peer) IsPersistent() bool {
 	return p.persistent
-}
-
-func dial(addr *NetAddress, conf grpc.ServiceConfig) (*grpc.ClientConn, error) {
-	conn, err := addr.DialTimeout(DialTimeout, conf)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
-}
-
-func dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*peer, error) {
-
-	log.Debug("dialPeerWithAddress", "Dial peer address", addr.String())
-
-	peer, err := newOutboundPeer(addr, nodeinfo)
-	if err != nil {
-		log.Error("dialPeerWithAddress", "address", addr, "err", err)
-		return nil, err
-	}
-	log.Debug("dialPeerWithAddress", "peer", *peer, "persistent:", persistent)
-
-	if persistent {
-		peer.makePersistent()
-	}
-
-	return peer, nil
-}
-
-//连接server out=往其他节点连接
-func newOutboundPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
-
-	conn, err := dial(addr, (*nodeinfo).GrpcConfig())
-	if err != nil {
-		return nil, fmt.Errorf("Error creating peer")
-	}
-
-	peer, err := newPeerFromConn(conn, true, addr, nodeinfo)
-	if err != nil {
-		conn.Close()
-		return nil, err
-	}
-	peer.peerAddr = addr
-	return peer, nil
-}
-
-func newPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
-
-	conn := rawConn
-	// Key and NodeInfo are set after Handshake
-	p := &peer{
-		outbound:   outbound,
-		conn:       conn,
-		streamDone: make(chan struct{}, 1),
-		nodeInfo:   nodeinfo,
-	}
-	p.version = new(Version)
-	p.version.Set(true)
-	p.setRunning(true)
-	p.mconn = NewMConnection(conn, remote, p)
-
-	return p, nil
-}
-
-func DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
-	log.Warn("DialPeer", "will connect", addr.String())
-	var persistent bool
-	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
-		if seed == addr.String() {
-			persistent = true //种子节点要一直连接
-		}
-	}
-	peer, err := dialPeerWithAddress(addr, persistent, nodeinfo)
-	if err != nil {
-		log.Error("DialPeer", "dial peer err:", err.Error())
-		return nil, err
-	}
-	//获取远程节点的信息 peer
-	log.Debug("DialPeer", "Peer info", peer)
-	return peer, nil
 }
