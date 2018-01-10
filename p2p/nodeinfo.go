@@ -32,6 +32,11 @@ type PeerInfos struct {
 	infos map[string]*types.Peer
 }
 
+func (p *PeerInfos) PeerSize() int {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	return len(p.infos)
+}
 func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
@@ -49,8 +54,11 @@ func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 func (p *PeerInfos) GetPeerInfos() map[string]*types.Peer {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
-
-	return p.infos
+	var pinfos = make(map[string]*types.Peer)
+	for k, v := range p.infos {
+		pinfos[k] = v
+	}
+	return pinfos
 }
 
 func (p *PeerInfos) GetPeerInfo(key string) *types.Peer {
@@ -106,8 +114,8 @@ func (nf *NodeInfo) GrpcConfig() grpc.ServiceConfig {
 	var ready = true
 	var defaultRespSize = 1024 * 1024 * 60
 	var defaultReqSize = 1024 * 1024 * 10
-	var defaulttimeout = 60 * time.Second
-	var pingtimeout = 50 * time.Second
+	var defaulttimeout = 30 * time.Second
+	var pingtimeout = 10 * time.Second
 	var MethodConf = map[string]grpc.MethodConfig{
 		"/types/p2pgservice/Ping":           grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types/p2pgservice/Version2":       grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
