@@ -61,9 +61,9 @@ func TestRaft(t *testing.T) {
 	var b *RaftClient
 	getSnapshot := func() ([]byte, error) { return b.getSnapshot() }
 
-	commitC, errorC, snapshotterReady := NewRaft(nodeId, strings.Split(urls, ","), getSnapshot, proposeC, confChangeC)
+	commitC, errorC, snapshotterReady, validatorC := NewRaft(nodeId, strings.Split(urls, ","), getSnapshot, proposeC, confChangeC)
 
-	b = NewBlockstore(<-snapshotterReady, proposeC, commitC, errorC)
+	b = NewBlockstore(<-snapshotterReady, proposeC, commitC, errorC, validatorC)
 
 	time.Sleep(5 * time.Second)
 
