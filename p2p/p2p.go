@@ -71,6 +71,7 @@ func (network *P2p) subP2pMsg() {
 			case types.EventBlockBroadcast: //广播block
 				go network.msg.BlockBroadcast(msg)
 			case types.EventFetchBlocks:
+				//log.Error("recv event", "EventFetchBlocks", EventFetchBlocks)
 				go network.msg.GetBlocks(msg)
 			case types.EventGetMempool:
 				go network.msg.GetMemPool(msg)
