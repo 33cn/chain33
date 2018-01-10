@@ -130,7 +130,7 @@ func calcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 }
 
 // 通过批量存储tx信息到db中
-func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDetail) error {
+func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail *types.BlockDetail) error {
 
 	txlen := len(blockdetail.Block.Txs)
 
@@ -156,47 +156,46 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, blockdetail *types.BlockDet
 		//存储key:addr:flag:height ,value:txhash
 		//flag :0-->from,1--> to
 		//height=height*10000+index 存储账户地址相关的交易
-		if "coins" == string(blockdetail.Block.Txs[index].Execer) {
-			var txinf types.ReplyTxInfo
-			txinf.Hash = txhash
-			txinf.Height = blockdetail.Block.Height
-			txinf.Index = int64(index)
-			txinfobyte, err := proto.Marshal(&txinf)
-			if err != nil {
-				storelog.Error("indexTxs Encode txinf err", "Height", blockdetail.Block.Height, "index", index)
-				return err
-			}
 
-			blockheight := blockdetail.Block.Height*MaxTxsPerBlock + int64(index)
-			heightstr := fmt.Sprintf("%018d", blockheight)
+		var txinf types.ReplyTxInfo
+		txinf.Hash = txhash
+		txinf.Height = blockdetail.Block.Height
+		txinf.Index = int64(index)
+		txinfobyte, err := proto.Marshal(&txinf)
+		if err != nil {
+			storelog.Error("indexTxs Encode txinf err", "Height", blockdetail.Block.Height, "index", index)
+			return err
+		}
 
-			//from addr
-			pubkey := blockdetail.Block.Txs[index].Signature.GetPubkey()
-			addr := account.PubKeyToAddress(pubkey)
-			fromaddress := addr.String()
-			if len(fromaddress) != 0 {
-				fromkey := calcTxAddrDirHashKey(fromaddress, 1, heightstr)
-				//fmt.Sprintf("%s:0:%s", fromaddress, heightstr)
-				storeBatch.Set(fromkey, txinfobyte)
-				storeBatch.Set(calcTxAddrHashKey(fromaddress, heightstr), txinfobyte)
-				//storelog.Debug("indexTxs address ", "fromkey", fromkey, "value", txhash)
-			}
-			//toaddr
-			toaddr := blockdetail.Block.Txs[index].GetTo()
-			if len(toaddr) != 0 {
-				tokey := calcTxAddrDirHashKey(toaddr, 2, heightstr)
-				//fmt.Sprintf("%s:1:%s", toaddr, heightstr)
-				storeBatch.Set([]byte(tokey), txinfobyte)
-				storeBatch.Set(calcTxAddrHashKey(toaddr, heightstr), txinfobyte)
+		blockheight := blockdetail.Block.Height*MaxTxsPerBlock + int64(index)
+		heightstr := fmt.Sprintf("%018d", blockheight)
 
-				//更新地址收到的amount
-				var action types.CoinsAction
-				err := types.Decode(blockdetail.Block.Txs[index].GetPayload(), &action)
-				if err == nil {
-					if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-						transfer := action.GetTransfer()
-						bs.UpdateAddrReciver(toaddr, transfer.Amount)
-					}
+		//from addr
+		pubkey := blockdetail.Block.Txs[index].Signature.GetPubkey()
+		addr := account.PubKeyToAddress(pubkey)
+		fromaddress := addr.String()
+		if len(fromaddress) != 0 {
+			fromkey := calcTxAddrDirHashKey(fromaddress, 1, heightstr)
+			//fmt.Sprintf("%s:0:%s", fromaddress, heightstr)
+			storeBatch.Set(fromkey, txinfobyte)
+			storeBatch.Set(calcTxAddrHashKey(fromaddress, heightstr), txinfobyte)
+			//storelog.Debug("indexTxs address ", "fromkey", fromkey, "value", txhash)
+		}
+		//toaddr
+		toaddr := blockdetail.Block.Txs[index].GetTo()
+		if len(toaddr) != 0 {
+			tokey := calcTxAddrDirHashKey(toaddr, 2, heightstr)
+			//fmt.Sprintf("%s:1:%s", toaddr, heightstr)
+			storeBatch.Set([]byte(tokey), txinfobyte)
+			storeBatch.Set(calcTxAddrHashKey(toaddr, heightstr), txinfobyte)
+
+			//更新地址收到的amount
+			var action types.CoinsAction
+			err := types.Decode(blockdetail.Block.Txs[index].GetPayload(), &action)
+			if err == nil {
+				if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+					transfer := action.GetTransfer()
+					bs.UpdateAddrReciver(cacheDB, toaddr, transfer.Amount)
 				}
 			}
 		}
@@ -342,26 +341,72 @@ func (bs *BlockStore) GetAddrReciver(addr string) (int64, error) {
 }
 
 //更新地址收到的amount
-func (bs *BlockStore) UpdateAddrReciver(addr string, amount int64) error {
+func (bs *BlockStore) UpdateAddrReciver(cachedb *CacheDB, addr string, amount int64) error {
 	if len(addr) == 0 {
 		err := errors.New("input addr is null")
 		return err
+	}
+	Reciveramount, err := cachedb.Get(bs, addr)
+	if err != nil {
+		storelog.Error("UpdateAddrReciver marshal", "error", err)
+		return err
+	}
+	cachedb.Set(addr, Reciveramount+amount)
+	return nil
+}
+
+type CacheDB struct {
+	cache map[string]*AddrRecv
+}
+type AddrRecv struct {
+	addr   string
+	amount int64
+}
+
+func NewCacheDB() *CacheDB {
+	return &CacheDB{make(map[string]*AddrRecv)}
+}
+
+func (db *CacheDB) Get(bs *BlockStore, addr string) (int64, error) {
+	if value, ok := db.cache[addr]; ok {
+		return value.amount, nil
 	}
 	var Reciveramount int64 = 0
 	AddrReciver := bs.db.Get(calcAddrKey(addr))
 	if len(AddrReciver) != 0 {
 		err := json.Unmarshal(AddrReciver, &Reciveramount)
 		if err != nil {
-			storelog.Error("UpdateAddrReciver unmarshal", "error", err)
-			return err
+			storelog.Error("CacheDB Get unmarshal", "error", err)
+			return 0, err
 		}
 	}
-	Reciveramount = Reciveramount + amount
-	bytes, err := json.Marshal(Reciveramount)
-	if err != nil {
-		storelog.Error("UpdateAddrReciver marshal", "error", err)
-		return err
+	var addrRecv AddrRecv
+	addrRecv.amount = Reciveramount
+	addrRecv.addr = addr
+	db.cache[addr] = &addrRecv
+	return Reciveramount, nil
+}
+
+func (db *CacheDB) Set(addr string, amount int64) {
+	var addrRecv AddrRecv
+	addrRecv.amount = amount
+	addrRecv.addr = addr
+	db.cache[addr] = &addrRecv
+}
+
+func (db *CacheDB) SetBatch(storeBatch dbm.Batch) {
+	for _, v := range db.cache {
+		amountbytes, err := json.Marshal(v.amount)
+		if err != nil {
+			storelog.Error("UpdateAddrReciver marshal", "error", err)
+			continue
+		}
+		//storelog.Error("SetBatch Set", "key", string(k), "value", v.amount)
+		storeBatch.Set(calcAddrKey(v.addr), amountbytes)
 	}
-	bs.db.SetSync(calcAddrKey(addr), bytes)
-	return nil
+
+	for k, _ := range db.cache {
+		//storelog.Error("SetBatch delete", "key", string(k), "value", v.amount)
+		delete(db.cache, k)
+	}
 }

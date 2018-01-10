@@ -39,6 +39,11 @@ func (client *SoloClient) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
+//solo 不检查任何的交易
+func (client *SoloClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	return nil
+}
+
 func (client *SoloClient) CreateBlock() {
 	issleep := true
 	for {

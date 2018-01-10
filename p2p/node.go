@@ -277,15 +277,20 @@ func (n *Node) GetPeers() ([]*peer, map[string]*types.Peer) {
 	defer n.omtx.Unlock()
 	var peers []*peer
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
+	//copy infos 避免同时对infos进行读写操作
+	var pinfos = make(map[string]*types.Peer)
+	for k, v := range infos {
+		pinfos[k] = v
+	}
 	for _, peer := range n.outBound {
-		if _, ok := infos[peer.Addr()]; ok {
-			log.Error("GetPeers", "peer", peer.Addr())
+		if _, ok := pinfos[peer.Addr()]; ok {
+			log.Debug("GetPeers", "peer", peer.Addr())
 			peers = append(peers, peer)
 		}
 
 	}
 	//log.Debug("GetPeers", "node", peers)
-	return peers, infos
+	return peers, pinfos
 }
 func (n *Node) Remove(peerAddr string) {
 
