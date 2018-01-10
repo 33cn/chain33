@@ -23,12 +23,14 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	}
 	mem.addedTxs.Add(string(tx.Hash()), nil)
 	// 检查交易消息是否过大
-	if types.Size(tx) > int(maxMsgByte) {
+	txSize := types.Size(tx)
+	if txSize > int(maxMsgByte) {
 		msg.Data = bigMsgErr
 		return msg
 	}
 	// 检查交易费是否小于最低值
-	if tx.Fee < mem.GetMinFee() {
+	realFee := int64(txSize/1000+1) * mem.GetMinFee()
+	if tx.Fee < realFee {
 		msg.Data = lowFeeErr
 		return msg
 	}
