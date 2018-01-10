@@ -36,11 +36,6 @@ func (v *P2pVersion) SetTimestamp(t int64) {
 	defer v.vmtx.Unlock()
 	v.Timestamp = t
 }
-func (v *P2pVersion) GetAddrFrom() string {
-	v.vmtx.Lock()
-	defer v.vmtx.Unlock()
-	return v.AddrFrom
-}
 
 type p2pServer struct {
 	imtx        sync.Mutex
@@ -66,7 +61,7 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 	for stream, _ := range s.streams {
 		select {
 		case s.streams[stream] <- block:
-			log.Warn("addStreamBlock", "stream", stream)
+			log.Debug("addStreamBlock", "stream", stream)
 		case <-timetikc.C:
 			continue
 		}
@@ -91,8 +86,7 @@ func (s *p2pServer) GetStreams() []pb.P2Pgservice_RouteChatServer {
 }
 
 func (s *p2pServer) addInBound(in *pb.P2PVersion) {
-	s.imtx.Lock()
-	defer s.imtx.Unlock()
+
 	var v P2pVersion
 	v.AddrFrom = in.AddrFrom
 	v.AddrRecv = in.AddrRecv
@@ -101,7 +95,8 @@ func (s *p2pServer) addInBound(in *pb.P2PVersion) {
 	v.Timestamp = in.Timestamp
 	v.UserAgent = in.UserAgent
 	v.Version = in.Version
-
+	s.imtx.Lock()
+	defer s.imtx.Unlock()
 	s.InBound[in.AddrFrom] = &v
 }
 
@@ -518,7 +513,7 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 
 		err := stream.Send(p2pdata)
 		if err != nil {
-			log.Error("RouteChat", "Err", err.Error())
+			//log.Error("RouteChat", "Err", err.Error())
 			s.deleteSChan <- stream
 			return err
 		}

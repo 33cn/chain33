@@ -96,7 +96,7 @@ func (n *Node) flushNodeInfo() {
 }
 func (n *Node) exChangeVersion() {
 	<-n.nodeInfo.versionChan
-	peers, _ := n.GetPeers()
+	peers := n.GetRegisterPeers()
 	for _, peer := range peers {
 		peer.mconn.sendVersion()
 	}
@@ -107,7 +107,7 @@ FOR_LOOP:
 		select {
 		case <-ticker.C:
 			log.Debug("exChangeVersion", "sendVersion", "version")
-			peers, _ := n.GetPeers()
+			peers := n.GetRegisterPeers()
 			for _, peer := range peers {
 				peer.mconn.sendVersion()
 			}
@@ -165,8 +165,7 @@ func (n *Node) DialPeers(addrs []string) error {
 		return err
 	}
 	for i, netAddr := range netAddrs {
-		//will not add self addr
-		//	log.Debug("DialPeers", "peeraddr", netAddr.String())
+
 		if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
 			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr(), "i", i)
 			continue
@@ -176,18 +175,22 @@ func (n *Node) DialPeers(addrs []string) error {
 			continue
 		}
 		//log.Warn("NewNetAddressString", "i", i)
-		peer, err := DialPeer(netAddrs[i], &n.nodeInfo)
-		if err != nil {
-			log.Error("DialPeers", "Err", err.Error())
-			continue
-		}
-		log.Debug("Addr perr", "peer", peer)
-		n.AddPeer(peer)
-		n.addrBook.AddAddress(netAddr)
-		n.addrBook.Save()
-		if n.needMore() == false {
-			return nil
-		}
+		go func(n *Node, netadr *NetAddress) {
+			if n.needMore() == false {
+				return
+			}
+
+			peer, err := DialPeer(netAddrs[i], &n.nodeInfo)
+			if err != nil {
+				log.Error("DialPeers", "Err", err.Error())
+				return
+			}
+			log.Debug("Addr perr", "peer", peer)
+			n.AddPeer(peer)
+			n.addrBook.AddAddress(netAddr)
+			n.addrBook.Save()
+
+		}(n, netAddrs[i])
 	}
 	return nil
 }
@@ -232,9 +235,7 @@ func (n *Node) AddPeer(pr *peer) {
 
 func (n *Node) Size() int {
 
-	n.nodeInfo.peerInfos.mtx.Lock()
-	defer n.nodeInfo.peerInfos.mtx.Unlock()
-	return len(n.nodeInfo.peerInfos.infos)
+	return n.nodeInfo.peerInfos.PeerSize()
 }
 
 func (n *Node) Has(paddr string) bool {
@@ -246,51 +247,32 @@ func (n *Node) Has(paddr string) bool {
 	return false
 }
 
-// Get looks up a peer by the provided peerKey.
-func (n *Node) Get(peerAddr string) *peer {
-	defer n.omtx.Unlock()
-	n.omtx.Lock()
-	peer, ok := n.outBound[peerAddr]
-	if ok {
-
-		return peer
-	}
-	return nil
-}
-
 func (n *Node) GetRegisterPeers() []*peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
 	var peers []*peer
+	if len(n.outBound) == 0 {
+		return peers
+	}
 	for _, peer := range n.outBound {
-		//if n.nodeInfo.peerInfos.GetPeerInfo(peeraddr) != nil {
 		peers = append(peers, peer)
-		//}
 
 	}
-	//log.Debug("GetPeers", "node", peers)
 	return peers
 }
 
 func (n *Node) GetPeers() ([]*peer, map[string]*types.Peer) {
-	n.omtx.Lock()
-	defer n.omtx.Unlock()
-	var peers []*peer
+	regPeers := n.GetRegisterPeers()
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
-	//copy infos 避免同时对infos进行读写操作
-	var pinfos = make(map[string]*types.Peer)
-	for k, v := range infos {
-		pinfos[k] = v
-	}
-	for _, peer := range n.outBound {
-		if _, ok := pinfos[peer.Addr()]; ok {
-			log.Debug("GetPeers", "peer", peer.Addr())
+	var peers []*peer
+	log.Error("Getpeers", "befor range outbound", "befor")
+	for _, peer := range regPeers {
+		if _, ok := infos[peer.Addr()]; ok {
 			peers = append(peers, peer)
 		}
-
 	}
-	//log.Debug("GetPeers", "node", peers)
-	return peers, pinfos
+	log.Error("Getpeers", "after range outbound", "after")
+	return peers, infos
 }
 func (n *Node) Remove(peerAddr string) {
 
@@ -559,7 +541,6 @@ func (n *Node) Stop() {
 	log.Debug("stop", "remotelisten", "close")
 	n.addrBook.Stop()
 	log.Debug("stop", "addrBook", "close")
-
 	n.RemoveAll()
-
+	log.Debug("stop", "PeerRemoeAll", "close")
 }
