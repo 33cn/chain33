@@ -18,6 +18,10 @@ func (tx *Transaction) Hash() []byte {
 	return common.Sha256(data)
 }
 
+func (tx *Transaction) Size() int {
+	return Size(tx)
+}
+
 func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	tx.Signature = nil
 	data := Encode(tx)
