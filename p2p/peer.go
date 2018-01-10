@@ -110,6 +110,7 @@ func (p *peer) setRunning(run bool) {
 	defer p.pmutx.Unlock()
 	p.isrunning = run
 }
+
 func (p *peer) GetRunning() bool {
 	p.pmutx.Lock()
 	defer p.pmutx.Unlock()
