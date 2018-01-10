@@ -43,7 +43,7 @@ func (v *Version) Get() bool {
 func (p *peer) Start() error {
 	p.mconn.key = p.key //TODO setKey
 	go p.subStreamBlock()
-	return p.mconn.start()
+	return p.mconn.Start()
 }
 
 func (p *peer) subStreamBlock() {
