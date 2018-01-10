@@ -3,7 +3,7 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
-	"net"
+
 	"os"
 	"sync"
 
@@ -32,18 +32,6 @@ type Node struct {
 	errPeerDone  chan struct{}
 	offlineDone  chan struct{}
 	onlineDone   chan struct{}
-}
-
-func localBindAddr() string {
-
-	conn, err := net.Dial("udp", "114.114.114.114:80")
-	if err != nil {
-		log.Error(err.Error())
-		return ""
-	}
-	defer conn.Close()
-	log.Debug(strings.Split(conn.LocalAddr().String(), ":")[0])
-	return strings.Split(conn.LocalAddr().String(), ":")[0]
 }
 
 func (n *Node) setQueue(q *queue.Queue) {
@@ -83,22 +71,31 @@ func newNode(cfg *types.P2P) (*Node, error) {
 
 	return node, nil
 }
-func (n *Node) flushNodeInfo() {
+func (n *Node) FlushNodeInfo() {
 
 	if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", ExternalAddr, n.externalPort)); err == nil {
 		n.nodeInfo.SetExternalAddr(exaddr)
 	}
-
 	if listenAddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, n.localPort)); err == nil {
 		n.nodeInfo.SetListenAddr(listenAddr)
 	}
 
 }
-func (n *Node) exChangeVersion() {
+
+func (n *Node) waitVerSig() {
 	<-n.nodeInfo.versionChan
-	peers := n.GetRegisterPeers()
+	return
+}
+
+func (n *Node) sendVersig() {
+	n.nodeInfo.versionChan <- struct{}{}
+	return
+}
+func (n *Node) exChangeVersion() {
+	n.waitVerSig()
+	peers, _ := n.GetActivePeers()
 	for _, peer := range peers {
-		peer.mconn.sendVersion()
+		peer.mconn.SendVersion()
 	}
 	ticker := time.NewTicker(time.Second * 20)
 	defer ticker.Stop()
@@ -107,9 +104,9 @@ FOR_LOOP:
 		select {
 		case <-ticker.C:
 			log.Debug("exChangeVersion", "sendVersion", "version")
-			peers := n.GetRegisterPeers()
+			peers, _ := n.GetActivePeers()
 			for _, peer := range peers {
-				peer.mconn.sendVersion()
+				peer.mconn.SendVersion()
 			}
 		case <-n.versionDone:
 			break FOR_LOOP
@@ -119,7 +116,7 @@ FOR_LOOP:
 func (n *Node) makeService() {
 	//确认自己的服务范围1，2，4
 	if n.nodeInfo.cfg.GetIsSeed() == true {
-		n.nodeInfo.versionChan <- struct{}{}
+		n.sendVersig()
 		return
 	}
 	go func() {
@@ -164,33 +161,33 @@ func (n *Node) DialPeers(addrs []string) error {
 		log.Error("NewNetAddressString", "err", err.Error())
 		return err
 	}
-	for i, netAddr := range netAddrs {
+	for _, netAddr := range netAddrs {
 
 		if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
-			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr(), "i", i)
+			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr())
 			continue
 		}
 		//不对已经连接上的地址重新发起连接
 		if n.Has(netAddr.String()) {
 			continue
 		}
-		//log.Warn("NewNetAddressString", "i", i)
+
 		go func(n *Node, netadr *NetAddress) {
 			if n.needMore() == false {
 				return
 			}
 
-			peer, err := DialPeer(netAddrs[i], &n.nodeInfo)
+			peer, err := DialPeer(netadr, &n.nodeInfo)
 			if err != nil {
 				log.Error("DialPeers", "Err", err.Error())
 				return
 			}
 			log.Debug("Addr perr", "peer", peer)
 			n.AddPeer(peer)
-			n.addrBook.AddAddress(netAddr)
+			n.addrBook.AddAddress(netadr)
 			n.addrBook.Save()
 
-		}(n, netAddrs[i])
+		}(n, netAddr)
 	}
 	return nil
 }
@@ -261,17 +258,15 @@ func (n *Node) GetRegisterPeers() []*peer {
 	return peers
 }
 
-func (n *Node) GetPeers() ([]*peer, map[string]*types.Peer) {
+func (n *Node) GetActivePeers() ([]*peer, map[string]*types.Peer) {
 	regPeers := n.GetRegisterPeers()
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*peer
-	log.Error("Getpeers", "befor range outbound", "befor")
 	for _, peer := range regPeers {
 		if _, ok := infos[peer.Addr()]; ok {
 			peers = append(peers, peer)
 		}
 	}
-	log.Error("Getpeers", "after range outbound", "after")
 	return peers, infos
 }
 func (n *Node) Remove(peerAddr string) {
@@ -281,7 +276,7 @@ func (n *Node) Remove(peerAddr string) {
 	peer, ok := n.outBound[peerAddr]
 	if ok {
 		delete(n.outBound, peerAddr)
-		peer.Stop()
+		peer.Close()
 		return
 	}
 
@@ -293,7 +288,7 @@ func (n *Node) RemoveAll() {
 	defer n.omtx.Unlock()
 	for addr, peer := range n.outBound {
 		delete(n.outBound, addr)
-		peer.Stop()
+		peer.Close()
 	}
 	return
 }
@@ -356,13 +351,13 @@ FOR_LOOP:
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
-				peers, _ := n.GetPeers()
+				peers, _ := n.GetActivePeers()
 				log.Debug("getAddrFromOnline", "peers", peers)
 				for _, peer := range peers { //向其他节点发起请求，获取地址列表
 					log.Debug("Getpeer", "addr", peer.Addr())
-					addrlist, err := peer.mconn.getAddr()
+					addrlist, err := peer.mconn.GetAddr()
 					if err != nil {
-						log.Error("monitor", "ERROR", err.Error())
+						//log.Error("monitor", "ERROR", err.Error())
 						continue
 					}
 					log.Debug("monitor", "ADDRLIST", addrlist)
@@ -469,7 +464,7 @@ func (n *Node) loadAddrBook() bool {
 }
 func (n *Node) detectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
-	LocalAddr = localBindAddr()
+	LocalAddr = GetLocalAddr()
 	log.Debug("detectionNodeAddr", "addr:", LocalAddr)
 	if cfg.GetIsSeed() {
 		ExternalAddr = LocalAddr
@@ -529,17 +524,17 @@ func (n *Node) Start() {
 	return
 }
 
-func (n *Node) Stop() {
+func (n *Node) Close() {
 	close(n.versionDone)
 	close(n.activeDone)
 	close(n.onlineDone)
 	close(n.offlineDone)
 	log.Debug("stop", "versionDone", "close")
-	n.l.Stop()
+	n.l.Close()
 	log.Debug("stop", "listen", "close")
-	n.rListener.Stop()
+	n.rListener.Close()
 	log.Debug("stop", "remotelisten", "close")
-	n.addrBook.Stop()
+	n.addrBook.Close()
 	log.Debug("stop", "addrBook", "close")
 	n.RemoveAll()
 	log.Debug("stop", "PeerRemoeAll", "close")
