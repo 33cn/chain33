@@ -50,9 +50,8 @@ func NewTemMConnConfig(gconn *grpc.ClientConn, conn pb.P2PgserviceClient) *MConn
 func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MConnection {
 
 	mconn := &MConnection{
-		gconn: conn,
-		conn:  pb.NewP2PgserviceClient(conn),
-		//pingTimer:   NewRepeatTimer("ping", PingTimeout),
+		gconn:       conn,
+		conn:        pb.NewP2PgserviceClient(conn),
 		sendMonitor: NewMonitor(),
 		peer:        peer,
 		quit:        make(chan bool),
@@ -100,7 +99,7 @@ func (c *MConnection) signature(in *pb.P2PPing) (*pb.P2PPing, error) {
 
 // sendRoutine polls for packets to send from channels.
 func (c *MConnection) pingRoutine() {
-	go func() {
+	go func(c *MConnection) {
 		var pingtimes int64
 		ticker := time.NewTicker(PingTimeout)
 		defer ticker.Stop()
@@ -135,7 +134,7 @@ func (c *MConnection) pingRoutine() {
 			}
 
 		}
-	}()
+	}(c)
 }
 
 func (c *MConnection) sendVersion() error {

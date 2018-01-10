@@ -15,7 +15,7 @@ import (
 )
 
 type Msg struct {
-	mtx sync.Mutex
+	//	mtx sync.Mutex
 
 	network   *P2p
 	peerInfos map[string]*pb.Peer
@@ -28,9 +28,9 @@ type intervalInfo struct {
 
 func NewMsg(network *P2p) *Msg {
 	pmsg := &Msg{
-		network:   network,
-		peerInfos: make(map[string]*pb.Peer),
-		done:      make(chan struct{}, 1),
+		network: network,
+		//peerInfos: make(map[string]*pb.Peer),
+		done: make(chan struct{}, 1),
 	}
 
 	return pmsg
@@ -184,14 +184,12 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 	}
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
-	// 第一步获取下载列表，第二步分配不同的节点分段下载需要的数据
-
 	req := msg.GetData().(*pb.ReqBlocks)
 	log.Debug("GetBlocks", "req", req)
 	var MaxInvs = new(pb.P2PInv)
-	//获取最大的下载列表
-	peers, _ := m.network.node.GetPeers()
-	//log.Error("peers", "show", peers)
+	log.Error("peers", "show", "befor")
+	peers, pinfos := m.network.node.GetPeers()
+	log.Error("peers", "show", peers)
 	for _, peer := range peers {
 		log.Error("peer", "addr", peer.Addr())
 		peerinfo := m.network.node.nodeInfo.peerInfos.GetPeerInfo(peer.Addr())
@@ -228,11 +226,12 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 	for index, interval := range intervals {
 		gcount++
 		wg.Add(1)
-		go m.downloadBlock(index, interval, MaxInvs, bChan, &wg)
+		go m.downloadBlock(index, interval, MaxInvs, bChan, &wg, peers, pinfos)
 	}
 	//等待所有 goroutin 结束
 	log.Error("downloadblock", "wait", "befor", "groutin num", gcount)
 	m.wait(&wg)
+
 	//返回数据
 	log.Error("downloadblock", "wait", "after")
 	close(bChan)                   //关闭channal
@@ -248,51 +247,13 @@ func (m *Msg) GetBlocks(msg queue.Message) {
 
 }
 
-func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
-	var peerlist = make(map[string]*pb.Peer)
-	peers := m.network.node.GetRegisterPeers()
-	for _, peer := range peers {
-		if peer.mconn.sendMonitor.GetCount() > 0 {
-			continue
-		}
-
-		peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
-		if err != nil {
-			m.network.node.nodeInfo.monitorChan <- peer //直接删掉问题节点
-			continue
-		}
-		peer.mconn.sendMonitor.Update(true)
-		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = (*pb.Peer)(peerinfo)
-	}
-	return peerlist
-}
-
-func (m *Msg) wait(wg *sync.WaitGroup) {
-	wg.Wait()
-}
-
-func (m *Msg) sortKeys(bchan chan *pb.Block) (map[int64]*pb.Block, []int) {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-	var keys []int
-	var blocks = make(map[int64]*pb.Block)
-	for block := range bchan {
-		keys = append(keys, int(block.GetHeight()))
-		blocks[block.GetHeight()] = block
-	}
-
-	sort.Ints(keys)
-	return blocks, keys
-
-}
-func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, bchan chan *pb.Block, wg *sync.WaitGroup) {
+func (m *Msg) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, bchan chan *pb.Block, wg *sync.WaitGroup,
+	peers []*peer, pinfos map[string]*pb.Peer) {
 
 	defer wg.Done()
 	if interval.end < interval.start {
 		return
 	}
-
-	peers, pinfos := m.network.node.GetPeers()
 	peersize := len(peers)
 	log.Debug("downloadBlock", "download from index", index, "interval", interval, "peersize", peersize)
 FOOR_LOOP:
@@ -350,7 +311,7 @@ FOOR_LOOP:
 
 				break FOOR_LOOP
 			}
-			if err != nil && err != io.EOF {
+			if err != nil {
 				log.Error("download", "resp,Recv err", err.Error())
 				resp.CloseSend()
 				break FOOR_LOOP
@@ -364,6 +325,44 @@ FOOR_LOOP:
 	}
 	log.Error("download", "out of func", "ok")
 }
+
+func (m *Msg) lastPeerInfo() map[string]*pb.Peer {
+	var peerlist = make(map[string]*pb.Peer)
+	peers := m.network.node.GetRegisterPeers()
+	for _, peer := range peers {
+		if peer.mconn.sendMonitor.GetCount() > 0 {
+			continue
+		}
+
+		peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		if err != nil {
+			m.network.node.nodeInfo.monitorChan <- peer //直接删掉问题节点
+			continue
+		}
+		peer.mconn.sendMonitor.Update(true)
+		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = (*pb.Peer)(peerinfo)
+	}
+	return peerlist
+}
+
+func (m *Msg) wait(wg *sync.WaitGroup) {
+	wg.Wait()
+}
+
+func (m *Msg) sortKeys(bchan chan *pb.Block) (map[int64]*pb.Block, []int) {
+
+	var keys []int
+	var blocks = make(map[int64]*pb.Block)
+	for block := range bchan {
+		keys = append(keys, int(block.GetHeight()))
+		blocks[block.GetHeight()] = block
+	}
+
+	sort.Ints(keys)
+	return blocks, keys
+
+}
+
 func (m *Msg) caculateInterval(invsNum int) map[int]*intervalInfo {
 	log.Debug("caculateInterval", "invsNum", invsNum)
 	var result = make(map[int]*intervalInfo)
