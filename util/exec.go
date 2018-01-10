@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"errors"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
@@ -14,6 +15,8 @@ var ulog = log.New("module", "util")
 
 func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
+	//通过consensus module 再次检查
+
 	ulog.Error("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	receipts := ExecTx(q, prevStateRoot, block)
@@ -74,14 +77,35 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 		ExecKVSetRollback(q, block.StateHash)
 		return nil, types.ErrCheckStateHash
 	}
-	//save to db
-	ExecKVSetCommit(q, block.StateHash)
 	detail.Block = block
 	detail.Receipts = rdata
+	err := CheckBlock(q, &detail)
+	if err != nil {
+		return nil, err
+	}
+	//save to db
+	ExecKVSetCommit(q, block.StateHash)
+
 	//get receipts
 	//save kvset and get state hash
 	ulog.Debug("blockdetail-->", "detail=", detail)
 	return &detail, nil
+}
+
+func CheckBlock(q *queue.Queue, block *types.BlockDetail) error {
+	client := q.GetClient()
+	req := block
+	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
+	client.Send(msg, true)
+	resp, err := client.Wait(msg)
+	if err != nil {
+		return err
+	}
+	reply := resp.GetData().(*types.Reply)
+	if reply.IsOk {
+		return nil
+	}
+	return errors.New(string(reply.GetMsg()))
 }
 
 func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Receipts {

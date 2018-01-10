@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -22,10 +23,9 @@ type MConnection struct {
 	quit          chan bool
 	versionDone   chan struct{}
 	remoteAddress *NetAddress //peer 的地址
-	//pingTimer     *RepeatTimer // send pings periodically
-	//versionTimer *RepeatTimer
-	peer        *peer
-	sendMonitor *Monitor
+	peer          *peer
+	sendMonitor   *Monitor
+	once          sync.Once
 }
 
 // MConnConfig is a MConnection configuration.
@@ -100,42 +100,42 @@ func (c *MConnection) signature(in *pb.P2PPing) (*pb.P2PPing, error) {
 
 // sendRoutine polls for packets to send from channels.
 func (c *MConnection) pingRoutine() {
+	go func() {
+		var pingtimes int64
+		ticker := time.NewTicker(PingTimeout)
+		defer ticker.Stop()
+	FOR_LOOP:
+		for {
 
-	var pingtimes int64
-	ticker := time.NewTicker(PingTimeout)
-	defer ticker.Stop()
-FOR_LOOP:
-	for {
-
-		select {
-		case <-ticker.C:
-			randNonce := rand.Int31n(102040)
-			in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
-			if err != nil {
-				log.Error("Signature", "Error", err.Error())
-				continue
-			}
-			log.Debug("SEND PING", "Peer", c.remoteAddress.String(), "nonce", randNonce)
-			r, err := c.conn.Ping(context.Background(), in)
-			if err != nil {
-				c.sendMonitor.Update(false)
-				if pingtimes == 0 {
-					(*c.nodeInfo).monitorChan <- c.peer
+			select {
+			case <-ticker.C:
+				randNonce := rand.Int31n(102040)
+				in, err := c.signature(&pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32((*c.nodeInfo).externalAddr.Port)})
+				if err != nil {
+					log.Error("Signature", "Error", err.Error())
+					continue
 				}
-				continue
+				log.Debug("SEND PING", "Peer", c.remoteAddress.String(), "nonce", randNonce)
+				r, err := c.conn.Ping(context.Background(), in)
+				if err != nil {
+					c.sendMonitor.Update(false)
+					if pingtimes == 0 {
+						(*c.nodeInfo).monitorChan <- c.peer
+					}
+					continue
+				}
+
+				log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
+				c.sendMonitor.Update(true)
+				pingtimes++
+
+			case <-c.quit:
+				break FOR_LOOP
+
 			}
-
-			log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
-			c.sendMonitor.Update(true)
-			pingtimes++
-
-		case <-c.quit:
-			break FOR_LOOP
 
 		}
-
-	}
-
+	}()
 }
 
 func (c *MConnection) sendVersion() error {
@@ -162,13 +162,13 @@ func (c *MConnection) sendVersion() error {
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	if err != nil {
 		c.peer.version.Set(false)
-		if strings.EqualFold(err.Error(), VersionNotSupport) == true {
+		if strings.Compare(err.Error(), VersionNotSupport) == 0 {
 			(*c.nodeInfo).monitorChan <- c.peer
 		}
 
 		return err
 	}
-
+	c.once.Do(c.pingRoutine)
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
@@ -189,7 +189,6 @@ func (c *MConnection) getAddr() ([]string, error) {
 // OnStart implements BaseService
 func (c *MConnection) start() error { //启动Mconnection，每一个MConnection 会在启动的时候启动SendRoutine,RecvRoutine
 
-	go c.pingRoutine() //创建发送Routine
 	return nil
 }
 
