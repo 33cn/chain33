@@ -66,12 +66,12 @@ type raftNode struct {
 	httpstopc        chan struct{}
 	httpdonec        chan struct{}
 	//备用的leaderC用于watch leader节点的变更，暂时没用
-	leaderC          chan int
-	validatorC       chan bool
+	leaderC    chan int
+	validatorC chan bool
 }
 
 func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
-	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter,<-chan bool) {
+	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan bool) {
 
 	log.Info("Enter consensus raft")
 	// commit channel
@@ -91,13 +91,13 @@ func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), propose
 		stopc:       make(chan struct{}),
 		httpstopc:   make(chan struct{}),
 		httpdonec:   make(chan struct{}),
-        //leaderC: make(chan int),
-		validatorC: make(chan bool),
+		//leaderC: make(chan int),
+		validatorC:       make(chan bool),
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
 	}
 	go rc.startRaft()
 
-	return commitC, errorC, rc.snapshotterReady,rc.validatorC
+	return commitC, errorC, rc.snapshotterReady, rc.validatorC
 }
 
 //  启动raft节点
@@ -262,21 +262,21 @@ func (rc *raftNode) serveChannels() {
 	}
 }
 
-func (rc *raftNode)updateValidator(){
-    for {
+func (rc *raftNode) updateValidator() {
+	for {
 		leadId := rc.node.Status().Lead
 		//if leadId != raft.None {
 		//	//rc.leaderC <- int(leadId)
 		//}
-		log.Info("chain33_raft==========leaderId===========:"+strconv.FormatUint(leadId,10))
-		if rc.id == int(leadId){
+		log.Info("chain33_raft==========leaderId===========:" + strconv.FormatUint(leadId, 10))
+		if rc.id == int(leadId) {
 			log.Info("=====chain-33-raft has elected cluster leader====.")
-			log.Info("chain33_raft======4444444444444444444====leaderId===========:"+strconv.FormatUint(leadId,10))
-			rc.validatorC <-true
-		}else{
-			rc.validatorC <-false
+			log.Info("chain33_raft======4444444444444444444====leaderId===========:" + strconv.FormatUint(leadId, 10))
+			rc.validatorC <- true
+		} else {
+			rc.validatorC <- false
 		}
-    	time.Sleep(time.Second)
+		time.Sleep(time.Second)
 	}
 }
 

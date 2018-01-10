@@ -1,8 +1,7 @@
 package consensus
 
 import (
-
-	"code.aliyun.com/chain33/chain33/consensus/raft"
+	"code.aliyun.com/chain33/chain33/consensus/drivers/raft"
 	"code.aliyun.com/chain33/chain33/consensus/drivers/solo"
 	"code.aliyun.com/chain33/chain33/consensus/drivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -25,6 +24,7 @@ func New(cfg *types.Consensus) Consensus {
 	}
 	panic("Unsupported consensus type")
 }
+
 type Consensus interface {
 	SetQueue(q *queue.Queue)
 	Close()
