@@ -92,10 +92,12 @@ func (n *Node) sendVersig() {
 	return
 }
 func (n *Node) exChangeVersion() {
+
 	n.waitVerSig()
+	pcli := NewP2pCli(nil)
 	peers, _ := n.GetActivePeers()
 	for _, peer := range peers {
-		peer.mconn.SendVersion()
+		pcli.SendVersion(peer, n.nodeInfo)
 	}
 	ticker := time.NewTicker(time.Second * 20)
 	defer ticker.Stop()
@@ -106,7 +108,7 @@ FOR_LOOP:
 			log.Debug("exChangeVersion", "sendVersion", "version")
 			peers, _ := n.GetActivePeers()
 			for _, peer := range peers {
-				peer.mconn.SendVersion()
+				pcli.SendVersion(peer, n.nodeInfo)
 			}
 		case <-n.versionDone:
 			break FOR_LOOP
@@ -147,9 +149,13 @@ func (n *Node) makeService() {
 	}()
 
 }
-func (n *Node) DialPeers(addrs []string) error {
-	if len(addrs) == 0 {
+func (n *Node) DialPeers(addrbucket map[string]bool) error {
+	if len(addrbucket) == 0 {
 		return nil
+	}
+	var addrs []string
+	for addr, _ := range addrbucket {
+		addrs = append(addrs, addr)
 	}
 	netAddrs, err := NewNetAddressStrings(addrs)
 	if err != nil {
@@ -169,6 +175,7 @@ func (n *Node) DialPeers(addrs []string) error {
 		}
 		//不对已经连接上的地址重新发起连接
 		if n.Has(netAddr.String()) {
+			log.Debug("DialPeersSSSSSSSSSSSSSSSS", "find hash", netAddr.String())
 			continue
 		}
 
@@ -176,7 +183,7 @@ func (n *Node) DialPeers(addrs []string) error {
 			if n.needMore() == false {
 				return
 			}
-
+			log.Debug("DialPeersSSSSSSSSSSSSSSSS", "peer", netadr.String())
 			peer, err := DialPeer(netadr, &n.nodeInfo)
 			if err != nil {
 				log.Error("DialPeers", "Err", err.Error())
@@ -344,6 +351,7 @@ func (n *Node) deleteErrPeer() {
 func (n *Node) getAddrFromOnline() {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
+	pcli := NewP2pCli(nil)
 FOR_LOOP:
 	for {
 		select {
@@ -353,19 +361,21 @@ FOR_LOOP:
 			if n.needMore() {
 				peers, _ := n.GetActivePeers()
 				log.Debug("getAddrFromOnline", "peers", peers)
+
 				for _, peer := range peers { //向其他节点发起请求，获取地址列表
 					log.Debug("Getpeer", "addr", peer.Addr())
-					addrlist, err := peer.mconn.GetAddr()
+					addrlist, err := pcli.GetAddr(peer)
 					if err != nil {
 						//log.Error("monitor", "ERROR", err.Error())
 						continue
 					}
 					log.Debug("monitor", "ADDRLIST", addrlist)
 					//过滤黑名单的地址
-					var whitlist []string
+					var whitlist = make(map[string]bool)
 					for _, addr := range addrlist {
 						if n.nodeInfo.blacklist.Has(addr) == false {
-							whitlist = append(whitlist, addr)
+							//whitlist = append(whitlist, addr)
+							whitlist[addr] = true
 						} else {
 							log.Warn("Filter addr", "BlackList", addr)
 						}
@@ -390,19 +400,21 @@ FOR_LOOP:
 		case <-ticker.C:
 			//time.Sleep(time.Second * 25)
 			if n.needMore() {
-				var savelist []string
+				var savelist = make(map[string]bool)
 				for _, seed := range n.nodeInfo.cfg.Seeds {
 					if n.Has(seed) == false && n.nodeInfo.blacklist.Has(seed) == false {
-						savelist = append(savelist, seed)
+						//savelist = append(savelist, seed)
+						savelist[seed] = true
 					}
 				}
 
 				log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
-				peeraddrs := n.addrBook.GetAddrs()
+				peeraddrs := n.addrBook.GetPeers()
 				if len(peeraddrs) != 0 {
-					for _, addr := range peeraddrs {
-						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
-							savelist = append(savelist, addr)
+					for _, peer := range peeraddrs {
+						if n.Has(peer.String()) == false && n.nodeInfo.blacklist.Has(peer.String()) == false {
+							//savelist = append(savelist, peer.String())
+							savelist[peer.String()] = true
 						}
 						log.Debug("SaveList", "list", savelist)
 					}
@@ -445,10 +457,11 @@ func (n *Node) needMore() bool {
 }
 
 func (n *Node) loadAddrBook() bool {
-	var peeraddrs []string
+	var peeraddrs = make(map[string]bool)
 	if n.addrBook.Size() != 0 {
-		for peeraddr, _ := range n.addrBook.addrPeer {
-			peeraddrs = append(peeraddrs, peeraddr)
+		for addr, _ := range n.addrBook.addrPeer {
+			//peeraddrs = append(peeraddrs, peeraddr)
+			peeraddrs[addr] = true
 			if len(peeraddrs) > MaxOutBoundNum {
 				break
 			}
