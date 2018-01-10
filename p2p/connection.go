@@ -54,7 +54,7 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MCon
 		conn:        pb.NewP2PgserviceClient(conn),
 		sendMonitor: NewMonitor(),
 		peer:        peer,
-		quit:        make(chan bool),
+		quit:        make(chan bool, 1),
 	}
 	mconn.nodeInfo = peer.nodeInfo
 	mconn.remoteAddress = remote
@@ -98,7 +98,7 @@ func (c *MConnection) signature(in *pb.P2PPing) (*pb.P2PPing, error) {
 }
 
 // sendRoutine polls for packets to send from channels.
-func (c *MConnection) pingRoutine() {
+func (c *MConnection) PingRoutine() {
 	go func(c *MConnection) {
 		var pingtimes int64
 		ticker := time.NewTicker(PingTimeout)
@@ -137,7 +137,7 @@ func (c *MConnection) pingRoutine() {
 	}(c)
 }
 
-func (c *MConnection) sendVersion() error {
+func (c *MConnection) SendVersion() error {
 	client := (*c.nodeInfo).q.GetClient()
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	client.Send(msg, true)
@@ -167,15 +167,14 @@ func (c *MConnection) sendVersion() error {
 
 		return err
 	}
-	c.once.Do(c.pingRoutine)
+
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
 
-func (c *MConnection) getAddr() ([]string, error) {
+func (c *MConnection) GetAddr() ([]string, error) {
 	resp, err := c.conn.GetAddr(context.Background(), &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))})
 	if err != nil {
-
 		c.sendMonitor.Update(false)
 		return nil, err
 	}
@@ -187,18 +186,17 @@ func (c *MConnection) getAddr() ([]string, error) {
 
 // OnStart implements BaseService
 func (c *MConnection) start() error { //启动Mconnection，每一个MConnection 会在启动的时候启动SendRoutine,RecvRoutine
-
+	c.PingRoutine()
 	return nil
 }
 
-func (c *MConnection) close() {
-	c.gconn.Close()
-}
-
-func (c *MConnection) stop() {
-
-	c.sendMonitor.Stop()
-	c.gconn.Close()
+func (c *MConnection) closePingRoutine() {
 	c.quit <- false
+}
+func (c *MConnection) Close() {
+
+	c.sendMonitor.Close()
+	c.gconn.Close()
+	c.closePingRoutine()
 	log.Debug("Mconnection", "Close", "^_^!")
 }

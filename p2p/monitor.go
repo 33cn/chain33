@@ -104,7 +104,7 @@ func (m *Monitor) IsRunning() bool {
 	return m.isrunning
 }
 
-func (m *Monitor) Stop() {
+func (m *Monitor) Close() {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	m.isrunning = false
