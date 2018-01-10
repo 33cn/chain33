@@ -642,13 +642,19 @@ message CoinsTransfer {
 //message for execs.ticket
 message TicketAction {
 	oneof value {
-		TicketOpen  topen = 1;
+		TicketOpen      topen = 1;
 		TicketGenesis   genesis = 2;
 		TicketClose  tclose = 3;
-		TicketList tlist = 4;
-		TicketInfos infos = 5;
+		TicketMiner miner = 4;
 	}
 	int32 ty = 10;
+}
+
+message TicketMiner {
+	uint32 bits = 1;
+	int64  reward = 2;
+	string ticketId = 3;
+	bytes  modify = 4;
 }
 
 message TicketOpen {
