@@ -184,7 +184,7 @@ func (n *Node) DialPeers(addrbucket map[string]bool) error {
 				return
 			}
 			log.Debug("DialPeersSSSSSSSSSSSSSSSS", "peer", netadr.String())
-			peer, err := DialPeer(netadr, &n.nodeInfo)
+			peer, err := P2pComm.DialPeer(netadr, &n.nodeInfo)
 			if err != nil {
 				log.Error("DialPeers", "Err", err.Error())
 				return
@@ -477,7 +477,7 @@ func (n *Node) loadAddrBook() bool {
 }
 func (n *Node) detectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
-	LocalAddr = GetLocalAddr()
+	LocalAddr = P2pComm.GetLocalAddr()
 	log.Debug("detectionNodeAddr", "addr:", LocalAddr)
 	if cfg.GetIsSeed() {
 		ExternalAddr = LocalAddr
@@ -495,7 +495,7 @@ func (n *Node) detectionNodeAddr() {
 		}
 		seedip := strings.Split(addr, ":")[0]
 
-		selfexaddrs := getSelfExternalAddr(fmt.Sprintf("%v:%v", seedip, DefalutP2PRemotePort))
+		selfexaddrs := P2pComm.GetSelfExternalAddr(fmt.Sprintf("%v:%v", seedip, DefalutP2PRemotePort))
 		if len(selfexaddrs) != 0 {
 			ExternalAddr = selfexaddrs[0]
 			log.Debug("detectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalAddr)

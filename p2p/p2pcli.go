@@ -37,7 +37,6 @@ func NewP2pCli(network *P2p) *P2pCli {
 }
 
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
-	log.Debug("TransToBroadCast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
@@ -59,9 +58,8 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 
 }
 
-//TODO 收到Mempool 模块获取mempool 的请求,从高度最高的节点 下载invs
 func (m *P2pCli) GetMemPool(msg queue.Message) {
-	log.Debug("GetMemPool", "SendTOP2P", msg.GetData())
+
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
 	peers, _ := m.network.node.GetActivePeers()
@@ -349,7 +347,6 @@ FOOR_LOOP:
 				bchan <- item.GetBlock()
 			}
 		}
-
 	}
 	log.Error("download", "out of func", "ok")
 }
@@ -364,9 +361,7 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 
 		peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		if err != nil {
-			log.Error("lastpeerinfo", "err", err.Error())
-			m.network.node.nodeInfo.monitorChan <- peer //直接删掉问题节点
-			log.Error("lastpeerinfo", "delete", "ok")
+			m.deletePeer(m.network.node.nodeInfo, peer)
 			continue
 		}
 		peer.mconn.sendMonitor.Update(true)
@@ -452,10 +447,23 @@ func (m *P2pCli) GetTaskInfo(msg queue.Message) {
 	//TODO  查询任务状态
 }
 func (m *P2pCli) Close() {
-	m.done <- struct{}{}
+
+	ticker := time.NewTicker(time.Second * 1)
+	select {
+	case m.done <- struct{}{}:
+	case <-ticker.C:
+		return
+	}
+
 }
 func (m *P2pCli) deletePeer(nodeinfo *NodeInfo, peer *peer) {
-	nodeinfo.monitorChan <- peer
+
+	ticker := time.NewTicker(time.Second * 1)
+	select {
+	case nodeinfo.monitorChan <- peer:
+	case <-ticker.C:
+		return
+	}
 }
 func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 	data := pb.Encode(in)
@@ -495,6 +503,7 @@ func (m *P2pCli) PeerInfos() []*pb.Peer {
 	}
 	return peers
 }
+
 func (m *P2pCli) monitorPeerInfo() {
 
 	go func(m *P2pCli) {

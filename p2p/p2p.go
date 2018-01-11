@@ -78,7 +78,7 @@ func (network *P2p) subP2pMsg() {
 			case EventQueryTask:
 				go network.cli.GetTaskInfo(msg)
 			default:
-				log.Error("unknown msgtype:", msg.Ty)
+				log.Warn("unknown msgtype", "Ty", msg.Ty)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
 
 				continue
