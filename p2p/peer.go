@@ -48,7 +48,6 @@ func (p *peer) Start() error {
 
 func (p *peer) subStreamBlock() {
 BEGIN:
-	//defer p.wg.Done()
 	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
 	if err != nil {
 		(*p.nodeInfo).monitorChan <- p //直接删除节点

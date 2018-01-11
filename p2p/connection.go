@@ -93,7 +93,12 @@ func (c *MConnection) Start() error {
 }
 
 func (c *MConnection) closePingRoutine() {
-	c.quit <- false
+	ticker := time.NewTicker(time.Second * 1)
+	select {
+	case c.quit <- false:
+	case <-ticker.C:
+		return
+	}
 }
 func (c *MConnection) Close() {
 
