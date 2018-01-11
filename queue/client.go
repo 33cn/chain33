@@ -97,19 +97,28 @@ func (client *Client) Sub(topic string) {
 	go func() {
 		for {
 			select {
-			case data := <-highChan:
+			case data, ok := <-highChan:
+				if !ok {
+					return
+				}
 				if atomic.LoadInt32(&client.isclosed) == 1 {
 					return
 				}
 				client.recv <- data
 			default:
 				select {
-				case data := <-highChan:
+				case data, ok := <-highChan:
+					if !ok {
+						return
+					}
 					if atomic.LoadInt32(&client.isclosed) == 1 {
 						return
 					}
 					client.recv <- data
-				case data := <-lowChan:
+				case data, ok := <-lowChan:
+					if !ok {
+						return
+					}
 					if atomic.LoadInt32(&client.isclosed) == 1 {
 						return
 					}
