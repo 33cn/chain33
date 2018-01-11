@@ -98,7 +98,6 @@ func (l *DefaultListener) listenRoutine() {
 
 	pServer := NewP2pServer()
 	pServer.node = l.n
-	go pServer.monitor()
 	pServer.innerBroadBlock()
 	l.server = grpc.NewServer()
 

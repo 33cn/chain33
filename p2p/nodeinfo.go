@@ -3,11 +3,9 @@ package p2p
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
-	"google.golang.org/grpc"
 )
 
 type NodeInfo struct {
@@ -108,27 +106,6 @@ func (nf *NodeInfo) GetListenAddr() *NetAddress {
 	nf.mtx.Lock()
 	defer nf.mtx.Unlock()
 	return nf.listenAddr
-}
-func (nf *NodeInfo) GrpcConfig() grpc.ServiceConfig {
-
-	var ready = true
-	var defaultRespSize = 1024 * 1024 * 60
-	var defaultReqSize = 1024 * 1024 * 10
-	var defaulttimeout = 30 * time.Second
-	var pingtimeout = 10 * time.Second
-	var MethodConf = map[string]grpc.MethodConfig{
-		"/types/p2pgservice/Ping":           grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/Version2":       grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/BroadCastTx":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/GetMemPool":     grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/GetData":        grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/GetBlocks":      grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/GetPeerInfo":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/BroadCastBlock": grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-	}
-
-	return grpc.ServiceConfig{Methods: MethodConf}
-
 }
 
 func (bl *BlackList) Add(addr string) {
