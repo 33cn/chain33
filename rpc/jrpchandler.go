@@ -185,7 +185,7 @@ GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
 */
 
 func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
-
+	log.Warn("GetTxByHashes", "hashes", in)
 	var parm types.ReqHashes
 	parm.Hashes = make([][]byte, 0)
 	for _, v := range in.Hashes {
@@ -207,8 +207,8 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		for _, tx := range txs {
 			var recp ReceiptData
 			logs := tx.GetReceipt().GetLogs()
+			recp.Ty = tx.GetReceipt().GetTy()
 			for _, lg := range logs {
-				recp.Ty = lg.GetTy()
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
@@ -240,7 +240,6 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 					Amount:    tx.GetAmount(),
 					Fromaddr:  tx.GetFromaddr(),
 				})
-
 		}
 
 		*result = &txdetails
@@ -512,6 +511,8 @@ func (req Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
 		for _, item := range reply.Items {
 			headers.Items = append(headers.Items, &Header{
 				BlockTime:  item.GetBlockTime(),
+				TxCount:    item.GetTxCount(),
+				Hash:       common.ToHex(item.GetHash()),
 				Height:     item.GetHeight(),
 				ParentHash: common.ToHex(item.GetParentHash()),
 				StateHash:  common.ToHex(item.GetStateHash()),

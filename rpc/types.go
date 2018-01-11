@@ -32,6 +32,8 @@ type Header struct {
 	StateHash  string `json:"statehash"`
 	Height     int64  `json:"height"`
 	BlockTime  int64  `json:"blocktime"`
+	TxCount    int64  `json:"txcount"`
+	Hash       string `json:"hash"`
 }
 
 type Signature struct {
@@ -143,11 +145,11 @@ type Headers struct {
 }
 
 type ReqAddr struct {
-	Addr string `json:"items"`
+	Addr string `json:"addr"`
 }
 
 type ReqHashes struct {
-	Hashes []string `json:"items"`
+	Hashes []string `json:"hashes"`
 }
 
 type ReqWalletTransactionList struct {
