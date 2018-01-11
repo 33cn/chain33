@@ -168,3 +168,9 @@ type WalletTxDetail struct {
 	Fromaddr  string       `json:"fromaddr"`
 	Txhash    string       `json:"txhash"`
 }
+
+type BlockOverview struct {
+	Head     *Header  `protobuf:"bytes,1,opt,name=head" json:"head"`
+	TxCount  int64    `protobuf:"varint,2,opt,name=txCount" json:"txCount"`
+	TxHashes []string `protobuf:"bytes,3,rep,name=txHashes,proto3" json:"txHashes"`
+}

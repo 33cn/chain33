@@ -1149,6 +1149,8 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		err := errors.New("ProcGetAddrOverview input err!")
 		return nil, err
 	}
+	chainlog.Info("ProcGetAddrOverview", "Addr", addr.GetAddr())
+
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
@@ -1158,18 +1160,6 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		return nil, err
 	}
 	addrOverview.Reciver = amount
-
-	//获取地址的balance从account模块
-	addrs := make([]string, 1)
-	addrs[0] = addr.Addr
-	accounts, err := account.LoadAccounts(chain.q, addrs)
-	if err != nil {
-		chainlog.Error("ProcGetAddrOverview", "LoadAccounts err", err)
-		return nil, err
-	}
-	if len(accounts) != 0 {
-		addrOverview.Balance = accounts[0].Balance
-	}
 
 	//获取地址对应的交易count
 	addr.Flag = 0
@@ -1190,8 +1180,13 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 
 //通过blockheight 获取blockhash
 func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHash, error) {
-	if height == nil {
+	if height == nil || 0 > height.GetHeight() {
 		err := errors.New("ProcGetBlockHash input err!")
+		return nil, err
+	}
+	CurHeight := chain.GetBlockHeight()
+	if height.GetHeight() > CurHeight {
+		err := errors.New("ProcGetBlockHash input height err!")
 		return nil, err
 	}
 	var ReplyHash types.ReplyHash
