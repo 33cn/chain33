@@ -18,19 +18,44 @@ import (
 )
 
 type P2pCli struct {
-	network   *P2p
-	peerInfos map[string]*pb.Peer
-	done      chan struct{}
+	network  *P2p
+	mtx      sync.Mutex
+	taskinfo map[int64]bool
+	done     chan struct{}
 }
 type intervalInfo struct {
 	start int
 	end   int
 }
 
+func (m *P2pCli) addTask(taskid int64) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	m.taskinfo[taskid] = true
+}
+
+func (m *P2pCli) queryTask(taskid int64) bool {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	if _, ok := m.taskinfo[taskid]; ok {
+		return true
+	}
+	return false
+}
+
+func (m *P2pCli) removeTask(taskid int64) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	if _, ok := m.taskinfo[taskid]; ok {
+		delete(m.taskinfo, taskid)
+	}
+	return
+}
 func NewP2pCli(network *P2p) *P2pCli {
 	pcli := &P2pCli{
-		network: network,
-		done:    make(chan struct{}, 1),
+		network:  network,
+		taskinfo: make(map[int64]bool),
+		done:     make(chan struct{}, 1),
 	}
 
 	return pcli
@@ -66,14 +91,13 @@ func (m *P2pCli) GetMemPool(msg queue.Message) {
 
 	for _, peer := range peers {
 		//获取远程 peer invs
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-		resp, err := peer.mconn.conn.GetMemPool(ctx, &pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+
+		resp, err := peer.mconn.conn.GetMemPool(context.Background(), &pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		if err != nil {
 			peer.mconn.sendMonitor.Update(false)
-			cancel()
 			continue
 		}
-		cancel()
+
 		peer.mconn.sendMonitor.Update(true)
 		invs := resp.GetInvs()
 		//与本地mempool 对比 tx数组
@@ -153,9 +177,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	}
 	addrfrom := fmt.Sprintf("%v:%v", ExternalAddr, nodeinfo.externalAddr.Port)
 	nodeinfo.blacklist.Add(addrfrom)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	resp, err := peer.mconn.conn.Version2(ctx, &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
+	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	if err != nil {
@@ -180,9 +202,7 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) {
 		return
 	}
 	log.Debug("SEND PING", "Peer", peer.Addr(), "nonce", randNonce)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	r, err := peer.mconn.conn.Ping(ctx, in)
+	r, err := peer.mconn.conn.Ping(context.Background(), in)
 	if err != nil {
 		log.Debug("SEND PING", "Errxxxxxxxxxxxxxx", err.Error())
 		peer.mconn.sendMonitor.Update(false)
@@ -214,9 +234,14 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
 	req := msg.GetData().(*pb.ReqBlocks)
+	taskid := req.Start + req.End
+	if m.queryTask(taskid) { //如果有正在下载的taskid,则忽略
+		return
+	}
+	m.addTask(taskid)
+	defer m.removeTask(taskid)
 
 	var MaxInvs = new(pb.P2PInv)
-
 	peers, pinfos := m.network.node.GetActivePeers()
 	for _, peer := range peers {
 		log.Error("peer", "addr", peer.Addr())
@@ -240,6 +265,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 			}
 		}
 	}
+	log.Info("Invs", "Invs show", MaxInvs.GetInvs())
 	if len(MaxInvs.GetInvs()) == 0 {
 		log.Error("GetBlocks", "getInvs", 0)
 		return
@@ -262,6 +288,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	log.Error("downloadblock", "wait", "after")
 	close(bChan)
 	bks, keys := m.sortKeys(bChan)
+
 	var blocks pb.Blocks
 	for _, k := range keys {
 		log.Error("downloadblock", "index sort", int64(k))
@@ -338,7 +365,7 @@ FOOR_LOOP:
 				break FOOR_LOOP
 			}
 			if err != nil {
-				log.Error("download", "resp,Recv err", err.Error())
+				log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
 				resp.CloseSend()
 				break FOOR_LOOP
 			}
@@ -392,6 +419,9 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 	log.Debug("caculateInterval", "invsNum", invsNum)
 	var result = make(map[int]*intervalInfo)
 	peerNum := m.network.node.Size()
+	if peerNum == 0 {
+		return result
+	}
 	if invsNum < peerNum {
 		result[0] = &intervalInfo{start: 0, end: invsNum - 1}
 		return result
