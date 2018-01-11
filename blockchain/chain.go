@@ -234,6 +234,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetTransactionByAddr:
 			addr := (msg.Data).(*types.ReqAddr)
+			chainlog.Warn("EventGetTransactionByAddr", "req", addr)
 			replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
 			if err != nil {
 				chainlog.Error("ProcGetTransactionByAddr", "err", err.Error())
@@ -245,6 +246,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetTransactionByHash:
 			txhashs := (msg.Data).(*types.ReqHashes)
+			chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
 			TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes)
 			if err != nil {
 				chainlog.Error("ProcGetTransactionByHashes", "err", err.Error())
@@ -872,7 +874,8 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 			head.StateHash = blockdetail.Block.StateHash
 			head.BlockTime = blockdetail.Block.BlockTime
 			head.Height = blockdetail.Block.Height
-
+			head.Hash = blockdetail.Block.Hash()
+			head.TxCount = int64(len(blockdetail.Block.Txs))
 			headers.Items[j] = head
 		} else {
 			return nil, err
