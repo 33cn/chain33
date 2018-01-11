@@ -153,7 +153,6 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 	for _, item := range headers.Items {
 		var inv pb.Inventory
 		inv.Ty = MSG_BLOCK
-		//inv.Hash = item.Block.Hash()
 		inv.Height = item.GetHeight()
 		invs = append(invs, &inv)
 	}
