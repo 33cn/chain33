@@ -18,19 +18,44 @@ import (
 )
 
 type P2pCli struct {
-	network   *P2p
-	peerInfos map[string]*pb.Peer
-	done      chan struct{}
+	network  *P2p
+	mtx      sync.Mutex
+	taskinfo map[int64]bool
+	done     chan struct{}
 }
 type intervalInfo struct {
 	start int
 	end   int
 }
 
+func (m *P2pCli) addTask(taskid int64) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	m.taskinfo[taskid] = true
+}
+
+func (m *P2pCli) queryTask(taskid int64) bool {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	if _, ok := m.taskinfo[taskid]; ok {
+		return true
+	}
+	return false
+}
+
+func (m *P2pCli) removeTask(taskid int64) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	if _, ok := m.taskinfo[taskid]; ok {
+		delete(m.taskinfo, taskid)
+	}
+	return
+}
 func NewP2pCli(network *P2p) *P2pCli {
 	pcli := &P2pCli{
-		network: network,
-		done:    make(chan struct{}, 1),
+		network:  network,
+		taskinfo: make(map[int64]bool),
+		done:     make(chan struct{}, 1),
 	}
 
 	return pcli
@@ -209,9 +234,14 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
 	req := msg.GetData().(*pb.ReqBlocks)
+	taskid := req.Start + req.End
+	if m.queryTask(taskid) { //如果有正在下载的taskid,则忽略
+		return
+	}
+	m.addTask(taskid)
+	defer m.removeTask(taskid)
 
 	var MaxInvs = new(pb.P2PInv)
-
 	peers, pinfos := m.network.node.GetActivePeers()
 	for _, peer := range peers {
 		log.Error("peer", "addr", peer.Addr())
@@ -258,6 +288,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	log.Error("downloadblock", "wait", "after")
 	close(bChan)
 	bks, keys := m.sortKeys(bChan)
+
 	var blocks pb.Blocks
 	for _, k := range keys {
 		log.Error("downloadblock", "index sort", int64(k))
