@@ -20,6 +20,7 @@ var ErrNoTicket = errors.New("ErrNoTicket")
 var ErrMinerIsStared = errors.New("ErrMinerIsStared")
 var ErrMinerNotStared = errors.New("ErrMinerNotStared")
 var ErrTicketCount = errors.New("ErrTicketCount")
+var ErrHashlockAmount = errors.New("ErrHashlockAmount")
 var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 var ErrNoPeer = errors.New("ErrNoPeer")
 var ErrSign = errors.New("ErrSign")
@@ -273,4 +274,11 @@ const (
 	TicketActionList  = 4 //读的接口不直接经过transaction
 	TicketActionInfos = 5 //读的接口不直接经过transaction
 	TicketActionMiner = 6
+)
+
+//hashlock
+const (
+	HashlockActionGenesis = 1
+	HashlockActionLock    = 2
+	HashlockActionUnlock  = 3
 )
