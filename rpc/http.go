@@ -8,6 +8,7 @@ import (
 	"net/rpc/jsonrpc"
 
 	pb "code.aliyun.com/chain33/chain33/types"
+	"github.com/rs/cors"
 
 	"google.golang.org/grpc"
 )
@@ -35,9 +36,10 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 	chain33.cli.SetQueue(jrpc.q)
 	chain33.jserver = jrpc
 	server.Register(&chain33)
+	c := cors.New()
 
-	go http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+	// Insert the middleware
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			serverCodec := jsonrpc.NewServerCodec(&HttpConn{in: r.Body, out: w})
 			w.Header().Set("Content-type", "application/json")
@@ -48,9 +50,9 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 				return
 			}
 		}
-
-	}))
-
+	})
+	handler = c.Handler(handler)
+	go http.Serve(listener, handler)
 }
 
 func (jrpc *jsonrpcServer) Close() {
