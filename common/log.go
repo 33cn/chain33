@@ -12,11 +12,11 @@ func SetLogLevel(logLevel string) {
 	resetWithLogLevel(logLevel)
 }
 
-func SetFileLog(file, logLevel string) {
+func SetFileLog(file, logLevel string, logConsoleLevel string) {
 	if file == "" {
 		resetWithLogLevel(logLevel)
 	} else {
-		resetWithLogLevel2(file, logLevel)
+		resetWithLogLevel2(file, logLevel, logConsoleLevel)
 	}
 }
 
@@ -35,9 +35,9 @@ func resetWithLogLevel(logLevel string) {
 	log15.Root().SetHandler(mainHandler)
 }
 
-func resetWithLogLevel2(file, logLevel string) {
+func resetWithLogLevel2(file, logLevel string, logConsoleLevel string) {
 	stdouth := log15.LvlFilterHandler(
-		getLevel(logLevel),
+		getLevel(logConsoleLevel),
 		log15.StreamHandler(os.Stdout, log15.TerminalFormat()),
 	)
 

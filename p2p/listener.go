@@ -12,7 +12,7 @@ import (
 )
 
 type Listener interface {
-	Stop() bool
+	Close() bool
 }
 
 // Implements Listener
@@ -63,11 +63,13 @@ func (l *DefaultListener) NatMapPort() {
 		if nat.Map(nat.Any(), l.c, "TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33 p2p") != nil {
 
 			{
-				//l.n.localPort = uint16(rand.Intn(64512) + 1023)
+
+				l.nodeInfo.blacklist.Delete(l.nodeInfo.GetExternalAddr().String())
 				l.n.externalPort = uint16(rand.Intn(64512) + 1023)
-				l.n.flushNodeInfo()
-				log.Debug("NatMapPort", "Port", l.n.localPort)
-				log.Debug("NatMapPort", "Port", l.n.externalPort)
+				l.n.FlushNodeInfo()
+				l.nodeInfo.blacklist.Add(l.n.nodeInfo.GetExternalAddr().String())
+				log.Debug("NatMapPort", "Port", l.n.nodeInfo.GetExternalAddr())
+
 			}
 
 			continue
@@ -75,11 +77,11 @@ func (l *DefaultListener) NatMapPort() {
 
 	}
 	l.n.externalPort = DefaultPort
-	l.n.flushNodeInfo()
+	l.n.FlushNodeInfo()
 	log.Error("Nat Map", "Error Map Port Failed ----------------")
 
 }
-func (l *DefaultListener) Stop() bool {
+func (l *DefaultListener) Close() bool {
 	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
 	nat.Any().DeleteMapping(Protocol, int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port))
 	log.Debug("stop", "closed natport", "close")
@@ -96,9 +98,9 @@ func (l *DefaultListener) listenRoutine() {
 
 	pServer := NewP2pServer()
 	pServer.node = l.n
-	go pServer.monitor()
 	pServer.innerBroadBlock()
 	l.server = grpc.NewServer()
+
 	pb.RegisterP2PgserviceServer(l.server, pServer)
 	l.server.Serve(l.listener)
 

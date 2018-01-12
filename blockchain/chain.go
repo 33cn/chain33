@@ -135,8 +135,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 		chain.recvdone <- struct{}{}
 	}()
 	for msg := range chain.qclient.Recv() {
-		chainlog.Info("blockchain recv", "msg", msg)
+		chainlog.Info("blockchain recv", "msg", types.GetEventName(int(msg.Ty)))
 		msgtype := msg.Ty
+		beg := time.Now()
 		switch msgtype {
 
 		case types.EventQueryTx:
@@ -233,7 +234,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetTransactionByAddr:
 			addr := (msg.Data).(*types.ReqAddr)
-			replyTxInfos, err := chain.ProcGetTransactionByAddr(addr.Addr)
+			replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
 			if err != nil {
 				chainlog.Error("ProcGetTransactionByAddr", "err", err.Error())
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, err))
@@ -301,6 +302,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		default:
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}
 }
 
@@ -310,7 +312,6 @@ func (chain *BlockChain) poolRoutine() {
 	//向peer请求同步block的定时器，默认5s
 	blockSynTicker := time.NewTicker(time.Duration(blockSynSeconds) * time.Second)
 
-FOR_LOOP:
 	for {
 		select {
 		case <-chain.quit:
@@ -326,98 +327,7 @@ FOR_LOOP:
 
 		case <-chain.blockPool.synblock:
 			//chainlog.Info("trySyncTicker")
-			// 定时同步缓存中的block信息到db数据库中
-			newbatch := chain.blockStore.NewBatch(true)
-			var stratblockheight int64 = 0
-			var endblockheight int64 = 0
-			var prevStateHash []byte
-			var prevblkHash []byte
-			// 可以批量处理BatchBlockNum个block到db中
-			currentheight := chain.blockStore.Height()
-			if currentheight == -1 {
-				prevStateHash = common.Hash{}.Bytes()
-				prevblkHash = common.Hash{}.Bytes()
-			} else {
-				curblock, err := chain.GetBlock(currentheight)
-				if err != nil {
-					continue FOR_LOOP
-				}
-				prevStateHash = curblock.Block.GetStateHash()
-				prevblkHash = curblock.Block.Hash()
-			}
-			prevheight := currentheight
-			for {
-				block := chain.blockPool.GetBlock(prevheight + 1)
-
-				//需要加载的第一个nextblock不存在，退出for循环进入下一个超时
-				if block == nil && prevheight == currentheight {
-					//chainlog.Info("trySyncTicker continue FOR_LOOP")
-					continue FOR_LOOP
-				}
-				// 缓存中连续的block数小于BatchBlockNum时，同步现有的block到db中
-				if block == nil {
-					//chainlog.Info("trySyncTicker block is nil")
-					break
-				}
-				if !bytes.Equal(prevblkHash, block.GetParentHash()) {
-					chainlog.Error("trySyncTicker ParentHash err!", "height", block.Height)
-					//blockhash校验不过需要从blockpool中删除，重新发起请求
-					chain.blockPool.DelBlock(block.GetHeight())
-					//go chain.FetchBlock(block.GetHeight(), block.GetHeight())
-					break
-				}
-				blockdetail, err := util.ExecBlock(chain.q, prevStateHash, block, true)
-				if err != nil {
-					chainlog.Error("trySyncTicker ExecBlock is err!", "height", block.Height, "err", err)
-					//block校验不过需要从blockpool中删除，重新发起请求
-					chain.blockPool.DelBlock(block.GetHeight())
-					//go chain.FetchBlock(block.GetHeight(), block.GetHeight())
-					break
-				}
-
-				//保存tx信息到db中
-				err = chain.blockStore.indexTxs(newbatch, blockdetail)
-				if err != nil {
-					chainlog.Info("trySyncTicker indexTxs err", "height", block.Height, "err", err)
-					break
-				}
-
-				//保存block信息到db中
-				err = chain.blockStore.SaveBlock(newbatch, blockdetail)
-				if err != nil {
-					chainlog.Info("trySyncTicker SaveBlock is err")
-					break
-				}
-
-				//将已经存储的blocks添加到list缓存中便于查找
-				chain.cacheBlock(blockdetail)
-
-				prevStateHash = blockdetail.Block.GetStateHash()
-				prevblkHash = blockdetail.Block.Hash()
-				prevheight = blockdetail.Block.Height
-
-				//记录同步开始的第一个block高度和最后一个block的高度，用于同步完成之后删除缓存中的block记录
-				if prevheight == currentheight {
-					stratblockheight = block.Height
-				}
-				endblockheight = blockdetail.Block.Height
-			}
-			newbatch.Write()
-
-			//更新db中的blockheight到blockStore.Height
-			chain.blockStore.UpdateHeight()
-
-			//删除缓存中的block
-			for j := stratblockheight; j <= endblockheight; j++ {
-				//block := chain.blockPool.GetBlock(j)
-				chain.blockPool.DelBlock(j)
-				block, err := chain.GetBlock(j)
-				if block != nil && err == nil {
-					//通知mempool和consense模块
-					chain.SendAddBlockEvent(block)
-				}
-			}
-			continue FOR_LOOP
+			chain.SynBlockToDbOneByOne()
 		}
 	}
 }
@@ -504,6 +414,11 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		err = errors.New(outstr)
 		return nil, err
 	}
+	if requestblock.GetStart() > requestblock.GetEnd() {
+		outstr := fmt.Sprintf("input must Start <= End: Startheight :%d  Endheight:%d", requestblock.Start, requestblock.End)
+		err = errors.New(outstr)
+		return nil, err
+	}
 
 	chainlog.Debug("ProcGetBlocksMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.Isdetail)
 
@@ -543,6 +458,77 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 	return &blocks, nil
 }
 
+//异步处理p2p广播发过来的block
+func (chain *BlockChain) AddP2PCastBlock(broadcast bool, block *types.Block) error {
+	//通过前一个block的statehash来执行此block
+	currentheight := chain.GetBlockHeight()
+	var prevstateHash []byte
+	var prevblkHash []byte
+	if currentheight == -1 {
+		prevstateHash = common.Hash{}.Bytes()
+		prevblkHash = common.Hash{}.Bytes()
+	} else {
+		prvblock, err := chain.GetBlock(currentheight)
+		if err != nil {
+			chainlog.Error("AddP2PCastBlock", "err", err)
+			return err
+		}
+		prevstateHash = prvblock.Block.GetStateHash()
+		prevblkHash = prvblock.Block.Hash()
+	}
+	if !bytes.Equal(prevblkHash, block.GetParentHash()) {
+		outstr := fmt.Sprintf("AddP2PCastBlock ParentHash err height:%d", block.Height)
+		err := errors.New(outstr)
+		return err
+	}
+
+	chainlog.Info("AddP2PCastBlock", "util.ExecBlock begin", block.GetHeight())
+
+	blockDetail, err := util.ExecBlock(chain.q, prevstateHash, block, true)
+	if err != nil {
+		chainlog.Error("AddP2PCastBlock ExecBlock err!", "err", err)
+		return err
+	}
+	chainlog.Info("AddP2PCastBlock", "util.ExecBlock end", block.GetHeight())
+
+	newbatch := chain.blockStore.NewBatch(true)
+	cacheDB := NewCacheDB()
+	//保存tx交易结果信息到db中
+	chain.blockStore.indexTxs(newbatch, cacheDB, blockDetail)
+	if err != nil {
+		return err
+	}
+
+	//保存block信息到db中
+	err = chain.blockStore.SaveBlock(newbatch, blockDetail)
+	if err != nil {
+		return err
+	}
+	cacheDB.SetBatch(newbatch)
+	newbatch.Write()
+
+	//更新db中的blockheight到blockStore.Height
+	chain.blockStore.UpdateHeight()
+
+	//将此block添加到缓存中便于查找
+	chain.cacheBlock(blockDetail)
+
+	//通知mempool和consense模块
+	chain.SendAddBlockEvent(blockDetail)
+
+	//广播此block到网络中
+	if broadcast {
+		chain.SendBlockBroadcast(blockDetail)
+
+		//更新广播block的高度
+		castblockheight := chain.GetRcvLastCastBlkHeight()
+		if castblockheight < blockDetail.Block.Height {
+			chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
+		}
+	}
+	return nil
+}
+
 //处理从peer对端同步过来的block消息
 func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (err error) {
 	if block == nil {
@@ -556,72 +542,13 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (er
 		err = errors.New(outstr)
 		return err
 	} else if block.Height == currentheight+1 { //我们需要的高度，直接存储到db中
-		//通过前一个block的statehash来执行此block
-		var prevstateHash []byte
-		var prevblkHash []byte
-		if currentheight == -1 {
-			prevstateHash = common.Hash{}.Bytes()
-			prevblkHash = common.Hash{}.Bytes()
-		} else {
-			prvblock, err := chain.GetBlock(currentheight)
-			if err != nil {
-				chainlog.Error("ProcAddBlockDetailMsg", "err", err)
-				return err
-			}
-			prevstateHash = prvblock.Block.GetStateHash()
-			prevblkHash = prvblock.Block.Hash()
-		}
-		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
-			outstr := fmt.Sprintf("ProcAddBlockMsg ParentHash err height:%d", block.Height)
-			err := errors.New(outstr)
-			return err
-		}
-
-		blockDetail, err := util.ExecBlock(chain.q, prevstateHash, block, true)
-		if err != nil {
-			chainlog.Error("ProcAddBlockMsg ExecBlock err!", "err", err)
-			return err
-		}
-
-		newbatch := chain.blockStore.NewBatch(true)
-		//保存tx交易结果信息到db中
-		chain.blockStore.indexTxs(newbatch, blockDetail)
-		if err != nil {
-			return err
-		}
-
-		//保存block信息到db中
-		err = chain.blockStore.SaveBlock(newbatch, blockDetail)
-		if err != nil {
-			return err
-		}
-		newbatch.Write()
-
-		//更新db中的blockheight到blockStore.Height
-		chain.blockStore.UpdateHeight()
-
-		//将此block添加到缓存中便于查找
-		chain.cacheBlock(blockDetail)
-
-		//通知mempool和consense模块
-		chain.SendAddBlockEvent(blockDetail)
-
-		//广播此block到网络中
-		if broadcast {
-			chain.SendBlockBroadcast(blockDetail)
-
-			//更新广播block的高度
-			castblockheight := chain.GetRcvLastCastBlkHeight()
-			if castblockheight < blockDetail.Block.Height {
-				chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
-			}
-		}
-		return nil
+		//我们需要的高度，直接存储到db中，异步处理避免阻塞当前任务
+		go chain.AddP2PCastBlock(broadcast, block)
 	} else {
 		// 首先将此block缓存到blockpool中。
 		chain.blockPool.AddBlock(block)
 
-		defer func() {
+		go func() {
 			chain.blockPool.synblock <- struct{}{}
 		}()
 
@@ -660,9 +587,9 @@ func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.B
 		}
 
 		newbatch := chain.blockStore.NewBatch(true)
-
+		cacheDB := NewCacheDB()
 		//保存tx交易结果信息到db中
-		chain.blockStore.indexTxs(newbatch, blockDetail)
+		chain.blockStore.indexTxs(newbatch, cacheDB, blockDetail)
 		if err != nil {
 			chainlog.Error("ProcAddBlockDetail", "err", err)
 			return err
@@ -674,20 +601,16 @@ func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.B
 			chainlog.Error("ProcAddBlockDetail", "err", err)
 			return err
 		}
+		cacheDB.SetBatch(newbatch)
 		newbatch.Write()
-
 		//更新db中的blockheight到blockStore.Height
 		chain.blockStore.UpdateHeight()
-
 		//将此block添加到缓存中便于查找
 		chain.cacheBlock(blockDetail)
-
 		//通知mempool和consense以及wallet模块
 		chain.SendAddBlockEvent(blockDetail)
-
 		//广播此block到网络中
 		chain.SendBlockBroadcast(blockDetail)
-
 		return nil
 	} else {
 		outstr := fmt.Sprintf("input height :%d ,current store height:%d", blockDetail.Block.Height, currentheight)
@@ -707,7 +630,6 @@ P2P区块收到这个消息后，会向blockchain 模块回复， EventReply。
 blockchain 模块回复 EventReply
 结构体：
 */
-//func (chain *BlockChain) FetchBlock(reqblk *types.ReqBlocks) (err error) {
 func (chain *BlockChain) FetchBlock(start int64, end int64) (err error) {
 	if chain.qclient == nil {
 		fmt.Println("chain client not bind message queue.")
@@ -760,7 +682,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	msg = chain.qclient.NewMessage("consensus", types.EventAddBlock, block)
 	chain.qclient.Send(msg, false)
 
-	chainlog.Debug("SendAddBlockEvent -->>wallet")
+	chainlog.Debug("SendAddBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
 	msg = chain.qclient.NewMessage("wallet", types.EventAddBlock, block)
 	chain.qclient.Send(msg, false)
 
@@ -787,17 +709,23 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 //处理从peer对端同步过来的blocks
 //首先缓存到pool中,由poolRoutine定时同步到db中,blocks太多此时写入db会耗时很长
 func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
-	defer func() {
-		chain.blockPool.synblock <- struct{}{}
-	}()
 
 	var preheight int64
-	chainlog.Debug("ProcAddBlocksMsg", "blockcount", len(blocks.Items))
-	//我们只处理连续的block，不连续时直接忽略掉
-	for index, block := range blocks.Items {
-		if index == 0 {
+	if len(blocks.Items) != 0 {
+		chainlog.Debug("ProcAddBlocksMsg", "blockcount", len(blocks.Items), "startheight", blocks.Items[0].GetHeight())
+	}
+	CurHeight := chain.GetBlockHeight()
+	var flag bool = false
+	//我们只处理连续的block，不连续时直接忽略掉,小于当前高度的block也要被忽略掉
+	for _, block := range blocks.Items {
+		if CurHeight >= block.GetHeight() {
+			chainlog.Error("ProcAddBlocksMsg", "CurHeight", CurHeight, "synheight", block.GetHeight())
+			continue
+		}
+		if flag == false {
 			preheight = block.GetHeight()
 			chain.blockPool.AddBlock(block)
+			flag = true
 		} else if preheight+1 == block.GetHeight() {
 			preheight = block.GetHeight()
 			chain.blockPool.AddBlock(block)
@@ -806,6 +734,9 @@ func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
 			break
 		}
 	}
+	go func() {
+		chain.blockPool.synblock <- struct{}{}
+	}()
 	return nil
 }
 
@@ -1026,36 +957,33 @@ func (chain *BlockChain) fetchPeerList() error {
 	}
 	return nil
 }
-func (chain *BlockChain) GetTxsListByAddr(addr []byte) (txs []*types.TxResult) {
-	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
-	if err != nil {
-		chainlog.Info("GetTxsListByAddr does not exist tx!", "addr", string(addr), "err", err)
-		return nil
-	}
-	if txinfos == nil {
-		return nil
-	}
-	for _, txinfo := range txinfos.TxInfos {
-		txresult, err := chain.GetTxResultFromDb(txinfo.GetHash())
-		if err == nil {
-			txs = append(txs, txresult)
-		}
-		//chainlog.Info("GetTxsListByAddr txs", "txhash", tx)
-	}
-	return
-}
 
 //获取地址对应的所有交易信息
 //存储格式key:addr:flag:height ,value:txhash
 //key=addr :获取本地参与的所有交易
 //key=addr:0 :获取本地作为from方的所有交易
 //key=addr:1 :获取本地作为to方的所有交易
-func (chain *BlockChain) ProcGetTransactionByAddr(addr string) (*types.ReplyTxInfos, error) {
-	if len(addr) == 0 {
+func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
+	if addr == nil || len(addr.Addr) == 0 {
 		err := errors.New("ProcGetTransactionByAddr addr is nil")
 		return nil, err
 	}
-	txinfos, err := chain.blockStore.GetTxsByAddr([]byte(addr))
+	//入参数校验
+	curheigt := chain.GetBlockHeight()
+	if addr.GetHeight() > curheigt || addr.GetHeight() < -1 {
+		err := errors.New("ProcGetTransactionByAddr Height err")
+		return nil, err
+	}
+	if addr.GetDirection() != 0 && addr.GetDirection() != 1 {
+		err := errors.New("ProcGetTransactionByAddr Direction err")
+		return nil, err
+	}
+	if addr.GetIndex() < 0 || addr.GetIndex() > MaxTxsPerBlock {
+		err := errors.New("ProcGetTransactionByAddr Index err")
+		return nil, err
+	}
+
+	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -1145,32 +1073,21 @@ func (chain *BlockChain) UpdatePeerMaxBlkHeight(height int64) {
 //blockSynSeconds时间检测一次本节点的height是否有增长，没有增长就需要通过对端peerlist获取最新高度，发起同步
 func (chain *BlockChain) SynBlocksFromPeers() {
 
-	GetsynBlkHeight := chain.GetsynBlkHeight()
 	curheight := chain.GetBlockHeight()
 	RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 
-	chainlog.Info("SynBlocksFromPeers", "synBlkHeight", GetsynBlkHeight, "curheight", curheight)
-	chainlog.Info("SynBlocksFromPeers", "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", curheight)
-
-	//如果上个周期已经同步的block高度小于等于当前高度
-	//说明本节点在这个周期没有收到block需要主动发起同步
-	if curheight >= GetsynBlkHeight {
-		//RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
-		//首先和广播的block高度做比较，小于广播的block高度就直接发送block同步的请求
-		if curheight < RcvLastCastBlkHeight {
-			chain.FetchBlock(curheight+1, RcvLastCastBlkHeight)
-		} else {
-			//大于等于广播的block高度时，需要获取peer的最新高度继续做校验
-			//获取peers的最新高度.处理没有收到广播block的情况
-			//peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
-			if curheight < peerMaxBlkHeight {
-				chain.FetchBlock(curheight+1, peerMaxBlkHeight)
-			}
-		}
-		chain.UpdatesynBlkHeight(curheight)
+	chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
+	//首先和广播的block高度做比较，小于广播的block高度就直接发送block同步的请求
+	if curheight < RcvLastCastBlkHeight {
+		chain.FetchBlock(curheight+1, RcvLastCastBlkHeight)
 	} else {
-		chainlog.Error("SynBlocksFromPeers", "synBlkHeight", GetsynBlkHeight, "curheight", curheight)
+		//大于等于广播的block高度时，需要获取peer的最新高度继续做校验
+		//获取peers的最新高度.处理没有收到广播block的情况
+		//peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
+		if curheight < peerMaxBlkHeight {
+			chain.FetchBlock(curheight+1, peerMaxBlkHeight)
+		}
 	}
 	return
 }
@@ -1232,6 +1149,8 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		err := errors.New("ProcGetAddrOverview input err!")
 		return nil, err
 	}
+	chainlog.Info("ProcGetAddrOverview", "Addr", addr.GetAddr())
+
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
@@ -1242,35 +1161,32 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	}
 	addrOverview.Reciver = amount
 
-	//获取地址的balance从account模块
-	addrs := make([]string, 1)
-	addrs[0] = addr.Addr
-	accounts, err := account.LoadAccounts(chain.q, addrs)
-	if err != nil {
-		chainlog.Error("ProcGetAddrOverview", "LoadAccounts err", err)
-		return nil, err
-	}
-	if len(accounts) != 0 {
-		addrOverview.Balance = accounts[0].Balance
-	}
-
 	//获取地址对应的交易count
-	txinfos, err := chain.blockStore.GetTxsByAddr([]byte(addr.Addr))
+	addr.Flag = 0
+	addr.Count = 0x7fffffff
+	addr.Height = -1
+	addr.Index = 0
+	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
 		return nil, err
 	}
 	addrOverview.TxCount = int64(len(txinfos.GetTxInfos()))
 
-	chainlog.Info("ProcGetAddrOverview", "addrOverview", addrOverview.String())
+	chainlog.Info("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
 
 	return &addrOverview, nil
 }
 
 //通过blockheight 获取blockhash
 func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHash, error) {
-	if height == nil {
+	if height == nil || 0 > height.GetHeight() {
 		err := errors.New("ProcGetBlockHash input err!")
+		return nil, err
+	}
+	CurHeight := chain.GetBlockHeight()
+	if height.GetHeight() > CurHeight {
+		err := errors.New("ProcGetBlockHash input height err!")
 		return nil, err
 	}
 	var ReplyHash types.ReplyHash
@@ -1280,4 +1196,82 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 	}
 	ReplyHash.Hash = block.Block.Hash()
 	return &ReplyHash, nil
+}
+
+// 定时同步缓存中连续的block信息到db数据库中OneByOne
+func (chain *BlockChain) SynBlockToDbOneByOne() {
+	for {
+		//获取当前block的statehash和blockhash用于nextblock的校验
+		var prevStateHash []byte
+		var prevblkHash []byte
+		currentheight := chain.blockStore.Height()
+		if currentheight == -1 {
+			prevStateHash = common.Hash{}.Bytes()
+			prevblkHash = common.Hash{}.Bytes()
+		} else {
+			curblock, err := chain.GetBlock(currentheight)
+			if err != nil {
+				chainlog.Error("SynBlockToDbOneByOne GetBlock:", "height", currentheight, "err", err)
+				return
+			}
+			prevStateHash = curblock.Block.GetStateHash()
+			prevblkHash = curblock.Block.Hash()
+		}
+		//从pool缓存池中获取当前block的nextblock
+		block := chain.blockPool.GetBlock(currentheight + 1)
+		if block == nil {
+			return
+		}
+		//校验ParentHash 不过需要从blockpool中删除，重新发起请求
+		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
+			chainlog.Error("SynBlockToDbOneByOne ParentHash err!", "height", block.Height)
+			chain.blockPool.DelBlock(block.GetHeight())
+			//go chain.FetchOneBlock(block.GetHeight(), block.GetHeight())
+			return
+		}
+		//block执行不过需要从blockpool中删除，重新发起请求
+		blockdetail, err := util.ExecBlock(chain.q, prevStateHash, block, true)
+		if err != nil {
+			chainlog.Error("SynBlockToDbOneByOne ExecBlock is err!", "height", block.Height, "err", err)
+			chain.blockPool.DelBlock(block.GetHeight())
+			//go chain.FetchOneBlock(block.GetHeight(), block.GetHeight())
+			return
+		}
+
+		//批量将block信息写入磁盘
+		newbatch := chain.blockStore.NewBatch(true)
+		cacheDB := NewCacheDB()
+		//保存tx信息到db中
+		err = chain.blockStore.indexTxs(newbatch, cacheDB, blockdetail)
+		if err != nil {
+			chainlog.Error("SynBlockToDbOneByOne indexTxs:", "height", block.Height, "err", err)
+			return
+		}
+
+		//保存block信息到db中
+		err = chain.blockStore.SaveBlock(newbatch, blockdetail)
+		if err != nil {
+			chainlog.Error("SynBlockToDbOneByOne SaveBlock:", "height", block.Height, "err", err)
+			return
+		}
+		cacheDB.SetBatch(newbatch)
+		newbatch.Write()
+
+		//更新db中的blockheight到blockStore.Height
+		chain.blockStore.UpdateHeight()
+
+		//将已经存储的block添加到list缓存中便于查找，并通知mempool和consense模块
+		chain.cacheBlock(blockdetail)
+		chain.SendAddBlockEvent(blockdetail)
+		chain.blockPool.DelBlock(blockdetail.Block.Height)
+	}
+}
+
+//延时5秒之后发送请求block消息
+func (chain *BlockChain) FetchOneBlock(start int64, end int64) {
+	chainlog.Debug("FetchOneBlock After 5 Seconds!", "height", start)
+
+	time.AfterFunc(time.Second*time.Duration(blockSynSeconds), func() {
+		chain.FetchBlock(start, end)
+	})
 }

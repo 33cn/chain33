@@ -8,7 +8,7 @@ var (
 	UpdateState        = 2 * time.Second
 	PingTimeout        = 14 * time.Second
 	DefaultSendTimeout = 10 * time.Second
-	DialTimeout        = 10 * time.Second
+	DialTimeout        = 5 * time.Second
 )
 
 const (
@@ -20,8 +20,6 @@ const (
 var (
 	LocalAddr    string
 	ExternalAddr string
-	//LOCALADDR    string
-	//EXTERNALADDR string
 )
 
 const (

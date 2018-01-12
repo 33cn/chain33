@@ -1,4 +1,4 @@
-package  main
+package main
 
 import (
 	"bytes"
@@ -29,4 +29,3 @@ func TestGetBlock(t *testing.T) {
 
 	fmt.Printf("returned JSON: %s\n", string(b))
 }
-

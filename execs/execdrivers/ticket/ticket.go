@@ -40,20 +40,33 @@ func (n *Ticket) GetName() string {
 	return "ticket"
 }
 
-func (n *Ticket) Exec(tx *types.Transaction) (*types.Receipt, error) {
+func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.TicketAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
 	}
 	clog.Info("exec ticket tx=", "tx=", action)
+	actiondb := ticketdb.NewTicketAction(n.GetDB(), tx, n.GetAddr(), n.GetBlockTime(), n.GetHeight())
 	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if genesis.Count <= 0 {
 			return nil, types.ErrTicketCount
 		}
 		//new ticks
-		return ticketdb.GenesisInit(n.GetDB(), tx.Hash(), n.GetAddr(), genesis, n.GetBlockTime())
+		return actiondb.GenesisInit(genesis)
+	} else if action.Ty == types.TicketActionOpen && action.GetTopen() != nil {
+		topen := action.GetTopen()
+		if topen.Count <= 0 {
+			return nil, types.ErrTicketCount
+		}
+		return actiondb.TicketOpen(topen)
+	} else if action.Ty == types.TicketActionClose && action.GetTclose() != nil {
+		tclose := action.GetTclose()
+		return actiondb.TicketClose(tclose)
+	} else if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+		miner := action.GetMiner()
+		return actiondb.TicketMiner(miner, index)
 	}
 	//return error
 	return nil, types.ErrActionNotSupport

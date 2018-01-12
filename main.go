@@ -42,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	cfg := config.InitCfg(*configpath)
-	common.SetFileLog(cfg.LogFile, cfg.Loglevel)
+	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
 	//channel, rabitmq 等
 	log.Info("chain33 " + Version)
 	log.Info("loading queue")
