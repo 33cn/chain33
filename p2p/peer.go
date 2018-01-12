@@ -46,6 +46,10 @@ func (p *peer) Start() error {
 	return p.mconn.Start()
 }
 
+func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
+	return p.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
+}
+
 func (p *peer) subStreamBlock() {
 BEGIN:
 	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})

@@ -234,18 +234,16 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
 	req := msg.GetData().(*pb.ReqBlocks)
-	taskid := req.Start + req.End
-	if m.queryTask(taskid) { //如果有正在下载的taskid,则忽略
-		return
-	}
-	m.addTask(taskid)
-	defer m.removeTask(taskid)
-
 	var MaxInvs = new(pb.P2PInv)
 	peers, pinfos := m.network.node.GetActivePeers()
 	for _, peer := range peers {
-		log.Error("peer", "addr", peer.Addr())
-		peerinfo := m.network.node.nodeInfo.peerInfos.GetPeerInfo(peer.Addr())
+		log.Error("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
+		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+		if err != nil {
+			log.Error("GetPeers", "Err", err.Error())
+			continue
+		}
+		m.network.node.nodeInfo.peerInfos.SetPeerInfo((*pb.Peer)(peerinfo))
 		if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
 			continue
 		}
@@ -256,7 +254,6 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
-
 		peer.mconn.sendMonitor.Update(true)
 		if len(invs.Invs) > len(MaxInvs.Invs) {
 			MaxInvs = invs
@@ -286,18 +283,11 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	m.wait(&wg)
 
 	log.Error("downloadblock", "wait", "after")
-	close(bChan)
-	bks, keys := m.sortKeys(bChan)
-
-	var blocks pb.Blocks
-	for _, k := range keys {
-		log.Error("downloadblock", "index sort", int64(k))
-		blocks.Items = append(blocks.Items, bks[int64(k)])
+	for block := range bChan {
+		newmsg := m.network.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventAddBlock, block)
+		m.network.node.nodeInfo.qclient.SendAsyn(newmsg, false)
 	}
-
-	newmsg := m.network.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventAddBlocks, &blocks)
-	m.network.node.nodeInfo.qclient.Send(newmsg, false)
-
+	close(bChan)
 }
 
 func (m *P2pCli) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, bchan chan *pb.Block, wg *sync.WaitGroup,
@@ -316,13 +306,8 @@ FOOR_LOOP:
 		log.Debug("downloadBlock", "index", index)
 		var p2pdata pb.P2PGetData
 		p2pdata.Version = m.network.node.nodeInfo.cfg.GetVersion()
-		if interval.end >= len(invs.GetInvs()) || len(invs.GetInvs()) == 1 {
-			interval.end = len(invs.GetInvs()) - 1
-			p2pdata.Invs = invs.Invs[interval.start:]
-		} else {
-			p2pdata.Invs = invs.Invs[interval.start:interval.end]
-		}
-		log.Debug("downloadBlock", "interval invs", p2pdata.Invs)
+		p2pdata.Invs = invs.Invs[interval.start:interval.end]
+		log.Debug("downloadBlock", "interval invs", p2pdata.Invs, "start", interval.start, "end", interval.end)
 		//判断请求的节点的高度是否在节点的实际范围内
 		if index >= peersize {
 			log.Error("download", "index", index, "peersise", peersize)
@@ -336,7 +321,7 @@ FOOR_LOOP:
 			continue
 		}
 		if pinfo, ok := pinfos[peer.Addr()]; ok {
-			if pinfo.GetHeader().GetHeight() < int64(invs.Invs[interval.end].GetHeight()) {
+			if pinfo.GetHeader().GetHeight() < int64(invs.Invs[interval.end-1].GetHeight()) {
 				index++
 				log.Debug("download", "much height", pinfo.GetHeader().GetHeight(), "invs height", int64(invs.Invs[interval.end].GetHeight()))
 				continue
@@ -356,7 +341,6 @@ FOOR_LOOP:
 		}
 		var count int
 		for {
-			count++
 			invdatas, err := resp.Recv()
 			if err == io.EOF {
 				log.Error("download", "recv", "IO.EOF", "count", count)
@@ -369,8 +353,8 @@ FOOR_LOOP:
 				resp.CloseSend()
 				break FOOR_LOOP
 			}
+			count++
 			for _, item := range invdatas.Items {
-
 				bchan <- item.GetBlock()
 			}
 		}
@@ -385,8 +369,7 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 		if peer.mconn.sendMonitor.GetCount() > 0 {
 			continue
 		}
-
-		peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
 		if err != nil {
 			m.deletePeer(m.network.node.nodeInfo, peer)
 			continue
@@ -420,26 +403,25 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 	var result = make(map[int]*intervalInfo)
 	peerNum := m.network.node.Size()
 	if peerNum == 0 {
-		return result
-	}
-	if invsNum < peerNum {
-		result[0] = &intervalInfo{start: 0, end: invsNum - 1}
+		//如果没有peer,那么没有办法分割
+		result[0] = &intervalInfo{0, invsNum}
 		return result
 	}
 	var interval = invsNum / peerNum
+	if interval == 0 {
+		interval = 1
+	}
 	var start, end int
 
 	for i := 0; i < peerNum; i++ {
 		end += interval
 		if end >= invsNum || i == peerNum-1 {
-			end = invsNum - 1
+			end = invsNum
 		}
-
 		result[i] = &intervalInfo{start: start, end: end}
-		log.Debug("caculateInterval", "createinfo", result[i])
+		log.Info("caculateInterval", "createinfo", result[i])
 		start = end
 	}
-
 	return result
 
 }
