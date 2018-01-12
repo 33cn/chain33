@@ -1,8 +1,11 @@
 package blockchain
 
 import (
+	"errors"
 	"sync"
 	"time"
+
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 type Task struct {
@@ -12,6 +15,7 @@ type Task struct {
 	isruning bool
 	ticker   *time.Timer
 	timeout  time.Duration
+	cb       func()
 	donelist map[int64]struct{}
 }
 
@@ -44,6 +48,7 @@ func (t *Task) tick() {
 		}
 		chainlog.Error("task is timeout", "task id timeout = ", t.start)
 		t.isruning = false
+		go t.cb()
 		t.Unlock()
 	}
 }
@@ -54,18 +59,23 @@ func (t *Task) InProgress() bool {
 	return t.isruning
 }
 
-func (t *Task) Start(start, end int64) {
+func (t *Task) Start(start, end int64, cb func()) error {
 	t.Lock()
 	defer t.Unlock()
 	if t.isruning {
-		return
+		return errors.New("task is runing")
+	}
+	if start > end {
+		return types.ErrStartBigThanEnd
 	}
 	chainlog.Error("task start:", "start", start, "end", end)
 	t.isruning = true
 	t.ticker.Reset(t.timeout)
 	t.start = start
 	t.end = end
+	t.cb = cb
 	t.donelist = make(map[int64]struct{})
+	return nil
 }
 
 func (t *Task) Done(height int64) {
@@ -92,6 +102,7 @@ func (t *Task) done(height int64) {
 		}
 		if t.start > t.end {
 			t.isruning = false
+			go t.cb()
 			t.ticker.Stop()
 		}
 	}

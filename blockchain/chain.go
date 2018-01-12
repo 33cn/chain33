@@ -168,23 +168,14 @@ func (chain *BlockChain) ProcRecvMsg() {
 			var reply types.Reply
 			reply.IsOk = true
 			block = msg.Data.(*types.Block)
-			err := chain.ProcAddBlockMsg(false, block)
+			err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: block})
 			if err != nil {
 				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
-			chainlog.Info("EventAddBlock", "success", "ok")
+			chainlog.Info("EventAddBlock", "height", block.Height, "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
-
-		case types.EventAddBlocks: //block
-			var blocks *types.Blocks
-			blocks = msg.Data.(*types.Blocks)
-			err := chain.ProcAddBlocksMsg(blocks)
-			if err != nil {
-				chainlog.Error("ProcAddBlocksMsg", "err", err.Error())
-			}
-			chainlog.Info("EventAddBlocks", "success", "ok")
 
 		case types.EventGetBlockHeight:
 			var replyBlockHeight types.ReplyBlockHeight
@@ -224,14 +215,37 @@ func (chain *BlockChain) ProcRecvMsg() {
 			var reply types.Reply
 			reply.IsOk = true
 			blockDetail = msg.Data.(*types.BlockDetail)
-			err := chain.ProcAddBlockDetail(true, blockDetail)
+			//1. 高度不匹配
+			if blockDetail.Block.Height != chain.GetBlockHeight()+1 {
+				err := types.ErrBlockHeight
+				chainlog.Error("ProcAddBlockDetailMsg", "err", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+			}
+			//2. 添加失败
+			err := chain.ProcAddBlockMsg(true, blockDetail)
 			if err != nil {
 				chainlog.Error("ProcAddBlockDetailMsg", "err", err.Error())
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
-			chainlog.Info("EventAddBlockDetail", "success", "ok")
+			chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReply, &reply))
+
+			//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
+		case types.EventBroadcastAddBlock: //block
+			var block *types.Block
+			var reply types.Reply
+			reply.IsOk = true
+			block = msg.Data.(*types.Block)
+			err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: block})
+			if err != nil {
+				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+			}
+			chainlog.Info("EventBroadcastAddBlock", "success", "ok")
+			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		case types.EventGetTransactionByAddr:
 			addr := (msg.Data).(*types.ReqAddr)
@@ -256,21 +270,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Info("EventGetTransactionByHash", "success", "ok")
 				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
 			}
-
-			//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
-		case types.EventBroadcastAddBlock: //block
-			var block *types.Block
-			var reply types.Reply
-			reply.IsOk = true
-			block = msg.Data.(*types.Block)
-			err := chain.ProcAddBlockMsg(true, block)
-			if err != nil {
-				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			}
-			chainlog.Info("EventBroadcastAddBlock", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 
 		case types.EventGetBlockOverview: //BlockOverview
 			ReqHash := (msg.Data).(*types.ReqHash)
@@ -461,79 +460,9 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 	return &blocks, nil
 }
 
-//异步处理p2p广播发过来的block
-func (chain *BlockChain) AddP2PCastBlock(broadcast bool, block *types.Block) error {
-	//通过前一个block的statehash来执行此block
-	currentheight := chain.GetBlockHeight()
-	var prevstateHash []byte
-	var prevblkHash []byte
-	if currentheight == -1 {
-		prevstateHash = common.Hash{}.Bytes()
-		prevblkHash = common.Hash{}.Bytes()
-	} else {
-		prvblock, err := chain.GetBlock(currentheight)
-		if err != nil {
-			chainlog.Error("AddP2PCastBlock", "err", err)
-			return err
-		}
-		prevstateHash = prvblock.Block.GetStateHash()
-		prevblkHash = prvblock.Block.Hash()
-	}
-	if !bytes.Equal(prevblkHash, block.GetParentHash()) {
-		outstr := fmt.Sprintf("AddP2PCastBlock ParentHash err height:%d", block.Height)
-		err := errors.New(outstr)
-		return err
-	}
-
-	chainlog.Info("AddP2PCastBlock", "util.ExecBlock begin", block.GetHeight())
-
-	blockDetail, err := util.ExecBlock(chain.q, prevstateHash, block, true)
-	if err != nil {
-		chainlog.Error("AddP2PCastBlock ExecBlock err!", "err", err)
-		return err
-	}
-	chainlog.Info("AddP2PCastBlock", "util.ExecBlock end", block.GetHeight())
-
-	newbatch := chain.blockStore.NewBatch(true)
-	cacheDB := NewCacheDB()
-	//保存tx交易结果信息到db中
-	chain.blockStore.indexTxs(newbatch, cacheDB, blockDetail)
-	if err != nil {
-		return err
-	}
-
-	//保存block信息到db中
-	err = chain.blockStore.SaveBlock(newbatch, blockDetail)
-	if err != nil {
-		return err
-	}
-	cacheDB.SetBatch(newbatch)
-	newbatch.Write()
-
-	//更新db中的blockheight到blockStore.Height
-	chain.blockStore.UpdateHeight()
-	chain.task.Done(blockDetail.Block.GetHeight())
-	//将此block添加到缓存中便于查找
-	chain.cacheBlock(blockDetail)
-
-	//通知mempool和consense模块
-	chain.SendAddBlockEvent(blockDetail)
-
-	//广播此block到网络中
-	if broadcast {
-		chain.SendBlockBroadcast(blockDetail)
-
-		//更新广播block的高度
-		castblockheight := chain.GetRcvLastCastBlkHeight()
-		if castblockheight < blockDetail.Block.Height {
-			chain.UpdateRcvCastBlkHeight(blockDetail.Block.Height)
-		}
-	}
-	return nil
-}
-
 //处理从peer对端同步过来的block消息
-func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (err error) {
+func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail) (err error) {
+	block := blockdetail.Block
 	if block == nil {
 		err = errors.New("ProcAddBlockMsg input block is null")
 		return err
@@ -544,83 +473,11 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, block *types.Block) (er
 		outstr := fmt.Sprintf("input add height :%d ,current store height:%d", block.Height, currentheight)
 		err = errors.New(outstr)
 		return err
-	} else if block.Height == currentheight+1 { //我们需要的高度，直接存储到db中
-		//我们需要的高度，直接存储到db中，异步处理避免阻塞当前任务
-		go chain.AddP2PCastBlock(broadcast, block)
 	} else {
 		// 首先将此block缓存到blockpool中。
-		chain.blockPool.AddBlock(block)
-
-		select {
-		case chain.blockPool.synblock <- struct{}{}:
-		default:
-		}
-
+		chain.blockPool.AddBlock(blockdetail, broadcast)
+		chain.notifySync()
 		//更新广播block的高度
-		if broadcast {
-			castblockheight := chain.GetRcvLastCastBlkHeight()
-			if castblockheight < block.Height {
-				chain.UpdateRcvCastBlkHeight(block.Height)
-			}
-		}
-	}
-	return nil
-}
-
-//处理共识模块发过来addblock的消息，需要广播到全网
-func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.BlockDetail) (err error) {
-	currentheight := chain.GetBlockHeight()
-
-	//我们需要的高度，直接存储到db中
-	if blockDetail.Block.Height == currentheight+1 {
-		//校验block的ParentHash值
-		var prevblkHash []byte
-		if currentheight == -1 {
-			prevblkHash = common.Hash{}.Bytes()
-		} else {
-			curblock, err := chain.GetBlock(currentheight)
-			if err != nil {
-				return err
-			}
-			prevblkHash = curblock.Block.Hash()
-		}
-		if !bytes.Equal(prevblkHash, blockDetail.Block.GetParentHash()) {
-			outstr := fmt.Sprintf("ProcAddBlockDetail ParentHash err height:%d", blockDetail.Block.Height)
-			err := errors.New(outstr)
-			return err
-		}
-
-		newbatch := chain.blockStore.NewBatch(true)
-		cacheDB := NewCacheDB()
-		//保存tx交易结果信息到db中
-		chain.blockStore.indexTxs(newbatch, cacheDB, blockDetail)
-		if err != nil {
-			chainlog.Error("ProcAddBlockDetail", "err", err)
-			return err
-		}
-
-		//保存block信息到db中
-		err := chain.blockStore.SaveBlock(newbatch, blockDetail)
-		if err != nil {
-			chainlog.Error("ProcAddBlockDetail", "err", err)
-			return err
-		}
-		cacheDB.SetBatch(newbatch)
-		newbatch.Write()
-		//更新db中的blockheight到blockStore.Height
-		chain.blockStore.UpdateHeight()
-		//将此block添加到缓存中便于查找
-		chain.cacheBlock(blockDetail)
-		//通知mempool和consense以及wallet模块
-		chain.SendAddBlockEvent(blockDetail)
-		//广播此block到网络中
-		chain.SendBlockBroadcast(blockDetail)
-		return nil
-	} else {
-		outstr := fmt.Sprintf("input height :%d ,current store height:%d", blockDetail.Block.Height, currentheight)
-		err = errors.New(outstr)
-		chainlog.Error("ProcAddBlockDetail", "err", err)
-		return err
 	}
 	return nil
 }
@@ -643,7 +500,9 @@ func (chain *BlockChain) FetchBlock(start int64, end int64) (err error) {
 
 	chainlog.Debug("FetchBlock input", "StartHeight", start, "EndHeight", end)
 	blockcount := end - start
-
+	if blockcount < 0 {
+		return types.ErrStartBigThanEnd
+	}
 	var requestblock types.ReqBlocks
 	requestblock.Start = start
 	requestblock.Isdetail = false
@@ -653,7 +512,13 @@ func (chain *BlockChain) FetchBlock(start int64, end int64) (err error) {
 	} else {
 		requestblock.End = end
 	}
-	chain.task.Start(requestblock.Start, requestblock.End)
+
+	err = chain.task.Start(requestblock.Start, requestblock.End, func() {
+		chain.SynBlocksFromPeers()
+	})
+	if err != nil {
+		return err
+	}
 	chainlog.Debug("FetchBlock", "Start", requestblock.Start, "End", requestblock.End)
 	msg := chain.qclient.NewMessage("p2p", types.EventFetchBlocks, &requestblock)
 	chain.qclient.Send(msg, true)
@@ -711,25 +576,11 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	return
 }
 
-//处理从peer对端同步过来的blocks
-//首先缓存到pool中,由poolRoutine定时同步到db中,blocks太多此时写入db会耗时很长
-func (chain *BlockChain) ProcAddBlocksMsg(blocks *types.Blocks) (err error) {
-	if len(blocks.Items) != 0 {
-		chainlog.Debug("ProcAddBlocksMsg", "blockcount", len(blocks.Items), "startheight", blocks.Items[0].GetHeight())
+func (chain *BlockChain) notifySync() {
+	select {
+	case chain.blockPool.synblock <- struct{}{}:
+	default:
 	}
-	CurHeight := chain.GetBlockHeight()
-	//我们只处理连续的block，不连续时直接忽略掉,小于当前高度的block也要被忽略掉
-	for _, block := range blocks.Items {
-		if CurHeight >= block.GetHeight() {
-			chainlog.Error("ProcAddBlocksMsg", "CurHeight", CurHeight, "synheight", block.GetHeight())
-			continue
-		}
-		chain.blockPool.AddBlock(block)
-	}
-	go func() {
-		chain.blockPool.synblock <- struct{}{}
-	}()
-	return nil
 }
 
 func (chain *BlockChain) GetBlockHeight() int64 {
@@ -1218,22 +1069,26 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 			prevblkHash = curblock.Block.Hash()
 		}
 		//从pool缓存池中获取当前block的nextblock
-		block := chain.blockPool.GetBlock(currentheight + 1)
-		if block == nil {
+		blockdetail, broadcast := chain.blockPool.GetBlock(currentheight + 1)
+		if blockdetail == nil || blockdetail.Block == nil {
 			return
 		}
+		block := blockdetail.Block
 		//校验ParentHash 不过需要从blockpool中删除，重新发起请求
 		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
 			chainlog.Error("SynBlockToDbOneByOne ParentHash err!", "height", block.Height)
 			chain.blockPool.DelBlock(block.GetHeight())
 			return
 		}
-		//block执行不过需要从blockpool中删除，重新发起请求
-		blockdetail, err := util.ExecBlock(chain.q, prevStateHash, block, true)
-		if err != nil {
-			chainlog.Error("SynBlockToDbOneByOne ExecBlock is err!", "height", block.Height, "err", err)
-			chain.blockPool.DelBlock(block.GetHeight())
-			return
+		var err error
+		if blockdetail.Receipts == nil {
+			//block执行不过需要从blockpool中删除，重新发起请求
+			blockdetail, err = util.ExecBlock(chain.q, prevStateHash, block, true)
+			if err != nil {
+				chainlog.Error("SynBlockToDbOneByOne ExecBlock is err!", "height", block.Height, "err", err)
+				chain.blockPool.DelBlock(block.GetHeight())
+				return
+			}
 		}
 
 		//批量将block信息写入磁盘
@@ -1255,12 +1110,19 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 		cacheDB.SetBatch(newbatch)
 		newbatch.Write()
 
-		//更新db中的blockheight到blockStore.Height
 		chain.blockStore.UpdateHeight()
 		chain.task.Done(blockdetail.Block.GetHeight())
-		//将已经存储的block添加到list缓存中便于查找，并通知mempool和consense模块
 		chain.cacheBlock(blockdetail)
 		chain.SendAddBlockEvent(blockdetail)
 		chain.blockPool.DelBlock(blockdetail.Block.Height)
+
+		if broadcast {
+			chain.SendBlockBroadcast(blockdetail)
+			//更新广播block的高度
+			castblockheight := chain.GetRcvLastCastBlkHeight()
+			if castblockheight < blockdetail.Block.Height {
+				chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
+			}
+		}
 	}
 }
