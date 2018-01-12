@@ -36,10 +36,10 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 	chain33.cli.SetQueue(jrpc.q)
 	chain33.jserver = jrpc
 	server.Register(&chain33)
-	c := cors.New()
+	c := cors.New(cors.Options{})
 
 	// Insert the middleware
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			serverCodec := jsonrpc.NewServerCodec(&HttpConn{in: r.Body, out: w})
 			w.Header().Set("Content-type", "application/json")
