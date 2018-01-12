@@ -79,9 +79,11 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	}
 	detail.Block = block
 	detail.Receipts = rdata
-	err := CheckBlock(q, &detail)
-	if err != nil {
-		return nil, err
+	if detail.Block.Height > 0 {
+		err := CheckBlock(q, &detail)
+		if err != nil {
+			return nil, err
+		}
 	}
 	//save to db
 	ExecKVSetCommit(q, block.StateHash)
