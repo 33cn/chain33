@@ -122,6 +122,10 @@ func (mem *Mempool) CheckBalanList() {
 func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 	if len(msgs) != len(addrs) {
 		mlog.Error("msgs size not equals addrs size")
+		for m := range msgs {
+			msgs[m].Data = loadAccountsErr
+			mem.badChan <- msgs[m]
+		}
 		return
 	}
 	accs, err := account.LoadAccountsDB(mem.GetDB(), addrs)
