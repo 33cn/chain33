@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -33,10 +34,15 @@ type IRClient interface {
 	GetPeerInfo() (*types.PeerList, error)
 	GetHeaders(*types.ReqBlocks) (*types.Headers, error)
 	GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, error)
+
+	GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
+	GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error)
+	GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error)
 }
 
 type channelClient struct {
 	qclient queue.IClient
+	q       *queue.Queue
 }
 
 type jsonClient struct {
@@ -61,6 +67,7 @@ func NewClient(name string, addr string) IRClient {
 func (client *channelClient) SetQueue(q *queue.Queue) {
 
 	client.qclient = q.GetClient()
+	client.q = q
 
 }
 
@@ -300,4 +307,47 @@ func (client *channelClient) GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, 
 		return nil, err
 	}
 	return resp.Data.(*types.ReplyTxList), nil
+}
+
+func (client *channelClient) GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error) {
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockOverview, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.BlockOverview), nil
+}
+
+func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
+	msg := client.qclient.NewMessage("blockchain", types.EventGetAddrOverview, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	addrOverview := resp.Data.(*types.AddrOverview)
+
+	//获取地址账户的余额通过account模块
+	addrs := make([]string, 1)
+	addrs[0] = parm.Addr
+	accounts, err := account.LoadAccounts(client.q, addrs)
+	if err != nil {
+		return nil, err
+	}
+	if len(accounts) != 0 {
+		addrOverview.Balance = accounts[0].Balance
+	}
+	return addrOverview, nil
+}
+func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHash, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.ReplyHash), nil
 }

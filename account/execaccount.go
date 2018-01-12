@@ -1,6 +1,7 @@
 package account
 
 import (
+	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -126,6 +127,74 @@ func ExecTransfer(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.
 	SaveExecAccount(db, execaddr, accFrom)
 	SaveExecAccount(db, execaddr, accTo)
 	return execReceipt2(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
+}
+
+//从自己冻结的钱里面扣除，转移到别人的活动钱包里面去
+func ExecTransferFrozen(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+	accFrom := LoadExecAccount(db, from, execaddr)
+	accTo := LoadExecAccount(db, to, execaddr)
+
+	b := accFrom.GetFrozen() - amount
+	if b < 0 {
+		return nil, types.ErrNoBalance
+	}
+	copyaccFrom := *accFrom
+	copyaccTo := *accTo
+
+	accFrom.Frozen = b
+	accTo.Balance = accTo.Balance + amount
+
+	receiptBalanceFrom := &types.ReceiptExecAccount{execaddr, &copyaccFrom, accFrom}
+	receiptBalanceTo := &types.ReceiptExecAccount{execaddr, &copyaccTo, accTo}
+
+	SaveExecAccount(db, execaddr, accFrom)
+	SaveExecAccount(db, execaddr, accTo)
+	return execReceipt2(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
+}
+
+var addrSeed = []byte("address seed bytes for public key")
+var bname [200]byte
+
+func ExecAddress(name string) *Address {
+	if len(name) > 100 {
+		panic("name too long")
+	}
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := common.Sha2Sum(buf)
+	return PubKeyToAddress(hash[:])
+}
+
+func ExecDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+	//这个函数只有挖矿的合约才能调用
+	list := types.AllowDepositExec
+	allow := false
+	for _, exec := range list {
+		if ExecAddress(exec).String() == execaddr {
+			allow = true
+			break
+		}
+	}
+	if !allow {
+		return nil, types.ErrNotAllowDeposit
+	}
+	return execDepositFrozen(db, addr, execaddr, amount)
+}
+
+func execDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+	acc := LoadExecAccount(db, addr, execaddr)
+	copyacc := *acc
+	acc.Frozen += amount
+	receiptBalance := &types.ReceiptExecAccount{execaddr, &copyacc, acc}
+	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
+	SaveExecAccount(db, execaddr, acc)
+	return execReceipt(acc, receiptBalance), nil
 }
 
 func execDeposit(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {

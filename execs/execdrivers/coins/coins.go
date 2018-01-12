@@ -38,7 +38,7 @@ func (n *Coins) GetName() string {
 	return "coins"
 }
 
-func (n *Coins) Exec(tx *types.Transaction) (*types.Receipt, error) {
+func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {

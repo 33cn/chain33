@@ -8,12 +8,18 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+type Message proto.Message
+
 //hash 不包含签名，用户通过修改签名无法重新发送交易
 func (tx *Transaction) Hash() []byte {
 	copytx := *tx
 	copytx.Signature = nil
 	data := Encode(&copytx)
 	return common.Sha256(data)
+}
+
+func (tx *Transaction) Size() int {
+	return Size(tx)
 }
 
 func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
@@ -94,6 +100,10 @@ func Encode(data proto.Message) []byte {
 		panic(err)
 	}
 	return b
+}
+
+func Size(data proto.Message) int {
+	return proto.Size(data)
 }
 
 func Decode(data []byte, msg proto.Message) error {

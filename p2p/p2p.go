@@ -14,7 +14,7 @@ type P2p struct {
 	c        queue.IClient
 	node     *Node
 	addrBook *AddrBook // known peers
-	msg      *Msg
+	cli      *P2pCli
 	done     chan struct{}
 }
 
@@ -27,17 +27,19 @@ func New(cfg *types.P2P) *P2p {
 	p2p := new(P2p)
 	p2p.node = node
 	p2p.done = make(chan struct{}, 1)
-	p2p.msg = NewInTrans(p2p)
+	p2p.cli = NewP2pCli(p2p)
 	return p2p
+}
+func (network *P2p) Stop() {
+	network.done <- struct{}{}
 }
 
 func (network *P2p) Close() {
-
-	network.done <- struct{}{}
+	network.Stop()
 	log.Debug("close", "network", "done")
-	network.msg.done <- struct{}{}
+	network.cli.Close()
 	log.Debug("close", "msg", "done")
-	network.node.Stop()
+	network.node.Close()
 	log.Debug("close", "node", "done")
 }
 
@@ -47,7 +49,7 @@ func (network *P2p) SetQueue(q *queue.Queue) {
 	network.node.setQueue(q)
 	network.node.Start()
 	network.subP2pMsg()
-	network.msg.monitorPeerInfo()
+	network.cli.monitorPeerInfo()
 
 }
 
@@ -58,26 +60,25 @@ func (network *P2p) subP2pMsg() {
 
 	network.c.Sub("p2p")
 	go func() {
-
+		var EventQueryTask int64 = 666 //TODO
 		for msg := range network.c.Recv() {
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
-				log.Debug("QUEUE P2P EventTxBroadcast", "Recv from mempool message EventTxBroadcast will broadcast outnet")
-				go network.msg.TransToBroadCast(msg)
+				go network.cli.BroadCastTx(msg)
 			case types.EventBlockBroadcast: //广播block
-				go network.msg.BlockBroadcast(msg)
+				go network.cli.BlockBroadcast(msg)
 			case types.EventFetchBlocks:
-				tempIntrans := NewInTrans(network)
-				go tempIntrans.GetBlocks(msg)
+				go network.cli.GetBlocks(msg)
 			case types.EventGetMempool:
-				go network.msg.GetMemPool(msg)
+				go network.cli.GetMemPool(msg)
 			case types.EventPeerInfo:
-				go network.msg.GetPeerInfo(msg)
-
+				go network.cli.GetPeerInfo(msg)
+			case EventQueryTask:
+				go network.cli.GetTaskInfo(msg)
 			default:
-				log.Error("unknown msgtype:", msg.Ty)
+				log.Warn("unknown msgtype", "Ty", msg.Ty)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
 
 				continue

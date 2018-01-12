@@ -1,8 +1,11 @@
 package ticket
 
 import (
+	"fmt"
+	"math/big"
 	"time"
 
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
@@ -62,6 +65,132 @@ func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	tx3.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
 	ret = append(ret, &tx3)
 	return
+}
+
+func (client *TicketClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	//检查第一个笔交易的execs, 以及执行状态
+	if len(current.Block.Txs) == 0 {
+		return types.ErrEmptyTx
+	}
+	baseTx := current.Block.Txs[0]
+	if string(baseTx.Execer) != "ticket" {
+		return types.ErrCoinBaseExecer
+	}
+	//判断交易类型和执行情况
+	var ticketAction types.TicketAction
+	err := types.Decode(baseTx.GetPayload(), &ticketAction)
+	if err != nil {
+		return err
+	}
+	if ticketAction.GetTy() != types.TicketActionMiner {
+		return types.ErrCoinBaseTxType
+	}
+	//判断交易执行是否OK
+	if current.Receipts[0].Ty != types.ExecOk {
+		return types.ErrCoinBaseExecErr
+	}
+	//check reward 的值是否正确
+	miner := ticketAction.GetMiner()
+	if miner.Reward != types.CoinReward {
+		return types.ErrCoinbaseReward
+	}
+	//通过判断区块的难度difficult
+	diff := client.getNextTarget(parent, miner.Bits)
+	currentdiff := client.getCurrentTarget(current.Block.BlockTime, miner.TicketId, miner.Modify)
+	if currentdiff.Cmp(CompactToBig(miner.Bits)) != 0 {
+		return types.ErrCoinBaseTarget
+	}
+	if currentdiff.Cmp(diff) > 0 {
+		return types.ErrCoinBaseTarget
+	}
+	return nil
+}
+
+func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) *big.Int {
+	targetBits, err := client.GetNextRequiredDifficulty(block, bits)
+	if err != nil {
+		panic(err)
+	}
+	return CompactToBig(targetBits)
+}
+
+func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
+	s := fmt.Sprint("%d:%s:%x", blocktime, id, modify)
+	hash := common.Sha2Sum([]byte(s))
+	return HashToBig(hash[:])
+}
+
+// calcNextRequiredDifficulty calculates the required difficulty for the block
+// after the passed previous block node based on the difficulty retarget rules.
+// This function differs from the exported CalcNextRequiredDifficulty in that
+// the exported version uses the current best chain as the previous block node
+// while this function accepts any block node.
+func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits uint32) (uint32, error) {
+	// Genesis block.
+	if block == nil {
+		return types.PowLimitBits, nil
+	}
+	blocksPerRetarget := int64(types.TargetTimespan / types.TargetTimePerBlock)
+	// Return the previous block's difficulty requirements if this block
+	// is not at a difficulty retarget interval.
+	if (block.Height+1)%blocksPerRetarget != 0 {
+		// For the main network (or any unrecognized networks), simply
+		// return the previous block's difficulty requirements.
+		return bits, nil
+	}
+
+	// Get the block node at the previous retarget (targetTimespan days
+	// worth of blocks).
+	firstBlock, err := client.RequestBlock(block.Height - blocksPerRetarget)
+	if err != nil {
+		return 0, err
+	}
+	if firstBlock == nil {
+		return 0, types.ErrBlockNotFound
+	}
+
+	// Limit the amount of adjustment that can occur to the previous
+	// difficulty.
+	actualTimespan := block.BlockTime - firstBlock.BlockTime
+	adjustedTimespan := actualTimespan
+	targetTimespan := int64(types.TargetTimespan / time.Second)
+
+	minRetargetTimespan := targetTimespan / (types.RetargetAdjustmentFactor)
+	maxRetargetTimespan := targetTimespan * types.RetargetAdjustmentFactor
+	if actualTimespan < int64(minRetargetTimespan) {
+		adjustedTimespan = int64(minRetargetTimespan)
+	} else if actualTimespan > maxRetargetTimespan {
+		adjustedTimespan = maxRetargetTimespan
+	}
+
+	// Calculate new target difficulty as:
+	//  currentDifficulty * (adjustedTimespan / targetTimespan)
+	// The result uses integer division which means it will be slightly
+	// rounded down.  Bitcoind also uses integer division to calculate this
+	// result.
+	oldTarget := CompactToBig(bits)
+	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
+	targetTimeSpan := int64(types.TargetTimespan / time.Second)
+	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
+
+	// Limit new value to the proof of work limit.
+	if newTarget.Cmp(types.PowLimit) > 0 {
+		newTarget.Set(types.PowLimit)
+	}
+
+	// Log new target difficulty and return it.  The new target logging is
+	// intentionally converting the bits back to a number instead of using
+	// newTarget since conversion to the compact representation loses
+	// precision.
+	newTargetBits := BigToCompact(newTarget)
+	slog.Info("Difficulty retarget at ", "block height %d", block.Height+1)
+	slog.Info("Old target ", "%08x", bits, "(%064x)", oldTarget)
+	slog.Info("New target ", "%08x", newTargetBits, "(%064x)", CompactToBig(newTargetBits))
+	slog.Info("Timespan", "Actual timespan", time.Duration(actualTimespan)*time.Second,
+		"adjusted timespan", time.Duration(adjustedTimespan)*time.Second,
+		"target timespan", types.TargetTimespan)
+
+	return newTargetBits, nil
 }
 
 func (client *TicketClient) CreateBlock() {
