@@ -27,12 +27,7 @@ service grpcservice{
 	rpc UnLock(WalletUnLock)returns(Reply){}
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
-	//区块浏览器接口
-	rpc GetBlockOverview(ReqHash) returns(BlockOverview){}
-	rpc GetAddrOverview(ReqAddr) returns(AddrOverview){}
-	rpc GetBlockHash(ReqInt) returns(ReplyHash){}
 	
-
 }
 
 service p2premoteaddr{
@@ -698,3 +693,36 @@ message Ticket {
 message ReceiptTicket {
 	string ticketId = 1;
 }
+
+message Hashlock{
+	string hashlockId = 1;
+	int32  status     = 2;
+	bool isGenesis    = 3;
+	int64 CreateTime  = 4;
+	string returnAddress = 5;
+}
+
+//message for execs.hashlock
+message HashlockAction {
+	oneof value {
+		HashlockLock      hlock = 1;
+		HashlockGenesis   genesis = 2;
+		HashlockUnlock    hunlock = 3;
+	}
+	int32 ty = 4;
+}
+
+message HashlockLock {
+	int64 amount = 1;
+}
+
+message HashlockUnlock {
+	string unlockId = 1;
+	bytes  secret   = 2;
+	bytes  hash     = 3;
+}
+
+message HashlockGenesis {
+	string returnAddress = 1;
+}
+
