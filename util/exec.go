@@ -16,7 +16,6 @@ var ulog = log.New("module", "util")
 func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
-
 	ulog.Error("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	receipts := ExecTx(q, prevStateRoot, block)
