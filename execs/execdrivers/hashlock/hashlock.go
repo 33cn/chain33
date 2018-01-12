@@ -24,7 +24,7 @@ func newHashlock() *Hashlock {
 	return h
 }
 
-//not called currently
+//暂时不被调用
 func (h *Hashlock) GetName() string {
 	return "hashlock"
 }
@@ -40,13 +40,8 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 
 	actiondb := hashlockdb.NewHashlockAction(h.GetDB(), tx, h.GetAddr(), h.GetBlockTime(), h.GetHeight())
 
+	//暂时不实现genesis
 	if action.Ty == types.HashlockActionGenesis {
-		//genesis := action.GetGenesis()
-		//if genesis.Count <= 0 {
-		//return nil, types.ErrTicketCount
-		//}
-		//new hashlock
-		//return actiondb.GenesisInit(genesis)
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		hlock := action.GetHlock()
