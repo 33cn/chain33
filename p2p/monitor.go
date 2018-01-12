@@ -49,8 +49,10 @@ func NewMonitor() *Monitor {
 
 func (m *Monitor) Start() {
 	go func(m *Monitor) {
+		tick := time.NewTicker(time.Second * 5)
+		defer tick.Stop()
 		for {
-			tick := time.NewTicker(time.Second * 5)
+
 			select {
 			case <-tick.C:
 				m.ChangeRunning()
@@ -68,35 +70,41 @@ func (m *Monitor) GetCount() uint {
 	defer m.mtx.Unlock()
 	return m.count
 }
+
 func (m *Monitor) GetLastOp() time.Duration {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	return m.lastop
 }
+
 func (m *Monitor) GetLastOk() time.Duration {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	return m.lastok
 }
+
 func (m *Monitor) MonitorInfo() *Monitor {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	return m
 }
+
 func (m *Monitor) ChangeRunning() {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	log.Debug("Monitor", "count", m.count)
-	if m.lastop-m.lastok > 600 || m.count > 30 {
+	if m.lastop-m.lastok > 60 || m.count > 10 {
 		m.isrunning = false
 	}
 }
+
 func (m *Monitor) IsRunning() bool {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	return m.isrunning
 }
-func (m *Monitor) Stop() {
+
+func (m *Monitor) Close() {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	m.isrunning = false

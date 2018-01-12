@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"fmt"
 	"sync"
 
 	"code.aliyun.com/chain33/chain33/queue"
@@ -22,7 +23,51 @@ type NodeInfo struct {
 	q                *queue.Queue
 	qclient          queue.IClient
 	blacklist        *BlackList
+	peerInfos        *PeerInfos
 }
+type PeerInfos struct {
+	mtx   sync.Mutex
+	infos map[string]*types.Peer
+}
+
+func (p *PeerInfos) PeerSize() int {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	return len(p.infos)
+}
+func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	//首先清空之前的数据
+	for k, _ := range p.infos {
+		delete(p.infos, k)
+	}
+	//重新插入新数据
+	for _, peer := range in {
+		p.infos[fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())] = peer
+	}
+
+}
+
+func (p *PeerInfos) GetPeerInfos() map[string]*types.Peer {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	var pinfos = make(map[string]*types.Peer)
+	for k, v := range p.infos {
+		pinfos[k] = v
+	}
+	return pinfos
+}
+
+func (p *PeerInfos) GetPeerInfo(key string) *types.Peer {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	if _, ok := p.infos[key]; ok {
+		return p.infos[key]
+	}
+	return nil
+}
+
 type BlackList struct {
 	mtx      sync.Mutex
 	badPeers map[string]bool
@@ -67,6 +112,12 @@ func (bl *BlackList) Add(addr string) {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
 	bl.badPeers[addr] = false
+}
+
+func (bl *BlackList) Delete(addr string) {
+	bl.mtx.Lock()
+	defer bl.mtx.Unlock()
+	delete(bl.badPeers, addr)
 }
 
 func (bl *BlackList) Has(addr string) bool {

@@ -272,6 +272,7 @@ func (a *AddrBook) Save() {
 
 func (a *AddrBook) saveRoutine() {
 	dumpAddressTicker := time.NewTicker(10 * time.Second)
+	defer dumpAddressTicker.Stop()
 out:
 	for {
 		select {
@@ -286,7 +287,7 @@ out:
 	log.Warn("Address handler done")
 }
 
-func (a *AddrBook) Stop() {
+func (a *AddrBook) Close() {
 	a.Quit <- struct{}{}
 }
 

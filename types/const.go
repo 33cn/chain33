@@ -1,6 +1,10 @@
 package types
 
-import "errors"
+import (
+	"errors"
+	"math/big"
+	"time"
+)
 
 var ErrNotFound = errors.New("ErrNotFound")
 var ErrNoBalance = errors.New("ErrNoBalance")
@@ -20,9 +24,33 @@ var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 var ErrNoPeer = errors.New("ErrNoPeer")
 var ErrSign = errors.New("ErrSign")
 var ErrExecNameNotMath = errors.New("ErrExecNameNotMath")
+var ErrChannelClosed = errors.New("ErrChannelClosed")
+var ErrNotMinered = errors.New("ErrNotMinered")
+var ErrTime = errors.New("ErrTime")
+var ErrFromAddr = errors.New("ErrFromAddr")
+var ErrBlockHeight = errors.New("ErrBlockHeight")
+var ErrEmptyTx = errors.New("ErrEmptyTx")
+var ErrCoinBaseExecer = errors.New("ErrCoinBaseExecer")
+var ErrCoinBaseTxType = errors.New("ErrCoinBaseTxType")
+var ErrCoinBaseExecErr = errors.New("ErrCoinBaseExecErr")
+var ErrCoinBaseTarget = errors.New("ErrCoinBaseTarget")
+var ErrCoinbaseReward = errors.New("ErrCoinbaseReward")
+var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
+var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
+var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
+var ErrBlockNotFound = errors.New("ErrBlockNotFound")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
+const CoinReward int64 = 1e9
+const PowLimitBits uint32 = uint32(0)
+
+const TargetTimespan = 144 * 16 * time.Second
+const TargetTimePerBlock = 16 * time.Second
+const RetargetAdjustmentFactor = 4
+
+var AllowDepositExec = []string{"ticket"}
+var PowLimit = big.NewInt(0)
 
 const (
 	EventTx = 1
@@ -103,6 +131,10 @@ const (
 	EventMinerStart         = 63
 	EventMinerStop          = 64
 	EventWalletTickets      = 65
+	EventStoreMemSet        = 66
+	EventStoreRollback      = 67
+	EventStoreCommit        = 68
+	EventCheckBlock         = 69
 )
 
 var eventname = map[int]string{
@@ -171,6 +203,10 @@ var eventname = map[int]string{
 	63: "EventMinerStart",
 	64: "EventMinerStop",
 	65: "EventWalletTickets",
+	66: "EventStoreMemSet",
+	67: "EventStoreRollback",
+	68: "EventStoreCommit",
+	69: "EventCheckBlock",
 }
 
 func GetEventName(event int) string {
@@ -210,7 +246,9 @@ const (
 	TyLogGenesis  = 4
 
 	//log for ticket
-	TyLogNewTicket = 5
+	TyLogNewTicket   = 5
+	TyLogCloseTicket = 6
+	TyLogMinerTicket = 7
 )
 
 //exec type
@@ -234,4 +272,5 @@ const (
 
 	TicketActionList  = 4 //读的接口不直接经过transaction
 	TicketActionInfos = 5 //读的接口不直接经过transaction
+	TicketActionMiner = 6
 )

@@ -214,3 +214,31 @@ func (req *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTx
 
 	return reply, nil
 }
+
+//add by hyb
+//GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
+func (req *Grpc) GetBlockOverview(ctx context.Context, in *pb.ReqHash) (*pb.BlockOverview, error) {
+	reply, err := req.cli.GetBlockOverview(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
+func (req *Grpc) GetAddrOverview(ctx context.Context, in *pb.ReqAddr) (*pb.AddrOverview, error) {
+	reply, err := req.cli.GetAddrOverview(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
+
+func (req *Grpc) GetBlockHash(ctx context.Context, in *pb.ReqInt) (*pb.ReplyHash, error) {
+	reply, err := req.cli.GetBlockHash(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}

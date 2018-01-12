@@ -296,7 +296,7 @@ func TestIAVLProof(t *testing.T) {
 
 	rootHashBytes := tree.Hash()
 	hashetr := ToHex(rootHashBytes)
-	hashbyte := FromHex(hashetr)
+	hashbyte, _ := FromHex(hashetr)
 
 	treelog.Info("TestIAVLProof", "rootHashBytes", rootHashBytes)
 	treelog.Info("TestIAVLProof", "hashetr", hashetr)
@@ -393,10 +393,12 @@ func TestSetAndGetKVPair(t *testing.T) {
 
 	var storeSet types.StoreSet
 	var storeGet types.StoreGet
+	var storeDel types.StoreGet
 
 	total := 10
 	storeSet.KV = make([]*types.KeyValue, total)
 	storeGet.Keys = make([][]byte, total)
+	storeDel.Keys = make([][]byte, total-5)
 
 	records := make(map[string]string)
 
@@ -411,6 +413,9 @@ func TestSetAndGetKVPair(t *testing.T) {
 		if i < total {
 			storeSet.KV[i] = &keyvalue
 			storeGet.Keys[i] = []byte(key)
+			if i < total-5 {
+				storeDel.Keys[i] = []byte(key)
+			}
 		}
 		i++
 	}
@@ -418,20 +423,16 @@ func TestSetAndGetKVPair(t *testing.T) {
 	storeSet.StateHash = nil
 	newhash := SetKVPair(db, &storeSet)
 
-	storeGet.StateHash = newhash
-	values := GetKVPair(db, &storeGet)
+	//打印指定roothash的tree
+	treelog.Info("TestSetAndGetKVPair newhash tree")
+	PrintTreeLeaf(db, newhash)
 
-	i = 0
-	for key, value := range records {
-		if i < total {
-			if !bytes.Equal([]byte(records[string(storeGet.Keys[i])]), values[i]) {
-				treelog.Info("TestSetAndGetKVPair", "recordskey", key, "recordsvalue", value)
-				treelog.Info("TestSetAndGetKVPair", "value", value, "getvalue", string(values[i]))
-				treelog.Info("TestSetAndGetKVPair", "getkey", string(storeGet.Keys[i]))
-			}
-		}
-		i++
-	}
+	//删除5个节点
+	storeDel.StateHash = newhash
+	delhash, _ := DelKVPair(db, &storeDel)
+	//打印指定roothash的tree
+	treelog.Info("TestSetAndGetKVPair delhash tree")
+	PrintTreeLeaf(db, delhash)
 
 	// 在原来的基础上再次插入10个节点
 
@@ -459,37 +460,17 @@ func TestSetAndGetKVPair(t *testing.T) {
 		i++
 	}
 	// storeSet hash is newhash
-	storeSet2.StateHash = newhash
+	storeSet2.StateHash = delhash
 	newhash2 := SetKVPair(db, &storeSet2)
 
-	//获取新插入的10个节点
-	storeGet2.StateHash = newhash2
-	values2 := GetKVPair(db, &storeGet2)
+	treelog.Info("TestSetAndGetKVPair newhash2 tree")
+	PrintTreeLeaf(db, newhash2)
 
-	i = 0
-	for _, value := range records2 {
-		if i < total {
-			if !bytes.Equal([]byte(records2[string(storeGet2.Keys[i])]), values2[i]) {
-				treelog.Info("TestSetAndGetKVPair new node", "value", value, "getvalue", string(values2[i]))
-			}
-		}
-		i++
-	}
+	treelog.Info("TestSetAndGetKVPair delhash tree again !!!")
+	PrintTreeLeaf(db, delhash)
 
-	//获取旧的10个节点
-	storeGet.StateHash = newhash2
-	values3 := GetKVPair(db, &storeGet)
-
-	i = 0
-	for _, value := range records {
-		if i < total {
-			if !bytes.Equal([]byte(records[string(storeGet.Keys[i])]), values3[i]) {
-				treelog.Info("TestSetAndGetKVPair old node", "value", value, "getvalue", string(values3[i]))
-			}
-		}
-		i++
-	}
-
+	treelog.Info("TestSetAndGetKVPair newhash tree again !!!")
+	PrintTreeLeaf(db, newhash)
 	db.Close()
 }
 
@@ -577,7 +558,7 @@ func BenchmarkGetMerkleAvlTree(b *testing.B) {
 	t := NewMAVLTree(db)
 	var key []byte
 	for i := 0; i < 10000; i++ {
-		key = i2b(int32(RandInt32()))
+		key = i2b(int32(i))
 		t.Set(key, nil)
 		if i%100 == 99 {
 			t.Save()
@@ -590,7 +571,7 @@ func BenchmarkGetMerkleAvlTree(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, exit := t.Get(key)
+		_, _, exit := t.Get(i2b(int32(i % 10000)))
 		if !exit {
 			fmt.Println("BenchmarkGetMerkleAvlTree no exit!")
 		}
