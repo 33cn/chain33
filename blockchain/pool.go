@@ -18,7 +18,7 @@ var poollog = chainlog.New("submodule", "pool")
 func NewBlockPool() *BlockPool {
 	bp := &BlockPool{
 		recvBlocks: make(map[int64]*types.Block),
-		synblock:   make(chan struct{}, 0),
+		synblock:   make(chan struct{}, 1),
 	}
 	return bp
 }

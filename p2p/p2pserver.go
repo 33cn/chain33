@@ -135,7 +135,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
-	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
+	log.Error("p2pServer GetBlocks", "P2P Recv", in)
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
