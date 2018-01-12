@@ -3,26 +3,29 @@ package hashlock
 //database opeartion for execs hashlock
 import (
 	"bytes"
-	//"fmt"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
-	//log "github.com/inconshreveable/log15"
+	log "github.com/inconshreveable/log15"
 )
+
+var hlog = log.New("module", "hashlock.db")
 
 type Hashlock struct {
 	types.Hashlock
 }
 
-func NewHashlock(id string, returnWallet string, blocktime int64, isGenesis bool) *Hashlock {
+func NewHashlock(id string, returnWallet string, blocktime int64, isGenesis bool, amount int64, time int64) *Hashlock {
 	h := &Hashlock{}
 	h.HashlockId = id
 	h.ReturnAddress = returnWallet
 	h.CreateTime = blocktime
 	h.Status = 1
 	h.IsGenesis = isGenesis
+	h.Amount = amount
+	h.Frozentime = time
 	return h
 }
 
@@ -63,17 +66,16 @@ func NewHashlockAction(db dbm.KVDB, tx *types.Transaction, execaddr string, bloc
 	return &HashlockAction{db, hash, fromaddr, blocktime, height, execaddr}
 }
 
-//types.Hashlock need to be defined, justlike types.Ticketopen/ticketclose
 func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Receipt, error) {
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	id := common.ToHex(action.txhash)
-	h := NewHashlock(id, action.fromaddr, action.blocktime, false)
+	h := NewHashlock(id, action.fromaddr, action.blocktime, false, hlock.Amount, hlock.Time)
 	//冻结子账户资金
 	receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, hlock.Amount)
 	if err != nil {
-		//tlog.Error("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr)
+		hlog.Error("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr)
 		return nil, err
 	}
 	h.Save(action.db)
@@ -92,12 +94,16 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 	var kv []*types.KeyValue
 	var valid bool = false
 
-	h, _ := readHashlock(action.db, unlock.UnlockId)
+	hash, err := readHashlock(action.db, unlock.UnlockId)
+	if err != nil {
+		hlog.Error("Hashlocklock.Frozen", "unlockId", unlock.UnlockId)
+		return nil, err
+	}
 
-	if !h.IsGenesis {
+	if !hash.IsGenesis {
 		if checksecret(unlock.Secret, unlock.Hash) {
 			valid = true
-		} else if action.blocktime-h.GetCreateTime() > 60*60*2 {
+		} else if action.blocktime-hash.GetCreateTime() > hash.Frozentime {
 			valid = true
 		}
 	}
@@ -106,14 +112,16 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 		return nil, types.ErrTime
 	}
 
-	receipt, _ := account.ExecActive(action.db, h.ReturnAddress, action.execaddr, 0) //h.amount
-	//h.Save(action.db)
+	//different with typedef in C
+	h := &Hashlock{*hash}
+	receipt, _ := account.ExecActive(action.db, h.ReturnAddress, action.execaddr, h.Amount)
+	h.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
 	//logs = append(logs, t.GetReceiptLog())
-	//kv = append(kv, h.GetKVSet()...)
+	kv = append(kv, h.GetKVSet()...)
 
-	//receipt := &types.Receipt{types.ExecOk, kv, logs}
+	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
 

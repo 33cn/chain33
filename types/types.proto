@@ -695,11 +695,13 @@ message ReceiptTicket {
 }
 
 message Hashlock{
-	string hashlockId = 1;
-	int32  status     = 2;
-	bool isGenesis    = 3;
-	int64 CreateTime  = 4;
+	string hashlockId    = 1;
+	int32  status        = 2;
+	bool isGenesis       = 3;
+	int64 CreateTime     = 4;
 	string returnAddress = 5;
+	int64 amount         = 6;
+	int64 frozentime     = 7;
 }
 
 //message for execs.hashlock
@@ -714,6 +716,7 @@ message HashlockAction {
 
 message HashlockLock {
 	int64 amount = 1;
+	int64 time   = 2;
 }
 
 message HashlockUnlock {
