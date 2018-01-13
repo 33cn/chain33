@@ -2,11 +2,26 @@ package p2p
 
 import (
 	"sync"
+	"time"
 
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
+
+func (p *peer) Start() {
+	p.mconn.key = p.key
+	go p.subStreamBlock()
+	p.HeartBeat()
+	return
+}
+func (p *peer) Close() {
+	p.setRunning(false)
+	p.mconn.Close()
+	p.HeartBlood()
+	close(p.streamDone)
+
+}
 
 type peer struct {
 	wg         sync.WaitGroup
@@ -20,12 +35,36 @@ type peer struct {
 	key        string
 	mconn      *MConnection
 	peerAddr   *NetAddress
+	peerStat   *Stat
 	streamDone chan struct{}
+	heartDone  chan struct{}
 }
 
 type Version struct {
 	mtx            sync.Mutex
 	versionSupport bool
+}
+type Stat struct {
+	mtx sync.Mutex
+	ok  bool
+}
+
+func (st *Stat) Ok() {
+	st.mtx.Lock()
+	defer st.mtx.Unlock()
+	st.ok = true
+}
+
+func (st *Stat) NotOk() {
+	st.mtx.Lock()
+	defer st.mtx.Unlock()
+	st.ok = false
+}
+
+func (st *Stat) IsOk() bool {
+	st.mtx.Lock()
+	defer st.mtx.Unlock()
+	return st.ok
 }
 
 func (v *Version) Set(ok bool) {
@@ -34,18 +73,47 @@ func (v *Version) Set(ok bool) {
 	v.versionSupport = ok
 }
 
-func (v *Version) Get() bool {
+func (v *Version) IsSupport() bool {
 	v.mtx.Lock()
 	defer v.mtx.Unlock()
 	return v.versionSupport
 }
 
-func (p *peer) Start() error {
-	p.mconn.key = p.key //TODO setKey
-	go p.subStreamBlock()
-	return p.mconn.Start()
+// sendRoutine polls for packets to send from channels.
+func (p *peer) HeartBeat() {
+	go func(p *peer) {
+		var count int64
+		ticker := time.NewTicker(PingTimeout)
+		defer ticker.Stop()
+		pcli := NewP2pCli(nil)
+	FOR_LOOP:
+		for {
+			select {
+			case <-ticker.C:
+				err := pcli.SendPing(p, *p.nodeInfo)
+				if err != nil {
+					if count == 0 {
+						p.setRunning(false)
+					}
+				}
+				count++
+			case <-p.heartDone:
+				break FOR_LOOP
+
+			}
+
+		}
+	}(p)
 }
 
+func (p *peer) HeartBlood() {
+	ticker := time.NewTicker(time.Second * 1)
+	select {
+	case p.heartDone <- struct{}{}:
+	case <-ticker.C:
+		return
+	}
+}
 func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
@@ -100,12 +168,6 @@ BEGIN:
 
 }
 
-func (p *peer) Close() {
-	p.setRunning(false)
-	p.mconn.Close()
-	close(p.streamDone)
-
-}
 func (p *peer) setRunning(run bool) {
 	p.pmutx.Lock()
 	defer p.pmutx.Unlock()

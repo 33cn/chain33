@@ -61,8 +61,10 @@ func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *N
 		outbound:   outbound,
 		conn:       conn,
 		streamDone: make(chan struct{}, 1),
+		heartDone:  make(chan struct{}, 1),
 		nodeInfo:   nodeinfo,
 	}
+	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.Set(true)
 	p.setRunning(true)
