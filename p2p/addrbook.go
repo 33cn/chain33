@@ -13,6 +13,15 @@ import (
 	pb "code.aliyun.com/chain33/chain33/types"
 )
 
+func (a *AddrBook) Start() error {
+	a.loadFromFile()
+	go a.saveRoutine()
+	return nil
+}
+func (a *AddrBook) Close() {
+	a.Quit <- struct{}{}
+}
+
 //peer address manager
 type AddrBook struct {
 	mtx      sync.Mutex
@@ -40,7 +49,17 @@ func (a *AddrBook) getPeerStat(addr string) *knownAddress {
 	return nil
 
 }
-
+func (a *AddrBook) SetAddrStat(addr string, run bool) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	if peer, ok := a.addrPeer[addr]; ok {
+		if run {
+			peer.markGood()
+			return
+		}
+		peer.markAttempt()
+	}
+}
 func NewAddrBook(filePath string) *AddrBook {
 	peers := make(map[string]*knownAddress, 0)
 	a := &AddrBook{
@@ -112,25 +131,11 @@ func (ka *knownAddress) markAttempt() {
 	ka.LastAttempt = now
 	ka.Attempts += 1
 }
-func (ka *knownAddress) flushPeerStatus(m *Monitor) {
-	ka.kmtx.Lock()
-	defer ka.kmtx.Unlock()
-	ka.Attempts = m.GetCount()
-	ka.LastAttempt = time.Unix(int64(m.GetLastOp()), 0)
-	ka.LastSuccess = time.Unix(int64(m.GetLastOk()), 0)
-}
 
 func (ka *knownAddress) GetAttempts() uint {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
 	return ka.Attempts
-}
-
-// OnStart implements Service.
-func (a *AddrBook) Start() error {
-	a.loadFromFile()
-	go a.saveRoutine()
-	return nil
 }
 
 func (a *AddrBook) AddOurAddress(addr *NetAddress) {
@@ -285,10 +290,6 @@ out:
 	dumpAddressTicker.Stop()
 	a.saveToFile(a.filePath)
 	log.Warn("Address handler done")
-}
-
-func (a *AddrBook) Close() {
-	a.Quit <- struct{}{}
 }
 
 // NOTE: addr must not be nil

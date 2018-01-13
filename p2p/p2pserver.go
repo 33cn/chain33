@@ -67,8 +67,10 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 	peers, _ := s.node.GetActivePeers()
 	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
-		if peer.mconn.sendMonitor.GetCount() == 0 {
-			addrBucket[peer.Addr()] = true
+		if stat := s.node.addrBook.getPeerStat(peer.Addr()); stat != nil {
+			if stat.GetAttempts() == 0 {
+				addrBucket[peer.Addr()] = true
+			}
 		}
 
 	}
