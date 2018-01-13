@@ -11,6 +11,24 @@ import (
 	"google.golang.org/grpc"
 )
 
+func (l *DefaultListener) Start() {
+	log.Debug("defaultlistener", "localport:", l.nodeInfo.GetListenAddr().Port)
+	go l.NatMapPort()
+	go l.listenRoutine()
+	return
+}
+
+func (l *DefaultListener) Close() bool {
+	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
+	nat.Any().DeleteMapping(Protocol, int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port))
+	log.Debug("stop", "closed natport", "close")
+	l.server.Stop()
+	log.Debug("stop", "closed grpc server", "close")
+	l.listener.Close()
+	log.Debug("stop", "DefaultListener", "close")
+	return true
+}
+
 type Listener interface {
 	Close() bool
 }
@@ -45,13 +63,6 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	return dl
 }
 
-func (l *DefaultListener) Start() {
-	log.Debug("defaultlistener", "localport:", l.nodeInfo.GetListenAddr().Port)
-	go l.NatMapPort()
-	go l.listenRoutine()
-	return
-}
-
 func (l *DefaultListener) NatMapPort() {
 	if l.nodeInfo.cfg.GetIsSeed() == true {
 
@@ -80,16 +91,6 @@ func (l *DefaultListener) NatMapPort() {
 	l.n.FlushNodeInfo()
 	log.Error("Nat Map", "Error Map Port Failed ----------------")
 
-}
-func (l *DefaultListener) Close() bool {
-	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
-	nat.Any().DeleteMapping(Protocol, int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port))
-	log.Debug("stop", "closed natport", "close")
-	l.server.Stop()
-	log.Debug("stop", "closed grpc server", "close")
-	l.listener.Close()
-	log.Debug("stop", "DefaultListener", "close")
-	return true
 }
 
 func (l *DefaultListener) listenRoutine() {
