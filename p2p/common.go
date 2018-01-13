@@ -66,7 +66,7 @@ func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *N
 	}
 	p.peerStat = new(Stat)
 	p.version = new(Version)
-	p.version.Set(true)
+	p.version.SetSupport(true)
 	p.setRunning(true)
 	p.mconn = NewMConnection(conn, remote, p)
 

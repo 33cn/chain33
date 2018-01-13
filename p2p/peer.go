@@ -67,7 +67,7 @@ func (st *Stat) IsOk() bool {
 	return st.ok
 }
 
-func (v *Version) Set(ok bool) {
+func (v *Version) SetSupport(ok bool) {
 	v.mtx.Lock()
 	defer v.mtx.Unlock()
 	v.versionSupport = ok
