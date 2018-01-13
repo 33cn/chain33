@@ -22,7 +22,7 @@ FOR_LOOP:
 				}
 
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
-				if stat := n.addrBook.getPeerStat(peer.Addr()); stat != nil {
+				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > 10 || peer.GetRunning() == false {
 						n.addrBook.RemoveAddr(peer.Addr())
 						n.addrBook.Save()
