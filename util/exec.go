@@ -18,6 +18,10 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	//通过consensus module 再次检查
 	ulog.Error("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
+	if errReturn && block.Height > 0 && block.CheckSign() == false {
+		//block的来源不是自己的mempool，而是别人的区块
+		return nil, types.ErrSign
+	}
 	receipts := ExecTx(q, prevStateRoot, block)
 	ulog.Error("ExecBlock", "cost", time.Now().Sub(beg))
 	var maplist = make(map[string]*types.KeyValue)
