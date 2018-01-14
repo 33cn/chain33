@@ -102,7 +102,9 @@ func (t *Task) done(height int64) {
 		}
 		if t.start > t.end {
 			t.isruning = false
-			go t.cb()
+			if t.cb != nil {
+				go t.cb()
+			}
 			t.ticker.Stop()
 		}
 	}
