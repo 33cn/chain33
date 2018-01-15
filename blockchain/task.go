@@ -48,7 +48,9 @@ func (t *Task) tick() {
 		}
 		chainlog.Error("task is timeout", "task id timeout = ", t.start)
 		t.isruning = false
-		go t.cb()
+		if t.cb != nil {
+			go t.cb()
+		}
 		t.Unlock()
 	}
 }
@@ -81,6 +83,9 @@ func (t *Task) Start(start, end int64, cb func()) error {
 func (t *Task) Done(height int64) {
 	t.Lock()
 	defer t.Unlock()
+	if !t.isruning {
+		return errors.New("task is not runing")
+	}
 	if height >= t.start && height <= t.end {
 		chainlog.Error("done", "height", height)
 		t.done(height)
