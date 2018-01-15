@@ -13,17 +13,23 @@ import (
 
 var hlog = log.New("module", "hashlock.db")
 
+const (
+	Hashlock_Locked   = 1
+	Hashlock_Unlocked = 2
+	Hashlock_Sent     = 3
+)
+
 type Hashlock struct {
 	types.Hashlock
 }
 
-func NewHashlock(id string, returnWallet string, blocktime int64, isGenesis bool, amount int64, time int64) *Hashlock {
+func NewHashlock(id []byte, returnWallet string, toAddress string, blocktime int64, amount int64, time int64) *Hashlock {
 	h := &Hashlock{}
 	h.HashlockId = id
 	h.ReturnAddress = returnWallet
+	h.ToAddress = toAddress
 	h.CreateTime = blocktime
-	h.Status = 1
-	h.IsGenesis = isGenesis
+	h.Status = Hashlock_Locked
 	h.Amount = amount
 	h.Frozentime = time
 	return h
@@ -45,9 +51,9 @@ func (h *Hashlock) Save(db dbm.KVDB) {
 	}
 }
 
-func HashlockKey(id string) (key []byte) {
+func HashlockKey(id []byte) (key []byte) {
 	key = append(key, []byte("mavl-hashlock-")...)
-	key = append(key, []byte(id)...)
+	key = append(key, id...)
 	return key
 }
 
@@ -70,21 +76,31 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	id := common.ToHex(action.txhash)
-	h := NewHashlock(id, action.fromaddr, action.blocktime, false, hlock.Amount, hlock.Time)
+
+	//不存在相同的hashlock，假定采用sha256
+	hash, err := readHashlock(action.db, hlock.Hash)
+	//the condition depends on the readHashlock details
+	if err != nil || hash != nil {
+		hlog.Error("Hashlocklock.Frozen", "hlock.Hash repeated", hlock.Hash)
+		return nil, err
+	}
+
+	//action.fromaddr should equal to hlock.ReturnAddress
+	h := NewHashlock(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
 	//冻结子账户资金
 	receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, hlock.Amount)
 	if err != nil {
 		hlog.Error("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr)
 		return nil, err
 	}
+
 	h.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
 	//logs = append(logs, h.GetReceiptLog())
 	kv = append(kv, h.GetKVSet()...)
 
-	//receipt := &types.Receipt{types.ExecOk, kv, logs}
+	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
 
@@ -92,29 +108,28 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	var valid bool = false
 
-	hash, err := readHashlock(action.db, unlock.UnlockId)
+	hash, err := readHashlock(action.db, common.Sha256(unlock.Secret))
 	if err != nil {
-		hlog.Error("Hashlocklock.Frozen", "unlockId", unlock.UnlockId)
+		hlog.Error("Hashlocklock.Frozen", "unlock.Secret", unlock.Secret)
 		return nil, err
 	}
 
-	if !hash.IsGenesis {
-		if checksecret(unlock.Secret, unlock.Hash) {
-			valid = true
-		} else if action.blocktime-hash.GetCreateTime() > hash.Frozentime {
-			valid = true
-		}
+	if hash.Status != Hashlock_Locked {
+		return nil, types.ErrHashlockStatus
 	}
 
-	if !valid {
+	//not necessary as the hash is found out by hash
+	if !checksecret(unlock.Secret, hash.HashlockId) {
+		return nil, types.ErrHashlockHash
+	} else if action.blocktime-hash.GetCreateTime() > hash.Frozentime {
 		return nil, types.ErrTime
 	}
 
 	//different with typedef in C
 	h := &Hashlock{*hash}
 	receipt, _ := account.ExecActive(action.db, h.ReturnAddress, action.execaddr, h.Amount)
+	h.Status = Hashlock_Unlocked
 	h.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
@@ -125,7 +140,42 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 	return receipt, nil
 }
 
-func readHashlock(db dbm.KVDB, id string) (*types.Hashlock, error) {
+func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Receipt, error) {
+
+	var logs []*types.ReceiptLog
+	var kv []*types.KeyValue
+
+	hash, err := readHashlock(action.db, common.Sha256(send.Secret))
+	if err != nil {
+		hlog.Error("Hashlocklock.Frozen", "send.Secret", send.Secret)
+		return nil, err
+	}
+
+	if hash.Status != Hashlock_Locked {
+		return nil, types.ErrHashlockStatus
+	}
+
+	if !checksecret(send.Secret, hash.HashlockId) {
+		return nil, types.ErrHashlockHash
+	} else if action.blocktime-hash.GetCreateTime() < hash.Frozentime {
+		return nil, types.ErrTime
+	}
+
+	//different with typedef in C
+	h := &Hashlock{*hash}
+	receipt, _ := account.ExecTransferFrozen(action.db, h.ReturnAddress, h.ToAddress, action.execaddr, h.Amount)
+	h.Status = Hashlock_Sent
+	h.Save(action.db)
+	logs = append(logs, receipt.Logs...)
+	kv = append(kv, receipt.KV...)
+	//logs = append(logs, t.GetReceiptLog())
+	kv = append(kv, h.GetKVSet()...)
+
+	receipt = &types.Receipt{types.ExecOk, kv, logs}
+	return receipt, nil
+}
+
+func readHashlock(db dbm.KVDB, id []byte) (*types.Hashlock, error) {
 	data, err := db.Get(HashlockKey(id))
 	if err != nil {
 		return nil, err

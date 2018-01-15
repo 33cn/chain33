@@ -20,7 +20,7 @@ func PubKeyToAddress(in []byte) *Address {
 }
 
 func From(tx *types.Transaction) *Address {
-	return account.PubKeyToAddress(tx.Signature.Pubkey)
+	return PubKeyToAddress(tx.Signature.Pubkey)
 }
 
 func CheckAddress(addr string) error {
