@@ -17,7 +17,8 @@ type NodeInfo struct {
 	listenAddr       *NetAddress `json:"listen_addr"`
 	version          string      `json:"version"`
 	monitorChan      chan *peer
-	versionChan      chan struct{}
+	natNoticeChain   chan struct{}
+	natResultChain   chan bool
 	p2pBroadcastChan chan interface{}
 	cfg              *types.P2P
 	q                *queue.Queue
