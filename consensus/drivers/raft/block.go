@@ -141,6 +141,8 @@ func (client *RaftClient) writeBlock(prevHash []byte, block *types.Block) error 
 	if err != nil { //never happen
 		panic(err)
 	}
+	log.Warn("******************blockdetail**********")
+	fmt.Printf("*****tail:v%",blockdetail)
 	if len(blockdetail.Block.Txs) == 0 {
 		return errors.New("ErrNoTxs")
 	}
@@ -186,15 +188,12 @@ func (client *RaftClient) SetQueue(q *queue.Queue) {
 	log.Info("Enter SetQueue method of consensus")
 	// 只有主节点打包区块，其余节点接受p2p广播过来的区块
 	//TODO:这里应该要改成轮询执行，当本台节点为Validator节点时则执行
+	//当follower节点读取leader节点proposeC的消息
 	go client.readCommits(client.commitC, client.errorC)
 	client.qclient = q.GetClient()
 	client.q = q
-	//client.initBlock()
 	//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
 	// 老的leader中运行的打包程此刻应该被终止？
-	//isValidator = true
-	//go client.eventLoop()
-	//go client.createBlock()
 	go client.pollingTask(q)
 }
 
@@ -277,8 +276,10 @@ func (client *RaftClient) createBlock() {
 		txs = client.checkTxDup(txs)
 		fmt.Println(len(txs))
 		lastBlock := client.getCurrentBlock()
-		rlog.Warn("**************************************lastBlockHeight:", lastBlock.Height)
+		rlog.Warn("**************************************lastBlockHeight:")
 		fmt.Println(lastBlock.Height)
+		rlog.Warn("**************************************lastBlockHeight:")
+		fmt.Println(lastBlock.StateHash)
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -288,13 +289,14 @@ func (client *RaftClient) createBlock() {
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
-		rlog.Info("Send block to raft core")
-		client.propose(&newblock)
 		err := client.writeBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			issleep = true
+			log.Error("********************err:",err)
 			continue
 		}
+		rlog.Info("Send block to raft core")
+		client.propose(&newblock)
 	}
 }
 
@@ -422,28 +424,9 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 				}
 				continue
 			}
-			//TODO:这里有个极端的情况，就是readCommits 比validatorC早接收到消息，这样的话，
 			// 在程序刚开始启动的时候有可能存在丢失数据的问题
-			//if !isValidator {
-			//	log.Warn("I'm not the validator node, I don't need to writeBlock!==========================")
-			//	continue
-			//}
-			log.Warn("I'm the validator node, I need to writeBlock!==========================")
 			client.setCurrentBlock(data)
-			//lastBlock := client.getCurrentBlock()
-			//if lastBlock == nil {
-			//	prevHash = zeroHash[:]
-			//} else {
-			//	prevHash = lastBlock.StateHash
-			//}
-			//client.mulock.Lock()
-			//err:=client.writeBlock(prevHash, data)
-			//client.mulock.Unlock()
-			//if err !=nil {
-			//log.Error("=========writeBlock  failed!=======")
-			//continue
-			//}
-			log.Info("============writeBlock successfully!======")
+			log.Info("============follower recev block successfully!======")
 
 		case err, ok := <-errorC:
 			log.Info("============error======")
