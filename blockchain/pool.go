@@ -10,15 +10,17 @@ type BlockPool struct {
 	mtx      sync.Mutex
 	synblock chan struct{}
 	// 存储需要缓存的block
-	recvBlocks map[int64]*types.Block
+	recvBlocks map[int64]*types.BlockDetail
+	broadcast  map[int64]bool
 }
 
 var poollog = chainlog.New("submodule", "pool")
 
 func NewBlockPool() *BlockPool {
 	bp := &BlockPool{
-		recvBlocks: make(map[int64]*types.Block),
-		synblock:   make(chan struct{}, 0),
+		recvBlocks: make(map[int64]*types.BlockDetail),
+		broadcast:  make(map[int64]bool),
+		synblock:   make(chan struct{}, 1),
 	}
 	return bp
 }
@@ -29,33 +31,35 @@ func (pool *BlockPool) DelBlock(height int64) {
 	defer pool.mtx.Unlock()
 
 	delete(pool.recvBlocks, height)
+	delete(pool.broadcast, height)
 	//poollog.Info("DelBlock", "Height", height)
 }
 
 // 暂时添加block到缓存中
-func (pool *BlockPool) AddBlock(block *types.Block) {
+func (pool *BlockPool) AddBlock(blockdetail *types.BlockDetail, broadcast bool) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
-
+	block := blockdetail.Block
 	blockinfo := pool.recvBlocks[block.Height]
 	if blockinfo != nil {
 		poollog.Info("AddBlock existed", "Height", block.Height)
 		return
 	}
-	pool.recvBlocks[block.Height] = block
-	//poollog.Info("AddBlock", "Height", block.Height)
+	pool.broadcast[block.Height] = broadcast
+	pool.recvBlocks[block.Height] = blockdetail
+	//poollog.Error("AddBlock", "Height", block.Height)
 }
 
 // chain 模块获取pool中缓存的block 加载到db中
-func (pool *BlockPool) GetBlock(height int64) *types.Block {
+func (pool *BlockPool) GetBlock(height int64) (*types.BlockDetail, bool) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
-	block := pool.recvBlocks[height]
-	if block == nil {
+	blockdetail := pool.recvBlocks[height]
+	if blockdetail == nil || blockdetail.Block == nil {
 		//poollog.Debug("GetBlock does not exist", "Height", height)
-		return nil
+		return nil, false
 	}
 	//poollog.Debug("GetBlock", "Height", height)
-	return pool.recvBlocks[height]
+	return pool.recvBlocks[height], pool.broadcast[height]
 }

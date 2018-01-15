@@ -16,9 +16,12 @@ var ulog = log.New("module", "util")
 func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
-
 	ulog.Error("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
+	if errReturn && block.Height > 0 && block.CheckSign() == false {
+		//block的来源不是自己的mempool，而是别人的区块
+		return nil, types.ErrSign
+	}
 	receipts := ExecTx(q, prevStateRoot, block)
 	ulog.Error("ExecBlock", "cost", time.Now().Sub(beg))
 	var maplist = make(map[string]*types.KeyValue)
@@ -79,9 +82,11 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	}
 	detail.Block = block
 	detail.Receipts = rdata
-	err := CheckBlock(q, &detail)
-	if err != nil {
-		return nil, err
+	if detail.Block.Height > 0 {
+		err := CheckBlock(q, &detail)
+		if err != nil {
+			return nil, err
+		}
 	}
 	//save to db
 	ExecKVSetCommit(q, block.StateHash)

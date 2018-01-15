@@ -95,7 +95,7 @@ func (q *Queue) Send(msg Message) {
 		return
 	}
 	chrecv, _ := q.getChannel(msg.Topic)
-	timeout := time.After(time.Second * 5)
+	timeout := time.After(time.Second * 60)
 	select {
 	case chrecv <- msg:
 	case <-timeout:

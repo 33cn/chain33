@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"time"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -118,37 +116,20 @@ func (na *NetAddress) String() string {
 	return na.str
 }
 
-// Dial calls net.Dial on the address.
-func (na *NetAddress) Dial() (*grpc.ClientConn, error) {
-
-	conn, err := grpc.Dial(na.String(), grpc.WithInsecure())
-	if err != nil {
-		log.Error("did not connect: %v", err)
-		return nil, err
-	}
-	return conn, nil
-
-}
-
 func (na *NetAddress) Copy() *NetAddress {
 	copytmp := *na
 	return &copytmp
 }
 
 // DialTimeout calls net.DialTimeout on the address.
-func (na *NetAddress) DialTimeout(timeout time.Duration, cfg grpc.ServiceConfig) (*grpc.ClientConn, error) {
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	//grpc.DialOption
+func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig) (*grpc.ClientConn, error) {
 	ch := make(chan grpc.ServiceConfig, 1)
 	ch <- cfg
-	conn, err := grpc.DialContext(ctx, na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch))
+	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch))
 	if err != nil {
-		log.Error("grpc DialCon", "did not connect: %v", err)
+		log.Error("grpc DialCon", ">>>>>>>>>>did not connect", err)
 		return nil, err
 	}
-
 	return conn, nil
 
 }

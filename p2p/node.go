@@ -3,7 +3,7 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
-	"net"
+
 	"os"
 	"sync"
 
@@ -14,6 +14,39 @@ import (
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
+
+// 启动Node节点
+//1.启动监听GRPC Server
+//2.初始化AddrBook,并发起对相应地址的连接
+//3.如果配置了种子节点，则连接种子节点
+//4.启动监控远程节点
+func (n *Node) Start() {
+	n.detectionNodeAddr()
+
+	n.rListener = NewRemotePeerAddrServer()
+	n.l = NewDefaultListener(Protocol, n)
+
+	go n.monitor()
+	go n.exChangeVersion()
+	go n.makeService()
+	return
+}
+
+func (n *Node) Close() {
+	close(n.versionDone)
+	close(n.activeDone)
+	close(n.onlineDone)
+	close(n.offlineDone)
+	log.Debug("stop", "versionDone", "close")
+	n.l.Close()
+	log.Debug("stop", "listen", "close")
+	n.rListener.Close()
+	log.Debug("stop", "remotelisten", "close")
+	n.addrBook.Close()
+	log.Debug("stop", "addrBook", "close")
+	n.RemoveAll()
+	log.Debug("stop", "PeerRemoeAll", "close")
+}
 
 type Node struct {
 	omtx         sync.Mutex
@@ -32,18 +65,6 @@ type Node struct {
 	errPeerDone  chan struct{}
 	offlineDone  chan struct{}
 	onlineDone   chan struct{}
-}
-
-func localBindAddr() string {
-
-	conn, err := net.Dial("udp", "114.114.114.114:80")
-	if err != nil {
-		log.Error(err.Error())
-		return ""
-	}
-	defer conn.Close()
-	log.Debug(strings.Split(conn.LocalAddr().String(), ":")[0])
-	return strings.Split(conn.LocalAddr().String(), ":")[0]
 }
 
 func (n *Node) setQueue(q *queue.Queue) {
@@ -83,22 +104,33 @@ func newNode(cfg *types.P2P) (*Node, error) {
 
 	return node, nil
 }
-func (n *Node) flushNodeInfo() {
+func (n *Node) FlushNodeInfo() {
 
 	if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", ExternalAddr, n.externalPort)); err == nil {
 		n.nodeInfo.SetExternalAddr(exaddr)
 	}
-
 	if listenAddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, n.localPort)); err == nil {
 		n.nodeInfo.SetListenAddr(listenAddr)
 	}
 
 }
-func (n *Node) exChangeVersion() {
+
+func (n *Node) waitVerSig() {
 	<-n.nodeInfo.versionChan
-	peers, _ := n.GetPeers()
+	return
+}
+
+func (n *Node) sendVersig() {
+	n.nodeInfo.versionChan <- struct{}{}
+	return
+}
+func (n *Node) exChangeVersion() {
+
+	n.waitVerSig()
+	pcli := NewP2pCli(nil)
+	peers, _ := n.GetActivePeers()
 	for _, peer := range peers {
-		peer.mconn.sendVersion()
+		pcli.SendVersion(peer, n.nodeInfo)
 	}
 	ticker := time.NewTicker(time.Second * 20)
 	defer ticker.Stop()
@@ -107,9 +139,9 @@ FOR_LOOP:
 		select {
 		case <-ticker.C:
 			log.Debug("exChangeVersion", "sendVersion", "version")
-			peers, _ := n.GetPeers()
+			peers, _ := n.GetActivePeers()
 			for _, peer := range peers {
-				peer.mconn.sendVersion()
+				pcli.SendVersion(peer, n.nodeInfo)
 			}
 		case <-n.versionDone:
 			break FOR_LOOP
@@ -119,7 +151,7 @@ FOR_LOOP:
 func (n *Node) makeService() {
 	//确认自己的服务范围1，2，4
 	if n.nodeInfo.cfg.GetIsSeed() == true {
-		n.nodeInfo.versionChan <- struct{}{}
+		n.sendVersig()
 		return
 	}
 	go func() {
@@ -150,9 +182,13 @@ func (n *Node) makeService() {
 	}()
 
 }
-func (n *Node) DialPeers(addrs []string) error {
-	if len(addrs) == 0 {
+func (n *Node) DialPeers(addrbucket map[string]bool) error {
+	if len(addrbucket) == 0 {
 		return nil
+	}
+	var addrs []string
+	for addr, _ := range addrbucket {
+		addrs = append(addrs, addr)
 	}
 	netAddrs, err := NewNetAddressStrings(addrs)
 	if err != nil {
@@ -164,30 +200,34 @@ func (n *Node) DialPeers(addrs []string) error {
 		log.Error("NewNetAddressString", "err", err.Error())
 		return err
 	}
-	for i, netAddr := range netAddrs {
-		//will not add self addr
-		//	log.Debug("DialPeers", "peeraddr", netAddr.String())
+	for _, netAddr := range netAddrs {
+
 		if netAddr.Equals(selfaddr) || netAddr.Equals(n.nodeInfo.GetExternalAddr()) {
-			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr(), "i", i)
+			log.Debug("DialPeers filter selfaddr", "addr", netAddr.String(), "externaladdr", n.nodeInfo.GetExternalAddr())
 			continue
 		}
 		//不对已经连接上的地址重新发起连接
 		if n.Has(netAddr.String()) {
+			log.Debug("DialPeersSSSSSSSSSSSSSSSS", "find hash", netAddr.String())
 			continue
 		}
-		//log.Warn("NewNetAddressString", "i", i)
-		peer, err := DialPeer(netAddrs[i], &n.nodeInfo)
-		if err != nil {
-			log.Error("DialPeers", "Err", err.Error())
-			continue
-		}
-		log.Debug("Addr perr", "peer", peer)
-		n.AddPeer(peer)
-		n.addrBook.AddAddress(netAddr)
-		n.addrBook.Save()
-		if n.needMore() == false {
-			return nil
-		}
+
+		go func(n *Node, netadr *NetAddress) {
+			if n.needMore() == false {
+				return
+			}
+			log.Debug("DialPeersSSSSSSSSSSSSSSSS", "peer", netadr.String())
+			peer, err := P2pComm.DialPeer(netadr, &n.nodeInfo)
+			if err != nil {
+				log.Error("DialPeers", "Err", err.Error())
+				return
+			}
+			log.Debug("Addr perr", "peer", peer)
+			n.AddPeer(peer)
+			n.addrBook.AddAddress(netadr)
+			n.addrBook.Save()
+
+		}(n, netAddr)
 	}
 	return nil
 }
@@ -232,9 +272,7 @@ func (n *Node) AddPeer(pr *peer) {
 
 func (n *Node) Size() int {
 
-	n.nodeInfo.peerInfos.mtx.Lock()
-	defer n.nodeInfo.peerInfos.mtx.Unlock()
-	return len(n.nodeInfo.peerInfos.infos)
+	return n.nodeInfo.peerInfos.PeerSize()
 }
 
 func (n *Node) Has(paddr string) bool {
@@ -246,51 +284,30 @@ func (n *Node) Has(paddr string) bool {
 	return false
 }
 
-// Get looks up a peer by the provided peerKey.
-func (n *Node) Get(peerAddr string) *peer {
-	defer n.omtx.Unlock()
-	n.omtx.Lock()
-	peer, ok := n.outBound[peerAddr]
-	if ok {
-
-		return peer
-	}
-	return nil
-}
-
 func (n *Node) GetRegisterPeers() []*peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
 	var peers []*peer
+	if len(n.outBound) == 0 {
+		return peers
+	}
 	for _, peer := range n.outBound {
-		//if n.nodeInfo.peerInfos.GetPeerInfo(peeraddr) != nil {
 		peers = append(peers, peer)
-		//}
 
 	}
-	//log.Debug("GetPeers", "node", peers)
 	return peers
 }
 
-func (n *Node) GetPeers() ([]*peer, map[string]*types.Peer) {
-	n.omtx.Lock()
-	defer n.omtx.Unlock()
-	var peers []*peer
+func (n *Node) GetActivePeers() ([]*peer, map[string]*types.Peer) {
+	regPeers := n.GetRegisterPeers()
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
-	//copy infos 避免同时对infos进行读写操作
-	var pinfos = make(map[string]*types.Peer)
-	for k, v := range infos {
-		pinfos[k] = v
-	}
-	for _, peer := range n.outBound {
-		if _, ok := pinfos[peer.Addr()]; ok {
-			log.Debug("GetPeers", "peer", peer.Addr())
+	var peers []*peer
+	for _, peer := range regPeers {
+		if _, ok := infos[peer.Addr()]; ok {
 			peers = append(peers, peer)
 		}
-
 	}
-	//log.Debug("GetPeers", "node", peers)
-	return peers, pinfos
+	return peers, infos
 }
 func (n *Node) Remove(peerAddr string) {
 
@@ -299,7 +316,7 @@ func (n *Node) Remove(peerAddr string) {
 	peer, ok := n.outBound[peerAddr]
 	if ok {
 		delete(n.outBound, peerAddr)
-		peer.Stop()
+		peer.Close()
 		return
 	}
 
@@ -311,146 +328,11 @@ func (n *Node) RemoveAll() {
 	defer n.omtx.Unlock()
 	for addr, peer := range n.outBound {
 		delete(n.outBound, addr)
-		peer.Stop()
+		peer.Close()
 	}
 	return
 }
-func (n *Node) checkActivePeers() {
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-FOR_LOOP:
-	for {
-		select {
-		case <-n.activeDone:
-			break FOR_LOOP
-		case <-ticker.C:
-			peers := n.GetRegisterPeers()
-			for _, peer := range peers {
-				if peer.mconn == nil {
-					n.addrBook.RemoveAddr(peer.Addr())
-					n.Remove(peer.Addr())
-					continue
-				}
 
-				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String(), "isrunning ", peer.mconn.sendMonitor.IsRunning())
-				if peer.mconn.sendMonitor.IsRunning() == false && peer.IsPersistent() == false || peer.Addr() == n.nodeInfo.GetExternalAddr().String() {
-					n.addrBook.RemoveAddr(peer.Addr())
-					n.addrBook.Save()
-					n.Remove(peer.Addr())
-				}
-
-				if peerStat := n.addrBook.getPeerStat(peer.Addr()); peerStat != nil {
-					peerStat.flushPeerStatus(peer.mconn.sendMonitor.MonitorInfo())
-
-				}
-
-			}
-		}
-
-	}
-}
-func (n *Node) deleteErrPeer() {
-
-	for {
-
-		peer := <-n.nodeInfo.monitorChan
-		log.Debug("deleteErrPeer", "REMOVE", peer.Addr())
-		if peer.version.Get() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
-			n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
-		}
-		n.addrBook.RemoveAddr(peer.Addr())
-		n.addrBook.Save()
-		n.Remove(peer.Addr())
-	}
-
-}
-func (n *Node) getAddrFromOnline() {
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-FOR_LOOP:
-	for {
-		select {
-		case <-n.onlineDone:
-			break FOR_LOOP
-		case <-ticker.C:
-			if n.needMore() {
-				peers, _ := n.GetPeers()
-				log.Debug("getAddrFromOnline", "peers", peers)
-				for _, peer := range peers { //向其他节点发起请求，获取地址列表
-					log.Debug("Getpeer", "addr", peer.Addr())
-					addrlist, err := peer.mconn.getAddr()
-					if err != nil {
-						log.Error("monitor", "ERROR", err.Error())
-						continue
-					}
-					log.Debug("monitor", "ADDRLIST", addrlist)
-					//过滤黑名单的地址
-					var whitlist []string
-					for _, addr := range addrlist {
-						if n.nodeInfo.blacklist.Has(addr) == false {
-							whitlist = append(whitlist, addr)
-						} else {
-							log.Warn("Filter addr", "BlackList", addr)
-						}
-					}
-					n.DialPeers(whitlist) //对获取的地址列表发起连接
-
-				}
-			}
-
-		}
-	}
-}
-
-func (n *Node) getAddrFromOffline() {
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-FOR_LOOP:
-	for {
-		select {
-		case <-n.offlineDone:
-			break FOR_LOOP
-		case <-ticker.C:
-			//time.Sleep(time.Second * 25)
-			if n.needMore() {
-				var savelist []string
-				for _, seed := range n.nodeInfo.cfg.Seeds {
-					if n.Has(seed) == false && n.nodeInfo.blacklist.Has(seed) == false {
-						savelist = append(savelist, seed)
-					}
-				}
-
-				log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
-				peeraddrs := n.addrBook.GetAddrs()
-				if len(peeraddrs) != 0 {
-					for _, addr := range peeraddrs {
-						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
-							savelist = append(savelist, addr)
-						}
-						log.Debug("SaveList", "list", savelist)
-					}
-				}
-
-				if len(savelist) == 0 {
-
-					continue
-				}
-				n.DialPeers(savelist)
-			} else {
-				log.Debug("monitor", "nodestable", n.needMore())
-				for _, seed := range n.nodeInfo.cfg.Seeds {
-					//如果达到稳定节点数量，则断开种子节点
-					if n.Has(seed) == true {
-						n.Remove(seed)
-					}
-				}
-			}
-
-			log.Debug("Node Monitor process", "outbound num", n.Size())
-		}
-	}
-
-}
 func (n *Node) monitor() {
 	go n.deleteErrPeer()
 	go n.checkActivePeers()
@@ -468,10 +350,11 @@ func (n *Node) needMore() bool {
 }
 
 func (n *Node) loadAddrBook() bool {
-	var peeraddrs []string
+	var peeraddrs = make(map[string]bool)
 	if n.addrBook.Size() != 0 {
-		for peeraddr, _ := range n.addrBook.addrPeer {
-			peeraddrs = append(peeraddrs, peeraddr)
+		for addr, _ := range n.addrBook.addrPeer {
+			//peeraddrs = append(peeraddrs, peeraddr)
+			peeraddrs[addr] = true
 			if len(peeraddrs) > MaxOutBoundNum {
 				break
 			}
@@ -487,7 +370,7 @@ func (n *Node) loadAddrBook() bool {
 }
 func (n *Node) detectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
-	LocalAddr = localBindAddr()
+	LocalAddr = P2pComm.GetLocalAddr()
 	log.Debug("detectionNodeAddr", "addr:", LocalAddr)
 	if cfg.GetIsSeed() {
 		ExternalAddr = LocalAddr
@@ -505,7 +388,7 @@ func (n *Node) detectionNodeAddr() {
 		}
 		seedip := strings.Split(addr, ":")[0]
 
-		selfexaddrs := getSelfExternalAddr(fmt.Sprintf("%v:%v", seedip, DefalutP2PRemotePort))
+		selfexaddrs := P2pComm.GetSelfExternalAddr(fmt.Sprintf("%v:%v", seedip, DefalutP2PRemotePort))
 		if len(selfexaddrs) != 0 {
 			ExternalAddr = selfexaddrs[0]
 			log.Debug("detectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalAddr)
@@ -528,38 +411,4 @@ SET_ADDR:
 		n.nodeInfo.SetListenAddr(listaddr)
 	}
 	n.localAddr = fmt.Sprintf("%s:%v", LocalAddr, n.GetLocalPort())
-}
-
-// 启动Node节点
-//1.启动监听GRPC Server
-//2.初始化AddrBook,并发起对相应地址的连接
-//3.如果配置了种子节点，则连接种子节点
-//4.启动监控远程节点
-func (n *Node) Start() {
-	n.detectionNodeAddr()
-
-	n.rListener = NewRemotePeerAddrServer()
-	n.l = NewDefaultListener(Protocol, n)
-
-	go n.monitor()
-	go n.exChangeVersion()
-	go n.makeService()
-	return
-}
-
-func (n *Node) Stop() {
-	close(n.versionDone)
-	close(n.activeDone)
-	close(n.onlineDone)
-	close(n.offlineDone)
-	log.Debug("stop", "versionDone", "close")
-	n.l.Stop()
-	log.Debug("stop", "listen", "close")
-	n.rListener.Stop()
-	log.Debug("stop", "remotelisten", "close")
-	n.addrBook.Stop()
-	log.Debug("stop", "addrBook", "close")
-
-	n.RemoveAll()
-
 }
