@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/p2p/nat"
 	pb "code.aliyun.com/chain33/chain33/types"
@@ -20,7 +21,6 @@ func (l *DefaultListener) Start() {
 
 func (l *DefaultListener) Close() bool {
 	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
-	nat.Any().DeleteMapping(Protocol, int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port))
 	log.Debug("stop", "closed natport", "close")
 	l.server.Stop()
 	log.Debug("stop", "closed grpc server", "close")
@@ -38,7 +38,7 @@ type DefaultListener struct {
 	listener net.Listener
 	server   *grpc.Server
 	nodeInfo *NodeInfo
-	c        chan struct{}
+	natClose chan struct{}
 	n        *Node
 }
 
@@ -51,45 +51,60 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 		return nil
 	}
 
-	var C = make(chan struct{})
 	dl := &DefaultListener{
 		listener: listener,
 		nodeInfo: node.nodeInfo,
-		c:        C,
+		natClose: make(chan struct{}, 1),
 		n:        node,
 	}
 
 	go dl.Start() // Started upon construction
 	return dl
 }
-
+func (l *DefaultListener) WaitForNat() {
+	<-l.nodeInfo.natNoticeChain
+	return
+}
 func (l *DefaultListener) NatMapPort() {
 	if l.nodeInfo.cfg.GetIsSeed() == true {
 
 		return
 	}
-
+	l.WaitForNat()
+	var err error
 	for i := 0; i < TryMapPortTimes; i++ {
 
-		if nat.Map(nat.Any(), l.c, "TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33 p2p") != nil {
-
-			{
-
-				l.nodeInfo.blacklist.Delete(l.nodeInfo.GetExternalAddr().String())
-				l.n.externalPort = uint16(rand.Intn(64512) + 1023)
-				l.n.FlushNodeInfo()
-				l.nodeInfo.blacklist.Add(l.n.nodeInfo.GetExternalAddr().String())
-				log.Debug("NatMapPort", "Port", l.n.nodeInfo.GetExternalAddr())
-
-			}
-
+		err = nat.Any().AddMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33-p2p", time.Minute*20)
+		if err != nil {
+			log.Error("NatMapPort", "err", err.Error())
+			l.n.externalPort = uint16(rand.Intn(64512) + 1023)
+			l.n.FlushNodeInfo()
+			log.Info("NatMapPort", "Port", l.n.nodeInfo.GetExternalAddr())
 			continue
 		}
 
+		break
 	}
-	l.n.externalPort = DefaultPort
-	l.n.FlushNodeInfo()
-	log.Error("Nat Map", "Error Map Port Failed ----------------")
+	if err != nil {
+		//映射失败
+		log.Error("NatMapPort", "Nat Faild", "Sevice6")
+		l.nodeInfo.natResultChain <- false
+		return
+	}
+
+	l.nodeInfo.natResultChain <- true
+	refresh := time.NewTimer(mapUpdateInterval)
+	for {
+		select {
+		case <-refresh.C:
+			nat.Any().AddMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33-p2p", time.Minute*20)
+			refresh.Reset(mapUpdateInterval)
+
+		case <-l.natClose:
+			nat.Any().DeleteMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()))
+			return
+		}
+	}
 
 }
 

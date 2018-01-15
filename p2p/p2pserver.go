@@ -304,7 +304,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	peerinfo.Header = header
 	peerinfo.Name = pub
 	peerinfo.MempoolSize = int32(meminfo.GetSize())
-	peerinfo.Addr = ExternalAddr
+	peerinfo.Addr = ExternalIp
 	peerinfo.Port = int32(s.node.nodeInfo.GetExternalAddr().Port)
 	return &peerinfo, nil
 }
