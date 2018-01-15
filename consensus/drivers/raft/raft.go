@@ -273,7 +273,7 @@ func (rc *raftNode) updateValidator() {
 		if rc.id == int(leadId) {
 			rc.validatorC <- true
 		} else {
-			//rc.validatorC <- false
+			rc.validatorC <- false
 		}
 		time.Sleep(time.Second)
 	}
