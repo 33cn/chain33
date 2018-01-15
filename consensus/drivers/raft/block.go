@@ -16,6 +16,7 @@ import (
 
 	//"sync/atomic"
 	//"golang.org/x/tools/go/gcimporter15/testdata"
+	"fmt"
 )
 
 var (
@@ -33,42 +34,58 @@ type RaftClient struct {
 	//TODO: BaseClient中有些参数访问不了，所以暂时不用baseClient
 	//*drivers.BaseClient
 
-	proposeC     chan<- *types.Block
-	qclient      queue.IClient
-	q            *queue.Queue
-	minerStart   int32
+	proposeC chan<- *types.Block
+	qclient  queue.IClient
+	q        *queue.Queue
+	//minerStart   int32
 	once         sync.Once
 	Cfg          *types.Consensus
 	currentBlock *types.Block
-	mulock       sync.Mutex
+	mulock       sync.RWMutex
 	//child        Miner
 
 	//mu          sync.RWMutex
 	//blockstore  *types.Block
 	//qclient     queue.IClient
 	//q           *queue.Queue
+	commitC     <-chan *types.Block
+	errorC      <-chan error
 	snapshotter *snap.Snapshotter
 	validatorC  <-chan bool
 }
 
 func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan bool) *RaftClient {
-	var flag int32
-	if cfg.Minerstart {
-		flag = 1
-	}
+	//var flag int32
+	//if cfg.Minerstart {
+	//	flag = 1
+	//}
 	//c := drivers.NewBaseClient(cfg)
-	b := &RaftClient{proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, minerStart: flag}
-	b.Cfg = cfg
+	client := &RaftClient{proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, commitC: commitC, errorC: errorC}
+	client.Cfg = cfg
 	log.Info("Enter consensus raft")
 	//c.SetChild(b)
-	go b.readCommits(commitC, errorC)
-	return b
+	//TODO:多起一个readCommit，可能时raft包有bug
+	//go client.readCommits(commitC, errorC)
+
+	return client
 }
 
 func (client *RaftClient) getSnapshot() ([]byte, error) {
+	//这里可能导致死锁
 	client.mulock.Lock()
 	defer client.mulock.Unlock()
 	return proto.Marshal(client.currentBlock)
+}
+func (client *RaftClient) recoverFromSnapshot(snapshot []byte) error {
+	var block types.Block
+	if err := proto.Unmarshal(snapshot, &block); err != nil {
+		return err
+	}
+	client.mulock.Lock()
+	defer client.mulock.Unlock()
+	client.currentBlock = &block
+	//client.mulock.Unlock()
+	return nil
 }
 
 //func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
@@ -89,33 +106,6 @@ func (client *RaftClient) getSnapshot() ([]byte, error) {
 //	return atomic.LoadInt32(&client.minerStart) == 1
 //}
 
-func (client *RaftClient) CheckTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
-	var checkHashList types.TxHashList
-	txMap := make(map[string]*types.Transaction)
-	for _, tx := range txs {
-		hash := tx.Hash()
-		txMap[string(hash)] = tx
-		checkHashList.Hashes = append(checkHashList.Hashes, hash)
-	}
-	// 发送Hash过后的交易列表给blockchain模块
-	//beg := time.Now()
-	//log.Error("----EventTxHashList----->[beg]", "time", beg)
-	hashList := client.qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-	client.qclient.Send(hashList, true)
-	dupTxList, _ := client.qclient.Wait(hashList)
-	//log.Error("----EventTxHashList----->[end]", "time", time.Now().Sub(beg))
-	// 取出blockchain返回的重复交易列表
-	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
-
-	for _, hash := range dupTxs {
-		delete(txMap, string(hash))
-	}
-
-	for _, tx := range txMap {
-		transactions = append(transactions, tx)
-	}
-	return transactions
-}
 func (client *RaftClient) RequestBlock(start int64) (*types.Block, error) {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
@@ -161,7 +151,7 @@ func (client *RaftClient) writeBlock(prevHash []byte, block *types.Block) error 
 		return err
 	}
 	if resp.GetData().(*types.Reply).IsOk {
-		client.SetCurrentBlock(block)
+		client.setCurrentBlock(block)
 	} else {
 		//TODO:
 		//把txs写回mempool
@@ -171,7 +161,7 @@ func (client *RaftClient) writeBlock(prevHash []byte, block *types.Block) error 
 	return nil
 }
 
-func (client *RaftClient) SetCurrentBlock(b *types.Block) {
+func (client *RaftClient) setCurrentBlock(b *types.Block) {
 	client.mulock.Lock()
 	if client.currentBlock == nil || client.currentBlock.Height <= b.Height {
 		client.currentBlock = b
@@ -179,13 +169,13 @@ func (client *RaftClient) SetCurrentBlock(b *types.Block) {
 	client.mulock.Unlock()
 }
 
-func (client *RaftClient) GetCurrentBlock() (b *types.Block) {
+func (client *RaftClient) getCurrentBlock() (b *types.Block) {
 	client.mulock.Lock()
 	defer client.mulock.Unlock()
 	return client.currentBlock
 }
 
-func (client *RaftClient) GetCurrentHeight() int64 {
+func (client *RaftClient) getCurrentHeight() int64 {
 	client.mulock.Lock()
 	start := client.currentBlock.Height
 	client.mulock.Unlock()
@@ -196,8 +186,15 @@ func (client *RaftClient) SetQueue(q *queue.Queue) {
 	log.Info("Enter SetQueue method of consensus")
 	// 只有主节点打包区块，其余节点接受p2p广播过来的区块
 	//TODO:这里应该要改成轮询执行，当本台节点为Validator节点时则执行
+	go client.readCommits(client.commitC, client.errorC)
 	client.qclient = q.GetClient()
 	client.q = q
+	//client.initBlock()
+	//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
+	// 老的leader中运行的打包程此刻应该被终止？
+	//isValidator = true
+	//go client.eventLoop()
+	//go client.createBlock()
 	go client.pollingTask(q)
 }
 
@@ -222,14 +219,14 @@ func (client *RaftClient) initBlock() {
 		client.propose(newblock)
 		// 把区块放在内存中
 		//TODO:这里要等确认后才能把当前的块设置为新块
-		setCurrentBlock(newblock)
+		client.setCurrentBlock(newblock)
 		//client.writeBlock(zeroHash[:], newblock)
 	} else {
 		block, err := client.RequestBlock(height)
 		if err != nil {
 			panic(err)
 		}
-		client.SetCurrentBlock(block)
+		client.setCurrentBlock(block)
 	}
 }
 func (client *RaftClient) checkTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
@@ -278,7 +275,10 @@ func (client *RaftClient) createBlock() {
 		issleep = false
 		//check dup
 		txs = client.checkTxDup(txs)
-		lastBlock := getCurrentBlock()
+		fmt.Println(len(txs))
+		lastBlock := client.getCurrentBlock()
+		rlog.Warn("**************************************lastBlockHeight:", lastBlock.Height)
+		fmt.Println(lastBlock.Height)
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -290,7 +290,11 @@ func (client *RaftClient) createBlock() {
 		}
 		rlog.Info("Send block to raft core")
 		client.propose(&newblock)
-		//client.writeBlock(lastBlock.StateHash, &newblock)
+		err := client.writeBlock(lastBlock.StateHash, &newblock)
+		if err != nil {
+			issleep = true
+			continue
+		}
 	}
 }
 
@@ -341,7 +345,7 @@ func (client *RaftClient) eventLoop() {
 			rlog.Info("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
-				setCurrentBlock(block)
+				client.setCurrentBlock(block)
 			}
 			//} else if msg.Ty == types.EventCheckBlock {
 			//	block := msg.GetData().(*types.BlockDetail)
@@ -380,28 +384,6 @@ func (client *RaftClient) RequestTx() []*types.Transaction {
 	resp, _ := client.qclient.Wait(msg)
 	return resp.GetData().(*types.ReplyTxList).GetTxs()
 }
-
-func setCurrentBlock(b *types.Block) {
-	mulock.Lock()
-	if currentBlock == nil || currentBlock.Height <= b.Height {
-		currentBlock = b
-	}
-	mulock.Unlock()
-}
-
-func getCurrentBlock() (b *types.Block) {
-	mulock.Lock()
-	defer mulock.Unlock()
-	return currentBlock
-}
-
-func getCurrentHeight() int64 {
-	mulock.Lock()
-	start := currentBlock.Height
-	mulock.Unlock()
-	return start
-}
-
 func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
 	tx.Execer = []byte("coins")
@@ -421,42 +403,50 @@ func (client *RaftClient) propose(block *types.Block) {
 }
 
 // 从receive channel中读leader发来的block
-func (b *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error) {
-	var prevHash []byte
+func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error) {
+	//var prevHash []byte
 	for {
 		select {
 		case data := <-commitC:
 			rlog.Info("Get block from commit channel")
 			if data == nil {
-				rlog.Info("data is nil")
-				//snapshot, err := b.snapshotter.Load()
-				//if err == snap.ErrNoSnapshot {
-				//	return
-				//}
-				//
-				//log.Info("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
-				//if err := b.recoverFromSnapshot(snapshot.Data); err != nil {
-				//	panic(err)
-				//}
+				rlog.Info("data is nil===================================")
+				snapshot, err := client.snapshotter.Load()
+				if err == snap.ErrNoSnapshot {
+					return
+				}
+
+				log.Info("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
+				if err := client.recoverFromSnapshot(snapshot.Data); err != nil {
+					panic(err)
+				}
 				continue
 			}
-			//TODO:这里有个极端的情况，就是readCommits 比我的validatorC早接收到消息，这样的话，
+			//TODO:这里有个极端的情况，就是readCommits 比validatorC早接收到消息，这样的话，
 			// 在程序刚开始启动的时候有可能存在丢失数据的问题
-			if !isValidator {
-				log.Warn("I'm not the validator node, I don't need to writeBlock!==========================")
-				continue
-			}
+			//if !isValidator {
+			//	log.Warn("I'm not the validator node, I don't need to writeBlock!==========================")
+			//	continue
+			//}
 			log.Warn("I'm the validator node, I need to writeBlock!==========================")
-			lastBlock := getCurrentBlock()
-			if lastBlock == nil {
-				prevHash = zeroHash[:]
-			} else {
-				prevHash = lastBlock.StateHash
-			}
-			b.mulock.Lock()
-			b.writeBlock(prevHash, data)
-			b.mulock.Unlock()
+			client.setCurrentBlock(data)
+			//lastBlock := client.getCurrentBlock()
+			//if lastBlock == nil {
+			//	prevHash = zeroHash[:]
+			//} else {
+			//	prevHash = lastBlock.StateHash
+			//}
+			//client.mulock.Lock()
+			//err:=client.writeBlock(prevHash, data)
+			//client.mulock.Unlock()
+			//if err !=nil {
+			//log.Error("=========writeBlock  failed!=======")
+			//continue
+			//}
+			log.Info("============writeBlock successfully!======")
+
 		case err, ok := <-errorC:
+			log.Info("============error======")
 			if ok {
 				panic(err)
 			}

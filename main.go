@@ -35,7 +35,7 @@ var (
 const Version = "v0.1.0"
 
 func main() {
-    runtime.GOMAXPROCS(CPUNUM)
+	runtime.GOMAXPROCS(CPUNUM)
 	go func() {
 		http.ListenAndServe("localhost:6060", nil)
 	}()
