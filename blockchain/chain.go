@@ -321,11 +321,11 @@ func (chain *BlockChain) poolRoutine() {
 			return
 		case _ = <-blockSynTicker.C:
 			//chainlog.Info("blockSynTicker")
-			go chain.SynBlocksFromPeers()
+			chain.SynBlocksFromPeers()
 
 		case _ = <-fetchPeerListTicker.C:
 			//chainlog.Info("blockUpdateTicker")
-			go chain.FetchPeerList()
+			chain.FetchPeerList()
 
 		case <-chain.blockPool.synblock:
 			//chainlog.Info("trySyncTicker")
@@ -766,11 +766,7 @@ func (chain *BlockChain) ProcGetBlockByHashMsg(hash []byte) (respblock *types.Bl
 //如果没有收到广播block就主动向p2p模块发送请求
 
 func (chain *BlockChain) FetchPeerList() {
-	err := chain.fetchPeerList()
-	if err != nil {
-		time.Sleep(time.Second)
-		chain.fetchPeerList()
-	}
+	chain.fetchPeerList()
 }
 
 func (chain *BlockChain) fetchPeerList() error {
