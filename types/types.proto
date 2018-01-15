@@ -695,20 +695,20 @@ message ReceiptTicket {
 }
 
 message Hashlock{
-	string hashlockId    = 1;
+	bytes  hashlockId    = 1;
 	int32  status        = 2;
-	bool isGenesis       = 3;
-	int64 CreateTime     = 4;
+	int64  CreateTime    = 3;
+	string toAddress     = 4;
 	string returnAddress = 5;
-	int64 amount         = 6;
-	int64 frozentime     = 7;
+	int64  amount        = 6;
+	int64  frozentime    = 7;
 }
 
 //message for execs.hashlock
 message HashlockAction {
 	oneof value {
-		HashlockLock      hlock = 1;
-		HashlockSend      hsend = 2;
+		HashlockLock      hlock   = 1;
+		HashlockSend      hsend   = 2;
 		HashlockUnlock    hunlock = 3;
 	}
 	int32 ty = 4;
@@ -717,22 +717,18 @@ message HashlockAction {
 message HashlockLock {
 	int64  amount        = 1;
 	int64  time          = 2;
-	string hash          = 3;
+	bytes  hash          = 3;
 	string toAddress     = 4;
-	string returnAddress = 5
+	string returnAddress = 5;
 }
 
 message HashlockUnlock {
-	bytes  secret   = 2;
-	bytes  hash     = 3;
+	bytes  secret   = 1;
+	//bytes  hash     = 3;
 }
 
 message HashlockSend {
-	bytes  secret   = 2;
-	bytes  hash     = 3;
-}
-
-message HashlockGenesis {
-	string returnAddress = 1;
+	bytes  secret   = 1;
+	//bytes  hash     = 3;
 }
 

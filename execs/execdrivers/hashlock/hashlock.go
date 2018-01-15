@@ -41,7 +41,6 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 
 	actiondb := hashlockdb.NewHashlockAction(h.GetDB(), tx, h.GetAddr(), h.GetBlockTime(), h.GetHeight())
 
-	//暂时不实现genesis
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		hlock := action.GetHlock()
 		if hlock.Amount <= 0 {
@@ -65,7 +64,7 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 		hunlock := action.GetHunlock()
 		//unlock 有两个条件： 1. 时间已经过期 2. 密码是对的，返回原来的账户
 		return actiondb.Hashlockunlock(hunlock)
-	} else if action.Ty == types.HashlockActionSend() && action.GetHsend() != nil {
+	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
 		hsend := action.GetHsend()
 		//send 有两个条件：1. 时间没有过期 2. 密码是对的，币转移到 ToAddress
 		return actiondb.Hashlocksend(hsend)
