@@ -21,6 +21,8 @@ var ErrMinerIsStared = errors.New("ErrMinerIsStared")
 var ErrMinerNotStared = errors.New("ErrMinerNotStared")
 var ErrTicketCount = errors.New("ErrTicketCount")
 var ErrHashlockAmount = errors.New("ErrHashlockAmount")
+var ErrHashlockHash = errors.New("ErrHashlockHash")
+var ErrHashlockStatus = errors.New("ErrHashlockStatus")
 var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 var ErrNoPeer = errors.New("ErrNoPeer")
 var ErrSign = errors.New("ErrSign")
@@ -41,6 +43,7 @@ var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
 var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
 var ErrBlockNotFound = errors.New("ErrBlockNotFound")
 var ErrHashlockReturnAddrss = errors.New("ErrHashlockReturnAddrss")
+var ErrHashlockTime = errors.New("ErrHashlockTime")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
