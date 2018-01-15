@@ -229,6 +229,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
+			//3. 对于可以信任的区块，可以直接加入cache
+			chain.cacheBlock(blockDetail)
 			chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReply, &reply))
 
