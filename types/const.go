@@ -40,6 +40,7 @@ var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
 var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
 var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
 var ErrBlockNotFound = errors.New("ErrBlockNotFound")
+var ErrHashlockReturnAddrss = errors.New("ErrHashlockReturnAddrss")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
@@ -278,7 +279,7 @@ const (
 
 //hashlock
 const (
-	HashlockActionGenesis = 1
-	HashlockActionLock    = 2
-	HashlockActionUnlock  = 3
+	HashlockActionLock   = 1
+	HashlockActionSend   = 2
+	HashlockActionUnlock = 3
 )

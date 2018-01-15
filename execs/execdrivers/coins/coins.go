@@ -50,7 +50,7 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		from := account.From(tx).String()
 		//to 是 execs 合约地址
 		if execdrivers.IsExecAddress(tx.To) {
 			return account.TransferToExec(n.GetDB(), from, tx.To, transfer.Amount)
