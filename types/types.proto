@@ -27,7 +27,12 @@ service grpcservice{
 	rpc UnLock(WalletUnLock)returns(Reply){}
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
+	//区块浏览器接口
+	rpc GetBlockOverview(ReqHash) returns(BlockOverview){}
+	rpc GetAddrOverview(ReqAddr) returns(AddrOverview){}
+	rpc GetBlockHash(ReqInt) returns(ReplyHash){}
 	
+
 }
 
 service p2premoteaddr{
@@ -182,6 +187,8 @@ message Header {
 	bytes stateHash = 4;
 	int64 height = 5;
 	int64 blockTime = 6;
+	int64 txCount = 9;
+	bytes hash = 10;
 	Signature  signature = 8;
 }
 
@@ -192,8 +199,8 @@ message Block {
 	bytes stateHash = 4;
 	int64 height = 5;
 	int64 blockTime = 6;
-	repeated Transaction txs = 7;
 	Signature  signature = 8;
+	repeated Transaction txs = 7;
 }
 
 message BlockOverview {

@@ -39,6 +39,7 @@ var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
 var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
 var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
 var ErrBlockNotFound = errors.New("ErrBlockNotFound")
+var ErrStartBigThanEnd = errors.New("ErrStartBigThanEnd")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17

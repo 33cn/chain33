@@ -3,11 +3,9 @@ package p2p
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
-	"google.golang.org/grpc"
 )
 
 type NodeInfo struct {
@@ -32,6 +30,12 @@ type PeerInfos struct {
 	infos map[string]*types.Peer
 }
 
+func (p *PeerInfos) PeerSize() int {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	return len(p.infos)
+}
+
 func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
@@ -43,14 +47,23 @@ func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 	for _, peer := range in {
 		p.infos[fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())] = peer
 	}
-
 }
 
 func (p *PeerInfos) GetPeerInfos() map[string]*types.Peer {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
+	var pinfos = make(map[string]*types.Peer)
+	for k, v := range p.infos {
+		pinfos[k] = v
+	}
+	return pinfos
+}
 
-	return p.infos
+func (p *PeerInfos) SetPeerInfo(peer *types.Peer) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	key := fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())
+	p.infos[key] = peer
 }
 
 func (p *PeerInfos) GetPeerInfo(key string) *types.Peer {
@@ -100,27 +113,6 @@ func (nf *NodeInfo) GetListenAddr() *NetAddress {
 	nf.mtx.Lock()
 	defer nf.mtx.Unlock()
 	return nf.listenAddr
-}
-func (nf *NodeInfo) GrpcConfig() grpc.ServiceConfig {
-
-	var ready = true
-	var defaultRespSize = 1024 * 1024 * 60
-	var defaultReqSize = 1024 * 1024 * 10
-	var defaulttimeout = 60 * time.Second
-	var pingtimeout = 50 * time.Second
-	var MethodConf = map[string]grpc.MethodConfig{
-		"/types/p2pgservice/Ping":           grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/Version2":       grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/BroadCastTx":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/GetMemPool":     grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/GetData":        grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/GetBlocks":      grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/GetPeerInfo":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types/p2pgservice/BroadCastBlock": grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-	}
-
-	return grpc.ServiceConfig{Methods: MethodConf}
-
 }
 
 func (bl *BlackList) Add(addr string) {

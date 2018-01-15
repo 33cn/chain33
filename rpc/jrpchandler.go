@@ -185,7 +185,7 @@ GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
 */
 
 func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
-
+	log.Warn("GetTxByHashes", "hashes", in)
 	var parm types.ReqHashes
 	parm.Hashes = make([][]byte, 0)
 	for _, v := range in.Hashes {
@@ -207,8 +207,8 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		for _, tx := range txs {
 			var recp ReceiptData
 			logs := tx.GetReceipt().GetLogs()
+			recp.Ty = tx.GetReceipt().GetTy()
 			for _, lg := range logs {
-				recp.Ty = lg.GetTy()
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
@@ -240,7 +240,6 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 					Amount:    tx.GetAmount(),
 					Fromaddr:  tx.GetFromaddr(),
 				})
-
 		}
 
 		*result = &txdetails
@@ -512,6 +511,8 @@ func (req Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
 		for _, item := range reply.Items {
 			headers.Items = append(headers.Items, &Header{
 				BlockTime:  item.GetBlockTime(),
+				TxCount:    item.GetTxCount(),
+				Hash:       common.ToHex(item.GetHash()),
 				Height:     item.GetHeight(),
 				ParentHash: common.ToHex(item.GetParentHash()),
 				StateHash:  common.ToHex(item.GetStateHash()),
@@ -547,5 +548,59 @@ func (req Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 		}
 		*result = &txlist
 	}
+	return nil
+}
+
+//GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
+func (req Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
+	var data types.ReqHash
+	hash, err := common.FromHex(in.Hash)
+	if err != nil {
+		return err
+	}
+
+	data.Hash = hash
+	reply, err := req.cli.GetBlockOverview(&data)
+	if err != nil {
+		return err
+	}
+	var blockOverview BlockOverview
+
+	//获取blockheader信息
+	var header Header
+	header.BlockTime = reply.GetHead().GetBlockTime()
+	header.Height = reply.GetHead().GetHeight()
+	header.ParentHash = common.ToHex(reply.GetHead().GetParentHash())
+	header.StateHash = common.ToHex(reply.GetHead().GetStateHash())
+	header.TxHash = common.ToHex(reply.GetHead().GetTxHash())
+	header.Version = reply.GetHead().GetVersion()
+	blockOverview.Head = &header
+
+	//获取blocktxhashs信息
+	for _, has := range reply.GetTxHashes() {
+		blockOverview.TxHashes = append(blockOverview.TxHashes, common.ToHex(has))
+	}
+
+	blockOverview.TxCount = reply.GetTxCount()
+	*result = &blockOverview
+	return nil
+}
+func (req Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error {
+	reply, err := req.cli.GetAddrOverview(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
+
+func (req Chain33) GetBlockHash(in types.ReqInt, result *interface{}) error {
+	reply, err := req.cli.GetBlockHash(&in)
+	if err != nil {
+		return err
+	}
+	var replyHash ReplyHash
+	replyHash.Hash = common.ToHex(reply.GetHash())
+	*result = &replyHash
 	return nil
 }

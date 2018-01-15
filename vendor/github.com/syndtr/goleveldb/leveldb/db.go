@@ -16,7 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
+    "runtime/debug"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/journal"
@@ -1027,6 +1027,7 @@ func (db *DB) SizeOf(ranges []util.Range) (Sizes, error) {
 // called after the DB has been closed.
 func (db *DB) Close() error {
 	if !db.setClosed() {
+        debug.PrintStack()
 		return ErrClosed
 	}
 
