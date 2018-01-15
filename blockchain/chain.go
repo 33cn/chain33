@@ -215,23 +215,13 @@ func (chain *BlockChain) ProcRecvMsg() {
 			var reply types.Reply
 			reply.IsOk = true
 			blockDetail = msg.Data.(*types.BlockDetail)
-			//1. 高度不匹配
-			if blockDetail.Block.Height != chain.GetBlockHeight()+1 {
-				err := types.ErrBlockHeight
-				chainlog.Error("ProcAddBlockDetailMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			}
-			//2. 添加失败
-			err := chain.ProcAddBlockMsg(true, blockDetail)
+			err := chain.ProcAddBlockDetail(true, blockDetail)
 			if err != nil {
 				chainlog.Error("ProcAddBlockDetailMsg", "err", err.Error())
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 			}
-			//3. 对于可以信任的区块，可以直接加入cache
-			chain.cacheBlock(blockDetail)
-			chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "success", "ok")
+			chainlog.Info("EventAddBlockDetail", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReply, &reply))
 
 			//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
@@ -334,6 +324,61 @@ func (chain *BlockChain) poolRoutine() {
 			chain.SynBlockToDbOneByOne()
 		}
 	}
+}
+
+//处理共识模块发过来addblock的消息，需要广播到全网
+func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.BlockDetail) (err error) {
+	currentheight := chain.GetBlockHeight()
+	//我们需要的高度，直接存储到db中
+	if blockDetail.Block.Height == currentheight+1 {
+		//校验block的ParentHash值
+		var prevblkHash []byte
+		if currentheight == -1 {
+			prevblkHash = common.Hash{}.Bytes()
+		} else {
+			curblock, err := chain.GetBlock(currentheight)
+			if err != nil {
+				return err
+			}
+			prevblkHash = curblock.Block.Hash()
+		}
+		if !bytes.Equal(prevblkHash, blockDetail.Block.GetParentHash()) {
+			outstr := fmt.Sprintf("ProcAddBlockDetail ParentHash err height:%d", blockDetail.Block.Height)
+			err := errors.New(outstr)
+			return err
+		}
+		newbatch := chain.blockStore.NewBatch(true)
+		cacheDB := NewCacheDB()
+		//保存tx交易结果信息到db中
+		chain.blockStore.indexTxs(newbatch, cacheDB, blockDetail)
+		if err != nil {
+			chainlog.Error("ProcAddBlockDetail", "err", err)
+			return err
+		}
+		//保存block信息到db中
+		err := chain.blockStore.SaveBlock(newbatch, blockDetail)
+		if err != nil {
+			chainlog.Error("ProcAddBlockDetail", "err", err)
+			return err
+		}
+		cacheDB.SetBatch(newbatch)
+		newbatch.Write()
+		//更新db中的blockheight到blockStore.Height
+		chain.blockStore.UpdateHeight()
+		//将此block添加到缓存中便于查找
+		chain.cacheBlock(blockDetail)
+		//通知mempool和consense以及wallet模块
+		chain.SendAddBlockEvent(blockDetail)
+		//广播此block到网络中
+		chain.SendBlockBroadcast(blockDetail)
+		return nil
+	} else {
+		outstr := fmt.Sprintf("input height :%d ,current store height:%d", blockDetail.Block.Height, currentheight)
+		err = errors.New(outstr)
+		chainlog.Error("ProcAddBlockDetail", "err", err)
+		return err
+	}
+	return nil
 }
 
 /*
