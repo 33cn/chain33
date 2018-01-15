@@ -84,7 +84,7 @@ func (t *Task) Done(height int64) {
 	t.Lock()
 	defer t.Unlock()
 	if !t.isruning {
-		return errors.New("task is not runing")
+		return
 	}
 	if height >= t.start && height <= t.end {
 		chainlog.Error("done", "height", height)
