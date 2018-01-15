@@ -165,6 +165,25 @@ func main() {
 			return
 		}
 		GetLastMempool()
+	//add by hyb
+	case "getblockoverview":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetBlockOverview(argsWithoutProg[1])
+	case "getaddroverview":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetAddrOverview(argsWithoutProg[1])
+	case "getblockhash":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetBlockHash(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -193,6 +212,11 @@ func LoadHelp() {
 	fmt.Println("getheaders [start, end, isdetail]                           : 获取指定区间区块头")
 	fmt.Println("getpeerinfo []                                              : 获取远程节点信息")
 	fmt.Println("getlastmempool []                                           : 获取最新加入到内存池中的十条交易")
+	//
+	fmt.Println("getblockoverview [hash]                                     : 获取区块信息")
+	fmt.Println("getaddroverview [address]                                   : 获取地址交易信息")
+	fmt.Println("getblockhash [height]                                       : 获取区块哈希值")
+
 }
 
 type AccountsResult struct {
@@ -271,6 +295,13 @@ type WalletTxDetailResult struct {
 	Amount    string               `json:"amount"`
 	Fromaddr  string               `json:"fromaddr"`
 	Txhash    string               `json:"txhash"`
+}
+
+//add by hyb
+type AddrOverviewResult struct {
+	Reciver string `json:"reciver"`
+	Balance string `json:"balance"`
+	TxCount int64  `json:"txCount"`
 }
 
 func Lock() {
@@ -990,6 +1021,88 @@ func GetLastMempool() {
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+//hyb
+func GetBlockOverview(hash string) {
+	params := jsonrpc.QueryParm{Hash: hash}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.BlockOverview
+	err = rpc.Call("Chain33.GetBlockOverview", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetAddrOverview(addr string) {
+	params := types.ReqAddr{Addr: addr}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.AddrOverview
+	err = rpc.Call("Chain33.GetAddrOverview", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	Balance := strconv.FormatFloat(float64(res.GetBalance())/float64(1e8), 'f', 4, 64)
+	Reciver := strconv.FormatFloat(float64(res.GetReciver())/float64(1e8), 'f', 4, 64)
+
+	addrOverview := &AddrOverviewResult{
+		Balance: Balance,
+		Reciver: Reciver,
+		TxCount: res.GetTxCount(),
+	}
+
+	data, err := json.MarshalIndent(addrOverview, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetBlockHash(height string) {
+
+	heightInt64, err := strconv.ParseInt(height, 10, 64)
+	params := types.ReqInt{Height: heightInt64}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.GetBlockHash", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

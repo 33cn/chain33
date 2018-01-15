@@ -511,8 +511,7 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 	}
 	addr := account.PubKeyToAddress([]byte(pubkey))
 	address := addr.String()
-
-	txs, _ := blockchain.ProcGetTransactionByAddr(address)
+	txs, _ := blockchain.ProcGetTransactionByAddr(&types.ReqAddr{Addr: address})
 	fmt.Println("ProcGetTransactionByAddr info:", "address", address)
 	if txs != nil {
 		for _, txresult := range txs.TxInfos {
@@ -544,7 +543,7 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 
 	chainlog.Info(" get txs by addr:TestProcGetTransactionByAddr-4444")
 	addrr := "TestProcGetTransactionByAddr-4444"
-	txs, _ = blockchain.ProcGetTransactionByAddr(addrr)
+	txs, _ = blockchain.ProcGetTransactionByAddr(&types.ReqAddr{Addr: addrr})
 	fmt.Println("ProcGetTransactionByAddr info:", "addr", addrr)
 	if txs != nil {
 		for _, txresult := range txs.TxInfos {
@@ -557,7 +556,8 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 	}
 
 	chainlog.Info(" get txs by addr:TestProcGetTransactionByAddr-3333")
-	txs, _ = blockchain.ProcGetTransactionByAddr("TestProcGetTransactionByAddr-3333")
+	addrr = "TestProcGetTransactionByAddr-3333"
+	txs, _ = blockchain.ProcGetTransactionByAddr(&types.ReqAddr{Addr: addrr})
 	if txs != nil {
 		for _, txresult := range txs.TxInfos {
 			if txresult != nil {
@@ -571,7 +571,7 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 	address = addr.String()
 	fromaddr := fmt.Sprintf("%s:0", address)
 	chainlog.Info(" get txs by addr:TestProcGetTransactionByAddr-3333:0")
-	txs, _ = blockchain.ProcGetTransactionByAddr(fromaddr)
+	txs, _ = blockchain.ProcGetTransactionByAddr(&types.ReqAddr{Addr: fromaddr})
 	if txs != nil {
 		for _, txresult := range txs.TxInfos {
 			if txresult != nil {
@@ -583,7 +583,8 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 		}
 	}
 	chainlog.Info(" get txs by addr:TestProcGetTransactionByAddr-3333:1")
-	txs, _ = blockchain.ProcGetTransactionByAddr("TestProcGetTransactionByAddr-3333:1")
+	addrr = "TestProcGetTransactionByAddr-3333:1"
+	txs, _ = blockchain.ProcGetTransactionByAddr(&types.ReqAddr{Addr: addrr})
 	if txs != nil {
 		for _, txresult := range txs.TxInfos {
 			if txresult != nil {
