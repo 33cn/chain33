@@ -66,17 +66,18 @@ type raftNode struct {
 	httpstopc        chan struct{}
 	httpdonec        chan struct{}
 	//备用的leaderC用于watch leader节点的变更，暂时没用
-	leaderC    chan int
+	//leaderC    chan int
 	validatorC chan bool
 }
 
-func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
+func NewRaftNode(id int, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
 	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan bool) {
 
 	log.Info("Enter consensus raft")
 	// commit channel
 	commitC := make(chan *types.Block)
 	errorC := make(chan error)
+	storage := raft.NewMemoryStorage()
 	rc := &raftNode{
 		proposeC:    proposeC,
 		confChangeC: confChangeC,
@@ -91,6 +92,7 @@ func NewRaft(id int, peers []string, getSnapshot func() ([]byte, error), propose
 		stopc:       make(chan struct{}),
 		httpstopc:   make(chan struct{}),
 		httpdonec:   make(chan struct{}),
+		raftStorage: storage,
 		//leaderC: make(chan int),
 		validatorC:       make(chan bool),
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
@@ -128,7 +130,7 @@ func (rc *raftNode) startRaft() {
 		MaxInflightMsgs: 256,
 		//设置成预投票，当节点重连时，可以快速地重新加入集群
 		//PreVote: true,
-		CheckQuorum: true,
+		CheckQuorum: false,
 	}
 
 	if oldwal {
@@ -145,7 +147,7 @@ func (rc *raftNode) startRaft() {
 		ID:          typec.ID(rc.id),
 		ClusterID:   0x1000,
 		Raft:        rc,
-		ServerStats: stats.NewServerStats("", strconv.Itoa(rc.id)),
+		ServerStats: stats.NewServerStats("", ""),
 		LeaderStats: stats.NewLeaderStats(strconv.Itoa(rc.id)),
 		ErrorC:      make(chan error),
 	}
@@ -209,6 +211,7 @@ func (rc *raftNode) serveChannels() {
 				if !ok {
 					rc.proposeC = nil
 				} else {
+					//fmt.Println(prop.String())
 					out, err := proto.Marshal(prop)
 					if err != nil {
 						log.Error("failed to marshal block: ", err)
@@ -234,7 +237,6 @@ func (rc *raftNode) serveChannels() {
 		select {
 		case <-ticker.C:
 			rc.node.Tick()
-
 		case rd := <-rc.node.Ready():
 			rc.wal.Save(rd.HardState, rd.Entries)
 			if !raft.IsEmptySnap(rd.Snapshot) {
@@ -250,7 +252,6 @@ func (rc *raftNode) serveChannels() {
 			}
 			rc.maybeTriggerSnapshot()
 			rc.node.Advance()
-
 		case err := <-rc.transport.ErrorC:
 			rc.writeError(err)
 			return
@@ -268,13 +269,11 @@ func (rc *raftNode) updateValidator() {
 		//if leadId != raft.None {
 		//	//rc.leaderC <- int(leadId)
 		//}
-		log.Info("chain33_raft==========leaderId===========:" + strconv.FormatUint(leadId, 10))
+		//log.Info("chain33_raft==========leaderId===========:" + strconv.FormatUint(leadId, 10))
 		if rc.id == int(leadId) {
-			log.Info("=====chain-33-raft has elected cluster leader====.")
-			log.Info("chain33_raft======4444444444444444444====leaderId===========:" + strconv.FormatUint(leadId, 10))
 			rc.validatorC <- true
 		} else {
-			rc.validatorC <- false
+			//rc.validatorC <- false
 		}
 		time.Sleep(time.Second)
 	}
@@ -406,6 +405,7 @@ func (rc *raftNode) stop() {
 	rc.stopHTTP()
 	close(rc.commitC)
 	close(rc.errorC)
+	close(rc.validatorC)
 	rc.node.Stop()
 }
 
@@ -420,6 +420,7 @@ func (rc *raftNode) writeError(err error) {
 	close(rc.commitC)
 	rc.errorC <- err
 	close(rc.errorC)
+	//close(rc.validatorC)
 	rc.node.Stop()
 }
 
@@ -477,6 +478,7 @@ func (rc *raftNode) entriesToApply(ents []raftpb.Entry) (nents []raftpb.Entry) {
 	if len(ents) == 0 {
 		return
 	}
+	fmt.Println(len(ents))
 	firstIdx := ents[0].Index
 	if firstIdx > rc.appliedIndex+1 {
 		log.Error("first index of committed entry[%d] should <= progress.appliedIndex[%d] 1", firstIdx, rc.appliedIndex)
