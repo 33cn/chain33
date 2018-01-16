@@ -17,6 +17,7 @@ FOR_LOOP:
 			for _, peer := range peers {
 				if peer.mconn == nil {
 					n.addrBook.RemoveAddr(peer.Addr())
+					n.addrBook.Save()
 					n.Remove(peer.Addr())
 					continue
 				}
