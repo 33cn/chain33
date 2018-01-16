@@ -129,8 +129,8 @@ func (rc *raftNode) startRaft() {
 		MaxSizePerMsg:   1024 * 1024,
 		MaxInflightMsgs: 256,
 		//设置成预投票，当节点重连时，可以快速地重新加入集群
-		//PreVote: true,
-		CheckQuorum: false,
+		PreVote: true,
+		CheckQuorum: true,
 	}
 
 	if oldwal {
