@@ -222,6 +222,15 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 	log.Info("GetPeerInfo", "info", m.PeerInfos())
+	//临时添加自身peerInfo
+	tempServer := NewP2pServer()
+	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+	if err == nil {
+		var peers = m.PeerInfos()
+		peers = append(peers, (*pb.Peer)(peerinfo))
+		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
+		return
+	}
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.PeerInfos()}))
 	return
 }
@@ -445,6 +454,14 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	m.broadcastByStream(&pb.P2PBlock{Block: block})
 
 	for _, peer := range peers {
+		//比较peer 的高度是否低于广播的高度，如果高于，则不广播给对方
+		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+		if err != nil {
+			continue
+		}
+		if peerinfo.GetHeader().GetHeight() > block.GetHeight() {
+			continue
+		}
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
 		m.CollectPeerStat(err, peer)
 		if err != nil {
