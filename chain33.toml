@@ -13,7 +13,7 @@ driver="leveldb"
 dbPath="datadir"
 
 [p2p]
-seeds=["ec2-54-222-210-199.cn-north-1.compute.amazonaws.com.cn:13802"]
+seeds=["54.222.210.199:13802"]
 enable=true
 isSeed=false
 dbPath="datadir/addrbook"
