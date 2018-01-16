@@ -85,7 +85,6 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 		return nil, err
 	}
 
-	//action.fromaddr should equal to hlock.ReturnAddress
 	h := NewHashlock(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
 	//冻结子账户资金
 	receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, hlock.Amount)
@@ -115,14 +114,15 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 		return nil, err
 	}
 
+	if hash.ReturnAddress != action.fromaddr {
+		return nil, types.ErrHashlockReturnAddrss
+	}
+
 	if hash.Status != Hashlock_Locked {
 		return nil, types.ErrHashlockStatus
 	}
 
-	//not necessary as the hash is found out by hash
-	if !checksecret(unlock.Secret, hash.HashlockId) {
-		return nil, types.ErrHashlockHash
-	} else if action.blocktime-hash.GetCreateTime() > hash.Frozentime {
+	if action.blocktime-hash.GetCreateTime() < hash.Frozentime {
 		return nil, types.ErrTime
 	}
 
@@ -155,9 +155,7 @@ func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Rec
 		return nil, types.ErrHashlockStatus
 	}
 
-	if !checksecret(send.Secret, hash.HashlockId) {
-		return nil, types.ErrHashlockHash
-	} else if action.blocktime-hash.GetCreateTime() < hash.Frozentime {
+	if action.blocktime-hash.GetCreateTime() > hash.Frozentime {
 		return nil, types.ErrTime
 	}
 
