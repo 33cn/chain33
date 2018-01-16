@@ -224,6 +224,7 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 	log.Info("GetPeerInfo", "info", m.PeerInfos())
 	//临时添加自身peerInfo
 	tempServer := NewP2pServer()
+	tempServer.node = m.network.node
 	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 	if err == nil {
 		var peers = m.PeerInfos()
