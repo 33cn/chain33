@@ -95,7 +95,7 @@ func (client *RaftClient) InitBlock() {
 		// 把区块放在内存中
 		//TODO:这里要等确认后才能把当前的块设置为新块
 		client.SetCurrentBlock(newblock)
-		//client.writeBlock(zeroHash[:], newblock)
+		client.WriteBlock(zeroHash[:], newblock)
 	} else {
 		block, err := client.RequestBlock(height)
 		if err != nil {
