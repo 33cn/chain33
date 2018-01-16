@@ -34,6 +34,7 @@ type BaseClient struct {
 	currentBlock *types.Block
 	mulock       sync.Mutex
 	child        Miner
+	minerstartCB func()
 }
 
 func NewBaseClient(cfg *types.Consensus) *BaseClient {
@@ -51,24 +52,27 @@ func (client *BaseClient) SetChild(c Miner) {
 	client.child = c
 }
 
-func (client *BaseClient) SetQueue(q *queue.Queue) {
+func (client *BaseClient) InitClient(q *queue.Queue, minerstartCB func()) {
 	log.Info("Enter SetQueue method of consensus")
 	client.qclient = q.GetClient()
 	client.q = q
-	// TODO: solo模式下通过配置判断是否主节点，主节点打包区块，其余节点不用做
+	client.minerstartCB = minerstartCB
+}
 
-	// 程序初始化时，先从blockchain取区块链高度
-	if atomic.LoadInt32(&client.minerStart) == 1 {
-		client.once.Do(func() {
-			client.InitBlock()
-		})
-	}
+func (client *BaseClient) InitMiner() {
+	client.once.Do(client.minerstartCB)
+}
+
+func (client *BaseClient) SetQueue(q *queue.Queue) {
+	client.InitClient(q, func() {
+		client.InitBlock()
+	})
 	go client.EventLoop()
 	go client.child.CreateBlock()
 }
 
 func (client *BaseClient) InitBlock() {
-	height := client.getInitHeight()
+	height := client.GetInitHeight()
 	if height == -1 {
 		// 创世区块
 		newblock := &types.Block{}
@@ -143,9 +147,7 @@ func (client *BaseClient) EventLoop() {
 				if !atomic.CompareAndSwapInt32(&client.minerStart, 0, 1) {
 					msg.ReplyErr("EventMinerStart", types.ErrMinerIsStared)
 				} else {
-					client.once.Do(func() {
-						client.InitBlock()
-					})
+					client.InitMiner()
 					msg.ReplyErr("EventMinerStart", nil)
 				}
 			} else if msg.Ty == types.EventMinerStop {
@@ -164,10 +166,12 @@ func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if block.Block.Height == 0 { //genesis block not check
 		return nil
 	}
+	log.Warn("query parent beg")
 	parent, err := client.RequestBlock(block.Block.Height - 1)
 	if err != nil {
 		return err
 	}
+	log.Warn("query parent end")
 	//check base info
 	if parent.Height+1 != block.Block.Height {
 		return types.ErrBlockHeight
@@ -205,7 +209,7 @@ func (client *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 }
 
 // solo初始化时，取一次区块高度放在内存中，后面自增长，不用再重复去blockchain取
-func (client *BaseClient) getInitHeight() int64 {
+func (client *BaseClient) GetInitHeight() int64 {
 
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHeight, nil)
 
@@ -264,4 +268,12 @@ func (client *BaseClient) GetCurrentHeight() int64 {
 	start := client.currentBlock.Height
 	client.mulock.Unlock()
 	return start
+}
+
+func (client *BaseClient) Lock() {
+	client.mulock.Lock()
+}
+
+func (client *BaseClient) Unlock() {
+	client.mulock.Unlock()
 }

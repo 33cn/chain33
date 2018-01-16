@@ -10,6 +10,7 @@ import (
 
 type Task struct {
 	sync.Mutex
+	cond     *sync.Cond
 	start    int64
 	end      int64
 	isruning bool
@@ -23,33 +24,26 @@ func newTask(timeout time.Duration) *Task {
 	t := &Task{}
 	t.timeout = timeout
 	t.ticker = time.NewTimer(t.timeout)
+	t.cond = sync.NewCond(t)
 	go t.tick()
 	return t
 }
 
 func (t *Task) tick() {
 	for {
-		t.Lock()
-		isrun := t.isruning
-		t.Unlock()
-		if !isrun {
-			time.Sleep(time.Millisecond)
-			continue
+		t.cond.L.Lock()
+		for !t.isruning {
+			t.cond.Wait()
 		}
+		t.cond.L.Unlock()
 		_, ok := <-t.ticker.C
 		if !ok {
 			chainlog.Error("task is done", "timer is stop", t.start)
 			continue
 		}
 		t.Lock()
-		if !t.isruning {
-			t.Unlock()
-			continue
-		}
-		chainlog.Error("task is timeout", "task id timeout = ", t.start)
-		t.isruning = false
-		if t.cb != nil {
-			go t.cb()
+		if err := t.stop(); err == nil {
+			chainlog.Error("task is done", "timer is stop", t.start)
 		}
 		t.Unlock()
 	}
@@ -77,6 +71,7 @@ func (t *Task) Start(start, end int64, cb func()) error {
 	t.end = end
 	t.cb = cb
 	t.donelist = make(map[int64]struct{})
+	t.cond.Signal()
 	return nil
 }
 
@@ -93,6 +88,18 @@ func (t *Task) Done(height int64) {
 	}
 }
 
+func (t *Task) stop() error {
+	if !t.isruning {
+		return errors.New("not runing")
+	}
+	t.isruning = false
+	if t.cb != nil {
+		go t.cb()
+	}
+	t.ticker.Stop()
+	return nil
+}
+
 func (t *Task) done(height int64) {
 	if height == t.start {
 		t.start = t.start + 1
@@ -106,11 +113,8 @@ func (t *Task) done(height int64) {
 			//任务完成
 		}
 		if t.start > t.end {
-			t.isruning = false
-			if t.cb != nil {
-				go t.cb()
-			}
-			t.ticker.Stop()
+			chainlog.Error("----task is done----")
+			t.stop()
 		}
 	}
 	t.donelist[height] = struct{}{}
