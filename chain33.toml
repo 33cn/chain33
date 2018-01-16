@@ -1,6 +1,5 @@
 
 Title="chain33"
-
 Loglevel="info"
 LogConsoleLevel="info"
 LogFile="chain33.log"
