@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"net/http"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/p2p/nat"
 	pb "code.aliyun.com/chain33/chain33/types"
+	"golang.org/x/net/trace"
 
 	"google.golang.org/grpc"
 )
@@ -108,6 +110,16 @@ func (l *DefaultListener) NatMapPort() {
 
 }
 
+// 开启trace
+func startTrace() {
+	grpc.EnableTracing = true
+	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
+		return true, true
+	}
+	go http.ListenAndServe(":50051", nil)
+	log.Error("Trace listen on 50051")
+}
+
 func (l *DefaultListener) listenRoutine() {
 
 	log.Debug("LISTENING", "Start Listening+++++++++++++++++Port", l.nodeInfo.listenAddr.Port)
@@ -115,8 +127,8 @@ func (l *DefaultListener) listenRoutine() {
 	pServer := NewP2pServer()
 	pServer.node = l.n
 	pServer.innerBroadBlock()
+	go startTrace()
 	l.server = grpc.NewServer()
-
 	pb.RegisterP2PgserviceServer(l.server, pServer)
 	l.server.Serve(l.listener)
 
