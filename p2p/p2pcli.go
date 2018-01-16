@@ -212,7 +212,7 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	r, err := peer.mconn.conn.Ping(context.Background(), in)
 	m.CollectPeerStat(err, peer)
 	if err != nil {
-		log.Debug("SEND PING", "Errxxxxxxxxxxxxxx", err.Error())
+		log.Error("SEND PING", "Errxxxxxxxxxxxxxx", err.Error())
 		return err
 	}
 
@@ -232,6 +232,7 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
 		return
 	}
+	log.Error("GetPeerInfo", "Err", err.Error())
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.PeerInfos()}))
 	return
 }
@@ -439,6 +440,7 @@ func (m *P2pCli) broadcastByStream(data interface{}) {
 	if tx, ok := data.(*pb.P2PTx); ok {
 		m.network.node.nodeInfo.p2pBroadcastChan <- tx
 	} else if block, ok := data.(*pb.P2PBlock); ok {
+		//log.Error("BroadcastByStream", "block height", block.GetBlock().GetHeight())
 		m.network.node.nodeInfo.p2pBroadcastChan <- block
 	}
 
