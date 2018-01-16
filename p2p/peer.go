@@ -119,50 +119,52 @@ func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 }
 
 func (p *peer) subStreamBlock() {
-BEGIN:
-	resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
-	if err != nil {
-		(*p.nodeInfo).monitorChan <- p //直接删除节点
-		return
-	}
+
 	for {
 		select {
 		case <-p.streamDone:
-			log.Debug("SubStreamBlock", "break", "peerdone")
-			resp.CloseSend()
+			log.Error("SubStreamBlock", "peerdone", p.Addr())
 			return
 
 		default:
 
-			data, err := resp.Recv()
+			resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
 			if err != nil {
-				resp.CloseSend()
-				log.Error("SubStreamBlock", "Recv Err", err.Error())
-				goto BEGIN
-
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				continue
 			}
-			log.Debug("SubStreamBlock", "recv blockorTxXXXXXXXXXXXXXXXXXXXXXXXXX", data)
+			log.Info("SubStreamBlock", "Start", p.Addr())
 
-			if block := data.GetBlock(); block != nil {
-				log.Debug("SubStreamBlock", "block", block.GetBlock())
-				if block.GetBlock() != nil {
-					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-					(*p.nodeInfo).qclient.Send(msg, true)
-					_, err = (*p.nodeInfo).qclient.Wait(msg)
-					if err != nil {
-						continue
+			for {
+				data, err := resp.Recv()
+				if err != nil {
+					resp.CloseSend()
+					log.Error("SubStreamBlock", "Recv Err", err.Error())
+					break
+				}
+
+				if block := data.GetBlock(); block != nil {
+					log.Error("SubStreamBlock", "block==+====================+==================+=>Height", block.GetBlock().GetHeight())
+					if block.GetBlock() != nil {
+						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+						(*p.nodeInfo).qclient.Send(msg, true)
+						_, err = (*p.nodeInfo).qclient.Wait(msg)
+						if err != nil {
+							continue
+						}
 					}
-				}
 
-			} else if tx := data.GetTx(); tx != nil {
-				log.Debug("SubStreamBlock", "tx", tx.GetTx())
-				if tx.GetTx() != nil {
-					msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
-					(*p.nodeInfo).qclient.Send(msg, false)
+				} else if tx := data.GetTx(); tx != nil {
+					log.Debug("SubStreamBlock", "tx", tx.GetTx())
+					if tx.GetTx() != nil {
+						msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
+						(*p.nodeInfo).qclient.Send(msg, false)
+					}
+
 				}
 
 			}
-
 		}
 	}
 
