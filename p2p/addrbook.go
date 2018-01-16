@@ -303,7 +303,7 @@ func (a *AddrBook) AddAddress(addr *NetAddress) {
 	}
 
 	if !addr.Routable() {
-		log.Error("Cannot add non-routable address %v", addr)
+		log.Error("XXXXXXXXXXXXXXXXXCannot add non-routable address ", "addr", addr)
 		return
 	}
 
@@ -345,9 +345,7 @@ func (a *AddrBook) GetAddrs() []string {
 	defer a.mtx.Unlock()
 	var addrlist []string
 	for _, peer := range a.addrPeer {
-		if peer.GetAttempts() == 0 && peer.LastSuccess == peer.LastAttempt {
-			addrlist = append(addrlist, peer.Addr.String())
-		}
+		addrlist = append(addrlist, peer.Addr.String())
 
 	}
 	return addrlist
