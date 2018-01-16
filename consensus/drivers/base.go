@@ -57,6 +57,7 @@ func (client *BaseClient) InitClient(q *queue.Queue, minerstartCB func()) {
 	client.qclient = q.GetClient()
 	client.q = q
 	client.minerstartCB = minerstartCB
+	client.InitMiner()
 }
 
 func (client *BaseClient) InitMiner() {
