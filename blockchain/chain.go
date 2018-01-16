@@ -517,7 +517,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	currentheight := chain.GetBlockHeight()
 	//不是我们需要的高度直接返回
 	if currentheight >= block.Height {
-		outstr := fmt.Sprintf("input add height :%d ,current store height:%d", block.Height, currentheight)
+		outstr := fmt.Sprintf("input add height :%d ,current store height:%d, isbroadcast:%v", block.Height, currentheight, broadcast)
 		err = errors.New(outstr)
 		return err
 	} else {
