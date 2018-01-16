@@ -67,7 +67,8 @@ func (client *RaftClient) recoverFromSnapshot(snapshot []byte) error {
 func (client *RaftClient) SetQueue(q *queue.Queue) {
 	log.Info("Enter SetQueue method of consensus")
 	client.InitClient(q, func() {
-		client.InitBlock()
+		//初始化应该是由leader节点执行
+		//client.InitBlock()
 	})
 	go client.readCommits(client.commitC, client.errorC)
 	go client.pollingTask(q)
@@ -214,6 +215,7 @@ func (client *RaftClient) pollingTask(q *queue.Queue) {
 			} else if !isValidator && value {
 				log.Info("==================start init block========================")
 				client.InitMiner()
+				client.InitBlock()
 				//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
 				// 老的leader中运行的打包程此刻应该被终止？
 				isValidator = true
