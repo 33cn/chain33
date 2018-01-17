@@ -131,7 +131,7 @@ func (c Comm) GetSelfExternalAddr(serveraddr string) []string {
 }
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
-	var ready = false
+	var ready = true
 	var defaultRespSize = 1024 * 1024 * 60
 	var defaultReqSize = 1024 * 1024 * 10
 	var defaulttimeout = 50 * time.Second
