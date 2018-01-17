@@ -129,6 +129,11 @@ func (n *Node) exChangeVersion() {
 		}
 	}
 	//如果 IsOutSide == true 节点在外网，则不启动nat
+	selefNet, err := NewNetAddressString(fmt.Sprintf("%v:%v", ExternalIp, n.GetExterPort()))
+	if err == nil {
+		n.addrBook.AddOurAddress(selefNet)
+	}
+
 	pcli := NewP2pCli(nil)
 	peers, _ := n.GetActivePeers()
 	for _, peer := range peers {
