@@ -351,7 +351,7 @@ func (n *Node) needMore() bool {
 func (n *Node) DetectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LocalAddr = P2pComm.GetLocalAddr()
-	log.Debug("detectionNodeAddr", "addr:", LocalAddr)
+	log.Debug("DetectionNodeAddr", "addr:", LocalAddr)
 
 	if cfg.GetIsSeed() {
 		ExternalIp = LocalAddr
@@ -368,7 +368,7 @@ func (n *Node) DetectionNodeAddr() {
 		selfexaddrs := pcli.GetExternIp(seed)
 		if len(selfexaddrs) != 0 {
 			ExternalIp = selfexaddrs[0]
-			log.Error("detectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp)
+			//log.Error("DetectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp)
 		}
 
 	}
@@ -388,5 +388,5 @@ SET_ADDR:
 	}
 	n.localAddr = fmt.Sprintf("%s:%v", LocalAddr, n.GetLocalPort())
 
-	log.Error("DetectionNodeAddr",  "ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
+	log.Error("DetectionNodeAddr", " Finish ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
 }
