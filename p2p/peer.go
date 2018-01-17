@@ -132,6 +132,7 @@ func (p *peer) subStreamBlock() {
 			if err != nil {
 				p.peerStat.NotOk()
 				(*p.nodeInfo).monitorChan <- p
+				time.Sleep(time.Second * 5)
 				continue
 			}
 			log.Info("SubStreamBlock", "Start", p.Addr())
