@@ -45,5 +45,6 @@ const (
 )
 
 var (
-	SERVICE int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
+	SERVICE   int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
+	IsOutSide bool
 )
