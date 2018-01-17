@@ -388,5 +388,5 @@ SET_ADDR:
 	}
 	n.localAddr = fmt.Sprintf("%s:%v", LocalAddr, n.GetLocalPort())
 
-	log.Error("DetectionNodeAddr", "Finish", "ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
+	log.Error("DetectionNodeAddr",  "ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
 }
