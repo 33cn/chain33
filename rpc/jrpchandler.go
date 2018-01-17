@@ -485,6 +485,7 @@ func (req Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
 			pr.MempoolSize = peer.GetMempoolSize()
 			pr.Name = peer.GetName()
 			pr.Port = peer.GetPort()
+			pr.Self = peer.GetSelf()
 			pr.Header = &Header{
 				BlockTime:  peer.Header.GetBlockTime(),
 				Height:     peer.Header.GetHeight(),
