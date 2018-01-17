@@ -345,7 +345,10 @@ func (a *AddrBook) GetAddrs() []string {
 	defer a.mtx.Unlock()
 	var addrlist []string
 	for _, peer := range a.addrPeer {
-		addrlist = append(addrlist, peer.Addr.String())
+
+		if peer.GetAttempts() == 0 {
+			addrlist = append(addrlist, peer.Addr.String())
+		}
 
 	}
 	return addrlist
