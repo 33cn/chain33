@@ -118,6 +118,7 @@ type Peer struct {
 	Port        int32   `json:"port"`
 	Name        string  `json:"name"`
 	MempoolSize int32   `json:"mempoolsize"`
+	Self        bool    `json:"self"`
 	Header      *Header `json:"header"`
 }
 
