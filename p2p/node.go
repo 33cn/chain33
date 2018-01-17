@@ -6,8 +6,6 @@ import (
 
 	"os"
 	"sync"
-
-	"strings"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/p2p/nat"
@@ -21,13 +19,11 @@ import (
 //3.如果配置了种子节点，则连接种子节点
 //4.启动监控远程节点
 func (n *Node) Start() {
-	n.detectionNodeAddr()
-
-	n.rListener = NewRemotePeerAddrServer()
+	n.DetectionNodeAddr()
 	n.l = NewDefaultListener(Protocol, n)
-
 	go n.monitor()
 	go n.exChangeVersion()
+
 	return
 }
 
@@ -39,7 +35,6 @@ func (n *Node) Close() {
 	log.Debug("stop", "versionDone", "close")
 	n.l.Close()
 	log.Debug("stop", "listen", "close")
-	n.rListener.Close()
 	log.Debug("stop", "remotelisten", "close")
 	n.addrBook.Close()
 	log.Debug("stop", "addrBook", "close")
@@ -58,7 +53,6 @@ type Node struct {
 	externalPort uint16 //nat map
 	outBound     map[string]*peer
 	l            Listener
-	rListener    RemoteListener
 	versionDone  chan struct{}
 	activeDone   chan struct{}
 	errPeerDone  chan struct{}
@@ -71,7 +65,7 @@ func (n *Node) setQueue(q *queue.Queue) {
 	n.nodeInfo.qclient = q.GetClient()
 }
 
-func newNode(cfg *types.P2P) (*Node, error) {
+func NewNode(cfg *types.P2P) (*Node, error) {
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	rand.Seed(time.Now().Unix())
 	node := &Node{
@@ -355,10 +349,11 @@ func (n *Node) needMore() bool {
 	return true
 }
 
-func (n *Node) detectionNodeAddr() {
+func (n *Node) DetectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LocalAddr = P2pComm.GetLocalAddr()
 	log.Debug("detectionNodeAddr", "addr:", LocalAddr)
+
 	if cfg.GetIsSeed() {
 		ExternalIp = LocalAddr
 
@@ -368,18 +363,13 @@ func (n *Node) detectionNodeAddr() {
 	if len(cfg.Seeds) == 0 {
 		goto SET_ADDR
 	}
+	for _, seed := range cfg.Seeds {
 
-	for _, addr := range cfg.Seeds {
-		if strings.Contains(addr, ":") == false {
-			continue
-		}
-		seedip := strings.Split(addr, ":")[0]
-
-		selfexaddrs := P2pComm.GetSelfExternalAddr(fmt.Sprintf("%v:%v", seedip, DefalutP2PRemotePort))
+		pcli := NewP2pCli(nil)
+		selfexaddrs := pcli.GetExternIp(seed)
 		if len(selfexaddrs) != 0 {
 			ExternalIp = selfexaddrs[0]
-			log.Debug("detectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp)
-			continue
+			log.Error("detectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp)
 		}
 
 	}

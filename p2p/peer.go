@@ -123,7 +123,7 @@ func (p *peer) subStreamBlock() {
 	for {
 		select {
 		case <-p.streamDone:
-			log.Error("SubStreamBlock", "peerdone", p.Addr())
+			//log.Error("SubStreamBlock", "peerdone", p.Addr())
 			return
 
 		default:

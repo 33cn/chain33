@@ -127,7 +127,7 @@ func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig) (*grpc.ClientConn, err
 	ch <- cfg
 	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch))
 	if err != nil {
-		log.Error("grpc DialCon", ">>>>>>>>>>did not connect", err)
+		log.Error("grpc DialCon", "did not connect", err)
 		return nil, err
 	}
 	return conn, nil
