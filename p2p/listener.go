@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/p2p/nat"
@@ -12,10 +13,11 @@ import (
 	"golang.org/x/net/trace"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 )
 
 func (l *DefaultListener) Start() {
-	log.Debug("defaultlistener", "localport:", l.nodeInfo.GetListenAddr().Port)
+	//log.Debug("defaultlistener", "localport:", l.nodeInfo.GetListenAddr().Port)
 	go l.NatMapPort()
 	go l.listenRoutine()
 	return
@@ -129,6 +131,16 @@ func (l *DefaultListener) listenRoutine() {
 	pServer.innerBroadBlock()
 	go startTrace()
 	l.server = grpc.NewServer()
+	var comm Comm
+	f, err := comm.CreateFile(l.nodeInfo.cfg.GetGrpcLogFile())
+	if err != nil {
+		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
+		grpclog.SetLoggerV2(glogv2)
+	} else {
+		glogv2 := grpclog.NewLoggerV2(f, f, f)
+		grpclog.SetLoggerV2(glogv2)
+	}
+
 	pb.RegisterP2PgserviceServer(l.server, pServer)
 	l.server.Serve(l.listener)
 
