@@ -221,7 +221,7 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 }
 
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
-	log.Info("GetPeerInfo", "info", m.PeerInfos())
+	//log.Info("GetPeerInfo", "info", m.PeerInfos())
 	//临时添加自身peerInfo
 	tempServer := NewP2pServer()
 	tempServer.node = m.network.node
@@ -397,7 +397,9 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
 	peers := m.network.node.GetRegisterPeers()
 	for _, peer := range peers {
-
+		if peer.Addr() == fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort()) {
+			continue
+		}
 		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
 		m.CollectPeerStat(err, peer)
 		if err != nil {
@@ -555,6 +557,11 @@ func (m *P2pCli) PeerInfos() []*pb.Peer {
 	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*pb.Peer
 	for _, peer := range peerinfos {
+
+		if peer.GetAddr() == ExternalIp && peer.GetPort() == int32(m.network.node.GetExterPort()) {
+			//	m.network.node.nodeInfo.monitorChan<-peer
+			continue
+		}
 		peers = append(peers, peer)
 	}
 	return peers
