@@ -41,7 +41,7 @@ func NewP2pServer() *p2pServer {
 }
 
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	log.Debug("p2pServer PING", "RECV PING", *in)
+	log.Debug("p2pServer PING", "RECV PING", "PING")
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		log.Debug("PING addr", "Addr", getctx.Addr.String())
@@ -327,6 +327,7 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
+			//log.Error("RouteChat", "Stream send Block", block.GetBlock().GetHeight())
 			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 		} else if tx, ok := data.(*pb.P2PTx); ok {
 			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
