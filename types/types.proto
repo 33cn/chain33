@@ -422,8 +422,9 @@ message Peer {
 	string addr = 1;
 	int32  port = 2;
 	string name = 3;
-	int32  mempoolSize = 4;
-	Header header = 5;
+	bool self = 4;
+	int32  mempoolSize = 5;
+	Header header = 6;
 }
 
 message PeerList {

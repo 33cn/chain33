@@ -221,14 +221,23 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 }
 
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
-	log.Info("GetPeerInfo", "info", m.PeerInfos())
+	//log.Info("GetPeerInfo", "info", m.PeerInfos())
 	//临时添加自身peerInfo
 	tempServer := NewP2pServer()
 	tempServer.node = m.network.node
 	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 	if err == nil {
+
 		var peers = m.PeerInfos()
-		peers = append(peers, (*pb.Peer)(peerinfo))
+
+		var peer pb.Peer
+		peer.Addr = peerinfo.GetAddr()
+		peer.Port = peerinfo.GetPort()
+		peer.Name = peerinfo.GetName()
+		peer.MempoolSize = peerinfo.GetMempoolSize()
+		peer.Self = true
+		peer.Header = peerinfo.GetHeader()
+		peers = append(peers, &peer)
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
 		return
 	}
@@ -257,7 +266,15 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 			log.Error("GetPeers", "Err", err.Error())
 			continue
 		}
-		m.network.node.nodeInfo.peerInfos.SetPeerInfo((*pb.Peer)(peerinfo))
+
+		var pr pb.Peer
+		pr.Addr = peerinfo.GetAddr()
+		pr.Port = peerinfo.GetPort()
+		pr.Name = peerinfo.GetName()
+		pr.MempoolSize = peerinfo.GetMempoolSize()
+		pr.Header = peerinfo.GetHeader()
+
+		m.network.node.nodeInfo.peerInfos.SetPeerInfo(&pr)
 		if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
 			continue
 		}
@@ -380,13 +397,21 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
 	peers := m.network.node.GetRegisterPeers()
 	for _, peer := range peers {
-
+		if peer.Addr() == fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort()) {
+			continue
+		}
 		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
 		m.CollectPeerStat(err, peer)
 		if err != nil {
 			continue
 		}
-		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = (*pb.Peer)(peerinfo)
+		var pr pb.Peer
+		pr.Addr = peerinfo.GetAddr()
+		pr.Port = peerinfo.GetPort()
+		pr.Name = peerinfo.GetName()
+		pr.MempoolSize = peerinfo.GetMempoolSize()
+		pr.Header = peerinfo.GetHeader()
+		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = &pr
 	}
 	return peerlist
 }
@@ -532,6 +557,11 @@ func (m *P2pCli) PeerInfos() []*pb.Peer {
 	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*pb.Peer
 	for _, peer := range peerinfos {
+
+		if peer.GetAddr() == ExternalIp && peer.GetPort() == int32(m.network.node.GetExterPort()) {
+			//	m.network.node.nodeInfo.monitorChan<-peer
+			continue
+		}
 		peers = append(peers, peer)
 	}
 	return peers
