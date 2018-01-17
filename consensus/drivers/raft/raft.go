@@ -123,14 +123,14 @@ func (rc *raftNode) startRaft() {
 	}
 	c := &raft.Config{
 		ID:              uint64(rc.id),
-		ElectionTick:    4,
+		ElectionTick:    10,
 		HeartbeatTick:   1,
 		Storage:         rc.raftStorage,
 		MaxSizePerMsg:   1024 * 1024,
 		MaxInflightMsgs: 256,
 		//设置成预投票，当节点重连时，可以快速地重新加入集群
-		PreVote: true,
-		CheckQuorum: true,
+		PreVote:     false,
+		CheckQuorum: false,
 	}
 
 	if oldwal {
