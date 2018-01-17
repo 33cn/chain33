@@ -70,6 +70,10 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 	m.deletePeer(peer)
 }
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("BroadCastTx", "Release Task", "ok")
+	}()
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
@@ -77,15 +81,15 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 
 	m.broadcastByStream(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 	peers, _ := m.network.node.GetActivePeers()
+	//TODO channel
+	for _, pr := range peers { //限制对peer 的高频次调用
+		go func(pr *peer) {
+			pr.AllockTask()
+			defer pr.ReleaseTask()
+			_, err := pr.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
+			m.CollectPeerStat(err, pr)
 
-	for _, peer := range peers {
-		_, err := peer.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
-		m.CollectPeerStat(err, peer)
-		if err != nil {
-
-			continue
-		}
-
+		}(pr)
 	}
 
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
@@ -93,7 +97,10 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 }
 
 func (m *P2pCli) GetMemPool(msg queue.Message) {
-
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("GetMemPool", "Release Task", "ok")
+	}()
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
 	peers, _ := m.network.node.GetActivePeers()
@@ -221,8 +228,12 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 }
 
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("GetPeerInfo", "Release Task", "ok")
+	}()
 	//log.Info("GetPeerInfo", "info", m.PeerInfos())
-	//临时添加自身peerInfo
+	//添加自身peerInfo
 	tempServer := NewP2pServer()
 	tempServer.node = m.network.node
 	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
@@ -247,7 +258,10 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 }
 
 func (m *P2pCli) GetBlocks(msg queue.Message) {
-
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("GetBlocks", "Release Task", "ok")
+	}()
 	if m.network.node.Size() == 0 {
 		log.Debug("GetBlocks", "boundNum", 0)
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no peers")}))
@@ -258,7 +272,8 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	req := msg.GetData().(*pb.ReqBlocks)
 	var MaxInvs = new(pb.P2PInv)
 	peers, pinfos := m.network.node.GetActivePeers()
-	for _, peer := range peers {
+	for _, peer := range peers { //限制对peer 的高频次调用
+
 		log.Error("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
 		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
 		m.CollectPeerStat(err, peer)
@@ -292,6 +307,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 				break
 			}
 		}
+
 	}
 	log.Info("Invs", "Invs show", MaxInvs.GetInvs())
 	if len(MaxInvs.GetInvs()) == 0 {
@@ -471,6 +487,10 @@ func (m *P2pCli) broadcastByStream(data interface{}) {
 
 }
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("BlockBroadcast", "Release Task", "ok")
+	}()
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
