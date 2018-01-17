@@ -212,7 +212,7 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	r, err := peer.mconn.conn.Ping(context.Background(), in)
 	m.CollectPeerStat(err, peer)
 	if err != nil {
-		log.Error("SEND PING", "Err", err.Error(), "peer", peer.Addr())
+		log.Warn("SEND PING", "Err", err.Error(), "peer", peer.Addr())
 		return err
 	}
 
