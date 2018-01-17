@@ -16,6 +16,8 @@
  *
  */
 
+//go:generate protoc --go_out=plugins=grpc:. grpc_reflection_v1alpha/reflection.proto
+
 /*
 Package reflection implements server reflection service.
 
@@ -50,6 +52,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	rpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"google.golang.org/grpc/status"
 )
 
 type serverReflectionServer struct {
@@ -212,6 +215,24 @@ func (s *serverReflectionServer) serviceMetadataForSymbol(name string) (interfac
 	return nil, fmt.Errorf("unknown symbol: %v", name)
 }
 
+// parseMetadata finds the file descriptor bytes specified meta.
+// For SupportPackageIsVersion4, m is the name of the proto file, we
+// call proto.FileDescriptor to get the byte slice.
+// For SupportPackageIsVersion3, m is a byte slice itself.
+func parseMetadata(meta interface{}) ([]byte, bool) {
+	// Check if meta is the file name.
+	if fileNameForMeta, ok := meta.(string); ok {
+		return proto.FileDescriptor(fileNameForMeta), true
+	}
+
+	// Check if meta is the byte slice.
+	if enc, ok := meta.([]byte); ok {
+		return enc, true
+	}
+
+	return nil, false
+}
+
 // fileDescEncodingContainingSymbol finds the file descriptor containing the given symbol,
 // does marshalling on it and returns the marshalled result.
 // The given symbol can be a type, a service or a method.
@@ -234,12 +255,11 @@ func (s *serverReflectionServer) fileDescEncodingContainingSymbol(name string) (
 		}
 
 		// Metadata not valid.
-		fileNameForMeta, ok := meta.(string)
+		enc, ok := parseMetadata(meta)
 		if !ok {
 			return nil, fmt.Errorf("invalid file descriptor for symbol: %v", name)
 		}
 
-		enc := proto.FileDescriptor(fileNameForMeta)
 		fd, err = s.decodeFileDesc(enc)
 		if err != nil {
 			return nil, err
@@ -369,7 +389,7 @@ func (s *serverReflectionServer) ServerReflectionInfo(stream rpb.ServerReflectio
 				},
 			}
 		default:
-			return grpc.Errorf(codes.InvalidArgument, "invalid MessageRequest: %v", in.MessageRequest)
+			return status.Errorf(codes.InvalidArgument, "invalid MessageRequest: %v", in.MessageRequest)
 		}
 
 		if err := stream.Send(out); err != nil {

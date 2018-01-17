@@ -17,10 +17,17 @@ seeds=["54.222.210.199:13802"]
 enable=true
 isSeed=false
 dbPath="datadir/addrbook"
+<<<<<<< HEAD
 
 version=5
 verMix=5
 verMax=6
+=======
+grpcLogFile="grpc33.log"
+version=11
+verMix=11
+verMax=12
+>>>>>>> origin/develop
 
 [mempool]
 poolCacheSize=10240

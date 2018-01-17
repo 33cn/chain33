@@ -17,8 +17,8 @@ import (
 // for msg := range client.Recv() {
 //     process(msg)
 // }
-
 // process 函数会调用 处理具体的消息逻辑
+
 var gId int64
 
 type IClient interface {
