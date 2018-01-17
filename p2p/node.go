@@ -6,8 +6,6 @@ import (
 
 	"os"
 	"sync"
-
-	"strings"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/p2p/nat"
@@ -21,13 +19,11 @@ import (
 //3.如果配置了种子节点，则连接种子节点
 //4.启动监控远程节点
 func (n *Node) Start() {
-	n.detectionNodeAddr()
-
-	n.rListener = NewRemotePeerAddrServer()
+	n.DetectionNodeAddr()
 	n.l = NewDefaultListener(Protocol, n)
-
 	go n.monitor()
 	go n.exChangeVersion()
+
 	return
 }
 
@@ -39,7 +35,6 @@ func (n *Node) Close() {
 	log.Debug("stop", "versionDone", "close")
 	n.l.Close()
 	log.Debug("stop", "listen", "close")
-	n.rListener.Close()
 	log.Debug("stop", "remotelisten", "close")
 	n.addrBook.Close()
 	log.Debug("stop", "addrBook", "close")
@@ -58,7 +53,6 @@ type Node struct {
 	externalPort uint16 //nat map
 	outBound     map[string]*peer
 	l            Listener
-	rListener    RemoteListener
 	versionDone  chan struct{}
 	activeDone   chan struct{}
 	errPeerDone  chan struct{}
@@ -71,7 +65,7 @@ func (n *Node) setQueue(q *queue.Queue) {
 	n.nodeInfo.qclient = q.GetClient()
 }
 
-func newNode(cfg *types.P2P) (*Node, error) {
+func NewNode(cfg *types.P2P) (*Node, error) {
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	rand.Seed(time.Now().Unix())
 	node := &Node{
@@ -157,6 +151,7 @@ FOR_LOOP:
 }
 func (n *Node) GetServiceTy() int64 {
 	//确认自己的服务范围1，2，4
+	log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 	if n.nodeInfo.cfg.GetIsSeed() == true {
 		return SERVICE
 	}
@@ -168,14 +163,13 @@ func (n *Node) GetServiceTy() int64 {
 				SERVICE -= NODE_NETWORK
 				return SERVICE
 			}
-			log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
+
 			return SERVICE
 		} else {
 			//如果ExternalAddr 与LocalAddr 相同，则认为在外网中
 			if ExternalIp == LocalAddr {
 				n.externalPort = DefaultPort //外网使用默认端口
 				IsOutSide = true
-				log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 				return SERVICE
 			}
 
@@ -184,7 +178,6 @@ func (n *Node) GetServiceTy() int64 {
 	//如果无法通过nat获取外网，并且externalAddr!=localAddr
 	SERVICE -= NODE_NETWORK
 	IsOutSide = true
-	log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 	return SERVICE
 
 }
@@ -355,10 +348,11 @@ func (n *Node) needMore() bool {
 	return true
 }
 
-func (n *Node) detectionNodeAddr() {
+func (n *Node) DetectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LocalAddr = P2pComm.GetLocalAddr()
-	log.Debug("detectionNodeAddr", "addr:", LocalAddr)
+	log.Debug("DetectionNodeAddr", "addr:", LocalAddr)
+
 	if cfg.GetIsSeed() {
 		ExternalIp = LocalAddr
 
@@ -368,18 +362,13 @@ func (n *Node) detectionNodeAddr() {
 	if len(cfg.Seeds) == 0 {
 		goto SET_ADDR
 	}
+	for _, seed := range cfg.Seeds {
 
-	for _, addr := range cfg.Seeds {
-		if strings.Contains(addr, ":") == false {
-			continue
-		}
-		seedip := strings.Split(addr, ":")[0]
-
-		selfexaddrs := P2pComm.GetSelfExternalAddr(fmt.Sprintf("%v:%v", seedip, DefalutP2PRemotePort))
+		pcli := NewP2pCli(nil)
+		selfexaddrs := pcli.GetExternIp(seed)
 		if len(selfexaddrs) != 0 {
 			ExternalIp = selfexaddrs[0]
-			log.Debug("detectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp)
-			continue
+			//log.Error("DetectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp)
 		}
 
 	}
@@ -398,4 +387,6 @@ SET_ADDR:
 		n.nodeInfo.SetListenAddr(listaddr)
 	}
 	n.localAddr = fmt.Sprintf("%s:%v", LocalAddr, n.GetLocalPort())
+
+	log.Error("DetectionNodeAddr", " Finish ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
 }

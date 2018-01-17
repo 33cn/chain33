@@ -347,6 +347,16 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 
 }
 
+func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
+	var addrlist = make([]string, 0)
+	getctx, ok := pr.FromContext(ctx)
+	if ok {
+		remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
+		addrlist = append(addrlist, remoteaddr)
+	}
+	return &pb.P2PAddr{Addrlist: addrlist}, nil
+}
+
 func (s *p2pServer) checkVersion(version int32) bool {
 	if version < s.node.nodeInfo.cfg.GetVerMix() || version > s.node.nodeInfo.cfg.GetVerMax() {
 		//版本不支持

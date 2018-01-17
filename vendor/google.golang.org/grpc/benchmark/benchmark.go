@@ -16,6 +16,8 @@
  *
  */
 
+//go:generate protoc -I grpc_testing --go_out=plugins=grpc:grpc_testing grpc_testing/control.proto grpc_testing/messages.proto grpc_testing/payloads.proto grpc_testing/services.proto grpc_testing/stats.proto
+
 /*
 Package benchmark implements the building blocks to setup end-to-end gRPC benchmarks.
 */
@@ -25,12 +27,28 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
+	"testing"
+	"time"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	testpb "google.golang.org/grpc/benchmark/grpc_testing"
+	"google.golang.org/grpc/benchmark/latency"
+	"google.golang.org/grpc/benchmark/stats"
 	"google.golang.org/grpc/grpclog"
 )
+
+// AddOne add 1 to the features slice
+func AddOne(features []int, featuresMaxPosition []int) {
+	for i := len(features) - 1; i >= 0; i-- {
+		features[i] = (features[i] + 1)
+		if features[i]/featuresMaxPosition[i] == 0 {
+			break
+		}
+		features[i] = features[i] % featuresMaxPosition[i]
+	}
+}
 
 // Allows reuse of the same testpb.Payload object.
 func setPayload(p *testpb.Payload, t testpb.PayloadType, size int) {
@@ -129,6 +147,9 @@ type ServerInfo struct {
 	// For "protobuf", it's ignored.
 	// For "bytebuf", it should be an int representing response size.
 	Metadata interface{}
+
+	// Network can simulate latency
+	Network *latency.Network
 }
 
 // StartServer starts a gRPC server serving a benchmark service according to info.
@@ -138,6 +159,12 @@ func StartServer(info ServerInfo, opts ...grpc.ServerOption) (string, func()) {
 	if err != nil {
 		grpclog.Fatalf("Failed to listen: %v", err)
 	}
+	nw := info.Network
+	if nw != nil {
+		lis = nw.Listener(lis)
+	}
+	opts = append(opts, grpc.WriteBufferSize(128*1024))
+	opts = append(opts, grpc.ReadBufferSize(128*1024))
 	s := grpc.NewServer(opts...)
 	switch info.Type {
 	case "protobuf":
@@ -211,9 +238,127 @@ func DoByteBufStreamingRoundTrip(stream testpb.BenchmarkService_StreamingCallCli
 
 // NewClientConn creates a gRPC client connection to addr.
 func NewClientConn(addr string, opts ...grpc.DialOption) *grpc.ClientConn {
+	opts = append(opts, grpc.WithWriteBufferSize(128*1024))
+	opts = append(opts, grpc.WithReadBufferSize(128*1024))
 	conn, err := grpc.Dial(addr, opts...)
 	if err != nil {
 		grpclog.Fatalf("NewClientConn(%q) failed to create a ClientConn %v", addr, err)
 	}
 	return conn
+}
+
+func runUnary(b *testing.B, benchFeatures stats.Features) {
+	s := stats.AddStats(b, 38)
+	nw := &latency.Network{Kbps: benchFeatures.Kbps, Latency: benchFeatures.Latency, MTU: benchFeatures.Mtu}
+	target, stopper := StartServer(ServerInfo{Addr: "localhost:0", Type: "protobuf", Network: nw}, grpc.MaxConcurrentStreams(uint32(benchFeatures.MaxConcurrentCalls+1)))
+	defer stopper()
+	conn := NewClientConn(
+		target, grpc.WithInsecure(),
+		grpc.WithDialer(func(address string, timeout time.Duration) (net.Conn, error) {
+			return nw.TimeoutDialer(net.DialTimeout)("tcp", address, timeout)
+		}),
+	)
+	tc := testpb.NewBenchmarkServiceClient(conn)
+
+	// Warm up connection.
+	for i := 0; i < 10; i++ {
+		unaryCaller(tc, benchFeatures.ReqSizeBytes, benchFeatures.RespSizeBytes)
+	}
+	ch := make(chan int, benchFeatures.MaxConcurrentCalls*4)
+	var (
+		mu sync.Mutex
+		wg sync.WaitGroup
+	)
+	wg.Add(benchFeatures.MaxConcurrentCalls)
+
+	// Distribute the b.N calls over maxConcurrentCalls workers.
+	for i := 0; i < benchFeatures.MaxConcurrentCalls; i++ {
+		go func() {
+			for range ch {
+				start := time.Now()
+				unaryCaller(tc, benchFeatures.ReqSizeBytes, benchFeatures.RespSizeBytes)
+				elapse := time.Since(start)
+				mu.Lock()
+				s.Add(elapse)
+				mu.Unlock()
+			}
+			wg.Done()
+		}()
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ch <- i
+	}
+	close(ch)
+	wg.Wait()
+	b.StopTimer()
+	conn.Close()
+}
+
+func runStream(b *testing.B, benchFeatures stats.Features) {
+	s := stats.AddStats(b, 38)
+	nw := &latency.Network{Kbps: benchFeatures.Kbps, Latency: benchFeatures.Latency, MTU: benchFeatures.Mtu}
+	target, stopper := StartServer(ServerInfo{Addr: "localhost:0", Type: "protobuf", Network: nw}, grpc.MaxConcurrentStreams(uint32(benchFeatures.MaxConcurrentCalls+1)))
+	defer stopper()
+	conn := NewClientConn(
+		target, grpc.WithInsecure(),
+		grpc.WithDialer(func(address string, timeout time.Duration) (net.Conn, error) {
+			return nw.TimeoutDialer(net.DialTimeout)("tcp", address, timeout)
+		}),
+	)
+	tc := testpb.NewBenchmarkServiceClient(conn)
+
+	// Warm up connection.
+	stream, err := tc.StreamingCall(context.Background())
+	if err != nil {
+		b.Fatalf("%v.StreamingCall(_) = _, %v", tc, err)
+	}
+	for i := 0; i < 10; i++ {
+		streamCaller(stream, benchFeatures.ReqSizeBytes, benchFeatures.RespSizeBytes)
+	}
+
+	ch := make(chan struct{}, benchFeatures.MaxConcurrentCalls*4)
+	var (
+		mu sync.Mutex
+		wg sync.WaitGroup
+	)
+	wg.Add(benchFeatures.MaxConcurrentCalls)
+
+	// Distribute the b.N calls over maxConcurrentCalls workers.
+	for i := 0; i < benchFeatures.MaxConcurrentCalls; i++ {
+		stream, err := tc.StreamingCall(context.Background())
+		if err != nil {
+			b.Fatalf("%v.StreamingCall(_) = _, %v", tc, err)
+		}
+		go func() {
+			for range ch {
+				start := time.Now()
+				streamCaller(stream, benchFeatures.ReqSizeBytes, benchFeatures.RespSizeBytes)
+				elapse := time.Since(start)
+				mu.Lock()
+				s.Add(elapse)
+				mu.Unlock()
+			}
+			wg.Done()
+		}()
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ch <- struct{}{}
+	}
+	close(ch)
+	wg.Wait()
+	b.StopTimer()
+	conn.Close()
+}
+func unaryCaller(client testpb.BenchmarkServiceClient, reqSize, respSize int) {
+	if err := DoUnaryCall(client, reqSize, respSize); err != nil {
+		grpclog.Fatalf("DoUnaryCall failed: %v", err)
+	}
+}
+
+func streamCaller(stream testpb.BenchmarkService_StreamingCallClient, reqSize, respSize int) {
+	if err := DoStreamingRoundTrip(stream, reqSize, respSize); err != nil {
+		grpclog.Fatalf("DoStreamingRoundTrip failed: %v", err)
+	}
 }

@@ -12,9 +12,9 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/queue"
-
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 type P2pCli struct {
@@ -212,7 +212,7 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	r, err := peer.mconn.conn.Ping(context.Background(), in)
 	m.CollectPeerStat(err, peer)
 	if err != nil {
-		log.Error("SEND PING", "Errxxxxxxxxxxxxxx", err.Error())
+		log.Warn("SEND PING", "Err", err.Error(), "peer", peer.Addr())
 		return err
 	}
 
@@ -501,8 +501,24 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 }
 
-func (m *P2pCli) GetTaskInfo(msg queue.Message) {
-	//TODO  查询任务状态
+func (m *P2pCli) GetExternIp(addr string) []string {
+	var addrlist []string
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+	if err != nil {
+		log.Error("grpc DialCon", "did not connect: %v", err)
+		return addrlist
+	}
+	defer conn.Close()
+	gconn := pb.NewP2PgserviceClient(conn)
+	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12})
+	if err != nil {
+		return addrlist
+	}
+
+	return resp.Addrlist
+
 }
 func (m *P2pCli) Close() {
 
@@ -559,7 +575,6 @@ func (m *P2pCli) PeerInfos() []*pb.Peer {
 	for _, peer := range peerinfos {
 
 		if peer.GetAddr() == ExternalIp && peer.GetPort() == int32(m.network.node.GetExterPort()) {
-			//	m.network.node.nodeInfo.monitorChan<-peer
 			continue
 		}
 		peers = append(peers, peer)

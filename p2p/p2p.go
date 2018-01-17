@@ -19,7 +19,7 @@ type P2p struct {
 }
 
 func New(cfg *types.P2P) *P2p {
-	node, err := newNode(cfg)
+	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
 		return nil
@@ -60,7 +60,7 @@ func (network *P2p) subP2pMsg() {
 
 	network.c.Sub("p2p")
 	go func() {
-		var EventQueryTask int64 = 666 //TODO
+
 		for msg := range network.c.Recv() {
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
@@ -75,8 +75,6 @@ func (network *P2p) subP2pMsg() {
 				go network.cli.GetMemPool(msg)
 			case types.EventPeerInfo:
 				go network.cli.GetPeerInfo(msg)
-			case EventQueryTask:
-				go network.cli.GetTaskInfo(msg)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
