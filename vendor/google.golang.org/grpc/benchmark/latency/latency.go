@@ -63,6 +63,17 @@ type Network struct {
 	MTU     int           // Bytes per packet; if non-positive, infinite
 }
 
+var (
+	//Local simulates local network.
+	Local = Network{0, 0, 0}
+	//LAN simulates local area network network.
+	LAN = Network{100 * 1024, 2 * time.Millisecond, 1500}
+	//WAN simulates wide area network.
+	WAN = Network{20 * 1024, 30 * time.Millisecond, 1500}
+	//Longhaul simulates bad network.
+	Longhaul = Network{1000 * 1024, 200 * time.Millisecond, 9000}
+)
+
 // Conn returns a net.Conn that wraps c and injects n's latency into that
 // connection.  This function also imposes latency for connection creation.
 // If n's Latency is lower than the measured latency in c, an error is
@@ -104,6 +115,13 @@ func (c *conn) Write(p []byte) (n int, err error) {
 			p = p[c.network.MTU:]
 		} else {
 			p = nil
+		}
+		if c.network.Kbps > 0 {
+			if congestion := c.lastSendEnd.Sub(tNow) - c.delay; congestion > 0 {
+				// The network is full; sleep until this packet can be sent.
+				sleep(congestion)
+				tNow = tNow.Add(congestion)
+			}
 		}
 		c.lastSendEnd = c.lastSendEnd.Add(c.network.pktTime(len(pkt)))
 		hdr := header{ReadTime: c.lastSendEnd.Add(c.delay).UnixNano(), Sz: int32(len(pkt))}

@@ -3,12 +3,12 @@ package p2p
 import (
 	"encoding/hex"
 	"net"
+	"os"
 	"strings"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	pb "code.aliyun.com/chain33/chain33/types"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -111,24 +111,7 @@ func (c Comm) Pubkey(key string) (string, error) {
 
 	return hex.EncodeToString(priv.PubKey().Bytes()), nil
 }
-func (c Comm) GetSelfExternalAddr(serveraddr string) []string {
-	var addrlist = make([]string, 0)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
-	defer cancel()
-	conn, err := grpc.DialContext(ctx, serveraddr, grpc.WithInsecure())
-	if err != nil {
-		log.Error("grpc DialCon", "did not connect: %v", err)
-		return addrlist
-	}
-	defer conn.Close()
-	gconn := pb.NewP2PremoteaddrClient(conn)
-	resp, err := gconn.RemotePeerAddr(ctx, &pb.P2PGetAddr{Nonce: 12})
-	if err != nil {
-		return addrlist
-	}
 
-	return resp.Addrlist
-}
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
 	var ready = true
@@ -156,4 +139,13 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
 	return grpc.ServiceConfig{Methods: MethodConf}
 
+}
+
+func (c Comm) CreateFile(filename string) (*os.File, error) {
+
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
 }
