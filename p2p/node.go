@@ -122,12 +122,13 @@ func (n *Node) NatOk() bool {
 }
 func (n *Node) exChangeVersion() {
 
-	if n.GetServiceTy() == 7 { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
+	if n.GetServiceTy() == 7 && IsOutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.NatOk() {
 			SERVICE -= NODE_NETWORK //nat 失败，不对外提供服务
 		}
 	}
+	//如果 IsOutSide == true 节点在外网，则不启动nat
 	pcli := NewP2pCli(nil)
 	peers, _ := n.GetActivePeers()
 	for _, peer := range peers {
@@ -162,11 +163,14 @@ func (n *Node) GetServiceTy() int64 {
 				SERVICE -= NODE_NETWORK
 				return SERVICE
 			}
-			log.Debug("makeService", "SERVICE", SERVICE)
+			log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 			return SERVICE
 		} else {
 			//如果ExternalAddr 与LocalAddr 相同，则认为在外网中
 			if ExternalIp == LocalAddr {
+				n.externalPort = DefaultPort //外网使用默认端口
+				IsOutSide = true
+				log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 				return SERVICE
 			}
 
@@ -174,6 +178,8 @@ func (n *Node) GetServiceTy() int64 {
 	}
 	//如果无法通过nat获取外网，并且externalAddr!=localAddr
 	SERVICE -= NODE_NETWORK
+	IsOutSide = true
+	log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 	return SERVICE
 
 }
