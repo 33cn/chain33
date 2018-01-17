@@ -151,6 +151,7 @@ FOR_LOOP:
 }
 func (n *Node) GetServiceTy() int64 {
 	//确认自己的服务范围1，2，4
+	log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 	if n.nodeInfo.cfg.GetIsSeed() == true {
 		return SERVICE
 	}
@@ -162,14 +163,13 @@ func (n *Node) GetServiceTy() int64 {
 				SERVICE -= NODE_NETWORK
 				return SERVICE
 			}
-			log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
+
 			return SERVICE
 		} else {
 			//如果ExternalAddr 与LocalAddr 相同，则认为在外网中
 			if ExternalIp == LocalAddr {
 				n.externalPort = DefaultPort //外网使用默认端口
 				IsOutSide = true
-				log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 				return SERVICE
 			}
 
@@ -178,7 +178,6 @@ func (n *Node) GetServiceTy() int64 {
 	//如果无法通过nat获取外网，并且externalAddr!=localAddr
 	SERVICE -= NODE_NETWORK
 	IsOutSide = true
-	log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 	return SERVICE
 
 }
@@ -388,4 +387,6 @@ SET_ADDR:
 		n.nodeInfo.SetListenAddr(listaddr)
 	}
 	n.localAddr = fmt.Sprintf("%s:%v", LocalAddr, n.GetLocalPort())
+
+	log.Error("DetectionNodeAddr", "Finish", "ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
 }
