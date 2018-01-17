@@ -503,7 +503,7 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 
 func (m *P2pCli) GetExternIp(addr string) []string {
 	var addrlist []string
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
 	if err != nil {
