@@ -93,8 +93,7 @@ func (network *P2p) subP2pMsg() {
 		for msg := range network.c.Recv() {
 			network.taskFactory <- struct{}{} //allocal task
 			atomic.AddInt32(&network.taskCapcity, -1)
-			log.Debug("SubP2pMsg", "Ty", msg.Ty)
-
+			log.Error("Recv", "Ty", msg.Ty)
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
 				go network.cli.BroadCastTx(msg)
@@ -108,11 +107,11 @@ func (network *P2p) subP2pMsg() {
 				//log.Error("SubP2pMsg", "Ty", msg.Ty, "timestamp", time.Now().Second(), "taskCapcity", capcity)
 				go network.cli.GetPeerInfo(msg)
 			default:
-				<-network.taskFactory
-				atomic.AddInt32(&network.taskCapcity, -1)
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
-
+				log.Error("END default")
+				<-network.taskFactory
+				atomic.AddInt32(&network.taskCapcity, 1)
 				continue
 			}
 		}
