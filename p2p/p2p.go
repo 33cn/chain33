@@ -42,16 +42,17 @@ func (network *P2p) Stop() {
 }
 
 func (network *P2p) Close() {
+
 	network.Stop()
 	log.Error("close", "network", "ShowTaskCapcity done")
 	network.cli.Close()
 	log.Error("close", "msg", "done")
 	network.node.Close()
 	log.Error("close", "node", "done")
-	network.c.Close()
-	<-network.loopdone
+	network.loopdone <- struct{}{}
 	log.Error("close", "loopdone", "done")
 	close(network.taskFactory)
+	//network.c.Close()
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
@@ -91,8 +92,10 @@ func (network *P2p) subP2pMsg() {
 	go func() {
 		//TODO channel
 		for msg := range network.c.Recv() {
-			network.taskFactory <- struct{}{} //allocal task
-			atomic.AddInt32(&network.taskCapcity, -1)
+			if msg.Ty != types.EventBlockBroadcast {
+				network.taskFactory <- struct{}{} //allocal task
+				atomic.AddInt32(&network.taskCapcity, -1)
+			}
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
 			switch msg.Ty {
@@ -116,7 +119,7 @@ func (network *P2p) subP2pMsg() {
 				continue
 			}
 		}
-		network.loopdone <- struct{}{}
+		<-network.loopdone
 	}()
 
 }
