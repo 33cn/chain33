@@ -155,13 +155,9 @@ func (client *Client) Sub(topic string) {
 					if client.isClosed(data, ok) {
 						return
 					}
-<<<<<<< HEAD
-					client.recv <- data
+					client.Recv() <- data
 				case <-client.done:
 					return
-=======
-					client.Recv() <- data
->>>>>>> e8007e766a9916e35e5bede5ec4ec4a9361c7cf3
 				}
 			}
 		}
