@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -72,7 +73,8 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
 	defer func() {
 		<-m.network.taskFactory
-		//log.Error("BroadCastTx", "Release Task", "ok")
+		atomic.AddInt32(&m.network.taskCapcity, 1)
+		//log.Error("BroadCastTx", "Release Task", "ok", "capcity", capcity)
 	}()
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
@@ -84,7 +86,10 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 	//TODO channel
 	for _, pr := range peers { //限制对peer 的高频次调用
 		go func(pr *peer) {
-			pr.AllockTask()
+			if err := pr.AllockTask(); err != nil {
+				log.Error("BroadCastTx", "AlloclTask", err)
+				return
+			}
 			defer pr.ReleaseTask()
 			_, err := pr.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 			m.CollectPeerStat(err, pr)
@@ -99,6 +104,7 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 func (m *P2pCli) GetMemPool(msg queue.Message) {
 	defer func() {
 		<-m.network.taskFactory
+		atomic.AddInt32(&m.network.taskCapcity, 1)
 		//log.Error("GetMemPool", "Release Task", "ok")
 	}()
 	var Txs = make([]*pb.Transaction, 0)
@@ -230,7 +236,8 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 	defer func() {
 		<-m.network.taskFactory
-		//log.Error("GetPeerInfo", "Release Task", "ok")
+		atomic.AddInt32(&m.network.taskCapcity, 1)
+		//log.Error("GetPeerInfo", "Release Task", "ok", "timestamp", time.Now().Unix())
 	}()
 	//log.Info("GetPeerInfo", "info", m.PeerInfos())
 	//添加自身peerInfo
@@ -260,6 +267,7 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 func (m *P2pCli) GetBlocks(msg queue.Message) {
 	defer func() {
 		<-m.network.taskFactory
+		atomic.AddInt32(&m.network.taskCapcity, 1)
 		//log.Error("GetBlocks", "Release Task", "ok")
 	}()
 	if m.network.node.Size() == 0 {
@@ -489,6 +497,7 @@ func (m *P2pCli) broadcastByStream(data interface{}) {
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
 		<-m.network.taskFactory
+		atomic.AddInt32(&m.network.taskCapcity, 1)
 		//log.Error("BlockBroadcast", "Release Task", "ok")
 	}()
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
