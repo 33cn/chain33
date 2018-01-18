@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 //消息队列的主要作用是解耦合，让各个模块相对的独立运行。
@@ -15,8 +17,8 @@ import (
 // for msg := range client.Recv() {
 //     process(msg)
 // }
-
 // process 函数会调用 处理具体的消息逻辑
+
 var gId int64
 
 type IClient interface {
@@ -62,7 +64,24 @@ func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
 	if !wait {
 		msg.ChReply = nil
 	}
-	return client.q.SendAsyn(msg)
+	//wait for sendasyn
+	i := 0
+	for {
+		i++
+		if i%1000 == 0 {
+			qlog.Error("SendAsyn retry too many times", "n", i)
+		}
+		err = client.q.SendAsyn(msg)
+		if err != nil && err != types.ErrChannelFull {
+			return err
+		}
+		if err == types.ErrChannelFull {
+			time.Sleep(time.Millisecond)
+			continue
+		}
+		break
+	}
+	return err
 }
 
 func (client *Client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
@@ -84,12 +103,27 @@ func (client *Client) Wait(msg Message) (Message, error) {
 }
 
 func (client *Client) Recv() chan Message {
+	client.mu.Lock()
+	defer client.mu.Unlock()
 	return client.recv
 }
 
 func (client *Client) Close() {
 	atomic.StoreInt32(&client.isclosed, 1)
-	close(client.recv)
+	close(client.Recv())
+}
+
+func (client *Client) isClosed(data Message, ok bool) bool {
+	if !ok {
+		return true
+	}
+	if atomic.LoadInt32(&client.isclosed) == 1 {
+		return true
+	}
+	if data.Data == nil && data.Id == 0 && data.Ty == 0 {
+		return true
+	}
+	return false
 }
 
 func (client *Client) Sub(topic string) {
@@ -97,23 +131,23 @@ func (client *Client) Sub(topic string) {
 	go func() {
 		for {
 			select {
-			case data := <-highChan:
-				if atomic.LoadInt32(&client.isclosed) == 1 {
+			case data, ok := <-highChan:
+				if client.isClosed(data, ok) {
 					return
 				}
-				client.recv <- data
+				client.Recv() <- data
 			default:
 				select {
-				case data := <-highChan:
-					if atomic.LoadInt32(&client.isclosed) == 1 {
+				case data, ok := <-highChan:
+					if client.isClosed(data, ok) {
 						return
 					}
-					client.recv <- data
-				case data := <-lowChan:
-					if atomic.LoadInt32(&client.isclosed) == 1 {
+					client.Recv() <- data
+				case data, ok := <-lowChan:
+					if client.isClosed(data, ok) {
 						return
 					}
-					client.recv <- data
+					client.Recv() <- data
 				}
 			}
 		}

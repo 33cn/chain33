@@ -10,16 +10,18 @@ import (
 var log = l.New("module", "p2p")
 
 type P2p struct {
-	q        *queue.Queue
-	c        queue.IClient
-	node     *Node
-	addrBook *AddrBook // known peers
-	cli      *P2pCli
-	done     chan struct{}
+	q           *queue.Queue
+	c           queue.IClient
+	node        *Node
+	addrBook    *AddrBook // known peers
+	cli         *P2pCli
+	taskFactory chan struct{}
+	done        chan struct{}
+	loopdone    chan struct{}
 }
 
 func New(cfg *types.P2P) *P2p {
-	node, err := newNode(cfg)
+	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
 		return nil
@@ -27,6 +29,7 @@ func New(cfg *types.P2P) *P2p {
 	p2p := new(P2p)
 	p2p.node = node
 	p2p.done = make(chan struct{}, 1)
+	p2p.loopdone = make(chan struct{}, 1)
 	p2p.cli = NewP2pCli(p2p)
 	return p2p
 }
@@ -41,6 +44,9 @@ func (network *P2p) Close() {
 	log.Debug("close", "msg", "done")
 	network.node.Close()
 	log.Debug("close", "node", "done")
+	network.c.Close()
+	<-network.loopdone
+	close(network.taskFactory)
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
@@ -57,11 +63,12 @@ func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return
 	}
-
+	network.taskFactory = make(chan struct{}, 2000) // 2000 task
 	network.c.Sub("p2p")
 	go func() {
-		var EventQueryTask int64 = 666 //TODO
+		//TODO channel
 		for msg := range network.c.Recv() {
+			network.taskFactory <- struct{}{} //allocal task
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
 			switch msg.Ty {
@@ -75,15 +82,14 @@ func (network *P2p) subP2pMsg() {
 				go network.cli.GetMemPool(msg)
 			case types.EventPeerInfo:
 				go network.cli.GetPeerInfo(msg)
-			case EventQueryTask:
-				go network.cli.GetTaskInfo(msg)
 			default:
-				log.Warn("unknown msgtype", "Ty", msg.Ty)
+				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
 
 				continue
 			}
 		}
+		network.loopdone <- struct{}{}
 	}()
 
 }

@@ -1,12 +1,18 @@
 package types
 
 import (
+	"runtime"
+	"sync/atomic"
+
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	proto "github.com/golang/protobuf/proto"
+	log "github.com/inconshreveable/log15"
 )
+
+var tlog = log.New("module", "types")
 
 type Message proto.Message
 
@@ -34,23 +40,10 @@ func (tx *Transaction) CheckSign() bool {
 	copytx := *tx
 	copytx.Signature = nil
 	data := Encode(&copytx)
-
-	sign := tx.GetSignature()
-	c, err := crypto.New(GetSignatureTypeName(int(sign.Ty)))
-	if err != nil {
+	if tx.GetSignature() == nil {
 		return false
 	}
-
-	pub, err := c.PubKeyFromBytes(sign.Pubkey)
-	if err != nil {
-		return false
-	}
-
-	signbytes, err := c.SignatureFromBytes(sign.Signature)
-	if err != nil {
-		return false
-	}
-	return pub.VerifyBytes(data, signbytes)
+	return CheckSign(data, tx.GetSignature())
 }
 
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
@@ -92,6 +85,110 @@ func (block *Block) Hash() []byte {
 		panic(err)
 	}
 	return common.Sha256(data)
+}
+
+func (block *Block) CheckSign() bool {
+	//检查区块的签名
+	if block.Signature != nil {
+		hash := block.Hash()
+		sign := block.GetSignature()
+		if !CheckSign(hash, sign) {
+			return false
+		}
+	}
+	//检查交易的签名
+	cpu := runtime.NumCPU()
+	ok := multiCoreSign(block.Txs, cpu)
+	return ok
+}
+
+func multiCoreSign(txs []*Transaction, n int) bool {
+	if len(txs) == 0 {
+		return true
+	}
+	taskch := make(chan *Transaction)
+	resultch := make(chan bool)
+	done := make(chan struct{}, n)
+	var exitflag int64 = 0
+	var errflag int64 = 0
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			for taskitem := range taskch {
+				//time.Sleep(time.Second)
+				if !isExit(exitflag) {
+					resultch <- taskitem.CheckSign()
+				} else {
+					break
+				}
+			}
+			done <- struct{}{}
+		}(i)
+	}
+	//发送任务
+	go func() {
+		for i := 0; i < len(txs); i++ {
+			if !isExit(exitflag) {
+				taskch <- txs[i]
+			} else {
+				break
+			}
+		}
+	}()
+	systemexit := make(chan int, 1)
+	//接收任务回报
+
+	go func() {
+		for i := 0; i < len(txs); i++ {
+			select {
+			case result := <-resultch:
+				if !result {
+					atomic.StoreInt64(&exitflag, 1)
+					atomic.StoreInt64(&errflag, 1)
+					closeCh(taskch)
+					return
+				}
+			case <-systemexit:
+				return
+			}
+		}
+		closeCh(taskch)
+	}()
+	for i := 0; i < n; i++ {
+		<-done
+	}
+	systemexit <- 1
+	return atomic.LoadInt64(&errflag) == 0
+}
+
+func isExit(exitflag int64) bool {
+	return atomic.LoadInt64(&exitflag) == 1
+}
+
+func closeCh(ch chan *Transaction) {
+	for {
+		select {
+		case <-ch:
+		default:
+			close(ch)
+			return
+		}
+	}
+}
+
+func CheckSign(data []byte, sign *Signature) bool {
+	c, err := crypto.New(GetSignatureTypeName(int(sign.Ty)))
+	if err != nil {
+		return false
+	}
+	pub, err := c.PubKeyFromBytes(sign.Pubkey)
+	if err != nil {
+		return false
+	}
+	signbytes, err := c.SignatureFromBytes(sign.Signature)
+	if err != nil {
+		return false
+	}
+	return pub.VerifyBytes(data, signbytes)
 }
 
 func Encode(data proto.Message) []byte {

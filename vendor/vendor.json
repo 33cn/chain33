@@ -383,6 +383,10 @@
 			"revisionTime": "2016-01-10T10:55:54Z"
 		},
 		{
+			"path": "github.com/rs/cors",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "mGbTYZ8dHVTiPTTJu3ktp+84pPI=",
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f",

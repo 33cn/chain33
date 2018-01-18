@@ -196,6 +196,9 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdeta
 				if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 					transfer := action.GetTransfer()
 					bs.UpdateAddrReciver(cacheDB, toaddr, transfer.Amount)
+				} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+					gen := action.GetGenesis()
+					bs.UpdateAddrReciver(cacheDB, toaddr, gen.Amount)
 				}
 			}
 		}
