@@ -35,10 +35,10 @@ type RaftClient struct {
 	commitC     <-chan *types.Block
 	errorC      <-chan error
 	snapshotter *snap.Snapshotter
-	validatorC  <-chan bool
+	validatorC  <-chan map[string]bool
 }
 
-func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan bool) *RaftClient {
+func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan map[string]bool) *RaftClient {
 	c := drivers.NewBaseClient(cfg)
 	client := &RaftClient{BaseClient: c, proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, commitC: commitC, errorC: errorC}
 	c.SetChild(client)
@@ -65,10 +65,10 @@ func (client *RaftClient) recoverFromSnapshot(snapshot []byte) error {
 }
 
 func (client *RaftClient) SetQueue(q *queue.Queue) {
-	log.Info("Enter SetQueue method of consensus")
+	log.Info("Enter SetQueue method of raft consensus")
 	client.InitClient(q, func() {
-		//初始化应该是由leader节点还是所有节点都要执行？
-		client.InitBlock()
+		//初始化应该等到leader选举成功之后在pollingTask中执行
+		//client.InitBlock()
 	})
 	go client.readCommits(client.commitC, client.errorC)
 	go client.pollingTask(q)
@@ -113,7 +113,7 @@ func (client *RaftClient) CreateBlock() {
 	issleep := true
 	for {
 		//如果leader节点突然挂了，不是打包节点，需要退出
-		if !isValidator {
+		if !isLeader {
 			log.Warn("I'm not the validator node anymore,exit.=============================")
 			break
 		}
@@ -211,17 +211,22 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 func (client *RaftClient) pollingTask(q *queue.Queue) {
 	for {
 		select {
-		case value := <-client.validatorC:
-			if !value {
-				log.Warn("I'm not the validator node!=====")
-				isValidator = false
-			} else if !isValidator && value {
+		case validator := <-client.validatorC:
+			if value, ok := validator[LeaderIsOK]; ok && !value {
+				//leaderIsOK=false
+			} else if !leaderIsOK && value {
 				log.Info("==================start init block========================")
+				client.InitBlock()
+				leaderIsOK = true
+			}
+			if value, ok := validator[IsLeader]; ok && !value {
+				log.Warn("I'm not the validator node!=====")
+				isLeader = false
+			} else if !isLeader && value {
 				client.InitMiner()
-				//client.InitBlock()
 				//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
 				// 老的leader中运行的打包程此刻应该被终止？
-				isValidator = true
+				isLeader = true
 				go client.EventLoop()
 				go client.CreateBlock()
 			}
