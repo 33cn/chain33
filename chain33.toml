@@ -18,6 +18,7 @@ seeds=["114.55.101.159:13802"]
 enable=true
 isSeed=false
 dbPath="datadir/addrbook"
+grpcLogFile="grpc33.log"
 version=11
 verMix=11
 verMax=12
