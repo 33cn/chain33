@@ -34,6 +34,8 @@ type IClient interface {
 type Client struct {
 	q        *Queue
 	recv     chan Message
+	done     chan struct{}
+	wg       *sync.WaitGroup
 	mu       sync.Mutex
 	cache    []Message
 	isclosed int32
@@ -43,6 +45,8 @@ func newClient(q *Queue) IClient {
 	client := &Client{}
 	client.q = q
 	client.recv = make(chan Message, 2)
+	client.done = make(chan struct{}, 1)
+	client.wg = &sync.WaitGroup{}
 	return client
 }
 
@@ -107,13 +111,17 @@ func (client *Client) Recv() chan Message {
 }
 
 func (client *Client) Close() {
+	client.done <- struct{}{}
+	client.wg.Wait()
 	atomic.StoreInt32(&client.isclosed, 1)
 	close(client.recv)
 }
 
 func (client *Client) Sub(topic string) {
+	client.wg.Add(1)
 	highChan, lowChan := client.q.getChannel(topic)
 	go func() {
+		defer client.wg.Done()
 		for {
 			select {
 			case data, ok := <-highChan:
@@ -142,6 +150,8 @@ func (client *Client) Sub(topic string) {
 						return
 					}
 					client.recv <- data
+				case <-client.done:
+					return
 				}
 			}
 		}
