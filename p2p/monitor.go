@@ -39,6 +39,7 @@ FOR_LOOP:
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > 10 || peer.GetRunning() == false {
+						log.Error("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
 						n.addrBook.RemoveAddr(peer.Addr())
 						n.addrBook.Save()
 						n.Remove(peer.Addr())
@@ -56,7 +57,8 @@ func (n *Node) deleteErrPeer() {
 
 		peer := <-n.nodeInfo.monitorChan
 		log.Debug("deleteErrPeer", "REMOVE", peer.Addr())
-		if peer.version.IsSupport() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
+		if peer.version.IsSupport() == false || peer.GetRunning() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
+			log.Error("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
 			n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
 			n.addrBook.RemoveAddr(peer.Addr())
 			n.addrBook.Save()
@@ -76,6 +78,7 @@ FOR_LOOP:
 	for {
 		select {
 		case <-n.onlineDone:
+			log.Error("GetAddrFromOnLine", "break For_LOOP", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
@@ -87,7 +90,7 @@ FOR_LOOP:
 						log.Error("getAddrFromOnline", "ERROR", err.Error())
 						continue
 					}
-					log.Info("getAddrFromOnline", "ADDRLIST", addrlist)
+					//log.Error("getAddrFromOnline", "ADDRLIST", addrlist)
 					//过滤无法连接的节点
 
 					//过滤黑名单的地址
@@ -101,7 +104,7 @@ FOR_LOOP:
 						}
 					}
 
-					n.DialPeers(whitlist) //对获取的地址列表发起连接
+					go n.DialPeers(whitlist) //对获取的地址列表发起连接
 
 				}
 			}
@@ -117,6 +120,7 @@ FOR_LOOP:
 	for {
 		select {
 		case <-n.offlineDone:
+			log.Error("GetAddrFromOffLine", "break For_LOOP", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
@@ -143,7 +147,7 @@ FOR_LOOP:
 							log.Info("GetAddrFromOffline", "Add addr", addr)
 							savelist[addr] = true
 						}
-						log.Info("getAddrFromOffline", "list", savelist)
+						//log.Error("getAddrFromOffline", "list", savelist)
 					}
 				}
 
@@ -151,7 +155,7 @@ FOR_LOOP:
 					continue
 				}
 
-				n.DialPeers(savelist)
+				go n.DialPeers(savelist)
 			} else {
 				log.Info("getAddrFromOffline", "nodestable", n.needMore())
 				for _, seed := range n.nodeInfo.cfg.Seeds {
