@@ -593,7 +593,6 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	}
 
 	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
-	walletlog.Error("ProcSendToAddress", "DecrypterPrivkey privkey", common.ToHex(privkey))
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
