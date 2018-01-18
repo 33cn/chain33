@@ -38,6 +38,7 @@ func DisableLog() {
 type Store struct {
 	db      dbm.DB
 	qclient queue.IClient
+	done    chan struct{}
 	trees   map[string]*mavl.MAVLTree
 }
 
@@ -47,10 +48,13 @@ func New(cfg *types.Store) *Store {
 	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath)
 	store := &Store{db: db}
 	store.trees = make(map[string]*mavl.MAVLTree)
+	store.done = make(chan struct{}, 1)
 	return store
 }
 
 func (store *Store) Close() {
+	store.qclient.Close()
+	<-store.done
 	store.db.Close()
 	slog.Info("store module closed")
 }
@@ -66,6 +70,7 @@ func (store *Store) SetQueue(q *queue.Queue) {
 			slog.Info("stroe recv", "msg", msg)
 			store.processMessage(msg)
 		}
+		store.done <- struct{}{}
 	}()
 }
 
