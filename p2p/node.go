@@ -151,7 +151,9 @@ FOR_LOOP:
 }
 func (n *Node) GetServiceTy() int64 {
 	//确认自己的服务范围1，2，4
-	log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
+	defer func() {
+		log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
+	}()
 	if n.nodeInfo.cfg.GetIsSeed() == true {
 		IsOutSide = true
 		return SERVICE
