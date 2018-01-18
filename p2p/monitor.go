@@ -126,10 +126,10 @@ FOR_LOOP:
 			if n.needMore() {
 				var savelist = make(map[string]bool)
 				for _, seed := range n.nodeInfo.cfg.Seeds {
-					//if n.Has(seed) == false && n.nodeInfo.blacklist.Has(seed) == false {
-					log.Info("GetAddrFromOffline", "Add Seed", seed)
-					savelist[seed] = true
-					//}
+					if n.Has(seed) == false && n.nodeInfo.blacklist.Has(seed) == false {
+						log.Info("GetAddrFromOffline", "Add Seed", seed)
+						savelist[seed] = true
+					}
 				}
 
 				log.Info("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
