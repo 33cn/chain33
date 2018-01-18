@@ -17,6 +17,7 @@ type P2p struct {
 	cli         *P2pCli
 	taskFactory chan struct{}
 	done        chan struct{}
+	loopdone    chan struct{}
 }
 
 func New(cfg *types.P2P) *P2p {
@@ -28,6 +29,7 @@ func New(cfg *types.P2P) *P2p {
 	p2p := new(P2p)
 	p2p.node = node
 	p2p.done = make(chan struct{}, 1)
+	p2p.loopdone = make(chan struct{}, 1)
 	p2p.cli = NewP2pCli(p2p)
 	return p2p
 }
@@ -42,6 +44,8 @@ func (network *P2p) Close() {
 	log.Debug("close", "msg", "done")
 	network.node.Close()
 	log.Debug("close", "node", "done")
+	network.c.Close()
+	<-network.loopdone
 	close(network.taskFactory)
 }
 
@@ -85,6 +89,7 @@ func (network *P2p) subP2pMsg() {
 				continue
 			}
 		}
+		network.loopdone <- struct{}{}
 	}()
 
 }

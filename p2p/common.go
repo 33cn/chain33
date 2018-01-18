@@ -3,7 +3,6 @@ package p2p
 import (
 	"encoding/hex"
 	"net"
-	"os"
 	"strings"
 	"time"
 
@@ -140,13 +139,4 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
 	return grpc.ServiceConfig{Methods: MethodConf}
 
-}
-
-func (c Comm) CreateFile(filename string) (*os.File, error) {
-
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, err
-	}
-	return f, nil
 }
