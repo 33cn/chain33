@@ -264,6 +264,8 @@ func (n *Node) AddPeer(pr *peer) {
 	if pr.outbound == false {
 		return
 	}
+
+	log.Error("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
 	pr.key = n.addrBook.key
 	pr.Start()
@@ -279,8 +281,11 @@ func (n *Node) Size() int {
 func (n *Node) Has(paddr string) bool {
 	n.omtx.Lock() //TODO
 	defer n.omtx.Unlock()
+	infos := n.nodeInfo.peerInfos.GetPeerInfos()
 	if _, ok := n.outBound[paddr]; ok {
-		return true
+		if _, ok := infos[paddr]; ok {
+			return true
+		}
 	}
 	return false
 }

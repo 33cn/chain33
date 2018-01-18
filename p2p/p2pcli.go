@@ -66,13 +66,13 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 	if err != nil {
 		peer.peerStat.NotOk()
 	} else {
+		peer.setRunning(true)
 		peer.peerStat.Ok()
 	}
 	m.deletePeer(peer)
 }
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
 	defer func() {
-		log.Error("END BroadCastTx")
 		<-m.network.taskFactory
 		atomic.AddInt32(&m.network.taskCapcity, 1)
 	}()
@@ -101,7 +101,6 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 
 func (m *P2pCli) GetMemPool(msg queue.Message) {
 	defer func() {
-		log.Error("END GetMemPool")
 		<-m.network.taskFactory
 		atomic.AddInt32(&m.network.taskCapcity, 1)
 	}()
@@ -233,7 +232,6 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 	defer func() {
-		log.Error("END GetPeerInfo")
 		<-m.network.taskFactory
 		atomic.AddInt32(&m.network.taskCapcity, 1)
 		//log.Error("GetPeerInfo", "Release Task", "ok", "timestamp", time.Now().Unix())
@@ -264,7 +262,6 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 
 func (m *P2pCli) GetBlocks(msg queue.Message) {
 	defer func() {
-		log.Error("END GetBlocks")
 		<-m.network.taskFactory
 		atomic.AddInt32(&m.network.taskCapcity, 1)
 		//log.Error("GetBlocks", "Release Task", "ok")
@@ -421,6 +418,7 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 			continue
 		}
 		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+		peer.setRunning(false)
 		m.CollectPeerStat(err, peer)
 		if err != nil {
 			continue
@@ -492,7 +490,6 @@ func (m *P2pCli) broadcastByStream(data interface{}) {
 }
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
-		log.Error("END BlockBroadcast")
 		<-m.network.taskFactory
 		atomic.AddInt32(&m.network.taskCapcity, 1)
 		//log.Error("BlockBroadcast", "Release Task", "ok")
