@@ -66,6 +66,7 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 	if err != nil {
 		peer.peerStat.NotOk()
 	} else {
+		peer.setRunning(true)
 		peer.peerStat.Ok()
 	}
 	m.deletePeer(peer)
@@ -425,6 +426,7 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 			continue
 		}
 		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+		peer.setRunning(false)
 		m.CollectPeerStat(err, peer)
 		if err != nil {
 			continue
@@ -495,11 +497,11 @@ func (m *P2pCli) broadcastByStream(data interface{}) {
 
 }
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
-	defer func() {
-		<-m.network.taskFactory
-		atomic.AddInt32(&m.network.taskCapcity, 1)
-		//log.Error("BlockBroadcast", "Release Task", "ok")
-	}()
+	//	defer func() {
+	//		<-m.network.taskFactory
+	//		atomic.AddInt32(&m.network.taskCapcity, 1)
+	//		//log.Error("BlockBroadcast", "Release Task", "ok")
+	//	}()
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
