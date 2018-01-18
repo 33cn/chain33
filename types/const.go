@@ -136,6 +136,12 @@ const (
 	EventStoreRollback      = 67
 	EventStoreCommit        = 68
 	EventCheckBlock         = 69
+	//seed
+	EventGenSeed      = 70
+	EventReplyGenSeed = 71
+	EventSaveSeed     = 72
+	EventGetSeed      = 73
+	EventReplyGetSeed = 74
 )
 
 var eventname = map[int]string{
@@ -208,6 +214,12 @@ var eventname = map[int]string{
 	67: "EventStoreRollback",
 	68: "EventStoreCommit",
 	69: "EventCheckBlock",
+
+	70: "EventGenSeed",
+	71: "EventReplyGenSeed",
+	72: "EventSaveSeed",
+	73: "EventGetSeed",
+	74: "EventReplyGetSeed",
 }
 
 func GetEventName(event int) string {

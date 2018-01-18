@@ -1,0 +1,84 @@
+<html><head><title>{PAGE_TITLE} {VERSION}{TESTNET}</title>
+<script type="text/javascript" src="webui/gocoin.js"></script>
+<link rel="stylesheet" href="webui/gocoin.css" type="text/css">
+<script>
+/*_SESSION_ID_*/
+/*_AVERAGE_FEE_SPB_*/
+/*_SERVER_MODE_*/
+var doc_title = document.title
+var testnet = (doc_title.indexOf(" Testnet") != -1)
+
+var new_block_audio_file = new Audio('webui/new_block.mp3')
+var back_online_audio_file = new Audio('webui/back_online.mp3')
+
+function remember_beep() {
+	localStorage.setItem("new_block_beep", beep_new_block.checked?"true":"false")
+}
+</script>
+</head>
+<body>
+<table align="center" width="1020" cellpadding="0" cellspacing="0"><tr><td>
+	<table width="100%" border="0"><tr>
+		<td>{MENU_LEFT}</td>
+		<td align="left" width="120" class="nw">Height: <b id="blno">...</b>
+		<td align="left" width="150">Beep:
+        <input type="checkbox" id="beep_new_block" onchange="remember_beep()" title="Beep on each new block">
+		<td align="left">
+        <input type="button" value="Load Raw TX" onclick="pushtx()" style="padding:2px;font-size:10px" title="Load raw transaction">
+		<td align="right">
+		{MENU_RIGHT} |
+		<a href="{HELPURL}">Help</a></td>
+	</tr></table>
+<hr>
+<script>
+var time_now /*_TIME_NOW_*/
+function refreshblock() {
+	var aj = ajax()
+	aj.onerror=function() {
+		blno.innerText = "XXX"
+		setTimeout(refreshblock, 10000)
+	}
+	aj.onload=function() {
+		var new_block = false
+		try {
+			var stat = JSON.parse(aj.responseText)
+			var e = document.createEvent("Event")
+			e.initEvent("lastblock", false, false)
+			e.block = stat
+			time_now = stat.Time_now
+			blno.dispatchEvent(e)
+
+			blno.title = "Received " + ((stat.Time_now-stat.Received)/60).toFixed(1) + " min ago"
+
+			if (blno.innerText != stat.Height) {
+				if (beep_new_block.checked)  {
+					if (blno.innerText=="XXX") {
+						back_online_audio_file.play()
+					} else if (blno.innerText!="...") {
+						new_block_audio_file.play()
+					}
+				}
+				new_block = true
+				blno.innerText = stat.Height
+				document.title = doc_title + ' @ ' + stat.Height
+			}
+		} catch(e) {
+			blno.title = e
+			blno.innerText = "???"
+			//console.log()
+		}
+		setTimeout(refreshblock, new_block?1000:6000)
+	}
+	aj.open("GET","status.json",true)
+	aj.send(null)
+}
+
+if (localStorage.getItem("new_block_beep")==="true") {
+	beep_new_block.checked = true
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+	refreshblock()
+})
+
+</script>

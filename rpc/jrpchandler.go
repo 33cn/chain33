@@ -605,3 +605,33 @@ func (req Chain33) GetBlockHash(in types.ReqInt, result *interface{}) error {
 	*result = &replyHash
 	return nil
 }
+
+//seed
+func (req Chain33) GenSeed(in types.GenSeedLang, result *interface{}) error {
+	reply, err := req.cli.GenSeed(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
+func (req Chain33) SaveSeed(in types.SaveSeedByPw, result *interface{}) error {
+	reply, err := req.cli.SaveSeed(&in)
+	if err != nil {
+		return err
+	}
+
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
+	return nil
+}
+func (req Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
+	reply, err := req.cli.GetSeed(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
