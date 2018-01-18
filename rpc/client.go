@@ -38,6 +38,10 @@ type IRClient interface {
 	GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 	GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error)
 	GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error)
+	//seed
+	GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error)
+	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
+	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
 }
 
 type channelClient struct {
@@ -350,4 +354,33 @@ func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash,
 	}
 
 	return resp.Data.(*types.ReplyHash), nil
+}
+
+//seed
+func (client *channelClient) GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventGenSeed, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.ReplySeed), nil
+}
+func (client *channelClient) SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventSaveSeed, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.Reply), nil
+}
+func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventGetSeed, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.ReplySeed), nil
 }
