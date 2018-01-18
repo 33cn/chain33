@@ -28,10 +28,10 @@ import (
 
 //var once sync.Once
 
-//const (
-//	IsLeader   = "0"
-//	IsFollower = "1"
-//)
+const (
+	IsLeader   = "0"
+	LeaderIsOK = "1"
+)
 
 var (
 	//wasLeader               bool   = false
@@ -67,11 +67,11 @@ type raftNode struct {
 	httpdonec        chan struct{}
 	//备用的leaderC用于watch leader节点的变更，暂时没用
 	//leaderC    chan int
-	validatorC chan bool
+	validatorC chan map[string]bool
 }
 
 func NewRaftNode(id int, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
-	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan bool) {
+	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan map[string]bool) {
 
 	log.Info("Enter consensus raft")
 	// commit channel
@@ -94,7 +94,7 @@ func NewRaftNode(id int, peers []string, getSnapshot func() ([]byte, error), pro
 		httpdonec:   make(chan struct{}),
 		raftStorage: storage,
 		//leaderC: make(chan int),
-		validatorC:       make(chan bool),
+		validatorC:       make(chan map[string]bool),
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
 	}
 	go rc.startRaft()
@@ -264,17 +264,22 @@ func (rc *raftNode) serveChannels() {
 }
 
 func (rc *raftNode) updateValidator() {
+	var validatorMap map[string]bool
 	for {
+		validatorMap = make(map[string]bool)
 		leadId := rc.node.Status().Lead
-		//if leadId != raft.None {
-		//	//rc.leaderC <- int(leadId)
-		//}
+		if leadId != raft.None {
+			validatorMap[LeaderIsOK] = true
+		} else {
+			validatorMap[LeaderIsOK] = false
+		}
 		//log.Info("chain33_raft==========leaderId===========:" + strconv.FormatUint(leadId, 10))
 		if rc.id == int(leadId) {
-			rc.validatorC <- true
+			validatorMap[IsLeader] = true
 		} else {
-			rc.validatorC <- false
+			validatorMap[IsLeader] = false
 		}
+		rc.validatorC <- validatorMap
 		time.Sleep(time.Second)
 	}
 }
