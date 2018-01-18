@@ -9,6 +9,7 @@ var (
 	PingTimeout        = 14 * time.Second
 	DefaultSendTimeout = 10 * time.Second
 	DialTimeout        = 5 * time.Second
+	mapUpdateInterval  = 15 * time.Minute
 )
 
 const (
@@ -18,8 +19,8 @@ const (
 )
 
 var (
-	LocalAddr    string
-	ExternalAddr string
+	LocalAddr  string
+	ExternalIp string
 )
 
 const (
@@ -44,5 +45,6 @@ const (
 )
 
 var (
-	SERVICE int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
+	SERVICE   int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
+	IsOutSide bool
 )

@@ -66,10 +66,16 @@ func (q *Queue) IsClosed() bool {
 }
 
 func (q *Queue) Close() {
-	for _, ch := range q.chans {
-		close(ch[0])
-		close(ch[1])
+	q.mu.Lock()
+	if q.isclose == true {
+		q.mu.Unlock()
+		return
 	}
+	for _, ch := range q.chans {
+		ch[0] <- Message{}
+		ch[1] <- Message{}
+	}
+	q.mu.Unlock()
 	q.done <- struct{}{}
 	close(q.done)
 	q.mu.Lock()
@@ -95,7 +101,7 @@ func (q *Queue) Send(msg Message) {
 		return
 	}
 	chrecv, _ := q.getChannel(msg.Topic)
-	timeout := time.After(time.Second * 5)
+	timeout := time.After(time.Second * 60)
 	select {
 	case chrecv <- msg:
 	case <-timeout:

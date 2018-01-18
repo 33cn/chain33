@@ -41,7 +41,7 @@ func NewP2pServer() *p2pServer {
 }
 
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	log.Debug("p2pServer PING", "RECV PING", *in)
+	log.Debug("p2pServer PING", "RECV PING", "PING")
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		log.Debug("PING addr", "Addr", getctx.Addr.String())
@@ -67,8 +67,10 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 	peers, _ := s.node.GetActivePeers()
 	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
-		if peer.mconn.sendMonitor.GetCount() == 0 {
-			addrBucket[peer.Addr()] = true
+		if stat := s.node.addrBook.GetPeerStat(peer.Addr()); stat != nil {
+			if stat.GetAttempts() == 0 {
+				addrBucket[peer.Addr()] = true
+			}
 		}
 
 	}
@@ -135,7 +137,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
-	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
+	log.Error("p2pServer GetBlocks", "P2P Recv", in)
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
@@ -153,7 +155,6 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 	for _, item := range headers.Items {
 		var inv pb.Inventory
 		inv.Ty = MSG_BLOCK
-		//inv.Hash = item.Block.Hash()
 		inv.Height = item.GetHeight()
 		invs = append(invs, &inv)
 	}
@@ -303,7 +304,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	peerinfo.Header = header
 	peerinfo.Name = pub
 	peerinfo.MempoolSize = int32(meminfo.GetSize())
-	peerinfo.Addr = ExternalAddr
+	peerinfo.Addr = ExternalIp
 	peerinfo.Port = int32(s.node.nodeInfo.GetExternalAddr().Port)
 	return &peerinfo, nil
 }
@@ -326,6 +327,7 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
+			//log.Error("RouteChat", "Stream send Block", block.GetBlock().GetHeight())
 			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 		} else if tx, ok := data.(*pb.P2PTx); ok {
 			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
@@ -343,6 +345,16 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 
 	return nil
 
+}
+
+func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
+	var addrlist = make([]string, 0)
+	getctx, ok := pr.FromContext(ctx)
+	if ok {
+		remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
+		addrlist = append(addrlist, remoteaddr)
+	}
+	return &pb.P2PAddr{Addrlist: addrlist}, nil
 }
 
 func (s *p2pServer) checkVersion(version int32) bool {
