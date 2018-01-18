@@ -10,12 +10,13 @@ import (
 var log = l.New("module", "p2p")
 
 type P2p struct {
-	q        *queue.Queue
-	c        queue.IClient
-	node     *Node
-	addrBook *AddrBook // known peers
-	cli      *P2pCli
-	done     chan struct{}
+	q           *queue.Queue
+	c           queue.IClient
+	node        *Node
+	addrBook    *AddrBook // known peers
+	cli         *P2pCli
+	taskFactory chan struct{}
+	done        chan struct{}
 }
 
 func New(cfg *types.P2P) *P2p {
@@ -41,6 +42,7 @@ func (network *P2p) Close() {
 	log.Debug("close", "msg", "done")
 	network.node.Close()
 	log.Debug("close", "node", "done")
+	close(network.taskFactory)
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
@@ -57,11 +59,12 @@ func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return
 	}
-
+	network.taskFactory = make(chan struct{}, 2000) // 2000 task
 	network.c.Sub("p2p")
 	go func() {
-
+		//TODO channel
 		for msg := range network.c.Recv() {
+			network.taskFactory <- struct{}{} //allocal task
 			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
 			switch msg.Ty {
