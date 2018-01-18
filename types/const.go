@@ -280,7 +280,7 @@ const (
 	TicketActionMiner = 6
 )
 
-//hashlock
+//hashlock const
 const (
 	HashlockActionLock   = 1
 	HashlockActionSend   = 2
