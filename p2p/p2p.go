@@ -49,10 +49,10 @@ func (network *P2p) Close() {
 	log.Error("close", "msg", "done")
 	network.node.Close()
 	log.Error("close", "node", "done")
-	network.loopdone <- struct{}{}
+	<-network.loopdone
 	log.Error("close", "loopdone", "done")
 	close(network.taskFactory)
-	//network.c.Close()
+	network.c.Close()
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
@@ -119,7 +119,7 @@ func (network *P2p) subP2pMsg() {
 				continue
 			}
 		}
-		<-network.loopdone
+		network.loopdone <- struct{}{}
 	}()
 
 }
