@@ -13,8 +13,9 @@ var genesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 var rlog = log.New("module", "raft")
 
 var (
-	isValidator bool = false
-	//isLeader bool =false
+	//isValidator bool = false
+	isLeader   bool = false
+	leaderIsOK bool = false
 )
 
 func NewRaftCluster(cfg *types.Consensus) *RaftClient {
