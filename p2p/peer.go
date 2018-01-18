@@ -110,7 +110,11 @@ func (p *peer) HeartBeat() {
 
 func (p *peer) HeartBlood() {
 	ticker := time.NewTicker(time.Second * 1)
+<<<<<<< HEAD
 	defer ticker.Stop()
+=======
+    defer ticker.Stop()
+>>>>>>> d8bd2cd9a7c9bb87f845b77adf096cd8c01c889b
 	select {
 	case p.heartDone <- struct{}{}:
 	case <-ticker.C:
