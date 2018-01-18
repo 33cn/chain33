@@ -17,6 +17,7 @@ import (
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/config"
+	"code.aliyun.com/chain33/chain33/common/limits"
 	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/execs"
 	"code.aliyun.com/chain33/chain33/mempool"
@@ -39,6 +40,11 @@ var (
 const Version = "v0.1.0"
 
 func main() {
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
+
 	runtime.GOMAXPROCS(CPUNUM)
 	go func() {
 		http.ListenAndServe("localhost:6060", nil)
