@@ -32,14 +32,13 @@ func (n *Node) Close() {
 	close(n.activeDone)
 	close(n.onlineDone)
 	close(n.offlineDone)
-	log.Debug("stop", "versionDone", "close")
+	log.Error("stop", "versionDone", "close")
 	n.l.Close()
-	log.Debug("stop", "listen", "close")
-	log.Debug("stop", "remotelisten", "close")
+	log.Error("stop", "listen", "close")
 	n.addrBook.Close()
-	log.Debug("stop", "addrBook", "close")
+	log.Error("stop", "addrBook", "close")
 	n.RemoveAll()
-	log.Debug("stop", "PeerRemoeAll", "close")
+	log.Error("stop", "PeerRemoeAll", "close")
 }
 
 type Node struct {
