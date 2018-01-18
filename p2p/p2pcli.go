@@ -546,11 +546,7 @@ func (m *P2pCli) GetExternIp(addr string) []string {
 func (m *P2pCli) Close() {
 
 	ticker := time.NewTicker(time.Second * 1)
-<<<<<<< HEAD
-	defer ticker.Stop()
-=======
-    defer ticker.Stop()
->>>>>>> d8bd2cd9a7c9bb87f845b77adf096cd8c01c889b
+    	defer ticker.Stop()
 	select {
 	case m.done <- struct{}{}:
 	case <-ticker.C:
