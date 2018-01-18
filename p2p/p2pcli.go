@@ -12,31 +12,68 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/queue"
-
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 type P2pCli struct {
-	network   *P2p
-	peerInfos map[string]*pb.Peer
-	done      chan struct{}
+	network  *P2p
+	mtx      sync.Mutex
+	taskinfo map[int64]bool
+	done     chan struct{}
 }
 type intervalInfo struct {
 	start int
 	end   int
 }
 
+func (m *P2pCli) addTask(taskid int64) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	m.taskinfo[taskid] = true
+}
+
+func (m *P2pCli) queryTask(taskid int64) bool {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	if _, ok := m.taskinfo[taskid]; ok {
+		return true
+	}
+	return false
+}
+
+func (m *P2pCli) removeTask(taskid int64) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	if _, ok := m.taskinfo[taskid]; ok {
+		delete(m.taskinfo, taskid)
+	}
+	return
+}
 func NewP2pCli(network *P2p) *P2pCli {
 	pcli := &P2pCli{
-		network: network,
-		done:    make(chan struct{}, 1),
+		network:  network,
+		taskinfo: make(map[int64]bool),
+		done:     make(chan struct{}, 1),
 	}
 
 	return pcli
 }
 
+func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
+	if err != nil {
+		peer.peerStat.NotOk()
+	} else {
+		peer.peerStat.Ok()
+	}
+	m.deletePeer(peer)
+}
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("BroadCastTx", "Release Task", "ok")
+	}()
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
@@ -44,14 +81,15 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 
 	m.broadcastByStream(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 	peers, _ := m.network.node.GetActivePeers()
+	//TODO channel
+	for _, pr := range peers { //限制对peer 的高频次调用
+		go func(pr *peer) {
+			pr.AllockTask()
+			defer pr.ReleaseTask()
+			_, err := pr.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
+			m.CollectPeerStat(err, pr)
 
-	for _, peer := range peers {
-		_, err := peer.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
-		if err != nil {
-			peer.mconn.sendMonitor.Update(false)
-			continue
-		}
-		peer.mconn.sendMonitor.Update(true)
+		}(pr)
 	}
 
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
@@ -59,26 +97,26 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 }
 
 func (m *P2pCli) GetMemPool(msg queue.Message) {
-
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("GetMemPool", "Release Task", "ok")
+	}()
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
 	peers, _ := m.network.node.GetActivePeers()
 
 	for _, peer := range peers {
 		//获取远程 peer invs
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-		resp, err := peer.mconn.conn.GetMemPool(ctx, &pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+
+		resp, err := peer.mconn.conn.GetMemPool(context.Background(), &pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		m.CollectPeerStat(err, peer)
 		if err != nil {
-			peer.mconn.sendMonitor.Update(false)
-			cancel()
 			continue
 		}
-		cancel()
-		peer.mconn.sendMonitor.Update(true)
+
 		invs := resp.GetInvs()
 		//与本地mempool 对比 tx数组
 		msg := m.network.c.NewMessage("mempool", pb.EventGetMempool, nil)
-		m.network.c.Send(msg, true)
 		txresp, err := m.network.c.Wait(msg)
 		if err != nil {
 			continue
@@ -98,11 +136,11 @@ func (m *P2pCli) GetMemPool(msg queue.Message) {
 		}
 		//获取真正的交易Tx call GetData
 		datacli, dataerr := peer.mconn.conn.GetData(context.Background(), &pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		m.CollectPeerStat(dataerr, peer)
 		if dataerr != nil {
-			peer.mconn.sendMonitor.Update(false)
 			continue
 		}
-		peer.mconn.sendMonitor.Update(true)
+
 		invdatas, recerr := datacli.Recv()
 		if recerr != nil && recerr != io.EOF {
 			log.Error("GetMemPool", "err", recerr.Error())
@@ -123,13 +161,12 @@ func (m *P2pCli) GetMemPool(msg queue.Message) {
 func (m *P2pCli) GetAddr(peer *peer) ([]string, error) {
 
 	resp, err := peer.mconn.conn.GetAddr(context.Background(), &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))})
+	m.CollectPeerStat(err, peer)
 	if err != nil {
-		peer.mconn.sendMonitor.Update(false)
 		return nil, err
 	}
 
 	log.Debug("GetAddr Resp", "Resp", resp, "addrlist", resp.Addrlist)
-	peer.mconn.sendMonitor.Update(true)
 	return resp.Addrlist, nil
 }
 
@@ -146,23 +183,22 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32(nodeinfo.externalAddr.Port)})
+	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(nodeinfo.externalAddr.Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-	addrfrom := fmt.Sprintf("%v:%v", ExternalAddr, nodeinfo.externalAddr.Port)
+	addrfrom := fmt.Sprintf("%v:%v", ExternalIp, nodeinfo.externalAddr.Port)
 	nodeinfo.blacklist.Add(addrfrom)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	resp, err := peer.mconn.conn.Version2(ctx, &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
+	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
+	m.CollectPeerStat(err, peer)
 	if err != nil {
 		log.Debug("SendVersion", "Verson", err.Error())
-		peer.version.Set(false)
+		peer.version.SetSupport(false)
 		if strings.Compare(err.Error(), VersionNotSupport) == 0 {
-			m.deletePeer(nodeinfo, peer)
+			m.CollectPeerStat(err, peer)
 
 		}
 		return err
@@ -172,40 +208,60 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	return nil
 }
 
-func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) {
+func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalAddr, Port: int32(nodeinfo.externalAddr.Port)})
+	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(nodeinfo.externalAddr.Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
-		return
+		return err
 	}
 	log.Debug("SEND PING", "Peer", peer.Addr(), "nonce", randNonce)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	r, err := peer.mconn.conn.Ping(ctx, in)
+	r, err := peer.mconn.conn.Ping(context.Background(), in)
+	m.CollectPeerStat(err, peer)
 	if err != nil {
-		log.Debug("SEND PING", "Errxxxxxxxxxxxxxx", err.Error())
-		peer.mconn.sendMonitor.Update(false)
-		if peer.IsPersistent() == false {
-			m.deletePeer(nodeinfo, peer)
-		}
-
-		return
+		log.Warn("SEND PING", "Err", err.Error(), "peer", peer.Addr())
+		return err
 	}
 
 	log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
-	peer.mconn.sendMonitor.Update(true)
-
+	return nil
 }
 
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
-	log.Info("GetPeerInfo", "info", m.PeerInfos())
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("GetPeerInfo", "Release Task", "ok")
+	}()
+	//log.Info("GetPeerInfo", "info", m.PeerInfos())
+	//添加自身peerInfo
+	tempServer := NewP2pServer()
+	tempServer.node = m.network.node
+	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+	if err == nil {
+
+		var peers = m.PeerInfos()
+
+		var peer pb.Peer
+		peer.Addr = peerinfo.GetAddr()
+		peer.Port = peerinfo.GetPort()
+		peer.Name = peerinfo.GetName()
+		peer.MempoolSize = peerinfo.GetMempoolSize()
+		peer.Self = true
+		peer.Header = peerinfo.GetHeader()
+		peers = append(peers, &peer)
+		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
+		return
+	}
+	log.Error("GetPeerInfo", "Err", err.Error())
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.PeerInfos()}))
 	return
 }
 
 func (m *P2pCli) GetBlocks(msg queue.Message) {
-
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("GetBlocks", "Release Task", "ok")
+	}()
 	if m.network.node.Size() == 0 {
 		log.Debug("GetBlocks", "boundNum", 0)
 		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no peers")}))
@@ -214,32 +270,46 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
 	req := msg.GetData().(*pb.ReqBlocks)
-
 	var MaxInvs = new(pb.P2PInv)
-
 	peers, pinfos := m.network.node.GetActivePeers()
-	for _, peer := range peers {
-		log.Error("peer", "addr", peer.Addr())
-		peerinfo := m.network.node.nodeInfo.peerInfos.GetPeerInfo(peer.Addr())
+	for _, peer := range peers { //限制对peer 的高频次调用
+
+		log.Error("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
+		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+		m.CollectPeerStat(err, peer)
+		if err != nil {
+			log.Error("GetPeers", "Err", err.Error())
+			continue
+		}
+
+		var pr pb.Peer
+		pr.Addr = peerinfo.GetAddr()
+		pr.Port = peerinfo.GetPort()
+		pr.Name = peerinfo.GetName()
+		pr.MempoolSize = peerinfo.GetMempoolSize()
+		pr.Header = peerinfo.GetHeader()
+
+		m.network.node.nodeInfo.peerInfos.SetPeerInfo(&pr)
 		if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
 			continue
 		}
 		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 			Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		m.CollectPeerStat(err, peer)
 		if err != nil {
 			log.Error("GetBlocks", "Err", err.Error())
-			peer.mconn.sendMonitor.Update(false)
+
 			continue
 		}
-
-		peer.mconn.sendMonitor.Update(true)
 		if len(invs.Invs) > len(MaxInvs.Invs) {
 			MaxInvs = invs
 			if len(MaxInvs.GetInvs()) == int(req.GetEnd()-req.GetStart())+1 {
 				break
 			}
 		}
+
 	}
+	log.Info("Invs", "Invs show", MaxInvs.GetInvs())
 	if len(MaxInvs.GetInvs()) == 0 {
 		log.Error("GetBlocks", "getInvs", 0)
 		return
@@ -260,17 +330,11 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	m.wait(&wg)
 
 	log.Error("downloadblock", "wait", "after")
-	close(bChan)
-	bks, keys := m.sortKeys(bChan)
-	var blocks pb.Blocks
-	for _, k := range keys {
-		log.Error("downloadblock", "index sort", int64(k))
-		blocks.Items = append(blocks.Items, bks[int64(k)])
+	for block := range bChan {
+		newmsg := m.network.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventAddBlock, block)
+		m.network.node.nodeInfo.qclient.SendAsyn(newmsg, false)
 	}
-
-	newmsg := m.network.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventAddBlocks, &blocks)
-	m.network.node.nodeInfo.qclient.Send(newmsg, false)
-
+	close(bChan)
 }
 
 func (m *P2pCli) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, bchan chan *pb.Block, wg *sync.WaitGroup,
@@ -289,13 +353,8 @@ FOOR_LOOP:
 		log.Debug("downloadBlock", "index", index)
 		var p2pdata pb.P2PGetData
 		p2pdata.Version = m.network.node.nodeInfo.cfg.GetVersion()
-		if interval.end >= len(invs.GetInvs()) || len(invs.GetInvs()) == 1 {
-			interval.end = len(invs.GetInvs()) - 1
-			p2pdata.Invs = invs.Invs[interval.start:]
-		} else {
-			p2pdata.Invs = invs.Invs[interval.start:interval.end]
-		}
-		log.Debug("downloadBlock", "interval invs", p2pdata.Invs)
+		p2pdata.Invs = invs.Invs[interval.start:interval.end]
+		log.Debug("downloadBlock", "interval invs", p2pdata.Invs, "start", interval.start, "end", interval.end)
 		//判断请求的节点的高度是否在节点的实际范围内
 		if index >= peersize {
 			log.Error("download", "index", index, "peersise", peersize)
@@ -309,9 +368,9 @@ FOOR_LOOP:
 			continue
 		}
 		if pinfo, ok := pinfos[peer.Addr()]; ok {
-			if pinfo.GetHeader().GetHeight() < int64(invs.Invs[interval.end].GetHeight()) {
+			if pinfo.GetHeader().GetHeight() < int64(invs.Invs[interval.end-1].GetHeight()) {
 				index++
-				log.Debug("download", "much height", pinfo.GetHeader().GetHeight(), "invs height", int64(invs.Invs[interval.end].GetHeight()))
+				//log.Debug("download", "much height", pinfo.GetHeader().GetHeight(), "invs height", int64(invs.Invs[interval.end-1].GetHeight()))
 				continue
 			}
 		} else {
@@ -321,15 +380,14 @@ FOOR_LOOP:
 		}
 		log.Debug("downloadBlock", "index", index, "peersize", peersize, "peeraddr", peer.Addr(), "p2pdata", p2pdata)
 		resp, err := peer.mconn.conn.GetData(context.Background(), &p2pdata)
+		m.CollectPeerStat(err, peer)
 		if err != nil {
 			log.Error("downloadBlock", "GetData err", err.Error())
-			peer.mconn.sendMonitor.Update(false)
 			index++
 			continue
 		}
 		var count int
 		for {
-			count++
 			invdatas, err := resp.Recv()
 			if err == io.EOF {
 				log.Error("download", "recv", "IO.EOF", "count", count)
@@ -338,12 +396,12 @@ FOOR_LOOP:
 				break FOOR_LOOP
 			}
 			if err != nil {
-				log.Error("download", "resp,Recv err", err.Error())
+				log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
 				resp.CloseSend()
 				break FOOR_LOOP
 			}
+			count++
 			for _, item := range invdatas.Items {
-
 				bchan <- item.GetBlock()
 			}
 		}
@@ -355,17 +413,21 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
 	peers := m.network.node.GetRegisterPeers()
 	for _, peer := range peers {
-		if peer.mconn.sendMonitor.GetCount() > 0 {
+		if peer.Addr() == fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort()) {
 			continue
 		}
-
-		peerinfo, err := peer.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+		m.CollectPeerStat(err, peer)
 		if err != nil {
-			m.deletePeer(m.network.node.nodeInfo, peer)
 			continue
 		}
-		peer.mconn.sendMonitor.Update(true)
-		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = (*pb.Peer)(peerinfo)
+		var pr pb.Peer
+		pr.Addr = peerinfo.GetAddr()
+		pr.Port = peerinfo.GetPort()
+		pr.Name = peerinfo.GetName()
+		pr.MempoolSize = peerinfo.GetMempoolSize()
+		pr.Header = peerinfo.GetHeader()
+		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = &pr
 	}
 	return peerlist
 }
@@ -392,24 +454,26 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 	log.Debug("caculateInterval", "invsNum", invsNum)
 	var result = make(map[int]*intervalInfo)
 	peerNum := m.network.node.Size()
-	if invsNum < peerNum {
-		result[0] = &intervalInfo{start: 0, end: invsNum - 1}
+	if peerNum == 0 {
+		//如果没有peer,那么没有办法分割
+		result[0] = &intervalInfo{0, invsNum}
 		return result
 	}
 	var interval = invsNum / peerNum
+	if interval == 0 {
+		interval = 1
+	}
 	var start, end int
 
 	for i := 0; i < peerNum; i++ {
 		end += interval
 		if end >= invsNum || i == peerNum-1 {
-			end = invsNum - 1
+			end = invsNum
 		}
-
 		result[i] = &intervalInfo{start: start, end: end}
-		log.Debug("caculateInterval", "createinfo", result[i])
+		log.Info("caculateInterval", "createinfo", result[i])
 		start = end
 	}
-
 	return result
 
 }
@@ -417,11 +481,16 @@ func (m *P2pCli) broadcastByStream(data interface{}) {
 	if tx, ok := data.(*pb.P2PTx); ok {
 		m.network.node.nodeInfo.p2pBroadcastChan <- tx
 	} else if block, ok := data.(*pb.P2PBlock); ok {
+		//log.Error("BroadcastByStream", "block height", block.GetBlock().GetHeight())
 		m.network.node.nodeInfo.p2pBroadcastChan <- block
 	}
 
 }
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
+	defer func() {
+		<-m.network.taskFactory
+		//log.Error("BlockBroadcast", "Release Task", "ok")
+	}()
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
@@ -433,7 +502,16 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	m.broadcastByStream(&pb.P2PBlock{Block: block})
 
 	for _, peer := range peers {
+		//比较peer 的高度是否低于广播的高度，如果高于，则不广播给对方
+		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+		if err != nil {
+			continue
+		}
+		if peerinfo.GetHeader().GetHeight() > block.GetHeight() {
+			continue
+		}
 		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
+		m.CollectPeerStat(err, peer)
 		if err != nil {
 			log.Error("BlockBroadcast", "Error", err.Error())
 			continue
@@ -443,8 +521,24 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 }
 
-func (m *P2pCli) GetTaskInfo(msg queue.Message) {
-	//TODO  查询任务状态
+func (m *P2pCli) GetExternIp(addr string) []string {
+	var addrlist []string
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+	if err != nil {
+		log.Error("grpc DialCon", "did not connect: %v", err)
+		return addrlist
+	}
+	defer conn.Close()
+	gconn := pb.NewP2PgserviceClient(conn)
+	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12})
+	if err != nil {
+		return addrlist
+	}
+
+	return resp.Addrlist
+
 }
 func (m *P2pCli) Close() {
 
@@ -456,11 +550,11 @@ func (m *P2pCli) Close() {
 	}
 
 }
-func (m *P2pCli) deletePeer(nodeinfo *NodeInfo, peer *peer) {
+func (m *P2pCli) deletePeer(peer *peer) {
 
 	ticker := time.NewTicker(time.Second * 1)
 	select {
-	case nodeinfo.monitorChan <- peer:
+	case (*peer.nodeInfo).monitorChan <- peer:
 	case <-ticker.C:
 		return
 	}
@@ -499,6 +593,10 @@ func (m *P2pCli) PeerInfos() []*pb.Peer {
 	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*pb.Peer
 	for _, peer := range peerinfos {
+
+		if peer.GetAddr() == ExternalIp && peer.GetPort() == int32(m.network.node.GetExterPort()) {
+			continue
+		}
 		peers = append(peers, peer)
 	}
 	return peers

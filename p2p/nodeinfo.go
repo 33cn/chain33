@@ -17,7 +17,8 @@ type NodeInfo struct {
 	listenAddr       *NetAddress `json:"listen_addr"`
 	version          string      `json:"version"`
 	monitorChan      chan *peer
-	versionChan      chan struct{}
+	natNoticeChain   chan struct{}
+	natResultChain   chan bool
 	p2pBroadcastChan chan interface{}
 	cfg              *types.P2P
 	q                *queue.Queue
@@ -35,6 +36,7 @@ func (p *PeerInfos) PeerSize() int {
 	defer p.mtx.Unlock()
 	return len(p.infos)
 }
+
 func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
@@ -46,7 +48,6 @@ func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 	for _, peer := range in {
 		p.infos[fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())] = peer
 	}
-
 }
 
 func (p *PeerInfos) GetPeerInfos() map[string]*types.Peer {
@@ -57,6 +58,13 @@ func (p *PeerInfos) GetPeerInfos() map[string]*types.Peer {
 		pinfos[k] = v
 	}
 	return pinfos
+}
+
+func (p *PeerInfos) SetPeerInfo(peer *types.Peer) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	key := fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())
+	p.infos[key] = peer
 }
 
 func (p *PeerInfos) GetPeerInfo(key string) *types.Peer {

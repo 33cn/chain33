@@ -4,12 +4,23 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/p2p/nat"
 	pb "code.aliyun.com/chain33/chain33/types"
 
 	"google.golang.org/grpc"
 )
+
+func (l *DefaultListener) Close() bool {
+	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
+	log.Debug("stop", "closed natport", "close")
+	l.server.Stop()
+	log.Debug("stop", "closed grpc server", "close")
+	l.listener.Close()
+	log.Debug("stop", "DefaultListener", "close")
+	return true
+}
 
 type Listener interface {
 	Close() bool
@@ -20,7 +31,7 @@ type DefaultListener struct {
 	listener net.Listener
 	server   *grpc.Server
 	nodeInfo *NodeInfo
-	c        chan struct{}
+	natClose chan struct{}
 	n        *Node
 }
 
@@ -33,22 +44,24 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 		return nil
 	}
 
-	var C = make(chan struct{})
 	dl := &DefaultListener{
 		listener: listener,
 		nodeInfo: node.nodeInfo,
-		c:        C,
+		natClose: make(chan struct{}, 1),
 		n:        node,
 	}
-
-	go dl.Start() // Started upon construction
+	pServer := NewP2pServer()
+	pServer.node = dl.n
+	pServer.innerBroadBlock()
+	dl.server = grpc.NewServer()
+	pb.RegisterP2PgserviceServer(dl.server, pServer)
+	go dl.NatMapPort()
+	go dl.listenRoutine()
 	return dl
 }
 
-func (l *DefaultListener) Start() {
-	log.Debug("defaultlistener", "localport:", l.nodeInfo.GetListenAddr().Port)
-	go l.NatMapPort()
-	go l.listenRoutine()
+func (l *DefaultListener) WaitForNat() {
+	<-l.nodeInfo.natNoticeChain
 	return
 }
 
@@ -57,51 +70,45 @@ func (l *DefaultListener) NatMapPort() {
 
 		return
 	}
-
+	l.WaitForNat()
+	var err error
 	for i := 0; i < TryMapPortTimes; i++ {
 
-		if nat.Map(nat.Any(), l.c, "TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33 p2p") != nil {
-
-			{
-
-				l.nodeInfo.blacklist.Delete(l.nodeInfo.GetExternalAddr().String())
-				l.n.externalPort = uint16(rand.Intn(64512) + 1023)
-				l.n.FlushNodeInfo()
-				l.nodeInfo.blacklist.Add(l.n.nodeInfo.GetExternalAddr().String())
-				log.Debug("NatMapPort", "Port", l.n.nodeInfo.GetExternalAddr())
-
-			}
-
+		err = nat.Any().AddMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33-p2p", time.Minute*20)
+		if err != nil {
+			log.Error("NatMapPort", "err", err.Error())
+			l.n.externalPort = uint16(rand.Intn(64512) + 1023)
+			l.n.FlushNodeInfo()
+			log.Info("NatMapPort", "Port", l.n.nodeInfo.GetExternalAddr())
 			continue
 		}
 
+		break
 	}
-	l.n.externalPort = DefaultPort
-	l.n.FlushNodeInfo()
-	log.Error("Nat Map", "Error Map Port Failed ----------------")
+	if err != nil {
+		//映射失败
+		log.Error("NatMapPort", "Nat Faild", "Sevice6")
+		l.nodeInfo.natResultChain <- false
+		return
+	}
 
-}
-func (l *DefaultListener) Close() bool {
-	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
-	nat.Any().DeleteMapping(Protocol, int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port))
-	log.Debug("stop", "closed natport", "close")
-	l.server.Stop()
-	log.Debug("stop", "closed grpc server", "close")
-	l.listener.Close()
-	log.Debug("stop", "DefaultListener", "close")
-	return true
+	l.nodeInfo.natResultChain <- true
+	refresh := time.NewTimer(mapUpdateInterval)
+	for {
+		select {
+		case <-refresh.C:
+			nat.Any().AddMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33-p2p", time.Minute*20)
+			refresh.Reset(mapUpdateInterval)
+
+		case <-l.natClose:
+			nat.Any().DeleteMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()))
+			return
+		}
+	}
+
 }
 
 func (l *DefaultListener) listenRoutine() {
-
 	log.Debug("LISTENING", "Start Listening+++++++++++++++++Port", l.nodeInfo.listenAddr.Port)
-
-	pServer := NewP2pServer()
-	pServer.node = l.n
-	pServer.innerBroadBlock()
-	l.server = grpc.NewServer()
-
-	pb.RegisterP2PgserviceServer(l.server, pServer)
 	l.server.Serve(l.listener)
-
 }
