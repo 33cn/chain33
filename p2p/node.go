@@ -264,10 +264,7 @@ func (n *Node) AddPeer(pr *peer) {
 	if pr.outbound == false {
 		return
 	}
-	if _, ok := n.outBound[pr.Addr()]; ok {
-		log.Error("AddrPeer", "Close peer", pr.Addr())
-		pr.Close()
-	}
+
 	log.Error("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
 	pr.key = n.addrBook.key
