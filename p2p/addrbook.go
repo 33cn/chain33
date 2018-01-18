@@ -303,7 +303,7 @@ func (a *AddrBook) AddAddress(addr *NetAddress) {
 	}
 
 	if !addr.Routable() {
-		log.Error("XXXXXXXXXXXXXXXXXCannot add non-routable address ", "addr", addr)
+		log.Error("Cannot add non-routable address ", "addr", addr)
 		return
 	}
 

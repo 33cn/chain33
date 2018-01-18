@@ -1,9 +1,22 @@
 package p2p
 
 import (
+	"net"
 	"time"
 )
 
+func (n *Node) AddrTest(addrs []string) []string {
+	var enableAddrs []string
+	for _, addr := range addrs {
+		_, err := net.Dial("tcp", addr)
+		if err == nil {
+			enableAddrs = append(enableAddrs, addr)
+		}
+	}
+
+	return enableAddrs
+
+}
 func (n *Node) checkActivePeers() {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
@@ -74,15 +87,19 @@ FOR_LOOP:
 						continue
 					}
 					log.Info("getAddrFromOnline", "ADDRLIST", addrlist)
+					//过滤无法连接的节点
+
 					//过滤黑名单的地址
+					oklist := n.AddrTest(addrlist)
 					var whitlist = make(map[string]bool)
-					for _, addr := range addrlist {
+					for _, addr := range oklist {
 						if n.nodeInfo.blacklist.Has(addr) == false {
 							whitlist[addr] = true
 						} else {
 							log.Warn("Filter addr", "BlackList", addr)
 						}
 					}
+
 					n.DialPeers(whitlist) //对获取的地址列表发起连接
 
 				}
@@ -112,11 +129,18 @@ FOR_LOOP:
 
 				log.Info("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
 				peeraddrs := n.addrBook.GetPeers()
+
 				if len(peeraddrs) != 0 {
+					var testlist []string
 					for _, peer := range peeraddrs {
-						if n.Has(peer.String()) == false && n.nodeInfo.blacklist.Has(peer.String()) == false {
-							log.Info("GetAddrFromOffline", "Add addr", peer.String())
-							savelist[peer.String()] = true
+						testlist = append(testlist, peer.String())
+					}
+					oklist := n.AddrTest(testlist)
+					for _, addr := range oklist {
+
+						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
+							log.Info("GetAddrFromOffline", "Add addr", addr)
+							savelist[addr] = true
 						}
 						log.Info("getAddrFromOffline", "list", savelist)
 					}
@@ -125,6 +149,7 @@ FOR_LOOP:
 				if len(savelist) == 0 {
 					continue
 				}
+
 				n.DialPeers(savelist)
 			} else {
 				log.Info("getAddrFromOffline", "nodestable", n.needMore())

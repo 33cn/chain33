@@ -11,6 +11,7 @@ import (
 	"flag"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"runtime"
 
 	"code.aliyun.com/chain33/chain33/blockchain"
@@ -25,6 +26,9 @@ import (
 	"code.aliyun.com/chain33/chain33/store"
 	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
+	"golang.org/x/net/trace"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -35,14 +39,25 @@ var (
 const Version = "v0.1.0"
 
 func main() {
-    runtime.GOMAXPROCS(CPUNUM)
+	runtime.GOMAXPROCS(CPUNUM)
 	go func() {
 		http.ListenAndServe("localhost:6060", nil)
 	}()
+	grpc.EnableTracing = true
+	go startTrace()
 	flag.Parse()
 
 	cfg := config.InitCfg(*configpath)
 	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
+
+	f, err := CreateFile(cfg.P2P.GetGrpcLogFile())
+	if err != nil {
+		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
+		grpclog.SetLoggerV2(glogv2)
+	} else {
+		glogv2 := grpclog.NewLoggerV2(f, f, f)
+		grpclog.SetLoggerV2(glogv2)
+	}
 	//channel, rabitmq 等
 	log.Info("chain33 " + Version)
 	log.Info("loading queue")
@@ -51,6 +66,7 @@ func main() {
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueue(q)
+
 	log.Info("loading mempool module")
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueue(q)
@@ -108,4 +124,22 @@ func main() {
 	q.Close()
 	log.Info("begin close wallet module")
 	walletm.Close()
+}
+
+// 开启trace
+func startTrace() {
+	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
+		return true, true
+	}
+	go http.ListenAndServe(":50051", nil)
+	log.Error("Trace listen on 50051")
+}
+
+func CreateFile(filename string) (*os.File, error) {
+
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
 }

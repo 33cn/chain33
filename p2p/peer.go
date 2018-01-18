@@ -19,6 +19,7 @@ func (p *peer) Close() {
 	p.setRunning(false)
 	p.mconn.Close()
 	p.HeartBlood()
+	close(p.taskPool)
 	close(p.streamDone)
 
 }
@@ -38,6 +39,7 @@ type peer struct {
 	peerStat   *Stat
 	streamDone chan struct{}
 	heartDone  chan struct{}
+	taskPool   chan struct{}
 }
 
 type Version struct {
@@ -123,7 +125,7 @@ func (p *peer) subStreamBlock() {
 	for {
 		select {
 		case <-p.streamDone:
-			log.Error("SubStreamBlock", "peerdone", p.Addr())
+			//log.Error("SubStreamBlock", "peerdone", p.Addr())
 			return
 
 		default:
@@ -132,6 +134,7 @@ func (p *peer) subStreamBlock() {
 			if err != nil {
 				p.peerStat.NotOk()
 				(*p.nodeInfo).monitorChan <- p
+				time.Sleep(time.Second * 5)
 				continue
 			}
 			log.Info("SubStreamBlock", "Start", p.Addr())
@@ -198,4 +201,14 @@ func (p *peer) Addr() string {
 // IsPersistent returns true if the peer is persitent, false otherwise.
 func (p *peer) IsPersistent() bool {
 	return p.persistent
+}
+
+func (p *peer) AllockTask() {
+	p.taskPool <- struct{}{}
+	return
+}
+
+func (p *peer) ReleaseTask() {
+	<-p.taskPool
+	return
 }

@@ -53,9 +53,11 @@ func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 			log.Debug("PING CHECK SIGN SUCCESS")
 		}
 	}
+
 	//s.update(fmt.Sprintf("%v:%v", in.Addr, in.Port))
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
 	return &pb.P2PPong{Nonce: in.GetNonce()}, nil
+
 }
 
 // 获取地址
@@ -97,7 +99,6 @@ func (s *p2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 	s.node.addrBook.AddAddress(remoteNetwork)
 	return &pb.P2PVerAck{Version: s.node.nodeInfo.cfg.GetVersion(), Service: 6, Nonce: in.Nonce}, nil
 }
-
 func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 
 	getctx, ok := pr.FromContext(ctx)
@@ -344,6 +345,16 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 
 	return nil
 
+}
+
+func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
+	var addrlist = make([]string, 0)
+	getctx, ok := pr.FromContext(ctx)
+	if ok {
+		remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
+		addrlist = append(addrlist, remoteaddr)
+	}
+	return &pb.P2PAddr{Addrlist: addrlist}, nil
 }
 
 func (s *p2pServer) checkVersion(version int32) bool {

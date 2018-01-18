@@ -8,7 +8,7 @@ package leveldb
 
 import (
 	"time"
-
+    "runtime/debug"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -69,6 +69,7 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 	flush := func() (retry bool) {
 		mdb = db.getEffectiveMem()
 		if mdb == nil {
+            debug.PrintStack()
 			err = ErrClosed
 			return false
 		}
@@ -287,6 +288,7 @@ func (db *DB) Write(batch *Batch, wo *opt.WriteOptions) error {
 			return err
 		case <-db.closeC:
 			// Closed
+            debug.PrintStack()
 			return ErrClosed
 		}
 	} else {
@@ -298,6 +300,7 @@ func (db *DB) Write(batch *Batch, wo *opt.WriteOptions) error {
 			return err
 		case <-db.closeC:
 			// Closed
+            debug.PrintStack()
 			return ErrClosed
 		}
 	}
@@ -329,6 +332,7 @@ func (db *DB) putRec(kt keyType, key, value []byte, wo *opt.WriteOptions) error 
 			return err
 		case <-db.closeC:
 			// Closed
+            debug.PrintStack()
 			return ErrClosed
 		}
 	} else {
@@ -340,6 +344,7 @@ func (db *DB) putRec(kt keyType, key, value []byte, wo *opt.WriteOptions) error 
 			return err
 		case <-db.closeC:
 			// Closed
+            debug.PrintStack()
 			return ErrClosed
 		}
 	}
@@ -396,12 +401,14 @@ func (db *DB) CompactRange(r util.Range) error {
 	case err := <-db.compPerErrC:
 		return err
 	case <-db.closeC:
+            debug.PrintStack()
 		return ErrClosed
 	}
 
 	// Check for overlaps in memdb.
 	mdb := db.getEffectiveMem()
 	if mdb == nil {
+            debug.PrintStack()
 		return ErrClosed
 	}
 	defer mdb.decref()
@@ -436,6 +443,7 @@ func (db *DB) SetReadOnly() error {
 	case err := <-db.compPerErrC:
 		return err
 	case <-db.closeC:
+            debug.PrintStack()
 		return ErrClosed
 	}
 
@@ -445,6 +453,7 @@ func (db *DB) SetReadOnly() error {
 	case perr := <-db.compPerErrC:
 		return perr
 	case <-db.closeC:
+            debug.PrintStack()
 		return ErrClosed
 	}
 
