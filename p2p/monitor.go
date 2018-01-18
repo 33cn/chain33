@@ -30,9 +30,7 @@ FOR_LOOP:
 			peers := n.GetRegisterPeers()
 			for _, peer := range peers {
 				if peer.mconn == nil {
-					n.addrBook.RemoveAddr(peer.Addr())
-					n.addrBook.Save()
-					n.Remove(peer.Addr())
+					n.destroyPeer(peer)
 					continue
 				}
 
@@ -40,9 +38,7 @@ FOR_LOOP:
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > 10 || peer.GetRunning() == false {
 						log.Error("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
-						n.addrBook.RemoveAddr(peer.Addr())
-						n.addrBook.Save()
-						n.Remove(peer.Addr())
+						n.destroyPeer(peer)
 					}
 				}
 
@@ -51,18 +47,22 @@ FOR_LOOP:
 
 	}
 }
-func (n *Node) deleteErrPeer() {
+func (n *Node) destroyPeer(peer *peer) {
+	log.Error("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
+	n.addrBook.RemoveAddr(peer.Addr())
+	n.addrBook.Save()
+	n.Remove(peer.Addr())
+}
+func (n *Node) monitorErrPeer() {
 
 	for {
 
 		peer := <-n.nodeInfo.monitorChan
 		log.Debug("deleteErrPeer", "REMOVE", peer.Addr())
-		if peer.version.IsSupport() == false || peer.GetRunning() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
-			log.Error("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
+		if peer.version.IsSupport() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
+
 			n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
-			n.addrBook.RemoveAddr(peer.Addr())
-			n.addrBook.Save()
-			n.Remove(peer.Addr())
+			n.destroyPeer(peer)
 		}
 
 		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
