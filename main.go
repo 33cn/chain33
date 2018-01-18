@@ -9,10 +9,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
@@ -27,6 +29,7 @@ import (
 	"code.aliyun.com/chain33/chain33/store"
 	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
+	"github.com/stackimpact/stackimpact-go"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -40,22 +43,44 @@ var (
 const Version = "v0.1.0"
 
 func main() {
+	//set file limit
+	agent := stackimpact.Start(stackimpact.Options{
+		AgentKey: "eb4c12dfe2d4b23b22634e7fed4d65899d5ca925",
+		AppName:  "MyGoApp",
+	})
+	span := agent.Profile()
+	defer span.Stop()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
 	}
-
-	runtime.GOMAXPROCS(CPUNUM)
+	//set watching
+	t := time.Tick(10 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-t:
+				watching()
+			}
+		}
+	}()
+	//set pprof
 	go func() {
 		http.ListenAndServe("localhost:6060", nil)
 	}()
+	//set trace
 	grpc.EnableTracing = true
 	go startTrace()
+	//set maxprocs
+	runtime.GOMAXPROCS(CPUNUM)
+
 	flag.Parse()
-
+	//set config
 	cfg := config.InitCfg(*configpath)
-	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
 
+	//set file log
+	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
+	//set grpc log
 	f, err := CreateFile(cfg.P2P.GetGrpcLogFile())
 	if err != nil {
 		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
@@ -64,6 +89,7 @@ func main() {
 		glogv2 := grpclog.NewLoggerV2(f, f, f)
 		grpclog.SetLoggerV2(glogv2)
 	}
+	//开始区块链模块加载
 	//channel, rabitmq 等
 	log.Info("chain33 " + Version)
 	log.Info("loading queue")
@@ -148,4 +174,11 @@ func CreateFile(filename string) (*os.File, error) {
 		return nil, err
 	}
 	return f, nil
+}
+
+func watching() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	log.Error("info:", "NumGoroutine:", runtime.NumGoroutine())
+	fmt.Printf("\nAlloc = %v\nTotalAlloc = %v\nSys = %v\nNumGC = %v\n\n", m.Alloc/1024, m.TotalAlloc/1024, m.Sys/1024, m.NumGC)
 }

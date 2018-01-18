@@ -44,7 +44,7 @@ type Client struct {
 func newClient(q *Queue) IClient {
 	client := &Client{}
 	client.q = q
-	client.recv = make(chan Message, 2)
+	client.recv = make(chan Message, 5)
 	client.done = make(chan struct{}, 1)
 	client.wg = &sync.WaitGroup{}
 	return client
