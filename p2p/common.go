@@ -8,7 +8,6 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	pb "code.aliyun.com/chain33/chain33/types"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -62,6 +61,7 @@ func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *N
 		conn:       conn,
 		streamDone: make(chan struct{}, 1),
 		heartDone:  make(chan struct{}, 1),
+		taskPool:   make(chan struct{}, 50),
 		nodeInfo:   nodeinfo,
 	}
 	p.peerStat = new(Stat)
@@ -111,24 +111,7 @@ func (c Comm) Pubkey(key string) (string, error) {
 
 	return hex.EncodeToString(priv.PubKey().Bytes()), nil
 }
-func (c Comm) GetSelfExternalAddr(serveraddr string) []string {
-	var addrlist = make([]string, 0)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
-	defer cancel()
-	conn, err := grpc.DialContext(ctx, serveraddr, grpc.WithInsecure())
-	if err != nil {
-		log.Error("grpc DialCon", "did not connect: %v", err)
-		return addrlist
-	}
-	defer conn.Close()
-	gconn := pb.NewP2PremoteaddrClient(conn)
-	resp, err := gconn.RemotePeerAddr(ctx, &pb.P2PGetAddr{Nonce: 12})
-	if err != nil {
-		return addrlist
-	}
 
-	return resp.Addrlist
-}
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
 	var ready = true
