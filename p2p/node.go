@@ -354,7 +354,7 @@ func (n *Node) needMore() bool {
 func (n *Node) DetectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LocalAddr = P2pComm.GetLocalAddr()
-	log.Debug("DetectionNodeAddr", "addr:", LocalAddr)
+	log.Error("DetectionNodeAddr", "addr:", LocalAddr)
 
 	if cfg.GetIsSeed() {
 		ExternalIp = LocalAddr
@@ -382,9 +382,13 @@ SET_ADDR:
 	}
 
 	addr := fmt.Sprintf("%v:%v", ExternalIp, n.GetExterPort())
+	log.Error("DetectionNodeAddr", "AddBlackList", addr)
+	n.nodeInfo.blacklist.Add(addr) //把自己的外网地址加入到黑名单，以防连接self
 	if exaddr, err := NewNetAddressString(addr); err == nil {
 		n.nodeInfo.SetExternalAddr(exaddr)
-		n.nodeInfo.blacklist.Add(addr) //把自己的外网地址加入到黑名单，以防连接自己
+
+	} else {
+		log.Error("DetectionNodeAddr", "error", err.Error())
 	}
 	if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, n.GetLocalPort())); err == nil {
 		n.nodeInfo.SetListenAddr(listaddr)

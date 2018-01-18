@@ -203,9 +203,30 @@ func (p *peer) IsPersistent() bool {
 	return p.persistent
 }
 
-func (p *peer) AllockTask() {
+func (p *peer) AllockTask() (err error) {
+	defer func() {
+		isErr := recover()
+		if isErr != nil {
+			err = isErr.(error)
+		}
+	}()
 	p.taskPool <- struct{}{}
-	return
+	return err
+	//	select {
+	//	case <-time.After(time.Second * 2):
+	//		log.Error("read channel timeout")
+	//		return fmt.Errorf("time out")
+	//	case _, ok := <-p.taskPool:
+	//		if !ok {
+	//			log.Error("AlloclTask", "Stat", "Channel Closed")
+	//			return fmt.Errorf("Channel Closed")
+	//		}
+	//		//补偿
+	//		p.taskPool <- struct{}{}
+	//		p.taskPool <- struct{}{}
+	//		return nil
+	//	}
+
 }
 
 func (p *peer) ReleaseTask() {

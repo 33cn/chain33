@@ -8,7 +8,8 @@ import (
 func (n *Node) AddrTest(addrs []string) []string {
 	var enableAddrs []string
 	for _, addr := range addrs {
-		_, err := net.Dial("tcp", addr)
+
+		_, err := net.DialTimeout("tcp", addr, time.Second*1)
 		if err == nil {
 			enableAddrs = append(enableAddrs, addr)
 		}

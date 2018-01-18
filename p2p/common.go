@@ -64,6 +64,7 @@ func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *N
 		taskPool:   make(chan struct{}, 50),
 		nodeInfo:   nodeinfo,
 	}
+	p.taskPool <- struct{}{}
 	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.SetSupport(true)
