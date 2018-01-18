@@ -90,7 +90,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	}
 
 	if len(cache.txFrontTen) >= 10 {
-		cache.txFrontTen = cache.txFrontTen[len(cache.txFrontTen)-10:]
+		cache.txFrontTen = cache.txFrontTen[len(cache.txFrontTen)-9:]
 	}
 	cache.txFrontTen = append(cache.txFrontTen, tx)
 
