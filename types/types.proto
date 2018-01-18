@@ -704,7 +704,7 @@ message Hashlock{
 	int64  frozentime    = 7;
 }
 
-//message for execs.hashlock
+//message for hashlock
 message HashlockAction {
 	oneof value {
 		HashlockLock      hlock   = 1;
