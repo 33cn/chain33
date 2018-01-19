@@ -256,14 +256,12 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 
 	req := msg.GetData().(*pb.ReqBlocks)
 	var MaxInvs = new(pb.P2PInv)
-	peers, pinfos := m.network.node.GetActivePeers()
+	peers, infos := m.network.node.GetActivePeers()
 	for _, peer := range peers { //限制对peer 的高频次调用
 
 		log.Error("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
-		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
-		m.CollectPeerStat(err, peer)
-		if err != nil {
-			log.Error("GetPeers", "Err", err.Error())
+		peerinfo, ok := infos[peer.Addr()]
+		if !ok {
 			continue
 		}
 		var pr pb.Peer
@@ -304,7 +302,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	var gcount int
 	for index, interval := range intervals {
 		gcount++
-		go m.downloadBlock(index, interval, MaxInvs, bChan, peers, pinfos)
+		go m.downloadBlock(index, interval, MaxInvs, bChan, peers, infos)
 	}
 	i := 0
 	for {
@@ -477,7 +475,7 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 		//log.Error("BlockBroadcast", "Release Task", "ok")
 	}()
 	block := msg.GetData().(*pb.Block)
-	peers, _ := m.network.node.GetActivePeers()
+	peers, infos := m.network.node.GetActivePeers()
 	m.broadcastByStream(&pb.P2PBlock{Block: block})
 
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
@@ -488,8 +486,9 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 
 	for _, peer := range peers {
 		//比较peer 的高度是否低于广播的高度，如果高于，则不广播给对方
-		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
-		if err != nil {
+		//peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+		peerinfo, ok := infos[peer.Addr()]
+		if !ok {
 			continue
 		}
 		if peerinfo.GetHeader().GetHeight() > block.GetHeight() {

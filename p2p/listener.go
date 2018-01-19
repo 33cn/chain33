@@ -50,7 +50,7 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	}
 	pServer := NewP2pServer()
 	pServer.node = dl.n
-	pServer.innerBroadBlock()
+	pServer.ManageStream()
 	dl.server = grpc.NewServer()
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	go dl.NatMapPort()

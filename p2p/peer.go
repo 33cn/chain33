@@ -21,7 +21,7 @@ func (p *peer) Close() {
 	p.HeartBlood()
 	close(p.taskPool)
 	close(p.streamDone)
-	close(p.sendTxLoop)
+	close(p.txLoopDone)
 	close(p.taskChan)
 
 }
@@ -40,7 +40,7 @@ type peer struct {
 	peerAddr   *NetAddress
 	peerStat   *Stat
 	streamDone chan struct{}
-	sendTxLoop chan struct{}
+	txLoopDone chan struct{}
 	heartDone  chan struct{}
 	taskPool   chan struct{}
 	taskChan   chan interface{} //tx block
@@ -126,18 +126,19 @@ func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 }
 func (p *peer) SendData(data interface{}) (err error) {
 	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
 	defer func() {
 		isErr := recover()
 		if isErr != nil {
 			err = isErr.(error)
 		}
 	}()
-	defer tick.Stop()
+
 	select {
 	case <-tick.C:
 		//log.Error("Peer SendData", "timeout", "return")
 		return
-	case <-p.sendTxLoop:
+	case <-p.txLoopDone:
 		return
 	case p.taskChan <- data:
 	}
@@ -274,20 +275,6 @@ func (p *peer) AllockTask() (err error) {
 	}()
 	p.taskPool <- struct{}{}
 	return err
-	//	select {
-	//	case <-time.After(time.Second * 2):
-	//		log.Error("read channel timeout")
-	//		return fmt.Errorf("time out")
-	//	case _, ok := <-p.taskPool:
-	//		if !ok {
-	//			log.Error("AlloclTask", "Stat", "Channel Closed")
-	//			return fmt.Errorf("Channel Closed")
-	//		}
-	//		//补偿
-	//		p.taskPool <- struct{}{}
-	//		p.taskPool <- struct{}{}
-	//		return nil
-	//	}
 
 }
 
