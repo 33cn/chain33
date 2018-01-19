@@ -1,0 +1,619 @@
+<script type="text/javascript" src="webui/jquery.min.js"></script>
+<script type="text/javascript" src="webui/qrcode.min.js"></script>
+<div id="light" class="white_content" style="height:auto;left:20%;width:60%">
+<table width="100%">
+<tr><td align="right"><a href="javascript:closepopup()">X</a>
+<tr><td align="center"><span class="qr_addr_label" id="qr_label"></span>
+<tr><td align="center"><span class="qr_addr_addr" id="qr_address"></span>
+<tr><td align="center">
+<div id="qrcode"></div>
+<tr><td align="right">&nbsp;
+</table>
+</div><div id="fade" class="black_overlay"></div>
+
+<script>
+/*WALLET_JS_VARS*/
+var prvpos = null
+
+var qrcode = new QRCode(document.getElementById("qrcode"), {width:300, height:300})
+
+function showqrcode(label, addr) {
+	qr_label.innerText = label
+	qr_address.innerText = addr
+	qrcode.makeCode(addr)
+
+	if (prvpos==null) {
+		fade.addEventListener('click', closepopup)
+		fade.style.cursor = 'pointer'
+		fade.title = 'Click here to close the popup'
+	}
+
+	prvpos = document.body.scrollTop
+	window.scrollTo(0,0)
+
+	light.style.display='block'
+	fade.style.display='block'
+	document.addEventListener("scroll", noscroll)
+}
+</script>
+
+<style>
+td.addr_long {
+	font-size:10px;
+	font-weight:bold;
+}
+td.addr_norm {
+	font-weight:bold;
+}
+td.addr_label {
+	//white-space: nowrap;
+}
+td.balbtc {
+	text-align: right;
+	font-family: monospace;
+	font-size: 110%;
+	width: 150px;
+}
+td.segwitaddr {
+	text-align: left;
+	//font-style:italic;
+	//font-size: 80%;
+	color:brown;
+}
+td.segwitcnt {
+	text-align: right;
+	font-style:italic;
+	color:brown;
+}
+td.outcnt {
+	text-align: right;
+}
+</style>
+<script>
+var edit_in_progress = false
+var wallet;
+var fetching_balance_in_progress = null
+function switchwallet_button_click_browser() {
+	if (edit_in_progress) {
+		close_editor()
+	}
+	cur_wallet_name.innerText = this.value
+	switch_to_webwallet(this.value)
+}
+
+function remove_comment_from_label(lab) {
+	var i = lab.indexOf('#')
+	if (i==-1)  return lab
+	return lab.substr(0, i)
+}
+
+function fetch_wallet_balance(name) {
+	if (fetching_balance_in_progress!=null) {
+		fetching_balance_in_progress.abort()
+		fetching_balance_in_progress = null
+	}
+
+	wallet = parse_wallet(localStorage.getItem("gocoinWal_"+name))
+	var wallet_addr = new Array()
+
+	for (var i=0; i<wallet.length; i++) {
+		wallet_addr.push(wallet[i].addr)
+	}
+
+	while (walltab.rows.length>1) {
+		walltab.deleteRow(1)
+	}
+
+	var aj = ajax()
+
+	var mempool = show_mempol.checked
+
+	aj.onerror=function() {
+		loading_icon.style.display = 'none'
+		fetching_balance_in_progress = null
+		console.log("onerror")
+	}
+
+	aj.onload=function() {
+		loading_icon.style.display = 'none'
+		fetching_balance_in_progress = null
+		try {
+			var totbtc = 0,  totvalin = 0,  totvalout = 0
+			var totouts = 0,  totcntin = 0,  totcntout = 0
+			bal = JSON.parse(aj.responseText)
+			var idxx = 0
+			for (var i in wallet_addr) {
+				var rec = bal[wallet_addr[i]]
+
+				if ((rec.OutCnt+rec.PendingCnt)==0 && wallet[i].virgin) {
+					continue
+				}
+
+				var td, row = walltab.insertRow(-1)
+				row.className = "hov"
+				row.id = 'walrow'+idxx
+
+				row["btc_addr"] = wallet_addr[i]
+				row["addr_label"] = wallet[i].label
+
+				td = row.insertCell(-1)
+				td.className = (wallet_addr[i].length>80) ? "addr_long" : "addr_norm"
+				td.innerHTML = '<img src="webui/qrcode.png" onclick="showqrcode(\''  + wallet[i].label +
+					'\', \'' + wallet_addr[i] + '\')" class="hand"> ' + wallet_addr[i]
+
+				td = row.insertCell(-1)
+				td.className = "hand addr_label"
+				td.innerText = remove_comment_from_label(wallet[i].label)
+				if (wallet[i].virgin) {
+					td.classList.add("i")
+				}
+				//? ' ***' : '' )
+				td["row_idx"] = idxx
+				td.addEventListener('click', edit_label)
+
+				td = row.insertCell(-1)
+				td.className = "balbtc"
+				if (rec.OutCnt>0) {
+					td.innerText = val2str_pad(rec.Value,true)
+				}
+				if (mempool) {
+					if (rec.PendingValue>0) {
+						td.innerHTML += '<br><span class="unspent_plus">+' + val2str_pad(rec.PendingValue,true) + '</span>'
+					}
+					if (rec.SpendingValue>0) {
+						td.innerHTML += '<br><span class="unspent_minus">-' + val2str_pad(rec.SpendingValue,true) + '</span>'
+					}
+				}
+
+				td = row.insertCell(-1)
+				td.className = "outcnt"
+				if (rec.OutCnt>0) {
+					td.innerText = rec.OutCnt
+					totouts += rec.OutCnt
+				}
+				if (mempool) {
+					if (rec.PendingCnt>0) {
+						td.innerHTML += '<br><span class="unspent_plus">+' + rec.PendingCnt + '</span>'
+					}
+					if (rec.SpendingCnt>0) {
+						td.innerHTML += '<br><span class="unspent_minus">-' + rec.SpendingCnt + '</span>'
+					}
+				}
+
+				// empty column,  for space
+				row.insertCell(-1)
+
+
+				td = row.insertCell(-1)
+				td.className = 'segwitaddr'
+				if (segwit_active && rec.SegWitAddr!='') {
+					//td.innerText = rec.SegWitAddr
+                    td.innerHTML = '<img src="webui/qrcode.png" onclick="showqrcode(\'Segwit deposit address for '  + wallet[i].label +
+						'\', \'' + rec.SegWitAddr + '\')" class="hand"> ' + rec.SegWitAddr
+				}
+
+				td = row.insertCell(-1)
+				td.className = 'segwitcnt'
+				if (rec.SegWitCnt>0) {
+					td.innerText = rec.SegWitCnt
+				} else if (rec.OutCnt==0) {
+					td.innerHTML = '<a href="javascript:setunused('+idxx+')"><img src="webui/del.png"></a>'
+				}
+
+				totvalin += rec.PendingValue
+				totvalout += rec.SpendingValue
+				totcntin += rec.PendingCnt
+				totcntout += rec.SpendingCnt
+
+				totbtc += rec.Value
+				idxx++
+			}
+			total_btc.innerText = val2str(totbtc)
+			unspent_outs.innerText = totouts
+
+			if (mempool && totcntin>0) {
+				arriving_btc.innerText = val2str(totvalin)
+				arriving_cnt.innerText = totcntin
+				arriving_info_id.style.display = 'table-cell'
+			} else {
+				arriving_info_id.style.display = 'none'
+			}
+
+			if (mempool && totcntout>0) {
+				spending_btc.innerText = val2str(totvalout)
+				spending_cnt.innerText = totcntout
+				spending_info_id.style.display = 'table-cell'
+			} else {
+				spending_info_id.style.display = 'none'
+			}
+		} catch (e) {
+			console.log(e)
+		}
+	}
+
+	loading_icon.style.display = 'inline'
+	fetching_balance_in_progress = aj
+	aj.open("POST", "balance.json?summary" + (mempool ? "&mempool" : ""), true)
+	aj.send(JSON.stringify(wallet_addr))
+}
+
+function switch_to_webwallet(name) {
+	localStorage.setItem("gocoinWalletSelected", name)
+	for (var i in qswal.options) {
+		if (qswal.options[i].text==name) {
+			qswal.selectedIndex = i
+			enable_move_buttons()
+			break
+		}
+	}
+	fetch_wallet_balance(name)
+}
+
+function enable_move_buttons() {
+	if (qswal.options.length>=2) {
+		move_left.disabled = qswal.selectedIndex < 1
+		move_right.disabled = qswal.selectedIndex > qswal.options.length-2
+	} else {
+		move_left.disabled = move_right.disabled = true
+	}
+}
+
+function move_wallet_left() {
+	if (qswal.options.length<2) {
+		return
+	}
+	if (qswal.selectedIndex<1) {
+		return
+	}
+	var i, names = ''
+	for (i=0; i<qswal.selectedIndex-1; i++) {
+		names += '|' + qswal.options[i].text
+	}
+	names += '|' + qswal.options[qswal.selectedIndex].text
+	names += '|' + qswal.options[qswal.selectedIndex-1].text
+	for (i=qswal.selectedIndex+1; i<qswal.options.length; i++) {
+		names += '|' + qswal.options[i].text
+	}
+	localStorage.setItem("gocoinWallets", names.substr(1))
+	location.reload()
+}
+
+function move_wallet_right() {
+	if (qswal.options.length<2) {
+		return
+	}
+	if (qswal.selectedIndex > qswal.options.length-2) {
+		return
+	}
+	var i, names = ''
+	for (i=0; i<qswal.selectedIndex; i++) {
+		names += '|' + qswal.options[i].text
+	}
+	names += '|' + qswal.options[qswal.selectedIndex+1].text
+	names += '|' + qswal.options[qswal.selectedIndex].text
+	for (i=qswal.selectedIndex+2; i<qswal.options.length; i++) {
+		names += '|' + qswal.options[i].text
+	}
+	localStorage.setItem("gocoinWallets", names.substr(1))
+	location.reload()
+}
+
+function edit_wallet() {
+	try {
+		var name = qswal.options[qswal.selectedIndex].text
+		walletfname.value = name
+		walletdata.value = localStorage.getItem("gocoinWal_"+name)
+	} catch (e) {
+		walletfname.value = "DEFAULT"
+		walletdata.value = "# New empty wallet"
+	}
+	showwal.style.display='none'
+	formwal.style.display='block'
+	edit_in_progress = true
+}
+function setunused(idx) {
+	var tr = document.getElementById('walrow'+idx)
+	var adr = tr["btc_addr"] //tr.cells[0].innerText
+
+	var name = qswal.options[qswal.selectedIndex].text
+	if (confirm("Remove " + adr + " from the current browser wallet?")) {
+		lines = localStorage.getItem("gocoinWal_"+name).split('\n')
+		var s = ''
+		for (var i=0; i<lines.length; i++) {
+			if (lines[i].indexOf(adr)==-1) {
+				s += lines[i]
+				if (i+1<lines.length)  s += '\n'
+			}
+		}
+		localStorage.setItem("gocoinWal_"+name, s)
+		switch_to_webwallet(name)
+	}
+}
+function edit_label() {
+	var idx = this.row_idx
+	var tr = document.getElementById('walrow'+idx)
+	var adr = tr["btc_addr"] //tr.cells[0].innerText
+	var lab = tr["addr_label"]
+
+	var newlab = prompt("Edit label in the current browser wallet for:\n" + adr, lab)
+	if (newlab) {
+		var name = qswal.options[qswal.selectedIndex].text
+		lines = localStorage.getItem("gocoinWal_"+name).split('\n')
+		var s = ''
+		for (var i=0; ; ) {
+			var found = lines[i].indexOf(adr)
+
+			if (found==-1) {
+				s += lines[i]
+			} else {
+				s += lines[i].substr(found, adr.length) + ' ' + newlab
+			}
+			if (++i>=lines.length) break;
+			s += '\n'
+		}
+		localStorage.setItem("gocoinWal_"+name, s)
+		switch_to_webwallet(name)
+	}
+}
+function close_editor() {
+	showwal.style.display='block'
+	formwal.style.display='none'
+	edit_in_progress = false
+}
+function save_web_wallet() {
+	var name = walletfname.value
+	var curr_wallets = localStorage.getItem("gocoinWallets")
+	var names = curr_wallets.split('|')
+	var i;
+	console.log("saving", name)
+	for (i=0; i<names.length; i++) {
+		if (names[i]==name) {
+			console.log("foud at", i)
+			break
+		}
+	}
+	if (i==names.length) {
+		console.log("not found")
+		localStorage.setItem("gocoinWallets", curr_wallets+"|"+name)
+	}
+
+	localStorage.setItem("gocoinWal_"+name, walletdata.value)
+	close_editor()
+
+	localStorage.setItem("gocoinWalletSelected", name)
+	location.reload()
+}
+
+function delete_wallet() {
+	var name = qswal.options[qswal.selectedIndex].text
+	if (confirm("Delete wallet "+name+" from the browser?")) {
+		localStorage.removeItem("gocoinWal_"+name)
+		location.reload()
+	}
+}
+
+function create_switch_buttons() {
+	try {
+		var wal_name = qswal.options[qswal.selectedIndex].text
+		cur_wallet_name.innerText = wal_name
+
+		for (var i=0; i<qswal.options.length; i++) {
+			var na = qswal.options[i].value
+			var but = document.createElement("input")
+			but.type = "button"
+			but.value = na
+			but.style.margin = 5
+			but.onclick = switchwallet_button_click_browser
+			browser_wallets.appendChild(but)
+		}
+	} catch (e) {
+		cur_wallet_name.innerText = 'none (edit to create)'
+		delwal_button.disabled = true
+	}
+}
+document.addEventListener('DOMContentLoaded', function() {
+	create_switch_buttons()
+	enable_move_buttons()
+})
+
+
+function allow_name_change_clicked() {
+	walletfname.disabled = !allow_name_change.checked
+	if (allow_name_change.checked) {
+		walletfname.select()
+		walletfname.focus()
+	}
+}
+
+function get_balance_zip() {
+	var form = document.createElement("form")
+	form.setAttribute("method", "post")
+	form.setAttribute("action", "balance.zip")
+
+	var inp = document.createElement("input")
+	inp.type = "hidden"
+	inp.name = "addrcnt"
+	inp.value = wallet.length
+	form.appendChild(inp)
+
+	for (var i in wallet) {
+		inp = document.createElement("input")
+		inp.type = "hidden"
+		inp.name = "addr"+i
+		inp.value = wallet[i].addr
+		form.appendChild(inp)
+
+		inp = document.createElement("input")
+		inp.type = "hidden"
+		inp.name = "label"+i
+		inp.value = wallet[i].label
+		form.appendChild(inp)
+	}
+
+	document.body.appendChild(form)
+	form.submit()
+}
+
+function export_settings() {
+	var names = localStorage.getItem("gocoinWallets").split('|')
+	var settings = {}
+	settings["home_chart"] = localStorage.getItem("home_chart")
+	settings["gocoinAddressBook"] = localStorage.getItem("gocoinAddressBook")
+	settings["gocoinWallets"] = localStorage.getItem("gocoinWallets")
+	for (var i=0; i<names.length; i++) {
+		if (names[i]!="") {
+			var content = localStorage.getItem("gocoinWal_"+names[i])
+			if (typeof(content)=="string" && content.length > 0) {
+				settings["gocoinWal_"+names[i]] = content
+			}
+		}
+	}
+	var jsonstring = JSON.stringify(settings)
+	var a = document.createElement("a")
+	var file = new Blob([jsonstring], {type: 'application/json'})
+	a.href = URL.createObjectURL(file)
+	a.download = "wallets.json"
+	a.click()
+}
+
+function import_file_selected(e) {
+	var f = import_file.files[0]
+	var reader = new FileReader()
+	reader.onload = function(e) {
+		//console.log('aac', e, e.target.result)
+		try {
+			var sets = JSON.parse(e.target.result)
+			var wlts = ''
+			localStorage.clear()
+			for (var nam in sets) {
+				localStorage.setItem(nam, sets[nam])
+			}
+			location.reload()
+		} catch (ex) {
+			console.log(ex)
+		}
+	};
+	reader.readAsText(f)
+}
+
+
+</script>
+<select id="qswal" style="display:none"></select>
+
+<h2>Current wallet: <span id="cur_wallet_name"></span> <img title="Loading balance" id="loading_icon" src="webui/loading.gif" style="display:none">
+<span style="float:right" >
+<input id="move_left" type="button" value="Move left" onclick="move_wallet_left()">
+<input id="move_right" type="button" value="Move right"  onclick="move_wallet_right()">
+<input type="button" id="delwal_button" value="Delete This Wallet" onclick="delete_wallet()">
+</span>
+</h2>
+<div>
+Balance: <b id="total_btc"></b> BTC in <b id="unspent_outs"></b> outputs (<a href="javascript:get_balance_zip()">balance.zip</a>)
+&nbsp;&bull;&nbsp;
+<input type="checkbox" id="show_mempol" onchange="show_mempool_clicked()"><span class="hand" onclick="show_mempol.click()"> Show unconfirmed</span>
+</div>
+<i id="wallet_min_warning" style="color:purple;float:right;display:none" title="Modify MinValue in gocoin.conf to change it">
+Only accounting outputs with at least <b id="min_val_btc"></b> BTC</i>
+<br>
+<div id="browser_wallets">Available wallets: </div>
+<br>
+Import settings: <input type="file" id="import_file" accept=".json">
+<input style="float:right" type="button" value="Export settings" onclick="export_settings()">
+<hr>
+
+<div id="showwal">
+<h2>Current wallet
+
+<span style="float:right">
+<input type="button" value="Edit Wallet" onclick="edit_wallet()">
+</span>
+</h2>
+
+<table class="wal bord" id="walltab">
+<tr>
+<th width="360">Address
+<th align="left">Label
+<th width="160" align="right">Balance&nbsp;BTC
+<th width="40">Outs
+<th width="50">
+<th width="330">P2SH-WPKH  Deposit Address
+<th width="40">Outs
+</table>
+
+<table width="100%"><tr>
+<td width="50%" id="arriving_info_id" style="display:none" class="unspent_plus">Unconfirmed arriving: <b id="arriving_btc"></b> BTC in <b id="arriving_cnt"></b> outputs</td>
+<td width="50%" id="spending_info_id" style="display:none" class="unspent_minus">Unconfirmed spending: <b id="spending_btc"></b> BTC from <b id="spending_cnt"></b> outputs</td>
+</tr></table>
+
+<br>
+<div id="warnings" style="color:red;display:none"><br><center style="font-size:200%"><b>Warnings</b></center>
+<ul>
+<li style="margin-bottom:10px;"><b>The listed P2SH-WPKH addresses are spendable <u>only</u> if their originating address refers to a <u>compressed key</u></b><br></li>
+<li>Do not deposit any coins into P2SH-WPKH addresses until Segregated Witness feature is activated on the blockchain</li>
+</ul>
+</div>
+</div>
+
+<div id="formwal" style="display:none">
+<h2>Edit wallet
+<input style="float:right" type="button" value="Cancel" onclick="close_editor()">
+</h2>
+<table width="100%">
+<form method="post" id="wallet_edit_form" action="cfg" onsubmit="return false;">
+<tr>
+	<td align="left">
+		<input type="checkbox" id="allow_name_change" onchange="allow_name_change_clicked()">
+		Choose new name: <input type="text" disabled="true" id="walletfname" name="walletfname" value="" class="mono">
+	<td align="right">
+		<input type="button" value="Save Wallet" onclick="save_web_wallet()">
+<tr><td colspan="2">
+	<textarea name="walletdata" id="walletdata" style="width:100%" rows="25">{WALLET_DATA}</textarea><br>
+	<i>
+	Only list your wallet's <b>public addresses</b> here!
+	Empty lines and lines starting with <b>#</b> are ignored.<br>
+	</i>
+</form>
+</table>
+</div>
+
+<script>
+if (typeof(localStorage.gocoinWallets)=="string") {
+	build_wallet_list()
+} else {
+	localStorage.gocoinWallets = ""
+}
+
+function show_mempool_clicked() {
+	localStorage.setItem("wallet_show_mempool", show_mempol.checked)
+	quick_switch_wallet()
+}
+
+// reaload page on new block
+var _lblo = 0
+blno.addEventListener("lastblock", function(e) {
+	if (_lblo==0) {
+		_lblo = e.block.Height
+		if (e.block.MinValue>0) {
+			min_val_btc.innerText = val2str(e.block.MinValue)
+			wallet_min_warning.style.display = 'block'
+		}
+	} else if (!edit_in_progress && e.block.Height!=_lblo) {
+		location.reload()
+	}
+})
+qswal.addEventListener("loadwallet", function(e) {
+	if (edit_in_progress) {
+		close_editor()
+	}
+	fetch_wallet_balance(e.name)
+})
+document.addEventListener('DOMContentLoaded', function() {
+	show_mempol.checked = localStorage.getItem("wallet_show_mempool") == 'true'
+	quick_switch_wallet() // this is to force loading wallet after loading
+	import_file.addEventListener('change', import_file_selected, false);
+	if (segwit_active)  warnings.style.display = 'block'
+	window.onkeyup = function (event) {
+		if(event.keyCode == 27)  closepopup()
+	}
+})
+</script>

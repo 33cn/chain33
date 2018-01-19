@@ -34,6 +34,8 @@ type IClient interface {
 type Client struct {
 	q        *Queue
 	recv     chan Message
+	done     chan struct{}
+	wg       *sync.WaitGroup
 	mu       sync.Mutex
 	cache    []Message
 	isclosed int32
@@ -42,7 +44,9 @@ type Client struct {
 func newClient(q *Queue) IClient {
 	client := &Client{}
 	client.q = q
-	client.recv = make(chan Message, 2)
+	client.recv = make(chan Message, 5)
+	client.done = make(chan struct{}, 1)
+	client.wg = &sync.WaitGroup{}
 	return client
 }
 
@@ -76,6 +80,7 @@ func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
 			return err
 		}
 		if err == types.ErrChannelFull {
+			qlog.Error("SendAsyn retry")
 			time.Sleep(time.Millisecond)
 			continue
 		}
@@ -103,45 +108,57 @@ func (client *Client) Wait(msg Message) (Message, error) {
 }
 
 func (client *Client) Recv() chan Message {
+	client.mu.Lock()
+	defer client.mu.Unlock()
 	return client.recv
 }
 
 func (client *Client) Close() {
+	client.done <- struct{}{}
+	client.wg.Wait()
 	atomic.StoreInt32(&client.isclosed, 1)
-	close(client.recv)
+	close(client.Recv())
+}
+
+func (client *Client) isClosed(data Message, ok bool) bool {
+	if !ok {
+		return true
+	}
+	if atomic.LoadInt32(&client.isclosed) == 1 {
+		return true
+	}
+	if data.Data == nil && data.Id == 0 && data.Ty == 0 {
+		return true
+	}
+	return false
 }
 
 func (client *Client) Sub(topic string) {
+	client.wg.Add(1)
 	highChan, lowChan := client.q.getChannel(topic)
 	go func() {
+		defer client.wg.Done()
 		for {
 			select {
 			case data, ok := <-highChan:
-				if !ok {
+				if client.isClosed(data, ok) {
 					return
 				}
-				if atomic.LoadInt32(&client.isclosed) == 1 {
-					return
-				}
-				client.recv <- data
+				client.Recv() <- data
 			default:
 				select {
 				case data, ok := <-highChan:
-					if !ok {
+					if client.isClosed(data, ok) {
 						return
 					}
-					if atomic.LoadInt32(&client.isclosed) == 1 {
-						return
-					}
-					client.recv <- data
+					client.Recv() <- data
 				case data, ok := <-lowChan:
-					if !ok {
+					if client.isClosed(data, ok) {
 						return
 					}
-					if atomic.LoadInt32(&client.isclosed) == 1 {
-						return
-					}
-					client.recv <- data
+					client.Recv() <- data
+				case <-client.done:
+					return
 				}
 			}
 		}

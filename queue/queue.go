@@ -67,9 +67,13 @@ func (q *Queue) IsClosed() bool {
 
 func (q *Queue) Close() {
 	q.mu.Lock()
+	if q.isclose == true {
+		q.mu.Unlock()
+		return
+	}
 	for _, ch := range q.chans {
-		close(ch[0])
-		close(ch[1])
+		ch[0] <- Message{}
+		ch[1] <- Message{}
 	}
 	q.mu.Unlock()
 	q.done <- struct{}{}
