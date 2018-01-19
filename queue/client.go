@@ -44,7 +44,7 @@ type Client struct {
 func newClient(q *Queue) IClient {
 	client := &Client{}
 	client.q = q
-	client.recv = make(chan Message, 2)
+	client.recv = make(chan Message, 5)
 	client.done = make(chan struct{}, 1)
 	client.wg = &sync.WaitGroup{}
 	return client
@@ -80,6 +80,7 @@ func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
 			return err
 		}
 		if err == types.ErrChannelFull {
+			qlog.Error("SendAsyn retry")
 			time.Sleep(time.Millisecond)
 			continue
 		}
