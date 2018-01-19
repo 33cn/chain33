@@ -74,12 +74,13 @@ func (network *P2p) ShowTaskCapcity() {
 			log.Error("ShowTaskCapcity", "Show", "will Done")
 			return
 		case <-ticker.C:
-			log.Error("ShowTaskCapcity", "Capcity", atomic.AddInt32(&network.taskCapcity, -1)+1)
+			log.Error("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.taskCapcity))
 			atomic.AddInt32(&network.taskCapcity, 1)
 
 		}
 	}
 }
+
 func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return
