@@ -61,7 +61,7 @@ func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *N
 		conn:       conn,
 		streamDone: make(chan struct{}, 1),
 		heartDone:  make(chan struct{}, 1),
-		taskPool:   make(chan struct{}, 20),
+		taskPool:   make(chan struct{}, 50),
 		nodeInfo:   nodeinfo,
 	}
 	p.taskPool <- struct{}{}
