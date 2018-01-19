@@ -546,7 +546,7 @@ func (m *P2pCli) GetExternIp(addr string) []string {
 func (m *P2pCli) Close() {
 
 	ticker := time.NewTicker(time.Second * 1)
-    defer ticker.Stop()
+    	defer ticker.Stop()
 	select {
 	case m.done <- struct{}{}:
 	case <-ticker.C:
@@ -557,6 +557,7 @@ func (m *P2pCli) Close() {
 func (m *P2pCli) deletePeer(peer *peer) {
 
 	ticker := time.NewTicker(time.Second * 1)
+	defer ticker.Stop()
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:
 	case <-ticker.C:
