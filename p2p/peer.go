@@ -21,6 +21,7 @@ func (p *peer) Close() {
 	p.HeartBlood()
 	close(p.taskPool)
 	close(p.streamDone)
+	close(p.taskChan)
 
 }
 
@@ -40,6 +41,7 @@ type peer struct {
 	streamDone chan struct{}
 	heartDone  chan struct{}
 	taskPool   chan struct{}
+	taskChan   chan interface{} //tx block
 }
 
 type Version struct {
@@ -120,25 +122,80 @@ func (p *peer) HeartBlood() {
 func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
+func (p *peer) SendData(data interface{}) (err error) {
+	tick := time.NewTicker(time.Second * 1)
+	defer func() {
+		isErr := recover()
+		if isErr != nil {
+			err = isErr.(error)
+		}
+	}()
+	defer tick.Stop()
+	select {
+	case <-tick.C:
+		//log.Error("Peer SendData", "timeout", "return")
+		return
+	case p.taskChan <- data:
+	}
+	return nil
+}
+
+//func (p *peer) BroadCastData() {
+//	//TODO 通过Stream 广播出去subStreamBlock
+//	for task := range p.taskChan {
+//		if block, ok := task.(*pb.P2PBlock); ok {
+//			go p.mconn.conn.BroadCastBlock(context.Background(), block)
+//		} else if tx, ok := task.(*pb.P2PTx); ok {
+//			go p.mconn.conn.BroadCastTx(context.Background(), tx)
+//		}
+//	}
+//}
 
 func (p *peer) subStreamBlock() {
-
-	for {
-		select {
-		case <-p.streamDone:
-			//log.Error("SubStreamBlock", "peerdone", p.Addr())
-			return
-
-		default:
-
-			resp, err := p.mconn.conn.RouteChat(context.Background(), &pb.ReqNil{})
+	go func() { //TODO 待优化，临时不启用
+		//Stream Send data
+		for {
+			resp, err := p.mconn.conn.RouteChat(context.Background())
 			if err != nil {
 				p.peerStat.NotOk()
 				(*p.nodeInfo).monitorChan <- p
 				time.Sleep(time.Second * 5)
 				continue
 			}
-			log.Info("SubStreamBlock", "Start", p.Addr())
+			for task := range p.taskChan {
+				p2pdata := new(pb.BroadCastData)
+				if block, ok := task.(*pb.P2PBlock); ok {
+					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+				} else if tx, ok := task.(*pb.P2PTx); ok {
+					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+				}
+				err := resp.Send(p2pdata)
+				if err != nil {
+					p.setRunning(false)
+					(*p.nodeInfo).monitorChan <- p
+
+					return
+				}
+			}
+
+		}
+	}()
+	for {
+		select {
+		case <-p.streamDone:
+			log.Error("SubStreamBlock", "peerdone", p.Addr())
+			return
+
+		default:
+
+			resp, err := p.mconn.conn.RouteChat(context.Background())
+			if err != nil {
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				time.Sleep(time.Second * 5)
+				continue
+			}
+			log.Error("SubStreamBlock", "Start", p.Addr())
 
 			for {
 				data, err := resp.Recv()
