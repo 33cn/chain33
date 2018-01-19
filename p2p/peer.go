@@ -21,6 +21,7 @@ func (p *peer) Close() {
 	p.HeartBlood()
 	close(p.taskPool)
 	close(p.streamDone)
+	close(p.sendTxLoop)
 	close(p.taskChan)
 
 }
@@ -39,6 +40,7 @@ type peer struct {
 	peerAddr   *NetAddress
 	peerStat   *Stat
 	streamDone chan struct{}
+	sendTxLoop chan struct{}
 	heartDone  chan struct{}
 	taskPool   chan struct{}
 	taskChan   chan interface{} //tx block
@@ -134,6 +136,8 @@ func (p *peer) SendData(data interface{}) (err error) {
 	select {
 	case <-tick.C:
 		//log.Error("Peer SendData", "timeout", "return")
+		return
+	case <-p.sendTxLoop:
 		return
 	case p.taskChan <- data:
 	}
