@@ -70,6 +70,7 @@ func (client *RaftClient) SetQueue(q *queue.Queue) {
 		//初始化应该等到leader选举成功之后在pollingTask中执行
 		//client.InitBlock()
 	})
+	go client.EventLoop()
 	go client.readCommits(client.commitC, client.errorC)
 	go client.pollingTask(q)
 }
