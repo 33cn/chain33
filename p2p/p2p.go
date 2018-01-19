@@ -75,8 +75,6 @@ func (network *P2p) ShowTaskCapcity() {
 			return
 		case <-ticker.C:
 			log.Error("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.taskCapcity))
-			atomic.AddInt32(&network.taskCapcity, 1)
-
 		}
 	}
 }
