@@ -43,9 +43,6 @@ var (
 const Version = "v0.1.0"
 
 func main() {
-<<<<<<< HEAD
-	runtime.GOMAXPROCS(CPUNUM)
-=======
 	//set file limit
 	agent := stackimpact.Start(stackimpact.Options{
 		AgentKey: "eb4c12dfe2d4b23b22634e7fed4d65899d5ca925",
@@ -68,7 +65,6 @@ func main() {
 		}
 	}()
 	//set pprof
->>>>>>> develop
 	go func() {
 		http.ListenAndServe("localhost:6060", nil)
 	}()
