@@ -73,36 +73,28 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 }
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
 	defer func() {
-		<-m.network.taskFactory
-		atomic.AddInt32(&m.network.taskCapcity, 1)
+		<-m.network.txFactory
+		atomic.AddInt32(&m.network.txCapcity, 1)
 	}()
-	if m.network.node.Size() == 0 {
-		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
-		return
+
+	//m.broadcastByStream(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
+	//	if m.network.node.Size() == 0 {
+	//		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
+	//		return
+	//	}
+
+	peers := m.network.node.GetRegisterPeers()
+	for _, pr := range peers {
+		pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
 	}
 
-	m.broadcastByStream(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
-	peers, _ := m.network.node.GetActivePeers()
-	//TODO channel
-	for _, pr := range peers { //限制对peer 的高频次调用
-		go func(pr *peer) {
-			if err := pr.AllockTask(); err != nil {
-				log.Error("BroadCastTx", "AlloclTask", err)
-				return
-			}
-			defer pr.ReleaseTask()
-			_, err := pr.mconn.conn.BroadCastTx(context.Background(), &pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
-			m.CollectPeerStat(err, pr)
-		}(pr)
-	}
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 
 }
 
 func (m *P2pCli) GetMemPool(msg queue.Message) {
 	defer func() {
-		<-m.network.taskFactory
-		atomic.AddInt32(&m.network.taskCapcity, 1)
+		<-m.network.otherFactory
 	}()
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
@@ -231,11 +223,7 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 }
 
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
-	defer func() {
-		<-m.network.taskFactory
-		atomic.AddInt32(&m.network.taskCapcity, 1)
-		//log.Error("GetPeerInfo", "Release Task", "ok", "timestamp", time.Now().Unix())
-	}()
+
 	//log.Info("GetPeerInfo", "info", m.PeerInfos())
 	//添加自身peerInfo
 	tempServer := NewP2pServer()
@@ -262,9 +250,8 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 
 func (m *P2pCli) GetBlocks(msg queue.Message) {
 	defer func() {
-		<-m.network.taskFactory
-		atomic.AddInt32(&m.network.taskCapcity, 1)
-		//log.Error("GetBlocks", "Release Task", "ok")
+		<-m.network.otherFactory
+
 	}()
 	if m.network.node.Size() == 0 {
 		log.Debug("GetBlocks", "boundNum", 0)
@@ -480,29 +467,30 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 
 }
 func (m *P2pCli) broadcastByStream(data interface{}) {
-	if tx, ok := data.(*pb.P2PTx); ok {
-		m.network.node.nodeInfo.p2pBroadcastChan <- tx
-	} else if block, ok := data.(*pb.P2PBlock); ok {
-		//log.Error("BroadcastByStream", "block height", block.GetBlock().GetHeight())
-		m.network.node.nodeInfo.p2pBroadcastChan <- block
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+	select {
+	case <-ticker.C:
+		//log.Error("broadcastByStream", "timeout", "return")
+		return
+	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
 	}
 
 }
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
-		<-m.network.taskFactory
-		atomic.AddInt32(&m.network.taskCapcity, 1)
+		<-m.network.otherFactory
 		//log.Error("BlockBroadcast", "Release Task", "ok")
 	}()
+	block := msg.GetData().(*pb.Block)
+	peers, _ := m.network.node.GetActivePeers()
+	m.broadcastByStream(&pb.P2PBlock{Block: block})
+
 	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
-
-	block := msg.GetData().(*pb.Block)
-	peers, _ := m.network.node.GetActivePeers()
-	m.broadcastByStream(&pb.P2PBlock{Block: block})
 
 	for _, peer := range peers {
 		//比较peer 的高度是否低于广播的高度，如果高于，则不广播给对方
@@ -546,7 +534,7 @@ func (m *P2pCli) GetExternIp(addr string) []string {
 func (m *P2pCli) Close() {
 
 	ticker := time.NewTicker(time.Second * 1)
-    	defer ticker.Stop()
+	defer ticker.Stop()
 	select {
 	case m.done <- struct{}{}:
 	case <-ticker.C:

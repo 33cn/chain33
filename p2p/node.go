@@ -89,7 +89,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	node.nodeInfo.monitorChan = make(chan *peer, 1024)
 	node.nodeInfo.natNoticeChain = make(chan struct{}, 1)
 	node.nodeInfo.natResultChain = make(chan bool, 1)
-	node.nodeInfo.p2pBroadcastChan = make(chan interface{}, 1024)
+	node.nodeInfo.p2pBroadcastChan = make(chan interface{}, 4096)
 	node.nodeInfo.blacklist = &BlackList{badPeers: make(map[string]bool)}
 	node.nodeInfo.cfg = cfg
 	node.nodeInfo.peerInfos = new(PeerInfos)
