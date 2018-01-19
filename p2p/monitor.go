@@ -8,8 +8,10 @@ import (
 func (n *Node) AddrTest(addrs []string) []string {
 	var enableAddrs []string
 	for _, addr := range addrs {
-		_, err := net.Dial("tcp", addr)
+
+		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
 		if err == nil {
+		    conn.Close()
 			enableAddrs = append(enableAddrs, addr)
 		}
 	}
@@ -29,18 +31,15 @@ FOR_LOOP:
 			peers := n.GetRegisterPeers()
 			for _, peer := range peers {
 				if peer.mconn == nil {
-					n.addrBook.RemoveAddr(peer.Addr())
-					n.addrBook.Save()
-					n.Remove(peer.Addr())
+					n.destroyPeer(peer)
 					continue
 				}
 
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > 10 || peer.GetRunning() == false {
-						n.addrBook.RemoveAddr(peer.Addr())
-						n.addrBook.Save()
-						n.Remove(peer.Addr())
+						log.Error("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
+						n.destroyPeer(peer)
 					}
 				}
 
@@ -49,17 +48,22 @@ FOR_LOOP:
 
 	}
 }
-func (n *Node) deleteErrPeer() {
+func (n *Node) destroyPeer(peer *peer) {
+	log.Error("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
+	n.addrBook.RemoveAddr(peer.Addr())
+	n.addrBook.Save()
+	n.Remove(peer.Addr())
+}
+func (n *Node) monitorErrPeer() {
 
 	for {
 
 		peer := <-n.nodeInfo.monitorChan
 		log.Debug("deleteErrPeer", "REMOVE", peer.Addr())
 		if peer.version.IsSupport() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
+
 			n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
-			n.addrBook.RemoveAddr(peer.Addr())
-			n.addrBook.Save()
-			n.Remove(peer.Addr())
+			n.destroyPeer(peer)
 		}
 
 		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
@@ -75,6 +79,7 @@ FOR_LOOP:
 	for {
 		select {
 		case <-n.onlineDone:
+			log.Error("GetAddrFromOnLine", "break For_LOOP", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
@@ -86,7 +91,7 @@ FOR_LOOP:
 						log.Error("getAddrFromOnline", "ERROR", err.Error())
 						continue
 					}
-					log.Info("getAddrFromOnline", "ADDRLIST", addrlist)
+					//log.Error("getAddrFromOnline", "ADDRLIST", addrlist)
 					//过滤无法连接的节点
 
 					//过滤黑名单的地址
@@ -100,7 +105,7 @@ FOR_LOOP:
 						}
 					}
 
-					n.DialPeers(whitlist) //对获取的地址列表发起连接
+					go n.DialPeers(whitlist) //对获取的地址列表发起连接
 
 				}
 			}
@@ -116,6 +121,7 @@ FOR_LOOP:
 	for {
 		select {
 		case <-n.offlineDone:
+			log.Error("GetAddrFromOffLine", "break For_LOOP", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
@@ -142,7 +148,7 @@ FOR_LOOP:
 							log.Info("GetAddrFromOffline", "Add addr", addr)
 							savelist[addr] = true
 						}
-						log.Info("getAddrFromOffline", "list", savelist)
+						//log.Error("getAddrFromOffline", "list", savelist)
 					}
 				}
 
@@ -150,7 +156,7 @@ FOR_LOOP:
 					continue
 				}
 
-				n.DialPeers(savelist)
+				go n.DialPeers(savelist)
 			} else {
 				log.Info("getAddrFromOffline", "nodestable", n.needMore())
 				for _, seed := range n.nodeInfo.cfg.Seeds {

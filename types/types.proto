@@ -31,8 +31,11 @@ service grpcservice{
 	rpc GetBlockOverview(ReqHash) returns(BlockOverview){}
 	rpc GetAddrOverview(ReqAddr) returns(AddrOverview){}
 	rpc GetBlockHash(ReqInt) returns(ReplyHash){}
-	
 
+	//seed
+	rpc GenSeed(GenSeedLang) returns (ReplySeed){}
+	rpc GetSeed(GetSeedByPw) returns  (ReplySeed){}
+	rpc SaveSeed(SaveSeedByPw) returns (Reply){}
 }
 
 
@@ -701,3 +704,24 @@ message ReceiptTicket {
 	string ticketId = 1;
 }
 
+<<<<<<< HEAD
+=======
+//seed
+message GenSeedLang {
+	int32 lang = 1;
+}
+message GetSeedByPw {
+	string passwd = 1;
+}
+message SaveSeedByPw {
+	string seed = 1;
+	string passwd = 2;
+}
+message ReplySeed {
+	string seed = 1;
+}
+
+
+
+
+>>>>>>> develop

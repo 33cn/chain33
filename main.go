@@ -9,13 +9,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"runtime"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/config"
+	"code.aliyun.com/chain33/chain33/common/limits"
 	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/execs"
 	"code.aliyun.com/chain33/chain33/mempool"
@@ -25,6 +29,10 @@ import (
 	"code.aliyun.com/chain33/chain33/store"
 	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
+	"github.com/stackimpact/stackimpact-go"
+	"golang.org/x/net/trace"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -35,14 +43,57 @@ var (
 const Version = "v0.1.0"
 
 func main() {
+<<<<<<< HEAD
 	runtime.GOMAXPROCS(CPUNUM)
+=======
+	//set file limit
+	agent := stackimpact.Start(stackimpact.Options{
+		AgentKey: "eb4c12dfe2d4b23b22634e7fed4d65899d5ca925",
+		AppName:  "MyGoApp",
+	})
+	span := agent.Profile()
+	defer span.Stop()
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
+	//set watching
+	t := time.Tick(10 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-t:
+				watching()
+			}
+		}
+	}()
+	//set pprof
+>>>>>>> develop
 	go func() {
 		http.ListenAndServe("localhost:6060", nil)
 	}()
-	flag.Parse()
+	//set trace
+	grpc.EnableTracing = true
+	go startTrace()
+	//set maxprocs
+	runtime.GOMAXPROCS(CPUNUM)
 
+	flag.Parse()
+	//set config
 	cfg := config.InitCfg(*configpath)
+
+	//set file log
 	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
+	//set grpc log
+	f, err := CreateFile(cfg.P2P.GetGrpcLogFile())
+	if err != nil {
+		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
+		grpclog.SetLoggerV2(glogv2)
+	} else {
+		glogv2 := grpclog.NewLoggerV2(f, f, f)
+		grpclog.SetLoggerV2(glogv2)
+	}
+	//开始区块链模块加载
 	//channel, rabitmq 等
 	log.Info("chain33 " + Version)
 	log.Info("loading queue")
@@ -51,6 +102,7 @@ func main() {
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueue(q)
+
 	log.Info("loading mempool module")
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueue(q)
@@ -108,4 +160,29 @@ func main() {
 	q.Close()
 	log.Info("begin close wallet module")
 	walletm.Close()
+}
+
+// 开启trace
+func startTrace() {
+	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
+		return true, true
+	}
+	go http.ListenAndServe(":50051", nil)
+	log.Error("Trace listen on 50051")
+}
+
+func CreateFile(filename string) (*os.File, error) {
+
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+func watching() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	log.Error("info:", "NumGoroutine:", runtime.NumGoroutine())
+	fmt.Printf("\nAlloc = %v\nTotalAlloc = %v\nSys = %v\nNumGC = %v\n\n", m.Alloc/1024, m.TotalAlloc/1024, m.Sys/1024, m.NumGC)
 }

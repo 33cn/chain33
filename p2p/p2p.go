@@ -1,6 +1,9 @@
 package p2p
 
 import (
+	"sync/atomic"
+	"time"
+
 	"code.aliyun.com/chain33/chain33/types"
 
 	"code.aliyun.com/chain33/chain33/queue"
@@ -15,8 +18,10 @@ type P2p struct {
 	node        *Node
 	addrBook    *AddrBook // known peers
 	cli         *P2pCli
+	taskCapcity int32
 	taskFactory chan struct{}
 	done        chan struct{}
+	loopdone    chan struct{}
 }
 
 func New(cfg *types.P2P) *P2p {
@@ -28,6 +33,7 @@ func New(cfg *types.P2P) *P2p {
 	p2p := new(P2p)
 	p2p.node = node
 	p2p.done = make(chan struct{}, 1)
+	p2p.loopdone = make(chan struct{}, 1)
 	p2p.cli = NewP2pCli(p2p)
 	return p2p
 }
@@ -37,11 +43,14 @@ func (network *P2p) Stop() {
 
 func (network *P2p) Close() {
 	network.Stop()
-	log.Debug("close", "network", "done")
+	log.Error("close", "network", "ShowTaskCapcity done")
 	network.cli.Close()
-	log.Debug("close", "msg", "done")
+	log.Error("close", "msg", "done")
 	network.node.Close()
-	log.Debug("close", "node", "done")
+	log.Error("close", "node", "done")
+	network.c.Close()
+	<-network.loopdone
+	log.Error("close", "loopdone", "done")
 	close(network.taskFactory)
 }
 
@@ -50,9 +59,26 @@ func (network *P2p) SetQueue(q *queue.Queue) {
 	network.q = q
 	network.node.setQueue(q)
 	network.node.Start()
-	network.subP2pMsg()
 	network.cli.monitorPeerInfo()
+	network.subP2pMsg()
 
+}
+func (network *P2p) ShowTaskCapcity() {
+	ticker := time.NewTicker(time.Second * 5)
+	log.Error("ShowTaskCapcity", "Capcity", network.taskCapcity)
+	defer ticker.Stop()
+	for {
+
+		select {
+		case <-network.done:
+			log.Error("ShowTaskCapcity", "Show", "will Done")
+			return
+		case <-ticker.C:
+			log.Error("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.taskCapcity))
+			atomic.AddInt32(&network.taskCapcity, 1)
+
+		}
+	}
 }
 
 func (network *P2p) subP2pMsg() {
@@ -60,13 +86,15 @@ func (network *P2p) subP2pMsg() {
 		return
 	}
 	network.taskFactory = make(chan struct{}, 2000) // 2000 task
+	network.taskCapcity = 2000
 	network.c.Sub("p2p")
+	go network.ShowTaskCapcity()
 	go func() {
 		//TODO channel
 		for msg := range network.c.Recv() {
 			network.taskFactory <- struct{}{} //allocal task
-			log.Debug("SubP2pMsg", "Ty", msg.Ty)
-
+			atomic.AddInt32(&network.taskCapcity, -1)
+			log.Debug("Recv", "Ty", msg.Ty)
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
 				go network.cli.BroadCastTx(msg)
@@ -77,14 +105,17 @@ func (network *P2p) subP2pMsg() {
 			case types.EventGetMempool:
 				go network.cli.GetMemPool(msg)
 			case types.EventPeerInfo:
+				//log.Error("SubP2pMsg", "Ty", msg.Ty, "timestamp", time.Now().Second(), "taskCapcity", capcity)
 				go network.cli.GetPeerInfo(msg)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
-
+				<-network.taskFactory
+				atomic.AddInt32(&network.taskCapcity, 1)
 				continue
 			}
 		}
+		network.loopdone <- struct{}{}
 	}()
 
 }
