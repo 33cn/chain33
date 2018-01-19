@@ -4,32 +4,19 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"net/http"
-	"os"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/p2p/nat"
 	pb "code.aliyun.com/chain33/chain33/types"
-	"golang.org/x/net/trace"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 )
-
-func (l *DefaultListener) Start() {
-	//log.Debug("defaultlistener", "localport:", l.nodeInfo.GetListenAddr().Port)
-	go l.NatMapPort()
-	go l.listenRoutine()
-	return
-}
 
 func (l *DefaultListener) Close() bool {
 	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
 	log.Debug("stop", "closed natport", "close")
-	l.server.Stop()
-	log.Debug("stop", "closed grpc server", "close")
 	l.listener.Close()
-	log.Debug("stop", "DefaultListener", "close")
+	log.Error("stop", "DefaultListener", "close")
 	return true
 }
 
@@ -61,14 +48,21 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 		natClose: make(chan struct{}, 1),
 		n:        node,
 	}
-
-	go dl.Start() // Started upon construction
+	pServer := NewP2pServer()
+	pServer.node = dl.n
+	pServer.innerBroadBlock()
+	dl.server = grpc.NewServer()
+	pb.RegisterP2PgserviceServer(dl.server, pServer)
+	go dl.NatMapPort()
+	go dl.listenRoutine()
 	return dl
 }
+
 func (l *DefaultListener) WaitForNat() {
 	<-l.nodeInfo.natNoticeChain
 	return
 }
+
 func (l *DefaultListener) NatMapPort() {
 	if l.nodeInfo.cfg.GetIsSeed() == true {
 
@@ -112,36 +106,7 @@ func (l *DefaultListener) NatMapPort() {
 
 }
 
-// 开启trace
-func startTrace() {
-	grpc.EnableTracing = true
-	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
-		return true, true
-	}
-	go http.ListenAndServe(":50051", nil)
-	log.Error("Trace listen on 50051")
-}
-
 func (l *DefaultListener) listenRoutine() {
-
 	log.Debug("LISTENING", "Start Listening+++++++++++++++++Port", l.nodeInfo.listenAddr.Port)
-
-	pServer := NewP2pServer()
-	pServer.node = l.n
-	pServer.innerBroadBlock()
-	go startTrace()
-	l.server = grpc.NewServer()
-	var comm Comm
-	f, err := comm.CreateFile(l.nodeInfo.cfg.GetGrpcLogFile())
-	if err != nil {
-		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
-		grpclog.SetLoggerV2(glogv2)
-	} else {
-		glogv2 := grpclog.NewLoggerV2(f, f, f)
-		grpclog.SetLoggerV2(glogv2)
-	}
-
-	pb.RegisterP2PgserviceServer(l.server, pServer)
 	l.server.Serve(l.listener)
-
 }

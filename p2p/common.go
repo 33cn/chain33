@@ -3,7 +3,6 @@ package p2p
 import (
 	"encoding/hex"
 	"net"
-	"os"
 	"strings"
 	"time"
 
@@ -62,9 +61,10 @@ func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *N
 		conn:       conn,
 		streamDone: make(chan struct{}, 1),
 		heartDone:  make(chan struct{}, 1),
-		taskPool:   make(chan struct{}, 50),
+		taskPool:   make(chan struct{}, 20),
 		nodeInfo:   nodeinfo,
 	}
+	p.taskPool <- struct{}{}
 	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.SetSupport(true)
@@ -140,13 +140,4 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
 	return grpc.ServiceConfig{Methods: MethodConf}
 
-}
-
-func (c Comm) CreateFile(filename string) (*os.File, error) {
-
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, err
-	}
-	return f, nil
 }
