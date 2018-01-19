@@ -80,6 +80,7 @@ func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
 			return err
 		}
 		if err == types.ErrChannelFull {
+			qlog.Error("SendAsyn retry")
 			time.Sleep(time.Millisecond)
 			continue
 		}
