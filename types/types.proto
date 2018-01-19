@@ -704,8 +704,6 @@ message ReceiptTicket {
 	string ticketId = 1;
 }
 
-<<<<<<< HEAD
-=======
 //seed
 message GenSeedLang {
 	int32 lang = 1;
@@ -720,8 +718,3 @@ message SaveSeedByPw {
 message ReplySeed {
 	string seed = 1;
 }
-
-
-
-
->>>>>>> develop
