@@ -66,7 +66,7 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 	if err != nil {
 		peer.peerStat.NotOk()
 	} else {
-		peer.setRunning(true)
+		//peer.setRunning(true)
 		peer.peerStat.Ok()
 	}
 	m.deletePeer(peer)
@@ -76,12 +76,6 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 		<-m.network.txFactory
 		atomic.AddInt32(&m.network.txCapcity, 1)
 	}()
-
-	//m.broadcastByStream(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
-	//	if m.network.node.Size() == 0 {
-	//		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
-	//		return
-	//	}
 
 	peers := m.network.node.GetRegisterPeers()
 	for _, pr := range peers {
@@ -188,12 +182,12 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
-	m.CollectPeerStat(err, peer)
+	defer m.CollectPeerStat(err, peer)
 	if err != nil {
 		log.Debug("SendVersion", "Verson", err.Error())
 		peer.version.SetSupport(false)
 		if strings.Compare(err.Error(), VersionNotSupport) == 0 {
-			m.CollectPeerStat(err, peer)
+			//	m.CollectPeerStat(err, peer)
 
 		}
 		return err
@@ -405,7 +399,7 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 			continue
 		}
 		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
-		peer.setRunning(false)
+		//peer.setRunning(false)
 		m.CollectPeerStat(err, peer)
 		if err != nil {
 			continue
