@@ -32,14 +32,13 @@ func (n *Node) Close() {
 	close(n.activeDone)
 	close(n.onlineDone)
 	close(n.offlineDone)
-	log.Debug("stop", "versionDone", "close")
+	log.Error("stop", "versionDone", "close")
 	n.l.Close()
-	log.Debug("stop", "listen", "close")
-	log.Debug("stop", "remotelisten", "close")
+	log.Error("stop", "listen", "close")
 	n.addrBook.Close()
-	log.Debug("stop", "addrBook", "close")
+	log.Error("stop", "addrBook", "close")
 	n.RemoveAll()
-	log.Debug("stop", "PeerRemoeAll", "close")
+	log.Error("stop", "PeerRemoeAll", "close")
 }
 
 type Node struct {
@@ -265,6 +264,11 @@ func (n *Node) AddPeer(pr *peer) {
 	if pr.outbound == false {
 		return
 	}
+	if _, ok := n.outBound[pr.Addr()]; ok {
+		log.Error("AddPeer", "outBound", pr.Addr())
+		n.destroyPeer(pr)
+	}
+	log.Error("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
 	pr.key = n.addrBook.key
 	pr.Start()
@@ -280,6 +284,7 @@ func (n *Node) Size() int {
 func (n *Node) Has(paddr string) bool {
 	n.omtx.Lock() //TODO
 	defer n.omtx.Unlock()
+
 	if _, ok := n.outBound[paddr]; ok {
 		return true
 	}
@@ -336,7 +341,7 @@ func (n *Node) RemoveAll() {
 }
 
 func (n *Node) monitor() {
-	go n.deleteErrPeer()
+	go n.monitorErrPeer()
 	go n.checkActivePeers()
 	go n.getAddrFromOnline()
 	go n.getAddrFromOffline()
@@ -354,7 +359,7 @@ func (n *Node) needMore() bool {
 func (n *Node) DetectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LocalAddr = P2pComm.GetLocalAddr()
-	log.Debug("DetectionNodeAddr", "addr:", LocalAddr)
+	log.Error("DetectionNodeAddr", "addr:", LocalAddr)
 
 	if cfg.GetIsSeed() {
 		ExternalIp = LocalAddr
@@ -382,9 +387,13 @@ SET_ADDR:
 	}
 
 	addr := fmt.Sprintf("%v:%v", ExternalIp, n.GetExterPort())
+	log.Error("DetectionNodeAddr", "AddBlackList", addr)
+	n.nodeInfo.blacklist.Add(addr) //把自己的外网地址加入到黑名单，以防连接self
 	if exaddr, err := NewNetAddressString(addr); err == nil {
 		n.nodeInfo.SetExternalAddr(exaddr)
-		n.nodeInfo.blacklist.Add(addr) //把自己的外网地址加入到黑名单，以防连接自己
+
+	} else {
+		log.Error("DetectionNodeAddr", "error", err.Error())
 	}
 	if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, n.GetLocalPort())); err == nil {
 		n.nodeInfo.SetListenAddr(listaddr)

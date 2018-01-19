@@ -55,6 +55,20 @@ func (t *Task) InProgress() bool {
 	return t.isruning
 }
 
+func (t *Task) TimerReset(timeout time.Duration) {
+	t.TimerStop()
+	t.ticker.Reset(timeout)
+}
+
+func (t *Task) TimerStop() {
+	if !t.ticker.Stop() {
+		select {
+		case <-t.ticker.C:
+		default:
+		}
+	}
+}
+
 func (t *Task) Start(start, end int64, cb func()) error {
 	t.Lock()
 	defer t.Unlock()
@@ -66,7 +80,7 @@ func (t *Task) Start(start, end int64, cb func()) error {
 	}
 	chainlog.Error("task start:", "start", start, "end", end)
 	t.isruning = true
-	t.ticker.Reset(t.timeout)
+	t.TimerReset(t.timeout)
 	t.start = start
 	t.end = end
 	t.cb = cb
@@ -84,7 +98,7 @@ func (t *Task) Done(height int64) {
 	if height >= t.start && height <= t.end {
 		chainlog.Error("done", "height", height)
 		t.done(height)
-		t.ticker.Reset(t.timeout)
+		t.TimerReset(t.timeout)
 	}
 }
 
@@ -96,7 +110,7 @@ func (t *Task) stop() error {
 	if t.cb != nil {
 		go t.cb()
 	}
-	t.ticker.Stop()
+	t.TimerStop()
 	return nil
 }
 
