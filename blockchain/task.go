@@ -57,7 +57,7 @@ func (t *Task) InProgress() bool {
 
 func (t *Task) TimerReset(timeout time.Duration) {
 	t.TimerStop()
-	t.ticker.Reset(d)
+	t.ticker.Reset(timeout)
 }
 
 func (t *Task) TimerStop() {
