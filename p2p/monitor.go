@@ -9,8 +9,9 @@ func (n *Node) AddrTest(addrs []string) []string {
 	var enableAddrs []string
 	for _, addr := range addrs {
 
-		_, err := net.DialTimeout("tcp", addr, time.Second*1)
+		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
 		if err == nil {
+		    conn.Close()
 			enableAddrs = append(enableAddrs, addr)
 		}
 	}
