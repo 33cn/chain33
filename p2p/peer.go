@@ -125,7 +125,7 @@ func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
 func (p *peer) SendData(data interface{}) (err error) {
-	tick := time.NewTicker(time.Second * 1)
+	tick := time.NewTicker(time.Second * 5)
 	defer func() {
 		isErr := recover()
 		if isErr != nil {
@@ -175,7 +175,7 @@ func (p *peer) subStreamBlock() {
 				}
 				err := resp.Send(p2pdata)
 				if err != nil {
-					p.setRunning(false)
+					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
 
 					return
