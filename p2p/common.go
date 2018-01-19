@@ -63,6 +63,7 @@ func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *N
 		heartDone:  make(chan struct{}, 1),
 		taskPool:   make(chan struct{}, 50),
 		taskChan:   make(chan interface{}, 2048),
+		sendTxLoop: make(chan struct{}, 1),
 		nodeInfo:   nodeinfo,
 	}
 

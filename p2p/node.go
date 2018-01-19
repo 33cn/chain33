@@ -324,6 +324,7 @@ func (n *Node) Remove(peerAddr string) {
 	if ok {
 		delete(n.outBound, peerAddr)
 		peer.Close()
+		peer = nil
 		return
 	}
 
@@ -336,6 +337,7 @@ func (n *Node) RemoveAll() {
 	for addr, peer := range n.outBound {
 		delete(n.outBound, addr)
 		peer.Close()
+		peer = nil
 	}
 	return
 }
