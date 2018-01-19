@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"os"
 	"sync"
-    "runtime/debug"
 )
 
 const typeShift = 3
@@ -186,7 +185,6 @@ func (mr *memReader) Close() error {
 	mr.ms.mu.Lock()
 	defer mr.ms.mu.Unlock()
 	if mr.closed {
-        debug.PrintStack()
 		return ErrClosed
 	}
 	mr.m.open = false
@@ -205,7 +203,6 @@ func (mw *memWriter) Close() error {
 	mw.ms.mu.Lock()
 	defer mw.ms.mu.Unlock()
 	if mw.closed {
-        debug.PrintStack()
 		return ErrClosed
 	}
 	mw.memFile.open = false
