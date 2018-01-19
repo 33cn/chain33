@@ -379,33 +379,6 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 
 }
 
-//func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
-
-//	log.Debug("RouteChat", "stream", stream)
-//	dataChain := s.addStreamHandler(stream)
-//	for data := range dataChain {
-//		p2pdata := new(pb.BroadCastData)
-//		if block, ok := data.(*pb.P2PBlock); ok {
-//			log.Error("RouteChat", "Stream send Block", block.GetBlock().GetHeight())
-//			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
-//		} else if tx, ok := data.(*pb.P2PTx); ok {
-//			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-//		} else {
-//			continue
-//		}
-
-//		err := stream.Send(p2pdata)
-//		if err != nil {
-//			//log.Error("RouteChat", "Err", err.Error())
-//			s.deleteSChan <- stream
-//			return err
-//		}
-//	}
-
-//	return nil
-
-//}
-
 func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
 	var addrlist = make([]string, 0)
 	getctx, ok := pr.FromContext(ctx)
@@ -443,8 +416,8 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	}
 	return txmap, nil
 }
-func (s *p2pServer) innerBroadBlock() {
-	go s.DeleteStream()
+func (s *p2pServer) ManageStream() {
+	go s.deleteDisableStream()
 	go func() {
 		for block := range s.node.nodeInfo.p2pBroadcastChan {
 			//log.Error("innerBroadBlock", "Block", "+++++++++")
@@ -483,7 +456,7 @@ func (s *p2pServer) addStreamHandler(stream pb.P2Pgservice_RouteChatServer) chan
 func (s *p2pServer) addStreamBlock(block interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	timetikc := time.NewTicker(time.Second * 5)
+	timetikc := time.NewTicker(time.Second * 1)
 	defer timetikc.Stop()
 	for stream, _ := range s.streams {
 		if _, ok := s.streams[stream]; !ok {
@@ -501,7 +474,7 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 
 }
 
-func (s *p2pServer) DeleteStream() {
+func (s *p2pServer) deleteDisableStream() {
 	for stream := range s.deleteSChan {
 		s.deleteStream(stream)
 	}
@@ -509,6 +482,7 @@ func (s *p2pServer) DeleteStream() {
 func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
+	log.Error("deleteStream", "delete", stream)
 	close(s.streams[stream])
 	delete(s.streams, stream)
 }
