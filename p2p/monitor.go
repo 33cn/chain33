@@ -11,7 +11,7 @@ func (n *Node) AddrTest(addrs []string) []string {
 
 		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
 		if err == nil {
-		    conn.Close()
+			conn.Close()
 			enableAddrs = append(enableAddrs, addr)
 		}
 	}
@@ -37,8 +37,9 @@ FOR_LOOP:
 
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
-					if stat.GetAttempts() > 10 || peer.GetRunning() == false {
+					if stat.GetAttempts() > 20 || peer.GetRunning() == false {
 						log.Error("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
+
 						n.destroyPeer(peer)
 					}
 				}
