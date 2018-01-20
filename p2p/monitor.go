@@ -25,7 +25,8 @@ func (n *Node) checkActivePeers() {
 FOR_LOOP:
 	for {
 		select {
-		case <-n.activeDone:
+		case <-n.loopDone:
+			log.Error("checkActivePeers", "loop", "done")
 			break FOR_LOOP
 		case <-ticker.C:
 			peers := n.GetRegisterPeers()
@@ -79,8 +80,8 @@ func (n *Node) getAddrFromOnline() {
 FOR_LOOP:
 	for {
 		select {
-		case <-n.onlineDone:
-			log.Error("GetAddrFromOnLine", "break For_LOOP", "Done")
+		case <-n.loopDone:
+			log.Error("GetAddrFromOnLine", "loop", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
@@ -121,8 +122,8 @@ func (n *Node) getAddrFromOffline() {
 FOR_LOOP:
 	for {
 		select {
-		case <-n.offlineDone:
-			log.Error("GetAddrFromOffLine", "break For_LOOP", "Done")
+		case <-n.loopDone:
+			log.Error("GetAddrFromOffLine", "loop", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
