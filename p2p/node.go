@@ -28,10 +28,12 @@ func (n *Node) Start() {
 }
 
 func (n *Node) Close() {
-	close(n.versionDone)
-	close(n.activeDone)
-	close(n.onlineDone)
-	close(n.offlineDone)
+	//	close(n.versionDone)
+	//	close(n.activeDone)
+	//	close(n.onlineDone)
+	//	close(n.offlineDone)
+
+	close(n.loopDone)
 	log.Error("stop", "versionDone", "close")
 	n.l.Close()
 	log.Error("stop", "listen", "close")
@@ -39,6 +41,7 @@ func (n *Node) Close() {
 	log.Error("stop", "addrBook", "close")
 	n.RemoveAll()
 	log.Error("stop", "PeerRemoeAll", "close")
+
 }
 
 type Node struct {
@@ -52,11 +55,12 @@ type Node struct {
 	externalPort uint16 //nat map
 	outBound     map[string]*peer
 	l            Listener
-	versionDone  chan struct{}
-	activeDone   chan struct{}
-	errPeerDone  chan struct{}
-	offlineDone  chan struct{}
-	onlineDone   chan struct{}
+	loopDone     chan struct{}
+	//	versionDone  chan struct{}
+	//	activeDone   chan struct{}
+	//	errPeerDone  chan struct{}
+	//	offlineDone  chan struct{}
+	//	onlineDone   chan struct{}
 }
 
 func (n *Node) setQueue(q *queue.Queue) {
@@ -72,11 +76,12 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		externalPort: uint16(rand.Intn(64512) + 1023),
 		outBound:     make(map[string]*peer),
 		addrBook:     NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
-		versionDone:  make(chan struct{}, 1),
-		activeDone:   make(chan struct{}, 1),
-		errPeerDone:  make(chan struct{}, 1),
-		offlineDone:  make(chan struct{}, 1),
-		onlineDone:   make(chan struct{}, 1),
+		loopDone:     make(chan struct{}, 1),
+		//		versionDone:  make(chan struct{}, 1),
+		//		activeDone:   make(chan struct{}, 1),
+		//		errPeerDone:  make(chan struct{}, 1),
+		//		offlineDone:  make(chan struct{}, 1),
+		//		onlineDone:   make(chan struct{}, 1),
 	}
 
 	log.Debug("newNode", "externalPort", node.externalPort)
@@ -121,6 +126,7 @@ func (n *Node) exChangeVersion() {
 			SERVICE -= NODE_NETWORK //nat 失败，不对外提供服务
 		}
 	}
+
 	//如果 IsOutSide == true 节点在外网，则不启动nat
 	selefNet, err := NewNetAddressString(fmt.Sprintf("%v:%v", ExternalIp, n.GetExterPort()))
 	if err == nil {
@@ -143,7 +149,7 @@ FOR_LOOP:
 			for _, peer := range peers {
 				pcli.SendVersion(peer, n.nodeInfo)
 			}
-		case <-n.versionDone:
+		case <-n.loopDone:
 			break FOR_LOOP
 		}
 	}
@@ -157,7 +163,11 @@ func (n *Node) GetServiceTy() int64 {
 		IsOutSide = true
 		return SERVICE
 	}
+	if SERVICE == 0 {
+		log.Error("GetServiceTy", "Service", 0, "Describle", "NetWork Disable")
+		os.Exit(0)
 
+	}
 	for i := 0; i < 10; i++ {
 		exnet, err := nat.Any().ExternalIP()
 		if err == nil {
@@ -362,7 +372,11 @@ func (n *Node) DetectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LocalAddr = P2pComm.GetLocalAddr()
 	log.Error("DetectionNodeAddr", "addr:", LocalAddr)
-
+	if len(LocalAddr) == 0 {
+		SERVICE = 0
+		log.Error("DetectionNodeAddr", "NetWork Disable", "process done")
+		os.Exit(0)
+	}
 	if cfg.GetIsSeed() {
 		ExternalIp = LocalAddr
 
