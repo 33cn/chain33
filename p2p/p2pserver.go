@@ -323,6 +323,7 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 	go func() error {
+
 		for {
 
 			in, err := stream.Recv()
@@ -346,7 +347,7 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 				}
 
 			} else if tx := in.GetTx(); tx != nil {
-				log.Debug("SubStreamBlock", "tx", tx.GetTx())
+				log.Debug("RouteChat", "tx", tx.GetTx())
 				if tx.GetTx() != nil {
 					msg := s.node.nodeInfo.qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
 					s.node.nodeInfo.qclient.Send(msg, false)

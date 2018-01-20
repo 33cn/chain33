@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"encoding/hex"
 	"sync"
 	"time"
 
@@ -12,42 +13,65 @@ import (
 func (p *peer) Start() {
 	p.mconn.key = p.key
 	go p.subStreamBlock()
+	go p.filterTask.ManageFilterTask()
 	p.HeartBeat()
+
 	return
 }
 func (p *peer) Close() {
 	p.setRunning(false)
 	p.mconn.Close()
-	p.HeartBlood()
+	close(p.allLoopDone)
 	close(p.taskPool)
-	close(p.streamSendDone)
-	close(p.streamRecvDone)
-	close(p.txLoopDone)
 	close(p.taskChan)
+	close(p.filterTask.loopDone)
 
+}
+
+func NewPeer(isout bool, conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
+	p := &peer{
+		outbound: isout,
+		conn:     conn,
+
+		taskPool:    make(chan struct{}, 50),
+		taskChan:    make(chan interface{}, 2048),
+		allLoopDone: make(chan struct{}, 1),
+		nodeInfo:    nodeinfo,
+	}
+	p.filterTask = new(FilterTask)
+	p.filterTask.loopDone = make(chan struct{}, 1)
+	p.filterTask.regTask = make(map[interface{}]time.Duration)
+	p.peerStat = new(Stat)
+	p.version = new(Version)
+	p.version.SetSupport(true)
+	p.setRunning(true)
+	p.mconn = NewMConnection(conn, remote, p)
+	return p
 }
 
 type peer struct {
-	wg             sync.WaitGroup
-	pmutx          sync.Mutex
-	nodeInfo       **NodeInfo
-	outbound       bool
-	conn           *grpc.ClientConn // source connection
-	persistent     bool
-	isrunning      bool
-	version        *Version
-	key            string
-	mconn          *MConnection
-	peerAddr       *NetAddress
-	peerStat       *Stat
-	streamRecvDone chan struct{}
-	streamSendDone chan struct{}
-	txLoopDone     chan struct{}
-	heartDone      chan struct{}
-	taskPool       chan struct{}
-	taskChan       chan interface{} //tx block
+	wg          sync.WaitGroup
+	pmutx       sync.Mutex
+	nodeInfo    **NodeInfo
+	outbound    bool
+	conn        *grpc.ClientConn // source connection
+	persistent  bool
+	isrunning   bool
+	version     *Version
+	key         string
+	mconn       *MConnection
+	peerAddr    *NetAddress
+	peerStat    *Stat
+	filterTask  *FilterTask
+	allLoopDone chan struct{}
+	taskPool    chan struct{}
+	taskChan    chan interface{} //tx block
 }
-
+type FilterTask struct {
+	mtx      sync.Mutex
+	loopDone chan struct{}
+	regTask  map[interface{}]time.Duration
+}
 type Version struct {
 	mtx            sync.Mutex
 	versionSupport bool
@@ -86,6 +110,46 @@ func (v *Version) IsSupport() bool {
 	defer v.mtx.Unlock()
 	return v.versionSupport
 }
+func (f *FilterTask) RegTask(key interface{}) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	f.regTask[key] = time.Duration(time.Now().Unix())
+}
+func (f *FilterTask) QueryTask(key interface{}) bool {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	_, ok := f.regTask[key]
+	return ok
+
+}
+func (f *FilterTask) RemoveTask(key interface{}) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	delete(f.regTask, key)
+}
+
+func (f *FilterTask) ManageFilterTask() {
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
+	for {
+
+		select {
+		case <-f.loopDone:
+			log.Error("peer mangerFilterTask", "loop", "done")
+			return
+		case <-ticker.C:
+			f.mtx.Lock()
+			now := time.Now().Unix()
+			for key, regtime := range f.regTask {
+				if now-int64(regtime) > 50 {
+					delete(f.regTask, key)
+				}
+			}
+			f.mtx.Unlock()
+
+		}
+	}
+}
 
 // sendRoutine polls for packets to send from channels.
 func (p *peer) HeartBeat() {
@@ -105,7 +169,8 @@ func (p *peer) HeartBeat() {
 					}
 				}
 				count++
-			case <-p.heartDone:
+			case <-p.allLoopDone:
+				log.Error("Peer HeartBeat", "loop done", p.Addr())
 				break FOR_LOOP
 
 			}
@@ -114,15 +179,6 @@ func (p *peer) HeartBeat() {
 	}(p)
 }
 
-func (p *peer) HeartBlood() {
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
-	select {
-	case p.heartDone <- struct{}{}:
-	case <-ticker.C:
-		return
-	}
-}
 func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
@@ -140,8 +196,7 @@ func (p *peer) SendData(data interface{}) (err error) {
 	case <-tick.C:
 		//log.Error("Peer SendData", "timeout", "return")
 		return
-	case <-p.txLoopDone:
-		return
+
 	case p.taskChan <- data:
 	}
 	return nil
@@ -163,8 +218,8 @@ func (p *peer) subStreamBlock() {
 		//Stream Send data
 		for {
 			select {
-			case <-p.streamSendDone:
-				log.Error("SubStreamBlock", "SendStream Done", p.Addr())
+			case <-p.allLoopDone:
+				log.Error("peer SubStreamBlock", "Send Stream  Done", p.Addr())
 				return
 
 			default:
@@ -178,9 +233,21 @@ func (p *peer) subStreamBlock() {
 				for task := range p.taskChan {
 					p2pdata := new(pb.BroadCastData)
 					if block, ok := task.(*pb.P2PBlock); ok {
+						height := block.GetBlock().GetHeight()
+						if p.filterTask.QueryTask(height) == true {
+							continue //已经接收的消息不再发送
+						}
 						p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+						//登记新的发送消息
+						p.filterTask.RegTask(height)
+
 					} else if tx, ok := task.(*pb.P2PTx); ok {
+						sig := tx.GetTx().GetSignature().GetSignature()
+						if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+							continue
+						}
 						p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+						p.filterTask.RegTask(hex.EncodeToString(sig))
 					}
 					err := resp.Send(p2pdata)
 					if err != nil {
@@ -196,11 +263,11 @@ func (p *peer) subStreamBlock() {
 	}()
 	for {
 		select {
-		case <-p.streamRecvDone:
-			log.Error("SubStreamBlock", "SecvStreamDone", p.Addr())
+		case <-p.allLoopDone:
+			log.Error("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
 			return
 
-		default:
+		=:
 
 			resp, err := p.mconn.conn.RouteChat(context.Background())
 			if err != nil {
@@ -217,26 +284,38 @@ func (p *peer) subStreamBlock() {
 					resp.CloseSend()
 					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
-					log.Error("SubStreamBlock", "Recv Err", err.Error())
+					//log.Error("SubStreamBlock", "Recv Err", err.Error())
 					break
 				}
 
 				if block := data.GetBlock(); block != nil {
-					log.Error("SubStreamBlock", "block==+====================+==================+=>Height", block.GetBlock().GetHeight())
+
 					if block.GetBlock() != nil {
+						//如果已经有登记过的消息记录，则不发送给本地blockchain
+						if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
+							continue
+						}
+						log.Error("SubStreamBlock", "block==+====================+==================+=>Height", block.GetBlock().GetHeight())
 						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 						(*p.nodeInfo).qclient.Send(msg, true)
 						_, err = (*p.nodeInfo).qclient.Wait(msg)
 						if err != nil {
 							continue
 						}
+						p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
 					}
 
 				} else if tx := data.GetTx(); tx != nil {
-					log.Debug("SubStreamBlock", "tx", tx.GetTx())
+
 					if tx.GetTx() != nil {
+						log.Debug("SubStreamBlock", "tx", tx.GetTx())
+						sig := tx.GetTx().GetSignature().GetSignature()
+						if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+							continue //处理方式同上
+						}
 						msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
 						(*p.nodeInfo).qclient.Send(msg, false)
+						p.filterTask.RegTask(hex.EncodeToString(sig)) //登记
 					}
 
 				}

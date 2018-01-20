@@ -18,11 +18,16 @@ import (
 	"google.golang.org/grpc"
 )
 
+func (m *P2pCli) Close() {
+
+	close(m.loopdone)
+}
+
 type P2pCli struct {
 	network  *P2p
 	mtx      sync.Mutex
 	taskinfo map[int64]bool
-	done     chan struct{}
+	loopdone chan struct{}
 }
 type intervalInfo struct {
 	start int
@@ -56,7 +61,7 @@ func NewP2pCli(network *P2p) *P2pCli {
 	pcli := &P2pCli{
 		network:  network,
 		taskinfo: make(map[int64]bool),
-		done:     make(chan struct{}, 1),
+		loopdone: make(chan struct{}, 3),
 	}
 
 	return pcli
@@ -465,6 +470,7 @@ func (m *P2pCli) broadcastByStream(data interface{}) {
 	case <-ticker.C:
 		//log.Error("broadcastByStream", "timeout", "return")
 		return
+
 	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
 	}
 
@@ -524,17 +530,7 @@ func (m *P2pCli) GetExternIp(addr string) []string {
 	return resp.Addrlist
 
 }
-func (m *P2pCli) Close() {
 
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
-	select {
-	case m.done <- struct{}{}:
-	case <-ticker.C:
-		return
-	}
-
-}
 func (m *P2pCli) deletePeer(peer *peer) {
 
 	ticker := time.NewTicker(time.Second * 1)
@@ -600,8 +596,8 @@ func (m *P2pCli) monitorPeerInfo() {
 			case <-ticker.C:
 				m.fetchPeerInfo()
 
-			case <-m.done:
-				log.Error("monitorPeerInfo", "done", "close")
+			case <-m.loopdone:
+				log.Error("p2pcli monitorPeerInfo", "loop", "done")
 				break FOR_LOOP
 			}
 

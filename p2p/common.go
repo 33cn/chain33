@@ -54,25 +54,8 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 
 func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
-	conn := rawConn
 	// Key and NodeInfo are set after Handshake
-	p := &peer{
-		outbound:       outbound,
-		conn:           conn,
-		streamRecvDone: make(chan struct{}, 1),
-		streamSendDone: make(chan struct{}, 1),
-		heartDone:      make(chan struct{}, 1),
-		taskPool:       make(chan struct{}, 50),
-		taskChan:       make(chan interface{}, 2048),
-		txLoopDone:     make(chan struct{}, 1),
-		nodeInfo:       nodeinfo,
-	}
-
-	p.peerStat = new(Stat)
-	p.version = new(Version)
-	p.version.SetSupport(true)
-	p.setRunning(true)
-	p.mconn = NewMConnection(conn, remote, p)
+	p := NewPeer(outbound, rawConn, nodeinfo, remote)
 
 	return p, nil
 }
