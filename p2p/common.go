@@ -57,14 +57,15 @@ func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *N
 	conn := rawConn
 	// Key and NodeInfo are set after Handshake
 	p := &peer{
-		outbound:   outbound,
-		conn:       conn,
-		streamDone: make(chan struct{}, 1),
-		heartDone:  make(chan struct{}, 1),
-		taskPool:   make(chan struct{}, 50),
-		taskChan:   make(chan interface{}, 2048),
-		txLoopDone: make(chan struct{}, 1),
-		nodeInfo:   nodeinfo,
+		outbound:       outbound,
+		conn:           conn,
+		streamRecvDone: make(chan struct{}, 1),
+		streamSendDone: make(chan struct{}, 1),
+		heartDone:      make(chan struct{}, 1),
+		taskPool:       make(chan struct{}, 50),
+		taskChan:       make(chan interface{}, 2048),
+		txLoopDone:     make(chan struct{}, 1),
+		nodeInfo:       nodeinfo,
 	}
 
 	p.peerStat = new(Stat)
