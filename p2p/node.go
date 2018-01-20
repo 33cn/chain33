@@ -183,7 +183,6 @@ func (n *Node) GetServiceTy() int64 {
 	return SERVICE
 
 }
-
 func (n *Node) DialPeers(addrbucket map[string]bool) error {
 	if len(addrbucket) == 0 {
 		return nil

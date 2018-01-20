@@ -20,30 +20,32 @@ func (p *peer) Close() {
 	p.mconn.Close()
 	p.HeartBlood()
 	close(p.taskPool)
-	close(p.streamDone)
+	close(p.streamSendDone)
+	close(p.streamRecvDone)
 	close(p.txLoopDone)
 	close(p.taskChan)
 
 }
 
 type peer struct {
-	wg         sync.WaitGroup
-	pmutx      sync.Mutex
-	nodeInfo   **NodeInfo
-	outbound   bool
-	conn       *grpc.ClientConn // source connection
-	persistent bool
-	isrunning  bool
-	version    *Version
-	key        string
-	mconn      *MConnection
-	peerAddr   *NetAddress
-	peerStat   *Stat
-	streamDone chan struct{}
-	txLoopDone chan struct{}
-	heartDone  chan struct{}
-	taskPool   chan struct{}
-	taskChan   chan interface{} //tx block
+	wg             sync.WaitGroup
+	pmutx          sync.Mutex
+	nodeInfo       **NodeInfo
+	outbound       bool
+	conn           *grpc.ClientConn // source connection
+	persistent     bool
+	isrunning      bool
+	version        *Version
+	key            string
+	mconn          *MConnection
+	peerAddr       *NetAddress
+	peerStat       *Stat
+	streamRecvDone chan struct{}
+	streamSendDone chan struct{}
+	txLoopDone     chan struct{}
+	heartDone      chan struct{}
+	taskPool       chan struct{}
+	taskChan       chan interface{} //tx block
 }
 
 type Version struct {
@@ -160,35 +162,42 @@ func (p *peer) subStreamBlock() {
 	go func() { //TODO 待优化，临时不启用
 		//Stream Send data
 		for {
-			resp, err := p.mconn.conn.RouteChat(context.Background())
-			if err != nil {
-				p.peerStat.NotOk()
-				(*p.nodeInfo).monitorChan <- p
-				time.Sleep(time.Second * 5)
-				continue
-			}
-			for task := range p.taskChan {
-				p2pdata := new(pb.BroadCastData)
-				if block, ok := task.(*pb.P2PBlock); ok {
-					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
-				} else if tx, ok := task.(*pb.P2PTx); ok {
-					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-				}
-				err := resp.Send(p2pdata)
+			select {
+			case <-p.streamSendDone:
+				log.Error("SubStreamBlock", "SendStream Done", p.Addr())
+				return
+
+			default:
+				resp, err := p.mconn.conn.RouteChat(context.Background())
 				if err != nil {
 					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
-
-					return
+					time.Sleep(time.Second * 5)
+					continue
 				}
-			}
+				for task := range p.taskChan {
+					p2pdata := new(pb.BroadCastData)
+					if block, ok := task.(*pb.P2PBlock); ok {
+						p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+					} else if tx, ok := task.(*pb.P2PTx); ok {
+						p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+					}
+					err := resp.Send(p2pdata)
+					if err != nil {
+						p.peerStat.NotOk()
+						(*p.nodeInfo).monitorChan <- p
+						resp.CloseSend()
+						break //下一次外循环重新获取stream
+					}
+				}
 
+			}
 		}
 	}()
 	for {
 		select {
-		case <-p.streamDone:
-			log.Error("SubStreamBlock", "peerdone", p.Addr())
+		case <-p.streamRecvDone:
+			log.Error("SubStreamBlock", "SecvStreamDone", p.Addr())
 			return
 
 		default:
@@ -206,6 +215,8 @@ func (p *peer) subStreamBlock() {
 				data, err := resp.Recv()
 				if err != nil {
 					resp.CloseSend()
+					p.peerStat.NotOk()
+					(*p.nodeInfo).monitorChan <- p
 					log.Error("SubStreamBlock", "Recv Err", err.Error())
 					break
 				}
