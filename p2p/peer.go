@@ -267,7 +267,7 @@ func (p *peer) subStreamBlock() {
 			log.Error("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
 			return
 
-		=:
+		default:
 
 			resp, err := p.mconn.conn.RouteChat(context.Background())
 			if err != nil {
