@@ -175,6 +175,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
+			} else {
+				chain.notifySync()
 			}
 			chainlog.Info("EventAddBlock", "height", block.Height, "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
@@ -249,6 +251,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
+			} else {
+				chain.notifySync()
 			}
 			chainlog.Info("EventBroadcastAddBlock", "success", "ok")
 			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
@@ -476,10 +480,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		err = errors.New(outstr)
 		return err
 	} else {
-		// 首先将此block缓存到blockpool中。
 		chain.blockPool.AddBlock(blockdetail, broadcast)
-		chain.notifySync()
-		//更新广播block的高度
 	}
 	return nil
 }
