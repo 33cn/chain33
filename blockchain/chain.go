@@ -137,181 +137,45 @@ func (chain *BlockChain) ProcRecvMsg() {
 	defer func() {
 		chain.recvdone <- struct{}{}
 	}()
+	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.qclient.Recv() {
 		chainlog.Info("blockchain recv", "msg", types.GetEventName(int(msg.Ty)))
 		msgtype := msg.Ty
 		beg := time.Now()
+		reqnum <- struct{}{}
 		switch msgtype {
-
 		case types.EventQueryTx:
-			txhash := (msg.Data).(*types.ReqHash)
-			TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
-			if err != nil {
-				chainlog.Error("ProcQueryTxMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, err))
-			} else {
-				chainlog.Info("ProcQueryTxMsg", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, TransactionDetail))
-			}
-
+			go chain.queryTx(msg, reqnum)
 		case types.EventGetBlocks:
-			requestblocks := (msg.Data).(*types.ReqBlocks)
-			blocks, err := chain.ProcGetBlockDetailsMsg(requestblocks)
-			if err != nil {
-				chainlog.Error("ProcGetBlockDetailsMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, err))
-			} else {
-				chainlog.Info("ProcGetBlockDetailsMsg", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, blocks))
-			}
-
+			go chain.getBlocks(msg, reqnum)
 		case types.EventAddBlock: // block
-			var block *types.Block
-			var reply types.Reply
-			reply.IsOk = true
-			block = msg.Data.(*types.Block)
-			err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: block})
-			if err != nil {
-				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			} else {
-				chain.notifySync()
-			}
-			chainlog.Info("EventAddBlock", "height", block.Height, "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
-
+			go chain.addBlock(msg, reqnum)
 		case types.EventGetBlockHeight:
-			var replyBlockHeight types.ReplyBlockHeight
-			replyBlockHeight.Height = chain.GetBlockHeight()
-			chainlog.Info("EventGetBlockHeight", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReplyBlockHeight, &replyBlockHeight))
-
+			go chain.getBlockHeight(msg, reqnum)
 		case types.EventTxHashList:
-			txhashlist := (msg.Data).(*types.TxHashList)
-			duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
-			chainlog.Info("EventTxHashList", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
-
+			go chain.txHashList(msg, reqnum)
 		case types.EventGetHeaders:
-			requestblocks := (msg.Data).(*types.ReqBlocks)
-			headers, err := chain.ProcGetHeadersMsg(requestblocks)
-			if err != nil {
-				chainlog.Error("ProcGetHeadersMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, err))
-			} else {
-				chainlog.Info("EventGetHeaders", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, headers))
-			}
-
+			go chain.getHeaders(msg, reqnum)
 		case types.EventGetLastHeader:
-			header, err := chain.ProcGetLastHeaderMsg()
-			if err != nil {
-				chainlog.Error("ProcGetLastHeaderMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, err))
-			} else {
-				chainlog.Info("EventGetLastHeader", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, header))
-			}
-			//本节点共识模块发送过来的blockdetail，需要广播到全网
+			go chain.getLastHeader(msg, reqnum)
 		case types.EventAddBlockDetail:
-			var blockDetail *types.BlockDetail
-			var reply types.Reply
-			reply.IsOk = true
-			blockDetail = msg.Data.(*types.BlockDetail)
-			currentheight := chain.GetBlockHeight()
-			//我们需要的高度，直接存储到db中
-			if blockDetail.Block.Height != currentheight+1 {
-				errmsg := "EventAddBlockDetail.Height not currentheight+1"
-				chainlog.Error("EventAddBlockDetail", "err", errmsg)
-				reply.IsOk = false
-				reply.Msg = []byte(errmsg)
-				msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
-				return
-			}
-			err := chain.ProcAddBlockMsg(true, blockDetail)
-			if err != nil {
-				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			} else {
-				chain.SynBlockToDbOneByOne()
-			}
-			chainlog.Info("EventAddBlockDetail", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
-
-			//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
+			go chain.addBlockDetail(msg, reqnum)
 		case types.EventBroadcastAddBlock: //block
-			var block *types.Block
-			var reply types.Reply
-			reply.IsOk = true
-			block = msg.Data.(*types.Block)
-			err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: block})
-			if err != nil {
-				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			} else {
-				chain.notifySync()
-			}
-			chainlog.Info("EventBroadcastAddBlock", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
-
+			go chain.broadcastAddBlock(msg, reqnum)
 		case types.EventGetTransactionByAddr:
-			addr := (msg.Data).(*types.ReqAddr)
-			chainlog.Warn("EventGetTransactionByAddr", "req", addr)
-			replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
-			if err != nil {
-				chainlog.Error("ProcGetTransactionByAddr", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, err))
-			} else {
-				chainlog.Info("EventGetTransactionByAddr", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, replyTxInfos))
-			}
+			go chain.getTransactionByAddr(msg, reqnum)
 
 		case types.EventGetTransactionByHash:
-			txhashs := (msg.Data).(*types.ReqHashes)
-			chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
-			TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes)
-			if err != nil {
-				chainlog.Error("ProcGetTransactionByHashes", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, err))
-			} else {
-				chainlog.Info("EventGetTransactionByHash", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
-			}
+			go chain.getTransactionByHashes(msg, reqnum)
 
-		case types.EventGetBlockOverview: //BlockOverview
-			ReqHash := (msg.Data).(*types.ReqHash)
-			BlockOverview, err := chain.ProcGetBlockOverview(ReqHash)
-			if err != nil {
-				chainlog.Error("ProcGetBlockOverview", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, err))
-			} else {
-				chainlog.Info("ProcGetBlockOverview", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, BlockOverview))
-			}
-		case types.EventGetAddrOverview: //AddrOverview
-			addr := (msg.Data).(*types.ReqAddr)
-			AddrOverview, err := chain.ProcGetAddrOverview(addr)
-			if err != nil {
-				chainlog.Error("ProcGetAddrOverview", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, err))
-			} else {
-				chainlog.Info("ProcGetAddrOverview", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, AddrOverview))
-			}
+		case types.EventGetBlockOverview: //blockOverview
+			go chain.getBlockOverview(msg, reqnum)
+		case types.EventGetAddrOverview: //addrOverview
+			go chain.getAddrOverview(msg, reqnum)
 		case types.EventGetBlockHash: //GetBlockHash
-			height := (msg.Data).(*types.ReqInt)
-			replyhash, err := chain.ProcGetBlockHash(height)
-			if err != nil {
-				chainlog.Error("ProcGetBlockHash", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, err))
-			} else {
-				chainlog.Info("ProcGetBlockHash", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, replyhash))
-			}
+			go chain.getBlockHash(msg, reqnum)
 		default:
+			<-reqnum
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
 		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
