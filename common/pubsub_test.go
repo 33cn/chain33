@@ -219,7 +219,7 @@ func (s *Suite) TestFIFOPub(c *check.C) {
 
 	ps.FIFOPub("hi", "t1")
 	ps.FIFOPub("there", "t1")
-	//wait for pub run
+	//wait for pub run , only use in test
 	time.Sleep(time.Millisecond)
 
 	c.Check(<-ch1, check.Equals, "there")
