@@ -2,13 +2,17 @@ package blockchain
 
 //message callback
 import (
+	"time"
+
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
 func (chain *BlockChain) queryTx(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	txhash := (msg.Data).(*types.ReqHash)
 	TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
@@ -22,8 +26,10 @@ func (chain *BlockChain) queryTx(msg queue.Message, reqnum chan struct{}) {
 }
 
 func (chain *BlockChain) getBlocks(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	requestblocks := (msg.Data).(*types.ReqBlocks)
 	blocks, err := chain.ProcGetBlockDetailsMsg(requestblocks)
@@ -37,8 +43,10 @@ func (chain *BlockChain) getBlocks(msg queue.Message, reqnum chan struct{}) {
 }
 
 func (chain *BlockChain) addBlock(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	var block *types.Block
 	var reply types.Reply
@@ -57,8 +65,10 @@ func (chain *BlockChain) addBlock(msg queue.Message, reqnum chan struct{}) {
 }
 
 func (chain *BlockChain) getBlockHeight(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	var replyBlockHeight types.ReplyBlockHeight
 	replyBlockHeight.Height = chain.GetBlockHeight()
@@ -67,6 +77,11 @@ func (chain *BlockChain) getBlockHeight(msg queue.Message, reqnum chan struct{})
 }
 
 func (chain *BlockChain) txHashList(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
+	defer func() {
+		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
+	}()
 	txhashlist := (msg.Data).(*types.TxHashList)
 	duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
 	chainlog.Info("EventTxHashList", "success", "ok")
@@ -74,8 +89,10 @@ func (chain *BlockChain) txHashList(msg queue.Message, reqnum chan struct{}) {
 }
 
 func (chain *BlockChain) getHeaders(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	requestblocks := (msg.Data).(*types.ReqBlocks)
 	headers, err := chain.ProcGetHeadersMsg(requestblocks)
@@ -89,8 +106,10 @@ func (chain *BlockChain) getHeaders(msg queue.Message, reqnum chan struct{}) {
 }
 
 func (chain *BlockChain) getLastHeader(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	header, err := chain.ProcGetLastHeaderMsg()
 	if err != nil {
@@ -104,8 +123,10 @@ func (chain *BlockChain) getLastHeader(msg queue.Message, reqnum chan struct{}) 
 }
 
 func (chain *BlockChain) addBlockDetail(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	var blockDetail *types.BlockDetail
 	var reply types.Reply
@@ -135,8 +156,10 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message, reqnum chan struct{})
 	//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
 }
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	var block *types.Block
 	var reply types.Reply
@@ -155,8 +178,10 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message, reqnum chan struct
 }
 
 func (chain *BlockChain) getTransactionByAddr(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	addr := (msg.Data).(*types.ReqAddr)
 	chainlog.Warn("EventGetTransactionByAddr", "req", addr)
@@ -171,8 +196,10 @@ func (chain *BlockChain) getTransactionByAddr(msg queue.Message, reqnum chan str
 }
 
 func (chain *BlockChain) getTransactionByHashes(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	txhashs := (msg.Data).(*types.ReqHashes)
 	chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
@@ -187,8 +214,10 @@ func (chain *BlockChain) getTransactionByHashes(msg queue.Message, reqnum chan s
 }
 
 func (chain *BlockChain) getBlockOverview(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	ReqHash := (msg.Data).(*types.ReqHash)
 	BlockOverview, err := chain.ProcGetBlockOverview(ReqHash)
@@ -202,8 +231,10 @@ func (chain *BlockChain) getBlockOverview(msg queue.Message, reqnum chan struct{
 }
 
 func (chain *BlockChain) getAddrOverview(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	addr := (msg.Data).(*types.ReqAddr)
 	AddrOverview, err := chain.ProcGetAddrOverview(addr)
@@ -217,8 +248,10 @@ func (chain *BlockChain) getAddrOverview(msg queue.Message, reqnum chan struct{}
 }
 
 func (chain *BlockChain) getBlockHash(msg queue.Message, reqnum chan struct{}) {
+	beg := time.Now()
 	defer func() {
 		<-reqnum
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	height := (msg.Data).(*types.ReqInt)
 	replyhash, err := chain.ProcGetBlockHash(height)
