@@ -108,8 +108,6 @@ func (client *Client) Wait(msg Message) (Message, error) {
 }
 
 func (client *Client) Recv() chan Message {
-	client.mu.Lock()
-	defer client.mu.Unlock()
 	return client.recv
 }
 

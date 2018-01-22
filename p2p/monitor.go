@@ -11,7 +11,7 @@ func (n *Node) AddrTest(addrs []string) []string {
 
 		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
 		if err == nil {
-		    conn.Close()
+			conn.Close()
 			enableAddrs = append(enableAddrs, addr)
 		}
 	}
@@ -25,7 +25,8 @@ func (n *Node) checkActivePeers() {
 FOR_LOOP:
 	for {
 		select {
-		case <-n.activeDone:
+		case <-n.loopDone:
+			log.Error("checkActivePeers", "loop", "done")
 			break FOR_LOOP
 		case <-ticker.C:
 			peers := n.GetRegisterPeers()
@@ -37,8 +38,9 @@ FOR_LOOP:
 
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
-					if stat.GetAttempts() > 10 || peer.GetRunning() == false {
+					if stat.GetAttempts() > 20 || peer.GetRunning() == false {
 						log.Error("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
+
 						n.destroyPeer(peer)
 					}
 				}
@@ -78,8 +80,8 @@ func (n *Node) getAddrFromOnline() {
 FOR_LOOP:
 	for {
 		select {
-		case <-n.onlineDone:
-			log.Error("GetAddrFromOnLine", "break For_LOOP", "Done")
+		case <-n.loopDone:
+			log.Error("GetAddrFromOnLine", "loop", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
@@ -120,8 +122,8 @@ func (n *Node) getAddrFromOffline() {
 FOR_LOOP:
 	for {
 		select {
-		case <-n.offlineDone:
-			log.Error("GetAddrFromOffLine", "break For_LOOP", "Done")
+		case <-n.loopDone:
+			log.Error("GetAddrFromOffLine", "loop", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
