@@ -49,13 +49,21 @@ func TestHashlockCase1(t *testing.T) {
 	//generate a new address, and import to wallet
 	addrto, privkey := genaddress()
 	fmt.Println("privkey: ", common.ToHex(privkey.Bytes()))
-	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: "111"}
+	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: "222"}
 	wallet, err = c.ImportPrivKey(context.Background(), &params)
 	if err != nil {
 		fmt.Println(err)
 		time.Sleep(time.Second)
+		t.Error(err)
+		return
 	}
-
+	//err
+	if checkAccount(0, 0, wallet) {
+		fmt.Println("Init Account check pass")
+	} else {
+		fmt.Println("Init Account check not pass")
+		//err
+	}
 	if wallet != nil {
 		showAccount(wallet)
 		time.Sleep(5000 * time.Millisecond)
@@ -63,44 +71,31 @@ func TestHashlockCase1(t *testing.T) {
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(time.Second)
+			t.Error(err)
+			return
 		}
 		time.Sleep(5000 * time.Millisecond)
 		showAccount(wallet)
+		if checkAccount(100, 0, wallet) {
+			fmt.Println("send Account check pass")
+		} else {
+			fmt.Println("send Account check not pass")
+			//err
+		}
 	} else {
 		fmt.Println("it's not right")
 	}
 
-	/*
-		err = sendtoaddress(priv, addrto, 1e2)
-		if err != nil {
-			fmt.Println(err)
-			time.Sleep(time.Second)
-		}
-		var currWa *types.WalletAccounts
-		currWa, err = getAccounts()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		for _, r := range currWa.Wallets {
-			fmt.Println(r.Acc.Balance)
-		}
-	*/
-	/*
-		for _, r := range res.Wallets {
-			balanceResult := strconv.FormatFloat(float64(r.Acc.Balance)/float64(1e8), 'f', 4, 64)
-			frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen)/float64(1e8), 'f', 4, 64)
-			accResult := &AccountResult{
-				Currency: r.Acc.Currency,
-				Addr:     r.Acc.Addr,
-				Balance:  balanceResult,
-				Frozen:   frozenResult,
-			}
-			result.Wallets = append(result.Wallets, &WalletResult{Acc: accResult, Label: r.Label})
-		}
-	*/
-	//fmt.Println("total eeeeeee:", errcount)
+	//frozen account.....
+	//sendtolock()
+	//if checkAccount(90, 10, wallet) {
+	//fmt.Println("frozen Account check pass")
+	//} else {
+	//	fmt.Println("frozen Account check not pass")
+	//err
+	//t.Error(err)
+	//return
+	//}
 }
 
 func showAccount(wallet *types.WalletAccount) {
