@@ -14,7 +14,7 @@ import (
 
 func (l *DefaultListener) Close() bool {
 	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
-	log.Debug("stop", "closed natport", "close")
+	//log.Debug("stop", "closed natport", "close")
 	l.listener.Close()
 	log.Error("stop", "DefaultListener", "close")
 	return true
@@ -50,7 +50,7 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	}
 	pServer := NewP2pServer()
 	pServer.node = dl.n
-	pServer.innerBroadBlock()
+	pServer.ManageStream()
 	dl.server = grpc.NewServer()
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	go dl.NatMapPort()
