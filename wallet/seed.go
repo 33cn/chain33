@@ -9,9 +9,7 @@ import (
 	"errors"
 	"fmt"
 	//	"io"
-	"io/ioutil"
 	"math/big"
-	"os"
 	"strings"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -34,30 +32,15 @@ const BACKUPKEYINDEX = "backupkeyindex"
 //lang = 1 通过中文生成种子 ，中文字典文件chinese_simplified.txt
 
 func CreateSeed(folderpath string, lang int32) (string, error) {
-	seedlog.Info("CreateSeed", "folderpath", folderpath, "lang", lang)
-	var filepath string
+	var strs []string
 	if lang == 0 {
-		filepath = fmt.Sprintf("%venglish.txt", folderpath)
+		strs = strings.Split(English_text, " ")
 	} else if lang == 1 {
-		filepath = fmt.Sprintf("%vchinese_simplified.txt", folderpath)
+		strs = strings.Split(Chinese_text, " ")
 	} else {
 		return "", errors.New("CreateSeed lang err!")
 	}
 
-	//打开原始种子字典文件
-	f, err := os.Open(filepath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	fb, err := ioutil.ReadAll(f)
-	if err != nil {
-		return "", err
-	}
-
-	st := strings.TrimSpace(string(fb))
-	strs := strings.Split(st, "\n")
 	strnum := len(strs)
 	var seed []string
 	for i := 0; i < SeedLong; i++ {

@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"io"
 
 	"fmt"
 	"strings"
@@ -320,9 +321,42 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 
 	return resp.GetData().(*pb.Reply), nil
 }
+func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
+	go func() error {
 
-func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
-	log.Debug("RouteChat", "stream", stream)
+		for {
+
+			in, err := stream.Recv()
+			if err == io.EOF {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			//收到stream 交给
+			if block := in.GetBlock(); block != nil {
+				log.Error("RouteChat", " Recv block==+====================+==================+=>Height", block.GetBlock().GetHeight())
+				if block.GetBlock() != nil {
+
+					msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					s.node.nodeInfo.qclient.Send(msg, true)
+					_, err = s.node.nodeInfo.qclient.Wait(msg)
+					if err != nil {
+						continue
+					}
+				}
+
+			} else if tx := in.GetTx(); tx != nil {
+				log.Debug("RouteChat", "tx", tx.GetTx())
+				if tx.GetTx() != nil {
+					msg := s.node.nodeInfo.qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					s.node.nodeInfo.qclient.Send(msg, false)
+				}
+
+			}
+		}
+	}()
+
 	dataChain := s.addStreamHandler(stream)
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)
@@ -337,7 +371,6 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 
 		err := stream.Send(p2pdata)
 		if err != nil {
-			//log.Error("RouteChat", "Err", err.Error())
 			s.deleteSChan <- stream
 			return err
 		}
@@ -384,10 +417,11 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	}
 	return txmap, nil
 }
-func (s *p2pServer) innerBroadBlock() {
+func (s *p2pServer) ManageStream() {
+	go s.deleteDisableStream()
 	go func() {
 		for block := range s.node.nodeInfo.p2pBroadcastChan {
-			log.Debug("innerBroadBlock", "Block", block)
+			//log.Error("innerBroadBlock", "Block", "+++++++++")
 			s.addStreamBlock(block)
 		}
 	}()
@@ -426,6 +460,10 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 	timetikc := time.NewTicker(time.Second * 1)
 	defer timetikc.Stop()
 	for stream, _ := range s.streams {
+		if _, ok := s.streams[stream]; !ok {
+			log.Error("AddStreamBLock", "No this Stream", "++++++")
+			continue
+		}
 		select {
 		case s.streams[stream] <- block:
 			log.Debug("addStreamBlock", "stream", stream)
@@ -436,8 +474,16 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 	}
 
 }
+
+func (s *p2pServer) deleteDisableStream() {
+	for stream := range s.deleteSChan {
+		s.deleteStream(stream)
+	}
+}
 func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
+	log.Error("deleteStream", "delete", stream)
+	close(s.streams[stream])
 	delete(s.streams, stream)
 }

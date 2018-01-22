@@ -54,22 +54,8 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 
 func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
-	conn := rawConn
 	// Key and NodeInfo are set after Handshake
-	p := &peer{
-		outbound:   outbound,
-		conn:       conn,
-		streamDone: make(chan struct{}, 1),
-		heartDone:  make(chan struct{}, 1),
-		taskPool:   make(chan struct{}, 20),
-		nodeInfo:   nodeinfo,
-	}
-	p.taskPool <- struct{}{}
-	p.peerStat = new(Stat)
-	p.version = new(Version)
-	p.version.SetSupport(true)
-	p.setRunning(true)
-	p.mconn = NewMConnection(conn, remote, p)
+	p := NewPeer(outbound, rawConn, nodeinfo, remote)
 
 	return p, nil
 }
@@ -118,7 +104,7 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 	var ready = true
 	var defaultRespSize = 1024 * 1024 * 60
 	var defaultReqSize = 1024 * 1024 * 10
-	var defaulttimeout = 50 * time.Second
+	var defaulttimeout = 40 * time.Second
 	var getAddrtimeout = 5 * time.Second
 	var getHeadertimeout = 5 * time.Second
 	var getPeerinfotimeout = 5 * time.Second

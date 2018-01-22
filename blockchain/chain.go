@@ -64,6 +64,7 @@ type BlockChain struct {
 
 	recvdone  chan struct{}
 	poolclose chan struct{}
+	synblock  chan struct{}
 	quit      chan struct{}
 }
 
@@ -88,6 +89,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		recvdone:           make(chan struct{}, 0),
 		poolclose:          make(chan struct{}, 0),
 		quit:               make(chan struct{}, 0),
+		synblock:           make(chan struct{}, 1),
 	}
 }
 
@@ -135,168 +137,46 @@ func (chain *BlockChain) ProcRecvMsg() {
 	defer func() {
 		chain.recvdone <- struct{}{}
 	}()
+	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.qclient.Recv() {
 		chainlog.Info("blockchain recv", "msg", types.GetEventName(int(msg.Ty)))
 		msgtype := msg.Ty
-		beg := time.Now()
+		reqnum <- struct{}{}
 		switch msgtype {
-
 		case types.EventQueryTx:
-			txhash := (msg.Data).(*types.ReqHash)
-			TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
-			if err != nil {
-				chainlog.Error("ProcQueryTxMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, err))
-			} else {
-				chainlog.Info("ProcQueryTxMsg", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, TransactionDetail))
-			}
-
+			go chain.queryTx(msg, reqnum)
 		case types.EventGetBlocks:
-			requestblocks := (msg.Data).(*types.ReqBlocks)
-			blocks, err := chain.ProcGetBlockDetailsMsg(requestblocks)
-			if err != nil {
-				chainlog.Error("ProcGetBlockDetailsMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, err))
-			} else {
-				chainlog.Info("ProcGetBlockDetailsMsg", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, blocks))
-			}
-
+			go chain.getBlocks(msg, reqnum)
 		case types.EventAddBlock: // block
-			var block *types.Block
-			var reply types.Reply
-			reply.IsOk = true
-			block = msg.Data.(*types.Block)
-			err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: block})
-			if err != nil {
-				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			}
-			chainlog.Info("EventAddBlock", "height", block.Height, "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
-
+			go chain.addBlock(msg, reqnum)
 		case types.EventGetBlockHeight:
-			var replyBlockHeight types.ReplyBlockHeight
-			replyBlockHeight.Height = chain.GetBlockHeight()
-			chainlog.Info("EventGetBlockHeight", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReplyBlockHeight, &replyBlockHeight))
-
+			go chain.getBlockHeight(msg, reqnum)
 		case types.EventTxHashList:
-			txhashlist := (msg.Data).(*types.TxHashList)
-			duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
-			chainlog.Info("EventTxHashList", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
-
+			go chain.txHashList(msg, reqnum)
 		case types.EventGetHeaders:
-			requestblocks := (msg.Data).(*types.ReqBlocks)
-			headers, err := chain.ProcGetHeadersMsg(requestblocks)
-			if err != nil {
-				chainlog.Error("ProcGetHeadersMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, err))
-			} else {
-				chainlog.Info("EventGetHeaders", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, headers))
-			}
-
+			go chain.getHeaders(msg, reqnum)
 		case types.EventGetLastHeader:
-			header, err := chain.ProcGetLastHeaderMsg()
-			if err != nil {
-				chainlog.Error("ProcGetLastHeaderMsg", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, err))
-			} else {
-				chainlog.Info("EventGetLastHeader", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, header))
-			}
-			//本节点共识模块发送过来的blockdetail，需要广播到全网
+			go chain.getLastHeader(msg, reqnum)
 		case types.EventAddBlockDetail:
-			var blockDetail *types.BlockDetail
-			var reply types.Reply
-			reply.IsOk = true
-			blockDetail = msg.Data.(*types.BlockDetail)
-			err := chain.ProcAddBlockDetail(true, blockDetail)
-			if err != nil {
-				chainlog.Error("ProcAddBlockDetailMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			}
-			chainlog.Info("EventAddBlockDetail", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("consensus", types.EventReply, &reply))
-
-			//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
+			go chain.addBlockDetail(msg, reqnum)
 		case types.EventBroadcastAddBlock: //block
-			var block *types.Block
-			var reply types.Reply
-			reply.IsOk = true
-			block = msg.Data.(*types.Block)
-			err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: block})
-			if err != nil {
-				chainlog.Error("ProcAddBlockMsg", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			}
-			chainlog.Info("EventBroadcastAddBlock", "success", "ok")
-			msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
-
+			go chain.broadcastAddBlock(msg, reqnum)
 		case types.EventGetTransactionByAddr:
-			addr := (msg.Data).(*types.ReqAddr)
-			chainlog.Warn("EventGetTransactionByAddr", "req", addr)
-			replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
-			if err != nil {
-				chainlog.Error("ProcGetTransactionByAddr", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, err))
-			} else {
-				chainlog.Info("EventGetTransactionByAddr", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, replyTxInfos))
-			}
+			go chain.getTransactionByAddr(msg, reqnum)
 
 		case types.EventGetTransactionByHash:
-			txhashs := (msg.Data).(*types.ReqHashes)
-			chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
-			TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes)
-			if err != nil {
-				chainlog.Error("ProcGetTransactionByHashes", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, err))
-			} else {
-				chainlog.Info("EventGetTransactionByHash", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
-			}
+			go chain.getTransactionByHashes(msg, reqnum)
 
-		case types.EventGetBlockOverview: //BlockOverview
-			ReqHash := (msg.Data).(*types.ReqHash)
-			BlockOverview, err := chain.ProcGetBlockOverview(ReqHash)
-			if err != nil {
-				chainlog.Error("ProcGetBlockOverview", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, err))
-			} else {
-				chainlog.Info("ProcGetBlockOverview", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, BlockOverview))
-			}
-		case types.EventGetAddrOverview: //AddrOverview
-			addr := (msg.Data).(*types.ReqAddr)
-			AddrOverview, err := chain.ProcGetAddrOverview(addr)
-			if err != nil {
-				chainlog.Error("ProcGetAddrOverview", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, err))
-			} else {
-				chainlog.Info("ProcGetAddrOverview", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, AddrOverview))
-			}
+		case types.EventGetBlockOverview: //blockOverview
+			go chain.getBlockOverview(msg, reqnum)
+		case types.EventGetAddrOverview: //addrOverview
+			go chain.getAddrOverview(msg, reqnum)
 		case types.EventGetBlockHash: //GetBlockHash
-			height := (msg.Data).(*types.ReqInt)
-			replyhash, err := chain.ProcGetBlockHash(height)
-			if err != nil {
-				chainlog.Error("ProcGetBlockHash", "err", err.Error())
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, err))
-			} else {
-				chainlog.Info("ProcGetBlockHash", "success", "ok")
-				msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, replyhash))
-			}
+			go chain.getBlockHash(msg, reqnum)
 		default:
+			<-reqnum
 			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}
 }
 
@@ -318,67 +198,8 @@ func (chain *BlockChain) poolRoutine() {
 		case _ = <-fetchPeerListTicker.C:
 			//chainlog.Info("blockUpdateTicker")
 			chain.FetchPeerList()
-
-		case <-chain.blockPool.synblock:
-			//chainlog.Info("trySyncTicker")
-			chain.SynBlockToDbOneByOne()
 		}
 	}
-}
-
-//处理共识模块发过来addblock的消息，需要广播到全网
-func (chain *BlockChain) ProcAddBlockDetail(broadcast bool, blockDetail *types.BlockDetail) (err error) {
-	currentheight := chain.GetBlockHeight()
-	//我们需要的高度，直接存储到db中
-	if blockDetail.Block.Height == currentheight+1 {
-		//校验block的ParentHash值
-		var prevblkHash []byte
-		if currentheight == -1 {
-			prevblkHash = common.Hash{}.Bytes()
-		} else {
-			curblock, err := chain.GetBlock(currentheight)
-			if err != nil {
-				return err
-			}
-			prevblkHash = curblock.Block.Hash()
-		}
-		if !bytes.Equal(prevblkHash, blockDetail.Block.GetParentHash()) {
-			outstr := fmt.Sprintf("ProcAddBlockDetail ParentHash err height:%d", blockDetail.Block.Height)
-			err := errors.New(outstr)
-			return err
-		}
-		newbatch := chain.blockStore.NewBatch(true)
-		cacheDB := NewCacheDB()
-		//保存tx交易结果信息到db中
-		chain.blockStore.indexTxs(newbatch, cacheDB, blockDetail)
-		if err != nil {
-			chainlog.Error("ProcAddBlockDetail", "err", err)
-			return err
-		}
-		//保存block信息到db中
-		err := chain.blockStore.SaveBlock(newbatch, blockDetail)
-		if err != nil {
-			chainlog.Error("ProcAddBlockDetail", "err", err)
-			return err
-		}
-		cacheDB.SetBatch(newbatch)
-		newbatch.Write()
-		//更新db中的blockheight到blockStore.Height
-		chain.blockStore.UpdateHeight()
-		//将此block添加到缓存中便于查找
-		chain.cacheBlock(blockDetail)
-		//通知mempool和consense以及wallet模块
-		chain.SendAddBlockEvent(blockDetail)
-		//广播此block到网络中
-		chain.SendBlockBroadcast(blockDetail)
-		return nil
-	} else {
-		outstr := fmt.Sprintf("input height :%d ,current store height:%d", blockDetail.Block.Height, currentheight)
-		err = errors.New(outstr)
-		chainlog.Error("ProcAddBlockDetail", "err", err)
-		return err
-	}
-	return nil
 }
 
 /*
@@ -521,10 +342,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		err = errors.New(outstr)
 		return err
 	} else {
-		// 首先将此block缓存到blockpool中。
 		chain.blockPool.AddBlock(blockdetail, broadcast)
-		chain.notifySync()
-		//更新广播block的高度
 	}
 	return nil
 }
@@ -624,10 +442,7 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 }
 
 func (chain *BlockChain) notifySync() {
-	select {
-	case chain.blockPool.synblock <- struct{}{}:
-	default:
-	}
+	go chain.SynBlockToDbOneByOne()
 }
 
 func (chain *BlockChain) GetBlockHeight() int64 {
@@ -636,7 +451,6 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 
 //用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
 func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err error) {
-
 	blockdetail := chain.CheckcacheBlock(height)
 	if blockdetail != nil {
 		if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
@@ -811,7 +625,6 @@ func (chain *BlockChain) ProcGetBlockByHashMsg(hash []byte) (respblock *types.Bl
 
 //从p2p模块获取peerlist，用于获取active链上最新的高度。
 //如果没有收到广播block就主动向p2p模块发送请求
-
 func (chain *BlockChain) FetchPeerList() {
 	chain.fetchPeerList()
 }
@@ -928,6 +741,7 @@ func (chain *BlockChain) GetRcvLastCastBlkHeight() int64 {
 	defer castlock.Unlock()
 	return chain.rcvLastBlockHeight
 }
+
 func (chain *BlockChain) UpdateRcvCastBlkHeight(height int64) {
 	castlock.Lock()
 	defer castlock.Unlock()
@@ -940,6 +754,7 @@ func (chain *BlockChain) GetsynBlkHeight() int64 {
 	defer synBlocklock.Unlock()
 	return chain.synBlockHeight
 }
+
 func (chain *BlockChain) UpdatesynBlkHeight(height int64) {
 	synBlocklock.Lock()
 	defer synBlocklock.Unlock()
@@ -952,6 +767,7 @@ func (chain *BlockChain) GetPeerMaxBlkHeight() int64 {
 	defer peerMaxBlklock.Unlock()
 	return chain.peerMaxBlkHeight
 }
+
 func (chain *BlockChain) UpdatePeerMaxBlkHeight(height int64) {
 	peerMaxBlklock.Lock()
 	defer peerMaxBlklock.Unlock()
@@ -1094,6 +910,10 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 
 // 定时同步缓存中连续的block信息到db数据库中OneByOne
 func (chain *BlockChain) SynBlockToDbOneByOne() {
+	chain.synblock <- struct{}{}
+	defer func() {
+		<-chain.synblock
+	}()
 	for {
 		//获取当前block的statehash和blockhash用于nextblock的校验
 		var prevStateHash []byte

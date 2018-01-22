@@ -2,7 +2,7 @@ package types
 
 import (
 	"runtime"
-	"sync/atomic"
+	"sync"
 
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -98,81 +98,72 @@ func (block *Block) CheckSign() bool {
 	}
 	//检查交易的签名
 	cpu := runtime.NumCPU()
-	ok := multiCoreSign(block.Txs, cpu)
+	ok := checkall(block.Txs, cpu)
 	return ok
 }
 
-func multiCoreSign(txs []*Transaction, n int) bool {
-	if len(txs) == 0 {
-		return true
-	}
-	taskch := make(chan *Transaction)
-	resultch := make(chan bool)
-	done := make(chan struct{}, n)
-	var exitflag int64 = 0
-	var errflag int64 = 0
-	for i := 0; i < n; i++ {
-		go func(i int) {
-			for taskitem := range taskch {
-				//time.Sleep(time.Second)
-				if !isExit(exitflag) {
-					resultch <- taskitem.CheckSign()
-				} else {
-					break
-				}
-			}
-			done <- struct{}{}
-		}(i)
-	}
-	//发送任务
+func gen(done <-chan struct{}, task []*Transaction) <-chan *Transaction {
+	ch := make(chan *Transaction)
 	go func() {
-		for i := 0; i < len(txs); i++ {
-			if !isExit(exitflag) {
-				taskch <- txs[i]
-			} else {
-				break
-			}
-		}
-	}()
-	systemexit := make(chan int, 1)
-	//接收任务回报
-
-	go func() {
-		for i := 0; i < len(txs); i++ {
+		defer func() {
+			close(ch)
+		}()
+		for i := 0; i < len(task); i++ {
 			select {
-			case result := <-resultch:
-				if !result {
-					atomic.StoreInt64(&exitflag, 1)
-					atomic.StoreInt64(&errflag, 1)
-					closeCh(taskch)
-					return
-				}
-			case <-systemexit:
+			case ch <- task[i]:
+			case <-done:
 				return
 			}
 		}
-		closeCh(taskch)
 	}()
-	for i := 0; i < n; i++ {
-		<-done
-	}
-	systemexit <- 1
-	return atomic.LoadInt64(&errflag) == 0
+	return ch
 }
 
-func isExit(exitflag int64) bool {
-	return atomic.LoadInt64(&exitflag) == 1
+type result struct {
+	isok bool
 }
 
-func closeCh(ch chan *Transaction) {
-	for {
+func check(data *Transaction) bool {
+	return data.CheckSign()
+}
+
+func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result) {
+	for task := range taskes {
 		select {
-		case <-ch:
-		default:
-			close(ch)
+		case c <- result{check(task)}:
+		case <-done:
 			return
 		}
 	}
+}
+
+func checkall(task []*Transaction, n int) bool {
+	done := make(chan struct{})
+	defer close(done)
+
+	taskes := gen(done, task)
+
+	// Start a fixed number of goroutines to read and digest files.
+	c := make(chan result) // HLc
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			checksign(done, taskes, c) // HLc
+			wg.Done()
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(c) // HLc
+	}()
+	// End of pipeline. OMIT
+	for r := range c {
+		if r.isok == false {
+			return false
+		}
+	}
+	return true
 }
 
 func CheckSign(data []byte, sign *Signature) bool {
