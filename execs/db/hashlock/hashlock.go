@@ -78,12 +78,12 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 	var kv []*types.KeyValue
 
 	//不存在相同的hashlock，假定采用sha256
-	hash, err := readHashlock(action.db, hlock.Hash)
+	//hash, err := readHashlock(action.db, hlock.Hash)
 	//the condition depends on the readHashlock details
-	if err != nil || hash != nil {
-		hlog.Error("Hashlocklock.Frozen", "hlock.Hash repeated", hlock.Hash)
-		return nil, err
-	}
+	//if err != nil || hash != nil {
+	//	hlog.Error("Hashlocklock.Frozen", "hlock.Hash repeated", hlock.Hash)
+	//	return nil, err
+	//}
 
 	h := NewHashlock(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
 	//冻结子账户资金
