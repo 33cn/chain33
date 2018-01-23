@@ -85,7 +85,7 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 	peers := m.network.node.GetRegisterPeers()
 	for _, pr := range peers {
 		ps.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, pr.Addr())
-		//	pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
+		//pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
 	}
 
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
@@ -221,7 +221,20 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
 	return nil
 }
-
+func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
+	client := nodeinfo.qclient
+	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
+	client.Send(msg, true)
+	resp, err := client.Wait(msg)
+	if err != nil {
+		return 0, err
+	}
+	if resp.Err() != nil {
+		return 0, resp.Err()
+	}
+	header := resp.GetData().(*pb.Header)
+	return header.GetHeight(), nil
+}
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 
 	//log.Info("GetPeerInfo", "info", m.PeerInfos())

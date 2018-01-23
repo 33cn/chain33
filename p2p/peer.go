@@ -204,6 +204,7 @@ func (p *peer) SendData(data interface{}) (err error) {
 
 func (p *peer) subStreamBlock() {
 	p.taskChan = ps.Sub(p.Addr())
+	pcli := NewP2pCli(nil)
 	go func(p *peer) {
 		//Stream Send data
 		for {
@@ -225,6 +226,12 @@ func (p *peer) subStreamBlock() {
 					p2pdata := new(pb.BroadCastData)
 					if block, ok := task.(*pb.P2PBlock); ok {
 						height := block.GetBlock().GetHeight()
+						pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
+						if err == nil {
+							if pinfo.GetHeader().GetHeight() > height {
+								continue
+							}
+						}
 						if p.filterTask.QueryTask(height) == true {
 							continue //已经接收的消息不再发送
 						}
@@ -285,6 +292,15 @@ func (p *peer) subStreamBlock() {
 						//如果已经有登记过的消息记录，则不发送给本地blockchain
 						if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
 							continue
+						}
+
+						//判断比自己低的区块，则不发送给blockchain
+
+						height, err := pcli.GetBlockHeight((*p.nodeInfo))
+						if err == nil {
+							if height > block.GetBlock().GetHeight() {
+								continue
+							}
 						}
 						log.Error("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight())
 						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
