@@ -109,7 +109,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		log.Debug("Version2", "Addr", peeraddr)
 	}
 
-	log.Error("RECV PEER VERSION", "VERSION", in.AddrFrom, "SERVICE", in.GetService())
+	//log.Error("RECV PEER VERSION", "VERSION", in.AddrFrom, "SERVICE", in.GetService())
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
