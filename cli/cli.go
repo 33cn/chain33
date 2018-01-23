@@ -237,7 +237,7 @@ func LoadHelp() {
 	fmt.Println("getblockhash [height]                                       : 获取区块哈希值")
 	//seed
 	fmt.Println("genseed [lang]                                              : 生成随机的种子,lang=0:英语，lang=1:简体汉字")
-	fmt.Println("saveseed [seed,password]                                    : 保存种子并用密码加密,种子要求16个单词或者汉字,参考genseed输出格式")
+	fmt.Println("saveseed [seed,password]                                    : 保存种子并用密码加密,种子要求15个单词或者汉字,参考genseed输出格式")
 	fmt.Println("getseed [password]                                          : 通过密码获取种子")
 
 }
