@@ -106,7 +106,7 @@ func (n *Node) NatOk() bool {
 }
 func (n *Node) exChangeVersion() {
 
-	if n.GetServiceTy() == 7 && IsOutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
+	if IsOutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.NatOk() {
 			SERVICE -= NODE_NETWORK //nat 失败，不对外提供服务

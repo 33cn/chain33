@@ -64,8 +64,7 @@ func (l *DefaultListener) WaitForNat() {
 }
 
 func (l *DefaultListener) NatMapPort() {
-	if l.nodeInfo.cfg.GetIsSeed() == true {
-
+	if IsOutSide == true { //在外网的节点不需要映射端口
 		return
 	}
 	l.WaitForNat()
