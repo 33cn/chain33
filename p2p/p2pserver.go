@@ -42,7 +42,7 @@ func NewP2pServer() *p2pServer {
 }
 
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	log.Error("p2pServer PING", "Ip", in.GetAddr(), "Port", in.GetPort())
+	//log.Error("p2pServer PING", "Ip", in.GetAddr(), "Port", in.GetPort())
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		log.Debug("PING addr", "Addr", getctx.Addr.String())
