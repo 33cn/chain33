@@ -94,6 +94,29 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	return nil
 }
 
+// 批量删除block信息从db数据库中
+func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDetail) error {
+
+	height := blockdetail.Block.Height
+
+	// del block
+	storeBatch.Delete(calcBlockHeightKey(height))
+
+	//更新最新的block高度为前一个高度
+	bytes, err := json.Marshal(height - 1)
+	if err != nil {
+		storelog.Error("DelBlock  Could not marshal hight bytes", "error", err)
+		return err
+	}
+	storeBatch.Set(blockStoreKey, bytes)
+
+	//删除block hash和height的对应关系
+	storeBatch.Delete(calcBlockHashKey(blockdetail.Block.Hash()))
+
+	storelog.Error("DelBlock success", "blockheight", height)
+	return nil
+}
+
 // 通过tx hash 从db数据库中获取tx交易信息
 func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	if len(hash) == 0 {
@@ -130,7 +153,7 @@ func calcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 }
 
 // 通过批量存储tx信息到db中
-func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail *types.BlockDetail) error {
+func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail *types.BlockDetail) error {
 
 	txlen := len(blockdetail.Block.Txs)
 
@@ -195,14 +218,67 @@ func (bs *BlockStore) indexTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdeta
 			if err == nil {
 				if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 					transfer := action.GetTransfer()
-					bs.UpdateAddrReciver(cacheDB, toaddr, transfer.Amount)
+					bs.UpdateAddrReciver(cacheDB, toaddr, transfer.Amount, true)
 				} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 					gen := action.GetGenesis()
-					bs.UpdateAddrReciver(cacheDB, toaddr, gen.Amount)
+					bs.UpdateAddrReciver(cacheDB, toaddr, gen.Amount, true)
 				}
 			}
 		}
 		//storelog.Debug("indexTxs Set txresult", "Height", blockdetail.Block.Height, "index", index, "txhashbyte", txhash)
+	}
+	return nil
+}
+
+//通过批量删除tx信息从db中
+func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail *types.BlockDetail) error {
+
+	txlen := len(blockdetail.Block.Txs)
+
+	for index := 0; index < txlen; index++ {
+		//计算tx hash
+		txhash := blockdetail.Block.Txs[index].Hash()
+		storeBatch.Delete(txhash)
+
+		//存储key:addr:flag:height ,value:txhash
+		//flag :0-->from,1--> to
+		//height=height*10000+index 存储账户地址相关的交易
+
+		blockheight := blockdetail.Block.Height*MaxTxsPerBlock + int64(index)
+		heightstr := fmt.Sprintf("%018d", blockheight)
+
+		//from addr
+		pubkey := blockdetail.Block.Txs[index].Signature.GetPubkey()
+		addr := account.PubKeyToAddress(pubkey)
+		fromaddress := addr.String()
+		if len(fromaddress) != 0 {
+			fromkey := calcTxAddrDirHashKey(fromaddress, 1, heightstr)
+			storeBatch.Delete(fromkey)
+			storeBatch.Delete(calcTxAddrHashKey(fromaddress, heightstr))
+			storelog.Error("DelTxs address ", "fromaddress", fromaddress, "value", txhash)
+		}
+		//toaddr
+		toaddr := blockdetail.Block.Txs[index].GetTo()
+		if len(toaddr) != 0 {
+			tokey := calcTxAddrDirHashKey(toaddr, 2, heightstr)
+			storeBatch.Delete([]byte(tokey))
+			storeBatch.Delete(calcTxAddrHashKey(toaddr, heightstr))
+			storelog.Error("DelTxs address ", "toaddr", toaddr, "value", txhash)
+
+			//更新地址收到的amount,从原来的基础上减去Amount
+			var action types.CoinsAction
+			err := types.Decode(blockdetail.Block.Txs[index].GetPayload(), &action)
+			if err == nil {
+				if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+					transfer := action.GetTransfer()
+					bs.UpdateAddrReciver(cacheDB, toaddr, transfer.Amount, false)
+				} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+					gen := action.GetGenesis()
+					bs.UpdateAddrReciver(cacheDB, toaddr, gen.Amount, false)
+				}
+			}
+		}
+		storelog.Error("DelTxs txresult", "Height", blockdetail.Block.Height, "index", index, "txhashbyte", txhash)
 	}
 	return nil
 }
@@ -343,8 +419,8 @@ func (bs *BlockStore) GetAddrReciver(addr string) (int64, error) {
 	return Reciveramount, nil
 }
 
-//更新地址收到的amount
-func (bs *BlockStore) UpdateAddrReciver(cachedb *CacheDB, addr string, amount int64) error {
+//更新地址收到的amount,add 或者 del
+func (bs *BlockStore) UpdateAddrReciver(cachedb *CacheDB, addr string, amount int64, addordel bool) error {
 	if len(addr) == 0 {
 		err := errors.New("input addr is null")
 		return err
@@ -354,7 +430,11 @@ func (bs *BlockStore) UpdateAddrReciver(cachedb *CacheDB, addr string, amount in
 		storelog.Error("UpdateAddrReciver marshal", "error", err)
 		return err
 	}
-	cachedb.Set(addr, Reciveramount+amount)
+	if addordel {
+		cachedb.Set(addr, Reciveramount+amount)
+	} else {
+		cachedb.Set(addr, Reciveramount-amount)
+	}
 	return nil
 }
 
