@@ -19,7 +19,7 @@ import (
 )
 
 var conn *grpc.ClientConn
-var random *rand.Rand
+var r *rand.Rand
 
 func init() {
 	var err error
@@ -27,103 +27,68 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 //test the account locked
 
 func TestHashlockCase1(t *testing.T) {
-	var wallet *types.WalletAccount
-	//is it better to initalize this client in init()?
 	c := types.NewGrpcserviceClient(conn)
-
 	//all coins are generated from this private key
 	priv := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
-
 	//just show or record the header
 	_, err := getlastheader()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
 	label := strconv.Itoa(int(time.Now().UnixNano()))
 	//generate a new address, and import to wallet
 	addrto, privkey := genaddress()
 	fmt.Println("privkey: ", common.ToHex(privkey.Bytes()))
 	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
-	wallet, err = c.ImportPrivKey(context.Background(), &params)
+	_, err = c.ImportPrivKey(context.Background(), &params)
 	if err != nil {
 		fmt.Println(err)
 		time.Sleep(time.Second)
 		t.Error(err)
 		return
 	}
-	//err
-	if checkAccount(0, 0, wallet) {
-		fmt.Println("Init Account check pass")
-	} else {
-		fmt.Println("Init Account check not pass")
-		//err
-	}
-
 	//another account
 	addrto_b, _ := genaddress()
-
-	if wallet != nil {
-		showAccount(wallet)
-		time.Sleep(1000 * time.Millisecond)
-		err = sendtoaddress(priv, addrto, 1e10)
-		if err != nil {
-			fmt.Println(err)
-			time.Sleep(time.Second)
-			t.Error(err)
-			return
-		}
-		time.Sleep(1000 * time.Millisecond)
-		showAccount(wallet)
-		if checkAccount(100, 0, wallet) {
-			fmt.Println("send Account check pass")
-		} else {
-			fmt.Println("send Account check not pass")
-			//err
-		}
-	} else {
-		fmt.Println("it's not right")
+	time.Sleep(1000 * time.Millisecond)
+	err = sendtoaddress(c, priv, addrto, 1e10)
+	if err != nil {
+		fmt.Println(err)
+		time.Sleep(time.Second)
+		t.Error(err)
+		return
 	}
+	time.Sleep(1000 * time.Millisecond)
+	showAccount(c, addrto)
 
 	var amount int64 = 1e8
 	var time int64 = 3800
 	len := 32
 	secret := make([]byte, len)
 	crand.Read(secret)
-	fmt.Println(secret)
-	sendtolock(privkey, amount, time, common.Sha256(secret), addrto_b, addrto)
-	//frozen account.....
-	//sendtolock()
-	//if checkAccount(90, 10, wallet) {
-	//fmt.Println("frozen Account check pass")
-	//} else {
-	//	fmt.Println("frozen Account check not pass")
-	//err
-	//t.Error(err)
-	//return
-	//}
+	fmt.Println(common.ToHex(secret))
+	sendtolock(c, privkey, amount, time, common.Sha256(secret), addrto_b, addrto)
 }
 
-func showAccount(wallet *types.WalletAccount) {
-	balanceResult := strconv.FormatFloat(float64(wallet.Acc.Balance)/float64(1e8), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(wallet.Acc.Frozen)/float64(1e8), 'f', 4, 64)
-	//Currency := wallet.Acc.Currency
-	//Addr := wallet.Acc.Addr
-	fmt.Printf("balanceResult:%s\n", balanceResult)
-	fmt.Printf("frozenResult:%s\n", frozenResult)
-	//fmt.Printf("currency:%d\n", Currency)
-	//fmt.Printf("Addr:%s\n", Addr)
-	//fmt.Println(wallet.Acc.Balance)
-	//fmt.Printf("frozen:%d\n", wallet.Acc.Frozen)
-	fmt.Printf("currency:%d\n", wallet.Acc.Currency)
-	fmt.Printf("Addr:%s\n", wallet.Acc.Addr)
+func showAccount(c types.GrpcserviceClient, addr string) {
+	req := &types.ReqNil{}
+	accs, err := c.GetAccounts(context.Background(), req)
+	if err != nil {
+		panic(err)
+	}
+	for i := 0; i < len(accs.Wallets); i++ {
+		wallet := accs.Wallets[i]
+		if wallet.Acc.Addr == addr {
+			fmt.Println(wallet)
+			break
+		}
+	}
 }
 
 func checkAccount(balance int64, frozen int64, wallet *types.WalletAccount) bool {
@@ -140,9 +105,10 @@ func TstGrpcSendToAddress(t *testing.T) {
 		return
 	}
 	fmt.Println("before send...", header.Height)
+	c := types.NewGrpcserviceClient(conn)
 	for i := 0; i < N; i++ {
 		addrto, privkey := genaddress()
-		err := sendtoaddress(priv, addrto, 1e10)
+		err := sendtoaddress(c, priv, addrto, 1e10)
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(time.Second)
@@ -172,7 +138,7 @@ func TstGrpcSendToAddress(t *testing.T) {
 		go func(pkey crypto.PrivKey) {
 			for i := 0; i < N; {
 				addrto, _ := genaddress()
-				err := sendtoaddress(pkey, addrto, 10000)
+				err := sendtoaddress(c, pkey, addrto, 10000)
 				if err != nil {
 					atomic.AddInt64(&errcount, 1)
 					time.Sleep(time.Second)
@@ -220,14 +186,13 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func sendtoaddress(priv crypto.PrivKey, to string, amount int64) error {
+func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, amount int64) error {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
-	c := types.NewGrpcserviceClient(conn)
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-	tx.Nonce = rand.Int63()
+	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, priv)
 	// Contact the server and print out its response.
 	reply, err := c.SendTransaction(context.Background(), tx)
@@ -247,13 +212,25 @@ func getAccounts() (*types.WalletAccounts, error) {
 	return c.GetAccounts(context.Background(), v)
 }
 
-func sendtolock(priv crypto.PrivKey, amount int64, time int64,
+func sendtolock(c types.GrpcserviceClient, priv crypto.PrivKey, amount int64, timelock int64,
 	hash []byte, toaddress string, rtadd string) error {
-	c := types.NewGrpcserviceClient(conn)
-	v := &types.HashlockAction_Hlock{&types.HashlockLock{Amount: amount, Time: time, Hash: hash, ToAddress: toaddress, ReturnAddress: rtadd}}
+
+	//1. step1 发送余额给合约
+	addr := account.ExecAddress("hashlock")
+	err := sendtoaddress(c, priv, addr.String(), amount)
+	if err != nil {
+		panic(err)
+	}
+	time.Sleep(time.Second)
+
+	//2. step2,show balance
+	showAccount(c, account.PubKeyToAddress(priv.PubKey().Bytes()).String())
+
+	//3. 执行lock
+	v := &types.HashlockAction_Hlock{&types.HashlockLock{Amount: amount, Time: timelock, Hash: hash, ToAddress: toaddress, ReturnAddress: rtadd}}
 	transfer := &types.HashlockAction{Value: v, Ty: types.HashlockActionLock}
 	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: 1e6, To: toaddress}
-	tx.Nonce = rand.Int63()
+	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, priv)
 	// Contact the server and print out its response.
 	reply, err := c.SendTransaction(context.Background(), tx)
@@ -264,6 +241,16 @@ func sendtolock(priv crypto.PrivKey, amount int64, time int64,
 		fmt.Println("err = ", reply.GetMsg())
 		return errors.New(string(reply.GetMsg()))
 	}
+
+	//4. 执行解锁（因为时间没有到失败）
+
+	//5. 通过s 执行转账
+
+	//6. 真正的取款操作（通过toaddress 对应的私钥）
+
+	//sleep locktime
+
+	//7. 执行解锁(因为已经执行过转账操作，就算过期也不能取回钱了)
 	return nil
 }
 
