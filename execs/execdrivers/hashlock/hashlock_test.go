@@ -2,6 +2,7 @@ package coins
 
 import (
 	"context"
+	crand "crypto/rand"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -49,7 +50,7 @@ func TestHashlockCase1(t *testing.T) {
 	//generate a new address, and import to wallet
 	addrto, privkey := genaddress()
 	fmt.Println("privkey: ", common.ToHex(privkey.Bytes()))
-	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: "222"}
+	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: "12345"}
 	wallet, err = c.ImportPrivKey(context.Background(), &params)
 	if err != nil {
 		fmt.Println(err)
@@ -66,7 +67,7 @@ func TestHashlockCase1(t *testing.T) {
 	}
 	if wallet != nil {
 		showAccount(wallet)
-		time.Sleep(5000 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 		err = sendtoaddress(priv, addrto, 1e10)
 		if err != nil {
 			fmt.Println(err)
@@ -74,7 +75,7 @@ func TestHashlockCase1(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		time.Sleep(5000 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 		showAccount(wallet)
 		if checkAccount(100, 0, wallet) {
 			fmt.Println("send Account check pass")
@@ -86,6 +87,13 @@ func TestHashlockCase1(t *testing.T) {
 		fmt.Println("it's not right")
 	}
 
+	var amount int64 = 1e8
+	var time int64 = 3800
+	len := 32
+	secret := make([]byte, len)
+	crand.Read(secret)
+	fmt.Println(secret)
+	sendtolock(privkey, amount, time, common.Sha256(secret), addrto, addrto)
 	//frozen account.....
 	//sendtolock()
 	//if checkAccount(90, 10, wallet) {
@@ -234,12 +242,12 @@ func getAccounts() (*types.WalletAccounts, error) {
 	return c.GetAccounts(context.Background(), v)
 }
 
-/*
-func sendtolock() {
+func sendtolock(priv crypto.PrivKey, amount int64, time int64,
+	hash []byte, toaddress string, rtadd string) error {
 	c := types.NewGrpcserviceClient(conn)
 	v := &types.HashlockAction_Hlock{&types.HashlockLock{Amount: amount, Time: time, Hash: hash, ToAddress: toaddress, ReturnAddress: rtadd}}
 	transfer := &types.HashlockAction{Value: v, Ty: types.HashlockActionLock}
-	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: 1e6, To: toaddress}
 	tx.Nonce = rand.Int63()
 	tx.Sign(types.SECP256K1, priv)
 	// Contact the server and print out its response.
@@ -253,7 +261,7 @@ func sendtolock() {
 	}
 	return nil
 }
-*/
+
 func getlastheader() (*types.Header, error) {
 	c := types.NewGrpcserviceClient(conn)
 	v := &types.ReqNil{}
