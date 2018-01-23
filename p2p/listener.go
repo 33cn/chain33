@@ -85,7 +85,7 @@ func (l *DefaultListener) NatMapPort() {
 	}
 	if err != nil {
 		//映射失败
-		log.Error("NatMapPort", "Nat Faild", "Sevice6")
+		log.Error("NatMapPort", "Nat Faild", "Sevice=6")
 		l.nodeInfo.natResultChain <- false
 		return
 	}
