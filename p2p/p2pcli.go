@@ -84,7 +84,8 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 
 	peers := m.network.node.GetRegisterPeers()
 	for _, pr := range peers {
-		pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
+		ps.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, pr.Addr())
+		//	pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
 	}
 
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
@@ -198,7 +199,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 		return err
 	}
 
-	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
+	//log.Error("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
 
@@ -511,23 +512,23 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 }
 
-func (m *P2pCli) GetExternIp(addr string) []string {
-	var addrlist []string
+func (m *P2pCli) GetExternIp(addr string) (string, bool) {
+	var addrlist string
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect: %v", err)
-		return addrlist
+		return addrlist, false
 	}
 	defer conn.Close()
 	gconn := pb.NewP2PgserviceClient(conn)
 	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12})
 	if err != nil {
-		return addrlist
+		return "", false
 	}
 
-	return resp.Addrlist
+	return resp.Addr, resp.Isoutside
 
 }
 

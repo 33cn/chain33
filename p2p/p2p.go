@@ -4,13 +4,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/types"
-
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
+	"code.aliyun.com/chain33/chain33/types"
 	l "github.com/inconshreveable/log15"
 )
 
 var log = l.New("module", "p2p")
+var ps = common.NewPubSub(1024) //订阅消息的容量为1024
 
 type P2p struct {
 	q            *queue.Queue
@@ -54,6 +55,7 @@ func (network *P2p) Close() {
 	log.Error("close", "loopdone", "done")
 	close(network.txFactory)
 	close(network.otherFactory)
+	ps.Shutdown()
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
