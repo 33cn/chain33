@@ -47,10 +47,11 @@ func TestHashlockCase1(t *testing.T) {
 		return
 	}
 
+	label := strconv.Itoa(int(time.Now().UnixNano()))
 	//generate a new address, and import to wallet
 	addrto, privkey := genaddress()
 	fmt.Println("privkey: ", common.ToHex(privkey.Bytes()))
-	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: "12345"}
+	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
 	wallet, err = c.ImportPrivKey(context.Background(), &params)
 	if err != nil {
 		fmt.Println(err)
@@ -65,6 +66,10 @@ func TestHashlockCase1(t *testing.T) {
 		fmt.Println("Init Account check not pass")
 		//err
 	}
+
+	//another account
+	addrto_b, _ := genaddress()
+
 	if wallet != nil {
 		showAccount(wallet)
 		time.Sleep(1000 * time.Millisecond)
@@ -93,7 +98,7 @@ func TestHashlockCase1(t *testing.T) {
 	secret := make([]byte, len)
 	crand.Read(secret)
 	fmt.Println(secret)
-	sendtolock(privkey, amount, time, common.Sha256(secret), addrto, addrto)
+	sendtolock(privkey, amount, time, common.Sha256(secret), addrto_b, addrto)
 	//frozen account.....
 	//sendtolock()
 	//if checkAccount(90, 10, wallet) {
