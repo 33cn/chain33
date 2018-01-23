@@ -142,6 +142,8 @@ const (
 	EventSaveSeed     = 72
 	EventGetSeed      = 73
 	EventReplyGetSeed = 74
+
+	EventDelBlock = 75
 )
 
 var eventname = map[int]string{
@@ -220,6 +222,7 @@ var eventname = map[int]string{
 	72: "EventSaveSeed",
 	73: "EventGetSeed",
 	74: "EventReplyGetSeed",
+	75: "EventDelBlock",
 }
 
 func GetEventName(event int) string {

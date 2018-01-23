@@ -21,7 +21,7 @@ import (
 	"github.com/piotrnar/gocoin/lib/btc"
 )
 
-var SeedLong int = 16
+var SeedLong int = 15
 var WalletSeed = []byte("walletseed")
 var seedlog = log.New("module", "wallet")
 
