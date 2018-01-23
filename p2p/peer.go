@@ -12,9 +12,10 @@ import (
 
 func (p *peer) Start() {
 	p.mconn.key = p.key
+	p.taskChan = ps.Sub(p.Addr())
 	go p.subStreamBlock()
 	go p.filterTask.ManageFilterTask()
-	p.HeartBeat()
+	go p.HeartBeat()
 
 	return
 }
@@ -23,8 +24,8 @@ func (p *peer) Close() {
 	p.mconn.Close()
 	close(p.allLoopDone)
 	close(p.taskPool)
-	close(p.taskChan)
 	close(p.filterTask.loopDone)
+	ps.Unsub(p.taskChan, p.Addr())
 
 }
 
@@ -34,7 +35,6 @@ func NewPeer(isout bool, conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *Net
 		conn:     conn,
 
 		taskPool:    make(chan struct{}, 50),
-		taskChan:    make(chan interface{}, 2048),
 		allLoopDone: make(chan struct{}, 1),
 		nodeInfo:    nodeinfo,
 	}
@@ -153,30 +153,30 @@ func (f *FilterTask) ManageFilterTask() {
 
 // sendRoutine polls for packets to send from channels.
 func (p *peer) HeartBeat() {
-	go func(p *peer) {
-		var count int64
-		ticker := time.NewTicker(PingTimeout)
-		defer ticker.Stop()
-		pcli := NewP2pCli(nil)
-	FOR_LOOP:
-		for {
-			select {
-			case <-ticker.C:
-				err := pcli.SendPing(p, *p.nodeInfo)
-				if err != nil {
-					if count == 0 {
-						p.setRunning(false)
-					}
-				}
-				count++
-			case <-p.allLoopDone:
-				log.Error("Peer HeartBeat", "loop done", p.Addr())
-				break FOR_LOOP
 
+	var count int64
+	ticker := time.NewTicker(PingTimeout)
+	defer ticker.Stop()
+	pcli := NewP2pCli(nil)
+FOR_LOOP:
+	for {
+		select {
+		case <-ticker.C:
+			err := pcli.SendPing(p, *p.nodeInfo)
+			if err != nil {
+				if count == 0 {
+					p.setRunning(false)
+				}
 			}
+			count++
+		case <-p.allLoopDone:
+			log.Error("Peer HeartBeat", "loop done", p.Addr())
+			break FOR_LOOP
 
 		}
-	}(p)
+
+	}
+
 }
 
 func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
@@ -202,19 +202,9 @@ func (p *peer) SendData(data interface{}) (err error) {
 	return nil
 }
 
-//func (p *peer) BroadCastData() {
-//	//TODO 通过Stream 广播出去subStreamBlock
-//	for task := range p.taskChan {
-//		if block, ok := task.(*pb.P2PBlock); ok {
-//			go p.mconn.conn.BroadCastBlock(context.Background(), block)
-//		} else if tx, ok := task.(*pb.P2PTx); ok {
-//			go p.mconn.conn.BroadCastTx(context.Background(), tx)
-//		}
-//	}
-//}
-
 func (p *peer) subStreamBlock() {
-	go func() { //TODO 待优化，临时不启用
+	p.taskChan = ps.Sub(p.Addr())
+	go func(p *peer) {
 		//Stream Send data
 		for {
 			select {
@@ -230,6 +220,7 @@ func (p *peer) subStreamBlock() {
 					time.Sleep(time.Second * 5)
 					continue
 				}
+				//for task := range p.taskChan {
 				for task := range p.taskChan {
 					p2pdata := new(pb.BroadCastData)
 					if block, ok := task.(*pb.P2PBlock); ok {
@@ -260,7 +251,7 @@ func (p *peer) subStreamBlock() {
 
 			}
 		}
-	}()
+	}(p)
 	for {
 		select {
 		case <-p.allLoopDone:
@@ -295,7 +286,7 @@ func (p *peer) subStreamBlock() {
 						if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
 							continue
 						}
-						log.Error("SubStreamBlock", "block==+====================+==================+=>Height", block.GetBlock().GetHeight())
+						log.Error("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight())
 						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 						(*p.nodeInfo).qclient.Send(msg, true)
 						_, err = (*p.nodeInfo).qclient.Wait(msg)
@@ -372,3 +363,14 @@ func (p *peer) ReleaseTask() {
 	<-p.taskPool
 	return
 }
+
+//func (p *peer) BroadCastData() {
+//	//TODO 通过Stream 广播出去subStreamBlock
+//	for task := range p.taskChan {
+//		if block, ok := task.(*pb.P2PBlock); ok {
+//			go p.mconn.conn.BroadCastBlock(context.Background(), block)
+//		} else if tx, ok := task.(*pb.P2PTx); ok {
+//			go p.mconn.conn.BroadCastTx(context.Background(), tx)
+//		}
+//	}
+//}

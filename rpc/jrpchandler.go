@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -12,6 +13,49 @@ type Chain33 struct {
 	cli     IRClient
 }
 
+func (req Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
+	reply, err := req.cli.CreateRawTransaction(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+
+}
+func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
+	var stx *types.SignedTx
+	var err error
+
+	stx.Pubkey, err = hex.DecodeString(in.Pubkey)
+	if err != nil {
+		return err
+	}
+
+	stx.Sign, err = hex.DecodeString(in.Sign)
+	if err != nil {
+		return err
+	}
+
+	stx.Tx.Execer, err = hex.DecodeString(in.Tx.Execer)
+	if err != nil {
+		return err
+	}
+	stx.Tx.Expire = in.Tx.Expire
+	stx.Tx.Fee = in.Tx.Fee
+	stx.Tx.Nonce = in.Tx.Nonce
+	stx.Tx.Payload, err = hex.DecodeString(in.Tx.Payload)
+	if err != nil {
+		return err
+	}
+	reply := req.cli.SendRawTransaction(stx)
+	if reply.GetData().(*types.Reply).IsOk {
+		*result = string(reply.GetData().(*types.Reply).Msg)
+		return nil
+	} else {
+		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
+	}
+}
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
