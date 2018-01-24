@@ -8,12 +8,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-func (chain *BlockChain) queryTx(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) queryTx(msg queue.Message) {
 	txhash := (msg.Data).(*types.ReqHash)
 	TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
 	if err != nil {
@@ -25,12 +20,7 @@ func (chain *BlockChain) queryTx(msg queue.Message, reqnum chan struct{}) {
 	}
 }
 
-func (chain *BlockChain) getBlocks(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getBlocks(msg queue.Message) {
 	requestblocks := (msg.Data).(*types.ReqBlocks)
 	blocks, err := chain.ProcGetBlockDetailsMsg(requestblocks)
 	if err != nil {
@@ -42,12 +32,7 @@ func (chain *BlockChain) getBlocks(msg queue.Message, reqnum chan struct{}) {
 	}
 }
 
-func (chain *BlockChain) addBlock(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) addBlock(msg queue.Message) {
 	var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
@@ -64,36 +49,21 @@ func (chain *BlockChain) addBlock(msg queue.Message, reqnum chan struct{}) {
 	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 }
 
-func (chain *BlockChain) getBlockHeight(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getBlockHeight(msg queue.Message) {
 	var replyBlockHeight types.ReplyBlockHeight
 	replyBlockHeight.Height = chain.GetBlockHeight()
 	chainlog.Info("EventGetBlockHeight", "success", "ok")
 	msg.Reply(chain.qclient.NewMessage("consensus", types.EventReplyBlockHeight, &replyBlockHeight))
 }
 
-func (chain *BlockChain) txHashList(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) txHashList(msg queue.Message) {
 	txhashlist := (msg.Data).(*types.TxHashList)
 	duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
 	chainlog.Info("EventTxHashList", "success", "ok")
 	msg.Reply(chain.qclient.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 }
 
-func (chain *BlockChain) getHeaders(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getHeaders(msg queue.Message) {
 	requestblocks := (msg.Data).(*types.ReqBlocks)
 	headers, err := chain.ProcGetHeadersMsg(requestblocks)
 	if err != nil {
@@ -105,12 +75,7 @@ func (chain *BlockChain) getHeaders(msg queue.Message, reqnum chan struct{}) {
 	}
 }
 
-func (chain *BlockChain) getLastHeader(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getLastHeader(msg queue.Message) {
 	header, err := chain.ProcGetLastHeaderMsg()
 	if err != nil {
 		chainlog.Error("ProcGetLastHeaderMsg", "err", err.Error())
@@ -122,12 +87,7 @@ func (chain *BlockChain) getLastHeader(msg queue.Message, reqnum chan struct{}) 
 	//本节点共识模块发送过来的blockdetail，需要广播到全网
 }
 
-func (chain *BlockChain) addBlockDetail(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 	var blockDetail *types.BlockDetail
 	var reply types.Reply
 	reply.IsOk = true
@@ -148,6 +108,7 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message, reqnum chan struct{})
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {
+		chain.wg.Add(1)
 		chain.SynBlockToDbOneByOne()
 	}
 	chainlog.Info("EventAddBlockDetail", "success", "ok")
@@ -155,12 +116,7 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message, reqnum chan struct{})
 
 	//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
 }
-func (chain *BlockChain) broadcastAddBlock(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
@@ -177,12 +133,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message, reqnum chan struct
 	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 }
 
-func (chain *BlockChain) getTransactionByAddr(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
 	addr := (msg.Data).(*types.ReqAddr)
 	chainlog.Warn("EventGetTransactionByAddr", "req", addr)
 	replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
@@ -195,12 +146,7 @@ func (chain *BlockChain) getTransactionByAddr(msg queue.Message, reqnum chan str
 	}
 }
 
-func (chain *BlockChain) getTransactionByHashes(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getTransactionByHashes(msg queue.Message) {
 	txhashs := (msg.Data).(*types.ReqHashes)
 	chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
 	TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes)
@@ -213,12 +159,7 @@ func (chain *BlockChain) getTransactionByHashes(msg queue.Message, reqnum chan s
 	}
 }
 
-func (chain *BlockChain) getBlockOverview(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getBlockOverview(msg queue.Message) {
 	ReqHash := (msg.Data).(*types.ReqHash)
 	BlockOverview, err := chain.ProcGetBlockOverview(ReqHash)
 	if err != nil {
@@ -230,12 +171,7 @@ func (chain *BlockChain) getBlockOverview(msg queue.Message, reqnum chan struct{
 	}
 }
 
-func (chain *BlockChain) getAddrOverview(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getAddrOverview(msg queue.Message) {
 	addr := (msg.Data).(*types.ReqAddr)
 	AddrOverview, err := chain.ProcGetAddrOverview(addr)
 	if err != nil {
@@ -247,12 +183,7 @@ func (chain *BlockChain) getAddrOverview(msg queue.Message, reqnum chan struct{}
 	}
 }
 
-func (chain *BlockChain) getBlockHash(msg queue.Message, reqnum chan struct{}) {
-	beg := time.Now()
-	defer func() {
-		<-reqnum
-		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
-	}()
+func (chain *BlockChain) getBlockHash(msg queue.Message) {
 	height := (msg.Data).(*types.ReqInt)
 	replyhash, err := chain.ProcGetBlockHash(height)
 	if err != nil {
@@ -262,4 +193,16 @@ func (chain *BlockChain) getBlockHash(msg queue.Message, reqnum chan struct{}) {
 		chainlog.Info("ProcGetBlockHash", "success", "ok")
 		msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, replyhash))
 	}
+}
+
+type funcProcess func(msg queue.Message)
+
+func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb funcProcess) {
+	beg := time.Now()
+	defer func() {
+		<-reqnum
+		chain.recvwg.Done()
+		chainlog.Info("process", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
+	}()
+	cb(msg)
 }
