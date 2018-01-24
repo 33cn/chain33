@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -120,6 +121,7 @@ func (fs *fileStorage) Lock() (Locker, error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return nil, ErrClosed
 	}
 	if fs.readOnly {
@@ -221,6 +223,7 @@ func (fs *fileStorage) SetMeta(fd FileDesc) (err error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return ErrClosed
 	}
 	defer func() {
@@ -264,6 +267,7 @@ func (fs *fileStorage) GetMeta() (fd FileDesc, err error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return FileDesc{}, ErrClosed
 	}
 	dir, err := os.Open(fs.path)
@@ -370,6 +374,7 @@ func (fs *fileStorage) List(ft FileType) (fds []FileDesc, err error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return nil, ErrClosed
 	}
 	dir, err := os.Open(fs.path)
@@ -399,6 +404,7 @@ func (fs *fileStorage) Open(fd FileDesc) (Reader, error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return nil, ErrClosed
 	}
 	of, err := os.OpenFile(filepath.Join(fs.path, fsGenName(fd)), os.O_RDONLY, 0)
@@ -427,6 +433,7 @@ func (fs *fileStorage) Create(fd FileDesc) (Writer, error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return nil, ErrClosed
 	}
 	of, err := os.OpenFile(filepath.Join(fs.path, fsGenName(fd)), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
@@ -448,6 +455,7 @@ func (fs *fileStorage) Remove(fd FileDesc) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return ErrClosed
 	}
 	err := os.Remove(filepath.Join(fs.path, fsGenName(fd)))
@@ -478,6 +486,7 @@ func (fs *fileStorage) Rename(oldfd, newfd FileDesc) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return ErrClosed
 	}
 	return rename(filepath.Join(fs.path, fsGenName(oldfd)), filepath.Join(fs.path, fsGenName(newfd)))
@@ -487,6 +496,7 @@ func (fs *fileStorage) Close() error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 	if fs.open < 0 {
+		debug.PrintStack()
 		return ErrClosed
 	}
 	// Clear the finalizer.
@@ -528,6 +538,7 @@ func (fw *fileWrap) Close() error {
 	fw.fs.mu.Lock()
 	defer fw.fs.mu.Unlock()
 	if fw.closed {
+		debug.PrintStack()
 		return ErrClosed
 	}
 	fw.closed = true
