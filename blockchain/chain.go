@@ -243,6 +243,9 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		TransactionDetail.Amount = transfer.Amount
+	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+		gen := action.GetGenesis()
+		TransactionDetail.Amount = gen.Amount
 	}
 	//获取from地址
 	pubkey := txresult.GetTx().Signature.GetPubkey()
@@ -506,6 +509,21 @@ func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 	}
 }
 
+//添加block到cache中，方便快速查询
+func (chain *BlockChain) DelBlockFromCache(height int64) {
+	cachelock.Lock()
+	defer cachelock.Unlock()
+
+	elem, ok := chain.cache[height]
+	if ok {
+		delheight := chain.cacheQueue.Remove(elem).(*types.BlockDetail).Block.Height
+		if delheight != height {
+			chainlog.Error("DelBlockFromCache height err ", "height", height, "delheight", delheight)
+		}
+		delete(chain.cache, height)
+	}
+}
+
 //通过txhash 从txindex db中获取tx信息
 //type TxResult struct {
 //	Height int64
@@ -722,6 +740,9 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 				transfer := action.GetTransfer()
 				txDetail.Amount = transfer.Amount
+			} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+				gen := action.GetGenesis()
+				txDetail.Amount = gen.Amount
 			}
 			//获取from地址
 			pubkey := txresult.GetTx().Signature.GetPubkey()
@@ -958,7 +979,7 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 		newbatch := chain.blockStore.NewBatch(true)
 		cacheDB := NewCacheDB()
 		//保存tx信息到db中
-		err = chain.blockStore.indexTxs(newbatch, cacheDB, blockdetail)
+		err = chain.blockStore.AddTxs(newbatch, cacheDB, blockdetail)
 		if err != nil {
 			chainlog.Error("SynBlockToDbOneByOne indexTxs:", "height", block.Height, "err", err)
 			return
@@ -988,4 +1009,72 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 			}
 		}
 	}
+}
+
+//删除指定高度的block从数据库中，只能删除当前高度的block
+func (chain *BlockChain) DelBlock(height int64) (bool, error) {
+	currentheight := chain.blockStore.Height()
+	if currentheight == height { //只删除当前高度的block
+		blockdetail, err := chain.GetBlock(currentheight)
+		if err != nil {
+			chainlog.Error("DelBlock chainGetBlock:", "height", currentheight, "err", err)
+			return false, err
+		}
+		//批量将删除block的信息从磁盘中删除
+		newbatch := chain.blockStore.NewBatch(true)
+		cacheDB := NewCacheDB()
+
+		//从db中删除tx相关的信息
+		err = chain.blockStore.DelTxs(newbatch, cacheDB, blockdetail)
+		if err != nil {
+			chainlog.Error("DelBlock DelTxs:", "height", currentheight, "err", err)
+			return false, err
+		}
+
+		//从db中删除block相关的信息
+		err = chain.blockStore.DelBlock(newbatch, blockdetail)
+		if err != nil {
+			chainlog.Error("DelBlock blockStoreDelBlock:", "height", currentheight, "err", err)
+			return false, err
+		}
+		cacheDB.SetBatch(newbatch)
+		newbatch.Write()
+
+		chain.blockStore.UpdateHeight()
+
+		//删除缓存中的block信息
+		chain.DelBlockFromCache(blockdetail.Block.Height)
+		//通知共识，mempool和钱包删除block
+		chain.SendDelBlockEvent(blockdetail)
+	}
+	return true, nil
+}
+
+//blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
+func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error) {
+	if chain.qclient == nil {
+		fmt.Println("chain client not bind message queue.")
+		err := errors.New("chain client not bind message queue")
+		return err
+	}
+	if block == nil {
+		chainlog.Error("SendDelBlockEvent block is null")
+		return nil
+	}
+	chainlog.Error("SendDelBlockEvent", "Height", block.Block.Height)
+	/*
+		chainlog.Debug("SendDelBlockEvent -->>mempool")
+		msg := chain.qclient.NewMessage("mempool", types.EventAddBlock, block)
+		chain.qclient.Send(msg, false)
+
+		chainlog.Debug("SendDelBlockEvent -->>consensus")
+
+		msg = chain.qclient.NewMessage("consensus", types.EventAddBlock, block)
+		chain.qclient.Send(msg, false)
+	*/
+	chainlog.Debug("SendDelBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
+	msg := chain.qclient.NewMessage("wallet", types.EventDelBlock, block)
+	chain.qclient.Send(msg, false)
+
+	return nil
 }

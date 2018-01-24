@@ -28,10 +28,6 @@ func (n *Node) Start() {
 }
 
 func (n *Node) Close() {
-	//	close(n.versionDone)
-	//	close(n.activeDone)
-	//	close(n.onlineDone)
-	//	close(n.offlineDone)
 
 	close(n.loopDone)
 	log.Error("stop", "versionDone", "close")
@@ -56,11 +52,6 @@ type Node struct {
 	outBound     map[string]*peer
 	l            Listener
 	loopDone     chan struct{}
-	//	versionDone  chan struct{}
-	//	activeDone   chan struct{}
-	//	errPeerDone  chan struct{}
-	//	offlineDone  chan struct{}
-	//	onlineDone   chan struct{}
 }
 
 func (n *Node) setQueue(q *queue.Queue) {
@@ -77,11 +68,6 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		outBound:     make(map[string]*peer),
 		addrBook:     NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
 		loopDone:     make(chan struct{}, 1),
-		//		versionDone:  make(chan struct{}, 1),
-		//		activeDone:   make(chan struct{}, 1),
-		//		errPeerDone:  make(chan struct{}, 1),
-		//		offlineDone:  make(chan struct{}, 1),
-		//		onlineDone:   make(chan struct{}, 1),
 	}
 
 	log.Debug("newNode", "externalPort", node.externalPort)
@@ -120,10 +106,13 @@ func (n *Node) NatOk() bool {
 }
 func (n *Node) exChangeVersion() {
 
-	if n.GetServiceTy() == 7 && IsOutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
+	if IsOutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.NatOk() {
 			SERVICE -= NODE_NETWORK //nat 失败，不对外提供服务
+			log.Error("ExChangeVersion", "NatFaild", "No Support Service")
+		} else {
+			log.Error("ExChangeVersion", "NatOk", "Support Service")
 		}
 	}
 
@@ -154,45 +143,7 @@ FOR_LOOP:
 		}
 	}
 }
-func (n *Node) GetServiceTy() int64 {
-	//确认自己的服务范围1，2，4
-	defer func() {
-		log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
-	}()
-	if n.nodeInfo.cfg.GetIsSeed() == true {
-		IsOutSide = true
-		return SERVICE
-	}
-	if SERVICE == 0 {
-		log.Error("GetServiceTy", "Service", 0, "Describle", "NetWork Disable")
-		os.Exit(0)
 
-	}
-	for i := 0; i < 10; i++ {
-		exnet, err := nat.Any().ExternalIP()
-		if err == nil {
-			if exnet.String() != ExternalIp {
-				SERVICE -= NODE_NETWORK
-				return SERVICE
-			}
-
-			return SERVICE
-		} else {
-			//如果ExternalAddr 与LocalAddr 相同，则认为在外网中
-			if ExternalIp == LocalAddr {
-				n.externalPort = DefaultPort //外网使用默认端口
-				IsOutSide = true
-				return SERVICE
-			}
-
-		}
-	}
-	//如果无法通过nat获取外网，并且externalAddr!=localAddr
-	SERVICE -= NODE_NETWORK
-	IsOutSide = true
-	return SERVICE
-
-}
 func (n *Node) DialPeers(addrbucket map[string]bool) error {
 	if len(addrbucket) == 0 {
 		return nil
@@ -223,22 +174,22 @@ func (n *Node) DialPeers(addrbucket map[string]bool) error {
 			continue
 		}
 
-		go func(n *Node, netadr *NetAddress) {
-			if n.needMore() == false {
-				return
-			}
-			log.Debug("DialPeers", "peer", netadr.String())
-			peer, err := P2pComm.DialPeer(netadr, &n.nodeInfo)
-			if err != nil {
-				log.Error("DialPeers", "Err", err.Error())
-				return
-			}
-			log.Debug("Addr perr", "peer", peer)
-			n.AddPeer(peer)
-			n.addrBook.AddAddress(netadr)
-			n.addrBook.Save()
+		//go func(n *Node, netadr *NetAddress) {
+		if n.needMore() == false {
+			return nil
+		}
+		log.Debug("DialPeers", "peer", netAddr.String())
+		peer, err := P2pComm.DialPeer(netAddr, &n.nodeInfo)
+		if err != nil {
+			log.Error("DialPeers", "Err", err.Error())
+			continue
+		}
+		log.Debug("Addr perr", "peer", peer)
+		n.AddPeer(peer)
+		n.addrBook.AddAddress(netAddr)
+		n.addrBook.Save()
 
-		}(n, netAddr)
+		//}(n, netAddr)
 	}
 	return nil
 }
@@ -368,6 +319,54 @@ func (n *Node) needMore() bool {
 	return true
 }
 
+func (n *Node) GetServiceTy() int64 {
+	//确认自己的服务范围1，2，4
+	defer func() {
+		log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
+	}()
+
+	if SERVICE == 0 {
+		log.Error("GetServiceTy", "Service", 0, "Describle", "NetWork Disable")
+		os.Exit(0)
+	}
+	if n.nodeInfo.cfg.GetIsSeed() == true {
+		return SERVICE
+	}
+
+	if IsOutSide == true {
+		n.externalPort = DefaultPort //在外网，使用默认端口号
+		return SERVICE
+	} else {
+		ticker := time.NewTicker(time.Second * 3)
+		for i := 0; i < 5; i++ {
+			select {
+			case <-ticker.C:
+				continue
+			default:
+				exnet, err := nat.Any().ExternalIP()
+				if err == nil {
+					log.Error("GetServeice", "NatAddr", exnet.String())
+
+					if exnet.String() != ExternalIp {
+						if ExternalIp == LocalAddr { //如果本地地址与外网地址一致，且在内网的情况下，则认为没有正确获取外网地址，默认使用nat获取的地址
+							ExternalIp = exnet.String()
+							return SERVICE
+						}
+						SERVICE -= NODE_NETWORK
+						return SERVICE
+					}
+					return SERVICE
+				}
+
+			}
+		}
+
+	}
+
+	SERVICE -= NODE_NETWORK
+	return SERVICE
+
+}
 func (n *Node) DetectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LocalAddr = P2pComm.GetLocalAddr()
@@ -379,7 +378,7 @@ func (n *Node) DetectionNodeAddr() {
 	}
 	if cfg.GetIsSeed() {
 		ExternalIp = LocalAddr
-
+		IsOutSide = true
 		goto SET_ADDR
 	}
 
@@ -389,9 +388,10 @@ func (n *Node) DetectionNodeAddr() {
 	for _, seed := range cfg.Seeds {
 
 		pcli := NewP2pCli(nil)
-		selfexaddrs := pcli.GetExternIp(seed)
+		selfexaddrs, outside := pcli.GetExternIp(seed)
 		if len(selfexaddrs) != 0 {
-			ExternalIp = selfexaddrs[0]
+			IsOutSide = outside
+			ExternalIp = selfexaddrs
 			//log.Error("DetectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp)
 		}
 

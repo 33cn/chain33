@@ -23,6 +23,24 @@ func (req *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.R
 	}
 
 }
+
+func (req *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
+	reply, err := req.cli.CreateRawTransaction(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UnsignTx{Data: reply}, nil
+}
+
+func (req *Grpc) SendRawTransaction(ctx context.Context, in *pb.SignedTx) (*pb.Reply, error) {
+	reply := req.cli.SendRawTransaction(in)
+	if reply.GetData().(*pb.Reply).IsOk {
+		return reply.GetData().(*pb.Reply), nil
+	} else {
+		return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
+	}
+
+}
 func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.TransactionDetail, error) {
 
 	return req.cli.QueryTx(in.Hash)

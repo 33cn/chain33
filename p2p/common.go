@@ -16,6 +16,20 @@ var P2pComm Comm
 type Comm struct {
 }
 
+func (Comm) AddrTest(addrs []string) []string {
+	var enableAddrs []string
+	for _, addr := range addrs {
+
+		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
+		if err == nil {
+			conn.Close()
+			enableAddrs = append(enableAddrs, addr)
+		}
+	}
+
+	return enableAddrs
+
+}
 func (c Comm) GetLocalAddr() string {
 
 	conn, err := net.Dial("udp", "114.114.114.114:80")
@@ -101,7 +115,7 @@ func (c Comm) Pubkey(key string) (string, error) {
 
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
-	var ready = true
+	var ready = false
 	var defaultRespSize = 1024 * 1024 * 60
 	var defaultReqSize = 1024 * 1024 * 10
 	var defaulttimeout = 40 * time.Second

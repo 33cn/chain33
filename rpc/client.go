@@ -1,7 +1,12 @@
 package rpc
 
 import (
+	"errors"
+	"math/rand"
+	"time"
+
 	"code.aliyun.com/chain33/chain33/account"
+
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -13,6 +18,8 @@ import (
 
 type IRClient interface {
 	SendTx(tx *types.Transaction) queue.Message
+	CreateRawTransaction(parm *types.CreateTx) ([]byte, error)
+	SendRawTransaction(parm *types.SignedTx) queue.Message
 	SetQueue(q *queue.Queue)
 	QueryTx(hash []byte) (proof *types.TransactionDetail, err error)
 	GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error)
@@ -72,6 +79,33 @@ func (client *channelClient) SetQueue(q *queue.Queue) {
 
 	client.qclient = q.GetClient()
 	client.q = q
+
+}
+
+func (client *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
+	}
+	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: parm.GetAmount(), Note: parm.GetNote()}}
+	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+
+	//初始化随机数
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: parm.GetFee(), To: parm.GetTo(), Nonce: r.Int63()}
+	data := types.Encode(tx)
+	return data, nil
+
+}
+
+func (client *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
+	parm.Tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
+	msg := client.qclient.NewMessage("mempool", types.EventTx, parm.GetTx())
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		resp.Data = err
+	}
+	return resp
 
 }
 

@@ -64,7 +64,7 @@ func (n *Node) monitorErrPeer() {
 		log.Debug("deleteErrPeer", "REMOVE", peer.Addr())
 		if peer.version.IsSupport() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
 
-			n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
+			//n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
 			n.destroyPeer(peer)
 		}
 

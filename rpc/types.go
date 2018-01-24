@@ -12,7 +12,12 @@ type JTransparm struct {
 	Signature *Signature `json:"signature"`
 	Fee       int64      `json:"fee"`
 }
-
+type SignedTx struct {
+	Tx     *Transaction `json:"tx"`
+	Sign   string       `json:"sign"`
+	Pubkey string       `json:"pubkey"`
+	Ty     int32        `json:"ty"`
+}
 type RawParm struct {
 	Data string `json:"data"`
 }
