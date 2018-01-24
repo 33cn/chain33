@@ -13,7 +13,6 @@ type JTransparm struct {
 	Fee       int64      `json:"fee"`
 }
 type SignedTx struct {
-	Unsign string `json:"unsigntx"`
 	Sign   string `json:"signedtx"`
 	Pubkey string `json:"pubkey"`
 	Ty     int32  `json:"ty"`

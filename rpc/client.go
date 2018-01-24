@@ -99,9 +99,9 @@ func (client *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte,
 
 func (client *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
 	var tx types.Transaction
-	err := types.Decode(parm.GetData(), &tx)
+	err := types.Decode(parm.Sign, &tx)
+
 	if err == nil {
-		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
 		msg := client.qclient.NewMessage("mempool", types.EventTx, &tx)
 		client.qclient.Send(msg, true)
 		resp, err := client.qclient.Wait(msg)
