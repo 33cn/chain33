@@ -36,7 +36,10 @@ func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-
+	stx.Unsign, err = hex.DecodeString(in.Unsign)
+	if err != nil {
+		return err
+	}
 	stx.Ty = in.Ty
 	reply := req.cli.SendRawTransaction(&stx)
 	if reply.GetData().(*types.Reply).IsOk {

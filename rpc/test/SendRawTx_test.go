@@ -48,7 +48,8 @@ func CreateRawTx() string {
 
 func TestSendRawTx(t *testing.T) {
 	//unsign Tx 一个构造好的但未签名的交易
-	unsignedTx, err := hex.DecodeString(CreateRawTx())
+	unsigntx := CreateRawTx()
+	unsignedTx, err := hex.DecodeString(unsigntx)
 	if err != nil {
 		fmt.Println("hex.Decode", err.Error())
 		return
@@ -76,10 +77,11 @@ func TestSendRawTx(t *testing.T) {
 		return
 	}
 	fmt.Println("tx", tx.GetTo(), "fee", tx.GetFee())
-	tx.Sign(types.SECP256K1, priv)                    //多交易进行签名
-	signedTx := hex.EncodeToString(types.Encode(&tx)) //对交易进行编码发送
+	//tx.Sign(types.SECP256K1, priv) //多交易进行签名
+	//signedTx := hex.EncodeToString(types.Encode(&tx)) //对交易进行编码发送
 
-	postdata := fmt.Sprintf(`{"id":2,"method":"Chain33.SendRawTransaction","params":[{"signedtx":"%v","pubkey":"%v","ty":%v}]}`, signedTx, hex.EncodeToString(priv.PubKey().Bytes()), 1)
+	signedTx := hex.EncodeToString(priv.Sign(unsignedTx).Bytes())
+	postdata := fmt.Sprintf(`{"id":2,"method":"Chain33.SendRawTransaction","params":[{"unsigntx":"%v","signedtx":"%v","pubkey":"%v","ty":%v}]}`, unsigntx, signedTx, hex.EncodeToString(priv.PubKey().Bytes()), 1)
 	client := http.DefaultClient
 	req, err := http.NewRequest("post", "http://localhost:8801/", strings.NewReader(postdata))
 	if err != nil {
