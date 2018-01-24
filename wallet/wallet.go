@@ -33,15 +33,16 @@ var SaveSeedFirst = errors.New("please save seed first!")
 var UnLockFirst = errors.New("UnLock Wallet first!")
 
 type Wallet struct {
-	qclient queue.IClient
-	q       *queue.Queue
-	mtx     sync.Mutex
-	timeout *time.Timer
-
+	qclient     queue.IClient
+	q           *queue.Queue
+	mtx         sync.Mutex
+	timeout     *time.Timer
+	isclosed    int32
 	isLocked    bool
 	Password    string
 	FeeAmount   int64
 	EncryptFlag int64
+	wg          *sync.WaitGroup
 	walletStore *WalletStore
 }
 
@@ -63,12 +64,18 @@ func New(cfg *types.Wallet) *Wallet {
 	return &Wallet{
 		walletStore: walletStore,
 		isLocked:    false,
+		wg:          &sync.WaitGroup{},
 		FeeAmount:   walletStore.GetFeeAmount(),
 		EncryptFlag: walletStore.GetEncryptionFlag(),
 	}
 }
 
 func (wallet *Wallet) Close() {
+	//等待所有的子线程退出
+	wallet.qclient.Close()
+	wallet.wg.Wait()
+
+	//关闭数据库
 	wallet.walletStore.db.Close()
 	walletlog.Info("wallet module closed")
 }
@@ -81,10 +88,12 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 	wallet.qclient = q.GetClient()
 	wallet.qclient.Sub("wallet")
 	wallet.q = q
+	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 }
 
 func (wallet *Wallet) ProcRecvMsg() {
+	defer wallet.wg.Done()
 	for msg := range wallet.qclient.Recv() {
 		walletlog.Info("wallet recv", "msg", msg)
 		msgtype := msg.Ty
@@ -549,6 +558,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	walletaccount.Label = PrivKey.Label
 
 	//从blockchain模块同步Account.Addr对应的所有交易详细信息
+	wallet.wg.Add(1)
 	go wallet.ReqTxDetailByAddr(addr.String())
 
 	return &walletaccount, nil
@@ -1135,6 +1145,7 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 
 //从blockchain模块同步addr参与的所有交易详细信息
 func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
+	defer wallet.wg.Done()
 	if len(addr) == 0 {
 		walletlog.Error("ReqTxInfosByAddr input addr is nil!")
 		return

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -61,11 +62,11 @@ type BlockChain struct {
 
 	//记录peer的最新block高度,用于节点追赶active链
 	peerMaxBlkHeight int64
-
-	recvdone  chan struct{}
-	poolclose chan struct{}
-	synblock  chan struct{}
-	quit      chan struct{}
+	wg               *sync.WaitGroup
+	recvwg           *sync.WaitGroup
+	synblock         chan struct{}
+	quit             chan struct{}
+	isclosed         int32
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -85,9 +86,9 @@ func New(cfg *types.BlockChain) *BlockChain {
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerMaxBlkHeight:   -1,
+		wg:                 &sync.WaitGroup{},
+		recvwg:             &sync.WaitGroup{},
 		task:               newTask(60 * time.Second),
-		recvdone:           make(chan struct{}, 0),
-		poolclose:          make(chan struct{}, 0),
 		quit:               make(chan struct{}, 0),
 		synblock:           make(chan struct{}, 1),
 	}
@@ -112,12 +113,19 @@ func initConfig(cfg *types.BlockChain) {
 }
 
 func (chain *BlockChain) Close() {
-	//wait recv done
-	chain.qclient.Close()
-	<-chain.recvdone
+
+	chainlog.Error("begin close")
+	//等待所有的写线程退出，防止数据库写到一半被暂停
+	atomic.StoreInt32(&chain.isclosed, 1)
+	chain.wg.Wait()
 	//退出线程
+	//退出接受数据
+	chain.qclient.Close()
 	close(chain.quit)
-	//wait
+	//wait for recvwg quit:
+	chain.recvwg.Wait()
+
+	//关闭数据库
 	chain.blockStore.db.Close()
 	chainlog.Info("blockchain module closed")
 }
@@ -128,54 +136,50 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	chain.q = q
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
-
 	// 定时同步缓存中的block to db
 	go chain.poolRoutine()
 }
 
 func (chain *BlockChain) ProcRecvMsg() {
-	defer func() {
-		chain.recvdone <- struct{}{}
-	}()
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.qclient.Recv() {
-		chainlog.Info("blockchain recv", "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Info("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
+		chain.recvwg.Add(1)
 		switch msgtype {
 		case types.EventQueryTx:
-			go chain.queryTx(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.queryTx)
 		case types.EventGetBlocks:
-			go chain.getBlocks(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getBlocks)
 		case types.EventAddBlock: // block
-			go chain.addBlock(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.addBlock)
 		case types.EventGetBlockHeight:
-			go chain.getBlockHeight(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getBlockHeight)
 		case types.EventTxHashList:
-			go chain.txHashList(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.txHashList)
 		case types.EventGetHeaders:
-			go chain.getHeaders(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getHeaders)
 		case types.EventGetLastHeader:
-			go chain.getLastHeader(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getLastHeader)
 		case types.EventAddBlockDetail:
-			go chain.addBlockDetail(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.addBlockDetail)
 		case types.EventBroadcastAddBlock: //block
-			go chain.broadcastAddBlock(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.broadcastAddBlock)
 		case types.EventGetTransactionByAddr:
-			go chain.getTransactionByAddr(msg, reqnum)
-
+			go chain.processMsg(msg, reqnum, chain.getTransactionByAddr)
 		case types.EventGetTransactionByHash:
-			go chain.getTransactionByHashes(msg, reqnum)
-
+			go chain.processMsg(msg, reqnum, chain.getTransactionByHashes)
 		case types.EventGetBlockOverview: //blockOverview
-			go chain.getBlockOverview(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getBlockOverview)
 		case types.EventGetAddrOverview: //addrOverview
-			go chain.getAddrOverview(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
 		case types.EventGetBlockHash: //GetBlockHash
-			go chain.getBlockHash(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getBlockHash)
 		default:
 			<-reqnum
-			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
+			chain.wg.Done()
+			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
 	}
 }
@@ -445,6 +449,7 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 }
 
 func (chain *BlockChain) notifySync() {
+	chain.wg.Add(1)
 	go chain.SynBlockToDbOneByOne()
 }
 
@@ -513,7 +518,6 @@ func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 func (chain *BlockChain) DelBlockFromCache(height int64) {
 	cachelock.Lock()
 	defer cachelock.Unlock()
-
 	elem, ok := chain.cache[height]
 	if ok {
 		delheight := chain.cacheQueue.Remove(elem).(*types.BlockDetail).Block.Height
@@ -660,7 +664,6 @@ func (chain *BlockChain) fetchPeerList() error {
 		return err
 	}
 	peerlist := resp.GetData().(*types.PeerList)
-
 	//获取peerlist中最新的高度
 	var maxPeerHeight int64 = -1
 	for _, peer := range peerlist.Peers {
@@ -933,9 +936,13 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 func (chain *BlockChain) SynBlockToDbOneByOne() {
 	chain.synblock <- struct{}{}
 	defer func() {
+		chain.wg.Done()
 		<-chain.synblock
 	}()
 	for {
+		if atomic.LoadInt32(&chain.isclosed) == 1 {
+			return
+		}
 		//获取当前block的statehash和blockhash用于nextblock的校验
 		var prevStateHash []byte
 		var prevblkHash []byte
@@ -1062,16 +1069,6 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 		return nil
 	}
 	chainlog.Error("SendDelBlockEvent", "Height", block.Block.Height)
-	/*
-		chainlog.Debug("SendDelBlockEvent -->>mempool")
-		msg := chain.qclient.NewMessage("mempool", types.EventAddBlock, block)
-		chain.qclient.Send(msg, false)
-
-		chainlog.Debug("SendDelBlockEvent -->>consensus")
-
-		msg = chain.qclient.NewMessage("consensus", types.EventAddBlock, block)
-		chain.qclient.Send(msg, false)
-	*/
 	chainlog.Debug("SendDelBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
 	msg := chain.qclient.NewMessage("wallet", types.EventDelBlock, block)
 	chain.qclient.Send(msg, false)
