@@ -226,10 +226,9 @@ message UnsignTx{
 }
 
 message SignedTx{
-	Transaction tx=1;
-	bytes sign=2;
-	bytes pubkey=3;
-	int32 ty=4;
+	bytes sign=1;
+	bytes pubkey=2;
+	int32 ty=3;
 }
 
 message Transaction {
