@@ -129,7 +129,7 @@ func (rc *raftNode) startRaft() {
 		MaxSizePerMsg:   1024 * 1024,
 		MaxInflightMsgs: 256,
 		//设置成预投票，当节点重连时，可以快速地重新加入集群
-		PreVote:     false,
+		PreVote:     true,
 		CheckQuorum: false,
 	}
 
@@ -266,6 +266,9 @@ func (rc *raftNode) serveChannels() {
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
 	for {
+		//TODO:这里将watch leader状态延长到30s,为了规避后续节点无法加入的问题
+		//后期需要考虑优化，或者做自动一键部署脚本，来解决这个遗留问题
+		time.Sleep(30 * time.Second)
 		validatorMap = make(map[string]bool)
 		leadId := rc.node.Status().Lead
 		if leadId != raft.None {
@@ -280,7 +283,7 @@ func (rc *raftNode) updateValidator() {
 			validatorMap[IsLeader] = false
 		}
 		rc.validatorC <- validatorMap
-		time.Sleep(time.Second)
+
 	}
 }
 
