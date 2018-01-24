@@ -42,7 +42,7 @@ func NewP2pServer() *p2pServer {
 }
 
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	log.Debug("p2pServer PING", "RECV PING", "PING")
+	//log.Error("p2pServer PING", "Ip", in.GetAddr(), "Port", in.GetPort())
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		log.Debug("PING addr", "Addr", getctx.Addr.String())
@@ -109,15 +109,18 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		log.Debug("Version2", "Addr", peeraddr)
 	}
 
-	log.Debug("RECV PEER VERSION", "VERSION", *in)
+	//log.Error("RECV PEER VERSION", "VERSION", in.AddrFrom, "SERVICE", in.GetService())
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
 	//in.AddrFrom 表示远程客户端的地址,如果客户端的远程地址与自己定义的addrfrom 地址一直，则认为在外网
 	if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
 		remoteNetwork, err := NewNetAddressString(in.AddrFrom)
-		if err == nil && in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM {
-			s.node.addrBook.AddAddress(remoteNetwork)
+		if err == nil /*&& in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM*/ {
+			if len(P2pComm.AddrTest([]string{in.AddrFrom})) == 1 {
+				s.node.addrBook.AddAddress(remoteNetwork)
+			}
+
 		}
 	}
 
@@ -335,7 +338,7 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 			}
 			//收到stream 交给
 			if block := in.GetBlock(); block != nil {
-				log.Error("RouteChat", " Recv block==+====================+==================+=>Height", block.GetBlock().GetHeight())
+				log.Error("RouteChat", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
 				if block.GetBlock() != nil {
 
 					msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
@@ -380,14 +383,24 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 
 }
 
-func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
-	var addrlist = make([]string, 0)
+func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PExternalInfo, error) {
+	var remoteaddr string
+	var outside bool
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
-		remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
-		addrlist = append(addrlist, remoteaddr)
+		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
+		//addrlist = append(addrlist, remoteaddr)
+		//Check IsOutSide?
+		if len(P2pComm.AddrTest([]string{fmt.Sprintf("%v:%v", remoteaddr, DefaultPort)})) == 0 {
+			//inside network
+			outside = false
+		} else {
+			//outside network
+			outside = true
+
+		}
 	}
-	return &pb.P2PAddr{Addrlist: addrlist}, nil
+	return &pb.P2PExternalInfo{Addr: remoteaddr, Isoutside: outside}, nil
 }
 
 func (s *p2pServer) checkVersion(version int32) bool {

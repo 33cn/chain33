@@ -221,6 +221,12 @@ func (wallet *Wallet) ProcRecvMsg() {
 			block := msg.Data.(*types.BlockDetail)
 			wallet.ProcWalletAddBlock(block)
 			walletlog.Info("wallet add block --->", "height", block.Block.GetHeight())
+
+		case types.EventDelBlock:
+			block := msg.Data.(*types.BlockDetail)
+			wallet.ProcWalletDelBlock(block)
+			walletlog.Info("wallet del block --->", "height", block.Block.GetHeight())
+
 		//seed
 		case types.EventGenSeed:
 			genSeedLang := msg.Data.(*types.GenSeedLang)
@@ -1039,6 +1045,40 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	newbatch.Write()
 }
 
+//wallet模块收到blockchain广播的delblock消息，需要解析钱包相关的tx并存db中删除
+func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
+	if block == nil {
+		walletlog.Error("ProcWalletDelBlock input para is nil!")
+		return
+	}
+	walletlog.Error("ProcWalletDelBlock", "height", block.GetBlock().GetHeight())
+
+	txlen := len(block.Block.GetTxs())
+	newbatch := wallet.walletStore.NewBatch(true)
+
+	for index := 0; index < txlen; index++ {
+		blockheight := block.Block.Height*MaxTxNumPerBlock + int64(index)
+		heightstr := fmt.Sprintf("%018d", blockheight)
+
+		//获取from地址
+		pubkey := block.Block.Txs[index].Signature.GetPubkey()
+		addr := account.PubKeyToAddress(pubkey)
+		fromaddress := addr.String()
+		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
+			newbatch.Delete([]byte(calcTxKey(heightstr)))
+			walletlog.Error("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
+			continue
+		}
+		//toaddr
+		toaddr := block.Block.Txs[index].GetTo()
+		if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
+			newbatch.Delete([]byte(calcTxKey(heightstr)))
+			walletlog.Error("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
+		}
+	}
+	newbatch.Write()
+}
+
 //地址对应的账户是否属于本钱包
 func (wallet *Wallet) AddrInWallet(addr string) bool {
 	if len(addr) == 0 {
@@ -1255,7 +1295,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 
 	seedarry := strings.Fields(seed)
 	if len(seedarry) != SeedLong {
-		return false, errors.New("The seed must be 16 words or Chinese characters!")
+		return false, errors.New("The seed must be 15 words or Chinese characters!")
 	}
 	var newseed string
 	for index, seedstr := range seedarry {

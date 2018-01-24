@@ -84,7 +84,8 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 
 	peers := m.network.node.GetRegisterPeers()
 	for _, pr := range peers {
-		pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
+		ps.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, pr.Addr())
+		//pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
 	}
 
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
@@ -184,7 +185,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	}
 	addrfrom := fmt.Sprintf("%v:%v", ExternalIp, nodeinfo.externalAddr.Port)
 	nodeinfo.blacklist.Add(addrfrom)
-	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
+	_, err = peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	defer m.CollectPeerStat(err, peer)
@@ -198,7 +199,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 		return err
 	}
 
-	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
+	//log.Error("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
 
@@ -220,7 +221,20 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
 	return nil
 }
-
+func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
+	client := nodeinfo.qclient
+	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
+	client.Send(msg, true)
+	resp, err := client.Wait(msg)
+	if err != nil {
+		return 0, err
+	}
+	if resp.Err() != nil {
+		return 0, resp.Err()
+	}
+	header := resp.GetData().(*pb.Header)
+	return header.GetHeight(), nil
+}
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 
 	//log.Info("GetPeerInfo", "info", m.PeerInfos())
@@ -511,23 +525,23 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 }
 
-func (m *P2pCli) GetExternIp(addr string) []string {
-	var addrlist []string
+func (m *P2pCli) GetExternIp(addr string) (string, bool) {
+	var addrlist string
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect: %v", err)
-		return addrlist
+		return addrlist, false
 	}
 	defer conn.Close()
 	gconn := pb.NewP2PgserviceClient(conn)
 	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12})
 	if err != nil {
-		return addrlist
+		return "", false
 	}
 
-	return resp.Addrlist
+	return resp.Addr, resp.Isoutside
 
 }
 

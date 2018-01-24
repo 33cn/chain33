@@ -302,13 +302,7 @@ func (a *AddrBook) AddAddress(addr *NetAddress) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	log.Debug("Add address to book", "addr", addr)
-	//a.addAddress(addr)
 	if addr == nil {
-		return
-	}
-
-	if !addr.Routable() {
-		log.Error("Cannot add non-routable address ", "addr", addr)
 		return
 	}
 
