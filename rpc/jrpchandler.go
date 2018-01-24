@@ -24,31 +24,25 @@ func (req Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{})
 
 }
 func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
-	var stx *types.SignedTx
+	var stx types.SignedTx
 	var err error
-
+	log.Error("SendRawTransaction", "pubkey", in.Pubkey)
 	stx.Pubkey, err = hex.DecodeString(in.Pubkey)
 	if err != nil {
 		return err
 	}
-
+	log.Error("SendRawTransaction", "Sign", in.Sign)
 	stx.Sign, err = hex.DecodeString(in.Sign)
 	if err != nil {
 		return err
 	}
-
-	stx.Tx.Execer, err = hex.DecodeString(in.Tx.Execer)
+	log.Error("SendRawTransaction", "Unsign", in.Unsign)
+	stx.Data, err = hex.DecodeString(in.Unsign)
 	if err != nil {
 		return err
 	}
-	stx.Tx.Expire = in.Tx.Expire
-	stx.Tx.Fee = in.Tx.Fee
-	stx.Tx.Nonce = in.Tx.Nonce
-	stx.Tx.Payload, err = hex.DecodeString(in.Tx.Payload)
-	if err != nil {
-		return err
-	}
-	reply := req.cli.SendRawTransaction(stx)
+	stx.Ty = in.Ty
+	reply := req.cli.SendRawTransaction(&stx)
 	if reply.GetData().(*types.Reply).IsOk {
 		*result = string(reply.GetData().(*types.Reply).Msg)
 		return nil
