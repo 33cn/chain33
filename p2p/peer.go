@@ -228,7 +228,7 @@ func (p *peer) subStreamBlock() {
 						height := block.GetBlock().GetHeight()
 						pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
 						if err == nil {
-							if pinfo.GetHeader().GetHeight() > height {
+							if pinfo.GetHeader().GetHeight() >= height {
 								continue
 							}
 						}
@@ -298,7 +298,7 @@ func (p *peer) subStreamBlock() {
 
 						height, err := pcli.GetBlockHeight((*p.nodeInfo))
 						if err == nil {
-							if height > block.GetBlock().GetHeight() {
+							if height >= block.GetBlock().GetHeight() {
 								continue
 							}
 						}
