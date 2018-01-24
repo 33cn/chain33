@@ -57,7 +57,7 @@ func TransferToExec(db dbm.KVDB, from, to string, amount int64) (*types.Receipt,
 		if err := CheckTransfer(db, to, from, -amount); err != nil {
 			return nil, err
 		}
-		receipt, err := execWithdraw(db, to, from, -amount)
+		receipt, err := execWithdraw(db, from, to, -amount)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +136,6 @@ func ExecTransferFrozen(db dbm.KVDB, from, to, execaddr string, amount int64) (*
 	}
 	accFrom := LoadExecAccount(db, from, execaddr)
 	accTo := LoadExecAccount(db, to, execaddr)
-
 	b := accFrom.GetFrozen() - amount
 	if b < 0 {
 		return nil, types.ErrNoBalance
