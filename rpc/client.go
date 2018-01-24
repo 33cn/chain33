@@ -105,9 +105,16 @@ func (client *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Mess
 		msg := client.qclient.NewMessage("mempool", types.EventTx, &tx)
 		client.qclient.Send(msg, true)
 		resp, err := client.qclient.Wait(msg)
+
 		if err != nil {
+
 			resp.Data = err
+
 		}
+		if resp.GetData().(*types.Reply).GetIsOk() {
+			resp.GetData().(*types.Reply).Msg = tx.Hash()
+		}
+
 		return resp
 	}
 	var msg queue.Message
