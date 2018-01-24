@@ -40,9 +40,10 @@ func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	stx.Ty = in.Ty
 	reply := req.cli.SendRawTransaction(&stx)
 	if reply.GetData().(*types.Reply).IsOk {
-		*result = string(reply.GetData().(*types.Reply).Msg)
+		*result = "0x" + hex.EncodeToString(reply.GetData().(*types.Reply).Msg)
 		return nil
 	} else {
+
 		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
 	}
 }
