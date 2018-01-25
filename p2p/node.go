@@ -30,13 +30,13 @@ func (n *Node) Start() {
 func (n *Node) Close() {
 
 	close(n.loopDone)
-	log.Error("stop", "versionDone", "close")
+	log.Debug("stop", "versionDone", "close")
 	n.l.Close()
-	log.Error("stop", "listen", "close")
+	log.Debug("stop", "listen", "close")
 	n.addrBook.Close()
-	log.Error("stop", "addrBook", "close")
+	log.Debug("stop", "addrBook", "close")
 	n.RemoveAll()
-	log.Error("stop", "PeerRemoeAll", "close")
+	log.Debug("stop", "PeerRemoeAll", "close")
 
 }
 
@@ -106,13 +106,14 @@ func (n *Node) NatOk() bool {
 }
 func (n *Node) exChangeVersion() {
 
+	SERVICE = n.GetServiceTy()
 	if IsOutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.NatOk() {
 			SERVICE -= NODE_NETWORK //nat 失败，不对外提供服务
-			log.Error("ExChangeVersion", "NatFaild", "No Support Service")
+			log.Info("ExChangeVersion", "NatFaild", "No Support Service")
 		} else {
-			log.Error("ExChangeVersion", "NatOk", "Support Service")
+			log.Info("ExChangeVersion", "NatOk", "Support Service")
 		}
 	}
 
@@ -226,10 +227,10 @@ func (n *Node) AddPeer(pr *peer) {
 		return
 	}
 	if _, ok := n.outBound[pr.Addr()]; ok {
-		log.Error("AddPeer", "outBound", pr.Addr())
+		log.Info("AddPeer", "delete peer", pr.Addr())
 		n.destroyPeer(pr)
 	}
-	log.Error("AddPeer", "peer", pr.Addr())
+	log.Debug("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
 	pr.key = n.addrBook.key
 	pr.Start()
@@ -322,11 +323,11 @@ func (n *Node) needMore() bool {
 func (n *Node) GetServiceTy() int64 {
 	//确认自己的服务范围1，2，4
 	defer func() {
-		log.Error("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
+		log.Info("GetServiceTy", "Service", SERVICE, "IsOutSide", IsOutSide, "externalport", n.externalPort)
 	}()
 
 	if SERVICE == 0 {
-		log.Error("GetServiceTy", "Service", 0, "Describle", "NetWork Disable")
+		log.Debug("GetServiceTy", "Service", 0, "Describle", "NetWork Disable")
 		os.Exit(0)
 	}
 	if n.nodeInfo.cfg.GetIsSeed() == true {
@@ -345,7 +346,7 @@ func (n *Node) GetServiceTy() int64 {
 			default:
 				exnet, err := nat.Any().ExternalIP()
 				if err == nil {
-					log.Error("GetServeice", "NatAddr", exnet.String())
+					log.Debug("GetServeice", "NatAddr", exnet.String())
 
 					if exnet.String() != ExternalIp {
 						if ExternalIp == LocalAddr { //如果本地地址与外网地址一致，且在内网的情况下，则认为没有正确获取外网地址，默认使用nat获取的地址
@@ -370,7 +371,7 @@ func (n *Node) GetServiceTy() int64 {
 func (n *Node) DetectionNodeAddr() {
 	cfg := n.nodeInfo.cfg
 	LocalAddr = P2pComm.GetLocalAddr()
-	log.Error("DetectionNodeAddr", "addr:", LocalAddr)
+	log.Info("DetectionNodeAddr", "addr:", LocalAddr)
 	if len(LocalAddr) == 0 {
 		SERVICE = 0
 		log.Error("DetectionNodeAddr", "NetWork Disable", "process done")
@@ -403,7 +404,7 @@ SET_ADDR:
 	}
 
 	addr := fmt.Sprintf("%v:%v", ExternalIp, n.GetExterPort())
-	log.Error("DetectionNodeAddr", "AddBlackList", addr)
+	log.Debug("DetectionNodeAddr", "AddBlackList", addr)
 	n.nodeInfo.blacklist.Add(addr) //把自己的外网地址加入到黑名单，以防连接self
 	if exaddr, err := NewNetAddressString(addr); err == nil {
 		n.nodeInfo.SetExternalAddr(exaddr)
@@ -416,5 +417,5 @@ SET_ADDR:
 	}
 	n.localAddr = fmt.Sprintf("%s:%v", LocalAddr, n.GetLocalPort())
 
-	log.Error("DetectionNodeAddr", " Finish ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
+	log.Info("DetectionNodeAddr", " Finish ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
 }
