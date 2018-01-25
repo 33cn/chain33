@@ -87,6 +87,7 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 	h := NewHashlock(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
 	//冻结子账户资金
 	receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, hlock.Amount)
+	hlog.Info("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", hlock.Amount)
 	if err != nil {
 		hlog.Error("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr)
 		return nil, err
