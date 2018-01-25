@@ -11,6 +11,7 @@ import (
 
 type ExecBase struct {
 	db        dbm.KVDB
+	localdb   dbm.KVDB
 	height    int64
 	blocktime int64
 	child     Executer
@@ -47,6 +48,14 @@ func (n *ExecBase) SetDB(db dbm.KVDB) {
 
 func (n *ExecBase) GetDB() dbm.KVDB {
 	return n.db
+}
+
+func (n *ExecBase) SetLocalDB(db dbm.KVDB) {
+	n.localdb = db
+}
+
+func (n *ExecBase) GetLocalDB() dbm.KVDB {
+	return n.localdb
 }
 
 func (n *ExecBase) GetHeight() int64 {
