@@ -49,8 +49,8 @@ type BlockChain struct {
 	cache      map[int64]*list.Element
 	cacheSize  int64
 	cacheQueue *list.List
-
-	task *Task
+	cfg        *types.BlockChain
+	task       *Task
 	//Block 同步阶段用于缓存block信息，
 	blockPool *BlockPool
 
@@ -72,13 +72,10 @@ type BlockChain struct {
 func New(cfg *types.BlockChain) *BlockChain {
 
 	//初始化blockstore 和txindex  db
-	blockStoreDB := dbm.NewDB("blockchain", cfg.Driver, cfg.DbPath)
-	blockStore := NewBlockStore(blockStoreDB)
 	initConfig(cfg)
 	pool := NewBlockPool()
 
 	return &BlockChain{
-		blockStore:         blockStore,
 		cache:              make(map[int64]*list.Element),
 		cacheSize:          DefCacheSize,
 		cacheQueue:         list.New(),
@@ -133,6 +130,10 @@ func (chain *BlockChain) Close() {
 func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	chain.qclient = q.GetClient()
 	chain.qclient.Sub("blockchain")
+
+	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath)
+	blockStore := NewBlockStore(blockStoreDB, q)
+	chain.blockStore = blockStore
 	chain.q = q
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
@@ -148,6 +149,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 		reqnum <- struct{}{}
 		chain.recvwg.Add(1)
 		switch msgtype {
+		case types.EventLocalGet:
+			go chain.processMsg(msg, reqnum, chain.localGet)
 		case types.EventQueryTx:
 			go chain.processMsg(msg, reqnum, chain.queryTx)
 		case types.EventGetBlocks:

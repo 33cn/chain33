@@ -360,6 +360,25 @@ message MempoolSize {
     int64 size = 1;
 }
 
+message LocalDBSet {
+	repeated KeyValue KV = 2;
+}
+
+message LocalDBList {
+	bytes prefix = 1;
+	bytes key = 2;
+	int32 direction = 3;
+	int32 count = 4;
+}
+
+message LocalDBGet {
+	repeated bytes keys = 2;
+}
+
+message LocalReplyValue {
+	repeated bytes values = 2;
+}
+
 message StoreSet {
 	bytes stateHash = 1;
 	repeated KeyValue KV = 2;
@@ -562,6 +581,7 @@ message Config {
 	string logConsoleLevel = 10;
 	string logFile = 9;
 	Store  store=3;
+	LocalStore localStore = 11;
 	Consensus consensus=4;
 	MemPool memPool=5;
 	BlockChain blockChain=6;
@@ -587,6 +607,11 @@ message Wallet{
 }
 
 message Store {
+	string driver=1;
+	string dbPath=2;
+}
+
+message LocalStore {
 	string driver=1;
 	string dbPath=2;
 }
