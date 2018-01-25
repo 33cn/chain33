@@ -156,7 +156,6 @@ func calcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail *types.BlockDetail) error {
 
 	txlen := len(blockdetail.Block.Txs)
-
 	for index := 0; index < txlen; index++ {
 		//计算tx hash
 		txhash := blockdetail.Block.Txs[index].Hash()
@@ -179,71 +178,40 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail
 		//存储key:addr:flag:height ,value:txhash
 		//flag :0-->from,1--> to
 		//height=height*10000+index 存储账户地址相关的交易
-
-		var txinf types.ReplyTxInfo
-		txinf.Hash = txhash
-		txinf.Height = blockdetail.Block.Height
-		txinf.Index = int64(index)
-		txinfobyte, err := proto.Marshal(&txinf)
-		if err != nil {
-			storelog.Error("indexTxs Encode txinf err", "Height", blockdetail.Block.Height, "index", index)
-			return err
-		}
-
-		blockheight := blockdetail.Block.Height*MaxTxsPerBlock + int64(index)
-		heightstr := fmt.Sprintf("%018d", blockheight)
-
-		//from addr
-		pubkey := blockdetail.Block.Txs[index].Signature.GetPubkey()
-		addr := account.PubKeyToAddress(pubkey)
-		fromaddress := addr.String()
-		if len(fromaddress) != 0 {
-			fromkey := calcTxAddrDirHashKey(fromaddress, 1, heightstr)
-			//fmt.Sprintf("%s:0:%s", fromaddress, heightstr)
-			storeBatch.Set(fromkey, txinfobyte)
-			storeBatch.Set(calcTxAddrHashKey(fromaddress, heightstr), txinfobyte)
-			//storelog.Debug("indexTxs address ", "fromkey", fromkey, "value", txhash)
-		}
-		//toaddr
-		toaddr := blockdetail.Block.Txs[index].GetTo()
-		if len(toaddr) != 0 {
-			tokey := calcTxAddrDirHashKey(toaddr, 2, heightstr)
-			//fmt.Sprintf("%s:1:%s", toaddr, heightstr)
-			storeBatch.Set([]byte(tokey), txinfobyte)
-			storeBatch.Set(calcTxAddrHashKey(toaddr, heightstr), txinfobyte)
-
-			//更新地址收到的amount
-			var action types.CoinsAction
-			err := types.Decode(blockdetail.Block.Txs[index].GetPayload(), &action)
-			if err == nil {
-				if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-					transfer := action.GetTransfer()
-					bs.UpdateAddrReciver(cacheDB, toaddr, transfer.Amount, true)
-				} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
-					gen := action.GetGenesis()
-					bs.UpdateAddrReciver(cacheDB, toaddr, gen.Amount, true)
-				}
-			}
-		}
-		//storelog.Debug("indexTxs Set txresult", "Height", blockdetail.Block.Height, "index", index, "txhashbyte", txhash)
+	}
+	kv, err := getLocakKV(blockdetail)
+	if err != nil {
+		storelog.Error("indexTxs getLocalKV err", "Height", blockdetail.Block.Height, "index", index, "err", err)
+		return err
+	}
+	for i := 0; i < len(kv); i++ {
+		storeBatch.Set(kv[i].Key, kv[i].Value)
 	}
 	return nil
 }
 
 //通过批量删除tx信息从db中
 func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail *types.BlockDetail) error {
-
-	txlen := len(blockdetail.Block.Txs)
-
-	for index := 0; index < txlen; index++ {
+	for index := 0; index < len(blockdetail.Block.Txs); index++ {
 		//计算tx hash
 		txhash := blockdetail.Block.Txs[index].Hash()
 		storeBatch.Delete(txhash)
-
-		//存储key:addr:flag:height ,value:txhash
-		//flag :0-->from,1--> to
-		//height=height*10000+index 存储账户地址相关的交易
-
+	}
+	//存储key:addr:flag:height ,value:txhash
+	//flag :0-->from,1--> to
+	//height=height*10000+index 存储账户地址相关的交易
+	kv, err := getDelLocakKV(blockdetail)
+	if err != nil {
+		storelog.Error("indexTxs getLocalKV err", "Height", blockdetail.Block.Height, "index", index, "err", err)
+		return err
+	}
+	for i := 0; i < len(kv); i++ {
+		if kv[i].Value == nil {
+			storeBatch.Delete(kv[i].Key)
+		} else {
+			storeBatch.Set(kv[i].Key, kv[i].Value)
+		}
+	}
 		blockheight := blockdetail.Block.Height*MaxTxsPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
 
