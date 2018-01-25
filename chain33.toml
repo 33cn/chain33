@@ -17,6 +17,7 @@ dbPath="datadir"
 seeds=["114.55.101.159:13802"]
 enable=true
 isSeed=false
+msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
 version=11

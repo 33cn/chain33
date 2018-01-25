@@ -146,7 +146,7 @@ func (ka *knownAddress) GetAttempts() uint {
 func (a *AddrBook) AddOurAddress(addr *NetAddress) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	log.Info("Add our address to book", "addr", addr)
+	log.Debug("Add our address to book", "addr", addr)
 	a.ourAddrs[addr.String()] = addr
 }
 func (a *AddrBook) Size() int {
