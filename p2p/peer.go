@@ -135,7 +135,7 @@ func (f *FilterTask) ManageFilterTask() {
 
 		select {
 		case <-f.loopDone:
-			log.Error("peer mangerFilterTask", "loop", "done")
+			log.Debug("peer mangerFilterTask", "loop", "done")
 			return
 		case <-ticker.C:
 			f.mtx.Lock()
@@ -203,14 +203,14 @@ func (p *peer) SendData(data interface{}) (err error) {
 }
 
 func (p *peer) subStreamBlock() {
-	p.taskChan = ps.Sub(p.Addr())
+	//p.taskChan = ps.Sub(p.Addr())
 	pcli := NewP2pCli(nil)
 	go func(p *peer) {
 		//Stream Send data
 		for {
 			select {
 			case <-p.allLoopDone:
-				log.Error("peer SubStreamBlock", "Send Stream  Done", p.Addr())
+				log.Debug("peer SubStreamBlock", "Send Stream  Done", p.Addr())
 				return
 
 			default:
@@ -262,7 +262,7 @@ func (p *peer) subStreamBlock() {
 	for {
 		select {
 		case <-p.allLoopDone:
-			log.Error("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
+			log.Debug("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
 			return
 
 		default:
@@ -274,7 +274,7 @@ func (p *peer) subStreamBlock() {
 				time.Sleep(time.Second * 5)
 				continue
 			}
-			log.Error("SubStreamBlock", "Start", p.Addr())
+			log.Debug("SubStreamBlock", "Start", p.Addr())
 
 			for {
 				data, err := resp.Recv()
@@ -302,7 +302,7 @@ func (p *peer) subStreamBlock() {
 								continue
 							}
 						}
-						log.Error("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight())
+						log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight())
 						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 						(*p.nodeInfo).qclient.Send(msg, true)
 						_, err = (*p.nodeInfo).qclient.Wait(msg)

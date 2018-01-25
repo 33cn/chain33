@@ -54,12 +54,7 @@ func TestSendRawTx(t *testing.T) {
 		fmt.Println("hex.Decode", err.Error())
 		return
 	}
-	var tx types.Transaction
-	err = types.Decode(unsignedTx, &tx)
-	if err != nil {
-		fmt.Println("type.Decode:", err.Error())
-		return
-	}
+
 	prikeybyte, err := common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	if err != nil || len(prikeybyte) == 0 {
 		fmt.Println("ProcSendToAddress", "FromHex err", err)
@@ -76,9 +71,6 @@ func TestSendRawTx(t *testing.T) {
 		fmt.Println("ProcSendToAddress", "PrivKeyFromBytes err", err)
 		return
 	}
-	fmt.Println("tx", tx.GetTo(), "fee", tx.GetFee())
-	//tx.Sign(types.SECP256K1, priv) //多交易进行签名
-	//signedTx := hex.EncodeToString(types.Encode(&tx)) //对交易进行编码发送
 
 	signedTx := hex.EncodeToString(priv.Sign(unsignedTx).Bytes())
 	postdata := fmt.Sprintf(`{"id":2,"method":"Chain33.SendRawTransaction","params":[{"unsigntx":"%v","signedtx":"%v","pubkey":"%v","ty":%v}]}`, unsigntx, signedTx, hex.EncodeToString(priv.PubKey().Bytes()), 1)

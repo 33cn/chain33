@@ -141,7 +141,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
-	log.Error("p2pServer GetBlocks", "P2P Recv", in)
+	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
@@ -338,7 +338,7 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 			}
 			//收到stream 交给
 			if block := in.GetBlock(); block != nil {
-				log.Error("RouteChat", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
+				log.Info("RouteChat", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
 				if block.GetBlock() != nil {
 
 					msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
@@ -496,7 +496,7 @@ func (s *p2pServer) deleteDisableStream() {
 func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	log.Error("deleteStream", "delete", stream)
+	log.Info("deleteStream", "delete", stream)
 	close(s.streams[stream])
 	delete(s.streams, stream)
 }
