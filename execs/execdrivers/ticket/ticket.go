@@ -1,4 +1,4 @@
-package coins
+package ticket
 
 /*
 coins 是一个货币的exec。内置货币的执行器。
@@ -13,7 +13,6 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
-	ticketdb "code.aliyun.com/chain33/chain33/execs/db/ticket"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -47,7 +46,7 @@ func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 		return nil, err
 	}
 	clog.Info("exec ticket tx=", "tx=", action)
-	actiondb := ticketdb.NewTicketAction(n.GetDB(), tx, n.GetAddr(), n.GetBlockTime(), n.GetHeight())
+	actiondb := NewTicketAction(n.GetDB(), tx, n.GetAddr(), n.GetBlockTime(), n.GetHeight())
 	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if genesis.Count <= 0 {

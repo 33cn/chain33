@@ -12,6 +12,7 @@ import (
 type ExecBase struct {
 	db        dbm.KVDB
 	localdb   dbm.KVDB
+	querydb   dbm.DB
 	height    int64
 	blocktime int64
 	child     Executer
@@ -34,11 +35,19 @@ func (n *ExecBase) GetAddr() string {
 	return ExecAddress(n.child.GetName()).String()
 }
 
+func (n *ExecBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	return nil, types.ErrActionNotSupport
+}
+
+func (n *ExecBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	return nil, types.ErrActionNotSupport
+}
+
 func (n *ExecBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func (n *ExecBase) Query(tx *types.Transaction) (types.Message, error) {
+func (n *ExecBase) Query(funcname string, params types.Message) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 
@@ -56,6 +65,14 @@ func (n *ExecBase) SetLocalDB(db dbm.KVDB) {
 
 func (n *ExecBase) GetLocalDB() dbm.KVDB {
 	return n.localdb
+}
+
+func (n *ExecBase) SetQueryDB(db dbm.DB) {
+	n.querydb = db
+}
+
+func (n *ExecBase) GetQueryDB() dbm.DB {
+	return n.querydb
 }
 
 func (n *ExecBase) GetHeight() int64 {
