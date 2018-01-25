@@ -278,7 +278,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	peers, infos := m.network.node.GetActivePeers()
 	for _, peer := range peers { //限制对peer 的高频次调用
 
-		log.Error("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
+		log.Info("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
 		peerinfo, ok := infos[peer.Addr()]
 		if !ok {
 			continue
@@ -309,7 +309,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 		}
 
 	}
-	log.Info("Invs", "Invs show", MaxInvs.GetInvs())
+	log.Debug("Invs", "Invs show", MaxInvs.GetInvs())
 	if len(MaxInvs.GetInvs()) == 0 {
 		log.Error("GetBlocks", "getInvs", 0)
 		return
@@ -317,7 +317,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
 	var bChan = make(chan *pb.Block, 256)
-	log.Error("downloadblock", "intervals", intervals)
+	log.Debug("downloadblock", "intervals", intervals)
 	var gcount int
 	for index, interval := range intervals {
 		gcount++
@@ -471,7 +471,7 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 			end = invsNum
 		}
 		result[i] = &intervalInfo{start: start, end: end}
-		log.Info("caculateInterval", "createinfo", result[i])
+		log.Debug("caculateInterval", "createinfo", result[i])
 		start = end
 	}
 	return result
