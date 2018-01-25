@@ -576,9 +576,10 @@ message P2P {
 	bool            isSeed=4;
 	repeated string seeds=5;
 	bool enable=6;
-	int32 version=7;
-	int32 verMix=8;
-	int32 verMax=9;
+	int32 msgCacheSize=7;
+	int32 version=8;
+	int32 verMix=9;
+	int32 verMax=10;
 }
 
 message Wallet{
