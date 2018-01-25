@@ -11,7 +11,7 @@ import (
 )
 
 var log = l.New("module", "p2p")
-var ps = common.NewPubSub(1024) //订阅消息的容量为1024
+var ps = common.NewPubSub(10240) //订阅消息的容量为1024
 
 type P2p struct {
 	q            *queue.Queue
