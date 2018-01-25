@@ -24,6 +24,7 @@ var ErrTest = errors.New("ErrTest")
 
 var secret []byte
 var wrongsecret []byte
+var anothersec []byte //used in send case
 
 var addrexec *account.Address
 
@@ -65,8 +66,10 @@ func init() {
 	c = types.NewGrpcserviceClient(conn)
 	secret = make([]byte, secretLen)
 	wrongsecret = make([]byte, secretLen)
+	anothersec = make([]byte, secretLen)
 	crand.Read(secret)
 	crand.Read(wrongsecret)
+	crand.Read(anothersec)
 	addrexec = account.ExecAddress("hashlock")
 }
 
@@ -125,7 +128,7 @@ func TestHashlock(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 
-	err = lock()
+	err = lock(secret)
 	if err != nil {
 		t.Error(err)
 		return
@@ -223,7 +226,7 @@ func TestHashsend(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 
-	err = lock()
+	err = lock(anothersec)
 	if err != nil {
 		t.Error(err)
 		return
@@ -258,7 +261,7 @@ func TestHashsend(t *testing.T) {
 	}
 	//success
 	time.Sleep(5 * time.Second)
-	err = send(secret)
+	err = send(anothersec)
 	if err != nil {
 		t.Error(err)
 		return
@@ -284,7 +287,7 @@ func TestHashsend(t *testing.T) {
 	fmt.Println("TstHashsend end\n")
 }
 
-func lock() error {
+func lock(secret []byte) error {
 	vlock := &types.HashlockAction_Hlock{&types.HashlockLock{Amount: lockAmount, Time: int64(locktime), Hash: common.Sha256(secret), ToAddress: addr[accountindexB], ReturnAddress: addr[accountindexA]}}
 	//fmt.Println(vlock)
 	transfer := &types.HashlockAction{Value: vlock, Ty: types.HashlockActionLock}
