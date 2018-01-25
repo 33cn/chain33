@@ -76,7 +76,7 @@ func (l *DefaultListener) NatMapPort() {
 			log.Error("NatMapPort", "err", err.Error())
 			l.n.externalPort = uint16(rand.Intn(64512) + 1023)
 			l.n.FlushNodeInfo()
-			log.Info("NatMapPort", "Port", l.n.nodeInfo.GetExternalAddr())
+			log.Info("NatMapPort", "New External Port", l.n.nodeInfo.GetExternalAddr())
 			continue
 		}
 
@@ -84,7 +84,7 @@ func (l *DefaultListener) NatMapPort() {
 	}
 	if err != nil {
 		//映射失败
-		log.Error("NatMapPort", "Nat Faild", "Sevice=6")
+		log.Warn("NatMapPort", "Nat Faild", "Sevice=6")
 		l.nodeInfo.natResultChain <- false
 		return
 	}

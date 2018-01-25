@@ -11,7 +11,7 @@ import (
 )
 
 var log = l.New("module", "p2p")
-var ps = common.NewPubSub(10240) //订阅消息的容量为1024
+var ps *common.PubSub
 
 type P2p struct {
 	q            *queue.Queue
@@ -27,6 +27,8 @@ type P2p struct {
 }
 
 func New(cfg *types.P2P) *P2p {
+
+	ps = common.NewPubSub(int(cfg.GetMsgCacheSize()))
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
@@ -45,14 +47,14 @@ func (network *P2p) Stop() {
 
 func (network *P2p) Close() {
 	network.Stop()
-	log.Error("close", "network", "ShowTaskCapcity done")
+	log.Debug("close", "network", "ShowTaskCapcity done")
 	network.cli.Close()
-	log.Error("close", "msg", "done")
+	log.Debug("close", "msg", "done")
 	network.node.Close()
-	log.Error("close", "node", "done")
+	log.Debug("close", "node", "done")
 	network.c.Close()
 	<-network.loopdone
-	log.Error("close", "loopdone", "done")
+	log.Debug("close", "loopdone", "done")
 	close(network.txFactory)
 	close(network.otherFactory)
 	ps.Shutdown()
@@ -75,10 +77,10 @@ func (network *P2p) ShowTaskCapcity() {
 
 		select {
 		case <-network.done:
-			log.Error("ShowTaskCapcity", "Show", "will Done")
+			log.Debug("ShowTaskCapcity", "Show", "will Done")
 			return
 		case <-ticker.C:
-			log.Error("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
+			log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 
 		}
 	}

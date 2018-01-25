@@ -26,7 +26,7 @@ FOR_LOOP:
 	for {
 		select {
 		case <-n.loopDone:
-			log.Error("checkActivePeers", "loop", "done")
+			log.Debug("checkActivePeers", "loop", "done")
 			break FOR_LOOP
 		case <-ticker.C:
 			peers := n.GetRegisterPeers()
@@ -39,7 +39,7 @@ FOR_LOOP:
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > 20 || peer.GetRunning() == false {
-						log.Error("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
+						log.Info("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
 
 						n.destroyPeer(peer)
 					}
@@ -51,7 +51,7 @@ FOR_LOOP:
 	}
 }
 func (n *Node) destroyPeer(peer *peer) {
-	log.Error("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
+	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
 	n.addrBook.RemoveAddr(peer.Addr())
 	n.addrBook.Save()
 	n.Remove(peer.Addr())
@@ -81,7 +81,7 @@ FOR_LOOP:
 	for {
 		select {
 		case <-n.loopDone:
-			log.Error("GetAddrFromOnLine", "loop", "Done")
+			log.Debug("GetAddrFromOnLine", "loop", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
@@ -123,19 +123,19 @@ FOR_LOOP:
 	for {
 		select {
 		case <-n.loopDone:
-			log.Error("GetAddrFromOffLine", "loop", "Done")
+			log.Debug("GetAddrFromOffLine", "loop", "Done")
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
 				var savelist = make(map[string]bool)
 				for _, seed := range n.nodeInfo.cfg.Seeds {
 					if n.Has(seed) == false && n.nodeInfo.blacklist.Has(seed) == false {
-						log.Info("GetAddrFromOffline", "Add Seed", seed)
+						log.Debug("GetAddrFromOffline", "Add Seed", seed)
 						savelist[seed] = true
 					}
 				}
 
-				log.Info("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
+				log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
 				peeraddrs := n.addrBook.GetPeers()
 
 				if len(peeraddrs) != 0 {
@@ -160,7 +160,7 @@ FOR_LOOP:
 
 				go n.DialPeers(savelist)
 			} else {
-				log.Info("getAddrFromOffline", "nodestable", n.needMore())
+				log.Debug("getAddrFromOffline", "nodestable", n.needMore())
 				for _, seed := range n.nodeInfo.cfg.Seeds {
 					//如果达到稳定节点数量，则断开种子节点
 					if n.Has(seed) == true {
