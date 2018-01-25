@@ -54,40 +54,28 @@ var AllowDepositExec = []string{"ticket"}
 var PowLimit = big.NewInt(0)
 
 const (
-	EventTx = 1
-
-	EventGetBlocks = 2
-	EventBlocks    = 3
-
-	EventGetBlockHeight   = 4
-	EventReplyBlockHeight = 5
-
-	EventQueryTx           = 6
-	EventTransactionDetail = 7
-
-	EventReply = 8
-
-	EventTxBroadcast = 9
-	EventPeerInfo    = 10
-
-	EventTxList      = 11
-	EventReplyTxList = 12
-
-	EventAddBlock       = 13
-	EventBlockBroadcast = 14
-
-	EventFetchBlocks = 15
-	EventAddBlocks   = 16
-
-	EventTxHashList      = 17
-	EventTxHashListReply = 18
-
-	EventGetHeaders = 19
-	EventHeaders    = 20
-
-	EventGetMempoolSize = 21
-	EventMempoolSize    = 22
-
+	EventTx                   = 1
+	EventGetBlocks            = 2
+	EventBlocks               = 3
+	EventGetBlockHeight       = 4
+	EventReplyBlockHeight     = 5
+	EventQueryTx              = 6
+	EventTransactionDetail    = 7
+	EventReply                = 8
+	EventTxBroadcast          = 9
+	EventPeerInfo             = 10
+	EventTxList               = 11
+	EventReplyTxList          = 12
+	EventAddBlock             = 13
+	EventBlockBroadcast       = 14
+	EventFetchBlocks          = 15
+	EventAddBlocks            = 16
+	EventTxHashList           = 17
+	EventTxHashListReply      = 18
+	EventGetHeaders           = 19
+	EventHeaders              = 20
+	EventGetMempoolSize       = 21
+	EventMempoolSize          = 22
 	EventStoreGet             = 23
 	EventStoreSet             = 24
 	EventStoreGetReply        = 25
@@ -142,8 +130,12 @@ const (
 	EventSaveSeed     = 72
 	EventGetSeed      = 73
 	EventReplyGetSeed = 74
-
-	EventDelBlock = 75
+	EventDelBlock     = 75
+	//local store
+	EventLocalGet        = 76
+	EventLocalReplyValue = 77
+	EventLocalList       = 78
+	EventLocalSet        = 79
 )
 
 var eventname = map[int]string{
@@ -216,13 +208,16 @@ var eventname = map[int]string{
 	67: "EventStoreRollback",
 	68: "EventStoreCommit",
 	69: "EventCheckBlock",
-
 	70: "EventGenSeed",
 	71: "EventReplyGenSeed",
 	72: "EventSaveSeed",
 	73: "EventGetSeed",
 	74: "EventReplyGetSeed",
 	75: "EventDelBlock",
+	76: "EventLocalGet",
+	77: "EventLocalReplyValue",
+	78: "EventLocalList",
+	79: "EventLocalSet",
 }
 
 func GetEventName(event int) string {
