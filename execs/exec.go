@@ -45,16 +45,21 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 		for msg := range client.Recv() {
 			elog.Info("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
-				exec.processExecTxList(msg, q)
+				exec.procExecTxList(msg, q)
+			} else if msg.Ty == types.EventAddBlock {
+				exec.procExecAddBlock(msg, q)
+			} else if msg.Ty == types.EventDelBlock {
+				exec.procExecDelBlock(msg, q)
 			}
 		}
 	}()
 }
 
-func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
+func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
 	var receipts []*types.Receipt
+	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
 		if execute.height == 0 { //genesis block 不检查手续费
@@ -67,7 +72,7 @@ func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
 			continue
 		}
 		//正常的区块：
-		err := execute.checkTx(tx, i)
+		err := execute.checkTx(tx, index)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
 			receipts = append(receipts, receipt)
@@ -82,7 +87,9 @@ func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
 			receipts = append(receipts, receipt)
 			continue
 		}
-		receipt, err := execute.Exec(tx, i)
+		//只有到pack级别的，才会增加index
+		receipt, err := execute.Exec(tx, index)
+		index++
 		if err != nil {
 			elog.Error("exec tx error = ", "err", err, "tx", tx)
 			//add error log
@@ -99,6 +106,42 @@ func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
 	}
 	msg.Reply(q.GetClient().NewMessage("", types.EventReceipts,
 		&types.Receipts{receipts}))
+}
+
+func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
+	datas := msg.GetData().(*types.BlockDetail)
+	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	var kvset types.LocalDBSet
+	for i := 0; i < len(datas.Txs); i++ {
+		tx := datas.Txs[i]
+		kv, err := execute.ExecLocal(tx, i)
+		if err != nil {
+			msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, err))
+			return
+		}
+		if kv != nil && kv.KV != nil {
+			kvset.KV = append(kvset.KV, kv.KV...)
+		}
+	}
+	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, kvset))
+}
+
+func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
+	datas := msg.GetData().(*types.BlockDetail)
+	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	var kvset types.LocalDBSet
+	for i := 0; i < len(datas.Txs); i++ {
+		tx := datas.Txs[i]
+		kv, err := execute.ExecDelLocal(tx, i)
+		if err != nil {
+			msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, err))
+			return
+		}
+		if kv != nil && kv.KV != nil {
+			kvset.KV = append(kvset.KV, kv.KV...)
+		}
+	}
+	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, kvset))
 }
 
 func (exec *Execs) Close() {
