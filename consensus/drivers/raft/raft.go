@@ -266,17 +266,14 @@ func (rc *raftNode) serveChannels() {
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
 	for {
-		//TODO:这里将watch leader状态延长到30s,为了规避后续节点无法加入的问题
-		//后期需要考虑优化，或者做自动一键部署脚本，来解决这个遗留问题
-		time.Sleep(30 * time.Second)
+		time.Sleep(time.Second)
 		validatorMap = make(map[string]bool)
-		leadId := rc.node.Status().Lead
+		leadId := rc.Leader()
 		if leadId != raft.None {
 			validatorMap[LeaderIsOK] = true
 		} else {
 			validatorMap[LeaderIsOK] = false
 		}
-		//log.Info("chain33_raft==========leaderId===========:" + strconv.FormatUint(leadId, 10))
 		if rc.id == int(leadId) {
 			validatorMap[IsLeader] = true
 		} else {
@@ -287,6 +284,17 @@ func (rc *raftNode) updateValidator() {
 	}
 }
 
+// isLeader checks if we are the leader or not, without the protection of lock
+func (rc *raftNode) leader() uint64 {
+	return rc.node.Status().Lead
+}
+
+// IsLeader checks if we are the leader or not, with the protection of lock
+func (rc *raftNode) Leader() uint64 {
+	rc.stopMu.RLock()
+	defer rc.stopMu.RUnlock()
+	return rc.leader()
+}
 func (rc *raftNode) replayWAL() *wal.WAL {
 	log.Info("replaying WAL of member %d", rc.id)
 	snapshot := rc.loadSnapshot()
