@@ -10,6 +10,8 @@ import (
 
 var clog = log.New("module", "execs.hashlock")
 
+const minLockTime = 60
+
 func init() {
 	execdrivers.Register("hashlock", newHashlock())
 	execdrivers.RegisterAddress("hashlock")
@@ -42,31 +44,39 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	actiondb := hashlockdb.NewHashlockAction(h.GetDB(), tx, h.GetAddr(), h.GetBlockTime(), h.GetHeight())
 
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+		clog.Info("hashlocklock action")
 		hlock := action.GetHlock()
 		if hlock.Amount <= 0 {
+			clog.Info("hashlock amount <=0")
 			return nil, types.ErrHashlockAmount
 		}
 		if err := account.CheckAddress(hlock.ToAddress); err != nil {
+			clog.Info("hashlock checkaddress")
 			return nil, err
 		}
 		if err := account.CheckAddress(hlock.ReturnAddress); err != nil {
+			clog.Info("hashlock checkaddress")
 			return nil, err
 		}
 		if hlock.ReturnAddress != account.From(tx).String() {
+			clog.Info("hashlock return address")
 			return nil, types.ErrHashlockReturnAddrss
 		}
-		//最少lock 一个小时
-		if hlock.Time <= 3600 {
+
+		if hlock.Time <= minLockTime {
+			clog.Info("exec hashlock time not enough")
 			return nil, types.ErrHashlockTime
 		}
 		return actiondb.Hashlocklock(hlock)
 	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
 		hunlock := action.GetHunlock()
 		//unlock 有两个条件： 1. 时间已经过期 2. 密码是对的，返回原来的账户
+		clog.Info("hashlockunlock action")
 		return actiondb.Hashlockunlock(hunlock)
 	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
 		hsend := action.GetHsend()
 		//send 有两个条件：1. 时间没有过期 2. 密码是对的，币转移到 ToAddress
+		clog.Info("hashlocksend action")
 		return actiondb.Hashlocksend(hsend)
 	}
 

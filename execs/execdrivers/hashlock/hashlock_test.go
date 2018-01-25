@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -30,7 +29,15 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
+//init account A, init account B
 //test the account locked
+//case1: try to lock A
+//case2: try to unlock A
+//case3: try to active A
+//case4: try to lock A
+//case5: try to exec to B with error secret
+//case6: try to exec to B with right secret
+//case6: try to unlock A
 
 func TestHashlockCase1(t *testing.T) {
 	c := types.NewGrpcserviceClient(conn)
@@ -55,7 +62,16 @@ func TestHashlockCase1(t *testing.T) {
 		return
 	}
 	//another account
-	addrto_b, _ := genaddress()
+	addrto_b, privkey_b := genaddress()
+	time.Sleep(time.Second)
+	params = types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey_b.Bytes()), Label: strconv.Itoa(int(time.Now().UnixNano()))}
+	_, err = c.ImportPrivKey(context.Background(), &params)
+	if err != nil {
+		fmt.Println(err)
+		time.Sleep(time.Second)
+		t.Error(err)
+		return
+	}
 	time.Sleep(1000 * time.Millisecond)
 	err = sendtoaddress(c, priv, addrto, 1e10)
 	if err != nil {
@@ -64,16 +80,24 @@ func TestHashlockCase1(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	err = sendtoaddress(c, priv, addrto_b, 1e10)
+	if err != nil {
+		fmt.Println(err)
+		time.Sleep(time.Second)
+		t.Error(err)
+		return
+	}
 	time.Sleep(1000 * time.Millisecond)
 	showAccount(c, addrto)
+	showAccount(c, addrto_b)
 
 	var amount int64 = 1e8
-	var time int64 = 3800
+	var time int64 = 70
 	len := 32
 	secret := make([]byte, len)
 	crand.Read(secret)
 	fmt.Println(common.ToHex(secret))
-	sendtolock(c, privkey, amount, time, common.Sha256(secret), addrto_b, addrto)
+	sendtolock(c, privkey, amount, time, secret, common.Sha256(secret), addrto_b, addrto, privkey_b)
 }
 
 func showAccount(c types.GrpcserviceClient, addr string) {
@@ -93,68 +117,6 @@ func showAccount(c types.GrpcserviceClient, addr string) {
 
 func checkAccount(balance int64, frozen int64, wallet *types.WalletAccount) bool {
 	return ((balance == wallet.Acc.Balance) && (frozen == wallet.Acc.Frozen))
-}
-
-func TstGrpcSendToAddress(t *testing.T) {
-	priv := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
-	keymap := make(map[string]crypto.PrivKey)
-	N := 10
-	header, err := getlastheader()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	fmt.Println("before send...", header.Height)
-	c := types.NewGrpcserviceClient(conn)
-	for i := 0; i < N; i++ {
-		addrto, privkey := genaddress()
-		err := sendtoaddress(c, priv, addrto, 1e10)
-		if err != nil {
-			fmt.Println(err)
-			time.Sleep(time.Second)
-			continue
-		}
-		fmt.Println("privkey: ", common.ToHex(privkey.Bytes()))
-		keymap[addrto] = privkey
-	}
-	header, err = getlastheader()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	fmt.Println("after send...", header.Height)
-	fmt.Println("wait for balance pack\n")
-	time.Sleep(time.Second * 10)
-	header, err = getlastheader()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	var errcount int64
-	fmt.Println("after sleep header...", header.Height)
-	ch := make(chan struct{}, N)
-	for _, value := range keymap {
-		//闭包
-		go func(pkey crypto.PrivKey) {
-			for i := 0; i < N; {
-				addrto, _ := genaddress()
-				err := sendtoaddress(c, pkey, addrto, 10000)
-				if err != nil {
-					atomic.AddInt64(&errcount, 1)
-					time.Sleep(time.Second)
-					continue
-				}
-				fmt.Print("*")
-				i++
-			}
-			fmt.Print("\n")
-			ch <- struct{}{}
-		}(value)
-	}
-	for i := 0; i < N; i++ {
-		<-ch
-	}
-	fmt.Println("total err:", errcount)
 }
 
 func genaddress() (string, crypto.PrivKey) {
@@ -197,6 +159,7 @@ func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, am
 	// Contact the server and print out its response.
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
+		fmt.Println("err", err)
 		return err
 	}
 	if !reply.IsOk {
@@ -213,7 +176,7 @@ func getAccounts() (*types.WalletAccounts, error) {
 }
 
 func sendtolock(c types.GrpcserviceClient, priv crypto.PrivKey, amount int64, timelock int64,
-	hash []byte, toaddress string, rtadd string) error {
+	secret []byte, hash []byte, toaddress string, rtadd string, priv_b crypto.PrivKey) error {
 
 	//1. step1 发送余额给合约
 	addr := account.ExecAddress("hashlock")
@@ -225,6 +188,7 @@ func sendtolock(c types.GrpcserviceClient, priv crypto.PrivKey, amount int64, ti
 
 	//2. step2,show balance
 	showAccount(c, account.PubKeyToAddress(priv.PubKey().Bytes()).String())
+	time.Sleep(time.Second)
 
 	//3. 执行lock
 	v := &types.HashlockAction_Hlock{&types.HashlockLock{Amount: amount, Time: timelock, Hash: hash, ToAddress: toaddress, ReturnAddress: rtadd}}
@@ -243,11 +207,56 @@ func sendtolock(c types.GrpcserviceClient, priv crypto.PrivKey, amount int64, ti
 	}
 
 	//4. 执行解锁（因为时间没有到失败）
-
+	/*
+		time.Sleep(80 * time.Second)
+		vunlock := &types.HashlockAction_Hunlock{&types.HashlockUnlock{Secret: secret}}
+		unlocktransfer := &types.HashlockAction{Value: vunlock, Ty: types.HashlockActionUnlock}
+		tx = &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(unlocktransfer), Fee: 1e6, To: toaddress}
+		tx.Nonce = r.Int63()
+		tx.Sign(types.SECP256K1, priv)
+		reply, err = c.SendTransaction(context.Background(), tx)
+		if err != nil {
+			return err
+		}
+		if !reply.IsOk {
+			fmt.Println("err = ", reply.GetMsg())
+			return errors.New(string(reply.GetMsg()))
+		}
+		time.Sleep(time.Second)
+		err = sendtoaddress(c, priv, addr.String(), 0-amount)
+		if err != nil {
+			fmt.Println("err")
+		}
+		time.Sleep(time.Second)
+		showAccount(c, account.PubKeyToAddress(priv.PubKey().Bytes()).String())
+	*/
 	//5. 通过s 执行转账
 
 	//6. 真正的取款操作（通过toaddress 对应的私钥）
 
+	showAccount(c, account.PubKeyToAddress(priv_b.PubKey().Bytes()).String())
+	time.Sleep(30 * time.Second)
+	vsend := &types.HashlockAction_Hsend{&types.HashlockSend{Secret: secret}}
+	sendtransfer := &types.HashlockAction{Value: vsend, Ty: types.HashlockActionSend}
+	tx = &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(sendtransfer), Fee: 1e6, To: toaddress}
+	tx.Nonce = r.Int63()
+	tx.Sign(types.SECP256K1, priv)
+	reply, err = c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return err
+	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		return errors.New(string(reply.GetMsg()))
+	}
+
+	time.Sleep(10 * time.Second)
+	err = sendtoaddress(c, priv_b, addr.String(), 0-amount)
+	if err != nil {
+		fmt.Println("err")
+	}
+	time.Sleep(time.Second)
+	showAccount(c, account.PubKeyToAddress(priv_b.PubKey().Bytes()).String())
 	//sleep locktime
 
 	//7. 执行解锁(因为已经执行过转账操作，就算过期也不能取回钱了)
