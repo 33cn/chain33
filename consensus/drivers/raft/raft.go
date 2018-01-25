@@ -266,7 +266,7 @@ func (rc *raftNode) serveChannels() {
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
 	for {
-		time.Sleep(time.Second)
+		time.Sleep(5*time.Second)
 		validatorMap = make(map[string]bool)
 		leadId := rc.Leader()
 		if leadId != raft.None {
