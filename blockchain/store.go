@@ -19,7 +19,7 @@ var MaxTxsPerBlock int64 = 100000
 type BlockStore struct {
 	db      dbm.DB
 	mtx     sync.RWMutex
-	qclient *queue.IClient
+	qclient queue.IClient
 	height  int64
 }
 
@@ -146,18 +146,8 @@ func (bs *BlockStore) NewBatch(sync bool) dbm.Batch {
 	return storeBatch
 }
 
-//用于存储地址相关的hash列表，key=TxAddrHash:addr:height*100000 + index
-func calcTxAddrHashKey(addr string, heightindex string) []byte {
-	return []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr, heightindex))
-}
-
-//用于存储地址相关的hash列表，key=TxAddrHash:addr:flag:height*100000 + index
-func calcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
-	return []byte(fmt.Sprintf("TxAddrDirHash:%s:%d:%s", addr, flag, heightindex))
-}
-
 // 通过批量存储tx信息到db中
-func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail *types.BlockDetail) error {
+func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockdetail *types.BlockDetail) error {
 
 	txlen := len(blockdetail.Block.Txs)
 	for index := 0; index < txlen; index++ {
@@ -185,17 +175,17 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail
 	}
 	kv, err := bs.getLocakKV(blockdetail)
 	if err != nil {
-		storelog.Error("indexTxs getLocalKV err", "Height", blockdetail.Block.Height, "index", index, "err", err)
+		storelog.Error("indexTxs getLocalKV err", "Height", blockdetail.Block.Height, "err", err)
 		return err
 	}
-	for i := 0; i < len(kv); i++ {
-		storeBatch.Set(kv[i].Key, kv[i].Value)
+	for i := 0; i < len(kv.KV); i++ {
+		storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
 	}
 	return nil
 }
 
 //通过批量删除tx信息从db中
-func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail *types.BlockDetail) error {
+func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockdetail *types.BlockDetail) error {
 	for index := 0; index < len(blockdetail.Block.Txs); index++ {
 		//计算tx hash
 		txhash := blockdetail.Block.Txs[index].Hash()
@@ -206,81 +196,17 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail
 	//height=height*10000+index 存储账户地址相关的交易
 	kv, err := bs.getDelLocakKV(blockdetail)
 	if err != nil {
-		storelog.Error("indexTxs getLocalKV err", "Height", blockdetail.Block.Height, "index", index, "err", err)
+		storelog.Error("indexTxs getLocalKV err", "Height", blockdetail.Block.Height, "err", err)
 		return err
 	}
-	for i := 0; i < len(kv); i++ {
-		if kv[i].Value == nil {
-			storeBatch.Delete(kv[i].Key)
+	for i := 0; i < len(kv.KV); i++ {
+		if kv.KV[i].Value == nil {
+			storeBatch.Delete(kv.KV[i].Key)
 		} else {
-			storeBatch.Set(kv[i].Key, kv[i].Value)
+			storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
 		}
 	}
 	return nil
-}
-
-// 通过addr前缀查找本地址参与的所有交易
-func (bs *BlockStore) GetTxsByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
-
-	var Prefix []byte
-	var key []byte
-	var Txinfos [][]byte
-	//取最新的交易hash列表
-	if addr.GetHeight() == -1 {
-
-		if addr.Flag == 0 { //所有的交易hash列表
-			Prefix = calcTxAddrHashKey(addr.GetAddr(), "")
-		} else if addr.Flag == 1 { //from的交易hash列表
-			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 1, "")
-		} else if addr.Flag == 2 { //to的交易hash列表
-			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 2, "")
-		} else {
-			err := errors.New("Flag unknow!")
-			return nil, err
-		}
-
-		Txinfos = bs.db.IteratorScanFromLast(Prefix, addr.Count, addr.Direction)
-		if len(Txinfos) == 0 {
-			err := errors.New("does not exist tx!")
-			return nil, err
-		}
-	} else { //翻页查找指定的txhash列表
-		blockheight := addr.GetHeight()*MaxTxsPerBlock + int64(addr.GetIndex())
-		heightstr := fmt.Sprintf("%018d", blockheight)
-
-		if addr.Flag == 0 {
-			Prefix = calcTxAddrHashKey(addr.GetAddr(), "")
-			key = calcTxAddrHashKey(addr.GetAddr(), heightstr)
-		} else if addr.Flag == 1 { //from的交易hash列表
-			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 1, "")
-			key = calcTxAddrDirHashKey(addr.GetAddr(), 1, heightstr)
-		} else if addr.Flag == 2 { //to的交易hash列表
-			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 2, "")
-			key = calcTxAddrDirHashKey(addr.GetAddr(), 2, heightstr)
-		} else {
-			err := errors.New("Flag unknow!")
-			return nil, err
-		}
-
-		Txinfos = bs.db.IteratorScan(Prefix, key, addr.Count, addr.Direction)
-		if len(Txinfos) == 0 {
-			err := errors.New("does not exist tx!")
-			return nil, err
-		}
-	}
-	var replyTxInfos types.ReplyTxInfos
-	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(Txinfos))
-
-	for index, txinfobyte := range Txinfos {
-		var replyTxInfo types.ReplyTxInfo
-		err := proto.Unmarshal(txinfobyte, &replyTxInfo)
-		if err != nil {
-			storelog.Error("GetTxsByAddr proto.Unmarshal!", "err:", err)
-			return nil, err
-		}
-		replyTxInfos.TxInfos[index] = &replyTxInfo
-	}
-	return &replyTxInfos, nil
 }
 
 //存储block hash对应的block height
@@ -330,12 +256,12 @@ func LoadBlockStoreHeight(db dbm.DB) int64 {
 }
 
 func (bs *BlockStore) getLocakKV(detail *types.BlockDetail) (*types.LocalDBSet, error) {
-	if client.qclient == nil {
+	if bs.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("execs", types.EventAddBlock, detail)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := bs.qclient.NewMessage("execs", types.EventAddBlock, detail)
+	bs.qclient.Send(msg, true)
+	resp, err := bs.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -344,12 +270,12 @@ func (bs *BlockStore) getLocakKV(detail *types.BlockDetail) (*types.LocalDBSet, 
 }
 
 func (bs *BlockStore) getDelLocakKV(detail *types.BlockDetail) (*types.LocalDBSet, error) {
-	if client.qclient == nil {
+	if bs.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("execs", types.EventDelBlock, detail)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := bs.qclient.NewMessage("execs", types.EventDelBlock, detail)
+	bs.qclient.Send(msg, true)
+	resp, err := bs.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
 	}

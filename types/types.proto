@@ -398,6 +398,9 @@ message KeyValue {
 	bytes value = 2;
 }
 
+message Int64 {
+	int64 data = 1;
+}
 
 message ReceiptLog {
 	int32 ty = 1;
