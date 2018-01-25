@@ -1,3 +1,16 @@
+package coins
+
+/*
+//用于存储地址相关的hash列表，key=TxAddrHash:addr:height*100000 + index
+func calcTxAddrHashKey(addr string, heightindex string) []byte {
+	return []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr, heightindex))
+}
+
+//用于存储地址相关的hash列表，key=TxAddrHash:addr:flag:height*100000 + index
+func calcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
+	return []byte(fmt.Sprintf("TxAddrDirHash:%s:%d:%s", addr, flag, heightindex))
+}
+
 func AddTx() {
 		var txinf types.ReplyTxInfo
 		txinf.Hash = txhash
@@ -50,7 +63,7 @@ func AddTx() {
 		}
 		//storelog.Debug("indexTxs Set txresult", "Height", blockdetail.Block.Height, "index", index, "txhashbyte", txhash)
 	}
-	
+
 func DelTx() {
 		blockheight := blockdetail.Block.Height*MaxTxsPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
@@ -171,3 +184,68 @@ func (bs *BlockStore) GetAddrReciver(addr string) (int64, error) {
 	}
 	return Reciveramount, nil
 }
+
+// 通过addr前缀查找本地址参与的所有交易
+func (bs *BlockStore) GetTxsByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
+
+	var Prefix []byte
+	var key []byte
+	var Txinfos [][]byte
+	//取最新的交易hash列表
+	if addr.GetHeight() == -1 {
+
+		if addr.Flag == 0 { //所有的交易hash列表
+			Prefix = calcTxAddrHashKey(addr.GetAddr(), "")
+		} else if addr.Flag == 1 { //from的交易hash列表
+			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 1, "")
+		} else if addr.Flag == 2 { //to的交易hash列表
+			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 2, "")
+		} else {
+			err := errors.New("Flag unknow!")
+			return nil, err
+		}
+
+		Txinfos = bs.db.IteratorScanFromLast(Prefix, addr.Count, addr.Direction)
+		if len(Txinfos) == 0 {
+			err := errors.New("does not exist tx!")
+			return nil, err
+		}
+	} else { //翻页查找指定的txhash列表
+		blockheight := addr.GetHeight()*MaxTxsPerBlock + int64(addr.GetIndex())
+		heightstr := fmt.Sprintf("%018d", blockheight)
+
+		if addr.Flag == 0 {
+			Prefix = calcTxAddrHashKey(addr.GetAddr(), "")
+			key = calcTxAddrHashKey(addr.GetAddr(), heightstr)
+		} else if addr.Flag == 1 { //from的交易hash列表
+			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 1, "")
+			key = calcTxAddrDirHashKey(addr.GetAddr(), 1, heightstr)
+		} else if addr.Flag == 2 { //to的交易hash列表
+			Prefix = calcTxAddrDirHashKey(addr.GetAddr(), 2, "")
+			key = calcTxAddrDirHashKey(addr.GetAddr(), 2, heightstr)
+		} else {
+			err := errors.New("Flag unknow!")
+			return nil, err
+		}
+
+		Txinfos = bs.db.IteratorScan(Prefix, key, addr.Count, addr.Direction)
+		if len(Txinfos) == 0 {
+			err := errors.New("does not exist tx!")
+			return nil, err
+		}
+	}
+	var replyTxInfos types.ReplyTxInfos
+	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(Txinfos))
+
+	for index, txinfobyte := range Txinfos {
+		var replyTxInfo types.ReplyTxInfo
+		err := proto.Unmarshal(txinfobyte, &replyTxInfo)
+		if err != nil {
+			storelog.Error("GetTxsByAddr proto.Unmarshal!", "err:", err)
+			return nil, err
+		}
+		replyTxInfos.TxInfos[index] = &replyTxInfo
+	}
+	return &replyTxInfos, nil
+}
+*/

@@ -15,12 +15,12 @@ var tlog = log.New("module", "ticket.db")
 var genesisKey = []byte("mavl-acc-genesis")
 var addrSeed = []byte("address seed bytes for public key")
 
-type Ticket struct {
+type TicketDB struct {
 	types.Ticket
 }
 
-func NewTicket(id, minerAddress, returnWallet string, blocktime int64, isGenesis bool) *Ticket {
-	t := &Ticket{}
+func NewTicketDB(id, minerAddress, returnWallet string, blocktime int64, isGenesis bool) *TicketDB {
+	t := &TicketDB{}
 	t.TicketId = id
 	t.MinerAddress = minerAddress
 	t.ReturnAddress = returnWallet
@@ -30,7 +30,7 @@ func NewTicket(id, minerAddress, returnWallet string, blocktime int64, isGenesis
 	return t
 }
 
-func (t *Ticket) GetReceiptLog() *types.ReceiptLog {
+func (t *TicketDB) GetReceiptLog() *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	if t.Status == 1 {
 		log.Ty = types.TyLogNewTicket
@@ -51,7 +51,7 @@ func (t *Ticket) GetReceiptLog() *types.ReceiptLog {
 	return log
 }
 
-func (t *Ticket) GetKVSet() (kvset []*types.KeyValue) {
+func (t *TicketDB) GetKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&t.Ticket)
 	if t.Status == 3 {
 		value = nil //delete ticket
@@ -60,7 +60,7 @@ func (t *Ticket) GetKVSet() (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (t *Ticket) Save(db dbm.KVDB) {
+func (t *TicketDB) Save(db dbm.KVDB) {
 	set := t.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -96,7 +96,7 @@ func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Re
 	var kv []*types.KeyValue
 	for i := 0; i < int(genesis.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
-		t := NewTicket(id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime, true)
+		t := NewTicketDB(id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime, true)
 
 		//冻结子账户资金
 		receipt, err := account.ExecFrozen(action.db, genesis.ReturnAddress, action.execaddr, 1000*types.Coin)
@@ -121,7 +121,7 @@ func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt,
 	var kv []*types.KeyValue
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
-		t := NewTicket(id, topen.MinerAddress, action.fromaddr, action.blocktime, false)
+		t := NewTicketDB(id, topen.MinerAddress, action.fromaddr, action.blocktime, false)
 
 		//冻结子账户资金
 		receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, 1000*types.Coin)
@@ -175,7 +175,7 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 	}
 	ticket.Status = 2
 	ticket.MinerValue = miner.Reward
-	t := &Ticket{*ticket}
+	t := &TicketDB{*ticket}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	receipt, err := account.ExecDepositFrozen(action.db, t.ReturnAddress, action.execaddr, 1000*types.Coin)
@@ -192,7 +192,7 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 }
 
 func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Receipt, error) {
-	var tickets []*Ticket
+	var tickets []*TicketDB
 	for i := 0; i < len(tclose.TicketId); i++ {
 		ticket, err := readTicket(action.db, tclose.TicketId[i])
 		if err != nil {
@@ -211,7 +211,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 			return nil, types.ErrFromAddr
 		}
 		ticket.Status = 3
-		tickets[i] = &Ticket{*ticket}
+		tickets[i] = &TicketDB{*ticket}
 	}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
