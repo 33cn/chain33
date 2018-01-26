@@ -270,6 +270,16 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
 
+		case types.EventGetWalletStatus:
+			var reply types.Reply
+			reply.IsOk = true
+			ok, err := wallet.CheckWalletStatus()
+			if err != nil && ok == false {
+				walletlog.Debug("CheckWalletStatus", "WalletStatus", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+			}
+			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
