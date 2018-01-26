@@ -53,6 +53,9 @@ func Transfer(db dbm.KVDB, from, to string, amount int64) (*types.Receipt, error
 	accFrom := LoadAccount(db, from)
 	accTo := LoadAccount(db, to)
 	b := accFrom.GetBalance() - amount
+	if accFrom.Addr == accTo.Addr {
+		return nil, types.ErrSendSameToRecv
+	}
 	if b >= 0 {
 		receiptBalanceFrom := &types.ReceiptBalance{accFrom.GetBalance(), b, -amount}
 		accFrom.Balance = b

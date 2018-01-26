@@ -82,6 +82,7 @@ func (exec *Execs) processExecTxList(msg queue.Message, q *queue.Queue) {
 			receipts = append(receipts, receipt)
 			continue
 		}
+		//elog.Error("exec", "index", i)
 		receipt, err := execute.Exec(tx, i)
 		if err != nil {
 			elog.Error("exec tx error = ", "err", err, "tx", tx)
