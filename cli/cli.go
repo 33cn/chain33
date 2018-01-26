@@ -203,6 +203,13 @@ func main() {
 			return
 		}
 		GetSeed(argsWithoutProg[1])
+
+	case "getwalletstatus": //获取钱包的状态
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetWalletStatus()
 	default:
 		fmt.Print("指令错误")
 	}
@@ -239,6 +246,7 @@ func LoadHelp() {
 	fmt.Println("genseed [lang]                                              : 生成随机的种子,lang=0:英语，lang=1:简体汉字")
 	fmt.Println("saveseed [seed,password]                                    : 保存种子并用密码加密,种子要求15个单词或者汉字,参考genseed输出格式")
 	fmt.Println("getseed [password]                                          : 通过密码获取种子")
+	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 
 }
 
@@ -1200,5 +1208,27 @@ func GetSeed(passwd string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	fmt.Println(string(data))
+}
+
+func GetWalletStatus() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	fmt.Println(string(data))
 }

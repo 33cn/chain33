@@ -225,7 +225,7 @@ func (mem *Mempool) ReTry() {
 	}
 	mem.proxyMtx.Unlock()
 	if len(result) > 0 {
-		mlog.Error("retry send tx...")
+		mlog.Debug("retry send tx...")
 	}
 	for _, tx := range result {
 		mem.SendTxToP2P(tx)
@@ -331,7 +331,7 @@ func (mem *Mempool) setHeader(h *types.Header) {
 
 // Mempool.Close关闭Mempool
 func (mem *Mempool) Close() {
-	mlog.Info("mempool module closed")
+	mlog.Debug("mempool module closed")
 }
 
 // Mempool.CheckExpireValid检查交易过期有效性，过期返回false，未过期返回true
@@ -380,7 +380,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 		i := 0
 		for msg := range mem.qclient.Recv() {
 			i = i + 1
-			mlog.Info("mempool recv", "count", i, "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool recv", "count", i, "msg", types.GetEventName(int(msg.Ty)))
 			beg := time.Now()
 			switch msg.Ty {
 			case types.EventTx:
@@ -394,19 +394,19 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
-				mlog.Info("reply EventGetMempool ok", "msg", msg)
+				mlog.Debug("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				txListSize := msg.GetData().(int)
 				if txListSize <= 0 {
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 						errors.New("not an valid size")))
-					mlog.Warn("not an valid size", "msg", msg)
+					mlog.Error("not an valid size", "msg", msg)
 				} else {
 					txList := mem.GetTxList(txListSize)
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 						&types.ReplyTxList{Txs: txList}))
-					mlog.Info("reply EventTxList ok", "msg", msg)
+					mlog.Debug("reply EventTxList ok", "msg", msg)
 				}
 			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
@@ -424,16 +424,16 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				memSize := int64(mem.Size())
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{Size: memSize}))
-				mlog.Warn("reply EventGetMempoolSize ok", "msg", msg)
+				mlog.Debug("reply EventGetMempoolSize ok", "msg", msg)
 			case types.EventGetLastMempool:
 				// 消息类型EventGetLastMempool：获取最新十条加入到Mempool的交易
 				txList := mem.GetLatestTx()
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{Txs: txList}))
-				mlog.Warn("reply EventGetLastMempool ok", "msg", msg)
+				mlog.Debug("reply EventGetLastMempool ok", "msg", msg)
 			default:
 			}
-			mlog.Info("mempool", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }
