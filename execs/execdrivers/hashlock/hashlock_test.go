@@ -74,9 +74,12 @@ func init() {
 }
 
 func TestInitAccount(t *testing.T) {
+	fmt.Println("TestInitAccount start")
+	defer fmt.Println("TestInitAccount end\n")
+
 	var label [accountMax]string
 	var params types.ReqWalletImportPrivKey
-	fmt.Println("TestInitAccount start")
+
 	privGenesis := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	for index := 0; index < accountMax; index++ {
 		addr[index], privkey[index] = genaddress()
@@ -114,12 +117,12 @@ func TestInitAccount(t *testing.T) {
 	}
 	currBalanceA = defaultAmount
 	currBalanceB = defaultAmount
-	fmt.Println("TestInitAccount end\n")
 }
 
 func TestHashlock(t *testing.T) {
 
 	fmt.Println("TestHashlock start")
+	defer fmt.Println("TestHashlock end\n")
 
 	//1. step1 发送余额给合约
 	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
@@ -140,11 +143,11 @@ func TestHashlock(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	fmt.Println("TestHashlock end\n")
 }
 
 func TestHashunlock(t *testing.T) {
 	fmt.Println("TestHashunlock start")
+	defer fmt.Println("TestHashunlock end\n")
 	//not sucess as time not enough
 	time.Sleep(5 * time.Second)
 	err := unlock(secret)
@@ -213,11 +216,11 @@ func TestHashunlock(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	fmt.Println("TestHashunlock end\n")
 }
 
 func TestHashsend(t *testing.T) {
 	fmt.Println("TstHashsend start")
+	defer fmt.Println("TstHashsend end\n")
 	//lock it again &send failed as secret is not right
 	//send failed as secret is not right
 	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
@@ -284,7 +287,6 @@ func TestHashsend(t *testing.T) {
 	}
 	//lock it again & failed as overtime
 
-	fmt.Println("TstHashsend end\n")
 }
 
 func lock(secret []byte) error {
