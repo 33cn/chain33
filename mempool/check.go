@@ -59,7 +59,7 @@ func (mem *Mempool) CheckSignList() {
 					// 签名正确，传入balanChan，待检查余额
 					mem.balanChan <- data
 				} else {
-					mlog.Info("wrong tx", "err", signErr)
+					mlog.Error("wrong tx", "err", signErr)
 					data.Data = signErr
 					mem.badChan <- data
 				}
@@ -132,7 +132,7 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 	if err != nil {
 		mlog.Error("loadaccounts", "err", err)
 		for m := range msgs {
-			mlog.Info("wrong tx", "err", loadAccountsErr)
+			mlog.Error("wrong tx", "err", loadAccountsErr)
 			msgs[m].Data = loadAccountsErr
 			mem.badChan <- msgs[m]
 		}
@@ -147,12 +147,12 @@ func (mem *Mempool) checkBalance(msgs []queue.Message, addrs []string) {
 				// 推入Mempool成功，传入goodChan，待回复消息
 				mem.goodChan <- msgs[i]
 			} else {
-				mlog.Info("wrong tx", "err", err)
+				mlog.Error("wrong tx", "err", err)
 				msgs[i].Data = err
 				mem.badChan <- msgs[i]
 			}
 		} else {
-			mlog.Info("wrong tx", "err", lowBalanceErr)
+			mlog.Error("wrong tx", "err", lowBalanceErr)
 			msgs[i].Data = lowBalanceErr
 			mem.badChan <- msgs[i]
 		}

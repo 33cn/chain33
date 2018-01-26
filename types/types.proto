@@ -29,6 +29,8 @@ service grpcservice{
 	rpc UnLock(WalletUnLock)returns(Reply){}
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
+	rpc GetWalletStatus(ReqNil)returns(Reply){}
+
 	//区块浏览器接口
 	rpc GetBlockOverview(ReqHash) returns(BlockOverview){}
 	rpc GetAddrOverview(ReqAddr) returns(AddrOverview){}
