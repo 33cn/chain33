@@ -62,18 +62,18 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 			if time.Now().UnixNano()/1000000-v.enterTime >= mempoolExpiredInterval {
 				cache.txLlrb.Delete(v)
 				delete(cache.txMap, string(v.value.Hash()))
-				mlog.Warn("Delete expired unpacked tx", "tx", v.value)
+				mlog.Debug("Delete expired unpacked tx", "tx", v.value)
 				expired++
 			}
 		}
 		if tx.Fee <= cache.LowestFee() {
-			mlog.Error("pushToPool", "tx.Fee", tx.Fee, "lowset", cache.LowestFee(), "tree.size", cache.txLlrb.Len())
+			mlog.Error("pushToPool", "err", memFullErr.Error())
 			return memFullErr
 		}
 		if expired == 0 {
 			poppedTx := cache.txLlrb.DeleteMin().(*Item).value
 			delete(cache.txMap, string(poppedTx.Hash()))
-			mlog.Warn("Delete lowest-fee unpacked tx", "tx", poppedTx)
+			mlog.Debug("Delete lowest-fee unpacked tx", "tx", poppedTx)
 		}
 	}
 

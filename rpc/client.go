@@ -49,6 +49,7 @@ type IRClient interface {
 	GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error)
 	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
 	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
+	GetWalletStatus() (*types.Reply, error)
 }
 
 type channelClient struct {
@@ -432,4 +433,15 @@ func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed,
 		return nil, err
 	}
 	return resp.Data.(*types.ReplySeed), nil
+}
+
+func (client *channelClient) GetWalletStatus() (*types.Reply, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventGetWalletStatus, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.Reply), nil
 }
