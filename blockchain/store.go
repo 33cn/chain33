@@ -90,7 +90,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	//存储block hash和height的对应关系，便于通过hash查询block
 	storeBatch.Set(calcBlockHashKey(blockdetail.Block.Hash()), bytes)
 
-	storelog.Info("SaveBlock success", "blockheight", height)
+	storelog.Debug("SaveBlock success", "blockheight", height)
 	return nil
 }
 
@@ -113,7 +113,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	//删除block hash和height的对应关系
 	storeBatch.Delete(calcBlockHashKey(blockdetail.Block.Hash()))
 
-	storelog.Error("DelBlock success", "blockheight", height)
+	storelog.Debug("DelBlock success", "blockheight", height)
 	return nil
 }
 
@@ -255,7 +255,7 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail
 			fromkey := calcTxAddrDirHashKey(fromaddress, 1, heightstr)
 			storeBatch.Delete(fromkey)
 			storeBatch.Delete(calcTxAddrHashKey(fromaddress, heightstr))
-			storelog.Error("DelTxs address ", "fromaddress", fromaddress, "value", txhash)
+			storelog.Debug("DelTxs address ", "fromaddress", fromaddress, "value", txhash)
 		}
 		//toaddr
 		toaddr := blockdetail.Block.Txs[index].GetTo()
@@ -263,7 +263,7 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail
 			tokey := calcTxAddrDirHashKey(toaddr, 2, heightstr)
 			storeBatch.Delete([]byte(tokey))
 			storeBatch.Delete(calcTxAddrHashKey(toaddr, heightstr))
-			storelog.Error("DelTxs address ", "toaddr", toaddr, "value", txhash)
+			storelog.Debug("DelTxs address ", "toaddr", toaddr, "value", txhash)
 
 			//更新地址收到的amount,从原来的基础上减去Amount
 			var action types.CoinsAction
@@ -278,7 +278,7 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, cacheDB *CacheDB, blockdetail
 				}
 			}
 		}
-		storelog.Error("DelTxs txresult", "Height", blockdetail.Block.Height, "index", index, "txhashbyte", txhash)
+		storelog.Debug("DelTxs txresult", "Height", blockdetail.Block.Height, "index", index, "txhashbyte", txhash)
 	}
 	return nil
 }
