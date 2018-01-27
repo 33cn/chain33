@@ -641,6 +641,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	}
 	Balance := accounts[0].Balance
 	amount := SendToAddress.GetAmount()
+
 	if Balance < amount+wallet.FeeAmount {
 		Err := errors.New("Insufficient balance!")
 		return nil, Err
@@ -649,9 +650,17 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	addrto := SendToAddress.GetTo()
 	note := SendToAddress.GetNote()
 
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	transfer := &types.CoinsAction{}
 
+	if amount > 0 {
+		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
+		transfer.Value = v
+		transfer.Ty = types.CoinsActionTransfer
+	} else {
+		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: note}}
+		transfer.Value = v
+		transfer.Ty = types.CoinsActionWithdraw
+	}
 	//初始化随机数
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 

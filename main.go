@@ -9,7 +9,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -118,13 +117,6 @@ func main() {
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueue(q)
 
-	var network *p2p.P2p
-	if cfg.P2P.Enable {
-		log.Info("loading p2p module")
-		network = p2p.New(cfg.P2P)
-		network.SetQueue(q)
-	}
-
 	log.Info("loading execs module")
 	exec := execs.New()
 	exec.SetQueue(q)
@@ -137,6 +129,13 @@ func main() {
 	cs := consensus.New(cfg.Consensus)
 	cs.SetQueue(q)
 
+	var network *p2p.P2p
+	if cfg.P2P.Enable {
+		log.Info("loading p2p module")
+		network = p2p.New(cfg.P2P)
+		network.SetQueue(q)
+	}
+
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
 	walletm.SetQueue(q)
@@ -146,31 +145,32 @@ func main() {
 	//api.SetQueue(q)
 	gapi := rpc.NewServer("grpc", ":8802", q)
 	//gapi.SetQueue(q)
+	defer func() {
+		//close all module,clean some resource
+		log.Info("begin close blockchain module")
+		chain.Close()
+		log.Info("begin close mempool module")
+		mem.Close()
+		if cfg.P2P.Enable {
+			log.Info("begin close P2P module")
+			network.Close()
+		}
+		log.Info("begin close execs module")
+		exec.Close()
+		log.Info("begin close store module")
+		s.Close()
+		log.Info("begin close consensus module")
+		cs.Close()
+		log.Info("begin close jsonrpc module")
+		api.Close()
+		log.Info("begin close grpc module")
+		gapi.Close()
+		log.Info("begin close queue module")
+		q.Close()
+		log.Info("begin close wallet module")
+		walletm.Close()
+	}()
 	q.Start()
-
-	//close all module,clean some resource
-	log.Info("begin close blockchain module")
-	chain.Close()
-	log.Info("begin close mempool module")
-	mem.Close()
-	if cfg.P2P.Enable {
-		log.Info("begin close P2P module")
-		network.Close()
-	}
-	log.Info("begin close execs module")
-	exec.Close()
-	log.Info("begin close store module")
-	s.Close()
-	log.Info("begin close consensus module")
-	cs.Close()
-	log.Info("begin close jsonrpc module")
-	api.Close()
-	log.Info("begin close grpc module")
-	gapi.Close()
-	log.Info("begin close queue module")
-	q.Close()
-	log.Info("begin close wallet module")
-	walletm.Close()
 }
 
 // 开启trace
@@ -179,11 +179,10 @@ func startTrace() {
 		return true, true
 	}
 	go http.ListenAndServe(":50051", nil)
-	log.Error("Trace listen on 50051")
+	log.Info("Trace listen on 50051")
 }
 
 func CreateFile(filename string) (*os.File, error) {
-
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
@@ -194,6 +193,5 @@ func CreateFile(filename string) (*os.File, error) {
 func watching() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	log.Error("info:", "NumGoroutine:", runtime.NumGoroutine())
-	fmt.Printf("\nAlloc = %v\nTotalAlloc = %v\nSys = %v\nNumGC = %v\n\n", m.Alloc/1024, m.TotalAlloc/1024, m.Sys/1024, m.NumGC)
+	log.Info("info:", "NumGoroutine:", runtime.NumGoroutine())
 }
