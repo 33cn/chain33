@@ -148,37 +148,13 @@ func (bs *BlockStore) NewBatch(sync bool) dbm.Batch {
 
 // 通过批量存储tx信息到db中
 func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockdetail *types.BlockDetail) error {
-
-	txlen := len(blockdetail.Block.Txs)
-	for index := 0; index < txlen; index++ {
-		//计算tx hash
-		txhash := blockdetail.Block.Txs[index].Hash()
-
-		//构造txresult 信息保存到db中
-		var txresult types.TxResult
-		txresult.Height = blockdetail.Block.Height
-		txresult.Index = int32(index)
-		txresult.Tx = blockdetail.Block.Txs[index]
-		txresult.Receiptdate = blockdetail.Receipts[index]
-		txresult.Blocktime = blockdetail.Block.BlockTime
-		txresultbyte, err := proto.Marshal(&txresult)
-		if err != nil {
-			storelog.Error("indexTxs Encode txresult err", "Height", blockdetail.Block.Height, "index", index)
-			return err
-		}
-
-		storeBatch.Set(txhash, txresultbyte)
-
-		//存储key:addr:flag:height ,value:txhash
-		//flag :0-->from,1--> to
-		//height=height*10000+index 存储账户地址相关的交易
-	}
 	kv, err := bs.getLocakKV(blockdetail)
 	if err != nil {
 		storelog.Error("indexTxs getLocalKV err", "Height", blockdetail.Block.Height, "err", err)
 		return err
 	}
 	for i := 0; i < len(kv.KV); i++ {
+		storelog.Error(string(kv.KV[i].Key))
 		storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
 	}
 	return nil
@@ -186,11 +162,6 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockdetail *types.BlockDetai
 
 //通过批量删除tx信息从db中
 func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockdetail *types.BlockDetail) error {
-	for index := 0; index < len(blockdetail.Block.Txs); index++ {
-		//计算tx hash
-		txhash := blockdetail.Block.Txs[index].Hash()
-		storeBatch.Delete(txhash)
-	}
 	//存储key:addr:flag:height ,value:txhash
 	//flag :0-->from,1--> to
 	//height=height*10000+index 存储账户地址相关的交易

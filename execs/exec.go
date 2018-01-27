@@ -128,7 +128,7 @@ func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
-	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, kvset))
+	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, &kvset))
 }
 
 func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
@@ -150,7 +150,7 @@ func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
-	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, kvset))
+	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, &kvset))
 }
 
 func (exec *Execs) Close() {

@@ -38,13 +38,34 @@ func (n *Coins) GetName() string {
 	return "coins"
 }
 
-func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (n *Coins) GetActionName(tx *types.Transaction) string {
 	var action types.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return nil, err
+		return "unknow"
 	}
 	if err = account.CheckAddress(tx.To); err != nil {
+		return "unknow"
+	}
+	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+		return "transfer"
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetTransfer() != nil {
+		return "withdraw"
+	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+		return "genesis"
+	} else {
+		return "unknow"
+	}
+}
+
+func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+	_, err := n.ExecCommon(tx, index)
+	if err != nil {
+		return nil, err
+	}
+	var action types.CoinsAction
+	err = types.Decode(tx.Payload, &action)
+	if err != nil {
 		return nil, err
 	}
 	clog.Info("exec transaction=", "tx=", action)
@@ -56,6 +77,14 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 			return account.TransferToExec(n.GetDB(), from, tx.To, transfer.Amount)
 		}
 		return account.Transfer(n.GetDB(), from, tx.To, transfer.Amount)
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetTransfer() != nil {
+		transfer := action.GetTransfer()
+		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		//to 是 execs 合约地址
+		if execdrivers.IsExecAddress(tx.To) {
+			return account.TransferWithdraw(n.GetDB(), from, tx.To, transfer.Amount)
+		}
+		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if n.GetHeight() == 0 {
@@ -69,4 +98,102 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	} else {
 		return nil, types.ErrActionNotSupport
 	}
+}
+
+//0: all tx
+//1: from tx
+//2: to tx
+
+func (n *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := n.ExecLocalCommon(tx, receipt, index)
+	if err != nil {
+		return nil, err
+	}
+	if receipt.GetTy() != types.ExecOk {
+		return set, nil
+	}
+	//执行成功
+	var action types.CoinsAction
+	err = types.Decode(tx.GetPayload(), &action)
+	if err != nil {
+		panic(err)
+	}
+	var kv *types.KeyValue
+	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+		transfer := action.GetTransfer()
+		kv, err = updateAddrReciver(n.GetLocalDB(), tx.To, transfer.Amount, true)
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+		transfer := action.GetWithdraw()
+		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		kv, err = updateAddrReciver(n.GetLocalDB(), from, transfer.Amount, true)
+	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+		gen := action.GetGenesis()
+		kv, err = updateAddrReciver(n.GetLocalDB(), tx.To, gen.Amount, true)
+	}
+	if err != nil {
+		return set, nil
+	}
+	if kv != nil {
+		set.KV = append(set.KV, kv)
+	}
+	return set, nil
+}
+
+func (n *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := n.ExecDelLocalCommon(tx, receipt, index)
+	if err != nil {
+		return nil, err
+	}
+	if receipt.GetTy() != types.ExecOk {
+		return set, nil
+	}
+	//执行成功
+	var action types.CoinsAction
+	err = types.Decode(tx.GetPayload(), &action)
+	if err != nil {
+		panic(err)
+	}
+	var kv *types.KeyValue
+	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+		transfer := action.GetTransfer()
+		kv, err = updateAddrReciver(n.GetLocalDB(), tx.To, transfer.Amount, false)
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+		transfer := action.GetWithdraw()
+		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		kv, err = updateAddrReciver(n.GetLocalDB(), from, transfer.Amount, false)
+	}
+	if err != nil {
+		return set, nil
+	}
+	if kv != nil {
+		set.KV = append(set.KV, kv)
+	}
+	return set, nil
+}
+
+func (n *Coins) GetAddrReciver(in types.Message) (types.Message, error) {
+	addr, ok := in.(*types.ReqAddr)
+	if !ok {
+		return nil, types.ErrTypeAsset
+	}
+	reciver := types.Int64{}
+	db := n.GetQueryDB()
+	addrReciver := db.Get(calcAddrKey(addr.Addr))
+	if addrReciver == nil {
+		return &reciver, types.ErrEmpty
+	}
+	err := types.Decode(addrReciver, &reciver)
+	if err != nil {
+		return &reciver, err
+	}
+	return &reciver, nil
+}
+
+func (n *Coins) Query(funcName string, params types.Message) (types.Message, error) {
+	if funcName == "GetAddrReciver" {
+		return n.GetAddrReciver(params)
+	} else if funcName == "GetTxsByAddr" {
+		return n.GetTxsByAddr(params)
+	}
+	return nil, types.ErrActionNotSupport
 }

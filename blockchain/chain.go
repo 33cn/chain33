@@ -84,6 +84,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerMaxBlkHeight:   -1,
+		cfg:                cfg,
 		wg:                 &sync.WaitGroup{},
 		recvwg:             &sync.WaitGroup{},
 		task:               newTask(60 * time.Second),
@@ -688,8 +689,8 @@ func (chain *BlockChain) fetchPeerList() error {
 //获取地址对应的所有交易信息
 //存储格式key:addr:flag:height ,value:txhash
 //key=addr :获取本地参与的所有交易
-//key=addr:0 :获取本地作为from方的所有交易
-//key=addr:1 :获取本地作为to方的所有交易
+//key=addr:1 :获取本地作为from方的所有交易
+//key=addr:2 :获取本地作为to方的所有交易
 func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	if addr == nil || len(addr.Addr) == 0 {
 		err := errors.New("ProcGetTransactionByAddr addr is nil")
@@ -712,7 +713,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	//查询的drivers--> main 驱动的名称
 	//查询的方法：  --> GetTxsByAddr
 	//查询的参数：  --> interface{} 类型
-	txinfos, err := chain.query.Query("main", "GetTxsByAddr", addr)
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -895,7 +896,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.query.Query("main", "GetAddrReciver", addr)
+	amount, err := chain.query.Query("coins", "GetAddrReciver", addr)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		return nil, err
@@ -907,7 +908,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	addr.Count = 0x7fffffff
 	addr.Height = -1
 	addr.Index = 0
-	txinfos, err := chain.query.Query("main", "GetTxsByAddr", addr)
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
 		return nil, err

@@ -1,4 +1,3 @@
-
 Title="chain33"
 
 Loglevel="info"
@@ -14,7 +13,7 @@ driver="leveldb"
 dbPath="datadir"
 
 [p2p]
-seeds=["114.55.101.159:13802"]
+seeds=["113.55.101.159:13802"]
 enable=true
 isSeed=false
 msgCacheSize=10240
@@ -31,7 +30,7 @@ minTxFee=1000000
 
 [consensus]
 name="solo"
-minerstart=false
+minerstart=true
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
 hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"

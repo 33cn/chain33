@@ -31,6 +31,7 @@ type Executer interface {
 	SetLocalDB(dbm.KVDB)
 	SetQueryDB(dbm.DB)
 	GetName() string
+	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64)
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)

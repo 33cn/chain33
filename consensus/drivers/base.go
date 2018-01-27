@@ -65,7 +65,10 @@ func (client *BaseClient) InitMiner() {
 }
 
 func (client *BaseClient) SetQueue(q *queue.Queue) {
+	log.Error("Enter SetQueue block init - 1")
 	client.InitClient(q, func() {
+		//call init block
+		log.Error("Enter SetQueue block init - 2")
 		client.InitBlock()
 	})
 	go client.EventLoop()

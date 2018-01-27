@@ -41,33 +41,33 @@ func ExecKey(address, execaddr string) (key []byte) {
 }
 
 func TransferToExec(db dbm.KVDB, from, to string, amount int64) (*types.Receipt, error) {
-	if amount > 0 {
-		receipt, err := Transfer(db, from, to, amount)
-		if err != nil {
-			return nil, err
-		}
-		receipt2, err := execDeposit(db, from, to, amount)
-		if err != nil {
-			//存款不应该出任何问题
-			panic(err)
-		}
-		return mergeReceipt(receipt, receipt2), nil
-	} else {
-		//先判断可以取款
-		if err := CheckTransfer(db, to, from, -amount); err != nil {
-			return nil, err
-		}
-		receipt, err := execWithdraw(db, to, from, -amount)
-		if err != nil {
-			return nil, err
-		}
-		//然后执行transfer
-		receipt2, err := Transfer(db, to, from, -amount)
-		if err != nil {
-			panic(err) //在withdraw
-		}
-		return mergeReceipt(receipt, receipt2), nil
+	receipt, err := Transfer(db, from, to, amount)
+	if err != nil {
+		return nil, err
 	}
+	receipt2, err := execDeposit(db, from, to, amount)
+	if err != nil {
+		//存款不应该出任何问题
+		panic(err)
+	}
+	return mergeReceipt(receipt, receipt2), nil
+}
+
+func TransferWithdraw(db dbm.KVDB, from, to string, amount int64) (*types.Receipt, error) {
+	//先判断可以取款
+	if err := CheckTransfer(db, to, from, amount); err != nil {
+		return nil, err
+	}
+	receipt, err := execWithdraw(db, to, from, amount)
+	if err != nil {
+		return nil, err
+	}
+	//然后执行transfer
+	receipt2, err := Transfer(db, to, from, amount)
+	if err != nil {
+		panic(err) //在withdraw
+	}
+	return mergeReceipt(receipt, receipt2), nil
 }
 
 //四个操作中 Deposit 自动完成，不需要模块外的函数来调用
