@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,33 +35,9 @@ type intervalInfo struct {
 	end   int
 }
 
-func (m *P2pCli) addTask(taskid int64) {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-	m.taskinfo[taskid] = true
-}
-
-func (m *P2pCli) queryTask(taskid int64) bool {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-	if _, ok := m.taskinfo[taskid]; ok {
-		return true
-	}
-	return false
-}
-
-func (m *P2pCli) removeTask(taskid int64) {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-	if _, ok := m.taskinfo[taskid]; ok {
-		delete(m.taskinfo, taskid)
-	}
-	return
-}
 func NewP2pCli(network *P2p) *P2pCli {
 	pcli := &P2pCli{
 		network:  network,
-		taskinfo: make(map[int64]bool),
 		loopdone: make(chan struct{}, 3),
 	}
 
@@ -185,7 +162,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	}
 	addrfrom := fmt.Sprintf("%v:%v", ExternalIp, nodeinfo.externalAddr.Port)
 	nodeinfo.blacklist.Add(addrfrom)
-	_, err = peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
+	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	defer m.CollectPeerStat(err, peer)
@@ -198,7 +175,19 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 		}
 		return err
 	}
+	if strings.Split(resp.GetAddrRecv(), ":")[0] != ExternalIp {
+		ExternalIp = strings.Split(resp.GetAddrRecv(), ":")[0]
+		m.network.node.FlushNodeInfo()
 
+	}
+	port, err := strconv.Atoi(strings.Split(resp.GetAddrRecv(), ":")[1])
+	if err != nil {
+		return err
+	}
+	if port != int(m.network.node.GetExterPort()) {
+		m.network.node.SetPort(DefaultPort, uint(port))
+		m.network.node.FlushNodeInfo()
+	}
 	//log.Error("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
