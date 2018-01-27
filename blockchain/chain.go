@@ -612,7 +612,7 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 		}
 		j++
 	}
-	chainlog.Error("getHeaders", "len", len(headers.Items), "start", start, "end", end)
+	chainlog.Debug("getHeaders", "len", len(headers.Items), "start", start, "end", end)
 	return &headers, nil
 }
 
@@ -760,7 +760,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			addr := account.PubKeyToAddress(pubkey)
 			txDetail.Fromaddr = addr.String()
 
-			chainlog.Info("ProcGetTransactionByHashes", "txDetail", txDetail.String())
+			chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs[index] = &txDetail
 		}
 	}
@@ -876,7 +876,7 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 		txhashs[index] = tx.Hash()
 	}
 	blockOverview.TxHashes = txhashs
-	chainlog.Error("ProcGetBlockOverview", "blockOverview:", blockOverview.String())
+	chainlog.Debug("ProcGetBlockOverview", "blockOverview:", blockOverview.String())
 	return &blockOverview, nil
 }
 
@@ -891,7 +891,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		err := errors.New("ProcGetAddrOverview input err!")
 		return nil, err
 	}
-	chainlog.Info("ProcGetAddrOverview", "Addr", addr.GetAddr())
+	chainlog.Debug("ProcGetAddrOverview", "Addr", addr.GetAddr())
 
 	var addrOverview types.AddrOverview
 
@@ -914,7 +914,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		return nil, err
 	}
 	addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
-	chainlog.Info("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+	chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
 
 	return &addrOverview, nil
 }
@@ -1066,7 +1066,7 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 		chainlog.Error("SendDelBlockEvent block is null")
 		return nil
 	}
-	chainlog.Error("SendDelBlockEvent", "Height", block.Block.Height)
+	chainlog.Debug("SendDelBlockEvent", "Height", block.Block.Height)
 	chainlog.Debug("SendDelBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
 	msg := chain.qclient.NewMessage("wallet", types.EventDelBlock, block)
 	chain.qclient.Send(msg, false)

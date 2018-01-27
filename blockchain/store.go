@@ -98,7 +98,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	//存储block hash和height的对应关系，便于通过hash查询block
 	storeBatch.Set(calcBlockHashKey(blockdetail.Block.Hash()), bytes)
 
-	storelog.Info("SaveBlock success", "blockheight", height)
+	storelog.Debug("SaveBlock success", "blockheight", height)
 	return nil
 }
 
@@ -116,7 +116,8 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	storeBatch.Set(blockStoreKey, bytes)
 	//删除block hash和height的对应关系
 	storeBatch.Delete(calcBlockHashKey(blockdetail.Block.Hash()))
-	storelog.Error("DelBlock success", "blockheight", height)
+
+	storelog.Debug("DelBlock success", "blockheight", height)
 	return nil
 }
 

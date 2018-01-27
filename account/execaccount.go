@@ -72,6 +72,9 @@ func TransferWithdraw(db dbm.KVDB, from, to string, amount int64) (*types.Receip
 
 //四个操作中 Deposit 自动完成，不需要模块外的函数来调用
 func ExecFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+	if addr == execaddr {
+		return nil, types.ErrSendSameToRecv
+	}
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -89,6 +92,9 @@ func ExecFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receip
 }
 
 func ExecActive(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+	if addr == execaddr {
+		return nil, types.ErrSendSameToRecv
+	}
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -105,6 +111,9 @@ func ExecActive(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receip
 }
 
 func ExecTransfer(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.Receipt, error) {
+	if from == to {
+		return nil, types.ErrSendSameToRecv
+	}
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -118,8 +127,8 @@ func ExecTransfer(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.
 	copyaccFrom := *accFrom
 	copyaccTo := *accTo
 
-	accFrom.Balance = b
-	accTo.Balance = accTo.Balance + amount
+	accFrom.Balance -= amount
+	accTo.Balance += amount
 
 	receiptBalanceFrom := &types.ReceiptExecAccount{execaddr, &copyaccFrom, accFrom}
 	receiptBalanceTo := &types.ReceiptExecAccount{execaddr, &copyaccTo, accTo}
@@ -131,6 +140,9 @@ func ExecTransfer(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.
 
 //从自己冻结的钱里面扣除，转移到别人的活动钱包里面去
 func ExecTransferFrozen(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.Receipt, error) {
+	if from == to {
+		return nil, types.ErrSendSameToRecv
+	}
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -144,8 +156,8 @@ func ExecTransferFrozen(db dbm.KVDB, from, to, execaddr string, amount int64) (*
 	copyaccFrom := *accFrom
 	copyaccTo := *accTo
 
-	accFrom.Frozen = b
-	accTo.Balance = accTo.Balance + amount
+	accFrom.Frozen -= amount
+	accTo.Balance += amount
 
 	receiptBalanceFrom := &types.ReceiptExecAccount{execaddr, &copyaccFrom, accFrom}
 	receiptBalanceTo := &types.ReceiptExecAccount{execaddr, &copyaccTo, accTo}
@@ -169,6 +181,9 @@ func ExecAddress(name string) *Address {
 }
 
 func ExecDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+	if addr == execaddr {
+		return nil, types.ErrSendSameToRecv
+	}
 	//这个函数只有挖矿的合约才能调用
 	list := types.AllowDepositExec
 	allow := false
@@ -185,6 +200,9 @@ func ExecDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types
 }
 
 func execDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+	if addr == execaddr {
+		return nil, types.ErrSendSameToRecv
+	}
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -198,6 +216,9 @@ func execDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types
 }
 
 func execDeposit(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+	if addr == execaddr {
+		return nil, types.ErrSendSameToRecv
+	}
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -211,6 +232,9 @@ func execDeposit(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Recei
 }
 
 func execWithdraw(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+	if addr == execaddr {
+		return nil, types.ErrSendSameToRecv
+	}
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}

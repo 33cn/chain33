@@ -15,6 +15,8 @@ import (
 	"runtime"
 	"time"
 
+	"path/filepath"
+
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/config"
@@ -34,6 +36,14 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
+func getcurrentdir() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		panic(err)
+	}
+	return dir
+}
+
 var (
 	CPUNUM     = runtime.NumCPU()
 	configpath = flag.String("f", "chain33.toml", "configfile")
@@ -42,6 +52,11 @@ var (
 const Version = "v0.1.0"
 
 func main() {
+	d, _ := os.Getwd()
+	log.Error("current dir:", "dir", d)
+	os.Chdir(getcurrentdir())
+	d, _ = os.Getwd()
+	log.Error("current dir:", "dir", d)
 	//set file limit
 	agent := stackimpact.Start(stackimpact.Options{
 		AgentKey: "eb4c12dfe2d4b23b22634e7fed4d65899d5ca925",
