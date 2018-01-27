@@ -377,6 +377,7 @@ func (n *Node) DetectionNodeAddr() {
 		if len(LocalAddr) == 0 {
 			//SERVICE = 0
 			log.Error("DetectionNodeAddr", "NetWork Disable p2p Disable", "Retry until Network enable")
+			time.Sleep(time.Second * 5)
 			continue
 			//os.Exit(0)
 		}
