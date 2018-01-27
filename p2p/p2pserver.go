@@ -113,15 +113,14 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
-	//in.AddrFrom 表示远程客户端的地址,如果客户端的远程地址与自己定义的addrfrom 地址一直，则认为在外网
-	if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
-		remoteNetwork, err := NewNetAddressString(in.AddrFrom)
-		if err == nil /*&& in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM*/ {
-			if len(P2pComm.AddrTest([]string{in.AddrFrom})) == 1 {
-				s.node.addrBook.AddAddress(remoteNetwork)
-			}
 
+	//if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
+	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1]))
+	if err == nil /*&& in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM*/ {
+		if len(P2pComm.AddrTest([]string{remoteNetwork.String()})) == 1 {
+			s.node.addrBook.AddAddress(remoteNetwork)
 		}
+
 	}
 
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址

@@ -673,3 +673,15 @@ func (req Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
 	*result = reply
 	return nil
 }
+
+func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
+	reply, err := req.cli.GetWalletStatus()
+	if err != nil {
+		return err
+	}
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
+	return nil
+}
