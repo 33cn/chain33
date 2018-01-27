@@ -184,7 +184,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	if err != nil {
 		return err
 	}
-	if port != int(m.network.node.GetExterPort()) {
+	if port != int(nodeinfo.GetExternalAddr().Port) {
 		m.network.node.SetPort(DefaultPort, uint(port))
 		m.network.node.FlushNodeInfo()
 	}
