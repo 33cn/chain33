@@ -195,6 +195,13 @@ func (chain *BlockChain) getBlockHash(msg queue.Message) {
 	}
 }
 
+func (chain *BlockChain) localGet(msg queue.Message) {
+	keys := (msg.Data).(*types.LocalDBGet)
+	values := chain.blockStore.Get(keys)
+	chainlog.Debug("localget", "success", "ok")
+	msg.Reply(chain.qclient.NewMessage("rpc", types.EventLocalReplyValue, values))
+}
+
 type funcProcess func(msg queue.Message)
 
 func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb funcProcess) {

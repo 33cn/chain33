@@ -49,8 +49,9 @@ type BlockChain struct {
 	cache      map[int64]*list.Element
 	cacheSize  int64
 	cacheQueue *list.List
-
-	task *Task
+	cfg        *types.BlockChain
+	task       *Task
+	query      *Query
 	//Block 同步阶段用于缓存block信息，
 	blockPool *BlockPool
 
@@ -72,13 +73,10 @@ type BlockChain struct {
 func New(cfg *types.BlockChain) *BlockChain {
 
 	//初始化blockstore 和txindex  db
-	blockStoreDB := dbm.NewDB("blockchain", cfg.Driver, cfg.DbPath)
-	blockStore := NewBlockStore(blockStoreDB)
 	initConfig(cfg)
 	pool := NewBlockPool()
 
 	return &BlockChain{
-		blockStore:         blockStore,
 		cache:              make(map[int64]*list.Element),
 		cacheSize:          DefCacheSize,
 		cacheQueue:         list.New(),
@@ -86,6 +84,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerMaxBlkHeight:   -1,
+		cfg:                cfg,
 		wg:                 &sync.WaitGroup{},
 		recvwg:             &sync.WaitGroup{},
 		task:               newTask(60 * time.Second),
@@ -133,6 +132,11 @@ func (chain *BlockChain) Close() {
 func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	chain.qclient = q.GetClient()
 	chain.qclient.Sub("blockchain")
+
+	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath)
+	blockStore := NewBlockStore(blockStoreDB, q)
+	chain.blockStore = blockStore
+	chain.query = NewQuery(blockStoreDB)
 	chain.q = q
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
@@ -148,6 +152,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 		reqnum <- struct{}{}
 		chain.recvwg.Add(1)
 		switch msgtype {
+		case types.EventLocalGet:
+			go chain.processMsg(msg, reqnum, chain.localGet)
 		case types.EventQueryTx:
 			go chain.processMsg(msg, reqnum, chain.queryTx)
 		case types.EventGetBlocks:
@@ -683,8 +689,8 @@ func (chain *BlockChain) fetchPeerList() error {
 //获取地址对应的所有交易信息
 //存储格式key:addr:flag:height ,value:txhash
 //key=addr :获取本地参与的所有交易
-//key=addr:0 :获取本地作为from方的所有交易
-//key=addr:1 :获取本地作为to方的所有交易
+//key=addr:1 :获取本地作为from方的所有交易
+//key=addr:2 :获取本地作为to方的所有交易
 func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	if addr == nil || len(addr.Addr) == 0 {
 		err := errors.New("ProcGetTransactionByAddr addr is nil")
@@ -704,13 +710,15 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 		err := errors.New("ProcGetTransactionByAddr Index err")
 		return nil, err
 	}
-
-	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
+	//查询的drivers--> main 驱动的名称
+	//查询的方法：  --> GetTxsByAddr
+	//查询的参数：  --> interface{} 类型
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
 	}
-	return txinfos, nil
+	return txinfos.(*types.ReplyTxInfos), nil
 }
 
 //type TransactionDetails struct {
@@ -888,25 +896,24 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.blockStore.GetAddrReciver(addr.Addr)
+	amount, err := chain.query.Query("coins", "GetAddrReciver", addr)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		return nil, err
 	}
-	addrOverview.Reciver = amount
+	addrOverview.Reciver = amount.(*types.Int64).GetData()
 
 	//获取地址对应的交易count
 	addr.Flag = 0
 	addr.Count = 0x7fffffff
 	addr.Height = -1
 	addr.Index = 0
-	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
 		return nil, err
 	}
-	addrOverview.TxCount = int64(len(txinfos.GetTxInfos()))
-
+	addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
 	chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
 
 	return &addrOverview, nil
@@ -984,9 +991,7 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 
 		//批量将block信息写入磁盘
 		newbatch := chain.blockStore.NewBatch(true)
-		cacheDB := NewCacheDB()
-		//保存tx信息到db中
-		err = chain.blockStore.AddTxs(newbatch, cacheDB, blockdetail)
+		err = chain.blockStore.AddTxs(newbatch, blockdetail)
 		if err != nil {
 			chainlog.Error("SynBlockToDbOneByOne indexTxs:", "height", block.Height, "err", err)
 			return
@@ -998,7 +1003,6 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 			chainlog.Error("SynBlockToDbOneByOne SaveBlock:", "height", block.Height, "err", err)
 			return
 		}
-		cacheDB.SetBatch(newbatch)
 		newbatch.Write()
 
 		chain.blockStore.UpdateHeight()
@@ -1029,26 +1033,20 @@ func (chain *BlockChain) DelBlock(height int64) (bool, error) {
 		}
 		//批量将删除block的信息从磁盘中删除
 		newbatch := chain.blockStore.NewBatch(true)
-		cacheDB := NewCacheDB()
-
 		//从db中删除tx相关的信息
-		err = chain.blockStore.DelTxs(newbatch, cacheDB, blockdetail)
+		err = chain.blockStore.DelTxs(newbatch, blockdetail)
 		if err != nil {
 			chainlog.Error("DelBlock DelTxs:", "height", currentheight, "err", err)
 			return false, err
 		}
-
 		//从db中删除block相关的信息
 		err = chain.blockStore.DelBlock(newbatch, blockdetail)
 		if err != nil {
 			chainlog.Error("DelBlock blockStoreDelBlock:", "height", currentheight, "err", err)
 			return false, err
 		}
-		cacheDB.SetBatch(newbatch)
 		newbatch.Write()
-
 		chain.blockStore.UpdateHeight()
-
 		//删除缓存中的block信息
 		chain.DelBlockFromCache(blockdetail.Block.Height)
 		//通知共识，mempool和钱包删除block
