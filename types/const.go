@@ -40,6 +40,9 @@ var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
 var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
 var ErrBlockNotFound = errors.New("ErrBlockNotFound")
 var ErrStartBigThanEnd = errors.New("ErrStartBigThanEnd")
+var ErrToAddrNotSameToExecAddr = errors.New("ErrToAddrNotSameToExecAddr")
+var ErrTypeAsset = errors.New("ErrTypeAsset")
+var ErrEmpty = errors.New("ErrEmpty")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
@@ -49,6 +52,7 @@ const PowLimitBits uint32 = uint32(0)
 const TargetTimespan = 144 * 16 * time.Second
 const TargetTimePerBlock = 16 * time.Second
 const RetargetAdjustmentFactor = 4
+const MaxTxsPerBlock = 100000
 
 var AllowDepositExec = []string{"ticket"}
 var PowLimit = big.NewInt(0)
@@ -257,9 +261,9 @@ const (
 	TyLogGenesis  = 4
 
 	//log for ticket
-	TyLogNewTicket   = 5
-	TyLogCloseTicket = 6
-	TyLogMinerTicket = 7
+	TyLogNewTicket   = 11
+	TyLogCloseTicket = 12
+	TyLogMinerTicket = 13
 )
 
 //exec type
@@ -273,15 +277,15 @@ const (
 const (
 	CoinsActionTransfer = 1
 	CoinsActionGenesis  = 2
+	CoinsActionWithdraw = 3
 )
 
 //ticket
 const (
-	TicketActionGenesis = 1
-	TicketActionOpen    = 2
-	TicketActionClose   = 3
-
-	TicketActionList  = 4 //读的接口不直接经过transaction
-	TicketActionInfos = 5 //读的接口不直接经过transaction
-	TicketActionMiner = 6
+	TicketActionGenesis = 11
+	TicketActionOpen    = 12
+	TicketActionClose   = 13
+	TicketActionList    = 14 //读的接口不直接经过transaction
+	TicketActionInfos   = 15 //读的接口不直接经过transaction
+	TicketActionMiner   = 16
 )

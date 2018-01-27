@@ -64,11 +64,13 @@ func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.GetClient()
 	network.q = q
 	network.node.setQueue(q)
-	network.node.Start()
-	network.cli.monitorPeerInfo()
-	network.subP2pMsg()
-
+	go func() {
+		network.node.Start()
+		network.cli.monitorPeerInfo()
+		network.subP2pMsg()
+	}()
 }
+
 func (network *P2p) ShowTaskCapcity() {
 	ticker := time.NewTicker(time.Second * 5)
 	log.Error("ShowTaskCapcity", "Capcity", network.txCapcity)
