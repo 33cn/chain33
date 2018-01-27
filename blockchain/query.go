@@ -19,6 +19,7 @@ func (q *Query) Query(driver string, funcname string, param types.Message) (type
 	if err != nil {
 		return nil, err
 	}
+	storelog.Error("local exec", "name", exec.GetName())
 	exec.SetQueryDB(q.db)
 	return exec.Query(funcname, param)
 }

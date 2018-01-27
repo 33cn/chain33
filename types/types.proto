@@ -348,7 +348,8 @@ message TxResult {
 	int32 index = 2;
 	Transaction tx = 3;
 	ReceiptData receiptdate =4;
-	int64 blocktime =5;
+	int64  blocktime =5;
+	string actionName = 6;
 }
 
 //resp
@@ -681,6 +682,7 @@ message WalletPwHash {
 message CoinsAction {
 	oneof value {
 		CoinsTransfer  transfer = 1;
+		CoinsWithdraw  withdraw = 4;
 		CoinsGenesis   genesis = 2;
 	}
 	int32 ty = 3;
@@ -694,6 +696,11 @@ message CoinsGenesis {
 }
 
 message CoinsTransfer {
+	int64 amount = 2;
+	string note = 3;
+}
+
+message CoinsWithdraw {
 	int64 amount = 2;
 	string note = 3;
 }
