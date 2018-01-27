@@ -73,7 +73,7 @@ func (network *P2p) SetQueue(q *queue.Queue) {
 
 func (network *P2p) ShowTaskCapcity() {
 	ticker := time.NewTicker(time.Second * 5)
-	log.Error("ShowTaskCapcity", "Capcity", network.txCapcity)
+	log.Info("ShowTaskCapcity", "Capcity", network.txCapcity)
 	defer ticker.Stop()
 	for {
 

@@ -95,7 +95,7 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.qclient.Recv() {
-		walletlog.Info("wallet recv", "msg", msg)
+		walletlog.Debug("wallet recv", "msg", msg)
 		msgtype := msg.Ty
 		switch msgtype {
 		case types.EventWalletGetAccountList:

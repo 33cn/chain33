@@ -162,8 +162,6 @@ type addrBookJSON struct {
 }
 
 func (a *AddrBook) saveToFile(filePath string) {
-	log.Info("Saving AddrBook to file", "size", a.Size())
-
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	// Compile Addrs
@@ -275,8 +273,6 @@ func (a *AddrBook) loadFromFile() bool {
 
 // Save saves the book.
 func (a *AddrBook) Save() {
-	log.Info("Saving AddrBook to file", "size", a.Size())
-
 	a.saveToFile(a.filePath)
 }
 

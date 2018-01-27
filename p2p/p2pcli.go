@@ -379,7 +379,7 @@ FOOR_LOOP:
 		for {
 			invdatas, err := resp.Recv()
 			if err == io.EOF {
-				log.Error("download", "recv", "IO.EOF", "count", count)
+				log.Info("download", "recv", "IO.EOF", "count", count)
 				resp.CloseSend()
 				break FOOR_LOOP
 			}
@@ -394,7 +394,7 @@ FOOR_LOOP:
 			}
 		}
 	}
-	log.Error("download", "out of func", "ok")
+	log.Info("download", "out of func", "ok")
 }
 
 func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
