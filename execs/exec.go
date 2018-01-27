@@ -44,7 +44,7 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 	//recv 消息的处理
 	go func() {
 		for msg := range client.Recv() {
-			elog.Info("exec recv", "msg", msg)
+			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
 				exec.procExecTxList(msg, q)
 			} else if msg.Ty == types.EventAddBlock {
@@ -68,7 +68,6 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 			if err != nil {
 				panic(err)
 			}
-			//elog.Info("exec.receipt->", "receipt", receipt)
 			receipts = append(receipts, receipt)
 			continue
 		}
@@ -102,7 +101,6 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 			feelog.Logs = append(feelog.Logs, receipt.Logs...)
 			feelog.Ty = receipt.Ty
 		}
-		elog.Info("receipt of tx", "receipt=", feelog)
 		receipts = append(receipts, feelog)
 	}
 	msg.Reply(q.GetClient().NewMessage("", types.EventReceipts,
@@ -201,7 +199,6 @@ func (e *Execute) checkTx(tx *types.Transaction, index int) error {
 }
 
 func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	elog.Info("exec", "execer", string(tx.Execer))
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))
 	if err != nil {
 		exec, err = execdrivers.LoadExecute("none")
@@ -215,7 +212,6 @@ func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 }
 
 func (e *Execute) ExecLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	elog.Info("exec", "execer", string(tx.Execer))
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))
 	if err != nil {
 		exec, err = execdrivers.LoadExecute("none")
@@ -229,7 +225,6 @@ func (e *Execute) ExecLocal(tx *types.Transaction, r *types.ReceiptData, index i
 }
 
 func (e *Execute) ExecDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	elog.Info("exec", "execer", string(tx.Execer))
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))
 	if err != nil {
 		exec, err = execdrivers.LoadExecute("none")

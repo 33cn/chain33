@@ -147,7 +147,7 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 func (chain *BlockChain) ProcRecvMsg() {
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.qclient.Recv() {
-		chainlog.Info("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "cap", len(reqnum))
+		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
 		chain.recvwg.Add(1)
@@ -810,7 +810,7 @@ func (chain *BlockChain) UpdatePeerMaxBlkHeight(height int64) {
 func (chain *BlockChain) SynBlocksFromPeers() {
 	//如果任务正常，那么不重复启动任务
 	if chain.task.InProgress() {
-		chainlog.Error("chain task InProgress")
+		chainlog.Info("chain task InProgress")
 		return
 	}
 
@@ -818,7 +818,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 
-	chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
+	chainlog.Debug("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 	//首先和广播的block高度做比较，小于广播的block高度就直接发送block同步的请求
 
 	if curheight < RcvLastCastBlkHeight {

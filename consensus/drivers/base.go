@@ -65,10 +65,8 @@ func (client *BaseClient) InitMiner() {
 }
 
 func (client *BaseClient) SetQueue(q *queue.Queue) {
-	log.Error("Enter SetQueue block init - 1")
 	client.InitClient(q, func() {
 		//call init block
-		log.Error("Enter SetQueue block init - 2")
 		client.InitBlock()
 	})
 	go client.EventLoop()
@@ -139,7 +137,7 @@ func (client *BaseClient) EventLoop() {
 	client.qclient.Sub("consensus")
 	go func() {
 		for msg := range client.qclient.Recv() {
-			tlog.Info("consensus recv", "msg", msg)
+			tlog.Debug("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				client.SetCurrentBlock(block)
@@ -170,12 +168,10 @@ func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if block.Block.Height == 0 { //genesis block not check
 		return nil
 	}
-	log.Warn("query parent beg")
 	parent, err := client.RequestBlock(block.Block.Height - 1)
 	if err != nil {
 		return err
 	}
-	log.Warn("query parent end")
 	//check base info
 	if parent.Height+1 != block.Block.Height {
 		return types.ErrBlockHeight

@@ -155,7 +155,6 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockdetail *types.BlockDetai
 		return err
 	}
 	for i := 0; i < len(kv.KV); i++ {
-		storelog.Error(string(kv.KV[i].Key))
 		storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
 	}
 	return nil

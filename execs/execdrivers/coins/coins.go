@@ -68,7 +68,7 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
-	clog.Info("exec transaction=", "tx=", action)
+	clog.Debug("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
