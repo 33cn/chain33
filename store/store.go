@@ -67,7 +67,7 @@ func (store *Store) SetQueue(q *queue.Queue) {
 	//recv 消息的处理
 	go func() {
 		for msg := range client.Recv() {
-			slog.Info("stroe recv", "msg", msg)
+			slog.Debug("stroe recv", "msg", msg)
 			store.processMessage(msg)
 		}
 		store.done <- struct{}{}
