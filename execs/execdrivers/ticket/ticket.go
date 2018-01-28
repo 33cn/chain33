@@ -13,6 +13,8 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
+	"fmt"
+
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -97,6 +99,19 @@ func (n *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, in
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
+	for i := 0; i < len(receipt.Logs); i++ {
+		item := receipt.Logs[i]
+		//这三个是ticket 的log
+		if item.Ty == types.TyLogNewTicket || item.Ty == types.TyLogMinerTicket || item.Ty == types.TyLogCloseTicket {
+			var ticketlog types.ReceiptTicket
+			err := types.Decode(item.Log, &ticketlog)
+			if err != nil {
+				panic(err) //数据错误了，已经被修改了
+			}
+			kv := n.saveTicket(&ticketlog)
+			set.KV = append(set.KV, kv...)
+		}
+	}
 	return set, nil
 }
 
@@ -108,5 +123,55 @@ func (n *Ticket) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData,
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
+	for i := 0; i < len(receipt.Logs); i++ {
+		item := receipt.Logs[i]
+		//这三个是ticket 的log
+		if item.Ty == types.TyLogNewTicket || item.Ty == types.TyLogMinerTicket || item.Ty == types.TyLogCloseTicket {
+			var ticketlog types.ReceiptTicket
+			err := types.Decode(item.Log, &ticketlog)
+			if err != nil {
+				panic(err) //数据错误了，已经被修改了
+			}
+			kv := n.delTicket(&ticketlog)
+			set.KV = append(set.KV, kv...)
+		}
+	}
 	return set, nil
+}
+
+func (n *Ticket) saveTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
+	if ticketlog.PrevStatus > 0 {
+		kv := delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
+		kvs = append(kvs, kv)
+	}
+	kvs = append(kvs, addticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.Status))
+	return kvs
+}
+
+func (n *Ticket) delTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
+	if ticketlog.PrevStatus > 0 {
+		kv := addticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
+		kvs = append(kvs, kv)
+	}
+	kvs = append(kvs, delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.Status))
+	return kvs
+}
+
+func caclTicketKey(addr string, ticketId string, status int32) []byte {
+	key := fmt.Sprintf("ticket-tl:%s:%d:%s", addr, status, ticketId)
+	return []byte(key)
+}
+
+func addticket(addr string, ticketId string, status int32) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = caclTicketKey(addr, ticketId, status)
+	kv.Value = []byte(ticketId)
+	return kv
+}
+
+func delticket(addr string, ticketId string, status int32) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = caclTicketKey(addr, ticketId, status)
+	kv.Value = nil
+	return kv
 }

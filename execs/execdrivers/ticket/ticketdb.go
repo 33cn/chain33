@@ -17,6 +17,7 @@ var addrSeed = []byte("address seed bytes for public key")
 
 type TicketDB struct {
 	types.Ticket
+	prevstatus int32
 }
 
 func NewTicketDB(id, minerAddress, returnWallet string, blocktime int64, isGenesis bool) *TicketDB {
@@ -27,27 +28,33 @@ func NewTicketDB(id, minerAddress, returnWallet string, blocktime int64, isGenes
 	t.CreateTime = blocktime
 	t.Status = 1
 	t.IsGenesis = isGenesis
+	t.prevstatus = 0
 	return t
 }
 
+//ticket 的状态变化：
+//1. status == 1 (NewTicket的情况)
+//2. status == 2 (已经挖矿的情况)
+//3. status == 3 (Close的情况)
+
+//add prevStatus:  便于回退状态，以及删除原来状态
+//list 保存的方法:
+//minerAddress:status:ticketId=ticketId
 func (t *TicketDB) GetReceiptLog() *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	if t.Status == 1 {
 		log.Ty = types.TyLogNewTicket
-		r := &types.ReceiptTicket{}
-		r.TicketId = t.TicketId
-		log.Log = types.Encode(r)
 	} else if t.Status == 2 {
 		log.Ty = types.TyLogMinerTicket
-		r := &types.ReceiptTicket{}
-		r.TicketId = t.TicketId
-		log.Log = types.Encode(r)
 	} else if t.Status == 3 {
 		log.Ty = types.TyLogCloseTicket
-		r := &types.ReceiptTicket{}
-		r.TicketId = t.TicketId
-		log.Log = types.Encode(r)
 	}
+	r := &types.ReceiptTicket{}
+	r.TicketId = t.TicketId
+	r.Status = t.Status
+	r.PrevStatus = t.prevstatus
+	r.Addr = t.MinerAddress
+	log.Log = types.Encode(r)
 	return log
 }
 
@@ -97,7 +104,6 @@ func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Re
 	for i := 0; i < int(genesis.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
 		t := NewTicketDB(id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime, true)
-
 		//冻结子账户资金
 		receipt, err := account.ExecFrozen(action.db, genesis.ReturnAddress, action.execaddr, 1000*types.Coin)
 		if err != nil {
@@ -105,10 +111,10 @@ func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Re
 			panic(err)
 		}
 		t.Save(action.db)
-		logs = append(logs, receipt.Logs...)
-		kv = append(kv, receipt.KV...)
 		logs = append(logs, t.GetReceiptLog())
 		kv = append(kv, t.GetKVSet()...)
+		logs = append(logs, receipt.Logs...)
+		kv = append(kv, receipt.KV...)
 	}
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
@@ -130,10 +136,10 @@ func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt,
 			return nil, err
 		}
 		t.Save(action.db)
-		logs = append(logs, receipt.Logs...)
-		kv = append(kv, receipt.KV...)
 		logs = append(logs, t.GetReceiptLog())
 		kv = append(kv, t.GetKVSet()...)
+		logs = append(logs, receipt.Logs...)
+		kv = append(kv, receipt.KV...)
 	}
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
@@ -173,9 +179,10 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 	if action.fromaddr != ticket.MinerAddress && action.fromaddr != ticket.ReturnAddress {
 		return nil, types.ErrFromAddr
 	}
+	prevstatus := ticket.Status
 	ticket.Status = 2
 	ticket.MinerValue = miner.Reward
-	t := &TicketDB{*ticket}
+	t := &TicketDB{*ticket, prevstatus}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	receipt, err := account.ExecDepositFrozen(action.db, t.ReturnAddress, action.execaddr, 1000*types.Coin)
@@ -184,10 +191,10 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 		return nil, err
 	}
 	t.Save(action.db)
-	logs = append(logs, receipt.Logs...)
-	kv = append(kv, receipt.KV...)
 	logs = append(logs, t.GetReceiptLog())
 	kv = append(kv, t.GetKVSet()...)
+	logs = append(logs, receipt.Logs...)
+	kv = append(kv, receipt.KV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
@@ -198,11 +205,19 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 		if err != nil {
 			return nil, err
 		}
-		if ticket.Status != 2 {
+		//两种情况可以close：
+		//1. ticket 的生成时间超过 30天
+		//2. ticket 已经被miner 超过 10天
+
+		if ticket.Status != 2 && ticket.Status != 1 {
 			return nil, types.ErrNotMinered
 		}
 		if !ticket.IsGenesis {
-			if action.blocktime-ticket.GetMinerTime() < 86400*10 {
+			//分成两种情况
+			if ticket.Status == 1 && action.blocktime-ticket.GetMinerTime() < 86400*30 {
+				return nil, types.ErrTime
+			}
+			if ticket.Status == 2 && action.blocktime-ticket.GetMinerTime() < 86400*10 {
 				return nil, types.ErrTime
 			}
 		}
@@ -210,8 +225,9 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 		if action.fromaddr != ticket.MinerAddress && action.fromaddr != ticket.ReturnAddress {
 			return nil, types.ErrFromAddr
 		}
+		prevstatus := ticket.Status
 		ticket.Status = 3
-		tickets[i] = &TicketDB{*ticket}
+		tickets[i] = &TicketDB{*ticket, prevstatus}
 	}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -223,10 +239,10 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 			return nil, err
 		}
 		t.Save(action.db)
-		logs = append(logs, receipt.Logs...)
-		kv = append(kv, receipt.KV...)
 		logs = append(logs, t.GetReceiptLog())
 		kv = append(kv, t.GetKVSet()...)
+		logs = append(logs, receipt.Logs...)
+		kv = append(kv, receipt.KV...)
 	}
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
