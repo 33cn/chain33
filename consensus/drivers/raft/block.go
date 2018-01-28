@@ -42,7 +42,6 @@ func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC
 	c := drivers.NewBaseClient(cfg)
 	client := &RaftClient{BaseClient: c, proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, commitC: commitC, errorC: errorC}
 	c.SetChild(client)
-	log.Info("Enter consensus raft")
 	return client
 }
 
@@ -71,6 +70,7 @@ func (client *RaftClient) SetQueue(q *queue.Queue) {
 		//client.InitBlock()
 	})
 	go client.EventLoop()
+	client.readCommits(client.commitC, client.errorC)
 	go client.readCommits(client.commitC, client.errorC)
 	go client.pollingTask(q)
 }
@@ -118,7 +118,7 @@ func (client *RaftClient) CreateBlock() {
 			log.Warn("I'm not the validator node anymore,exit.=============================")
 			break
 		}
-		log.Info("==================start create new block!=====================")
+		rlog.Info("==================This is Leader node=====================")
 		if issleep {
 			time.Sleep(10 * time.Second)
 		}
@@ -128,14 +128,11 @@ func (client *RaftClient) CreateBlock() {
 			continue
 		}
 		issleep = false
+		rlog.Info("==================start create new block!=====================")
 		//check dup
 		txs = client.CheckTxDup(txs)
 		fmt.Println(len(txs))
 		lastBlock := client.GetCurrentBlock()
-		rlog.Warn("**************************************lastBlockHeight:")
-		fmt.Println(lastBlock.Height)
-		rlog.Warn("**************************************lastBlockHeight:")
-		fmt.Println(lastBlock.StateHash)
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -145,14 +142,16 @@ func (client *RaftClient) CreateBlock() {
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
+		client.propose(&newblock)
+		time.Sleep(time.Second)
+
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			issleep = true
 			log.Error("********************err:", err)
 			continue
 		}
-		rlog.Info("Send block to raft core")
-		client.propose(&newblock)
+
 	}
 }
 
@@ -180,9 +179,7 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 	for {
 		select {
 		case data := <-commitC:
-			rlog.Info("Get block from commit channel")
 			if data == nil {
-				rlog.Info("data is nil===================================")
 				snapshot, err := client.snapshotter.Load()
 				if err == snap.ErrNoSnapshot {
 					return
@@ -194,12 +191,11 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 				}
 				continue
 			}
+			rlog.Info("===============Get block from commit channel===========")
 			// 在程序刚开始启动的时候有可能存在丢失数据的问题
 			client.SetCurrentBlock(data)
-			log.Info("============follower recev block successfully!======")
 
 		case err, ok := <-errorC:
-			log.Info("============error======")
 			if ok {
 				panic(err)
 			}
@@ -213,23 +209,20 @@ func (client *RaftClient) pollingTask(q *queue.Queue) {
 	for {
 		select {
 		case validator := <-client.validatorC:
-			if value, ok := validator[LeaderIsOK]; ok && !value {
-				//leaderIsOK=false
-			} else if !leaderIsOK && value {
-				log.Info("==================start init block========================")
+			if value, ok := validator[LeaderIsOK]; ok && value {
 				client.InitBlock()
-				leaderIsOK = true
-			}
-			if value, ok := validator[IsLeader]; ok && !value {
-				log.Warn("I'm not the validator node!=====")
-				isLeader = false
-			} else if !isLeader && value {
-				client.InitMiner()
-				//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
-				// 老的leader中运行的打包程此刻应该被终止？
-				isLeader = true
-				go client.EventLoop()
-				go client.CreateBlock()
+
+				if value, ok := validator[IsLeader]; ok && !value {
+					rlog.Warn("================I'm not the validator node!=============")
+					isLeader = false
+				} else if !isLeader && value {
+					client.InitMiner()
+					//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
+					// 老的leader中运行的打包程此刻应该被终止？
+					isLeader = true
+					go client.EventLoop()
+					go client.CreateBlock()
+				}
 			}
 		}
 	}
