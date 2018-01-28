@@ -762,6 +762,9 @@ message Ticket {
 
 message ReceiptTicket {
 	string ticketId = 1;
+	int32 status = 2;
+	int32 prevStatus = 3;
+	string addr = 4;
 }
 
 //seed
