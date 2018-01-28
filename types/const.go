@@ -46,6 +46,8 @@ var ErrEmpty = errors.New("ErrEmpty")
 var ErrSendSameToRecv = errors.New("ErrSendSameToRecv")
 var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
 var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
+var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
+var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
@@ -61,6 +63,8 @@ const RetargetAdjustmentFactor = 4
 const MaxTxsPerBlock = 100000
 
 var AllowDepositExec = []string{"ticket"}
+var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
+
 var PowLimit = big.NewInt(0)
 
 const (

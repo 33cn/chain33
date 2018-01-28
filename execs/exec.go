@@ -2,6 +2,8 @@ package execs
 
 //store package store the world - state data
 import (
+	"bytes"
+
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
@@ -124,6 +126,11 @@ func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 			return
 		}
 		if kv != nil && kv.KV != nil {
+			err := exec.checkPrefix(tx.Execer, kv.KV)
+			if err != nil {
+				msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, err))
+				return
+			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
@@ -145,11 +152,31 @@ func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 			msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, err))
 			return
 		}
+
 		if kv != nil && kv.KV != nil {
+			err := exec.checkPrefix(tx.Execer, kv.KV)
+			if err != nil {
+				msg.Reply(q.GetClient().NewMessage("", types.EventDelBlock, err))
+				return
+			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
 	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, &kvset))
+}
+
+func (exec *Execs) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
+	if kvs == nil {
+		return nil
+	}
+	if bytes.HasPrefix(execer, []byte("user.")) {
+		for j := 0; j < len(kvs); j++ {
+			if !bytes.HasPrefix(kvs[j].Key, execer) {
+				return types.ErrLocalDBPerfix
+			}
+		}
+	}
+	return nil
 }
 
 func (exec *Execs) Close() {

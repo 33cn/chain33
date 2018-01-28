@@ -2,6 +2,7 @@ package types
 
 import (
 	"runtime"
+	"strings"
 	"sync"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -15,6 +16,18 @@ import (
 var tlog = log.New("module", "types")
 
 type Message proto.Message
+
+func isAllowExecName(name string) bool {
+	if strings.HasPrefix(name, "user.") {
+		return true
+	}
+	for i := range AllowUserExec {
+		if AllowUserExec[i] == name {
+			return true
+		}
+	}
+	return false
+}
 
 //hash 不包含签名，用户通过修改签名无法重新发送交易
 func (tx *Transaction) Hash() []byte {
@@ -47,6 +60,9 @@ func (tx *Transaction) CheckSign() bool {
 }
 
 func (tx *Transaction) Check() error {
+	if !isAllowExecName(string(tx.Execer)) {
+		return ErrExecNameNotAllow
+	}
 	txSize := Size(tx)
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
