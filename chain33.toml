@@ -19,9 +19,9 @@ isSeed=false
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
-version=11
-verMix=11
-verMax=12
+version=16
+verMix=16
+verMax=17
 
 [mempool]
 poolCacheSize=10240
