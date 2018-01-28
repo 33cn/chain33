@@ -37,6 +37,7 @@ var (
 	//wasLeader               bool   = false
 	defaultSnapCount        uint64 = 10000
 	snapshotCatchUpEntriesN uint64 = 10000
+	leaderCache             uint64
 )
 
 type raftNode struct {
@@ -251,6 +252,7 @@ func (rc *raftNode) serveChannels() {
 				return
 			}
 			rc.maybeTriggerSnapshot()
+
 			rc.node.Advance()
 		case err := <-rc.transport.ErrorC:
 			rc.writeError(err)
@@ -265,22 +267,26 @@ func (rc *raftNode) serveChannels() {
 
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
+	// TODO: Sould add tcp healthy check
+	time.Sleep(15 * time.Second)
 	for {
-		time.Sleep(5*time.Second)
 		validatorMap = make(map[string]bool)
-		leadId := rc.Leader()
-		if leadId != raft.None {
-			validatorMap[LeaderIsOK] = true
-		} else {
+		if rc.Leader() == raft.None {
+			rlog.Info("==============Leader is not ready==============")
 			validatorMap[LeaderIsOK] = false
-		}
-		if rc.id == int(leadId) {
-			validatorMap[IsLeader] = true
 		} else {
-			validatorMap[IsLeader] = false
-		}
-		rc.validatorC <- validatorMap
 
+			// 获取到leader Id,选主成功
+			validatorMap[LeaderIsOK] = true
+
+			if rc.id == int(rc.Leader()) {
+				validatorMap[IsLeader] = true
+			} else {
+				validatorMap[IsLeader] = false
+			}
+		}
+		time.Sleep(time.Second)
+		rc.validatorC <- validatorMap
 	}
 }
 
