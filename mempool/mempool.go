@@ -50,7 +50,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.badChan = make(chan queue.Message, channelSize)
 	pool.balanChan = make(chan queue.Message, channelSize)
 	pool.goodChan = make(chan queue.Message, channelSize)
-	pool.minFee = minTxFee
+	pool.minFee = types.MinFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	return pool
 }
@@ -58,9 +58,6 @@ func New(cfg *types.MemPool) *Mempool {
 func initConfig(cfg *types.MemPool) {
 	if cfg.PoolCacheSize > 0 {
 		poolCacheSize = cfg.PoolCacheSize
-	}
-	if cfg.MinTxFee > 0 {
-		minTxFee = cfg.MinTxFee
 	}
 }
 

@@ -46,6 +46,19 @@ func (tx *Transaction) CheckSign() bool {
 	return CheckSign(data, tx.GetSignature())
 }
 
+func (tx *Transaction) Check() error {
+	txSize := Size(tx)
+	if txSize > int(MaxTxSize) {
+		return ErrTxMsgSizeTooBig
+	}
+	// 检查交易费是否小于最低值
+	realFee := int64(txSize/1000+1) * MinFee
+	if tx.Fee < realFee {
+		return ErrTxFeeTooLow
+	}
+	return nil
+}
+
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 //检查交易是否过期，过期返回true，未过期返回false

@@ -23,15 +23,9 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	}
 	mem.addedTxs.Add(string(tx.Hash()), nil)
 	// 检查交易消息是否过大
-	txSize := types.Size(tx)
-	if txSize > int(maxMsgByte) {
-		msg.Data = bigMsgErr
-		return msg
-	}
-	// 检查交易费是否小于最低值
-	realFee := int64(txSize/1000+1) * mem.GetMinFee()
-	if tx.Fee < realFee {
-		msg.Data = lowFeeErr
+	err := tx.Check()
+	if err != nil {
+		msg.Data = err
 		return msg
 	}
 	// 检查交易账户在Mempool中是否存在过多交易
