@@ -44,10 +44,15 @@ var ErrToAddrNotSameToExecAddr = errors.New("ErrToAddrNotSameToExecAddr")
 var ErrTypeAsset = errors.New("ErrTypeAsset")
 var ErrEmpty = errors.New("ErrEmpty")
 var ErrSendSameToRecv = errors.New("ErrSendSameToRecv")
+var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
+var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
 const CoinReward int64 = 1e9
+const MinFee int64 = 1e6
+const MaxTxSize int64 = 100000      //100K
+const MaxBlockSize int64 = 10000000 //10M
 const PowLimitBits uint32 = uint32(0)
 
 const TargetTimespan = 144 * 16 * time.Second
@@ -141,7 +146,7 @@ const (
 	EventLocalReplyValue = 77
 	EventLocalList       = 78
 	EventLocalSet        = 79
-EventGetWalletStatus = 80
+	EventGetWalletStatus = 80
 )
 
 var eventname = map[int]string{
@@ -224,7 +229,7 @@ var eventname = map[int]string{
 	77: "EventLocalReplyValue",
 	78: "EventLocalList",
 	79: "EventLocalSet",
-80:"EventGetWalletStatus",
+	80: "EventGetWalletStatus",
 }
 
 func GetEventName(event int) string {

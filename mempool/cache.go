@@ -34,7 +34,7 @@ func newTxCache(cacheSize int64) *txCache {
 // txCache.LowestFee返回txHeap第一个元素的交易Fee
 func (cache *txCache) LowestFee() int64 {
 	if cache.Size() == 0 {
-		return minTxFee
+		return types.MinFee
 	}
 	return cache.txLlrb.Min().(*Item).priority
 }

@@ -71,6 +71,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 			receipts = append(receipts, receipt)
 			continue
 		}
+
 		//正常的区块：
 		err := execute.checkTx(tx, index)
 		if err != nil {
@@ -192,8 +193,8 @@ func (e *Execute) checkTx(tx *types.Transaction, index int) error {
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) { //如果已经过期
 		return types.ErrTxExpire
 	}
-	if tx.Fee < minFee {
-		return types.ErrFeeTooLow
+	if err := tx.Check(); err != nil {
+		return err
 	}
 	return nil
 }
