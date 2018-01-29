@@ -1,5 +1,5 @@
 chain33
-datadir
+datadir*
 .DS_Store
 *.log
 *.exe
