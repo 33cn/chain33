@@ -103,7 +103,7 @@ FOR_LOOP:
 						if n.nodeInfo.blacklist.Has(addr) == false {
 							whitlist[addr] = true
 						} else {
-							log.Warn("Filter addr", "BlackList", addr)
+							log.Debug("Filter addr", "BlackList", addr)
 						}
 					}
 
@@ -147,7 +147,7 @@ FOR_LOOP:
 					for _, addr := range oklist {
 
 						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
-							log.Info("GetAddrFromOffline", "Add addr", addr)
+							log.Debug("GetAddrFromOffline", "Add addr", addr)
 							savelist[addr] = true
 						}
 						//log.Error("getAddrFromOffline", "list", savelist)
