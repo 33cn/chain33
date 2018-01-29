@@ -1,26 +1,34 @@
 package p2p
 
 import (
-	"code.aliyun.com/chain33/chain33/types"
+	"sync/atomic"
+	"time"
 
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
+	"code.aliyun.com/chain33/chain33/types"
 	l "github.com/inconshreveable/log15"
 )
 
 var log = l.New("module", "p2p")
+var ps *common.PubSub
 
 type P2p struct {
-	q           *queue.Queue
-	c           queue.IClient
-	node        *Node
-	addrBook    *AddrBook // known peers
-	cli         *P2pCli
-	taskFactory chan struct{}
-	done        chan struct{}
-	loopdone    chan struct{}
+	q            *queue.Queue
+	c            queue.IClient
+	node         *Node
+	addrBook     *AddrBook // known peers
+	cli          *P2pCli
+	txCapcity    int32
+	txFactory    chan struct{}
+	otherFactory chan struct{}
+	done         chan struct{}
+	loopdone     chan struct{}
 }
 
 func New(cfg *types.P2P) *P2p {
+
+	ps = common.NewPubSub(int(cfg.GetMsgCacheSize()))
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
@@ -39,38 +47,69 @@ func (network *P2p) Stop() {
 
 func (network *P2p) Close() {
 	network.Stop()
-	log.Debug("close", "network", "done")
+	log.Debug("close", "network", "ShowTaskCapcity done")
 	network.cli.Close()
 	log.Debug("close", "msg", "done")
 	network.node.Close()
 	log.Debug("close", "node", "done")
 	network.c.Close()
 	<-network.loopdone
-	close(network.taskFactory)
+	log.Debug("close", "loopdone", "done")
+	close(network.txFactory)
+	close(network.otherFactory)
+	ps.Shutdown()
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.GetClient()
 	network.q = q
 	network.node.setQueue(q)
-	network.node.Start()
-	network.subP2pMsg()
-	network.cli.monitorPeerInfo()
-
+	go func() {
+		network.node.Start()
+		network.cli.monitorPeerInfo()
+		network.subP2pMsg()
+	}()
 }
 
+func (network *P2p) ShowTaskCapcity() {
+	ticker := time.NewTicker(time.Second * 5)
+	log.Info("ShowTaskCapcity", "Capcity", network.txCapcity)
+	defer ticker.Stop()
+	for {
+
+		select {
+		case <-network.done:
+			log.Debug("ShowTaskCapcity", "Show", "will Done")
+			return
+		case <-ticker.C:
+			log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
+
+		}
+	}
+}
 func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return
 	}
-	network.taskFactory = make(chan struct{}, 2000) // 2000 task
+	network.txFactory = make(chan struct{}, 1000)    // 1000 task
+	network.otherFactory = make(chan struct{}, 1000) //other task 1000
+	network.txCapcity = 1000
 	network.c.Sub("p2p")
+	go network.ShowTaskCapcity()
 	go func() {
 		//TODO channel
 		for msg := range network.c.Recv() {
-			network.taskFactory <- struct{}{} //allocal task
-			log.Debug("SubP2pMsg", "Ty", msg.Ty)
 
+			log.Debug("Recv", "Ty", msg.Ty)
+			if msg.Ty == types.EventTxBroadcast {
+				network.txFactory <- struct{}{} //allocal task
+				atomic.AddInt32(&network.txCapcity, -1)
+			} else {
+				if msg.Ty != types.EventPeerInfo {
+					network.otherFactory <- struct{}{}
+				}
+
+			}
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
 				go network.cli.BroadCastTx(msg)
@@ -85,7 +124,7 @@ func (network *P2p) subP2pMsg() {
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
-
+				<-network.otherFactory
 				continue
 			}
 		}

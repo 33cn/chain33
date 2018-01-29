@@ -41,6 +41,12 @@
 			"revisionTime": "2017-10-02T20:02:53Z"
 		},
 		{
+			"checksumSHA1": "xqVDKHGnakGlcRhmWd1j9JYmfLc=",
+			"path": "github.com/dchest/siphash",
+			"revision": "4ebf1de738443ea7f45f02dc394c4df1942a126d",
+			"revisionTime": "2016-08-31T15:17:26Z"
+		},
+		{
 			"checksumSHA1": "KrIRJ4p3nRze4NcxfgX5+N9+D1M=",
 			"path": "github.com/go-kit/kit/log",
 			"revision": "e2b298466b32c7cd5579a9b9b07e968fc9d9452c",
@@ -487,6 +493,12 @@
 		{
 			"path": "google.golang.org/appengine/user",
 			"revision": ""
+		},
+		{
+			"checksumSHA1": "CEFTYXtWmgSh+3Ik1NmDaJcz4E0=",
+			"path": "gopkg.in/check.v1",
+			"revision": "20d25e2804050c1cd24a7eea1e7a6447dd0e74ec",
+			"revisionTime": "2016-12-08T18:13:25Z"
 		},
 		{
 			"checksumSHA1": "t86TO2diBlVDC3crMpBkn5JF4tU=",

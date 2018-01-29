@@ -1,7 +1,12 @@
 package rpc
 
 import (
+	"errors"
+	"math/rand"
+	"time"
+
 	"code.aliyun.com/chain33/chain33/account"
+
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -13,6 +18,8 @@ import (
 
 type IRClient interface {
 	SendTx(tx *types.Transaction) queue.Message
+	CreateRawTransaction(parm *types.CreateTx) ([]byte, error)
+	SendRawTransaction(parm *types.SignedTx) queue.Message
 	SetQueue(q *queue.Queue)
 	QueryTx(hash []byte) (proof *types.TransactionDetail, err error)
 	GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error)
@@ -38,6 +45,11 @@ type IRClient interface {
 	GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 	GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error)
 	GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error)
+	//seed
+	GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error)
+	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
+	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
+	GetWalletStatus() (*types.Reply, error)
 }
 
 type channelClient struct {
@@ -68,6 +80,48 @@ func (client *channelClient) SetQueue(q *queue.Queue) {
 
 	client.qclient = q.GetClient()
 	client.q = q
+
+}
+
+func (client *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
+	}
+	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: parm.GetAmount(), Note: parm.GetNote()}}
+	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+
+	//初始化随机数
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: parm.GetFee(), To: parm.GetTo(), Nonce: r.Int63()}
+	data := types.Encode(tx)
+	return data, nil
+
+}
+
+func (client *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
+	var tx types.Transaction
+	err := types.Decode(parm.GetUnsign(), &tx)
+
+	if err == nil {
+		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
+		msg := client.qclient.NewMessage("mempool", types.EventTx, &tx)
+		client.qclient.Send(msg, true)
+		resp, err := client.qclient.Wait(msg)
+
+		if err != nil {
+
+			resp.Data = err
+
+		}
+		if resp.GetData().(*types.Reply).GetIsOk() {
+			resp.GetData().(*types.Reply).Msg = tx.Hash()
+		}
+
+		return resp
+	}
+	var msg queue.Message
+	msg.Data = err
+	return msg
 
 }
 
@@ -350,4 +404,44 @@ func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash,
 	}
 
 	return resp.Data.(*types.ReplyHash), nil
+}
+
+//seed
+func (client *channelClient) GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventGenSeed, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.ReplySeed), nil
+}
+func (client *channelClient) SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventSaveSeed, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.Reply), nil
+}
+func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventGetSeed, parm)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.ReplySeed), nil
+}
+
+func (client *channelClient) GetWalletStatus() (*types.Reply, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventGetWalletStatus, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.Reply), nil
 }

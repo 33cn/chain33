@@ -43,7 +43,7 @@ func (t *Task) tick() {
 		}
 		t.Lock()
 		if err := t.stop(); err == nil {
-			chainlog.Error("task is done", "timer is stop", t.start)
+			chainlog.Debug("task is done", "timer is stop", t.start)
 		}
 		t.Unlock()
 	}
@@ -55,6 +55,20 @@ func (t *Task) InProgress() bool {
 	return t.isruning
 }
 
+func (t *Task) TimerReset(timeout time.Duration) {
+	t.TimerStop()
+	t.ticker.Reset(timeout)
+}
+
+func (t *Task) TimerStop() {
+	if !t.ticker.Stop() {
+		select {
+		case <-t.ticker.C:
+		default:
+		}
+	}
+}
+
 func (t *Task) Start(start, end int64, cb func()) error {
 	t.Lock()
 	defer t.Unlock()
@@ -64,9 +78,9 @@ func (t *Task) Start(start, end int64, cb func()) error {
 	if start > end {
 		return types.ErrStartBigThanEnd
 	}
-	chainlog.Error("task start:", "start", start, "end", end)
+	chainlog.Debug("task start:", "start", start, "end", end)
 	t.isruning = true
-	t.ticker.Reset(t.timeout)
+	t.TimerReset(t.timeout)
 	t.start = start
 	t.end = end
 	t.cb = cb
@@ -82,9 +96,9 @@ func (t *Task) Done(height int64) {
 		return
 	}
 	if height >= t.start && height <= t.end {
-		chainlog.Error("done", "height", height)
+		chainlog.Debug("done", "height", height)
 		t.done(height)
-		t.ticker.Reset(t.timeout)
+		t.TimerReset(t.timeout)
 	}
 }
 
@@ -96,7 +110,7 @@ func (t *Task) stop() error {
 	if t.cb != nil {
 		go t.cb()
 	}
-	t.ticker.Stop()
+	t.TimerStop()
 	return nil
 }
 
@@ -113,7 +127,7 @@ func (t *Task) done(height int64) {
 			//任务完成
 		}
 		if t.start > t.end {
-			chainlog.Error("----task is done----")
+			chainlog.Debug("----task is done----")
 			t.stop()
 		}
 	}

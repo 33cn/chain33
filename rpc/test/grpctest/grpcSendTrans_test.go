@@ -31,7 +31,7 @@ func init() {
 func TestGrpcSendToAddress(t *testing.T) {
 	priv := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	keymap := make(map[string]crypto.PrivKey)
-	N := 100
+	N := 95
 	header, err := getlastheader()
 	if err != nil {
 		t.Error(err)
@@ -40,7 +40,7 @@ func TestGrpcSendToAddress(t *testing.T) {
 	fmt.Println("before send...", header.Height)
 	for i := 0; i < N; i++ {
 		addrto, privkey := genaddress()
-		err := sendtoaddress(priv, addrto, 1e10)
+		err := sendtoaddress(priv, addrto, 1e9)
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(time.Second)

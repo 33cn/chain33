@@ -14,11 +14,9 @@ import (
 
 func (l *DefaultListener) Close() bool {
 	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
-	log.Debug("stop", "closed natport", "close")
-	l.server.Stop()
-	log.Debug("stop", "closed grpc server", "close")
+	//log.Debug("stop", "closed natport", "close")
 	l.listener.Close()
-	log.Debug("stop", "DefaultListener", "close")
+	log.Error("stop", "DefaultListener", "close")
 	return true
 }
 
@@ -52,7 +50,7 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	}
 	pServer := NewP2pServer()
 	pServer.node = dl.n
-	pServer.innerBroadBlock()
+	pServer.ManageStream()
 	dl.server = grpc.NewServer()
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	go dl.NatMapPort()
@@ -66,8 +64,7 @@ func (l *DefaultListener) WaitForNat() {
 }
 
 func (l *DefaultListener) NatMapPort() {
-	if l.nodeInfo.cfg.GetIsSeed() == true {
-
+	if IsOutSide == true { //在外网的节点不需要映射端口
 		return
 	}
 	l.WaitForNat()
@@ -79,7 +76,7 @@ func (l *DefaultListener) NatMapPort() {
 			log.Error("NatMapPort", "err", err.Error())
 			l.n.externalPort = uint16(rand.Intn(64512) + 1023)
 			l.n.FlushNodeInfo()
-			log.Info("NatMapPort", "Port", l.n.nodeInfo.GetExternalAddr())
+			log.Info("NatMapPort", "New External Port", l.n.nodeInfo.GetExternalAddr())
 			continue
 		}
 
@@ -87,7 +84,7 @@ func (l *DefaultListener) NatMapPort() {
 	}
 	if err != nil {
 		//映射失败
-		log.Error("NatMapPort", "Nat Faild", "Sevice6")
+		log.Warn("NatMapPort", "Nat Faild", "Sevice=6")
 		l.nodeInfo.natResultChain <- false
 		return
 	}

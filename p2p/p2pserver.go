@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"io"
 
 	"fmt"
 	"strings"
@@ -41,7 +42,7 @@ func NewP2pServer() *p2pServer {
 }
 
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	log.Debug("p2pServer PING", "RECV PING", "PING")
+	//log.Error("p2pServer PING", "Ip", in.GetAddr(), "Port", in.GetPort())
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		log.Debug("PING addr", "Addr", getctx.Addr.String())
@@ -108,16 +109,18 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		log.Debug("Version2", "Addr", peeraddr)
 	}
 
-	log.Debug("RECV PEER VERSION", "VERSION", *in)
+	//log.Error("RECV PEER VERSION", "VERSION", in.AddrFrom, "SERVICE", in.GetService())
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
-	//in.AddrFrom 表示远程客户端的地址,如果客户端的远程地址与自己定义的addrfrom 地址一直，则认为在外网
-	if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
-		remoteNetwork, err := NewNetAddressString(in.AddrFrom)
-		if err == nil && in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM {
+
+	//if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
+	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1]))
+	if err == nil /*&& in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM*/ {
+		if len(P2pComm.AddrTest([]string{remoteNetwork.String()})) == 1 {
 			s.node.addrBook.AddAddress(remoteNetwork)
 		}
+
 	}
 
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
@@ -137,7 +140,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
-	log.Error("p2pServer GetBlocks", "P2P Recv", in)
+	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
@@ -320,9 +323,42 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 
 	return resp.GetData().(*pb.Reply), nil
 }
+func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
+	go func() error {
 
-func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServer) error {
-	log.Debug("RouteChat", "stream", stream)
+		for {
+
+			in, err := stream.Recv()
+			if err == io.EOF {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			//收到stream 交给
+			if block := in.GetBlock(); block != nil {
+				log.Info("RouteChat", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
+				if block.GetBlock() != nil {
+
+					msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					s.node.nodeInfo.qclient.Send(msg, true)
+					_, err = s.node.nodeInfo.qclient.Wait(msg)
+					if err != nil {
+						continue
+					}
+				}
+
+			} else if tx := in.GetTx(); tx != nil {
+				log.Debug("RouteChat", "tx", tx.GetTx())
+				if tx.GetTx() != nil {
+					msg := s.node.nodeInfo.qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					s.node.nodeInfo.qclient.Send(msg, false)
+				}
+
+			}
+		}
+	}()
+
 	dataChain := s.addStreamHandler(stream)
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)
@@ -337,7 +373,6 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 
 		err := stream.Send(p2pdata)
 		if err != nil {
-			//log.Error("RouteChat", "Err", err.Error())
 			s.deleteSChan <- stream
 			return err
 		}
@@ -347,14 +382,24 @@ func (s *p2pServer) RouteChat(in *pb.ReqNil, stream pb.P2Pgservice_RouteChatServ
 
 }
 
-func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
-	var addrlist = make([]string, 0)
+func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PExternalInfo, error) {
+	var remoteaddr string
+	var outside bool
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
-		remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
-		addrlist = append(addrlist, remoteaddr)
+		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
+		//addrlist = append(addrlist, remoteaddr)
+		//Check IsOutSide?
+		if len(P2pComm.AddrTest([]string{fmt.Sprintf("%v:%v", remoteaddr, DefaultPort)})) == 0 {
+			//inside network
+			outside = false
+		} else {
+			//outside network
+			outside = true
+
+		}
 	}
-	return &pb.P2PAddr{Addrlist: addrlist}, nil
+	return &pb.P2PExternalInfo{Addr: remoteaddr, Isoutside: outside}, nil
 }
 
 func (s *p2pServer) checkVersion(version int32) bool {
@@ -384,10 +429,11 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	}
 	return txmap, nil
 }
-func (s *p2pServer) innerBroadBlock() {
+func (s *p2pServer) ManageStream() {
+	go s.deleteDisableStream()
 	go func() {
 		for block := range s.node.nodeInfo.p2pBroadcastChan {
-			log.Debug("innerBroadBlock", "Block", block)
+			//log.Error("innerBroadBlock", "Block", "+++++++++")
 			s.addStreamBlock(block)
 		}
 	}()
@@ -426,6 +472,10 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 	timetikc := time.NewTicker(time.Second * 1)
 	defer timetikc.Stop()
 	for stream, _ := range s.streams {
+		if _, ok := s.streams[stream]; !ok {
+			log.Error("AddStreamBLock", "No this Stream", "++++++")
+			continue
+		}
 		select {
 		case s.streams[stream] <- block:
 			log.Debug("addStreamBlock", "stream", stream)
@@ -436,8 +486,16 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 	}
 
 }
+
+func (s *p2pServer) deleteDisableStream() {
+	for stream := range s.deleteSChan {
+		s.deleteStream(stream)
+	}
+}
 func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
+	log.Info("deleteStream", "delete", stream)
+	close(s.streams[stream])
 	delete(s.streams, stream)
 }
