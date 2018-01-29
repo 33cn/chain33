@@ -28,10 +28,16 @@ func DisableLog() {
 
 type Executer interface {
 	SetDB(dbm.KVDB)
+	SetLocalDB(dbm.KVDB)
+	SetQueryDB(dbm.DB)
 	GetName() string
+	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64)
+	CheckTx(tx *types.Transaction, index int) error
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
-	Query(tx *types.Transaction) (types.Message, error)
+	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
+	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
+	Query(funcName string, params types.Message) (types.Message, error)
 }
 
 var (

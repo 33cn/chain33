@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -12,6 +13,43 @@ type Chain33 struct {
 	cli     IRClient
 }
 
+func (req Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
+	reply, err := req.cli.CreateRawTransaction(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+
+}
+func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
+	var stx types.SignedTx
+	var err error
+
+	stx.Pubkey, err = hex.DecodeString(in.Pubkey)
+	if err != nil {
+		return err
+	}
+
+	stx.Sign, err = hex.DecodeString(in.Sign)
+	if err != nil {
+		return err
+	}
+	stx.Unsign, err = hex.DecodeString(in.Unsign)
+	if err != nil {
+		return err
+	}
+	stx.Ty = in.Ty
+	reply := req.cli.SendRawTransaction(&stx)
+	if reply.GetData().(*types.Reply).IsOk {
+		*result = "0x" + hex.EncodeToString(reply.GetData().(*types.Reply).Msg)
+		return nil
+	} else {
+
+		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
+	}
+}
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
@@ -603,5 +641,47 @@ func (req Chain33) GetBlockHash(in types.ReqInt, result *interface{}) error {
 	var replyHash ReplyHash
 	replyHash.Hash = common.ToHex(reply.GetHash())
 	*result = &replyHash
+	return nil
+}
+
+//seed
+func (req Chain33) GenSeed(in types.GenSeedLang, result *interface{}) error {
+	reply, err := req.cli.GenSeed(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
+func (req Chain33) SaveSeed(in types.SaveSeedByPw, result *interface{}) error {
+	reply, err := req.cli.SaveSeed(&in)
+	if err != nil {
+		return err
+	}
+
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
+	return nil
+}
+func (req Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
+	reply, err := req.cli.GetSeed(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
+
+func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
+	reply, err := req.cli.GetWalletStatus()
+	if err != nil {
+		return err
+	}
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }

@@ -25,6 +25,7 @@ type DB interface {
 	PrefixScan(key []byte) [][]byte
 	IteratorScan(Prefix []byte, key []byte, count int32, direction int32) [][]byte
 	IteratorScanFromLast(key []byte, count int32, direction int32) [][]byte
+	List(prefix, key []byte, count, direction int32) (values [][]byte)
 }
 
 type Batch interface {

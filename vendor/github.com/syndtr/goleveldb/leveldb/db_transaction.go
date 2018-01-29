@@ -8,6 +8,7 @@ package leveldb
 
 import (
 	"errors"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -295,6 +296,7 @@ func (db *DB) OpenTransaction() (*Transaction, error) {
 	case err := <-db.compPerErrC:
 		return nil, err
 	case <-db.closeC:
+		debug.PrintStack()
 		return nil, ErrClosed
 	}
 

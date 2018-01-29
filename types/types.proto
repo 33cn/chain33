@@ -7,6 +7,8 @@ service grpcservice{
 	rpc GetBlocks(ReqBlocks) returns (Reply){}
 	rpc GetLastHeader(ReqNil)returns(Header){}
 	//交易接口
+	rpc CreateRawTransaction(CreateTx)returns(UnsignTx){}
+	rpc SendRawTransaction(SignedTx)returns(Reply){}
 	rpc QueryTransaction(ReqHash) returns (TransactionDetail){}
 	rpc SendTransaction(Transaction) returns (Reply){}
 	rpc GetTransactionByAddr(ReqAddr)returns(ReplyTxInfos){}
@@ -27,7 +29,18 @@ service grpcservice{
 	rpc UnLock(WalletUnLock)returns(Reply){}
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
-	
+
+	rpc GetWalletStatus(ReqNil)returns(Reply){}
+
+	//区块浏览器接口
+	rpc GetBlockOverview(ReqHash) returns(BlockOverview){}
+	rpc GetAddrOverview(ReqAddr) returns(AddrOverview){}
+	rpc GetBlockHash(ReqInt) returns(ReplyHash){}
+
+	//seed
+	rpc GenSeed(GenSeedLang) returns (ReplySeed){}
+	rpc GetSeed(GetSeedByPw) returns  (ReplySeed){}
+	rpc SaveSeed(SaveSeedByPw) returns (Reply){}
 }
 
 
@@ -57,8 +70,8 @@ service p2pgservice{
 	rpc GetHeaders(P2PGetHeaders)returns(P2PHeaders){}
 	//获取 peerinfo
 	rpc GetPeerInfo(P2PGetPeerInfo)returns(P2PPeerInfo){}
-	rpc RouteChat(ReqNil) returns (stream BroadCastData) {}
-	rpc RemotePeerAddr(P2PGetAddr)returns(P2PAddr){}
+	rpc RouteChat(stream BroadCastData) returns (stream BroadCastData) {}
+	rpc RemotePeerAddr(P2PGetAddr)returns(P2PExternalInfo){}
 	
 	
 }
@@ -116,6 +129,10 @@ message P2PAddr{
 	int64 nonce=1;
 	repeated string addrlist=2;
 	
+}
+message P2PExternalInfo{
+	string addr=1;
+	bool   isoutside=2;
 }
 
 message P2PGetBlocks {
@@ -198,6 +215,24 @@ message BlockOverview {
 	Header head = 1;
 	int64  txCount = 2;
 	repeated bytes txHashes = 3;
+}
+
+message CreateTx{
+	string	to=1;
+	int64	amount=2;
+	int64 	fee=3;
+	string	note=4;
+}
+
+message UnsignTx{
+	bytes data=1;
+}
+
+message SignedTx{
+	bytes unsign=1;
+	bytes sign=2;
+	bytes pubkey=3;
+	int32 ty=4;
 }
 
 message Transaction {
@@ -316,7 +351,8 @@ message TxResult {
 	int32 index = 2;
 	Transaction tx = 3;
 	ReceiptData receiptdate =4;
-	int64 blocktime =5;
+	int64  blocktime =5;
+	string actionName = 6;
 }
 
 //resp
@@ -326,6 +362,25 @@ message Headers {
 
 message MempoolSize {
     int64 size = 1;
+}
+
+message LocalDBSet {
+	repeated KeyValue KV = 2;
+}
+
+message LocalDBList {
+	bytes prefix = 1;
+	bytes key = 2;
+	int32 direction = 3;
+	int32 count = 4;
+}
+
+message LocalDBGet {
+	repeated bytes keys = 2;
+}
+
+message LocalReplyValue {
+	repeated bytes values = 2;
 }
 
 message StoreSet {
@@ -347,6 +402,9 @@ message KeyValue {
 	bytes value = 2;
 }
 
+message Int64 {
+	int64 data = 1;
+}
 
 message ReceiptLog {
 	int32 ty = 1;
@@ -374,6 +432,10 @@ message BlockDetail {
 
 message Receipts {
 	repeated Receipt receipts = 1;
+}
+
+message ReceiptCheckTxList {
+    repeated string errs = 1;
 }
 
 message ExecTxList {
@@ -530,6 +592,7 @@ message Config {
 	string logConsoleLevel = 10;
 	string logFile = 9;
 	Store  store=3;
+	LocalStore localStore = 11;
 	Consensus consensus=4;
 	MemPool memPool=5;
 	BlockChain blockChain=6;
@@ -544,9 +607,10 @@ message P2P {
 	bool            isSeed=4;
 	repeated string seeds=5;
 	bool enable=6;
-	int32 version=7;
-	int32 verMix=8;
-	int32 verMax=9;
+	int32 msgCacheSize=7;
+	int32 version=8;
+	int32 verMix=9;
+	int32 verMax=10;
 }
 
 message Wallet{
@@ -555,6 +619,11 @@ message Wallet{
 }
 
 message Store {
+	string driver=1;
+	string dbPath=2;
+}
+
+message LocalStore {
 	string driver=1;
 	string dbPath=2;
 }
@@ -620,6 +689,7 @@ message WalletPwHash {
 message CoinsAction {
 	oneof value {
 		CoinsTransfer  transfer = 1;
+		CoinsWithdraw  withdraw = 4;
 		CoinsGenesis   genesis = 2;
 	}
 	int32 ty = 3;
@@ -633,6 +703,11 @@ message CoinsGenesis {
 }
 
 message CoinsTransfer {
+	int64 amount = 2;
+	string note = 3;
+}
+
+message CoinsWithdraw {
 	int64 amount = 2;
 	string note = 3;
 }
@@ -692,7 +767,11 @@ message Ticket {
 
 message ReceiptTicket {
 	string ticketId = 1;
+	int32 status = 2;
+	int32 prevStatus = 3;
+	string addr = 4;
 }
+
 
 message Hashlock{
 	bytes  hashlockId    = 1;
@@ -731,4 +810,19 @@ message HashlockSend {
 	bytes  secret   = 1;
 	//bytes  hash     = 3;
 }
+
+message GenSeedLang {
+	int32 lang = 1;
+}
+message GetSeedByPw {
+	string passwd = 1;
+}
+message SaveSeedByPw {
+	string seed = 1;
+	string passwd = 2;
+}
+message ReplySeed {
+	string seed = 1;
+}
+
 
