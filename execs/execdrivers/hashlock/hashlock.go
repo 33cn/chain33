@@ -83,3 +83,15 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	//return error
 	return nil, types.ErrActionNotSupport
 }
+
+func (h *Hashlock) GetActionName(tx *types.Transaction) string {
+	return "hashlock"
+}
+
+func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	return h.ExecLocalCommon(tx, receipt, index)
+}
+
+func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	return h.ExecDelLocalCommon(tx, receipt, index)
+}
