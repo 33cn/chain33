@@ -37,9 +37,7 @@ func NewHashlock(id []byte, returnWallet string, toAddress string, blocktime int
 
 func (h *Hashlock) GetKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&h.Hashlock)
-	//if t.Status == 3 {
-	//	value = nil //delete ticket
-	//}
+
 	kvset = append(kvset, &types.KeyValue{HashlockKey(h.HashlockId), value})
 	return kvset
 }
@@ -87,9 +85,9 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 	h := NewHashlock(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
 	//冻结子账户资金
 	receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, hlock.Amount)
-	hlog.Info("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", hlock.Amount)
+
 	if err != nil {
-		hlog.Error("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr)
+		hlog.Error("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", hlock.Amount)
 		return nil, err
 	}
 
@@ -128,12 +126,12 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 		hlog.Error("Hashlockunlock", "action.blocktime-hash.GetCreateTime", action.blocktime-hash.GetCreateTime())
 		return nil, types.ErrTime
 	}
-	hlog.Info("Hashlockunlock")
+
 	//different with typedef in C
 	h := &Hashlock{*hash}
 	receipt, errR := account.ExecActive(action.db, h.ReturnAddress, action.execaddr, h.Amount)
 	if errR != nil {
-		hlog.Error("Hashlockunlock execActive error")
+		hlog.Error("ExecActive error", "ReturnAddress", h.ReturnAddress, "execaddr", action.execaddr, "amount", h.Amount)
 		return nil, errR
 	}
 
@@ -168,10 +166,14 @@ func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Rec
 		hlog.Error("Hashlocksend", "action.blocktime-hash.GetCreateTime", action.blocktime-hash.GetCreateTime())
 		return nil, types.ErrTime
 	}
-	hlog.Info("Hashlocksend")
+
 	//different with typedef in C
 	h := &Hashlock{*hash}
-	receipt, _ := account.ExecTransferFrozen(action.db, h.ReturnAddress, h.ToAddress, action.execaddr, h.Amount)
+	receipt, errR := account.ExecTransferFrozen(action.db, h.ReturnAddress, h.ToAddress, action.execaddr, h.Amount)
+	if errR != nil {
+		hlog.Error("ExecTransferFrozen error", "ReturnAddress", h.ReturnAddress, "ToAddress", h.ToAddress, "execaddr", action.execaddr, "amount", h.Amount)
+		return nil, errR
+	}
 	h.Status = Hashlock_Sent
 	h.Save(action.db)
 	logs = append(logs, receipt.Logs...)
