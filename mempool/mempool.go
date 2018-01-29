@@ -288,6 +288,19 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	return mem.qclient.Wait(msg)
 }
 
+func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptCheckTxList, error) {
+	if mem.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	msg := mem.qclient.NewMessage("execs", types.EventCheckTx, txlist)
+	mem.qclient.Send(msg, true)
+	msg, err := mem.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return msg.GetData().(*types.ReceiptCheckTxList), nil
+}
+
 // Mempool.SendTxToP2P向"p2p"发送消息
 func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 	if mem.qclient == nil {
@@ -369,7 +382,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	}()
 
 	go mem.CheckSignList()
-	go mem.CheckBalanList()
+	go mem.CheckTxList()
 	go mem.RemoveLeftOverTxs()
 	go mem.RemoveBlockedTxs()
 
