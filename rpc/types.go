@@ -12,7 +12,12 @@ type JTransparm struct {
 	Signature *Signature `json:"signature"`
 	Fee       int64      `json:"fee"`
 }
-
+type SignedTx struct {
+	Unsign string `json:"unsigntx"`
+	Sign   string `json:"sign"`
+	Pubkey string `json:"pubkey"`
+	Ty     int32  `json:"ty"`
+}
 type RawParm struct {
 	Data string `json:"data"`
 }
@@ -88,7 +93,7 @@ type TransactionDetail struct {
 }
 
 type ReplyTxInfos struct {
-	TxInfos []*ReplyTxInfo `protobuf:"bytes,1,rep,name=txInfos" json:"txinfos,omitempty"`
+	TxInfos []*ReplyTxInfo `protobuf:"bytes,1,rep,name=txInfos" json:"txinfos"`
 }
 
 type ReplyTxInfo struct {
@@ -159,7 +164,7 @@ type ReqWalletTransactionList struct {
 	Direction int32  `json:"direction"`
 }
 type WalletTxDetails struct {
-	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
+	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txdetails"`
 }
 type WalletTxDetail struct {
 	Tx        *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx"`
@@ -174,6 +179,6 @@ type WalletTxDetail struct {
 
 type BlockOverview struct {
 	Head     *Header  `protobuf:"bytes,1,opt,name=head" json:"head"`
-	TxCount  int64    `protobuf:"varint,2,opt,name=txCount" json:"txCount"`
-	TxHashes []string `protobuf:"bytes,3,rep,name=txHashes,proto3" json:"txHashes"`
+	TxCount  int64    `protobuf:"varint,2,opt,name=txCount" json:"txcount"`
+	TxHashes []string `protobuf:"bytes,3,rep,name=txHashes,proto3" json:"txhashes"`
 }

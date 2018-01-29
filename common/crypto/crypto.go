@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"fmt"
+	"sync"
 )
 
 type PrivKey interface {
@@ -36,7 +37,11 @@ var (
 	drivers = make(map[string]Crypto)
 )
 
+var driverMutex sync.Mutex
+
 func Register(name string, driver Crypto) {
+	driverMutex.Lock()
+	defer driverMutex.Unlock()
 	if driver == nil {
 		panic("crypto: Register driver is nil")
 	}
@@ -47,6 +52,8 @@ func Register(name string, driver Crypto) {
 }
 
 func New(name string) (c Crypto, err error) {
+	driverMutex.Lock()
+	defer driverMutex.Unlock()
 	c, ok := drivers[name]
 	if !ok {
 		err = fmt.Errorf("unknown driver %q", name)

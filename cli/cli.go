@@ -184,6 +184,32 @@ func main() {
 			return
 		}
 		GetBlockHash(argsWithoutProg[1])
+	//seed
+	case "genseed":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GenSeed(argsWithoutProg[1])
+	case "saveseed":
+		if len(argsWithoutProg) != 3 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		SaveSeed(argsWithoutProg[1], argsWithoutProg[2])
+	case "getseed":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetSeed(argsWithoutProg[1])
+
+	case "getwalletstatus": //获取钱包的状态
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetWalletStatus()
 	default:
 		fmt.Print("指令错误")
 	}
@@ -216,6 +242,11 @@ func LoadHelp() {
 	fmt.Println("getblockoverview [hash]                                     : 获取区块信息")
 	fmt.Println("getaddroverview [address]                                   : 获取地址交易信息")
 	fmt.Println("getblockhash [height]                                       : 获取区块哈希值")
+	//seed
+	fmt.Println("genseed [lang]                                              : 生成随机的种子,lang=0:英语，lang=1:简体汉字")
+	fmt.Println("saveseed [seed,password]                                    : 保存种子并用密码加密,种子要求15个单词或者汉字,参考genseed输出格式")
+	fmt.Println("getseed [password]                                          : 通过密码获取种子")
+	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 
 }
 
@@ -1097,6 +1128,97 @@ func GetBlockHash(height string) {
 	}
 	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.GetBlockHash", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+//seed
+func GenSeed(lang string) {
+
+	langInt32, err := strconv.ParseInt(lang, 10, 32)
+
+	params := types.GenSeedLang{Lang: int32(langInt32)}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplySeed
+	err = rpc.Call("Chain33.GenSeed", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(string(data))
+}
+
+func SaveSeed(seed string, password string) {
+	params := types.SaveSeedByPw{Seed: seed, Passwd: password}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.SaveSeed", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(string(data))
+}
+func GetSeed(passwd string) {
+	params := types.GetSeedByPw{Passwd: passwd}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplySeed
+	err = rpc.Call("Chain33.GetSeed", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(string(data))
+}
+
+func GetWalletStatus() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

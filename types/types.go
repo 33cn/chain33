@@ -2,7 +2,8 @@ package types
 
 import (
 	"runtime"
-	"sync/atomic"
+	"strings"
+	"sync"
 
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -15,6 +16,18 @@ import (
 var tlog = log.New("module", "types")
 
 type Message proto.Message
+
+func isAllowExecName(name string) bool {
+	if strings.HasPrefix(name, "user.") {
+		return true
+	}
+	for i := range AllowUserExec {
+		if AllowUserExec[i] == name {
+			return true
+		}
+	}
+	return false
+}
 
 //hash 不包含签名，用户通过修改签名无法重新发送交易
 func (tx *Transaction) Hash() []byte {
@@ -44,6 +57,22 @@ func (tx *Transaction) CheckSign() bool {
 		return false
 	}
 	return CheckSign(data, tx.GetSignature())
+}
+
+func (tx *Transaction) Check() error {
+	if !isAllowExecName(string(tx.Execer)) {
+		return ErrExecNameNotAllow
+	}
+	txSize := Size(tx)
+	if txSize > int(MaxTxSize) {
+		return ErrTxMsgSizeTooBig
+	}
+	// 检查交易费是否小于最低值
+	realFee := int64(txSize/1000+1) * MinFee
+	if tx.Fee < realFee {
+		return ErrTxFeeTooLow
+	}
+	return nil
 }
 
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
@@ -98,81 +127,72 @@ func (block *Block) CheckSign() bool {
 	}
 	//检查交易的签名
 	cpu := runtime.NumCPU()
-	ok := multiCoreSign(block.Txs, cpu)
+	ok := checkall(block.Txs, cpu)
 	return ok
 }
 
-func multiCoreSign(txs []*Transaction, n int) bool {
-	if len(txs) == 0 {
-		return true
-	}
-	taskch := make(chan *Transaction)
-	resultch := make(chan bool)
-	done := make(chan struct{}, n)
-	var exitflag int64 = 0
-	var errflag int64 = 0
-	for i := 0; i < n; i++ {
-		go func(i int) {
-			for taskitem := range taskch {
-				//time.Sleep(time.Second)
-				if !isExit(exitflag) {
-					resultch <- taskitem.CheckSign()
-				} else {
-					break
-				}
-			}
-			done <- struct{}{}
-		}(i)
-	}
-	//发送任务
+func gen(done <-chan struct{}, task []*Transaction) <-chan *Transaction {
+	ch := make(chan *Transaction)
 	go func() {
-		for i := 0; i < len(txs); i++ {
-			if !isExit(exitflag) {
-				taskch <- txs[i]
-			} else {
-				break
-			}
-		}
-	}()
-	systemexit := make(chan int, 1)
-	//接收任务回报
-
-	go func() {
-		for i := 0; i < len(txs); i++ {
+		defer func() {
+			close(ch)
+		}()
+		for i := 0; i < len(task); i++ {
 			select {
-			case result := <-resultch:
-				if !result {
-					atomic.StoreInt64(&exitflag, 1)
-					atomic.StoreInt64(&errflag, 1)
-					closeCh(taskch)
-					return
-				}
-			case <-systemexit:
+			case ch <- task[i]:
+			case <-done:
 				return
 			}
 		}
-		closeCh(taskch)
 	}()
-	for i := 0; i < n; i++ {
-		<-done
-	}
-	systemexit <- 1
-	return atomic.LoadInt64(&errflag) == 0
+	return ch
 }
 
-func isExit(exitflag int64) bool {
-	return atomic.LoadInt64(&exitflag) == 1
+type result struct {
+	isok bool
 }
 
-func closeCh(ch chan *Transaction) {
-	for {
+func check(data *Transaction) bool {
+	return data.CheckSign()
+}
+
+func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result) {
+	for task := range taskes {
 		select {
-		case <-ch:
-		default:
-			close(ch)
+		case c <- result{check(task)}:
+		case <-done:
 			return
 		}
 	}
+}
+
+func checkall(task []*Transaction, n int) bool {
+	done := make(chan struct{})
+	defer close(done)
+
+	taskes := gen(done, task)
+
+	// Start a fixed number of goroutines to read and digest files.
+	c := make(chan result) // HLc
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			checksign(done, taskes, c) // HLc
+			wg.Done()
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(c) // HLc
+	}()
+	// End of pipeline. OMIT
+	for r := range c {
+		if r.isok == false {
+			return false
+		}
+	}
+	return true
 }
 
 func CheckSign(data []byte, sign *Signature) bool {

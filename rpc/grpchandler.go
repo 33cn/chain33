@@ -23,6 +23,24 @@ func (req *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.R
 	}
 
 }
+
+func (req *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
+	reply, err := req.cli.CreateRawTransaction(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UnsignTx{Data: reply}, nil
+}
+
+func (req *Grpc) SendRawTransaction(ctx context.Context, in *pb.SignedTx) (*pb.Reply, error) {
+	reply := req.cli.SendRawTransaction(in)
+	if reply.GetData().(*pb.Reply).IsOk {
+		return reply.GetData().(*pb.Reply), nil
+	} else {
+		return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
+	}
+
+}
 func (req *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.TransactionDetail, error) {
 
 	return req.cli.QueryTx(in.Hash)
@@ -240,5 +258,40 @@ func (req *Grpc) GetBlockHash(ctx context.Context, in *pb.ReqInt) (*pb.ReplyHash
 		return nil, err
 	}
 
+	return reply, nil
+}
+
+//seed
+func (req *Grpc) GenSeed(ctx context.Context, in *pb.GenSeedLang) (*pb.ReplySeed, error) {
+	reply, err := req.cli.GenSeed(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
+func (req *Grpc) GetSeed(ctx context.Context, in *pb.GetSeedByPw) (*pb.ReplySeed, error) {
+	reply, err := req.cli.GetSeed(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
+func (req *Grpc) SaveSeed(ctx context.Context, in *pb.SaveSeedByPw) (*pb.Reply, error) {
+	reply, err := req.cli.SaveSeed(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
+
+func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
+
+	reply, err := req.cli.GetWalletStatus()
+	if err != nil {
+		return nil, err
+	}
 	return reply, nil
 }

@@ -9,8 +9,6 @@ import (
 
 var poolCacheSize int64 = 10240           // mempool容量
 var channelSize int64 = 1024              // channel缓存大小
-var minTxFee int64 = 1000000              // 最低交易费
-var maxMsgByte int64 = 100000             // 交易消息最大字节数
 var mempoolExpiredInterval int64 = 600000 // mempool内交易过期时间，10分钟
 var mempoolReSendInterval int64 = 60000   // mempool内交易重发时间，1分钟
 var mempoolAddedTxSize int = 102400       // 已添加过的交易缓存大小

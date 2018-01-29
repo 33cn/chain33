@@ -132,6 +132,11 @@ func (ka *knownAddress) markAttempt() {
 	ka.Attempts += 1
 }
 
+func (ka *knownAddress) GetLastOk() time.Time {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
+	return ka.LastSuccess
+}
 func (ka *knownAddress) GetAttempts() uint {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -141,7 +146,7 @@ func (ka *knownAddress) GetAttempts() uint {
 func (a *AddrBook) AddOurAddress(addr *NetAddress) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	log.Info("Add our address to book", "addr", addr)
+	log.Debug("Add our address to book", "addr", addr)
 	a.ourAddrs[addr.String()] = addr
 }
 func (a *AddrBook) Size() int {
@@ -157,8 +162,6 @@ type addrBookJSON struct {
 }
 
 func (a *AddrBook) saveToFile(filePath string) {
-	log.Info("Saving AddrBook to file", "size", a.Size())
-
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	// Compile Addrs
@@ -270,8 +273,6 @@ func (a *AddrBook) loadFromFile() bool {
 
 // Save saves the book.
 func (a *AddrBook) Save() {
-	log.Info("Saving AddrBook to file", "size", a.Size())
-
 	a.saveToFile(a.filePath)
 }
 
@@ -297,13 +298,7 @@ func (a *AddrBook) AddAddress(addr *NetAddress) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	log.Debug("Add address to book", "addr", addr)
-	//a.addAddress(addr)
 	if addr == nil {
-		return
-	}
-
-	if !addr.Routable() {
-		log.Error("Cannot add non-routable address ", "addr", addr)
 		return
 	}
 
