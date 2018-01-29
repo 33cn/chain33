@@ -53,9 +53,28 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 				exec.procExecAddBlock(msg, q)
 			} else if msg.Ty == types.EventDelBlock {
 				exec.procExecDelBlock(msg, q)
+			} else if msg.Ty == types.EventCheckTx {
+				exec.procExecCheckTx(msg, q)
 			}
 		}
 	}()
+}
+
+func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
+	datas := msg.GetData().(*types.ExecTxList)
+	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	//返回一个列表表示成功还是失败
+	result := &types.ReceiptCheckTxList{}
+	for i := 0; i < len(datas.Txs); i++ {
+		tx := datas.Txs[i]
+		err := execute.CheckTx(tx, i)
+		if err != nil {
+			result.Errs = append(result.Errs, err.Error())
+		} else {
+			result.Errs = append(result.Errs, "")
+		}
+	}
+	msg.Reply(q.GetClient().NewMessage("", types.EventReceiptCheckTx, result))
 }
 
 func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
@@ -73,8 +92,9 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 			receipts = append(receipts, receipt)
 			continue
 		}
-
-		//正常的区块：
+		//交易检查规则：
+		//1. mempool 检查区块，尽量检查更多的错误
+		//2. 打包的时候，尽量打包更多的交易，只要基本的签名，以及格式没有问题
 		err := execute.checkTx(tx, index)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
@@ -201,7 +221,8 @@ func NewExecute(stateHash []byte, q *queue.Queue, height, blocktime int64) *Exec
 }
 
 func (e *Execute) ProcessFee(tx *types.Transaction) (*types.Receipt, error) {
-	accFrom := account.LoadAccount(e.stateDB, account.PubKeyToAddress(tx.Signature.Pubkey).String())
+	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	accFrom := account.LoadAccount(e.stateDB, from)
 	if accFrom.GetBalance()-tx.Fee >= 0 {
 		receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
@@ -224,6 +245,32 @@ func (e *Execute) checkTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	return nil
+}
+
+func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
+	//基本检查
+	err := e.checkTx(tx, index)
+	if err != nil {
+		return err
+	}
+
+	//手续费检查
+	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	accFrom := account.LoadAccount(e.stateDB, from)
+	if accFrom.GetBalance() < types.MinBalanceTransfer {
+		return types.ErrNoBalance
+	}
+	//checkInExec
+	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+	if err != nil {
+		exec, err = execdrivers.LoadExecute("none")
+		if err != nil {
+			panic(err)
+		}
+	}
+	exec.SetDB(e.stateDB)
+	exec.SetEnv(e.height, e.blocktime)
+	return exec.CheckTx(tx, index)
 }
 
 func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
