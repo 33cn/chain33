@@ -57,7 +57,7 @@ func TransferToExec(db dbm.KVDB, from, to string, amount int64) (*types.Receipt,
 		if err := CheckTransfer(db, to, from, -amount); err != nil {
 			return nil, err
 		}
-		receipt, err := execWithdraw(db, from, to, -amount)
+		receipt, err := execWithdraw(db, to, from, -amount)
 		if err != nil {
 			return nil, err
 		}
