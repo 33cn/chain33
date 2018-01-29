@@ -33,6 +33,7 @@ type Executer interface {
 	GetName() string
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64)
+	CheckTx(tx *types.Transaction, index int) error
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)

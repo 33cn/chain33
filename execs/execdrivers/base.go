@@ -137,6 +137,10 @@ func (n *ExecBase) ExecCommon(tx *types.Transaction, index int) (*types.Receipt,
 	return nil, nil
 }
 
+func (n *ExecBase) CheckTx(tx *types.Transaction, index int) error {
+	return nil
+}
+
 func (n *ExecBase) Query(funcname string, params types.Message) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }

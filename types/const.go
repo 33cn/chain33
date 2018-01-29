@@ -53,6 +53,7 @@ const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
 const CoinReward int64 = 1e9
 const MinFee int64 = 1e6
+const MinBalanceTransfer = 1e7
 const MaxTxSize int64 = 100000      //100K
 const MaxBlockSize int64 = 10000000 //10M
 const PowLimitBits uint32 = uint32(0)
@@ -151,6 +152,8 @@ const (
 	EventLocalList       = 78
 	EventLocalSet        = 79
 	EventGetWalletStatus = 80
+	EventCheckTx         = 81
+	EventReceiptCheckTx  = 82
 )
 
 var eventname = map[int]string{
@@ -234,6 +237,8 @@ var eventname = map[int]string{
 	78: "EventLocalList",
 	79: "EventLocalSet",
 	80: "EventGetWalletStatus",
+	81: "EventCheckTx",
+	82: "EventReceiptCheckTx",
 }
 
 func GetEventName(event int) string {
