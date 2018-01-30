@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1034,6 +1035,7 @@ func (db *DB) SizeOf(ranges []util.Range) (Sizes, error) {
 // called after the DB has been closed.
 func (db *DB) Close() error {
 	if !db.setClosed() {
+		debug.PrintStack()
 		return ErrClosed
 	}
 

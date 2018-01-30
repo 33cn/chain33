@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,33 +35,9 @@ type intervalInfo struct {
 	end   int
 }
 
-func (m *P2pCli) addTask(taskid int64) {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-	m.taskinfo[taskid] = true
-}
-
-func (m *P2pCli) queryTask(taskid int64) bool {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-	if _, ok := m.taskinfo[taskid]; ok {
-		return true
-	}
-	return false
-}
-
-func (m *P2pCli) removeTask(taskid int64) {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-	if _, ok := m.taskinfo[taskid]; ok {
-		delete(m.taskinfo, taskid)
-	}
-	return
-}
 func NewP2pCli(network *P2p) *P2pCli {
 	pcli := &P2pCli{
 		network:  network,
-		taskinfo: make(map[int64]bool),
 		loopdone: make(chan struct{}, 3),
 	}
 
@@ -165,9 +142,9 @@ func (m *P2pCli) GetAddr(peer *peer) ([]string, error) {
 	return resp.Addrlist, nil
 }
 
-func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
+func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
 
-	client := nodeinfo.qclient
+	client := node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	client.Send(msg, true)
 	rsp, err := client.Wait(msg)
@@ -178,14 +155,14 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(nodeinfo.externalAddr.Port)})
+	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(node.nodeInfo.externalAddr.Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-	addrfrom := fmt.Sprintf("%v:%v", ExternalIp, nodeinfo.externalAddr.Port)
-	nodeinfo.blacklist.Add(addrfrom)
-	_, err = peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
+	addrfrom := fmt.Sprintf("%v:%v", ExternalIp, node.nodeInfo.externalAddr.Port)
+	node.nodeInfo.blacklist.Add(addrfrom)
+	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: node.nodeInfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 	defer m.CollectPeerStat(err, peer)
@@ -198,7 +175,19 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 		}
 		return err
 	}
+	if strings.Split(resp.GetAddrRecv(), ":")[0] != ExternalIp {
+		ExternalIp = strings.Split(resp.GetAddrRecv(), ":")[0]
+		node.FlushNodeInfo()
 
+	}
+	port, err := strconv.Atoi(strings.Split(resp.GetAddrRecv(), ":")[1])
+	if err != nil {
+		return err
+	}
+	if port != int(node.nodeInfo.GetExternalAddr().Port) {
+		node.SetPort(DefaultPort, uint(port))
+		node.FlushNodeInfo()
+	}
 	//log.Error("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
@@ -278,7 +267,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	peers, infos := m.network.node.GetActivePeers()
 	for _, peer := range peers { //限制对peer 的高频次调用
 
-		log.Error("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
+		log.Info("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
 		peerinfo, ok := infos[peer.Addr()]
 		if !ok {
 			continue
@@ -309,7 +298,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 		}
 
 	}
-	log.Info("Invs", "Invs show", MaxInvs.GetInvs())
+	log.Debug("Invs", "Invs show", MaxInvs.GetInvs())
 	if len(MaxInvs.GetInvs()) == 0 {
 		log.Error("GetBlocks", "getInvs", 0)
 		return
@@ -317,7 +306,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 
 	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
 	var bChan = make(chan *pb.Block, 256)
-	log.Error("downloadblock", "intervals", intervals)
+	log.Debug("downloadblock", "intervals", intervals)
 	var gcount int
 	for index, interval := range intervals {
 		gcount++
@@ -390,7 +379,7 @@ FOOR_LOOP:
 		for {
 			invdatas, err := resp.Recv()
 			if err == io.EOF {
-				log.Error("download", "recv", "IO.EOF", "count", count)
+				log.Info("download", "recv", "IO.EOF", "count", count)
 				resp.CloseSend()
 				break FOOR_LOOP
 			}
@@ -405,7 +394,7 @@ FOOR_LOOP:
 			}
 		}
 	}
-	log.Error("download", "out of func", "ok")
+	log.Info("download", "out of func", "ok")
 }
 
 func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
@@ -471,7 +460,7 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 			end = invsNum
 		}
 		result[i] = &intervalInfo{start: start, end: end}
-		log.Info("caculateInterval", "createinfo", result[i])
+		log.Debug("caculateInterval", "createinfo", result[i])
 		start = end
 	}
 	return result

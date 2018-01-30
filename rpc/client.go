@@ -49,6 +49,7 @@ type IRClient interface {
 	GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error)
 	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
 	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
+	GetWalletStatus() (*types.Reply, error)
 }
 
 type channelClient struct {
@@ -98,14 +99,29 @@ func (client *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte,
 }
 
 func (client *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
-	parm.Tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
-	msg := client.qclient.NewMessage("mempool", types.EventTx, parm.GetTx())
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
-	if err != nil {
-		resp.Data = err
+	var tx types.Transaction
+	err := types.Decode(parm.GetUnsign(), &tx)
+
+	if err == nil {
+		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
+		msg := client.qclient.NewMessage("mempool", types.EventTx, &tx)
+		client.qclient.Send(msg, true)
+		resp, err := client.qclient.Wait(msg)
+
+		if err != nil {
+
+			resp.Data = err
+
+		}
+		if resp.GetData().(*types.Reply).GetIsOk() {
+			resp.GetData().(*types.Reply).Msg = tx.Hash()
+		}
+
+		return resp
 	}
-	return resp
+	var msg queue.Message
+	msg.Data = err
+	return msg
 
 }
 
@@ -417,4 +433,15 @@ func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed,
 		return nil, err
 	}
 	return resp.Data.(*types.ReplySeed), nil
+}
+
+func (client *channelClient) GetWalletStatus() (*types.Reply, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventGetWalletStatus, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.Reply), nil
 }
