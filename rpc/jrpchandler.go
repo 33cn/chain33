@@ -189,6 +189,8 @@ func (req Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 		header.StateHash = common.ToHex(reply.GetStateHash())
 		header.TxHash = common.ToHex(reply.GetTxHash())
 		header.Version = reply.GetVersion()
+		header.Hash = common.ToHex(reply.GetHash())
+		header.TxCount = reply.TxCount
 		*result = &header
 	}
 
