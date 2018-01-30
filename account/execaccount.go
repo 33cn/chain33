@@ -148,7 +148,6 @@ func ExecTransferFrozen(db dbm.KVDB, from, to, execaddr string, amount int64) (*
 	}
 	accFrom := LoadExecAccount(db, from, execaddr)
 	accTo := LoadExecAccount(db, to, execaddr)
-
 	b := accFrom.GetFrozen() - amount
 	if b < 0 {
 		return nil, types.ErrNoBalance

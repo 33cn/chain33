@@ -29,6 +29,7 @@ service grpcservice{
 	rpc UnLock(WalletUnLock)returns(Reply){}
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
+
 	rpc GetWalletStatus(ReqNil)returns(Reply){}
 
 	//区块浏览器接口
@@ -771,7 +772,45 @@ message ReceiptTicket {
 	string addr = 4;
 }
 
-//seed
+
+message Hashlock{
+	bytes  hashlockId    = 1;
+	int32  status        = 2;
+	int64  CreateTime    = 3;
+	string toAddress     = 4;
+	string returnAddress = 5;
+	int64  amount        = 6;
+	int64  frozentime    = 7;
+}
+
+//message for hashlock
+message HashlockAction {
+	oneof value {
+		HashlockLock      hlock   = 1;
+		HashlockSend      hsend   = 2;
+		HashlockUnlock    hunlock = 3;
+	}
+	int32 ty = 4;
+}
+
+message HashlockLock {
+	int64  amount        = 1;
+	int64  time          = 2;
+	bytes  hash          = 3;
+	string toAddress     = 4;
+	string returnAddress = 5;
+}
+
+message HashlockUnlock {
+	bytes  secret   = 1;
+	//bytes  hash     = 3;
+}
+
+message HashlockSend {
+	bytes  secret   = 1;
+	//bytes  hash     = 3;
+}
+
 message GenSeedLang {
 	int32 lang = 1;
 }
@@ -785,7 +824,5 @@ message SaveSeedByPw {
 message ReplySeed {
 	string seed = 1;
 }
-
-
 
 

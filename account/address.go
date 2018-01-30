@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"code.aliyun.com/chain33/chain33/common"
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 func PubKeyToAddress(in []byte) *Address {
@@ -16,6 +17,10 @@ func PubKeyToAddress(in []byte) *Address {
 	a.Version = 0
 	a.Hash160 = common.Rimp160AfterSha256(in)
 	return a
+}
+
+func From(tx *types.Transaction) *Address {
+	return PubKeyToAddress(tx.Signature.Pubkey)
 }
 
 func CheckAddress(addr string) error {
