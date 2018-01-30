@@ -40,54 +40,57 @@ var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
 var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
 var ErrBlockNotFound = errors.New("ErrBlockNotFound")
 var ErrStartBigThanEnd = errors.New("ErrStartBigThanEnd")
+var ErrToAddrNotSameToExecAddr = errors.New("ErrToAddrNotSameToExecAddr")
+var ErrTypeAsset = errors.New("ErrTypeAsset")
+var ErrEmpty = errors.New("ErrEmpty")
+var ErrSendSameToRecv = errors.New("ErrSendSameToRecv")
+var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
+var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
+var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
+var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
 const CoinReward int64 = 1e9
+const MinFee int64 = 1e6
+const MinBalanceTransfer = 1e7
+const MaxTxSize int64 = 100000      //100K
+const MaxBlockSize int64 = 10000000 //10M
 const PowLimitBits uint32 = uint32(0)
 
 const TargetTimespan = 144 * 16 * time.Second
 const TargetTimePerBlock = 16 * time.Second
 const RetargetAdjustmentFactor = 4
+const MaxTxsPerBlock = 100000
 
 var AllowDepositExec = []string{"ticket"}
+var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
+
 var PowLimit = big.NewInt(0)
 
 const (
-	EventTx = 1
-
-	EventGetBlocks = 2
-	EventBlocks    = 3
-
-	EventGetBlockHeight   = 4
-	EventReplyBlockHeight = 5
-
-	EventQueryTx           = 6
-	EventTransactionDetail = 7
-
-	EventReply = 8
-
-	EventTxBroadcast = 9
-	EventPeerInfo    = 10
-
-	EventTxList      = 11
-	EventReplyTxList = 12
-
-	EventAddBlock       = 13
-	EventBlockBroadcast = 14
-
-	EventFetchBlocks = 15
-	EventAddBlocks   = 16
-
-	EventTxHashList      = 17
-	EventTxHashListReply = 18
-
-	EventGetHeaders = 19
-	EventHeaders    = 20
-
-	EventGetMempoolSize = 21
-	EventMempoolSize    = 22
-
+	EventTx                   = 1
+	EventGetBlocks            = 2
+	EventBlocks               = 3
+	EventGetBlockHeight       = 4
+	EventReplyBlockHeight     = 5
+	EventQueryTx              = 6
+	EventTransactionDetail    = 7
+	EventReply                = 8
+	EventTxBroadcast          = 9
+	EventPeerInfo             = 10
+	EventTxList               = 11
+	EventReplyTxList          = 12
+	EventAddBlock             = 13
+	EventBlockBroadcast       = 14
+	EventFetchBlocks          = 15
+	EventAddBlocks            = 16
+	EventTxHashList           = 17
+	EventTxHashListReply      = 18
+	EventGetHeaders           = 19
+	EventHeaders              = 20
+	EventGetMempoolSize       = 21
+	EventMempoolSize          = 22
 	EventStoreGet             = 23
 	EventStoreSet             = 24
 	EventStoreGetReply        = 25
@@ -142,8 +145,15 @@ const (
 	EventSaveSeed     = 72
 	EventGetSeed      = 73
 	EventReplyGetSeed = 74
-
-	EventDelBlock = 75
+	EventDelBlock     = 75
+	//local store
+	EventLocalGet        = 76
+	EventLocalReplyValue = 77
+	EventLocalList       = 78
+	EventLocalSet        = 79
+	EventGetWalletStatus = 80
+	EventCheckTx         = 81
+	EventReceiptCheckTx  = 82
 )
 
 var eventname = map[int]string{
@@ -216,13 +226,19 @@ var eventname = map[int]string{
 	67: "EventStoreRollback",
 	68: "EventStoreCommit",
 	69: "EventCheckBlock",
-
 	70: "EventGenSeed",
 	71: "EventReplyGenSeed",
 	72: "EventSaveSeed",
 	73: "EventGetSeed",
 	74: "EventReplyGetSeed",
 	75: "EventDelBlock",
+	76: "EventLocalGet",
+	77: "EventLocalReplyValue",
+	78: "EventLocalList",
+	79: "EventLocalSet",
+	80: "EventGetWalletStatus",
+	81: "EventCheckTx",
+	82: "EventReceiptCheckTx",
 }
 
 func GetEventName(event int) string {
@@ -262,9 +278,9 @@ const (
 	TyLogGenesis  = 4
 
 	//log for ticket
-	TyLogNewTicket   = 5
-	TyLogCloseTicket = 6
-	TyLogMinerTicket = 7
+	TyLogNewTicket   = 11
+	TyLogCloseTicket = 12
+	TyLogMinerTicket = 13
 )
 
 //exec type
@@ -278,15 +294,15 @@ const (
 const (
 	CoinsActionTransfer = 1
 	CoinsActionGenesis  = 2
+	CoinsActionWithdraw = 3
 )
 
 //ticket
 const (
-	TicketActionGenesis = 1
-	TicketActionOpen    = 2
-	TicketActionClose   = 3
-
-	TicketActionList  = 4 //读的接口不直接经过transaction
-	TicketActionInfos = 5 //读的接口不直接经过transaction
-	TicketActionMiner = 6
+	TicketActionGenesis = 11
+	TicketActionOpen    = 12
+	TicketActionClose   = 13
+	TicketActionList    = 14 //读的接口不直接经过transaction
+	TicketActionInfos   = 15 //读的接口不直接经过transaction
+	TicketActionMiner   = 16
 )

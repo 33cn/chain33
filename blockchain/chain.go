@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -48,8 +49,9 @@ type BlockChain struct {
 	cache      map[int64]*list.Element
 	cacheSize  int64
 	cacheQueue *list.List
-
-	task *Task
+	cfg        *types.BlockChain
+	task       *Task
+	query      *Query
 	//Block 同步阶段用于缓存block信息，
 	blockPool *BlockPool
 
@@ -61,23 +63,20 @@ type BlockChain struct {
 
 	//记录peer的最新block高度,用于节点追赶active链
 	peerMaxBlkHeight int64
-
-	recvdone  chan struct{}
-	poolclose chan struct{}
-	synblock  chan struct{}
-	quit      chan struct{}
+	wg               *sync.WaitGroup
+	recvwg           *sync.WaitGroup
+	synblock         chan struct{}
+	quit             chan struct{}
+	isclosed         int32
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
 
 	//初始化blockstore 和txindex  db
-	blockStoreDB := dbm.NewDB("blockchain", cfg.Driver, cfg.DbPath)
-	blockStore := NewBlockStore(blockStoreDB)
 	initConfig(cfg)
 	pool := NewBlockPool()
 
 	return &BlockChain{
-		blockStore:         blockStore,
 		cache:              make(map[int64]*list.Element),
 		cacheSize:          DefCacheSize,
 		cacheQueue:         list.New(),
@@ -85,9 +84,10 @@ func New(cfg *types.BlockChain) *BlockChain {
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerMaxBlkHeight:   -1,
+		cfg:                cfg,
+		wg:                 &sync.WaitGroup{},
+		recvwg:             &sync.WaitGroup{},
 		task:               newTask(60 * time.Second),
-		recvdone:           make(chan struct{}, 0),
-		poolclose:          make(chan struct{}, 0),
 		quit:               make(chan struct{}, 0),
 		synblock:           make(chan struct{}, 1),
 	}
@@ -112,12 +112,19 @@ func initConfig(cfg *types.BlockChain) {
 }
 
 func (chain *BlockChain) Close() {
-	//wait recv done
-	chain.qclient.Close()
-	<-chain.recvdone
+
+	chainlog.Error("begin close")
+	//等待所有的写线程退出，防止数据库写到一半被暂停
+	atomic.StoreInt32(&chain.isclosed, 1)
+	chain.wg.Wait()
 	//退出线程
+	//退出接受数据
+	chain.qclient.Close()
 	close(chain.quit)
-	//wait
+	//wait for recvwg quit:
+	chain.recvwg.Wait()
+
+	//关闭数据库
 	chain.blockStore.db.Close()
 	chainlog.Info("blockchain module closed")
 }
@@ -125,57 +132,60 @@ func (chain *BlockChain) Close() {
 func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	chain.qclient = q.GetClient()
 	chain.qclient.Sub("blockchain")
+
+	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath)
+	blockStore := NewBlockStore(blockStoreDB, q)
+	chain.blockStore = blockStore
+	chain.query = NewQuery(blockStoreDB)
 	chain.q = q
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
-
 	// 定时同步缓存中的block to db
 	go chain.poolRoutine()
 }
 
 func (chain *BlockChain) ProcRecvMsg() {
-	defer func() {
-		chain.recvdone <- struct{}{}
-	}()
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.qclient.Recv() {
-		chainlog.Info("blockchain recv", "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
+		chain.recvwg.Add(1)
 		switch msgtype {
+		case types.EventLocalGet:
+			go chain.processMsg(msg, reqnum, chain.localGet)
 		case types.EventQueryTx:
-			go chain.queryTx(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.queryTx)
 		case types.EventGetBlocks:
-			go chain.getBlocks(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getBlocks)
 		case types.EventAddBlock: // block
-			go chain.addBlock(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.addBlock)
 		case types.EventGetBlockHeight:
-			go chain.getBlockHeight(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getBlockHeight)
 		case types.EventTxHashList:
-			go chain.txHashList(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.txHashList)
 		case types.EventGetHeaders:
-			go chain.getHeaders(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getHeaders)
 		case types.EventGetLastHeader:
-			go chain.getLastHeader(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getLastHeader)
 		case types.EventAddBlockDetail:
-			go chain.addBlockDetail(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.addBlockDetail)
 		case types.EventBroadcastAddBlock: //block
-			go chain.broadcastAddBlock(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.broadcastAddBlock)
 		case types.EventGetTransactionByAddr:
-			go chain.getTransactionByAddr(msg, reqnum)
-
+			go chain.processMsg(msg, reqnum, chain.getTransactionByAddr)
 		case types.EventGetTransactionByHash:
-			go chain.getTransactionByHashes(msg, reqnum)
-
+			go chain.processMsg(msg, reqnum, chain.getTransactionByHashes)
 		case types.EventGetBlockOverview: //blockOverview
-			go chain.getBlockOverview(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getBlockOverview)
 		case types.EventGetAddrOverview: //addrOverview
-			go chain.getAddrOverview(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
 		case types.EventGetBlockHash: //GetBlockHash
-			go chain.getBlockHash(msg, reqnum)
+			go chain.processMsg(msg, reqnum, chain.getBlockHash)
 		default:
 			<-reqnum
-			chainlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
+			chain.wg.Done()
+			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
 	}
 }
@@ -445,6 +455,7 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 }
 
 func (chain *BlockChain) notifySync() {
+	chain.wg.Add(1)
 	go chain.SynBlockToDbOneByOne()
 }
 
@@ -513,7 +524,6 @@ func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 func (chain *BlockChain) DelBlockFromCache(height int64) {
 	cachelock.Lock()
 	defer cachelock.Unlock()
-
 	elem, ok := chain.cache[height]
 	if ok {
 		delheight := chain.cacheQueue.Remove(elem).(*types.BlockDetail).Block.Height
@@ -602,7 +612,7 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 		}
 		j++
 	}
-	chainlog.Error("getHeaders", "len", len(headers.Items), "start", start, "end", end)
+	chainlog.Debug("getHeaders", "len", len(headers.Items), "start", start, "end", end)
 	return &headers, nil
 }
 
@@ -660,7 +670,6 @@ func (chain *BlockChain) fetchPeerList() error {
 		return err
 	}
 	peerlist := resp.GetData().(*types.PeerList)
-
 	//获取peerlist中最新的高度
 	var maxPeerHeight int64 = -1
 	for _, peer := range peerlist.Peers {
@@ -680,8 +689,8 @@ func (chain *BlockChain) fetchPeerList() error {
 //获取地址对应的所有交易信息
 //存储格式key:addr:flag:height ,value:txhash
 //key=addr :获取本地参与的所有交易
-//key=addr:0 :获取本地作为from方的所有交易
-//key=addr:1 :获取本地作为to方的所有交易
+//key=addr:1 :获取本地作为from方的所有交易
+//key=addr:2 :获取本地作为to方的所有交易
 func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	if addr == nil || len(addr.Addr) == 0 {
 		err := errors.New("ProcGetTransactionByAddr addr is nil")
@@ -701,13 +710,15 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 		err := errors.New("ProcGetTransactionByAddr Index err")
 		return nil, err
 	}
-
-	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
+	//查询的drivers--> main 驱动的名称
+	//查询的方法：  --> GetTxsByAddr
+	//查询的参数：  --> interface{} 类型
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
 	}
-	return txinfos, nil
+	return txinfos.(*types.ReplyTxInfos), nil
 }
 
 //type TransactionDetails struct {
@@ -749,7 +760,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			addr := account.PubKeyToAddress(pubkey)
 			txDetail.Fromaddr = addr.String()
 
-			chainlog.Info("ProcGetTransactionByHashes", "txDetail", txDetail.String())
+			chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs[index] = &txDetail
 		}
 	}
@@ -799,7 +810,7 @@ func (chain *BlockChain) UpdatePeerMaxBlkHeight(height int64) {
 func (chain *BlockChain) SynBlocksFromPeers() {
 	//如果任务正常，那么不重复启动任务
 	if chain.task.InProgress() {
-		chainlog.Error("chain task InProgress")
+		chainlog.Info("chain task InProgress")
 		return
 	}
 
@@ -807,7 +818,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 
-	chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
+	chainlog.Debug("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 	//首先和广播的block高度做比较，小于广播的block高度就直接发送block同步的请求
 
 	if curheight < RcvLastCastBlkHeight {
@@ -865,7 +876,7 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 		txhashs[index] = tx.Hash()
 	}
 	blockOverview.TxHashes = txhashs
-	chainlog.Error("ProcGetBlockOverview", "blockOverview:", blockOverview.String())
+	chainlog.Debug("ProcGetBlockOverview", "blockOverview:", blockOverview.String())
 	return &blockOverview, nil
 }
 
@@ -880,31 +891,30 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		err := errors.New("ProcGetAddrOverview input err!")
 		return nil, err
 	}
-	chainlog.Info("ProcGetAddrOverview", "Addr", addr.GetAddr())
+	chainlog.Debug("ProcGetAddrOverview", "Addr", addr.GetAddr())
 
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.blockStore.GetAddrReciver(addr.Addr)
+	amount, err := chain.query.Query("coins", "GetAddrReciver", addr)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		return nil, err
 	}
-	addrOverview.Reciver = amount
+	addrOverview.Reciver = amount.(*types.Int64).GetData()
 
 	//获取地址对应的交易count
 	addr.Flag = 0
 	addr.Count = 0x7fffffff
 	addr.Height = -1
 	addr.Index = 0
-	txinfos, err := chain.blockStore.GetTxsByAddr(addr)
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
 		return nil, err
 	}
-	addrOverview.TxCount = int64(len(txinfos.GetTxInfos()))
-
-	chainlog.Info("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+	addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
+	chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
 
 	return &addrOverview, nil
 }
@@ -933,9 +943,13 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 func (chain *BlockChain) SynBlockToDbOneByOne() {
 	chain.synblock <- struct{}{}
 	defer func() {
+		chain.wg.Done()
 		<-chain.synblock
 	}()
 	for {
+		if atomic.LoadInt32(&chain.isclosed) == 1 {
+			return
+		}
 		//获取当前block的statehash和blockhash用于nextblock的校验
 		var prevStateHash []byte
 		var prevblkHash []byte
@@ -977,9 +991,7 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 
 		//批量将block信息写入磁盘
 		newbatch := chain.blockStore.NewBatch(true)
-		cacheDB := NewCacheDB()
-		//保存tx信息到db中
-		err = chain.blockStore.AddTxs(newbatch, cacheDB, blockdetail)
+		err = chain.blockStore.AddTxs(newbatch, blockdetail)
 		if err != nil {
 			chainlog.Error("SynBlockToDbOneByOne indexTxs:", "height", block.Height, "err", err)
 			return
@@ -991,7 +1003,6 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 			chainlog.Error("SynBlockToDbOneByOne SaveBlock:", "height", block.Height, "err", err)
 			return
 		}
-		cacheDB.SetBatch(newbatch)
 		newbatch.Write()
 
 		chain.blockStore.UpdateHeight()
@@ -1022,26 +1033,20 @@ func (chain *BlockChain) DelBlock(height int64) (bool, error) {
 		}
 		//批量将删除block的信息从磁盘中删除
 		newbatch := chain.blockStore.NewBatch(true)
-		cacheDB := NewCacheDB()
-
 		//从db中删除tx相关的信息
-		err = chain.blockStore.DelTxs(newbatch, cacheDB, blockdetail)
+		err = chain.blockStore.DelTxs(newbatch, blockdetail)
 		if err != nil {
 			chainlog.Error("DelBlock DelTxs:", "height", currentheight, "err", err)
 			return false, err
 		}
-
 		//从db中删除block相关的信息
 		err = chain.blockStore.DelBlock(newbatch, blockdetail)
 		if err != nil {
 			chainlog.Error("DelBlock blockStoreDelBlock:", "height", currentheight, "err", err)
 			return false, err
 		}
-		cacheDB.SetBatch(newbatch)
 		newbatch.Write()
-
 		chain.blockStore.UpdateHeight()
-
 		//删除缓存中的block信息
 		chain.DelBlockFromCache(blockdetail.Block.Height)
 		//通知共识，mempool和钱包删除block
@@ -1061,17 +1066,7 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 		chainlog.Error("SendDelBlockEvent block is null")
 		return nil
 	}
-	chainlog.Error("SendDelBlockEvent", "Height", block.Block.Height)
-	/*
-		chainlog.Debug("SendDelBlockEvent -->>mempool")
-		msg := chain.qclient.NewMessage("mempool", types.EventAddBlock, block)
-		chain.qclient.Send(msg, false)
-
-		chainlog.Debug("SendDelBlockEvent -->>consensus")
-
-		msg = chain.qclient.NewMessage("consensus", types.EventAddBlock, block)
-		chain.qclient.Send(msg, false)
-	*/
+	chainlog.Debug("SendDelBlockEvent", "Height", block.Block.Height)
 	chainlog.Debug("SendDelBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
 	msg := chain.qclient.NewMessage("wallet", types.EventDelBlock, block)
 	chain.qclient.Send(msg, false)

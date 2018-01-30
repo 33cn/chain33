@@ -102,6 +102,8 @@ func (client *Client) Wait(msg Message) (Message, error) {
 	select {
 	case msg = <-msg.ChReply:
 		return msg, msg.Err()
+	case <-client.done:
+		return Message{}, errors.New("client is closed")
 	case <-timeout:
 		panic("wait for message timeout.")
 	}
@@ -112,7 +114,7 @@ func (client *Client) Recv() chan Message {
 }
 
 func (client *Client) Close() {
-	client.done <- struct{}{}
+	close(client.done)
 	client.wg.Wait()
 	atomic.StoreInt32(&client.isclosed, 1)
 	close(client.Recv())

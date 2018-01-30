@@ -154,10 +154,21 @@ func (db *GoLevelDB) PrefixScan(key []byte) (txhashs [][]byte) {
 	}
 	return txhashs
 }
+
+func (db *GoLevelDB) List(prefix, key []byte, count, direction int32) (values [][]byte) {
+	if len(key) == 0 {
+		if direction == 1 {
+			return db.IteratorScanFromFirst(prefix, count, direction)
+		} else {
+			return db.IteratorScanFromLast(prefix, count, direction)
+		}
+	}
+	return db.IteratorScan(prefix, key, count, direction)
+}
+
 func (db *GoLevelDB) IteratorScan(Prefix []byte, key []byte, count int32, direction int32) (values [][]byte) {
 	iter := db.db.NewIterator(util.BytesPrefix(Prefix), nil)
 	var i int32 = 0
-	//log.Info("IteratorScan", "input key", string(key))
 	for ok := iter.Seek(key); ok; {
 		if i == 0 && !bytes.Equal(key, iter.Key()) {
 			log.Info("IteratorScan Equal ", "key", string(iter.Key()))
@@ -188,18 +199,39 @@ func (db *GoLevelDB) IteratorScan(Prefix []byte, key []byte, count int32, direct
 	return values
 }
 
+func (db *GoLevelDB) IteratorScanFromFirst(key []byte, count int32, direction int32) (values [][]byte) {
+	iter := db.db.NewIterator(util.BytesPrefix(key), nil)
+	var i int32 = 0
+	for ok := iter.First(); ok; {
+		value := iter.Value()
+		value1 := make([]byte, len(value))
+		copy(value1, value)
+		values = append(values, value1)
+		ok = iter.Next()
+		i++
+		if i == count {
+			break
+		}
+	}
+	iter.Release()
+	err := iter.Error()
+	if err != nil {
+		return nil
+	}
+	return values
+}
+
 func (db *GoLevelDB) IteratorScanFromLast(key []byte, count int32, direction int32) (values [][]byte) {
 	iter := db.db.NewIterator(util.BytesPrefix(key), nil)
 	var i int32 = 0
 	for ok := iter.Last(); ok; {
 		value := iter.Value()
-		//fmt.Printf("IteratorScanFromLast:%v\n", string(iter.Key()))
 		value1 := make([]byte, len(value))
 		copy(value1, value)
 		values = append(values, value1)
 		ok = iter.Prev()
 		i++
-		if i >= count {
+		if i == count {
 			break
 		}
 	}

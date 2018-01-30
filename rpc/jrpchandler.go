@@ -24,7 +24,7 @@ func (req Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{})
 
 }
 func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
-	var stx *types.SignedTx
+	var stx types.SignedTx
 	var err error
 
 	stx.Pubkey, err = hex.DecodeString(in.Pubkey)
@@ -36,23 +36,17 @@ func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	stx.Tx.Execer, err = hex.DecodeString(in.Tx.Execer)
+	stx.Unsign, err = hex.DecodeString(in.Unsign)
 	if err != nil {
 		return err
 	}
-	stx.Tx.Expire = in.Tx.Expire
-	stx.Tx.Fee = in.Tx.Fee
-	stx.Tx.Nonce = in.Tx.Nonce
-	stx.Tx.Payload, err = hex.DecodeString(in.Tx.Payload)
-	if err != nil {
-		return err
-	}
-	reply := req.cli.SendRawTransaction(stx)
+	stx.Ty = in.Ty
+	reply := req.cli.SendRawTransaction(&stx)
 	if reply.GetData().(*types.Reply).IsOk {
-		*result = string(reply.GetData().(*types.Reply).Msg)
+		*result = "0x" + hex.EncodeToString(reply.GetData().(*types.Reply).Msg)
 		return nil
 	} else {
+
 		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
 	}
 }
@@ -677,5 +671,17 @@ func (req Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
 		return err
 	}
 	*result = reply
+	return nil
+}
+
+func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
+	reply, err := req.cli.GetWalletStatus()
+	if err != nil {
+		return err
+	}
+	var resp Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }

@@ -113,15 +113,14 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
-	//in.AddrFrom 表示远程客户端的地址,如果客户端的远程地址与自己定义的addrfrom 地址一直，则认为在外网
-	if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
-		remoteNetwork, err := NewNetAddressString(in.AddrFrom)
-		if err == nil /*&& in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM*/ {
-			if len(P2pComm.AddrTest([]string{in.AddrFrom})) == 1 {
-				s.node.addrBook.AddAddress(remoteNetwork)
-			}
 
+	//if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
+	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1]))
+	if err == nil /*&& in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM*/ {
+		if len(P2pComm.AddrTest([]string{remoteNetwork.String()})) == 1 {
+			s.node.addrBook.AddAddress(remoteNetwork)
 		}
+
 	}
 
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
@@ -141,7 +140,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
-	log.Error("p2pServer GetBlocks", "P2P Recv", in)
+	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
@@ -338,7 +337,7 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 			}
 			//收到stream 交给
 			if block := in.GetBlock(); block != nil {
-				log.Error("RouteChat", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
+				log.Info("RouteChat", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
 				if block.GetBlock() != nil {
 
 					msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
@@ -496,7 +495,7 @@ func (s *p2pServer) deleteDisableStream() {
 func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	log.Error("deleteStream", "delete", stream)
+	log.Info("deleteStream", "delete", stream)
 	close(s.streams[stream])
 	delete(s.streams, stream)
 }
