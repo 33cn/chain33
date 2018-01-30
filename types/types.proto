@@ -29,6 +29,8 @@ service grpcservice{
 	rpc UnLock(WalletUnLock)returns(Reply){}
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
+	rpc GetWalletStatus(ReqNil)returns(Reply){}
+
 	//区块浏览器接口
 	rpc GetBlockOverview(ReqHash) returns(BlockOverview){}
 	rpc GetAddrOverview(ReqAddr) returns(AddrOverview){}
@@ -226,7 +228,7 @@ message UnsignTx{
 }
 
 message SignedTx{
-	Transaction tx=1;
+	bytes unsign=1;
 	bytes sign=2;
 	bytes pubkey=3;
 	int32 ty=4;
@@ -348,7 +350,8 @@ message TxResult {
 	int32 index = 2;
 	Transaction tx = 3;
 	ReceiptData receiptdate =4;
-	int64 blocktime =5;
+	int64  blocktime =5;
+	string actionName = 6;
 }
 
 //resp
@@ -358,6 +361,25 @@ message Headers {
 
 message MempoolSize {
     int64 size = 1;
+}
+
+message LocalDBSet {
+	repeated KeyValue KV = 2;
+}
+
+message LocalDBList {
+	bytes prefix = 1;
+	bytes key = 2;
+	int32 direction = 3;
+	int32 count = 4;
+}
+
+message LocalDBGet {
+	repeated bytes keys = 2;
+}
+
+message LocalReplyValue {
+	repeated bytes values = 2;
 }
 
 message StoreSet {
@@ -379,6 +401,9 @@ message KeyValue {
 	bytes value = 2;
 }
 
+message Int64 {
+	int64 data = 1;
+}
 
 message ReceiptLog {
 	int32 ty = 1;
@@ -406,6 +431,10 @@ message BlockDetail {
 
 message Receipts {
 	repeated Receipt receipts = 1;
+}
+
+message ReceiptCheckTxList {
+    repeated string errs = 1;
 }
 
 message ExecTxList {
@@ -562,6 +591,7 @@ message Config {
 	string logConsoleLevel = 10;
 	string logFile = 9;
 	Store  store=3;
+	LocalStore localStore = 11;
 	Consensus consensus=4;
 	MemPool memPool=5;
 	BlockChain blockChain=6;
@@ -576,9 +606,10 @@ message P2P {
 	bool            isSeed=4;
 	repeated string seeds=5;
 	bool enable=6;
-	int32 version=7;
-	int32 verMix=8;
-	int32 verMax=9;
+	int32 msgCacheSize=7;
+	int32 version=8;
+	int32 verMix=9;
+	int32 verMax=10;
 }
 
 message Wallet{
@@ -587,6 +618,11 @@ message Wallet{
 }
 
 message Store {
+	string driver=1;
+	string dbPath=2;
+}
+
+message LocalStore {
 	string driver=1;
 	string dbPath=2;
 }
@@ -654,6 +690,7 @@ message WalletPwHash {
 message CoinsAction {
 	oneof value {
 		CoinsTransfer  transfer = 1;
+		CoinsWithdraw  withdraw = 4;
 		CoinsGenesis   genesis = 2;
 	}
 	int32 ty = 3;
@@ -667,6 +704,11 @@ message CoinsGenesis {
 }
 
 message CoinsTransfer {
+	int64 amount = 2;
+	string note = 3;
+}
+
+message CoinsWithdraw {
 	int64 amount = 2;
 	string note = 3;
 }
@@ -726,6 +768,9 @@ message Ticket {
 
 message ReceiptTicket {
 	string ticketId = 1;
+	int32 status = 2;
+	int32 prevStatus = 3;
+	string addr = 4;
 }
 
 //seed

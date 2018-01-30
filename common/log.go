@@ -35,10 +35,18 @@ func resetWithLogLevel(logLevel string) {
 	log15.Root().SetHandler(mainHandler)
 }
 
+func isWindows() bool {
+	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
+}
+
 func resetWithLogLevel2(file, logLevel string, logConsoleLevel string) {
+	format := log15.TerminalFormat()
+	if isWindows() {
+		format = log15.LogfmtFormat()
+	}
 	stdouth := log15.LvlFilterHandler(
 		getLevel(logConsoleLevel),
-		log15.StreamHandler(os.Stdout, log15.TerminalFormat()),
+		log15.StreamHandler(os.Stdout, format),
 	)
 
 	fileh := log15.LvlFilterHandler(
