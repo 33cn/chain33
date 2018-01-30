@@ -226,9 +226,13 @@ func (n *Node) AddPeer(pr *peer) {
 	if pr.outbound == false {
 		return
 	}
-	if _, ok := n.outBound[pr.Addr()]; ok {
+	if peer, ok := n.outBound[pr.Addr()]; ok {
 		log.Info("AddPeer", "delete peer", pr.Addr())
-		n.destroyPeer(pr)
+		n.addrBook.RemoveAddr(peer.Addr())
+		n.addrBook.Save()
+		delete(n.outBound, pr.Addr())
+		peer.Close()
+		peer = nil
 	}
 	log.Debug("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
