@@ -16,6 +16,8 @@ var (
 	//isValidator bool = false
 	isLeader   bool = false
 	leaderIsOK bool = false
+	//confChangeC  chan raftpb.ConfChange
+
 )
 
 func NewRaftCluster(cfg *types.Consensus) *RaftClient {
@@ -39,10 +41,11 @@ func NewRaftCluster(cfg *types.Consensus) *RaftClient {
 
 	var b *RaftClient
 	getSnapshot := func() ([]byte, error) { return b.getSnapshot() }
-
 	// raft集群的建立,1. 初始化两条channel： propose channel用于客户端和raft底层交互, commit channel用于获取commit消息
 	// 2. raft集群中的节点之间建立http连接
 	commitC, errorC, snapshotterReady, validatorC := NewRaftNode(int(cfg.NodeId), strings.Split(cfg.PeersURL, ","), getSnapshot, proposeC, confChangeC)
+	//启动raft删除节点操作监听
+	go serveHttpRaftAPI(int(cfg.RaftApiPort), confChangeC, errorC)
 	// 监听commit channel,取block
 	b = NewBlockstore(cfg, <-snapshotterReady, proposeC, commitC, errorC, validatorC)
 	return b
