@@ -427,7 +427,7 @@ func (rc *raftNode) stop() {
 	rc.stopHTTP()
 	close(rc.commitC)
 	close(rc.errorC)
-	close(rc.validatorC)
+	//close(rc.validatorC)
 	rc.node.Stop()
 }
 
