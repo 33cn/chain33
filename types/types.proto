@@ -826,10 +826,5 @@ message SaveSeedByPw {
 }
 message ReplySeed {
 	string seed = 1;
-<<<<<<< HEAD
-}
-=======
 }
 
-
->>>>>>> origin/develop
