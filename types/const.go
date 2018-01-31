@@ -54,6 +54,7 @@ var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
 var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
 var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
 var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
+var ErrTimeout = errors.New("ErrTimeout")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
