@@ -215,16 +215,18 @@ func (client *RaftClient) pollingTask(q *queue.Queue) {
 				client.once.Do(func() {
 					client.InitBlock()
 				})
-
 				if value, ok := validator[IsLeader]; ok && !value {
 					rlog.Warn("================I'm not the validator node!=============")
 					isLeader = false
 				} else if !isLeader && value {
-					client.InitMiner()
+					client.once.Do(
+						func() {
+							client.InitMiner()
+						})
 					//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
 					// 老的leader中运行的打包程此刻应该被终止？
 					isLeader = true
-					go client.EventLoop()
+					//go client.EventLoop()
 					go client.CreateBlock()
 				}
 			}
