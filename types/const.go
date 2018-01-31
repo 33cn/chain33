@@ -20,6 +20,9 @@ var ErrNoTicket = errors.New("ErrNoTicket")
 var ErrMinerIsStared = errors.New("ErrMinerIsStared")
 var ErrMinerNotStared = errors.New("ErrMinerNotStared")
 var ErrTicketCount = errors.New("ErrTicketCount")
+var ErrHashlockAmount = errors.New("ErrHashlockAmount")
+var ErrHashlockHash = errors.New("ErrHashlockHash")
+var ErrHashlockStatus = errors.New("ErrHashlockStatus")
 var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 var ErrNoPeer = errors.New("ErrNoPeer")
 var ErrSign = errors.New("ErrSign")
@@ -39,6 +42,9 @@ var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
 var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
 var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
 var ErrBlockNotFound = errors.New("ErrBlockNotFound")
+var ErrHashlockReturnAddrss = errors.New("ErrHashlockReturnAddrss")
+var ErrHashlockTime = errors.New("ErrHashlockTime")
+var ErrHashlockReapeathash = errors.New("ErrHashlockReapeathash")
 var ErrStartBigThanEnd = errors.New("ErrStartBigThanEnd")
 var ErrToAddrNotSameToExecAddr = errors.New("ErrToAddrNotSameToExecAddr")
 var ErrTypeAsset = errors.New("ErrTypeAsset")
@@ -305,4 +311,11 @@ const (
 	TicketActionList    = 14 //读的接口不直接经过transaction
 	TicketActionInfos   = 15 //读的接口不直接经过transaction
 	TicketActionMiner   = 16
+)
+
+//hashlock const
+const (
+	HashlockActionLock   = 1
+	HashlockActionSend   = 2
+	HashlockActionUnlock = 3
 )

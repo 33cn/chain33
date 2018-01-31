@@ -636,6 +636,8 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err e
 		head.StateHash = blockdetail.Block.StateHash
 		head.BlockTime = blockdetail.Block.BlockTime
 		head.Height = blockdetail.Block.Height
+		head.Hash = blockdetail.Block.Hash()
+		head.TxCount = int64(len(blockdetail.Block.GetTxs()))
 	} else {
 		return nil, err
 	}

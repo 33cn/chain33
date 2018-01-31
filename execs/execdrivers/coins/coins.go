@@ -71,18 +71,18 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Debug("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		from := account.From(tx).String()
 		//to 是 execs 合约地址
 		if execdrivers.IsExecAddress(tx.To) {
 			return account.TransferToExec(n.GetDB(), from, tx.To, transfer.Amount)
 		}
 		return account.Transfer(n.GetDB(), from, tx.To, transfer.Amount)
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetTransfer() != nil {
-		transfer := action.GetTransfer()
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
 		if execdrivers.IsExecAddress(tx.To) {
-			return account.TransferWithdraw(n.GetDB(), from, tx.To, transfer.Amount)
+			return account.TransferWithdraw(n.GetDB(), from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
