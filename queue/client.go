@@ -37,7 +37,7 @@ type Client struct {
 	done     chan struct{}
 	wg       *sync.WaitGroup
 	mu       sync.Mutex
-	cache    []Message
+	topic    string
 	isclosed int32
 }
 
@@ -57,8 +57,11 @@ func (client *Client) Send(msg Message, wait bool) (err error) {
 		msg.ChReply = nil
 		return client.q.SendAsyn(msg)
 	}
-	client.q.Send(msg)
-	return nil
+	err = client.q.Send(msg)
+	if err == types.ErrTimeout {
+		panic(err)
+	}
+	return err
 }
 
 //系统设计出两种优先级别的消息发送
@@ -113,7 +116,21 @@ func (client *Client) Recv() chan Message {
 	return client.recv
 }
 
+func (client *Client) getTopic() string {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	return client.topic
+}
+
+func (client *Client) setTopic(topic string) {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	client.topic = topic
+}
+
 func (client *Client) Close() {
+	topic := client.getTopic()
+	client.q.closeTopic(topic)
 	close(client.done)
 	client.wg.Wait()
 	atomic.StoreInt32(&client.isclosed, 1)
@@ -135,24 +152,25 @@ func (client *Client) isClosed(data Message, ok bool) bool {
 
 func (client *Client) Sub(topic string) {
 	client.wg.Add(1)
-	highChan, lowChan := client.q.getChannel(topic)
+	client.setTopic(topic)
+	sub := client.q.getChannel(topic)
 	go func() {
 		defer client.wg.Done()
 		for {
 			select {
-			case data, ok := <-highChan:
+			case data, ok := <-sub.high:
 				if client.isClosed(data, ok) {
 					return
 				}
 				client.Recv() <- data
 			default:
 				select {
-				case data, ok := <-highChan:
+				case data, ok := <-sub.high:
 					if client.isClosed(data, ok) {
 						return
 					}
 					client.Recv() <- data
-				case data, ok := <-lowChan:
+				case data, ok := <-sub.low:
 					if client.isClosed(data, ok) {
 						return
 					}

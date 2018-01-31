@@ -33,15 +33,21 @@ func DisableLog() {
 	qlog.SetHandler(log.DiscardHandler())
 }
 
+type chanSub struct {
+	high    chan Message
+	low     chan Message
+	isclose bool
+}
+
 type Queue struct {
-	chans   map[string][]chan Message
+	chans   map[string]chanSub
 	mu      sync.Mutex
 	done    chan struct{}
 	isclose bool
 }
 
 func New(name string) *Queue {
-	chs := make(map[string][]chan Message)
+	chs := make(map[string]chanSub)
 	return &Queue{chans: chs, done: make(chan struct{}, 1)}
 }
 
@@ -71,9 +77,12 @@ func (q *Queue) Close() {
 		q.mu.Unlock()
 		return
 	}
-	for _, ch := range q.chans {
-		ch[0] <- Message{}
-		ch[1] <- Message{}
+	for topic, ch := range q.chans {
+		if !ch.isclose {
+			ch.high <- Message{}
+			ch.low <- Message{}
+			q.chans[topic] = chanSub{isclose: true}
+		}
 	}
 	q.mu.Unlock()
 	q.done <- struct{}{}
@@ -84,39 +93,64 @@ func (q *Queue) Close() {
 	qlog.Info("queue module closed")
 }
 
-func (q *Queue) getChannel(topic string) (chan Message, chan Message) {
+func (q *Queue) getChannel(topic string) chanSub {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	_, ok := q.chans[topic]
 	if !ok {
-		q.chans[topic] = make([]chan Message, 2, 2)
-		q.chans[topic][0] = make(chan Message, DefaultChanBuffer)
-		q.chans[topic][1] = make(chan Message, DefaultLowChanBuffer)
+		q.chans[topic] = chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), false}
 	}
-	return q.chans[topic][0], q.chans[topic][1]
+	return q.chans[topic]
 }
 
-func (q *Queue) Send(msg Message) {
-	if q.IsClosed() {
+func (q *Queue) closeTopic(topic string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	sub, ok := q.chans[topic]
+	if !ok {
 		return
 	}
-	chrecv, _ := q.getChannel(msg.Topic)
+	sub.high <- Message{}
+	sub.low <- Message{}
+	q.chans[topic] = chanSub{isclose: true}
+	//read all message from channel
+	return
+}
+
+func (q *Queue) Send(msg Message) (err error) {
+	if q.IsClosed() {
+		return types.ErrChannelClosed
+	}
+	sub := q.getChannel(msg.Topic)
+	if sub.isclose {
+		return types.ErrChannelClosed
+	}
+	defer func() {
+		res := recover()
+		if res != nil {
+			err = res.(error)
+		}
+	}()
 	timeout := time.After(time.Second * 60)
 	select {
-	case chrecv <- msg:
+	case sub.high <- msg:
 	case <-timeout:
-		panic("send message timeout.")
+		return types.ErrTimeout
 	}
 	qlog.Debug("send ok", "msg", msg)
+	return nil
 }
 
 func (q *Queue) SendAsyn(msg Message) error {
 	if q.IsClosed() {
 		return types.ErrChannelClosed
 	}
-	_, lowChan := q.getChannel(msg.Topic)
+	sub := q.getChannel(msg.Topic)
+	if sub.isclose {
+		return types.ErrChannelClosed
+	}
 	select {
-	case lowChan <- msg:
+	case sub.low <- msg:
 		qlog.Debug("send asyn ok", "msg", msg)
 		return nil
 	default:
