@@ -422,22 +422,41 @@ func getprivkey(key string) crypto.PrivKey {
 func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, amount int64) error {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: fee, To: to}
-	tx.Nonce = r.Int63()
-	tx.Sign(types.SECP256K1, priv)
-	// Contact the server and print out its response.
-	reply, err := c.SendTransaction(context.Background(), tx)
-	if err != nil {
-		fmt.Println("err", err)
-		return err
+	if amount > 0 {
+		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: fee, To: to}
+		tx.Nonce = r.Int63()
+		tx.Sign(types.SECP256K1, priv)
+		// Contact the server and print out its response.
+		reply, err := c.SendTransaction(context.Background(), tx)
+		if err != nil {
+			fmt.Println("err", err)
+			return err
+		}
+		if !reply.IsOk {
+			fmt.Println("err = ", reply.GetMsg())
+			return errors.New(string(reply.GetMsg()))
+		}
+		return nil
+	} else {
+		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount}}
+		withdraw := &types.CoinsAction{Value: v, Ty: types.CoinsActionWithdraw}
+		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(withdraw), Fee: fee, To: to}
+		tx.Nonce = r.Int63()
+		tx.Sign(types.SECP256K1, priv)
+		// Contact the server and print out its response.
+		reply, err := c.SendTransaction(context.Background(), tx)
+		if err != nil {
+			fmt.Println("err", err)
+			return err
+		}
+		if !reply.IsOk {
+			fmt.Println("err = ", reply.GetMsg())
+			return errors.New(string(reply.GetMsg()))
+		}
+		return nil
 	}
-	if !reply.IsOk {
-		fmt.Println("err = ", reply.GetMsg())
-		return errors.New(string(reply.GetMsg()))
-	}
-	return nil
 }
 
 func getAccounts() (*types.WalletAccounts, error) {

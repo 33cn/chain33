@@ -230,7 +230,7 @@ func execDeposit(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Recei
 	return execReceipt(acc, receiptBalance), nil
 }
 
-func execWithdraw(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
+func execWithdraw(db dbm.KVDB, execaddr, addr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
