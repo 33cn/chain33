@@ -13,7 +13,7 @@ driver="leveldb"
 dbPath="datadir"
 
 [p2p]
-seeds=["114.55.101.158:13802"]
+seeds=["114.55.101.159:13802"]
 enable=true
 isSeed=false
 msgCacheSize=10240
