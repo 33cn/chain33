@@ -36,6 +36,7 @@ type RaftClient struct {
 	errorC      <-chan error
 	snapshotter *snap.Snapshotter
 	validatorC  <-chan map[string]bool
+	once        sync.Once
 }
 
 func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan map[string]bool) *RaftClient {
@@ -210,7 +211,10 @@ func (client *RaftClient) pollingTask(q *queue.Queue) {
 		select {
 		case validator := <-client.validatorC:
 			if value, ok := validator[LeaderIsOK]; ok && value {
-				client.InitBlock()
+				//各个节点Block只初始化一次
+				client.once.Do(func() {
+					client.InitBlock()
+				})
 
 				if value, ok := validator[IsLeader]; ok && !value {
 					rlog.Warn("================I'm not the validator node!=============")
