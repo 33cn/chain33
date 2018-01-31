@@ -632,8 +632,8 @@ message Consensus {
 	string genesis=2;
 	bool minerstart = 3;
 	int64 nodeId = 4;
-	string peersURL = 5;
-	bool isNewNode =6;
+	int64 raftApiPort = 5;
+	string peersURL = 6;
 	int64 genesisBlockTime = 7;
 	string hotkeyAddr = 8;
 }
