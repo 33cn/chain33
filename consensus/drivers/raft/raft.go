@@ -267,8 +267,23 @@ func (rc *raftNode) serveChannels() {
 
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
-	// TODO: Sould add tcp healthy check
-	time.Sleep(15 * time.Second)
+	// Wait all connection between nodes is up
+	for {
+		notUp := false
+		for i := range rc.peers {
+			if i+1 != rc.id && rc.transport.ActiveSince(typec.ID(i+1)).IsZero() {
+				notUp = true
+				rlog.Info("==============Connection between Node " + strconv.Itoa(rc.id) + " and " + strconv.Itoa(i+1) + " is not up==============")
+				break
+			}
+		}
+		if !notUp {
+			rlog.Info("==============All connection is up==============")
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+
 	for {
 		validatorMap = make(map[string]bool)
 		if rc.Leader() == raft.None {
