@@ -13,7 +13,7 @@ type Query struct {
 	db        dbm.DB
 	stateHash []byte
 	q         *queue.Queue
-	mu        *sync.Mutex
+	mu        sync.Mutex
 }
 
 func NewQuery(db dbm.DB, q *queue.Queue, stateHash []byte) *Query {

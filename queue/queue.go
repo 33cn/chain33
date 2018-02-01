@@ -110,8 +110,10 @@ func (q *Queue) closeTopic(topic string) {
 	if !ok {
 		return
 	}
-	sub.high <- Message{}
-	sub.low <- Message{}
+	if !sub.isclose {
+		sub.high <- Message{}
+		sub.low <- Message{}
+	}
 	q.chans[topic] = chanSub{isclose: true}
 	//read all message from channel
 	return
