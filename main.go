@@ -194,4 +194,5 @@ func watching() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	log.Info("info:", "NumGoroutine:", runtime.NumGoroutine())
+	log.Info("info:", "Mem:", m.Sys/(1024*1024))
 }
