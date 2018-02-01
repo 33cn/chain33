@@ -22,7 +22,7 @@ import (
 var (
 	//cache 存贮的block个数
 	DefCacheSize int64 = 500
-
+	zeroHash     [32]byte
 	//一次最多申请获取block个数
 	MaxFetchBlockNum int64 = 100
 	TimeoutSeconds   int64 = 2
@@ -136,12 +136,25 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath)
 	blockStore := NewBlockStore(blockStoreDB, q)
 	chain.blockStore = blockStore
-	chain.query = NewQuery(blockStoreDB)
+	stateHash := chain.getStateHash()
+	chain.query = NewQuery(blockStoreDB, q, stateHash)
 	chain.q = q
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
 	// 定时同步缓存中的block to db
 	go chain.poolRoutine()
+}
+
+func (chain *BlockChain) getStateHash() []byte {
+	blockhight := chain.GetBlockHeight()
+	blockdetail, err := chain.GetBlock(blockhight)
+	if err != nil {
+		return zeroHash[:]
+	}
+	if blockdetail != nil {
+		return blockdetail.GetBlock().GetStateHash()
+	}
+	return zeroHash[:]
 }
 
 func (chain *BlockChain) ProcRecvMsg() {
@@ -1012,7 +1025,7 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 		chain.cacheBlock(blockdetail)
 		chain.SendAddBlockEvent(blockdetail)
 		chain.blockPool.DelBlock(blockdetail.Block.Height)
-
+		chain.query.updateStateHash(blockdetail.GetBlock().GetStateHash())
 		if broadcast {
 			chain.SendBlockBroadcast(blockdetail)
 			//更新广播block的高度
