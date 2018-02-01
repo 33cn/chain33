@@ -6,6 +6,7 @@ package execdrivers
 
 import (
 	"fmt"
+	"sync"
 
 	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
@@ -21,6 +22,7 @@ type ExecBase struct {
 	querydb   dbm.DB
 	height    int64
 	blocktime int64
+	mu        sync.Mutex
 	child     Executer
 }
 
@@ -146,26 +148,38 @@ func (n *ExecBase) Query(funcname string, params types.Message) (types.Message, 
 }
 
 func (n *ExecBase) SetDB(db dbm.KVDB) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.db = db
 }
 
 func (n *ExecBase) GetDB() dbm.KVDB {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	return n.db
 }
 
 func (n *ExecBase) SetLocalDB(db dbm.KVDB) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.localdb = db
 }
 
 func (n *ExecBase) GetLocalDB() dbm.KVDB {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	return n.localdb
 }
 
 func (n *ExecBase) SetQueryDB(db dbm.DB) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.querydb = db
 }
 
 func (n *ExecBase) GetQueryDB() dbm.DB {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	return n.querydb
 }
 
