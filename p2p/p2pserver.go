@@ -51,7 +51,7 @@ func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 		log.Debug("RemoteAddr", "Addr", remoteaddr)
 		if s.checkSign(in) == true {
 			//TODO	待处理详细逻辑
-			log.Debug("PING CHECK SIGN SUCCESS")
+			log.Info("PING CHECK SIGN SUCCESS")
 		}
 	}
 
@@ -148,7 +148,11 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
 		Isdetail: false})
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("GetBlocks", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -215,7 +219,11 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 		} else if inv.GetTy() == MSG_BLOCK {
 			height := inv.GetHeight()
 			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false})
-			client.Send(msg, true)
+			err := client.Send(msg, true)
+			if err != nil {
+				log.Error("GetBlocks", "Error", err.Error())
+				return err //blockchain 模块关闭，直接返回，不需要continue
+			}
 			resp, err := client.Wait(msg)
 			if err != nil {
 				log.Error("GetBlocks Err", "Err", err.Error())
@@ -260,7 +268,11 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeigh()})
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("GetHeaders", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -278,7 +290,11 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	}
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("GetPeerInfo mempool", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -294,7 +310,11 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 
 	//get header
 	msg = client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
-	client.Send(msg, true)
+	err = client.Send(msg, true)
+	if err != nil {
+		log.Error("GetPeerInfo blockchain", "Error", err.Error())
+		return nil, err
+	}
 	resp, err = client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -315,7 +335,11 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("BroadCastBlock", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -341,7 +365,11 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 				if block.GetBlock() != nil {
 
 					msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-					s.node.nodeInfo.qclient.Send(msg, true)
+					err := s.node.nodeInfo.qclient.Send(msg, true)
+					if err != nil {
+						log.Error("RouteChat", "Error", err.Error())
+						return err
+					}
 					_, err = s.node.nodeInfo.qclient.Wait(msg)
 					if err != nil {
 						continue
@@ -388,13 +416,11 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
-		//addrlist = append(addrlist, remoteaddr)
-		//Check IsOutSide?
+
 		if len(P2pComm.AddrTest([]string{fmt.Sprintf("%v:%v", remoteaddr, DefaultPort)})) == 0 {
-			//inside network
+
 			outside = false
 		} else {
-			//outside network
 			outside = true
 
 		}
@@ -415,7 +441,11 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	var txmap = make(map[string]*pb.Transaction)
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("loadMempool", "Error", err.Error())
+		return txmap, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return txmap, err
@@ -433,9 +463,10 @@ func (s *p2pServer) ManageStream() {
 	go s.deleteDisableStream()
 	go func() {
 		for block := range s.node.nodeInfo.p2pBroadcastChan {
-			//log.Error("innerBroadBlock", "Block", "+++++++++")
+
 			s.addStreamBlock(block)
 		}
+		log.Info("p2pserver", "manageStream", "close")
 	}()
 }
 
