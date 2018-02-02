@@ -36,14 +36,6 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
-func getcurrentdir() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
-
 var (
 	CPUNUM     = runtime.NumCPU()
 	configpath = flag.String("f", "chain33.toml", "configfile")
@@ -195,4 +187,12 @@ func watching() {
 	runtime.ReadMemStats(&m)
 	log.Info("info:", "NumGoroutine:", runtime.NumGoroutine())
 	log.Info("info:", "Mem:", m.Sys/(1024*1024))
+}
+
+func getcurrentdir() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		panic(err)
+	}
+	return dir
 }

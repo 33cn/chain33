@@ -746,12 +746,17 @@ message TicketClose {
 }
 
 message TicketList {
-	string addr = 1;
-	bool isClosed = 2;
+	string addr   = 1;
+	int32  status = 3;
+	bool   isClosed = 2;
 }
 
 message TicketInfos {
 	repeated string ticketIds = 1;
+}
+
+message ReplyTicketList {
+	repeated Ticket ticketes = 1;
 }
 
 message Ticket {
@@ -771,7 +776,6 @@ message ReceiptTicket {
 	int32 prevStatus = 3;
 	string addr = 4;
 }
-
 
 message Hashlock{
 	bytes  hashlockId    = 1;
