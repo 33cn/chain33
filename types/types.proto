@@ -772,7 +772,7 @@ message ReceiptTicket {
 	string addr = 4;
 }
 
-
+//message for hashlock
 message Hashlock{
 	bytes  hashlockId    = 1;
 	int32  status        = 2;
@@ -783,7 +783,6 @@ message Hashlock{
 	int64  frozentime    = 7;
 }
 
-//message for hashlock
 message HashlockAction {
 	oneof value {
 		HashlockLock      hlock   = 1;
@@ -825,4 +824,33 @@ message ReplySeed {
 	string seed = 1;
 }
 
+//message for retrieve start
+message Retrieve{
+	//string retrieveId    = 1;//address
+	string address       = 1;//used as key
+	int32  status        = 2;
+	int64  createTime    = 3;
+	int64  amount        = 4;
+	int64  frozentime    = 5;
+}
+
+message RetrieveAction {
+	oneof value {
+		PreRetrieve          preRet    = 1;
+		PerformRetrieve      perfRet   = 2;
+	}
+	int32 ty = 3;
+}
+
+message PreRetrieve{
+	int64  amount                 = 1;
+	int64  backoffPeriod          = 2;
+	string address                = 3;
+}
+
+message PerformRetrieve{
+	string address              = 1;
+	int64  factor               = 2;
+}
+//message for retrieve end
 
