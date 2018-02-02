@@ -130,6 +130,7 @@ message P2PAddr{
 	repeated string addrlist=2;
 	
 }
+
 message P2PExternalInfo{
 	string addr=1;
 	bool   isoutside=2;
@@ -236,13 +237,19 @@ message SignedTx{
 }
 
 message Transaction {
-	bytes      execer = 1;
-	bytes      payload =2;
+	bytes      execer  = 1;
+	bytes      payload = 2;
 	Signature  signature = 3;
 	int64      fee = 4;
 	int64      expire  = 5;
 	int64      nonce = 6; //随机ID，可以防止payload 相同的时候，交易重复
 	string 	   to = 7; //对方地址，如果没有对方地址，可以为空
+}
+
+message Query {
+	bytes execer   = 1;
+	string funcName = 2;
+	bytes payload  = 3;
 }
 
 //三种签名支持

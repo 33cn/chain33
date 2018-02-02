@@ -198,8 +198,17 @@ func (chain *BlockChain) getBlockHash(msg queue.Message) {
 func (chain *BlockChain) localGet(msg queue.Message) {
 	keys := (msg.Data).(*types.LocalDBGet)
 	values := chain.blockStore.Get(keys)
-	chainlog.Debug("localget", "success", "ok")
 	msg.Reply(chain.qclient.NewMessage("rpc", types.EventLocalReplyValue, values))
+}
+
+func (chain *BlockChain) getQuery(msg queue.Message) {
+	query := (msg.Data).(*types.Query)
+	reply, err := chain.query.Query(string(query.Execer), query.FuncName, query.Payload)
+	if err != nil {
+		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyQuery, err))
+	} else {
+		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyQuery, reply))
+	}
 }
 
 type funcProcess func(msg queue.Message)

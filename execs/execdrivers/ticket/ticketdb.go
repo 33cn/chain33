@@ -248,11 +248,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 	return receipt, nil
 }
 
-func TicketList(db dbm.DB, db2 dbm.KVDB, params types.Message) (types.Message, error) {
-	tlist, ok := params.(*types.TicketList)
-	if !ok {
-		return nil, types.ErrTypeAsset
-	}
+func TicketList(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message, error) {
 	values := db.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
 	if len(values) == 0 {
 		return &types.ReplyTicketList{}, nil
@@ -264,11 +260,8 @@ func TicketList(db dbm.DB, db2 dbm.KVDB, params types.Message) (types.Message, e
 	return TicketInfos(db2, &ids)
 }
 
-func TicketInfos(db dbm.KVDB, params types.Message) (types.Message, error) {
-	tinfos, ok := params.(*types.TicketInfos)
-	if !ok {
-		return nil, types.ErrTypeAsset
-	}
+func TicketInfos(db dbm.KVDB, tinfos *types.TicketInfos) (types.Message, error) {
+
 	var tickets []*types.Ticket
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]
