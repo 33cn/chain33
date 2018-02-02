@@ -55,6 +55,10 @@ var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
 var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
 var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
 var ErrTimeout = errors.New("ErrTimeout")
+var ErrRetrieveRepeatAddress = errors.New("ErrRetrieveRepeatAddress")
+var ErrRetrievePeriodLimit = errors.New("ErrRetrievePeriodLimit")
+var ErrRetrieveAmountLimit = errors.New("ErrRetrieveAmountLimit")
+var ErrRetrieveFactorLimit = errors.New("ErrRetrieveFactorLimit")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
@@ -319,4 +323,10 @@ const (
 	HashlockActionLock   = 1
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
+)
+
+//retrieve
+const (
+	RetrievePre  = 1
+	RetrievePerf = 2
 )
