@@ -157,11 +157,21 @@ func (n *Ticket) delTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValu
 	return kvs
 }
 
-func (n *Ticket) Query(funcname string, params types.Message) (types.Message, error) {
+func (n *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 	if funcname == "TicketInfos" {
-		return TicketInfos(n.GetDB(), params)
+		var info types.TicketInfos
+		err := types.Decode(params, &info)
+		if err != nil {
+			return nil, err
+		}
+		return TicketInfos(n.GetDB(), &info)
 	} else if funcname == "TicketList" {
-		return TicketList(n.GetQueryDB(), n.GetDB(), params)
+		var l types.TicketList
+		err := types.Decode(params, &l)
+		if err != nil {
+			return nil, err
+		}
+		return TicketList(n.GetQueryDB(), n.GetDB(), &l)
 	}
 	return nil, types.ErrActionNotSupport
 }

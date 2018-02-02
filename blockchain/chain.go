@@ -195,6 +195,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
 		case types.EventGetBlockHash: //GetBlockHash
 			go chain.processMsg(msg, reqnum, chain.getBlockHash)
+		case types.EventQuery: //GetBlockHash
+			go chain.processMsg(msg, reqnum, chain.getQuery)
 		default:
 			<-reqnum
 			chain.wg.Done()
@@ -728,7 +730,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	//查询的drivers--> main 驱动的名称
 	//查询的方法：  --> GetTxsByAddr
 	//查询的参数：  --> interface{} 类型
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -911,7 +913,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.query.Query("coins", "GetAddrReciver", addr)
+	amount, err := chain.query.Query("coins", "GetAddrReciver", types.Encode(addr))
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		return nil, err
@@ -923,7 +925,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	addr.Count = 0x7fffffff
 	addr.Height = -1
 	addr.Index = 0
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
 		return nil, err

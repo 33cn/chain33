@@ -38,7 +38,7 @@ type Executer interface {
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
-	Query(funcName string, params types.Message) (types.Message, error)
+	Query(funcName string, params []byte) (types.Message, error)
 }
 
 var (

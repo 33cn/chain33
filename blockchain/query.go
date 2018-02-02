@@ -20,7 +20,7 @@ func NewQuery(db dbm.DB, q *queue.Queue, stateHash []byte) *Query {
 	return &Query{db: db, q: q, stateHash: stateHash}
 }
 
-func (q *Query) Query(driver string, funcname string, param types.Message) (types.Message, error) {
+func (q *Query) Query(driver string, funcname string, param []byte) (types.Message, error) {
 	exec, err := execdrivers.LoadExecute(driver)
 	if err != nil {
 		return nil, err
