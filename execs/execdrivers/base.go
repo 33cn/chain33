@@ -143,7 +143,7 @@ func (n *ExecBase) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (n *ExecBase) Query(funcname string, params types.Message) (types.Message, error) {
+func (n *ExecBase) Query(funcname string, params []byte) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 

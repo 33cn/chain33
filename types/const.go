@@ -161,6 +161,8 @@ const (
 	EventGetWalletStatus = 80
 	EventCheckTx         = 81
 	EventReceiptCheckTx  = 82
+	EventQuery           = 83
+	EventReplyQuery      = 84
 )
 
 var eventname = map[int]string{
@@ -246,6 +248,8 @@ var eventname = map[int]string{
 	80: "EventGetWalletStatus",
 	81: "EventCheckTx",
 	82: "EventReceiptCheckTx",
+	83: "EventQuery",
+	84: "EventReplyQuery",
 }
 
 func GetEventName(event int) string {
