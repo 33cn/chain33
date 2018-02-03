@@ -17,6 +17,8 @@ var slog = log.New("module", "ticket")
 
 type TicketClient struct {
 	*drivers.BaseClient
+	//ticket list for miner
+	tlist *types.TicketList
 }
 
 func New(cfg *types.Consensus) *TicketClient {
