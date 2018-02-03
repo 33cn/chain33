@@ -19,12 +19,12 @@ const (
 	Hashlock_Sent     = 3
 )
 
-type Hashlock struct {
+type HashlockDB struct {
 	types.Hashlock
 }
 
-func NewHashlock(id []byte, returnWallet string, toAddress string, blocktime int64, amount int64, time int64) *Hashlock {
-	h := &Hashlock{}
+func NewHashlockDB(id []byte, returnWallet string, toAddress string, blocktime int64, amount int64, time int64) *HashlockDB {
+	h := &HashlockDB{}
 	h.HashlockId = id
 	h.ReturnAddress = returnWallet
 	h.ToAddress = toAddress
@@ -35,14 +35,14 @@ func NewHashlock(id []byte, returnWallet string, toAddress string, blocktime int
 	return h
 }
 
-func (h *Hashlock) GetKVSet() (kvset []*types.KeyValue) {
+func (h *HashlockDB) GetKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&h.Hashlock)
 
 	kvset = append(kvset, &types.KeyValue{HashlockKey(h.HashlockId), value})
 	return kvset
 }
 
-func (h *Hashlock) Save(db dbm.KVDB) {
+func (h *HashlockDB) Save(db dbm.KVDB) {
 	set := h.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -82,7 +82,7 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 		return nil, types.ErrHashlockReapeathash
 	}
 
-	h := NewHashlock(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
+	h := NewHashlockDB(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
 	//冻结子账户资金
 	receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, hlock.Amount)
 
@@ -128,7 +128,7 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 	}
 
 	//different with typedef in C
-	h := &Hashlock{*hash}
+	h := &HashlockDB{*hash}
 	receipt, errR := account.ExecActive(action.db, h.ReturnAddress, action.execaddr, h.Amount)
 	if errR != nil {
 		hlog.Error("ExecActive error", "ReturnAddress", h.ReturnAddress, "execaddr", action.execaddr, "amount", h.Amount)
@@ -168,7 +168,7 @@ func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Rec
 	}
 
 	//different with typedef in C
-	h := &Hashlock{*hash}
+	h := &HashlockDB{*hash}
 	receipt, errR := account.ExecTransferFrozen(action.db, h.ReturnAddress, h.ToAddress, action.execaddr, h.Amount)
 	if errR != nil {
 		hlog.Error("ExecTransferFrozen error", "ReturnAddress", h.ReturnAddress, "ToAddress", h.ToAddress, "execaddr", action.execaddr, "amount", h.Amount)
