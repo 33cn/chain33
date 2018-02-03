@@ -21,11 +21,7 @@ func calcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 
 // 通过addr前缀查找本地址参与的所有交易
 //查询交易默认放到：coins 中查询
-func (n *ExecBase) GetTxsByAddr(in types.Message) (types.Message, error) {
-	addr, ok := in.(*types.ReqAddr)
-	if !ok {
-		return nil, types.ErrTypeAsset
-	}
+func (n *ExecBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	db := n.GetQueryDB()
 	var prefix []byte
 	var key []byte

@@ -22,7 +22,6 @@ type P2p struct {
 	txCapcity    int32
 	txFactory    chan struct{}
 	otherFactory chan struct{}
-	done         chan struct{}
 	loopdone     chan struct{}
 }
 
@@ -36,25 +35,23 @@ func New(cfg *types.P2P) *P2p {
 	}
 	p2p := new(P2p)
 	p2p.node = node
-	p2p.done = make(chan struct{}, 1)
 	p2p.loopdone = make(chan struct{}, 1)
 	p2p.cli = NewP2pCli(p2p)
 	return p2p
 }
 func (network *P2p) Stop() {
-	network.done <- struct{}{}
+	network.loopdone <- struct{}{}
 }
 
 func (network *P2p) Close() {
 	network.Stop()
-	log.Debug("close", "network", "ShowTaskCapcity done")
+	log.Info("close", "network", "ShowTaskCapcity done")
 	network.cli.Close()
-	log.Debug("close", "msg", "done")
+	log.Info("close", "msg", "done")
 	network.node.Close()
-	log.Debug("close", "node", "done")
+	log.Info("close", "node", "done")
 	network.c.Close()
-	<-network.loopdone
-	log.Debug("close", "loopdone", "done")
+
 	close(network.txFactory)
 	close(network.otherFactory)
 	ps.Shutdown()
@@ -78,7 +75,7 @@ func (network *P2p) ShowTaskCapcity() {
 	for {
 
 		select {
-		case <-network.done:
+		case <-network.loopdone:
 			log.Debug("ShowTaskCapcity", "Show", "will Done")
 			return
 		case <-ticker.C:
@@ -128,7 +125,8 @@ func (network *P2p) subP2pMsg() {
 				continue
 			}
 		}
-		network.loopdone <- struct{}{}
+		log.Info("subP2pMsg", "loop", "close")
+
 	}()
 
 }
