@@ -9,6 +9,7 @@ import (
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/coins"
+	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/hashlock"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/none"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -53,9 +54,28 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 				exec.procExecAddBlock(msg, q)
 			} else if msg.Ty == types.EventDelBlock {
 				exec.procExecDelBlock(msg, q)
+			} else if msg.Ty == types.EventCheckTx {
+				exec.procExecCheckTx(msg, q)
 			}
 		}
 	}()
+}
+
+func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
+	datas := msg.GetData().(*types.ExecTxList)
+	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	//返回一个列表表示成功还是失败
+	result := &types.ReceiptCheckTxList{}
+	for i := 0; i < len(datas.Txs); i++ {
+		tx := datas.Txs[i]
+		err := execute.CheckTx(tx, i)
+		if err != nil {
+			result.Errs = append(result.Errs, err.Error())
+		} else {
+			result.Errs = append(result.Errs, "")
+		}
+	}
+	msg.Reply(q.GetClient().NewMessage("", types.EventReceiptCheckTx, result))
 }
 
 func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
@@ -73,8 +93,9 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 			receipts = append(receipts, receipt)
 			continue
 		}
-
-		//正常的区块：
+		//交易检查规则：
+		//1. mempool 检查区块，尽量检查更多的错误
+		//2. 打包的时候，尽量打包更多的交易，只要基本的签名，以及格式没有问题
 		err := execute.checkTx(tx, index)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
@@ -193,15 +214,16 @@ type Execute struct {
 
 func NewExecute(stateHash []byte, q *queue.Queue, height, blocktime int64) *Execute {
 	return &Execute{
-		stateDB:   NewStateDB(q, stateHash),
-		localDB:   NewLocalDB(q),
+		stateDB:   execdrivers.NewStateDB(q, stateHash),
+		localDB:   execdrivers.NewLocalDB(q),
 		height:    height,
 		blocktime: blocktime,
 	}
 }
 
 func (e *Execute) ProcessFee(tx *types.Transaction) (*types.Receipt, error) {
-	accFrom := account.LoadAccount(e.stateDB, account.PubKeyToAddress(tx.Signature.Pubkey).String())
+	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	accFrom := account.LoadAccount(e.stateDB, from)
 	if accFrom.GetBalance()-tx.Fee >= 0 {
 		receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
@@ -224,6 +246,32 @@ func (e *Execute) checkTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	return nil
+}
+
+func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
+	//基本检查
+	err := e.checkTx(tx, index)
+	if err != nil {
+		return err
+	}
+
+	//手续费检查
+	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	accFrom := account.LoadAccount(e.stateDB, from)
+	if accFrom.GetBalance() < types.MinBalanceTransfer {
+		return types.ErrNoBalance
+	}
+	//checkInExec
+	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+	if err != nil {
+		exec, err = execdrivers.LoadExecute("none")
+		if err != nil {
+			panic(err)
+		}
+	}
+	exec.SetDB(e.stateDB)
+	exec.SetEnv(e.height, e.blocktime)
+	return exec.CheckTx(tx, index)
 }
 
 func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -263,103 +311,4 @@ func (e *Execute) ExecDelLocal(tx *types.Transaction, r *types.ReceiptData, inde
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecDelLocal(tx, r, index)
-}
-
-type StateDB struct {
-	cache map[string][]byte
-	db    *DataBase
-}
-
-func NewStateDB(q *queue.Queue, stateHash []byte) *StateDB {
-	return &StateDB{make(map[string][]byte), NewDataBase(q, stateHash)}
-}
-
-func (e *StateDB) Get(key []byte) (value []byte, err error) {
-	if value, ok := e.cache[string(key)]; ok {
-		return value, nil
-	}
-	value, err = e.db.Get(key)
-	if err != nil {
-		return nil, err
-	}
-	e.cache[string(key)] = value
-	return value, nil
-}
-
-func (e *StateDB) Set(key []byte, value []byte) error {
-	e.cache[string(key)] = value
-	return nil
-}
-
-type LocalDB struct {
-	cache map[string][]byte
-	db    *DataBaseLocal
-}
-
-func NewLocalDB(q *queue.Queue) *LocalDB {
-	return &LocalDB{make(map[string][]byte), NewDataBaseLocal(q)}
-}
-
-func (e *LocalDB) Get(key []byte) (value []byte, err error) {
-	if value, ok := e.cache[string(key)]; ok {
-		return value, nil
-	}
-	value, err = e.db.Get(key)
-	if err != nil {
-		return nil, err
-	}
-	e.cache[string(key)] = value
-	return value, nil
-}
-
-func (e *LocalDB) Set(key []byte, value []byte) error {
-	e.cache[string(key)] = value
-	return nil
-}
-
-type DataBase struct {
-	qclient   queue.IClient
-	stateHash []byte
-}
-
-func NewDataBase(q *queue.Queue, stateHash []byte) *DataBase {
-	return &DataBase{q.GetClient(), stateHash}
-}
-
-func (db *DataBase) Get(key []byte) (value []byte, err error) {
-	query := &types.StoreGet{db.stateHash, [][]byte{key}}
-	msg := db.qclient.NewMessage("store", types.EventStoreGet, query)
-	db.qclient.Send(msg, true)
-	resp, err := db.qclient.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
-	}
-	value = resp.GetData().(*types.StoreReplyValue).Values[0]
-	if value == nil {
-		return nil, types.ErrNotFound
-	}
-	return value, nil
-}
-
-type DataBaseLocal struct {
-	qclient queue.IClient
-}
-
-func NewDataBaseLocal(q *queue.Queue) *DataBaseLocal {
-	return &DataBaseLocal{q.GetClient()}
-}
-
-func (db *DataBaseLocal) Get(key []byte) (value []byte, err error) {
-	query := &types.LocalDBGet{[][]byte{key}}
-	msg := db.qclient.NewMessage("blockchain", types.EventLocalGet, query)
-	db.qclient.Send(msg, true)
-	resp, err := db.qclient.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
-	}
-	value = resp.GetData().(*types.LocalReplyValue).Values[0]
-	if value == nil {
-		return nil, types.ErrNotFound
-	}
-	return value, nil
 }

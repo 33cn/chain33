@@ -157,21 +157,45 @@ func (n *Ticket) delTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValu
 	return kvs
 }
 
-func caclTicketKey(addr string, ticketId string, status int32) []byte {
+func (n *Ticket) Query(funcname string, params []byte) (types.Message, error) {
+	if funcname == "TicketInfos" {
+		var info types.TicketInfos
+		err := types.Decode(params, &info)
+		if err != nil {
+			return nil, err
+		}
+		return TicketInfos(n.GetDB(), &info)
+	} else if funcname == "TicketList" {
+		var l types.TicketList
+		err := types.Decode(params, &l)
+		if err != nil {
+			return nil, err
+		}
+		return TicketList(n.GetQueryDB(), n.GetDB(), &l)
+	}
+	return nil, types.ErrActionNotSupport
+}
+
+func calcTicketKey(addr string, ticketId string, status int32) []byte {
 	key := fmt.Sprintf("ticket-tl:%s:%d:%s", addr, status, ticketId)
+	return []byte(key)
+}
+
+func calcTicketPrefix(addr string, status int32) []byte {
+	key := fmt.Sprintf("ticket-tl:%s:%d", addr, status)
 	return []byte(key)
 }
 
 func addticket(addr string, ticketId string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = caclTicketKey(addr, ticketId, status)
+	kv.Key = calcTicketKey(addr, ticketId, status)
 	kv.Value = []byte(ticketId)
 	return kv
 }
 
 func delticket(addr string, ticketId string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = caclTicketKey(addr, ticketId, status)
+	kv.Key = calcTicketKey(addr, ticketId, status)
 	kv.Value = nil
 	return kv
 }

@@ -71,18 +71,18 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Debug("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		from := account.From(tx).String()
 		//to 是 execs 合约地址
 		if execdrivers.IsExecAddress(tx.To) {
 			return account.TransferToExec(n.GetDB(), from, tx.To, transfer.Amount)
 		}
 		return account.Transfer(n.GetDB(), from, tx.To, transfer.Amount)
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetTransfer() != nil {
-		transfer := action.GetTransfer()
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
 		if execdrivers.IsExecAddress(tx.To) {
-			return account.TransferWithdraw(n.GetDB(), from, tx.To, transfer.Amount)
+			return account.TransferWithdraw(n.GetDB(), from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
@@ -171,11 +171,7 @@ func (n *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	return set, nil
 }
 
-func (n *Coins) GetAddrReciver(in types.Message) (types.Message, error) {
-	addr, ok := in.(*types.ReqAddr)
-	if !ok {
-		return nil, types.ErrTypeAsset
-	}
+func (n *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
 	reciver := types.Int64{}
 	db := n.GetQueryDB()
 	addrReciver := db.Get(calcAddrKey(addr.Addr))
@@ -189,11 +185,21 @@ func (n *Coins) GetAddrReciver(in types.Message) (types.Message, error) {
 	return &reciver, nil
 }
 
-func (n *Coins) Query(funcName string, params types.Message) (types.Message, error) {
+func (n *Coins) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == "GetAddrReciver" {
-		return n.GetAddrReciver(params)
+		var in types.ReqAddr
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return n.GetAddrReciver(&in)
 	} else if funcName == "GetTxsByAddr" {
-		return n.GetTxsByAddr(params)
+		var in types.ReqAddr
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return n.GetTxsByAddr(&in)
 	}
 	return nil, types.ErrActionNotSupport
 }
