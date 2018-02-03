@@ -23,7 +23,7 @@ type TicketClient struct {
 
 func New(cfg *types.Consensus) *TicketClient {
 	c := drivers.NewBaseClient(cfg)
-	t := &TicketClient{c}
+	t := &TicketClient{c, &types.TicketList{}}
 	c.SetChild(t)
 	return t
 }
