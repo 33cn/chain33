@@ -266,7 +266,6 @@ func (p *peer) subStreamBlock() {
 			return
 
 		default:
-
 			resp, err := p.mconn.conn.RouteChat(context.Background())
 			if err != nil {
 				p.peerStat.NotOk()
@@ -275,7 +274,6 @@ func (p *peer) subStreamBlock() {
 				continue
 			}
 			log.Debug("SubStreamBlock", "Start", p.Addr())
-
 			for {
 				data, err := resp.Recv()
 				if err != nil {
@@ -304,7 +302,11 @@ func (p *peer) subStreamBlock() {
 						}
 						log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight())
 						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-						(*p.nodeInfo).qclient.Send(msg, true)
+						err = (*p.nodeInfo).qclient.Send(msg, true)
+						if err != nil {
+							log.Error("subStreamBlock", "Error", err.Error())
+							return
+						}
 						_, err = (*p.nodeInfo).qclient.Wait(msg)
 						if err != nil {
 							continue

@@ -126,7 +126,7 @@ func (n *Node) exChangeVersion() {
 	pcli := NewP2pCli(nil)
 	peers, _ := n.GetActivePeers()
 	for _, peer := range peers {
-		pcli.SendVersion(peer, n.nodeInfo)
+		pcli.SendVersion(peer, n)
 	}
 	ticker := time.NewTicker(time.Second * 20)
 	defer ticker.Stop()
@@ -137,7 +137,7 @@ FOR_LOOP:
 			log.Debug("exChangeVersion", "sendVersion", "version")
 			peers, _ := n.GetActivePeers()
 			for _, peer := range peers {
-				pcli.SendVersion(peer, n.nodeInfo)
+				pcli.SendVersion(peer, n)
 			}
 		case <-n.loopDone:
 			break FOR_LOOP
@@ -226,9 +226,13 @@ func (n *Node) AddPeer(pr *peer) {
 	if pr.outbound == false {
 		return
 	}
-	if _, ok := n.outBound[pr.Addr()]; ok {
+	if peer, ok := n.outBound[pr.Addr()]; ok {
 		log.Info("AddPeer", "delete peer", pr.Addr())
-		n.destroyPeer(pr)
+		n.addrBook.RemoveAddr(peer.Addr())
+		n.addrBook.Save()
+		delete(n.outBound, pr.Addr())
+		peer.Close()
+		peer = nil
 	}
 	log.Debug("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr

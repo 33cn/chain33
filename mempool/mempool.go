@@ -250,7 +250,11 @@ func (mem *Mempool) RemoveBlockedTxs() {
 
 		// 发送Hash过后的交易列表给blockchain模块
 		hashList := mem.qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-		mem.qclient.Send(hashList, true)
+		err := mem.qclient.Send(hashList, true)
+		if err != nil {
+			mlog.Error("blockchain closed", "err", err.Error())
+			return
+		}
 		dupTxList, _ := mem.qclient.Wait(hashList)
 
 		// 取出blockchain返回的重复交易列表
@@ -284,8 +288,29 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	}
 
 	msg := mem.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	mem.qclient.Send(msg, true)
+	err := mem.qclient.Send(msg, true)
+	if err != nil {
+		mlog.Error("blockchain closed", "err", err.Error())
+		return nil, err
+	}
 	return mem.qclient.Wait(msg)
+}
+
+func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptCheckTxList, error) {
+	if mem.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	msg := mem.qclient.NewMessage("execs", types.EventCheckTx, txlist)
+	err := mem.qclient.Send(msg, true)
+	if err != nil {
+		mlog.Error("execs closed", "err", err.Error())
+		return nil, err
+	}
+	msg, err = mem.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return msg.GetData().(*types.ReceiptCheckTxList), nil
 }
 
 // Mempool.SendTxToP2P向"p2p"发送消息
@@ -369,7 +394,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	}()
 
 	go mem.CheckSignList()
-	go mem.CheckBalanList()
+	go mem.CheckTxList()
 	go mem.RemoveLeftOverTxs()
 	go mem.RemoveBlockedTxs()
 
