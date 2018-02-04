@@ -55,6 +55,8 @@ var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
 var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
 var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
 var ErrTimeout = errors.New("ErrTimeout")
+var ErrBlockHeaderDifficulty = errors.New("ErrBlockHeaderDifficulty")
+var ErrNoTx = errors.New("ErrNoTx")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
@@ -163,6 +165,7 @@ const (
 	EventReceiptCheckTx  = 82
 	EventQuery           = 83
 	EventReplyQuery      = 84
+	EventFlushTicket     = 85
 )
 
 var eventname = map[int]string{
@@ -250,6 +253,7 @@ var eventname = map[int]string{
 	82: "EventReceiptCheckTx",
 	83: "EventQuery",
 	84: "EventReplyQuery",
+	85: "EventFlushTicket",
 }
 
 func GetEventName(event int) string {

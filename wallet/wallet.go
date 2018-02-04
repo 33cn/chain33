@@ -108,13 +108,14 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
 		case types.EventWalletGetTickets:
-			tickets, err := wallet.GetTickets()
+			tickets, privs, err := wallet.GetTickets()
 			if err != nil {
 				walletlog.Error("GetTickets", "err", err.Error())
 				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
 			} else {
+				tks := &types.ReplyWalletTickets{tickets, privs}
 				walletlog.Debug("process GetTickets OK")
-				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tickets))
+				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
 			}
 		case types.EventNewAccount:
 			NewAccount := msg.Data.(*types.ReqNewAccount)
@@ -601,35 +602,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		walletlog.Error("ProcSendToAddress input para From or To is nil!")
 		return nil, ErrInputPara
 	}
-
 	var hash types.ReplyHash
-
-	//获取指定地址在钱包里的账户信息
-	Accountstor, err := wallet.walletStore.GetAccountByAddr(SendToAddress.GetFrom())
-	if err != nil {
-		walletlog.Error("ProcSendToAddress", "GetAccountByAddr err:", err)
-		return nil, err
-	}
-
-	//通过password解密存储的私钥
-	prikeybyte, err := common.FromHex(Accountstor.GetPrivkey())
-	if err != nil || len(prikeybyte) == 0 {
-		walletlog.Error("ProcSendToAddress", "FromHex err", err)
-		return nil, err
-	}
-
-	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
-	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-	if err != nil {
-		walletlog.Error("ProcSendToAddress", "err", err)
-		return nil, err
-	}
-	priv, err := cr.PrivKeyFromBytes(privkey)
-	if err != nil {
-		walletlog.Error("ProcSendToAddress", "PrivKeyFromBytes err", err)
-		return nil, err
-	}
 	//获取from账户的余额从account模块，校验余额是否充足
 	addrs := make([]string, 1)
 	addrs[0] = SendToAddress.GetFrom()
@@ -663,7 +636,10 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	}
 	//初始化随机数
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
+	priv, err := wallet.getPrivKeyByAddr(addrs[0])
+	if err != nil {
+		return nil, err
+	}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
 	tx.Sign(types.SECP256K1, priv)
 
@@ -682,6 +658,36 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 
 	hash.Hash = tx.Hash()
 	return &hash, nil
+}
+
+func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
+	//获取指定地址在钱包里的账户信息
+	Accountstor, err := wallet.walletStore.GetAccountByAddr(addr)
+	if err != nil {
+		walletlog.Error("ProcSendToAddress", "GetAccountByAddr err:", err)
+		return nil, err
+	}
+
+	//通过password解密存储的私钥
+	prikeybyte, err := common.FromHex(Accountstor.GetPrivkey())
+	if err != nil || len(prikeybyte) == 0 {
+		walletlog.Error("ProcSendToAddress", "FromHex err", err)
+		return nil, err
+	}
+
+	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
+	//通过privkey生成一个pubkey然后换算成对应的addr
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		walletlog.Error("ProcSendToAddress", "err", err)
+		return nil, err
+	}
+	priv, err := cr.PrivKeyFromBytes(privkey)
+	if err != nil {
+		walletlog.Error("ProcSendToAddress", "PrivKeyFromBytes err", err)
+		return nil, err
+	}
+	return priv, nil
 }
 
 //type ReqWalletSetFee struct {
@@ -1256,30 +1262,50 @@ func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
 	return decryptered
 }
 
-func (wallet *Wallet) GetTickets() ([]*types.Ticket, error) {
+func (wallet *Wallet) GetTickets() ([]*types.Ticket, [][]byte, error) {
 	accounts, err := wallet.ProcGetAccountList()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return nil, nil, err
 	}
 	//循环遍历所有的账户-->保证钱包已经解锁
 	var tickets []*types.Ticket
+	var privs [][]byte
 	for _, account := range accounts.Wallets {
-		t, err := loadTicket(account.Acc.Addr)
+		t, err := wallet.getTickets(account.Acc.Addr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if t != nil {
+			priv, err := wallet.getPrivKeyByAddr(account.Acc.Addr)
+			if err != nil {
+				return nil, nil, err
+			}
+			privs = append(privs, priv.Bytes())
 			tickets = append(tickets, t...)
 		}
 	}
 	if len(tickets) == 0 {
-		return nil, types.ErrNoTicket
+		return nil, nil, types.ErrNoTicket
 	}
-	return tickets, nil
+	return tickets, privs, nil
 }
 
-func loadTicket(addr string) ([]*types.Ticket, error) {
-	return nil, nil
+func (client *Wallet) getTickets(addr string) ([]*types.Ticket, error) {
+	reqaddr := &types.TicketList{addr, 1}
+	msg := client.qclient.NewMessage("blockchain", types.EventQuery, reqaddr)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	reply := resp.GetData().(types.Message).(*types.ReplyTicketList)
+	return reply.Tickets, nil
 }
 
 //生成一个随机的seed种子, 目前支持英文单词和简体中文
