@@ -48,7 +48,7 @@ var ToAddr2 string = ""
 func blockchainModProc(q *queue.Queue) {
 	//store
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		client.Sub("blockchain")
 		for msg := range client.Recv() {
 			//walletlog.Info("blockchain", "msg.Ty", msg.Ty)
@@ -93,7 +93,7 @@ func blockchainModProc(q *queue.Queue) {
 func mempoolModProc(q *queue.Queue) {
 	//store
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		client.Sub("mempool")
 		for msg := range client.Recv() {
 			//walletlog.Info("mempool", "msg.Ty", msg.Ty)

@@ -131,7 +131,7 @@ func GetGenesisKVSet(g *types.Genesis) (kvset []*types.KeyValue) {
 }
 
 func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err error) {
-	client := q.GetClient()
+	client := q.NewClient()
 	//get current head ->
 	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	client.Send(msg, true)
@@ -169,12 +169,12 @@ func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err er
 
 type CacheDB struct {
 	stateHash []byte
-	q         queue.IClient
+	q         queue.Client
 	cache     map[string][]byte
 }
 
 func NewCacheDB(q *queue.Queue, stateHash []byte) *CacheDB {
-	return &CacheDB{stateHash, q.GetClient(), make(map[string][]byte)}
+	return &CacheDB{stateHash, q.NewClient(), make(map[string][]byte)}
 }
 
 func (db *CacheDB) Get(key []byte) (value []byte, err error) {
