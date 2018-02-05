@@ -53,7 +53,7 @@ type IRClient interface {
 }
 
 type channelClient struct {
-	qclient queue.IClient
+	qclient queue.Client
 	q       *queue.Queue
 }
 
@@ -78,7 +78,7 @@ func NewClient(name string, addr string) IRClient {
 
 func (client *channelClient) SetQueue(q *queue.Queue) {
 
-	client.qclient = q.GetClient()
+	client.qclient = q.NewClient()
 	client.q = q
 
 }
