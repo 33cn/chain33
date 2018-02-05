@@ -2,8 +2,6 @@ package store
 
 //store package store the world - state data
 import (
-	"errors"
-
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -23,7 +21,7 @@ func DisableLog() {
 
 type LocalStore struct {
 	db      dbm.DB
-	qclient queue.IClient
+	qclient queue.Client
 	done    chan struct{}
 }
 
@@ -44,7 +42,7 @@ func (store *LocalStore) Close() {
 }
 
 func (store *LocalStore) SetQueue(q *queue.Queue) {
-	store.qclient = q.GetClient()
+	store.qclient = q.NewClient()
 	client := store.qclient
 	client.Sub("localstore")
 	//recv 消息的处理
