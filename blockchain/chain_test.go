@@ -33,8 +33,6 @@ func initEnv() (*BlockChain, *queue.Queue) {
 	return blockchain, q
 }
 
-var zeroHash [32]byte
-
 /*
 type BlockDetail struct {
 	Block    *Block
@@ -231,7 +229,7 @@ func TestProcAddBlockDetail(t *testing.T) {
 	chainlog.Info("TestProcAddBlockDetail", "addblockheight", addblockheight)
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block := ConstructionBlockDetail("", "", parentHash, i, 5)
-		blockchain.ProcAddBlockDetail(true, block)
+		blockchain.ProcAddBlockMsg(true, block)
 		parentHash = block.Block.Hash()
 	}
 
@@ -271,19 +269,17 @@ func TestGetTx(t *testing.T) {
 
 	if err != nil {
 		chainlog.Error("TestGetTx GetBlock err", "err", err)
-	}
-
-	fmt.Println("testGetTx curheight:", curheight)
-
-	txresult, err := blockchain.GetTxResultFromDb(block.Block.Txs[0].Hash())
-	if err == nil && txresult != nil {
-		fmt.Println("testGetTx info:.")
-		fmt.Println("txresult.Index:", txresult.Index)
-		fmt.Println("txresult.Height:", txresult.Height)
-
-		fmt.Println("tx.Payload:", string(txresult.Tx.Payload))
-		fmt.Println("tx.Signature:", txresult.Tx.Signature.String())
-		fmt.Println("tx.Receiptdate:", txresult.Receiptdate.String())
+	} else {
+		chainlog.Info("testGetTx curheight:", curheight)
+		txResult, err := blockchain.GetTxResultFromDb(block.Block.Txs[0].Hash())
+		if err == nil && txResult != nil {
+			fmt.Println("testGetTx info:.")
+			fmt.Println("txResult.Index:", txResult.Index)
+			fmt.Println("txResult.Height:", txResult.Height)
+			fmt.Println("tx.Payload:", string(txResult.Tx.Payload))
+			fmt.Println("tx.Signature:", txResult.Tx.Signature.String())
+			fmt.Println("tx.Receiptdate:", txResult.Receiptdate.String())
+		}
 	}
 	chainlog.Info("TestGetTx end --------------------")
 	blockchain.Close()
