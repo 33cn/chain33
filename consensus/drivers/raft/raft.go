@@ -268,22 +268,23 @@ func (rc *raftNode) serveChannels() {
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
 	// Wait all connection between nodes is up
-	for {
-		notUp := false
-		for i := range rc.peers {
-			if i+1 != rc.id && rc.transport.ActiveSince(typec.ID(i+1)).IsZero() {
-				notUp = true
-				rlog.Info("==============Connection between Node " + strconv.Itoa(rc.id) + " and " + strconv.Itoa(i+1) + " is not up==============")
-				break
-			}
-		}
-		if !notUp {
-			rlog.Info("==============All connection is up==============")
-			break
-		}
-		time.Sleep(2 * time.Second)
-	}
-
+	//for {
+	//	notUp := false
+	//	for i := range rc.peers {
+	//		if i+1 != rc.id && rc.transport.ActiveSince(typec.ID(i+1)).IsZero() {
+	//			notUp = true
+	//			rlog.Info("==============Connection between Node " + strconv.Itoa(rc.id) + " and " + strconv.Itoa(i+1) + " is not up==============")
+	//			break
+	//		}
+	//	}
+	//	if !notUp {
+	//		rlog.Info("==============All connection is up==============")
+	//		break
+	//	}
+	//	time.Sleep(2 * time.Second)
+	//}
+	//TODO 这块监听后期需要根据场景进行优化
+	time.Sleep(5 * time.Second)
 	for {
 		validatorMap = make(map[string]bool)
 		if rc.Leader() == raft.None {
@@ -532,6 +533,8 @@ func (rc *raftNode) Process(ctx context.Context, m raftpb.Message) error {
 func (rc *raftNode) IsIDRemoved(id uint64) bool                           { return false }
 func (rc *raftNode) ReportUnreachable(id uint64)                          {}
 func (rc *raftNode) ReportSnapshot(id uint64, status raft.SnapshotStatus) {}
+func (rc *raftNode) removePeer(id uint64, status raft.SnapshotStatus)     {}
+func (rc *raftNode) addPeer(id uint64, status raft.SnapshotStatus)        {}
 
 // 等待集群中leader节点的选举结果，并返回leadId
 //func (rc *raftNode) WaitForLeader() (uint64, error) {
