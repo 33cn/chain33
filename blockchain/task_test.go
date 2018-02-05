@@ -3,8 +3,8 @@ package blockchain
 import (
 	"testing"
 	"time"
+	"math/rand"
 )
-import "math/rand"
 
 func TestTask(t *testing.T) {
 	task := newTask(time.Second)
