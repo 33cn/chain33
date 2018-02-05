@@ -22,7 +22,7 @@ type NodeInfo struct {
 	p2pBroadcastChan chan interface{}
 	cfg              *types.P2P
 	q                *queue.Queue
-	qclient          queue.IClient
+	qclient          queue.Client
 	blacklist        *BlackList
 	peerInfos        *PeerInfos
 }

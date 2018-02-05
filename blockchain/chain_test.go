@@ -641,7 +641,7 @@ func constructpeerlist() *types.PeerList {
 func execprocess(q *queue.Queue) {
 	//execs
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		client.Sub("execs")
 		for msg := range client.Recv() {
 			chainlog.Info("execprocess exec", "msg.Ty", msg.Ty)
