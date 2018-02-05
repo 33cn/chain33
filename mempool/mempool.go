@@ -34,7 +34,7 @@ type Mempool struct {
 	balanChan chan queue.Message
 	goodChan  chan queue.Message
 	memQueue  *queue.Queue
-	qclient   queue.IClient
+	qclient   queue.Client
 	header    *types.Header
 	minFee    int64
 	addedTxs  *lru.Cache
@@ -372,7 +372,7 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 
 func (mem *Mempool) SetQueue(q *queue.Queue) {
 	mem.memQueue = q
-	mem.qclient = q.GetClient()
+	mem.qclient = q.NewClient()
 	mem.qclient.Sub("mempool")
 
 	go mem.pollLastHeader()

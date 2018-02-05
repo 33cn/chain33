@@ -19,7 +19,7 @@ var MaxTxsPerBlock int64 = 100000
 type BlockStore struct {
 	db      dbm.DB
 	mtx     sync.RWMutex
-	qclient queue.IClient
+	qclient queue.Client
 	height  int64
 }
 
@@ -28,7 +28,7 @@ func NewBlockStore(db dbm.DB, q *queue.Queue) *BlockStore {
 	return &BlockStore{
 		height:  height,
 		db:      db,
-		qclient: q.GetClient(),
+		qclient: q.NewClient(),
 	}
 }
 

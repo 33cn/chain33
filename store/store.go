@@ -37,7 +37,7 @@ func DisableLog() {
 
 type Store struct {
 	db      dbm.DB
-	qclient queue.IClient
+	qclient queue.Client
 	done    chan struct{}
 	trees   map[string]*mavl.MAVLTree
 }
@@ -60,7 +60,7 @@ func (store *Store) Close() {
 }
 
 func (store *Store) SetQueue(q *queue.Queue) {
-	store.qclient = q.GetClient()
+	store.qclient = q.NewClient()
 	client := store.qclient
 	client.Sub("store")
 
