@@ -40,13 +40,14 @@ type chanSub struct {
 }
 
 type Queue struct {
-	chanSubs sync.Map
+	chanSubs map[string]chanSub
+	mu       sync.Mutex
 	done     chan struct{}
 	isClose  int32
 }
 
 func New(name string) *Queue {
-	return &Queue{chanSubs: sync.Map{}, done: make(chan struct{}, 1)}
+	return &Queue{chanSubs: make(map[string]chanSub), done: make(chan struct{}, 1)}
 }
 
 func (q *Queue) Start() {
@@ -70,44 +71,43 @@ func (q *Queue) Close() {
 	if q.IsClosed() {
 		return
 	}
-	q.chanSubs.Range(func(key, value interface{}) bool {
-		if topic, ok := key.(string); ok {
-			if ch, ok := value.(chanSub); ok {
-				if ch.isClose == 0 {
-					ch.high <- Message{}
-					ch.low <- Message{}
-					q.chanSubs.Store(topic, chanSub{isClose: 1})
-				}
-			}
+	q.mu.Lock()
+	for topic, ch := range q.chanSubs {
+		if ch.isClose == 0 {
+			ch.high <- Message{}
+			ch.low <- Message{}
+			q.chanSubs[topic] = chanSub{isClose: 1}
 		}
-		return true
-	})
+	}
+	q.mu.Unlock()
 	q.done <- struct{}{}
 	close(q.done)
 	atomic.StoreInt32(&q.isClose, 1)
-
 	qlog.Info("queue module closed")
 }
 
 func (q *Queue) chanSub(topic string) chanSub {
-	act, _ := q.chanSubs.LoadOrStore(topic, chanSub{high: make(chan Message, DefaultChanBuffer), low: make(chan Message, DefaultLowChanBuffer), isClose: 0})
-	ch, _ := act.(chanSub)
-	return ch
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	_, ok := q.chanSubs[topic]
+	if !ok {
+		q.chanSubs[topic] = chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
+	}
+	return q.chanSubs[topic]
 }
 
 func (q *Queue) closeTopic(topic string) {
-	if sub, ok := q.chanSubs.Load(topic); ok {
-		if ch, ok := sub.(chanSub); ok {
-			if ch.isClose == 0 {
-				ch.high <- Message{}
-				ch.low <- Message{}
-				ch.isClose = 1
-			}
-		}
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	sub, ok := q.chanSubs[topic]
+	if !ok {
+		return
 	}
-	q.chanSubs.Store(topic, chanSub{isClose: 1})
-	//read all message from channel
-	return
+	if sub.isClose == 0 {
+		sub.high <- Message{}
+		sub.low <- Message{}
+	}
+	q.chanSubs[topic] = chanSub{isClose: 1}
 }
 
 func (q *Queue) Send(msg Message) (err error) {
