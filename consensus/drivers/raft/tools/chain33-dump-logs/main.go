@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chain33_dump_logs
+package main
 
 import (
 	"flag"
