@@ -13,30 +13,30 @@ func TestMultiTopic(t *testing.T) {
 
 	//mempool
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		client.Sub("mempool")
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
 				log.Println("recv msg:", msg)
-				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{true, []byte("word")}))
+				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
 			}
 		}
 	}()
 
 	//blockchain
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		client.Sub("blockchain")
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventGetBlockHeight {
-				msg.Reply(client.NewMessage("blockchain", types.EventReplyBlockHeight, types.ReplyBlockHeight{100}))
+				msg.Reply(client.NewMessage("blockchain", types.EventReplyBlockHeight, types.ReplyBlockHeight{Height: 100}))
 			}
 		}
 	}()
 
 	//rpc server
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		//rpc 模块 会向其他模块发送消息，自己本身不需要订阅消息
 		msg := client.NewMessage("mempool", types.EventTx, "hello")
 		log.Println("send tx")
@@ -72,20 +72,20 @@ func TestHighLow(t *testing.T) {
 
 	//mempool
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		client.Sub("mempool")
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
 				time.Sleep(time.Second)
 				log.Println("recv msg:", msg)
-				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{true, []byte("word")}))
+				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
 			}
 		}
 	}()
 
 	//rpc server
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		//rpc 模块 会向其他模块发送消息，自己本身不需要订阅消息
 		for {
 			msg := client.NewMessage("mempool", types.EventTx, "hello")
@@ -117,14 +117,14 @@ func TestClientClose(t *testing.T) {
 	q := New("channel")
 	//mempool
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		client.Sub("mempool")
 		i := 0
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
 				time.Sleep(time.Second / 10)
 				log.Println("recv msg:", msg)
-				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{true, []byte("word")}))
+				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
 			}
 			i++
 			if i == 10 {
@@ -138,7 +138,7 @@ func TestClientClose(t *testing.T) {
 
 	//rpc server
 	go func() {
-		client := q.GetClient()
+		client := q.NewClient()
 		//high 优先级
 		done := make(chan struct{}, 100)
 		for i := 0; i < 100; i++ {
@@ -172,7 +172,7 @@ func TestClientClose(t *testing.T) {
 
 func TestPrintMessage(t *testing.T) {
 	q := New("channel")
-	client := q.GetClient()
-	msg := client.NewMessage("mempool", types.EventReply, types.Reply{true, []byte("word")})
+	client := q.NewClient()
+	msg := client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")})
 	t.Log(msg)
 }

@@ -26,7 +26,7 @@ type Miner interface {
 }
 
 type BaseClient struct {
-	qclient      queue.IClient
+	qclient      queue.Client
 	q            *queue.Queue
 	minerStart   int32
 	once         sync.Once
@@ -54,7 +54,7 @@ func (client *BaseClient) SetChild(c Miner) {
 
 func (client *BaseClient) InitClient(q *queue.Queue, minerstartCB func()) {
 	log.Info("Enter SetQueue method of consensus")
-	client.qclient = q.GetClient()
+	client.qclient = q.NewClient()
 	client.q = q
 	client.minerstartCB = minerstartCB
 	client.InitMiner()

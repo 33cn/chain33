@@ -41,7 +41,7 @@ const poolToDbMS = 500         //从blockpool写block到db的定时器
 const fetchPeerListSeconds = 5 //获取一次peerlist最新block高度
 
 type BlockChain struct {
-	qclient queue.IClient
+	qclient queue.Client
 	q       *queue.Queue
 	// 永久存储数据到db中
 	blockStore *BlockStore
@@ -130,7 +130,7 @@ func (chain *BlockChain) Close() {
 }
 
 func (chain *BlockChain) SetQueue(q *queue.Queue) {
-	chain.qclient = q.GetClient()
+	chain.qclient = q.NewClient()
 	chain.qclient.Sub("blockchain")
 
 	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath)
