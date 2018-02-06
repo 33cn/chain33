@@ -6,8 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/types"
 	"unsafe"
+
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 //消息队列的主要作用是解耦合，让各个模块相对的独立运行。
