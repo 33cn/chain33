@@ -723,7 +723,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 		err := errors.New("ProcGetTransactionByAddr Direction err")
 		return nil, err
 	}
-	if addr.GetIndex() < 0 || addr.GetIndex() > MaxTxsPerBlock {
+	if addr.GetIndex() < 0 || addr.GetIndex() > types.MaxTxsPerBlock {
 		err := errors.New("ProcGetTransactionByAddr Index err")
 		return nil, err
 	}
