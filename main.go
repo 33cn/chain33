@@ -12,10 +12,9 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
-
-	"path/filepath"
 
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
@@ -63,11 +62,8 @@ func main() {
 	//set watching
 	t := time.Tick(10 * time.Second)
 	go func() {
-		for {
-			select {
-			case <-t:
-				watching()
-			}
+		for range t {
+			watching()
 		}
 	}()
 	//set pprof
