@@ -14,7 +14,6 @@ import (
 
 var blockStoreKey = []byte("blockStoreHeight")
 var storeLog = chainlog.New("submodule", "store")
-var MaxTxsPerBlock int64 = 100000
 
 type BlockStore struct {
 	db     dbm.DB
