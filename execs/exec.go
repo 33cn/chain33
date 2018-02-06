@@ -259,7 +259,7 @@ func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	accFrom := account.LoadAccount(e.stateDB, from)
 	if accFrom.GetBalance() < types.MinBalanceTransfer {
-		return types.ErrNoBalance
+		return types.ErrBalanceLessThanTenTimesFee
 	}
 	//checkInExec
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))
