@@ -50,7 +50,7 @@ const (
 	MemDBBackendStr     = "memdb"
 )
 
-type dbCreator func(name string, dir string) (DB, error)
+type dbCreator func(name string, dir string, cache int) (DB, error)
 
 var backends = map[string]dbCreator{}
 
@@ -62,8 +62,8 @@ func registerDBCreator(backend string, creator dbCreator, force bool) {
 	backends[backend] = creator
 }
 
-func NewDB(name string, backend string, dir string) DB {
-	db, err := backends[backend](name, dir)
+func NewDB(name string, backend string, dir string, cache int) DB {
+	db, err := backends[backend](name, dir, cache)
 	if err != nil {
 		fmt.Printf("Error initializing DB: %v\n", err)
 		panic("initializing DB error")

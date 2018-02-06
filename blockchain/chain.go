@@ -133,7 +133,7 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	chain.qclient = q.NewClient()
 	chain.qclient.Sub("blockchain")
 
-	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath)
+	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, 128)
 	blockStore := NewBlockStore(blockStoreDB, q)
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()

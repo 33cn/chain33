@@ -45,7 +45,7 @@ type Store struct {
 //driver
 //dbpath
 func New(cfg *types.Store) *Store {
-	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath)
+	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, 256)
 	store := &Store{db: db}
 	store.trees = make(map[string]*mavl.MAVLTree)
 	store.done = make(chan struct{}, 1)
