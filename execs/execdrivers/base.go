@@ -123,7 +123,7 @@ func (n *ExecBase) ExecDelLocalCommon(tx *types.Transaction, receipt *types.Rece
 		set.KV = append(set.KV, &types.KeyValue{tokey2, nil})
 	}
 	set.KV = append(set.KV, &types.KeyValue{hash, nil})
-	return n.child.ExecDelLocal(tx, receipt, index)
+	return &set, nil
 }
 
 func (n *ExecBase) ExecCommon(tx *types.Transaction, index int) (*types.Receipt, error) {
