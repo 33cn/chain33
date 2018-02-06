@@ -165,7 +165,6 @@ func main() {
 			return
 		}
 		GetLastMempool()
-	//add by hyb
 	case "getblockoverview":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -238,7 +237,6 @@ func LoadHelp() {
 	fmt.Println("getheaders [start, end, isdetail]                           : 获取指定区间区块头")
 	fmt.Println("getpeerinfo []                                              : 获取远程节点信息")
 	fmt.Println("getlastmempool []                                           : 获取最新加入到内存池中的十条交易")
-	//
 	fmt.Println("getblockoverview [hash]                                     : 获取区块信息")
 	fmt.Println("getaddroverview [address]                                   : 获取地址交易信息")
 	fmt.Println("getblockhash [height]                                       : 获取区块哈希值")
@@ -317,6 +315,7 @@ type BlockDetailsResult struct {
 type WalletTxDetailsResult struct {
 	TxDetails []*WalletTxDetailResult `json:"txDetails"`
 }
+
 type WalletTxDetailResult struct {
 	Tx        *TxResult            `json:"tx"`
 	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
@@ -328,7 +327,6 @@ type WalletTxDetailResult struct {
 	Txhash    string               `json:"txhash"`
 }
 
-//add by hyb
 type AddrOverviewResult struct {
 	Reciver string `json:"reciver"`
 	Balance string `json:"balance"`
@@ -1060,7 +1058,6 @@ func GetLastMempool() {
 	fmt.Println(string(data))
 }
 
-//hyb
 func GetBlockOverview(hash string) {
 	params := jsonrpc.QueryParm{Hash: hash}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
@@ -1189,6 +1186,7 @@ func SaveSeed(seed string, password string) {
 	}
 	fmt.Println(string(data))
 }
+
 func GetSeed(passwd string) {
 	params := types.GetSeedByPw{Passwd: passwd}
 

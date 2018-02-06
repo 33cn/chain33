@@ -12,13 +12,13 @@ import (
 func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	// 判断消息是否含有nil交易
 	if msg.GetData() == nil {
-		msg.Data = emptyTxErr
+		msg.Data = types.ErrEmptyTx
 		return msg
 	}
 	// 检查交易是否为重复交易
 	tx := msg.GetData().(*types.Transaction)
 	if mem.addedTxs.Contains(string(tx.Hash())) {
-		msg.Data = dupTxErr
+		msg.Data = types.ErrDupTx
 		return msg
 	}
 	mem.addedTxs.Add(string(tx.Hash()), nil)
@@ -31,13 +31,13 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	// 检查交易账户在Mempool中是否存在过多交易
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
-		msg.Data = manyTxErr
+		msg.Data = types.ErrManyTx
 		return msg
 	}
 	// 检查交易是否过期
 	valid := mem.CheckExpireValid(msg)
 	if !valid {
-		msg.Data = expireErr
+		msg.Data = types.ErrTxExpire
 		return msg
 	}
 	return msg
@@ -53,8 +53,8 @@ func (mem *Mempool) CheckSignList() {
 					// 签名正确，传入balanChan，待检查余额
 					mem.balanChan <- data
 				} else {
-					mlog.Error("wrong tx", "err", signErr)
-					data.Data = signErr
+					mlog.Error("wrong tx", "err", types.ErrSign)
+					data.Data = types.ErrSign
 					mem.badChan <- data
 				}
 			}
