@@ -3,11 +3,11 @@ package mavl
 import (
 	"errors"
 	"fmt"
-	"sync"
 
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -16,8 +16,9 @@ var treelog = log.New("module", "mavl")
 
 //merkle avl tree
 type MAVLTree struct {
-	root *MAVLNode
-	ndb  *nodeDB
+	root  *MAVLNode
+	ndb   *nodeDB
+	batch *nodeBatch
 }
 
 // 新建一个merkle avl 树
@@ -29,7 +30,8 @@ func NewMAVLTree(db dbm.DB) *MAVLTree {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db)
 		return &MAVLTree{
-			ndb: ndb,
+			ndb:   ndb,
+			batch: ndb.GetBatch(),
 		}
 	}
 }
@@ -104,7 +106,7 @@ func (t *MAVLTree) Save() []byte {
 	}
 	if t.ndb != nil {
 		t.root.save(t)
-		t.ndb.Commit()
+		t.batch.Commit()
 	}
 	return t.root.hash
 }
@@ -115,6 +117,8 @@ func (t *MAVLTree) Load(hash []byte) (err error) {
 		t.root = nil
 	} else {
 		t.root, err = t.ndb.GetNode(t, hash)
+		//load cache of 16 heigh 2^16 个数据
+		//t.root.loadCache(t, 16)
 	}
 	return
 }
@@ -175,25 +179,35 @@ func (t *MAVLTree) Remove(key []byte) (value []byte, removed bool) {
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
-	mtx   sync.Mutex
 	db    dbm.DB
+	cache *lru.Cache
+}
+
+type nodeBatch struct {
 	batch dbm.Batch
 }
 
 func newNodeDB(db dbm.DB) *nodeDB {
+	cache, err := lru.New(10000)
+	if err != nil {
+		panic(err)
+	}
 	ndb := &nodeDB{
 		db:    db,
-		batch: db.NewBatch(true),
+		cache: cache,
 	}
 	return ndb
 }
 
 func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
 	// Doesn't exist, load from db.
-	buf := ndb.db.Get(hash)
+	var buf []byte
+	if data, ok := ndb.cache.Get(string(hash)); ok {
+		buf = data.([]byte)
+	} else {
+		buf = ndb.db.Get(hash)
+		ndb.cache.Add(string(hash), buf)
+	}
 	if len(buf) == 0 {
 		return nil, ErrNodeNotExist
 	}
@@ -204,12 +218,13 @@ func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
 	node.hash = hash
 	node.persisted = true
 	return node, nil
-
 }
 
-func (ndb *nodeDB) SaveNode(t *MAVLTree, node *MAVLNode) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
+func (ndb *nodeDB) GetBatch() *nodeBatch {
+	return &nodeBatch{ndb.db.NewBatch(true)}
+}
+
+func (ndb *nodeBatch) SaveNode(t *MAVLTree, node *MAVLNode) {
 	if node.hash == nil {
 		panic("Expected to find node.hash, but none found.")
 	}
@@ -222,26 +237,10 @@ func (ndb *nodeDB) SaveNode(t *MAVLTree, node *MAVLNode) {
 	node.persisted = true
 }
 
-func (ndb *nodeDB) Commit() {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
+func (ndb *nodeBatch) Commit() {
 	// Write saves
 	ndb.batch.Write()
-	ndb.batch = ndb.db.NewBatch(true)
-}
-
-//将需要删除的节点从本tree中剔除，但不能删除数据中的数据，由于前tree还在使用
-func (ndb *nodeDB) RemoveNode(t *MAVLTree, node *MAVLNode) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	if node.hash == nil {
-		treelog.Error(" RemoveNode Expected to find node.hash, but none found.")
-	}
-	if !node.persisted {
-		treelog.Error("RemoveNode Shouldn't be calling remove on a non-persisted node.")
-	}
-	treelog.Debug("RemoveNode", "key", string(node.key), "value", string(node.value))
+	ndb.batch = nil
 }
 
 //对外接口
