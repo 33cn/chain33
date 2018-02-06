@@ -25,7 +25,7 @@ func (q *Query) Query(driver string, funcname string, param []byte) (types.Messa
 	if err != nil {
 		return nil, err
 	}
-	storelog.Error("local exec", "name", exec.GetName())
+	storeLog.Error("local exec", "name", exec.GetName())
 	exec.SetQueryDB(q.db)
 	exec.SetDB(execdrivers.NewStateDB(q.q, q.getStateHash()))
 	return exec.Query(funcname, param)
