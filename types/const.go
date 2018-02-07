@@ -20,9 +20,6 @@ var ErrNoTicket = errors.New("ErrNoTicket")
 var ErrMinerIsStared = errors.New("ErrMinerIsStared")
 var ErrMinerNotStared = errors.New("ErrMinerNotStared")
 var ErrTicketCount = errors.New("ErrTicketCount")
-var ErrHashlockAmount = errors.New("ErrHashlockAmount")
-var ErrHashlockHash = errors.New("ErrHashlockHash")
-var ErrHashlockStatus = errors.New("ErrHashlockStatus")
 var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 var ErrNoPeer = errors.New("ErrNoPeer")
 var ErrSign = errors.New("ErrSign")
@@ -42,7 +39,11 @@ var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
 var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
 var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
 var ErrBlockNotFound = errors.New("ErrBlockNotFound")
+var ErrHashlockAmount = errors.New("ErrHashlockAmount")
+var ErrHashlockHash = errors.New("ErrHashlockHash")
+var ErrHashlockStatus = errors.New("ErrHashlockStatus")
 var ErrHashlockReturnAddrss = errors.New("ErrHashlockReturnAddrss")
+var ErrHashlockSendAddress = errors.New("ErrHashlockSendAddress")
 var ErrHashlockTime = errors.New("ErrHashlockTime")
 var ErrHashlockReapeathash = errors.New("ErrHashlockReapeathash")
 var ErrStartBigThanEnd = errors.New("ErrStartBigThanEnd")
@@ -58,7 +59,11 @@ var ErrTimeout = errors.New("ErrTimeout")
 var ErrRetrieveRepeatAddress = errors.New("ErrRetrieveRepeatAddress")
 var ErrRetrievePeriodLimit = errors.New("ErrRetrievePeriodLimit")
 var ErrRetrieveAmountLimit = errors.New("ErrRetrieveAmountLimit")
-var ErrRetrieveFactorLimit = errors.New("ErrRetrieveFactorLimit")
+var ErrRetrieveTimeweightLimit = errors.New("ErrRetrieveTimeweightLimit")
+var ErrRetrievePrepareAddress = errors.New("ErrRetrievePrepareAddress")
+var ErrRetrievePerformAddress = errors.New("ErrRetrievePerformAddress")
+var ErrRetrieveCancelAddress = errors.New("ErrRetrieveCancelAddress")
+var ErrRetrieveStatus = errors.New("ErrRetrieveStatus")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
@@ -331,6 +336,8 @@ const (
 
 //retrieve
 const (
-	RetrievePre  = 1
-	RetrievePerf = 2
+	RetrievePre    = 1
+	RetrievePerf   = 2
+	RetrieveBackup = 3
+	RetrieveCancel = 4
 )

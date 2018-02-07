@@ -10,7 +10,7 @@ import (
 var rlog = log.New("module", "execs.retrieve")
 
 const minPeriod = 60
-const maxFactor = 2
+const maxTimeWeight = 2
 
 func init() {
 	execdrivers.Register("retrieve", newRetrieve())
@@ -37,27 +37,31 @@ func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	rlog.Debug("Exec retrieve tx=", "tx=", action)
 
 	actiondb := NewRetrieveAcction(r.GetDB(), tx, r.GetAddr(), r.GetBlockTime(), r.GetHeight())
+	if action.Ty == types.RetrieveBackup && action.GetBackup() != nil {
+		backupRet := action.GetBackup()
+		rlog.Debug("RetrieveBackup action")
 
-	if action.Ty == types.RetrievePre && action.GetPreRet() != nil {
+		return actiondb.RetrieveBackup(backupRet)
+	} else if action.Ty == types.RetrievePre && action.GetPreRet() != nil {
 		preRet := action.GetPreRet()
 		rlog.Debug("PreRetrieve action")
 
-		if preRet.BackoffPeriod < minPeriod {
+		if preRet.DelayPeriod < minPeriod {
 			return nil, types.ErrRetrievePeriodLimit
 		}
-		if preRet.Amount < 0 {
-			return nil, types.ErrRetrieveAmountLimit
-		}
-
 		return actiondb.RetrievePrepare(preRet)
 	} else if action.Ty == types.RetrievePerf && action.GetPerfRet() != nil {
 		perfRet := action.GetPerfRet()
 		rlog.Debug("PerformRetrieve action")
 
-		if perfRet.Factor < 0 || perfRet.Factor > maxFactor {
-			return nil, types.ErrRetrieveFactorLimit
+		if perfRet.Timeweight < 0 || perfRet.Timeweight > maxTimeWeight {
+			return nil, types.ErrRetrieveTimeweightLimit
 		}
 		return actiondb.RetrievePerform(perfRet)
+	} else if action.Ty == types.RetrieveCancel && action.GetCancel() != nil {
+		cancel := action.GetCancel()
+		rlog.Debug("RetrieveCancel action")
+		return actiondb.RetrieveCancel(cancel)
 	}
 	//return error
 	return nil, types.ErrActionNotSupport
@@ -77,6 +81,10 @@ func (r *Retrieve) GetActionName(tx *types.Transaction) string {
 		return "retrieve prepare"
 	} else if action.Ty == types.RetrievePerf && action.GetPerfRet() != nil {
 		return "retrieve perform"
+	} else if action.Ty == types.RetrieveBackup && action.GetBackup != nil {
+		return "retrieve backup"
+	} else if action.Ty == types.RetrieveCancel && action.GetCancel != nil {
+		return "retrieve cancel"
 	}
 	return "unknow"
 }
