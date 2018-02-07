@@ -133,7 +133,7 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 	chain.qclient = q.NewClient()
 	chain.qclient.Sub("blockchain")
 
-	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath)
+	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, 128)
 	blockStore := NewBlockStore(blockStoreDB, q)
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
@@ -723,7 +723,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 		err := errors.New("ProcGetTransactionByAddr Direction err")
 		return nil, err
 	}
-	if addr.GetIndex() < 0 || addr.GetIndex() > MaxTxsPerBlock {
+	if addr.GetIndex() < 0 || addr.GetIndex() > types.MaxTxsPerBlock {
 		err := errors.New("ProcGetTransactionByAddr Index err")
 		return nil, err
 	}

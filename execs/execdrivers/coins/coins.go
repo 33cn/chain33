@@ -68,7 +68,6 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
-	clog.Debug("exec transaction=", "tx=", action)
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()

@@ -3,6 +3,7 @@ package execs
 //store package store the world - state data
 import (
 	"bytes"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -84,6 +85,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
+		beg := time.Now()
 		tx := datas.Txs[i]
 		if execute.height == 0 { //genesis block 不检查手续费
 			receipt, err := execute.Exec(tx, i)
@@ -126,6 +128,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 			feelog.Ty = receipt.Ty
 		}
 		receipts = append(receipts, feelog)
+		elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "cost:", time.Since(beg))
 	}
 	msg.Reply(q.NewClient().NewMessage("", types.EventReceipts,
 		&types.Receipts{receipts}))
