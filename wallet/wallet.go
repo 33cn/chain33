@@ -92,6 +92,11 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 	go wallet.ProcRecvMsg()
 }
 
+func (wallet *Wallet) flushTicket() {
+	hashList := wallet.qclient.NewMessage("consensus", types.EventFlushTicket, nil)
+	wallet.qclient.Send(hashList, false)
+}
+
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.qclient.Recv() {
@@ -146,7 +151,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccount, WalletAccount))
 			}
-
+			wallet.flushTicket()
 		case types.EventWalletSendToAddress:
 			SendToAddress := msg.Data.(*types.ReqWalletSendToAddress)
 			ReplyHash, err := wallet.ProcSendToAddress(SendToAddress)
@@ -226,7 +231,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				reply.Msg = []byte(err.Error())
 			}
 			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
-
+			wallet.flushTicket()
 		case types.EventAddBlock:
 			block := msg.Data.(*types.BlockDetail)
 			wallet.ProcWalletAddBlock(block)
@@ -1027,7 +1032,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	//walletlog.Error("ProcWalletAddBlock", "height", block.GetBlock().GetHeight())
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
-
+	needflush := false
 	for index := 0; index < txlen; index++ {
 		if "coins" == string(block.Block.Txs[index].Execer) {
 			blockheight := block.Block.Height*MaxTxNumPerBlock + int64(index)
@@ -1075,9 +1080,30 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
 				walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
 			}
+		} else if "ticket" == string(block.Block.Txs[index].Execer) {
+			tx := block.Block.Txs[index]
+			receipt := block.Receipts[index]
+			if wallet.needFlushTicket(tx, receipt) {
+				needflush = true
+			}
 		}
 	}
 	newbatch.Write()
+	if needflush {
+		wallet.flushTicket()
+	}
+}
+
+func (wallet *Wallet) needFlushTicket(tx *types.Transaction, receipt *types.ReceiptData) bool {
+	if receipt.Ty != types.ExecOk || string(tx.Execer) != "ticket" {
+		return false
+	}
+	pubkey := tx.Signature.GetPubkey()
+	addr := account.PubKeyToAddress(pubkey)
+	if wallet.AddrInWallet(addr.String()) {
+		return true
+	}
+	return false
 }
 
 //wallet模块收到blockchain广播的delblock消息，需要解析钱包相关的tx并存db中删除
@@ -1090,11 +1116,17 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
-
+	needflush := false
 	for index := 0; index < txlen; index++ {
 		blockheight := block.Block.Height*MaxTxNumPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
-
+		if "ticket" == string(block.Block.Txs[index].Execer) {
+			tx := block.Block.Txs[index]
+			receipt := block.Receipts[index]
+			if wallet.needFlushTicket(tx, receipt) {
+				needflush = true
+			}
+		}
 		//获取from地址
 		pubkey := block.Block.Txs[index].Signature.GetPubkey()
 		addr := account.PubKeyToAddress(pubkey)
@@ -1112,6 +1144,9 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		}
 	}
 	newbatch.Write()
+	if needflush {
+		wallet.flushTicket()
+	}
 }
 
 //地址对应的账户是否属于本钱包
