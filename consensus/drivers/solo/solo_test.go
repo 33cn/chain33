@@ -36,7 +36,7 @@ func TestSolo(t *testing.T) {
 
 // 向共识发送交易列表
 func sendReplyList(q *queue.Queue) {
-	client := q.GetClient()
+	client := q.NewClient()
 	client.Sub("mempool")
 	var accountNum int
 	for msg := range client.Recv() {

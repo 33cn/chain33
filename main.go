@@ -12,10 +12,9 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
-
-	"path/filepath"
 
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
@@ -35,14 +34,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
-
-func getcurrentdir() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
 
 var (
 	CPUNUM     = runtime.NumCPU()
@@ -71,11 +62,8 @@ func main() {
 	//set watching
 	t := time.Tick(10 * time.Second)
 	go func() {
-		for {
-			select {
-			case <-t:
-				watching()
-			}
+		for range t {
+			watching()
 		}
 	}()
 	//set pprof
@@ -194,4 +182,13 @@ func watching() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	log.Info("info:", "NumGoroutine:", runtime.NumGoroutine())
+	log.Info("info:", "Mem:", m.Sys/(1024*1024))
+}
+
+func getcurrentdir() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		panic(err)
+	}
+	return dir
 }

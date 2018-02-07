@@ -53,7 +53,7 @@ type IRClient interface {
 }
 
 type channelClient struct {
-	qclient queue.IClient
+	qclient queue.Client
 	q       *queue.Queue
 }
 
@@ -78,7 +78,7 @@ func NewClient(name string, addr string) IRClient {
 
 func (client *channelClient) SetQueue(q *queue.Queue) {
 
-	client.qclient = q.GetClient()
+	client.qclient = q.NewClient()
 	client.q = q
 
 }
@@ -105,7 +105,13 @@ func (client *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Mess
 	if err == nil {
 		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
 		msg := client.qclient.NewMessage("mempool", types.EventTx, &tx)
-		client.qclient.Send(msg, true)
+		err := client.qclient.Send(msg, true)
+		if err != nil {
+			var msg queue.Message
+			log.Error("SendRawTransaction", "Error", err.Error())
+			msg.Data = err
+			return msg
+		}
 		resp, err := client.qclient.Wait(msg)
 
 		if err != nil {
@@ -131,7 +137,13 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 		panic("client not bind message queue.")
 	}
 	msg := client.qclient.NewMessage("mempool", types.EventTx, tx)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		var msg queue.Message
+		log.Error("SendTx", "Error", err.Error())
+		msg.Data = err
+		return msg
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 
@@ -141,9 +153,15 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 	return resp
 }
 
-func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error) {
+func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail})
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+
+		log.Error("SendRawTransaction", "Error", err.Error())
+
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -152,9 +170,13 @@ func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (b
 	return resp.Data.(*types.BlockDetails), nil
 }
 
-func (client *channelClient) QueryTx(hash []byte) (proof *types.TransactionDetail, err error) {
+func (client *channelClient) QueryTx(hash []byte) (*types.TransactionDetail, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("QueryTx", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -165,7 +187,11 @@ func (client *channelClient) QueryTx(hash []byte) (proof *types.TransactionDetai
 
 func (client *channelClient) GetLastHeader() (*types.Header, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetLastHeader", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -176,7 +202,11 @@ func (client *channelClient) GetLastHeader() (*types.Header, error) {
 
 func (client *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetTransactionByAddr, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetTxByAddr", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -188,7 +218,11 @@ func (client *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInf
 func (client *channelClient) GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error) {
 
 	msg := client.qclient.NewMessage("blockchain", types.EventGetTransactionByHash, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetTxByHashes", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -199,7 +233,11 @@ func (client *channelClient) GetTxByHashes(parm *types.ReqHashes) (*types.Transa
 
 func (client *channelClient) GetMempool() (*types.ReplyTxList, error) {
 	msg := client.qclient.NewMessage("mempool", types.EventGetMempool, nil)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetMempool", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -210,7 +248,11 @@ func (client *channelClient) GetMempool() (*types.ReplyTxList, error) {
 
 func (client *channelClient) GetAccounts() (*types.WalletAccounts, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletGetAccountList, nil)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetAccounts", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -221,7 +263,11 @@ func (client *channelClient) GetAccounts() (*types.WalletAccounts, error) {
 
 func (client *channelClient) NewAccount(parm *types.ReqNewAccount) (*types.WalletAccount, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventNewAccount, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("NewAccount", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -232,7 +278,11 @@ func (client *channelClient) NewAccount(parm *types.ReqNewAccount) (*types.Walle
 
 func (client *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletTransactionList, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("NewAccount", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -243,7 +293,11 @@ func (client *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) 
 
 func (client *channelClient) ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletImportprivkey, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("ImportPrivkey", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -254,7 +308,11 @@ func (client *channelClient) ImportPrivkey(parm *types.ReqWalletImportPrivKey) (
 
 func (client *channelClient) SendToAddress(parm *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletSendToAddress, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("SendToAddress", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -265,7 +323,11 @@ func (client *channelClient) SendToAddress(parm *types.ReqWalletSendToAddress) (
 
 func (client *channelClient) SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletSetFee, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("SetTxFee", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -277,7 +339,11 @@ func (client *channelClient) SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply
 
 func (client *channelClient) SetLabl(parm *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletSetLabel, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("SetLabl", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -290,7 +356,11 @@ func (client *channelClient) SetLabl(parm *types.ReqWalletSetLabel) (*types.Wall
 
 func (client *channelClient) MergeBalance(parm *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletMergeBalance, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("MergeBalance", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -301,7 +371,11 @@ func (client *channelClient) MergeBalance(parm *types.ReqWalletMergeBalance) (*t
 
 func (client *channelClient) SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletSetPasswd, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("SetPasswd", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -312,7 +386,11 @@ func (client *channelClient) SetPasswd(parm *types.ReqWalletSetPasswd) (*types.R
 
 func (client *channelClient) Lock() (*types.Reply, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletLock, nil)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("Lock", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -323,7 +401,11 @@ func (client *channelClient) Lock() (*types.Reply, error) {
 
 func (client *channelClient) UnLock(parm *types.WalletUnLock) (*types.Reply, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventWalletUnLock, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("UnLock", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -334,7 +416,11 @@ func (client *channelClient) UnLock(parm *types.WalletUnLock) (*types.Reply, err
 
 func (client *channelClient) GetPeerInfo() (*types.PeerList, error) {
 	msg := client.qclient.NewMessage("p2p", types.EventPeerInfo, nil)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetPeerInfo", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -345,7 +431,11 @@ func (client *channelClient) GetPeerInfo() (*types.PeerList, error) {
 func (client *channelClient) GetHeaders(in *types.ReqBlocks) (*types.Headers, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetHeaders, &types.ReqBlocks{Start: in.GetStart(), End: in.GetEnd(),
 		Isdetail: in.GetIsdetail()})
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetHeaders", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -355,7 +445,11 @@ func (client *channelClient) GetHeaders(in *types.ReqBlocks) (*types.Headers, er
 
 func (client *channelClient) GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, error) {
 	msg := client.qclient.NewMessage("mempool", types.EventGetLastMempool, nil)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetLastMemPool", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -365,7 +459,11 @@ func (client *channelClient) GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, 
 
 func (client *channelClient) GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockOverview, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetBlockOverview", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -376,7 +474,11 @@ func (client *channelClient) GetBlockOverview(parm *types.ReqHash) (*types.Block
 
 func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetAddrOverview, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetAddrOverview", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -397,7 +499,11 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 }
 func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHash, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetBlockHash", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -409,7 +515,11 @@ func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash,
 //seed
 func (client *channelClient) GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventGenSeed, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GenSeed", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -418,7 +528,11 @@ func (client *channelClient) GenSeed(parm *types.GenSeedLang) (*types.ReplySeed,
 }
 func (client *channelClient) SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventSaveSeed, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("SaveSeed", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -427,7 +541,11 @@ func (client *channelClient) SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, e
 }
 func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventGetSeed, parm)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetSeed", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -437,7 +555,11 @@ func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed,
 
 func (client *channelClient) GetWalletStatus() (*types.Reply, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventGetWalletStatus, nil)
-	client.qclient.Send(msg, true)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetWalletStatus", "Error", err.Error())
+		return nil, err
+	}
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
 		return nil, err

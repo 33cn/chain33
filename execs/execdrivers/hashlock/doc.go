@@ -1,4 +1,4 @@
-package coins
+package hashlock
 
 /*
 测试hashlocking需要测试三种状态：lock ，unlock ，send
