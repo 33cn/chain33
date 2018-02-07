@@ -101,7 +101,7 @@ func (client *Client) Wait(msg Message) (Message, error) {
 	if msg.ChReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
-	timeout := time.After(time.Second * 60)
+	timeout := time.After(time.Second * 10)
 	select {
 	case msg = <-msg.ChReply:
 		return msg, msg.Err()
