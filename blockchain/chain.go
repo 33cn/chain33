@@ -87,7 +87,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		cfg:                cfg,
 		wg:                 &sync.WaitGroup{},
 		recvwg:             &sync.WaitGroup{},
-		task:               newTask(60 * time.Second),
+		task:               newTask(360 * time.Second),
 		quit:               make(chan struct{}, 0),
 		synblock:           make(chan struct{}, 1),
 	}
