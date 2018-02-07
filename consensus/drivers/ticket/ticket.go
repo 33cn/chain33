@@ -26,16 +26,32 @@ type TicketClient struct {
 	tlist   *types.ReplyTicketList
 	privmap map[string]crypto.PrivKey
 	mu      sync.Mutex
+	done    chan struct{}
 }
 
 func New(cfg *types.Consensus) *TicketClient {
 	c := drivers.NewBaseClient(cfg)
-	t := &TicketClient{c, &types.ReplyTicketList{}, nil, sync.Mutex{}}
+	t := &TicketClient{c, &types.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{})}
 	c.SetChild(t)
+	go t.flushTicketBackend()
 	return t
 }
 
+func (client *TicketClient) flushTicketBackend() {
+	ticket := time.NewTicker(time.Hour)
+	defer ticket.Stop()
+	for {
+		select {
+		case <-ticket.C:
+			client.flushTicket()
+		case <-client.done:
+			break
+		}
+	}
+}
+
 func (client *TicketClient) Close() {
+	close(client.done)
 	log.Info("consensus ticket closed")
 }
 
@@ -69,7 +85,7 @@ func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	tx3.To = execdrivers.ExecAddress("ticket").String()
 
 	gticket := &types.TicketAction_Genesis{}
-	gticket.Genesis = &types.TicketGenesis{client.Cfg.HotkeyAddr, client.Cfg.Genesis, 300000}
+	gticket.Genesis = &types.TicketGenesis{client.Cfg.HotkeyAddr, client.Cfg.Genesis, 30000}
 
 	tx3.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
 	ret = append(ret, &tx3)
@@ -78,7 +94,7 @@ func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 
 func (client *TicketClient) ProcEvent(msg queue.Message) {
 	if msg.Ty == types.EventFlushTicket {
-		client.flushTicket(msg)
+		client.flushTicketMsg(msg)
 	}
 }
 
@@ -109,17 +125,22 @@ func (client *TicketClient) getTickets() ([]*types.Ticket, []crypto.PrivKey, err
 	return reply.Tickets, keys, nil
 }
 
-func (client *TicketClient) flushTicket(msg queue.Message) {
+func (client *TicketClient) flushTicket() error {
 	//list accounts
 	tickets, privs, err := client.getTickets()
 	if err != nil {
-		msg.ReplyErr("FlushTicket", err)
-		return
+		return err
 	}
 	client.mu.Lock()
 	client.privmap = getPrivMap(privs)
 	client.tlist.Tickets = tickets
 	client.mu.Unlock()
+	return nil
+}
+func (client *TicketClient) flushTicketMsg(msg queue.Message) {
+	//list accounts
+	err := client.flushTicket()
+	msg.ReplyErr("FlushTicket", err)
 }
 
 func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
@@ -353,9 +374,11 @@ func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*typ
 		return nil, types.ErrNoTx
 	}
 	//判断txs[0] 是否执行OK
-	err = client.CheckBlock(client.GetCurrentBlock(), blockdetail)
-	if err != nil { //never happen
-		return nil, err
+	if block.Height > 0 {
+		err = client.CheckBlock(client.GetCurrentBlock(), blockdetail)
+		if err != nil { //never happen
+			return nil, err
+		}
 	}
 	return blockdetail, nil
 }
