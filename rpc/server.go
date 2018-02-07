@@ -26,7 +26,7 @@ type IServer interface {
 //channelServer 不需要做任何的事情，grpc 和 jsonrpc 需要建立服务，监听
 type channelServer struct {
 	q        *queue.Queue
-	c        queue.IClient
+	c        queue.Client
 	listener net.Listener
 }
 
@@ -36,7 +36,7 @@ func newChannelServer(q *queue.Queue) *channelServer {
 
 func (server *channelServer) SetQueue(q *queue.Queue) {
 	server.q = q
-	server.c = q.GetClient() //创建一个Queue Client
+	server.c = q.NewClient() //创建一个Queue Client
 
 }
 

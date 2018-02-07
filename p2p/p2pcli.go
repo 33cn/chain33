@@ -22,6 +22,7 @@ import (
 func (m *P2pCli) Close() {
 
 	close(m.loopdone)
+
 }
 
 type P2pCli struct {
@@ -146,7 +147,11 @@ func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
 
 	client := node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("SendVesion", "Error", err.Error())
+		return err
+	}
 	rsp, err := client.Wait(msg)
 	if err != nil {
 		log.Error("GetHeight", "Error", err.Error())
@@ -155,12 +160,12 @@ func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(node.nodeInfo.externalAddr.Port)})
+	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(node.nodeInfo.GetExternalAddr().Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-	addrfrom := fmt.Sprintf("%v:%v", ExternalIp, node.nodeInfo.externalAddr.Port)
+	addrfrom := fmt.Sprintf("%v:%v", ExternalIp, node.nodeInfo.GetExternalAddr().Port)
 	node.nodeInfo.blacklist.Add(addrfrom)
 	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: node.nodeInfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
@@ -194,7 +199,7 @@ func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
 
 func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(nodeinfo.externalAddr.Port)})
+	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(nodeinfo.GetExternalAddr().Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
@@ -213,7 +218,11 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	client := nodeinfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("GetBlockHeight", "Error", err.Error())
+		return 0, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return 0, err
@@ -481,18 +490,16 @@ func (m *P2pCli) broadcastByStream(data interface{}) {
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
-		//log.Error("BlockBroadcast", "Release Task", "ok")
 	}()
 	block := msg.GetData().(*pb.Block)
-	peers, infos := m.network.node.GetActivePeers()
+
 	m.broadcastByStream(&pb.P2PBlock{Block: block})
 
-	log.Debug("BlockBroadcast", "SendTOP2P", msg.GetData())
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
-
+	peers, infos := m.network.node.GetActivePeers()
 	for _, peer := range peers {
 		//比较peer 的高度是否低于广播的高度，如果高于，则不广播给对方
 		//peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())

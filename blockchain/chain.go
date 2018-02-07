@@ -22,7 +22,7 @@ import (
 var (
 	//cache 存贮的block个数
 	DefCacheSize int64 = 500
-
+	zeroHash     [32]byte
 	//一次最多申请获取block个数
 	MaxFetchBlockNum int64 = 100
 	TimeoutSeconds   int64 = 2
@@ -41,7 +41,7 @@ const poolToDbMS = 500         //从blockpool写block到db的定时器
 const fetchPeerListSeconds = 5 //获取一次peerlist最新block高度
 
 type BlockChain struct {
-	qclient queue.IClient
+	qclient queue.Client
 	q       *queue.Queue
 	// 永久存储数据到db中
 	blockStore *BlockStore
@@ -130,18 +130,31 @@ func (chain *BlockChain) Close() {
 }
 
 func (chain *BlockChain) SetQueue(q *queue.Queue) {
-	chain.qclient = q.GetClient()
+	chain.qclient = q.NewClient()
 	chain.qclient.Sub("blockchain")
 
-	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath)
+	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, 128)
 	blockStore := NewBlockStore(blockStoreDB, q)
 	chain.blockStore = blockStore
-	chain.query = NewQuery(blockStoreDB)
+	stateHash := chain.getStateHash()
+	chain.query = NewQuery(blockStoreDB, q, stateHash)
 	chain.q = q
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
 	// 定时同步缓存中的block to db
 	go chain.poolRoutine()
+}
+
+func (chain *BlockChain) getStateHash() []byte {
+	blockhight := chain.GetBlockHeight()
+	blockdetail, err := chain.GetBlock(blockhight)
+	if err != nil {
+		return zeroHash[:]
+	}
+	if blockdetail != nil {
+		return blockdetail.GetBlock().GetStateHash()
+	}
+	return zeroHash[:]
 }
 
 func (chain *BlockChain) ProcRecvMsg() {
@@ -182,6 +195,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
 		case types.EventGetBlockHash: //GetBlockHash
 			go chain.processMsg(msg, reqnum, chain.getBlockHash)
+		case types.EventQuery: //GetBlockHash
+			go chain.processMsg(msg, reqnum, chain.getQuery)
 		default:
 			<-reqnum
 			chain.wg.Done()
@@ -708,14 +723,14 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 		err := errors.New("ProcGetTransactionByAddr Direction err")
 		return nil, err
 	}
-	if addr.GetIndex() < 0 || addr.GetIndex() > MaxTxsPerBlock {
+	if addr.GetIndex() < 0 || addr.GetIndex() > types.MaxTxsPerBlock {
 		err := errors.New("ProcGetTransactionByAddr Index err")
 		return nil, err
 	}
 	//查询的drivers--> main 驱动的名称
 	//查询的方法：  --> GetTxsByAddr
 	//查询的参数：  --> interface{} 类型
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -898,7 +913,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.query.Query("coins", "GetAddrReciver", addr)
+	amount, err := chain.query.Query("coins", "GetAddrReciver", types.Encode(addr))
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		return nil, err
@@ -910,7 +925,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	addr.Count = 0x7fffffff
 	addr.Height = -1
 	addr.Index = 0
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", addr)
+	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
 		return nil, err
@@ -1012,7 +1027,7 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 		chain.cacheBlock(blockdetail)
 		chain.SendAddBlockEvent(blockdetail)
 		chain.blockPool.DelBlock(blockdetail.Block.Height)
-
+		chain.query.updateStateHash(blockdetail.GetBlock().GetStateHash())
 		if broadcast {
 			chain.SendBlockBroadcast(blockdetail)
 			//更新广播block的高度

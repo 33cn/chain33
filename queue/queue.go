@@ -33,16 +33,21 @@ func DisableLog() {
 	qlog.SetHandler(log.DiscardHandler())
 }
 
+type chanSub struct {
+	high    chan Message
+	low     chan Message
+	isClose int32
+}
+
 type Queue struct {
-	chans   map[string][]chan Message
-	mu      sync.Mutex
-	done    chan struct{}
-	isclose bool
+	chanSubs map[string]chanSub
+	mu       sync.Mutex
+	done     chan struct{}
+	isClose  int32
 }
 
 func New(name string) *Queue {
-	chs := make(map[string][]chan Message)
-	return &Queue{chans: chs, done: make(chan struct{}, 1)}
+	return &Queue{chanSubs: make(map[string]chanSub), done: make(chan struct{}, 1)}
 }
 
 func (q *Queue) Start() {
@@ -59,64 +64,86 @@ func (q *Queue) Start() {
 }
 
 func (q *Queue) IsClosed() bool {
-	q.mu.Lock()
-	c := q.isclose
-	q.mu.Unlock()
-	return c
+	return atomic.LoadInt32(&q.isClose) == 1
 }
 
 func (q *Queue) Close() {
-	q.mu.Lock()
-	if q.isclose == true {
-		q.mu.Unlock()
+	if q.IsClosed() {
 		return
 	}
-	for _, ch := range q.chans {
-		ch[0] <- Message{}
-		ch[1] <- Message{}
+	q.mu.Lock()
+	for topic, ch := range q.chanSubs {
+		if ch.isClose == 0 {
+			ch.high <- Message{}
+			ch.low <- Message{}
+			q.chanSubs[topic] = chanSub{isClose: 1}
+		}
 	}
 	q.mu.Unlock()
 	q.done <- struct{}{}
 	close(q.done)
-	q.mu.Lock()
-	q.isclose = true
-	q.mu.Unlock()
+	atomic.StoreInt32(&q.isClose, 1)
 	qlog.Info("queue module closed")
 }
 
-func (q *Queue) getChannel(topic string) (chan Message, chan Message) {
+func (q *Queue) chanSub(topic string) chanSub {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-	_, ok := q.chans[topic]
+	_, ok := q.chanSubs[topic]
 	if !ok {
-		q.chans[topic] = make([]chan Message, 2, 2)
-		q.chans[topic][0] = make(chan Message, DefaultChanBuffer)
-		q.chans[topic][1] = make(chan Message, DefaultLowChanBuffer)
+		q.chanSubs[topic] = chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
 	}
-	return q.chans[topic][0], q.chans[topic][1]
+	return q.chanSubs[topic]
 }
 
-func (q *Queue) Send(msg Message) {
-	if q.IsClosed() {
+func (q *Queue) closeTopic(topic string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	sub, ok := q.chanSubs[topic]
+	if !ok {
 		return
 	}
-	chrecv, _ := q.getChannel(msg.Topic)
+	if sub.isClose == 0 {
+		sub.high <- Message{}
+		sub.low <- Message{}
+	}
+	q.chanSubs[topic] = chanSub{isClose: 1}
+}
+
+func (q *Queue) Send(msg Message) (err error) {
+	if q.IsClosed() {
+		return types.ErrChannelClosed
+	}
+	sub := q.chanSub(msg.Topic)
+	if sub.isClose == 1 {
+		return types.ErrChannelClosed
+	}
+	defer func() {
+		res := recover()
+		if res != nil {
+			err = res.(error)
+		}
+	}()
 	timeout := time.After(time.Second * 60)
 	select {
-	case chrecv <- msg:
+	case sub.high <- msg:
 	case <-timeout:
-		panic("send message timeout.")
+		return types.ErrTimeout
 	}
 	qlog.Debug("send ok", "msg", msg)
+	return nil
 }
 
 func (q *Queue) SendAsyn(msg Message) error {
 	if q.IsClosed() {
 		return types.ErrChannelClosed
 	}
-	_, lowChan := q.getChannel(msg.Topic)
+	sub := q.chanSub(msg.Topic)
+	if sub.isClose == 1 {
+		return types.ErrChannelClosed
+	}
 	select {
-	case lowChan <- msg:
+	case sub.low <- msg:
 		qlog.Debug("send asyn ok", "msg", msg)
 		return nil
 	default:
@@ -126,7 +153,7 @@ func (q *Queue) SendAsyn(msg Message) error {
 
 }
 
-func (q *Queue) GetClient() IClient {
+func (q *Queue) NewClient() Client {
 	return newClient(q)
 }
 

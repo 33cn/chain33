@@ -13,10 +13,12 @@ import (
 )
 
 func (l *DefaultListener) Close() bool {
-	log.Debug("stop", "will close natport", l.nodeInfo.GetExternalAddr().Port, l.nodeInfo.GetListenAddr().Port)
-	//log.Debug("stop", "closed natport", "close")
+
 	l.listener.Close()
-	log.Error("stop", "DefaultListener", "close")
+	log.Info("stop", "DefaultListener", "close")
+	close(l.natClose)
+	log.Info("stop", "NatMapPort", "close")
+	close(l.nodeInfo.p2pBroadcastChan) //close p2pserver manageStream
 	return true
 }
 
