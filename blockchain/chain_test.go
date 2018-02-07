@@ -534,7 +534,6 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 		parentHash = block.Hash()
 	}
 	addr = account.PubKeyToAddress([]byte(pubkey))
-	address = addr.String()
 
 	chainlog.Info(" get txs by addr:TestProcGetTransactionByAddr-4444")
 	addrr := "TestProcGetTransactionByAddr-4444"
