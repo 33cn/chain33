@@ -9,6 +9,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/mavl"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -40,15 +41,17 @@ type Store struct {
 	qclient queue.Client
 	done    chan struct{}
 	trees   map[string]*mavl.MAVLTree
+	cache   *lru.Cache
 }
 
 //driver
 //dbpath
 func New(cfg *types.Store) *Store {
-	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath)
+	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, 256)
 	store := &Store{db: db}
 	store.trees = make(map[string]*mavl.MAVLTree)
 	store.done = make(chan struct{}, 1)
+	store.cache, _ = lru.New(10)
 	return store
 }
 
@@ -82,13 +85,16 @@ func (store *Store) processMessage(msg queue.Message) {
 		//mavl.PrintTreeLeaf(store.db, hash)
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreGet {
-		datas := msg.GetData().(*types.StoreGet)
-		tree, ok := store.trees[string(datas.StateHash)]
+		var tree *mavl.MAVLTree
 		var err error
+		datas := msg.GetData().(*types.StoreGet)
 		values := make([][]byte, len(datas.Keys))
-		if !ok {
+		if data, ok := store.cache.Get(string(datas.StateHash)); ok {
+			tree = data.(*mavl.MAVLTree)
+		} else {
 			tree = mavl.NewMAVLTree(store.db)
 			err = tree.Load(datas.StateHash)
+			store.cache.Add(string(datas.StateHash), tree)
 		}
 		if err == nil {
 			for i := 0; i < len(datas.Keys); i++ {
