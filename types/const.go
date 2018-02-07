@@ -7,7 +7,6 @@ import (
 )
 
 var ErrNotFound = errors.New("ErrNotFound")
-var ErrNoBalance = errors.New("ErrNoBalance")
 var ErrBlockExec = errors.New("ErrBlockExec")
 var ErrCheckStateHash = errors.New("ErrCheckStateHash")
 var ErrCheckTxHash = errors.New("ErrCheckTxHash")
@@ -15,7 +14,6 @@ var ErrReRunGenesis = errors.New("ErrReRunGenesis")
 var ErrActionNotSupport = errors.New("ErrActionNotSupport")
 var ErrChannelFull = errors.New("ErrChannelFull")
 var ErrAmount = errors.New("ErrAmount")
-var ErrTxExpire = errors.New("ErrTxExpire")
 var ErrNoTicket = errors.New("ErrNoTicket")
 var ErrMinerIsStared = errors.New("ErrMinerIsStared")
 var ErrMinerNotStared = errors.New("ErrMinerNotStared")
@@ -23,16 +21,13 @@ var ErrTicketCount = errors.New("ErrTicketCount")
 var ErrHashlockAmount = errors.New("ErrHashlockAmount")
 var ErrHashlockHash = errors.New("ErrHashlockHash")
 var ErrHashlockStatus = errors.New("ErrHashlockStatus")
-var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 var ErrNoPeer = errors.New("ErrNoPeer")
-var ErrSign = errors.New("ErrSign")
 var ErrExecNameNotMath = errors.New("ErrExecNameNotMath")
 var ErrChannelClosed = errors.New("ErrChannelClosed")
 var ErrNotMinered = errors.New("ErrNotMinered")
 var ErrTime = errors.New("ErrTime")
 var ErrFromAddr = errors.New("ErrFromAddr")
 var ErrBlockHeight = errors.New("ErrBlockHeight")
-var ErrEmptyTx = errors.New("ErrEmptyTx")
 var ErrCoinBaseExecer = errors.New("ErrCoinBaseExecer")
 var ErrCoinBaseTxType = errors.New("ErrCoinBaseTxType")
 var ErrCoinBaseExecErr = errors.New("ErrCoinBaseExecErr")
@@ -50,10 +45,23 @@ var ErrToAddrNotSameToExecAddr = errors.New("ErrToAddrNotSameToExecAddr")
 var ErrTypeAsset = errors.New("ErrTypeAsset")
 var ErrEmpty = errors.New("ErrEmpty")
 var ErrSendSameToRecv = errors.New("ErrSendSameToRecv")
-var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
-var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
 var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
 var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
+var ErrTimeout = errors.New("ErrTimeout")
+
+// Mempool Error Types
+var ErrTxExist = errors.New("ErrTxExist")
+var ErrManyTx = errors.New("ErrManyTx")
+var ErrDupTx = errors.New("ErrDupTx")
+var ErrMemFull = errors.New("ErrMemFull")
+var ErrNoBalance = errors.New("ErrNoBalance")
+var ErrBalanceLessThanTenTimesFee = errors.New("ErrBalanceLessThanTenTimesFee")
+var ErrTxExpire = errors.New("ErrTxExpire")
+var ErrSign = errors.New("ErrSign")
+var ErrFeeTooLow = errors.New("ErrFeeTooLow")
+var ErrEmptyTx = errors.New("ErrEmptyTx")
+var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
+var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
@@ -160,6 +168,8 @@ const (
 	EventGetWalletStatus = 80
 	EventCheckTx         = 81
 	EventReceiptCheckTx  = 82
+	EventQuery           = 83
+	EventReplyQuery      = 84
 )
 
 var eventname = map[int]string{
@@ -245,6 +255,8 @@ var eventname = map[int]string{
 	80: "EventGetWalletStatus",
 	81: "EventCheckTx",
 	82: "EventReceiptCheckTx",
+	83: "EventQuery",
+	84: "EventReplyQuery",
 }
 
 func GetEventName(event int) string {

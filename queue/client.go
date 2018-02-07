@@ -6,6 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"unsafe"
+
 	"code.aliyun.com/chain33/chain33/types"
 )
 
@@ -21,7 +23,7 @@ import (
 
 var gId int64
 
-type IClient interface {
+type Client interface {
 	Send(msg Message, wait bool) (err error)     //异步发送消息
 	SendAsyn(msg Message, wait bool) (err error) //异步发送消息
 	Wait(msg Message) (Message, error)           //等待消息处理完成
@@ -31,18 +33,17 @@ type IClient interface {
 	NewMessage(topic string, ty int64, data interface{}) (msg Message)
 }
 
-type Client struct {
+type client struct {
 	q        *Queue
 	recv     chan Message
 	done     chan struct{}
 	wg       *sync.WaitGroup
-	mu       sync.Mutex
-	cache    []Message
-	isclosed int32
+	topic    string
+	isClosed int32
 }
 
-func newClient(q *Queue) IClient {
-	client := &Client{}
+func newClient(q *Queue) Client {
+	client := &client{}
 	client.q = q
 	client.recv = make(chan Message, 5)
 	client.done = make(chan struct{}, 1)
@@ -52,19 +53,22 @@ func newClient(q *Queue) IClient {
 
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃
 //2. 系统保证每个消息都有对应的 response 消息
-func (client *Client) Send(msg Message, wait bool) (err error) {
+func (client *client) Send(msg Message, wait bool) (err error) {
 	if !wait {
 		msg.ChReply = nil
 		return client.q.SendAsyn(msg)
 	}
-	client.q.Send(msg)
-	return nil
+	err = client.q.Send(msg)
+	if err == types.ErrTimeout {
+		panic(err)
+	}
+	return err
 }
 
 //系统设计出两种优先级别的消息发送
 //1. SendAsyn 低优先级
 //2. Send 高优先级别的发送消息
-func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
+func (client *client) SendAsyn(msg Message, wait bool) (err error) {
 	if !wait {
 		msg.ChReply = nil
 	}
@@ -89,12 +93,12 @@ func (client *Client) SendAsyn(msg Message, wait bool) (err error) {
 	return err
 }
 
-func (client *Client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
+func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
 	id := atomic.AddInt64(&gId, 1)
 	return NewMessage(id, topic, ty, data)
 }
 
-func (client *Client) Wait(msg Message) (Message, error) {
+func (client *client) Wait(msg Message) (Message, error) {
 	if msg.ChReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
@@ -109,22 +113,34 @@ func (client *Client) Wait(msg Message) (Message, error) {
 	}
 }
 
-func (client *Client) Recv() chan Message {
+func (client *client) Recv() chan Message {
 	return client.recv
 }
 
-func (client *Client) Close() {
+func (client *client) getTopic() string {
+	address := unsafe.Pointer(&(client.topic))
+	return *(*string)(atomic.LoadPointer(&address))
+}
+
+func (client *client) setTopic(topic string) {
+	address := unsafe.Pointer(&(client.topic))
+	atomic.StorePointer(&address, unsafe.Pointer(&topic))
+}
+
+func (client *client) Close() {
+	topic := client.getTopic()
+	client.q.closeTopic(topic)
 	close(client.done)
 	client.wg.Wait()
-	atomic.StoreInt32(&client.isclosed, 1)
+	atomic.StoreInt32(&client.isClosed, 1)
 	close(client.Recv())
 }
 
-func (client *Client) isClosed(data Message, ok bool) bool {
+func (client *client) isEnd(data Message, ok bool) bool {
 	if !ok {
 		return true
 	}
-	if atomic.LoadInt32(&client.isclosed) == 1 {
+	if atomic.LoadInt32(&client.isClosed) == 1 {
 		return true
 	}
 	if data.Data == nil && data.Id == 0 && data.Ty == 0 {
@@ -133,27 +149,28 @@ func (client *Client) isClosed(data Message, ok bool) bool {
 	return false
 }
 
-func (client *Client) Sub(topic string) {
+func (client *client) Sub(topic string) {
 	client.wg.Add(1)
-	highChan, lowChan := client.q.getChannel(topic)
+	client.setTopic(topic)
+	sub := client.q.chanSub(topic)
 	go func() {
 		defer client.wg.Done()
 		for {
 			select {
-			case data, ok := <-highChan:
-				if client.isClosed(data, ok) {
+			case data, ok := <-sub.high:
+				if client.isEnd(data, ok) {
 					return
 				}
 				client.Recv() <- data
 			default:
 				select {
-				case data, ok := <-highChan:
-					if client.isClosed(data, ok) {
+				case data, ok := <-sub.high:
+					if client.isEnd(data, ok) {
 						return
 					}
 					client.Recv() <- data
-				case data, ok := <-lowChan:
-					if client.isClosed(data, ok) {
+				case data, ok := <-sub.low:
+					if client.isEnd(data, ok) {
 						return
 					}
 					client.Recv() <- data

@@ -95,12 +95,12 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 
 	//get receipts
 	//save kvset and get state hash
-	ulog.Debug("blockdetail-->", "detail=", detail)
+	//ulog.Debug("blockdetail-->", "detail=", detail)
 	return &detail, nil
 }
 
 func CheckBlock(q *queue.Queue, block *types.BlockDetail) error {
-	client := q.GetClient()
+	client := q.NewClient()
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
 	client.Send(msg, true)
@@ -116,7 +116,7 @@ func CheckBlock(q *queue.Queue, block *types.BlockDetail) error {
 }
 
 func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Receipts {
-	client := q.GetClient()
+	client := q.NewClient()
 	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
@@ -129,7 +129,7 @@ func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Rec
 }
 
 func ExecTxList(q *queue.Queue, prevStateRoot []byte, txs []*types.Transaction, header *types.Header) *types.Receipts {
-	client := q.GetClient()
+	client := q.NewClient()
 	list := &types.ExecTxList{prevStateRoot, txs, header.BlockTime, header.Height}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
@@ -142,7 +142,7 @@ func ExecTxList(q *queue.Queue, prevStateRoot []byte, txs []*types.Transaction, 
 }
 
 func ExecKVMemSet(q *queue.Queue, prevStateRoot []byte, kvset []*types.KeyValue) []byte {
-	client := q.GetClient()
+	client := q.NewClient()
 	set := &types.StoreSet{prevStateRoot, kvset}
 	msg := client.NewMessage("store", types.EventStoreMemSet, set)
 	client.Send(msg, true)
@@ -155,7 +155,7 @@ func ExecKVMemSet(q *queue.Queue, prevStateRoot []byte, kvset []*types.KeyValue)
 }
 
 func ExecKVSetCommit(q *queue.Queue, hash []byte) error {
-	qclient := q.GetClient()
+	qclient := q.NewClient()
 	req := &types.ReqHash{hash}
 	msg := qclient.NewMessage("store", types.EventStoreCommit, req)
 	qclient.Send(msg, true)
@@ -168,7 +168,7 @@ func ExecKVSetCommit(q *queue.Queue, hash []byte) error {
 }
 
 func ExecKVSetRollback(q *queue.Queue, hash []byte) error {
-	qclient := q.GetClient()
+	qclient := q.NewClient()
 	req := &types.ReqHash{hash}
 	msg := qclient.NewMessage("store", types.EventStoreRollback, req)
 	qclient.Send(msg, true)

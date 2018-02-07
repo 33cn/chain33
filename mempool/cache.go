@@ -53,7 +53,7 @@ func (cache *txCache) Exists(tx *types.Transaction) bool {
 // txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
 func (cache *txCache) Push(tx *types.Transaction) error {
 	if cache.Exists(tx) {
-		return txExistErr
+		return types.ErrTxExist
 	}
 
 	if cache.txLlrb.Len() >= cache.size {
@@ -67,8 +67,8 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 			}
 		}
 		if tx.Fee <= cache.LowestFee() {
-			mlog.Error("pushToPool", "err", memFullErr.Error())
-			return memFullErr
+			mlog.Error("pushToPool", "err", types.ErrMemFull.Error())
+			return types.ErrMemFull
 		}
 		if expired == 0 {
 			poppedTx := cache.txLlrb.DeleteMin().(*Item).value
