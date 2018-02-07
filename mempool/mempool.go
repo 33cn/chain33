@@ -182,6 +182,20 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	return true
 }
 
+// Mempool.DelBlock将回退的区块内的交易重新加入mempool中
+func (mem *Mempool) DelBlock(block *types.Block) {
+	for _, tx := range block.Txs {
+		err := tx.Check()
+		if err != nil {
+			continue
+		}
+		if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+			continue
+		}
+		mem.PushTx(tx)
+	}
+}
+
 // Mempool.PushTx将交易推入Mempool，成功返回true，失败返回false和失败原因
 func (mem *Mempool) PushTx(tx *types.Transaction) error {
 	mem.proxyMtx.Lock()
@@ -453,6 +467,19 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{Txs: txList}))
 				mlog.Debug("reply EventGetLastMempool ok", "msg", msg)
+			case types.EventDelBlock:
+				block := msg.GetData().(*types.BlockDetail).Block
+				if block.Height != mem.GetHeader().GetHeight() {
+					continue
+				}
+				lastHeader, err := mem.GetLastHeader()
+				if err != nil {
+					mlog.Error(err.Error())
+					continue
+				}
+				h := lastHeader.(queue.Message).Data.(*types.Header)
+				mem.setHeader(h)
+				mem.DelBlock(block)
 			default:
 			}
 			mlog.Debug("mempool", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
