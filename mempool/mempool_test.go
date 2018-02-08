@@ -220,7 +220,7 @@ func TestAddDuplicatedTx(t *testing.T) {
 	mem.Close()
 }
 
-func add4Tx(qclient queue.IClient) {
+func add4Tx(qclient queue.Client) {
 	msg1 := qclient.NewMessage("mempool", types.EventTx, tx1)
 	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
 	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
@@ -239,7 +239,7 @@ func add4Tx(qclient queue.IClient) {
 	qclient.Wait(msg4)
 }
 
-func add10Tx(qclient queue.IClient) {
+func add10Tx(qclient queue.Client) {
 	add4Tx(qclient)
 
 	msg5 := qclient.NewMessage("mempool", types.EventTx, tx5)
@@ -396,7 +396,7 @@ func TestGetLatestTx(t *testing.T) {
 
 //func TestBigMessage(t *testing.T) {
 //	mem, q, chain := initEnv(0)
-//	mem.qclient := q.GetClient()
+//	mem.qclient := q.NewClient()
 //}
 
 func TestCheckLowFee(t *testing.T) {
