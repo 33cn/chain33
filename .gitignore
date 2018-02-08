@@ -3,6 +3,7 @@ datadir*
 .DS_Store
 *.log
 *.exe
+*.orig
 common/mavl/datastore
 mavltree
 cli/cli
@@ -10,3 +11,4 @@ cli/run.sh
 datadir2/
 rpc/test/1.png
 common/mavl/test.db
+.idea

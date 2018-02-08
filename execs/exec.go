@@ -3,6 +3,7 @@ package execs
 //store package store the world - state data
 import (
 	"bytes"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -31,7 +32,7 @@ func DisableLog() {
 }
 
 type Execs struct {
-	qclient queue.IClient
+	qclient queue.Client
 }
 
 func New() *Execs {
@@ -40,7 +41,7 @@ func New() *Execs {
 }
 
 func (exec *Execs) SetQueue(q *queue.Queue) {
-	exec.qclient = q.GetClient()
+	exec.qclient = q.NewClient()
 	client := exec.qclient
 	client.Sub("execs")
 
@@ -75,7 +76,7 @@ func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 			result.Errs = append(result.Errs, "")
 		}
 	}
-	msg.Reply(q.GetClient().NewMessage("", types.EventReceiptCheckTx, result))
+	msg.Reply(q.NewClient().NewMessage("", types.EventReceiptCheckTx, result))
 }
 
 func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
@@ -84,6 +85,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
+		beg := time.Now()
 		tx := datas.Txs[i]
 		if execute.height == 0 { //genesis block 不检查手续费
 			receipt, err := execute.Exec(tx, i)
@@ -126,8 +128,9 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 			feelog.Ty = receipt.Ty
 		}
 		receipts = append(receipts, feelog)
+		elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "cost:", time.Since(beg))
 	}
-	msg.Reply(q.GetClient().NewMessage("", types.EventReceipts,
+	msg.Reply(q.NewClient().NewMessage("", types.EventReceipts,
 		&types.Receipts{receipts}))
 }
 
@@ -143,19 +146,19 @@ func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 			continue
 		}
 		if err != nil {
-			msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, err))
+			msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, err))
 			return
 		}
 		if kv != nil && kv.KV != nil {
 			err := exec.checkPrefix(tx.Execer, kv.KV)
 			if err != nil {
-				msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, err))
+				msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, err))
 				return
 			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
-	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, &kvset))
+	msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, &kvset))
 }
 
 func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
@@ -170,20 +173,20 @@ func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 			continue
 		}
 		if err != nil {
-			msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, err))
+			msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, err))
 			return
 		}
 
 		if kv != nil && kv.KV != nil {
 			err := exec.checkPrefix(tx.Execer, kv.KV)
 			if err != nil {
-				msg.Reply(q.GetClient().NewMessage("", types.EventDelBlock, err))
+				msg.Reply(q.NewClient().NewMessage("", types.EventDelBlock, err))
 				return
 			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
-	msg.Reply(q.GetClient().NewMessage("", types.EventAddBlock, &kvset))
+	msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, &kvset))
 }
 
 func (exec *Execs) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
@@ -259,7 +262,7 @@ func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	accFrom := account.LoadAccount(e.stateDB, from)
 	if accFrom.GetBalance() < types.MinBalanceTransfer {
-		return types.ErrNoBalance
+		return types.ErrBalanceLessThanTenTimesFee
 	}
 	//checkInExec
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))

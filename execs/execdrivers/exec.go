@@ -133,12 +133,12 @@ func (e *LocalDB) Set(key []byte, value []byte) error {
 }
 
 type DataBase struct {
-	qclient   queue.IClient
+	qclient   queue.Client
 	stateHash []byte
 }
 
 func NewDataBase(q *queue.Queue, stateHash []byte) *DataBase {
-	return &DataBase{q.GetClient(), stateHash}
+	return &DataBase{q.NewClient(), stateHash}
 }
 
 func (db *DataBase) Get(key []byte) (value []byte, err error) {
@@ -157,11 +157,11 @@ func (db *DataBase) Get(key []byte) (value []byte, err error) {
 }
 
 type DataBaseLocal struct {
-	qclient queue.IClient
+	qclient queue.Client
 }
 
 func NewDataBaseLocal(q *queue.Queue) *DataBaseLocal {
-	return &DataBaseLocal{q.GetClient()}
+	return &DataBaseLocal{q.NewClient()}
 }
 
 func (db *DataBaseLocal) Get(key []byte) (value []byte, err error) {

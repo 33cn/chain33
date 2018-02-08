@@ -1,4 +1,4 @@
-package coins
+package hashlock
 
 import (
 	"context"
