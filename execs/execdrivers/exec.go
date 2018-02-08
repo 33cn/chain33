@@ -13,7 +13,6 @@ import (
 )
 
 var elog = log.New("module", "execs")
-var zeroHash [32]byte
 
 func ExecAddress(name string) *account.Address {
 	return account.ExecAddress(name)
