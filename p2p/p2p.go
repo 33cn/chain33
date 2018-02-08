@@ -15,7 +15,7 @@ var ps *common.PubSub
 
 type P2p struct {
 	q            *queue.Queue
-	c            queue.IClient
+	c            queue.Client
 	node         *Node
 	addrBook     *AddrBook // known peers
 	cli          *P2pCli
@@ -58,7 +58,7 @@ func (network *P2p) Close() {
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
-	network.c = q.GetClient()
+	network.c = q.NewClient()
 	network.q = q
 	network.node.setQueue(q)
 	go func() {

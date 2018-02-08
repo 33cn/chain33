@@ -1,8 +1,7 @@
-package coins
+package hashlock
 
 import (
 	"code.aliyun.com/chain33/chain33/account"
-	hashlockdb "code.aliyun.com/chain33/chain33/execs/db/hashlock"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -41,7 +40,7 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 
 	clog.Debug("exec hashlock tx=", "tx=", action)
 
-	actiondb := hashlockdb.NewHashlockAction(h.GetDB(), tx, h.GetAddr(), h.GetBlockTime(), h.GetHeight())
+	actiondb := NewHashlockAction(h.GetDB(), tx, h.GetAddr(), h.GetBlockTime(), h.GetHeight())
 
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		clog.Debug("hashlocklock action")

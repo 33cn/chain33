@@ -23,7 +23,7 @@ func initEnv() (*queue.Queue, *Store) {
 	return q, s
 }
 
-func set(qclient queue.IClient, hash, key, value []byte) ([]byte, error) {
+func set(qclient queue.Client, hash, key, value []byte) ([]byte, error) {
 	kv := &types.KeyValue{key, value}
 	set := &types.StoreSet{}
 	set.StateHash = hash
@@ -38,7 +38,7 @@ func set(qclient queue.IClient, hash, key, value []byte) ([]byte, error) {
 	return msg.GetData().(*types.ReplyHash).GetHash(), nil
 }
 
-func setmem(qclient queue.IClient, hash, key, value []byte) ([]byte, error) {
+func setmem(qclient queue.Client, hash, key, value []byte) ([]byte, error) {
 	kv := &types.KeyValue{key, value}
 	set := &types.StoreSet{}
 	set.StateHash = hash
@@ -53,7 +53,7 @@ func setmem(qclient queue.IClient, hash, key, value []byte) ([]byte, error) {
 	return msg.GetData().(*types.ReplyHash).GetHash(), nil
 }
 
-func get(qclient queue.IClient, hash, key []byte) ([]byte, error) {
+func get(qclient queue.Client, hash, key []byte) ([]byte, error) {
 	query := &types.StoreGet{hash, [][]byte{key}}
 	msg := qclient.NewMessage("store", types.EventStoreGet, query)
 	qclient.Send(msg, true)
@@ -65,7 +65,7 @@ func get(qclient queue.IClient, hash, key []byte) ([]byte, error) {
 	return values[0], nil
 }
 
-func commit(qclient queue.IClient, hash []byte) ([]byte, error) {
+func commit(qclient queue.Client, hash []byte) ([]byte, error) {
 	req := &types.ReqHash{hash}
 	msg := qclient.NewMessage("store", types.EventStoreCommit, req)
 	qclient.Send(msg, true)
@@ -77,7 +77,7 @@ func commit(qclient queue.IClient, hash []byte) ([]byte, error) {
 	return hash, nil
 }
 
-func rollback(qclient queue.IClient, hash []byte) ([]byte, error) {
+func rollback(qclient queue.Client, hash []byte) ([]byte, error) {
 	req := &types.ReqHash{hash}
 	msg := qclient.NewMessage("store", types.EventStoreRollback, req)
 	qclient.Send(msg, true)
@@ -91,7 +91,7 @@ func rollback(qclient queue.IClient, hash []byte) ([]byte, error) {
 
 func TestGetAndSet(t *testing.T) {
 	q, s := initEnv()
-	qclient := q.GetClient()
+	qclient := q.NewClient()
 	var stateHash [32]byte
 	//先set一个数
 	key := []byte("hello")
@@ -126,7 +126,7 @@ func randstr() string {
 
 func TestGetAndSetCommitAndRollback(t *testing.T) {
 	q, s := initEnv()
-	qclient := q.GetClient()
+	qclient := q.NewClient()
 	var stateHash [32]byte
 	//先set一个数
 	key := []byte("hello" + randstr())
@@ -182,7 +182,7 @@ func TestGetAndSetCommitAndRollback(t *testing.T) {
 
 func BenchmarkGetKey(b *testing.B) {
 	q, s := initEnv()
-	qclient := q.GetClient()
+	qclient := q.NewClient()
 	var stateHash [32]byte
 	hash := stateHash[:]
 	var err error
@@ -214,7 +214,7 @@ func BenchmarkGetKey(b *testing.B) {
 
 func BenchmarkSetKeyOneByOne(b *testing.B) {
 	q, s := initEnv()
-	qclient := q.GetClient()
+	qclient := q.NewClient()
 	var stateHash [32]byte
 	hash := stateHash[:]
 	var err error
@@ -232,7 +232,7 @@ func BenchmarkSetKeyOneByOne(b *testing.B) {
 
 func BenchmarkSetKey1000(b *testing.B) {
 	q, s := initEnv()
-	qclient := q.GetClient()
+	qclient := q.NewClient()
 	var stateHash [32]byte
 	hash := stateHash[:]
 	set := &types.StoreSet{}
