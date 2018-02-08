@@ -171,7 +171,7 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 		return nil, types.ErrCoinBaseTicketStatus
 	}
 	if !ticket.IsGenesis {
-		if action.blocktime-ticket.GetCreateTime() < 86400*10 {
+		if action.blocktime-ticket.GetCreateTime() < types.TicketFrozenTime {
 			return nil, types.ErrTime
 		}
 	}
@@ -185,7 +185,7 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 	t := &TicketDB{*ticket, prevstatus}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	receipt, err := account.ExecDepositFrozen(action.db, t.ReturnAddress, action.execaddr, 1000*types.Coin)
+	receipt, err := account.ExecDepositFrozen(action.db, t.ReturnAddress, action.execaddr, types.TicketPrice)
 	if err != nil {
 		tlog.Error("TicketOpen.ExecActive", "addr", t.ReturnAddress, "execaddr", action.execaddr)
 		return nil, err
@@ -210,14 +210,14 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 		//2. ticket 已经被miner 超过 10天
 
 		if ticket.Status != 2 && ticket.Status != 1 {
-			return nil, types.ErrNotMinered
+			return nil, types.ErrTicketClosed
 		}
 		if !ticket.IsGenesis {
 			//分成两种情况
-			if ticket.Status == 1 && action.blocktime-ticket.GetMinerTime() < 86400*30 {
+			if ticket.Status == 1 && action.blocktime-ticket.GetCreateTime() < types.TicketWithdrawTime {
 				return nil, types.ErrTime
 			}
-			if ticket.Status == 2 && action.blocktime-ticket.GetMinerTime() < 86400*10 {
+			if ticket.Status == 2 && action.blocktime-ticket.GetCreateTime() < types.TicketWithdrawTime {
 				return nil, types.ErrTime
 			}
 		}
@@ -233,7 +233,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 	var kv []*types.KeyValue
 	for i := 0; i < len(tickets); i++ {
 		t := tickets[i]
-		receipt, err := account.ExecActive(action.db, t.ReturnAddress, action.execaddr, 1000*types.Coin)
+		receipt, err := account.ExecActive(action.db, t.ReturnAddress, action.execaddr, types.TicketPrice)
 		if err != nil {
 			tlog.Error("TicketOpen.ExecActive", "addr", t.ReturnAddress, "execaddr", action.execaddr)
 			return nil, err
