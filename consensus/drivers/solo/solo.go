@@ -52,6 +52,9 @@ func (client *SoloClient) CheckBlock(parent *types.Block, current *types.BlockDe
 
 func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
 	//exec block
+	if block.Height == 0 {
+		block.Difficulty = types.PowLimitBits
+	}
 	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
 	if err != nil { //never happen
 		return nil, err
@@ -85,6 +88,7 @@ func (client *SoloClient) CreateBlock() {
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
+		newblock.Difficulty = types.PowLimitBits
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		newblock.BlockTime = time.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {

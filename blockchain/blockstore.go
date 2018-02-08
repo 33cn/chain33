@@ -146,7 +146,11 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 	}
 	//storelog.Info("add txs kv num", "n", len(kv.KV))
 	for i := 0; i < len(kv.KV); i++ {
-		storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
+		if kv.KV[i].Value == nil {
+			storeBatch.Delete(kv.KV[i].Key)
+		} else {
+			storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
+		}
 	}
 	return nil
 }
