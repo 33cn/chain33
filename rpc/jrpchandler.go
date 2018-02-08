@@ -449,7 +449,9 @@ func (req Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) erro
 	if err != nil {
 		return err
 	}
-	*result = reply
+
+	*result = &WalletAccount{Acc: &Account{Addr: reply.GetAcc().Addr, Currency: reply.GetAcc().GetCurrency(),
+		Frozen: reply.GetAcc().GetFrozen(), Balance: reply.GetAcc().GetBalance()}, Label: reply.GetLabel()}
 	return nil
 }
 
@@ -685,5 +687,22 @@ func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
 	*result = &resp
+	return nil
+}
+
+func (req Chain33) GetBalance(in types.GetBalance, result *interface{}) error {
+
+	balances, err := req.cli.GetBalance(&in)
+	if err != nil {
+		return err
+	}
+	var accounts []*Account
+	for _, balance := range balances {
+		accounts = append(accounts, &Account{Addr: balance.GetAddr(),
+			Balance:  balance.GetBalance(),
+			Currency: balance.GetCurrency(),
+			Frozen:   balance.GetFrozen()})
+	}
+	*result = accounts
 	return nil
 }

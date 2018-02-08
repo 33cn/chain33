@@ -193,7 +193,7 @@ func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
 		node.SetPort(DefaultPort, uint(port))
 		node.FlushNodeInfo()
 	}
-	//log.Error("SHOW VERSION BACK", "VersionBack", resp)
+	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
 
@@ -258,7 +258,45 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
 	return
 }
+func (m *P2pCli) GetHeaders(msg queue.Message) {
+	defer func() {
+		<-m.network.otherFactory
 
+	}()
+	if m.network.node.Size() == 0 {
+		log.Debug("GetHeaders", "boundNum", 0)
+		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no peers")}))
+		return
+	}
+	req := msg.GetData().(*pb.ReqBlocks)
+	pid := req.GetPid()
+	if len(pid) == 0 {
+		msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{false, []byte("no pid")}))
+		return
+	}
+	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("ok")}))
+	peers, infos := m.network.node.GetActivePeers()
+	for paddr, info := range infos {
+		if info.GetName() == pid { //匹配成功
+			peer := m.network.node.GetRegisterPeer(paddr)
+			peer, ok := peers[paddr]
+			if ok && peer != nil {
+				var err error
+
+				headers, err := peer.mconn.conn.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
+					Version: m.network.node.nodeInfo.cfg.GetVersion()})
+				m.CollectPeerStat(err, peer)
+				if err != nil {
+					log.Error("GetBlocks", "Err", err.Error())
+					return
+				}
+				client := m.network.node.nodeInfo.qclient
+				msg := client.NewMessage("blockchain", pb.EventAddBlockHeaders, &pb.Headers{Items: headers.GetHeaders()})
+				client.Send(msg, false)
+			}
+		}
+	}
+}
 func (m *P2pCli) GetBlocks(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
@@ -272,54 +310,88 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
 	req := msg.GetData().(*pb.ReqBlocks)
+
+	pid := req.GetPid()
 	var MaxInvs = new(pb.P2PInv)
+	var downloadPeers []*peer
 	peers, infos := m.network.node.GetActivePeers()
-	for _, peer := range peers { //限制对peer 的高频次调用
+	if len(pid) != 0 { //指定Pid 下载数据
 
-		log.Info("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
-		peerinfo, ok := infos[peer.Addr()]
-		if !ok {
-			continue
-		}
-		var pr pb.Peer
-		pr.Addr = peerinfo.GetAddr()
-		pr.Port = peerinfo.GetPort()
-		pr.Name = peerinfo.GetName()
-		pr.MempoolSize = peerinfo.GetMempoolSize()
-		pr.Header = peerinfo.GetHeader()
-
-		m.network.node.nodeInfo.peerInfos.SetPeerInfo(&pr)
-		if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
-			continue
-		}
-		invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
-			Version: m.network.node.nodeInfo.cfg.GetVersion()})
-		m.CollectPeerStat(err, peer)
-		if err != nil {
-			log.Error("GetBlocks", "Err", err.Error())
-			continue
-		}
-		if len(invs.Invs) > len(MaxInvs.Invs) {
-			MaxInvs = invs
-			if len(MaxInvs.GetInvs()) == int(req.GetEnd()-req.GetStart())+1 {
-				break
+		for paddr, info := range infos {
+			if info.GetName() == pid { //匹配成功
+				peer, ok := peers[paddr]
+				if ok && peer != nil {
+					var err error
+					MaxInvs, err = peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
+						Version: m.network.node.nodeInfo.cfg.GetVersion()})
+					m.CollectPeerStat(err, peer)
+					if err != nil {
+						log.Error("GetBlocks", "Err", err.Error())
+						return
+					}
+					downloadPeers = append(downloadPeers, peer)
+				}
 			}
 		}
 
+	} else {
+		for _, peer := range peers { //限制对peer 的高频次调用
+
+			log.Info("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
+			peerinfo, ok := infos[peer.Addr()]
+			if !ok {
+				continue
+			}
+			var pr pb.Peer
+			pr.Addr = peerinfo.GetAddr()
+			pr.Port = peerinfo.GetPort()
+			pr.Name = peerinfo.GetName()
+			pr.MempoolSize = peerinfo.GetMempoolSize()
+			pr.Header = peerinfo.GetHeader()
+
+			m.network.node.nodeInfo.peerInfos.SetPeerInfo(&pr)
+			if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
+				continue
+			}
+			invs, err := peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
+				Version: m.network.node.nodeInfo.cfg.GetVersion()})
+			m.CollectPeerStat(err, peer)
+			if err != nil {
+				log.Error("GetBlocks", "Err", err.Error())
+				continue
+			}
+			if len(invs.Invs) > len(MaxInvs.Invs) {
+				MaxInvs = invs
+				if len(MaxInvs.GetInvs()) == int(req.GetEnd()-req.GetStart())+1 {
+					break
+				}
+			}
+
+		}
+		for _, peer := range peers {
+			downloadPeers = append(downloadPeers, peer)
+		}
+
 	}
+
 	log.Debug("Invs", "Invs show", MaxInvs.GetInvs())
 	if len(MaxInvs.GetInvs()) == 0 {
 		log.Error("GetBlocks", "getInvs", 0)
 		return
 	}
+	var intervals map[int]*intervalInfo
+	if len(pid) != 0 {
+		intervals[0] = &intervalInfo{0, len(MaxInvs.GetInvs())}
+	} else {
+		intervals = m.caculateInterval(len(MaxInvs.GetInvs()))
+	}
 
-	intervals := m.caculateInterval(len(MaxInvs.GetInvs()))
 	var bChan = make(chan *pb.Block, 256)
 	log.Debug("downloadblock", "intervals", intervals)
 	var gcount int
 	for index, interval := range intervals {
 		gcount++
-		go m.downloadBlock(index, interval, MaxInvs, bChan, peers, infos)
+		go m.downloadBlock(index, interval, MaxInvs, bChan, downloadPeers, infos)
 	}
 	i := 0
 	for {
@@ -475,16 +547,18 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 	return result
 
 }
-func (m *P2pCli) broadcastByStream(data interface{}) {
+func (m *P2pCli) broadcastByStream(data interface{}) bool {
 	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
 	select {
 	case <-ticker.C:
 		//log.Error("broadcastByStream", "timeout", "return")
-		return
+		return false
 
 	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
 	}
+
+	return true
 
 }
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
@@ -493,7 +567,9 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	}()
 	block := msg.GetData().(*pb.Block)
 
-	m.broadcastByStream(&pb.P2PBlock{Block: block})
+	if m.broadcastByStream(&pb.P2PBlock{Block: block}) == true {
+		return
+	}
 
 	if m.network.node.Size() == 0 {
 		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))

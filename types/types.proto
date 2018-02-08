@@ -181,7 +181,7 @@ message BroadCastData{
 message P2PGetHeaders{
 	int32 version=1;
 	int64 startHeight=2;
-	int64 endHeigh=3;
+	int64 endHeight=3;
 }
 
 message P2PHeaders {
@@ -327,6 +327,7 @@ message ReqBlocks {
 	int64 start = 1;
 	int64 end = 2;
 	bool  Isdetail =3;
+	string pid =4;
 }
 
 //resp
@@ -840,6 +841,11 @@ message SaveSeedByPw {
 }
 message ReplySeed {
 	string seed = 1;
+}
+
+message GetBalance{
+	string address=1;
+	string execer=2;
 }
 
 
