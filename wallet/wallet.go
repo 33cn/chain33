@@ -1090,7 +1090,8 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	}
 	newbatch.Write()
 	if needflush {
-		wallet.flushTicket()
+		//add block not need flush
+		//wallet.flushTicket()
 	}
 }
 

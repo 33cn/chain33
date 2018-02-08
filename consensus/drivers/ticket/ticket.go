@@ -186,18 +186,26 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 		return types.ErrBlockHeaderDifficulty
 	}
 	//通过判断区块的难度Difficulty
-	bits := parent.Difficulty
-	target := client.getNextTarget(parent, bits)
+	//1. target >= currentdiff
+	//2.  current bit == target
+	target := client.getNextTarget(parent, parent.Difficulty)
 	currentdiff := client.getCurrentTarget(current.Block.BlockTime, miner.TicketId, miner.Modify)
 	if currentdiff.Sign() < 0 {
 		return types.ErrCoinBaseTarget
 	}
-	if currentdiff.Cmp(common.CompactToBig(miner.Bits)) != 0 {
+	//当前难度
+	currentTarget := common.CompactToBig(current.Block.Difficulty)
+	if currentTarget.Cmp(common.CompactToBig(miner.Bits)) != 0 {
 		log.Error("block error: calc tagget not the same to miner",
-			"cacl", printBInt(currentdiff), "current", printBInt(common.CompactToBig(miner.Bits)))
+			"cacl", printBInt(currentTarget), "current", printBInt(common.CompactToBig(miner.Bits)))
 		return types.ErrCoinBaseTarget
 	}
-	if currentdiff.Cmp(target) > 0 {
+	if currentTarget.Cmp(target) != 0 {
+		log.Error("block error: calc tagget not the same to target",
+			"cacl", printBInt(currentTarget), "current", printBInt(target))
+		return types.ErrCoinBaseTarget
+	}
+	if currentdiff.Cmp(currentTarget) > 0 {
 		log.Error("block error: diff not fit the tagget",
 			"current", printBInt(currentdiff), "taget", printBInt(target))
 		return types.ErrCoinBaseTarget
@@ -236,7 +244,7 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	blocksPerRetarget := int64(types.TargetTimespan / types.TargetTimePerBlock)
 	// Return the previous block's difficulty requirements if this block
 	// is not at a difficulty retarget interval.
-	if (block.Height+1)%blocksPerRetarget != 0 {
+	if (block.Height+1) <= blocksPerRetarget || (block.Height+1)%blocksPerRetarget != 0 {
 		// For the main network (or any unrecognized networks), simply
 		// return the previous block's difficulty requirements.
 		return bits, nil
@@ -286,9 +294,9 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	// newTarget since conversion to the compact representation loses
 	// precision.
 	newTargetBits := common.BigToCompact(newTarget)
-	slog.Info("Difficulty retarget at ", "block height %d", block.Height+1)
-	slog.Info("Old target ", "%08x", bits, "(%064x)", oldTarget)
-	slog.Info("New target ", "%08x", newTargetBits, "(%064x)", common.CompactToBig(newTargetBits))
+	slog.Info(fmt.Sprintf("Difficulty retarget at block height %d", block.Height+1))
+	slog.Info(fmt.Sprintf("Old target %08x, (%064x)", bits, oldTarget))
+	slog.Info(fmt.Sprintf("New target %08x, (%064x)", newTargetBits, common.CompactToBig(newTargetBits)))
 	slog.Info("Timespan", "Actual timespan", time.Duration(actualTimespan)*time.Second,
 		"adjusted timespan", time.Duration(adjustedTimespan)*time.Second,
 		"target timespan", types.TargetTimespan)
@@ -311,6 +319,9 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 	defer client.mu.Unlock()
 	for i := 0; i < len(client.tlist.Tickets); i++ {
 		ticket := client.tlist.Tickets[i]
+		if ticket == nil {
+			continue
+		}
 		//已经到成熟器
 		if !ticket.IsGenesis && block.BlockTime-ticket.CreateTime <= 10*86400 {
 			continue
@@ -325,7 +336,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 		var ticketAction types.TicketAction
 		miner := &types.TicketMiner{}
 		miner.TicketId = ticket.TicketId
-		miner.Bits = common.BigToCompact(currentdiff)
+		miner.Bits = common.BigToCompact(diff)
 		miner.Modify = []byte("modify")
 		miner.Reward = types.CoinReward
 		ticketAction.Value = &types.TicketAction_Miner{miner}
@@ -341,6 +352,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 		//unshift
 		block.Difficulty = miner.Bits
 		block.Txs = append([]*types.Transaction{tx}, block.Txs...)
+		client.tlist.Tickets[i] = nil
 		return true
 	}
 	return false

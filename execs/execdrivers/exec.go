@@ -151,6 +151,7 @@ func (db *DataBase) Get(key []byte) (value []byte, err error) {
 	}
 	value = resp.GetData().(*types.StoreReplyValue).Values[0]
 	if value == nil {
+		//panic(string(key))
 		return nil, types.ErrNotFound
 	}
 	return value, nil
@@ -174,6 +175,7 @@ func (db *DataBaseLocal) Get(key []byte) (value []byte, err error) {
 	}
 	value = resp.GetData().(*types.LocalReplyValue).Values[0]
 	if value == nil {
+		//panic(string(key))
 		return nil, types.ErrNotFound
 	}
 	return value, nil
