@@ -63,10 +63,16 @@ var ErrFeeTooLow = errors.New("ErrFeeTooLow")
 var ErrEmptyTx = errors.New("ErrEmptyTx")
 var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
 var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
+var ErrTicketClosed = errors.New("ErrTicketClosed")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
 const CoinReward int64 = 1e9
+const TicketPrice int64 = 10000 * Coin
+
+const TicketFrozenTime int64 = 86400 / 2         //0.5days
+const TicketWithdrawTime int64 = (3 * 86400) / 2 //1.5days
+
 const MinFee int64 = 1e6
 const MinBalanceTransfer = 1e7
 const MaxTxSize int64 = 100000      //100K

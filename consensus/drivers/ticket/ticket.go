@@ -65,7 +65,7 @@ func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	tx1.To = client.Cfg.HotkeyAddr
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{Amount: 1e4 * types.Coin}
+	g.Genesis = &types.CoinsGenesis{Amount: types.TicketPrice}
 	tx1.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx1)
 
@@ -252,7 +252,7 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 
 	// Get the block node at the previous retarget (targetTimespan days
 	// worth of blocks).
-	firstBlock, err := client.RequestBlock(block.Height - blocksPerRetarget)
+	firstBlock, err := client.RequestBlock(block.Height + 1 - blocksPerRetarget)
 	if err != nil {
 		return 0, err
 	}
@@ -323,7 +323,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 			continue
 		}
 		//已经到成熟器
-		if !ticket.IsGenesis && block.BlockTime-ticket.CreateTime <= 10*86400 {
+		if !ticket.IsGenesis && block.BlockTime-ticket.CreateTime <= types.TicketFrozenTime {
 			continue
 		}
 		//find priv key
