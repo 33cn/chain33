@@ -5,7 +5,9 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
+	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	"code.aliyun.com/chain33/chain33/util"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -39,9 +41,25 @@ func (client *SoloClient) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
+func (client *SoloClient) ProcEvent(msg queue.Message) {
+
+}
+
 //solo 不检查任何的交易
 func (client *SoloClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
+}
+
+func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
+	//exec block
+	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
+	if err != nil { //never happen
+		return nil, err
+	}
+	if len(blockdetail.Block.Txs) == 0 {
+		return nil, types.ErrNoTx
+	}
+	return blockdetail, nil
 }
 
 func (client *SoloClient) CreateBlock() {
