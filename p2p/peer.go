@@ -214,11 +214,13 @@ func (p *peer) subStreamBlock() {
 				return
 
 			default:
-				resp, err := p.mconn.conn.RouteChat(context.Background())
+				ctx, cancel := context.WithCancel(context.Background())
+				resp, err := p.mconn.conn.RouteChat(ctx)
 				if err != nil {
 					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
 					time.Sleep(time.Second * 5)
+					cancel()
 					continue
 				}
 				//for task := range p.taskChan {
@@ -252,6 +254,7 @@ func (p *peer) subStreamBlock() {
 						p.peerStat.NotOk()
 						(*p.nodeInfo).monitorChan <- p
 						resp.CloseSend()
+						cancel()
 						break //下一次外循环重新获取stream
 					}
 				}
@@ -280,7 +283,7 @@ func (p *peer) subStreamBlock() {
 					resp.CloseSend()
 					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
-					//log.Error("SubStreamBlock", "Recv Err", err.Error())
+					log.Error("SubStreamBlock", "Recv Err", err.Error())
 					break
 				}
 

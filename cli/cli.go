@@ -209,6 +209,12 @@ func main() {
 			return
 		}
 		GetWalletStatus()
+	case "getbalance":
+		if len(argsWithoutProg) != 3 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetBalance(argsWithoutProg[1], argsWithoutProg[2])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -245,6 +251,7 @@ func LoadHelp() {
 	fmt.Println("saveseed [seed,password]                                    : 保存种子并用密码加密,种子要求15个单词或者汉字,参考genseed输出格式")
 	fmt.Println("getseed [password]                                          : 通过密码获取种子")
 	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
+	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 
 }
 
@@ -1223,6 +1230,38 @@ func GetWalletStatus() {
 	}
 
 	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetBalance(address string, execer string) {
+	params := types.GetBalance{Address: address, Execer: execer}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res []*types.Account
+	err = rpc.Call("Chain33.GetBalance", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	balanceResult := strconv.FormatFloat(float64(res[0].GetBalance())/float64(1e8), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res[0].GetFrozen())/float64(1e8), 'f', 4, 64)
+	result := &AccountResult{
+		Addr:     res[0].GetAddr(),
+		Currency: res[0].GetCurrency(),
+		Balance:  balanceResult,
+		Frozen:   frozenResult,
+	}
+
+	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
