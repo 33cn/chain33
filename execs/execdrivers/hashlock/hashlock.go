@@ -2,6 +2,7 @@ package hashlock
 
 import (
 	"code.aliyun.com/chain33/chain33/account"
+	hashlockdb "code.aliyun.com/chain33/chain33/execs/hashlockdb"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
