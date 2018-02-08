@@ -2,7 +2,6 @@ package types
 
 import (
 	"errors"
-	"math/big"
 	"time"
 )
 
@@ -72,7 +71,7 @@ const MinFee int64 = 1e6
 const MinBalanceTransfer = 1e7
 const MaxTxSize int64 = 100000      //100K
 const MaxBlockSize int64 = 10000000 //10M
-const PowLimitBits uint32 = uint32(0)
+const PowLimitBits uint32 = uint32(0x1f00ffff)
 
 const TargetTimespan = 144 * 16 * time.Second
 const TargetTimePerBlock = 16 * time.Second
@@ -81,8 +80,6 @@ const MaxTxsPerBlock = 100000
 
 var AllowDepositExec = []string{"ticket"}
 var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
-
-var PowLimit = big.NewInt(0)
 
 const (
 	EventTx                   = 1
