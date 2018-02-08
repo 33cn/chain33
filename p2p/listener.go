@@ -19,6 +19,7 @@ func (l *DefaultListener) Close() bool {
 	close(l.natClose)
 	log.Info("stop", "NatMapPort", "close")
 	close(l.nodeInfo.p2pBroadcastChan) //close p2pserver manageStream
+	close(l.p2pserver.loopdone)
 	return true
 }
 
@@ -28,15 +29,16 @@ type Listener interface {
 
 // Implements Listener
 type DefaultListener struct {
-	listener net.Listener
-	server   *grpc.Server
-	nodeInfo *NodeInfo
-	natClose chan struct{}
-	n        *Node
+	listener  net.Listener
+	server    *grpc.Server
+	nodeInfo  *NodeInfo
+	p2pserver *p2pServer
+	natClose  chan struct{}
+	n         *Node
 }
 
 func NewDefaultListener(protocol string, node *Node) Listener {
-	// Create listener
+
 	log.Debug("NewDefaultListener", "localPort", node.localPort)
 	listener, err := net.Listen(protocol, fmt.Sprintf(":%v", node.localPort))
 	if err != nil {
@@ -54,6 +56,7 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	pServer.node = dl.n
 	pServer.ManageStream()
 	dl.server = grpc.NewServer()
+	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	go dl.NatMapPort()
 	go dl.listenRoutine()

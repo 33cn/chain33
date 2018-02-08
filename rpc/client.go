@@ -50,6 +50,8 @@ type IRClient interface {
 	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
 	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
 	GetWalletStatus() (*types.Reply, error)
+	//getbalance
+	GetBalance(*types.GetBalance) ([]*types.Account, error)
 }
 
 type channelClient struct {
@@ -154,7 +156,7 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 }
 
 func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, ""})
 	err := client.qclient.Send(msg, true)
 	if err != nil {
 
@@ -566,4 +568,31 @@ func (client *channelClient) GetWalletStatus() (*types.Reply, error) {
 	}
 
 	return resp.Data.(*types.Reply), nil
+}
+
+func (client *channelClient) GetBalance(in *types.GetBalance) ([]*types.Account, error) {
+
+	switch in.GetExecer() {
+	case "coins":
+		accounts, err := account.LoadAccounts(client.q, []string{in.GetAddress()})
+		if err != nil {
+			log.Error("GetBalance", "err", err.Error())
+			return nil, err
+		}
+		return accounts, nil
+	case "ticket", "hashlock":
+		execaddress := account.ExecAddress(in.GetExecer())
+		account, err := account.LoadExecAccountQueue(client.q, in.GetAddress(), execaddress.String())
+		if err != nil {
+			log.Error("GetBalance", "err", err.Error())
+			return nil, err
+		}
+		var accounts []*types.Account
+		accounts = append(accounts, account)
+		return accounts, nil
+
+	default:
+		return nil, errors.New("wrong execer:")
+	}
+	return nil, nil
 }

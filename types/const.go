@@ -166,16 +166,18 @@ const (
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
 	//local store
-	EventLocalGet        = 76
-	EventLocalReplyValue = 77
-	EventLocalList       = 78
-	EventLocalSet        = 79
-	EventGetWalletStatus = 80
-	EventCheckTx         = 81
-	EventReceiptCheckTx  = 82
-	EventQuery           = 83
-	EventReplyQuery      = 84
-	EventFlushTicket     = 85
+	EventLocalGet          = 76
+	EventLocalReplyValue   = 77
+	EventLocalList         = 78
+	EventLocalSet          = 79
+	EventGetWalletStatus   = 80
+	EventCheckTx           = 81
+	EventReceiptCheckTx    = 82
+	EventQuery             = 83
+	EventReplyQuery        = 84
+	EventFlushTicket       = 85
+	EventFetchBlockHeaders = 86
+	EventAddBlockHeaders   = 87
 )
 
 var eventname = map[int]string{

@@ -10,6 +10,7 @@ var (
 	DefaultSendTimeout = 10 * time.Second
 	DialTimeout        = 5 * time.Second
 	mapUpdateInterval  = 15 * time.Minute
+	StreamPingTimeout  = 20 * time.Second
 )
 
 const (

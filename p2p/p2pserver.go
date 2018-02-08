@@ -21,6 +21,7 @@ type p2pServer struct {
 	node        *Node
 	streams     map[pb.P2Pgservice_RouteChatServer]chan interface{}
 	deleteSChan chan pb.P2Pgservice_RouteChatServer
+	loopdone    chan struct{}
 }
 
 func (s *p2pServer) GetStreams() []pb.P2Pgservice_RouteChatServer {
@@ -37,6 +38,7 @@ func NewP2pServer() *p2pServer {
 	return &p2pServer{
 		streams:     make(map[pb.P2Pgservice_RouteChatServer]chan interface{}),
 		deleteSChan: make(chan pb.P2Pgservice_RouteChatServer, 1024),
+		loopdone:    make(chan struct{}, 1),
 	}
 
 }
@@ -131,8 +133,6 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 //grpc 接收广播交易
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
-
-	//发送给消息队列Queue
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
 	client.Send(msg, false)
@@ -140,6 +140,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
+
 	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
@@ -218,7 +219,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 
 		} else if inv.GetTy() == MSG_BLOCK {
 			height := inv.GetHeight()
-			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false})
+			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false, ""})
 			err := client.Send(msg, true)
 			if err != nil {
 				log.Error("GetBlocks", "Error", err.Error())
@@ -262,12 +263,12 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
-	if in.GetEndHeigh()-in.GetStartHeight() > 2000 || in.GetEndHeigh() < in.GetStartHeight() {
+	if in.GetEndHeight()-in.GetStartHeight() > 2000 || in.GetEndHeight() < in.GetStartHeight() {
 		return nil, fmt.Errorf("out of range")
 	}
 
 	client := s.node.nodeInfo.qclient
-	msg := client.NewMessage("blockchain", pb.EventGetHeaders, pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeigh()})
+	msg := client.NewMessage("blockchain", pb.EventGetHeaders, pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeight()})
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("GetHeaders", "Error", err.Error())
@@ -354,9 +355,11 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 
 			in, err := stream.Recv()
 			if err == io.EOF {
+				//log.Debug("RouteChate", "Recv", "EOF")
 				return nil
 			}
 			if err != nil {
+				//log.Error("RouteChate", "Recv", err)
 				return err
 			}
 			//收到stream 交给
@@ -391,14 +394,13 @@ func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
-			//log.Error("RouteChat", "Stream send Block", block.GetBlock().GetHeight())
 			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 		} else if tx, ok := data.(*pb.P2PTx); ok {
 			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
 		} else {
+			log.Error("RoutChate", "Convert error", data)
 			continue
 		}
-
 		err := stream.Send(p2pdata)
 		if err != nil {
 			s.deleteSChan <- stream
@@ -437,7 +439,7 @@ func (s *p2pServer) checkVersion(version int32) bool {
 	return true
 }
 func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
-	//获取本地mempool 模块的交易
+
 	var txmap = make(map[string]*pb.Transaction)
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
@@ -461,6 +463,19 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 }
 func (s *p2pServer) ManageStream() {
 	go s.deleteDisableStream()
+	go func() { //发送空的block stream ping
+		ticker := time.NewTicker(StreamPingTimeout)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.addStreamBlock(&pb.P2PBlock{})
+			case <-s.loopdone:
+				return
+			}
+		}
+
+	}()
 	go func() {
 		for block := range s.node.nodeInfo.p2pBroadcastChan {
 
@@ -509,7 +524,7 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 		}
 		select {
 		case s.streams[stream] <- block:
-			log.Debug("addStreamBlock", "stream", stream)
+			//log.Debug("addStreamBlock", "block", block)
 		case <-timetikc.C:
 			continue
 		}
@@ -526,7 +541,7 @@ func (s *p2pServer) deleteDisableStream() {
 func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	log.Info("deleteStream", "delete", stream)
+	//log.Debug("deleteStream", "delete", stream)
 	close(s.streams[stream])
 	delete(s.streams, stream)
 }
