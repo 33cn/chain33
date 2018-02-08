@@ -3,6 +3,7 @@ package account
 import (
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
@@ -17,6 +18,38 @@ func LoadExecAccount(db dbm.KVDB, addr, execaddr string) *types.Account {
 		panic(err) //数据库已经损坏
 	}
 	return &acc
+}
+
+func LoadExecAccountQueue(q *queue.Queue, addr, execaddr string) (*types.Account, error) {
+	client := q.NewClient()
+	//get current head ->
+	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	client.Send(msg, true)
+	msg, err := client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	get := types.StoreGet{}
+	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+	get.Keys = append(get.Keys, ExecKey(addr, execaddr))
+	msg = client.NewMessage("store", types.EventStoreGet, &get)
+	client.Send(msg, true)
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	values := msg.GetData().(*types.StoreReplyValue)
+	value := values.Values[0]
+	if value == nil {
+		return &types.Account{}, nil
+	} else {
+		var acc types.Account
+		err := types.Decode(value, &acc)
+		if err != nil {
+			return nil, err
+		}
+		return &acc, nil
+	}
 }
 
 func SaveExecAccount(db dbm.KVDB, execaddr string, acc *types.Account) {

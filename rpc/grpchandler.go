@@ -270,6 +270,7 @@ func (req *Grpc) GenSeed(ctx context.Context, in *pb.GenSeedLang) (*pb.ReplySeed
 
 	return reply, nil
 }
+
 func (req *Grpc) GetSeed(ctx context.Context, in *pb.GetSeedByPw) (*pb.ReplySeed, error) {
 	reply, err := req.cli.GetSeed(in)
 	if err != nil {
@@ -278,6 +279,7 @@ func (req *Grpc) GetSeed(ctx context.Context, in *pb.GetSeedByPw) (*pb.ReplySeed
 
 	return reply, nil
 }
+
 func (req *Grpc) SaveSeed(ctx context.Context, in *pb.SaveSeedByPw) (*pb.Reply, error) {
 	reply, err := req.cli.SaveSeed(in)
 	if err != nil {
