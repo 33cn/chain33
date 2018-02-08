@@ -1333,7 +1333,11 @@ func (wallet *Wallet) GetTickets() ([]*types.Ticket, [][]byte, error) {
 
 func (client *Wallet) getTickets(addr string) ([]*types.Ticket, error) {
 	reqaddr := &types.TicketList{addr, 1}
-	msg := client.qclient.NewMessage("blockchain", types.EventQuery, reqaddr)
+	var req types.Query
+	req.Execer = []byte("ticket")
+	req.FuncName = "TicketList"
+	req.Payload = types.Encode(reqaddr)
+	msg := client.qclient.NewMessage("blockchain", types.EventQuery, &req)
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
