@@ -580,7 +580,7 @@ func (client *channelClient) GetBalance(in *types.GetBalance) ([]*types.Account,
 			return nil, err
 		}
 		return accounts, nil
-	case "tickers", "hashlock":
+	case "ticket", "hashlock":
 		execaddress := account.ExecAddress(in.GetExecer())
 		account, err := account.LoadExecAccountQueue(client.q, in.GetAddress(), execaddress.String())
 		if err != nil {
