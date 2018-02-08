@@ -23,7 +23,7 @@ func NewQuery(db dbm.DB, q *queue.Queue, stateHash []byte) *Query {
 func (q *Query) Query(driver string, funcname string, param []byte) (types.Message, error) {
 	exec, err := execdrivers.LoadExecute(driver)
 	if err != nil {
-		storelog.Error("load exec err", "name", driver)
+		chainlog.Error("load exec err", "name", driver)
 		return nil, err
 	}
 	exec.SetQueryDB(q.db)
