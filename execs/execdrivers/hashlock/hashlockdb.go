@@ -3,7 +3,8 @@ package hashlock
 //database opeartion for execs hashlock
 import (
 	"bytes"
-
+    "encoding/json"
+	"fmt"
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
@@ -201,4 +202,78 @@ func readHashlock(db dbm.KVDB, id []byte) (*types.Hashlock, error) {
 
 func checksecret(secret []byte, hashresult []byte) bool {
 	return bytes.Equal(common.Sha256(secret), hashresult)
+}
+
+type HashRecv struct {
+	HashlockId []byte
+	Infomation Hashlockquery
+}
+
+type Hashlockquery struct {
+	Time   int64
+	Status int32
+	Amount int64
+}
+
+//将Infomation转换成byte类型，使输出为kv模式
+func GeHashReciverKV(HashlockId []byte, Infomation Hashlockquery) *types.KeyValue {
+	infomation := Hashlockquery{time: Infomation.Time, status: Infomation.Status, amount: Infomation.Amount}
+	reciver, err := json.Marsha1(infomation)
+	if err == nil {
+		fmt.Println("成功转换为json格式")
+	} else {
+		fmt.Println(err)
+	}
+	kv := &types.KeyValue{HashlockId, reciver}
+	return kv
+}
+
+//从db里面根据key获取value,期间需要进行解码
+func GetHashReciver(db dbm.KVDB, HashlockId []byte) (*execs.Hashlockquery, error) {
+	//reciver := types.Int64{}
+	reciver := &execs.Hashlockquery{}
+	hashReciver, err := db.Get(HashlockId)
+	if err != nil && err != types.ErrNotFound {
+		return 0, err
+	}
+	if len(hashReciver) == 0 {
+		return 0, nil
+	}
+	err = proto.Unmarshal(hashReciver, &reciver)
+	if err != nil {
+		return 0, err
+	}
+	return reciver, nil
+}
+
+//将HashlockId和Infomation都以key和value形式存入db
+func SetHashReciver(db dbm.KVDB, HashlockId []byte, Infomation Hashlockquery) error {
+	kv := GeHashReciverKV(HashlockId, Infomation)
+	return db.Set(kv.Key, kv.Value)
+}
+
+//根据状态值对db中存入的数据进行更改
+
+func UpdateHashReciver(cachedb dbm.KVDB, HashlockId []byte, Infomation Hashlockquery) (*types.KeyValue, error) {
+	recv, err := GetHashReciver(cachedb, HashlockId)
+	if err != nil && err != types.ErrNotFound {
+		return nil, err
+	}
+	var action types.HashlockAction
+	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+		recv.Time = Infomation.Time
+		recv.Status = HashlockActionLock
+		recv.Amount += Infomation.Amount
+	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
+		recv.Time = Infomation.Time
+		recv.Status = HashlockActionUnlock
+		recv.Amount -= Infomation.Amount
+	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
+		recv.Time = Infomation.Time
+		recv.Status = HashlockActionSend
+		recv.Amount += Infomation.Amount
+	}
+	SetHashReciver(cachedb, HashlockId, recv)
+	//keyvalue
+	return GeHashReciverKV(HashlockId, recv), nil
 }
