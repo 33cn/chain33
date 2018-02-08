@@ -122,6 +122,7 @@ func (client *TicketClient) getTickets() ([]*types.Ticket, []crypto.PrivKey, err
 		}
 		keys = append(keys, priv)
 	}
+	log.Info("getTickets", "ticket n", len(reply.Tickets), "nkey", len(keys))
 	return reply.Tickets, keys, nil
 }
 
