@@ -687,3 +687,13 @@ func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	*result = &resp
 	return nil
 }
+
+func (req Chain33) GetBalance(in types.GetBalance, result *interface{}) error {
+
+	balance, err := req.cli.GetBalance(&in)
+	if err != nil {
+		return err
+	}
+	*result = balance
+	return nil
+}
