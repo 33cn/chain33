@@ -2,13 +2,14 @@ package drivers
 
 import (
 	"errors"
+	"math/rand"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/util"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -19,10 +20,18 @@ var (
 	zeroHash [32]byte
 )
 
+var randgen *rand.Rand
+
+func init() {
+	randgen = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
 type Miner interface {
 	CreateGenesisTx() []*types.Transaction
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
+	ProcEvent(msg queue.Message)
+	ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error)
 }
 
 type BaseClient struct {
@@ -58,6 +67,18 @@ func (client *BaseClient) InitClient(q *queue.Queue, minerstartCB func()) {
 	client.q = q
 	client.minerstartCB = minerstartCB
 	client.InitMiner()
+}
+
+func (client *BaseClient) GetQueueClient() queue.Client {
+	return client.qclient
+}
+
+func (client *BaseClient) GetQueue() *queue.Queue {
+	return client.q
+}
+
+func (client *BaseClient) RandInt64() int64 {
+	return randgen.Int63()
 }
 
 func (client *BaseClient) InitMiner() {
@@ -158,6 +179,8 @@ func (client *BaseClient) EventLoop() {
 				} else {
 					msg.ReplyErr("EventMinerStop", nil)
 				}
+			} else {
+				client.child.ProcEvent(msg)
 			}
 		}
 	}()
@@ -224,13 +247,10 @@ func (client *BaseClient) GetInitHeight() int64 {
 }
 
 // 向blockchain写区块
-func (client *BaseClient) WriteBlock(prevHash []byte, block *types.Block) error {
-	blockdetail, err := util.ExecBlock(client.q, prevHash, block, false)
-	if err != nil { //never happen
-		panic(err)
-	}
-	if len(blockdetail.Block.Txs) == 0 {
-		return errors.New("ErrNoTxs")
+func (client *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
+	blockdetail, err := client.child.ExecBlock(prev, block)
+	if err != nil {
+		return err
 	}
 	msg := client.qclient.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
 	client.qclient.Send(msg, true)

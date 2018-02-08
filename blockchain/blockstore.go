@@ -144,6 +144,7 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 		storeLog.Error("indexTxs getLocalKV err", "Height", blockDetail.Block.Height, "err", err)
 		return err
 	}
+	//storelog.Info("add txs kv num", "n", len(kv.KV))
 	for i := 0; i < len(kv.KV); i++ {
 		storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
 	}
