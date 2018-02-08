@@ -3,6 +3,7 @@ package ticket
 import (
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 )
 
 var slog = log.New("module", "ticket")
+var powLimit = common.CompactToBig(types.PowLimitBits)
 
 type TicketClient struct {
 	*drivers.BaseClient
@@ -185,18 +187,28 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	}
 	//通过判断区块的难度Difficulty
 	bits := parent.Difficulty
-	diff := client.getNextTarget(parent, bits)
+	target := client.getNextTarget(parent, bits)
 	currentdiff := client.getCurrentTarget(current.Block.BlockTime, miner.TicketId, miner.Modify)
-	if currentdiff.Cmp(common.CompactToBig(miner.Bits)) != 0 {
+	if currentdiff.Sign() < 0 {
 		return types.ErrCoinBaseTarget
 	}
-	if currentdiff.Cmp(diff) > 0 {
+	if currentdiff.Cmp(common.CompactToBig(miner.Bits)) != 0 {
+		log.Error("block error: calc tagget not the same to miner",
+			"cacl", printBInt(currentdiff), "current", printBInt(common.CompactToBig(miner.Bits)))
+		return types.ErrCoinBaseTarget
+	}
+	if currentdiff.Cmp(target) > 0 {
+		log.Error("block error: diff not fit the tagget",
+			"current", printBInt(currentdiff), "taget", printBInt(target))
 		return types.ErrCoinBaseTarget
 	}
 	return nil
 }
 
 func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) *big.Int {
+	if block.Height == 0 {
+		return powLimit
+	}
 	targetBits, err := client.GetNextRequiredDifficulty(block, bits)
 	if err != nil {
 		panic(err)
@@ -207,7 +219,8 @@ func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) *big.
 func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
 	s := fmt.Sprint("%d:%s:%x", blocktime, id, modify)
 	hash := common.Sha2Sum([]byte(s))
-	return common.HashToBig(hash[:])
+	num := common.HashToBig(hash[:])
+	return common.CompactToBig(common.BigToCompact(num))
 }
 
 // calcNextRequiredDifficulty calculates the required difficulty for the block
@@ -264,8 +277,8 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
 
 	// Limit new value to the proof of work limit.
-	if newTarget.Cmp(types.PowLimit) > 0 {
-		newTarget.Set(types.PowLimit)
+	if newTarget.Cmp(powLimit) > 0 {
+		newTarget.Set(powLimit)
 	}
 
 	// Log new target difficulty and return it.  The new target logging is
@@ -283,11 +296,17 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	return newTargetBits, nil
 }
 
+func printBInt(data *big.Int) string {
+	txt := data.Text(16)
+	return strings.Repeat("0", 64-len(txt)) + txt
+}
+
 func (client *TicketClient) Miner(block *types.Block) bool {
 	//add miner address
 	parent := client.GetCurrentBlock()
 	bits := parent.Difficulty
 	diff := client.getNextTarget(parent, bits)
+	log.Info("target", "hex", printBInt(diff))
 	client.mu.Lock()
 	defer client.mu.Unlock()
 	for i := 0; i < len(client.tlist.Tickets); i++ {
@@ -299,9 +318,10 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 		//find priv key
 		priv := client.privmap[ticket.MinerAddress]
 		currentdiff := client.getCurrentTarget(block.BlockTime, ticket.TicketId, []byte("modify"))
-		if currentdiff.Cmp(diff) > 0 { //难度要大于前一个，注意数字越小难度越大
+		if currentdiff.Cmp(diff) >= 0 { //难度要大于前一个，注意数字越小难度越大
 			continue
 		}
+		log.Info("currentdiff", "hex", printBInt(currentdiff))
 		var ticketAction types.TicketAction
 		miner := &types.TicketMiner{}
 		miner.TicketId = ticket.TicketId
@@ -309,6 +329,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 		miner.Modify = []byte("modify")
 		miner.Reward = types.CoinReward
 		ticketAction.Value = &types.TicketAction_Miner{miner}
+		ticketAction.Ty = types.TicketActionMiner
 		//构造transaction
 		tx := &types.Transaction{}
 		tx.Execer = []byte("ticket")
@@ -336,13 +357,11 @@ func (client *TicketClient) CreateBlock() {
 			time.Sleep(time.Second)
 		}
 		txs := client.RequestTx()
-		if len(txs) == 0 {
-			issleep = true
-			continue
-		}
 		issleep = false
 		//check dup
-		txs = client.CheckTxDup(txs)
+		if len(txs) > 0 {
+			txs = client.CheckTxDup(txs)
+		}
 		lastBlock := client.GetCurrentBlock()
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
@@ -354,6 +373,7 @@ func (client *TicketClient) CreateBlock() {
 		}
 		//add miner tx
 		if !client.Miner(&newblock) {
+			issleep = true
 			continue
 		}
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
@@ -367,6 +387,9 @@ func (client *TicketClient) CreateBlock() {
 
 func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
 	//exec block
+	if block.Height == 0 {
+		block.Difficulty = types.PowLimitBits
+	}
 	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
 	if err != nil { //never happen
 		return nil, err
