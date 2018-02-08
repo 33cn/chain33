@@ -297,3 +297,11 @@ func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.Reply,
 	}
 	return reply, nil
 }
+
+func (req *Grpc) GetBalance(ctx context.Context, in *pb.GetBalance) ([]*pb.Account, error) {
+	reply, err := req.cli.GetBalance(in)
+	if err != nil {
+		return nil, err
+	}
+	return reply, nil
+}

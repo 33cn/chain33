@@ -19,7 +19,7 @@ import (
 //3.如果配置了种子节点，则连接种子节点
 //4.启动监控远程节点
 func (n *Node) Start() {
-	n.DetectionNodeAddr()
+	n.DetectNodeAddr()
 	n.l = NewDefaultListener(Protocol, n)
 	go n.monitor()
 	go n.exChangeVersion()
@@ -31,7 +31,10 @@ func (n *Node) Close() {
 
 	close(n.loopDone)
 	log.Debug("stop", "versionDone", "close")
-	n.l.Close()
+	if n.l != nil {
+		n.l.Close()
+	}
+
 	log.Debug("stop", "listen", "close")
 	n.addrBook.Close()
 	log.Debug("stop", "addrBook", "close")
@@ -257,6 +260,15 @@ func (n *Node) Has(paddr string) bool {
 	return false
 }
 
+func (n *Node) GetRegisterPeer(paddr string) *peer {
+	n.omtx.Lock()
+	defer n.omtx.Unlock()
+	if peer, ok := n.outBound[paddr]; ok {
+		return peer
+	}
+	return nil
+}
+
 func (n *Node) GetRegisterPeers() []*peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
@@ -271,13 +283,15 @@ func (n *Node) GetRegisterPeers() []*peer {
 	return peers
 }
 
-func (n *Node) GetActivePeers() ([]*peer, map[string]*types.Peer) {
+func (n *Node) GetActivePeers() (map[string]*peer, map[string]*types.Peer) {
 	regPeers := n.GetRegisterPeers()
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
-	var peers []*peer
+	//var peers []*peer
+	var peers = make(map[string]*peer)
 	for _, peer := range regPeers {
 		if _, ok := infos[peer.Addr()]; ok {
-			peers = append(peers, peer)
+			//peers = append(peers, peer)
+			peers[peer.Addr()] = peer
 		}
 	}
 	return peers, infos
@@ -372,15 +386,15 @@ func (n *Node) GetServiceTy() int64 {
 	return SERVICE
 
 }
-func (n *Node) DetectionNodeAddr() {
+func (n *Node) DetectNodeAddr() {
 	//直到网络可用的时候，才返回。
 	for {
 		cfg := n.nodeInfo.cfg
 		LocalAddr = P2pComm.GetLocalAddr()
-		log.Info("DetectionNodeAddr", "addr:", LocalAddr)
+		log.Info("DetectNodeAddr", "addr:", LocalAddr)
 		if len(LocalAddr) == 0 {
 			//SERVICE = 0
-			log.Error("DetectionNodeAddr", "NetWork Disable p2p Disable", "Retry until Network enable")
+			log.Error("DetectNodeAddr", "NetWork Disable p2p Disable", "Retry until Network enable")
 			time.Sleep(time.Second * 5)
 			continue
 			//os.Exit(0)
@@ -401,8 +415,9 @@ func (n *Node) DetectionNodeAddr() {
 			if len(selfexaddrs) != 0 {
 				IsOutSide = outside
 				ExternalIp = selfexaddrs
+				//log.Info("DetectNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp, "IsOutSide", IsOutSide)
 				break
-				//log.Error("DetectionNodeAddr", "LocalAddr", LocalAddr, "ExternalAddr", ExternalIp)
+				//
 			}
 
 		}
@@ -426,7 +441,7 @@ func (n *Node) DetectionNodeAddr() {
 		}
 		n.localAddr = fmt.Sprintf("%s:%v", LocalAddr, n.GetLocalPort())
 
-		log.Info("DetectionNodeAddr", " Finish ExternalIp", ExternalIp, "LocalAddr", LocalAddr)
+		log.Info("DetectionNodeAddr", " Finish ExternalIp", ExternalIp, "LocalAddr", LocalAddr, "IsOutSide", IsOutSide)
 		break
 	}
 }
