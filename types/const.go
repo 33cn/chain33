@@ -2,7 +2,6 @@ package types
 
 import (
 	"errors"
-	"math/big"
 	"time"
 )
 
@@ -48,6 +47,8 @@ var ErrSendSameToRecv = errors.New("ErrSendSameToRecv")
 var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
 var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
 var ErrTimeout = errors.New("ErrTimeout")
+var ErrBlockHeaderDifficulty = errors.New("ErrBlockHeaderDifficulty")
+var ErrNoTx = errors.New("ErrNoTx")
 
 // Mempool Error Types
 var ErrTxExist = errors.New("ErrTxExist")
@@ -70,7 +71,7 @@ const MinFee int64 = 1e6
 const MinBalanceTransfer = 1e7
 const MaxTxSize int64 = 100000      //100K
 const MaxBlockSize int64 = 10000000 //10M
-const PowLimitBits uint32 = uint32(0)
+const PowLimitBits uint32 = uint32(0x1f00ffff)
 
 const TargetTimespan = 144 * 16 * time.Second
 const TargetTimePerBlock = 16 * time.Second
@@ -79,8 +80,6 @@ const MaxTxsPerBlock = 100000
 
 var AllowDepositExec = []string{"ticket"}
 var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
-
-var PowLimit = big.NewInt(0)
 
 const (
 	EventTx                   = 1
@@ -170,6 +169,7 @@ const (
 	EventReceiptCheckTx  = 82
 	EventQuery           = 83
 	EventReplyQuery      = 84
+	EventFlushTicket     = 85
 )
 
 var eventname = map[int]string{
@@ -257,6 +257,7 @@ var eventname = map[int]string{
 	82: "EventReceiptCheckTx",
 	83: "EventQuery",
 	84: "EventReplyQuery",
+	85: "EventFlushTicket",
 }
 
 func GetEventName(event int) string {

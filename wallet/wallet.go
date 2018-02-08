@@ -92,6 +92,11 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 	go wallet.ProcRecvMsg()
 }
 
+func (wallet *Wallet) flushTicket() {
+	hashList := wallet.qclient.NewMessage("consensus", types.EventFlushTicket, nil)
+	wallet.qclient.Send(hashList, false)
+}
+
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.qclient.Recv() {
@@ -108,13 +113,14 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
 		case types.EventWalletGetTickets:
-			tickets, err := wallet.GetTickets()
+			tickets, privs, err := wallet.GetTickets()
 			if err != nil {
 				walletlog.Error("GetTickets", "err", err.Error())
 				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
 			} else {
+				tks := &types.ReplyWalletTickets{tickets, privs}
 				walletlog.Debug("process GetTickets OK")
-				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tickets))
+				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
 			}
 		case types.EventNewAccount:
 			NewAccount := msg.Data.(*types.ReqNewAccount)
@@ -145,7 +151,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccount, WalletAccount))
 			}
-
+			wallet.flushTicket()
 		case types.EventWalletSendToAddress:
 			SendToAddress := msg.Data.(*types.ReqWalletSendToAddress)
 			ReplyHash, err := wallet.ProcSendToAddress(SendToAddress)
@@ -225,7 +231,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				reply.Msg = []byte(err.Error())
 			}
 			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
-
+			wallet.flushTicket()
 		case types.EventAddBlock:
 			block := msg.Data.(*types.BlockDetail)
 			wallet.ProcWalletAddBlock(block)
@@ -601,35 +607,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		walletlog.Error("ProcSendToAddress input para From or To is nil!")
 		return nil, ErrInputPara
 	}
-
 	var hash types.ReplyHash
-
-	//获取指定地址在钱包里的账户信息
-	Accountstor, err := wallet.walletStore.GetAccountByAddr(SendToAddress.GetFrom())
-	if err != nil {
-		walletlog.Error("ProcSendToAddress", "GetAccountByAddr err:", err)
-		return nil, err
-	}
-
-	//通过password解密存储的私钥
-	prikeybyte, err := common.FromHex(Accountstor.GetPrivkey())
-	if err != nil || len(prikeybyte) == 0 {
-		walletlog.Error("ProcSendToAddress", "FromHex err", err)
-		return nil, err
-	}
-
-	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
-	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-	if err != nil {
-		walletlog.Error("ProcSendToAddress", "err", err)
-		return nil, err
-	}
-	priv, err := cr.PrivKeyFromBytes(privkey)
-	if err != nil {
-		walletlog.Error("ProcSendToAddress", "PrivKeyFromBytes err", err)
-		return nil, err
-	}
 	//获取from账户的余额从account模块，校验余额是否充足
 	addrs := make([]string, 1)
 	addrs[0] = SendToAddress.GetFrom()
@@ -663,7 +641,10 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	}
 	//初始化随机数
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
+	priv, err := wallet.getPrivKeyByAddr(addrs[0])
+	if err != nil {
+		return nil, err
+	}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
 	tx.Sign(types.SECP256K1, priv)
 
@@ -682,6 +663,36 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 
 	hash.Hash = tx.Hash()
 	return &hash, nil
+}
+
+func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
+	//获取指定地址在钱包里的账户信息
+	Accountstor, err := wallet.walletStore.GetAccountByAddr(addr)
+	if err != nil {
+		walletlog.Error("ProcSendToAddress", "GetAccountByAddr err:", err)
+		return nil, err
+	}
+
+	//通过password解密存储的私钥
+	prikeybyte, err := common.FromHex(Accountstor.GetPrivkey())
+	if err != nil || len(prikeybyte) == 0 {
+		walletlog.Error("ProcSendToAddress", "FromHex err", err)
+		return nil, err
+	}
+
+	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
+	//通过privkey生成一个pubkey然后换算成对应的addr
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		walletlog.Error("ProcSendToAddress", "err", err)
+		return nil, err
+	}
+	priv, err := cr.PrivKeyFromBytes(privkey)
+	if err != nil {
+		walletlog.Error("ProcSendToAddress", "PrivKeyFromBytes err", err)
+		return nil, err
+	}
+	return priv, nil
 }
 
 //type ReqWalletSetFee struct {
@@ -1021,7 +1032,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	//walletlog.Error("ProcWalletAddBlock", "height", block.GetBlock().GetHeight())
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
-
+	needflush := false
 	for index := 0; index < txlen; index++ {
 		if "coins" == string(block.Block.Txs[index].Execer) {
 			blockheight := block.Block.Height*MaxTxNumPerBlock + int64(index)
@@ -1069,9 +1080,30 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
 				walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
 			}
+		} else if "ticket" == string(block.Block.Txs[index].Execer) {
+			tx := block.Block.Txs[index]
+			receipt := block.Receipts[index]
+			if wallet.needFlushTicket(tx, receipt) {
+				needflush = true
+			}
 		}
 	}
 	newbatch.Write()
+	if needflush {
+		wallet.flushTicket()
+	}
+}
+
+func (wallet *Wallet) needFlushTicket(tx *types.Transaction, receipt *types.ReceiptData) bool {
+	if receipt.Ty != types.ExecOk || string(tx.Execer) != "ticket" {
+		return false
+	}
+	pubkey := tx.Signature.GetPubkey()
+	addr := account.PubKeyToAddress(pubkey)
+	if wallet.AddrInWallet(addr.String()) {
+		return true
+	}
+	return false
 }
 
 //wallet模块收到blockchain广播的delblock消息，需要解析钱包相关的tx并存db中删除
@@ -1084,11 +1116,17 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
-
+	needflush := false
 	for index := 0; index < txlen; index++ {
 		blockheight := block.Block.Height*MaxTxNumPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
-
+		if "ticket" == string(block.Block.Txs[index].Execer) {
+			tx := block.Block.Txs[index]
+			receipt := block.Receipts[index]
+			if wallet.needFlushTicket(tx, receipt) {
+				needflush = true
+			}
+		}
 		//获取from地址
 		pubkey := block.Block.Txs[index].Signature.GetPubkey()
 		addr := account.PubKeyToAddress(pubkey)
@@ -1106,6 +1144,9 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		}
 	}
 	newbatch.Write()
+	if needflush {
+		wallet.flushTicket()
+	}
 }
 
 //地址对应的账户是否属于本钱包
@@ -1256,30 +1297,54 @@ func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
 	return decryptered
 }
 
-func (wallet *Wallet) GetTickets() ([]*types.Ticket, error) {
+func (wallet *Wallet) GetTickets() ([]*types.Ticket, [][]byte, error) {
 	accounts, err := wallet.ProcGetAccountList()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return nil, nil, err
 	}
 	//循环遍历所有的账户-->保证钱包已经解锁
 	var tickets []*types.Ticket
+	var privs [][]byte
 	for _, account := range accounts.Wallets {
-		t, err := loadTicket(account.Acc.Addr)
+		t, err := wallet.getTickets(account.Acc.Addr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if t != nil {
+			priv, err := wallet.getPrivKeyByAddr(account.Acc.Addr)
+			if err != nil {
+				return nil, nil, err
+			}
+			privs = append(privs, priv.Bytes())
 			tickets = append(tickets, t...)
 		}
 	}
 	if len(tickets) == 0 {
-		return nil, types.ErrNoTicket
+		return nil, nil, types.ErrNoTicket
 	}
-	return tickets, nil
+	return tickets, privs, nil
 }
 
-func loadTicket(addr string) ([]*types.Ticket, error) {
-	return nil, nil
+func (client *Wallet) getTickets(addr string) ([]*types.Ticket, error) {
+	reqaddr := &types.TicketList{addr, 1}
+	var req types.Query
+	req.Execer = []byte("ticket")
+	req.FuncName = "TicketList"
+	req.Payload = types.Encode(reqaddr)
+	msg := client.qclient.NewMessage("blockchain", types.EventQuery, &req)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	reply := resp.GetData().(types.Message).(*types.ReplyTicketList)
+	return reply.Tickets, nil
 }
 
 //生成一个随机的seed种子, 目前支持英文单词和简体中文

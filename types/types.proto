@@ -198,6 +198,7 @@ message Header {
 	int64 blockTime = 6;
 	int64 txCount = 9;
 	bytes hash = 10;
+	uint32 difficulty = 11;
 	Signature  signature = 8;
 }
 
@@ -208,6 +209,7 @@ message Block {
 	bytes stateHash = 4;
 	int64 height = 5;
 	int64 blockTime = 6;
+	uint32 difficulty = 11;
 	Signature  signature = 8;
 	repeated Transaction txs = 7;
 }
@@ -755,7 +757,6 @@ message TicketClose {
 message TicketList {
 	string addr   = 1;
 	int32  status = 3;
-	bool   isClosed = 2;
 }
 
 message TicketInfos {
@@ -763,7 +764,12 @@ message TicketInfos {
 }
 
 message ReplyTicketList {
-	repeated Ticket ticketes = 1;
+	repeated Ticket tickets = 1;
+}
+
+message ReplyWalletTickets {
+	repeated Ticket tickets = 1;
+	repeated bytes privkeys = 2;
 }
 
 message Ticket {
