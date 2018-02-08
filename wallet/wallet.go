@@ -33,7 +33,7 @@ var SaveSeedFirst = errors.New("please save seed first!")
 var UnLockFirst = errors.New("UnLock Wallet first!")
 
 type Wallet struct {
-	qclient     queue.IClient
+	qclient     queue.Client
 	q           *queue.Queue
 	mtx         sync.Mutex
 	timeout     *time.Timer
@@ -58,7 +58,7 @@ func DisableLog() {
 func New(cfg *types.Wallet) *Wallet {
 
 	//walletStore
-	walletStoreDB := dbm.NewDB("wallet", "leveldb", cfg.DbPath)
+	walletStoreDB := dbm.NewDB("wallet", "leveldb", cfg.DbPath, 16)
 	walletStore := NewWalletStore(walletStoreDB)
 	MinFee = cfg.MinFee
 	return &Wallet{
@@ -85,7 +85,7 @@ func (wallet *Wallet) IsLocked() bool {
 }
 
 func (wallet *Wallet) SetQueue(q *queue.Queue) {
-	wallet.qclient = q.GetClient()
+	wallet.qclient = q.NewClient()
 	wallet.qclient.Sub("wallet")
 	wallet.q = q
 	wallet.wg.Add(1)
