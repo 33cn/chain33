@@ -28,7 +28,7 @@ poolCacheSize=10240
 minTxFee=1000000
 
 [consensus]
-name="ticket"
+name="solo"
 minerstart=true
 
 [store]
