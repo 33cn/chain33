@@ -67,6 +67,7 @@ var ErrTicketClosed = errors.New("ErrTicketClosed")
 var ErrEmptyMinerTx = errors.New("ErrEmptyMinerTx")
 var ErrMinerNotPermit = errors.New("ErrMinerNotPermit")
 var ErrMinerAddr = errors.New("ErrMinerAddr")
+var ErrModify = errors.New("ErrModify")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
