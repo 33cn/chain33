@@ -68,9 +68,11 @@ var ErrEmptyMinerTx = errors.New("ErrEmptyMinerTx")
 var ErrMinerNotPermit = errors.New("ErrMinerNotPermit")
 var ErrMinerAddr = errors.New("ErrMinerAddr")
 var ErrModify = errors.New("ErrModify")
+var ErrFutureBlock = errors.New("ErrFutureBlock")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
+const FutureBlockTime int64 = 16
 
 //用户回报
 const CoinReward int64 = 18 * Coin
