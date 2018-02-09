@@ -37,6 +37,8 @@ func New(cfg *types.P2P) *P2p {
 	p2p.node = node
 	p2p.loopdone = make(chan struct{}, 1)
 	p2p.cli = NewP2pCli(p2p)
+	p2p.txFactory = make(chan struct{}, 1000)    // 1000 task
+	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	return p2p
 }
 func (network *P2p) Stop() {
@@ -88,8 +90,7 @@ func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return
 	}
-	network.txFactory = make(chan struct{}, 1000)    // 1000 task
-	network.otherFactory = make(chan struct{}, 1000) //other task 1000
+
 	network.txCapcity = 1000
 	network.c.Sub("p2p")
 	go network.ShowTaskCapcity()
