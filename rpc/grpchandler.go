@@ -3,9 +3,9 @@ package rpc
 import (
 	"fmt"
 
-	"golang.org/x/net/context"
-
+	"code.aliyun.com/chain33/chain33/types"
 	pb "code.aliyun.com/chain33/chain33/types"
+	"golang.org/x/net/context"
 )
 
 type Grpc struct {
@@ -307,9 +307,13 @@ func (req *Grpc) GetBalance(ctx context.Context, in *pb.GetBalance) ([]*pb.Accou
 }
 
 func (req *Grpc) Query(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
-	reply, err := req.cli.QueryHash(in)
+	result, err := req.cli.QueryHash(in)
 	if err != nil {
 		return nil, err
 	}
-	return reply, nil
+	var reply types.Reply
+	reply.IsOk = true
+	reply.Msg = types.Encode(*result)
+
+	return &reply, nil
 }

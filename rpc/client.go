@@ -53,7 +53,7 @@ type IRClient interface {
 	//getbalance
 	GetBalance(*types.GetBalance) ([]*types.Account, error)
 	//query
-	QueryHash(*types.Query) (*types.Reply, error)
+	QueryHash(*types.Query) (*types.Message, error)
 }
 
 type channelClient struct {
@@ -599,7 +599,7 @@ func (client *channelClient) GetBalance(in *types.GetBalance) ([]*types.Account,
 	return nil, nil
 }
 
-func (client *channelClient) QueryHash(in *types.Query) (*types.Reply, error) {
+func (client *channelClient) QueryHash(in *types.Query) (*types.Message, error) {
 
 	msg := client.qclient.NewMessage("blockchain", types.EventQuery, in)
 	err := client.qclient.Send(msg, true)
@@ -611,10 +611,7 @@ func (client *channelClient) QueryHash(in *types.Query) (*types.Reply, error) {
 		return nil, err
 	}
 	querydata := resp.GetData().(types.Message)
-	var reply types.Reply
-	reply.IsOk = true
-	reply.Msg = []byte(querydata.String())
 
-	return &reply, nil
+	return &querydata, nil
 
 }
