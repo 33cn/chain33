@@ -21,6 +21,7 @@ import (
 
 var slog = log.New("module", "ticket")
 var powLimit = common.CompactToBig(types.PowLimitBits)
+var defaultModify = []byte("modify")
 
 type TicketClient struct {
 	*drivers.BaseClient
@@ -65,7 +66,7 @@ func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	tx1.To = client.Cfg.HotkeyAddr
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{Amount: 1e4 * types.Coin}
+	g.Genesis = &types.CoinsGenesis{Amount: types.TicketPrice}
 	tx1.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx1)
 
@@ -155,25 +156,79 @@ func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 	return list
 }
 
-func (client *TicketClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+func (client *TicketClient) getMinerTx(current *types.Block) (*types.TicketAction, error) {
 	//检查第一个笔交易的execs, 以及执行状态
-	if len(current.Block.Txs) == 0 {
-		return types.ErrEmptyTx
+	if len(current.Txs) == 0 {
+		return nil, types.ErrEmptyTx
 	}
-	baseTx := current.Block.Txs[0]
-	if string(baseTx.Execer) != "ticket" {
-		return types.ErrCoinBaseExecer
+	//检查第一个笔交易的execs, 以及执行状态
+	if len(current.Txs) == 0 {
+		return nil, types.ErrEmptyTx
 	}
+	baseTx := current.Txs[0]
 	//判断交易类型和执行情况
 	var ticketAction types.TicketAction
 	err := types.Decode(baseTx.GetPayload(), &ticketAction)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if ticketAction.GetTy() != types.TicketActionMiner {
-		return types.ErrCoinBaseTxType
+		return nil, types.ErrCoinBaseTxType
 	}
 	//判断交易执行是否OK
+	if ticketAction.GetMiner() == nil {
+		return nil, types.ErrEmptyMinerTx
+	}
+	return &ticketAction, nil
+}
+
+func (client *TicketClient) getModify(block *types.Block) ([]byte, error) {
+	ticketAction, err := client.getMinerTx(block)
+	if err != nil {
+		return defaultModify, err
+	}
+	return ticketAction.GetMiner().GetModify(), nil
+}
+
+func (client *TicketClient) GetModify(beg, end int64) ([]byte, error) {
+	//通过某个区间计算modify
+	timeSource := int64(0)
+	total := int64(0)
+	newmodify := ""
+	for i := beg; i <= end; i++ {
+		block, err := client.RequestBlock(i)
+		if err != nil {
+			return defaultModify, err
+		}
+		timeSource += block.BlockTime
+		if total == 0 {
+			total = block.BlockTime
+		}
+		if timeSource%4 == 0 {
+			total += block.BlockTime
+		}
+		if i == end {
+			ticketAction, err := client.getMinerTx(block)
+			if err != nil {
+				return defaultModify, err
+			}
+			last := ticketAction.GetMiner().GetModify()
+			newmodify = fmt.Sprintf("%s:%d", string(last), total)
+		}
+	}
+	modify := common.ToHex(common.Sha256([]byte(newmodify)))
+	return []byte(modify), nil
+}
+
+func (client *TicketClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	if current.Block.BlockTime-time.Now().Unix() > types.FutureBlockTime {
+		return types.ErrFutureBlock
+	}
+	ticketAction, err := client.getMinerTx(current.Block)
+	if err != nil {
+		return err
+	}
+	//判断exec 是否成功
 	if current.Receipts[0].Ty != types.ExecOk {
 		return types.ErrCoinBaseExecErr
 	}
@@ -185,10 +240,15 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	if miner.Bits != current.Block.Difficulty {
 		return types.ErrBlockHeaderDifficulty
 	}
+	//check modify:
+
 	//通过判断区块的难度Difficulty
 	//1. target >= currentdiff
 	//2.  current bit == target
-	target := client.getNextTarget(parent, parent.Difficulty)
+	target, modify := client.getNextTarget(parent, parent.Difficulty)
+	if string(modify) != string(miner.Modify) {
+		return types.ErrModify
+	}
 	currentdiff := client.getCurrentTarget(current.Block.BlockTime, miner.TicketId, miner.Modify)
 	if currentdiff.Sign() < 0 {
 		return types.ErrCoinBaseTarget
@@ -213,15 +273,15 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	return nil
 }
 
-func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) *big.Int {
+func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big.Int, []byte) {
 	if block.Height == 0 {
-		return powLimit
+		return powLimit, defaultModify
 	}
-	targetBits, err := client.GetNextRequiredDifficulty(block, bits)
+	targetBits, modify, err := client.GetNextRequiredDifficulty(block, bits)
 	if err != nil {
 		panic(err)
 	}
-	return common.CompactToBig(targetBits)
+	return common.CompactToBig(targetBits), modify
 }
 
 func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
@@ -236,10 +296,10 @@ func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify 
 // This function differs from the exported CalcNextRequiredDifficulty in that
 // the exported version uses the current best chain as the previous block node
 // while this function accepts any block node.
-func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits uint32) (uint32, error) {
+func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits uint32) (uint32, []byte, error) {
 	// Genesis block.
 	if block == nil {
-		return types.PowLimitBits, nil
+		return types.PowLimitBits, defaultModify, nil
 	}
 	blocksPerRetarget := int64(types.TargetTimespan / types.TargetTimePerBlock)
 	// Return the previous block's difficulty requirements if this block
@@ -247,19 +307,27 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	if (block.Height+1) <= blocksPerRetarget || (block.Height+1)%blocksPerRetarget != 0 {
 		// For the main network (or any unrecognized networks), simply
 		// return the previous block's difficulty requirements.
-		return bits, nil
+		modify, err := client.getModify(block)
+		if err != nil {
+			return bits, defaultModify, err
+		}
+		return bits, modify, nil
 	}
 
 	// Get the block node at the previous retarget (targetTimespan days
 	// worth of blocks).
-	firstBlock, err := client.RequestBlock(block.Height - blocksPerRetarget)
+	firstBlock, err := client.RequestBlock(block.Height + 1 - blocksPerRetarget)
 	if err != nil {
-		return 0, err
+		return types.PowLimitBits, defaultModify, err
 	}
 	if firstBlock == nil {
-		return 0, types.ErrBlockNotFound
+		return types.PowLimitBits, defaultModify, types.ErrBlockNotFound
 	}
 
+	modify, err := client.GetModify(block.Height+1-blocksPerRetarget, block.Height)
+	if err != nil {
+		return types.PowLimitBits, defaultModify, err
+	}
 	// Limit the amount of adjustment that can occur to the previous
 	// difficulty.
 	actualTimespan := block.BlockTime - firstBlock.BlockTime
@@ -300,8 +368,12 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	slog.Info("Timespan", "Actual timespan", time.Duration(actualTimespan)*time.Second,
 		"adjusted timespan", time.Duration(adjustedTimespan)*time.Second,
 		"target timespan", types.TargetTimespan)
-
-	return newTargetBits, nil
+	prevmodify, err := client.getModify(block)
+	if err != nil {
+		panic(err)
+	}
+	slog.Info("UpdateModify", "prev", string(prevmodify), "current", string(modify))
+	return newTargetBits, modify, nil
 }
 
 func printBInt(data *big.Int) string {
@@ -313,7 +385,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 	//add miner address
 	parent := client.GetCurrentBlock()
 	bits := parent.Difficulty
-	diff := client.getNextTarget(parent, bits)
+	diff, modify := client.getNextTarget(parent, bits)
 	log.Info("target", "hex", printBInt(diff))
 	client.mu.Lock()
 	defer client.mu.Unlock()
@@ -323,7 +395,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 			continue
 		}
 		//已经到成熟器
-		if !ticket.IsGenesis && block.BlockTime-ticket.CreateTime <= 10*86400 {
+		if !ticket.IsGenesis && block.BlockTime-ticket.CreateTime <= types.TicketFrozenTime {
 			continue
 		}
 		//find priv key
@@ -337,7 +409,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 		miner := &types.TicketMiner{}
 		miner.TicketId = ticket.TicketId
 		miner.Bits = common.BigToCompact(diff)
-		miner.Modify = []byte("modify")
+		miner.Modify = modify
 		miner.Reward = types.CoinReward
 		ticketAction.Value = &types.TicketAction_Miner{miner}
 		ticketAction.Ty = types.TicketActionMiner

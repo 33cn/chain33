@@ -182,3 +182,9 @@ type BlockOverview struct {
 	TxCount  int64    `protobuf:"varint,2,opt,name=txCount" json:"txcount"`
 	TxHashes []string `protobuf:"bytes,3,rep,name=txHashes,proto3" json:"txhashes"`
 }
+
+type Query struct {
+	Execer   string `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	FuncName string `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
+	Payload  string `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload"`
+}

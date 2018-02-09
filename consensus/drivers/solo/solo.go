@@ -18,6 +18,7 @@ type SoloClient struct {
 }
 
 func New(cfg *types.Consensus) *SoloClient {
+
 	c := drivers.NewBaseClient(cfg)
 	solo := &SoloClient{c}
 	c.SetChild(solo)
