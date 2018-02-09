@@ -837,15 +837,17 @@ message ReplySeed {
 }
 
 //message for retrieve start
+message RetrievePara{
+	string defaultAddress = 1;
+	int32 status          = 2;
+	int64 createTime      = 3;
+	int64 prepareTime     = 4;
+	int64 delayPeriod     = 5;
+}
+
 message Retrieve{
-	//string retrieveId    = 1;//address
-	string address        = 1;//used as key
-	string defaultAddress = 2;
-	int32  status         = 3;
-	int64  createTime     = 4;
-	int64  prepareTime    = 5;
-	int64  amount         = 6;
-	int64  delayTime      = 7;
+	string backupAddress          = 1;//used as key
+	repeated RetrievePara retPara = 2;
 }
 
 message RetrieveAction {
@@ -859,23 +861,24 @@ message RetrieveAction {
 }
 
 message BackupRetrieve{
-	int64  amount                 = 1;
-	string address                = 2;
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
+	int64 delayPeriod        = 3;
 }
 
-message PreRetrieve{
-	int64  delayPeriod          = 1;
-	string address              = 2;
+message PreRetrieve{	
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
 }
 
 message PerformRetrieve{
-	string address              = 1;
-	int64  timeweight           = 2;
-	int64  operationweight      = 3;//reserved
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
 }
 
 message CancelRetrieve{
-	string address = 1;
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
 }
 //message for retrieve end
 

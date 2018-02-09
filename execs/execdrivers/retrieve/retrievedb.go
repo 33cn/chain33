@@ -17,26 +17,48 @@ const (
 	Retrieve_Canceled  = 4
 )
 
+const MaxRelation = 10
+
 type RetrieveDB struct {
 	types.Retrieve
 }
 
-//PrepareTime & DelayTime is decided in parepare action
-func NewRetrieveDB(address string, defaultAddress string, blocktime int64, amount int64) *RetrieveDB {
+func NewRetrieveDB(backupaddress string) *RetrieveDB {
 	r := &RetrieveDB{}
-	r.Address = address
-	r.DefaultAddress = defaultAddress
-	r.CreateTime = blocktime
-	r.PrepareTime = 0
-	r.Amount = amount
-	r.DelayTime = 0
-	r.Status = Retrieve_Backup
+	r.BackupAddress = backupaddress
+	r.RetPara = make([]*types.RetrievePara, MaxRelation)
+
 	return r
 }
 
+func (r *RetrieveDB) RelateRetrieveDB(defaultAddress string, createTime int64, delayPeriod int64, index int32) bool {
+	if index >= MaxRelation {
+		return false
+	}
+	r.RetPara[index].DefaultAddress = defaultAddress
+	r.RetPara[index].Status = Retrieve_Backup
+	r.RetPara[index].CreateTime = createTime
+	r.RetPara[index].DelayPeriod = delayPeriod
+	return true
+}
+
+func (r *RetrieveDB) UnRelateRetrieveDB(index int32) bool {
+	r.RetPara = append(r.RetPara[:index], r.RetPara[index:]...)
+	return true
+}
+
+func (r *RetrieveDB) CheckRelation(defaultAddress string) (int, bool) {
+	for i := 0; i < len(r.RetPara); i++ {
+		if r.RetPara[i].DefaultAddress == defaultAddress {
+			return i, true
+		}
+	}
+	return MaxRelation, false
+}
+
 func (r *RetrieveDB) GetKVSet() (kvset []*types.KeyValue) {
-	value := types.Encode(&r.Retrieve)
-	kvset = append(kvset, &types.KeyValue{RetrieveKey(r.Address), value})
+	value := types.Encode(r)
+	kvset = append(kvset, &types.KeyValue{RetrieveKey(r.BackupAddress), value})
 	return kvset
 }
 
@@ -76,54 +98,28 @@ func (action *RetrieveAction) RetrieveBackup(backupRet *types.BackupRetrieve) (*
 	var r *RetrieveDB
 	var newRetrieve bool = false
 
-	retrieve, err := readRetrieve(action.db, backupRet.Address)
+	//用备份地址检索，如果没有，就建立新的，有就检查列表里有没有此默认地址，如果没有，进行关联
+	retrieve, err := readRetrieve(action.db, backupRet.BackupAddress)
 	if err != nil && err != types.ErrNotFound {
 		rlog.Error("RetrieveBackup", "readRetrieve err")
 		return nil, err
 	} else if err == types.ErrNotFound {
 		newRetrieve = true
-		rlog.Debug("RetrieveBackup", "newAddress", backupRet.Address)
-	} else if retrieve != nil {
-		if retrieve.Status == Retrieve_Backup {
-			rlog.Debug("RetrieveBackup", "Updatebackup", backupRet.Address)
-		} else {
-			rlog.Error("RetrieveBackup", "retrieve.Status", retrieve.Status)
-			return nil, types.ErrRetrieveStatus
-		}
+		rlog.Debug("RetrieveBackup", "newAddress", backupRet.BackupAddress)
 	}
-	if newRetrieve == true {
-		if backupRet.Amount < 0 {
-			rlog.Debug("RetrieveBackup", "Amount", backupRet.Amount)
-			return nil, types.ErrRetrieveAmountLimit
-		}
-		r = NewRetrieveDB(backupRet.Address, action.fromaddr, action.blocktime, backupRet.Amount)
 
-		receipt, err = account.ExecFrozen(action.db, action.fromaddr, action.execaddr, backupRet.Amount)
+	if newRetrieve {
+		r = NewRetrieveDB(backupRet.BackupAddress)
 	} else {
-		if action.fromaddr != r.DefaultAddress {
-			rlog.Error("RetrieveBackup", "address repeated", backupRet.Address)
-			return nil, types.ErrRetrieveRepeatAddress
-		}
 		r = &RetrieveDB{*retrieve}
-		if backupRet.Amount > 0 {
-			receipt, err = account.ExecFrozen(action.db, action.fromaddr, action.execaddr, backupRet.Amount)
-			if err != nil {
-				rlog.Error("RetrieveBackup", "ExecFrozen err")
-				return nil, err
-			}
-			r.Amount += backupRet.Amount
-		} else {
-			if backupRet.Amount+r.Amount < 0 {
-				rlog.Debug("RetrieveBackup", "Amount", backupRet.Amount, "current amount", r.Amount)
-				return nil, types.ErrRetrieveAmountLimit
-			}
-			receipt, err = account.ExecActive(action.db, action.fromaddr, action.execaddr, backupRet.Amount)
-			if err != nil {
-				rlog.Error("RetrieveBackup", "ExecActive err")
-				return nil, err
-			}
-			r.Amount += backupRet.Amount
+	}
+
+	if index, Related := r.CheckRelation(backupRet.DefaultAddress); !Related {
+		if !r.RelateRetrieveDB(backupRet.DefaultAddress, action.blocktime, backupRet.DelayPeriod, int32(index)) {
+			return nil, types.ErrNotFound
 		}
+	} else {
+		return nil, types.ErrNotFound
 	}
 
 	r.Save(action.db)
@@ -134,7 +130,6 @@ func (action *RetrieveAction) RetrieveBackup(backupRet *types.BackupRetrieve) (*
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
-
 }
 
 func (action *RetrieveAction) RetrievePrepare(preRet *types.PreRetrieve) (*types.Receipt, error) {
@@ -142,25 +137,31 @@ func (action *RetrieveAction) RetrievePrepare(preRet *types.PreRetrieve) (*types
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
 	var r *RetrieveDB
+	var index int
+	var found bool
 
-	retrieve, err := readRetrieve(action.db, preRet.Address)
+	retrieve, err := readRetrieve(action.db, preRet.BackupAddress)
 	if err != nil {
 		rlog.Debug("RetrievePrepare", "readRetrieve err")
 		return nil, err
 	}
 	r = &RetrieveDB{*retrieve}
-	if action.fromaddr != r.Address {
-		rlog.Debug("RetrievePrepare", "action.fromaddr", action.fromaddr, "r.Address", r.Address)
+	if action.fromaddr != r.BackupAddress {
+		rlog.Debug("RetrievePrepare", "action.fromaddr", action.fromaddr, "r.BackupAddress", r.BackupAddress)
 		return nil, types.ErrRetrievePrepareAddress
 	}
 
-	if r.Status != Retrieve_Backup {
-		rlog.Debug("RetrieveBackup", "r.Status", r.Status)
+	if index, found = r.CheckRelation(preRet.DefaultAddress); !found {
+		return nil, types.ErrRetrievePrepareAddress
+	}
+
+	if r.RetPara[index].Status != Retrieve_Backup {
+		rlog.Debug("RetrieveBackup", "Status", r.RetPara[index].Status)
 		return nil, types.ErrRetrieveStatus
 	}
-	r.PrepareTime = action.blocktime
-	r.Status = Retrieve_Prepared
-	r.DelayTime = preRet.DelayPeriod
+	r.RetPara[index].PrepareTime = action.blocktime
+	r.RetPara[index].Status = Retrieve_Prepared
+
 	r.Save(action.db)
 
 	logs = append(logs, receipt.Logs...)
@@ -176,38 +177,46 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
+	var index int
+	var found bool
+	var acc *types.Account
 
-	retrieve, err := readRetrieve(action.db, perfRet.Address)
+	retrieve, err := readRetrieve(action.db, perfRet.BackupAddress)
 	if err != nil {
-		rlog.Error("RetrievePerform", "readRetrieve err", perfRet.Address)
+		rlog.Error("RetrievePerform", "readRetrieve err", perfRet.BackupAddress)
 		return nil, err
-	}
-
-	if retrieve.Status != Retrieve_Prepared {
-		rlog.Error("RetrievePerform", "retrieve.Status", retrieve.Status)
-		return nil, types.ErrRetrieveStatus
-	}
-
-	if retrieve.Address != action.fromaddr {
-		rlog.Error("RetrievePerform", "retrieve.Address", retrieve.Address, "action.fromaddr", action.fromaddr)
-		return nil, types.ErrRetrievePerformAddress
-	}
-
-	if perfRet.Timeweight < maxTimeWeight {
-		if action.blocktime-retrieve.GetPrepareTime() < (maxTimeWeight-perfRet.Timeweight)*retrieve.DelayTime {
-			rlog.Error("RetrievePerform", "action.blocktime-retrieve.GetCreateTime", action.blocktime-retrieve.GetCreateTime())
-			return nil, types.ErrRetrievePeriodLimit
-		}
 	}
 
 	r := &RetrieveDB{*retrieve}
 
-	receipt, err = account.ExecTransferFrozen(action.db, r.DefaultAddress, r.Address, action.execaddr, r.Amount)
+	if index, found = r.CheckRelation(perfRet.DefaultAddress); !found {
+		return nil, types.ErrRetrievePrepareAddress
+	}
+
+	if r.BackupAddress != action.fromaddr {
+		rlog.Error("RetrievePerform", "BackupAddress", r.BackupAddress, "action.fromaddr", action.fromaddr)
+		return nil, types.ErrRetrievePerformAddress
+	}
+
+	if r.RetPara[index].Status != Retrieve_Prepared {
+		rlog.Error("RetrievePerform", "Status", r.RetPara[index].Status)
+		return nil, types.ErrRetrieveStatus
+	}
+	if action.blocktime-r.RetPara[index].PrepareTime < r.RetPara[index].DelayPeriod {
+		rlog.Error("RetrievePerform", "ErrRetrievePeriodLimit")
+		return nil, types.ErrRetrievePeriodLimit
+	}
+
+	acc = account.LoadExecAccount(action.db, r.RetPara[index].DefaultAddress, action.execaddr)
+
+	receipt, err = account.ExecTransfer(action.db, r.RetPara[index].DefaultAddress, r.BackupAddress, action.execaddr, acc.Balance)
 	if err != nil {
 		rlog.Error("RetrievePerform", "ExecTransferFrozen err")
 		return nil, err
 	}
-	r.Status = Retrieve_Performed
+	//r.RetPara[index].Status = Retrieve_Performed
+	//remove the relation
+	r.UnRelateRetrieveDB(int32(index))
 	r.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
@@ -222,30 +231,30 @@ func (action *RetrieveAction) RetrieveCancel(cancel *types.CancelRetrieve) (*typ
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
-
-	retrieve, err := readRetrieve(action.db, cancel.Address)
+	var index int
+	var found bool
+	retrieve, err := readRetrieve(action.db, cancel.BackupAddress)
 	if err != nil {
-		rlog.Error("RetrieveCancel", "readRetrieve err", cancel.Address)
+		rlog.Error("RetrieveCancel", "readRetrieve err", cancel.BackupAddress)
 		return nil, err
 	}
 	r := &RetrieveDB{*retrieve}
-	if r.Status != Retrieve_Prepared {
-		rlog.Error("RetrieveBackup", "r.Status", r.Status)
-		return nil, types.ErrRetrieveStatus
+
+	if index, found = r.CheckRelation(cancel.DefaultAddress); !found {
+		return nil, types.ErrRetrievePrepareAddress
 	}
 
-	if action.fromaddr != r.DefaultAddress {
-		rlog.Error("RetrieveCancel", "action.fromaddr", action.fromaddr, "r.DefaultAddress", r.DefaultAddress)
+	if action.fromaddr != r.RetPara[index].DefaultAddress {
+		rlog.Error("RetrieveCancel", "action.fromaddr", action.fromaddr, "DefaultAddress", r.RetPara[index].DefaultAddress)
 		return nil, types.ErrRetrieveCancelAddress
 	}
 
-	receipt, err = account.ExecActive(action.db, action.fromaddr, action.execaddr, r.Amount)
-	if err != nil {
-		rlog.Error("RetrieveCancel", "ExecActive err")
-		return nil, err
+	if r.RetPara[index].Status != Retrieve_Prepared {
+		rlog.Error("RetrieveCancel", "Status", r.RetPara[index].Status)
+		return nil, types.ErrRetrieveStatus
 	}
-
-	r.Status = Retrieve_Canceled
+	//remove the relation
+	r.UnRelateRetrieveDB(int32(index))
 	r.Save(action.db)
 
 	logs = append(logs, receipt.Logs...)
