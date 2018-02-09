@@ -228,7 +228,15 @@ func ExecDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types
 	if !allow {
 		return nil, types.ErrNotAllowDeposit
 	}
-	return execDepositFrozen(db, addr, execaddr, amount)
+	receipt1, err := depositBalance(db, execaddr, amount)
+	if err != nil {
+		return nil, err
+	}
+	receipt2, err := execDepositFrozen(db, addr, execaddr, amount)
+	if err != nil {
+		return nil, err
+	}
+	return mergeReceipt(receipt1, receipt2), nil
 }
 
 func execDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {

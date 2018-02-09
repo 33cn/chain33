@@ -36,6 +36,7 @@ func init() {
 func TestAutoClose(t *testing.T) {
 	//取出已经miner的列表
 	addr := account.PubKeyToAddress(privMiner.PubKey().Bytes()).String()
+	t.Log(addr)
 	tlist, err := getMineredTicketList(addr)
 	if err != nil {
 		t.Error(err)
@@ -62,11 +63,21 @@ func TestAutoClose(t *testing.T) {
 
 //通过rpc 精选close 操作
 func closeTickets(priv crypto.PrivKey, ids []string) error {
-	ta := &types.TicketAction{}
-	tclose := &types.TicketClose{ids}
-	ta.Value = &types.TicketAction_Tclose{}
-	ta.Ty = types.TicketActionClose
-	return sendTransaction(ta, []byte("ticket"), priv, "")
+	for i := 0; i < len(ids); i += 100 {
+		end := i + 100
+		if end > len(ids) {
+			end = len(ids)
+		}
+		ta := &types.TicketAction{}
+		tclose := &types.TicketClose{ids[i:end]}
+		ta.Value = &types.TicketAction_Tclose{tclose}
+		ta.Ty = types.TicketActionClose
+		err := sendTransaction(ta, []byte("ticket"), priv, "")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 //通rpc 进行query
@@ -77,7 +88,7 @@ func getMineredTicketList(addr string) ([]*types.Ticket, error) {
 	req.FuncName = "TicketList"
 	req.Payload = types.Encode(reqaddr)
 	c := types.NewGrpcserviceClient(conn)
-	reply, err := c.Query(context.Background(), &req)
+	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
 		return nil, err
 	}
@@ -130,13 +141,19 @@ func sendtoaddress(priv crypto.PrivKey, to string, amount int64) error {
 	return sendTransaction(transfer, []byte("coins"), priv, to)
 }
 
-func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) error {
+func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (err error) {
 	if to == "" {
 		to = account.ExecAddress(string(execer)).String()
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
 	tx.Nonce = rand.Int63()
+	tx.Fee, err = tx.GetRealFee()
+	if err != nil {
+		return err
+	}
+	tx.Fee += types.MinFee
 	tx.Sign(types.SECP256K1, priv)
+
 	// Contact the server and print out its response.
 	c := types.NewGrpcserviceClient(conn)
 	reply, err := c.SendTransaction(context.Background(), tx)

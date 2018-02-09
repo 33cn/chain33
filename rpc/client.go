@@ -576,13 +576,17 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 
 	switch in.GetExecer() {
 	case "coins":
-		accounts, err := account.LoadAccounts(client.q, []string{in.GetAddress()})
+		addr := in.GetAddress()
+		if err := account.CheckAddress(addr); err != nil {
+			addr = account.ExecAddress(addr).String()
+		}
+		accounts, err := account.LoadAccounts(client.q, []string{addr})
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
 		}
 		return accounts, nil
-	case "ticket", "hashlock":
+	default:
 		execaddress := account.ExecAddress(in.GetExecer())
 		account, err := account.LoadExecAccountQueue(client.q, in.GetAddress(), execaddress.String())
 		if err != nil {
@@ -592,9 +596,6 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		var accounts []*types.Account
 		accounts = append(accounts, account)
 		return accounts, nil
-
-	default:
-		return nil, errors.New("wrong execer:")
 	}
 	return nil, nil
 }
