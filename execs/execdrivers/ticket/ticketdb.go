@@ -267,9 +267,9 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 		return nil, err
 	}
 	//fund
-	receipt2, err := account.ExecDepositFrozen(action.db, types.GenesisAddr, action.execaddr, types.CoinDevFund)
+	receipt2, err := account.ExecDepositFrozen(action.db, types.FundKeyAddr, action.execaddr, types.CoinDevFund)
 	if err != nil {
-		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.GenesisAddr, "execaddr", action.execaddr)
+		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr)
 		return nil, err
 	}
 	t.Save(action.db)
@@ -323,9 +323,9 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 			tlog.Error("TicketClose.ExecActive user", "addr", t.ReturnAddress, "execaddr", action.execaddr, "value", retValue)
 			return nil, err
 		}
-		receipt2, err := account.ExecActive(action.db, types.GenesisAddr, action.execaddr, types.CoinDevFund)
+		receipt2, err := account.ExecActive(action.db, types.FundKeyAddr, action.execaddr, types.CoinDevFund)
 		if err != nil {
-			tlog.Error("TicketClose.ExecActive fund", "addr", types.GenesisAddr, "execaddr", action.execaddr, "value", retValue)
+			tlog.Error("TicketClose.ExecActive fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr, "value", retValue)
 			return nil, err
 		}
 		t.Save(action.db)
