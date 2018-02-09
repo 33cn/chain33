@@ -706,3 +706,18 @@ func (req Chain33) GetBalance(in types.GetBalance, result *interface{}) error {
 	*result = accounts
 	return nil
 }
+
+func (req Chain33) Query(in Query, result *interface{}) error {
+	decodePayload, err := hex.DecodeString(in.Payload)
+	if err != nil {
+		return err
+	}
+	resp, err := req.cli.QueryHash(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
+	*result = string(resp.GetMsg())
+	return nil
+}

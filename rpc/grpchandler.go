@@ -305,3 +305,11 @@ func (req *Grpc) GetBalance(ctx context.Context, in *pb.GetBalance) ([]*pb.Accou
 	}
 	return reply, nil
 }
+
+func (req *Grpc) Query(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
+	reply, err := req.cli.QueryHash(in)
+	if err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
