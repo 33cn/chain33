@@ -487,7 +487,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 			rc.confState = *rc.node.ApplyConfChange(cc)
 			switch cc.Type {
 			case raftpb.ConfChangeAddNode:
-				if len(cc.Context) > 0 {
+				if len(cc.Context) > 0 && cc.NodeID != uint64(rc.id) {
 					rc.transport.AddPeer(typec.ID(cc.NodeID), []string{string(cc.Context)})
 				}
 			case raftpb.ConfChangeRemoveNode:
@@ -516,7 +516,6 @@ func (rc *raftNode) entriesToApply(ents []raftpb.Entry) (nents []raftpb.Entry) {
 	if len(ents) == 0 {
 		return
 	}
-	fmt.Println(len(ents))
 	firstIdx := ents[0].Index
 	if firstIdx > rc.appliedIndex+1 {
 		log.Error("first index of committed entry[%d] should <= progress.appliedIndex[%d] 1", firstIdx, rc.appliedIndex)
@@ -533,8 +532,9 @@ func (rc *raftNode) Process(ctx context.Context, m raftpb.Message) error {
 func (rc *raftNode) IsIDRemoved(id uint64) bool                           { return false }
 func (rc *raftNode) ReportUnreachable(id uint64)                          {}
 func (rc *raftNode) ReportSnapshot(id uint64, status raft.SnapshotStatus) {}
-func (rc *raftNode) removePeer(id uint64, status raft.SnapshotStatus)     {}
-func (rc *raftNode) addPeer(id uint64, status raft.SnapshotStatus)        {}
+
+//func (rc *raftNode) removePeer(id uint64, status raft.SnapshotStatus)     {}
+//func (rc *raftNode) addPeer(id uint64, status raft.SnapshotStatus)        {}
 
 // 等待集群中leader节点的选举结果，并返回leadId
 //func (rc *raftNode) WaitForLeader() (uint64, error) {
