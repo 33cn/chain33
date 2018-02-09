@@ -82,8 +82,13 @@ const CoinDevFund int64 = 12 * Coin
 
 const TicketPrice int64 = 10000 * Coin
 
-const TicketFrozenTime int64 = 86400 / 2         //0.5days
-const TicketWithdrawTime int64 = (3 * 86400) / 2 //1.5days
+//测试的的时间设置为10s
+
+//const TicketFrozenTime int64 = 86400 / 2         //0.5days
+//const TicketWithdrawTime int64 = (3 * 86400) / 2 //1.5days
+
+const TicketFrozenTime int64 = 5    //5s only for test
+const TicketWithdrawTime int64 = 10 //10s only for test
 
 const MinFee int64 = 1e6
 const MinBalanceTransfer = 1e7
