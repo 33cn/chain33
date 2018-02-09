@@ -90,10 +90,12 @@ const TicketPrice int64 = 10000 * Coin
 const TicketFrozenTime int64 = 5    //5s only for test
 const TicketWithdrawTime int64 = 10 //10s only for test
 
-const MinFee int64 = 1e6
-const MinBalanceTransfer = 1e7
+const MinFee int64 = 1e5
+const MinBalanceTransfer = 1e6
 const MaxTxSize int64 = 100000      //100K
 const MaxBlockSize int64 = 10000000 //10M
+const MaxTxNumber int64 = 1600      //160
+
 const PowLimitBits uint32 = uint32(0x1f00ffff)
 
 const TargetTimespan = 144 * 16 * time.Second
@@ -107,6 +109,7 @@ var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
 var GenesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 var GenesisBlockTime int64 = 1514533394
 var HotkeyAddr = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+var FundKeyAddr = "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
 
 const (
 	EventTx                   = 1

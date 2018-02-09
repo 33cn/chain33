@@ -126,6 +126,16 @@ func (block *Block) Hash() []byte {
 	return common.Sha256(data)
 }
 
+func (block *Block) GetHeader() *Header {
+	head := &Header{}
+	head.Version = block.Version
+	head.ParentHash = block.ParentHash
+	head.TxHash = block.TxHash
+	head.BlockTime = block.BlockTime
+	head.Height = block.Height
+	return head
+}
+
 func (block *Block) CheckSign() bool {
 	//检查区块的签名
 	if block.Signature != nil {
