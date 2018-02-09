@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/types"
@@ -215,6 +216,12 @@ func main() {
 			return
 		}
 		GetBalance(argsWithoutProg[1], argsWithoutProg[2])
+	case "getexecaddr":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetExecAddr(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -252,7 +259,7 @@ func LoadHelp() {
 	fmt.Println("getseed [password]                                          : 通过密码获取种子")
 	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
-
+	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 }
 
 type AccountsResult struct {
@@ -1261,6 +1268,17 @@ func GetBalance(address string, execer string) {
 		Frozen:   frozenResult,
 	}
 
+	data, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetExecAddr(exec string) {
+	result := account.ExecAddress(exec)
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
