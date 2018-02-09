@@ -718,6 +718,6 @@ func (req Chain33) Query(in Query, result *interface{}) error {
 		return err
 	}
 
-	*result = string(resp.GetMsg())
+	*result = (*resp).String()
 	return nil
 }
