@@ -283,7 +283,7 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 }
 
 func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Receipt, error) {
-	var tickets []*TicketDB
+	tickets := make([]*TicketDB, len(tclose.TicketId))
 	for i := 0; i < len(tclose.TicketId); i++ {
 		ticket, err := readTicket(action.db, tclose.TicketId[i])
 		if err != nil {
