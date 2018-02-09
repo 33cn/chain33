@@ -52,6 +52,8 @@ type IRClient interface {
 	GetWalletStatus() (*types.Reply, error)
 	//getbalance
 	GetBalance(*types.GetBalance) ([]*types.Account, error)
+	//query
+	QueryHash(*types.Query) (*types.Reply, error)
 }
 
 type channelClient struct {
@@ -595,4 +597,24 @@ func (client *channelClient) GetBalance(in *types.GetBalance) ([]*types.Account,
 		return nil, errors.New("wrong execer:")
 	}
 	return nil, nil
+}
+
+func (client *channelClient) QueryHash(in *types.Query) (*types.Reply, error) {
+
+	msg := client.qclient.NewMessage("blockchain", types.EventQuery, in)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	querydata := resp.GetData().(types.Message)
+	var reply types.Reply
+	reply.IsOk = true
+	reply.Msg = []byte(querydata.String())
+
+	return &reply, nil
+
 }
