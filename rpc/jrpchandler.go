@@ -690,7 +690,7 @@ func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetBalance(in types.GetBalance, result *interface{}) error {
+func (req Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 
 	balances, err := req.cli.GetBalance(&in)
 	if err != nil {
@@ -704,5 +704,20 @@ func (req Chain33) GetBalance(in types.GetBalance, result *interface{}) error {
 			Frozen:   balance.GetFrozen()})
 	}
 	*result = accounts
+	return nil
+}
+
+func (req Chain33) Query(in Query, result *interface{}) error {
+	decodePayload, err := hex.DecodeString(in.Payload)
+	if err != nil {
+		return err
+	}
+	resp, err := req.cli.QueryHash(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
+	*result = (*resp).String()
 	return nil
 }
