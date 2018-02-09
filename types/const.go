@@ -328,6 +328,7 @@ const (
 	TyLogFee      = 2
 	TyLogTransfer = 3
 	TyLogGenesis  = 4
+	TyLogDeposit  = 5
 
 	//log for ticket
 	TyLogNewTicket   = 11

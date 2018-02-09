@@ -386,7 +386,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 	parent := client.GetCurrentBlock()
 	bits := parent.Difficulty
 	diff, modify := client.getNextTarget(parent, bits)
-	log.Info("target", "hex", printBInt(diff))
+	log.Debug("target", "hex", printBInt(diff))
 	client.mu.Lock()
 	defer client.mu.Unlock()
 	for i := 0; i < len(client.tlist.Tickets); i++ {
@@ -400,7 +400,7 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 		}
 		//find priv key
 		priv := client.privmap[ticket.MinerAddress]
-		currentdiff := client.getCurrentTarget(block.BlockTime, ticket.TicketId, []byte("modify"))
+		currentdiff := client.getCurrentTarget(block.BlockTime, ticket.TicketId, modify)
 		if currentdiff.Cmp(diff) >= 0 { //难度要大于前一个，注意数字越小难度越大
 			continue
 		}
@@ -430,6 +430,41 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 	return false
 }
 
+func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
+	txs := client.RequestTx()
+	//check dup
+	if len(txs) > 0 {
+		txs = client.CheckTxDup(txs)
+	}
+	lastBlock := client.GetCurrentBlock()
+	var newblock types.Block
+	newblock.ParentHash = lastBlock.Hash()
+	newblock.Height = lastBlock.Height + 1
+	newblock.Txs = txs
+	newblock.BlockTime = time.Now().Unix()
+	if lastBlock.BlockTime >= newblock.BlockTime {
+		newblock.BlockTime = lastBlock.BlockTime + 1
+	}
+	return &newblock, lastBlock
+}
+
+func (client *TicketClient) updateBlock(newblock *types.Block) *types.Block {
+	txs := client.RequestTx()
+	//check dup
+	if len(txs) > 0 {
+		txs = client.CheckTxDup(txs)
+	}
+	lastBlock := client.GetCurrentBlock()
+	newblock.ParentHash = lastBlock.Hash()
+	newblock.Height = lastBlock.Height + 1
+	newblock.Txs = append(newblock.Txs, txs...)
+	newblock.BlockTime = time.Now().Unix()
+	if lastBlock.BlockTime >= newblock.BlockTime {
+		newblock.BlockTime = lastBlock.BlockTime + 1
+	}
+	return lastBlock
+}
+
 func (client *TicketClient) CreateBlock() {
 	issleep := true
 	for {
@@ -440,28 +475,16 @@ func (client *TicketClient) CreateBlock() {
 		if issleep {
 			time.Sleep(time.Second)
 		}
-		txs := client.RequestTx()
 		issleep = false
-		//check dup
-		if len(txs) > 0 {
-			txs = client.CheckTxDup(txs)
-		}
-		lastBlock := client.GetCurrentBlock()
-		var newblock types.Block
-		newblock.ParentHash = lastBlock.Hash()
-		newblock.Height = lastBlock.Height + 1
-		newblock.Txs = txs
-		newblock.BlockTime = time.Now().Unix()
-		if lastBlock.BlockTime >= newblock.BlockTime {
-			newblock.BlockTime = lastBlock.BlockTime + 1
-		}
 		//add miner tx
-		if !client.Miner(&newblock) {
-			issleep = true
-			continue
+		block, lastBlock := client.createBlock()
+		for !client.Miner(block) {
+			time.Sleep(time.Second)
+			//加入新的txs, 继续挖矿
+			lastBlock = client.updateBlock(block)
 		}
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		err := client.WriteBlock(lastBlock.StateHash, &newblock)
+		block.TxHash = merkle.CalcMerkleRoot(block.Txs)
+		err := client.WriteBlock(lastBlock.StateHash, block)
 		if err != nil {
 			issleep = true
 			continue
