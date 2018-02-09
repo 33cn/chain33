@@ -379,7 +379,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 		log.Error("GetBlocks", "getInvs", 0)
 		return
 	}
-	var intervals map[int]*intervalInfo
+	var intervals = make(map[int]*intervalInfo)
 	if len(pid) != 0 {
 		intervals[0] = &intervalInfo{0, len(MaxInvs.GetInvs())}
 	} else {
