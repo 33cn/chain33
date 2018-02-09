@@ -60,9 +60,6 @@ func (t *TicketDB) GetReceiptLog() *types.ReceiptLog {
 
 func (t *TicketDB) GetKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&t.Ticket)
-	if t.Status == 3 {
-		value = nil //delete ticket
-	}
 	kvset = append(kvset, &types.KeyValue{TicketKey(t.TicketId), value})
 	return kvset
 }
@@ -77,6 +74,12 @@ func (t *TicketDB) Save(db dbm.KVDB) {
 //address to save key
 func TicketKey(id string) (key []byte) {
 	key = append(key, []byte("mavl-ticket-")...)
+	key = append(key, []byte(id)...)
+	return key
+}
+
+func TicketBindKey(id string) (key []byte) {
+	key = append(key, []byte("mavl-ticket-tbind-")...)
 	key = append(key, []byte(id)...)
 	return key
 }
@@ -120,19 +123,90 @@ func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Re
 	return receipt, nil
 }
 
+func saveBind(db dbm.KVDB, tbind *types.TicketBind) {
+	set := getBindKV(tbind)
+	for i := 0; i < len(set); i++ {
+		db.Set(set[i].GetKey(), set[i].Value)
+	}
+}
+
+func getBindKV(tbind *types.TicketBind) (kvset []*types.KeyValue) {
+	value := types.Encode(tbind)
+	kvset = append(kvset, &types.KeyValue{TicketBindKey(tbind.ReturnAddress), value})
+	return kvset
+}
+
+func getBindLog(tbind *types.TicketBind, old string) *types.ReceiptLog {
+	log := &types.ReceiptLog{}
+	log.Ty = types.TyLogTicketBind
+	r := &types.ReceiptTicketBind{}
+	r.OldMinerAddress = old
+	r.NewMinerAddress = tbind.MinerAddress
+	log.Log = types.Encode(r)
+	return log
+}
+
+func (action *TicketAction) getBind(addr string) string {
+	value, err := action.db.Get(TicketBindKey(addr))
+	if err != nil || value == nil {
+		return ""
+	}
+	var bind types.TicketBind
+	err = types.Decode(value, &bind)
+	if err != nil {
+		panic(err)
+	}
+	return bind.MinerAddress
+}
+
+//授权某个地址进行挖矿
+//todo: query address is a minered address
+func (action *TicketAction) TicketBind(tbind *types.TicketBind) (*types.Receipt, error) {
+	if action.fromaddr != tbind.ReturnAddress {
+		return nil, types.ErrFromAddr
+	}
+	//"" 表示设置为空
+	if len(tbind.MinerAddress) > 0 {
+		if err := account.CheckAddress(tbind.MinerAddress); err != nil {
+			return nil, err
+		}
+	}
+	var logs []*types.ReceiptLog
+	var kvs []*types.KeyValue
+	saveBind(action.db, tbind)
+	kv := getBindKV(tbind)
+	oldbind := action.getBind(tbind.ReturnAddress)
+	log := getBindLog(tbind, oldbind)
+	logs = append(logs, log)
+	kvs = append(kvs, kv...)
+	receipt := &types.Receipt{types.ExecOk, kvs, logs}
+	return receipt, nil
+}
+
 func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt, error) {
 	prefix := common.ToHex(action.txhash)
 	prefix = topen.MinerAddress + ":" + prefix + ":"
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
+	//addr from
+	if action.fromaddr != topen.ReturnAddress {
+		mineraddr := action.getBind(topen.ReturnAddress)
+		if mineraddr != action.fromaddr {
+			return nil, types.ErrMinerNotPermit
+		}
+		if topen.MinerAddress != mineraddr {
+			return nil, types.ErrMinerAddr
+		}
+	}
+	//action.fromaddr == topen.ReturnAddress or mineraddr == action.fromaddr
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
-		t := NewTicketDB(id, topen.MinerAddress, action.fromaddr, action.blocktime, false)
+		t := NewTicketDB(id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, false)
 
 		//冻结子账户资金
-		receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, 1000*types.Coin)
+		receipt, err := account.ExecFrozen(action.db, topen.ReturnAddress, action.execaddr, types.TicketPrice)
 		if err != nil {
-			tlog.Error("TicketOpen.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr)
+			tlog.Error("TicketOpen.Frozen", "addr", topen.ReturnAddress, "execaddr", action.execaddr)
 			return nil, err
 		}
 		t.Save(action.db)
@@ -185,16 +259,26 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 	t := &TicketDB{*ticket, prevstatus}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	receipt, err := account.ExecDepositFrozen(action.db, t.ReturnAddress, action.execaddr, types.TicketPrice)
+
+	//user
+	receipt1, err := account.ExecDepositFrozen(action.db, t.ReturnAddress, action.execaddr, ticket.MinerValue)
 	if err != nil {
-		tlog.Error("TicketOpen.ExecActive", "addr", t.ReturnAddress, "execaddr", action.execaddr)
+		tlog.Error("TicketMiner.ExecDepositFrozen user", "addr", t.ReturnAddress, "execaddr", action.execaddr)
+		return nil, err
+	}
+	//fund
+	receipt2, err := account.ExecDepositFrozen(action.db, types.GenesisAddr, action.execaddr, types.CoinDevFund)
+	if err != nil {
+		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.GenesisAddr, "execaddr", action.execaddr)
 		return nil, err
 	}
 	t.Save(action.db)
 	logs = append(logs, t.GetReceiptLog())
 	kv = append(kv, t.GetKVSet()...)
-	logs = append(logs, receipt.Logs...)
-	kv = append(kv, receipt.KV...)
+	logs = append(logs, receipt1.Logs...)
+	kv = append(kv, receipt1.KV...)
+	logs = append(logs, receipt2.Logs...)
+	kv = append(kv, receipt2.KV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
@@ -205,10 +289,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 		if err != nil {
 			return nil, err
 		}
-		//两种情况可以close：
-		//1. ticket 的生成时间超过 30天
-		//2. ticket 已经被miner 超过 10天
-
+		//ticket 的生成时间超过 2天,可提款
 		if ticket.Status != 2 && ticket.Status != 1 {
 			return nil, types.ErrTicketClosed
 		}
@@ -233,16 +314,27 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 	var kv []*types.KeyValue
 	for i := 0; i < len(tickets); i++ {
 		t := tickets[i]
-		receipt, err := account.ExecActive(action.db, t.ReturnAddress, action.execaddr, types.TicketPrice)
+		if t.Status == 1 {
+			t.MinerValue = 0
+		}
+		retValue := types.TicketPrice + t.MinerValue
+		receipt1, err := account.ExecActive(action.db, t.ReturnAddress, action.execaddr, retValue)
 		if err != nil {
-			tlog.Error("TicketOpen.ExecActive", "addr", t.ReturnAddress, "execaddr", action.execaddr)
+			tlog.Error("TicketClose.ExecActive user", "addr", t.ReturnAddress, "execaddr", action.execaddr, "value", retValue)
+			return nil, err
+		}
+		receipt2, err := account.ExecActive(action.db, types.GenesisAddr, action.execaddr, types.CoinDevFund)
+		if err != nil {
+			tlog.Error("TicketClose.ExecActive fund", "addr", types.GenesisAddr, "execaddr", action.execaddr, "value", retValue)
 			return nil, err
 		}
 		t.Save(action.db)
 		logs = append(logs, t.GetReceiptLog())
 		kv = append(kv, t.GetKVSet()...)
-		logs = append(logs, receipt.Logs...)
-		kv = append(kv, receipt.KV...)
+		logs = append(logs, receipt1.Logs...)
+		kv = append(kv, receipt1.KV...)
+		logs = append(logs, receipt2.Logs...)
+		kv = append(kv, receipt2.KV...)
 	}
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
@@ -261,7 +353,6 @@ func TicketList(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message
 }
 
 func TicketInfos(db dbm.KVDB, tinfos *types.TicketInfos) (types.Message, error) {
-
 	var tickets []*types.Ticket
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]

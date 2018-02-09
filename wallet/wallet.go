@@ -112,6 +112,11 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Debug("process WalletAccounts OK")
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
+		case types.EventWalletAutoMiner:
+			//1. 授权一个miner address (可以取消授权)
+			//2. 把币转移到 ticket
+			//3. 自动把钱购买成ticket用于挖矿
+			//4. 自动检查票的到期情况，到期了，自动转成现金，回到3
 		case types.EventWalletGetTickets:
 			tickets, privs, err := wallet.GetTickets()
 			if err != nil {
