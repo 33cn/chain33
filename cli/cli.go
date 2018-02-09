@@ -1246,7 +1246,7 @@ func GetWalletStatus() {
 }
 
 func GetBalance(address string, execer string) {
-	params := types.GetBalance{Address: address, Execer: execer}
+	params := types.ReqBalance{Address: address, Execer: execer}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
