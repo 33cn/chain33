@@ -33,6 +33,37 @@ func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
+func TestSendToAddress(t *testing.T) {
+	returnaddr := account.PubKeyToAddress(privCold.PubKey().Bytes()).String()
+	err := sendtoaddressWait(privMiner, returnaddr, 1e9)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestMinerBind(t *testing.T) {
+	//随机生成一个地址，对privCold 执行 open ticket 操作，操作失败
+	addr, priv := genaddress()
+	err := sendtoaddressWait(privMiner, addr, 1e8)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	returnaddr := account.PubKeyToAddress(privCold.PubKey().Bytes()).String()
+	err = openticket(addr, returnaddr, priv)
+	if err == nil {
+		t.Error("no permit")
+		return
+	}
+	//bind MinerAddress
+	err = bindminer(addr, returnaddr, privCold)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
 func TestAutoClose(t *testing.T) {
 	//取出已经miner的列表
 	addr := account.PubKeyToAddress(privMiner.PubKey().Bytes()).String()
@@ -61,6 +92,30 @@ func TestAutoClose(t *testing.T) {
 	}
 }
 
+func openticket(mineraddr, returnaddr string, priv crypto.PrivKey) error {
+	ta := &types.TicketAction{}
+	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: 1}
+	ta.Value = &types.TicketAction_Topen{topen}
+	ta.Ty = types.TicketActionOpen
+	err := sendTransactionWait(ta, []byte("ticket"), priv, "")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func bindminer(mineraddr, returnaddr string, priv crypto.PrivKey) error {
+	ta := &types.TicketAction{}
+	tbind := &types.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
+	ta.Value = &types.TicketAction_Tbind{tbind}
+	ta.Ty = types.TicketActionBind
+	err := sendTransactionWait(ta, []byte("ticket"), priv, "")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //通过rpc 精选close 操作
 func closeTickets(priv crypto.PrivKey, ids []string) error {
 	for i := 0; i < len(ids); i += 100 {
@@ -72,7 +127,7 @@ func closeTickets(priv crypto.PrivKey, ids []string) error {
 		tclose := &types.TicketClose{ids[i:end]}
 		ta.Value = &types.TicketAction_Tclose{tclose}
 		ta.Ty = types.TicketActionClose
-		err := sendTransaction(ta, []byte("ticket"), priv, "")
+		_, err := sendTransaction(ta, []byte("ticket"), priv, "")
 		if err != nil {
 			return err
 		}
@@ -133,7 +188,23 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func sendtoaddress(priv crypto.PrivKey, to string, amount int64) error {
+func sendtoaddressWait(priv crypto.PrivKey, to string, amount int64) error {
+	//defer conn.Close()
+	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
+	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	hash, err := sendTransaction(transfer, []byte("coins"), priv, to)
+	if err != nil {
+		return err
+	}
+	txinfo := waitTx(hash)
+	if txinfo.Receipt.Ty != types.ExecOk {
+		return errors.New("sendtoaddressWait error")
+	}
+	return nil
+}
+
+func sendtoaddress(priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
@@ -141,7 +212,19 @@ func sendtoaddress(priv crypto.PrivKey, to string, amount int64) error {
 	return sendTransaction(transfer, []byte("coins"), priv, to)
 }
 
-func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (err error) {
+func sendTransactionWait(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (err error) {
+	hash, err := sendTransaction(payload, execer, priv, to)
+	if err != nil {
+		return err
+	}
+	txinfo := waitTx(hash)
+	if txinfo.Receipt.Ty != types.ExecOk {
+		return errors.New("sendTransactionWait error")
+	}
+	return nil
+}
+
+func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
 	if to == "" {
 		to = account.ExecAddress(string(execer)).String()
 	}
@@ -149,7 +232,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 	tx.Nonce = rand.Int63()
 	tx.Fee, err = tx.GetRealFee()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	tx.Fee += types.MinFee
 	tx.Sign(types.SECP256K1, priv)
@@ -158,13 +241,28 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 	c := types.NewGrpcserviceClient(conn)
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !reply.IsOk {
 		fmt.Println("err = ", reply.GetMsg())
-		return errors.New(string(reply.GetMsg()))
+		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return nil
+	return tx.Hash(), nil
+}
+
+func waitTx(hash []byte) *types.TransactionDetail {
+	c := types.NewGrpcserviceClient(conn)
+	reqhash := &types.ReqHash{hash}
+	for {
+		res, err := c.QueryTransaction(context.Background(), reqhash)
+		if err != nil {
+			fmt.Println(err)
+			time.Sleep(time.Second)
+		}
+		if res != nil {
+			return res
+		}
+	}
 }
 
 func getlastheader() (*types.Header, error) {
