@@ -10,7 +10,8 @@ import (
 var rlog = log.New("module", "execs.retrieve")
 
 const minPeriod = 60
-const maxTimeWeight = 2
+
+//const maxTimeWeight = 2
 
 func init() {
 	execdrivers.Register("retrieve", newRetrieve())
@@ -39,24 +40,18 @@ func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	actiondb := NewRetrieveAcction(r.GetDB(), tx, r.GetAddr(), r.GetBlockTime(), r.GetHeight())
 	if action.Ty == types.RetrieveBackup && action.GetBackup() != nil {
 		backupRet := action.GetBackup()
+		if backupRet.DelayPeriod < minPeriod {
+			return nil, types.ErrRetrievePeriodLimit
+		}
 		rlog.Debug("RetrieveBackup action")
-
 		return actiondb.RetrieveBackup(backupRet)
 	} else if action.Ty == types.RetrievePre && action.GetPreRet() != nil {
 		preRet := action.GetPreRet()
 		rlog.Debug("PreRetrieve action")
-
-		if preRet.DelayPeriod < minPeriod {
-			return nil, types.ErrRetrievePeriodLimit
-		}
 		return actiondb.RetrievePrepare(preRet)
 	} else if action.Ty == types.RetrievePerf && action.GetPerfRet() != nil {
 		perfRet := action.GetPerfRet()
 		rlog.Debug("PerformRetrieve action")
-
-		if perfRet.Timeweight < 0 || perfRet.Timeweight > maxTimeWeight {
-			return nil, types.ErrRetrieveTimeweightLimit
-		}
 		return actiondb.RetrievePerform(perfRet)
 	} else if action.Ty == types.RetrieveCancel && action.GetCancel() != nil {
 		cancel := action.GetCancel()
