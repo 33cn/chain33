@@ -41,6 +41,9 @@ service grpcservice{
 	rpc GenSeed(GenSeedLang) returns (ReplySeed){}
 	rpc GetSeed(GetSeedByPw) returns  (ReplySeed){}
 	rpc SaveSeed(SaveSeedByPw) returns (Reply){}
+	//Balance Query 
+	rpc GetBalance(ReqBalance) returns(Account){}
+	rpc QueryChain(Query) returns(Reply){} 
 }
 
 
@@ -855,7 +858,7 @@ message ReplySeed {
 	string seed = 1;
 }
 
-message GetBalance{
+message ReqBalance{
 	string address=1;
 	string execer=2;
 }
