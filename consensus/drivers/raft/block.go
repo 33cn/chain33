@@ -93,8 +93,8 @@ func (client *RaftClient) InitBlock() {
 		tx := client.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		// 通过propose channel把block传到raft核心
-		client.propose(newblock)
+		// 初始块不需要参与共识
+		//client.propose(newblock)
 		// 把区块放在内存中
 		//TODO:这里要等确认后才能把当前的块设置为新块
 		client.SetCurrentBlock(newblock)

@@ -45,7 +45,7 @@ func (h *httpRaftAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.confChangeC <- cc
 
 		// As above, optimistic that raft will apply the conf change
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusCreated)
 	case r.Method == "DELETE":
 		nodeId, err := strconv.ParseUint(key[1:], 0, 64)
 		if err != nil {
@@ -62,7 +62,7 @@ func (h *httpRaftAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.confChangeC <- cc
 
 		// As above, optimistic that raft will apply the conf change
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusAccepted)
 	default:
 		//w.Header().Set("Allow", "PUT")
 		//w.Header().Add("Allow", "GET")
