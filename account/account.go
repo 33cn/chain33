@@ -168,7 +168,7 @@ func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err er
 	for i := 0; i < len(values.Values); i++ {
 		value := values.Values[i]
 		if value == nil {
-			accs = append(accs, &types.Account{})
+			accs = append(accs, &types.Account{Addr: addrs[i]})
 		} else {
 			var acc types.Account
 			err := types.Decode(value, &acc)
