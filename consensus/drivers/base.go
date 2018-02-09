@@ -47,6 +47,9 @@ type BaseClient struct {
 }
 
 func NewBaseClient(cfg *types.Consensus) *BaseClient {
+	cfg.Genesis = types.GenesisAddr
+	cfg.HotkeyAddr = types.HotkeyAddr
+	cfg.GenesisBlockTime = types.GenesisBlockTime
 	var flag int32
 	if cfg.Minerstart {
 		flag = 1

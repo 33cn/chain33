@@ -41,6 +41,9 @@ service grpcservice{
 	rpc GenSeed(GenSeedLang) returns (ReplySeed){}
 	rpc GetSeed(GetSeedByPw) returns  (ReplySeed){}
 	rpc SaveSeed(SaveSeedByPw) returns (Reply){}
+	//Balance Query 
+	rpc GetBalance(ReqBalance) returns(Account){}
+	rpc QueryChain(Query) returns(Reply){} 
 }
 
 
@@ -725,6 +728,7 @@ message CoinsWithdraw {
 //message for execs.ticket
 message TicketAction {
 	oneof value {
+		TicketBind  tbind = 5;
 		TicketOpen      topen = 1;
 		TicketGenesis   genesis = 2;
 		TicketClose  tclose = 3;
@@ -740,9 +744,15 @@ message TicketMiner {
 	bytes  modify = 4;
 }
 
+message TicketBind {
+	string minerAddress = 1;
+	string returnAddress = 2;
+}
+
 message TicketOpen {
-	string minerAddress = 1; //用户挖矿的ticket 地址
-	int32 count = 2; //购买ticket的数目
+	string minerAddress = 1;   //用户挖矿的ticket 地址
+	int32  count = 2;          //购买ticket的数目
+	string returnAddress = 3;  //币实际存储的地址
 }
 
 message TicketGenesis {
@@ -789,6 +799,11 @@ message ReceiptTicket {
 	int32 status = 2;
 	int32 prevStatus = 3;
 	string addr = 4;
+}
+
+message ReceiptTicketBind {
+	string oldMinerAddress = 1;
+	string newMinerAddress = 2;
 }
 
 message Hashlock{
@@ -843,7 +858,7 @@ message ReplySeed {
 	string seed = 1;
 }
 
-message GetBalance{
+message ReqBalance{
 	string address=1;
 	string execer=2;
 }
