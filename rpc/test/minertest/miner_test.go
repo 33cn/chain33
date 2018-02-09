@@ -62,6 +62,13 @@ func TestMinerBind(t *testing.T) {
 		t.Error(err)
 		return
 	}
+
+	//open tick user bindminer
+	err = openticket(addr, returnaddr, priv)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 }
 
 func TestAutoClose(t *testing.T) {
