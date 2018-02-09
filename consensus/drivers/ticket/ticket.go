@@ -221,6 +221,9 @@ func (client *TicketClient) GetModify(beg, end int64) ([]byte, error) {
 }
 
 func (client *TicketClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	if current.Block.BlockTime-time.Now().Unix() > types.FutureBlockTime {
+		return types.ErrFutureBlock
+	}
 	ticketAction, err := client.getMinerTx(current.Block)
 	if err != nil {
 		return err
