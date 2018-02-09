@@ -64,10 +64,19 @@ var ErrEmptyTx = errors.New("ErrEmptyTx")
 var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
 var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
 var ErrTicketClosed = errors.New("ErrTicketClosed")
+var ErrEmptyMinerTx = errors.New("ErrEmptyMinerTx")
+var ErrMinerNotPermit = errors.New("ErrMinerNotPermit")
+var ErrMinerAddr = errors.New("ErrMinerAddr")
 
 const Coin int64 = 1e8
 const MaxCoin int64 = 1e17
-const CoinReward int64 = 1e9
+
+//用户回报
+const CoinReward int64 = 18 * Coin
+
+//发展基金回报
+const CoinDevFund int64 = 12 * Coin
+
 const TicketPrice int64 = 10000 * Coin
 
 const TicketFrozenTime int64 = 86400 / 2         //0.5days
@@ -86,6 +95,10 @@ const MaxTxsPerBlock = 100000
 
 var AllowDepositExec = []string{"ticket"}
 var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
+
+var GenesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+var GenesisBlockTime int64 = 1514533394
+var HotkeyAddr = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
 const (
 	EventTx                   = 1
@@ -178,6 +191,7 @@ const (
 	EventFlushTicket       = 85
 	EventFetchBlockHeaders = 86
 	EventAddBlockHeaders   = 87
+	EventWalletAutoMiner   = 88
 )
 
 var eventname = map[int]string{
@@ -266,6 +280,9 @@ var eventname = map[int]string{
 	83: "EventQuery",
 	84: "EventReplyQuery",
 	85: "EventFlushTicket",
+	86: "EventFetchBlockHeaders",
+	87: "EventAddBlockHeaders",
+	88: "EventWalletAutoMiner",
 }
 
 func GetEventName(event int) string {
@@ -308,6 +325,7 @@ const (
 	TyLogNewTicket   = 11
 	TyLogCloseTicket = 12
 	TyLogMinerTicket = 13
+	TyLogTicketBind  = 14
 )
 
 //exec type
@@ -332,6 +350,7 @@ const (
 	TicketActionList    = 14 //读的接口不直接经过transaction
 	TicketActionInfos   = 15 //读的接口不直接经过transaction
 	TicketActionMiner   = 16
+	TicketActionBind    = 17
 )
 
 //hashlock const

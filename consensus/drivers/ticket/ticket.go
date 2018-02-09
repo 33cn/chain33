@@ -155,27 +155,39 @@ func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 	return list
 }
 
-func (client *TicketClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+func (client *TicketClient) getMinerTx(current *types.BlockDetail) (*types.TicketAction, error) {
 	//检查第一个笔交易的execs, 以及执行状态
 	if len(current.Block.Txs) == 0 {
-		return types.ErrEmptyTx
+		return nil, types.ErrEmptyTx
+	}
+	//检查第一个笔交易的execs, 以及执行状态
+	if len(current.Block.Txs) == 0 {
+		return nil, types.ErrEmptyTx
 	}
 	baseTx := current.Block.Txs[0]
-	if string(baseTx.Execer) != "ticket" {
-		return types.ErrCoinBaseExecer
-	}
 	//判断交易类型和执行情况
 	var ticketAction types.TicketAction
 	err := types.Decode(baseTx.GetPayload(), &ticketAction)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if ticketAction.GetTy() != types.TicketActionMiner {
-		return types.ErrCoinBaseTxType
+		return nil, types.ErrCoinBaseTxType
 	}
 	//判断交易执行是否OK
 	if current.Receipts[0].Ty != types.ExecOk {
-		return types.ErrCoinBaseExecErr
+		return nil, types.ErrCoinBaseExecErr
+	}
+	if ticketAction.GetMiner() == nil {
+		return nil, types.ErrEmptyMinerTx
+	}
+	return &ticketAction, nil
+}
+
+func (client *TicketClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	ticketAction, err := client.getMinerTx(current)
+	if err != nil {
+		return err
 	}
 	//check reward 的值是否正确
 	miner := ticketAction.GetMiner()
@@ -185,6 +197,8 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	if miner.Bits != current.Block.Difficulty {
 		return types.ErrBlockHeaderDifficulty
 	}
+	//check modify:
+
 	//通过判断区块的难度Difficulty
 	//1. target >= currentdiff
 	//2.  current bit == target
