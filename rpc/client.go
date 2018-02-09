@@ -51,7 +51,7 @@ type IRClient interface {
 	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
 	GetWalletStatus() (*types.Reply, error)
 	//getbalance
-	GetBalance(*types.GetBalance) ([]*types.Account, error)
+	GetBalance(*types.ReqBalance) ([]*types.Account, error)
 	//query
 	QueryHash(*types.Query) (*types.Message, error)
 }
@@ -572,7 +572,7 @@ func (client *channelClient) GetWalletStatus() (*types.Reply, error) {
 	return resp.Data.(*types.Reply), nil
 }
 
-func (client *channelClient) GetBalance(in *types.GetBalance) ([]*types.Account, error) {
+func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
 
 	switch in.GetExecer() {
 	case "coins":
