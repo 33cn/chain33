@@ -195,7 +195,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
 		case types.EventGetBlockHash: //GetBlockHash
 			go chain.processMsg(msg, reqnum, chain.getBlockHash)
-		case types.EventQuery: //GetBlockHash
+		case types.EventQuery:
 			go chain.processMsg(msg, reqnum, chain.getQuery)
 		default:
 			<-reqnum
