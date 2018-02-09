@@ -81,7 +81,7 @@ func (network *P2p) ShowTaskCapcity() {
 			log.Debug("ShowTaskCapcity", "Show", "will Done")
 			return
 		case <-ticker.C:
-			log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
+			log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 
 		}
 	}
