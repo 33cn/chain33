@@ -41,7 +41,7 @@ func LoadExecAccountQueue(q *queue.Queue, addr, execaddr string) (*types.Account
 	values := msg.GetData().(*types.StoreReplyValue)
 	value := values.Values[0]
 	if value == nil {
-		return &types.Account{}, nil
+		return &types.Account{Addr: addr}, nil
 	} else {
 		var acc types.Account
 		err := types.Decode(value, &acc)
