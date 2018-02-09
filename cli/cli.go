@@ -1278,7 +1278,8 @@ func GetBalance(address string, execer string) {
 }
 
 func GetExecAddr(exec string) {
-	result := account.ExecAddress(exec)
+	addrResult := account.ExecAddress(exec)
+	result := addrResult.String()
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
