@@ -80,6 +80,9 @@ func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 			return nil, types.ErrTicketCount
 		}
 		return actiondb.TicketOpen(topen)
+	} else if action.Ty == types.TicketActionBind && action.GetTbind() != nil {
+		tbind := action.GetTbind()
+		return actiondb.TicketBind(tbind)
 	} else if action.Ty == types.TicketActionClose && action.GetTclose() != nil {
 		tclose := action.GetTclose()
 		return actiondb.TicketClose(tclose)
