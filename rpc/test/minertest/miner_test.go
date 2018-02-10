@@ -62,12 +62,21 @@ func TestMinerBind(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
+	printAccount(returnaddr, "ticket")
 	//open tick user bindminer
 	err = openticket(addr, returnaddr, priv)
 	if err != nil {
 		t.Error(err)
 		return
+	}
+	printAccount(returnaddr, "ticket")
+	tlist, err := getMineredTicketList(addr, 1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, ticket := range tlist {
+		t.Log(ticket.TicketId)
 	}
 }
 
@@ -75,7 +84,7 @@ func TestAutoClose(t *testing.T) {
 	//取出已经miner的列表
 	addr := account.PubKeyToAddress(privMiner.PubKey().Bytes()).String()
 	t.Log(addr)
-	tlist, err := getMineredTicketList(addr)
+	tlist, err := getMineredTicketList(addr, 2)
 	if err != nil {
 		t.Error(err)
 		return
@@ -143,8 +152,8 @@ func closeTickets(priv crypto.PrivKey, ids []string) error {
 }
 
 //通rpc 进行query
-func getMineredTicketList(addr string) ([]*types.Ticket, error) {
-	reqaddr := &types.TicketList{addr, 2}
+func getMineredTicketList(addr string, status int32) ([]*types.Ticket, error) {
+	reqaddr := &types.TicketList{addr, status}
 	var req types.Query
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
@@ -164,6 +173,24 @@ func getMineredTicketList(addr string) ([]*types.Ticket, error) {
 		return nil, err
 	}
 	return list.Tickets, nil
+}
+
+func printAccount(addr string, execer string) {
+	account, err := getBalance(addr, execer)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("addr:", account.Addr, "balance:", account.Balance, "frozen:", account.Frozen)
+}
+
+func getBalance(addr string, execer string) (*types.Account, error) {
+	reqbalance := &types.ReqBalance{Address: addr, Execer: execer}
+	c := types.NewGrpcserviceClient(conn)
+	reply, err := c.GetBalance(context.Background(), reqbalance)
+	if err != nil {
+		return nil, err
+	}
+	return reply, nil
 }
 
 func genaddress() (string, crypto.PrivKey) {
@@ -196,8 +223,6 @@ func getprivkey(key string) crypto.PrivKey {
 }
 
 func sendtoaddressWait(priv crypto.PrivKey, to string, amount int64) error {
-	//defer conn.Close()
-	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	hash, err := sendTransaction(transfer, []byte("coins"), priv, to)
@@ -236,7 +261,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 		to = account.ExecAddress(string(execer)).String()
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
-	tx.Nonce = rand.Int63()
+	tx.Nonce = random.Int63()
 	tx.Fee, err = tx.GetRealFee()
 	if err != nil {
 		return nil, err

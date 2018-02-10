@@ -111,6 +111,9 @@ var GenesisBlockTime int64 = 1514533394
 var HotkeyAddr = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 var FundKeyAddr = "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
 
+//这字符串表示数据库中的空值
+var EmptyValue = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF")
+
 const (
 	EventTx                   = 1
 	EventGetBlocks            = 2

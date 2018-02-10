@@ -804,6 +804,7 @@ message ReceiptTicket {
 message ReceiptTicketBind {
 	string oldMinerAddress = 1;
 	string newMinerAddress = 2;
+	string returnAddress = 3;
 }
 
 message Hashlock{
@@ -861,6 +862,18 @@ message ReplySeed {
 message ReqBalance{
 	string address=1;
 	string execer=2;
+}
+
+message ReqString {
+	string data = 1;
+}
+
+message ReplyString {
+	string data = 1;
+}
+
+message ReplyStrings {
+	repeated string datas = 1;
 }
 
 

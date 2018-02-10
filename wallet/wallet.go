@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -33,17 +34,20 @@ var SaveSeedFirst = errors.New("please save seed first!")
 var UnLockFirst = errors.New("UnLock Wallet first!")
 
 type Wallet struct {
-	qclient     queue.Client
-	q           *queue.Queue
-	mtx         sync.Mutex
-	timeout     *time.Timer
-	isclosed    int32
-	isLocked    bool
-	Password    string
-	FeeAmount   int64
-	EncryptFlag int64
-	wg          *sync.WaitGroup
-	walletStore *WalletStore
+	qclient       queue.Client
+	q             *queue.Queue
+	mtx           sync.Mutex
+	timeout       *time.Timer
+	isclosed      int32
+	isLocked      bool
+	autoMinerFlag int32
+	Password      string
+	FeeAmount     int64
+	EncryptFlag   int64
+	miningTicket  *time.Ticker
+	wg            *sync.WaitGroup
+	walletStore   *WalletStore
+	random        *rand.Rand
 }
 
 func SetLogLevel(level string) {
@@ -56,25 +60,35 @@ func DisableLog() {
 }
 
 func New(cfg *types.Wallet) *Wallet {
-
 	//walletStore
 	walletStoreDB := dbm.NewDB("wallet", "leveldb", cfg.DbPath, 16)
 	walletStore := NewWalletStore(walletStoreDB)
 	MinFee = cfg.MinFee
-	return &Wallet{
-		walletStore: walletStore,
-		isLocked:    false,
-		wg:          &sync.WaitGroup{},
-		FeeAmount:   walletStore.GetFeeAmount(),
-		EncryptFlag: walletStore.GetEncryptionFlag(),
+	wallet := &Wallet{
+		walletStore:   walletStore,
+		isLocked:      false,
+		autoMinerFlag: 0,
+		wg:            &sync.WaitGroup{},
+		FeeAmount:     walletStore.GetFeeAmount(),
+		EncryptFlag:   walletStore.GetEncryptionFlag(),
+		miningTicket:  time.NewTicker(time.Minute),
 	}
+	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	return wallet
+}
+
+func (wallet *Wallet) setAutoMining(flag int32) {
+	atomic.StoreInt32(&wallet.autoMinerFlag, flag)
+}
+
+func (wallet *Wallet) isAutoMining() bool {
+	return atomic.LoadInt32(&wallet.autoMinerFlag) == 1
 }
 
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	wallet.qclient.Close()
 	wallet.wg.Wait()
-
 	//关闭数据库
 	wallet.walletStore.db.Close()
 	walletlog.Info("wallet module closed")
@@ -88,8 +102,32 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 	wallet.qclient = q.NewClient()
 	wallet.qclient.Sub("wallet")
 	wallet.q = q
-	wallet.wg.Add(1)
+	wallet.wg.Add(2)
 	go wallet.ProcRecvMsg()
+	go wallet.autoMining()
+}
+
+func (wallet *Wallet) autoMining() {
+	defer wallet.wg.Done()
+	for range wallet.miningTicket.C {
+		if wallet.isAutoMining() {
+			wallet.buyTicket()
+			wallet.buyMinerAddrTicket()
+			wallet.closeTicket()
+		}
+	}
+}
+
+func (wallet *Wallet) buyTicket() {
+
+}
+
+func (wallet *Wallet) buyMinerAddrTicket() {
+
+}
+
+func (wallet *Wallet) closeTicket() {
+
 }
 
 func (wallet *Wallet) flushTicket() {
@@ -113,12 +151,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
 		case types.EventWalletAutoMiner:
-			//1. 授权一个miner address (可以取消授权)
-			//2. 把币转移到 ticket
-			//3. 自动把钱购买成ticket用于挖矿
-			//4. 自动检查票的到期情况，到期了，自动转成现金，回到3
+			//检查周期 --> 10分
+			//1. 查找超过1万余额的账户，自动购买ticket
+			//2. 查找mineraddress 和他对应的 账户的余额（不在1中），余额超过1万的自动购买ticket 挖矿
+			//3. 自动把成熟的ticket关闭
+			wallet.setAutoMining(1)
 		case types.EventWalletGetTickets:
-			tickets, privs, err := wallet.GetTickets()
+			tickets, privs, err := wallet.GetTickets(1)
 			if err != nil {
 				walletlog.Error("GetTickets", "err", err.Error())
 				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
@@ -146,7 +185,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
 			}
-
 		case types.EventWalletImportprivkey:
 			ImportPrivKey := msg.Data.(*types.ReqWalletImportPrivKey)
 			WalletAccount, err := wallet.ProcImportPrivKey(ImportPrivKey)
@@ -1300,56 +1338,6 @@ func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
 	decrypter.CryptBlocks(decryptered, privkey)
 	//walletlog.Info("CBCDecrypterPrivkey", "password", string(key), "Encrypted", common.ToHex(privkey), "decryptered", common.ToHex(decryptered))
 	return decryptered
-}
-
-func (wallet *Wallet) GetTickets() ([]*types.Ticket, [][]byte, error) {
-	accounts, err := wallet.ProcGetAccountList()
-	if err != nil {
-		return nil, nil, err
-	}
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, nil, err
-	}
-	//循环遍历所有的账户-->保证钱包已经解锁
-	var tickets []*types.Ticket
-	var privs [][]byte
-	for _, account := range accounts.Wallets {
-		t, err := wallet.getTickets(account.Acc.Addr)
-		if err != nil {
-			return nil, nil, err
-		}
-		if t != nil {
-			priv, err := wallet.getPrivKeyByAddr(account.Acc.Addr)
-			if err != nil {
-				return nil, nil, err
-			}
-			privs = append(privs, priv.Bytes())
-			tickets = append(tickets, t...)
-		}
-	}
-	if len(tickets) == 0 {
-		return nil, nil, types.ErrNoTicket
-	}
-	return tickets, privs, nil
-}
-
-func (client *Wallet) getTickets(addr string) ([]*types.Ticket, error) {
-	reqaddr := &types.TicketList{addr, 1}
-	var req types.Query
-	req.Execer = []byte("ticket")
-	req.FuncName = "TicketList"
-	req.Payload = types.Encode(reqaddr)
-	msg := client.qclient.NewMessage("blockchain", types.EventQuery, &req)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	reply := resp.GetData().(types.Message).(*types.ReplyTicketList)
-	return reply.Tickets, nil
 }
 
 //生成一个随机的seed种子, 目前支持英文单词和简体中文

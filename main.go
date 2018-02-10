@@ -123,16 +123,14 @@ func main() {
 		network = p2p.New(cfg.P2P)
 		network.SetQueue(q)
 	}
+	//jsonrpc, grpc, channel 三种模式
+	api := rpc.NewServer("jsonrpc", ":8801", q)
+	gapi := rpc.NewServer("grpc", ":8802", q)
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
 	walletm.SetQueue(q)
 
-	//jsonrpc, grpc, channel 三种模式
-	api := rpc.NewServer("jsonrpc", ":8801", q)
-	//api.SetQueue(q)
-	gapi := rpc.NewServer("grpc", ":8802", q)
-	//gapi.SetQueue(q)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")

@@ -140,6 +140,7 @@ func getBindLog(tbind *types.TicketBind, old string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTicketBind
 	r := &types.ReceiptTicketBind{}
+	r.ReturnAddress = tbind.ReturnAddress
 	r.OldMinerAddress = old
 	r.NewMinerAddress = tbind.MinerAddress
 	log.Log = types.Encode(r)
