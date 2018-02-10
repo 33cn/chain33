@@ -465,11 +465,9 @@ func getReceiptsData(receipts *types.Receipts) (datas []*types.ReceiptData) {
 	return datas
 }
 
+//gas 直接燃烧
 func calcTotalFee(block *types.Block) (total int64) {
-	for i := 0; i < len(block.Txs); i++ {
-		total += block.Txs[i].Fee
-	}
-	return total
+	return 0
 }
 
 func (client *TicketClient) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) (*types.Receipts, error) {
@@ -590,17 +588,9 @@ func (client *TicketClient) execBlock(prevHash []byte, block *types.Block, priv 
 		block.Txs = newtx
 		receipts.Receipts = newreceipts
 	}
-	//更新fee
-	newfee := calcTotalFee(block)
-	ta, err := client.getMinerTx(block)
-	if err != nil {
-		return nil, err
-	}
-	ta.GetMiner().Reward = types.CoinReward + newfee
-	//更新miner交易的receipt
-	block.Txs[0] = client.createMinerTx(ta, priv)
-	receiptsMiner := util.ExecTxList(client.GetQueue(), prevHash, block.Txs[0:1], block.GetHeader())
-	receipts.Receipts[0] = receiptsMiner.Receipts[0]
+	//fee 直接燃烧，消失
+	//比较好做的是，直接在block header 里面加一个 reward 字段
+	//但是目前直接燃烧比较简单
 	return receipts, nil
 }
 
