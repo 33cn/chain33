@@ -48,6 +48,7 @@ type Wallet struct {
 	wg            *sync.WaitGroup
 	walletStore   *WalletStore
 	random        *rand.Rand
+	done          chan struct{}
 }
 
 func SetLogLevel(level string) {
@@ -72,6 +73,7 @@ func New(cfg *types.Wallet) *Wallet {
 		FeeAmount:     walletStore.GetFeeAmount(),
 		EncryptFlag:   walletStore.GetEncryptionFlag(),
 		miningTicket:  time.NewTicker(time.Minute),
+		done:          make(chan struct{}),
 	}
 	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return wallet
@@ -87,6 +89,8 @@ func (wallet *Wallet) isAutoMining() bool {
 
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
+	wallet.miningTicket.Stop()
+	close(wallet.done)
 	wallet.qclient.Close()
 	wallet.wg.Wait()
 	//关闭数据库
@@ -109,25 +113,54 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 
 func (wallet *Wallet) autoMining() {
 	defer wallet.wg.Done()
-	for range wallet.miningTicket.C {
-		if wallet.isAutoMining() {
-			wallet.buyTicket()
-			wallet.buyMinerAddrTicket()
-			wallet.closeTicket()
+	for {
+		select {
+		case <-wallet.miningTicket.C:
+			if wallet.isAutoMining() {
+				go func() {
+					wallet.buyTicket()
+					wallet.buyMinerAddrTicket()
+					wallet.closeTicket()
+				}()
+			}
+		case <-wallet.done:
+			return
 		}
 	}
 }
 
 func (wallet *Wallet) buyTicket() {
-
+	privs, err := wallet.getAllPrivKeys()
+	if err != nil {
+		walletlog.Error("buyTicket.getAllPrivKeys", "err", err)
+		return
+	}
+	for _, priv := range privs {
+		err := wallet.buyTicketOne(priv)
+		if err != nil {
+			walletlog.Error("buyTicketOne", "err", err)
+			return
+		}
+	}
 }
 
 func (wallet *Wallet) buyMinerAddrTicket() {
-
+	privs, err := wallet.getAllPrivKeys()
+	if err != nil {
+		walletlog.Error("buyMinerAddrTicket.getAllPrivKeys", "err", err)
+		return
+	}
+	for _, priv := range privs {
+		err := wallet.buyMinerAddrTicketOne(priv)
+		if err != nil {
+			walletlog.Error("buyMinerAddrTicketOne", "err", err)
+			return
+		}
+	}
 }
 
 func (wallet *Wallet) closeTicket() {
-
+	wallet.closeAllTickets()
 }
 
 func (wallet *Wallet) flushTicket() {
