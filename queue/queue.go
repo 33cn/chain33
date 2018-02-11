@@ -22,8 +22,10 @@ import (
 //1.2 消息的回复直接通过消息自带的channel 回复
 var qlog = log.New("module", "queue")
 
-const DefaultChanBuffer = 64
-const DefaultLowChanBuffer = 40960
+const (
+	DefaultChanBuffer    = 64
+	DefaultLowChanBuffer = 40960
+)
 
 func SetLogLevel(level int) {
 

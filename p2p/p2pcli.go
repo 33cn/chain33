@@ -31,6 +31,7 @@ type P2pCli struct {
 	taskinfo map[int64]bool
 	loopdone chan struct{}
 }
+
 type intervalInfo struct {
 	start int
 	end   int
@@ -54,6 +55,7 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 	}
 	m.deletePeer(peer)
 }
+
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
 	defer func() {
 		<-m.network.txFactory
@@ -215,6 +217,7 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
 	return nil
 }
+
 func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	client := nodeinfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
@@ -233,6 +236,7 @@ func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	header := resp.GetData().(*pb.Header)
 	return header.GetHeight(), nil
 }
+
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 
 	//log.Info("GetPeerInfo", "info", m.PeerInfos())
@@ -258,6 +262,7 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
 	return
 }
+
 func (m *P2pCli) GetHeaders(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
@@ -297,6 +302,7 @@ func (m *P2pCli) GetHeaders(msg queue.Message) {
 		}
 	}
 }
+
 func (m *P2pCli) GetBlocks(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
@@ -547,6 +553,7 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 	return result
 
 }
+
 func (m *P2pCli) broadcastByStream(data interface{}) bool {
 	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
@@ -561,6 +568,7 @@ func (m *P2pCli) broadcastByStream(data interface{}) bool {
 	return true
 
 }
+
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
@@ -627,6 +635,7 @@ func (m *P2pCli) deletePeer(peer *peer) {
 		return
 	}
 }
+
 func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 	data := pb.Encode(in)
 
@@ -651,6 +660,7 @@ func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 	in.Sign.Pubkey = priv.PubKey().Bytes()
 	return in, nil
 }
+
 func (m *P2pCli) flushPeerInfos(in []*pb.Peer) {
 	m.network.node.nodeInfo.peerInfos.flushPeerInfos(in)
 

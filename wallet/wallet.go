@@ -25,13 +25,14 @@ var (
 	MinFee            int64 = 1000000
 	MaxTxNumPerBlock  int64 = 100000
 	MaxTxHashsPerTime int64 = 100
-)
 
-var walletlog = log.New("module", "wallet")
-var ErrInputPara = errors.New("Input parameter error")
-var WalletIsLocked = errors.New("Wallet Is Locked!")
-var SaveSeedFirst = errors.New("please save seed first!")
-var UnLockFirst = errors.New("UnLock Wallet first!")
+	// Error code
+	walletlog      = log.New("module", "wallet")
+	ErrInputPara   = errors.New("Input parameter error")
+	WalletIsLocked = errors.New("Wallet Is Locked!")
+	SaveSeedFirst  = errors.New("please save seed first!")
+	UnLockFirst    = errors.New("UnLock Wallet first!")
+)
 
 type Wallet struct {
 	qclient       queue.Client
