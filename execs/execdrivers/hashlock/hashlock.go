@@ -93,21 +93,22 @@ func (h *Hashlock) GetActionName(tx *types.Transaction) string {
 	if err = account.CheckAddress(tx.To); err != nil {
 		return "unknow"
 	}
-	if  action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		return "lock"
 	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
 		return "unlock"
-	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil  {
+	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
 		return "send"
 	} else {
 		return "unknow"
 	}
 }
+
 //把信息进行存储
 //将运行结果内容存入本地地址
 
 func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := n.ExecLocalCommon(tx, receipt, index)
+	set, err := h.ExecLocalCommon(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -123,14 +124,16 @@ func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	var kv *types.KeyValue
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		hlock := action.GetHlock()
-		kv, err = updateHashReciver(h.GetLocalDB(), hlock.hash, hlock.Amount, 1)
+		info := types.Hashlockquery{hlock.Time, 1, hlock.Amount}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), hlock.Hash, info)
 	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
 		hunlock := action.GetHunlock()
-		//from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
-		kv, err = updateHashReciver(h.GetLocalDB(), hunlock.hash, hunlock.Amount, 3)
+		info := types.Hashlockquery{0, 3, 0}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), hunlock.Secret, info)
 	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
 		hsend := action.GetHsend()
-		kv, err = updateHashReciver(h.GetLocalDB(), hsend.hash, hsend.Amount, 2)
+		info := types.Hashlockquery{0, 2, 0}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), hsend.Secret, info)
 	}
 	if err != nil {
 		return set, nil
@@ -142,7 +145,7 @@ func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 }
 
 func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := n.ExecDelLocalCommon(tx, receipt, index)
+	set, err := h.ExecDelLocalCommon(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -158,14 +161,16 @@ func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDat
 	var kv *types.KeyValue
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		hlock := action.GetHlock()
-		kv, err = updateHashReciver(h.GetLocalDB(), hlock.hash, hlock.Amount, 1)
+		info := types.Hashlockquery{hlock.Time, 1, hlock.Amount}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), hlock.Hash, info)
 	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
 		hunlock := action.GetHunlock()
-//		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
-		kv, err = updateHashReciver(h.GetLocalDB(), hunlock.hash, hunlock.Amount, 3)
-	}else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
+		info := types.Hashlockquery{0, 3, 0}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), hunlock.Secret, info)
+	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
 		hsend := action.GetHsend()
-		kv, err = updateHashReciver(h.GetLocalDB(), hsend.hash, hsend.Amount, 2)
+		info := types.Hashlockquery{0, 2, 0}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), hsend.Secret, info)
 	}
 	if err != nil {
 		return set, nil
@@ -176,9 +181,11 @@ func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDat
 	return set, nil
 }
 
-func (n *Hashlock) Query(funcName string, HashlockId []byte) (execs.Hashlockquery, error) {
+//func (n *Hashlock) HashLockQuery(db dbm.KVDB, funcName string, HashlockId []byte) (Hashlockquery, error) {
+//}
+func (n *Hashlock) Query(funcName string, HashlockId []byte) (types.Message, error) {
 	if funcName == "GetHashlocKById" {
-		return n.GetHashReciver(HashlockId)
+		return n.GetTxsByHashlockId(HashlockId)
 	}
 	return nil, types.ErrActionNotSupport
 }
