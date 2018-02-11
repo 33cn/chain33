@@ -307,6 +307,9 @@ func (n *Node) DetectNodeAddr() {
 		}
 		rand.Seed(time.Now().Unix())
 		exterPort := uint16(rand.Intn(64512) + 1023)
+		if cfg.GetIsSeed() == true {
+			exterPort = DefaultPort
+		}
 		addr := fmt.Sprintf("%v:%v", externalIp, exterPort)
 		log.Debug("DetectionNodeAddr", "AddBlackList", addr)
 		n.nodeInfo.blacklist.Add(addr) //把自己的外网地址加入到黑名单，以防连接self

@@ -153,7 +153,9 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 
 		resp.Data = err
 	}
-
+	if resp.GetData().(*types.Reply).GetIsOk() {
+		resp.GetData().(*types.Reply).Msg = tx.Hash()
+	}
 	return resp
 }
 
@@ -582,6 +584,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		for _, addr := range addrs {
 			if err := account.CheckAddress(addr); err != nil {
 				addr = account.ExecAddress(addr).String()
+
 			}
 			exaddrs = append(exaddrs, addr)
 		}
@@ -599,7 +602,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
-				return nil, err
+				continue
 			}
 
 			accounts = append(accounts, account)
