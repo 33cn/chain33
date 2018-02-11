@@ -835,5 +835,14 @@ message SaveSeedByPw {
 message ReplySeed {
 	string seed = 1;
 }
+message HashRecv  {
+	bytes HashlockId  = 1;
+	Hashlockquery Infomation = 2;
+}
 
+message Hashlockquery  {
+	int64 Time    = 1;
+	int32 Status  = 2;
+	int64 Amount  = 3;
+}
 
