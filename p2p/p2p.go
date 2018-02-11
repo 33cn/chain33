@@ -43,7 +43,6 @@ func New(cfg *types.P2P) *P2p {
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	return p2p
 }
-
 func (network *P2p) Stop() {
 	network.loopdone <- struct{}{}
 }
@@ -65,7 +64,7 @@ func (network *P2p) Close() {
 func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.NewClient()
 	network.q = q
-	network.node.setQueue(q)
+	network.node.SetQueue(q)
 	go func() {
 		network.node.Start()
 		network.cli.monitorPeerInfo()
@@ -99,7 +98,6 @@ func (network *P2p) subP2pMsg() {
 	network.c.Sub("p2p")
 	go network.ShowTaskCapcity()
 	go func() {
-		//TODO channel
 		for msg := range network.c.Recv() {
 
 			log.Debug("Recv", "Ty", msg.Ty)

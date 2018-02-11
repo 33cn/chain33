@@ -231,7 +231,6 @@ func (na *NetAddress) RFC1918() bool {
 		rfc1918_192.Contains(na.IP) ||
 		rfc1918_172.Contains(na.IP)
 }
-
 func (na *NetAddress) RFC3849() bool { return rfc3849.Contains(na.IP) }
 func (na *NetAddress) RFC3927() bool { return rfc3927.Contains(na.IP) }
 func (na *NetAddress) RFC3964() bool { return rfc3964.Contains(na.IP) }

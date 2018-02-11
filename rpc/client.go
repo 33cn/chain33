@@ -501,7 +501,6 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	}
 	return addrOverview, nil
 }
-
 func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHash, parm)
 	err := client.qclient.Send(msg, true)
@@ -578,11 +577,16 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 
 	switch in.GetExecer() {
 	case "coins":
-		addr := in.GetAddress()
-		if err := account.CheckAddress(addr); err != nil {
-			addr = account.ExecAddress(addr).String()
+		addrs := in.GetAddresses()
+		var exaddrs []string
+		for _, addr := range addrs {
+			if err := account.CheckAddress(addr); err != nil {
+				addr = account.ExecAddress(addr).String()
+				exaddrs = append(exaddrs, addr)
+			}
 		}
-		accounts, err := account.LoadAccounts(client.q, []string{addr})
+
+		accounts, err := account.LoadAccounts(client.q, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -590,15 +594,21 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		return accounts, nil
 	default:
 		execaddress := account.ExecAddress(in.GetExecer())
-		account, err := account.LoadExecAccountQueue(client.q, in.GetAddress(), execaddress.String())
-		if err != nil {
-			log.Error("GetBalance", "err", err.Error())
-			return nil, err
-		}
+		addrs := in.GetAddresses()
 		var accounts []*types.Account
-		accounts = append(accounts, account)
+		for _, addr := range addrs {
+			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
+			if err != nil {
+				log.Error("GetBalance", "err", err.Error())
+				return nil, err
+			}
+
+			accounts = append(accounts, account)
+		}
+
 		return accounts, nil
 	}
+	return nil, nil
 }
 
 func (client *channelClient) QueryHash(in *types.Query) (*types.Message, error) {
