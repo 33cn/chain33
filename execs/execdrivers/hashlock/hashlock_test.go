@@ -17,18 +17,21 @@ import (
 	"google.golang.org/grpc"
 )
 
-var conn *grpc.ClientConn
-var r *rand.Rand
-var c types.GrpcserviceClient
-var ErrTest = errors.New("ErrTest")
-
-var secret []byte
-var wrongsecret []byte
-var anothersec []byte //used in send case
-
-var addrexec *account.Address
-
-var locktime = minLockTime + 10 // bigger than minLockTime defined in hashlock.go
+var (
+	conn         *grpc.ClientConn
+	r            *rand.Rand
+	c            types.GrpcserviceClient
+	ErrTest      = errors.New("ErrTest")
+	secret       []byte
+	wrongsecret  []byte
+	anothersec   []byte //used in send case
+	addrexec     *account.Address
+	locktime     = minLockTime + 10 // bigger than minLockTime defined in hashlock.go
+	addr         [accountMax]string
+	privkey      [accountMax]crypto.PrivKey
+	currBalanceA int64
+	currBalanceB int64
+)
 
 const (
 	accountindexA = 0
@@ -50,12 +53,6 @@ const (
 
 const secretLen = 32
 
-var addr [accountMax]string
-var privkey [accountMax]crypto.PrivKey
-
-var currBalanceA int64
-var currBalanceB int64
-
 func init() {
 	var err error
 	conn, err = grpc.Dial("localhost:8802", grpc.WithInsecure())
@@ -75,7 +72,7 @@ func init() {
 
 func TestInitAccount(t *testing.T) {
 	fmt.Println("TestInitAccount start")
-	defer fmt.Println("TestInitAccount end\n")
+	defer fmt.Println("TestInitAccount end")
 
 	var label [accountMax]string
 	var params types.ReqWalletImportPrivKey
@@ -122,7 +119,7 @@ func TestInitAccount(t *testing.T) {
 func TestHashlock(t *testing.T) {
 
 	fmt.Println("TestHashlock start")
-	defer fmt.Println("TestHashlock end\n")
+	defer fmt.Println("TestHashlock end")
 
 	//1. step1 发送余额给合约
 	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
@@ -147,7 +144,7 @@ func TestHashlock(t *testing.T) {
 
 func TestHashunlock(t *testing.T) {
 	fmt.Println("TestHashunlock start")
-	defer fmt.Println("TestHashunlock end\n")
+	defer fmt.Println("TestHashunlock end")
 	//not sucess as time not enough
 	time.Sleep(5 * time.Second)
 	err := unlock(secret)
@@ -220,7 +217,7 @@ func TestHashunlock(t *testing.T) {
 
 func TestHashsend(t *testing.T) {
 	fmt.Println("TstHashsend start")
-	defer fmt.Println("TstHashsend end\n")
+	defer fmt.Println("TstHashsend end")
 	//lock it again &send failed as secret is not right
 	//send failed as secret is not right
 	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
