@@ -19,6 +19,7 @@ func (p *peer) Start() {
 
 	return
 }
+
 func (p *peer) Close() {
 	p.setRunning(false)
 	p.mconn.Close()
@@ -67,15 +68,18 @@ type peer struct {
 	taskPool    chan struct{}
 	taskChan    chan interface{} //tx block
 }
+
 type FilterTask struct {
 	mtx      sync.Mutex
 	loopDone chan struct{}
 	regTask  map[interface{}]time.Duration
 }
+
 type Version struct {
 	mtx            sync.Mutex
 	versionSupport bool
 }
+
 type Stat struct {
 	mtx sync.Mutex
 	ok  bool
@@ -110,11 +114,13 @@ func (v *Version) IsSupport() bool {
 	defer v.mtx.Unlock()
 	return v.versionSupport
 }
+
 func (f *FilterTask) RegTask(key interface{}) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	f.regTask[key] = time.Duration(time.Now().Unix())
 }
+
 func (f *FilterTask) QueryTask(key interface{}) bool {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
@@ -122,6 +128,7 @@ func (f *FilterTask) QueryTask(key interface{}) bool {
 	return ok
 
 }
+
 func (f *FilterTask) RemoveTask(key interface{}) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
@@ -182,6 +189,7 @@ FOR_LOOP:
 func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
+
 func (p *peer) SendData(data interface{}) (err error) {
 	tick := time.NewTicker(time.Second * 5)
 	defer tick.Stop()
@@ -343,6 +351,7 @@ func (p *peer) setRunning(run bool) {
 	defer p.pmutx.Unlock()
 	p.isrunning = run
 }
+
 func (p *peer) GetRunning() bool {
 	p.pmutx.Lock()
 	defer p.pmutx.Unlock()

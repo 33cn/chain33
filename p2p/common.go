@@ -13,8 +13,7 @@ import (
 
 var P2pComm Comm
 
-type Comm struct {
-}
+type Comm struct{}
 
 func (Comm) AddrTest(addrs []string) []string {
 	var enableAddrs []string
@@ -30,6 +29,7 @@ func (Comm) AddrTest(addrs []string) []string {
 	return enableAddrs
 
 }
+
 func (c Comm) GetLocalAddr() string {
 
 	conn, err := net.Dial("udp", "114.114.114.114:80")
@@ -57,7 +57,7 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 	}
 	peer.peerAddr = addr
 
-	log.Debug("DialPeerWithAddress", "peer", *peer, "persistent:", persistent)
+	log.Debug("DialPeerWithAddress", "peer", peer.Addr(), "persistent:", persistent)
 
 	if persistent {
 		peer.makePersistent()
@@ -91,6 +91,7 @@ func (c Comm) DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 	log.Debug("DialPeer", "Peer info", peer)
 	return peer, nil
 }
+
 func (c Comm) Pubkey(key string) (string, error) {
 
 	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))

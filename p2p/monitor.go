@@ -35,12 +35,14 @@ FOR_LOOP:
 
 	}
 }
+
 func (n *Node) destroyPeer(peer *peer) {
 	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
 	n.addrBook.RemoveAddr(peer.Addr())
 	n.addrBook.Save()
 	n.Remove(peer.Addr())
 }
+
 func (n *Node) monitorErrPeer() {
 
 	for {
@@ -57,6 +59,7 @@ func (n *Node) monitorErrPeer() {
 	}
 
 }
+
 func (n *Node) getAddrFromOnline() {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()

@@ -23,6 +23,7 @@ func (req Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{})
 	return nil
 
 }
+
 func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	var stx types.SignedTx
 	var err error
@@ -50,6 +51,7 @@ func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
 	}
 }
+
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
