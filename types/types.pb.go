@@ -4531,6 +4531,62 @@ func (m *ReplySeed) GetSeed() string {
 	return ""
 }
 
+type HashRecv struct {
+	HashlockId []byte         `protobuf:"bytes,1,opt,name=HashlockId,proto3" json:"HashlockId,omitempty"`
+	Infomation *Hashlockquery `protobuf:"bytes,2,opt,name=Infomation" json:"Infomation,omitempty"`
+}
+
+func (m *HashRecv) Reset()                    { *m = HashRecv{} }
+func (m *HashRecv) String() string            { return proto.CompactTextString(m) }
+func (*HashRecv) ProtoMessage()               {}
+func (*HashRecv) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{126} }
+
+func (m *HashRecv) GetHashlockId() []byte {
+	if m != nil {
+		return m.HashlockId
+	}
+	return nil
+}
+
+func (m *HashRecv) GetInfomation() *Hashlockquery {
+	if m != nil {
+		return m.Infomation
+	}
+	return nil
+}
+
+type Hashlockquery struct {
+	Time   int64 `protobuf:"varint,1,opt,name=Time" json:"Time,omitempty"`
+	Status int32 `protobuf:"varint,2,opt,name=Status" json:"Status,omitempty"`
+	Amount int64 `protobuf:"varint,3,opt,name=Amount" json:"Amount,omitempty"`
+}
+
+func (m *Hashlockquery) Reset()                    { *m = Hashlockquery{} }
+func (m *Hashlockquery) String() string            { return proto.CompactTextString(m) }
+func (*Hashlockquery) ProtoMessage()               {}
+func (*Hashlockquery) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{127} }
+
+func (m *Hashlockquery) GetTime() int64 {
+	if m != nil {
+		return m.Time
+	}
+	return 0
+}
+
+func (m *Hashlockquery) GetStatus() int32 {
+	if m != nil {
+		return m.Status
+	}
+	return 0
+}
+
+func (m *Hashlockquery) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*ReqNil)(nil), "types.ReqNil")
 	proto.RegisterType((*P2PGetPeerInfo)(nil), "types.P2PGetPeerInfo")
