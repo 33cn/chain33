@@ -42,7 +42,7 @@ service grpcservice{
 	rpc GetSeed(GetSeedByPw) returns  (ReplySeed){}
 	rpc SaveSeed(SaveSeedByPw) returns (Reply){}
 	//Balance Query 
-	rpc GetBalance(ReqBalance) returns(Account){}
+	rpc GetBalance(ReqBalance) returns(Accounts){}
 	rpc QueryChain(Query) returns(Reply){} 
 }
 
@@ -458,7 +458,11 @@ message ExecTxList {
 	int64 height = 4;
 }
 
+
 //currency = 0 -> origin account
+message Accounts{
+	repeated Account acc=1;
+}
 message Account {
 	int32 currency = 1;
 	int64 balance = 2;
@@ -860,9 +864,10 @@ message ReplySeed {
 }
 
 message ReqBalance{
-	string address=1;
+	repeated string addresses=1;
 	string execer=2;
 }
+
 
 message ReqString {
 	string data = 1;
