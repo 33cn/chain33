@@ -71,7 +71,7 @@ type raftNode struct {
 	validatorC chan map[string]bool
 }
 
-func NewRaftNode(id int, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
+func NewRaftNode(id int,join bool, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
 	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan map[string]bool) {
 
 	log.Info("Enter consensus raft")
@@ -85,6 +85,7 @@ func NewRaftNode(id int, peers []string, getSnapshot func() ([]byte, error), pro
 		commitC:     commitC,
 		errorC:      errorC,
 		id:          id,
+		join:       join,
 		peers:       peers,
 		waldir:      fmt.Sprintf("chain33_raft-%d", id),
 		snapdir:     fmt.Sprintf("chain33_raft-%d-snap", id),
@@ -487,7 +488,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 			rc.confState = *rc.node.ApplyConfChange(cc)
 			switch cc.Type {
 			case raftpb.ConfChangeAddNode:
-				if len(cc.Context) > 0 && cc.NodeID != uint64(rc.id) {
+				if len(cc.Context) > 0 {
 					rc.transport.AddPeer(typec.ID(cc.NodeID), []string{string(cc.Context)})
 				}
 			case raftpb.ConfChangeRemoveNode:
