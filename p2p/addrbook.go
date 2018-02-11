@@ -18,6 +18,7 @@ func (a *AddrBook) Start() error {
 	go a.saveRoutine()
 	return nil
 }
+
 func (a *AddrBook) Close() {
 	a.Quit <- struct{}{}
 }
@@ -49,6 +50,7 @@ func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
 	return nil
 
 }
+
 func (a *AddrBook) SetAddrStat(addr string, run bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -60,6 +62,7 @@ func (a *AddrBook) SetAddrStat(addr string, run bool) {
 		peer.markAttempt()
 	}
 }
+
 func NewAddrBook(filePath string) *AddrBook {
 	peers := make(map[string]*knownAddress, 0)
 	a := &AddrBook{
@@ -100,6 +103,7 @@ func (a *AddrBook) init() {
 	}
 	a.setKey(hex.EncodeToString((key.Bytes())))
 }
+
 func newKnownAddress(addr *NetAddress) *knownAddress {
 	return &knownAddress{
 		Addr:        addr,
@@ -107,6 +111,7 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 		LastAttempt: time.Now(),
 	}
 }
+
 func (ka *knownAddress) markGood() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -117,14 +122,16 @@ func (ka *knownAddress) markGood() {
 }
 
 func (ka *knownAddress) Copy() *knownAddress {
-	copy := knownAddress{
+	ka.kmtx.Lock()
+	ret := knownAddress{
 		kmtx:        sync.Mutex{},
 		Addr:        ka.Addr.Copy(),
 		Attempts:    ka.Attempts,
 		LastAttempt: ka.LastAttempt,
 		LastSuccess: ka.LastSuccess,
 	}
-	return &copy
+	ka.kmtx.Unlock()
+	return &ret
 }
 
 func (ka *knownAddress) markAttempt() {
@@ -153,6 +160,7 @@ func (a *AddrBook) AddOurAddress(addr *NetAddress) {
 	log.Debug("Add our address to book", "addr", addr)
 	a.ourAddrs[addr.String()] = addr
 }
+
 func (a *AddrBook) Size() int {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
