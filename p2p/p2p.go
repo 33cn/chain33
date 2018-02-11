@@ -10,8 +10,10 @@ import (
 	l "github.com/inconshreveable/log15"
 )
 
-var log = l.New("module", "p2p")
-var ps *common.PubSub
+var (
+	log = l.New("module", "p2p")
+	ps  *common.PubSub
+)
 
 type P2p struct {
 	q            *queue.Queue
@@ -41,6 +43,7 @@ func New(cfg *types.P2P) *P2p {
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	return p2p
 }
+
 func (network *P2p) Stop() {
 	network.loopdone <- struct{}{}
 }
@@ -86,6 +89,7 @@ func (network *P2p) ShowTaskCapcity() {
 		}
 	}
 }
+
 func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return

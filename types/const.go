@@ -68,6 +68,7 @@ var (
 	ErrMinerAddr                  = errors.New("ErrMinerAddr")
 	ErrModify                     = errors.New("ErrModify")
 	ErrFutureBlock                = errors.New("ErrFutureBlock")
+	ErrHashNotFound               = errors.New("ErrHashNotFound")
 )
 
 var (
