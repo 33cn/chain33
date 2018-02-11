@@ -102,6 +102,7 @@ func (s *p2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 	s.node.addrBook.AddAddress(remoteNetwork)
 	return &pb.P2PVerAck{Version: s.node.nodeInfo.cfg.GetVersion(), Service: 6, Nonce: in.Nonce}, nil
 }
+
 func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 
 	getctx, ok := pr.FromContext(ctx)
@@ -348,6 +349,7 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 
 	return resp.GetData().(*pb.Reply), nil
 }
+
 func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 	go func() error {
 
@@ -438,6 +440,7 @@ func (s *p2pServer) checkVersion(version int32) bool {
 
 	return true
 }
+
 func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 
 	var txmap = make(map[string]*pb.Transaction)
@@ -461,6 +464,7 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	}
 	return txmap, nil
 }
+
 func (s *p2pServer) ManageStream() {
 	go s.deleteDisableStream()
 	go func() { //发送空的block stream ping
@@ -505,6 +509,7 @@ func (s *p2pServer) checkSign(in *pb.P2PPing) bool {
 	}
 	return pub.VerifyBytes(data, signbytes)
 }
+
 func (s *p2pServer) addStreamHandler(stream pb.P2Pgservice_RouteChatServer) chan interface{} {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
@@ -512,6 +517,7 @@ func (s *p2pServer) addStreamHandler(stream pb.P2Pgservice_RouteChatServer) chan
 	return s.streams[stream]
 
 }
+
 func (s *p2pServer) addStreamBlock(block interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
@@ -538,6 +544,7 @@ func (s *p2pServer) deleteDisableStream() {
 		s.deleteStream(stream)
 	}
 }
+
 func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
