@@ -91,6 +91,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 
 	return node, nil
 }
+
 func (n *Node) FlushNodeInfo() {
 
 	if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", ExternalIp, n.externalPort)); err == nil {
@@ -107,6 +108,7 @@ func (n *Node) NatOk() bool {
 	ok := <-n.nodeInfo.natResultChain
 	return ok
 }
+
 func (n *Node) exChangeVersion() {
 
 	//SERVICE = n.GetServiceTy()
@@ -386,6 +388,7 @@ func (n *Node) GetServiceTy() int64 {
 	return SERVICE
 
 }
+
 func (n *Node) DetectNodeAddr() {
 	//直到网络可用的时候，才返回。
 	for {
