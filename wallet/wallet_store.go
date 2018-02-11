@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
+	"code.aliyun.com/chain33/chain33/common/crypto"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
@@ -260,7 +260,7 @@ func (ws *WalletStore) GetEncryptionFlag() int64 {
 func (ws *WalletStore) SetPasswordHash(password string) error {
 	var WalletPwHash types.WalletPwHash
 	//获取一个随机字符串
-	randstr := fmt.Sprintf("fuzamei:$@%d:%f", rand.Int63(), rand.Float64())
+	randstr := fmt.Sprintf("fuzamei:$@%s", crypto.CRandHex(16))
 	WalletPwHash.Randstr = randstr
 
 	//通过password和随机字符串生成一个hash值
