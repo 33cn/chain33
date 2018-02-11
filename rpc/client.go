@@ -582,8 +582,8 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		for _, addr := range addrs {
 			if err := account.CheckAddress(addr); err != nil {
 				addr = account.ExecAddress(addr).String()
-				exaddrs = append(exaddrs, addr)
 			}
+			exaddrs = append(exaddrs, addr)
 		}
 
 		accounts, err := account.LoadAccounts(client.q, exaddrs)
