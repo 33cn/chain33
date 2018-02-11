@@ -57,6 +57,9 @@ var ErrRetrievePrepareAddress = errors.New("ErrRetrievePrepareAddress")
 var ErrRetrievePerformAddress = errors.New("ErrRetrievePerformAddress")
 var ErrRetrieveCancelAddress = errors.New("ErrRetrieveCancelAddress")
 var ErrRetrieveStatus = errors.New("ErrRetrieveStatus")
+var ErrRetrieveRelateLimit = errors.New("ErrRetrieveRelateLimit")
+var ErrRetrieveRelation = errors.New("ErrRetrieveRelation")
+var ErrRetrieveNoBalance = errors.New("ErrRetrieveNoBalance")
 
 // Mempool Error Types
 var ErrTxExist = errors.New("ErrTxExist")
