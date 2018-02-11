@@ -53,7 +53,7 @@ func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) error {
 }
 
 func (wallet *Wallet) getBalance(addr string, execer string) (*types.Account, error) {
-	reqbalance := &types.ReqBalance{Address: addr, Execer: execer}
+	reqbalance := &types.ReqBalance{Addresses: []string{addr}, Execer: execer}
 	reply, err := wallet.queryBalance(reqbalance)
 	if err != nil {
 		return nil, err
@@ -93,73 +93,6 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 		return nil, nil, types.ErrNoTicket
 	}
 	return tickets, privs, nil
-}
-
-func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
-	accounts, err := wallet.ProcGetAccountList()
-	if err != nil {
-		return nil, err
-	}
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-	var privs []crypto.PrivKey
-	for _, account := range accounts.Wallets {
-		priv, err := wallet.getPrivKeyByAddr(account.Acc.Addr)
-		if err != nil {
-			return nil, err
-		}
-		privs = append(privs, priv)
-	}
-	return privs, nil
-}
-
-func (wallet *Wallet) closeAllTickets() error {
-	keys, err := wallet.getAllPrivKeys()
-	if err != nil {
-		return err
-	}
-	for _, key := range keys {
-		err = wallet.closeTicketsByAddr(key)
-		if err != nil {
-			walletlog.Error("close Tickets By Addr", "err", err)
-			return err
-		}
-	}
-	return nil
-}
-
-func (client *Wallet) buyTicketOne(priv crypto.PrivKey) error {
-	return nil
-}
-
-func (client *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
-	return nil
-}
-
-func (client *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	tlist, err := client.getTickets(addr, 2)
-	if err != nil && err != types.ErrNotFound {
-		return err
-	}
-	if len(tlist) == 0 {
-		return nil
-	}
-	now := time.Now().Unix()
-	var ids []string
-	for i := 0; i < len(tlist); i++ {
-		if now-tlist[i].CreateTime > types.TicketWithdrawTime {
-			ids = append(ids, tlist[i].TicketId)
-		}
-	}
-	if len(ids) > 1 {
-		client.closeTickets(priv, ids)
-	}
-	return nil
 }
 
 func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, error) {
@@ -257,13 +190,19 @@ func (client *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
 }
 
 func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, error) {
+
 	switch in.GetExecer() {
 	case "coins":
-		addr := in.GetAddress()
-		if err := account.CheckAddress(addr); err != nil {
-			addr = account.ExecAddress(addr).String()
+		addrs := in.GetAddresses()
+		var exaddrs []string
+		for _, addr := range addrs {
+			if err := account.CheckAddress(addr); err != nil {
+				addr = account.ExecAddress(addr).String()
+				exaddrs = append(exaddrs, addr)
+			}
 		}
-		accounts, err := account.LoadAccounts(client.q, []string{addr})
+
+		accounts, err := account.LoadAccounts(client.q, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -271,13 +210,19 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		return accounts, nil
 	default:
 		execaddress := account.ExecAddress(in.GetExecer())
-		account, err := account.LoadExecAccountQueue(client.q, in.GetAddress(), execaddress.String())
-		if err != nil {
-			walletlog.Error("GetBalance", "err", err.Error())
-			return nil, err
-		}
+		addrs := in.GetAddresses()
 		var accounts []*types.Account
-		accounts = append(accounts, account)
+		for _, addr := range addrs {
+			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
+			if err != nil {
+				walletlog.Error("GetBalance", "err", err.Error())
+				return nil, err
+			}
+
+			accounts = append(accounts, account)
+		}
+
 		return accounts, nil
 	}
+	return nil, nil
 }
