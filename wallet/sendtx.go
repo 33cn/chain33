@@ -95,6 +95,73 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 	return tickets, privs, nil
 }
 
+func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
+	accounts, err := wallet.ProcGetAccountList()
+	if err != nil {
+		return nil, err
+	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return nil, err
+	}
+	var privs []crypto.PrivKey
+	for _, account := range accounts.Wallets {
+		priv, err := wallet.getPrivKeyByAddr(account.Acc.Addr)
+		if err != nil {
+			return nil, err
+		}
+		privs = append(privs, priv)
+	}
+	return privs, nil
+}
+
+func (wallet *Wallet) closeAllTickets() error {
+	keys, err := wallet.getAllPrivKeys()
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		err = wallet.closeTicketsByAddr(key)
+		if err != nil {
+			walletlog.Error("close Tickets By Addr", "err", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (client *Wallet) buyTicketOne(priv crypto.PrivKey) error {
+	return nil
+}
+
+func (client *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
+	return nil
+}
+
+func (client *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
+	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	tlist, err := client.getTickets(addr, 2)
+	if err != nil && err != types.ErrNotFound {
+		return err
+	}
+	if len(tlist) == 0 {
+		return nil
+	}
+	now := time.Now().Unix()
+	var ids []string
+	for i := 0; i < len(tlist); i++ {
+		if now-tlist[i].CreateTime > types.TicketWithdrawTime {
+			ids = append(ids, tlist[i].TicketId)
+		}
+	}
+	if len(ids) > 1 {
+		client.closeTickets(priv, ids)
+	}
+	return nil
+}
+
 func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, error) {
 	reqaddr := &types.TicketList{addr, status}
 	var req types.Query
