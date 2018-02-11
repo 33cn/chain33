@@ -3,8 +3,9 @@ package hashlock
 //database opeartion for execs hashlock
 import (
 	"bytes"
-    "encoding/json"
+	"encoding/json"
 	"fmt"
+
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
@@ -204,21 +205,26 @@ func checksecret(secret []byte, hashresult []byte) bool {
 	return bytes.Equal(common.Sha256(secret), hashresult)
 }
 
-type HashRecv struct {
-	HashlockId []byte
-	Infomation Hashlockquery
-}
+//type HashRecv struct {
+//HashlockId []byte
+//Infomation Hashlockquery
+//}
 
-type Hashlockquery struct {
-	Time   int64
-	Status int32
-	Amount int64
+//type Hashlockquery struct {
+//Time   int64
+//Status int32
+//Amount int64
+//}
+
+func NewHashlockquery() *types.Hashlockquery {
+	q := types.Hashlockquery{}
+	return &q
 }
 
 //将Infomation转换成byte类型，使输出为kv模式
-func GeHashReciverKV(HashlockId []byte, Infomation Hashlockquery) *types.KeyValue {
-	infomation := Hashlockquery{time: Infomation.Time, status: Infomation.Status, amount: Infomation.Amount}
-	reciver, err := json.Marsha1(infomation)
+func GeHashReciverKV(HashlockId []byte, Infomation *types.Hashlockquery) *types.KeyValue {
+	infomation := types.Hashlockquery{Infomation.Time, Infomation.Status, Infomation.Amount}
+	reciver, err := json.Marshal(infomation)
 	if err == nil {
 		fmt.Println("成功转换为json格式")
 	} else {
@@ -229,51 +235,61 @@ func GeHashReciverKV(HashlockId []byte, Infomation Hashlockquery) *types.KeyValu
 }
 
 //从db里面根据key获取value,期间需要进行解码
-func GetHashReciver(db dbm.KVDB, HashlockId []byte) (*execs.Hashlockquery, error) {
+func GetHashReciver(db dbm.KVDB, HashlockId []byte) (*types.Hashlockquery, error) {
 	//reciver := types.Int64{}
-	reciver := &execs.Hashlockquery{}
+	reciver := NewHashlockquery()
 	hashReciver, err := db.Get(HashlockId)
-	if err != nil && err != types.ErrNotFound {
-		return 0, err
+	if err != nil {
+		return nil, err
 	}
 	if len(hashReciver) == 0 {
-		return 0, nil
+		return nil, nil
 	}
-	err = proto.Unmarshal(hashReciver, &reciver)
+	err = json.Unmarshal(hashReciver, reciver)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	return reciver, nil
 }
 
 //将HashlockId和Infomation都以key和value形式存入db
-func SetHashReciver(db dbm.KVDB, HashlockId []byte, Infomation Hashlockquery) error {
+func SetHashReciver(db dbm.KVDB, HashlockId []byte, Infomation *types.Hashlockquery) error {
 	kv := GeHashReciverKV(HashlockId, Infomation)
 	return db.Set(kv.Key, kv.Value)
 }
 
 //根据状态值对db中存入的数据进行更改
-
-func UpdateHashReciver(cachedb dbm.KVDB, HashlockId []byte, Infomation Hashlockquery) (*types.KeyValue, error) {
+func UpdateHashReciver(cachedb dbm.KVDB, HashlockId []byte, Infomation types.Hashlockquery) (*types.KeyValue, error) {
 	recv, err := GetHashReciver(cachedb, HashlockId)
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
 	}
-	var action types.HashlockAction
-	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+
+	//	var action types.HashlockAction
+	if Infomation.Status == 1 {
 		recv.Time = Infomation.Time
-		recv.Status = HashlockActionLock
-		recv.Amount += Infomation.Amount
-	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
-		recv.Time = Infomation.Time
-		recv.Status = HashlockActionUnlock
-		recv.Amount -= Infomation.Amount
-	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
-		recv.Time = Infomation.Time
-		recv.Status = HashlockActionSend
-		recv.Amount += Infomation.Amount
+		recv.Status = Hashlock_Locked
+		recv.Amount = Infomation.Amount
+	} else if Infomation.Status == 3 {
+		//recv.Time = recv.Time
+		recv.Status = Hashlock_Sent
+		//recv.Amount = recv.Amount
+	} else if Infomation.Status == 2 {
+		//recv.Time = recv.Time
+		recv.Status = Hashlock_Unlocked
+		//recv.Amount = recv.Amount
 	}
 	SetHashReciver(cachedb, HashlockId, recv)
 	//keyvalue
 	return GeHashReciverKV(HashlockId, recv), nil
+}
+
+//根据hashlockid获取相关信息
+func (n *Hashlock) GetTxsByHashlockId(HashlockId []byte) (types.Message, error) {
+	db := n.GetDB()
+	query, err := GetHashReciver(db, HashlockId)
+	if err != nil {
+		return nil, err
+	}
+	return query, nil
 }
