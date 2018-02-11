@@ -127,11 +127,9 @@ type ReplyHash struct {
 type ReplyHashes struct {
 	Hashes []string `json:"hashes"`
 }
-
 type PeerList struct {
 	Peers []*Peer `json:"peers"`
 }
-
 type Peer struct {
 	Addr        string  `json:"addr"`
 	Port        int32   `json:"port"`
@@ -145,7 +143,6 @@ type Peer struct {
 type WalletAccounts struct {
 	Wallets []*WalletAccount `protobuf:"bytes,1,rep,name=wallets" json:"wallets"`
 }
-
 type WalletAccount struct {
 	Acc   *Account `protobuf:"bytes,1,opt,name=acc" json:"acc"`
 	Label string   `protobuf:"bytes,2,opt,name=label" json:"label"`
@@ -157,12 +154,10 @@ type Account struct {
 	Frozen   int64  `protobuf:"varint,3,opt,name=frozen" json:"frozen"`
 	Addr     string `protobuf:"bytes,4,opt,name=addr" json:"addr"`
 }
-
 type Reply struct {
 	IsOk bool   `protobuf:"varint,1,opt,name=isOk" json:"isok"`
 	Msg  string `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg"`
 }
-
 type Headers struct {
 	Items []*Header `protobuf:"bytes,1,rep,name=items" json:"items"`
 }
@@ -180,11 +175,9 @@ type ReqWalletTransactionList struct {
 	Count     int32  `json:"count"`
 	Direction int32  `json:"direction"`
 }
-
 type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txdetails"`
 }
-
 type WalletTxDetail struct {
 	Tx        *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx"`
 	Receipt   *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`

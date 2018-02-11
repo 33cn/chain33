@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,7 +30,6 @@ type P2pCli struct {
 	taskinfo map[int64]bool
 	loopdone chan struct{}
 }
-
 type intervalInfo struct {
 	start int
 	end   int
@@ -50,7 +48,6 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 	if err != nil {
 		peer.peerStat.NotOk()
 	} else {
-		//peer.setRunning(true)
 		peer.peerStat.Ok()
 	}
 	m.deletePeer(peer)
@@ -145,9 +142,9 @@ func (m *P2pCli) GetAddr(peer *peer) ([]string, error) {
 	return resp.Addrlist, nil
 }
 
-func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
+func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 
-	client := node.nodeInfo.qclient
+	client := nodeinfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	err := client.Send(msg, true)
 	if err != nil {
@@ -162,17 +159,19 @@ func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(node.nodeInfo.GetExternalAddr().Port)})
+	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-	addrfrom := fmt.Sprintf("%v:%v", ExternalIp, node.nodeInfo.GetExternalAddr().Port)
-	node.nodeInfo.blacklist.Add(addrfrom)
-	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: node.nodeInfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
+	addrfrom := nodeinfo.GetExternalAddr().String()
+
+	nodeinfo.blacklist.Add(addrfrom)
+	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
-	defer m.CollectPeerStat(err, peer)
+	m.CollectPeerStat(err, peer)
+	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
 	if err != nil {
 		log.Debug("SendVersion", "Verson", err.Error())
 
@@ -182,18 +181,24 @@ func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
 		}
 		return err
 	}
-	if strings.Split(resp.GetAddrRecv(), ":")[0] != ExternalIp {
-		ExternalIp = strings.Split(resp.GetAddrRecv(), ":")[0]
-		node.FlushNodeInfo()
-
-	}
 	port, err := strconv.Atoi(strings.Split(resp.GetAddrRecv(), ":")[1])
 	if err != nil {
 		return err
 	}
-	if port != int(node.nodeInfo.GetExternalAddr().Port) {
-		node.SetPort(DefaultPort, uint(port))
-		node.FlushNodeInfo()
+
+	if strings.Split(resp.GetAddrRecv(), ":")[0] != nodeinfo.GetExternalAddr().IP.String() {
+		externalIp := strings.Split(resp.GetAddrRecv(), ":")[0]
+		log.Debug("sendVersion", "externalip", externalIp)
+		if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", externalIp, port)); err == nil {
+			nodeinfo.SetExternalAddr(exaddr)
+		}
+
+	}
+
+	if port != int(nodeinfo.GetExternalAddr().Port) {
+		if listenAddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, port)); err == nil {
+			nodeinfo.SetListenAddr(listenAddr)
+		}
 	}
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
@@ -201,23 +206,21 @@ func (m *P2pCli) SendVersion(peer *peer, node *Node) error {
 
 func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: ExternalIp, Port: int32(nodeinfo.GetExternalAddr().Port)})
+	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-	log.Debug("SEND PING", "Peer", peer.Addr(), "nonce", randNonce)
+	log.Debug("SendPing", "Peer", peer.Addr(), "nonce", randNonce)
 	r, err := peer.mconn.conn.Ping(context.Background(), in)
 	m.CollectPeerStat(err, peer)
 	if err != nil {
-		log.Warn("SEND PING", "Err", err.Error(), "peer", peer.Addr())
 		return err
 	}
 
-	log.Debug("RECV PONG", "resp:", r.Nonce, "Ping nonce:", randNonce)
+	log.Debug("SendPing", "recv pone", r.Nonce, "Ping nonce:", randNonce)
 	return nil
 }
-
 func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	client := nodeinfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
@@ -236,12 +239,10 @@ func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	header := resp.GetData().(*pb.Header)
 	return header.GetHeight(), nil
 }
-
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 
-	//log.Info("GetPeerInfo", "info", m.PeerInfos())
-	//添加自身peerInfo
 	tempServer := NewP2pServer()
+
 	tempServer.node = m.network.node
 	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 	if err != nil {
@@ -302,7 +303,6 @@ func (m *P2pCli) GetHeaders(msg queue.Message) {
 		}
 	}
 }
-
 func (m *P2pCli) GetBlocks(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
@@ -431,7 +431,6 @@ FOOR_LOOP:
 		p2pdata.Version = m.network.node.nodeInfo.cfg.GetVersion()
 		p2pdata.Invs = invs.Invs[interval.start:interval.end]
 		log.Debug("downloadBlock", "interval invs", p2pdata.Invs, "start", interval.start, "end", interval.end)
-		//判断请求的节点的高度是否在节点的实际范围内
 		if index >= peersize {
 			log.Error("download", "index", index, "peersise", peersize)
 			continue
@@ -446,7 +445,6 @@ FOOR_LOOP:
 		if pinfo, ok := pinfos[peer.Addr()]; ok {
 			if pinfo.GetHeader().GetHeight() < int64(invs.Invs[interval.end-1].GetHeight()) {
 				index++
-				//log.Debug("download", "much height", pinfo.GetHeader().GetHeight(), "invs height", int64(invs.Invs[interval.end-1].GetHeight()))
 				continue
 			}
 		} else {
@@ -488,11 +486,11 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 	var peerlist = make(map[string]*pb.Peer)
 	peers := m.network.node.GetRegisterPeers()
 	for _, peer := range peers {
-		if peer.Addr() == fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort()) {
+
+		if peer.Addr() == m.network.node.nodeInfo.GetExternalAddr().String() { //fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort())
 			continue
 		}
 		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
-		//peer.setRunning(false)
 		m.CollectPeerStat(err, peer)
 		if err != nil {
 			continue
@@ -506,24 +504,6 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = &pr
 	}
 	return peerlist
-}
-
-func (m *P2pCli) wait(wg *sync.WaitGroup) {
-	wg.Wait()
-}
-
-func (m *P2pCli) sortKeys(bchan chan *pb.Block) (map[int64]*pb.Block, []int) {
-
-	var keys []int
-	var blocks = make(map[int64]*pb.Block)
-	for block := range bchan {
-		keys = append(keys, int(block.GetHeight()))
-		blocks[block.GetHeight()] = block
-	}
-
-	sort.Ints(keys)
-	return blocks, keys
-
 }
 
 func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
@@ -553,7 +533,6 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 	return result
 
 }
-
 func (m *P2pCli) broadcastByStream(data interface{}) bool {
 	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
@@ -568,7 +547,6 @@ func (m *P2pCli) broadcastByStream(data interface{}) bool {
 	return true
 
 }
-
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
@@ -585,8 +563,7 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	}
 	peers, infos := m.network.node.GetActivePeers()
 	for _, peer := range peers {
-		//比较peer 的高度是否低于广播的高度，如果高于，则不广播给对方
-		//peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
+
 		peerinfo, ok := infos[peer.Addr()]
 		if !ok {
 			continue
@@ -635,7 +612,6 @@ func (m *P2pCli) deletePeer(peer *peer) {
 		return
 	}
 }
-
 func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 	data := pb.Encode(in)
 
@@ -660,7 +636,6 @@ func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 	in.Sign.Pubkey = priv.PubKey().Bytes()
 	return in, nil
 }
-
 func (m *P2pCli) flushPeerInfos(in []*pb.Peer) {
 	m.network.node.nodeInfo.peerInfos.flushPeerInfos(in)
 
@@ -672,7 +647,7 @@ func (m *P2pCli) PeerInfos() []*pb.Peer {
 	var peers []*pb.Peer
 	for _, peer := range peerinfos {
 
-		if peer.GetAddr() == ExternalIp && peer.GetPort() == int32(m.network.node.GetExterPort()) {
+		if peer.GetAddr() == m.network.node.nodeInfo.GetExternalAddr().IP.String() && peer.GetPort() == int32(m.network.node.nodeInfo.GetExternalAddr().Port) {
 			continue
 		}
 		peers = append(peers, peer)

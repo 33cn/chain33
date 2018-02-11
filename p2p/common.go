@@ -15,7 +15,7 @@ var P2pComm Comm
 
 type Comm struct{}
 
-func (Comm) AddrTest(addrs []string) []string {
+func (Comm) AddrRouteble(addrs []string) []string {
 	var enableAddrs []string
 	for _, addr := range addrs {
 
@@ -29,7 +29,6 @@ func (Comm) AddrTest(addrs []string) []string {
 	return enableAddrs
 
 }
-
 func (c Comm) GetLocalAddr() string {
 
 	conn, err := net.Dial("udp", "114.114.114.114:80")
@@ -91,7 +90,6 @@ func (c Comm) DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 	log.Debug("DialPeer", "Peer info", peer)
 	return peer, nil
 }
-
 func (c Comm) Pubkey(key string) (string, error) {
 
 	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))

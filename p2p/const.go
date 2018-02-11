@@ -20,8 +20,7 @@ const (
 )
 
 var (
-	LocalAddr  string
-	ExternalIp string
+	LocalAddr string
 )
 
 const (
@@ -33,6 +32,7 @@ const (
 	StableBoundNum       = 15
 	MaxAddrListNum       = 256
 	MaxRangeBlockNum     = 100
+	MaxAttemps           = 20
 )
 
 const (
@@ -46,6 +46,6 @@ const (
 )
 
 var (
-	SERVICE   int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
-	IsOutSide bool
+	SERVICE int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
+	OutSide bool
 )
