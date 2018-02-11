@@ -600,7 +600,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
-				return nil, err
+				continue
 			}
 
 			accounts = append(accounts, account)
