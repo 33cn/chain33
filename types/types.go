@@ -9,7 +9,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 )
 

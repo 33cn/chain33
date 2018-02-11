@@ -501,6 +501,7 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	}
 	return addrOverview, nil
 }
+
 func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHash, parm)
 	err := client.qclient.Send(msg, true)
@@ -530,6 +531,7 @@ func (client *channelClient) GenSeed(parm *types.GenSeedLang) (*types.ReplySeed,
 	}
 	return resp.Data.(*types.ReplySeed), nil
 }
+
 func (client *channelClient) SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventSaveSeed, parm)
 	err := client.qclient.Send(msg, true)
@@ -597,7 +599,6 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		accounts = append(accounts, account)
 		return accounts, nil
 	}
-	return nil, nil
 }
 
 func (client *channelClient) QueryHash(in *types.Query) (*types.Message, error) {

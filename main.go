@@ -36,8 +36,8 @@ import (
 )
 
 var (
-	CPUNUM     = runtime.NumCPU()
-	configpath = flag.String("f", "chain33.toml", "configfile")
+	cpuNum     = runtime.NumCPU()
+	configPath = flag.String("f", "chain33.toml", "configfile")
 )
 
 const Version = "v0.1.0"
@@ -45,7 +45,7 @@ const Version = "v0.1.0"
 func main() {
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
-	os.Chdir(getcurrentdir())
+	os.Chdir(pwd())
 	d, _ = os.Getwd()
 	log.Info("current dir:", "dir", d)
 	//set file limit
@@ -74,16 +74,16 @@ func main() {
 	grpc.EnableTracing = true
 	go startTrace()
 	//set maxprocs
-	runtime.GOMAXPROCS(CPUNUM)
+	runtime.GOMAXPROCS(cpuNum)
 
 	flag.Parse()
 	//set config
-	cfg := config.InitCfg(*configpath)
+	cfg := config.InitCfg(*configPath)
 
 	//set file log
 	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
 	//set grpc log
-	f, err := CreateFile(cfg.P2P.GetGrpcLogFile())
+	f, err := createFile(cfg.P2P.GetGrpcLogFile())
 	if err != nil {
 		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
 		grpclog.SetLoggerV2(glogv2)
@@ -168,7 +168,7 @@ func startTrace() {
 	log.Info("Trace listen on 50051")
 }
 
-func CreateFile(filename string) (*os.File, error) {
+func createFile(filename string) (*os.File, error) {
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
@@ -183,7 +183,7 @@ func watching() {
 	log.Info("info:", "Mem:", m.Sys/(1024*1024))
 }
 
-func getcurrentdir() string {
+func pwd() string {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		panic(err)

@@ -69,11 +69,11 @@ func (grpcx *grpcServer) CreateServer(addr string) {
 	}
 	grpcx.listener = listener
 	s := grpc.NewServer()
-	var grpc Grpc
-	grpc.cli = NewClient("channel", "")
-	grpc.cli.SetQueue(grpcx.q)
-	grpc.gserver = grpcx
-	pb.RegisterGrpcserviceServer(s, &grpc)
+	var rpc Grpc
+	rpc.cli = NewClient("channel", "")
+	rpc.cli.SetQueue(grpcx.q)
+	rpc.gserver = grpcx
+	pb.RegisterGrpcserviceServer(s, &rpc)
 	go s.Serve(listener)
 
 }
