@@ -10,12 +10,12 @@ import (
 
 type NodeInfo struct {
 	mtx sync.Mutex
-
-	pubKey           []byte      `json:"pub_key"`
-	network          string      `json:"network"`
-	externalAddr     *NetAddress `json:"remote_addr"`
-	listenAddr       *NetAddress `json:"listen_addr"`
-	version          string      `json:"version"`
+	//TODO remove json tag?
+	pubKey           []byte      //`json:"pub_key"`
+	network          string      //`json:"network"`
+	externalAddr     *NetAddress //`json:"remote_addr"`
+	listenAddr       *NetAddress //`json:"listen_addr"`
+	version          string      //`json:"version"`
 	monitorChan      chan *peer
 	natNoticeChain   chan struct{}
 	natResultChain   chan bool
@@ -26,6 +26,7 @@ type NodeInfo struct {
 	blacklist        *BlackList
 	peerInfos        *PeerInfos
 }
+
 type PeerInfos struct {
 	mtx   sync.Mutex
 	infos map[string]*types.Peer
@@ -92,6 +93,7 @@ func (nf *NodeInfo) Get() *NodeInfo {
 	defer nf.mtx.Unlock()
 	return nf
 }
+
 func (nf *NodeInfo) SetExternalAddr(addr *NetAddress) {
 	nf.mtx.Lock()
 	defer nf.mtx.Unlock()

@@ -213,5 +213,4 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		accounts = append(accounts, account)
 		return accounts, nil
 	}
-	return nil, nil
 }

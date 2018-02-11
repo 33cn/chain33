@@ -117,11 +117,14 @@ func (ka *knownAddress) markGood() {
 }
 
 func (ka *knownAddress) Copy() *knownAddress {
-	ka.kmtx.Lock()
-	defer ka.kmtx.Unlock()
-	copytmp := *ka
-	copytmp.Addr = copytmp.Addr.Copy()
-	return &copytmp
+	copy := knownAddress{
+		kmtx:        sync.Mutex{},
+		Addr:        ka.Addr.Copy(),
+		Attempts:    ka.Attempts,
+		LastAttempt: ka.LastAttempt,
+		LastSuccess: ka.LastSuccess,
+	}
+	return &copy
 }
 
 func (ka *knownAddress) markAttempt() {
@@ -137,6 +140,7 @@ func (ka *knownAddress) GetLastOk() time.Time {
 	defer ka.kmtx.Unlock()
 	return ka.LastSuccess
 }
+
 func (ka *knownAddress) GetAttempts() uint {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -191,6 +195,7 @@ func (a *AddrBook) saveToFile(filePath string) {
 	}
 
 }
+
 func (a *AddrBook) Pubkey() string {
 	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
 	if err != nil {
