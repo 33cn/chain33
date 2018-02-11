@@ -69,6 +69,37 @@ var (
 	ErrModify                     = errors.New("ErrModify")
 	ErrFutureBlock                = errors.New("ErrFutureBlock")
 	ErrHashNotFound               = errors.New("ErrHashNotFound")
+	
+	// BlockChain Error Types
+	 ErrHashNotExist = errors.New("ErrHashNotExist")
+	 ErrHeightNotExist = errors.New("ErrHeightNotExist")
+	 ErrTxNotExist = errors.New("ErrTxNotExist")
+	 ErrAddrNotExist = errors.New("ErrAddrNotExist")
+	 ErrStartHeight = errors.New("ErrStartHeight")
+	 ErrEndLessThanStartHeight = errors.New("ErrEndLessThanStartHeight")
+	 ErrClientNotBindQueue = errors.New("ErrClientNotBindQueue")
+	 ErrContinueBack = errors.New("ErrContinueBack")
+
+	 ErrUnmarshal = errors.New("ErrUnmarshal")
+	 ErrMarshal = errors.New("ErrMarshal")
+
+//wallet
+	 ErrInputPara = errors.New("ErrInputPara")
+	 ErrWalletIsLocked = errors.New("ErrWalletIsLocked")
+	 ErrSaveSeedFirst = errors.New("ErrSaveSeedFirst")
+	 ErrUnLockFirst = errors.New("ErrUnLockFirst")
+
+	 ErrLabelHasUsed = errors.New("ErrLabelHasUsed")
+	 ErrPrivkeyExist = errors.New("ErrPrivkeyExist")
+	 ErrPrivkey = errors.New("ErrPrivkey")
+	 ErrInsufficientBalance = errors.New("ErrInsufficientBalance")
+	 ErrVerifyOldpasswdFail = errors.New("ErrVerifyOldpasswdFail")
+	 ErrInputPassword = errors.New("ErrInputPassword")
+	 ErrSeedlang = errors.New("ErrSeedlang")
+	 ErrSeedNotExist = errors.New("ErrSeedNotExist")
+	 ErrSubPubKeyVerifyFail = errors.New("ErrSubPubKeyVerifyFail")
+	 ErrLabelNotExist = errors.New("ErrLabelNotExist")
+	 ErrAccountNotExist = errors.New("ErrAccountNotExist")
 )
 
 var (

@@ -26,12 +26,9 @@ var (
 	MaxTxNumPerBlock  int64 = 100000
 	MaxTxHashsPerTime int64 = 100
 
-	// Error code
+
 	walletlog      = log.New("module", "wallet")
-	ErrInputPara   = errors.New("Input parameter error")
-	WalletIsLocked = errors.New("Wallet Is Locked!")
-	SaveSeedFirst  = errors.New("please save seed first!")
-	UnLockFirst    = errors.New("UnLock Wallet first!")
+
 )
 
 type Wallet struct {
@@ -379,12 +376,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-	/*
-		ok, err := wallet.CheckWalletStatus()
-		if !ok {
-			return nil, err
-		}
-	*/
+
 	//通过Account前缀查找获取钱包中的所有账户信息
 	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
 	if err != nil || len(WalletAccStores) == 0 {
@@ -453,15 +445,14 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 
 	if Label == nil || len(Label.GetLabel()) == 0 {
 		walletlog.Error("ProcCreatNewAccount Label is nil")
-		return nil, ErrInputPara
+		return nil, types.ErrInputPara
 	}
 
 	//首先校验label是否已被使用
 	WalletAccStores, err := wallet.walletStore.GetAccountByLabel(Label.GetLabel())
 	if WalletAccStores != nil {
 		walletlog.Error("ProcCreatNewAccount Label is exist in wallet!")
-		Err := errors.New("Label Has been used in wallet!")
-		return nil, Err
+		return nil, types.ErrLabelHasUsed
 	}
 
 	var Account types.Account
@@ -535,19 +526,14 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-	/*
-		ok, err := wallet.CheckWalletStatus()
-		if !ok {
-			return nil, err
-		}
-	*/
+
 	if TxList == nil {
 		walletlog.Error("ProcWalletTxList TxList is nil!")
-		return nil, ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	if TxList.GetDirection() != 0 && TxList.GetDirection() != 1 {
 		walletlog.Error("ProcWalletTxList Direction err!")
-		return nil, ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	WalletTxDetails, err := wallet.walletStore.GetTxDetailByIter(TxList)
 	if err != nil {
@@ -577,15 +563,14 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 
 	if PrivKey == nil || len(PrivKey.GetLabel()) == 0 || len(PrivKey.GetPrivkey()) == 0 {
 		walletlog.Error("ProcImportPrivKey input parameter is nil!")
-		return nil, ErrInputPara
+		return nil, types.ErrInputPara
 	}
 
 	//校验label是否已经被使用
 	Account, err := wallet.walletStore.GetAccountByLabel(PrivKey.GetLabel())
 	if Account != nil {
 		walletlog.Error("ProcImportPrivKey Label is exist in wallet!")
-		Err := errors.New("Label Has been used in wallet!")
-		return nil, Err
+		return nil, types.ErrLabelHasUsed
 	}
 
 	//通过privkey生成一个pubkey然后换算成对应的addr
@@ -614,12 +599,10 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	if Account != nil {
 		if Account.Privkey == Encrypteredstr {
 			walletlog.Error("ProcImportPrivKey Privkey is exist in wallet!")
-			Err := errors.New("Privkey Has exists in wallet!")
-			return nil, Err
+			return nil, types.ErrPrivkeyExist
 		} else {
 			walletlog.Error("ProcImportPrivKey!", "Account.Privkey", Account.Privkey, "input Privkey", PrivKey.Privkey)
-			Err := errors.New("ProcImportPrivKey PrivKey not equal!")
-			return nil, Err
+			return nil, types.ErrPrivkey
 		}
 	}
 
@@ -678,11 +661,11 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 
 	if SendToAddress == nil {
 		walletlog.Error("ProcSendToAddress input para is nil")
-		return nil, ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	if len(SendToAddress.From) == 0 || len(SendToAddress.To) == 0 {
 		walletlog.Error("ProcSendToAddress input para From or To is nil!")
-		return nil, ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	var hash types.ReplyHash
 	//获取from账户的余额从account模块，校验余额是否充足
@@ -778,15 +761,10 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-	/*
-		ok, err := wallet.CheckWalletStatus()
-		if !ok {
-			return err
-		}
-	*/
+
 	if WalletSetFee.Amount < MinFee {
 		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", MinFee)
-		return ErrInputPara
+		return types.ErrInputPara
 	}
 	err := wallet.walletStore.SetFeeAmount(WalletSetFee.Amount)
 	if err == nil {
@@ -808,22 +786,16 @@ func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) erro
 func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-	/*
-		ok, err := wallet.CheckWalletStatus()
-		if !ok {
-			return nil, err
-		}
-	*/
+
 	if SetLabel == nil || len(SetLabel.Addr) == 0 || len(SetLabel.Label) == 0 {
 		walletlog.Error("ProcWalletSetLabel input parameter is nil!")
-		return nil, ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	//校验label是否已经被使用
 	Account, err := wallet.walletStore.GetAccountByLabel(SetLabel.GetLabel())
 	if Account != nil {
 		walletlog.Error("ProcWalletSetLabel Label is exist in wallet!")
-		Err := errors.New("Label Has been used in wallet!")
-		return nil, Err
+		return nil, types.ErrLabelHasUsed
 	}
 	//获取地址对应的账户信息从钱包中,然后修改label
 	Account, err = wallet.walletStore.GetAccountByAddr(SetLabel.Addr)
@@ -870,7 +842,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 
 	if len(MergeBalance.GetTo()) == 0 {
 		walletlog.Error("ProcMergeBalance input para is nil!")
-		return nil, ErrInputPara
+		return nil, types.ErrInputPara
 	}
 
 	//获取钱包上的所有账户信息
@@ -977,15 +949,13 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		isok := wallet.walletStore.VerifyPasswordHash(Passwd.Oldpass)
 		if !isok {
 			walletlog.Error("ProcWalletSetPasswd Verify Oldpasswd fail!")
-			err := errors.New("Verify Oldpasswd fail!")
-			return err
+			return types.ErrVerifyOldpasswdFail
 		}
 	}
 
 	if len(wallet.Password) != 0 && Passwd.Oldpass != wallet.Password {
 		walletlog.Error("ProcWalletSetPasswd Oldpass err!")
-		err := errors.New("ProcWalletSetPasswd Oldpass err!")
-		return err
+		return types.ErrVerifyOldpasswdFail
 	}
 
 	//使用新的密码生成passwdhash用于下次密码的验证
@@ -1045,7 +1015,7 @@ func (wallet *Wallet) ProcWalletLock() error {
 	//判断钱包是否已保存seed
 	has, _ := HasSeed(wallet.walletStore.db)
 	if !has {
-		return SaveSeedFirst
+		return types.ErrSaveSeedFirst
 	}
 
 	wallet.isLocked = true
@@ -1061,22 +1031,20 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 	//判断钱包是否已保存seed
 	has, _ := HasSeed(wallet.walletStore.db)
 	if !has {
-		return SaveSeedFirst
+		return types.ErrSaveSeedFirst
 	}
 	// 钱包已经加密需要验证passwd的正确性
 	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
 		isok := wallet.walletStore.VerifyPasswordHash(WalletUnLock.Passwd)
 		if !isok {
 			walletlog.Error("ProcWalletUnLock Verify Oldpasswd fail!")
-			err := errors.New("Verify Oldpasswd fail!")
-			return err
+			return types.ErrVerifyOldpasswdFail
 		}
 	}
 
 	//内存中已经记录password时的校验
 	if len(wallet.Password) != 0 && WalletUnLock.Passwd != wallet.Password {
-		err := errors.New("Input Password error!")
-		return err
+		return types.ErrInputPassword
 	}
 	//本钱包没有设置密码加密过,只需要解锁不需要记录解锁密码
 	if len(wallet.Password) != 0 || wallet.EncryptFlag != 0 {
@@ -1389,7 +1357,7 @@ func (wallet *Wallet) genSeed(lang int32) (*types.ReplySeed, error) {
 //获取seed种子, 通过钱包密码
 func (wallet *Wallet) getSeed(password string) (string, error) {
 	if wallet.IsLocked() {
-		return "", WalletIsLocked
+		return "", types.ErrWalletIsLocked
 	}
 	seed, err := GetSeed(wallet.walletStore.db, password)
 	if err != nil {
@@ -1402,7 +1370,7 @@ func (wallet *Wallet) getSeed(password string) (string, error) {
 //保存seed种子到数据库中, 并通过钱包密码加密, 钱包起来首先要设置seed
 func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	if wallet.IsLocked() {
-		return false, WalletIsLocked
+		return false, types.ErrWalletIsLocked
 	}
 
 	//首先需要判断钱包是否已经设置seed，如果已经设置提示不需要再设置，一个钱包只能保存一个seed
@@ -1412,7 +1380,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	}
 	//入参数校验，seed必须是15个单词或者汉字
 	if len(password) == 0 || len(seed) == 0 {
-		return false, ErrInputPara
+		return false, types.ErrInputPara
 	}
 
 	seedarry := strings.Fields(seed)
@@ -1446,17 +1414,17 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 //钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	if wallet.IsLocked() {
-		return false, WalletIsLocked
+		return false, types.ErrWalletIsLocked
 	}
 	//判断钱包是否已保存seed
 	has, _ := HasSeed(wallet.walletStore.db)
 	if !has {
-		return false, SaveSeedFirst
+		return false, types.ErrSaveSeedFirst
 	}
 
 	// 钱包已经加密需要先通过password 解锁钱包
 	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
-		return false, UnLockFirst
+		return false, types.ErrUnLockFirst
 	}
 	return true, nil
 
