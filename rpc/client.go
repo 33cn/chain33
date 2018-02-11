@@ -588,7 +588,6 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-
 		accounts, err := account.LoadAccounts(client.q, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())

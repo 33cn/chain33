@@ -684,7 +684,6 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		walletlog.Error("ProcSendToAddress input para From or To is nil!")
 		return nil, ErrInputPara
 	}
-	var hash types.ReplyHash
 	//获取from账户的余额从account模块，校验余额是否充足
 	addrs := make([]string, 1)
 	addrs[0] = SendToAddress.GetFrom()
@@ -704,42 +703,11 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 
 	addrto := SendToAddress.GetTo()
 	note := SendToAddress.GetNote()
-
-	transfer := &types.CoinsAction{}
-
-	if amount > 0 {
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionTransfer
-	} else {
-		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: note}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionWithdraw
-	}
-	//初始化随机数
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
 		return nil, err
 	}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
-	tx.Sign(types.SECP256K1, priv)
-
-	//发送交易信息给mempool模块
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
-	if err != nil {
-		walletlog.Error("ProcSendToAddress", "Send err", err)
-		return nil, err
-	}
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
-	}
-
-	hash.Hash = tx.Hash()
-	return &hash, nil
+	return wallet.sendToAddress(priv, addrto, amount, note)
 }
 
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {

@@ -77,6 +77,10 @@ func (tx *Transaction) Check() error {
 
 func (tx *Transaction) GetRealFee() (int64, error) {
 	txSize := Size(tx)
+	//如果签名为空，那么加上签名的空间
+	if tx.Signature == nil {
+		txSize += 300
+	}
 	if txSize > int(MaxTxSize) {
 		return 0, ErrTxMsgSizeTooBig
 	}
