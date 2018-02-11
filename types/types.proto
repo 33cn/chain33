@@ -881,4 +881,8 @@ message ReplyStrings {
 	repeated string datas = 1;
 }
 
+message BlockBody {
+	repeated Transaction txs = 1;
+	repeated ReceiptData receipts = 2;
+}
 
