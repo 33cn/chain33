@@ -6,24 +6,28 @@ import (
 
 var log = l.New("module", "rpc")
 
-type JTransparm struct {
+type TransParm struct {
 	Execer    string     `json:"execer"`
 	Payload   string     `json:"payload"`
 	Signature *Signature `json:"signature"`
 	Fee       int64      `json:"fee"`
 }
+
 type SignedTx struct {
 	Unsign string `json:"unsigntx"`
 	Sign   string `json:"sign"`
 	Pubkey string `json:"pubkey"`
 	Ty     int32  `json:"ty"`
 }
+
 type RawParm struct {
 	Data string `json:"data"`
 }
+
 type QueryParm struct {
 	Hash string `json:"hash"`
 }
+
 type BlockParam struct {
 	Start    int64 `json:"start"`
 	End      int64 `json:"end"`
@@ -46,6 +50,7 @@ type Signature struct {
 	Pubkey    string `json:"pubkey"`
 	Signature string `json:"signature"`
 }
+
 type Transaction struct {
 	Execer    string     `json:"execer"`
 	Payload   string     `json:"payload"`
@@ -55,14 +60,17 @@ type Transaction struct {
 	Nonce     int64      `json:"nonce"`
 	To        string     `json:"to"`
 }
+
 type ReceiptLog struct {
 	Ty  int32  `json:"ty"`
 	Log string `json:"log"`
 }
+
 type ReceiptData struct {
 	Ty   int32         `json:"ty"`
 	Logs []*ReceiptLog `json:"logs"`
 }
+
 type Block struct {
 	Version    int64          `json:"version"`
 	ParentHash string         `json:"parenthash"`
@@ -72,6 +80,7 @@ type Block struct {
 	BlockTime  int64          `json:"blocktime"`
 	Txs        []*Transaction `json:"txs"`
 }
+
 type BlockDetail struct {
 	Block    *Block         `json:"block"`
 	Receipts []*ReceiptData `json:"recipts"`
@@ -101,6 +110,7 @@ type ReplyTxInfo struct {
 	Height int64  `json:"height"`
 	Index  int64  `json:"index"`
 }
+
 type TransactionDetails struct {
 	//Txs []*Transaction `json:"txs"`
 	Txs []*TransactionDetail `protobuf:"bytes,1,rep,name=txs" json:"txs"`
@@ -109,15 +119,19 @@ type TransactionDetails struct {
 type ReplyTxList struct {
 	Txs []*Transaction `json:"txs"`
 }
+
 type ReplyHash struct {
 	Hash string `json:"hash"`
 }
+
 type ReplyHashes struct {
-	Hashes []string `json:hashes`
+	Hashes []string `json:"hashes"`
 }
+
 type PeerList struct {
 	Peers []*Peer `json:"peers"`
 }
+
 type Peer struct {
 	Addr        string  `json:"addr"`
 	Port        int32   `json:"port"`
@@ -131,6 +145,7 @@ type Peer struct {
 type WalletAccounts struct {
 	Wallets []*WalletAccount `protobuf:"bytes,1,rep,name=wallets" json:"wallets"`
 }
+
 type WalletAccount struct {
 	Acc   *Account `protobuf:"bytes,1,opt,name=acc" json:"acc"`
 	Label string   `protobuf:"bytes,2,opt,name=label" json:"label"`
@@ -142,10 +157,12 @@ type Account struct {
 	Frozen   int64  `protobuf:"varint,3,opt,name=frozen" json:"frozen"`
 	Addr     string `protobuf:"bytes,4,opt,name=addr" json:"addr"`
 }
+
 type Reply struct {
 	IsOk bool   `protobuf:"varint,1,opt,name=isOk" json:"isok"`
 	Msg  string `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg"`
 }
+
 type Headers struct {
 	Items []*Header `protobuf:"bytes,1,rep,name=items" json:"items"`
 }
@@ -163,9 +180,11 @@ type ReqWalletTransactionList struct {
 	Count     int32  `json:"count"`
 	Direction int32  `json:"direction"`
 }
+
 type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txdetails"`
 }
+
 type WalletTxDetail struct {
 	Tx        *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx"`
 	Receipt   *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`

@@ -20,9 +20,11 @@ import (
 	"github.com/inconshreveable/log15"
 )
 
-var tlog = log15.New("module", "ticket")
-var powLimit = common.CompactToBig(types.PowLimitBits)
-var defaultModify = []byte("modify")
+var (
+	tlog          = log15.New("module", "ticket")
+	powLimit      = common.CompactToBig(types.PowLimitBits)
+	defaultModify = []byte("modify")
+)
 
 type TicketClient struct {
 	*drivers.BaseClient
@@ -291,7 +293,7 @@ func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big
 }
 
 func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
-	s := fmt.Sprint("%d:%s:%x", blocktime, id, modify)
+	s := fmt.Sprintf("%d:%s:%x", blocktime, id, modify)
 	hash := common.Sha2Sum([]byte(s))
 	num := common.HashToBig(hash[:])
 	return common.CompactToBig(common.BigToCompact(num))

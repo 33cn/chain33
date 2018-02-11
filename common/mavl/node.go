@@ -130,7 +130,6 @@ func (node *MAVLNode) getByIndex(t *MAVLTree, index int32) (key []byte, value []
 			return node.key, node.value
 		} else {
 			panic("getByIndex asked for invalid index")
-			return nil, nil
 		}
 	} else {
 		// TODO: could improve this by storing the sizes as well as left/right hash.
