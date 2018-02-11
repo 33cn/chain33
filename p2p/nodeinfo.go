@@ -10,14 +10,15 @@ import (
 
 type NodeInfo struct {
 	mtx sync.Mutex
-	//TODO remove json tag?
-	pubKey           []byte      //`json:"pub_key"`
-	network          string      //`json:"network"`
-	externalAddr     *NetAddress //`json:"remote_addr"`
-	listenAddr       *NetAddress //`json:"listen_addr"`
-	version          string      //`json:"version"`
+
+	pubKey           []byte     
+	network          string      
+	externalAddr     *NetAddress 
+	listenAddr       *NetAddress 
+	version          string      
 	monitorChan      chan *peer
 	natNoticeChain   chan struct{}
+	natDone          chan struct{}
 	natResultChain   chan bool
 	p2pBroadcastChan chan interface{}
 	cfg              *types.P2P
@@ -25,6 +26,20 @@ type NodeInfo struct {
 	qclient          queue.Client
 	blacklist        *BlackList
 	peerInfos        *PeerInfos
+}
+
+func NewNodeInfo(cfg *types.P2P) *NodeInfo {
+	nodeInfo := new(NodeInfo)
+	nodeInfo.monitorChan = make(chan *peer, 1024)
+	nodeInfo.natNoticeChain = make(chan struct{}, 1)
+	nodeInfo.natResultChain = make(chan bool, 1)
+	nodeInfo.natDone = make(chan struct{}, 1)
+	nodeInfo.p2pBroadcastChan = make(chan interface{}, 4096)
+	nodeInfo.blacklist = &BlackList{badPeers: make(map[string]bool)}
+	nodeInfo.cfg = cfg
+	nodeInfo.peerInfos = new(PeerInfos)
+	nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
+	return nodeInfo
 }
 
 type PeerInfos struct {
@@ -41,11 +56,11 @@ func (p *PeerInfos) PeerSize() int {
 func (p *PeerInfos) flushPeerInfos(in []*types.Peer) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
-	//首先清空之前的数据
+
 	for k, _ := range p.infos {
 		delete(p.infos, k)
 	}
-	//重新插入新数据
+
 	for _, peer := range in {
 		p.infos[fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())] = peer
 	}
@@ -93,7 +108,6 @@ func (nf *NodeInfo) Get() *NodeInfo {
 	defer nf.mtx.Unlock()
 	return nf
 }
-
 func (nf *NodeInfo) SetExternalAddr(addr *NetAddress) {
 	nf.mtx.Lock()
 	defer nf.mtx.Unlock()

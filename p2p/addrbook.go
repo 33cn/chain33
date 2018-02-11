@@ -154,6 +154,15 @@ func (ka *knownAddress) GetAttempts() uint {
 	return ka.Attempts
 }
 
+func (a *AddrBook) ISOurAddress(addr *NetAddress) bool {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	if _, ok := a.ourAddrs[addr.String()]; ok {
+		return true
+	}
+	return false
+}
+
 func (a *AddrBook) AddOurAddress(addr *NetAddress) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()

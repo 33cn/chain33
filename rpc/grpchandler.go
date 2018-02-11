@@ -298,12 +298,12 @@ func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.Reply,
 	return reply, nil
 }
 
-func (req *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Account, error) {
+func (req *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts, error) {
 	reply, err := req.cli.GetBalance(in)
 	if err != nil {
 		return nil, err
 	}
-	return reply[0], nil
+	return &pb.Accounts{Acc: reply}, nil
 }
 
 func (req *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) {

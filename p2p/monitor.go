@@ -23,7 +23,7 @@ FOR_LOOP:
 
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
-					if stat.GetAttempts() > 20 || peer.GetRunning() == false {
+					if stat.GetAttempts() > MaxAttemps || peer.GetRunning() == false {
 						log.Info("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
 
 						n.destroyPeer(peer)
@@ -35,7 +35,6 @@ FOR_LOOP:
 
 	}
 }
-
 func (n *Node) destroyPeer(peer *peer) {
 	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
 	n.addrBook.RemoveAddr(peer.Addr())
@@ -48,9 +47,8 @@ func (n *Node) monitorErrPeer() {
 	for {
 
 		peer := <-n.nodeInfo.monitorChan
-		if peer.version.IsSupport() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
+		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
 			log.Debug("VersoinMonitor", "NotSupport", "DELETE")
-			//n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
 			n.destroyPeer(peer)
 		}
 
@@ -80,11 +78,10 @@ FOR_LOOP:
 						log.Error("getAddrFromOnline", "ERROR", err.Error())
 						continue
 					}
-					//log.Info("getAddrFromOnline", "ADDRLIST", addrlist)
-					//过滤无法连接的节点
 
+					log.Debug("GetAddrFromOnline", "addrlist", addrlist)
 					//过滤黑名单的地址
-					oklist := P2pComm.AddrTest(addrlist)
+					oklist := P2pComm.AddrRouteble(addrlist)
 					var whitlist = make(map[string]bool)
 					for _, addr := range oklist {
 						if n.nodeInfo.blacklist.Has(addr) == false {
@@ -130,14 +127,14 @@ FOR_LOOP:
 					for _, peer := range peeraddrs {
 						testlist = append(testlist, peer.String())
 					}
-					oklist := P2pComm.AddrTest(testlist)
+					oklist := P2pComm.AddrRouteble(testlist)
 					for _, addr := range oklist {
 
 						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
 							log.Debug("GetAddrFromOffline", "Add addr", addr)
 							savelist[addr] = true
 						}
-						//log.Debug("getAddrFromOffline", "list", savelist)
+
 					}
 				}
 
