@@ -44,10 +44,11 @@ type Iterator interface {
 //-----------------------------------------------------------------------------
 
 const (
-	LevelDBBackendStr   = "leveldb" // legacy, defaults to goleveldb.
-	CLevelDBBackendStr  = "cleveldb"
-	GoLevelDBBackendStr = "goleveldb"
-	MemDBBackendStr     = "memdb"
+	LevelDBBackendStr    = "leveldb" // legacy, defaults to goleveldb.
+	CLevelDBBackendStr   = "cleveldb"
+	GoLevelDBBackendStr  = "goleveldb"
+	MemDBBackendStr      = "memdb"
+	GoBadgerDBBackendStr = "gobadger"
 )
 
 type dbCreator func(name string, dir string, cache int) (DB, error)
