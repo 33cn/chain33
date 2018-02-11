@@ -641,9 +641,10 @@ message Consensus {
 	bool minerstart = 3;
 	int64 nodeId = 4;
 	int64 raftApiPort = 5;
-	string peersURL = 6;
-	int64 genesisBlockTime = 7;
-	string hotkeyAddr = 8;
+	bool isNewJoinNode= 6;
+	string peersURL = 7;
+	int64 genesisBlockTime = 8;
+	string hotkeyAddr = 9;
 }
 
 message MemPool {
