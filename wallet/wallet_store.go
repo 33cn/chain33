@@ -277,6 +277,7 @@ func (ws *WalletStore) SetPasswordHash(password string) error {
 	ws.db.SetSync(PasswordHash, pwhashbytes)
 	return nil
 }
+
 func (ws *WalletStore) VerifyPasswordHash(password string) bool {
 	var WalletPwHash types.WalletPwHash
 	pwhashbytes := ws.db.Get(PasswordHash)
