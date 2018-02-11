@@ -5,114 +5,101 @@ import (
 	"time"
 )
 
-var ErrNotFound = errors.New("ErrNotFound")
-var ErrBlockExec = errors.New("ErrBlockExec")
-var ErrCheckStateHash = errors.New("ErrCheckStateHash")
-var ErrCheckTxHash = errors.New("ErrCheckTxHash")
-var ErrReRunGenesis = errors.New("ErrReRunGenesis")
-var ErrActionNotSupport = errors.New("ErrActionNotSupport")
-var ErrChannelFull = errors.New("ErrChannelFull")
-var ErrAmount = errors.New("ErrAmount")
-var ErrNoTicket = errors.New("ErrNoTicket")
-var ErrMinerIsStared = errors.New("ErrMinerIsStared")
-var ErrMinerNotStared = errors.New("ErrMinerNotStared")
-var ErrTicketCount = errors.New("ErrTicketCount")
-var ErrHashlockAmount = errors.New("ErrHashlockAmount")
-var ErrHashlockHash = errors.New("ErrHashlockHash")
-var ErrHashlockStatus = errors.New("ErrHashlockStatus")
-var ErrNoPeer = errors.New("ErrNoPeer")
-var ErrExecNameNotMath = errors.New("ErrExecNameNotMath")
-var ErrChannelClosed = errors.New("ErrChannelClosed")
-var ErrNotMinered = errors.New("ErrNotMinered")
-var ErrTime = errors.New("ErrTime")
-var ErrFromAddr = errors.New("ErrFromAddr")
-var ErrBlockHeight = errors.New("ErrBlockHeight")
-var ErrCoinBaseExecer = errors.New("ErrCoinBaseExecer")
-var ErrCoinBaseTxType = errors.New("ErrCoinBaseTxType")
-var ErrCoinBaseExecErr = errors.New("ErrCoinBaseExecErr")
-var ErrCoinBaseTarget = errors.New("ErrCoinBaseTarget")
-var ErrCoinbaseReward = errors.New("ErrCoinbaseReward")
-var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
-var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
-var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
-var ErrBlockNotFound = errors.New("ErrBlockNotFound")
-var ErrHashlockReturnAddrss = errors.New("ErrHashlockReturnAddrss")
-var ErrHashlockTime = errors.New("ErrHashlockTime")
-var ErrHashlockReapeathash = errors.New("ErrHashlockReapeathash")
-var ErrStartBigThanEnd = errors.New("ErrStartBigThanEnd")
-var ErrToAddrNotSameToExecAddr = errors.New("ErrToAddrNotSameToExecAddr")
-var ErrTypeAsset = errors.New("ErrTypeAsset")
-var ErrEmpty = errors.New("ErrEmpty")
-var ErrSendSameToRecv = errors.New("ErrSendSameToRecv")
-var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
-var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
-var ErrTimeout = errors.New("ErrTimeout")
-var ErrBlockHeaderDifficulty = errors.New("ErrBlockHeaderDifficulty")
-var ErrNoTx = errors.New("ErrNoTx")
+var (
+	ErrNotFound                   = errors.New("ErrNotFound")
+	ErrBlockExec                  = errors.New("ErrBlockExec")
+	ErrCheckStateHash             = errors.New("ErrCheckStateHash")
+	ErrCheckTxHash                = errors.New("ErrCheckTxHash")
+	ErrReRunGenesis               = errors.New("ErrReRunGenesis")
+	ErrActionNotSupport           = errors.New("ErrActionNotSupport")
+	ErrChannelFull                = errors.New("ErrChannelFull")
+	ErrAmount                     = errors.New("ErrAmount")
+	ErrNoTicket                   = errors.New("ErrNoTicket")
+	ErrMinerIsStared              = errors.New("ErrMinerIsStared")
+	ErrMinerNotStared             = errors.New("ErrMinerNotStared")
+	ErrTicketCount                = errors.New("ErrTicketCount")
+	ErrHashlockAmount             = errors.New("ErrHashlockAmount")
+	ErrHashlockHash               = errors.New("ErrHashlockHash")
+	ErrHashlockStatus             = errors.New("ErrHashlockStatus")
+	ErrNoPeer                     = errors.New("ErrNoPeer")
+	ErrExecNameNotMath            = errors.New("ErrExecNameNotMath")
+	ErrChannelClosed              = errors.New("ErrChannelClosed")
+	ErrNotMinered                 = errors.New("ErrNotMinered")
+	ErrTime                       = errors.New("ErrTime")
+	ErrFromAddr                   = errors.New("ErrFromAddr")
+	ErrBlockHeight                = errors.New("ErrBlockHeight")
+	ErrCoinBaseExecer             = errors.New("ErrCoinBaseExecer")
+	ErrCoinBaseTxType             = errors.New("ErrCoinBaseTxType")
+	ErrCoinBaseExecErr            = errors.New("ErrCoinBaseExecErr")
+	ErrCoinBaseTarget             = errors.New("ErrCoinBaseTarget")
+	ErrCoinbaseReward             = errors.New("ErrCoinbaseReward")
+	ErrNotAllowDeposit            = errors.New("ErrNotAllowDeposit")
+	ErrCoinBaseIndex              = errors.New("ErrCoinBaseIndex")
+	ErrCoinBaseTicketStatus       = errors.New("ErrCoinBaseTicketStatus")
+	ErrBlockNotFound              = errors.New("ErrBlockNotFound")
+	ErrHashlockReturnAddrss       = errors.New("ErrHashlockReturnAddrss")
+	ErrHashlockTime               = errors.New("ErrHashlockTime")
+	ErrHashlockReapeathash        = errors.New("ErrHashlockReapeathash")
+	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
+	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
+	ErrTypeAsset                  = errors.New("ErrTypeAsset")
+	ErrEmpty                      = errors.New("ErrEmpty")
+	ErrSendSameToRecv             = errors.New("ErrSendSameToRecv")
+	ErrExecNameNotAllow           = errors.New("ErrExecNameNotAllow")
+	ErrLocalDBPerfix              = errors.New("ErrLocalDBPerfix")
+	ErrTimeout                    = errors.New("ErrTimeout")
+	ErrBlockHeaderDifficulty      = errors.New("ErrBlockHeaderDifficulty")
+	ErrNoTx                       = errors.New("ErrNoTx")
+	ErrTxExist                    = errors.New("ErrTxExist")
+	ErrManyTx                     = errors.New("ErrManyTx")
+	ErrDupTx                      = errors.New("ErrDupTx")
+	ErrMemFull                    = errors.New("ErrMemFull")
+	ErrNoBalance                  = errors.New("ErrNoBalance")
+	ErrBalanceLessThanTenTimesFee = errors.New("ErrBalanceLessThanTenTimesFee")
+	ErrTxExpire                   = errors.New("ErrTxExpire")
+	ErrSign                       = errors.New("ErrSign")
+	ErrFeeTooLow                  = errors.New("ErrFeeTooLow")
+	ErrEmptyTx                    = errors.New("ErrEmptyTx")
+	ErrTxFeeTooLow                = errors.New("ErrTxFeeTooLow")
+	ErrTxMsgSizeTooBig            = errors.New("ErrTxMsgSizeTooBig")
+	ErrTicketClosed               = errors.New("ErrTicketClosed")
+	ErrEmptyMinerTx               = errors.New("ErrEmptyMinerTx")
+	ErrMinerNotPermit             = errors.New("ErrMinerNotPermit")
+	ErrMinerAddr                  = errors.New("ErrMinerAddr")
+	ErrModify                     = errors.New("ErrModify")
+	ErrFutureBlock                = errors.New("ErrFutureBlock")
+)
 
-// Mempool Error Types
-var ErrTxExist = errors.New("ErrTxExist")
-var ErrManyTx = errors.New("ErrManyTx")
-var ErrDupTx = errors.New("ErrDupTx")
-var ErrMemFull = errors.New("ErrMemFull")
-var ErrNoBalance = errors.New("ErrNoBalance")
-var ErrBalanceLessThanTenTimesFee = errors.New("ErrBalanceLessThanTenTimesFee")
-var ErrTxExpire = errors.New("ErrTxExpire")
-var ErrSign = errors.New("ErrSign")
-var ErrFeeTooLow = errors.New("ErrFeeTooLow")
-var ErrEmptyTx = errors.New("ErrEmptyTx")
-var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
-var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
-var ErrTicketClosed = errors.New("ErrTicketClosed")
-var ErrEmptyMinerTx = errors.New("ErrEmptyMinerTx")
-var ErrMinerNotPermit = errors.New("ErrMinerNotPermit")
-var ErrMinerAddr = errors.New("ErrMinerAddr")
-var ErrModify = errors.New("ErrModify")
-var ErrFutureBlock = errors.New("ErrFutureBlock")
+var (
+	AllowDepositExec       = []string{"ticket"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "none"}
+	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+	GenesisBlockTime int64 = 1514533394
+	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+	FundKeyAddr            = "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
+	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+)
 
-const Coin int64 = 1e8
-const MaxCoin int64 = 1e17
-const FutureBlockTime int64 = 16
-
-//用户回报
-const CoinReward int64 = 18 * Coin
-
-//发展基金回报
-const CoinDevFund int64 = 12 * Coin
-
-const TicketPrice int64 = 10000 * Coin
-
-//测试的的时间设置为10s
-
-//const TicketFrozenTime int64 = 86400 / 2         //0.5days
-//const TicketWithdrawTime int64 = (3 * 86400) / 2 //1.5days
-
-const TicketFrozenTime int64 = 5    //5s only for test
-const TicketWithdrawTime int64 = 10 //10s only for test
-
-const MinFee int64 = 1e5
-const MinBalanceTransfer = 1e6
-const MaxTxSize int64 = 100000      //100K
-const MaxBlockSize int64 = 10000000 //10M
-const MaxTxNumber int64 = 1600      //160
-
-const PowLimitBits uint32 = uint32(0x1f00ffff)
-
-const TargetTimespan = 144 * 16 * time.Second
-const TargetTimePerBlock = 16 * time.Second
-const RetargetAdjustmentFactor = 4
-const MaxTxsPerBlock = 100000
-
-var AllowDepositExec = []string{"ticket"}
-var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
-
-var GenesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-var GenesisBlockTime int64 = 1514533394
-var HotkeyAddr = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-var FundKeyAddr = "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
-
-//这字符串表示数据库中的空值
-var EmptyValue = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF")
+const (
+	Coin                     int64  = 1e8
+	MaxCoin                  int64  = 1e17
+	FutureBlockTime          int64  = 16
+	CoinReward               int64  = 18 * Coin //用户回报
+	CoinDevFund              int64  = 12 * Coin //发展基金回报
+	TicketPrice              int64  = 10000 * Coin
+	TicketFrozenTime         int64  = 5  //5s only for test
+	TicketWithdrawTime       int64  = 10 //10s only for test
+	MinFee                   int64  = 1e5
+	MinBalanceTransfer              = 1e6
+	MaxTxSize                int64  = 100000   //100K
+	MaxBlockSize             int64  = 10000000 //10M
+	MaxTxNumber              int64  = 1600     //160
+	PowLimitBits             uint32 = uint32(0x1f00ffff)
+	TargetTimespan                  = 144 * 16 * time.Second
+	TargetTimePerBlock              = 16 * time.Second
+	RetargetAdjustmentFactor        = 4
+	MaxTxsPerBlock                  = 100000
+)
 
 const (
 	EventTx                   = 1
@@ -208,7 +195,7 @@ const (
 	EventWalletAutoMiner   = 88
 )
 
-var eventname = map[int]string{
+var eventName = map[int]string{
 	1:  "EventTx",
 	2:  "EventGetBlocks",
 	3:  "EventBlocks",
@@ -299,14 +286,6 @@ var eventname = map[int]string{
 	88: "EventWalletAutoMiner",
 }
 
-func GetEventName(event int) string {
-	name, ok := eventname[event]
-	if ok {
-		return name
-	}
-	return "unknow-event"
-}
-
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
 //ty = 3 -> sm2
@@ -315,18 +294,6 @@ const (
 	ED25519   = 2
 	SM2       = 3
 )
-
-func GetSignatureTypeName(signType int) string {
-	if signType == 1 {
-		return "secp256k1"
-	} else if signType == 2 {
-		return "ed25519"
-	} else if signType == 3 {
-		return "sm2"
-	} else {
-		return "unknow"
-	}
-}
 
 //log type
 const (
@@ -374,3 +341,23 @@ const (
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
 )
+
+func GetEventName(event int) string {
+	name, ok := eventName[event]
+	if ok {
+		return name
+	}
+	return "unknow-event"
+}
+
+func GetSignatureTypeName(signType int) string {
+	if signType == 1 {
+		return "secp256k1"
+	} else if signType == 2 {
+		return "ed25519"
+	} else if signType == 3 {
+		return "sm2"
+	} else {
+		return "unknow"
+	}
+}
