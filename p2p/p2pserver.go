@@ -119,6 +119,16 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if err == nil {
 		if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
 			s.node.addrBook.AddAddress(remoteNetwork)
+			//broadcast again
+			go func() {
+				peers, _ := s.node.GetActivePeers()
+				for _, peer := range peers {
+					_, err := peer.mconn.conn.Version2(context.Background(), in)
+					if err != nil {
+						continue
+					}
+				}
+			}()
 		}
 
 	}
