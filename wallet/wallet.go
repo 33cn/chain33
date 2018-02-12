@@ -224,7 +224,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("0"))
 			}
 			wallet.setAutoMining(int32(flag))
+			wallet.flushTicket()
+			msg.ReplyErr("EventWalletAutoMiner", nil)
 		case types.EventWalletGetTickets:
+			if !wallet.isAutoMining() {
+				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, types.ErrMinerNotStared))
+				return
+			}
 			tickets, privs, err := wallet.GetTickets(1)
 			if err != nil {
 				walletlog.Error("GetTickets", "err", err.Error())
