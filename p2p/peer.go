@@ -196,7 +196,6 @@ func (p *peer) SendData(data interface{}) (err error) {
 
 	select {
 	case <-tick.C:
-		//log.Error("Peer SendData", "timeout", "return")
 		return
 
 	case p.taskChan <- data:
@@ -205,27 +204,29 @@ func (p *peer) SendData(data interface{}) (err error) {
 }
 
 func (p *peer) subStreamBlock() {
-	//p.taskChan = ps.Sub(p.Addr())
+
 	pcli := NewP2pCli(nil)
 	go func(p *peer) {
 		//Stream Send data
 		for {
+
+			ctx, cancel := context.WithCancel(context.Background())
+			resp, err := p.mconn.conn.RouteChat(ctx)
+			if err != nil {
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				time.Sleep(time.Second * 5)
+				cancel()
+				continue
+			}
+
 			select {
 			case <-p.allLoopDone:
 				log.Debug("peer SubStreamBlock", "Send Stream  Done", p.Addr())
 				return
 
 			default:
-				ctx, cancel := context.WithCancel(context.Background())
-				resp, err := p.mconn.conn.RouteChat(ctx)
-				if err != nil {
-					p.peerStat.NotOk()
-					(*p.nodeInfo).monitorChan <- p
-					time.Sleep(time.Second * 5)
-					cancel()
-					continue
-				}
-				//for task := range p.taskChan {
+
 				for task := range p.taskChan {
 					p2pdata := new(pb.BroadCastData)
 					if block, ok := task.(*pb.P2PBlock); ok {
@@ -265,20 +266,23 @@ func (p *peer) subStreamBlock() {
 		}
 	}(p)
 	for {
+		resp, err := p.mconn.conn.RouteChat(context.Background())
+		if err != nil {
+			p.peerStat.NotOk()
+			(*p.nodeInfo).monitorChan <- p
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		log.Debug("SubStreamBlock", "Start", p.Addr())
+
 		select {
 		case <-p.allLoopDone:
-			log.Debug("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
+			log.Info("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
+			resp.CloseSend()
 			return
 
 		default:
-			resp, err := p.mconn.conn.RouteChat(context.Background())
-			if err != nil {
-				p.peerStat.NotOk()
-				(*p.nodeInfo).monitorChan <- p
-				time.Sleep(time.Second * 5)
-				continue
-			}
-			log.Debug("SubStreamBlock", "Start", p.Addr())
+
 			for {
 				data, err := resp.Recv()
 				if err != nil {

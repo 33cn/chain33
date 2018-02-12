@@ -121,12 +121,13 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 			s.node.addrBook.AddAddress(remoteNetwork)
 			//broadcast again
 			go func() {
+				if time.Now().Unix()-in.GetTimestamp() > 5 {
+					return
+				}
 				peers, _ := s.node.GetActivePeers()
 				for _, peer := range peers {
-					_, err := peer.mconn.conn.Version2(context.Background(), in)
-					if err != nil {
-						continue
-					}
+					peer.mconn.conn.Version2(context.Background(), in)
+
 				}
 			}()
 		}
@@ -138,7 +139,6 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
 }
 
-//grpc 接收广播交易
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
 	client := s.node.nodeInfo.qclient
