@@ -702,6 +702,12 @@ message WalletPwHash {
 	string randstr = 2;
 }
 
+message WalletStatus {
+	bool isLock = 1;
+	bool isAutoMining = 2;
+	bool hasSeed = 3;
+}
+
 //message for execs.coins
 message CoinsAction {
 	oneof value {
