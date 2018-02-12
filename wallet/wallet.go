@@ -76,6 +76,10 @@ func New(cfg *types.Wallet) *Wallet {
 		miningTicket:  time.NewTicker(time.Minute),
 		done:          make(chan struct{}),
 	}
+	value := walletStore.db.Get([]byte("WalletAutoMiner"))
+	if value != nil && string(value) == "1" {
+		wallet.autoMinerFlag = 1
+	}
 	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return wallet
 }
@@ -112,6 +116,16 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 	go wallet.autoMining()
 }
 
+//检查周期 --> 10分
+//开启挖矿：
+//1. 自动把成熟的ticket关闭
+//2. 查找超过1万余额的账户，自动购买ticket
+//3. 查找mineraddress 和他对应的 账户的余额（不在1中），余额超过1万的自动购买ticket 挖矿
+//
+//停止挖矿：
+//1. 自动把成熟的ticket关闭
+//2. 查找ticket 可取的余额
+//3. 取出ticket 里面的钱
 func (wallet *Wallet) autoMining() {
 	defer wallet.wg.Done()
 	for {
@@ -119,10 +133,13 @@ func (wallet *Wallet) autoMining() {
 		case <-wallet.miningTicket.C:
 			if wallet.isAutoMining() {
 				go func() {
+					wallet.closeTicket()
 					wallet.buyTicket()
 					wallet.buyMinerAddrTicket()
-					wallet.closeTicket()
 				}()
+			} else {
+				wallet.closeTicket()
+				wallet.withdrawFromTicket()
 			}
 		case <-wallet.done:
 			return
@@ -160,6 +177,21 @@ func (wallet *Wallet) buyMinerAddrTicket() {
 	}
 }
 
+func (wallet *Wallet) withdrawFromTicket() {
+	privs, err := wallet.getAllPrivKeys()
+	if err != nil {
+		walletlog.Error("withdrawFromTicket.getAllPrivKeys", "err", err)
+		return
+	}
+	for _, priv := range privs {
+		err := wallet.withdrawFromTicketOne(priv)
+		if err != nil {
+			walletlog.Error("withdrawFromTicketOne", "err", err)
+			return
+		}
+	}
+}
+
 func (wallet *Wallet) closeTicket() {
 	wallet.closeAllTickets()
 }
@@ -185,11 +217,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
 		case types.EventWalletAutoMiner:
-			//检查周期 --> 10分
-			//1. 查找超过1万余额的账户，自动购买ticket
-			//2. 查找mineraddress 和他对应的 账户的余额（不在1中），余额超过1万的自动购买ticket 挖矿
-			//3. 自动把成熟的ticket关闭
-			wallet.setAutoMining(1)
+			flag := msg.GetData().(*types.Int64).Data
+			if flag == 1 {
+				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("1"))
+			} else {
+				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("0"))
+			}
+			wallet.setAutoMining(int32(flag))
 		case types.EventWalletGetTickets:
 			tickets, privs, err := wallet.GetTickets(1)
 			if err != nil {
