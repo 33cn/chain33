@@ -71,7 +71,8 @@ func init() {
 }
 
 func TestInitAccount(t *testing.T) {
-	fmt.Println("TestInitAccount start")
+	fmt.Println("\nTestInitAccount start")
+	fmt.Println("*This case is used for initilizing accounts\n*Four accounts A/B/a/b will be set as 1e10/1e10/50*fee/50*fee, 50*fee is used for passing check in mempool\n")
 	defer fmt.Println("TestInitAccount end\n")
 
 	var label [accountMax]string
@@ -135,7 +136,8 @@ func TestInitAccount(t *testing.T) {
 
 func TestRetrieveBackup(t *testing.T) {
 
-	fmt.Println("TestRetrieveBackup start")
+	fmt.Println("\nTestRetrieveBackup start")
+	fmt.Println("*This case is used for checking backup operation\n*Backup action is done with privkey of account A/B, Backup: A->a, A->b, B->b;\n*currentbalanceA = currentbalanceA- 2*1e8 - 3*fee. currentbalanceB = currentbalanceB - 1e8 - 2*fee\n")
 	defer fmt.Println("TestRetrieveBackup end\n")
 
 	//1. step1 account A/B发送余额给合约
@@ -187,10 +189,10 @@ func TestRetrieveBackup(t *testing.T) {
 }
 
 func TestRetrievePrepare(t *testing.T) {
-	fmt.Println("TestRetrievePrepare start")
+	fmt.Println("\nTestRetrievePrepare start")
+	fmt.Println("*This case is used for checking prepare operation\n*Prepare action is done with privkey of account a/b, currBalancea = currBalancea- fee,currBalanceb = currBalanceb -2*fee\n")
 	defer fmt.Println("TestRetrievePrepare end\n")
 
-	//
 	err := prepare(accountindexa, accountindexA, accountindexa)
 	if err != nil {
 		t.Error(err)
@@ -227,7 +229,8 @@ func TestRetrievePrepare(t *testing.T) {
 }
 
 func TestRetrievePerform(t *testing.T) {
-	fmt.Println("TestRetrievePerform start")
+	fmt.Println("\nTestRetrievePerform start")
+	fmt.Println("*This case is used for checking perform operation\n*perform action is done with privkey of account a/b, when perform succeed, a/b withdraw from it's contract address\n*currBalancea = currBalancea +2*1e8 -2*fee, currBalanceb = currBalanceb + 1e8-2*fee\n")
 	defer fmt.Println("TestRetrievePerform end\n")
 	time.Sleep(75 * time.Second)
 
@@ -271,7 +274,8 @@ func TestRetrievePerform(t *testing.T) {
 }
 
 func TestRetrieveCancel(t *testing.T) {
-	fmt.Println("TestRetrieveCancel start")
+	fmt.Println("\nTestRetrieveCancel start")
+	fmt.Println("*This case is used for checking cancel operation\n*Cancel action is done with privkey of account A, although the cancel action could succeed, but the balance have been transfered by last action with backup a\n*currBalanceA = currBalanceA - 2*fee\n")
 	defer fmt.Println("TestRetrieveCancel end\n")
 	err := cancel(accountindexb, accountindexA, accountindexA)
 	if err != nil {
