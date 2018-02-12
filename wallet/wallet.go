@@ -217,15 +217,15 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
 		case types.EventWalletAutoMiner:
-			flag := msg.GetData().(*types.Int64).Data
+			flag := msg.GetData().(*types.MinerFlag).Flag
 			if flag == 1 {
 				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("1"))
 			} else {
 				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("0"))
 			}
-			wallet.setAutoMining(int32(flag))
+			wallet.setAutoMining(flag)
 			wallet.flushTicket()
-			msg.ReplyErr("EventWalletAutoMiner", nil)
+			msg.ReplyErr("WalletSetAutoMiner", nil)
 		case types.EventWalletGetTickets:
 			if !wallet.isAutoMining() {
 				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, types.ErrMinerNotStared))

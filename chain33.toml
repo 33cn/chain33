@@ -19,17 +19,17 @@ isSeed=false
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
-version=16
-verMix=16
-verMax=17
+version=116
+verMix=116
+verMax=117
 
 [mempool]
 poolCacheSize=10240
 minTxFee=1000000
 
 [consensus]
-name="solo"
-minerstart=false
+name="ticket"
+minerstart=true
 
 [store]
 driver="leveldb"

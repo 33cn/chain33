@@ -350,10 +350,9 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		for _, addr := range addrs {
 			if err := account.CheckAddress(addr); err != nil {
 				addr = account.ExecAddress(addr).String()
-				exaddrs = append(exaddrs, addr)
 			}
+			exaddrs = append(exaddrs, addr)
 		}
-
 		accounts, err := account.LoadAccounts(client.q, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
@@ -373,7 +372,6 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 			accounts = append(accounts, account)
 		}
-
 		return accounts, nil
 	}
 	return nil, nil
