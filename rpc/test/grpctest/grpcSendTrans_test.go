@@ -16,8 +16,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-var conn *grpc.ClientConn
-var random *rand.Rand
+var (
+	conn   *grpc.ClientConn
+	random *rand.Rand
+)
 
 func init() {
 	var err error
@@ -55,7 +57,7 @@ func TestGrpcSendToAddress(t *testing.T) {
 		return
 	}
 	fmt.Println("after send...", header.Height)
-	fmt.Println("wait for balance pack\n")
+	fmt.Println("wait for balance pack")
 	time.Sleep(time.Second * 10)
 	header, err = getlastheader()
 	if err != nil {

@@ -3,9 +3,9 @@ package rpc
 import (
 	"fmt"
 
-	"golang.org/x/net/context"
-
+	"code.aliyun.com/chain33/chain33/types"
 	pb "code.aliyun.com/chain33/chain33/types"
+	"golang.org/x/net/context"
 )
 
 type Grpc struct {
@@ -270,6 +270,7 @@ func (req *Grpc) GenSeed(ctx context.Context, in *pb.GenSeedLang) (*pb.ReplySeed
 
 	return reply, nil
 }
+
 func (req *Grpc) GetSeed(ctx context.Context, in *pb.GetSeedByPw) (*pb.ReplySeed, error) {
 	reply, err := req.cli.GetSeed(in)
 	if err != nil {
@@ -278,6 +279,7 @@ func (req *Grpc) GetSeed(ctx context.Context, in *pb.GetSeedByPw) (*pb.ReplySeed
 
 	return reply, nil
 }
+
 func (req *Grpc) SaveSeed(ctx context.Context, in *pb.SaveSeedByPw) (*pb.Reply, error) {
 	reply, err := req.cli.SaveSeed(in)
 	if err != nil {
@@ -287,11 +289,31 @@ func (req *Grpc) SaveSeed(ctx context.Context, in *pb.SaveSeedByPw) (*pb.Reply, 
 	return reply, nil
 }
 
-func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
+func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.WalletStatus, error) {
 
 	reply, err := req.cli.GetWalletStatus()
 	if err != nil {
 		return nil, err
 	}
 	return reply, nil
+}
+
+func (req *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts, error) {
+	reply, err := req.cli.GetBalance(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Accounts{Acc: reply}, nil
+}
+
+func (req *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
+	result, err := req.cli.QueryHash(in)
+	if err != nil {
+		return nil, err
+	}
+	var reply types.Reply
+	reply.IsOk = true
+	reply.Msg = types.Encode(*result)
+
+	return &reply, nil
 }
