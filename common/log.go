@@ -1,7 +1,9 @@
 package common
 
-import "github.com/inconshreveable/log15"
-import "os"
+import (
+	"github.com/inconshreveable/log15"
+	"os"
+)
 
 func init() {
 	//resetWithLogLevel("error")

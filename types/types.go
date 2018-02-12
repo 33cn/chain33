@@ -9,7 +9,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -75,6 +75,20 @@ func (tx *Transaction) Check() error {
 	return nil
 }
 
+func (tx *Transaction) GetRealFee() (int64, error) {
+	txSize := Size(tx)
+	//如果签名为空，那么加上签名的空间
+	if tx.Signature == nil {
+		txSize += 300
+	}
+	if txSize > int(MaxTxSize) {
+		return 0, ErrTxMsgSizeTooBig
+	}
+	// 检查交易费是否小于最低值
+	realFee := int64(txSize/1000+1) * MinFee
+	return realFee, nil
+}
+
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 //检查交易是否过期，过期返回true，未过期返回false
@@ -114,6 +128,16 @@ func (block *Block) Hash() []byte {
 		panic(err)
 	}
 	return common.Sha256(data)
+}
+
+func (block *Block) GetHeader() *Header {
+	head := &Header{}
+	head.Version = block.Version
+	head.ParentHash = block.ParentHash
+	head.TxHash = block.TxHash
+	head.BlockTime = block.BlockTime
+	head.Height = block.Height
+	return head
 }
 
 func (block *Block) CheckSign() bool {

@@ -24,10 +24,10 @@ func (c *HttpConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
 func (c *HttpConn) Close() error                      { return nil }
 
 func (jrpc *jsonrpcServer) CreateServer(addr string) {
-	listener, e := net.Listen("tcp", addr)
-	if e != nil {
-		log.Crit("listen:", "err", e)
-		panic(e)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Crit("listen:", "err", err)
+		panic(err)
 	}
 	jrpc.listener = listener
 	server := rpc.NewServer()
@@ -51,6 +51,7 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 			}
 		}
 	})
+
 	handler = c.Handler(handler)
 	go http.Serve(listener, handler)
 }
@@ -68,11 +69,11 @@ func (grpcx *grpcServer) CreateServer(addr string) {
 	}
 	grpcx.listener = listener
 	s := grpc.NewServer()
-	var grpc Grpc
-	grpc.cli = NewClient("channel", "")
-	grpc.cli.SetQueue(grpcx.q)
-	grpc.gserver = grpcx
-	pb.RegisterGrpcserviceServer(s, &grpc)
+	var rpc Grpc
+	rpc.cli = NewClient("channel", "")
+	rpc.cli.SetQueue(grpcx.q)
+	rpc.gserver = grpcx
+	pb.RegisterGrpcserviceServer(s, &rpc)
 	go s.Serve(listener)
 
 }
