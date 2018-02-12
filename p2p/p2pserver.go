@@ -44,20 +44,25 @@ func NewP2pServer() *p2pServer {
 }
 
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	//log.Error("p2pServer PING", "Ip", in.GetAddr(), "Port", in.GetPort())
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		log.Debug("PING addr", "Addr", getctx.Addr.String())
-		remoteaddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
+		peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
 
-		log.Debug("RemoteAddr", "Addr", remoteaddr)
 		if s.checkSign(in) == true {
-			//TODO	待处理详细逻辑
-			log.Info("PING CHECK SIGN SUCCESS")
+			log.Info("Ping", "p2p server", "recv ping")
+			//TODO
+		}
+
+		remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, in.GetPort()))
+		if err == nil {
+			if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
+				s.node.addrBook.AddAddress(remoteNetwork)
+			}
+
 		}
 	}
 
-	//s.update(fmt.Sprintf("%v:%v", in.Addr, in.Port))
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
 	return &pb.P2PPong{Nonce: in.GetNonce()}, nil
 
@@ -95,11 +100,6 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 // 版本
 func (s *p2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerAck, error) {
 
-	remoteaddr := in.AddrRecv
-	remoteNetwork, _ := NewNetAddressString(remoteaddr)
-
-	log.Debug("RECV PEER VERSION", "VERSION", *in)
-	s.node.addrBook.AddAddress(remoteNetwork)
 	return &pb.P2PVerAck{Version: s.node.nodeInfo.cfg.GetVersion(), Service: 6, Nonce: in.Nonce}, nil
 }
 func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
@@ -111,16 +111,25 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		log.Debug("Version2", "Addr", peeraddr)
 	}
 
-	//log.Error("RECV PEER VERSION", "VERSION", in.AddrFrom, "SERVICE", in.GetService())
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
 
-	//if strings.Split(in.AddrFrom, ":")[0] == peeraddr {
 	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1]))
-	if err == nil /*&& in.GetService() == NODE_NETWORK+NODE_GETUTXO+NODE_BLOOM*/ {
-		if len(P2pComm.AddrTest([]string{remoteNetwork.String()})) == 1 {
+	if err == nil {
+		if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
 			s.node.addrBook.AddAddress(remoteNetwork)
+			//broadcast again
+			go func() {
+				if time.Now().Unix()-in.GetTimestamp() > 5 {
+					return
+				}
+				peers, _ := s.node.GetActivePeers()
+				for _, peer := range peers {
+					peer.mconn.conn.Version2(context.Background(), in)
+
+				}
+			}()
 		}
 
 	}
@@ -130,7 +139,6 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
 }
 
-//grpc 接收广播交易
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
 	client := s.node.nodeInfo.qclient
@@ -145,7 +153,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
-	// GetHeaders
+
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
 		Isdetail: false})
@@ -200,7 +208,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 	for _, inv := range invs { //过滤掉不需要的数据
 		var invdata pb.InvData
 		var memtx = make(map[string]*pb.Transaction)
-		if inv.GetTy() == MSG_TX { //doOnce
+		if inv.GetTy() == MSG_TX {
 			//loadMempool
 			if count == 0 {
 				var err error
@@ -328,7 +336,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	peerinfo.Header = header
 	peerinfo.Name = pub
 	peerinfo.MempoolSize = int32(meminfo.GetSize())
-	peerinfo.Addr = ExternalIp
+	peerinfo.Addr = s.node.nodeInfo.GetExternalAddr().IP.String()
 	peerinfo.Port = int32(s.node.nodeInfo.GetExternalAddr().Port)
 	return &peerinfo, nil
 }
@@ -419,7 +427,7 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 	if ok {
 		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
 
-		if len(P2pComm.AddrTest([]string{fmt.Sprintf("%v:%v", remoteaddr, DefaultPort)})) == 0 {
+		if len(P2pComm.AddrRouteble([]string{fmt.Sprintf("%v:%v", remoteaddr, DefaultPort)})) == 0 {
 
 			outside = false
 		} else {
@@ -524,7 +532,7 @@ func (s *p2pServer) addStreamBlock(block interface{}) {
 		}
 		select {
 		case s.streams[stream] <- block:
-			//log.Debug("addStreamBlock", "block", block)
+
 		case <-timetikc.C:
 			continue
 		}

@@ -1,13 +1,18 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
+	"time"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
+	"code.aliyun.com/chain33/chain33/common/crypto"
 	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -215,6 +220,18 @@ func main() {
 			return
 		}
 		GetBalance(argsWithoutProg[1], argsWithoutProg[2])
+	case "getexecaddr":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetExecAddr(argsWithoutProg[1])
+	case "bindminer":
+		if len(argsWithoutProg) != 3 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		BindMiner(argsWithoutProg[1], argsWithoutProg[2])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -252,7 +269,8 @@ func LoadHelp() {
 	fmt.Println("getseed [password]                                          : 通过密码获取种子")
 	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
-
+	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
+	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 }
 
 type AccountsResult struct {
@@ -1239,24 +1257,26 @@ func GetWalletStatus() {
 }
 
 func GetBalance(address string, execer string) {
-	params := types.GetBalance{Address: address, Execer: execer}
+	var addrs []string
+	addrs = append(addrs, address)
+	params := types.ReqBalance{Addresses: addrs, Execer: execer}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res []*types.Account
+	var res []*jsonrpc.Account
 	err = rpc.Call("Chain33.GetBalance", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	balanceResult := strconv.FormatFloat(float64(res[0].GetBalance())/float64(1e8), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res[0].GetFrozen())/float64(1e8), 'f', 4, 64)
+	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(1e8), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(1e8), 'f', 4, 64)
 	result := &AccountResult{
-		Addr:     res[0].GetAddr(),
-		Currency: res[0].GetCurrency(),
+		Addr:     res[0].Addr,
+		Currency: res[0].Currency,
 		Balance:  balanceResult,
 		Frozen:   frozenResult,
 	}
@@ -1268,4 +1288,44 @@ func GetBalance(address string, execer string) {
 	}
 
 	fmt.Println(string(data))
+}
+
+func GetExecAddr(exec string) {
+	addrResult := account.ExecAddress(exec)
+	result := addrResult.String()
+	data, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func BindMiner(mineraddr string, priv string) {
+	c, _ := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	a, _ := common.FromHex(priv)
+	privKey, _ := c.PrivKeyFromBytes(a)
+	originaddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	ta := &types.TicketAction{}
+	tbind := &types.TicketBind{MinerAddress: mineraddr, ReturnAddress: originaddr}
+	ta.Value = &types.TicketAction_Tbind{tbind}
+	ta.Ty = types.TicketActionBind
+	execer := []byte("ticket")
+	to := account.ExecAddress(string(execer)).String()
+	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), Fee: 1e6, To: to}
+	var random *rand.Rand
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	var err error
+	tx.Fee, err = tx.GetRealFee()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	tx.Fee += types.MinFee
+	tx.Sign(types.SECP256K1, privKey)
+	txHex := types.Encode(tx)
+	fmt.Println(hex.EncodeToString(txHex))
+	//	SendTransaction(hex.EncodeToString(txHex))
 }

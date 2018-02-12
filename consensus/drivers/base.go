@@ -16,7 +16,6 @@ import (
 var tlog = log.New("module", "consensus")
 
 var (
-	listSize int = 10000
 	zeroHash [32]byte
 )
 
@@ -56,7 +55,7 @@ func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	}
 	client := &BaseClient{minerStart: flag}
 	client.Cfg = cfg
-	log.Info("Enter consensus solo")
+	log.Info("Enter consensus " + cfg.GetName())
 	return client
 }
 
@@ -208,7 +207,7 @@ func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
 }
 
 // Mempool中取交易列表
-func (client *BaseClient) RequestTx() []*types.Transaction {
+func (client *BaseClient) RequestTx(listSize int) []*types.Transaction {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}

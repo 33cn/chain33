@@ -13,10 +13,9 @@ import (
 
 var P2pComm Comm
 
-type Comm struct {
-}
+type Comm struct{}
 
-func (Comm) AddrTest(addrs []string) []string {
+func (Comm) AddrRouteble(addrs []string) []string {
 	var enableAddrs []string
 	for _, addr := range addrs {
 
@@ -57,7 +56,7 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 	}
 	peer.peerAddr = addr
 
-	log.Debug("DialPeerWithAddress", "peer", *peer, "persistent:", persistent)
+	log.Debug("DialPeerWithAddress", "peer", peer.Addr(), "persistent:", persistent)
 
 	if persistent {
 		peer.makePersistent()
