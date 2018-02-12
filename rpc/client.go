@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/rand"
 	"time"
+	//"unsafe"
 
 	"code.aliyun.com/chain33/chain33/account"
 
@@ -54,6 +55,8 @@ type IRClient interface {
 	GetBalance(*types.ReqBalance) ([]*types.Account, error)
 	//query
 	QueryHash(*types.Query) (*types.Message, error)
+	//miner
+	SetAutoMiner(*types.Miner) (*types.Reply, error)
 }
 
 type channelClient struct {
@@ -628,4 +631,21 @@ func (client *channelClient) QueryHash(in *types.Query) (*types.Message, error) 
 
 	return &querydata, nil
 
+}
+
+func (client *channelClient) SetAutoMiner(in *types.Miner) (*types.Reply, error) {
+
+	var message queue.Message
+	message.Data = &in.Miner
+	msg := client.qclient.NewMessage("wallet", types.EventWalletAutoMiner, message)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.GetData().(*types.Reply), nil
 }

@@ -721,3 +721,16 @@ func (req Chain33) Query(in Query, result *interface{}) error {
 	*result = (*resp).String()
 	return nil
 }
+
+func (req Chain33) SetAutoMiner(in types.Miner, result *interface{}) error {
+	resp, err := req.cli.SetAutoMiner(&in)
+	if err != nil {
+		log.Error("SetAutoMiner", "err", err.Error())
+		return err
+	}
+	var reply Reply
+	reply.IsOk = resp.GetIsOk()
+	reply.Msg = string(resp.GetMsg())
+	*result = &reply
+	return nil
+}
