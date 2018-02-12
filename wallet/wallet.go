@@ -73,6 +73,10 @@ func New(cfg *types.Wallet) *Wallet {
 		miningTicket:  time.NewTicker(time.Minute),
 		done:          make(chan struct{}),
 	}
+	value := walletStore.db.Get([]byte("WalletAutoMiner"))
+	if value != nil && string(value) == "1" {
+		wallet.autoMinerFlag = 1
+	}
 	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return wallet
 }
@@ -109,6 +113,16 @@ func (wallet *Wallet) SetQueue(q *queue.Queue) {
 	go wallet.autoMining()
 }
 
+//检查周期 --> 10分
+//开启挖矿：
+//1. 自动把成熟的ticket关闭
+//2. 查找超过1万余额的账户，自动购买ticket
+//3. 查找mineraddress 和他对应的 账户的余额（不在1中），余额超过1万的自动购买ticket 挖矿
+//
+//停止挖矿：
+//1. 自动把成熟的ticket关闭
+//2. 查找ticket 可取的余额
+//3. 取出ticket 里面的钱
 func (wallet *Wallet) autoMining() {
 	defer wallet.wg.Done()
 	for {
@@ -116,10 +130,13 @@ func (wallet *Wallet) autoMining() {
 		case <-wallet.miningTicket.C:
 			if wallet.isAutoMining() {
 				go func() {
+					wallet.closeTicket()
 					wallet.buyTicket()
 					wallet.buyMinerAddrTicket()
-					wallet.closeTicket()
 				}()
+			} else {
+				wallet.closeTicket()
+				wallet.withdrawFromTicket()
 			}
 		case <-wallet.done:
 			return
@@ -157,6 +174,21 @@ func (wallet *Wallet) buyMinerAddrTicket() {
 	}
 }
 
+func (wallet *Wallet) withdrawFromTicket() {
+	privs, err := wallet.getAllPrivKeys()
+	if err != nil {
+		walletlog.Error("withdrawFromTicket.getAllPrivKeys", "err", err)
+		return
+	}
+	for _, priv := range privs {
+		err := wallet.withdrawFromTicketOne(priv)
+		if err != nil {
+			walletlog.Error("withdrawFromTicketOne", "err", err)
+			return
+		}
+	}
+}
+
 func (wallet *Wallet) closeTicket() {
 	wallet.closeAllTickets()
 }
@@ -182,11 +214,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
 		case types.EventWalletAutoMiner:
-			//检查周期 --> 10分
-			//1. 查找超过1万余额的账户，自动购买ticket
-			//2. 查找mineraddress 和他对应的 账户的余额（不在1中），余额超过1万的自动购买ticket 挖矿
-			//3. 自动把成熟的ticket关闭
-			wallet.setAutoMining(1)
+			flag := msg.GetData().(*types.Int64).Data
+			if flag == 1 {
+				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("1"))
+			} else {
+				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("0"))
+			}
+			wallet.setAutoMining(int32(flag))
 		case types.EventWalletGetTickets:
 			tickets, privs, err := wallet.GetTickets(1)
 			if err != nil {
@@ -351,15 +385,8 @@ func (wallet *Wallet) ProcRecvMsg() {
 			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
 
 		case types.EventGetWalletStatus:
-			var reply types.Reply
-			reply.IsOk = true
-			ok, err := wallet.CheckWalletStatus()
-			if err != nil && ok == false {
-				walletlog.Debug("CheckWalletStatus", "WalletStatus", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			}
-			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
+			s := wallet.GetWalletStatus()
+			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyWalletStatus, s))
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -667,7 +694,6 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		walletlog.Error("ProcSendToAddress input para From or To is nil!")
 		return nil, types.ErrInputPara
 	}
-	var hash types.ReplyHash
 	//获取from账户的余额从account模块，校验余额是否充足
 	addrs := make([]string, 1)
 	addrs[0] = SendToAddress.GetFrom()
@@ -687,42 +713,11 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 
 	addrto := SendToAddress.GetTo()
 	note := SendToAddress.GetNote()
-
-	transfer := &types.CoinsAction{}
-
-	if amount > 0 {
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionTransfer
-	} else {
-		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: note}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionWithdraw
-	}
-	//初始化随机数
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
 		return nil, err
 	}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
-	tx.Sign(types.SECP256K1, priv)
-
-	//发送交易信息给mempool模块
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
-	if err != nil {
-		walletlog.Error("ProcSendToAddress", "Send err", err)
-		return nil, err
-	}
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
-	}
-
-	hash.Hash = tx.Hash()
-	return &hash, nil
+	return wallet.sendToAddress(priv, addrto, amount, note)
 }
 
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
@@ -1427,5 +1422,12 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 		return false, types.ErrUnLockFirst
 	}
 	return true, nil
+}
 
+func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
+	s := &types.WalletStatus{}
+	s.IsLock = wallet.IsLocked()
+	s.HasSeed, _ = HasSeed(wallet.walletStore.db)
+	s.IsAutoMining = wallet.isAutoMining()
+	return s
 }
