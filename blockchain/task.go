@@ -114,6 +114,11 @@ func (t *Task) stop() error {
 	return nil
 }
 
+func (t *Task) Cancel() error {
+	chainlog.Warn("----task is cancel----")
+	t.stop()
+}
+
 func (t *Task) done(height int64) {
 	if height == t.start {
 		t.start = t.start + 1
