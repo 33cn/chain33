@@ -722,7 +722,7 @@ func (req Chain33) Query(in Query, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) SetAutoMining(in types.Miner, result *interface{}) error {
+func (req Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error {
 	resp, err := req.cli.SetAutoMiner(&in)
 	if err != nil {
 		log.Error("SetAutoMiner", "err", err.Error())
