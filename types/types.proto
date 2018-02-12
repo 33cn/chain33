@@ -30,7 +30,7 @@ service grpcservice{
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
 
-	rpc GetWalletStatus(ReqNil)returns(Reply){}
+	rpc GetWalletStatus(ReqNil)returns(WalletStatus){}
 
 	//区块浏览器接口
 	rpc GetBlockOverview(ReqHash) returns(BlockOverview){}
@@ -41,6 +41,7 @@ service grpcservice{
 	rpc GenSeed(GenSeedLang) returns (ReplySeed){}
 	rpc GetSeed(GetSeedByPw) returns  (ReplySeed){}
 	rpc SaveSeed(SaveSeedByPw) returns (Reply){}
+	
 	//Balance Query 
 	rpc GetBalance(ReqBalance) returns(Accounts){}
 	rpc QueryChain(Query) returns(Reply){} 
@@ -700,6 +701,12 @@ message Blocks {
 message WalletPwHash {
 	bytes pwHash = 1;
 	string randstr = 2;
+}
+
+message WalletStatus {
+	bool isLock = 1;
+	bool isAutoMining = 2;
+	bool hasSeed = 3;
 }
 
 //message for execs.coins

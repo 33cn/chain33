@@ -685,10 +685,8 @@ func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var resp Reply
-	resp.IsOk = reply.GetIsOk()
-	resp.Msg = string(reply.GetMsg())
-	*result = &resp
+
+	*result = reply
 	return nil
 }
 
