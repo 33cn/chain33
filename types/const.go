@@ -102,7 +102,7 @@ const RetargetAdjustmentFactor = 4
 const MaxTxsPerBlock = 100000
 
 var AllowDepositExec = []string{"ticket"}
-var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
+var AllowUserExec = []string{"coins", "ticket", "hashlock", "norm", "none"}
 
 var GenesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 var GenesisBlockTime int64 = 1514533394
@@ -366,4 +366,9 @@ const (
 	HashlockActionLock   = 1
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
+)
+
+//norm
+const (
+	NormActionPut = 1
 )
