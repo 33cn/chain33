@@ -388,15 +388,8 @@ func (wallet *Wallet) ProcRecvMsg() {
 			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
 
 		case types.EventGetWalletStatus:
-			var reply types.Reply
-			reply.IsOk = true
-			ok, err := wallet.CheckWalletStatus()
-			if err != nil && ok == false {
-				walletlog.Debug("CheckWalletStatus", "WalletStatus", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-			}
-			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
+			s := wallet.GetWalletStatus()
+			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyWalletStatus, s))
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -1461,5 +1454,12 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 		return false, UnLockFirst
 	}
 	return true, nil
+}
 
+func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
+	s := &types.WalletStatus{}
+	s.IsLock = wallet.IsLocked()
+	s.HasSeed, _ = HasSeed(wallet.walletStore.db)
+	s.IsAutoMining = wallet.isAutoMining()
+	return s
 }
