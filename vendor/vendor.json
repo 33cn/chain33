@@ -23,6 +23,12 @@
 			"revisionTime": "2017-11-15T08:21:41Z"
 		},
 		{
+			"checksumSHA1": "+Bo3QheGAtKFk7QPb+pdIEZNiYI=",
+			"path": "github.com/AndreasBriese/bbloom",
+			"revision": "28f7e881ca57bc00e028f9ede9f0d9104cfeef5e",
+			"revisionTime": "2017-07-02T08:40:17Z"
+		},
+		{
 			"checksumSHA1": "Pc2ORQp+VY3Un/dkh4QwLC7R6lE=",
 			"path": "github.com/BurntSushi/toml",
 			"revision": "a368813c5e648fee92e5f6c30e3944ff9d5e8895",
@@ -45,6 +51,48 @@
 			"path": "github.com/dchest/siphash",
 			"revision": "4ebf1de738443ea7f45f02dc394c4df1942a126d",
 			"revisionTime": "2016-08-31T15:17:26Z"
+		},
+		{
+			"checksumSHA1": "1AGj3AI3dLLmBrOYb9EE2EjqIdc=",
+			"path": "github.com/dgraph-io/badger",
+			"revision": "ddb34c8b7684f74d3dfdcbac72165cb65e4e3f90",
+			"revisionTime": "2018-01-31T04:10:19Z"
+		},
+		{
+			"checksumSHA1": "oOuT7ebEiZ1ViHLKdFxKFOvobAQ=",
+			"path": "github.com/dgraph-io/badger/options",
+			"revision": "ddb34c8b7684f74d3dfdcbac72165cb65e4e3f90",
+			"revisionTime": "2018-01-31T04:10:19Z"
+		},
+		{
+			"checksumSHA1": "gGTDnTVVw5kcT2P5NXZV1YSckOU=",
+			"path": "github.com/dgraph-io/badger/protos",
+			"revision": "ddb34c8b7684f74d3dfdcbac72165cb65e4e3f90",
+			"revisionTime": "2018-01-31T04:10:19Z"
+		},
+		{
+			"checksumSHA1": "xBLLiAouTGA/lCAcQ5qjxQiuPCc=",
+			"path": "github.com/dgraph-io/badger/skl",
+			"revision": "ddb34c8b7684f74d3dfdcbac72165cb65e4e3f90",
+			"revisionTime": "2018-01-31T04:10:19Z"
+		},
+		{
+			"checksumSHA1": "I33KkP2lnYqJDasvvsAlebzkeko=",
+			"path": "github.com/dgraph-io/badger/table",
+			"revision": "ddb34c8b7684f74d3dfdcbac72165cb65e4e3f90",
+			"revisionTime": "2018-01-31T04:10:19Z"
+		},
+		{
+			"checksumSHA1": "TM2sCnfWGuyvslqA3fohqksqocA=",
+			"path": "github.com/dgraph-io/badger/y",
+			"revision": "ddb34c8b7684f74d3dfdcbac72165cb65e4e3f90",
+			"revisionTime": "2018-01-31T04:10:19Z"
+		},
+		{
+			"checksumSHA1": "+MUIij/Y6vqAkx0P5GjHeqnU9ZU=",
+			"path": "github.com/dgryski/go-farm",
+			"revision": "2de33835d10275975374b37b2dcfd22c9020a1f5",
+			"revisionTime": "2018-01-09T07:02:41Z"
 		},
 		{
 			"checksumSHA1": "KrIRJ4p3nRze4NcxfgX5+N9+D1M=",
@@ -459,8 +507,10 @@
 			"revision": ""
 		},
 		{
+			"checksumSHA1": "osb18zDjd7/RMAMUuN3qP+w0ewE=",
 			"path": "golang.org/x/sys/unix",
-			"revision": ""
+			"revision": "37707fdb30a5b38865cfb95e5aab41707daec7fd",
+			"revisionTime": "2018-02-02T13:35:31Z"
 		},
 		{
 			"path": "golang.org/x/tools/go/buildutil",
