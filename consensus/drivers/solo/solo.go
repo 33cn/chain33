@@ -76,7 +76,7 @@ func (client *SoloClient) CreateBlock() {
 		if issleep {
 			time.Sleep(time.Second)
 		}
-		txs := client.RequestTx()
+		txs := client.RequestTx(int(types.MaxTxNumber))
 		if len(txs) == 0 {
 			issleep = true
 			continue

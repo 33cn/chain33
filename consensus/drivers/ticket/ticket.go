@@ -1,6 +1,7 @@
 package ticket
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -16,12 +17,14 @@ import (
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	"code.aliyun.com/chain33/chain33/util"
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 )
 
-var slog = log.New("module", "ticket")
-var powLimit = common.CompactToBig(types.PowLimitBits)
-var defaultModify = []byte("modify")
+var (
+	tlog          = log15.New("module", "ticket")
+	powLimit      = common.CompactToBig(types.PowLimitBits)
+	defaultModify = []byte("modify")
+)
 
 type TicketClient struct {
 	*drivers.BaseClient
@@ -55,7 +58,7 @@ func (client *TicketClient) flushTicketBackend() {
 
 func (client *TicketClient) Close() {
 	close(client.done)
-	log.Info("consensus ticket closed")
+	tlog.Info("consensus ticket closed")
 }
 
 func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
@@ -125,7 +128,7 @@ func (client *TicketClient) getTickets() ([]*types.Ticket, []crypto.PrivKey, err
 		}
 		keys = append(keys, priv)
 	}
-	log.Info("getTickets", "ticket n", len(reply.Tickets), "nkey", len(keys))
+	tlog.Info("getTickets", "ticket n", len(reply.Tickets), "nkey", len(keys))
 	return reply.Tickets, keys, nil
 }
 
@@ -133,6 +136,7 @@ func (client *TicketClient) flushTicket() error {
 	//list accounts
 	tickets, privs, err := client.getTickets()
 	if err != nil {
+		tlog.Error("flushTicket error", "err", err)
 		return err
 	}
 	client.mu.Lock()
@@ -141,6 +145,7 @@ func (client *TicketClient) flushTicket() error {
 	client.mu.Unlock()
 	return nil
 }
+
 func (client *TicketClient) flushTicketMsg(msg queue.Message) {
 	//list accounts
 	err := client.flushTicket()
@@ -228,13 +233,16 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	if err != nil {
 		return err
 	}
+	if parent.Height+1 != current.Block.Height {
+		return types.ErrBlockHeight
+	}
 	//判断exec 是否成功
 	if current.Receipts[0].Ty != types.ExecOk {
 		return types.ErrCoinBaseExecErr
 	}
 	//check reward 的值是否正确
 	miner := ticketAction.GetMiner()
-	if miner.Reward != types.CoinReward {
+	if miner.Reward != (types.CoinReward + calcTotalFee(current.Block)) {
 		return types.ErrCoinbaseReward
 	}
 	if miner.Bits != current.Block.Difficulty {
@@ -256,17 +264,17 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	//当前难度
 	currentTarget := common.CompactToBig(current.Block.Difficulty)
 	if currentTarget.Cmp(common.CompactToBig(miner.Bits)) != 0 {
-		log.Error("block error: calc tagget not the same to miner",
+		tlog.Error("block error: calc tagget not the same to miner",
 			"cacl", printBInt(currentTarget), "current", printBInt(common.CompactToBig(miner.Bits)))
 		return types.ErrCoinBaseTarget
 	}
 	if currentTarget.Cmp(target) != 0 {
-		log.Error("block error: calc tagget not the same to target",
+		tlog.Error("block error: calc tagget not the same to target",
 			"cacl", printBInt(currentTarget), "current", printBInt(target))
 		return types.ErrCoinBaseTarget
 	}
 	if currentdiff.Cmp(currentTarget) > 0 {
-		log.Error("block error: diff not fit the tagget",
+		tlog.Error("block error: diff not fit the tagget",
 			"current", printBInt(currentdiff), "taget", printBInt(target))
 		return types.ErrCoinBaseTarget
 	}
@@ -285,7 +293,7 @@ func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big
 }
 
 func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
-	s := fmt.Sprint("%d:%s:%x", blocktime, id, modify)
+	s := fmt.Sprintf("%d:%s:%x", blocktime, id, modify)
 	hash := common.Sha2Sum([]byte(s))
 	num := common.HashToBig(hash[:])
 	return common.CompactToBig(common.BigToCompact(num))
@@ -362,17 +370,17 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	// newTarget since conversion to the compact representation loses
 	// precision.
 	newTargetBits := common.BigToCompact(newTarget)
-	slog.Info(fmt.Sprintf("Difficulty retarget at block height %d", block.Height+1))
-	slog.Info(fmt.Sprintf("Old target %08x, (%064x)", bits, oldTarget))
-	slog.Info(fmt.Sprintf("New target %08x, (%064x)", newTargetBits, common.CompactToBig(newTargetBits)))
-	slog.Info("Timespan", "Actual timespan", time.Duration(actualTimespan)*time.Second,
+	tlog.Info(fmt.Sprintf("Difficulty retarget at block height %d", block.Height+1))
+	tlog.Info(fmt.Sprintf("Old target %08x, (%064x)", bits, oldTarget))
+	tlog.Info(fmt.Sprintf("New target %08x, (%064x)", newTargetBits, common.CompactToBig(newTargetBits)))
+	tlog.Info("Timespan", "Actual timespan", time.Duration(actualTimespan)*time.Second,
 		"adjusted timespan", time.Duration(adjustedTimespan)*time.Second,
 		"target timespan", types.TargetTimespan)
 	prevmodify, err := client.getModify(block)
 	if err != nil {
 		panic(err)
 	}
-	slog.Info("UpdateModify", "prev", string(prevmodify), "current", string(modify))
+	tlog.Info("UpdateModify", "prev", string(prevmodify), "current", string(modify))
 	return newTargetBits, modify, nil
 }
 
@@ -381,12 +389,11 @@ func printBInt(data *big.Int) string {
 	return strings.Repeat("0", 64-len(txt)) + txt
 }
 
-func (client *TicketClient) Miner(block *types.Block) bool {
+func (client *TicketClient) Miner(parent, block *types.Block) bool {
 	//add miner address
-	parent := client.GetCurrentBlock()
 	bits := parent.Difficulty
 	diff, modify := client.getNextTarget(parent, bits)
-	log.Info("target", "hex", printBInt(diff))
+	tlog.Debug("target", "hex", printBInt(diff))
 	client.mu.Lock()
 	defer client.mu.Unlock()
 	for i := 0; i < len(client.tlist.Tickets); i++ {
@@ -400,34 +407,141 @@ func (client *TicketClient) Miner(block *types.Block) bool {
 		}
 		//find priv key
 		priv := client.privmap[ticket.MinerAddress]
-		currentdiff := client.getCurrentTarget(block.BlockTime, ticket.TicketId, []byte("modify"))
+		currentdiff := client.getCurrentTarget(block.BlockTime, ticket.TicketId, modify)
 		if currentdiff.Cmp(diff) >= 0 { //难度要大于前一个，注意数字越小难度越大
 			continue
 		}
-		log.Info("currentdiff", "hex", printBInt(currentdiff))
-		var ticketAction types.TicketAction
-		miner := &types.TicketMiner{}
-		miner.TicketId = ticket.TicketId
-		miner.Bits = common.BigToCompact(diff)
-		miner.Modify = modify
-		miner.Reward = types.CoinReward
-		ticketAction.Value = &types.TicketAction_Miner{miner}
-		ticketAction.Ty = types.TicketActionMiner
-		//构造transaction
-		tx := &types.Transaction{}
-		tx.Execer = []byte("ticket")
-		tx.Fee = types.MinFee
-		tx.Nonce = client.RandInt64()
-		tx.To = account.ExecAddress("ticket").String()
-		tx.Payload = types.Encode(&ticketAction)
-		tx.Sign(types.SECP256K1, priv)
-		//unshift
-		block.Difficulty = miner.Bits
-		block.Txs = append([]*types.Transaction{tx}, block.Txs...)
+		tlog.Info("currentdiff", "hex", printBInt(currentdiff))
+		tlog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
+		beg := time.Now()
+		receipts, err := client.addMinerTx(parent, block, diff, priv, ticket.TicketId, modify)
+		if err != nil {
+			return false
+		}
+		block.TxHash = merkle.CalcMerkleRoot(block.Txs)
+		blockdetail := &types.BlockDetail{block, getReceiptsData(receipts)}
+		if err := client.CheckBlock(parent, blockdetail); err != nil {
+			return false
+		}
+		err = client.saveBlock(parent, block, receipts)
+		if err != nil {
+			return false
+		}
+		tlog.Info("ExecBlock", "cost", time.Now().Sub(beg))
+		err = client.WriteBlock(blockdetail)
+		if err != nil {
+			return false
+		}
 		client.tlist.Tickets[i] = nil
 		return true
 	}
 	return false
+}
+
+func (client *TicketClient) saveBlock(parent, block *types.Block, receipts *types.Receipts) error {
+	var maplist = make(map[string]*types.KeyValue)
+	var kvset []*types.KeyValue
+	for i := 0; i < len(receipts.Receipts); i++ {
+		receipt := receipts.Receipts[i]
+		kvs := receipt.KV
+		for _, kv := range kvs {
+			if item, ok := maplist[string(kv.Key)]; ok {
+				item.Value = kv.Value //更新item 的value
+			} else {
+				maplist[string(kv.Key)] = kv
+				kvset = append(kvset, kv)
+			}
+		}
+	}
+	if kvset == nil {
+		block.StateHash = parent.StateHash
+	} else {
+		block.StateHash = util.ExecKVMemSet(client.GetQueue(), parent.StateHash, kvset)
+	}
+	return util.ExecKVSetCommit(client.GetQueue(), block.StateHash)
+}
+
+func getReceiptsData(receipts *types.Receipts) (datas []*types.ReceiptData) {
+	for i := 0; i < len(receipts.Receipts); i++ {
+		receipt := receipts.Receipts[i]
+		datas = append(datas, &types.ReceiptData{receipt.Ty, receipt.Logs})
+	}
+	return datas
+}
+
+//gas 直接燃烧
+func calcTotalFee(block *types.Block) (total int64) {
+	return 0
+}
+
+func (client *TicketClient) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) (*types.Receipts, error) {
+	fee := calcTotalFee(block)
+	var ticketAction types.TicketAction
+	miner := &types.TicketMiner{}
+	miner.TicketId = tid
+	miner.Bits = common.BigToCompact(diff)
+	miner.Modify = modify
+	miner.Reward = types.CoinReward + fee
+	ticketAction.Value = &types.TicketAction_Miner{miner}
+	ticketAction.Ty = types.TicketActionMiner
+	//构造transaction
+	tx := client.createMinerTx(&ticketAction, priv)
+	//unshift
+	block.Difficulty = miner.Bits
+	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
+	return client.execBlock(parent.StateHash, block, priv)
+}
+
+func (client *TicketClient) createMinerTx(ticketAction *types.TicketAction, priv crypto.PrivKey) *types.Transaction {
+	tx := &types.Transaction{}
+	tx.Execer = []byte("ticket")
+	tx.Fee = types.MinFee
+	tx.Nonce = client.RandInt64()
+	tx.To = account.ExecAddress("ticket").String()
+	tx.Payload = types.Encode(ticketAction)
+	tx.Sign(types.SECP256K1, priv)
+	return tx
+}
+
+func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
+	txs := client.RequestTx(int(types.MaxTxNumber) - 1)
+	//check dup
+	if len(txs) > 0 {
+		txs = client.CheckTxDup(txs)
+	}
+	lastBlock := client.GetCurrentBlock()
+	var newblock types.Block
+	newblock.ParentHash = lastBlock.Hash()
+	newblock.Height = lastBlock.Height + 1
+	newblock.Txs = txs
+	newblock.BlockTime = time.Now().Unix()
+	if lastBlock.BlockTime >= newblock.BlockTime {
+		newblock.BlockTime = lastBlock.BlockTime + 1
+	}
+	return &newblock, lastBlock
+}
+
+func (client *TicketClient) updateBlock(newblock *types.Block) *types.Block {
+
+	var txs []*types.Transaction
+	//check dup
+	if len(newblock.Txs) < int(types.MaxTxNumber-1) {
+		txs = client.RequestTx(int(types.MaxTxNumber) - 1 - len(newblock.Txs))
+		if len(txs) > 0 {
+			txs = client.CheckTxDup(txs)
+		}
+	}
+	lastBlock := client.GetCurrentBlock()
+	newblock.ParentHash = lastBlock.Hash()
+	newblock.Height = lastBlock.Height + 1
+	if len(txs) > 0 {
+		newblock.Txs = append(newblock.Txs, txs...)
+	}
+	newblock.BlockTime = time.Now().Unix()
+	if lastBlock.BlockTime >= newblock.BlockTime {
+		newblock.BlockTime = lastBlock.BlockTime + 1
+	}
+	return lastBlock
 }
 
 func (client *TicketClient) CreateBlock() {
@@ -440,37 +554,75 @@ func (client *TicketClient) CreateBlock() {
 		if issleep {
 			time.Sleep(time.Second)
 		}
-		txs := client.RequestTx()
 		issleep = false
-		//check dup
-		if len(txs) > 0 {
-			txs = client.CheckTxDup(txs)
-		}
-		lastBlock := client.GetCurrentBlock()
-		var newblock types.Block
-		newblock.ParentHash = lastBlock.Hash()
-		newblock.Height = lastBlock.Height + 1
-		newblock.Txs = txs
-		newblock.BlockTime = time.Now().Unix()
-		if lastBlock.BlockTime >= newblock.BlockTime {
-			newblock.BlockTime = lastBlock.BlockTime + 1
-		}
 		//add miner tx
-		if !client.Miner(&newblock) {
-			issleep = true
-			continue
-		}
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		err := client.WriteBlock(lastBlock.StateHash, &newblock)
-		if err != nil {
-			issleep = true
-			continue
+		block, lastBlock := client.createBlock()
+		for !client.Miner(lastBlock, block) {
+			time.Sleep(time.Second)
+			//加入新的txs, 继续挖矿
+			lastBlock = client.updateBlock(block)
 		}
 	}
 }
 
+func (client *TicketClient) execBlock(prevHash []byte, block *types.Block, priv crypto.PrivKey) (*types.Receipts, error) {
+	//执行整个交易
+	receipts := util.ExecTxList(client.GetQueue(), prevHash, block.Txs, block.GetHeader())
+	var deltxlist = make(map[int]bool)
+	var haserr bool
+	for i := 0; i < len(receipts.Receipts); i++ {
+		receipt := receipts.Receipts[i]
+		if receipt.Ty == types.ExecErr {
+			tlog.Error("exec tx err", "err", receipt)
+			deltxlist[i] = true
+			haserr = true
+		}
+	}
+	if !haserr {
+		return receipts, nil
+	}
+	//删除错误的交易
+	if len(deltxlist) > 0 {
+		var newtx []*types.Transaction
+		var newreceipts []*types.Receipt
+		for i := 0; i < len(block.Txs); i++ {
+			if !deltxlist[i] {
+				newtx = append(newtx, block.Txs[i])
+				newreceipts = append(newreceipts, receipts.Receipts[i])
+			}
+		}
+		block.Txs = newtx
+		receipts.Receipts = newreceipts
+	}
+	//fee 直接燃烧，消失
+	//比较好做的是，直接在block header 里面加一个 reward 字段
+	//但是目前直接燃烧比较简单
+	return receipts, nil
+}
+
+func (client *TicketClient) WriteBlock(blockdetail *types.BlockDetail) error {
+	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
+	client.GetQueueClient().Send(msg, true)
+	resp, err := client.GetQueueClient().Wait(msg)
+	if err != nil {
+		return err
+	}
+	if resp.GetData().(*types.Reply).IsOk {
+		client.SetCurrentBlock(blockdetail.Block)
+	} else {
+		//TODO:
+		//把txs写回mempool
+		reply := resp.GetData().(*types.Reply)
+		return errors.New(string(reply.GetMsg()))
+	}
+	return nil
+}
+
 func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
-	//exec block
+	if block.Height > 0 {
+		//在miner 中处理了
+		return nil, nil
+	}
 	if block.Height == 0 {
 		block.Difficulty = types.PowLimitBits
 	}

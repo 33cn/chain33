@@ -2,8 +2,6 @@ package store
 
 //store package store the world - state data
 import (
-	"errors"
-
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/common/mavl"
@@ -25,8 +23,6 @@ import (
 */
 
 var slog = log.New("module", "store")
-var zeroHash [32]byte
-var ErrHashNotFound = errors.New("ErrHashNotFound")
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -119,8 +115,8 @@ func (store *Store) processMessage(msg queue.Message) {
 		hash := msg.GetData().(*types.ReqHash)
 		tree, ok := store.trees[string(hash.Hash)]
 		if !ok {
-			slog.Error("store commit", "err", ErrHashNotFound)
-			msg.Reply(client.NewMessage("", types.EventStoreCommit, ErrHashNotFound))
+			slog.Error("store commit", "err", types.ErrHashNotFound)
+			msg.Reply(client.NewMessage("", types.EventStoreCommit, types.ErrHashNotFound))
 			return
 		}
 		tree.Save()
@@ -130,8 +126,8 @@ func (store *Store) processMessage(msg queue.Message) {
 		hash := msg.GetData().(*types.ReqHash)
 		_, ok := store.trees[string(hash.Hash)]
 		if !ok {
-			slog.Error("store rollback", "err", ErrHashNotFound)
-			msg.Reply(client.NewMessage("", types.EventStoreRollback, ErrHashNotFound))
+			slog.Error("store rollback", "err", types.ErrHashNotFound)
+			msg.Reply(client.NewMessage("", types.EventStoreRollback, types.ErrHashNotFound))
 			return
 		}
 		delete(store.trees, string(hash.Hash))

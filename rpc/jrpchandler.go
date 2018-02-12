@@ -23,6 +23,7 @@ func (req Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{})
 	return nil
 
 }
+
 func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	var stx types.SignedTx
 	var err error
@@ -50,6 +51,7 @@ func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
 	}
 }
+
 func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
@@ -683,14 +685,12 @@ func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var resp Reply
-	resp.IsOk = reply.GetIsOk()
-	resp.Msg = string(reply.GetMsg())
-	*result = &resp
+
+	*result = reply
 	return nil
 }
 
-func (req Chain33) GetBalance(in types.GetBalance, result *interface{}) error {
+func (req Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 
 	balances, err := req.cli.GetBalance(&in)
 	if err != nil {
@@ -704,5 +704,20 @@ func (req Chain33) GetBalance(in types.GetBalance, result *interface{}) error {
 			Frozen:   balance.GetFrozen()})
 	}
 	*result = accounts
+	return nil
+}
+
+func (req Chain33) Query(in Query, result *interface{}) error {
+	decodePayload, err := hex.DecodeString(in.Payload)
+	if err != nil {
+		return err
+	}
+	resp, err := req.cli.QueryHash(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
+	*result = (*resp).String()
 	return nil
 }

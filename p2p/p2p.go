@@ -10,8 +10,10 @@ import (
 	l "github.com/inconshreveable/log15"
 )
 
-var log = l.New("module", "p2p")
-var ps *common.PubSub
+var (
+	log = l.New("module", "p2p")
+	ps  *common.PubSub
+)
 
 type P2p struct {
 	q            *queue.Queue
@@ -62,7 +64,7 @@ func (network *P2p) Close() {
 func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.NewClient()
 	network.q = q
-	network.node.setQueue(q)
+	network.node.SetQueue(q)
 	go func() {
 		network.node.Start()
 		network.cli.monitorPeerInfo()
@@ -81,11 +83,12 @@ func (network *P2p) ShowTaskCapcity() {
 			log.Debug("ShowTaskCapcity", "Show", "will Done")
 			return
 		case <-ticker.C:
-			log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
+			log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 
 		}
 	}
 }
+
 func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return
@@ -95,7 +98,6 @@ func (network *P2p) subP2pMsg() {
 	network.c.Sub("p2p")
 	go network.ShowTaskCapcity()
 	go func() {
-		//TODO channel
 		for msg := range network.c.Recv() {
 
 			log.Debug("Recv", "Ty", msg.Ty)
