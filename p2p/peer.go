@@ -154,10 +154,12 @@ func (f *FilterTask) ManageFilterTask() {
 // sendRoutine polls for packets to send from channels.
 func (p *peer) HeartBeat() {
 
+	<-(*p.nodeInfo).natDone
 	var count int64
 	ticker := time.NewTicker(PingTimeout)
 	defer ticker.Stop()
 	pcli := NewP2pCli(nil)
+	pcli.SendVersion(p, *p.nodeInfo)
 FOR_LOOP:
 	for {
 		select {
@@ -194,7 +196,6 @@ func (p *peer) SendData(data interface{}) (err error) {
 
 	select {
 	case <-tick.C:
-		//log.Error("Peer SendData", "timeout", "return")
 		return
 
 	case p.taskChan <- data:
@@ -203,25 +204,29 @@ func (p *peer) SendData(data interface{}) (err error) {
 }
 
 func (p *peer) subStreamBlock() {
-	//p.taskChan = ps.Sub(p.Addr())
+
 	pcli := NewP2pCli(nil)
 	go func(p *peer) {
 		//Stream Send data
 		for {
+
+			ctx, cancel := context.WithCancel(context.Background())
+			resp, err := p.mconn.conn.RouteChat(ctx)
+			if err != nil {
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				time.Sleep(time.Second * 5)
+				cancel()
+				continue
+			}
+
 			select {
 			case <-p.allLoopDone:
 				log.Debug("peer SubStreamBlock", "Send Stream  Done", p.Addr())
 				return
 
 			default:
-				resp, err := p.mconn.conn.RouteChat(context.Background())
-				if err != nil {
-					p.peerStat.NotOk()
-					(*p.nodeInfo).monitorChan <- p
-					time.Sleep(time.Second * 5)
-					continue
-				}
-				//for task := range p.taskChan {
+
 				for task := range p.taskChan {
 					p2pdata := new(pb.BroadCastData)
 					if block, ok := task.(*pb.P2PBlock); ok {
@@ -252,6 +257,7 @@ func (p *peer) subStreamBlock() {
 						p.peerStat.NotOk()
 						(*p.nodeInfo).monitorChan <- p
 						resp.CloseSend()
+						cancel()
 						break //下一次外循环重新获取stream
 					}
 				}
@@ -260,27 +266,30 @@ func (p *peer) subStreamBlock() {
 		}
 	}(p)
 	for {
+		resp, err := p.mconn.conn.RouteChat(context.Background())
+		if err != nil {
+			p.peerStat.NotOk()
+			(*p.nodeInfo).monitorChan <- p
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		log.Debug("SubStreamBlock", "Start", p.Addr())
+
 		select {
 		case <-p.allLoopDone:
-			log.Debug("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
+			log.Info("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
+			resp.CloseSend()
 			return
 
 		default:
-			resp, err := p.mconn.conn.RouteChat(context.Background())
-			if err != nil {
-				p.peerStat.NotOk()
-				(*p.nodeInfo).monitorChan <- p
-				time.Sleep(time.Second * 5)
-				continue
-			}
-			log.Debug("SubStreamBlock", "Start", p.Addr())
+
 			for {
 				data, err := resp.Recv()
 				if err != nil {
 					resp.CloseSend()
 					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
-					//log.Error("SubStreamBlock", "Recv Err", err.Error())
+					log.Error("SubStreamBlock", "Recv Err", err.Error())
 					break
 				}
 
