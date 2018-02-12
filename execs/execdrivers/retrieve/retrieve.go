@@ -9,7 +9,7 @@ import (
 
 var rlog = log.New("module", "execs.retrieve")
 
-const minPeriod = 60
+var minPeriod int64 = 60
 
 //const maxTimeWeight = 2
 
