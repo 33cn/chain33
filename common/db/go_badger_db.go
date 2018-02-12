@@ -6,10 +6,10 @@ import (
 )
 
 func init() {
-	dbCreator := func(name string, dir string, cache int) (DB, error) {
-		return NewGoBadgerDB(name, dir, cache)
-	}
-	registerDBCreator(GoBadgerDBBackendStr, dbCreator, false)
+    dbCreator := func(name string, dir string, cache int) (DB, error) {
+        return NewGoBadgerDB(name, dir, cache)
+    }
+    registerDBCreator(GoBadgerDBBackendStr, dbCreator, false)
 }
 
 type GoBadgerDB struct {
