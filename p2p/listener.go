@@ -15,10 +15,12 @@ import (
 func (l *DefaultListener) Close() bool {
 
 	l.listener.Close()
+	l.server.Stop()
 	log.Info("stop", "DefaultListener", "close")
 	close(l.natClose)
 	log.Info("stop", "NatMapPort", "close")
 	close(l.nodeInfo.p2pBroadcastChan) //close p2pserver manageStream
+	close(l.p2pserver.loopdone)
 	return true
 }
 
@@ -28,17 +30,18 @@ type Listener interface {
 
 // Implements Listener
 type DefaultListener struct {
-	listener net.Listener
-	server   *grpc.Server
-	nodeInfo *NodeInfo
-	natClose chan struct{}
-	n        *Node
+	listener  net.Listener
+	server    *grpc.Server
+	nodeInfo  *NodeInfo
+	p2pserver *p2pServer
+	natClose  chan struct{}
+	n         *Node
 }
 
 func NewDefaultListener(protocol string, node *Node) Listener {
-	// Create listener
-	log.Debug("NewDefaultListener", "localPort", node.localPort)
-	listener, err := net.Listen(protocol, fmt.Sprintf(":%v", node.localPort))
+
+	log.Debug("NewDefaultListener", "localPort", DefaultPort)
+	listener, err := net.Listen(protocol, fmt.Sprintf(":%v", DefaultPort))
 	if err != nil {
 		log.Crit("Failed to listen", "Error", err.Error())
 		return nil
@@ -54,6 +57,7 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	pServer.node = dl.n
 	pServer.ManageStream()
 	dl.server = grpc.NewServer()
+	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	go dl.NatMapPort()
 	go dl.listenRoutine()
@@ -66,18 +70,17 @@ func (l *DefaultListener) WaitForNat() {
 }
 
 func (l *DefaultListener) NatMapPort() {
-	if IsOutSide == true { //在外网的节点不需要映射端口
+	if OutSide == true { //在外网的节点不需要映射端口
 		return
 	}
 	l.WaitForNat()
 	var err error
 	for i := 0; i < TryMapPortTimes; i++ {
 
-		err = nat.Any().AddMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33-p2p", time.Minute*20)
+		err = nat.Any().AddMapping("TCP", int(l.n.nodeInfo.GetExternalAddr().Port), int(DefaultPort), "chain33-p2p", time.Minute*20)
 		if err != nil {
 			log.Error("NatMapPort", "err", err.Error())
-			l.n.externalPort = uint16(rand.Intn(64512) + 1023)
-			l.n.FlushNodeInfo()
+			l.n.FlushNodePort(DefaultPort, uint16(rand.Intn(64512)+1023))
 			log.Info("NatMapPort", "New External Port", l.n.nodeInfo.GetExternalAddr())
 			continue
 		}
@@ -96,11 +99,11 @@ func (l *DefaultListener) NatMapPort() {
 	for {
 		select {
 		case <-refresh.C:
-			nat.Any().AddMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()), "chain33-p2p", time.Minute*20)
+			nat.Any().AddMapping("TCP", int(l.n.nodeInfo.GetExternalAddr().Port), int(DefaultPort), "chain33-p2p", time.Minute*20)
 			refresh.Reset(mapUpdateInterval)
 
 		case <-l.natClose:
-			nat.Any().DeleteMapping("TCP", int(l.n.GetExterPort()), int(l.n.GetLocalPort()))
+			nat.Any().DeleteMapping("TCP", int(l.n.nodeInfo.GetExternalAddr().Port), int(DefaultPort))
 			return
 		}
 	}

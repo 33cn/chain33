@@ -10,8 +10,10 @@ import (
 	l "github.com/inconshreveable/log15"
 )
 
-var log = l.New("module", "p2p")
-var ps *common.PubSub
+var (
+	log = l.New("module", "p2p")
+	ps  *common.PubSub
+)
 
 type P2p struct {
 	q            *queue.Queue
@@ -37,6 +39,8 @@ func New(cfg *types.P2P) *P2p {
 	p2p.node = node
 	p2p.loopdone = make(chan struct{}, 1)
 	p2p.cli = NewP2pCli(p2p)
+	p2p.txFactory = make(chan struct{}, 1000)    // 1000 task
+	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	return p2p
 }
 func (network *P2p) Stop() {
@@ -60,7 +64,7 @@ func (network *P2p) Close() {
 func (network *P2p) SetQueue(q *queue.Queue) {
 	network.c = q.NewClient()
 	network.q = q
-	network.node.setQueue(q)
+	network.node.SetQueue(q)
 	go func() {
 		network.node.Start()
 		network.cli.monitorPeerInfo()
@@ -79,22 +83,21 @@ func (network *P2p) ShowTaskCapcity() {
 			log.Debug("ShowTaskCapcity", "Show", "will Done")
 			return
 		case <-ticker.C:
-			log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
+			log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 
 		}
 	}
 }
+
 func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return
 	}
-	network.txFactory = make(chan struct{}, 1000)    // 1000 task
-	network.otherFactory = make(chan struct{}, 1000) //other task 1000
+
 	network.txCapcity = 1000
 	network.c.Sub("p2p")
 	go network.ShowTaskCapcity()
 	go func() {
-		//TODO channel
 		for msg := range network.c.Recv() {
 
 			log.Debug("Recv", "Ty", msg.Ty)
@@ -118,6 +121,8 @@ func (network *P2p) subP2pMsg() {
 				go network.cli.GetMemPool(msg)
 			case types.EventPeerInfo:
 				go network.cli.GetPeerInfo(msg)
+			case types.EventFetchBlockHeaders:
+				go network.cli.GetHeaders(msg)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))

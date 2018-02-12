@@ -20,9 +20,6 @@ import (
 )
 
 var elog = log.New("module", "execs")
-var zeroHash [32]byte
-
-const minFee int64 = 1e6
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)

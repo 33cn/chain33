@@ -70,6 +70,20 @@ func Transfer(db dbm.KVDB, from, to string, amount int64) (*types.Receipt, error
 	}
 }
 
+func depositBalance(db dbm.KVDB, execaddr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+	acc := LoadAccount(db, execaddr)
+	copyacc := *acc
+	acc.Balance += amount
+	receiptBalance := &types.ReceiptBalance{copyacc.Balance, acc.Balance, amount}
+	SaveAccount(db, acc)
+	log1 := &types.ReceiptLog{types.TyLogDeposit, types.Encode(receiptBalance)}
+	kv := GetKVSet(acc)
+	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}, nil
+}
+
 func GenesisInit(db dbm.KVDB, addr string, amount int64) (*types.Receipt, error) {
 	g := &types.Genesis{}
 	g.Isrun = true
@@ -154,7 +168,7 @@ func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err er
 	for i := 0; i < len(values.Values); i++ {
 		value := values.Values[i]
 		if value == nil {
-			accs = append(accs, &types.Account{})
+			accs = append(accs, &types.Account{Addr: addrs[i]})
 		} else {
 			var acc types.Account
 			err := types.Decode(value, &acc)
