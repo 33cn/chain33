@@ -12,6 +12,7 @@ import (
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/coins"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/hashlock"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/none"
+	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/norm"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
@@ -87,7 +88,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 	for i := 0; i < len(datas.Txs); i++ {
 		beg := time.Now()
 		tx := datas.Txs[i]
-		if execute.height == 0 { //genesis block 不检查手续费
+		if execute.height == 0 || string(tx.Execer) == "norm" { //genesis block和常规读写不检查手续费
 			receipt, err := execute.Exec(tx, i)
 			if err != nil {
 				panic(err)
