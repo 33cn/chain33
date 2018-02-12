@@ -229,16 +229,16 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventWalletGetTickets:
 			if !wallet.isAutoMining() {
 				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, types.ErrMinerNotStared))
-				return
-			}
-			tickets, privs, err := wallet.GetTickets(1)
-			if err != nil {
-				walletlog.Error("GetTickets", "err", err.Error())
-				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
 			} else {
-				tks := &types.ReplyWalletTickets{tickets, privs}
-				walletlog.Debug("process GetTickets OK")
-				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
+				tickets, privs, err := wallet.GetTickets(1)
+				if err != nil {
+					walletlog.Error("GetTickets", "err", err.Error())
+					msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
+				} else {
+					tks := &types.ReplyWalletTickets{tickets, privs}
+					walletlog.Debug("process GetTickets OK")
+					msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
+				}
 			}
 		case types.EventNewAccount:
 			NewAccount := msg.Data.(*types.ReqNewAccount)
@@ -399,6 +399,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
+		walletlog.Debug("end process")
 	}
 }
 
