@@ -289,7 +289,7 @@ func (req *Grpc) SaveSeed(ctx context.Context, in *pb.SaveSeedByPw) (*pb.Reply, 
 	return reply, nil
 }
 
-func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
+func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.WalletStatus, error) {
 
 	reply, err := req.cli.GetWalletStatus()
 	if err != nil {
