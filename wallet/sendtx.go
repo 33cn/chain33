@@ -124,6 +124,21 @@ func (wallet *Wallet) closeAllTickets() error {
 	return nil
 }
 
+func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) error {
+	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	acc, err := wallet.getBalance(addr, "ticket")
+	if err != nil {
+		return err
+	}
+	if acc.Balance > 0 {
+		_, err := wallet.sendToAddress(priv, account.ExecAddress("ticket").String(), -acc.Balance, "autominer->withdraw")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 	//ticket balance and coins balance
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
@@ -179,9 +194,9 @@ func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
 	return nil
 }
 
-func (client *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
+func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	tlist, err := client.getTickets(addr, 2)
+	tlist, err := wallet.getTickets(addr, 2)
 	if err != nil && err != types.ErrNotFound {
 		return err
 	}
@@ -196,7 +211,7 @@ func (client *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
 		}
 	}
 	if len(ids) > 1 {
-		client.closeTickets(priv, ids)
+		wallet.closeTickets(priv, ids)
 	}
 	return nil
 }
