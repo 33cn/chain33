@@ -635,9 +635,7 @@ func (client *channelClient) QueryHash(in *types.Query) (*types.Message, error) 
 
 func (client *channelClient) SetAutoMiner(in *types.Miner) (*types.Reply, error) {
 
-	var message queue.Message
-	message.Data = &in.Miner
-	msg := client.qclient.NewMessage("wallet", types.EventWalletAutoMiner, message)
+	msg := client.qclient.NewMessage("wallet", types.EventWalletAutoMiner, in)
 	err := client.qclient.Send(msg, true)
 	if err != nil {
 		return nil, err
