@@ -12,8 +12,10 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-var blockStoreKey = []byte("blockStoreHeight")
-var storeLog = chainlog.New("submodule", "store")
+var (
+	blockStoreKey = []byte("blockStoreHeight")
+	storeLog      = chainlog.New("submodule", "store")
+)
 
 type BlockStore struct {
 	db     dbm.DB

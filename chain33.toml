@@ -29,7 +29,7 @@ minTxFee=1000000
 
 [consensus]
 name="solo"
-minerstart=true
+minerstart=false
 
 [store]
 driver="leveldb"

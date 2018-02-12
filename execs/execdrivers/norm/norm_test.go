@@ -68,7 +68,7 @@ func TestInitAccount(t *testing.T) {
 		return
 	}
 
-	//err = sendtoaddress(c, privGenesis, addr, defaultAmount)
+	err = sendtoaddress(c, privGenesis, addr, defaultAmount)
 	if err != nil {
 		fmt.Println(err)
 		time.Sleep(time.Second)
