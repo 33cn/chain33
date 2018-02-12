@@ -1,24 +1,9 @@
 package p2p
 
 import (
-	"net"
 	"time"
 )
 
-func (n *Node) AddrTest(addrs []string) []string {
-	var enableAddrs []string
-	for _, addr := range addrs {
-
-		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
-		if err == nil {
-			conn.Close()
-			enableAddrs = append(enableAddrs, addr)
-		}
-	}
-
-	return enableAddrs
-
-}
 func (n *Node) checkActivePeers() {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
@@ -38,7 +23,7 @@ FOR_LOOP:
 
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
-					if stat.GetAttempts() > 20 || peer.GetRunning() == false {
+					if stat.GetAttempts() > MaxAttemps || peer.GetRunning() == false {
 						log.Info("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
 
 						n.destroyPeer(peer)
@@ -56,15 +41,14 @@ func (n *Node) destroyPeer(peer *peer) {
 	n.addrBook.Save()
 	n.Remove(peer.Addr())
 }
+
 func (n *Node) monitorErrPeer() {
 
 	for {
 
 		peer := <-n.nodeInfo.monitorChan
-		log.Debug("deleteErrPeer", "REMOVE", peer.Addr())
-		if peer.version.IsSupport() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
-
-			//n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
+		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
+			log.Debug("VersoinMonitor", "NotSupport", "DELETE")
 			n.destroyPeer(peer)
 		}
 
@@ -73,6 +57,7 @@ func (n *Node) monitorErrPeer() {
 	}
 
 }
+
 func (n *Node) getAddrFromOnline() {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
@@ -93,11 +78,10 @@ FOR_LOOP:
 						log.Error("getAddrFromOnline", "ERROR", err.Error())
 						continue
 					}
-					//log.Error("getAddrFromOnline", "ADDRLIST", addrlist)
-					//过滤无法连接的节点
 
+					log.Debug("GetAddrFromOnline", "addrlist", addrlist)
 					//过滤黑名单的地址
-					oklist := n.AddrTest(addrlist)
+					oklist := P2pComm.AddrRouteble(addrlist)
 					var whitlist = make(map[string]bool)
 					for _, addr := range oklist {
 						if n.nodeInfo.blacklist.Has(addr) == false {
@@ -143,14 +127,14 @@ FOR_LOOP:
 					for _, peer := range peeraddrs {
 						testlist = append(testlist, peer.String())
 					}
-					oklist := n.AddrTest(testlist)
+					oklist := P2pComm.AddrRouteble(testlist)
 					for _, addr := range oklist {
 
 						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
 							log.Debug("GetAddrFromOffline", "Add addr", addr)
 							savelist[addr] = true
 						}
-						//log.Error("getAddrFromOffline", "list", savelist)
+
 					}
 				}
 

@@ -49,7 +49,11 @@ type IRClient interface {
 	GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error)
 	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
 	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
-	GetWalletStatus() (*types.Reply, error)
+	GetWalletStatus() (*types.WalletStatus, error)
+	//getbalance
+	GetBalance(*types.ReqBalance) ([]*types.Account, error)
+	//query
+	QueryHash(*types.Query) (*types.Message, error)
 }
 
 type channelClient struct {
@@ -149,12 +153,14 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 
 		resp.Data = err
 	}
-
+	if resp.GetData().(*types.Reply).GetIsOk() {
+		resp.GetData().(*types.Reply).Msg = tx.Hash()
+	}
 	return resp
 }
 
 func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, ""})
 	err := client.qclient.Send(msg, true)
 	if err != nil {
 
@@ -526,6 +532,7 @@ func (client *channelClient) GenSeed(parm *types.GenSeedLang) (*types.ReplySeed,
 	}
 	return resp.Data.(*types.ReplySeed), nil
 }
+
 func (client *channelClient) SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventSaveSeed, parm)
 	err := client.qclient.Send(msg, true)
@@ -553,7 +560,7 @@ func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed,
 	return resp.Data.(*types.ReplySeed), nil
 }
 
-func (client *channelClient) GetWalletStatus() (*types.Reply, error) {
+func (client *channelClient) GetWalletStatus() (*types.WalletStatus, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventGetWalletStatus, nil)
 	err := client.qclient.Send(msg, true)
 	if err != nil {
@@ -565,5 +572,60 @@ func (client *channelClient) GetWalletStatus() (*types.Reply, error) {
 		return nil, err
 	}
 
-	return resp.Data.(*types.Reply), nil
+	return resp.Data.(*types.WalletStatus), nil
+}
+
+func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
+
+	switch in.GetExecer() {
+	case "coins":
+		addrs := in.GetAddresses()
+		var exaddrs []string
+		for _, addr := range addrs {
+			if err := account.CheckAddress(addr); err != nil {
+				addr = account.ExecAddress(addr).String()
+
+			}
+			exaddrs = append(exaddrs, addr)
+		}
+		accounts, err := account.LoadAccounts(client.q, exaddrs)
+		if err != nil {
+			log.Error("GetBalance", "err", err.Error())
+			return nil, err
+		}
+		return accounts, nil
+	default:
+		execaddress := account.ExecAddress(in.GetExecer())
+		addrs := in.GetAddresses()
+		var accounts []*types.Account
+		for _, addr := range addrs {
+			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
+			if err != nil {
+				log.Error("GetBalance", "err", err.Error())
+				continue
+			}
+
+			accounts = append(accounts, account)
+		}
+
+		return accounts, nil
+	}
+	return nil, nil
+}
+
+func (client *channelClient) QueryHash(in *types.Query) (*types.Message, error) {
+
+	msg := client.qclient.NewMessage("blockchain", types.EventQuery, in)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	querydata := resp.GetData().(types.Message)
+
+	return &querydata, nil
+
 }

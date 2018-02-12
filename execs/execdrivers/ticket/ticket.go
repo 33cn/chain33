@@ -80,6 +80,9 @@ func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 			return nil, types.ErrTicketCount
 		}
 		return actiondb.TicketOpen(topen)
+	} else if action.Ty == types.TicketActionBind && action.GetTbind() != nil {
+		tbind := action.GetTbind()
+		return actiondb.TicketBind(tbind)
 	} else if action.Ty == types.TicketActionClose && action.GetTclose() != nil {
 		tclose := action.GetTclose()
 		return actiondb.TicketClose(tclose)
@@ -110,6 +113,14 @@ func (n *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, in
 			}
 			kv := n.saveTicket(&ticketlog)
 			set.KV = append(set.KV, kv...)
+		} else if item.Ty == types.TyLogTicketBind {
+			var ticketlog types.ReceiptTicketBind
+			err := types.Decode(item.Log, &ticketlog)
+			if err != nil {
+				panic(err) //数据错误了，已经被修改了
+			}
+			kv := n.saveTicketBind(&ticketlog)
+			set.KV = append(set.KV, kv...)
 		}
 	}
 	return set, nil
@@ -134,9 +145,60 @@ func (n *Ticket) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			}
 			kv := n.delTicket(&ticketlog)
 			set.KV = append(set.KV, kv...)
+		} else if item.Ty == types.TyLogTicketBind {
+			var ticketlog types.ReceiptTicketBind
+			err := types.Decode(item.Log, &ticketlog)
+			if err != nil {
+				panic(err) //数据错误了，已经被修改了
+			}
+			kv := n.delTicketBind(&ticketlog)
+			set.KV = append(set.KV, kv...)
 		}
 	}
 	return set, nil
+}
+
+func (n *Ticket) saveTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValue) {
+	//解除原来的绑定
+	if len(b.OldMinerAddress) > 0 {
+		kv := &types.KeyValue{
+			Key:   calcBindMinerKey(b.OldMinerAddress, b.ReturnAddress),
+			Value: nil,
+		}
+		kvs = append(kvs, kv)
+	}
+	kv := &types.KeyValue{calcBindReturnKey(b.ReturnAddress), []byte(b.NewMinerAddress)}
+	kvs = append(kvs, kv)
+	kv = &types.KeyValue{
+		Key:   calcBindMinerKey(b.GetNewMinerAddress(), b.ReturnAddress),
+		Value: []byte(b.ReturnAddress),
+	}
+	kvs = append(kvs, kv)
+	return kvs
+}
+
+func (n *Ticket) delTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValue) {
+	//被取消了，刚好操作反
+	kv := &types.KeyValue{
+		Key:   calcBindMinerKey(b.NewMinerAddress, b.ReturnAddress),
+		Value: nil,
+	}
+	kvs = append(kvs, kv)
+	if len(b.OldMinerAddress) > 0 {
+		//恢复旧的绑定
+		kv := &types.KeyValue{calcBindReturnKey(b.ReturnAddress), []byte(b.OldMinerAddress)}
+		kvs = append(kvs, kv)
+		kv = &types.KeyValue{
+			Key:   calcBindMinerKey(b.OldMinerAddress, b.ReturnAddress),
+			Value: []byte(b.ReturnAddress),
+		}
+		kvs = append(kvs, kv)
+	} else {
+		//删除旧的数据
+		kv := &types.KeyValue{calcBindReturnKey(b.ReturnAddress), nil}
+		kvs = append(kvs, kv)
+	}
+	return kvs
 }
 
 func (n *Ticket) saveTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
@@ -172,12 +234,48 @@ func (n *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return TicketList(n.GetQueryDB(), n.GetDB(), &l)
+	} else if funcname == "MinerAddress" {
+		var reqaddr types.ReqString
+		err := types.Decode(params, &reqaddr)
+		if err != nil {
+			return nil, err
+		}
+		value := n.GetQueryDB().Get(calcBindReturnKey(reqaddr.Data))
+		if value == nil {
+			return nil, types.ErrNotFound
+		}
+		return &types.ReplyString{string(value)}, nil
+	} else if funcname == "MinerSourceList" {
+		var reqaddr types.ReqString
+		err := types.Decode(params, &reqaddr)
+		if err != nil {
+			return nil, err
+		}
+		values := n.GetQueryDB().List([]byte(reqaddr.Data), nil, 0, 1)
+		if len(values) == 0 {
+			return nil, types.ErrNotFound
+		}
+		reply := &types.ReplyStrings{}
+		for _, value := range values {
+			reply.Datas = append(reply.Datas, string(value))
+		}
+		return reply, nil
 	}
 	return nil, types.ErrActionNotSupport
 }
 
 func calcTicketKey(addr string, ticketId string, status int32) []byte {
 	key := fmt.Sprintf("ticket-tl:%s:%d:%s", addr, status, ticketId)
+	return []byte(key)
+}
+
+func calcBindReturnKey(returnAddress string) []byte {
+	key := fmt.Sprintf("ticket-bind:%s", returnAddress)
+	return []byte(key)
+}
+
+func calcBindMinerKey(minerAddress string, returnAddress string) []byte {
+	key := fmt.Sprintf("ticket-miner:%s:%s", minerAddress, returnAddress)
 	return []byte(key)
 }
 
