@@ -9,7 +9,7 @@ defCacheSize=500
 maxFetchBlockNum=100
 timeoutSeconds=5
 batchBlockNum=100
-driver="leveldb"
+driver="gobadger"
 dbPath="datadir"
 
 [p2p]
