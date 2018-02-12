@@ -90,7 +90,7 @@ const RetargetAdjustmentFactor = 4
 const MaxTxsPerBlock = 100000
 
 var AllowDepositExec = []string{"ticket"}
-var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
+var AllowUserExec = []string{"coins", "ticket", "hashlock", "retrieve", "none"}
 
 var PowLimit = big.NewInt(0)
 

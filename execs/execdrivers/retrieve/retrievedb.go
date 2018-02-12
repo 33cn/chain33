@@ -26,19 +26,18 @@ type RetrieveDB struct {
 func NewRetrieveDB(backupaddress string) *RetrieveDB {
 	r := &RetrieveDB{}
 	r.BackupAddress = backupaddress
-	r.RetPara = make([]*types.RetrievePara, MaxRelation)
 
 	return r
 }
 
-func (r *RetrieveDB) RelateRetrieveDB(defaultAddress string, createTime int64, delayPeriod int64, index int32) bool {
-	if index >= MaxRelation {
+func (r *RetrieveDB) RelateRetrieveDB(defaultAddress string, createTime int64, delayPeriod int64) bool {
+	if len(r.RetPara) >= MaxRelation {
 		return false
 	}
-	r.RetPara[index].DefaultAddress = defaultAddress
-	r.RetPara[index].Status = Retrieve_Backup
-	r.RetPara[index].CreateTime = createTime
-	r.RetPara[index].DelayPeriod = delayPeriod
+	rlog.Debug("RetrieveBackup", "RelateRetrieveDB", defaultAddress)
+	para := &types.RetrievePara{defaultAddress, Retrieve_Backup, createTime, 0, delayPeriod}
+	r.RetPara = append(r.RetPara, para)
+
 	return true
 }
 
@@ -57,7 +56,7 @@ func (r *RetrieveDB) CheckRelation(defaultAddress string) (int, bool) {
 }
 
 func (r *RetrieveDB) GetKVSet() (kvset []*types.KeyValue) {
-	value := types.Encode(r)
+	value := types.Encode(&r.Retrieve)
 	kvset = append(kvset, &types.KeyValue{RetrieveKey(r.BackupAddress), value})
 	return kvset
 }
@@ -101,7 +100,7 @@ func (action *RetrieveAction) RetrieveBackup(backupRet *types.BackupRetrieve) (*
 	//用备份地址检索，如果没有，就建立新的，然后检查并处理关联
 	retrieve, err := readRetrieve(action.db, backupRet.BackupAddress)
 	if err != nil && err != types.ErrNotFound {
-		rlog.Error("RetrieveBackup", "readRetrieve err")
+		rlog.Error("RetrieveBackup", "readRetrieve", err)
 		return nil, err
 	} else if err == types.ErrNotFound {
 		newRetrieve = true
@@ -115,17 +114,16 @@ func (action *RetrieveAction) RetrieveBackup(backupRet *types.BackupRetrieve) (*
 	}
 
 	if index, related := r.CheckRelation(backupRet.DefaultAddress); !related {
-		if !r.RelateRetrieveDB(backupRet.DefaultAddress, action.blocktime, backupRet.DelayPeriod, int32(index)) {
+		if !r.RelateRetrieveDB(backupRet.DefaultAddress, action.blocktime, backupRet.DelayPeriod) {
+			rlog.Debug("RetrieveBackup", "index", index)
 			return nil, types.ErrRetrieveRelateLimit
 		}
 	} else {
+		rlog.Debug("RetrieveBackup", "repeataddr")
 		return nil, types.ErrRetrieveRepeatAddress
 	}
 
 	r.Save(action.db)
-	logs = append(logs, receipt.Logs...)
-	kv = append(kv, receipt.KV...)
-	//logs = append(logs, h.GetReceiptLog())
 	kv = append(kv, r.GetKVSet()...)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -142,7 +140,7 @@ func (action *RetrieveAction) RetrievePrepare(preRet *types.PreRetrieve) (*types
 
 	retrieve, err := readRetrieve(action.db, preRet.BackupAddress)
 	if err != nil {
-		rlog.Debug("RetrievePrepare", "readRetrieve err")
+		rlog.Debug("RetrievePrepare", "readRetrieve", err)
 		return nil, err
 	}
 	r = &RetrieveDB{*retrieve}
@@ -152,21 +150,18 @@ func (action *RetrieveAction) RetrievePrepare(preRet *types.PreRetrieve) (*types
 	}
 
 	if index, related = r.CheckRelation(preRet.DefaultAddress); !related {
+		rlog.Debug("RetrievePrepare", "CheckRelation", preRet.DefaultAddress)
 		return nil, types.ErrRetrieveRelation
 	}
 
 	if r.RetPara[index].Status != Retrieve_Backup {
-		rlog.Debug("RetrieveBackup", "Status", r.RetPara[index].Status)
+		rlog.Debug("RetrievePrepare", "Status", r.RetPara[index].Status)
 		return nil, types.ErrRetrieveStatus
 	}
 	r.RetPara[index].PrepareTime = action.blocktime
 	r.RetPara[index].Status = Retrieve_Prepared
 
 	r.Save(action.db)
-
-	logs = append(logs, receipt.Logs...)
-	kv = append(kv, receipt.KV...)
-	//logs = append(logs, h.GetReceiptLog())
 	kv = append(kv, r.GetKVSet()...)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -183,13 +178,14 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 
 	retrieve, err := readRetrieve(action.db, perfRet.BackupAddress)
 	if err != nil {
-		rlog.Debug("RetrievePerform", "readRetrieve err", perfRet.BackupAddress)
+		rlog.Debug("RetrievePerform", "readRetrieve", perfRet.BackupAddress)
 		return nil, err
 	}
 
 	r := &RetrieveDB{*retrieve}
 
 	if index, related = r.CheckRelation(perfRet.DefaultAddress); !related {
+		rlog.Debug("RetrievePerform", "CheckRelation", perfRet.DefaultAddress)
 		return nil, types.ErrRetrieveRelation
 	}
 
@@ -208,11 +204,11 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 	}
 
 	acc = account.LoadExecAccount(action.db, r.RetPara[index].DefaultAddress, action.execaddr)
-
+	rlog.Debug("RetrievePerform", "acc.Balance", acc.Balance)
 	if acc.Balance > 0 {
 		receipt, err = account.ExecTransfer(action.db, r.RetPara[index].DefaultAddress, r.BackupAddress, action.execaddr, acc.Balance)
 		if err != nil {
-			rlog.Debug("RetrievePerform", "ExecTransfer err")
+			rlog.Debug("RetrievePerform", "ExecTransfer", err)
 			return nil, err
 		}
 	} else {
@@ -222,11 +218,9 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 	//r.RetPara[index].Status = Retrieve_Performed
 	//remove the relation
 	r.UnRelateRetrieveDB(index)
-
 	r.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
-	//logs = append(logs, t.GetReceiptLog())
 	kv = append(kv, r.GetKVSet()...)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -248,6 +242,7 @@ func (action *RetrieveAction) RetrieveCancel(cancel *types.CancelRetrieve) (*typ
 	r := &RetrieveDB{*retrieve}
 
 	if index, related = r.CheckRelation(cancel.DefaultAddress); !related {
+		rlog.Debug("RetrieveCancel", "CheckRelation", cancel.DefaultAddress)
 		return nil, types.ErrRetrieveRelation
 	}
 
@@ -265,10 +260,6 @@ func (action *RetrieveAction) RetrieveCancel(cancel *types.CancelRetrieve) (*typ
 	//remove the relation
 	r.UnRelateRetrieveDB(index)
 	r.Save(action.db)
-
-	logs = append(logs, receipt.Logs...)
-	kv = append(kv, receipt.KV...)
-	//logs = append(logs, h.GetReceiptLog())
 	kv = append(kv, r.GetKVSet()...)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -278,12 +269,14 @@ func (action *RetrieveAction) RetrieveCancel(cancel *types.CancelRetrieve) (*typ
 func readRetrieve(db dbm.KVDB, address string) (*types.Retrieve, error) {
 	data, err := db.Get(RetrieveKey(address))
 	if err != nil {
+		rlog.Debug("readRetrieve", "get", err)
 		return nil, err
 	}
 	var retrieve types.Retrieve
 	//decode
 	err = types.Decode(data, &retrieve)
 	if err != nil {
+		rlog.Debug("readRetrieve", "decode", err)
 		return nil, err
 	}
 	return &retrieve, nil
