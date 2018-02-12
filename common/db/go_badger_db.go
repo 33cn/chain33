@@ -193,7 +193,8 @@ func (db *GoBadgerDB) IteratorScan(Prefix []byte, key []byte, count int32, direc
         }
         it := txn.NewIterator(opts)
         defer it.Close()
-        for it.Seek(key); it.ValidForPrefix(key); it.Next() {
+        it.Seek(Prefix)
+        for it.Seek(key); it.ValidForPrefix(Prefix); it.Next() {
             item := it.Item()
             /*
             k := item.Key()
