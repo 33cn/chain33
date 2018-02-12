@@ -46,7 +46,7 @@ service grpcservice{
 	rpc GetBalance(ReqBalance) returns(Accounts){}
 	rpc QueryChain(Query) returns(Reply){} 
 	//Miner
-	rpc SetAutoMining(Miner)returns(Reply){}
+	rpc SetAutoMining(MinerFlag)returns(Reply){}
 }
 
 
@@ -891,6 +891,6 @@ message ReplyStrings {
 }
 
 
-message Miner {
-	int32 miner=1;
+message MinerFlag {
+	int32 flag=1;
 }

@@ -138,15 +138,19 @@ func (client *TicketClient) flushTicket() error {
 	if err == types.ErrMinerNotStared {
 		tlog.Error("flushTicket error", "err", "wallet miner not start")
 		client.mu.Lock()
-		client.privmap = getPrivMap(privs)
-		client.tlist.Tickets = tickets
+		client.privmap = nil
+		client.tlist.Tickets = nil
 		client.mu.Unlock()
 		return nil
 	}
-	if err != nil {
+	if err != nil && err != types.ErrMinerNotStared {
 		tlog.Error("flushTicket error", "err", err)
 		return err
 	}
+	client.mu.Lock()
+	client.privmap = getPrivMap(privs)
+	client.tlist.Tickets = tickets
+	client.mu.Unlock()
 	return nil
 }
 

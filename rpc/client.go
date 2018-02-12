@@ -56,7 +56,7 @@ type IRClient interface {
 	//query
 	QueryHash(*types.Query) (*types.Message, error)
 	//miner
-	SetAutoMiner(*types.Miner) (*types.Reply, error)
+	SetAutoMiner(*types.MinerFlag) (*types.Reply, error)
 }
 
 type channelClient struct {
@@ -607,7 +607,6 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 				log.Error("GetBalance", "err", err.Error())
 				continue
 			}
-
 			accounts = append(accounts, account)
 		}
 
@@ -633,7 +632,7 @@ func (client *channelClient) QueryHash(in *types.Query) (*types.Message, error) 
 
 }
 
-func (client *channelClient) SetAutoMiner(in *types.Miner) (*types.Reply, error) {
+func (client *channelClient) SetAutoMiner(in *types.MinerFlag) (*types.Reply, error) {
 
 	msg := client.qclient.NewMessage("wallet", types.EventWalletAutoMiner, in)
 	err := client.qclient.Send(msg, true)
@@ -644,6 +643,5 @@ func (client *channelClient) SetAutoMiner(in *types.Miner) (*types.Reply, error)
 	if err != nil {
 		return nil, err
 	}
-
 	return resp.GetData().(*types.Reply), nil
 }

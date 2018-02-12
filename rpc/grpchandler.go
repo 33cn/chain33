@@ -318,7 +318,7 @@ func (req *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error
 	return &reply, nil
 }
 
-func (req *Grpc) SetAutoMining(ctx context.Context, in *pb.Miner) (*pb.Reply, error) {
+func (req *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, error) {
 	result, err := req.cli.SetAutoMiner(in)
 	if err != nil {
 		return nil, err
