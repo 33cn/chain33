@@ -115,8 +115,10 @@ func (t *Task) stop() error {
 }
 
 func (t *Task) Cancel() error {
+	t.Lock()
+	defer t.Unlock()
 	chainlog.Warn("----task is cancel----")
-	t.stop()
+	return t.stop()
 }
 
 func (t *Task) done(height int64) {
