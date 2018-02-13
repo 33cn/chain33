@@ -63,7 +63,7 @@ func DisableLog() {
 
 func New(cfg *types.Wallet) *Wallet {
 	//walletStore
-	walletStoreDB := dbm.NewDB("wallet", "leveldb", cfg.DbPath, 16)
+	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, 16)
 	walletStore := NewWalletStore(walletStoreDB)
 	MinFee = cfg.MinFee
 	wallet := &Wallet{
