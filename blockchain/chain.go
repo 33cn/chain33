@@ -21,25 +21,25 @@ import (
 
 var (
 	//cache 存贮的block个数
-	DefCacheSize     int64 = 512
-	MaxFetchBlockNum int64 = 128 //一次最多申请获取block个数
-	TimeoutSeconds   int64 = 2
-	BatchBlockNum    int64 = 128
-	blockSynSeconds        = time.Duration(TimeoutSeconds)
-	chainlog               = log.New("module", "blockchain")
-	cachelock        sync.Mutex
-	castlock         sync.Mutex
-	synBlocklock     sync.Mutex
-	peerMaxBlklock   sync.Mutex
-	zeroHash         [32]byte
-	InitBlockNum     int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
-	BackBlockNum     int64 = 128 //节点高度不增加是向后取blocks的个数
-	BackwardBlockNum int64 = 16  //本节点高度不增加时并且落后peer的高度数
+	DefCacheSize            int64 = 512
+	MaxFetchBlockNum        int64 = 128 //一次最多申请获取block个数
+	TimeoutSeconds          int64 = 2
+	BatchBlockNum           int64 = 128
+	blockSynSeconds               = time.Duration(TimeoutSeconds)
+	chainlog                      = log.New("module", "blockchain")
+	cachelock               sync.Mutex
+	castlock                sync.Mutex
+	synBlocklock            sync.Mutex
+	peerMaxBlklock          sync.Mutex
+	zeroHash                [32]byte
+	InitBlockNum            int64 = 128     //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
+	BackBlockNum            int64 = 128     //节点高度不增加时向后取blocks的个数
+	BackwardBlockNum        int64 = 16      //本节点高度不增加时并且落后peer的高度数
+	checkHeightNoIncSeconds int64 = 5 * 60  // 高度不增长时的检测周期目前暂定5分钟
+	checkBlockHashSeconds   int64 = 30 * 60 //30分钟检测一次tip hash和peer 对应高度的hash是否一致
+	fetchPeerListSeconds    int64 = 5       //5 秒获取一个peerlist
 )
 
-//const poolToDbMS = 500         //从blockpool写block到db的定时器
-const fetchPeerListSeconds = 5 //获取一次peerlist最新block高度
-const checkHeightNoIncSeconds = 30 // 高度不增长时的检测周期目前暂定5分钟
 //保存peerlist中lastheight最高的peer
 type peerInfo struct {
 	pid    string
@@ -234,18 +234,19 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 func (chain *BlockChain) poolRoutine() {
 	//获取peerlist的定时器，默认1分钟
-	fetchPeerListTicker := time.NewTicker(fetchPeerListSeconds * time.Second)
+	fetchPeerListTicker := time.NewTicker(time.Duration(fetchPeerListSeconds) * time.Second)
+
 	//向peer请求同步block的定时器，默认5s
 	blockSynTicker := time.NewTicker(time.Duration(blockSynSeconds) * time.Second)
 
 	//5分钟检测一次bestchain主链高度是否有增长，如果没有增长可能是目前主链在侧链上，
 	// 需要从最高peer向后同步指定的headers用来获取分叉点，再后从指定peer获取分叉点以后的blocks
-	checkHeightNoIncreaseTicker := time.NewTicker(checkHeightNoIncSeconds * time.Second)
+	checkHeightNoIncreaseTicker := time.NewTicker(time.Duration(checkHeightNoIncSeconds) * time.Second)
 
 	//目前暂定30分钟检测一次本bestchain的tiphash和最高peer的对应高度的blockshash是否一致。
-	//如果不一致可能两个节点在各自的链上挖矿，需要从从peer的对应高度向后获取指定数量的headers寻找分叉点
-	//处理分叉后的第一个block没有广播到本节点，导致接下来广播过来的blocks都是孤儿节点，无法进行主侧链总难度对比
-	checkBlockHashTicker := time.NewTicker(60 * time.Second)
+	//如果不一致可能两个节点在各自的链上挖矿，需要从peer的对应高度向后获取指定数量的headers寻找分叉点
+	//考虑叉后的第一个block没有广播到本节点，导致接下来广播过来的blocks都是孤儿节点，无法进行主侧链总难度对比
+	checkBlockHashTicker := time.NewTicker(time.Duration(checkBlockHashSeconds) * time.Second)
 
 	for {
 		select {
@@ -263,6 +264,7 @@ func (chain *BlockChain) poolRoutine() {
 		case _ = <-checkHeightNoIncreaseTicker.C:
 			//chainlog.Info("CheckHeightNoIncrease")
 			chain.CheckHeightNoIncrease()
+
 		case _ = <-checkBlockHashTicker.C:
 			//chainlog.Info("checkBlockHashTicker")
 			chain.CheckTipBlockHash()
@@ -405,11 +407,16 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		return types.ErrInputPara
 	}
 	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail)
-	chain.task.Done(blockdetail.Block.GetHeight())
-	if broadcast {
-		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
+	if !isorphan && err == nil {
+		chain.task.Done(blockdetail.Block.GetHeight())
 	}
-	chainlog.Debug("ProcGetBlocksMsg ProcessBlock result:", "ismain", ismain, "isorphan", isorphan, "err", err)
+
+	if broadcast && (ismain == true || isorphan == true) {
+		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
+		chain.SendBlockBroadcast(blockdetail)
+	}
+
+	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
 
 	return nil
 }
@@ -873,29 +880,23 @@ func (chain *BlockChain) UpdatePeerMaxBlkHeight(pid string, height int64, hash [
 
 //blockSynSeconds时间检测一次本节点的height是否有增长，没有增长就需要通过对端peerlist获取最新高度，发起同步
 func (chain *BlockChain) SynBlocksFromPeers() {
-	//如果任务正常，那么不重复启动任务
-	if chain.task.InProgress() {
-		chainlog.Info("chain task InProgress")
-		return
-	}
 
 	curheight := chain.GetBlockHeight()
 	RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 
 	chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
-	//首先和广播的block高度做比较，小于广播的block高度就直接发送block同步的请求
 
-	if curheight+1 < RcvLastCastBlkHeight {
-		chain.FetchBlock(curheight+1, RcvLastCastBlkHeight, "")
-	} else {
-		//大于等于广播的block高度时，需要获取peer的最新高度继续做校验
-		//获取peers的最新高度.处理没有收到广播block的情况
-		//peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
-		if curheight+1 < peerMaxBlkHeight {
-			chain.FetchBlock(curheight+1, peerMaxBlkHeight, "")
-		}
+	//如果任务正常，那么不重复启动任务
+	if chain.task.InProgress() {
+		chainlog.Info("chain task InProgress")
+		return
 	}
+	//获取peers的最新高度.处理没有收到广播block的情况
+	if curheight+1 < peerMaxBlkHeight {
+		chain.FetchBlock(curheight+1, peerMaxBlkHeight, "")
+	}
+
 	return
 }
 
@@ -1280,6 +1281,8 @@ func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers) error {
 		//对应高度hash不相等就向后寻找分叉点
 		pid := chain.GetPeerMaxBlkPid()
 		if !bytes.Equal(headers.Items[0].Hash, header.Hash) {
+			chainlog.Info("ProcAddBlockHeadersMsg hash no equal", "height", height, "self hash", common.ToHex(header.Hash), "peer hash", common.ToHex(headers.Items[0].Hash))
+
 			if height > BackBlockNum {
 				chain.FetchBlockHeaders(height-BackBlockNum, height, pid)
 			} else {
@@ -1290,11 +1293,13 @@ func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers) error {
 		return nil
 	}
 	var ForkHeight int64 = -1
+	var forkhash []byte
 	//循环找到分叉点
 	for i := count - 1; i >= 0; i-- {
-		exists := chain.blockExists(headers.Items[i].Hash)
+		exists := chain.bestChain.HaveBlock(headers.Items[i].Hash, headers.Items[i].Height)
 		if exists {
 			ForkHeight = headers.Items[i].Height
+			forkhash = headers.Items[i].Hash
 			break
 		}
 	}
@@ -1304,9 +1309,18 @@ func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers) error {
 		chainlog.Error("ProcAddBlockHeadersMsg end headerinfo", "height", headers.Items[count-1].Height, "hash", headers.Items[count-1].Hash)
 		return types.ErrContinueBack
 	}
+	chainlog.Info("ProcAddBlockHeadersMsg find fork point", "height", ForkHeight, "hash", common.ToHex(forkhash))
+
 	//从分叉节点高度继续请求block，从pid
 	pid := chain.GetPeerMaxBlkPid()
-	chain.FetchBlock(ForkHeight, ForkHeight+MaxFetchBlockNum, pid)
+	peermaxheight := chain.GetPeerMaxBlkHeight()
+	//此时停止同步的任务
+	chain.task.Cancel()
+	if peermaxheight > ForkHeight+MaxFetchBlockNum {
+		chain.FetchBlock(ForkHeight, ForkHeight+MaxFetchBlockNum, pid)
+	} else {
+		chain.FetchBlock(ForkHeight, peermaxheight, pid)
+	}
 	return nil
 }
 
@@ -1332,21 +1346,21 @@ func (chain *BlockChain) CheckTipBlockHash() {
 	peerhash := chain.GetPeerMaxBlkHash()
 	if peermaxheight > tipheight {
 		//从指定peer 请求BackBlockNum个blockheaders
-		chainlog.Error("CheckTipBlockHash", "start", tipheight, "end", tipheight)
-		chainlog.Error("CheckTipBlockHash", "peermaxheight", peermaxheight, "tipheight", tipheight)
+		chainlog.Debug("CheckTipBlockHash >", "start", tipheight, "end", tipheight)
+		chainlog.Debug("CheckTipBlockHash >", "peermaxheight", peermaxheight, "tipheight", tipheight)
 
 		chain.FetchBlockHeaders(tipheight, tipheight, pid)
 	} else if peermaxheight == tipheight {
 		// 直接tip block hash比较,如果不相等需要从peer向后去指定的headers，尝试寻找分叉点
 		if !bytes.Equal(tiphash, peerhash) {
 			if tipheight > BackBlockNum {
-				chainlog.Error("CheckTipBlockHash", "start", tipheight-BackBlockNum, "end", tipheight)
-				chainlog.Error("CheckTipBlockHash", "peermaxheight", peermaxheight, "tipheight", tipheight)
+				chainlog.Debug("CheckTipBlockHash ==", "start", tipheight-BackBlockNum, "end", tipheight)
+				chainlog.Debug("CheckTipBlockHash ==", "peermaxheight", peermaxheight, "tipheight", tipheight)
 
 				chain.FetchBlockHeaders(tipheight-BackBlockNum, tipheight, pid)
 			} else {
-				chainlog.Error("CheckTipBlockHash", "start", "1", "end", tipheight)
-				chainlog.Error("CheckTipBlockHash", "peermaxheight", peermaxheight, "tipheight", tipheight)
+				chainlog.Debug("CheckTipBlockHash !=", "start", "1", "end", tipheight)
+				chainlog.Debug("CheckTipBlockHash !=", "peermaxheight", peermaxheight, "tipheight", tipheight)
 
 				chain.FetchBlockHeaders(1, tipheight, pid)
 			}
@@ -1358,13 +1372,13 @@ func (chain *BlockChain) CheckTipBlockHash() {
 		}
 		if !bytes.Equal(header.Hash, peerhash) {
 			if peermaxheight > BackBlockNum {
-				chainlog.Error("CheckTipBlockHash", "start", peermaxheight-BackBlockNum, "end", tipheight)
-				chainlog.Error("CheckTipBlockHash", "peermaxheight", peermaxheight, "tipheight", tipheight)
+				chainlog.Debug("CheckTipBlockHash <!=", "start", peermaxheight-BackBlockNum, "end", tipheight)
+				chainlog.Debug("CheckTipBlockHash<!=", "peermaxheight", peermaxheight, "tipheight", tipheight)
 
 				chain.FetchBlockHeaders(peermaxheight-BackBlockNum, peermaxheight, pid)
 			} else {
-				chainlog.Error("CheckTipBlockHash", "start", "1", "end", tipheight)
-				chainlog.Error("CheckTipBlockHash", "peermaxheight", peermaxheight, "tipheight", tipheight)
+				chainlog.Debug("CheckTipBlockHash<!=", "start", "1", "end", tipheight)
+				chainlog.Debug("CheckTipBlockHash<!=", "peermaxheight", peermaxheight, "tipheight", tipheight)
 
 				chain.FetchBlockHeaders(1, peermaxheight, pid)
 			}
