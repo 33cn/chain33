@@ -116,9 +116,10 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 			s.node.addrBook.AddAddress(remoteNetwork)
 			//broadcast again
 			go func() {
-				if time.Now().Unix()-in.GetTimestamp() > 5 {
+				if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
 					return
 				}
+
 				peers, _ := s.node.GetActivePeers()
 				for _, peer := range peers {
 					peer.mconn.conn.Version2(context.Background(), in)
