@@ -22,8 +22,8 @@ import (
 func (n *Node) Start() {
 	n.l = NewDefaultListener(Protocol, n)
 	n.DetectNodeAddr()
-	go n.doNat()
-	go n.monitor()
+	go n.DoNat()
+	go n.Monitor()
 	return
 }
 
@@ -86,7 +86,7 @@ func (n *Node) NatOk() bool {
 	return ok
 }
 
-func (n *Node) doNat() {
+func (n *Node) DoNat() {
 	go n.NatMapPort()
 	if OutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
@@ -250,7 +250,7 @@ func (n *Node) RemoveAll() {
 	return
 }
 
-func (n *Node) monitor() {
+func (n *Node) Monitor() {
 	go n.monitorErrPeer()
 	go n.checkActivePeers()
 	go n.getAddrFromOnline()
@@ -308,7 +308,7 @@ func (n *Node) DetectNodeAddr() {
 		}
 		rand.Seed(time.Now().Unix())
 		exterPort := uint16(rand.Intn(64512) + 1023)
-		if cfg.GetIsSeed() == true {
+		if cfg.GetIsSeed() == true || OutSide == true {
 			exterPort = DefaultPort
 		}
 		addr := fmt.Sprintf("%v:%v", externalIp, exterPort)
