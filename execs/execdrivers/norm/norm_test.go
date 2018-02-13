@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,6 +31,9 @@ var addrexec *account.Address
 
 var addr string
 var privGenesis, privkey crypto.PrivKey
+
+var testKey = "norm-key"
+var testValue = "norm-value"
 
 const fee = 1e6
 const secretLen = 32
@@ -79,9 +83,10 @@ func TestInitAccount(t *testing.T) {
 
 func TestNormPut(t *testing.T) {
 	fmt.Println("TestNormPut start")
+	defer time.Sleep(time.Second)
 	defer fmt.Println("TestNormPut end\n")
 
-	vput := &types.NormAction_Nput{&types.NormPut{Key: "cao", Value: "ping", Hash: common.Sha256(secret)}}
+	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue, Hash: common.Sha256(secret)}}
 	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee, To: addr}
 	tx.Nonce = r.Int63()
@@ -94,6 +99,32 @@ func TestNormPut(t *testing.T) {
 	if !reply.IsOk {
 		fmt.Println("err = ", reply.GetMsg())
 		t.Error(errors.New(string(reply.GetMsg())))
+		return
+	}
+}
+
+func TestNormGet(t *testing.T) {
+	fmt.Println("TestNormGet start")
+	defer fmt.Println("TestNormGet end\n")
+
+	var req types.Query
+	req.Execer = []byte("norm")
+	req.FuncName = "NormGet"
+	req.Payload = []byte(testKey)
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		t.Error(errors.New(string(reply.GetMsg())))
+		return
+	}
+	value := strings.TrimSpace(string(reply.Msg))
+	fmt.Println("GetValue =", value)
+	if value != testValue {
+		t.Error(err)
 		return
 	}
 }
