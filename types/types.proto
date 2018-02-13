@@ -643,8 +643,9 @@ message Consensus {
 	int64 raftApiPort = 5;
 	bool isNewJoinNode= 6;
 	string peersURL = 7;
-	int64 genesisBlockTime = 8;
-	string hotkeyAddr = 9;
+	string readOnlyPeersURL = 8;
+	int64 genesisBlockTime = 9;
+	string hotkeyAddr = 10;
 }
 
 message MemPool {

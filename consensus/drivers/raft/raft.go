@@ -47,6 +47,7 @@ type raftNode struct {
 	errorC           chan<- error
 	id               int
 	peers            []string
+	readOnlyPeers    []string
 	join             bool
 	waldir           string
 	snapdir          string
@@ -69,35 +70,41 @@ type raftNode struct {
 	//备用的leaderC用于watch leader节点的变更，暂时没用
 	//leaderC    chan int
 	validatorC chan map[string]bool
+	//用于判断该节点是否重启过
+	restartC chan struct{}
 }
 
-func NewRaftNode(id int,join bool, peers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
+func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
 	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan map[string]bool) {
 
 	log.Info("Enter consensus raft")
 	// commit channel
 	commitC := make(chan *types.Block)
 	errorC := make(chan error)
-	storage := raft.NewMemoryStorage()
+	//storage := raft.NewMemoryStorage()
+	//var readOnlyPeers []string
+	//readOnlyPeers :=[]string{"http://172.31.2.210:9021"}
 	rc := &raftNode{
-		proposeC:    proposeC,
-		confChangeC: confChangeC,
-		commitC:     commitC,
-		errorC:      errorC,
-		id:          id,
-		join:       join,
-		peers:       peers,
-		waldir:      fmt.Sprintf("chain33_raft-%d", id),
-		snapdir:     fmt.Sprintf("chain33_raft-%d-snap", id),
-		getSnapshot: getSnapshot,
-		snapCount:   defaultSnapCount,
-		stopc:       make(chan struct{}),
-		httpstopc:   make(chan struct{}),
-		httpdonec:   make(chan struct{}),
-		raftStorage: storage,
+		proposeC:      proposeC,
+		confChangeC:   confChangeC,
+		commitC:       commitC,
+		errorC:        errorC,
+		id:            id,
+		join:          join,
+		peers:         peers,
+		readOnlyPeers: readOnlyPeers,
+		waldir:        fmt.Sprintf("chain33_raft-%d", id),
+		snapdir:       fmt.Sprintf("chain33_raft-%d-snap", id),
+		getSnapshot:   getSnapshot,
+		snapCount:     defaultSnapCount,
+		stopc:         make(chan struct{}),
+		httpstopc:     make(chan struct{}),
+		httpdonec:     make(chan struct{}),
+		//raftStorage: storage,
 		//leaderC: make(chan int),
 		validatorC:       make(chan map[string]bool),
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
+		restartC:         make(chan struct{}, 1),
 	}
 	go rc.startRaft()
 
@@ -134,8 +141,11 @@ func (rc *raftNode) startRaft() {
 		PreVote:     true,
 		CheckQuorum: false,
 	}
-
+	if len(rc.readOnlyPeers) > 0 && rc.id > len(rc.peers) {
+		rc.join = true
+	}
 	if oldwal {
+		rc.restartC <- struct{}{}
 		rc.node = raft.RestartNode(c)
 	} else {
 		startPeers := rpeers
@@ -171,7 +181,10 @@ func (rc *raftNode) startRaft() {
 
 // 网络监听
 func (rc *raftNode) serveRaft() {
-	nodeURL, err := url.Parse(rc.peers[rc.id-1])
+	var peers []string
+	peers = append(peers, rc.peers...)
+	peers = append(peers, rc.readOnlyPeers...)
+	nodeURL, err := url.Parse(peers[rc.id-1])
 	if err != nil {
 		log.Error("raft: Failed parsing URL (%v)", err)
 	}
@@ -233,7 +246,6 @@ func (rc *raftNode) serveChannels() {
 		}
 		close(rc.stopc)
 	}()
-
 	// 从Ready()中接收数据
 	for {
 		select {
@@ -286,6 +298,18 @@ func (rc *raftNode) updateValidator() {
 	//}
 	//TODO 这块监听后期需要根据场景进行优化
 	time.Sleep(5 * time.Second)
+
+	//用于标记readOnlyPeers是否已经被添加到集群中了
+	flag := false
+	isRestart := false
+	ticker := time.NewTicker(50 * time.Millisecond)
+	select {
+	case <-rc.restartC:
+		isRestart = true
+		close(rc.restartC)
+	case <-ticker.C:
+		ticker.Stop()
+	}
 	for {
 		validatorMap = make(map[string]bool)
 		if rc.Leader() == raft.None {
@@ -295,12 +319,16 @@ func (rc *raftNode) updateValidator() {
 
 			// 获取到leader Id,选主成功
 			validatorMap[LeaderIsOK] = true
-
 			if rc.id == int(rc.Leader()) {
+				//leader选举出来之后即可添加addReadOnlyPeers
+				if !flag && !isRestart {
+					go rc.addReadOnlyPeers()
+				}
 				validatorMap[IsLeader] = true
 			} else {
 				validatorMap[IsLeader] = false
 			}
+			flag = true
 		}
 		time.Sleep(time.Second)
 		rc.validatorC <- validatorMap
@@ -497,7 +525,12 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 					return false
 				}
 				rc.transport.RemovePeer(typec.ID(cc.NodeID))
+			case raftpb.ConfChangeAddLearnerNode:
+				if len(cc.Context) > 0 {
+					rc.transport.AddPeer(typec.ID(cc.NodeID), []string{string(cc.Context)})
+				}
 			}
+
 		}
 
 		rc.appliedIndex = ents[i].Index
@@ -533,6 +566,17 @@ func (rc *raftNode) Process(ctx context.Context, m raftpb.Message) error {
 func (rc *raftNode) IsIDRemoved(id uint64) bool                           { return false }
 func (rc *raftNode) ReportUnreachable(id uint64)                          {}
 func (rc *raftNode) ReportSnapshot(id uint64, status raft.SnapshotStatus) {}
+func (rc *raftNode) addReadOnlyPeers() {
+	for i, peer := range rc.readOnlyPeers {
+		cc := raftpb.ConfChange{
+			Type:    raftpb.ConfChangeAddLearnerNode,
+			NodeID:  uint64(len(rc.peers) + i + 1),
+			Context: []byte(peer),
+		}
+		fmt.Println(cc)
+		confChangeC <- cc
+	}
+}
 
 //func (rc *raftNode) removePeer(id uint64, status raft.SnapshotStatus)     {}
 //func (rc *raftNode) addPeer(id uint64, status raft.SnapshotStatus)        {}

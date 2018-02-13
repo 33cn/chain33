@@ -36,6 +36,7 @@ nodeId=1
 raftApiPort=9121
 isNewJoinNode=false
 peersURL="http://127.0.0.1:9021"
+readOnlyPeersURL=""
 genesisBlockTime=1514533394
 hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
