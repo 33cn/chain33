@@ -3,8 +3,6 @@ package blockchain
 import (
 	"bytes"
 	"container/list"
-	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -29,16 +27,14 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail) (boo
 	exists := b.blockExists(blockHash)
 	if exists {
 		chainlog.Debug("ProcessBlock already have block", "blockHash", common.ToHex(blockHash))
-		str := fmt.Sprintf("already have block %v", blockHash)
-		return false, false, errors.New(str)
+		return false, false, types.ErrBlockExist
 	}
 
 	// 判断本节点是否已经存在孤儿链中
 	exists = b.orphanPool.IsKnownOrphan(blockHash)
 	if exists {
 		chainlog.Debug("ProcessBlock already have block(orphan)", "blockHash", common.ToHex(blockHash))
-		str := fmt.Sprintf("already have block (orphan) %v", blockHash)
-		return false, false, errors.New(str)
+		return false, false, types.ErrBlockExist
 	}
 
 	//checkpoint 的处理流程，block的时间必须晚于上一次的checkpoint点，以后再增加处理
@@ -105,7 +101,7 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 	for len(processHashes) > 0 {
 		// Pop the first hash to process from the slice.
 		processHash := processHashes[0]
-		chainlog.Debug("processOrphans", "processHash", common.ToHex([]byte(processHash)))
+		//chainlog.Debug("processOrphans", "processHash", common.ToHex([]byte(processHash)))
 
 		processHashes[0] = "" // Prevent GC leak.
 		processHashes = processHashes[1:]
@@ -118,22 +114,22 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 				chainlog.Debug("processOrphans", "Found a nil entry at index", i, "orphan dependency list for block", common.ToHex([]byte(processHash)))
 				continue
 			}
-			chainlog.Debug("processOrphans", "orphan.block.height", orphan.block.Height)
+			//chainlog.Debug("processOrphans", "orphan.block.height", orphan.block.Height)
 
 			// 从孤儿池中删除此孤儿节点
 			orphanHash := orphan.block.Hash()
 			b.orphanPool.RemoveOrphanBlock(orphan)
 			i--
 
+			chainlog.Debug("processOrphans  maybeAcceptBlock", "height", orphan.block.GetHeight(), "hash", common.ToHex(orphan.block.Hash()))
 			// 尝试将此孤儿节点添加到主链
 			_, err := b.maybeAcceptBlock(orphan.broadcast, &types.BlockDetail{Block: orphan.block})
 			if err != nil {
 				return err
 			}
-			chainlog.Debug("processOrphans  maybeAcceptBlock", "height", orphan.block.GetHeight(), "hash", common.ToHex(orphan.block.Hash()))
 			processHashes = append(processHashes, string(orphanHash))
-			chainlog.Debug("processOrphans", "orphanHash", common.ToHex(orphanHash))
-			chainlog.Debug("processOrphans", "processHashes[0]", common.ToHex([]byte(processHashes[0])))
+			///chainlog.Debug("processOrphans", "orphanHash", common.ToHex(orphanHash))
+			//chainlog.Debug("processOrphans", "processHashes[0]", common.ToHex([]byte(processHashes[0])))
 		}
 	}
 	return nil
@@ -147,15 +143,13 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail) 
 	prevNode := b.index.LookupNode(prevHash)
 	if prevNode == nil {
 		chainlog.Debug("maybeAcceptBlock", "previous block is unknown", common.ToHex(prevHash))
-		str := fmt.Sprintf("previous block %s is unknown", common.ToHex(prevHash))
-		return false, errors.New(str)
+		return false, types.ErrParentBlockNoExist
 	}
 
 	blockHeight := block.Block.GetHeight()
 	if blockHeight != prevNode.height+1 {
-		str := fmt.Sprintf("maybeAcceptBlock height err", "blockHeight", blockHeight, "prevHeight", prevNode.height)
-		chainlog.Debug(str)
-		return false, errors.New(str)
+		chainlog.Debug("maybeAcceptBlock height err", "blockHeight", blockHeight, "prevHeight", prevNode.height)
+		return false, types.ErrBlockHeightNoMatch
 	}
 
 	//将此block存储到db中，方便后面blockchain重组时使用，加入到主链saveblock时通过hash重新覆盖即可
@@ -203,11 +197,13 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	tiptd, _ := b.blockStore.GetTdByBlockHash(b.bestChain.Tip().hash)
 	parenttd, _ := b.blockStore.GetTdByBlockHash(parentHash)
 	if parenttd == nil {
-		str := fmt.Sprintf("connectBestChain parenttd is not exits!", "hieght", block.Block.Height, "parentHash", common.ToHex(parentHash), "block.Block.hash", common.ToHex(block.Block.Hash()))
-		chainlog.Info("connectBestChain", "err", str)
-		return false, errors.New(str)
+		chainlog.Error("connectBestChain parenttd is not exits!", "hieght", block.Block.Height, "parentHash", common.ToHex(parentHash), "block.Block.hash", common.ToHex(block.Block.Hash()))
+		return false, types.ErrParentTdNoExist
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
+
+	chainlog.Info("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", common.BigToCompact(tiptd))
+	chainlog.Info("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", common.BigToCompact(blocktd))
 
 	if blocktd.Cmp(tiptd) <= 0 {
 		fork := b.bestChain.FindFork(node)
@@ -228,7 +224,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	detachNodes, attachNodes := b.getReorganizeNodes(node)
 
 	// Reorganize the chain.
-	chainlog.Info("connectBestChain REORGANIZE:", "block height", node.height, "block hash", common.ToHex(node.hash))
+	//chainlog.Info("connectBestChain REORGANIZE:", "block height", node.height, "block hash", common.ToHex(node.hash))
 	err := b.reorganizeChain(detachNodes, attachNodes)
 	if err != nil {
 		return false, err
@@ -243,9 +239,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	// Make sure it's extending the end of the best chain.
 	parentHash := blockdetail.Block.GetParentHash()
 	if !bytes.Equal(parentHash, b.bestChain.Tip().hash) {
-		str := fmt.Sprintf("connectBlock", "parentHash", common.ToHex(parentHash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
 		chainlog.Error("connectBlock hash err", "height", blockdetail.Block.Height, "Tip.height", b.bestChain.Tip().height)
-		return errors.New(str)
+		return types.ErrBlockHashNoMatch
 	}
 	var err error
 	block := blockdetail.Block
@@ -259,11 +254,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 			return err
 		}
 	}
-	beg := time.Now()
-	defer func() {
-		chainlog.Error("connectBlock write db", "cost", time.Now().Sub(beg))
-	}()
 
+	beg := time.Now()
 	// 写入磁盘
 	//批量将block信息写入磁盘
 	newbatch := b.blockStore.NewBatch(true)
@@ -289,8 +281,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	} else {
 		parenttd, _ := b.blockStore.GetTdByBlockHash(parentHash)
 		blocktd = new(big.Int).Add(difficulty, parenttd)
-		chainlog.Error("connectBlock Difficulty", "height", block.Height, "parenttd.td", common.BigToCompact(parenttd))
-		chainlog.Error("connectBlock Difficulty", "height", block.Height, "self.td", common.BigToCompact(blocktd))
+		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "parenttd.td", common.BigToCompact(parenttd))
+		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "self.td", common.BigToCompact(blocktd))
 	}
 
 	err = b.blockStore.SaveTdByBlockHash(newbatch, blockdetail.Block.Hash(), blocktd)
@@ -299,24 +291,21 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		return err
 	}
 	newbatch.Write()
+
+	chainlog.Info("connectBlock write db", "height", block.Height, "cost", time.Now().Sub(beg))
+
 	b.blockStore.UpdateHeight()
 
 	// 更新 best chain的tip节点
 	b.bestChain.SetTip(node)
 
-	//b.task.Done(blockdetail.Block.GetHeight())
 	b.query.updateStateHash(blockdetail.GetBlock().GetStateHash())
 
 	b.SendAddBlockEvent(blockdetail)
 
-	if node.broadcast {
-		b.SendBlockBroadcast(blockdetail)
-		//更新广播block的高度
-		castblockheight := b.GetRcvLastCastBlkHeight()
-		if castblockheight < blockdetail.Block.Height {
-			//b.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
-		}
-	}
+	// 通知此block已经处理完，主要处理孤儿节点时需要设置
+	b.task.Done(blockdetail.Block.GetHeight())
+
 	return nil
 }
 
@@ -325,9 +314,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	// 只能从 best chain tip节点开始删除
 	if !bytes.Equal(node.hash, b.bestChain.Tip().hash) {
 		chainlog.Error("disconnectBlock:", "height", blockdetail.Block.Height, "node.hash", common.ToHex(node.hash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
-
-		str := fmt.Sprintf("disconnectBlock", "node.hash", common.ToHex(node.hash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
-		return errors.New(str)
+		return types.ErrBlockHashNoMatch
 	}
 
 	//批量删除block的信息从磁盘中
@@ -360,6 +347,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 
 	//确定node的父节点升级成tip节点
 	newtipnode := b.bestChain.Tip()
+
 	if newtipnode != node.parent {
 		chainlog.Error("disconnectBlock newtipnode err:", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
 	}
@@ -406,7 +394,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// 需要删除的blocks
 		detachBlocks = append(detachBlocks, block)
-		chainlog.Error("reorganizeChain detachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
+		chainlog.Info("reorganizeChain detachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
@@ -416,7 +404,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// 需要加载到db的blocks
 		attachBlocks = append(attachBlocks, block)
-		chainlog.Error("reorganizeChain attachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
+		chainlog.Info("reorganizeChain attachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
 	}
 
 	// Disconnect blocks from the main chain.

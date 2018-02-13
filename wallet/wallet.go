@@ -1378,7 +1378,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	//首先需要判断钱包是否已经设置seed，如果已经设置提示不需要再设置，一个钱包只能保存一个seed
 	exit, err := HasSeed(wallet.walletStore.db)
 	if exit {
-		return false, err
+		return false, types.ErrSeedExist
 	}
 	//入参数校验，seed必须是15个单词或者汉字
 	if len(password) == 0 || len(seed) == 0 {

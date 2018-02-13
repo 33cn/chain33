@@ -1,13 +1,11 @@
 package blockchain
 
 import (
-	//	"bytes"
+	"bytes"
+	"container/list"
 	"sync"
 
-	"container/list"
-
 	"code.aliyun.com/chain33/chain33/common"
-	//	"code.aliyun.com/chain33/chain33/types"
 )
 
 const blockNodeCacheLimit = 500
@@ -76,13 +74,12 @@ func (c *chainView) setTip(node *blockNode) {
 		height := c.cacheQueue.Remove(c.cacheQueue.Back()).(*blockNode).height
 		delete(c.nodes, height)
 	}
-	chainlog.Error("setTip", "node.height", node.height, "node.hash", common.ToHex(node.hash))
+	chainlog.Info("setTip", "node.height", node.height, "node.hash", common.ToHex(node.hash))
 }
 
 func (c *chainView) SetTip(node *blockNode) {
 	c.mtx.Lock()
 	c.setTip(node)
-	//c.PrintTip()
 	c.mtx.Unlock()
 }
 
@@ -95,8 +92,6 @@ func (c *chainView) delTip(node *blockNode) {
 
 	elem, ok := c.nodes[node.height]
 	if ok {
-		//c.cacheQueue.MoveToFront(elem.Next())
-
 		delheight := c.cacheQueue.Remove(elem).(*blockNode).height
 		if delheight != node.height {
 			chainlog.Error("delTip height err ", "height", node.height, "delheight", delheight)
@@ -148,9 +143,6 @@ func (c *chainView) NodeByHeight(height int64) *blockNode {
 	return node
 }
 
-// Equals returns whether or not two chain views are the same.  Uninitialized
-// views (tip set to nil) are considered equal.
-//
 // This function is safe for concurrent access.
 func (c *chainView) Equals(other *chainView) bool {
 	c.mtx.Lock()
@@ -215,6 +207,18 @@ func (c *chainView) FindFork(node *blockNode) *blockNode {
 	fork := c.findFork(node)
 	c.mtx.Unlock()
 	return fork
+}
+
+func (c *chainView) HaveBlock(hash []byte, height int64) bool {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	node := c.nodeByHeight(height)
+	if node != nil {
+		if bytes.Equal(hash, node.hash) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *chainView) PrintTip() {
