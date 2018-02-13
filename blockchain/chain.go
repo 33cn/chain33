@@ -1041,6 +1041,8 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
 			chainlog.Error("SynBlockToDbOneByOne ParentHash err!", "height", block.Height)
 			chain.blockPool.DelBlock(block.GetHeight())
+			//取消任务，等待重新连接peer
+			chain.task.Cancel()
 			return
 		}
 		var err error
