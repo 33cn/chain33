@@ -633,7 +633,8 @@ message P2P {
 
 message Wallet{
 	int64  minFee=1;
-	string dbPath=2;
+	string driver=2;
+	string dbPath=3;
 }
 
 message Store {
