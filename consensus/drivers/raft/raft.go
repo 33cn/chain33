@@ -38,6 +38,7 @@ var (
 	defaultSnapCount        uint64 = 10000
 	snapshotCatchUpEntriesN uint64 = 10000
 	leaderCache             uint64
+	isReady                 bool
 )
 
 type raftNode struct {
@@ -71,7 +72,8 @@ type raftNode struct {
 	//leaderC    chan int
 	validatorC chan map[string]bool
 	//用于判断该节点是否重启过
-	restartC chan struct{}
+	restartC      chan struct{}
+	addNodeReadyC chan struct{}
 }
 
 func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
@@ -85,23 +87,21 @@ func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, getS
 	//var readOnlyPeers []string
 	//readOnlyPeers :=[]string{"http://172.31.2.210:9021"}
 	rc := &raftNode{
-		proposeC:      proposeC,
-		confChangeC:   confChangeC,
-		commitC:       commitC,
-		errorC:        errorC,
-		id:            id,
-		join:          join,
-		peers:         peers,
-		readOnlyPeers: readOnlyPeers,
-		waldir:        fmt.Sprintf("chain33_raft-%d", id),
-		snapdir:       fmt.Sprintf("chain33_raft-%d-snap", id),
-		getSnapshot:   getSnapshot,
-		snapCount:     defaultSnapCount,
-		stopc:         make(chan struct{}),
-		httpstopc:     make(chan struct{}),
-		httpdonec:     make(chan struct{}),
-		//raftStorage: storage,
-		//leaderC: make(chan int),
+		proposeC:         proposeC,
+		confChangeC:      confChangeC,
+		commitC:          commitC,
+		errorC:           errorC,
+		id:               id,
+		join:             join,
+		peers:            peers,
+		readOnlyPeers:    readOnlyPeers,
+		waldir:           fmt.Sprintf("chain33_raft-%d", id),
+		snapdir:          fmt.Sprintf("chain33_raft-%d-snap", id),
+		getSnapshot:      getSnapshot,
+		snapCount:        defaultSnapCount,
+		stopc:            make(chan struct{}),
+		httpstopc:        make(chan struct{}),
+		httpdonec:        make(chan struct{}),
 		validatorC:       make(chan map[string]bool),
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
 		restartC:         make(chan struct{}, 1),
@@ -313,6 +313,7 @@ func (rc *raftNode) updateValidator() {
 	for {
 		validatorMap = make(map[string]bool)
 		if rc.Leader() == raft.None {
+			//TODO:当节点被删除时需要如下提示信息需要优化，删除节点是不可逆操作，因此需要记录被删节点信息
 			rlog.Info("==============Leader is not ready==============")
 			validatorMap[LeaderIsOK] = false
 		} else {
@@ -529,6 +530,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 				if len(cc.Context) > 0 {
 					rc.transport.AddPeer(typec.ID(cc.NodeID), []string{string(cc.Context)})
 				}
+				isReady = true
 			}
 
 		}
@@ -567,14 +569,28 @@ func (rc *raftNode) IsIDRemoved(id uint64) bool                           { retu
 func (rc *raftNode) ReportUnreachable(id uint64)                          {}
 func (rc *raftNode) ReportSnapshot(id uint64, status raft.SnapshotStatus) {}
 func (rc *raftNode) addReadOnlyPeers() {
+	isReady = true
+	//信息校验，防止是空数组
+	if len(rc.readOnlyPeers) == 1 && rc.readOnlyPeers[0] == "" {
+		return
+	}
 	for i, peer := range rc.readOnlyPeers {
 		cc := raftpb.ConfChange{
 			Type:    raftpb.ConfChangeAddLearnerNode,
 			NodeID:  uint64(len(rc.peers) + i + 1),
 			Context: []byte(peer),
 		}
-		fmt.Println(cc)
-		confChangeC <- cc
+		//节点变更一次只能变更一个，因此需要检查是否添加成功
+		if isReady {
+			confChangeC <- cc
+			isReady = false
+			for {
+				time.Sleep(500 * time.Millisecond)
+				if isReady {
+					break
+				}
+			}
+		}
 	}
 }
 
