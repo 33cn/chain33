@@ -8,21 +8,22 @@ import (
 	"sync"
 	"time"
 
+	"code.aliyun.com/chain33/chain33/p2p/nat"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
 // 启动Node节点
 //1.启动监听GRPC Server
-//2.初始化AddrBook,并发起对相应地址的连接
-//3.如果配置了种子节点，则连接种子节点
-//4.启动监控远程节点
-func (n *Node) Start() {
-	n.DetectNodeAddr()
-	n.l = NewDefaultListener(Protocol, n)
-	go n.monitor()
-	go n.doNat()
+//2.检测自身地址
+//3.启动端口映射
+//4.启动监控模块，进行节点管理
 
+func (n *Node) Start() {
+	n.l = NewDefaultListener(Protocol, n)
+	n.DetectNodeAddr()
+	go n.doNat()
+	go n.monitor()
 	return
 }
 
@@ -86,7 +87,7 @@ func (n *Node) NatOk() bool {
 }
 
 func (n *Node) doNat() {
-
+	go n.NatMapPort()
 	if OutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.NatOk() {
@@ -326,4 +327,50 @@ func (n *Node) DetectNodeAddr() {
 		log.Info("DetectionNodeAddr", " Finish ExternalIp", externalIp, "LocalAddr", LocalAddr, "IsOutSide", OutSide)
 		break
 	}
+}
+
+func (n *Node) NatMapPort() {
+	if OutSide == true { //在外网的节点不需要映射端口
+		return
+	}
+	n.WaitForNat()
+	var err error
+	for i := 0; i < TryMapPortTimes; i++ {
+
+		err = nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort), "chain33-p2p", time.Minute*20)
+		if err != nil {
+			log.Error("NatMapPort", "err", err.Error())
+			n.FlushNodePort(DefaultPort, uint16(rand.Intn(64512)+1023))
+			log.Info("NatMapPort", "New External Port", n.nodeInfo.GetExternalAddr())
+			continue
+		}
+
+		break
+	}
+	if err != nil {
+		//映射失败
+		log.Warn("NatMapPort", "Nat Faild", "Sevice=6")
+		n.nodeInfo.natResultChain <- false
+		return
+	}
+
+	n.nodeInfo.natResultChain <- true
+	refresh := time.NewTimer(mapUpdateInterval)
+	for {
+		select {
+		case <-refresh.C:
+			nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort), "chain33-p2p", time.Minute*20)
+			refresh.Reset(mapUpdateInterval)
+
+		case <-n.loopDone:
+			nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort))
+			return
+		}
+	}
+
+}
+
+func (n *Node) WaitForNat() {
+	<-n.nodeInfo.natNoticeChain
+	return
 }
