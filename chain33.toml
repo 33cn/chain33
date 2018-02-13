@@ -32,15 +32,16 @@ name="solo"
 minerstart=false
 
 [store]
-driver="leveldb"
+driver="gobadger"
 dbPath="datadir/mavltree"
 
 [localstore]
-driver="leveldb"
+driver="gobadger"
 dbPath="datadir/mavltree"
 
 [wallet]
 minFee=1000000
+driver="gobadger"
 dbPath="datadir/wallet"
 
 [exec]

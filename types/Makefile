@@ -1,2 +1,4 @@
+export PATH:=${PWD}:${PATH}
 all:
-		protoc --go_out=plugins=grpc:. types.proto
+	@echo ${PATH}
+	protoc --go_out=plugins=grpc:. types.proto
