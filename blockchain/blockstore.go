@@ -130,7 +130,7 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 	blockdetail.Receipts = blockbody.Receipts
 	blockdetail.Block = &block
 
-	storeLog.Error("LoadBlockByHash", "Height", block.Height, "Difficulty", blockdetail.Block.Difficulty)
+	//storeLog.Info("LoadBlockByHash", "Height", block.Height, "Difficulty", blockdetail.Block.Difficulty)
 
 	return &blockdetail, nil
 }
@@ -475,8 +475,8 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail) error {
 
 	//转换自己的难度成big.int
 	difficulty := common.CalcWork(blockdetail.Block.Difficulty)
-	chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "Block.Difficulty", blockdetail.Block.Difficulty)
-	chainlog.Error("dbMaybeStoreBlock Difficulty bigint", "height", height, "self.Difficulty", common.BigToCompact(difficulty))
+	//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "Block.Difficulty", blockdetail.Block.Difficulty)
+	//chainlog.Error("dbMaybeStoreBlock Difficulty bigint", "height", height, "self.Difficulty", common.BigToCompact(difficulty))
 
 	var blocktd *big.Int
 	if height == 0 {
@@ -484,13 +484,13 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail) error {
 	} else {
 		parenttd, _ := bs.GetTdByBlockHash(parentHash)
 		blocktd = new(big.Int).Add(difficulty, parenttd)
-		chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "parenttd.td", common.BigToCompact(parenttd))
-		chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "self.td", common.BigToCompact(blocktd))
+		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "parenttd.td", common.BigToCompact(parenttd))
+		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "self.td", common.BigToCompact(blocktd))
 	}
 
 	err = bs.SaveTdByBlockHash(storeBatch, blockdetail.Block.Hash(), blocktd)
 	if err != nil {
-		chainlog.Error("dbMaybeStoreBlock SaveTdByBlockHash:", "height", height, "err", err)
+		chainlog.Error("dbMaybeStoreBlock SaveTdByBlockHash:", "height", height, "hash", common.ToHex(hash), "err", err)
 		return err
 	}
 

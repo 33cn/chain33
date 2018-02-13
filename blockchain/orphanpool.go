@@ -6,9 +6,15 @@ import (
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
-
 	"code.aliyun.com/chain33/chain33/types"
 )
+
+var (
+	maxOrphanBlocks int64 = 2 * MaxFetchBlockNum //最大孤儿block数量，考虑到同步阶段孤儿block会很多
+	orphanlog             = chainlog.New("submodule", "orphan")
+)
+
+const orphanExpirationTime = time.Second * 300
 
 //孤儿节点，就是本节点的父节点未知的block
 type orphanBlock struct {
@@ -24,13 +30,6 @@ type OrphanPool struct {
 	prevOrphans  map[string][]*orphanBlock
 	oldestOrphan *orphanBlock
 }
-
-const (
-	maxOrphanBlocks      = 110
-	orphanExpirationTime = time.Second * 300
-)
-
-var orphanlog = chainlog.New("submodule", "orphan")
 
 func NewOrphanPool() *OrphanPool {
 	op := &OrphanPool{
@@ -74,17 +73,14 @@ func (op *OrphanPool) RemoveOrphanBlock(orphan *orphanBlock) {
 	op.orphanLock.Lock()
 	defer op.orphanLock.Unlock()
 
-	chainlog.Error("RemoveOrphanBlock:", "height", orphan.block.Height, "hash", common.ToHex(orphan.block.Hash()))
+	chainlog.Debug("RemoveOrphanBlock:", "height", orphan.block.Height, "hash", common.ToHex(orphan.block.Hash()))
 
 	op.removeOrphanBlock(orphan)
 }
 
 // 删除孤儿节点从OrphanPool中，以及prevOrphans中的index
 func (op *OrphanPool) removeOrphanBlock(orphan *orphanBlock) {
-	chainlog.Error("removeOrphanBlock:", "orphan.block.height", orphan.block.Height, "orphan.block.hash", common.ToHex(orphan.block.Hash()))
-
-	//op.orphanLock.Lock()
-	//defer op.orphanLock.Unlock()
+	chainlog.Debug("removeOrphanBlock:", "orphan.block.height", orphan.block.Height, "orphan.block.hash", common.ToHex(orphan.block.Hash()))
 
 	// 从orphan pool中删除孤儿节点
 	orphanHash := orphan.block.Hash()
@@ -118,7 +114,7 @@ func (op *OrphanPool) removeOrphanBlock(orphan *orphanBlock) {
 // exceeded.
 func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block) {
 
-	chainlog.Error("addOrphanBlock:", "block.height", block.Height, "block.hash", common.ToHex(block.Hash()))
+	chainlog.Debug("addOrphanBlock:", "block.height", block.Height, "block.hash", common.ToHex(block.Hash()))
 
 	op.orphanLock.Lock()
 	defer op.orphanLock.Unlock()
@@ -126,7 +122,7 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block) {
 	// 删除过期的孤儿节点从孤儿池中
 	for _, oBlock := range op.orphans {
 		if time.Now().After(oBlock.expiration) {
-			chainlog.Error("addOrphanBlock:removeOrphanBlock expiration", "block.height", oBlock.block.Height, "block.hash", common.ToHex(oBlock.block.Hash()))
+			chainlog.Debug("addOrphanBlock:removeOrphanBlock expiration", "block.height", oBlock.block.Height, "block.hash", common.ToHex(oBlock.block.Hash()))
 
 			op.removeOrphanBlock(oBlock)
 			continue
@@ -138,9 +134,9 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block) {
 	}
 
 	// 孤儿池超过最大限制时，删除最早的一个孤儿block
-	if len(op.orphans)+1 > maxOrphanBlocks {
+	if int64(len(op.orphans)+1) > maxOrphanBlocks {
 		op.removeOrphanBlock(op.oldestOrphan)
-		chainlog.Error("addOrphanBlock:removeOrphanBlock maxOrphanBlocks ", "block.height", op.oldestOrphan.block.Height, "block.hash", common.ToHex(op.oldestOrphan.block.Hash()))
+		chainlog.Debug("addOrphanBlock:removeOrphanBlock maxOrphanBlocks ", "block.height", op.oldestOrphan.block.Height, "block.hash", common.ToHex(op.oldestOrphan.block.Hash()))
 
 		op.oldestOrphan = nil
 	}
@@ -157,8 +153,6 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block) {
 	// 将本孤儿节点添加到其父hash对应的map列表中，方便快速查找
 	prevHash := block.GetParentHash()
 	op.prevOrphans[string(prevHash)] = append(op.prevOrphans[string(prevHash)], oBlock)
-
-	//op.printorphan()
 }
 
 //获取父hash对应的子孤儿节点的个数
