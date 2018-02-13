@@ -153,6 +153,15 @@ func TestRetrieveBackup(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 
+	if !checkexecAcc(c, addr[accountindexA], showandcheck, 2*retrieveAmount) {
+		t.Error(ErrTest)
+		return
+	}
+	if !checkexecAcc(c, addr[accountindexB], showandcheck, retrieveAmount) {
+		t.Error(ErrTest)
+		return
+	}
+
 	//2. a，b为A做备份，b为B做备份
 	err = backup(accountindexa, accountindexA, accountindexA, delayLevel1)
 	if err != nil {
@@ -186,6 +195,7 @@ func TestRetrieveBackup(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
+
 }
 
 func TestRetrievePrepare(t *testing.T) {
@@ -225,28 +235,48 @@ func TestRetrievePrepare(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
+	if !checkexecAcc(c, addr[accountindexA], showandcheck, 2*retrieveAmount) {
+		t.Error(ErrTest)
+		return
+	}
+	if !checkexecAcc(c, addr[accountindexB], showandcheck, retrieveAmount) {
+		t.Error(ErrTest)
+		return
+	}
 	return
 }
 
 func TestRetrievePerform(t *testing.T) {
 	fmt.Println("\nTestRetrievePerform start")
-	fmt.Println("*This case is used for checking perform operation\n*perform action is done with privkey of account a/b, when perform succeed, a/b withdraw from it's contract address\n*currBalancea = currBalancea +2*1e8 -2*fee, currBalanceb = currBalanceb + 1e8-2*fee\n")
+	fmt.Println("*This case is used for checking perform operation\n*perform action is done with privkey of account a/b, b can't withdraw balance as time is not enough\n*currBalancea = currBalancea +2*1e8 -2*fee, currBalanceb = currBalanceb -2*fee\n")
 	defer fmt.Println("TestRetrievePerform end\n")
+
+	//not success as time not enough
+	err := perform(accountindexb, accountindexB, accountindexb)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	time.Sleep(5 * time.Second)
+
 	time.Sleep(75 * time.Second)
 
-	err := perform(accountindexa, accountindexA, accountindexa)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	time.Sleep(5 * time.Second)
-	err = perform(accountindexb, accountindexB, accountindexb)
+	err = perform(accountindexa, accountindexA, accountindexa)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	time.Sleep(5 * time.Second)
 
+	if !checkexecAcc(c, addr[accountindexa], showandcheck, 2*retrieveAmount) {
+		t.Error(ErrTest)
+		return
+	}
+	if !checkexecAcc(c, addr[accountindexB], showandcheck, retrieveAmount) {
+		t.Error(ErrTest)
+		return
+	}
+	time.Sleep(5 * time.Second)
 	//取钱
 	err = sendtoaddress(c, privkey[accountindexa], addrexec.String(), -2*retrieveAmount)
 	if err != nil {
@@ -261,7 +291,7 @@ func TestRetrievePerform(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	currBalancea = currBalancea + 2*retrieveAmount - 2*fee
-	currBalanceb = currBalanceb + retrieveAmount - 2*fee
+	currBalanceb = currBalanceb - 2*fee
 
 	if !showOrCheckAcc(c, addr[accountindexa], showandcheck, currBalancea) {
 		t.Error(ErrTest)
@@ -275,11 +305,28 @@ func TestRetrievePerform(t *testing.T) {
 
 func TestRetrieveCancel(t *testing.T) {
 	fmt.Println("\nTestRetrieveCancel start")
-	fmt.Println("*This case is used for checking cancel operation\n*Cancel action is done with privkey of account A, although the cancel action could succeed, but the balance have been transfered by last action with backup a\n*currBalanceA = currBalanceA - 2*fee\n")
+	fmt.Println("*This case is used for checking cancel operation\n*Cancel action is done with privkey of account A/B, although the cancel action for A could succeed, but the balance have been transfered by last action with backup a\n*currBalanceA = currBalanceA - 2*fee currBalanceB = currBalanceB + 1e8 - 2*fee\n")
 	defer fmt.Println("TestRetrieveCancel end\n")
 	err := cancel(accountindexb, accountindexA, accountindexA)
 	if err != nil {
 		t.Error(err)
+		return
+	}
+	time.Sleep(5 * time.Second)
+
+	err = cancel(accountindexb, accountindexB, accountindexB)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	time.Sleep(5 * time.Second)
+
+	if !checkexecAcc(c, addr[accountindexA], showandcheck, 0) {
+		t.Error(ErrTest)
+		return
+	}
+	if !checkexecAcc(c, addr[accountindexB], showandcheck, retrieveAmount) {
+		t.Error(ErrTest)
 		return
 	}
 	time.Sleep(5 * time.Second)
@@ -289,9 +336,48 @@ func TestRetrieveCancel(t *testing.T) {
 		panic(err)
 	}
 	time.Sleep(5 * time.Second)
+	err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), -retrieveAmount)
+	if err != nil {
+		panic(err)
+	}
+	time.Sleep(5 * time.Second)
+
 	currBalanceA = currBalanceA - 2*fee
+	currBalanceB = currBalanceB + retrieveAmount - 2*fee
 
 	if !showOrCheckAcc(c, addr[accountindexA], showandcheck, currBalanceA) {
+		t.Error(ErrTest)
+		return
+	}
+}
+
+func TestRetrievePerformB(t *testing.T) {
+	fmt.Println("\nTestRetrievePerformB start")
+	fmt.Println("*This case is used for checking perform operation for B again\n*perform action is done with privkey of account b, b can't withdraw balance as it has been canceled before\n*currBalanceb = currBalanceb -2*fee\n")
+	defer fmt.Println("TestRetrievePerformB end\n")
+
+	//failed as canceled before
+	err := perform(accountindexb, accountindexB, accountindexb)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	time.Sleep(5 * time.Second)
+
+	//canceled before, so there is no balance in contract
+	if !checkexecAcc(c, addr[accountindexb], showandcheck, 0) {
+		t.Error(ErrTest)
+		return
+	}
+
+	err = sendtoaddress(c, privkey[accountindexb], addrexec.String(), retrieveAmount)
+	if err != nil {
+		panic(err)
+	}
+	time.Sleep(5 * time.Second)
+
+	currBalanceb = currBalanceb - 2*fee
+	if !showOrCheckAcc(c, addr[accountindexb], showandcheck, currBalanceb) {
 		t.Error(ErrTest)
 		return
 	}
@@ -367,6 +453,43 @@ func cancel(backupaddrindex int, defaultaddrindex int, privkeyindex int) error {
 		return errors.New(string(reply.GetMsg()))
 	}
 	return nil
+}
+
+func checkexecAcc(c types.GrpcserviceClient, addr string, sorc int, balance int64) bool {
+	var addrs []string
+	addrs = append(addrs, addr)
+	reqbalance := &types.ReqBalance{Addresses: addrs, Execer: "retrieve"}
+
+	accs, err := c.GetBalance(context.Background(), reqbalance)
+	if err != nil {
+		return false
+	}
+
+	//only one input, so we try to find the first one
+	if len(accs.Acc) == 0 {
+		fmt.Printf("No acc")
+		return false
+	}
+
+	if sorc != onlycheck {
+		fmt.Println("exec acc:", accs.Acc[0])
+	}
+	if sorc != onlyshow {
+		if accs.Acc[0].Balance != balance {
+			return false
+		}
+	}
+	/*
+		for i := 0; i < len(accs.Acc); i++ {
+			acc := accs.Acc[i]
+			if acc.Addr
+			if sorc != onlycheck {
+				fmt.Println(acc)
+			}
+		}
+	*/
+
+	return true
 }
 
 func showOrCheckAcc(c types.GrpcserviceClient, addr string, sorc int, balance int64) bool {
