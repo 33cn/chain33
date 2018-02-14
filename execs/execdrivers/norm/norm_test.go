@@ -71,7 +71,7 @@ func TestInitAccount(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
+	//need balance to pass tx check in mempool
 	err = sendtoaddress(c, privGenesis, addr, defaultAmount)
 	if err != nil {
 		fmt.Println(err)
@@ -79,6 +79,7 @@ func TestInitAccount(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	time.Sleep(5 * time.Second)
 }
 
 func TestNormPut(t *testing.T) {
@@ -88,9 +89,9 @@ func TestNormPut(t *testing.T) {
 
 	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue, Hash: common.Sha256(secret)}}
 	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
-	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee, To: addr}
+	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee}
 	tx.Nonce = r.Int63()
-	tx.Sign(types.SECP256K1, privGenesis)
+	tx.Sign(types.SECP256K1, privkey)
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
 		t.Error(err)
