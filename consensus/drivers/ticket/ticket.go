@@ -62,18 +62,30 @@ func (client *TicketClient) Close() {
 }
 
 func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
+	//给ticket 合约打 3亿 个币
+	//产生3w张初始化ticket
+	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000)
+	ret = append(ret, tx1...)
+
+	tx2 := createTicket("1PUiGcbsccfxW3zuvHXZBJfznziph5miAo", "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 10000)
+	ret = append(ret, tx2...)
+
+	tx3 := createTicket("1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX", "1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa", 10000)
+	ret = append(ret, tx3...)
+	return
+}
+
+func createTicket(minerAddr, returnAddr string, count int32) (ret []*types.Transaction) {
 	tx1 := types.Transaction{}
 	tx1.Execer = []byte("coins")
 
 	//给hotkey 10000 个币，作为miner的手续费
-	tx1.To = client.Cfg.HotkeyAddr
+	tx1.To = minerAddr
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
 	g.Genesis = &types.CoinsGenesis{Amount: types.TicketPrice}
 	tx1.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx1)
-
-	//给ticket 合约打 3亿 个币
 
 	tx2 := types.Transaction{}
 
@@ -81,21 +93,18 @@ func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	tx2.To = execdrivers.ExecAddress("ticket").String()
 	//gen payload
 	g = &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{3e8 * types.Coin, client.Cfg.Genesis}
+	g.Genesis = &types.CoinsGenesis{int64(count) * types.TicketPrice, returnAddr}
 	tx2.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx2)
 
-	//产生30w张初始化ticket
 	tx3 := types.Transaction{}
 	tx3.Execer = []byte("ticket")
 	tx3.To = execdrivers.ExecAddress("ticket").String()
-
 	gticket := &types.TicketAction_Genesis{}
-	gticket.Genesis = &types.TicketGenesis{client.Cfg.HotkeyAddr, client.Cfg.Genesis, 30000}
-
+	gticket.Genesis = &types.TicketGenesis{minerAddr, returnAddr, count}
 	tx3.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
 	ret = append(ret, &tx3)
-	return
+	return ret
 }
 
 func (client *TicketClient) ProcEvent(msg queue.Message) {
