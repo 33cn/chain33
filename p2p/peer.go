@@ -173,7 +173,7 @@ FOR_LOOP:
 			}
 			count++
 		case <-p.allLoopDone:
-			log.Error("Peer HeartBeat", "loop done", p.Addr())
+			log.Debug("Peer HeartBeat", "loop done", p.Addr())
 			break FOR_LOOP
 
 		}
@@ -209,6 +209,7 @@ func (p *peer) subStreamBlock() {
 	pcli := NewP2pCli(nil)
 	go func(p *peer) {
 		//Stream Send data
+	SEND_LOOP:
 		for {
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -262,14 +263,17 @@ func (p *peer) subStreamBlock() {
 						(*p.nodeInfo).monitorChan <- p
 						resp.CloseSend()
 						cancel()
-						break //下一次外循环重新获取stream
+						break SEND_LOOP //下一次外循环重新获取stream
 					}
 				}
 
 			}
 		}
 	}(p)
+
+FOR_LOOP:
 	for {
+
 		resp, err := p.mconn.conn.RouteChat(context.Background())
 		if err != nil {
 			p.peerStat.NotOk()
@@ -297,8 +301,7 @@ func (p *peer) subStreamBlock() {
 					resp.CloseSend()
 					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
-					log.Error("SubStreamBlock", "Recv Err", err.Error())
-					break
+					break FOR_LOOP
 				}
 
 				if block := data.GetBlock(); block != nil {
