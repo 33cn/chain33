@@ -272,7 +272,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 	}
 
 	client := s.node.nodeInfo.qclient
-	msg := client.NewMessage("blockchain", pb.EventGetHeaders, pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeight()})
+	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeight()})
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("GetHeaders", "Error", err.Error())
