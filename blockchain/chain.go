@@ -1252,26 +1252,3 @@ func (chain *BlockChain) CheckTipBlockHash() {
 		}
 	}
 }
-
-//test
-func (chain *BlockChain) TestDelBlock(height int64) {
-	chainlog.Debug("TestDelBlock", "height", height)
-
-	blockdetail, _ := chain.blockStore.LoadBlockByHeight(height)
-	delnode := chain.bestChain.NodeByHeight(height)
-	if delnode == nil {
-		delnode = chain.bestChain.Tip()
-	}
-	if blockdetail != nil && delnode != nil {
-		chain.disconnectBlock(delnode, blockdetail)
-	}
-}
-
-func (chain *BlockChain) TestSynBlock(height int64) {
-	chainlog.Debug("TestSynBlock", "height", height)
-
-	tipheight := chain.bestChain.Height()
-	pid := chain.GetPeerMaxBlkPid()
-
-	chain.FetchBlockHeaders(1, tipheight, pid)
-}

@@ -74,7 +74,7 @@ func (c *chainView) setTip(node *blockNode) {
 		height := c.cacheQueue.Remove(c.cacheQueue.Back()).(*blockNode).height
 		delete(c.nodes, height)
 	}
-	chainlog.Info("setTip", "node.height", node.height, "node.hash", common.ToHex(node.hash))
+	chainlog.Debug("setTip", "node.height", node.height, "node.hash", common.ToHex(node.hash))
 }
 
 func (c *chainView) SetTip(node *blockNode) {
