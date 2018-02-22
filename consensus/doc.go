@@ -11,39 +11,59 @@ package consensus
 2. raft
 实现功能：
 	1  建立raft集群，建立成功后集群中只有一个leader节点，多个follower节点。leader节点和follower节点
-	之间通过http方式通信。
-	2  选定主节点，validator从mempool中获取交易列表，排除重复后打包。 再通过raft复制到其余的从节点。
-	确认可以commit后，把block写入blockchain.
-	3   leader,follower间设定心跳包来确认leader是否还存活，超时则触发leader切换。leader切换过程中共识
-	不会出错。  -- 验证开发中
-	4   节点增加，删除。共识不受影响  -- 验证开发中
+	   之间通过http方式通信。
+	2  选定主节点，leader从mempool中获取交易列表，排除重复后打包。将日志写到wal中，再通过raft复制到其余的从节点。
+	3  leader,follower间设定心跳包来确认leader是否还存活，超时则触发leader切换。leader切换过程中共识
+	   不会出错。
+	4  节点增加，删除。共识不受影响
+	5  配置文件中新增readOnlyPeers，增加只读节点，只读节点不参与共识，即当leader发生故障时，新的leader不会从只读节点中产生，
+       而是在共识节点中产生。
 
 运行方式（3个节点）:
 	运行环境： ubuntu
 	GO版本：	  go1.8.4
 	步骤：
-		//  编译版本
+		//  1.编译版本
 		cd $GOPATH/src/code.aliyun.com/chain33
 		git clone git@code.aliyun.com:chain33/chain33.git
 		cd chain33
 		go build
 
-		//	从管理机上拷贝可执行文件到各个节点
+		//	2.从管理机上拷贝可执行文件到各个节点
 		scp chain33 ubuntu@172.31.8.229:/home/ubuntu/
 		scp chain33 ubuntu@172.31.15.241:/home/ubuntu/
 		scp chain33 ubuntu@172.31.4.182:/home/ubuntu/
 
-		// 在各个节点上执行
-		./chain33 --id 1 --cluster http://172.31.8.229:12379,http://172.31.15.241:12379,http://172.31.4.182:12379 --validator
-		./chain33 --id 2 --cluster http://172.31.8.229:12379,http://172.31.15.241:12379,http://172.31.4.182:12379
-		./chain33 --id 3 --cluster http://172.31.8.229:12379,http://172.31.15.241:12379,http://172.31.4.182:12379
+		// 3.在各个节点上，依次修改chain33.toml
+			name="raft"
+			minerstart=true
+			genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+			nodeId=1
+			raftApiPort=9121
+			isNewJoinNode=false
+			peersURL="http://127.0.0.1:9021"
+			readOnlyPeersURL="http://172.31.2.210:9021,http://172.31.2.252:9021"
+       // 4.然后依次启动种子节点，raft集群相关节点
+       ./chain33 或者写个启动脚本
+
+       // 5.动态增删节点
+             动态加入节点
+		    	1.）先在原有的集群随意一台机器（leader和follower都可以）上面执行
+		    	    curl -L http://127.0.0.1:9121/4 -X POST -d http://172.31.4.185:9021
+		    	    注意：前者为要加入的nodeId 值，后面http地址为要加入的peerUrl地址，将peerURL依次追加到readerOnly
+		    	2.）然后在chain33.toml配置文件中，写好相关参数，启动chain33即可
+
+			动态删除节点
+		    	1.）在非删除节点执行如下curl命令即可
+		    	    curl -L http://127.0.0.1:9121/4 -X  DELETE
+		    	    注解，表示要删除第四个节点，删除操作为不可逆操作，一旦删除，就不会能重新添加进来.
+
 
 	问题记录及解决：
 		1. 多节点之间时间不同步导致的告警：rafthttp: the clock difference against peer 3 is too high [53.958607849s > 1s]
 		需要同步ntp时间
 
 
-3. bft
 
 */
 //接口设计：
