@@ -309,7 +309,7 @@ func (p *peer) subStreamBlock() {
 								continue
 							}
 						}
-						log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight())
+						log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
 						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 						err = (*p.nodeInfo).qclient.Send(msg, true)
 						if err != nil {
