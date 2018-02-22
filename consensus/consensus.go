@@ -5,6 +5,7 @@ import (
 	"code.aliyun.com/chain33/chain33/consensus/drivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint"
 )
 
 func New(cfg *types.Consensus) Consensus {
@@ -16,6 +17,8 @@ func New(cfg *types.Consensus) Consensus {
 		// TODO:
 	} else if consensusType == "pbft" {
 		// TODO:
+		con := tendermint.New(cfg)
+		return con
 	} else if consensusType == "ticket" {
 		t := ticket.New(cfg)
 		return t
