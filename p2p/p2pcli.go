@@ -173,9 +173,9 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	m.CollectPeerStat(err, peer)
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
 	if err != nil {
-		log.Debug("SendVersion", "Verson", err.Error())
+		log.Info("SendVersion", "Verson", err.Error(), "peer", peer.Addr())
 
-		if strings.Compare(err.Error(), VersionNotSupport) == 0 {
+		if strings.Contains(err.Error(), VersionNotSupport) {
 			peer.version.SetSupport(false)
 
 		}

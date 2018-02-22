@@ -29,6 +29,25 @@ func (p *peer) Close() {
 
 }
 
+type peer struct {
+	wg          sync.WaitGroup
+	pmutx       sync.Mutex
+	nodeInfo    **NodeInfo
+	outbound    bool
+	conn        *grpc.ClientConn // source connection
+	persistent  bool
+	isrunning   bool
+	version     *Version
+	key         string
+	mconn       *MConnection
+	peerAddr    *NetAddress
+	peerStat    *Stat
+	filterTask  *FilterTask
+	allLoopDone chan struct{}
+	taskPool    chan struct{}
+	taskChan    chan interface{} //tx block
+}
+
 func NewPeer(isout bool, conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
 	p := &peer{
 		outbound: isout,
@@ -49,24 +68,6 @@ func NewPeer(isout bool, conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *Net
 	return p
 }
 
-type peer struct {
-	wg          sync.WaitGroup
-	pmutx       sync.Mutex
-	nodeInfo    **NodeInfo
-	outbound    bool
-	conn        *grpc.ClientConn // source connection
-	persistent  bool
-	isrunning   bool
-	version     *Version
-	key         string
-	mconn       *MConnection
-	peerAddr    *NetAddress
-	peerStat    *Stat
-	filterTask  *FilterTask
-	allLoopDone chan struct{}
-	taskPool    chan struct{}
-	taskChan    chan interface{} //tx block
-}
 type FilterTask struct {
 	mtx      sync.Mutex
 	loopDone chan struct{}
@@ -172,7 +173,7 @@ FOR_LOOP:
 			}
 			count++
 		case <-p.allLoopDone:
-			log.Error("Peer HeartBeat", "loop done", p.Addr())
+			log.Debug("Peer HeartBeat", "loop done", p.Addr())
 			break FOR_LOOP
 
 		}
@@ -208,6 +209,7 @@ func (p *peer) subStreamBlock() {
 	pcli := NewP2pCli(nil)
 	go func(p *peer) {
 		//Stream Send data
+	SEND_LOOP:
 		for {
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -222,12 +224,15 @@ func (p *peer) subStreamBlock() {
 
 			select {
 			case <-p.allLoopDone:
-				log.Debug("peer SubStreamBlock", "Send Stream  Done", p.Addr())
+				log.Info("peer SubStreamBlock", "Send Stream  Done", p.Addr())
 				return
 
 			default:
 
 				for task := range p.taskChan {
+					if p.GetRunning() == false {
+						return
+					}
 					p2pdata := new(pb.BroadCastData)
 					if block, ok := task.(*pb.P2PBlock); ok {
 						height := block.GetBlock().GetHeight()
@@ -258,14 +263,17 @@ func (p *peer) subStreamBlock() {
 						(*p.nodeInfo).monitorChan <- p
 						resp.CloseSend()
 						cancel()
-						break //下一次外循环重新获取stream
+						break SEND_LOOP //下一次外循环重新获取stream
 					}
 				}
 
 			}
 		}
 	}(p)
+
+FOR_LOOP:
 	for {
+
 		resp, err := p.mconn.conn.RouteChat(context.Background())
 		if err != nil {
 			p.peerStat.NotOk()
@@ -284,13 +292,16 @@ func (p *peer) subStreamBlock() {
 		default:
 
 			for {
+				if p.GetRunning() == false {
+					return
+				}
 				data, err := resp.Recv()
 				if err != nil {
+
 					resp.CloseSend()
 					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
-					log.Error("SubStreamBlock", "Recv Err", err.Error())
-					break
+					break FOR_LOOP
 				}
 
 				if block := data.GetBlock(); block != nil {
