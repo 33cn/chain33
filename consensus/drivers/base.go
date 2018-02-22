@@ -181,7 +181,10 @@ func (client *BaseClient) EventLoop() {
 				} else {
 					msg.ReplyErr("EventMinerStop", nil)
 				}
-			} else {
+			} else if msg.Ty == types.EventDelBlock {
+				block := msg.GetData().(*types.BlockDetail).Block
+				client.UpdateCurrentBlock(block)
+			}else {
 				client.child.ProcEvent(msg)
 			}
 		}
@@ -275,6 +278,20 @@ func (client *BaseClient) SetCurrentBlock(b *types.Block) {
 	client.mulock.Lock()
 	if client.currentBlock == nil || client.currentBlock.Height <= b.Height {
 		client.currentBlock = b
+	}
+	client.mulock.Unlock()
+}
+
+func (client *BaseClient) UpdateCurrentBlock(b *types.Block) {
+	client.mulock.Lock()
+	if client.currentBlock == nil || client.currentBlock.Height == b.Height {
+
+		block, err := client.RequestBlock(b.Height - 1)
+		if err != nil {
+			panic(err)
+		}
+
+		client.currentBlock = block
 	}
 	client.mulock.Unlock()
 }

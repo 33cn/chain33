@@ -44,23 +44,18 @@ func NewP2pServer() *p2pServer {
 }
 
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
-	getctx, ok := pr.FromContext(ctx)
-	if ok {
-		log.Debug("PING addr", "Addr", getctx.Addr.String())
-		peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
 
-		if s.checkSign(in) == true {
-			log.Info("Ping", "p2p server", "recv ping")
-			//TODO
+	peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
+	if s.checkSign(in) {
+		log.Info("Ping", "p2p server", "recv ping")
+	}
+
+	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, in.GetPort()))
+	if err == nil {
+		if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
+			s.node.addrBook.AddAddress(remoteNetwork)
 		}
 
-		remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, in.GetPort()))
-		if err == nil {
-			if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
-				s.node.addrBook.AddAddress(remoteNetwork)
-			}
-
-		}
 	}
 
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
@@ -115,15 +110,16 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
 
-	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1]))
+	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 	if err == nil {
 		if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
 			s.node.addrBook.AddAddress(remoteNetwork)
 			//broadcast again
 			go func() {
-				if time.Now().Unix()-in.GetTimestamp() > 5 {
+				if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
 					return
 				}
+
 				peers, _ := s.node.GetActivePeers()
 				for _, peer := range peers {
 					peer.mconn.conn.Version2(context.Background(), in)
@@ -276,7 +272,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 	}
 
 	client := s.node.nodeInfo.qclient
-	msg := client.NewMessage("blockchain", pb.EventGetHeaders, pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeight()})
+	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeight()})
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("GetHeaders", "Error", err.Error())
@@ -501,14 +497,17 @@ func (s *p2pServer) checkSign(in *pb.P2PPing) bool {
 	}
 	c, err := crypto.New(pb.GetSignatureTypeName(int(sign.Ty)))
 	if err != nil {
+		log.Error("CheckSign", "crypto.New err", err.Error())
 		return false
 	}
 	pub, err := c.PubKeyFromBytes(sign.Pubkey)
 	if err != nil {
+		log.Error("CheckSign", "PubKeyFromBytes err", err.Error())
 		return false
 	}
 	signbytes, err := c.SignatureFromBytes(sign.Signature)
 	if err != nil {
+		log.Error("CheckSign", "SignatureFromBytes err", err.Error())
 		return false
 	}
 	return pub.VerifyBytes(data, signbytes)
