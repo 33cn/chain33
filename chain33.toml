@@ -5,17 +5,17 @@ LogConsoleLevel="info"
 LogFile="chain33.log"
 
 [blockchain]
-defCacheSize=500
-maxFetchBlockNum=100
+defCacheSize=512
+maxFetchBlockNum=128
 timeoutSeconds=5
-batchBlockNum=100
+batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
 
 [p2p]
 seeds=["114.55.101.159:13802"]
 enable=true
-isSeed=false
+isSeed=true
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
