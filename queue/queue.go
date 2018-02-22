@@ -132,7 +132,7 @@ func (q *Queue) Send(msg Message) (err error) {
 	case <-timeout:
 		return types.ErrTimeout
 	}
-	qlog.Debug("send ok", "msg", msg)
+	qlog.Debug("send ok", "msg", msg, "msgid", msg.Id)
 	return nil
 }
 
@@ -196,7 +196,7 @@ func (msg Message) Reply(replyMsg Message) {
 		return
 	}
 	msg.ChReply <- replyMsg
-	qlog.Debug("reply msg ok", "msg", msg)
+	qlog.Debug("reply msg ok", "msg", msg, "msgid", msg.Id)
 }
 
 func (msg Message) String() string {
