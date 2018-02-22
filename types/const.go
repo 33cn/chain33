@@ -86,6 +86,8 @@ var (
 	ErrBlockHeightNoMatch     = errors.New("ErrBlockHeightNoEqual")
 	ErrParentTdNoExist        = errors.New("ErrParentTdNoExist")
 	ErrBlockHashNoMatch       = errors.New("ErrBlockHashNoMatch")
+	ErrIsClosed               = errors.New("ErrIsClosed")
+
 	//wallet
 	ErrInputPara      = errors.New("ErrInputPara")
 	ErrWalletIsLocked = errors.New("ErrWalletIsLocked")
