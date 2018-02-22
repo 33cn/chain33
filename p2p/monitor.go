@@ -24,7 +24,7 @@ FOR_LOOP:
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > MaxAttemps || peer.GetRunning() == false {
-						log.Info("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
+						log.Debug("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
 
 						n.destroyPeer(peer)
 					}
@@ -48,7 +48,7 @@ func (n *Node) monitorErrPeer() {
 
 		peer := <-n.nodeInfo.monitorChan
 		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
-			log.Debug("VersoinMonitor", "NotSupport", "DELETE")
+			log.Info("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
 		}
 
