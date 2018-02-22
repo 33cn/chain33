@@ -22,7 +22,6 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail) (boo
 	defer b.chainLock.Unlock()
 	//blockchain close 时不再处理block
 	if atomic.LoadInt32(&b.isclosed) == 1 {
-		//chainlog.Error("Blockchain isclosed not processBlock !")
 		return false, false, types.ErrIsClosed
 	}
 	blockHash := block.Block.Hash()
@@ -56,7 +55,7 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail) (boo
 		prevHashExists = b.blockExists(prevHash)
 	}
 	if !prevHashExists {
-		chainlog.Info("ProcessBlock addOrphanBlock", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash), "prevHash", common.ToHex(prevHash))
+		chainlog.Debug("ProcessBlock addOrphanBlock", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash), "prevHash", common.ToHex(prevHash))
 		b.orphanPool.addOrphanBlock(broadcast, block.Block)
 		return false, true, nil
 	}
@@ -194,7 +193,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 		}
 		return true, nil
 	}
-	chainlog.Info("connectBestChain", "parentHash", common.ToHex(parentHash), "bestChain.Tip().hash", common.ToHex(b.bestChain.Tip().hash))
+	chainlog.Debug("connectBestChain", "parentHash", common.ToHex(parentHash), "bestChain.Tip().hash", common.ToHex(b.bestChain.Tip().hash))
 
 	// 获取tip节点的block总难度tipid
 	tiptd, _ := b.blockStore.GetTdByBlockHash(b.bestChain.Tip().hash)
@@ -205,8 +204,8 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
 
-	chainlog.Info("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", common.BigToCompact(tiptd))
-	chainlog.Info("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", common.BigToCompact(blocktd))
+	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", common.BigToCompact(tiptd))
+	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", common.BigToCompact(blocktd))
 
 	if blocktd.Cmp(tiptd) <= 0 {
 		fork := b.bestChain.FindFork(node)
@@ -219,9 +218,9 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	}
 
 	//print
-	chainlog.Info("connectBestChain tip", "height", b.bestChain.Tip().height, "hash", common.ToHex(b.bestChain.Tip().hash))
-	chainlog.Info("connectBestChain node", "height", node.height, "hash", common.ToHex(node.hash), "parentHash", common.ToHex(parentHash))
-	chainlog.Info("connectBestChain block", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
+	chainlog.Debug("connectBestChain tip", "height", b.bestChain.Tip().height, "hash", common.ToHex(b.bestChain.Tip().hash))
+	chainlog.Debug("connectBestChain node", "height", node.height, "hash", common.ToHex(node.hash), "parentHash", common.ToHex(parentHash))
+	chainlog.Debug("connectBestChain block", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
 
 	// 获取需要重组的block node
 	detachNodes, attachNodes := b.getReorganizeNodes(node)
@@ -241,7 +240,6 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	//blockchain close 时不再处理block
 	if atomic.LoadInt32(&b.isclosed) == 1 {
-		//chainlog.Error("blockchain isclosed not connectBlock!")
 		return types.ErrIsClosed
 	}
 
@@ -301,7 +299,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 	newbatch.Write()
 
-	chainlog.Info("connectBlock write db", "height", block.Height, "cost", time.Now().Sub(beg))
+	chainlog.Debug("connectBlock write db", "height", block.Height, "cost", time.Now().Sub(beg))
 
 	b.blockStore.UpdateHeight()
 
@@ -368,8 +366,8 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 		chainlog.Error("disconnectBlock", "newtipnode.hash", common.ToHex(newtipnode.hash), "delblock.parent.hash", common.ToHex(blockdetail.Block.GetParentHash()))
 	}
 
-	chainlog.Error("disconnectBlock success", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
-	chainlog.Error("disconnectBlock success", "newtipnode.hash", common.ToHex(newtipnode.hash), "delblock.parent.hash", common.ToHex(blockdetail.Block.GetParentHash()))
+	chainlog.Debug("disconnectBlock success", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
+	chainlog.Debug("disconnectBlock success", "newtipnode.hash", common.ToHex(newtipnode.hash), "delblock.parent.hash", common.ToHex(blockdetail.Block.GetParentHash()))
 
 	return nil
 }
@@ -406,7 +404,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// 需要删除的blocks
 		detachBlocks = append(detachBlocks, block)
-		chainlog.Info("reorganizeChain detachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
+		chainlog.Debug("reorganizeChain detachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
@@ -416,7 +414,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// 需要加载到db的blocks
 		attachBlocks = append(attachBlocks, block)
-		chainlog.Info("reorganizeChain attachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
+		chainlog.Debug("reorganizeChain attachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
 	}
 
 	// Disconnect blocks from the main chain.
@@ -448,9 +446,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	firstAttachNode := attachNodes.Front().Value.(*blockNode)
 	firstDetachNode := detachNodes.Front().Value.(*blockNode)
 	lastAttachNode := attachNodes.Back().Value.(*blockNode)
-	chainlog.Info("REORGANIZE: Chain forks at hash", "hash", common.ToHex(firstAttachNode.parent.hash), "height", firstAttachNode.parent.height)
-	chainlog.Info("REORGANIZE: Old best chain head was hash", "hash", common.ToHex(firstDetachNode.hash), "height", firstDetachNode.parent.height)
-	chainlog.Info("REORGANIZE: New best chain head is hash", "hash", common.ToHex(lastAttachNode.hash), "height", lastAttachNode.parent.height)
+	chainlog.Debug("REORGANIZE: Chain forks at hash", "hash", common.ToHex(firstAttachNode.parent.hash), "height", firstAttachNode.parent.height)
+	chainlog.Debug("REORGANIZE: Old best chain head was hash", "hash", common.ToHex(firstDetachNode.hash), "height", firstDetachNode.parent.height)
+	chainlog.Debug("REORGANIZE: New best chain head is hash", "hash", common.ToHex(lastAttachNode.hash), "height", lastAttachNode.parent.height)
 
 	return nil
 }
