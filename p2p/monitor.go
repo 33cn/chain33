@@ -48,7 +48,7 @@ func (n *Node) monitorErrPeer() {
 
 		peer := <-n.nodeInfo.monitorChan
 		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
-			log.Info("VersoinMonitor", "NotSupport,addr", peer.Addr())
+			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
 		}
 
