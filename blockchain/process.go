@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"container/list"
 	"math/big"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -19,7 +20,11 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail) (boo
 
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
-
+	//blockchain close 时不再处理block
+	if atomic.LoadInt32(&b.isclosed) == 1 {
+		//chainlog.Error("Blockchain isclosed not processBlock !")
+		return false, false, types.ErrIsClosed
+	}
 	blockHash := block.Block.Hash()
 	chainlog.Debug("ProcessBlock Processing block", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
 
@@ -61,7 +66,6 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail) (boo
 	if err != nil {
 		return false, false, err
 	}
-
 	// 尝试处理blockHash对应的孤儿子节点
 	err = b.processOrphans(blockHash)
 	if err != nil {
@@ -137,7 +141,6 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 
 // 尝试接受此block
 func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail) (bool, error) {
-
 	// 首先判断本block的Parent block是否存在index中
 	prevHash := block.Block.GetParentHash()
 	prevNode := b.index.LookupNode(prevHash)
@@ -235,6 +238,12 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 
 //将本block信息存储到数据库中，并更新bestchain的tip节点
 func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetail) error {
+
+	//blockchain close 时不再处理block
+	if atomic.LoadInt32(&b.isclosed) == 1 {
+		//chainlog.Error("blockchain isclosed not connectBlock!")
+		return types.ErrIsClosed
+	}
 
 	// Make sure it's extending the end of the best chain.
 	parentHash := blockdetail.Block.GetParentHash()
@@ -347,6 +356,9 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 
 	//确定node的父节点升级成tip节点
 	newtipnode := b.bestChain.Tip()
+
+	//删除缓存中的block信息
+	b.DelBlockFromCache(blockdetail.Block.Height)
 
 	if newtipnode != node.parent {
 		chainlog.Error("disconnectBlock newtipnode err:", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
