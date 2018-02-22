@@ -3,7 +3,6 @@ package blockchain
 import (
 	"bytes"
 	"container/list"
-	//"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -15,7 +14,6 @@ import (
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/util"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -59,8 +57,6 @@ type BlockChain struct {
 	cfg        *types.BlockChain
 	task       *Task
 	query      *Query
-	//Block 同步阶段用于缓存block信息，
-	blockPool *BlockPool
 
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
@@ -71,7 +67,6 @@ type BlockChain struct {
 	//记录peer的最新block高度,用于节点追赶active链
 	peerMaxBlkHeight *peerInfo
 
-	wg       *sync.WaitGroup
 	recvwg   *sync.WaitGroup
 	synblock chan struct{}
 	quit     chan struct{}
@@ -89,7 +84,6 @@ type BlockChain struct {
 
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
-	pool := NewBlockPool()
 	var peerinit peerInfo
 	peerinit.pid = ""
 	peerinit.height = -1
@@ -98,12 +92,10 @@ func New(cfg *types.BlockChain) *BlockChain {
 		cache:              make(map[int64]*list.Element),
 		cacheSize:          DefCacheSize,
 		cacheQueue:         list.New(),
-		blockPool:          pool,
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerMaxBlkHeight:   &peerinit,
 		cfg:                cfg,
-		wg:                 &sync.WaitGroup{},
 		recvwg:             &sync.WaitGroup{},
 		task:               newTask(360 * time.Second),
 		quit:               make(chan struct{}, 0),
@@ -135,15 +127,18 @@ func initConfig(cfg *types.BlockChain) {
 func (chain *BlockChain) Close() {
 
 	chainlog.Error("begin close")
+
 	//等待所有的写线程退出，防止数据库写到一半被暂停
 	atomic.StoreInt32(&chain.isclosed, 1)
-	chain.wg.Wait()
+
 	//退出线程
-	//退出接受数据
-	chain.qclient.Close()
 	close(chain.quit)
+
 	//wait for recvwg quit:
 	chain.recvwg.Wait()
+
+	//退出接受数据, 在最后一个block写磁盘时addtx还需要接受数据
+	chain.qclient.Close()
 
 	//关闭数据库
 	chain.blockStore.db.Close()
@@ -226,7 +221,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
 		default:
 			<-reqnum
-			chain.wg.Done()
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
 	}
@@ -516,11 +510,6 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	msg := chain.qclient.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
 	chain.qclient.Send(msg, false)
 	return
-}
-
-func (chain *BlockChain) notifySync() {
-	chain.wg.Add(1)
-	go chain.SynBlockToDbOneByOne()
 }
 
 func (chain *BlockChain) GetBlockHeight() int64 {
@@ -1003,128 +992,6 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 	}
 	ReplyHash.Hash = block.Block.Hash()
 	return &ReplyHash, nil
-}
-
-// 定时同步缓存中连续的block信息到db数据库中OneByOne
-func (chain *BlockChain) SynBlockToDbOneByOne() {
-	chain.synblock <- struct{}{}
-	defer func() {
-		chain.wg.Done()
-		<-chain.synblock
-	}()
-	for {
-		if atomic.LoadInt32(&chain.isclosed) == 1 {
-			return
-		}
-		//获取当前block的statehash和blockhash用于nextblock的校验
-		var prevStateHash []byte
-		var prevblkHash []byte
-		currentheight := chain.blockStore.Height()
-		if currentheight == -1 {
-			prevStateHash = common.Hash{}.Bytes()
-			prevblkHash = common.Hash{}.Bytes()
-		} else {
-			curblock, err := chain.GetBlock(currentheight)
-			if err != nil {
-				chainlog.Error("SynBlockToDbOneByOne GetBlock:", "height", currentheight, "err", err)
-				return
-			}
-			prevStateHash = curblock.Block.GetStateHash()
-			prevblkHash = curblock.Block.Hash()
-		}
-		//从pool缓存池中获取当前block的nextblock
-		blockdetail, broadcast := chain.blockPool.GetBlock(currentheight + 1)
-		if blockdetail == nil || blockdetail.Block == nil {
-			return
-		}
-		block := blockdetail.Block
-		//校验ParentHash 不过需要从blockpool中删除，重新发起请求
-		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
-			chainlog.Error("SynBlockToDbOneByOne ParentHash err!", "height", block.Height)
-			chain.blockPool.DelBlock(block.GetHeight())
-			//取消任务，等待重新连接peer
-			chain.task.Cancel()
-			return
-		}
-		var err error
-		if blockdetail.Receipts == nil {
-			//block执行不过需要从blockpool中删除，重新发起请求
-			blockdetail, err = util.ExecBlock(chain.q, prevStateHash, block, true)
-			if err != nil {
-				chainlog.Error("SynBlockToDbOneByOne ExecBlock is err!", "height", block.Height, "err", err)
-				chain.blockPool.DelBlock(block.GetHeight())
-				return
-			}
-		}
-
-		//批量将block信息写入磁盘
-		newbatch := chain.blockStore.NewBatch(true)
-		err = chain.blockStore.AddTxs(newbatch, blockdetail)
-		if err != nil {
-			chainlog.Error("SynBlockToDbOneByOne indexTxs:", "height", block.Height, "err", err)
-			return
-		}
-
-		//保存block信息到db中
-		err = chain.blockStore.SaveBlock(newbatch, blockdetail)
-		if err != nil {
-			chainlog.Error("SynBlockToDbOneByOne SaveBlock:", "height", block.Height, "err", err)
-			return
-		}
-		newbatch.Write()
-
-		chain.blockStore.UpdateHeight()
-		chain.task.Done(blockdetail.Block.GetHeight())
-		chain.cacheBlock(blockdetail)
-		chain.SendAddBlockEvent(blockdetail)
-		chain.blockPool.DelBlock(blockdetail.Block.Height)
-		chain.query.updateStateHash(blockdetail.GetBlock().GetStateHash())
-		if broadcast {
-			chain.SendBlockBroadcast(blockdetail)
-			//更新广播block的高度
-			castblockheight := chain.GetRcvLastCastBlkHeight()
-			if castblockheight < blockdetail.Block.Height {
-				chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
-			}
-		}
-	}
-}
-
-//删除指定高度的block从数据库中，只能删除当前高度的block
-func (chain *BlockChain) DelBlock(height int64) (bool, error) {
-	currentheight := chain.blockStore.Height()
-	if currentheight == height { //只删除当前高度的block
-		blockdetail, err := chain.GetBlock(currentheight)
-		if err != nil {
-			chainlog.Error("DelBlock chainGetBlock:", "height", currentheight, "err", err)
-			return false, err
-		}
-		//批量将删除block的信息从磁盘中删除
-		newbatch := chain.blockStore.NewBatch(true)
-		//从db中删除tx相关的信息
-		err = chain.blockStore.DelTxs(newbatch, blockdetail)
-		if err != nil {
-			chainlog.Error("DelBlock DelTxs:", "height", currentheight, "err", err)
-			return false, err
-		}
-		//从db中删除block相关的信息
-		err = chain.blockStore.DelBlock(newbatch, blockdetail)
-		if err != nil {
-			chainlog.Error("DelBlock blockStoreDelBlock:", "height", currentheight, "err", err)
-			return false, err
-		}
-		newbatch.Write()
-		chain.blockStore.UpdateHeight()
-		chain.query.updateStateHash(chain.getStateHash())
-
-		//删除缓存中的block信息
-		chain.DelBlockFromCache(blockdetail.Block.Height)
-		//通知共识，mempool和钱包删除block
-		chain.SendDelBlockEvent(blockdetail)
-	}
-	chainlog.Error("DelBlock :", "height", currentheight)
-
-	return true, nil
 }
 
 //blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
