@@ -39,8 +39,8 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.cfg = cfg
 	nodeInfo.peerInfos = new(PeerInfos)
 	nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
-	NodeInfo.externalAddr = new(NetAddress)
-	NodeInfo.listenAddr = new(NetAddress)
+	nodeInfo.externalAddr = new(NetAddress)
+	nodeInfo.listenAddr = new(NetAddress)
 	return nodeInfo
 }
 
