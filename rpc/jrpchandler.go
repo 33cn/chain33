@@ -69,7 +69,21 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	}
 
 }
+func (req Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
+	var data types.ReqHash
+	hash, err := common.FromHex(in.Hash)
+	if err != nil {
+		return err
+	}
+	data.Hash = hash
+	reply, err := req.cli.QueryTx(data.Hash)
+	if err != nil {
+		return err
+	}
+	*result = reply.GetTx().String()
+	return nil
 
+}
 func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
