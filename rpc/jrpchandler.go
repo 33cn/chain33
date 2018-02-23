@@ -69,7 +69,21 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	}
 
 }
+func (req Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
+	var data types.ReqHash
+	hash, err := common.FromHex(in.Hash)
+	if err != nil {
+		return err
+	}
+	data.Hash = hash
+	reply, err := req.cli.QueryTx(data.Hash)
+	if err != nil {
+		return err
+	}
+	*result = reply.GetTx().String()
+	return nil
 
+}
 func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
@@ -719,5 +733,18 @@ func (req Chain33) Query(in Query, result *interface{}) error {
 	}
 
 	*result = (*resp).String()
+	return nil
+}
+
+func (req Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error {
+	resp, err := req.cli.SetAutoMiner(&in)
+	if err != nil {
+		log.Error("SetAutoMiner", "err", err.Error())
+		return err
+	}
+	var reply Reply
+	reply.IsOk = resp.GetIsOk()
+	reply.Msg = string(resp.GetMsg())
+	*result = &reply
 	return nil
 }

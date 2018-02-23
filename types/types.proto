@@ -45,6 +45,10 @@ service grpcservice{
 	//Balance Query 
 	rpc GetBalance(ReqBalance) returns(Accounts){}
 	rpc QueryChain(Query) returns(Reply){} 
+	//Miner
+	rpc SetAutoMining(MinerFlag)returns(Reply){}
+	//
+	rpc GetHexTxByHash(ReqHash)returns(HexTx){}
 }
 
 
@@ -276,6 +280,10 @@ message ChainStatus {
 
 message ReqHash {
 	bytes hash = 1;
+}
+
+message HexTx {
+	string tx=1;
 }
 
 message ReqInt {
@@ -909,3 +917,6 @@ message ReplyStrings {
 }
 
 
+message MinerFlag {
+	int32 flag=1;
+}

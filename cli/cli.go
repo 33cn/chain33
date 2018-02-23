@@ -232,6 +232,12 @@ func main() {
 			return
 		}
 		BindMiner(argsWithoutProg[1], argsWithoutProg[2])
+	case "setautomining":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		SetAutoMining(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -271,6 +277,7 @@ func LoadHelp() {
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
+	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
 }
 
 type AccountsResult struct {
@@ -1240,7 +1247,7 @@ func GetWalletStatus() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res jsonrpc.Reply
+	var res *types.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1328,4 +1335,31 @@ func BindMiner(mineraddr string, priv string) {
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
 	//	SendTransaction(hex.EncodeToString(txHex))
+}
+
+func SetAutoMining(flag string) {
+	flagInt32, err := strconv.ParseInt(flag, 10, 32)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	params := types.MinerFlag{Flag: int32(flagInt32)}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.SetAutoMining", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
