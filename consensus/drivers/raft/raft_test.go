@@ -52,18 +52,18 @@ func TestRaft(t *testing.T) {
 
 	urls := "http://127.0.0.1:9021"
 	nodeId := 1
-	isValidator = true
+	//isValidator = true
 
 	// propose channel
 	proposeC := make(chan *types.Block)
 	confChangeC := make(chan raftpb.ConfChange)
-
+	//var cfg *types.Consensus
 	var b *RaftClient
 	getSnapshot := func() ([]byte, error) { return b.getSnapshot() }
+	var peers []string
+	commitC, errorC, snapshotterReady, validatorC := NewRaftNode(nodeId, false, strings.Split(urls, ","), peers, peers, getSnapshot, proposeC, confChangeC)
 
-	commitC, errorC, snapshotterReady, validatorC := NewRaft(nodeId, strings.Split(urls, ","), getSnapshot, proposeC, confChangeC)
-
-	b = NewBlockstore(<-snapshotterReady, proposeC, commitC, errorC, validatorC)
+	b = NewBlockstore(cfg.Consensus, <-snapshotterReady, proposeC, commitC, errorC, validatorC)
 
 	time.Sleep(5 * time.Second)
 
@@ -77,7 +77,7 @@ func TestRaft(t *testing.T) {
 
 // 向共识发送交易列表
 func sendReplyList(q *queue.Queue) {
-	client := q.GetClient()
+	client := q.NewClient()
 	client.Sub("mempool")
 	var accountNum int
 	for msg := range client.Recv() {
@@ -105,17 +105,17 @@ func sendReplyList(q *queue.Queue) {
 // 准备交易列表
 func createReplyList(account string) {
 	var result []*types.Transaction
-	//	for j := 0; j < txSize; j++ {
-	//		b := &types.Transaction{}
-	//		if j > 1000 && j%1000 == 0 {
-	//			// 重复交易
-	//			b = &types.Transaction{Execer: []byte("coin"), Payload: []byte("duplicate"), Fee: 1000, Expire: 0}
-	//		} else {
-	//			b = &types.Transaction{Execer: []byte(account + "This is a payload" + strconv.Itoa(j)), Payload: []byte(account + "This is a account" + strconv.Itoa(j)), Fee: 1000, Expire: 0}
-	//		}
+	for j := 0; j < txSize; j++ {
+		tx := &types.Transaction{}
+		if j > 1000 && j%1000 == 0 {
+			// 重复交易
+			tx = &types.Transaction{Execer: []byte("coin"), Payload: []byte("duplicate"), Fee: 1000, Expire: 0}
+		} else {
+			tx = &types.Transaction{Execer: []byte(account + "This is a payload" + strconv.Itoa(j)), Payload: []byte(account + "This is a account" + strconv.Itoa(j)), Fee: 1000, Expire: 0}
+		}
 
-	//		result = append(result, tx)
-	//	}
-	result = append(result, tx)
+		result = append(result, tx)
+	}
+	//result = append(result, tx)
 	transactions = result
 }
