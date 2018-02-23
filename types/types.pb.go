@@ -4556,9 +4556,11 @@ func (m *HashRecv) GetInfomation() *Hashlockquery {
 }
 
 type Hashlockquery struct {
-	Time   int64 `protobuf:"varint,1,opt,name=Time" json:"Time,omitempty"`
-	Status int32 `protobuf:"varint,2,opt,name=Status" json:"Status,omitempty"`
-	Amount int64 `protobuf:"varint,3,opt,name=Amount" json:"Amount,omitempty"`
+	Time        int64 `protobuf:"varint,1,opt,name=time" json:"time,omitempty"`
+	Status      int32 `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
+	Amount      int64 `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
+	CreateTime  int64 `protobuf:"varint,4,opt,name=createTime" json:"createTime,omitempty"`
+	CurrentTime int64 `protobuf:"varint,5,opt,name=currentTime" json:"currentTime,omitempty"`
 }
 
 func (m *Hashlockquery) Reset()                    { *m = Hashlockquery{} }
@@ -4583,6 +4585,20 @@ func (m *Hashlockquery) GetStatus() int32 {
 func (m *Hashlockquery) GetAmount() int64 {
 	if m != nil {
 		return m.Amount
+	}
+	return 0
+}
+
+func (m *Hashlockquery) GetCreateTime() int64 {
+	if m != nil {
+		return m.CreateTime
+	}
+	return 0
+}
+
+func (m *Hashlockquery) GetCurrentTime() int64 {
+	if m != nil {
+		return m.CurrentTime
 	}
 	return 0
 }
