@@ -878,14 +878,10 @@ message ReplySeed {
 	string seed = 1;
 }
 
-<<<<<<< HEAD
-=======
 message ReqBalance{
 	repeated string addresses=1;
 	string execer=2;
 }
-
-
 message ReqString {
 	string data = 1;
 }
@@ -902,4 +898,3 @@ message ReplyStrings {
 message MinerFlag {
 	int32 flag=1;
 }
->>>>>>> origin/develop
