@@ -26,9 +26,7 @@ var (
 	MaxTxNumPerBlock  int64 = 100000
 	MaxTxHashsPerTime int64 = 100
 
-
-	walletlog      = log.New("module", "wallet")
-
+	walletlog = log.New("module", "wallet")
 )
 
 type Wallet struct {
@@ -224,18 +222,14 @@ func (wallet *Wallet) ProcRecvMsg() {
 			wallet.flushTicket()
 			msg.ReplyErr("WalletSetAutoMiner", nil)
 		case types.EventWalletGetTickets:
-			if !wallet.isAutoMining() {
-				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, types.ErrMinerNotStared))
+			tickets, privs, err := wallet.GetTickets(1)
+			if err != nil {
+				walletlog.Error("GetTickets", "err", err.Error())
+				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
 			} else {
-				tickets, privs, err := wallet.GetTickets(1)
-				if err != nil {
-					walletlog.Error("GetTickets", "err", err.Error())
-					msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
-				} else {
-					tks := &types.ReplyWalletTickets{tickets, privs}
-					walletlog.Debug("process GetTickets OK")
-					msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
-				}
+				tks := &types.ReplyWalletTickets{tickets, privs}
+				walletlog.Debug("process GetTickets OK")
+				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
 			}
 		case types.EventNewAccount:
 			NewAccount := msg.Data.(*types.ReqNewAccount)
