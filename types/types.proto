@@ -644,8 +644,9 @@ message Consensus {
 	bool isNewJoinNode= 6;
 	string peersURL = 7;
 	string readOnlyPeersURL = 8;
-	int64 genesisBlockTime = 9;
-	string hotkeyAddr = 10;
+	string addPeersURL = 9;
+	int64 genesisBlockTime = 10;
+	string hotkeyAddr = 11;
 }
 
 message MemPool {

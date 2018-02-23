@@ -43,6 +43,7 @@ package consensus
 			isNewJoinNode=false
 			peersURL="http://127.0.0.1:9021"
 			readOnlyPeersURL="http://172.31.2.210:9021,http://172.31.2.252:9021"
+            addPeersURL=""
        // 4.然后依次启动种子节点，raft集群相关节点
        ./chain33 或者写个启动脚本
 
@@ -50,7 +51,8 @@ package consensus
              动态加入节点
 		    	1.）先在原有的集群随意一台机器（leader和follower都可以）上面执行
 		    	    curl -L http://127.0.0.1:9121/4 -X POST -d http://172.31.4.185:9021
-		    	    注意：前者为要加入的nodeId 值，后面http地址为要加入的peerUrl地址，将peerURL依次追加到readerOnly
+		    	    注意：前者为要加入的nodeId 值，后面http地址为要加入的peerUrl地址，将peerURL依次追加到addPeersURL中,
+   	                      用逗号分隔,一次只能添加一个节点
 		    	2.）然后在chain33.toml配置文件中，写好相关参数，启动chain33即可
 
 			动态删除节点
