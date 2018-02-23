@@ -56,7 +56,7 @@ func NewNormAction(db dbm.KVDB, tx *types.Transaction, execaddr string, blocktim
 func (action *NormAction) Normput(nput *types.NormPut) (*types.Receipt, error) {
 	var kv []*types.KeyValue
 
-	n := NewNormDB(nput.Hash, action.blocktime, nput.Key, nput.Value)
+	n := NewNormDB(action.txhash, action.blocktime, nput.Key, nput.Value)
 	n.Save(action.db)
 	kv = append(kv, n.GetKVSet()...)
 	kv = append(kv, &types.KeyValue{[]byte(n.Key), []byte(n.Value)})

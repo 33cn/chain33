@@ -2,7 +2,6 @@ package norm
 
 import (
 	"context"
-	crand "crypto/rand"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -22,10 +21,6 @@ var conn *grpc.ClientConn
 var r *rand.Rand
 var c types.GrpcserviceClient
 var ErrTest = errors.New("ErrTest")
-
-var secret []byte
-var wrongsecret []byte
-var anothersec []byte //used in send case
 
 var addrexec *account.Address
 
@@ -47,12 +42,6 @@ func init() {
 	}
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	c = types.NewGrpcserviceClient(conn)
-	secret = make([]byte, secretLen)
-	wrongsecret = make([]byte, secretLen)
-	anothersec = make([]byte, secretLen)
-	crand.Read(secret)
-	crand.Read(wrongsecret)
-	crand.Read(anothersec)
 	addrexec = account.ExecAddress("norm")
 }
 
@@ -87,7 +76,7 @@ func TestNormPut(t *testing.T) {
 	defer time.Sleep(time.Second)
 	defer fmt.Println("TestNormPut end\n")
 
-	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue, Hash: common.Sha256(secret)}}
+	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue}}
 	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee}
 	tx.Nonce = r.Int63()
