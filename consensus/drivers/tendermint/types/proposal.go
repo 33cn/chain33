@@ -1,10 +1,18 @@
 package types
 
 import (
-	"github.com/tendermint/go-crypto"
-	"time"
+	"errors"
+	"fmt"
 	"io"
+	"time"
+
+	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
+)
+
+var (
+	ErrInvalidBlockPartSignature = errors.New("Error invalid block part signature")
+	ErrInvalidBlockPartHash      = errors.New("Error invalid block part hash")
 )
 
 // Proposal defines a block proposal for the consensus.
@@ -20,6 +28,26 @@ type Proposal struct {
 	POLRound         int              `json:"pol_round"`    // -1 if null.
 	POLBlockID       BlockID          `json:"pol_block_id"` // zero if null.
 	Signature        crypto.Signature `json:"signature"`
+}
+
+// NewProposal returns a new Proposal.
+// If there is no POLRound, polRound should be -1.
+func NewProposal(height int64, round int, blockPartsHeader PartSetHeader, polRound int, polBlockID BlockID) *Proposal {
+	return &Proposal{
+		Height:           height,
+		Round:            round,
+		Timestamp:        time.Now().UTC(),
+		BlockPartsHeader: blockPartsHeader,
+		POLRound:         polRound,
+		POLBlockID:       polBlockID,
+	}
+}
+
+// String returns a string representation of the Proposal.
+func (p *Proposal) String() string {
+	return fmt.Sprintf("Proposal{%v/%v %v (%v,%v) %v @ %s}",
+		p.Height, p.Round, p.BlockPartsHeader, p.POLRound,
+		p.POLBlockID, p.Signature, CanonicalTime(p.Timestamp))
 }
 
 // WriteSignBytes writes the Proposal bytes for signing
