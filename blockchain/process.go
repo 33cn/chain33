@@ -443,12 +443,19 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 	// Log the point where the chain forked and old and new best chain
 	// heads.
-	firstAttachNode := attachNodes.Front().Value.(*blockNode)
-	firstDetachNode := detachNodes.Front().Value.(*blockNode)
-	lastAttachNode := attachNodes.Back().Value.(*blockNode)
-	chainlog.Debug("REORGANIZE: Chain forks at hash", "hash", common.ToHex(firstAttachNode.parent.hash), "height", firstAttachNode.parent.height)
-	chainlog.Debug("REORGANIZE: Old best chain head was hash", "hash", common.ToHex(firstDetachNode.hash), "height", firstDetachNode.parent.height)
-	chainlog.Debug("REORGANIZE: New best chain head is hash", "hash", common.ToHex(lastAttachNode.hash), "height", lastAttachNode.parent.height)
+	if attachNodes.Front() != nil {
+		firstAttachNode := attachNodes.Front().Value.(*blockNode)
+		chainlog.Debug("REORGANIZE: Chain forks at hash", "hash", common.ToHex(firstAttachNode.parent.hash), "height", firstAttachNode.parent.height)
 
+	}
+	if detachNodes.Front() != nil {
+		firstDetachNode := detachNodes.Front().Value.(*blockNode)
+		chainlog.Debug("REORGANIZE: Old best chain head was hash", "hash", common.ToHex(firstDetachNode.hash), "height", firstDetachNode.parent.height)
+
+	}
+	if attachNodes.Back() != nil {
+		lastAttachNode := attachNodes.Back().Value.(*blockNode)
+		chainlog.Debug("REORGANIZE: New best chain head is hash", "hash", common.ToHex(lastAttachNode.hash), "height", lastAttachNode.parent.height)
+	}
 	return nil
 }

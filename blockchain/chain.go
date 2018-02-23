@@ -34,7 +34,7 @@ var (
 	BackBlockNum            int64 = 128     //节点高度不增加时向后取blocks的个数
 	BackwardBlockNum        int64 = 16      //本节点高度不增加时并且落后peer的高度数
 	checkHeightNoIncSeconds int64 = 5 * 60  // 高度不增长时的检测周期目前暂定5分钟
-	checkBlockHashSeconds   int64 = 30 * 60 //30分钟检测一次tip hash和peer 对应高度的hash是否一致
+	checkBlockHashSeconds   int64 = 10 * 60 //30分钟检测一次tip hash和peer 对应高度的hash是否一致
 	fetchPeerListSeconds    int64 = 5       //5 秒获取一个peerlist
 )
 
@@ -1172,8 +1172,8 @@ func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers) error {
 	}
 	if ForkHeight == -1 {
 		chainlog.Error("ProcAddBlockHeadersMsg do not find fork point ")
-		chainlog.Error("ProcAddBlockHeadersMsg start headerinfo", "height", headers.Items[0].Height, "hash", headers.Items[0].Hash)
-		chainlog.Error("ProcAddBlockHeadersMsg end headerinfo", "height", headers.Items[count-1].Height, "hash", headers.Items[count-1].Hash)
+		chainlog.Error("ProcAddBlockHeadersMsg start headerinfo", "height", headers.Items[0].Height, "hash", common.ToHex(headers.Items[0].Hash))
+		chainlog.Error("ProcAddBlockHeadersMsg end headerinfo", "height", headers.Items[count-1].Height, "hash", common.ToHex(headers.Items[count-1].Hash))
 		return types.ErrContinueBack
 	}
 	chainlog.Info("ProcAddBlockHeadersMsg find fork point", "height", ForkHeight, "hash", common.ToHex(forkhash))
