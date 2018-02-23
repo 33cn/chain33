@@ -106,9 +106,7 @@ func (cache *txCache) GetLatestTx() []*types.Transaction {
 func (cache *txCache) Remove(tx *types.Transaction) {
 	removed, ok := cache.txMap[string(tx.Hash())]
 	if ok {
-		if cache.txLlrb.Has(removed) {
-			cache.txLlrb.Delete(removed)
-		}
+		cache.txLlrb.Delete(removed)
 		delete(cache.txMap, string(tx.Hash()))
 		// 账户交易数量减1
 		cache.AccountTxNumDecrease(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String())
@@ -149,7 +147,15 @@ type Item struct {
 }
 
 func (i Item) Less(it llrb.Item) bool {
-	return i.priority < it.(*Item).priority
+	if i.priority < it.(*Item).priority {
+		return true
+	} else {
+		if i.priority > it.(*Item).priority {
+			return false
+		} else {
+			return i.enterTime > it.(*Item).enterTime
+		}
+	}
 }
 
 //--------------------------------------------------------------------------------
