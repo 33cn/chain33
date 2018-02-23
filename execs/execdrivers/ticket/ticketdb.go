@@ -207,7 +207,7 @@ func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt,
 		//冻结子账户资金
 		receipt, err := account.ExecFrozen(action.db, topen.ReturnAddress, action.execaddr, types.TicketPrice)
 		if err != nil {
-			tlog.Error("TicketOpen.Frozen", "addr", topen.ReturnAddress, "execaddr", action.execaddr)
+			tlog.Error("TicketOpen.Frozen", "addr", topen.ReturnAddress, "execaddr", action.execaddr, "n", topen.Count)
 			return nil, err
 		}
 		t.Save(action.db)
