@@ -106,7 +106,9 @@ func (cache *txCache) GetLatestTx() []*types.Transaction {
 func (cache *txCache) Remove(tx *types.Transaction) {
 	removed, ok := cache.txMap[string(tx.Hash())]
 	if ok {
-		cache.txLlrb.Delete(removed)
+		if cache.txLlrb.Has(removed) {
+			cache.txLlrb.Delete(removed)
+		}
 		delete(cache.txMap, string(tx.Hash()))
 		// 账户交易数量减1
 		cache.AccountTxNumDecrease(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String())
