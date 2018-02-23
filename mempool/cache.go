@@ -104,7 +104,7 @@ func (cache *txCache) GetLatestTx() []*types.Transaction {
 
 // txCache.Remove移除txCache中给定tx
 func (cache *txCache) Remove(tx *types.Transaction) {
-	removed := cache.txMap[string(tx.Hash())]
+	removed, ok := cache.txMap[string(tx.Hash())]
 	if ok {
 		cache.txLlrb.Delete(removed)
 		delete(cache.txMap, string(tx.Hash()))
