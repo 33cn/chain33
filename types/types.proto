@@ -47,6 +47,8 @@ service grpcservice{
 	rpc QueryChain(Query) returns(Reply){} 
 	//Miner
 	rpc SetAutoMining(MinerFlag)returns(Reply){}
+	//
+	rpc GetHexTxByHash(ReqHash)returns(HexTx){}
 }
 
 
@@ -278,6 +280,10 @@ message ChainStatus {
 
 message ReqHash {
 	bytes hash = 1;
+}
+
+message HexTx {
+	string tx=1;
 }
 
 message ReqInt {
