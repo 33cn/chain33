@@ -874,7 +874,6 @@ message NormAction {
 message NormPut {
 	string key   = 1;
 	string value = 2;
-	bytes hash   = 3;
 }
 
 message GenSeedLang {

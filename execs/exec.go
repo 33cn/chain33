@@ -104,9 +104,13 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 		}
 		//常规读写不检查手续费，需要检查签名
 		if string(tx.Execer) == "norm" {
-			receipt, err := execute.Exec(tx, i)
+			receipt, err := execute.Exec(tx, index)
+			index++
 			if err != nil {
-				panic(err)
+				elog.Error("exec tx error = ", "err", err, "tx", tx)
+				//add error log
+				errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
+				receipt.Logs = append(receipt.Logs, errlog)
 			}
 			receipts = append(receipts, receipt)
 			continue
