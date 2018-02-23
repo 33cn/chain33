@@ -85,7 +85,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 	for i := 0; i < len(datas.Txs); i++ {
 		beg := time.Now()
 		tx := datas.Txs[i]
-		if execute.height == 0 || string(tx.Execer) == "norm" { //genesis block和常规读写不检查手续费
+		if execute.height == 0 { //genesis block 不检查手续费
 			receipt, err := execute.Exec(tx, i)
 			if err != nil {
 				panic(err)
@@ -99,6 +99,15 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 		err := execute.checkTx(tx, index)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
+			receipts = append(receipts, receipt)
+			continue
+		}
+		//常规读写不检查手续费，需要检查签名
+		if string(tx.Execer) == "norm" {
+			receipt, err := execute.Exec(tx, i)
+			if err != nil {
+				panic(err)
+			}
 			receipts = append(receipts, receipt)
 			continue
 		}
