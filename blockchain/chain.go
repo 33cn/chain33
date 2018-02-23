@@ -1011,8 +1011,8 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	msg := chain.qclient.NewMessage("consensus", types.EventDelBlock, block)
 	chain.qclient.Send(msg, false)
 
-	//msg = chain.qclient.NewMessage("mempool", types.EventDelBlock, block)
-	//chain.qclient.Send(msg, false)
+	msg = chain.qclient.NewMessage("mempool", types.EventDelBlock, block)
+	chain.qclient.Send(msg, false)
 
 	msg = chain.qclient.NewMessage("wallet", types.EventDelBlock, block)
 	chain.qclient.Send(msg, false)
@@ -1095,7 +1095,7 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 		if tipheight > BackBlockNum {
 			chain.FetchBlockHeaders(tipheight-BackBlockNum, tipheight, pid)
 		} else {
-			chain.FetchBlockHeaders(1, tipheight, pid)
+			chain.FetchBlockHeaders(0, tipheight, pid)
 		}
 	}
 	return
@@ -1153,7 +1153,7 @@ func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers) error {
 			if height > BackBlockNum {
 				chain.FetchBlockHeaders(height-BackBlockNum, height, pid)
 			} else {
-				chain.FetchBlockHeaders(1, height, pid)
+				chain.FetchBlockHeaders(0, height, pid)
 			}
 		}
 
