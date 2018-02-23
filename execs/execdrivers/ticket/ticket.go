@@ -77,6 +77,7 @@ func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 	} else if action.Ty == types.TicketActionOpen && action.GetTopen() != nil {
 		topen := action.GetTopen()
 		if topen.Count <= 0 {
+			tlog.Error("topen ", "value", topen)
 			return nil, types.ErrTicketCount
 		}
 		return actiondb.TicketOpen(topen)

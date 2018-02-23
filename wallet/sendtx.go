@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -157,12 +158,25 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 		//第一步。转移币到 ticket
 		toaddr := account.ExecAddress("ticket").String()
 		amount := acc1.Balance - fee
-		hash, err := wallet.sendToAddress(priv, toaddr, amount, "autominer->ticket")
+		//必须大于0，才需要转移币
+		var hash *types.ReplyHash
+		if amount > 0 {
+			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket")
+			if err != nil {
+				return err
+			}
+		} else { //从合约提取1个币作为手续费
+			hash, err = wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins")
+			if err != nil {
+				return err
+			}
+		}
+		wallet.waitTx(hash.Hash)
+		acc, err := wallet.getBalance(addr, "ticket")
 		if err != nil {
 			return err
 		}
-		wallet.waitTx(hash.Hash)
-		count := (amount + acc2.Balance) / 10000
+		count := acc.Balance / (10000 * types.Coin)
 		if count > 0 {
 			_, err := wallet.openticket(addr, addr, priv, int32(count))
 			return err
@@ -184,7 +198,7 @@ func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
 			return err
 		}
 		if acc.Balance >= 10000*types.Coin {
-			count := acc.Balance / 10000
+			count := acc.Balance / (10000 * types.Coin)
 			if count > 0 {
 				_, err := wallet.openticket(addr, addrs[i], priv, int32(count))
 				return err
@@ -284,7 +298,13 @@ func (wallet *Wallet) sendTx(tx *types.Transaction) (*types.Reply, error) {
 }
 
 func (wallet *Wallet) waitTx(hash []byte) *types.TransactionDetail {
+	i := 0
 	for {
+		i++
+		if i%100 == 0 {
+			walletlog.Error("wait transaction timeout", "hash", hex.EncodeToString(hash))
+			return nil
+		}
 		res, err := wallet.queryTx(hash)
 		if err != nil {
 			time.Sleep(time.Second)
