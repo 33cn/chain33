@@ -12,6 +12,7 @@ import (
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/coins"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/hashlock"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/none"
+	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/norm"
 	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
@@ -98,6 +99,19 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 		err := execute.checkTx(tx, index)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
+			receipts = append(receipts, receipt)
+			continue
+		}
+		//常规读写不检查手续费，需要检查签名
+		if string(tx.Execer) == "norm" {
+			receipt, err := execute.Exec(tx, index)
+			index++
+			if err != nil {
+				elog.Error("exec tx error = ", "err", err, "tx", tx)
+				//add error log
+				errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
+				receipt.Logs = append(receipt.Logs, errlog)
+			}
 			receipts = append(receipts, receipt)
 			continue
 		}
