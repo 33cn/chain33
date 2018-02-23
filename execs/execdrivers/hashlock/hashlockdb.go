@@ -221,30 +221,32 @@ func NewHashlockquery() *types.Hashlockquery {
 	return &q
 }
 
-//将Infomation转换成byte类型，使输出为kv模式
-func GeHashReciverKV(HashlockId []byte, Infomation *types.Hashlockquery) *types.KeyValue {
-	infomation := types.Hashlockquery{Infomation.Time, Infomation.Status, Infomation.Amount}
-	reciver, err := json.Marshal(infomation)
+//将Information转换成byte类型，使输出为kv模式
+func GeHashReciverKV(hashlockId []byte, information *types.Hashlockquery) *types.KeyValue {
+	infor := types.Hashlockquery{information.Time, information.Status, information.Amount, information.CreateTime, information.CurrentTime}
+	reciver, err := json.Marshal(infor)
 	if err == nil {
 		fmt.Println("成功转换为json格式")
 	} else {
 		fmt.Println(err)
 	}
-	kv := &types.KeyValue{HashlockId, reciver}
+	kv := &types.KeyValue{hashlockId, reciver}
 	return kv
 }
 
 //从db里面根据key获取value,期间需要进行解码
-func GetHashReciver(db dbm.KVDB, HashlockId []byte) (*types.Hashlockquery, error) {
+func GetHashReciver(db dbm.KVDB, hashlockId []byte) (*types.Hashlockquery, error) {
 	//reciver := types.Int64{}
 	reciver := NewHashlockquery()
-	hashReciver, err := db.Get(HashlockId)
+	hashReciver, err := db.Get(hashlockId)
 	if err != nil {
-		return nil, err
+		return reciver, err
 	}
-	if len(hashReciver) == 0 {
-		return nil, nil
-	}
+	//
+	//if len(hashReciver) == 0 {
+	//	return nil, nil
+	//panic()
+	//}
 	err = json.Unmarshal(hashReciver, reciver)
 	if err != nil {
 		return nil, err
@@ -252,44 +254,50 @@ func GetHashReciver(db dbm.KVDB, HashlockId []byte) (*types.Hashlockquery, error
 	return reciver, nil
 }
 
-//将HashlockId和Infomation都以key和value形式存入db
-func SetHashReciver(db dbm.KVDB, HashlockId []byte, Infomation *types.Hashlockquery) error {
-	kv := GeHashReciverKV(HashlockId, Infomation)
+//将hashlockId和information都以key和value形式存入db
+func SetHashReciver(db dbm.KVDB, hashlockId []byte, information *types.Hashlockquery) error {
+	kv := GeHashReciverKV(hashlockId, information)
 	return db.Set(kv.Key, kv.Value)
 }
 
 //根据状态值对db中存入的数据进行更改
-func UpdateHashReciver(cachedb dbm.KVDB, HashlockId []byte, Infomation types.Hashlockquery) (*types.KeyValue, error) {
-	recv, err := GetHashReciver(cachedb, HashlockId)
+func UpdateHashReciver(cachedb dbm.KVDB, hashlockId []byte, information types.Hashlockquery) (*types.KeyValue, error) {
+	recv, err := GetHashReciver(cachedb, hashlockId)
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
 	}
 
 	//	var action types.HashlockAction
-	if Infomation.Status == 1 {
-		recv.Time = Infomation.Time
-		recv.Status = Hashlock_Locked
-		recv.Amount = Infomation.Amount
-	} else if Infomation.Status == 3 {
-		//recv.Time = recv.Time
-		recv.Status = Hashlock_Sent
-		//recv.Amount = recv.Amount
-	} else if Infomation.Status == 2 {
-		//recv.Time = recv.Time
-		recv.Status = Hashlock_Unlocked
-		//recv.Amount = recv.Amount
+	//当处于lock状态时，在db中是找不到的，此时需要创建并存储于db中，其他状态则能从db中找到
+	if information.Status == Hashlock_Locked {
+		if err == types.ErrNotFound {
+			recv.Time = information.Time
+			recv.Status = Hashlock_Locked
+			recv.Amount = information.Amount
+			recv.CreateTime = information.CreateTime
+		}
+	} else if information.Status == Hashlock_Unlocked {
+		if err == nil {
+			recv.Status = Hashlock_Sent
+		}
+	} else if information.Status == Hashlock_Sent {
+		if err == nil {
+			recv.Status = Hashlock_Unlocked
+		}
 	}
-	SetHashReciver(cachedb, HashlockId, recv)
+	SetHashReciver(cachedb, hashlockId, recv)
 	//keyvalue
-	return GeHashReciverKV(HashlockId, recv), nil
+	return GeHashReciverKV(hashlockId, recv), nil
 }
 
 //根据hashlockid获取相关信息
-func (n *Hashlock) GetTxsByHashlockId(HashlockId []byte) (types.Message, error) {
+func (n *Hashlock) GetTxsByHashlockId(hashlockId []byte, currentTime int64) (types.Message, error) {
 	db := n.GetDB()
-	query, err := GetHashReciver(db, HashlockId)
+	query, err := GetHashReciver(db, hashlockId)
 	if err != nil {
 		return nil, err
 	}
+	query.CurrentTime = currentTime
+	//	qresult := types.Hashlockquery{query.Time, query.Status, query.Amount, query.CreateTime, currentTime}
 	return query, nil
 }
