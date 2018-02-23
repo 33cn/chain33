@@ -105,10 +105,12 @@ func (cache *txCache) GetLatestTx() []*types.Transaction {
 // txCache.Remove移除txCache中给定tx
 func (cache *txCache) Remove(tx *types.Transaction) {
 	removed := cache.txMap[string(tx.Hash())]
-	cache.txLlrb.Delete(removed)
-	delete(cache.txMap, string(tx.Hash()))
-	// 账户交易数量减1
-	cache.AccountTxNumDecrease(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String())
+	if ok {
+		cache.txLlrb.Delete(removed)
+		delete(cache.txMap, string(tx.Hash()))
+		// 账户交易数量减1
+		cache.AccountTxNumDecrease(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String())
+	}
 }
 
 // txCache.Size返回txCache中已存tx数目
