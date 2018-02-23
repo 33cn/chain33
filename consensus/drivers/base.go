@@ -2,27 +2,35 @@ package drivers
 
 import (
 	"errors"
+	"math/rand"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/util"
 	log "github.com/inconshreveable/log15"
 )
 
 var tlog = log.New("module", "consensus")
 
 var (
-	listSize int = 10000
 	zeroHash [32]byte
 )
+
+var randgen *rand.Rand
+
+func init() {
+	randgen = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
 
 type Miner interface {
 	CreateGenesisTx() []*types.Transaction
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
+	ProcEvent(msg queue.Message)
+	ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error)
 }
 
 type BaseClient struct {
@@ -38,13 +46,16 @@ type BaseClient struct {
 }
 
 func NewBaseClient(cfg *types.Consensus) *BaseClient {
+	cfg.Genesis = types.GenesisAddr
+	cfg.HotkeyAddr = types.HotkeyAddr
+	cfg.GenesisBlockTime = types.GenesisBlockTime
 	var flag int32
 	if cfg.Minerstart {
 		flag = 1
 	}
 	client := &BaseClient{minerStart: flag}
 	client.Cfg = cfg
-	log.Info("Enter consensus solo")
+	log.Info("Enter consensus " + cfg.GetName())
 	return client
 }
 
@@ -58,6 +69,18 @@ func (client *BaseClient) InitClient(q *queue.Queue, minerstartCB func()) {
 	client.q = q
 	client.minerstartCB = minerstartCB
 	client.InitMiner()
+}
+
+func (client *BaseClient) GetQueueClient() queue.Client {
+	return client.qclient
+}
+
+func (client *BaseClient) GetQueue() *queue.Queue {
+	return client.q
+}
+
+func (client *BaseClient) RandInt64() int64 {
+	return randgen.Int63()
 }
 
 func (client *BaseClient) InitMiner() {
@@ -158,6 +181,8 @@ func (client *BaseClient) EventLoop() {
 				} else {
 					msg.ReplyErr("EventMinerStop", nil)
 				}
+			} else {
+				client.child.ProcEvent(msg)
 			}
 		}
 	}()
@@ -182,7 +207,7 @@ func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
 }
 
 // Mempool中取交易列表
-func (client *BaseClient) RequestTx() []*types.Transaction {
+func (client *BaseClient) RequestTx(listSize int) []*types.Transaction {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
@@ -198,7 +223,7 @@ func (client *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false, ""})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
@@ -224,13 +249,10 @@ func (client *BaseClient) GetInitHeight() int64 {
 }
 
 // 向blockchain写区块
-func (client *BaseClient) WriteBlock(prevHash []byte, block *types.Block) error {
-	blockdetail, err := util.ExecBlock(client.q, prevHash, block, false)
-	if err != nil { //never happen
-		panic(err)
-	}
-	if len(blockdetail.Block.Txs) == 0 {
-		return errors.New("ErrNoTxs")
+func (client *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
+	blockdetail, err := client.child.ExecBlock(prev, block)
+	if err != nil {
+		return err
 	}
 	msg := client.qclient.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
 	client.qclient.Send(msg, true)

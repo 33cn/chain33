@@ -5,7 +5,9 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
+	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	"code.aliyun.com/chain33/chain33/util"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -16,6 +18,7 @@ type SoloClient struct {
 }
 
 func New(cfg *types.Consensus) *SoloClient {
+
 	c := drivers.NewBaseClient(cfg)
 	solo := &SoloClient{c}
 	c.SetChild(solo)
@@ -39,9 +42,28 @@ func (client *SoloClient) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
+func (client *SoloClient) ProcEvent(msg queue.Message) {
+
+}
+
 //solo 不检查任何的交易
 func (client *SoloClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
+}
+
+func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
+	//exec block
+	if block.Height == 0 {
+		block.Difficulty = types.PowLimitBits
+	}
+	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
+	if err != nil { //never happen
+		return nil, err
+	}
+	if len(blockdetail.Block.Txs) == 0 {
+		return nil, types.ErrNoTx
+	}
+	return blockdetail, nil
 }
 
 func (client *SoloClient) CreateBlock() {
@@ -54,7 +76,7 @@ func (client *SoloClient) CreateBlock() {
 		if issleep {
 			time.Sleep(time.Second)
 		}
-		txs := client.RequestTx()
+		txs := client.RequestTx(int(types.MaxTxNumber))
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -67,6 +89,7 @@ func (client *SoloClient) CreateBlock() {
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
+		newblock.Difficulty = types.PowLimitBits
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		newblock.BlockTime = time.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {

@@ -20,29 +20,29 @@ import (
 )
 
 //----------------------------- data for testing ---------------------------------
-
-var amount = int64(1e8)
-var v = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-var transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-var tx1 = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0}
-
-var tx2 = &types.Transaction{Execer: []byte("tester2"), Payload: []byte("mempool"), Fee: 40000000, Expire: 0}
-var tx3 = &types.Transaction{Execer: []byte("tester3"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-var tx4 = &types.Transaction{Execer: []byte("tester4"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
-var tx5 = &types.Transaction{Execer: []byte("tester5"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-var tx6 = &types.Transaction{Execer: []byte("tester6"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-var tx7 = &types.Transaction{Execer: []byte("tester7"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-var tx8 = &types.Transaction{Execer: []byte("tester8"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
-var tx9 = &types.Transaction{Execer: []byte("tester9"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-var tx10 = &types.Transaction{Execer: []byte("tester10"), Payload: []byte("mempool"), Fee: 20000000, Expire: 0}
-var tx11 = &types.Transaction{Execer: []byte("tester11"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-var tx12 = &types.Transaction{Execer: []byte("tester12"), Payload: []byte("mempool"), Fee: 10000000000000000, Expire: 0}
-
-var c, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-var hex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-
-var a, _ = common.FromHex(hex)
-var privKey, _ = c.PrivKeyFromBytes(a)
+var (
+	amount     = int64(1e8)
+	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+	transfer   = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0}
+	tx2        = &types.Transaction{Execer: []byte("tester2"), Payload: []byte("mempool"), Fee: 40000000, Expire: 0}
+	tx3        = &types.Transaction{Execer: []byte("tester3"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
+	tx4        = &types.Transaction{Execer: []byte("tester4"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
+	tx5        = &types.Transaction{Execer: []byte("tester5"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
+	tx6        = &types.Transaction{Execer: []byte("tester6"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
+	tx7        = &types.Transaction{Execer: []byte("tester7"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
+	tx8        = &types.Transaction{Execer: []byte("tester8"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
+	tx9        = &types.Transaction{Execer: []byte("tester9"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
+	tx10       = &types.Transaction{Execer: []byte("tester10"), Payload: []byte("mempool"), Fee: 20000000, Expire: 0}
+	tx11       = &types.Transaction{Execer: []byte("tester11"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
+	tx12       = &types.Transaction{Execer: []byte("tester12"), Payload: []byte("mempool"), Fee: 10000000000000000, Expire: 0}
+	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+	a, _       = common.FromHex(hex)
+	privKey, _ = c.PrivKeyFromBytes(a)
+	random     *rand.Rand
+	mainPriv   crypto.PrivKey
+)
 
 //var privTo, _ = c.GenKey()
 //var ad = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
@@ -55,9 +55,6 @@ var blk = &types.Block{
 	BlockTime:  1,
 	Txs:        []*types.Transaction{tx3, tx5},
 }
-
-var random *rand.Rand
-var mainPriv crypto.PrivKey
 
 func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
