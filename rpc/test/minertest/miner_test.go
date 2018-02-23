@@ -42,6 +42,22 @@ func TestSendToAddress(t *testing.T) {
 	}
 }
 
+func TestSetMinerStart(t *testing.T) {
+	err := setAutoMining(1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestSetMinerStop(t *testing.T) {
+	err := setAutoMining(0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
 func TestMinerBind(t *testing.T) {
 	//随机生成一个地址，对privCold 执行 open ticket 操作，操作失败
 	addr, priv := genaddress()
@@ -184,13 +200,14 @@ func printAccount(addr string, execer string) {
 }
 
 func getBalance(addr string, execer string) (*types.Account, error) {
-	reqbalance := &types.ReqBalance{Address: addr, Execer: execer}
+	reqbalance := &types.ReqBalance{Addresses: []string{addr}, Execer: execer}
 	c := types.NewGrpcserviceClient(conn)
 	reply, err := c.GetBalance(context.Background(), reqbalance)
 	if err != nil {
 		return nil, err
 	}
-	return reply, nil
+	accs := reply.GetAcc()
+	return accs[0], nil
 }
 
 func genaddress() (string, crypto.PrivKey) {
@@ -280,6 +297,19 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 		return nil, errors.New(string(reply.GetMsg()))
 	}
 	return tx.Hash(), nil
+}
+
+func setAutoMining(flag int32) (err error) {
+	req := &types.MinerFlag{flag}
+	c := types.NewGrpcserviceClient(conn)
+	reply, err := c.SetAutoMining(context.Background(), req)
+	if err != nil {
+		return err
+	}
+	if reply.IsOk {
+		return nil
+	}
+	return errors.New(string(reply.Msg))
 }
 
 func waitTx(hash []byte) *types.TransactionDetail {
