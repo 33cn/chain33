@@ -11,11 +11,11 @@ import (
 type NodeInfo struct {
 	mtx sync.Mutex
 
-	pubKey           []byte     
-	network          string      
-	externalAddr     *NetAddress 
-	listenAddr       *NetAddress 
-	version          string      
+	pubKey           []byte
+	network          string
+	externalAddr     *NetAddress
+	listenAddr       *NetAddress
+	version          string
 	monitorChan      chan *peer
 	natNoticeChain   chan struct{}
 	natDone          chan struct{}
@@ -39,6 +39,8 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.cfg = cfg
 	nodeInfo.peerInfos = new(PeerInfos)
 	nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
+	nodeInfo.externalAddr = new(NetAddress)
+	nodeInfo.listenAddr = new(NetAddress)
 	return nodeInfo
 }
 

@@ -173,9 +173,9 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	m.CollectPeerStat(err, peer)
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
 	if err != nil {
-		log.Debug("SendVersion", "Verson", err.Error())
+		log.Info("SendVersion", "Verson", err.Error(), "peer", peer.Addr())
 
-		if strings.Compare(err.Error(), VersionNotSupport) == 0 {
+		if strings.Contains(err.Error(), VersionNotSupport) {
 			peer.version.SetSupport(false)
 
 		}
@@ -195,24 +195,20 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 
 	}
 
-	if port != int(nodeinfo.GetExternalAddr().Port) {
-		if listenAddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, port)); err == nil {
-			nodeinfo.SetListenAddr(listenAddr)
-		}
-	}
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
 
 func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)})
+	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)}
+	_, err := m.signature(peer.mconn.key, ping)
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
 	log.Debug("SendPing", "Peer", peer.Addr(), "nonce", randNonce)
-	r, err := peer.mconn.conn.Ping(context.Background(), in)
+	r, err := peer.mconn.conn.Ping(context.Background(), ping)
 	m.CollectPeerStat(err, peer)
 	if err != nil {
 		return err
@@ -613,8 +609,8 @@ func (m *P2pCli) deletePeer(peer *peer) {
 	}
 }
 func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
-	data := pb.Encode(in)
 
+	data := pb.Encode(in)
 	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
 	if err != nil {
 		log.Error("CryPto Error", "Error", err.Error())
@@ -634,6 +630,7 @@ func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 	in.Sign.Signature = priv.Sign(data).Bytes()
 	in.Sign.Ty = pb.SECP256K1
 	in.Sign.Pubkey = priv.PubKey().Bytes()
+
 	return in, nil
 }
 func (m *P2pCli) flushPeerInfos(in []*pb.Peer) {
