@@ -76,7 +76,7 @@ func TestNormPut(t *testing.T) {
 	defer time.Sleep(time.Second)
 	defer fmt.Println("TestNormPut end\n")
 
-	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue}}
+	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: []byte(testValue)}}
 	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee}
 	tx.Nonce = r.Int63()
