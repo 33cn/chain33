@@ -8,6 +8,7 @@ import (
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
+	"code.aliyun.com/chain33/chain33/util"
 	"github.com/coreos/etcd/snap"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -45,7 +46,37 @@ func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC
 	c.SetChild(client)
 	return client
 }
+func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
+	var tx types.Transaction
+	tx.Execer = []byte("coins")
+	tx.To = client.Cfg.Genesis
+	//gen payload
+	g := &types.CoinsAction_Genesis{}
+	g.Genesis = &types.CoinsGenesis{}
+	g.Genesis.Amount = 1e8 * types.Coin
+	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	ret = append(ret, &tx)
+	return
+}
 
+func (client *RaftClient) ProcEvent(msg queue.Message) {
+
+}
+
+func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
+	//exec block
+	if block.Height == 0 {
+		block.Difficulty = types.PowLimitBits
+	}
+	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
+	if err != nil { //never happen
+		return nil, err
+	}
+	if len(blockdetail.Block.Txs) == 0 {
+		return nil, types.ErrNoTx
+	}
+	return blockdetail, nil
+}
 func (client *RaftClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
 }
@@ -123,7 +154,7 @@ func (client *RaftClient) CreateBlock() {
 		if issleep {
 			time.Sleep(10 * time.Second)
 		}
-		txs := client.RequestTx()
+		txs := client.RequestTx(int(types.MaxTxNumber))
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -154,19 +185,6 @@ func (client *RaftClient) CreateBlock() {
 		}
 
 	}
-}
-
-func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
-	var tx types.Transaction
-	tx.Execer = []byte("coins")
-	tx.To = client.Cfg.Genesis
-	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{}
-	g.Genesis.Amount = 1e8 * types.Coin
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
-	ret = append(ret, &tx)
-	return
 }
 
 // 向raft底层发送block
