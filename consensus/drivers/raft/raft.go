@@ -47,8 +47,9 @@ type raftNode struct {
 	commitC          chan<- *types.Block
 	errorC           chan<- error
 	id               int
-	peers            []string
+	bootstrapPeers   []string
 	readOnlyPeers    []string
+	addPeers         []string
 	join             bool
 	waldir           string
 	snapdir          string
@@ -72,11 +73,11 @@ type raftNode struct {
 	//leaderC    chan int
 	validatorC chan map[string]bool
 	//用于判断该节点是否重启过
-	restartC      chan struct{}
-	addNodeReadyC chan struct{}
+	restartC chan struct{}
+	//addNodeReadyC chan struct{}
 }
 
-func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
+func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
 	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan map[string]bool) {
 
 	log.Info("Enter consensus raft")
@@ -93,8 +94,9 @@ func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, getS
 		errorC:           errorC,
 		id:               id,
 		join:             join,
-		peers:            peers,
+		bootstrapPeers:   peers,
 		readOnlyPeers:    readOnlyPeers,
+		addPeers:         addPeers,
 		waldir:           fmt.Sprintf("chain33_raft-%d", id),
 		snapdir:          fmt.Sprintf("chain33_raft-%d-snap", id),
 		getSnapshot:      getSnapshot,
@@ -126,7 +128,7 @@ func (rc *raftNode) startRaft() {
 	oldwal := wal.Exist(rc.waldir)
 	rc.wal = rc.replayWAL()
 
-	rpeers := make([]raft.Peer, len(rc.peers))
+	rpeers := make([]raft.Peer, len(rc.bootstrapPeers))
 	for i := range rpeers {
 		rpeers[i] = raft.Peer{ID: uint64(i + 1)}
 	}
@@ -141,7 +143,7 @@ func (rc *raftNode) startRaft() {
 		PreVote:     true,
 		CheckQuorum: false,
 	}
-	if len(rc.readOnlyPeers) > 0 && rc.id > len(rc.peers) {
+	if len(rc.readOnlyPeers) > 0 && rc.id > len(rc.bootstrapPeers) {
 		rc.join = true
 	}
 	if oldwal {
@@ -165,9 +167,9 @@ func (rc *raftNode) startRaft() {
 	}
 
 	rc.transport.Start()
-	for i := range rc.peers {
+	for i := range rc.bootstrapPeers {
 		if i+1 != rc.id {
-			rc.transport.AddPeer(typec.ID(i+1), []string{rc.peers[i]})
+			rc.transport.AddPeer(typec.ID(i+1), []string{rc.bootstrapPeers[i]})
 		}
 	}
 
@@ -182,8 +184,9 @@ func (rc *raftNode) startRaft() {
 // 网络监听
 func (rc *raftNode) serveRaft() {
 	var peers []string
-	peers = append(peers, rc.peers...)
+	peers = append(peers, rc.bootstrapPeers...)
 	peers = append(peers, rc.readOnlyPeers...)
+	peers = append(peers, rc.addPeers...)
 	nodeURL, err := url.Parse(peers[rc.id-1])
 	if err != nil {
 		log.Error("raft: Failed parsing URL (%v)", err)
@@ -280,22 +283,6 @@ func (rc *raftNode) serveChannels() {
 
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
-	// Wait all connection between nodes is up
-	//for {
-	//	notUp := false
-	//	for i := range rc.peers {
-	//		if i+1 != rc.id && rc.transport.ActiveSince(typec.ID(i+1)).IsZero() {
-	//			notUp = true
-	//			rlog.Info("==============Connection between Node " + strconv.Itoa(rc.id) + " and " + strconv.Itoa(i+1) + " is not up==============")
-	//			break
-	//		}
-	//	}
-	//	if !notUp {
-	//		rlog.Info("==============All connection is up==============")
-	//		break
-	//	}
-	//	time.Sleep(2 * time.Second)
-	//}
 	//TODO 这块监听后期需要根据场景进行优化
 	time.Sleep(5 * time.Second)
 
@@ -577,7 +564,7 @@ func (rc *raftNode) addReadOnlyPeers() {
 	for i, peer := range rc.readOnlyPeers {
 		cc := raftpb.ConfChange{
 			Type:    raftpb.ConfChangeAddLearnerNode,
-			NodeID:  uint64(len(rc.peers) + i + 1),
+			NodeID:  uint64(len(rc.bootstrapPeers) + i + 1),
 			Context: []byte(peer),
 		}
 		//节点变更一次只能变更一个，因此需要检查是否添加成功
