@@ -53,7 +53,12 @@ package consensus
 		    	    curl -L http://127.0.0.1:9121/4 -X POST -d http://172.31.4.185:9021
 		    	    注意：前者为要加入的nodeId 值，后面http地址为要加入的peerUrl地址，将peerURL依次追加到addPeersURL中,
    	                      用逗号分隔,一次只能添加一个节点
-		    	2.）然后在chain33.toml配置文件中，写好相关参数，启动chain33即可
+		    	2.）然后在chain33.toml配置文件中，写好相关参数，启动chain33即可,
+                    chain33.toml配置文件可依据前一个节点的配置
+                    修改如下参数:
+                     nodeId=x             //第几个节点
+                    isNewJoinNode=true    //是否为新增节点
+                    addPeersURL="xxxxx"   //新增节点的URL
 
 			动态删除节点
 		    	1.）在非删除节点执行如下curl命令即可
