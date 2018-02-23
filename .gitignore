@@ -3,6 +3,7 @@ datadir*
 .DS_Store
 *.log
 *.exe
+*.orig
 common/mavl/datastore
 mavltree
 cli/cli

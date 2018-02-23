@@ -116,6 +116,7 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 
 	//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
 }
+
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	var block *types.Block
 	var reply types.Reply

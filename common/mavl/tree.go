@@ -7,7 +7,6 @@ import (
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
-	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -179,8 +178,7 @@ func (t *MAVLTree) Remove(key []byte) (value []byte, removed bool) {
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
-	db    dbm.DB
-	cache *lru.Cache
+	db dbm.DB
 }
 
 type nodeBatch struct {
@@ -188,13 +186,8 @@ type nodeBatch struct {
 }
 
 func newNodeDB(db dbm.DB) *nodeDB {
-	cache, err := lru.New(10000)
-	if err != nil {
-		panic(err)
-	}
 	ndb := &nodeDB{
-		db:    db,
-		cache: cache,
+		db: db,
 	}
 	return ndb
 }
@@ -202,12 +195,7 @@ func newNodeDB(db dbm.DB) *nodeDB {
 func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
 	// Doesn't exist, load from db.
 	var buf []byte
-	if data, ok := ndb.cache.Get(string(hash)); ok {
-		buf = data.([]byte)
-	} else {
-		buf = ndb.db.Get(hash)
-		ndb.cache.Add(string(hash), buf)
-	}
+	buf = ndb.db.Get(hash)
 	if len(buf) == 0 {
 		return nil, ErrNodeNotExist
 	}
