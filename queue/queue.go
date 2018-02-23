@@ -22,8 +22,10 @@ import (
 //1.2 消息的回复直接通过消息自带的channel 回复
 var qlog = log.New("module", "queue")
 
-const DefaultChanBuffer = 64
-const DefaultLowChanBuffer = 40960
+const (
+	DefaultChanBuffer    = 64
+	DefaultLowChanBuffer = 40960
+)
 
 func SetLogLevel(level int) {
 
@@ -130,7 +132,7 @@ func (q *Queue) Send(msg Message) (err error) {
 	case <-timeout:
 		return types.ErrTimeout
 	}
-	qlog.Debug("send ok", "msg", msg)
+	qlog.Debug("send ok", "msg", msg, "msgid", msg.Id)
 	return nil
 }
 
@@ -194,7 +196,7 @@ func (msg Message) Reply(replyMsg Message) {
 		return
 	}
 	msg.ChReply <- replyMsg
-	qlog.Debug("reply msg ok", "msg", msg)
+	qlog.Debug("reply msg ok", "msg", msg, "msgid", msg.Id)
 }
 
 func (msg Message) String() string {

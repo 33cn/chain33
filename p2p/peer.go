@@ -29,6 +29,25 @@ func (p *peer) Close() {
 
 }
 
+type peer struct {
+	wg          sync.WaitGroup
+	pmutx       sync.Mutex
+	nodeInfo    **NodeInfo
+	outbound    bool
+	conn        *grpc.ClientConn // source connection
+	persistent  bool
+	isrunning   bool
+	version     *Version
+	key         string
+	mconn       *MConnection
+	peerAddr    *NetAddress
+	peerStat    *Stat
+	filterTask  *FilterTask
+	allLoopDone chan struct{}
+	taskPool    chan struct{}
+	taskChan    chan interface{} //tx block
+}
+
 func NewPeer(isout bool, conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
 	p := &peer{
 		outbound: isout,
@@ -49,24 +68,6 @@ func NewPeer(isout bool, conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *Net
 	return p
 }
 
-type peer struct {
-	wg          sync.WaitGroup
-	pmutx       sync.Mutex
-	nodeInfo    **NodeInfo
-	outbound    bool
-	conn        *grpc.ClientConn // source connection
-	persistent  bool
-	isrunning   bool
-	version     *Version
-	key         string
-	mconn       *MConnection
-	peerAddr    *NetAddress
-	peerStat    *Stat
-	filterTask  *FilterTask
-	allLoopDone chan struct{}
-	taskPool    chan struct{}
-	taskChan    chan interface{} //tx block
-}
 type FilterTask struct {
 	mtx      sync.Mutex
 	loopDone chan struct{}
@@ -154,10 +155,12 @@ func (f *FilterTask) ManageFilterTask() {
 // sendRoutine polls for packets to send from channels.
 func (p *peer) HeartBeat() {
 
+	<-(*p.nodeInfo).natDone
 	var count int64
 	ticker := time.NewTicker(PingTimeout)
 	defer ticker.Stop()
 	pcli := NewP2pCli(nil)
+	pcli.SendVersion(p, *p.nodeInfo)
 FOR_LOOP:
 	for {
 		select {
@@ -170,7 +173,7 @@ FOR_LOOP:
 			}
 			count++
 		case <-p.allLoopDone:
-			log.Error("Peer HeartBeat", "loop done", p.Addr())
+			log.Debug("Peer HeartBeat", "loop done", p.Addr())
 			break FOR_LOOP
 
 		}
@@ -194,7 +197,6 @@ func (p *peer) SendData(data interface{}) (err error) {
 
 	select {
 	case <-tick.C:
-		//log.Error("Peer SendData", "timeout", "return")
 		return
 
 	case p.taskChan <- data:
@@ -203,26 +205,34 @@ func (p *peer) SendData(data interface{}) (err error) {
 }
 
 func (p *peer) subStreamBlock() {
-	//p.taskChan = ps.Sub(p.Addr())
+
 	pcli := NewP2pCli(nil)
 	go func(p *peer) {
 		//Stream Send data
+	SEND_LOOP:
 		for {
+
+			ctx, cancel := context.WithCancel(context.Background())
+			resp, err := p.mconn.conn.RouteChat(ctx)
+			if err != nil {
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				time.Sleep(time.Second * 5)
+				cancel()
+				continue
+			}
+
 			select {
 			case <-p.allLoopDone:
-				log.Debug("peer SubStreamBlock", "Send Stream  Done", p.Addr())
+				log.Info("peer SubStreamBlock", "Send Stream  Done", p.Addr())
 				return
 
 			default:
-				resp, err := p.mconn.conn.RouteChat(context.Background())
-				if err != nil {
-					p.peerStat.NotOk()
-					(*p.nodeInfo).monitorChan <- p
-					time.Sleep(time.Second * 5)
-					continue
-				}
-				//for task := range p.taskChan {
+
 				for task := range p.taskChan {
+					if p.GetRunning() == false {
+						return
+					}
 					p2pdata := new(pb.BroadCastData)
 					if block, ok := task.(*pb.P2PBlock); ok {
 						height := block.GetBlock().GetHeight()
@@ -252,36 +262,46 @@ func (p *peer) subStreamBlock() {
 						p.peerStat.NotOk()
 						(*p.nodeInfo).monitorChan <- p
 						resp.CloseSend()
-						break //下一次外循环重新获取stream
+						cancel()
+						break SEND_LOOP //下一次外循环重新获取stream
 					}
 				}
 
 			}
 		}
 	}(p)
+
+FOR_LOOP:
 	for {
+
+		resp, err := p.mconn.conn.RouteChat(context.Background())
+		if err != nil {
+			p.peerStat.NotOk()
+			(*p.nodeInfo).monitorChan <- p
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		log.Debug("SubStreamBlock", "Start", p.Addr())
+
 		select {
 		case <-p.allLoopDone:
-			log.Debug("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
+			log.Info("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
+			resp.CloseSend()
 			return
 
 		default:
-			resp, err := p.mconn.conn.RouteChat(context.Background())
-			if err != nil {
-				p.peerStat.NotOk()
-				(*p.nodeInfo).monitorChan <- p
-				time.Sleep(time.Second * 5)
-				continue
-			}
-			log.Debug("SubStreamBlock", "Start", p.Addr())
+
 			for {
+				if p.GetRunning() == false {
+					return
+				}
 				data, err := resp.Recv()
 				if err != nil {
+
 					resp.CloseSend()
 					p.peerStat.NotOk()
 					(*p.nodeInfo).monitorChan <- p
-					//log.Error("SubStreamBlock", "Recv Err", err.Error())
-					break
+					break FOR_LOOP
 				}
 
 				if block := data.GetBlock(); block != nil {
@@ -300,7 +320,7 @@ func (p *peer) subStreamBlock() {
 								continue
 							}
 						}
-						log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight())
+						log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
 						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 						err = (*p.nodeInfo).qclient.Send(msg, true)
 						if err != nil {

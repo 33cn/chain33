@@ -12,8 +12,10 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-var blockStoreKey = []byte("blockStoreHeight")
-var storeLog = chainlog.New("submodule", "store")
+var (
+	blockStoreKey = []byte("blockStoreHeight")
+	storeLog      = chainlog.New("submodule", "store")
+)
 
 type BlockStore struct {
 	db     dbm.DB
@@ -144,8 +146,13 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 		storeLog.Error("indexTxs getLocalKV err", "Height", blockDetail.Block.Height, "err", err)
 		return err
 	}
+	//storelog.Info("add txs kv num", "n", len(kv.KV))
 	for i := 0; i < len(kv.KV); i++ {
-		storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
+		if kv.KV[i].Value == nil {
+			storeBatch.Delete(kv.KV[i].Key)
+		} else {
+			storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
+		}
 	}
 	return nil
 }
