@@ -232,6 +232,8 @@ const (
 	EventAddBlockHeaders   = 87
 	EventWalletAutoMiner   = 88
 	EventReplyWalletStatus = 89
+	EventGetLastBlock      = 90
+	EventBlock             = 91
 )
 
 var eventName = map[int]string{
@@ -324,6 +326,8 @@ var eventName = map[int]string{
 	87: "EventAddBlockHeaders",
 	88: "EventWalletAutoMiner",
 	89: "EventReplyWalletStatus",
+	90: "EventGetLastBlock",
+	91: "EventBlock",
 }
 
 //ty = 1 -> secp256k1

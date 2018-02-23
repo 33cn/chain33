@@ -30,12 +30,12 @@ var (
 	synBlocklock            sync.Mutex
 	peerMaxBlklock          sync.Mutex
 	zeroHash                [32]byte
-	InitBlockNum            int64 = 128     //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
-	BackBlockNum            int64 = 128     //节点高度不增加时向后取blocks的个数
-	BackwardBlockNum        int64 = 16      //本节点高度不增加时并且落后peer的高度数
-	checkHeightNoIncSeconds int64 = 5 * 60  // 高度不增长时的检测周期目前暂定5分钟
-	checkBlockHashSeconds   int64 = 10 * 60 //30分钟检测一次tip hash和peer 对应高度的hash是否一致
-	fetchPeerListSeconds    int64 = 5       //5 秒获取一个peerlist
+	InitBlockNum            int64 = 128    //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
+	BackBlockNum            int64 = 128    //节点高度不增加时向后取blocks的个数
+	BackwardBlockNum        int64 = 16     //本节点高度不增加时并且落后peer的高度数
+	checkHeightNoIncSeconds int64 = 5 * 60 // 高度不增长时的检测周期目前暂定5分钟
+	checkBlockHashSeconds   int64 = 1 * 60 //30分钟检测一次tip hash和peer 对应高度的hash是否一致
+	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
 )
 
 //保存peerlist中lastheight最高的peer
@@ -219,6 +219,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getQuery)
 		case types.EventAddBlockHeaders:
 			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
+		case types.EventGetLastBlock:
+			go chain.processMsg(msg, reqnum, chain.getLastBlock)
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -674,6 +676,15 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err e
 		return nil, err
 	}
 
+}
+
+func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
+	blockhight := chain.GetBlockHeight()
+	blockdetail, err := chain.GetBlock(blockhight)
+	if err != nil {
+		return nil, err
+	}
+	return blockdetail.Block, nil
 }
 
 func (chain *BlockChain) ProcGetBlockByHashMsg(hash []byte) (respblock *types.BlockDetail, err error) {

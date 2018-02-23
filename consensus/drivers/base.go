@@ -184,7 +184,7 @@ func (client *BaseClient) EventLoop() {
 			} else if msg.Ty == types.EventDelBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				client.UpdateCurrentBlock(block)
-			}else {
+			} else {
 				client.child.ProcEvent(msg)
 			}
 		}
@@ -236,6 +236,21 @@ func (client *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 	return blocks.Items[0].Block, nil
 }
 
+//获取最新的block从blockchain模块
+func (client *BaseClient) RequestLastBlock() (*types.Block, error) {
+	if client.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	msg := client.qclient.NewMessage("blockchain", types.EventGetLastBlock, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	block := resp.GetData().(*types.Block)
+	return block, nil
+}
+
 // solo初始化时，取一次区块高度放在内存中，后面自增长，不用再重复去blockchain取
 func (client *BaseClient) GetInitHeight() int64 {
 
@@ -284,15 +299,12 @@ func (client *BaseClient) SetCurrentBlock(b *types.Block) {
 
 func (client *BaseClient) UpdateCurrentBlock(b *types.Block) {
 	client.mulock.Lock()
-	if client.currentBlock == nil || client.currentBlock.Height == b.Height {
 
-		block, err := client.RequestBlock(b.Height - 1)
-		if err != nil {
-			panic(err)
-		}
-
-		client.currentBlock = block
+	block, err := client.RequestLastBlock()
+	if err != nil {
+		panic(err)
 	}
+	client.currentBlock = block
 	client.mulock.Unlock()
 }
 
