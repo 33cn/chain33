@@ -12,7 +12,7 @@ type NormDB struct {
 	types.Norm
 }
 
-func NewNormDB(id []byte, blocktime int64, key string, value string) *NormDB {
+func NewNormDB(id []byte, blocktime int64, key string, value []byte) *NormDB {
 	n := &NormDB{}
 	n.NormId = id
 	n.CreateTime = blocktime
@@ -59,7 +59,7 @@ func (action *NormAction) Normput(nput *types.NormPut) (*types.Receipt, error) {
 	n := NewNormDB(action.txhash, action.blocktime, nput.Key, nput.Value)
 	n.Save(action.db)
 	kv = append(kv, n.GetKVSet()...)
-	kv = append(kv, &types.KeyValue{[]byte(n.Key), []byte(n.Value)})
+	kv = append(kv, &types.KeyValue{[]byte(n.Key), n.Value})
 
 	receipt := &types.Receipt{types.ExecOk, kv, nil}
 	return receipt, nil

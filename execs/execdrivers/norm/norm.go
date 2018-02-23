@@ -54,7 +54,7 @@ func (n *Norm) GetKVPair(tx *types.Transaction) *types.KeyValue {
 		return nil
 	}
 	if action.Ty == types.NormActionPut && action.GetNput() != nil {
-		return &types.KeyValue{[]byte(action.GetNput().Key), []byte(action.GetNput().Value)}
+		return &types.KeyValue{[]byte(action.GetNput().Key), action.GetNput().Value}
 	}
 	return nil
 }
