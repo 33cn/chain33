@@ -459,6 +459,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					mem.setHeader(header)
 				}
 				mem.RemoveTxsOfBlock(block)
+				mlog.Debug("handle EventAddBlock ok", "msg", msg, "msgid", msg.Id)
 			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				memSize := int64(mem.Size())
