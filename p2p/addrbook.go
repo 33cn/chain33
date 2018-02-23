@@ -341,7 +341,6 @@ func (a *AddrBook) AddAddress(addr *NetAddress) {
 func (a *AddrBook) RemoveAddr(peeraddr string) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	log.Warn("RemoveAddr", "peer", peeraddr)
 	if _, ok := a.addrPeer[peeraddr]; ok {
 		delete(a.addrPeer, peeraddr)
 	}

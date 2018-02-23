@@ -76,6 +76,13 @@ func (req *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.
 
 	return reply, nil
 }
+func (req *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, error) {
+	reply, err := req.cli.QueryTx(in.GetHash())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.HexTx{Tx: reply.GetTx().String()}, nil
+}
 func (req *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.TransactionDetails, error) {
 
 	reply, err := req.cli.GetTxByHashes(in)
@@ -316,4 +323,12 @@ func (req *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error
 	reply.Msg = types.Encode(*result)
 
 	return &reply, nil
+}
+
+func (req *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, error) {
+	result, err := req.cli.SetAutoMiner(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
