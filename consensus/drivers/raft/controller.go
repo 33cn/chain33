@@ -42,7 +42,20 @@ func NewRaftCluster(cfg *types.Consensus) *RaftClient {
 	getSnapshot := func() ([]byte, error) { return b.getSnapshot() }
 	// raft集群的建立,1. 初始化两条channel： propose channel用于客户端和raft底层交互, commit channel用于获取commit消息
 	// 2. raft集群中的节点之间建立http连接
-	commitC, errorC, snapshotterReady, validatorC := NewRaftNode(int(cfg.NodeId), cfg.IsNewJoinNode, strings.Split(cfg.PeersURL, ","), strings.Split(cfg.ReadOnlyPeersURL, ","), getSnapshot, proposeC, confChangeC)
+	//TODO:URL应该加入正则表达式进行校验
+	peers := strings.Split(cfg.PeersURL, ",")
+	if len(peers) == 1 && peers[0] == "" {
+		peers = []string{}
+	}
+	readOnlyPeers := strings.Split(cfg.ReadOnlyPeersURL, ",")
+	if len(readOnlyPeers) == 1 && readOnlyPeers[0] == "" {
+		readOnlyPeers = []string{}
+	}
+	addPeers := strings.Split(cfg.AddPeersURL, ",")
+	if len(addPeers) == 1 && addPeers[0] == "" {
+		addPeers = []string{}
+	}
+	commitC, errorC, snapshotterReady, validatorC := NewRaftNode(int(cfg.NodeId), cfg.IsNewJoinNode, peers, readOnlyPeers, addPeers, getSnapshot, proposeC, confChangeC)
 	//启动raft删除节点操作监听
 	go serveHttpRaftAPI(int(cfg.RaftApiPort), confChangeC, errorC)
 	// 监听commit channel,取block
