@@ -1174,6 +1174,16 @@ func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers) error {
 		chainlog.Error("ProcAddBlockHeadersMsg do not find fork point ")
 		chainlog.Error("ProcAddBlockHeadersMsg start headerinfo", "height", headers.Items[0].Height, "hash", common.ToHex(headers.Items[0].Hash))
 		chainlog.Error("ProcAddBlockHeadersMsg end headerinfo", "height", headers.Items[count-1].Height, "hash", common.ToHex(headers.Items[count-1].Hash))
+
+		//继续向后取指定数量的headers
+		height := headers.Items[0].Height
+		pid := chain.GetPeerMaxBlkPid()
+		if height > BackBlockNum {
+			chain.FetchBlockHeaders(height-BackBlockNum, height, pid)
+		} else {
+			chain.FetchBlockHeaders(0, height, pid)
+		}
+
 		return types.ErrContinueBack
 	}
 	chainlog.Info("ProcAddBlockHeadersMsg find fork point", "height", ForkHeight, "hash", common.ToHex(forkhash))
