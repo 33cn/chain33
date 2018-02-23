@@ -217,22 +217,28 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
 		case types.EventWalletAutoMiner:
-			flag := msg.GetData().(*types.Int64).Data
+			flag := msg.GetData().(*types.MinerFlag).Flag
 			if flag == 1 {
 				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("1"))
 			} else {
 				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("0"))
 			}
-			wallet.setAutoMining(int32(flag))
+			wallet.setAutoMining(flag)
+			wallet.flushTicket()
+			msg.ReplyErr("WalletSetAutoMiner", nil)
 		case types.EventWalletGetTickets:
-			tickets, privs, err := wallet.GetTickets(1)
-			if err != nil {
-				walletlog.Error("GetTickets", "err", err.Error())
-				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
+			if !wallet.isAutoMining() {
+				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, types.ErrMinerNotStared))
 			} else {
-				tks := &types.ReplyWalletTickets{tickets, privs}
-				walletlog.Debug("process GetTickets OK")
-				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
+				tickets, privs, err := wallet.GetTickets(1)
+				if err != nil {
+					walletlog.Error("GetTickets", "err", err.Error())
+					msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, err))
+				} else {
+					tks := &types.ReplyWalletTickets{tickets, privs}
+					walletlog.Debug("process GetTickets OK")
+					msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
+				}
 			}
 		case types.EventNewAccount:
 			NewAccount := msg.Data.(*types.ReqNewAccount)
@@ -393,6 +399,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
+		walletlog.Debug("end process")
 	}
 }
 
