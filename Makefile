@@ -8,13 +8,18 @@ CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := $(go list ./... | grep -v /vendor/)
 
-.PHONY: default dep build release cli linter lint race test fmt vet bench msan coverage coverhtml docker clean help
+.PHONY: default dep all build release cli linter lint race test fmt vet bench msan coverage coverhtml docker clean help
 
 default: build
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
 	@gometalinter.v2 -i
+	@go get -u github.com/mitchellh/gox
+
+all: ## Builds for multiple platforms
+	@gox $(LDFLAGS)
+	@mv chain33* build/
 
 build: ## Build the binary file
 	@go build -v -o $(APP)
@@ -72,3 +77,4 @@ help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
 	@printf "[command]\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
