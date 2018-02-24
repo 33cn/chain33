@@ -1372,24 +1372,24 @@ func SetAutoMining(flag string) {
 }
 
 func GetTxHexByHash(hash string) {
-	//	params := jsonrpc.ReqHashes{Hashes: hashes}
-	//	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
-	//	if err != nil {
-	//		fmt.Fprintln(os.Stderr, err)
-	//		return
-	//	}
-	//	var res jsonrpc.TransactionDetails
-	//	err = rpc.Call("Chain33.GetTxByHashes", params, &res)
-	//	if err != nil {
-	//		fmt.Fprintln(os.Stderr, err)
-	//		return
-	//	}
+	params := jsonrpc.QueryParm{Hash: hash}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res string
+	err = rpc.Call("Chain33.GetHexTxByHash", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 
-	//	data, err := json.MarshalIndent(res, "", "    ")
-	//	if err != nil {
-	//		fmt.Fprintln(os.Stderr, err)
-	//		return
-	//	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 
-	//	fmt.Println(string(data))
+	fmt.Println(string(data))
 }
