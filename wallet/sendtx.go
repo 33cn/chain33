@@ -152,12 +152,12 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 		return err
 	}
 	//留一个币作为手续费，如果手续费不够了，不能挖矿
-	//目前需要用户自己去补充手续费
+	//判断手续费是否足够，如果不足要及时补充。
 	fee := types.Coin
 	if acc1.Balance+acc2.Balance >= 10000*types.Coin+fee {
 		//第一步。转移币到 ticket
 		toaddr := account.ExecAddress("ticket").String()
-		amount := acc1.Balance - fee
+		amount := acc1.Balance - 2*fee
 		//必须大于0，才需要转移币
 		var hash *types.ReplyHash
 		if amount > 0 {
@@ -165,13 +165,8 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 			if err != nil {
 				return err
 			}
-		} else { //从合约提取1个币作为手续费
-			hash, err = wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins")
-			if err != nil {
-				return err
-			}
+			wallet.waitTx(hash.Hash)
 		}
-		wallet.waitTx(hash.Hash)
 		acc, err := wallet.getBalance(addr, "ticket")
 		if err != nil {
 			return err
@@ -208,7 +203,29 @@ func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
 	return nil
 }
 
+func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
+	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	acc1, err := wallet.getBalance(addr, "coins")
+	if err != nil {
+		return err
+	}
+	acc2, err := wallet.getBalance(addr, "ticket")
+	if err != nil {
+		return err
+	}
+	toaddr := account.ExecAddress("ticket").String()
+	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
+	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
+		_, err := wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
+	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist, err := wallet.getTickets(addr, 2)
 	if err != nil && err != types.ErrNotFound {
