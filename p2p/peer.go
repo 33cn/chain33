@@ -223,45 +223,49 @@ func (p *peer) subStreamBlock() {
 				cancel()
 				continue
 			}
-			select {
-			case task := <-p.taskChan:
-				p2pdata := new(pb.BroadCastData)
-				if block, ok := task.(*pb.P2PBlock); ok {
-					height := block.GetBlock().GetHeight()
-					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
-					if err == nil {
-						if pinfo.GetHeader().GetHeight() >= height {
+			for {
+
+				timeout := time.After(time.Second * 2)
+				select {
+				case task := <-p.taskChan:
+					p2pdata := new(pb.BroadCastData)
+					if block, ok := task.(*pb.P2PBlock); ok {
+						height := block.GetBlock().GetHeight()
+						pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
+						if err == nil {
+							if pinfo.GetHeader().GetHeight() >= height {
+								continue
+							}
+						}
+						if p.filterTask.QueryTask(height) == true {
+							continue //已经接收的消息不再发送
+						}
+						p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+						//登记新的发送消息
+						p.filterTask.RegTask(height)
+
+					} else if tx, ok := task.(*pb.P2PTx); ok {
+						sig := tx.GetTx().GetSignature().GetSignature()
+						if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
 							continue
 						}
+						p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+						p.filterTask.RegTask(hex.EncodeToString(sig))
 					}
-					if p.filterTask.QueryTask(height) == true {
-						continue //已经接收的消息不再发送
+					err := resp.Send(p2pdata)
+					if err != nil {
+						p.peerStat.NotOk()
+						(*p.nodeInfo).monitorChan <- p
+						resp.CloseSend()
+						cancel()
+						break //下一次外循环重新获取stream
 					}
-					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
-					//登记新的发送消息
-					p.filterTask.RegTask(height)
-
-				} else if tx, ok := task.(*pb.P2PTx); ok {
-					sig := tx.GetTx().GetSignature().GetSignature()
-					if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
-						continue
+				case <-timeout:
+					if p.GetRunning() == false {
+						resp.CloseSend()
+						cancel()
+						return
 					}
-					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-					p.filterTask.RegTask(hex.EncodeToString(sig))
-				}
-				err := resp.Send(p2pdata)
-				if err != nil {
-					p.peerStat.NotOk()
-					(*p.nodeInfo).monitorChan <- p
-					resp.CloseSend()
-					cancel()
-					break //下一次外循环重新获取stream
-				}
-			case <-time.After(time.Second * 2):
-				if p.GetRunning() == false {
-					resp.CloseSend()
-					cancel()
-					return
 				}
 			}
 
