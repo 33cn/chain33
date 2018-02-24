@@ -3,7 +3,7 @@ CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := $(go list ./... | grep -v /vendor/)
 
-.PHONY: default dep build release cli linter lint race test fmt vet bench msan coverage coverhtml clean help
+.PHONY: default dep build release cli linter lint race test fmt vet bench msan coverage coverhtml docker clean help
 
 default: build
 
@@ -52,6 +52,9 @@ coverage: ## Generate global code coverage report
 
 coverhtml: ## Generate global code coverage report in HTML
 	@./build/tools/coverage.sh html;
+
+docker: ## build docker image for chain33 run
+	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
 clean: ## Remove previous build
 	@rm -rf build/datadir
