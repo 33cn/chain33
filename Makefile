@@ -1,3 +1,8 @@
+# 1. make help
+# 2. make dep
+# 3. make build
+# ...
+
 APP := build/chain33
 CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
@@ -64,4 +69,6 @@ clean: ## Remove previous build
 	@go clean
 
 help: ## Display this help screen
+	@printf "Help doc:\nUsage: make [command]\n"
+	@printf "[command]\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
