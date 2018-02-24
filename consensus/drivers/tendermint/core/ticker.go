@@ -1,11 +1,11 @@
-package tendermint
+package core
 
 import (
 	"time"
-
-	cmn "github.com/tendermint/tmlibs/common"
-	"github.com/tendermint/tmlibs/log"
+	log "github.com/inconshreveable/log15"
 )
+
+var tickerlog = log.New("module", "tendermint-ticker")
 
 var (
 	tickTockBufferSize = 10
@@ -20,7 +20,7 @@ type TimeoutTicker interface {
 	Chan() <-chan timeoutInfo       // on which to receive a timeout
 	ScheduleTimeout(ti timeoutInfo) // reset the timer
 
-	SetLogger(log.Logger)
+	//SetLogger(log.Logger)
 }
 
 // timeoutTicker wraps time.Timer,
@@ -29,8 +29,8 @@ type TimeoutTicker interface {
 // Timeouts are scheduled along the tickChan,
 // and fired on the tockChan.
 type timeoutTicker struct {
-	cmn.BaseService
-
+	//cmn.BaseService
+	//logger  log.Logger
 	timer    *time.Timer
 	tickChan chan timeoutInfo // for scheduling timeouts
 	tockChan chan timeoutInfo // for notifying about them
@@ -43,13 +43,13 @@ func NewTimeoutTicker() TimeoutTicker {
 		tickChan: make(chan timeoutInfo, tickTockBufferSize),
 		tockChan: make(chan timeoutInfo, tickTockBufferSize),
 	}
-	tt.BaseService = *cmn.NewBaseService(nil, "TimeoutTicker", tt)
+	//tt.BaseService = *cmn.NewBaseService(nil, "TimeoutTicker", tt)
 	tt.stopTimer() // don't want to fire until the first scheduled timeout
 	return tt
 }
 
 // OnStart implements cmn.Service. It starts the timeout routine.
-func (t *timeoutTicker) OnStart() error {
+func (t *timeoutTicker) Start() error {
 
 	go t.timeoutRoutine()
 
@@ -57,9 +57,10 @@ func (t *timeoutTicker) OnStart() error {
 }
 
 // OnStop implements cmn.Service. It stops the timeout routine.
-func (t *timeoutTicker) OnStop() {
-	t.BaseService.OnStop()
+func (t *timeoutTicker) Stop() error{
+	//t.BaseService.OnStop()
 	t.stopTimer()
+	return nil
 }
 
 // Chan returns a channel on which timeouts are sent.
@@ -83,7 +84,7 @@ func (t *timeoutTicker) stopTimer() {
 		select {
 		case <-t.timer.C:
 		default:
-			t.Logger.Debug("Timer already stopped")
+			tickerlog.Debug("Timer already stopped")
 		}
 	}
 }
@@ -92,12 +93,12 @@ func (t *timeoutTicker) stopTimer() {
 // timers are interupted and replaced by new ticks from later steps
 // timeouts of 0 on the tickChan will be immediately relayed to the tockChan
 func (t *timeoutTicker) timeoutRoutine() {
-	t.Logger.Debug("Starting timeout routine")
+	tickerlog.Debug("Starting timeout routine")
 	var ti timeoutInfo
 	for {
 		select {
 		case newti := <-t.tickChan:
-			t.Logger.Debug("Received tick", "old_ti", ti, "new_ti", newti)
+			tickerlog.Debug("Received tick", "old_ti", ti, "new_ti", newti)
 
 			// ignore tickers for old height/round/step
 			if newti.Height < ti.Height {
@@ -127,8 +128,6 @@ func (t *timeoutTicker) timeoutRoutine() {
 			// We can eliminate it by merging the timeoutRoutine into receiveRoutine
 			//  and managing the timeouts ourselves with a millisecond ticker
 			go func(toi timeoutInfo) { t.tockChan <- toi }(ti)
-		case <-t.Quit:
-			return
 		}
 	}
 }
