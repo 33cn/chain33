@@ -8,6 +8,7 @@ ENV PATH ${GOPATH}/bin:$PATH
 # Install dep
 RUN go get -u gopkg.in/alecthomas/gometalinter.v2 \
     && gometalinter.v2 -i
+    && go get -u github.com/mitchellh/gox
 
 # Use speedup source for Chinese Mainland user,if not you can remove it
 RUN cp /etc/apt/sources.list  /etc/apt/sources.list.old \
