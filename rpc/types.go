@@ -202,7 +202,7 @@ type Query struct {
 }
 
 type WalletStatus struct {
-	IsLock       bool `protobuf:"varint,1,opt,name=isLock" json:"isLock"`
-	IsAutoMining bool `protobuf:"varint,2,opt,name=isAutoMining" json:"isAutoMining"`
-	HasSeed      bool `protobuf:"varint,3,opt,name=hasSeed" json:"hasSeed"`
+	IsLock       bool `json:"isLock"`
+	IsAutoMining bool `json:"isAutoMining"`
+	HasSeed      bool `json:"hasSeed"`
 }
