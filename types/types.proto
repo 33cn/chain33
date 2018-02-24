@@ -641,6 +641,16 @@ message Consensus {
 	bool minerstart = 3;
 	int64 genesisBlockTime = 4;
 	string hotkeyAddr = 5;
+	int32 timeoutPropose = 6;
+    int32 timeoutProposeDelta = 7;
+    int32 timeoutPrevote = 8;
+    int32 timeoutPrevoteDelta = 9;
+    int32 timeoutPrecommit = 10;
+    int32 timeoutPrecommitDelta = 11;
+    int32 timeoutCommit = 12;
+    bool skipTimeoutCommit = 13;
+    bool createEmptyBlocks = 14;
+    int32 createEmptyBlocksInterval = 15;
 }
 
 message MemPool {
