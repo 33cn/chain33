@@ -271,9 +271,10 @@ func (p *peer) subStreamBlock() {
 		}
 	}(p)
 
-FOR_LOOP:
 	for {
-
+		if p.GetRunning() == false {
+			return
+		}
 		resp, err := p.mconn.conn.RouteChat(context.Background())
 		if err != nil {
 			p.peerStat.NotOk()
@@ -283,73 +284,64 @@ FOR_LOOP:
 		}
 		log.Debug("SubStreamBlock", "Start", p.Addr())
 
-		select {
-		case <-p.allLoopDone:
-			log.Info("Peer SubStreamBlock", "RecvStreamDone", p.Addr())
-			resp.CloseSend()
-			return
+		for {
+			if p.GetRunning() == false {
+				return
+			}
+			data, err := resp.Recv()
+			if err != nil {
 
-		default:
+				resp.CloseSend()
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				break
+			}
 
-			for {
-				if p.GetRunning() == false {
-					return
-				}
-				data, err := resp.Recv()
-				if err != nil {
+			if block := data.GetBlock(); block != nil {
 
-					resp.CloseSend()
-					p.peerStat.NotOk()
-					(*p.nodeInfo).monitorChan <- p
-					break FOR_LOOP
-				}
-
-				if block := data.GetBlock(); block != nil {
-
-					if block.GetBlock() != nil {
-						//如果已经有登记过的消息记录，则不发送给本地blockchain
-						if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
-							continue
-						}
-
-						//判断比自己低的区块，则不发送给blockchain
-
-						height, err := pcli.GetBlockHeight((*p.nodeInfo))
-						if err == nil {
-							if height >= block.GetBlock().GetHeight() {
-								continue
-							}
-						}
-						log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
-						msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-						err = (*p.nodeInfo).qclient.Send(msg, true)
-						if err != nil {
-							log.Error("subStreamBlock", "Error", err.Error())
-							return
-						}
-						_, err = (*p.nodeInfo).qclient.Wait(msg)
-						if err != nil {
-							continue
-						}
-						p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
+				if block.GetBlock() != nil {
+					//如果已经有登记过的消息记录，则不发送给本地blockchain
+					if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
+						continue
 					}
 
-				} else if tx := data.GetTx(); tx != nil {
+					//判断比自己低的区块，则不发送给blockchain
 
-					if tx.GetTx() != nil {
-						log.Debug("SubStreamBlock", "tx", tx.GetTx())
-						sig := tx.GetTx().GetSignature().GetSignature()
-						if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
-							continue //处理方式同上
+					height, err := pcli.GetBlockHeight((*p.nodeInfo))
+					if err == nil {
+						if height >= block.GetBlock().GetHeight() {
+							continue
 						}
-						msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
-						(*p.nodeInfo).qclient.Send(msg, false)
-						p.filterTask.RegTask(hex.EncodeToString(sig)) //登记
 					}
+					log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
+					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					err = (*p.nodeInfo).qclient.Send(msg, true)
+					if err != nil {
+						log.Error("subStreamBlock", "Error", err.Error())
+						continue
+					}
+					_, err = (*p.nodeInfo).qclient.Wait(msg)
+					if err != nil {
+						continue
+					}
+					p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
+				}
 
+			} else if tx := data.GetTx(); tx != nil {
+
+				if tx.GetTx() != nil {
+					log.Debug("SubStreamBlock", "tx", tx.GetTx())
+					sig := tx.GetTx().GetSignature().GetSignature()
+					if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+						continue //处理方式同上
+					}
+					msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					(*p.nodeInfo).qclient.Send(msg, false)
+					p.filterTask.RegTask(hex.EncodeToString(sig)) //登记
 				}
 
 			}
+
 		}
 	}
 
