@@ -238,6 +238,12 @@ func main() {
 			return
 		}
 		SetAutoMining(argsWithoutProg[1])
+	case "gettxhexbyhash":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTxHexByHash(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -278,6 +284,7 @@ func LoadHelp() {
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
+	fmt.Println("gettxhexbyhash [hash]                                       : 通过哈希获取交易十六进制字符串")
 }
 
 type AccountsResult struct {
@@ -1355,6 +1362,29 @@ func SetAutoMining(flag string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetTxHexByHash(hash string) {
+	params := jsonrpc.QueryParm{Hash: hash}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res string
+	err = rpc.Call("Chain33.GetHexTxByHash", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
