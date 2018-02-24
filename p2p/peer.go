@@ -223,11 +223,8 @@ func (p *peer) subStreamBlock() {
 				cancel()
 				continue
 			}
-
-			for task := range p.taskChan {
-				if p.GetRunning() == false {
-					return
-				}
+			select {
+			case task := <-p.taskChan:
 				p2pdata := new(pb.BroadCastData)
 				if block, ok := task.(*pb.P2PBlock); ok {
 					height := block.GetBlock().GetHeight()
@@ -259,6 +256,12 @@ func (p *peer) subStreamBlock() {
 					resp.CloseSend()
 					cancel()
 					break //下一次外循环重新获取stream
+				}
+			case <-time.After(time.Second * 2):
+				if p.GetRunning() == false {
+					resp.CloseSend()
+					cancel()
+					return
 				}
 			}
 
