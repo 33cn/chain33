@@ -294,12 +294,14 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
 	client := s.node.nodeInfo.qclient
+	log.Debug("GetPeerInfo", "GetMempoolSize", "befor")
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("GetPeerInfo mempool", "Error", err.Error())
 		return nil, err
 	}
+	log.Debug("GetPeerInfo", "GetMempoolSize", "after")
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -313,6 +315,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 		log.Error("getpubkey", "error", err.Error())
 	}
 
+	log.Debug("GetPeerInfo", "EventGetLastHeader", "befor")
 	//get header
 	msg = client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
 	err = client.Send(msg, true)
@@ -324,9 +327,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+	log.Debug("GetPeerInfo", "EventGetLastHeader", "after")
 	header := resp.GetData().(*pb.Header)
 
 	peerinfo.Header = header
