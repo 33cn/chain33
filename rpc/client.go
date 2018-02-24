@@ -575,7 +575,7 @@ func (client *channelClient) GetWalletStatus() (*WalletStatus, error) {
 		return nil, err
 	}
 
-	return resp.Data.(*WalletStatus), nil
+	return (*WalletStatus)(resp.Data.(*types.WalletStatus)), nil
 }
 
 func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
