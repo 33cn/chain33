@@ -416,7 +416,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 		i := 0
 		for msg := range mem.qclient.Recv() {
 			i = i + 1
-			mlog.Debug("mempool recv", "count", i, "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := time.Now()
 			switch msg.Ty {
 			case types.EventTx:
@@ -459,6 +459,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					mem.setHeader(header)
 				}
 				mem.RemoveTxsOfBlock(block)
+				mlog.Debug("handle EventAddBlock ok", "msg", msg, "msgid", msg.Id)
 			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				memSize := int64(mem.Size())
