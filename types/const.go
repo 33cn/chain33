@@ -127,6 +127,7 @@ const (
 	TicketPrice              int64  = 10000 * Coin
 	TicketFrozenTime         int64  = 5  //5s only for test
 	TicketWithdrawTime       int64  = 10 //10s only for test
+	TicketMinerWaitTime      int64  = 2  // 2s only for test
 	MinFee                   int64  = 1e5
 	MinBalanceTransfer              = 1e6
 	MaxTxSize                int64  = 100000   //100K

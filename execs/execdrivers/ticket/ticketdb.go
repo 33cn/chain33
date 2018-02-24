@@ -299,7 +299,11 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 			if ticket.Status == 1 && action.blocktime-ticket.GetCreateTime() < types.TicketWithdrawTime {
 				return nil, types.ErrTime
 			}
+			//已经挖矿成功了
 			if ticket.Status == 2 && action.blocktime-ticket.GetCreateTime() < types.TicketWithdrawTime {
+				return nil, types.ErrTime
+			}
+			if ticket.Status == 2 && action.blocktime-ticket.GetMinerTime() < types.TicketMinerWaitTime {
 				return nil, types.ErrTime
 			}
 		}
@@ -315,7 +319,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 	var kv []*types.KeyValue
 	for i := 0; i < len(tickets); i++ {
 		t := tickets[i]
-		if t.Status == 1 {
+		if t.prevstatus == 1 {
 			t.MinerValue = 0
 		}
 		retValue := types.TicketPrice + t.MinerValue
@@ -324,18 +328,21 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 			tlog.Error("TicketClose.ExecActive user", "addr", t.ReturnAddress, "execaddr", action.execaddr, "value", retValue)
 			return nil, err
 		}
-		receipt2, err := account.ExecActive(action.db, types.FundKeyAddr, action.execaddr, types.CoinDevFund)
-		if err != nil {
-			tlog.Error("TicketClose.ExecActive fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr, "value", retValue)
-			return nil, err
-		}
-		t.Save(action.db)
 		logs = append(logs, t.GetReceiptLog())
 		kv = append(kv, t.GetKVSet()...)
 		logs = append(logs, receipt1.Logs...)
 		kv = append(kv, receipt1.KV...)
-		logs = append(logs, receipt2.Logs...)
-		kv = append(kv, receipt2.KV...)
+		//如果ticket 已经挖矿成功了，那么要解冻发展基金部分币
+		if t.prevstatus == 2 {
+			receipt2, err := account.ExecActive(action.db, types.FundKeyAddr, action.execaddr, types.CoinDevFund)
+			if err != nil {
+				tlog.Error("TicketClose.ExecActive fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr, "value", retValue)
+				return nil, err
+			}
+			logs = append(logs, receipt2.Logs...)
+			kv = append(kv, receipt2.KV...)
+		}
+		t.Save(action.db)
 	}
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
