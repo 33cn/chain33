@@ -50,7 +50,7 @@ type IRClient interface {
 	GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error)
 	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
 	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
-	GetWalletStatus() (*types.WalletStatus, error)
+	GetWalletStatus() (*WalletStatus, error)
 	//getbalance
 	GetBalance(*types.ReqBalance) ([]*types.Account, error)
 	//query
@@ -563,7 +563,7 @@ func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed,
 	return resp.Data.(*types.ReplySeed), nil
 }
 
-func (client *channelClient) GetWalletStatus() (*types.WalletStatus, error) {
+func (client *channelClient) GetWalletStatus() (*WalletStatus, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventGetWalletStatus, nil)
 	err := client.qclient.Send(msg, true)
 	if err != nil {
@@ -575,7 +575,7 @@ func (client *channelClient) GetWalletStatus() (*types.WalletStatus, error) {
 		return nil, err
 	}
 
-	return resp.Data.(*types.WalletStatus), nil
+	return resp.Data.(*WalletStatus), nil
 }
 
 func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
