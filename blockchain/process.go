@@ -272,6 +272,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "err", err)
 		return err
 	}
+	chainlog.Debug("connectBlock AddTxs!", "height", block.Height)
 
 	//保存block信息到db中
 	err = b.blockStore.SaveBlock(newbatch, blockdetail)
