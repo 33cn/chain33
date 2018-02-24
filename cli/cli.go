@@ -1247,7 +1247,7 @@ func GetWalletStatus() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.WalletStatus
+	var res jsonrpc.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
