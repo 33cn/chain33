@@ -2,6 +2,7 @@ package norm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -26,9 +27,6 @@ var addrexec *account.Address
 
 var addr string
 var privGenesis, privkey crypto.PrivKey
-
-var testKey = "norm-key"
-var testValue = "norm-value"
 
 const fee = 1e6
 const secretLen = 32
@@ -71,12 +69,33 @@ func TestInitAccount(t *testing.T) {
 	time.Sleep(5 * time.Second)
 }
 
+type TestOrg struct {
+	OrgId   string `json:"orgId"`
+	OrgName string `json:"orgName"`
+}
+
+var testKey string
+var testValue []byte
+
+func createKV() error {
+	var err error
+	testOrg := &TestOrg{OrgId: "33", OrgName: "org33"}
+	testKey = testOrg.OrgId
+	testValue, err = json.Marshal(testOrg)
+	return err
+}
+
 func TestNormPut(t *testing.T) {
 	fmt.Println("TestNormPut start")
 	defer time.Sleep(time.Second)
 	defer fmt.Println("TestNormPut end\n")
 
-	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: []byte(testValue)}}
+	err := createKV()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue}}
 	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee}
 	tx.Nonce = r.Int63()
@@ -113,10 +132,14 @@ func TestNormGet(t *testing.T) {
 	}
 	value := strings.TrimSpace(string(reply.Msg))
 	fmt.Println("GetValue =", value)
-	if value != testValue {
+
+	var org TestOrg
+	err = json.Unmarshal([]byte(value), &org)
+	if err != nil {
 		t.Error(err)
 		return
 	}
+	fmt.Println("GetOrg =", org)
 }
 
 func genaddress() (string, crypto.PrivKey) {
