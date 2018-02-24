@@ -1428,6 +1428,12 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
 	s.IsLock = wallet.IsLocked()
+	if !s.IsLock {
+		// 钱包已经加密需要先通过password 解锁钱包
+		if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
+			s.IsLock = true
+		}
+	}
 	s.HasSeed, _ = HasSeed(wallet.walletStore.db)
 	s.IsAutoMining = wallet.isAutoMining()
 	return s
