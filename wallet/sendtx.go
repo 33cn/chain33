@@ -154,7 +154,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 	//留一个币作为手续费，如果手续费不够了，不能挖矿
 	//判断手续费是否足够，如果不足要及时补充。
 	fee := types.Coin
-	if acc1.Balance+acc2.Balance >= 10000*types.Coin+fee {
+	if acc1.Balance+acc2.Balance -2*fee >= types.TicketPrice {
 		//第一步。转移币到 ticket
 		toaddr := account.ExecAddress("ticket").String()
 		amount := acc1.Balance - 2*fee
@@ -171,7 +171,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 		if err != nil {
 			return err
 		}
-		count := acc.Balance / (10000 * types.Coin)
+		count := acc.Balance / types.TicketPrice
 		if count > 0 {
 			_, err := wallet.openticket(addr, addr, priv, int32(count))
 			return err
@@ -188,12 +188,13 @@ func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
 		return err
 	}
 	for i := 0; i < len(addrs); i++ {
+		walletlog.Error("sourceaddr", "addr", addrs[i])
 		acc, err := wallet.getBalance(addrs[i], "ticket")
 		if err != nil {
 			return err
 		}
-		if acc.Balance >= 10000*types.Coin {
-			count := acc.Balance / (10000 * types.Coin)
+		if acc.Balance >= types.TicketPrice {
+			count := acc.Balance / types.TicketPrice
 			if count > 0 {
 				_, err := wallet.openticket(addr, addrs[i], priv, int32(count))
 				return err

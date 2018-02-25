@@ -22,8 +22,8 @@ import (
 )
 
 var (
-	MinFee            int64 = 1000000
-	MaxTxNumPerBlock  int64 = 100000
+	minFee            int64 = types.MinFee
+	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
 	MaxTxHashsPerTime int64 = 100
 
 	walletlog = log.New("module", "wallet")
@@ -60,7 +60,7 @@ func New(cfg *types.Wallet) *Wallet {
 	//walletStore
 	walletStoreDB := dbm.NewDB("wallet", "leveldb", cfg.DbPath, 16)
 	walletStore := NewWalletStore(walletStoreDB)
-	MinFee = cfg.MinFee
+	minFee = cfg.MinFee
 	wallet := &Wallet{
 		walletStore:   walletStore,
 		isLocked:      false,
@@ -756,8 +756,8 @@ func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) erro
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	if WalletSetFee.Amount < MinFee {
-		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", MinFee)
+	if WalletSetFee.Amount < minFee {
+		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", minFee)
 		return types.ErrInputPara
 	}
 	err := wallet.walletStore.SetFeeAmount(WalletSetFee.Amount)
@@ -1074,7 +1074,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	needflush := false
 	for index := 0; index < txlen; index++ {
 		if "coins" == string(block.Block.Txs[index].Execer) {
-			blockheight := block.Block.Height*MaxTxNumPerBlock + int64(index)
+			blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
 			heightstr := fmt.Sprintf("%018d", blockheight)
 
 			var txdetail types.WalletTxDetail
@@ -1157,7 +1157,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 	newbatch := wallet.walletStore.NewBatch(true)
 	needflush := false
 	for index := 0; index < txlen; index++ {
-		blockheight := block.Block.Height*MaxTxNumPerBlock + int64(index)
+		blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		if "ticket" == string(block.Block.Txs[index].Execer) {
 			tx := block.Block.Txs[index]
@@ -1220,7 +1220,7 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		height := txdetal.GetHeight()
 		txindex := txdetal.GetIndex()
 
-		blockheight := height*MaxTxNumPerBlock + int64(txindex)
+		blockheight := height*maxTxNumPerBlock + int64(txindex)
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		var txdetail types.WalletTxDetail
 		txdetail.Tx = txdetal.GetTx()

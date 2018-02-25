@@ -108,7 +108,7 @@ func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Re
 		id := prefix + fmt.Sprintf("%010d", i)
 		t := NewTicketDB(id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime, true)
 		//冻结子账户资金
-		receipt, err := account.ExecFrozen(action.db, genesis.ReturnAddress, action.execaddr, 10000*types.Coin)
+		receipt, err := account.ExecFrozen(action.db, genesis.ReturnAddress, action.execaddr, types.TicketPrice)
 		if err != nil {
 			tlog.Error("GenesisInit.Frozen", "addr", genesis.ReturnAddress, "execaddr", action.execaddr)
 			panic(err)
