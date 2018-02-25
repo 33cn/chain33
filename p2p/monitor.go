@@ -25,7 +25,6 @@ FOR_LOOP:
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > MaxAttemps || peer.GetRunning() == false {
 						log.Debug("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
-
 						n.destroyPeer(peer)
 					}
 				}
@@ -36,7 +35,7 @@ FOR_LOOP:
 	}
 }
 func (n *Node) destroyPeer(peer *peer) {
-	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
+	log.Info("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
 	n.addrBook.RemoveAddr(peer.Addr())
 	n.Remove(peer.Addr())
 }
@@ -49,7 +48,7 @@ func (n *Node) monitorErrPeer() {
 			n.destroyPeer(peer)
 			n.addrBook.SetAddrStat(peer.Addr(), false)
 			//加入黑名单
-			n.nodeInfo.blacklist.Add(peer.Addr())
+			//n.nodeInfo.blacklist.Add(peer.Addr())
 			continue
 		}
 		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())

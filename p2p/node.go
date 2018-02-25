@@ -145,7 +145,6 @@ func (n *Node) DialPeers(addrbucket map[string]bool) error {
 		log.Debug("Addr perr", "peer", peer)
 		n.AddPeer(peer)
 		n.addrBook.AddAddress(netAddr)
-		n.addrBook.Save()
 
 	}
 	return nil
@@ -160,7 +159,6 @@ func (n *Node) AddPeer(pr *peer) {
 	if peer, ok := n.outBound[pr.Addr()]; ok {
 		log.Info("AddPeer", "delete peer", pr.Addr())
 		n.addrBook.RemoveAddr(peer.Addr())
-		n.addrBook.Save()
 		delete(n.outBound, pr.Addr())
 		peer.Close()
 		peer = nil
