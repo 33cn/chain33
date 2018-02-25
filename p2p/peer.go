@@ -225,9 +225,12 @@ func (p *peer) subStreamBlock() {
 				cancel()
 				continue
 			}
+			timeout := time.NewTimer(time.Second * 2)
 			for {
-
-				timeout := time.After(time.Second * 2)
+				if !timeout.Stop() {
+					<-timeout.C
+				}
+				timeout.Reset(time.Second * 2)
 				select {
 				case task := <-p.taskChan:
 					p2pdata := new(pb.BroadCastData)
@@ -262,7 +265,7 @@ func (p *peer) subStreamBlock() {
 						cancel()
 						break //下一次外循环重新获取stream
 					}
-				case <-timeout:
+				case <-timeout.C:
 					if p.GetRunning() == false {
 						resp.CloseSend()
 						cancel()

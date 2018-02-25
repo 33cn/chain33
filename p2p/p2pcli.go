@@ -397,8 +397,9 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	}
 	i := 0
 	for {
+		timeout := time.NewTimer(time.Minute)
 		select {
-		case <-time.After(time.Minute):
+		case <-timeout.C:
 			return
 		case block := <-bChan:
 			newmsg := m.network.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventAddBlock, block)
@@ -407,6 +408,9 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 			if i == len(MaxInvs.GetInvs()) {
 				return
 			}
+		}
+		if !timeout.Stop() {
+			<-timeout.C
 		}
 	}
 }
@@ -599,10 +603,14 @@ func (m *P2pCli) GetExternIp(addr string) (string, bool) {
 }
 
 func (m *P2pCli) reportPeerStat(peer *peer) {
+	timeout := time.NewTimer(time.Second)
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:
-	case <-time.After(time.Second * 1):
+	case <-timeout.C:
 		return
+	}
+	if !timeout.Stop() {
+		<-timeout.C
 	}
 }
 

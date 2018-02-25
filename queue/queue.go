@@ -126,11 +126,14 @@ func (q *Queue) Send(msg Message) (err error) {
 			err = res.(error)
 		}
 	}()
-	timeout := time.After(time.Second * 60)
+	timeout := time.NewTimer(time.Second * 60)
 	select {
 	case sub.high <- msg:
-	case <-timeout:
+	case <-timeout.C:
 		return types.ErrTimeout
+	}
+	if !timeout.Stop() {
+		<-timeout.C
 	}
 	qlog.Debug("send ok", "msg", msg)
 	return nil
