@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
+	"code.aliyun.com/chain33/chain33/common/crypto"
 	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -16,6 +18,7 @@ import (
 const fee = 1e6
 
 var rpc *jsonrpc.JsonClient
+var r *rand.Rand
 
 func init() {
 	var err error
@@ -23,6 +26,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 func main() {
@@ -136,14 +140,14 @@ func SendToAddress(from string, to string, amount string, note string) {
 func NormPerf(privkey string, key string, value string) {}
 
 func NormPut(privkey string, key string, value string) {
-	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: value}}
+	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
 	tx.Nonce = r.Int63()
-	tx.Sign(types.SECP256K1, privkey)
+	tx.Sign(types.SECP256K1, getprivkey(privkey))
 
 	var res jsonrpc.ReplyHash
-	err = rpc.Call("Chain33.SendTransaction", tx, &res)
+	err := rpc.Call("Chain33.SendTransaction", tx, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -162,10 +166,10 @@ func NormGet(key string) {
 	var req types.Query
 	req.Execer = []byte("norm")
 	req.FuncName = "NormGet"
-	req.Payload = []byte(testKey)
+	req.Payload = []byte(key)
 
 	var res jsonrpc.ReplyHash
-	err = rpc.Call("Chain33.QueryChain", req, &res)
+	err := rpc.Call("Chain33.QueryChain", req, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -178,4 +182,20 @@ func NormGet(key string) {
 	}
 
 	fmt.Println(string(data))
+}
+
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
 }
