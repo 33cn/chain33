@@ -154,7 +154,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 	//留一个币作为手续费，如果手续费不够了，不能挖矿
 	//判断手续费是否足够，如果不足要及时补充。
 	fee := types.Coin
-	if acc1.Balance+acc2.Balance -2*fee >= types.TicketPrice {
+	if acc1.Balance+acc2.Balance-2*fee >= types.TicketPrice {
 		//第一步。转移币到 ticket
 		toaddr := account.ExecAddress("ticket").String()
 		amount := acc1.Balance - 2*fee
@@ -292,7 +292,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 		return nil, err
 	}
 	if !reply.IsOk {
-		walletlog.Info("wallet sendTransaction", "err", reply.GetMsg())
+		walletlog.Info("wallet sendTransaction", "err", string(reply.GetMsg()))
 		return nil, errors.New(string(reply.GetMsg()))
 	}
 	return tx.Hash(), nil
