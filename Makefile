@@ -6,7 +6,7 @@
 APP := build/chain33
 CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := $(go list ./... | grep -v /vendor/)
+PKG_LIST := $(shell go list ./... | grep -v /vendor/)
 
 .PHONY: default dep all build release cli linter lint race test fmt vet bench msan coverage coverhtml docker clean help
 
@@ -43,7 +43,7 @@ race: dep ## Run data race detector
 	@go test -race -short ${PKG_LIST}
 
 test: ## Run unittests
-	@go test -short ${PKG_LIST}
+	@go test -short -v ${PKG_LIST}
 
 fmt: ## go fmt
 	@go fmt ./...
