@@ -413,9 +413,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	go mem.RemoveBlockedTxs()
 
 	go func() {
-		i := 0
 		for msg := range mem.qclient.Recv() {
-			i = i + 1
 			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := time.Now()
 			switch msg.Ty {
