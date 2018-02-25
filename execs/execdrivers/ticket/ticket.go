@@ -166,14 +166,18 @@ func (n *Ticket) saveTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyVal
 			Key:   calcBindMinerKey(b.OldMinerAddress, b.ReturnAddress),
 			Value: nil,
 		}
+		//tlog.Warn("tb:del", "key", string(kv.Key))
 		kvs = append(kvs, kv)
 	}
+
 	kv := &types.KeyValue{calcBindReturnKey(b.ReturnAddress), []byte(b.NewMinerAddress)}
+	//tlog.Warn("tb:add", "key", string(kv.Key), "value", string(kv.Value))
 	kvs = append(kvs, kv)
 	kv = &types.KeyValue{
 		Key:   calcBindMinerKey(b.GetNewMinerAddress(), b.ReturnAddress),
 		Value: []byte(b.ReturnAddress),
 	}
+	//tlog.Warn("tb:add", "key", string(kv.Key), "value", string(kv.Value))
 	kvs = append(kvs, kv)
 	return kvs
 }
@@ -252,7 +256,8 @@ func (n *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		values := n.GetQueryDB().List([]byte(reqaddr.Data), nil, 0, 1)
+		key := calcBindMinerKeyPrefix(reqaddr.Data)
+		values := n.GetQueryDB().List(key, nil, 0, 1)
 		if len(values) == 0 {
 			return nil, types.ErrNotFound
 		}
@@ -277,6 +282,11 @@ func calcBindReturnKey(returnAddress string) []byte {
 
 func calcBindMinerKey(minerAddress string, returnAddress string) []byte {
 	key := fmt.Sprintf("ticket-miner:%s:%s", minerAddress, returnAddress)
+	return []byte(key)
+}
+
+func calcBindMinerKeyPrefix(minerAddress string) []byte {
+	key := fmt.Sprintf("ticket-miner:%s", minerAddress)
 	return []byte(key)
 }
 

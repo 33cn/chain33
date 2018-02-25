@@ -2,6 +2,7 @@ all:
 	go build -i
 	./chain33
 ticket:
+	go build -i
 	./chain33 -f chain33.test.toml
 clean:
 	rm -rf datadir/addrbook
