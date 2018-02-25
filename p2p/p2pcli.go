@@ -38,7 +38,7 @@ type intervalInfo struct {
 func NewP2pCli(network *P2p) *P2pCli {
 	pcli := &P2pCli{
 		network:  network,
-		loopdone: make(chan struct{}, 3),
+		loopdone: make(chan struct{}, 1),
 	}
 
 	return pcli
@@ -231,9 +231,7 @@ func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if resp.Err() != nil {
-		return 0, resp.Err()
-	}
+
 	header := resp.GetData().(*pb.Header)
 	return header.GetHeight(), nil
 }
