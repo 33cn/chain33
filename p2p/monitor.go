@@ -48,7 +48,7 @@ func (n *Node) monitorErrPeer() {
 			n.destroyPeer(peer)
 			n.addrBook.SetAddrStat(peer.Addr(), false)
 			//加入黑名单
-			//n.nodeInfo.blacklist.Add(peer.Addr())
+			n.nodeInfo.blacklist.Add(peer.Addr())
 			continue
 		}
 		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
