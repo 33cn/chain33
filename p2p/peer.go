@@ -13,7 +13,7 @@ import (
 func (p *peer) Start() {
 	p.mconn.key = p.key
 	p.taskChan = ps.Sub(p.Addr())
-	go p.subStreamBlock()
+
 	go p.filterTask.ManageFilterTask()
 	go p.HeartBeat()
 
@@ -160,7 +160,9 @@ func (p *peer) HeartBeat() {
 	ticker := time.NewTicker(PingTimeout)
 	defer ticker.Stop()
 	pcli := NewP2pCli(nil)
-	pcli.SendVersion(p, *p.nodeInfo)
+	if pcli.SendVersion(p, *p.nodeInfo) == nil {
+		go p.subStreamBlock()
+	}
 FOR_LOOP:
 	for {
 		select {

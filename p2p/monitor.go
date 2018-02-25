@@ -38,7 +38,6 @@ FOR_LOOP:
 func (n *Node) destroyPeer(peer *peer) {
 	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
 	n.addrBook.RemoveAddr(peer.Addr())
-	n.addrBook.Save()
 	n.Remove(peer.Addr())
 }
 
@@ -49,6 +48,8 @@ func (n *Node) monitorErrPeer() {
 			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
 			n.addrBook.SetAddrStat(peer.Addr(), false)
+			//加入黑名单
+			n.nodeInfo.blacklist.Add(peer.Addr())
 			continue
 		}
 		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
