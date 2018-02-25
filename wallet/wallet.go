@@ -25,8 +25,7 @@ var (
 	minFee            int64 = types.MinFee
 	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
 	MaxTxHashsPerTime int64 = 100
-
-	walletlog = log.New("module", "wallet")
+	walletlog               = log.New("module", "wallet")
 )
 
 type Wallet struct {

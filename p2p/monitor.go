@@ -43,19 +43,16 @@ func (n *Node) destroyPeer(peer *peer) {
 }
 
 func (n *Node) monitorErrPeer() {
-
 	for {
-
 		peer := <-n.nodeInfo.monitorChan
 		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
 			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
+			n.addrBook.SetAddrStat(peer.Addr(), false)
+			continue
 		}
-
 		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
-
 	}
-
 }
 
 func (n *Node) getAddrFromOnline() {

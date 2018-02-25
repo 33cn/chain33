@@ -47,10 +47,10 @@ func NewP2pCli(network *P2p) *P2pCli {
 func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 	if err != nil {
 		peer.peerStat.NotOk()
+		m.deletePeer(peer)
 	} else {
 		peer.peerStat.Ok()
 	}
-	m.deletePeer(peer)
 }
 
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
@@ -599,15 +599,13 @@ func (m *P2pCli) GetExternIp(addr string) (string, bool) {
 }
 
 func (m *P2pCli) deletePeer(peer *peer) {
-
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:
-	case <-ticker.C:
+	case <-time.After(time.Second * 1):
 		return
 	}
 }
+
 func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 
 	data := pb.Encode(in)
@@ -635,7 +633,6 @@ func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 }
 func (m *P2pCli) flushPeerInfos(in []*pb.Peer) {
 	m.network.node.nodeInfo.peerInfos.flushPeerInfos(in)
-
 }
 
 func (m *P2pCli) PeerInfos() []*pb.Peer {
@@ -671,7 +668,6 @@ func (m *P2pCli) monitorPeerInfo() {
 
 		}
 	}(m)
-
 }
 
 func (m *P2pCli) fetchPeerInfo() {
