@@ -38,7 +38,7 @@ type intervalInfo struct {
 func NewP2pCli(network *P2p) *P2pCli {
 	pcli := &P2pCli{
 		network:  network,
-		loopdone: make(chan struct{}, 3),
+		loopdone: make(chan struct{}, 1),
 	}
 
 	return pcli
@@ -50,7 +50,7 @@ func (m *P2pCli) CollectPeerStat(err error, peer *peer) {
 	} else {
 		peer.peerStat.Ok()
 	}
-	m.deletePeer(peer)
+	m.reportPeerStat(peer)
 }
 
 func (m *P2pCli) BroadCastTx(msg queue.Message) {
@@ -170,17 +170,19 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	resp, err := peer.mconn.conn.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: SERVICE, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
-	m.CollectPeerStat(err, peer)
+
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
 	if err != nil {
 		log.Info("SendVersion", "Verson", err.Error(), "peer", peer.Addr())
 
 		if strings.Contains(err.Error(), VersionNotSupport) {
 			peer.version.SetSupport(false)
+			m.CollectPeerStat(err, peer)
 
 		}
 		return err
 	}
+	m.CollectPeerStat(err, peer)
 	port, err := strconv.Atoi(strings.Split(resp.GetAddrRecv(), ":")[1])
 	if err != nil {
 		return err
@@ -229,9 +231,7 @@ func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if resp.Err() != nil {
-		return 0, resp.Err()
-	}
+
 	header := resp.GetData().(*pb.Header)
 	return header.GetHeight(), nil
 }
@@ -598,16 +598,14 @@ func (m *P2pCli) GetExternIp(addr string) (string, bool) {
 
 }
 
-func (m *P2pCli) deletePeer(peer *peer) {
-
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
+func (m *P2pCli) reportPeerStat(peer *peer) {
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:
-	case <-ticker.C:
+	case <-time.After(time.Second * 1):
 		return
 	}
 }
+
 func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 
 	data := pb.Encode(in)
@@ -635,7 +633,6 @@ func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 }
 func (m *P2pCli) flushPeerInfos(in []*pb.Peer) {
 	m.network.node.nodeInfo.peerInfos.flushPeerInfos(in)
-
 }
 
 func (m *P2pCli) PeerInfos() []*pb.Peer {
@@ -671,7 +668,6 @@ func (m *P2pCli) monitorPeerInfo() {
 
 		}
 	}(m)
-
 }
 
 func (m *P2pCli) fetchPeerInfo() {
