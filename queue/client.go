@@ -102,13 +102,14 @@ func (client *client) Wait(msg Message) (Message, error) {
 	if msg.ChReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
-	timeout := time.After(time.Second * 300)
+	timeout := time.NewTimer(time.Second * 300)
+	defer timeout.Stop()
 	select {
 	case msg = <-msg.ChReply:
 		return msg, msg.Err()
 	case <-client.done:
 		return Message{}, errors.New("client is closed")
-	case <-timeout:
+	case <-timeout.C:
 		panic("wait for message timeout.")
 	}
 }
