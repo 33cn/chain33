@@ -13,9 +13,6 @@ import (
 func (p *peer) Start() {
 	log.Debug("Peer", "Start", p.Addr())
 	p.mconn.key = p.key
-	p.taskChan = ps.Sub(p.Addr())
-
-	go p.filterTask.ManageFilterTask()
 	go p.HeartBeat()
 
 	return
@@ -51,9 +48,8 @@ type peer struct {
 
 func NewPeer(isout bool, conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
 	p := &peer{
-		outbound: isout,
-		conn:     conn,
-
+		outbound:    isout,
+		conn:        conn,
 		taskPool:    make(chan struct{}, 50),
 		allLoopDone: make(chan struct{}, 1),
 		nodeInfo:    nodeinfo,
@@ -153,16 +149,18 @@ func (f *FilterTask) ManageFilterTask() {
 	}
 }
 
-// sendRoutine polls for packets to send from channels.
 func (p *peer) HeartBeat() {
 
-	<-(*p.nodeInfo).natDone
-	var count int64
+	//<-(*p.nodeInfo).natDone
 	ticker := time.NewTicker(PingTimeout)
 	defer ticker.Stop()
 	pcli := NewP2pCli(nil)
 	if pcli.SendVersion(p, *p.nodeInfo) == nil {
+		p.taskChan = ps.Sub(p.Addr())
+		go p.filterTask.ManageFilterTask()
 		go p.subStreamBlock()
+	} else {
+		return
 	}
 FOR_LOOP:
 	for {
@@ -170,11 +168,10 @@ FOR_LOOP:
 		case <-ticker.C:
 			err := pcli.SendPing(p, *p.nodeInfo)
 			if err != nil {
-				if count == 0 {
-					p.setRunning(false)
-				}
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
 			}
-			count++
+
 		case <-p.allLoopDone:
 			log.Debug("Peer HeartBeat", "loop done", p.Addr())
 			break FOR_LOOP
