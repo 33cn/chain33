@@ -128,16 +128,4 @@ type Item struct {
 	enterTime int64
 }
 
-//func (i Item) Less(it llrb.Item) bool {
-//	if i.priority < it.(*Item).priority {
-//		return true
-//	} else {
-//		if i.priority > it.(*Item).priority {
-//			return false
-//		} else {
-//			return i.enterTime > it.(*Item).enterTime
-//		}
-//	}
-//}
-
 //--------------------------------------------------------------------------------

@@ -76,6 +76,13 @@ func (req *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.
 
 	return reply, nil
 }
+func (req *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, error) {
+	reply, err := req.cli.QueryTx(in.GetHash())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.HexTx{Tx: reply.GetTx().String()}, nil
+}
 func (req *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.TransactionDetails, error) {
 
 	reply, err := req.cli.GetTxByHashes(in)
