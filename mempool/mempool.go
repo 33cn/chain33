@@ -185,7 +185,25 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 
 // Mempool.DelBlock将回退的区块内的交易重新加入mempool中
 func (mem *Mempool) DelBlock(block *types.Block) {
-	for _, tx := range block.Txs {
+	if len(block.Txs) <= 0 {
+		return
+	}
+
+	blkTxs := block.Txs
+	tx0 := blkTxs[0]
+	if string(tx0.Execer) == "ticket" {
+		//	var action types.TicketAction
+		//	err := types.Decode(tx0.Payload, &action)
+		//	if err != nil {
+		//		blkTxs = blkTxs[1:]
+		//	}
+		//	if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+		//		blkTxs = blkTxs[1:]
+		//	}
+		blkTxs = blkTxs[1:]
+	}
+
+	for _, tx := range blkTxs {
 		err := tx.Check()
 		if err != nil {
 			continue
