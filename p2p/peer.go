@@ -11,6 +11,7 @@ import (
 )
 
 func (p *peer) Start() {
+	log.Debug("Peer", "Start", peer.Addr())
 	p.mconn.key = p.key
 	p.taskChan = ps.Sub(p.Addr())
 
