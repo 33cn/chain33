@@ -1,48 +1,86 @@
-LDFLAGS = -ldflags "-w -s"
-APP = chain33
+# 1. make help
+# 2. make dep
+# 3. make build
+# ...
 
-.PHONY: build
+APP := build/chain33
+CLI := build/chain33-cli
+LDFLAGS := -ldflags "-w -s"
+PKG_LIST := $(shell go list ./... | grep -v /vendor/)
+
+.PHONY: default dep all build release cli linter lint race test fmt vet bench msan coverage coverhtml docker clean help
 
 default: build
 
-setup:
+dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
 	@gometalinter.v2 -i
+	@go get -u github.com/mitchellh/gox
 
-build:
-	@go build -o $(APP)
+all: ## Builds for multiple platforms
+	@gox $(LDFLAGS)
+	@mv chain33* build/
 
-release:
-	@go build -o $(APP) $(LDFLAGS)
+build: ## Build the binary file
+	@go build -v -o $(APP)
+	@cp chain33.toml build/
 
-linter:
+release: ## Build the binary file
+	@go build -v -o $(APP) $(LDFLAGS)
+	@cp chain33.toml build/
+
+cli: ## Build cli binary
+	@go build -v -o $(CLI) cli/cli.go
+
+linter: ## Use gometalinter check code
 	@gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
-	--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck  $(go list ./... | grep -v /vendor/)
+	--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck $(PKG_LIST)
 
-race:
-	@go test  -v -race ./...
+lint: ## Lint the files
+	@golint -set_exit_status ${PKG_LIST}
 
-test:
-	@go test -v ./...
+race: dep ## Run data race detector
+	@go test -race -short ${PKG_LIST}
 
-cover:
-	@go test -race -v -coverprofile=coverage.out
-	@go tool cover -html=coverage.out
+test: ## Run unittests
+	@go test -short -v ${PKG_LIST}
 
-fmt:
+fmt: ## go fmt
 	@go fmt ./...
 
-vet:
+vet: ## go vet
 	@go vet ./...
 
-bench:
+bench: ## Run benchmark of all
 	@go test ./... -v -bench=.
 
-clean:
-	@rm -rf datadir
+msan: dep ## Run memory sanitizer
+	@go test -msan -short ${PKG_LIST}
+
+coverage: ## Generate global code coverage report
+	@./build/tools/coverage.sh;
+
+coverhtml: ## Generate global code coverage report in HTML
+	@./build/tools/coverage.sh html;
+
+docker: ## build docker image for chain33 run
+	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
+
+clean: ## Remove previous build
+	@rm -rf build/datadir
+	@rm -rf build/chain33
+	@rm -rf build/chain33.toml
+	@rm -rf build/chain33-cli
 	@go clean
+
+help: ## Display this help screen
+	@printf "Help doc:\nUsage: make [command]\n"
+	@printf "[command]\n"
+	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
 cleandata:
     rm -rf datadir/addrbook
     rm -rf datadir/blockchain.db
     rm -rf datadir/mavltree
     rm -rf chain33.log
+
