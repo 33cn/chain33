@@ -103,7 +103,7 @@ func (n *Node) DoNat() {
 	if selefNet, err := NewNetAddressString(fmt.Sprintf("127.0.0.1:%v", n.nodeInfo.GetListenAddr().Port)); err == nil {
 		n.addrBook.AddOurAddress(selefNet)
 	}
-	close(n.nodeInfo.natDone)
+	//close(n.nodeInfo.natDone)
 	return
 }
 

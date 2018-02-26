@@ -23,7 +23,6 @@ type Listener interface {
 	Close() bool
 }
 
-// Implements Listener
 type DefaultListener struct {
 	listener  net.Listener
 	server    *grpc.Server
