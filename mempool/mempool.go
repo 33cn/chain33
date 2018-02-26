@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	//	"container/heap"
 	"errors"
 	"sync"
 	"time"
@@ -103,11 +102,11 @@ func (mem *Mempool) BlockTime() int64 {
 }
 
 // Mempool.LowestFee获取当前Mempool中最低的交易Fee
-func (mem *Mempool) LowestFee() int64 {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	return mem.cache.LowestFee()
-}
+//func (mem *Mempool) LowestFee() int64 {
+//	mem.proxyMtx.Lock()
+//	defer mem.proxyMtx.Unlock()
+//	return mem.cache.LowestFee()
+//}
 
 // Mempool.Size返回Mempool中txCache大小
 func (mem *Mempool) Size() int {
@@ -140,8 +139,10 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 	}
 
 	for i = 0; i < minSize; i++ {
-		poppedTx := mem.cache.txLlrb.DeleteMax().(*Item).value
+		popped := mem.cache.txList.Front()
+		poppedTx := popped.Value.(*types.Transaction)
 		result = append(result, poppedTx)
+		mem.cache.txList.Remove(popped)
 		delete(mem.cache.txMap, string(poppedTx.Hash()))
 		// 账户交易数量减1
 		mem.cache.AccountTxNumDecrease(account.PubKeyToAddress(poppedTx.GetSignature().GetPubkey()).String())
@@ -157,11 +158,11 @@ func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
 
 	var result []*types.Transaction
 	for _, v := range mem.cache.txMap {
-		if time.Now().UnixNano()/1000000-v.enterTime >= mempoolExpiredInterval {
+		if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolExpiredInterval {
 			// 清理滞留Mempool中超过10分钟的交易
-			mem.cache.Remove(v.value)
+			mem.cache.Remove(v.Value.(*Item).value)
 		} else {
-			result = append(result, v.value)
+			result = append(result, v.Value.(*Item).value)
 		}
 	}
 
@@ -215,7 +216,14 @@ func (mem *Mempool) GetLatestTx() []*types.Transaction {
 func (mem *Mempool) RemoveLeftOverTxs() {
 	for {
 		time.Sleep(time.Minute * 10)
-		mem.DuplicateMempoolTxs()
+		mem.proxyMtx.Lock()
+		for _, v := range mem.cache.txMap {
+			if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolExpiredInterval {
+				// 清理滞留Mempool中超过10分钟的交易
+				mem.cache.Remove(v.Value.(*Item).value)
+			}
+		}
+		mem.proxyMtx.Unlock()
 	}
 }
 
@@ -230,8 +238,8 @@ func (mem *Mempool) ReTry() {
 	var result []*types.Transaction
 	mem.proxyMtx.Lock()
 	for _, v := range mem.cache.txMap {
-		if time.Now().UnixNano()/1000000-v.enterTime >= mempoolReSendInterval {
-			result = append(result, v.value)
+		if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolReSendInterval {
+			result = append(result, v.Value.(*Item).value)
 		}
 	}
 	mem.proxyMtx.Unlock()
@@ -282,7 +290,7 @@ func (mem *Mempool) RemoveBlockedTxs() {
 		for _, t := range dupTxs {
 			txValue, exists := mem.cache.txMap[string(t)]
 			if exists {
-				mem.cache.Remove(txValue.value)
+				mem.cache.Remove(txValue.Value.(*Item).value)
 			}
 		}
 		mem.proxyMtx.Unlock()
