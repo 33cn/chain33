@@ -77,10 +77,10 @@ help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
 	@printf "[command]\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-
+	
 cleandata:
-    rm -rf datadir/addrbook
-    rm -rf datadir/blockchain.db
-    rm -rf datadir/mavltree
-    rm -rf chain33.log
+	rm -rf datadir/addrbook
+	rm -rf datadir/blockchain.db
+	rm -rf datadir/mavltree
+	rm -rf chain33.log
 
