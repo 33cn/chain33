@@ -21,6 +21,10 @@ all: ## Builds for multiple platforms
 	@gox $(LDFLAGS)
 	@mv chain33* build/
 
+ticket:
+	go build -v -o chain33
+	./chain33 -f chain33.test.toml
+
 build: ## Build the binary file
 	@go build -v -o $(APP)
 	@cp chain33.toml build/

@@ -128,13 +128,9 @@ func (wallet *Wallet) autoMining() {
 		select {
 		case <-wallet.miningTicket.C:
 			if wallet.isAutoMining() {
-				walletlog.Error("closeTicket")
 				wallet.closeTicket()
-				walletlog.Error("buyTicket")
 				wallet.buyTicket()
-				walletlog.Error("buyMinerAddrTicket")
 				wallet.buyMinerAddrTicket()
-				walletlog.Error("process end")
 			} else {
 				wallet.closeTicket()
 				wallet.withdrawFromTicket()

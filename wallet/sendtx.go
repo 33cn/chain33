@@ -167,6 +167,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 		//必须大于0，才需要转移币
 		var hash *types.ReplyHash
 		if amount > 0 {
+			walletlog.Error("buyTicketOne", "toaddr", toaddr, "amount", amount)
 			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket")
 			if err != nil {
 				return err
