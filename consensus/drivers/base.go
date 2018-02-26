@@ -119,7 +119,8 @@ func (client *BaseClient) InitBlock() {
 }
 
 func (client *BaseClient) Close() {
-	log.Info("consensus solo closed")
+	client.qclient.Close()
+	log.Info("consensus base closed")
 }
 
 func (client *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
@@ -218,7 +219,10 @@ func (client *BaseClient) RequestTx(listSize int) []*types.Transaction {
 	//tlog.Error("requestTx", "time", time.Now().Format(time.RFC3339Nano))
 	msg := client.qclient.NewMessage("mempool", types.EventTxList, listSize)
 	client.qclient.Send(msg, true)
-	resp, _ := client.qclient.Wait(msg)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil
+	}
 	return resp.GetData().(*types.ReplyTxList).GetTxs()
 }
 

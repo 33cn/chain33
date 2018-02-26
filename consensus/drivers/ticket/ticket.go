@@ -58,6 +58,7 @@ func (client *TicketClient) flushTicketBackend() {
 
 func (client *TicketClient) Close() {
 	close(client.done)
+	client.BaseClient.Close()
 	tlog.Info("consensus ticket closed")
 }
 

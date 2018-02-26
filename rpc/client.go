@@ -497,7 +497,7 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := account.LoadAccounts(client.q, addrs)
+	accounts, err := account.LoadAccounts(client.qclient, addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -506,6 +506,7 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	}
 	return addrOverview, nil
 }
+
 func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHash, parm)
 	err := client.qclient.Send(msg, true)
@@ -591,7 +592,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := account.LoadAccounts(client.q, exaddrs)
+		accounts, err := account.LoadAccounts(client.qclient, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -602,7 +603,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
+			account, err := account.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
