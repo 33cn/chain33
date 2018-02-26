@@ -140,7 +140,7 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 
 	for i = 0; i < minSize; i++ {
 		popped := mem.cache.txList.Front()
-		poppedTx := popped.Value.(*types.Transaction)
+		poppedTx := popped.Value.(*Item).value
 		result = append(result, poppedTx)
 		mem.cache.txList.Remove(popped)
 		delete(mem.cache.txMap, string(poppedTx.Hash()))
