@@ -292,6 +292,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 		}
 		//ticket 的生成时间超过 2天,可提款
 		if ticket.Status != 2 && ticket.Status != 1 {
+			tlog.Error("ticket", "id", ticket.GetTicketId(), "status", ticket.GetStatus())
 			return nil, types.ErrTicketClosed
 		}
 		if !ticket.IsGenesis {

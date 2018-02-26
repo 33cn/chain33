@@ -3,6 +3,7 @@ package wallet
 import (
 	"encoding/hex"
 	"errors"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -27,7 +28,7 @@ func (wallet *Wallet) bindminer(mineraddr, returnaddr string, priv crypto.PrivKe
 }
 
 //通过rpc 精选close 操作
-func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) error {
+func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) ([]byte, error) {
 	for i := 0; i < len(ids); i += 100 {
 		end := i + 100
 		if end > len(ids) {
@@ -37,12 +38,9 @@ func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) error {
 		tclose := &types.TicketClose{ids[i:end]}
 		ta.Value = &types.TicketAction_Tclose{tclose}
 		ta.Ty = types.TicketActionClose
-		_, err := wallet.sendTransaction(ta, []byte("ticket"), priv, "")
-		if err != nil {
-			return err
-		}
+		return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
 	}
-	return nil
+	return nil, nil
 }
 
 func (wallet *Wallet) getBalance(addr string, execer string) (*types.Account, error) {
@@ -115,12 +113,20 @@ func (wallet *Wallet) closeAllTickets() error {
 	if err != nil {
 		return err
 	}
+	var hashes [][]byte
 	for _, key := range keys {
-		err = wallet.closeTicketsByAddr(key)
+		hash, err := wallet.closeTicketsByAddr(key)
 		if err != nil {
 			walletlog.Error("close Tickets By Addr", "err", err)
 			return err
 		}
+		if hash == nil {
+			continue
+		}
+		hashes = append(hashes, hash)
+	}
+	if len(hashes) > 0 {
+		wallet.waitTxs(hashes)
 	}
 	return nil
 }
@@ -225,15 +231,15 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	return nil
 }
 
-func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
+func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
 	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist, err := wallet.getTickets(addr, 2)
 	if err != nil && err != types.ErrNotFound {
-		return err
+		return nil, err
 	}
 	if len(tlist) == 0 {
-		return nil
+		return nil, nil
 	}
 	now := time.Now().Unix()
 	var ids []string
@@ -243,9 +249,9 @@ func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
 		}
 	}
 	if len(ids) > 1 {
-		wallet.closeTickets(priv, ids)
+		return wallet.closeTickets(priv, ids)
 	}
-	return nil
+	return nil, nil
 }
 
 func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, error) {
@@ -318,6 +324,9 @@ func (wallet *Wallet) sendTx(tx *types.Transaction) (*types.Reply, error) {
 func (wallet *Wallet) waitTx(hash []byte) *types.TransactionDetail {
 	i := 0
 	for {
+		if atomic.LoadInt32(&wallet.isclosed) == 1 {
+			return nil
+		}
 		i++
 		if i%100 == 0 {
 			walletlog.Error("wait transaction timeout", "hash", hex.EncodeToString(hash))
@@ -331,6 +340,14 @@ func (wallet *Wallet) waitTx(hash []byte) *types.TransactionDetail {
 			return res
 		}
 	}
+}
+
+func (wallet *Wallet) waitTxs(hashes [][]byte) (ret []*types.TransactionDetail) {
+	for _, hash := range hashes {
+		result := wallet.waitTx(hash)
+		ret = append(ret, result)
+	}
+	return ret
 }
 
 func (client *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
