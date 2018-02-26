@@ -57,7 +57,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 
 	if cache.txList.Len() >= cache.size {
 		popped := cache.txList.Front()
-		poppedTx := popped.Value.(*types.Transaction)
+		poppedTx := popped.Value.(*Item).value
 		delete(cache.txMap, string(poppedTx.Hash()))
 		cache.txList.Remove(popped)
 	}
