@@ -108,11 +108,13 @@ FOR_LOOP:
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
+				var testlist []string
 				var savelist = make(map[string]bool)
 				for _, seed := range n.nodeInfo.cfg.Seeds {
 					if n.Has(seed) == false && n.nodeInfo.blacklist.Has(seed) == false {
 						log.Debug("GetAddrFromOffline", "Add Seed", seed)
-						savelist[seed] = true
+						testlist = append(testlist, seed)
+
 					}
 				}
 
@@ -120,7 +122,7 @@ FOR_LOOP:
 				peeraddrs := n.addrBook.GetPeers()
 
 				if len(peeraddrs) != 0 {
-					var testlist []string
+
 					for _, peer := range peeraddrs {
 						testlist = append(testlist, peer.String())
 					}
