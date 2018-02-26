@@ -408,7 +408,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := account.LoadAccounts(client.q, exaddrs)
+		accounts, err := account.LoadAccounts(client.qclient, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -419,12 +419,11 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
+			account, err := account.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
 			}
-
 			accounts = append(accounts, account)
 		}
 		return accounts, nil
