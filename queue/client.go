@@ -54,6 +54,9 @@ func newClient(q *Queue) Client {
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃
 //2. 系统保证每个消息都有对应的 response 消息
 func (client *client) Send(msg Message, wait bool) (err error) {
+	if client.isClose() {
+		return types.ErrIsClosed
+	}
 	if !wait {
 		msg.ChReply = nil
 		return client.q.SendAsyn(msg)
@@ -69,6 +72,9 @@ func (client *client) Send(msg Message, wait bool) (err error) {
 //1. SendAsyn 低优先级
 //2. Send 高优先级别的发送消息
 func (client *client) SendAsyn(msg Message, wait bool) (err error) {
+	if client.isClose() {
+		return types.ErrIsClosed
+	}
 	if !wait {
 		msg.ChReply = nil
 	}
@@ -126,6 +132,10 @@ func (client *client) getTopic() string {
 func (client *client) setTopic(topic string) {
 	address := unsafe.Pointer(&(client.topic))
 	atomic.StorePointer(&address, unsafe.Pointer(&topic))
+}
+
+func (client *client) isClose() bool {
+	return atomic.LoadInt32(&client.isClosed) == 1
 }
 
 func (client *client) Close() {
