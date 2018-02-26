@@ -88,6 +88,8 @@ func (wallet *Wallet) isAutoMining() bool {
 
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
+	//set close flag to isclosed == 1
+	atomic.StoreInt32(&wallet.isclosed, 1)
 	wallet.miningTicket.Stop()
 	close(wallet.done)
 	wallet.qclient.Close()
@@ -126,9 +128,13 @@ func (wallet *Wallet) autoMining() {
 		select {
 		case <-wallet.miningTicket.C:
 			if wallet.isAutoMining() {
+				walletlog.Error("closeTicket")
 				wallet.closeTicket()
+				walletlog.Error("buyTicket")
 				wallet.buyTicket()
+				walletlog.Error("buyMinerAddrTicket")
 				wallet.buyMinerAddrTicket()
+				walletlog.Error("process end")
 			} else {
 				wallet.closeTicket()
 				wallet.withdrawFromTicket()
