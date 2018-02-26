@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"errors"
 	"flag"
 	"math/rand"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/common/crypto"
+	"code.aliyun.com/chain33/chain33/common/limits"
 	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/execs"
 	"code.aliyun.com/chain33/chain33/p2p"
@@ -25,17 +27,17 @@ var (
 	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer   = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0}
-	tx2        = &types.Transaction{Execer: []byte("tester2"), Payload: []byte("mempool"), Fee: 40000000, Expire: 0}
-	tx3        = &types.Transaction{Execer: []byte("tester3"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-	tx4        = &types.Transaction{Execer: []byte("tester4"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
-	tx5        = &types.Transaction{Execer: []byte("tester5"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-	tx6        = &types.Transaction{Execer: []byte("tester6"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-	tx7        = &types.Transaction{Execer: []byte("tester7"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-	tx8        = &types.Transaction{Execer: []byte("tester8"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
-	tx9        = &types.Transaction{Execer: []byte("tester9"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-	tx10       = &types.Transaction{Execer: []byte("tester10"), Payload: []byte("mempool"), Fee: 20000000, Expire: 0}
-	tx11       = &types.Transaction{Execer: []byte("tester11"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-	tx12       = &types.Transaction{Execer: []byte("tester12"), Payload: []byte("mempool"), Fee: 10000000000000000, Expire: 0}
+	tx2        = &types.Transaction{Execer: []byte("user.tester2"), Payload: []byte("mempool"), Fee: 40000000, Expire: 0}
+	tx3        = &types.Transaction{Execer: []byte("user.tester3"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
+	tx4        = &types.Transaction{Execer: []byte("user.tester4"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
+	tx5        = &types.Transaction{Execer: []byte("user.tester5"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
+	tx6        = &types.Transaction{Execer: []byte("user.tester6"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
+	tx7        = &types.Transaction{Execer: []byte("user.tester7"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
+	tx8        = &types.Transaction{Execer: []byte("user.tester8"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
+	tx9        = &types.Transaction{Execer: []byte("user.tester9"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
+	tx10       = &types.Transaction{Execer: []byte("user.tester10"), Payload: []byte("mempool"), Fee: 20000000, Expire: 0}
+	tx11       = &types.Transaction{Execer: []byte("user.tester11"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
+	tx12       = &types.Transaction{Execer: []byte("user.tester12"), Payload: []byte("mempool"), Fee: 10000000000000000, Expire: 0}
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 	a, _       = common.FromHex(hex)
@@ -57,6 +59,10 @@ var blk = &types.Block{
 }
 
 func init() {
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	queue.DisableLog()
 	//	DisableLog() // 不输出任何log
@@ -134,9 +140,6 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 	mem := New(cfg.MemPool)
 	mem.SetQueue(q)
 
-	network := p2p.New(cfg.P2P)
-	network.SetQueue(q)
-
 	if size > 0 {
 		mem.Resize(size)
 	}
@@ -199,22 +202,45 @@ func TestAddTx(t *testing.T) {
 
 func TestAddDuplicatedTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
-
+	defer func() {
+		chain.Close()
+		s.Close()
+		mem.Close()
+	}()
 	msg1 := mem.qclient.NewMessage("mempool", types.EventTx, tx2)
-	mem.qclient.Send(msg1, true)
-	mem.qclient.Wait(msg1)
-
+	err := mem.qclient.Send(msg1, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	msg1, err = mem.qclient.Wait(msg1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	reply := msg1.GetData().(*types.Reply)
+	err = checkReply(reply)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if mem.Size() != 1 {
+		t.Error("TestAddDuplicatedTx failed", "size", mem.Size())
+	}
 	msg2 := mem.qclient.NewMessage("mempool", types.EventTx, tx2)
 	mem.qclient.Send(msg2, true)
 	mem.qclient.Wait(msg2)
 
 	if mem.Size() != 1 {
-		t.Error("TestAddDuplicatedTx failed")
+		t.Error("TestAddDuplicatedTx failed", "size", mem.Size())
 	}
+}
 
-	chain.Close()
-	s.Close()
-	mem.Close()
+func checkReply(reply *types.Reply) error {
+	if !reply.GetIsOk() {
+		return errors.New(string(reply.GetMsg()))
+	}
+	return nil
 }
 
 func add4Tx(qclient queue.Client) {

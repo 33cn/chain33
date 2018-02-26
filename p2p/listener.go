@@ -10,7 +10,6 @@ import (
 )
 
 func (l *DefaultListener) Close() bool {
-
 	l.listener.Close()
 	l.server.Stop()
 	log.Info("stop", "DefaultListener", "close")

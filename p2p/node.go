@@ -34,7 +34,6 @@ func (n *Node) Close() {
 	if n.l != nil {
 		n.l.Close()
 	}
-
 	log.Debug("stop", "listen", "closed")
 	n.addrBook.Close()
 	log.Debug("stop", "addrBook", "closed")

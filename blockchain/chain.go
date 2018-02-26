@@ -125,9 +125,6 @@ func initConfig(cfg *types.BlockChain) {
 }
 
 func (chain *BlockChain) Close() {
-
-	chainlog.Error("begin close")
-
 	//等待所有的写线程退出，防止数据库写到一半被暂停
 	atomic.StoreInt32(&chain.isclosed, 1)
 
