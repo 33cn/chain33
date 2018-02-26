@@ -233,6 +233,11 @@ func (p *peer) subStreamBlock() {
 				timeout.Reset(time.Second * 2)
 				select {
 				case task := <-p.taskChan:
+					if p.GetRunning() == false {
+						resp.CloseSend()
+						cancel()
+						return
+					}
 					p2pdata := new(pb.BroadCastData)
 					if block, ok := task.(*pb.P2PBlock); ok {
 						height := block.GetBlock().GetHeight()
