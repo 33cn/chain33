@@ -534,6 +534,24 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 		return nil, err
 	}
 
+	//获取地址对应的账户信息从account模块
+	addrs := make([]string, 1)
+	addrs[0] = addr.String()
+	accounts, err := account.LoadAccounts(wallet.qclient, addrs)
+	if err != nil {
+		walletlog.Error("ProcCreatNewAccount", "LoadAccounts err", err)
+		return nil, err
+	}
+	// 本账户是首次创建
+	if len(accounts[0].Addr) == 0 {
+		accounts[0].Addr = addr.String()
+	}
+	walletAccount.Acc = accounts[0]
+
+	//从blockchain模块同步Account.Addr对应的所有交易详细信息
+	wallet.wg.Add(1)
+	go wallet.ReqTxDetailByAddr(addr.String())
+
 	return &walletAccount, nil
 }
 
@@ -1074,53 +1092,51 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	newbatch := wallet.walletStore.NewBatch(true)
 	needflush := false
 	for index := 0; index < txlen; index++ {
-		if "coins" == string(block.Block.Txs[index].Execer) {
-			blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
-			heightstr := fmt.Sprintf("%018d", blockheight)
+		blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
+		heightstr := fmt.Sprintf("%018d", blockheight)
 
-			var txdetail types.WalletTxDetail
-			txdetail.Tx = block.Block.Txs[index]
-			txdetail.Height = block.Block.Height
-			txdetail.Index = int64(index)
-			txdetail.Receipt = block.Receipts[index]
-			txdetail.Blocktime = block.Block.BlockTime
+		var txdetail types.WalletTxDetail
+		txdetail.Tx = block.Block.Txs[index]
+		txdetail.Height = block.Block.Height
+		txdetail.Index = int64(index)
+		txdetail.Receipt = block.Receipts[index]
+		txdetail.Blocktime = block.Block.BlockTime
 
-			//获取Amount
-			var action types.CoinsAction
-			err := types.Decode(txdetail.Tx.GetPayload(), &action)
-			if err != nil {
-				walletlog.Error("ProcWalletAddBlock Decode err!", "Height", txdetail.Height, "txindex", index, "err", err)
-				continue
-			}
-			if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-				transfer := action.GetTransfer()
-				txdetail.Amount = transfer.Amount
-			}
-			//获取from地址
-			pubkey := block.Block.Txs[index].Signature.GetPubkey()
-			addr := account.PubKeyToAddress(pubkey)
-			txdetail.Fromaddr = addr.String()
+		//获取Amount
+		amount, err := txdetail.Tx.Amount()
+		if err != nil {
+			continue
+		}
+		txdetail.Actionty, _ = txdetail.Tx.ActionType()
+		txdetail.Amount = amount
 
-			txdetailbyte, err := proto.Marshal(&txdetail)
-			if err != nil {
-				storelog.Error("ProcWalletAddBlock Marshal txdetail err", "Height", block.Block.Height, "index", index)
-				continue
-			}
+		//获取from地址
+		pubkey := block.Block.Txs[index].Signature.GetPubkey()
+		addr := account.PubKeyToAddress(pubkey)
+		txdetail.Fromaddr = addr.String()
 
-			//from addr
-			fromaddress := addr.String()
-			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
-				walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
-				continue
-			}
-			//toaddr
-			toaddr := block.Block.Txs[index].GetTo()
-			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-				newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
-				walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
-			}
-		} else if "ticket" == string(block.Block.Txs[index].Execer) {
+		txdetailbyte, err := proto.Marshal(&txdetail)
+		if err != nil {
+			storelog.Error("ProcWalletAddBlock Marshal txdetail err", "Height", block.Block.Height, "index", index)
+			continue
+		}
+
+		//from addr
+		fromaddress := addr.String()
+		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
+			newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+			walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
+			continue
+		}
+
+		//toaddr
+		toaddr := block.Block.Txs[index].GetTo()
+		if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
+			newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+			walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
+		}
+
+		if "ticket" == string(block.Block.Txs[index].Execer) {
 			tx := block.Block.Txs[index]
 			receipt := block.Receipts[index]
 			if wallet.needFlushTicket(tx, receipt) {
@@ -1206,12 +1222,12 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 	wallet.qclient.Send(msg, true)
 	resp, err := wallet.qclient.Wait(msg)
 	if err != nil {
-		walletlog.Error("ReqTxInfosByAddr EventGetTransactionByHash", "err", err)
+		walletlog.Error("GetTxDetailByHashs EventGetTransactionByHash", "err", err)
 		return
 	}
 	TxDetails := resp.GetData().(*types.TransactionDetails)
 	if TxDetails == nil {
-		walletlog.Info("ReqTxInfosByAddr TransactionDetails is nil")
+		walletlog.Info("GetTxDetailByHashs TransactionDetails is nil")
 		return
 	}
 
@@ -1231,14 +1247,15 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		txdetail.Blocktime = txdetal.GetBlocktime()
 		txdetail.Amount = txdetal.GetAmount()
 		txdetail.Fromaddr = txdetal.GetFromaddr()
+		txdetail.Actionty, _ = txdetal.GetTx().ActionType()
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
-			storelog.Error("ReqTxDetailByAddr Marshal txdetail err", "Height", height, "index", txindex)
+			storelog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
 			return
 		}
 		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
-		walletlog.Debug("ReqTxInfosByAddr", "heightstr", heightstr, "txdetail", txdetail.String())
+		walletlog.Debug("GetTxDetailByHashs", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
 }

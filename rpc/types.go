@@ -187,6 +187,7 @@ type WalletTxDetail struct {
 	Amount    int64        `json:"amount"`
 	Fromaddr  string       `json:"fromaddr"`
 	Txhash    string       `json:"txhash"`
+	Actionty  int64        `json:"actionty"`
 }
 
 type BlockOverview struct {

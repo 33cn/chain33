@@ -364,6 +364,7 @@ type WalletTxDetailResult struct {
 	Amount    string               `json:"amount"`
 	Fromaddr  string               `json:"fromaddr"`
 	Txhash    string               `json:"txhash"`
+	Actionty  int64                `json:"actionty"`
 }
 
 type AddrOverviewResult struct {
@@ -711,6 +712,7 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 			Amount:    amountResult,
 			Fromaddr:  v.Fromaddr,
 			Txhash:    v.Txhash,
+			Actionty:  v.Actionty,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
 	}

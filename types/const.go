@@ -87,6 +87,8 @@ var (
 	ErrParentTdNoExist        = errors.New("ErrParentTdNoExist")
 	ErrBlockHashNoMatch       = errors.New("ErrBlockHashNoMatch")
 	ErrIsClosed               = errors.New("ErrIsClosed")
+	ErrDecode                 = errors.New("ErrDecode")
+	ErrUnknown                = errors.New("ErrUnknown")
 
 	//wallet
 	ErrInputPara      = errors.New("ErrInputPara")

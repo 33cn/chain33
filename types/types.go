@@ -116,6 +116,55 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	}
 }
 
+//解析tx的payload获取amount值
+func (tx *Transaction) Amount() (int64, error) {
+
+	if "coins" == string(tx.Execer) {
+		var action CoinsAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+			transfer := action.GetTransfer()
+			return transfer.Amount, nil
+		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
+			gen := action.GetGenesis()
+			return gen.Amount, nil
+		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
+			transfer := action.GetWithdraw()
+			return transfer.Amount, nil
+		}
+	} else if "ticket" == string(tx.Execer) {
+		var action TicketAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			ticketMiner := action.GetMiner()
+			return ticketMiner.Reward, nil
+		}
+	}
+	return 0, nil
+}
+
+//获取tx交易的ActionType.0:其他，1：coin 2：miner
+func (tx *Transaction) ActionType() (int64, error) {
+	if "coins" == string(tx.Execer) {
+		return 1, nil
+	} else if "ticket" == string(tx.Execer) {
+		var action TicketAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			return 2, nil
+		}
+	}
+	return 0, nil
+}
 func (block *Block) Hash() []byte {
 	head := &Header{}
 	head.Version = block.Version
