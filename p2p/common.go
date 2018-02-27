@@ -49,7 +49,7 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 		return nil, err
 	}
 
-	peer, err := c.NewPeerFromConn(conn, true, addr, nodeinfo)
+	peer, err := c.NewPeerFromConn(conn, persistent, addr, nodeinfo)
 	if err != nil {
 		conn.Close()
 		return nil, err
