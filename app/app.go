@@ -21,7 +21,7 @@ import (
 )
 
 var conn *grpc.ClientConn
-var r *rand.Rand
+var rd *rand.Rand
 var c types.GrpcserviceClient
 var ErrTest = errors.New("ErrTest")
 
@@ -44,6 +44,10 @@ type Org struct {
 	OrgCredit int64  `json:"orgCredit"`
 }
 
+type OrgId struct {
+	OrgId string `json:"orgId"`
+}
+
 //parpare an account
 func init() {
 	var err error
@@ -51,7 +55,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	rd = rand.New(rand.NewSource(time.Now().UnixNano()))
 	c = types.NewGrpcserviceClient(conn)
 	addrexec = account.ExecAddress("norm")
 	privGenesis = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
@@ -64,7 +68,7 @@ func main() {
 	if paranum == 1 { //http mode
 
 		http.HandleFunc("/putOrg", putOrgHttp)
-		//http.HandleFunc("/getOrg", getOrgHttp)
+		http.HandleFunc("/getOrg", getOrgHttp)
 		//http.HandleFunc("/putBlackRecord", putBlackRecordHttp)
 		//http.HandleFunc("/getBlackRecord", getBlackRecordHttp)
 
@@ -108,47 +112,90 @@ func main() {
 	}
 }
 
-func OutputJson(w http.ResponseWriter, out interface{}) {
-	//out := &Rst{code, reason, data}
-	b, err := json.Marshal(out)
+func getOrgHttp(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("getOrgHttp")
+
+	//if r.Method != "POST" {
+	//return
+	//}
+	var orgId string
+
+	orgId = r.Header.Get("orgId")
+
+	fmt.Println(orgId)
+
+	var req types.Query
+	req.Execer = []byte("norm")
+	req.FuncName = "NormGet"
+
+	req.Payload = []byte("org" + orgId)
+
+	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
-		fmt.Println("OutputJson fail:" + err.Error())
+		fmt.Println(err)
 		return
 	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		return
+	}
+	value := strings.TrimSpace(string(reply.Msg))
 
-	w.Write(b)
+	var org Org
+	err = json.Unmarshal([]byte(value), &org)
+	if err != nil {
+		err = json.Unmarshal([]byte(value[1:len(value)]), &org)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	fmt.Println("org =", org)
+	OutputJson(w, &org)
 }
 
 func putOrgHttp(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("it's the post")
+	fmt.Println("putOrgHttp")
 	if r.Method != "POST" {
-		//OutputJson(w, &JsonResponse{ResponseCode: "0001", ResponseMsg: "请求非post方法", Data: nil})
 		return
 	}
 
-	//token := r.Header.Get("token")
-	//log.Logger.Debug("token:", token)
-	//if len(token) <= 0 {
-	//OutputJson(w, &JsonResponse{ResponseCode: "0002", ResponseMsg: "请求缺少业务TOKEN", Data: nil})
-	//return
-	//}
-
 	body, _ := ioutil.ReadAll(r.Body)
+
+	//fmt.Println(body)
 
 	//body体转化为请求结构体
 	var org Org
 	err := json.Unmarshal(body, &org)
 	if err != nil {
-		//log.Logger.Error(err)
-		//OutputJson(w, &JsonResponse{ResponseCode: "0004", ResponseMsg: "请求信息解码失败", Data: nil})
+		fmt.Println(err)
 		return
 	}
+	//fmt.Println(org)
 
-	/**********业务逻辑校验-begin*************/
-	//later
-	/**********业务逻辑校验-end***************/
 	//rpc operation
+	var testKey string
+	var testValue []byte
 
+	testKey = "org" + org.OrgId
+	testValue, _ = json.Marshal(org)
+	//fmt.Println(testValue)
+
+	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue}}
+	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
+	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee}
+	tx.Nonce = rd.Int63()
+	tx.Sign(types.SECP256K1, privGenesis)
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		return
+	}
 	return
 }
 
@@ -166,7 +213,7 @@ func putOrg(orgId string, credit string) {
 	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue}}
 	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee}
-	tx.Nonce = r.Int63()
+	tx.Nonce = rd.Int63()
 	tx.Sign(types.SECP256K1, privGenesis)
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
@@ -209,6 +256,7 @@ func getOrg(orgId string) {
 	}
 
 	fmt.Println("org =", org)
+
 }
 
 //put the things in []byte
@@ -226,7 +274,7 @@ func putBlackRecord(recordId string, docType string) {
 	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue}}
 	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee}
-	tx.Nonce = r.Int63()
+	tx.Nonce = rd.Int63()
 	tx.Sign(types.SECP256K1, privGenesis)
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
@@ -284,4 +332,15 @@ func getprivkey(key string) crypto.PrivKey {
 		panic(err)
 	}
 	return priv
+}
+
+func OutputJson(w http.ResponseWriter, out interface{}) {
+	//out := &Rst{code, reason, data}
+	b, err := json.Marshal(out)
+	if err != nil {
+		fmt.Println("OutputJson fail:" + err.Error())
+		return
+	}
+
+	w.Write(b)
 }
