@@ -21,9 +21,11 @@ import (
 	"github.com/piotrnar/gocoin/lib/btc"
 )
 
-var SeedLong int = 15
-var WalletSeed = []byte("walletseed")
-var seedlog = log.New("module", "wallet")
+var (
+	SeedLong   int = 15
+	WalletSeed     = []byte("walletseed")
+	seedlog        = log.New("module", "wallet")
+)
 
 const BACKUPKEYINDEX = "backupkeyindex"
 

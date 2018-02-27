@@ -87,7 +87,6 @@ func readToChan(ch chan queue.Message, buf []queue.Message, max int) (n int, err
 			return i, nil
 		}
 	}
-	return i, nil
 }
 
 // Mempool.CheckTxList读取balanChan数据存入msgs，待检查交易账户余额
