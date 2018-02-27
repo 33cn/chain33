@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -54,11 +53,11 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	}
 	//check TxHash
 
-	calcHash := merkle.CalcMerkleRoot(block.Txs)
-	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
-		return nil, types.ErrCheckTxHash
-	}
-	block.TxHash = calcHash
+	//calcHash := merkle.CalcMerkleRoot(block.Txs)
+	//if errReturn && !bytes.Equal(calcHash, block.TxHash) {
+	//	return nil, types.ErrCheckTxHash
+	//}
+	//block.TxHash = calcHash
 	//删除无效的交易
 	if len(deltxlist) > 0 {
 		var newtx []*types.Transaction
@@ -68,7 +67,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 			}
 		}
 		block.Txs = newtx
-		block.TxHash = merkle.CalcMerkleRoot(block.Txs)
+		//block.TxHash = merkle.CalcMerkleRoot(block.Txs)
 	}
 
 	var detail types.BlockDetail
@@ -82,6 +81,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 		ExecKVSetRollback(q, block.StateHash)
 		return nil, types.ErrCheckStateHash
 	}
+
 	detail.Block = block
 	detail.Receipts = rdata
 	if detail.Block.Height > 0 {
