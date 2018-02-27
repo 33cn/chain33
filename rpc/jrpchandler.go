@@ -410,6 +410,7 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 				Amount:    tx.GetAmount(),
 				Fromaddr:  tx.GetFromaddr(),
 				Txhash:    common.ToHex(tx.GetTxhash()),
+				Actionty:  tx.GetActionty(),
 			})
 
 		}
