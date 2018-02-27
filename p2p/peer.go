@@ -324,13 +324,9 @@ func (p *peer) subStreamBlock() {
 					}
 					log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
 					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-					err = (*p.nodeInfo).qclient.Send(msg, true)
+					err = (*p.nodeInfo).qclient.Send(msg, false)
 					if err != nil {
 						log.Error("subStreamBlock", "Error", err.Error())
-						continue
-					}
-					_, err = (*p.nodeInfo).qclient.Wait(msg)
-					if err != nil {
 						continue
 					}
 					p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
