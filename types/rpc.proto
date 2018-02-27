@@ -1,0 +1,292 @@
+syntax = "proto3";
+
+import "common.proto";
+import "transaction.proto";
+import "blockchain.proto";
+import "wallet.proto";
+import "account.proto";
+
+package types;
+
+service grpcservice {
+	//chain33 对外提供服务的接口
+	//区块链接口
+	rpc GetBlocks (ReqBlocks) returns (Reply) {
+	}
+	
+	rpc GetLastHeader (ReqNil) returns (Header) {
+	}
+	
+	//交易接口
+	rpc CreateRawTransaction (CreateTx) returns (UnsignTx) {
+	}
+	
+	rpc SendRawTransaction (SignedTx) returns (Reply) {
+	}
+	
+	rpc QueryTransaction (ReqHash) returns (TransactionDetail) {
+	}
+	
+	rpc SendTransaction (Transaction) returns (Reply) {
+	}
+	
+	rpc GetTransactionByAddr (ReqAddr) returns (ReplyTxInfos) {
+	}
+	
+	rpc GetTransactionByHashes (ReqHashes) returns (TransactionDetails) {
+	}
+	
+	//缓存接口
+	rpc GetMemPool (ReqNil) returns (ReplyTxList) {
+	}
+	
+	//钱包接口
+	rpc GetAccounts (ReqNil) returns (WalletAccounts) {
+	}
+	
+	rpc NewAccount (ReqNewAccount) returns (WalletAccount) {
+	}
+	rpc WalletTransactionList (ReqWalletTransactionList) returns (WalletTxDetails) {
+	}
+	
+	rpc ImportPrivKey (ReqWalletImportPrivKey) returns (WalletAccount) {
+	}
+	
+	rpc SendToAddress (ReqWalletSendToAddress) returns (ReplyHash) {
+	}
+	
+	rpc SetTxFee (ReqWalletSetFee) returns (Reply) {
+	}
+	
+	rpc SetLabl (ReqWalletSetLabel) returns (WalletAccount) {
+	}
+	
+	rpc MergeBalance (ReqWalletMergeBalance) returns (ReplyHashes) {
+	}
+	
+	rpc SetPasswd (ReqWalletSetPasswd) returns (Reply) {
+	}
+	
+	rpc Lock (ReqNil) returns (Reply) {
+	}
+	
+	rpc UnLock (WalletUnLock) returns (Reply) {
+	}
+	
+	rpc GetPeerInfo (ReqNil) returns (PeerList) {
+	}
+	
+	rpc GetLastMemPool (ReqNil) returns (ReplyTxList) {
+	}
+	
+	rpc GetWalletStatus (ReqNil) returns (WalletStatus) {
+	}
+	
+	//区块浏览器接口
+	rpc GetBlockOverview (ReqHash) returns (BlockOverview) {
+	}
+	
+	rpc GetAddrOverview (ReqAddr) returns (AddrOverview) {
+	}
+	
+	rpc GetBlockHash (ReqInt) returns (ReplyHash) {
+	}
+	
+	//seed
+	rpc GenSeed (GenSeedLang) returns (ReplySeed) {
+	}
+	
+	rpc GetSeed (GetSeedByPw) returns (ReplySeed) {
+	}
+	
+	rpc SaveSeed (SaveSeedByPw) returns (Reply) {
+	}
+	
+	//Balance Query
+	rpc GetBalance (ReqBalance) returns (Accounts) {
+	}
+	rpc QueryChain (Query) returns (Reply) {
+	}
+	//Miner
+	rpc SetAutoMining (MinerFlag) returns (Reply) {
+	}
+	//
+	rpc GetHexTxByHash (ReqHash) returns (HexTx) {
+	}
+}
+
+message ReqNil {
+
+}
+
+message GenSeedLang {
+	int32 lang = 1;
+}
+
+message GetSeedByPw {
+	string passwd = 1;
+}
+
+message SaveSeedByPw {
+	string seed = 1;
+	string passwd = 2;
+}
+
+message ReplySeed {
+	string seed = 1;
+}
+
+message ReqBalance {
+	repeated string addresses = 1;
+	string execer = 2;
+}
+
+message ReplyBlockHeight {
+	int64 height = 1;
+}
+
+message ReqTxList {
+	int64 count = 1;
+}
+
+message ReplyTxList {
+	repeated Transaction txs = 1;
+}
+
+message TxHashList {
+	repeated bytes hashes = 1;
+}
+
+message TxResult {
+	int64 height = 1;
+	int32 index = 2;
+	Transaction tx = 3;
+	ReceiptData receiptdate = 4;
+	int64 blocktime = 5;
+	string actionName = 6;
+}
+
+message ReplyTxInfos {
+	repeated ReplyTxInfo txInfos = 1;
+}
+
+message MinerFlag {
+	int32 flag = 1;
+}
+
+message ReqNewAccount {
+	string label = 1;
+}
+
+message ReqWalletTransactionList {
+	bytes fromTx = 1; //从这个txId 开始读。默认从最后一个数据。
+	int32 count = 2;
+	int32 direction = 3;
+}
+
+message ReqWalletImportPrivKey {
+	string privkey = 1; //bitcoin 的私钥格式
+	string label = 2;
+}
+
+message ReqWalletSendToAddress {
+	string from = 1;
+	string to = 2;
+	int64 amount = 3;
+	string note = 4;
+}
+
+message ReqWalletSetFee {
+	int64 amount = 1;
+}
+
+message ReqWalletSetLabel {
+	string addr = 1;
+	string label = 2;
+}
+
+message ReqWalletMergeBalance {
+	string to = 1;
+}
+
+message ReplyHashes {
+	repeated bytes hashes = 1;
+}
+
+message ReqWalletSetPasswd {
+	string oldpass = 1;
+	string newpass = 2;
+}
+
+message WalletUnLock {
+	string passwd = 1;
+	int64 timeout = 2;
+}
+
+message Query {
+	bytes execer = 1;
+	string funcName = 2;
+	bytes payload = 3;
+}
+
+message ReqHash {
+	bytes hash = 1;
+}
+
+message HexTx {
+	string tx = 1;
+}
+
+message ReqInt {
+	int64 height = 1;
+}
+
+message ReqAddr {
+	string addr = 1;
+	int32 flag = 2; //表示取所有/from/to/其他的hash列表
+	int32 count = 3;
+	int32 direction = 4;
+	int64 height = 5;
+	int64 index = 6;
+}
+
+message ReqHashes {
+	repeated bytes hashes = 1;
+}
+
+message ReplyHash {
+	bytes hash = 1;
+}
+
+message AddrOverview {
+	int64 reciver = 1;
+	int64 balance = 2;
+	int64 txCount = 3;
+}
+
+message ReplyTxInfo {
+	bytes hash = 1;
+	int64 height = 2;
+	int64 index = 3;
+}
+
+//req
+message ReqBlocks {
+	int64 start = 1;
+	int64 end = 2;
+	bool Isdetail = 3;
+	string pid = 4;
+}
+
+message Peer {
+	string addr = 1;
+	int32 port = 2;
+	string name = 3;
+	bool self = 4;
+	int32 mempoolSize = 5;
+	Header header = 6;
+}
+
+message PeerList {
+	repeated Peer peers = 1;
+}

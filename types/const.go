@@ -1,74 +1,7 @@
 package types
 
 import (
-	"errors"
 	"time"
-)
-
-var (
-	ErrNotFound                   = errors.New("ErrNotFound")
-	ErrBlockExec                  = errors.New("ErrBlockExec")
-	ErrCheckStateHash             = errors.New("ErrCheckStateHash")
-	ErrCheckTxHash                = errors.New("ErrCheckTxHash")
-	ErrReRunGenesis               = errors.New("ErrReRunGenesis")
-	ErrActionNotSupport           = errors.New("ErrActionNotSupport")
-	ErrChannelFull                = errors.New("ErrChannelFull")
-	ErrAmount                     = errors.New("ErrAmount")
-	ErrNoTicket                   = errors.New("ErrNoTicket")
-	ErrMinerIsStared              = errors.New("ErrMinerIsStared")
-	ErrMinerNotStared             = errors.New("ErrMinerNotStared")
-	ErrTicketCount                = errors.New("ErrTicketCount")
-	ErrHashlockAmount             = errors.New("ErrHashlockAmount")
-	ErrHashlockHash               = errors.New("ErrHashlockHash")
-	ErrHashlockStatus             = errors.New("ErrHashlockStatus")
-	ErrNoPeer                     = errors.New("ErrNoPeer")
-	ErrExecNameNotMath            = errors.New("ErrExecNameNotMath")
-	ErrChannelClosed              = errors.New("ErrChannelClosed")
-	ErrNotMinered                 = errors.New("ErrNotMinered")
-	ErrTime                       = errors.New("ErrTime")
-	ErrFromAddr                   = errors.New("ErrFromAddr")
-	ErrBlockHeight                = errors.New("ErrBlockHeight")
-	ErrCoinBaseExecer             = errors.New("ErrCoinBaseExecer")
-	ErrCoinBaseTxType             = errors.New("ErrCoinBaseTxType")
-	ErrCoinBaseExecErr            = errors.New("ErrCoinBaseExecErr")
-	ErrCoinBaseTarget             = errors.New("ErrCoinBaseTarget")
-	ErrCoinbaseReward             = errors.New("ErrCoinbaseReward")
-	ErrNotAllowDeposit            = errors.New("ErrNotAllowDeposit")
-	ErrCoinBaseIndex              = errors.New("ErrCoinBaseIndex")
-	ErrCoinBaseTicketStatus       = errors.New("ErrCoinBaseTicketStatus")
-	ErrBlockNotFound              = errors.New("ErrBlockNotFound")
-	ErrHashlockReturnAddrss       = errors.New("ErrHashlockReturnAddrss")
-	ErrHashlockTime               = errors.New("ErrHashlockTime")
-	ErrHashlockReapeathash        = errors.New("ErrHashlockReapeathash")
-	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
-	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
-	ErrTypeAsset                  = errors.New("ErrTypeAsset")
-	ErrEmpty                      = errors.New("ErrEmpty")
-	ErrSendSameToRecv             = errors.New("ErrSendSameToRecv")
-	ErrExecNameNotAllow           = errors.New("ErrExecNameNotAllow")
-	ErrLocalDBPerfix              = errors.New("ErrLocalDBPerfix")
-	ErrTimeout                    = errors.New("ErrTimeout")
-	ErrBlockHeaderDifficulty      = errors.New("ErrBlockHeaderDifficulty")
-	ErrNoTx                       = errors.New("ErrNoTx")
-	ErrTxExist                    = errors.New("ErrTxExist")
-	ErrManyTx                     = errors.New("ErrManyTx")
-	ErrDupTx                      = errors.New("ErrDupTx")
-	ErrMemFull                    = errors.New("ErrMemFull")
-	ErrNoBalance                  = errors.New("ErrNoBalance")
-	ErrBalanceLessThanTenTimesFee = errors.New("ErrBalanceLessThanTenTimesFee")
-	ErrTxExpire                   = errors.New("ErrTxExpire")
-	ErrSign                       = errors.New("ErrSign")
-	ErrFeeTooLow                  = errors.New("ErrFeeTooLow")
-	ErrEmptyTx                    = errors.New("ErrEmptyTx")
-	ErrTxFeeTooLow                = errors.New("ErrTxFeeTooLow")
-	ErrTxMsgSizeTooBig            = errors.New("ErrTxMsgSizeTooBig")
-	ErrTicketClosed               = errors.New("ErrTicketClosed")
-	ErrEmptyMinerTx               = errors.New("ErrEmptyMinerTx")
-	ErrMinerNotPermit             = errors.New("ErrMinerNotPermit")
-	ErrMinerAddr                  = errors.New("ErrMinerAddr")
-	ErrModify                     = errors.New("ErrModify")
-	ErrFutureBlock                = errors.New("ErrFutureBlock")
-	ErrHashNotFound               = errors.New("ErrHashNotFound")
 )
 
 var (
@@ -344,23 +277,3 @@ const (
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
 )
-
-func GetEventName(event int) string {
-	name, ok := eventName[event]
-	if ok {
-		return name
-	}
-	return "unknow-event"
-}
-
-func GetSignatureTypeName(signType int) string {
-	if signType == 1 {
-		return "secp256k1"
-	} else if signType == 2 {
-		return "ed25519"
-	} else if signType == 3 {
-		return "sm2"
-	} else {
-		return "unknow"
-	}
-}

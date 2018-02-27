@@ -10,10 +10,10 @@ import (
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	"github.com/golang/protobuf/proto"
-	log "github.com/inconshreveable/log15"
+	//log "github.com/inconshreveable/log15"
 )
 
-var tlog = log.New("module", "types")
+//var tlog = log.New("module", "types")
 
 type Message proto.Message
 
@@ -151,7 +151,7 @@ func (block *Block) CheckSign() bool {
 	}
 	//检查交易的签名
 	cpu := runtime.NumCPU()
-	ok := checkall(block.Txs, cpu)
+	ok := checkAll(block.Txs, cpu)
 	return ok
 }
 
@@ -190,7 +190,7 @@ func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result
 	}
 }
 
-func checkall(task []*Transaction, n int) bool {
+func checkAll(task []*Transaction, n int) bool {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -278,4 +278,24 @@ func CheckAmount(amount int64) bool {
 		return false
 	}
 	return true
+}
+
+func GetEventName(event int) string {
+	name, ok := eventName[event]
+	if ok {
+		return name
+	}
+	return "unknow-event"
+}
+
+func GetSignatureTypeName(signType int) string {
+	if signType == 1 {
+		return "secp256k1"
+	} else if signType == 2 {
+		return "ed25519"
+	} else if signType == 3 {
+		return "sm2"
+	} else {
+		return "unknow"
+	}
 }
