@@ -21,23 +21,20 @@ import (
 
 var (
 	//cache 存贮的block个数
-	DefCacheSize int64 = 500
-	zeroHash     [32]byte
-	//一次最多申请获取block个数
-	MaxFetchBlockNum int64 = 100
+	DefCacheSize     int64 = 500
+	MaxFetchBlockNum int64 = 100 //一次最多申请获取block个数
 	TimeoutSeconds   int64 = 2
 	BatchBlockNum    int64 = 100
 	blockSynSeconds        = time.Duration(TimeoutSeconds)
+	chainlog               = log.New("module", "blockchain")
+	cachelock        sync.Mutex
+	castlock         sync.Mutex
+	synBlocklock     sync.Mutex
+	peerMaxBlklock   sync.Mutex
+	zeroHash         [32]byte
 )
 
-var chainlog = log.New("module", "blockchain")
-
-var cachelock sync.Mutex
-var castlock sync.Mutex
-var synBlocklock sync.Mutex
-var peerMaxBlklock sync.Mutex
-
-const poolToDbMS = 500         //从blockpool写block到db的定时器
+//const poolToDbMS = 500         //从blockpool写block到db的定时器
 const fetchPeerListSeconds = 5 //获取一次peerlist最新block高度
 
 type BlockChain struct {
@@ -195,7 +192,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
 		case types.EventGetBlockHash: //GetBlockHash
 			go chain.processMsg(msg, reqnum, chain.getBlockHash)
-		case types.EventQuery: //GetBlockHash
+		case types.EventQuery:
 			go chain.processMsg(msg, reqnum, chain.getQuery)
 		default:
 			<-reqnum
@@ -993,6 +990,8 @@ func (chain *BlockChain) SynBlockToDbOneByOne() {
 		if !bytes.Equal(prevblkHash, block.GetParentHash()) {
 			chainlog.Error("SynBlockToDbOneByOne ParentHash err!", "height", block.Height)
 			chain.blockPool.DelBlock(block.GetHeight())
+			//取消任务，等待重新连接peer
+			chain.task.Cancel()
 			return
 		}
 		var err error

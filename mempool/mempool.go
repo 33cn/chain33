@@ -416,7 +416,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 		i := 0
 		for msg := range mem.qclient.Recv() {
 			i = i + 1
-			mlog.Debug("mempool recv", "count", i, "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := time.Now()
 			switch msg.Ty {
 			case types.EventTx:
@@ -434,6 +434,10 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				txListSize := msg.GetData().(int)
+				//不能超过最大的交易数目 - 1 (有一笔挖矿交易)
+				if int64(txListSize) >= types.MaxTxNumber {
+					txListSize = int(types.MaxTxNumber - 1)
+				}
 				if txListSize <= 0 {
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 						errors.New("not an valid size")))
@@ -455,6 +459,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					mem.setHeader(header)
 				}
 				mem.RemoveTxsOfBlock(block)
+				mlog.Debug("handle EventAddBlock ok", "msg", msg, "msgid", msg.Id)
 			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				memSize := int64(mem.Size())

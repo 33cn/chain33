@@ -39,11 +39,13 @@ func storeModProc(q *queue.Queue) *store.Store {
 	return s
 }
 
-var Statehash []byte
-var CutHeight int64 = 0
-var FromAddr string = ""
-var ToAddr1 string = ""
-var ToAddr2 string = ""
+var (
+	Statehash []byte
+	CutHeight int64  = 0
+	FromAddr  string = ""
+	ToAddr1   string = ""
+	ToAddr2   string = ""
+)
 
 func blockchainModProc(q *queue.Queue) {
 	//store
@@ -118,6 +120,7 @@ func SaveAccountTomavl(q *queue.Queue, prevStateRoot []byte, accs []*types.Accou
 	Statehash = hash
 	return hash
 }
+
 func TestProcCreatNewAccount(t *testing.T) {
 	walletlog.Info("TestProcCreatNewAccount begin --------------------")
 	wallet, q := initEnv()

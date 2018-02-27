@@ -17,7 +17,7 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 	for i := 0; i < int(numItems); i++ {
 		internal[int64(i)] = int64(0)
 	}
-	db, err := NewGoLevelDB(Fmt("test_%x", RandStr(12)), "")
+	db, err := NewGoLevelDB(Fmt("test_%x", RandStr(12)), "", 1000)
 	if err != nil {
 		b.Fatal(err.Error())
 		return
@@ -49,7 +49,7 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 			//fmt.Printf("Get %X -> %X\n", idxBytes, valBytes)
 			if val == 0 {
 				if !bytes.Equal(valBytes, nil) {
-					b.Errorf("Expected %X for %v, got %X",
+					b.Errorf("Expected %v for %v, got %X",
 						nil, idx, valBytes)
 					break
 				}
