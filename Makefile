@@ -1,3 +1,4 @@
+# golang1.9 or latest
 # 1. make help
 # 2. make dep
 # 3. make build
@@ -34,16 +35,16 @@ cli: ## Build cli binary
 
 linter: ## Use gometalinter check code
 	@gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
-	--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck $(PKG_LIST)
+	--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck --vendor ./...
 
 lint: ## Lint the files
 	@golint -set_exit_status ${PKG_LIST}
 
 race: dep ## Run data race detector
-	@go test -race -short ${PKG_LIST}
+	@go test -race -short ./...
 
 test: ## Run unittests
-	@go test -short -v ${PKG_LIST}
+	@go test -short -v ./...
 
 fmt: ## go fmt
 	@go fmt ./...
@@ -55,7 +56,7 @@ bench: ## Run benchmark of all
 	@go test ./... -v -bench=.
 
 msan: dep ## Run memory sanitizer
-	@go test -msan -short ${PKG_LIST}
+	@go test -msan -short ./...
 
 coverage: ## Generate global code coverage report
 	@./build/tools/coverage.sh;
@@ -68,9 +69,8 @@ docker: ## build docker image for chain33 run
 
 clean: ## Remove previous build
 	@rm -rf build/datadir
-	@rm -rf build/chain33
-	@rm -rf build/chain33.toml
-	@rm -rf build/chain33-cli
+	@rm -rf build/chain33*
+	@rm -rf build/*.log
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
