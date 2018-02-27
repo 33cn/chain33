@@ -223,12 +223,10 @@ func (p *peer) subStreamBlock() {
 				cancel()
 				continue
 			}
-			timeout := time.NewTimer(time.Second * 2)
+		SEND_LOOP:
 			for {
-				if !timeout.Stop() {
-					<-timeout.C
-				}
-				timeout.Reset(time.Second * 2)
+
+				timeout := time.NewTimer(time.Second * 2)
 				select {
 				case task := <-p.taskChan:
 					if p.GetRunning() == false {
@@ -242,10 +240,12 @@ func (p *peer) subStreamBlock() {
 						pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
 						if err == nil {
 							if pinfo.GetHeader().GetHeight() >= height {
+								timeout.Stop()
 								continue
 							}
 						}
 						if p.filterTask.QueryTask(height) == true {
+							timeout.Stop()
 							continue //已经接收的消息不再发送
 						}
 						p2pdata.Value = &pb.BroadCastData_Block{Block: block}
@@ -255,6 +255,7 @@ func (p *peer) subStreamBlock() {
 					} else if tx, ok := task.(*pb.P2PTx); ok {
 						sig := tx.GetTx().GetSignature().GetSignature()
 						if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+							timeout.Stop()
 							continue
 						}
 						p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
@@ -266,7 +267,7 @@ func (p *peer) subStreamBlock() {
 						(*p.nodeInfo).monitorChan <- p
 						resp.CloseSend()
 						cancel()
-						break //下一次外循环重新获取stream
+						break SEND_LOOP //下一次外循环重新获取stream
 					}
 				case <-timeout.C:
 					if p.GetRunning() == false {
