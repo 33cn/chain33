@@ -558,7 +558,6 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	}
 
 	if m.network.node.Size() == 0 {
-		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
 		return
 	}
 	peers, infos := m.network.node.GetActivePeers()
@@ -579,7 +578,6 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 		}
 		log.Debug("BlockBroadcast", "Resp", resp)
 	}
-	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 }
 
 func (m *P2pCli) GetExternIp(addr string) (string, bool) {
