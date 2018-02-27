@@ -59,9 +59,10 @@ func init() {
 
 func main() {
 	common.SetLogLevel("eror")
+	paranum := len(os.Args)
 
-	//http mode
-	if len(os.Args) == 0 {
+	if paranum == 1 { //http mode
+
 		http.HandleFunc("/putOrg", putOrgHttp)
 		//http.HandleFunc("/getOrg", getOrgHttp)
 		//http.HandleFunc("/putBlackRecord", putBlackRecordHttp)
@@ -71,8 +72,8 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
-	} else {
-		//cli mode
+	} else if paranum > 1 { //cli mode
+
 		argsWithoutProg := os.Args[1:]
 		switch argsWithoutProg[0] {
 		case "putBlackRecord":
@@ -119,6 +120,7 @@ func OutputJson(w http.ResponseWriter, out interface{}) {
 }
 
 func putOrgHttp(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("it's the post")
 	if r.Method != "POST" {
 		//OutputJson(w, &JsonResponse{ResponseCode: "0001", ResponseMsg: "请求非post方法", Data: nil})
 		return
