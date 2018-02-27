@@ -341,18 +341,15 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
 	client := s.node.nodeInfo.qclient
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
-	err := client.Send(msg, true)
+	err := client.Send(msg, false)
 	if err != nil {
 		log.Error("BroadCastBlock", "Error", err.Error())
 		return nil, err
 	}
-	resp, err := client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
+	return &pb.Reply{IsOk: true, Msg: []byte("ok")}, nil
 
-	return resp.GetData().(*pb.Reply), nil
 }
+
 func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 	go func() error {
 
