@@ -223,12 +223,9 @@ func (p *peer) subStreamBlock() {
 				cancel()
 				continue
 			}
-			timeout := time.NewTimer(time.Second * 2)
+
 			for {
-				if !timeout.Stop() {
-					<-timeout.C
-				}
-				timeout.Reset(time.Second * 2)
+				timeout := time.NewTimer(time.Second * 2)
 				select {
 				case task := <-p.taskChan:
 					if p.GetRunning() == false {
@@ -242,10 +239,12 @@ func (p *peer) subStreamBlock() {
 						pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
 						if err == nil {
 							if pinfo.GetHeader().GetHeight() >= height {
+								timeout.Stop()
 								continue
 							}
 						}
 						if p.filterTask.QueryTask(height) == true {
+							timeout.Stop()
 							continue //已经接收的消息不再发送
 						}
 						p2pdata.Value = &pb.BroadCastData_Block{Block: block}
@@ -324,13 +323,9 @@ func (p *peer) subStreamBlock() {
 					}
 					log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
 					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-					err = (*p.nodeInfo).qclient.Send(msg, true)
+					err = (*p.nodeInfo).qclient.Send(msg, false)
 					if err != nil {
 						log.Error("subStreamBlock", "Error", err.Error())
-						continue
-					}
-					_, err = (*p.nodeInfo).qclient.Wait(msg)
-					if err != nil {
 						continue
 					}
 					p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
