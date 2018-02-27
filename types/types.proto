@@ -30,7 +30,7 @@ service grpcservice{
 	rpc GetPeerInfo(ReqNil)returns(PeerList){}
 	rpc GetLastMemPool(ReqNil)returns(ReplyTxList){}
 
-	rpc GetWalletStatus(ReqNil)returns(Reply){}
+	rpc GetWalletStatus(ReqNil)returns(WalletStatus){}
 
 	//区块浏览器接口
 	rpc GetBlockOverview(ReqHash) returns(BlockOverview){}
@@ -41,6 +41,14 @@ service grpcservice{
 	rpc GenSeed(GenSeedLang) returns (ReplySeed){}
 	rpc GetSeed(GetSeedByPw) returns  (ReplySeed){}
 	rpc SaveSeed(SaveSeedByPw) returns (Reply){}
+	
+	//Balance Query 
+	rpc GetBalance(ReqBalance) returns(Accounts){}
+	rpc QueryChain(Query) returns(Reply){} 
+	//Miner
+	rpc SetAutoMining(MinerFlag)returns(Reply){}
+	//
+	rpc GetHexTxByHash(ReqHash)returns(HexTx){}
 }
 
 
@@ -181,7 +189,7 @@ message BroadCastData{
 message P2PGetHeaders{
 	int32 version=1;
 	int64 startHeight=2;
-	int64 endHeigh=3;
+	int64 endHeight=3;
 }
 
 message P2PHeaders {
@@ -198,6 +206,7 @@ message Header {
 	int64 blockTime = 6;
 	int64 txCount = 9;
 	bytes hash = 10;
+	uint32 difficulty = 11;
 	Signature  signature = 8;
 }
 
@@ -208,6 +217,7 @@ message Block {
 	bytes stateHash = 4;
 	int64 height = 5;
 	int64 blockTime = 6;
+	uint32 difficulty = 11;
 	Signature  signature = 8;
 	repeated Transaction txs = 7;
 }
@@ -272,6 +282,10 @@ message ReqHash {
 	bytes hash = 1;
 }
 
+message HexTx {
+	string tx=1;
+}
+
 message ReqInt {
 	int64 height = 1;
 }
@@ -325,6 +339,7 @@ message ReqBlocks {
 	int64 start = 1;
 	int64 end = 2;
 	bool  Isdetail =3;
+	string pid =4;
 }
 
 //resp
@@ -452,7 +467,11 @@ message ExecTxList {
 	int64 height = 4;
 }
 
+
 //currency = 0 -> origin account
+message Accounts{
+	repeated Account acc=1;
+}
 message Account {
 	int32 currency = 1;
 	int64 balance = 2;
@@ -692,6 +711,12 @@ message WalletPwHash {
 	string randstr = 2;
 }
 
+message WalletStatus {
+	bool isLock = 1;
+	bool isAutoMining = 2;
+	bool hasSeed = 3;
+}
+
 //message for execs.coins
 message CoinsAction {
 	oneof value {
@@ -722,6 +747,7 @@ message CoinsWithdraw {
 //message for execs.ticket
 message TicketAction {
 	oneof value {
+		TicketBind  tbind = 5;
 		TicketOpen      topen = 1;
 		TicketGenesis   genesis = 2;
 		TicketClose  tclose = 3;
@@ -737,9 +763,15 @@ message TicketMiner {
 	bytes  modify = 4;
 }
 
+message TicketBind {
+	string minerAddress = 1;
+	string returnAddress = 2;
+}
+
 message TicketOpen {
-	string minerAddress = 1; //用户挖矿的ticket 地址
-	int32 count = 2; //购买ticket的数目
+	string minerAddress = 1;   //用户挖矿的ticket 地址
+	int32  count = 2;          //购买ticket的数目
+	string returnAddress = 3;  //币实际存储的地址
 }
 
 message TicketGenesis {
@@ -755,7 +787,6 @@ message TicketClose {
 message TicketList {
 	string addr   = 1;
 	int32  status = 3;
-	bool   isClosed = 2;
 }
 
 message TicketInfos {
@@ -763,7 +794,12 @@ message TicketInfos {
 }
 
 message ReplyTicketList {
-	repeated Ticket ticketes = 1;
+	repeated Ticket tickets = 1;
+}
+
+message ReplyWalletTickets {
+	repeated Ticket tickets = 1;
+	repeated bytes privkeys = 2;
 }
 
 message Ticket {
@@ -782,6 +818,12 @@ message ReceiptTicket {
 	int32 status = 2;
 	int32 prevStatus = 3;
 	string addr = 4;
+}
+
+message ReceiptTicketBind {
+	string oldMinerAddress = 1;
+	string newMinerAddress = 2;
+	string returnAddress = 3;
 }
 
 message Hashlock{
@@ -848,4 +890,25 @@ message Hashlockquery  {
 	int64 currentTime = 5;
 }
 
+message ReqBalance{
+	repeated string addresses=1;
+	string execer=2;
+}
 
+
+message ReqString {
+	string data = 1;
+}
+
+message ReplyString {
+	string data = 1;
+}
+
+message ReplyStrings {
+	repeated string datas = 1;
+}
+
+
+message MinerFlag {
+	int32 flag=1;
+}

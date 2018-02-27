@@ -1,4 +1,4 @@
-package ticket
+package common
 
 import (
 	"math/big"
