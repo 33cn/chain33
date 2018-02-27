@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package types;
+
+//currency = 0 -> origin account
+message Accounts {
+	repeated Account acc = 1;
+}
+
+message Account {
+	int32 currency = 1;
+	int64 balance = 2;
+	int64 frozen = 3;
+	string addr = 4;
+}
+
+
+message ReceiptExecAccount {
+	string execAddr = 1;
+	Account prev = 2;
+	Account current = 3;
+}

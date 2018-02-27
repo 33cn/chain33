@@ -8,7 +8,7 @@ CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := $(shell go list ./... | grep -v /vendor/)
 
-.PHONY: default dep all build release cli linter lint race test fmt vet bench msan coverage coverhtml docker clean help
+.PHONY: default dep all build release cli linter lint race test fmt vet bench msan coverage coverhtml docker protobuf clean help
 
 default: build
 
@@ -72,6 +72,9 @@ clean: ## Remove previous build
 	@rm -rf build/chain33.toml
 	@rm -rf build/chain33-cli
 	@go clean
+
+protobuf: ## Generate protbuf file of types package
+	@cd types && ./create_protobuf.sh && cd ..
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"

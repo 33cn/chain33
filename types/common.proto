@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package types;
+
+message Reply {
+	bool isOk = 1;
+	bytes msg = 2;
+}
+
+message KeyValue {
+	bytes key = 1;
+	bytes value = 2;
+}
+
+message Int64 {
+	int64 data = 1;
+}

@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+import "transaction.proto";
+import "blockchain.proto";
+import "account.proto";
+
+package types;
+
+message Wallet {
+	int64 minFee = 1;
+	string dbPath = 2;
+}
+
+message WalletTxDetail {
+	Transaction tx = 1;
+	ReceiptData receipt = 2;
+	int64 height = 3;
+	int64 index = 4;
+	int64 blocktime = 5;
+	int64 amount = 6;
+	string fromaddr = 7;
+	bytes txhash = 8;
+}
+
+message WalletTxDetails {
+	repeated WalletTxDetail txDetails = 1;
+}
+
+message WalletAccountStore {
+	string privkey = 1;
+	string label = 2;
+	string addr = 3;
+	string timeStamp = 4;
+}
+
+
+message WalletPwHash {
+	bytes pwHash = 1;
+	string randstr = 2;
+}
+
+message WalletStatus {
+	bool isLock = 1;
+	bool isAutoMining = 2;
+	bool hasSeed = 3;
+}
+
+message WalletAccounts {
+	repeated WalletAccount wallets = 1;
+}
+
+message WalletAccount {
+	Account acc = 1;
+	string label = 2;
+}
+
+message ReceiptBalance {
+	int64 prev = 1;
+	int64 current = 2;
+	int64 delt = 3;
+}
