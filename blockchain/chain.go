@@ -298,18 +298,12 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	TransactionDetail.Blocktime = txresult.GetBlocktime()
 
 	//获取Amount
-	var action types.CoinsAction
-	err = types.Decode(txresult.GetTx().GetPayload(), &action)
+	amount, err := txresult.GetTx().Amount()
 	if err != nil {
-		chainlog.Error("ProcQueryTxMsg Decode err!", "Height", txresult.GetHeight(), "txindex", txresult.GetIndex(), "err", err)
+		return nil, err
 	}
-	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-		transfer := action.GetTransfer()
-		TransactionDetail.Amount = transfer.Amount
-	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
-		gen := action.GetGenesis()
-		TransactionDetail.Amount = gen.Amount
-	}
+	TransactionDetail.Amount = amount
+
 	//获取from地址
 	pubkey := txresult.GetTx().Signature.GetPubkey()
 	addr := account.PubKeyToAddress(pubkey)
@@ -797,19 +791,11 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			txDetail.Index = int64(txresult.GetIndex())
 
 			//获取Amount
-			var action types.CoinsAction
-			err := types.Decode(txresult.GetTx().GetPayload(), &action)
+			amount, err := txresult.GetTx().Amount()
 			if err != nil {
-				chainlog.Error("ProcGetTransactionByHashes Decode err!", "Height", txresult.GetHeight(), "txindex", txresult.GetIndex(), "err", err)
 				continue
 			}
-			if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-				transfer := action.GetTransfer()
-				txDetail.Amount = transfer.Amount
-			} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
-				gen := action.GetGenesis()
-				txDetail.Amount = gen.Amount
-			}
+			txDetail.Amount = amount
 			//获取from地址
 			pubkey := txresult.GetTx().Signature.GetPubkey()
 			addr := account.PubKeyToAddress(pubkey)
