@@ -126,6 +126,7 @@ FOR_LOOP:
 					for _, peer := range peeraddrs {
 						testlist = append(testlist, peer.String())
 					}
+				}
 					oklist := P2pComm.AddrRouteble(testlist)
 					for _, addr := range oklist {
 
@@ -135,7 +136,7 @@ FOR_LOOP:
 						}
 
 					}
-				}
+				//}
 
 				if len(savelist) == 0 {
 					continue
