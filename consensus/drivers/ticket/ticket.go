@@ -525,7 +525,7 @@ func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
 	txs := client.RequestTx(int(types.MaxTxNumber) - 1)
 	//check dup
 	if len(txs) > 0 {
-		txs = client.CheckTxDup(txs)
+		//txs = client.CheckTxDup(txs)
 	}
 	lastBlock := client.GetCurrentBlock()
 	var newblock types.Block
