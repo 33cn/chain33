@@ -103,11 +103,27 @@ message ChainStatus {
 	int64 msgQueueSize = 3;
 }
 
-message BlockChain {
-	int64 defCacheSize = 1;
-	int64 maxFetchBlockNum = 2;
-	int64 timeoutSeconds = 3;
-	int64 batchBlockNum = 4;
-	string driver = 5;
-	string dbPath = 6;
+//req
+message ReqBlocks {
+	int64 start = 1;
+	int64 end = 2;
+	bool Isdetail = 3;
+	string pid = 4;
+}
+
+message MempoolSize {
+	int64 size = 1;
+}
+
+message ReplyBlockHeight {
+	int64 height = 1;
+}
+
+message TxResult {
+	int64 height = 1;
+	int32 index = 2;
+	Transaction tx = 3;
+	ReceiptData receiptdate = 4;
+	int64 blocktime = 5;
+	string actionName = 6;
 }

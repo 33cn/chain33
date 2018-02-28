@@ -10,7 +10,7 @@ var (
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr            = "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
+	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 )
 
@@ -23,6 +23,7 @@ const (
 	TicketPrice              int64  = 10000 * Coin
 	TicketFrozenTime         int64  = 5  //5s only for test
 	TicketWithdrawTime       int64  = 10 //10s only for test
+	TicketMinerWaitTime      int64  = 2  // 2s only for test
 	MinFee                   int64  = 1e5
 	MinBalanceTransfer              = 1e6
 	MaxTxSize                int64  = 100000   //100K
@@ -114,20 +115,24 @@ const (
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
 	//local store
-	EventLocalGet          = 76
-	EventLocalReplyValue   = 77
-	EventLocalList         = 78
-	EventLocalSet          = 79
-	EventGetWalletStatus   = 80
-	EventCheckTx           = 81
-	EventReceiptCheckTx    = 82
-	EventQuery             = 83
-	EventReplyQuery        = 84
-	EventFlushTicket       = 85
-	EventFetchBlockHeaders = 86
-	EventAddBlockHeaders   = 87
-	EventWalletAutoMiner   = 88
-	EventReplyWalletStatus = 89
+	EventLocalGet            = 76
+	EventLocalReplyValue     = 77
+	EventLocalList           = 78
+	EventLocalSet            = 79
+	EventGetWalletStatus     = 80
+	EventCheckTx             = 81
+	EventReceiptCheckTx      = 82
+	EventQuery               = 83
+	EventReplyQuery          = 84
+	EventFlushTicket         = 85
+	EventFetchBlockHeaders   = 86
+	EventAddBlockHeaders     = 87
+	EventWalletAutoMiner     = 88
+	EventReplyWalletStatus   = 89
+	EventGetLastBlock        = 90
+	EventBlock               = 91
+	EventGetTicketCount      = 92
+	EventReplyGetTicketCount = 93
 )
 
 var eventName = map[int]string{
@@ -220,6 +225,10 @@ var eventName = map[int]string{
 	87: "EventAddBlockHeaders",
 	88: "EventWalletAutoMiner",
 	89: "EventReplyWalletStatus",
+	90: "EventGetLastBlock",
+	91: "EventBlock",
+	92: "EventGetTicketCount",
+	93: "EventReplyGetTicketCount",
 }
 
 //ty = 1 -> secp256k1

@@ -4,11 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	//	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
-	//	"io"
 	"math/big"
 	"strings"
 
@@ -40,7 +37,7 @@ func CreateSeed(folderpath string, lang int32) (string, error) {
 	} else if lang == 1 {
 		strs = strings.Split(Chinese_text, " ")
 	} else {
-		return "", errors.New("CreateSeed lang err!")
+		return "", types.ErrSeedlang
 	}
 
 	strnum := len(strs)
@@ -71,7 +68,7 @@ func CreateSeed(folderpath string, lang int32) (string, error) {
 //使用password加密seed存储到db中
 func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 	if len(seed) == 0 || len(password) == 0 {
-		return false, ErrInputPara
+		return false, types.ErrInputPara
 	}
 
 	Encrypted, err := AesgcmEncrypter([]byte(password), []byte(seed))
@@ -87,11 +84,11 @@ func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 //使用password解密seed上报给上层
 func GetSeed(db dbm.DB, password string) (string, error) {
 	if len(password) == 0 {
-		return "", ErrInputPara
+		return "", types.ErrInputPara
 	}
 	Encryptedseed := db.Get(WalletSeed)
 	if len(Encryptedseed) == 0 {
-		return "", errors.New("seed is not exit!")
+		return "", types.ErrSeedNotExist
 	}
 	seed, err := AesgcmDecrypter([]byte(password), Encryptedseed)
 	if err != nil {
@@ -104,9 +101,9 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 func HasSeed(db dbm.DB) (bool, error) {
 	Encryptedseed := db.Get(WalletSeed)
 	if len(Encryptedseed) == 0 {
-		return false, errors.New("seed is not exit!")
+		return false, types.ErrSeedNotExist
 	}
-	return true, errors.New("seed is exit!")
+	return true, nil
 }
 
 //通过seed生成子私钥十六进制字符串
@@ -146,7 +143,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	creatpubkey := wallet.Pub().String()
 	if subpubkey != creatpubkey {
 		seedlog.Error("GetPrivkeyBySeed subpubkey != creatpubkeybypriv")
-		return "", errors.New("subpubkey verify fail!")
+		return "", types.ErrSubPubKeyVerifyFail
 	}
 
 	// back up index in db
@@ -154,7 +151,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	pubkeyindex, err := json.Marshal(index)
 	if err != nil {
 		seedlog.Error("GetPrivkeyBySeed", "Marshal err ", err)
-		return "", err
+		return "", types.ErrMarshal
 	}
 
 	db.SetSync([]byte(BACKUPKEYINDEX), pubkeyindex)
@@ -165,7 +162,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 //通过私钥生成对应的公钥地址，传入的私钥是十六进制字符串，输出addr
 func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 	if len(HexPrivkey) == 0 {
-		return "", ErrInputPara
+		return "", types.ErrInputPara
 	}
 	//解码hex格式的私钥
 	privkeybyte, err := common.FromHex(HexPrivkey)
