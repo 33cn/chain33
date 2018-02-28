@@ -303,6 +303,7 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 		return nil, err
 	}
 	TransactionDetail.Amount = amount
+	TransactionDetail.ActionName = txresult.GetTx().ActionName()
 
 	//获取from地址
 	pubkey := txresult.GetTx().Signature.GetPubkey()
@@ -796,6 +797,8 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 				continue
 			}
 			txDetail.Amount = amount
+			txDetail.ActionName = txresult.GetTx().ActionName()
+
 			//获取from地址
 			pubkey := txresult.GetTx().Signature.GetPubkey()
 			addr := account.PubKeyToAddress(pubkey)
