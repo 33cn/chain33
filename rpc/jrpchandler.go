@@ -754,7 +754,7 @@ func (req Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = resp
+	*result = resp.GetData()
 	return nil
 
 }
