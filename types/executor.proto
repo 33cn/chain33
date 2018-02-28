@@ -162,15 +162,8 @@ message ExecTxList {
 	int64 height = 4;
 }
 
-message ReqString {
-	string data = 1;
+message Query {
+	bytes execer = 1;
+	string funcName = 2;
+	bytes payload = 3;
 }
-
-message ReplyString {
-	string data = 1;
-}
-
-message ReplyStrings {
-	repeated string datas = 1;
-}
-

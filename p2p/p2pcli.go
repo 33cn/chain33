@@ -187,7 +187,9 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	if err != nil {
 		return err
 	}
-
+	if peer.IsPersistent() == false {
+		return nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
+	}
 	if strings.Split(resp.GetAddrRecv(), ":")[0] != nodeinfo.GetExternalAddr().IP.String() {
 		externalIp := strings.Split(resp.GetAddrRecv(), ":")[0]
 		log.Debug("sendVersion", "externalip", externalIp)
@@ -397,8 +399,9 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	}
 	i := 0
 	for {
+		timeout := time.NewTimer(time.Minute)
 		select {
-		case <-time.After(time.Minute):
+		case <-timeout.C:
 			return
 		case block := <-bChan:
 			newmsg := m.network.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventAddBlock, block)
@@ -407,6 +410,9 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 			if i == len(MaxInvs.GetInvs()) {
 				return
 			}
+		}
+		if !timeout.Stop() {
+			<-timeout.C
 		}
 	}
 }
@@ -487,10 +493,15 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 			continue
 		}
 		peerinfo, err := peer.GetPeerInfo(m.network.node.nodeInfo.cfg.GetVersion())
-		m.CollectPeerStat(err, peer)
 		if err != nil {
+			if strings.Contains(err.Error(), VersionNotSupport) {
+				peer.version.SetSupport(false)
+				m.CollectPeerStat(err, peer)
+
+			}
 			continue
 		}
+		m.CollectPeerStat(err, peer)
 		var pr pb.Peer
 		pr.Addr = peerinfo.GetAddr()
 		pr.Port = peerinfo.GetPort()
@@ -529,53 +540,31 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 	return result
 
 }
-func (m *P2pCli) broadcastByStream(data interface{}) bool {
-	ticker := time.NewTicker(time.Second * 10)
-	defer ticker.Stop()
-	select {
-	case <-ticker.C:
-		//log.Error("broadcastByStream", "timeout", "return")
-		return false
 
-	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
-	}
+//func (m *P2pCli) broadcastByStream(data interface{}) bool {
+//	ticker := time.NewTicker(time.Second * 10)
+//	defer ticker.Stop()
+//	select {
+//	case <-ticker.C:
+//		//log.Error("broadcastByStream", "timeout", "return")
+//		return false
 
-	return true
+//	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
+//	}
 
-}
+//	return true
+
+//}
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
 	}()
-	block := msg.GetData().(*pb.Block)
 
-	if m.broadcastByStream(&pb.P2PBlock{Block: block}) == true {
-		return
+	peers := m.network.node.GetRegisterPeers()
+	for _, pr := range peers {
+		ps.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, pr.Addr())
 	}
 
-	if m.network.node.Size() == 0 {
-		msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{false, []byte("no peers")}))
-		return
-	}
-	peers, infos := m.network.node.GetActivePeers()
-	for _, peer := range peers {
-
-		peerinfo, ok := infos[peer.Addr()]
-		if !ok {
-			continue
-		}
-		if peerinfo.GetHeader().GetHeight() > block.GetHeight() {
-			continue
-		}
-		resp, err := peer.mconn.conn.BroadCastBlock(context.Background(), &pb.P2PBlock{Block: block})
-		m.CollectPeerStat(err, peer)
-		if err != nil {
-			log.Error("BlockBroadcast", "Error", err.Error())
-			continue
-		}
-		log.Debug("BlockBroadcast", "Resp", resp)
-	}
-	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 }
 
 func (m *P2pCli) GetExternIp(addr string) (string, bool) {
@@ -599,10 +588,14 @@ func (m *P2pCli) GetExternIp(addr string) (string, bool) {
 }
 
 func (m *P2pCli) reportPeerStat(peer *peer) {
+	timeout := time.NewTimer(time.Second)
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:
-	case <-time.After(time.Second * 1):
+	case <-timeout.C:
 		return
+	}
+	if !timeout.Stop() {
+		<-timeout.C
 	}
 }
 
