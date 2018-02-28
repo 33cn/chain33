@@ -1,6 +1,5 @@
 syntax = "proto3";
 import "transaction.proto";
-import "common.proto";
 
 package types;
 
@@ -49,26 +48,6 @@ message BlockOverview {
 	repeated bytes txHashes = 3;
 }
 
-
-message ReceiptLog {
-	int32 ty = 1;
-	bytes log = 2;
-}
-
-//ty = 0 -> error Receipt
-//ty = 1 -> CutFee //cut fee ,bug exec not ok
-//ty = 2 -> exec ok
-message Receipt {
-	int32 ty = 1;
-	repeated KeyValue KV = 2;
-	repeated ReceiptLog logs = 3;
-}
-
-message ReceiptData {
-	int32 ty = 1;
-	repeated ReceiptLog logs = 3;
-}
-
 message BlockDetail {
 	Block block = 1;
 	repeated ReceiptData receipts = 2;
@@ -102,31 +81,6 @@ message MempoolSize {
 
 message ReplyBlockHeight {
 	int64 height = 1;
-}
-
-message TxResult {
-	int64 height = 1;
-	int32 index = 2;
-	Transaction tx = 3;
-	ReceiptData receiptdate = 4;
-	int64 blocktime = 5;
-	string actionName = 6;
-}
-
-message TransactionDetail {
-	Transaction tx = 1;
-	ReceiptData receipt = 2;
-	repeated bytes proofs = 3;
-	int64 height = 4;
-	int64 index = 5;
-	int64 blocktime = 6;
-	int64 amount = 7;
-	string fromaddr = 8;
-	string actionName   = 9;
-}
-
-message TransactionDetails {
-	repeated TransactionDetail txs = 1;
 }
 
 message BlockBody {
