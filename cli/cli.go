@@ -318,14 +318,15 @@ type TxResult struct {
 }
 
 type TxDetailResult struct {
-	Tx        *TxResult            `json:"tx"`
-	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
-	Proofs    []string             `json:"proofs"`
-	Height    int64                `json:"height"`
-	Index     int64                `json:"index"`
-	Blocktime int64                `json:"blocktime"`
-	Amount    string               `json:"amount"`
-	Fromaddr  string               `json:"fromaddr"`
+	Tx         *TxResult            `json:"tx"`
+	Receipt    *jsonrpc.ReceiptData `json:"receipt"`
+	Proofs     []string             `json:"proofs"`
+	Height     int64                `json:"height"`
+	Index      int64                `json:"index"`
+	Blocktime  int64                `json:"blocktime"`
+	Amount     string               `json:"amount"`
+	Fromaddr   string               `json:"fromaddr"`
+	ActionName string               `json:"actionName"`
 }
 
 type TxDetailsResult struct {
@@ -356,14 +357,15 @@ type WalletTxDetailsResult struct {
 }
 
 type WalletTxDetailResult struct {
-	Tx        *TxResult            `json:"tx"`
-	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
-	Height    int64                `json:"height"`
-	Index     int64                `json:"index"`
-	Blocktime int64                `json:"blocktime"`
-	Amount    string               `json:"amount"`
-	Fromaddr  string               `json:"fromaddr"`
-	Txhash    string               `json:"txhash"`
+	Tx         *TxResult            `json:"tx"`
+	Receipt    *jsonrpc.ReceiptData `json:"receipt"`
+	Height     int64                `json:"height"`
+	Index      int64                `json:"index"`
+	Blocktime  int64                `json:"blocktime"`
+	Amount     string               `json:"amount"`
+	Fromaddr   string               `json:"fromaddr"`
+	Txhash     string               `json:"txhash"`
+	ActionName string               `json:"actionName"`
 }
 
 type AddrOverviewResult struct {
@@ -703,14 +705,15 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		wtxd := &WalletTxDetailResult{
-			Tx:        t,
-			Receipt:   v.Receipt,
-			Height:    v.Height,
-			Index:     v.Index,
-			Blocktime: v.Blocktime,
-			Amount:    amountResult,
-			Fromaddr:  v.Fromaddr,
-			Txhash:    v.Txhash,
+			Tx:         t,
+			Receipt:    v.Receipt,
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.Blocktime,
+			Amount:     amountResult,
+			Fromaddr:   v.Fromaddr,
+			Txhash:     v.Txhash,
+			ActionName: v.ActionName,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
 	}
@@ -810,14 +813,15 @@ func QueryTransaction(h string) {
 	}
 	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(1e8), 'f', 4, 64)
 	result := TxDetailResult{
-		Tx:        t,
-		Receipt:   res.Receipt,
-		Proofs:    res.Proofs,
-		Height:    res.Height,
-		Index:     res.Index,
-		Blocktime: res.Blocktime,
-		Amount:    amountResult,
-		Fromaddr:  res.Fromaddr,
+		Tx:         t,
+		Receipt:    res.Receipt,
+		Proofs:     res.Proofs,
+		Height:     res.Height,
+		Index:      res.Index,
+		Blocktime:  res.Blocktime,
+		Amount:     amountResult,
+		Fromaddr:   res.Fromaddr,
+		ActionName: res.ActionName,
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -892,14 +896,15 @@ func GetTransactionByHashes(hashes []string) {
 		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		td := &TxDetailResult{
-			Tx:        t,
-			Receipt:   v.Receipt,
-			Proofs:    v.Proofs,
-			Height:    v.Height,
-			Index:     v.Index,
-			Blocktime: v.Blocktime,
-			Amount:    amountResult,
-			Fromaddr:  v.Fromaddr,
+			Tx:         t,
+			Receipt:    v.Receipt,
+			Proofs:     v.Proofs,
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.Blocktime,
+			Amount:     amountResult,
+			Fromaddr:   v.Fromaddr,
+			ActionName: v.ActionName,
 		}
 		result.Txs = append(result.Txs, td)
 	}

@@ -328,6 +328,7 @@ message TransactionDetail {
 	int64 blocktime =6;
 	int64  amount   = 7;
 	string fromaddr   = 8;
+	string actionName   = 9;
 }
 
 message TransactionDetails {
@@ -689,6 +690,7 @@ message WalletTxDetail {
 	int64       amount   = 6;
 	string      fromaddr   = 7;
 	bytes 	    txhash	  =8;
+	string 	    actionName  =9;
 }
 
 message WalletTxDetails {

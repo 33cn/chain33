@@ -69,6 +69,7 @@ var (
 	ErrModify                     = errors.New("ErrModify")
 	ErrFutureBlock                = errors.New("ErrFutureBlock")
 	ErrHashNotFound               = errors.New("ErrHashNotFound")
+	ErrTxDup                      = errors.New("ErrTxDup")
 
 	// BlockChain Error Types
 	ErrHashNotExist           = errors.New("ErrHashNotExist")
@@ -87,6 +88,8 @@ var (
 	ErrParentTdNoExist        = errors.New("ErrParentTdNoExist")
 	ErrBlockHashNoMatch       = errors.New("ErrBlockHashNoMatch")
 	ErrIsClosed               = errors.New("ErrIsClosed")
+	ErrDecode                 = errors.New("ErrDecode")
+	ErrUnknown                = errors.New("ErrUnknown")
 
 	//wallet
 	ErrInputPara      = errors.New("ErrInputPara")
