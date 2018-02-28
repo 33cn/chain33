@@ -33,21 +33,6 @@ message Blocks {
 	repeated Block items = 1;
 }
 
-message TransactionDetail {
-	Transaction tx = 1;
-	ReceiptData receipt = 2;
-	repeated bytes proofs = 3;
-	int64 height = 4;
-	int64 index = 5;
-	int64 blocktime = 6;
-	int64 amount = 7;
-	string fromaddr = 8;
-}
-
-message TransactionDetails {
-	repeated TransactionDetail txs = 1;
-}
-
 //resp
 message BlockDetails {
 	repeated BlockDetail items = 1;
@@ -126,4 +111,20 @@ message TxResult {
 	ReceiptData receiptdate = 4;
 	int64 blocktime = 5;
 	string actionName = 6;
+}
+
+message TransactionDetail {
+	Transaction tx = 1;
+	ReceiptData receipt = 2;
+	repeated bytes proofs = 3;
+	int64 height = 4;
+	int64 index = 5;
+	int64 blocktime = 6;
+	int64 amount = 7;
+	string fromaddr = 8;
+	string actionName   = 9;
+}
+
+message TransactionDetails {
+	repeated TransactionDetail txs = 1;
 }
