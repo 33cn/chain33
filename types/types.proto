@@ -49,6 +49,7 @@ service grpcservice{
 	rpc SetAutoMining(MinerFlag)returns(Reply){}
 	//
 	rpc GetHexTxByHash(ReqHash)returns(HexTx){}
+	rpc GetTicketCount(types.ReqNil)returns(Int64){}
 }
 
 
