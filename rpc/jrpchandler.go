@@ -125,6 +125,8 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 		transDetail.Blocktime = reply.GetBlocktime()
 		transDetail.Amount = reply.GetAmount()
 		transDetail.Fromaddr = reply.GetFromaddr()
+		transDetail.ActionName = reply.GetActionName()
+
 		*result = &transDetail
 	}
 
@@ -288,13 +290,14 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 							Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
 							Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature())},
 					},
-					Height:    tx.GetHeight(),
-					Index:     tx.GetIndex(),
-					Blocktime: tx.GetBlocktime(),
-					Receipt:   &recp,
-					Proofs:    proofs,
-					Amount:    tx.GetAmount(),
-					Fromaddr:  tx.GetFromaddr(),
+					Height:     tx.GetHeight(),
+					Index:      tx.GetIndex(),
+					Blocktime:  tx.GetBlocktime(),
+					Receipt:    &recp,
+					Proofs:     proofs,
+					Amount:     tx.GetAmount(),
+					Fromaddr:   tx.GetFromaddr(),
+					ActionName: tx.GetActionName(),
 				})
 		}
 
@@ -403,13 +406,14 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 						Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature()),
 					},
 				},
-				Receipt:   &recp,
-				Height:    tx.GetHeight(),
-				Index:     tx.GetIndex(),
-				Blocktime: tx.GetBlocktime(),
-				Amount:    tx.GetAmount(),
-				Fromaddr:  tx.GetFromaddr(),
-				Txhash:    common.ToHex(tx.GetTxhash()),
+				Receipt:    &recp,
+				Height:     tx.GetHeight(),
+				Index:      tx.GetIndex(),
+				Blocktime:  tx.GetBlocktime(),
+				Amount:     tx.GetAmount(),
+				Fromaddr:   tx.GetFromaddr(),
+				Txhash:     common.ToHex(tx.GetTxhash()),
+				ActionName: tx.GetActionName(),
 			})
 
 		}
