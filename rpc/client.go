@@ -57,6 +57,7 @@ type IRClient interface {
 	QueryHash(*types.Query) (*types.Message, error)
 	//miner
 	SetAutoMiner(*types.MinerFlag) (*types.Reply, error)
+	GetTicketCount() (*types.Int64, error)
 }
 
 type channelClient struct {
@@ -645,4 +646,17 @@ func (client *channelClient) SetAutoMiner(in *types.MinerFlag) (*types.Reply, er
 		return nil, err
 	}
 	return resp.GetData().(*types.Reply), nil
+}
+
+func (client *channelClient) GetTicketCount() (*types.Int64, error) {
+	msg := client.qclient.NewMessage("consensus", types.EventGetTicketCount, nil)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.Int64), nil
 }

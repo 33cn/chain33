@@ -13,7 +13,6 @@ func (l *DefaultListener) Close() bool {
 	l.listener.Close()
 	l.server.Stop()
 	log.Info("stop", "DefaultListener", "close")
-	close(l.nodeInfo.p2pBroadcastChan) //close p2pserver manageStream
 	close(l.p2pserver.loopdone)
 	return true
 }
@@ -46,7 +45,6 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	}
 	pServer := NewP2pServer()
 	pServer.node = dl.n
-	pServer.ManageStream()
 	dl.server = grpc.NewServer()
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)

@@ -752,3 +752,13 @@ func (req Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error 
 	*result = &reply
 	return nil
 }
+
+func (req Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
+	resp, err := req.cli.GetTicketCount()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+
+}
