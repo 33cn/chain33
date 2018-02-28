@@ -65,7 +65,7 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 	return peer, nil
 }
 
-func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn,remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
 	// Key and NodeInfo are set after Handshake
 	p := NewPeer(rawConn, nodeinfo, remote)
