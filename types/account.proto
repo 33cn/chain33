@@ -14,9 +14,19 @@ message Account {
 	string addr = 4;
 }
 
-
 message ReceiptExecAccount {
 	string execAddr = 1;
 	Account prev = 2;
 	Account current = 3;
+}
+
+message ReqBalance {
+	repeated string addresses = 1;
+	string execer = 2;
+}
+
+message ReceiptBalance {
+	int64 prev = 1;
+	int64 current = 2;
+	int64 delt = 3;
 }

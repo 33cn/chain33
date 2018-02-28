@@ -53,11 +53,6 @@ message LocalReplyValue {
 	repeated bytes values = 2;
 }
 
-message LocalStore {
-	string driver = 1;
-	string dbPath = 2;
-}
-
 message StoreSet {
 	bytes stateHash = 1;
 	repeated KeyValue KV = 2;
@@ -70,9 +65,4 @@ message StoreGet {
 
 message StoreReplyValue {
 	repeated bytes values = 2;
-}
-
-message Store {
-	string driver = 1;
-	string dbPath = 2;
 }

@@ -6,19 +6,6 @@ import "blockchain.proto";
 
 package types;
 
-message P2P {
-	int32 seedPort = 1;
-	string dbPath = 2;
-	string grpcLogFile = 3;
-	bool isSeed = 4;
-	repeated string seeds = 5;
-	bool enable = 6;
-	int32 msgCacheSize = 7;
-	int32 version = 8;
-	int32 verMix = 9;
-	int32 verMax = 10;
-}
-
 service p2pgservice {
 	//广播交易
 	rpc BroadCastTx (P2PTx) returns (Reply) {
@@ -187,4 +174,18 @@ message InvData {
 
 message InvDatas {
 	repeated InvData items = 1;
+}
+
+
+message Peer {
+	string addr = 1;
+	int32 port = 2;
+	string name = 3;
+	bool self = 4;
+	int32 mempoolSize = 5;
+	Header header = 6;
+}
+
+message PeerList {
+	repeated Peer peers = 1;
 }

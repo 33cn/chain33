@@ -6,11 +6,6 @@ import "account.proto";
 
 package types;
 
-message Wallet {
-	int64 minFee = 1;
-	string dbPath = 2;
-}
-
 message WalletTxDetail {
 	Transaction tx = 1;
 	ReceiptData receipt = 2;
@@ -54,8 +49,68 @@ message WalletAccount {
 	string label = 2;
 }
 
-message ReceiptBalance {
-	int64 prev = 1;
-	int64 current = 2;
-	int64 delt = 3;
+message WalletUnLock {
+	string passwd = 1;
+	int64 timeout = 2;
+}
+
+message GenSeedLang {
+	int32 lang = 1;
+}
+
+message GetSeedByPw {
+	string passwd = 1;
+}
+
+message SaveSeedByPw {
+	string seed = 1;
+	string passwd = 2;
+}
+
+message ReplySeed {
+	string seed = 1;
+}
+
+message ReqWalletSetPasswd {
+	string oldpass = 1;
+	string newpass = 2;
+}
+
+message ReqNewAccount {
+	string label = 1;
+}
+
+message MinerFlag {
+	int32 flag = 1;
+}
+
+message ReqWalletTransactionList {
+	bytes fromTx = 1; //从这个txId 开始读。默认从最后一个数据。
+	int32 count = 2;
+	int32 direction = 3;
+}
+
+message ReqWalletImportPrivKey {
+	string privkey = 1; //bitcoin 的私钥格式
+	string label = 2;
+}
+
+message ReqWalletSendToAddress {
+	string from = 1;
+	string to = 2;
+	int64 amount = 3;
+	string note = 4;
+}
+
+message ReqWalletSetFee {
+	int64 amount = 1;
+}
+
+message ReqWalletSetLabel {
+	string addr = 1;
+	string label = 2;
+}
+
+message ReqWalletMergeBalance {
+	string to = 1;
 }

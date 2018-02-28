@@ -4,6 +4,7 @@ package blockchain
 import (
 	"time"
 
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -43,7 +44,7 @@ func (chain *BlockChain) addBlock(msg queue.Message) {
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {
-		chain.notifySync()
+		//chain.notifySync()
 	}
 	chainlog.Debug("EventAddBlock", "height", block.Height, "success", "ok")
 	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
@@ -92,24 +93,17 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
 	blockDetail = msg.Data.(*types.BlockDetail)
-	currentheight := chain.GetBlockHeight()
-	//我们需要的高度，直接存储到db中
-	if blockDetail.Block.Height != currentheight+1 {
-		errmsg := "EventAddBlockDetail.Height not currentheight+1"
-		chainlog.Error("EventAddBlockDetail", "err", errmsg)
-		reply.IsOk = false
-		reply.Msg = []byte(errmsg)
-		msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
-		return
-	}
+
+	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "hash", common.ToHex(blockDetail.Block.Hash()))
+
 	err := chain.ProcAddBlockMsg(true, blockDetail)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {
-		chain.wg.Add(1)
-		chain.SynBlockToDbOneByOne()
+		//chain.wg.Add(1)
+		//chain.SynBlockToDbOneByOne()
 	}
 	chainlog.Debug("EventAddBlockDetail", "success", "ok")
 	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
@@ -122,13 +116,15 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
 	block = msg.Data.(*types.Block)
+	chainlog.Error("EventBroadcastAddBlock", "height", block.Height, "hash", common.ToHex(block.Hash()))
+
 	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: block})
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {
-		chain.notifySync()
+		//chain.notifySync()
 	}
 	chainlog.Debug("EventBroadcastAddBlock", "success", "ok")
 	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
@@ -209,6 +205,32 @@ func (chain *BlockChain) getQuery(msg queue.Message) {
 		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyQuery, err))
 	} else {
 		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyQuery, reply))
+	}
+}
+
+func (chain *BlockChain) addBlockHeaders(msg queue.Message) {
+	var reply types.Reply
+	reply.IsOk = true
+	headers := msg.Data.(*types.Headers)
+	err := chain.ProcAddBlockHeadersMsg(headers)
+	if err != nil {
+		chainlog.Error("addBlockHeaders", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	} else {
+	}
+	chainlog.Debug("addBlockHeaders", "success", "ok")
+	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
+}
+
+func (chain *BlockChain) getLastBlock(msg queue.Message) {
+	block, err := chain.ProcGetLastBlockMsg()
+	if err != nil {
+		chainlog.Error("ProcGetLastBlockMsg", "err", err.Error())
+		msg.Reply(chain.qclient.NewMessage("consensus", types.EventBlock, err))
+	} else {
+		chainlog.Debug("ProcGetLastBlockMsg", "success", "ok")
+		msg.Reply(chain.qclient.NewMessage("consensus", types.EventBlock, block))
 	}
 }
 

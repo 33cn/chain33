@@ -38,3 +38,45 @@ message Signature {
 	bytes pubkey = 2;
 	bytes signature = 3;
 }
+
+
+message AddrOverview {
+	int64 reciver = 1;
+	int64 balance = 2;
+	int64 txCount = 3;
+}
+
+message ReqAddr {
+	string addr = 1;
+	int32 flag = 2; //表示取所有/from/to/其他的hash列表
+	int32 count = 3;
+	int32 direction = 4;
+	int64 height = 5;
+	int64 index = 6;
+}
+
+message HexTx {
+	string tx = 1;
+}
+
+message ReplyTxInfo {
+	bytes hash = 1;
+	int64 height = 2;
+	int64 index = 3;
+}
+
+message ReqTxList {
+	int64 count = 1;
+}
+
+message ReplyTxList {
+	repeated Transaction txs = 1;
+}
+
+message TxHashList {
+	repeated bytes hashes = 1;
+}
+
+message ReplyTxInfos {
+	repeated ReplyTxInfo txInfos = 1;
+}
