@@ -111,6 +111,10 @@ func createTicket(minerAddr, returnAddr string, count int32) (ret []*types.Trans
 func (client *TicketClient) ProcEvent(msg queue.Message) {
 	if msg.Ty == types.EventFlushTicket {
 		client.flushTicketMsg(msg)
+	} else if msg.Ty == types.EventGetTicketCount {
+		client.getTicketCountMsg(msg)
+	} else {
+		msg.ReplyErr("TicketClient", types.ErrActionNotSupport)
 	}
 }
 
@@ -140,6 +144,21 @@ func (client *TicketClient) getTickets() ([]*types.Ticket, []crypto.PrivKey, err
 	}
 	tlog.Info("getTickets", "ticket n", len(reply.Tickets), "nkey", len(keys))
 	return reply.Tickets, keys, nil
+}
+
+func (client *TicketClient) getTicketCount() int64 {
+	var num int
+	client.mu.Lock()
+	num = len(client.tlist.Tickets)
+	client.mu.Unlock()
+	return int64(num)
+}
+
+func (client *TicketClient) getTicketCountMsg(msg queue.Message) {
+	//list accounts
+	var ret types.Int64
+	ret.Data = client.getTicketCount()
+	msg.Reply(client.GetQueueClient().NewMessage("", types.EventReplyGetTicketCount, &ret))
 }
 
 func (client *TicketClient) flushTicket() error {
@@ -563,17 +582,15 @@ func (client *TicketClient) updateBlock(newblock *types.Block) *types.Block {
 }
 
 func (client *TicketClient) CreateBlock() {
-	issleep := true
 	for {
 		if !client.IsMining() {
 			time.Sleep(time.Second)
 			continue
 		}
-		if issleep {
+		if client.getTicketCount() == 0 {
 			time.Sleep(time.Second)
+			continue
 		}
-		issleep = false
-		//add miner tx
 		block, lastBlock := client.createBlock()
 		for !client.Miner(lastBlock, block) {
 			time.Sleep(time.Second)

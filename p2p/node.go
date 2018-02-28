@@ -152,9 +152,6 @@ func (n *Node) DialPeers(addrbucket map[string]bool) error {
 func (n *Node) AddPeer(pr *peer) {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
-	if pr.outbound == false {
-		return
-	}
 	if peer, ok := n.outBound[pr.Addr()]; ok {
 		log.Info("AddPeer", "delete peer", pr.Addr())
 		n.addrBook.RemoveAddr(peer.Addr())
