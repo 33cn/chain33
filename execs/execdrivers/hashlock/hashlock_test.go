@@ -3,10 +3,12 @@ package hashlock
 import (
 	"context"
 	crand "crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,6 +55,25 @@ const (
 
 const secretLen = 32
 
+type TestHashlockquery struct {
+	Time        int64
+	Status      int32
+	Amount      int64
+	CreateTime  int64
+	CurrentTime int64
+}
+
+//var testKey string
+//var testValue []byte
+
+//func createKV() error {
+//	var err error
+//	testHashRecv := &TestHashRecv{HashlockId: "33", Infomation: "org33"}
+//	testKey = testHashRecv.HashlockId
+//	testValue, err = json.Marshal(testHashRecv)
+//	return err
+//}
+
 func init() {
 	var err error
 	conn, err = grpc.Dial("localhost:8802", grpc.WithInsecure())
@@ -90,12 +111,12 @@ func TestInitAccount(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		if !showOrCheckAcc(c, addr[index], showandcheck, 0) {
 			t.Error(ErrTest)
 			return
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 
 	for index := 0; index < accountMax; index++ {
@@ -106,7 +127,7 @@ func TestInitAccount(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		if !showOrCheckAcc(c, addr[index], showandcheck, defaultAmount) {
 			t.Error(ErrTest)
 			return
@@ -126,23 +147,50 @@ func TestHashlock(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	err = lock(secret)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	currBalanceA -= lockAmount + 2*fee
 	if !showOrCheckAcc(c, addr[accountindexA], showandcheck, currBalanceA) {
 		t.Error(ErrTest)
 		return
 	}
+	fmt.Println("TestHashlockQuery start")
+	defer fmt.Println("TestHashlockQuery end\n")
+	var req types.Query
+	req.Execer = []byte("hashlock")
+	req.FuncName = "GetHashlocKById"
+	req.Payload = common.Sha256(secret)
+	time.Sleep(5 * time.Second)
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err =", reply.GetMsg())
+		t.Error(errors.New(string(reply.GetMsg())))
+		return
+	}
+	value := strings.TrimSpace(string(reply.Msg))
+	fmt.Println("GetValue=", value)
+
+	var hashlockquery TestHashlockquery
+	err = json.Unmarshal([]byte(value), &hashlockquery)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println("QueryHashlock =", hashlockquery)
 }
 
-func TestHashunlock(t *testing.T) {
+func TstHashunlock(t *testing.T) {
 	fmt.Println("TestHashunlock start")
 	defer fmt.Println("TestHashunlock end")
 	//not sucess as time not enough
@@ -215,7 +263,7 @@ func TestHashunlock(t *testing.T) {
 	}
 }
 
-func TestHashsend(t *testing.T) {
+func TstHashsend(t *testing.T) {
 	fmt.Println("TstHashsend start")
 	defer fmt.Println("TstHashsend end")
 	//lock it again &send failed as secret is not right
