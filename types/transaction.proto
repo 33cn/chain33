@@ -80,3 +80,4 @@ message TxHashList {
 message ReplyTxInfos {
 	repeated ReplyTxInfo txInfos = 1;
 }
+

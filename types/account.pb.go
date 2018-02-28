@@ -26,8 +26,6 @@ It has these top-level messages:
 	Header
 	Block
 	Blocks
-	TransactionDetail
-	TransactionDetails
 	BlockDetails
 	Headers
 	BlockOverview
@@ -42,6 +40,8 @@ It has these top-level messages:
 	MempoolSize
 	ReplyBlockHeight
 	TxResult
+	TransactionDetail
+	TransactionDetails
 	Reply
 	ReqString
 	ReplyString
