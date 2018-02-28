@@ -15,6 +15,7 @@ message WalletTxDetail {
 	int64 amount = 6;
 	string fromaddr = 7;
 	bytes txhash = 8;
+	string actionName  =9;
 }
 
 message WalletTxDetails {
