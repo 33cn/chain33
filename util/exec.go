@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"time"
-
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
@@ -211,6 +211,7 @@ func CheckTxDup(q *queue.Queue, txs []*types.Transaction) (transactions []*types
 
 	for _, hash := range dupTxs {
 		delete(txMap, string(hash))
+		log.Debug("CheckTxDup", "TxDuphash", common.ToHex(hash))
 	}
 
 	for _, tx := range txMap {
