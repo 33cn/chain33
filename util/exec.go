@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"time"
+
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -193,28 +194,24 @@ func ExecKVSetRollback(q *queue.Queue, hash []byte) error {
 func CheckTxDup(q *queue.Queue, txs []*types.Transaction) (transactions []*types.Transaction) {
 	qclient := q.NewClient()
 	var checkHashList types.TxHashList
-	txMap := make(map[string]*types.Transaction)
 	for _, tx := range txs {
 		hash := tx.Hash()
-		txMap[string(hash)] = tx
 		checkHashList.Hashes = append(checkHashList.Hashes, hash)
 	}
-	// 发送Hash过后的交易列表给blockchain模块
-	//beg := time.Now()
-	//log.Error("----EventTxHashList----->[beg]", "time", beg)
 	hashList := qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
 	qclient.Send(hashList, true)
 	dupTxList, _ := qclient.Wait(hashList)
-	//log.Error("----EventTxHashList----->[end]", "time", time.Now().Sub(beg))
-	// 取出blockchain返回的重复交易列表
 	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
-
+	dupMap := make(map[string]bool)
 	for _, hash := range dupTxs {
-		delete(txMap, string(hash))
+		dupMap[string(hash)] = true
 		log.Debug("CheckTxDup", "TxDuphash", common.ToHex(hash))
 	}
-
-	for _, tx := range txMap {
+	for _, tx := range txs {
+		hash := tx.Hash()
+		if dupMap[string(hash)] {
+			continue
+		}
 		transactions = append(transactions, tx)
 	}
 	return transactions
