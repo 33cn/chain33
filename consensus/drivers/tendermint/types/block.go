@@ -65,7 +65,7 @@ func (b *Block) ValidateBasic() error {
 		return fmt.Errorf("Wrong Block.Header.DataHash.  Expected %v, got %v", b.DataHash, b.Data.Hash())
 	}
 	if !bytes.Equal(b.EvidenceHash, b.Evidence.Hash()) {
-		return errors.New(cmn.Fmt("Wrong Block.Header.EvidenceHash.  Expected %v, got %v", b.EvidenceHash, b.Evidence.Hash()))
+		return errors.New(fmt.Sprintf("Wrong Block.Header.EvidenceHash.  Expected %v, got %v", b.EvidenceHash, b.Evidence.Hash()))
 	}
 	return nil
 }
@@ -510,3 +510,23 @@ func (blockID BlockID) WriteSignBytes(w io.Writer, n *int, err *error) {
 func (blockID BlockID) String() string {
 	return fmt.Sprintf(`%v:%v`, blockID.Hash, blockID.PartsHeader)
 }
+
+//------------------------------------------------------
+// evidence pool
+
+// EvidencePool defines the EvidencePool interface used by the ConsensusState.
+// UNSTABLE
+type EvidencePool interface {
+	PendingEvidence() []Evidence
+	AddEvidence(Evidence) error
+	Update(*Block)
+}
+
+// MockMempool is an empty implementation of a Mempool, useful for testing.
+// UNSTABLE
+type MockEvidencePool struct {
+}
+
+func (m MockEvidencePool) PendingEvidence() []Evidence { return nil }
+func (m MockEvidencePool) AddEvidence(Evidence) error  { return nil }
+func (m MockEvidencePool) Update(*Block)               {}

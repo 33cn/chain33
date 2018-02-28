@@ -91,7 +91,7 @@ func (p *Peer) RemoteAddr() string {
 
 func (p *Peer) Who(who string) string {
 	if who == "" {
-		return p.who
+		return p.RemoteAddr()
 	}
 	p.who = who
 	return who

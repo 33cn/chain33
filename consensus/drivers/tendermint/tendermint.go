@@ -9,6 +9,8 @@ import (
 
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/core"
+	"math/rand"
+	"fmt"
 )
 
 var tendermintlog = log.New("module", "tendermint")
@@ -19,7 +21,9 @@ type TendermintClient struct{
 	genesisDoc    *ttypes.GenesisDoc   // initial validator set
 	privValidator ttypes.PrivValidator
 	csState       *core.ConsensusState
+	csReactor     *core.ConsensusReactor
 	ListenAddr    string
+	Moniker       string  //node name
 }
 
 func New(cfg *types.Consensus) *TendermintClient {
@@ -53,6 +57,8 @@ func New(cfg *types.Consensus) *TendermintClient {
 		BaseClient:       c,
 		genesisDoc :      genesisDoc,
 		privValidator :   privValidator,
+		ListenAddr:       "0.0.0.0:36656",
+		Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
 	}
 	csState := core.NewConsensusState(client, state)
 
@@ -64,6 +70,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 	// consensusReactor will set it on consensusState and blockExecutor
 	consensusReactor.SetEventBus(eventBus)
 	client.csState = csState
+	client.csReactor = consensusReactor
 	c.SetChild(client)
 	return client
 }
@@ -94,6 +101,12 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 	// firing on the tockChan until the receiveRoutine is started
 	// to deal with them (by that point, at most one will be valid)
 	err := client.csState.Start()
+	if err != nil {
+		tendermintlog.Error("TendermintClientSetQueue", "msg", "TimeoutTicker start failed", "error", err.Error())
+		return
+	}
+
+	err = client.csReactor.Start()
 	if err != nil {
 		tendermintlog.Error("TendermintClientSetQueue", "msg", "TimeoutTicker start failed", "error", err.Error())
 		return

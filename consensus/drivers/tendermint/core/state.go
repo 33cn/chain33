@@ -76,8 +76,9 @@ type ConsensusState struct {
 	blockExec  *sm.BlockExecutor
 	blockStore ttypes.BlockStore
 	mempool    ttypes.Mempool
-	evpool     ttypes.EvidencePool
 */
+	evpool     ttypes.EvidencePool
+
 	// internal state
 	mtx sync.Mutex
 	ttypes.RoundState
@@ -126,7 +127,8 @@ func NewConsensusState(client *tendermint.TendermintClient, state sm.State) *Con
 		done:             make(chan struct{}),
 		doWALCatchup:     true,
 		//wal:              nilWAL{},
-		//evpool:           evpool,
+		// mock the evidence pool hg 20180227
+		evpool:           ttypes.MockEvidencePool{},
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -197,6 +199,7 @@ func (cs *ConsensusState) SetTimeoutTicker(timeoutTicker TimeoutTicker) {
 	defer cs.mtx.Unlock()
 	cs.timeoutTicker = timeoutTicker
 }
+
 
 // LoadCommit loads the commit for a given height.
 func (cs *ConsensusState) LoadCommit(height int64) *ttypes.Commit {
@@ -703,10 +706,11 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	// Wait for txs to be available in the mempool
 	// before we enterPropose in round 0. If the last block changed the app hash,
 	// we may need an empty "proof" block, and enterPropose immediately.
-	waitForTxs := cs.config.WaitForTxs() && round == 0 && !cs.needProofBlock(height)
+
+	waitForTxs := cs.WaitForTxs() && round == 0 && !cs.needProofBlock(height)
 	if waitForTxs {
-		if cs.config.CreateEmptyBlocksInterval > 0 {
-			cs.scheduleTimeout(cs.config.EmptyBlocksInterval(), height, round, ttypes.RoundStepNewRound)
+		if cs.client.Cfg.CreateEmptyBlocksInterval > 0 {
+			cs.scheduleTimeout(cs.EmptyBlocksInterval(), height, round, ttypes.RoundStepNewRound)
 		}
 		go cs.proposalHeartbeat(height, round)
 	} else {
@@ -880,9 +884,21 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 		return
 	}
 
+	txs := cs.client.RequestTx()
+	if len(txs) > 0 {
+		//check dup
+		txs = cs.client.CheckTxDup(txs)
+	}
+
+	var newtxs ttypes.Txs
+	for _, tx := range txs {
+		total := tx.String()
+		newtx := []byte(total)
+		newtxs = append(newtxs, newtx)
+	}
+
 	// Mempool validated transactions
-	txs := cs.mempool.Reap(cs.config.MaxBlockSizeTxs)
-	block, parts := cs.state.MakeBlock(cs.Height, txs, commit)
+	block, parts := cs.state.MakeBlock(cs.Height, newtxs, commit)
 	evidence := cs.evpool.PendingEvidence()
 	block.AddEvidence(evidence)
 	return block, parts
@@ -907,6 +923,7 @@ func (cs *ConsensusState) enterPrevote(height int64, round int) {
 
 	// fire event for how we got here
 	if cs.isProposalComplete() {
+		//only used to test hg 20180227
 		cs.eventBus.PublishEventCompleteProposal(cs.RoundStateEvent())
 	} else {
 		// we received +2/3 prevotes for a future round
@@ -939,7 +956,7 @@ func (cs *ConsensusState) defaultDoPrevote(height int64, round int) {
 	}
 
 	// Validate proposal block
-	err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock)
+	err := validateBlock(cs.state, cs.ProposalBlock)
 	if err != nil {
 		// ProposalBlock is invalid, prevote nil.
 		logger.Error("enterPrevote: ProposalBlock is invalid", "err", err)
@@ -1047,8 +1064,8 @@ func (cs *ConsensusState) enterPrecommit(height int64, round int) {
 	if cs.ProposalBlock.HashesTo(blockID.Hash) {
 		cs.Logger.Info("enterPrecommit: +2/3 prevoted proposal block. Locking", "hash", blockID.Hash)
 		// Validate the block.
-		if err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock); err != nil {
-			cmn.PanicConsensus(fmt.Sprintf("enterPrecommit: +2/3 prevoted for an invalid block: %v", err))
+		if err := validateBlock(cs.state, cs.ProposalBlock); err != nil {
+			panic(fmt.Sprintf("Panicked on a Consensus Failure: %v",fmt.Sprintf("enterPrecommit: +2/3 prevoted for an invalid block: %v", err)))
 		}
 		cs.LockedRound = round
 		cs.LockedBlock = cs.ProposalBlock
@@ -1182,8 +1199,8 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	if !block.HashesTo(blockID.Hash) {
 		panic(fmt.Sprintf("Panicked on a Sanity Check: %v",fmt.Sprintf("Cannot finalizeCommit, ProposalBlock does not hash to commit hash")))
 	}
-	if err := cs.blockExec.ValidateBlock(cs.state, block); err != nil {
-		cmn.PanicConsensus(fmt.Sprintf("+2/3 committed an invalid block: %v", err))
+	if err := validateBlock(cs.state, block); err != nil {
+		panic(fmt.Sprintf("Panicked on a Sanity Check: %v",fmt.Sprintf("+2/3 committed an invalid block: %v", err)))
 	}
 
 	cs.Logger.Info(fmt.Sprintf("Finalizing commit of block with %d txs", block.NumTxs),
@@ -1213,7 +1230,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// WAL replay for blocks with an #ENDHEIGHT
 	// As is, ConsensusState should not be started again
 	// until we successfully call ApplyBlock (ie. here or in Handshake after restart)
-	cs.wal.Save(EndHeightMessage{height})
+	//cs.wal.Save(EndHeightMessage{height})
 
 	fail.Fail() // XXX
 
@@ -1533,6 +1550,88 @@ func (cs *ConsensusState) Prevote(round int) time.Duration {
 // Precommit returns the amount of time to wait for straggler votes after receiving any +2/3 precommits
 func (cs *ConsensusState) Precommit(round int) time.Duration {
 	return time.Duration(cs.client.Cfg.TimeoutPrecommit+cs.client.Cfg.TimeoutPrecommitDelta*int32(round)) * time.Millisecond
+}
+
+// WaitForTxs returns true if the consensus should wait for transactions before entering the propose step
+func (cs *ConsensusState) WaitForTxs() bool {
+	return !cs.client.Cfg.CreateEmptyBlocks || cs.client.Cfg.CreateEmptyBlocksInterval > 0
+}
+
+// EmptyBlocks returns the amount of time to wait before proposing an empty block or starting the propose timer if there are no txs available
+func (cs *ConsensusState) EmptyBlocksInterval() time.Duration {
+	return time.Duration(cs.client.Cfg.CreateEmptyBlocksInterval) * time.Second
+}
+
+func validateBlock(s sm.State, b *ttypes.Block) error {
+	// validate internal consistency
+	if err := b.ValidateBasic(); err != nil {
+		return err
+	}
+
+	// validate basic info
+	if b.ChainID != s.ChainID {
+		return fmt.Errorf("Wrong Block.Header.ChainID. Expected %v, got %v", s.ChainID, b.ChainID)
+	}
+	if b.Height != s.LastBlockHeight+1 {
+		return fmt.Errorf("Wrong Block.Header.Height. Expected %v, got %v", s.LastBlockHeight+1, b.Height)
+	}
+	/*	TODO: Determine bounds for Time
+		See blockchain/reactor "stopSyncingDurationMinutes"
+
+		if !b.Time.After(lastBlockTime) {
+			return errors.New("Invalid Block.Header.Time")
+		}
+	*/
+
+	// validate prev block info
+	if !b.LastBlockID.Equals(s.LastBlockID) {
+		return fmt.Errorf("Wrong Block.Header.LastBlockID.  Expected %v, got %v", s.LastBlockID, b.LastBlockID)
+	}
+	newTxs := int64(len(b.Data.Txs))
+	if b.TotalTxs != s.LastBlockTotalTx+newTxs {
+		return fmt.Errorf("Wrong Block.Header.TotalTxs. Expected %v, got %v", s.LastBlockTotalTx+newTxs, b.TotalTxs)
+	}
+
+	// validate app info
+	if !bytes.Equal(b.AppHash, s.AppHash) {
+		return fmt.Errorf("Wrong Block.Header.AppHash.  Expected %X, got %v", s.AppHash, b.AppHash)
+	}
+	if !bytes.Equal(b.ConsensusHash, s.ConsensusParams.Hash()) {
+		return fmt.Errorf("Wrong Block.Header.ConsensusHash.  Expected %X, got %v", s.ConsensusParams.Hash(), b.ConsensusHash)
+	}
+	if !bytes.Equal(b.LastResultsHash, s.LastResultsHash) {
+		return fmt.Errorf("Wrong Block.Header.LastResultsHash.  Expected %X, got %v", s.LastResultsHash, b.LastResultsHash)
+	}
+	if !bytes.Equal(b.ValidatorsHash, s.Validators.Hash()) {
+		return fmt.Errorf("Wrong Block.Header.ValidatorsHash.  Expected %X, got %v", s.Validators.Hash(), b.ValidatorsHash)
+	}
+
+	// Validate block LastCommit.
+	if b.Height == 1 {
+		if len(b.LastCommit.Precommits) != 0 {
+			return errors.New("Block at height 1 (first block) should have no LastCommit precommits")
+		}
+	} else {
+		if len(b.LastCommit.Precommits) != s.LastValidators.Size() {
+			return fmt.Errorf("Invalid block commit size. Expected %v, got %v",
+				s.LastValidators.Size(), len(b.LastCommit.Precommits))
+		}
+		err := s.LastValidators.VerifyCommit(
+			s.ChainID, s.LastBlockID, b.Height-1, b.LastCommit)
+		if err != nil {
+			return err
+		}
+	}
+	//hg do it later
+	/*
+	for _, ev := range b.Evidence.Evidence {
+		if err := VerifyEvidence(stateDB, s, ev); err != nil {
+			return types.NewEvidenceInvalidErr(ev, err)
+		}
+
+	}
+    */
+	return nil
 }
 
 func (cs *ConsensusState) ServeMsg(p p2p.IPeer, m *p2p.Msg){
