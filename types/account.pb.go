@@ -42,6 +42,7 @@ It has these top-level messages:
 	TxResult
 	TransactionDetail
 	TransactionDetails
+	BlockBody
 	Reply
 	ReqString
 	ReplyString
