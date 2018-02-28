@@ -187,7 +187,9 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	if err != nil {
 		return err
 	}
-
+    if peer.IsPersistent() == false {
+		return nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
+	}
 	if strings.Split(resp.GetAddrRecv(), ":")[0] != nodeinfo.GetExternalAddr().IP.String() {
 		externalIp := strings.Split(resp.GetAddrRecv(), ":")[0]
 		log.Debug("sendVersion", "externalip", externalIp)

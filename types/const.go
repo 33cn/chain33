@@ -219,22 +219,24 @@ const (
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
 	//local store
-	EventLocalGet          = 76
-	EventLocalReplyValue   = 77
-	EventLocalList         = 78
-	EventLocalSet          = 79
-	EventGetWalletStatus   = 80
-	EventCheckTx           = 81
-	EventReceiptCheckTx    = 82
-	EventQuery             = 83
-	EventReplyQuery        = 84
-	EventFlushTicket       = 85
-	EventFetchBlockHeaders = 86
-	EventAddBlockHeaders   = 87
-	EventWalletAutoMiner   = 88
-	EventReplyWalletStatus = 89
-	EventGetLastBlock      = 90
-	EventBlock             = 91
+	EventLocalGet            = 76
+	EventLocalReplyValue     = 77
+	EventLocalList           = 78
+	EventLocalSet            = 79
+	EventGetWalletStatus     = 80
+	EventCheckTx             = 81
+	EventReceiptCheckTx      = 82
+	EventQuery               = 83
+	EventReplyQuery          = 84
+	EventFlushTicket         = 85
+	EventFetchBlockHeaders   = 86
+	EventAddBlockHeaders     = 87
+	EventWalletAutoMiner     = 88
+	EventReplyWalletStatus   = 89
+	EventGetLastBlock        = 90
+	EventBlock               = 91
+	EventGetTicketCount      = 92
+	EventReplyGetTicketCount = 93
 )
 
 var eventName = map[int]string{
@@ -329,6 +331,8 @@ var eventName = map[int]string{
 	89: "EventReplyWalletStatus",
 	90: "EventGetLastBlock",
 	91: "EventBlock",
+	92: "EventGetTicketCount",
+	93: "EventReplyGetTicketCount",
 }
 
 //ty = 1 -> secp256k1
