@@ -15,9 +15,9 @@ import (
 	"github.com/tendermint/tmlibs/log"
 
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/types"
-	//"github.com/tendermint/tendermint/p2p"
 	sm "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/state"
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/p2p"
+	crypto "github.com/tendermint/go-crypto"
 )
 
 const (
@@ -39,8 +39,42 @@ type ConsensusReactor struct {
 
 	mtx      sync.RWMutex
 	fastSync bool
+
 	eventBus *types.EventBus
 	Logger  log.Logger
+	privKey crypto.PrivKeyEd25519
+	peers        *p2p.PeerSet
+	nodeInfo     *p2p.NodeInfo             // our node info
+	Quit    chan struct{}
+}
+
+func (conR *ConsensusReactor) makeNodeInfo() *p2p.NodeInfo {
+
+	nodeInfo := &p2p.NodeInfo{
+		PubKey:  conR.privKey.PubKey().Unwrap().(crypto.PubKeyEd25519),
+		Moniker: conR.conS.client.Moniker,
+		Network: conR.conS.state.ChainID,
+		Version: "v0.1.0",
+		Other: []string{
+			cmn.Fmt("wire_version=%v", wire.Version),
+			cmn.Fmt("p2p_version=%v", p2p.Version),
+		},
+	}
+
+
+	nat, err := p2p.Discover()
+	if err != nil{
+		conR.Logger.Error("Discover failed ", err.Error())
+		return nil
+	}
+	addr, err := nat.GetExternalAddress()
+	if err != nil{
+		conR.Logger.Error("GetExternalAddress failed ", err.Error())
+		return nil
+	}
+	nodeInfo.ListenAddr = fmt.Sprintf("%v:1900", addr)
+
+	return nodeInfo
 }
 
 // NewConsensusReactor returns a new ConsensusReactor with the given consensusState.
@@ -48,13 +82,18 @@ func NewConsensusReactor(consensusState *ConsensusState, fastSync bool) *Consens
 	conR := &ConsensusReactor{
 		conS:     consensusState,
 		fastSync: fastSync,
+
+		privKey:  crypto.GenPrivKeyEd25519(),
+		peers:    p2p.NewPeerSet(),
+		eventBus: nil,
 	}
+	conR.nodeInfo = conR.makeNodeInfo()
 	//conR.BaseReactor = *p2p.NewBaseReactor("ConsensusReactor", conR)
 	return conR
 }
 
 // OnStart implements BaseService.
-func (conR *ConsensusReactor) OnStart() error {
+func (conR *ConsensusReactor) Start() error {
 	conR.Logger.Info("ConsensusReactor ", "fastSync", conR.FastSync())
 	/*
 	if err := conR.BaseReactor.OnStart(); err != nil {
@@ -77,7 +116,7 @@ func (conR *ConsensusReactor) OnStart() error {
 }
 
 // OnStop implements BaseService
-func (conR *ConsensusReactor) OnStop() {
+func (conR *ConsensusReactor) Stop() {
 	//conR.BaseReactor.OnStop()
 	conR.conS.Stop()
 }
@@ -139,7 +178,7 @@ func (conR *ConsensusReactor) GetChannels() []*p2p.ChannelDescriptor {
 */
 
 // AddPeer implements Reactor
-func (conR *ConsensusReactor) AddPeer(peer p2p.Peer) {
+func (conR *ConsensusReactor) AddPeer(peer p2p.IPeer) {
 	//hg do it later
 	/*
 	if !conR.IsRunning() {
@@ -404,7 +443,7 @@ func (conR *ConsensusReactor) broadcastProposalHeartbeatMessage(heartbeat types.
 	conR.Logger.Debug("Broadcasting proposal heartbeat message",
 		"height", hb.Height, "round", hb.Round, "sequence", hb.Sequence)
 	msg := &ProposalHeartbeatMessage{hb}
-	conR.Switch.Broadcast(StateChannel, struct{ ConsensusMessage }{msg})
+	conR.peers.Broadcast(StateChannel, struct{ ConsensusMessage }{msg})
 }
 
 func (conR *ConsensusReactor) broadcastNewRoundStep(rs *types.RoundState) {
@@ -835,7 +874,7 @@ var (
 // PeerState contains the known state of a peer, including its connection
 // and threadsafe access to its PeerRoundState.
 type PeerState struct {
-	Peer   p2p.Peer
+	Peer   p2p.IPeer
 	logger log.Logger
 
 	mtx sync.Mutex
@@ -843,7 +882,7 @@ type PeerState struct {
 }
 
 // NewPeerState returns a new PeerState for the given Peer
-func NewPeerState(peer p2p.Peer) *PeerState {
+func NewPeerState(peer p2p.IPeer) *PeerState {
 	return &PeerState{
 		Peer:   peer,
 		logger: log.NewNopLogger(),
