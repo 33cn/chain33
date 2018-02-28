@@ -332,3 +332,13 @@ func (req *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply
 	}
 	return result, nil
 }
+
+func (req *Grpc) GetTicketCount(ctx context.Context, in *types.ReqNil) (*pb.Int64, error) {
+
+	result, err := req.cli.GetTicketCount()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+
+}

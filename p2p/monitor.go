@@ -127,18 +127,19 @@ FOR_LOOP:
 						testlist = append(testlist, peer.String())
 					}
 				}
-					oklist := P2pComm.AddrRouteble(testlist)
-					for _, addr := range oklist {
 
-						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
-							log.Debug("GetAddrFromOffline", "Add addr", addr)
-							savelist[addr] = true
-						}
+				oklist := P2pComm.AddrRouteble(testlist)
+				for _, addr := range oklist {
 
+					if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
+						log.Debug("GetAddrFromOffline", "Add addr", addr)
+						savelist[addr] = true
 					}
-				//}
+
+				}
 
 				if len(savelist) == 0 {
+					log.Debug("getAddrFromOffline", "savelist num", 0)
 					continue
 				}
 
