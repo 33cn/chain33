@@ -149,22 +149,48 @@ func (tx *Transaction) Amount() (int64, error) {
 	return 0, nil
 }
 
-//获取tx交易的ActionType.0:其他，1：coin 2：miner
-func (tx *Transaction) ActionType() (int64, error) {
+
+//获取tx交易的Actionname
+func (tx *Transaction) ActionName() string {
 	if "coins" == string(tx.Execer) {
-		return 1, nil
+		var action CoinsAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow"
+		}
+		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+			return "transfer"
+		} else if action.Ty == CoinsActionWithdraw && action.GetTransfer() != nil {
+			return "withdraw"
+		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
+			return "genesis"
+		} else {
+			return "unknow"
+		}
 	} else if "ticket" == string(tx.Execer) {
 		var action TicketAction
-		err := Decode(tx.GetPayload(), &action)
+		err := Decode(tx.Payload, &action)
 		if err != nil {
-			return 0, ErrDecode
+			return "unknow"
 		}
-		if action.Ty == TicketActionMiner && action.GetMiner() != nil {
-			return 2, nil
+		if action.Ty == TicketActionGenesis && action.GetGenesis() != nil {
+			return "genesis"
+		} else if action.Ty == TicketActionOpen && action.GetTopen() != nil {
+			return "open"
+		} else if action.Ty == TicketActionClose && action.GetTclose() != nil {
+			return "close"
+		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			return "miner"
 		}
+		return "unknow"
+	} else if "none" == string(tx.Execer) {
+		return "none"
+	} else if "hashlock" == string(tx.Execer) {
+		return "hashlock"
 	}
-	return 0, nil
+	return "unknow"
 }
+
 func (block *Block) Hash() []byte {
 	head := &Header{}
 	head.Version = block.Version

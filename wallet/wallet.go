@@ -1107,7 +1107,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		if err != nil {
 			continue
 		}
-		txdetail.Actionty, _ = txdetail.Tx.ActionType()
+		txdetail.ActionName = txdetail.Tx.ActionName()
 		txdetail.Amount = amount
 
 		//获取from地址
@@ -1247,7 +1247,7 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		txdetail.Blocktime = txdetal.GetBlocktime()
 		txdetail.Amount = txdetal.GetAmount()
 		txdetail.Fromaddr = txdetal.GetFromaddr()
-		txdetail.Actionty, _ = txdetal.GetTx().ActionType()
+		txdetail.ActionName = txdetal.GetTx().ActionName()
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
