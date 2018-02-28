@@ -29,9 +29,6 @@ It has these top-level messages:
 	BlockDetails
 	Headers
 	BlockOverview
-	ReceiptLog
-	Receipt
-	ReceiptData
 	BlockDetail
 	Receipts
 	ReceiptCheckTxList
@@ -39,9 +36,6 @@ It has these top-level messages:
 	ReqBlocks
 	MempoolSize
 	ReplyBlockHeight
-	TxResult
-	TransactionDetail
-	TransactionDetails
 	BlockBody
 	Reply
 	ReqString
@@ -135,6 +129,12 @@ It has these top-level messages:
 	ReplyTxList
 	TxHashList
 	ReplyTxInfos
+	ReceiptLog
+	Receipt
+	ReceiptData
+	TxResult
+	TransactionDetail
+	TransactionDetails
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
