@@ -31,7 +31,6 @@ type peer struct {
 	wg          sync.WaitGroup
 	pmutx       sync.Mutex
 	nodeInfo    **NodeInfo
-	outbound    bool
 	conn        *grpc.ClientConn // source connection
 	persistent  bool
 	isrunning   bool
@@ -46,9 +45,8 @@ type peer struct {
 	taskChan    chan interface{} //tx block
 }
 
-func NewPeer(isout bool, conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
+func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
 	p := &peer{
-		outbound:    isout,
 		conn:        conn,
 		taskPool:    make(chan struct{}, 50),
 		allLoopDone: make(chan struct{}, 1),
@@ -366,9 +364,6 @@ func (p *peer) GetRunning() bool {
 
 // makePersistent marks the peer as persistent.
 func (p *peer) makePersistent() {
-	if !p.outbound {
-		panic("inbound peers can't be made persistent")
-	}
 	p.persistent = true
 }
 
