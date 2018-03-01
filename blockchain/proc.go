@@ -116,7 +116,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
 	block = msg.Data.(*types.Block)
-	chainlog.Error("EventBroadcastAddBlock", "height", block.Height, "hash", common.ToHex(block.Hash()))
+	chainlog.Debug("EventBroadcastAddBlock", "height", block.Height, "hash", common.ToHex(block.Hash()))
 
 	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: block})
 	if err != nil {
