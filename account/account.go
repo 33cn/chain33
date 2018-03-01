@@ -144,9 +144,7 @@ func GetGenesisKVSet(g *types.Genesis) (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err error) {
-	client := q.NewClient()
-	//get current head ->
+func LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, err error) {
 	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	client.Send(msg, true)
 	msg, err = client.Wait(msg)

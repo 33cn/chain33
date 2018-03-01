@@ -12,3 +12,7 @@ datadir2/
 rpc/test/1.png
 common/mavl/test.db
 .idea
+build/chain33*
+build/datadir
+build/*.log
+build/coverage
