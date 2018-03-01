@@ -64,7 +64,8 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 		ps.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, pr.Addr())
 		//pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
 	}
-
+	//TODO 是否通过Routechat 发送给单向连接的远程节点呢？
+	m.broadcastByStream(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 
 }
@@ -541,26 +542,31 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 
 }
 
-//func (m *P2pCli) broadcastByStream(data interface{}) bool {
-//	ticker := time.NewTicker(time.Second * 10)
-//	defer ticker.Stop()
-//	select {
-//	case <-ticker.C:
-//		//log.Error("broadcastByStream", "timeout", "return")
-//		return false
+func (m *P2pCli) broadcastByStream(data interface{}) bool {
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+	select {
+	case <-ticker.C:
+		//log.Error("broadcastByStream", "timeout", "return")
+		return false
 
-//	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
-//	}
+	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
+	}
 
-//	return true
+	return true
 
-//}
+}
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
 	}()
 
+	//通过RouteChat Send函数 广播给所有连接本节点的远程节点，确保单向连接的节点也能收到广播的block
+	m.broadcastByStream(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)})
+
+	//TODO 是否也要发送给连接的节点呢？，这样对于双向连接的节点间，造成两次发送
 	peers := m.network.node.GetRegisterPeers()
+
 	for _, pr := range peers {
 		ps.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, pr.Addr())
 	}
