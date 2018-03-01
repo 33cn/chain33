@@ -204,72 +204,147 @@ func (p *peer) SendData(data interface{}) (err error) {
 
 func (p *peer) subStreamBlock() {
 
+	pcli := NewP2pCli(nil)
+	go func(p *peer) {
+		//Stream Send data
+
+		for {
+			if p.GetRunning() == false {
+				return
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			resp, err := p.mconn.conn.RouteChat(ctx)
+			if err != nil {
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				time.Sleep(time.Second * 5)
+				cancel()
+				continue
+			}
+		SEND_LOOP:
+			for {
+				timeout := time.NewTimer(time.Second * 2)
+				select {
+				case task := <-p.taskChan:
+					if p.GetRunning() == false {
+						resp.CloseSend()
+						cancel()
+						return
+					}
+					p2pdata := new(pb.BroadCastData)
+					if block, ok := task.(*pb.P2PBlock); ok {
+						height := block.GetBlock().GetHeight()
+						pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
+						if err == nil {
+							if pinfo.GetHeader().GetHeight() >= height {
+								timeout.Stop()
+								continue
+							}
+						}
+						if p.filterTask.QueryTask(height) == true {
+							timeout.Stop()
+							continue //已经接收的消息不再发送
+						}
+						p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+						//登记新的发送消息
+						p.filterTask.RegTask(height)
+
+					} else if tx, ok := task.(*pb.P2PTx); ok {
+						sig := tx.GetTx().GetSignature().GetSignature()
+						if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+							continue
+						}
+						p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+						p.filterTask.RegTask(hex.EncodeToString(sig))
+					}
+					err := resp.Send(p2pdata)
+					if err != nil {
+						p.peerStat.NotOk()
+						(*p.nodeInfo).monitorChan <- p
+						resp.CloseSend()
+						cancel()
+						break SEND_LOOP //下一次外循环重新获取stream
+					}
+				case <-timeout.C:
+					if p.GetRunning() == false {
+						resp.CloseSend()
+						cancel()
+						return
+					}
+				}
+			}
+
+		}
+	}(p)
+
 	for {
 		if p.GetRunning() == false {
 			return
 		}
-		ctx, cancel := context.WithCancel(context.Background())
-		resp, err := p.mconn.conn.RouteChat(ctx)
+		resp, err := p.mconn.conn.RouteChat(context.Background())
 		if err != nil {
 			p.peerStat.NotOk()
 			(*p.nodeInfo).monitorChan <- p
 			time.Sleep(time.Second * 5)
-			cancel()
 			continue
 		}
-	SEND_LOOP:
+		log.Debug("SubStreamBlock", "Start", p.Addr())
+
 		for {
-			timeout := time.NewTimer(time.Second * 2)
-			select {
-			case task := <-p.taskChan:
-				if p.GetRunning() == false {
-					resp.CloseSend()
-					cancel()
-					return
-				}
-				p2pdata := new(pb.BroadCastData)
-				if block, ok := task.(*pb.P2PBlock); ok {
-					height := block.GetBlock().GetHeight()
-					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
+			if p.GetRunning() == false {
+				return
+			}
+			data, err := resp.Recv()
+			if err != nil {
+
+				resp.CloseSend()
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				break
+			}
+
+			if block := data.GetBlock(); block != nil {
+
+				if block.GetBlock() != nil {
+					//如果已经有登记过的消息记录，则不发送给本地blockchain
+					if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
+						continue
+					}
+
+					//判断比自己低的区块，则不发送给blockchain
+
+					height, err := pcli.GetBlockHeight((*p.nodeInfo))
 					if err == nil {
-						if pinfo.GetHeader().GetHeight() >= height {
-							timeout.Stop()
+						if height >= block.GetBlock().GetHeight() {
 							continue
 						}
 					}
-					if p.filterTask.QueryTask(height) == true {
-						timeout.Stop()
-						continue //已经接收的消息不再发送
-					}
-					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
-					//登记新的发送消息
-					p.filterTask.RegTask(height)
-
-				} else if tx, ok := task.(*pb.P2PTx); ok {
-					sig := tx.GetTx().GetSignature().GetSignature()
-					if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+					log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
+					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					err = (*p.nodeInfo).qclient.Send(msg, false)
+					if err != nil {
+						log.Error("subStreamBlock", "Error", err.Error())
 						continue
 					}
-					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-					p.filterTask.RegTask(hex.EncodeToString(sig))
+					p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
 				}
-				err := resp.Send(p2pdata)
-				if err != nil {
-					p.peerStat.NotOk()
-					(*p.nodeInfo).monitorChan <- p
-					resp.CloseSend()
-					cancel()
-					break SEND_LOOP //下一次外循环重新获取stream
-				}
-			case <-timeout.C:
-				if p.GetRunning() == false {
-					resp.CloseSend()
-					cancel()
-					return
-				}
-			}
-		}
 
+			} else if tx := data.GetTx(); tx != nil {
+
+				if tx.GetTx() != nil {
+					log.Debug("SubStreamBlock", "tx", tx.GetTx())
+					sig := tx.GetTx().GetSignature().GetSignature()
+					if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+						continue //处理方式同上
+					}
+					msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					(*p.nodeInfo).qclient.Send(msg, false)
+					p.filterTask.RegTask(hex.EncodeToString(sig)) //登记
+				}
+
+			}
+
+		}
 	}
 
 }
