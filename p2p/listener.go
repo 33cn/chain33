@@ -10,7 +10,6 @@ import (
 )
 
 func (l *DefaultListener) Close() bool {
-
 	l.listener.Close()
 	l.server.Stop()
 	log.Info("stop", "DefaultListener", "close")
@@ -23,7 +22,6 @@ type Listener interface {
 	Close() bool
 }
 
-// Implements Listener
 type DefaultListener struct {
 	listener  net.Listener
 	server    *grpc.Server

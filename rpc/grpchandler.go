@@ -76,6 +76,13 @@ func (req *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.
 
 	return reply, nil
 }
+func (req *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, error) {
+	reply, err := req.cli.QueryTx(in.GetHash())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.HexTx{Tx: reply.GetTx().String()}, nil
+}
 func (req *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.TransactionDetails, error) {
 
 	reply, err := req.cli.GetTxByHashes(in)
@@ -295,7 +302,7 @@ func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.Wallet
 	if err != nil {
 		return nil, err
 	}
-	return reply, nil
+	return (*pb.WalletStatus)(reply), nil
 }
 
 func (req *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts, error) {
@@ -324,4 +331,14 @@ func (req *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply
 		return nil, err
 	}
 	return result, nil
+}
+
+func (req *Grpc) GetTicketCount(ctx context.Context, in *types.ReqNil) (*pb.Int64, error) {
+
+	result, err := req.cli.GetTicketCount()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+
 }

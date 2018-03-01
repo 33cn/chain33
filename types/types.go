@@ -10,10 +10,10 @@ import (
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	"github.com/golang/protobuf/proto"
-	log "github.com/inconshreveable/log15"
+	//log "github.com/inconshreveable/log15"
 )
 
-var tlog = log.New("module", "types")
+//var tlog = log.New("module", "types")
 
 type Message proto.Message
 
@@ -116,6 +116,81 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	}
 }
 
+//解析tx的payload获取amount值
+func (tx *Transaction) Amount() (int64, error) {
+
+	if "coins" == string(tx.Execer) {
+		var action CoinsAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+			transfer := action.GetTransfer()
+			return transfer.Amount, nil
+		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
+			gen := action.GetGenesis()
+			return gen.Amount, nil
+		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
+			transfer := action.GetWithdraw()
+			return transfer.Amount, nil
+		}
+	} else if "ticket" == string(tx.Execer) {
+		var action TicketAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			ticketMiner := action.GetMiner()
+			return ticketMiner.Reward, nil
+		}
+	}
+	return 0, nil
+}
+
+
+//获取tx交易的Actionname
+func (tx *Transaction) ActionName() string {
+	if "coins" == string(tx.Execer) {
+		var action CoinsAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow"
+		}
+		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+			return "transfer"
+		} else if action.Ty == CoinsActionWithdraw && action.GetTransfer() != nil {
+			return "withdraw"
+		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
+			return "genesis"
+		} else {
+			return "unknow"
+		}
+	} else if "ticket" == string(tx.Execer) {
+		var action TicketAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow"
+		}
+		if action.Ty == TicketActionGenesis && action.GetGenesis() != nil {
+			return "genesis"
+		} else if action.Ty == TicketActionOpen && action.GetTopen() != nil {
+			return "open"
+		} else if action.Ty == TicketActionClose && action.GetTclose() != nil {
+			return "close"
+		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			return "miner"
+		}
+		return "unknow"
+	} else if "none" == string(tx.Execer) {
+		return "none"
+	} else if "hashlock" == string(tx.Execer) {
+		return "hashlock"
+	}
+	return "unknow"
+}
+
 func (block *Block) Hash() []byte {
 	head := &Header{}
 	head.Version = block.Version
@@ -151,7 +226,7 @@ func (block *Block) CheckSign() bool {
 	}
 	//检查交易的签名
 	cpu := runtime.NumCPU()
-	ok := checkall(block.Txs, cpu)
+	ok := checkAll(block.Txs, cpu)
 	return ok
 }
 
@@ -190,7 +265,7 @@ func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result
 	}
 }
 
-func checkall(task []*Transaction, n int) bool {
+func checkAll(task []*Transaction, n int) bool {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -278,4 +353,24 @@ func CheckAmount(amount int64) bool {
 		return false
 	}
 	return true
+}
+
+func GetEventName(event int) string {
+	name, ok := eventName[event]
+	if ok {
+		return name
+	}
+	return "unknow-event"
+}
+
+func GetSignatureTypeName(signType int) string {
+	if signType == 1 {
+		return "secp256k1"
+	} else if signType == 2 {
+		return "ed25519"
+	} else if signType == 3 {
+		return "sm2"
+	} else {
+		return "unknow"
+	}
 }

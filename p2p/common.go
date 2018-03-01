@@ -49,7 +49,7 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 		return nil, err
 	}
 
-	peer, err := c.NewPeerFromConn(conn, true, addr, nodeinfo)
+	peer, err := c.NewPeerFromConn(conn, addr, nodeinfo)
 	if err != nil {
 		conn.Close()
 		return nil, err
@@ -65,10 +65,10 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 	return peer, nil
 }
 
-func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
 	// Key and NodeInfo are set after Handshake
-	p := NewPeer(outbound, rawConn, nodeinfo, remote)
+	p := NewPeer(rawConn, nodeinfo, remote)
 
 	return p, nil
 }
