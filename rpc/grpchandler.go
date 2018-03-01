@@ -342,3 +342,10 @@ func (req *Grpc) GetTicketCount(ctx context.Context, in *types.ReqNil) (*pb.Int6
 	return result, nil
 
 }
+func (req *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, error) {
+	result, err := req.cli.DumpPrivkey(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
