@@ -286,31 +286,9 @@ const (
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
 )
-<<<<<<< HEAD
 
 //norm
 const (
 	NormActionPut = 1
 )
 
-func GetEventName(event int) string {
-	name, ok := eventName[event]
-	if ok {
-		return name
-	}
-	return "unknow-event"
-}
-
-func GetSignatureTypeName(signType int) string {
-	if signType == 1 {
-		return "secp256k1"
-	} else if signType == 2 {
-		return "ed25519"
-	} else if signType == 3 {
-		return "sm2"
-	} else {
-		return "unknow"
-	}
-}
-=======
->>>>>>> origin/develop

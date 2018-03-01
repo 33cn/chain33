@@ -5,11 +5,8 @@ import (
 	"errors"
 	"time"
 
-<<<<<<< HEAD
-=======
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/merkle"
->>>>>>> origin/develop
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
