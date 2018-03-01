@@ -244,6 +244,12 @@ func main() {
 			return
 		}
 		GetTxHexByHash(argsWithoutProg[1])
+	case "getticketcount":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTicketCount()
 	default:
 		fmt.Print("指令错误")
 	}
@@ -285,6 +291,7 @@ func LoadHelp() {
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
 	fmt.Println("gettxhexbyhash [hash]                                       : 通过哈希获取交易十六进制字符串")
+	fmt.Println("getticketcount []                                           : 获取票数")
 }
 
 type AccountsResult struct {
@@ -1385,6 +1392,28 @@ func GetTxHexByHash(hash string) {
 	}
 	var res string
 	err = rpc.Call("Chain33.GetHexTxByHash", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetTicketCount() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res int64
+	err = rpc.Call("Chain33.GetTicketCount", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
