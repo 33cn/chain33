@@ -35,8 +35,10 @@ const secretLen = 32
 const defaultAmount = 1e11
 
 type Record struct {
-	RecordId string `json:"recordId"`
-	DocType  string `json:"docType"`
+	RecordId         string `json:"recordId"`
+	NegativeType     string `json:"negativeType"`
+	NegativeSeverity string `json:"negativeSeverity"`
+	NegativeInfo     string `json:"negativeInfo"`
 }
 
 type Org struct {
@@ -77,11 +79,11 @@ func main() {
 		argsWithoutProg := os.Args[1:]
 		switch argsWithoutProg[0] {
 		case "putBlackRecord":
-			if len(argsWithoutProg) != 3 {
+			if len(argsWithoutProg) != 5 {
 				fmt.Print(errors.New("参数错误").Error())
 				return
 			}
-			putBlackRecord(argsWithoutProg[1], argsWithoutProg[2])
+			putBlackRecord(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 		case "getBlackRecord":
 			if len(argsWithoutProg) != 2 {
 				fmt.Print(errors.New("参数错误").Error())
@@ -191,7 +193,7 @@ func putOrgHttp(w http.ResponseWriter, r *http.Request) {
 }
 
 func getBlackRecordHttp(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("getBlackRecordHttp")
+	fmt.Println("getBlackRecord")
 
 	//if r.Method != "POST" {
 	//return
@@ -234,7 +236,7 @@ func getBlackRecordHttp(w http.ResponseWriter, r *http.Request) {
 }
 
 func putBlackRecordHttp(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("putBlackRecordHttp")
+	fmt.Println("putBlackRecord")
 	if r.Method != "POST" {
 		return
 	}
@@ -333,13 +335,13 @@ func getOrg(orgId string) {
 }
 
 //put the things in []byte
-func putBlackRecord(recordId string, docType string) {
+func putBlackRecord(recordId string, negativeType string, negativeSeverity string, negativeInfo string) {
 	fmt.Println("putBlackRecord")
 
 	var testKey string
 	var testValue []byte
 
-	record := &Record{RecordId: recordId, DocType: docType}
+	record := &Record{RecordId: recordId, NegativeType: negativeType, NegativeSeverity: negativeSeverity, NegativeInfo: negativeInfo}
 	testKey = "blackRecord" + record.RecordId
 	testValue, _ = json.Marshal(record)
 	fmt.Println(testValue)
