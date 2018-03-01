@@ -311,7 +311,10 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	pubkey := txresult.GetTx().Signature.GetPubkey()
 	addr := account.PubKeyToAddress(pubkey)
 	TransactionDetail.Fromaddr = addr.String()
-
+	if string(TransactionDetail.Tx.GetExecer()) == "coins" && TransactionDetail.GetActionName() == "withdraw" {
+		//swap from and to
+		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
+	}
 	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
 
 	return &TransactionDetail, nil
