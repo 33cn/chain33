@@ -115,3 +115,12 @@ message ReqWalletSetLabel {
 message ReqWalletMergeBalance {
 	string to = 1;
 }
+
+message ReqStr {
+	string reqstr = 1;
+}
+
+message ReplyStr {
+	string replystr = 1;
+}
+
