@@ -289,7 +289,10 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	//通过判断区块的难度Difficulty
 	//1. target >= currentdiff
 	//2.  current bit == target
-	target, modify := client.getNextTarget(parent, parent.Difficulty)
+	target, modify, err := client.getNextTarget(parent, parent.Difficulty)
+	if err != nil {
+		return err
+	}
 	if string(modify) != string(miner.Modify) {
 		return types.ErrModify
 	}
@@ -317,15 +320,15 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	return nil
 }
 
-func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big.Int, []byte) {
+func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big.Int, []byte, error) {
 	if block.Height == 0 {
-		return powLimit, defaultModify
+		return powLimit, defaultModify, nil
 	}
 	targetBits, modify, err := client.GetNextRequiredDifficulty(block, bits)
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
-	return common.CompactToBig(targetBits), modify
+	return common.CompactToBig(targetBits), modify, nil
 }
 
 func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
@@ -425,9 +428,12 @@ func printBInt(data *big.Int) string {
 	return strings.Repeat("0", 64-len(txt)) + txt
 }
 
-func (client *TicketClient) searchTargetTicket(parent, block *types.Block) (*types.Ticket, crypto.PrivKey, *big.Int, []byte, int) {
+func (client *TicketClient) searchTargetTicket(parent, block *types.Block) (*types.Ticket, crypto.PrivKey, *big.Int, []byte, int, error) {
 	bits := parent.Difficulty
-	diff, modify := client.getNextTarget(parent, bits)
+	diff, modify, err := client.getNextTarget(parent, bits)
+	if err != nil {
+		return nil, nil, nil, nil, 0, err
+	}
 	tlog.Debug("target", "hex", printBInt(diff))
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
@@ -448,9 +454,9 @@ func (client *TicketClient) searchTargetTicket(parent, block *types.Block) (*typ
 		}
 		tlog.Info("currentdiff", "hex", printBInt(currentdiff))
 		tlog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
-		return ticket, priv, diff, modify, i
+		return ticket, priv, diff, modify, i, nil
 	}
-	return nil, nil, nil, nil, 0
+	return nil, nil, nil, nil, 0, nil
 }
 
 func (client *TicketClient) delTicket(ticket *types.Ticket, index int) {
@@ -473,7 +479,11 @@ func (client *TicketClient) delTicket(ticket *types.Ticket, index int) {
 
 func (client *TicketClient) Miner(parent, block *types.Block) bool {
 	//add miner address
-	ticket, priv, diff, modify, index := client.searchTargetTicket(parent, block)
+	ticket, priv, diff, modify, index, err := client.searchTargetTicket(parent, block)
+	if err != nil {
+		tlog.Error("Miner", "err", err)
+		return false
+	}
 	if ticket == nil {
 		return false
 	}
