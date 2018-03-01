@@ -270,11 +270,11 @@ func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
 	}
 
 	//手续费检查
-	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	accFrom := account.LoadAccount(e.stateDB, from)
-	if accFrom.GetBalance() < types.MinBalanceTransfer {
-		return types.ErrBalanceLessThanTenTimesFee
-	}
+	//from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	//accFrom := account.LoadAccount(e.stateDB, from)
+	//if accFrom.GetBalance() < types.MinBalanceTransfer {
+	//	return types.ErrBalanceLessThanTenTimesFee
+	//}
 	//checkInExec
 	exec, err := execdrivers.LoadExecute(string(tx.Execer))
 	if err != nil {

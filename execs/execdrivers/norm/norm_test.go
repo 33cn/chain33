@@ -66,7 +66,7 @@ func TestInitAccount(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 }
 
 type TestOrg struct {
@@ -87,7 +87,7 @@ func createKV() error {
 
 func TestNormPut(t *testing.T) {
 	fmt.Println("TestNormPut start")
-	defer time.Sleep(time.Second)
+	defer time.Sleep(10 * time.Second)
 	defer fmt.Println("TestNormPut end\n")
 
 	err := createKV()
@@ -140,6 +140,50 @@ func TestNormGet(t *testing.T) {
 		return
 	}
 	fmt.Println("GetOrg =", org)
+}
+
+func TestNormHas(t *testing.T) {
+	fmt.Println("TestNormHas start")
+	defer fmt.Println("TestNormHas end\n")
+
+	has, err := Has([]byte(testKey))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if !has {
+		t.Error(errors.New(testKey + " does exist"))
+	}
+
+	has, err = Has([]byte("nokey"))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if has {
+		t.Error(errors.New(testKey + " does not exist"))
+	}
+}
+
+func Has(key []byte) (bool, error) {
+	var req types.Query
+	req.Execer = []byte("norm")
+	req.FuncName = "NormHas"
+	req.Payload = []byte(key)
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		return false, err
+	}
+	if !reply.IsOk {
+		return false, errors.New(string(reply.GetMsg()))
+	}
+	value := strings.TrimSpace(string(reply.Msg))
+	fmt.Println("GetValue =", value)
+
+	if strings.Contains(value, "true") {
+		return true, nil
+	}
+	return false, nil
 }
 
 func genaddress() (string, crypto.PrivKey) {

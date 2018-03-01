@@ -105,6 +105,11 @@ func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{string(value)}, nil
+	} else if funcname == "NormHas" {
+		if n.GetQueryDB().Get(params) != nil {
+			return &types.ReplyString{"true"}, nil
+		}
+		return &types.ReplyString{"false"}, nil
 	}
 	return nil, types.ErrActionNotSupport
 }
