@@ -14,3 +14,7 @@ chain33_raft
 chain33_raft*
 common/mavl/test.db
 .idea
+build/chain33*
+build/datadir
+build/*.log
+build/coverage
