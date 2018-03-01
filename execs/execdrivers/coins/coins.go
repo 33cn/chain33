@@ -46,7 +46,7 @@ func (n *Coins) GetActionName(tx *types.Transaction) string {
 	}
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		return "transfer"
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetTransfer() != nil {
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		return "withdraw"
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		return "genesis"
