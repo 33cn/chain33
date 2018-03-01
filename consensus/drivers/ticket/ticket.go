@@ -470,6 +470,9 @@ func (client *TicketClient) delTicket(ticket *types.Ticket, index int) {
 	//2. 全表search
 	for i := 0; i < len(client.tlist.Tickets); i++ {
 		oldticket = client.tlist.Tickets[i]
+		if oldticket == nil {
+			continue
+		}
 		if oldticket.TicketId == ticket.TicketId {
 			client.tlist.Tickets[i] = nil
 			return
