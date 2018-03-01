@@ -48,6 +48,7 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	pServer.node = dl.n
 	pServer.ManageStream()
 	dl.server = grpc.NewServer()
+
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	go dl.listenRoutine()
