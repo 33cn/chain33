@@ -250,6 +250,12 @@ func main() {
 			return
 		}
 		GetTicketCount()
+	case "dumpprivkey": //导出私钥
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		DumpPrivkey(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -267,6 +273,7 @@ func LoadHelp() {
 	fmt.Println("settxfee [amount]                                           : 设置交易费")
 	fmt.Println("sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
 	fmt.Println("importprivkey [privkey, label]                              : 引入私钥")
+	fmt.Println("dumpprivkey [addr]                                          : 导出私钥")
 	fmt.Println("wallettxlist [from, count, direction]                       : 钱包交易列表")
 	fmt.Println("getmempool []                                               : 获取内存池")
 	fmt.Println("sendtransaction [data]                                      : 发送交易")
@@ -333,7 +340,7 @@ type TxDetailResult struct {
 	Blocktime  int64                `json:"blocktime"`
 	Amount     string               `json:"amount"`
 	Fromaddr   string               `json:"fromaddr"`
-	ActionName string               `json:"actionName"`
+	ActionName string               `json:"actionname"`
 }
 
 type TxDetailsResult struct {
@@ -372,7 +379,7 @@ type WalletTxDetailResult struct {
 	Amount     string               `json:"amount"`
 	Fromaddr   string               `json:"fromaddr"`
 	Txhash     string               `json:"txhash"`
-	ActionName string               `json:"actionName"`
+	ActionName string               `json:"actionname"`
 }
 
 type AddrOverviewResult struct {
@@ -1414,6 +1421,28 @@ func GetTicketCount() {
 	}
 	var res int64
 	err = rpc.Call("Chain33.GetTicketCount", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+func DumpPrivkey(addr string) {
+	params := types.ReqStr{Reqstr: addr}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyStr
+	err = rpc.Call("Chain33.DumpPrivkey", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

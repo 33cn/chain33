@@ -58,6 +58,7 @@ type IRClient interface {
 	//miner
 	SetAutoMiner(*types.MinerFlag) (*types.Reply, error)
 	GetTicketCount() (*types.Int64, error)
+	DumpPrivkey(*types.ReqStr) (*types.ReplyStr, error)
 }
 
 type channelClient struct {
@@ -659,4 +660,17 @@ func (client *channelClient) GetTicketCount() (*types.Int64, error) {
 		return nil, err
 	}
 	return resp.GetData().(*types.Int64), nil
+}
+
+func (client *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventDumpPrivkey, in)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.ReplyStr), nil
 }
