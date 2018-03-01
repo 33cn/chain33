@@ -762,3 +762,13 @@ func (req Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
 	return nil
 
 }
+
+func (req Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
+	reply, err := req.cli.DumpPrivkey(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
