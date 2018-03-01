@@ -286,3 +286,11 @@ const (
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
 )
+
+//retrieve
+const (
+	RetrievePre    = 1
+	RetrievePerf   = 2
+	RetrieveBackup = 3
+	RetrieveCancel = 4
+)
