@@ -14,18 +14,18 @@ driver="leveldb"
 dbPath="datadir"
 
 [p2p]
-seeds=["54.222.210.199:13802"]
+seeds=["127.0.0.1:13802"]
 enable=true
 isSeed=false
 msgCacheSize=10240
 dbPath="datadir/addrbook"
-version=5
-verMix=5
-verMax=6
+version=15
+verMix=15
+verMax=16
 grpcLogFile="grpc33.log"
 
 [mempool]
-poolCacheSize=10240
+poolCacheSize=102400
 minTxFee=1000000
 
 [consensus]
@@ -35,7 +35,7 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 nodeId=1
 raftApiPort=9121
 isNewJoinNode=false
-peersURL="http://127.0.0.1:9021"
+peersURL="http://127.0.0.1:9021,http://127.0.0.2:9021,http://127.0.0.2:9021"
 readOnlyPeersURL=""
 addPeersURL=""
 genesisBlockTime=1514533394

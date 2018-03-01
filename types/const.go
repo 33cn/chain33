@@ -94,7 +94,7 @@ const (
 	MinBalanceTransfer              = 1e6
 	MaxTxSize                int64  = 100000   //100K
 	MaxBlockSize             int64  = 10000000 //10M
-	MaxTxNumber              int64  = 1600     //160
+	MaxTxNumber              int64  = 10000     //160
 	PowLimitBits             uint32 = uint32(0x1f00ffff)
 	TargetTimespan                  = 144 * 16 * time.Second
 	TargetTimePerBlock              = 16 * time.Second
