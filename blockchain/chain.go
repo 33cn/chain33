@@ -36,6 +36,7 @@ var (
 	checkHeightNoIncSeconds int64 = 5 * 60 // 高度不增长时的检测周期目前暂定5分钟
 	checkBlockHashSeconds   int64 = 1 * 60 //30分钟检测一次tip hash和peer 对应高度的hash是否一致
 	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
+	isStrongConsistency     bool  = false
 )
 
 //保存peerlist中lastheight最高的peer
@@ -122,6 +123,7 @@ func initConfig(cfg *types.BlockChain) {
 	if cfg.BatchBlockNum > 0 {
 		BatchBlockNum = cfg.BatchBlockNum
 	}
+	isStrongConsistency = cfg.IsStrongConsistency
 }
 
 func (chain *BlockChain) Close() {

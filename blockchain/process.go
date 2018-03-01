@@ -254,10 +254,12 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	prevStateHash := b.bestChain.Tip().statehash
 	//广播或者同步过来的blcok需要调用执行模块
 
-	blockdetail, err = util.ExecBlock(b.q, prevStateHash, block, true)
-	if err != nil {
-		chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
-		return err
+	if !isStrongConsistency || blockdetail.Receipts == nil {
+		blockdetail, err = util.ExecBlock(b.q, prevStateHash, block, true)
+		if err != nil {
+			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
+			return err
+		}
 	}
 
 	beg := time.Now()
