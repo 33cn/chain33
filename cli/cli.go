@@ -238,6 +238,12 @@ func main() {
 			return
 		}
 		SetAutoMining(argsWithoutProg[1])
+	case "gettxhexbyhash":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTxHexByHash(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -278,6 +284,7 @@ func LoadHelp() {
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
+	fmt.Println("gettxhexbyhash [hash]                                       : 通过哈希获取交易十六进制字符串")
 }
 
 type AccountsResult struct {
@@ -311,14 +318,15 @@ type TxResult struct {
 }
 
 type TxDetailResult struct {
-	Tx        *TxResult            `json:"tx"`
-	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
-	Proofs    []string             `json:"proofs"`
-	Height    int64                `json:"height"`
-	Index     int64                `json:"index"`
-	Blocktime int64                `json:"blocktime"`
-	Amount    string               `json:"amount"`
-	Fromaddr  string               `json:"fromaddr"`
+	Tx         *TxResult            `json:"tx"`
+	Receipt    *jsonrpc.ReceiptData `json:"receipt"`
+	Proofs     []string             `json:"proofs"`
+	Height     int64                `json:"height"`
+	Index      int64                `json:"index"`
+	Blocktime  int64                `json:"blocktime"`
+	Amount     string               `json:"amount"`
+	Fromaddr   string               `json:"fromaddr"`
+	ActionName string               `json:"actionName"`
 }
 
 type TxDetailsResult struct {
@@ -349,14 +357,15 @@ type WalletTxDetailsResult struct {
 }
 
 type WalletTxDetailResult struct {
-	Tx        *TxResult            `json:"tx"`
-	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
-	Height    int64                `json:"height"`
-	Index     int64                `json:"index"`
-	Blocktime int64                `json:"blocktime"`
-	Amount    string               `json:"amount"`
-	Fromaddr  string               `json:"fromaddr"`
-	Txhash    string               `json:"txhash"`
+	Tx         *TxResult            `json:"tx"`
+	Receipt    *jsonrpc.ReceiptData `json:"receipt"`
+	Height     int64                `json:"height"`
+	Index      int64                `json:"index"`
+	Blocktime  int64                `json:"blocktime"`
+	Amount     string               `json:"amount"`
+	Fromaddr   string               `json:"fromaddr"`
+	Txhash     string               `json:"txhash"`
+	ActionName string               `json:"actionName"`
 }
 
 type AddrOverviewResult struct {
@@ -696,14 +705,15 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		wtxd := &WalletTxDetailResult{
-			Tx:        t,
-			Receipt:   v.Receipt,
-			Height:    v.Height,
-			Index:     v.Index,
-			Blocktime: v.Blocktime,
-			Amount:    amountResult,
-			Fromaddr:  v.Fromaddr,
-			Txhash:    v.Txhash,
+			Tx:         t,
+			Receipt:    v.Receipt,
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.Blocktime,
+			Amount:     amountResult,
+			Fromaddr:   v.Fromaddr,
+			Txhash:     v.Txhash,
+			ActionName: v.ActionName,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
 	}
@@ -803,14 +813,15 @@ func QueryTransaction(h string) {
 	}
 	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(1e8), 'f', 4, 64)
 	result := TxDetailResult{
-		Tx:        t,
-		Receipt:   res.Receipt,
-		Proofs:    res.Proofs,
-		Height:    res.Height,
-		Index:     res.Index,
-		Blocktime: res.Blocktime,
-		Amount:    amountResult,
-		Fromaddr:  res.Fromaddr,
+		Tx:         t,
+		Receipt:    res.Receipt,
+		Proofs:     res.Proofs,
+		Height:     res.Height,
+		Index:      res.Index,
+		Blocktime:  res.Blocktime,
+		Amount:     amountResult,
+		Fromaddr:   res.Fromaddr,
+		ActionName: res.ActionName,
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -885,14 +896,15 @@ func GetTransactionByHashes(hashes []string) {
 		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		td := &TxDetailResult{
-			Tx:        t,
-			Receipt:   v.Receipt,
-			Proofs:    v.Proofs,
-			Height:    v.Height,
-			Index:     v.Index,
-			Blocktime: v.Blocktime,
-			Amount:    amountResult,
-			Fromaddr:  v.Fromaddr,
+			Tx:         t,
+			Receipt:    v.Receipt,
+			Proofs:     v.Proofs,
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.Blocktime,
+			Amount:     amountResult,
+			Fromaddr:   v.Fromaddr,
+			ActionName: v.ActionName,
 		}
 		result.Txs = append(result.Txs, td)
 	}
@@ -1247,7 +1259,7 @@ func GetWalletStatus() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res *types.WalletStatus
+	var res jsonrpc.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1355,6 +1367,29 @@ func SetAutoMining(flag string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetTxHexByHash(hash string) {
+	params := jsonrpc.QueryParm{Hash: hash}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res string
+	err = rpc.Call("Chain33.GetHexTxByHash", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

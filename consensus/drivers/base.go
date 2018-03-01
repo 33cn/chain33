@@ -119,7 +119,8 @@ func (client *BaseClient) InitBlock() {
 }
 
 func (client *BaseClient) Close() {
-	log.Info("consensus solo closed")
+	client.qclient.Close()
+	log.Info("consensus base closed")
 }
 
 func (client *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
@@ -181,6 +182,9 @@ func (client *BaseClient) EventLoop() {
 				} else {
 					msg.ReplyErr("EventMinerStop", nil)
 				}
+			} else if msg.Ty == types.EventDelBlock {
+				block := msg.GetData().(*types.BlockDetail).Block
+				client.UpdateCurrentBlock(block)
 			} else {
 				client.child.ProcEvent(msg)
 			}
@@ -215,7 +219,10 @@ func (client *BaseClient) RequestTx(listSize int) []*types.Transaction {
 	//tlog.Error("requestTx", "time", time.Now().Format(time.RFC3339Nano))
 	msg := client.qclient.NewMessage("mempool", types.EventTxList, listSize)
 	client.qclient.Send(msg, true)
-	resp, _ := client.qclient.Wait(msg)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil
+	}
 	return resp.GetData().(*types.ReplyTxList).GetTxs()
 }
 
@@ -231,6 +238,21 @@ func (client *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 	}
 	blocks := resp.GetData().(*types.BlockDetails)
 	return blocks.Items[0].Block, nil
+}
+
+//获取最新的block从blockchain模块
+func (client *BaseClient) RequestLastBlock() (*types.Block, error) {
+	if client.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	msg := client.qclient.NewMessage("blockchain", types.EventGetLastBlock, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	block := resp.GetData().(*types.Block)
+	return block, nil
 }
 
 // solo初始化时，取一次区块高度放在内存中，后面自增长，不用再重复去blockchain取
@@ -276,6 +298,17 @@ func (client *BaseClient) SetCurrentBlock(b *types.Block) {
 	if client.currentBlock == nil || client.currentBlock.Height <= b.Height {
 		client.currentBlock = b
 	}
+	client.mulock.Unlock()
+}
+
+func (client *BaseClient) UpdateCurrentBlock(b *types.Block) {
+	client.mulock.Lock()
+
+	block, err := client.RequestLastBlock()
+	if err != nil {
+		panic(err)
+	}
+	client.currentBlock = block
 	client.mulock.Unlock()
 }
 

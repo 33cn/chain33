@@ -126,13 +126,16 @@ func (q *Queue) Send(msg Message) (err error) {
 			err = res.(error)
 		}
 	}()
-	timeout := time.After(time.Second * 60)
+	timeout := time.NewTimer(time.Second * 60)
 	select {
 	case sub.high <- msg:
-	case <-timeout:
+	case <-timeout.C:
 		return types.ErrTimeout
 	}
-	qlog.Debug("send ok", "msg", msg, "msgid", msg.Id)
+	if !timeout.Stop() {
+		<-timeout.C
+	}
+	qlog.Debug("send ok", "msg", msg)
 	return nil
 }
 
@@ -196,7 +199,7 @@ func (msg Message) Reply(replyMsg Message) {
 		return
 	}
 	msg.ChReply <- replyMsg
-	qlog.Debug("reply msg ok", "msg", msg, "msgid", msg.Id)
+	qlog.Debug("reply msg ok", "msg", msg)
 }
 
 func (msg Message) String() string {
