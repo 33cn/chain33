@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -110,6 +111,67 @@ func (c Comm) Pubkey(key string) (string, error) {
 	}
 
 	return hex.EncodeToString(priv.PubKey().Bytes()), nil
+}
+func (c Comm) NewPingData(peer *peer) (*pb.P2PPing, error) {
+	randNonce := rand.Int31n(102040)
+	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: (*peer.nodeInfo).GetExternalAddr().IP.String(), Port: int32((*peer.nodeInfo).GetExternalAddr().Port)}
+	var err error
+	ping, err = c.Signature(peer.mconn.key, ping)
+	if err != nil {
+		log.Error("Signature", "Error", err.Error())
+		return nil, err
+	}
+	return ping, nil
+
+}
+
+func (c Comm) Signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
+
+	data := pb.Encode(in)
+	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+	if err != nil {
+		log.Error("CryPto Error", "Error", err.Error())
+		return nil, err
+	}
+	pribyts, err := hex.DecodeString(key)
+	if err != nil {
+		log.Error("DecodeString Error", "Error", err.Error())
+		return nil, err
+	}
+	priv, err := cr.PrivKeyFromBytes(pribyts)
+	if err != nil {
+		log.Error("Load PrivKey", "Error", err.Error())
+		return nil, err
+	}
+	in.Sign = new(pb.Signature)
+	in.Sign.Signature = priv.Sign(data).Bytes()
+	in.Sign.Ty = pb.SECP256K1
+	in.Sign.Pubkey = priv.PubKey().Bytes()
+
+	return in, nil
+}
+func (c Comm) CheckSign(in *pb.P2PPing) bool {
+	data := pb.Encode(in)
+	sign := in.GetSign()
+	if sign == nil {
+		return false
+	}
+	cr, err := crypto.New(pb.GetSignatureTypeName(int(sign.Ty)))
+	if err != nil {
+		log.Error("CheckSign", "crypto.New err", err.Error())
+		return false
+	}
+	pub, err := cr.PubKeyFromBytes(sign.Pubkey)
+	if err != nil {
+		log.Error("CheckSign", "PubKeyFromBytes err", err.Error())
+		return false
+	}
+	signbytes, err := cr.SignatureFromBytes(sign.Signature)
+	if err != nil {
+		log.Error("CheckSign", "SignatureFromBytes err", err.Error())
+		return false
+	}
+	return pub.VerifyBytes(data, signbytes)
 }
 
 func (c Comm) GrpcConfig() grpc.ServiceConfig {

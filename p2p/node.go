@@ -160,8 +160,8 @@ func (n *Node) AddPeer(pr *peer) {
 		peer = nil
 	}
 	log.Debug("AddPeer", "peer", pr.Addr())
-	n.outBound[pr.Addr()] = pr
 	pr.key = n.addrBook.key
+	n.outBound[pr.Addr()] = pr
 	pr.Start()
 	return
 
