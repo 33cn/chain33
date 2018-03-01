@@ -20,9 +20,7 @@ func LoadExecAccount(db dbm.KVDB, addr, execaddr string) *types.Account {
 	return &acc
 }
 
-func LoadExecAccountQueue(q *queue.Queue, addr, execaddr string) (*types.Account, error) {
-	client := q.NewClient()
-	//get current head ->
+func LoadExecAccountQueue(client queue.Client, addr, execaddr string) (*types.Account, error) {
 	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
