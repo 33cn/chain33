@@ -149,18 +149,17 @@ func (tx *Transaction) Amount() (int64, error) {
 	return 0, nil
 }
 
-
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
 	if "coins" == string(tx.Execer) {
 		var action CoinsAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
-			return "unknow"
+			return "unknow-err"
 		}
 		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
 			return "transfer"
-		} else if action.Ty == CoinsActionWithdraw && action.GetTransfer() != nil {
+		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
 			return "withdraw"
 		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
@@ -171,7 +170,7 @@ func (tx *Transaction) ActionName() string {
 		var action TicketAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
-			return "unknow"
+			return "unknow-err"
 		}
 		if action.Ty == TicketActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
