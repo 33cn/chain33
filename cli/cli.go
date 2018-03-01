@@ -312,6 +312,7 @@ func LoadHelp() {
 	fmt.Println("getrawtx [hash]                                             : 通过哈希获取交易十六进制字符串")
 	fmt.Println("getticketcount []                                           : 获取票数")
 	fmt.Println("decodetx [data]                                             : 解析交易")
+	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
 }
 
 type AccountsResult struct {
@@ -1580,4 +1581,30 @@ func DecodeTx(tran string) {
 		}
 		fmt.Println(string(data))
 	}
+}
+
+func GetColdAddrByMiner(addr string) {
+	reqaddr := &types.ReqString{addr}
+	var params jsonrpc.Query
+	params.Execer = "ticket"
+	params.FuncName = "MinerSourceList"
+	params.Payload = hex.EncodeToString(types.Encode(reqaddr))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.Message
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
