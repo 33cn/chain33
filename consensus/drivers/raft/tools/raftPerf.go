@@ -13,7 +13,6 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
-	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -21,25 +20,31 @@ import (
 const fee = 1e6
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-var rpc *jsonrpc.JsonClient
+var conn *grpc.ClientConn
+var c types.GrpcserviceClient
 var r *rand.Rand
 
-func init() {
+func createConn(ip string) {
 	var err error
-	rpc, err = jsonrpc.NewJsonClient("http://172.18.31.169:8801")
+	url := ip + ":8802"
+	fmt.Println("grpc url:", url)
+	conn, err = grpc.Dial(url, grpc.WithInsecure())
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
+	c = types.NewGrpcserviceClient(conn)
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 func main() {
 	common.SetLogLevel("eror")
-	if len(os.Args) == 1 {
+	if len(os.Args) == 1 || os.Args[1] == "-h" {
 		LoadHelp()
 		return
 	}
-	argsWithoutProg := os.Args[1:]
+	createConn(os.Args[1])
+	argsWithoutProg := os.Args[2:]
 	switch argsWithoutProg[0] {
 	case "-h": //使用帮助
 		LoadHelp()
@@ -68,21 +73,21 @@ func main() {
 		}
 		NormPut(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
 	case "normget": //发送到地址
-		if len(argsWithoutProg) != 3 {
+		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		NormGet(argsWithoutProg[1], argsWithoutProg[2])
+		NormGet(argsWithoutProg[1])
 	}
 }
 
 func LoadHelp() {
 	fmt.Println("Available Commands:")
-	fmt.Println("transferperf [from, to, amount, txNum, duration]            : 转账性能测试")
-	fmt.Println("sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
-	fmt.Println("normperf [privkey, size, num, duration]                     : 常规写数据性能测试")
-	fmt.Println("normput [privkey, key, value]                               : 常规写数据")
-	fmt.Println("normget [ip, key]                                           : 常规读数据")
+	fmt.Println("[ip] transferperf [from, to, amount, txNum, duration]            : 转账性能测试")
+	fmt.Println("[ip] sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
+	fmt.Println("[ip] normperf [privkey, size, num, duration]                     : 常规写数据性能测试")
+	fmt.Println("[ip] normput [privkey, key, value]                               : 常规写数据")
+	fmt.Println("[ip] normget [key]                                               : 常规读数据")
 }
 
 func TransferPerf(from string, to string, amount string, txNum string, duration string) {
@@ -123,16 +128,14 @@ func SendToAddress(from string, to string, amount string, note string) {
 		return
 	}
 	amountInt64 := int64(amountFloat64 * 1e4)
-	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64 * 1e4, Note: note}
+	tx := &types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64 * 1e4, Note: note}
 
-	var res jsonrpc.ReplyHash
-	err = rpc.Call("Chain33.SendToAddress", params, &res)
+	reply, err := c.SendToAddress(context.Background(), tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-
-	data, err := json.MarshalIndent(res, "", "    ")
+	data, err := json.MarshalIndent(reply, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -166,7 +169,6 @@ func NormPerf(privkey string, size string, num string, duration string) {
 			for {
 				key = RandStringBytes(10)
 				value = RandStringBytes(sizeInt)
-				fmt.Println(key, "=", value)
 				NormPut(privkey, key, value)
 				txs++
 				if durInt != 0 && txs == durInt {
@@ -191,34 +193,29 @@ func RandStringBytes(n int) string {
 }
 
 func NormPut(privkey string, key string, value string) {
+	fmt.Println(key, "=", value)
 	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
-	//tx := &types.Transaction{Execer: []byte(key), Payload: []byte(value), Fee: fee, Expire: 0}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, getprivkey(privkey))
-	params := jsonrpc.RawParm{Data: common.ToHex(types.Encode(tx))}
 
-	var res string
-	err := rpc.Call("Chain33.SendTransaction", params, &res)
+	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
 }
 
-func NormGet(ip string, key string) {
+func NormGet(key string) {
 	var req types.Query
 	req.Execer = []byte("norm")
 	req.FuncName = "NormGet"
 	req.Payload = []byte(key)
-
-	url := ip + ":8802"
-	conn, err := grpc.Dial(url, grpc.WithInsecure())
-	if err != nil {
-		panic(err)
-	}
-	c := types.NewGrpcserviceClient(conn)
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
