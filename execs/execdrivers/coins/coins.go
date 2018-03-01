@@ -44,9 +44,6 @@ func (n *Coins) GetActionName(tx *types.Transaction) string {
 	if err != nil {
 		return "unknow"
 	}
-	if err = account.CheckAddress(tx.To); err != nil {
-		return "unknow"
-	}
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		return "transfer"
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetTransfer() != nil {
