@@ -39,20 +39,7 @@ func (n *Coins) GetName() string {
 }
 
 func (n *Coins) GetActionName(tx *types.Transaction) string {
-	var action types.CoinsAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknow"
-	}
-	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-		return "transfer"
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
-		return "withdraw"
-	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
-		return "genesis"
-	} else {
-		return "unknow"
-	}
+	return tx.ActionName()
 }
 
 func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
