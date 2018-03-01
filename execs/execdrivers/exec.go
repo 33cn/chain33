@@ -90,17 +90,21 @@ func NewStateDB(q *queue.Queue, stateHash []byte) *StateDB {
 
 func (e *StateDB) Get(key []byte) (value []byte, err error) {
 	if value, ok := e.cache[string(key)]; ok {
+		//elog.Error("getkey", "key", string(key), "value", string(value))
 		return value, nil
 	}
 	value, err = e.db.Get(key)
 	if err != nil {
+		//elog.Error("getkey", "key", string(key), "err", err)
 		return nil, err
 	}
+	//elog.Error("getkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return value, nil
 }
 
 func (e *StateDB) Set(key []byte, value []byte) error {
+	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return nil
 }
@@ -116,17 +120,21 @@ func NewLocalDB(q *queue.Queue) *LocalDB {
 
 func (e *LocalDB) Get(key []byte) (value []byte, err error) {
 	if value, ok := e.cache[string(key)]; ok {
+		//elog.Error("getkey", "key", string(key), "value", string(value))
 		return value, nil
 	}
 	value, err = e.db.Get(key)
 	if err != nil {
+		//elog.Error("getkey", "key", string(key), "err", err)
 		return nil, err
 	}
+	//elog.Error("getkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return value, nil
 }
 
 func (e *LocalDB) Set(key []byte, value []byte) error {
+	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return nil
 }
