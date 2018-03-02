@@ -199,6 +199,23 @@ func (tx *Transaction) ActionName() string {
 		} else {
 			return "unknow"
 		}
+	} else if "retrieve" == string(tx.Execer) {
+		var action RetrieveAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == RetrievePre && action.GetPreRet() != nil {
+			return "prepare"
+		} else if action.Ty == RetrievePerf && action.GetPerfRet() != nil {
+			return "perform"
+		} else if action.Ty == RetrieveBackup && action.GetBackup() != nil {
+			return "backup"
+		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
+			return "cancel"
+		} else {
+			return "unknow"
+		}
 	}
 	return "unknow"
 }
