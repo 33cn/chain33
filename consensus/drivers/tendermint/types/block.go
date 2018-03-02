@@ -21,6 +21,10 @@ type Block struct {
 	*Data      `json:"data"`
 	Evidence   EvidenceData `json:"evidence"`
 	LastCommit *Commit      `json:"last_commit"`
+	//added hg20180302
+	LastParentHash  []byte
+	LastBlockTime int64
+	LastStateHash   []byte
 }
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.

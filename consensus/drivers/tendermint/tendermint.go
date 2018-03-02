@@ -22,7 +22,7 @@ type TendermintClient struct{
 	privValidator ttypes.PrivValidator
 	csState       *core.ConsensusState
 	csReactor     *core.ConsensusReactor
-	ListenAddr    string
+	ListenPort    string
 	Moniker       string  //node name
 }
 
@@ -51,13 +51,11 @@ func New(cfg *types.Consensus) *TendermintClient {
 
 	state.LastBlockHeight = c.GetInitHeight()
 
-
-
 	client := &TendermintClient{
 		BaseClient:       c,
 		genesisDoc :      genesisDoc,
 		privValidator :   privValidator,
-		ListenAddr:       "0.0.0.0:36656",
+		ListenPort:       "36656",
 		Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
 	}
 	csState := core.NewConsensusState(client, state)
