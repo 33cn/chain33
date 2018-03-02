@@ -6,7 +6,7 @@ import (
 
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "none"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -289,4 +289,12 @@ const (
 	HashlockActionLock   = 1
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
+)
+
+//retrieve
+const (
+	RetrievePre    = 1
+	RetrievePerf   = 2
+	RetrieveBackup = 3
+	RetrieveCancel = 4
 )
