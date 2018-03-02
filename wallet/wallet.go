@@ -128,12 +128,33 @@ func (wallet *Wallet) autoMining() {
 		select {
 		case <-wallet.miningTicket.C:
 			if wallet.isAutoMining() {
-				wallet.closeTicket()
-				wallet.buyTicket()
-				wallet.buyMinerAddrTicket()
+				n1, err := wallet.closeTicket()
+				if err != nil {
+					walletlog.Error("closeTicket", "err", err)
+				}
+				n2, err := wallet.buyTicket()
+				if err != nil {
+					walletlog.Error("buyTicket", "err", err)
+				}
+				n3, err := wallet.buyMinerAddrTicket()
+				if err != nil {
+					walletlog.Error("buyMinerAddrTicket", "err", err)
+				}
+				if n1+n2+n3 > 0 {
+					wallet.flushTicket()
+				}
 			} else {
-				wallet.closeTicket()
-				wallet.withdrawFromTicket()
+				n1, err := wallet.closeTicket()
+				if err != nil {
+					walletlog.Error("closeTicket", "err", err)
+				}
+				err = wallet.withdrawFromTicket()
+				if err != nil {
+					walletlog.Error("withdrawFromTicket", "err", err)
+				}
+				if n1 > 0 {
+					wallet.flushTicket()
+				}
 			}
 		case <-wallet.done:
 			return
@@ -141,53 +162,60 @@ func (wallet *Wallet) autoMining() {
 	}
 }
 
-func (wallet *Wallet) buyTicket() {
+func (wallet *Wallet) buyTicket() (int, error) {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
 		walletlog.Error("buyTicket.getAllPrivKeys", "err", err)
-		return
+		return 0, err
 	}
+	count := 0
 	for _, priv := range privs {
-		err := wallet.buyTicketOne(priv)
+		n, err := wallet.buyTicketOne(priv)
 		if err != nil {
 			walletlog.Error("buyTicketOne", "err", err)
-			return
+			return count, err
 		}
+		count += n
 	}
+	return count, nil
 }
 
-func (wallet *Wallet) buyMinerAddrTicket() {
+func (wallet *Wallet) buyMinerAddrTicket() (int, error) {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
 		walletlog.Error("buyMinerAddrTicket.getAllPrivKeys", "err", err)
-		return
+		return 0, err
 	}
+	count := 0
 	for _, priv := range privs {
-		err := wallet.buyMinerAddrTicketOne(priv)
+		n, err := wallet.buyMinerAddrTicketOne(priv)
 		if err != nil {
 			walletlog.Error("buyMinerAddrTicketOne", "err", err)
-			return
+			return count, nil
 		}
+		count += n
 	}
+	return count, nil
 }
 
-func (wallet *Wallet) withdrawFromTicket() {
+func (wallet *Wallet) withdrawFromTicket() error {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
 		walletlog.Error("withdrawFromTicket.getAllPrivKeys", "err", err)
-		return
+		return err
 	}
 	for _, priv := range privs {
 		err := wallet.withdrawFromTicketOne(priv)
 		if err != nil {
 			walletlog.Error("withdrawFromTicketOne", "err", err)
-			return
+			return err
 		}
 	}
+	return nil
 }
 
-func (wallet *Wallet) closeTicket() {
-	wallet.closeAllTickets()
+func (wallet *Wallet) closeTicket() (int, error) {
+	return wallet.closeAllTickets()
 }
 
 func (wallet *Wallet) flushTicket() {
