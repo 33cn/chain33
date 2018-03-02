@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/queue"
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
@@ -65,6 +64,7 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 		//pr.SendData(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}) //异步处理
 	}
 
+	m.broadcastByStream(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)})
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 
 }
@@ -159,7 +159,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
 	randNonce := rand.Int31n(102040)
-	in, err := m.signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)})
+	in, err := P2pComm.Signature(peer.mconn.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
@@ -206,7 +206,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	randNonce := rand.Int31n(102040)
 	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)}
-	_, err := m.signature(peer.mconn.key, ping)
+	_, err := P2pComm.Signature(peer.mconn.key, ping)
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
@@ -541,26 +541,31 @@ func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
 
 }
 
-//func (m *P2pCli) broadcastByStream(data interface{}) bool {
-//	ticker := time.NewTicker(time.Second * 10)
-//	defer ticker.Stop()
-//	select {
-//	case <-ticker.C:
-//		//log.Error("broadcastByStream", "timeout", "return")
-//		return false
+//广播给所有连接本节点的远程节点
+func (m *P2pCli) broadcastByStream(data interface{}) bool {
+	timeout := time.NewTimer(time.Second * 5)
+	defer timeout.Stop()
+	select {
+	case <-timeout.C:
+		//log.Error("broadcastByStream", "timeout", "return")
+		return false
 
-//	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
-//	}
+	case m.network.node.nodeInfo.p2pBroadcastChan <- data:
+	}
 
-//	return true
+	return true
 
-//}
+}
 func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
 	}()
 
+	//通过RouteChat Send函数 广播给所有连接本节点的远程节点，确保单向连接的节点也能收到广播的block
+	m.broadcastByStream(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)})
+
 	peers := m.network.node.GetRegisterPeers()
+
 	for _, pr := range peers {
 		ps.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, pr.Addr())
 	}
@@ -599,31 +604,6 @@ func (m *P2pCli) reportPeerStat(peer *peer) {
 	}
 }
 
-func (m *P2pCli) signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
-
-	data := pb.Encode(in)
-	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
-	if err != nil {
-		log.Error("CryPto Error", "Error", err.Error())
-		return nil, err
-	}
-	pribyts, err := hex.DecodeString(key)
-	if err != nil {
-		log.Error("DecodeString Error", "Error", err.Error())
-		return nil, err
-	}
-	priv, err := cr.PrivKeyFromBytes(pribyts)
-	if err != nil {
-		log.Error("Load PrivKey", "Error", err.Error())
-		return nil, err
-	}
-	in.Sign = new(pb.Signature)
-	in.Sign.Signature = priv.Sign(data).Bytes()
-	in.Sign.Ty = pb.SECP256K1
-	in.Sign.Pubkey = priv.PubKey().Bytes()
-
-	return in, nil
-}
 func (m *P2pCli) flushPeerInfos(in []*pb.Peer) {
 	m.network.node.nodeInfo.peerInfos.flushPeerInfos(in)
 }

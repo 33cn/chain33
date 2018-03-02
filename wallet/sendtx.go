@@ -190,7 +190,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	//判断是否绑定了coldaddr
-	addrs, err := wallet.getMinerSourceList(addr)
+	addrs, err := wallet.getMinerColdAddr(addr)
 	if err != nil {
 		return err
 	}
@@ -432,7 +432,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 	return nil, nil
 }
 
-func (client *Wallet) getMinerSourceList(addr string) ([]string, error) {
+func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
 	var req types.Query
 	req.Execer = []byte("ticket")

@@ -29,10 +29,10 @@ var (
 type TicketClient struct {
 	*drivers.BaseClient
 	//ticket list for miner
-	tlist   *types.ReplyTicketList
-	privmap map[string]crypto.PrivKey
-	mu      sync.Mutex
-	done    chan struct{}
+	tlist    *types.ReplyTicketList
+	privmap  map[string]crypto.PrivKey
+	ticketmu sync.Mutex
+	done     chan struct{}
 }
 
 func New(cfg *types.Consensus) *TicketClient {
@@ -147,11 +147,9 @@ func (client *TicketClient) getTickets() ([]*types.Ticket, []crypto.PrivKey, err
 }
 
 func (client *TicketClient) getTicketCount() int64 {
-	var num int
-	client.mu.Lock()
-	num = len(client.tlist.Tickets)
-	client.mu.Unlock()
-	return int64(num)
+	client.ticketmu.Lock()
+	defer client.ticketmu.Unlock()
+	return int64(len(client.tlist.Tickets))
 }
 
 func (client *TicketClient) getTicketCountMsg(msg queue.Message) {
@@ -161,25 +159,26 @@ func (client *TicketClient) getTicketCountMsg(msg queue.Message) {
 	msg.Reply(client.GetQueueClient().NewMessage("", types.EventReplyGetTicketCount, &ret))
 }
 
+func (client *TicketClient) setTicket(tlist *types.ReplyTicketList, privmap map[string]crypto.PrivKey) {
+	client.ticketmu.Lock()
+	defer client.ticketmu.Unlock()
+	client.tlist = tlist
+	client.privmap = privmap
+}
+
 func (client *TicketClient) flushTicket() error {
 	//list accounts
 	tickets, privs, err := client.getTickets()
 	if err == types.ErrMinerNotStared {
 		tlog.Error("flushTicket error", "err", "wallet miner not start")
-		client.mu.Lock()
-		client.privmap = nil
-		client.tlist.Tickets = nil
-		client.mu.Unlock()
+		client.setTicket(nil, nil)
 		return nil
 	}
 	if err != nil && err != types.ErrMinerNotStared {
 		tlog.Error("flushTicket error", "err", err)
 		return err
 	}
-	client.mu.Lock()
-	client.privmap = getPrivMap(privs)
-	client.tlist.Tickets = tickets
-	client.mu.Unlock()
+	client.setTicket(&types.ReplyTicketList{tickets}, getPrivMap(privs))
 	return nil
 }
 
@@ -290,7 +289,10 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	//通过判断区块的难度Difficulty
 	//1. target >= currentdiff
 	//2.  current bit == target
-	target, modify := client.getNextTarget(parent, parent.Difficulty)
+	target, modify, err := client.getNextTarget(parent, parent.Difficulty)
+	if err != nil {
+		return err
+	}
 	if string(modify) != string(miner.Modify) {
 		return types.ErrModify
 	}
@@ -318,15 +320,15 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	return nil
 }
 
-func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big.Int, []byte) {
+func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big.Int, []byte, error) {
 	if block.Height == 0 {
-		return powLimit, defaultModify
+		return powLimit, defaultModify, nil
 	}
 	targetBits, modify, err := client.GetNextRequiredDifficulty(block, bits)
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
-	return common.CompactToBig(targetBits), modify
+	return common.CompactToBig(targetBits), modify, nil
 }
 
 func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
@@ -426,13 +428,15 @@ func printBInt(data *big.Int) string {
 	return strings.Repeat("0", 64-len(txt)) + txt
 }
 
-func (client *TicketClient) Miner(parent, block *types.Block) bool {
-	//add miner address
+func (client *TicketClient) searchTargetTicket(parent, block *types.Block) (*types.Ticket, crypto.PrivKey, *big.Int, []byte, int, error) {
 	bits := parent.Difficulty
-	diff, modify := client.getNextTarget(parent, bits)
+	diff, modify, err := client.getNextTarget(parent, bits)
+	if err != nil {
+		return nil, nil, nil, nil, 0, err
+	}
 	tlog.Debug("target", "hex", printBInt(diff))
-	client.mu.Lock()
-	defer client.mu.Unlock()
+	client.ticketmu.Lock()
+	defer client.ticketmu.Unlock()
 	for i := 0; i < len(client.tlist.Tickets); i++ {
 		ticket := client.tlist.Tickets[i]
 		if ticket == nil {
@@ -450,29 +454,63 @@ func (client *TicketClient) Miner(parent, block *types.Block) bool {
 		}
 		tlog.Info("currentdiff", "hex", printBInt(currentdiff))
 		tlog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
-		beg := time.Now()
-		receipts, err := client.addMinerTx(parent, block, diff, priv, ticket.TicketId, modify)
-		if err != nil {
-			return false
-		}
-		block.TxHash = merkle.CalcMerkleRoot(block.Txs)
-		blockdetail := &types.BlockDetail{block, getReceiptsData(receipts)}
-		if err := client.CheckBlock(parent, blockdetail); err != nil {
-			return false
-		}
-		err = client.saveBlock(parent, block, receipts)
-		if err != nil {
-			return false
-		}
-		tlog.Info("ExecBlock", "cost", time.Now().Sub(beg))
-		err = client.WriteBlock(blockdetail)
-		if err != nil {
-			return false
-		}
-		client.tlist.Tickets[i] = nil
-		return true
+		return ticket, priv, diff, modify, i, nil
 	}
-	return false
+	return nil, nil, nil, nil, 0, nil
+}
+
+func (client *TicketClient) delTicket(ticket *types.Ticket, index int) {
+	client.ticketmu.Lock()
+	defer client.ticketmu.Unlock()
+	//1. 结构体没有被重新调整过
+	oldticket := client.tlist.Tickets[index]
+	if oldticket.TicketId == ticket.TicketId {
+		client.tlist.Tickets[index] = nil
+	}
+	//2. 全表search
+	for i := 0; i < len(client.tlist.Tickets); i++ {
+		oldticket = client.tlist.Tickets[i]
+		if oldticket == nil {
+			continue
+		}
+		if oldticket.TicketId == ticket.TicketId {
+			client.tlist.Tickets[i] = nil
+			return
+		}
+	}
+}
+
+func (client *TicketClient) Miner(parent, block *types.Block) bool {
+	//add miner address
+	ticket, priv, diff, modify, index, err := client.searchTargetTicket(parent, block)
+	if err != nil {
+		tlog.Error("Miner", "err", err)
+		return false
+	}
+	if ticket == nil {
+		return false
+	}
+	beg := time.Now()
+	receipts, err := client.addMinerTx(parent, block, diff, priv, ticket.TicketId, modify)
+	if err != nil {
+		return false
+	}
+	block.TxHash = merkle.CalcMerkleRoot(block.Txs)
+	blockdetail := &types.BlockDetail{block, getReceiptsData(receipts)}
+	if err := client.CheckBlock(parent, blockdetail); err != nil {
+		return false
+	}
+	err = client.saveBlock(parent, block, receipts)
+	if err != nil {
+		return false
+	}
+	tlog.Info("ExecBlock", "cost", time.Now().Sub(beg))
+	err = client.WriteBlock(blockdetail)
+	if err != nil {
+		return false
+	}
+	client.delTicket(ticket, index)
+	return true
 }
 
 func (client *TicketClient) saveBlock(parent, block *types.Block, receipts *types.Receipts) error {

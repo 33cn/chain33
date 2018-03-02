@@ -9,23 +9,31 @@ import (
 	"sync"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common/crypto"
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
 	pr "google.golang.org/grpc/peer"
 )
 
 type p2pServer struct {
-	imtx     sync.Mutex
-	smtx     sync.Mutex
-	node     *Node
-	loopdone chan struct{}
+	imtx        sync.Mutex //for innerpeers
+	smtx        sync.Mutex
+	node        *Node
+	streams     map[pb.P2Pgservice_RouteChatServer]chan interface{}
+	innerpeers  map[pb.P2Pgservice_RouteChatServer]*innerpeer
+	deleteSChan chan pb.P2Pgservice_RouteChatServer
+	loopdone    chan struct{}
+}
+type innerpeer struct {
+	addr string
+	name string
 }
 
 func NewP2pServer() *p2pServer {
 	return &p2pServer{
-
-		loopdone: make(chan struct{}, 1),
+		streams:     make(map[pb.P2Pgservice_RouteChatServer]chan interface{}),
+		deleteSChan: make(chan pb.P2Pgservice_RouteChatServer, 1024),
+		innerpeers:  make(map[pb.P2Pgservice_RouteChatServer]*innerpeer),
+		loopdone:    make(chan struct{}, 1),
 	}
 
 }
@@ -33,7 +41,7 @@ func NewP2pServer() *p2pServer {
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 
 	peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
-	if s.checkSign(in) {
+	if P2pComm.CheckSign(in) {
 		log.Info("Ping", "p2p server", "recv ping")
 	}
 
@@ -109,6 +117,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 				peers, _ := s.node.GetActivePeers()
 				for _, peer := range peers {
+
 					peer.mconn.conn.Version2(context.Background(), in)
 
 				}
@@ -337,34 +346,68 @@ func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 func (s *p2pServer) RouteChat(stream pb.P2Pgservice_RouteChatServer) error {
 
-	for {
-		in, err := stream.Recv()
-		if err == io.EOF {
-			log.Info("RouteChate", "Recv", "EOF")
-			return nil
-		}
-		if err != nil {
-			log.Error("RouteChate", "Recv", err)
-			return err
-		}
-		if block := in.GetBlock(); block != nil {
-			log.Info("RouteChat", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
-			if block.GetBlock() != nil {
-				msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-				err := s.node.nodeInfo.qclient.Send(msg, false)
-				if err != nil {
-					log.Error("RouteChat", "Error", err.Error())
-					return err
+	go func(stream pb.P2Pgservice_RouteChatServer) error {
+		var peeraddr, peername string
+		defer s.deleteInnerPeerInfo(stream)
+		for {
+			in, err := stream.Recv()
+			if err == io.EOF {
+				log.Info("RouteChate", "Recv", "EOF")
+				return nil
+			}
+			if err != nil {
+				log.Error("RouteChate", "Recv", err)
+				return err
+			}
+			if block := in.GetBlock(); block != nil {
+				log.Info("RouteChat", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
+				if block.GetBlock() != nil {
+					msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					err := s.node.nodeInfo.qclient.Send(msg, false)
+					if err != nil {
+						log.Error("RouteChat", "Error", err.Error())
+						return err
+					}
 				}
-			}
 
-		} else if tx := in.GetTx(); tx != nil {
-			log.Debug("RouteChat", "tx", tx.GetTx())
-			if tx.GetTx() != nil {
-				msg := s.node.nodeInfo.qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
-				s.node.nodeInfo.qclient.Send(msg, false)
-			}
+			} else if tx := in.GetTx(); tx != nil {
+				log.Debug("RouteChat", "tx", tx.GetTx())
+				if tx.GetTx() != nil {
+					msg := s.node.nodeInfo.qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					s.node.nodeInfo.qclient.Send(msg, false)
+				}
 
+			} else if ping := in.GetPing(); ping != nil {
+				//Ping package
+				peername = hex.EncodeToString(ping.GetSign().GetPubkey())
+				peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
+				s.addInnerPeerInfo(stream, innerpeer{addr: peeraddr, name: peername})
+			}
+		}
+	}(stream)
+
+	dataChain := s.addStreamHandler(stream)
+	for data := range dataChain {
+		p2pdata := new(pb.BroadCastData)
+		if block, ok := data.(*pb.P2PBlock); ok {
+			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+		} else if tx, ok := data.(*pb.P2PTx); ok {
+			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+		} else {
+			log.Error("RoutChate", "Convert error", data)
+			continue
+		}
+		//增加过滤，如果自己连接了远程节点，则不需要通过stream send 重复发送数据给这个节点
+		if peerinfo := s.getInnerInfo(stream); peerinfo != nil {
+			if s.node.Has(peerinfo.addr) {
+				continue
+			}
+		}
+		err := stream.Send(p2pdata)
+		if err != nil {
+			s.deleteSChan <- stream
+			s.deleteInnerPeerInfo(stream)
+			return err
 		}
 	}
 
@@ -422,26 +465,91 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	return txmap, nil
 }
 
-func (s *p2pServer) checkSign(in *pb.P2PPing) bool {
-	data := pb.Encode(in)
-	sign := in.GetSign()
-	if sign == nil {
-		return false
+func (s *p2pServer) ManageStream() {
+	go s.deleteDisableStream()
+	go func() { //发送空的block stream ping
+		ticker := time.NewTicker(StreamPingTimeout)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.addStreamBlock(&pb.P2PBlock{})
+			case <-s.loopdone:
+				return
+			}
+		}
+
+	}()
+	go func() {
+		for block := range s.node.nodeInfo.p2pBroadcastChan {
+
+			s.addStreamBlock(block)
+		}
+		log.Info("p2pserver", "manageStream", "close")
+	}()
+}
+
+func (s *p2pServer) addStreamHandler(stream pb.P2Pgservice_RouteChatServer) chan interface{} {
+	s.smtx.Lock()
+	defer s.smtx.Unlock()
+	s.streams[stream] = make(chan interface{}, 1024)
+	return s.streams[stream]
+
+}
+
+func (s *p2pServer) addStreamBlock(block interface{}) {
+	s.smtx.Lock()
+	defer s.smtx.Unlock()
+	timetikc := time.NewTicker(time.Second * 1)
+	defer timetikc.Stop()
+	for stream, _ := range s.streams {
+		if _, ok := s.streams[stream]; !ok {
+			log.Error("AddStreamBLock", "No this Stream", "++++++")
+			continue
+		}
+		select {
+		case s.streams[stream] <- block:
+
+		case <-timetikc.C:
+			continue
+		}
+
 	}
-	c, err := crypto.New(pb.GetSignatureTypeName(int(sign.Ty)))
-	if err != nil {
-		log.Error("CheckSign", "crypto.New err", err.Error())
-		return false
+
+}
+
+func (s *p2pServer) deleteDisableStream() {
+	for stream := range s.deleteSChan {
+		s.deleteStream(stream)
 	}
-	pub, err := c.PubKeyFromBytes(sign.Pubkey)
-	if err != nil {
-		log.Error("CheckSign", "PubKeyFromBytes err", err.Error())
-		return false
+}
+func (s *p2pServer) deleteStream(stream pb.P2Pgservice_RouteChatServer) {
+	s.smtx.Lock()
+	defer s.smtx.Unlock()
+	//log.Debug("deleteStream", "delete", stream)
+	close(s.streams[stream])
+	delete(s.streams, stream)
+}
+
+func (s *p2pServer) addInnerPeerInfo(stream pb.P2Pgservice_RouteChatServer, info innerpeer) {
+	s.imtx.Lock()
+	defer s.imtx.Unlock()
+	s.innerpeers[stream] = &info
+}
+
+func (s *p2pServer) deleteInnerPeerInfo(stream pb.P2Pgservice_RouteChatServer) {
+	s.imtx.Lock()
+	defer s.imtx.Unlock()
+	delete(s.innerpeers, stream)
+
+}
+
+func (s *p2pServer) getInnerInfo(stream pb.P2Pgservice_RouteChatServer) *innerpeer {
+	s.imtx.Lock()
+	defer s.imtx.Unlock()
+	if key, ok := s.innerpeers[stream]; ok {
+		return key
 	}
-	signbytes, err := c.SignatureFromBytes(sign.Signature)
-	if err != nil {
-		log.Error("CheckSign", "SignatureFromBytes err", err.Error())
-		return false
-	}
-	return pub.VerifyBytes(data, signbytes)
+
+	return nil
 }

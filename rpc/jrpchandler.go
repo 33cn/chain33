@@ -80,7 +80,7 @@ func (req Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply.GetTx().String()
+	*result = hex.EncodeToString(types.Encode(reply.GetTx()))
 	return nil
 
 }
@@ -736,7 +736,7 @@ func (req Chain33) Query(in Query, result *interface{}) error {
 		return err
 	}
 
-	*result = (*resp).String()
+	*result = resp
 	return nil
 }
 
@@ -761,4 +761,14 @@ func (req Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
 	*result = resp.GetData()
 	return nil
 
+}
+
+func (req Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
+	reply, err := req.cli.DumpPrivkey(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
 }

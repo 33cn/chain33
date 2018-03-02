@@ -57,6 +57,7 @@ message BlockChain {
 	int64 batchBlockNum = 4;
 	string driver = 5;
 	string dbPath = 6;
+	bool isStrongConsistency = 7;
 }
 
 message P2P {

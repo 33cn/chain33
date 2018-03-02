@@ -36,6 +36,7 @@ var (
 	checkHeightNoIncSeconds int64 = 5 * 60 // 高度不增长时的检测周期目前暂定5分钟
 	checkBlockHashSeconds   int64 = 1 * 60 //30分钟检测一次tip hash和peer 对应高度的hash是否一致
 	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
+	isStrongConsistency     bool  = false
 )
 
 //保存peerlist中lastheight最高的peer
@@ -122,6 +123,7 @@ func initConfig(cfg *types.BlockChain) {
 	if cfg.BatchBlockNum > 0 {
 		BatchBlockNum = cfg.BatchBlockNum
 	}
+	isStrongConsistency = cfg.IsStrongConsistency
 }
 
 func (chain *BlockChain) Close() {
@@ -309,7 +311,10 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	pubkey := txresult.GetTx().Signature.GetPubkey()
 	addr := account.PubKeyToAddress(pubkey)
 	TransactionDetail.Fromaddr = addr.String()
-
+	if string(TransactionDetail.Tx.GetExecer()) == "coins" && TransactionDetail.GetActionName() == "withdraw" {
+		//swap from and to
+		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
+	}
 	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
 
 	return &TransactionDetail, nil
@@ -803,7 +808,10 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			pubkey := txresult.GetTx().Signature.GetPubkey()
 			addr := account.PubKeyToAddress(pubkey)
 			txDetail.Fromaddr = addr.String()
-
+			if string(txDetail.Tx.GetExecer()) == "coins" && txDetail.GetActionName() == "withdraw" {
+				//swap from and to
+				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
+			}
 			chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs[index] = &txDetail
 		}
