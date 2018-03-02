@@ -16,8 +16,9 @@ import (
 	sm "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/state"
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint"
 	"github.com/tendermint/tmlibs/log"
-	"net"
-	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/p2p"
+	gtypes "code.aliyun.com/chain33/chain33/types"
+	"code.aliyun.com/chain33/chain33/common/merkle"
+	"encoding/gob"
 )
 
 //-----------------------------------------------------------------------------
@@ -74,9 +75,10 @@ type ConsensusState struct {
 	// services for creating and executing blocks
 	// TODO: encapsulate all of this in one "BlockManager"
 	blockExec  *sm.BlockExecutor
-	blockStore ttypes.BlockStore
+
 	mempool    ttypes.Mempool
 */
+	blockStore BlockStore
 	evpool     ttypes.EvidencePool
 
 	// internal state
@@ -112,6 +114,22 @@ type ConsensusState struct {
 	done chan struct{}
 
 	Quit    chan struct{}
+}
+
+func TxEncode(data interface{}) ([]byte, error) {
+	buf := bytes.NewBuffer(nil)
+	enc := gob.NewEncoder(buf)
+	err := enc.Encode(data)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func TxDecode(data []byte, to interface{}) error {
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	return dec.Decode(to)
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -891,10 +909,11 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	}
 
 	var newtxs ttypes.Txs
-	for _, tx := range txs {
-		total := tx.String()
-		newtx := []byte(total)
-		newtxs = append(newtxs, newtx)
+	var err error
+	newtxs[0],err = TxEncode(txs)
+	if err != nil{
+		cs.Logger.Error("enterPropose: TxEncode", "error", err)
+		return nil,nil
 	}
 
 	// Mempool validated transactions
@@ -1239,6 +1258,21 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	stateCopy := cs.state.Copy()
 
 	// Execute and commit the block, update and save the state, and update the mempool.
+	//hg 20180302
+	var newblock gtypes.Block
+	newblock.ParentHash = block.LastParentHash
+	newblock.Height = block.Height
+	TxDecode(block.Data.Txs[0], newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.BlockTime = time.Now().Unix()
+	if block.LastBlockTime >= newblock.BlockTime {
+		newblock.BlockTime = block.LastBlockTime + 1
+	}
+	err := cs.client.WriteBlock(block.LastStateHash, &newblock)
+	if err != nil {
+		cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
+	}
+	/*
 	// NOTE: the block.AppHash wont reflect these txs until the next block
 	var err error
 	stateCopy, err = cs.blockExec.ApplyBlock(stateCopy, ttypes.BlockID{block.Hash(), blockParts.Header()}, block)
@@ -1250,6 +1284,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		}
 		return
 	}
+	*/
 
 	fail.Fail() // XXX
 
@@ -1562,6 +1597,16 @@ func (cs *ConsensusState) EmptyBlocksInterval() time.Duration {
 	return time.Duration(cs.client.Cfg.CreateEmptyBlocksInterval) * time.Second
 }
 
+// PeerGossipSleep returns the amount of time to sleep if there is nothing to send from the ConsensusReactor
+func (cs *ConsensusState) PeerGossipSleep() time.Duration {
+	return time.Duration(/*cs.client.Cfg.PeerGossipSleepDuration*/100) * time.Millisecond
+}
+
+// PeerQueryMaj23Sleep returns the amount of time to sleep after each VoteSetMaj23Message is sent in the ConsensusReactor
+func (cs *ConsensusState) PeerQueryMaj23Sleep() time.Duration {
+	return time.Duration(/*cs.PeerQueryMaj23SleepDuration*/2000) * time.Millisecond
+}
+
 func validateBlock(s sm.State, b *ttypes.Block) error {
 	// validate internal consistency
 	if err := b.ValidateBasic(); err != nil {
@@ -1632,82 +1677,4 @@ func validateBlock(s sm.State, b *ttypes.Block) error {
 	}
     */
 	return nil
-}
-
-func (cs *ConsensusState) ServeMsg(p p2p.IPeer, m *p2p.Msg){
-
-}
-
-func (cs *ConsensusState) ListenAndServe() {
-	_, port, err := net.SplitHostPort(cs.client.ListenAddr)
-	if err != nil {
-		cs.Logger.Error("ListenAndServe", "error", err.Error())
-	}
-	l, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		cs.Logger.Error("ListenAndServe","Listen error:", err)
-	}
-
-	cs.Logger.Info("ListenAndServe run","ConsensusState addr", cs.privValidator.GetAddress().String(), "listen addr", cs.client.ListenAddr)
-
-	for {
-		c, err := l.Accept()
-		if err != nil {
-			cs.Logger.Error("ListenAndServe", "Accept error:", err)
-		}
-		p := p2p.NewPeer(c)
-		p.RegService("connect", cs)
-		go p.Serve()
-	}
-}
-
-func (cs *ConsensusState) dialPeer(addr string) error {
-	cs.Logger.Info("dailPeer", "addr", addr)
-	c, err := net.Dial("tcp", addr)
-	if err != nil {
-		cs.Logger.Info("dailPeer", "dial error", err.Error())
-		return err
-	}
-	p := p2p.NewPeer(c)
-	p.RegService("connect", cs)
-
-	err = cs.sendMsg(p, &ConnectMsg{Addr: cs.ListenAddr, Height: cs.lastBlock.Height, Ha: ConnectMsg_Hello}, "connect", true)
-	if err != nil {
-		cs.Logger.Info("dailPeer", "send msg error", err.Error())
-		return err
-	}
-	go p.Serve()
-	return nil
-}
-
-// TODO: concurrent do this
-func (cs *ConsensusState) doMsg(nm *p2p.NodeMsg) *vmsg {
-	var m Message
-	switch nm.Service {
-	case prepareSvc:
-		m = new(VoteMsg)
-	case prePrepareSvc:
-		m = new(PrePrepareMsg)
-	case commitSvc:
-		m = new(VoteMsg)
-	case connectSvc:
-		m = new(ConnectMsg)
-	case blockSvc:
-		m = new(BlockMsg)
-	case getBlockSvc:
-		m = new(GetBlockMsg)
-	case txSvc:
-		m = new(TxMsg)
-	case p2p.CloseSvc:
-		cs.handleClose(nm.IPeer)
-		return nil
-	}
-	err := UnmarshalMsg(nm.Data, m)
-	if err != nil {
-		return nil
-	}
-	if !m.Verify() {
-		log.Fatal("go here")
-	}
-	return &vmsg{Message: m, p: nm.IPeer, svc: nm.Service}
 }
