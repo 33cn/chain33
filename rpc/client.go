@@ -165,7 +165,7 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 }
 
 func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, ""})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, []string{""}})
 	err := client.qclient.Send(msg, true)
 	if err != nil {
 

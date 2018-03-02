@@ -352,10 +352,10 @@ func (m *ChainStatus) GetMsgQueueSize() int64 {
 
 // req
 type ReqBlocks struct {
-	Start    int64  `protobuf:"varint,1,opt,name=start" json:"start,omitempty"`
-	End      int64  `protobuf:"varint,2,opt,name=end" json:"end,omitempty"`
-	Isdetail bool   `protobuf:"varint,3,opt,name=Isdetail" json:"Isdetail,omitempty"`
-	Pid      string `protobuf:"bytes,4,opt,name=pid" json:"pid,omitempty"`
+	Start    int64    `protobuf:"varint,1,opt,name=start" json:"start,omitempty"`
+	End      int64    `protobuf:"varint,2,opt,name=end" json:"end,omitempty"`
+	Isdetail bool     `protobuf:"varint,3,opt,name=Isdetail" json:"Isdetail,omitempty"`
+	Pid      []string `protobuf:"bytes,4,rep,name=pid" json:"pid,omitempty"`
 }
 
 func (m *ReqBlocks) Reset()                    { *m = ReqBlocks{} }
@@ -384,11 +384,11 @@ func (m *ReqBlocks) GetIsdetail() bool {
 	return false
 }
 
-func (m *ReqBlocks) GetPid() string {
+func (m *ReqBlocks) GetPid() []string {
 	if m != nil {
 		return m.Pid
 	}
-	return ""
+	return nil
 }
 
 type MempoolSize struct {
@@ -467,6 +467,7 @@ func init() {
 func init() { proto.RegisterFile("blockchain.proto", fileDescriptor1) }
 
 var fileDescriptor1 = []byte{
+
 	// 602 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x54, 0xcd, 0x6e, 0xd3, 0x40,
 	0x10, 0x96, 0xe3, 0x24, 0x4d, 0xc6, 0x09, 0x0a, 0x2b, 0x84, 0xac, 0x0a, 0x21, 0xd7, 0xf4, 0x60,
