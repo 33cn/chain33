@@ -653,7 +653,13 @@ func (req Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error 
 	if err != nil {
 		return err
 	}
-	*result = reply
+	type AddrOverview struct {
+		Reciver int64
+		Balance int64
+		TxCount int64
+	}
+
+	*result = (*AddrOverview)(reply)
 	return nil
 }
 
