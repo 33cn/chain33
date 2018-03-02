@@ -34,9 +34,11 @@ var (
 	BackBlockNum            int64 = 128    //节点高度不增加时向后取blocks的个数
 	BackwardBlockNum        int64 = 16     //本节点高度不增加时并且落后peer的高度数
 	checkHeightNoIncSeconds int64 = 5 * 60 // 高度不增长时的检测周期目前暂定5分钟
-	checkBlockHashSeconds   int64 = 1 * 60 //30分钟检测一次tip hash和peer 对应高度的hash是否一致
+	checkBlockHashSeconds   int64 = 1 * 60 //1分钟检测一次tip hash和peer 对应高度的hash是否一致
 	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
 	isStrongConsistency     bool  = false
+	MaxRollBlockNum         int64 = 5000 //最大回退block数量
+
 )
 
 //保存peerlist中lastheight最高的peer
@@ -238,7 +240,7 @@ func (chain *BlockChain) poolRoutine() {
 	// 需要从最高peer向后同步指定的headers用来获取分叉点，再后从指定peer获取分叉点以后的blocks
 	checkHeightNoIncreaseTicker := time.NewTicker(time.Duration(checkHeightNoIncSeconds) * time.Second)
 
-	//目前暂定30分钟检测一次本bestchain的tiphash和最高peer的对应高度的blockshash是否一致。
+	//目前暂定1分钟检测一次本bestchain的tiphash和最高peer的对应高度的blockshash是否一致。
 	//如果不一致可能两个节点在各自的链上挖矿，需要从peer的对应高度向后获取指定数量的headers寻找分叉点
 	//考虑叉后的第一个block没有广播到本节点，导致接下来广播过来的blocks都是孤儿节点，无法进行主侧链总难度对比
 	checkBlockHashTicker := time.NewTicker(time.Duration(checkBlockHashSeconds) * time.Second)
@@ -403,10 +405,9 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if !isorphan && err == nil {
 		chain.task.Done(blockdetail.Block.GetHeight())
 	}
-
+	//此处只更新广播block的高度
 	if broadcast && (ismain == true || isorphan == true) {
 		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
-		chain.SendBlockBroadcast(blockdetail)
 	}
 
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
@@ -1180,6 +1181,13 @@ func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers) error {
 		chainlog.Error("ProcAddBlockHeadersMsg start headerinfo", "height", headers.Items[0].Height, "hash", common.ToHex(headers.Items[0].Hash))
 		chainlog.Error("ProcAddBlockHeadersMsg end headerinfo", "height", headers.Items[count-1].Height, "hash", common.ToHex(headers.Items[count-1].Hash))
 
+		//回退5000个block之后不再回退了，直接返回错误
+		tipheight := chain.bestChain.Height()
+		startheight := headers.Items[0].Height
+		if tipheight > startheight && (tipheight-startheight) > MaxRollBlockNum {
+			chainlog.Error("ProcAddBlockHeadersMsg Not Roll Back!", "selfheight", tipheight, "RollBackedhieght", startheight)
+			return types.ErrNotRollBack
+		}
 		//继续向后取指定数量的headers
 		height := headers.Items[0].Height
 		pid := chain.GetPeerMaxBlkPid()
