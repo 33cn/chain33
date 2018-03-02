@@ -10,7 +10,6 @@ import (
 )
 
 const maxNodeInfoSize = 10240 // 10Kb
-const Version = "v0.1.0"
 
 type NodeInfo struct {
 	PubKey     crypto.PubKeyEd25519 `json:"pub_key"`

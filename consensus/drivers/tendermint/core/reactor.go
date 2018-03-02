@@ -18,6 +18,8 @@ import (
 	sm "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/state"
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/p2p"
 	crypto "github.com/tendermint/go-crypto"
+	"net"
+	"strings"
 )
 
 const (
@@ -43,12 +45,23 @@ type ConsensusReactor struct {
 	eventBus *types.EventBus
 	Logger  log.Logger
 	privKey crypto.PrivKeyEd25519
-	peers        *p2p.PeerSet
-	nodeInfo     *p2p.NodeInfo             // our node info
+	Switch          *p2p.Switch
 	Quit    chan struct{}
 }
 
-func (conR *ConsensusReactor) makeNodeInfo() *p2p.NodeInfo {
+func (conR *ConsensusReactor) SetSwitch(sw *p2p.Switch) {
+	conR.Switch = sw
+}
+
+func GetPulicIPInUse() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().String()
+	idx := strings.LastIndex(localAddr, ":")
+	return localAddr[0:idx]
+}
+
+func (conR *ConsensusReactor) MakeDefaultNodeInfo() *p2p.NodeInfo {
 
 	nodeInfo := &p2p.NodeInfo{
 		PubKey:  conR.privKey.PubKey().Unwrap().(crypto.PubKeyEd25519),
@@ -61,18 +74,7 @@ func (conR *ConsensusReactor) makeNodeInfo() *p2p.NodeInfo {
 		},
 	}
 
-
-	nat, err := p2p.Discover()
-	if err != nil{
-		conR.Logger.Error("Discover failed ", err.Error())
-		return nil
-	}
-	addr, err := nat.GetExternalAddress()
-	if err != nil{
-		conR.Logger.Error("GetExternalAddress failed ", err.Error())
-		return nil
-	}
-	nodeInfo.ListenAddr = fmt.Sprintf("%v:1900", addr)
+	nodeInfo.ListenAddr = GetPulicIPInUse() + ":" + conR.conS.client.ListenPort
 
 	return nodeInfo
 }
@@ -84,10 +86,9 @@ func NewConsensusReactor(consensusState *ConsensusState, fastSync bool) *Consens
 		fastSync: fastSync,
 
 		privKey:  crypto.GenPrivKeyEd25519(),
-		peers:    p2p.NewPeerSet(),
 		eventBus: nil,
+		Switch:   nil,
 	}
-	conR.nodeInfo = conR.makeNodeInfo()
 	//conR.BaseReactor = *p2p.NewBaseReactor("ConsensusReactor", conR)
 	return conR
 }
@@ -144,8 +145,6 @@ func (conR *ConsensusReactor) SwitchToConsensus(state sm.State, blocksSynced int
 	}
 }
 
-//20180226 hg do it later
-/*
 // GetChannels implements Reactor
 func (conR *ConsensusReactor) GetChannels() []*p2p.ChannelDescriptor {
 	// TODO optimize
@@ -175,10 +174,9 @@ func (conR *ConsensusReactor) GetChannels() []*p2p.ChannelDescriptor {
 		},
 	}
 }
-*/
 
 // AddPeer implements Reactor
-func (conR *ConsensusReactor) AddPeer(peer p2p.IPeer) {
+func (conR *ConsensusReactor) AddPeer(peer p2p.Peer) {
 	//hg do it later
 	/*
 	if !conR.IsRunning() {
@@ -443,7 +441,7 @@ func (conR *ConsensusReactor) broadcastProposalHeartbeatMessage(heartbeat types.
 	conR.Logger.Debug("Broadcasting proposal heartbeat message",
 		"height", hb.Height, "round", hb.Round, "sequence", hb.Sequence)
 	msg := &ProposalHeartbeatMessage{hb}
-	conR.peers.Broadcast(StateChannel, struct{ ConsensusMessage }{msg})
+	conR.Switch.Broadcast(StateChannel, struct{ ConsensusMessage }{msg})
 }
 
 func (conR *ConsensusReactor) broadcastNewRoundStep(rs *types.RoundState) {
@@ -516,11 +514,15 @@ func (conR *ConsensusReactor) gossipDataRoutine(peer p2p.Peer, ps *PeerState) {
 
 OUTER_LOOP:
 	for {
+		//hg 20180302 do it later
 		// Manage disconnects from self or peer.
+		/*
 		if !peer.IsRunning() || !conR.IsRunning() {
 			logger.Info("Stopping gossipDataRoutine for peer")
 			return
 		}
+		*/
+		//end
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
 
@@ -563,7 +565,7 @@ OUTER_LOOP:
 		// If height and round don't match, sleep.
 		if (rs.Height != prs.Height) || (rs.Round != prs.Round) {
 			//logger.Info("Peer Height|Round mismatch, sleeping", "peerHeight", prs.Height, "peerRound", prs.Round, "peer", peer)
-			time.Sleep(conR.conS.config.PeerGossipSleep())
+			time.Sleep(conR.conS.PeerGossipSleep())
 			continue OUTER_LOOP
 		}
 
@@ -599,7 +601,7 @@ OUTER_LOOP:
 		}
 
 		// Nothing to do. Sleep.
-		time.Sleep(conR.conS.config.PeerGossipSleep())
+		time.Sleep(conR.conS.PeerGossipSleep())
 		continue OUTER_LOOP
 	}
 }
@@ -613,12 +615,12 @@ func (conR *ConsensusReactor) gossipDataForCatchup(logger log.Logger, rs *types.
 		if blockMeta == nil {
 			logger.Error("Failed to load block meta",
 				"ourHeight", rs.Height, "blockstoreHeight", conR.conS.blockStore.Height())
-			time.Sleep(conR.conS.config.PeerGossipSleep())
+			time.Sleep(conR.conS.PeerGossipSleep())
 			return
 		} else if !blockMeta.BlockID.PartsHeader.Equals(prs.ProposalBlockPartsHeader) {
 			logger.Info("Peer ProposalBlockPartsHeader mismatch, sleeping",
 				"blockPartsHeader", blockMeta.BlockID.PartsHeader, "peerBlockPartsHeader", prs.ProposalBlockPartsHeader)
-			time.Sleep(conR.conS.config.PeerGossipSleep())
+			time.Sleep(conR.conS.PeerGossipSleep())
 			return
 		}
 		// Load the part
@@ -626,7 +628,7 @@ func (conR *ConsensusReactor) gossipDataForCatchup(logger log.Logger, rs *types.
 		if part == nil {
 			logger.Error("Could not load part", "index", index,
 				"blockPartsHeader", blockMeta.BlockID.PartsHeader, "peerBlockPartsHeader", prs.ProposalBlockPartsHeader)
-			time.Sleep(conR.conS.config.PeerGossipSleep())
+			time.Sleep(conR.conS.PeerGossipSleep())
 			return
 		}
 		// Send the part
@@ -644,7 +646,7 @@ func (conR *ConsensusReactor) gossipDataForCatchup(logger log.Logger, rs *types.
 		return
 	} else {
 		//logger.Info("No parts to send in catch-up, sleeping")
-		time.Sleep(conR.conS.config.PeerGossipSleep())
+		time.Sleep(conR.conS.PeerGossipSleep())
 		return
 	}
 }
@@ -658,10 +660,13 @@ func (conR *ConsensusReactor) gossipVotesRoutine(peer p2p.Peer, ps *PeerState) {
 OUTER_LOOP:
 	for {
 		// Manage disconnects from self or peer.
+		/* hg 20180302 do it later
 		if !peer.IsRunning() || !conR.IsRunning() {
 			logger.Info("Stopping gossipVotesRoutine for peer")
 			return
 		}
+		*/
+		//end modify
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
 
@@ -715,7 +720,7 @@ OUTER_LOOP:
 			sleeping = 1
 		}
 
-		time.Sleep(conR.conS.config.PeerGossipSleep())
+		time.Sleep(conR.conS.PeerGossipSleep())
 		continue OUTER_LOOP
 	}
 }
@@ -759,15 +764,18 @@ func (conR *ConsensusReactor) gossipVotesForHeight(logger log.Logger, rs *types.
 // NOTE: `queryMaj23Routine` has a simple crude design since it only comes
 // into play for liveness when there's a signature DDoS attack happening.
 func (conR *ConsensusReactor) queryMaj23Routine(peer p2p.Peer, ps *PeerState) {
-	logger := conR.Logger.With("peer", peer)
+	//logger := conR.Logger.With("peer", peer)
 
 OUTER_LOOP:
 	for {
 		// Manage disconnects from self or peer.
+		/* hg 20180302 do it later
 		if !peer.IsRunning() || !conR.IsRunning() {
 			logger.Info("Stopping queryMaj23Routine for peer")
 			return
 		}
+		*/
+		//end modify
 
 		// Maybe send Height/Round/Prevotes
 		{
@@ -781,7 +789,7 @@ OUTER_LOOP:
 						Type:    types.VoteTypePrevote,
 						BlockID: maj23,
 					}})
-					time.Sleep(conR.conS.config.PeerQueryMaj23Sleep())
+					time.Sleep(conR.conS.PeerQueryMaj23Sleep())
 				}
 			}
 		}
@@ -798,7 +806,7 @@ OUTER_LOOP:
 						Type:    types.VoteTypePrecommit,
 						BlockID: maj23,
 					}})
-					time.Sleep(conR.conS.config.PeerQueryMaj23Sleep())
+					time.Sleep(conR.conS.PeerQueryMaj23Sleep())
 				}
 			}
 		}
@@ -815,7 +823,7 @@ OUTER_LOOP:
 						Type:    types.VoteTypePrevote,
 						BlockID: maj23,
 					}})
-					time.Sleep(conR.conS.config.PeerQueryMaj23Sleep())
+					time.Sleep(conR.conS.PeerQueryMaj23Sleep())
 				}
 			}
 		}
@@ -834,11 +842,11 @@ OUTER_LOOP:
 					Type:    types.VoteTypePrecommit,
 					BlockID: commit.BlockID,
 				}})
-				time.Sleep(conR.conS.config.PeerQueryMaj23Sleep())
+				time.Sleep(conR.conS.PeerQueryMaj23Sleep())
 			}
 		}
 
-		time.Sleep(conR.conS.config.PeerQueryMaj23Sleep())
+		time.Sleep(conR.conS.PeerQueryMaj23Sleep())
 
 		continue OUTER_LOOP
 	}
@@ -874,7 +882,7 @@ var (
 // PeerState contains the known state of a peer, including its connection
 // and threadsafe access to its PeerRoundState.
 type PeerState struct {
-	Peer   p2p.IPeer
+	Peer   p2p.Peer
 	logger log.Logger
 
 	mtx sync.Mutex
@@ -882,7 +890,7 @@ type PeerState struct {
 }
 
 // NewPeerState returns a new PeerState for the given Peer
-func NewPeerState(peer p2p.IPeer) *PeerState {
+func NewPeerState(peer p2p.Peer) *PeerState {
 	return &PeerState{
 		Peer:   peer,
 		logger: log.NewNopLogger(),
