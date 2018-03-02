@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -130,7 +129,9 @@ func TestNormGet(t *testing.T) {
 		t.Error(errors.New(string(reply.GetMsg())))
 		return
 	}
-	value := strings.TrimSpace(string(reply.Msg))
+	//the first two byte is not valid
+	//QueryChain() need to change
+	value := string(reply.Msg[2:])
 	fmt.Println("GetValue =", value)
 
 	var org TestOrg
@@ -177,10 +178,10 @@ func Has(key []byte) (bool, error) {
 	if !reply.IsOk {
 		return false, errors.New(string(reply.GetMsg()))
 	}
-	value := strings.TrimSpace(string(reply.Msg))
+	value := string(reply.Msg[2:])
 	fmt.Println("GetValue =", value)
 
-	if strings.Contains(value, "true") {
+	if value == "true" {
 		return true, nil
 	}
 	return false, nil
