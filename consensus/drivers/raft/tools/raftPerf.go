@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -226,7 +225,9 @@ func NormGet(key string) {
 		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
 		return
 	}
-	value := strings.TrimSpace(string(reply.Msg))
+	//the first two byte is not valid
+	//QueryChain() need to change
+	value := string(reply.Msg[2:])
 	fmt.Println("GetValue =", value)
 }
 
