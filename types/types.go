@@ -185,7 +185,20 @@ func (tx *Transaction) ActionName() string {
 	} else if "none" == string(tx.Execer) {
 		return "none"
 	} else if "hashlock" == string(tx.Execer) {
-		return "hashlock"
+		var action HashlockAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == HashlockActionLock && action.GetHlock() != nil {
+			return "lock"
+		} else if action.Ty == HashlockActionUnlock && action.GetHunlock() != nil {
+			return "unlock"
+		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
+			return "send"
+		} else {
+			return "unknow"
+		}
 	}
 	return "unknow"
 }
