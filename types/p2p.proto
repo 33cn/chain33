@@ -151,6 +151,7 @@ message BroadCastData {
 	oneof value {
 		P2PTx tx = 1;
 		P2PBlock block = 2;
+		P2PPing ping =3;
 	}
 }
 

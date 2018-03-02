@@ -13,12 +13,12 @@ import (
 func (p *peer) Start() {
 	log.Debug("Peer", "Start", p.Addr())
 	p.mconn.key = p.key
-	go p.HeartBeat()
+	go p.heartBeat()
 
 	return
 }
 func (p *peer) Close() {
-	p.setRunning(false)
+	p.SetRunning(false)
 	p.mconn.Close()
 	close(p.allLoopDone)
 	close(p.taskPool)
@@ -58,7 +58,7 @@ func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *pe
 	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.SetSupport(true)
-	p.setRunning(true)
+	p.SetRunning(true)
 	p.mconn = NewMConnection(conn, remote, p)
 	return p
 }
@@ -147,7 +147,7 @@ func (f *FilterTask) ManageFilterTask() {
 	}
 }
 
-func (p *peer) HeartBeat() {
+func (p *peer) heartBeat() {
 
 	//<-(*p.nodeInfo).natDone
 	ticker := time.NewTicker(PingTimeout)
@@ -156,7 +156,8 @@ func (p *peer) HeartBeat() {
 	if pcli.SendVersion(p, *p.nodeInfo) == nil {
 		p.taskChan = ps.Sub(p.Addr())
 		go p.filterTask.ManageFilterTask()
-		go p.subStreamBlock()
+		go p.sendStream()
+		go p.readStream()
 	} else {
 		return
 	}
@@ -183,27 +184,9 @@ FOR_LOOP:
 func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
-func (p *peer) SendData(data interface{}) (err error) {
-	tick := time.NewTicker(time.Second * 5)
-	defer tick.Stop()
-	defer func() {
-		isErr := recover()
-		if isErr != nil {
-			err = isErr.(error)
-		}
-	}()
 
-	select {
-	case <-tick.C:
-		return
-
-	case p.taskChan <- data:
-	}
-	return nil
-}
-
-func (p *peer) subStreamBlock() {
-
+func (p *peer) sendStream() {
+	//Stream Send data
 	for {
 		if p.GetRunning() == false {
 			return
@@ -217,6 +200,18 @@ func (p *peer) subStreamBlock() {
 			cancel()
 			continue
 		}
+		//send ping package
+		ping, err := P2pComm.NewPingData(p)
+		if err == nil {
+			p2pdata := new(pb.BroadCastData)
+			p2pdata.Value = &pb.BroadCastData_Ping{Ping: ping}
+			if resp.Send(p2pdata) != nil {
+				time.Sleep(time.Second)
+				cancel()
+				continue
+			}
+		}
+
 	SEND_LOOP:
 		for {
 			timeout := time.NewTimer(time.Second * 2)
@@ -271,10 +266,84 @@ func (p *peer) subStreamBlock() {
 		}
 
 	}
+}
+
+func (p *peer) readStream() {
+
+	pcli := NewP2pCli(nil)
+	for {
+		if p.GetRunning() == false {
+			return
+		}
+		resp, err := p.mconn.conn.RouteChat(context.Background())
+		if err != nil {
+			p.peerStat.NotOk()
+			(*p.nodeInfo).monitorChan <- p
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		log.Debug("SubStreamBlock", "Start", p.Addr())
+
+		for {
+			if p.GetRunning() == false {
+				return
+			}
+			data, err := resp.Recv()
+			if err != nil {
+
+				resp.CloseSend()
+				p.peerStat.NotOk()
+				(*p.nodeInfo).monitorChan <- p
+				break
+			}
+
+			if block := data.GetBlock(); block != nil {
+
+				if block.GetBlock() != nil {
+					//如果已经有登记过的消息记录，则不发送给本地blockchain
+					if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
+						continue
+					}
+
+					//判断比自己低的区块，则不发送给blockchain
+
+					height, err := pcli.GetBlockHeight((*p.nodeInfo))
+					if err == nil {
+						if height >= block.GetBlock().GetHeight() {
+							continue
+						}
+					}
+					log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
+					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					err = (*p.nodeInfo).qclient.Send(msg, false)
+					if err != nil {
+						log.Error("subStreamBlock", "Error", err.Error())
+						continue
+					}
+					p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
+				}
+
+			} else if tx := data.GetTx(); tx != nil {
+
+				if tx.GetTx() != nil {
+					log.Debug("SubStreamBlock", "tx", tx.GetTx())
+					sig := tx.GetTx().GetSignature().GetSignature()
+					if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+						continue //处理方式同上
+					}
+					msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					(*p.nodeInfo).qclient.Send(msg, false)
+					p.filterTask.RegTask(hex.EncodeToString(sig)) //登记
+				}
+
+			}
+
+		}
+	}
 
 }
 
-func (p *peer) setRunning(run bool) {
+func (p *peer) SetRunning(run bool) {
 	p.pmutx.Lock()
 	defer p.pmutx.Unlock()
 	p.isrunning = run

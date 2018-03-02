@@ -201,6 +201,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		walletlog.Debug("wallet recv", "msg", msg)
 		msgtype := msg.Ty
 		switch msgtype {
+
 		case types.EventWalletGetAccountList:
 			WalletAccounts, err := wallet.ProcGetAccountList()
 			if err != nil {
@@ -210,6 +211,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Debug("process WalletAccounts OK")
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccountList, WalletAccounts))
 			}
+
 		case types.EventWalletAutoMiner:
 			flag := msg.GetData().(*types.MinerFlag).Flag
 			if flag == 1 {
@@ -220,6 +222,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			wallet.setAutoMining(flag)
 			wallet.flushTicket()
 			msg.ReplyErr("WalletSetAutoMiner", nil)
+
 		case types.EventWalletGetTickets:
 			tickets, privs, err := wallet.GetTickets(1)
 			if err != nil {
@@ -230,6 +233,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Debug("process GetTickets OK")
 				msg.Reply(wallet.qclient.NewMessage("consensus", types.EventWalletTickets, tks))
 			}
+
 		case types.EventNewAccount:
 			NewAccount := msg.Data.(*types.ReqNewAccount)
 			WalletAccount, err := wallet.ProcCreatNewAccount(NewAccount)
@@ -249,6 +253,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
 			}
+
 		case types.EventWalletImportprivkey:
 			ImportPrivKey := msg.Data.(*types.ReqWalletImportPrivKey)
 			WalletAccount, err := wallet.ProcImportPrivKey(ImportPrivKey)
@@ -259,6 +264,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventWalletAccount, WalletAccount))
 			}
 			wallet.flushTicket()
+
 		case types.EventWalletSendToAddress:
 			SendToAddress := msg.Data.(*types.ReqWalletSendToAddress)
 			ReplyHash, err := wallet.ProcSendToAddress(SendToAddress)
@@ -339,6 +345,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
 			wallet.flushTicket()
+
 		case types.EventAddBlock:
 			block := msg.Data.(*types.BlockDetail)
 			wallet.ProcWalletAddBlock(block)
@@ -359,6 +366,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyGenSeed, replySeed))
 			}
+
 		case types.EventGetSeed:
 			Pw := msg.Data.(*types.GetSeedByPw)
 			seed, err := wallet.getSeed(Pw.Passwd)
@@ -371,6 +379,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Error("EventGetSeed", "seed", seed)
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyGetSeed, &replySeed))
 			}
+
 		case types.EventSaveSeed:
 			saveseed := msg.Data.(*types.SaveSeedByPw)
 			var reply types.Reply
@@ -386,6 +395,19 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventGetWalletStatus:
 			s := wallet.GetWalletStatus()
 			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyWalletStatus, s))
+
+		case types.EventDumpPrivkey:
+			addr := msg.Data.(*types.ReqStr)
+			privkey, err := wallet.ProcDumpPrivkey(addr.Reqstr)
+			if err != nil {
+				walletlog.Error("ProcDumpPrivkey", "err", err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyPrivkey, err))
+			} else {
+				var replyStr types.ReplyStr
+				replyStr.Replystr = privkey
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyPrivkey, &replyStr))
+			}
+
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -1453,4 +1475,25 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s.HasSeed, _ = HasSeed(wallet.walletStore.db)
 	s.IsAutoMining = wallet.isAutoMining()
 	return s
+}
+
+//获取地址对应的私钥
+func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
+	}
+	if len(addr) == 0 {
+		walletlog.Error("ProcDumpPrivkey input para is nil!")
+		return "", types.ErrInputPara
+	}
+
+	priv, err := wallet.getPrivKeyByAddr(addr)
+	if err != nil {
+		return "", err
+	}
+	return strings.ToUpper(common.ToHex(priv.Bytes())), nil
 }

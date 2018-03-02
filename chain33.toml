@@ -12,6 +12,7 @@ timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
+isStrongConsistency=false
 
 [p2p]
 seeds=["127.0.0.1:13802"]

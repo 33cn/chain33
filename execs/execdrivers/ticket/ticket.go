@@ -42,21 +42,7 @@ func (n *Ticket) GetName() string {
 }
 
 func (n *Ticket) GetActionName(tx *types.Transaction) string {
-	var action types.TicketAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknow"
-	}
-	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
-		return "genesis"
-	} else if action.Ty == types.TicketActionOpen && action.GetTopen() != nil {
-		return "open"
-	} else if action.Ty == types.TicketActionClose && action.GetTclose() != nil {
-		return "close"
-	} else if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
-		return "miner"
-	}
-	return "unknow"
+	return tx.ActionName()
 }
 
 func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

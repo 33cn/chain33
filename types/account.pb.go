@@ -158,6 +158,8 @@ It has these top-level messages:
 	ReqWalletSetFee
 	ReqWalletSetLabel
 	ReqWalletMergeBalance
+	ReqStr
+	ReplyStr
 */
 package types
 
