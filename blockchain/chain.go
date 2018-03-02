@@ -438,7 +438,7 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid string) (err err
 	var requestblock types.ReqBlocks
 	requestblock.Start = start
 	requestblock.Isdetail = false
-	requestblock.Pid = pid
+	requestblock.Pid = []string{pid}
 
 	if blockcount >= MaxFetchBlockNum {
 		requestblock.End = start + MaxFetchBlockNum - 1
@@ -1120,7 +1120,7 @@ func (chain *BlockChain) FetchBlockHeaders(start int64, end int64, pid string) (
 	requestblock.Start = start
 	requestblock.End = end
 	requestblock.Isdetail = false
-	requestblock.Pid = pid
+	requestblock.Pid = []string{pid}
 
 	msg := chain.qclient.NewMessage("p2p", types.EventFetchBlockHeaders, &requestblock)
 	Err := chain.qclient.Send(msg, true)
