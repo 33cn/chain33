@@ -116,7 +116,6 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
 	block = msg.Data.(*types.Block)
-	chainlog.Debug("EventBroadcastAddBlock", "height", block.Height, "hash", common.ToHex(block.Hash()))
 
 	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: block})
 	if err != nil {
@@ -126,7 +125,8 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	} else {
 		//chain.notifySync()
 	}
-	chainlog.Debug("EventBroadcastAddBlock", "success", "ok")
+	chainlog.Debug("EventBroadcastAddBlock", "height", block.Height, "hash", common.ToHex(block.Hash()), "success", "ok")
+
 	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
 }
 
