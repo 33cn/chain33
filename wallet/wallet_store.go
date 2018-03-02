@@ -221,6 +221,10 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 			walletlog.Error("GetTxDetailByIter", "proto.Unmarshal err:", err)
 			return nil, types.ErrUnmarshal
 		}
+		if string(txdetail.Tx.GetExecer()) == "coins" && txdetail.GetActionName() == "withdraw" {
+			//swap from and to
+			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
+		}
 		txhash := txdetail.GetTx().Hash()
 		txdetail.Txhash = txhash
 		txDetails.TxDetails[index] = &txdetail

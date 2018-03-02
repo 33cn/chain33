@@ -88,4 +88,6 @@ service grpcservice {
 	rpc GetHexTxByHash (ReqHash) returns (HexTx) {
 	}
 	rpc GetTicketCount(types.ReqNil)returns(Int64){}
+	rpc DumpPrivkey(ReqStr)returns(ReplyStr){
+	}
 }

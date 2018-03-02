@@ -133,6 +133,8 @@ const (
 	EventBlock               = 91
 	EventGetTicketCount      = 92
 	EventReplyGetTicketCount = 93
+	EventDumpPrivkey         = 94
+	EventReplyPrivkey        = 95
 )
 
 var eventName = map[int]string{
@@ -229,6 +231,8 @@ var eventName = map[int]string{
 	91: "EventBlock",
 	92: "EventGetTicketCount",
 	93: "EventReplyGetTicketCount",
+	94: "EventDumpPrivkey",
+	95: "EventReplyPrivkey",
 }
 
 //ty = 1 -> secp256k1
