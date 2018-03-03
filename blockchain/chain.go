@@ -675,7 +675,6 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err e
 	} else {
 		return nil, err
 	}
-
 }
 
 func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
@@ -883,14 +882,13 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	curheight := chain.GetBlockHeight()
 	RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
-
-	chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
-
 	//如果任务正常，那么不重复启动任务
 	if chain.task.InProgress() {
 		chainlog.Info("chain task InProgress")
 		return
 	}
+	chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
+
 	//获取peers的最新高度.处理没有收到广播block的情况
 	if curheight+1 < peerMaxBlkHeight {
 		chain.FetchBlock(curheight+1, peerMaxBlkHeight, "")
