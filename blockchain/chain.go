@@ -666,8 +666,6 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 //	BlockTime  int64
 //}
 func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err error) {
-	chain.chainLock.Lock()
-	defer chain.chainLock.Unlock()
 	blockhight := chain.GetBlockHeight()
 	head, err := chain.blockStore.GetBlockHeaderByHeight(blockhight)
 	if err == nil && head != nil {
@@ -678,8 +676,6 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err e
 }
 
 func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
-	chain.chainLock.Lock()
-	defer chain.chainLock.Unlock()
 	blockhight := chain.GetBlockHeight()
 	blockdetail, err := chain.GetBlock(blockhight)
 	if err != nil {
