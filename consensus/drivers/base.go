@@ -303,13 +303,13 @@ func (client *BaseClient) SetCurrentBlock(b *types.Block) {
 
 func (client *BaseClient) UpdateCurrentBlock(b *types.Block) {
 	client.mulock.Lock()
-
+	defer client.mulock.Unlock()
 	block, err := client.RequestLastBlock()
 	if err != nil {
-		panic(err)
+		log.Error("UpdateCurrentBlock", "RequestLastBlock", err)
+		return
 	}
 	client.currentBlock = block
-	client.mulock.Unlock()
 }
 
 func (client *BaseClient) GetCurrentBlock() (b *types.Block) {
