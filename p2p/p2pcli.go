@@ -319,7 +319,8 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 	var MaxInvs = new(pb.P2PInv)
 	var downloadPeers []*peer
 	peers, infos := m.network.node.GetActivePeers()
-	if len(pids) != 0 { //指定Pid 下载数据
+	if len(pids) > 0 && pids[0] != "" { //指定Pid 下载数据
+		log.Info("fetch from peer in pids")
 		var pidmap = make(map[string]bool)
 		for _, pid := range pids {
 			pidmap[pid] = true
@@ -347,8 +348,8 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 		}
 
 	} else {
+		log.Info("fetch from all peers in pids")
 		for _, peer := range peers { //限制对peer 的高频次调用
-
 			log.Info("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
 			peerinfo, ok := infos[peer.Addr()]
 			if !ok {
@@ -383,7 +384,6 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 		for _, peer := range peers {
 			downloadPeers = append(downloadPeers, peer)
 		}
-
 	}
 
 	log.Debug("Invs", "Invs show", MaxInvs.GetInvs())
