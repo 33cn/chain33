@@ -654,9 +654,9 @@ func (req Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error 
 		return err
 	}
 	type AddrOverview struct {
-		Reciver int64
-		Balance int64
-		TxCount int64
+		Reciver int64 `json:"reciver"`
+		Balance int64 `json:"balance"`
+		TxCount int64 `json:"txcount"`
 	}
 
 	*result = (*AddrOverview)(reply)
