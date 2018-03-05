@@ -57,6 +57,8 @@ type IRClient interface {
 	QueryHash(*types.Query) (*types.Message, error)
 	//miner
 	SetAutoMiner(*types.MinerFlag) (*types.Reply, error)
+	GetTicketCount() (*types.Int64, error)
+	DumpPrivkey(*types.ReqStr) (*types.ReplyStr, error)
 }
 
 type channelClient struct {
@@ -163,7 +165,7 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 }
 
 func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, ""})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, []string{""}})
 	err := client.qclient.Send(msg, true)
 	if err != nil {
 
@@ -497,7 +499,7 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := account.LoadAccounts(client.q, addrs)
+	accounts, err := account.LoadAccounts(client.qclient, addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -506,6 +508,7 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	}
 	return addrOverview, nil
 }
+
 func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHash, parm)
 	err := client.qclient.Send(msg, true)
@@ -591,7 +594,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := account.LoadAccounts(client.q, exaddrs)
+		accounts, err := account.LoadAccounts(client.qclient, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -602,7 +605,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
+			account, err := account.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
@@ -644,4 +647,30 @@ func (client *channelClient) SetAutoMiner(in *types.MinerFlag) (*types.Reply, er
 		return nil, err
 	}
 	return resp.GetData().(*types.Reply), nil
+}
+
+func (client *channelClient) GetTicketCount() (*types.Int64, error) {
+	msg := client.qclient.NewMessage("consensus", types.EventGetTicketCount, nil)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.Int64), nil
+}
+
+func (client *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventDumpPrivkey, in)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.ReplyStr), nil
 }

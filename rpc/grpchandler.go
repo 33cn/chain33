@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"code.aliyun.com/chain33/chain33/types"
@@ -81,7 +82,7 @@ func (req *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx,
 	if err != nil {
 		return nil, err
 	}
-	return &pb.HexTx{Tx: reply.GetTx().String()}, nil
+	return &pb.HexTx{Tx: hex.EncodeToString(types.Encode(reply.GetTx()))}, nil
 }
 func (req *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.TransactionDetails, error) {
 
@@ -326,6 +327,23 @@ func (req *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error
 
 func (req *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, error) {
 	result, err := req.cli.SetAutoMiner(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (req *Grpc) GetTicketCount(ctx context.Context, in *types.ReqNil) (*pb.Int64, error) {
+
+	result, err := req.cli.GetTicketCount()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+
+}
+func (req *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, error) {
+	result, err := req.cli.DumpPrivkey(in)
 	if err != nil {
 		return nil, err
 	}

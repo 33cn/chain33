@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
@@ -25,6 +26,16 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, types.ErrSign
 	}
+	//tx交易去重处理
+	oldtxscount := len(block.Txs)
+	txs := CheckTxDup(q, block.Txs)
+	newtxscount := len(txs)
+	if oldtxscount != newtxscount && errReturn {
+		return nil, types.ErrTxDup
+	}
+	block.Txs = txs
+	block.TxHash = merkle.CalcMerkleRoot(block.Txs)
+
 	receipts := ExecTx(q, prevStateRoot, block)
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
@@ -178,4 +189,30 @@ func ExecKVSetRollback(q *queue.Queue, hash []byte) error {
 	}
 	hash = msg.GetData().(*types.ReplyHash).GetHash()
 	return nil
+}
+
+func CheckTxDup(q *queue.Queue, txs []*types.Transaction) (transactions []*types.Transaction) {
+	qclient := q.NewClient()
+	var checkHashList types.TxHashList
+	for _, tx := range txs {
+		hash := tx.Hash()
+		checkHashList.Hashes = append(checkHashList.Hashes, hash)
+	}
+	hashList := qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
+	qclient.Send(hashList, true)
+	dupTxList, _ := qclient.Wait(hashList)
+	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
+	dupMap := make(map[string]bool)
+	for _, hash := range dupTxs {
+		dupMap[string(hash)] = true
+		log.Debug("CheckTxDup", "TxDuphash", common.ToHex(hash))
+	}
+	for _, tx := range txs {
+		hash := tx.Hash()
+		if dupMap[string(hash)] {
+			continue
+		}
+		transactions = append(transactions, tx)
+	}
+	return transactions
 }

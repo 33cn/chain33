@@ -87,23 +87,7 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 
 //获取运行状态名
 func (h *Hashlock) GetActionName(tx *types.Transaction) string {
-	var action types.HashlockAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknow"
-	}
-	if err = account.CheckAddress(tx.To); err != nil {
-		return "unknow"
-	}
-	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
-		return "lock"
-	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
-		return "unlock"
-	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
-		return "send"
-	} else {
-		return "unknow"
-	}
+	return tx.ActionName()
 }
 
 //把信息进行存储

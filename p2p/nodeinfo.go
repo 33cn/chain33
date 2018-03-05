@@ -18,7 +18,6 @@ type NodeInfo struct {
 	version          string
 	monitorChan      chan *peer
 	natNoticeChain   chan struct{}
-	natDone          chan struct{}
 	natResultChain   chan bool
 	p2pBroadcastChan chan interface{}
 	cfg              *types.P2P
@@ -33,7 +32,6 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.monitorChan = make(chan *peer, 1024)
 	nodeInfo.natNoticeChain = make(chan struct{}, 1)
 	nodeInfo.natResultChain = make(chan bool, 1)
-	nodeInfo.natDone = make(chan struct{}, 1)
 	nodeInfo.p2pBroadcastChan = make(chan interface{}, 4096)
 	nodeInfo.blacklist = &BlackList{badPeers: make(map[string]bool)}
 	nodeInfo.cfg = cfg
