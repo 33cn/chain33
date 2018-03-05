@@ -20,6 +20,8 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 	"net"
 	"strings"
+	"math/rand"
+	"os"
 )
 
 const (
@@ -35,7 +37,7 @@ const (
 
 // ConsensusReactor defines a reactor for the consensus service.
 type ConsensusReactor struct {
-	//p2p.BaseReactor // BaseService + p2p.Switch
+	p2p.BaseReactor // BaseService + p2p.Switch
 
 	conS *ConsensusState
 
@@ -65,7 +67,7 @@ func (conR *ConsensusReactor) MakeDefaultNodeInfo() *p2p.NodeInfo {
 
 	nodeInfo := &p2p.NodeInfo{
 		PubKey:  conR.privKey.PubKey().Unwrap().(crypto.PubKeyEd25519),
-		Moniker: conR.conS.client.Moniker,
+		Moniker: "test_"+fmt.Sprintf("%v",rand.Intn(100)),
 		Network: conR.conS.state.ChainID,
 		Version: "v0.1.0",
 		Other: []string{
@@ -74,7 +76,7 @@ func (conR *ConsensusReactor) MakeDefaultNodeInfo() *p2p.NodeInfo {
 		},
 	}
 
-	nodeInfo.ListenAddr = GetPulicIPInUse() + ":" + conR.conS.client.ListenPort
+	nodeInfo.ListenAddr = GetPulicIPInUse() + ":36656"
 
 	return nodeInfo
 }
@@ -85,10 +87,13 @@ func NewConsensusReactor(consensusState *ConsensusState, fastSync bool) *Consens
 		conS:     consensusState,
 		fastSync: fastSync,
 
-		privKey:  crypto.GenPrivKeyEd25519(),
 		eventBus: nil,
 		Switch:   nil,
 	}
+	if conR.Logger == nil{
+		conR.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "main")
+	}
+
 	//conR.BaseReactor = *p2p.NewBaseReactor("ConsensusReactor", conR)
 	return conR
 }
@@ -893,7 +898,7 @@ type PeerState struct {
 func NewPeerState(peer p2p.Peer) *PeerState {
 	return &PeerState{
 		Peer:   peer,
-		logger: log.NewNopLogger(),
+		logger: log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "reactor"),
 		PeerRoundState: types.PeerRoundState{
 			Round:              -1,
 			ProposalPOLRound:   -1,
