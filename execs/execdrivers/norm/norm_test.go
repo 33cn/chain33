@@ -22,14 +22,11 @@ var r *rand.Rand
 var c types.GrpcserviceClient
 var ErrTest = errors.New("ErrTest")
 
-var addrexec *account.Address
-
 var addr string
-var privGenesis, privkey crypto.PrivKey
+var privkey crypto.PrivKey
 
 const fee = 1e6
 const secretLen = 32
-const defaultAmount = 1e10
 
 func init() {
 	var err error
@@ -39,14 +36,13 @@ func init() {
 	}
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	c = types.NewGrpcserviceClient(conn)
-	addrexec = account.ExecAddress("norm")
 }
 
 func TestInitAccount(t *testing.T) {
 	fmt.Println("TestInitAccount start")
+	time.Sleep(5 * time.Second)
 	defer fmt.Println("TestInitAccount end\n")
 
-	privGenesis = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	addr, privkey = genaddress()
 	label := strconv.Itoa(int(time.Now().UnixNano()))
 	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
@@ -57,15 +53,6 @@ func TestInitAccount(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	//need balance to pass tx check in mempool
-	err = sendtoaddress(c, privGenesis, addr, defaultAmount)
-	if err != nil {
-		fmt.Println(err)
-		time.Sleep(time.Second)
-		t.Error(err)
-		return
-	}
-	time.Sleep(10 * time.Second)
 }
 
 type TestOrg struct {
@@ -198,60 +185,4 @@ func genaddress() (string, crypto.PrivKey) {
 	}
 	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
-}
-
-func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-	if err != nil {
-		panic(err)
-	}
-	bkey, err := common.FromHex(key)
-	if err != nil {
-		panic(err)
-	}
-	priv, err := cr.PrivKeyFromBytes(bkey)
-	if err != nil {
-		panic(err)
-	}
-	return priv
-}
-
-func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, amount int64) error {
-	//defer conn.Close()
-	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
-	if amount > 0 {
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: fee, To: to}
-		tx.Nonce = r.Int63()
-		tx.Sign(types.SECP256K1, priv)
-		// Contact the server and print out its response.
-		reply, err := c.SendTransaction(context.Background(), tx)
-		if err != nil {
-			fmt.Println("err", err)
-			return err
-		}
-		if !reply.IsOk {
-			fmt.Println("err = ", reply.GetMsg())
-			return errors.New(string(reply.GetMsg()))
-		}
-		return nil
-	} else {
-		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount}}
-		withdraw := &types.CoinsAction{Value: v, Ty: types.CoinsActionWithdraw}
-		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(withdraw), Fee: fee, To: to}
-		tx.Nonce = r.Int63()
-		tx.Sign(types.SECP256K1, priv)
-		// Contact the server and print out its response.
-		reply, err := c.SendTransaction(context.Background(), tx)
-		if err != nil {
-			fmt.Println("err", err)
-			return err
-		}
-		if !reply.IsOk {
-			fmt.Println("err = ", reply.GetMsg())
-			return errors.New(string(reply.GetMsg()))
-		}
-		return nil
-	}
 }
