@@ -42,6 +42,22 @@ func TestSendToAddress(t *testing.T) {
 	}
 }
 
+func TestSetMinerStart(t *testing.T) {
+	err := setAutoMining(1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestSetMinerStop(t *testing.T) {
+	err := setAutoMining(0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
 func TestMinerBind(t *testing.T) {
 	//随机生成一个地址，对privCold 执行 open ticket 操作，操作失败
 	addr, priv := genaddress()
@@ -64,6 +80,15 @@ func TestMinerBind(t *testing.T) {
 	}
 	printAccount(returnaddr, "ticket")
 	//open tick user bindminer
+	sourcelist, err := getMinerSourceList(addr)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if len(sourcelist) == 0 || sourcelist[0] != returnaddr {
+		t.Error("getMinerSourceList error")
+		return
+	}
 	err = openticket(addr, returnaddr, priv)
 	if err != nil {
 		t.Error(err)
@@ -184,13 +209,14 @@ func printAccount(addr string, execer string) {
 }
 
 func getBalance(addr string, execer string) (*types.Account, error) {
-	reqbalance := &types.ReqBalance{Address: addr, Execer: execer}
+	reqbalance := &types.ReqBalance{Addresses: []string{addr}, Execer: execer}
 	c := types.NewGrpcserviceClient(conn)
 	reply, err := c.GetBalance(context.Background(), reqbalance)
 	if err != nil {
 		return nil, err
 	}
-	return reply, nil
+	accs := reply.GetAcc()
+	return accs[0], nil
 }
 
 func genaddress() (string, crypto.PrivKey) {
@@ -256,6 +282,29 @@ func sendTransactionWait(payload types.Message, execer []byte, priv crypto.PrivK
 	return nil
 }
 
+func getMinerSourceList(addr string) ([]string, error) {
+	reqaddr := &types.ReqString{addr}
+	var req types.Query
+	req.Execer = []byte("ticket")
+	req.FuncName = "MinerSourceList"
+	req.Payload = types.Encode(reqaddr)
+
+	c := types.NewGrpcserviceClient(conn)
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		return nil, err
+	}
+	if !reply.IsOk {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	var sourcelist types.ReplyStrings
+	err = types.Decode(reply.GetMsg(), &sourcelist)
+	if err != nil {
+		return nil, err
+	}
+	return sourcelist.Datas, nil
+}
+
 func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
 	if to == "" {
 		to = account.ExecAddress(string(execer)).String()
@@ -280,6 +329,19 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 		return nil, errors.New(string(reply.GetMsg()))
 	}
 	return tx.Hash(), nil
+}
+
+func setAutoMining(flag int32) (err error) {
+	req := &types.MinerFlag{flag}
+	c := types.NewGrpcserviceClient(conn)
+	reply, err := c.SetAutoMining(context.Background(), req)
+	if err != nil {
+		return err
+	}
+	if reply.IsOk {
+		return nil
+	}
+	return errors.New(string(reply.Msg))
 }
 
 func waitTx(hash []byte) *types.TransactionDetail {
