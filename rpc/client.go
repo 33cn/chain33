@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/rand"
 	"time"
+	//"unsafe"
 
 	"code.aliyun.com/chain33/chain33/account"
 
@@ -49,11 +50,15 @@ type IRClient interface {
 	GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error)
 	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
 	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
-	GetWalletStatus() (*types.WalletStatus, error)
+	GetWalletStatus() (*WalletStatus, error)
 	//getbalance
 	GetBalance(*types.ReqBalance) ([]*types.Account, error)
 	//query
 	QueryHash(*types.Query) (*types.Message, error)
+	//miner
+	SetAutoMiner(*types.MinerFlag) (*types.Reply, error)
+	GetTicketCount() (*types.Int64, error)
+	DumpPrivkey(*types.ReqStr) (*types.ReplyStr, error)
 }
 
 type channelClient struct {
@@ -160,7 +165,7 @@ func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
 }
 
 func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, ""})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, []string{""}})
 	err := client.qclient.Send(msg, true)
 	if err != nil {
 
@@ -494,7 +499,7 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := account.LoadAccounts(client.q, addrs)
+	accounts, err := account.LoadAccounts(client.qclient, addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -503,6 +508,7 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	}
 	return addrOverview, nil
 }
+
 func (client *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
 	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHash, parm)
 	err := client.qclient.Send(msg, true)
@@ -560,7 +566,7 @@ func (client *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed,
 	return resp.Data.(*types.ReplySeed), nil
 }
 
-func (client *channelClient) GetWalletStatus() (*types.WalletStatus, error) {
+func (client *channelClient) GetWalletStatus() (*WalletStatus, error) {
 	msg := client.qclient.NewMessage("wallet", types.EventGetWalletStatus, nil)
 	err := client.qclient.Send(msg, true)
 	if err != nil {
@@ -572,7 +578,7 @@ func (client *channelClient) GetWalletStatus() (*types.WalletStatus, error) {
 		return nil, err
 	}
 
-	return resp.Data.(*types.WalletStatus), nil
+	return (*WalletStatus)(resp.Data.(*types.WalletStatus)), nil
 }
 
 func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
@@ -588,7 +594,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := account.LoadAccounts(client.q, exaddrs)
+		accounts, err := account.LoadAccounts(client.qclient, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -599,12 +605,11 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
+			account, err := account.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
 			}
-
 			accounts = append(accounts, account)
 		}
 
@@ -628,4 +633,44 @@ func (client *channelClient) QueryHash(in *types.Query) (*types.Message, error) 
 
 	return &querydata, nil
 
+}
+
+func (client *channelClient) SetAutoMiner(in *types.MinerFlag) (*types.Reply, error) {
+
+	msg := client.qclient.NewMessage("wallet", types.EventWalletAutoMiner, in)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.Reply), nil
+}
+
+func (client *channelClient) GetTicketCount() (*types.Int64, error) {
+	msg := client.qclient.NewMessage("consensus", types.EventGetTicketCount, nil)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.Int64), nil
+}
+
+func (client *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
+	msg := client.qclient.NewMessage("wallet", types.EventDumpPrivkey, in)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.ReplyStr), nil
 }

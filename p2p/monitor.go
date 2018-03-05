@@ -24,8 +24,7 @@ FOR_LOOP:
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
 				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > MaxAttemps || peer.GetRunning() == false {
-						log.Info("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
-
+						log.Debug("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
 						n.destroyPeer(peer)
 					}
 				}
@@ -36,26 +35,24 @@ FOR_LOOP:
 	}
 }
 func (n *Node) destroyPeer(peer *peer) {
-	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
+	log.Info("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
 	n.addrBook.RemoveAddr(peer.Addr())
-	n.addrBook.Save()
 	n.Remove(peer.Addr())
 }
 
 func (n *Node) monitorErrPeer() {
-
 	for {
-
 		peer := <-n.nodeInfo.monitorChan
 		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
-			log.Debug("VersoinMonitor", "NotSupport", "DELETE")
+			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
+			n.addrBook.SetAddrStat(peer.Addr(), false)
+			//加入黑名单
+			n.nodeInfo.blacklist.Add(peer.Addr())
+			continue
 		}
-
 		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
-
 	}
-
 }
 
 func (n *Node) getAddrFromOnline() {
@@ -111,11 +108,13 @@ FOR_LOOP:
 			break FOR_LOOP
 		case <-ticker.C:
 			if n.needMore() {
+				var testlist []string
 				var savelist = make(map[string]bool)
 				for _, seed := range n.nodeInfo.cfg.Seeds {
 					if n.Has(seed) == false && n.nodeInfo.blacklist.Has(seed) == false {
 						log.Debug("GetAddrFromOffline", "Add Seed", seed)
-						savelist[seed] = true
+						testlist = append(testlist, seed)
+
 					}
 				}
 
@@ -123,22 +122,24 @@ FOR_LOOP:
 				peeraddrs := n.addrBook.GetPeers()
 
 				if len(peeraddrs) != 0 {
-					var testlist []string
+
 					for _, peer := range peeraddrs {
 						testlist = append(testlist, peer.String())
 					}
-					oklist := P2pComm.AddrRouteble(testlist)
-					for _, addr := range oklist {
+				}
 
-						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
-							log.Debug("GetAddrFromOffline", "Add addr", addr)
-							savelist[addr] = true
-						}
+				oklist := P2pComm.AddrRouteble(testlist)
+				for _, addr := range oklist {
 
+					if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
+						log.Debug("GetAddrFromOffline", "Add addr", addr)
+						savelist[addr] = true
 					}
+
 				}
 
 				if len(savelist) == 0 {
+					log.Debug("getAddrFromOffline", "savelist num", 0)
 					continue
 				}
 

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"code.aliyun.com/chain33/chain33/types"
@@ -75,6 +76,13 @@ func (req *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.
 	}
 
 	return reply, nil
+}
+func (req *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, error) {
+	reply, err := req.cli.QueryTx(in.GetHash())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.HexTx{Tx: hex.EncodeToString(types.Encode(reply.GetTx()))}, nil
 }
 func (req *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.TransactionDetails, error) {
 
@@ -295,7 +303,7 @@ func (req *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.Wallet
 	if err != nil {
 		return nil, err
 	}
-	return reply, nil
+	return (*pb.WalletStatus)(reply), nil
 }
 
 func (req *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts, error) {
@@ -316,4 +324,29 @@ func (req *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error
 	reply.Msg = types.Encode(*result)
 
 	return &reply, nil
+}
+
+func (req *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, error) {
+	result, err := req.cli.SetAutoMiner(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (req *Grpc) GetTicketCount(ctx context.Context, in *types.ReqNil) (*pb.Int64, error) {
+
+	result, err := req.cli.GetTicketCount()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+
+}
+func (req *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, error) {
+	result, err := req.cli.DumpPrivkey(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

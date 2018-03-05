@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -75,7 +74,7 @@ func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
 	FeeAmountbytes, err := json.Marshal(FeeAmount)
 	if err != nil {
 		walletlog.Error("SetFeeAmount marshal FeeAmount", "err", err)
-		return err
+		return types.ErrMarshal
 	}
 
 	ws.db.SetSync(WalletFeeAmount, FeeAmountbytes)
@@ -98,12 +97,12 @@ func (ws *WalletStore) GetFeeAmount() int64 {
 
 func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
 	if len(addr) == 0 {
-		err := errors.New("input addr is null")
-		return err
+		walletlog.Error("SetWalletAccount addr is nil")
+		return types.ErrInputPara
 	}
 	if account == nil {
-		err := errors.New("input account is null")
-		return err
+		walletlog.Error("SetWalletAccount account is nil")
+		return types.ErrInputPara
 	}
 
 	timestamp := fmt.Sprintf("%018d", time.Now().Unix())
@@ -116,7 +115,7 @@ func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types
 	accountbyte, err := proto.Marshal(account)
 	if err != nil {
 		walletlog.Error("SetWalletAccount proto.Marshal err!", "err", err)
-		return err
+		return types.ErrMarshal
 	}
 
 	//需要同时修改三个表，Account，Addr，Label，批量处理
@@ -131,18 +130,18 @@ func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types
 func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(addr) == 0 {
-		err := errors.New("input addr is null")
-		return nil, err
+		walletlog.Error("GetAccountByAddr addr is nil")
+		return nil, types.ErrInputPara
 	}
 	data := ws.db.Get(calcAddrKey(addr))
 	if data == nil {
-		err := errors.New("does not exist in wallet!")
-		return nil, err
+		walletlog.Debug("GetAccountByAddr addr not exist")
+		return nil, types.ErrAddrNotExist
 	}
 	err := proto.Unmarshal(data, &account)
 	if err != nil {
 		walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
-		return nil, err
+		return nil, types.ErrUnmarshal
 	}
 	return &account, nil
 }
@@ -150,18 +149,18 @@ func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore,
 func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(label) == 0 {
-		err := errors.New("input label is null")
-		return nil, err
+		walletlog.Error("SetWalletAccount label is nil")
+		return nil, types.ErrInputPara
 	}
 	data := ws.db.Get(calcLabelKey(label))
 	if data == nil {
-		err := errors.New("does not exist in wallet!")
-		return nil, err
+		walletlog.Error("GetAccountByLabel label not exist")
+		return nil, types.ErrLabelNotExist
 	}
 	err := proto.Unmarshal(data, &account)
 	if err != nil {
 		walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
-		return nil, err
+		return nil, types.ErrUnmarshal
 	}
 	return &account, nil
 }
@@ -169,13 +168,13 @@ func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStor
 func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
 
 	if len(addr) == 0 {
-		err := errors.New("input addr is null")
-		return nil, err
+		walletlog.Error("GetAccountByPrefix addr is nil")
+		return nil, types.ErrInputPara
 	}
 	accbytes := ws.db.PrefixScan([]byte(addr))
 	if len(accbytes) == 0 {
-		err := errors.New("does not exist Account!")
-		return nil, err
+		walletlog.Error("GetAccountByPrefix addr  not exist")
+		return nil, types.ErrAccountNotExist
 	}
 	WalletAccountStores := make([]*types.WalletAccountStore, len(accbytes))
 	for index, accbyte := range accbytes {
@@ -183,7 +182,7 @@ func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountSt
 		err := proto.Unmarshal(accbyte, &walletaccount)
 		if err != nil {
 			walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
-			return nil, err
+			return nil, types.ErrUnmarshal
 		}
 		WalletAccountStores[index] = &walletaccount
 	}
@@ -194,8 +193,8 @@ func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountSt
 func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	var txDetails types.WalletTxDetails
 	if TxList == nil {
-		err := errors.New("GetTxDetailByIter TxList is null")
-		return nil, err
+		walletlog.Error("GetTxDetailByIter TxList is nil")
+		return nil, types.ErrInputPara
 	}
 
 	var txbytes [][]byte
@@ -203,14 +202,14 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	if len(TxList.FromTx) == 0 {
 		txbytes = ws.db.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
-			err := errors.New("does not exist tx!")
-			return nil, err
+			walletlog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
+			return nil, types.ErrTxNotExist
 		}
 	} else {
 		txbytes = ws.db.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
-			err := errors.New("does not exist tx!")
-			return nil, err
+			walletlog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
+			return nil, types.ErrTxNotExist
 		}
 	}
 
@@ -220,7 +219,11 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 		err := proto.Unmarshal(txdetailbyte, &txdetail)
 		if err != nil {
 			walletlog.Error("GetTxDetailByIter", "proto.Unmarshal err:", err)
-			return nil, err
+			return nil, types.ErrUnmarshal
+		}
+		if string(txdetail.Tx.GetExecer()) == "coins" && txdetail.Tx.ActionName() == "withdraw" {
+			//swap from and to
+			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
 		}
 		txhash := txdetail.GetTx().Hash()
 		txdetail.Txhash = txhash
@@ -236,7 +239,7 @@ func (ws *WalletStore) SetEncryptionFlag() error {
 	data, err := json.Marshal(flag)
 	if err != nil {
 		walletlog.Error("SetEncryptionFlag marshal flag", "err", err)
-		return err
+		return types.ErrMarshal
 	}
 
 	ws.db.SetSync(EncryptionFlag, data)
@@ -271,7 +274,7 @@ func (ws *WalletStore) SetPasswordHash(password string) error {
 	pwhashbytes, err := json.Marshal(WalletPwHash)
 	if err != nil {
 		walletlog.Error("SetEncryptionFlag marshal flag", "err", err)
-		return err
+		return types.ErrMarshal
 	}
 
 	ws.db.SetSync(PasswordHash, pwhashbytes)
