@@ -40,11 +40,11 @@ func (b *EventBus) SetLogger(l log.Logger) {
 }
 */
 
-func (b *EventBus) OnStart() error {
+func (b *EventBus) Start() error {
 	return b.pubsub.OnStart()
 }
 
-func (b *EventBus) OnStop() {
+func (b *EventBus) Stop() {
 	b.pubsub.OnStop()
 }
 

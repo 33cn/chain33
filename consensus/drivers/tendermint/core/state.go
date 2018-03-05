@@ -14,11 +14,12 @@ import (
 
 	ttypes "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/types"
 	sm "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/state"
-	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint"
 	"github.com/tendermint/tmlibs/log"
 	gtypes "code.aliyun.com/chain33/chain33/types"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"encoding/gob"
+	"code.aliyun.com/chain33/chain33/consensus/drivers"
+	"os"
 )
 
 //-----------------------------------------------------------------------------
@@ -69,7 +70,7 @@ func (ti *timeoutInfo) String() string {
 type ConsensusState struct {
 	Logger  log.Logger
 	// config details
-	client        *tendermint.TendermintClient
+	client        *drivers.BaseClient
 	privValidator ttypes.PrivValidator // for signing votes
 /*
 	// services for creating and executing blocks
@@ -78,7 +79,7 @@ type ConsensusState struct {
 
 	mempool    ttypes.Mempool
 */
-	blockStore BlockStore
+	blockStore *BlockStore
 	evpool     ttypes.EvidencePool
 
 	// internal state
@@ -133,11 +134,11 @@ func TxDecode(data []byte, to interface{}) error {
 }
 
 // NewConsensusState returns a new ConsensusState.
-func NewConsensusState(client *tendermint.TendermintClient, state sm.State) *ConsensusState {
+func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *BlockStore) *ConsensusState {
 	cs := &ConsensusState{
 		client:           client,
 		//blockExec:        blockExec,
-		//blockStore:       blockStore,
+		blockStore:       blockStore,
 		//mempool:          mempool,
 		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
@@ -157,6 +158,9 @@ func NewConsensusState(client *tendermint.TendermintClient, state sm.State) *Con
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
+	if cs.Logger == nil{
+		cs.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensusStart")
+	}
 	//cs.BaseService = *cmn.NewBaseService(nil, "ConsensusState", cs)
 	return cs
 }
@@ -906,6 +910,8 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	if len(txs) > 0 {
 		//check dup
 		txs = cs.client.CheckTxDup(txs)
+	} else {
+		return nil, nil
 	}
 
 	var newtxs ttypes.Txs

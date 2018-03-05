@@ -2,10 +2,9 @@ package core
 
 import (
 	"time"
-	log "github.com/inconshreveable/log15"
+	"github.com/tendermint/tmlibs/log"
+	"os"
 )
-
-var tickerlog = log.New("module", "tendermint-ticker")
 
 var (
 	tickTockBufferSize = 10
@@ -30,7 +29,7 @@ type TimeoutTicker interface {
 // and fired on the tockChan.
 type timeoutTicker struct {
 	//cmn.BaseService
-	//logger  log.Logger
+	Logger  log.Logger
 	timer    *time.Timer
 	tickChan chan timeoutInfo // for scheduling timeouts
 	tockChan chan timeoutInfo // for notifying about them
@@ -42,6 +41,9 @@ func NewTimeoutTicker() TimeoutTicker {
 		timer:    time.NewTimer(0),
 		tickChan: make(chan timeoutInfo, tickTockBufferSize),
 		tockChan: make(chan timeoutInfo, tickTockBufferSize),
+	}
+	if tt.Logger == nil{
+		tt.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "timeticker")
 	}
 	//tt.BaseService = *cmn.NewBaseService(nil, "TimeoutTicker", tt)
 	tt.stopTimer() // don't want to fire until the first scheduled timeout
@@ -84,7 +86,7 @@ func (t *timeoutTicker) stopTimer() {
 		select {
 		case <-t.timer.C:
 		default:
-			tickerlog.Debug("Timer already stopped")
+			t.Logger.Debug("Timer already stopped")
 		}
 	}
 }
@@ -93,12 +95,12 @@ func (t *timeoutTicker) stopTimer() {
 // timers are interupted and replaced by new ticks from later steps
 // timeouts of 0 on the tickChan will be immediately relayed to the tockChan
 func (t *timeoutTicker) timeoutRoutine() {
-	tickerlog.Debug("Starting timeout routine")
+	t.Logger.Debug("Starting timeout routine")
 	var ti timeoutInfo
 	for {
 		select {
 		case newti := <-t.tickChan:
-			tickerlog.Debug("Received tick", "old_ti", ti, "new_ti", newti)
+			t.Logger.Debug("Received tick", "old_ti", ti, "new_ti", newti)
 
 			// ignore tickers for old height/round/step
 			if newti.Height < ti.Height {
