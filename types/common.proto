@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package types;
+
+message Reply {
+	bool isOk = 1;
+	bytes msg = 2;
+}
+
+message ReqString {
+	string data = 1;
+}
+
+message ReplyString {
+	string data = 1;
+}
+
+message ReplyStrings {
+	repeated string datas = 1;
+}
+
+message ReqInt {
+	int64 height = 1;
+}
+
+message Int64 {
+	int64 data = 1;
+}
+
+message ReqHash {
+	bytes hash = 1;
+}
+
+message ReplyHash {
+	bytes hash = 1;
+}
+
+message ReqNil {
+}
+
+message ReqHashes {
+	repeated bytes hashes = 1;
+}
+
+message ReplyHashes {
+	repeated bytes hashes = 1;
+}
+
+message KeyValue {
+	bytes key = 1;
+	bytes value = 2;
+}

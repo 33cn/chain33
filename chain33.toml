@@ -5,30 +5,31 @@ LogConsoleLevel="debug"
 LogFile="chain33.log"
 
 [blockchain]
-defCacheSize=500
-maxFetchBlockNum=100
+defCacheSize=512
+maxFetchBlockNum=128
 timeoutSeconds=5
-batchBlockNum=100
+batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
+isStrongConsistency=false
 
 [p2p]
-seeds=["114.55.101.159:13802"]
+seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
 enable=true
 isSeed=false
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
-version=16
-verMix=16
-verMax=17
+version=118
+verMix=118
+verMax=119
 
 [mempool]
 poolCacheSize=10240
 minTxFee=1000000
 
 [consensus]
-name="solo"
+name="ticket"
 minerstart=true
 
 [store]

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -80,7 +81,7 @@ func (req Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply.GetTx().String()
+	*result = hex.EncodeToString(types.Encode(reply.GetTx()))
 	return nil
 
 }
@@ -125,6 +126,8 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 		transDetail.Blocktime = reply.GetBlocktime()
 		transDetail.Amount = reply.GetAmount()
 		transDetail.Fromaddr = reply.GetFromaddr()
+		transDetail.ActionName = reply.GetActionName()
+
 		*result = &transDetail
 	}
 
@@ -288,13 +291,14 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 							Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
 							Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature())},
 					},
-					Height:    tx.GetHeight(),
-					Index:     tx.GetIndex(),
-					Blocktime: tx.GetBlocktime(),
-					Receipt:   &recp,
-					Proofs:    proofs,
-					Amount:    tx.GetAmount(),
-					Fromaddr:  tx.GetFromaddr(),
+					Height:     tx.GetHeight(),
+					Index:      tx.GetIndex(),
+					Blocktime:  tx.GetBlocktime(),
+					Receipt:    &recp,
+					Proofs:     proofs,
+					Amount:     tx.GetAmount(),
+					Fromaddr:   tx.GetFromaddr(),
+					ActionName: tx.GetActionName(),
 				})
 		}
 
@@ -314,6 +318,10 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 		var txlist ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
+			amount, err := tx.Amount()
+			if err != nil {
+				amount = 0
+			}
 			txlist.Txs = append(txlist.Txs,
 				&Transaction{
 					Execer:  string(tx.GetExecer()),
@@ -321,6 +329,8 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 					Fee:     tx.GetFee(),
 					Expire:  tx.GetExpire(),
 					Nonce:   tx.GetNonce(),
+					From:    account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String(),
+					Amount:  amount,
 					To:      tx.GetTo(),
 					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
 						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
@@ -403,13 +413,14 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 						Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature()),
 					},
 				},
-				Receipt:   &recp,
-				Height:    tx.GetHeight(),
-				Index:     tx.GetIndex(),
-				Blocktime: tx.GetBlocktime(),
-				Amount:    tx.GetAmount(),
-				Fromaddr:  tx.GetFromaddr(),
-				Txhash:    common.ToHex(tx.GetTxhash()),
+				Receipt:    &recp,
+				Height:     tx.GetHeight(),
+				Index:      tx.GetIndex(),
+				Blocktime:  tx.GetBlocktime(),
+				Amount:     tx.GetAmount(),
+				Fromaddr:   tx.GetFromaddr(),
+				Txhash:     common.ToHex(tx.GetTxhash()),
+				ActionName: tx.GetActionName(),
 			})
 
 		}
@@ -649,7 +660,13 @@ func (req Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error 
 	if err != nil {
 		return err
 	}
-	*result = reply
+	type AddrOverview struct {
+		Reciver int64 `json:"reciver"`
+		Balance int64 `json:"balance"`
+		TxCount int64 `json:"txcount"`
+	}
+
+	*result = (*AddrOverview)(reply)
 	return nil
 }
 
@@ -732,7 +749,7 @@ func (req Chain33) Query(in Query, result *interface{}) error {
 		return err
 	}
 
-	*result = (*resp).String()
+	*result = resp
 	return nil
 }
 
@@ -746,5 +763,25 @@ func (req Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error 
 	reply.IsOk = resp.GetIsOk()
 	reply.Msg = string(resp.GetMsg())
 	*result = &reply
+	return nil
+}
+
+func (req Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
+	resp, err := req.cli.GetTicketCount()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+
+}
+
+func (req Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
+	reply, err := req.cli.DumpPrivkey(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
 	return nil
 }

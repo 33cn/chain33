@@ -34,7 +34,6 @@ func (n *Node) Close() {
 	if n.l != nil {
 		n.l.Close()
 	}
-
 	log.Debug("stop", "listen", "closed")
 	n.addrBook.Close()
 	log.Debug("stop", "addrBook", "closed")
@@ -103,7 +102,7 @@ func (n *Node) DoNat() {
 	if selefNet, err := NewNetAddressString(fmt.Sprintf("127.0.0.1:%v", n.nodeInfo.GetListenAddr().Port)); err == nil {
 		n.addrBook.AddOurAddress(selefNet)
 	}
-	close(n.nodeInfo.natDone)
+	//close(n.nodeInfo.natDone)
 	return
 }
 
@@ -153,9 +152,6 @@ func (n *Node) DialPeers(addrbucket map[string]bool) error {
 func (n *Node) AddPeer(pr *peer) {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
-	if pr.outbound == false {
-		return
-	}
 	if peer, ok := n.outBound[pr.Addr()]; ok {
 		log.Info("AddPeer", "delete peer", pr.Addr())
 		n.addrBook.RemoveAddr(peer.Addr())
@@ -164,8 +160,8 @@ func (n *Node) AddPeer(pr *peer) {
 		peer = nil
 	}
 	log.Debug("AddPeer", "peer", pr.Addr())
-	n.outBound[pr.Addr()] = pr
 	pr.key = n.addrBook.key
+	n.outBound[pr.Addr()] = pr
 	pr.Start()
 	return
 
