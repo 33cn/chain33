@@ -117,7 +117,7 @@ func ExecFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receip
 	copyacc := *acc
 	acc.Balance -= amount
 	acc.Frozen += amount
-	receiptBalance := &types.ReceiptExecAccount{execaddr, &copyacc, acc}
+	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	SaveExecAccount(db, execaddr, acc)
 	return execReceipt(acc, receiptBalance), nil
 }
@@ -136,7 +136,7 @@ func ExecActive(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receip
 	copyacc := *acc
 	acc.Balance += amount
 	acc.Frozen -= amount
-	receiptBalance := &types.ReceiptExecAccount{execaddr, &copyacc, acc}
+	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	SaveExecAccount(db, execaddr, acc)
 	return execReceipt(acc, receiptBalance), nil
 }
@@ -161,8 +161,8 @@ func ExecTransfer(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.
 	accFrom.Balance -= amount
 	accTo.Balance += amount
 
-	receiptBalanceFrom := &types.ReceiptExecAccount{execaddr, &copyaccFrom, accFrom}
-	receiptBalanceTo := &types.ReceiptExecAccount{execaddr, &copyaccTo, accTo}
+	receiptBalanceFrom := &types.ReceiptExecAccountTransfer{execaddr, &copyaccFrom, accFrom}
+	receiptBalanceTo := &types.ReceiptExecAccountTransfer{execaddr, &copyaccTo, accTo}
 
 	SaveExecAccount(db, execaddr, accFrom)
 	SaveExecAccount(db, execaddr, accTo)
@@ -189,8 +189,8 @@ func ExecTransferFrozen(db dbm.KVDB, from, to, execaddr string, amount int64) (*
 	accFrom.Frozen -= amount
 	accTo.Balance += amount
 
-	receiptBalanceFrom := &types.ReceiptExecAccount{execaddr, &copyaccFrom, accFrom}
-	receiptBalanceTo := &types.ReceiptExecAccount{execaddr, &copyaccTo, accTo}
+	receiptBalanceFrom := &types.ReceiptExecAccountTransfer{execaddr, &copyaccFrom, accFrom}
+	receiptBalanceTo := &types.ReceiptExecAccountTransfer{execaddr, &copyaccTo, accTo}
 
 	SaveExecAccount(db, execaddr, accFrom)
 	SaveExecAccount(db, execaddr, accTo)
@@ -247,7 +247,7 @@ func execDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types
 	acc := LoadExecAccount(db, addr, execaddr)
 	copyacc := *acc
 	acc.Frozen += amount
-	receiptBalance := &types.ReceiptExecAccount{execaddr, &copyacc, acc}
+	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
 	SaveExecAccount(db, execaddr, acc)
 	return execReceipt(acc, receiptBalance), nil
@@ -263,7 +263,7 @@ func execDeposit(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Recei
 	acc := LoadExecAccount(db, addr, execaddr)
 	copyacc := *acc
 	acc.Balance += amount
-	receiptBalance := &types.ReceiptExecAccount{execaddr, &copyacc, acc}
+	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
 	SaveExecAccount(db, execaddr, acc)
 	return execReceipt(acc, receiptBalance), nil
@@ -282,20 +282,20 @@ func execWithdraw(db dbm.KVDB, execaddr, addr string, amount int64) (*types.Rece
 	}
 	copyacc := *acc
 	acc.Balance -= amount
-	receiptBalance := &types.ReceiptExecAccount{execaddr, &copyacc, acc}
+	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	SaveExecAccount(db, execaddr, acc)
 	return execReceipt(acc, receiptBalance), nil
 }
 
-func execReceipt(acc *types.Account, r *types.ReceiptExecAccount) *types.Receipt {
-	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(r)}
+func execReceipt(acc *types.Account, r *types.ReceiptExecAccountTransfer) *types.Receipt {
+	log1 := &types.ReceiptLog{types.TyLogExecTransfer, types.Encode(r)}
 	kv := GetExecKVSet(r.ExecAddr, acc)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}
 }
 
-func execReceipt2(acc1, acc2 *types.Account, r1, r2 *types.ReceiptExecAccount) *types.Receipt {
-	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(r1)}
-	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(r2)}
+func execReceipt2(acc1, acc2 *types.Account, r1, r2 *types.ReceiptExecAccountTransfer) *types.Receipt {
+	log1 := &types.ReceiptLog{types.TyLogExecTransfer, types.Encode(r1)}
+	log2 := &types.ReceiptLog{types.TyLogExecTransfer, types.Encode(r2)}
 	kv := GetExecKVSet(r1.ExecAddr, acc1)
 	kv = append(kv, GetExecKVSet(r2.ExecAddr, acc2)...)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
@@ -305,32 +305,4 @@ func mergeReceipt(receipt, receipt2 *types.Receipt) *types.Receipt {
 	receipt.Logs = append(receipt.Logs, receipt2.Logs...)
 	receipt.KV = append(receipt.KV, receipt2.KV...)
 	return receipt
-}
-
-func GenesisInitExec(db dbm.KVDB, addr string, amount int64, execaddr string) (*types.Receipt, error) {
-	g := &types.Genesis{}
-	g.Isrun = true
-	SaveGenesis(db, g)
-	accTo := LoadAccount(db, execaddr)
-	tob := accTo.GetBalance() + amount
-	receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, amount}
-	accTo.Balance = tob
-	SaveAccount(db, accTo)
-	receipt := genesisReceipt(accTo, receiptBalanceTo, g)
-	if execaddr != "" {
-		receipt2, err := execDeposit(db, addr, execaddr, amount)
-		if err != nil {
-			panic(err)
-		}
-		receipt = mergeReceipt(receipt, receipt2)
-	}
-	return receipt, nil
-}
-
-func genesisReceipt(accTo *types.Account, receiptBalanceTo *types.ReceiptBalance, g *types.Genesis) *types.Receipt {
-	log1 := &types.ReceiptLog{types.TyLogGenesis, nil}
-	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceTo)}
-	kv := GetGenesisKVSet(g)
-	kv = append(kv, GetKVSet(accTo)...)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
 }

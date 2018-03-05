@@ -19,7 +19,10 @@ import (
 
 var alog = log.New("module", "account")
 
-var genesisKey = []byte("mavl-acc-genesis")
+type AccountDB struct {
+	db               dbm.KVDB
+	accountKeyPerfix []byte
+}
 
 func LoadAccount(db dbm.KVDB, addr string) *types.Account {
 	value, err := db.Get(AccountKey(addr))
@@ -52,16 +55,19 @@ func Transfer(db dbm.KVDB, from, to string, amount int64) (*types.Receipt, error
 	}
 	accFrom := LoadAccount(db, from)
 	accTo := LoadAccount(db, to)
-	b := accFrom.GetBalance() - amount
 	if accFrom.Addr == accTo.Addr {
 		return nil, types.ErrSendSameToRecv
 	}
-	if b >= 0 {
-		receiptBalanceFrom := &types.ReceiptBalance{accFrom.GetBalance(), b, -amount}
-		accFrom.Balance = b
-		tob := accTo.GetBalance() + amount
-		receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, amount}
-		accTo.Balance = tob
+	if accFrom.GetBalance()-amount >= 0 {
+		copyfrom := *accFrom
+		copyto := *accTo
+
+		accFrom.Balance = accFrom.GetBalance() - amount
+		accTo.Balance = accTo.GetBalance() + amount
+
+		receiptBalanceFrom := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
+		receiptBalanceTo := &types.ReceiptAccountTransfer{&copyto, accTo}
+
 		SaveAccount(db, accFrom)
 		SaveAccount(db, accTo)
 		return transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
@@ -77,52 +83,19 @@ func depositBalance(db dbm.KVDB, execaddr string, amount int64) (*types.Receipt,
 	acc := LoadAccount(db, execaddr)
 	copyacc := *acc
 	acc.Balance += amount
-	receiptBalance := &types.ReceiptBalance{copyacc.Balance, acc.Balance, amount}
+	receiptBalance := &types.ReceiptAccountTransfer{&copyacc, acc}
 	SaveAccount(db, acc)
 	log1 := &types.ReceiptLog{types.TyLogDeposit, types.Encode(receiptBalance)}
 	kv := GetKVSet(acc)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}, nil
 }
 
-func GenesisInit(db dbm.KVDB, addr string, amount int64) (*types.Receipt, error) {
-	g := &types.Genesis{}
-	g.Isrun = true
-	SaveGenesis(db, g)
-	accTo := LoadAccount(db, addr)
-	tob := accTo.GetBalance() + amount
-	receiptBalanceTo := &types.ReceiptBalance{accTo.GetBalance(), tob, amount}
-	accTo.Balance = tob
-	SaveAccount(db, accTo)
-	receipt := genesisReceipt(accTo, receiptBalanceTo, g)
-	return receipt, nil
-}
-
-func transferReceipt(accFrom, accTo *types.Account, receiptBalanceFrom, receiptBalanceTo *types.ReceiptBalance) *types.Receipt {
-	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceFrom)}
-	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptBalanceTo)}
+func transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
+	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptFrom)}
+	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptTo)}
 	kv := GetKVSet(accFrom)
 	kv = append(kv, GetKVSet(accTo)...)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
-}
-
-func GetGenesis(db dbm.KVDB) *types.Genesis {
-	value, err := db.Get(genesisKey)
-	if err != nil {
-		return &types.Genesis{}
-	}
-	var g types.Genesis
-	err = types.Decode(value, &g)
-	if err != nil {
-		panic(err) //数据库已经损坏
-	}
-	return &g
-}
-
-func SaveGenesis(db dbm.KVDB, g *types.Genesis) {
-	set := GetGenesisKVSet(g)
-	for i := 0; i < len(set); i++ {
-		db.Set(set[i].GetKey(), set[i].Value)
-	}
 }
 
 func SaveAccount(db dbm.KVDB, acc *types.Account) {
@@ -135,12 +108,6 @@ func SaveAccount(db dbm.KVDB, acc *types.Account) {
 func GetKVSet(acc *types.Account) (kvset []*types.KeyValue) {
 	value := types.Encode(acc)
 	kvset = append(kvset, &types.KeyValue{AccountKey(acc.Addr), value})
-	return kvset
-}
-
-func GetGenesisKVSet(g *types.Genesis) (kvset []*types.KeyValue) {
-	value := types.Encode(g)
-	kvset = append(kvset, &types.KeyValue{genesisKey, value})
 	return kvset
 }
 
@@ -177,48 +144,6 @@ func LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, e
 		}
 	}
 	return accs, nil
-}
-
-type CacheDB struct {
-	stateHash []byte
-	q         queue.Client
-	cache     map[string][]byte
-}
-
-func NewCacheDB(q *queue.Queue, stateHash []byte) *CacheDB {
-	return &CacheDB{stateHash, q.NewClient(), make(map[string][]byte)}
-}
-
-func (db *CacheDB) Get(key []byte) (value []byte, err error) {
-	if value, ok := db.cache[string(key)]; ok {
-		return value, nil
-	}
-	value, err = db.get(key)
-	if err != nil {
-		return nil, err
-	}
-	db.cache[string(key)] = value
-	return value, err
-}
-
-func (db *CacheDB) Set(key []byte, value []byte) error {
-	db.cache[string(key)] = value
-	return nil
-}
-
-func (db *CacheDB) get(key []byte) (value []byte, err error) {
-	query := &types.StoreGet{db.stateHash, [][]byte{key}}
-	msg := db.q.NewMessage("store", types.EventStoreGet, query)
-	db.q.Send(msg, true)
-	resp, err := db.q.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
-	}
-	value = resp.GetData().(*types.StoreReplyValue).Values[0]
-	if value == nil {
-		return nil, types.ErrNotFound
-	}
-	return value, nil
 }
 
 func LoadAccountsDB(db dbm.KVDB, addrs []string) (accs []*types.Account, err error) {
