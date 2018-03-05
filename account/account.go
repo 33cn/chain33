@@ -20,28 +20,46 @@ import (
 var alog = log.New("module", "account")
 
 type AccountDB struct {
-	db               dbm.KVDB
-	accountKeyPerfix []byte
+	db                   dbm.KVDB
+	accountKeyPerfix     []byte
+	execAccountKeyPerfix []byte
 }
 
-func LoadAccount(db dbm.KVDB, addr string) *types.Account {
-	value, err := db.Get(AccountKey(addr))
+func NewCoinsAccount() *AccountDB {
+	return NewAccountDB("mavl-coins-")
+}
+
+func NewAccountDB(prefix string) *AccountDB {
+	acc := &AccountDB{}
+	acc.accountKeyPerfix = []byte(prefix)
+	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
+	alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
+	return acc
+}
+
+func (acc *AccountDB) SetDB(db dbm.KVDB) *AccountDB {
+	acc.db = db
+	return acc
+}
+
+func (acc *AccountDB) LoadAccount(addr string) *types.Account {
+	value, err := acc.db.Get(acc.AccountKey(addr))
 	if err != nil {
 		return &types.Account{Addr: addr}
 	}
-	var acc types.Account
-	err = types.Decode(value, &acc)
+	var acc1 types.Account
+	err = types.Decode(value, &acc1)
 	if err != nil {
 		panic(err) //数据库已经损坏
 	}
-	return &acc
+	return &acc1
 }
 
-func CheckTransfer(db dbm.KVDB, from, to string, amount int64) error {
+func (acc *AccountDB) CheckTransfer(from, to string, amount int64) error {
 	if !types.CheckAmount(amount) {
 		return types.ErrAmount
 	}
-	accFrom := LoadAccount(db, from)
+	accFrom := acc.LoadAccount(from)
 	b := accFrom.GetBalance() - amount
 	if b < 0 {
 		return types.ErrNoBalance
@@ -49,12 +67,12 @@ func CheckTransfer(db dbm.KVDB, from, to string, amount int64) error {
 	return nil
 }
 
-func Transfer(db dbm.KVDB, from, to string, amount int64) (*types.Receipt, error) {
+func (acc *AccountDB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
-	accFrom := LoadAccount(db, from)
-	accTo := LoadAccount(db, to)
+	accFrom := acc.LoadAccount(from)
+	accTo := acc.LoadAccount(to)
 	if accFrom.Addr == accTo.Addr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -68,50 +86,50 @@ func Transfer(db dbm.KVDB, from, to string, amount int64) (*types.Receipt, error
 		receiptBalanceFrom := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
 		receiptBalanceTo := &types.ReceiptAccountTransfer{&copyto, accTo}
 
-		SaveAccount(db, accFrom)
-		SaveAccount(db, accTo)
-		return transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
+		acc.SaveAccount(accFrom)
+		acc.SaveAccount(accTo)
+		return acc.transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
 	} else {
 		return nil, types.ErrNoBalance
 	}
 }
 
-func depositBalance(db dbm.KVDB, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *AccountDB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
-	acc := LoadAccount(db, execaddr)
-	copyacc := *acc
-	acc.Balance += amount
-	receiptBalance := &types.ReceiptAccountTransfer{&copyacc, acc}
-	SaveAccount(db, acc)
+	acc1 := acc.LoadAccount(execaddr)
+	copyacc := *acc1
+	acc1.Balance += amount
+	receiptBalance := &types.ReceiptAccountTransfer{&copyacc, acc1}
+	acc.SaveAccount(acc1)
 	log1 := &types.ReceiptLog{types.TyLogDeposit, types.Encode(receiptBalance)}
-	kv := GetKVSet(acc)
+	kv := acc.GetKVSet(acc1)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}, nil
 }
 
-func transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
+func (acc *AccountDB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
 	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptFrom)}
 	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptTo)}
-	kv := GetKVSet(accFrom)
-	kv = append(kv, GetKVSet(accTo)...)
+	kv := acc.GetKVSet(accFrom)
+	kv = append(kv, acc.GetKVSet(accTo)...)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
 }
 
-func SaveAccount(db dbm.KVDB, acc *types.Account) {
-	set := GetKVSet(acc)
+func (acc *AccountDB) SaveAccount(acc1 *types.Account) {
+	set := acc.GetKVSet(acc1)
 	for i := 0; i < len(set); i++ {
-		db.Set(set[i].GetKey(), set[i].Value)
+		acc.db.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func GetKVSet(acc *types.Account) (kvset []*types.KeyValue) {
-	value := types.Encode(acc)
-	kvset = append(kvset, &types.KeyValue{AccountKey(acc.Addr), value})
+func (acc *AccountDB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
+	value := types.Encode(acc1)
+	kvset = append(kvset, &types.KeyValue{acc.AccountKey(acc1.Addr), value})
 	return kvset
 }
 
-func LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, err error) {
+func (acc *AccountDB) LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, err error) {
 	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	client.Send(msg, true)
 	msg, err = client.Wait(msg)
@@ -121,7 +139,7 @@ func LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, e
 	get := types.StoreGet{}
 	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
 	for i := 0; i < len(addrs); i++ {
-		get.Keys = append(get.Keys, AccountKey(addrs[i]))
+		get.Keys = append(get.Keys, acc.AccountKey(addrs[i]))
 	}
 	msg = client.NewMessage("store", types.EventStoreGet, &get)
 	client.Send(msg, true)
@@ -146,17 +164,17 @@ func LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, e
 	return accs, nil
 }
 
-func LoadAccountsDB(db dbm.KVDB, addrs []string) (accs []*types.Account, err error) {
+func (acc *AccountDB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error) {
 	for i := 0; i < len(addrs); i++ {
-		acc := LoadAccount(db, addrs[i])
-		accs = append(accs, acc)
+		acc1 := acc.LoadAccount(addrs[i])
+		accs = append(accs, acc1)
 	}
 	return accs, nil
 }
 
 //address to save key
-func AccountKey(address string) (key []byte) {
-	key = append(key, []byte("mavl-acc-")...)
+func (acc *AccountDB) AccountKey(address string) (key []byte) {
+	key = append(key, acc.accountKeyPerfix...)
 	key = append(key, []byte(address)...)
 	return key
 }
