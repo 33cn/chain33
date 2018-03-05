@@ -232,6 +232,42 @@ func main() {
 			return
 		}
 		BindMiner(argsWithoutProg[1], argsWithoutProg[2])
+	case "setautomining":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		SetAutoMining(argsWithoutProg[1])
+	case "getrawtx":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTxHexByHash(argsWithoutProg[1])
+	case "getticketcount":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTicketCount()
+	case "dumpprivkey": //导出私钥
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		DumpPrivkey(argsWithoutProg[1])
+	case "decodetx":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		DecodeTx(argsWithoutProg[1])
+	case "getcoldaddrbyminer":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetColdAddrByMiner(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -249,6 +285,7 @@ func LoadHelp() {
 	fmt.Println("settxfee [amount]                                           : 设置交易费")
 	fmt.Println("sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
 	fmt.Println("importprivkey [privkey, label]                              : 引入私钥")
+	fmt.Println("dumpprivkey [addr]                                          : 导出私钥")
 	fmt.Println("wallettxlist [from, count, direction]                       : 钱包交易列表")
 	fmt.Println("getmempool []                                               : 获取内存池")
 	fmt.Println("sendtransaction [data]                                      : 发送交易")
@@ -271,6 +308,11 @@ func LoadHelp() {
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
+	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
+	fmt.Println("getrawtx [hash]                                             : 通过哈希获取交易十六进制字符串")
+	fmt.Println("getticketcount []                                           : 获取票数")
+	fmt.Println("decodetx [data]                                             : 解析交易")
+	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
 }
 
 type AccountsResult struct {
@@ -304,14 +346,15 @@ type TxResult struct {
 }
 
 type TxDetailResult struct {
-	Tx        *TxResult            `json:"tx"`
-	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
-	Proofs    []string             `json:"proofs"`
-	Height    int64                `json:"height"`
-	Index     int64                `json:"index"`
-	Blocktime int64                `json:"blocktime"`
-	Amount    string               `json:"amount"`
-	Fromaddr  string               `json:"fromaddr"`
+	Tx         *TxResult            `json:"tx"`
+	Receipt    *jsonrpc.ReceiptData `json:"receipt"`
+	Proofs     []string             `json:"proofs"`
+	Height     int64                `json:"height"`
+	Index      int64                `json:"index"`
+	Blocktime  int64                `json:"blocktime"`
+	Amount     string               `json:"amount"`
+	Fromaddr   string               `json:"fromaddr"`
+	ActionName string               `json:"actionname"`
 }
 
 type TxDetailsResult struct {
@@ -342,14 +385,15 @@ type WalletTxDetailsResult struct {
 }
 
 type WalletTxDetailResult struct {
-	Tx        *TxResult            `json:"tx"`
-	Receipt   *jsonrpc.ReceiptData `json:"receipt"`
-	Height    int64                `json:"height"`
-	Index     int64                `json:"index"`
-	Blocktime int64                `json:"blocktime"`
-	Amount    string               `json:"amount"`
-	Fromaddr  string               `json:"fromaddr"`
-	Txhash    string               `json:"txhash"`
+	Tx         *TxResult            `json:"tx"`
+	Receipt    *jsonrpc.ReceiptData `json:"receipt"`
+	Height     int64                `json:"height"`
+	Index      int64                `json:"index"`
+	Blocktime  int64                `json:"blocktime"`
+	Amount     string               `json:"amount"`
+	Fromaddr   string               `json:"fromaddr"`
+	Txhash     string               `json:"txhash"`
+	ActionName string               `json:"actionname"`
 }
 
 type AddrOverviewResult struct {
@@ -689,14 +733,15 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		wtxd := &WalletTxDetailResult{
-			Tx:        t,
-			Receipt:   v.Receipt,
-			Height:    v.Height,
-			Index:     v.Index,
-			Blocktime: v.Blocktime,
-			Amount:    amountResult,
-			Fromaddr:  v.Fromaddr,
-			Txhash:    v.Txhash,
+			Tx:         t,
+			Receipt:    v.Receipt,
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.Blocktime,
+			Amount:     amountResult,
+			Fromaddr:   v.Fromaddr,
+			Txhash:     v.Txhash,
+			ActionName: v.ActionName,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
 	}
@@ -796,14 +841,15 @@ func QueryTransaction(h string) {
 	}
 	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(1e8), 'f', 4, 64)
 	result := TxDetailResult{
-		Tx:        t,
-		Receipt:   res.Receipt,
-		Proofs:    res.Proofs,
-		Height:    res.Height,
-		Index:     res.Index,
-		Blocktime: res.Blocktime,
-		Amount:    amountResult,
-		Fromaddr:  res.Fromaddr,
+		Tx:         t,
+		Receipt:    res.Receipt,
+		Proofs:     res.Proofs,
+		Height:     res.Height,
+		Index:      res.Index,
+		Blocktime:  res.Blocktime,
+		Amount:     amountResult,
+		Fromaddr:   res.Fromaddr,
+		ActionName: res.ActionName,
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -878,14 +924,15 @@ func GetTransactionByHashes(hashes []string) {
 		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		td := &TxDetailResult{
-			Tx:        t,
-			Receipt:   v.Receipt,
-			Proofs:    v.Proofs,
-			Height:    v.Height,
-			Index:     v.Index,
-			Blocktime: v.Blocktime,
-			Amount:    amountResult,
-			Fromaddr:  v.Fromaddr,
+			Tx:         t,
+			Receipt:    v.Receipt,
+			Proofs:     v.Proofs,
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.Blocktime,
+			Amount:     amountResult,
+			Fromaddr:   v.Fromaddr,
+			ActionName: v.ActionName,
 		}
 		result.Txs = append(result.Txs, td)
 	}
@@ -1240,7 +1287,7 @@ func GetWalletStatus() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res jsonrpc.Reply
+	var res jsonrpc.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1328,4 +1375,278 @@ func BindMiner(mineraddr string, priv string) {
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
 	//	SendTransaction(hex.EncodeToString(txHex))
+}
+
+func SetAutoMining(flag string) {
+	flagInt32, err := strconv.ParseInt(flag, 10, 32)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	params := types.MinerFlag{Flag: int32(flagInt32)}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.SetAutoMining", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetTxHexByHash(hash string) {
+	params := jsonrpc.QueryParm{Hash: hash}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res string
+	err = rpc.Call("Chain33.GetHexTxByHash", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetTicketCount() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res int64
+	err = rpc.Call("Chain33.GetTicketCount", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func DumpPrivkey(addr string) {
+	params := types.ReqStr{Reqstr: addr}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyStr
+	err = rpc.Call("Chain33.DumpPrivkey", params, &res)
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+type TxWithoutPayload struct {
+	Execer    string             `json:"execer"`
+	Signature *jsonrpc.Signature `json:"signature"`
+	Fee       string             `json:"fee"`
+	Expire    int64              `json:"expire"`
+	Nonce     int64              `json:"nonce"`
+	To        string             `json:"to"`
+}
+
+type TxWithCoinPayload struct {
+	TxWithoutPayload
+	Payload *types.CoinsAction `json:"payload"`
+}
+
+type TxWithTicketPayload struct {
+	TxWithoutPayload
+	Payload *types.TicketAction `json:"payload"`
+}
+
+type TxWithHashlockPayload struct {
+	TxWithoutPayload
+	Payload *types.HashlockAction `json:"payload"`
+}
+
+func DecodeTx(tran string) {
+	var tx types.Transaction
+	txHex, err := common.FromHex(tran)
+	err = types.Decode(txHex, &tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if "coins" == string(tx.Execer) {
+		var action types.CoinsAction
+		err = types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		data, err := json.MarshalIndent(action, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
+		result := &TxWithCoinPayload{
+			TxWithoutPayload{
+				Execer: string(tx.Execer),
+				Signature: &jsonrpc.Signature{
+					Ty:        tx.GetSignature().GetTy(),
+					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+					Signature: common.ToHex(tx.GetSignature().GetSignature()),
+				},
+				Fee:    feeResult,
+				Expire: tx.Expire,
+				Nonce:  tx.Nonce,
+				To:     tx.To,
+			},
+			&action,
+		}
+		data, err = json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Println(string(data))
+	} else if "ticket" == string(tx.Execer) {
+		var action types.TicketAction
+		err = types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		data, err := json.MarshalIndent(action, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
+		result := &TxWithTicketPayload{
+			TxWithoutPayload{
+				Execer: string(tx.Execer),
+				Signature: &jsonrpc.Signature{
+					Ty:        tx.GetSignature().GetTy(),
+					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+					Signature: common.ToHex(tx.GetSignature().GetSignature()),
+				},
+				Fee:    feeResult,
+				Expire: tx.Expire,
+				Nonce:  tx.Nonce,
+				To:     tx.To,
+			},
+			&action,
+		}
+		data, err = json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Println(string(data))
+	} else if "hashlock" == string(tx.Execer) {
+		var action types.HashlockAction
+		err = types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		data, err := json.MarshalIndent(action, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
+		result := &TxWithHashlockPayload{
+			TxWithoutPayload{
+				Execer: string(tx.Execer),
+				Signature: &jsonrpc.Signature{
+					Ty:        tx.GetSignature().GetTy(),
+					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+					Signature: common.ToHex(tx.GetSignature().GetSignature()),
+				},
+				Fee:    feeResult,
+				Expire: tx.Expire,
+				Nonce:  tx.Nonce,
+				To:     tx.To,
+			},
+			&action,
+		}
+		data, err = json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Println(string(data))
+	} else {
+		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
+		result := &TxResult{
+			Execer:  string(tx.Execer),
+			Payload: common.ToHex(tx.GetPayload()),
+			Signature: &jsonrpc.Signature{
+				Ty:        tx.GetSignature().GetTy(),
+				Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+				Signature: common.ToHex(tx.GetSignature().GetSignature()),
+			},
+			Fee:    feeResult,
+			Expire: tx.Expire,
+			Nonce:  tx.Nonce,
+			To:     tx.To,
+		}
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Println(string(data))
+	}
+}
+
+func GetColdAddrByMiner(addr string) {
+	reqaddr := &types.ReqString{addr}
+	var params jsonrpc.Query
+	params.Execer = "ticket"
+	params.FuncName = "MinerSourceList"
+	params.Payload = hex.EncodeToString(types.Encode(reqaddr))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.Message
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }

@@ -84,7 +84,7 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 }
 
 func (h *Hashlock) GetActionName(tx *types.Transaction) string {
-	return "hashlock"
+	return tx.ActionName()
 }
 
 func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {

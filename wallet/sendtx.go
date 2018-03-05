@@ -1,7 +1,9 @@
 package wallet
 
 import (
+	"encoding/hex"
 	"errors"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -26,7 +28,7 @@ func (wallet *Wallet) bindminer(mineraddr, returnaddr string, priv crypto.PrivKe
 }
 
 //通过rpc 精选close 操作
-func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) error {
+func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) ([]byte, error) {
 	for i := 0; i < len(ids); i += 100 {
 		end := i + 100
 		if end > len(ids) {
@@ -36,12 +38,9 @@ func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) error {
 		tclose := &types.TicketClose{ids[i:end]}
 		ta.Value = &types.TicketAction_Tclose{tclose}
 		ta.Ty = types.TicketActionClose
-		_, err := wallet.sendTransaction(ta, []byte("ticket"), priv, "")
-		if err != nil {
-			return err
-		}
+		return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
 	}
-	return nil
+	return nil, nil
 }
 
 func (wallet *Wallet) getBalance(addr string, execer string) (*types.Account, error) {
@@ -109,19 +108,28 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	return privs, nil
 }
 
-func (wallet *Wallet) closeAllTickets() error {
+func (wallet *Wallet) closeAllTickets() (int, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
-		return err
+		return 0, err
 	}
+	var hashes [][]byte
 	for _, key := range keys {
-		err = wallet.closeTicketsByAddr(key)
+		hash, err := wallet.closeTicketsByAddr(key)
 		if err != nil {
 			walletlog.Error("close Tickets By Addr", "err", err)
-			return err
+			return 0, err
 		}
+		if hash == nil {
+			continue
+		}
+		hashes = append(hashes, hash)
 	}
-	return nil
+	if len(hashes) > 0 {
+		wallet.waitTxs(hashes)
+		return len(hashes), nil
+	}
+	return 0, nil
 }
 
 func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) error {
@@ -139,8 +147,74 @@ func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) error {
 	return nil
 }
 
-func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
+func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) (int, error) {
 	//ticket balance and coins balance
+	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	acc1, err := wallet.getBalance(addr, "coins")
+	if err != nil {
+		return 0, err
+	}
+	acc2, err := wallet.getBalance(addr, "ticket")
+	if err != nil {
+		return 0, err
+	}
+	//留一个币作为手续费，如果手续费不够了，不能挖矿
+	//判断手续费是否足够，如果不足要及时补充。
+	fee := types.Coin
+	if acc1.Balance+acc2.Balance-2*fee >= types.TicketPrice {
+		//第一步。转移币到 ticket
+		toaddr := account.ExecAddress("ticket").String()
+		amount := acc1.Balance - 2*fee
+		//必须大于0，才需要转移币
+		var hash *types.ReplyHash
+		if amount > 0 {
+			walletlog.Error("buyTicketOne", "toaddr", toaddr, "amount", amount)
+			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket")
+			if err != nil {
+				return 0, err
+			}
+			wallet.waitTx(hash.Hash)
+		}
+		acc, err := wallet.getBalance(addr, "ticket")
+		if err != nil {
+			return 0, err
+		}
+		count := acc.Balance / types.TicketPrice
+		if count > 0 {
+			_, err := wallet.openticket(addr, addr, priv, int32(count))
+			return 0, err
+		}
+		return int(count), nil
+	}
+	return 0, nil
+}
+
+func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) (int, error) {
+	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	//判断是否绑定了coldaddr
+	addrs, err := wallet.getMinerColdAddr(addr)
+	if err != nil {
+		return 0, err
+	}
+	for i := 0; i < len(addrs); i++ {
+		walletlog.Error("sourceaddr", "addr", addrs[i])
+		acc, err := wallet.getBalance(addrs[i], "ticket")
+		if err != nil {
+			return 0, err
+		}
+		if acc.Balance >= types.TicketPrice {
+			count := acc.Balance / types.TicketPrice
+			if count > 0 {
+				_, err := wallet.openticket(addr, addrs[i], priv, int32(count))
+				return 0, err
+			}
+			return int(count), nil
+		}
+	}
+	return 0, nil
+}
+
+func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc1, err := wallet.getBalance(addr, "coins")
 	if err != nil {
@@ -150,58 +224,26 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 	if err != nil {
 		return err
 	}
-	//留一个币作为手续费，如果手续费不够了，不能挖矿
-	//目前需要用户自己去补充手续费
-	fee := types.Coin
-	if acc1.Balance+acc2.Balance >= 10000*types.Coin+fee {
-		//第一步。转移币到 ticket
-		toaddr := account.ExecAddress("ticket").String()
-		amount := acc1.Balance - fee
-		hash, err := wallet.sendToAddress(priv, toaddr, amount, "autominer->ticket")
+	toaddr := account.ExecAddress("ticket").String()
+	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
+	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
+		_, err := wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins")
 		if err != nil {
-			return err
-		}
-		wallet.waitTx(hash.Hash)
-		count := (amount + acc2.Balance) / 10000
-		if count > 0 {
-			_, err := wallet.openticket(addr, addr, priv, int32(count))
 			return err
 		}
 	}
 	return nil
 }
 
-func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	//判断是否绑定了coldaddr
-	addrs, err := wallet.getMinerSourceList(addr)
-	if err != nil {
-		return err
-	}
-	for i := 0; i < len(addrs); i++ {
-		acc, err := wallet.getBalance(addrs[i], "ticket")
-		if err != nil {
-			return err
-		}
-		if acc.Balance >= 10000*types.Coin {
-			count := acc.Balance / 10000
-			if count > 0 {
-				_, err := wallet.openticket(addr, addrs[i], priv, int32(count))
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
+func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
+	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist, err := wallet.getTickets(addr, 2)
 	if err != nil && err != types.ErrNotFound {
-		return err
+		return nil, err
 	}
 	if len(tlist) == 0 {
-		return nil
+		return nil, nil
 	}
 	now := time.Now().Unix()
 	var ids []string
@@ -211,9 +253,9 @@ func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) error {
 		}
 	}
 	if len(ids) > 1 {
-		wallet.closeTickets(priv, ids)
+		return wallet.closeTickets(priv, ids)
 	}
-	return nil
+	return nil, nil
 }
 
 func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, error) {
@@ -260,7 +302,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 		return nil, err
 	}
 	if !reply.IsOk {
-		walletlog.Info("wallet sendTransaction", "err", reply.GetMsg())
+		walletlog.Info("wallet sendTransaction", "err", string(reply.GetMsg()))
 		return nil, errors.New(string(reply.GetMsg()))
 	}
 	return tx.Hash(), nil
@@ -284,7 +326,16 @@ func (wallet *Wallet) sendTx(tx *types.Transaction) (*types.Reply, error) {
 }
 
 func (wallet *Wallet) waitTx(hash []byte) *types.TransactionDetail {
+	i := 0
 	for {
+		if atomic.LoadInt32(&wallet.isclosed) == 1 {
+			return nil
+		}
+		i++
+		if i%100 == 0 {
+			walletlog.Error("wait transaction timeout", "hash", hex.EncodeToString(hash))
+			return nil
+		}
 		res, err := wallet.queryTx(hash)
 		if err != nil {
 			time.Sleep(time.Second)
@@ -293,6 +344,14 @@ func (wallet *Wallet) waitTx(hash []byte) *types.TransactionDetail {
 			return res
 		}
 	}
+}
+
+func (wallet *Wallet) waitTxs(hashes [][]byte) (ret []*types.TransactionDetail) {
+	for _, hash := range hashes {
+		result := wallet.waitTx(hash)
+		ret = append(ret, result)
+	}
+	return ret
 }
 
 func (client *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
@@ -350,11 +409,10 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		for _, addr := range addrs {
 			if err := account.CheckAddress(addr); err != nil {
 				addr = account.ExecAddress(addr).String()
-				exaddrs = append(exaddrs, addr)
 			}
+			exaddrs = append(exaddrs, addr)
 		}
-
-		accounts, err := account.LoadAccounts(client.q, exaddrs)
+		accounts, err := account.LoadAccounts(client.qclient, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -365,21 +423,19 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(client.q, addr, execaddress.String())
+			account, err := account.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
 			}
-
 			accounts = append(accounts, account)
 		}
-
 		return accounts, nil
 	}
 	return nil, nil
 }
 
-func (client *Wallet) getMinerSourceList(addr string) ([]string, error) {
+func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
 	var req types.Query
 	req.Execer = []byte("ticket")
