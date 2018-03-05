@@ -119,7 +119,7 @@ func ExecFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receip
 	acc.Frozen += amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	SaveExecAccount(db, execaddr, acc)
-	return execReceipt(acc, receiptBalance), nil
+	return execReceipt(types.TyLogExecFrozen, acc, receiptBalance), nil
 }
 
 func ExecActive(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
@@ -138,7 +138,7 @@ func ExecActive(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receip
 	acc.Frozen -= amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	SaveExecAccount(db, execaddr, acc)
-	return execReceipt(acc, receiptBalance), nil
+	return execReceipt(types.TyLogExecActive, acc, receiptBalance), nil
 }
 
 func ExecTransfer(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.Receipt, error) {
@@ -248,9 +248,8 @@ func execDepositFrozen(db dbm.KVDB, addr, execaddr string, amount int64) (*types
 	copyacc := *acc
 	acc.Frozen += amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
-	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
 	SaveExecAccount(db, execaddr, acc)
-	return execReceipt(acc, receiptBalance), nil
+	return execReceipt(types.TyLogExecDeposit, acc, receiptBalance), nil
 }
 
 func execDeposit(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Receipt, error) {
@@ -266,7 +265,7 @@ func execDeposit(db dbm.KVDB, addr, execaddr string, amount int64) (*types.Recei
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
 	SaveExecAccount(db, execaddr, acc)
-	return execReceipt(acc, receiptBalance), nil
+	return execReceipt(types.TyLogExecDeposit, acc, receiptBalance), nil
 }
 
 func execWithdraw(db dbm.KVDB, execaddr, addr string, amount int64) (*types.Receipt, error) {
@@ -284,11 +283,11 @@ func execWithdraw(db dbm.KVDB, execaddr, addr string, amount int64) (*types.Rece
 	acc.Balance -= amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc}
 	SaveExecAccount(db, execaddr, acc)
-	return execReceipt(acc, receiptBalance), nil
+	return execReceipt(types.TyLogExecWithdraw, acc, receiptBalance), nil
 }
 
-func execReceipt(acc *types.Account, r *types.ReceiptExecAccountTransfer) *types.Receipt {
-	log1 := &types.ReceiptLog{types.TyLogExecTransfer, types.Encode(r)}
+func execReceipt(ty int32, acc *types.Account, r *types.ReceiptExecAccountTransfer) *types.Receipt {
+	log1 := &types.ReceiptLog{ty, types.Encode(r)}
 	kv := GetExecKVSet(r.ExecAddr, acc)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}
 }
