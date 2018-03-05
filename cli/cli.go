@@ -1467,9 +1467,8 @@ func DumpPrivkey(addr string) {
 	fmt.Println(string(data))
 }
 
-type TxWithCoinPayload struct {
+type TxWithoutPayload struct {
 	Execer    string             `json:"execer"`
-	Payload   *types.CoinsAction `json:"payload"`
 	Signature *jsonrpc.Signature `json:"signature"`
 	Fee       string             `json:"fee"`
 	Expire    int64              `json:"expire"`
@@ -1477,14 +1476,19 @@ type TxWithCoinPayload struct {
 	To        string             `json:"to"`
 }
 
+type TxWithCoinPayload struct {
+	TxWithoutPayload
+	Payload *types.CoinsAction `json:"payload"`
+}
+
 type TxWithTicketPayload struct {
-	Execer    string              `json:"execer"`
-	Payload   *types.TicketAction `json:"payload"`
-	Signature *jsonrpc.Signature  `json:"signature"`
-	Fee       string              `json:"fee"`
-	Expire    int64               `json:"expire"`
-	Nonce     int64               `json:"nonce"`
-	To        string              `json:"to"`
+	TxWithoutPayload
+	Payload *types.TicketAction `json:"payload"`
+}
+
+type TxWithHashlockPayload struct {
+	TxWithoutPayload
+	Payload *types.HashlockAction `json:"payload"`
 }
 
 func DecodeTx(tran string) {
@@ -1509,17 +1513,19 @@ func DecodeTx(tran string) {
 		}
 		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
 		result := &TxWithCoinPayload{
-			Execer:  string(tx.Execer),
-			Payload: &action,
-			Signature: &jsonrpc.Signature{
-				Ty:        tx.GetSignature().GetTy(),
-				Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-				Signature: common.ToHex(tx.GetSignature().GetSignature()),
+			TxWithoutPayload{
+				Execer: string(tx.Execer),
+				Signature: &jsonrpc.Signature{
+					Ty:        tx.GetSignature().GetTy(),
+					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+					Signature: common.ToHex(tx.GetSignature().GetSignature()),
+				},
+				Fee:    feeResult,
+				Expire: tx.Expire,
+				Nonce:  tx.Nonce,
+				To:     tx.To,
 			},
-			Fee:    feeResult,
-			Expire: tx.Expire,
-			Nonce:  tx.Nonce,
-			To:     tx.To,
+			&action,
 		}
 		data, err = json.MarshalIndent(result, "", "    ")
 		if err != nil {
@@ -1541,17 +1547,53 @@ func DecodeTx(tran string) {
 		}
 		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
 		result := &TxWithTicketPayload{
-			Execer:  string(tx.Execer),
-			Payload: &action,
-			Signature: &jsonrpc.Signature{
-				Ty:        tx.GetSignature().GetTy(),
-				Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-				Signature: common.ToHex(tx.GetSignature().GetSignature()),
+			TxWithoutPayload{
+				Execer: string(tx.Execer),
+				Signature: &jsonrpc.Signature{
+					Ty:        tx.GetSignature().GetTy(),
+					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+					Signature: common.ToHex(tx.GetSignature().GetSignature()),
+				},
+				Fee:    feeResult,
+				Expire: tx.Expire,
+				Nonce:  tx.Nonce,
+				To:     tx.To,
 			},
-			Fee:    feeResult,
-			Expire: tx.Expire,
-			Nonce:  tx.Nonce,
-			To:     tx.To,
+			&action,
+		}
+		data, err = json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Println(string(data))
+	} else if "hashlock" == string(tx.Execer) {
+		var action types.HashlockAction
+		err = types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		data, err := json.MarshalIndent(action, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
+		result := &TxWithHashlockPayload{
+			TxWithoutPayload{
+				Execer: string(tx.Execer),
+				Signature: &jsonrpc.Signature{
+					Ty:        tx.GetSignature().GetTy(),
+					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+					Signature: common.ToHex(tx.GetSignature().GetSignature()),
+				},
+				Fee:    feeResult,
+				Expire: tx.Expire,
+				Nonce:  tx.Nonce,
+				To:     tx.To,
+			},
+			&action,
 		}
 		data, err = json.MarshalIndent(result, "", "    ")
 		if err != nil {

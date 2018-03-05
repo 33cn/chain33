@@ -485,6 +485,11 @@ func (client *TicketClient) Miner(parent, block *types.Block) bool {
 	ticket, priv, diff, modify, index, err := client.searchTargetTicket(parent, block)
 	if err != nil {
 		tlog.Error("Miner", "err", err)
+		newblock, err := client.RequestLastBlock()
+		if err != nil {
+			tlog.Error("Miner.RequestLastBlock", "err", err)
+		}
+		client.SetCurrentBlock(newblock)
 		return false
 	}
 	if ticket == nil {

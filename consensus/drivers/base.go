@@ -230,7 +230,7 @@ func (client *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false, ""})
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false, []string{""}})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
@@ -303,13 +303,13 @@ func (client *BaseClient) SetCurrentBlock(b *types.Block) {
 
 func (client *BaseClient) UpdateCurrentBlock(b *types.Block) {
 	client.mulock.Lock()
-
+	defer client.mulock.Unlock()
 	block, err := client.RequestLastBlock()
 	if err != nil {
-		panic(err)
+		log.Error("UpdateCurrentBlock", "RequestLastBlock", err)
+		return
 	}
 	client.currentBlock = block
-	client.mulock.Unlock()
 }
 
 func (client *BaseClient) GetCurrentBlock() (b *types.Block) {

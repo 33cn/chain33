@@ -72,7 +72,7 @@ message ReqBlocks {
 	int64 start = 1;
 	int64 end = 2;
 	bool Isdetail = 3;
-	string pid = 4;
+	repeated string pid = 4;
 }
 
 message MempoolSize {
