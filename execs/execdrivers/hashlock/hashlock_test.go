@@ -64,17 +64,6 @@ type TestHashlockquery struct {
 	CurrentTime int64
 }
 
-//var testKey string
-//var testValue []byte
-
-//func createKV() error {
-//	var err error
-//	testHashRecv := &TestHashRecv{HashlockId: "33", Infomation: "org33"}
-//	testKey = testHashRecv.HashlockId
-//	testValue, err = json.Marshal(testHashRecv)
-//	return err
-//}
-
 func init() {
 	var err error
 	conn, err = grpc.Dial("localhost:8802", grpc.WithInsecure())
@@ -179,16 +168,12 @@ func TestHashlock(t *testing.T) {
 		t.Error(errors.New(string(reply.GetMsg())))
 		return
 	}
-	//	fmt.Println("GetValue=", string(reply.Msg))
-	fmt.Println("GetValue=", []byte(string(reply.Msg)))
 	value := strings.TrimSpace(string(reply.Msg))
 	fmt.Println("GetValue=", []byte(value))
-	//	fmt.Println("GetValue=", value[1:])
 
 	var hashlockquery types.Hashlockquery
 	err = proto.Unmarshal([]byte(value), &hashlockquery)
 	if err != nil {
-		//		clog.Error("TestHashlockQuery Unmarshal")
 		t.Error(err)
 		return
 	}
@@ -221,37 +206,6 @@ func TestHashunlock(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	//		fmt.Println("TestHashunlockQuery1 start")
-	//		defer fmt.Println("TestHashlockQuery1 end\n")
-	//		var req types.Query
-	//		req.Execer = []byte("hashlock")
-	//		req.FuncName = "GetHashlocKById"
-	//		req.Payload = common.Sha256(secret)
-	//		time.Sleep(15 * time.Second)
-	//		reply, err := c.QueryChain(context.Background(), &req)
-	//		if err != nil {
-	//			t.Error(err)
-	//			return
-	//		}
-	//		if !reply.IsOk {
-	//			fmt.Println("err =", reply.GetMsg())
-	//			t.Error(errors.New(string(reply.GetMsg())))
-	//			return
-	//		}
-	//		//	fmt.Println("GetValue=", string(reply.Msg))
-	//		fmt.Println("GetValue=", []byte(string(reply.Msg)))
-	//		value := strings.TrimSpace(string(reply.Msg))
-	//		fmt.Println("GetValue=", []byte(value))
-	//		//	fmt.Println("GetValue=", value[1:])
-
-	//		var hashlockquery types.Hashlockquery
-	//		err = proto.Unmarshal([]byte(value), &hashlockquery)
-	//		if err != nil {
-	//			//		clog.Error("TestHashlockQuery Unmarshal")
-	//			t.Error(err)
-	//			return
-	//		}
-	//		fmt.Println("QueryHashlock =", hashlockquery)
 	//not success as secret is not right
 	time.Sleep(70 * time.Second)
 	err = unlock(wrongsecret)
@@ -274,37 +228,6 @@ func TestHashunlock(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	//	fmt.Println("TestHashunlockQuery2 start")
-	//		defer fmt.Println("TestHashlockQuery2 end\n")
-	//		var req types.Query
-	//		req.Execer = []byte("hashlock")
-	//		req.FuncName = "GetHashlocKById"
-	//		req.Payload = common.Sha256(secret)
-	//		time.Sleep(15 * time.Second)
-	//		reply, err := c.QueryChain(context.Background(), &req)
-	//		if err != nil {
-	//			t.Error(err)
-	//			return
-	//		}
-	//		if !reply.IsOk {
-	//			fmt.Println("err =", reply.GetMsg())
-	//			t.Error(errors.New(string(reply.GetMsg())))
-	//			return
-	//		}
-	//		//	fmt.Println("GetValue=", string(reply.Msg))
-	//		fmt.Println("GetValue=", []byte(string(reply.Msg)))
-	//		value := strings.TrimSpace(string(reply.Msg))
-	//		fmt.Println("GetValue=", []byte(value))
-	//		//	fmt.Println("GetValue=", value[1:])
-
-	//		var hashlockquery types.Hashlockquery
-	//		err = proto.Unmarshal([]byte(value), &hashlockquery)
-	//		if err != nil {
-	//			//		clog.Error("TestHashlockQuery Unmarshal")
-	//			t.Error(err)
-	//			return
-	//		}
-	//		fmt.Println("QueryHashlock =", hashlockquery)
 	//success
 	time.Sleep(5 * time.Second)
 	err = unlock(secret)
@@ -344,16 +267,12 @@ func TestHashunlock(t *testing.T) {
 		t.Error(errors.New(string(reply.GetMsg())))
 		return
 	}
-	//	fmt.Println("GetValue=", string(reply.Msg))
-	fmt.Println("GetValue=", []byte(string(reply.Msg)))
 	value := strings.TrimSpace(string(reply.Msg))
 	fmt.Println("GetValue=", []byte(value))
-	//	fmt.Println("GetValue=", value[1:])
 
 	var hashlockquery types.Hashlockquery
 	err = proto.Unmarshal([]byte(value), &hashlockquery)
 	if err != nil {
-		//		clog.Error("TestHashlockQuery Unmarshal")
 		t.Error(err)
 		return
 	}
@@ -382,37 +301,6 @@ func TestHashsend(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	//	fmt.Println("TstHashsendQuery1 start")
-	//		defer fmt.Println("TstHashsendQuery1 end\n")
-	//		var req types.Query
-	//		req.Execer = []byte("hashlock")
-	//		req.FuncName = "GetHashlocKById"
-	//		req.Payload = common.Sha256(secret)
-	//		time.Sleep(15 * time.Second)
-	//		reply, err := c.QueryChain(context.Background(), &req)
-	//		if err != nil {
-	//			t.Error(err)
-	//			return
-	//		}
-	//		if !reply.IsOk {
-	//			fmt.Println("err =", reply.GetMsg())
-	//			t.Error(errors.New(string(reply.GetMsg())))
-	//			return
-	//		}
-	//		//	fmt.Println("GetValue=", string(reply.Msg))
-	//		fmt.Println("GetValue=", []byte(string(reply.Msg)))
-	//		value := strings.TrimSpace(string(reply.Msg))
-	//		fmt.Println("GetValue=", []byte(value))
-	//		//	fmt.Println("GetValue=", value[1:])
-
-	//		var hashlockquery types.Hashlockquery
-	//		err = proto.Unmarshal([]byte(value), &hashlockquery)
-	//		if err != nil {
-	//			//		clog.Error("TestHashlockQuery Unmarshal")
-	//			t.Error(err)
-	//			return
-	//		}
-	//		fmt.Println("QueryHashlock =", hashlockquery)
 	time.Sleep(5 * time.Second)
 	err = send(wrongsecret)
 	if err != nil {
@@ -435,37 +323,6 @@ func TestHashsend(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	//	fmt.Println("TstHashsendQuery2 start")
-	//		defer fmt.Println("TstHashsendQuery2 end\n")
-	//		var req types.Query
-	//		req.Execer = []byte("hashlock")
-	//		req.FuncName = "GetHashlocKById"
-	//		req.Payload = common.Sha256(secret)
-	//		time.Sleep(15 * time.Second)
-	//		reply, err := c.QueryChain(context.Background(), &req)
-	//		if err != nil {
-	//			t.Error(err)
-	//			return
-	//		}
-	//		if !reply.IsOk {
-	//			fmt.Println("err =", reply.GetMsg())
-	//			t.Error(errors.New(string(reply.GetMsg())))
-	//			return
-	//		}
-	//		//	fmt.Println("GetValue=", string(reply.Msg))
-	//		fmt.Println("GetValue=", []byte(string(reply.Msg)))
-	//		value := strings.TrimSpace(string(reply.Msg))
-	//		fmt.Println("GetValue=", []byte(value))
-	//		//	fmt.Println("GetValue=", value[1:])
-
-	//		var hashlockquery types.Hashlockquery
-	//		err = proto.Unmarshal([]byte(value), &hashlockquery)
-	//		if err != nil {
-	//			//		clog.Error("TestHashlockQuery Unmarshal")
-	//			t.Error(err)
-	//			return
-	//		}
-	//		fmt.Println("QueryHashlock =", hashlockquery)
 	//success
 	time.Sleep(5 * time.Second)
 	err = send(anothersec)
@@ -507,11 +364,8 @@ func TestHashsend(t *testing.T) {
 		t.Error(errors.New(string(reply.GetMsg())))
 		return
 	}
-	//	fmt.Println("GetValue=", string(reply.Msg))
-	fmt.Println("GetValue=", []byte(string(reply.Msg)))
 	value := strings.TrimSpace(string(reply.Msg))
 	fmt.Println("GetValue=", []byte(value))
-	//	fmt.Println("GetValue=", value[1:])
 
 	var hashlockquery types.Hashlockquery
 	err = proto.Unmarshal([]byte(value), &hashlockquery)
