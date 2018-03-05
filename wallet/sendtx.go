@@ -11,6 +11,8 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
+var accountdb = account.NewCoinsAccount()
+
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
 	ta := &types.TicketAction{}
 	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
