@@ -1,7 +1,7 @@
 Title="chain33"
 
 Loglevel="debug"
-LogConsoleLevel="info"
+LogConsoleLevel="debug"
 LogFile="chain33.log"
 
 [blockchain]
@@ -29,7 +29,7 @@ minTxFee=1000000
 
 [consensus]
 name="solo"
-minerstart=false
+minerstart=true
 
 [store]
 driver="leveldb"
