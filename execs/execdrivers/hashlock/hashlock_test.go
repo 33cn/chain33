@@ -301,7 +301,9 @@ func TestHashsend(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
+
 	time.Sleep(5 * time.Second)
+
 	err = send(wrongsecret)
 	if err != nil {
 		t.Error(err)
@@ -313,8 +315,8 @@ func TestHashsend(t *testing.T) {
 		fmt.Println("err")
 	}
 	time.Sleep(5 * time.Second)
-	currBalanceA -= fee
-	currBalanceB -= fee
+	//currBalanceA -= fee
+	currBalanceB -= 2 * fee
 	if !showOrCheckAcc(c, addr[accountindexA], showandcheck, currBalanceA) {
 		t.Error(ErrTest)
 		return
@@ -323,6 +325,7 @@ func TestHashsend(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
+
 	//success
 	time.Sleep(5 * time.Second)
 	err = send(anothersec)
@@ -336,8 +339,8 @@ func TestHashsend(t *testing.T) {
 		fmt.Println("err")
 	}
 	time.Sleep(5 * time.Second)
-	currBalanceA -= fee
-	currBalanceB = currBalanceB + lockAmount - fee
+	//currBalanceA -= fee
+	currBalanceB = currBalanceB + lockAmount - 2*fee
 	if !showOrCheckAcc(c, addr[accountindexA], showandcheck, currBalanceA) {
 		t.Error(ErrTest)
 		return
@@ -420,7 +423,7 @@ func send(secret []byte) error {
 	transfer := &types.HashlockAction{Value: vsend, Ty: types.HashlockActionSend}
 	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: fee, To: addr[accountindexB]}
 	tx.Nonce = r.Int63()
-	tx.Sign(types.SECP256K1, privkey[accountindexA])
+	tx.Sign(types.SECP256K1, privkey[accountindexB])
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
 		return err

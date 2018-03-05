@@ -28,7 +28,7 @@ func (n *None) GetName() string {
 }
 
 func (n *None) GetActionName(tx *types.Transaction) string {
-	return "none"
+	return tx.ActionName()
 }
 
 func (n *None) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

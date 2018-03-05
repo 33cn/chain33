@@ -125,11 +125,13 @@ func (na *NetAddress) Copy() *NetAddress {
 func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig) (*grpc.ClientConn, error) {
 	ch := make(chan grpc.ServiceConfig, 1)
 	ch <- cfg
+
 	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch))
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect", err)
 		return nil, err
 	}
+
 	return conn, nil
 
 }
