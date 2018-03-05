@@ -226,15 +226,16 @@ func (e *Execute) ProcessFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	accFrom := account.LoadAccount(e.stateDB, from)
 	if accFrom.GetBalance()-tx.Fee >= 0 {
-		receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
+		copyfrom := *accFrom
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
+		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
 		account.SaveAccount(e.stateDB, accFrom)
 		return cutFeeReceipt(accFrom, receiptBalance), nil
 	}
 	return nil, types.ErrNoBalance
 }
 
-func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
+func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptAccountTransfer) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
 	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }

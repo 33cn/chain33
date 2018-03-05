@@ -246,11 +246,13 @@ const (
 
 //log type
 const (
-	TyLogErr      = 1
-	TyLogFee      = 2
-	TyLogTransfer = 3
-	TyLogGenesis  = 4
-	TyLogDeposit  = 5
+	TyLogErr             = 1
+	TyLogFee             = 2
+	TyLogTransfer        = 3
+	TyLogGenesis         = 4
+	TyLogDeposit         = 5
+	TyLogExecTransfer    = 6
+	TyLogGenesisTransfer = 7
 
 	//log for ticket
 	TyLogNewTicket   = 11
