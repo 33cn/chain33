@@ -162,6 +162,11 @@ func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Rec
 		return nil, types.ErrHashlockStatus
 	}
 
+	if action.fromaddr != hash.ToAddress {
+		hlog.Error("Hashlocksend", "action.fromaddr", action.fromaddr, "hash.ToAddress", hash.ToAddress)
+		return nil, types.ErrHashlockSendAddress
+	}
+
 	if action.blocktime-hash.GetCreateTime() > hash.Frozentime {
 		hlog.Error("Hashlocksend", "action.blocktime-hash.GetCreateTime", action.blocktime-hash.GetCreateTime())
 		return nil, types.ErrTime

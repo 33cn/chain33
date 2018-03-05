@@ -108,17 +108,17 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	return privs, nil
 }
 
-func (wallet *Wallet) closeAllTickets() error {
+func (wallet *Wallet) closeAllTickets() (int, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	var hashes [][]byte
 	for _, key := range keys {
 		hash, err := wallet.closeTicketsByAddr(key)
 		if err != nil {
 			walletlog.Error("close Tickets By Addr", "err", err)
-			return err
+			return 0, err
 		}
 		if hash == nil {
 			continue
@@ -127,8 +127,9 @@ func (wallet *Wallet) closeAllTickets() error {
 	}
 	if len(hashes) > 0 {
 		wallet.waitTxs(hashes)
+		return len(hashes), nil
 	}
-	return nil
+	return 0, nil
 }
 
 func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) error {
@@ -146,16 +147,16 @@ func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) error {
 	return nil
 }
 
-func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
+func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) (int, error) {
 	//ticket balance and coins balance
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc1, err := wallet.getBalance(addr, "coins")
 	if err != nil {
-		return err
+		return 0, err
 	}
 	acc2, err := wallet.getBalance(addr, "ticket")
 	if err != nil {
-		return err
+		return 0, err
 	}
 	//留一个币作为手续费，如果手续费不够了，不能挖矿
 	//判断手续费是否足够，如果不足要及时补充。
@@ -170,45 +171,47 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) error {
 			walletlog.Error("buyTicketOne", "toaddr", toaddr, "amount", amount)
 			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket")
 			if err != nil {
-				return err
+				return 0, err
 			}
 			wallet.waitTx(hash.Hash)
 		}
 		acc, err := wallet.getBalance(addr, "ticket")
 		if err != nil {
-			return err
+			return 0, err
 		}
 		count := acc.Balance / types.TicketPrice
 		if count > 0 {
 			_, err := wallet.openticket(addr, addr, priv, int32(count))
-			return err
+			return 0, err
 		}
+		return int(count), nil
 	}
-	return nil
+	return 0, nil
 }
 
-func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) error {
+func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) (int, error) {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	//判断是否绑定了coldaddr
 	addrs, err := wallet.getMinerColdAddr(addr)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	for i := 0; i < len(addrs); i++ {
 		walletlog.Error("sourceaddr", "addr", addrs[i])
 		acc, err := wallet.getBalance(addrs[i], "ticket")
 		if err != nil {
-			return err
+			return 0, err
 		}
 		if acc.Balance >= types.TicketPrice {
 			count := acc.Balance / types.TicketPrice
 			if count > 0 {
 				_, err := wallet.openticket(addr, addrs[i], priv, int32(count))
-				return err
+				return 0, err
 			}
+			return int(count), nil
 		}
 	}
-	return nil
+	return 0, nil
 }
 
 func (wallet *Wallet) processFee(priv crypto.PrivKey) error {

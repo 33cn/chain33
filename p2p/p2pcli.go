@@ -281,7 +281,7 @@ func (m *P2pCli) GetHeaders(msg queue.Message) {
 	msg.Reply(m.network.c.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("ok")}))
 	peers, infos := m.network.node.GetActivePeers()
 	for paddr, info := range infos {
-		if info.GetName() == pid { //匹配成功
+		if info.GetName() == pid[0] { //匹配成功
 			peer := m.network.node.GetRegisterPeer(paddr)
 			peer, ok := peers[paddr]
 			if ok && peer != nil {
@@ -315,32 +315,41 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 
 	req := msg.GetData().(*pb.ReqBlocks)
 
-	pid := req.GetPid()
+	pids := req.GetPid()
 	var MaxInvs = new(pb.P2PInv)
 	var downloadPeers []*peer
 	peers, infos := m.network.node.GetActivePeers()
-	if len(pid) != 0 { //指定Pid 下载数据
-
+	if len(pids) > 0 && pids[0] != "" { //指定Pid 下载数据
+		log.Info("fetch from peer in pids")
+		var pidmap = make(map[string]bool)
+		for _, pid := range pids {
+			pidmap[pid] = true
+		}
 		for paddr, info := range infos {
-			if info.GetName() == pid { //匹配成功
+			if _, ok := pidmap[info.GetName()]; ok { //匹配成功
+
 				peer, ok := peers[paddr]
 				if ok && peer != nil {
-					var err error
-					MaxInvs, err = peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
-						Version: m.network.node.nodeInfo.cfg.GetVersion()})
-					m.CollectPeerStat(err, peer)
-					if err != nil {
-						log.Error("GetBlocks", "Err", err.Error())
-						return
-					}
 					downloadPeers = append(downloadPeers, peer)
+					//获取Invs
+					if len(MaxInvs.GetInvs()) != int(req.GetEnd()-req.GetStart())+1 {
+						var err error
+						MaxInvs, err = peer.mconn.conn.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
+							Version: m.network.node.nodeInfo.cfg.GetVersion()})
+						m.CollectPeerStat(err, peer)
+						if err != nil {
+							log.Error("GetBlocks", "Err", err.Error())
+							continue
+						}
+					}
+
 				}
 			}
 		}
 
 	} else {
+		log.Info("fetch from all peers in pids")
 		for _, peer := range peers { //限制对peer 的高频次调用
-
 			log.Info("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
 			peerinfo, ok := infos[peer.Addr()]
 			if !ok {
@@ -375,7 +384,6 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 		for _, peer := range peers {
 			downloadPeers = append(downloadPeers, peer)
 		}
-
 	}
 
 	log.Debug("Invs", "Invs show", MaxInvs.GetInvs())
@@ -384,12 +392,8 @@ func (m *P2pCli) GetBlocks(msg queue.Message) {
 		return
 	}
 	var intervals = make(map[int]*intervalInfo)
-	if len(pid) != 0 {
-		intervals[0] = &intervalInfo{0, len(MaxInvs.GetInvs())}
-	} else {
-		intervals = m.caculateInterval(len(MaxInvs.GetInvs()))
-	}
 
+	intervals = m.caculateInterval(len(downloadPeers), len(MaxInvs.GetInvs()))
 	var bChan = make(chan *pb.Block, 256)
 	log.Debug("downloadblock", "intervals", intervals)
 	var gcount int
@@ -513,10 +517,9 @@ func (m *P2pCli) lastPeerInfo() map[string]*pb.Peer {
 	return peerlist
 }
 
-func (m *P2pCli) caculateInterval(invsNum int) map[int]*intervalInfo {
-	log.Debug("caculateInterval", "invsNum", invsNum)
+func (m *P2pCli) caculateInterval(peerNum, invsNum int) map[int]*intervalInfo {
+	log.Debug("caculateInterval", "invsNum", invsNum, "peerNum", peerNum)
 	var result = make(map[int]*intervalInfo)
-	peerNum := m.network.node.Size()
 	if peerNum == 0 {
 		//如果没有peer,那么没有办法分割
 		result[0] = &intervalInfo{0, invsNum}

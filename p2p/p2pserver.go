@@ -219,7 +219,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 
 		} else if inv.GetTy() == MSG_BLOCK {
 			height := inv.GetHeight()
-			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false, ""})
+			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false, []string{""}})
 			err := client.Send(msg, true)
 			if err != nil {
 				log.Error("GetBlocks", "Error", err.Error())
