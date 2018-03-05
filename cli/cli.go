@@ -343,18 +343,30 @@ type TxResult struct {
 	Expire    int64              `json:"expire"`
 	Nonce     int64              `json:"nonce"`
 	To        string             `json:"to"`
+	Amount    string             `json:"amount,omitempty"`
+	From      string             `json:"from,omitempty"`
 }
 
 type TxDetailResult struct {
-	Tx         *TxResult            `json:"tx"`
-	Receipt    *jsonrpc.ReceiptData `json:"receipt"`
-	Proofs     []string             `json:"proofs"`
-	Height     int64                `json:"height"`
-	Index      int64                `json:"index"`
-	Blocktime  int64                `json:"blocktime"`
-	Amount     string               `json:"amount"`
-	Fromaddr   string               `json:"fromaddr"`
-	ActionName string               `json:"actionname"`
+	Tx         *TxWithPayload `json:"tx"`
+	Receipt    *ReceiptData   `json:"receipt"`
+	Proofs     []string       `json:"proofs"`
+	Height     int64          `json:"height"`
+	Index      int64          `json:"index"`
+	Blocktime  int64          `json:"blocktime"`
+	Amount     string         `json:"amount"`
+	Fromaddr   string         `json:"fromaddr"`
+	ActionName string         `json:"actionname"`
+}
+
+type ReceiptData struct {
+	Ty   string        `json:"ty"`
+	Logs []*ReceiptLog `json:"logs"`
+}
+
+type ReceiptLog struct {
+	Ty  string      `json:"ty"`
+	Log interface{} `json:"log"`
 }
 
 type TxDetailsResult struct {
@@ -771,6 +783,7 @@ func GetMemPool() {
 	var result TxListResult
 	for _, v := range res.Txs {
 		feeResult := strconv.FormatFloat(float64(v.Fee)/float64(1e8), 'f', 4, 64)
+		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		t := &TxResult{
 			Execer:    v.Execer,
 			Payload:   v.Payload,
@@ -779,6 +792,8 @@ func GetMemPool() {
 			Nonce:     v.Nonce,
 			To:        v.To,
 			Fee:       feeResult,
+			From:      v.From,
+			Amount:    amountResult,
 		}
 		result.Txs = append(result.Txs, t)
 	}
@@ -807,52 +822,6 @@ func SendTransaction(tran string) {
 	}
 
 	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
-}
-
-func QueryTransaction(h string) {
-	params := jsonrpc.QueryParm{Hash: h}
-	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	var res jsonrpc.TransactionDetail
-	err = rpc.Call("Chain33.QueryTransaction", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	feeResult := strconv.FormatFloat(float64(res.Tx.Fee)/float64(1e8), 'f', 4, 64)
-	t := &TxResult{
-		Execer:    res.Tx.Execer,
-		Payload:   res.Tx.Payload,
-		Signature: res.Tx.Signature,
-		Expire:    res.Tx.Expire,
-		Nonce:     res.Tx.Nonce,
-		To:        res.Tx.To,
-		Fee:       feeResult,
-	}
-	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(1e8), 'f', 4, 64)
-	result := TxDetailResult{
-		Tx:         t,
-		Receipt:    res.Receipt,
-		Proofs:     res.Proofs,
-		Height:     res.Height,
-		Index:      res.Index,
-		Blocktime:  res.Blocktime,
-		Amount:     amountResult,
-		Fromaddr:   res.Fromaddr,
-		ActionName: res.ActionName,
-	}
-
-	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -912,20 +881,74 @@ func GetTransactionByHashes(hashes []string) {
 
 	var result TxDetailsResult
 	for _, v := range res.Txs {
-		feeResult := strconv.FormatFloat(float64(v.Tx.Fee)/float64(1e8), 'f', 4, 64)
-		t := &TxResult{
-			Execer:    v.Tx.Execer,
-			Payload:   v.Tx.Payload,
-			Signature: v.Tx.Signature,
-			Expire:    v.Tx.Expire,
-			Nonce:     v.Tx.Nonce,
-			To:        v.Tx.To,
-			Fee:       feeResult,
+		t, err := decodeJsonrpcTx(*v.Tx)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
 		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
-		td := &TxDetailResult{
+
+		var rTy string
+		switch v.Receipt.Ty {
+		case 0:
+			rTy = "ExecErr"
+		case 1:
+			rTy = "ExecPack"
+		case 2:
+			rTy = "ExecOk"
+		default:
+			fmt.Fprintln(os.Stderr, errors.New("wrong receipt type"))
+			return
+		}
+		rd := &ReceiptData{Ty: rTy}
+
+		for _, l := range v.Receipt.Logs {
+			var lTy string
+			switch l.Ty {
+			case 1:
+				lTy = "LogErr"
+			case 2:
+				lTy = "LogFee"
+			case 3:
+				lTy = "LogTransfer"
+			case 4:
+				lTy = "LogGenesis"
+			case 5:
+				lTy = "LogDeposit"
+			case 11:
+				lTy = "LogNewTicket"
+			case 12:
+				lTy = "LogCloseTicket"
+			case 13:
+				lTy = "LogMinerTicket"
+			case 14:
+				lTy = "LogTicketBind"
+			default:
+				fmt.Fprintln(os.Stderr, errors.New("wrong log type"))
+				return
+			}
+
+			if l.Ty == types.TyLogNewTicket || l.Ty == types.TyLogMinerTicket || l.Ty == types.TyLogCloseTicket {
+				lLog, err := hex.DecodeString(l.Log[2:])
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+				var ticketlog types.ReceiptTicket
+				err = types.Decode(lLog, &ticketlog)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				}
+				rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: ticketlog})
+			} else {
+				rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: l.Log})
+			}
+		}
+
+		td := TxDetailResult{
 			Tx:         t,
-			Receipt:    v.Receipt,
+			Receipt:    rd,
 			Proofs:     v.Proofs,
 			Height:     v.Height,
 			Index:      v.Index,
@@ -934,7 +957,7 @@ func GetTransactionByHashes(hashes []string) {
 			Fromaddr:   v.Fromaddr,
 			ActionName: v.ActionName,
 		}
-		result.Txs = append(result.Txs, td)
+		result.Txs = append(result.Txs, &td)
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -1467,8 +1490,9 @@ func DumpPrivkey(addr string) {
 	fmt.Println(string(data))
 }
 
-type TxWithoutPayload struct {
+type TxWithPayload struct {
 	Execer    string             `json:"execer"`
+	Payload   interface{}        `json:"payload"`
 	Signature *jsonrpc.Signature `json:"signature"`
 	Fee       string             `json:"fee"`
 	Expire    int64              `json:"expire"`
@@ -1476,19 +1500,90 @@ type TxWithoutPayload struct {
 	To        string             `json:"to"`
 }
 
-type TxWithCoinPayload struct {
-	TxWithoutPayload
-	Payload *types.CoinsAction `json:"payload"`
+func decodeTypesTx(tx types.Transaction) (*TxWithPayload, error) {
+	var pl interface{}
+	if "coins" == string(tx.Execer) {
+		var action types.CoinsAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "ticket" == string(tx.Execer) {
+		var action types.TicketAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "hashlock" == string(tx.Execer) {
+		var action types.HashlockAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else {
+		pl = common.ToHex(tx.GetPayload())
+	}
+	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
+	result := &TxWithPayload{
+		Execer:  string(tx.Execer),
+		Payload: pl,
+		Signature: &jsonrpc.Signature{
+			Ty:        tx.GetSignature().GetTy(),
+			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+			Signature: common.ToHex(tx.GetSignature().GetSignature()),
+		},
+		Fee:    feeResult,
+		Expire: tx.Expire,
+		Nonce:  tx.Nonce,
+		To:     tx.To,
+	}
+	return result, nil
 }
 
-type TxWithTicketPayload struct {
-	TxWithoutPayload
-	Payload *types.TicketAction `json:"payload"`
-}
-
-type TxWithHashlockPayload struct {
-	TxWithoutPayload
-	Payload *types.HashlockAction `json:"payload"`
+func decodeJsonrpcTx(tx jsonrpc.Transaction) (*TxWithPayload, error) {
+	var pl interface{}
+	plByte, err := common.FromHex(tx.Payload)
+	if err != nil {
+		return nil, err
+	}
+	if "coins" == tx.Execer {
+		var action types.CoinsAction
+		err := types.Decode(plByte, &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "ticket" == tx.Execer {
+		var action types.TicketAction
+		err := types.Decode(plByte, &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "hashlock" == tx.Execer {
+		var action types.HashlockAction
+		err := types.Decode(plByte, &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else {
+		pl = tx.Payload
+	}
+	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
+	result := &TxWithPayload{
+		Execer:    tx.Execer,
+		Payload:   pl,
+		Signature: tx.Signature,
+		Fee:       feeResult,
+		Expire:    tx.Expire,
+		Nonce:     tx.Nonce,
+		To:        tx.To,
+	}
+	return result, nil
 }
 
 func DecodeTx(tran string) {
@@ -1499,130 +1594,116 @@ func DecodeTx(tran string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	if "coins" == string(tx.Execer) {
-		var action types.CoinsAction
-		err = types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		data, err := json.MarshalIndent(action, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
-		result := &TxWithCoinPayload{
-			TxWithoutPayload{
-				Execer: string(tx.Execer),
-				Signature: &jsonrpc.Signature{
-					Ty:        tx.GetSignature().GetTy(),
-					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-					Signature: common.ToHex(tx.GetSignature().GetSignature()),
-				},
-				Fee:    feeResult,
-				Expire: tx.Expire,
-				Nonce:  tx.Nonce,
-				To:     tx.To,
-			},
-			&action,
-		}
-		data, err = json.MarshalIndent(result, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		fmt.Println(string(data))
-	} else if "ticket" == string(tx.Execer) {
-		var action types.TicketAction
-		err = types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		data, err := json.MarshalIndent(action, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
-		result := &TxWithTicketPayload{
-			TxWithoutPayload{
-				Execer: string(tx.Execer),
-				Signature: &jsonrpc.Signature{
-					Ty:        tx.GetSignature().GetTy(),
-					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-					Signature: common.ToHex(tx.GetSignature().GetSignature()),
-				},
-				Fee:    feeResult,
-				Expire: tx.Expire,
-				Nonce:  tx.Nonce,
-				To:     tx.To,
-			},
-			&action,
-		}
-		data, err = json.MarshalIndent(result, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		fmt.Println(string(data))
-	} else if "hashlock" == string(tx.Execer) {
-		var action types.HashlockAction
-		err = types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		data, err := json.MarshalIndent(action, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
-		result := &TxWithHashlockPayload{
-			TxWithoutPayload{
-				Execer: string(tx.Execer),
-				Signature: &jsonrpc.Signature{
-					Ty:        tx.GetSignature().GetTy(),
-					Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-					Signature: common.ToHex(tx.GetSignature().GetSignature()),
-				},
-				Fee:    feeResult,
-				Expire: tx.Expire,
-				Nonce:  tx.Nonce,
-				To:     tx.To,
-			},
-			&action,
-		}
-		data, err = json.MarshalIndent(result, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		fmt.Println(string(data))
-	} else {
-		feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
-		result := &TxResult{
-			Execer:  string(tx.Execer),
-			Payload: common.ToHex(tx.GetPayload()),
-			Signature: &jsonrpc.Signature{
-				Ty:        tx.GetSignature().GetTy(),
-				Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-				Signature: common.ToHex(tx.GetSignature().GetSignature()),
-			},
-			Fee:    feeResult,
-			Expire: tx.Expire,
-			Nonce:  tx.Nonce,
-			To:     tx.To,
-		}
-		data, err := json.MarshalIndent(result, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		fmt.Println(string(data))
+	res, err := decodeTypesTx(tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(string(data))
+}
+
+func QueryTransaction(h string) {
+	params := jsonrpc.QueryParm{Hash: h}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.TransactionDetail
+	err = rpc.Call("Chain33.QueryTransaction", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	t, err := decodeJsonrpcTx(*res.Tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(1e8), 'f', 4, 64)
+	var rTy string
+	switch res.Receipt.Ty {
+	case 0:
+		rTy = "ExecErr"
+	case 1:
+		rTy = "ExecPack"
+	case 2:
+		rTy = "ExecOk"
+	default:
+		fmt.Fprintln(os.Stderr, errors.New("wrong receipt type"))
+		return
+	}
+	rd := &ReceiptData{Ty: rTy}
+
+	for _, l := range res.Receipt.Logs {
+		var lTy string
+		switch l.Ty {
+		case 1:
+			lTy = "LogErr"
+		case 2:
+			lTy = "LogFee"
+		case 3:
+			lTy = "LogTransfer"
+		case 4:
+			lTy = "LogGenesis"
+		case 5:
+			lTy = "LogDeposit"
+		case 11:
+			lTy = "LogNewTicket"
+		case 12:
+			lTy = "LogCloseTicket"
+		case 13:
+			lTy = "LogMinerTicket"
+		case 14:
+			lTy = "LogTicketBind"
+		default:
+			fmt.Fprintln(os.Stderr, errors.New("wrong log type"))
+			return
+		}
+
+		if l.Ty == types.TyLogNewTicket || l.Ty == types.TyLogMinerTicket || l.Ty == types.TyLogCloseTicket {
+			lLog, err := hex.DecodeString(l.Log[2:])
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+			var ticketlog types.ReceiptTicket
+			err = types.Decode(lLog, &ticketlog)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+			rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: ticketlog})
+		} else {
+			rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: l.Log})
+		}
+	}
+
+	result := TxDetailResult{
+		Tx:         t,
+		Receipt:    rd,
+		Proofs:     res.Proofs,
+		Height:     res.Height,
+		Index:      res.Index,
+		Blocktime:  res.Blocktime,
+		Amount:     amountResult,
+		Fromaddr:   res.Fromaddr,
+		ActionName: res.ActionName,
+	}
+
+	data, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
 
 func GetColdAddrByMiner(addr string) {
