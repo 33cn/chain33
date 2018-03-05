@@ -883,10 +883,9 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		chainlog.Info("chain task InProgress")
 		return
 	}
-	chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
-
 	//获取peers的最新高度.处理没有收到广播block的情况
 	if curheight+1 < peerMaxBlkHeight {
+		chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 		chain.FetchBlock(curheight+1, peerMaxBlkHeight, "")
 	}
 
