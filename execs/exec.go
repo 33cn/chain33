@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/account"
+	acc "code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/execs/execdrivers"
@@ -20,6 +20,7 @@ import (
 )
 
 var elog = log.New("module", "execs")
+var account = acc.NewCoinsAccount()
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
