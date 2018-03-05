@@ -12,6 +12,7 @@ import (
 	//cfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tmlibs/common"
 	"github.com/tendermint/tmlibs/log"
+	"os"
 )
 
 const (
@@ -158,6 +159,9 @@ func NewSwitch(config *P2PConfig) *Switch {
 	sw.peerConfig.MConfig.RecvRate = config.RecvRate
 	sw.peerConfig.MConfig.maxMsgPacketPayloadSize = config.MaxMsgPacketPayloadSize
 
+	if sw.Logger == nil{
+		sw.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "p2pconfig")
+	}
 	//sw.BaseService = *cmn.NewBaseService(nil, "P2P Switch", sw)
 	return sw
 }

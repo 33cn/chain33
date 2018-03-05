@@ -9,8 +9,12 @@ import (
 
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/core"
-	"math/rand"
-	"fmt"
+	dbm "github.com/tendermint/tmlibs/db"
+	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/p2p"
+	crypto "github.com/tendermint/go-crypto"
+	tlog "github.com/tendermint/tmlibs/log"
+	"bytes"
+	"os"
 )
 
 var tendermintlog = log.New("module", "tendermint")
@@ -22,12 +26,25 @@ type TendermintClient struct{
 	privValidator ttypes.PrivValidator
 	csState       *core.ConsensusState
 	csReactor     *core.ConsensusReactor
-	ListenPort    string
-	Moniker       string  //node name
+	eventBus      *ttypes.EventBus
+	privKey       crypto.PrivKeyEd25519   // local node's p2p key
+	sw            *p2p.Switch
+	Logger        tlog.Logger
+
+	//ListenPort    string
+	//Moniker       string  //node name
+}
+
+// DefaultDBProvider returns a database using the DBBackend and DBDir
+// specified in the ctx.Config.
+func DefaultDBProvider(ID string) (dbm.DB, error) {
+	return dbm.NewDB(ID, "leveldb", "."), nil
 }
 
 func New(cfg *types.Consensus) *TendermintClient {
 	tendermintlog.Info("Start to create raft cluster")
+
+	logger := tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)).With("module", "consensus")
 
 	genesisDoc, err := ttypes.GenesisDocFromFile("./genesis.json")
 	if err != nil{
@@ -47,28 +64,51 @@ func New(cfg *types.Consensus) *TendermintClient {
 		return nil
 	}
 
-	c := drivers.NewBaseClient(cfg)
+	// Generate node PrivKey
+	privKey := crypto.GenPrivKeyEd25519()
 
-	state.LastBlockHeight = c.GetInitHeight()
+	blockStoreDB, err := DefaultDBProvider("blockstore")
+	if err != nil {
+		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider failded")
+		return nil
+	}
+	blockStore := core.NewBlockStore(blockStoreDB)
+
+	c := drivers.NewBaseClient(cfg)
 
 	client := &TendermintClient{
 		BaseClient:       c,
 		genesisDoc :      genesisDoc,
 		privValidator :   privValidator,
-		ListenPort:       "36656",
-		Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
+		privKey:          privKey,
+		Logger:           logger,
+		//ListenPort:       "36656",
+		//Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
 	}
-	csState := core.NewConsensusState(client, state)
+	csState := core.NewConsensusState(c, state, blockStore)
+	csState.SetPrivValidator(privValidator)
 
 	fastSync := true
+	if state.Validators.Size() == 1 {
+		addr, _ := state.Validators.GetByIndex(0)
+		if bytes.Equal(privValidator.GetAddress(), addr) {
+			fastSync = false
+		}
+	}
 	consensusReactor := core.NewConsensusReactor(csState, fastSync)
+
+	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
+	sw.AddReactor("CONSENSUS", consensusReactor)
 
 	eventBus := ttypes.NewEventBus()
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
 	consensusReactor.SetEventBus(eventBus)
+
+	client.sw = sw
 	client.csState = csState
 	client.csReactor = consensusReactor
+	client.eventBus = eventBus
 	c.SetChild(client)
 	return client
 }
@@ -93,34 +133,29 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 		//call init block
 		client.InitBlock()
 	})
-	// we need the timeoutRoutine for replay so
-	// we don't block on the tick chan.
-	// NOTE: we will get a build up of garbage go routines
-	// firing on the tockChan until the receiveRoutine is started
-	// to deal with them (by that point, at most one will be valid)
-	err := client.csState.Start()
+
+	//event start
+	err := client.eventBus.Start()
 	if err != nil {
-		tendermintlog.Error("TendermintClientSetQueue", "msg", "TimeoutTicker start failed", "error", err.Error())
+		tendermintlog.Error("TendermintClientSetQueue", "msg", "EventBus start failed", "error", err)
 		return
 	}
+	// Create & add listener
+	protocol, address := "tcp", "0.0.0.0:46656"
+	l := p2p.NewDefaultListener(protocol, address, false, client.Logger.With("module", "p2p"))
+	client.sw.AddListener(l)
 
-	err = client.csReactor.Start()
+	// Start the switch
+	client.sw.SetNodeInfo(client.csReactor.MakeDefaultNodeInfo())
+	client.sw.SetNodePrivKey(client.privKey)
+	err = client.sw.Start()
 	if err != nil {
-		tendermintlog.Error("TendermintClientSetQueue", "msg", "TimeoutTicker start failed", "error", err.Error())
+		tendermintlog.Error("TendermintClientSetQueue", "msg", "switch start failed", "error", err)
 		return
 	}
 
 	go client.EventLoop()
 	//go client.child.CreateBlock()
-}
-
-func (client *TendermintClient) InitBlock(){
-	height := client.GetInitHeight()
-	block, err := client.RequestBlock(height)
-	if err != nil {
-		panic(err)
-	}
-	client.SetCurrentBlock(block)
 }
 
 func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
