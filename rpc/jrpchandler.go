@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -317,6 +318,10 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 		var txlist ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
+			amount, err := tx.Amount()
+			if err != nil {
+				amount = 0
+			}
 			txlist.Txs = append(txlist.Txs,
 				&Transaction{
 					Execer:  string(tx.GetExecer()),
@@ -324,6 +329,8 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 					Fee:     tx.GetFee(),
 					Expire:  tx.GetExpire(),
 					Nonce:   tx.GetNonce(),
+					From:    account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String(),
+					Amount:  amount,
 					To:      tx.GetTo(),
 					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
 						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),

@@ -58,7 +58,9 @@ type Transaction struct {
 	Fee       int64      `json:"fee"`
 	Expire    int64      `json:"expire"`
 	Nonce     int64      `json:"nonce"`
+	From      string     `json:"from,omitempty"`
 	To        string     `json:"to"`
+	Amount    int64      `json:"amount,omitempty"`
 }
 
 type ReceiptLog struct {
