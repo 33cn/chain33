@@ -95,6 +95,13 @@ It has these top-level messages:
 	Norm
 	NormAction
 	NormPut
+	RetrievePara
+	Retrieve
+	RetrieveAction
+	BackupRetrieve
+	PreRetrieve
+	PerformRetrieve
+	CancelRetrieve
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
