@@ -3,7 +3,7 @@ package hashlock
 import (
 	"context"
 	crand "crypto/rand"
-	"encoding/json"
+	//	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -16,6 +16,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/types"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 )
 
@@ -62,17 +63,6 @@ type TestHashlockquery struct {
 	CreateTime  int64
 	CurrentTime int64
 }
-
-//var testKey string
-//var testValue []byte
-
-//func createKV() error {
-//	var err error
-//	testHashRecv := &TestHashRecv{HashlockId: "33", Infomation: "org33"}
-//	testKey = testHashRecv.HashlockId
-//	testValue, err = json.Marshal(testHashRecv)
-//	return err
-//}
 
 func init() {
 	var err error
@@ -167,7 +157,7 @@ func TestHashlock(t *testing.T) {
 	req.Execer = []byte("hashlock")
 	req.FuncName = "GetHashlocKById"
 	req.Payload = common.Sha256(secret)
-	time.Sleep(5 * time.Second)
+	time.Sleep(15 * time.Second)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
 		t.Error(err)
@@ -179,10 +169,10 @@ func TestHashlock(t *testing.T) {
 		return
 	}
 	value := strings.TrimSpace(string(reply.Msg))
-	fmt.Println("GetValue=", value)
+	fmt.Println("GetValue=", []byte(value))
 
-	var hashlockquery TestHashlockquery
-	err = json.Unmarshal([]byte(value), &hashlockquery)
+	var hashlockquery types.Hashlockquery
+	err = proto.Unmarshal([]byte(value), &hashlockquery)
 	if err != nil {
 		t.Error(err)
 		return
@@ -190,7 +180,7 @@ func TestHashlock(t *testing.T) {
 	fmt.Println("QueryHashlock =", hashlockquery)
 }
 
-func TstHashunlock(t *testing.T) {
+func TestHashunlock(t *testing.T) {
 	fmt.Println("TestHashunlock start")
 	defer fmt.Println("TestHashunlock end")
 	//not sucess as time not enough
@@ -238,7 +228,6 @@ func TstHashunlock(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-
 	//success
 	time.Sleep(5 * time.Second)
 	err = unlock(secret)
@@ -261,11 +250,38 @@ func TstHashunlock(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
+	fmt.Println("TestHashunlockQuery start")
+	defer fmt.Println("TestHashlockQuery end\n")
+	var req types.Query
+	req.Execer = []byte("hashlock")
+	req.FuncName = "GetHashlocKById"
+	req.Payload = common.Sha256(secret)
+	time.Sleep(15 * time.Second)
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err =", reply.GetMsg())
+		t.Error(errors.New(string(reply.GetMsg())))
+		return
+	}
+	value := strings.TrimSpace(string(reply.Msg))
+	fmt.Println("GetValue=", []byte(value))
+
+	var hashlockquery types.Hashlockquery
+	err = proto.Unmarshal([]byte(value), &hashlockquery)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println("QueryHashlock =", hashlockquery)
 }
 
-func TstHashsend(t *testing.T) {
-	fmt.Println("TstHashsend start")
-	defer fmt.Println("TstHashsend end")
+func TestHashsend(t *testing.T) {
+	fmt.Println("TestHashsend start")
+	defer fmt.Println("TestHashsend end")
 	//lock it again &send failed as secret is not right
 	//send failed as secret is not right
 	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
@@ -331,6 +347,34 @@ func TstHashsend(t *testing.T) {
 		return
 	}
 	//lock it again & failed as overtime
+	fmt.Println("TestHashsendQuery start")
+	defer fmt.Println("TestHashsendQuery end\n")
+	var req types.Query
+	req.Execer = []byte("hashlock")
+	req.FuncName = "GetHashlocKById"
+	req.Payload = common.Sha256(anothersec)
+	time.Sleep(15 * time.Second)
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err =", reply.GetMsg())
+		t.Error(errors.New(string(reply.GetMsg())))
+		return
+	}
+	value := strings.TrimSpace(string(reply.Msg))
+	fmt.Println("GetValue=", []byte(value))
+
+	var hashlockquery types.Hashlockquery
+	err = proto.Unmarshal([]byte(value), &hashlockquery)
+	if err != nil {
+		//		clog.Error("TestHashlockQuery Unmarshal")
+		t.Error(err)
+		return
+	}
+	fmt.Println("QueryHashlock =", hashlockquery)
 
 }
 
