@@ -1,7 +1,7 @@
 Title="chain33"
 
 Loglevel="debug"
-LogConsoleLevel="debug"
+LogConsoleLevel="info"
 LogFile="chain33.log"
 
 [blockchain]
