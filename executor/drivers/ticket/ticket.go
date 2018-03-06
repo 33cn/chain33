@@ -15,7 +15,7 @@ EventTransfer -> 转移资产
 import (
 	"fmt"
 
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
@@ -23,12 +23,12 @@ import (
 var clog = log.New("module", "execs.ticket")
 
 func init() {
-	execdrivers.Register("ticket", newTicket())
-	execdrivers.RegisterAddress("ticket")
+	drivers.Register("ticket", newTicket())
+	drivers.RegisterAddress("ticket")
 }
 
 type Ticket struct {
-	execdrivers.ExecBase
+	drivers.ExecBase
 }
 
 func newTicket() *Ticket {

@@ -1,4 +1,4 @@
-package execs
+package executor
 
 //store package store the world - state data
 import (
@@ -8,12 +8,12 @@ import (
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/coins"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/hashlock"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/none"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/retrieve"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/ticket"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -215,8 +215,8 @@ type Execute struct {
 
 func NewExecute(stateHash []byte, q *queue.Queue, height, blocktime int64) *Execute {
 	return &Execute{
-		stateDB:   execdrivers.NewStateDB(q, stateHash),
-		localDB:   execdrivers.NewLocalDB(q),
+		stateDB:   drivers.NewStateDB(q, stateHash),
+		localDB:   drivers.NewLocalDB(q),
 		height:    height,
 		blocktime: blocktime,
 	}
@@ -263,9 +263,9 @@ func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
 		return types.ErrBalanceLessThanTenTimesFee
 	}
 	//checkInExec
-	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadExecute(string(tx.Execer))
 	if err != nil {
-		exec, err = execdrivers.LoadExecute("none")
+		exec, err = drivers.LoadExecute("none")
 		if err != nil {
 			panic(err)
 		}
@@ -276,9 +276,9 @@ func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
 }
 
 func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadExecute(string(tx.Execer))
 	if err != nil {
-		exec, err = execdrivers.LoadExecute("none")
+		exec, err = drivers.LoadExecute("none")
 		if err != nil {
 			panic(err)
 		}
@@ -289,9 +289,9 @@ func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 }
 
 func (e *Execute) ExecLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadExecute(string(tx.Execer))
 	if err != nil {
-		exec, err = execdrivers.LoadExecute("none")
+		exec, err = drivers.LoadExecute("none")
 		if err != nil {
 			panic(err)
 		}
@@ -302,9 +302,9 @@ func (e *Execute) ExecLocal(tx *types.Transaction, r *types.ReceiptData, index i
 }
 
 func (e *Execute) ExecDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadExecute(string(tx.Execer))
 	if err != nil {
-		exec, err = execdrivers.LoadExecute("none")
+		exec, err = drivers.LoadExecute("none")
 		if err != nil {
 			panic(err)
 		}
