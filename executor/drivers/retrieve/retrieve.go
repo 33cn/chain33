@@ -2,24 +2,25 @@ package retrieve
 
 import (
 	//"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
 
-var rlog = log.New("module", "execs.retrieve")
-
-var minPeriod int64 = 60
+var (
+	minPeriod int64 = 60
+	rlog            = log.New("module", "execs.retrieve")
+)
 
 //const maxTimeWeight = 2
-
 func init() {
-	execdrivers.Register("retrieve", newRetrieve())
-	execdrivers.RegisterAddress("retrieve")
+	h := newRetrieve()
+	drivers.Register(h.GetName(), h)
+	drivers.RegisterAddress(h.GetName())
 }
 
 type Retrieve struct {
-	execdrivers.ExecBase
+	drivers.DriverBase
 }
 
 func newRetrieve() *Retrieve {
@@ -82,12 +83,4 @@ func (r *Retrieve) GetActionName(tx *types.Transaction) string {
 		return "retrieve cancel"
 	}
 	return "unknow"
-}
-
-func (r *Retrieve) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return r.ExecLocalCommon(tx, receipt, index)
-}
-
-func (r *Retrieve) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return r.ExecDelLocalCommon(tx, receipt, index)
 }

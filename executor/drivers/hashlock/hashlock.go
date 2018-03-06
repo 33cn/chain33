@@ -5,7 +5,7 @@ import (
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
@@ -15,12 +15,13 @@ var clog = log.New("module", "execs.hashlock")
 const minLockTime = 60
 
 func init() {
-	execdrivers.Register("hashlock", newHashlock())
-	execdrivers.RegisterAddress("hashlock")
+	h := newHashlock()
+	drivers.Register(h.GetName(), h)
+	drivers.RegisterAddress(h.GetName())
 }
 
 type Hashlock struct {
-	execdrivers.ExecBase
+	drivers.DriverBase
 }
 
 func newHashlock() *Hashlock {
@@ -29,7 +30,6 @@ func newHashlock() *Hashlock {
 	return h
 }
 
-//暂时不被调用
 func (h *Hashlock) GetName() string {
 	return "hashlock"
 }
