@@ -124,7 +124,7 @@ func main() {
 		network.SetQueue(q)
 	}
 	//jsonrpc, grpc, channel 三种模式
-	api := rpc.NewJsonRpcServer(q) //":8801")
+	api := rpc.NewJsonRpcServer(q)
 	go api.Listen(":8801")
 
 	gapi := rpc.NewGRpcServer(q)
