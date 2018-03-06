@@ -2,6 +2,7 @@ package hashlock
 
 import (
 	"time"
+
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
@@ -94,9 +95,9 @@ func (h *Hashlock) GetActionName(tx *types.Transaction) string {
 
 func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	clog.Error("ExecLocal action")
-	set, err := h.ExecLocalCommon(tx, receipt, index)
+	set, err := h.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
-		clog.Error("ExecLocalCommon")
+		clog.Error("ExecLocal")
 		return nil, err
 	}
 	if receipt.GetTy() != types.ExecOk {
@@ -137,7 +138,7 @@ func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 }
 
 func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := h.ExecDelLocalCommon(tx, receipt, index)
+	set, err := h.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
