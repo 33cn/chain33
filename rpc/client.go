@@ -11,52 +11,6 @@ import (
 )
 
 //提供系统rpc接口
-//sendTx
-//status
-//channel 主要用于内部测试，实际情况主要采用 jsonrpc 和 Grpc
-
-type client interface {
-	SendTx(tx *types.Transaction) queue.Message
-	CreateRawTransaction(parm *types.CreateTx) ([]byte, error)
-	SendRawTransaction(parm *types.SignedTx) queue.Message
-	QueryTx(hash []byte) (proof *types.TransactionDetail, err error)
-	GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error)
-	GetLastHeader() (*types.Header, error)
-	GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfos, error)
-	GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
-	GetMempool() (*types.ReplyTxList, error)
-	GetAccounts() (*types.WalletAccounts, error)
-	NewAccount(parm *types.ReqNewAccount) (*types.WalletAccount, error)
-	WalletTxList(parm *types.ReqWalletTransactionList) (*types.WalletTxDetails, error)
-	ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error)
-	SendToAddress(parm *types.ReqWalletSendToAddress) (*types.ReplyHash, error)
-	SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error)
-	SetLabl(parm *types.ReqWalletSetLabel) (*types.WalletAccount, error)
-	MergeBalance(parm *types.ReqWalletMergeBalance) (*types.ReplyHashes, error)
-	SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error)
-	Lock() (*types.Reply, error)
-	UnLock(parm *types.WalletUnLock) (*types.Reply, error)
-	GetPeerInfo() (*types.PeerList, error)
-	GetHeaders(*types.ReqBlocks) (*types.Headers, error)
-	GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, error)
-
-	GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
-	GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error)
-	GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error)
-	//seed
-	GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error)
-	GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error)
-	SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error)
-	GetWalletStatus() (*WalletStatus, error)
-	//getbalance
-	GetBalance(*types.ReqBalance) ([]*types.Account, error)
-	//query
-	QueryHash(*types.Query) (*types.Message, error)
-	//miner
-	SetAutoMiner(*types.MinerFlag) (*types.Reply, error)
-	GetTicketCount() (*types.Int64, error)
-	DumpPrivkey(*types.ReqStr) (*types.ReplyStr, error)
-}
 
 type channelClient struct {
 	queue.Client
