@@ -53,6 +53,7 @@ message BlockChain {
 	string driver = 5;
 	string dbPath = 6;
 	bool isStrongConsistency = 7;
+	bool singleMode = 8;
 }
 
 message P2P {

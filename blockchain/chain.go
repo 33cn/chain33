@@ -219,6 +219,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
 		case types.EventGetLastBlock:
 			go chain.processMsg(msg, reqnum, chain.getLastBlock)
+		case types.EventIsSync:
+			go chain.processMsg(msg, reqnum, chain.isSync)
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -241,8 +243,6 @@ func (chain *BlockChain) poolRoutine() {
 	//如果不一致可能两个节点在各自的链上挖矿，需要从peer的对应高度向后获取指定数量的headers寻找分叉点
 	//考虑叉后的第一个block没有广播到本节点，导致接下来广播过来的blocks都是孤儿节点，无法进行主侧链总难度对比
 	checkBlockHashTicker := time.NewTicker(time.Duration(checkBlockHashSeconds) * time.Second)
-
-	switchToConsensusTicker := time.NewTicker(60 * time.Second)
 
 	//5分钟检测一次系统时间，不同步提示告警
 	checkClockDriftTicker := time.NewTicker(300 * time.Second)
@@ -267,11 +267,6 @@ func (chain *BlockChain) poolRoutine() {
 		case _ = <-checkBlockHashTicker.C:
 			//chainlog.Info("checkBlockHashTicker")
 			chain.CheckTipBlockHash()
-
-			//定时检测本节点同步好之后通知共识模块开始挖矿
-		case _ = <-switchToConsensusTicker.C:
-			chain.NotifyConsensusTicket()
-
 		//定时检查系统时间，如果系统时间有问题，那么会有一个报警
 		case _ = <-checkClockDriftTicker.C:
 			checkClockDrift()
@@ -1326,7 +1321,7 @@ func (chain *BlockChain) IsCaughtUp() bool {
 	// peer中只有自己节点，没有其他节点
 	if (chain.peerList == nil) || len(chain.peerList.Peers) == 1 {
 		chainlog.Debug("IsCaughtUp has no peers")
-		return false
+		return chain.cfg.SingleMode
 	}
 
 	var maxPeerHeight int64 = -1
@@ -1345,21 +1340,4 @@ func (chain *BlockChain) IsCaughtUp() bool {
 
 	chainlog.Debug("IsCaughtUp", "IsCaughtUp ", isCaughtUp, "height", height, "maxPeerHeight", maxPeerHeight, "peersNo", peersNo)
 	return isCaughtUp
-}
-
-//block已经同步好了，通知共识模块开始挖矿,值通知一次即可
-func (chain *BlockChain) NotifyConsensusTicket() {
-	if chain.IsCaughtUp() {
-		if !chain.isCaughtUp {
-			if chain.qclient == nil {
-				fmt.Println("chain client not bind message queue.")
-				return
-			}
-			chainlog.Debug("NotifyConsensusTicket")
-			msg := chain.qclient.NewMessage("consensus", types.EventConsensusTicket, &types.IsCaughtUp{Iscaughtup: true})
-			chain.qclient.Send(msg, false)
-		}
-		chain.isCaughtUp = true
-		return
-	}
 }
