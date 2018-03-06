@@ -13,7 +13,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	driver "code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	"code.aliyun.com/chain33/chain33/util"
@@ -91,7 +91,7 @@ func createTicket(minerAddr, returnAddr string, count int32) (ret []*types.Trans
 	tx2 := types.Transaction{}
 
 	tx2.Execer = []byte("coins")
-	tx2.To = execdrivers.ExecAddress("ticket").String()
+	tx2.To = driver.ExecAddress("ticket").String()
 	//gen payload
 	g = &types.CoinsAction_Genesis{}
 	g.Genesis = &types.CoinsGenesis{int64(count) * types.TicketPrice, returnAddr}
@@ -100,7 +100,7 @@ func createTicket(minerAddr, returnAddr string, count int32) (ret []*types.Trans
 
 	tx3 := types.Transaction{}
 	tx3.Execer = []byte("ticket")
-	tx3.To = execdrivers.ExecAddress("ticket").String()
+	tx3.To = driver.ExecAddress("ticket").String()
 	gticket := &types.TicketAction_Genesis{}
 	gticket.Genesis = &types.TicketGenesis{minerAddr, returnAddr, count}
 	tx3.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
