@@ -39,7 +39,7 @@ func newAccountDB(prefix string) *AccountDB {
 	acc := &AccountDB{}
 	acc.accountKeyPerfix = []byte(prefix)
 	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
-	alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
+	//alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
 	return acc
 }
 
