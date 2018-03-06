@@ -3,7 +3,6 @@ package wallet
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -26,6 +25,7 @@ var (
 	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
+	SignType          int   = 1 //1；secp256k1，2：ed25519，3：sm2
 )
 
 type Wallet struct {
@@ -60,6 +60,9 @@ func New(cfg *types.Wallet) *Wallet {
 	walletStoreDB := dbm.NewDB("wallet", "leveldb", cfg.DbPath, 16)
 	walletStore := NewWalletStore(walletStoreDB)
 	minFee = cfg.MinFee
+	if "secp256k1" == cfg.SignType {
+		SignType = 1
+	}
 	wallet := &Wallet{
 		walletStore:   walletStore,
 		isLocked:      false,
@@ -537,7 +540,7 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 	var WalletAccStore types.WalletAccountStore
 
 	//生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcCreatNewAccount", "err", err)
 		return nil, err
@@ -669,7 +672,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	}
 
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err)
 		return nil, err
@@ -775,8 +778,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	amount := SendToAddress.GetAmount()
 
 	if Balance < amount+wallet.FeeAmount {
-		Err := errors.New("Insufficient balance!")
-		return nil, Err
+		return nil, types.ErrInsufficientBalance
 	}
 
 	addrto := SendToAddress.GetTo()
@@ -805,7 +807,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 
 	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
@@ -933,7 +935,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		walletlog.Error("ProcMergeBalance", "AccStores", len(WalletAccStores), "accounts", len(accounts))
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcMergeBalance", "err", err)
 		return nil, err
@@ -976,7 +978,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		//初始化随机数
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
-		tx.Sign(types.SECP256K1, priv)
+		tx.Sign(int32(SignType), priv)
 
 		//发送交易信息给mempool模块
 		msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
@@ -1447,7 +1449,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 
 	seedarry := strings.Fields(seed)
 	if len(seedarry) != SeedLong {
-		return false, errors.New("The seed must be 15 words or Chinese characters!")
+		return false, types.ErrSeedWordNum
 	}
 	var newseed string
 	for index, seedstr := range seedarry {
