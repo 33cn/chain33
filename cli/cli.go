@@ -337,7 +337,7 @@ type TxListResult struct {
 
 type TxResult struct {
 	Execer    string             `json:"execer"`
-	Payload   string             `json:"payload"`
+	Payload   interface{}        `json:"payload"`
 	Signature *jsonrpc.Signature `json:"signature"`
 	Fee       string             `json:"fee"`
 	Expire    int64              `json:"expire"`
@@ -348,15 +348,15 @@ type TxResult struct {
 }
 
 type TxDetailResult struct {
-	Tx         *TxWithPayload `json:"tx"`
-	Receipt    *ReceiptData   `json:"receipt"`
-	Proofs     []string       `json:"proofs"`
-	Height     int64          `json:"height"`
-	Index      int64          `json:"index"`
-	Blocktime  int64          `json:"blocktime"`
-	Amount     string         `json:"amount"`
-	Fromaddr   string         `json:"fromaddr"`
-	ActionName string         `json:"actionname"`
+	Tx         *TxResult    `json:"tx"`
+	Receipt    *ReceiptData `json:"receipt"`
+	Proofs     []string     `json:"proofs"`
+	Height     int64        `json:"height"`
+	Index      int64        `json:"index"`
+	Blocktime  int64        `json:"blocktime"`
+	Amount     string       `json:"amount"`
+	Fromaddr   string       `json:"fromaddr"`
+	ActionName string       `json:"actionname"`
 }
 
 type ReceiptData struct {
@@ -384,8 +384,8 @@ type BlockResult struct {
 }
 
 type BlockDetailResult struct {
-	Block    *BlockResult           `json:"block"`
-	Receipts []*jsonrpc.ReceiptData `json:"receipts"`
+	Block    *BlockResult   `json:"block"`
+	Receipts []*ReceiptData `json:"receipts"`
 }
 
 type BlockDetailsResult struct {
@@ -397,15 +397,15 @@ type WalletTxDetailsResult struct {
 }
 
 type WalletTxDetailResult struct {
-	Tx         *TxResult            `json:"tx"`
-	Receipt    *jsonrpc.ReceiptData `json:"receipt"`
-	Height     int64                `json:"height"`
-	Index      int64                `json:"index"`
-	Blocktime  int64                `json:"blocktime"`
-	Amount     string               `json:"amount"`
-	Fromaddr   string               `json:"fromaddr"`
-	Txhash     string               `json:"txhash"`
-	ActionName string               `json:"actionname"`
+	Tx         *TxResult    `json:"tx"`
+	Receipt    *ReceiptData `json:"receipt"`
+	Height     int64        `json:"height"`
+	Index      int64        `json:"index"`
+	Blocktime  int64        `json:"blocktime"`
+	Amount     string       `json:"amount"`
+	Fromaddr   string       `json:"fromaddr"`
+	Txhash     string       `json:"txhash"`
+	ActionName string       `json:"actionname"`
 }
 
 type AddrOverviewResult struct {
@@ -733,20 +733,16 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 
 	var result WalletTxDetailsResult
 	for _, v := range res.TxDetails {
-		feeResult := strconv.FormatFloat(float64(v.Tx.Fee)/float64(1e8), 'f', 4, 64)
-		t := &TxResult{
-			Execer:    v.Tx.Execer,
-			Payload:   v.Tx.Payload,
-			Signature: v.Tx.Signature,
-			Expire:    v.Tx.Expire,
-			Nonce:     v.Tx.Nonce,
-			To:        v.Tx.To,
-			Fee:       feeResult,
-		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
+
+		rd, err := decodeLog(v.Receipt)
+		if err != nil {
+			continue
+		}
+
 		wtxd := &WalletTxDetailResult{
-			Tx:         t,
-			Receipt:    v.Receipt,
+			Tx:         decodeTransaction(*(v.Tx)),
+			Receipt:    rd,
 			Height:     v.Height,
 			Index:      v.Index,
 			Blocktime:  v.Blocktime,
@@ -782,20 +778,7 @@ func GetMemPool() {
 
 	var result TxListResult
 	for _, v := range res.Txs {
-		feeResult := strconv.FormatFloat(float64(v.Fee)/float64(1e8), 'f', 4, 64)
-		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
-		t := &TxResult{
-			Execer:    v.Execer,
-			Payload:   v.Payload,
-			Signature: v.Signature,
-			Expire:    v.Expire,
-			Nonce:     v.Nonce,
-			To:        v.To,
-			Fee:       feeResult,
-			From:      v.From,
-			Amount:    amountResult,
-		}
-		result.Txs = append(result.Txs, t)
+		result.Txs = append(result.Txs, decodeTransaction(*v))
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -881,73 +864,13 @@ func GetTransactionByHashes(hashes []string) {
 
 	var result TxDetailsResult
 	for _, v := range res.Txs {
-		t, err := decodeJsonrpcTx(*v.Tx)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
-
-		var rTy string
-		switch v.Receipt.Ty {
-		case 0:
-			rTy = "ExecErr"
-		case 1:
-			rTy = "ExecPack"
-		case 2:
-			rTy = "ExecOk"
-		default:
-			fmt.Fprintln(os.Stderr, errors.New("wrong receipt type"))
-			return
+		rd, err := decodeLog(v.Receipt)
+		if err != nil {
+			continue
 		}
-		rd := &ReceiptData{Ty: rTy}
-
-		for _, l := range v.Receipt.Logs {
-			var lTy string
-			switch l.Ty {
-			case 1:
-				lTy = "LogErr"
-			case 2:
-				lTy = "LogFee"
-			case 3:
-				lTy = "LogTransfer"
-			case 4:
-				lTy = "LogGenesis"
-			case 5:
-				lTy = "LogDeposit"
-			case 11:
-				lTy = "LogNewTicket"
-			case 12:
-				lTy = "LogCloseTicket"
-			case 13:
-				lTy = "LogMinerTicket"
-			case 14:
-				lTy = "LogTicketBind"
-			default:
-				fmt.Fprintln(os.Stderr, errors.New("wrong log type"))
-				return
-			}
-
-			if l.Ty == types.TyLogNewTicket || l.Ty == types.TyLogMinerTicket || l.Ty == types.TyLogCloseTicket {
-				lLog, err := hex.DecodeString(l.Log[2:])
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					return
-				}
-				var ticketlog types.ReceiptTicket
-				err = types.Decode(lLog, &ticketlog)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					return
-				}
-				rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: ticketlog})
-			} else {
-				rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: l.Log})
-			}
-		}
-
 		td := TxDetailResult{
-			Tx:         t,
+			Tx:         decodeTransaction(*v.Tx),
 			Receipt:    rd,
 			Proofs:     v.Proofs,
 			Height:     v.Height,
@@ -1009,19 +932,18 @@ func GetBlocks(start string, end string, detail string) {
 			BlockTime:  vItem.Block.BlockTime,
 		}
 		for _, vTx := range vItem.Block.Txs {
-			feeResult := strconv.FormatFloat(float64(vTx.Fee)/float64(1e8), 'f', 4, 64)
-			t := &TxResult{
-				Execer:    vTx.Execer,
-				Payload:   vTx.Payload,
-				Signature: vTx.Signature,
-				Expire:    vTx.Expire,
-				Nonce:     vTx.Nonce,
-				To:        vTx.To,
-				Fee:       feeResult,
-			}
-			b.Txs = append(b.Txs, t)
+			b.Txs = append(b.Txs, decodeTransaction(*vTx))
 		}
-		bd := &BlockDetailResult{Block: b, Receipts: vItem.Receipts}
+
+		var rds []*ReceiptData
+		for _, rd := range vItem.Receipts {
+			r, err := decodeLog(rd)
+			if err != nil {
+				continue
+			}
+			rds = append(rds, r)
+		}
+		bd := &BlockDetailResult{Block: b, Receipts: rds}
 		result.Items = append(result.Items, bd)
 	}
 
@@ -1131,17 +1053,7 @@ func GetLastMempool() {
 
 	var result TxListResult
 	for _, v := range res.Txs {
-		feeResult := strconv.FormatFloat(float64(v.Fee)/float64(1e8), 'f', 4, 64)
-		t := &TxResult{
-			Execer:    v.Execer,
-			Payload:   v.Payload,
-			Signature: v.Signature,
-			Expire:    v.Expire,
-			Nonce:     v.Nonce,
-			To:        v.To,
-			Fee:       feeResult,
-		}
-		result.Txs = append(result.Txs, t)
+		result.Txs = append(result.Txs, decodeTransaction(*v))
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -1490,100 +1402,28 @@ func DumpPrivkey(addr string) {
 	fmt.Println(string(data))
 }
 
-type TxWithPayload struct {
-	Execer    string             `json:"execer"`
-	Payload   interface{}        `json:"payload"`
-	Signature *jsonrpc.Signature `json:"signature"`
-	Fee       string             `json:"fee"`
-	Expire    int64              `json:"expire"`
-	Nonce     int64              `json:"nonce"`
-	To        string             `json:"to"`
-}
-
-func decodeTypesTx(tx types.Transaction) (*TxWithPayload, error) {
-	var pl interface{}
-	if "coins" == string(tx.Execer) {
-		var action types.CoinsAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			return nil, err
-		}
-		pl = &action
-	} else if "ticket" == string(tx.Execer) {
-		var action types.TicketAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			return nil, err
-		}
-		pl = &action
-	} else if "hashlock" == string(tx.Execer) {
-		var action types.HashlockAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			return nil, err
-		}
-		pl = &action
-	} else {
-		pl = common.ToHex(tx.GetPayload())
-	}
+func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
-	result := &TxWithPayload{
-		Execer:  string(tx.Execer),
-		Payload: pl,
-		Signature: &jsonrpc.Signature{
-			Ty:        tx.GetSignature().GetTy(),
-			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-			Signature: common.ToHex(tx.GetSignature().GetSignature()),
-		},
-		Fee:    feeResult,
-		Expire: tx.Expire,
-		Nonce:  tx.Nonce,
-		To:     tx.To,
+	amountResult := ""
+	if tx.Amount != 0 {
+		amountResult = strconv.FormatFloat(float64(tx.Amount)/float64(1e8), 'f', 4, 64)
 	}
-	return result, nil
-}
-
-func decodeJsonrpcTx(tx jsonrpc.Transaction) (*TxWithPayload, error) {
-	var pl interface{}
-	plByte, err := common.FromHex(tx.Payload)
-	if err != nil {
-		return nil, err
-	}
-	if "coins" == tx.Execer {
-		var action types.CoinsAction
-		err := types.Decode(plByte, &action)
-		if err != nil {
-			return nil, err
-		}
-		pl = &action
-	} else if "ticket" == tx.Execer {
-		var action types.TicketAction
-		err := types.Decode(plByte, &action)
-		if err != nil {
-			return nil, err
-		}
-		pl = &action
-	} else if "hashlock" == tx.Execer {
-		var action types.HashlockAction
-		err := types.Decode(plByte, &action)
-		if err != nil {
-			return nil, err
-		}
-		pl = &action
-	} else {
-		pl = tx.Payload
-	}
-	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
-	result := &TxWithPayload{
+	result := &TxResult{
 		Execer:    tx.Execer,
-		Payload:   pl,
+		Payload:   tx.Payload,
 		Signature: tx.Signature,
 		Fee:       feeResult,
 		Expire:    tx.Expire,
 		Nonce:     tx.Nonce,
 		To:        tx.To,
 	}
-	return result, nil
+	if tx.Amount != 0 {
+		result.Amount = amountResult
+	}
+	if tx.From != "" {
+		result.From = tx.From
+	}
+	return result
 }
 
 func DecodeTx(tran string) {
@@ -1594,7 +1434,7 @@ func DecodeTx(tran string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	res, err := decodeTypesTx(tx)
+	res, err := jsonrpc.DecodeTx(tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -1620,73 +1460,16 @@ func QueryTransaction(h string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	t, err := decodeJsonrpcTx(*res.Tx)
+
+	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(1e8), 'f', 4, 64)
+	rd, err := decodeLog(res.Receipt)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(1e8), 'f', 4, 64)
-	var rTy string
-	switch res.Receipt.Ty {
-	case 0:
-		rTy = "ExecErr"
-	case 1:
-		rTy = "ExecPack"
-	case 2:
-		rTy = "ExecOk"
-	default:
-		fmt.Fprintln(os.Stderr, errors.New("wrong receipt type"))
-		return
-	}
-	rd := &ReceiptData{Ty: rTy}
-
-	for _, l := range res.Receipt.Logs {
-		var lTy string
-		switch l.Ty {
-		case 1:
-			lTy = "LogErr"
-		case 2:
-			lTy = "LogFee"
-		case 3:
-			lTy = "LogTransfer"
-		case 4:
-			lTy = "LogGenesis"
-		case 5:
-			lTy = "LogDeposit"
-		case 11:
-			lTy = "LogNewTicket"
-		case 12:
-			lTy = "LogCloseTicket"
-		case 13:
-			lTy = "LogMinerTicket"
-		case 14:
-			lTy = "LogTicketBind"
-		default:
-			fmt.Fprintln(os.Stderr, errors.New("wrong log type"))
-			return
-		}
-
-		if l.Ty == types.TyLogNewTicket || l.Ty == types.TyLogMinerTicket || l.Ty == types.TyLogCloseTicket {
-			lLog, err := hex.DecodeString(l.Log[2:])
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			}
-			var ticketlog types.ReceiptTicket
-			err = types.Decode(lLog, &ticketlog)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			}
-			rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: ticketlog})
-		} else {
-			rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: l.Log})
-		}
-	}
-
 	result := TxDetailResult{
-		Tx:         t,
+		Tx:         decodeTransaction(*(res.Tx)),
 		Receipt:    rd,
 		Proofs:     res.Proofs,
 		Height:     res.Height,
@@ -1730,4 +1513,104 @@ func GetColdAddrByMiner(addr string) {
 	}
 
 	fmt.Println(string(data))
+}
+
+func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
+	var rTy string
+	switch rlog.Ty {
+	case 0:
+		rTy = "ExecErr"
+	case 1:
+		rTy = "ExecPack"
+	case 2:
+		rTy = "ExecOk"
+	default:
+		return nil, errors.New("wrong log type")
+	}
+	rd := &ReceiptData{Ty: rTy}
+
+	for _, l := range rlog.Logs {
+		var lTy string
+		var logIns interface{}
+
+		lLog, err := hex.DecodeString(l.Log[2:])
+		if err != nil {
+			return nil, err
+		}
+
+		switch l.Ty {
+		case 1:
+			lTy = "LogErr"
+			logIns = l.Log
+		case 2:
+			lTy = "LogFee"
+			var logTmp types.ReceiptBalance
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 3:
+			lTy = "LogTransfer"
+			var logTmp1 types.ReceiptBalance
+			err = types.Decode(lLog, &logTmp1)
+			if err != nil {
+				var logTmp2 types.ReceiptExecAccount
+				err = types.Decode(lLog, &logTmp2)
+				if err != nil {
+					return nil, err
+				}
+				logIns = logTmp2
+			} else {
+				logIns = logTmp1
+			}
+		case 4:
+			lTy = "LogGenesis"
+			logIns = nil
+		case 5:
+			lTy = "LogDeposit"
+			var logTmp types.ReceiptBalance
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 11:
+			lTy = "LogNewTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 12:
+			lTy = "LogCloseTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 13:
+			lTy = "LogMinerTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 14:
+			lTy = "LogTicketBind"
+			var logTmp types.ReceiptTicketBind
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		default:
+			return nil, errors.New("wrong log type")
+		}
+		rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: logIns})
+	}
+	return rd, nil
 }
