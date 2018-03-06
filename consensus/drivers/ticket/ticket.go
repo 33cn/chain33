@@ -626,7 +626,7 @@ func (client *TicketClient) updateBlock(newblock *types.Block) *types.Block {
 
 func (client *TicketClient) CreateBlock() {
 	for {
-		if !client.IsMining() {
+		if !client.IsMining() || !client.IsCaughtUp() {
 			time.Sleep(time.Second)
 			continue
 		}
