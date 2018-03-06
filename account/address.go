@@ -10,6 +10,19 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
+var addrSeed = []byte("address seed bytes for public key")
+var bname [200]byte
+
+func ExecAddress(name string) *Address {
+	if len(name) > 100 {
+		panic("name too long")
+	}
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := common.Sha2Sum(buf)
+	return PubKeyToAddress(hash[:])
+}
+
 func PubKeyToAddress(in []byte) *Address {
 	a := new(Address)
 	a.Pubkey = make([]byte, len(in))
