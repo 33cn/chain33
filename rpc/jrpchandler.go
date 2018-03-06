@@ -105,6 +105,7 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 		if err != nil {
 			return err
 		}
+
 		transDetail.Receipt = &ReceiptData{Ty: reply.GetReceipt().GetTy()}
 		logs := reply.GetReceipt().GetLogs()
 		for _, log := range logs {
@@ -750,6 +751,16 @@ func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
 	*result = reply
 	return nil
 }
+
+//type TxWithPayload struct {
+//	Execer    string      `json:"execer"`
+//	Payload   interface{} `json:"payload"`
+//	Signature *Signature  `json:"signature"`
+//	Fee       int64       `json:"fee"`
+//	Expire    int64       `json:"expire"`
+//	Nonce     int64       `json:"nonce"`
+//	To        string      `json:"to"`
+//}
 
 func DecodeTx(tx types.Transaction) (*Transaction, error) {
 	var pl interface{}

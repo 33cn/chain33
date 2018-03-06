@@ -12,6 +12,8 @@ import (
 
 //提供系统rpc接口
 
+var accountdb = account.NewCoinsAccount()
+
 type channelClient struct {
 	queue.Client
 }
@@ -423,7 +425,7 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := account.LoadAccounts(c, addrs)
+	accounts, err := accountdb.LoadAccounts(c.Client, addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +520,8 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := account.LoadAccounts(c, exaddrs)
+
+		accounts, err := accountdb.LoadAccounts(c.Client, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -529,7 +532,8 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(c, addr, execaddress.String())
+
+			account, err := accountdb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
