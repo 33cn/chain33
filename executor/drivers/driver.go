@@ -41,26 +41,26 @@ type DriverBase struct {
 	child     Driver
 }
 
-func (n *DriverBase) SetEnv(height, blocktime int64) {
-	n.height = height
-	n.blocktime = blocktime
+func (d *DriverBase) SetEnv(height, blocktime int64) {
+	d.height = height
+	d.blocktime = blocktime
 }
 
-func (n *DriverBase) SetChild(e Driver) {
-	n.child = e
+func (d *DriverBase) SetChild(e Driver) {
+	d.child = e
 }
 
-func (n *DriverBase) GetAddr() string {
-	return ExecAddress(n.child.GetName()).String()
+func (d *DriverBase) GetAddr() string {
+	return ExecAddress(d.child.GetName()).String()
 }
 
-func (n *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//保存：tx
-	hash, result := n.GetTx(tx, receipt, index)
+	hash, result := d.GetTx(tx, receipt, index)
 	set.KV = append(set.KV, &types.KeyValue{hash, types.Encode(result)})
 	//保存: from/to
-	txindex := n.GetTxIndex(tx, receipt, index)
+	txindex := d.GetTxIndex(tx, receipt, index)
 	txinfobyte := types.Encode(txindex.index)
 	if len(txindex.from) != 0 {
 		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
@@ -78,16 +78,16 @@ func (n *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 }
 
 //获取公共的信息
-func (n *DriverBase) GetTx(tx *types.Transaction, receipt *types.ReceiptData, index int) ([]byte, *types.TxResult) {
+func (d *DriverBase) GetTx(tx *types.Transaction, receipt *types.ReceiptData, index int) ([]byte, *types.TxResult) {
 	txhash := tx.Hash()
 	//构造txresult 信息保存到db中
 	var txresult types.TxResult
-	txresult.Height = n.GetHeight()
+	txresult.Height = d.GetHeight()
 	txresult.Index = int32(index)
 	txresult.Tx = tx
 	txresult.Receiptdate = receipt
-	txresult.Blocktime = n.GetBlockTime()
-	txresult.ActionName = n.child.GetActionName(tx)
+	txresult.Blocktime = d.GetBlockTime()
+	txresult.ActionName = d.child.GetActionName(tx)
 	return txhash, &txresult
 }
 
@@ -99,15 +99,15 @@ type txIndex struct {
 }
 
 //交易中 from/to 的索引
-func (n *DriverBase) GetTxIndex(tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
+func (d *DriverBase) GetTxIndex(tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
 	var txIndexInfo txIndex
 	var txinf types.ReplyTxInfo
 	txinf.Hash = tx.Hash()
-	txinf.Height = n.GetHeight()
+	txinf.Height = d.GetHeight()
 	txinf.Index = int64(index)
 
 	txIndexInfo.index = &txinf
-	heightstr := fmt.Sprintf("%018d", n.GetHeight()*types.MaxTxsPerBlock+int64(index))
+	heightstr := fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+int64(index))
 	txIndexInfo.heightstr = heightstr
 
 	txIndexInfo.from = account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
@@ -115,12 +115,12 @@ func (n *DriverBase) GetTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 	return &txIndexInfo
 }
 
-func (n *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//del：tx
-	hash, _ := n.GetTx(tx, receipt, index)
+	hash, _ := d.GetTx(tx, receipt, index)
 	//del: addr index
-	txindex := n.GetTxIndex(tx, receipt, index)
+	txindex := d.GetTxIndex(tx, receipt, index)
 	if len(txindex.from) != 0 {
 		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
@@ -137,7 +137,7 @@ func (n *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	return &set, nil
 }
 
-func (n *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	//检查ToAddr
 	if err := account.CheckAddress(tx.To); err != nil {
 		return nil, err
@@ -150,70 +150,70 @@ func (n *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	return nil, nil
 }
 
-func (n *DriverBase) CheckTx(tx *types.Transaction, index int) error {
+func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (n *DriverBase) Query(funcname string, params []byte) (types.Message, error) {
+func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func (n *DriverBase) SetDB(db dbm.KVDB) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.db = db
+func (d *DriverBase) SetDB(db dbm.KVDB) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.db = db
 }
 
-func (n *DriverBase) GetDB() dbm.KVDB {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	return n.db
+func (d *DriverBase) GetDB() dbm.KVDB {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.db
 }
 
-func (n *DriverBase) SetLocalDB(db dbm.KVDB) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.localdb = db
+func (d *DriverBase) SetLocalDB(db dbm.KVDB) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.localdb = db
 }
 
-func (n *DriverBase) GetLocalDB() dbm.KVDB {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	return n.localdb
+func (d *DriverBase) GetLocalDB() dbm.KVDB {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.localdb
 }
 
-func (n *DriverBase) SetQueryDB(db dbm.DB) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.querydb = db
+func (d *DriverBase) SetQueryDB(db dbm.DB) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.querydb = db
 }
 
-func (n *DriverBase) GetQueryDB() dbm.DB {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	return n.querydb
+func (d *DriverBase) GetQueryDB() dbm.DB {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.querydb
 }
 
-func (n *DriverBase) GetHeight() int64 {
-	return n.height
+func (d *DriverBase) GetHeight() int64 {
+	return d.height
 }
 
-func (n *DriverBase) GetBlockTime() int64 {
-	return n.blocktime
+func (d *DriverBase) GetBlockTime() int64 {
+	return d.blocktime
 }
 
-func (n *DriverBase) GetName() string {
+func (d *DriverBase) GetName() string {
 	return "driver"
 }
 
-func (n *DriverBase) GetActionName(tx *types.Transaction) string {
+func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
 
 // 通过addr前缀查找本地址参与的所有交易
 //查询交易默认放到：coins 中查询
-func (n *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
-	db := n.GetQueryDB()
+func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
+	db := d.GetQueryDB()
 	var prefix []byte
 	var key []byte
 	var txinfos [][]byte

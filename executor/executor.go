@@ -29,16 +29,16 @@ func DisableLog() {
 	elog.SetHandler(log.DiscardHandler())
 }
 
-type Execs struct {
+type Executor struct {
 	qclient queue.Client
 }
 
-func New() *Execs {
-	exec := &Execs{}
+func New() *Executor {
+	exec := &Executor{}
 	return exec
 }
 
-func (exec *Execs) SetQueue(q *queue.Queue) {
+func (exec *Executor) SetQueue(q *queue.Queue) {
 	exec.qclient = q.NewClient()
 	client := exec.qclient
 	client.Sub("execs")
@@ -60,7 +60,7 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 	}()
 }
 
-func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, q, datas.Height, datas.BlockTime)
 	//返回一个列表表示成功还是失败
@@ -77,7 +77,7 @@ func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 	msg.Reply(q.NewClient().NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, q, datas.Height, datas.BlockTime)
 	var receipts []*types.Receipt
@@ -132,7 +132,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 		&types.Receipts{receipts}))
 }
 
-func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, q, b.Height, b.BlockTime)
@@ -159,7 +159,7 @@ func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 	msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, q, b.Height, b.BlockTime)
@@ -187,7 +187,7 @@ func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 	msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func (exec *Execs) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
+func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 	if kvs == nil {
 		return nil
 	}
@@ -201,7 +201,7 @@ func (exec *Execs) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 	return nil
 }
 
-func (exec *Execs) Close() {
+func (exec *Executor) Close() {
 	elog.Info("exec module closed")
 }
 
