@@ -2,7 +2,6 @@ package hashlock
 
 import (
 	"time"
-
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
@@ -41,11 +40,11 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 		return nil, err
 	}
 
-	clog.Error("exec hashlock tx=", "tx=", action)
+	clog.Debug("exec hashlock tx=", "tx=", action)
 
 	actiondb := NewHashlockAction(h.GetDB(), tx, h.GetAddr(), h.GetBlockTime(), h.GetHeight())
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
-		clog.Error("hashlocklock action")
+		clog.Debug("hashlocklock action")
 		hlock := action.GetHlock()
 		if hlock.Amount <= 0 {
 			clog.Warn("hashlock amount <=0")
@@ -72,12 +71,12 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
 		hunlock := action.GetHunlock()
 		//unlock 有两个条件： 1. 时间已经过期 2. 密码是对的，返回原来的账户
-		clog.Error("hashlockunlock action")
+		clog.Debug("hashlockunlock action")
 		return actiondb.Hashlockunlock(hunlock)
 	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
 		hsend := action.GetHsend()
 		//send 有两个条件：1. 时间没有过期 2. 密码是对的，币转移到 ToAddress
-		clog.Error("hashlocksend action")
+		clog.Debug("hashlocksend action")
 		return actiondb.Hashlocksend(hsend)
 	}
 
