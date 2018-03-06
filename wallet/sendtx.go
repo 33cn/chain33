@@ -451,3 +451,16 @@ func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	reply := resp.GetData().(types.Message).(*types.ReplyStrings)
 	return reply.Datas, nil
 }
+
+func (client *Wallet) IsCaughtUp() bool {
+	if client.qclient == nil {
+		panic("wallet client not bind message queue.")
+	}
+	msg := client.qclient.NewMessage("blockchain", types.EventIsSync, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return false
+	}
+	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
+}
