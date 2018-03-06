@@ -131,6 +131,9 @@ func (wallet *Wallet) autoMining() {
 	for {
 		select {
 		case <-wallet.miningTicket.C:
+			if !wallet.IsCaughtUp() {
+				break
+			}
 			if wallet.isAutoMining() {
 				n1, err := wallet.closeTicket()
 				if err != nil {
