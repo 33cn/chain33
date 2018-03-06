@@ -20,6 +20,7 @@ import (
 )
 
 var elog = log.New("module", "execs")
+var coinsAccount = account.NewCoinsAccount()
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -207,36 +208,41 @@ func (exec *Executor) Close() {
 
 //执行器 -> db 环境
 type executor struct {
-	stateDB   dbm.KVDB
-	localDB   dbm.KVDB
-	height    int64
-	blocktime int64
+	stateDB      dbm.KVDB
+	localDB      dbm.KVDB
+	coinsAccount *account.AccountDB
+	height       int64
+	blocktime    int64
 }
 
 func newExecutor(stateHash []byte, q *queue.Queue, height, blocktime int64) *executor {
-	return &executor{
-		stateDB:   NewStateDB(q, stateHash),
-		localDB:   NewLocalDB(q),
-		height:    height,
-		blocktime: blocktime,
+	e := &executor{
+		stateDB:      NewStateDB(q, stateHash),
+		localDB:      NewLocalDB(q),
+		coinsAccount: account.NewCoinsAccount(),
+		height:       height,
+		blocktime:    blocktime,
 	}
+	e.coinsAccount.SetDB(e.stateDB)
+	return e
 }
 
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	accFrom := account.LoadAccount(e.stateDB, from)
+	accFrom := e.coinsAccount.LoadAccount(from)
 	if accFrom.GetBalance()-tx.Fee >= 0 {
-		receiptBalance := &types.ReceiptBalance{accFrom.GetBalance(), accFrom.GetBalance() - tx.Fee, -tx.Fee}
+		copyfrom := *accFrom
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
-		account.SaveAccount(e.stateDB, accFrom)
-		return cutFeeReceipt(accFrom, receiptBalance), nil
+		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
+		e.coinsAccount.SaveAccount(accFrom)
+		return e.cutFeeReceipt(accFrom, receiptBalance), nil
 	}
 	return nil, types.ErrNoBalance
 }
 
-func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *types.Receipt {
+func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptAccountTransfer) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
-	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
+	return &types.Receipt{types.ExecPack, e.coinsAccount.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
 func (e *executor) checkTx(tx *types.Transaction, index int) error {
@@ -258,7 +264,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 
 	//手续费检查
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	accFrom := account.LoadAccount(e.stateDB, from)
+	accFrom := e.coinsAccount.LoadAccount(from)
 	if accFrom.GetBalance() < types.MinBalanceTransfer {
 		return types.ErrBalanceLessThanTenTimesFee
 	}

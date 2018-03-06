@@ -49,29 +49,30 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
+	coinsAccount := c.GetCoinsAccount()
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
 		if drivers.IsDriverAddress(tx.To) {
-			return account.TransferToExec(c.GetDB(), from, tx.To, transfer.Amount)
+			return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
 		}
-		return account.Transfer(c.GetDB(), from, tx.To, transfer.Amount)
+		return coinsAccount.Transfer(from, tx.To, transfer.Amount)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
 		if drivers.IsDriverAddress(tx.To) {
-			return account.TransferWithdraw(c.GetDB(), from, tx.To, withdraw.Amount)
+			return coinsAccount.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if c.GetHeight() == 0 {
 			if drivers.IsDriverAddress(tx.To) {
-				return account.GenesisInitExec(c.GetDB(), genesis.ReturnAddress, genesis.Amount, tx.To)
+				return coinsAccount.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
-			return account.GenesisInit(c.GetDB(), tx.To, genesis.Amount)
+			return coinsAccount.GenesisInit(tx.To, genesis.Amount)
 		} else {
 			return nil, types.ErrReRunGenesis
 		}
