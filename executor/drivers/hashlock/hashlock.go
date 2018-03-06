@@ -1,7 +1,10 @@
 package hashlock
 
 import (
+	"time"
+
 	"code.aliyun.com/chain33/chain33/account"
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -41,7 +44,6 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	clog.Debug("exec hashlock tx=", "tx=", action)
 
 	actiondb := NewHashlockAction(h.GetDB(), tx, h.GetAddr(), h.GetBlockTime(), h.GetHeight())
-
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		clog.Debug("hashlocklock action")
 		hlock := action.GetHlock()
@@ -80,5 +82,106 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	}
 
 	//return error
+	return nil, types.ErrActionNotSupport
+}
+
+//获取运行状态名
+func (h *Hashlock) GetActionName(tx *types.Transaction) string {
+	return tx.ActionName()
+}
+
+//把信息进行存储
+//将运行结果内容存入本地地址
+
+func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	clog.Error("ExecLocal action")
+	set, err := h.DriverBase.ExecLocal(tx, receipt, index)
+	if err != nil {
+		clog.Error("ExecLocal")
+		return nil, err
+	}
+	if receipt.GetTy() != types.ExecOk {
+
+		return set, nil
+	}
+	//执行成功
+	var action types.HashlockAction
+	err = types.Decode(tx.GetPayload(), &action)
+	if err != nil {
+		panic(err)
+	}
+
+	var kv *types.KeyValue
+	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+		hlock := action.GetHlock()
+		info := types.Hashlockquery{hlock.Time, Hashlock_Locked, hlock.Amount, h.GetBlockTime(), 0}
+		clog.Error("ExecLocal", "Hashlock_Locked", Hashlock_Locked)
+		kv, err = UpdateHashReciver(h.GetLocalDB(), hlock.Hash, info)
+	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
+		hunlock := action.GetHunlock()
+		info := types.Hashlockquery{0, Hashlock_Unlocked, 0, 0, 0}
+		clog.Error("ExecLocal", "Hashlock_Unlocked", Hashlock_Unlocked)
+		kv, err = UpdateHashReciver(h.GetLocalDB(), common.Sha256(hunlock.Secret), info)
+	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
+		hsend := action.GetHsend()
+		info := types.Hashlockquery{0, Hashlock_Sent, 0, 0, 0}
+		clog.Error("ExecLocal", "info", info)
+		kv, err = UpdateHashReciver(h.GetLocalDB(), common.Sha256(hsend.Secret), info)
+	}
+	if err != nil {
+		return set, nil
+	}
+	if kv != nil {
+		set.KV = append(set.KV, kv)
+	}
+	return set, nil
+}
+
+func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := h.DriverBase.ExecDelLocal(tx, receipt, index)
+	if err != nil {
+		return nil, err
+	}
+	if receipt.GetTy() != types.ExecOk {
+		return set, nil
+	}
+	//执行成功
+	var action types.HashlockAction
+	err = types.Decode(tx.GetPayload(), &action)
+	if err != nil {
+		panic(err)
+	}
+	var kv *types.KeyValue
+	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+		hlock := action.GetHlock()
+		info := types.Hashlockquery{hlock.Time, Hashlock_Locked, hlock.Amount, h.GetBlockTime(), 0}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), hlock.Hash, info)
+	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
+		hunlock := action.GetHunlock()
+		info := types.Hashlockquery{0, Hashlock_Unlocked, 0, 0, 0}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), common.Sha256(hunlock.Secret), info)
+	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
+		hsend := action.GetHsend()
+		info := types.Hashlockquery{0, Hashlock_Sent, 0, 0, 0}
+		kv, err = UpdateHashReciver(h.GetLocalDB(), common.Sha256(hsend.Secret), info)
+	}
+	if err != nil {
+		return set, nil
+	}
+	if kv != nil {
+		set.KV = append(set.KV, kv)
+	}
+	return set, nil
+}
+
+//func (n *Hashlock) HashLockQuery(db dbm.KVDB, funcName string, HashlockId []byte) (Hashlockquery, error) {
+//}
+func (n *Hashlock) Query(funcName string, hashlockId []byte) (types.Message, error) {
+	if funcName == "GetHashlocKById" {
+		//		currentTime := n.GetBlockTime()
+		differTime := time.Now().UnixNano()/1e9 - n.GetBlockTime()
+		clog.Error("Query action")
+		return n.GetTxsByHashlockId(hashlockId, differTime)
+	}
 	return nil, types.ErrActionNotSupport
 }
