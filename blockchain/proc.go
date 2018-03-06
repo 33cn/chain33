@@ -76,6 +76,11 @@ func (chain *BlockChain) getHeaders(msg queue.Message) {
 	}
 }
 
+func (chain *BlockChain) isSync(msg queue.Message) {
+	ok := chain.IsCaughtUp()
+	msg.Reply(chain.qclient.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{ok}))
+}
+
 func (chain *BlockChain) getLastHeader(msg queue.Message) {
 	header, err := chain.ProcGetLastHeaderMsg()
 	if err != nil {
