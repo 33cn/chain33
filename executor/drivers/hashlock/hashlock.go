@@ -17,7 +17,7 @@ func init() {
 }
 
 type Hashlock struct {
-	drivers.ExecBase
+	drivers.DriverBase
 }
 
 func newHashlock() *Hashlock {
