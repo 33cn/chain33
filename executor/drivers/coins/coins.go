@@ -13,7 +13,7 @@ EventTransfer -> 转移资产
 
 import (
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
@@ -21,11 +21,11 @@ import (
 var clog = log.New("module", "execs.coins")
 
 func init() {
-	execdrivers.Register("coins", newCoins())
+	drivers.Register("coins", newCoins())
 }
 
 type Coins struct {
-	execdrivers.ExecBase
+	drivers.ExecBase
 }
 
 func newCoins() *Coins {
@@ -56,7 +56,7 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if execdrivers.IsExecAddress(tx.To) {
+		if drivers.IsExecAddress(tx.To) {
 			return account.TransferToExec(n.GetDB(), from, tx.To, transfer.Amount)
 		}
 		return account.Transfer(n.GetDB(), from, tx.To, transfer.Amount)
@@ -64,14 +64,14 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if execdrivers.IsExecAddress(tx.To) {
+		if drivers.IsExecAddress(tx.To) {
 			return account.TransferWithdraw(n.GetDB(), from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if n.GetHeight() == 0 {
-			if execdrivers.IsExecAddress(tx.To) {
+			if drivers.IsExecAddress(tx.To) {
 				return account.GenesisInitExec(n.GetDB(), genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
 			return account.GenesisInit(n.GetDB(), tx.To, genesis.Amount)

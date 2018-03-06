@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -21,13 +21,13 @@ func NewQuery(db dbm.DB, q *queue.Queue, stateHash []byte) *Query {
 }
 
 func (q *Query) Query(driver string, funcname string, param []byte) (types.Message, error) {
-	exec, err := execdrivers.LoadExecute(driver)
+	exec, err := drivers.LoadExecute(driver)
 	if err != nil {
 		chainlog.Error("load exec err", "name", driver)
 		return nil, err
 	}
 	exec.SetQueryDB(q.db)
-	exec.SetDB(execdrivers.NewStateDB(q.q, q.getStateHash()))
+	exec.SetDB(drivers.NewStateDB(q.q, q.getStateHash()))
 	return exec.Query(funcname, param)
 }
 

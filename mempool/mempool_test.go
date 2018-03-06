@@ -14,7 +14,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/common/limits"
 	"code.aliyun.com/chain33/chain33/consensus"
-	"code.aliyun.com/chain33/chain33/execs"
+	"code.aliyun.com/chain33/chain33/executor"
 	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/store"
@@ -101,7 +101,7 @@ func initEnv2(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueue(q)
 
-	exec := execs.New()
+	exec := executor.New()
 	exec.SetQueue(q)
 
 	s := store.New(cfg.Store)
@@ -130,7 +130,7 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueue(q)
 
-	exec := execs.New()
+	exec := executor.New()
 	exec.SetQueue(q)
 
 	s := store.New(cfg.Store)

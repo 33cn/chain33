@@ -2,7 +2,7 @@ package retrieve
 
 import (
 	//"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
@@ -14,12 +14,12 @@ var minPeriod int64 = 60
 //const maxTimeWeight = 2
 
 func init() {
-	execdrivers.Register("retrieve", newRetrieve())
-	execdrivers.RegisterAddress("retrieve")
+	drivers.Register("retrieve", newRetrieve())
+	drivers.RegisterAddress("retrieve")
 }
 
 type Retrieve struct {
-	execdrivers.ExecBase
+	drivers.ExecBase
 }
 
 func newRetrieve() *Retrieve {
