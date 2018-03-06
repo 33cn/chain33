@@ -35,12 +35,12 @@ func newCoins() *Coins {
 	return c
 }
 
-func (n *Coins) GetName() string {
+func (c *Coins) GetName() string {
 	return "coins"
 }
 
-func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	_, err := n.DriverBase.Exec(tx, index)
+func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+	_, err := c.DriverBase.Exec(tx, index)
 	if err != nil {
 		return nil, err
 	}
@@ -53,25 +53,25 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if drivers.IsExecAddress(tx.To) {
-			return account.TransferToExec(n.GetDB(), from, tx.To, transfer.Amount)
+		if drivers.IsDriverAddress(tx.To) {
+			return account.TransferToExec(c.GetDB(), from, tx.To, transfer.Amount)
 		}
-		return account.Transfer(n.GetDB(), from, tx.To, transfer.Amount)
+		return account.Transfer(c.GetDB(), from, tx.To, transfer.Amount)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if drivers.IsExecAddress(tx.To) {
-			return account.TransferWithdraw(n.GetDB(), from, tx.To, withdraw.Amount)
+		if drivers.IsDriverAddress(tx.To) {
+			return account.TransferWithdraw(c.GetDB(), from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
-		if n.GetHeight() == 0 {
-			if drivers.IsExecAddress(tx.To) {
-				return account.GenesisInitExec(n.GetDB(), genesis.ReturnAddress, genesis.Amount, tx.To)
+		if c.GetHeight() == 0 {
+			if drivers.IsDriverAddress(tx.To) {
+				return account.GenesisInitExec(c.GetDB(), genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
-			return account.GenesisInit(n.GetDB(), tx.To, genesis.Amount)
+			return account.GenesisInit(c.GetDB(), tx.To, genesis.Amount)
 		} else {
 			return nil, types.ErrReRunGenesis
 		}
@@ -84,8 +84,8 @@ func (n *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 //1: from tx
 //2: to tx
 
-func (n *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := n.DriverBase.ExecLocal(tx, receipt, index)
+func (c *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -101,14 +101,14 @@ func (n *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	var kv *types.KeyValue
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		kv, err = updateAddrReciver(n.GetLocalDB(), tx.To, transfer.Amount, true)
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
-		kv, err = updateAddrReciver(n.GetLocalDB(), from, transfer.Amount, true)
+		kv, err = updateAddrReciver(c.GetLocalDB(), from, transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		gen := action.GetGenesis()
-		kv, err = updateAddrReciver(n.GetLocalDB(), tx.To, gen.Amount, true)
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, gen.Amount, true)
 	}
 	if err != nil {
 		return set, nil
@@ -119,8 +119,8 @@ func (n *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	return set, nil
 }
 
-func (n *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := n.DriverBase.ExecDelLocal(tx, receipt, index)
+func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := c.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -136,11 +136,11 @@ func (n *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	var kv *types.KeyValue
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		kv, err = updateAddrReciver(n.GetLocalDB(), tx.To, transfer.Amount, false)
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, false)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
-		kv, err = updateAddrReciver(n.GetLocalDB(), from, transfer.Amount, false)
+		kv, err = updateAddrReciver(c.GetLocalDB(), from, transfer.Amount, false)
 	}
 	if err != nil {
 		return set, nil
@@ -151,9 +151,9 @@ func (n *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	return set, nil
 }
 
-func (n *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
+func (c *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
 	reciver := types.Int64{}
-	db := n.GetQueryDB()
+	db := c.GetQueryDB()
 	addrReciver := db.Get(calcAddrKey(addr.Addr))
 	if addrReciver == nil {
 		return &reciver, types.ErrEmpty
@@ -165,21 +165,21 @@ func (n *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
 	return &reciver, nil
 }
 
-func (n *Coins) Query(funcName string, params []byte) (types.Message, error) {
+func (c *Coins) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == "GetAddrReciver" {
 		var in types.ReqAddr
 		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
 		}
-		return n.GetAddrReciver(&in)
+		return c.GetAddrReciver(&in)
 	} else if funcName == "GetTxsByAddr" {
 		var in types.ReqAddr
 		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
 		}
-		return n.GetTxsByAddr(&in)
+		return c.GetTxsByAddr(&in)
 	}
 	return nil, types.ErrActionNotSupport
 }
