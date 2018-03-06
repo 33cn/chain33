@@ -11,8 +11,6 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-var accountdb = account.NewCoinsAccount()
-
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
 	ta := &types.TicketAction{}
 	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
@@ -414,7 +412,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := account.LoadAccounts(client.qclient, exaddrs)
+		accounts, err := accountdb.LoadAccounts(client.qclient, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -425,7 +423,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
+			account, err := accountdb.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
