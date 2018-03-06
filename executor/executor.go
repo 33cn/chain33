@@ -215,8 +215,8 @@ type executor struct {
 
 func newExecutor(stateHash []byte, q *queue.Queue, height, blocktime int64) *executor {
 	return &executor{
-		stateDB:   drivers.NewStateDB(q, stateHash),
-		localDB:   drivers.NewLocalDB(q),
+		stateDB:   NewStateDB(q, stateHash),
+		localDB:   NewLocalDB(q),
 		height:    height,
 		blocktime: blocktime,
 	}
@@ -263,9 +263,9 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return types.ErrBalanceLessThanTenTimesFee
 	}
 	//checkInExec
-	exec, err := drivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
-		exec, err = drivers.LoadExecute("none")
+		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
@@ -276,9 +276,9 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	exec, err := drivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
-		exec, err = drivers.LoadExecute("none")
+		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
@@ -289,9 +289,9 @@ func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 }
 
 func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := drivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
-		exec, err = drivers.LoadExecute("none")
+		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
@@ -302,9 +302,9 @@ func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index 
 }
 
 func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := drivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
-		exec, err = drivers.LoadExecute("none")
+		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
@@ -312,4 +312,9 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecDelLocal(tx, r, index)
+}
+
+
+func LoadDriver(name string) (c drivers.Driver, err error) {
+	return drivers.LoadDriver(name)
 }
