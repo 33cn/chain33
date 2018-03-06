@@ -9,8 +9,6 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-type Chain33 rpcServer
-
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
 
 	reply, err := c.cli.CreateRawTransaction(in)

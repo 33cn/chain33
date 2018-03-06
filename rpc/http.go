@@ -23,16 +23,16 @@ func (c *HttpConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
 func (c *HttpConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
 func (c *HttpConn) Close() error                      { return nil }
 
-func (c *Chain33) Listen(addr string) {
+func (j *JsonRpcServer) Listen(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Crit("listen:", "err", err)
 		panic(err)
 	}
-	c.Listener = listener
+	j.Listener = listener
 	server := rpc.NewServer()
 
-	server.Register(c)
+	server.Register(&j.jrpc)
 	co := cors.New(cors.Options{})
 
 	// Insert the middleware
@@ -50,10 +50,10 @@ func (c *Chain33) Listen(addr string) {
 	})
 
 	handler = co.Handler(handler)
-	http.Serve(listener, handler)
+	http.Serve(j.Listener, handler)
 }
 
-func (g *Grpc) Listen(addr string) {
+func (g *Grpcserver) Listen(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Crit("failed to listen:", "err", err)
@@ -61,6 +61,6 @@ func (g *Grpc) Listen(addr string) {
 	}
 	g.Listener = listener
 	s := grpc.NewServer()
-	pb.RegisterGrpcserviceServer(s, g)
-	s.Serve(listener)
+	pb.RegisterGrpcserviceServer(s, &g.grpc)
+	s.Serve(g.Listener)
 }
