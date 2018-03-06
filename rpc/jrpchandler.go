@@ -101,16 +101,10 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	{ //重新格式化数据
 
 		var transDetail TransactionDetail
-		transDetail.Tx = &Transaction{
-			Execer:  string(reply.GetTx().GetExecer()),
-			Payload: common.ToHex(reply.GetTx().GetPayload()),
-			Fee:     reply.GetTx().GetFee(),
-			Expire:  reply.GetTx().GetExpire(),
-			Nonce:   reply.GetTx().GetNonce(),
-			To:      reply.GetTx().GetTo(),
-			Signature: &Signature{Ty: reply.GetTx().GetSignature().GetTy(),
-				Pubkey:    common.ToHex(reply.GetTx().GetSignature().GetPubkey()),
-				Signature: common.ToHex(reply.GetTx().GetSignature().GetSignature())}}
+		transDetail.Tx, err = DecodeTx(*(reply.GetTx()))
+		if err != nil {
+			return err
+		}
 		transDetail.Receipt = &ReceiptData{Ty: reply.GetReceipt().GetTy()}
 		logs := reply.GetReceipt().GetLogs()
 		for _, log := range logs {
@@ -159,18 +153,11 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
 			txs := item.Block.GetTxs()
 			for _, tx := range txs {
-				block.Txs = append(block.Txs,
-					&Transaction{
-						Execer:  string(tx.GetExecer()),
-						Payload: common.ToHex(tx.GetPayload()),
-						Fee:     tx.GetFee(),
-						Expire:  tx.GetExpire(),
-						Nonce:   tx.GetNonce(),
-						To:      tx.GetTo(),
-						Signature: &Signature{Ty: tx.GetSignature().GetTy(),
-							Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-							Signature: common.ToHex(tx.GetSignature().GetSignature())}})
-
+				tran, err := DecodeTx(*tx)
+				if err != nil {
+					continue
+				}
+				block.Txs = append(block.Txs, tran)
 			}
 			bdtl.Block = &block
 
@@ -277,20 +264,14 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
 			}
+			tran, err := DecodeTx(*(tx.GetTx()))
+			if err != nil {
+				continue
+			}
 
 			txdetails.Txs = append(txdetails.Txs,
 				&TransactionDetail{
-					Tx: &Transaction{
-						Execer:  string(tx.GetTx().GetExecer()),
-						Payload: common.ToHex(tx.GetTx().GetPayload()),
-						Fee:     tx.GetTx().GetFee(),
-						Expire:  tx.GetTx().GetExpire(),
-						Nonce:   tx.GetTx().GetNonce(),
-						To:      tx.GetTx().GetTo(),
-						Signature: &Signature{Ty: tx.GetTx().GetSignature().GetTy(),
-							Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
-							Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature())},
-					},
+					Tx:         tran,
 					Height:     tx.GetHeight(),
 					Index:      tx.GetIndex(),
 					Blocktime:  tx.GetBlocktime(),
@@ -394,20 +375,12 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-
+			tran, err := DecodeTx(*(tx.GetTx()))
+			if err != nil {
+				continue
+			}
 			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
-				Tx: &Transaction{
-					Execer:  string(tx.GetTx().GetExecer()),
-					Payload: common.ToHex(tx.GetTx().GetPayload()),
-					Fee:     tx.GetTx().GetFee(),
-					Expire:  tx.GetTx().GetExpire(),
-					Nonce:   tx.GetTx().GetNonce(),
-					To:      tx.GetTx().GetTo(),
-					Signature: &Signature{
-						Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
-						Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature()),
-					},
-				},
+				Tx:         tran,
 				Receipt:    &recp,
 				Height:     tx.GetHeight(),
 				Index:      tx.GetIndex(),
