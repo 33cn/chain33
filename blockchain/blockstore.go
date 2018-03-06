@@ -47,10 +47,10 @@ func calcHeightToHashKey(height int64) []byte {
 }
 
 type BlockStore struct {
-	db         dbm.DB
-	client     queue.Client
-	height     int64
-	lastHeader *types.Header
+	db        dbm.DB
+	client    queue.Client
+	height    int64
+	lastBlock *types.Block
 }
 
 func NewBlockStore(db dbm.DB, q *queue.Queue) *BlockStore {
@@ -61,8 +61,8 @@ func NewBlockStore(db dbm.DB, q *queue.Queue) *BlockStore {
 		client: q.NewClient(),
 	}
 
-	lastheader, _ := blockStore.GetBlockHeaderByHeight(height)
-	blockStore.lastHeader = lastheader
+	blockdetail, _ := blockStore.LoadBlockByHeight(height)
+	blockStore.lastBlock = blockdetail.GetBlock()
 	return blockStore
 }
 
@@ -78,25 +78,52 @@ func (bs *BlockStore) UpdateHeight() {
 	storeLog.Info("UpdateHeight", "curblockheight", height)
 }
 
-// 返回BlockStore保存的当前block高度
+// 返回BlockStore保存的当前blockheader
 func (bs *BlockStore) LastHeader() *types.Header {
 	lastheaderlock.Lock()
 	defer lastheaderlock.Unlock()
-	return bs.lastHeader
+
+	// 通过lastBlock获取lastheader
+	var blockheader = types.Header{}
+	if bs.lastBlock != nil {
+		blockheader.Version = bs.lastBlock.Version
+		blockheader.ParentHash = bs.lastBlock.ParentHash
+		blockheader.TxHash = bs.lastBlock.TxHash
+		blockheader.StateHash = bs.lastBlock.StateHash
+		blockheader.Height = bs.lastBlock.Height
+		blockheader.BlockTime = bs.lastBlock.BlockTime
+		blockheader.Signature = bs.lastBlock.Signature
+		blockheader.Difficulty = bs.lastBlock.Difficulty
+
+		blockheader.Hash = bs.lastBlock.Hash()
+		blockheader.TxCount = int64(len(bs.lastBlock.Txs))
+	}
+	return &blockheader
 }
 
-// 更新db中的block高度到BlockStore.Height
-func (bs *BlockStore) UpdateLastHeder(hash []byte) {
-	header, err := bs.GetBlockHerderByHash(hash)
+// 更新LastBlock到缓存中
+func (bs *BlockStore) UpdateLastBlock(hash []byte) {
+	blockdetail, err := bs.LoadBlockByHash(hash)
 	if err != nil {
+		storeLog.Error("UpdateLastBlock", "hash", common.ToHex(hash), "error", err)
 		return
 	}
 	lastheaderlock.Lock()
 	defer lastheaderlock.Unlock()
-	if header != nil {
-		bs.lastHeader = header
+	if blockdetail != nil {
+		bs.lastBlock = blockdetail.Block
 	}
-	storeLog.Debug("UpdateLastHeder", "LastHederheight", header.Height, "LastHederhash", common.ToHex(header.Hash))
+	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", blockdetail.Block.Height, "LastHederhash", common.ToHex(blockdetail.Block.Hash()))
+}
+
+//获取最新的block信息
+func (bs *BlockStore) LastBlock() *types.Block {
+	lastheaderlock.Lock()
+	defer lastheaderlock.Unlock()
+	if bs.lastBlock != nil {
+		return bs.lastBlock
+	}
+	return nil
 }
 
 func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
