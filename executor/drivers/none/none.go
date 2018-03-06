@@ -14,7 +14,7 @@ func init() {
 }
 
 type None struct {
-	drivers.ExecBase
+	drivers.DriverBase
 }
 
 func newNone() *None {
