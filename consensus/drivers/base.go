@@ -157,7 +157,16 @@ func (client *BaseClient) IsMining() bool {
 }
 
 func (client *BaseClient) IsCaughtUp() bool {
-	return atomic.LoadInt32(&client.isCaughtUp) == 1
+	if client.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	msg := client.qclient.NewMessage("blockchain", types.EventIsSync, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return false
+	}
+	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
 }
 
 // 准备新区块
@@ -190,9 +199,6 @@ func (client *BaseClient) EventLoop() {
 			} else if msg.Ty == types.EventDelBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				client.UpdateCurrentBlock(block)
-			} else if msg.Ty == types.EventConsensusTicket {
-				iscaughtup := msg.GetData().(*types.IsCaughtUp)
-				client.ConsensusTicketMiner(iscaughtup)
 			} else {
 				client.child.ProcEvent(msg)
 			}
