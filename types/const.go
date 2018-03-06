@@ -250,17 +250,25 @@ const (
 
 //log type
 const (
-	TyLogErr      = 1
-	TyLogFee      = 2
-	TyLogTransfer = 3
-	TyLogGenesis  = 4
-	TyLogDeposit  = 5
+	TyLogErr = 1
+	TyLogFee = 2
+	//coins
+	TyLogTransfer        = 3
+	TyLogGenesis         = 4
+	TyLogDeposit         = 5
+	TyLogExecTransfer    = 6
+	TyLogExecWithdraw    = 7
+	TyLogExecDeposit     = 8
+	TyLogExecFrozen      = 9
+	TyLogExecActive      = 10
+	TyLogGenesisTransfer = 11
+	TyLogGenesisDeposit  = 12
 
 	//log for ticket
-	TyLogNewTicket   = 11
-	TyLogCloseTicket = 12
-	TyLogMinerTicket = 13
-	TyLogTicketBind  = 14
+	TyLogNewTicket   = 111
+	TyLogCloseTicket = 112
+	TyLogMinerTicket = 113
+	TyLogTicketBind  = 114
 )
 
 //exec type

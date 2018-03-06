@@ -16,6 +16,7 @@ import (
 //sendTx
 //status
 //channel 主要用于内部测试，实际情况主要采用 jsonrpc 和 Grpc
+var accountdb = account.NewCoinsAccount()
 
 type IRClient interface {
 	SendTx(tx *types.Transaction) queue.Message
@@ -499,7 +500,7 @@ func (client *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOv
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := account.LoadAccounts(client.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(client.qclient, addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -594,7 +595,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := account.LoadAccounts(client.qclient, exaddrs)
+		accounts, err := accountdb.LoadAccounts(client.qclient, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -605,7 +606,7 @@ func (client *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account,
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
+			account, err := accountdb.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
