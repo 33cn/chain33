@@ -302,7 +302,9 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	chainlog.Debug("connectBlock write db", "height", block.Height, "cost", time.Now().Sub(beg))
 
+	// 更新最新的高度和header
 	b.blockStore.UpdateHeight()
+	b.blockStore.UpdateLastHeder(blockdetail.Block.Hash())
 
 	// 更新 best chain的tip节点
 	b.bestChain.SetTip(node)
@@ -347,7 +349,9 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	}
 	newbatch.Write()
 
+	//更新最新的高度和header为上一个块
 	b.blockStore.UpdateHeight()
+	b.blockStore.UpdateLastHeder(blockdetail.Block.ParentHash)
 
 	// 删除主链的tip节点，将其父节点升级成tip节点
 	b.bestChain.DelTip(node)
