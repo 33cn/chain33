@@ -20,6 +20,7 @@ import (
 	"encoding/gob"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
 	"os"
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 //-----------------------------------------------------------------------------
@@ -115,6 +116,8 @@ type ConsensusState struct {
 	done chan struct{}
 
 	Quit    chan struct{}
+
+	NewTxsHeight  chan int64
 }
 
 func TxEncode(data interface{}) ([]byte, error) {
@@ -532,6 +535,9 @@ func (cs *ConsensusState) newStep() {
 
 }
 
+func (cs *ConsensusState) NewTxsAvailable(height int64){
+	cs.NewTxsHeight <- height
+}
 //-----------------------------------------
 // the main go routines
 
@@ -557,42 +563,43 @@ func (cs *ConsensusState) receiveRoutine(maxSteps int) {
 		}
 		rs := cs.RoundState
 		var mi msgInfo
-
-		txs := cs.client.RequestTx()
+		/*
+		txs:=cs.client.RequestTx()
 		if len(txs) != 0 {
 			txs = cs.client.CheckTxDup(txs)
 			lastBlock := cs.client.GetCurrentBlock()
 			cs.handleTxsAvailable(lastBlock.Height + 1)
-		} else {
-			select {
-			case mi = <-cs.peerMsgQueue:
-				//cs.wal.Save(mi)
-				// handles proposals, block parts, votes
-				// may generate internal events (votes, complete proposals, 2/3 majorities)
-				cs.handleMsg(mi)
-			case mi = <-cs.internalMsgQueue:
-				//cs.wal.Save(mi)
-				// handles proposals, block parts, votes
-				cs.handleMsg(mi)
-			case ti := <-cs.timeoutTicker.Chan(): // tockChan:
-				//cs.wal.Save(ti)
-				// if the timeout is relevant to the rs
-				// go to the next step
-				cs.handleTimeout(ti, rs)
-			case <-cs.Quit:
-
-				// NOTE: the internalMsgQueue may have signed messages from our
-				// priv_val that haven't hit the WAL, but its ok because
-				// priv_val tracks LastSig
-
-				// close wal now that we're done writing to it
-				//cs.wal.Stop()
-
-				close(cs.done)
-				return
-			}
 		}
+		*/
+		select {
+		case height := <- cs.NewTxsHeight:
+			cs.handleTxsAvailable(height)
+		case mi = <-cs.peerMsgQueue:
+			//cs.wal.Save(mi)
+			// handles proposals, block parts, votes
+			// may generate internal events (votes, complete proposals, 2/3 majorities)
+			cs.handleMsg(mi)
+		case mi = <-cs.internalMsgQueue:
+			//cs.wal.Save(mi)
+			// handles proposals, block parts, votes
+			cs.handleMsg(mi)
+		case ti := <-cs.timeoutTicker.Chan(): // tockChan:
+			//cs.wal.Save(ti)
+			// if the timeout is relevant to the rs
+			// go to the next step
+			cs.handleTimeout(ti, rs)
+		case <-cs.Quit:
 
+			// NOTE: the internalMsgQueue may have signed messages from our
+			// priv_val that haven't hit the WAL, but its ok because
+			// priv_val tracks LastSig
+
+			// close wal now that we're done writing to it
+			//cs.wal.Stop()
+
+			close(cs.done)
+			return
+		}
 	}
 }
 
@@ -906,22 +913,34 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 		return
 	}
 
-	txs := cs.client.RequestTx()
-	if len(txs) > 0 {
-		//check dup
-		txs = cs.client.CheckTxDup(txs)
+	var txs []*types.Transaction
+	if cs.Height == 1 {
+		genesisBlock :=cs.client.GetCurrentBlock()
+		if genesisBlock == nil {
+			cs.Logger.Error("enterPropose: get genesisBlock failed")
+			return nil, nil
+		} else {
+			txs = genesisBlock.GetTxs()
+		}
 	} else {
-		return nil, nil
+		txs = cs.client.RequestTx()
+		if len(txs) > 0 {
+			//check dup
+			txs = cs.client.CheckTxDup(txs)
+		} else {
+			return nil, nil
+		}
 	}
 
-	var newtxs ttypes.Txs
-	var err error
-	newtxs[0],err = TxEncode(txs)
+	newtxs:=make([]ttypes.Tx,1)
+	//var err error
+	newtxs[0] = wire.BinaryBytes(txs)
+	/*
 	if err != nil{
 		cs.Logger.Error("enterPropose: TxEncode", "error", err)
 		return nil,nil
 	}
-
+*/
 	// Mempool validated transactions
 	block, parts := cs.state.MakeBlock(cs.Height, newtxs, commit)
 	evidence := cs.evpool.PendingEvidence()
