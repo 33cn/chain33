@@ -1,4 +1,4 @@
-package execdrivers
+package drivers
 
 import (
 	"errors"
