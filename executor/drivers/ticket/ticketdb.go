@@ -85,18 +85,19 @@ func TicketBindKey(id string) (key []byte) {
 }
 
 type TicketAction struct {
-	db        dbm.KVDB
-	txhash    []byte
-	fromaddr  string
-	blocktime int64
-	height    int64
-	execaddr  string
+	coinsAccount *account.AccountDB
+	db           dbm.KVDB
+	txhash       []byte
+	fromaddr     string
+	blocktime    int64
+	height       int64
+	execaddr     string
 }
 
-func NewTicketAction(db dbm.KVDB, tx *types.Transaction, execaddr string, blocktime, height int64) *TicketAction {
+func NewTicketAction(t *Ticket, tx *types.Transaction) *TicketAction {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &TicketAction{db, hash, fromaddr, blocktime, height, execaddr}
+	return &TicketAction{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
 func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt, error) {
@@ -108,7 +109,7 @@ func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Re
 		id := prefix + fmt.Sprintf("%010d", i)
 		t := NewTicketDB(id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime, true)
 		//冻结子账户资金
-		receipt, err := account.ExecFrozen(action.db, genesis.ReturnAddress, action.execaddr, types.TicketPrice)
+		receipt, err := action.coinsAccount.ExecFrozen(genesis.ReturnAddress, action.execaddr, types.TicketPrice)
 		if err != nil {
 			tlog.Error("GenesisInit.Frozen", "addr", genesis.ReturnAddress, "execaddr", action.execaddr)
 			panic(err)
@@ -205,7 +206,7 @@ func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt,
 		t := NewTicketDB(id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, false)
 
 		//冻结子账户资金
-		receipt, err := account.ExecFrozen(action.db, topen.ReturnAddress, action.execaddr, types.TicketPrice)
+		receipt, err := action.coinsAccount.ExecFrozen(topen.ReturnAddress, action.execaddr, types.TicketPrice)
 		if err != nil {
 			tlog.Error("TicketOpen.Frozen", "addr", topen.ReturnAddress, "execaddr", action.execaddr, "n", topen.Count)
 			return nil, err
@@ -262,13 +263,13 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 	var kv []*types.KeyValue
 
 	//user
-	receipt1, err := account.ExecDepositFrozen(action.db, t.ReturnAddress, action.execaddr, ticket.MinerValue)
+	receipt1, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, ticket.MinerValue)
 	if err != nil {
 		tlog.Error("TicketMiner.ExecDepositFrozen user", "addr", t.ReturnAddress, "execaddr", action.execaddr)
 		return nil, err
 	}
 	//fund
-	receipt2, err := account.ExecDepositFrozen(action.db, types.FundKeyAddr, action.execaddr, types.CoinDevFund)
+	receipt2, err := action.coinsAccount.ExecDepositFrozen(types.FundKeyAddr, action.execaddr, types.CoinDevFund)
 	if err != nil {
 		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr)
 		return nil, err
@@ -324,7 +325,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 			t.MinerValue = 0
 		}
 		retValue := types.TicketPrice + t.MinerValue
-		receipt1, err := account.ExecActive(action.db, t.ReturnAddress, action.execaddr, retValue)
+		receipt1, err := action.coinsAccount.ExecActive(t.ReturnAddress, action.execaddr, retValue)
 		if err != nil {
 			tlog.Error("TicketClose.ExecActive user", "addr", t.ReturnAddress, "execaddr", action.execaddr, "value", retValue)
 			return nil, err
@@ -335,7 +336,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 		kv = append(kv, receipt1.KV...)
 		//如果ticket 已经挖矿成功了，那么要解冻发展基金部分币
 		if t.prevstatus == 2 {
-			receipt2, err := account.ExecActive(action.db, types.FundKeyAddr, action.execaddr, types.CoinDevFund)
+			receipt2, err := action.coinsAccount.ExecActive(types.FundKeyAddr, action.execaddr, types.CoinDevFund)
 			if err != nil {
 				tlog.Error("TicketClose.ExecActive fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr, "value", retValue)
 				return nil, err
