@@ -75,18 +75,19 @@ func RetrieveKey(address string) (key []byte) {
 }
 
 type RetrieveAction struct {
-	db        dbm.KVDB
-	txhash    []byte
-	fromaddr  string
-	blocktime int64
-	height    int64
-	execaddr  string
+	coinsAccount *account.AccountDB
+	db           dbm.KVDB
+	txhash       []byte
+	fromaddr     string
+	blocktime    int64
+	height       int64
+	execaddr     string
 }
 
-func NewRetrieveAcction(db dbm.KVDB, tx *types.Transaction, execaddr string, blocktime, height int64) *RetrieveAction {
+func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *RetrieveAction {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &RetrieveAction{db, hash, fromaddr, blocktime, height, execaddr}
+	return &RetrieveAction{r.GetCoinsAccount(), r.GetDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
 }
 
 //wait for valuable comment
@@ -203,10 +204,10 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 		return nil, types.ErrRetrievePeriodLimit
 	}
 
-	acc = account.LoadExecAccount(action.db, r.RetPara[index].DefaultAddress, action.execaddr)
+	acc = action.coinsAccount.LoadExecAccount(r.RetPara[index].DefaultAddress, action.execaddr)
 	rlog.Debug("RetrievePerform", "acc.Balance", acc.Balance)
 	if acc.Balance > 0 {
-		receipt, err = account.ExecTransfer(action.db, r.RetPara[index].DefaultAddress, r.BackupAddress, action.execaddr, acc.Balance)
+		receipt, err = action.coinsAccount.ExecTransfer(r.RetPara[index].DefaultAddress, r.BackupAddress, action.execaddr, acc.Balance)
 		if err != nil {
 			rlog.Debug("RetrievePerform", "ExecTransfer", err)
 			return nil, err
