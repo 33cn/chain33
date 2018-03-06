@@ -9,8 +9,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-type Grpc rpcServer
-
 func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
 	reply := g.cli.SendTx(in)
 	if reply.GetData().(*pb.Reply).IsOk {
@@ -320,7 +318,7 @@ func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) 
 	var reply types.Reply
 	reply.IsOk = true
 	reply.Msg = types.Encode(*result)
-	
+
 	return &reply, nil
 }
 
