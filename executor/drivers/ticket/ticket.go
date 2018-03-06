@@ -38,18 +38,18 @@ func newTicket() *Ticket {
 	return t
 }
 
-func (n *Ticket) GetName() string {
+func (t *Ticket) GetName() string {
 	return "ticket"
 }
 
-func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.TicketAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
 	}
 	clog.Info("exec ticket tx=", "tx=", action)
-	actiondb := NewTicketAction(n.GetDB(), tx, n.GetAddr(), n.GetBlockTime(), n.GetHeight())
+	actiondb := NewTicketAction(t.GetDB(), tx, t.GetAddr(), t.GetBlockTime(), t.GetHeight())
 	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if genesis.Count <= 0 {
@@ -78,8 +78,8 @@ func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 	return nil, types.ErrActionNotSupport
 }
 
-func (n *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := n.DriverBase.ExecLocal(tx, receipt, index)
+func (t *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := t.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (n *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, in
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := n.saveTicket(&ticketlog)
+			kv := t.saveTicket(&ticketlog)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTicketBind {
 			var ticketlog types.ReceiptTicketBind
@@ -103,15 +103,15 @@ func (n *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, in
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := n.saveTicketBind(&ticketlog)
+			kv := t.saveTicketBind(&ticketlog)
 			set.KV = append(set.KV, kv...)
 		}
 	}
 	return set, nil
 }
 
-func (n *Ticket) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := n.DriverBase.ExecDelLocal(tx, receipt, index)
+func (t *Ticket) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := t.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (n *Ticket) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := n.delTicket(&ticketlog)
+			kv := t.delTicket(&ticketlog)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTicketBind {
 			var ticketlog types.ReceiptTicketBind
@@ -135,14 +135,14 @@ func (n *Ticket) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := n.delTicketBind(&ticketlog)
+			kv := t.delTicketBind(&ticketlog)
 			set.KV = append(set.KV, kv...)
 		}
 	}
 	return set, nil
 }
 
-func (n *Ticket) saveTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValue) {
+func (t *Ticket) saveTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValue) {
 	//解除原来的绑定
 	if len(b.OldMinerAddress) > 0 {
 		kv := &types.KeyValue{
@@ -165,7 +165,7 @@ func (n *Ticket) saveTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyVal
 	return kvs
 }
 
-func (n *Ticket) delTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValue) {
+func (t *Ticket) delTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValue) {
 	//被取消了，刚好操作反
 	kv := &types.KeyValue{
 		Key:   calcBindMinerKey(b.NewMinerAddress, b.ReturnAddress),
@@ -189,7 +189,7 @@ func (n *Ticket) delTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValu
 	return kvs
 }
 
-func (n *Ticket) saveTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
+func (t *Ticket) saveTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
 	if ticketlog.PrevStatus > 0 {
 		kv := delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
 		kvs = append(kvs, kv)
@@ -198,7 +198,7 @@ func (n *Ticket) saveTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyVal
 	return kvs
 }
 
-func (n *Ticket) delTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
+func (t *Ticket) delTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
 	if ticketlog.PrevStatus > 0 {
 		kv := addticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
 		kvs = append(kvs, kv)
@@ -207,28 +207,28 @@ func (n *Ticket) delTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValu
 	return kvs
 }
 
-func (n *Ticket) Query(funcname string, params []byte) (types.Message, error) {
+func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 	if funcname == "TicketInfos" {
 		var info types.TicketInfos
 		err := types.Decode(params, &info)
 		if err != nil {
 			return nil, err
 		}
-		return TicketInfos(n.GetDB(), &info)
+		return TicketInfos(t.GetDB(), &info)
 	} else if funcname == "TicketList" {
 		var l types.TicketList
 		err := types.Decode(params, &l)
 		if err != nil {
 			return nil, err
 		}
-		return TicketList(n.GetQueryDB(), n.GetDB(), &l)
+		return TicketList(t.GetQueryDB(), t.GetDB(), &l)
 	} else if funcname == "MinerAddress" {
 		var reqaddr types.ReqString
 		err := types.Decode(params, &reqaddr)
 		if err != nil {
 			return nil, err
 		}
-		value := n.GetQueryDB().Get(calcBindReturnKey(reqaddr.Data))
+		value := t.GetQueryDB().Get(calcBindReturnKey(reqaddr.Data))
 		if value == nil {
 			return nil, types.ErrNotFound
 		}
@@ -240,7 +240,7 @@ func (n *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		key := calcBindMinerKeyPrefix(reqaddr.Data)
-		values := n.GetQueryDB().List(key, nil, 0, 1)
+		values := t.GetQueryDB().List(key, nil, 0, 1)
 		if len(values) == 0 {
 			return nil, types.ErrNotFound
 		}

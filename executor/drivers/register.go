@@ -11,10 +11,6 @@ import (
 
 var elog = log.New("module", "execs")
 
-func ExecAddress(name string) *account.Address {
-	return account.ExecAddress(name)
-}
-
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
 }
@@ -57,7 +53,11 @@ func RegisterAddress(name string) {
 	execAddress[ExecAddress(name).String()] = name
 }
 
-func IsExecAddress(addr string) bool {
+func IsDriverAddress(addr string) bool {
 	_, ok := execAddress[addr]
 	return ok
+}
+
+func ExecAddress(name string) *account.Address {
+	return account.ExecAddress(name)
 }
