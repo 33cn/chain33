@@ -15,6 +15,7 @@ import (
 	tlog "github.com/tendermint/tmlibs/log"
 	"bytes"
 	"os"
+	"time"
 )
 
 var tendermintlog = log.New("module", "tendermint")
@@ -134,6 +135,19 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 		client.InitBlock()
 	})
 
+	go func() {
+		for {
+			txs:=client.RequestTx()
+			if len(txs) != 0 {
+				txs = client.CheckTxDup(txs)
+				lastBlock := client.GetCurrentBlock()
+				if len(txs) != 0{
+					client.csState.NewTxsAvailable(lastBlock.Height + 1)
+				}
+			}
+			time.Sleep(1*time.Second)
+		}
+	}()
 	//event start
 	err := client.eventBus.Start()
 	if err != nil {
