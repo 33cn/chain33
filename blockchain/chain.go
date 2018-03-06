@@ -272,7 +272,7 @@ func (chain *BlockChain) poolRoutine() {
 		case _ = <-switchToConsensusTicker.C:
 			chain.NotifyConsensusTicket()
 
-		//定时检测本节点同步好之后通知共识模块开始挖矿
+		//定时检查系统时间，如果系统时间有问题，那么会有一个报警
 		case _ = <-checkClockDriftTicker.C:
 			checkClockDrift()
 		}
