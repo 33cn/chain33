@@ -41,10 +41,6 @@ type DriverBase struct {
 	child     Driver
 }
 
-func NewExecBase() *DriverBase {
-	return &DriverBase{}
-}
-
 func (n *DriverBase) SetEnv(height, blocktime int64) {
 	n.height = height
 	n.blocktime = blocktime
@@ -58,7 +54,7 @@ func (n *DriverBase) GetAddr() string {
 	return ExecAddress(n.child.GetName()).String()
 }
 
-func (n *DriverBase) ExecLocalCommon(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (n *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//保存：tx
 	hash, result := n.GetTx(tx, receipt, index)
@@ -119,7 +115,7 @@ func (n *DriverBase) GetTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 	return &txIndexInfo
 }
 
-func (n *DriverBase) ExecDelLocalCommon(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (n *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//del：tx
 	hash, _ := n.GetTx(tx, receipt, index)
@@ -141,7 +137,7 @@ func (n *DriverBase) ExecDelLocalCommon(tx *types.Transaction, receipt *types.Re
 	return &set, nil
 }
 
-func (n *DriverBase) ExecCommon(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (n *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	//检查ToAddr
 	if err := account.CheckAddress(tx.To); err != nil {
 		return nil, err
@@ -204,6 +200,14 @@ func (n *DriverBase) GetHeight() int64 {
 
 func (n *DriverBase) GetBlockTime() int64 {
 	return n.blocktime
+}
+
+func (n *DriverBase) GetName() string {
+	return "driver"
+}
+
+func (n *DriverBase) GetActionName(tx *types.Transaction) string {
+	return tx.ActionName()
 }
 
 // 通过addr前缀查找本地址参与的所有交易

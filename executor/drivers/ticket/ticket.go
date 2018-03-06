@@ -23,8 +23,9 @@ import (
 var clog = log.New("module", "execs.ticket")
 
 func init() {
-	drivers.Register("ticket", newTicket())
-	drivers.RegisterAddress("ticket")
+	t := newTicket()
+	drivers.Register(t.GetName(), t)
+	drivers.RegisterAddress(t.GetName())
 }
 
 type Ticket struct {
@@ -39,10 +40,6 @@ func newTicket() *Ticket {
 
 func (n *Ticket) GetName() string {
 	return "ticket"
-}
-
-func (n *Ticket) GetActionName(tx *types.Transaction) string {
-	return tx.ActionName()
 }
 
 func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -82,7 +79,7 @@ func (n *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 }
 
 func (n *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := n.ExecLocalCommon(tx, receipt, index)
+	set, err := n.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +111,7 @@ func (n *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, in
 }
 
 func (n *Ticket) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := n.ExecDelLocalCommon(tx, receipt, index)
+	set, err := n.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
