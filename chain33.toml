@@ -43,5 +43,5 @@ dbPath="datadir/mavltree"
 [wallet]
 minFee=1000000
 dbPath="datadir/wallet"
-
+signType="secp256k1"
 [exec]

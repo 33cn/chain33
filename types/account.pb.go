@@ -36,6 +36,7 @@ It has these top-level messages:
 	MempoolSize
 	ReplyBlockHeight
 	BlockBody
+	IsCaughtUp
 	Reply
 	ReqString
 	ReplyString
