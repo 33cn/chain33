@@ -314,7 +314,6 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 	return exec.ExecDelLocal(tx, r, index)
 }
 
-
 func LoadDriver(name string) (c drivers.Driver, err error) {
 	return drivers.LoadDriver(name)
 }

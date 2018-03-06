@@ -12,8 +12,9 @@ var clog = log.New("module", "execs.hashlock")
 const minLockTime = 60
 
 func init() {
-	drivers.Register("hashlock", newHashlock())
-	drivers.RegisterAddress("hashlock")
+	h := newHashlock()
+	drivers.Register(h.GetName(), h)
+	drivers.RegisterAddress(h.GetName())
 }
 
 type Hashlock struct {
@@ -26,7 +27,6 @@ func newHashlock() *Hashlock {
 	return h
 }
 
-//暂时不被调用
 func (h *Hashlock) GetName() string {
 	return "hashlock"
 }
@@ -81,16 +81,4 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 
 	//return error
 	return nil, types.ErrActionNotSupport
-}
-
-func (h *Hashlock) GetActionName(tx *types.Transaction) string {
-	return tx.ActionName()
-}
-
-func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return h.ExecLocalCommon(tx, receipt, index)
-}
-
-func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return h.ExecDelLocalCommon(tx, receipt, index)
 }

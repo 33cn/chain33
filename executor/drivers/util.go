@@ -15,4 +15,3 @@ func CalcTxAddrHashKey(addr string, heightindex string) []byte {
 func CalcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 	return []byte(fmt.Sprintf("TxAddrDirHash:%s:%d:%s", addr, flag, heightindex))
 }
-
