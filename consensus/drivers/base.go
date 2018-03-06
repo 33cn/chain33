@@ -303,9 +303,7 @@ func (client *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 
 func (client *BaseClient) SetCurrentBlock(b *types.Block) {
 	client.mulock.Lock()
-	if client.currentBlock == nil || client.currentBlock.Height <= b.Height {
-		client.currentBlock = b
-	}
+	client.currentBlock = b
 	client.mulock.Unlock()
 }
 
