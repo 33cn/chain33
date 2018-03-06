@@ -124,8 +124,10 @@ func main() {
 		network.SetQueue(q)
 	}
 	//jsonrpc, grpc, channel 三种模式
-	api := rpc.NewServer("jsonrpc", ":8801", q)
-	gapi := rpc.NewServer("grpc", ":8802", q)
+	gapi := rpc.NewGRpcServer(q)
+	go gapi.Listen(":8802")
+	api := rpc.NewJsonRpcServer(q)
+	go api.Listen(":8801")
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
