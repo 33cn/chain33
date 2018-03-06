@@ -1,4 +1,4 @@
-package execs
+package executor
 
 //store package store the world - state data
 import (
@@ -8,12 +8,12 @@ import (
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/coins"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/hashlock"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/none"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/retrieve"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/ticket"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -29,16 +29,16 @@ func DisableLog() {
 	elog.SetHandler(log.DiscardHandler())
 }
 
-type Execs struct {
+type Executor struct {
 	qclient queue.Client
 }
 
-func New() *Execs {
-	exec := &Execs{}
+func New() *Executor {
+	exec := &Executor{}
 	return exec
 }
 
-func (exec *Execs) SetQueue(q *queue.Queue) {
+func (exec *Executor) SetQueue(q *queue.Queue) {
 	exec.qclient = q.NewClient()
 	client := exec.qclient
 	client.Sub("execs")
@@ -60,14 +60,14 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 	}()
 }
 
-func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	execute := newExecutor(datas.StateHash, q, datas.Height, datas.BlockTime)
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
-		err := execute.CheckTx(tx, i)
+		err := execute.execCheckTx(tx, i)
 		if err != nil {
 			result.Errs = append(result.Errs, err.Error())
 		} else {
@@ -77,9 +77,9 @@ func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 	msg.Reply(q.NewClient().NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	execute := newExecutor(datas.StateHash, q, datas.Height, datas.BlockTime)
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
@@ -105,7 +105,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 		//处理交易手续费(先把手续费收了)
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
-		feelog, err := execute.ProcessFee(tx)
+		feelog, err := execute.processFee(tx)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
 			receipts = append(receipts, receipt)
@@ -132,14 +132,14 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 		&types.Receipts{receipts}))
 }
 
-func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := NewExecute(b.StateHash, q, b.Height, b.BlockTime)
+	execute := newExecutor(b.StateHash, q, b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		kv, err := execute.ExecLocal(tx, datas.Receipts[i], i)
+		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
 		}
@@ -159,14 +159,14 @@ func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 	msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := NewExecute(b.StateHash, q, b.Height, b.BlockTime)
+	execute := newExecutor(b.StateHash, q, b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		kv, err := execute.ExecDelLocal(tx, datas.Receipts[i], i)
+		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
 		}
@@ -187,7 +187,7 @@ func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 	msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func (exec *Execs) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
+func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 	if kvs == nil {
 		return nil
 	}
@@ -201,28 +201,28 @@ func (exec *Execs) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 	return nil
 }
 
-func (exec *Execs) Close() {
+func (exec *Executor) Close() {
 	elog.Info("exec module closed")
 }
 
 //执行器 -> db 环境
-type Execute struct {
+type executor struct {
 	stateDB   dbm.KVDB
 	localDB   dbm.KVDB
 	height    int64
 	blocktime int64
 }
 
-func NewExecute(stateHash []byte, q *queue.Queue, height, blocktime int64) *Execute {
-	return &Execute{
-		stateDB:   execdrivers.NewStateDB(q, stateHash),
-		localDB:   execdrivers.NewLocalDB(q),
+func newExecutor(stateHash []byte, q *queue.Queue, height, blocktime int64) *executor {
+	return &executor{
+		stateDB:   NewStateDB(q, stateHash),
+		localDB:   NewLocalDB(q),
 		height:    height,
 		blocktime: blocktime,
 	}
 }
 
-func (e *Execute) ProcessFee(tx *types.Transaction) (*types.Receipt, error) {
+func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	accFrom := account.LoadAccount(e.stateDB, from)
 	if accFrom.GetBalance()-tx.Fee >= 0 {
@@ -239,7 +239,7 @@ func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *ty
 	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
-func (e *Execute) checkTx(tx *types.Transaction, index int) error {
+func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) { //如果已经过期
 		return types.ErrTxExpire
 	}
@@ -249,7 +249,7 @@ func (e *Execute) checkTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
+func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//基本检查
 	err := e.checkTx(tx, index)
 	if err != nil {
@@ -263,9 +263,9 @@ func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
 		return types.ErrBalanceLessThanTenTimesFee
 	}
 	//checkInExec
-	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
-		exec, err = execdrivers.LoadExecute("none")
+		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
@@ -275,10 +275,10 @@ func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
 	return exec.CheckTx(tx, index)
 }
 
-func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
-		exec, err = execdrivers.LoadExecute("none")
+		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
@@ -288,10 +288,10 @@ func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	return exec.Exec(tx, index)
 }
 
-func (e *Execute) ExecLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
-		exec, err = execdrivers.LoadExecute("none")
+		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
@@ -301,10 +301,10 @@ func (e *Execute) ExecLocal(tx *types.Transaction, r *types.ReceiptData, index i
 	return exec.ExecLocal(tx, r, index)
 }
 
-func (e *Execute) ExecDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := execdrivers.LoadExecute(string(tx.Execer))
+func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
-		exec, err = execdrivers.LoadExecute("none")
+		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
@@ -312,4 +312,8 @@ func (e *Execute) ExecDelLocal(tx *types.Transaction, r *types.ReceiptData, inde
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecDelLocal(tx, r, index)
+}
+
+func LoadDriver(name string) (c drivers.Driver, err error) {
+	return drivers.LoadDriver(name)
 }

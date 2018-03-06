@@ -2,7 +2,7 @@ package hashlock
 
 import (
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
@@ -12,12 +12,13 @@ var clog = log.New("module", "execs.hashlock")
 const minLockTime = 60
 
 func init() {
-	execdrivers.Register("hashlock", newHashlock())
-	execdrivers.RegisterAddress("hashlock")
+	h := newHashlock()
+	drivers.Register(h.GetName(), h)
+	drivers.RegisterAddress(h.GetName())
 }
 
 type Hashlock struct {
-	execdrivers.ExecBase
+	drivers.DriverBase
 }
 
 func newHashlock() *Hashlock {
@@ -26,7 +27,6 @@ func newHashlock() *Hashlock {
 	return h
 }
 
-//暂时不被调用
 func (h *Hashlock) GetName() string {
 	return "hashlock"
 }
@@ -81,16 +81,4 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 
 	//return error
 	return nil, types.ErrActionNotSupport
-}
-
-func (h *Hashlock) GetActionName(tx *types.Transaction) string {
-	return tx.ActionName()
-}
-
-func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return h.ExecLocalCommon(tx, receipt, index)
-}
-
-func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return h.ExecDelLocalCommon(tx, receipt, index)
 }
