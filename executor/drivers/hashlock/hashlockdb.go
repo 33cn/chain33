@@ -58,18 +58,19 @@ func HashlockKey(id []byte) (key []byte) {
 }
 
 type HashlockAction struct {
-	db        dbm.KVDB
-	txhash    []byte
-	fromaddr  string
-	blocktime int64
-	height    int64
-	execaddr  string
+	coinsAccount *account.AccountDB
+	db           dbm.KVDB
+	txhash       []byte
+	fromaddr     string
+	blocktime    int64
+	height       int64
+	execaddr     string
 }
 
-func NewHashlockAction(db dbm.KVDB, tx *types.Transaction, execaddr string, blocktime, height int64) *HashlockAction {
+func NewHashlockAction(h *Hashlock, tx *types.Transaction, execaddr string) *HashlockAction {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &HashlockAction{db, hash, fromaddr, blocktime, height, execaddr}
+	return &HashlockAction{h.GetCoinsAccount(), h.GetDB(), hash, fromaddr, h.GetBlockTime(), h.GetHeight(), execaddr}
 }
 
 func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Receipt, error) {
@@ -86,7 +87,7 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 
 	h := NewHashlockDB(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
 	//冻结子账户资金
-	receipt, err := account.ExecFrozen(action.db, action.fromaddr, action.execaddr, hlock.Amount)
+	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, hlock.Amount)
 
 	if err != nil {
 		hlog.Error("Hashlocklock.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", hlock.Amount)
@@ -131,7 +132,7 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 
 	//different with typedef in C
 	h := &HashlockDB{*hash}
-	receipt, errR := account.ExecActive(action.db, h.ReturnAddress, action.execaddr, h.Amount)
+	receipt, errR := action.coinsAccount.ExecActive(h.ReturnAddress, action.execaddr, h.Amount)
 	if errR != nil {
 		hlog.Error("ExecActive error", "ReturnAddress", h.ReturnAddress, "execaddr", action.execaddr, "amount", h.Amount)
 		return nil, errR
@@ -176,7 +177,7 @@ func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Rec
 
 	//different with typedef in C
 	h := &HashlockDB{*hash}
-	receipt, errR := account.ExecTransferFrozen(action.db, h.ReturnAddress, h.ToAddress, action.execaddr, h.Amount)
+	receipt, errR := action.coinsAccount.ExecTransferFrozen(h.ReturnAddress, h.ToAddress, action.execaddr, h.Amount)
 	if errR != nil {
 		hlog.Error("ExecTransferFrozen error", "ReturnAddress", h.ReturnAddress, "ToAddress", h.ToAddress, "execaddr", action.execaddr, "amount", h.Amount)
 		return nil, errR
