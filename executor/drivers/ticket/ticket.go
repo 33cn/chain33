@@ -28,7 +28,7 @@ func init() {
 }
 
 type Ticket struct {
-	drivers.ExecBase
+	drivers.DriverBase
 }
 
 func newTicket() *Ticket {

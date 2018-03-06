@@ -62,12 +62,12 @@ func (exec *Execs) SetQueue(q *queue.Queue) {
 
 func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	execute := newExecutor(datas.StateHash, q, datas.Height, datas.BlockTime)
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
-		err := execute.CheckTx(tx, i)
+		err := execute.execCheckTx(tx, i)
 		if err != nil {
 			result.Errs = append(result.Errs, err.Error())
 		} else {
@@ -79,7 +79,7 @@ func (exec *Execs) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 
 func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := NewExecute(datas.StateHash, q, datas.Height, datas.BlockTime)
+	execute := newExecutor(datas.StateHash, q, datas.Height, datas.BlockTime)
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
@@ -105,7 +105,7 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 		//处理交易手续费(先把手续费收了)
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
-		feelog, err := execute.ProcessFee(tx)
+		feelog, err := execute.processFee(tx)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
 			receipts = append(receipts, receipt)
@@ -135,11 +135,11 @@ func (exec *Execs) procExecTxList(msg queue.Message, q *queue.Queue) {
 func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := NewExecute(b.StateHash, q, b.Height, b.BlockTime)
+	execute := newExecutor(b.StateHash, q, b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		kv, err := execute.ExecLocal(tx, datas.Receipts[i], i)
+		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
 		}
@@ -162,11 +162,11 @@ func (exec *Execs) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 func (exec *Execs) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := NewExecute(b.StateHash, q, b.Height, b.BlockTime)
+	execute := newExecutor(b.StateHash, q, b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		kv, err := execute.ExecDelLocal(tx, datas.Receipts[i], i)
+		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
 		}
@@ -206,15 +206,15 @@ func (exec *Execs) Close() {
 }
 
 //执行器 -> db 环境
-type Execute struct {
+type executor struct {
 	stateDB   dbm.KVDB
 	localDB   dbm.KVDB
 	height    int64
 	blocktime int64
 }
 
-func NewExecute(stateHash []byte, q *queue.Queue, height, blocktime int64) *Execute {
-	return &Execute{
+func newExecutor(stateHash []byte, q *queue.Queue, height, blocktime int64) *executor {
+	return &executor{
 		stateDB:   drivers.NewStateDB(q, stateHash),
 		localDB:   drivers.NewLocalDB(q),
 		height:    height,
@@ -222,7 +222,7 @@ func NewExecute(stateHash []byte, q *queue.Queue, height, blocktime int64) *Exec
 	}
 }
 
-func (e *Execute) ProcessFee(tx *types.Transaction) (*types.Receipt, error) {
+func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	accFrom := account.LoadAccount(e.stateDB, from)
 	if accFrom.GetBalance()-tx.Fee >= 0 {
@@ -239,7 +239,7 @@ func cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptBalance) *ty
 	return &types.Receipt{types.ExecPack, account.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
-func (e *Execute) checkTx(tx *types.Transaction, index int) error {
+func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) { //如果已经过期
 		return types.ErrTxExpire
 	}
@@ -249,7 +249,7 @@ func (e *Execute) checkTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
+func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//基本检查
 	err := e.checkTx(tx, index)
 	if err != nil {
@@ -275,7 +275,7 @@ func (e *Execute) CheckTx(tx *types.Transaction, index int) error {
 	return exec.CheckTx(tx, index)
 }
 
-func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec, err := drivers.LoadExecute(string(tx.Execer))
 	if err != nil {
 		exec, err = drivers.LoadExecute("none")
@@ -288,7 +288,7 @@ func (e *Execute) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	return exec.Exec(tx, index)
 }
 
-func (e *Execute) ExecLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	exec, err := drivers.LoadExecute(string(tx.Execer))
 	if err != nil {
 		exec, err = drivers.LoadExecute("none")
@@ -301,7 +301,7 @@ func (e *Execute) ExecLocal(tx *types.Transaction, r *types.ReceiptData, index i
 	return exec.ExecLocal(tx, r, index)
 }
 
-func (e *Execute) ExecDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	exec, err := drivers.LoadExecute(string(tx.Execer))
 	if err != nil {
 		exec, err = drivers.LoadExecute("none")

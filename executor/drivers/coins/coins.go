@@ -25,7 +25,7 @@ func init() {
 }
 
 type Coins struct {
-	drivers.ExecBase
+	drivers.DriverBase
 }
 
 func newCoins() *Coins {

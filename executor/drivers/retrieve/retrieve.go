@@ -19,7 +19,7 @@ func init() {
 }
 
 type Retrieve struct {
-	drivers.ExecBase
+	drivers.DriverBase
 }
 
 func newRetrieve() *Retrieve {
