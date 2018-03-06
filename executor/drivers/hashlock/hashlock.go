@@ -42,8 +42,7 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	}
 
 	clog.Debug("exec hashlock tx=", "tx=", action)
-
-	actiondb := NewHashlockAction(h.GetDB(), tx, h.GetAddr(), h.GetBlockTime(), h.GetHeight())
+	actiondb := NewHashlockAction(h, tx, h.GetAddr())
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		clog.Debug("hashlocklock action")
 		hlock := action.GetHlock()

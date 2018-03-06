@@ -7,7 +7,6 @@ package drivers
 import (
 	"errors"
 	"fmt"
-	"sync"
 
 	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
@@ -19,6 +18,7 @@ var blog = log.New("module", "execs.base")
 
 type Driver interface {
 	SetDB(dbm.KVDB)
+	GetCoinsAccount() *account.AccountDB
 	SetLocalDB(dbm.KVDB)
 	SetQueryDB(dbm.DB)
 	GetName() string
@@ -32,13 +32,13 @@ type Driver interface {
 }
 
 type DriverBase struct {
-	db        dbm.KVDB
-	localdb   dbm.KVDB
-	querydb   dbm.DB
-	height    int64
-	blocktime int64
-	mu        sync.Mutex
-	child     Driver
+	db           dbm.KVDB
+	localdb      dbm.KVDB
+	querydb      dbm.DB
+	height       int64
+	blocktime    int64
+	child        Driver
+	coinsaccount *account.AccountDB
 }
 
 func (d *DriverBase) SetEnv(height, blocktime int64) {
@@ -159,38 +159,38 @@ func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error
 }
 
 func (d *DriverBase) SetDB(db dbm.KVDB) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	if d.coinsaccount == nil {
+		d.coinsaccount = account.NewCoinsAccount()
+	}
 	d.db = db
+	d.coinsaccount.SetDB(db)
+}
+
+func (d *DriverBase) GetCoinsAccount() *account.AccountDB {
+	if d.coinsaccount == nil {
+		d.coinsaccount = account.NewCoinsAccount()
+		d.coinsaccount.SetDB(d.db)
+	}
+	return d.coinsaccount
 }
 
 func (d *DriverBase) GetDB() dbm.KVDB {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	return d.db
 }
 
 func (d *DriverBase) SetLocalDB(db dbm.KVDB) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	d.localdb = db
 }
 
 func (d *DriverBase) GetLocalDB() dbm.KVDB {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	return d.localdb
 }
 
 func (d *DriverBase) SetQueryDB(db dbm.DB) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	d.querydb = db
 }
 
 func (d *DriverBase) GetQueryDB() dbm.DB {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	return d.querydb
 }
 

@@ -38,7 +38,7 @@ func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 
 	rlog.Debug("Exec retrieve tx=", "tx=", action)
 
-	actiondb := NewRetrieveAcction(r.GetDB(), tx, r.GetAddr(), r.GetBlockTime(), r.GetHeight())
+	actiondb := NewRetrieveAcction(r, tx)
 	if action.Ty == types.RetrieveBackup && action.GetBackup() != nil {
 		backupRet := action.GetBackup()
 		if backupRet.DelayPeriod < minPeriod {
