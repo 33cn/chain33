@@ -102,7 +102,6 @@ func (client *RaftClient) SetQueue(q *queue.Queue) {
 		//client.InitBlock()
 	})
 	go client.EventLoop()
-	client.readCommits(client.commitC, client.errorC)
 	go client.readCommits(client.commitC, client.errorC)
 	go client.pollingTask(q)
 }
@@ -120,7 +119,6 @@ func (client *RaftClient) InitBlock() {
 		newblock.BlockTime = client.Cfg.GenesisBlockTime
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
-		//tx := client.child.CreateGenesisTx()
 		tx := client.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
@@ -199,15 +197,16 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 		select {
 		case data := <-commitC:
 			if data == nil {
-				snapshot, err := client.snapshotter.Load()
-				if err == snap.ErrNoSnapshot {
-					return
-				}
-
-				log.Info("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
-				if err := client.recoverFromSnapshot(snapshot.Data); err != nil {
-					panic(err)
-				}
+				//此处不需要从snapshot中加载，当前内存中block信息可从blockchain模块获取
+				//snapshot, err := client.snapshotter.Load()
+				//if err == snap.ErrNoSnapshot {
+				//	return
+				//}
+				//
+				//log.Info("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
+				//if err := client.recoverFromSnapshot(snapshot.Data); err != nil {
+				//	panic(err)
+				//}
 				continue
 			}
 			rlog.Info("===============Get block from commit channel===========")
