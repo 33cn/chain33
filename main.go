@@ -21,7 +21,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/common/limits"
 	"code.aliyun.com/chain33/chain33/consensus"
-	"code.aliyun.com/chain33/chain33/execs"
+	"code.aliyun.com/chain33/chain33/executor"
 	"code.aliyun.com/chain33/chain33/mempool"
 	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -106,7 +106,7 @@ func main() {
 	mem.SetQueue(q)
 
 	log.Info("loading execs module")
-	exec := execs.New()
+	exec := executor.New()
 	exec.SetQueue(q)
 
 	log.Info("loading store module")
@@ -124,11 +124,8 @@ func main() {
 		network.SetQueue(q)
 	}
 	//jsonrpc, grpc, channel 三种模式
-	api := rpc.NewJsonRpcServer(q)
-	go api.Listen(":8801")
-
-	gapi := rpc.NewGRpcServer(q)
-	go gapi.Listen(":8802")
+	api := rpc.NewServer("jsonrpc", ":8801", q)
+	gapi := rpc.NewServer("grpc", ":8802", q)
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
