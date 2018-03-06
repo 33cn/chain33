@@ -244,6 +244,9 @@ func (chain *BlockChain) poolRoutine() {
 
 	switchToConsensusTicker := time.NewTicker(60 * time.Second)
 
+	//5分钟检测一次系统时间，不同步提示告警
+	checkClockDriftTicker := time.NewTicker(300 * time.Second)
+
 	for {
 		select {
 		case <-chain.quit:
@@ -268,6 +271,10 @@ func (chain *BlockChain) poolRoutine() {
 			//定时检测本节点同步好之后通知共识模块开始挖矿
 		case _ = <-switchToConsensusTicker.C:
 			chain.NotifyConsensusTicket()
+
+		//定时检测本节点同步好之后通知共识模块开始挖矿
+		case _ = <-checkClockDriftTicker.C:
+			checkClockDrift()
 		}
 	}
 }
@@ -687,12 +694,17 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err e
 }
 
 func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
-	blockhight := chain.GetBlockHeight()
-	blockdetail, err := chain.GetBlock(blockhight)
-	if err != nil {
-		return nil, err
+	var block *types.Block
+	block = chain.blockStore.LastBlock()
+	if block == nil {
+		blockhight := chain.GetBlockHeight()
+		blockdetail, err := chain.GetBlock(blockhight)
+		if err != nil {
+			return nil, err
+		}
+		block = blockdetail.Block
 	}
-	return blockdetail.Block, nil
+	return block, nil
 }
 
 func (chain *BlockChain) ProcGetBlockByHashMsg(hash []byte) (respblock *types.BlockDetail, err error) {
