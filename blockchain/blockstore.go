@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 	"sync/atomic"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -17,6 +18,7 @@ import (
 var (
 	blockLastHeight = []byte("blockLastHeight")
 	storeLog        = chainlog.New("submodule", "store")
+	lastheaderlock  sync.Mutex
 )
 
 //存储block hash对应的blockbody信息
@@ -45,18 +47,23 @@ func calcHeightToHashKey(height int64) []byte {
 }
 
 type BlockStore struct {
-	db     dbm.DB
-	client queue.Client
-	height int64
+	db         dbm.DB
+	client     queue.Client
+	height     int64
+	lastHeader *types.Header
 }
 
 func NewBlockStore(db dbm.DB, q *queue.Queue) *BlockStore {
 	height, _ := LoadBlockStoreHeight(db)
-	return &BlockStore{
+	blockStore := &BlockStore{
 		height: height,
 		db:     db,
 		client: q.NewClient(),
 	}
+
+	lastheader, _ := blockStore.GetBlockHeaderByHeight(height)
+	blockStore.lastHeader = lastheader
+	return blockStore
 }
 
 // 返回BlockStore保存的当前block高度
@@ -69,6 +76,27 @@ func (bs *BlockStore) UpdateHeight() {
 	height, _ := LoadBlockStoreHeight(bs.db)
 	atomic.StoreInt64(&bs.height, height)
 	storeLog.Info("UpdateHeight", "curblockheight", height)
+}
+
+// 返回BlockStore保存的当前block高度
+func (bs *BlockStore) LastHeader() *types.Header {
+	lastheaderlock.Lock()
+	defer lastheaderlock.Unlock()
+	return bs.lastHeader
+}
+
+// 更新db中的block高度到BlockStore.Height
+func (bs *BlockStore) UpdateLastHeder(hash []byte) {
+	header, err := bs.GetBlockHerderByHash(hash)
+	if err != nil {
+		return
+	}
+	lastheaderlock.Lock()
+	defer lastheaderlock.Unlock()
+	if header != nil {
+		bs.lastHeader = header
+	}
+	storeLog.Debug("UpdateLastHeder", "LastHederheight", header.Height, "LastHederhash", common.ToHex(header.Hash))
 }
 
 func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
@@ -175,6 +203,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 		storeLog.Error("SaveBlock Marshal blockheader", "height", height, "hash", common.ToHex(hash), "error", err)
 		return err
 	}
+
 	storeBatch.Set(calcHashToBlockHeaderKey(hash), header)
 
 	//更新最新的block 高度

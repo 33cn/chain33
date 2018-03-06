@@ -298,7 +298,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	if err != nil {
 		return nil, err
 	}
-	tx.Sign(types.SECP256K1, priv)
+	tx.Sign(int32(SignType), priv)
 	reply, err := wallet.sendTx(tx)
 	if err != nil {
 		return nil, err
@@ -383,7 +383,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	}
 	//初始化随机数d
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
-	tx.Sign(types.SECP256K1, priv)
+	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块
 	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)

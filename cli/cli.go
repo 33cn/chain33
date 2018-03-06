@@ -1544,40 +1544,37 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 			logIns = l.Log
 		case 2:
 			lTy = "LogFee"
-			//			var logTmp types.ReceiptBalance
-			//			err = types.Decode(lLog, &logTmp)
-			//			if err != nil {
-			//				return nil, err
-			//			}
-			//			logIns = logTmp
-			logIns = l.Log
+			var logTmp types.ReceiptBalance
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case 3:
 			lTy = "LogTransfer"
-			//			var logTmp1 types.ReceiptBalance
-			//			err = types.Decode(lLog, &logTmp1)
-			//			if err != nil {
-			//				var logTmp2 types.ReceiptExecAccount
-			//				err = types.Decode(lLog, &logTmp2)
-			//				if err != nil {
-			//					return nil, err
-			//				}
-			//				logIns = logTmp2
-			//			} else {
-			//				logIns = logTmp1
-			//			}
-			logIns = l.Log
+			var logTmp1 types.ReceiptBalance
+			err = types.Decode(lLog, &logTmp1)
+			if err != nil {
+				var logTmp2 types.ReceiptExecAccount
+				err = types.Decode(lLog, &logTmp2)
+				if err != nil {
+					return nil, err
+				}
+				logIns = logTmp2
+			} else {
+				logIns = logTmp1
+			}
 		case 4:
 			lTy = "LogGenesis"
 			logIns = nil
 		case 5:
 			lTy = "LogDeposit"
-			//			var logTmp types.ReceiptBalance
-			//			err = types.Decode(lLog, &logTmp)
-			//			if err != nil {
-			//				return nil, err
-			//			}
-			//			logIns = logTmp
-			logIns = l.Log
+			var logTmp types.ReceiptBalance
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case 11:
 			lTy = "LogNewTicket"
 			var logTmp types.ReceiptTicket
@@ -1613,7 +1610,6 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 		default:
 			return nil, errors.New("wrong log type")
 		}
-		//	return &ReceiptLog{Ty: lTy, Log: logIns}, nil
 		rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: logIns})
 	}
 	return rd, nil
