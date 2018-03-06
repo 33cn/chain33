@@ -13,6 +13,7 @@ EventTransfer -> 转移资产
 
 import (
 	"code.aliyun.com/chain33/chain33/account"
+	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -27,16 +28,24 @@ func init() {
 
 type Coins struct {
 	drivers.DriverBase
+	coinsaccount *account.AccountDB
 }
 
 func newCoins() *Coins {
 	c := &Coins{}
 	c.SetChild(c)
+	c.coinsaccount = account.NewCoinsAccount()
 	return c
 }
 
 func (c *Coins) GetName() string {
 	return "coins"
+}
+
+func (c *Coins) SetDB(db dbm.KVDB) {
+	c.DriverBase.SetDB(db)
+	//设置coinsaccount 的数据库，每次SetDB 都会重新设置一次
+	c.coinsaccount.SetDB(c.DriverBase.GetDB())
 }
 
 func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -54,24 +63,24 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
 		if drivers.IsDriverAddress(tx.To) {
-			return account.TransferToExec(c.GetDB(), from, tx.To, transfer.Amount)
+			return c.coinsaccount.TransferToExec(from, tx.To, transfer.Amount)
 		}
-		return account.Transfer(c.GetDB(), from, tx.To, transfer.Amount)
+		return c.coinsaccount.Transfer(from, tx.To, transfer.Amount)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
 		if drivers.IsDriverAddress(tx.To) {
-			return account.TransferWithdraw(c.GetDB(), from, tx.To, withdraw.Amount)
+			return c.coinsaccount.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if c.GetHeight() == 0 {
 			if drivers.IsDriverAddress(tx.To) {
-				return account.GenesisInitExec(c.GetDB(), genesis.ReturnAddress, genesis.Amount, tx.To)
+				return c.coinsaccount.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
-			return account.GenesisInit(c.GetDB(), tx.To, genesis.Amount)
+			return c.coinsaccount.GenesisInit(tx.To, genesis.Amount)
 		} else {
 			return nil, types.ErrReRunGenesis
 		}
