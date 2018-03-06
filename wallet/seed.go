@@ -109,15 +109,8 @@ func HasSeed(db dbm.DB) (bool, error) {
 //通过seed生成子私钥十六进制字符串
 func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	var backupindex uint32
-
-	pkx := btc.MasterKey([]byte(seed), false)
-	masterprivkey := pkx.String() //主私钥字符串
-	xpubkey := pkx.Pub().String() //主公钥字符串
-	//seedlog.Info("GetPrivkeyBySeed", "seed", seed, "masterprivkey", masterprivkey, "xpubkey", xpubkey)
-
-	//hexmpub := hex.EncodeToString(pkx.Pub().Key)
-	//hexmpriv := hex.EncodeToString(pkx.Key)
-	//seedlog.Info("GetPrivkeyBySeed", "seed", seed, "hexmpriv", hexmpriv, "hexmpub", hexmpub)
+	var Hexsubprivkey string
+	var err error
 
 	//通过主私钥随机生成child私钥十六进制字符串
 	backuppubkeyindex := db.Get([]byte(BACKUPKEYINDEX))
@@ -129,26 +122,39 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 		}
 	}
 	index := backupindex + 1
-	//生成子私钥和子公钥字符串，并校验是否相同
-	subprivkey := btc.StringChild(masterprivkey, index)
-	subpubkey := btc.StringChild(xpubkey, index)
-	//seedlog.Info("GetPrivkeyBySeed", "subprivkey", subprivkey, "subpubkey", subpubkey)
 
-	//通过子私钥字符串生成对应的hex字符串
-	wallet, _ := btc.StringWallet(subprivkey)
-	rec := btc.NewPrivateAddr(wallet.Key, 0x80, true)
-	Hexsubprivkey := common.ToHex(rec.Key[1:])
+	//secp256k1
+	if SignType == 1 {
+		pkx := btc.MasterKey([]byte(seed), false)
+		masterprivkey := pkx.String() //主私钥字符串
+		xpubkey := pkx.Pub().String() //主公钥字符串
 
-	//对生成的子公钥做交易
-	creatpubkey := wallet.Pub().String()
-	if subpubkey != creatpubkey {
-		seedlog.Error("GetPrivkeyBySeed subpubkey != creatpubkeybypriv")
-		return "", types.ErrSubPubKeyVerifyFail
+		//生成子私钥和子公钥字符串，并校验是否相同
+		subprivkey := btc.StringChild(masterprivkey, index)
+		subpubkey := btc.StringChild(xpubkey, index)
+		//seedlog.Info("GetPrivkeyBySeed", "subprivkey", subprivkey, "subpubkey", subpubkey)
+
+		//通过子私钥字符串生成对应的hex字符串
+		wallet, _ := btc.StringWallet(subprivkey)
+		rec := btc.NewPrivateAddr(wallet.Key, 0x80, true)
+		Hexsubprivkey = common.ToHex(rec.Key[1:])
+
+		//对生成的子公钥做校验
+		creatpubkey := wallet.Pub().String()
+		if subpubkey != creatpubkey {
+			seedlog.Error("GetPrivkeyBySeed subpubkey != creatpubkeybypriv")
+			return "", types.ErrSubPubKeyVerifyFail
+		}
+	} else if SignType == 2 { //ed25519
+		return "", types.ErrNotSupport
+	} else if SignType == 3 { //sm2
+		return "", types.ErrNotSupport
+	} else {
+		return "", types.ErrNotSupport
 	}
-
 	// back up index in db
 	var pubkeyindex []byte
-	pubkeyindex, err := json.Marshal(index)
+	pubkeyindex, err = json.Marshal(index)
 	if err != nil {
 		seedlog.Error("GetPrivkeyBySeed", "Marshal err ", err)
 		return "", types.ErrMarshal
@@ -170,7 +176,7 @@ func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 		return "", err
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		seedlog.Error("GetAddrByPrivkey", "err", err)
 		return "", err
