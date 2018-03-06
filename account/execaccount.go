@@ -2,7 +2,6 @@ package account
 
 import (
 	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -141,7 +140,7 @@ func (acc *AccountDB) ExecActive(addr, execaddr string, amount int64) (*types.Re
 	return acc.execReceipt(types.TyLogExecActive, acc1, receiptBalance), nil
 }
 
-func (acc *AccountDB) ExecTransfer(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *AccountDB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Receipt, error) {
 	if from == to {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -169,7 +168,7 @@ func (acc *AccountDB) ExecTransfer(db dbm.KVDB, from, to, execaddr string, amoun
 }
 
 //从自己冻结的钱里面扣除，转移到别人的活动钱包里面去
-func (acc *AccountDB) ExecTransferFrozen(db dbm.KVDB, from, to, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *AccountDB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*types.Receipt, error) {
 	if from == to {
 		return nil, types.ErrSendSameToRecv
 	}

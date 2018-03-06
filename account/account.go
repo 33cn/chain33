@@ -11,6 +11,8 @@ package account
 //8. gen a private key -> private key to address (bitcoin likes)
 
 import (
+	"fmt"
+
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
@@ -26,10 +28,14 @@ type AccountDB struct {
 }
 
 func NewCoinsAccount() *AccountDB {
-	return NewAccountDB("mavl-coins-")
+	return newAccountDB("mavl-coins-bty-")
 }
 
-func NewAccountDB(prefix string) *AccountDB {
+func NewTokenAccount(symbol string) *AccountDB {
+	return newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+}
+
+func newAccountDB(prefix string) *AccountDB {
 	acc := &AccountDB{}
 	acc.accountKeyPerfix = []byte(prefix)
 	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
