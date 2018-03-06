@@ -3,7 +3,6 @@ package hashlock
 import (
 	"context"
 	crand "crypto/rand"
-	//	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
