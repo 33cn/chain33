@@ -14,7 +14,7 @@ message Account {
 	string addr = 4;
 }
 
-message ReceiptExecAccount {
+message ReceiptExecAccountTransfer {
 	string execAddr = 1;
 	Account prev = 2;
 	Account current = 3;
@@ -25,8 +25,7 @@ message ReqBalance {
 	string execer = 2;
 }
 
-message ReceiptBalance {
-	int64 prev = 1;
-	int64 current = 2;
-	int64 delt = 3;
+message ReceiptAccountTransfer {
+	Account prev = 1;
+	Account current = 2;
 }
