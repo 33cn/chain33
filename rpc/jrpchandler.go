@@ -367,10 +367,8 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 		for _, tx := range reply.TxDetails {
 			var recp ReceiptData
 			logs := tx.GetReceipt().GetLogs()
-
+			recp.Ty = tx.GetReceipt().GetTy()
 			for _, lg := range logs {
-				recp.Ty = lg.GetTy()
-
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
@@ -389,7 +387,6 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				Txhash:     common.ToHex(tx.GetTxhash()),
 				ActionName: tx.GetActionName(),
 			})
-
 		}
 		*result = &txdetails
 	}
