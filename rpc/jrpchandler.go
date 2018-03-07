@@ -4,17 +4,14 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-type Chain33 struct {
-	jserver *jsonrpcServer
-	cli     IRClient
-}
+func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
 
-func (req Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
-	reply, err := req.cli.CreateRawTransaction(in)
+	reply, err := c.cli.CreateRawTransaction(in)
 	if err != nil {
 		return err
 	}
@@ -24,7 +21,7 @@ func (req Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{})
 
 }
 
-func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
+func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	var stx types.SignedTx
 	var err error
 
@@ -42,7 +39,7 @@ func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 		return err
 	}
 	stx.Ty = in.Ty
-	reply := req.cli.SendRawTransaction(&stx)
+	reply := c.cli.SendRawTransaction(&stx)
 	if reply.GetData().(*types.Reply).IsOk {
 		*result = "0x" + hex.EncodeToString(reply.GetData().(*types.Reply).Msg)
 		return nil
@@ -52,7 +49,7 @@ func (req Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	}
 }
 
-func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
+func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
@@ -60,7 +57,7 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	}
 	types.Decode(data, &parm)
 	log.Debug("SendTransaction", "parm", parm)
-	reply := req.cli.SendTx(&parm)
+	reply := c.cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
 		*result = string(reply.GetData().(*types.Reply).Msg)
 		return nil
@@ -69,14 +66,15 @@ func (req Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	}
 
 }
-func (req Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
+
+func (c *Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
 	if err != nil {
 		return err
 	}
 	data.Hash = hash
-	reply, err := req.cli.QueryTx(data.Hash)
+	reply, err := c.cli.QueryTx(data.Hash)
 	if err != nil {
 		return err
 	}
@@ -84,7 +82,8 @@ func (req Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
 	return nil
 
 }
-func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
+
+func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
 	if err != nil {
@@ -92,7 +91,7 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	}
 
 	data.Hash = hash
-	reply, err := req.cli.QueryTx(data.Hash)
+	reply, err := c.cli.QueryTx(data.Hash)
 	if err != nil {
 		return err
 	}
@@ -100,16 +99,11 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	{ //重新格式化数据
 
 		var transDetail TransactionDetail
-		transDetail.Tx = &Transaction{
-			Execer:  string(reply.GetTx().GetExecer()),
-			Payload: common.ToHex(reply.GetTx().GetPayload()),
-			Fee:     reply.GetTx().GetFee(),
-			Expire:  reply.GetTx().GetExpire(),
-			Nonce:   reply.GetTx().GetNonce(),
-			To:      reply.GetTx().GetTo(),
-			Signature: &Signature{Ty: reply.GetTx().GetSignature().GetTy(),
-				Pubkey:    common.ToHex(reply.GetTx().GetSignature().GetPubkey()),
-				Signature: common.ToHex(reply.GetTx().GetSignature().GetSignature())}}
+		transDetail.Tx, err = DecodeTx(*(reply.GetTx()))
+		if err != nil {
+			return err
+		}
+
 		transDetail.Receipt = &ReceiptData{Ty: reply.GetReceipt().GetTy()}
 		logs := reply.GetReceipt().GetLogs()
 		for _, log := range logs {
@@ -134,12 +128,12 @@ func (req Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 
 }
 
-func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
+func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 	var data types.ReqBlocks
 	data.End = in.End
 	data.Start = in.Start
 	data.Isdetail = in.Isdetail
-	reply, err := req.cli.GetBlocks(data.Start, data.End, data.Isdetail)
+	reply, err := c.cli.GetBlocks(data.Start, data.End, data.Isdetail)
 	if err != nil {
 		return err
 	}
@@ -158,18 +152,11 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
 			txs := item.Block.GetTxs()
 			for _, tx := range txs {
-				block.Txs = append(block.Txs,
-					&Transaction{
-						Execer:  string(tx.GetExecer()),
-						Payload: common.ToHex(tx.GetPayload()),
-						Fee:     tx.GetFee(),
-						Expire:  tx.GetExpire(),
-						Nonce:   tx.GetNonce(),
-						To:      tx.GetTo(),
-						Signature: &Signature{Ty: tx.GetSignature().GetTy(),
-							Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-							Signature: common.ToHex(tx.GetSignature().GetSignature())}})
-
+				tran, err := DecodeTx(*tx)
+				if err != nil {
+					continue
+				}
+				block.Txs = append(block.Txs, tran)
 			}
 			bdtl.Block = &block
 
@@ -192,9 +179,9 @@ func (req Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 
 }
 
-func (req Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
+func (c *Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 
-	reply, err := req.cli.GetLastHeader()
+	reply, err := c.cli.GetLastHeader()
 	if err != nil {
 		return err
 	}
@@ -216,9 +203,9 @@ func (req Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 }
 
 //GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
-func (req Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
+func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 
-	reply, err := req.cli.GetTxByAddr(&in)
+	reply, err := c.cli.GetTxByAddr(&in)
 	if err != nil {
 		return err
 	}
@@ -242,7 +229,7 @@ GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
 	GetAccounts() (*types.WalletAccounts, error)
 */
 
-func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
+func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	log.Warn("GetTxByHashes", "hashes", in)
 	var parm types.ReqHashes
 	parm.Hashes = make([][]byte, 0)
@@ -255,7 +242,7 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		parm.Hashes = append(parm.Hashes, hb)
 
 	}
-	reply, err := req.cli.GetTxByHashes(&parm)
+	reply, err := c.cli.GetTxByHashes(&parm)
 	if err != nil {
 		return err
 	}
@@ -276,20 +263,14 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
 			}
+			tran, err := DecodeTx(*(tx.GetTx()))
+			if err != nil {
+				continue
+			}
 
 			txdetails.Txs = append(txdetails.Txs,
 				&TransactionDetail{
-					Tx: &Transaction{
-						Execer:  string(tx.GetTx().GetExecer()),
-						Payload: common.ToHex(tx.GetTx().GetPayload()),
-						Fee:     tx.GetTx().GetFee(),
-						Expire:  tx.GetTx().GetExpire(),
-						Nonce:   tx.GetTx().GetNonce(),
-						To:      tx.GetTx().GetTo(),
-						Signature: &Signature{Ty: tx.GetTx().GetSignature().GetTy(),
-							Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
-							Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature())},
-					},
+					Tx:         tran,
 					Height:     tx.GetHeight(),
 					Index:      tx.GetIndex(),
 					Blocktime:  tx.GetBlocktime(),
@@ -307,9 +288,9 @@ func (req Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
+func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 
-	reply, err := req.cli.GetMempool()
+	reply, err := c.cli.GetMempool()
 	if err != nil {
 		return err
 	}
@@ -317,17 +298,18 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 		var txlist ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
-			txlist.Txs = append(txlist.Txs,
-				&Transaction{
-					Execer:  string(tx.GetExecer()),
-					Payload: common.ToHex(tx.GetPayload()),
-					Fee:     tx.GetFee(),
-					Expire:  tx.GetExpire(),
-					Nonce:   tx.GetNonce(),
-					To:      tx.GetTo(),
-					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
-						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+			amount, err := tx.Amount()
+			if err != nil {
+				amount = 0
+			}
+			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+			tran, err := DecodeTx(*tx)
+			if err != nil {
+				continue
+			}
+			tran.Amount = amount
+			tran.From = from
+			txlist.Txs = append(txlist.Txs, tran)
 		}
 		*result = &txlist
 	}
@@ -335,9 +317,9 @@ func (req Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
+func (c *Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
 
-	reply, err := req.cli.GetAccounts()
+	reply, err := c.cli.GetAccounts()
 	if err != nil {
 		return err
 	}
@@ -359,8 +341,8 @@ func (req Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
 
 */
 
-func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error {
-	reply, err := req.cli.NewAccount(&in)
+func (c *Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error {
+	reply, err := c.cli.NewAccount(&in)
 	if err != nil {
 		return err
 	}
@@ -369,12 +351,12 @@ func (req Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error
 	return nil
 }
 
-func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}) error {
+func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}) error {
 	var parm types.ReqWalletTransactionList
 	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
-	reply, err := req.cli.WalletTxList(&parm)
+	reply, err := c.cli.WalletTxList(&parm)
 	if err != nil {
 		return err
 	}
@@ -385,27 +367,17 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 		for _, tx := range reply.TxDetails {
 			var recp ReceiptData
 			logs := tx.GetReceipt().GetLogs()
-
+			recp.Ty = tx.GetReceipt().GetTy()
 			for _, lg := range logs {
-				recp.Ty = lg.GetTy()
-
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-
+			tran, err := DecodeTx(*(tx.GetTx()))
+			if err != nil {
+				continue
+			}
 			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
-				Tx: &Transaction{
-					Execer:  string(tx.GetTx().GetExecer()),
-					Payload: common.ToHex(tx.GetTx().GetPayload()),
-					Fee:     tx.GetTx().GetFee(),
-					Expire:  tx.GetTx().GetExpire(),
-					Nonce:   tx.GetTx().GetNonce(),
-					To:      tx.GetTx().GetTo(),
-					Signature: &Signature{
-						Pubkey:    common.ToHex(tx.GetTx().GetSignature().GetPubkey()),
-						Signature: common.ToHex(tx.GetTx().GetSignature().GetSignature()),
-					},
-				},
+				Tx:         tran,
 				Receipt:    &recp,
 				Height:     tx.GetHeight(),
 				Index:      tx.GetIndex(),
@@ -415,7 +387,6 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 				Txhash:     common.ToHex(tx.GetTxhash()),
 				ActionName: tx.GetActionName(),
 			})
-
 		}
 		*result = &txdetails
 	}
@@ -423,8 +394,8 @@ func (req Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{}
 	return nil
 }
 
-func (req Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interface{}) error {
-	reply, err := req.cli.ImportPrivkey(&in)
+func (c *Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interface{}) error {
+	reply, err := c.cli.ImportPrivkey(&in)
 	if err != nil {
 		return err
 	}
@@ -432,9 +403,9 @@ func (req Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interf
 	return nil
 }
 
-func (req Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
+func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
 	log.Debug("Rpc SendToAddress", "Tx", in)
-	reply, err := req.cli.SendToAddress(&in)
+	reply, err := c.cli.SendToAddress(&in)
 	if err != nil {
 		log.Debug("SendToAddress", "Error", err.Error())
 		return err
@@ -452,8 +423,8 @@ func (req Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interf
 	SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error)
 */
 
-func (req Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
-	reply, err := req.cli.SetTxFee(&in)
+func (c *Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
+	reply, err := c.cli.SetTxFee(&in)
 	if err != nil {
 		return err
 	}
@@ -464,8 +435,8 @@ func (req Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error
 	return nil
 }
 
-func (req Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error {
-	reply, err := req.cli.SetLabl(&in)
+func (c *Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error {
+	reply, err := c.cli.SetLabl(&in)
 	if err != nil {
 		return err
 	}
@@ -475,8 +446,8 @@ func (req Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) erro
 	return nil
 }
 
-func (req Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
-	reply, err := req.cli.MergeBalance(&in)
+func (c *Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
+	reply, err := c.cli.MergeBalance(&in)
 	if err != nil {
 		return err
 	}
@@ -491,8 +462,8 @@ func (req Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interfac
 	return nil
 }
 
-func (req Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) error {
-	reply, err := req.cli.SetPasswd(&in)
+func (c *Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) error {
+	reply, err := c.cli.SetPasswd(&in)
 	if err != nil {
 		return err
 	}
@@ -509,8 +480,8 @@ func (req Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) e
 	GetPeerInfo() (*types.PeerList, error)
 */
 
-func (req Chain33) Lock(in types.ReqNil, result *interface{}) error {
-	reply, err := req.cli.Lock()
+func (c *Chain33) Lock(in types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.Lock()
 	if err != nil {
 		return err
 	}
@@ -521,8 +492,8 @@ func (req Chain33) Lock(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
-	reply, err := req.cli.UnLock(&in)
+func (c *Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
+	reply, err := c.cli.UnLock(&in)
 	if err != nil {
 		return err
 	}
@@ -533,8 +504,8 @@ func (req Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
-	reply, err := req.cli.GetPeerInfo()
+func (c *Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetPeerInfo()
 	if err != nil {
 		return err
 	}
@@ -564,8 +535,8 @@ func (req Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
-	reply, err := req.cli.GetHeaders(&in)
+func (c *Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
+	reply, err := c.cli.GetHeaders(&in)
 	if err != nil {
 		return err
 	}
@@ -587,8 +558,8 @@ func (req Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
-	reply, err := req.cli.GetLastMemPool(&in)
+func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetLastMemPool(&in)
 	if err != nil {
 		return err
 	}
@@ -597,17 +568,11 @@ func (req Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 		var txlist ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
-			txlist.Txs = append(txlist.Txs,
-				&Transaction{
-					Execer:  string(tx.GetExecer()),
-					Payload: common.ToHex(tx.GetPayload()),
-					Fee:     tx.GetFee(),
-					Expire:  tx.GetExpire(),
-					Nonce:   tx.GetNonce(),
-					To:      tx.GetTo(),
-					Signature: &Signature{Ty: tx.GetSignature().GetTy(),
-						Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-						Signature: common.ToHex(tx.GetSignature().GetSignature())}})
+			tran, err := DecodeTx(*tx)
+			if err != nil {
+				continue
+			}
+			txlist.Txs = append(txlist.Txs, tran)
 		}
 		*result = &txlist
 	}
@@ -615,7 +580,7 @@ func (req Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 }
 
 //GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
-func (req Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
+func (c *Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
 	if err != nil {
@@ -623,7 +588,7 @@ func (req Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
 	}
 
 	data.Hash = hash
-	reply, err := req.cli.GetBlockOverview(&data)
+	reply, err := c.cli.GetBlockOverview(&data)
 	if err != nil {
 		return err
 	}
@@ -648,8 +613,9 @@ func (req Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
 	*result = &blockOverview
 	return nil
 }
-func (req Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error {
-	reply, err := req.cli.GetAddrOverview(&in)
+
+func (c *Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error {
+	reply, err := c.cli.GetAddrOverview(&in)
 	if err != nil {
 		return err
 	}
@@ -663,8 +629,8 @@ func (req Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error 
 	return nil
 }
 
-func (req Chain33) GetBlockHash(in types.ReqInt, result *interface{}) error {
-	reply, err := req.cli.GetBlockHash(&in)
+func (c *Chain33) GetBlockHash(in types.ReqInt, result *interface{}) error {
+	reply, err := c.cli.GetBlockHash(&in)
 	if err != nil {
 		return err
 	}
@@ -675,16 +641,17 @@ func (req Chain33) GetBlockHash(in types.ReqInt, result *interface{}) error {
 }
 
 //seed
-func (req Chain33) GenSeed(in types.GenSeedLang, result *interface{}) error {
-	reply, err := req.cli.GenSeed(&in)
+func (c *Chain33) GenSeed(in types.GenSeedLang, result *interface{}) error {
+	reply, err := c.cli.GenSeed(&in)
 	if err != nil {
 		return err
 	}
 	*result = reply
 	return nil
 }
-func (req Chain33) SaveSeed(in types.SaveSeedByPw, result *interface{}) error {
-	reply, err := req.cli.SaveSeed(&in)
+
+func (c *Chain33) SaveSeed(in types.SaveSeedByPw, result *interface{}) error {
+	reply, err := c.cli.SaveSeed(&in)
 	if err != nil {
 		return err
 	}
@@ -695,8 +662,9 @@ func (req Chain33) SaveSeed(in types.SaveSeedByPw, result *interface{}) error {
 	*result = &resp
 	return nil
 }
-func (req Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
-	reply, err := req.cli.GetSeed(&in)
+
+func (c *Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
+	reply, err := c.cli.GetSeed(&in)
 	if err != nil {
 		return err
 	}
@@ -704,8 +672,8 @@ func (req Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
-	reply, err := req.cli.GetWalletStatus()
+func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetWalletStatus()
 	if err != nil {
 		return err
 	}
@@ -714,9 +682,9 @@ func (req Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
+func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 
-	balances, err := req.cli.GetBalance(&in)
+	balances, err := c.cli.GetBalance(&in)
 	if err != nil {
 		return err
 	}
@@ -731,12 +699,12 @@ func (req Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) Query(in Query, result *interface{}) error {
+func (c *Chain33) Query(in Query, result *interface{}) error {
 	decodePayload, err := hex.DecodeString(in.Payload)
 	if err != nil {
 		return err
 	}
-	resp, err := req.cli.QueryHash(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	resp, err := c.cli.QueryHash(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -746,8 +714,8 @@ func (req Chain33) Query(in Query, result *interface{}) error {
 	return nil
 }
 
-func (req Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error {
-	resp, err := req.cli.SetAutoMiner(&in)
+func (c *Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error {
+	resp, err := c.cli.SetAutoMiner(&in)
 	if err != nil {
 		log.Error("SetAutoMiner", "err", err.Error())
 		return err
@@ -759,8 +727,8 @@ func (req Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error 
 	return nil
 }
 
-func (req Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
-	resp, err := req.cli.GetTicketCount()
+func (c *Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetTicketCount()
 	if err != nil {
 		return err
 	}
@@ -769,12 +737,55 @@ func (req Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
 
 }
 
-func (req Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
-	reply, err := req.cli.DumpPrivkey(&in)
+func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
+	reply, err := c.cli.DumpPrivkey(&in)
 	if err != nil {
 		return err
 	}
 
 	*result = reply
 	return nil
+}
+
+func DecodeTx(tx types.Transaction) (*Transaction, error) {
+	var pl interface{}
+	if "coins" == string(tx.Execer) {
+		var action types.CoinsAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "ticket" == string(tx.Execer) {
+		var action types.TicketAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "hashlock" == string(tx.Execer) {
+		var action types.HashlockAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else {
+		pl = common.ToHex(tx.GetPayload())
+	}
+	result := &Transaction{
+		Execer:     string(tx.Execer),
+		Payload:    pl,
+		RawPayload: common.ToHex(tx.GetPayload()),
+		Signature: &Signature{
+			Ty:        tx.GetSignature().GetTy(),
+			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
+			Signature: common.ToHex(tx.GetSignature().GetSignature()),
+		},
+		Fee:    tx.Fee,
+		Expire: tx.Expire,
+		Nonce:  tx.Nonce,
+		To:     tx.To,
+	}
+	return result, nil
 }

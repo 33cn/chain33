@@ -1,75 +1,52 @@
 package rpc
 
 import (
+	"io"
 	"net"
 
 	"code.aliyun.com/chain33/chain33/queue"
 )
 
-func NewServer(name string, addr string, q *queue.Queue) IServer {
-	if name == "channel" {
-		return newChannelServer(q)
-	} else if name == "grpc" {
-		return newGrpcServer(addr, q)
-	} else if name == "jsonrpc" {
-		return newJsonrpcServer(addr, q)
-	}
-	panic("server name not support")
+type Server interface {
+	Listen(addr string)
+	io.Closer
 }
 
-type IServer interface {
-	SetQueue(q *queue.Queue)
-	GetQueue() *queue.Queue
-	Close()
+type server struct {
+	cli channelClient
 }
 
-//channelServer 不需要做任何的事情，grpc 和 jsonrpc 需要建立服务，监听
-type channelServer struct {
-	q        *queue.Queue
-	c        queue.Client
-	listener net.Listener
+type Chain33 server
+type Grpc server
+
+type Grpcserver struct {
+	grpc Grpc
+	net.Listener
 }
 
-func newChannelServer(q *queue.Queue) *channelServer {
-	return &channelServer{q: q}
+type JsonRpcServer struct {
+	jrpc Chain33
+	net.Listener
 }
 
-func (server *channelServer) SetQueue(q *queue.Queue) {
-	server.q = q
-	server.c = q.NewClient() //创建一个Queue Client
-
+func (s *JsonRpcServer) Close() error {
+	s.jrpc.cli.Close()
+	return s.Listener.Close()
 }
 
-func (server *channelServer) GetQueue() *queue.Queue {
-	return server.q
+func (j *Grpcserver) Close() error {
+	j.grpc.cli.Close()
+	return j.Listener.Close()
 }
 
-func (server *channelServer) Close() {
-	server.listener.Close()
+func NewGRpcServer(client queue.Client) Server {
+	s := &Grpcserver{}
+	s.grpc.cli.Client = client
+	return s
 }
 
-type grpcServer struct {
-	channelServer
-}
-
-type jsonrpcServer struct {
-	channelServer
-}
-
-func newGrpcServer(addr string, q *queue.Queue) *grpcServer {
-	server := &grpcServer{}
-	server.q = q
-	server.CreateServer(addr)
-	return server
-}
-
-func (r *grpcServer) Close() {
-	r.listener.Close()
-}
-
-func newJsonrpcServer(addr string, q *queue.Queue) *jsonrpcServer {
-	server := &jsonrpcServer{}
-	server.q = q
-	server.CreateServer(addr)
-	return server
+func NewJsonRpcServer(client queue.Client) Server {
+	j := &JsonRpcServer{}
+	j.jrpc.cli.Client = client
+	return j
 }

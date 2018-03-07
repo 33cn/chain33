@@ -43,6 +43,7 @@ type BaseClient struct {
 	mulock       sync.Mutex
 	child        Miner
 	minerstartCB func()
+	isCaughtUp   int32
 }
 
 func NewBaseClient(cfg *types.Consensus) *BaseClient {
@@ -53,7 +54,7 @@ func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	if cfg.Minerstart {
 		flag = 1
 	}
-	client := &BaseClient{minerStart: flag}
+	client := &BaseClient{minerStart: flag, isCaughtUp: 0}
 	client.Cfg = cfg
 	log.Info("Enter consensus " + cfg.GetName())
 	return client
@@ -153,6 +154,19 @@ func (client *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*
 
 func (client *BaseClient) IsMining() bool {
 	return atomic.LoadInt32(&client.minerStart) == 1
+}
+
+func (client *BaseClient) IsCaughtUp() bool {
+	if client.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	msg := client.qclient.NewMessage("blockchain", types.EventIsSync, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return false
+	}
+	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
 }
 
 // 准备新区块
@@ -295,9 +309,7 @@ func (client *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 
 func (client *BaseClient) SetCurrentBlock(b *types.Block) {
 	client.mulock.Lock()
-	if client.currentBlock == nil || client.currentBlock.Height <= b.Height {
-		client.currentBlock = b
-	}
+	client.currentBlock = b
 	client.mulock.Unlock()
 }
 
@@ -331,4 +343,12 @@ func (client *BaseClient) Lock() {
 
 func (client *BaseClient) Unlock() {
 	client.mulock.Unlock()
+}
+
+func (client *BaseClient) ConsensusTicketMiner(iscaughtup *types.IsCaughtUp) {
+	if !atomic.CompareAndSwapInt32(&client.isCaughtUp, 0, 1) {
+		log.Info("ConsensusTicketMiner", "isCaughtUp", client.isCaughtUp)
+	} else {
+		log.Info("ConsensusTicketMiner", "isCaughtUp", client.isCaughtUp)
+	}
 }
