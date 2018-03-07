@@ -8,22 +8,12 @@ import (
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
-<<<<<<< HEAD:execs/exec.go
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/coins"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/hashlock"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/none"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/norm"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/retrieve"
-	_ "code.aliyun.com/chain33/chain33/execs/execdrivers/ticket"
-=======
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
->>>>>>> origin/develop:executor/executor.go
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -285,21 +275,11 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 
-<<<<<<< HEAD:execs/exec.go
-	//手续费检查，常规读写不检查
-	if string(tx.Execer) != "norm" {
-		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-		accFrom := account.LoadAccount(e.stateDB, from)
-		if accFrom.GetBalance() < types.MinBalanceTransfer {
-			return types.ErrBalanceLessThanTenTimesFee
-		}
-=======
 	//手续费检查
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	accFrom := e.coinsAccount.LoadAccount(from)
 	if accFrom.GetBalance() < types.MinBalanceTransfer {
 		return types.ErrBalanceLessThanTenTimesFee
->>>>>>> origin/develop:executor/executor.go
 	}
 	//checkInExec
 	exec, err := drivers.LoadDriver(string(tx.Execer))
