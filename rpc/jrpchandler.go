@@ -752,16 +752,6 @@ func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
 	return nil
 }
 
-//type TxWithPayload struct {
-//	Execer    string      `json:"execer"`
-//	Payload   interface{} `json:"payload"`
-//	Signature *Signature  `json:"signature"`
-//	Fee       int64       `json:"fee"`
-//	Expire    int64       `json:"expire"`
-//	Nonce     int64       `json:"nonce"`
-//	To        string      `json:"to"`
-//}
-
 func DecodeTx(tx types.Transaction) (*Transaction, error) {
 	var pl interface{}
 	if "coins" == string(tx.Execer) {
@@ -789,8 +779,9 @@ func DecodeTx(tx types.Transaction) (*Transaction, error) {
 		pl = common.ToHex(tx.GetPayload())
 	}
 	result := &Transaction{
-		Execer:  string(tx.Execer),
-		Payload: pl,
+		Execer:     string(tx.Execer),
+		Payload:    pl,
+		RawPayload: common.ToHex(tx.GetPayload()),
 		Signature: &Signature{
 			Ty:        tx.GetSignature().GetTy(),
 			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
