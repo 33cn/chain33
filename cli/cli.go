@@ -336,15 +336,16 @@ type TxListResult struct {
 }
 
 type TxResult struct {
-	Execer    string             `json:"execer"`
-	Payload   interface{}        `json:"payload"`
-	Signature *jsonrpc.Signature `json:"signature"`
-	Fee       string             `json:"fee"`
-	Expire    int64              `json:"expire"`
-	Nonce     int64              `json:"nonce"`
-	To        string             `json:"to"`
-	Amount    string             `json:"amount,omitempty"`
-	From      string             `json:"from,omitempty"`
+	Execer     string             `json:"execer"`
+	Payload    interface{}        `json:"payload"`
+	RawPayload string             `json:"rawpayload"`
+	Signature  *jsonrpc.Signature `json:"signature"`
+	Fee        string             `json:"fee"`
+	Expire     int64              `json:"expire"`
+	Nonce      int64              `json:"nonce"`
+	To         string             `json:"to"`
+	Amount     string             `json:"amount,omitempty"`
+	From       string             `json:"from,omitempty"`
 }
 
 type TxDetailResult struct {
@@ -365,8 +366,9 @@ type ReceiptData struct {
 }
 
 type ReceiptLog struct {
-	Ty  string      `json:"ty"`
-	Log interface{} `json:"log"`
+	Ty     string      `json:"ty"`
+	Log    interface{} `json:"log"`
+	RawLog string      `json:"rawlog"`
 }
 
 type TxDetailsResult struct {
@@ -1409,13 +1411,14 @@ func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
 		amountResult = strconv.FormatFloat(float64(tx.Amount)/float64(1e8), 'f', 4, 64)
 	}
 	result := &TxResult{
-		Execer:    tx.Execer,
-		Payload:   tx.Payload,
-		Signature: tx.Signature,
-		Fee:       feeResult,
-		Expire:    tx.Expire,
-		Nonce:     tx.Nonce,
-		To:        tx.To,
+		Execer:     tx.Execer,
+		Payload:    tx.Payload,
+		RawPayload: tx.RawPayload,
+		Signature:  tx.Signature,
+		Fee:        feeResult,
+		Expire:     tx.Expire,
+		Nonce:      tx.Nonce,
+		To:         tx.To,
 	}
 	if tx.Amount != 0 {
 		result.Amount = amountResult
@@ -1660,7 +1663,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 		default:
 			return nil, errors.New("wrong log type")
 		}
-		rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: logIns})
+		rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: logIns, RawLog: l.Log})
 	}
 	return rd, nil
 }
