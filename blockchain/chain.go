@@ -41,13 +41,6 @@ var (
 
 )
 
-//保存peerlist中lastheight最高的peer
-type peerInfo struct {
-	pid    string
-	height int64
-	hash   []byte
-}
-
 type BlockChain struct {
 	qclient queue.Client
 	q       *queue.Queue
@@ -68,8 +61,7 @@ type BlockChain struct {
 	synBlockHeight int64
 
 	//记录peer的最新block高度,用于节点追赶active链
-	peerMaxBlkHeight *peerInfo
-
+	peerList *types.PeerList
 	recvwg   *sync.WaitGroup
 	synblock chan struct{}
 	quit     chan struct{}
@@ -83,21 +75,22 @@ type BlockChain struct {
 	bestChain *chainView
 
 	chainLock sync.RWMutex
+	//blockchain的启动时间
+	startTime time.Time
+
+	//标记本节点是否已经追赶上主链
+	isCaughtUp bool
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
-	var peerinit peerInfo
-	peerinit.pid = ""
-	peerinit.height = -1
-	peerinit.hash = common.Hash{}.Bytes()
 	blockchain := &BlockChain{
 		cache:              make(map[int64]*list.Element),
 		cacheSize:          DefCacheSize,
 		cacheQueue:         list.New(),
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
-		peerMaxBlkHeight:   &peerinit,
+		peerList:           nil,
 		cfg:                cfg,
 		recvwg:             &sync.WaitGroup{},
 		task:               newTask(360 * time.Second),
@@ -105,6 +98,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		synblock:           make(chan struct{}, 1),
 		orphanPool:         NewOrphanPool(),
 		index:              newBlockIndex(),
+		isCaughtUp:         false,
 	}
 	return blockchain
 }
@@ -159,6 +153,9 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 
 	//获取lastblock从数据库,创建bestviewtip节点
 	chain.InitIndexAndBestView()
+
+	//startTime
+	chain.startTime = time.Now()
 
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
@@ -222,6 +219,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
 		case types.EventGetLastBlock:
 			go chain.processMsg(msg, reqnum, chain.getLastBlock)
+		case types.EventIsSync:
+			go chain.processMsg(msg, reqnum, chain.isSync)
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -245,6 +244,9 @@ func (chain *BlockChain) poolRoutine() {
 	//考虑叉后的第一个block没有广播到本节点，导致接下来广播过来的blocks都是孤儿节点，无法进行主侧链总难度对比
 	checkBlockHashTicker := time.NewTicker(time.Duration(checkBlockHashSeconds) * time.Second)
 
+	//5分钟检测一次系统时间，不同步提示告警
+	checkClockDriftTicker := time.NewTicker(300 * time.Second)
+
 	for {
 		select {
 		case <-chain.quit:
@@ -265,6 +267,9 @@ func (chain *BlockChain) poolRoutine() {
 		case _ = <-checkBlockHashTicker.C:
 			//chainlog.Info("checkBlockHashTicker")
 			chain.CheckTipBlockHash()
+		//定时检查系统时间，如果系统时间有问题，那么会有一个报警
+		case _ = <-checkClockDriftTicker.C:
+			checkClockDrift()
 		}
 	}
 }
@@ -402,7 +407,8 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		return types.ErrInputPara
 	}
 	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail)
-	if !isorphan && err == nil {
+	//非孤儿block或者已经存在的block
+	if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
 		chain.task.Done(blockdetail.Block.GetHeight())
 	}
 	//此处只更新广播block的高度
@@ -666,22 +672,34 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 //	BlockTime  int64
 //}
 func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err error) {
-	blockhight := chain.GetBlockHeight()
-	head, err := chain.blockStore.GetBlockHeaderByHeight(blockhight)
-	if err == nil && head != nil {
-		return head, nil
-	} else {
-		return nil, err
+	//首先从缓存中获取最新的blockheader
+	head := chain.blockStore.LastHeader()
+	if head == nil {
+		blockhight := chain.GetBlockHeight()
+		head, err := chain.blockStore.GetBlockHeaderByHeight(blockhight)
+
+		if err == nil && head != nil {
+			chainlog.Error("ProcGetLastHeaderMsg from cache is nil.", "blockhight", blockhight, "hash", common.ToHex(head.Hash))
+			return head, nil
+		} else {
+			return nil, err
+		}
 	}
+	return head, nil
 }
 
 func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
-	blockhight := chain.GetBlockHeight()
-	blockdetail, err := chain.GetBlock(blockhight)
-	if err != nil {
-		return nil, err
+	var block *types.Block
+	block = chain.blockStore.LastBlock()
+	if block == nil {
+		blockhight := chain.GetBlockHeight()
+		blockdetail, err := chain.GetBlock(blockhight)
+		if err != nil {
+			return nil, err
+		}
+		block = blockdetail.Block
 	}
-	return blockdetail.Block, nil
+	return block, nil
 }
 
 func (chain *BlockChain) ProcGetBlockByHashMsg(hash []byte) (respblock *types.BlockDetail, err error) {
@@ -719,27 +737,11 @@ func (chain *BlockChain) fetchPeerList() error {
 		return err
 	}
 	peerlist := resp.GetData().(*types.PeerList)
-	//获取peerlist中最新的高度
-	var maxPeerHeight int64 = -1
-	var pid string
-	var hash []byte
-	for _, peer := range peerlist.Peers {
-		if peer.Self {
-			continue
-		}
-		if peer != nil && maxPeerHeight < peer.Header.Height {
-			maxPeerHeight = peer.Header.Height
-			pid = peer.Name
-			hash = peer.Header.Hash
-		}
+	if peerlist != nil {
+		chain.peerList = peerlist
+		return nil
 	}
-	if maxPeerHeight != -1 {
-		chain.UpdatePeerMaxBlkHeight(pid, maxPeerHeight, hash)
-	}
-	if maxPeerHeight == -1 {
-		return types.ErrNoPeer
-	}
-	return nil
+	return types.ErrNoPeer
 }
 
 //获取地址对应的所有交易信息
@@ -849,27 +851,62 @@ func (chain *BlockChain) UpdatesynBlkHeight(height int64) {
 func (chain *BlockChain) GetPeerMaxBlkHeight() int64 {
 	peerMaxBlklock.Lock()
 	defer peerMaxBlklock.Unlock()
-	return chain.peerMaxBlkHeight.height
+
+	//获取peerlist中最高的高度
+	var maxPeerHeight int64 = -1
+	if chain.peerList != nil {
+		for _, peer := range chain.peerList.Peers {
+			if peer.Self {
+				continue
+			}
+			if peer != nil && maxPeerHeight < peer.Header.Height {
+				maxPeerHeight = peer.Header.Height
+			}
+		}
+	}
+	return maxPeerHeight
+
 }
 
 func (chain *BlockChain) GetPeerMaxBlkPid() string {
 	peerMaxBlklock.Lock()
 	defer peerMaxBlklock.Unlock()
-	return chain.peerMaxBlkHeight.pid
+
+	//获取peerlist中最高高度的pid
+	var maxPeerHeight int64 = -1
+	var pid string = ""
+	if chain.peerList != nil {
+		for _, peer := range chain.peerList.Peers {
+			if peer.Self {
+				continue
+			}
+			if peer != nil && maxPeerHeight < peer.Header.Height {
+				pid = peer.Name
+			}
+		}
+	}
+	return pid
 }
 
 func (chain *BlockChain) GetPeerMaxBlkHash() []byte {
 	peerMaxBlklock.Lock()
 	defer peerMaxBlklock.Unlock()
-	return chain.peerMaxBlkHeight.hash
-}
 
-func (chain *BlockChain) UpdatePeerMaxBlkHeight(pid string, height int64, hash []byte) {
-	peerMaxBlklock.Lock()
-	defer peerMaxBlklock.Unlock()
-	chain.peerMaxBlkHeight.height = height
-	chain.peerMaxBlkHeight.pid = pid
-	chain.peerMaxBlkHeight.hash = hash
+	//获取peerlist中最高高度的blockhash
+	var maxPeerHeight int64 = -1
+	var hash []byte = common.Hash{}.Bytes()
+
+	if chain.peerList != nil {
+		for _, peer := range chain.peerList.Peers {
+			if peer.Self {
+				continue
+			}
+			if peer != nil && maxPeerHeight < peer.Header.Height {
+				hash = peer.Header.Hash
+			}
+		}
+	}
+	return hash
 }
 
 //blockSynSeconds时间检测一次本节点的height是否有增长，没有增长就需要通过对端peerlist获取最新高度，发起同步
@@ -883,10 +920,9 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		chainlog.Info("chain task InProgress")
 		return
 	}
-	chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
-
 	//获取peers的最新高度.处理没有收到广播block的情况
 	if curheight+1 < peerMaxBlkHeight {
+		chainlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 		chain.FetchBlock(curheight+1, peerMaxBlkHeight, "")
 	}
 
@@ -1272,4 +1308,36 @@ func (chain *BlockChain) CheckTipBlockHash() {
 			}
 		}
 	}
+}
+
+//本节点是否已经追赶上主链高度，追赶上之后通知本节点的共识模块开始挖矿
+func (chain *BlockChain) IsCaughtUp() bool {
+
+	height := chain.GetBlockHeight()
+
+	peerMaxBlklock.Lock()
+	defer peerMaxBlklock.Unlock()
+
+	// peer中只有自己节点，没有其他节点
+	if (chain.peerList == nil) || len(chain.peerList.Peers) == 1 {
+		chainlog.Debug("IsCaughtUp has no peers")
+		return chain.cfg.SingleMode
+	}
+
+	var maxPeerHeight int64 = -1
+	peersNo := 0
+	for _, peer := range chain.peerList.Peers {
+		if peer.Self {
+			continue
+		}
+		if peer != nil && maxPeerHeight < peer.Header.Height {
+			maxPeerHeight = peer.Header.Height
+		}
+		peersNo++
+	}
+
+	isCaughtUp := (height > 0 || time.Now().Sub(chain.startTime) > 60*time.Second) && (maxPeerHeight == 0 || height >= maxPeerHeight)
+
+	chainlog.Debug("IsCaughtUp", "IsCaughtUp ", isCaughtUp, "height", height, "maxPeerHeight", maxPeerHeight, "peersNo", peersNo)
+	return isCaughtUp
 }
