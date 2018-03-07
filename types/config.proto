@@ -38,6 +38,7 @@ message Consensus {
 message Wallet {
 	int64 minFee = 1;
 	string dbPath = 2;
+	string signType =3;
 }
 
 message Store {
@@ -58,6 +59,7 @@ message BlockChain {
 	string driver = 5;
 	string dbPath = 6;
 	bool isStrongConsistency = 7;
+	bool singleMode = 8;
 }
 
 message P2P {

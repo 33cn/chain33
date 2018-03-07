@@ -149,27 +149,33 @@ func (f *FilterTask) ManageFilterTask() {
 
 func (p *peer) heartBeat() {
 
-	//<-(*p.nodeInfo).natDone
+	pcli := NewP2pCli(nil)
+	for {
+		if p.GetRunning() == false {
+			return
+		}
+		err := pcli.SendVersion(p, *p.nodeInfo)
+		P2pComm.CollectPeerStat(err, p)
+		if err == nil {
+			p.taskChan = ps.Sub(p.Addr())
+			go p.filterTask.ManageFilterTask()
+			go p.sendStream()
+			go p.readStream()
+			break
+		} else {
+			time.Sleep(time.Second * 5)
+			continue
+		}
+	}
+
 	ticker := time.NewTicker(PingTimeout)
 	defer ticker.Stop()
-	pcli := NewP2pCli(nil)
-	if pcli.SendVersion(p, *p.nodeInfo) == nil {
-		p.taskChan = ps.Sub(p.Addr())
-		go p.filterTask.ManageFilterTask()
-		go p.sendStream()
-		go p.readStream()
-	} else {
-		return
-	}
 FOR_LOOP:
 	for {
 		select {
 		case <-ticker.C:
 			err := pcli.SendPing(p, *p.nodeInfo)
-			if err != nil {
-				p.peerStat.NotOk()
-				(*p.nodeInfo).monitorChan <- p
-			}
+			P2pComm.CollectPeerStat(err, p)
 
 		case <-p.allLoopDone:
 			log.Debug("Peer HeartBeat", "loop done", p.Addr())
@@ -192,10 +198,9 @@ func (p *peer) sendStream() {
 			return
 		}
 		ctx, cancel := context.WithCancel(context.Background())
-		resp, err := p.mconn.conn.RouteChat(ctx)
+		resp, err := p.mconn.conn.ServerStreamRead(ctx)
+		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
-			p.peerStat.NotOk()
-			(*p.nodeInfo).monitorChan <- p
 			time.Sleep(time.Second * 5)
 			cancel()
 			continue
@@ -210,6 +215,7 @@ func (p *peer) sendStream() {
 				cancel()
 				continue
 			}
+
 		}
 
 	SEND_LOOP:
@@ -271,14 +277,19 @@ func (p *peer) sendStream() {
 func (p *peer) readStream() {
 
 	pcli := NewP2pCli(nil)
+
 	for {
 		if p.GetRunning() == false {
 			return
 		}
-		resp, err := p.mconn.conn.RouteChat(context.Background())
+		ping, err := P2pComm.NewPingData(p)
 		if err != nil {
-			p.peerStat.NotOk()
-			(*p.nodeInfo).monitorChan <- p
+			log.Error("readStream", "err:", err.Error())
+			continue
+		}
+		resp, err := p.mconn.conn.ServerStreamSend(context.Background(), ping)
+		P2pComm.CollectPeerStat(err, p)
+		if err != nil {
 			time.Sleep(time.Second * 5)
 			continue
 		}

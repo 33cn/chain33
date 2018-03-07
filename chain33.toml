@@ -13,11 +13,12 @@ batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
 isStrongConsistency=false
+singleMode=false
 
 [p2p]
 seeds=["127.0.0.1:13802"]
 enable=true
-isSeed=true
+isSeed=false
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 version=15
@@ -53,5 +54,5 @@ dbPath="datadir/mavltree"
 [wallet]
 minFee=1000000
 dbPath="datadir/wallet"
-
+signType="secp256k1"
 [exec]
