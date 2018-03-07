@@ -21,19 +21,19 @@ const (
 	CoinReward               int64  = 18 * Coin //用户回报
 	CoinDevFund              int64  = 12 * Coin //发展基金回报
 	TicketPrice              int64  = 10000 * Coin
-	TicketFrozenTime         int64  = 5  //5s only for test 12小时 （购买到可以挖的冻结时间）
-	TicketWithdrawTime       int64  = 10 //10s only for test 48小时 (ticket从购买开始，至少要lock 48小时)
-	TicketMinerWaitTime      int64  = 2  // 2s only for test 2小时  (挖出来冻结2小时)
+	TicketFrozenTime         int64  = 5  //5s only for test
+	TicketWithdrawTime       int64  = 10 //10s only for test
+	TicketMinerWaitTime      int64  = 2  // 2s only for test
 	MinFee                   int64  = 1e5
 	MinBalanceTransfer              = 1e6
 	MaxTxSize                int64  = 100000   //100K
 	MaxBlockSize             int64  = 10000000 //10M
-	MaxTxNumber              int64  = 1600     //200/s (共识时候使用)
+	MaxTxNumber              int64  = 1600     //160
 	PowLimitBits             uint32 = uint32(0x1f00ffff)
+	TargetTimespan                  = 144 * 16 * time.Second
 	TargetTimePerBlock              = 16 * time.Second
-	TargetTimespan                  = 144 * TargetTimePerBlock
 	RetargetAdjustmentFactor        = 4
-	MaxTxsPerBlock                  = 100000 //(计算txindex 的时候使用)
+	MaxTxsPerBlock                  = 100000
 )
 
 const (
