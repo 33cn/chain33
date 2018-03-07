@@ -12,23 +12,41 @@ type Server interface {
 	io.Closer
 }
 
-type rpcServer struct {
+type server struct {
 	cli channelClient
+}
+
+type Chain33 server
+type Grpc server
+
+type Grpcserver struct {
+	grpc Grpc
 	net.Listener
 }
 
-func (s *rpcServer) Close() error {
+type JsonRpcServer struct {
+	jrpc Chain33
+	net.Listener
+}
+
+func (s *JsonRpcServer) Close() error {
+	s.jrpc.cli.Close()
 	return s.Listener.Close()
 }
 
-func NewGRpcServer(q *queue.Queue) Server {
-	s := rpcServer{}
-	s.cli.Client = q.NewClient()
-	return (*Grpc)(&s)
+func (j *Grpcserver) Close() error {
+	j.grpc.cli.Close()
+	return j.Listener.Close()
 }
 
-func NewJsonRpcServer(q *queue.Queue) Server {
-	s := rpcServer{}
-	s.cli.Client = q.NewClient()
-	return (*Chain33)(&s)
+func NewGRpcServer(client queue.Client) Server {
+	s := &Grpcserver{}
+	s.grpc.cli.Client = client
+	return s
+}
+
+func NewJsonRpcServer(client queue.Client) Server {
+	j := &JsonRpcServer{}
+	j.jrpc.cli.Client = client
+	return j
 }
