@@ -71,6 +71,7 @@ FOR_LOOP:
 				for _, peer := range peers { //向其他节点发起请求，获取地址列表
 					log.Debug("Getpeer", "addr", peer.Addr())
 					addrlist, err := pcli.GetAddr(peer)
+					P2pComm.CollectPeerStat(err, peer)
 					if err != nil {
 						log.Error("getAddrFromOnline", "ERROR", err.Error())
 						continue
