@@ -44,6 +44,7 @@ var (
 
 var (
 	msgQueueSize = 1000
+	zeroHash [32]byte
 )
 
 // msgs from the reactor which may update the state
@@ -538,6 +539,7 @@ func (cs *ConsensusState) newStep() {
 func (cs *ConsensusState) NewTxsAvailable(height int64){
 	cs.NewTxsHeight <- height
 }
+
 //-----------------------------------------
 // the main go routines
 
@@ -573,7 +575,7 @@ func (cs *ConsensusState) receiveRoutine(maxSteps int) {
 		*/
 		select {
 		case height := <- cs.NewTxsHeight:
-			cs.handleTxsAvailable(height)
+			cs.handleTxsAvailable(height + 1)
 		case mi = <-cs.peerMsgQueue:
 			//cs.wal.Save(mi)
 			// handles proposals, block parts, votes
@@ -914,15 +916,19 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	}
 
 	var txs []*types.Transaction
+	var lastParentHash []byte
+	var blockTime int64
+	var lastStateHash []byte
 	if cs.Height == 1 {
-		genesisBlock :=cs.client.GetCurrentBlock()
-		if genesisBlock == nil {
-			cs.Logger.Error("enterPropose: get genesisBlock failed")
-			return nil, nil
-		} else {
-			txs = genesisBlock.GetTxs()
-		}
+		txs =cs.CreateGenesisTx()
+		lastParentHash = zeroHash[:]
+		blockTime = cs.client.Cfg.GenesisBlockTime
+		lastStateHash = lastParentHash
 	} else {
+		lastBlock := cs.client.GetCurrentBlock()
+		lastParentHash = lastBlock.Hash()
+		blockTime = 0
+		lastStateHash = lastBlock.StateHash
 		txs = cs.client.RequestTx()
 		if len(txs) > 0 {
 			//check dup
@@ -942,10 +948,23 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	}
 */
 	// Mempool validated transactions
-	block, parts := cs.state.MakeBlock(cs.Height, newtxs, commit)
+	block, parts := cs.state.MakeBlock(cs.Height, newtxs, commit, lastParentHash, blockTime, lastStateHash)
 	evidence := cs.evpool.PendingEvidence()
 	block.AddEvidence(evidence)
 	return block, parts
+}
+
+func (client *ConsensusState) CreateGenesisTx() (ret []*types.Transaction) {
+	var tx types.Transaction
+	tx.Execer = []byte("coins")
+	tx.To = client.client.Cfg.Genesis
+	//gen payload
+	g := &types.CoinsAction_Genesis{}
+	g.Genesis = &types.CoinsGenesis{}
+	g.Genesis.Amount = 1e8 * types.Coin
+	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	ret = append(ret, &tx)
+	return
 }
 
 // Enter: `timeoutPropose` after entering Propose.
@@ -1284,15 +1303,31 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 	// Execute and commit the block, update and save the state, and update the mempool.
 	//hg 20180302
+	if len(block.Data.Txs) == 0 {
+		cs.Logger.Error("txs of block is empty")
+	}
 	var newblock gtypes.Block
 	newblock.ParentHash = block.LastParentHash
-	newblock.Height = block.Height
-	TxDecode(block.Data.Txs[0], newblock.Txs)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-	newblock.BlockTime = time.Now().Unix()
-	if block.LastBlockTime >= newblock.BlockTime {
-		newblock.BlockTime = block.LastBlockTime + 1
+	newblock.Height = block.Height - 1
+	var txs []*types.Transaction
+	if err := wire.ReadBinaryBytes(block.Data.Txs[0], txs); err !=nil{
+		cs.Logger.Error("convert TXs to transaction failed", "err", err)
+	} else {
+		newblock.Txs = txs
 	}
+
+	fail.Fail() // XXX
+
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	if block.LastBlockTime == 0 {
+		newblock.BlockTime = time.Now().Unix()
+		if block.LastBlockTime >= newblock.BlockTime {
+			newblock.BlockTime = block.LastBlockTime + 1
+		}
+	} else {
+		newblock.BlockTime = block.LastBlockTime
+	}
+
 	err := cs.client.WriteBlock(block.LastStateHash, &newblock)
 	if err != nil {
 		cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)

@@ -16,9 +16,15 @@ import (
 	"bytes"
 	"os"
 	"time"
+	"encoding/json"
+	"fmt"
+	"errors"
 )
 
-var tendermintlog = log.New("module", "tendermint")
+var (
+	tendermintlog = log.New("module", "tendermint")
+	genesisDocKey = []byte("genesisDoc")
+)
 
 type TendermintClient struct{
 	//config
@@ -31,7 +37,8 @@ type TendermintClient struct{
 	privKey       crypto.PrivKeyEd25519   // local node's p2p key
 	sw            *p2p.Switch
 	Logger        tlog.Logger
-
+	state         sm.State
+	blockStore    *core.BlockStore
 	//ListenPort    string
 	//Moniker       string  //node name
 }
@@ -42,14 +49,65 @@ func DefaultDBProvider(ID string) (dbm.DB, error) {
 	return dbm.NewDB(ID, "leveldb", "."), nil
 }
 
+// panics if failed to unmarshal bytes
+func loadGenesisDoc(db dbm.DB) (*ttypes.GenesisDoc, error) {
+	bytes := db.Get(genesisDocKey)
+	if len(bytes) == 0 {
+		return nil, errors.New("Genesis doc not found")
+	} else {
+		var genDoc *ttypes.GenesisDoc
+		err := json.Unmarshal(bytes, &genDoc)
+		if err != nil {
+			panic(fmt.Sprintf("Panicked on a Crisis: %v",fmt.Sprintf("Failed to load genesis doc due to unmarshaling error: %v (bytes: %X)", err, bytes)))
+		}
+		return genDoc, nil
+	}
+}
+
+// panics if failed to marshal the given genesis document
+func saveGenesisDoc(db dbm.DB, genDoc *ttypes.GenesisDoc) {
+	bytes, err := json.Marshal(genDoc)
+	if err != nil {
+		panic(fmt.Sprintf("Panicked on a Crisis: %v",fmt.Sprintf("Failed to save genesis doc due to marshaling error: %v", err)))
+	}
+	db.SetSync(genesisDocKey, bytes)
+}
+
 func New(cfg *types.Consensus) *TendermintClient {
 	tendermintlog.Info("Start to create raft cluster")
 
 	logger := tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)).With("module", "consensus")
 
-	genesisDoc, err := ttypes.GenesisDocFromFile("./genesis.json")
-	if err != nil{
-		tendermintlog.Info(err.Error())
+	//store block
+	blockStoreDB, err := DefaultDBProvider("blockstore")
+	if err != nil {
+		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider blockstore failded", "error", err)
+		return nil
+	}
+	blockStore := core.NewBlockStore(blockStoreDB)
+
+	//store State
+	stateDB, err := DefaultDBProvider("state")
+	if err != nil {
+		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider state failded", "error", err)
+		return nil
+	}
+
+	genDoc, err := loadGenesisDoc(stateDB)
+	if err != nil {
+		genDoc, err = ttypes.GenesisDocFromFile("./genesis.json")
+		if err != nil {
+			tendermintlog.Error("NewTendermintClient", "msg", "GenesisDocFromFile failded", "error", err)
+			return nil
+		}
+		// save genesis doc to prevent a certain class of user errors (e.g. when it
+		// was changed, accidentally or not). Also good for audit trail.
+		saveGenesisDoc(stateDB, genDoc)
+	}
+
+	state, err := sm.LoadStateFromDBOrGenesisDoc(stateDB, genDoc)
+	if err != nil {
+		tendermintlog.Error("NewTendermintClient", "msg", "LoadStateFromDBOrGenesisDoc failded", "error", err)
 		return nil
 	}
 
@@ -59,33 +117,11 @@ func New(cfg *types.Consensus) *TendermintClient {
 		tendermintlog.Info("NewTendermintClient","msg", "priv_validator file missing")
 	}
 
-	state, err := sm.MakeGenesisState(genesisDoc)
-	if err != nil {
-		tendermintlog.Error("NewTendermintClient","msg", "MakeGenesisState failed ")
-		return nil
-	}
-
 	// Generate node PrivKey
 	privKey := crypto.GenPrivKeyEd25519()
 
-	blockStoreDB, err := DefaultDBProvider("blockstore")
-	if err != nil {
-		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider failded")
-		return nil
-	}
-	blockStore := core.NewBlockStore(blockStoreDB)
-
 	c := drivers.NewBaseClient(cfg)
 
-	client := &TendermintClient{
-		BaseClient:       c,
-		genesisDoc :      genesisDoc,
-		privValidator :   privValidator,
-		privKey:          privKey,
-		Logger:           logger,
-		//ListenPort:       "36656",
-		//Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
-	}
 	csState := core.NewConsensusState(c, state, blockStore)
 	csState.SetPrivValidator(privValidator)
 
@@ -106,10 +142,23 @@ func New(cfg *types.Consensus) *TendermintClient {
 	// consensusReactor will set it on consensusState and blockExecutor
 	consensusReactor.SetEventBus(eventBus)
 
-	client.sw = sw
-	client.csState = csState
-	client.csReactor = consensusReactor
-	client.eventBus = eventBus
+
+	client := &TendermintClient{
+		BaseClient:       c,
+		genesisDoc :      genDoc,
+		privValidator :   privValidator,
+		privKey:          privKey,
+		Logger:           logger,
+		state:            state,
+		blockStore:       blockStore,
+		sw:               sw,
+		csState:          csState,
+		csReactor:        consensusReactor,
+		eventBus:         eventBus,
+		//ListenPort:       "36656",
+		//Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
+	}
+
 	c.SetChild(client)
 	return client
 }
@@ -142,6 +191,7 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 				txs = client.CheckTxDup(txs)
 				lastBlock := client.GetCurrentBlock()
 				if len(txs) != 0{
+					//our chain index init -1, tendermint index init 0
 					client.csState.NewTxsAvailable(lastBlock.Height + 1)
 				}
 			}
@@ -170,6 +220,31 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 
 	go client.EventLoop()
 	//go client.child.CreateBlock()
+}
+
+func (client *TendermintClient) InitBlock(){
+	height := client.GetInitHeight()
+	if height == -1 {
+		// 创世区块
+		/* do nothing, will use tendermint to write genesis block
+		newblock := &types.Block{}
+		newblock.Height = 0
+		newblock.BlockTime = client.Cfg.GenesisBlockTime
+		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
+		newblock.ParentHash = zeroHash[:]
+		tx := client.child.CreateGenesisTx()
+		newblock.Txs = tx
+		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		client.WriteBlock(zeroHash[:], newblock)
+		*/
+	} else {
+		block, err := client.RequestBlock(height)
+		if err != nil {
+			panic(err)
+		}
+		client.SetCurrentBlock(block)
+		client.state.LastBlockHeight = height
+	}
 }
 
 func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
