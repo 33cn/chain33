@@ -9,6 +9,8 @@ import (
 	wire "github.com/tendermint/go-wire"
 
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/types"
+	dbm "github.com/tendermint/tmlibs/db"
+	"os"
 )
 
 // database keys
@@ -103,9 +105,9 @@ func (s State) GetValidators() (last *types.ValidatorSet, current *types.Validat
 // Create a block from the latest state
 
 // MakeBlock builds a block with the given txs and commit from the current state.
-func (s State) MakeBlock(height int64, txs []types.Tx, commit *types.Commit) (*types.Block, *types.PartSet) {
+func (s State) MakeBlock(height int64, txs []types.Tx, commit *types.Commit, lastParentHash []byte, lastBlockTime int64, lastStateHash []byte) (*types.Block, *types.PartSet) {
 	// build base block
-	block := types.MakeBlock(height, txs, commit)
+	block := types.MakeBlock(height, txs, commit, lastParentHash, lastBlockTime, lastStateHash)
 
 	// fill header with state data
 	block.ChainID = s.ChainID
@@ -185,4 +187,131 @@ func MakeGenesisState(genDoc *types.GenesisDoc) (State, error) {
 
 		AppHash: genDoc.AppHash,
 	}, nil
+}
+
+// LoadStateFromDBOrGenesisFile loads the most recent state from the database,
+// or creates a new one from the given genesisFilePath and persists the result
+// to the database.
+func LoadStateFromDBOrGenesisFile(stateDB dbm.DB, genesisFilePath string) (State, error) {
+	state := LoadState(stateDB)
+	if state.IsEmpty() {
+		var err error
+		state, err = MakeGenesisStateFromFile(genesisFilePath)
+		if err != nil {
+			return state, err
+		}
+		SaveState(stateDB, state)
+	}
+
+	return state, nil
+}
+
+// LoadStateFromDBOrGenesisDoc loads the most recent state from the database,
+// or creates a new one from the given genesisDoc and persists the result
+// to the database.
+func LoadStateFromDBOrGenesisDoc(stateDB dbm.DB, genesisDoc *types.GenesisDoc) (State, error) {
+	state := LoadState(stateDB)
+	if state.IsEmpty() {
+		var err error
+		state, err = MakeGenesisState(genesisDoc)
+		if err != nil {
+			return state, err
+		}
+		SaveState(stateDB, state)
+	}
+
+	return state, nil
+}
+
+// LoadState loads the State from the database.
+func LoadState(db dbm.DB) State {
+	return loadState(db, stateKey)
+}
+
+func loadState(db dbm.DB, key []byte) (state State) {
+	buf := db.Get(key)
+	if len(buf) == 0 {
+		return state
+	}
+
+	r, n, err := bytes.NewReader(buf), new(int), new(error)
+	wire.ReadBinaryPtr(&state, r, 0, n, err)
+	if *err != nil {
+		// DATA HAS BEEN CORRUPTED OR THE SPEC HAS CHANGED
+		fmt.Printf(fmt.Sprintf(`LoadState: Data has been corrupted or its spec has changed:%v\n`, *err))
+		os.Exit(1)
+	}
+	// TODO: ensure that buf is completely read.
+
+	return state
+}
+
+// SaveState persists the State, the ValidatorsInfo, and the ConsensusParamsInfo to the database.
+func SaveState(db dbm.DB, s State) {
+	saveState(db, s, stateKey)
+}
+
+func saveState(db dbm.DB, s State, key []byte) {
+	nextHeight := s.LastBlockHeight + 1
+	saveValidatorsInfo(db, nextHeight, s.LastHeightValidatorsChanged, s.Validators)
+	saveConsensusParamsInfo(db, nextHeight, s.LastHeightConsensusParamsChanged, s.ConsensusParams)
+	db.SetSync(stateKey, s.Bytes())
+}
+
+// ValidatorsInfo represents the latest validator set, or the last height it changed
+type ValidatorsInfo struct {
+	ValidatorSet      *types.ValidatorSet
+	LastHeightChanged int64
+}
+
+// Bytes serializes the ValidatorsInfo using go-wire
+func (valInfo *ValidatorsInfo) Bytes() []byte {
+	return wire.BinaryBytes(*valInfo)
+}
+
+// ConsensusParamsInfo represents the latest consensus params, or the last height it changed
+type ConsensusParamsInfo struct {
+	ConsensusParams   types.ConsensusParams
+	LastHeightChanged int64
+}
+
+// Bytes serializes the ConsensusParamsInfo using go-wire
+func (params ConsensusParamsInfo) Bytes() []byte {
+	return wire.BinaryBytes(params)
+}
+
+func calcValidatorsKey(height int64) []byte {
+	return []byte(fmt.Sprintf("validatorsKey:%v", height))
+}
+
+func calcConsensusParamsKey(height int64) []byte {
+	return []byte(fmt.Sprintf("consensusParamsKey:%v", height))
+}
+
+// saveValidatorsInfo persists the validator set for the next block to disk.
+// It should be called from s.Save(), right before the state itself is persisted.
+// If the validator set did not change after processing the latest block,
+// only the last height for which the validators changed is persisted.
+func saveValidatorsInfo(db dbm.DB, nextHeight, changeHeight int64, valSet *types.ValidatorSet) {
+	valInfo := &ValidatorsInfo{
+		LastHeightChanged: changeHeight,
+	}
+	if changeHeight == nextHeight {
+		valInfo.ValidatorSet = valSet
+	}
+	db.SetSync(calcValidatorsKey(nextHeight), valInfo.Bytes())
+}
+
+// saveConsensusParamsInfo persists the consensus params for the next block to disk.
+// It should be called from s.Save(), right before the state itself is persisted.
+// If the consensus params did not change after processing the latest block,
+// only the last height for which they changed is persisted.
+func saveConsensusParamsInfo(db dbm.DB, nextHeight, changeHeight int64, params types.ConsensusParams) {
+	paramsInfo := &ConsensusParamsInfo{
+		LastHeightChanged: changeHeight,
+	}
+	if changeHeight == nextHeight {
+		paramsInfo.ConsensusParams = params
+	}
+	db.SetSync(calcConsensusParamsKey(nextHeight), paramsInfo.Bytes())
 }
