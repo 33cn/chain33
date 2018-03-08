@@ -48,7 +48,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.badChan = make(chan queue.Message, channelSize)
 	pool.balanChan = make(chan queue.Message, channelSize)
 	pool.goodChan = make(chan queue.Message, channelSize)
-	pool.minFee = types.MinFee
+	pool.minFee = cfg.MinTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	return pool
 }
@@ -203,7 +203,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 	}
 
 	for _, tx := range blkTxs {
-		err := tx.Check(true)
+		err := tx.Check(mem.minFee)
 		if err != nil {
 			continue
 		}
