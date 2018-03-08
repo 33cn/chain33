@@ -59,13 +59,16 @@ func (tx *Transaction) CheckSign() bool {
 	return CheckSign(data, tx.GetSignature())
 }
 
-func (tx *Transaction) Check() error {
+func (tx *Transaction) Check(needfee bool) error {
 	if !isAllowExecName(string(tx.Execer)) {
 		return ErrExecNameNotAllow
 	}
 	txSize := Size(tx)
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
+	}
+	if !needfee {
+		return nil
 	}
 	// 检查交易费是否小于最低值
 	realFee := int64(txSize/1000+1) * MinFee
