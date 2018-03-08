@@ -120,4 +120,6 @@ var (
 	ErrLabelNotExist       = errors.New("ErrLabelNotExist")
 	ErrAccountNotExist     = errors.New("ErrAccountNotExist")
 	ErrSeedExist           = errors.New("ErrSeedExist")
+	ErrNotSupport          = errors.New("ErrNotSupport")
+	ErrSeedWordNum         = errors.New("ErrSeedWordNum")
 )
