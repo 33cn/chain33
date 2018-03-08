@@ -203,7 +203,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 	}
 
 	for _, tx := range blkTxs {
-		err := tx.Check()
+		err := tx.Check(true)
 		if err != nil {
 			continue
 		}
