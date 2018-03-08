@@ -45,9 +45,9 @@ const Version = "v0.1.0"
 func main() {
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
-	//os.Chdir(pwd())
-	//d, _ = os.Getwd()
-	//log.Info("current dir:", "dir", d)
+	os.Chdir(pwd())
+	d, _ = os.Getwd()
+	log.Info("current dir:", "dir", d)
 	//set file limit
 	agent := stackimpact.Start(stackimpact.Options{
 		AgentKey: "eb4c12dfe2d4b23b22634e7fed4d65899d5ca925",
