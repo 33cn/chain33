@@ -8,6 +8,7 @@ import (
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 func (p *peer) Start() {
@@ -23,8 +24,7 @@ func (p *peer) Close() {
 	close(p.allLoopDone)
 	close(p.taskPool)
 	close(p.filterTask.loopDone)
-	ps.Unsub(p.taskChan, p.Addr())
-
+	pub.Unsub(p.taskChan, "block", "tx")
 }
 
 type peer struct {
@@ -157,7 +157,7 @@ func (p *peer) heartBeat() {
 		err := pcli.SendVersion(p, *p.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
 		if err == nil {
-			p.taskChan = ps.Sub(p.Addr())
+			p.taskChan = pub.Sub("block", "tx")
 			go p.filterTask.ManageFilterTask()
 			go p.sendStream()
 			go p.readStream()
@@ -195,6 +195,7 @@ func (p *peer) sendStream() {
 	//Stream Send data
 	for {
 		if p.GetRunning() == false {
+			log.Error("sendStream peer is not running")
 			return
 		}
 		ctx, cancel := context.WithCancel(context.Background())
@@ -202,6 +203,7 @@ func (p *peer) sendStream() {
 		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
 			time.Sleep(time.Second * 5)
+			log.Error("sendStream", "CollectPeerStat", err)
 			cancel()
 			continue
 		}
@@ -210,12 +212,12 @@ func (p *peer) sendStream() {
 		if err == nil {
 			p2pdata := new(pb.BroadCastData)
 			p2pdata.Value = &pb.BroadCastData_Ping{Ping: ping}
-			if resp.Send(p2pdata) != nil {
+			if err := resp.Send(p2pdata); err != nil {
 				time.Sleep(time.Second)
 				cancel()
+				log.Error("sendStream", "sendping", err)
 				continue
 			}
-
 		}
 
 	SEND_LOOP:
@@ -226,6 +228,7 @@ func (p *peer) sendStream() {
 				if p.GetRunning() == false {
 					resp.CloseSend()
 					cancel()
+					log.Error("sendStream peer is not running")
 					return
 				}
 				p2pdata := new(pb.BroadCastData)
@@ -256,7 +259,12 @@ func (p *peer) sendStream() {
 				}
 				err := resp.Send(p2pdata)
 				if err != nil {
+					log.Error("sendStream", "send", err)
 					p.peerStat.NotOk()
+					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
+						(*p.nodeInfo).blacklist.Add(p.Addr())
+					}
+					time.Sleep(time.Second) //have a rest
 					(*p.nodeInfo).monitorChan <- p
 					resp.CloseSend()
 					cancel()
@@ -264,6 +272,7 @@ func (p *peer) sendStream() {
 				}
 			case <-timeout.C:
 				if p.GetRunning() == false {
+					log.Error("sendStream timeout")
 					resp.CloseSend()
 					cancel()
 					return
@@ -290,6 +299,7 @@ func (p *peer) readStream() {
 		resp, err := p.mconn.conn.ServerStreamSend(context.Background(), ping)
 		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
+			log.Error("readStream", "serverstreamsend,err:", err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -301,15 +311,18 @@ func (p *peer) readStream() {
 			}
 			data, err := resp.Recv()
 			if err != nil {
-
+				log.Error("readStream", "recv,err:", err)
 				resp.CloseSend()
 				p.peerStat.NotOk()
+				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
+					(*p.nodeInfo).blacklist.Add(p.Addr())
+				}
+				time.Sleep(time.Second) //have a rest
 				(*p.nodeInfo).monitorChan <- p
 				break
 			}
 
 			if block := data.GetBlock(); block != nil {
-
 				if block.GetBlock() != nil {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
 					if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
@@ -328,7 +341,7 @@ func (p *peer) readStream() {
 					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 					err = (*p.nodeInfo).qclient.Send(msg, false)
 					if err != nil {
-						log.Error("subStreamBlock", "Error", err.Error())
+						log.Error("subStreamBlock", "send to blockchain Error", err.Error())
 						continue
 					}
 					p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
@@ -346,12 +359,9 @@ func (p *peer) readStream() {
 					(*p.nodeInfo).qclient.Send(msg, false)
 					p.filterTask.RegTask(hex.EncodeToString(sig)) //登记
 				}
-
 			}
-
 		}
 	}
-
 }
 
 func (p *peer) SetRunning(run bool) {
@@ -398,14 +408,3 @@ func (p *peer) ReleaseTask() {
 	<-p.taskPool
 	return
 }
-
-//func (p *peer) BroadCastData() {
-//	//TODO 通过Stream 广播出去subStreamBlock
-//	for task := range p.taskChan {
-//		if block, ok := task.(*pb.P2PBlock); ok {
-//			go p.mconn.conn.BroadCastBlock(context.Background(), block)
-//		} else if tx, ok := task.(*pb.P2PTx); ok {
-//			go p.mconn.conn.BroadCastTx(context.Background(), tx)
-//		}
-//	}
-//}

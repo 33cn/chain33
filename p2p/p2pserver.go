@@ -483,7 +483,7 @@ func (s *p2pServer) ManageStream() {
 
 	}()
 	go func() {
-		fifoChan := ps.Sub("Stream")
+		fifoChan := pub.Sub("Stream")
 		for data := range fifoChan {
 			s.addStreamData(data)
 		}
