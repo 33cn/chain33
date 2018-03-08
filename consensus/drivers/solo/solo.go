@@ -69,7 +69,7 @@ func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 func (client *SoloClient) CreateBlock() {
 	issleep := true
 	for {
-		if !client.IsMining() {
+		if !client.IsMining() || !client.IsCaughtUp() {
 			time.Sleep(time.Second)
 			continue
 		}

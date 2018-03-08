@@ -11,20 +11,19 @@ import (
 type NodeInfo struct {
 	mtx sync.Mutex
 
-	pubKey           []byte
-	network          string
-	externalAddr     *NetAddress
-	listenAddr       *NetAddress
-	version          string
-	monitorChan      chan *peer
-	natNoticeChain   chan struct{}
-	natResultChain   chan bool
-	p2pBroadcastChan chan interface{}
-	cfg              *types.P2P
-	q                *queue.Queue
-	qclient          queue.Client
-	blacklist        *BlackList
-	peerInfos        *PeerInfos
+	pubKey         []byte
+	network        string
+	externalAddr   *NetAddress
+	listenAddr     *NetAddress
+	version        string
+	monitorChan    chan *peer
+	natNoticeChain chan struct{}
+	natResultChain chan bool
+	cfg            *types.P2P
+	q              *queue.Queue
+	qclient        queue.Client
+	blacklist      *BlackList
+	peerInfos      *PeerInfos
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
@@ -32,7 +31,6 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.monitorChan = make(chan *peer, 1024)
 	nodeInfo.natNoticeChain = make(chan struct{}, 1)
 	nodeInfo.natResultChain = make(chan bool, 1)
-	nodeInfo.p2pBroadcastChan = make(chan interface{}, 4096)
 	nodeInfo.blacklist = &BlackList{badPeers: make(map[string]bool)}
 	nodeInfo.cfg = cfg
 	nodeInfo.peerInfos = new(PeerInfos)
