@@ -1,14 +1,14 @@
 Title="chain33"
 
-Loglevel="debug"
-LogConsoleLevel="info"
+Loglevel="info"
+LogConsoleLevel="debug"
 LogFile="chain33.log"
 
 [blockchain]
 defCacheSize=512
 maxFetchBlockNum=128
 timeoutSeconds=5
-batchBlockNum=100
+batchBlockNum=128
 driver="gobadgerdb"
 dbPath="datadir"
 isStrongConsistency=false
