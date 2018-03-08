@@ -33,6 +33,7 @@ message Wallet {
 	int64 minFee = 1;
 	string driver = 2;
 	string dbPath = 3;
+	string signType =4;
 }
 
 message Store {
@@ -53,6 +54,7 @@ message BlockChain {
 	string driver = 5;
 	string dbPath = 6;
 	bool isStrongConsistency = 7;
+	bool singleMode = 8;
 }
 
 message P2P {

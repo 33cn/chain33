@@ -296,7 +296,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	if err != nil {
 		return nil, err
 	}
-	tx.Sign(types.SECP256K1, priv)
+	tx.Sign(int32(SignType), priv)
 	reply, err := wallet.sendTx(tx)
 	if err != nil {
 		return nil, err
@@ -381,7 +381,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	}
 	//初始化随机数d
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
-	tx.Sign(types.SECP256K1, priv)
+	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块
 	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
@@ -412,7 +412,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := account.LoadAccounts(client.qclient, exaddrs)
+		accounts, err := accountdb.LoadAccounts(client.qclient, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -423,7 +423,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := account.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
+			account, err := accountdb.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
@@ -450,4 +450,17 @@ func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	}
 	reply := resp.GetData().(types.Message).(*types.ReplyStrings)
 	return reply.Datas, nil
+}
+
+func (client *Wallet) IsCaughtUp() bool {
+	if client.qclient == nil {
+		panic("wallet client not bind message queue.")
+	}
+	msg := client.qclient.NewMessage("blockchain", types.EventIsSync, nil)
+	client.qclient.Send(msg, true)
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return false
+	}
+	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
 }

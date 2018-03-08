@@ -37,7 +37,6 @@ type Mempool struct {
 	header    *types.Header
 	minFee    int64
 	addedTxs  *lru.Cache
-	cacheDB   *account.CacheDB
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -204,7 +203,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 	}
 
 	for _, tx := range blkTxs {
-		err := tx.Check()
+		err := tx.Check(true)
 		if err != nil {
 			continue
 		}
@@ -363,12 +362,6 @@ func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 	mem.qclient.Send(msg, false)
 }
 
-func (mem *Mempool) GetDB() *account.CacheDB {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	return mem.cacheDB
-}
-
 // Mempool.pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
 	for {
@@ -387,7 +380,6 @@ func (mem *Mempool) pollLastHeader() {
 func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Lock()
 	mem.header = h
-	mem.cacheDB = account.NewCacheDB(mem.memQueue, mem.header.StateHash)
 	mem.proxyMtx.Unlock()
 }
 
