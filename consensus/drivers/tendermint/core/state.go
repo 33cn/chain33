@@ -21,6 +21,7 @@ import (
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
 	"os"
 	"code.aliyun.com/chain33/chain33/types"
+	"github.com/gogo/protobuf/proto"
 )
 
 //-----------------------------------------------------------------------------
@@ -119,6 +120,7 @@ type ConsensusState struct {
 	Quit    chan struct{}
 
 	NewTxsHeight  chan int64
+	NewTxsFinished   chan bool
 }
 
 func TxEncode(data interface{}) ([]byte, error) {
@@ -152,6 +154,8 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 		//wal:              nilWAL{},
 		// mock the evidence pool hg 20180227
 		evpool:           ttypes.MockEvidencePool{},
+		NewTxsHeight:     make(chan int64, 1),
+		NewTxsFinished:   make(chan bool),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -916,11 +920,16 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	}
 
 	var txs []*types.Transaction
+	var newtxs []ttypes.Tx
 	var lastParentHash []byte
 	var blockTime int64
 	var lastStateHash []byte
+	var err error
 	if cs.Height == 1 {
-		txs =cs.CreateGenesisTx()
+		txs, newtxs, err =cs.CreateGenesisTx()
+		if err != nil {
+			cs.Logger.Error("enterPropose: CreateGenesisTx failed.", "error", err)
+		}
 		lastParentHash = zeroHash[:]
 		blockTime = cs.client.Cfg.GenesisBlockTime
 		lastStateHash = lastParentHash
@@ -930,17 +939,18 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 		blockTime = 0
 		lastStateHash = lastBlock.StateHash
 		txs = cs.client.RequestTx()
+		cs.NewTxsFinished <- true
 		if len(txs) > 0 {
 			//check dup
 			txs = cs.client.CheckTxDup(txs)
+			newtxs, err= cs.Convert2ByteTxs(txs)
+			if err != nil {
+				cs.Logger.Error("enterPropose: Convert2ByteTxs failed.", "error", err)
+			}
 		} else {
 			return nil, nil
 		}
 	}
-
-	newtxs:=make([]ttypes.Tx,1)
-	//var err error
-	newtxs[0] = wire.BinaryBytes(txs)
 	/*
 	if err != nil{
 		cs.Logger.Error("enterPropose: TxEncode", "error", err)
@@ -954,7 +964,31 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	return block, parts
 }
 
-func (client *ConsensusState) CreateGenesisTx() (ret []*types.Transaction) {
+func (client *ConsensusState) Convert2ByteTxs(txs []*types.Transaction) (byteTxs []ttypes.Tx, err error) {
+	for _, val := range txs {
+		var tx ttypes.Tx
+		tx, err = proto.Marshal(val)
+		if err != nil {
+			return nil, err
+		}
+		byteTxs = append(byteTxs, tx)
+	}
+	return byteTxs, nil
+}
+
+func (client *ConsensusState) Convert2LocalTxs(byteTxs []ttypes.Tx) (txs []*types.Transaction, err error) {
+	for _, val := range byteTxs {
+		var item types.Transaction
+		err = proto.Unmarshal(val, &item)
+		if err != nil {
+			return nil, err
+		}
+		txs = append(txs, &item)
+	}
+	return txs, nil
+}
+
+func (client *ConsensusState) CreateGenesisTx() (ret []*types.Transaction, txs []ttypes.Tx, err error) {
 	var tx types.Transaction
 	tx.Execer = []byte("coins")
 	tx.To = client.client.Cfg.Genesis
@@ -964,7 +998,13 @@ func (client *ConsensusState) CreateGenesisTx() (ret []*types.Transaction) {
 	g.Genesis.Amount = 1e8 * types.Coin
 	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx)
-	return
+	var newTx ttypes.Tx
+	newTx, err = proto.Marshal(&tx)
+	if err != nil{
+		return nil, nil, err
+	}
+	txs = append(txs, newTx)
+	return ret, txs, nil
 }
 
 // Enter: `timeoutPropose` after entering Propose.
@@ -1307,13 +1347,13 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		cs.Logger.Error("txs of block is empty")
 	}
 	var newblock gtypes.Block
+	var err error
 	newblock.ParentHash = block.LastParentHash
 	newblock.Height = block.Height - 1
-	var txs []*types.Transaction
-	if err := wire.ReadBinaryBytes(block.Data.Txs[0], txs); err !=nil{
+	newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
+	if err !=nil{
 		cs.Logger.Error("convert TXs to transaction failed", "err", err)
-	} else {
-		newblock.Txs = txs
+		return
 	}
 
 	fail.Fail() // XXX
@@ -1328,9 +1368,42 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		newblock.BlockTime = block.LastBlockTime
 	}
 
-	err := cs.client.WriteBlock(block.LastStateHash, &newblock)
+	err = cs.client.WriteBlock(block.LastStateHash, &newblock)
 	if err != nil {
 		cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
+	} else {
+		// copy the valset so we can apply changes from EndBlock
+		// and update s.LastValidators and s.Validators
+		prevValSet := stateCopy.Validators.Copy()
+		nextValSet := prevValSet.Copy()
+		// update the validator set with the latest abciResponses
+		lastHeightValsChanged := stateCopy.LastHeightValidatorsChanged
+
+		// Update validator accums and set state variables
+		nextValSet.IncrementAccum(1)
+
+		// update the params with the latest abciResponses
+		nextParams := stateCopy.ConsensusParams
+		lastHeightParamsChanged := stateCopy.LastHeightConsensusParamsChanged
+
+
+		// NOTE: the AppHash has not been populated.
+		// It will be filled on state.Save.
+		stateCopy = sm.State{
+			ChainID:                          stateCopy.ChainID,
+			LastBlockHeight:                  block.Header.Height,
+			LastBlockTotalTx:                 stateCopy.LastBlockTotalTx + block.Header.NumTxs,
+			LastBlockID:                      blockID,
+			LastBlockTime:                    block.Header.Time,
+			Validators:                       nextValSet,
+			LastValidators:                   stateCopy.Validators.Copy(),
+			LastHeightValidatorsChanged:      lastHeightValsChanged,
+			ConsensusParams:                  nextParams,
+			LastHeightConsensusParamsChanged: lastHeightParamsChanged,
+			LastResultsHash:                  nil,//abciResponses.ResultsHash(),
+			AppHash:                          nil,
+		}
+		cs.updateToState(stateCopy)
 	}
 	/*
 	// NOTE: the block.AppHash wont reflect these txs until the next block
@@ -1349,7 +1422,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	fail.Fail() // XXX
 
 	// NewHeightStep!
-	cs.updateToState(stateCopy)
+	//cs.updateToState(stateCopy)
 
 	fail.Fail() // XXX
 

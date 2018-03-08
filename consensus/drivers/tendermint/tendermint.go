@@ -46,7 +46,7 @@ type TendermintClient struct{
 // DefaultDBProvider returns a database using the DBBackend and DBDir
 // specified in the ctx.Config.
 func DefaultDBProvider(ID string) (dbm.DB, error) {
-	return dbm.NewDB(ID, "leveldb", "."), nil
+	return dbm.NewDB(ID, "leveldb", "./datadir"), nil
 }
 
 // panics if failed to unmarshal bytes
@@ -186,13 +186,24 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 
 	go func() {
 		for {
-			txs:=client.RequestTx()
-			if len(txs) != 0 {
+			txs, err:=client.GetMempoolTxs()
+			if err != nil {
+				tendermintlog.Error("TendermintClientSetQueue", "msg", "GetMempoolTxs failed", "error", err)
+			} else if len(txs) != 0{
 				txs = client.CheckTxDup(txs)
 				lastBlock := client.GetCurrentBlock()
 				if len(txs) != 0{
 					//our chain index init -1, tendermint index init 0
 					client.csState.NewTxsAvailable(lastBlock.Height + 1)
+					select {
+					case finish := <- client.csState.NewTxsFinished :
+						if finish {
+							continue
+						} else {
+							tendermintlog.Error("TendermintClientSetQueue", "msg", "GetMempoolTxs msg not finiish", "error", err)
+						}
+
+					}
 				}
 			}
 			time.Sleep(1*time.Second)
