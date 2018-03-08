@@ -32,17 +32,11 @@ func DisableLog() {
 
 type Executor struct {
 	qclient queue.Client
-	needfee bool
 }
 
 func New() *Executor {
 	exec := &Executor{}
-	exec.needfee = true
 	return exec
-}
-
-func (exec *Executor) SetNeedFee(needfee bool) {
-	exec.needfee = needfee
 }
 
 func (exec *Executor) SetQueue(q *queue.Queue) {
@@ -74,7 +68,7 @@ func (exec *Executor) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
-		err := execute.execCheckTx(tx, i, exec.needfee)
+		err := execute.execCheckTx(tx, i)
 		if err != nil {
 			result.Errs = append(result.Errs, err.Error())
 		} else {
@@ -103,7 +97,7 @@ func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 		//交易检查规则：
 		//1. mempool 检查区块，尽量检查更多的错误
 		//2. 打包的时候，尽量打包更多的交易，只要基本的签名，以及格式没有问题
-		err := execute.checkTx(tx, index, exec.needfee)
+		err := execute.checkTx(tx, index)
 		if err != nil {
 			receipt := types.NewErrReceipt(err)
 			receipts = append(receipts, receipt)
@@ -113,7 +107,7 @@ func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		if exec.needfee {
+		if types.MinFee > 0 {
 			feelog, err = execute.processFee(tx)
 			if err != nil {
 				receipt := types.NewErrReceipt(err)
@@ -256,26 +250,26 @@ func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance *types.Recei
 	return &types.Receipt{types.ExecPack, e.coinsAccount.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
-func (e *executor) checkTx(tx *types.Transaction, index int, needfee bool) error {
+func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(needfee); err != nil {
+	if err := tx.Check(types.MinFee); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (e *executor) execCheckTx(tx *types.Transaction, index int, needfee bool) error {
+func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//基本检查
-	err := e.checkTx(tx, index, needfee)
+	err := e.checkTx(tx, index)
 	if err != nil {
 		return err
 	}
 
 	//手续费检查
-	if needfee {
+	if types.MinFee > 0 {
 		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 		accFrom := e.coinsAccount.LoadAccount(from)
 		if accFrom.GetBalance() < types.MinBalanceTransfer {

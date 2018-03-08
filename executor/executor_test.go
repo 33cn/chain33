@@ -44,7 +44,7 @@ func initEnv() *queue.Queue {
 
 	exec := executor.New()
 	exec.SetQueue(q)
-	exec.SetNeedFee(false)
+	types.SetMinFee(0)
 	s := store.New(cfg.Store)
 	s.SetQueue(q)
 
