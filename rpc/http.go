@@ -29,7 +29,6 @@ func (j *JsonRpcServer) Listen(addr string) {
 		log.Crit("listen:", "err", err)
 		panic(err)
 	}
-	j.Listener = listener
 	server := rpc.NewServer()
 
 	server.Register(&j.jrpc)
@@ -50,7 +49,7 @@ func (j *JsonRpcServer) Listen(addr string) {
 	})
 
 	handler = co.Handler(handler)
-	http.Serve(j.Listener, handler)
+	http.Serve(listener, handler)
 }
 
 func (g *Grpcserver) Listen(addr string) {
@@ -59,8 +58,7 @@ func (g *Grpcserver) Listen(addr string) {
 		log.Crit("failed to listen:", "err", err)
 		panic(err)
 	}
-	g.Listener = listener
 	s := grpc.NewServer()
 	pb.RegisterGrpcserviceServer(s, &g.grpc)
-	s.Serve(g.Listener)
+	s.Serve(listener)
 }
