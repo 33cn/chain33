@@ -274,12 +274,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	if err != nil {
 		return err
 	}
-
-	//手续费检查
-	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	accFrom := e.coinsAccount.LoadAccount(from)
-	if accFrom.GetBalance() < types.MinBalanceTransfer {
-		return types.ErrBalanceLessThanTenTimesFee
+	//手续费检查，常规读写不检查
+	if string(tx.Execer) != "norm" {
+		//手续费检查
+		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+		accFrom := e.coinsAccount.LoadAccount(from)
+		if accFrom.GetBalance() < types.MinBalanceTransfer {
+			return types.ErrBalanceLessThanTenTimesFee
+		}
 	}
 	//checkInExec
 	exec, err := drivers.LoadDriver(string(tx.Execer))
