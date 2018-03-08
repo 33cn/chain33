@@ -12,7 +12,7 @@ import (
 
 var (
 	log = l.New("module", "p2p")
-	ps  *common.PubSub
+	pub *common.PubSub
 )
 
 type P2p struct {
@@ -29,7 +29,7 @@ type P2p struct {
 
 func New(cfg *types.P2P) *P2p {
 
-	ps = common.NewPubSub(int(cfg.GetMsgCacheSize()))
+	pub = common.NewPubSub(int(cfg.GetMsgCacheSize()))
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
@@ -58,7 +58,7 @@ func (network *P2p) Close() {
 
 	close(network.txFactory)
 	close(network.otherFactory)
-	ps.Shutdown()
+	pub.Shutdown()
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
@@ -100,7 +100,7 @@ func (network *P2p) subP2pMsg() {
 	go func() {
 		for msg := range network.c.Recv() {
 
-			log.Debug("Recv", "Ty", msg.Ty)
+			log.Debug("p2p recv", "msg", types.GetEventName(int(msg.Ty)), "txCap", len(network.txFactory), "othercap", len(network.otherFactory))
 			if msg.Ty == types.EventTxBroadcast {
 				network.txFactory <- struct{}{} //allocal task
 				atomic.AddInt32(&network.txCapcity, -1)
