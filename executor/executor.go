@@ -127,12 +127,15 @@ func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		if exec.needfee {
-			feelog, err = execute.processFee(tx)
-			if err != nil {
-				receipt := types.NewErrReceipt(err)
-				receipts = append(receipts, receipt)
-				continue
+		//手续费检查，常规读写不检查
+		if string(tx.Execer) != "norm" {
+			if exec.needfee {
+				feelog, err = execute.processFee(tx)
+				if err != nil {
+					receipt := types.NewErrReceipt(err)
+					receipts = append(receipts, receipt)
+					continue
+				}
 			}
 		}
 		//只有到pack级别的，才会增加index
@@ -287,15 +290,9 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int, needfee bool) e
 	if err != nil {
 		return err
 	}
-<<<<<<< HEAD
-	//手续费检查，常规读写不检查
-	if string(tx.Execer) != "norm" {
-		//手续费检查
-=======
 
 	//手续费检查
 	if needfee {
->>>>>>> origin/develop
 		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 		accFrom := e.coinsAccount.LoadAccount(from)
 		if accFrom.GetBalance() < types.MinBalanceTransfer {
