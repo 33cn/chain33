@@ -351,7 +351,7 @@ type TxResult struct {
 type TxDetailResult struct {
 	Tx         *TxResult    `json:"tx"`
 	Receipt    *ReceiptData `json:"receipt"`
-	Proofs     []string     `json:"proofs"`
+	Proofs     []string     `json:"proofs,omitempty"`
 	Height     int64        `json:"height"`
 	Index      int64        `json:"index"`
 	Blocktime  int64        `json:"blocktime"`
