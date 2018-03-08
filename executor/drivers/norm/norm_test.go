@@ -73,7 +73,7 @@ func createKV() error {
 
 func TestNormPut(t *testing.T) {
 	fmt.Println("TestNormPut start")
-	defer time.Sleep(10 * time.Second)
+	defer time.Sleep(5 * time.Second)
 	defer fmt.Println("TestNormPut end\n")
 
 	err := createKV()
