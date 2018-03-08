@@ -1,7 +1,7 @@
 package norm
 
 import (
-	"code.aliyun.com/chain33/chain33/execs/execdrivers"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
@@ -9,12 +9,12 @@ import (
 var clog = log.New("module", "execs.norm")
 
 func init() {
-	execdrivers.Register("norm", newNorm())
-	execdrivers.RegisterAddress("norm")
+	drivers.Register("norm", newNorm())
+	drivers.RegisterAddress("norm")
 }
 
 type Norm struct {
-	execdrivers.ExecBase
+	drivers.DriverBase
 }
 
 func newNorm() *Norm {
