@@ -27,7 +27,7 @@ verMax=119
 
 [mempool]
 poolCacheSize=10240
-minTxFee=1000000
+minTxFee=100000
 
 [consensus]
 name="ticket"
