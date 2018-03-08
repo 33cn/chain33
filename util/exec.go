@@ -103,7 +103,9 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 		}
 	}
 	//save to db
-	ExecKVSetCommit(q, block.StateHash)
+	if kvset != nil {
+		ExecKVSetCommit(q, block.StateHash)
+	}
 
 	//get receipts
 	//save kvset and get state hash
