@@ -208,7 +208,7 @@ func (client *BaseClient) EventLoop() {
 
 func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	//check parent
-	if block.Block.Height == 0 { //genesis block not check
+	if block.Block.Height <= 0 { //genesis block not check
 		return nil
 	}
 	parent, err := client.RequestBlock(block.Block.Height - 1)
