@@ -113,7 +113,7 @@ func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 			}
 		}
 		//常规读写不检查手续费，需要检查签名
-		if !exec.GetIsFree() {
+		if exec.IsFree() {
 			receipt, err := execute.Exec(tx, index)
 			index++
 			if err != nil {
@@ -129,7 +129,7 @@ func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		if exec.GetIsFree() {
+		if !exec.IsFree() {
 			if types.MinFee > 0 {
 				feelog, err = execute.processFee(tx)
 				if err != nil {
