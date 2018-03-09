@@ -31,8 +31,10 @@ func NewCoinsAccount() *AccountDB {
 	return newAccountDB("mavl-coins-bty-")
 }
 
-func NewTokenAccount(symbol string) *AccountDB {
-	return newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+func NewTokenAccount(symbol string, db dbm.KVDB) *AccountDB {
+	accDB := newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+	accDB.SetDB(db)
+	return accDB
 }
 
 func newAccountDB(prefix string) *AccountDB {

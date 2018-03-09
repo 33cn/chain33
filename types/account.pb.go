@@ -102,6 +102,27 @@ It has these top-level messages:
 	PreRetrieve
 	PerformRetrieve
 	CancelRetrieve
+	TokenAction
+	TokenPreCreate
+	TokenFinishCreate
+	TokenRevokeCreate
+	Token
+	ReqTokens
+	ReplyTokens
+	ReceiptToken
+	Trade
+	TradeForSell
+	SellOrder
+	SellOrderReceipt
+	ReqAddrTokens
+	ReplySellOrders
+	TokenRecv
+	ReplyAddrRecvForTokens
+	TradeForBuy
+	TradeForRevokeSell
+	ReceiptTradeSell
+	ReceiptTradeBuy
+	TradeBuyDone
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
