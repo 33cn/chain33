@@ -220,9 +220,7 @@ func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	return header.GetHeight(), nil
 }
 func (m *P2pCli) GetPeerInfo(msg queue.Message) {
-
 	tempServer := NewP2pServer()
-
 	tempServer.node = m.network.node
 	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 	if err != nil {
