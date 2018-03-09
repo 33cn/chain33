@@ -174,6 +174,26 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 	return pub.VerifyBytes(data, signbytes)
 }
 
+func (c Comm) CollectPeerStat(err error, peer *peer) {
+	if err != nil {
+		peer.peerStat.NotOk()
+	} else {
+		peer.peerStat.Ok()
+	}
+	c.reportPeerStat(peer)
+}
+
+func (c Comm) reportPeerStat(peer *peer) {
+	timeout := time.NewTimer(time.Second)
+	select {
+	case (*peer.nodeInfo).monitorChan <- peer:
+	case <-timeout.C:
+		return
+	}
+	if !timeout.Stop() {
+		<-timeout.C
+	}
+}
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
 	var ready = false

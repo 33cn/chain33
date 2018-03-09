@@ -52,13 +52,16 @@ type Signature struct {
 }
 
 type Transaction struct {
-	Execer    string     `json:"execer"`
-	Payload   string     `json:"payload"`
-	Signature *Signature `json:"signature"`
-	Fee       int64      `json:"fee"`
-	Expire    int64      `json:"expire"`
-	Nonce     int64      `json:"nonce"`
-	To        string     `json:"to"`
+	Execer     string      `json:"execer"`
+	Payload    interface{} `json:"payload"`
+	RawPayload string      `json:"rawpayload"`
+	Signature  *Signature  `json:"signature"`
+	Fee        int64       `json:"fee"`
+	Expire     int64       `json:"expire"`
+	Nonce      int64       `json:"nonce"`
+	From       string      `json:"from,omitempty"`
+	To         string      `json:"to"`
+	Amount     int64       `json:"amount,omitempty"`
 }
 
 type ReceiptLog struct {
