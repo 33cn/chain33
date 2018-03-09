@@ -26,7 +26,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, types.ErrSign
 	}
-	//tx交易去重处理
+	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	oldtxscount := len(block.Txs)
 	txs := CheckTxDup(q, block.Txs)
 	newtxscount := len(txs)
