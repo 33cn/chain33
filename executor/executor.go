@@ -12,9 +12,9 @@ import (
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/norm"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/norm"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -104,8 +104,16 @@ func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 			receipts = append(receipts, receipt)
 			continue
 		}
+
+		exec, err := drivers.LoadDriver(string(tx.Execer))
+		if err != nil {
+			exec, err = drivers.LoadDriver("none")
+			if err != nil {
+				panic(err)
+			}
+		}
 		//常规读写不检查手续费，需要检查签名
-		if string(tx.Execer) == "norm" {
+		if !exec.GetIsFree() {
 			receipt, err := execute.Exec(tx, index)
 			index++
 			if err != nil {
@@ -121,24 +129,14 @@ func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-<<<<<<< HEAD
-		//手续费检查，常规读写不检查
-		if string(tx.Execer) != "norm" {
-			if exec.needfee {
+		if exec.GetIsFree() {
+			if types.MinFee > 0 {
 				feelog, err = execute.processFee(tx)
 				if err != nil {
 					receipt := types.NewErrReceipt(err)
 					receipts = append(receipts, receipt)
 					continue
 				}
-=======
-		if types.MinFee > 0 {
-			feelog, err = execute.processFee(tx)
-			if err != nil {
-				receipt := types.NewErrReceipt(err)
-				receipts = append(receipts, receipt)
-				continue
->>>>>>> origin/develop
 			}
 		}
 		//只有到pack级别的，才会增加index

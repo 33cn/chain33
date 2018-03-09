@@ -20,6 +20,7 @@ type Norm struct {
 func newNorm() *Norm {
 	n := &Norm{}
 	n.SetChild(n)
+	n.SetIsFree(true)
 	return n
 }
 
