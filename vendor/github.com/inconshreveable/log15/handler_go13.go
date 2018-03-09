@@ -17,6 +17,14 @@ func (h *swapHandler) Log(r *Record) error {
 	return h.Get().Log(r)
 }
 
+func (h *swapHandler) MaxLevel() int {
+	return h.Get().MaxLevel()
+}
+
+func (h *swapHandler) SetMaxLevel(maxLevel int) {
+	h.Get().SetMaxLevel(maxLevel)
+}
+
 func (h *swapHandler) Get() Handler {
 	return *(*Handler)(atomic.LoadPointer(&h.handler))
 }
