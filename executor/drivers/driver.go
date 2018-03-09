@@ -29,6 +29,7 @@ type Driver interface {
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	Query(funcName string, params []byte) (types.Message, error)
+	GetIsFree() bool
 }
 
 type DriverBase struct {
@@ -39,8 +40,15 @@ type DriverBase struct {
 	blocktime    int64
 	child        Driver
 	coinsaccount *account.AccountDB
+	isFree       bool
 }
 
+func (d *DriverBase) SetIsFree(isFree bool) {
+	d.isFree = isFree
+}
+func (d *DriverBase) GetIsFree() bool {
+	return d.isFree
+}
 func (d *DriverBase) SetEnv(height, blocktime int64) {
 	d.height = height
 	d.blocktime = blocktime
