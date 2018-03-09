@@ -1,14 +1,15 @@
 package db
 
 import (
-	"testing"
-	"io/ioutil"
 	"code.aliyun.com/chain33/chain33/common/db"
 	"github.com/dgraph-io/badger"
+	"io/ioutil"
+	"testing"
+	//"github.com/stretchr/testify/require"
 )
 
 func TestDB(t *testing.T) {
-	dir , err := ioutil.TempDir("", "badger")
+	dir, err := ioutil.TempDir("", "badger")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,16 +27,16 @@ func TestDB(t *testing.T) {
 
 	err = db.Update(func(txn *badger.Txn) error {
 		err := txn.Set([]byte("key1"), []byte("hello"))
-  		return err
+		return err
 	})
 }
 
 func TestBadger(t *testing.T) {
-	dir , err := ioutil.TempDir("", "badger")
-        if err != nil {
-                t.Fatal(err)
-        }
-        t.Log(dir)
+	dir, err := ioutil.TempDir("", "badger")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(dir)
 
 	badgerdb, err := db.NewGoBadgerDB("gobagderdb", dir, 16)
 	if err != nil {
@@ -43,12 +44,14 @@ func TestBadger(t *testing.T) {
 	}
 
 	t.Log("test Set")
-	badgerdb.Set([]byte("aaaaaa/1"), []byte("aaaaa"))
-	badgerdb.Set([]byte("my_key/1"), []byte("1"))
-	badgerdb.Set([]byte("my_key/2"), []byte("2"))
-	badgerdb.Set([]byte("my_key/3"), []byte("3"))
-	badgerdb.Set([]byte("my_key/4"), []byte("4"))
-	badgerdb.Set([]byte("zzzzzz/1"), []byte("zzzzzz"))
+	badgerdb.Set([]byte("aaaaaa/1"), []byte("aaaaaa/1"))
+	badgerdb.Set([]byte("my_key/1"), []byte("my_key/1"))
+	badgerdb.Set([]byte("my_key/2"), []byte("my_key/2"))
+	badgerdb.Set([]byte("my_key/3"), []byte("my_key/3"))
+	badgerdb.Set([]byte("my_key/4"), []byte("my_key/4"))
+	badgerdb.Set([]byte("my"), []byte("my"))
+	badgerdb.Set([]byte("my_"), []byte("my_"))
+	badgerdb.Set([]byte("zzzzzz/1"), []byte("zzzzzz/1"))
 
 	t.Log("test Get")
 	v := badgerdb.Get([]byte("aaaaaa/1"))
@@ -61,13 +64,25 @@ func TestBadger(t *testing.T) {
 	}
 
 	t.Log("test IteratorScanFromFirst")
-	list = badgerdb.IteratorScanFromFirst([]byte("my"), 2, 0)
+	list = badgerdb.IteratorScanFromFirst([]byte("my"), 2, 1)
 	for _, v = range list {
 		t.Log(string(v))
 	}
 
 	t.Log("test IteratorScanFromLast")
-	list = badgerdb.IteratorScanFromLast([]byte("my"), 100, 0)
+	list = badgerdb.IteratorScanFromLast([]byte("my"), 100, 1)
+	for _, v = range list {
+		t.Log(string(v))
+	}
+
+	t.Log("test IteratorScan 1")
+	list = badgerdb.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 1)
+	for _, v = range list {
+		t.Log(string(v))
+	}
+
+	t.Log("test IteratorScan 0")
+	list = badgerdb.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 0)
 	for _, v = range list {
 		t.Log(string(v))
 	}
