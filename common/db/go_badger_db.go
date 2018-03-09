@@ -121,15 +121,13 @@ func (db *GoBadgerDB) Print() {
 
 		for it.Rewind(); it.Valid(); it.Next() {
 			item := it.Item()
-/*
 			k := item.Key()
 			v, err := item.Value()
 			if err != nil {
 				return err
 			}
-			blog.Info("Print", "key", string(k), "value", v)
-*/
-			blog.Info("Print", "key", string(item.Key()))
+			blog.Info("Print", "key", string(k), "value", string(v))
+			//blog.Info("Print", "key", string(item.Key()))
 		}
 		return nil
 	})
@@ -146,8 +144,8 @@ func (db *GoBadgerDB) Stats() map[string]string {
 func (db *GoBadgerDB) Iterator() Iterator {
 	return nil
 	/*
-	   txn := db.db.NewTransaction(true)
-	   return txn.NewIterator(badger.DefaultIteratorOptions)
+		txn := db.db.NewTransaction(true)
+		return txn.NewIterator(badger.DefaultIteratorOptions)
 	*/
 }
 
