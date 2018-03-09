@@ -48,11 +48,7 @@ func (m *P2pCli) BroadCastTx(msg queue.Message) {
 		<-m.network.txFactory
 		atomic.AddInt32(&m.network.txCapcity, 1)
 	}()
-
-	peers := m.network.node.GetRegisterPeers()
-	for _, pr := range peers {
-		ps.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, pr.Addr())
-	}
+	pub.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, "tx")
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 
 }
@@ -534,13 +530,7 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message) {
 	defer func() {
 		<-m.network.otherFactory
 	}()
-
-	peers := m.network.node.GetRegisterPeers()
-
-	for _, pr := range peers {
-		ps.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, pr.Addr())
-	}
-
+	pub.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, "block")
 }
 
 func (m *P2pCli) GetExternIp(addr string) (string, bool) {
