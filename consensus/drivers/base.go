@@ -277,3 +277,23 @@ func (client *BaseClient) Lock() {
 func (client *BaseClient) Unlock() {
 	client.mulock.Unlock()
 }
+
+// Mempool中取交易列表
+func (client *BaseClient) GetMempoolTxs() ([]*types.Transaction, error) {
+	if client.qclient == nil {
+		panic("client not bind message queue.")
+	}
+	//debug.PrintStack()
+	//tlog.Error("requestTx", "time", time.Now().Format(time.RFC3339Nano))
+	msg := client.qclient.NewMessage("mempool", types.EventGetMempool, nil)
+	err := client.qclient.Send(msg, true)
+	if err != nil {
+		log.Error("GetMempool", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := client.qclient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.ReplyTxList).GetTxs(), nil
+}
