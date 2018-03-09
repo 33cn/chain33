@@ -6,7 +6,7 @@ import (
 )
 
 func (acc *AccountDB) LoadExecAccount(addr, execaddr string) *types.Account {
-	value, err := acc.db.Get(acc.ExecKey(addr, execaddr))
+	value, err := acc.db.Get(acc.ExecAccountKey(addr, execaddr))
 	if err != nil {
 		return &types.Account{Addr: addr}
 	}
@@ -27,7 +27,7 @@ func (acc *AccountDB) LoadExecAccountQueue(client queue.Client, addr, execaddr s
 	}
 	get := types.StoreGet{}
 	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
-	get.Keys = append(get.Keys, acc.ExecKey(addr, execaddr))
+	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
 	msg = client.NewMessage("store", types.EventStoreGet, &get)
 	client.Send(msg, true)
 	msg, err = client.Wait(msg)
@@ -57,11 +57,11 @@ func (acc *AccountDB) SaveExecAccount(execaddr string, acc1 *types.Account) {
 
 func (acc *AccountDB) GetExecKVSet(execaddr string, acc1 *types.Account) (kvset []*types.KeyValue) {
 	value := types.Encode(acc1)
-	kvset = append(kvset, &types.KeyValue{acc.ExecKey(acc1.Addr, execaddr), value})
+	kvset = append(kvset, &types.KeyValue{acc.ExecAccountKey(acc1.Addr, execaddr), value})
 	return kvset
 }
 
-func (acc *AccountDB) ExecKey(address, execaddr string) (key []byte) {
+func (acc *AccountDB) ExecAccountKey(address, execaddr string) (key []byte) {
 	key = append(key, acc.execAccountKeyPerfix...)
 	key = append(key, []byte(execaddr)...)
 	key = append(key, []byte(":")...)

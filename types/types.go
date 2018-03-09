@@ -166,8 +166,6 @@ func (tx *Transaction) ActionName() string {
 			return "withdraw"
 		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
-		} else {
-			return "unknow"
 		}
 	} else if "ticket" == string(tx.Execer) {
 		var action TicketAction
@@ -184,7 +182,6 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
 			return "miner"
 		}
-		return "unknow"
 	} else if "none" == string(tx.Execer) {
 		return "none"
 	} else if "hashlock" == string(tx.Execer) {
@@ -199,8 +196,6 @@ func (tx *Transaction) ActionName() string {
 			return "unlock"
 		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
 			return "send"
-		} else {
-			return "unknow"
 		}
 	} else if "retrieve" == string(tx.Execer) {
 		var action RetrieveAction
@@ -216,10 +211,37 @@ func (tx *Transaction) ActionName() string {
 			return "backup"
 		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
 			return "cancel"
-		} else {
-			return "unknow"
+		}
+	} else if "token" == string(tx.Execer) {
+		var action TokenAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if action.Ty == TokenActionPreCreate && action.GetTokenprecreate() != nil {
+			return "preCreate"
+		} else if action.Ty == TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
+			return "finishCreate"
+		} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
+			return "revokeCreate"
+		}
+	} else if "trade" == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.Payload, &trade)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if trade.Ty == TradeSell && trade.GetTokensell() != nil {
+			return "sell token"
+		} else if trade.Ty == TradeBuy && trade.GetTokenbuy() != nil {
+			return "buy token"
+		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
+			return "revokesell"
 		}
 	}
+
 	return "unknow"
 }
 

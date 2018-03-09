@@ -34,6 +34,12 @@ const (
 	TargetTimePerBlock              = 16 * time.Second
 	RetargetAdjustmentFactor        = 4
 	MaxTxsPerBlock                  = 100000
+	TokenNameLenLimit               = 128
+	TokenSymbolLenLimit             = 16
+	TokenIntroLenLimit              = 1024
+	TokenPrecisionLen               = 1e6
+	TokenCreatePriceStand           = 10000 * Coin
+	InvalidStartTime                = 0
 )
 
 const (
@@ -269,6 +275,16 @@ const (
 	TyLogCloseTicket = 112
 	TyLogMinerTicket = 113
 	TyLogTicketBind  = 114
+
+	//log for token create
+	TyLogPreCreateToken    = 211
+	TyLogFinishCreateToken = 212
+	TyLogRevokeCreateToken = 213
+
+	//log for trade
+	TyLogTradeSell         = 311
+	TyLogTradeBuy          = 312
+	TyLogTradeRevoke       = 313
 )
 
 //exec type
@@ -309,4 +325,34 @@ const (
 	RetrievePerf   = 2
 	RetrieveBackup = 3
 	RetrieveCancel = 4
+)
+
+const (
+	ActionTransfer = iota << 1
+	ActionGenesis
+	ActionWithdraw
+    TokenActionPreCreate
+	TokenActionFinishCreate
+	TokenActionRevokeCreate
+)
+
+const (
+	TokenStatusPreCreated    = iota << 10
+	TokenStatusCreated
+	TokenStatusCreateRevoked
+)
+
+const (
+	TradeSell = iota << 2
+	TradeBuy
+	TradeRevokeSell
+)
+
+//0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
+const (
+	NotStart = iota << 5
+	OnSale
+	SoldOut
+	Revoked
+	Expired
 )
