@@ -87,3 +87,8 @@ message BlockBody {
 	repeated Transaction txs = 1;
 	repeated ReceiptData receipts = 2;
 }
+
+message IsCaughtUp {
+	bool Iscaughtup  = 1;
+}
+

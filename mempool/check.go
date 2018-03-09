@@ -23,7 +23,7 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	}
 	mem.addedTxs.Add(string(tx.Hash()), nil)
 	// 检查交易消息是否过大
-	err := tx.Check()
+	err := tx.Check(true)
 	if err != nil {
 		msg.Data = err
 		return msg

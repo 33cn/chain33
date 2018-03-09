@@ -3,7 +3,6 @@ package wallet
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -26,6 +25,8 @@ var (
 	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
+	SignType          int   = 1 //1；secp256k1，2：ed25519，3：sm2
+	accountdb               = account.NewCoinsAccount()
 )
 
 type Wallet struct {
@@ -60,6 +61,9 @@ func New(cfg *types.Wallet) *Wallet {
 	walletStoreDB := dbm.NewDB("wallet", "leveldb", cfg.DbPath, 16)
 	walletStore := NewWalletStore(walletStoreDB)
 	minFee = cfg.MinFee
+	if "secp256k1" == cfg.SignType {
+		SignType = 1
+	}
 	wallet := &Wallet{
 		walletStore:   walletStore,
 		isLocked:      false,
@@ -67,7 +71,7 @@ func New(cfg *types.Wallet) *Wallet {
 		wg:            &sync.WaitGroup{},
 		FeeAmount:     walletStore.GetFeeAmount(),
 		EncryptFlag:   walletStore.GetEncryptionFlag(),
-		miningTicket:  time.NewTicker(time.Minute),
+		miningTicket:  time.NewTicker(5 * time.Minute),
 		done:          make(chan struct{}),
 	}
 	value := walletStore.db.Get([]byte("WalletAutoMiner"))
@@ -127,6 +131,9 @@ func (wallet *Wallet) autoMining() {
 	for {
 		select {
 		case <-wallet.miningTicket.C:
+			if !wallet.IsCaughtUp() {
+				break
+			}
 			if wallet.isAutoMining() {
 				n1, err := wallet.closeTicket()
 				if err != nil {
@@ -469,7 +476,7 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 		walletlog.Debug("ProcGetAccountList", "all AccStore", AccStore.String())
 	}
 	//获取所有地址对应的账户详细信息从account模块
-	accounts, err := account.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcGetAccountList", "LoadAccounts:err", err)
 		return nil, err
@@ -537,7 +544,7 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 	var WalletAccStore types.WalletAccountStore
 
 	//生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcCreatNewAccount", "err", err)
 		return nil, err
@@ -587,7 +594,7 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr.String()
-	accounts, err := account.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil {
 		walletlog.Error("ProcCreatNewAccount", "LoadAccounts err", err)
 		return nil, err
@@ -669,7 +676,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	}
 
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err)
 		return nil, err
@@ -716,7 +723,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr.String()
-	accounts, err := account.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "LoadAccounts err", err)
 		return nil, err
@@ -766,7 +773,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	addrs := make([]string, 1)
 	addrs[0] = SendToAddress.GetFrom()
 
-	accounts, err := account.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcMergeBalance", "LoadAccounts err", err)
 		return nil, err
@@ -775,8 +782,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	amount := SendToAddress.GetAmount()
 
 	if Balance < amount+wallet.FeeAmount {
-		Err := errors.New("Insufficient balance!")
-		return nil, Err
+		return nil, types.ErrInsufficientBalance
 	}
 
 	addrto := SendToAddress.GetTo()
@@ -805,7 +811,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 
 	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
@@ -873,7 +879,7 @@ func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*ty
 			//获取地址对应的账户详细信息从account模块
 			addrs := make([]string, 1)
 			addrs[0] = SetLabel.Addr
-			accounts, err := account.LoadAccounts(wallet.qclient, addrs)
+			accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 			if err != nil || len(accounts) == 0 {
 				walletlog.Error("ProcWalletSetLabel", "LoadAccounts err", err)
 				return nil, err
@@ -922,7 +928,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		}
 	}
 	//获取所有地址对应的账户信息从account模块
-	accounts, err := account.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcMergeBalance", "LoadAccounts err", err)
 		return nil, err
@@ -933,7 +939,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		walletlog.Error("ProcMergeBalance", "AccStores", len(WalletAccStores), "accounts", len(accounts))
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcMergeBalance", "err", err)
 		return nil, err
@@ -976,7 +982,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		//初始化随机数
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
-		tx.Sign(types.SECP256K1, priv)
+		tx.Sign(int32(SignType), priv)
 
 		//发送交易信息给mempool模块
 		msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
@@ -1447,7 +1453,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 
 	seedarry := strings.Fields(seed)
 	if len(seedarry) != SeedLong {
-		return false, errors.New("The seed must be 15 words or Chinese characters!")
+		return false, types.ErrSeedWordNum
 	}
 	var newseed string
 	for index, seedstr := range seedarry {
