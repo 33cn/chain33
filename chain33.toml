@@ -27,8 +27,13 @@ verMax=16
 grpcLogFile="grpc33.log"
 
 [mempool]
+<<<<<<< HEAD
 poolCacheSize=102400
 minTxFee=1000000
+=======
+poolCacheSize=10240
+minTxFee=100000
+>>>>>>> origin/develop
 
 [consensus]
 name="raft"
