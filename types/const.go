@@ -14,6 +14,19 @@ var (
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 )
 
+var (
+	MinFee             int64 = 1e5
+	MinBalanceTransfer int64 = 1e6
+)
+
+func SetMinFee(fee int64) {
+	if fee < 0 {
+		panic("fee less than zero")
+	}
+	MinFee = fee
+	MinBalanceTransfer = fee * 10
+}
+
 const (
 	Coin                     int64  = 1e8
 	MaxCoin                  int64  = 1e17
@@ -21,11 +34,9 @@ const (
 	CoinReward               int64  = 18 * Coin //用户回报
 	CoinDevFund              int64  = 12 * Coin //发展基金回报
 	TicketPrice              int64  = 10000 * Coin
-	TicketFrozenTime         int64  = 5  //5s only for test
-	TicketWithdrawTime       int64  = 10 //10s only for test
-	TicketMinerWaitTime      int64  = 2  // 2s only for test
-	MinFee                   int64  = 1e5
-	MinBalanceTransfer              = 1e6
+	TicketFrozenTime         int64  = 5        //5s only for test
+	TicketWithdrawTime       int64  = 10       //10s only for test
+	TicketMinerWaitTime      int64  = 2        // 2s only for test
 	MaxTxSize                int64  = 100000   //100K
 	MaxBlockSize             int64  = 10000000 //10M
 	MaxTxNumber              int64  = 1600     //160

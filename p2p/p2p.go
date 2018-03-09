@@ -54,7 +54,9 @@ func (network *P2p) Close() {
 	log.Info("close", "msg", "done")
 	network.node.Close()
 	log.Info("close", "node", "done")
-	network.c.Close()
+	if network.c != nil {
+		network.c.Close()
+	}
 
 	close(network.txFactory)
 	close(network.otherFactory)
