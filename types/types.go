@@ -29,6 +29,44 @@ func isAllowExecName(name string) bool {
 	return false
 }
 
+type TransactionCache struct {
+	*Transaction
+	hash []byte
+	size int
+}
+
+func NewTransactionCache(tx *Transaction) *TransactionCache {
+	return &TransactionCache{tx, tx.Hash(), tx.Size()}
+}
+
+func (tx *TransactionCache) Hash() []byte {
+	return tx.hash
+}
+
+func (tx *TransactionCache) Size() int {
+	return tx.size
+}
+
+func (tx *TransactionCache) Tx() *Transaction {
+	return tx.Transaction
+}
+
+func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
+	caches = make([]*TransactionCache, len(txs), len(txs))
+	for i := 0; i < len(caches); i++ {
+		caches[i] = NewTransactionCache(txs[i])
+	}
+	return caches
+}
+
+func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
+	txs = make([]*Transaction, len(caches), len(caches))
+	for i := 0; i < len(caches); i++ {
+		txs[i] = caches[i].Tx()
+	}
+	return txs
+}
+
 //hash 不包含签名，用户通过修改签名无法重新发送交易
 func (tx *Transaction) Hash() []byte {
 	copytx := *tx
