@@ -25,7 +25,6 @@ var clog = log.New("module", "execs.ticket")
 func init() {
 	t := newTicket()
 	drivers.Register(t.GetName(), t)
-	drivers.RegisterAddress(t.GetName())
 }
 
 type Ticket struct {

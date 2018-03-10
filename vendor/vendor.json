@@ -47,6 +47,12 @@
 			"revisionTime": "2016-08-31T15:17:26Z"
 		},
 		{
+			"checksumSHA1": "NzbOuXp/P2IUUsFM5XEXWGUFWqo=",
+			"path": "github.com/decred/base58",
+			"revision": "b3520e187fa8ebe65eb74245408cf4b83e6a65d3",
+			"revisionTime": "2017-10-10T20:00:39Z"
+		},
+		{
 			"checksumSHA1": "KrIRJ4p3nRze4NcxfgX5+N9+D1M=",
 			"path": "github.com/go-kit/kit/log",
 			"revision": "e2b298466b32c7cd5579a9b9b07e968fc9d9452c",

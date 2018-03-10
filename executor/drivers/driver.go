@@ -137,6 +137,13 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	return &set, nil
 }
 
+func (d *DriverBase) checkAddress(addr string) error {
+	if _, ok := execAddress[addr]; ok {
+		return nil
+	}
+	return account.CheckAddress(addr)
+}
+
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	//检查ToAddr
 	if err := account.CheckAddress(tx.To); err != nil {

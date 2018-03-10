@@ -33,6 +33,7 @@ func Register(name string, driver Driver) {
 		panic("Execute: Register called twice for driver " + name)
 	}
 	execDrivers[name] = driver
+	RegisterAddress(name)
 }
 
 func LoadDriver(name string) (c Driver, err error) {
