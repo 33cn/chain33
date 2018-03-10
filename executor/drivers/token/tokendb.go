@@ -5,7 +5,6 @@ import (
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/account"
 	"fmt"
-	"go/token"
 )
 
 type TokenDB struct {
