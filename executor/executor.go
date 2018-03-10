@@ -14,6 +14,8 @@ import (
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/token"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/trade"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"

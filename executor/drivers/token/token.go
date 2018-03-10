@@ -53,7 +53,7 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	case types.TokenActionFinishCreate:
 		action := NewTokenAction(t, types.FundKeyAddr, tx)
-		return action.finishCreate(tokenAction.GetTokenfinishcreate(), t.GetApprover())
+		return action.finishCreate(tokenAction.GetTokenfinishcreate(), []string{types.FundKeyAddr})
 
 	case types.TokenActionRevokeCreate:
 		action := NewTokenAction(t, "", tx)
@@ -166,7 +166,6 @@ func (t *Token) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAddrReceiverforTokens(&addrTokens)
-	default:
 	}
 	return nil, types.ErrActionNotSupport
 }

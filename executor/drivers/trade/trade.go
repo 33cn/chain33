@@ -139,18 +139,15 @@ func (t *Trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetOnesSellOrder(t.GetDB(), t.GetQueryDB(), &addrTokens)
-	//查寻所有的可以进行交易的卖单
+		//查寻所有的可以进行交易的卖单
 	case "GetAllOnSaleSellOrders":
 	case "GetAllNotstartSellOders":
 	case "GetAllRevokedSellOrders":
 	case "GetAllExpiredSellOrders":
 		return nil, types.ErrActionNotSupport
 	case "GetOnesAllBuyOrder":
-
-
-	default:
-		return nil, types.ErrActionNotSupport
 	}
+	return nil, types.ErrActionNotSupport
 }
 
 func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
@@ -158,7 +155,7 @@ func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 	for _, token := range addrTokens.Token {
 		values := querydb.List(calcOnesSellOrderPrefixToken(addrTokens.Addr, token), nil, 0, 0)
 		if len(values) != 0 {
-		    sellids = append(sellids, values...)
+			sellids = append(sellids, values...)
 		}
 	}
 
@@ -173,19 +170,19 @@ func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 
 func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	db := t.GetDB()
-	value, err:= db.Get(sellid);
+	value, err := db.Get(sellid);
 	if err != nil {
 		panic(err)
 	}
 	var sellorder types.SellOrder
-    types.Decode(value, &sellorder)
-    var status int32
-    if ty != types.TradeRevokeSell {
+	types.Decode(value, &sellorder)
+	var status int32
+	if ty != types.TradeRevokeSell {
 		if sellorder.Totalboardlot == sellorder.Soldboardlot {
 			status = types.SoldOut
 		} else if sellorder.Starttime == types.InvalidStartTime || sellorder.Starttime <= t.GetBlockTime() {
 			status = types.OnSale
-		} else if sellorder.Starttime != types.InvalidStartTime && sellorder.Starttime >  t.GetBlockTime() {
+		} else if sellorder.Starttime != types.InvalidStartTime && sellorder.Starttime > t.GetBlockTime() {
 			status = types.NotStart
 		} else if sellorder.Stoptime != types.InvalidStartTime && sellorder.Stoptime < t.GetBlockTime() {
 			status = types.Expired
@@ -207,7 +204,7 @@ func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 
 func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 	db := t.GetDB()
-	value, err:= db.Get(sellid);
+	value, err := db.Get(sellid);
 	if err != nil {
 		panic(err)
 	}
@@ -219,7 +216,7 @@ func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 			status = types.SoldOut
 		} else if sellorder.Starttime == types.InvalidStartTime || sellorder.Starttime <= t.GetBlockTime() {
 			status = types.OnSale
-		} else if sellorder.Starttime != types.InvalidStartTime && sellorder.Starttime >  t.GetBlockTime() {
+		} else if sellorder.Starttime != types.InvalidStartTime && sellorder.Starttime > t.GetBlockTime() {
 			status = types.NotStart
 		} else if sellorder.Stoptime != types.InvalidStartTime && sellorder.Stoptime < t.GetBlockTime() {
 			status = types.Expired
@@ -242,10 +239,10 @@ func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 func (t *Trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValue {
 
 	tradeBuyDone := types.TradeBuyDone{}
-	tradeBuyDone.Token             = receiptTradeBuy.Token
-	tradeBuyDone.Boardlotcnt       = receiptTradeBuy.Boardlotcnt
+	tradeBuyDone.Token = receiptTradeBuy.Token
+	tradeBuyDone.Boardlotcnt = receiptTradeBuy.Boardlotcnt
 	tradeBuyDone.Amountperboardlot = receiptTradeBuy.Amountperboardlot
-	tradeBuyDone.Priceperboardlot  = receiptTradeBuy.Priceperboardlot
+	tradeBuyDone.Priceperboardlot = receiptTradeBuy.Priceperboardlot
 
 	var kv []*types.KeyValue
 	value := types.Encode(&tradeBuyDone)
@@ -295,6 +292,7 @@ func calcOnesBuyOrderKey(addr string, blocktime int64, token string, sellOrderID
 	key := fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", addr, blocktime, token, sellOrderID, buyTxHash)
 	return []byte(key)
 }
+
 //用于快速查询某个token下的所有成交的买单
 func calcBuyOrderKey(addr string, blocktime int64, token string, sellOrderID string, buyTxHash string) []byte {
 	key := fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", token, blocktime, addr, sellOrderID, buyTxHash)
