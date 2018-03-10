@@ -146,7 +146,7 @@ func (d *DriverBase) checkAddress(addr string) error {
 
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	//检查ToAddr
-	if err := account.CheckAddress(tx.To); err != nil {
+	if err := d.checkAddress(tx.To); err != nil {
 		return nil, err
 	}
 	//非coins 模块的 ToAddr 指向合约
