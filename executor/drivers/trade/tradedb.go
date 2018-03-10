@@ -4,7 +4,6 @@ import (
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/types"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"time"
 	"code.aliyun.com/chain33/chain33/common"
 )
 
