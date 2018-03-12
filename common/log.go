@@ -1,8 +1,9 @@
 package common
 
 import (
-	"github.com/inconshreveable/log15"
 	"os"
+
+	"github.com/inconshreveable/log15"
 )
 
 func init() {
