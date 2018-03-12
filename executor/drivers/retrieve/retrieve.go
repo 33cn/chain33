@@ -16,7 +16,6 @@ var (
 func init() {
 	h := newRetrieve()
 	drivers.Register(h.GetName(), h)
-	drivers.RegisterAddress(h.GetName())
 }
 
 type Retrieve struct {

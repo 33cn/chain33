@@ -42,14 +42,14 @@ type chanSub struct {
 }
 
 type Queue struct {
-	chanSubs map[string]chanSub
+	chanSubs map[string]*chanSub
 	mu       sync.Mutex
 	done     chan struct{}
 	isClose  int32
 }
 
 func New(name string) *Queue {
-	return &Queue{chanSubs: make(map[string]chanSub), done: make(chan struct{}, 1)}
+	return &Queue{chanSubs: make(map[string]*chanSub), done: make(chan struct{}, 1)}
 }
 
 func (q *Queue) Start() {
@@ -78,7 +78,7 @@ func (q *Queue) Close() {
 		if ch.isClose == 0 {
 			ch.high <- Message{}
 			ch.low <- Message{}
-			q.chanSubs[topic] = chanSub{isClose: 1}
+			q.chanSubs[topic] = &chanSub{isClose: 1}
 		}
 	}
 	q.mu.Unlock()
@@ -88,12 +88,12 @@ func (q *Queue) Close() {
 	qlog.Info("queue module closed")
 }
 
-func (q *Queue) chanSub(topic string) chanSub {
+func (q *Queue) chanSub(topic string) *chanSub {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	_, ok := q.chanSubs[topic]
 	if !ok {
-		q.chanSubs[topic] = chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
+		q.chanSubs[topic] = &chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
 	}
 	return q.chanSubs[topic]
 }
@@ -109,7 +109,7 @@ func (q *Queue) closeTopic(topic string) {
 		sub.high <- Message{}
 		sub.low <- Message{}
 	}
-	q.chanSubs[topic] = chanSub{isClose: 1}
+	q.chanSubs[topic] = &chanSub{isClose: 1}
 }
 
 func (q *Queue) Send(msg Message) (err error) {
@@ -127,15 +127,13 @@ func (q *Queue) Send(msg Message) (err error) {
 		}
 	}()
 	timeout := time.NewTimer(time.Second * 60)
+	defer timeout.Stop()
 	select {
 	case sub.high <- msg:
 	case <-timeout.C:
 		return types.ErrTimeout
 	}
-	if !timeout.Stop() {
-		<-timeout.C
-	}
-	qlog.Debug("send ok", "msg", msg)
+	qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
 	return nil
 }
 
