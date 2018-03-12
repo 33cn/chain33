@@ -74,7 +74,7 @@ func saveGenesisDoc(db dbm.DB, genDoc *ttypes.GenesisDoc) {
 }
 
 func New(cfg *types.Consensus) *TendermintClient {
-	tendermintlog.Info("Start to create raft cluster")
+	tendermintlog.Info("Start to create tendermint client")
 
 	logger := tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)).With("module", "consensus")
 
@@ -132,6 +132,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 			fastSync = false
 		}
 	}
+
 	consensusReactor := core.NewConsensusReactor(csState, fastSync)
 
 	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
@@ -227,6 +228,12 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 	if err != nil {
 		tendermintlog.Error("TendermintClientSetQueue", "msg", "switch start failed", "error", err)
 		return
+	}
+
+	// If seeds exist, add them to the address book and dial out
+	if len(client.Cfg.Seeds) != 0 {
+		// dial out
+		client.sw.DialSeeds(client.Cfg.Seeds)
 	}
 
 	go client.EventLoop()

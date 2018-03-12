@@ -651,6 +651,7 @@ message Consensus {
     bool skipTimeoutCommit = 13;
     bool createEmptyBlocks = 14;
     int32 createEmptyBlocksInterval = 15;
+    repeated string seeds=16;
 }
 
 message MemPool {
