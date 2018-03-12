@@ -1,7 +1,6 @@
 package ticket
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
-	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
 	driver "code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -496,22 +494,8 @@ func (client *TicketClient) Miner(parent, block *types.Block) bool {
 	if ticket == nil {
 		return false
 	}
-	beg := time.Now()
-	receipts, err := client.addMinerTx(parent, block, diff, priv, ticket.TicketId, modify)
-	if err != nil {
-		return false
-	}
-	block.TxHash = merkle.CalcMerkleRoot(block.Txs)
-	blockdetail := &types.BlockDetail{block, getReceiptsData(receipts)}
-	if err := client.CheckBlock(parent, blockdetail); err != nil {
-		return false
-	}
-	err = client.saveBlock(parent, block, receipts)
-	if err != nil {
-		return false
-	}
-	tlog.Info("ExecBlock", "cost", time.Now().Sub(beg))
-	err = client.WriteBlock(blockdetail)
+	client.addMinerTx(parent, block, diff, priv, ticket.TicketId, modify)
+	err = client.WriteBlock(parent.StateHash, block)
 	if err != nil {
 		return false
 	}
@@ -519,43 +503,12 @@ func (client *TicketClient) Miner(parent, block *types.Block) bool {
 	return true
 }
 
-func (client *TicketClient) saveBlock(parent, block *types.Block, receipts *types.Receipts) error {
-	var maplist = make(map[string]*types.KeyValue)
-	var kvset []*types.KeyValue
-	for i := 0; i < len(receipts.Receipts); i++ {
-		receipt := receipts.Receipts[i]
-		kvs := receipt.KV
-		for _, kv := range kvs {
-			if item, ok := maplist[string(kv.Key)]; ok {
-				item.Value = kv.Value //更新item 的value
-			} else {
-				maplist[string(kv.Key)] = kv
-				kvset = append(kvset, kv)
-			}
-		}
-	}
-	if kvset == nil {
-		block.StateHash = parent.StateHash
-	} else {
-		block.StateHash = util.ExecKVMemSet(client.GetQueue(), parent.StateHash, kvset)
-	}
-	return util.ExecKVSetCommit(client.GetQueue(), block.StateHash)
-}
-
-func getReceiptsData(receipts *types.Receipts) (datas []*types.ReceiptData) {
-	for i := 0; i < len(receipts.Receipts); i++ {
-		receipt := receipts.Receipts[i]
-		datas = append(datas, &types.ReceiptData{receipt.Ty, receipt.Logs})
-	}
-	return datas
-}
-
 //gas 直接燃烧
 func calcTotalFee(block *types.Block) (total int64) {
 	return 0
 }
 
-func (client *TicketClient) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) (*types.Receipts, error) {
+func (client *TicketClient) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) {
 	fee := calcTotalFee(block)
 	var ticketAction types.TicketAction
 	miner := &types.TicketMiner{}
@@ -570,7 +523,6 @@ func (client *TicketClient) addMinerTx(parent, block *types.Block, diff *big.Int
 	//unshift
 	block.Difficulty = miner.Bits
 	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
-	return client.execBlock(parent.StateHash, block, priv)
 }
 
 func (client *TicketClient) createMinerTx(ticketAction *types.TicketAction, priv crypto.PrivKey) *types.Transaction {
@@ -586,10 +538,6 @@ func (client *TicketClient) createMinerTx(ticketAction *types.TicketAction, priv
 
 func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
 	txs := client.RequestTx(int(types.MaxTxNumber) - 1)
-	//check dup
-	if len(txs) > 0 {
-		//txs = client.CheckTxDup(txs)
-	}
 	lastBlock := client.GetCurrentBlock()
 	var newblock types.Block
 	newblock.ParentHash = lastBlock.Hash()
@@ -603,21 +551,21 @@ func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
 }
 
 func (client *TicketClient) updateBlock(newblock *types.Block) *types.Block {
-
 	var txs []*types.Transaction
-	//check dup
 	if len(newblock.Txs) < int(types.MaxTxNumber-1) {
 		txs = client.RequestTx(int(types.MaxTxNumber) - 1 - len(newblock.Txs))
-		if len(txs) > 0 {
-			txs = client.CheckTxDup(txs)
-		}
 	}
-	lastBlock := client.GetCurrentBlock()
-	newblock.ParentHash = lastBlock.Hash()
-	newblock.Height = lastBlock.Height + 1
+	//tx 有更新
 	if len(txs) > 0 {
 		newblock.Txs = append(newblock.Txs, txs...)
 	}
+	lastBlock := client.GetCurrentBlock()
+	//需要去重复
+	if lastBlock.Height != newblock.Height-1 {
+		newblock.Txs = client.CheckTxDup(newblock.Txs)
+	}
+	newblock.ParentHash = lastBlock.Hash()
+	newblock.Height = lastBlock.Height + 1
 	newblock.BlockTime = time.Now().Unix()
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
@@ -644,64 +592,7 @@ func (client *TicketClient) CreateBlock() {
 	}
 }
 
-func (client *TicketClient) execBlock(prevHash []byte, block *types.Block, priv crypto.PrivKey) (*types.Receipts, error) {
-	//执行整个交易
-	receipts := util.ExecTxList(client.GetQueue(), prevHash, block.Txs, block.GetHeader())
-	var deltxlist = make(map[int]bool)
-	var haserr bool
-	for i := 0; i < len(receipts.Receipts); i++ {
-		receipt := receipts.Receipts[i]
-		if receipt.Ty == types.ExecErr {
-			tlog.Error("exec tx err", "err", receipt)
-			deltxlist[i] = true
-			haserr = true
-		}
-	}
-	if !haserr {
-		return receipts, nil
-	}
-	//删除错误的交易
-	if len(deltxlist) > 0 {
-		var newtx []*types.Transaction
-		var newreceipts []*types.Receipt
-		for i := 0; i < len(block.Txs); i++ {
-			if !deltxlist[i] {
-				newtx = append(newtx, block.Txs[i])
-				newreceipts = append(newreceipts, receipts.Receipts[i])
-			}
-		}
-		block.Txs = newtx
-		receipts.Receipts = newreceipts
-	}
-	//fee 直接燃烧，消失
-	//比较好做的是，直接在block header 里面加一个 reward 字段
-	//但是目前直接燃烧比较简单
-	return receipts, nil
-}
-
-func (client *TicketClient) WriteBlock(blockdetail *types.BlockDetail) error {
-	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
-	client.GetQueueClient().Send(msg, true)
-	resp, err := client.GetQueueClient().Wait(msg)
-	if err != nil {
-		return err
-	}
-	if resp.GetData().(*types.Reply).IsOk {
-		client.SetCurrentBlock(blockdetail.Block)
-	} else {
-		//TODO:
-		//把txs写回mempool
-		reply := resp.GetData().(*types.Reply)
-		return errors.New(string(reply.GetMsg()))
-	}
-	return nil
-}
-
 func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
-	if block.Height > 0 {
-		//在miner 中处理了
-		return nil, nil
-	}
 	if block.Height == 0 {
 		block.Difficulty = types.PowLimitBits
 	}
@@ -715,7 +606,7 @@ func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*typ
 	//判断txs[0] 是否执行OK
 	if block.Height > 0 {
 		err = client.CheckBlock(client.GetCurrentBlock(), blockdetail)
-		if err != nil { //never happen
+		if err != nil {
 			return nil, err
 		}
 	}
