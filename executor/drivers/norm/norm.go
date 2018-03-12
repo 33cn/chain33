@@ -10,7 +10,6 @@ var clog = log.New("module", "execs.norm")
 
 func init() {
 	drivers.Register("norm", newNorm())
-	drivers.RegisterAddress("norm")
 }
 
 type Norm struct {
