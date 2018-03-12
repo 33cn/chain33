@@ -11,18 +11,6 @@
 			"revision": ""
 		},
 		{
-			"checksumSHA1": "my3VOcFUBDBYiWaniQQ73m89dAU=",
-			"path": "code.aliyun.com/chain33/chain33/common/crypto/gosm2",
-			"revision": "e8d2b6d3206697c95219d75eb4fb279c5ed1c110",
-			"revisionTime": "2017-11-15T08:21:41Z"
-		},
-		{
-			"checksumSHA1": "ak0S5GL47p3pOr3LUTnYLGCOYH0=",
-			"path": "code.aliyun.com/chain33/chain33/common/crypto/sm2",
-			"revision": "e8d2b6d3206697c95219d75eb4fb279c5ed1c110",
-			"revisionTime": "2017-11-15T08:21:41Z"
-		},
-		{
 			"checksumSHA1": "Pc2ORQp+VY3Un/dkh4QwLC7R6lE=",
 			"path": "github.com/BurntSushi/toml",
 			"revision": "a368813c5e648fee92e5f6c30e3944ff9d5e8895",
@@ -39,6 +27,12 @@
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "ecdeabc65495df2dec95d7c4a4c3e021903035e5",
 			"revisionTime": "2017-10-02T20:02:53Z"
+		},
+		{
+			"checksumSHA1": "Q5YN3JDk0g8zt0gZulGLn+uFC30=",
+			"path": "github.com/dchest/blake256",
+			"revision": "dee3fe6eb0e98dc774a94fc231f85baf7c29d360",
+			"revisionTime": "2015-09-03T10:16:04Z"
 		},
 		{
 			"checksumSHA1": "xqVDKHGnakGlcRhmWd1j9JYmfLc=",
