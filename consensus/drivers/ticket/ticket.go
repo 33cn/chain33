@@ -454,7 +454,7 @@ func (client *TicketClient) searchTargetTicket(parent, block *types.Block) (*typ
 			continue
 		}
 		tlog.Info("currentdiff", "hex", printBInt(currentdiff))
-		tlog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
+		tlog.Info("FindBlock", "height------->", block.Height, "ntx", len(block.Txs))
 		return ticket, priv, diff, modify, i, nil
 	}
 	return nil, nil, nil, nil, 0, nil
