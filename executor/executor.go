@@ -292,20 +292,22 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 
-	//手续费检查
-	if types.MinFee > 0 {
-		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-		accFrom := e.coinsAccount.LoadAccount(from)
-		if accFrom.GetBalance() < types.MinBalanceTransfer {
-			return types.ErrBalanceLessThanTenTimesFee
-		}
-	}
 	//checkInExec
 	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
 		exec, err = drivers.LoadDriver("none")
 		if err != nil {
 			panic(err)
+		}
+	}
+	if !exec.IsFree() {
+		//如果执行器不是免费的，则进行手续费检查
+		if types.MinFee > 0 {
+			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+			accFrom := e.coinsAccount.LoadAccount(from)
+			if accFrom.GetBalance() < types.MinBalanceTransfer {
+				return types.ErrBalanceLessThanTenTimesFee
+			}
 		}
 	}
 	exec.SetDB(e.stateDB)
