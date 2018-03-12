@@ -43,19 +43,21 @@ func NewP2pCli(network *P2p) *P2pCli {
 	return pcli
 }
 
-func (m *P2pCli) BroadCastTx(msg queue.Message) {
+func (m *P2pCli) BroadCastTx(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.txFactory
 		atomic.AddInt32(&m.network.txCapcity, 1)
+		log.Debug("BroadCastTx", "task complete:", taskindex)
 	}()
 	pub.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, "tx")
 	msg.Reply(m.network.c.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 
 }
 
-func (m *P2pCli) GetMemPool(msg queue.Message) {
+func (m *P2pCli) GetMemPool(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
+		log.Debug("GetMemPool", "task complete:", taskindex)
 	}()
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
@@ -219,10 +221,11 @@ func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	header := resp.GetData().(*pb.Header)
 	return header.GetHeight(), nil
 }
-func (m *P2pCli) GetPeerInfo(msg queue.Message) {
-
+func (m *P2pCli) GetPeerInfo(msg queue.Message, taskindex int64) {
+	defer func() {
+		log.Debug("GetPeerInfo", "task complete:", taskindex)
+	}()
 	tempServer := NewP2pServer()
-
 	tempServer.node = m.network.node
 	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 	if err != nil {
@@ -244,10 +247,10 @@ func (m *P2pCli) GetPeerInfo(msg queue.Message) {
 	return
 }
 
-func (m *P2pCli) GetHeaders(msg queue.Message) {
+func (m *P2pCli) GetHeaders(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
-
+		log.Debug("GetHeaders", "task complete:", taskindex)
 	}()
 	if m.network.node.Size() == 0 {
 		log.Debug("GetHeaders", "boundNum", 0)
@@ -283,9 +286,10 @@ func (m *P2pCli) GetHeaders(msg queue.Message) {
 		}
 	}
 }
-func (m *P2pCli) GetBlocks(msg queue.Message) {
+func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
+		log.Debug("GetBlocks", "task complete:", taskindex)
 
 	}()
 	if m.network.node.Size() == 0 {
@@ -526,9 +530,10 @@ func (m *P2pCli) caculateInterval(peerNum, invsNum int) map[int]*intervalInfo {
 
 }
 
-func (m *P2pCli) BlockBroadcast(msg queue.Message) {
+func (m *P2pCli) BlockBroadcast(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
+		log.Debug("BlockBroadcast", "task complete:", taskindex)
 	}()
 	pub.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, "block")
 }

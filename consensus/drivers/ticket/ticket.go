@@ -46,12 +46,13 @@ func New(cfg *types.Consensus) *TicketClient {
 func (client *TicketClient) flushTicketBackend() {
 	ticket := time.NewTicker(time.Hour)
 	defer ticket.Stop()
+Loop:
 	for {
 		select {
 		case <-ticket.C:
 			client.flushTicket()
 		case <-client.done:
-			break
+			break Loop
 		}
 	}
 }
@@ -91,7 +92,7 @@ func createTicket(minerAddr, returnAddr string, count int32) (ret []*types.Trans
 	tx2 := types.Transaction{}
 
 	tx2.Execer = []byte("coins")
-	tx2.To = driver.ExecAddress("ticket").String()
+	tx2.To = driver.ExecAddress("ticket")
 	//gen payload
 	g = &types.CoinsAction_Genesis{}
 	g.Genesis = &types.CoinsGenesis{int64(count) * types.TicketPrice, returnAddr}
@@ -100,7 +101,7 @@ func createTicket(minerAddr, returnAddr string, count int32) (ret []*types.Trans
 
 	tx3 := types.Transaction{}
 	tx3.Execer = []byte("ticket")
-	tx3.To = driver.ExecAddress("ticket").String()
+	tx3.To = driver.ExecAddress("ticket")
 	gticket := &types.TicketAction_Genesis{}
 	gticket.Genesis = &types.TicketGenesis{minerAddr, returnAddr, count}
 	tx3.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})

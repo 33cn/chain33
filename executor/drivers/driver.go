@@ -59,7 +59,7 @@ func (d *DriverBase) SetChild(e Driver) {
 }
 
 func (d *DriverBase) GetAddr() string {
-	return ExecAddress(d.child.GetName()).String()
+	return ExecAddress(d.child.GetName())
 }
 
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
@@ -145,14 +145,21 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	return &set, nil
 }
 
+func (d *DriverBase) checkAddress(addr string) error {
+	if _, ok := execAddress[addr]; ok {
+		return nil
+	}
+	return account.CheckAddress(addr)
+}
+
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	//检查ToAddr
-	if err := account.CheckAddress(tx.To); err != nil {
+	if err := d.checkAddress(tx.To); err != nil {
 		return nil, err
 	}
 	//非coins 模块的 ToAddr 指向合约
 	exec := string(tx.Execer)
-	if exec != "coins" && ExecAddress(exec).String() != tx.To {
+	if exec != "coins" && ExecAddress(exec) != tx.To {
 		return nil, types.ErrToAddrNotSameToExecAddr
 	}
 	return nil, nil

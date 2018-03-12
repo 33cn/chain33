@@ -120,6 +120,7 @@ func (client *BaseClient) InitBlock() {
 }
 
 func (client *BaseClient) Close() {
+	atomic.StoreInt32(&client.minerStart, 0)
 	client.qclient.Close()
 	log.Info("consensus base closed")
 }

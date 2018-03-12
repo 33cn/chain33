@@ -20,8 +20,9 @@ func DisableLog() {
 }
 
 var (
-	execDrivers = make(map[string]Driver)
-	execAddress = make(map[string]string)
+	execDrivers        = make(map[string]Driver)
+	execAddress        = make(map[string]string)
+	execAddressNameMap = make(map[string]string)
 )
 
 func Register(name string, driver Driver) {
@@ -32,6 +33,7 @@ func Register(name string, driver Driver) {
 		panic("Execute: Register called twice for driver " + name)
 	}
 	execDrivers[name] = driver
+	RegisterAddress(name)
 }
 
 func LoadDriver(name string) (c Driver, err error) {
@@ -47,10 +49,12 @@ func RegisterAddress(name string) {
 	if len(name) == 0 {
 		panic("empty name string")
 	}
-	if _, dup := execAddress[name]; dup {
+	addr := ExecAddress(name)
+	if _, dup := execAddress[addr]; dup {
 		panic("Execute: Register called twice for driver " + name)
 	}
-	execAddress[ExecAddress(name).String()] = name
+	execAddress[addr] = name
+	execAddressNameMap[name] = addr
 }
 
 func IsDriverAddress(addr string) bool {
@@ -58,6 +62,9 @@ func IsDriverAddress(addr string) bool {
 	return ok
 }
 
-func ExecAddress(name string) *account.Address {
-	return account.ExecAddress(name)
+func ExecAddress(name string) string {
+	if addr, ok := execAddressNameMap[name]; ok {
+		return addr
+	}
+	return account.ExecAddress(name).String()
 }

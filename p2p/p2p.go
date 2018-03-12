@@ -54,7 +54,9 @@ func (network *P2p) Close() {
 	log.Info("close", "msg", "done")
 	network.node.Close()
 	log.Info("close", "node", "done")
-	network.c.Close()
+	if network.c != nil {
+		network.c.Close()
+	}
 
 	close(network.txFactory)
 	close(network.otherFactory)
@@ -93,14 +95,14 @@ func (network *P2p) subP2pMsg() {
 	if network.c == nil {
 		return
 	}
-
+	var taskIndex int64
 	network.txCapcity = 1000
 	network.c.Sub("p2p")
 	go network.ShowTaskCapcity()
 	go func() {
 		for msg := range network.c.Recv() {
-
-			log.Debug("p2p recv", "msg", types.GetEventName(int(msg.Ty)), "txCap", len(network.txFactory), "othercap", len(network.otherFactory))
+			taskIndex++
+			log.Debug("p2p recv", "msg", types.GetEventName(int(msg.Ty)), "msg type", msg.Ty, "taskIndex", taskIndex)
 			if msg.Ty == types.EventTxBroadcast {
 				network.txFactory <- struct{}{} //allocal task
 				atomic.AddInt32(&network.txCapcity, -1)
@@ -112,17 +114,17 @@ func (network *P2p) subP2pMsg() {
 			}
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
-				go network.cli.BroadCastTx(msg)
+				go network.cli.BroadCastTx(msg, taskIndex)
 			case types.EventBlockBroadcast: //广播block
-				go network.cli.BlockBroadcast(msg)
+				go network.cli.BlockBroadcast(msg, taskIndex)
 			case types.EventFetchBlocks:
-				go network.cli.GetBlocks(msg)
+				go network.cli.GetBlocks(msg, taskIndex)
 			case types.EventGetMempool:
-				go network.cli.GetMemPool(msg)
+				go network.cli.GetMemPool(msg, taskIndex)
 			case types.EventPeerInfo:
-				go network.cli.GetPeerInfo(msg)
+				go network.cli.GetPeerInfo(msg, taskIndex)
 			case types.EventFetchBlockHeaders:
-				go network.cli.GetHeaders(msg)
+				go network.cli.GetHeaders(msg, taskIndex)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
