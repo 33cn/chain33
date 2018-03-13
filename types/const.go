@@ -287,9 +287,9 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSell         = 311
-	TyLogTradeBuy          = 312
-	TyLogTradeRevoke       = 313
+	TyLogTradeSell   = 311
+	TyLogTradeBuy    = 312
+	TyLogTradeRevoke = 313
 )
 
 //exec type
@@ -336,13 +336,13 @@ const (
 	ActionTransfer = iota
 	ActionGenesis
 	ActionWithdraw
-    TokenActionPreCreate
+	TokenActionPreCreate
 	TokenActionFinishCreate
 	TokenActionRevokeCreate
 )
 
 const (
-	TokenStatusPreCreated    = iota
+	TokenStatusPreCreated = iota
 	TokenStatusCreated
 	TokenStatusCreateRevoked
 )
