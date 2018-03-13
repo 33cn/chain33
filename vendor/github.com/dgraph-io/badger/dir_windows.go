@@ -65,7 +65,9 @@ func acquireDirectoryLock(dirPath string, pidFileName string) (*directoryLockGua
 		return nil, errors.Wrap(err, "Cannot get absolute path for pid lock file")
 	}
 
-	f, err := os.OpenFile(absLockFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	// modify zhangjb by 20180313
+	// f, err := os.OpenFile(absLockFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	f, err := os.OpenFile(absLockFilePath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"Cannot create pid lock file %q.  Another process is using this Badger database",
