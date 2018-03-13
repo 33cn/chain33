@@ -442,6 +442,17 @@ func (wallet *Wallet) ProcRecvMsg() {
 				replyStr.Replystr = privkey
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyPrivkey, &replyStr))
 			}
+		case types.EventTokenPreCreate:
+			preCreate := msg.Data.(*types.ReqTokenPreCreate)
+			res, err := wallet.ProcTokenPreCreate(preCreate)
+			if err != nil {
+				walletlog.Error("ProcTokenPreCreate", "err", err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, err))
+			} else {
+				var replyStr types.ReplyStr
+				replyStr.Replystr = res
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, &res))
+			}
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -1530,4 +1541,47 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 		return "", err
 	}
 	return strings.ToUpper(common.ToHex(priv.Bytes())), nil
+}
+
+func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCreate) (string, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
+	}
+
+	if reqTokenPrcCreate == nil {
+		walletlog.Error("ProcTokenPreCreate input para is nil")
+		return "", types.ErrInputPara
+	}
+
+	// TODO more check: price total ...
+	upSymbol := strings.ToUpper(reqTokenPrcCreate.GetSymbol())
+	if upSymbol != reqTokenPrcCreate.GetSymbol() {
+		walletlog.Error("ProcTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
+		return "", nil
+	}
+
+	addrs := make([]string, 1)
+	addrs[0] = reqTokenPrcCreate.GetCreatorAddr()
+	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
+	if err != nil || len(accounts) != 0 {
+		walletlog.Error("ProcTokenPreCreate", "LoadAccounts err", err)
+		return "", err
+	}
+
+	Balance := accounts[0].Balance
+	price := reqTokenPrcCreate.GetPrice()
+	if Balance < price+wallet.FeeAmount {
+		return "", types.ErrInsufficientBalance
+	}
+
+	priv, err := wallet.getPrivKeyByAddr(addrs[0])
+	if err != nil {
+		return "", nil
+	}
+
+	return wallet.tokenPreCreate(priv, reqTokenPrcCreate)
 }
