@@ -17,7 +17,6 @@ import (
 	"github.com/tendermint/tmlibs/log"
 	gtypes "code.aliyun.com/chain33/chain33/types"
 	"code.aliyun.com/chain33/chain33/common/merkle"
-	"encoding/gob"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
 	"os"
 	"code.aliyun.com/chain33/chain33/types"
@@ -121,22 +120,6 @@ type ConsensusState struct {
 
 	NewTxsHeight  chan int64
 	NewTxsFinished   chan bool
-}
-
-func TxEncode(data interface{}) ([]byte, error) {
-	buf := bytes.NewBuffer(nil)
-	enc := gob.NewEncoder(buf)
-	err := enc.Encode(data)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func TxDecode(data []byte, to interface{}) error {
-	buf := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(buf)
-	return dec.Decode(to)
 }
 
 // NewConsensusState returns a new ConsensusState.

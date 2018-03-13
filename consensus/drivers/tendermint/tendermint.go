@@ -236,6 +236,7 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 		client.sw.DialSeeds(client.Cfg.Seeds)
 	}
 
+	client.csReactor.SwitchToConsensus(client.state, 0)
 	go client.EventLoop()
 	//go client.child.CreateBlock()
 }
