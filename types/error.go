@@ -54,6 +54,7 @@ var (
 	//err for token
 	ErrTokenNameLen               = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen             = errors.New("ErrTokenSymbolLength")
+	ErrTokenSymbolUpper           = errors.New("ErrTokenSymbolUpper")
 	ErrTokenIntroLen              = errors.New("ErrTokenIntroductionLen")
 	ErrTokenExist                 = errors.New("ErrTokenSymbolExistAlready")
 	ErrTokenNotPrecreated         = errors.New("ErrTokenNotPrecreated")
