@@ -1561,13 +1561,13 @@ func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 	upSymbol := strings.ToUpper(reqTokenPrcCreate.GetSymbol())
 	if upSymbol != reqTokenPrcCreate.GetSymbol() {
 		walletlog.Error("ProcTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
-		return "", nil
+		return "", types.ErrTokenSymbolUpper
 	}
 
 	addrs := make([]string, 1)
 	addrs[0] = reqTokenPrcCreate.GetCreatorAddr()
 	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
-	if err != nil || len(accounts) != 0 {
+	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcTokenPreCreate", "LoadAccounts err", err)
 		return "", err
 	}
@@ -1580,7 +1580,7 @@ func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return wallet.tokenPreCreate(priv, reqTokenPrcCreate)
