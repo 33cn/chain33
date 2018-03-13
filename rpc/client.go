@@ -604,7 +604,7 @@ func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
 }
 
 func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.ReplyStr, error) {
-	msg := c.NewMessage("wallet", types.EventNewAccount, parm)
+	msg := c.NewMessage("wallet", types.EventTokenPreCreate, parm)
 	err := c.Send(msg, true)
 	if err != nil {
 		log.Error("TokenPreCreate", "Error", err.Error())
