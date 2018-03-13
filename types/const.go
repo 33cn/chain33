@@ -143,6 +143,8 @@ const (
 	EventReplyPrivkey        = 95
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
+	EventTokenPreCreate      = 98
+	EventReplyTokenPreCreate = 99
 )
 
 var eventName = map[int]string{
@@ -243,6 +245,9 @@ var eventName = map[int]string{
 	95: "EventReplyPrivkey",
 	96: "EventIsSync",
 	97: "EventReplyIsSync",
+	// Token
+	98: "EventTokenPreCreate",
+	99: "EventReplyTokenPreCreate",
 }
 
 //ty = 1 -> secp256k1
