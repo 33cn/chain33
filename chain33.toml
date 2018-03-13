@@ -9,7 +9,7 @@ defCacheSize=512
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
-driver="gobadgerdb"
+driver="leveldb"
 dbPath="datadir"
 isStrongConsistency=false
 singleMode=false
@@ -34,16 +34,16 @@ name="ticket"
 minerstart=true
 
 [store]
-driver="gobadgerdb"
+driver="leveldb"
 dbPath="datadir/mavltree"
 
 [localstore]
-driver="gobadgerdb"
+driver="leveldb"
 dbPath="datadir/mavltree"
 
 [wallet]
 minFee=1000000
-driver="gobadgerdb"
+driver="leveldb"
 dbPath="datadir/wallet"
 signType="secp256k1"
 [exec]
