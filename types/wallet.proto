@@ -83,6 +83,8 @@ message ReqNewAccount {
 
 message MinerFlag {
 	int32 flag = 1;
+	int64 reserve = 2;
+
 }
 
 message ReqWalletTransactionList {
