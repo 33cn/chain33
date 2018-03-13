@@ -32,7 +32,7 @@
 
 # 实现自定义数据库接口说明
 
-
+```go
 type DB interface {
 	Get([]byte) []byte)		// 读
 	Set([]byte, []byte)		// 写
@@ -58,3 +58,4 @@ type Batch interface {
 	Delete(key []byte)	// 删除
 	Write()			// 事务提交
 }
+```
