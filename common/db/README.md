@@ -27,7 +27,34 @@
     "driver": "gobadgerdb"
 }
 ```
+- 已知bugs：  
+  - 在windows环境下，系统重启后会因LOCK文件已存在，不能启动，需要手动删除
 
 # 实现自定义数据库接口说明
 
 
+type DB interface {
+	Get([]byte) []byte)		// 读
+	Set([]byte, []byte)		// 写
+	SetSync([]byte, []byte)		// 同步写
+	Delete([]byte)			// 同步删除
+	DeleteSync([]byte)		// 同步删除
+	Close()				// 关闭数据库
+	NewBatch(sync bool) Batch 	// 批量操作
+
+	// For debugging
+	Print()				// 调试打印
+	Iterator() Iterator 		// 暂为使用
+	Stats() map[string]string	// 数据库状态
+	PrefixScan(key []byte) [][]byte	// 迭代器，查询key前缀
+	IteratorScan(Prefix []byte, key []byte, count int32, direction int32) [][]byte 	// 迭代器，查询Prefix前缀，定位key，根据direction排序 1-升序 0-降序
+	IteratorScanFromLast(key []byte, count int32, direction int32) [][]byte 	// 反向迭代器，查询key前缀
+	IteratorScanFromFirst(key []byte, count int32, direction int32) [][]byte 	// 迭代器，查询key前缀
+	List(prefix, key []byte, count, direction int32) (values [][]byte) 		// 同IteratorScan
+}
+
+type Batch interface {
+	Set(key, value []byte)	// 写
+	Delete(key []byte)	// 删除
+	Write()			// 事务提交
+}

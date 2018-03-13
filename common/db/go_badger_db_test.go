@@ -1,18 +1,15 @@
 package db
 
 import (
-	"code.aliyun.com/chain33/chain33/common/db"
 	"github.com/dgraph-io/badger"
 	"io/ioutil"
 	"testing"
-	//"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDB(t *testing.T) {
+func TestBadger(t *testing.T) {
 	dir, err := ioutil.TempDir("", "badger")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	t.Log(dir)
 
 	opts := badger.DefaultOptions
@@ -20,28 +17,38 @@ func TestDB(t *testing.T) {
 	opts.ValueDir = dir
 
 	db, err := badger.Open(opts)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	err = db.Update(func(txn *badger.Txn) error {
 		err := txn.Set([]byte("key1"), []byte("hello"))
 		return err
 	})
+	require.NoError(t, err)
+
+	err = db.View(func(txn *badger.Txn) error {
+  		item, err := txn.Get([]byte("key1"))
+  		if err != nil {
+    			return err
+  		}
+  		val, err := item.Value()
+  		if err != nil {
+    			return err
+  		}
+		t.Log("The answer is: ", string(val))
+  		return nil
+	})
+
+	require.NoError(t, err)
 }
 
-func TestBadger(t *testing.T) {
+func TestBadgerDB(t *testing.T) {
 	dir, err := ioutil.TempDir("", "badger")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	t.Log(dir)
 
-	badgerdb, err := db.NewGoBadgerDB("gobagderdb", dir, 16)
-	if err != nil {
-		t.Fatal(err)
-	}
+	badgerdb, err := NewGoBadgerDB("gobagderdb", dir, 16)
+	require.NoError(t, err)
 
 	t.Log("test Set")
 	badgerdb.Set([]byte("aaaaaa/1"), []byte("aaaaaa/1"))
@@ -55,35 +62,40 @@ func TestBadger(t *testing.T) {
 
 	t.Log("test Get")
 	v := badgerdb.Get([]byte("aaaaaa/1"))
-	t.Log(string(v))
+	require.Equal(t, string(v), "aaaaaa/1")
 
 	t.Log("test PrefixScan")
 	list := badgerdb.PrefixScan(nil)
-	for _, v = range list {
+	/*for _, v = range list {
 		t.Log(string(v))
-	}
+	}*/
+	require.Equal(t, list, [][]byte{[]byte("aaaaaa/1"), []byte("my"), []byte("my_"), []byte("my_key/1"), []byte("my_key/2"), []byte("my_key/3"), []byte("my_key/4"), []byte("zzzzzz/1")})
 
 	t.Log("test IteratorScanFromFirst")
 	list = badgerdb.IteratorScanFromFirst([]byte("my"), 2, 1)
-	for _, v = range list {
+	/*for _, v = range list {
 		t.Log(string(v))
-	}
+	}*/
+	require.Equal(t, list, [][]byte{[]byte("my"), []byte("my_")})
 
 	t.Log("test IteratorScanFromLast")
 	list = badgerdb.IteratorScanFromLast([]byte("my"), 100, 1)
-	for _, v = range list {
+	/*for _, v = range list {
 		t.Log(string(v))
-	}
+	}*/
+	require.Equal(t, list, [][]byte{[]byte("my_key/4"), []byte("my_key/3"), []byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
 
 	t.Log("test IteratorScan 1")
 	list = badgerdb.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 1)
-	for _, v = range list {
+	/*for _, v = range list {
 		t.Log(string(v))
-	}
+	}*/
+	require.Equal(t, list, [][]byte{[]byte("my_key/3"), []byte("my_key/4")})
 
 	t.Log("test IteratorScan 0")
 	list = badgerdb.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 0)
-	for _, v = range list {
+	/*for _, v = range list {
 		t.Log(string(v))
-	}
+	}*/
+	require.Equal(t, list, [][]byte{[]byte("my_key/3"), []byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
 }
