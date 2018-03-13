@@ -124,3 +124,13 @@ message ReplyStr {
 	string replystr = 1;
 }
 
+message ReqTokenPreCreate {
+    string creator_addr = 1;
+    string name = 2;
+    string symbol = 3;
+    string introduction = 4;
+    string owner_addr = 5;
+    int64  total = 6;
+    int64  price = 7;
+}
+
