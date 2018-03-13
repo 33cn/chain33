@@ -47,16 +47,19 @@ func (t *TokenDB) GetKVSet(key []byte) (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func getTokenFromDB(db dbm.KVDB, symbol string, owner string) (token *types.Token, err error) {
+func getTokenFromDB(db dbm.KVDB, symbol string, owner string) (*types.Token, error) {
+	tokenlog.Info("getTokenFromDB", "symbol:", symbol, "owner:", owner)
 	key := tokenAddrKey(symbol, owner)
 	value, err := db.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	if err = types.Decode(value, token); err != nil {
+	tokenlog.Info("getTokenFromDB", "key string", string(key), "key", key, "value", value)
+	var token types.Token
+	if err = types.Decode(value, &token); err != nil {
 		return nil, err
 	}
-	return token, nil
+	return &token, nil
 }
 
 func deleteTokenDB(db dbm.KVDB, symbol string) {
@@ -111,6 +114,8 @@ func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	logs = append(logs, tokendb.getLogs(types.TyLogPreCreateToken, types.TokenStatusPreCreated)...)
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, tokendb.GetKVSet(key)...)
+	tokenlog.Info("func token preCreate","token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
+	"key:", key, "key string", string(key), "value:", tokendb.GetKVSet(key)[0].Value)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
@@ -135,7 +140,7 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 		return nil, types.ErrTokenCreatedApprover
 	}
 
-	var receipt	*types.Receipt
+
     //将之前冻结的资金转账到fund合约账户中
 	receiptForCoin, err := action.coinsAccount.ExecTransferFrozen(token.Creater, action.toaddr, action.execaddr, token.Price)
 	if err != nil {
@@ -155,7 +160,6 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	logs = append(logs, receipt.Logs...)
 	logs = append(logs, receiptForCoin.Logs...)
 	logs = append(logs, receiptForToken.Logs...)
 	logs = append(logs, tokendb.getLogs(types.TyLogFinishCreateToken, types.TokenStatusCreated)...)
@@ -167,7 +171,7 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 	//因为该token已经被创建，需要保存一个全局的token，防止其他用户再次创建
 	tokendb.Save(action.db, key)
 	kv = append(kv, tokendb.GetKVSet(key)...)
-
+	var receipt	*types.Receipt
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
