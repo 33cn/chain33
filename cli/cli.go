@@ -280,6 +280,12 @@ func main() {
 			return
 		}
 		GetTokensFinishCreated()
+	case "precreatetoken":
+		if len(argsWithoutProg) != 8 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		PreCreateToken(argsWithoutProg[1:])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -327,6 +333,7 @@ func LoadHelp() {
 	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
 	fmt.Println("gettokensprecreated                                         : 获取所有预创建的token")
 	fmt.Println("gettokensfinishcreated                                      : 获取所有完成创建的token")
+	fmt.Println("precreatetoken [creator_address, name, symbol, introduction, owner_address, total, price]                   : 预创建token")
 }
 
 type AccountsResult struct {
@@ -883,7 +890,7 @@ func GetTransactionByHashes(hashes []string) {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		rd, err := decodeLog(v.Receipt)
 		if err != nil {
-			fmt.Println("GetTransactionByHashes failed to decodeLog ", )
+			fmt.Println("GetTransactionByHashes failed to decodeLog ")
 			continue
 		}
 		td := TxDetailResult{
@@ -1761,4 +1768,43 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 		rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: logIns, RawLog: l.Log})
 	}
 	return rd, nil
+}
+
+func PreCreateToken(args []string) {
+	// creator, name, symbol, introduction, owner, totalStr, priceStr string) {
+	creator := args[0]
+	name := args[1]
+	symbol := args[2]
+	introduction := args[3]
+	owner := args[4]
+	total, err := strconv.ParseInt(args[5], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	price, err := strconv.ParseInt(args[6], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	params := types.ReqTokenPreCreate{CreatorAddr: creator, Name: name, Symbol: symbol, Introduction: introduction, OwnerAddr: owner, Total: total * 1e6, Price: price * 1e8}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.TokenPreCreate", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
