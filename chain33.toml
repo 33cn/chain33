@@ -1,7 +1,7 @@
 Title="chain33"
 
-Loglevel="info"
-LogConsoleLevel="debug"
+Loglevel="debug"
+LogConsoleLevel="info"
 LogFile="chain33.log"
 
 [blockchain]
@@ -46,4 +46,5 @@ minFee=1000000
 driver="leveldb"
 dbPath="datadir/wallet"
 signType="secp256k1"
+
 [exec]
