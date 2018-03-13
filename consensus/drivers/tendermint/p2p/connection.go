@@ -15,6 +15,7 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 	flow "github.com/tendermint/tmlibs/flowrate"
 	"github.com/tendermint/tmlibs/log"
+	"os"
 )
 
 var legacy = tmlegacy.TMEncoderLegacy{}
@@ -158,6 +159,7 @@ func NewMConnectionWithConfig(conn net.Conn, chDescs []*ChannelDescriptor, onRec
 	mconn.channels = channels
 	mconn.channelsIdx = channelsIdx
 
+	mconn.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "p2pMconnection")
 	//mconn.BaseService = *cmn.NewBaseService(nil, "MConnection", mconn)
 
 	return mconn
@@ -615,6 +617,7 @@ func newChannel(conn *MConnection, desc ChannelDescriptor) *Channel {
 		sendQueue:               make(chan []byte, desc.SendQueueCapacity),
 		recving:                 make([]byte, 0, desc.RecvBufferCapacity),
 		maxMsgPacketPayloadSize: conn.config.maxMsgPacketPayloadSize,
+		Logger:                  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "p2pChannel"),
 	}
 }
 
