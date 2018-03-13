@@ -788,3 +788,14 @@ func DecodeTx(tx types.Transaction) (*Transaction, error) {
 	}
 	return result, nil
 }
+
+func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}) error {
+
+	reply, err := c.cli.TokenPreCreate(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
