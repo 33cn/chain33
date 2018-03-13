@@ -464,3 +464,28 @@ func (client *Wallet) IsCaughtUp() bool {
 	}
 	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
 }
+
+func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *types.ReqTokenPreCreate) (string, error) {
+	v := &types.TokenPreCreate{
+		Name : reqTokenPrcCreate.GetName(), Symbol: reqTokenPrcCreate.GetSymbol(),
+		Introduction:reqTokenPrcCreate.GetIntroduction(), Total: reqTokenPrcCreate.GetTotal(),
+		Price:reqTokenPrcCreate.GetPrice(), Owner:reqTokenPrcCreate.GetOwnerAddr(),
+	}
+	precreate := &types.TokenAction{Ty:types.TokenActionPreCreate, Value: &types.TokenAction_Tokenprecreate{v}}
+	tx := &types.Transaction{Execer: []byte("token"), Payload:types.Encode(precreate), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
+	wallet.qclient.Send(msg, true)
+	resp, err := wallet.qclient.Wait(msg)
+	if err != nil {
+		walletlog.Error("ProcTokenPreCreate", "Send err", err)
+		return "", err
+	}
+    reply := resp.GetData().(*types.Reply)
+    if !reply.GetIsOk() {
+		return "", errors.New(string(reply.GetMsg()))
+	}
+	return "", nil
+}
+
