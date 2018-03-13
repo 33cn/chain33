@@ -49,6 +49,7 @@ func TestBadgerDB(t *testing.T) {
 
 	badgerdb, err := NewGoBadgerDB("gobagderdb", dir, 16)
 	require.NoError(t, err)
+	defer badgerdb.Close()
 
 	t.Log("test Set")
 	badgerdb.Set([]byte("aaaaaa/1"), []byte("aaaaaa/1"))
