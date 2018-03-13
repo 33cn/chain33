@@ -14,6 +14,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 	"code.aliyun.com/chain33/chain33/account"
+	"code.aliyun.com/chain33/chain33/common"
 )
 
 var tokenlog = log.New("module", "execs.token")
@@ -44,18 +45,21 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Info("exec token create tx=", "tx=", tokenAction)
+	tokenlog.Info("exec token action", "txhash", common.Bytes2Hex(tx.Hash()))
 
 	switch tokenAction.GetTy() {
 	case types.TokenActionPreCreate:
+		tokenlog.Info("Exec TokenActionPreCreate")
 		action := NewTokenAction(t, "", tx)
 		return action.preCreate(tokenAction.GetTokenprecreate())
 
 	case types.TokenActionFinishCreate:
+		tokenlog.Info("Exec TokenActionFinishCreate")
 		action := NewTokenAction(t, types.FundKeyAddr, tx)
-		return action.finishCreate(tokenAction.GetTokenfinishcreate(), []string{types.FundKeyAddr})
+		return action.finishCreate(tokenAction.GetTokenfinishcreate(), []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S"})
 
 	case types.TokenActionRevokeCreate:
+		tokenlog.Info("Exec TokenActionRevokeCreate")
 		action := NewTokenAction(t, "", tx)
 		return action.revokeCreate(tokenAction.GetTokenrevokecreate())
 
@@ -69,11 +73,12 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 }
 
 func (t *Token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var action types.CoinsAction
+	var action types.TokenAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		panic(err)
 	}
+	tokenlog.Info("exec token ExecLocal tx=", "tx=", action)
     var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.DriverBase.ExecLocalTransWithdraw(tx, receipt, index)
@@ -103,7 +108,7 @@ func (t *Token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 }
 
 func (t *Token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var action types.CoinsAction
+	var action types.TokenAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		panic(err)
@@ -146,6 +151,7 @@ func (t *Token) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
+		tokenlog.Info("token Query", "function name", funcName, "query tokens", reqtokens)
 		return t.GetTokens(&reqtokens)
 
 		//case "GetPrecreatedTokens":
@@ -213,6 +219,7 @@ func (t *Token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	replyTokens := &types.ReplyTokens{}
 	if reqTokens.Queryall {
 		keys := querydb.List(tokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		tokenlog.Info("token Query GetTokens", "get count", len(keys))
 		if len(keys) != 0 {
 			for _, key := range keys {
 				if value, err := localdb.Get(key); err != nil {
@@ -234,6 +241,8 @@ func (t *Token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	} else {
 
 	}
+
+	tokenlog.Info("token Query", "replyTokens", replyTokens)
 	return replyTokens, nil
 }
 
