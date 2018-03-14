@@ -189,6 +189,7 @@ It has these top-level messages:
 	ReqWalletMergeBalance
 	ReqStr
 	ReplyStr
+	ReqTokenPreCreate
 */
 package types
 
