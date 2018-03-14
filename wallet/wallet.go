@@ -66,6 +66,8 @@ func New(cfg *types.Wallet) *Wallet {
 	minFee = cfg.MinFee
 	if "secp256k1" == cfg.SignType {
 		SignType = 1
+	} else if "ed25519" == cfg.SignType {
+		SignType = 2
 	}
 	wallet := &Wallet{
 		walletStore:   walletStore,
@@ -500,7 +502,7 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 		if len(AccStore.Addr) != 0 {
 			addrs[index] = AccStore.Addr
 		}
-		walletlog.Debug("ProcGetAccountList", "all AccStore", AccStore.String())
+		//walletlog.Debug("ProcGetAccountList", "all AccStore", AccStore.String())
 	}
 	//获取所有地址对应的账户详细信息从account模块
 	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
