@@ -71,7 +71,7 @@ func New(cfg *types.Wallet) *Wallet {
 		wg:            &sync.WaitGroup{},
 		FeeAmount:     walletStore.GetFeeAmount(),
 		EncryptFlag:   walletStore.GetEncryptionFlag(),
-		miningTicket:  time.NewTicker(5 * time.Minute),
+		miningTicket:  time.NewTicker(5 * time.Second),
 		done:          make(chan struct{}),
 	}
 	value := walletStore.db.Get([]byte("WalletAutoMiner"))
@@ -139,15 +139,16 @@ func (wallet *Wallet) autoMining() {
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
-				n2, err := wallet.buyTicket()
+				hashes1, n2, err := wallet.buyTicket()
 				if err != nil {
 					walletlog.Error("buyTicket", "err", err)
 				}
-				n3, err := wallet.buyMinerAddrTicket()
+				hashes2, n3, err := wallet.buyMinerAddrTicket()
 				if err != nil {
 					walletlog.Error("buyMinerAddrTicket", "err", err)
 				}
 				if n1+n2+n3 > 0 {
+					wallet.waitTxs(append(hashes1, hashes2...))
 					wallet.flushTicket()
 				}
 			} else {
@@ -155,11 +156,12 @@ func (wallet *Wallet) autoMining() {
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
-				err = wallet.withdrawFromTicket()
+				hashes, err := wallet.withdrawFromTicket()
 				if err != nil {
 					walletlog.Error("withdrawFromTicket", "err", err)
 				}
 				if n1 > 0 {
+					wallet.waitTxs(hashes)
 					wallet.flushTicket()
 				}
 			}
@@ -169,56 +171,67 @@ func (wallet *Wallet) autoMining() {
 	}
 }
 
-func (wallet *Wallet) buyTicket() (int, error) {
+func (wallet *Wallet) buyTicket() ([][]byte, int, error) {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
 		walletlog.Error("buyTicket.getAllPrivKeys", "err", err)
-		return 0, err
+		return nil, 0, err
 	}
 	count := 0
+	var hashes [][]byte
 	for _, priv := range privs {
-		n, err := wallet.buyTicketOne(priv)
+		hash, n, err := wallet.buyTicketOne(priv)
 		if err != nil {
 			walletlog.Error("buyTicketOne", "err", err)
-			return count, err
+			return nil, count, err
 		}
 		count += n
+		if hash != nil {
+			hashes = append(hashes, hash)
+		}
 	}
-	return count, nil
+	return hashes, count, nil
 }
 
-func (wallet *Wallet) buyMinerAddrTicket() (int, error) {
+func (wallet *Wallet) buyMinerAddrTicket() ([][]byte, int, error) {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
 		walletlog.Error("buyMinerAddrTicket.getAllPrivKeys", "err", err)
-		return 0, err
+		return nil, 0, err
 	}
 	count := 0
+	var hashes [][]byte
 	for _, priv := range privs {
-		n, err := wallet.buyMinerAddrTicketOne(priv)
+		hashlist, n, err := wallet.buyMinerAddrTicketOne(priv)
 		if err != nil {
 			walletlog.Error("buyMinerAddrTicketOne", "err", err)
-			return count, nil
+			return nil, count, nil
 		}
 		count += n
+		if hashlist != nil {
+			hashes = append(hashes, hashlist...)
+		}
 	}
-	return count, nil
+	return hashes, count, nil
 }
 
-func (wallet *Wallet) withdrawFromTicket() error {
+func (wallet *Wallet) withdrawFromTicket() (hashes [][]byte, err error) {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
 		walletlog.Error("withdrawFromTicket.getAllPrivKeys", "err", err)
-		return err
+		return nil, err
 	}
 	for _, priv := range privs {
-		err := wallet.withdrawFromTicketOne(priv)
+		hash, err := wallet.withdrawFromTicketOne(priv)
 		if err != nil {
 			walletlog.Error("withdrawFromTicketOne", "err", err)
-			return err
+			return nil, err
+		}
+		if hash != nil {
+			hashes = append(hashes, hash)
 		}
 	}
-	return nil
+	return hashes, nil
 }
 
 func (wallet *Wallet) closeTicket() (int, error) {
@@ -226,6 +239,7 @@ func (wallet *Wallet) closeTicket() (int, error) {
 }
 
 func (wallet *Wallet) flushTicket() {
+	walletlog.Info("wallet FLUSH TICKET")
 	hashList := wallet.qclient.NewMessage("consensus", types.EventFlushTicket, nil)
 	wallet.qclient.Send(hashList, false)
 }

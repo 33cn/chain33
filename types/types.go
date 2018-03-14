@@ -231,6 +231,8 @@ func (tx *Transaction) ActionName() string {
 			return "close"
 		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
 			return "miner"
+		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
+			return "bindminer"
 		}
 		return "unknow"
 	} else if "none" == string(tx.Execer) {
