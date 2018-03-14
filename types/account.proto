@@ -29,3 +29,11 @@ message ReceiptAccountTransfer {
 	Account prev = 1;
 	Account current = 2;
 }
+
+message ReqTokenBalance {
+	repeated string addresses   = 1;
+	string tokenSymbol = 2;
+	string execer      = 3;
+}
+
+

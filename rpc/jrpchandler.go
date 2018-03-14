@@ -698,6 +698,24 @@ func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 	return nil
 }
 
+func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{}) error {
+
+	balances, err := c.cli.GetTokenBalance(&in)
+	if err != nil {
+		return err
+	}
+	var accounts []*Account
+	for _, balance := range balances {
+		accounts = append(accounts, &Account{Addr: balance.GetAddr(),
+			Balance:  balance.GetBalance(),
+			Currency: balance.GetCurrency(),
+			Frozen:   balance.GetFrozen()})
+	}
+	*result = accounts
+	return nil
+}
+
+
 func (c *Chain33) Query(in Query, result *interface{}) error {
 	decodePayload, err := hex.DecodeString(in.Payload)
 	if err != nil {

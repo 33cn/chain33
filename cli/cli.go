@@ -188,7 +188,7 @@ func main() {
 			return
 		}
 		GetBlockHash(argsWithoutProg[1])
-	//seed
+		//seed
 	case "genseed":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -220,6 +220,18 @@ func main() {
 			return
 		}
 		GetBalance(argsWithoutProg[1], argsWithoutProg[2])
+	case "gettokenbalance":
+		argsCnt := len(argsWithoutProg)
+		if argsCnt < 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		var addresses []string
+		for _, args := range argsWithoutProg[3:] {
+			addresses = append(addresses, args)
+		}
+
+		GetTokenBalance(addresses, argsWithoutProg[1], argsWithoutProg[2])
 	case "getexecaddr":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -318,6 +330,7 @@ func LoadHelp() {
 	fmt.Println("getseed [password]                                          : 通过密码获取种子")
 	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
+	fmt.Println("gettokenbalance [token execer addr0 [addr1 addr2]]          : 查询多个地址在token的余额")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
@@ -339,6 +352,14 @@ type WalletResult struct {
 }
 
 type AccountResult struct {
+	Currency int32  `json:"currency,omitempty"`
+	Balance  string `json:"balance,omitempty"`
+	Frozen   string `json:"frozen,omitempty"`
+	Addr     string `json:"addr,omitempty"`
+}
+
+type TokenAccountResult struct {
+	Token    string `json:"Token,omitempty"`
 	Currency int32  `json:"currency,omitempty"`
 	Balance  string `json:"balance,omitempty"`
 	Frozen   string `json:"frozen,omitempty"`
@@ -1287,6 +1308,44 @@ func GetBalance(address string, execer string) {
 	}
 
 	fmt.Println(string(data))
+}
+
+func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
+	//var addrs []string
+	//addrs = append(addrs, address)
+	params := types.ReqTokenBalance{Addresses: addresses, TokenSymbol: tokenSymbol, Execer: execer,}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res []*jsonrpc.Account
+	err = rpc.Call("Chain33.GetTokenBalance", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for _, result := range res {
+		balanceResult := strconv.FormatFloat(float64(result.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(result.Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
+		result := &TokenAccountResult{
+			Token:    tokenSymbol,
+			Addr:     result.Addr,
+			Currency: result.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		fmt.Println(string(data))
+	}
+
 }
 
 func GetExecAddr(exec string) {
