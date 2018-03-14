@@ -668,7 +668,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			pubkey := txresult.GetTx().Signature.GetPubkey()
 			addr := account.PubKeyToAddress(pubkey)
 			txDetail.Fromaddr = addr.String()
-			if string(txDetail.Tx.GetExecer()) == "coins" && txDetail.GetActionName() == "withdraw" {
+			if (string(txDetail.Tx.GetExecer()) == "coins" || "token" == string(txDetail.Tx.GetExecer())) && txDetail.GetActionName() == "withdraw" {
 				//swap from and to
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
 			}

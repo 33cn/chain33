@@ -6,7 +6,7 @@ import (
 
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -328,7 +328,7 @@ const (
 )
 
 const (
-	ActionTransfer = iota << 1
+	ActionTransfer = iota
 	ActionGenesis
 	ActionWithdraw
     TokenActionPreCreate
@@ -337,20 +337,20 @@ const (
 )
 
 const (
-	TokenStatusPreCreated    = iota << 10
+	TokenStatusPreCreated    = iota
 	TokenStatusCreated
 	TokenStatusCreateRevoked
 )
 
 const (
-	TradeSell = iota << 2
+	TradeSell = iota
 	TradeBuy
 	TradeRevokeSell
 )
 
 //0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
 const (
-	NotStart = iota << 5
+	NotStart = iota
 	OnSale
 	SoldOut
 	Revoked

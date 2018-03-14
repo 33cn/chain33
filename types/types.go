@@ -148,6 +148,42 @@ func (tx *Transaction) Amount() (int64, error) {
 			ticketMiner := action.GetMiner()
 			return ticketMiner.Reward, nil
 		}
+	} else if "token" == string(tx.Execer) {//TODO: 补充和完善token和trade分支的amount的计算
+		var action TokenAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
+			precreate := action.GetTokenprecreate()
+			return precreate.Price, nil
+		} else if TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
+			return 0, nil
+		} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
+			return 0, nil
+		} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
+			return action.GetTransfer().GetAmount(), nil
+		} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
+			return action.GetWithdraw().GetAmount(), nil
+		}
+
+	} else if "trade" == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.GetPayload(), &trade)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TradeSell == trade.Ty && trade.GetTokensell() != nil {
+			tokensell := trade.GetTokensell()
+			return tokensell.GetTotalboardlot() * tokensell.GetAmountperboardlot(), nil
+		} else if TradeBuy == trade.Ty && trade.GetTokenbuy() != nil {
+			return 0, nil
+		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+			return 0, nil
+		}
+
 	}
 	return 0, nil
 }
@@ -225,6 +261,10 @@ func (tx *Transaction) ActionName() string {
 			return "finishCreate"
 		} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
 			return "revokeCreate"
+		} else if action.Ty == ActionTransfer && action.GetTransfer() != nil {
+			return "transferToken"
+		} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
+			return "withdrawToken"
 		}
 	} else if "trade" == string(tx.Execer) {
 		var trade Trade
@@ -234,11 +274,11 @@ func (tx *Transaction) ActionName() string {
 		}
 
 		if trade.Ty == TradeSell && trade.GetTokensell() != nil {
-			return "sell token"
+			return "selltoken"
 		} else if trade.Ty == TradeBuy && trade.GetTokenbuy() != nil {
-			return "buy token"
+			return "buytoken"
 		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
-			return "revokesell"
+			return "revokeselltoken"
 		}
 	}
 
