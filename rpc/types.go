@@ -222,4 +222,5 @@ type WalletStatus struct {
 	IsLock       bool `json:"isLock"`
 	IsAutoMining bool `json:"isAutoMining"`
 	HasSeed      bool `json:"hasSeed"`
+	Ismineronly  bool `json:"ismineronly"`
 }
