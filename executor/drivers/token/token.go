@@ -79,7 +79,7 @@ func (t *Token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 		panic(err)
 	}
 	tokenlog.Info("exec token ExecLocal tx=", "tx=", action)
-    var set *types.LocalDBSet
+	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.DriverBase.ExecLocalTransWithdraw(tx, receipt, index)
 	} else {
@@ -99,7 +99,17 @@ func (t *Token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
 				}
-				set.KV = append(set.KV, t.saveLogs(&receipt)...)
+
+				receiptKV := t.saveLogs(&receipt)
+				///////////////////////////////
+				//debug code begin
+				tokenlog.Debug("ExecLocal to savelogs", "add for tx with hash", common.Bytes2Hex(tx.Hash()))
+				for i, kv := range receiptKV {
+					tokenlog.Debug("ExecLocal to savelogs", "i", i, "key in string", string(kv.Key), "value", kv.Value)
+				}
+				set.KV = append(set.KV, receiptKV...)
+				//debug code end
+				///////////////////////////////
 			}
 		}
 	}
@@ -213,27 +223,21 @@ func (t *Token) GetTokenInfo(symbol string) (types.Message, error) {
 
 func (t *Token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	querydb := t.GetQueryDB()
-	localdb := t.GetLocalDB()
 	db := t.GetDB()
 
 	replyTokens := &types.ReplyTokens{}
 	if reqTokens.Queryall {
 		keys := querydb.List(tokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
-		tokenlog.Info("token Query GetTokens", "get count", len(keys))
+		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		if len(keys) != 0 {
 			for _, key := range keys {
-				if value, err := localdb.Get(key); err != nil {
-					continue
-				} else {
-					if tokenValue, err := db.Get(value); err == nil {
-						var token types.Token
-						err = types.Decode(tokenValue, &token)
-						if err == nil {
-							replyTokens.Tokens = append(replyTokens.Tokens, &token)
-						}
-
+				tokenlog.Debug("token Query GetTokens", "key in string", string(key))
+				if tokenValue, err := db.Get(key); err == nil {
+					var token types.Token
+					err = types.Decode(tokenValue, &token)
+					if err == nil {
+						replyTokens.Tokens = append(replyTokens.Tokens, &token)
 					}
-
 				}
 			}
 		}

@@ -59,7 +59,7 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	log.Debug("SendTransaction", "parm", parm)
 	reply := c.cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
-		*result = string(reply.GetData().(*types.Reply).Msg)
+		*result = common.ToHex(reply.GetData().(*types.Reply).Msg)
 		return nil
 	} else {
 		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
@@ -281,7 +281,6 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 					ActionName: tx.GetActionName(),
 				})
 		}
-
 		*result = &txdetails
 	}
 
