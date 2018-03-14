@@ -1,12 +1,10 @@
 package blacklist
 
 import (
-	//"code.aliyun.com/chain33/chain33/executor/drivers/norm"
 	log "github.com/inconshreveable/log15"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
-
-	"fmt"
+	//"fmt"
 )
 
 var clog = log.New("module", "execs.blacklist")
@@ -24,12 +22,12 @@ func newBlackList() *BlackList{
 	n.SetIsFree(true)
 	return n
 }
-func(b *BlackList)putBlackRecord(){
-
-}
-func (b *BlackList)getBlackRecord(){
-
-}
+//func(b *BlackList)putBlackRecord(){
+//
+//}
+//func (b *BlackList)getBlackRecord(){
+//
+//}
 func (n *BlackList) GetName() string {
 	return "user.blacklist"
 }
@@ -67,7 +65,7 @@ func (n *BlackList) GetKVPair(tx *types.Transaction) *types.KeyValue {
 		return nil
 	}
 	if action.Ty == BlackRecordPut && action.GetRc()!=nil {
-		return &types.KeyValue{[]byte(n.GetName()+action.GetRc().GetRecoridId()), []byte(action.GetRc().String())}
+		return &types.KeyValue{[]byte(n.GetName()+action.GetRc().GetRecordId()), []byte(action.GetRc().String())}
 	}else if action.Ty== OrgPut && action.GetOr()!=nil {
 		return &types.KeyValue{[]byte(n.GetName()+action.GetOr().GetOrgId()), []byte(action.GetOr().String())}
 	}
@@ -121,7 +119,7 @@ func (n *BlackList) Query(funcname string, params []byte) (types.Message, error)
 		}
 		return &types.ReplyString{string(value)}, nil
 	} else if funcname == "OrgGet" {
-		fmt.Println(n.GetName()+string(params))
+		//fmt.Println(n.GetName()+string(params))
 		value:= n.GetQueryDB().Get([]byte(n.GetName()+string(params)))
 		if value == nil {
 			return  nil, types.ErrNotFound
