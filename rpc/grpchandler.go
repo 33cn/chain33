@@ -362,3 +362,11 @@ func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*p
 	}
 	return result, nil
 }
+
+func (g *Grpc) TokenFinishCreate(ctx context.Context, in *pb.ReqTokenFinishCreate) (*pb.Reply, error) {
+	result, err := g.cli.TokenFinishCreate(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}

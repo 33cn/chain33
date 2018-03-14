@@ -659,3 +659,19 @@ func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.Re
 	log.Info("TokenPreCreate", "result", "success", "symbol", parm.GetSymbol())
 	return resp.Data.(*types.Reply), nil
 }
+
+func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventTokenFinishCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenFinishCreate", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("TokenFinishCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenFinishCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.Reply), nil
+}
