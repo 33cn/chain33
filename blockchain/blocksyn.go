@@ -142,9 +142,7 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string) (err e
 		requestblock.End = end
 	}
 
-	err = chain.task.Start(requestblock.Start, requestblock.End, func() {
-		chain.SynBlocksFromPeers()
-	})
+	err = chain.task.Start(requestblock.Start, requestblock.End, nil)
 	if err != nil {
 		return err
 	}
