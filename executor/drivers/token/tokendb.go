@@ -232,9 +232,9 @@ func tokenAddrKey(token string, owner string) (key []byte) {
 }
 
 func tokenStatusKey(token string, owner string, status int32) ([]byte) {
-	return []byte(fmt.Sprint("mavl-create-token-%d:%s:%s:%s", status, token, owner))
+	return []byte(fmt.Sprintf("mavl-create-token-%d:%s:%s", status, token, owner))
 }
 
 func tokenStatusKeyPrefix(status int32) ([]byte) {
-	return []byte(fmt.Sprint("mavl-create-token-%d:", status))
+	return []byte(fmt.Sprintf("mavl-create-token-%d:", status))
 }
