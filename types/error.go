@@ -57,6 +57,7 @@ var (
 	ErrTokenIntroLen              = errors.New("ErrTokenIntroductionLen")
 	ErrTokenExist                 = errors.New("ErrTokenSymbolExistAlready")
 	ErrTokenNotPrecreated         = errors.New("ErrTokenNotPrecreated")
+	ErrTokenCanotRevoked          = errors.New("ErrTokenCanotRevokedWithWrongStatus")
 	ErrTokenCreatedApprover       = errors.New("ErrTokenCreatedApprover")
 	ErrTokenRevokeCreater         = errors.New("ErrTokenRevokeCreater")
 	//err for trade

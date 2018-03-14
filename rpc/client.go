@@ -545,6 +545,47 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 	}
 	return nil, nil
 }
+//TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
+func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
+	accountTokendb := account.NewTokenAccountWithoutDB(in.GetTokenSymbol())
+
+	switch in.GetExecer() {
+	case "token":
+		addrs := in.GetAddresses()
+		var queryAddrs []string
+		for _, addr := range addrs {
+			if err := account.CheckAddress(addr); err != nil {
+				addr = account.ExecAddress(addr).String()
+
+			}
+			queryAddrs = append(queryAddrs, addr)
+		}
+
+		accounts, err := accountTokendb.LoadAccounts(c.Client, queryAddrs)
+		if err != nil {
+			log.Error("GetTokenBalance", "err", err.Error(), "token symbol", in.GetTokenSymbol(), "address", queryAddrs)
+			return nil, err
+		}
+		return accounts, nil
+
+	default: //trade
+		execaddress := account.ExecAddress(in.GetExecer())
+		addrs := in.GetAddresses()
+		var accounts []*types.Account
+		for _, addr := range addrs {
+			account, err := accountTokendb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
+			if err != nil {
+				log.Error("GetTokenBalance for exector", "err", err.Error(), "token symbol", in.GetTokenSymbol(),
+					"address", addr)
+				continue
+			}
+			accounts = append(accounts, account)
+		}
+
+		return accounts, nil
+	}
+	return nil, nil
+}
 
 func (c *channelClient) QueryHash(in *types.Query) (*types.Message, error) {
 
