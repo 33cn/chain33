@@ -447,11 +447,15 @@ func (wallet *Wallet) ProcRecvMsg() {
 			res, err := wallet.ProcTokenPreCreate(preCreate)
 			if err != nil {
 				walletlog.Error("ProcTokenPreCreate", "err", err.Error())
+				var reply types.Reply
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, err))
 			} else {
-				var replyStr types.ReplyStr
-				replyStr.Replystr = res
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, &res))
+				var reply types.Reply
+				reply.IsOk = true
+				walletlog.Info("ProcTokenPreCreate", "msg", res, "symbol", preCreate.GetSymbol(), "result", "success")
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, &reply))
 			}
 
 		default:

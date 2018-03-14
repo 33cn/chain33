@@ -603,7 +603,7 @@ func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
 	return resp.GetData().(*types.ReplyStr), nil
 }
 
-func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.ReplyStr, error) {
+func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.Reply, error) {
 	msg := c.NewMessage("wallet", types.EventTokenPreCreate, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -612,8 +612,9 @@ func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.Re
 	}
 	resp, err := c.Wait(msg)
 	if err != nil {
+		log.Error("TokenPreCreate", "Error", err.Error())
 		return nil, err
 	}
-
-	return resp.Data.(*types.ReplyStr), nil
+	log.Info("TokenPreCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.Reply), nil
 }
