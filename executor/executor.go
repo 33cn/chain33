@@ -8,6 +8,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/blacklist"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"

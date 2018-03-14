@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+message BlackAction {
+    oneof value {
+        Record rc = 1;
+        Org or = 3;
+    }
+    int32 ty = 2;
+}
+
+message Record {
+    string recoridId   = 1;
+    string negativeType  = 2;
+    string negativeSeverity = 3;
+    string negativeInfo = 4;
+}
+message Org {
+    string orgId = 1;
+    int64  orgCredit =2;
+}
