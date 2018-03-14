@@ -29,18 +29,16 @@ func (wallet *Wallet) bindminer(mineraddr, returnaddr string, priv crypto.PrivKe
 
 //通过rpc 精选close 操作
 func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) ([]byte, error) {
-	for i := 0; i < len(ids); i += 100 {
-		end := i + 100
-		if end > len(ids) {
-			end = len(ids)
-		}
-		ta := &types.TicketAction{}
-		tclose := &types.TicketClose{ids[i:end]}
-		ta.Value = &types.TicketAction_Tclose{tclose}
-		ta.Ty = types.TicketActionClose
-		return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
+	//每次最多close 200个
+	end := 200
+	if end > len(ids) {
+		end = len(ids)
 	}
-	return nil, nil
+	ta := &types.TicketAction{}
+	tclose := &types.TicketClose{ids[0:end]}
+	ta.Value = &types.TicketAction_Tclose{tclose}
+	ta.Ty = types.TicketActionClose
+	return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
 }
 
 func (wallet *Wallet) getBalance(addr string, execer string) (*types.Account, error) {
@@ -271,6 +269,9 @@ func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, er
 		return nil, err
 	}
 	reply := resp.GetData().(types.Message).(*types.ReplyTicketList)
+	for i := 0; i < len(reply.Tickets); i++ {
+		walletlog.Error("Tickets", "id", reply.Tickets[i].GetTicketId(), "addr", addr, "req", status, "res", reply.Tickets[i].Status)
+	}
 	return reply.Tickets, nil
 }
 
@@ -292,10 +293,11 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
 	tx.Nonce = wallet.random.Int63()
-	tx.Fee, err = tx.GetRealFee()
+	tx.Fee, err = tx.GetRealFee(minFee)
 	if err != nil {
 		return nil, err
 	}
+	tx.SetExpire(time.Second * 120)
 	tx.Sign(int32(SignType), priv)
 	reply, err := wallet.sendTx(tx)
 	if err != nil {

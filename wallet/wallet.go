@@ -71,7 +71,7 @@ func New(cfg *types.Wallet) *Wallet {
 		wg:            &sync.WaitGroup{},
 		FeeAmount:     walletStore.GetFeeAmount(),
 		EncryptFlag:   walletStore.GetEncryptionFlag(),
-		miningTicket:  time.NewTicker(5 * time.Minute),
+		miningTicket:  time.NewTicker(5 * time.Second),
 		done:          make(chan struct{}),
 	}
 	value := walletStore.db.Get([]byte("WalletAutoMiner"))
