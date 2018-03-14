@@ -60,7 +60,7 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	log.Debug("SendTransaction", "parm", parm)
 	reply := c.cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
-		*result = string(reply.GetData().(*types.Reply).Msg)
+		*result = common.ToHex(reply.GetData().(*types.Reply).Msg)
 		return nil
 	} else {
 		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
@@ -953,7 +953,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 		default:
 			return nil, errors.New("wrong log type")
 		}
-		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: lTy, Log: logIns, RawLog: l.Log})
+		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
 	}
 	return rd, nil
 }
