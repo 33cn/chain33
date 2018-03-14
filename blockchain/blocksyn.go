@@ -25,8 +25,8 @@ var (
 	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
 	MaxRollBlockNum         int64 = 5000   //最大回退block数量
 	blockSynSeconds               = time.Duration(TimeoutSeconds)
-
-	synlog = chainlog.New("submodule", "syn")
+	checkBlockNum           int64 = 128
+	synlog                        = chainlog.New("submodule", "syn")
 )
 
 //blockchain模块需要保存的peerinfo
@@ -169,7 +169,7 @@ func (chain *BlockChain) FetchPeerList() {
 	chain.fetchPeerList()
 }
 
-var debugflag int = 0
+var debugflag int = 60
 
 func (chain *BlockChain) fetchPeerList() error {
 	if chain.qclient == nil {
@@ -220,7 +220,8 @@ func (chain *BlockChain) fetchPeerList() error {
 	subInfoList := maxSubList(peerInfoList)
 
 	//debug
-	if debugflag >= 100 {
+	debugflag++
+	if debugflag >= 60 {
 		for _, peerinfo := range subInfoList {
 			synlog.Debug("fetchPeerList subInfoList", "Name", peerinfo.Name, "Height", peerinfo.Height, "ParentHash", common.ToHex(peerinfo.ParentHash), "Hash", common.ToHex(peerinfo.Hash))
 		}
@@ -246,7 +247,7 @@ func maxSubList(list PeerInfoList) (sub PeerInfoList) {
 		} else {
 			nextheight = list[i+1].Height
 		}
-		if nextheight-list[i].Height > 5 {
+		if nextheight-list[i].Height > checkBlockNum {
 			end = i + 1
 			if len(sub) < (end - start) {
 				sub = list[start:end]
