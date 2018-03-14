@@ -660,6 +660,38 @@ func (m *ReqTokenPreCreate) GetPrice() int64 {
 	return 0
 }
 
+type ReqTokenFinishCreate struct {
+	FinisherAddr string `protobuf:"bytes,1,opt,name=finisher_addr,json=finisherAddr" json:"finisher_addr,omitempty"`
+	Symbol       string `protobuf:"bytes,2,opt,name=symbol" json:"symbol,omitempty"`
+	OwnerAddr    string `protobuf:"bytes,3,opt,name=owner_addr,json=ownerAddr" json:"owner_addr,omitempty"`
+}
+
+func (m *ReqTokenFinishCreate) Reset()                    { *m = ReqTokenFinishCreate{} }
+func (m *ReqTokenFinishCreate) String() string            { return proto.CompactTextString(m) }
+func (*ReqTokenFinishCreate) ProtoMessage()               {}
+func (*ReqTokenFinishCreate) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{24} }
+
+func (m *ReqTokenFinishCreate) GetFinisherAddr() string {
+	if m != nil {
+		return m.FinisherAddr
+	}
+	return ""
+}
+
+func (m *ReqTokenFinishCreate) GetSymbol() string {
+	if m != nil {
+		return m.Symbol
+	}
+	return ""
+}
+
+func (m *ReqTokenFinishCreate) GetOwnerAddr() string {
+	if m != nil {
+		return m.OwnerAddr
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*WalletTxDetail)(nil), "types.WalletTxDetail")
 	proto.RegisterType((*WalletTxDetails)(nil), "types.WalletTxDetails")
@@ -685,6 +717,7 @@ func init() {
 	proto.RegisterType((*ReqStr)(nil), "types.ReqStr")
 	proto.RegisterType((*ReplyStr)(nil), "types.ReplyStr")
 	proto.RegisterType((*ReqTokenPreCreate)(nil), "types.ReqTokenPreCreate")
+	proto.RegisterType((*ReqTokenFinishCreate)(nil), "types.ReqTokenFinishCreate")
 }
 
 func init() { proto.RegisterFile("wallet.proto", fileDescriptor9) }
