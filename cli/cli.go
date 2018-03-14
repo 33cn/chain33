@@ -237,7 +237,7 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		SetAutoMining(argsWithoutProg[1])
+		SetAutoMining(argsWithoutProg[1], "0")
 	case "getrawtx":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -308,7 +308,7 @@ func LoadHelp() {
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
-	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
+	fmt.Println("setautomining [flag, reserve]                               : 设置自动挖矿")
 	fmt.Println("getrawtx [hash]                                             : 通过哈希获取交易十六进制字符串")
 	fmt.Println("getticketcount []                                           : 获取票数")
 	fmt.Println("decodetx [data]                                             : 解析交易")
@@ -349,15 +349,15 @@ type TxResult struct {
 }
 
 type TxDetailResult struct {
-	Tx         *TxResult    `json:"tx"`
-	Receipt    *ReceiptData `json:"receipt"`
-	Proofs     []string     `json:"proofs,omitempty"`
-	Height     int64        `json:"height"`
-	Index      int64        `json:"index"`
-	Blocktime  int64        `json:"blocktime"`
-	Amount     string       `json:"amount"`
-	Fromaddr   string       `json:"fromaddr"`
-	ActionName string       `json:"actionname"`
+	Tx         *TxResult                  `json:"tx"`
+	Receipt    *jsonrpc.ReceiptDataResult `json:"receipt"`
+	Proofs     []string                   `json:"proofs,omitempty"`
+	Height     int64                      `json:"height"`
+	Index      int64                      `json:"index"`
+	Blocktime  int64                      `json:"blocktime"`
+	Amount     string                     `json:"amount"`
+	Fromaddr   string                     `json:"fromaddr"`
+	ActionName string                     `json:"actionname"`
 }
 
 type ReceiptData struct {
@@ -386,8 +386,8 @@ type BlockResult struct {
 }
 
 type BlockDetailResult struct {
-	Block    *BlockResult   `json:"block"`
-	Receipts []*ReceiptData `json:"receipts"`
+	Block    *BlockResult                 `json:"block"`
+	Receipts []*jsonrpc.ReceiptDataResult `json:"receipts"`
 }
 
 type BlockDetailsResult struct {
@@ -399,15 +399,15 @@ type WalletTxDetailsResult struct {
 }
 
 type WalletTxDetailResult struct {
-	Tx         *TxResult    `json:"tx"`
-	Receipt    *ReceiptData `json:"receipt"`
-	Height     int64        `json:"height"`
-	Index      int64        `json:"index"`
-	Blocktime  int64        `json:"blocktime"`
-	Amount     string       `json:"amount"`
-	Fromaddr   string       `json:"fromaddr"`
-	Txhash     string       `json:"txhash"`
-	ActionName string       `json:"actionname"`
+	Tx         *TxResult                  `json:"tx"`
+	Receipt    *jsonrpc.ReceiptDataResult `json:"receipt"`
+	Height     int64                      `json:"height"`
+	Index      int64                      `json:"index"`
+	Blocktime  int64                      `json:"blocktime"`
+	Amount     string                     `json:"amount"`
+	Fromaddr   string                     `json:"fromaddr"`
+	Txhash     string                     `json:"txhash"`
+	ActionName string                     `json:"actionname"`
 }
 
 type AddrOverviewResult struct {
@@ -503,8 +503,8 @@ func SetLabl(addr string, label string) {
 		return
 	}
 
-	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
+	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(types.Coin), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(types.Coin), 'f', 4, 64)
 	accResult := &AccountResult{
 		Addr:     res.GetAcc().GetAddr(),
 		Currency: res.GetAcc().GetCurrency(),
@@ -536,8 +536,8 @@ func NewAccount(lb string) {
 		return
 	}
 
-	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
+	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(types.Coin), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(types.Coin), 'f', 4, 64)
 	accResult := &AccountResult{
 		Addr:     res.GetAcc().GetAddr(),
 		Currency: res.GetAcc().GetCurrency(),
@@ -571,8 +571,8 @@ func GetAccounts() {
 	var result AccountsResult
 
 	for _, r := range res.Wallets {
-		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance)/float64(1e8), 'f', 4, 64)
-		frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen)/float64(1e8), 'f', 4, 64)
+		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance)/float64(types.Coin), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen)/float64(types.Coin), 'f', 4, 64)
 		accResult := &AccountResult{
 			Currency: r.Acc.Currency,
 			Addr:     r.Acc.Addr,
@@ -686,8 +686,8 @@ func ImportPrivKey(privkey string, label string) {
 		return
 	}
 
-	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(1e8), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(1e8), 'f', 4, 64)
+	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(types.Coin), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(types.Coin), 'f', 4, 64)
 	accResult := &AccountResult{
 		Addr:     res.GetAcc().GetAddr(),
 		Currency: res.GetAcc().GetCurrency(),
@@ -735,16 +735,10 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 
 	var result WalletTxDetailsResult
 	for _, v := range res.TxDetails {
-		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
-
-		rd, err := decodeLog(v.Receipt)
-		if err != nil {
-			continue
-		}
-
+		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		wtxd := &WalletTxDetailResult{
 			Tx:         decodeTransaction(*(v.Tx)),
-			Receipt:    rd,
+			Receipt:    v.Receipt,
 			Height:     v.Height,
 			Index:      v.Index,
 			Blocktime:  v.Blocktime,
@@ -866,14 +860,13 @@ func GetTransactionByHashes(hashes []string) {
 
 	var result TxDetailsResult
 	for _, v := range res.Txs {
-		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
-		rd, err := decodeLog(v.Receipt)
+		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		if err != nil {
 			continue
 		}
 		td := TxDetailResult{
 			Tx:         decodeTransaction(*v.Tx),
-			Receipt:    rd,
+			Receipt:    v.Receipt,
 			Proofs:     v.Proofs,
 			Height:     v.Height,
 			Index:      v.Index,
@@ -936,16 +929,7 @@ func GetBlocks(start string, end string, detail string) {
 		for _, vTx := range vItem.Block.Txs {
 			b.Txs = append(b.Txs, decodeTransaction(*vTx))
 		}
-
-		var rds []*ReceiptData
-		for _, rd := range vItem.Receipts {
-			r, err := decodeLog(rd)
-			if err != nil {
-				continue
-			}
-			rds = append(rds, r)
-		}
-		bd := &BlockDetailResult{Block: b, Receipts: rds}
+		bd := &BlockDetailResult{Block: b, Receipts: vItem.Receipts}
 		result.Items = append(result.Items, bd)
 	}
 
@@ -1105,8 +1089,8 @@ func GetAddrOverview(addr string) {
 		return
 	}
 
-	Balance := strconv.FormatFloat(float64(res.GetBalance())/float64(1e8), 'f', 4, 64)
-	Reciver := strconv.FormatFloat(float64(res.GetReciver())/float64(1e8), 'f', 4, 64)
+	Balance := strconv.FormatFloat(float64(res.GetBalance())/float64(types.Coin), 'f', 4, 64)
+	Reciver := strconv.FormatFloat(float64(res.GetReciver())/float64(types.Coin), 'f', 4, 64)
 
 	addrOverview := &AddrOverviewResult{
 		Balance: Balance,
@@ -1256,8 +1240,8 @@ func GetBalance(address string, execer string) {
 		return
 	}
 
-	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(1e8), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(1e8), 'f', 4, 64)
+	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(types.Coin), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(types.Coin), 'f', 4, 64)
 	result := &AccountResult{
 		Addr:     res[0].Addr,
 		Currency: res[0].Currency,
@@ -1311,16 +1295,20 @@ func BindMiner(mineraddr string, priv string) {
 	tx.Sign(types.SECP256K1, privKey)
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
-	//	SendTransaction(hex.EncodeToString(txHex))
 }
 
-func SetAutoMining(flag string) {
+func SetAutoMining(flag string, reserve string) {
 	flagInt32, err := strconv.ParseInt(flag, 10, 32)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := types.MinerFlag{Flag: int32(flagInt32)}
+	reserveFloat64, err := strconv.ParseFloat(reserve, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	params := types.MinerFlag{Flag: int32(flagInt32), Reserve: int64(reserveFloat64 * float64(types.Coin))}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1405,10 +1393,10 @@ func DumpPrivkey(addr string) {
 }
 
 func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
-	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(1e8), 'f', 4, 64)
+	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
 	amountResult := ""
 	if tx.Amount != 0 {
-		amountResult = strconv.FormatFloat(float64(tx.Amount)/float64(1e8), 'f', 4, 64)
+		amountResult = strconv.FormatFloat(float64(tx.Amount)/float64(types.Coin), 'f', 4, 64)
 	}
 	result := &TxResult{
 		Execer:     tx.Execer,
@@ -1464,8 +1452,7 @@ func QueryTransaction(h string) {
 		return
 	}
 
-	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(1e8), 'f', 4, 64)
-	rd, err := decodeLog(res.Receipt)
+	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(types.Coin), 'f', 4, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -1473,7 +1460,7 @@ func QueryTransaction(h string) {
 
 	result := TxDetailResult{
 		Tx:         decodeTransaction(*(res.Tx)),
-		Receipt:    rd,
+		Receipt:    res.Receipt,
 		Proofs:     res.Proofs,
 		Height:     res.Height,
 		Index:      res.Index,
@@ -1516,154 +1503,4 @@ func GetColdAddrByMiner(addr string) {
 	}
 
 	fmt.Println(string(data))
-}
-
-func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
-	var rTy string
-	switch rlog.Ty {
-	case 0:
-		rTy = "ExecErr"
-	case 1:
-		rTy = "ExecPack"
-	case 2:
-		rTy = "ExecOk"
-	default:
-		return nil, errors.New("wrong log type")
-	}
-	rd := &ReceiptData{Ty: rTy}
-
-	for _, l := range rlog.Logs {
-		var lTy string
-		var logIns interface{}
-
-		lLog, err := hex.DecodeString(l.Log[2:])
-		if err != nil {
-			return nil, err
-		}
-
-		switch l.Ty {
-		case 1:
-			lTy = "LogErr"
-			logIns = l.Log
-		case 2:
-			lTy = "LogFee"
-			var logTmp types.ReceiptAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 3:
-			lTy = "LogTransfer"
-			var logTmp types.ReceiptAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 4:
-			lTy = "LogGenesis"
-			logIns = nil
-		case 5:
-			lTy = "LogDeposit"
-			var logTmp types.ReceiptAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 6:
-			lTy = "LogExecTransfer"
-			var logTmp types.ReceiptExecAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 7:
-			lTy = "LogExecWithdraw"
-			var logTmp types.ReceiptExecAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 8:
-			lTy = "LogExecDeposit"
-			var logTmp types.ReceiptExecAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 9:
-			lTy = "LogExecFrozen"
-			var logTmp types.ReceiptExecAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 10:
-			lTy = "LogExecActive"
-			var logTmp types.ReceiptExecAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 11:
-			lTy = "LogGenesisTransfer"
-			var logTmp types.ReceiptAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 12:
-			lTy = "LogGenesisDeposit"
-			var logTmp types.ReceiptExecAccountTransfer
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 111:
-			lTy = "LogNewTicket"
-			var logTmp types.ReceiptTicket
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 112:
-			lTy = "LogCloseTicket"
-			var logTmp types.ReceiptTicket
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 113:
-			lTy = "LogMinerTicket"
-			var logTmp types.ReceiptTicket
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case 114:
-			lTy = "LogTicketBind"
-			var logTmp types.ReceiptTicketBind
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		default:
-			return nil, errors.New("wrong log type")
-		}
-		rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: logIns, RawLog: l.Log})
-	}
-	return rd, nil
 }

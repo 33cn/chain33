@@ -74,6 +74,17 @@ type ReceiptData struct {
 	Logs []*ReceiptLog `json:"logs"`
 }
 
+type ReceiptDataResult struct {
+	Ty   string              `json:"ty"`
+	Logs []*ReceiptLogResult `json:"logs"`
+}
+
+type ReceiptLogResult struct {
+	Ty     string      `json:"ty"`
+	Log    interface{} `json:"log"`
+	RawLog string      `json:"rawlog"`
+}
+
 type Block struct {
 	Version    int64          `json:"version"`
 	ParentHash string         `json:"parenthash"`
@@ -85,8 +96,8 @@ type Block struct {
 }
 
 type BlockDetail struct {
-	Block    *Block         `json:"block"`
-	Receipts []*ReceiptData `json:"recipts"`
+	Block    *Block               `json:"block"`
+	Receipts []*ReceiptDataResult `json:"recipts"`
 }
 
 type BlockDetails struct {
@@ -94,15 +105,15 @@ type BlockDetails struct {
 }
 
 type TransactionDetail struct {
-	Tx         *Transaction `json:"tx"`
-	Receipt    *ReceiptData `json:"receipt"`
-	Proofs     []string     `json:"proofs"`
-	Height     int64        `json:"height"`
-	Index      int64        `json:"index"`
-	Blocktime  int64        `json:"blocktime"`
-	Amount     int64        `json:"amount"`
-	Fromaddr   string       `json:"fromaddr"`
-	ActionName string       `json:"actionname"`
+	Tx         *Transaction       `json:"tx"`
+	Receipt    *ReceiptDataResult `json:"receipt"`
+	Proofs     []string           `json:"proofs"`
+	Height     int64              `json:"height"`
+	Index      int64              `json:"index"`
+	Blocktime  int64              `json:"blocktime"`
+	Amount     int64              `json:"amount"`
+	Fromaddr   string             `json:"fromaddr"`
+	ActionName string             `json:"actionname"`
 }
 
 type ReplyTxInfos struct {
@@ -183,15 +194,15 @@ type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txdetails"`
 }
 type WalletTxDetail struct {
-	Tx         *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx"`
-	Receipt    *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
-	Height     int64        `protobuf:"varint,3,opt,name=height" json:"height"`
-	Index      int64        `protobuf:"varint,4,opt,name=index" json:"index"`
-	Blocktime  int64        `json:"blocktime"`
-	Amount     int64        `json:"amount"`
-	Fromaddr   string       `json:"fromaddr"`
-	Txhash     string       `json:"txhash"`
-	ActionName string       `json:"actionname"`
+	Tx         *Transaction       `protobuf:"bytes,1,opt,name=tx" json:"tx"`
+	Receipt    *ReceiptDataResult `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
+	Height     int64              `protobuf:"varint,3,opt,name=height" json:"height"`
+	Index      int64              `protobuf:"varint,4,opt,name=index" json:"index"`
+	Blocktime  int64              `json:"blocktime"`
+	Amount     int64              `json:"amount"`
+	Fromaddr   string             `json:"fromaddr"`
+	Txhash     string             `json:"txhash"`
+	ActionName string             `json:"actionname"`
 }
 
 type BlockOverview struct {
