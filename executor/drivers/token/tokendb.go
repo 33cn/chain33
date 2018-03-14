@@ -11,7 +11,7 @@ type TokenDB struct {
 	token types.Token
 }
 
-func NewTokenDB(preCreate *types.TokenPreCreate, creater string) *TokenDB {
+func NewTokenDB(preCreate *types.TokenPreCreate, creator string) *TokenDB {
 	t := &TokenDB{}
 	t.token.Name = preCreate.GetName()
 	t.token.Symbol = preCreate.GetSymbol()
@@ -20,7 +20,7 @@ func NewTokenDB(preCreate *types.TokenPreCreate, creater string) *TokenDB {
 	t.token.Price = preCreate.GetPrice()
 	//token可以由自己进行创建，也可以通过委托给其他地址进行创建
 	t.token.Owner = preCreate.GetOwner()
-	t.token.Creater = creater
+	t.token.Creator = creator
 	t.token.Status = types.TokenStatusPreCreated
 	return t
 }
@@ -57,6 +57,7 @@ func getTokenFromDB(db dbm.KVDB, symbol string, owner string) (*types.Token, err
 	tokenlog.Info("getTokenFromDB", "key string", string(key), "key", key, "value", value)
 	var token types.Token
 	if err = types.Decode(value, &token); err != nil {
+		tokenlog.Error("getTokenFromDB", "Fail to decode types.Token for key", string(key), "err info is", err)
 		return nil, err
 	}
 	return &token, nil
@@ -142,7 +143,7 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 
 
     //将之前冻结的资金转账到fund合约账户中
-	receiptForCoin, err := action.coinsAccount.ExecTransferFrozen(token.Creater, action.toaddr, action.execaddr, token.Price)
+	receiptForCoin, err := action.coinsAccount.ExecTransferFrozen(token.Creator, action.toaddr, action.execaddr, token.Price)
 	if err != nil {
 		tokenlog.Error("token finishcreate ", "addr", action.fromaddr, "execaddr", action.execaddr, "token", token.Symbol)
 		return nil, err
@@ -178,20 +179,28 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 
 func (action *TokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*types.Receipt, error) {
 	token, err := getTokenFromDB(action.db, tokenRevoke.GetSymbol(), tokenRevoke.GetOwner())
-	if err != nil  || token.Status != types.TokenStatusCreated {
+	if err != nil {
+		tokenlog.Error("token revokeCreate ", "Can't get token form db for token", tokenRevoke.GetSymbol())
 		return nil, types.ErrTokenNotPrecreated
+	}
+
+	if token.Status != types.TokenStatusPreCreated {
+		tokenlog.Error("token revokeCreate ", "Token's status should be precreated to be revoked for token", tokenRevoke.GetSymbol())
+		return nil, types.ErrTokenCanotRevoked
 	}
 
 	//确认交易发起者的身份，token的发起人可以撤销该项token的创建
 	//token的owner不允许撤销交易
-	if action.fromaddr != token.Creater {
+	if action.fromaddr != token.Creator {
+		tokenlog.Error("token revokeCreate, different creator vs actor of this revoke",
+			"action.fromaddr", action.fromaddr, "creator", token.Creator)
 		return nil, types.ErrTokenRevokeCreater
 	}
 
 	//解锁之前冻结的资金
-	receipt, err := action.coinsAccount.ExecActive(token.Owner, action.execaddr, token.Price)
+	receipt, err := action.coinsAccount.ExecActive(token.Creator, action.execaddr, token.Price)
 	if err != nil {
-		tokenlog.Error("token finishcreate ", "addr", action.fromaddr, "execaddr", action.execaddr, "token", token.Symbol)
+		tokenlog.Error("token revokeCreate error ", "error info", err, "creator addr", token.Creator, "execaddr", action.execaddr, "token", token.Symbol)
 		return nil, err
 	}
 
