@@ -12,6 +12,7 @@ import (
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
+	walletlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", int32(count))
 	ta := &types.TicketAction{}
 	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
 	ta.Value = &types.TicketAction_Topen{topen}
@@ -34,6 +35,7 @@ func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) ([]byte, e
 	if end > len(ids) {
 		end = len(ids)
 	}
+	walletlog.Info("closeTickets", "ids", ids[0:end])
 	ta := &types.TicketAction{}
 	tclose := &types.TicketClose{ids[0:end]}
 	ta.Value = &types.TicketAction_Tclose{tclose}
@@ -130,31 +132,32 @@ func (wallet *Wallet) closeAllTickets() (int, error) {
 	return 0, nil
 }
 
-func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) error {
+func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error) {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc, err := wallet.getBalance(addr, "ticket")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if acc.Balance > 0 {
-		_, err := wallet.sendToAddress(priv, account.ExecAddress("ticket").String(), -acc.Balance, "autominer->withdraw")
+		hash, err := wallet.sendToAddress(priv, account.ExecAddress("ticket").String(), -acc.Balance, "autominer->withdraw")
 		if err != nil {
-			return err
+			return nil, err
 		}
+		return hash.GetHash(), nil
 	}
-	return nil
+	return nil, nil
 }
 
-func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) (int, error) {
+func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) ([]byte, int, error) {
 	//ticket balance and coins balance
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc1, err := wallet.getBalance(addr, "coins")
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
 	acc2, err := wallet.getBalance(addr, "ticket")
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
 	//留一个币作为手续费，如果手续费不够了，不能挖矿
 	//判断手续费是否足够，如果不足要及时补充。
@@ -169,47 +172,52 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) (int, error) {
 			walletlog.Error("buyTicketOne", "toaddr", toaddr, "amount", amount)
 			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket")
 			if err != nil {
-				return 0, err
+				return nil, 0, err
 			}
 			wallet.waitTx(hash.Hash)
 		}
 		acc, err := wallet.getBalance(addr, "ticket")
 		if err != nil {
-			return 0, err
+			return nil, 0, err
 		}
 		count := acc.Balance / types.TicketPrice
 		if count > 0 {
-			_, err := wallet.openticket(addr, addr, priv, int32(count))
-			return 0, err
+			txhash, err := wallet.openticket(addr, addr, priv, int32(count))
+			return txhash, 0, err
 		}
-		return int(count), nil
+		return nil, int(count), nil
 	}
-	return 0, nil
+	return nil, 0, nil
 }
 
-func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) (int, error) {
+func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) ([][]byte, int, error) {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	//判断是否绑定了coldaddr
 	addrs, err := wallet.getMinerColdAddr(addr)
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
+	total := 0
+	var hashes [][]byte
 	for i := 0; i < len(addrs); i++ {
-		walletlog.Error("sourceaddr", "addr", addrs[i])
+		walletlog.Info("sourceaddr", "addr", addrs[i])
 		acc, err := wallet.getBalance(addrs[i], "ticket")
 		if err != nil {
-			return 0, err
+			return nil, 0, err
 		}
-		if acc.Balance >= types.TicketPrice {
-			count := acc.Balance / types.TicketPrice
-			if count > 0 {
-				_, err := wallet.openticket(addr, addrs[i], priv, int32(count))
-				return 0, err
+		count := acc.Balance / types.TicketPrice
+		if count > 0 {
+			txhash, err := wallet.openticket(addr, addrs[i], priv, int32(count))
+			if err != nil {
+				return nil, 0, err
 			}
-			return int(count), nil
+			total += int(count)
+			if txhash != nil {
+				hashes = append(hashes, txhash)
+			}
 		}
 	}
-	return 0, nil
+	return hashes, total, nil
 }
 
 func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
