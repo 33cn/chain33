@@ -820,7 +820,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 	default:
 		return nil, errors.New("wrong log type")
 	}
-	rd := &ReceiptDataResult{Ty: rTy}
+	rd := &ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
 
 	for _, l := range rlog.Logs {
 		var lTy string
