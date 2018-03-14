@@ -145,7 +145,7 @@ var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound�
 //检查交易是否过期，过期返回true，未过期返回false
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	valid := tx.Expire
-	// Expire为0，返回true
+	// Expire为0，返回false
 	if valid == 0 {
 		return false
 	}
