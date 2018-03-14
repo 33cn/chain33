@@ -118,7 +118,7 @@ func (wallet *Wallet) closeAllTickets() (int, error) {
 		hash, err := wallet.closeTicketsByAddr(key)
 		if err != nil {
 			walletlog.Error("close Tickets By Addr", "err", err)
-			return 0, err
+			continue
 		}
 		if hash == nil {
 			continue
@@ -169,7 +169,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) ([]byte, int, error) {
 		//必须大于0，才需要转移币
 		var hash *types.ReplyHash
 		if amount > 0 {
-			walletlog.Error("buyTicketOne", "toaddr", toaddr, "amount", amount)
+			walletlog.Info("buyTicketOne.send", "toaddr", toaddr, "amount", amount)
 			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket")
 			if err != nil {
 				return nil, 0, err

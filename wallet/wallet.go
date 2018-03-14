@@ -187,7 +187,7 @@ func (wallet *Wallet) buyTicket() ([][]byte, int, error) {
 		hash, n, err := wallet.buyTicketOne(priv)
 		if err != nil {
 			walletlog.Error("buyTicketOne", "err", err)
-			return nil, count, err
+			continue
 		}
 		count += n
 		if hash != nil {
@@ -208,8 +208,10 @@ func (wallet *Wallet) buyMinerAddrTicket() ([][]byte, int, error) {
 	for _, priv := range privs {
 		hashlist, n, err := wallet.buyMinerAddrTicketOne(priv)
 		if err != nil {
-			walletlog.Error("buyMinerAddrTicketOne", "err", err)
-			return nil, count, nil
+			if err != types.ErrNotFound {
+				walletlog.Error("buyMinerAddrTicketOne", "err", err)
+			}
+			continue
 		}
 		count += n
 		if hashlist != nil {
@@ -229,7 +231,7 @@ func (wallet *Wallet) withdrawFromTicket() (hashes [][]byte, err error) {
 		hash, err := wallet.withdrawFromTicketOne(priv)
 		if err != nil {
 			walletlog.Error("withdrawFromTicketOne", "err", err)
-			return nil, err
+			continue
 		}
 		if hash != nil {
 			hashes = append(hashes, hash)
