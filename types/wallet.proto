@@ -136,3 +136,9 @@ message ReqTokenPreCreate {
     int64  price = 7;
 }
 
+message ReqTokenFinishCreate {
+    string finisher_addr = 1;
+    string symbol = 2;
+    string owner_addr = 3;
+}
+
