@@ -9,7 +9,7 @@ message BlackAction {
 }
 
 message Record {
-    string recoridId   = 1;
+    string recordId   = 1;
     string negativeType  = 2;
     string negativeSeverity = 3;
     string negativeInfo = 4;
