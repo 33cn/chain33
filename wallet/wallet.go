@@ -34,8 +34,11 @@ type Wallet struct {
 	q             *queue.Queue
 	mtx           sync.Mutex
 	timeout       *time.Timer
+	minertimeout  *time.Timer
 	isclosed      int32
 	isLocked      bool
+	IsMinerLocked bool
+
 	autoMinerFlag int32
 	Password      string
 	FeeAmount     int64
@@ -66,7 +69,8 @@ func New(cfg *types.Wallet) *Wallet {
 	}
 	wallet := &Wallet{
 		walletStore:   walletStore,
-		isLocked:      false,
+		isLocked:      true,
+		IsMinerLocked: true,
 		autoMinerFlag: 0,
 		wg:            &sync.WaitGroup{},
 		FeeAmount:     walletStore.GetFeeAmount(),
@@ -756,11 +760,6 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-
 	if SendToAddress == nil {
 		walletlog.Error("ProcSendToAddress input para is nil")
 		return nil, types.ErrInputPara
@@ -769,6 +768,12 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		walletlog.Error("ProcSendToAddress input para From or To is nil!")
 		return nil, types.ErrInputPara
 	}
+
+	ok, err := wallet.IsTransfer(SendToAddress.GetTo())
+	if !ok {
+		return nil, err
+	}
+
 	//获取from账户的余额从account模块，校验余额是否充足
 	addrs := make([]string, 1)
 	addrs[0] = SendToAddress.GetFrom()
@@ -1009,9 +1014,15 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 	defer wallet.mtx.Unlock()
 
 	isok, err := wallet.CheckWalletStatus()
-	if !isok {
+	if !isok && err == types.ErrSaveSeedFirst {
 		return err
 	}
+	//保存钱包的锁状态，需要暂时的解锁，函数退出时再恢复回去
+	tempislock := wallet.isLocked
+	wallet.isLocked = false
+	defer func() {
+		wallet.isLocked = tempislock
+	}()
 
 	// 钱包已经加密需要验证oldpass的正确性
 	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
@@ -1088,6 +1099,7 @@ func (wallet *Wallet) ProcWalletLock() error {
 	}
 
 	wallet.isLocked = true
+	wallet.IsMinerLocked = true
 	return nil
 }
 
@@ -1116,24 +1128,42 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 		return types.ErrInputPassword
 	}
 	//本钱包没有设置密码加密过,只需要解锁不需要记录解锁密码
-	if len(wallet.Password) != 0 || wallet.EncryptFlag != 0 {
-		wallet.Password = WalletUnLock.Passwd
+	wallet.Password = WalletUnLock.Passwd
+
+	walletlog.Error("ProcWalletUnLock !", "Ismineronly", WalletUnLock.Ismineronly)
+
+	//只解锁挖矿的转账
+	if WalletUnLock.Ismineronly {
+		wallet.IsMinerLocked = false
+	} else {
+		wallet.isLocked = false
 	}
-	wallet.isLocked = false
 	if WalletUnLock.Timeout != 0 {
-		wallet.resetTimeout(WalletUnLock.Timeout)
+		wallet.resetTimeout(WalletUnLock.Ismineronly, WalletUnLock.Timeout)
 	}
 	return nil
 
 }
 
-func (wallet *Wallet) resetTimeout(Timeout int64) {
-	if wallet.timeout == nil {
-		wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-			wallet.isLocked = true
-		})
-	} else {
-		wallet.timeout.Reset(time.Second * time.Duration(Timeout))
+//解锁超时处理，需要区分整个钱包的解锁或者只挖矿的解锁
+func (wallet *Wallet) resetTimeout(Ismineronly bool, Timeout int64) {
+	//只挖矿的解锁超时
+	if Ismineronly {
+		if wallet.minertimeout == nil {
+			wallet.minertimeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
+				wallet.IsMinerLocked = true
+			})
+		} else {
+			wallet.minertimeout.Reset(time.Second * time.Duration(Timeout))
+		}
+	} else { //整个钱包的解锁超时
+		if wallet.timeout == nil {
+			wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
+				wallet.isLocked = true
+			})
+		} else {
+			wallet.timeout.Reset(time.Second * time.Duration(Timeout))
+		}
 	}
 }
 
@@ -1437,9 +1467,6 @@ func (wallet *Wallet) getSeed(password string) (string, error) {
 
 //保存seed种子到数据库中, 并通过钱包密码加密, 钱包起来首先要设置seed
 func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
-	if wallet.IsLocked() {
-		return false, types.ErrWalletIsLocked
-	}
 
 	//首先需要判断钱包是否已经设置seed，如果已经设置提示不需要再设置，一个钱包只能保存一个seed
 	exit, err := HasSeed(wallet.walletStore.db)
@@ -1489,25 +1516,15 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	if !has {
 		return false, types.ErrSaveSeedFirst
 	}
-
-	// 钱包已经加密需要先通过password 解锁钱包
-	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
-		return false, types.ErrUnLockFirst
-	}
 	return true, nil
 }
 
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
 	s.IsLock = wallet.IsLocked()
-	if !s.IsLock {
-		// 钱包已经加密需要先通过password 解锁钱包
-		if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
-			s.IsLock = true
-		}
-	}
 	s.HasSeed, _ = HasSeed(wallet.walletStore.db)
 	s.IsAutoMining = wallet.isAutoMining()
+	s.Ismineronly = wallet.IsMinerLocked
 	return s
 }
 
@@ -1530,4 +1547,21 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 		return "", err
 	}
 	return strings.ToUpper(common.ToHex(priv.Bytes())), nil
+}
+
+//检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
+func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
+
+	ok, err := wallet.CheckWalletStatus()
+	//钱包已经解锁或者错误是ErrSaveSeedFirst直接返回
+	if ok || err == types.ErrSaveSeedFirst {
+		return ok, err
+	}
+	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
+	if wallet.IsMinerLocked == false {
+		if addr == account.ExecAddress("ticket").String() {
+			return true, nil
+		}
+	}
+	return ok, err
 }
