@@ -304,6 +304,12 @@ func main() {
 			return
 		}
 		PreCreateToken(argsWithoutProg[1:])
+	case "finishcreatetoken":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		FinishCreateToken(argsWithoutProg[1:])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -354,6 +360,7 @@ func LoadHelp() {
 	fmt.Println("gettokensprecreated                                         : 获取所有预创建的token")
 	fmt.Println("gettokensfinishcreated                                      : 获取所有完成创建的token")
 	fmt.Println("precreatetoken [creator_address, name, symbol, introduction, owner_address, total, price]                   : 预创建token")
+	fmt.Println("finishcreatetoken [finish_address, symbol, owner_address]   : 完成创建token")
 }
 
 type AccountsResult struct {
@@ -1868,6 +1875,34 @@ func PreCreateToken(args []string) {
 	}
 	var res jsonrpc.Reply
 	err = rpc.Call("Chain33.TokenPreCreate", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func FinishCreateToken(args []string) {
+	// finisher, symbol, owner, string) {
+	finisher := args[0]
+	symbol := args[1]
+	owner := args[2]
+
+	params := types.ReqTokenFinishCreate{FinisherAddr: finisher, Symbol: symbol, OwnerAddr: owner}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.TokenFinishCreate", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
