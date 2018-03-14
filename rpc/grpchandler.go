@@ -347,7 +347,7 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, er
 	return result, nil
 }
 
-func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*pb.ReplyStr, error) {
+func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*pb.Reply, error) {
 	result, err := g.cli.TokenPreCreate(in)
 	if err != nil {
 		return nil, err
