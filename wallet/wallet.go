@@ -1598,7 +1598,6 @@ func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return "", types.ErrInputPara
 	}
 
-	// TODO more check: price total ...
 	upSymbol := strings.ToUpper(reqTokenPrcCreate.GetSymbol())
 	if upSymbol != reqTokenPrcCreate.GetSymbol() {
 		walletlog.Error("ProcTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
@@ -1618,6 +1617,8 @@ func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 	if Balance < price+wallet.FeeAmount {
 		return "", types.ErrInsufficientBalance
 	}
+
+	// TODO symbol 不存在: 不在precreate ， 也不是 finish的
 
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
