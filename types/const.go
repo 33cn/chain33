@@ -144,6 +144,8 @@ const (
 	EventReplyPrivkey        = 95
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
+	EventTokenPreCreate      = 98
+	EventReplyTokenPreCreate = 99
 )
 
 var eventName = map[int]string{
@@ -244,6 +246,9 @@ var eventName = map[int]string{
 	95: "EventReplyPrivkey",
 	96: "EventIsSync",
 	97: "EventReplyIsSync",
+	// Token
+	98: "EventTokenPreCreate",
+	99: "EventReplyTokenPreCreate",
 }
 
 //ty = 1 -> secp256k1
@@ -283,9 +288,9 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSell         = 311
-	TyLogTradeBuy          = 312
-	TyLogTradeRevoke       = 313
+	TyLogTradeSell   = 311
+	TyLogTradeBuy    = 312
+	TyLogTradeRevoke = 313
 )
 
 //exec type
@@ -332,13 +337,13 @@ const (
 	ActionTransfer = iota
 	ActionGenesis
 	ActionWithdraw
-    TokenActionPreCreate
+	TokenActionPreCreate
 	TokenActionFinishCreate
 	TokenActionRevokeCreate
 )
 
 const (
-	TokenStatusPreCreated    = iota
+	TokenStatusPreCreated = iota
 	TokenStatusCreated
 	TokenStatusCreateRevoked
 )
