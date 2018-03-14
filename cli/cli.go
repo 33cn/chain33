@@ -268,6 +268,18 @@ func main() {
 			return
 		}
 		GetColdAddrByMiner(argsWithoutProg[1])
+	case "gettokensprecreated":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTokensPrecreated()
+	case "gettokensfinishcreated":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTokensFinishCreated()
 	default:
 		fmt.Print("指令错误")
 	}
@@ -313,6 +325,8 @@ func LoadHelp() {
 	fmt.Println("getticketcount []                                           : 获取票数")
 	fmt.Println("decodetx [data]                                             : 解析交易")
 	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
+	fmt.Println("gettokensprecreated                                         : 获取所有预创建的token")
+	fmt.Println("gettokensfinishcreated                                      : 获取所有完成创建的token")
 }
 
 type AccountsResult struct {
@@ -865,10 +879,12 @@ func GetTransactionByHashes(hashes []string) {
 	}
 
 	var result TxDetailsResult
+	fmt.Println("GetTransactionByHashes txs len", len(res.Txs))
 	for _, v := range res.Txs {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		rd, err := decodeLog(v.Receipt)
 		if err != nil {
+			fmt.Println("GetTransactionByHashes failed to decodeLog ", )
 			continue
 		}
 		td := TxDetailResult{
@@ -1518,6 +1534,62 @@ func GetColdAddrByMiner(addr string) {
 	fmt.Println(string(data))
 }
 
+func GetTokensPrecreated() {
+	var reqtokens types.ReqTokens
+	reqtokens.Status = types.TokenStatusPreCreated
+	reqtokens.Queryall = true
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetTokens"
+	params.Payload = hex.EncodeToString(types.Encode(&reqtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyTokens
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func GetTokensFinishCreated() {
+	var reqtokens types.ReqTokens
+	reqtokens.Status = types.TokenStatusCreated
+	reqtokens.Queryall = true
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetTokens"
+	params.Payload = hex.EncodeToString(types.Encode(&reqtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyTokens
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
 func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 	var rTy string
 	switch rlog.Ty {
@@ -1655,6 +1727,30 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 		case 114:
 			lTy = "LogTicketBind"
 			var logTmp types.ReceiptTicketBind
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogPreCreateToken:
+			lTy = "LogPreCreateToken"
+			var logTmp types.ReceiptToken
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogFinishCreateToken:
+			lTy = "LogFinishCreateToken"
+			var logTmp types.ReceiptToken
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRevokeCreateToken:
+			lTy = "LogRevokeCreateToken"
+			var logTmp types.ReceiptToken
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
