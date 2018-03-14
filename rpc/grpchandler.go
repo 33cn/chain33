@@ -310,6 +310,14 @@ func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts,
 	return &pb.Accounts{Acc: reply}, nil
 }
 
+func (g *Grpc) GetTokenBalance(ctx context.Context, in *pb.ReqTokenBalance) (*pb.Accounts, error) {
+	reply, err := g.cli.GetTokenBalance(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Accounts{Acc: reply}, nil
+}
+
 func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
 	result, err := g.cli.QueryHash(in)
 	if err != nil {

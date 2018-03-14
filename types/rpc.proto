@@ -79,6 +79,8 @@ service grpcservice {
 	//Balance Query
 	rpc GetBalance (ReqBalance) returns (Accounts) {
 	}
+	rpc GetTokenBalance (ReqTokenBalance) returns (Accounts) {
+	}
 	rpc QueryChain (Query) returns (Reply) {
 	}
 	//Miner
