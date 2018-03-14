@@ -39,11 +39,11 @@ func main() {
 		}
 		Lock()
 	case "unlock": //解锁
-		if len(argsWithoutProg) != 3 {
+		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		UnLock(argsWithoutProg[1], argsWithoutProg[2])
+		UnLock(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
 	case "setpasswd": //重设密码
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -276,7 +276,7 @@ func main() {
 func LoadHelp() {
 	fmt.Println("Available Commands:")
 	fmt.Println("lock []                                                     : 锁定")
-	fmt.Println("unlock [password, timeout]                                  : 解锁")
+	fmt.Println("unlock [password, ismineronly,timeout]                      : 解锁")
 	fmt.Println("setpasswd [oldpassword, newpassword]                        : 设置密码")
 	fmt.Println("setlabl [address, label]                                    : 设置标签")
 	fmt.Println("newaccount [labelname]                                      : 新建账户")
@@ -438,13 +438,20 @@ func Lock() {
 	fmt.Println(string(data))
 }
 
-func UnLock(passwd string, timeout string) {
+func UnLock(passwd string, ismineronly string, timeout string) {
 	timeoutInt64, err := strconv.ParseInt(timeout, 10, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := types.WalletUnLock{Passwd: passwd, Timeout: timeoutInt64}
+
+	ismineronlyBool, err := strconv.ParseBool(ismineronly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	params := types.WalletUnLock{Passwd: passwd, Ismineronly: ismineronlyBool, Timeout: timeoutInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1286,7 +1293,7 @@ func BindMiner(mineraddr string, priv string) {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	var err error
-	tx.Fee, err = tx.GetRealFee()
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -1383,6 +1390,10 @@ func DumpPrivkey(addr string) {
 	}
 	var res types.ReplyStr
 	err = rpc.Call("Chain33.DumpPrivkey", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -80,7 +80,8 @@ type ReceiptDataResult struct {
 }
 
 type ReceiptLogResult struct {
-	Ty     string      `json:"ty"`
+	Ty     int32       `json:"ty"`
+	TyName string      `json:"tyname"`
 	Log    interface{} `json:"log"`
 	RawLog string      `json:"rawlog"`
 }
@@ -221,4 +222,5 @@ type WalletStatus struct {
 	IsLock       bool `json:"isLock"`
 	IsAutoMining bool `json:"isAutoMining"`
 	HasSeed      bool `json:"hasSeed"`
+	Ismineronly  bool `json:"ismineronly"`
 }
