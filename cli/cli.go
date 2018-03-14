@@ -879,7 +879,6 @@ func GetTransactionByHashes(hashes []string) {
 	}
 
 	var result TxDetailsResult
-	fmt.Println("GetTransactionByHashes txs len", len(res.Txs))
 	for _, v := range res.Txs {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(1e8), 'f', 4, 64)
 		rd, err := decodeLog(v.Receipt)
@@ -1614,10 +1613,10 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 		}
 
 		switch l.Ty {
-		case 1:
+		case types.TyLogErr:
 			lTy = "LogErr"
-			logIns = l.Log
-		case 2:
+			logIns = string(lLog)
+		case types.TyLogFee:
 			lTy = "LogFee"
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1625,7 +1624,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 3:
+		case types.TyLogTransfer:
 			lTy = "LogTransfer"
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1633,10 +1632,10 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 4:
+		case types.TyLogGenesis:
 			lTy = "LogGenesis"
 			logIns = nil
-		case 5:
+		case types.TyLogDeposit:
 			lTy = "LogDeposit"
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1644,7 +1643,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 6:
+		case types.TyLogExecTransfer:
 			lTy = "LogExecTransfer"
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1652,7 +1651,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 7:
+		case types.TyLogExecWithdraw:
 			lTy = "LogExecWithdraw"
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1660,7 +1659,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 8:
+		case types.TyLogExecDeposit:
 			lTy = "LogExecDeposit"
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1668,7 +1667,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 9:
+		case types.TyLogExecFrozen:
 			lTy = "LogExecFrozen"
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1676,7 +1675,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 10:
+		case types.TyLogExecActive:
 			lTy = "LogExecActive"
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1684,7 +1683,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 11:
+		case types.TyLogGenesisTransfer:
 			lTy = "LogGenesisTransfer"
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1692,7 +1691,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 12:
+		case types.TyLogGenesisDeposit:
 			lTy = "LogGenesisDeposit"
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
@@ -1700,7 +1699,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 111:
+		case types.TyLogNewTicket:
 			lTy = "LogNewTicket"
 			var logTmp types.ReceiptTicket
 			err = types.Decode(lLog, &logTmp)
@@ -1708,7 +1707,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 112:
+		case types.TyLogCloseTicket:
 			lTy = "LogCloseTicket"
 			var logTmp types.ReceiptTicket
 			err = types.Decode(lLog, &logTmp)
@@ -1716,7 +1715,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 113:
+		case types.TyLogMinerTicket:
 			lTy = "LogMinerTicket"
 			var logTmp types.ReceiptTicket
 			err = types.Decode(lLog, &logTmp)
@@ -1724,7 +1723,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case 114:
+		case types.TyLogTicketBind:
 			lTy = "LogTicketBind"
 			var logTmp types.ReceiptTicketBind
 			err = types.Decode(lLog, &logTmp)
