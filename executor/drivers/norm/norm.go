@@ -104,13 +104,13 @@ func (n *Norm) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 
 func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
 	if funcname == "NormGet" {
-		value, _ := n.GetLocalDB().Get(params)
+		value:= n.GetQueryDB().Get(params)
 		if value == nil {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{string(value)}, nil
 	} else if funcname == "NormHas" {
-		value, _ := n.GetLocalDB().Get(params)
+		value:= n.GetQueryDB().Get(params)
 		if value == nil {
 			return &types.ReplyString{"false"}, nil
 		}

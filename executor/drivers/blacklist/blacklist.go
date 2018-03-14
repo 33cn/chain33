@@ -86,11 +86,6 @@ func (n *BlackList) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		receipt.KV = append(receipt.KV, n.GetKVPair(tx))
 	}
 	return receipt, nil
-	//actiondb := NewNormAction(n.GetDB(), tx, n.GetAddr(), n.GetBlockTime(), n.GetHeight())
-	//if action.Ty == types.NormActionPut && action.GetNput() != nil {
-	//	return actiondb.Normput(action.GetNput())
-	//}
-	//return nil, types.ErrActionNotSupport
 }
 
 func (n *BlackList) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
@@ -120,14 +115,14 @@ func (n *BlackList) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 
 func (n *BlackList) Query(funcname string, params []byte) (types.Message, error) {
 	if funcname == "BlackRecordGet" {
-		value, _ := n.GetLocalDB().Get([]byte(n.GetName()+string(params)))
+		value := n.GetQueryDB().Get([]byte(n.GetName()+string(params)))
 		if value == nil {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{string(value)}, nil
 	} else if funcname == "OrgGet" {
 		fmt.Println(n.GetName()+string(params))
-		value, _ := n.GetLocalDB().Get([]byte(n.GetName()+string(params)))
+		value:= n.GetQueryDB().Get([]byte(n.GetName()+string(params)))
 		if value == nil {
 			return  nil, types.ErrNotFound
 		}
