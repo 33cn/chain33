@@ -75,8 +75,9 @@ type ReceiptData struct {
 }
 
 type ReceiptDataResult struct {
-	Ty   string              `json:"ty"`
-	Logs []*ReceiptLogResult `json:"logs"`
+	Ty     int32               `json:"ty"`
+	TyName string              `json:"tyname"`
+	Logs   []*ReceiptLogResult `json:"logs"`
 }
 
 type ReceiptLogResult struct {
