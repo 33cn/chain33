@@ -504,3 +504,25 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
 	return "", nil
 }
 
+func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqTokenFinishCreate) (string, error) {
+	v := &types.TokenFinishCreate{Symbol: req.GetSymbol(), Owner:req.GetOwnerAddr(),}
+	finish := &types.TokenAction{
+		Ty:types.TokenActionFinishCreate,
+		Value: &types.TokenAction_Tokenfinishcreate{v},
+		}
+	tx := &types.Transaction{Execer: []byte("token"), Payload:types.Encode(finish), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
+	wallet.qclient.Send(msg, true)
+	resp, err := wallet.qclient.Wait(msg)
+	if err != nil {
+		walletlog.Error("ProcTokenFinishCreate", "Send err", err)
+		return "", err
+	}
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return "", errors.New(string(reply.GetMsg()))
+	}
+	return "", nil
+}

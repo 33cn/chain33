@@ -458,6 +458,21 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("ProcTokenPreCreate", "msg", res, "symbol", preCreate.GetSymbol(), "result", "success")
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, &reply))
 			}
+		case types.EventTokenFinishCreate:
+			finishCreate := msg.Data.(*types.ReqTokenFinishCreate)
+			res, err := wallet.ProcTokenFinishCreate(finishCreate)
+			if err != nil {
+				walletlog.Error("ProcTokenPreCreate", "err", err.Error())
+				var reply types.Reply
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenFinishCreate, err))
+			} else {
+				var reply types.Reply
+				reply.IsOk = true
+				walletlog.Info("ProcTokenPreCreate", "msg", res, "symbol", finishCreate.GetSymbol(), "result", "success")
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenFinishCreate, &reply))
+			}
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -1610,4 +1625,54 @@ func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 	}
 
 	return wallet.tokenPreCreate(priv, reqTokenPrcCreate)
+}
+
+func (wallet *Wallet) ProcTokenFinishCreate(req *types.ReqTokenFinishCreate) (string, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
+	}
+
+	if req == nil {
+		walletlog.Error("ProcTokenFinishCreate input para is nil")
+		return "", types.ErrInputPara
+	}
+
+	upSymbol := strings.ToUpper(req.GetSymbol())
+	if upSymbol != req.GetSymbol() {
+		walletlog.Error("ProcTokenFinishCreate", "symbol need be upper", req.GetSymbol())
+		return "", types.ErrTokenSymbolUpper
+	}
+
+	addrs := make([]string, 1)
+	addrs[0] = req.GetFinisherAddr()
+	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
+	if err != nil || len(accounts) == 0 {
+		walletlog.Error("ProcTokenFinishCreate", "LoadAccounts err", err)
+		return "", err
+	}
+
+	approver_valid := false
+	for _, approver := range types.TokenApprs {
+		if approver == addrs[0] {
+			approver_valid = true
+			break
+		}
+	}
+	if approver_valid == false {
+		walletlog.Error("ProcTokenFinishCreate", "finisher", types.ErrTokenCreatedApprover)
+		return "", types.ErrTokenCreatedApprover
+	}
+
+    // TODO  check symbol-owner 存在， creator 合约帐号钱够
+
+	priv, err := wallet.getPrivKeyByAddr(addrs[0])
+	if err != nil {
+		return "", err
+	}
+
+	return wallet.tokenFinishCreate(priv, req)
 }
