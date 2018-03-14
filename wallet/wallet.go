@@ -75,7 +75,7 @@ func New(cfg *types.Wallet) *Wallet {
 		wg:            &sync.WaitGroup{},
 		FeeAmount:     walletStore.GetFeeAmount(),
 		EncryptFlag:   walletStore.GetEncryptionFlag(),
-		miningTicket:  time.NewTicker(5 * time.Second),
+		miningTicket:  time.NewTicker(2 * time.Minute),
 		done:          make(chan struct{}),
 	}
 	value := walletStore.db.Get([]byte("WalletAutoMiner"))
@@ -138,6 +138,7 @@ func (wallet *Wallet) autoMining() {
 			if !wallet.IsCaughtUp() {
 				break
 			}
+			walletlog.Info("BEG miningTicket")
 			if wallet.isAutoMining() {
 				n1, err := wallet.closeTicket()
 				if err != nil {
@@ -151,8 +152,11 @@ func (wallet *Wallet) autoMining() {
 				if err != nil {
 					walletlog.Error("buyMinerAddrTicket", "err", err)
 				}
+				hashes := append(hashes1, hashes2...)
+				if len(hashes) > 0 {
+					wallet.waitTxs(hashes)
+				}
 				if n1+n2+n3 > 0 {
-					wallet.waitTxs(append(hashes1, hashes2...))
 					wallet.flushTicket()
 				}
 			} else {
@@ -164,11 +168,14 @@ func (wallet *Wallet) autoMining() {
 				if err != nil {
 					walletlog.Error("withdrawFromTicket", "err", err)
 				}
-				if n1 > 0 {
+				if len(hashes) > 0 {
 					wallet.waitTxs(hashes)
+				}
+				if n1 > 0 {
 					wallet.flushTicket()
 				}
 			}
+			walletlog.Info("END miningTicket")
 		case <-wallet.done:
 			return
 		}
