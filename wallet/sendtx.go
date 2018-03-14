@@ -183,9 +183,8 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) ([]byte, int, error) {
 		count := acc.Balance / types.TicketPrice
 		if count > 0 {
 			txhash, err := wallet.openticket(addr, addr, priv, int32(count))
-			return txhash, 0, err
+			return txhash, int(count), err
 		}
-		return nil, int(count), nil
 	}
 	return nil, 0, nil
 }
@@ -278,7 +277,7 @@ func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, er
 	}
 	reply := resp.GetData().(types.Message).(*types.ReplyTicketList)
 	for i := 0; i < len(reply.Tickets); i++ {
-		walletlog.Error("Tickets", "id", reply.Tickets[i].GetTicketId(), "addr", addr, "req", status, "res", reply.Tickets[i].Status)
+		walletlog.Debug("Tickets", "id", reply.Tickets[i].GetTicketId(), "addr", addr, "req", status, "res", reply.Tickets[i].Status)
 	}
 	return reply.Tickets, nil
 }
