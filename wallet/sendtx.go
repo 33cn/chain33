@@ -243,58 +243,38 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey, flag bool) ([]byte, error) { // flag: true只取已挖矿的票；false取所有票
 	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	tlist1, err1 := wallet.getTickets(addr, 1)
-	tlist2, err2 := wallet.getTickets(addr, 2)
+	tlist2, err := wallet.getTickets(addr, 2)
+	if err != nil && err != types.ErrNotFound {
+		return nil, err
+	}
 	var ids []string
 	now := time.Now().Unix()
-	if flag {
-		if err2 != nil && err2 != types.ErrNotFound {
-			return nil, err2
+	if !flag {
+		tlist1, err1 := wallet.getTickets(addr, 1)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err1
 		}
-		if len(tlist2) == 0 {
-			return nil, nil
+		if len(tlist1) > 0 {
+			tlist2 = append(tlist2, tlist1...)
 		}
-		for i := 0; i < len(tlist2); i++ {
-			if now-tlist2[i].GetMinerTime() > types.TicketMinerWaitTime {
-				ids = append(ids, tlist2[i].TicketId)
+	}
+	var tl []*types.Ticket
+	for _, t := range tlist2 {
+		if !t.IsGenesis {
+			if t.Status == 1 && now-t.GetCreateTime() < types.TicketWithdrawTime {
+				continue
+			}
+			if t.Status == 2 && now-t.GetCreateTime() < types.TicketWithdrawTime {
+				continue
+			}
+			if t.Status == 2 && now-t.GetMinerTime() < types.TicketMinerWaitTime {
+				continue
 			}
 		}
-	} else {
-		var tlistTmp []*types.Ticket
-		if tlist1 == nil {
-			if tlist2 == nil {
-				return nil, err1
-			} else {
-				tlistTmp = tlist2
-			}
-		} else {
-			if tlist2 == nil {
-				tlistTmp = tlist1
-			} else {
-				tlistTmp = append(tlist1, tlist2...)
-			}
-		}
-		if len(tlistTmp) == 0 {
-			return nil, nil
-		}
-		var tl []*types.Ticket
-		for _, t := range tlistTmp {
-			if !t.IsGenesis {
-				if t.Status == 1 && now-t.GetCreateTime() < types.TicketWithdrawTime {
-					continue
-				}
-				if t.Status == 2 && now-t.GetCreateTime() < types.TicketWithdrawTime {
-					continue
-				}
-				if t.Status == 2 && now-t.GetMinerTime() < types.TicketMinerWaitTime {
-					continue
-				}
-			}
-			tl = append(tl, t)
-		}
-		for i := 0; i < len(tl); i++ {
-			ids = append(ids, tl[i].TicketId)
-		}
+		tl = append(tl, t)
+	}
+	for i := 0; i < len(tl); i++ {
+		ids = append(ids, tl[i].TicketId)
 	}
 	if len(ids) > 0 {
 		return wallet.closeTickets(priv, ids)
