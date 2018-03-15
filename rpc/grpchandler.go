@@ -355,7 +355,7 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, er
 	return result, nil
 }
 
-func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*pb.Reply, error) {
+func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*pb.ReplyHash, error) {
 	result, err := g.cli.TokenPreCreate(in)
 	if err != nil {
 		return nil, err
@@ -363,14 +363,14 @@ func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*p
 	return result, nil
 }
 
-func (g *Grpc) TokenFinishCreate(ctx context.Context, in *pb.ReqTokenFinishCreate) (*pb.Reply, error) {
+func (g *Grpc) TokenFinishCreate(ctx context.Context, in *pb.ReqTokenFinishCreate) (*pb.ReplyHash, error) {
 	result, err := g.cli.TokenFinishCreate(in)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
-func (g *Grpc) TokenRevokeCreate(ctx context.Context, in *pb.ReqTokenRevokeCreate) (*pb.Reply, error) {
+func (g *Grpc) TokenRevokeCreate(ctx context.Context, in *pb.ReqTokenRevokeCreate) (*pb.ReplyHash, error) {
 	result, err := g.cli.TokenRevokeCreate(in)
 	if err != nil {
 		return nil, err

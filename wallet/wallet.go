@@ -1598,24 +1598,24 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 	return strings.ToUpper(common.ToHex(priv.Bytes())), nil
 }
 
-func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCreate) (string, error) {
+func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCreate) ([]byte, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
-		return "", err
+		return nil, err
 	}
 
 	if reqTokenPrcCreate == nil {
 		walletlog.Error("ProcTokenPreCreate input para is nil")
-		return "", types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 
 	upSymbol := strings.ToUpper(reqTokenPrcCreate.GetSymbol())
 	if upSymbol != reqTokenPrcCreate.GetSymbol() {
 		walletlog.Error("ProcTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
-		return "", types.ErrTokenSymbolUpper
+		return nil, types.ErrTokenSymbolUpper
 	}
 
 	addrs := make([]string, 1)
@@ -1623,51 +1623,51 @@ func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcTokenPreCreate", "LoadAccounts err", err)
-		return "", err
+		return nil, err
 	}
 
 	Balance := accounts[0].Balance
 	price := reqTokenPrcCreate.GetPrice()
 	if Balance < price+wallet.FeeAmount {
-		return "", types.ErrInsufficientBalance
+		return nil, types.ErrInsufficientBalance
 	}
 
 	//  symbol 不存在
 	token, err := wallet.checkTokenSymbolExists(reqTokenPrcCreate.GetSymbol(), reqTokenPrcCreate.GetOwnerAddr())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if token != nil {
 		walletlog.Error("ProcTokenPreCreate", "err", types.ErrTokenExist)
-		return "", types.ErrTokenExist
+		return nil, types.ErrTokenExist
 	}
 
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return wallet.tokenPreCreate(priv, reqTokenPrcCreate)
 }
 
-func (wallet *Wallet) ProcTokenFinishCreate(req *types.ReqTokenFinishCreate) (string, error) {
+func (wallet *Wallet) ProcTokenFinishCreate(req *types.ReqTokenFinishCreate) ([]byte, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
-		return "", err
+		return nil, err
 	}
 
 	if req == nil {
 		walletlog.Error("ProcTokenFinishCreate input para is nil")
-		return "", types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 
 	upSymbol := strings.ToUpper(req.GetSymbol())
 	if upSymbol != req.GetSymbol() {
 		walletlog.Error("ProcTokenFinishCreate", "symbol need be upper", req.GetSymbol())
-		return "", types.ErrTokenSymbolUpper
+		return nil, types.ErrTokenSymbolUpper
 	}
 
 	addrs := make([]string, 1)
@@ -1675,7 +1675,7 @@ func (wallet *Wallet) ProcTokenFinishCreate(req *types.ReqTokenFinishCreate) (st
 	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcTokenFinishCreate", "LoadAccounts err", err)
-		return "", err
+		return nil, err
 	}
 
 	approver_valid := false
@@ -1687,42 +1687,42 @@ func (wallet *Wallet) ProcTokenFinishCreate(req *types.ReqTokenFinishCreate) (st
 	}
 	if approver_valid == false {
 		walletlog.Error("ProcTokenFinishCreate", "finisher", types.ErrTokenCreatedApprover)
-		return "", types.ErrTokenCreatedApprover
+		return nil, types.ErrTokenCreatedApprover
 	}
 
     //  check symbol-owner 是否不存在
 	token, err := wallet.checkTokenSymbolExists(req.GetSymbol(), req.GetOwnerAddr())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if token != nil {
 		walletlog.Error("ProcTokenFinishCreate", "err", types.ErrTokenExist)
-		return "", types.ErrTokenExist
+		return nil, types.ErrTokenExist
 	}
 	if token.Owner != req.GetOwnerAddr() {
 		walletlog.Error("ProcTokenFinishCreate", "err", types.ErrTokenOwner)
-		return "", types.ErrTokenOwner
+		return nil, types.ErrTokenOwner
 	}
 	if token.Status != types.TokenStatusPreCreated {
 		walletlog.Error("ProcTokenFinishCreate", "err", types.ErrTokenNotPrecreated)
-		return "", types.ErrTokenNotPrecreated
+		return nil, types.ErrTokenNotPrecreated
 	}
 
 	// creator 合约帐号钱够
 	creatorAcc := accountdb.LoadExecAccount(token.Creator, account.ExecAddress("token").String())
 	if creatorAcc == nil {
 		walletlog.Error("ProcTokenFinishCreate", "LoadAccounts err", types.ErrInsufficientBalance)
-		return "", types.ErrInsufficientBalance
+		return nil, types.ErrInsufficientBalance
 	}
 	Balance := creatorAcc.Balance
 	if Balance < token.Price + wallet.FeeAmount {
-		return "", types.ErrInsufficientBalance
+		return nil, types.ErrInsufficientBalance
 	}
 
 
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return wallet.tokenFinishCreate(priv, req)
@@ -1750,24 +1750,24 @@ func (wallet *Wallet) checkTokenSymbolExists(symbol, owner string) (*types.Token
 	return tokenInfo, nil
 }
 
-func (wallet *Wallet) ProcTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (string, error) {
+func (wallet *Wallet) ProcTokenRevokeCreate(req *types.ReqTokenRevokeCreate) ([]byte, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
-		return "", err
+		return nil, err
 	}
 
 	if req == nil {
 		walletlog.Error("ProcTokenRevokeCreate input para is nil")
-		return "", types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 
 	upSymbol := strings.ToUpper(req.GetSymbol())
 	if upSymbol != req.GetSymbol() {
 		walletlog.Error("ProcTokenRevokeCreate", "symbol need be upper", req.GetSymbol())
-		return "", types.ErrTokenSymbolUpper
+		return nil, types.ErrTokenSymbolUpper
 	}
 
 	addrs := make([]string, 1)
@@ -1775,34 +1775,34 @@ func (wallet *Wallet) ProcTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (st
 	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcTokenRevokeCreate", "LoadAccounts err", err)
-		return "", err
+		return nil, err
 	}
 
 	//  check symbol-owner 是否不存在, 是否是precreate 状态， 地址是否对应
 	token, err := wallet.checkTokenSymbolExists(req.GetSymbol(), req.GetOwnerAddr())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if token != nil {
 		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenExist)
-		return "", types.ErrTokenExist
+		return nil, types.ErrTokenExist
 	}
 	if token.Owner != req.GetOwnerAddr() {
 		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenOwner)
-		return "", types.ErrTokenOwner
+		return nil, types.ErrTokenOwner
 	}
 	if token.Creator != req.GetRevokerAddr() {
 		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenRevokeCreater)
-		return "", types.ErrTokenRevokeCreater
+		return nil, types.ErrTokenRevokeCreater
 	}
 	if token.Status != types.TokenStatusPreCreated {
 		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenNotPrecreated)
-		return "", types.ErrTokenNotPrecreated
+		return nil, types.ErrTokenNotPrecreated
 	}
 
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return wallet.tokenRevokeCreate(priv, req)

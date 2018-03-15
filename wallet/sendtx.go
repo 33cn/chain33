@@ -480,7 +480,7 @@ func (client *Wallet) IsCaughtUp() bool {
 	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
 }
 
-func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *types.ReqTokenPreCreate) (string, error) {
+func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *types.ReqTokenPreCreate) ([]byte, error) {
 	v := &types.TokenPreCreate{
 		Name : reqTokenPrcCreate.GetName(), Symbol: reqTokenPrcCreate.GetSymbol(),
 		Introduction:reqTokenPrcCreate.GetIntroduction(), Total: reqTokenPrcCreate.GetTotal(),
@@ -495,16 +495,16 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
 	resp, err := wallet.qclient.Wait(msg)
 	if err != nil {
 		walletlog.Error("ProcTokenPreCreate", "Send err", err)
-		return "", err
+		return nil, err
 	}
     reply := resp.GetData().(*types.Reply)
     if !reply.GetIsOk() {
-		return "", errors.New(string(reply.GetMsg()))
+		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return "", nil
+	return tx.Hash(), nil
 }
 
-func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqTokenFinishCreate) (string, error) {
+func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqTokenFinishCreate) ([]byte, error) {
 	v := &types.TokenFinishCreate{Symbol: req.GetSymbol(), Owner:req.GetOwnerAddr(),}
 	finish := &types.TokenAction{
 		Ty:types.TokenActionFinishCreate,
@@ -518,16 +518,16 @@ func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqToken
 	resp, err := wallet.qclient.Wait(msg)
 	if err != nil {
 		walletlog.Error("ProcTokenFinishCreate", "Send err", err)
-		return "", err
+		return nil, err
 	}
 	reply := resp.GetData().(*types.Reply)
 	if !reply.GetIsOk() {
-		return "", errors.New(string(reply.GetMsg()))
+		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return "", nil
+	return tx.Hash(), nil
 }
 
-func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqTokenRevokeCreate) (string, error) {
+func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqTokenRevokeCreate) ([]byte, error) {
 	v := &types.TokenRevokeCreate{Symbol: req.GetSymbol(), Owner:req.GetOwnerAddr(),}
 	revoke := &types.TokenAction{
 		Ty:types.TokenActionRevokeCreate,
@@ -541,12 +541,12 @@ func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqToken
 	resp, err := wallet.qclient.Wait(msg)
 	if err != nil {
 		walletlog.Error("ProcTokenRevokeCreate", "Send err", err)
-		return "", err
+		return nil, err
 	}
 	reply := resp.GetData().(*types.Reply)
 	if !reply.GetIsOk() {
-		return "", errors.New(string(reply.GetMsg()))
+		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return "", nil
+	return tx.Hash(), nil
 }
 
