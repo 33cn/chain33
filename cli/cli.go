@@ -1881,7 +1881,7 @@ func PreCreateToken(args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res jsonrpc.Reply
+	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.TokenPreCreate", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1909,7 +1909,7 @@ func FinishCreateToken(args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res jsonrpc.Reply
+	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.TokenFinishCreate", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1937,7 +1937,7 @@ func RevokeCreateToken(args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res jsonrpc.Reply
+	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.TokenRevokeCreate", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

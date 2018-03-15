@@ -644,7 +644,7 @@ func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
 	return resp.GetData().(*types.ReplyStr), nil
 }
 
-func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.Reply, error) {
+func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.ReplyHash, error) {
 	msg := c.NewMessage("wallet", types.EventTokenPreCreate, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -657,10 +657,10 @@ func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.Re
 		return nil, err
 	}
 	log.Info("TokenPreCreate", "result", "success", "symbol", parm.GetSymbol())
-	return resp.Data.(*types.Reply), nil
+	return resp.Data.(*types.ReplyHash), nil
 }
 
-func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*types.Reply, error) {
+func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
 	msg := c.NewMessage("wallet", types.EventTokenFinishCreate, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -673,10 +673,10 @@ func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*ty
 		return nil, err
 	}
 	log.Info("TokenFinishCreate", "result", "success", "symbol", parm.GetSymbol())
-	return resp.Data.(*types.Reply), nil
+	return resp.Data.(*types.ReplyHash), nil
 }
 
-func (c *channelClient) TokenRevokeCreate(parm *types.ReqTokenRevokeCreate) (*types.Reply, error) {
+func (c *channelClient) TokenRevokeCreate(parm *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
 	msg := c.NewMessage("wallet", types.EventTokenRevokeCreate, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -689,5 +689,5 @@ func (c *channelClient) TokenRevokeCreate(parm *types.ReqTokenRevokeCreate) (*ty
 		return nil, err
 	}
 	log.Info("TokenRevokeCreate", "result", "success", "symbol", parm.GetSymbol())
-	return resp.Data.(*types.Reply), nil
+	return resp.Data.(*types.ReplyHash), nil
 }
