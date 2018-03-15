@@ -675,3 +675,19 @@ func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*ty
 	log.Info("TokenFinishCreate", "result", "success", "symbol", parm.GetSymbol())
 	return resp.Data.(*types.Reply), nil
 }
+
+func (c *channelClient) TokenRevokeCreate(parm *types.ReqTokenRevokeCreate) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventTokenRevokeCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenRevokeCreate", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("TokenRevokeCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenRevokeCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.Reply), nil
+}

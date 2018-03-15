@@ -151,6 +151,8 @@ const (
 	EventReplyTokenPreCreate    = 99
 	EventTokenFinishCreate      = 100
 	EventReplyTokenFinishCreate = 101
+	EventTokenRevokeCreate      = 102
+	EventReplyTokenRevokeCreate = 103
 )
 
 var eventName = map[int]string{
@@ -256,6 +258,8 @@ var eventName = map[int]string{
 	99:  "EventReplyTokenPreCreate",
 	100: "EventTokenFinishCreate",
 	101: "EventReplyTokenFinishCreate",
+	102: "EventTokenRevokeCreate",
+	103: "EventReplyTokenRevokeCreate",
 }
 
 //ty = 1 -> secp256k1
