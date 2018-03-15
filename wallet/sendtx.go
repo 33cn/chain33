@@ -243,27 +243,40 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey, flag bool) ([]byte, error) { // flag: true只取已挖矿的票；false取所有票
 	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	tlist, err := wallet.getTickets(addr, 2)
-	if err != nil && err != types.ErrNotFound {
-		return nil, err
-	}
+	tlist1, err1 := wallet.getTickets(addr, 1)
+	tlist2, err2 := wallet.getTickets(addr, 2)
 	var ids []string
 	now := time.Now().Unix()
 	if flag {
-		if len(tlist) == 0 {
+		if err2 != nil && err2 != types.ErrNotFound {
+			return nil, err2
+		}
+		if len(tlist2) == 0 {
 			return nil, nil
 		}
-		for i := 0; i < len(tlist); i++ {
-			if now-tlist[i].CreateTime > types.TicketMinerWaitTime {
-				ids = append(ids, tlist[i].TicketId)
+		for i := 0; i < len(tlist2); i++ {
+			if now-tlist2[i].GetMinerTime() > types.TicketMinerWaitTime {
+				ids = append(ids, tlist2[i].TicketId)
 			}
 		}
 	} else {
-		tlist2, err := wallet.getTickets(addr, 1)
-		if err != nil && err != types.ErrNotFound {
-			return nil, err
+		var tlistTmp []*types.Ticket
+		if tlist1 == nil {
+			if tlist2 == nil {
+				return nil, err1
+			} else {
+				tlistTmp = tlist2
+			}
+		} else {
+			if tlist2 == nil {
+				tlistTmp = tlist1
+			} else {
+				tlistTmp = append(tlist1, tlist2...)
+			}
 		}
-		tlistTmp := append(tlist, tlist2...)
+		if len(tlistTmp) == 0 {
+			return nil, nil
+		}
 		var tl []*types.Ticket
 		for _, t := range tlistTmp {
 			if !t.IsGenesis {
