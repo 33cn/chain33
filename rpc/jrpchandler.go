@@ -826,3 +826,13 @@ func (c *Chain33) TokenFinishCreate(in types.ReqTokenFinishCreate, result *inter
 	*result = reply
 	return nil
 }
+
+func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *interface{}) error {
+	reply, err := c.cli.TokenRevokeCreate(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
