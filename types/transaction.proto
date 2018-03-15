@@ -37,9 +37,6 @@ message Transaction {
 //这个要好好设计一下
 //最好交易构成一个链条[prevhash].独立的交易构成链条
 //只要这个组中有一个执行是出错的，那么就执行不成功
-message TransactionGroup {
-	[]*Transaction txs = 1;
-}
 
 //三种签名支持
 //ty = 1 -> secp256k1
