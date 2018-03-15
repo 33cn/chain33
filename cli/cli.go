@@ -232,11 +232,11 @@ func main() {
 		}
 		BindMiner(argsWithoutProg[1], argsWithoutProg[2])
 	case "setautomining":
-		if len(argsWithoutProg) != 3 {
+		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		SetAutoMining(argsWithoutProg[1], argsWithoutProg[2])
+		SetAutoMining(argsWithoutProg[1])
 	case "getrawtx":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -320,7 +320,7 @@ func LoadHelp() {
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
-	fmt.Println("setautomining [flag, reserve]                               : 设置自动挖矿")
+	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
 	fmt.Println("getrawtx [hash]                                             : 通过哈希获取交易十六进制字符串")
 	fmt.Println("getticketcount []                                           : 获取票数")
 	fmt.Println("decodetx [data]                                             : 解析交易")
@@ -1355,18 +1355,13 @@ func CreateRawSendTx(priv string, to string, amount string, note string) {
 	fmt.Println(hex.EncodeToString(txHex))
 }
 
-func SetAutoMining(flag string, reserve string) {
+func SetAutoMining(flag string) {
 	flagInt32, err := strconv.ParseInt(flag, 10, 32)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	reserveFloat64, err := strconv.ParseFloat(reserve, 64)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	params := types.MinerFlag{Flag: int32(flagInt32), Reserve: int64(reserveFloat64 * float64(types.Coin))}
+	params := types.MinerFlag{Flag: int32(flagInt32)}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
