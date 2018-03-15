@@ -368,7 +368,7 @@ func LoadHelp() {
 	fmt.Println("precreatetoken [creator_address, name, symbol, introduction, owner_address, total, price]")
 	fmt.Println("                                                            : 预创建token")
 	fmt.Println("finishcreatetoken [finish_address, symbol, owner_address]   : 完成创建token")
-	fmt.Println("revokecreatetoken [finish_address, symbol, owner_address]   : 取消创建token")
+	fmt.Println("revokecreatetoken [creator_address, symbol, owner_address]  : 取消创建token")
 }
 
 type AccountsResult struct {
