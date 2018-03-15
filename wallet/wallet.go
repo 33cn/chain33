@@ -1618,7 +1618,15 @@ func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return "", types.ErrInsufficientBalance
 	}
 
-	// TODO symbol 不存在: 不在precreate ， 也不是 finish的
+	//  symbol 不存在
+	token, err := wallet.checkTokenSymbolExists(reqTokenPrcCreate.GetSymbol(), reqTokenPrcCreate.GetOwnerAddr())
+	if err != nil {
+		return "", err
+	}
+	if token != nil {
+		walletlog.Error("ProcTokenPreCreate", "err", types.ErrTokenExist)
+		return "", types.ErrTokenExist
+	}
 
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
@@ -1668,7 +1676,31 @@ func (wallet *Wallet) ProcTokenFinishCreate(req *types.ReqTokenFinishCreate) (st
 		return "", types.ErrTokenCreatedApprover
 	}
 
-    // TODO  check symbol-owner 存在， creator 合约帐号钱够
+    //  check symbol-owner 是否不存在
+	token, err := wallet.checkTokenSymbolExists(req.GetSymbol(), req.GetOwnerAddr())
+	if err != nil {
+		return "", err
+	}
+	if token != nil {
+		walletlog.Error("ProcTokenFinishCreate", "err", types.ErrTokenExist)
+		return "", types.ErrTokenExist
+	}
+	if token.Owner != req.GetOwnerAddr() {
+		walletlog.Error("ProcTokenFinishCreate", "err", types.ErrTokenOwner)
+		return "", types.ErrTokenOwner
+	}
+
+	// creator 合约帐号钱够
+	creatorAcc := accountdb.LoadExecAccount(token.Creator, account.ExecAddress("token").String())
+	if creatorAcc == nil {
+		walletlog.Error("ProcTokenFinishCreate", "LoadAccounts err", types.ErrInsufficientBalance)
+		return "", types.ErrInsufficientBalance
+	}
+	Balance := creatorAcc.Balance
+	if Balance < token.Price + wallet.FeeAmount {
+		return "", types.ErrInsufficientBalance
+	}
+
 
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
@@ -1676,4 +1708,26 @@ func (wallet *Wallet) ProcTokenFinishCreate(req *types.ReqTokenFinishCreate) (st
 	}
 
 	return wallet.tokenFinishCreate(priv, req)
+}
+
+func (wallet *Wallet) checkTokenSymbolExists(symbol, owner string) (*types.Token, error) {
+	//通过txhashs获取对应的txdetail
+	token := types.ReqString{Data: symbol}
+	query := types.Query{Execer: []byte("token"), FuncName: "GetTokenInfo", Payload: types.Encode(&token)}
+	msg := wallet.qclient.NewMessage("blockchain", types.EventQuery, &query)
+	wallet.qclient.Send(msg, true)
+	resp, err := wallet.qclient.Wait(msg)
+	if err != nil {
+		walletlog.Error("checkTokenSymbolExists", "err", err)
+		return nil, err
+	}
+
+	tokenInfo := resp.GetData().(*types.Token)
+	if tokenInfo == nil {
+		walletlog.Info("checkTokenSymbolExists  is nil")
+		return nil, nil
+	}
+
+	walletlog.Debug("checkTokenSymbolExists", "tokenInfo", tokenInfo.String())
+	return tokenInfo, nil
 }
