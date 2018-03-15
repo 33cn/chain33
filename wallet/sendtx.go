@@ -139,7 +139,7 @@ func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) error {
 		return err
 	}
 	if acc.Balance > 0 {
-		_, err := wallet.sendToAddress(priv, account.ExecAddress("ticket").String(), -acc.Balance, "autominer->withdraw")
+		_, err := wallet.sendToAddress(priv, account.ExecAddress("ticket").String(), -acc.Balance, "autominer->withdraw", false, "")
 		if err != nil {
 			return err
 		}
@@ -169,7 +169,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) (int, error) {
 		var hash *types.ReplyHash
 		if amount > 0 {
 			walletlog.Error("buyTicketOne", "toaddr", toaddr, "amount", amount)
-			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket")
+			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket", false, "")
 			if err != nil {
 				return 0, err
 			}
@@ -227,7 +227,7 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	toaddr := account.ExecAddress("ticket").String()
 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
 	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
-		_, err := wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins")
+		_, err := wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins", false, "")
 		if err != nil {
 			return err
 		}
@@ -368,19 +368,34 @@ func (client *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
 	return resp.Data.(*types.TransactionDetail), nil
 }
 
-func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string) (*types.ReplyHash, error) {
-	transfer := &types.CoinsAction{}
-	if amount > 0 {
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionTransfer
+func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
+	var tx *types.Transaction
+	if !Istoken {
+		transfer := &types.CoinsAction{}
+		if amount > 0 {
+			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionTransfer
+		} else {
+			v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
 	} else {
-		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: note}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionWithdraw
+		transfer := &types.TokenAction{}
+		if amount > 0 {
+			v := &types.TokenAction_Transfer{&types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amount, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.ActionTransfer
+		} else {
+			v := &types.TokenAction_Withdraw{&types.CoinsWithdraw{Cointoken: tokenSymbol, Amount: -amount, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.ActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
 	}
 	//初始化随机数d
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
 	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块

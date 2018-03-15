@@ -45,7 +45,7 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Info("exec token action", "txhash", common.Bytes2Hex(tx.Hash()))
+	tokenlog.Info("exec token action", "txhash", common.Bytes2Hex(tx.Hash()), "tokenAction.GetTy()", tokenAction.GetTy())
 
 	switch tokenAction.GetTy() {
 	case types.TokenActionPreCreate:
@@ -64,8 +64,13 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return action.revokeCreate(tokenAction.GetTokenrevokecreate())
 
 	case types.ActionTransfer:
-	case types.ActionWithdraw:
+		tokenlog.Info("Exec TokenActionTransfer")
 		token := tokenAction.GetTransfer().GetCointoken()
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction)
+
+	case types.ActionWithdraw:
+		tokenlog.Info("Exec TokenActionWithdraw")
+		token := tokenAction.GetWithdraw().GetCointoken()
 		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction)
 	}
 

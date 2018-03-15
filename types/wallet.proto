@@ -97,10 +97,12 @@ message ReqWalletImportPrivKey {
 }
 
 message ReqWalletSendToAddress {
-	string from = 1;
-	string to = 2;
-	int64 amount = 3;
-	string note = 4;
+	string from        = 1;
+	string to          = 2;
+	int64  amount      = 3;
+	string note        = 4;
+	bool   istoken     = 5;
+	string tokenSymbol = 6;
 }
 
 message ReqWalletSetFee {

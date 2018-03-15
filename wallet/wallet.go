@@ -27,6 +27,7 @@ var (
 	walletlog               = log.New("module", "wallet")
 	SignType          int   = 1 //1；secp256k1，2：ed25519，3：sm2
 	accountdb               = account.NewCoinsAccount()
+	accTokenMap             = make(map[string]*account.AccountDB)
 )
 
 type Wallet struct {
@@ -787,26 +788,47 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	//获取from账户的余额从account模块，校验余额是否充足
 	addrs := make([]string, 1)
 	addrs[0] = SendToAddress.GetFrom()
-
-	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
+	var accounts []*types.Account
+	var tokenAccounts []*types.Account
+	accounts, err = accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil || len(accounts) == 0 {
-		walletlog.Error("ProcMergeBalance", "LoadAccounts err", err)
+		walletlog.Error("ProcSendToAddress", "LoadAccounts err", err)
 		return nil, err
 	}
 	Balance := accounts[0].Balance
 	amount := SendToAddress.GetAmount()
+	if !SendToAddress.Istoken {
+		if Balance < amount+wallet.FeeAmount {
+			return nil, types.ErrInsufficientBalance
+		}
+	} else {
+		//如果是token转账，一方面需要保证coin的余额满足fee，另一方面则需要保证token的余额满足转账操作
+		if Balance < wallet.FeeAmount {
+			return nil, types.ErrInsufficientBalance
+		}
 
-	if Balance < amount+wallet.FeeAmount {
-		return nil, types.ErrInsufficientBalance
+		if nil == accTokenMap[SendToAddress.TokenSymbol] {
+			tokenAccDB := account.NewTokenAccountWithoutDB(SendToAddress.TokenSymbol)
+			accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
+		}
+		tokenAccDB := accTokenMap[SendToAddress.TokenSymbol]
+		tokenAccounts, err = tokenAccDB.LoadAccounts(wallet.qclient, addrs)
+		if err != nil || len(tokenAccounts) == 0 {
+			walletlog.Error("ProcSendToAddress", "Load Token Accounts err", err)
+			return nil, err
+		}
+		tokenBalance := tokenAccounts[0].Balance
+		if tokenBalance < amount {
+			return nil, types.ErrInsufficientTokenBal
+		}
 	}
-
 	addrto := SendToAddress.GetTo()
 	note := SendToAddress.GetNote()
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])
 	if err != nil {
 		return nil, err
 	}
-	return wallet.sendToAddress(priv, addrto, amount, note)
+	return wallet.sendToAddress(priv, addrto, amount, note, SendToAddress.Istoken, SendToAddress.TokenSymbol)
 }
 
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
