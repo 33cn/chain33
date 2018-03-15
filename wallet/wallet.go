@@ -5,8 +5,6 @@ import (
 	"crypto/cipher"
 	"fmt"
 	"math/rand"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -40,7 +38,8 @@ type Wallet struct {
 	isclosed      int32
 	isLocked      bool
 	IsMinerLocked bool
-	AutoMinerFlag *AutoMining
+
+	autoMinerFlag int32
 	Password      string
 	FeeAmount     int64
 	EncryptFlag   int64
@@ -49,11 +48,6 @@ type Wallet struct {
 	walletStore   *WalletStore
 	random        *rand.Rand
 	done          chan struct{}
-}
-
-type AutoMining struct {
-	Flag         int32
-	ReserveCoins int64
 }
 
 func SetLogLevel(level string) {
@@ -79,41 +73,27 @@ func New(cfg *types.Wallet) *Wallet {
 		walletStore:   walletStore,
 		isLocked:      true,
 		IsMinerLocked: true,
-		AutoMinerFlag: &AutoMining{0, 0},
+		autoMinerFlag: 0,
 		wg:            &sync.WaitGroup{},
 		FeeAmount:     walletStore.GetFeeAmount(),
 		EncryptFlag:   walletStore.GetEncryptionFlag(),
 		miningTicket:  time.NewTicker(2 * time.Minute),
 		done:          make(chan struct{}),
 	}
-	amFlag := walletStore.db.Get([]byte("WalletAutoMinerFlag"))
-	amReserve := walletStore.db.Get([]byte("WalletAutoMinerReserve"))
-
-	if amFlag != nil && string(amFlag) == "1" {
-		var reserveCoins int64
-		if amReserve != nil {
-			reserveInt64, err := strconv.ParseInt(string(amReserve), 10, 64)
-			if err != nil {
-				reserveCoins = reserveInt64
-			}
-		}
-		wallet.setAutoMining(&types.MinerFlag{1, reserveCoins})
-		// wallet.AutoMinerFlag = &AutoMining{1, reserveCoins}
+	value := walletStore.db.Get([]byte("WalletAutoMiner"))
+	if value != nil && string(value) == "1" {
+		wallet.autoMinerFlag = 1
 	}
 	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return wallet
 }
 
-func (wallet *Wallet) setAutoMining(flag *types.MinerFlag) {
-	wallet.mtx.Lock()
-	wallet.AutoMinerFlag = &AutoMining{flag.Flag, flag.Reserve}
-	wallet.mtx.Unlock()
+func (wallet *Wallet) setAutoMining(flag int32) {
+	atomic.StoreInt32(&wallet.autoMinerFlag, flag)
 }
 
 func (wallet *Wallet) isAutoMining() bool {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	return wallet.AutoMinerFlag.Flag == 1
+	return atomic.LoadInt32(&wallet.autoMinerFlag) == 1
 }
 
 func (wallet *Wallet) Close() {
@@ -204,19 +184,6 @@ func (wallet *Wallet) autoMining() {
 	}
 }
 
-type addressCoins struct {
-	priv    crypto.PrivKey
-	addr    string
-	coins   int64
-	reserve int64
-}
-
-type addrCoinsList []addressCoins
-
-func (l addrCoinsList) Len() int           { return len(l) }
-func (l addrCoinsList) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
-func (l addrCoinsList) Less(i, j int) bool { return l[i].coins < l[j].coins }
-
 func (wallet *Wallet) buyTicket() ([][]byte, int, error) {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
@@ -225,117 +192,18 @@ func (wallet *Wallet) buyTicket() ([][]byte, int, error) {
 	}
 	count := 0
 	var hashes [][]byte
-	var acl addrCoinsList
-	var reserveTmp int64
-
 	for _, priv := range privs {
-
-		addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
-		acc1, err := wallet.getBalance(addr, "coins")
-		if err != nil {
-			continue
-		}
-		acc2, err := wallet.getBalance(addr, "ticket")
-		if err != nil {
-			continue
-		}
-		coins := acc1.Balance + acc2.Balance
-		if coins <= types.TicketPrice+2*types.Coin {
-			reserveTmp += coins
-		} else {
-			acl = append(acl, addressCoins{priv, addr, coins, 0})
-		}
-	}
-	if reserveTmp >= wallet.AutoMinerFlag.ReserveCoins {
-		for _, priv := range privs {
-
-			hash, n, err := wallet.buyTicketOne(priv)
-			if err != nil {
-				walletlog.Error("buyTicketOne", "err", err)
-				continue
-			}
-			count += n
-			if hash != nil {
-				hashes = append(hashes, hash)
-			}
-		}
-	} else {
-		dist := wallet.AutoMinerFlag.ReserveCoins - reserveTmp
-		sort.Sort(acl)
-		sliceIndex := 0
-		for _, v := range acl {
-			if v.coins >= dist+2*types.Coin {
-				v.reserve = dist + 2*types.Coin
-				break
-			} else {
-				dist = dist - v.coins
-				sliceIndex++
-			}
-		}
-		if sliceIndex >= len(acl) {
-			return hashes, 0, nil
-		}
-		acl = acl[sliceIndex:]
-		hash, n, err := wallet.buyTicketOneReserve(acl[0])
-		if err != nil {
-			return hashes, count, err
-		}
-		count += n
-		if hash != nil {
-			hashes = append(hashes, hash)
-		}
-	}
-	if len(acl) <= 1 {
-		return hashes, count, nil
-	}
-	for _, v := range acl[1:] {
-		hash, n, err := wallet.buyTicketOne(v.priv)
+		hash, n, err := wallet.buyTicketOne(priv)
 		if err != nil {
 			walletlog.Error("buyTicketOne", "err", err)
-			return hashes, count, err
+			continue
 		}
 		count += n
 		if hash != nil {
 			hashes = append(hashes, hash)
 		}
 	}
-
 	return hashes, count, nil
-}
-
-func (wallet *Wallet) buyTicketOneReserve(a addressCoins) ([]byte, int, error) {
-	acc1, err := wallet.getBalance(a.addr, "coins")
-	if err != nil {
-		return nil, 0, err
-	}
-	acc2, err := wallet.getBalance(a.addr, "ticket")
-	if err != nil {
-		return nil, 0, err
-	}
-	fee := types.Coin
-	if acc1.Balance+acc2.Balance-2*fee-a.reserve < types.TicketPrice {
-		return nil, 0, nil
-	}
-	left := acc1.Balance - 2*fee - a.reserve
-	toaddr := account.ExecAddress("ticket").String()
-	if left != 0 {
-		walletlog.Error("buyTicketOne", "toaddr", toaddr, "amount", left)
-		hash, err := wallet.sendToAddress(a.priv, toaddr, left, "coins->ticket")
-		if err != nil {
-			return nil, 0, err
-		}
-		wallet.waitTx(hash.Hash)
-	}
-	acc, err := wallet.getBalance(a.addr, "ticket")
-	if err != nil {
-		return nil, 0, err
-	}
-	count := acc.Balance / types.TicketPrice
-	if count > 0 {
-		txhash, err := wallet.openticket(a.addr, a.addr, a.priv, int32(count))
-		return txhash, int(count), err
-	}
-	return nil, 0, nil
 }
 
 func (wallet *Wallet) buyMinerAddrTicket() ([][]byte, int, error) {
@@ -409,13 +277,11 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 
 		case types.EventWalletAutoMiner:
-			flag := msg.GetData().(*types.MinerFlag)
-			if flag.Flag == 1 {
-				wallet.walletStore.db.Set([]byte("WalletAutoMinerFlag"), []byte("1"))
-				wallet.walletStore.db.Set([]byte("WalletAutoMinerReserve"), []byte(strconv.FormatInt(flag.Reserve, 10)))
+			flag := msg.GetData().(*types.MinerFlag).Flag
+			if flag == 1 {
+				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("1"))
 			} else {
-				wallet.walletStore.db.Set([]byte("WalletAutoMinerFlag"), []byte("0"))
-				wallet.walletStore.db.Set([]byte("WalletAutoMinerReserve"), []byte("0"))
+				wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("0"))
 			}
 			wallet.setAutoMining(flag)
 			wallet.flushTicket()
