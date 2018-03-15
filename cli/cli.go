@@ -310,6 +310,12 @@ func main() {
 			return
 		}
 		FinishCreateToken(argsWithoutProg[1:])
+	case "revokecreatetoken":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		RevokeCreateToken(argsWithoutProg[1:])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -359,8 +365,10 @@ func LoadHelp() {
 	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
 	fmt.Println("gettokensprecreated                                         : 获取所有预创建的token")
 	fmt.Println("gettokensfinishcreated                                      : 获取所有完成创建的token")
-	fmt.Println("precreatetoken [creator_address, name, symbol, introduction, owner_address, total, price]                   : 预创建token")
+	fmt.Println("precreatetoken [creator_address, name, symbol, introduction, owner_address, total, price]")
+	fmt.Println("                                                            : 预创建token")
 	fmt.Println("finishcreatetoken [finish_address, symbol, owner_address]   : 完成创建token")
+	fmt.Println("revokecreatetoken [finish_address, symbol, owner_address]   : 取消创建token")
 }
 
 type AccountsResult struct {
@@ -1903,6 +1911,34 @@ func FinishCreateToken(args []string) {
 	}
 	var res jsonrpc.Reply
 	err = rpc.Call("Chain33.TokenFinishCreate", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func RevokeCreateToken(args []string) {
+	// revoker, symbol, owner, string) {
+	revoker := args[0]
+	symbol := args[1]
+	owner := args[2]
+
+	params := types.ReqTokenRevokeCreate{RevokerAddr: revoker, Symbol: symbol, OwnerAddr: owner}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.TokenRevokeCreate", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

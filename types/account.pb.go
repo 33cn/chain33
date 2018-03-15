@@ -191,6 +191,7 @@ It has these top-level messages:
 	ReplyStr
 	ReqTokenPreCreate
 	ReqTokenFinishCreate
+	ReqTokenRevokeCreate
 */
 package types
 
