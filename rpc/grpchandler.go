@@ -370,3 +370,10 @@ func (g *Grpc) TokenFinishCreate(ctx context.Context, in *pb.ReqTokenFinishCreat
 	}
 	return result, nil
 }
+func (g *Grpc) TokenRevokeCreate(ctx context.Context, in *pb.ReqTokenRevokeCreate) (*pb.Reply, error) {
+	result, err := g.cli.TokenRevokeCreate(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
