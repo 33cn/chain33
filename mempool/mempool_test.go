@@ -26,7 +26,7 @@ var (
 	amount   = int64(1e8)
 	v        = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0}
+	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 10}
 	tx2      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0}
 	tx3      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0}
 	tx4      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0}
@@ -38,7 +38,7 @@ var (
 	tx10     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0}
 	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
 	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 999999999999999999, Expire: 0}
-	tx13     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 46000000, Expire: 0}
+	tx13     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 4600000}
 
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
@@ -333,7 +333,7 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 	mem.qclient.Send(msg5, true)
 	mem.qclient.Wait(msg5)
 
-	if mem.Size() != 4 || mem.cache.Exists(tx1) {
+	if mem.Size() != 4 || mem.cache.Exists(tx5) {
 		t.Error("TestAddMoreTxThanPoolSize failed")
 	}
 
@@ -444,24 +444,24 @@ func TestCheckLowFee(t *testing.T) {
 	mem.Close()
 }
 
-func TestCheckManyTxs(t *testing.T) {
-	mem, _, chain, s := initEnv(0)
+//func TestCheckManyTxs(t *testing.T) {
+//	mem, _, chain, s := initEnv(0)
 
-	// add 10 txs for the same account
-	add10Tx(mem.qclient)
+//	// add 10 txs for the same account
+//	add10Tx(mem.qclient)
 
-	msg11 := mem.qclient.NewMessage("mempool", types.EventTx, tx13)
-	mem.qclient.Send(msg11, true)
-	resp, _ := mem.qclient.Wait(msg11)
+//	msg11 := mem.qclient.NewMessage("mempool", types.EventTx, tx13)
+//	mem.qclient.Send(msg11, true)
+//	resp, _ := mem.qclient.Wait(msg11)
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrManyTx.Error() || mem.Size() != int(maxTxNumPerAccount) {
-		t.Error("TestCheckManyTxs failed")
-	}
+//	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrManyTx.Error() || mem.Size() != int(maxTxNumPerAccount) {
+//		t.Error("TestCheckManyTxs failed")
+//	}
 
-	chain.Close()
-	s.Close()
-	mem.Close()
-}
+//	chain.Close()
+//	s.Close()
+//	mem.Close()
+//}
 
 func TestCheckSignature(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
@@ -499,15 +499,43 @@ func TestCheckSignature(t *testing.T) {
 //	mem.Close()
 //}
 
-func TestCheckExpire(t *testing.T) {
+func TestCheckExpire1(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
-
-	tx13.Expire = -1 // make tx expired
+	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
+	tx13.SetExpire(48) // make tx expired
 	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx13)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxExpire.Error() {
+		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
+	}
+
+	chain.Close()
+	s.Close()
+	mem.Close()
+}
+
+func TestCheckExpire2(t *testing.T) {
+	mem, _, chain, s := initEnv(0)
+
+	// add tx
+	add4Tx(mem.qclient)
+
+	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
+
+	msg := mem.qclient.NewMessage("mempool", types.EventTxList, 100)
+	mem.qclient.Send(msg, true)
+	data, err := mem.qclient.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	txs := data.GetData().(*types.ReplyTxList).GetTxs()
+
+	if len(txs) != 3 {
 		t.Error("TestCheckExpire failed")
 	}
 

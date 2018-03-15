@@ -123,6 +123,8 @@ func (mem *Mempool) TxNumOfAccount(addr string) int64 {
 
 // Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
 func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
+	mem.RemoveExpiredAndDuplicateMempoolTxs()
+
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 
@@ -150,8 +152,8 @@ func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
 	return result
 }
 
-// Mempool.DuplicateMempoolTxs复制并返回Mempool内交易
-func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
+// Mempool.RemoveExpiredAndDuplicateMempoolTxs删除过期交易然后复制并返回Mempool内交易
+func (mem *Mempool) RemoveExpiredAndDuplicateMempoolTxs() []*types.Transaction {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 
@@ -159,6 +161,9 @@ func (mem *Mempool) DuplicateMempoolTxs() []*types.Transaction {
 	for _, v := range mem.cache.txMap {
 		if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolExpiredInterval {
 			// 清理滞留Mempool中超过10分钟的交易
+			mem.cache.Remove(v.Value.(*Item).value)
+		} else if v.Value.(*Item).value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+			// 清理过期的交易
 			mem.cache.Remove(v.Value.(*Item).value)
 		} else {
 			result = append(result, v.Value.(*Item).value)
@@ -229,21 +234,6 @@ func (mem *Mempool) GetLatestTx() []*types.Transaction {
 	return mem.cache.GetLatestTx()
 }
 
-// Mempool.RemoveLeftOverTxs每隔10分钟清理一次滞留时间过长的交易
-func (mem *Mempool) RemoveLeftOverTxs() {
-	for {
-		time.Sleep(time.Minute * 10)
-		mem.proxyMtx.Lock()
-		for _, v := range mem.cache.txMap {
-			if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolExpiredInterval {
-				// 清理滞留Mempool中超过10分钟的交易
-				mem.cache.Remove(v.Value.(*Item).value)
-			}
-		}
-		mem.proxyMtx.Unlock()
-	}
-}
-
 func (mem *Mempool) ReTrySend() {
 	for {
 		time.Sleep(time.Minute * 2)
@@ -275,7 +265,7 @@ func (mem *Mempool) RemoveBlockedTxs() {
 	}
 	for {
 		time.Sleep(time.Minute * 1)
-		txs := mem.DuplicateMempoolTxs()
+		txs := mem.RemoveExpiredAndDuplicateMempoolTxs()
 		var checkHashList types.TxHashList
 
 		for _, tx := range txs {
@@ -427,7 +417,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 
 	go mem.CheckSignList()
 	go mem.CheckTxList()
-	go mem.RemoveLeftOverTxs()
+	// go mem.RemoveLeftOverTxs()
 	go mem.RemoveBlockedTxs()
 
 	go func() {
@@ -445,7 +435,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
-					&types.ReplyTxList{mem.DuplicateMempoolTxs()}))
+					&types.ReplyTxList{mem.RemoveExpiredAndDuplicateMempoolTxs()}))
 				mlog.Debug("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
