@@ -812,8 +812,7 @@ func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}
 	if err != nil {
 		return err
 	}
-
-	*result = reply
+	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
 	return nil
 }
 
@@ -823,7 +822,7 @@ func (c *Chain33) TokenFinishCreate(in types.ReqTokenFinishCreate, result *inter
 		return err
 	}
 
-	*result = reply
+	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
 	return nil
 }
 
@@ -832,7 +831,6 @@ func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *inter
 	if err != nil {
 		return err
 	}
-
-	*result = reply
+	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
 	return nil
 }
