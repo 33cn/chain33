@@ -133,6 +133,7 @@ var (
 	ErrPrivkeyExist        = errors.New("ErrPrivkeyExist")
 	ErrPrivkey             = errors.New("ErrPrivkey")
 	ErrInsufficientBalance = errors.New("ErrInsufficientBalance")
+	ErrInsufficientTokenBal= errors.New("ErrInsufficientTokenBalance")
 	ErrVerifyOldpasswdFail = errors.New("ErrVerifyOldpasswdFail")
 	ErrInputPassword       = errors.New("ErrInputPassword")
 	ErrSeedlang            = errors.New("ErrSeedlang")

@@ -85,7 +85,13 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
+		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], false, "")
+	case "transwithdrawtoken":
+		if len(argsWithoutProg) != 6 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[5], true, argsWithoutProg[4])
 	case "importprivkey": //引入私钥
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -314,6 +320,7 @@ func LoadHelp() {
 	fmt.Println("mergebalance [to]                                           : 合并余额")
 	fmt.Println("settxfee [amount]                                           : 设置交易费")
 	fmt.Println("sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
+	fmt.Println("transwithdrawtoken [from, to, amount, token, note]          : 转账或提取token")
 	fmt.Println("importprivkey [privkey, label]                              : 引入私钥")
 	fmt.Println("dumpprivkey [addr]                                          : 导出私钥")
 	fmt.Println("wallettxlist [from, count, direction]                       : 钱包交易列表")
@@ -685,14 +692,21 @@ func SetTxFee(amount string) {
 	fmt.Println(string(data))
 }
 
-func SendToAddress(from string, to string, amount string, note string) {
+func SendToAddress(from string, to string, amount string, note string, isToken bool, tokenSymbol string) {
 	amountFloat64, err := strconv.ParseFloat(amount, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountFloat64 * 1e4)
-	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64 * 1e4, Note: note}
+	amountInt64 := int64(amountFloat64 * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
+	if !isToken {
+		params.Istoken = false
+		params.Amount *= 1e4
+	} else {
+		params.Istoken     = true
+		params.TokenSymbol = tokenSymbol
+	}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1690,7 +1704,7 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTransfer:
+		case types.TyLogTransfer: //TODO:需要区分token和普通的coin的日志类型，added by hzj
 			lTy = "LogTransfer"
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
