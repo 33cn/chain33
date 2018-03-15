@@ -257,7 +257,7 @@ func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
 			ids = append(ids, tlist[i].TicketId)
 		}
 	}
-	if len(ids) > 1 {
+	if len(ids) > 0 {
 		return wallet.closeTickets(priv, ids)
 	}
 	return nil, nil
