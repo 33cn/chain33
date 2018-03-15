@@ -108,14 +108,14 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	return privs, nil
 }
 
-func (wallet *Wallet) closeAllTickets() (int, error) {
+func (wallet *Wallet) closeAllTickets(flag bool) (int, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
 		return 0, err
 	}
 	var hashes [][]byte
 	for _, key := range keys {
-		hash, err := wallet.closeTicketsByAddr(key)
+		hash, err := wallet.closeTicketsByAddr(key, flag)
 		if err != nil {
 			walletlog.Error("close Tickets By Addr", "err", err)
 			continue
@@ -240,22 +240,41 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	return nil
 }
 
-func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
+func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey, flag bool) ([]byte, error) { // flag: true只取已挖矿的票；false取所有票
 	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	tlist, err := wallet.getTickets(addr, 2)
+	tlist2, err := wallet.getTickets(addr, 2)
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
 	}
-	if len(tlist) == 0 {
-		return nil, nil
-	}
-	now := time.Now().Unix()
 	var ids []string
-	for i := 0; i < len(tlist); i++ {
-		if now-tlist[i].CreateTime > types.TicketWithdrawTime {
-			ids = append(ids, tlist[i].TicketId)
+	now := time.Now().Unix()
+	if !flag {
+		tlist1, err1 := wallet.getTickets(addr, 1)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err1
 		}
+		if len(tlist1) > 0 {
+			tlist2 = append(tlist2, tlist1...)
+		}
+	}
+	var tl []*types.Ticket
+	for _, t := range tlist2 {
+		if !t.IsGenesis {
+			if t.Status == 1 && now-t.GetCreateTime() < types.TicketWithdrawTime {
+				continue
+			}
+			if t.Status == 2 && now-t.GetCreateTime() < types.TicketWithdrawTime {
+				continue
+			}
+			if t.Status == 2 && now-t.GetMinerTime() < types.TicketMinerWaitTime {
+				continue
+			}
+		}
+		tl = append(tl, t)
+	}
+	for i := 0; i < len(tl); i++ {
+		ids = append(ids, tl[i].TicketId)
 	}
 	if len(ids) > 0 {
 		return wallet.closeTickets(priv, ids)
