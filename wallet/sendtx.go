@@ -480,7 +480,7 @@ func (client *Wallet) IsCaughtUp() bool {
 	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
 }
 
-func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *types.ReqTokenPreCreate) ([]byte, error) {
+func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *types.ReqTokenPreCreate) (*types.ReplyHash, error) {
 	v := &types.TokenPreCreate{
 		Name : reqTokenPrcCreate.GetName(), Symbol: reqTokenPrcCreate.GetSymbol(),
 		Introduction:reqTokenPrcCreate.GetIntroduction(), Total: reqTokenPrcCreate.GetTotal(),
@@ -501,10 +501,12 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
     if !reply.GetIsOk() {
 		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return tx.Hash(), nil
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
 }
 
-func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqTokenFinishCreate) ([]byte, error) {
+func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
 	v := &types.TokenFinishCreate{Symbol: req.GetSymbol(), Owner:req.GetOwnerAddr(),}
 	finish := &types.TokenAction{
 		Ty:types.TokenActionFinishCreate,
@@ -524,10 +526,12 @@ func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqToken
 	if !reply.GetIsOk() {
 		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return tx.Hash(), nil
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
 }
 
-func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqTokenRevokeCreate) ([]byte, error) {
+func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
 	v := &types.TokenRevokeCreate{Symbol: req.GetSymbol(), Owner:req.GetOwnerAddr(),}
 	revoke := &types.TokenAction{
 		Ty:types.TokenActionRevokeCreate,
@@ -547,6 +551,9 @@ func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqToken
 	if !reply.GetIsOk() {
 		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return tx.Hash(), nil
+
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
 }
 
