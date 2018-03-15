@@ -37,6 +37,10 @@ func NewTokenAccount(symbol string, db dbm.KVDB) *AccountDB {
 	return accDB
 }
 
+func NewTokenAccountWithoutDB(symbol string) *AccountDB {
+	return newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+}
+
 func newAccountDB(prefix string) *AccountDB {
 	acc := &AccountDB{}
 	acc.accountKeyPerfix = []byte(prefix)

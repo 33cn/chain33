@@ -148,7 +148,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			ticketMiner := action.GetMiner()
 			return ticketMiner.Reward, nil
 		}
-	} else if "token" == string(tx.Execer) {//TODO: 补充和完善token和trade分支的amount的计算
+	} else if "token" == string(tx.Execer) {//TODO: 补充和完善token和trade分支的amount的计算, added by hzj
 		var action TokenAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -163,9 +163,9 @@ func (tx *Transaction) Amount() (int64, error) {
 		} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
 			return 0, nil
 		} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
-			return action.GetTransfer().GetAmount(), nil
+			return 0, nil
 		} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
-			return action.GetWithdraw().GetAmount(), nil
+			return 0, nil
 		}
 
 	} else if "trade" == string(tx.Execer) {
@@ -183,7 +183,6 @@ func (tx *Transaction) Amount() (int64, error) {
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
 		}
-
 	}
 	return 0, nil
 }

@@ -17,6 +17,7 @@ var (
 const (
 	Coin                     int64  = 1e8
 	TokenPrecision           int64  = 1e4
+	InputPrecision           float64= 1e4
 	MaxCoin                  int64  = 1e17
 	FutureBlockTime          int64  = 16
 	CoinReward               int64  = 18 * Coin //用户回报
@@ -334,7 +335,7 @@ const (
 )
 
 const (
-	ActionTransfer = iota
+	ActionTransfer = iota << 1
 	ActionGenesis
 	ActionWithdraw
 	TokenActionPreCreate
