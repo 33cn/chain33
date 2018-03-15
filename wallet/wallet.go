@@ -473,6 +473,20 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("ProcTokenPreCreate", "msg", res, "symbol", finishCreate.GetSymbol(), "result", "success")
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenFinishCreate, &reply))
 			}
+		case types.EventTokenRevokeCreate:
+			revoke := msg.Data.(*types.ReqTokenRevokeCreate)
+			res, err := wallet.ProcTokenRevokeCreate(revoke)
+			var reply types.Reply
+			reply.IsOk = true
+			if err != nil {
+				walletlog.Error("ProcTokenRevokeCreate", "err", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenRevokeCreate, err))
+			} else {
+				walletlog.Info("ProcTokenRevokeCreate", "msg", res, "symbol", revoke.GetSymbol(), "result", "success")
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenRevokeCreate, &reply))
+			}
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -1730,4 +1744,62 @@ func (wallet *Wallet) checkTokenSymbolExists(symbol, owner string) (*types.Token
 
 	walletlog.Debug("checkTokenSymbolExists", "tokenInfo", tokenInfo.String())
 	return tokenInfo, nil
+}
+
+func (wallet *Wallet) ProcTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (string, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
+	}
+
+	if req == nil {
+		walletlog.Error("ProcTokenRevokeCreate input para is nil")
+		return "", types.ErrInputPara
+	}
+
+	upSymbol := strings.ToUpper(req.GetSymbol())
+	if upSymbol != req.GetSymbol() {
+		walletlog.Error("ProcTokenRevokeCreate", "symbol need be upper", req.GetSymbol())
+		return "", types.ErrTokenSymbolUpper
+	}
+
+	addrs := make([]string, 1)
+	addrs[0] = req.GetRevokerAddr()
+	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
+	if err != nil || len(accounts) == 0 {
+		walletlog.Error("ProcTokenRevokeCreate", "LoadAccounts err", err)
+		return "", err
+	}
+
+	//  check symbol-owner 是否不存在, 是否是precreate 状态， 地址是否对应
+	token, err := wallet.checkTokenSymbolExists(req.GetSymbol(), req.GetOwnerAddr())
+	if err != nil {
+		return "", err
+	}
+	if token != nil {
+		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenExist)
+		return "", types.ErrTokenExist
+	}
+	if token.Owner != req.GetOwnerAddr() {
+		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenOwner)
+		return "", types.ErrTokenOwner
+	}
+	if token.Creator != req.GetRevokerAddr() {
+		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenRevokeCreater)
+		return "", types.ErrTokenRevokeCreater
+	}
+	if token.Status != types.TokenStatusPreCreated {
+		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenNotPrecreated)
+		return "", types.ErrTokenNotPrecreated
+	}
+
+	priv, err := wallet.getPrivKeyByAddr(addrs[0])
+	if err != nil {
+		return "", err
+	}
+
+	return wallet.tokenRevokeCreate(priv, req)
 }
