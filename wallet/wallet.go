@@ -142,7 +142,7 @@ func (wallet *Wallet) autoMining() {
 			}
 			walletlog.Info("BEG miningTicket")
 			if wallet.isAutoMining() {
-				n1, err := wallet.closeTicket()
+				n1, err := wallet.closeTicket(true)
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
@@ -162,7 +162,7 @@ func (wallet *Wallet) autoMining() {
 					wallet.flushTicket()
 				}
 			} else {
-				n1, err := wallet.closeTicket()
+				n1, err := wallet.closeTicket(true)
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
@@ -249,8 +249,8 @@ func (wallet *Wallet) withdrawFromTicket() (hashes [][]byte, err error) {
 	return hashes, nil
 }
 
-func (wallet *Wallet) closeTicket() (int, error) {
-	return wallet.closeAllTickets()
+func (wallet *Wallet) closeTicket(flag bool) (int, error) {
+	return wallet.closeAllTickets(flag)
 }
 
 func (wallet *Wallet) flushTicket() {
@@ -471,6 +471,17 @@ func (wallet *Wallet) ProcRecvMsg() {
 				replyStr.Replystr = privkey
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyPrivkey, &replyStr))
 			}
+
+		case types.EventCloseTickets:
+			var reply types.Reply
+			reply.IsOk = true
+			_, err := wallet.closeTicket(false)
+			if err != nil {
+				walletlog.Error("closeTicket", "err", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+			}
+			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
