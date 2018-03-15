@@ -1703,6 +1703,10 @@ func (wallet *Wallet) ProcTokenFinishCreate(req *types.ReqTokenFinishCreate) (st
 		walletlog.Error("ProcTokenFinishCreate", "err", types.ErrTokenOwner)
 		return "", types.ErrTokenOwner
 	}
+	if token.Status != types.TokenStatusPreCreated {
+		walletlog.Error("ProcTokenFinishCreate", "err", types.ErrTokenNotPrecreated)
+		return "", types.ErrTokenNotPrecreated
+	}
 
 	// creator 合约帐号钱够
 	creatorAcc := accountdb.LoadExecAccount(token.Creator, account.ExecAddress("token").String())
