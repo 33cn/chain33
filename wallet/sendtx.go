@@ -526,3 +526,27 @@ func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqToken
 	}
 	return "", nil
 }
+
+func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqTokenRevokeCreate) (string, error) {
+	v := &types.TokenRevokeCreate{Symbol: req.GetSymbol(), Owner:req.GetOwnerAddr(),}
+	revoke := &types.TokenAction{
+		Ty:types.TokenActionRevokeCreate,
+		Value: &types.TokenAction_Tokenrevokecreate{v},
+	}
+	tx := &types.Transaction{Execer: []byte("token"), Payload:types.Encode(revoke), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
+	wallet.qclient.Send(msg, true)
+	resp, err := wallet.qclient.Wait(msg)
+	if err != nil {
+		walletlog.Error("ProcTokenRevokeCreate", "Send err", err)
+		return "", err
+	}
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return "", errors.New(string(reply.GetMsg()))
+	}
+	return "", nil
+}
+
