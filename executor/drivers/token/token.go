@@ -56,7 +56,7 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	case types.TokenActionFinishCreate:
 		tokenlog.Info("Exec TokenActionFinishCreate")
 		action := NewTokenAction(t, types.FundKeyAddr, tx)
-		return action.finishCreate(tokenAction.GetTokenfinishcreate(), []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S"})
+		return action.finishCreate(tokenAction.GetTokenfinishcreate(), types.TokenApprs)
 
 	case types.TokenActionRevokeCreate:
 		tokenlog.Info("Exec TokenActionRevokeCreate")
