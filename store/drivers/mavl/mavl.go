@@ -27,8 +27,6 @@ type MavlStore struct {
 	cache *lru.Cache
 }
 
-//driver
-//dbpath
 func New(cfg *types.Store) *MavlStore {
 	bs := drivers.NewBaseStore(cfg)
 	mavls := &MavlStore{bs, make(map[string]*mavl.MAVLTree), nil}
@@ -51,12 +49,18 @@ func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
 	var tree *mavl.MAVLTree
 	var err error
 	values := make([][]byte, len(datas.Keys))
-	if data, ok := mavls.cache.Get(string(datas.StateHash)); ok {
+	search := string(datas.StateHash)
+	if data, ok := mavls.cache.Get(search); ok {
 		tree = data.(*mavl.MAVLTree)
+	} else if data, ok := mavls.trees[search]; ok {
+		tree = data
 	} else {
 		tree = mavl.NewMAVLTree(mavls.GetDB())
 		err = tree.Load(datas.StateHash)
-		mavls.cache.Add(string(datas.StateHash), tree)
+		if err == nil {
+			mavls.cache.Add(search, tree)
+		}
+		mlog.Debug("store get tree", "err", err)
 	}
 	if err == nil {
 		for i := 0; i < len(datas.Keys); i++ {
@@ -77,6 +81,9 @@ func (mavls *MavlStore) MemSet(datas *types.StoreSet) []byte {
 	}
 	hash := tree.Hash()
 	mavls.trees[string(hash)] = tree
+	if len(mavls.trees) > 100 {
+		mlog.Error("too many trees in cache")
+	}
 	return hash
 }
 
