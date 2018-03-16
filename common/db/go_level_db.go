@@ -137,17 +137,34 @@ func (db *GoLevelDB) Stats() map[string]string {
 	return stats
 }
 
-func (db *GoLevelDB) Iterator() Iterator {
-	it := db.db.NewIterator(nil, nil)
-	return &goLevelDBIt{it}
+func (db *GoLevelDB) Iterator(prefix []byte, reserve bool) Iterator {
+	r := &util.Range{prefix, bytesPrefix(prefix)}
+	it := db.db.NewIterator(r, nil)
+	return &goLevelDBIt{it, reserve, prefix}
 }
 
 type goLevelDBIt struct {
 	iterator.Iterator
+	reserve bool
+	prefix  []byte
 }
 
-func (it *goLevelDBIt) Close() {
-	it.Release()
+func (dbit *goLevelDBIt) Close() {
+	dbit.Release()
+}
+
+func (dbit *goLevelDBIt) Next() bool {
+	if dbit.reserve {
+		return dbit.Prev()
+	}
+	return dbit.Next()
+}
+
+func (dbit *goLevelDBIt) Rewind() bool {
+	if dbit.reserve {
+		return dbit.Last()
+	}
+	return dbit.First()
 }
 
 func (db *GoLevelDB) NewBatch(sync bool) Batch {
