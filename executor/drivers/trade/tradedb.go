@@ -53,17 +53,19 @@ func (selldb *SellDB) GetBuyLogs(buyerAddr string, sellid string, boardlotcnt in
 	return log
 }
 
-func getSellOrderFromID(sellid []byte, db dbm.KVDB) (sellorder *types.SellOrder, err error) {
-	//key := []byte(sellid)
+func getSellOrderFromID(sellid []byte, db dbm.KVDB) (*types.SellOrder, error) {
 	value, err := db.Get(sellid)
 	if err != nil {
+		tradelog.Error("getSellOrderFromID", "Failed to get value frim db wiht sellid", string(sellid))
 		return nil, err
 	}
 
-	if err = types.Decode(value, sellorder); err != nil {
+	var sellorder types.SellOrder
+	if err = types.Decode(value, &sellorder); err != nil {
+		tradelog.Error("getSellOrderFromID", "Failed to decode sell order", string(sellid))
 		return nil, err
 	}
-	return
+	return &sellorder, nil
 }
 
 //key:mavl-token-xxx, value:token
