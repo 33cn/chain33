@@ -1,5 +1,6 @@
 package drivers
 
+//store package store the world - state data
 import (
 	"code.aliyun.com/chain33/chain33/common"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
