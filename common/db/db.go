@@ -17,7 +17,8 @@ type DB interface {
 	DeleteSync([]byte)
 	Close()
 	NewBatch(sync bool) Batch
-	Iterator() Iterator
+	//迭代prefix 范围的所有key value, 支持正反顺序迭代
+	Iterator(prefix []byte, reserver bool) Iterator
 	// For debugging
 	Print()
 	Stats() map[string]string
@@ -30,39 +31,32 @@ type Batch interface {
 }
 
 type IteratorSeeker interface {
-	// First moves the iterator to the first key/value pair. If the iterator
-	// only contains one key/value pair then First and Last would moves
-	// to the same key/value pair.
-	// It returns whether such pair exist.
-	First() bool
-
-	// Last moves the iterator to the last key/value pair. If the iterator
-	// only contains one key/value pair then First and Last would moves
-	// to the same key/value pair.
-	// It returns whether such pair exist.
-	Last() bool
-
-	// Seek moves the iterator to the first key/value pair whose key is greater
-	// than or equal to the given key.
-	// It returns whether such pair exist.
-	//
-	// It is safe to modify the contents of the argument after Seek returns.
+	Rewind() bool
 	Seek(key []byte) bool
-
-	// Next moves the iterator to the next key/value pair.
-	// It returns whether the iterator is exhausted.
 	Next() bool
-
-	// Prev moves the iterator to the previous key/value pair.
-	// It returns whether the iterator is exhausted.
-	Prev() bool
 }
 
 type Iterator interface {
 	IteratorSeeker
+	Valid() bool
 	Key() []byte
 	Value() []byte
+	Error() error
 	Close()
+}
+
+func bytesPrefix(prefix []byte) []byte {
+	var limit []byte
+	for i := len(prefix) - 1; i >= 0; i-- {
+		c := prefix[i]
+		if c < 0xff {
+			limit = make([]byte, i+1)
+			copy(limit, prefix)
+			limit[i] = c + 1
+			break
+		}
+	}
+	return limit
 }
 
 //-----------------------------------------------------------------------------
