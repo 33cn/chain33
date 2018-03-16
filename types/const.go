@@ -148,6 +148,8 @@ const (
 	EventReplyPrivkey        = 95
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
+
+	EventCloseTickets = 98
 )
 
 var eventName = map[int]string{
