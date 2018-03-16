@@ -27,7 +27,7 @@ func NewGoBadgerDB(name string, dir string, cache int) (*GoBadgerDB, error) {
 		opts.ValueLogLoadingMode = options.FileIO
 		//opts.MaxTableSize = int64(cache) << 18 // cache = 128, MaxTableSize = 32M
 		opts.NumCompactors = 1
-		opts.NumMemtables  = 1
+		opts.NumMemtables = 1
 		opts.NumLevelZeroTables = 1
 		opts.NumLevelZeroTablesStall = 2
 		opts.TableLoadingMode = options.MemoryMap
@@ -148,11 +148,28 @@ func (db *GoBadgerDB) Stats() map[string]string {
 }
 
 func (db *GoBadgerDB) Iterator() Iterator {
-	return nil
-	/*
-		txn := db.db.NewTransaction(true)
-		return txn.NewIterator(badger.DefaultIteratorOptions)
-	*/
+	txn := db.db.NewTransaction(false)
+	it := txn.NewIterator(badger.DefaultIteratorOptions)
+	return &goBadgerDBIt{txn, it}
+}
+
+type goBadgerDBIt struct {
+	txn *badger.Txn
+	it  *badger.Iterator
+}
+
+func (it *goBadgerDBIt) Close() {
+	it.it.Close()
+	it.txn.Discard()
+}
+
+func (it *goBadgerDBIt) Key() []byte {
+	return it.it.Item().Key()
+}
+
+func (it *goBadgerDBIt) Value() []byte {
+	value, _ := it.it.Item().Value()
+	return value
 }
 
 func (db *GoBadgerDB) NewBatch(sync bool) Batch {
