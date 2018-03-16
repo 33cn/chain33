@@ -11,6 +11,7 @@ var (
 	ErrCheckTxHash             = errors.New("ErrCheckTxHash")
 	ErrReRunGenesis            = errors.New("ErrReRunGenesis")
 	ErrActionNotSupport        = errors.New("ErrActionNotSupport")
+	ErrQueryNotSupport         = errors.New("ErrQueryNotSupport")
 	ErrChannelFull             = errors.New("ErrChannelFull")
 	ErrAmount                  = errors.New("ErrAmount")
 	ErrNoTicket                = errors.New("ErrNoTicket")
@@ -71,6 +72,7 @@ var (
 	ErrTSellOrderRevoked          = errors.New("ErrTradeSellOrderRevoked")
 	ErrTSellOrderExpired          = errors.New("ErrTradeSellOrderExpired")
 	ErrTSellOrderRevoke           = errors.New("ErrTradeSellOrderRevokeNotAllowed")
+	ErrTSellNoSuchOrder           = errors.New("ErrTradeSellNoSuchOrder")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
@@ -134,6 +136,7 @@ var (
 	ErrPrivkey             = errors.New("ErrPrivkey")
 	ErrInsufficientBalance = errors.New("ErrInsufficientBalance")
 	ErrInsufficientTokenBal= errors.New("ErrInsufficientTokenBalance")
+	ErrInsuffSellOrder     = errors.New("ErrInsufficientSellOrder2buy")
 	ErrVerifyOldpasswdFail = errors.New("ErrVerifyOldpasswdFail")
 	ErrInputPassword       = errors.New("ErrInputPassword")
 	ErrSeedlang            = errors.New("ErrSeedlang")

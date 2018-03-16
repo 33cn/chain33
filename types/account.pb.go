@@ -190,6 +190,9 @@ It has these top-level messages:
 	ReqStr
 	ReplyStr
 	ReqTokenPreCreate
+	ReqSellToken
+	ReqBuyToken
+	ReqRevokeSell
 */
 package types
 

@@ -42,6 +42,7 @@ const (
 	TokenPrecisionLen               = 1e6
 	TokenCreatePriceStand           = 10000 * Coin
 	InvalidStartTime                = 0
+	InvalidStopTime                = 0
 )
 
 const (
@@ -147,6 +148,12 @@ const (
 	EventReplyIsSync         = 97
 	EventTokenPreCreate      = 98
 	EventReplyTokenPreCreate = 99
+	EventSellToken           = 100
+	EventReplySellToken      = 101
+	EventBuyToken            = 102
+	EventReplyBuyToken       = 103
+	EventRevokeSellToken     = 104
+	EventReplyRevokeSellToken= 105
 )
 
 var eventName = map[int]string{
@@ -363,3 +370,12 @@ const (
 	Revoked
 	Expired
 )
+
+
+var SellOrderStatus = map[int32]string{
+	NotStart : "NotStart",
+	OnSale   : "OnSale",
+	SoldOut  : "SoldOut",
+	Revoked  : "Revoked",
+	Expired  : "Expired",
+}

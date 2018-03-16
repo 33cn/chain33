@@ -336,7 +336,8 @@ message SellOrderReceipt {
 
 message ReqAddrTokens{
 	string addr           = 1;
-	repeated string token = 2;
+	int32  status         = 2;
+	repeated string token = 3;
 }
 
 message ReplySellOrders {
