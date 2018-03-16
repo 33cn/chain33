@@ -247,6 +247,6 @@ func tokenStatusKeyPrefix(status int32) ([]byte) {
 	return []byte(fmt.Sprintf("mavl-create-token-%d:", status))
 }
 
-func tokenStatusSymbolePrefix(status int32, symbol string) ([]byte) {
+func tokenStatusSymbolPrefix(status int32, symbol string) ([]byte) {
 	return []byte(fmt.Sprintf("mavl-create-token-%d:%s:", status, symbol))
 }
