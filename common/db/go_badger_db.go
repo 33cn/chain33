@@ -168,6 +168,21 @@ type goBadgerDBIt struct {
 	prefix []byte
 }
 
+func (it *goBadgerDBIt) Next() bool {
+	it.Iterator.Next()
+	return it.Valid()
+}
+
+func (it *goBadgerDBIt) Rewind() bool {
+	it.Iterator.Rewind()
+	return it.Valid()
+}
+
+func (it *goBadgerDBIt) Seek(key []byte) bool {
+	it.Iterator.Seek(key)
+	return it.Valid()
+}
+
 func (it *goBadgerDBIt) Close() {
 	it.Close()
 	it.txn.Discard()
