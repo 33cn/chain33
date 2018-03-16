@@ -122,4 +122,5 @@ var (
 	ErrSeedExist           = errors.New("ErrSeedExist")
 	ErrNotSupport          = errors.New("ErrNotSupport")
 	ErrSeedWordNum         = errors.New("ErrSeedWordNum")
+	ErrOnlyTicketUnLocked  = errors.New("ErrOnlyTicketUnLocked")
 )
