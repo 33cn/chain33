@@ -21,6 +21,7 @@ type DB interface {
 	// For debugging
 	Print()
 	Iterator() Iterator
+	IteratorKey(key []byte) Iterator
 	Stats() map[string]string
 	PrefixScan(key []byte) [][]byte
 	IteratorScan(Prefix []byte, key []byte, count int32, direction int32) [][]byte
