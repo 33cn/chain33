@@ -1,6 +1,5 @@
 package mavl
 
-//store package store the world - state data
 import (
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/mavl"
@@ -60,7 +59,7 @@ func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
 		if err == nil {
 			mavls.cache.Add(search, tree)
 		}
-		mlog.Debug("store get tree", "err", err)
+		mlog.Debug("store mavl get tree", "err", err)
 	}
 	if err == nil {
 		for i := 0; i < len(datas.Keys); i++ {
