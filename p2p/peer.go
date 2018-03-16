@@ -21,36 +21,33 @@ func (p *peer) Start() {
 func (p *peer) Close() {
 	p.SetRunning(false)
 	p.mconn.Close()
-	close(p.allLoopDone)
 	close(p.taskPool)
 	close(p.filterTask.loopDone)
 	pub.Unsub(p.taskChan, "block", "tx")
 }
 
 type peer struct {
-	wg          sync.WaitGroup
-	pmutx       sync.Mutex
-	nodeInfo    **NodeInfo
-	conn        *grpc.ClientConn // source connection
-	persistent  bool
-	isrunning   bool
-	version     *Version
-	key         string
-	mconn       *MConnection
-	peerAddr    *NetAddress
-	peerStat    *Stat
-	filterTask  *FilterTask
-	allLoopDone chan struct{}
-	taskPool    chan struct{}
-	taskChan    chan interface{} //tx block
+	wg         sync.WaitGroup
+	pmutx      sync.Mutex
+	nodeInfo   **NodeInfo
+	conn       *grpc.ClientConn // source connection
+	persistent bool
+	isrunning  bool
+	version    *Version
+	key        string
+	mconn      *MConnection
+	peerAddr   *NetAddress
+	peerStat   *Stat
+	filterTask *FilterTask
+	taskPool   chan struct{}
+	taskChan   chan interface{} //tx block
 }
 
 func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
 	p := &peer{
-		conn:        conn,
-		taskPool:    make(chan struct{}, 50),
-		allLoopDone: make(chan struct{}, 1),
-		nodeInfo:    nodeinfo,
+		conn:     conn,
+		taskPool: make(chan struct{}, 50),
+		nodeInfo: nodeinfo,
 	}
 	p.filterTask = new(FilterTask)
 	p.filterTask.loopDone = make(chan struct{}, 1)
@@ -170,16 +167,14 @@ func (p *peer) heartBeat() {
 
 	ticker := time.NewTicker(PingTimeout)
 	defer ticker.Stop()
-FOR_LOOP:
 	for {
+		if p.GetRunning() == false {
+			return
+		}
 		select {
 		case <-ticker.C:
 			err := pcli.SendPing(p, *p.nodeInfo)
 			P2pComm.CollectPeerStat(err, p)
-
-		case <-p.allLoopDone:
-			log.Debug("Peer HeartBeat", "loop done", p.Addr())
-			break FOR_LOOP
 
 		}
 
@@ -195,16 +190,16 @@ func (p *peer) sendStream() {
 	//Stream Send data
 	for {
 		if p.GetRunning() == false {
-			log.Error("sendStream peer is not running")
+			log.Info("sendStream peer is not running")
 			return
 		}
 		ctx, cancel := context.WithCancel(context.Background())
 		resp, err := p.mconn.conn.ServerStreamRead(ctx)
 		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
-			time.Sleep(time.Second * 5)
-			log.Error("sendStream", "CollectPeerStat", err)
 			cancel()
+			log.Error("sendStream", "CollectPeerStat", err)
+			time.Sleep(time.Second * 5)
 			continue
 		}
 		//send ping package
@@ -213,16 +208,19 @@ func (p *peer) sendStream() {
 			p2pdata := new(pb.BroadCastData)
 			p2pdata.Value = &pb.BroadCastData_Ping{Ping: ping}
 			if err := resp.Send(p2pdata); err != nil {
-				time.Sleep(time.Second)
+				resp.CloseSend()
 				cancel()
 				log.Error("sendStream", "sendping", err)
+				time.Sleep(time.Second)
 				continue
 			}
 		}
 
+		timeout := time.NewTimer(time.Second * 2)
+		defer timeout.Stop()
 	SEND_LOOP:
 		for {
-			timeout := time.NewTimer(time.Second * 2)
+
 			select {
 			case task := <-p.taskChan:
 				if p.GetRunning() == false {
@@ -235,6 +233,7 @@ func (p *peer) sendStream() {
 				if block, ok := task.(*pb.P2PBlock); ok {
 					height := block.GetBlock().GetHeight()
 					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
+					P2pComm.CollectPeerStat(err, p)
 					if err == nil {
 						if pinfo.GetHeader().GetHeight() >= height {
 							timeout.Stop()
@@ -258,14 +257,14 @@ func (p *peer) sendStream() {
 					p.filterTask.RegTask(hex.EncodeToString(sig))
 				}
 				err := resp.Send(p2pdata)
+				P2pComm.CollectPeerStat(err, p)
 				if err != nil {
 					log.Error("sendStream", "send", err)
-					p.peerStat.NotOk()
+
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 						(*p.nodeInfo).blacklist.Add(p.Addr())
 					}
 					time.Sleep(time.Second) //have a rest
-					(*p.nodeInfo).monitorChan <- p
 					resp.CloseSend()
 					cancel()
 					break SEND_LOOP //下一次外循环重新获取stream
@@ -275,6 +274,7 @@ func (p *peer) sendStream() {
 					log.Error("sendStream timeout")
 					resp.CloseSend()
 					cancel()
+
 					return
 				}
 			}
@@ -310,15 +310,14 @@ func (p *peer) readStream() {
 				return
 			}
 			data, err := resp.Recv()
+			P2pComm.CollectPeerStat(err, p)
 			if err != nil {
 				log.Error("readStream", "recv,err:", err)
 				resp.CloseSend()
-				p.peerStat.NotOk()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 					(*p.nodeInfo).blacklist.Add(p.Addr())
 				}
 				time.Sleep(time.Second) //have a rest
-				(*p.nodeInfo).monitorChan <- p
 				break
 			}
 

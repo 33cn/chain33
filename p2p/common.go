@@ -188,6 +188,7 @@ func (c Comm) reportPeerStat(peer *peer) {
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:
 	case <-timeout.C:
+		timeout.Stop()
 		return
 	}
 	if !timeout.Stop() {
