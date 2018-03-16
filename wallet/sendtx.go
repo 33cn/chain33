@@ -482,12 +482,23 @@ func (client *Wallet) IsCaughtUp() bool {
 
 func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *types.ReqTokenPreCreate) (string, error) {
 	v := &types.TokenPreCreate{
-		Name : reqTokenPrcCreate.GetName(), Symbol: reqTokenPrcCreate.GetSymbol(),
-		Introduction:reqTokenPrcCreate.GetIntroduction(), Total: reqTokenPrcCreate.GetTotal(),
-		Price:reqTokenPrcCreate.GetPrice(), Owner:reqTokenPrcCreate.GetOwnerAddr(),
+		Name:         reqTokenPrcCreate.GetName(),
+		Symbol:       reqTokenPrcCreate.GetSymbol(),
+		Introduction: reqTokenPrcCreate.GetIntroduction(),
+		Total:        reqTokenPrcCreate.GetTotal(),
+		Price:        reqTokenPrcCreate.GetPrice(),
+		Owner:        reqTokenPrcCreate.GetOwnerAddr(),
 	}
-	precreate := &types.TokenAction{Ty:types.TokenActionPreCreate, Value: &types.TokenAction_Tokenprecreate{v}}
-	tx := &types.Transaction{Execer: []byte("token"), Payload:types.Encode(precreate), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	precreate := &types.TokenAction{
+		Ty:    types.TokenActionPreCreate,
+		Value: &types.TokenAction_Tokenprecreate{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(precreate),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+	}
 	tx.Sign(int32(SignType), priv)
 
 	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
@@ -497,10 +508,99 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
 		walletlog.Error("ProcTokenPreCreate", "Send err", err)
 		return "", err
 	}
-    reply := resp.GetData().(*types.Reply)
-    if !reply.GetIsOk() {
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
 		return "", errors.New(string(reply.GetMsg()))
 	}
 	return "", nil
 }
 
+func (wallet *Wallet) sellToken(priv crypto.PrivKey, reqSellToken *types.ReqSellToken) (*types.ReplyHash, error) {
+	sell := &types.Trade{
+		Ty:    types.TradeSell,
+		Value: &types.Trade_Tokensell{reqSellToken.Sell},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(sell),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+	}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
+	wallet.qclient.Send(msg, true)
+	resp, err := wallet.qclient.Wait(msg)
+	if err != nil {
+		walletlog.Error("sellToken", "Send err", err)
+		return nil, err
+	}
+
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
+}
+
+func (wallet *Wallet) buyToken(priv crypto.PrivKey, reqBuyToken *types.ReqBuyToken) (*types.ReplyHash, error) {
+	buy := &types.Trade{
+		Ty:    types.TradeBuy,
+		Value: &types.Trade_Tokenbuy{reqBuyToken.Buy},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(buy),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+	}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
+	wallet.qclient.Send(msg, true)
+	resp, err := wallet.qclient.Wait(msg)
+	if err != nil {
+		walletlog.Error("buyToken", "Send err", err)
+		return nil, err
+	}
+
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
+}
+
+func (wallet *Wallet) RevokeSell(priv crypto.PrivKey, reqRevoke *types.ReqRevokeSell) (*types.ReplyHash, error) {
+	revoke := &types.Trade{
+		Ty:    types.TradeRevokeSell,
+		Value: &types.Trade_Tokenrevokesell{reqRevoke.Revoke},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(revoke),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+	}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
+	wallet.qclient.Send(msg, true)
+	resp, err := wallet.qclient.Wait(msg)
+	if err != nil {
+		walletlog.Error("revoke sell token", "Send err", err)
+		return nil, err
+	}
+
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
+}

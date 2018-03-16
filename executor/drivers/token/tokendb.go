@@ -141,7 +141,6 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 		return nil, types.ErrTokenCreatedApprover
 	}
 
-
     //将之前冻结的资金转账到fund合约账户中
 	receiptForCoin, err := action.coinsAccount.ExecTransferFrozen(token.Creator, action.toaddr, action.execaddr, token.Price)
 	if err != nil {

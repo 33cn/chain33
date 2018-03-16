@@ -764,6 +764,50 @@ func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
 	return nil
 }
 
+func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}) error {
+
+	reply, err := c.cli.TokenPreCreate(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
+
+func (c *Chain33) SellToken(in types.ReqSellToken, result *interface{}) error {
+
+	reply, err := c.cli.SellToken(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+	return nil
+}
+
+func (c *Chain33) BuyToken(in types.ReqBuyToken, result *interface{}) error {
+
+	reply, err := c.cli.BuyToken(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+	return nil
+}
+
+func (c *Chain33) RevokeSellToken(in types.ReqRevokeSell, result *interface{}) error {
+
+	reply, err := c.cli.RevokeSellToken(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+	return nil
+}
+
 func DecodeTx(tx types.Transaction) (*Transaction, error) {
 	var pl interface{}
 	if "coins" == string(tx.Execer) {
@@ -805,15 +849,4 @@ func DecodeTx(tx types.Transaction) (*Transaction, error) {
 		To:     tx.To,
 	}
 	return result, nil
-}
-
-func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}) error {
-
-	reply, err := c.cli.TokenPreCreate(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = reply
-	return nil
 }

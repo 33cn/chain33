@@ -458,7 +458,49 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("ProcTokenPreCreate", "msg", res, "symbol", preCreate.GetSymbol(), "result", "success")
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, &reply))
 			}
-
+		case types.EventSellToken:
+			sellToken := msg.Data.(*types.ReqSellToken)
+			replyHash, err := wallet.ProcSellToken(sellToken)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+				walletlog.Error("ProcSellToken", "err", err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplySellToken, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("ProcSellToken", "tx hash", common.Bytes2Hex(replyHash.Hash), "symbol", sellToken.Sell.Tokensymbol, "result", "success")
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplySellToken, &reply))
+			}
+		case types.EventBuyToken:
+			buyToken := msg.Data.(*types.ReqBuyToken)
+			replyHash, err := wallet.ProcBuyToken(buyToken)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("ProcBuyToken", "err", err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyBuyToken, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("ProcBuyToken", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyBuyToken, &reply))
+			}
+		case types.EventRevokeSellToken:
+			revokeSell := msg.Data.(*types.ReqRevokeSell)
+			replyHash, err := wallet.ProcRevokeSell(revokeSell)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("ProcRevokeSell", "err", err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyRevokeSellToken, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("ProcRevokeSell", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
+			}
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -1610,4 +1652,142 @@ func (wallet *Wallet) ProcTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 	}
 
 	return wallet.tokenPreCreate(priv, reqTokenPrcCreate)
+}
+
+func (wallet *Wallet) ProcSellToken(reqSellToken *types.ReqSellToken) (*types.ReplyHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return nil, err
+	}
+
+	if reqSellToken == nil {
+		walletlog.Error("ProcSellToken input para is nil")
+		return nil, types.ErrInputPara
+	}
+
+	addrs := make([]string, 1)
+	addrs[0] = reqSellToken.GetOwner()
+	accountTokendb := getTokenAccountDB(reqSellToken.Sell.Tokensymbol)
+	accounts, err := accountTokendb.LoadAccounts(wallet.qclient, addrs)
+	if err != nil || len(accounts) == 0 {
+		walletlog.Error("ProcSellToken", "LoadAccounts err", err)
+		return nil, err
+	}
+
+	balance := accounts[0].Balance
+	if balance < reqSellToken.Sell.Amountperboardlot * reqSellToken.Sell.Totalboardlot {
+		return nil, types.ErrInsufficientBalance
+	}
+
+	priv, err := wallet.getPrivKeyByAddr(addrs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return wallet.sellToken(priv, reqSellToken)
+}
+
+func (wallet *Wallet) ProcBuyToken(reqBuyToken *types.ReqBuyToken) (*types.ReplyHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return nil, err
+	}
+
+	if reqBuyToken == nil {
+		walletlog.Error("ProcBuyToken input para is nil")
+		return nil, types.ErrInputPara
+	}
+	execaddress := account.ExecAddress("trade")
+	account, err := accountdb.LoadExecAccountQueue(wallet.qclient, reqBuyToken.GetBuyer(), execaddress.String())
+	if err != nil {
+		log.Error("GetBalance", "err", err.Error())
+		return nil, err
+	}
+	balance := account.Balance
+
+	var sellorder *types.SellOrder
+	if sellorder, err = loadSellOrderQueue(wallet.qclient, reqBuyToken.GetBuy().GetSellid()); err != nil {
+		walletlog.Error("ProcBuyToken failed to loadSellOrderQueue", "token sellid", reqBuyToken.GetBuy().GetSellid())
+		return nil, err
+	}
+
+	if balance < reqBuyToken.Buy.Boardlotcnt * sellorder.Priceperboardlot{
+		return nil, types.ErrInsufficientBalance
+	} else if reqBuyToken.Buy.Boardlotcnt > (sellorder.Totalboardlot - sellorder.Soldboardlot) {
+		return nil, types.ErrInsuffSellOrder
+	}
+
+	priv, err := wallet.getPrivKeyByAddr(reqBuyToken.GetBuyer())
+	if err != nil {
+		return nil, err
+	}
+
+	return wallet.buyToken(priv, reqBuyToken)
+}
+
+func (wallet *Wallet) ProcRevokeSell(reqRevoke *types.ReqRevokeSell) (*types.ReplyHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return nil, err
+	}
+
+	if reqRevoke == nil {
+		walletlog.Error("ProcBuyToken input para is nil")
+		return nil, types.ErrInputPara
+	}
+
+
+	priv, err := wallet.getPrivKeyByAddr(reqRevoke.GetOwner())
+	if err != nil {
+		return nil, err
+	}
+
+	return wallet.RevokeSell(priv, reqRevoke)
+}
+
+func getTokenAccountDB(token string) *account.AccountDB {
+	if nil == accTokenMap[token] {
+		tokenAccDB := account.NewTokenAccountWithoutDB(token)
+		accTokenMap[token] = tokenAccDB
+	}
+	return accTokenMap[token]
+}
+
+func loadSellOrderQueue(client queue.Client, sellid string) (*types.SellOrder, error) {
+	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	client.Send(msg, true)
+	msg, err := client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	get := types.StoreGet{}
+	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+	get.Keys = append(get.Keys, []byte(sellid))
+	msg = client.NewMessage("store", types.EventStoreGet, &get)
+	client.Send(msg, true)
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	values := msg.GetData().(*types.StoreReplyValue)
+	value := values.Values[0]
+	if value == nil {
+		return nil, types.ErrTSellNoSuchOrder
+	} else {
+		var sellOrder types.SellOrder
+		err := types.Decode(value, &sellOrder)
+		if err != nil {
+			return nil, err
+		}
+		return &sellOrder, nil
+	}
 }

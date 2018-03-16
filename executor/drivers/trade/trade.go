@@ -15,6 +15,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"fmt"
+	"code.aliyun.com/chain33/chain33/common"
 )
 
 var tradelog = log.New("module", "execs.trade")
@@ -45,7 +46,7 @@ func (t *Trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
-	tradelog.Info("exec trade create tx=", "tx=", tx)
+	tradelog.Info("exec trade tx=", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", trade.GetTy())
 
 	action := NewTradeAction(t, tx)
 	switch trade.GetTy() {
@@ -144,25 +145,40 @@ func (t *Trade) Query(funcName string, params []byte) (types.Message, error) {
 	case "GetAllNotstartSellOders":
 	case "GetAllRevokedSellOrders":
 	case "GetAllExpiredSellOrders":
-		return nil, types.ErrActionNotSupport
 	case "GetOnesAllBuyOrder":
+	default:
 	}
-	return nil, types.ErrActionNotSupport
+	tradelog.Error("Trade Query", "Query type not supprt with func name", funcName)
+	return nil, types.ErrQueryNotSupport
 }
 
 func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
+	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
-	for _, token := range addrTokens.Token {
-		values := querydb.List(calcOnesSellOrderPrefixToken(addrTokens.Addr, token), nil, 0, 0)
+	if 0 == len(addrTokens.Token) {
+		values := querydb.List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 		if len(values) != 0 {
+			tradelog.Debug("Trade Query", "get number of sellid", len(values))
 			sellids = append(sellids, values...)
+		}
+	} else {
+		for _, token := range addrTokens.Token {
+			values := querydb.List(calcOnesSellOrderPrefixToken(addrTokens.Addr, token), nil, 0, 0)
+			if len(values) != 0 {
+				sellids = append(sellids, values...)
+			}
 		}
 	}
 
 	var reply types.ReplySellOrders
 	for _, sellid := range sellids {
-		if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
-			reply.Selloders = append(reply.Selloders, sellorder)
+		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
+		if !sellidGotAlready[string(sellid)] {
+			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
+				tradelog.Debug("Trade Query", "getSellOrderFromID", string(sellid))
+				reply.Selloders = append(reply.Selloders, sellorder)
+			}
+			sellidGotAlready[string(sellid)] = true
 		}
 	}
 	return &reply, nil
@@ -268,33 +284,40 @@ func (t *Trade) deleteBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyVa
 	return kv
 }
 
+//特定状态下的卖单
 func calcTokenSellOrderKey(token string, addr string, status int32, sellOrderID string) []byte {
 	key := fmt.Sprintf("token-sellorder:%d:%s:%s:%s", status, token, addr, sellOrderID)
 	return []byte(key)
 }
 
+//特定账户下特定状态的卖单
 func calcOnesSellOrderKeyStatus(token string, addr string, status int32, sellOrderID string) []byte {
 	key := fmt.Sprintf("token-sellorder:%s:%d:%s:%s", addr, status, token, sellOrderID)
 	return []byte(key)
 }
 
+//特定账户下特定token的卖单
 func calcOnesSellOrderKeyToken(token string, addr string, status int32, sellOrderID string) []byte {
 	key := fmt.Sprintf("token-sellorder:%s:%s:%d:%s", addr, token, status, sellOrderID)
 	return []byte(key)
 }
 
+//特定账户下指定token的卖单
 func calcOnesSellOrderPrefixToken(token string, addr string) []byte {
-	return []byte(fmt.Sprintf("token-sellorder:%s:%d", addr, token))
+	return []byte(fmt.Sprintf("token-sellorder:%s:%s", addr, token))
+}
+
+//特定账户下的卖单
+func calcOnesSellOrderPrefixAddr(addr string) []byte {
+	return []byte(fmt.Sprintf("token-sellorder:%s", addr))
 }
 
 //考虑到购买者可能在同一个区块时间针对相同的卖单(sellorder)发起购买操作，所以使用sellid：buytxhash组合的方式生成key
 func calcOnesBuyOrderKey(addr string, blocktime int64, token string, sellOrderID string, buyTxHash string) []byte {
-	key := fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", addr, blocktime, token, sellOrderID, buyTxHash)
-	return []byte(key)
+	return []byte(fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", addr, blocktime, token, sellOrderID, buyTxHash))
 }
 
 //用于快速查询某个token下的所有成交的买单
 func calcBuyOrderKey(addr string, blocktime int64, token string, sellOrderID string, buyTxHash string) []byte {
-	key := fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", token, blocktime, addr, sellOrderID, buyTxHash)
-	return []byte(key)
+	return []byte(fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", token, blocktime, addr, sellOrderID, buyTxHash))
 }

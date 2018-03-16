@@ -659,3 +659,51 @@ func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.Re
 	log.Info("TokenPreCreate", "result", "success", "symbol", parm.GetSymbol())
 	return resp.Data.(*types.Reply), nil
 }
+
+func (c *channelClient) SellToken(parm *types.ReqSellToken) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventSellToken, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("SellToken", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("SellToken", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("SellToken", "result", "success", "symbol", parm.Sell.Tokensymbol)
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) BuyToken(parm *types.ReqBuyToken) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventBuyToken, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("BuyToken", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("BuyToken", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("BuyToken", "result", "send tx successful", "buyer", parm.Buyer, "sell order", parm.Buy.Sellid)
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) RevokeSellToken(parm *types.ReqRevokeSell) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventRevokeSellToken, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("RevokeSellToken", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("RevokeSellToken", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("RevokeSellToken", "result", "send tx successful", "order owner", parm.Owner, "sell order", parm.Revoke.Sellid)
+	return resp.Data.(*types.Reply), nil
+}
