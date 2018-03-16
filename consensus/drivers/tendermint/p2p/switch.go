@@ -45,10 +45,21 @@ type Reactor interface {
 
 type BaseReactor struct {
 	//cmn.BaseService // Provides Start, Stop, .Quit
+	Reactor
 	Switch          *Switch
 }
 
+func NewBaseReactor(name string, impl Reactor) *BaseReactor {
+	return &BaseReactor{
+		//BaseService: *cmn.NewBaseService(nil, name, impl),
+		Reactor: impl,
+		Switch:      nil,
+	}
+}
 
+func (br *BaseReactor) SetSwitch(sw *Switch) {
+	br.Switch = sw
+}
 //-----------------------------------------------------------------------------
 
 /*
@@ -250,6 +261,7 @@ func (sw *Switch) Start() error {
 	for _, listener := range sw.listeners {
 		go sw.listenerRoutine(listener)
 	}
+
 	return nil
 }
 
