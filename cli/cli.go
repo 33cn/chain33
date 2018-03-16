@@ -212,7 +212,7 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		GetWalletStatus()
+		GetWalletStatus(false)
 	case "getbalance":
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -447,13 +447,13 @@ func UnLock(passwd string, walletOrTicket string, timeout string) {
 		return
 	}
 
-	WalletOrTicketBool, err := strconv.ParseBool(walletOrTicket)
+	walletOrTicketBool, err := strconv.ParseBool(walletOrTicket)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	params := types.WalletUnLock{Passwd: passwd, WalletOrTicket: WalletOrTicketBool, Timeout: timeoutInt64}
+	params := types.WalletUnLock{Passwd: passwd, WalletOrTicket: walletOrTicketBool, Timeout: timeoutInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1211,26 +1211,28 @@ func GetSeed(passwd string) {
 	fmt.Println(string(data))
 }
 
-func GetWalletStatus() {
+func GetWalletStatus(isCloseTickets bool) (interface{}, error) {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		return nil, err
 	}
 	var res jsonrpc.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		return nil, err
 	}
 
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		return nil, err
 	}
-
-	fmt.Println(string(data))
+	if !isCloseTickets {
+		fmt.Println(string(data))
+	}
+	return res, nil
 }
 
 func GetBalance(address string, execer string) {
@@ -1563,12 +1565,22 @@ func GetColdAddrByMiner(addr string) {
 }
 
 func CloseTickets() {
+	status, err := GetWalletStatus(true)
+	if err != nil {
+		return
+	}
+	isAutoMining := status.(jsonrpc.WalletStatus).IsAutoMining
+	if isAutoMining {
+		fmt.Fprintln(os.Stderr, types.ErrMinerNotClosed)
+		return
+	}
+
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res jsonrpc.Reply
+	var res types.TxHashList
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
