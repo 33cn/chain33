@@ -138,6 +138,26 @@ func New(cfg *types.Consensus) *TendermintClient {
 	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
 	sw.AddReactor("CONSENSUS", consensusReactor)
 
+	// Optionally, start the pex reactor
+	var addrBook *p2p.AddrBook
+	//var trustMetricStore *trust.TrustMetricStore
+	if true {
+		addrBook = p2p.NewAddrBook("./csaddrbook.json", true)
+		//addrBook.SetLogger(p2pLogger.With("book", config.P2P.AddrBookFile()))
+
+		// Get the trust metric history data
+		//trustHistoryDB, err := DefaultDBProvider("trusthistory")
+		//if err != nil {
+			//tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider trusthistory failded", "error", err)
+			//return nil
+		//}
+		//trustMetricStore = trust.NewTrustMetricStore(trustHistoryDB, trust.DefaultConfig())
+		//trustMetricStore.SetLogger(p2pLogger)
+
+		pexReactor := p2p.NewPEXReactor(addrBook)
+		sw.AddReactor("PEX", pexReactor)
+	}
+
 	eventBus := ttypes.NewEventBus()
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
@@ -236,7 +256,8 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 		client.sw.DialSeeds(client.Cfg.Seeds)
 	}
 
-	client.csReactor.SwitchToConsensus(client.state, 0)
+	//client.csReactor.SwitchToConsensus(client.state, 0)
+	go client.checkValidator2StartConsensus()
 	go client.EventLoop()
 	//go client.child.CreateBlock()
 }
@@ -323,3 +344,34 @@ func (client *TendermintClient) CreateBlock() {
 	*/
 }
 
+type consensusReactor interface {
+	// for when we switch from blockchain reactor and fast sync to
+	// the consensus machine
+	SwitchToConsensus(sm.State, int)
+}
+
+func (client *TendermintClient) checkValidator2StartConsensus() {
+	switchToConsensusTicker := time.NewTicker(1 * time.Second)
+FOR_LOOP:
+	for {
+		select {
+		case <-switchToConsensusTicker.C:
+			outbound, inbound, _ := client.sw.NumPeers()
+			tendermintlog.Debug("Consensus ticker","outbound", outbound, "inbound", inbound)
+			if client.checkValidators() {
+				conR := client.sw.Reactor("CONSENSUS").(consensusReactor)
+				conR.SwitchToConsensus(client.state, 0)
+
+				break FOR_LOOP
+			}
+		}
+	}
+}
+
+func (client *TendermintClient) checkValidators() bool {
+	if (client.state.Validators.HasAddress(client.privValidator.GetAddress()) && client.state.Validators.Size() == 1) || client.sw.Peers().Size() > 0{
+		return true
+	} else {
+		return false
+	}
+}

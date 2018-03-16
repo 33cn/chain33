@@ -47,12 +47,8 @@ type ConsensusReactor struct {
 	eventBus *types.EventBus
 	Logger  log.Logger
 	privKey crypto.PrivKeyEd25519
-	Switch          *p2p.Switch
+	//Switch          *p2p.Switch
 	Quit    chan struct{}
-}
-
-func (conR *ConsensusReactor) SetSwitch(sw *p2p.Switch) {
-	conR.Switch = sw
 }
 
 func GetPulicIPInUse() string {
@@ -88,13 +84,13 @@ func NewConsensusReactor(consensusState *ConsensusState, fastSync bool) *Consens
 		fastSync: fastSync,
 
 		eventBus: nil,
-		Switch:   nil,
+		//Switch:   nil,
 	}
 	if conR.Logger == nil{
-		conR.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "main")
+		conR.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensusReactor")
 	}
 
-	//conR.BaseReactor = *p2p.NewBaseReactor("ConsensusReactor", conR)
+	conR.BaseReactor = *p2p.NewBaseReactor("ConsensusReactor", conR)
 	return conR
 }
 
