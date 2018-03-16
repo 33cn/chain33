@@ -9,6 +9,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -137,7 +138,16 @@ func (db *GoLevelDB) Stats() map[string]string {
 }
 
 func (db *GoLevelDB) Iterator() Iterator {
-	return db.db.NewIterator(nil, nil)
+	it := db.db.NewIterator(nil, nil)
+	return &goLevelDBIt{it}
+}
+
+type goLevelDBIt struct {
+	iterator.Iterator
+}
+
+func (it *goLevelDBIt) Close() {
+	it.Release()
 }
 
 func (db *GoLevelDB) NewBatch(sync bool) Batch {
@@ -146,6 +156,13 @@ func (db *GoLevelDB) NewBatch(sync bool) Batch {
 	return &goLevelDBBatch{db, batch, wop}
 }
 
+//Helper for database api
+/*
+	PrefixScan(key []byte) [][]byte
+	IteratorScan(Prefix []byte, key []byte, count int32, direction int32) [][]byte
+	IteratorScanFromLast(key []byte, count int32, direction int32) [][]byte
+	List(prefix, key []byte, count, direction int32) (values [][]byte)
+*/
 func (db *GoLevelDB) PrefixScan(key []byte) (txhashs [][]byte) {
 	iter := db.db.NewIterator(util.BytesPrefix(key), nil)
 	for iter.Next() {
