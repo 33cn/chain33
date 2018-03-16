@@ -603,7 +603,7 @@ func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
 	return resp.GetData().(*types.ReplyStr), nil
 }
 
-func (c *channelClient) CloseTickets() (*types.Reply, error) {
+func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
 	msg := c.NewMessage("wallet", types.EventCloseTickets, nil)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -614,5 +614,5 @@ func (c *channelClient) CloseTickets() (*types.Reply, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resp.GetData().(*types.Reply), nil
+	return resp.GetData().(*types.TxHashList), nil
 }
