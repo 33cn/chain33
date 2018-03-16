@@ -12,8 +12,8 @@ import (
 func (l *DefaultListener) Close() bool {
 	l.listener.Close()
 	l.server.Stop()
+	l.p2pserver.Close()
 	log.Info("stop", "DefaultListener", "close")
-	close(l.p2pserver.loopdone)
 	return true
 }
 
@@ -26,7 +26,7 @@ type DefaultListener struct {
 	server    *grpc.Server
 	nodeInfo  *NodeInfo
 	p2pserver *p2pServer
-	n         *Node
+	node      *Node
 }
 
 func NewDefaultListener(protocol string, node *Node) Listener {
@@ -41,11 +41,11 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	dl := &DefaultListener{
 		listener: listener,
 		nodeInfo: node.nodeInfo,
-		n:        node,
+		node:     node,
 	}
 	pServer := NewP2pServer()
-	pServer.node = dl.n
-	pServer.ManageStream()
+	pServer.node = dl.node
+	pServer.Start()
 	dl.server = grpc.NewServer()
 
 	dl.p2pserver = pServer
