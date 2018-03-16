@@ -29,7 +29,6 @@ import (
 	"code.aliyun.com/chain33/chain33/store"
 	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
-	"github.com/stackimpact/stackimpact-go"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -48,13 +47,6 @@ func main() {
 	os.Chdir(pwd())
 	d, _ = os.Getwd()
 	log.Info("current dir:", "dir", d)
-	//set file limit
-	agent := stackimpact.Start(stackimpact.Options{
-		AgentKey: "eb4c12dfe2d4b23b22634e7fed4d65899d5ca925",
-		AppName:  "MyGoApp",
-	})
-	span := agent.Profile()
-	defer span.Stop()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)

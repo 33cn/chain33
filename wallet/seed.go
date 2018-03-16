@@ -14,6 +14,8 @@ import (
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
+	sccrypto "github.com/NebulousLabs/Sia/crypto"
+	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
 	"github.com/piotrnar/gocoin/lib/btc"
 )
@@ -146,7 +148,20 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 			return "", types.ErrSubPubKeyVerifyFail
 		}
 	} else if SignType == 2 { //ed25519
-		return "", types.ErrNotSupport
+
+		//通过助记词形式的seed生成私钥和公钥,一个seed根据不同的index可以生成许多组密钥
+		//字符串形式的助记词(英语单词)通过计算一次hash转成字节形式的seed
+
+		var Seed modules.Seed
+		hash := common.Sha256([]byte(seed))
+
+		copy(Seed[:], hash)
+		sk, _ := sccrypto.GenerateKeyPairDeterministic(sccrypto.HashAll(Seed, index))
+		secretKey := fmt.Sprintf("%x", sk)
+		//publicKey := fmt.Sprintf("%x", pk)
+		//seedlog.Error("GetPrivkeyBySeed", "index", index, "secretKey", secretKey, "publicKey", publicKey)
+
+		Hexsubprivkey = secretKey
 	} else if SignType == 3 { //sm2
 		return "", types.ErrNotSupport
 	} else {
