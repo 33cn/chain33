@@ -4,17 +4,50 @@ message BlackAction {
     oneof value {
         Record rc = 1;
         Org or = 3;
+        Transaction tr =4;
+        Agency  ac= 5;
     }
-    int32 ty = 2;
+    string funcName = 2;
 }
 
 message Record {
     string recordId   = 1;
-    string negativeType  = 2;
-    string negativeSeverity = 3;
-    string negativeInfo = 4;
+    string docType    = 2;
+    string clientId   = 3;
+    string clientName = 4;
+    string negativeType  = 5;
+    string negativeSeverity = 6;
+    string negativeInfo = 7;
+    string orgAddr = 8;
+    bool   searchable = 9;
+    string createTime = 10;
+    string updateTime = 11;
+    string orgId = 12;
+}
+message Transaction {
+    string docType = 1;
+    string txId = 2;
+    string from = 3;
+    string to  = 4;
+    int64  credit = 5;
+    string createTime = 6;
+    string updateTime = 7;
 }
 message Org {
-    string orgId = 1;
-    int64  orgCredit =2;
+    string docType = 1;
+    string orgId = 2;
+    string orgName = 3;
+    string orgAddr = 4;
+    int64  orgCredit =5;
+    string createTime = 6;
+    string updateTime = 7;
+}
+message Agency {
+    string name  = 1;
+    string addr = 2;
+    int64 credit = 3;
+    int64 issueCredit = 4;
+    string createTime = 5;
+    string updateTime = 6;
+
 }
