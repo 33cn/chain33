@@ -287,7 +287,7 @@ func main() {
 func LoadHelp() {
 	fmt.Println("Available Commands:")
 	fmt.Println("lock []                                                     : 锁定")
-	fmt.Println("unlock [password, ismineronly, timeout]                     : 解锁")
+	fmt.Println("unlock [password, walletorticket,timeout]                   : 解锁钱包或者买票,walletorticket:1,只解锁买票,0：解锁整个钱包")
 	fmt.Println("setpasswd [oldpassword, newpassword]                        : 设置密码")
 	fmt.Println("setlabl [address, label]                                    : 设置标签")
 	fmt.Println("newaccount [labelname]                                      : 新建账户")
@@ -440,20 +440,20 @@ func Lock() {
 	fmt.Println(string(data))
 }
 
-func UnLock(passwd string, ismineronly string, timeout string) {
+func UnLock(passwd string, WalletOrTicket string, timeout string) {
 	timeoutInt64, err := strconv.ParseInt(timeout, 10, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	ismineronlyBool, err := strconv.ParseBool(ismineronly)
+	WalletOrTicketBool, err := strconv.ParseBool(WalletOrTicket)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	params := types.WalletUnLock{Passwd: passwd, Ismineronly: ismineronlyBool, Timeout: timeoutInt64}
+	params := types.WalletUnLock{Passwd: passwd, WalletOrTicket: WalletOrTicketBool, Timeout: timeoutInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
