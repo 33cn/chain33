@@ -287,7 +287,7 @@ func main() {
 func LoadHelp() {
 	fmt.Println("Available Commands:")
 	fmt.Println("lock []                                                     : 锁定")
-	fmt.Println("unlock [password, walletorticket,timeout]                   : 解锁钱包或者买票,walletorticket:1,只解锁买票,0：解锁整个钱包")
+	fmt.Println("unlock [password, walletorticket, timeout]                  : 解锁钱包或者买票,walletorticket:1,只解锁买票,0：解锁整个钱包")
 	fmt.Println("setpasswd [oldpassword, newpassword]                        : 设置密码")
 	fmt.Println("setlabl [address, label]                                    : 设置标签")
 	fmt.Println("newaccount [labelname]                                      : 新建账户")
@@ -440,14 +440,14 @@ func Lock() {
 	fmt.Println(string(data))
 }
 
-func UnLock(passwd string, WalletOrTicket string, timeout string) {
+func UnLock(passwd string, walletOrTicket string, timeout string) {
 	timeoutInt64, err := strconv.ParseInt(timeout, 10, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	WalletOrTicketBool, err := strconv.ParseBool(WalletOrTicket)
+	WalletOrTicketBool, err := strconv.ParseBool(walletOrTicket)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
