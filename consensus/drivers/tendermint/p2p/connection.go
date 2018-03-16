@@ -459,8 +459,8 @@ FOR_LOOP:
 				c.stopForError(err)
 			}
 			*/
-			c.Logger.Error("Connection failed @ recvRoutine (reading byte)", "conn", c, "err", err)
-			c.stopForError(err)
+			//c.Logger.Error("Connection failed @ recvRoutine (reading byte)", "conn", c, "err", err)
+			//c.stopForError(err)
 			//end modify
 			break FOR_LOOP
 		}
@@ -617,7 +617,7 @@ func newChannel(conn *MConnection, desc ChannelDescriptor) *Channel {
 		sendQueue:               make(chan []byte, desc.SendQueueCapacity),
 		recving:                 make([]byte, 0, desc.RecvBufferCapacity),
 		maxMsgPacketPayloadSize: conn.config.maxMsgPacketPayloadSize,
-		Logger:                  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "p2pChannel"),
+		Logger:                  log.NewNopLogger(),
 	}
 }
 
