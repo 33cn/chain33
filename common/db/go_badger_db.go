@@ -147,29 +147,46 @@ func (db *GoBadgerDB) Stats() map[string]string {
 	return nil
 }
 
-func (db *GoBadgerDB) Iterator() Iterator {
+func (db *GoBadgerDB) Iterator(prefix []byte, reserse bool) Iterator {
 	txn := db.db.NewTransaction(false)
-	it := txn.NewIterator(badger.DefaultIteratorOptions)
-	return &goBadgerDBIt{txn, it}
+	opts := badger.DefaultIteratorOptions
+	opts.Reverse = reserse
+	it := txn.NewIterator(opts)
+	if reserse {
+		last := bytesPrefix(prefix)
+		it.Seek(last)
+	} else {
+		it.Seek(prefix)
+	}
+	return &goBadgerDBIt{it, txn, nil, prefix}
 }
 
 type goBadgerDBIt struct {
-	txn *badger.Txn
-	it  *badger.Iterator
+	*badger.Iterator
+	txn    *badger.Txn
+	err    error
+	prefix []byte
 }
 
 func (it *goBadgerDBIt) Close() {
-	it.it.Close()
+	it.Close()
 	it.txn.Discard()
 }
 
 func (it *goBadgerDBIt) Key() []byte {
-	return it.it.Item().Key()
+	return it.Item().Key()
 }
 
 func (it *goBadgerDBIt) Value() []byte {
-	value, _ := it.it.Item().Value()
+	value, err := it.Item().Value()
+	if err != nil {
+		it.err = err
+	}
 	return value
+}
+
+func (it *goBadgerDBIt) Error() error {
+	return it.err
 }
 
 func (db *GoBadgerDB) NewBatch(sync bool) Batch {
