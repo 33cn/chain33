@@ -44,6 +44,8 @@ type BaseStore struct {
 	child   SubStore
 }
 
+//driver
+//dbpath
 func NewBaseStore(cfg *types.Store) *BaseStore {
 	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, 256)
 	store := &BaseStore{db: db}
