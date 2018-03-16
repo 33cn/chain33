@@ -44,10 +44,11 @@ type Iterator interface {
 //-----------------------------------------------------------------------------
 
 const (
-	LevelDBBackendStr   = "leveldb" // legacy, defaults to goleveldb.
-	CLevelDBBackendStr  = "cleveldb"
-	GoLevelDBBackendStr = "goleveldb"
-	MemDBBackendStr     = "memdb"
+	LevelDBBackendStr    = "leveldb" // legacy, defaults to goleveldb.
+	CLevelDBBackendStr   = "cleveldb"
+	GoLevelDBBackendStr  = "goleveldb"
+	MemDBBackendStr      = "memdb"
+	GoBadgerDBBackendStr = "gobadgerdb"
 )
 
 type dbCreator func(name string, dir string, cache int) (DB, error)
@@ -63,7 +64,12 @@ func registerDBCreator(backend string, creator dbCreator, force bool) {
 }
 
 func NewDB(name string, backend string, dir string, cache int) DB {
-	db, err := backends[backend](name, dir, cache)
+	dbCreator, ok := backends[backend]
+	if !ok {
+		fmt.Printf("Error initializing DB: %v\n", backend)
+		panic("initializing DB error")
+	}
+	db, err := dbCreator(name, dir, cache)
 	if err != nil {
 		fmt.Printf("Error initializing DB: %v\n", err)
 		panic("initializing DB error")
