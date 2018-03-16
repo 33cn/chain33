@@ -15,7 +15,7 @@ func init() {
 	common.SetLogLevel("warn")
 }
 
-func initEnv() (*queue.Queue, *Store) {
+func initEnv() (*queue.Queue, Store) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("chain33.toml")
 	s := New(cfg.Store)
