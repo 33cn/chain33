@@ -60,7 +60,7 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 	ok, err := wallet.CheckWalletStatus()
-	if !ok {
+	if !ok && err != types.ErrOnlyTicketUnLocked {
 		return nil, nil, err
 	}
 	//循环遍历所有的账户-->保证钱包已经解锁
@@ -94,7 +94,7 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 	ok, err := wallet.CheckWalletStatus()
-	if !ok {
+	if !ok && err != types.ErrOnlyTicketUnLocked {
 		return nil, err
 	}
 	var privs []crypto.PrivKey
