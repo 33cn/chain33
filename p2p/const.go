@@ -5,12 +5,17 @@ import (
 )
 
 var (
-	UpdateState        = 2 * time.Second
-	PingTimeout        = 14 * time.Second
-	DefaultSendTimeout = 10 * time.Second
-	DialTimeout        = 5 * time.Second
-	mapUpdateInterval  = 15 * time.Minute
-	StreamPingTimeout  = 20 * time.Second
+	UpdateState                = 2 * time.Second
+	PingTimeout                = 14 * time.Second
+	DefaultSendTimeout         = 10 * time.Second
+	DialTimeout                = 5 * time.Second
+	mapUpdateInterval          = 15 * time.Minute
+	StreamPingTimeout          = 20 * time.Second
+	MonitorPeerInfoInterval    = 10 * time.Second
+	GetAddrFromOfflineInterval = 5 * time.Second
+	GetAddrFromOnlineInterval  = 5 * time.Second
+	CheckActivePeersInterVal   = 5 * time.Second
+	CheckBlackListInterVal     = 30 * time.Second
 )
 
 const (
