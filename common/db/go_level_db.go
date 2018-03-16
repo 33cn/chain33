@@ -251,6 +251,10 @@ func (db *GoLevelDB) IteratorScanFromLast(key []byte, count int32, direction int
 	return values
 }
 
+func (db *GoLevelDB) IteratorKey(key []byte) Iterator {
+	return db.db.NewIterator(util.BytesPrefix(key), nil)
+}
+
 //--------------------------------------------------------------------------------
 
 type goLevelDBBatch struct {
