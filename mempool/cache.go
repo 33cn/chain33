@@ -56,10 +56,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	}
 
 	if cache.txList.Len() >= cache.size {
-		popped := cache.txList.Front()
-		poppedTx := popped.Value.(*Item).value
-		delete(cache.txMap, string(poppedTx.Hash()))
-		cache.txList.Remove(popped)
+		return types.ErrMemFull
 	}
 
 	it := &Item{value: tx, priority: tx.Fee, enterTime: time.Now().UnixNano() / 1000000}
