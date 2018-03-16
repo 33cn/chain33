@@ -233,6 +233,7 @@ func (p *peer) sendStream() {
 				if block, ok := task.(*pb.P2PBlock); ok {
 					height := block.GetBlock().GetHeight()
 					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
+					P2pComm.CollectPeerStat(err, p)
 					if err == nil {
 						if pinfo.GetHeader().GetHeight() >= height {
 							timeout.Stop()
@@ -256,14 +257,14 @@ func (p *peer) sendStream() {
 					p.filterTask.RegTask(hex.EncodeToString(sig))
 				}
 				err := resp.Send(p2pdata)
+				P2pComm.CollectPeerStat(err, p)
 				if err != nil {
 					log.Error("sendStream", "send", err)
-					p.peerStat.NotOk()
+
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 						(*p.nodeInfo).blacklist.Add(p.Addr())
 					}
 					time.Sleep(time.Second) //have a rest
-					(*p.nodeInfo).monitorChan <- p
 					resp.CloseSend()
 					cancel()
 					break SEND_LOOP //下一次外循环重新获取stream
