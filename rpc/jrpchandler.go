@@ -765,6 +765,18 @@ func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
 	return nil
 }
 
+func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.CloseTickets()
+	if err != nil {
+		return err
+	}
+	var reply Reply
+	reply.IsOk = resp.GetIsOk()
+	reply.Msg = string(resp.GetMsg())
+	*result = reply
+	return nil
+}
+
 func DecodeTx(tx types.Transaction) (*Transaction, error) {
 	var pl interface{}
 	if "coins" == string(tx.Execer) {

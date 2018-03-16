@@ -207,7 +207,6 @@ func main() {
 			return
 		}
 		GetSeed(argsWithoutProg[1])
-
 	case "getwalletstatus": //获取钱包的状态
 		if len(argsWithoutProg) != 1 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -237,7 +236,7 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		SetAutoMining(argsWithoutProg[1], "0")
+		SetAutoMining(argsWithoutProg[1])
 	case "getrawtx":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -268,6 +267,18 @@ func main() {
 			return
 		}
 		GetColdAddrByMiner(argsWithoutProg[1])
+	case "closetickets":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		CloseTickets()
+	case "createrawsendtx":
+		if len(argsWithoutProg) != 5 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		CreateRawSendTx(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -276,7 +287,7 @@ func main() {
 func LoadHelp() {
 	fmt.Println("Available Commands:")
 	fmt.Println("lock []                                                     : 锁定")
-	fmt.Println("unlock [password, ismineronly,timeout]                      : 解锁")
+	fmt.Println("unlock [password, walletorticket,timeout]                   : 解锁钱包或者买票,walletorticket:1,只解锁买票,0：解锁整个钱包")
 	fmt.Println("setpasswd [oldpassword, newpassword]                        : 设置密码")
 	fmt.Println("setlabl [address, label]                                    : 设置标签")
 	fmt.Println("newaccount [labelname]                                      : 新建账户")
@@ -284,6 +295,7 @@ func LoadHelp() {
 	fmt.Println("mergebalance [to]                                           : 合并余额")
 	fmt.Println("settxfee [amount]                                           : 设置交易费")
 	fmt.Println("sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
+	fmt.Println("createrawsendtx [privkey, to, amount, note]                 : 创建交易")
 	fmt.Println("importprivkey [privkey, label]                              : 引入私钥")
 	fmt.Println("dumpprivkey [addr]                                          : 导出私钥")
 	fmt.Println("wallettxlist [from, count, direction]                       : 钱包交易列表")
@@ -308,11 +320,12 @@ func LoadHelp() {
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
-	fmt.Println("setautomining [flag, reserve]                               : 设置自动挖矿")
+	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
 	fmt.Println("getrawtx [hash]                                             : 通过哈希获取交易十六进制字符串")
 	fmt.Println("getticketcount []                                           : 获取票数")
 	fmt.Println("decodetx [data]                                             : 解析交易")
 	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
+	fmt.Println("closetickets []                                             : 关闭挖矿票")
 }
 
 type AccountsResult struct {
@@ -358,17 +371,6 @@ type TxDetailResult struct {
 	Amount     string                     `json:"amount"`
 	Fromaddr   string                     `json:"fromaddr"`
 	ActionName string                     `json:"actionname"`
-}
-
-type ReceiptData struct {
-	Ty   string        `json:"ty"`
-	Logs []*ReceiptLog `json:"logs"`
-}
-
-type ReceiptLog struct {
-	Ty     string      `json:"ty"`
-	Log    interface{} `json:"log"`
-	RawLog string      `json:"rawlog"`
 }
 
 type TxDetailsResult struct {
@@ -438,20 +440,20 @@ func Lock() {
 	fmt.Println(string(data))
 }
 
-func UnLock(passwd string, ismineronly string, timeout string) {
+func UnLock(passwd string, WalletOrTicket string, timeout string) {
 	timeoutInt64, err := strconv.ParseInt(timeout, 10, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	ismineronlyBool, err := strconv.ParseBool(ismineronly)
+	WalletOrTicketBool, err := strconv.ParseBool(WalletOrTicket)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	params := types.WalletUnLock{Passwd: passwd, Ismineronly: ismineronlyBool, Timeout: timeoutInt64}
+	params := types.WalletUnLock{Passwd: passwd, WalletOrTicket: WalletOrTicketBool, Timeout: timeoutInt64}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1288,7 +1290,7 @@ func BindMiner(mineraddr string, priv string) {
 	ta.Ty = types.TicketActionBind
 	execer := []byte("ticket")
 	to := account.ExecAddress(string(execer)).String()
-	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), Fee: 1e6, To: to}
+	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
 	var random *rand.Rand
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -1304,18 +1306,62 @@ func BindMiner(mineraddr string, priv string) {
 	fmt.Println(hex.EncodeToString(txHex))
 }
 
-func SetAutoMining(flag string, reserve string) {
+func CreateRawSendTx(priv string, to string, amount string, note string) {
+	amountFloat64, err := strconv.ParseFloat(amount, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	amountInt64 := int64(amountFloat64*1e4) * 1e4
+
+	c, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	a, err := common.FromHex(priv)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	privKey, err := c.PrivKeyFromBytes(a)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	// addrFrom := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	transfer := &types.CoinsAction{}
+	if amountInt64 > 0 {
+		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amountInt64, Note: note}}
+		transfer.Value = v
+		transfer.Ty = types.CoinsActionTransfer
+	} else {
+		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amountInt64, Note: note}}
+		transfer.Value = v
+		transfer.Ty = types.CoinsActionWithdraw
+	}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
+	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	tx.Fee += types.MinBalanceTransfer
+	var random *rand.Rand
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	tx.Sign(types.SECP256K1, privKey)
+	txHex := types.Encode(tx)
+	fmt.Println(hex.EncodeToString(txHex))
+}
+
+func SetAutoMining(flag string) {
 	flagInt32, err := strconv.ParseInt(flag, 10, 32)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	reserveFloat64, err := strconv.ParseFloat(reserve, 64)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	params := types.MinerFlag{Flag: int32(flagInt32), Reserve: int64(reserveFloat64 * float64(types.Coin))}
+	params := types.MinerFlag{Flag: int32(flagInt32)}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1503,6 +1549,27 @@ func GetColdAddrByMiner(addr string) {
 	}
 	var res types.Message
 	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func CloseTickets() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.Reply
+	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
