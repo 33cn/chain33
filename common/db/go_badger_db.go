@@ -27,7 +27,7 @@ func NewGoBadgerDB(name string, dir string, cache int) (*GoBadgerDB, error) {
 		opts.ValueLogLoadingMode = options.FileIO
 		//opts.MaxTableSize = int64(cache) << 18 // cache = 128, MaxTableSize = 32M
 		opts.NumCompactors = 1
-		opts.NumMemtables  = 1
+		opts.NumMemtables = 1
 		opts.NumLevelZeroTables = 1
 		opts.NumLevelZeroTablesStall = 2
 		opts.TableLoadingMode = options.MemoryMap

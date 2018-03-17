@@ -2,9 +2,9 @@ package db
 
 import (
 	"github.com/dgraph-io/badger"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"testing"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBadger(t *testing.T) {
@@ -27,16 +27,16 @@ func TestBadger(t *testing.T) {
 	require.NoError(t, err)
 
 	err = db.View(func(txn *badger.Txn) error {
-  		item, err := txn.Get([]byte("key1"))
-  		if err != nil {
-    			return err
-  		}
-  		val, err := item.Value()
-  		if err != nil {
-    			return err
-  		}
+		item, err := txn.Get([]byte("key1"))
+		if err != nil {
+			return err
+		}
+		val, err := item.Value()
+		if err != nil {
+			return err
+		}
 		t.Log("The answer is: ", string(val))
-  		return nil
+		return nil
 	})
 
 	require.NoError(t, err)
