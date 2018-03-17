@@ -108,6 +108,18 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	return privs, nil
 }
 
+func (client *Wallet) GetHeight() int64 {
+	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHeight, nil)
+	client.qclient.Send(msg, true)
+	replyHeight, err := client.qclient.Wait(msg)
+	h := replyHeight.GetData().(*types.ReplyBlockHeight).Height
+	walletlog.Debug("getheight = ", "height", h)
+	if err != nil {
+		return 0
+	}
+	return h
+}
+
 func (wallet *Wallet) closeAllTickets() (int, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
