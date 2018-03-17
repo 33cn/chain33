@@ -29,7 +29,7 @@ type listener struct {
 
 func NewListener(protocol string, node *Node) Listener {
 	log.Debug("NewListener", "localPort", DefaultPort)
-	listener, err := net.Listen(protocol, fmt.Sprintf(":%v", DefaultPort))
+	l, err := net.Listen(protocol, fmt.Sprintf(":%v", DefaultPort))
 	if err != nil {
 		log.Crit("Failed to listen", "Error", err.Error())
 		return nil
@@ -45,6 +45,6 @@ func NewListener(protocol string, node *Node) Listener {
 	dl.server = grpc.NewServer()
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
-	go dl.server.Serve(listener)
+	go dl.server.Serve(l)
 	return dl
 }
