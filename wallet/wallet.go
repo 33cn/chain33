@@ -38,16 +38,16 @@ type Wallet struct {
 	isclosed       int32
 	isWalletLocked bool
 	isTicketLocked bool
-
-	autoMinerFlag int32
-	Password      string
-	FeeAmount     int64
-	EncryptFlag   int64
-	miningTicket  *time.Ticker
-	wg            *sync.WaitGroup
-	walletStore   *WalletStore
-	random        *rand.Rand
-	done          chan struct{}
+	lastHeight     int64
+	autoMinerFlag  int32
+	Password       string
+	FeeAmount      int64
+	EncryptFlag    int64
+	miningTicket   *time.Ticker
+	wg             *sync.WaitGroup
+	walletStore    *WalletStore
+	random         *rand.Rand
+	done           chan struct{}
 }
 
 func SetLogLevel(level string) {
@@ -138,8 +138,16 @@ func (wallet *Wallet) autoMining() {
 		select {
 		case <-wallet.miningTicket.C:
 			if !wallet.IsCaughtUp() {
+				walletlog.Error("wallet IsCaughtUp false")
 				break
 			}
+			//判断高度是否增长
+			height := wallet.GetHeight()
+			if height <= wallet.lastHeight {
+				walletlog.Error("wallet Height not inc")
+				break
+			}
+			wallet.lastHeight = height
 			walletlog.Info("BEG miningTicket")
 			if wallet.isAutoMining() {
 				n1, err := wallet.closeTicket()
