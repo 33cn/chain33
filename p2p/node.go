@@ -21,7 +21,7 @@ import (
 //4.启动监控模块，进行节点管理
 
 func (n *Node) Start() {
-	n.l = NewDefaultListener(Protocol, n)
+	n.l = NewListener(Protocol, n)
 	n.DetectNodeAddr()
 	go n.DoNat()
 	go n.Monitor()
