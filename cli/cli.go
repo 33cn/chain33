@@ -529,6 +529,7 @@ type SellOrder2Show struct {
 	Tokensymbol       string `json:"tokensymbol"`
 	Seller            string `json:"address"`
 	Amountperboardlot string `json:"amountperboardlot"`
+	Minboardlot       int64  `json:"minboardlot"`
 	Priceperboardlot  string `json:"priceperboardlot"`
 	Totalboardlot     int64  `json:"totalboardlot"`
 	Soldboardlot      int64  `json:"soldboardlot"`
@@ -776,7 +777,7 @@ func SendToAddress(from string, to string, amount string, note string, isToken b
 	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	if !isToken {
 		params.Istoken = false
-		params.Amount *= 1e4
+		params.Amount *= types.CoinMultiple
 	} else {
 		params.Istoken = true
 		params.TokenSymbol = tokenSymbol
@@ -1909,7 +1910,96 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogTradeSell:
+			lTy = "LogTradeSell"
+			var logTmp types.ReceiptTradeSell
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeBuy:
+			lTy = "LogTradeBuy"
+			var logTmp types.ReceiptTradeBuy
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeRevoke:
+			lTy = "LogTradeRevoke"
+			var logTmp types.ReceiptTradeRevoke
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenDeposit:
+			lTy = "LogTokenDeposit"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecTransfer:
+			lTy = "LogTokenExecTransfer"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecWithdraw:
+			lTy = "LogTokenExecWithdraw"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecDeposit:
+			lTy = "LogTokenExecDeposit"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecFrozen:
+			lTy = "LogTokenExecFrozen"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecActive:
+			lTy = "LogTokenExecActive"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenGenesisTransfer:
+			lTy = "LogTokenGenesisTransfer"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenGenesisDeposit:
+			lTy = "LogTokenGenesisDeposit"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		default:
+			fmt.Printf("Faile to decodeLog with type value:%d", l.Ty)
 			return nil, errors.New("wrong log type")
 		}
 		rd.Logs = append(rd.Logs, &ReceiptLog{Ty: lTy, Log: logIns, RawLog: l.Log})
@@ -1976,12 +2066,12 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	price, err := strconv.ParseFloat(args[2], 64)
+	price, err := strconv.ParseFloat(args[4], 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	sell.Priceperboardlot = int64(price * types.InputPrecision)
+	sell.Priceperboardlot = int64(price * types.InputPrecision) * types.CoinMultiple
 
 	sell.Totalboardlot, err = strconv.ParseInt(args[5], 10, 64)
 	if err != nil {
@@ -2051,9 +2141,9 @@ func FinishCreateToken(args []string) {
 	fmt.Println(string(data))
 }
 
-//buytoken [owner, sellid, countboardlot]
+//buytoken [0-owner, 1-sellid, 2-countboardlot]
 func BuyToken(args []string) {
-	cntBoardlot, err := strconv.ParseInt(args[3], 10, 64)
+	cntBoardlot, err := strconv.ParseInt(args[2], 10, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -2152,7 +2242,8 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 		sellOrders2show.Tokensymbol       = sellorder.Tokensymbol
 		sellOrders2show.Seller            = sellorder.Address
 		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
-		sellOrders2show.Priceperboardlot  = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Minboardlot       = sellorder.Minboardlot
+		sellOrders2show.Priceperboardlot  = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 4, 64)
 		sellOrders2show.Totalboardlot     = sellorder.Totalboardlot
 		sellOrders2show.Soldboardlot      = sellorder.Soldboardlot
 		sellOrders2show.Starttime         = sellorder.Starttime
