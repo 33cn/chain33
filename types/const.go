@@ -18,6 +18,7 @@ const (
 	Coin                     int64  = 1e8
 	TokenPrecision           int64  = 1e4
 	InputPrecision           float64= 1e4
+	CoinMultiple             int64  = 1e4
 	MaxCoin                  int64  = 1e17
 	FutureBlockTime          int64  = 16
 	CoinReward               int64  = 18 * Coin //用户回报
@@ -296,9 +297,19 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSell   = 311
-	TyLogTradeBuy    = 312
-	TyLogTradeRevoke = 313
+	TyLogTradeSell            = 310
+	TyLogTradeBuy             = 311
+	TyLogTradeRevoke          = 312
+	TyLogTokenTransfer        = 313
+	TyLogTokenGenesis         = 314
+	TyLogTokenDeposit         = 315
+	TyLogTokenExecTransfer    = 316
+	TyLogTokenExecWithdraw    = 317
+	TyLogTokenExecDeposit     = 318
+	TyLogTokenExecFrozen      = 319
+	TyLogTokenExecActive      = 320
+	TyLogTokenGenesisTransfer = 321
+	TyLogTokenGenesisDeposit  = 322
 )
 
 //exec type

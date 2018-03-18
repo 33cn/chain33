@@ -117,7 +117,11 @@ func (acc *AccountDB) ExecFrozen(addr, execaddr string, amount int64) (*types.Re
 	acc1.Frozen += amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
 	acc.SaveExecAccount(execaddr, acc1)
-	return acc.execReceipt(types.TyLogExecFrozen, acc1, receiptBalance), nil
+	ty := int32(types.TyLogExecFrozen)
+	if acc.IsTokenAccount() {
+		ty = int32(types.TyLogTokenExecFrozen)
+	}
+	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
 func (acc *AccountDB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, error) {
@@ -136,7 +140,11 @@ func (acc *AccountDB) ExecActive(addr, execaddr string, amount int64) (*types.Re
 	acc1.Frozen -= amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
 	acc.SaveExecAccount(execaddr, acc1)
-	return acc.execReceipt(types.TyLogExecActive, acc1, receiptBalance), nil
+	ty := int32(types.TyLogExecActive)
+	if acc.IsTokenAccount() {
+		ty = int32(types.TyLogTokenExecActive)
+	}
+	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
 func (acc *AccountDB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Receipt, error) {
@@ -237,7 +245,11 @@ func (acc *AccountDB) execDepositFrozen(addr, execaddr string, amount int64) (*t
 	acc1.Frozen += amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
 	acc.SaveExecAccount(execaddr, acc1)
-	return acc.execReceipt(types.TyLogExecDeposit, acc1, receiptBalance), nil
+	ty := int32(types.TyLogExecDeposit)
+	if acc.IsTokenAccount() {
+		ty = int32(types.TyLogTokenExecDeposit)
+	}
+	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
 func (acc *AccountDB) execDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
@@ -253,7 +265,11 @@ func (acc *AccountDB) execDeposit(addr, execaddr string, amount int64) (*types.R
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
 	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
 	acc.SaveExecAccount(execaddr, acc1)
-	return acc.execReceipt(types.TyLogExecDeposit, acc1, receiptBalance), nil
+	ty := int32(types.TyLogExecDeposit)
+	if acc.IsTokenAccount() {
+		ty = int32(types.TyLogTokenExecDeposit)
+	}
+	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
 func (acc *AccountDB) execWithdraw(execaddr, addr string, amount int64) (*types.Receipt, error) {
@@ -271,7 +287,11 @@ func (acc *AccountDB) execWithdraw(execaddr, addr string, amount int64) (*types.
 	acc1.Balance -= amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
 	acc.SaveExecAccount(execaddr, acc1)
-	return acc.execReceipt(types.TyLogExecWithdraw, acc1, receiptBalance), nil
+	ty := int32(types.TyLogExecWithdraw)
+	if acc.IsTokenAccount() {
+		ty = int32(types.TyLogTokenExecWithdraw)
+	}
+	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
 func (acc *AccountDB) execReceipt(ty int32, acc1 *types.Account, r *types.ReceiptExecAccountTransfer) *types.Receipt {
@@ -281,8 +301,12 @@ func (acc *AccountDB) execReceipt(ty int32, acc1 *types.Account, r *types.Receip
 }
 
 func (acc *AccountDB) execReceipt2(acc1, acc2 *types.Account, r1, r2 *types.ReceiptExecAccountTransfer) *types.Receipt {
-	log1 := &types.ReceiptLog{types.TyLogExecTransfer, types.Encode(r1)}
-	log2 := &types.ReceiptLog{types.TyLogExecTransfer, types.Encode(r2)}
+	ty := int32(types.TyLogExecTransfer)
+	if acc.IsTokenAccount() {
+		ty = int32(types.TyLogTokenExecTransfer)
+	}
+	log1 := &types.ReceiptLog{ty, types.Encode(r1)}
+	log2 := &types.ReceiptLog{ty, types.Encode(r2)}
 	kv := acc.GetExecKVSet(r1.ExecAddr, acc1)
 	kv = append(kv, acc.GetExecKVSet(r2.ExecAddr, acc2)...)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}

@@ -176,8 +176,7 @@ func (tx *Transaction) Amount() (int64, error) {
 		}
 
 		if TradeSell == trade.Ty && trade.GetTokensell() != nil {
-			tokensell := trade.GetTokensell()
-			return tokensell.GetTotalboardlot() * tokensell.GetAmountperboardlot(), nil
+			return 0, nil
 		} else if TradeBuy == trade.Ty && trade.GetTokenbuy() != nil {
 			return 0, nil
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {

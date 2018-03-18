@@ -72,7 +72,6 @@ func (t *Trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
-
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogTradeSell || item.Ty == types.TyLogTradeRevoke {
@@ -81,7 +80,7 @@ func (t *Trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.saveSell(receipt.Sellid, item.Ty)
+			kv := t.saveSell([]byte(receipt.Base.Sellid), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTradeBuy {
 			var receipt types.ReceiptTradeBuy
@@ -114,7 +113,7 @@ func (t *Trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.deleteSell(receipt.Sellid, item.Ty)
+			kv := t.deleteSell([]byte(receipt.Base.Sellid), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTradeBuy {
 			var receipt types.ReceiptTradeBuy
@@ -207,13 +206,13 @@ func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 		status = types.Revoked
 	}
 	var kv []*types.KeyValue
-	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, string(tokenSellKey(sellorder.Hash)))
+	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
 
-	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, string(tokenSellKey(sellorder.Hash)))
+	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
 
-	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, string(tokenSellKey(sellorder.Hash)))
+	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
 	return kv
 }
@@ -241,13 +240,13 @@ func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 		status = types.Revoked
 	}
 	var kv []*types.KeyValue
-	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, string(tokenSellKey(sellorder.Hash)))
+	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
-	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, string(tokenSellKey(sellorder.Hash)))
+	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
-	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, string(tokenSellKey(sellorder.Hash)))
+	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 	return kv
 }
@@ -263,10 +262,10 @@ func (t *Trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValu
 	var kv []*types.KeyValue
 	value := types.Encode(&tradeBuyDone)
 
-	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Txhash)
+	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
 	kv = append(kv, &types.KeyValue{key, value})
 
-	key = calcBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Txhash)
+	key = calcBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
 	kv = append(kv, &types.KeyValue{key, value})
 
 	return kv
@@ -275,10 +274,10 @@ func (t *Trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValu
 func (t *Trade) deleteBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Txhash)
+	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = calcBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Txhash)
+	key = calcBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
 	kv = append(kv, &types.KeyValue{key, nil})
 
 	return kv
