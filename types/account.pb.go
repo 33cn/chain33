@@ -121,8 +121,10 @@ It has these top-level messages:
 	ReplyAddrRecvForTokens
 	TradeForBuy
 	TradeForRevokeSell
+	ReceiptTradeBase
 	ReceiptTradeSell
 	ReceiptTradeBuy
+	ReceiptTradeRevoke
 	TradeBuyDone
 	P2PGetPeerInfo
 	P2PPeerInfo

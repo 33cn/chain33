@@ -320,14 +320,15 @@ message SellOrder {
 	string tokensymbol          = 1;
 	string address              = 2;
 	int64 amountperboardlot     = 3; //每一手出售的token的数量
-	int64 priceperboardlot      = 4; //每一手token的价格
-	int64 totalboardlot         = 5;
-	int64 soldboardlot          = 6;
-	int64  starttime            = 7; //此次出售的起始时间，如果非众筹则可以忽略此时间
-	int64  stoptime             = 8;
-	bool   crowdfund            = 9;
-	string  hash                = 10;  //此处使用tx的hash来指定
-	int32  status               = 11;
+    int64 minboardlot           = 4;
+	int64 priceperboardlot      = 5; //每一手token的价格
+	int64 totalboardlot         = 6;
+	int64 soldboardlot          = 7;
+	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
+	int64  stoptime             = 9;
+	bool   crowdfund            = 10;
+	string  sellid              = 11;  //此处使用tx的hash来指定
+	int32  status               = 12;
 }
 
 message SellOrderReceipt {
@@ -364,23 +365,42 @@ message TradeForRevokeSell {
 	string sellid      = 1;
 }
 
+message ReceiptTradeBase {
+	string tokensymbol          = 1;
+	string owner                = 2;
+    string amountperboardlot    = 3; //每一手出售的token的数量
+	int64 minboardlot           = 4;
+    string priceperboardlot     = 5; //每一手token的价格
+	int64 totalboardlot         = 6;
+	int64 soldboardlot          = 7;
+	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
+	int64  stoptime             = 9;
+	bool   crowdfund            = 10;
+	string  sellid              = 11;  //此处使用tx的hash来指定
+    string  status              = 12;
+}
+
 message ReceiptTradeSell {
-	bytes sellid = 1;
+	ReceiptTradeBase base = 1;
 }
 
 message ReceiptTradeBuy {
-	string buyeraddr            = 1;
-	string sellid               = 2;
-	string token                = 3;
-	string txhash               = 4;
-	int64 boardlotcnt           = 5;
-	int64 amountperboardlot     = 6;
-	int64 priceperboardlot      = 7;
+	string buyeraddr             = 1;
+	string sellid                = 2;
+	string token                 = 3;
+	int64 boardlotcnt            = 4;
+	string amountperboardlot     = 5;
+	string priceperboardlot      = 6;
+    string buytxhash             = 7;
+}
+
+message ReceiptTradeRevoke {
+	ReceiptTradeBase base = 1;
 }
 
 message TradeBuyDone {
-	string token                = 1;
-	int64 boardlotcnt           = 2;
-	int64 amountperboardlot     = 3;
-	int64 priceperboardlot      = 4;
+	string token                 = 1;
+	int64 boardlotcnt            = 2;
+	string amountperboardlot     = 3;
+    string priceperboardlot      = 4;
 }
