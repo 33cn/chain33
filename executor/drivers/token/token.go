@@ -56,7 +56,7 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	case types.TokenActionFinishCreate:
 		tokenlog.Info("Exec TokenActionFinishCreate")
 		action := NewTokenAction(t, types.FundKeyAddr, tx)
-		return action.finishCreate(tokenAction.GetTokenfinishcreate(), []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S"})
+		return action.finishCreate(tokenAction.GetTokenfinishcreate(), types.TokenApprs)
 
 	case types.TokenActionRevokeCreate:
 		tokenlog.Info("Exec TokenActionRevokeCreate")
@@ -248,7 +248,22 @@ func (t *Token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 		}
 
 	} else {
-
+		for _, token := range reqTokens.Tokens {
+			keys := querydb.List(tokenStatusSymbolePrefix(reqTokens.Status, token), nil, 0, 0)
+			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
+			if len(keys) != 0 {
+				for _, key := range keys {
+					tokenlog.Debug("token Query GetTokens", "key in string", string(key))
+					if tokenValue, err := db.Get(key); err == nil {
+						var token types.Token
+						err = types.Decode(tokenValue, &token)
+						if err == nil {
+							replyTokens.Tokens = append(replyTokens.Tokens, &token)
+						}
+					}
+				}
+			}
+		}
 	}
 
 	tokenlog.Info("token Query", "replyTokens", replyTokens)

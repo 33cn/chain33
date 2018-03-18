@@ -192,6 +192,8 @@ It has these top-level messages:
 	ReqStr
 	ReplyStr
 	ReqTokenPreCreate
+	ReqTokenFinishCreate
+	ReqTokenRevokeCreate
 	ReqSellToken
 	ReqBuyToken
 	ReqRevokeSell
