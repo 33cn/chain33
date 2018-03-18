@@ -5,6 +5,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/common"
+	"strconv"
 )
 
 type SellDB struct {
@@ -20,19 +21,41 @@ func NewSellDB(sellorder types.SellOrder) (selldb *SellDB) {
 	return
 }
 
-func (selldb *SellDB) Save(db dbm.KVDB) {
+func (selldb *SellDB) Save(db dbm.KVDB) []*types.KeyValue {
 	set := selldb.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
 	}
+
+	return set
 }
 
 func (selldb *SellDB) GetSellLogs(tradeType int32) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = tradeType
-	key := tokenSellKey(selldb.Hash)
-	receiptTrade := &types.ReceiptTradeSell{key}
-	log.Log = types.Encode(receiptTrade)
+	var base *types.ReceiptTradeBase
+	base = &types.ReceiptTradeBase{
+		selldb.Tokensymbol,
+		selldb.Address,
+		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64),
+		selldb.Minboardlot,
+		strconv.FormatFloat(float64(selldb.Priceperboardlot)/float64(types.Coin), 'f', 4, 64),
+		selldb.Totalboardlot,
+		selldb.Soldboardlot,
+		selldb.Starttime,
+		selldb.Stoptime,
+		selldb.Crowdfund,
+		selldb.Sellid,
+		types.SellOrderStatus[selldb.Status],
+	}
+	if types.TyLogTradeSell == tradeType {
+		receiptTrade := &types.ReceiptTradeSell{base}
+		log.Log = types.Encode(receiptTrade)
+
+	} else if types.TyLogTradeRevoke == tradeType {
+		receiptTrade := &types.ReceiptTradeRevoke{base}
+		log.Log = types.Encode(receiptTrade)
+	}
 
 	return log
 }
@@ -44,10 +67,11 @@ func (selldb *SellDB) GetBuyLogs(buyerAddr string, sellid string, boardlotcnt in
 		buyerAddr,
 		sellid,
 		selldb.Tokensymbol,
-		txhash,
 		boardlotcnt,
-		sellorder.Amountperboardlot,
-		sellorder.Priceperboardlot}
+		strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(sellorder.Priceperboardlot, )/float64(types.InputPrecision), 'f', 4, 64),
+		txhash,
+	}
 	log.Log = types.Encode(receiptBuy)
 
 	return log
@@ -71,19 +95,19 @@ func getSellOrderFromID(sellid []byte, db dbm.KVDB) (*types.SellOrder, error) {
 //key:mavl-token-xxx, value:token
 func (selldb *SellDB) GetKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&selldb.SellOrder)
-	key := tokenSellKey(selldb.Hash)
+	key := []byte(selldb.Sellid)
 	kvset = append(kvset, &types.KeyValue{key, value})
 	return kvset
 }
 
 type TradeAction struct {
 	coinsAccount *account.AccountDB
-	db        dbm.KVDB
-	txhash    string
-	fromaddr  string
-	blocktime int64
-	height    int64
-	execaddr  string
+	db           dbm.KVDB
+	txhash       string
+	fromaddr     string
+	blocktime    int64
+	height       int64
+	execaddr     string
 }
 
 //func NewTradeAction(db dbm.KVDB, tx *types.Transaction, toaddr, execaddr string, blocktime, height int64) *TradeAction {
@@ -91,7 +115,7 @@ func NewTradeAction(t *Trade, tx *types.Transaction) *TradeAction {
 	hash := common.Bytes2Hex(tx.Hash())
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	return &TradeAction{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr,
-	t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
 func (action *TradeAction) TradeSell(sell *types.TradeForSell) (*types.Receipt, error) {
@@ -112,21 +136,22 @@ func (action *TradeAction) TradeSell(sell *types.TradeForSell) (*types.Receipt, 
 		sell.GetTokensymbol(),
 		action.fromaddr,
 		sell.GetAmountperboardlot(),
+		sell.GetMinboardlot(),
 		sell.GetPriceperboardlot(),
 		sell.GetTotalboardlot(),
 		0,
 		sell.GetStarttime(),
 		sell.GetStoptime(),
 		sell.GetCrowdfund(),
-		action.txhash,
+		calcTokenSellID(action.txhash),
 		types.OnSale,
 	}
 	tokendb := NewSellDB(sellorder)
-	tokendb.Save(action.db)
+	sellOrderKV := tokendb.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	logs = append(logs, tokendb.GetSellLogs(types.TyLogTradeSell))
 	kv = append(kv, receipt.KV...)
-	kv = append(kv, tokendb.GetKVSet()...)
+	kv = append(kv, sellOrderKV...)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
@@ -153,7 +178,7 @@ func (action *TradeAction) TradeBuy(buyorder *types.TradeForBuy) (*types.Receipt
 	sellorder.Status = types.OnSale
 
 	//首先购买费用的划转
-	receiptFromAcc, err := action.coinsAccount.ExecTransfer(action.fromaddr, sellorder.Address, action.execaddr, buyorder.Boardlotcnt * sellorder.Priceperboardlot)
+	receiptFromAcc, err := action.coinsAccount.ExecTransfer(action.fromaddr, sellorder.Address, action.execaddr, buyorder.Boardlotcnt*sellorder.Priceperboardlot)
 	if err != nil {
 		tradelog.Error("account.Transfer ", "addrFrom", action.fromaddr, "addrTo", sellorder.Address,
 			"amount", buyorder.Boardlotcnt*sellorder.Priceperboardlot)
@@ -162,28 +187,35 @@ func (action *TradeAction) TradeBuy(buyorder *types.TradeForBuy) (*types.Receipt
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
 	//TODO: 创建一个LRU用来保存token对应的子合约账户的地址
 	tokenAccDB := account.NewTokenAccount(sellorder.Tokensymbol, action.db)
-	receiptFromExecAcc, err := tokenAccDB.ExecTransferFrozen(sellorder.Address, action.fromaddr, action.execaddr, buyorder.Boardlotcnt * sellorder.Amountperboardlot)
+	receiptFromExecAcc, err := tokenAccDB.ExecTransferFrozen(sellorder.Address, action.fromaddr, action.execaddr, buyorder.Boardlotcnt*sellorder.Amountperboardlot)
 	if err != nil {
-		tradelog.Error("account.ExecTransfer token ", "addrFrom", sellorder.Address, "addrTo", action.fromaddr,
-			"execaddr", action.execaddr, "amount", buyorder.Boardlotcnt*sellorder.Amountperboardlot)
+		tradelog.Error("account.ExecTransfer token ", "error info", err, "addrFrom", sellorder.Address,
+			"addrTo", action.fromaddr, "execaddr", action.execaddr,
+			"amount", buyorder.Boardlotcnt*sellorder.Amountperboardlot)
+		//因为未能成功将对应的token进行转账，所以需要将购买方的账户资金进行回退
+		action.coinsAccount.ExecTransfer(sellorder.Address, action.fromaddr, action.execaddr, buyorder.Boardlotcnt*sellorder.Priceperboardlot)
 		return nil, err
 	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
+	tradelog.Debug("TradeBuy", "Soldboardlot before this buy", sellorder.Soldboardlot)
 	sellorder.Soldboardlot += buyorder.Boardlotcnt
+	tradelog.Debug("TradeBuy", "Soldboardlot after this buy", sellorder.Soldboardlot)
 	if sellorder.Soldboardlot == sellorder.Totalboardlot {
 		sellorder.Status = types.SoldOut
 	}
-	tokendb := NewSellDB(*sellorder)
-	tokendb.Save(action.db)
+	sellTokendb := NewSellDB(*sellorder)
+	sellOrderKV := sellTokendb.Save(action.db)
 
 	logs = append(logs, receiptFromAcc.Logs...)
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, tokendb.GetBuyLogs(action.fromaddr, buyorder.Sellid, buyorder.Boardlotcnt, sellorder, action.txhash))
+	logs = append(logs, sellTokendb.GetSellLogs(types.TyLogTradeSell))
+	logs = append(logs, sellTokendb.GetBuyLogs(action.fromaddr, buyorder.Sellid, buyorder.Boardlotcnt, sellorder, action.txhash))
 	kv = append(kv, receiptFromAcc.KV...)
 	kv = append(kv, receiptFromExecAcc.KV...)
+	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
@@ -219,17 +251,15 @@ func (action *TradeAction) TradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 	var kv []*types.KeyValue
 	sellorder.Status = types.Revoked
 	tokendb := NewSellDB(*sellorder)
-	tokendb.Save(action.db)
+	sellOrderKV := tokendb.Save(action.db)
 
 	logs = append(logs, receiptFromExecAcc.Logs...)
 	logs = append(logs, tokendb.GetSellLogs(types.TyLogTradeRevoke))
 	kv = append(kv, receiptFromExecAcc.KV...)
+	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func tokenSellKey(hash string) (key []byte) {
-	key = append(key, []byte("mavl-trade-sell-")...)
-	key = append(key, []byte(hash)...)
-
-	return key
+func calcTokenSellID(hash string) (string) {
+	return "mavl-trade-sell-" + hash
 }
