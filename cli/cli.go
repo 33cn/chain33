@@ -304,6 +304,12 @@ func main() {
 			return
 		}
 		PreCreateToken(argsWithoutProg[1:])
+	case "finishcreatetoken":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		FinishCreateToken(argsWithoutProg[1:])
 	case "selltoken":
 		if len(argsWithoutProg) != 7 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -339,6 +345,12 @@ func main() {
 			tokens = append(tokens, argsWithoutProg[2:]...)
 		}
 		ShowOnesSellTokenOrders(argsWithoutProg[1],  tokens)
+	case "revokecreatetoken":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		RevokeCreateToken(argsWithoutProg[1:])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -386,6 +398,10 @@ func LoadHelp() {
 	fmt.Println("getticketcount []                                           : 获取票数")
 	fmt.Println("decodetx [data]                                             : 解析交易")
 	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
+	fmt.Println("precreatetoken [creator_address, name, symbol, introduction, owner_address, total, price]")
+	fmt.Println("                                                            : 预创建token")
+	fmt.Println("finishcreatetoken [finish_address, symbol, owner_address]   : 完成创建token")
+	fmt.Println("revokecreatetoken [creator_address, symbol, owner_address]  : 取消创建token")
 	fmt.Println("gettokensprecreated                                         : 获取所有预创建的token")
 	fmt.Println("gettokensfinishcreated                                      : 获取所有完成创建的token")
 	fmt.Println("selltoken [owner, token, Amountpbl, minbl, pricepbl, totalpbl] : 卖出token")
@@ -394,7 +410,7 @@ func LoadHelp() {
 	fmt.Println("showonesselltokenorder [seller, [token0, token1, token2]]      : 显示一个用户下的token卖单")
 	fmt.Println("showselltokenorder [token0, [token1, token2]]                  : 显示所有token卖单")
 	fmt.Println("sellcrowdfund [owner, token, Amountpbl, minbl, pricepbl, totalpbl, start, stop]              : 卖出众筹")
-	fmt.Println("precreatetoken [creator_address, name, symbol, introduction, owner_address, total, price]    : 预创建token")
+
 }
 
 var dd types.TradeForSell
@@ -1924,7 +1940,7 @@ func PreCreateToken(args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res jsonrpc.Reply
+	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.TokenPreCreate", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1989,7 +2005,38 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		return
 	}
 	var res jsonrpc.ReplyHash
+
 	err = rpc.Call("Chain33.SellToken", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func FinishCreateToken(args []string) {
+	// finisher, symbol, owner, string) {
+	finisher := args[0]
+	symbol := args[1]
+	owner := args[2]
+
+	params := types.ReqTokenFinishCreate{FinisherAddr: finisher, Symbol: symbol, OwnerAddr: owner}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+
+	err = rpc.Call("Chain33.TokenFinishCreate", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -2014,7 +2061,6 @@ func BuyToken(args []string) {
 
 	buy := &types.TradeForBuy{args[1], cntBoardlot}
 	params := &types.ReqBuyToken{buy, args[0]}
-
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2022,6 +2068,22 @@ func BuyToken(args []string) {
 	}
 	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.BuyToken", params, &res)
+}
+
+func RevokeCreateToken(args []string) {
+	// revoker, symbol, owner, string) {
+	revoker := args[0]
+	symbol := args[1]
+	owner := args[2]
+
+	params := types.ReqTokenRevokeCreate{RevokerAddr: revoker, Symbol: symbol, OwnerAddr: owner}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.TokenRevokeCreate", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -2097,7 +2159,7 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 		sellOrders2show.Stoptime          = sellorder.Stoptime
 		sellOrders2show.Soldboardlot      = sellorder.Soldboardlot
 		sellOrders2show.Crowdfund         = sellorder.Crowdfund
-		sellOrders2show.SellID            = "mavl-trade-sell-" + sellorder.Hash
+		sellOrders2show.SellID            = sellorder.Sellid
 		sellOrders2show.Status            = types.SellOrderStatus[sellorder.Status]
 
 

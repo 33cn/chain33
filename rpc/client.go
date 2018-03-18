@@ -644,7 +644,7 @@ func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
 	return resp.GetData().(*types.ReplyStr), nil
 }
 
-func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.Reply, error) {
+func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.ReplyHash, error) {
 	msg := c.NewMessage("wallet", types.EventTokenPreCreate, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -657,7 +657,40 @@ func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.Re
 		return nil, err
 	}
 	log.Info("TokenPreCreate", "result", "success", "symbol", parm.GetSymbol())
-	return resp.Data.(*types.Reply), nil
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventTokenFinishCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenFinishCreate", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("TokenFinishCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenFinishCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) TokenRevokeCreate(parm *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventTokenRevokeCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenRevokeCreate", "Error", err.Error())
+
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("TokenRevokeCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenRevokeCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.ReplyHash), nil
 }
 
 func (c *channelClient) SellToken(parm *types.ReqSellToken) (*types.Reply, error) {
@@ -683,11 +716,13 @@ func (c *channelClient) BuyToken(parm *types.ReqBuyToken) (*types.Reply, error) 
 		log.Error("BuyToken", "Error", err.Error())
 		return nil, err
 	}
+
 	resp, err := c.Wait(msg)
 	if err != nil {
 		log.Error("BuyToken", "Error", err.Error())
 		return nil, err
 	}
+
 	log.Info("BuyToken", "result", "send tx successful", "buyer", parm.Buyer, "sell order", parm.Buy.Sellid)
 	return resp.Data.(*types.Reply), nil
 }

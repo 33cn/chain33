@@ -12,6 +12,7 @@ var (
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	TokenApprs             = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
 )
 
 const (
@@ -147,14 +148,20 @@ const (
 	EventReplyPrivkey        = 95
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
-	EventTokenPreCreate      = 98
-	EventReplyTokenPreCreate = 99
-	EventSellToken           = 100
-	EventReplySellToken      = 101
-	EventBuyToken            = 102
-	EventReplyBuyToken       = 103
-	EventRevokeSellToken     = 104
-	EventReplyRevokeSellToken= 105
+
+	// Token
+	EventTokenPreCreate         = 98
+	EventReplyTokenPreCreate    = 99
+	EventTokenFinishCreate      = 100
+	EventReplyTokenFinishCreate = 101
+	EventTokenRevokeCreate      = 102
+	EventReplyTokenRevokeCreate = 103
+    EventSellToken              = 104
+    EventReplySellToken         = 105
+    EventBuyToken               = 106
+    EventReplyBuyToken          = 107
+    EventRevokeSellToken        = 108
+    EventReplyRevokeSellToken   = 109
 )
 
 var eventName = map[int]string{
@@ -256,8 +263,12 @@ var eventName = map[int]string{
 	96: "EventIsSync",
 	97: "EventReplyIsSync",
 	// Token
-	98: "EventTokenPreCreate",
-	99: "EventReplyTokenPreCreate",
+	98:  "EventTokenPreCreate",
+	99:  "EventReplyTokenPreCreate",
+	100: "EventTokenFinishCreate",
+	101: "EventReplyTokenFinishCreate",
+	102: "EventTokenRevokeCreate",
+	103: "EventReplyTokenRevokeCreate",
 }
 
 //ty = 1 -> secp256k1

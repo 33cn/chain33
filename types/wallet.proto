@@ -137,6 +137,18 @@ message ReqTokenPreCreate {
     int64  price = 7;
 }
 
+message ReqTokenFinishCreate {
+	string finisher_addr = 1;
+	string symbol = 2;
+	string owner_addr = 3;
+}
+
+message ReqTokenRevokeCreate {
+	string revoker_addr = 1;
+	string symbol = 2;
+	string owner_addr = 3;
+}
+
 message ReqSellToken {
 	TradeForSell sell  = 1;
 	string       owner = 2;
@@ -151,5 +163,3 @@ message ReqRevokeSell {
     TradeForRevokeSell revoke = 1;
     string             owner  = 2;
 }
-
-

@@ -764,17 +764,6 @@ func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}) error {
-
-	reply, err := c.cli.TokenPreCreate(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = reply
-	return nil
-}
-
 func (c *Chain33) SellToken(in types.ReqSellToken, result *interface{}) error {
 
 	reply, err := c.cli.SellToken(&in)
@@ -849,4 +838,32 @@ func DecodeTx(tx types.Transaction) (*Transaction, error) {
 		To:     tx.To,
 	}
 	return result, nil
+}
+
+func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}) error {
+	reply, err := c.cli.TokenPreCreate(&in)
+	if err != nil {
+		return err
+	}
+	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
+	return nil
+}
+
+func (c *Chain33) TokenFinishCreate(in types.ReqTokenFinishCreate, result *interface{}) error {
+	reply, err := c.cli.TokenFinishCreate(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
+	return nil
+}
+
+func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *interface{}) error {
+	reply, err := c.cli.TokenRevokeCreate(&in)
+	if err != nil {
+		return err
+	}
+	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
+	return nil
 }
