@@ -16,35 +16,35 @@ var (
 )
 
 const (
-	Coin                     int64  = 1e8
-	TokenPrecision           int64  = 1e4
-	InputPrecision           float64= 1e4
-	CoinMultiple             int64  = 1e4
-	MaxCoin                  int64  = 1e17
-	FutureBlockTime          int64  = 16
-	CoinReward               int64  = 18 * Coin //用户回报
-	CoinDevFund              int64  = 12 * Coin //发展基金回报
-	TicketPrice              int64  = 10000 * Coin
-	TicketFrozenTime         int64  = 5  //5s only for test
-	TicketWithdrawTime       int64  = 10 //10s only for test
-	TicketMinerWaitTime      int64  = 2  // 2s only for test
-	MinFee                   int64  = 1e5
-	MinBalanceTransfer              = 1e6
-	MaxTxSize                int64  = 100000   //100K
-	MaxBlockSize             int64  = 10000000 //10M
-	MaxTxNumber              int64  = 1600     //160
-	PowLimitBits             uint32 = uint32(0x1f00ffff)
-	TargetTimespan                  = 144 * 16 * time.Second
-	TargetTimePerBlock              = 16 * time.Second
-	RetargetAdjustmentFactor        = 4
-	MaxTxsPerBlock                  = 100000
-	TokenNameLenLimit               = 128
-	TokenSymbolLenLimit             = 16
-	TokenIntroLenLimit              = 1024
-	TokenPrecisionLen               = 1e6
-	TokenCreatePriceStand           = 10000 * Coin
-	InvalidStartTime                = 0
-	InvalidStopTime                = 0
+	Coin                     int64   = 1e8
+	TokenPrecision           int64   = 1e4
+	InputPrecision           float64 = 1e4
+	CoinMultiple             int64   = 1e4
+	MaxCoin                  int64   = 1e17
+	FutureBlockTime          int64   = 16
+	CoinReward               int64   = 18 * Coin //用户回报
+	CoinDevFund              int64   = 12 * Coin //发展基金回报
+	TicketPrice              int64   = 10000 * Coin
+	TicketFrozenTime         int64   = 5  //5s only for test
+	TicketWithdrawTime       int64   = 10 //10s only for test
+	TicketMinerWaitTime      int64   = 2  // 2s only for test
+	MinFee                   int64   = 1e5
+	MinBalanceTransfer               = 1e6
+	MaxTxSize                int64   = 100000   //100K
+	MaxBlockSize             int64   = 10000000 //10M
+	MaxTxNumber              int64   = 1600     //160
+	PowLimitBits             uint32  = uint32(0x1f00ffff)
+	TargetTimespan                   = 144 * 16 * time.Second
+	TargetTimePerBlock               = 16 * time.Second
+	RetargetAdjustmentFactor         = 4
+	MaxTxsPerBlock                   = 100000
+	TokenNameLenLimit                = 128
+	TokenSymbolLenLimit              = 16
+	TokenIntroLenLimit               = 1024
+	TokenPrecisionLen                = 1e6
+	TokenCreatePriceStand            = 10000 * Coin
+	InvalidStartTime                 = 0
+	InvalidStopTime                  = 0
 )
 
 const (
@@ -156,12 +156,12 @@ const (
 	EventReplyTokenFinishCreate = 101
 	EventTokenRevokeCreate      = 102
 	EventReplyTokenRevokeCreate = 103
-    EventSellToken              = 104
-    EventReplySellToken         = 105
-    EventBuyToken               = 106
-    EventReplyBuyToken          = 107
-    EventRevokeSellToken        = 108
-    EventReplyRevokeSellToken   = 109
+	EventSellToken              = 104
+	EventReplySellToken         = 105
+	EventBuyToken               = 106
+	EventReplyBuyToken          = 107
+	EventRevokeSellToken        = 108
+	EventReplyRevokeSellToken   = 109
 )
 
 var eventName = map[int]string{
@@ -364,7 +364,7 @@ const (
 )
 
 const (
-	ActionTransfer = iota << 1
+	ActionTransfer          = iota << 1
 	ActionGenesis
 	ActionWithdraw
 	TokenActionPreCreate
@@ -373,13 +373,13 @@ const (
 )
 
 const (
-	TokenStatusPreCreated = iota
+	TokenStatusPreCreated    = iota
 	TokenStatusCreated
 	TokenStatusCreateRevoked
 )
 
 const (
-	TradeSell = iota
+	TradeSell       = iota
 	TradeBuy
 	TradeRevokeSell
 )
@@ -393,11 +393,10 @@ const (
 	Expired
 )
 
-
 var SellOrderStatus = map[int32]string{
-	NotStart : "NotStart",
-	OnSale   : "OnSale",
-	SoldOut  : "SoldOut",
-	Revoked  : "Revoked",
-	Expired  : "Expired",
+	NotStart: "NotStart",
+	OnSale:   "OnSale",
+	SoldOut:  "SoldOut",
+	Revoked:  "Revoked",
+	Expired:  "Expired",
 }
