@@ -150,7 +150,7 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
 	if cs.Logger == nil{
-		cs.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensusStart")
+		cs.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensus")
 	}
 	//cs.BaseService = *cmn.NewBaseService(nil, "ConsensusState", cs)
 	return cs
@@ -218,7 +218,7 @@ func (cs *ConsensusState) SetTimeoutTicker(timeoutTicker TimeoutTicker) {
 func (cs *ConsensusState) LoadCommit(height int64) *ttypes.Commit {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
-	if height == cs.client.GetCurrentHeight() {
+	if height == cs.blockStore.Height() {
 		return cs.blockStore.LoadSeenCommit(height)
 	}
 	return cs.blockStore.LoadBlockCommit(height)
