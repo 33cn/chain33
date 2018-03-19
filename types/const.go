@@ -250,6 +250,7 @@ var eventName = map[int]string{
 	95: "EventReplyPrivkey",
 	96: "EventIsSync",
 	97: "EventReplyIsSync",
+	98: "EventCloseTickets",
 }
 
 //ty = 1 -> secp256k1
