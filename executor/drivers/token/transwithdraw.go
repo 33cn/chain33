@@ -1,33 +1,34 @@
-package drivers
+package token
 
 import (
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/types"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"fmt"
+	"code.aliyun.com/chain33/chain33/executor/drivers"
 )
 
-func (d *DriverBase)ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction) (*types.Receipt, error) {
-	if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
+func (t *Token)ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction) (*types.Receipt, error) {
+	if (action.Ty == types.ActionTransfer) && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if IsDriverAddress(tx.To) {
+		if drivers.IsDriverAddress(tx.To) {
 			return accountDB.TransferToExec(from, tx.To, transfer.Amount)
 		}
 		return accountDB.Transfer(from, tx.To, transfer.Amount)
-	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
+	} else if (action.Ty == types.ActionWithdraw) && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if IsDriverAddress(tx.To) {
+		if drivers.IsDriverAddress(tx.To) {
 			return accountDB.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
-	} else if action.Ty == types.ActionGenesis && action.GetGenesis() != nil {
+	} else if (action.Ty == types.ActionGenesis) && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
-		if d.GetHeight() == 0 {
-			if IsDriverAddress(tx.To) {
+		if t.GetHeight() == 0 {
+			if drivers.IsDriverAddress(tx.To) {
 				return accountDB.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
 			return accountDB.GenesisInit(tx.To, genesis.Amount)
@@ -43,8 +44,8 @@ func (d *DriverBase)ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Tr
 //1: from tx
 //2: to tx
 
-func (d *DriverBase) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := d.ExecLocal(tx, receipt, index)
+func (t *Token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := t.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -60,14 +61,14 @@ func (d *DriverBase) ExecLocalTransWithdraw(tx *types.Transaction, receipt *type
 	var kv *types.KeyValue
 	if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		kv, err = updateAddrReciver(d.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, true)
+		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, true)
 	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
-		kv, err = updateAddrReciver(d.GetLocalDB(), withdraw.Cointoken, from, withdraw.Amount, true)
+		kv, err = updateAddrReciver(t.GetLocalDB(), withdraw.Cointoken, from, withdraw.Amount, true)
 	} else if action.Ty == types.ActionGenesis && action.GetGenesis() != nil {
 		gen := action.GetGenesis()
-		kv, err = updateAddrReciver(d.GetLocalDB(), "coin", tx.To, gen.Amount, true)
+		kv, err = updateAddrReciver(t.GetLocalDB(), "token", tx.To, gen.Amount, true)
 	}
 	if err != nil {
 		return set, nil
@@ -78,8 +79,8 @@ func (d *DriverBase) ExecLocalTransWithdraw(tx *types.Transaction, receipt *type
 	return set, nil
 }
 
-func (d *DriverBase) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := d.ExecDelLocal(tx, receipt, index)
+func (t *Token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := t.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -95,11 +96,11 @@ func (d *DriverBase) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, recei
 	var kv *types.KeyValue
 	if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		kv, err = updateAddrReciver(d.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, false)
+		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, false)
 	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
-		kv, err = updateAddrReciver(d.GetLocalDB(), withdraw.Cointoken, from, withdraw.Amount, false)
+		kv, err = updateAddrReciver(t.GetLocalDB(), withdraw.Cointoken, from, withdraw.Amount, false)
 	}
 	if err != nil {
 		return set, nil
