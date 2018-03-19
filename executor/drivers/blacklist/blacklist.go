@@ -10,7 +10,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-var clog = log.New("module", "execs.blacklist")
+var blog = log.New("module", "execs.blacklist")
 var (
 	initialCredit int64 = 1e8
 	layout              = "2006-01-02 15:04:05.000"
@@ -97,12 +97,36 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientId() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+orgId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetOrgId()), []byte(record.String())})
+		org := b.queryOrgById([]byte(record.GetRecordId()))
+
+		//transaction 用于增加积分
+		ts :=&Transaction{}
+		ts.From=GenesisAddr
+		ts.To=org.OrgAddr
+		ts.Credit=AddCredit
+		ts.CreateTime=time.Now().In(loc).Format(layout)
+		ts.UpdateTime=time.Now().In(loc).Format(layout)
+		ts.DocType=SubmitRecordDoc
+		kvs_ts,err :=b.transfer(ts)
+		if err != nil {
+			blog.Error("exec transfer func have a err! err: ",err)
+		}
+		if len(kvs_ts)!=0{
+			kvs = append(kvs,kvs_ts...)
+		}
 		return kvs
 	} else if action.FuncName == CreateOrg && action.GetOr() != nil {
 		org :=action.GetOr()
+		//生成随机不重复addr
+		org.OrgAddr= generateAddr()
+		//机构只要注册就会获得100积分，用于消费
+		org.OrgCredit=100
 		org.CreateTime=time.Now().In(loc).Format(layout)
 		org.UpdateTime=time.Now().In(loc).Format(layout)
+		//key=user.blacklist+orgId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + org.GetOrgId()), []byte(org.String())})
+		//key=user.blacklist+orgAddr
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + org.GetOrgAddr()), []byte(org.String())})
 		return kvs
 	} else if action.FuncName == DeleteRecord {
 		record := b.deleteRecord([]byte(b.GetName() + action.GetRc().GetClientName() + action.GetRc().GetRecordId()))
@@ -121,7 +145,7 @@ func (b *BlackList) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	if err != nil {
 		return nil, err
 	}
-	clog.Debug("exec blacklist tx=", "tx=", action)
+	blog.Debug("exec blacklist tx=", "tx=", action)
 	receipt := &types.Receipt{types.ExecOk, nil, nil}
 	if b.GetKVPairs(tx) != nil {
 		receipt.KV = append(receipt.KV, b.GetKVPairs(tx)...)
@@ -162,22 +186,35 @@ func (b *BlackList) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 #########以下是基本的操作方法接口
 ########################################################################################################################
 */
+func (b *BlackList) getQuery(param []byte)(*Query,error){
+	query := &Query{}
+	err := types.Decode(param, query)
+	if err != nil {
+		return nil, err
+	}
+	return query,nil
+}
 
 func (b *BlackList) Query(funcname string, params []byte) (types.Message, error) {
-	if funcname == QueryRecord {
-		value := b.queryRecord(params)
+	query,err:=b.getQuery(params)
+	if err !=nil {
+		blog.Error("exec getQuery func have a err:",err)
+		return nil,ErrQueryNotSupport
+	}
+	if funcname == QueryRecord &&query.GetQueryRecord()!=nil{
+		value := b.queryRecord([]byte(query.GetQueryRecord().GetByClientId()))
 		if value == "" {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{value}, nil
-	} else if funcname == QueryOrg {
-		value := b.queryOrg(params)
+	} else if funcname == QueryOrg &&query.GetQueryOrg()!=nil {
+		value := b.queryOrg([]byte(query.GetQueryOrg().GetOrgId()))
 		if value == "" {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{value}, nil
-	} else if funcname == QueryRecordByName {
-		return &types.ReplyStrings{b.queryRecordByName(params)}, nil
+	} else if funcname == QueryRecordByName &&query.GetQueryRecord()!=nil{
+		return &types.ReplyStrings{b.queryRecordByName([]byte(query.GetQueryRecord().GetByClientName()))}, nil
 	}
 	return nil, types.ErrActionNotSupport
 }
@@ -244,8 +281,40 @@ func (b *BlackList) issueCredit() {
 func (b *BlackList) issueCreditToOrg() {
 
 }
-func (b *BlackList) transfer() {
-
+//积分转移
+func (b *BlackList) transfer(ts *Transaction)([]*types.KeyValue,error) {
+	var kvs []*types.KeyValue
+	if ts.From==ts.To{
+		return kvs,nil
+	}
+	//创世地址可以无限发送积分，故不用做检查积分是否充足
+	if ts.From != GenesisAddr {
+		orgF := b.queryOrgByAddr([]byte(ts.From))
+		if orgF.OrgCredit<ts.Credit{
+			blog.Error("积分不足，请充值!")
+			return kvs,CreditInsufficient
+		}
+		orgF.OrgCredit=orgF.OrgCredit-ts.Credit
+		orgF.UpdateTime=time.Now().In(loc).Format(layout)
+		//key=user.blacklist+orgId
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + orgF.GetOrgId()), []byte(orgF.String())})
+		//key=user.blacklist+orgAddr
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + orgF.GetOrgAddr()), []byte(orgF.String())})
+	}
+    orgT := b.queryOrgByAddr([]byte(ts.To))
+    orgT.OrgCredit=orgT.OrgCredit+ts.Credit
+	orgT.UpdateTime=time.Now().In(loc).Format(layout)
+	//key=user.blacklist+orgId
+	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + orgT.GetOrgId()), []byte(orgT.String())})
+	//key=user.blacklist+orgAddr
+	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + orgT.GetOrgAddr()), []byte(orgT.String())})
+	//transfer  key=user.blacklist+txId
+	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetTxId()),[]byte(ts.String())})
+	//transfer  key=user.blacklist+ToAddr
+	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetTo()),[]byte(ts.String())})
+	//transfer  key=user.blacklist+FromAddr
+	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetFrom()),[]byte(ts.String())})
+	return kvs,nil
 }
 func (b *BlackList) queryOrg(orgId []byte) string {
 	value := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
@@ -254,6 +323,26 @@ func (b *BlackList) queryOrg(orgId []byte) string {
 	}
 	return ""
 }
-func (b *BlackList) queryAgency() {
-
+func (b *BlackList) queryOrgById(orgId []byte) Org {
+	var org Org
+	value := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
+	if value != nil {
+		err := proto.UnmarshalText(string(value), &org)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return org
+}
+func (b *BlackList) queryOrgByAddr(addr []byte) Org {
+	var org Org
+	value := b.GetQueryDB().Get([]byte(b.GetName() + string(addr)))
+    if value !=nil {
+		err := proto.UnmarshalText(string(value), &org)
+		if err != nil {
+			panic(err)
+		}
+	}
+	blog.Info("orgAddr=================:",addr)
+	return org
 }
