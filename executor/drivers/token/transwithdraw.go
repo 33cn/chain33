@@ -2,13 +2,13 @@ package token
 
 import (
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/types"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"fmt"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
+	"code.aliyun.com/chain33/chain33/types"
+	"fmt"
 )
 
-func (t *Token)ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction) (*types.Receipt, error) {
+func (t *Token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction) (*types.Receipt, error) {
 	if (action.Ty == types.ActionTransfer) && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()

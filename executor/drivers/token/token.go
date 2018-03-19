@@ -10,11 +10,11 @@ token执行器支持token的创建，
 */
 
 import (
+	"code.aliyun.com/chain33/chain33/account"
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
 )
 
 var tokenlog = log.New("module", "execs.token")

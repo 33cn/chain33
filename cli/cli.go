@@ -344,7 +344,7 @@ func main() {
 		if len(argsWithoutProg) > 2 {
 			tokens = append(tokens, argsWithoutProg[2:]...)
 		}
-		ShowOnesSellTokenOrders(argsWithoutProg[1],  tokens)
+		ShowOnesSellTokenOrders(argsWithoutProg[1], tokens)
 	case "revokecreatetoken":
 		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -1409,7 +1409,7 @@ func GetBalance(address string, execer string) {
 func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 	//var addrs []string
 	//addrs = append(addrs, address)
-	params := types.ReqTokenBalance{Addresses: addresses, TokenSymbol: tokenSymbol, Execer: execer,}
+	params := types.ReqTokenBalance{Addresses: addresses, TokenSymbol: tokenSymbol, Execer: execer}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2047,7 +2047,7 @@ func PreCreateToken(args []string) {
 }
 
 func SellToken(args []string, starttime string, stoptime string, isCrowfund bool) {
-    owner := args[0]
+	owner := args[0]
 	sell := types.TradeForSell{}
 	params := &types.ReqSellToken{&sell, owner}
 
@@ -2071,7 +2071,7 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	sell.Priceperboardlot = int64(price * types.InputPrecision) * types.CoinMultiple
+	sell.Priceperboardlot = int64(price*types.InputPrecision) * types.CoinMultiple
 
 	sell.Totalboardlot, err = strconv.ParseInt(args[5], 10, 64)
 	if err != nil {
@@ -2189,7 +2189,7 @@ func RevokeCreateToken(args []string) {
 }
 
 //revokeselltoken [seller, sellid]
-func RevokeSellToken(seller string , sellid string) {
+func RevokeSellToken(seller string, sellid string) {
 	revoke := &types.TradeForRevokeSell{sellid}
 	params := &types.ReqRevokeSell{revoke, seller}
 
@@ -2213,6 +2213,7 @@ func RevokeSellToken(seller string , sellid string) {
 
 	fmt.Println(string(data))
 }
+
 //获取并显示一个指定用户下的所有token的卖单或者是指定token的卖单
 func ShowOnesSellTokenOrders(seller string, tokens []string) {
 	var reqAddrtokens types.ReqAddrTokens
@@ -2239,27 +2240,26 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 
 	for i, sellorder := range res.Selloders {
 		var sellOrders2show SellOrder2Show
-		sellOrders2show.Tokensymbol       = sellorder.Tokensymbol
-		sellOrders2show.Seller            = sellorder.Address
+		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
+		sellOrders2show.Seller = sellorder.Address
 		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
-		sellOrders2show.Minboardlot       = sellorder.Minboardlot
-		sellOrders2show.Priceperboardlot  = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 4, 64)
-		sellOrders2show.Totalboardlot     = sellorder.Totalboardlot
-		sellOrders2show.Soldboardlot      = sellorder.Soldboardlot
-		sellOrders2show.Starttime         = sellorder.Starttime
-		sellOrders2show.Stoptime          = sellorder.Stoptime
-		sellOrders2show.Soldboardlot      = sellorder.Soldboardlot
-		sellOrders2show.Crowdfund         = sellorder.Crowdfund
-		sellOrders2show.SellID            = sellorder.Sellid
-		sellOrders2show.Status            = types.SellOrderStatus[sellorder.Status]
-
+		sellOrders2show.Minboardlot = sellorder.Minboardlot
+		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 4, 64)
+		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
+		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
+		sellOrders2show.Starttime = sellorder.Starttime
+		sellOrders2show.Stoptime = sellorder.Stoptime
+		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
+		sellOrders2show.Crowdfund = sellorder.Crowdfund
+		sellOrders2show.SellID = sellorder.Sellid
+		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
 
 		data, err := json.MarshalIndent(sellOrders2show, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-        fmt.Printf("---The %dth sellorder is below--------------------\n", i)
+		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
 		fmt.Println(string(data))
 	}
 }

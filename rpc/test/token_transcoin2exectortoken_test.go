@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"testing"
-	"math/rand"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -14,6 +14,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 	"time"
 )
+
 //{ owner:
 //addr:1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom
 //privateKey: 0X3C47A5183E11A4D9F39E730939159EF352AC2B3FBD5D3FC79424A355C2A83447
@@ -45,7 +46,7 @@ func TestTransfer2ExecAddrToken(t *testing.T) {
 
 	addrfrom := account.PubKeyToAddress(priv.PubKey().Bytes())
 	addrto := account.ExecAddress("token")
-	amount := int64(100*1e8)
+	amount := int64(100 * 1e8)
 	t.Log("addrfrom", addrfrom)
 	t.Log("addrto", addrto)
 	t.Log("amount", amount)
@@ -53,7 +54,7 @@ func TestTransfer2ExecAddrToken(t *testing.T) {
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, Nonce: random.Int63(),To: addrto.String()}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, Nonce: random.Int63(), To: addrto.String()}
 	tx.Sign(types.SECP256K1, priv)
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
 		common.ToHex(types.Encode(tx)))
@@ -70,7 +71,3 @@ func TestTransfer2ExecAddrToken(t *testing.T) {
 
 	fmt.Printf("returned JSON: %s\n", string(b))
 }
-
-
-
-

@@ -401,4 +401,3 @@ func (g *Grpc) RevokeSellToken(ctx context.Context, in *pb.ReqRevokeSell) (*pb.R
 	}
 	return result, nil
 }
-

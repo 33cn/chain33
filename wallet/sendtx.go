@@ -505,11 +505,11 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
 	wallet.qclient.Send(msg, true)
 	resp, err := wallet.qclient.Wait(msg)
 	if err != nil {
-		walletlog.Error("ProcTokenPreCreate", "Send err", err)
+		walletlog.Error("procTokenPreCreate", "Send err", err)
 		return nil, err
 	}
-    reply := resp.GetData().(*types.Reply)
-    if !reply.GetIsOk() {
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
 		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
@@ -518,19 +518,19 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
 }
 
 func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
-	v := &types.TokenFinishCreate{Symbol: req.GetSymbol(), Owner:req.GetOwnerAddr(),}
+	v := &types.TokenFinishCreate{Symbol: req.GetSymbol(), Owner: req.GetOwnerAddr()}
 	finish := &types.TokenAction{
-		Ty:types.TokenActionFinishCreate,
+		Ty:    types.TokenActionFinishCreate,
 		Value: &types.TokenAction_Tokenfinishcreate{v},
-		}
-	tx := &types.Transaction{Execer: []byte("token"), Payload:types.Encode(finish), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	}
+	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(finish), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
 	tx.Sign(int32(SignType), priv)
 
 	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
 	wallet.qclient.Send(msg, true)
 	resp, err := wallet.qclient.Wait(msg)
 	if err != nil {
-		walletlog.Error("ProcTokenFinishCreate", "Send err", err)
+		walletlog.Error("procTokenFinishCreate", "Send err", err)
 		return nil, err
 	}
 	reply := resp.GetData().(*types.Reply)
@@ -543,19 +543,19 @@ func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqToken
 }
 
 func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
-	v := &types.TokenRevokeCreate{Symbol: req.GetSymbol(), Owner:req.GetOwnerAddr(),}
+	v := &types.TokenRevokeCreate{Symbol: req.GetSymbol(), Owner: req.GetOwnerAddr()}
 	revoke := &types.TokenAction{
-		Ty:types.TokenActionRevokeCreate,
+		Ty:    types.TokenActionRevokeCreate,
 		Value: &types.TokenAction_Tokenrevokecreate{v},
 	}
-	tx := &types.Transaction{Execer: []byte("token"), Payload:types.Encode(revoke), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(revoke), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
 	tx.Sign(int32(SignType), priv)
 
 	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
 	wallet.qclient.Send(msg, true)
 	resp, err := wallet.qclient.Wait(msg)
 	if err != nil {
-		walletlog.Error("ProcTokenRevokeCreate", "Send err", err)
+		walletlog.Error("procTokenRevokeCreate", "Send err", err)
 		return nil, err
 	}
 	reply := resp.GetData().(*types.Reply)
@@ -628,7 +628,7 @@ func (wallet *Wallet) buyToken(priv crypto.PrivKey, reqBuyToken *types.ReqBuyTok
 	return &hash, nil
 }
 
-func (wallet *Wallet) RevokeSell(priv crypto.PrivKey, reqRevoke *types.ReqRevokeSell) (*types.ReplyHash, error) {
+func (wallet *Wallet) revokeSell(priv crypto.PrivKey, reqRevoke *types.ReqRevokeSell) (*types.ReplyHash, error) {
 	revoke := &types.Trade{
 		Ty:    types.TradeRevokeSell,
 		Value: &types.Trade_Tokenrevokesell{reqRevoke.Revoke},

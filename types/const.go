@@ -381,13 +381,13 @@ const (
 //)
 
 const (
-	TokenStatusPreCreated    = iota
+	TokenStatusPreCreated = iota
 	TokenStatusCreated
 	TokenStatusCreateRevoked
 )
 
 const (
-	TradeSell       = iota
+	TradeSell = iota
 	TradeBuy
 	TradeRevokeSell
 )
