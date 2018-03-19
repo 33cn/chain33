@@ -18,9 +18,6 @@ import (
 	sm "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/state"
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/p2p"
 	crypto "github.com/tendermint/go-crypto"
-	"net"
-	"strings"
-	"math/rand"
 	"os"
 )
 
@@ -49,32 +46,6 @@ type ConsensusReactor struct {
 	privKey crypto.PrivKeyEd25519
 	//Switch          *p2p.Switch
 	Quit    chan struct{}
-}
-
-func GetPulicIPInUse() string {
-	conn, _ := net.Dial("udp", "8.8.8.8:80")
-	defer conn.Close()
-	localAddr := conn.LocalAddr().String()
-	idx := strings.LastIndex(localAddr, ":")
-	return localAddr[0:idx]
-}
-
-func (conR *ConsensusReactor) MakeDefaultNodeInfo() *p2p.NodeInfo {
-
-	nodeInfo := &p2p.NodeInfo{
-		PubKey:  conR.privKey.PubKey().Unwrap().(crypto.PubKeyEd25519),
-		Moniker: "test_"+fmt.Sprintf("%v",rand.Intn(100)),
-		Network: conR.conS.state.ChainID,
-		Version: "v0.1.0",
-		Other: []string{
-			cmn.Fmt("wire_version=%v", wire.Version),
-			cmn.Fmt("p2p_version=%v", p2p.Version),
-		},
-	}
-
-	nodeInfo.ListenAddr = GetPulicIPInUse() + ":36656"
-
-	return nodeInfo
 }
 
 // NewConsensusReactor returns a new ConsensusReactor with the given consensusState.
