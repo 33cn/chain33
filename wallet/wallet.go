@@ -30,24 +30,24 @@ var (
 )
 
 type Wallet struct {
-	qclient       queue.Client
-	q             *queue.Queue
-	mtx           sync.Mutex
-	timeout       *time.Timer
-	minertimeout  *time.Timer
-	isclosed      int32
-	isLocked      bool
-	IsMinerLocked bool
-
-	autoMinerFlag int32
-	Password      string
-	FeeAmount     int64
-	EncryptFlag   int64
-	miningTicket  *time.Ticker
-	wg            *sync.WaitGroup
-	walletStore   *WalletStore
-	random        *rand.Rand
-	done          chan struct{}
+	qclient        queue.Client
+	q              *queue.Queue
+	mtx            sync.Mutex
+	timeout        *time.Timer
+	minertimeout   *time.Timer
+	isclosed       int32
+	isWalletLocked bool
+	isTicketLocked bool
+	lastHeight     int64
+	autoMinerFlag  int32
+	Password       string
+	FeeAmount      int64
+	EncryptFlag    int64
+	miningTicket   *time.Ticker
+	wg             *sync.WaitGroup
+	walletStore    *WalletStore
+	random         *rand.Rand
+	done           chan struct{}
 }
 
 func SetLogLevel(level string) {
@@ -70,15 +70,15 @@ func New(cfg *types.Wallet) *Wallet {
 		SignType = 2
 	}
 	wallet := &Wallet{
-		walletStore:   walletStore,
-		isLocked:      true,
-		IsMinerLocked: true,
-		autoMinerFlag: 0,
-		wg:            &sync.WaitGroup{},
-		FeeAmount:     walletStore.GetFeeAmount(),
-		EncryptFlag:   walletStore.GetEncryptionFlag(),
-		miningTicket:  time.NewTicker(2 * time.Minute),
-		done:          make(chan struct{}),
+		walletStore:    walletStore,
+		isWalletLocked: true,
+		isTicketLocked: true,
+		autoMinerFlag:  0,
+		wg:             &sync.WaitGroup{},
+		FeeAmount:      walletStore.GetFeeAmount(),
+		EncryptFlag:    walletStore.GetEncryptionFlag(),
+		miningTicket:   time.NewTicker(2 * time.Minute),
+		done:           make(chan struct{}),
 	}
 	value := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
@@ -109,8 +109,8 @@ func (wallet *Wallet) Close() {
 	walletlog.Info("wallet module closed")
 }
 
-func (wallet *Wallet) IsLocked() bool {
-	return wallet.isLocked
+func (wallet *Wallet) IsWalletLocked() bool {
+	return wallet.isWalletLocked
 }
 
 func (wallet *Wallet) SetQueue(q *queue.Queue) {
@@ -138,11 +138,19 @@ func (wallet *Wallet) autoMining() {
 		select {
 		case <-wallet.miningTicket.C:
 			if !wallet.IsCaughtUp() {
+				walletlog.Error("wallet IsCaughtUp false")
 				break
 			}
+			//判断高度是否增长
+			height := wallet.GetHeight()
+			if height <= wallet.lastHeight {
+				walletlog.Error("wallet Height not inc")
+				break
+			}
+			wallet.lastHeight = height
 			walletlog.Info("BEG miningTicket")
 			if wallet.isAutoMining() {
-				n1, err := wallet.closeTicket(true)
+				n1, err := wallet.closeTicket()
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
@@ -162,7 +170,7 @@ func (wallet *Wallet) autoMining() {
 					wallet.flushTicket()
 				}
 			} else {
-				n1, err := wallet.closeTicket(true)
+				n1, err := wallet.closeTicket()
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
@@ -249,8 +257,12 @@ func (wallet *Wallet) withdrawFromTicket() (hashes [][]byte, err error) {
 	return hashes, nil
 }
 
-func (wallet *Wallet) closeTicket(flag bool) (int, error) {
-	return wallet.closeAllTickets(flag)
+func (wallet *Wallet) closeTicket() (int, error) {
+	return wallet.closeAllTickets()
+}
+
+func (wallet *Wallet) forceCloseTicket() ([][]byte, error) {
+	return wallet.forceCloseAllTicket()
 }
 
 func (wallet *Wallet) flushTicket() {
@@ -475,13 +487,15 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventCloseTickets:
 			var reply types.Reply
 			reply.IsOk = true
-			_, err := wallet.closeTicket(false)
+			hashes, err := wallet.forceCloseTicket()
 			if err != nil {
 				walletlog.Error("closeTicket", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyHashes, err))
+			} else {
+				var replyHashes types.TxHashList
+				replyHashes.Hashes = hashes
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyHashes, &replyHashes))
 			}
-			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -719,17 +733,17 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err)
-		return nil, err
+		return nil, types.ErrNewCrypto
 	}
 	privkeybyte, err := common.FromHex(PrivKey.Privkey)
 	if err != nil || len(privkeybyte) == 0 {
 		walletlog.Error("ProcImportPrivKey", "FromHex err", err)
-		return nil, err
+		return nil, types.ErrFromHex
 	}
 	priv, err := cr.PrivKeyFromBytes(privkeybyte)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "PrivKeyFromBytes err", err)
-		return nil, err
+		return nil, types.ErrPrivKeyFromBytes
 	}
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes())
 
@@ -1054,10 +1068,10 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		return err
 	}
 	//保存钱包的锁状态，需要暂时的解锁，函数退出时再恢复回去
-	tempislock := wallet.isLocked
-	wallet.isLocked = false
+	tempislock := wallet.isWalletLocked
+	wallet.isWalletLocked = false
 	defer func() {
-		wallet.isLocked = tempislock
+		wallet.isWalletLocked = tempislock
 	}()
 
 	// 钱包已经加密需要验证oldpass的正确性
@@ -1134,8 +1148,8 @@ func (wallet *Wallet) ProcWalletLock() error {
 		return types.ErrSaveSeedFirst
 	}
 
-	wallet.isLocked = true
-	wallet.IsMinerLocked = true
+	wallet.isWalletLocked = true
+	wallet.isTicketLocked = true
 	return nil
 }
 
@@ -1166,28 +1180,28 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 	//本钱包没有设置密码加密过,只需要解锁不需要记录解锁密码
 	wallet.Password = WalletUnLock.Passwd
 
-	walletlog.Error("ProcWalletUnLock !", "Ismineronly", WalletUnLock.Ismineronly)
+	walletlog.Error("ProcWalletUnLock !", "WalletOrTicket", WalletUnLock.WalletOrTicket)
 
 	//只解锁挖矿的转账
-	if WalletUnLock.Ismineronly {
-		wallet.IsMinerLocked = false
+	if WalletUnLock.WalletOrTicket {
+		wallet.isTicketLocked = false
 	} else {
-		wallet.isLocked = false
+		wallet.isWalletLocked = false
 	}
 	if WalletUnLock.Timeout != 0 {
-		wallet.resetTimeout(WalletUnLock.Ismineronly, WalletUnLock.Timeout)
+		wallet.resetTimeout(WalletUnLock.WalletOrTicket, WalletUnLock.Timeout)
 	}
 	return nil
 
 }
 
 //解锁超时处理，需要区分整个钱包的解锁或者只挖矿的解锁
-func (wallet *Wallet) resetTimeout(Ismineronly bool, Timeout int64) {
+func (wallet *Wallet) resetTimeout(IsTicket bool, Timeout int64) {
 	//只挖矿的解锁超时
-	if Ismineronly {
+	if IsTicket {
 		if wallet.minertimeout == nil {
 			wallet.minertimeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-				wallet.IsMinerLocked = true
+				wallet.isTicketLocked = true
 			})
 		} else {
 			wallet.minertimeout.Reset(time.Second * time.Duration(Timeout))
@@ -1195,7 +1209,7 @@ func (wallet *Wallet) resetTimeout(Ismineronly bool, Timeout int64) {
 	} else { //整个钱包的解锁超时
 		if wallet.timeout == nil {
 			wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-				wallet.isLocked = true
+				wallet.isWalletLocked = true
 			})
 		} else {
 			wallet.timeout.Reset(time.Second * time.Duration(Timeout))
@@ -1490,9 +1504,11 @@ func (wallet *Wallet) genSeed(lang int32) (*types.ReplySeed, error) {
 
 //获取seed种子, 通过钱包密码
 func (wallet *Wallet) getSeed(password string) (string, error) {
-	if wallet.IsLocked() {
-		return "", types.ErrWalletIsLocked
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
 	}
+
 	seed, err := GetSeed(wallet.walletStore.db, password)
 	if err != nil {
 		walletlog.Error("getSeed", "GetSeed err", err)
@@ -1544,9 +1560,13 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 
 //钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) CheckWalletStatus() (bool, error) {
-	if wallet.IsLocked() {
+	// 钱包锁定，ticket已经解锁，返回只解锁了ticket的错误
+	if wallet.IsWalletLocked() && !wallet.isTicketLocked {
+		return false, types.ErrOnlyTicketUnLocked
+	} else if wallet.IsWalletLocked() {
 		return false, types.ErrWalletIsLocked
 	}
+
 	//判断钱包是否已保存seed
 	has, _ := HasSeed(wallet.walletStore.db)
 	if !has {
@@ -1557,10 +1577,10 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
-	s.IsLock = wallet.IsLocked()
-	s.HasSeed, _ = HasSeed(wallet.walletStore.db)
+	s.IsWalletLock = wallet.IsWalletLocked()
+	s.IsHasSeed, _ = HasSeed(wallet.walletStore.db)
 	s.IsAutoMining = wallet.isAutoMining()
-	s.Ismineronly = wallet.IsMinerLocked
+	s.IsTicketLock = wallet.isTicketLocked
 	return s
 }
 
@@ -1594,7 +1614,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 		return ok, err
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
-	if wallet.IsMinerLocked == false {
+	if wallet.isTicketLocked == false {
 		if addr == account.ExecAddress("ticket").String() {
 			return true, nil
 		}

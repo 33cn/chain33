@@ -141,8 +141,13 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string) (err e
 	} else {
 		requestblock.End = end
 	}
-
-	err = chain.task.Start(requestblock.Start, requestblock.End, nil)
+	var cb func()
+	if chain.GetPeerMaxBlkHeight()-requestblock.End > 128 {
+		cb = func() {
+			chain.SynBlocksFromPeers()
+		}
+	}
+	err = chain.task.Start(requestblock.Start, requestblock.End, cb)
 	if err != nil {
 		return err
 	}
