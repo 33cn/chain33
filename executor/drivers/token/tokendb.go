@@ -1,9 +1,9 @@
 package token
 
 import (
-	"code.aliyun.com/chain33/chain33/types"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/account"
+	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/types"
 	"fmt"
 )
 
@@ -32,7 +32,7 @@ func (t *TokenDB) Save(db dbm.KVDB, key []byte) {
 	}
 }
 
-func (t *TokenDB) getLogs(ty int32, status int32) []*types.ReceiptLog{
+func (t *TokenDB) getLogs(ty int32, status int32) []*types.ReceiptLog {
 	var log []*types.ReceiptLog
 	value := types.Encode(&types.ReceiptToken{t.token.Symbol, t.token.Owner, t.token.Status})
 	log = append(log, &types.ReceiptLog{ty, value})
@@ -70,20 +70,20 @@ func deleteTokenDB(db dbm.KVDB, symbol string) {
 
 type TokenAction struct {
 	coinsAccount *account.AccountDB
-	db        dbm.KVDB
-	txhash    []byte
-	fromaddr  string
-	toaddr    string
-	blocktime int64
-	height    int64
-	execaddr  string
+	db           dbm.KVDB
+	txhash       []byte
+	fromaddr     string
+	toaddr       string
+	blocktime    int64
+	height       int64
+	execaddr     string
 }
 
 func NewTokenAction(t *Token, toaddr string, tx *types.Transaction) *TokenAction {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	return &TokenAction{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr, toaddr,
-	t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
 func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receipt, error) {
@@ -122,8 +122,8 @@ func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, tokendb.GetKVSet(key)...)
 	kv = append(kv, tokendb.GetKVSet(statuskey)...)
-	tokenlog.Info("func token preCreate","token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
-	"key:", key, "key string", string(key), "value:", tokendb.GetKVSet(key)[0].Value)
+	tokenlog.Info("func token preCreate", "token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
+		"key:", key, "key string", string(key), "value:", tokendb.GetKVSet(key)[0].Value)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
@@ -131,7 +131,7 @@ func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 
 func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, approvers []string) (*types.Receipt, error) {
 	token, err := getTokenFromDB(action.db, tokenFinish.GetSymbol(), tokenFinish.GetOwner())
-	if err != nil  || token.Status != types.TokenStatusPreCreated {
+	if err != nil || token.Status != types.TokenStatusPreCreated {
 		return nil, types.ErrTokenNotPrecreated
 	}
 
@@ -140,7 +140,7 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 	for _, approver := range approvers {
 		if approver == action.fromaddr {
 			approver_valid = true
-			break;
+			break
 		}
 	}
 
@@ -148,7 +148,7 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 		return nil, types.ErrTokenCreatedApprover
 	}
 
-    //将之前冻结的资金转账到fund合约账户中
+	//将之前冻结的资金转账到fund合约账户中
 	receiptForCoin, err := action.coinsAccount.ExecTransferFrozen(token.Creator, action.toaddr, action.execaddr, token.Price)
 	if err != nil {
 		tokenlog.Error("token finishcreate ", "addr", action.fromaddr, "execaddr", action.execaddr, "token", token.Symbol)
@@ -157,7 +157,7 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 
 	//创建token类型的账户，同时需要创建的额度存入
 	tokenAccount := account.NewTokenAccount(tokenFinish.GetSymbol(), action.db)
-	receiptForToken, err := tokenAccount.GenesisInit(token.Owner, token.GetTotal() * types.TokenPrecision)
+	receiptForToken, err := tokenAccount.GenesisInit(token.Owner, token.GetTotal()*types.TokenPrecision)
 
 	//更新token的状态为已经创建
 	token.Status = types.TokenStatusCreated
@@ -178,7 +178,7 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 	//因为该token已经被创建，需要保存一个全局的token，防止其他用户再次创建
 	tokendb.Save(action.db, key)
 	kv = append(kv, tokendb.GetKVSet(key)...)
-	var receipt	*types.Receipt
+	var receipt *types.Receipt
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
@@ -226,7 +226,6 @@ func (action *TokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	return receipt, nil
 }
 
-
 func checkTokenExist(token string, db dbm.KVDB) bool {
 	_, err := db.Get(tokenKey(token))
 	return err == nil
@@ -251,14 +250,14 @@ func tokenAddrKey(token string, owner string) (key []byte) {
 	return key
 }
 
-func tokenStatusKey(token string, owner string, status int32) ([]byte) {
+func tokenStatusKey(token string, owner string, status int32) []byte {
 	return []byte(fmt.Sprintf("mavl-create-token-%d:%s:%s", status, token, owner))
 }
 
-func tokenStatusKeyPrefix(status int32) ([]byte) {
+func tokenStatusKeyPrefix(status int32) []byte {
 	return []byte(fmt.Sprintf("mavl-create-token-%d:", status))
 }
 
-func tokenStatusSymbolPrefix(status int32, symbol string) ([]byte) {
+func tokenStatusSymbolPrefix(status int32, symbol string) []byte {
 	return []byte(fmt.Sprintf("mavl-create-token-%d:%s:", status, symbol))
 }

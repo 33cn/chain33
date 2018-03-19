@@ -11,6 +11,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/types"
 )
+
 //{ owner:
 //addr:1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom
 //privateKey: 0X3C47A5183E11A4D9F39E730939159EF352AC2B3FBD5D3FC79424A355C2A83447
@@ -40,20 +41,20 @@ func TestPreCreateToken(t *testing.T) {
 		return
 	}
 
-	tokenOwner:= "1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"
+	tokenOwner := "1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"
 	t.Log(tokenOwner)
 
 	v := &types.TokenAction_Tokenprecreate{&types.TokenPreCreate{
 		"Yuan chain coin",
 		"GOOD",
 		"An Easy Way to Build Blockchain",
-		10000*10000*100,
-		1*1e8,
+		10000 * 10000 * 100,
+		1 * 1e8,
 		tokenOwner}}
 
 	tokenPrecreate := &types.TokenAction{v, types.TokenActionPreCreate}
 
-	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenPrecreate), Fee: 1e6,}
+	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenPrecreate), Fee: 1e6}
 	tx.Sign(types.SECP256K1, priv)
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
 		common.ToHex(types.Encode(tx)))

@@ -10,12 +10,12 @@ trade执行器支持trade的创建和交易，
 */
 
 import (
+	"code.aliyun.com/chain33/chain33/common"
+	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
-	log "github.com/inconshreveable/log15"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"fmt"
-	"code.aliyun.com/chain33/chain33/common"
+	log "github.com/inconshreveable/log15"
 )
 
 var tradelog = log.New("module", "execs.trade")
@@ -185,7 +185,7 @@ func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 
 func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	db := t.GetDB()
-	value, err := db.Get(sellid);
+	value, err := db.Get(sellid)
 	if err != nil {
 		panic(err)
 	}
@@ -219,7 +219,7 @@ func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 
 func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 	db := t.GetDB()
-	value, err := db.Get(sellid);
+	value, err := db.Get(sellid)
 	if err != nil {
 		panic(err)
 	}

@@ -2,9 +2,9 @@ package trade
 
 import (
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/types"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/common"
+	dbm "code.aliyun.com/chain33/chain33/common/db"
+	"code.aliyun.com/chain33/chain33/types"
 	"strconv"
 )
 
@@ -69,7 +69,7 @@ func (selldb *SellDB) GetBuyLogs(buyerAddr string, sellid string, boardlotcnt in
 		selldb.Tokensymbol,
 		boardlotcnt,
 		strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64),
-		strconv.FormatFloat(float64(sellorder.Priceperboardlot, )/float64(types.InputPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.InputPrecision), 'f', 4, 64),
 		txhash,
 	}
 	log.Log = types.Encode(receiptBuy)
@@ -260,6 +260,6 @@ func (action *TradeAction) TradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func calcTokenSellID(hash string) (string) {
+func calcTokenSellID(hash string) string {
 	return "mavl-trade-sell-" + hash
 }
