@@ -61,24 +61,36 @@ func main() {
 			return
 		}
 		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
-	case "createOrg": //发送到地址
-		if len(argsWithoutProg) != 5 {
-			fmt.Print(errors.New("参数错误").Error())
-			return
-		}
-		//createOrg()
-	case "noneput": //发送到地址
-		if len(argsWithoutProg) != 4 {
-			fmt.Print(errors.New("参数错误").Error())
-			return
-		}
-		NonePut(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
-	case "normget": //发送到地址
+	case "submitRecord": //发送到地址
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		NormGet(argsWithoutProg[1])
+		submitRecord(argsWithoutProg[1])
+	case  "queryRecord":
+		if len(argsWithoutProg) !=2{
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		queryRecord(argsWithoutProg[1])
+	case "queryRecordByName":
+		if len(argsWithoutProg) !=2{
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		queryRecordByName(argsWithoutProg[1])
+	case "createOrg": //发送到地址
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		CreateOrg(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
+	case "queryOrg": //发送到地址
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		//NormGet(argsWithoutProg[1])
 	}
 }
 
@@ -145,45 +157,45 @@ func SendToAddress(from string, to string, amount string, note string) {
 	fmt.Println(string(data))
 }
 
-func createOrg(privkey string, size string, num string, duration string) {
-	var key string
-	var value string
-	sizeInt, err := strconv.Atoi(size)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	numInt, err := strconv.Atoi(num)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	durInt, err := strconv.Atoi(duration)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	ch := make(chan struct{}, numInt)
-	for i := 0; i < numInt; i++ {
-		go func() {
-			txs := 0
-			for {
-				key = RandStringBytes(10)
-				value = RandStringBytes(sizeInt)
-				NonePut(privkey, key, value)
-				txs++
-				if durInt != 0 && txs == durInt {
-					break
-				}
-				time.Sleep(time.Second)
-			}
-			ch <- struct{}{}
-		}()
-	}
-	for j := 0; j < numInt; j++ {
-		<-ch
-	}
-}
+//func createOrg(privkey string, size string, num string, duration string) {
+//	var key string
+//	var value string
+//	sizeInt, err := strconv.Atoi(size)
+//	if err != nil {
+//		fmt.Fprintln(os.Stderr, err)
+//		return
+//	}
+//	numInt, err := strconv.Atoi(num)
+//	if err != nil {
+//		fmt.Fprintln(os.Stderr, err)
+//		return
+//	}
+//	durInt, err := strconv.Atoi(duration)
+//	if err != nil {
+//		fmt.Fprintln(os.Stderr, err)
+//		return
+//	}
+//	ch := make(chan struct{}, numInt)
+//	for i := 0; i < numInt; i++ {
+//		go func() {
+//			txs := 0
+//			for {
+//				key = RandStringBytes(10)
+//				value = RandStringBytes(sizeInt)
+//				NonePut(privkey, key, value)
+//				txs++
+//				if durInt != 0 && txs == durInt {
+//					break
+//				}
+//				time.Sleep(time.Second)
+//			}
+//			ch <- struct{}{}
+//		}()
+//	}
+//	for j := 0; j < numInt; j++ {
+//		<-ch
+//	}
+//}
 
 func RandStringBytes(n int) string {
 	b := make([]byte, n)
@@ -193,14 +205,14 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
-func NonePut(privkey string, key string, value string) {
+func CreateOrg(privkey string, key string, value string) {
 	fmt.Println(key, "=", value)
 
 	org := &blacklist.Org{
-		"SUNING",
-		33,
 	}
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org}, Ty: blacklist.OrgPut}
+	org.OrgId="33"
+	org.OrgName="fuzamei"
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org},FuncName:blacklist.CreateOrg}
 	//nput := &types.NormAction_Nput{&types.NormPut{Key: key,Value: []byte(value)}}
 	//action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
@@ -218,11 +230,35 @@ func NonePut(privkey string, key string, value string) {
 		return
 	}
 }
+func submitRecord(privkey string){
+	rc := &blacklist.Record{
+	}
+	rc.OrgId="33"
+	rc.ClientId="one"
+	rc.ClientName="dirk"
+	rc.Searchable=true
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.SubmitRecord}
+	//nput := &types.NormAction_Nput{&types.NormPut{Key: key,Value: []byte(value)}}
+	//action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = r.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(privkey))
 
-func NormGet(key string) {
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+}
+func queryRecord(key string) {
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
-	req.FuncName = "OrgGet"
+	req.FuncName = blacklist.QueryRecord
 	req.Payload = []byte(key)
 
 	reply, err := c.QueryChain(context.Background(), &req)
@@ -240,6 +276,26 @@ func NormGet(key string) {
 	fmt.Println("GetValue =", value)
 }
 
+func queryRecordByName(key string) {
+	var req types.Query
+	req.Execer = []byte("user.blacklist")
+	req.FuncName = blacklist.QueryRecordByName
+	req.Payload = []byte(key)
+
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	//the first two byte is not valid
+	//QueryChain() need to change
+	value := string(reply.Msg[:])
+	fmt.Println("GetValue =", value)
+}
 func getprivkey(key string) crypto.PrivKey {
 	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
