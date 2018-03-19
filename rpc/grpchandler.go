@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/types"
 	pb "code.aliyun.com/chain33/chain33/types"
 	"golang.org/x/net/context"
@@ -435,6 +436,14 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, er
 		return nil, err
 	}
 	return result, nil
+}
+
+func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
+	if g.checkWhitlist(ctx) == false {
+		return nil, fmt.Errorf("reject")
+	}
+
+	return &pb.Reply{IsOk: true, Msg: []byte(common.GetVersion())}, nil
 }
 
 func (g *Grpc) checkWhitlist(ctx context.Context) bool {

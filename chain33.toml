@@ -3,7 +3,6 @@ Title="chain33"
 Loglevel="debug"
 LogConsoleLevel="info"
 LogFile="chain33.log"
-
 [blockchain]
 defCacheSize=512
 maxFetchBlockNum=128
