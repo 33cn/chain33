@@ -779,6 +779,15 @@ func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
+func (c *Chain33) GetTotalCoins(in *types.ReqGetTotalCoins, result *interface{}) error {
+	resp, err := c.cli.GetTotalCoins(in)
+	if err != nil {
+		return err
+	}
+	*result = resp
+	return nil
+}
+
 func DecodeTx(tx types.Transaction) (*Transaction, error) {
 	var pl interface{}
 	if "coins" == string(tx.Execer) {

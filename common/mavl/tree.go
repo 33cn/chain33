@@ -3,6 +3,8 @@ package mavl
 import (
 	"errors"
 	"fmt"
+	"bytes"
+	"encoding/hex"
 
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
@@ -314,3 +316,33 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 	}
 	return
 }
+
+func GetTotalCoins(db dbm.DB, statehash []byte) int64 {
+	tree := NewMAVLTree(db)
+	tree.Load(statehash)
+treelog.Info("GetTotalCoins", "statehash", hex.EncodeToString(statehash))
+
+	var i int32 = 0
+	var amount int64 = 0
+	var acc types.Account
+	if tree.root != nil {
+		leafs := tree.root.size
+treelog.Info("GetTotalCoins", "leafs", leafs)
+		treelog.Info("PrintTreeLeaf info")
+		for i = 0; i < leafs; i++ {
+			key, value := tree.GetByIndex(i)
+			treelog.Info("leaf:", "index:", i, "key", string(key), "value", string(value))
+			if bytes.HasPrefix(key, []byte("mavl-coins-bty-")) && !bytes.HasPrefix(key, []byte("mavl-coins-bty-exec")) {
+				err := types.Decode(value, &acc)
+				if err != nil {
+					treelog.Error("GetTotalCoins err！", "err", err)
+					return 0
+				}
+				treelog.Info("acc:", "value", acc)
+				amount += acc.Balance
+			}
+		}
+	}
+	return amount
+}
+

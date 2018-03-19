@@ -17,6 +17,8 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// *
+// 请求获取远程节点的节点信息
 type P2PGetPeerInfo struct {
 	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 }
@@ -33,6 +35,8 @@ func (m *P2PGetPeerInfo) GetVersion() int32 {
 	return 0
 }
 
+// *
+// 节点信息
 type P2PPeerInfo struct {
 	Addr        string  `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
 	Port        int32   `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
@@ -81,6 +85,8 @@ func (m *P2PPeerInfo) GetHeader() *Header {
 	return nil
 }
 
+// *
+// p2p节点间发送版本数据结构
 type P2PVersion struct {
 	Version     int32  `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	Service     int64  `protobuf:"varint,2,opt,name=service" json:"service,omitempty"`
@@ -153,6 +159,8 @@ func (m *P2PVersion) GetStartHeight() int64 {
 	return 0
 }
 
+// *
+// P2P 版本返回
 type P2PVerAck struct {
 	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	Service int64 `protobuf:"varint,2,opt,name=service" json:"service,omitempty"`
@@ -225,6 +233,8 @@ func (m *P2PPing) GetSign() *Signature {
 	return nil
 }
 
+// *
+// 心跳返回包
 type P2PPong struct {
 	Nonce int64 `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
 }
@@ -241,6 +251,8 @@ func (m *P2PPong) GetNonce() int64 {
 	return 0
 }
 
+// *
+// 获取对方节点所连接的其他节点地址的请求包
 type P2PGetAddr struct {
 	Nonce int64 `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
 }
@@ -257,6 +269,8 @@ func (m *P2PGetAddr) GetNonce() int64 {
 	return 0
 }
 
+// *
+// 返回请求地址列表的社保
 type P2PAddr struct {
 	Nonce    int64    `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
 	Addrlist []string `protobuf:"bytes,2,rep,name=addrlist" json:"addrlist,omitempty"`
@@ -281,6 +295,8 @@ func (m *P2PAddr) GetAddrlist() []string {
 	return nil
 }
 
+// *
+// 节点外网信息
 type P2PExternalInfo struct {
 	Addr      string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
 	Isoutside bool   `protobuf:"varint,2,opt,name=isoutside" json:"isoutside,omitempty"`
@@ -305,6 +321,8 @@ func (m *P2PExternalInfo) GetIsoutside() bool {
 	return false
 }
 
+// *
+// 获取区间区块
 type P2PGetBlocks struct {
 	Version     int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	StartHeight int64 `protobuf:"varint,2,opt,name=startHeight" json:"startHeight,omitempty"`
@@ -337,6 +355,8 @@ func (m *P2PGetBlocks) GetEndHeight() int64 {
 	return 0
 }
 
+// *
+// 获取mempool
 type P2PGetMempool struct {
 	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 }
@@ -402,6 +422,8 @@ func (m *Inventory) GetHeight() int64 {
 	return 0
 }
 
+// *
+// 通过invs 下载数据
 type P2PGetData struct {
 	Version int32        `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	Invs    []*Inventory `protobuf:"bytes,2,rep,name=invs" json:"invs,omitempty"`
@@ -426,6 +448,8 @@ func (m *P2PGetData) GetInvs() []*Inventory {
 	return nil
 }
 
+// *
+// p2p 发送交易协议
 type P2PTx struct {
 	Tx *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
 }
@@ -442,6 +466,8 @@ func (m *P2PTx) GetTx() *Transaction {
 	return nil
 }
 
+// *
+// p2p 发送区块协议
 type P2PBlock struct {
 	Block *Block `protobuf:"bytes,1,opt,name=block" json:"block,omitempty"`
 }
@@ -458,6 +484,8 @@ func (m *P2PBlock) GetBlock() *Block {
 	return nil
 }
 
+// *
+// p2p 广播数据协议
 type BroadCastData struct {
 	// Types that are valid to be assigned to Value:
 	//	*BroadCastData_Tx
@@ -610,6 +638,8 @@ func _BroadCastData_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
+// *
+// p2p 获取区块区间头部信息协议
 type P2PGetHeaders struct {
 	Version     int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	StartHeight int64 `protobuf:"varint,2,opt,name=startHeight" json:"startHeight,omitempty"`
@@ -642,6 +672,8 @@ func (m *P2PGetHeaders) GetEndHeight() int64 {
 	return 0
 }
 
+// *
+// p2p 区块头传输协议
 type P2PHeaders struct {
 	Headers []*Header `protobuf:"bytes,1,rep,name=headers" json:"headers,omitempty"`
 }
@@ -658,6 +690,8 @@ func (m *P2PHeaders) GetHeaders() []*Header {
 	return nil
 }
 
+// *
+// inv 请求协议
 type InvData struct {
 	// Types that are valid to be assigned to Value:
 	//	*InvData_Tx
@@ -787,6 +821,8 @@ func _InvData_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
+// *
+// inv 返回数据
 type InvDatas struct {
 	Items []*InvData `protobuf:"bytes,1,rep,name=items" json:"items,omitempty"`
 }
@@ -803,6 +839,8 @@ func (m *InvDatas) GetItems() []*InvData {
 	return nil
 }
 
+// *
+// peer 信息
 type Peer struct {
 	Addr        string  `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
 	Port        int32   `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
@@ -859,6 +897,8 @@ func (m *Peer) GetHeader() *Header {
 	return nil
 }
 
+// *
+// peer 列表
 type PeerList struct {
 	Peers []*Peer `protobuf:"bytes,1,rep,name=peers" json:"peers,omitempty"`
 }
@@ -914,6 +954,7 @@ const _ = grpc.SupportPackageIsVersion4
 type P2PgserviceClient interface {
 	// 广播交易
 	BroadCastTx(ctx context.Context, in *P2PTx, opts ...grpc.CallOption) (*Reply, error)
+	// 广播区块
 	BroadCastBlock(ctx context.Context, in *P2PBlock, opts ...grpc.CallOption) (*Reply, error)
 	// PING
 	Ping(ctx context.Context, in *P2PPing, opts ...grpc.CallOption) (*P2PPong, error)
@@ -924,7 +965,7 @@ type P2PgserviceClient interface {
 	Version2(ctx context.Context, in *P2PVersion, opts ...grpc.CallOption) (*P2PVersion, error)
 	// 获取区块，最高200
 	GetBlocks(ctx context.Context, in *P2PGetBlocks, opts ...grpc.CallOption) (*P2PInv, error)
-	//
+	// 获取mempool
 	GetMemPool(ctx context.Context, in *P2PGetMempool, opts ...grpc.CallOption) (*P2PInv, error)
 	// 获取数据
 	GetData(ctx context.Context, in *P2PGetData, opts ...grpc.CallOption) (P2Pgservice_GetDataClient, error)
@@ -932,8 +973,11 @@ type P2PgserviceClient interface {
 	GetHeaders(ctx context.Context, in *P2PGetHeaders, opts ...grpc.CallOption) (*P2PHeaders, error)
 	// 获取 peerinfo
 	GetPeerInfo(ctx context.Context, in *P2PGetPeerInfo, opts ...grpc.CallOption) (*P2PPeerInfo, error)
+	// 获取本节点外网地址信息
 	RemotePeerAddr(ctx context.Context, in *P2PGetAddr, opts ...grpc.CallOption) (*P2PExternalInfo, error)
+	// grpc server 读客户端发送来的数据
 	ServerStreamRead(ctx context.Context, opts ...grpc.CallOption) (P2Pgservice_ServerStreamReadClient, error)
+	// grpc server 发送数据给客户端
 	ServerStreamSend(ctx context.Context, in *P2PPing, opts ...grpc.CallOption) (P2Pgservice_ServerStreamSendClient, error)
 }
 
@@ -1147,6 +1191,7 @@ func (x *p2PgserviceServerStreamSendClient) Recv() (*BroadCastData, error) {
 type P2PgserviceServer interface {
 	// 广播交易
 	BroadCastTx(context.Context, *P2PTx) (*Reply, error)
+	// 广播区块
 	BroadCastBlock(context.Context, *P2PBlock) (*Reply, error)
 	// PING
 	Ping(context.Context, *P2PPing) (*P2PPong, error)
@@ -1157,7 +1202,7 @@ type P2PgserviceServer interface {
 	Version2(context.Context, *P2PVersion) (*P2PVersion, error)
 	// 获取区块，最高200
 	GetBlocks(context.Context, *P2PGetBlocks) (*P2PInv, error)
-	//
+	// 获取mempool
 	GetMemPool(context.Context, *P2PGetMempool) (*P2PInv, error)
 	// 获取数据
 	GetData(*P2PGetData, P2Pgservice_GetDataServer) error
@@ -1165,8 +1210,11 @@ type P2PgserviceServer interface {
 	GetHeaders(context.Context, *P2PGetHeaders) (*P2PHeaders, error)
 	// 获取 peerinfo
 	GetPeerInfo(context.Context, *P2PGetPeerInfo) (*P2PPeerInfo, error)
+	// 获取本节点外网地址信息
 	RemotePeerAddr(context.Context, *P2PGetAddr) (*P2PExternalInfo, error)
+	// grpc server 读客户端发送来的数据
 	ServerStreamRead(P2Pgservice_ServerStreamReadServer) error
+	// grpc server 发送数据给客户端
 	ServerStreamSend(*P2PPing, P2Pgservice_ServerStreamSendServer) error
 }
 

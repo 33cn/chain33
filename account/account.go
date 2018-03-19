@@ -184,3 +184,16 @@ func (acc *AccountDB) AccountKey(address string) (key []byte) {
 	key = append(key, []byte(address)...)
 	return key
 }
+
+func (acc *AccountDB) GetTotalCoins(client queue.Client, hash []byte) (accs *types.Account, err error) {
+	get := types.StoreGet{}
+	get.StateHash = hash
+	msg := client.NewMessage("store", types.EventStoreGetTotalCoins, &get)
+	client.Send(msg, true)
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	accs = msg.Data.(*types.Account)
+	return accs, nil
+}
