@@ -11,8 +11,6 @@ import (
 
 func (l *DefaultListener) Close() bool {
 	l.listener.Close()
-	l.server.Stop()
-	l.p2pserver.Close()
 	log.Info("stop", "DefaultListener", "close")
 	return true
 }
