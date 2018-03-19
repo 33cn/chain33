@@ -377,3 +377,28 @@ func (g *Grpc) TokenRevokeCreate(ctx context.Context, in *pb.ReqTokenRevokeCreat
 	}
 	return result, nil
 }
+
+func (g *Grpc) SellToken(ctx context.Context, in *pb.ReqSellToken) (*pb.Reply, error) {
+	result, err := g.cli.SellToken(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (g *Grpc) BuyToken(ctx context.Context, in *pb.ReqBuyToken) (*pb.Reply, error) {
+	result, err := g.cli.BuyToken(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (g *Grpc) RevokeSellToken(ctx context.Context, in *pb.ReqRevokeSell) (*pb.Reply, error) {
+	result, err := g.cli.RevokeSellToken(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+

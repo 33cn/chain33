@@ -1851,8 +1851,8 @@ func (wallet *Wallet) ProcTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (*t
 		return nil, types.ErrTokenNotPrecreated
 	}
 	if token.Creator != req.GetRevokerAddr() {
-		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenRevokeCreater)
-		return nil, types.ErrTokenRevokeCreater
+		walletlog.Error("ProcTokenRevokeCreate", "err", types.ErrTokenRevoker)
+		return nil, types.ErrTokenRevoker
 	}
 
 	priv, err := wallet.getPrivKeyByAddr(addrs[0])

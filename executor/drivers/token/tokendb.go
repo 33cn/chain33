@@ -193,7 +193,7 @@ func (action *TokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	if action.fromaddr != token.Creator {
 		tokenlog.Error("token revokeCreate, different creator vs actor of this revoke",
 			"action.fromaddr", action.fromaddr, "creator", token.Creator)
-		return nil, types.ErrTokenRevokeCreater
+		return nil, types.ErrTokenRevoker
 	}
 
 	//解锁之前冻结的资金
