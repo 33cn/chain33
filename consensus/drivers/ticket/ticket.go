@@ -65,14 +65,14 @@ func (client *TicketClient) Close() {
 func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	//给ticket 合约打 3亿 个币
 	//产生3w张初始化ticket
-	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000)
+	tx1 := createTicket("1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom", "1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", 30000)
 	ret = append(ret, tx1...)
 
-	tx2 := createTicket("1PUiGcbsccfxW3zuvHXZBJfznziph5miAo", "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 10000)
-	ret = append(ret, tx2...)
-
-	tx3 := createTicket("1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX", "1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa", 10000)
-	ret = append(ret, tx3...)
+	//tx2 := createTicket("1PUiGcbsccfxW3zuvHXZBJfznziph5miAo", "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 10000)
+	//ret = append(ret, tx2...)
+	//
+	//tx3 := createTicket("1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX", "1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa", 10000)
+	//ret = append(ret, tx3...)
 	return
 }
 
@@ -84,7 +84,7 @@ func createTicket(minerAddr, returnAddr string, count int32) (ret []*types.Trans
 	tx1.To = minerAddr
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{Amount: types.TicketPrice}
+	g.Genesis = &types.CoinsGenesis{Amount: types.TicketPrice - 111}
 	tx1.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx1)
 
