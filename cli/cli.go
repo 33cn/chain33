@@ -281,6 +281,12 @@ func main() {
 			return
 		}
 		CreateRawSendTx(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
+	case "gettotalcoins":
+		if len(argsWithoutProg) != 3 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTotalCoins(argsWithoutProg[1], argsWithoutProg[2])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -328,6 +334,7 @@ func LoadHelp() {
 	fmt.Println("decodetx [data]                                             : 解析交易")
 	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
 	fmt.Println("closetickets []                                             : 关闭挖矿票")
+	fmt.Println("gettotalcoins [symbol, height]                              : 查询代币总数")
 }
 
 type AccountsResult struct {
@@ -1583,6 +1590,35 @@ func CloseTickets() {
 	fmt.Println(string(data))
 }
 
+func GetTotalCoins(symbol string, height string) {
+	heightInt64, err := strconv.ParseInt(height, 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	params := jsonrpc.GetTotalCoins{Symbol: symbol, Height: heightInt64}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.Account
+	err = rpc.Call("Chain33.GetTotalCoins", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
 func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
 	amountResult := ""
@@ -1675,3 +1711,4 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 	}
 	return rd
 }
+

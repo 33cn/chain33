@@ -33,3 +33,9 @@ message ReqBalance {
 message Accounts {
 	repeated Account acc = 1;
 }
+
+//查询symbol代币总额
+message ReqGetTotalCoins {
+	string symbol = 1;
+	int64 height  = 2;
+}
