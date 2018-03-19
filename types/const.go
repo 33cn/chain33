@@ -332,9 +332,17 @@ const (
 
 //coinsaction
 const (
-	CoinsActionTransfer = 1
-	CoinsActionGenesis  = 2
-	CoinsActionWithdraw = 3
+	CoinsActionTransfer = iota
+	CoinsActionGenesis
+	CoinsActionWithdraw
+
+	//action for token
+	ActionTransfer
+	ActionGenesis
+	ActionWithdraw
+	TokenActionPreCreate
+	TokenActionFinishCreate
+	TokenActionRevokeCreate
 )
 
 //ticket
@@ -363,14 +371,14 @@ const (
 	RetrieveCancel = 4
 )
 
-const (
-	ActionTransfer = iota << 1
-	ActionGenesis
-	ActionWithdraw
-	TokenActionPreCreate
-	TokenActionFinishCreate
-	TokenActionRevokeCreate
-)
+//const (
+//	ActionTransfer          = iota << 1
+//	ActionGenesis
+//	ActionWithdraw
+//	TokenActionPreCreate
+//	TokenActionFinishCreate
+//	TokenActionRevokeCreate
+//)
 
 const (
 	TokenStatusPreCreated = iota
