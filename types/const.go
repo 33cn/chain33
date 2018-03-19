@@ -364,7 +364,7 @@ const (
 )
 
 const (
-	ActionTransfer          = iota << 1
+	ActionTransfer = iota << 1
 	ActionGenesis
 	ActionWithdraw
 	TokenActionPreCreate
@@ -373,13 +373,13 @@ const (
 )
 
 const (
-	TokenStatusPreCreated    = iota
+	TokenStatusPreCreated = iota
 	TokenStatusCreated
 	TokenStatusCreateRevoked
 )
 
 const (
-	TradeSell       = iota
+	TradeSell = iota
 	TradeBuy
 	TradeRevokeSell
 )

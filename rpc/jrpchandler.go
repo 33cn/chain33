@@ -715,7 +715,6 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	return nil
 }
 
-
 func (c *Chain33) Query(in Query, result *interface{}) error {
 	decodePayload, err := hex.DecodeString(in.Payload)
 	if err != nil {
