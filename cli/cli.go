@@ -2024,7 +2024,7 @@ func PreCreateToken(args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := types.ReqTokenPreCreate{CreatorAddr: creator, Name: name, Symbol: symbol, Introduction: introduction, OwnerAddr: owner, Total: total * 1e6, Price: price * 1e8}
+	params := types.ReqTokenPreCreate{CreatorAddr: creator, Name: name, Symbol: symbol, Introduction: introduction, OwnerAddr: owner, Total: total * types.TokenPrecision, Price: price * types.Coin}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
