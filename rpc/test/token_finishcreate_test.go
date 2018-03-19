@@ -12,6 +12,7 @@ import (
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/types"
 )
+
 //{ owner:
 //addr:1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom
 //privateKey: 0X3C47A5183E11A4D9F39E730939159EF352AC2B3FBD5D3FC79424A355C2A83447
@@ -51,7 +52,7 @@ func TestFinishCreateToken(t *testing.T) {
 
 	tokenFinishcreate := &types.TokenAction{v, types.TokenActionFinishCreate}
 
-	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenFinishcreate), Fee: 1e6,}
+	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenFinishcreate), Fee: 1e6}
 	tx.Sign(types.SECP256K1, priv)
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
 		common.ToHex(types.Encode(tx)))
