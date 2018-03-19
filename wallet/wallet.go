@@ -733,17 +733,17 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err)
-		return nil, err
+		return nil, types.ErrNewCrypto
 	}
 	privkeybyte, err := common.FromHex(PrivKey.Privkey)
 	if err != nil || len(privkeybyte) == 0 {
 		walletlog.Error("ProcImportPrivKey", "FromHex err", err)
-		return nil, err
+		return nil, types.ErrFromHex
 	}
 	priv, err := cr.PrivKeyFromBytes(privkeybyte)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "PrivKeyFromBytes err", err)
-		return nil, err
+		return nil, types.ErrPrivKeyFromBytes
 	}
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes())
 
