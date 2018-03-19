@@ -39,8 +39,6 @@ var (
 	configPath = flag.String("f", "chain33.toml", "configfile")
 )
 
-const Version = "v0.1.0"
-
 func main() {
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)

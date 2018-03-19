@@ -5,16 +5,16 @@ package types;
 message Config {
 	string title = 1;
 	string loglevel = 2;
-	string logConsoleLevel = 10;
-	string logFile = 9;
-	Store store = 3;
-	LocalStore localStore = 11;
-	Consensus consensus = 4;
-	MemPool memPool = 5;
-	BlockChain blockChain = 6;
-	Wallet wallet = 7;
-	P2P p2p = 8;
-	Rpc rpc=12;
+	string logConsoleLevel = 3;
+	string logFile = 4;
+	Store store = 6;
+	LocalStore localStore = 7;
+	Consensus consensus = 8;
+	MemPool memPool = 9;
+	BlockChain blockChain = 10;
+	Wallet wallet = 11;
+	P2P p2p = 12;
+	Rpc rpc=13;
 }
 
 message MemPool {
