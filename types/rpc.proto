@@ -11,85 +11,98 @@ import "executor.proto";
 package types;
 
 service grpcservice {
-	//chain33 对外提供服务的接口
-	//区块链接口
-	rpc GetBlocks (ReqBlocks) returns (Reply) {
+    //chain33 对外提供服务的接口
+    //区块链接口
+    rpc GetBlocks (ReqBlocks) returns (Reply) {
+    }
+    rpc GetLastHeader (ReqNil) returns (Header) {
+    }
+    //交易接口
+    rpc CreateRawTransaction (CreateTx) returns (UnsignTx) {
+    }
+    rpc SendRawTransaction (SignedTx) returns (Reply) {
+    }
+    rpc QueryTransaction (ReqHash) returns (TransactionDetail) {
+    }
+    rpc SendTransaction (Transaction) returns (Reply) {
+    }
+    rpc GetTransactionByAddr (ReqAddr) returns (ReplyTxInfos) {
+    }
+    rpc GetTransactionByHashes (ReqHashes) returns (TransactionDetails) {
+    }
+    //缓存接口
+    rpc GetMemPool (ReqNil) returns (ReplyTxList) {
+    }
+    //钱包接口
+    rpc GetAccounts (ReqNil) returns (WalletAccounts) {
+    }
+    rpc NewAccount (ReqNewAccount) returns (WalletAccount) {
+    }
+    rpc WalletTransactionList (ReqWalletTransactionList) returns (WalletTxDetails) {
+    }
+    rpc ImportPrivKey (ReqWalletImportPrivKey) returns (WalletAccount) {
+    }
+    rpc SendToAddress (ReqWalletSendToAddress) returns (ReplyHash) {
+    }
+    rpc SetTxFee (ReqWalletSetFee) returns (Reply) {
+    }
+    rpc SetLabl (ReqWalletSetLabel) returns (WalletAccount) {
+    }
+    rpc MergeBalance (ReqWalletMergeBalance) returns (ReplyHashes) {
+    }
+    rpc SetPasswd (ReqWalletSetPasswd) returns (Reply) {
+    }
+    rpc Lock (ReqNil) returns (Reply) {
+    }
+    rpc UnLock (WalletUnLock) returns (Reply) {
+    }
+    rpc GetPeerInfo (ReqNil) returns (PeerList) {
+    }
+    rpc GetLastMemPool (ReqNil) returns (ReplyTxList) {
+    }
+    rpc GetWalletStatus (ReqNil) returns (WalletStatus) {
+    }
+    //区块浏览器接口
+    rpc GetBlockOverview (ReqHash) returns (BlockOverview) {
+    }
+    rpc GetAddrOverview (ReqAddr) returns (AddrOverview) {
+    }
+    rpc GetBlockHash (ReqInt) returns (ReplyHash) {
+    }
+    //seed
+    rpc GenSeed (GenSeedLang) returns (ReplySeed) {
+    }
+    rpc GetSeed (GetSeedByPw) returns (ReplySeed) {
+    }
+    rpc SaveSeed (SaveSeedByPw) returns (Reply) {
+    }
+    //Balance Query
+    rpc GetBalance (ReqBalance) returns (Accounts) {
+    }
+    rpc GetTokenBalance (ReqTokenBalance) returns (Accounts) {
+    }
+    rpc QueryChain (Query) returns (Reply) {
+    }
+    //Miner
+    rpc SetAutoMining (MinerFlag) returns (Reply) {
+    }
+    //
+    rpc GetHexTxByHash (ReqHash) returns (HexTx) {
+    }
+    rpc GetTicketCount (types.ReqNil) returns (Int64) {
+    }
+    rpc DumpPrivkey (ReqStr) returns (ReplyStr) {
+    }
+    rpc TokenPreCreate(types.ReqTokenPreCreate) returns (ReplyHash) {
 	}
-	rpc GetLastHeader (ReqNil) returns (Header) {
-	}
-	//交易接口
-	rpc CreateRawTransaction (CreateTx) returns (UnsignTx) {
-	}
-	rpc SendRawTransaction (SignedTx) returns (Reply) {
-	}
-	rpc QueryTransaction (ReqHash) returns (TransactionDetail) {
-	}
-	rpc SendTransaction (Transaction) returns (Reply) {
-	}
-	rpc GetTransactionByAddr (ReqAddr) returns (ReplyTxInfos) {
-	}
-	rpc GetTransactionByHashes (ReqHashes) returns (TransactionDetails) {
-	}
-	//缓存接口
-	rpc GetMemPool (ReqNil) returns (ReplyTxList) {
-	}
-	//钱包接口
-	rpc GetAccounts (ReqNil) returns (WalletAccounts) {
-	}
-	rpc NewAccount (ReqNewAccount) returns (WalletAccount) {
-	}
-	rpc WalletTransactionList (ReqWalletTransactionList) returns (WalletTxDetails) {
-	}
-	rpc ImportPrivKey (ReqWalletImportPrivKey) returns (WalletAccount) {
-	}
-	rpc SendToAddress (ReqWalletSendToAddress) returns (ReplyHash) {
-	}
-	rpc SetTxFee (ReqWalletSetFee) returns (Reply) {
-	}
-	rpc SetLabl (ReqWalletSetLabel) returns (WalletAccount) {
-	}
-	rpc MergeBalance (ReqWalletMergeBalance) returns (ReplyHashes) {
-	}
-	rpc SetPasswd (ReqWalletSetPasswd) returns (Reply) {
-	}
-	rpc Lock (ReqNil) returns (Reply) {
-	}
-	rpc UnLock (WalletUnLock) returns (Reply) {
-	}
-	rpc GetPeerInfo (ReqNil) returns (PeerList) {
-	}
-	rpc GetLastMemPool (ReqNil) returns (ReplyTxList) {
-	}
-	rpc GetWalletStatus (ReqNil) returns (WalletStatus) {
-	}
-	//区块浏览器接口
-	rpc GetBlockOverview (ReqHash) returns (BlockOverview) {
-	}
-	rpc GetAddrOverview (ReqAddr) returns (AddrOverview) {
-	}
-	rpc GetBlockHash (ReqInt) returns (ReplyHash) {
-	}
-	//seed
-	rpc GenSeed (GenSeedLang) returns (ReplySeed) {
-	}
-	rpc GetSeed (GetSeedByPw) returns (ReplySeed) {
-	}
-	rpc SaveSeed (SaveSeedByPw) returns (Reply) {
-	}
-	//Balance Query
-	rpc GetBalance (ReqBalance) returns (Accounts) {
-	}
-	rpc GetTokenBalance (ReqTokenBalance) returns (Accounts) {
-	}
-	rpc QueryChain (Query) returns (Reply) {
-	}
-	//Miner
-	rpc SetAutoMining (MinerFlag) returns (Reply) {
-	}
-	//
-	rpc GetHexTxByHash (ReqHash) returns (HexTx) {
-	}
-	rpc GetTicketCount(types.ReqNil)returns(Int64){}
-	rpc DumpPrivkey(ReqStr)returns(ReplyStr){
-	}
+    rpc TokenFinishCreate(types.ReqTokenFinishCreate) returns (ReplyHash) {
+    }
+    rpc TokenRevokeCreate(types.ReqTokenRevokeCreate) returns (ReplyHash) {
+    }
+    rpc SellToken(types.ReqSellToken) returns (Reply) {
+    }
+    rpc BuyToken(types.ReqBuyToken) returns (Reply) {
+    }
+    rpc RevokeSellToken(types.ReqRevokeSell) returns (Reply) {
+    }
 }
