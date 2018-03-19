@@ -774,6 +774,11 @@ func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
+func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
+	*result = common.GetVersion()
+	return nil
+}
+
 func DecodeTx(tx types.Transaction) (*Transaction, error) {
 	var pl interface{}
 	if "coins" == string(tx.Execer) {
