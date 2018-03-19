@@ -3,6 +3,7 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
+	"sync/atomic"
 
 	"os"
 	"sync"
@@ -20,7 +21,7 @@ import (
 //4.启动监控模块，进行节点管理
 
 func (n *Node) Start() {
-	n.l = NewDefaultListener(Protocol, n)
+	n.l = NewListener(Protocol, n)
 	n.DetectNodeAddr()
 	go n.DoNat()
 	go n.Monitor()
@@ -28,8 +29,7 @@ func (n *Node) Start() {
 }
 
 func (n *Node) Close() {
-
-	close(n.loopDone)
+	atomic.StoreInt32(&n.closed, 1)
 	log.Debug("stop", "versionDone", "closed")
 	if n.l != nil {
 		n.l.Close()
@@ -42,13 +42,17 @@ func (n *Node) Close() {
 
 }
 
+func (n *Node) IsClose() bool {
+	return atomic.LoadInt32(&n.closed) == 1
+}
+
 type Node struct {
 	omtx     sync.Mutex
 	addrBook *AddrBook // known peers
 	nodeInfo *NodeInfo
 	outBound map[string]*peer
 	l        Listener
-	loopDone chan struct{}
+	closed   int32
 }
 
 func (n *Node) SetQueue(q *queue.Queue) {
@@ -61,7 +65,6 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	node := &Node{
 		outBound: make(map[string]*peer),
 		addrBook: NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
-		loopDone: make(chan struct{}, 1),
 	}
 
 	node.nodeInfo = NewNodeInfo(cfg)
@@ -102,51 +105,8 @@ func (n *Node) DoNat() {
 	if selefNet, err := NewNetAddressString(fmt.Sprintf("127.0.0.1:%v", n.nodeInfo.GetListenAddr().Port)); err == nil {
 		n.addrBook.AddOurAddress(selefNet)
 	}
-	//close(n.nodeInfo.natDone)
+
 	return
-}
-
-func (n *Node) DialPeers(addrbucket map[string]bool) error {
-	if len(addrbucket) == 0 {
-		return nil
-	}
-	var addrs []string
-	for addr, _ := range addrbucket {
-		addrs = append(addrs, addr)
-	}
-	netAddrs, err := NewNetAddressStrings(addrs)
-	if err != nil {
-		log.Error(err.Error())
-		return err
-	}
-
-	for _, netAddr := range netAddrs {
-		//log.Info("DialPeers", "netAddr", netAddr)
-		if n.addrBook.ISOurAddress(netAddr) == true {
-			continue
-		}
-
-		//不对已经连接上的地址重新发起连接
-		if n.Has(netAddr.String()) {
-			log.Debug("DialPeers", "find hash", netAddr.String())
-			continue
-		}
-
-		if n.needMore() == false {
-			return nil
-		}
-		log.Debug("DialPeers", "peer", netAddr.String())
-		peer, err := P2pComm.DialPeer(netAddr, &n.nodeInfo)
-		if err != nil {
-			log.Error("DialPeers", "Err", err.Error())
-			continue
-		}
-		log.Debug("Addr perr", "peer", peer)
-		n.AddPeer(peer)
-		n.addrBook.AddAddress(netAddr)
-
-	}
-	return nil
 }
 
 func (n *Node) AddPeer(pr *peer) {
@@ -249,6 +209,9 @@ func (n *Node) Monitor() {
 	go n.checkActivePeers()
 	go n.getAddrFromOnline()
 	go n.getAddrFromOffline()
+	go n.monitorPeerInfo()
+	go n.monitorDialPeers()
+	go n.monitorBlackList()
 
 }
 
@@ -351,17 +314,21 @@ func (n *Node) NatMapPort() {
 	n.nodeInfo.natResultChain <- true
 	refresh := time.NewTimer(mapUpdateInterval)
 	for {
+
 		select {
 		case <-refresh.C:
 			nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort), "chain33-p2p", time.Minute*20)
 			refresh.Reset(mapUpdateInterval)
+		default:
+			if n.IsClose() {
+				nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort))
+				return
+			}
+			time.Sleep(time.Second * 10)
 
-		case <-n.loopDone:
-			nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort))
-			return
 		}
-	}
 
+	}
 }
 
 func (n *Node) WaitForNat() {
