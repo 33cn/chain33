@@ -79,6 +79,7 @@ func TestInitAccount(t *testing.T) {
 
 	var label [accountMax]string
 	var params types.ReqWalletImportPrivKey
+	var hashes [][]byte
 
 	privGenesis := getprivkey("11A61A97B3A89E614419BACF735DA585BB3F745A5DF05BF93A63AE6F24A3712E")
 	for index := 0; index < accountMax; index++ {
@@ -94,45 +95,33 @@ func TestInitAccount(t *testing.T) {
 			return
 		}
 		time.Sleep(5 * time.Second)
-		/*
-			if !showOrCheckAcc(c, addr[index], showandcheck, 0) {
-				t.Error(ErrTest)
-				return
-			}
-			time.Sleep(5 * time.Second)
-		*/
 	}
 
-	header, _ := getlastheader()
-	currHeight = header.Height
-
 	for index := 0; index <= accountindexB; index++ {
-		err := sendtoaddress(c, privGenesis, addr[index], defaultAmount)
+		txhash, err := sendtoaddress(c, privGenesis, addr[index], defaultAmount)
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(time.Second)
 			t.Error(err)
 			return
 		}
+		hashes = append(hashes, txhash)
 	}
 
 	for index := accountindexa; index <= accountindexb; index++ {
-		err := sendtoaddress(c, privGenesis, addr[index], 50*fee)
+		txhash, err := sendtoaddress(c, privGenesis, addr[index], 50*fee)
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(time.Second)
 			t.Error(err)
 			return
 		}
+		hashes = append(hashes, txhash)
 	}
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	for index := 0; index <= accountindexB; index++ {
@@ -161,27 +150,24 @@ func TestRetrieveBackup(t *testing.T) {
 	fmt.Println("*This case is used for checking backup operation\n*Backup action is done with privkey of account A/B, Backup: A->a, A->b, B->b;\n*currentbalanceA = currentbalanceA- 2*1e8 - 3*fee. currentbalanceB = currentbalanceB - 1e8 - 2*fee\n")
 	defer fmt.Println("TestRetrieveBackup end\n")
 
-	header, _ := getlastheader()
-	currHeight = header.Height
+	var hashes [][]byte
 
 	//1. step1 account A/B发送余额给合约
-	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), 2*retrieveAmount)
+	txHash, err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), 2*retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
+	hashes = append(hashes, txHash)
 
-	err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), retrieveAmount)
+	txHash, err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
+	hashes = append(hashes, txHash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	if !checkexecAcc(c, addr[accountindexA], showandcheck, 2*retrieveAmount) {
@@ -194,31 +180,30 @@ func TestRetrieveBackup(t *testing.T) {
 	}
 
 	//2. a，b为A做备份，b为B做备份
-	err = backup(accountindexa, accountindexA, accountindexA, delayLevel1)
+	txHash, err = backup(accountindexa, accountindexA, accountindexA, delayLevel1)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txHash)
 
-	err = backup(accountindexb, accountindexA, accountindexA, delayLevel2)
+	txHash, err = backup(accountindexb, accountindexA, accountindexA, delayLevel2)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txHash)
 
-	err = backup(accountindexb, accountindexB, accountindexB, delayLevel2)
+	txHash, err = backup(accountindexb, accountindexB, accountindexB, delayLevel2)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txHash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	currBalanceA -= 2*retrieveAmount + 3*fee
@@ -238,35 +223,32 @@ func TestRetrievePrepare(t *testing.T) {
 	fmt.Println("\nTestRetrievePrepare start")
 	fmt.Println("*This case is used for checking prepare operation\n*Prepare action is done with privkey of account a/b, currBalancea = currBalancea- fee,currBalanceb = currBalanceb -2*fee\n")
 	defer fmt.Println("TestRetrievePrepare end\n")
+	var hashes [][]byte
 
-	header, _ := getlastheader()
-	currHeight = header.Height
-
-	err := prepare(accountindexa, accountindexA, accountindexa)
+	txhash, err := prepare(accountindexa, accountindexA, accountindexa)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txhash)
 
-	err = prepare(accountindexb, accountindexA, accountindexb)
+	txhash, err = prepare(accountindexb, accountindexA, accountindexb)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txhash)
 
-	err = prepare(accountindexb, accountindexB, accountindexb)
+	txhash, err = prepare(accountindexb, accountindexB, accountindexb)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txhash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	currBalancea -= fee
@@ -295,32 +277,28 @@ func TestRetrievePerform(t *testing.T) {
 	fmt.Println("\nTestRetrievePerform start")
 	fmt.Println("*This case is used for checking perform operation\n*perform action is done with privkey of account a/b, b can't withdraw balance as time is not enough\n*currBalancea = currBalancea +2*1e8 -2*fee, currBalanceb = currBalanceb -2*fee\n")
 	defer fmt.Println("TestRetrievePerform end\n")
+	var hashes [][]byte
 
 	//not success as time not enough
-	err := perform(accountindexb, accountindexB, accountindexb)
+	txhash, err := perform(accountindexb, accountindexB, accountindexb)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txhash)
 
 	time.Sleep(75 * time.Second)
 
-	header, _ := getlastheader()
-	currHeight = header.Height
-
-	err = perform(accountindexa, accountindexA, accountindexa)
+	txhash, err = perform(accountindexa, accountindexA, accountindexa)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txhash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	if !checkexecAcc(c, addr[accountindexa], showandcheck, 2*retrieveAmount) {
@@ -333,23 +311,21 @@ func TestRetrievePerform(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 	//取钱
-	err = sendtoaddress(c, privkey[accountindexa], addrexec.String(), -2*retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexa], addrexec.String(), -2*retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
+	hashes = append(hashes, txhash)
 
-	err = sendtoaddress(c, privkey[accountindexb], addrexec.String(), -retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexb], addrexec.String(), -retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
+	hashes = append(hashes, txhash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	currBalancea = currBalancea + 2*retrieveAmount - 2*fee
@@ -369,30 +345,25 @@ func TestRetrieveCancel(t *testing.T) {
 	fmt.Println("\nTestRetrieveCancel start")
 	fmt.Println("*This case is used for checking cancel operation\n*Cancel action is done with privkey of account A/B, although the cancel action for A could succeed, but the balance have been transfered by last action with backup a\n*currBalanceA = currBalanceA - 2*fee currBalanceB = currBalanceB + 1e8 - 2*fee\n")
 	defer fmt.Println("TestRetrieveCancel end\n")
+	var hashes [][]byte
 
-	header, _ := getlastheader()
-	currHeight = header.Height
-	fmt.Println(currHeight)
-
-	err := cancel(accountindexb, accountindexA, accountindexA)
+	txhash, err := cancel(accountindexb, accountindexA, accountindexA)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txhash)
 
-	err = cancel(accountindexb, accountindexB, accountindexB)
+	txhash, err = cancel(accountindexb, accountindexB, accountindexB)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txhash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	if !checkexecAcc(c, addr[accountindexA], showandcheck, 0) {
@@ -405,23 +376,21 @@ func TestRetrieveCancel(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 
-	err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), -retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), -retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
+	hashes = append(hashes, txhash)
 
-	err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), -retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), -retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
+	hashes = append(hashes, txhash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	currBalanceA = currBalanceA - 2*fee
@@ -437,24 +406,19 @@ func TestRetrievePerformB(t *testing.T) {
 	fmt.Println("\nTestRetrievePerformB start")
 	fmt.Println("*This case is used for checking perform operation for B again\n*perform action is done with privkey of account b, b can't withdraw balance as it has been canceled before\n*currBalanceb = currBalanceb -2*fee\n")
 	defer fmt.Println("TestRetrievePerformB end\n")
-
-	header, _ := getlastheader()
-	currHeight = header.Height
+	var hashes [][]byte
 
 	//failed as canceled before
-	err := perform(accountindexb, accountindexB, accountindexb)
+	txhash, err := perform(accountindexb, accountindexB, accountindexb)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	hashes = append(hashes, txhash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	//canceled before, so there is no balance in contract
@@ -463,18 +427,15 @@ func TestRetrievePerformB(t *testing.T) {
 		return
 	}
 
-	err = sendtoaddress(c, privkey[accountindexb], addrexec.String(), retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexb], addrexec.String(), retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
+	hashes = append(hashes, txhash)
 
-	for {
-		time.Sleep(5 * time.Second)
-		header, _ := getlastheader()
-		if header.Height-currHeight > 0 {
-			currHeight = header.Height
-			break
-		}
+	if !waitTxs(hashes) {
+		t.Error(ErrTest)
+		return
 	}
 
 	currBalanceb = currBalanceb - 2*fee
@@ -484,7 +445,7 @@ func TestRetrievePerformB(t *testing.T) {
 	}
 }
 
-func backup(backupaddrindex int, defaultaddrindex int, privkeyindex int, delayperiod int64) error {
+func backup(backupaddrindex int, defaultaddrindex int, privkeyindex int, delayperiod int64) ([]byte, error) {
 	vbackup := &types.RetrieveAction_Backup{&types.BackupRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex], DelayPeriod: delayperiod}}
 	//fmt.Println(vlock)
 	transfer := &types.RetrieveAction{Value: vbackup, Ty: types.RetrieveBackup}
@@ -494,16 +455,16 @@ func backup(backupaddrindex int, defaultaddrindex int, privkeyindex int, delaype
 	// Contact the server and print out its response.
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !reply.IsOk {
 		fmt.Println("err = ", reply.GetMsg())
-		return errors.New(string(reply.GetMsg()))
+		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return nil
+	return tx.Hash(), nil
 }
 
-func prepare(backupaddrindex int, defaultaddrindex int, privkeyindex int) error {
+func prepare(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte, error) {
 
 	vprepare := &types.RetrieveAction_PreRet{&types.PreRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
 	transfer := &types.RetrieveAction{Value: vprepare, Ty: types.RetrievePre}
@@ -512,16 +473,16 @@ func prepare(backupaddrindex int, defaultaddrindex int, privkeyindex int) error 
 	tx.Sign(types.SECP256K1, privkey[privkeyindex])
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !reply.IsOk {
 		fmt.Println("err = ", reply.GetMsg())
-		return errors.New(string(reply.GetMsg()))
+		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return nil
+	return tx.Hash(), nil
 }
 
-func perform(backupaddrindex int, defaultaddrindex int, privkeyindex int) error {
+func perform(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte, error) {
 
 	vperform := &types.RetrieveAction_PerfRet{&types.PerformRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
 	transfer := &types.RetrieveAction{Value: vperform, Ty: types.RetrievePerf}
@@ -530,16 +491,16 @@ func perform(backupaddrindex int, defaultaddrindex int, privkeyindex int) error 
 	tx.Sign(types.SECP256K1, privkey[privkeyindex])
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !reply.IsOk {
 		fmt.Println("err = ", reply.GetMsg())
-		return errors.New(string(reply.GetMsg()))
+		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return nil
+	return tx.Hash(), nil
 }
 
-func cancel(backupaddrindex int, defaultaddrindex int, privkeyindex int) error {
+func cancel(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte, error) {
 	vcancel := &types.RetrieveAction_Cancel{&types.CancelRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
 	transfer := &types.RetrieveAction{Value: vcancel, Ty: types.RetrieveCancel}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: addr[backupaddrindex]}
@@ -547,13 +508,13 @@ func cancel(backupaddrindex int, defaultaddrindex int, privkeyindex int) error {
 	tx.Sign(types.SECP256K1, privkey[privkeyindex])
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !reply.IsOk {
 		fmt.Println("err = ", reply.GetMsg())
-		return errors.New(string(reply.GetMsg()))
+		return nil, errors.New(string(reply.GetMsg()))
 	}
-	return nil
+	return tx.Hash(), nil
 }
 
 func checkexecAcc(c types.GrpcserviceClient, addr string, sorc int, balance int64) bool {
@@ -650,7 +611,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, amount int64) error {
+func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
 	if amount > 0 {
@@ -663,13 +624,13 @@ func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, am
 		reply, err := c.SendTransaction(context.Background(), tx)
 		if err != nil {
 			fmt.Println("err", err)
-			return err
+			return nil, err
 		}
 		if !reply.IsOk {
 			fmt.Println("err = ", reply.GetMsg())
-			return errors.New(string(reply.GetMsg()))
+			return nil, errors.New(string(reply.GetMsg()))
 		}
-		return nil
+		return tx.Hash(), nil
 	} else {
 		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount}}
 		withdraw := &types.CoinsAction{Value: v, Ty: types.CoinsActionWithdraw}
@@ -680,13 +641,13 @@ func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, am
 		reply, err := c.SendTransaction(context.Background(), tx)
 		if err != nil {
 			fmt.Println("err", err)
-			return err
+			return nil, err
 		}
 		if !reply.IsOk {
 			fmt.Println("err = ", reply.GetMsg())
-			return errors.New(string(reply.GetMsg()))
+			return nil, errors.New(string(reply.GetMsg()))
 		}
-		return nil
+		return tx.Hash(), nil
 	}
 }
 
@@ -700,4 +661,35 @@ func getlastheader() (*types.Header, error) {
 	c := types.NewGrpcserviceClient(conn)
 	v := &types.ReqNil{}
 	return c.GetLastHeader(context.Background(), v)
+}
+
+func waitTx(hash []byte) bool {
+	i := 0
+	for {
+		i++
+		if i%100 == 0 {
+			fmt.Println("wait transaction timeout")
+			return false
+		}
+		c := types.NewGrpcserviceClient(conn)
+		var reqHash types.ReqHash
+		reqHash.Hash = hash
+		res, err := c.QueryTransaction(context.Background(), &reqHash)
+		if err != nil {
+			time.Sleep(time.Second)
+		}
+		if res != nil {
+			return true
+		}
+	}
+}
+
+func waitTxs(hashes [][]byte) bool {
+	for _, hash := range hashes {
+		result := waitTx(hash)
+		if !result {
+			return false
+		}
+	}
+	return true
 }
