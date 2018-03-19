@@ -7,7 +7,6 @@ import (
 	//"fmt"
 	"time"
 
-	//"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -66,19 +65,19 @@ func (b *BlackList) GetActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
-func (b *BlackList) GetKVPair(tx *types.Transaction) *types.KeyValue {
-	action, err := b.GetActionValue(tx)
-	if err != nil {
-		return nil
-	}
-	if action.FuncName == SubmitRecord && action.GetRc() != nil {
-		return &types.KeyValue{[]byte(b.GetName() + action.GetRc().GetRecordId()), []byte(action.GetRc().String())}
-	} else if action.FuncName == CreateOrg && action.GetOr() != nil {
-		return &types.KeyValue{[]byte(b.GetName() + action.GetOr().GetOrgId()), []byte(action.GetOr().String())}
-	}
-
-	return nil
-}
+//func (b *BlackList) GetKVPair(tx *types.Transaction) *types.KeyValue {
+//	action, err := b.GetActionValue(tx)
+//	if err != nil {
+//		return nil
+//	}
+//	if action.FuncName == SubmitRecord && action.GetRc() != nil {
+//		return &types.KeyValue{[]byte(b.GetName() + action.GetRc().GetRecordId()), []byte(action.GetRc().String())}
+//	} else if action.FuncName == CreateOrg && action.GetOr() != nil {
+//		return &types.KeyValue{[]byte(b.GetName() + action.GetOr().GetOrgId()), []byte(action.GetOr().String())}
+//	}
+//
+//	return nil
+//}
 func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 	var kvs []*types.KeyValue
 	action, err := b.GetActionValue(tx)
@@ -87,24 +86,32 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 	}
 	if action.FuncName == SubmitRecord && action.GetRc() != nil {
 		//TODO:以不同的key进行多次存储,以求能够规避chain33不支持多键值查询的短板
+		record := action.GetRc()
+		record.CreateTime=time.Now().In(loc).Format(layout)
+		record.UpdateTime=time.Now().In(loc).Format(layout)
 		//key=user.blacklist+recordId
-		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetRc().GetRecordId()), []byte(action.GetRc().String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() +record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+clientName+recordId
-		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetRc().GetClientName() + action.GetRc().GetRecordId()), []byte(action.GetRc().String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientName() +record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+clientId+recordId
-		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetRc().GetClientId() + action.GetRc().GetRecordId()), []byte(action.GetRc().String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientId() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+orgId
-		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetRc().GetOrgId()), []byte(action.GetRc().String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetOrgId()), []byte(record.String())})
 		return kvs
 	} else if action.FuncName == CreateOrg && action.GetOr() != nil {
-		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetOr().GetOrgId()), []byte(action.GetOr().String())})
+		org :=action.GetOr()
+		org.CreateTime=time.Now().In(loc).Format(layout)
+		org.UpdateTime=time.Now().In(loc).Format(layout)
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + org.GetOrgId()), []byte(org.String())})
 		return kvs
 	} else if action.FuncName == DeleteRecord {
 		record := b.deleteRecord([]byte(b.GetName() + action.GetRc().GetClientName() + action.GetRc().GetRecordId()))
+		record.UpdateTime=time.Now().In(loc).Format(layout)
 		//key=user.blacklist+clientName+recordId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientName() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+clientId+recordId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientId() + record.GetRecordId()), []byte(record.String())})
+		return kvs
 	}
 	return nil
 }
@@ -116,16 +123,16 @@ func (b *BlackList) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	}
 	clog.Debug("exec blacklist tx=", "tx=", action)
 	receipt := &types.Receipt{types.ExecOk, nil, nil}
-	if b.GetKVPair(tx) != nil {
-		receipt.KV = append(receipt.KV, b.GetKVPair(tx))
+	if b.GetKVPairs(tx) != nil {
+		receipt.KV = append(receipt.KV, b.GetKVPairs(tx)...)
 	}
 	return receipt, nil
 }
 
 func (b *BlackList) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
-	if b.GetKVPair(tx) != nil {
-		set.KV = append(set.KV, b.GetKVPair(tx))
+	if b.GetKVPairs(tx) != nil {
+		set.KV = append(set.KV, b.GetKVPairs(tx)...)
 	}
 
 	return &set, nil
@@ -133,9 +140,15 @@ func (b *BlackList) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 
 func (b *BlackList) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
-	pair := b.GetKVPair(tx)
-	if pair != nil {
-		set.KV = append(set.KV, &types.KeyValue{pair.Key, nil})
+	pairs := b.GetKVPairs(tx)
+	if pairs != nil&&len(pairs)!=0 {
+		var kvs []*types.KeyValue
+		for _,kv :=range pairs{
+			kv.Value=nil
+			kvs = append(kvs,kv)
+		}
+		set.KV = append(set.KV, kvs...)
+		//set.KV = append(set.KV, &types.KeyValue{pair.Key, nil})
 	}
 	//del tx
 	//hash, _ := n.GetTx(tx, receipt, index)
@@ -209,7 +222,7 @@ func (b *BlackList) queryRecord(recordId []byte) string {
 func (b *BlackList) queryRecordByName(name []byte) []string {
 	var recordList []string
 	recordBytes := b.GetQueryDB().PrefixScan([]byte(b.GetName() + string(name)))
-	for recordByte := range recordBytes {
+	for _,recordByte := range recordBytes {
 		var record Record
 		err := proto.UnmarshalText(string(recordByte), &record)
 		if err != nil {

@@ -12,7 +12,7 @@ timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
-isStrongConsistency=false
+isStrongConsistency=true
 singleMode=false
 
 [p2p]
