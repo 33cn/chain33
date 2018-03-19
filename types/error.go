@@ -63,6 +63,7 @@ var (
 	ErrTokenRevoker         = errors.New("ErrTokenRevoker")
 	ErrTokenCanotRevoked    = errors.New("ErrTokenCanotRevokedWithWrongStatus")
 	ErrTokenOwner           = errors.New("ErrTokenSymbolOwnerNotMatch")
+	ErrTokenHavePrecreated  = errors.New("ErrOwnerHaveTokenPrecreateYet")
 	//err for trade
 	ErrTSellBalanceNotEnough      = errors.New("ErrTradeSellBalanceNotEnough")
 	ErrTSellOrderNotExist         = errors.New("ErrTradeSellOrderNotExist")
