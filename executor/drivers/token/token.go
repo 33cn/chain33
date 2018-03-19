@@ -86,7 +86,7 @@ func (t *Token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	tokenlog.Info("exec token ExecLocal tx=", "tx=", action)
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
-		set, err = t.DriverBase.ExecLocalTransWithdraw(tx, receipt, index)
+		set, err = t.ExecLocalTransWithdraw(tx, receipt, index)
 	} else {
 		set, err = t.DriverBase.ExecLocal(tx, receipt, index)
 		if err != nil {
@@ -196,7 +196,7 @@ func (t *Token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types
 	db := t.GetQueryDB()
 	reciver := types.Int64{}
 	for _, token := range addrTokens.Token {
-		addrRecv := db.Get(drivers.CalcAddrKey(token, addrTokens.Addr))
+		addrRecv := db.Get(CalcAddrKey(token, addrTokens.Addr))
 		if addrRecv == nil {
 			continue
 		}
