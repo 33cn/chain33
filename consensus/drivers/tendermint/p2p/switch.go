@@ -171,7 +171,8 @@ func NewSwitch(config *P2PConfig) *Switch {
 	sw.peerConfig.MConfig.maxMsgPacketPayloadSize = config.MaxMsgPacketPayloadSize
 
 	if sw.Logger == nil{
-		sw.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "p2pconfig")
+		sw.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "p2p")
+		//sw.Logger = log.NewNopLogger()
 	}
 	//sw.BaseService = *cmn.NewBaseService(nil, "P2P Switch", sw)
 	return sw
@@ -376,7 +377,6 @@ func (sw *Switch) startInitPeer(peer *peer) {
 	}
 }
 
-/* hg 20180302
 // DialSeeds dials a list of seeds asynchronously in random order.
 func (sw *Switch) DialSeeds(addrBook *AddrBook, seeds []string) error {
 	netAddrs, errs := NewNetAddressStrings(seeds)
@@ -409,26 +409,7 @@ func (sw *Switch) DialSeeds(addrBook *AddrBook, seeds []string) error {
 	}
 	return nil
 }
-*/
 
-// DialSeeds dials a list of seeds asynchronously in random order.
-func (sw *Switch) DialSeeds(seeds []string) error {
-	netAddrs, errs := NewNetAddressStrings(seeds)
-	for _, err := range errs {
-		sw.Logger.Error("Error in seed's address", "err", err)
-	}
-
-	// permute the list, dial them in random order.
-	perm := sw.rng.Perm(len(netAddrs))
-	for i := 0; i < len(perm); i++ {
-		go func(i int) {
-			sw.randomSleep(0)
-			j := perm[i]
-			sw.dialSeed(netAddrs[j])
-		}(i)
-	}
-	return nil
-}
 
 // sleep for interval plus some random amount of ms on [0, dialRandomizerIntervalMilliseconds]
 func (sw *Switch) randomSleep(interval time.Duration) {

@@ -54,15 +54,17 @@ type PEXReactor struct {
 	maxMsgCountByPeer uint16
 	Logger            log.Logger
 	Quit    chan struct{}
+	seeds              []string
 }
 
 // NewPEXReactor creates new PEX reactor.
-func NewPEXReactor(b *AddrBook) *PEXReactor {
+func NewPEXReactor(b *AddrBook, seeds []string) *PEXReactor {
 	r := &PEXReactor{
 		book:              b,
 		ensurePeersPeriod: defaultEnsurePeersPeriod,
 		msgCountByPeer:    cmn.NewCMap(),
 		maxMsgCountByPeer: defaultMaxMsgCountByPeer,
+		seeds:             seeds,
 	}
 	if r.Logger == nil {
 		r.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "PEXReactor")
@@ -247,7 +249,7 @@ func (r *PEXReactor) ensurePeersRoutine() {
 // placeholder. It should not be the case that an address becomes old/vetted
 // upon a single successful connection.
 func (r *PEXReactor) ensurePeers() {
-	numOutPeers, _, numDialing := r.Switch.NumPeers()
+	numOutPeers, numInPeers, numDialing := r.Switch.NumPeers()
 	numToDial := minNumOutboundPeers - (numOutPeers + numDialing)
 	r.Logger.Info("Ensure peers", "numOutPeers", numOutPeers, "numDialing", numDialing, "numToDial", numToDial)
 	if numToDial <= 0 {
@@ -300,6 +302,36 @@ func (r *PEXReactor) ensurePeers() {
 			r.RequestPEX(peer)
 		}
 	}
+
+	// If we are not connected to nor dialing anybody, fallback to dialing a seed.
+	if numOutPeers+numInPeers+numDialing+len(toDial) == 0 {
+		r.Logger.Info("No addresses to dial nor connected peers. Falling back to seeds")
+		r.dialSeeds()
+	}
+}
+
+// randomly dial seeds until we connect to one or exhaust them
+func (r *PEXReactor) dialSeeds() {
+	lSeeds := len(r.seeds)
+	if lSeeds == 0 {
+		return
+	}
+	seedAddrs, _ := NewNetAddressStrings(r.seeds)
+
+	perm := rand.Perm(lSeeds)
+	// perm := r.Switch.rng.Perm(lSeeds)
+	for _, i := range perm {
+		// dial a random seed
+		seedAddr := seedAddrs[i]
+		peer, err := r.Switch.DialPeerWithAddress(seedAddr, false)
+		if err != nil {
+			r.Switch.Logger.Error("Error dialing seed", "err", err, "seed", seedAddr)
+		} else {
+			r.Switch.Logger.Info("Connected to seed", "peer", peer)
+			return
+		}
+	}
+	r.Switch.Logger.Error("Couldn't connect to any seeds")
 }
 
 func (r *PEXReactor) flushMsgCountByPeer() {

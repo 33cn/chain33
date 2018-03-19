@@ -19,6 +19,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"errors"
+	"net"
+	"strings"
+	"math/rand"
+	wire "github.com/tendermint/go-wire"
 )
 
 var (
@@ -111,19 +115,18 @@ func New(cfg *types.Consensus) *TendermintClient {
 		return nil
 	}
 
-	privValidator := ttypes.LoadOrGenPrivValidatorFS("./priv_validator.json")
-	if privValidator == nil{
-		//return nil
-		tendermintlog.Info("NewTendermintClient","msg", "priv_validator file missing")
-	}
-
 	// Generate node PrivKey
 	privKey := crypto.GenPrivKeyEd25519()
 
-	c := drivers.NewBaseClient(cfg)
-
-	csState := core.NewConsensusState(c, state, blockStore)
-	csState.SetPrivValidator(privValidator)
+	privValidator := ttypes.LoadOrGenPrivValidatorFS("./priv_validator.json")
+	if privValidator == nil{
+		tendermintlog.Info("NewTendermintClient","msg", "priv_validator file missing, create new one")
+		var privVal *ttypes.PrivValidatorFS
+		privVal = ttypes.GenPrivValidatorFS(".")
+		privVal.Save()
+		privValidator = privVal
+		//return nil
+	}
 
 	fastSync := true
 	if state.Validators.Size() == 1 {
@@ -132,6 +135,19 @@ func New(cfg *types.Consensus) *TendermintClient {
 			fastSync = false
 		}
 	}
+
+	// Log whether this node is a validator or an observer
+	if state.Validators.HasAddress(privValidator.GetAddress()) {
+		tendermintlog.Info("This node is a validator")
+	} else {
+		tendermintlog.Info("This node is not a validator")
+	}
+
+	c := drivers.NewBaseClient(cfg)
+
+	// Make ConsensusReactor
+	csState := core.NewConsensusState(c, state, blockStore)
+	csState.SetPrivValidator(privValidator)
 
 	consensusReactor := core.NewConsensusReactor(csState, fastSync)
 
@@ -154,7 +170,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 		//trustMetricStore = trust.NewTrustMetricStore(trustHistoryDB, trust.DefaultConfig())
 		//trustMetricStore.SetLogger(p2pLogger)
 
-		pexReactor := p2p.NewPEXReactor(addrBook)
+		pexReactor := p2p.NewPEXReactor(addrBook, c.Cfg.Seeds)
 		sw.AddReactor("PEX", pexReactor)
 	}
 
@@ -205,6 +221,33 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 		client.InitBlock()
 	})
 
+	//event start
+	err := client.eventBus.Start()
+	if err != nil {
+		tendermintlog.Error("TendermintClientSetQueue", "msg", "EventBus start failed", "error", err)
+		return
+	}
+	// Create & add listener
+	protocol, address := "tcp", "0.0.0.0:46656"
+	l := p2p.NewDefaultListener(protocol, address, false, client.Logger.With("module", "p2p"))
+	client.sw.AddListener(l)
+
+	// Start the switch
+	client.sw.SetNodeInfo(client.MakeDefaultNodeInfo())
+	client.sw.SetNodePrivKey(client.privKey)
+	err = client.sw.Start()
+	if err != nil {
+		tendermintlog.Error("TendermintClientSetQueue", "msg", "switch start failed", "error", err)
+		return
+	}
+
+	// If seeds exist, add them to the address book and dial out
+	if len(client.Cfg.Seeds) != 0 {
+		// dial out
+		client.sw.DialSeeds(nil, client.Cfg.Seeds)
+	}
+
+	//client.csReactor.SwitchToConsensus(client.state, 0)
 	go func() {
 		for {
 			txs, err:=client.GetMempoolTxs()
@@ -230,33 +273,7 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 			time.Sleep(1*time.Second)
 		}
 	}()
-	//event start
-	err := client.eventBus.Start()
-	if err != nil {
-		tendermintlog.Error("TendermintClientSetQueue", "msg", "EventBus start failed", "error", err)
-		return
-	}
-	// Create & add listener
-	protocol, address := "tcp", "0.0.0.0:46656"
-	l := p2p.NewDefaultListener(protocol, address, false, client.Logger.With("module", "p2p"))
-	client.sw.AddListener(l)
 
-	// Start the switch
-	client.sw.SetNodeInfo(client.csReactor.MakeDefaultNodeInfo())
-	client.sw.SetNodePrivKey(client.privKey)
-	err = client.sw.Start()
-	if err != nil {
-		tendermintlog.Error("TendermintClientSetQueue", "msg", "switch start failed", "error", err)
-		return
-	}
-
-	// If seeds exist, add them to the address book and dial out
-	if len(client.Cfg.Seeds) != 0 {
-		// dial out
-		client.sw.DialSeeds(client.Cfg.Seeds)
-	}
-
-	//client.csReactor.SwitchToConsensus(client.state, 0)
 	go client.checkValidator2StartConsensus()
 	go client.EventLoop()
 	//go client.child.CreateBlock()
@@ -374,4 +391,30 @@ func (client *TendermintClient) checkValidators() bool {
 	} else {
 		return false
 	}
+}
+
+func GetPulicIPInUse() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().String()
+	idx := strings.LastIndex(localAddr, ":")
+	return localAddr[0:idx]
+}
+
+func (client *TendermintClient) MakeDefaultNodeInfo() *p2p.NodeInfo {
+
+	nodeInfo := &p2p.NodeInfo{
+		PubKey:  client.privKey.PubKey().Unwrap().(crypto.PubKeyEd25519),
+		Moniker: "test_"+fmt.Sprintf("%v",rand.Intn(100)),
+		Network: client.state.ChainID,
+		Version: "v0.1.0",
+		Other: []string{
+			fmt.Sprintf("wire_version=%v", wire.Version),
+			fmt.Sprintf("p2p_version=%v", p2p.Version),
+		},
+	}
+
+	nodeInfo.ListenAddr = GetPulicIPInUse() + ":36656"
+
+	return nodeInfo
 }
