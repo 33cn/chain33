@@ -32,6 +32,8 @@ func main() {
 		LoadHelp()
 	case "help": //使用帮助
 		LoadHelp()
+	case "version", "-v", "--version":
+		GetVersion()
 	case "lock": //锁定
 		if len(argsWithoutProg) != 1 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -188,7 +190,7 @@ func main() {
 			return
 		}
 		GetBlockHash(argsWithoutProg[1])
-	//seed
+		//seed
 	case "genseed":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -361,9 +363,33 @@ type TxResult struct {
 	From       string             `json:"from,omitempty"`
 }
 
+type ReceiptData struct {
+	Ty     int32               `json:"ty"`
+	TyName string              `json:"tyname"`
+	Logs   []*ReceiptLog `json:"logs"`
+}
+
+type ReceiptLog struct {
+	Ty     int32       `json:"ty"`
+	TyName string      `json:"tyname"`
+	Log    interface{} `json:"log"`
+	RawLog string      `json:"rawlog"`
+}
+
+type ReceiptAccountTransfer struct {
+	Prev    *AccountResult `protobuf:"bytes,1,opt,name=prev" json:"prev,omitempty"`
+	Current *AccountResult `protobuf:"bytes,2,opt,name=current" json:"current,omitempty"`
+}
+
+type ReceiptExecAccountTransfer struct {
+	ExecAddr string   		`protobuf:"bytes,1,opt,name=execAddr" json:"execAddr,omitempty"`
+	Prev     *AccountResult `protobuf:"bytes,2,opt,name=prev" json:"prev,omitempty"`
+	Current  *AccountResult `protobuf:"bytes,3,opt,name=current" json:"current,omitempty"`
+}
+
 type TxDetailResult struct {
 	Tx         *TxResult                  `json:"tx"`
-	Receipt    *jsonrpc.ReceiptDataResult `json:"receipt"`
+	Receipt    *ReceiptData `json:"receipt"`
 	Proofs     []string                   `json:"proofs,omitempty"`
 	Height     int64                      `json:"height"`
 	Index      int64                      `json:"index"`
@@ -389,7 +415,7 @@ type BlockResult struct {
 
 type BlockDetailResult struct {
 	Block    *BlockResult                 `json:"block"`
-	Receipts []*jsonrpc.ReceiptDataResult `json:"receipts"`
+	Receipts []*ReceiptData `json:"receipts"`
 }
 
 type BlockDetailsResult struct {
@@ -402,7 +428,7 @@ type WalletTxDetailsResult struct {
 
 type WalletTxDetailResult struct {
 	Tx         *TxResult                  `json:"tx"`
-	Receipt    *jsonrpc.ReceiptDataResult `json:"receipt"`
+	Receipt    *ReceiptData `json:"receipt"`
 	Height     int64                      `json:"height"`
 	Index      int64                      `json:"index"`
 	Blocktime  int64                      `json:"blocktime"`
@@ -416,6 +442,10 @@ type AddrOverviewResult struct {
 	Reciver string `json:"reciver"`
 	Balance string `json:"balance"`
 	TxCount int64  `json:"txCount"`
+}
+
+func GetVersion() {
+	fmt.Println(common.GetVersion())
 }
 
 func Lock() {
@@ -512,14 +542,7 @@ func SetLabl(addr string, label string) {
 		return
 	}
 
-	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(types.Coin), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(types.Coin), 'f', 4, 64)
-	accResult := &AccountResult{
-		Addr:     res.GetAcc().GetAddr(),
-		Currency: res.GetAcc().GetCurrency(),
-		Balance:  balanceResult,
-		Frozen:   frozenResult,
-	}
+	accResult := decodeAccount(res.GetAcc())
 	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -545,14 +568,7 @@ func NewAccount(lb string) {
 		return
 	}
 
-	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(types.Coin), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(types.Coin), 'f', 4, 64)
-	accResult := &AccountResult{
-		Addr:     res.GetAcc().GetAddr(),
-		Currency: res.GetAcc().GetCurrency(),
-		Balance:  balanceResult,
-		Frozen:   frozenResult,
-	}
+	accResult := decodeAccount(res.GetAcc())
 	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -695,14 +711,7 @@ func ImportPrivKey(privkey string, label string) {
 		return
 	}
 
-	balanceResult := strconv.FormatFloat(float64(res.GetAcc().GetBalance())/float64(types.Coin), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res.GetAcc().GetFrozen())/float64(types.Coin), 'f', 4, 64)
-	accResult := &AccountResult{
-		Addr:     res.GetAcc().GetAddr(),
-		Currency: res.GetAcc().GetCurrency(),
-		Balance:  balanceResult,
-		Frozen:   frozenResult,
-	}
+	accResult := decodeAccount(res.GetAcc())
 	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -747,7 +756,7 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		wtxd := &WalletTxDetailResult{
 			Tx:         decodeTransaction(*(v.Tx)),
-			Receipt:    v.Receipt,
+			Receipt:    decodeLog(*(v.Receipt)),
 			Height:     v.Height,
 			Index:      v.Index,
 			Blocktime:  v.Blocktime,
@@ -875,7 +884,7 @@ func GetTransactionByHashes(hashes []string) {
 		}
 		td := TxDetailResult{
 			Tx:         decodeTransaction(*v.Tx),
-			Receipt:    v.Receipt,
+			Receipt:    decodeLog(*(v.Receipt)),
 			Proofs:     v.Proofs,
 			Height:     v.Height,
 			Index:      v.Index,
@@ -938,7 +947,11 @@ func GetBlocks(start string, end string, detail string) {
 		for _, vTx := range vItem.Block.Txs {
 			b.Txs = append(b.Txs, decodeTransaction(*vTx))
 		}
-		bd := &BlockDetailResult{Block: b, Receipts: vItem.Receipts}
+		var rpt []*ReceiptData
+		for _, vR := range vItem.Receipts {
+			rpt = append(rpt, decodeLog(*vR))
+		}
+		bd := &BlockDetailResult{Block: b, Receipts: rpt}
 		result.Items = append(result.Items, bd)
 	}
 
@@ -1451,31 +1464,6 @@ func DumpPrivkey(addr string) {
 	fmt.Println(string(data))
 }
 
-func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
-	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
-	amountResult := ""
-	if tx.Amount != 0 {
-		amountResult = strconv.FormatFloat(float64(tx.Amount)/float64(types.Coin), 'f', 4, 64)
-	}
-	result := &TxResult{
-		Execer:     tx.Execer,
-		Payload:    tx.Payload,
-		RawPayload: tx.RawPayload,
-		Signature:  tx.Signature,
-		Fee:        feeResult,
-		Expire:     tx.Expire,
-		Nonce:      tx.Nonce,
-		To:         tx.To,
-	}
-	if tx.Amount != 0 {
-		result.Amount = amountResult
-	}
-	if tx.From != "" {
-		result.From = tx.From
-	}
-	return result
-}
-
 func DecodeTx(tran string) {
 	var tx types.Transaction
 	txHex, err := common.FromHex(tran)
@@ -1519,7 +1507,7 @@ func QueryTransaction(h string) {
 
 	result := TxDetailResult{
 		Tx:         decodeTransaction(*(res.Tx)),
-		Receipt:    res.Receipt,
+		Receipt:    decodeLog(*(res.Receipt)),
 		Proofs:     res.Proofs,
 		Height:     res.Height,
 		Index:      res.Index,
@@ -1593,4 +1581,97 @@ func CloseTickets() {
 	}
 
 	fmt.Println(string(data))
+}
+
+func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
+	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
+	amountResult := ""
+	if tx.Amount != 0 {
+		amountResult = strconv.FormatFloat(float64(tx.Amount)/float64(types.Coin), 'f', 4, 64)
+	}
+	result := &TxResult{
+		Execer:     tx.Execer,
+		Payload:    tx.Payload,
+		RawPayload: tx.RawPayload,
+		Signature:  tx.Signature,
+		Fee:        feeResult,
+		Expire:     tx.Expire,
+		Nonce:      tx.Nonce,
+		To:         tx.To,
+	}
+	if tx.Amount != 0 {
+		result.Amount = amountResult
+	}
+	if tx.From != "" {
+		result.From = tx.From
+	}
+	return result
+}
+
+func decodeAccount(acc *types.Account) *AccountResult {
+	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(types.Coin), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(acc.GetFrozen())/float64(types.Coin), 'f', 4, 64)
+	accResult := &AccountResult{
+		Addr:     acc.GetAddr(),
+		Currency: acc.GetCurrency(),
+		Balance:  balanceResult,
+		Frozen:   frozenResult,
+	}
+	return accResult
+}
+
+func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account {
+	var cur int32
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"].(float32); ok {
+		cur = int32(tmp)
+	}
+	var bal int64
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["balance"].(float64); ok {
+		bal = int64(tmp)
+	}
+	var fro int64
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["frozen"].(float64); ok {
+		fro = int64(tmp)
+	}
+	var ad string
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["addr"].(string); ok {
+		ad = tmp
+	}
+	return &types.Account{
+		Currency: cur,
+		Balance: bal,
+		Frozen: fro,
+		Addr: ad,
+	}
+}
+
+func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
+	rd := &ReceiptData{Ty: rlog.Ty, TyName: rlog.TyName}
+
+	for _, l := range rlog.Logs {
+		rl := &ReceiptLog{Ty: l.Ty, TyName: l.TyName, RawLog: l.RawLog}
+		switch l.Ty {
+		case 1, 4, 111, 112, 113, 114:
+			rl.Log = l.Log
+		case 2, 3, 5, 11:
+			rl.Log = &ReceiptAccountTransfer{
+				Prev: decodeAccount(constructAccFromLog(l, "prev")),
+				Current: decodeAccount(constructAccFromLog(l, "current")),
+			}
+		case 6, 7, 8, 9, 10, 12:
+			var execaddr string
+			if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
+				execaddr = tmp
+			}
+			rl.Log = &ReceiptExecAccountTransfer{
+				ExecAddr: execaddr,
+				Prev: decodeAccount(constructAccFromLog(l, "prev")),
+				Current: decodeAccount(constructAccFromLog(l, "current")),
+			}
+		default:
+			return nil
+		}
+		rd.Logs = append(rd.Logs, rl)
+	}
+	return rd
 }
