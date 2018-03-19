@@ -1650,6 +1650,20 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrTokenSymbolUpper
 	}
 
+	creator := reqTokenPrcCreate.GetCreatorAddr()
+	approverValid := false
+	for _, approver := range types.TokenApprs {
+		if approver == creator {
+			approverValid = true
+			break
+		}
+	}
+
+	if approverValid == false {
+		walletlog.Error("procTokenFinishCreate", "creater", types.ErrTokenCreatedApprover)
+		return nil, types.ErrTokenCreatedApprover
+	}
+
 	addrs := make([]string, 1)
 	addrs[0] = reqTokenPrcCreate.GetCreatorAddr()
 	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
