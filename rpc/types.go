@@ -220,8 +220,8 @@ type Query struct {
 }
 
 type WalletStatus struct {
-	IsLock       bool `json:"isLock"`
-	IsAutoMining bool `json:"isAutoMining"`
-	HasSeed      bool `json:"hasSeed"`
-	Ismineronly  bool `json:"ismineronly"`
+	IsWalletLock bool `json:"iswalletlock"`
+	IsAutoMining bool `json:"isautomining"`
+	IsHasSeed    bool `json:"ishasseed"`
+	IsTicketLock bool `json:"isticketlock"`
 }
