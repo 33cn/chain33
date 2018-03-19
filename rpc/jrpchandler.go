@@ -770,10 +770,7 @@ func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var reply Reply
-	reply.IsOk = resp.GetIsOk()
-	reply.Msg = string(resp.GetMsg())
-	*result = reply
+	*result = resp
 	return nil
 }
 

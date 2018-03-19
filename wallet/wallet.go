@@ -38,16 +38,16 @@ type Wallet struct {
 	isclosed       int32
 	isWalletLocked bool
 	isTicketLocked bool
-
-	autoMinerFlag int32
-	Password      string
-	FeeAmount     int64
-	EncryptFlag   int64
-	miningTicket  *time.Ticker
-	wg            *sync.WaitGroup
-	walletStore   *WalletStore
-	random        *rand.Rand
-	done          chan struct{}
+	lastHeight     int64
+	autoMinerFlag  int32
+	Password       string
+	FeeAmount      int64
+	EncryptFlag    int64
+	miningTicket   *time.Ticker
+	wg             *sync.WaitGroup
+	walletStore    *WalletStore
+	random         *rand.Rand
+	done           chan struct{}
 }
 
 func SetLogLevel(level string) {
@@ -138,11 +138,19 @@ func (wallet *Wallet) autoMining() {
 		select {
 		case <-wallet.miningTicket.C:
 			if !wallet.IsCaughtUp() {
+				walletlog.Error("wallet IsCaughtUp false")
 				break
 			}
+			//判断高度是否增长
+			height := wallet.GetHeight()
+			if height <= wallet.lastHeight {
+				walletlog.Error("wallet Height not inc")
+				break
+			}
+			wallet.lastHeight = height
 			walletlog.Info("BEG miningTicket")
 			if wallet.isAutoMining() {
-				n1, err := wallet.closeTicket(true)
+				n1, err := wallet.closeTicket()
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
@@ -162,7 +170,7 @@ func (wallet *Wallet) autoMining() {
 					wallet.flushTicket()
 				}
 			} else {
-				n1, err := wallet.closeTicket(true)
+				n1, err := wallet.closeTicket()
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
@@ -249,8 +257,12 @@ func (wallet *Wallet) withdrawFromTicket() (hashes [][]byte, err error) {
 	return hashes, nil
 }
 
-func (wallet *Wallet) closeTicket(flag bool) (int, error) {
-	return wallet.closeAllTickets(flag)
+func (wallet *Wallet) closeTicket() (int, error) {
+	return wallet.closeAllTickets()
+}
+
+func (wallet *Wallet) forceCloseTicket() ([][]byte, error) {
+	return wallet.forceCloseAllTicket()
 }
 
 func (wallet *Wallet) flushTicket() {
@@ -475,13 +487,15 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventCloseTickets:
 			var reply types.Reply
 			reply.IsOk = true
-			_, err := wallet.closeTicket(false)
+			hashes, err := wallet.forceCloseTicket()
 			if err != nil {
 				walletlog.Error("closeTicket", "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyHashes, err))
+			} else {
+				var replyHashes types.TxHashList
+				replyHashes.Hashes = hashes
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyHashes, &replyHashes))
 			}
-			msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReply, &reply))
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
