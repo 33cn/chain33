@@ -51,3 +51,27 @@ message Agency {
     string updateTime = 6;
 
 }
+message Query {
+    oneof value {
+        QueryOrgParam queryOrg = 1;
+        QueryTransactionParam queryTransaction = 2;
+        QueryRecordParam queryRecord  =3;
+        DeleteRecordParam  delRecord= 4;
+    }
+    string PrivateKey = 5;
+}
+message QueryOrgParam {
+    string orgId =1;
+}
+message QueryTransactionParam {
+    string byTxId =1;
+    string byToAddr = 2;
+}
+message QueryRecordParam {
+    string byClientId = 1;
+    string byClientName = 2;
+}
+message DeleteRecordParam {
+    string orgId = 1;
+    string  recordId = 2;
+}

@@ -68,17 +68,17 @@ func main() {
 		}
 		submitRecord(argsWithoutProg[1])
 	case  "queryRecord":
-		if len(argsWithoutProg) !=2{
+		if len(argsWithoutProg) !=3{
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		queryRecord(argsWithoutProg[1])
+		queryRecord(argsWithoutProg[1],argsWithoutProg[2])
 	case "queryRecordByName":
-		if len(argsWithoutProg) !=2{
+		if len(argsWithoutProg) !=3{
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		queryRecordByName(argsWithoutProg[1])
+		queryRecordByName(argsWithoutProg[1],argsWithoutProg[2])
 	case "createOrg": //发送到地址
 		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -90,6 +90,12 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
+	case "deleteRecord":
+		if len(argsWithoutProg) != 4{
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		deleteRecord(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
 		//NormGet(argsWithoutProg[1])
 	}
 }
@@ -255,11 +261,14 @@ func submitRecord(privkey string){
 		return
 	}
 }
-func queryRecord(key string) {
+func queryRecord(privKey string ,recordId string) {
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.QueryRecord
-	req.Payload = []byte(key)
+	qb := &blacklist.QueryRecordParam{}
+	qb.ByClientId=recordId
+	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},privKey}
+	req.Payload = []byte(query.String())
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -275,12 +284,35 @@ func queryRecord(key string) {
 	value := string(reply.Msg[:])
 	fmt.Println("GetValue =", value)
 }
+func deleteRecord(privkey string ,orgId string,recordId string) {
+	rc := &blacklist.Record{
+	}
+	rc.OrgId=orgId
+	rc.RecordId=recordId
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.DeleteRecord}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = r.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(privkey))
 
-func queryRecordByName(key string) {
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+}
+func queryRecordByName(privKey string,name string) {
 	var req types.Query
+	qb := &blacklist.QueryRecordParam{}
+	qb.ByClientName=name
+	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},privKey}
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.QueryRecordByName
-	req.Payload = []byte(key)
+	req.Payload = []byte(query.String())
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
