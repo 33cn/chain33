@@ -545,6 +545,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 	}
 	return nil, nil
 }
+
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
 func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
 	accountTokendb := account.NewTokenAccountWithoutDB(in.GetTokenSymbol())
