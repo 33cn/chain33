@@ -14,6 +14,7 @@ message Config {
 	BlockChain blockChain = 6;
 	Wallet wallet = 7;
 	P2P p2p = 8;
+	Rpc rpc=12;
 }
 
 message MemPool {
@@ -69,4 +70,10 @@ message P2P {
 	int32 version = 8;
 	int32 verMix = 9;
 	int32 verMax = 10;
+}
+
+message Rpc {
+	string jrpcBindAddr=1;
+	string grpcBindAddr=2;
+	repeated string whitlist=3;
 }

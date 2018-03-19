@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/hex"
 	"io"
+	"sync/atomic"
 
 	"fmt"
 	"strings"
@@ -21,11 +22,23 @@ type p2pServer struct {
 	streams      map[pb.P2Pgservice_ServerStreamSendServer]chan interface{}
 	inboundpeers map[string]*innerpeer
 	deleteSChan  chan pb.P2Pgservice_ServerStreamSendServer
-	loopdone     chan struct{}
+	closed       int32
 }
 type innerpeer struct {
 	addr string
 	name string
+}
+
+func (s *p2pServer) Start() {
+	s.manageStream()
+}
+
+func (s *p2pServer) Close() {
+	atomic.StoreInt32(&s.closed, 1)
+}
+
+func (s *p2pServer) IsClose() bool {
+	return atomic.LoadInt32(&s.closed) == 1
 }
 
 func NewP2pServer() *p2pServer {
@@ -33,7 +46,6 @@ func NewP2pServer() *p2pServer {
 		streams:      make(map[pb.P2Pgservice_ServerStreamSendServer]chan interface{}),
 		deleteSChan:  make(chan pb.P2Pgservice_ServerStreamSendServer, 1024),
 		inboundpeers: make(map[string]*innerpeer),
-		loopdone:     make(chan struct{}, 1),
 	}
 
 }
@@ -117,9 +129,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 				peers, _ := s.node.GetActivePeers()
 				for _, peer := range peers {
-
 					peer.mconn.conn.Version2(context.Background(), in)
-
 				}
 			}()
 		}
@@ -467,17 +477,19 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	return txmap, nil
 }
 
-func (s *p2pServer) ManageStream() {
+func (s *p2pServer) manageStream() {
 	go s.deleteDisableStream()
 	go func() { //发送空的block stream ping
 		ticker := time.NewTicker(StreamPingTimeout)
 		defer ticker.Stop()
 		for {
+			if s.IsClose() {
+				return
+			}
 			select {
 			case <-ticker.C:
 				s.addStreamData(&pb.P2PBlock{})
-			case <-s.loopdone:
-				return
+
 			}
 		}
 
@@ -485,6 +497,9 @@ func (s *p2pServer) ManageStream() {
 	go func() {
 		fifoChan := pub.Sub("block", "tx")
 		for data := range fifoChan {
+			if s.IsClose() {
+				return
+			}
 			s.addStreamData(data)
 		}
 		log.Info("p2pserver", "manageStream", "close")
