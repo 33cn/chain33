@@ -98,6 +98,9 @@ func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	if checkTokenExist(token.GetSymbol(), action.db) {
 		return nil, types.ErrTokenExist
 	}
+	if checkTokenHasPrecreate(token.GetSymbol(), token.GetOwner(), types.TokenStatusPreCreated, action.db) {
+		return nil, types.ErrTokenHavePrecreated
+	}
 
 	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
 	if err != nil {
@@ -109,12 +112,16 @@ func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	var kv []*types.KeyValue
 
 	tokendb := NewTokenDB(token, action.fromaddr)
+	statuskey := tokenStatusKey(tokendb.token.Symbol, tokendb.token.Owner, types.TokenStatusPreCreated)
+	tokendb.Save(action.db, statuskey)
 	key := tokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
 	tokendb.Save(action.db, key)
+
 	logs = append(logs, receipt.Logs...)
 	logs = append(logs, tokendb.getLogs(types.TyLogPreCreateToken, types.TokenStatusPreCreated)...)
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, tokendb.GetKVSet(key)...)
+	kv = append(kv, tokendb.GetKVSet(statuskey)...)
 	tokenlog.Info("func token preCreate","token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
 	"key:", key, "key string", string(key), "value:", tokendb.GetKVSet(key)[0].Value)
 
@@ -225,6 +232,11 @@ func checkTokenExist(token string, db dbm.KVDB) bool {
 	return err == nil
 }
 
+func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KVDB) bool {
+	_, err := db.Get(tokenAddrKey(token, owner))
+	return err == nil
+}
+
 func tokenKey(token string) (key []byte) {
 	key = append(key, []byte("mavl-token-")...)
 	key = append(key, []byte(token)...)
@@ -247,6 +259,6 @@ func tokenStatusKeyPrefix(status int32) ([]byte) {
 	return []byte(fmt.Sprintf("mavl-create-token-%d:", status))
 }
 
-func tokenStatusSymbolePrefix(status int32, symbol string) ([]byte) {
+func tokenStatusSymbolPrefix(status int32, symbol string) ([]byte) {
 	return []byte(fmt.Sprintf("mavl-create-token-%d:%s:", status, symbol))
 }

@@ -249,7 +249,7 @@ func (t *Token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 
 	} else {
 		for _, token := range reqTokens.Tokens {
-			keys := querydb.List(tokenStatusSymbolePrefix(reqTokens.Status, token), nil, 0, 0)
+			keys := querydb.List(tokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 			if len(keys) != 0 {
 				for _, key := range keys {
