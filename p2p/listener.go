@@ -9,35 +9,33 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (l *DefaultListener) Close() bool {
-	l.listener.Close()
-	log.Info("stop", "DefaultListener", "close")
-	return true
-}
-
 type Listener interface {
 	Close() bool
 }
 
-type DefaultListener struct {
-	listener  net.Listener
+func (l *listener) Close() bool {
+	l.server.Stop()
+	l.p2pserver.Close()
+	log.Info("stop", "listener", "close")
+	return true
+}
+
+type listener struct {
 	server    *grpc.Server
 	nodeInfo  *NodeInfo
 	p2pserver *p2pServer
 	node      *Node
 }
 
-func NewDefaultListener(protocol string, node *Node) Listener {
-
-	log.Debug("NewDefaultListener", "localPort", DefaultPort)
-	listener, err := net.Listen(protocol, fmt.Sprintf(":%v", DefaultPort))
+func NewListener(protocol string, node *Node) Listener {
+	log.Debug("NewListener", "localPort", DefaultPort)
+	l, err := net.Listen(protocol, fmt.Sprintf(":%v", DefaultPort))
 	if err != nil {
 		log.Crit("Failed to listen", "Error", err.Error())
 		return nil
 	}
 
-	dl := &DefaultListener{
-		listener: listener,
+	dl := &listener{
 		nodeInfo: node.nodeInfo,
 		node:     node,
 	}
@@ -45,13 +43,8 @@ func NewDefaultListener(protocol string, node *Node) Listener {
 	pServer.node = dl.node
 	pServer.Start()
 	dl.server = grpc.NewServer()
-
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
-	go dl.listenRoutine()
+	go dl.server.Serve(l)
 	return dl
-}
-
-func (l *DefaultListener) listenRoutine() {
-	l.server.Serve(l.listener)
 }
