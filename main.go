@@ -39,8 +39,6 @@ var (
 	configPath = flag.String("f", "chain33.toml", "configfile")
 )
 
-const Version = "v0.1.0"
-
 func main() {
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
@@ -85,7 +83,7 @@ func main() {
 	}
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info("chain33 " + Version)
+	log.Info("chain33 " + common.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
@@ -116,10 +114,11 @@ func main() {
 		network.SetQueue(q)
 	}
 	//jsonrpc, grpc, channel 三种模式
+	rpc.Init(cfg.Rpc)
 	gapi := rpc.NewGRpcServer(q.NewClient())
-	go gapi.Listen(":8802")
-	api := rpc.NewJsonRpcServer(q.NewClient())
-	go api.Listen(":8801")
+	go gapi.Listen()
+	japi := rpc.NewJsonRpcServer(q.NewClient())
+	go japi.Listen()
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
@@ -142,7 +141,7 @@ func main() {
 		log.Info("begin close consensus module")
 		cs.Close()
 		log.Info("begin close jsonrpc module")
-		api.Close()
+		japi.Close()
 		log.Info("begin close grpc module")
 		gapi.Close()
 		log.Info("begin close queue module")

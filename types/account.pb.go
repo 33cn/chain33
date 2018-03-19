@@ -57,6 +57,7 @@ It has these top-level messages:
 	LocalStore
 	BlockChain
 	P2P
+	Rpc
 	LeafNode
 	InnerNode
 	MAVLProof
