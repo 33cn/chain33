@@ -157,7 +157,7 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 
 	//创建token类型的账户，同时需要创建的额度存入
 	tokenAccount := account.NewTokenAccount(tokenFinish.GetSymbol(), action.db)
-	receiptForToken, err := tokenAccount.GenesisInit(token.Owner, token.GetTotal()*types.TokenPrecision)
+	receiptForToken, err := tokenAccount.GenesisInit(token.Owner, token.GetTotal())
 
 	//更新token的状态为已经创建
 	token.Status = types.TokenStatusCreated
