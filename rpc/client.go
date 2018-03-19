@@ -616,3 +616,27 @@ func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
 	}
 	return resp.GetData().(*types.TxHashList), nil
 }
+
+func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.Account, error) {
+	blockHash, err := c.GetBlockHash(&types.ReqInt{in.Height})
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("GetTotalCoins", "blockhash", blockHash)
+
+	blockOverview, err := c.GetBlockOverview(&types.ReqHash{Hash:blockHash.GetHash()})
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("GetTotalCoins", "statehash", blockOverview.Head.StateHash)
+
+
+	//获取地址账户的余额通过account模块
+	addrs := make([]string, 1)
+	addrs[0] = in.Symbol
+	acc, err := accountdb.GetTotalCoins(c.Client, blockOverview.Head.StateHash)
+	if err != nil {
+		return nil, err
+	}
+	return acc, nil
+}
