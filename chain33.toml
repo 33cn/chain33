@@ -44,7 +44,7 @@ driver="leveldb"
 dbPath="datadir/mavltree"
 
 [wallet]
-minFee=1000000
+minFee=100000
 driver="leveldb"
 dbPath="datadir/wallet"
 signType="secp256k1"
