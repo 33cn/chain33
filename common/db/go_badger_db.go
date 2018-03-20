@@ -174,8 +174,9 @@ func (it *goBadgerDBIt) Next() bool {
 }
 
 func (it *goBadgerDBIt) Rewind() bool {
-	it.Iterator.Rewind()
-	return it.Valid()
+	//it.Iterator.Rewind()
+	//return it.Valid()
+	return true
 }
 
 func (it *goBadgerDBIt) Seek(key []byte) bool {
