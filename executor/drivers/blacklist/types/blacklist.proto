@@ -1,11 +1,13 @@
 syntax = "proto3";
-
+package types;
 message BlackAction {
     oneof value {
         Record rc = 1;
         Org or = 3;
         Transaction tr =4;
         Agency  ac= 5;
+        User    user=6;
+
     }
     string funcName = 2;
 }
@@ -57,6 +59,7 @@ message Query {
         QueryTransactionParam queryTransaction = 2;
         QueryRecordParam queryRecord  =3;
         DeleteRecordParam  delRecord= 4;
+        User      loginCheck=6;
     }
     string PrivateKey = 5;
 }
@@ -66,6 +69,7 @@ message QueryOrgParam {
 message QueryTransactionParam {
     string byTxId =1;
     string byToAddr = 2;
+    string byFromAddr = 3;
 }
 message QueryRecordParam {
     string byClientId = 1;
@@ -74,4 +78,10 @@ message QueryRecordParam {
 message DeleteRecordParam {
     string orgId = 1;
     string  recordId = 2;
+}
+message User{
+    string userName = 1;
+    string userId = 2;
+    string orgId = 3;
+    string passWord = 4;
 }

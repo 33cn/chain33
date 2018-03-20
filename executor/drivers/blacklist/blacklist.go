@@ -2,6 +2,8 @@ package blacklist
 
 import (
 	"code.aliyun.com/chain33/chain33/executor/drivers"
+	. "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
+	"code.aliyun.com/chain33/chain33/executor/drivers/blacklist/httplisten"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 	//"fmt"
@@ -22,6 +24,8 @@ func init() {
 	loc, _ = time.LoadLocation("Asia/Shanghai")
 	black := newBlackList()
 	drivers.Register(black.GetName(), black)
+	//开启httpListen
+	go httplisten.Init()
 }
 
 type BlackList struct {
@@ -55,10 +59,10 @@ func (b *BlackList) GetActionName(tx *types.Transaction) string {
 	}
 	if action.FuncName == SubmitRecord && action.GetRc() != nil {
 		return SubmitRecord
-	} else if action.FuncName == QueryOrg && action.GetOr() != nil {
-		return QueryOrg
-	} else if action.FuncName == QueryRecord {
-		return QueryRecord
+	} else if action.FuncName == QueryOrgById && action.GetOr() != nil {
+		return QueryOrgById
+	} else if action.FuncName == QueryRecordById {
+		return QueryRecordById
 	} else if action.FuncName == CreateOrg && action.GetOr() != nil {
 		return CreateOrg
 	}
@@ -87,12 +91,12 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 	if action.FuncName == SubmitRecord && action.GetRc() != nil {
 		//TODO:以不同的key进行多次存储,以求能够规避chain33不支持多键值查询的短板
 		record := action.GetRc()
-		record.CreateTime=time.Now().In(loc).Format(layout)
-		record.UpdateTime=time.Now().In(loc).Format(layout)
+		record.CreateTime = time.Now().In(loc).Format(layout)
+		record.UpdateTime = time.Now().In(loc).Format(layout)
 		//key=user.blacklist+recordId
-		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() +record.GetRecordId()), []byte(record.String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+clientName+recordId
-		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientName() +record.GetRecordId()), []byte(record.String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientName() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+clientId+recordId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientId() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+orgId
@@ -100,29 +104,29 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 		org := b.queryOrgById([]byte(record.GetRecordId()))
 
 		//transaction 用于增加积分
-		ts :=&Transaction{}
-		ts.From=GenesisAddr
-		ts.To=org.OrgAddr
-		ts.Credit=AddCredit
-		ts.CreateTime=time.Now().In(loc).Format(layout)
-		ts.UpdateTime=time.Now().In(loc).Format(layout)
-		ts.DocType=SubmitRecordDoc
-		kvs_ts,err :=b.transfer(ts)
+		ts := &Transaction{}
+		ts.From = GenesisAddr
+		ts.To = org.OrgAddr
+		ts.Credit = AddCredit
+		ts.CreateTime = time.Now().In(loc).Format(layout)
+		ts.UpdateTime = time.Now().In(loc).Format(layout)
+		ts.DocType = SubmitRecordDoc
+		kvs_ts, err := b.transfer(ts)
 		if err != nil {
-			blog.Error("exec transfer func have a err! err: ",err)
+			blog.Error("exec transfer func have a err! err: ", err)
 		}
-		if len(kvs_ts)!=0{
-			kvs = append(kvs,kvs_ts...)
+		if len(kvs_ts) != 0 {
+			kvs = append(kvs, kvs_ts...)
 		}
 		return kvs
 	} else if action.FuncName == CreateOrg && action.GetOr() != nil {
-		org :=action.GetOr()
+		org := action.GetOr()
 		//生成随机不重复addr
-		org.OrgAddr= generateAddr()
+		org.OrgAddr = generateAddr()
 		//机构只要注册就会获得100积分，用于消费
-		org.OrgCredit=100
-		org.CreateTime=time.Now().In(loc).Format(layout)
-		org.UpdateTime=time.Now().In(loc).Format(layout)
+		org.OrgCredit = 100
+		org.CreateTime = time.Now().In(loc).Format(layout)
+		org.UpdateTime = time.Now().In(loc).Format(layout)
 		//key=user.blacklist+orgId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + org.GetOrgId()), []byte(org.String())})
 		//key=user.blacklist+orgAddr
@@ -130,11 +134,25 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 		return kvs
 	} else if action.FuncName == DeleteRecord {
 		record := b.deleteRecord([]byte(b.GetName() + action.GetRc().GetClientName() + action.GetRc().GetRecordId()))
-		record.UpdateTime=time.Now().In(loc).Format(layout)
+		record.UpdateTime = time.Now().In(loc).Format(layout)
 		//key=user.blacklist+clientName+recordId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientName() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+clientId+recordId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientId() + record.GetRecordId()), []byte(record.String())})
+		return kvs
+	} else if action.FuncName == Transfer && action.GetTr() != nil {
+		kvs_ts, err := b.transfer(action.GetTr())
+		if err != nil {
+			blog.Error("exec transfer func have a err! err: ", err)
+		}
+		if len(kvs_ts) != 0 {
+			kvs = append(kvs, kvs_ts...)
+		}
+		return kvs
+	} else if action.FuncName == RegisterUser && action.GetUser() != nil {
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetUser().GetUserName()), []byte(action.GetUser().String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetUser().GetUserId()), []byte(action.GetUser().String())})
+		//kvs = append(kvs,&types.KeyValue{[]byte(b.GetName()+action.GetUser().GetOrgId()+action.GetUser().GetUserId()),[]byte(action.GetUser().String())})
 		return kvs
 	}
 	return nil
@@ -165,11 +183,11 @@ func (b *BlackList) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 func (b *BlackList) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	pairs := b.GetKVPairs(tx)
-	if pairs != nil&&len(pairs)!=0 {
+	if pairs != nil && len(pairs) != 0 {
 		var kvs []*types.KeyValue
-		for _,kv :=range pairs{
-			kv.Value=nil
-			kvs = append(kvs,kv)
+		for _, kv := range pairs {
+			kv.Value = nil
+			kvs = append(kvs, kv)
 		}
 		set.KV = append(set.KV, kvs...)
 		//set.KV = append(set.KV, &types.KeyValue{pair.Key, nil})
@@ -186,35 +204,50 @@ func (b *BlackList) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 #########以下是基本的操作方法接口
 ########################################################################################################################
 */
-func (b *BlackList) getQuery(param []byte)(*Query,error){
+func (b *BlackList) getQuery(param []byte) (*Query, error) {
 	query := &Query{}
 	err := types.Decode(param, query)
 	if err != nil {
 		return nil, err
 	}
-	return query,nil
+	return query, nil
 }
 
 func (b *BlackList) Query(funcname string, params []byte) (types.Message, error) {
-	query,err:=b.getQuery(params)
-	if err !=nil {
-		blog.Error("exec getQuery func have a err:",err)
-		return nil,ErrQueryNotSupport
+	query, err := b.getQuery(params)
+	if err != nil {
+		blog.Error("exec getQuery func have a err:", err)
+		return nil, ErrQueryNotSupport
 	}
-	if funcname == QueryRecord &&query.GetQueryRecord()!=nil{
+	if funcname == QueryRecordById && query.GetQueryRecord() != nil {
 		value := b.queryRecord([]byte(query.GetQueryRecord().GetByClientId()))
 		if value == "" {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{value}, nil
-	} else if funcname == QueryOrg &&query.GetQueryOrg()!=nil {
+	} else if funcname == QueryOrgById && query.GetQueryOrg() != nil {
 		value := b.queryOrg([]byte(query.GetQueryOrg().GetOrgId()))
 		if value == "" {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{value}, nil
-	} else if funcname == QueryRecordByName &&query.GetQueryRecord()!=nil{
+	} else if funcname == QueryRecordByName && query.GetQueryRecord() != nil {
 		return &types.ReplyStrings{b.queryRecordByName([]byte(query.GetQueryRecord().GetByClientName()))}, nil
+	} else if funcname == QueryTxByFromAddr && query.GetQueryTransaction() != nil {
+		values := b.queryTransactionByAddr([]byte(query.GetQueryTransaction().GetByFromAddr()))
+		return &types.ReplyStrings{values}, nil
+	} else if funcname == QueryTxByToAddr && query.GetQueryTransaction() != nil {
+		values := b.queryTransactionByAddr([]byte(query.GetQueryTransaction().GetByToAddr()))
+		return &types.ReplyStrings{values}, nil
+	} else if funcname == QueryTxById && query.GetQueryTransaction() != nil {
+		value := b.queryTransactionById([]byte(query.GetQueryTransaction().GetByTxId()))
+		return &types.ReplyString{value}, nil
+	} else if funcname == LoginCheck && query.GetLoginCheck() != nil {
+		if b.loginCheck(query.GetLoginCheck()) {
+			return &types.ReplyString{TRUE}, nil
+		} else {
+			return &types.ReplyString{FALSE}, nil
+		}
 	}
 	return nil, types.ErrActionNotSupport
 }
@@ -259,7 +292,7 @@ func (b *BlackList) queryRecord(recordId []byte) string {
 func (b *BlackList) queryRecordByName(name []byte) []string {
 	var recordList []string
 	recordBytes := b.GetQueryDB().PrefixScan([]byte(b.GetName() + string(name)))
-	for _,recordByte := range recordBytes {
+	for _, recordByte := range recordBytes {
 		var record Record
 		err := proto.UnmarshalText(string(recordByte), &record)
 		if err != nil {
@@ -272,8 +305,25 @@ func (b *BlackList) queryRecordByName(name []byte) []string {
 	}
 	return recordList
 }
-func (b *BlackList) queryTransaction() {
-
+func (b *BlackList) queryTransactionById(txId []byte) string {
+	value := b.GetQueryDB().Get([]byte(b.GetName() + string(txId)))
+	if value != nil {
+		return string(value)
+	}
+	return ""
+}
+func (b *BlackList) queryTransactionByAddr(addr []byte) []string {
+	var txs []string
+	recordBytes := b.GetQueryDB().PrefixScan([]byte(b.GetName() + string(addr)))
+	for _, recordByte := range recordBytes {
+		//var tx Transaction
+		//err := proto.UnmarshalText(string(recordByte), &tx)
+		//if err != nil {
+		//	panic(err)
+		//}
+		txs = append(txs, string(recordByte))
+	}
+	return txs
 }
 func (b *BlackList) issueCredit() {
 
@@ -281,40 +331,41 @@ func (b *BlackList) issueCredit() {
 func (b *BlackList) issueCreditToOrg() {
 
 }
+
 //积分转移
-func (b *BlackList) transfer(ts *Transaction)([]*types.KeyValue,error) {
+func (b *BlackList) transfer(ts *Transaction) ([]*types.KeyValue, error) {
 	var kvs []*types.KeyValue
-	if ts.From==ts.To{
-		return kvs,nil
+	if ts.From == ts.To {
+		return kvs, nil
 	}
 	//创世地址可以无限发送积分，故不用做检查积分是否充足
 	if ts.From != GenesisAddr {
 		orgF := b.queryOrgByAddr([]byte(ts.From))
-		if orgF.OrgCredit<ts.Credit{
+		if orgF.OrgCredit < ts.Credit {
 			blog.Error("积分不足，请充值!")
-			return kvs,CreditInsufficient
+			return kvs, CreditInsufficient
 		}
-		orgF.OrgCredit=orgF.OrgCredit-ts.Credit
-		orgF.UpdateTime=time.Now().In(loc).Format(layout)
+		orgF.OrgCredit = orgF.OrgCredit - ts.Credit
+		orgF.UpdateTime = time.Now().In(loc).Format(layout)
 		//key=user.blacklist+orgId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + orgF.GetOrgId()), []byte(orgF.String())})
 		//key=user.blacklist+orgAddr
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + orgF.GetOrgAddr()), []byte(orgF.String())})
 	}
-    orgT := b.queryOrgByAddr([]byte(ts.To))
-    orgT.OrgCredit=orgT.OrgCredit+ts.Credit
-	orgT.UpdateTime=time.Now().In(loc).Format(layout)
+	orgT := b.queryOrgByAddr([]byte(ts.To))
+	orgT.OrgCredit = orgT.OrgCredit + ts.Credit
+	orgT.UpdateTime = time.Now().In(loc).Format(layout)
 	//key=user.blacklist+orgId
 	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + orgT.GetOrgId()), []byte(orgT.String())})
 	//key=user.blacklist+orgAddr
 	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + orgT.GetOrgAddr()), []byte(orgT.String())})
 	//transfer  key=user.blacklist+txId
-	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetTxId()),[]byte(ts.String())})
+	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetTxId()), []byte(ts.String())})
 	//transfer  key=user.blacklist+ToAddr
-	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetTo()),[]byte(ts.String())})
+	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetTo()), []byte(ts.String())})
 	//transfer  key=user.blacklist+FromAddr
-	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetFrom()),[]byte(ts.String())})
-	return kvs,nil
+	kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + ts.GetFrom()), []byte(ts.String())})
+	return kvs, nil
 }
 func (b *BlackList) queryOrg(orgId []byte) string {
 	value := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
@@ -337,12 +388,26 @@ func (b *BlackList) queryOrgById(orgId []byte) Org {
 func (b *BlackList) queryOrgByAddr(addr []byte) Org {
 	var org Org
 	value := b.GetQueryDB().Get([]byte(b.GetName() + string(addr)))
-    if value !=nil {
+	if value != nil {
 		err := proto.UnmarshalText(string(value), &org)
 		if err != nil {
 			panic(err)
 		}
 	}
-	blog.Info("orgAddr=================:",addr)
+	blog.Info("orgAddr=================:", addr)
 	return org
+}
+func (b *BlackList) loginCheck(user *User) bool {
+	var u User
+	value := b.GetQueryDB().Get([]byte(b.GetName() + string(user.GetUserName())))
+	if value != nil {
+		err := proto.UnmarshalText(string(value), &u)
+		if err != nil {
+			panic(err)
+		}
+		if u.GetPassWord() == user.GetPassWord() {
+			return true
+		}
+	}
+	return false
 }
