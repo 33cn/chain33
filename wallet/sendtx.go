@@ -375,9 +375,9 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	if to == "" {
 		to = account.ExecAddress(string(execer)).String()
 	}
-	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
+	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: minFee, To: to}
 	tx.Nonce = wallet.random.Int63()
-	tx.Fee, err = tx.GetRealFee(minFee)
+	tx.Fee, err = tx.GetRealFee(wallet.GetFee())
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +466,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 		transfer.Ty = types.CoinsActionWithdraw
 	}
 	//初始化随机数d
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.GetFee(), To: addrto, Nonce: wallet.random.Int63()}
 	tx.SetExpire(time.Second * 120)
 	tx.Sign(int32(SignType), priv)
 
