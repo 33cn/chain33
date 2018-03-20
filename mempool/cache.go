@@ -16,7 +16,14 @@ type txCache struct {
 	txMap      map[string]*list.Element
 	txList     *list.List
 	txFrontTen []*types.Transaction
-	accountMap map[string]int64
+	accMap     map[string][]*types.Transaction
+}
+
+// Item为Mempool中包装交易的数据结构
+type Item struct {
+	value     *types.Transaction
+	priority  int64
+	enterTime int64
 }
 
 // NewTxCache初始化txCache
@@ -26,7 +33,7 @@ func newTxCache(cacheSize int64) *txCache {
 		txMap:      make(map[string]*list.Element, cacheSize),
 		txList:     list.New(),
 		txFrontTen: make([]*types.Transaction, 0),
-		accountMap: make(map[string]int64),
+		accMap:     make(map[string][]*types.Transaction),
 	}
 }
 
@@ -40,7 +47,7 @@ func newTxCache(cacheSize int64) *txCache {
 
 // txCache.TxNumOfAccount返回账户在Mempool中交易数量
 func (cache *txCache) TxNumOfAccount(addr string) int64 {
-	return cache.accountMap[addr]
+	return int64(len(cache.accMap[addr]))
 }
 
 // txCache.Exists判断txCache中是否存在给定tx
@@ -65,11 +72,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 
 	// 账户交易数量
 	accountAddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	if _, ok := cache.accountMap[accountAddr]; ok {
-		cache.accountMap[accountAddr]++
-	} else {
-		cache.accountMap[accountAddr] = 1
-	}
+	cache.accMap[accountAddr] = append(cache.accMap[accountAddr], tx)
 
 	if len(cache.txFrontTen) >= 10 {
 		cache.txFrontTen = cache.txFrontTen[len(cache.txFrontTen)-9:]
@@ -89,7 +92,10 @@ func (cache *txCache) Remove(tx *types.Transaction) {
 	cache.txList.Remove(cache.txMap[string(tx.Hash())])
 	delete(cache.txMap, string(tx.Hash()))
 	// 账户交易数量减1
-	cache.AccountTxNumDecrease(account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String())
+	addr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	if cache.TxNumOfAccount(addr) > 0 {
+		cache.AccountTxNumDecrease(addr, tx)
+	}
 }
 
 // txCache.Size返回txCache中已存tx数目
@@ -105,24 +111,36 @@ func (cache *txCache) SetSize(newSize int) {
 	cache.size = newSize
 }
 
+func (cache *txCache) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
+	var res *types.TransactionDetails
+	for _, addr := range addrs.Addrs {
+		if value, ok := cache.accMap[addr]; ok {
+			for _, v := range value {
+				txAmount, err := v.Amount()
+				if err != nil {
+					continue
+				}
+				res.Txs = append(res.Txs,
+					&types.TransactionDetail{
+						Tx: v,
+						Amount: txAmount,
+						Fromaddr: addr,
+						ActionName: v.ActionName(),
+					})
+			}
+		}
+	}
+	return res
+}
+
 // txCache.AccountTxNumDecrease使得账户的交易计数减一
-func (cache *txCache) AccountTxNumDecrease(addr string) {
-	if value, ok := cache.accountMap[addr]; ok {
-		if value > 1 {
-			cache.accountMap[addr]--
-		} else {
-			delete(cache.accountMap, addr)
+func (cache *txCache) AccountTxNumDecrease(addr string, tx *types.Transaction) {
+	if value, ok := cache.accMap[addr]; ok {
+		for i, t := range value {
+			if string(t.Hash()) == string(tx.Hash()) {
+				cache.accMap[addr] = append(cache.accMap[addr][:i], cache.accMap[addr][i+1:]...)
+				return
+			}
 		}
 	}
 }
-
-//--------------------------------------------------------------------------------
-// Module LLRB
-
-type Item struct {
-	value     *types.Transaction
-	priority  int64
-	enterTime int64
-}
-
-//--------------------------------------------------------------------------------
