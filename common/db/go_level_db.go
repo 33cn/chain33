@@ -1,7 +1,7 @@
 package db
 
 import (
-	//"bytes"
+	"bytes"
 	"path"
 
 	log "github.com/inconshreveable/log15"
@@ -157,16 +157,16 @@ func (dbit *goLevelDBIt) Close() {
 
 func (dbit *goLevelDBIt) Next() bool {
 	if dbit.reserve {
-		return dbit.Iterator.Prev()
+		return dbit.Iterator.Prev() && dbit.Valid()
 	}
-	return dbit.Iterator.Next()
+	return dbit.Iterator.Next() && dbit.Valid()
 }
 
 func (dbit *goLevelDBIt) Rewind() bool {
 	if dbit.reserve {
-		return dbit.Iterator.Last()
+		return dbit.Iterator.Last() && dbit.Valid()
 	}
-	return dbit.Iterator.First()
+	return dbit.Iterator.First() && dbit.Valid()
 }
 
 func (dbit *goLevelDBIt) Value() []byte {
@@ -178,6 +178,10 @@ func (dbit *goLevelDBIt) ValueCopy() []byte {
 	value := make([]byte, len(v))
 	copy(value, v)
 	return value
+}
+
+func (dbit *goLevelDBIt) Valid() bool {
+	return dbit.Iterator.Valid() && bytes.HasPrefix(dbit.Key(), dbit.prefix)
 }
 
 type goLevelDBBatch struct {
