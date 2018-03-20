@@ -883,9 +883,6 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 //	Amount int64
 //设置钱包默认的手续费
 func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
 	if WalletSetFee.Amount < minFee {
 		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", minFee)
 		return types.ErrInputPara
@@ -893,9 +890,17 @@ func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) erro
 	err := wallet.walletStore.SetFeeAmount(WalletSetFee.Amount)
 	if err == nil {
 		walletlog.Debug("ProcWalletSetFee success!")
+		wallet.mtx.Lock()
 		wallet.FeeAmount = WalletSetFee.Amount
+		wallet.mtx.Unlock()
 	}
 	return err
+}
+
+func (wallet *Wallet) GetFee() int64 {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	return wallet.FeeAmount
 }
 
 //input:

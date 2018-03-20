@@ -103,6 +103,7 @@ type GrpcserviceClient interface {
 	DumpPrivkey(ctx context.Context, in *ReqStr, opts ...grpc.CallOption) (*ReplyStr, error)
 	// 获取程序版本
 	Version(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error)
+
 	// 是否同步
 	IsSync(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error)
 }
@@ -526,6 +527,7 @@ type GrpcserviceServer interface {
 	DumpPrivkey(context.Context, *ReqStr) (*ReplyStr, error)
 	// 获取程序版本
 	Version(context.Context, *ReqNil) (*Reply, error)
+
 	// 是否同步
 	IsSync(context.Context, *ReqNil) (*Reply, error)
 }
@@ -1348,6 +1350,7 @@ var _Grpcservice_serviceDesc = grpc.ServiceDesc{
 			MethodName: "Version",
 			Handler:    _Grpcservice_Version_Handler,
 		},
+
 		{
 			MethodName: "IsSync",
 			Handler:    _Grpcservice_IsSync_Handler,
@@ -1360,6 +1363,7 @@ var _Grpcservice_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("rpc.proto", fileDescriptor7) }
 
 var fileDescriptor7 = []byte{
+
 	// 807 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0x5b, 0x4f, 0xe3, 0x46,
 	0x14, 0xf6, 0x43, 0x0b, 0x64, 0x48, 0x20, 0x0c, 0x01, 0x81, 0xd5, 0xaa, 0x92, 0xa5, 0xaa, 0x55,
