@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"sync/atomic"
 
-	"os"
 	"sync"
 	"time"
 
@@ -35,9 +34,12 @@ func (n *Node) Close() {
 		n.l.Close()
 	}
 	log.Debug("stop", "listen", "closed")
-	n.addrBook.Close()
+	n.nodeInfo.addrBook.Close()
 	log.Debug("stop", "addrBook", "closed")
 	n.RemoveAll()
+	if Filter != nil {
+		Filter.Close()
+	}
 	log.Debug("stop", "PeerRemoeAll", "closed")
 
 }
@@ -48,7 +50,6 @@ func (n *Node) IsClose() bool {
 
 type Node struct {
 	omtx     sync.Mutex
-	addrBook *AddrBook // known peers
 	nodeInfo *NodeInfo
 	outBound map[string]*peer
 	l        Listener
@@ -61,10 +62,9 @@ func (n *Node) SetQueue(q *queue.Queue) {
 }
 
 func NewNode(cfg *types.P2P) (*Node, error) {
-	os.MkdirAll(cfg.GetDbPath(), 0755)
+
 	node := &Node{
 		outBound: make(map[string]*peer),
-		addrBook: NewAddrBook(cfg.GetDbPath() + "/addrbook.json"),
 	}
 
 	node.nodeInfo = NewNodeInfo(cfg)
@@ -100,10 +100,10 @@ func (n *Node) DoNat() {
 		}
 
 	}
-	n.addrBook.AddOurAddress(n.nodeInfo.GetExternalAddr())
-	n.addrBook.AddOurAddress(n.nodeInfo.GetListenAddr())
+	n.nodeInfo.addrBook.AddOurAddress(n.nodeInfo.GetExternalAddr())
+	n.nodeInfo.addrBook.AddOurAddress(n.nodeInfo.GetListenAddr())
 	if selefNet, err := NewNetAddressString(fmt.Sprintf("127.0.0.1:%v", n.nodeInfo.GetListenAddr().Port)); err == nil {
-		n.addrBook.AddOurAddress(selefNet)
+		n.nodeInfo.addrBook.AddOurAddress(selefNet)
 	}
 
 	return
@@ -114,13 +114,13 @@ func (n *Node) AddPeer(pr *peer) {
 	defer n.omtx.Unlock()
 	if peer, ok := n.outBound[pr.Addr()]; ok {
 		log.Info("AddPeer", "delete peer", pr.Addr())
-		n.addrBook.RemoveAddr(peer.Addr())
+		n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 		delete(n.outBound, pr.Addr())
 		peer.Close()
 		peer = nil
 	}
 	log.Debug("AddPeer", "peer", pr.Addr())
-	pr.key = n.addrBook.key
+	pr.key = n.nodeInfo.addrBook.GetKey()
 	n.outBound[pr.Addr()] = pr
 	pr.Start()
 	return
@@ -212,6 +212,7 @@ func (n *Node) Monitor() {
 	go n.monitorPeerInfo()
 	go n.monitorDialPeers()
 	go n.monitorBlackList()
+	go n.monitorFilter()
 
 }
 
