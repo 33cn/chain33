@@ -204,142 +204,15 @@ func (it *goBadgerDBIt) Error() error {
 	return it.err
 }
 
-func (db *GoBadgerDB) NewBatch(sync bool) Batch {
-	batch := db.db.NewTransaction(true)
-	return &GoBadgerDBBatch{db, batch}
-}
-
-func (db *GoBadgerDB) PrefixScan(key []byte) (txhashs [][]byte) {
-	err := db.db.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Seek(key); it.ValidForPrefix(key); it.Next() {
-			item := it.Item()
-			value, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
-			txhashs = append(txhashs, value)
-		}
-		return nil
-	})
-	if err != nil {
-		blog.Error("PrefixScan", "error", err)
-		txhashs = txhashs[:]
-	}
-	return
-}
-
-func (db *GoBadgerDB) List(prefix, key []byte, count, direction int32) (values [][]byte) {
-	if len(key) == 0 {
-		if direction == 1 {
-			return db.IteratorScanFromFirst(prefix, count, direction)
-		} else {
-			return db.IteratorScanFromLast(prefix, count, direction)
-		}
-	}
-	return db.IteratorScan(prefix, key, count, direction)
-}
-
-func (db *GoBadgerDB) IteratorScan(Prefix []byte, key []byte, count int32, direction int32) (values [][]byte) {
-	err := db.db.View(func(txn *badger.Txn) error {
-		var i int32 = 0
-		opts := badger.DefaultIteratorOptions
-		if direction == 0 {
-			opts.Reverse = true
-		}
-		it := txn.NewIterator(opts)
-		defer it.Close()
-		it.Seek(Prefix)
-		for it.Seek(key); it.ValidForPrefix(Prefix); it.Next() {
-			item := it.Item()
-			value, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			// blog.Debug("IteratorScan", "key", string(item.Key()), "value", value)
-			values = append(values, value)
-			i++
-			if i == count {
-				break
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		blog.Error("IteratorScan", "error", err)
-		values = values[:]
-	}
-	return
-}
-
-func (db *GoBadgerDB) IteratorScanFromFirst(key []byte, count int32, direction int32) (values [][]byte) {
-	err := db.db.View(func(txn *badger.Txn) error {
-		var i int32 = 0
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Seek(key); it.ValidForPrefix(key); it.Next() {
-			item := it.Item()
-			value, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			// blog.Debug("IteratorScanFromFirst", "key", string(item.Key()), "value", value)
-			values = append(values, value)
-			i++
-			if i == count {
-				break
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		blog.Error("IteratorScanFromFirst", "error", err)
-		values = values[:]
-	}
-	return
-}
-
-func (db *GoBadgerDB) IteratorScanFromLast(key []byte, count int32, direction int32) (values [][]byte) {
-	err := db.db.View(func(txn *badger.Txn) error {
-		var i int32 = 0
-		opts := badger.DefaultIteratorOptions
-		opts.Reverse = true
-		it := txn.NewIterator(opts)
-		defer it.Close()
-		prefix := append(key, 0xFF)
-		for it.Seek(prefix); it.ValidForPrefix(key); it.Next() {
-			item := it.Item()
-			value, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			// blog.Debug("IteratorScanFromLast", "key", string(item.Key()), "value", value)
-			values = append(values, value)
-			i++
-			if i == count {
-				break
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		blog.Error("IteratorScanFromLast", "error", err)
-		values = values[:]
-	}
-	return
-}
-
-//--------------------------------------------------------------------------------
-
 type GoBadgerDBBatch struct {
 	db    *GoBadgerDB
 	batch *badger.Txn
 	//wop   *opt.WriteOptions
+}
+
+func (db *GoBadgerDB) NewBatch(sync bool) Batch {
+	batch := db.db.NewTransaction(true)
+	return &GoBadgerDBBatch{db, batch}
 }
 
 func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
