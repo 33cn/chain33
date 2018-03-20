@@ -82,6 +82,7 @@ var (
 	ErrFutureBlock                = errors.New("ErrFutureBlock")
 	ErrHashNotFound               = errors.New("ErrHashNotFound")
 	ErrTxDup                      = errors.New("ErrTxDup")
+	ErrNotSync                    = errors.New("ErrNotSync")
 
 	// BlockChain Error Types
 	ErrHashNotExist           = errors.New("ErrHashNotExist")
