@@ -808,18 +808,20 @@ func (cs *ConsensusState) enterPropose(height int64, round int) {
 		return
 	}
 
-	if !cs.isProposer() {
-		cs.Logger.Info("enterPropose: Not our turn to propose", "proposer", cs.Validators.GetProposer().Address, "privValidator", cs.privValidator)
-		if cs.Validators.HasAddress(cs.privValidator.GetAddress()) {
-			cs.Logger.Debug("This node is a validator")
-		} else {
-			cs.Logger.Debug("This node is not a validator")
-		}
-	} else {
-		cs.Logger.Info("enterPropose: Our turn to propose", "proposer", cs.Validators.GetProposer().Address, "privValidator", cs.privValidator)
-		cs.Logger.Debug("This node is a validator")
-		cs.decideProposal(height, round)
+	// if not a validator, we're done
+	if !cs.Validators.HasAddress(cs.privValidator.GetAddress()) {
+		cs.Logger.Debug("This node is not a validator")
+		return
 	}
+	cs.Logger.Debug("This node is a validator")
+
+	if cs.isProposer() {
+		cs.Logger.Info("enterPropose: Our turn to propose", "proposer", cs.Validators.GetProposer().Address, "privValidator", cs.privValidator)
+		cs.decideProposal(height, round)
+	} else {
+		cs.Logger.Info("enterPropose: Not our turn to propose", "proposer", cs.Validators.GetProposer().Address, "privValidator", cs.privValidator)
+	}
+
 }
 
 func (cs *ConsensusState) isProposer() bool {
@@ -827,6 +829,8 @@ func (cs *ConsensusState) isProposer() bool {
 }
 
 func (cs *ConsensusState) defaultDecideProposal(height int64, round int) {
+	cs.Logger.Info("defaultDecideProposal")
+
 	var block *ttypes.Block
 	var blockParts *ttypes.PartSet
 
@@ -1326,68 +1330,46 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 	// Execute and commit the block, update and save the state, and update the mempool.
 	//hg 20180302
-	if len(block.Data.Txs) == 0 {
-		cs.Logger.Error("txs of block is empty")
-	}
-	var newblock gtypes.Block
-	var err error
-	newblock.ParentHash = block.LastParentHash
-	newblock.Height = block.Height - 1
-	newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
-	if err !=nil{
-		cs.Logger.Error("convert TXs to transaction failed", "err", err)
-		return
-	}
+	if cs.isProposer() {
+		if len(block.Data.Txs) == 0 {
+			cs.Logger.Error("txs of block is empty")
+		}
+		var newblock gtypes.Block
+		var err error
+		newblock.ParentHash = block.LastParentHash
+		newblock.Height = block.Height - 1
+		newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
+		if err !=nil{
+			cs.Logger.Error("convert TXs to transaction failed", "err", err)
+			return
+		}
 
-	fail.Fail() // XXX
+		fail.Fail() // XXX
 
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-	if block.LastBlockTime == 0 {
-		newblock.BlockTime = time.Now().Unix()
-		if block.LastBlockTime >= newblock.BlockTime {
-			newblock.BlockTime = block.LastBlockTime + 1
+		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		if block.LastBlockTime == 0 {
+			newblock.BlockTime = time.Now().Unix()
+			if block.LastBlockTime >= newblock.BlockTime {
+				newblock.BlockTime = block.LastBlockTime + 1
+			}
+		} else {
+			newblock.BlockTime = block.LastBlockTime
+		}
+
+
+		err = cs.client.WriteBlock(block.LastStateHash, &newblock)
+		if err != nil {
+			cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
+		} else {
+			cs.updateState(stateCopy, block, blockID)
 		}
 	} else {
-		newblock.BlockTime = block.LastBlockTime
-	}
-
-	err = cs.client.WriteBlock(block.LastStateHash, &newblock)
-	if err != nil {
-		cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
-	} else {
-		// copy the valset so we can apply changes from EndBlock
-		// and update s.LastValidators and s.Validators
-		prevValSet := stateCopy.Validators.Copy()
-		nextValSet := prevValSet.Copy()
-		// update the validator set with the latest abciResponses
-		lastHeightValsChanged := stateCopy.LastHeightValidatorsChanged
-
-		// Update validator accums and set state variables
-		nextValSet.IncrementAccum(1)
-
-		// update the params with the latest abciResponses
-		nextParams := stateCopy.ConsensusParams
-		lastHeightParamsChanged := stateCopy.LastHeightConsensusParamsChanged
-
-
-		// NOTE: the AppHash has not been populated.
-		// It will be filled on state.Save.
-		stateCopy = sm.State{
-			ChainID:                          stateCopy.ChainID,
-			LastBlockHeight:                  block.Header.Height,
-			LastBlockTotalTx:                 stateCopy.LastBlockTotalTx + block.Header.NumTxs,
-			LastBlockID:                      blockID,
-			LastBlockTime:                    block.Header.Time,
-			Validators:                       nextValSet,
-			LastValidators:                   stateCopy.Validators.Copy(),
-			LastHeightValidatorsChanged:      lastHeightValsChanged,
-			ConsensusParams:                  nextParams,
-			LastHeightConsensusParamsChanged: lastHeightParamsChanged,
-			LastResultsHash:                  nil,//abciResponses.ResultsHash(),
-			AppHash:                          nil,
+		time.Sleep(3*time.Second)
+		if block.Height == cs.client.GetCurrentHeight() + 1 {
+			cs.updateState(stateCopy, block, blockID)
 		}
-		cs.updateToState(stateCopy)
 	}
+
 	/*
 	// NOTE: the block.AppHash wont reflect these txs until the next block
 	var err error
@@ -1419,22 +1401,60 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// * cs.StartTime is set to when we will start round0.
 }
 
+func (cs *ConsensusState) updateState(state sm.State, block *ttypes.Block, blockID ttypes.BlockID) {
+	// copy the valset so we can apply changes from EndBlock
+	// and update s.LastValidators and s.Validators
+	prevValSet := state.Validators.Copy()
+	nextValSet := prevValSet.Copy()
+	// update the validator set with the latest abciResponses
+	lastHeightValsChanged := state.LastHeightValidatorsChanged
+
+	// Update validator accums and set state variables
+	nextValSet.IncrementAccum(1)
+
+	// update the params with the latest abciResponses
+	nextParams := state.ConsensusParams
+	lastHeightParamsChanged := state.LastHeightConsensusParamsChanged
+
+
+	// NOTE: the AppHash has not been populated.
+	// It will be filled on state.Save.
+	state = sm.State{
+		ChainID:                          state.ChainID,
+		LastBlockHeight:                  block.Header.Height,
+		LastBlockTotalTx:                 state.LastBlockTotalTx + block.Header.NumTxs,
+		LastBlockID:                      blockID,
+		LastBlockTime:                    block.Header.Time,
+		Validators:                       nextValSet,
+		LastValidators:                   state.Validators.Copy(),
+		LastHeightValidatorsChanged:      lastHeightValsChanged,
+		ConsensusParams:                  nextParams,
+		LastHeightConsensusParamsChanged: lastHeightParamsChanged,
+		LastResultsHash:                  nil,//abciResponses.ResultsHash(),
+		AppHash:                          nil,
+	}
+	cs.updateToState(state)
+}
 //-----------------------------------------------------------------------------
 
 func (cs *ConsensusState) defaultSetProposal(proposal *ttypes.Proposal) error {
+	cs.Logger.Info("enter defaultSetProposal")
 	// Already have one
 	// TODO: possibly catch double proposals
 	if cs.Proposal != nil {
+		cs.Logger.Info("defaultSetProposal:","msg","proposal is nil")
 		return nil
 	}
 
 	// Does not apply
 	if proposal.Height != cs.Height || proposal.Round != cs.Round {
+		cs.Logger.Info("defaultSetProposal:","msg","height is not equal or round is not equal")
 		return nil
 	}
 
 	// We don't care about the proposal if we're already in ttypes.RoundStepCommit.
 	if ttypes.RoundStepCommit <= cs.Step {
+		cs.Logger.Info("defaultSetProposal:","msg","step not equal")
 		return nil
 	}
 
@@ -1451,19 +1471,23 @@ func (cs *ConsensusState) defaultSetProposal(proposal *ttypes.Proposal) error {
 
 	cs.Proposal = proposal
 	cs.ProposalBlockParts = ttypes.NewPartSetFromHeader(proposal.BlockPartsHeader)
+	cs.Logger.Info("finish defaultSetProposal")
 	return nil
 }
 
 // NOTE: block is not necessarily valid.
 // Asynchronously triggers either enterPrevote (before we timeout of propose) or tryFinalizeCommit, once we have the full block.
 func (cs *ConsensusState) addProposalBlockPart(height int64, part *ttypes.Part, verify bool) (added bool, err error) {
+	cs.Logger.Info("enter addProposalBlockPart")
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
+		cs.Logger.Info("addProposalBlockPart:", "msg","height not equal")
 		return false, nil
 	}
 
 	// We're not expecting a block part.
 	if cs.ProposalBlockParts == nil {
+		cs.Logger.Info("addProposalBlockPart:", "msg","ProposalBlockParts is nil")
 		return false, nil // TODO: bad peer? Return error?
 	}
 
@@ -1488,6 +1512,7 @@ func (cs *ConsensusState) addProposalBlockPart(height int64, part *ttypes.Part, 
 		}
 		return true, err
 	}
+	cs.Logger.Info("finish addProposalBlockPart:")
 	return added, nil
 }
 
