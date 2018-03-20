@@ -41,6 +41,7 @@ type Iterator interface {
 	Valid() bool
 	Key() []byte
 	Value() []byte
+	ValueCopy() []byte
 	Error() error
 	Close()
 }

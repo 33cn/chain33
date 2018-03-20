@@ -19,7 +19,7 @@ func (db *ListHelper) PrefixScan(prefix []byte) (values [][]byte) {
 	defer it.Close()
 
 	for it.Seek(prefix); it.Valid(); it.Next() {
-		value := it.Value()
+		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
@@ -52,7 +52,7 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 
 	var i int32 = 0
 	for it.Seek(key); it.Valid(); it.Next() {
-		value := it.Value()
+		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
@@ -74,7 +74,7 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 
 	var i int32 = 0
 	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.Value()
+		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
@@ -96,7 +96,7 @@ func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [
 
 	var i int32 = 0
 	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.Value()
+		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
