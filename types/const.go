@@ -150,6 +150,8 @@ const (
 	EventReplyIsSync         = 97
 
 	EventCloseTickets = 98
+	EventGetAddrTxs   = 99
+	EventReplyAddrTxs = 100
 )
 
 var eventName = map[int]string{
@@ -251,6 +253,8 @@ var eventName = map[int]string{
 	96: "EventIsSync",
 	97: "EventReplyIsSync",
 	98: "EventCloseTickets",
+	99: "EventGetAddrTxs",
+	100: "EventReplyAddrTxs",
 }
 
 //ty = 1 -> secp256k1
