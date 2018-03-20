@@ -157,8 +157,8 @@ func startTrace() {
 	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
 		return true, true
 	}
-	go http.ListenAndServe(":50051", nil)
-	log.Info("Trace listen on 50051")
+	go http.ListenAndServe("localhost:50051", nil)
+	log.Info("Trace listen on localhost:50051")
 }
 
 func createFile(filename string) (*os.File, error) {
