@@ -19,6 +19,7 @@ import (
 	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/p2p"
 	crypto "github.com/tendermint/go-crypto"
 	"os"
+	"sync/atomic"
 )
 
 const (
@@ -28,6 +29,11 @@ const (
 	VoteSetBitsChannel = byte(0x23)
 
 	maxConsensusMessageSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
+)
+
+var (
+	ErrAlreadyStarted = errors.New("already started")
+	ErrAlreadyStopped = errors.New("already stopped")
 )
 
 //-----------------------------------------------------------------------------
@@ -46,6 +52,9 @@ type ConsensusReactor struct {
 	privKey crypto.PrivKeyEd25519
 	//Switch          *p2p.Switch
 	Quit    chan struct{}
+
+	started uint32 // atomic
+	stopped uint32 // atomic
 }
 
 // NewConsensusReactor returns a new ConsensusReactor with the given consensusState.
@@ -65,6 +74,11 @@ func NewConsensusReactor(consensusState *ConsensusState, fastSync bool) *Consens
 	return conR
 }
 
+// Implements Service
+func (cr *ConsensusReactor) IsRunning() bool {
+	return atomic.LoadUint32(&cr.started) == 1 && atomic.LoadUint32(&cr.stopped) == 0
+}
+
 // OnStart implements BaseService.
 func (conR *ConsensusReactor) Start() error {
 	conR.Logger.Info("ConsensusReactor ", "fastSync", conR.FastSync())
@@ -73,25 +87,45 @@ func (conR *ConsensusReactor) Start() error {
 		return err
 	}
 	*/
-	err := conR.startBroadcastRoutine()
-	if err != nil {
-		return err
-	}
+	if atomic.CompareAndSwapUint32(&conR.started, 0, 1) {
+		if atomic.LoadUint32(&conR.stopped) == 1 {
+			conR.Logger.Error(fmt.Sprintf("Not starting ConsensusReactor -- already stopped"))
+			return ErrAlreadyStopped
+		} else {
+			conR.Logger.Info(fmt.Sprintf("Starting ConsensusReactor"))
+			err := conR.startBroadcastRoutine()
+			if err != nil {
+				return err
+			}
 
-	if !conR.FastSync() {
-		err := conR.conS.Start()
-		if err != nil {
-			return err
+			if !conR.FastSync() {
+				err := conR.conS.Start()
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
 		}
+	} else {
+		conR.Logger.Debug(fmt.Sprintf("Not starting ConsensusReactor -- already started"))
+		return ErrAlreadyStarted
 	}
 
-	return nil
+
 }
 
 // OnStop implements BaseService
 func (conR *ConsensusReactor) Stop() {
 	//conR.BaseReactor.OnStop()
-	conR.conS.Stop()
+	if atomic.CompareAndSwapUint32(&conR.stopped, 0, 1) {
+		conR.Logger.Info("Stopping ConsensusReactor")
+		conR.conS.Stop()
+		return
+	} else {
+		conR.Logger.Debug("Stopping ConsensusReactor (ignoring: already stopped)")
+		return
+	}
 }
 
 // SwitchToConsensus switches from fast_sync mode to consensus mode.
@@ -149,12 +183,10 @@ func (conR *ConsensusReactor) GetChannels() []*p2p.ChannelDescriptor {
 
 // AddPeer implements Reactor
 func (conR *ConsensusReactor) AddPeer(peer p2p.Peer) {
-	//hg do it later
-	/*
+
 	if !conR.IsRunning() {
 		return
 	}
-	*/
 
 	// Create peerState for peer
 	peerState := NewPeerState(peer).SetLogger(conR.Logger)
@@ -174,12 +206,11 @@ func (conR *ConsensusReactor) AddPeer(peer p2p.Peer) {
 
 // RemovePeer implements Reactor
 func (conR *ConsensusReactor) RemovePeer(peer p2p.Peer, reason interface{}) {
-	//hg do it later
-	/*
+
 	if !conR.IsRunning() {
 		return
 	}
-	*/
+
 	// TODO
 	//peer.Get(PeerStateKey).(*PeerState).Disconnect()
 }
@@ -191,13 +222,11 @@ func (conR *ConsensusReactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 // proposals, block parts, and votes are ordered by the receiveRoutine
 // NOTE: blocks on consensus state for proposals, block parts, and votes
 func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
-	//hg do it later
-	/*
+
 	if !conR.IsRunning() {
 		conR.Logger.Debug("Receive", "src", src, "chId", chID, "bytes", msgBytes)
 		return
 	}
-	*/
 	_, msg, err := DecodeMessage(msgBytes)
 	if err != nil {
 		conR.Logger.Error("Error decoding message", "src", src, "chId", chID, "msg", msg, "err", err, "bytes", msgBytes)
@@ -486,15 +515,13 @@ func (conR *ConsensusReactor) gossipDataRoutine(peer p2p.Peer, ps *PeerState) {
 
 OUTER_LOOP:
 	for {
-		//hg 20180302 do it later
 		// Manage disconnects from self or peer.
-		/*
+
 		if !peer.IsRunning() || !conR.IsRunning() {
 			logger.Info("Stopping gossipDataRoutine for peer")
 			return
 		}
-		*/
-		//end
+
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
 
@@ -632,13 +659,11 @@ func (conR *ConsensusReactor) gossipVotesRoutine(peer p2p.Peer, ps *PeerState) {
 OUTER_LOOP:
 	for {
 		// Manage disconnects from self or peer.
-		/* hg 20180302 do it later
 		if !peer.IsRunning() || !conR.IsRunning() {
 			logger.Info("Stopping gossipVotesRoutine for peer")
 			return
 		}
-		*/
-		//end modify
+
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
 
@@ -736,18 +761,15 @@ func (conR *ConsensusReactor) gossipVotesForHeight(logger log.Logger, rs *types.
 // NOTE: `queryMaj23Routine` has a simple crude design since it only comes
 // into play for liveness when there's a signature DDoS attack happening.
 func (conR *ConsensusReactor) queryMaj23Routine(peer p2p.Peer, ps *PeerState) {
-	//logger := conR.Logger.With("peer", peer)
+	logger := conR.Logger.With("peer", peer)
 
 OUTER_LOOP:
 	for {
 		// Manage disconnects from self or peer.
-		/* hg 20180302 do it later
 		if !peer.IsRunning() || !conR.IsRunning() {
 			logger.Info("Stopping queryMaj23Routine for peer")
 			return
 		}
-		*/
-		//end modify
 
 		// Maybe send Height/Round/Prevotes
 		{
