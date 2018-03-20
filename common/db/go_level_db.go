@@ -1,8 +1,7 @@
 package db
 
 import (
-	"bytes"
-	"fmt"
+	//"bytes"
 	"path"
 
 	log "github.com/inconshreveable/log15"
@@ -13,6 +12,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
+
+var llog = log.New("module", "db.goleveldb")
 
 func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
@@ -61,7 +62,7 @@ func (db *GoLevelDB) Get(key []byte) []byte {
 		if err == errors.ErrNotFound {
 			return nil
 		} else {
-			fmt.Println(err)
+			llog.Error("Get", "error", err)
 		}
 	}
 	return res
@@ -70,28 +71,28 @@ func (db *GoLevelDB) Get(key []byte) []byte {
 func (db *GoLevelDB) Set(key []byte, value []byte) {
 	err := db.db.Put(key, value, nil)
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("Set", "error", err)
 	}
 }
 
 func (db *GoLevelDB) SetSync(key []byte, value []byte) {
 	err := db.db.Put(key, value, &opt.WriteOptions{Sync: true})
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("SetSync", "error", err)
 	}
 }
 
 func (db *GoLevelDB) Delete(key []byte) {
 	err := db.db.Delete(key, nil)
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("Delete", "error", err)
 	}
 }
 
 func (db *GoLevelDB) DeleteSync(key []byte) {
 	err := db.db.Delete(key, &opt.WriteOptions{Sync: true})
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("DeleteSync", "error", err)
 	}
 }
 
@@ -105,13 +106,14 @@ func (db *GoLevelDB) Close() {
 
 func (db *GoLevelDB) Print() {
 	str, _ := db.db.GetProperty("leveldb.stats")
-	fmt.Printf("%v\n", str)
+	llog.Info("Print", "stats", str)
 
 	iter := db.db.NewIterator(nil, nil)
 	for iter.Next() {
 		key := iter.Key()
 		value := iter.Value()
-		fmt.Printf("[%X]:\t[%X]\n", key, value)
+		//fmt.Printf("[%X]:\t[%X]\n", key, value)
+		llog.Info("Print", "key", string(key), "value", string(value))
 	}
 }
 
@@ -190,6 +192,6 @@ func (mBatch *goLevelDBBatch) Delete(key []byte) {
 func (mBatch *goLevelDBBatch) Write() {
 	err := mBatch.db.db.Write(mBatch.batch, mBatch.wop)
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("Write", "error", err)
 	}
 }

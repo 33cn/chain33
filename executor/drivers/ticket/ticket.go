@@ -17,6 +17,7 @@ import (
 
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
+	dbm "code.aliyun.com/chain33/chain33/common/db"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -239,7 +240,8 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		key := calcBindMinerKeyPrefix(reqaddr.Data)
-		values := t.GetQueryDB().List(key, nil, 0, 1)
+		list := dbm.NewListHelper(t.GetQueryDB())
+		values := list.List(key, nil, 0, 1)
 		if len(values) == 0 {
 			return nil, types.ErrNotFound
 		}
