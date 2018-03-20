@@ -30,6 +30,7 @@
 - 已知bugs：  
   - 在windows环境下，系统重启后会因LOCK文件已存在，不能启动，需要手动删除
     通过修改 vendor/github.com/dgraph-io/badger/dir_windows.go 72行暂时解决
+  - 在0xff的情况下，边界测试有问题，详见db_test.go
 
 # 实现自定义数据库接口说明
 
