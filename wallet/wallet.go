@@ -897,9 +897,8 @@ func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) erro
 	return err
 }
 
-func (wallet *Wallet) GetFee() int64 {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
+//外部已经加了lock
+func (wallet *Wallet) getFee() int64 {
 	return wallet.FeeAmount
 }
 
