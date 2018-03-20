@@ -246,9 +246,9 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	{
-		var txdetails TransactionDetails
-		txs := reply.GetTxs()
+	txs := reply.GetTxs()
+	var txdetails TransactionDetails
+	if 0 != len(txs) {
 		for _, tx := range txs {
 			var recp ReceiptData
 			logs := tx.GetReceipt().GetLogs()
@@ -281,9 +281,8 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 					ActionName: tx.GetActionName(),
 				})
 		}
-		*result = &txdetails
 	}
-
+	*result = &txdetails
 	return nil
 }
 
@@ -814,6 +813,20 @@ func DecodeTx(tx types.Transaction) (*Transaction, error) {
 		pl = &action
 	} else if "hashlock" == string(tx.Execer) {
 		var action types.HashlockAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "token" == string(tx.Execer) {
+		var action types.TokenAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "trade" == string(tx.Execer) {
+		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
 			return nil, err

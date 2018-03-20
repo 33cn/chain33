@@ -411,6 +411,6 @@ var SellOrderStatus = map[int32]string{
 
 var MapSellOrderStatusStr2Int = map[string]int32{
 	"onsale":  OnSale,
-	"slodout": SoldOut,
+	"soldout": SoldOut,
 	"revoked": Revoked,
 }
