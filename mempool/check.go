@@ -117,6 +117,7 @@ func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	result, err := mem.checkTxListRemote(txlist)
 	if err != nil {
 		for i := range msgs {
+			mlog.Error("wrong tx", "err", err)
 			msgs[i].Data = err
 			mem.badChan <- msgs[i]
 		}
