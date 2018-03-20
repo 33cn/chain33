@@ -126,6 +126,7 @@ It has these top-level messages:
 	ReceiptTradeBuy
 	ReceiptTradeRevoke
 	TradeBuyDone
+	ReplyTradeBuyOrders
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion

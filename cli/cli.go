@@ -545,6 +545,7 @@ type SellOrder2Show struct {
 	Crowdfund         bool   `json:"crowdfund"`
 	SellID            string `json:"sellid"`
 	Status            string `json:"status"`
+	Height            int64  `json:"height"`
 }
 
 func Lock() {
@@ -1956,6 +1957,14 @@ func decodeLog(rlog *jsonrpc.ReceiptData) (*ReceiptData, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogTokenTransfer:
+			lTy = "LogTokenTransfer"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case types.TyLogTokenDeposit:
 			lTy = "LogTokenDeposit"
 			var logTmp types.ReceiptAccountTransfer
@@ -2275,6 +2284,7 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 		sellOrders2show.Crowdfund = sellorder.Crowdfund
 		sellOrders2show.SellID = sellorder.Sellid
 		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
+		sellOrders2show.Height = sellorder.Height
 
 		data, err := json.MarshalIndent(sellOrders2show, "", "    ")
 		if err != nil {

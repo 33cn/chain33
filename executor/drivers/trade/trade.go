@@ -139,12 +139,21 @@ func (t *Trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetOnesSellOrder(t.GetDB(), t.GetQueryDB(), &addrTokens)
+	case "GetOnesBuyOrder":
+		var addrTokens types.ReqAddrTokens
+		err := types.Decode(params, &addrTokens)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetOnesBuyOrder(t.GetDB(), t.GetQueryDB(), &addrTokens)
 		//查寻所有的可以进行交易的卖单
-	case "GetAllOnSaleSellOrders":
-	case "GetAllNotstartSellOders":
-	case "GetAllRevokedSellOrders":
-	case "GetAllExpiredSellOrders":
-	case "GetOnesAllBuyOrder":
+	case "GetAllSellOrdersWithStatus":
+		var addrTokens types.ReqAddrTokens
+		err := types.Decode(params, &addrTokens)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetAllSellOrdersWithStatus(t.GetDB(), t.GetQueryDB(), addrTokens.Status)
 	default:
 	}
 	tradelog.Error("Trade Query", "Query type not supprt with func name", funcName)
@@ -183,6 +192,65 @@ func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 	return &reply, nil
 }
 
+func (t *Trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
+	sellidGotAlready := make(map[interface{}]bool)
+	var reply types.ReplyTradeBuyOrders
+	values := querydb.List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+	if len(values) != 0 {
+		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(values))
+		for _, value := range values {
+			//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
+			if !sellidGotAlready[value] {
+				var tradeBuyDone types.TradeBuyDone
+				if err := types.Decode(value, &tradeBuyDone); err != nil {
+					tradelog.Error("GetOnesBuyOrder", "Failed to decode tradebuydoen", value)
+					return nil, err
+				}
+
+				reply.Tradebuydones = append(reply.Tradebuydones, &tradeBuyDone)
+				sellidGotAlready[value] = true
+			}
+		}
+	}
+	var resultReply types.ReplyTradeBuyOrders
+	if len(addrTokens.Token) != 0 {
+		tokenMap := make(map[string]bool)
+		for _, token := range addrTokens.Token {
+			tokenMap[token] = true
+		}
+
+		for _, Tradebuydone := range reply.Tradebuydones {
+			if tokenMap[Tradebuydone.Token] {
+				resultReply.Tradebuydones = append(resultReply.Tradebuydones, Tradebuydone)
+			}
+		}
+	}
+
+	return &resultReply, nil
+}
+
+func (t *Trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status int32) (types.Message, error) {
+	sellidGotAlready := make(map[string]bool)
+	var sellids [][]byte
+	values := querydb.List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
+	if len(values) != 0 {
+		tradelog.Debug("Trade Query", "get number of sellid", len(values))
+		sellids = append(sellids, values...)
+	}
+
+	var reply types.ReplySellOrders
+	for _, sellid := range sellids {
+		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
+		if !sellidGotAlready[string(sellid)] {
+			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
+				reply.Selloders = append(reply.Selloders, sellorder)
+			}
+			sellidGotAlready[string(sellid)] = true
+		}
+	}
+	return &reply, nil
+}
+
 func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	db := t.GetDB()
 	value, err := db.Get(sellid)
@@ -206,7 +274,7 @@ func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 		status = types.Revoked
 	}
 	var kv []*types.KeyValue
-	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
+	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
 
 	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
@@ -240,7 +308,7 @@ func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 		status = types.Revoked
 	}
 	var kv []*types.KeyValue
-	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
+	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
 	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
@@ -258,14 +326,16 @@ func (t *Trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValu
 	tradeBuyDone.Boardlotcnt = receiptTradeBuy.Boardlotcnt
 	tradeBuyDone.Amountperboardlot = receiptTradeBuy.Amountperboardlot
 	tradeBuyDone.Priceperboardlot = receiptTradeBuy.Priceperboardlot
+	tradeBuyDone.Buytxhash = receiptTradeBuy.Buytxhash
+	tradeBuyDone.Height = t.GetHeight()
 
 	var kv []*types.KeyValue
 	value := types.Encode(&tradeBuyDone)
 
-	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
+	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetHeight(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
 	kv = append(kv, &types.KeyValue{key, value})
 
-	key = calcBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
+	key = calcBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetHeight(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
 	kv = append(kv, &types.KeyValue{key, value})
 
 	return kv
@@ -274,18 +344,18 @@ func (t *Trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValu
 func (t *Trade) deleteBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
+	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetHeight(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = calcBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetBlockTime(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
+	key = calcBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetHeight(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
 	kv = append(kv, &types.KeyValue{key, nil})
 
 	return kv
 }
 
 //特定状态下的卖单
-func calcTokenSellOrderKey(token string, addr string, status int32, sellOrderID string) []byte {
-	key := fmt.Sprintf("token-sellorder:%d:%s:%s:%s", status, token, addr, sellOrderID)
+func calcTokenSellOrderKey(token string, addr string, status int32, sellOrderID string, height int64) []byte {
+	key := fmt.Sprintf("token-sellorder:%d:%d:%s:%s:%s", status, height, token, addr, sellOrderID)
 	return []byte(key)
 }
 
@@ -311,12 +381,22 @@ func calcOnesSellOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf("token-sellorder:%s", addr))
 }
 
+//特定状态下的卖单
+func calcTokenSellOrderPrefixStatus(status int32) []byte {
+	return []byte(fmt.Sprintf("token-sellorder:%d", status))
+}
+
 //考虑到购买者可能在同一个区块时间针对相同的卖单(sellorder)发起购买操作，所以使用sellid：buytxhash组合的方式生成key
-func calcOnesBuyOrderKey(addr string, blocktime int64, token string, sellOrderID string, buyTxHash string) []byte {
-	return []byte(fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", addr, blocktime, token, sellOrderID, buyTxHash))
+func calcOnesBuyOrderKey(addr string, height int64, token string, sellOrderID string, buyTxHash string) []byte {
+	return []byte(fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", addr, height, token, sellOrderID, buyTxHash))
 }
 
 //用于快速查询某个token下的所有成交的买单
-func calcBuyOrderKey(addr string, blocktime int64, token string, sellOrderID string, buyTxHash string) []byte {
-	return []byte(fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", token, blocktime, addr, sellOrderID, buyTxHash))
+func calcBuyOrderKey(addr string, height int64, token string, sellOrderID string, buyTxHash string) []byte {
+	return []byte(fmt.Sprintf("token-buyorder:%s:%s:%d:%s:%s", token, addr, height, sellOrderID, buyTxHash))
+}
+
+//特定账户下的卖单
+func calcOnesBuyOrderPrefixAddr(addr string) []byte {
+	return []byte(fmt.Sprintf("token-buyorder:%s", addr))
 }

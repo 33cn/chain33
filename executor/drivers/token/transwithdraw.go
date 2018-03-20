@@ -45,7 +45,7 @@ func (t *Token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transa
 //2: to tx
 
 func (t *Token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.ExecLocal(tx, receipt, index)
+	set, err := t.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}

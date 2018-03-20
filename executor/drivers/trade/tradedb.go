@@ -145,6 +145,7 @@ func (action *TradeAction) TradeSell(sell *types.TradeForSell) (*types.Receipt, 
 		sell.GetCrowdfund(),
 		calcTokenSellID(action.txhash),
 		types.OnSale,
+		action.height,
 	}
 	tokendb := NewSellDB(sellorder)
 	sellOrderKV := tokendb.Save(action.db)
