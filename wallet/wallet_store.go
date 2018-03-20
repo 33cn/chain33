@@ -171,7 +171,8 @@ func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountSt
 		walletlog.Error("GetAccountByPrefix addr is nil")
 		return nil, types.ErrInputPara
 	}
-	accbytes := ws.db.PrefixScan([]byte(addr))
+	list := dbm.NewListHelper(ws.db)
+	accbytes := list.PrefixScan([]byte(addr))
 	if len(accbytes) == 0 {
 		walletlog.Error("GetAccountByPrefix addr  not exist")
 		return nil, types.ErrAccountNotExist
@@ -200,13 +201,15 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	var txbytes [][]byte
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
-		txbytes = ws.db.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count, TxList.Direction)
+		list := dbm.NewListHelper(ws.db)
+		txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist
 		}
 	} else {
-		txbytes = ws.db.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		list := dbm.NewListHelper(ws.db)
+		txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
 			return nil, types.ErrTxNotExist
