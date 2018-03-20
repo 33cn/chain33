@@ -10,6 +10,7 @@ import (
 	wire "github.com/tendermint/go-wire"
 	cmn "github.com/tendermint/tmlibs/common"
 	"github.com/tendermint/tmlibs/log"
+	"sync/atomic"
 )
 
 // Peer is an interface representing a peer connected on a reactor.
@@ -27,6 +28,8 @@ type Peer interface {
 	Get(string) interface{}
 	Start() error
 	Stop()
+
+	IsRunning() bool
 }
 
 // Peer could be marked as persistent, in which case you can use
@@ -46,6 +49,9 @@ type peer struct {
 	nodeInfo *NodeInfo
 	Data     *cmn.CMap // User data.
 	Logger  log.Logger
+
+	started uint32 // atomic
+	stopped uint32 // atomic
 }
 
 // PeerConfig is a Peer configuration.
@@ -212,15 +218,40 @@ func (p *peer) PubKey() crypto.PubKeyEd25519 {
 	return p.PubKey()
 }
 
+// Implements Service
+func (p *peer) IsRunning() bool {
+	return atomic.LoadUint32(&p.started) == 1 && atomic.LoadUint32(&p.stopped) == 0
+}
+
 // OnStart implements BaseService.
 func (p *peer) Start() error {
-	err := p.mconn.Start()
-	return err
+	if atomic.CompareAndSwapUint32(&p.started, 0, 1) {
+		if atomic.LoadUint32(&p.stopped) == 1 {
+			p.Logger.Error(fmt.Sprintf("Not starting peer -- already stopped"))
+			return ErrAlreadyStopped
+		} else {
+			p.Logger.Info(fmt.Sprintf("Starting peer"))
+			err := p.mconn.Start()
+			return err
+		}
+	} else {
+		p.Logger.Debug(fmt.Sprintf("Not starting peer -- already started"))
+		return ErrAlreadyStarted
+	}
+
 }
 
 // OnStop implements BaseService.
 func (p *peer) Stop() {
-	p.mconn.Stop()
+	if atomic.CompareAndSwapUint32(&p.stopped, 0, 1) {
+		p.Logger.Info("Stopping peer")
+		p.mconn.Stop()
+		return
+	} else {
+		p.Logger.Debug("Stopping peer (ignoring: already stopped)")
+		return
+	}
+
 }
 
 // Connection returns underlying MConnection.

@@ -15,6 +15,7 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 	flow "github.com/tendermint/tmlibs/flowrate"
 	"github.com/tendermint/tmlibs/log"
+	"errors"
 )
 
 var legacy = tmlegacy.TMEncoderLegacy{}
@@ -37,6 +38,11 @@ const (
 	defaultSendRate            = int64(512000) // 500KB/s
 	defaultRecvRate            = int64(512000) // 500KB/s
 	defaultSendTimeout         = 10 * time.Second
+)
+
+var (
+	ErrAlreadyStarted = errors.New("already started")
+	ErrAlreadyStopped = errors.New("already stopped")
 )
 
 type receiveCbFunc func(chID byte, msgBytes []byte)
@@ -92,6 +98,9 @@ type MConnection struct {
 	LocalAddress  *NetAddress
 	RemoteAddress *NetAddress
 	Logger  log.Logger
+
+	started uint32 // atomic
+	stopped uint32 // atomic
 }
 
 // MConnConfig is a MConnection configuration.
@@ -172,6 +181,11 @@ func (c *MConnection) SetLogger(l log.Logger) {
 	}
 }
 
+// Implements Service
+func (c *MConnection) IsRunning() bool {
+	return atomic.LoadUint32(&c.started) == 1 && atomic.LoadUint32(&c.stopped) == 0
+}
+
 // OnStart implements BaseService
 func (c *MConnection) Start() error {
 	/*
@@ -179,30 +193,48 @@ func (c *MConnection) Start() error {
 		return err
 	}
 	*/
-	c.quit = make(chan struct{})
-	c.flushTimer = cmn.NewThrottleTimer("flush", c.config.flushThrottle)
-	c.pingTimer = cmn.NewRepeatTimer("ping", pingTimeout)
-	c.chStatsTimer = cmn.NewRepeatTimer("chStats", updateStats)
-	go c.sendRoutine()
-	go c.recvRoutine()
-	return nil
+	if atomic.CompareAndSwapUint32(&c.started, 0, 1) {
+		if atomic.LoadUint32(&c.stopped) == 1 {
+			c.Logger.Error(fmt.Sprintf("Not starting mconn -- already stopped"))
+			return ErrAlreadyStopped
+		} else {
+			c.Logger.Info(fmt.Sprintf("Starting mconn"))
+			c.quit = make(chan struct{})
+			c.flushTimer = cmn.NewThrottleTimer("flush", c.config.flushThrottle)
+			c.pingTimer = cmn.NewRepeatTimer("ping", pingTimeout)
+			c.chStatsTimer = cmn.NewRepeatTimer("chStats", updateStats)
+			go c.sendRoutine()
+			go c.recvRoutine()
+			return nil
+		}
+	} else {
+		c.Logger.Debug(fmt.Sprintf("Not starting mconn -- already started"))
+		return ErrAlreadyStarted
+	}
 }
 
 // OnStop implements BaseService
 func (c *MConnection) Stop() {
 	//c.BaseService.OnStop()
-	c.flushTimer.Stop()
-	c.pingTimer.Stop()
-	c.chStatsTimer.Stop()
-	if c.quit != nil {
-		close(c.quit)
+	if atomic.CompareAndSwapUint32(&c.stopped, 0, 1) {
+		c.Logger.Info("Stopping mconn")
+		c.flushTimer.Stop()
+		c.pingTimer.Stop()
+		c.chStatsTimer.Stop()
+		if c.quit != nil {
+			close(c.quit)
+		}
+		c.conn.Close() // nolint: errcheck
+		// We can't close pong safely here because
+		// recvRoutine may write to it after we've stopped.
+		// Though it doesn't need to get closed at all,
+		// we close it @ recvRoutine.
+		// close(c.pong)
+		return
+	} else {
+		c.Logger.Debug("Stopping mconn (ignoring: already stopped)")
+		return
 	}
-	c.conn.Close() // nolint: errcheck
-	// We can't close pong safely here because
-	// recvRoutine may write to it after we've stopped.
-	// Though it doesn't need to get closed at all,
-	// we close it @ recvRoutine.
-	// close(c.pong)
 }
 
 func (c *MConnection) String() string {
@@ -237,11 +269,11 @@ func (c *MConnection) stopForError(r interface{}) {
 
 // Queues a message to be sent to channel.
 func (c *MConnection) Send(chID byte, msg interface{}) bool {
-	/*
+
 	if !c.IsRunning() {
 		return false
 	}
-*/
+
 	c.Logger.Debug("Send", "channel", chID, "conn", c, "msg", msg) //, "bytes", wire.BinaryBytes(msg))
 
 	// Send message to channel.
@@ -267,11 +299,11 @@ func (c *MConnection) Send(chID byte, msg interface{}) bool {
 // Queues a message to be sent to channel.
 // Nonblocking, returns true if successful.
 func (c *MConnection) TrySend(chID byte, msg interface{}) bool {
-	/*
+
 	if !c.IsRunning() {
 		return false
 	}
-	*/
+
 
 	c.Logger.Debug("TrySend", "channel", chID, "conn", c, "msg", msg)
 
@@ -297,11 +329,11 @@ func (c *MConnection) TrySend(chID byte, msg interface{}) bool {
 // CanSend returns true if you can send more data onto the chID, false
 // otherwise. Use only as a heuristic.
 func (c *MConnection) CanSend(chID byte) bool {
-	/*
+
 	if !c.IsRunning() {
 		return false
 	}
-*/
+
 	channel, ok := c.channelsIdx[chID]
 	if !ok {
 		c.Logger.Error(cmn.Fmt("Unknown channel %X", chID))
@@ -350,11 +382,11 @@ FOR_LOOP:
 				}
 			}
 		}
-/*
+
 		if !c.IsRunning() {
 			break FOR_LOOP
 		}
-*/
+
 		if err != nil {
 			c.Logger.Error("Connection failed @ sendRoutine", "conn", c, "err", err)
 			c.stopForError(err)
@@ -452,16 +484,10 @@ FOR_LOOP:
 		pktType := wire.ReadByte(c.bufReader, &n, &err)
 		c.recvMonitor.Update(int(n))
 		if err != nil {
-			//modify hg
-			/*
 			if c.IsRunning() {
 				c.Logger.Error("Connection failed @ recvRoutine (reading byte)", "conn", c, "err", err)
 				c.stopForError(err)
 			}
-			*/
-			//c.Logger.Error("Connection failed @ recvRoutine (reading byte)", "conn", c, "err", err)
-			//c.stopForError(err)
-			//end modify
 			break FOR_LOOP
 		}
 
@@ -479,16 +505,10 @@ FOR_LOOP:
 			wire.ReadBinaryPtr(&pkt, c.bufReader, c.config.maxMsgPacketTotalSize(), &n, &err)
 			c.recvMonitor.Update(int(n))
 			if err != nil {
-				//modify hg
-				/*
 				if c.IsRunning() {
 					c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
 					c.stopForError(err)
 				}
-				*/
-				c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
-				c.stopForError(err)
-				//end modify
 				break FOR_LOOP
 			}
 			channel, ok := c.channelsIdx[pkt.ChannelID]
@@ -500,16 +520,10 @@ FOR_LOOP:
 
 			msgBytes, err := channel.recvMsgPacket(pkt)
 			if err != nil {
-				//modify hg
-				/*
 				if c.IsRunning() {
 					c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
 					c.stopForError(err)
 				}
-				*/
-				c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
-				c.stopForError(err)
-				//end modify
 				break FOR_LOOP
 			}
 			if msgBytes != nil {

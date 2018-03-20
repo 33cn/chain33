@@ -368,6 +368,9 @@ type consensusReactor interface {
 }
 
 func (client *TendermintClient) checkValidator2StartConsensus() {
+	if client.state.Validators.HasAddress(client.privValidator.GetAddress()) && client.state.Validators.Size() == 1	{
+		return
+	}
 	switchToConsensusTicker := time.NewTicker(1 * time.Second)
 FOR_LOOP:
 	for {
@@ -386,7 +389,7 @@ FOR_LOOP:
 }
 
 func (client *TendermintClient) checkValidators() bool {
-	if (client.state.Validators.HasAddress(client.privValidator.GetAddress()) && client.state.Validators.Size() == 1) || client.sw.Peers().Size() > 0{
+	if client.sw.Peers().Size() > 0{
 		return true
 	} else {
 		return false
