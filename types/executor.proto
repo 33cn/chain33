@@ -327,8 +327,9 @@ message SellOrder {
 	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
 	int64  stoptime             = 9;
 	bool   crowdfund            = 10;
-	string  sellid              = 11;  //此处使用tx的hash来指定
+	string  sellid              = 11; //此处使用tx的hash来指定
 	int32  status               = 12;
+	int64  height               = 13;
 }
 
 message SellOrderReceipt {
@@ -400,7 +401,13 @@ message ReceiptTradeRevoke {
 
 message TradeBuyDone {
 	string token                 = 1;
-	int64 boardlotcnt            = 2;
+	int64  boardlotcnt           = 2;
 	string amountperboardlot     = 3;
     string priceperboardlot      = 4;
+	string buytxhash             = 5;
+	int64  height                = 6;
+}
+
+message ReplyTradeBuyOrders {
+	repeated TradeBuyDone tradebuydones = 1;
 }
