@@ -5,9 +5,72 @@ import (
 	"encoding/binary"
 	"fmt"
 	"testing"
+	"github.com/stretchr/testify/require"
+        "io/ioutil"
 
 	. "github.com/tendermint/tmlibs/common"
 )
+
+func TestGoLevelDB(t *testing.T) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	leveldb, err := NewGoLevelDB("gobagderdb", dir, 128)
+	require.NoError(t, err)
+	defer leveldb.Close()
+
+	t.Log("test Set")
+	leveldb.Set([]byte("aaaaaa/1"), []byte("aaaaaa/1"))
+	leveldb.Set([]byte("my_key/1"), []byte("my_key/1"))
+	leveldb.Set([]byte("my_key/2"), []byte("my_key/2"))
+	leveldb.Set([]byte("my_key/3"), []byte("my_key/3"))
+	leveldb.Set([]byte("my_key/4"), []byte("my_key/4"))
+	leveldb.Set([]byte("my"), []byte("my"))
+	leveldb.Set([]byte("my_"), []byte("my_"))
+	leveldb.Set([]byte("zzzzzz/1"), []byte("zzzzzz/1"))
+
+	t.Log("test Get")
+	v := leveldb.Get([]byte("aaaaaa/1"))
+	require.Equal(t, string(v), "aaaaaa/1")
+
+	t.Log("test PrefixScan")
+	it := NewListHelper(leveldb)
+	list := it.PrefixScan(nil)
+	for _, v = range list {
+		t.Log(string(v))
+	}
+	require.Equal(t, list, [][]byte{[]byte("aaaaaa/1"), []byte("my"), []byte("my_"), []byte("my_key/1"), []byte("my_key/2"), []byte("my_key/3"), []byte("my_key/4"), []byte("zzzzzz/1")})
+
+	t.Log("test IteratorScanFromFirst")
+	list = it.IteratorScanFromFirst([]byte("my"), 2)
+	for _, v = range list {
+		t.Log(string(v))
+	}
+	require.Equal(t, list, [][]byte{[]byte("my"), []byte("my_")})
+
+	t.Log("test IteratorScanFromLast")
+	list = it.IteratorScanFromLast([]byte("my"), 100)
+	/*for _, v = range list {
+		t.Log(string(v))
+	}*/
+	require.Equal(t, list, [][]byte{[]byte("my_key/4"), []byte("my_key/3"), []byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
+
+	t.Log("test IteratorScan 1")
+	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 1)
+	/*for _, v = range list {
+		t.Log(string(v))
+	}*/
+	require.Equal(t, list, [][]byte{[]byte("my_key/3"), []byte("my_key/4")})
+
+	t.Log("test IteratorScan 0")
+	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 0)
+	/*for _, v = range list {
+		t.Log(string(v))
+	}*/
+	require.Equal(t, list, [][]byte{[]byte("my_key/3"), []byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
+}
+
 
 func BenchmarkRandomReadsWrites(b *testing.B) {
 	b.StopTimer()
