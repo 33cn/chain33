@@ -43,8 +43,8 @@ func (f *Filterdata) Close() {
 	close(f.loopDone)
 }
 func (f *Filterdata) ManageFilter() {
-	ticker := time.NewTicker(time.Second * 5)
-	var timeout int64 = 10
+	ticker := time.NewTicker(time.Second * 30)
+	var timeout int64 = 60
 	defer ticker.Stop()
 	for {
 
