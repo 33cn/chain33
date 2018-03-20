@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,7 @@ type NodeInfo struct {
 	qclient        queue.Client
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
+	addrBook       *AddrBook // known peers
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
@@ -39,6 +41,8 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
+	os.MkdirAll(cfg.GetDbPath(), 0755)
+	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath())
 	return nodeInfo
 }
 

@@ -60,9 +60,8 @@ func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, in.GetPort()))
 	if err == nil {
 		if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
-			s.node.addrBook.AddAddress(remoteNetwork)
+			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork)
 		}
-
 	}
 
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
@@ -77,14 +76,15 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 	peers, _ := s.node.GetActivePeers()
 	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
-		if stat := s.node.addrBook.GetPeerStat(peer.Addr()); stat != nil {
+
+		if stat := s.node.nodeInfo.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 			if stat.GetAttempts() == 0 {
 				addrBucket[peer.Addr()] = true
 			}
 		}
 
 	}
-	addrList := s.node.addrBook.GetAddrs()
+	addrList := s.node.nodeInfo.addrBook.GetAddrs()
 	for _, addr := range addrList {
 
 		addrBucket[addr] = true
@@ -120,7 +120,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 	if err == nil {
 		if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
-			s.node.addrBook.AddAddress(remoteNetwork)
+			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork)
 			//broadcast again
 			go func() {
 				if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
@@ -129,7 +129,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 				peers, _ := s.node.GetActivePeers()
 				for _, peer := range peers {
-					peer.mconn.conn.Version2(context.Background(), in)
+					peer.mconn.gcli.Version2(context.Background(), in)
 				}
 			}()
 		}
@@ -316,7 +316,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	meminfo := resp.GetData().(*pb.MempoolSize)
 	var peerinfo pb.P2PPeerInfo
 
-	pub, err := P2pComm.Pubkey(s.node.addrBook.key)
+	pub, err := P2pComm.Pubkey(s.node.nodeInfo.addrBook.key)
 	if err != nil {
 		log.Error("getpubkey", "error", err.Error())
 	}
@@ -400,6 +400,10 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			return err
 		}
 		if block := in.GetBlock(); block != nil {
+			if Filter.QueryData(block.GetBlock().GetHeight()) { //已经注册了相同的区块高度，则不会再发送给blockchain
+				continue
+			}
+
 			log.Info("ServerStreamRead", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
@@ -409,13 +413,19 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 					continue
 				}
 			}
+			Filter.RegData(block.GetBlock().GetHeight()) //注册已经收到的区块
 
 		} else if tx := in.GetTx(); tx != nil {
-			log.Debug("RouteChat", "tx", tx.GetTx())
+			txhash := hex.EncodeToString(tx.GetTx().Hash())
+			log.Debug("ServerStreamRead", "txhash:", "0x"+txhash)
+			if Filter.QueryData(txhash) == true { //同上
+				continue
+			}
 			if tx.GetTx() != nil {
 				msg := s.node.nodeInfo.qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
 				s.node.nodeInfo.qclient.Send(msg, false)
 			}
+			Filter.RegData(txhash)
 
 		} else if ping := in.GetPing(); ping != nil {
 			//Ping package
