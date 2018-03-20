@@ -467,6 +467,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	}
 	//初始化随机数d
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
+	tx.SetExpire(time.Second * 120)
 	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块
