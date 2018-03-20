@@ -243,12 +243,39 @@ func (t *Trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status i
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
 			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
-				reply.Selloders = append(reply.Selloders, sellorder)
+				//reply.Selloders = append(reply.Selloders, sellorder)
+				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
+				tradelog.Debug("Trade Query", "height of sellid", sellorder.Height,
+					"len of reply.Selloders", len(reply.Selloders))
 			}
 			sellidGotAlready[string(sellid)] = true
 		}
 	}
 	return &reply, nil
+}
+
+//根据height进行降序插入,TODO:使用标准的第三方库进行替换
+func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types.SellOrder) ([]*types.SellOrder){
+	if 0 == len(selloders) {
+		selloders = append(selloders, toBeInserted)
+	} else {
+		index := len(selloders)
+		for i, element := range selloders {
+			if toBeInserted.Height >= element.Height {
+				index = i
+				break;
+			}
+		}
+
+		if len(selloders) == index {
+			selloders = append(selloders, toBeInserted)
+		} else {
+			rear:=append([]*types.SellOrder{}, selloders[index : ]...)
+			selloders = append(selloders[0 : index], toBeInserted)
+			selloders = append(selloders, rear...)
+		}
+	}
+	return selloders
 }
 
 func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
@@ -259,20 +286,7 @@ func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	}
 	var sellorder types.SellOrder
 	types.Decode(value, &sellorder)
-	var status int32
-	if ty != types.TradeRevokeSell {
-		if sellorder.Totalboardlot == sellorder.Soldboardlot {
-			status = types.SoldOut
-		} else if sellorder.Starttime == types.InvalidStartTime || sellorder.Starttime <= t.GetBlockTime() {
-			status = types.OnSale
-		} else if sellorder.Starttime != types.InvalidStartTime && sellorder.Starttime > t.GetBlockTime() {
-			status = types.NotStart
-		} else if sellorder.Stoptime != types.InvalidStartTime && sellorder.Stoptime < t.GetBlockTime() {
-			status = types.Expired
-		}
-	} else {
-		status = types.Revoked
-	}
+	status := sellorder.Status
 	var kv []*types.KeyValue
 	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
@@ -282,6 +296,25 @@ func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 
 	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
+
+	if types.SoldOut == status || types.Revoked == status {
+		tradelog.Debug("Trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
+		kv = deleteSellOrderKeyValue(kv, &sellorder, types.OnSale)
+	}
+
+	return kv
+}
+
+func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32)([]*types.KeyValue) {
+	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
+	kv = append(kv, &types.KeyValue{newkey, nil})
+
+	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
+	kv = append(kv, &types.KeyValue{newkey, nil})
+
+	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
+	kv = append(kv, &types.KeyValue{newkey, nil})
+
 	return kv
 }
 
@@ -293,29 +326,9 @@ func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 	}
 	var sellorder types.SellOrder
 	types.Decode(value, &sellorder)
-	var status int32
-	if ty != types.TradeRevokeSell {
-		if sellorder.Totalboardlot == sellorder.Soldboardlot {
-			status = types.SoldOut
-		} else if sellorder.Starttime == types.InvalidStartTime || sellorder.Starttime <= t.GetBlockTime() {
-			status = types.OnSale
-		} else if sellorder.Starttime != types.InvalidStartTime && sellorder.Starttime > t.GetBlockTime() {
-			status = types.NotStart
-		} else if sellorder.Stoptime != types.InvalidStartTime && sellorder.Stoptime < t.GetBlockTime() {
-			status = types.Expired
-		}
-	} else {
-		status = types.Revoked
-	}
+	status := sellorder.Status
 	var kv []*types.KeyValue
-	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
-	kv = append(kv, &types.KeyValue{newkey, nil})
+	kv = deleteSellOrderKeyValue(kv, &sellorder, status)
 	return kv
 }
 
@@ -355,35 +368,35 @@ func (t *Trade) deleteBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyVa
 
 //特定状态下的卖单
 func calcTokenSellOrderKey(token string, addr string, status int32, sellOrderID string, height int64) []byte {
-	key := fmt.Sprintf("token-sellorder:%d:%d:%s:%s:%s", status, height, token, addr, sellOrderID)
+	key := fmt.Sprintf("token-sellorder-shtas:%d:%d:%s:%s:%s", status, height, token, addr, sellOrderID)
 	return []byte(key)
 }
 
 //特定账户下特定状态的卖单
 func calcOnesSellOrderKeyStatus(token string, addr string, status int32, sellOrderID string) []byte {
-	key := fmt.Sprintf("token-sellorder:%s:%d:%s:%s", addr, status, token, sellOrderID)
+	key := fmt.Sprintf("token-sellorder-asts:%s:%d:%s:%s", addr, status, token, sellOrderID)
 	return []byte(key)
 }
 
 //特定账户下特定token的卖单
 func calcOnesSellOrderKeyToken(token string, addr string, status int32, sellOrderID string) []byte {
-	key := fmt.Sprintf("token-sellorder:%s:%s:%d:%s", addr, token, status, sellOrderID)
+	key := fmt.Sprintf("token-sellorder-atss:%s:%s:%d:%s", addr, token, status, sellOrderID)
 	return []byte(key)
 }
 
 //特定账户下指定token的卖单
 func calcOnesSellOrderPrefixToken(token string, addr string) []byte {
-	return []byte(fmt.Sprintf("token-sellorder:%s:%s", addr, token))
+	return []byte(fmt.Sprintf("token-sellorder-atss:%s:%s", addr, token))
 }
 
 //特定账户下的卖单
 func calcOnesSellOrderPrefixAddr(addr string) []byte {
-	return []byte(fmt.Sprintf("token-sellorder:%s", addr))
+	return []byte(fmt.Sprintf("token-sellorder-asts:%s", addr))
 }
 
 //特定状态下的卖单
 func calcTokenSellOrderPrefixStatus(status int32) []byte {
-	return []byte(fmt.Sprintf("token-sellorder:%d", status))
+	return []byte(fmt.Sprintf("token-sellorder-shtas:%d", status))
 }
 
 //考虑到购买者可能在同一个区块时间针对相同的卖单(sellorder)发起购买操作，所以使用sellid：buytxhash组合的方式生成key

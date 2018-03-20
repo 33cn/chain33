@@ -2189,6 +2189,18 @@ func BuyToken(args []string) {
 	}
 	var res jsonrpc.ReplyHash
 	err = rpc.Call("Chain33.BuyToken", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
 
 func RevokeCreateToken(args []string) {
@@ -2336,6 +2348,7 @@ func ShowSellOrderWithStatus(status string) {
 		sellOrders2show.Crowdfund = sellorder.Crowdfund
 		sellOrders2show.SellID = sellorder.Sellid
 		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
+		sellOrders2show.Height = sellorder.Height
 
 		data, err := json.MarshalIndent(sellOrders2show, "", "    ")
 		if err != nil {
