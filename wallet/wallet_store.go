@@ -229,7 +229,7 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 		txdetail.Txhash = txhash
 		txDetails.TxDetails[index] = &txdetail
 		//print
-		walletlog.Debug("GetTxDetailByIter", "txdetail:", txdetail.String())
+		//walletlog.Debug("GetTxDetailByIter", "txdetail:", txdetail.String())
 	}
 	return &txDetails, nil
 }
