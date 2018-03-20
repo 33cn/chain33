@@ -1660,12 +1660,12 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 	}
 
 	if approverValid == false {
-		walletlog.Error("procTokenFinishCreate", "creater", types.ErrTokenCreatedApprover)
+		walletlog.Error("procTokenPreCreate", "creater", types.ErrTokenCreatedApprover)
 		return nil, types.ErrTokenCreatedApprover
 	}
 
 	addrs := make([]string, 1)
-	addrs[0] = reqTokenPrcCreate.GetCreatorAddr()
+	addrs[0] = creator
 	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("procTokenPreCreate", "LoadAccounts err", err)
@@ -1673,8 +1673,18 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 	}
 
 	Balance := accounts[0].Balance
+	if Balance < wallet.FeeAmount {
+		return nil, types.ErrInsufficientBalance
+	}
+
+	creatorAcc, err := accountdb.LoadExecAccountQueue(wallet.qclient, creator, account.ExecAddress("token").String())
+	if err != nil {
+		walletlog.Error("procTokenPreCreate", "LoadExecAccountQueue err", err)
+		return nil, err
+	}
+
 	price := reqTokenPrcCreate.GetPrice()
-	if Balance < price+wallet.FeeAmount {
+	if creatorAcc.Balance < price {
 		return nil, types.ErrInsufficientBalance
 	}
 
@@ -1723,6 +1733,11 @@ func (wallet *Wallet) procTokenFinishCreate(req *types.ReqTokenFinishCreate) (*t
 		return nil, err
 	}
 
+	Balance := accounts[0].Balance
+	if Balance < wallet.FeeAmount {
+		return nil, types.ErrInsufficientBalance
+	}
+
 	approverValid := false
 	for _, approver := range types.TokenApprs {
 		if approver == addrs[0] {
@@ -1745,7 +1760,7 @@ func (wallet *Wallet) procTokenFinishCreate(req *types.ReqTokenFinishCreate) (*t
 		return nil, types.ErrTokenExist
 	}
 
-	token2, err2 := wallet.checkTokenStauts(req.GetSymbol(), types.TokenStatusPreCreated, req.GetOwnerAddr())
+	token2, err2 := wallet.checkTokenStatus(req.GetSymbol(), types.TokenStatusPreCreated, req.GetOwnerAddr())
 	if err2 != nil {
 		return nil, err
 	}
@@ -1754,19 +1769,14 @@ func (wallet *Wallet) procTokenFinishCreate(req *types.ReqTokenFinishCreate) (*t
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	// creator 合约帐号钱够
-	walletlog.Debug("procTokenFinishCreate", "create", token2.Creator, "exec", account.ExecAddress("token").String())
 	creatorAcc, err3 := accountdb.LoadExecAccountQueue(wallet.qclient, token2.Creator, account.ExecAddress("token").String())
 	if err3 != nil {
 		walletlog.Error("procTokenFinishCreate", "LoadAccounts err", err3)
 		return nil, err3
 	}
-	if creatorAcc == nil {
-		walletlog.Error("procTokenFinishCreate", "LoadAccounts err", types.ErrInsufficientBalance)
-		return nil, types.ErrInsufficientBalance
-	}
-	Balance := creatorAcc.Balance
-	if Balance < token2.Price+wallet.FeeAmount {
+
+	frozen := creatorAcc.Frozen
+	if frozen < token2.Price {
 		return nil, types.ErrInsufficientBalance
 	}
 
@@ -1802,7 +1812,7 @@ func (wallet *Wallet) checkTokenSymbolExists(symbol, owner string) (*types.Token
 	return tokenInfo, nil
 }
 
-func (wallet *Wallet) checkTokenStauts(symbol string, status int32, owner string) (*types.Token, error) {
+func (wallet *Wallet) checkTokenStatus(symbol string, status int32, owner string) (*types.Token, error) {
 	tokens := []string{symbol}
 	reqtokens := types.ReqTokens{false, status, tokens}
 
@@ -1853,7 +1863,7 @@ func (wallet *Wallet) procTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (*t
 	}
 
 	//  check symbol-owner 是否不存在, 是否是precreate 状态， 地址是否对应
-	token, err := wallet.checkTokenStauts(req.GetSymbol(), types.TokenStatusPreCreated, req.GetOwnerAddr())
+	token, err := wallet.checkTokenStatus(req.GetSymbol(), types.TokenStatusPreCreated, req.GetOwnerAddr())
 	if err != nil {
 		return nil, err
 	}
