@@ -147,6 +147,7 @@ func (action *TradeAction) TradeSell(sell *types.TradeForSell) (*types.Receipt, 
 		types.OnSale,
 		action.height,
 	}
+	tradelog.Debug("trade sell current height ", "height", action.height)
 	tokendb := NewSellDB(sellorder)
 	sellOrderKV := tokendb.Save(action.db)
 	logs = append(logs, receipt.Logs...)
