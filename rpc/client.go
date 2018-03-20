@@ -616,3 +616,19 @@ func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
 	}
 	return resp.GetData().(*types.TxHashList), nil
 }
+
+func (c *channelClient) IsSync() bool {
+	msg := c.NewMessage("blockchain", types.EventIsSync, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("IsSync", "Send Error", err.Error())
+		return false
+	}
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("IsSync", "Wait Error", err.Error())
+		return false
+	}
+	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
+}

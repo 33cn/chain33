@@ -23,7 +23,7 @@ func (n *Node) checkActivePeers() {
 				}
 
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
-				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
+				if stat := n.nodeInfo.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 					if stat.GetAttempts() > MaxAttemps || peer.GetRunning() == false {
 						log.Debug("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
 						n.destroyPeer(peer)
@@ -37,7 +37,7 @@ func (n *Node) checkActivePeers() {
 }
 func (n *Node) destroyPeer(peer *peer) {
 	log.Info("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
-	n.addrBook.RemoveAddr(peer.Addr())
+	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 	n.Remove(peer.Addr())
 }
 
@@ -47,12 +47,12 @@ func (n *Node) monitorErrPeer() {
 		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
 			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
-			n.addrBook.SetAddrStat(peer.Addr(), false)
+			n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), false)
 			//加入黑名单
 			n.nodeInfo.blacklist.Add(peer.Addr())
 			continue
 		}
-		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
+		n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
 	}
 }
 
@@ -118,8 +118,8 @@ func (n *Node) getAddrFromOffline() {
 					}
 				}
 
-				log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
-				peeraddrs := n.addrBook.GetPeers()
+				log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.nodeInfo.addrBook.GetPeers())
+				peeraddrs := n.nodeInfo.addrBook.GetPeers()
 
 				if len(peeraddrs) != 0 {
 
@@ -186,7 +186,7 @@ func (n *Node) monitorDialPeers() {
 			continue
 		}
 
-		if n.addrBook.ISOurAddress(netAddr) == true {
+		if n.nodeInfo.addrBook.ISOurAddress(netAddr) == true {
 			continue
 		}
 
@@ -208,7 +208,7 @@ func (n *Node) monitorDialPeers() {
 		}
 		log.Debug("Addr perr", "peer", peer)
 		n.AddPeer(peer)
-		n.addrBook.AddAddress(netAddr)
+		n.nodeInfo.addrBook.AddAddress(netAddr)
 
 	}
 
@@ -228,7 +228,7 @@ func (n *Node) monitorBlackList() {
 			badPeers := n.nodeInfo.blacklist.GetBadPeers()
 			now := time.Now().Unix()
 			for badPeer, intime := range badPeers {
-				if n.addrBook.IsOurStringAddress(badPeer) {
+				if n.nodeInfo.addrBook.IsOurStringAddress(badPeer) {
 					continue
 				}
 				if now-intime > 3600 { //one hour
@@ -238,4 +238,9 @@ func (n *Node) monitorBlackList() {
 		}
 
 	}
+}
+
+func (n *Node) monitorFilter() {
+	Filter = NewFilter()
+	Filter.ManageFilter()
 }
