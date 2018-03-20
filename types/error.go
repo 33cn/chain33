@@ -124,4 +124,7 @@ var (
 	ErrNotSupport          = errors.New("ErrNotSupport")
 	ErrSeedWordNum         = errors.New("ErrSeedWordNum")
 	ErrOnlyTicketUnLocked  = errors.New("ErrOnlyTicketUnLocked")
+	ErrNewCrypto           = errors.New("ErrNewCrypto")
+	ErrFromHex             = errors.New("ErrFromHex")
+	ErrPrivKeyFromBytes    = errors.New("ErrFromHex")
 )
