@@ -101,10 +101,6 @@ func initConfig(cfg *types.BlockChain) {
 	if cfg.TimeoutSeconds > 0 {
 		TimeoutSeconds = cfg.TimeoutSeconds
 	}
-
-	if cfg.BatchBlockNum > 0 {
-		BatchBlockNum = cfg.BatchBlockNum
-	}
 	isStrongConsistency = cfg.IsStrongConsistency
 }
 
