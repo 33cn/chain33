@@ -42,7 +42,7 @@ func TestBadger(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestBadgerDB(t *testing.T) {
+func TestGoBadgerDB(t *testing.T) {
 	dir, err := ioutil.TempDir("", "badger")
 	require.NoError(t, err)
 	t.Log(dir)

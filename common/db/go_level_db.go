@@ -152,21 +152,28 @@ type goLevelDBIt struct {
 }
 
 func (dbit *goLevelDBIt) Close() {
-	dbit.Release()
+	dbit.Iterator.Release()
 }
 
 func (dbit *goLevelDBIt) Next() bool {
 	if dbit.reserve {
-		return dbit.Prev()
+		return dbit.Iterator.Prev()
 	}
-	return dbit.Next()
+	return dbit.Iterator.Next()
 }
 
 func (dbit *goLevelDBIt) Rewind() bool {
 	if dbit.reserve {
-		return dbit.Last()
+		return dbit.Iterator.Last()
 	}
-	return dbit.First()
+	return dbit.Iterator.First()
+}
+
+func (dbit *goLevelDBIt) Value() []byte {
+	v := dbit.Iterator.Value()
+	value := make([]byte, len(v))
+	copy(value, v)
+	return value
 }
 
 type goLevelDBBatch struct {

@@ -16,13 +16,9 @@ func NewListHelper(db DB) *ListHelper {
 
 func (db *ListHelper) PrefixScan(prefix []byte) (values [][]byte) {
 	it := db.db.Iterator(prefix, false)
-	if !it.Valid() {
-		listlog.Error("PrefixScan", "it.Valid", it.Valid())
-		return
-	}
 	defer it.Close()
 
-	for ; it.Valid(); it.Next() {
+	for it.Seek(prefix); it.Valid(); it.Next() {
 		value := it.Value()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
@@ -52,10 +48,6 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 		reserse = true
 	}
 	it := db.db.Iterator(prefix, reserse)
-	if !it.Valid() {
-		listlog.Error("IteratorScan", "it.Valid", it.Valid())
-		return
-	}
 	defer it.Close()
 
 	var i int32 = 0
@@ -78,14 +70,10 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 
 func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values [][]byte) {
 	it := db.db.Iterator(prefix, false)
-	if !it.Valid() {
-		listlog.Error("IteratorScan", "it.Valid", it.Valid())
-		return
-	}
 	defer it.Close()
 
 	var i int32 = 0
-	for ; it.Valid(); it.Next() {
+	for it.Rewind(); it.Valid(); it.Next() {
 		value := it.Value()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
@@ -103,17 +91,11 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 }
 
 func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [][]byte) {
-	//it := db.db.Iterator(bytesPrefix(prefix), true)
-	//it := db.db.Iterator(append(prefix, 0xFF), true)
 	it := db.db.Iterator(prefix, true)
-	if !it.Valid() {
-		listlog.Error("IteratorScan", "it.Valid", it.Valid())
-		return
-	}
 	defer it.Close()
 
 	var i int32 = 0
-	for ; it.Valid(); it.Next() {
+	for it.Rewind(); it.Valid(); it.Next() {
 		value := it.Value()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
