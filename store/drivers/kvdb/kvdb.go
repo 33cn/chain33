@@ -22,12 +22,12 @@ func DisableLog() {
 
 type KVStore struct {
 	*drivers.BaseStore
-	cache map[string]map[string][]byte
+	cache map[string]map[string]*types.KeyValue
 }
 
 func New(cfg *types.Store) *KVStore {
 	bs := drivers.NewBaseStore(cfg)
-	kvs := &KVStore{bs, make(map[string]map[string][]byte)}
+	kvs := &KVStore{bs, make(map[string]map[string]*types.KeyValue)}
 	bs.SetChild(kvs)
 	return kvs
 }
@@ -39,9 +39,9 @@ func (kvs *KVStore) Close() {
 
 func (kvs *KVStore) Set(datas *types.StoreSet) []byte {
 	hash := calcHash(datas)
-	kvmap := make(map[string][]byte)
+	kvmap := make(map[string]*types.KeyValue)
 	for _, kv := range datas.KV {
-		kvmap[string(kv.Key)] = kv.Value
+		kvmap[string(kv.Key)] = kv
 	}
 	kvs.save(kvmap)
 	return hash
@@ -51,9 +51,9 @@ func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
 	values := make([][]byte, len(datas.Keys))
 	if kvmap, ok := kvs.cache[string(datas.StateHash)]; ok {
 		for i := 0; i < len(datas.Keys); i++ {
-			value := kvmap[string(datas.Keys[i])]
-			if value != nil {
-				values[i] = value
+			kv := kvmap[string(datas.Keys[i])]
+			if kv != nil {
+				values[i] = kv.Value
 			}
 		}
 	} else {
@@ -70,9 +70,9 @@ func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
 
 func (kvs *KVStore) MemSet(datas *types.StoreSet) []byte {
 	hash := calcHash(datas)
-	kvmap := make(map[string][]byte)
+	kvmap := make(map[string]*types.KeyValue)
 	for _, kv := range datas.KV {
-		kvmap[string(kv.Key)] = kv.Value
+		kvmap[string(kv.Key)] = kv
 	}
 	kvs.cache[string(hash)] = kvmap
 	if len(kvs.cache) > 100 {
@@ -117,13 +117,13 @@ func (kvs *KVStore) ProcEvent(msg queue.Message) {
 	}
 }
 
-func (kvs *KVStore) save(kvmap map[string][]byte) {
+func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
 	storeBatch := kvs.GetDB().NewBatch(true)
-	for key, value := range kvmap {
-		if value == nil {
-			storeBatch.Delete([]byte(key))
+	for _, kv := range kvmap {
+		if kv.Value == nil {
+			storeBatch.Delete(kv.Key)
 		} else {
-			storeBatch.Set([]byte(key), value)
+			storeBatch.Set(kv.Key, kv.Value)
 		}
 	}
 	storeBatch.Write()
