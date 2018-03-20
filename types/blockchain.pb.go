@@ -12,6 +12,16 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// 区块头信息
+// 	 version : 版本信息
+// 	 parentHash :父哈希
+// 	 txHash : 交易根哈希
+// 	 stateHash :状态哈希
+// 	 height : 区块高度
+// 	 blockTime :区块产生时的时标
+// 	 txCount : 区块上所有交易个数
+// 	 difficulty :区块难度系数，
+// 	 signature :交易签名
 type Header struct {
 	Version    int64      `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	ParentHash []byte     `protobuf:"bytes,2,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
@@ -100,6 +110,7 @@ func (m *Header) GetSignature() *Signature {
 	return nil
 }
 
+//  参考Header解释
 type Block struct {
 	Version    int64          `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	ParentHash []byte         `protobuf:"bytes,2,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
@@ -262,6 +273,9 @@ func (m *BlockOverview) GetTxHashes() [][]byte {
 	return nil
 }
 
+// 区块详细信息
+// 	 block : 区块信息
+// 	 receipts :区块上所有交易的收据信息列表
 type BlockDetail struct {
 	Block    *Block         `protobuf:"bytes,1,opt,name=block" json:"block,omitempty"`
 	Receipts []*ReceiptData `protobuf:"bytes,2,rep,name=receipts" json:"receipts,omitempty"`
@@ -318,6 +332,10 @@ func (m *ReceiptCheckTxList) GetErrs() []string {
 	return nil
 }
 
+// 区块链状态
+// 	 currentHeight : 区块最新高度
+// 	 mempoolSize :内存池大小
+// 	 msgQueueSize : 消息队列大小
 type ChainStatus struct {
 	CurrentHeight int64 `protobuf:"varint,1,opt,name=currentHeight" json:"currentHeight,omitempty"`
 	MempoolSize   int64 `protobuf:"varint,2,opt,name=mempoolSize" json:"mempoolSize,omitempty"`
@@ -350,7 +368,11 @@ func (m *ChainStatus) GetMsgQueueSize() int64 {
 	return 0
 }
 
-// req
+// 获取区块信息
+// 	 start : 获取区块的开始高度
+// 	 end :获取区块的结束高度
+// 	 Isdetail : 是否需要获取区块的详细信息
+// 	 pid : peer列表
 type ReqBlocks struct {
 	Start    int64    `protobuf:"varint,1,opt,name=start" json:"start,omitempty"`
 	End      int64    `protobuf:"varint,2,opt,name=end" json:"end,omitempty"`
@@ -423,6 +445,9 @@ func (m *ReplyBlockHeight) GetHeight() int64 {
 	return 0
 }
 
+// 区块体信息
+// 	 txs : 区块上所有交易列表
+// 	 receipts :区块上所有交易的收据信息列表
 type BlockBody struct {
 	Txs      []*Transaction `protobuf:"bytes,1,rep,name=txs" json:"txs,omitempty"`
 	Receipts []*ReceiptData `protobuf:"bytes,2,rep,name=receipts" json:"receipts,omitempty"`
@@ -447,6 +472,7 @@ func (m *BlockBody) GetReceipts() []*ReceiptData {
 	return nil
 }
 
+//  区块追赶主链状态，用于判断本节点区块是否已经同步好
 type IsCaughtUp struct {
 	Iscaughtup bool `protobuf:"varint,1,opt,name=Iscaughtup" json:"Iscaughtup,omitempty"`
 }
