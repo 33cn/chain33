@@ -158,14 +158,15 @@ func (db *GoBadgerDB) Iterator(prefix []byte, reserse bool) Iterator {
 	} else {
 		it.Seek(prefix)
 	}
-	return &goBadgerDBIt{it, txn, nil, prefix}
+	return &goBadgerDBIt{it, txn, nil, prefix, reserse}
 }
 
 type goBadgerDBIt struct {
 	*badger.Iterator
-	txn    *badger.Txn
-	err    error
-	prefix []byte
+	txn     *badger.Txn
+	err     error
+	prefix  []byte
+	reserse bool
 }
 
 func (it *goBadgerDBIt) Next() bool {
@@ -174,9 +175,13 @@ func (it *goBadgerDBIt) Next() bool {
 }
 
 func (it *goBadgerDBIt) Rewind() bool {
-	//it.Iterator.Rewind()
-	//return it.Valid()
-	return true
+	if it.reserse {
+		last := bytesPrefix(it.prefix)
+		it.Seek(last)
+	} else {
+		it.Seek(it.prefix)
+	}
+	return it.Valid()
 }
 
 func (it *goBadgerDBIt) Seek(key []byte) bool {
