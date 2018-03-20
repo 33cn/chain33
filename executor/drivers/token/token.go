@@ -20,26 +20,26 @@ import (
 var tokenlog = log.New("module", "execs.token")
 
 func init() {
-	t := NewToken()
+	t := newToken()
 	drivers.Register(t.GetName(), t)
 	drivers.RegisterAddress(t.GetName())
 }
 
-type Token struct {
+type token struct {
 	drivers.DriverBase
 }
 
-func NewToken() *Token {
-	t := &Token{}
+func newToken() *token {
+	t := &token{}
 	t.SetChild(t)
 	return t
 }
 
-func (t *Token) GetName() string {
+func (t *token) GetName() string {
 	return "token"
 }
 
-func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var tokenAction types.TokenAction
 	err := types.Decode(tx.Payload, &tokenAction)
 	if err != nil {
@@ -50,17 +50,17 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	switch tokenAction.GetTy() {
 	case types.TokenActionPreCreate:
 		tokenlog.Info("Exec TokenActionPreCreate")
-		action := NewTokenAction(t, "", tx)
+		action := newTokenAction(t, "", tx)
 		return action.preCreate(tokenAction.GetTokenprecreate())
 
 	case types.TokenActionFinishCreate:
 		tokenlog.Info("Exec TokenActionFinishCreate")
-		action := NewTokenAction(t, types.FundKeyAddr, tx)
+		action := newTokenAction(t, types.FundKeyAddr, tx)
 		return action.finishCreate(tokenAction.GetTokenfinishcreate(), types.TokenApprs)
 
 	case types.TokenActionRevokeCreate:
 		tokenlog.Info("Exec TokenActionRevokeCreate")
-		action := NewTokenAction(t, "", tx)
+		action := newTokenAction(t, "", tx)
 		return action.revokeCreate(tokenAction.GetTokenrevokecreate())
 
 	case types.ActionTransfer:
@@ -77,7 +77,7 @@ func (t *Token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func (t *Token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var action types.TokenAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
@@ -122,7 +122,7 @@ func (t *Token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	return set, nil
 }
 
-func (t *Token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var action types.TokenAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
@@ -157,7 +157,7 @@ func (t *Token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	return set, nil
 }
 
-func (t *Token) Query(funcName string, params []byte) (types.Message, error) {
+func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 	switch funcName {
 	//GetTokens,支持所有状态下的单个token，多个token，以及所有token的信息的查询
 	case "GetTokens":
@@ -191,12 +191,12 @@ func (t *Token) Query(funcName string, params []byte) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func (t *Token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types.Message, error) {
+func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	var reply = &types.ReplyAddrRecvForTokens{}
 	db := t.GetQueryDB()
 	reciver := types.Int64{}
 	for _, token := range addrTokens.Token {
-		addrRecv := db.Get(CalcAddrKey(token, addrTokens.Addr))
+		addrRecv := db.Get(calcAddrKey(token, addrTokens.Addr))
 		if addrRecv == nil {
 			continue
 		}
@@ -212,9 +212,9 @@ func (t *Token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types
 	return reply, nil
 }
 
-func (t *Token) GetTokenInfo(symbol string) (types.Message, error) {
+func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 	db := t.GetDB()
-	token, err := db.Get(tokenKey(symbol))
+	token, err := db.Get(calcTokenKey(symbol))
 	if err != nil {
 		return nil, types.ErrEmpty
 	}
@@ -226,13 +226,13 @@ func (t *Token) GetTokenInfo(symbol string) (types.Message, error) {
 	return &token_info, nil
 }
 
-func (t *Token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
+func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	querydb := t.GetQueryDB()
 	db := t.GetDB()
 
 	replyTokens := &types.ReplyTokens{}
 	if reqTokens.Queryall {
-		keys := querydb.List(tokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		keys := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		if len(keys) != 0 {
 			for _, key := range keys {
@@ -249,7 +249,7 @@ func (t *Token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 
 	} else {
 		for _, token := range reqTokens.Tokens {
-			keys := querydb.List(tokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
+			keys := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 			if len(keys) != 0 {
 				for _, key := range keys {
@@ -270,29 +270,29 @@ func (t *Token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	return replyTokens, nil
 }
 
-func (t *Token) saveLogs(receipt *types.ReceiptToken) []*types.KeyValue {
+func (t *token) saveLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := tokenStatusKey(receipt.Symbol, receipt.Owner, receipt.Status)
-	value := tokenAddrKey(receipt.Symbol, receipt.Owner)
+	key := calcTokenStatusKey(receipt.Symbol, receipt.Owner, receipt.Status)
+	value := calcTokenAddrKey(receipt.Symbol, receipt.Owner)
 	kv = append(kv, &types.KeyValue{key, value})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被删除
 	if receipt.Status != types.TokenStatusPreCreated {
-		key = tokenStatusKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
+		key = calcTokenStatusKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
 		kv = append(kv, &types.KeyValue{key, nil})
 	}
 	return kv
 }
 
-func (t *Token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
+func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := tokenStatusKey(receipt.Symbol, receipt.Owner, receipt.Status)
+	key := calcTokenStatusKey(receipt.Symbol, receipt.Owner, receipt.Status)
 	kv = append(kv, &types.KeyValue{key, nil})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被恢复
 	if receipt.Status != types.TokenStatusPreCreated {
-		key = tokenStatusKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
-		value := tokenAddrKey(receipt.Symbol, receipt.Owner)
+		key = calcTokenStatusKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
+		value := calcTokenAddrKey(receipt.Symbol, receipt.Owner)
 		kv = append(kv, &types.KeyValue{key, value})
 	}
 	return kv

@@ -21,26 +21,26 @@ import (
 var tradelog = log.New("module", "execs.trade")
 
 func init() {
-	t := NewTrade()
+	t := newTrade()
 	drivers.Register(t.GetName(), t)
 	drivers.RegisterAddress(t.GetName())
 }
 
-type Trade struct {
+type trade struct {
 	drivers.DriverBase
 }
 
-func NewTrade() *Trade {
-	t := &Trade{}
+func newTrade() *trade {
+	t := &trade{}
 	t.SetChild(t)
 	return t
 }
 
-func (t *Trade) GetName() string {
+func (t *trade) GetName() string {
 	return "trade"
 }
 
-func (t *Trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var trade types.Trade
 	err := types.Decode(tx.Payload, &trade)
 	if err != nil {
@@ -48,23 +48,23 @@ func (t *Trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	}
 	tradelog.Info("exec trade tx=", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", trade.GetTy())
 
-	action := NewTradeAction(t, tx)
+	action := newTradeAction(t, tx)
 	switch trade.GetTy() {
 	case types.TradeSell:
-		return action.TradeSell(trade.GetTokensell())
+		return action.tradeSell(trade.GetTokensell())
 
 	case types.TradeBuy:
-		return action.TradeBuy(trade.GetTokenbuy())
+		return action.tradeBuy(trade.GetTokenbuy())
 
 	case types.TradeRevokeSell:
-		return action.TradeRevokeSell(trade.GetTokenrevokesell())
+		return action.tradeRevokeSell(trade.GetTokenrevokesell())
 
 	default:
 		return nil, types.ErrActionNotSupport
 	}
 }
 
-func (t *Trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := t.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (t *Trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	return set, nil
 }
 
-func (t *Trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := t.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (t *Trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	return set, nil
 }
 
-func (t *Trade) Query(funcName string, params []byte) (types.Message, error) {
+func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 	switch funcName {
 	//查询某个特定用户的一个或者多个token的卖单,包括所有状态的卖单
 	//TODO:后续可以考虑支持查询不同状态的卖单
@@ -156,17 +156,17 @@ func (t *Trade) Query(funcName string, params []byte) (types.Message, error) {
 		return t.GetAllSellOrdersWithStatus(t.GetDB(), t.GetQueryDB(), addrTokens.Status)
 	default:
 	}
-	tradelog.Error("Trade Query", "Query type not supprt with func name", funcName)
+	tradelog.Error("trade Query", "Query type not supprt with func name", funcName)
 	return nil, types.ErrQueryNotSupport
 }
 
-func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
 	if 0 == len(addrTokens.Token) {
 		values := querydb.List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 		if len(values) != 0 {
-			tradelog.Debug("Trade Query", "get number of sellid", len(values))
+			tradelog.Debug("trade Query", "get number of sellid", len(values))
 			sellids = append(sellids, values...)
 		}
 	} else {
@@ -183,7 +183,7 @@ func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
 			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
-				tradelog.Debug("Trade Query", "getSellOrderFromID", string(sellid))
+				tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
 				reply.Selloders = append(reply.Selloders, sellorder)
 			}
 			sellidGotAlready[string(sellid)] = true
@@ -192,7 +192,7 @@ func (t *Trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 	return &reply, nil
 }
 
-func (t *Trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	sellidGotAlready := make(map[interface{}]bool)
 	var reply types.ReplyTradeBuyOrders
 	values := querydb.List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
@@ -229,12 +229,12 @@ func (t *Trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.R
 	return &resultReply, nil
 }
 
-func (t *Trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status int32) (types.Message, error) {
+func (t *trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status int32) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
 	values := querydb.List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
 	if len(values) != 0 {
-		tradelog.Debug("Trade Query", "get number of sellid", len(values))
+		tradelog.Debug("trade Query", "get number of sellid", len(values))
 		sellids = append(sellids, values...)
 	}
 
@@ -245,7 +245,7 @@ func (t *Trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status i
 			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
 				//reply.Selloders = append(reply.Selloders, sellorder)
 				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
-				tradelog.Debug("Trade Query", "height of sellid", sellorder.Height,
+				tradelog.Debug("trade Query", "height of sellid", sellorder.Height,
 					"len of reply.Selloders", len(reply.Selloders))
 			}
 			sellidGotAlready[string(sellid)] = true
@@ -255,7 +255,7 @@ func (t *Trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status i
 }
 
 //根据height进行降序插入,TODO:使用标准的第三方库进行替换
-func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types.SellOrder) ([]*types.SellOrder){
+func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types.SellOrder) []*types.SellOrder {
 	if 0 == len(selloders) {
 		selloders = append(selloders, toBeInserted)
 	} else {
@@ -263,22 +263,22 @@ func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types
 		for i, element := range selloders {
 			if toBeInserted.Height >= element.Height {
 				index = i
-				break;
+				break
 			}
 		}
 
 		if len(selloders) == index {
 			selloders = append(selloders, toBeInserted)
 		} else {
-			rear:=append([]*types.SellOrder{}, selloders[index : ]...)
-			selloders = append(selloders[0 : index], toBeInserted)
+			rear := append([]*types.SellOrder{}, selloders[index:]...)
+			selloders = append(selloders[0:index], toBeInserted)
 			selloders = append(selloders, rear...)
 		}
 	}
 	return selloders
 }
 
-func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
+func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	db := t.GetDB()
 	value, err := db.Get(sellid)
 	if err != nil {
@@ -298,14 +298,14 @@ func (t *Trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	kv = append(kv, &types.KeyValue{newkey, sellid})
 
 	if types.SoldOut == status || types.Revoked == status {
-		tradelog.Debug("Trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
+		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
 		kv = deleteSellOrderKeyValue(kv, &sellorder, types.OnSale)
 	}
 
 	return kv
 }
 
-func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32)([]*types.KeyValue) {
+func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
 	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
@@ -318,7 +318,7 @@ func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, s
 	return kv
 }
 
-func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
+func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 	db := t.GetDB()
 	value, err := db.Get(sellid)
 	if err != nil {
@@ -332,7 +332,7 @@ func (t *Trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 	return kv
 }
 
-func (t *Trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValue {
+func (t *trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValue {
 
 	tradeBuyDone := types.TradeBuyDone{}
 	tradeBuyDone.Token = receiptTradeBuy.Token
@@ -354,7 +354,7 @@ func (t *Trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValu
 	return kv
 }
 
-func (t *Trade) deleteBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValue {
+func (t *trade) deleteBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValue {
 	var kv []*types.KeyValue
 
 	key := calcOnesBuyOrderKey(receiptTradeBuy.Buyeraddr, t.GetHeight(), receiptTradeBuy.Token, receiptTradeBuy.Sellid, receiptTradeBuy.Buytxhash)
