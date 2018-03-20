@@ -170,6 +170,10 @@ func (dbit *goLevelDBIt) Rewind() bool {
 }
 
 func (dbit *goLevelDBIt) Value() []byte {
+	return dbit.Iterator.Value()
+}
+
+func (dbit *goLevelDBIt) ValueCopy() []byte {
 	v := dbit.Iterator.Value()
 	value := make([]byte, len(v))
 	copy(value, v)

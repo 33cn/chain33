@@ -198,7 +198,14 @@ func (it *goBadgerDBIt) Key() []byte {
 }
 
 func (it *goBadgerDBIt) Value() []byte {
-	//value, err := it.Item().Value()
+	value, err := it.Item().Value()
+	if err != nil {
+		it.err = err
+	}
+	return value
+}
+
+func (it *goBadgerDBIt) ValueCopy() []byte {
 	value, err := it.Item().ValueCopy(nil)
 	if err != nil {
 		it.err = err
