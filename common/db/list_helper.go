@@ -18,14 +18,14 @@ func (db *ListHelper) PrefixScan(prefix []byte) (values [][]byte) {
 	it := db.db.Iterator(prefix, false)
 	defer it.Close()
 
-	for it.Seek(prefix); it.Valid(); it.Next() {
+	for it.Rewind(); it.Valid(); it.Next() {
 		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
-			return 
+			return
 		}
-		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
+		//blog.Debug("PrefixScan", "key", string(item.Key()), "value", string(value))
 		values = append(values, value)
 	}
 	return
@@ -43,7 +43,7 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 }
 
 func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direction int32) (values [][]byte) {
-	var reserse bool = false	
+	var reserse bool = false
 	if direction == 0 {
 		reserse = true
 	}
@@ -56,7 +56,7 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
-			return 
+			return
 		}
 		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
 		values = append(values, value)
@@ -78,7 +78,7 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
-			return 
+			return
 		}
 		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
 		values = append(values, value)
@@ -100,7 +100,7 @@ func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
-			return 
+			return
 		}
 		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
 		values = append(values, value)
@@ -111,4 +111,3 @@ func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [
 	}
 	return
 }
-
