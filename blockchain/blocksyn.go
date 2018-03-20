@@ -15,9 +15,8 @@ var (
 	synBlocklock            sync.Mutex
 	peerMaxBlklock          sync.Mutex
 	castlock                sync.Mutex
-	MaxFetchBlockNum        int64 = 128 //一次最多申请获取block个数
+	MaxFetchBlockNum        int64 = 128 * 6 //一次最多申请获取block个数
 	TimeoutSeconds          int64 = 2
-	BatchBlockNum           int64 = 128
 	BackBlockNum            int64 = 128    //节点高度不增加时向后取blocks的个数
 	BackwardBlockNum        int64 = 16     //本节点高度不增加时并且落后peer的高度数
 	checkHeightNoIncSeconds int64 = 5 * 60 // 高度不增长时的检测周期目前暂定5分钟
@@ -142,7 +141,7 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string) (err e
 		requestblock.End = end
 	}
 	var cb func()
-	if chain.GetPeerMaxBlkHeight()-requestblock.End > 128 {
+	if chain.GetPeerMaxBlkHeight()-requestblock.End > BackBlockNum {
 		cb = func() {
 			chain.SynBlocksFromPeers()
 		}
