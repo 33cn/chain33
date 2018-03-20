@@ -13,8 +13,9 @@ import (
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/types"
+	blacklist "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
 
-	"code.aliyun.com/chain33/chain33/executor/drivers/blacklist"
+	//"code.aliyun.com/chain33/chain33/executor/drivers/blacklist"
 	"google.golang.org/grpc"
 )
 
@@ -264,7 +265,7 @@ func submitRecord(privkey string){
 func queryRecord(privKey string ,recordId string) {
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
-	req.FuncName = blacklist.QueryRecord
+	req.FuncName = blacklist.QueryRecordById
 	qb := &blacklist.QueryRecordParam{}
 	qb.ByClientId=recordId
 	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},privKey}
