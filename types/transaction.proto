@@ -134,3 +134,7 @@ message TransactionDetail {
 message TransactionDetails {
 	repeated TransactionDetail txs = 1;
 }
+
+message ReqAddrs  {
+   repeated string addrs = 1;
+}
