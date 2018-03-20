@@ -117,7 +117,6 @@ func testDBBoundary2(t *testing.T, db DB) {
 }
 
 func testDBBoundary(t *testing.T, db DB) {
-	return
 	a, _ := hex.DecodeString("0f")
 	c, _ := hex.DecodeString("0fff")
 	b, _ := hex.DecodeString("ff")
