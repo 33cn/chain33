@@ -184,8 +184,12 @@ func (it *goBadgerDBIt) Seek(key []byte) bool {
 }
 
 func (it *goBadgerDBIt) Close() {
-	it.Close()
+	it.Iterator.Close()
 	it.txn.Discard()
+}
+
+func (it *goBadgerDBIt) Valid() bool {
+	return it.Iterator.ValidForPrefix(it.prefix)
 }
 
 func (it *goBadgerDBIt) Key() []byte {
@@ -193,7 +197,8 @@ func (it *goBadgerDBIt) Key() []byte {
 }
 
 func (it *goBadgerDBIt) Value() []byte {
-	value, err := it.Item().Value()
+	//value, err := it.Item().Value()
+	value, err := it.Item().ValueCopy(nil)
 	if err != nil {
 		it.err = err
 	}

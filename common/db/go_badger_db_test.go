@@ -66,35 +66,36 @@ func TestBadgerDB(t *testing.T) {
 	require.Equal(t, string(v), "aaaaaa/1")
 
 	t.Log("test PrefixScan")
-	list := badgerdb.PrefixScan(nil)
+	it := NewListHelper(badgerdb)
+	list := it.PrefixScan(nil)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("aaaaaa/1"), []byte("my"), []byte("my_"), []byte("my_key/1"), []byte("my_key/2"), []byte("my_key/3"), []byte("my_key/4"), []byte("zzzzzz/1")})
 
 	t.Log("test IteratorScanFromFirst")
-	list = badgerdb.IteratorScanFromFirst([]byte("my"), 2, 1)
+	list = it.IteratorScanFromFirst([]byte("my"), 2)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("my"), []byte("my_")})
 
 	t.Log("test IteratorScanFromLast")
-	list = badgerdb.IteratorScanFromLast([]byte("my"), 100, 1)
+	list = it.IteratorScanFromLast([]byte("my"), 100)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("my_key/4"), []byte("my_key/3"), []byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
 
 	t.Log("test IteratorScan 1")
-	list = badgerdb.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 1)
+	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 1)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("my_key/3"), []byte("my_key/4")})
 
 	t.Log("test IteratorScan 0")
-	list = badgerdb.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 0)
+	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 0)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
