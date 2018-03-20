@@ -44,7 +44,7 @@ func (f *Filterdata) Close() {
 }
 func (f *Filterdata) ManageFilter() {
 	ticker := time.NewTicker(time.Second * 5)
-	var timeout int64 = 50
+	var timeout int64 = 10
 	defer ticker.Stop()
 	for {
 
