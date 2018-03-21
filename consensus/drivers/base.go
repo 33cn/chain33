@@ -230,9 +230,7 @@ func (client *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	//debug.PrintStack()
-	//tlog.Error("requestTx", "time", time.Now().Format(time.RFC3339Nano))
-	msg := client.qclient.NewMessage("mempool", types.EventTxList, listSize)
+	msg := client.qclient.NewMessage("mempool", types.EventTxList, &types.TxHashList{txHashList, int64(listSize)})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
