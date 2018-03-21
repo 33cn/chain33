@@ -37,6 +37,7 @@ var (
 	tx9      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0}
 	tx10     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0}
 	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
+	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0}
 
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
@@ -158,6 +159,7 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 	tx9.Sign(types.SECP256K1, privKey)
 	tx10.Sign(types.SECP256K1, privKey)
 	tx11.Sign(types.SECP256K1, privKey)
+	tx12.Sign(types.SECP256K1, privKey)
 
 	return mem, q, chain, s
 }
@@ -482,12 +484,9 @@ func TestCheckSignature(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	// make wrong signature
-	tmp := *tx11
-	copytx := &tmp
-	copytx.Sign(types.SECP256K1, privKey)
-	copytx.Signature.Signature = copytx.Signature.Signature[5:]
+	tx12.Signature.Signature = tx12.Signature.Signature[5:]
 
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
+	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx12)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
