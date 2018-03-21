@@ -743,3 +743,18 @@ func (c *channelClient) RevokeSellToken(parm *types.ReqRevokeSell) (*types.Reply
 	log.Info("RevokeSellToken", "result", "send tx successful", "order owner", parm.Owner, "sell order", parm.Revoke.Sellid)
 	return resp.Data.(*types.Reply), nil
 }
+
+func (c *channelClient) ModifyConfig(parm *types.ReqModifyConfig) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventModifyConfig, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("ModifyConfig", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.ReplyHash), nil
+}

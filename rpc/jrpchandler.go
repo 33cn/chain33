@@ -866,3 +866,12 @@ func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *inter
 	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
 	return nil
 }
+
+func (c *Chain33) ModifyConfig(in types.ReqModifyConfig, result *interface{}) error {
+	reply, err := c.cli.ModifyConfig(&in)
+	if err != nil {
+		return err
+	}
+	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
+	return nil
+}

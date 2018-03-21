@@ -401,3 +401,13 @@ func (g *Grpc) RevokeSellToken(ctx context.Context, in *pb.ReqRevokeSell) (*pb.R
 	}
 	return result, nil
 }
+
+func (g *Grpc) ModifyConfig(ctx context.Context, in *pb.ReqModifyConfig) (*pb.ReplyHash, error) {
+
+	reply, err := g.cli.ModifyConfig(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}
