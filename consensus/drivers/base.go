@@ -226,7 +226,7 @@ func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
 }
 
 // Mempool中取交易列表
-func (client *BaseClient) RequestTx(listSize int) []*types.Transaction {
+func (client *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Transaction {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
