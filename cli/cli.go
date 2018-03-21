@@ -2300,7 +2300,7 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 		sellOrders2show.Seller = sellorder.Address
 		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
 		sellOrders2show.Minboardlot = sellorder.Minboardlot
-		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 4, 64)
+		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
 		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
 		sellOrders2show.Starttime = sellorder.Starttime
@@ -2352,7 +2352,7 @@ func ShowSellOrderWithStatus(status string) {
 		sellOrders2show.Seller = sellorder.Address
 		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
 		sellOrders2show.Minboardlot = sellorder.Minboardlot
-		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 4, 64)
+		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
 		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
 		sellOrders2show.Starttime = sellorder.Starttime
@@ -2376,7 +2376,7 @@ func ShowSellOrderWithStatus(status string) {
 func ShowOnesBuyOrder(buyer string, tokens []string) {
 
 	var reqAddrtokens types.ReqAddrTokens
-	reqAddrtokens.Addr  = buyer
+	reqAddrtokens.Addr = buyer
 	reqAddrtokens.Token = tokens
 
 	var params jsonrpc.Query
