@@ -18,6 +18,7 @@ import (
 	blacklist "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
 	"os"
 )
+
 var conn *grpc.ClientConn
 var rd *rand.Rand
 var c types.GrpcserviceClient
@@ -64,6 +65,8 @@ func httpListen(){
 	http.HandleFunc("/transfer", transfer)
 	http.HandleFunc("/queryTransaction", queryTransaction)
 	http.HandleFunc("/deleteRecord", deleteRecord)
+	http.HandleFunc("/modifyUserPwd", modifyUserPwd)
+	http.HandleFunc("/resetUserPwd", resetUserPwd)
 	//http.HandleFunc("/queryOrg", queryOrg)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(8081), nil)
@@ -87,7 +90,7 @@ func login(w http.ResponseWriter, r *http.Request)  {
 	}
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
-	req.FuncName = blacklist.LoginCheck
+	req.FuncName = blacklist.FuncName_LoginCheck
 	user := &blacklist.User{}
     user.UserName=r.Header.Get("userName")
     user.PassWord=r.Header.Get("passWord")
@@ -119,7 +122,7 @@ func createOrg(w http.ResponseWriter, r *http.Request)  {
 	}
 	org.OrgId=r.Header.Get("orgId")
 	org.OrgName=r.Header.Get("orgName")
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org},FuncName:blacklist.CreateOrg}
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org},FuncName:blacklist.FuncName_CreateOrg}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = rd.Int63()
@@ -152,5 +155,11 @@ func queryTransaction(w http.ResponseWriter, r *http.Request)  {
 
 }
 func deleteRecord(w http.ResponseWriter, r *http.Request)  {
+
+}
+func modifyUserPwd(w http.ResponseWriter, r *http.Request)  {
+
+}
+func resetUserPwd(w http.ResponseWriter, r *http.Request)  {
 
 }
