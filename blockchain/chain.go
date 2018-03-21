@@ -167,6 +167,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 		switch msgtype {
 		case types.EventLocalGet:
 			go chain.processMsg(msg, reqnum, chain.localGet)
+		case types.EventLocalList:
+			go chain.processMsg(msg, reqnum, chain.localList)
 		case types.EventQueryTx:
 			go chain.processMsg(msg, reqnum, chain.queryTx)
 		case types.EventGetBlocks:
