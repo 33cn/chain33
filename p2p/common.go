@@ -169,6 +169,7 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 	data := pb.Encode(in)
 	sign := in.GetSign()
 	if sign == nil {
+		log.Error("CheckSign Get sign err")
 		return false
 	}
 	cr, err := crypto.New(pb.GetSignatureTypeName(int(sign.Ty)))
