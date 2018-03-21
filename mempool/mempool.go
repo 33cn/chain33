@@ -122,29 +122,41 @@ func (mem *Mempool) TxNumOfAccount(addr string) int64 {
 }
 
 // Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
-func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
-	mem.RemoveExpiredAndDuplicateMempoolTxs()
+func (mem *Mempool) GetTxList(hashList *types.TxHashList) []*types.Transaction {
+	txs := mem.RemoveExpiredAndDuplicateMempoolTxs()
+	var result []*types.Transaction
+	if len(txs) <= 0 {
+		return result
+	}
 
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 
 	txsSize := mem.cache.Size()
-	var result []*types.Transaction
-	var i int
 	var minSize int
-
-	if txsSize <= txListSize {
+	var i = 0
+	if txsSize <= int(hashList.Count) {
 		minSize = txsSize
 	} else {
-		minSize = txListSize
+		minSize = int(hashList.Count)
 	}
-
-	for i = 0; i < minSize; i++ {
-		popped := mem.cache.txList.Front()
-		poppedTx := popped.Value.(*Item).value
-		result = append(result, poppedTx)
+	for {
+		isTarget := false
+		for _, targetHash := range hashList.Hashes {
+			if string(txs[0].Hash()) == string(targetHash) {
+				isTarget = true
+				break
+			}
+		}
+		if !isTarget {
+			result = append(result, txs[0])
+			i++
+		}
+		if i == minSize || len(txs) == 1 {
+			break
+		}
+		txs = txs[1:]
 	}
-
 	return result
 }
 
@@ -480,17 +492,17 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				mlog.Debug("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
-				txListSize := msg.GetData().(int)
+				hashList := msg.GetData().(*types.TxHashList)
 				//不能超过最大的交易数目 - 1 (有一笔挖矿交易)
-				if int64(txListSize) >= types.MaxTxNumber {
-					txListSize = int(types.MaxTxNumber - 1)
+				if hashList.Count >= types.MaxTxNumber {
+					hashList.Count = types.MaxTxNumber - 1
 				}
-				if txListSize <= 0 {
+				if hashList.Count <= 0 {
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 						errors.New("not an valid size")))
 					mlog.Error("not an valid size", "msg", msg)
 				} else {
-					txList := mem.GetTxList(txListSize)
+					txList := mem.GetTxList(hashList)
 					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
 						&types.ReplyTxList{Txs: txList}))
 					mlog.Debug("reply EventTxList ok", "msg", msg)
