@@ -133,12 +133,8 @@ func (mem *Mempool) GetTxList(hashList *types.TxHashList) []*types.Transaction {
 	i := 0
 	txlist := mem.cache.txList
 	for v := txlist.Front(); v != nil; v = v.Next() {
-		if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolExpiredInterval {
-			// 清理滞留Mempool中超过10分钟的交易
-			mem.cache.Remove(v.Value.(*Item).value)
-		} else if v.Value.(*Item).value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
-			// 清理过期的交易
-			mem.cache.Remove(v.Value.(*Item).value)
+		if v.Value.(*Item).value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+			continue
 		} else {
 			tx := v.Value.(*Item).value
 			if _, ok := dupMap[string(tx.Hash())]; ok {
