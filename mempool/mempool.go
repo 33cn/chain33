@@ -99,13 +99,6 @@ func (mem *Mempool) BlockTime() int64 {
 	return mem.header.BlockTime
 }
 
-// Mempool.LowestFee获取当前Mempool中最低的交易Fee
-//func (mem *Mempool) LowestFee() int64 {
-//	mem.proxyMtx.Lock()
-//	defer mem.proxyMtx.Unlock()
-//	return mem.cache.LowestFee()
-//}
-
 // Mempool.Size返回Mempool中txCache大小
 func (mem *Mempool) Size() int {
 	mem.proxyMtx.Lock()
@@ -404,12 +397,14 @@ func (mem *Mempool) getSync() {
 		err := mem.qclient.Send(msg, true)
 		resp, err := mem.qclient.Wait(msg)
 		if err != nil {
+			time.Sleep(time.Second)
 			continue
 		}
 		if resp.GetData().(*types.IsCaughtUp).GetIscaughtup() {
 			mem.setSync(true)
 			return
 		} else {
+			time.Sleep(time.Second)
 			continue
 		}
 	}

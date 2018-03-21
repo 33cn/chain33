@@ -26,7 +26,7 @@ var (
 	amount   = int64(1e8)
 	v        = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 10}
+	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 1}
 	tx2      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0}
 	tx3      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0}
 	tx4      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0}
@@ -188,11 +188,9 @@ func genaddress() (string, crypto.PrivKey) {
 
 func TestAddTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
-
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx1)
+	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx2)
 	mem.qclient.Send(msg, true)
-	resp, _ := mem.qclient.Wait(msg)
-	t.Log("reply:", resp.GetData())
+	mem.qclient.Wait(msg)
 
 	if mem.Size() != 1 {
 		t.Error("TestAddTx failed")
@@ -222,7 +220,6 @@ func TestAddDuplicatedTx(t *testing.T) {
 		return
 	}
 	reply := msg1.GetData().(*types.Reply)
-	t.Log("reply:", reply.String())
 	err = checkReply(reply)
 	if err != nil {
 		t.Error(err)
@@ -233,8 +230,7 @@ func TestAddDuplicatedTx(t *testing.T) {
 	}
 	msg2 := mem.qclient.NewMessage("mempool", types.EventTx, tx2)
 	mem.qclient.Send(msg2, true)
-	resp, _ := mem.qclient.Wait(msg2)
-	t.Log("reply:", resp.GetData())
+	mem.qclient.Wait(msg2)
 
 	if mem.Size() != 1 {
 		t.Error("TestAddDuplicatedTx failed", "size", mem.Size())
@@ -253,7 +249,6 @@ func add4Tx(qclient queue.Client) error {
 	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
 	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
 	msg4 := qclient.NewMessage("mempool", types.EventTx, tx4)
-
 	qclient.Send(msg1, true)
 	_, err := qclient.Wait(msg1)
 	if err != nil {
@@ -278,6 +273,38 @@ func add4Tx(qclient queue.Client) error {
 		return err
 	}
 	return nil
+}
+
+func add4TxHash(qclient queue.Client) ([]string, error) {
+	msg1 := qclient.NewMessage("mempool", types.EventTx, tx5)
+	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
+	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
+	msg4 := qclient.NewMessage("mempool", types.EventTx, tx4)
+	hashList := []string{string(tx5.Hash()), string(tx2.Hash()), string(tx3.Hash()), string(tx4.Hash())}
+	qclient.Send(msg1, true)
+	_, err := qclient.Wait(msg1)
+	if err != nil {
+		return nil, err
+	}
+
+	qclient.Send(msg2, true)
+	_, err = qclient.Wait(msg2)
+	if err != nil {
+		return nil, err
+	}
+
+	qclient.Send(msg3, true)
+	_, err = qclient.Wait(msg3)
+	if err != nil {
+		return nil, err
+	}
+
+	qclient.Send(msg4, true)
+	_, err = qclient.Wait(msg4)
+	if err != nil {
+		return nil, err
+	}
+	return hashList, nil
 }
 
 func add10Tx(qclient queue.Client) error {
@@ -336,7 +363,7 @@ func TestGetTxList(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	// add tx
-	err := add4Tx(mem.qclient)
+	hashes, err := add4TxHash(mem.qclient)
 	if err != nil {
 		t.Error("add tx error", err.Error())
 		return
@@ -350,20 +377,19 @@ func TestGetTxList(t *testing.T) {
 		return
 	}
 	txs1 := data1.GetData().(*types.ReplyTxList).GetTxs()
-	t.Log("size:", len(txs1))
-	for i, tx := range txs1 {
-		t.Log("tx:", i, tx)
-	}
 
 	if len(txs1) != 2 {
 		t.Error("get txlist number error")
 	}
 
 	var hashList [][]byte
-	for _, tx := range txs1 {
+	for i, tx := range txs1 {
 		hashList = append(hashList, tx.Hash())
+		if hashes[i] != string(tx.Hash()) {
+			t.Error("gettxlist not in time order1")
+		}
 	}
-	msg2 := mem.qclient.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 2, Hashes: hashList})
+	msg2 := mem.qclient.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 1, Hashes: hashList})
 	mem.qclient.Send(msg2, true)
 	data2, err := mem.qclient.Wait(msg2)
 	if err != nil {
@@ -371,11 +397,12 @@ func TestGetTxList(t *testing.T) {
 		return
 	}
 	txs2 := data2.GetData().(*types.ReplyTxList).GetTxs()
-	t.Log("size:", len(txs2))
 	for i, tx := range txs2 {
-		t.Log("tx:", i, tx)
+		hashList = append(hashList, tx.Hash())
+		if hashes[2+i] != string(tx.Hash()) {
+			t.Error("gettxlist not in time order2")
+		}
 	}
-
 OutsideLoop:
 	for _, t1 := range txs1 {
 		for _, t2 := range txs2 {
@@ -402,8 +429,7 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 
 	msg5 := mem.qclient.NewMessage("mempool", types.EventTx, tx5)
 	mem.qclient.Send(msg5, true)
-	resp, _ := mem.qclient.Wait(msg5)
-	t.Log("reply:", resp.GetData())
+	mem.qclient.Wait(msg5)
 
 	if mem.Size() != 4 || mem.cache.Exists(tx5) {
 		t.Error("TestAddMoreTxThanPoolSize failed")
@@ -431,7 +457,6 @@ func TestRemoveTxOfBlock(t *testing.T) {
 	mem.qclient.Send(msg, true)
 
 	reply, err := mem.qclient.Wait(msg)
-	t.Log("reply:", reply.GetData())
 
 	if err != nil {
 		t.Error(err)
@@ -461,10 +486,6 @@ func TestDuplicateMempool(t *testing.T) {
 	mem.qclient.Send(msg, true)
 
 	reply, err := mem.qclient.Wait(msg)
-	t.Log("size:", len(reply.GetData().(*types.ReplyTxList).GetTxs()))
-	for i, tx := range reply.GetData().(*types.ReplyTxList).GetTxs() {
-		t.Log("tx:", i, tx)
-	}
 
 	if err != nil {
 		t.Error(err)
@@ -494,10 +515,6 @@ func TestGetLatestTx(t *testing.T) {
 	mem.qclient.Send(msg, true)
 
 	reply, err := mem.qclient.Wait(msg)
-	t.Log("size:", len(reply.GetData().(*types.ReplyTxList).GetTxs()))
-	for i, tx := range reply.GetData().(*types.ReplyTxList).GetTxs() {
-		t.Log("tx:", i, tx)
-	}
 
 	if err != nil {
 		t.Error(err)
@@ -513,11 +530,6 @@ func TestGetLatestTx(t *testing.T) {
 	mem.Close()
 }
 
-//func TestBigMessage(t *testing.T) {
-//	mem, q, chain := initEnv(0)
-//	mem.qclient := q.NewClient()
-//}
-
 func TestCheckLowFee(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
@@ -529,7 +541,6 @@ func TestCheckLowFee(t *testing.T) {
 	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
-	t.Log("reply:", resp.GetData())
 
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
 		t.Error("TestCheckLowFee failed")
@@ -540,30 +551,6 @@ func TestCheckLowFee(t *testing.T) {
 	mem.Close()
 }
 
-//func TestCheckManyTxs(t *testing.T) {
-//	mem, _, chain, s := initEnv(0)
-
-//	// add 10 txs for the same account
-//	err := add10Tx(mem.qclient)
-//	if err != nil {
-//		t.Error("add tx error", err.Error())
-//		return
-//	}
-
-//	msg11 := mem.qclient.NewMessage("mempool", types.EventTx, tx11)
-//	mem.qclient.Send(msg11, true)
-//	resp, _ := mem.qclient.Wait(msg11)
-//  t.Log("reply:", resp.GetData())
-
-//	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrManyTx.Error() || mem.Size() != int(maxTxNumPerAccount) {
-//		t.Error("TestCheckManyTxs failed")
-//	}
-
-//	chain.Close()
-//	s.Close()
-//	mem.Close()
-//}
-
 func TestCheckSignature(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
@@ -573,7 +560,6 @@ func TestCheckSignature(t *testing.T) {
 	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx12)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
-	t.Log("reply:", resp.GetData())
 
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrSign.Error() {
 		t.Error("TestCheckSignature failed", string(resp.GetData().(*types.Reply).GetMsg()))
@@ -584,36 +570,12 @@ func TestCheckSignature(t *testing.T) {
 	mem.Close()
 }
 
-//func TestCheckBalance(t *testing.T) {
-//	mem, _, chain, s := initEnv(0)
-//	tmp := *tx11
-//	copytx := &tmp
-//	copytx.Fee = 999999999999999999
-//	copytx.Sign(types.SECP256K1, privKey)
-//	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
-//	mem.qclient.Send(msg, true)
-//	resp, _ := mem.qclient.Wait(msg)
-//	t.Log("reply:", resp.GetData())
-//	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrBalanceLessThanTenTimesFee.Error() {
-//		t.Error("TestCheckBalance failed", resp.GetData().(*types.Reply))
-//	}
-
-//	chain.Close()
-//	s.Close()
-//	mem.Close()
-//}
-
 func TestCheckExpire1(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
-	tmp := *tx11
-	copytx := &tmp
-	copytx.SetExpire(48) // make tx expired
-	copytx.Sign(types.SECP256K1, privKey)
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
+	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx1)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
-	t.Log("reply:", resp.GetData())
 
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxExpire.Error() {
 		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
@@ -646,10 +608,6 @@ func TestCheckExpire2(t *testing.T) {
 	}
 
 	txs := data.GetData().(*types.ReplyTxList).GetTxs()
-	t.Log("size:", len(txs))
-	for i, tx := range txs {
-		t.Log("tx:", i, tx)
-	}
 
 	if len(txs) != 3 {
 		t.Error("TestCheckExpire failed", len(txs))
