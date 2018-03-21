@@ -37,8 +37,6 @@ var (
 	tx9      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0}
 	tx10     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0}
 	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
-	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 999999999999999999, Expire: 0}
-	tx13     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 4600000}
 
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
@@ -160,8 +158,6 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 	tx9.Sign(types.SECP256K1, privKey)
 	tx10.Sign(types.SECP256K1, privKey)
 	tx11.Sign(types.SECP256K1, privKey)
-	tx12.Sign(types.SECP256K1, privKey)
-	tx13.Sign(types.SECP256K1, privKey)
 
 	return mem, q, chain, s
 }
@@ -446,9 +442,11 @@ func TestCheckLowFee(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	mem.SetMinFee(1000)
-
-	tx11.Fee = 100 // make low tx fee
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx11)
+	tmp := *tx11
+	copytx := &tmp
+	copytx.Fee = 100 // make low tx fee
+	copytx.Sign(types.SECP256K1, privKey)
+	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
@@ -467,7 +465,7 @@ func TestCheckLowFee(t *testing.T) {
 //	// add 10 txs for the same account
 //	add10Tx(mem.qclient)
 
-//	msg11 := mem.qclient.NewMessage("mempool", types.EventTx, tx13)
+//	msg11 := mem.qclient.NewMessage("mempool", types.EventTx, tx11)
 //	mem.qclient.Send(msg11, true)
 //	resp, _ := mem.qclient.Wait(msg11)
 
@@ -484,10 +482,13 @@ func TestCheckSignature(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	// make wrong signature
-	tx13.Signature.Signature[0] = 0
-	tx13.Signature.Signature[1] = 0
+	tmp := *tx11
+	copytx := &tmp
+	copytx.Sign(types.SECP256K1, privKey)
+	copytx.Signature.Signature[0] = 0
+	copytx.Signature.Signature[1] = 0
 
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx13)
+	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
@@ -502,13 +503,16 @@ func TestCheckSignature(t *testing.T) {
 
 //func TestCheckBalance(t *testing.T) {
 //	mem, _, chain, s := initEnv(0)
-
-//	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx12)
+//	tmp := *tx11
+//	copytx := &tmp
+//	copytx.Fee = 999999999999999999
+//	copytx.Sign(types.SECP256K1, privKey)
+//	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
 //	mem.qclient.Send(msg, true)
 //	resp, _ := mem.qclient.Wait(msg)
-
+//	println(resp.GetData())
 //	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrBalanceLessThanTenTimesFee.Error() {
-//		t.Error("TestCheckBalance failed", string(resp.GetData().(*types.Reply).GetMsg()))
+//		t.Error("TestCheckBalance failed", resp.GetData().(*types.Reply))
 //	}
 
 //	chain.Close()
@@ -519,8 +523,11 @@ func TestCheckSignature(t *testing.T) {
 func TestCheckExpire1(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
-	tx13.SetExpire(48) // make tx expired
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx13)
+	tmp := *tx11
+	copytx := &tmp
+	copytx.SetExpire(48) // make tx expired
+	copytx.Sign(types.SECP256K1, privKey)
+	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
