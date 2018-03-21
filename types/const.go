@@ -15,6 +15,19 @@ var (
 	TokenApprs             = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK", "1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB"}
 )
 
+var (
+	MinFee             int64 = 1e5
+	MinBalanceTransfer int64 = 1e6
+)
+
+func SetMinFee(fee int64) {
+	if fee < 0 {
+		panic("fee less than zero")
+	}
+	MinFee = fee
+	MinBalanceTransfer = fee * 10
+}
+
 const (
 	Coin                     int64   = 1e8
 	TokenPrecision           int64   = 1e4
@@ -45,6 +58,7 @@ const (
 	TokenCreatePriceStand            = 10000 * Coin
 	InvalidStartTime                 = 0
 	InvalidStopTime                  = 0
+
 )
 
 const (
@@ -148,7 +162,6 @@ const (
 	EventReplyPrivkey        = 95
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
-
 	// Token
 	EventTokenPreCreate         = 98
 	EventReplyTokenPreCreate    = 99
@@ -162,6 +175,10 @@ const (
 	EventReplyBuyToken          = 107
 	EventRevokeSellToken        = 108
 	EventReplyRevokeSellToken   = 109
+	
+	EventCloseTickets           = 200
+	EventGetAddrTxs             = 201
+	EventReplyAddrTxs           = 202
 )
 
 var eventName = map[int]string{
@@ -269,6 +286,9 @@ var eventName = map[int]string{
 	101: "EventReplyTokenFinishCreate",
 	102: "EventTokenRevokeCreate",
 	103: "EventReplyTokenRevokeCreate",
+	EventCloseTickets: "EventCloseTickets",
+	EventGetAddrTxs: "EventGetAddrTxs",
+	EventReplyAddrTxs: "EventReplyAddrTxs",
 }
 
 //ty = 1 -> secp256k1

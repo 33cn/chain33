@@ -101,10 +101,6 @@ func initConfig(cfg *types.BlockChain) {
 	if cfg.TimeoutSeconds > 0 {
 		TimeoutSeconds = cfg.TimeoutSeconds
 	}
-
-	if cfg.BatchBlockNum > 0 {
-		BatchBlockNum = cfg.BatchBlockNum
-	}
 	isStrongConsistency = cfg.IsStrongConsistency
 }
 
@@ -164,7 +160,7 @@ func (chain *BlockChain) getStateHash() []byte {
 func (chain *BlockChain) ProcRecvMsg() {
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.qclient.Recv() {
-		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "cap", len(reqnum))
+		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
 		chain.recvwg.Add(1)

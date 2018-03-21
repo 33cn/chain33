@@ -75,6 +75,7 @@ var (
 	ErrTSellOrderRevoke      = errors.New("ErrTradeSellOrderRevokeNotAllowed")
 	ErrTSellNoSuchOrder      = errors.New("ErrTradeSellNoSuchOrder")
 
+
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
 	ErrTypeAsset                  = errors.New("ErrTypeAsset")
@@ -105,6 +106,7 @@ var (
 	ErrFutureBlock                = errors.New("ErrFutureBlock")
 	ErrHashNotFound               = errors.New("ErrHashNotFound")
 	ErrTxDup                      = errors.New("ErrTxDup")
+	ErrNotSync                    = errors.New("ErrNotSync")
 
 	// BlockChain Error Types
 	ErrHashNotExist           = errors.New("ErrHashNotExist")
@@ -146,4 +148,9 @@ var (
 	ErrSeedExist            = errors.New("ErrSeedExist")
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
+	ErrOnlyTicketUnLocked  = errors.New("ErrOnlyTicketUnLocked")
+	ErrNewCrypto           = errors.New("ErrNewCrypto")
+	ErrFromHex             = errors.New("ErrFromHex")
+	ErrPrivKeyFromBytes    = errors.New("ErrFromHex")
+
 )
