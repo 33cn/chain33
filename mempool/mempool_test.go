@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"testing"
 	"time"
-	//	"code.aliyun.com/chain33/chain33/account"
+
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
@@ -67,7 +67,7 @@ func init() {
 	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	queue.DisableLog()
-	//	DisableLog() // 不输出任何log
+	DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log
 	//	SetLogLevel("info") // 输出INFO(含)以下log
 	SetLogLevel("error") // 输出WARN(含)以下log
@@ -141,12 +141,13 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 
 	mem := New(cfg.MemPool)
 	mem.SetQueue(q)
+	mem.sync = true
 
 	if size > 0 {
 		mem.Resize(size)
 	}
 
-	mem.SetMinFee(0)
+	mem.SetMinFee(types.MinFee)
 
 	tx1.Sign(types.SECP256K1, privKey)
 	tx2.Sign(types.SECP256K1, privKey)
@@ -300,23 +301,39 @@ func TestGetTxList(t *testing.T) {
 	// add tx
 	add4Tx(mem.qclient)
 
-	msg := mem.qclient.NewMessage("mempool", types.EventTxList, 100)
-	mem.qclient.Send(msg, true)
-	data, err := mem.qclient.Wait(msg)
-
+	msg1 := mem.qclient.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 2, Hashes: nil})
+	mem.qclient.Send(msg1, true)
+	data1, err := mem.qclient.Wait(msg1)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	txs1 := data1.GetData().(*types.ReplyTxList).GetTxs()
 
-	txs := data.GetData().(*types.ReplyTxList).GetTxs()
-
-	if len(txs) != 4 {
+	if len(txs1) != 2 {
 		t.Error("get txlist number error")
 	}
 
-	if mem.Size() != 0 {
-		t.Error("TestGetTxList failed")
+	var hashList [][]byte
+	for _, tx := range txs1 {
+		hashList = append(hashList, tx.Hash())
+	}
+	msg2 := mem.qclient.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 2, Hashes: hashList})
+	mem.qclient.Send(msg2, true)
+	data2, err := mem.qclient.Wait(msg2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txs2 := data2.GetData().(*types.ReplyTxList).GetTxs()
+OutsideLoop:
+	for _, t1 := range txs1 {
+		for _, t2 := range txs2 {
+			if string(t1.Hash()) == string(t2.Hash()) {
+				t.Error("TestGetTxList failed")
+				break OutsideLoop
+			}
+		}
 	}
 
 	chain.Close()
@@ -524,7 +541,7 @@ func TestCheckExpire2(t *testing.T) {
 
 	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
 
-	msg := mem.qclient.NewMessage("mempool", types.EventTxList, 100)
+	msg := mem.qclient.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100, Hashes: nil})
 	mem.qclient.Send(msg, true)
 	data, err := mem.qclient.Wait(msg)
 
