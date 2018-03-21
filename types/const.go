@@ -331,5 +331,5 @@ const (
 
 //hard fork block height
 const (
-	ForkV1 = 73200
+	ForkV1 = 75260
 )
