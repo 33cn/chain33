@@ -520,6 +520,16 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procRevokeSell", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
 			}
+		case types.EventModifyConfig:
+			req := msg.Data.(*types.ReqModifyConfig)
+			replyHash, err := wallet.procModifyConfig(req)
+			if err != nil {
+				walletlog.Error("procModifyConfig", "err", err.Error())
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyModifyConfig, err))
+			} else {
+				walletlog.Info("procModifyConfig", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyModifyConfig, replyHash))
+			}
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -2009,4 +2019,41 @@ func loadSellOrderQueue(client queue.Client, sellid string) (*types.SellOrder, e
 		return &sellOrder, nil
 	}
 
+}
+
+func (wallet *Wallet) procModifyConfig(reqModify *types.ReqModifyConfig) (*types.ReplyHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return nil, err
+	}
+	if reqModify == nil {
+		walletlog.Error("procModifyConfig input para is nil")
+		return nil, types.ErrInputPara
+	}
+
+	priv, err := wallet.getPrivKeyByAddr(reqModify.GetModifier())
+	if err != nil {
+		return nil, err
+	}
+
+	if !IsSuperManager(reqModify.GetModifier()) {
+		return nil, types.ErrNoPrivilege
+	}
+	//if reqModify.GetKey() == "Manager-managers" && ! IsSuperManager(reqModify.GetModifier()) {
+	//	return nil, types.ErrNoPrivilege
+	//}
+
+	return wallet.modifyConfig(priv, reqModify)
+}
+
+func IsSuperManager(addr string) bool {
+	for _, m := range types.SuperManager {
+		if addr == m {
+			return true
+		}
+	}
+	return false
 }
