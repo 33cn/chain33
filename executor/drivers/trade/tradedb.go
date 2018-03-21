@@ -69,7 +69,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, sellid string, boardlotcnt in
 		selldb.Tokensymbol,
 		boardlotcnt,
 		strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64),
-		strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.InputPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 4, 64),
 		txhash,
 	}
 	log.Log = types.Encode(receiptBuy)
@@ -262,6 +262,3 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func calcTokenSellID(hash string) string {
-	return "mavl-trade-sell-" + hash
-}
