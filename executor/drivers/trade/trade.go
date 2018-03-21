@@ -14,7 +14,6 @@ import (
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
-	"fmt"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -171,7 +170,8 @@ func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 		}
 	} else {
 		for _, token := range addrTokens.Token {
-			values := querydb.List(calcOnesSellOrderPrefixToken(addrTokens.Addr, token), nil, 0, 0)
+			values := querydb.List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
+			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
 			if len(values) != 0 {
 				sellids = append(sellids, values...)
 			}
@@ -184,7 +184,7 @@ func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 		if !sellidGotAlready[string(sellid)] {
 			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
 				tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
-				reply.Selloders = append(reply.Selloders, sellorder)
+				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
 			}
 			sellidGotAlready[string(sellid)] = true
 		}
@@ -244,7 +244,6 @@ func (t *trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status i
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
 			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
-				//reply.Selloders = append(reply.Selloders, sellorder)
 				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
 				tradelog.Debug("trade Query", "height of sellid", sellorder.Height,
 					"len of reply.Selloders", len(reply.Selloders))
@@ -367,54 +366,3 @@ func (t *trade) deleteBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyVa
 	return kv
 }
 
-//特定状态下的卖单
-func calcTokenSellOrderKey(token string, addr string, status int32, sellOrderID string, height int64) []byte {
-	key := fmt.Sprintf("token-sellorder-shtas:%d:%d:%s:%s:%s", status, height, token, addr, sellOrderID)
-	return []byte(key)
-}
-
-//特定账户下特定状态的卖单
-func calcOnesSellOrderKeyStatus(token string, addr string, status int32, sellOrderID string) []byte {
-	key := fmt.Sprintf("token-sellorder-asts:%s:%d:%s:%s", addr, status, token, sellOrderID)
-	return []byte(key)
-}
-
-//特定账户下特定token的卖单
-func calcOnesSellOrderKeyToken(token string, addr string, status int32, sellOrderID string) []byte {
-	key := fmt.Sprintf("token-sellorder-atss:%s:%s:%d:%s", addr, token, status, sellOrderID)
-	return []byte(key)
-}
-
-//特定账户下指定token的卖单
-func calcOnesSellOrderPrefixToken(token string, addr string) []byte {
-	return []byte(fmt.Sprintf("token-sellorder-atss:%s:%s", addr, token))
-}
-
-//特定账户下的卖单
-func calcOnesSellOrderPrefixAddr(addr string) []byte {
-	return []byte(fmt.Sprintf("token-sellorder-asts:%s", addr))
-}
-
-//特定状态下的卖单
-func calcTokenSellOrderPrefixStatus(status int32) []byte {
-	return []byte(fmt.Sprintf("token-sellorder-shtas:%d", status))
-}
-
-//考虑到购买者可能在同一个区块时间针对相同的卖单(sellorder)发起购买操作，所以使用sellid：buytxhash组合的方式生成key
-func calcOnesBuyOrderKey(addr string, height int64, token string, sellOrderID string, buyTxHash string) []byte {
-	return []byte(fmt.Sprintf("token-buyorder-ahtsb:%s:%d:%s:%s:%s", addr, height, token, sellOrderID, buyTxHash))
-}
-
-//用于快速查询某个token下的所有成交的买单
-func calcBuyOrderKey(addr string, height int64, token string, sellOrderID string, buyTxHash string) []byte {
-	return []byte(fmt.Sprintf("token-buyorder-tahsb:%s:%s:%d:%s:%s", token, addr, height, sellOrderID, buyTxHash))
-}
-
-//特定账户下的买单
-func calcOnesBuyOrderPrefixAddr(addr string) []byte {
-	return []byte(fmt.Sprintf("token-buyorder-ahtsb:%s", addr))
-}
-
-func calcTokenSellID(hash string) string {
-	return "mavl-trade-sell-" + hash
-}

@@ -49,27 +49,22 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	switch tokenAction.GetTy() {
 	case types.TokenActionPreCreate:
-		tokenlog.Info("Exec TokenActionPreCreate")
 		action := newTokenAction(t, "", tx)
 		return action.preCreate(tokenAction.GetTokenprecreate())
 
 	case types.TokenActionFinishCreate:
-		tokenlog.Info("Exec TokenActionFinishCreate")
 		action := newTokenAction(t, types.FundKeyAddr, tx)
 		return action.finishCreate(tokenAction.GetTokenfinishcreate(), types.TokenApprs)
 
 	case types.TokenActionRevokeCreate:
-		tokenlog.Info("Exec TokenActionRevokeCreate")
 		action := newTokenAction(t, "", tx)
 		return action.revokeCreate(tokenAction.GetTokenrevokecreate())
 
 	case types.ActionTransfer:
-		tokenlog.Info("Exec TokenActionTransfer")
 		token := tokenAction.GetTransfer().GetCointoken()
 		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction)
 
 	case types.ActionWithdraw:
-		tokenlog.Info("Exec TokenActionWithdraw")
 		token := tokenAction.GetWithdraw().GetCointoken()
 		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction)
 	}
@@ -168,11 +163,6 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 		}
 		tokenlog.Info("token Query", "function name", funcName, "query tokens", reqtokens)
 		return t.GetTokens(&reqtokens)
-
-		//case "GetPrecreatedTokens":
-		//case "GetAllCreatedTokenSymbols":
-		//case "GetAllCreatedTokenDetails":
-		//case "GetSomeCreatedTokenDetails":
 	case "GetTokenInfo":
 		var symbol types.ReqString
 		err := types.Decode(params, &symbol)
