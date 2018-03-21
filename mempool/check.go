@@ -23,7 +23,7 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	}
 	mem.addedTxs.Add(string(tx.Hash()), nil)
 	// 检查交易消息是否过大
-	err := tx.Check(true)
+	err := tx.Check(mem.minFee)
 	if err != nil {
 		msg.Data = err
 		return msg
@@ -117,6 +117,7 @@ func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	result, err := mem.checkTxListRemote(txlist)
 	if err != nil {
 		for i := range msgs {
+			mlog.Error("wrong tx", "err", err)
 			msgs[i].Data = err
 			mem.badChan <- msgs[i]
 		}

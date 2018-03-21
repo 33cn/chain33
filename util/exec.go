@@ -26,15 +26,16 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, types.ErrSign
 	}
-	//tx交易去重处理
-	oldtxscount := len(block.Txs)
-	txs := CheckTxDup(q, block.Txs)
-	newtxscount := len(txs)
+	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
+	cacheTxs := types.TxsToCache(block.Txs)
+	oldtxscount := len(cacheTxs)
+	cacheTxs = CheckTxDup(q, cacheTxs)
+	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, types.ErrTxDup
 	}
-	block.Txs = txs
-	block.TxHash = merkle.CalcMerkleRoot(block.Txs)
+	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
+	block.Txs = types.CacheToTxs(cacheTxs)
 
 	receipts := ExecTx(q, prevStateRoot, block)
 	var maplist = make(map[string]*types.KeyValue)
@@ -193,7 +194,7 @@ func ExecKVSetRollback(q *queue.Queue, hash []byte) error {
 	return nil
 }
 
-func CheckTxDup(q *queue.Queue, txs []*types.Transaction) (transactions []*types.Transaction) {
+func CheckTxDup(q *queue.Queue, txs []*types.TransactionCache) (transactions []*types.TransactionCache) {
 	qclient := q.NewClient()
 	var checkHashList types.TxHashList
 	for _, tx := range txs {
