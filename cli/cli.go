@@ -1466,15 +1466,21 @@ func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 }
 
 func GetExecAddr(exec string) {
-	addrResult := account.ExecAddress(exec)
-	result := addrResult.String()
-	data, err := json.MarshalIndent(result, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
+	switch exec {
+	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
+		addrResult := account.ExecAddress(exec)
+		result := addrResult.String()
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
 
-	fmt.Println(string(data))
+		fmt.Println(string(data))
+
+	default:
+		fmt.Println("exec not exist!")
+	}
 }
 
 func BindMiner(mineraddr string, priv string) {
