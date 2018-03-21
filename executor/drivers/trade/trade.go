@@ -365,4 +365,3 @@ func (t *trade) deleteBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyVa
 
 	return kv
 }
-
