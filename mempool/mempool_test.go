@@ -485,15 +485,14 @@ func TestCheckSignature(t *testing.T) {
 	tmp := *tx11
 	copytx := &tmp
 	copytx.Sign(types.SECP256K1, privKey)
-	copytx.Signature.Signature[0] = 0
-	copytx.Signature.Signature[1] = 0
+	copytx.Signature.Signature = copytx.Signature.Signature[5:]
 
 	msg := mem.qclient.NewMessage("mempool", types.EventTx, copytx)
 	mem.qclient.Send(msg, true)
 	resp, _ := mem.qclient.Wait(msg)
 
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrSign.Error() {
-		t.Error("TestCheckSignature failed")
+		t.Error("TestCheckSignature failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
 
 	chain.Close()
