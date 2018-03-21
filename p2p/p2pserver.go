@@ -25,8 +25,9 @@ type p2pServer struct {
 	closed       int32
 }
 type innerpeer struct {
-	addr string
-	name string
+	addr      string
+	name      string
+	timestamp int64
 }
 
 func (s *p2pServer) Start() {
@@ -427,11 +428,11 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			}
 			Filter.RegData(txhash)
 
-		} else if ping := in.GetPing(); ping != nil {
+		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
-			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername})
+			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: time.Now().Unix()})
 		}
 	}
 
@@ -453,6 +454,24 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 		}
 	}
 	return &pb.P2PExternalInfo{Addr: remoteaddr, Isoutside: outside}, nil
+}
+
+/**
+* 统计连接自己的外网节点
+ */
+
+func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
+	if P2pComm.CheckSign(in) {
+		log.Info("Ping", "CollectInPeers", "recv ping")
+	}
+	inPeers := s.getInBoundPeers()
+	var p2pPeers []*pb.Peer
+
+	for _, inpeer := range inPeers {
+		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name}) ///仅用name字段，用于统计peer num.
+	}
+
+	return &pb.PeerList{Peers: p2pPeers}, nil
 }
 
 func (s *p2pServer) checkVersion(version int32) bool {
@@ -578,4 +597,14 @@ func (s *p2pServer) getInBoundPeerInfo(peername string) *innerpeer {
 	}
 
 	return nil
+}
+
+func (s *p2pServer) getInBoundPeers() []*innerpeer {
+	s.imtx.Lock()
+	defer s.imtx.Unlock()
+	var peers []*innerpeer
+	for _, innerpeer := range s.inboundpeers {
+		peers = append(peers, innerpeer)
+	}
+	return peers
 }
