@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	common.SetLogLevel("warn")
+	common.SetLogLevel("debug")
 }
 
 func initEnv() (*queue.Queue, *Store) {
@@ -144,7 +144,7 @@ func TestGetAndSetCommitAndRollback(t *testing.T) {
 		return
 	}
 	if string(value2) != string(value) {
-		t.Errorf("values not match")
+		t.Errorf("values not match %s %s %x", string(value2), string(value), hash)
 		return
 	}
 
@@ -173,7 +173,7 @@ func TestGetAndSetCommitAndRollback(t *testing.T) {
 		return
 	}
 	if string(value2) != string(value) {
-		t.Errorf("values not match")
+		t.Errorf("values not match [%s] [%s] %x", string(value2), string(value), hash)
 		return
 	}
 

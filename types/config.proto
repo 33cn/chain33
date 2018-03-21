@@ -5,15 +5,16 @@ package types;
 message Config {
 	string title = 1;
 	string loglevel = 2;
-	string logConsoleLevel = 10;
-	string logFile = 9;
-	Store store = 3;
-	LocalStore localStore = 11;
-	Consensus consensus = 4;
-	MemPool memPool = 5;
-	BlockChain blockChain = 6;
-	Wallet wallet = 7;
-	P2P p2p = 8;
+	string logConsoleLevel = 3;
+	string logFile = 4;
+	Store store = 6;
+	LocalStore localStore = 7;
+	Consensus consensus = 8;
+	MemPool memPool = 9;
+	BlockChain blockChain = 10;
+	Wallet wallet = 11;
+	P2P p2p = 12;
+	Rpc rpc=13;
 }
 
 message MemPool {
@@ -31,8 +32,9 @@ message Consensus {
 
 message Wallet {
 	int64 minFee = 1;
-	string dbPath = 2;
-	string signType =3;
+	string driver = 2;
+	string dbPath = 3;
+	string signType =4;
 }
 
 message Store {
@@ -67,4 +69,10 @@ message P2P {
 	int32 version = 8;
 	int32 verMix = 9;
 	int32 verMax = 10;
+}
+
+message Rpc {
+	string jrpcBindAddr=1;
+	string grpcBindAddr=2;
+	repeated string whitlist=3;
 }

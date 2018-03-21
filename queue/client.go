@@ -170,6 +170,7 @@ func (client *client) Sub(topic string) {
 			select {
 			case data, ok := <-sub.high:
 				if client.isEnd(data, ok) {
+					qlog.Info("unsub1", "topic", topic)
 					return
 				}
 				client.Recv() <- data
@@ -177,15 +178,18 @@ func (client *client) Sub(topic string) {
 				select {
 				case data, ok := <-sub.high:
 					if client.isEnd(data, ok) {
+						qlog.Info("unsub2", "topic", topic)
 						return
 					}
 					client.Recv() <- data
 				case data, ok := <-sub.low:
 					if client.isEnd(data, ok) {
+						qlog.Info("unsub3", "topic", topic)
 						return
 					}
 					client.Recv() <- data
 				case <-client.done:
+					qlog.Error("unsub4", "topic", topic)
 					return
 				}
 			}

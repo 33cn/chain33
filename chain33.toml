@@ -3,7 +3,6 @@ Title="chain33"
 Loglevel="debug"
 LogConsoleLevel="info"
 LogFile="chain33.log"
-
 [blockchain]
 defCacheSize=512
 maxFetchBlockNum=128
@@ -25,9 +24,13 @@ version=118
 verMix=118
 verMax=119
 
+[rpc]
+jrpcBindAddr="localhost:8801"
+grpcBindAddr="localhost:8802"
+whitlist=["127.0.0.1"]
 [mempool]
 poolCacheSize=10240
-minTxFee=1000000
+minTxFee=100000
 
 [consensus]
 name="ticket"
@@ -42,7 +45,9 @@ driver="leveldb"
 dbPath="datadir/mavltree"
 
 [wallet]
-minFee=1000000
+minFee=100000
+driver="leveldb"
 dbPath="datadir/wallet"
 signType="secp256k1"
+
 [exec]
