@@ -15,6 +15,7 @@ import (
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	dbm "code.aliyun.com/chain33/chain33/common/db"
 )
 
 var tokenlog = log.New("module", "execs.token")
@@ -222,7 +223,8 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 
 	replyTokens := &types.ReplyTokens{}
 	if reqTokens.Queryall {
-		keys := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		list := dbm.NewListHelper(querydb)
+		keys := list.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		if len(keys) != 0 {
 			for _, key := range keys {
@@ -239,7 +241,8 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 
 	} else {
 		for _, token := range reqTokens.Tokens {
-			keys := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
+			list := dbm.NewListHelper(querydb)
+			keys := list.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 			if len(keys) != 0 {
 				for _, key := range keys {
