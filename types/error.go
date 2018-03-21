@@ -146,4 +146,9 @@ var (
 	ErrSeedExist            = errors.New("ErrSeedExist")
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
+	// manage
+	ErrNoPrivilege          = errors.New("ErrNoPrivilege")
+	ErrBadConfigKey          = errors.New("ErrBadConfigKey")
+	ErrBadConfigOp          = errors.New("ErrBadConfigOp")
+	ErrBadConfigValue          = errors.New("ErrBadConfigValue")
 )
