@@ -451,10 +451,6 @@ type AddrOverviewResult struct {
 	TxCount int64  `json:"txCount"`
 }
 
-type syncStatus struct {
-	isSync bool
-}
-
 func GetVersion() {
 	fmt.Println(common.GetVersion())
 }
@@ -1606,7 +1602,7 @@ func IsSync() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	data, err := json.MarshalIndent(syncStatus{isSync: res}, "", "    ")
+	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
