@@ -4,7 +4,6 @@ import (
 	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
-	"fmt"
 )
 
 type tokenDB struct {
@@ -234,30 +233,4 @@ func checkTokenExist(token string, db dbm.KVDB) bool {
 func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KVDB) bool {
 	_, err := db.Get(calcTokenAddrKey(token, owner))
 	return err == nil
-}
-
-func calcTokenKey(token string) (key []byte) {
-	key = append(key, []byte("mavl-token-")...)
-	key = append(key, []byte(token)...)
-	return key
-}
-
-func calcTokenAddrKey(token string, owner string) (key []byte) {
-	key = append(key, []byte("mavl-create-token-")...)
-	key = append(key, []byte(owner)...)
-	key = append(key, []byte("-")...)
-	key = append(key, []byte(token)...)
-	return key
-}
-
-func calcTokenStatusKey(token string, owner string, status int32) []byte {
-	return []byte(fmt.Sprintf("mavl-create-token-%d:%s:%s", status, token, owner))
-}
-
-func calcTokenStatusKeyPrefix(status int32) []byte {
-	return []byte(fmt.Sprintf("mavl-create-token-%d:", status))
-}
-
-func calcTokenStatusSymbolPrefix(status int32, symbol string) []byte {
-	return []byte(fmt.Sprintf("mavl-create-token-%d:%s:", status, symbol))
 }

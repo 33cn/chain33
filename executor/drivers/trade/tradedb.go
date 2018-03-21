@@ -12,7 +12,6 @@ type sellDB struct {
 	types.SellOrder
 }
 
-//TODO STATUS没有什么作用，可以考虑删除
 func newSellDB(sellorder types.SellOrder) (selldb *sellDB) {
 	selldb = &sellDB{sellorder}
 	if types.InvalidStartTime != selldb.Starttime {
@@ -92,7 +91,6 @@ func getSellOrderFromID(sellid []byte, db dbm.KVDB) (*types.SellOrder, error) {
 	return &sellorder, nil
 }
 
-//key:mavl-token-xxx, value:token
 func (selldb *sellDB) getKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&selldb.SellOrder)
 	key := []byte(selldb.Sellid)
@@ -110,7 +108,6 @@ type tradeAction struct {
 	execaddr     string
 }
 
-//func newTradeAction(db dbm.KVDB, tx *types.Transaction, toaddr, execaddr string, blocktime, height int64) *tradeAction {
 func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 	hash := common.Bytes2Hex(tx.Hash())
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
@@ -120,7 +117,6 @@ func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 
 func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, error) {
 	tokenAccDB := account.NewTokenAccount(sell.Tokensymbol, action.db)
-	//tokenAcc := tokenAccDB.LoadAccount(action.fromaddr)
 
 	//确认发起此次出售或者众筹的余额是否足够
 	totalAmount := sell.GetTotalboardlot() * sell.GetAmountperboardlot()
@@ -147,7 +143,7 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 		types.OnSale,
 		action.height,
 	}
-	tradelog.Debug("trade sell current height ", "height", action.height)
+
 	tokendb := newSellDB(sellorder)
 	sellOrderKV := tokendb.save(action.db)
 	logs = append(logs, receipt.Logs...)
@@ -165,19 +161,18 @@ func (action *tradeAction) tradeBuy(buyorder *types.TradeForBuy) (*types.Receipt
 	if err != nil {
 		return nil, types.ErrTSellOrderNotExist
 	}
-	//TODO 使用blocktime，避免不同主机的时间差异
+
 	if sellorder.Status == types.NotStart && sellorder.Starttime > action.blocktime {
 		return nil, types.ErrTSellOrderNotStart
-	} else if sellorder.Status == types.OnSale && sellorder.Totalboardlot-sellorder.Soldboardlot < buyorder.Boardlotcnt {
-		return nil, types.ErrTSellOrderNotEnough
 	} else if sellorder.Status == types.SoldOut {
 		return nil, types.ErrTSellOrderSoldout
-	} else if sellorder.Status == types.Revoked {
+	} else if sellorder.Status == types.OnSale && sellorder.Totalboardlot - sellorder.Soldboardlot < buyorder.Boardlotcnt {
+		return nil, types.ErrTSellOrderNotEnough
+	}  else if sellorder.Status == types.Revoked {
 		return nil, types.ErrTSellOrderRevoked
 	} else if sellorder.Status == types.Expired {
 		return nil, types.ErrTSellOrderExpired
 	}
-	sellorder.Status = types.OnSale
 
 	//首先购买费用的划转
 	receiptFromAcc, err := action.coinsAccount.ExecTransfer(action.fromaddr, sellorder.Address, action.execaddr, buyorder.Boardlotcnt*sellorder.Priceperboardlot)
@@ -240,7 +235,6 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 		return nil, types.ErrTSellOrderRevoke
 	}
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
-	//TODO: 创建一个LRU用来保存token对应的子合约账户的地址
 	tokenAccDB := account.NewTokenAccount(sellorder.Tokensymbol, action.db)
 	tradeRest := (sellorder.Totalboardlot - sellorder.Soldboardlot) * sellorder.Amountperboardlot
 	receiptFromExecAcc, err := tokenAccDB.ExecActive(sellorder.Address, action.execaddr, tradeRest)
