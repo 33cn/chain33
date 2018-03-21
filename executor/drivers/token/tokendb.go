@@ -5,6 +5,7 @@ import (
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 	"fmt"
+	"strings"
 )
 
 type TokenDB struct {
@@ -93,6 +94,11 @@ func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenIntroLen
 	} else if len(token.GetSymbol()) > types.TokenSymbolLenLimit {
 		return nil, types.ErrTokenSymbolLen
+	}
+	upSymbol := strings.ToUpper(token.GetSymbol())
+	if upSymbol != token.GetSymbol() {
+		tokenlog.Error("token precreate ", "symbol need be upper", token.GetSymbol())
+		return nil, types.ErrTokenSymbolUpper
 	}
 
 	if checkTokenExist(token.GetSymbol(), action.db) {
