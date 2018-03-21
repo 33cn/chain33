@@ -59,6 +59,12 @@ func httpListen(){
 	http.HandleFunc("/registerUser", registerUser)
 	http.HandleFunc("/createOrg", createOrg)
 	http.HandleFunc("/queryOrg", queryOrg)
+	http.HandleFunc("/submitRecord", submitRecord)
+	http.HandleFunc("/queryRecord", queryRecord)
+	http.HandleFunc("/transfer", transfer)
+	http.HandleFunc("/queryTransaction", queryTransaction)
+	http.HandleFunc("/deleteRecord", deleteRecord)
+	//http.HandleFunc("/queryOrg", queryOrg)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(8081), nil)
 	if err != nil {
@@ -109,5 +115,20 @@ func createOrg(w http.ResponseWriter, r *http.Request)  {
 
 }
 func queryOrg(w http.ResponseWriter, r *http.Request)  {
+
+}
+func submitRecord(w http.ResponseWriter, r *http.Request)  {
+
+}
+func queryRecord(w http.ResponseWriter, r *http.Request)  {
+
+}
+func transfer(w http.ResponseWriter, r *http.Request)  {
+
+}
+func queryTransaction(w http.ResponseWriter, r *http.Request)  {
+
+}
+func deleteRecord(w http.ResponseWriter, r *http.Request)  {
 
 }
