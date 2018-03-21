@@ -49,7 +49,7 @@ func getprivkey(key string) crypto.PrivKey {
 }
 func sendTransaction(privKey string, tr *Transaction) {
 	createConn(ConnIp)
-	action := &BlackAction{Value: &BlackAction_Tr{tr}, FuncName: Transfer}
+	action := &BlackAction{Value: &BlackAction_Tr{tr}, FuncName: FuncName_Transfer}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: Fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = rand.Int63()

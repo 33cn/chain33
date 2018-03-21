@@ -57,14 +57,14 @@ func (b *BlackList) GetActionName(tx *types.Transaction) string {
 	if err != nil {
 		return "unknow"
 	}
-	if action.FuncName == SubmitRecord && action.GetRc() != nil {
-		return SubmitRecord
-	} else if action.FuncName == QueryOrgById && action.GetOr() != nil {
-		return QueryOrgById
-	} else if action.FuncName == QueryRecordById {
-		return QueryRecordById
-	} else if action.FuncName == CreateOrg && action.GetOr() != nil {
-		return CreateOrg
+	if action.FuncName == FuncName_SubmitRecord && action.GetRc() != nil {
+		return FuncName_SubmitRecord
+	} else if action.FuncName == FuncName_QueryOrgById && action.GetOr() != nil {
+		return FuncName_QueryOrgById
+	} else if action.FuncName == FuncName_QueryRecordById {
+		return FuncName_QueryRecordById
+	} else if action.FuncName ==FuncName_CreateOrg && action.GetOr() != nil {
+		return FuncName_CreateOrg
 	}
 	return "unknow"
 }
@@ -88,7 +88,7 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 	if err != nil {
 		return nil
 	}
-	if action.FuncName == SubmitRecord && action.GetRc() != nil {
+	if action.FuncName == FuncName_SubmitRecord && action.GetRc() != nil {
 		//TODO:以不同的key进行多次存储,以求能够规避chain33不支持多键值查询的短板
 		record := action.GetRc()
 		record.CreateTime = time.Now().In(loc).Format(layout)
@@ -119,7 +119,7 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 			kvs = append(kvs, kvs_ts...)
 		}
 		return kvs
-	} else if action.FuncName == CreateOrg && action.GetOr() != nil {
+	} else if action.FuncName == FuncName_CreateOrg && action.GetOr() != nil {
 		org := action.GetOr()
 		//生成随机不重复addr
 		org.OrgAddr = generateAddr()
@@ -132,7 +132,7 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 		//key=user.blacklist+orgAddr
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + org.GetOrgAddr()), []byte(org.String())})
 		return kvs
-	} else if action.FuncName == DeleteRecord {
+	} else if action.FuncName == FuncName_DeleteRecord {
 		record := b.deleteRecord([]byte(b.GetName() + action.GetRc().GetClientName() + action.GetRc().GetRecordId()))
 		record.UpdateTime = time.Now().In(loc).Format(layout)
 		//key=user.blacklist+clientName+recordId
@@ -140,7 +140,7 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 		//key=user.blacklist+clientId+recordId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientId() + record.GetRecordId()), []byte(record.String())})
 		return kvs
-	} else if action.FuncName == Transfer && action.GetTr() != nil {
+	} else if action.FuncName == FuncName_Transfer && action.GetTr() != nil {
 		kvs_ts, err := b.transfer(action.GetTr())
 		if err != nil {
 			blog.Error("exec transfer func have a err! err: ", err)
@@ -149,7 +149,7 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 			kvs = append(kvs, kvs_ts...)
 		}
 		return kvs
-	} else if action.FuncName == RegisterUser && action.GetUser() != nil {
+	} else if action.FuncName == FuncName_RegisterUser && action.GetUser() != nil {
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetUser().GetUserName()), []byte(action.GetUser().String())})
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetUser().GetUserId()), []byte(action.GetUser().String())})
 		//kvs = append(kvs,&types.KeyValue{[]byte(b.GetName()+action.GetUser().GetOrgId()+action.GetUser().GetUserId()),[]byte(action.GetUser().String())})
@@ -219,34 +219,34 @@ func (b *BlackList) Query(funcname string, params []byte) (types.Message, error)
 		blog.Error("exec getQuery func have a err:", err)
 		return nil, ErrQueryNotSupport
 	}
-	if funcname == QueryRecordById && query.GetQueryRecord() != nil {
+	if funcname == FuncName_QueryRecordById && query.GetQueryRecord() != nil {
 		value := b.queryRecord([]byte(query.GetQueryRecord().GetByClientId()))
 		if value == "" {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{value}, nil
-	} else if funcname == QueryOrgById && query.GetQueryOrg() != nil {
+	} else if funcname == FuncName_QueryOrgById && query.GetQueryOrg() != nil {
 		value := b.queryOrg([]byte(query.GetQueryOrg().GetOrgId()))
 		if value == "" {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{value}, nil
-	} else if funcname == QueryRecordByName && query.GetQueryRecord() != nil {
+	} else if funcname == FuncName_QueryRecordByName && query.GetQueryRecord() != nil {
 		return &types.ReplyStrings{b.queryRecordByName([]byte(query.GetQueryRecord().GetByClientName()))}, nil
-	} else if funcname == QueryTxByFromAddr && query.GetQueryTransaction() != nil {
+	} else if funcname == FuncName_QueryTxByFromAddr && query.GetQueryTransaction() != nil {
 		values := b.queryTransactionByAddr([]byte(query.GetQueryTransaction().GetByFromAddr()))
 		return &types.ReplyStrings{values}, nil
-	} else if funcname == QueryTxByToAddr && query.GetQueryTransaction() != nil {
+	} else if funcname == FuncName_QueryTxByToAddr && query.GetQueryTransaction() != nil {
 		values := b.queryTransactionByAddr([]byte(query.GetQueryTransaction().GetByToAddr()))
 		return &types.ReplyStrings{values}, nil
-	} else if funcname == QueryTxById && query.GetQueryTransaction() != nil {
+	} else if funcname == FuncName_QueryTxById && query.GetQueryTransaction() != nil {
 		value := b.queryTransactionById([]byte(query.GetQueryTransaction().GetByTxId()))
 		return &types.ReplyString{value}, nil
-	} else if funcname == LoginCheck && query.GetLoginCheck() != nil {
+	} else if funcname == FuncName_LoginCheck && query.GetLoginCheck() != nil {
 		if b.loginCheck(query.GetLoginCheck()) {
-			return &types.ReplyString{TRUE}, nil
+			return &types.ReplyString{SUCESS}, nil
 		} else {
-			return &types.ReplyString{FALSE}, nil
+			return &types.ReplyString{FAIL}, nil
 		}
 	}
 	return nil, types.ErrActionNotSupport

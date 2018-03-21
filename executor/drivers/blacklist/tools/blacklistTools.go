@@ -219,7 +219,7 @@ func CreateOrg(privkey string, key string, value string) {
 	}
 	org.OrgId="33"
 	org.OrgName="fuzamei"
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org},FuncName:blacklist.CreateOrg}
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org},FuncName:blacklist.FuncName_CreateOrg}
 	//nput := &types.NormAction_Nput{&types.NormPut{Key: key,Value: []byte(value)}}
 	//action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
@@ -244,7 +244,7 @@ func submitRecord(privkey string){
 	rc.ClientId="one"
 	rc.ClientName="dirk"
 	rc.Searchable=true
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.SubmitRecord}
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.FuncName_SubmitRecord}
 	//nput := &types.NormAction_Nput{&types.NormPut{Key: key,Value: []byte(value)}}
 	//action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
@@ -265,7 +265,7 @@ func submitRecord(privkey string){
 func queryRecord(privKey string ,recordId string) {
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
-	req.FuncName = blacklist.QueryRecordById
+	req.FuncName = blacklist.FuncName_QueryRecordById
 	qb := &blacklist.QueryRecordParam{}
 	qb.ByClientId=recordId
 	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},privKey}
@@ -290,7 +290,7 @@ func deleteRecord(privkey string ,orgId string,recordId string) {
 	}
 	rc.OrgId=orgId
 	rc.RecordId=recordId
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.DeleteRecord}
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.FuncName_DeleteRecord}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = r.Int63()
@@ -312,7 +312,7 @@ func queryRecordByName(privKey string,name string) {
 	qb.ByClientName=name
 	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},privKey}
 	req.Execer = []byte("user.blacklist")
-	req.FuncName = blacklist.QueryRecordByName
+	req.FuncName = blacklist.FuncName_QueryRecordByName
 	req.Payload = []byte(query.String())
 
 	reply, err := c.QueryChain(context.Background(), &req)
