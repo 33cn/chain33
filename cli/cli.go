@@ -351,6 +351,19 @@ func main() {
 			return
 		}
 		ShowSellOrderWithStatus(argsWithoutProg[1])
+	case "showonesbuyorder":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		var tokens []string
+		ShowOnesBuyOrder(argsWithoutProg[1], tokens)
+	case "showonesbuytokenorder":
+		if len(argsWithoutProg) < 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowOnesBuyOrder(argsWithoutProg[1], argsWithoutProg[2:])
 	case "revokecreatetoken":
 		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -415,9 +428,9 @@ func LoadHelp() {
 	fmt.Println("revokeselltoken [seller, sellid]                               : 撤销token卖单")
 	fmt.Println("showonesselltokenorder [seller, [token0, token1, token2]]      : 显示一个用户下的token卖单")
 	fmt.Println("showsellorderwithstatus [onsale | soldout | revoked]           : 显示指定状态下的所有卖单")
-
+	fmt.Println("showonesbuyorder [buyer]                                       : 显示指定用户下所有token成交的购买单")
+	fmt.Println("showonesbuytokenorder [buyer, token0, [token1, token2]]        : 显示指定用户下指定token成交的购买单")
 	fmt.Println("sellcrowdfund [owner, token, Amountpbl, minbl, pricepbl, totalpbl, start, stop]              : 卖出众筹")
-
 }
 
 var dd types.TradeForSell
@@ -2351,6 +2364,39 @@ func ShowSellOrderWithStatus(status string) {
 		sellOrders2show.Height = sellorder.Height
 
 		data, err := json.MarshalIndent(sellOrders2show, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
+		fmt.Println(string(data))
+	}
+}
+
+func ShowOnesBuyOrder(buyer string, tokens []string) {
+
+	var reqAddrtokens types.ReqAddrTokens
+	reqAddrtokens.Addr  = buyer
+	reqAddrtokens.Token = tokens
+
+	var params jsonrpc.Query
+	params.Execer = "trade"
+	params.FuncName = "GetOnesBuyOrder"
+	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyTradeBuyOrders
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, buy := range res.Tradebuydones {
+		data, err := json.MarshalIndent(buy, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return

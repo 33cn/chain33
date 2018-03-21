@@ -193,27 +193,27 @@ func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 }
 
 func (t *trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
-	sellidGotAlready := make(map[interface{}]bool)
+	gotAlready := make(map[interface{}]bool)
 	var reply types.ReplyTradeBuyOrders
 	values := querydb.List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 	if len(values) != 0 {
 		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(values))
 		for _, value := range values {
 			//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
-			if !sellidGotAlready[value] {
-				var tradeBuyDone types.TradeBuyDone
-				if err := types.Decode(value, &tradeBuyDone); err != nil {
-					tradelog.Error("GetOnesBuyOrder", "Failed to decode tradebuydoen", value)
-					return nil, err
-				}
-
+			var tradeBuyDone types.TradeBuyDone
+			if err := types.Decode(value, &tradeBuyDone); err != nil {
+				tradelog.Error("GetOnesBuyOrder", "Failed to decode tradebuydoen", value)
+				return nil, err
+			}
+			if !gotAlready[tradeBuyDone.Buytxhash] {
 				reply.Tradebuydones = append(reply.Tradebuydones, &tradeBuyDone)
-				sellidGotAlready[value] = true
+				gotAlready[tradeBuyDone.Buytxhash] = true
 			}
 		}
 	}
-	var resultReply types.ReplyTradeBuyOrders
+
 	if len(addrTokens.Token) != 0 {
+		var resultReply types.ReplyTradeBuyOrders
 		tokenMap := make(map[string]bool)
 		for _, token := range addrTokens.Token {
 			tokenMap[token] = true
@@ -224,9 +224,10 @@ func (t *trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.R
 				resultReply.Tradebuydones = append(resultReply.Tradebuydones, Tradebuydone)
 			}
 		}
+		return &resultReply, nil
 	}
 
-	return &resultReply, nil
+	return &reply, nil
 }
 
 func (t *trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status int32) (types.Message, error) {
@@ -401,15 +402,19 @@ func calcTokenSellOrderPrefixStatus(status int32) []byte {
 
 //考虑到购买者可能在同一个区块时间针对相同的卖单(sellorder)发起购买操作，所以使用sellid：buytxhash组合的方式生成key
 func calcOnesBuyOrderKey(addr string, height int64, token string, sellOrderID string, buyTxHash string) []byte {
-	return []byte(fmt.Sprintf("token-buyorder:%s:%d:%s:%s:%s", addr, height, token, sellOrderID, buyTxHash))
+	return []byte(fmt.Sprintf("token-buyorder-ahtsb:%s:%d:%s:%s:%s", addr, height, token, sellOrderID, buyTxHash))
 }
 
 //用于快速查询某个token下的所有成交的买单
 func calcBuyOrderKey(addr string, height int64, token string, sellOrderID string, buyTxHash string) []byte {
-	return []byte(fmt.Sprintf("token-buyorder:%s:%s:%d:%s:%s", token, addr, height, sellOrderID, buyTxHash))
+	return []byte(fmt.Sprintf("token-buyorder-tahsb:%s:%s:%d:%s:%s", token, addr, height, sellOrderID, buyTxHash))
 }
 
-//特定账户下的卖单
+//特定账户下的买单
 func calcOnesBuyOrderPrefixAddr(addr string) []byte {
-	return []byte(fmt.Sprintf("token-buyorder:%s", addr))
+	return []byte(fmt.Sprintf("token-buyorder-ahtsb:%s", addr))
+}
+
+func calcTokenSellID(hash string) string {
+	return "mavl-trade-sell-" + hash
 }
