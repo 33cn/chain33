@@ -550,7 +550,7 @@ func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
 	return &newblock, lastBlock
 }
 
-func (client *TicketClient) updateBlock(newblock *types.Block, txHashList [][]byte) *types.Block {
+func (client *TicketClient) updateBlock(newblock *types.Block, txHashList [][]byte) (*types.Block, [][]byte) {
 	var txs []*types.Transaction
 	if len(newblock.Txs) < int(types.MaxTxNumber-1) {
 		txs = client.RequestTx(int(types.MaxTxNumber)-1-len(newblock.Txs), txHashList)
@@ -571,7 +571,7 @@ func (client *TicketClient) updateBlock(newblock *types.Block, txHashList [][]by
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
-	return lastBlock
+	return lastBlock, txHashList
 }
 
 func (client *TicketClient) CreateBlock() {
@@ -589,14 +589,14 @@ func (client *TicketClient) CreateBlock() {
 		for !client.Miner(lastBlock, block) {
 			time.Sleep(time.Second)
 			//加入新的txs, 继续挖矿
-			lastBlock = client.updateBlock(block, hashlist)
+			lastBlock, hashlist = client.updateBlock(block, hashlist)
 		}
 	}
 }
 
 func getTxHashes(txs []*types.Transaction) (hashes [][]byte) {
 	hashes = make([][]byte, len(txs))
-	for i := 0; i < len(hashes); i++ {
+	for i := 0; i < len(txs); i++ {
 		hashes[i] = txs[i].Hash()
 	}
 	return hashes
