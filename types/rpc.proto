@@ -105,4 +105,7 @@ service grpcservice {
     }
     rpc RevokeSellToken(types.ReqRevokeSell) returns (Reply) {
     }
+    // config
+    rpc ModifyConfig(types.ReqModifyConfig) returns (ReplyHash) {
+    }
 }
