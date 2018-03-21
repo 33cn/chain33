@@ -6,13 +6,14 @@ import (
 
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	TokenApprs             = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	SuperManager           = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
 )
 
 const (
@@ -162,6 +163,9 @@ const (
 	EventReplyBuyToken          = 107
 	EventRevokeSellToken        = 108
 	EventReplyRevokeSellToken   = 109
+	// config
+	EventModifyConfig      = 110
+	EventReplyModifyConfig = 111
 )
 
 var eventName = map[int]string{
@@ -269,6 +273,9 @@ var eventName = map[int]string{
 	101: "EventReplyTokenFinishCreate",
 	102: "EventTokenRevokeCreate",
 	103: "EventReplyTokenRevokeCreate",
+	// config
+	110: "EventModifyConfig",
+	111: "EventReplyModifyConfig",
 }
 
 //ty = 1 -> secp256k1
@@ -321,6 +328,9 @@ const (
 	TyLogTokenExecActive      = 320
 	TyLogTokenGenesisTransfer = 321
 	TyLogTokenGenesisDeposit  = 322
+
+	// log for config
+	TyLogModifyConfig         = 410
 )
 
 //exec type
@@ -408,3 +418,13 @@ var SellOrderStatus = map[int32]string{
 	Revoked:  "Revoked",
 	Expired:  "Expired",
 }
+
+const (
+	ManageActionModifyConfig = iota
+)
+
+const (
+	ConfigItemArrayConfig = iota
+	ConfigItemIntConfig
+	ConfigItemStringConfig
+)
