@@ -105,14 +105,36 @@ func login(w http.ResponseWriter, r *http.Request)  {
 	}
 	value := string(reply.Msg[:])
 	fmt.Println("GetValue =", value)
-	r.Response.Status=http.StatusText(200)
+	//w.WriteHeader(200)
 	responseByJson(w,value)
 }
 func registerUser(w http.ResponseWriter, r *http.Request)  {
 
 }
 func createOrg(w http.ResponseWriter, r *http.Request)  {
+	if r.Method !=http.MethodPost{
+		return
+	}
+	org := &blacklist.Org{
+	}
+	org.OrgId=r.Header.Get("orgId")
+	org.OrgName=r.Header.Get("orgName")
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org},FuncName:blacklist.CreateOrg}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = rd.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(r.Header.Get("privateKey")))
 
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 func queryOrg(w http.ResponseWriter, r *http.Request)  {
 
