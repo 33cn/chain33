@@ -163,14 +163,16 @@ func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
 	if 0 == len(addrTokens.Token) {
-		values := querydb.List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+		list := dbm.NewListHelper(querydb)
+		values := list.List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 		if len(values) != 0 {
 			tradelog.Debug("trade Query", "get number of sellid", len(values))
 			sellids = append(sellids, values...)
 		}
 	} else {
 		for _, token := range addrTokens.Token {
-			values := querydb.List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
+			list := dbm.NewListHelper(querydb)
+			values := list.List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
 			if len(values) != 0 {
 				sellids = append(sellids, values...)
@@ -195,7 +197,8 @@ func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 func (t *trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	gotAlready := make(map[interface{}]bool)
 	var reply types.ReplyTradeBuyOrders
-	values := querydb.List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+	list := dbm.NewListHelper(querydb)
+	values := list.List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 	if len(values) != 0 {
 		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(values))
 		for _, value := range values {
@@ -233,7 +236,8 @@ func (t *trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.R
 func (t *trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status int32) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
-	values := querydb.List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
+	list := dbm.NewListHelper(querydb)
+	values := list.List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
 	if len(values) != 0 {
 		tradelog.Debug("trade Query", "get number of sellid", len(values))
 		sellids = append(sellids, values...)

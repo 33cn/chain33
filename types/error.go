@@ -17,6 +17,7 @@ var (
 	ErrNoTicket                = errors.New("ErrNoTicket")
 	ErrMinerIsStared           = errors.New("ErrMinerIsStared")
 	ErrMinerNotStared          = errors.New("ErrMinerNotStared")
+	ErrMinerNotClosed          = errors.New("ErrMinerNotClosed")
 	ErrTicketCount             = errors.New("ErrTicketCount")
 	ErrHashlockAmount          = errors.New("ErrHashlockAmount")
 	ErrHashlockHash            = errors.New("ErrHashlockHash")
@@ -154,3 +155,4 @@ var (
 	ErrPrivKeyFromBytes    = errors.New("ErrFromHex")
 
 )
+
