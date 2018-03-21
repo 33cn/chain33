@@ -12,10 +12,7 @@ import (
 )
 
 type NodeInfo struct {
-	mtx sync.Mutex
-
-	pubKey         []byte
-	network        string
+	mtx            sync.Mutex
 	externalAddr   *NetAddress
 	listenAddr     *NetAddress
 	version        string
