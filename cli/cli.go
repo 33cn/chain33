@@ -351,6 +351,18 @@ func main() {
 			return
 		}
 		RevokeCreateToken(argsWithoutProg[1:])
+	case "config":
+		if len(argsWithoutProg) != 5 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ModifyConfig(argsWithoutProg[1:])
+	case "queryconfig": //查询配置
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		QueryConfigItem(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -410,6 +422,8 @@ func LoadHelp() {
 	fmt.Println("showonesselltokenorder [seller, [token0, token1, token2]]      : 显示一个用户下的token卖单")
 	fmt.Println("showselltokenorder [token0, [token1, token2]]                  : 显示所有token卖单")
 	fmt.Println("sellcrowdfund [owner, token, Amountpbl, minbl, pricepbl, totalpbl, start, stop]              : 卖出众筹")
+	fmt.Println("config [configKey, operate, value, modifier-addr]              : 修改配置")
+	fmt.Println("queryconfig [Key]                                              : 查询配置")
 
 }
 
@@ -2188,6 +2202,35 @@ func RevokeCreateToken(args []string) {
 	fmt.Println(string(data))
 }
 
+func ModifyConfig(args []string) {
+	// revoker, symbol, owner, string) {
+	key := args[0]
+	op := args[1]
+	value := args[2]
+	addr := args[3]
+
+	params := types.ReqModifyConfig{Key: key, Op: op, Value: value, Modifier: addr}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.ModifyConfig", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
 //revokeselltoken [seller, sellid]
 func RevokeSellToken(seller string, sellid string) {
 	revoke := &types.TradeForRevokeSell{sellid}
@@ -2262,4 +2305,31 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
 		fmt.Println(string(data))
 	}
+}
+
+func QueryConfigItem(key string) {
+	req := &types.ReqString{key}
+	var params jsonrpc.Query
+	params.Execer = "manage"
+	params.FuncName = "GetConfigItem"
+	params.Payload = hex.EncodeToString(types.Encode(req))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyConfig
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
