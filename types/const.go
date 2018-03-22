@@ -12,7 +12,7 @@ var (
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	TokenApprs             = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK", "1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB"}
+	TokenApprs             = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK", "1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB", "1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9"}
 )
 
 var (
@@ -38,9 +38,9 @@ const (
 	CoinReward               int64   = 18 * Coin //用户回报
 	CoinDevFund              int64   = 12 * Coin //发展基金回报
 	TicketPrice              int64   = 10000 * Coin
-	TicketFrozenTime         int64   = 5  //5s only for test
-	TicketWithdrawTime       int64   = 10 //10s only for test
-	TicketMinerWaitTime      int64   = 2  // 2s only for test
+	TicketFrozenTime         int64   = 5        //5s only for test
+	TicketWithdrawTime       int64   = 10       //10s only for test
+	TicketMinerWaitTime      int64   = 2        // 2s only for test
 	MaxTxSize                int64   = 100000   //100K
 	MaxBlockSize             int64   = 10000000 //10M
 	MaxTxNumber              int64   = 1600     //160
@@ -56,7 +56,6 @@ const (
 	TokenCreatePriceStand            = 10000 * Coin
 	InvalidStartTime                 = 0
 	InvalidStopTime                  = 0
-
 )
 
 const (
@@ -173,10 +172,10 @@ const (
 	EventReplyBuyToken          = 107
 	EventRevokeSellToken        = 108
 	EventReplyRevokeSellToken   = 109
-	
-	EventCloseTickets           = 200
-	EventGetAddrTxs             = 201
-	EventReplyAddrTxs           = 202
+
+	EventCloseTickets = 200
+	EventGetAddrTxs   = 201
+	EventReplyAddrTxs = 202
 )
 
 var eventName = map[int]string{
@@ -278,14 +277,14 @@ var eventName = map[int]string{
 	96: "EventIsSync",
 	97: "EventReplyIsSync",
 	// Token
-	98:  "EventTokenPreCreate",
-	99:  "EventReplyTokenPreCreate",
-	100: "EventTokenFinishCreate",
-	101: "EventReplyTokenFinishCreate",
-	102: "EventTokenRevokeCreate",
-	103: "EventReplyTokenRevokeCreate",
+	98:                "EventTokenPreCreate",
+	99:                "EventReplyTokenPreCreate",
+	100:               "EventTokenFinishCreate",
+	101:               "EventReplyTokenFinishCreate",
+	102:               "EventTokenRevokeCreate",
+	103:               "EventReplyTokenRevokeCreate",
 	EventCloseTickets: "EventCloseTickets",
-	EventGetAddrTxs: "EventGetAddrTxs",
+	EventGetAddrTxs:   "EventGetAddrTxs",
 	EventReplyAddrTxs: "EventReplyAddrTxs",
 }
 

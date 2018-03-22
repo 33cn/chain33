@@ -72,6 +72,10 @@ func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	//
 	tx3 := createTicket("1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK", 10000)
 	ret = append(ret, tx3...)
+
+	tx4 := createTicket("17xRTSVcppGbR9TT7DXjD3LzjA2UAa7nF5", "17xRTSVcppGbR9TT7DXjD3LzjA2UAa7nF5", 10000)
+	ret = append(ret, tx4...)
+
 	return
 }
 
