@@ -22,7 +22,6 @@ var tradelog = log.New("module", "execs.trade")
 func init() {
 	t := newTrade()
 	drivers.Register(t.GetName(), t)
-	drivers.RegisterAddress(t.GetName())
 }
 
 type trade struct {
