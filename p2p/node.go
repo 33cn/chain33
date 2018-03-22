@@ -21,9 +21,9 @@ import (
 
 func (n *Node) Start() {
 	n.l = NewListener(Protocol, n)
-	n.DetectNodeAddr()
-	go n.DoNat()
-	go n.Monitor()
+	n.detectNodeAddr()
+	go n.doNat()
+	go n.monitor()
 	return
 }
 
@@ -82,17 +82,17 @@ func (n *Node) FlushNodePort(localport, export uint16) {
 
 }
 
-func (n *Node) NatOk() bool {
+func (n *Node) natOk() bool {
 	n.nodeInfo.natNoticeChain <- struct{}{}
 	ok := <-n.nodeInfo.natResultChain
 	return ok
 }
 
-func (n *Node) DoNat() {
-	go n.NatMapPort()
+func (n *Node) doNat() {
+	go n.natMapPort()
 	if OutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
-		if !n.NatOk() {
+		if !n.natOk() {
 			SERVICE -= NODE_NETWORK //nat 失败，不对外提供服务
 			log.Info("doNat", "NatFaild", "No Support Service")
 		} else {
@@ -100,6 +100,7 @@ func (n *Node) DoNat() {
 		}
 
 	}
+	n.nodeInfo.SetNatDone()
 	n.nodeInfo.addrBook.AddOurAddress(n.nodeInfo.GetExternalAddr())
 	n.nodeInfo.addrBook.AddOurAddress(n.nodeInfo.GetListenAddr())
 	if selefNet, err := NewNetAddressString(fmt.Sprintf("127.0.0.1:%v", n.nodeInfo.GetListenAddr().Port)); err == nil {
@@ -204,7 +205,7 @@ func (n *Node) RemoveAll() {
 	return
 }
 
-func (n *Node) Monitor() {
+func (n *Node) monitor() {
 	go n.monitorErrPeer()
 	go n.checkActivePeers()
 	go n.getAddrFromOnline()
@@ -224,7 +225,7 @@ func (n *Node) needMore() bool {
 	return true
 }
 
-func (n *Node) DetectNodeAddr() {
+func (n *Node) detectNodeAddr() {
 
 	var externalIp string
 	for {
@@ -287,11 +288,11 @@ func (n *Node) DetectNodeAddr() {
 	}
 }
 
-func (n *Node) NatMapPort() {
+func (n *Node) natMapPort() {
 	if OutSide == true { //在外网的节点不需要映射端口
 		return
 	}
-	n.WaitForNat()
+	n.waitForNat()
 	var err error
 	for i := 0; i < TryMapPortTimes; i++ {
 
@@ -332,7 +333,7 @@ func (n *Node) NatMapPort() {
 	}
 }
 
-func (n *Node) WaitForNat() {
+func (n *Node) waitForNat() {
 	<-n.nodeInfo.natNoticeChain
 	return
 }

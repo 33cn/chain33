@@ -39,6 +39,7 @@ func (n *Node) destroyPeer(peer *peer) {
 	log.Info("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
 	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 	n.Remove(peer.Addr())
+
 }
 
 func (n *Node) monitorErrPeer() {
@@ -206,7 +207,6 @@ func (n *Node) monitorDialPeers() {
 			log.Error("DialPeers", "Err", err.Error())
 			continue
 		}
-		log.Debug("Addr perr", "peer", peer)
 		n.AddPeer(peer)
 		n.nodeInfo.addrBook.AddAddress(netAddr)
 
