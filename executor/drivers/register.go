@@ -33,7 +33,7 @@ func Register(name string, driver Driver) {
 		panic("Execute: Register called twice for driver " + name)
 	}
 	execDrivers[name] = driver
-	RegisterAddress(name)
+	registerAddress(name)
 }
 
 func LoadDriver(name string) (c Driver, err error) {
@@ -45,7 +45,7 @@ func LoadDriver(name string) (c Driver, err error) {
 	return c, nil
 }
 
-func RegisterAddress(name string) {
+func registerAddress(name string) {
 	if len(name) == 0 {
 		panic("empty name string")
 	}
