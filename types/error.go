@@ -129,4 +129,5 @@ var (
 	ErrNewCrypto           = errors.New("ErrNewCrypto")
 	ErrFromHex             = errors.New("ErrFromHex")
 	ErrPrivKeyFromBytes    = errors.New("ErrFromHex")
+	ErrParentHash          = errors.New("ErrParentHash")
 )
