@@ -643,8 +643,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	//chainlog.Info("ProcGetTransactionByHashes", "txhash len:", len(hashs))
 	var txDetails types.TransactionDetails
 
-	txDetails.Txs = make([]*types.TransactionDetail, len(hashs))
-	for index, txhash := range hashs {
+	for _, txhash := range hashs {
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
@@ -671,7 +670,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
 			}
 			chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
-			txDetails.Txs[index] = &txDetail
+			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		}
 	}
 	return &txDetails, nil
