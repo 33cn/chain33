@@ -388,15 +388,6 @@ const (
 	RetrieveCancel = 4
 )
 
-//const (
-//	ActionTransfer          = iota << 1
-//	ActionGenesis
-//	ActionWithdraw
-//	TokenActionPreCreate
-//	TokenActionFinishCreate
-//	TokenActionRevokeCreate
-//)
-
 const (
 	TokenStatusPreCreated = iota
 	TokenStatusCreated
@@ -431,3 +422,7 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"soldout": SoldOut,
 	"revoked": Revoked,
 }
+//hard fork block height
+const (
+	ForkV1 = 75260
+)

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
+	"code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -200,6 +201,12 @@ func (chain *BlockChain) getBlockHash(msg queue.Message) {
 func (chain *BlockChain) localGet(msg queue.Message) {
 	keys := (msg.Data).(*types.LocalDBGet)
 	values := chain.blockStore.Get(keys)
+	msg.Reply(chain.qclient.NewMessage("rpc", types.EventLocalReplyValue, values))
+}
+
+func (chain *BlockChain) localList(msg queue.Message) {
+	q := (msg.Data).(*types.LocalDBList)
+	values := db.NewListHelper(chain.blockStore.db).List(q.Prefix, q.Key, q.Count, q.Direction)
 	msg.Reply(chain.qclient.NewMessage("rpc", types.EventLocalReplyValue, values))
 }
 
