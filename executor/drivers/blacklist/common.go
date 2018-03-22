@@ -9,8 +9,8 @@ import (
 	//"crypto/rand"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
-	"code.aliyun.com/chain33/chain33/types"
 	. "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
+	"code.aliyun.com/chain33/chain33/types"
 	"google.golang.org/grpc"
 	"os"
 )
@@ -48,6 +48,24 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 func sendTransaction(privKey string, tr *Transaction) {
+	createConn(ConnIp)
+	action := &BlackAction{Value: &BlackAction_Tr{tr}, FuncName: FuncName_Transfer}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: Fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = rand.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(privKey))
+
+	reply, err := client.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+}
+func modifyPwd(privKey string, tr *Transaction) {
 	createConn(ConnIp)
 	action := &BlackAction{Value: &BlackAction_Tr{tr}, FuncName: FuncName_Transfer}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: Fee}

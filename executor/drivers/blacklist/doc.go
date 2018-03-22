@@ -1,4 +1,5 @@
 package blacklist
+
 /*
 blacklist执行器作为一个demo,主要实现黑名单功能，用于在链上记录个人的信用情况。
 

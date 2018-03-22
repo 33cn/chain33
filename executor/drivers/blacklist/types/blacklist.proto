@@ -60,6 +60,7 @@ message Query {
         QueryRecordParam queryRecord  =3;
         DeleteRecordParam  delRecord= 4;
         User      loginCheck=6;
+        QueryKeyParam queryKey=7;
     }
     string PrivateKey = 5;
 }
@@ -79,9 +80,14 @@ message DeleteRecordParam {
     string orgId = 1;
     string  recordId = 2;
 }
+message QueryKeyParam {
+    string Key = 1;
+}
 message User{
     string userName = 1;
     string userId = 2;
     string orgId = 3;
     string passWord = 4;
+    string createTime = 5;
+    string updateTime = 6;
 }

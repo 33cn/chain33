@@ -6,7 +6,7 @@ import (
 
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm","retrieve", "none"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm", "retrieve", "none"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -39,7 +39,7 @@ const (
 	TicketMinerWaitTime      int64  = 2        // 2s only for test
 	MaxTxSize                int64  = 100000   //100K
 	MaxBlockSize             int64  = 10000000 //10M
-	MaxTxNumber              int64  = 10000     //160
+	MaxTxNumber              int64  = 10000    //160
 	PowLimitBits             uint32 = uint32(0x1f00ffff)
 	TargetTimespan                  = 144 * 16 * time.Second
 	TargetTimePerBlock              = 16 * time.Second
@@ -313,6 +313,7 @@ const (
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
 )
+
 //norm
 const (
 	NormActionPut = 1

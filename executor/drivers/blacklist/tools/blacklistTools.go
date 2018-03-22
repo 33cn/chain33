@@ -12,8 +12,8 @@ import (
 
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
-	"code.aliyun.com/chain33/chain33/types"
 	blacklist "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
+	"code.aliyun.com/chain33/chain33/types"
 
 	//"code.aliyun.com/chain33/chain33/executor/drivers/blacklist"
 	"google.golang.org/grpc"
@@ -68,18 +68,18 @@ func main() {
 			return
 		}
 		submitRecord(argsWithoutProg[1])
-	case  "queryRecord":
-		if len(argsWithoutProg) !=3{
+	case "queryRecord":
+		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		queryRecord(argsWithoutProg[1],argsWithoutProg[2])
+		queryRecord(argsWithoutProg[1], argsWithoutProg[2])
 	case "queryRecordByName":
-		if len(argsWithoutProg) !=3{
+		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		queryRecordByName(argsWithoutProg[1],argsWithoutProg[2])
+		queryRecordByName(argsWithoutProg[1], argsWithoutProg[2])
 	case "createOrg": //发送到地址
 		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -92,7 +92,7 @@ func main() {
 			return
 		}
 	case "deleteRecord":
-		if len(argsWithoutProg) != 4{
+		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
@@ -215,11 +215,10 @@ func RandStringBytes(n int) string {
 func CreateOrg(privkey string, key string, value string) {
 	fmt.Println(key, "=", value)
 
-	org := &blacklist.Org{
-	}
-	org.OrgId="33"
-	org.OrgName="fuzamei"
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org},FuncName:blacklist.FuncName_CreateOrg}
+	org := &blacklist.Org{}
+	org.OrgId = "33"
+	org.OrgName = "fuzamei"
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org}, FuncName: blacklist.FuncName_CreateOrg}
 	//nput := &types.NormAction_Nput{&types.NormPut{Key: key,Value: []byte(value)}}
 	//action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
@@ -237,14 +236,13 @@ func CreateOrg(privkey string, key string, value string) {
 		return
 	}
 }
-func submitRecord(privkey string){
-	rc := &blacklist.Record{
-	}
-	rc.OrgId="33"
-	rc.ClientId="one"
-	rc.ClientName="dirk"
-	rc.Searchable=true
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.FuncName_SubmitRecord}
+func submitRecord(privkey string) {
+	rc := &blacklist.Record{}
+	rc.OrgId = "33"
+	rc.ClientId = "one"
+	rc.ClientName = "dirk"
+	rc.Searchable = true
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc}, FuncName: blacklist.FuncName_SubmitRecord}
 	//nput := &types.NormAction_Nput{&types.NormPut{Key: key,Value: []byte(value)}}
 	//action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
@@ -262,13 +260,13 @@ func submitRecord(privkey string){
 		return
 	}
 }
-func queryRecord(privKey string ,recordId string) {
+func queryRecord(privKey string, recordId string) {
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_QueryRecordById
 	qb := &blacklist.QueryRecordParam{}
-	qb.ByClientId=recordId
-	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},privKey}
+	qb.ByClientId = recordId
+	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb}, privKey}
 	req.Payload = []byte(query.String())
 
 	reply, err := c.QueryChain(context.Background(), &req)
@@ -285,12 +283,11 @@ func queryRecord(privKey string ,recordId string) {
 	value := string(reply.Msg[:])
 	fmt.Println("GetValue =", value)
 }
-func deleteRecord(privkey string ,orgId string,recordId string) {
-	rc := &blacklist.Record{
-	}
-	rc.OrgId=orgId
-	rc.RecordId=recordId
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.FuncName_DeleteRecord}
+func deleteRecord(privkey string, orgId string, recordId string) {
+	rc := &blacklist.Record{}
+	rc.OrgId = orgId
+	rc.RecordId = recordId
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc}, FuncName: blacklist.FuncName_DeleteRecord}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = r.Int63()
@@ -306,11 +303,11 @@ func deleteRecord(privkey string ,orgId string,recordId string) {
 		return
 	}
 }
-func queryRecordByName(privKey string,name string) {
+func queryRecordByName(privKey string, name string) {
 	var req types.Query
 	qb := &blacklist.QueryRecordParam{}
-	qb.ByClientName=name
-	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},privKey}
+	qb.ByClientName = name
+	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb}, privKey}
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_QueryRecordByName
 	req.Payload = []byte(query.String())

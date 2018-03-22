@@ -1,21 +1,21 @@
 package httplisten
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
-	"fmt"
 	"time"
-	"math/rand"
-	"context"
-	"errors"
-	"encoding/json"
 
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/common"
+	"code.aliyun.com/chain33/chain33/common/crypto"
+	blacklist "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
 	"code.aliyun.com/chain33/chain33/types"
 	"google.golang.org/grpc"
-	blacklist "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
 	"os"
 )
 
@@ -29,7 +29,8 @@ var addr string
 var privGenesis, privkey crypto.PrivKey
 
 const fee = 1e6
-func Init(){
+
+func Init() {
 	var err error
 	conn, err = grpc.Dial("localhost:8802", grpc.WithInsecure())
 	if err != nil {
@@ -55,7 +56,7 @@ func getprivkey(key string) crypto.PrivKey {
 	}
 	return priv
 }
-func httpListen(){
+func httpListen() {
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/registerUser", registerUser)
 	http.HandleFunc("/createOrg", createOrg)
@@ -74,28 +75,28 @@ func httpListen(){
 		fmt.Println(err)
 	}
 }
-func responseByJson(w http.ResponseWriter, out interface{}) {
-	//out := &Rst{code, reason, data}
+func responseMsg(w http.ResponseWriter, out interface{}) {
+
 	b, err := json.Marshal(out)
 	if err != nil {
 		fmt.Println("Marsha Json fail:" + err.Error())
 		return
 	}
-
 	w.Write(b)
 }
-func login(w http.ResponseWriter, r *http.Request)  {
-	if r.Method !=http.MethodGet{
+func login(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(400)
 		return
 	}
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_LoginCheck
 	user := &blacklist.User{}
-    user.UserName=r.Header.Get("userName")
-    user.PassWord=r.Header.Get("passWord")
-	query := &blacklist.Query{&blacklist.Query_LoginCheck{user},""}
-	req.Payload = []byte(query.String())
+	user.UserName = r.Header.Get("userName")
+	user.PassWord = r.Header.Get("passWord")
+	query := &blacklist.Query{&blacklist.Query_LoginCheck{user}, ""}
+	req.Payload = types.Encode(query)
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -106,21 +107,21 @@ func login(w http.ResponseWriter, r *http.Request)  {
 		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
 		return
 	}
-	value := string(reply.Msg[:])
+	value := string(reply.GetMsg())
 	fmt.Println("GetValue =", value)
-	//w.WriteHeader(200)
-	responseByJson(w,value)
+	responseMsg(w, value)
 }
-func registerUser(w http.ResponseWriter, r *http.Request)  {
-	if r.Method !=http.MethodPost{
+func registerUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(400)
 		return
 	}
-	//登陆失败判断用户不存在时注册用户
-	user := &blacklist.User{
-	}
-	user.UserId=r.Header.Get("userId")
-	user.UserName=r.Header.Get("userName")
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_User{user},FuncName:blacklist.FuncName_RegisterUser}
+	//TODO:这里应该有个判断用户是否已经注册过了
+	user := &blacklist.User{}
+	user.UserId = r.Header.Get("userId")
+	user.UserName = r.Header.Get("userName")
+	user.PassWord = r.Header.Get("passWord")
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_User{user}, FuncName: blacklist.FuncName_RegisterUser}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = rd.Int63()
@@ -137,15 +138,15 @@ func registerUser(w http.ResponseWriter, r *http.Request)  {
 	}
 	w.WriteHeader(http.StatusCreated)
 }
-func createOrg(w http.ResponseWriter, r *http.Request)  {
-	if r.Method !=http.MethodPost{
+func createOrg(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(400)
 		return
 	}
-	org := &blacklist.Org{
-	}
-	org.OrgId=r.Header.Get("orgId")
-	org.OrgName=r.Header.Get("orgName")
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org},FuncName:blacklist.FuncName_CreateOrg}
+	org := &blacklist.Org{}
+	org.OrgId = r.Header.Get("orgId")
+	org.OrgName = r.Header.Get("orgName")
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Or{org}, FuncName: blacklist.FuncName_CreateOrg}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = rd.Int63()
@@ -162,17 +163,19 @@ func createOrg(w http.ResponseWriter, r *http.Request)  {
 	}
 	w.WriteHeader(http.StatusCreated)
 }
-func queryOrg(w http.ResponseWriter, r *http.Request)  {
-	if r.Method !=http.MethodPost{
+func queryOrg(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(400)
 		return
 	}
 	var req types.Query
-	req.Execer = []byte("uesr.blacklist")
+	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_QueryOrgById
 	qb := &blacklist.QueryOrgParam{}
 	qb.OrgId = r.Header.Get("orgId")
-	query := &blacklist.Query{&blacklist.Query_QueryOrg{qb},r.Header.Get("privateKey")}
-	req.Payload = []byte(query.String())
+	fmt.Println(qb.OrgId)
+	query := &blacklist.Query{&blacklist.Query_QueryOrg{qb}, r.Header.Get("privateKey")}
+	req.Payload = types.Encode(query)
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -183,21 +186,21 @@ func queryOrg(w http.ResponseWriter, r *http.Request)  {
 		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
 		return
 	}
-	value := string(reply.Msg[:])
+	value := reply.String()
 	fmt.Println("GetValue =", value)
-	w.WriteHeader(http.StatusCreated)
+	responseMsg(w, value)
 }
-func submitRecord(w http.ResponseWriter, r *http.Request)  {
-	if r.Method != http.MethodPost{
+func submitRecord(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(400)
 		return
 	}
-	rc := &blacklist.Record{
-	}
-	rc.OrgId=r.Header.Get("orgId")
-	rc.ClientId=r.Header.Get("clientId")
-	rc.ClientName=r.Header.Get("clientName")
-	rc.Searchable=true
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.FuncName_SubmitRecord}
+	rc := &blacklist.Record{}
+	rc.OrgId = r.Header.Get("orgId")
+	rc.ClientId = r.Header.Get("clientId")
+	rc.ClientName = r.Header.Get("clientName")
+	rc.Searchable = true
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc}, FuncName: blacklist.FuncName_SubmitRecord}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = rd.Int63()
@@ -214,17 +217,18 @@ func submitRecord(w http.ResponseWriter, r *http.Request)  {
 	}
 	w.WriteHeader(http.StatusCreated)
 }
-func queryRecord(w http.ResponseWriter, r *http.Request)  {
-	if r.Method != http.MethodGet{
+func queryRecord(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(400)
 		return
 	}
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_QueryRecordById
 	qb := &blacklist.QueryRecordParam{}
-	qb.ByClientId=r.Header.Get("recordId")
-	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},r.Header.Get("privateKey")}
-	req.Payload = []byte(query.String())
+	qb.ByClientId = r.Header.Get("recordId")
+	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb}, r.Header.Get("privateKey")}
+	req.Payload = types.Encode(query)
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -235,22 +239,22 @@ func queryRecord(w http.ResponseWriter, r *http.Request)  {
 		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
 		return
 	}
-	value := string(reply.Msg[:])
+	value := string(reply.GetMsg())
 	fmt.Println("GetValue =", value)
-	w.WriteHeader(http.StatusCreated)
+	responseMsg(w, value)
 }
-func transfer(w http.ResponseWriter, r *http.Request)  {
-	if r.Method != http.MethodPost{
+func transfer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(400)
 		return
 	}
-	rc := &blacklist.Transaction{
-	}
-	rc.TxId=r.Header.Get("txId")
-	rc.From=r.Header.Get("from")
-	rc.To=r.Header.Get("to")
-	rc.DocType=r.Header.Get("docType")
-	rc.Credit,_=strconv.ParseInt(r.Header.Get("credit"),10,64)
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Tr{rc},FuncName:blacklist.FuncName_Transfer}
+	tr := &blacklist.Transaction{}
+	tr.TxId = r.Header.Get("txId")
+	tr.From = r.Header.Get("from")
+	tr.To = r.Header.Get("to")
+	tr.DocType = r.Header.Get("docType")
+	tr.Credit, _ = strconv.ParseInt(r.Header.Get("credit"), 10, 64)
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Tr{tr}, FuncName: blacklist.FuncName_Transfer}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = rd.Int63()
@@ -267,18 +271,78 @@ func transfer(w http.ResponseWriter, r *http.Request)  {
 	}
 	w.WriteHeader(http.StatusCreated)
 }
-func queryTransaction(w http.ResponseWriter, r *http.Request)  {
-
-}
-func deleteRecord(w http.ResponseWriter, r *http.Request)  {
-	if r.Method != http.MethodPost{
+func queryTransaction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(400)
 		return
 	}
-	rc := &blacklist.Record{
+	qt := &blacklist.QueryTransactionParam{}
+	qt.ByTxId = r.Header.Get("txId")
+	qt.ByFromAddr = r.Header.Get("fromAddr")
+	qt.ByToAddr = r.Header.Get("toAddr")
+	query := &blacklist.Query{&blacklist.Query_QueryTransaction{qt}, r.Header.Get("privateKey")}
+	var req types.Query
+	req.Execer = []byte("user.blacklist")
+	req.Payload = types.Encode(query)
+	if qt.ByTxId != "" {
+		req.FuncName = blacklist.FuncName_QueryTxById
+	} else if qt.ByFromAddr != "" {
+		req.FuncName = blacklist.FuncName_QueryTxByFromAddr
+	} else if qt.ByToAddr != "" {
+		req.FuncName = blacklist.FuncName_QueryTxByToAddr
+	} else {
+		w.WriteHeader(400)
+		return
 	}
-	rc.OrgId=r.Header.Get("orgId")
-	rc.RecordId=r.Header.Get("recordId")
-	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.FuncName_DeleteRecord}
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	value := string(reply.GetMsg())
+	fmt.Println("GetValue =", value)
+	responseMsg(w, value)
+}
+func deleteRecord(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		w.WriteHeader(400)
+		return
+	}
+	rc := &blacklist.Record{}
+	rc.OrgId = r.Header.Get("orgId")
+	rc.RecordId = r.Header.Get("recordId")
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc}, FuncName: blacklist.FuncName_DeleteRecord}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = rd.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(r.Header.Get("privateKey")))
+
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
+func modifyUserPwd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		w.WriteHeader(400)
+		return
+	}
+	//TODO:这里应该有个oldPwd校验
+	user := &blacklist.User{}
+	user.UserId = r.Header.Get("userId")
+	user.UserName = r.Header.Get("userName")
+	user.PassWord = r.Header.Get("newPwd")
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_User{user}, FuncName: blacklist.FuncName_ModifyUserPwd}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = rd.Int63()
@@ -295,9 +359,6 @@ func deleteRecord(w http.ResponseWriter, r *http.Request)  {
 	}
 	w.WriteHeader(http.StatusCreated)
 }
-func modifyUserPwd(w http.ResponseWriter, r *http.Request)  {
-
-}
-func resetUserPwd(w http.ResponseWriter, r *http.Request)  {
-
+func resetUserPwd(w http.ResponseWriter, r *http.Request) {
+	//TODO:待实现
 }
