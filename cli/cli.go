@@ -762,7 +762,7 @@ func WalletTransactionList(fromTx string, count string, direction string) {
 	for _, v := range res.TxDetails {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		wtxd := &WalletTxDetailResult{
-			Tx:         decodeTransaction(*(v.Tx)),
+			Tx:         decodeTransaction(v.Tx),
 			Receipt:    decodeLog(*(v.Receipt)),
 			Height:     v.Height,
 			Index:      v.Index,
@@ -799,7 +799,7 @@ func GetMemPool() {
 
 	var result TxListResult
 	for _, v := range res.Txs {
-		result.Txs = append(result.Txs, decodeTransaction(*v))
+		result.Txs = append(result.Txs, decodeTransaction(v))
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -884,7 +884,7 @@ func GetTransactionByHashes(hashes []string) {
 			continue
 		}
 		td := TxDetailResult{
-			Tx:         decodeTransaction(*v.Tx),
+			Tx:         decodeTransaction(v.Tx),
 			Receipt:    decodeLog(*(v.Receipt)),
 			Proofs:     v.Proofs,
 			Height:     v.Height,
@@ -946,7 +946,7 @@ func GetBlocks(start string, end string, detail string) {
 			BlockTime:  vItem.Block.BlockTime,
 		}
 		for _, vTx := range vItem.Block.Txs {
-			b.Txs = append(b.Txs, decodeTransaction(*vTx))
+			b.Txs = append(b.Txs, decodeTransaction(vTx))
 		}
 		var rpt []*ReceiptData
 		for _, vR := range vItem.Receipts {
@@ -1062,7 +1062,7 @@ func GetLastMempool() {
 
 	var result TxListResult
 	for _, v := range res.Txs {
-		result.Txs = append(result.Txs, decodeTransaction(*v))
+		result.Txs = append(result.Txs, decodeTransaction(v))
 	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -1455,7 +1455,7 @@ func DecodeTx(tran string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	res, err := jsonrpc.DecodeTx(tx)
+	res, err := jsonrpc.DecodeTx(&tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -1489,7 +1489,7 @@ func QueryTransaction(h string) {
 	}
 
 	result := TxDetailResult{
-		Tx:         decodeTransaction(*(res.Tx)),
+		Tx:         decodeTransaction(res.Tx),
 		Receipt:    decodeLog(*(res.Receipt)),
 		Proofs:     res.Proofs,
 		Height:     res.Height,
@@ -1582,7 +1582,7 @@ func IsSync() {
 	fmt.Println("sync completed:", res)
 }
 
-func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
+func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
 	amountResult := ""
 	if tx.Amount != 0 {
@@ -1598,6 +1598,21 @@ func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
 		Nonce:      tx.Nonce,
 		To:         tx.To,
 	}
+	payloacValue := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
+	for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
+		if _, ok := payloacValue[e]; ok {
+			amt := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"].(float64) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
+			break
+		}
+	}
+	if _, ok := payloacValue["Miner"]; ok {
+		rwd := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"].(float64) / float64(types.Coin)
+		rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
+		result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
+	}
+
 	if tx.Amount != 0 {
 		result.Amount = amountResult
 	}
