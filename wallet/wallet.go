@@ -575,7 +575,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyHashes, &replyHashes))
 			}
 
-
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -2098,6 +2097,7 @@ func loadSellOrderQueue(client queue.Client, sellid string) (*types.SellOrder, e
 		return &sellOrder, nil
 	}
 }
+
 //检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
 func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 
