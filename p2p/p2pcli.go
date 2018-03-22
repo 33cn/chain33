@@ -150,7 +150,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
 	if err != nil {
-		log.Info("SendVersion", "Verson", err.Error(), "peer", peer.Addr())
+		log.Error("SendVersion", "Verson", err.Error(), "peer", peer.Addr())
 		if strings.Contains(err.Error(), VersionNotSupport) {
 			peer.version.SetSupport(false)
 			P2pComm.CollectPeerStat(err, peer)
@@ -162,6 +162,9 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	if err != nil {
 		return err
 	}
+
+	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
+
 	if peer.IsPersistent() == false {
 		return nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
 	}
@@ -174,7 +177,6 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 
 	}
 
-	log.Debug("SHOW VERSION BACK", "VersionBack", resp)
 	return nil
 }
 

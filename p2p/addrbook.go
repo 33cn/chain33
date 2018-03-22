@@ -201,6 +201,10 @@ func (a *AddrBook) saveToDb() {
 	defer a.mtx.Unlock()
 	addrs := []*knownAddress{}
 	for _, ka := range a.addrPeer {
+
+		if len(P2pComm.AddrRouteble([]string{ka.Addr.String()})) == 0 {
+			continue
+		}
 		addrs = append(addrs, ka.Copy())
 	}
 	if len(addrs) == 0 {
@@ -270,7 +274,7 @@ func (a *AddrBook) Save() {
 }
 
 func (a *AddrBook) saveRoutine() {
-	dumpAddressTicker := time.NewTicker(10 * time.Second)
+	dumpAddressTicker := time.NewTicker(120 * time.Second)
 	defer dumpAddressTicker.Stop()
 out:
 	for {
