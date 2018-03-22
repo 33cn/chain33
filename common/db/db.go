@@ -7,6 +7,7 @@ import (
 type KVDB interface {
 	Get(key []byte) (value []byte, err error)
 	Set(key []byte, value []byte) (err error)
+	List(prefix, key []byte, count, direction int32) (values [][]byte, err error)
 }
 
 type DB interface {

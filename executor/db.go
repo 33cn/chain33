@@ -35,6 +35,10 @@ func (e *StateDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+func (e *StateDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
+	return nil, types.ErrNotSupport
+}
+
 type LocalDB struct {
 	cache map[string][]byte
 	db    *DataBaseLocal
@@ -63,6 +67,10 @@ func (e *LocalDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return nil
+}
+
+func (e *LocalDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
+	return e.db.List(prefix, key, count, direction)
 }
 
 type DataBase struct {
@@ -112,4 +120,21 @@ func (db *DataBaseLocal) Get(key []byte) (value []byte, err error) {
 		return nil, types.ErrNotFound
 	}
 	return value, nil
+}
+
+//从数据库中查询数据列表，set 中的cache 更新不会影响这个list
+func (db *DataBaseLocal) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
+	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
+	msg := db.qclient.NewMessage("blockchain", types.EventLocalList, query)
+	db.qclient.Send(msg, true)
+	resp, err := db.qclient.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	values = resp.GetData().(*types.LocalReplyValue).Values
+	if values == nil {
+		//panic(string(key))
+		return nil, types.ErrNotFound
+	}
+	return values, nil
 }
