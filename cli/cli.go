@@ -825,13 +825,7 @@ func SendTransaction(tran string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
+	fmt.Println("hash:", res)
 }
 
 func GetTransactionByAddr(addr string, flag string, count string, direction string, height string, index string) {
@@ -1292,13 +1286,7 @@ func GetBalance(address string, execer string) {
 func GetExecAddr(exec string) {
 	addrResult := account.ExecAddress(exec)
 	result := addrResult.String()
-	data, err := json.MarshalIndent(result, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
+	fmt.Println("exec addr:", result)
 }
 
 func BindMiner(mineraddr string, priv string) {
@@ -1418,13 +1406,7 @@ func GetTxHexByHash(hash string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
+	fmt.Println("raw tx:", res)
 }
 
 func GetTicketCount() {
@@ -1440,13 +1422,7 @@ func GetTicketCount() {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
+	fmt.Println("ticket count:", res)
 }
 
 func DumpPrivkey(addr string) {
@@ -1602,13 +1578,8 @@ func IsSync() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
 
-	fmt.Println(string(data))
+	fmt.Println("sync completed:", res)
 }
 
 func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
