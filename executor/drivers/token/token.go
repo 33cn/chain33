@@ -101,15 +101,7 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				}
 
 				receiptKV := t.saveLogs(&receipt)
-				///////////////////////////////
-				//debug code begin
-				tokenlog.Debug("ExecLocal to savelogs", "add for tx with hash", common.Bytes2Hex(tx.Hash()))
-				for i, kv := range receiptKV {
-					tokenlog.Debug("ExecLocal to savelogs", "i", i, "key in string", string(kv.Key), "value", kv.Value)
-				}
 				set.KV = append(set.KV, receiptKV...)
-				//debug code end
-				///////////////////////////////
 			}
 		}
 	}
