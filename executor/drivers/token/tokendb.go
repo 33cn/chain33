@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+
+
 type TokenDB struct {
 	token types.Token
 }
@@ -101,6 +103,11 @@ func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenSymbolUpper
 	}
 
+	hasPriv, ok := validCreator(action.fromaddr, action.db)
+	if ok != nil || hasPriv != true {
+		return  nil, types.ErrNoPrivilege
+	}
+
 	if checkTokenExist(token.GetSymbol(), action.db) {
 		return nil, types.ErrTokenExist
 	}
@@ -141,17 +148,9 @@ func (action *TokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, ap
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	//确认交易发起者的身份，只有平台审核人才有权限执行该项操作
-	approver_valid := false
-	for _, approver := range approvers {
-		if approver == action.fromaddr {
-			approver_valid = true
-			break
-		}
-	}
-
-	if !approver_valid {
-		return nil, types.ErrTokenCreatedApprover
+	hasPriv, ok := validFinisher(action.fromaddr, action.db)
+	if ok != nil || hasPriv != true {
+		return  nil, types.ErrTokenCreatedApprover
 	}
 
 	//将之前冻结的资金转账到fund合约账户中
@@ -203,7 +202,8 @@ func (action *TokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 
 	//确认交易发起者的身份，token的发起人可以撤销该项token的创建
 	//token的owner不允许撤销交易
-	if action.fromaddr != token.Creator {
+	hasPriv, ok := validRevoker(action.fromaddr, action.db)
+	if (ok != nil || hasPriv != true) && action.fromaddr != token.Creator {
 		tokenlog.Error("token revokeCreate, different creator vs actor of this revoke",
 			"action.fromaddr", action.fromaddr, "creator", token.Creator)
 		return nil, types.ErrTokenRevoker
@@ -267,3 +267,43 @@ func tokenStatusKeyPrefix(status int32) []byte {
 func tokenStatusSymbolPrefix(status int32, symbol string) []byte {
 	return []byte(fmt.Sprintf("mavl-create-token-%d:%s:", status, symbol))
 }
+
+func validCreator(addr string, db dbm.KVDB) (bool, error) {
+	return validOperator(addr, types.ConfigKey(types.CreatorKey), db)
+}
+
+func validFinisher(addr string, db dbm.KVDB) (bool, error) {
+	return validOperator(addr, types.ConfigKey(types.FinisherKey), db)
+}
+
+func validRevoker(addr string, db dbm.KVDB) (bool, error) {
+	return validOperator(addr, types.ConfigKey(types.RevokerKey), db)
+}
+
+func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
+	value, err := db.Get([]byte(key))
+	if err != nil {
+		tokenlog.Info("tokendb", "get db key", "not found")
+		return false, err
+	}
+	if value == nil {
+		tokenlog.Info("tokendb", "get db key", "  found nil value")
+		return false, nil
+	}
+
+	var item types.ConfigItem
+	err = types.Decode(value, &item)
+	if err != nil {
+		tokenlog.Error("tokendb", "get db key", err)
+		return false, err  // types.ErrBadConfigValue
+	}
+
+	for _, op := range item.GetArr().Value {
+		if op == addr {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
