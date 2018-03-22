@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"errors"
 	"sync"
 	"time"
 
@@ -100,13 +99,6 @@ func (mem *Mempool) BlockTime() int64 {
 	return mem.header.BlockTime
 }
 
-// Mempool.LowestFee获取当前Mempool中最低的交易Fee
-//func (mem *Mempool) LowestFee() int64 {
-//	mem.proxyMtx.Lock()
-//	defer mem.proxyMtx.Unlock()
-//	return mem.cache.LowestFee()
-//}
-
 // Mempool.Size返回Mempool中txCache大小
 func (mem *Mempool) Size() int {
 	mem.proxyMtx.Lock()
@@ -122,29 +114,32 @@ func (mem *Mempool) TxNumOfAccount(addr string) int64 {
 }
 
 // Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
-func (mem *Mempool) GetTxList(txListSize int) []*types.Transaction {
-	mem.RemoveExpiredAndDuplicateMempoolTxs()
-
+func (mem *Mempool) GetTxList(hashList *types.TxHashList) []*types.Transaction {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-
-	txsSize := mem.cache.Size()
+	minSize := hashList.GetCount()
+	dupMap := make(map[string]bool)
+	for i := 0; i < len(hashList.GetHashes()); i++ {
+		dupMap[string(hashList.GetHashes()[i])] = true
+	}
 	var result []*types.Transaction
-	var i int
-	var minSize int
-
-	if txsSize <= txListSize {
-		minSize = txsSize
-	} else {
-		minSize = txListSize
+	i := 0
+	txlist := mem.cache.txList
+	for v := txlist.Front(); v != nil; v = v.Next() {
+		if v.Value.(*Item).value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+			continue
+		} else {
+			tx := v.Value.(*Item).value
+			if _, ok := dupMap[string(tx.Hash())]; ok {
+				continue
+			}
+			result = append(result, tx)
+			i++
+			if i == int(minSize) {
+				break
+			}
+		}
 	}
-
-	for i = 0; i < minSize; i++ {
-		popped := mem.cache.txList.Front()
-		poppedTx := popped.Value.(*Item).value
-		result = append(result, poppedTx)
-	}
-
 	return result
 }
 
@@ -192,14 +187,6 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 	blkTxs := block.Txs
 	tx0 := blkTxs[0]
 	if string(tx0.Execer) == "ticket" {
-		//	var action types.TicketAction
-		//	err := types.Decode(tx0.Payload, &action)
-		//	if err != nil {
-		//		blkTxs = blkTxs[1:]
-		//	}
-		//	if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
-		//		blkTxs = blkTxs[1:]
-		//	}
 		blkTxs = blkTxs[1:]
 	}
 
@@ -410,18 +397,20 @@ func (mem *Mempool) getSync() {
 		err := mem.qclient.Send(msg, true)
 		resp, err := mem.qclient.Wait(msg)
 		if err != nil {
+			time.Sleep(time.Second)
 			continue
 		}
 		if resp.GetData().(*types.IsCaughtUp).GetIscaughtup() {
 			mem.setSync(true)
 			return
 		} else {
+			time.Sleep(time.Second)
 			continue
 		}
 	}
 }
 
-func (mem *Mempool) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails{
+func (mem *Mempool) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	return mem.cache.GetAccTxs(addrs)
@@ -480,19 +469,17 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				mlog.Debug("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
-				txListSize := msg.GetData().(int)
+				hashList := msg.GetData().(*types.TxHashList)
 				//不能超过最大的交易数目 - 1 (有一笔挖矿交易)
-				if int64(txListSize) >= types.MaxTxNumber {
-					txListSize = int(types.MaxTxNumber - 1)
+				if hashList.Count >= types.MaxTxNumber {
+					hashList.Count = types.MaxTxNumber - 1
 				}
-				if txListSize <= 0 {
-					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
-						errors.New("not an valid size")))
+				if hashList.Count <= 0 {
+					msg.Reply(mem.qclient.NewMessage("", types.EventReplyTxList, types.ErrSize))
 					mlog.Error("not an valid size", "msg", msg)
 				} else {
-					txList := mem.GetTxList(txListSize)
-					msg.Reply(mem.qclient.NewMessage("consensus", types.EventReplyTxList,
-						&types.ReplyTxList{Txs: txList}))
+					txList := mem.GetTxList(hashList)
+					msg.Reply(mem.qclient.NewMessage("", types.EventReplyTxList, &types.ReplyTxList{Txs: txList}))
 					mlog.Debug("reply EventTxList ok", "msg", msg)
 				}
 			case types.EventAddBlock:
