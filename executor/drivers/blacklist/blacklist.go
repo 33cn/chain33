@@ -2,8 +2,8 @@ package blacklist
 
 import (
 	"code.aliyun.com/chain33/chain33/executor/drivers"
-	. "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
 	"code.aliyun.com/chain33/chain33/executor/drivers/blacklist/httplisten"
+	. "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 	//"fmt"
@@ -63,7 +63,7 @@ func (b *BlackList) GetActionName(tx *types.Transaction) string {
 		return FuncName_QueryOrgById
 	} else if action.FuncName == FuncName_QueryRecordById {
 		return FuncName_QueryRecordById
-	} else if action.FuncName ==FuncName_CreateOrg && action.GetOr() != nil {
+	} else if action.FuncName == FuncName_CreateOrg && action.GetOr() != nil {
 		return FuncName_CreateOrg
 	}
 	return "unknow"
@@ -152,6 +152,14 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 	} else if action.FuncName == FuncName_RegisterUser && action.GetUser() != nil {
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetUser().GetUserName()), []byte(action.GetUser().String())})
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + action.GetUser().GetUserId()), []byte(action.GetUser().String())})
+		//kvs = append(kvs,&types.KeyValue{[]byte(b.GetName()+action.GetUser().GetOrgId()+action.GetUser().GetUserId()),[]byte(action.GetUser().String())})
+		return kvs
+	} else if action.FuncName == FuncName_ModifyUserPwd && action.GetUser() != nil {
+		user := b.getUserByName(action.GetUser().GetUserName())
+		user.PassWord = action.GetUser().GetPassWord()
+		user.UpdateTime = time.Now().In(loc).Format(layout)
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + user.GetUserName()), []byte(user.String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + user.GetUserId()), []byte(user.String())})
 		//kvs = append(kvs,&types.KeyValue{[]byte(b.GetName()+action.GetUser().GetOrgId()+action.GetUser().GetUserId()),[]byte(action.GetUser().String())})
 		return kvs
 	}
@@ -244,6 +252,17 @@ func (b *BlackList) Query(funcname string, params []byte) (types.Message, error)
 		return &types.ReplyString{value}, nil
 	} else if funcname == FuncName_LoginCheck && query.GetLoginCheck() != nil {
 		if b.loginCheck(query.GetLoginCheck()) {
+			return &types.ReplyString{SUCESS}, nil
+		} else {
+			return &types.ReplyString{FAIL}, nil
+		}
+	} else if funcname == FuncName_ModifyUserPwd && query.GetLoginCheck() != nil {
+		//ToDO:密码修改这块校验逻辑应该放在外面？
+
+	} else if funcname == FuncName_ResetUserPwd && query.GetLoginCheck() != nil {
+		//TODO:密码重置功能待实现
+	} else if funcname == FuncName_CheckKeyIsExsit && query.GetQueryKey() != nil {
+		if b.checkKeyIsExsit(query.GetQueryKey().GetKey()) {
 			return &types.ReplyString{SUCESS}, nil
 		} else {
 			return &types.ReplyString{FAIL}, nil
@@ -408,6 +427,24 @@ func (b *BlackList) loginCheck(user *User) bool {
 		if u.GetPassWord() == user.GetPassWord() {
 			return true
 		}
+	}
+	return false
+}
+func (b *BlackList) getUserByName(name string) *User {
+	var u User
+	value := b.GetQueryDB().Get([]byte(b.GetName() + name))
+	if value != nil {
+		err := proto.UnmarshalText(string(value), &u)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return &u
+}
+func (b *BlackList) checkKeyIsExsit(key string) bool {
+	value := b.GetQueryDB().Get([]byte(b.GetName() + key))
+	if value != nil {
+		return true
 	}
 	return false
 }
