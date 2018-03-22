@@ -469,7 +469,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee:wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
 	} else {
 		transfer := &types.TokenAction{}
 		if amount > 0 {

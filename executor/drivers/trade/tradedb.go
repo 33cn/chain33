@@ -166,9 +166,9 @@ func (action *tradeAction) tradeBuy(buyorder *types.TradeForBuy) (*types.Receipt
 		return nil, types.ErrTSellOrderNotStart
 	} else if sellorder.Status == types.SoldOut {
 		return nil, types.ErrTSellOrderSoldout
-	} else if sellorder.Status == types.OnSale && sellorder.Totalboardlot - sellorder.Soldboardlot < buyorder.Boardlotcnt {
+	} else if sellorder.Status == types.OnSale && sellorder.Totalboardlot-sellorder.Soldboardlot < buyorder.Boardlotcnt {
 		return nil, types.ErrTSellOrderNotEnough
-	}  else if sellorder.Status == types.Revoked {
+	} else if sellorder.Status == types.Revoked {
 		return nil, types.ErrTSellOrderRevoked
 	} else if sellorder.Status == types.Expired {
 		return nil, types.ErrTSellOrderExpired

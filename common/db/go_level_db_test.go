@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"testing"
 	"github.com/stretchr/testify/require"
-        "io/ioutil"
+	"io/ioutil"
+	"testing"
 
 	. "github.com/tendermint/tmlibs/common"
 )
@@ -21,7 +21,7 @@ func TestGoLevelDBIterator(t *testing.T) {
 	require.NoError(t, err)
 	defer leveldb.Close()
 
-	testDBIterator(t, leveldb)	
+	testDBIterator(t, leveldb)
 }
 
 // leveldb边界测试
@@ -34,7 +34,7 @@ func TestGoLevelDBBoundary(t *testing.T) {
 	require.NoError(t, err)
 	defer leveldb.Close()
 
-	testDBBoundary(t, leveldb)	
+	testDBBoundary(t, leveldb)
 }
 
 func BenchmarkRandomReadsWrites(b *testing.B) {
