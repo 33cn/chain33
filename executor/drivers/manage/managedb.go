@@ -3,8 +3,6 @@ package manage
 
 
 import (
-	"fmt"
-
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 	"code.aliyun.com/chain33/chain33/account"
@@ -46,7 +44,7 @@ func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt,
 	}
 
 	var item types.ConfigItem
-	value, err := m.db.Get([]byte(ConfigKey(modify.Key)))
+	value, err := m.db.Get([]byte(types.ConfigKey(modify.Key)))
 	if err != nil {
 		value = nil
 	}
@@ -102,7 +100,7 @@ func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt,
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	key := ConfigKey(modify.Key)
+	key := types.ConfigKey(modify.Key)
 	valueSave :=  types.Encode(&item)
 	m.db.Set([]byte(key), valueSave)
 	kv = append(kv, &types.KeyValue{[]byte(key), valueSave})
@@ -112,10 +110,7 @@ func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt,
 	return receipt, nil
 }
 
-// TODO
-func ConfigKey(key string) string {
-	return fmt.Sprintf("mavl-config-%s", key)
-}
+
 
 
 
