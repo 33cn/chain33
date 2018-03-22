@@ -593,10 +593,6 @@ type SellOrder2Show struct {
 	Height            int64  `json:"height"`
 }
 
-type syncStatus struct {
-	isSync bool
-}
-
 func GetVersion() {
 	fmt.Println(common.GetVersion())
 }
@@ -978,13 +974,7 @@ func SendTransaction(tran string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
+	fmt.Println("hash:", res)
 }
 
 func GetTransactionByAddr(addr string, flag string, count string, direction string, height string, index string) {
@@ -1615,13 +1605,7 @@ func GetTxHexByHash(hash string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
+	fmt.Println("raw tx:", res)
 }
 
 func GetTicketCount() {
@@ -1637,13 +1621,7 @@ func GetTicketCount() {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
+	fmt.Println("ticket count:", res)
 }
 
 func DumpPrivkey(addr string) {
@@ -1799,13 +1777,8 @@ func IsSync() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	data, err := json.MarshalIndent(syncStatus{isSync: res}, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
 
-	fmt.Println(string(data))
+	fmt.Println("sync completed:", res)
 }
 
 func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
