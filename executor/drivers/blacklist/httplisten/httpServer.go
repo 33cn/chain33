@@ -112,7 +112,30 @@ func login(w http.ResponseWriter, r *http.Request)  {
 	responseByJson(w,value)
 }
 func registerUser(w http.ResponseWriter, r *http.Request)  {
+	if r.Method !=http.MethodPost{
+		return
+	}
+	//登陆失败判断用户不存在时注册用户
+	user := &blacklist.User{
+	}
+	user.UserId=r.Header.Get("userId")
+	user.UserName=r.Header.Get("userName")
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_User{user},FuncName:blacklist.FuncName_RegisterUser}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = rd.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(r.Header.Get("privateKey")))
 
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 func createOrg(w http.ResponseWriter, r *http.Request)  {
 	if r.Method !=http.MethodPost{
@@ -140,22 +163,137 @@ func createOrg(w http.ResponseWriter, r *http.Request)  {
 	w.WriteHeader(http.StatusCreated)
 }
 func queryOrg(w http.ResponseWriter, r *http.Request)  {
+	if r.Method !=http.MethodPost{
+		return
+	}
+	var req types.Query
+	req.Execer = []byte("uesr.blacklist")
+	req.FuncName = blacklist.FuncName_QueryOrgById
+	qb := &blacklist.QueryOrgParam{}
+	qb.OrgId = r.Header.Get("orgId")
+	query := &blacklist.Query{&blacklist.Query_QueryOrg{qb},r.Header.Get("privateKey")}
+	req.Payload = []byte(query.String())
 
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	value := string(reply.Msg[:])
+	fmt.Println("GetValue =", value)
+	w.WriteHeader(http.StatusCreated)
 }
 func submitRecord(w http.ResponseWriter, r *http.Request)  {
+	if r.Method != http.MethodPost{
+		return
+	}
+	rc := &blacklist.Record{
+	}
+	rc.OrgId=r.Header.Get("orgId")
+	rc.ClientId=r.Header.Get("clientId")
+	rc.ClientName=r.Header.Get("clientName")
+	rc.Searchable=true
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.FuncName_SubmitRecord}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = rd.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(r.Header.Get("privateKey")))
 
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 func queryRecord(w http.ResponseWriter, r *http.Request)  {
+	if r.Method != http.MethodGet{
+		return
+	}
+	var req types.Query
+	req.Execer = []byte("user.blacklist")
+	req.FuncName = blacklist.FuncName_QueryRecordById
+	qb := &blacklist.QueryRecordParam{}
+	qb.ByClientId=r.Header.Get("recordId")
+	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb},r.Header.Get("privateKey")}
+	req.Payload = []byte(query.String())
 
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	value := string(reply.Msg[:])
+	fmt.Println("GetValue =", value)
+	w.WriteHeader(http.StatusCreated)
 }
 func transfer(w http.ResponseWriter, r *http.Request)  {
+	if r.Method != http.MethodPost{
+		return
+	}
+	rc := &blacklist.Transaction{
+	}
+	rc.TxId=r.Header.Get("txId")
+	rc.From=r.Header.Get("from")
+	rc.To=r.Header.Get("to")
+	rc.DocType=r.Header.Get("docType")
+	rc.Credit,_=strconv.ParseInt(r.Header.Get("credit"),10,64)
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Tr{rc},FuncName:blacklist.FuncName_Transfer}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = rd.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(r.Header.Get("privateKey")))
 
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 func queryTransaction(w http.ResponseWriter, r *http.Request)  {
 
 }
 func deleteRecord(w http.ResponseWriter, r *http.Request)  {
+	if r.Method != http.MethodPost{
+		return
+	}
+	rc := &blacklist.Record{
+	}
+	rc.OrgId=r.Header.Get("orgId")
+	rc.RecordId=r.Header.Get("recordId")
+	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc},FuncName:blacklist.FuncName_DeleteRecord}
+	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
+	tx.To = "user.blacklist"
+	tx.Nonce = rd.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(r.Header.Get("privateKey")))
 
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 func modifyUserPwd(w http.ResponseWriter, r *http.Request)  {
 
