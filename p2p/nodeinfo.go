@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/queue"
@@ -25,6 +26,7 @@ type NodeInfo struct {
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
 	addrBook       *AddrBook // known peers
+	natDone        int32
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
@@ -113,6 +115,7 @@ func (nf *NodeInfo) flushPeerInfos(in []*types.Peer) {
 func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 	var peerlist = make(map[string]*types.Peer)
 	peers := n.GetRegisterPeers()
+	log.Debug("latestPeerInfo", "register peer num", len(peers))
 	for _, peer := range peers {
 
 		if peer.Addr() == n.nodeInfo.GetExternalAddr().String() { //fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort())
@@ -123,6 +126,7 @@ func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 			if strings.Contains(err.Error(), VersionNotSupport) {
 				peer.version.SetSupport(false)
 				P2pComm.CollectPeerStat(err, peer)
+				log.Error("latestPeerInfo", "Err", err.Error(), "peer", peer.Addr())
 
 			}
 			continue
@@ -171,6 +175,14 @@ func (nf *NodeInfo) GetListenAddr() *NetAddress {
 	nf.mtx.Lock()
 	defer nf.mtx.Unlock()
 	return nf.listenAddr
+}
+
+func (nf *NodeInfo) SetNatDone() {
+	atomic.StoreInt32(&nf.natDone, 1)
+}
+
+func (nf *NodeInfo) IsNatDone() bool {
+	return atomic.LoadInt32(&nf.natDone) == 1
 }
 
 func (bl *BlackList) Add(addr string) {
