@@ -950,7 +950,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTransfer: 
+		case types.TyLogTransfer:
 			lTy = "LogTransfer"
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)

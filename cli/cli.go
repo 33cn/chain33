@@ -497,8 +497,8 @@ type TxResult struct {
 }
 
 type ReceiptData struct {
-	Ty     int32               `json:"ty"`
-	TyName string              `json:"tyname"`
+	Ty     int32         `json:"ty"`
+	TyName string        `json:"tyname"`
 	Logs   []*ReceiptLog `json:"logs"`
 }
 
@@ -515,21 +515,21 @@ type ReceiptAccountTransfer struct {
 }
 
 type ReceiptExecAccountTransfer struct {
-	ExecAddr string   		`protobuf:"bytes,1,opt,name=execAddr" json:"execAddr,omitempty"`
+	ExecAddr string         `protobuf:"bytes,1,opt,name=execAddr" json:"execAddr,omitempty"`
 	Prev     *AccountResult `protobuf:"bytes,2,opt,name=prev" json:"prev,omitempty"`
 	Current  *AccountResult `protobuf:"bytes,3,opt,name=current" json:"current,omitempty"`
 }
 
 type TxDetailResult struct {
-	Tx         *TxResult                  `json:"tx"`
+	Tx         *TxResult    `json:"tx"`
 	Receipt    *ReceiptData `json:"receipt"`
-	Proofs     []string                   `json:"proofs,omitempty"`
-	Height     int64                      `json:"height"`
-	Index      int64                      `json:"index"`
-	Blocktime  int64                      `json:"blocktime"`
-	Amount     string                     `json:"amount"`
-	Fromaddr   string                     `json:"fromaddr"`
-	ActionName string                     `json:"actionname"`
+	Proofs     []string     `json:"proofs,omitempty"`
+	Height     int64        `json:"height"`
+	Index      int64        `json:"index"`
+	Blocktime  int64        `json:"blocktime"`
+	Amount     string       `json:"amount"`
+	Fromaddr   string       `json:"fromaddr"`
+	ActionName string       `json:"actionname"`
 }
 
 type TxDetailsResult struct {
@@ -547,7 +547,7 @@ type BlockResult struct {
 }
 
 type BlockDetailResult struct {
-	Block    *BlockResult                 `json:"block"`
+	Block    *BlockResult   `json:"block"`
 	Receipts []*ReceiptData `json:"receipts"`
 }
 
@@ -560,15 +560,15 @@ type WalletTxDetailsResult struct {
 }
 
 type WalletTxDetailResult struct {
-	Tx         *TxResult                  `json:"tx"`
+	Tx         *TxResult    `json:"tx"`
 	Receipt    *ReceiptData `json:"receipt"`
-	Height     int64                      `json:"height"`
-	Index      int64                      `json:"index"`
-	Blocktime  int64                      `json:"blocktime"`
-	Amount     string                     `json:"amount"`
-	Fromaddr   string                     `json:"fromaddr"`
-	Txhash     string                     `json:"txhash"`
-	ActionName string                     `json:"actionname"`
+	Height     int64        `json:"height"`
+	Index      int64        `json:"index"`
+	Blocktime  int64        `json:"blocktime"`
+	Amount     string       `json:"amount"`
+	Fromaddr   string       `json:"fromaddr"`
+	Txhash     string       `json:"txhash"`
+	ActionName string       `json:"actionname"`
 }
 
 type AddrOverviewResult struct {
@@ -1837,9 +1837,9 @@ func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account
 	}
 	return &types.Account{
 		Currency: cur,
-		Balance: bal,
-		Frozen: fro,
-		Addr: ad,
+		Balance:  bal,
+		Frozen:   fro,
+		Addr:     ad,
 	}
 }
 
@@ -2277,14 +2277,14 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		switch l.Ty {
 		//case 1, 4, 111, 112, 113, 114:
 		case types.TyLogErr, types.TyLogGenesis, types.TyLogNewTicket, types.TyLogCloseTicket, types.TyLogMinerTicket,
-		     types.TyLogTicketBind, types.TyLogPreCreateToken, types.TyLogFinishCreateToken, types.TyLogRevokeCreateToken,
-			 types.TyLogTradeSell, types.TyLogTradeBuy, types.TyLogTradeRevoke:
+			types.TyLogTicketBind, types.TyLogPreCreateToken, types.TyLogFinishCreateToken, types.TyLogRevokeCreateToken,
+			types.TyLogTradeSell, types.TyLogTradeBuy, types.TyLogTradeRevoke:
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:
 		case types.TyLogFee, types.TyLogTransfer, types.TyLogDeposit, types.TyLogGenesisTransfer,
-		     types.TyLogTokenTransfer, types.TyLogTokenDeposit:
+			types.TyLogTokenTransfer, types.TyLogTokenDeposit:
 			rl.Log = &ReceiptAccountTransfer{
-				Prev: decodeAccount(constructAccFromLog(l, "prev"), types.Coin),
+				Prev:    decodeAccount(constructAccFromLog(l, "prev"), types.Coin),
 				Current: decodeAccount(constructAccFromLog(l, "current"), types.Coin),
 			}
 		//case 6, 7, 8, 9, 10, 12:
@@ -2295,8 +2295,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			}
 			rl.Log = &ReceiptExecAccountTransfer{
 				ExecAddr: execaddr,
-				Prev: decodeAccount(constructAccFromLog(l, "prev"), types.Coin),
-				Current: decodeAccount(constructAccFromLog(l, "current"), types.Coin),
+				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.Coin),
+				Current:  decodeAccount(constructAccFromLog(l, "current"), types.Coin),
 			}
 		case types.TyLogTokenExecTransfer, types.TyLogTokenExecWithdraw, types.TyLogTokenExecDeposit, types.TyLogTokenExecFrozen, types.TyLogTokenExecActive,
 			types.TyLogTokenGenesisTransfer, types.TyLogTokenGenesisDeposit:
@@ -2306,8 +2306,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			}
 			rl.Log = &ReceiptExecAccountTransfer{
 				ExecAddr: execaddr,
-				Prev: decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
-				Current: decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
+				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
+				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)

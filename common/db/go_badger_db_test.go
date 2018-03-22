@@ -17,7 +17,7 @@ func TestGoBadgerDBIterator(t *testing.T) {
 	require.NoError(t, err)
 	defer badgerdb.Close()
 
-	testDBIterator(t, badgerdb)	
+	testDBIterator(t, badgerdb)
 }
 
 // badgerdb边界测试
@@ -30,7 +30,7 @@ func TestGoBadgerDBBoundary(t *testing.T) {
 	require.NoError(t, err)
 	defer badgerdb.Close()
 
-	testDBBoundary(t, badgerdb)	
+	testDBBoundary(t, badgerdb)
 }
 
 func TestBadgerDB(t *testing.T) {
@@ -67,4 +67,3 @@ func TestBadgerDB(t *testing.T) {
 
 	require.NoError(t, err)
 }
-

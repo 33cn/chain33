@@ -122,9 +122,9 @@ func (cache *txCache) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails
 				}
 				res.Txs = append(res.Txs,
 					&types.TransactionDetail{
-						Tx: v,
-						Amount: txAmount,
-						Fromaddr: addr,
+						Tx:         v,
+						Amount:     txAmount,
+						Fromaddr:   addr,
 						ActionName: v.ActionName(),
 					})
 			}
