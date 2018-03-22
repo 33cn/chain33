@@ -45,7 +45,7 @@ func (t *token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transa
 //2: to tx
 
 func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.ExecLocal(tx, receipt, index)
+	set, err := t.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.Rec
 }
 
 func (t *token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.ExecDelLocal(tx, receipt, index)
+	set, err := t.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
