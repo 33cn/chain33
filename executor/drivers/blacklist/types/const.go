@@ -46,7 +46,7 @@ const (
 	FuncName_LoginCheck        = "loginCheck"
 	FuncName_ModifyUserPwd     = "modifyUserPwd"
 	FuncName_ResetUserPwd      = "resetUserPwd"
-	FuncName_CheckKeyIsExsit   = "resetUserPwd"
+	FuncName_CheckKeyIsExsit   = "checkKeyIsExsit"
 )
 const (
 	SubmitRecordDoc = "这是通过提交record来获取积分！"
