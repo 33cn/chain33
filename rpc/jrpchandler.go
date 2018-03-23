@@ -100,7 +100,7 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	{ //重新格式化数据
 
 		var transDetail TransactionDetail
-		transDetail.Tx, err = DecodeTx(*(reply.GetTx()))
+		transDetail.Tx, err = DecodeTx(reply.GetTx())
 		if err != nil {
 			return err
 		}
@@ -158,7 +158,7 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
 			txs := item.Block.GetTxs()
 			for _, tx := range txs {
-				tran, err := DecodeTx(*tx)
+				tran, err := DecodeTx(tx)
 				if err != nil {
 					continue
 				}
@@ -277,7 +277,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
 			}
-			tran, err := DecodeTx(*(tx.GetTx()))
+			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
 				continue
 			}
@@ -315,7 +315,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 				amount = 0
 			}
 			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-			tran, err := DecodeTx(*tx)
+			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
 			}
@@ -388,7 +388,7 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 			if err != nil {
 				continue
 			}
-			tran, err := DecodeTx(*(tx.GetTx()))
+			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
 				continue
 			}
@@ -584,7 +584,7 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 		var txlist ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
-			tran, err := DecodeTx(*tx)
+			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
 			}
@@ -832,7 +832,10 @@ func (c *Chain33) RevokeSellToken(in types.ReqRevokeSell, result *interface{}) e
 	return nil
 }
 
-func DecodeTx(tx types.Transaction) (*Transaction, error) {
+func DecodeTx(tx *types.Transaction) (*Transaction, error) {
+	if tx == nil {
+		return nil, types.ErrEmpty
+	}
 	var pl interface{}
 	if "coins" == string(tx.Execer) {
 		var action types.CoinsAction
