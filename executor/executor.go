@@ -290,8 +290,28 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	exector := string(tx.Execer)
-	if ("token" == string(tx.Execer) || "trade" == string(tx.Execer)) && e.height < types.ForkV2_add_token {
+	exec := e.loadDriverForExec(string(tx.Execer))
+	exec.SetDB(e.stateDB)
+	exec.SetEnv(e.height, e.blocktime)
+	return exec.Exec(tx, index)
+}
+
+func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	exec := e.loadDriverForExec(string(tx.Execer))
+	exec.SetLocalDB(e.localDB)
+	exec.SetEnv(e.height, e.blocktime)
+	return exec.ExecLocal(tx, r, index)
+}
+
+func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	exec := e.loadDriverForExec(string(tx.Execer))
+	exec.SetLocalDB(e.localDB)
+	exec.SetEnv(e.height, e.blocktime)
+	return exec.ExecDelLocal(tx, r, index)
+}
+
+func (e *executor) loadDriverForExec(exector string)(c drivers.Driver) {
+	if ("token" == exector || "trade" == exector) && e.height < types.ForkV2_add_token {
 		exector = "none"
 	}
 	exec, err := drivers.LoadDriver(exector)
@@ -301,35 +321,8 @@ func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 			panic(err)
 		}
 	}
-	exec.SetDB(e.stateDB)
-	exec.SetEnv(e.height, e.blocktime)
-	return exec.Exec(tx, index)
-}
 
-func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
-	exec.SetLocalDB(e.localDB)
-	exec.SetEnv(e.height, e.blocktime)
-	return exec.ExecLocal(tx, r, index)
-}
-
-func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
-	exec.SetLocalDB(e.localDB)
-	exec.SetEnv(e.height, e.blocktime)
-	return exec.ExecDelLocal(tx, r, index)
+	return exec
 }
 
 func LoadDriver(name string) (c drivers.Driver, err error) {
