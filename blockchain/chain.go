@@ -577,14 +577,6 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err e
 func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
 	var block *types.Block
 	block = chain.blockStore.LastBlock()
-	if block == nil {
-		blockhight := chain.GetBlockHeight()
-		blockdetail, err := chain.GetBlock(blockhight)
-		if err != nil {
-			return nil, err
-		}
-		block = blockdetail.Block
-	}
 	return block, nil
 }
 
