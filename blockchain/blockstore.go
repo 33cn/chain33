@@ -57,7 +57,6 @@ func NewBlockStore(db dbm.DB, q *queue.Queue) *BlockStore {
 	height, err := LoadBlockStoreHeight(db)
 	if err != nil {
 		chainlog.Error("init::LoadBlockStoreHeight::database may be crash")
-		//panic(err)
 	}
 	blockStore := &BlockStore{
 		height: height,
