@@ -56,8 +56,11 @@ type BlockStore struct {
 func NewBlockStore(db dbm.DB, q *queue.Queue) *BlockStore {
 	height, err := LoadBlockStoreHeight(db)
 	if err != nil {
-		chainlog.Error("init::LoadBlockStoreHeight::database may be crash")
-		panic(err)
+		chainlog.Error("init::LoadBlockStoreHeight::database may be crash", "err", err.Error())
+		if err != types.ErrHeightNotExist {
+			panic(err)
+		}
+
 	}
 	blockStore := &BlockStore{
 		height: height,
