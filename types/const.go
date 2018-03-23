@@ -165,23 +165,22 @@ const (
 	EventReplyPrivkey        = 95
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
+	EventCloseTickets        = 98
+	EventGetAddrTxs          = 99
+	EventReplyAddrTxs        = 100
 	// Token
-	EventTokenPreCreate         = 98
-	EventReplyTokenPreCreate    = 99
-	EventTokenFinishCreate      = 100
-	EventReplyTokenFinishCreate = 101
-	EventTokenRevokeCreate      = 102
-	EventReplyTokenRevokeCreate = 103
-	EventSellToken              = 104
-	EventReplySellToken         = 105
-	EventBuyToken               = 106
-	EventReplyBuyToken          = 107
-	EventRevokeSellToken        = 108
-	EventReplyRevokeSellToken   = 109
-
-	EventCloseTickets = 200
-	EventGetAddrTxs   = 201
-	EventReplyAddrTxs = 202
+	EventTokenPreCreate         = 200
+	EventReplyTokenPreCreate    = 201
+	EventTokenFinishCreate      = 202
+	EventReplyTokenFinishCreate = 203
+	EventTokenRevokeCreate      = 204
+	EventReplyTokenRevokeCreate = 205
+	EventSellToken              = 206
+	EventReplySellToken         = 207
+	EventBuyToken               = 208
+	EventReplyBuyToken          = 209
+	EventRevokeSellToken        = 210
+	EventReplyRevokeSellToken   = 211
 )
 
 var eventName = map[int]string{
@@ -282,16 +281,22 @@ var eventName = map[int]string{
 	95: "EventReplyPrivkey",
 	96: "EventIsSync",
 	97: "EventReplyIsSync",
+	98: "EventCloseTickets",
+	99: "EventGetAddrTxs",
+	100: "EventReplyAddrTxs",
 	// Token
-	98:                "EventTokenPreCreate",
-	99:                "EventReplyTokenPreCreate",
-	100:               "EventTokenFinishCreate",
-	101:               "EventReplyTokenFinishCreate",
-	102:               "EventTokenRevokeCreate",
-	103:               "EventReplyTokenRevokeCreate",
-	EventCloseTickets: "EventCloseTickets",
-	EventGetAddrTxs:   "EventGetAddrTxs",
-	EventReplyAddrTxs: "EventReplyAddrTxs",
+	EventTokenPreCreate:                "EventTokenPreCreate",
+	EventReplyTokenPreCreate:           "EventReplyTokenPreCreate",
+	EventTokenFinishCreate:             "EventTokenFinishCreate",
+	EventReplyTokenFinishCreate:        "EventReplyTokenFinishCreate",
+	EventTokenRevokeCreate:             "EventTokenRevokeCreate",
+	EventReplyTokenRevokeCreate:        "EventReplyTokenRevokeCreate",
+	EventSellToken:                     "EventSellToken",
+	EventReplySellToken:                "EventReplySellToken",
+	EventBuyToken:                      "EventBuyToken",
+	EventReplyBuyToken:                 "EventReplyBuyToken",
+	EventRevokeSellToken:               "EventRevokeSellToken",
+	EventReplyRevokeSellToken:          "EventReplyRevokeSellToken",
 }
 
 //ty = 1 -> secp256k1
