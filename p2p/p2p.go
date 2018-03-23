@@ -16,7 +16,7 @@ var (
 )
 
 type P2p struct {
-	qCli         queue.Client
+	client       queue.Client
 	node         *Node
 	addrBook     *AddrBook // known peers
 	p2pCli       *P2pCli
@@ -50,8 +50,8 @@ func (network *P2p) Close() {
 	log.Debug("close", "network", "ShowTaskCapcity done")
 	network.node.Close()
 	log.Debug("close", "node", "done")
-	if network.qCli != nil {
-		network.qCli.Close()
+	if network.client != nil {
+		network.client.Close()
 	}
 
 	close(network.txFactory)
@@ -59,9 +59,9 @@ func (network *P2p) Close() {
 	pub.Shutdown()
 }
 
-func (network *P2p) SetQueue(q *queue.Queue) {
-	network.qCli = q.NewClient()
-	network.node.SetQueue(q)
+func (network *P2p) SetQueue(client queue.Client) {
+	network.client = client
+	network.node.SetQueue(client.Clone())
 	go func() {
 		network.node.Start()
 		network.subP2pMsg()
@@ -85,15 +85,15 @@ func (network *P2p) ShowTaskCapcity() {
 }
 
 func (network *P2p) subP2pMsg() {
-	if network.qCli == nil {
+	if network.client == nil {
 		return
 	}
 	var taskIndex int64
 	network.txCapcity = 1000
-	network.qCli.Sub("p2p")
+	network.client.Sub("p2p")
 	go network.ShowTaskCapcity()
 	go func() {
-		for msg := range network.qCli.Recv() {
+		for msg := range network.client.Recv() {
 			if network.IsClose() {
 				return
 			}
@@ -123,7 +123,7 @@ func (network *P2p) subP2pMsg() {
 				go network.p2pCli.GetHeaders(msg, taskIndex)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
-				msg.Reply(network.qCli.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
+				msg.Reply(network.client.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
 				<-network.otherFactory
 				continue
 			}

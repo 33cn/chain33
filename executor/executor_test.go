@@ -41,22 +41,22 @@ func initEnv() (*queue.Queue, *blockchain.BlockChain, *store.Store, consensus.Co
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q)
+	chain.SetQueue(q.NewClient())
 
 	exec := executor.New()
-	exec.SetQueue(q)
+	exec.SetQueue(q.NewClient())
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
-	s.SetQueue(q)
+	s.SetQueue(q.NewClient())
 
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q)
+	cs.SetQueue(q.NewClient())
 
 	p2pnet := p2p.New(cfg.P2P)
-	p2pnet.SetQueue(q)
+	p2pnet.SetQueue(q.NewClient())
 
 	mem := mempool.New(cfg.MemPool)
-	mem.SetQueue(q)
+	mem.SetQueue(q.NewClient())
 
 	return q, chain, s, cs, p2pnet, mem
 }
@@ -112,7 +112,7 @@ func TestExecBlock(t *testing.T) {
 	defer p2pnet.Close()
 	defer mem.Close()
 	block := createBlock(10000)
-	util.ExecBlock(q, zeroHash[:], block, false)
+	util.ExecBlock(q.NewClient(), zeroHash[:], block, false)
 }
 
 //gen 1万币需要 2s，主要是签名的花费
@@ -133,6 +133,6 @@ func BenchmarkExecBlock(b *testing.B) {
 	block := createBlock(10000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		util.ExecBlock(q, zeroHash[:], block, false)
+		util.ExecBlock(q.NewClient(), zeroHash[:], block, false)
 	}
 }
