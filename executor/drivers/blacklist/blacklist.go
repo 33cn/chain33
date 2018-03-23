@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"fmt"
 )
 
 var blog = log.New("module", "execs.blacklist")
@@ -101,23 +102,24 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientId() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+orgId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetOrgId()), []byte(record.String())})
-		org := b.queryOrgById([]byte(record.GetRecordId()))
+		//TODO:这块逻辑需要重新实现，存入后返回recordId
+		//org := b.queryOrgById([]byte(record.GetOrgId()))
 
 		//transaction 用于增加积分
 		ts := &Transaction{}
 		ts.From = GenesisAddr
-		ts.To = org.OrgAddr
+		//ts.To = org.OrgAddr
 		ts.Credit = AddCredit
 		ts.CreateTime = time.Now().In(loc).Format(layout)
 		ts.UpdateTime = time.Now().In(loc).Format(layout)
 		ts.DocType = SubmitRecordDoc
-		kvs_ts, err := b.transfer(ts)
-		if err != nil {
-			blog.Error("exec transfer func have a err! err: ", err)
-		}
-		if len(kvs_ts) != 0 {
-			kvs = append(kvs, kvs_ts...)
-		}
+		//kvs_ts, err := b.transfer(ts)
+		//if err != nil {
+		//	blog.Error("exec transfer func have a err! err: ", err)
+		//}
+		//if len(kvs_ts) != 0 {
+		//	kvs = append(kvs, kvs_ts...)
+		//}
 		return kvs
 	} else if action.FuncName == FuncName_CreateOrg && action.GetOr() != nil {
 		org := action.GetOr()
@@ -310,17 +312,18 @@ func (b *BlackList) queryRecord(recordId []byte) string {
 //需要传入name和recordId
 func (b *BlackList) queryRecordByName(name []byte) []string {
 	var recordList []string
-	recordBytes := b.GetQueryDB().PrefixScan([]byte(b.GetName() + string(name)))
-	for _, recordByte := range recordBytes {
+
+	it :=b.GetQueryDB().Iterator([]byte(b.GetName() + string(name)),false)
+	for it.Next() {
 		var record Record
-		err := proto.UnmarshalText(string(recordByte), &record)
+		err := proto.UnmarshalText(string(it.Value()), &record)
 		if err != nil {
 			panic(err)
 		}
 		if !record.GetSearchable() {
 			continue
 		}
-		recordList = append(recordList, string(recordByte))
+		recordList = append(recordList, string(it.Value()))
 	}
 	return recordList
 }
@@ -333,14 +336,14 @@ func (b *BlackList) queryTransactionById(txId []byte) string {
 }
 func (b *BlackList) queryTransactionByAddr(addr []byte) []string {
 	var txs []string
-	recordBytes := b.GetQueryDB().PrefixScan([]byte(b.GetName() + string(addr)))
-	for _, recordByte := range recordBytes {
+	it :=b.GetQueryDB().Iterator([]byte(b.GetName() + string(addr)),false)
+	for it.Next() {
 		//var tx Transaction
 		//err := proto.UnmarshalText(string(recordByte), &tx)
 		//if err != nil {
 		//	panic(err)
 		//}
-		txs = append(txs, string(recordByte))
+		txs = append(txs, string(it.Value()))
 	}
 	return txs
 }
@@ -396,6 +399,8 @@ func (b *BlackList) queryOrg(orgId []byte) string {
 func (b *BlackList) queryOrgById(orgId []byte) Org {
 	var org Org
 	value := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
+	blog.Debug("value===================:",string(value))
+	fmt.Println(value)
 	if value != nil {
 		err := proto.UnmarshalText(string(value), &org)
 		if err != nil {
