@@ -432,4 +432,5 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 //hard fork block height
 const (
 	ForkV1 = 75260
+	ForkV2_add_token = 1000
 )
