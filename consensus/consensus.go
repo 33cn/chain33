@@ -24,6 +24,6 @@ func New(cfg *types.Consensus) Consensus {
 }
 
 type Consensus interface {
-	SetQueue(q *queue.Queue)
+	SetQueue(client queue.Client)
 	Close()
 }
