@@ -97,9 +97,13 @@ func (client *BaseClient) SetQueue(q *queue.Queue) {
 	go client.child.CreateBlock()
 }
 
+//change init block
 func (client *BaseClient) InitBlock() {
-	height := client.GetInitHeight()
-	if height == -1 {
+	block, err := client.RequestLastBlock()
+	if err != nil {
+		panic(err)
+	}
+	if block == nil {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
@@ -111,10 +115,6 @@ func (client *BaseClient) InitBlock() {
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		client.WriteBlock(zeroHash[:], newblock)
 	} else {
-		block, err := client.RequestBlock(height)
-		if err != nil {
-			panic(err)
-		}
 		client.SetCurrentBlock(block)
 	}
 }
@@ -220,19 +220,21 @@ func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if parent.Height+1 != block.Block.Height {
 		return types.ErrBlockHeight
 	}
+	//check parent hash
+	if string(block.Block.GetParentHash()) != string(parent.Hash()) {
+		return types.ErrParentHash
+	}
 	//check by drivers
 	err = client.child.CheckBlock(parent, block)
 	return err
 }
 
 // Mempool中取交易列表
-func (client *BaseClient) RequestTx(listSize int) []*types.Transaction {
+func (client *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Transaction {
 	if client.qclient == nil {
 		panic("client not bind message queue.")
 	}
-	//debug.PrintStack()
-	//tlog.Error("requestTx", "time", time.Now().Format(time.RFC3339Nano))
-	msg := client.qclient.NewMessage("mempool", types.EventTxList, listSize)
+	msg := client.qclient.NewMessage("mempool", types.EventTxList, &types.TxHashList{txHashList, int64(listSize)})
 	client.qclient.Send(msg, true)
 	resp, err := client.qclient.Wait(msg)
 	if err != nil {
@@ -268,21 +270,6 @@ func (client *BaseClient) RequestLastBlock() (*types.Block, error) {
 	}
 	block := resp.GetData().(*types.Block)
 	return block, nil
-}
-
-// solo初始化时，取一次区块高度放在内存中，后面自增长，不用再重复去blockchain取
-func (client *BaseClient) GetInitHeight() int64 {
-
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHeight, nil)
-
-	client.qclient.Send(msg, true)
-	replyHeight, err := client.qclient.Wait(msg)
-	h := replyHeight.GetData().(*types.ReplyBlockHeight).Height
-	tlog.Info("init = ", "height", h)
-	if err != nil {
-		panic("error happens when get height from blockchain")
-	}
-	return h
 }
 
 // 向blockchain写区块

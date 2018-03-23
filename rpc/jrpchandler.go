@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -59,7 +60,7 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	log.Debug("SendTransaction", "parm", parm)
 	reply := c.cli.SendTx(&parm)
 	if reply.GetData().(*types.Reply).IsOk {
-		*result = string(reply.GetData().(*types.Reply).Msg)
+		*result = common.ToHex(reply.GetData().(*types.Reply).Msg)
 		return nil
 	} else {
 		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
@@ -99,16 +100,21 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	{ //重新格式化数据
 
 		var transDetail TransactionDetail
-		transDetail.Tx, err = DecodeTx(*(reply.GetTx()))
+		transDetail.Tx, err = DecodeTx(reply.GetTx())
 		if err != nil {
 			return err
 		}
 
-		transDetail.Receipt = &ReceiptData{Ty: reply.GetReceipt().GetTy()}
+		receiptTmp := &ReceiptData{Ty: reply.GetReceipt().GetTy()}
 		logs := reply.GetReceipt().GetLogs()
 		for _, log := range logs {
-			transDetail.Receipt.Logs = append(transDetail.Receipt.Logs,
+			receiptTmp.Logs = append(receiptTmp.Logs,
 				&ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
+		}
+
+		transDetail.Receipt, err = DecodeLog(receiptTmp)
+		if err != nil {
+			return err
 		}
 
 		for _, proof := range reply.Proofs {
@@ -152,7 +158,7 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
 			txs := item.Block.GetTxs()
 			for _, tx := range txs {
-				tran, err := DecodeTx(*tx)
+				tran, err := DecodeTx(tx)
 				if err != nil {
 					continue
 				}
@@ -167,7 +173,11 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 					recp.Logs = append(recp.Logs,
 						&ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
 				}
-				bdtl.Receipts = append(bdtl.Receipts, &recp)
+				rd, err := DecodeLog(&recp)
+				if err != nil {
+					continue
+				}
+				bdtl.Receipts = append(bdtl.Receipts, rd)
 			}
 
 			blockDetails.Items = append(blockDetails.Items, &bdtl)
@@ -257,13 +267,17 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
+			recpResult, err := DecodeLog(&recp)
+			if err != nil {
+				continue
+			}
 
 			var proofs []string
 			txProofs := tx.GetProofs()
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
 			}
-			tran, err := DecodeTx(*(tx.GetTx()))
+			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
 				continue
 			}
@@ -274,7 +288,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 					Height:     tx.GetHeight(),
 					Index:      tx.GetIndex(),
 					Blocktime:  tx.GetBlocktime(),
-					Receipt:    &recp,
+					Receipt:    recpResult,
 					Proofs:     proofs,
 					Amount:     tx.GetAmount(),
 					Fromaddr:   tx.GetFromaddr(),
@@ -303,7 +317,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 				amount = 0
 			}
 			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-			tran, err := DecodeTx(*tx)
+			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
 			}
@@ -372,13 +386,17 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			tran, err := DecodeTx(*(tx.GetTx()))
+			rd, err := DecodeLog(&recp)
+			if err != nil {
+				continue
+			}
+			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
 				continue
 			}
 			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
 				Tx:         tran,
-				Receipt:    &recp,
+				Receipt:    rd,
 				Height:     tx.GetHeight(),
 				Index:      tx.GetIndex(),
 				Blocktime:  tx.GetBlocktime(),
@@ -568,7 +586,7 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 		var txlist ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
-			tran, err := DecodeTx(*tx)
+			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
 			}
@@ -747,7 +765,29 @@ func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
 	return nil
 }
 
-func DecodeTx(tx types.Transaction) (*Transaction, error) {
+func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.CloseTickets()
+	if err != nil {
+		return err
+	}
+	*result = resp
+	return nil
+}
+
+func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
+	*result = common.GetVersion()
+	return nil
+}
+
+func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
+	*result = c.cli.IsSync()
+	return nil
+}
+
+func DecodeTx(tx *types.Transaction) (*Transaction, error) {
+	if tx == nil {
+		return nil, types.ErrEmpty
+	}
 	var pl interface{}
 	if "coins" == string(tx.Execer) {
 		var action types.CoinsAction
@@ -788,4 +828,154 @@ func DecodeTx(tx types.Transaction) (*Transaction, error) {
 		To:     tx.To,
 	}
 	return result, nil
+}
+
+func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
+	var rTy string
+	switch rlog.Ty {
+	case 0:
+		rTy = "ExecErr"
+	case 1:
+		rTy = "ExecPack"
+	case 2:
+		rTy = "ExecOk"
+	default:
+		return nil, errors.New("wrong log type")
+	}
+	rd := &ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
+
+	for _, l := range rlog.Logs {
+		var lTy string
+		var logIns interface{}
+
+		lLog, err := hex.DecodeString(l.Log[2:])
+		if err != nil {
+			return nil, err
+		}
+
+		switch l.Ty {
+		case 1:
+			lTy = "LogErr"
+			logIns = string(lLog)
+		case 2:
+			lTy = "LogFee"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 3:
+			lTy = "LogTransfer"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 4:
+			lTy = "LogGenesis"
+			logIns = nil
+		case 5:
+			lTy = "LogDeposit"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 6:
+			lTy = "LogExecTransfer"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 7:
+			lTy = "LogExecWithdraw"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 8:
+			lTy = "LogExecDeposit"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 9:
+			lTy = "LogExecFrozen"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 10:
+			lTy = "LogExecActive"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 11:
+			lTy = "LogGenesisTransfer"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 12:
+			lTy = "LogGenesisDeposit"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 111:
+			lTy = "LogNewTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 112:
+			lTy = "LogCloseTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 113:
+			lTy = "LogMinerTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case 114:
+			lTy = "LogTicketBind"
+			var logTmp types.ReceiptTicketBind
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		default:
+			return nil, errors.New("wrong log type")
+		}
+		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
+	}
+	return rd, nil
 }

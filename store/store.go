@@ -78,19 +78,24 @@ func (store *Store) processMessage(msg queue.Message) {
 	if msg.Ty == types.EventStoreSet {
 		datas := msg.GetData().(*types.StoreSet)
 		hash := mavl.SetKVPair(store.db, datas)
-		//mavl.PrintTreeLeaf(store.db, hash)
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreGet {
 		var tree *mavl.MAVLTree
 		var err error
 		datas := msg.GetData().(*types.StoreGet)
 		values := make([][]byte, len(datas.Keys))
-		if data, ok := store.cache.Get(string(datas.StateHash)); ok {
+		search := string(datas.StateHash)
+		if data, ok := store.cache.Get(search); ok {
 			tree = data.(*mavl.MAVLTree)
+		} else if data, ok := store.trees[search]; ok {
+			tree = data
 		} else {
 			tree = mavl.NewMAVLTree(store.db)
 			err = tree.Load(datas.StateHash)
-			store.cache.Add(string(datas.StateHash), tree)
+			if err == nil {
+				store.cache.Add(search, tree)
+			}
+			slog.Debug("store get tree", "err", err)
 		}
 		if err == nil {
 			for i := 0; i < len(datas.Keys); i++ {
@@ -110,6 +115,9 @@ func (store *Store) processMessage(msg queue.Message) {
 		}
 		hash := tree.Hash()
 		store.trees[string(hash)] = tree
+		if len(store.trees) > 100 {
+			slog.Error("too many trees in cache")
+		}
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
 		hash := msg.GetData().(*types.ReqHash)

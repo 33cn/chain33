@@ -16,15 +16,14 @@ var (
 )
 
 type P2p struct {
-	q            *queue.Queue
-	c            queue.Client
+	qCli         queue.Client
 	node         *Node
 	addrBook     *AddrBook // known peers
-	cli          *P2pCli
+	p2pCli       *P2pCli
 	txCapcity    int32
 	txFactory    chan struct{}
 	otherFactory chan struct{}
-	loopdone     chan struct{}
+	closed       int32
 }
 
 func New(cfg *types.P2P) *P2p {
@@ -37,25 +36,22 @@ func New(cfg *types.P2P) *P2p {
 	}
 	p2p := new(P2p)
 	p2p.node = node
-	p2p.loopdone = make(chan struct{}, 1)
-	p2p.cli = NewP2pCli(p2p)
+	p2p.p2pCli = NewP2pCli(p2p)
 	p2p.txFactory = make(chan struct{}, 1000)    // 1000 task
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	return p2p
 }
-func (network *P2p) Stop() {
-	network.loopdone <- struct{}{}
-}
 
+func (network *P2p) IsClose() bool {
+	return atomic.LoadInt32(&network.closed) == 1
+}
 func (network *P2p) Close() {
-	network.Stop()
-	log.Info("close", "network", "ShowTaskCapcity done")
-	network.cli.Close()
-	log.Info("close", "msg", "done")
+	atomic.StoreInt32(&network.closed, 1)
+	log.Debug("close", "network", "ShowTaskCapcity done")
 	network.node.Close()
-	log.Info("close", "node", "done")
-	if network.c != nil {
-		network.c.Close()
+	log.Debug("close", "node", "done")
+	if network.qCli != nil {
+		network.qCli.Close()
 	}
 
 	close(network.txFactory)
@@ -64,12 +60,10 @@ func (network *P2p) Close() {
 }
 
 func (network *P2p) SetQueue(q *queue.Queue) {
-	network.c = q.NewClient()
-	network.q = q
+	network.qCli = q.NewClient()
 	network.node.SetQueue(q)
 	go func() {
 		network.node.Start()
-		network.cli.monitorPeerInfo()
 		network.subP2pMsg()
 	}()
 }
@@ -79,11 +73,10 @@ func (network *P2p) ShowTaskCapcity() {
 	log.Info("ShowTaskCapcity", "Capcity", network.txCapcity)
 	defer ticker.Stop()
 	for {
-
-		select {
-		case <-network.loopdone:
-			log.Debug("ShowTaskCapcity", "Show", "will Done")
+		if network.IsClose() {
 			return
+		}
+		select {
 		case <-ticker.C:
 			log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 
@@ -92,15 +85,18 @@ func (network *P2p) ShowTaskCapcity() {
 }
 
 func (network *P2p) subP2pMsg() {
-	if network.c == nil {
+	if network.qCli == nil {
 		return
 	}
 	var taskIndex int64
 	network.txCapcity = 1000
-	network.c.Sub("p2p")
+	network.qCli.Sub("p2p")
 	go network.ShowTaskCapcity()
 	go func() {
-		for msg := range network.c.Recv() {
+		for msg := range network.qCli.Recv() {
+			if network.IsClose() {
+				return
+			}
 			taskIndex++
 			log.Debug("p2p recv", "msg", types.GetEventName(int(msg.Ty)), "msg type", msg.Ty, "taskIndex", taskIndex)
 			if msg.Ty == types.EventTxBroadcast {
@@ -114,20 +110,20 @@ func (network *P2p) subP2pMsg() {
 			}
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
-				go network.cli.BroadCastTx(msg, taskIndex)
+				go network.p2pCli.BroadCastTx(msg, taskIndex)
 			case types.EventBlockBroadcast: //广播block
-				go network.cli.BlockBroadcast(msg, taskIndex)
+				go network.p2pCli.BlockBroadcast(msg, taskIndex)
 			case types.EventFetchBlocks:
-				go network.cli.GetBlocks(msg, taskIndex)
+				go network.p2pCli.GetBlocks(msg, taskIndex)
 			case types.EventGetMempool:
-				go network.cli.GetMemPool(msg, taskIndex)
+				go network.p2pCli.GetMemPool(msg, taskIndex)
 			case types.EventPeerInfo:
-				go network.cli.GetPeerInfo(msg, taskIndex)
+				go network.p2pCli.GetPeerInfo(msg, taskIndex)
 			case types.EventFetchBlockHeaders:
-				go network.cli.GetHeaders(msg, taskIndex)
+				go network.p2pCli.GetHeaders(msg, taskIndex)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
-				msg.Reply(network.c.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
+				msg.Reply(network.qCli.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
 				<-network.otherFactory
 				continue
 			}

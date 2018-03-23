@@ -29,7 +29,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
 	oldtxscount := len(cacheTxs)
-	cacheTxs = CheckTxDup(q, cacheTxs)
+	cacheTxs = CheckTxDup(q, cacheTxs, block.Height)
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, types.ErrTxDup
@@ -195,9 +195,25 @@ func ExecKVSetRollback(q *queue.Queue, hash []byte) error {
 	return nil
 }
 
-func CheckTxDup(q *queue.Queue, txs []*types.TransactionCache) (transactions []*types.TransactionCache) {
+func CheckTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCache) {
+	dupMap := make(map[string]bool)
+	for _, tx := range txs {
+		hash := string(tx.Hash())
+		if _, ok := dupMap[hash]; ok {
+			continue
+		}
+		dupMap[hash] = true
+		ret = append(ret, tx)
+	}
+	return ret
+}
+
+func CheckTxDup(q *queue.Queue, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache) {
 	qclient := q.NewClient()
 	var checkHashList types.TxHashList
+	if height >= types.ForkV1 {
+		txs = CheckTxDupInner(txs)
+	}
 	for _, tx := range txs {
 		hash := tx.Hash()
 		checkHashList.Hashes = append(checkHashList.Hashes, hash)

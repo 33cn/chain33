@@ -602,3 +602,33 @@ func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
 	}
 	return resp.GetData().(*types.ReplyStr), nil
 }
+
+func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
+	msg := c.NewMessage("wallet", types.EventCloseTickets, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("CloseTickets", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.TxHashList), nil
+}
+
+func (c *channelClient) IsSync() bool {
+	msg := c.NewMessage("blockchain", types.EventIsSync, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("IsSync", "Send Error", err.Error())
+		return false
+	}
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("IsSync", "Wait Error", err.Error())
+		return false
+	}
+	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
+}

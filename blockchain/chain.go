@@ -101,10 +101,6 @@ func initConfig(cfg *types.BlockChain) {
 	if cfg.TimeoutSeconds > 0 {
 		TimeoutSeconds = cfg.TimeoutSeconds
 	}
-
-	if cfg.BatchBlockNum > 0 {
-		BatchBlockNum = cfg.BatchBlockNum
-	}
 	isStrongConsistency = cfg.IsStrongConsistency
 }
 
@@ -171,6 +167,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 		switch msgtype {
 		case types.EventLocalGet:
 			go chain.processMsg(msg, reqnum, chain.localGet)
+		case types.EventLocalList:
+			go chain.processMsg(msg, reqnum, chain.localList)
 		case types.EventQueryTx:
 			go chain.processMsg(msg, reqnum, chain.queryTx)
 		case types.EventGetBlocks:
@@ -579,14 +577,6 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err e
 func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
 	var block *types.Block
 	block = chain.blockStore.LastBlock()
-	if block == nil {
-		blockhight := chain.GetBlockHeight()
-		blockdetail, err := chain.GetBlock(blockhight)
-		if err != nil {
-			return nil, err
-		}
-		block = blockdetail.Block
-	}
 	return block, nil
 }
 

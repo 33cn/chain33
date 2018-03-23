@@ -4,6 +4,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -116,7 +117,16 @@ func (tx *Transaction) Check(minfee int64) error {
 	return nil
 }
 
-func (tx *Transaction) GetRealFee() (int64, error) {
+func (tx *Transaction) SetExpire(expire time.Duration) {
+	if int64(expire) > expireBound {
+		//用秒数来表示的时间
+		tx.Expire = time.Now().Unix() + int64(expire/time.Second)
+	} else {
+		tx.Expire = int64(expire)
+	}
+}
+
+func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	txSize := Size(tx)
 	//如果签名为空，那么加上签名的空间
 	if tx.Signature == nil {
@@ -126,7 +136,7 @@ func (tx *Transaction) GetRealFee() (int64, error) {
 		return 0, ErrTxMsgSizeTooBig
 	}
 	// 检查交易费是否小于最低值
-	realFee := int64(txSize/1000+1) * MinFee
+	realFee := int64(txSize/1000+1) * minFee
 	return realFee, nil
 }
 
@@ -135,7 +145,7 @@ var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound�
 //检查交易是否过期，过期返回true，未过期返回false
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	valid := tx.Expire
-	// Expire为0，返回true
+	// Expire为0，返回false
 	if valid == 0 {
 		return false
 	}
@@ -221,6 +231,8 @@ func (tx *Transaction) ActionName() string {
 			return "close"
 		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
 			return "miner"
+		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
+			return "bindminer"
 		}
 		return "unknow"
 	} else if "none" == string(tx.Execer) {

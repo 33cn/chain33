@@ -91,6 +91,21 @@ func (c Comm) DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 	log.Debug("DialPeer", "Peer info", peer)
 	return peer, nil
 }
+
+func (c Comm) GenPrivkey() ([]byte, error) {
+	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+	if err != nil {
+		log.Error("CryPto Error", "Error", err.Error())
+		return nil, err
+	}
+
+	key, err := cr.GenKey()
+	if err != nil {
+		log.Error("GenKey", "Error", err)
+		return nil, err
+	}
+	return key.Bytes(), nil
+}
 func (c Comm) Pubkey(key string) (string, error) {
 
 	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
@@ -116,7 +131,7 @@ func (c Comm) NewPingData(peer *peer) (*pb.P2PPing, error) {
 	randNonce := rand.Int31n(102040)
 	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: (*peer.nodeInfo).GetExternalAddr().IP.String(), Port: int32((*peer.nodeInfo).GetExternalAddr().Port)}
 	var err error
-	ping, err = c.Signature(peer.mconn.key, ping)
+	ping, err = c.Signature(peer.key, ping)
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return nil, err
@@ -154,6 +169,7 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 	data := pb.Encode(in)
 	sign := in.GetSign()
 	if sign == nil {
+		log.Error("CheckSign Get sign err")
 		return false
 	}
 	cr, err := crypto.New(pb.GetSignatureTypeName(int(sign.Ty)))
@@ -188,12 +204,14 @@ func (c Comm) reportPeerStat(peer *peer) {
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:
 	case <-timeout.C:
+		timeout.Stop()
 		return
 	}
 	if !timeout.Stop() {
 		<-timeout.C
 	}
 }
+
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
 	var ready = false
