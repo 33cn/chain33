@@ -22,10 +22,10 @@ func TestSolo(t *testing.T) {
 	q := queue.New("channel")
 
 	chain := blockchain.New()
-	chain.SetQueue(q)
+	chain.SetQueue(q.NewClient())
 
 	con := NewSolo()
-	con.SetQueue(q)
+	con.SetQueue(q.NewClient())
 
 	go sendReplyList(q)
 

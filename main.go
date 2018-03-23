@@ -89,29 +89,29 @@ func main() {
 
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q)
+	chain.SetQueue(q.NewClient())
 
 	log.Info("loading mempool module")
 	mem := mempool.New(cfg.MemPool)
-	mem.SetQueue(q)
+	mem.SetQueue(q.NewClient())
 
 	log.Info("loading execs module")
 	exec := executor.New()
-	exec.SetQueue(q)
+	exec.SetQueue(q.NewClient())
 
 	log.Info("loading store module")
 	s := store.New(cfg.Store)
-	s.SetQueue(q)
+	s.SetQueue(q.NewClient())
 
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q)
+	cs.SetQueue(q.NewClient())
 
 	var network *p2p.P2p
 	if cfg.P2P.Enable {
 		log.Info("loading p2p module")
 		network = p2p.New(cfg.P2P)
-		network.SetQueue(q)
+		network.SetQueue(q.NewClient())
 	}
 	//jsonrpc, grpc, channel 三种模式
 	rpc.Init(cfg.Rpc)
@@ -122,7 +122,7 @@ func main() {
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
-	walletm.SetQueue(q)
+	walletm.SetQueue(q.NewClient())
 
 	defer func() {
 		//close all module,clean some resource

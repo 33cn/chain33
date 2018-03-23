@@ -30,8 +30,7 @@ type Mempool struct {
 	badChan   chan queue.Message
 	balanChan chan queue.Message
 	goodChan  chan queue.Message
-	memQueue  *queue.Queue
-	qclient   queue.Client
+	client    queue.Client
 	header    *types.Header
 	minFee    int64
 	addedTxs  *lru.Cache
@@ -243,7 +242,7 @@ func (mem *Mempool) ReTry() {
 
 // Mempool.RemoveBlockedTxs每隔1分钟清理一次已打包的交易
 func (mem *Mempool) RemoveBlockedTxs() {
-	if mem.qclient == nil {
+	if mem.client == nil {
 		panic("client not bind message queue.")
 	}
 	for {
@@ -261,13 +260,13 @@ func (mem *Mempool) RemoveBlockedTxs() {
 		}
 
 		// 发送Hash过后的交易列表给blockchain模块
-		hashList := mem.qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-		err := mem.qclient.Send(hashList, true)
+		hashList := mem.client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
+		err := mem.client.Send(hashList, true)
 		if err != nil {
 			mlog.Error("blockchain closed", "err", err.Error())
 			return
 		}
-		dupTxList, _ := mem.qclient.Wait(hashList)
+		dupTxList, _ := mem.client.Wait(hashList)
 
 		// 取出blockchain返回的重复交易列表
 		dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
@@ -295,30 +294,30 @@ func (mem *Mempool) GetHeader() *types.Header {
 
 // Mempool.GetLastHeader获取LastHeader的height和blockTime
 func (mem *Mempool) GetLastHeader() (interface{}, error) {
-	if mem.qclient == nil {
+	if mem.client == nil {
 		panic("client not bind message queue.")
 	}
 
-	msg := mem.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	err := mem.qclient.Send(msg, true)
+	msg := mem.client.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	err := mem.client.Send(msg, true)
 	if err != nil {
 		mlog.Error("blockchain closed", "err", err.Error())
 		return nil, err
 	}
-	return mem.qclient.Wait(msg)
+	return mem.client.Wait(msg)
 }
 
 func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptCheckTxList, error) {
-	if mem.qclient == nil {
+	if mem.client == nil {
 		panic("client not bind message queue.")
 	}
-	msg := mem.qclient.NewMessage("execs", types.EventCheckTx, txlist)
-	err := mem.qclient.Send(msg, true)
+	msg := mem.client.NewMessage("execs", types.EventCheckTx, txlist)
+	err := mem.client.Send(msg, true)
 	if err != nil {
 		mlog.Error("execs closed", "err", err.Error())
 		return nil, err
 	}
-	msg, err = mem.qclient.Wait(msg)
+	msg, err = mem.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -327,12 +326,12 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 
 // Mempool.SendTxToP2P向"p2p"发送消息
 func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
-	if mem.qclient == nil {
+	if mem.client == nil {
 		panic("client not bind message queue.")
 	}
 
-	msg := mem.qclient.NewMessage("p2p", types.EventTxBroadcast, tx)
-	mem.qclient.Send(msg, false)
+	msg := mem.client.NewMessage("p2p", types.EventTxBroadcast, tx)
+	mem.client.Send(msg, false)
 	mlog.Debug("tx sent to p2p", "msg", msg)
 }
 
@@ -390,12 +389,12 @@ func (mem *Mempool) isSync() bool {
 
 func (mem *Mempool) getSync() {
 	for {
-		if mem.qclient == nil {
+		if mem.client == nil {
 			panic("client not bind message queue.")
 		}
-		msg := mem.qclient.NewMessage("blockchain", types.EventIsSync, nil)
-		err := mem.qclient.Send(msg, true)
-		resp, err := mem.qclient.Wait(msg)
+		msg := mem.client.NewMessage("blockchain", types.EventIsSync, nil)
+		err := mem.client.Send(msg, true)
+		resp, err := mem.client.Wait(msg)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -416,10 +415,9 @@ func (mem *Mempool) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
 	return mem.cache.GetAccTxs(addrs)
 }
 
-func (mem *Mempool) SetQueue(q *queue.Queue) {
-	mem.memQueue = q
-	mem.qclient = q.NewClient()
-	mem.qclient.Sub("mempool")
+func (mem *Mempool) SetQueue(client queue.Client) {
+	mem.client = client
+	mem.client.Sub("mempool")
 
 	go mem.pollLastHeader()
 	go mem.getSync()
@@ -427,7 +425,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {
-			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply,
+			m.Reply(mem.client.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
 		}
 	}()
@@ -436,7 +434,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	go func() {
 		for m := range mem.goodChan {
 			mem.SendTxToP2P(m.GetData().(*types.Transaction))
-			m.Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
+			m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
 		}
 	}()
 
@@ -445,13 +443,13 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 	go mem.RemoveBlockedTxs()
 
 	go func() {
-		for msg := range mem.qclient.Recv() {
+		for msg := range mem.client.Recv() {
 			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := time.Now()
 			switch msg.Ty {
 			case types.EventTx:
 				if !mem.isSync() {
-					msg.Reply(mem.qclient.NewMessage("rpc", types.EventReply, &types.Reply{false, []byte(types.ErrNotSync.Error())}))
+					msg.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{false, []byte(types.ErrNotSync.Error())}))
 					mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
 					continue
 				}
@@ -464,7 +462,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 				}
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
-				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
+				msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.RemoveExpiredAndDuplicateMempoolTxs()}))
 				mlog.Debug("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
@@ -475,11 +473,11 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 					hashList.Count = types.MaxTxNumber - 1
 				}
 				if hashList.Count <= 0 {
-					msg.Reply(mem.qclient.NewMessage("", types.EventReplyTxList, types.ErrSize))
+					msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, types.ErrSize))
 					mlog.Error("not an valid size", "msg", msg)
 				} else {
 					txList := mem.GetTxList(hashList)
-					msg.Reply(mem.qclient.NewMessage("", types.EventReplyTxList, &types.ReplyTxList{Txs: txList}))
+					msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, &types.ReplyTxList{Txs: txList}))
 					mlog.Debug("reply EventTxList ok", "msg", msg)
 				}
 			case types.EventAddBlock:
@@ -497,13 +495,13 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				memSize := int64(mem.Size())
-				msg.Reply(mem.qclient.NewMessage("rpc", types.EventMempoolSize,
+				msg.Reply(mem.client.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{Size: memSize}))
 				mlog.Debug("reply EventGetMempoolSize ok", "msg", msg)
 			case types.EventGetLastMempool:
 				// 消息类型EventGetLastMempool：获取最新十条加入到Mempool的交易
 				txList := mem.GetLatestTx()
-				msg.Reply(mem.qclient.NewMessage("rpc", types.EventReplyTxList,
+				msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{Txs: txList}))
 				mlog.Debug("reply EventGetLastMempool ok", "msg", msg)
 			case types.EventDelBlock:
@@ -522,7 +520,7 @@ func (mem *Mempool) SetQueue(q *queue.Queue) {
 			case types.EventGetAddrTxs:
 				addrs := msg.GetData().(*types.ReqAddrs)
 				txlist := mem.GetAccTxs(addrs)
-				msg.Reply(mem.qclient.NewMessage("", types.EventReplyAddrTxs, txlist))
+				msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
 				mlog.Debug("reply EventGetAddrTxs ok", "msg", msg)
 			default:
 			}
