@@ -17,6 +17,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 	"google.golang.org/grpc"
 	"os"
+	"strings"
 )
 
 var conn *grpc.ClientConn
@@ -116,7 +117,30 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		return
 	}
-	//TODO:这里应该有个判断用户是否已经注册过了
+	//判断用户是否已经注册过了
+	var req types.Query
+	req.Execer = []byte("user.blacklist")
+	req.FuncName = blacklist.FuncName_CheckKeyIsExsit
+	key := &blacklist.QueryKeyParam{Key: r.Header.Get("userName")}
+	query := &blacklist.Query{&blacklist.Query_QueryKey{key}, ""}
+	req.Payload = types.Encode(query)
+
+	respon, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !respon.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(respon.GetMsg())))
+		return
+	}
+	value := string(respon.GetMsg())
+	fmt.Println("GetValue =", value)
+	if strings.TrimSpace(value) != blacklist.FAIL {
+		w.Header().Add("error", "the userName have been registered!")
+		w.WriteHeader(403)
+	}
+	//如果没有注册，则进行注册
 	user := &blacklist.User{}
 	user.UserId = r.Header.Get("userId")
 	user.UserName = r.Header.Get("userName")
@@ -337,10 +361,31 @@ func modifyUserPwd(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		return
 	}
-	//TODO:这里应该有个oldPwd校验
+	//oldPwd校验
+	var req types.Query
+	req.Execer = []byte("user.blacklist")
+	req.FuncName = blacklist.FuncName_LoginCheck
 	user := &blacklist.User{}
-	user.UserId = r.Header.Get("userId")
 	user.UserName = r.Header.Get("userName")
+	user.PassWord = r.Header.Get("oldPwd")
+	query := &blacklist.Query{&blacklist.Query_LoginCheck{user}, ""}
+	req.Payload = types.Encode(query)
+
+	respon, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !respon.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(respon.GetMsg())))
+		return
+	}
+	value := string(respon.GetMsg())
+	fmt.Println("GetValue =", value)
+	if strings.TrimSpace(value) != blacklist.SUCESS {
+		w.WriteHeader(403)
+	}
+	//设置新的密码
 	user.PassWord = r.Header.Get("newPwd")
 	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_User{user}, FuncName: blacklist.FuncName_ModifyUserPwd}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
