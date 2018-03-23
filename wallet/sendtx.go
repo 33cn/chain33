@@ -586,6 +586,7 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
 		Payload: types.Encode(precreate),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("token").String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
@@ -611,7 +612,13 @@ func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqToken
 		Ty:    types.TokenActionFinishCreate,
 		Value: &types.TokenAction_Tokenfinishcreate{v},
 	}
-	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(finish), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(finish),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("token").String(),
+	}
 	tx.Sign(int32(SignType), priv)
 
 	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
@@ -636,7 +643,13 @@ func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqToken
 		Ty:    types.TokenActionRevokeCreate,
 		Value: &types.TokenAction_Tokenrevokecreate{v},
 	}
-	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(revoke), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(revoke),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("token").String(),
+	}
 	tx.Sign(int32(SignType), priv)
 
 	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
@@ -666,6 +679,7 @@ func (wallet *Wallet) sellToken(priv crypto.PrivKey, reqSellToken *types.ReqSell
 		Payload: types.Encode(sell),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("trade").String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
@@ -696,6 +710,7 @@ func (wallet *Wallet) buyToken(priv crypto.PrivKey, reqBuyToken *types.ReqBuyTok
 		Payload: types.Encode(buy),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("trade").String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
@@ -726,6 +741,7 @@ func (wallet *Wallet) revokeSell(priv crypto.PrivKey, reqRevoke *types.ReqRevoke
 		Payload: types.Encode(revoke),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("trade").String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
