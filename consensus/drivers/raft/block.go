@@ -111,8 +111,11 @@ func (client *RaftClient) Close() {
 }
 
 func (client *RaftClient) InitBlock() {
-	height := client.GetInitHeight()
-	if height == -1 {
+	block, err := client.RequestLastBlock()
+	if err != nil {
+		panic(err)
+	}
+	if block == nil {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
@@ -132,7 +135,7 @@ func (client *RaftClient) InitBlock() {
 			log.Error("chain33 init block failed!", err)
 		}
 	} else {
-		block, err := client.RequestBlock(height)
+		block, err := client.RequestBlock(block.GetHeight())
 		if err != nil {
 			panic(err)
 		}
@@ -152,7 +155,7 @@ func (client *RaftClient) CreateBlock() {
 		if issleep {
 			time.Sleep(10 * time.Second)
 		}
-		txs := client.RequestTx(int(types.MaxTxNumber))
+		txs := client.RequestTx(int(types.MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue

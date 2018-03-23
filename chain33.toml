@@ -12,7 +12,7 @@ batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
 isStrongConsistency=true
-singleMode=false
+singleMode=true
 
 [p2p]
 seeds=["127.0.0.1:13802"]
