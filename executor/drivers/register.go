@@ -68,3 +68,11 @@ func ExecAddress(name string) string {
 	}
 	return account.ExecAddress(name).String()
 }
+
+func GetExecNameByAddr(addr string) string {
+	if name, ok := execAddress[addr]; ok {
+		return name
+	} else {
+		return ""
+	}
+}
