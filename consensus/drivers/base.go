@@ -59,41 +59,41 @@ func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	return client
 }
 
-func (client *BaseClient) SetChild(c Miner) {
-	client.child = c
+func (bc *BaseClient) SetChild(c Miner) {
+	bc.child = c
 }
 
-func (client *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
+func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	log.Info("Enter SetQueueClient method of consensus")
-	client.client = c
-	client.minerstartCB = minerstartCB
-	client.InitMiner()
+	bc.client = c
+	bc.minerstartCB = minerstartCB
+	bc.InitMiner()
 }
 
-func (client *BaseClient) GetQueueClient() queue.Client {
-	return client.client
+func (bc *BaseClient) GetQueueClient() queue.Client {
+	return bc.client
 }
 
-func (client *BaseClient) RandInt64() int64 {
+func (bc *BaseClient) RandInt64() int64 {
 	return randgen.Int63()
 }
 
-func (client *BaseClient) InitMiner() {
-	client.once.Do(client.minerstartCB)
+func (bc *BaseClient) InitMiner() {
+	bc.once.Do(bc.minerstartCB)
 }
 
-func (client *BaseClient) SetQueueClient(c queue.Client) {
-	client.InitClient(c, func() {
+func (bc *BaseClient) SetQueueClient(c queue.Client) {
+	bc.InitClient(c, func() {
 		//call init block
-		client.InitBlock()
+		bc.InitBlock()
 	})
-	go client.EventLoop()
-	go client.child.CreateBlock()
+	go bc.EventLoop()
+	go bc.child.CreateBlock()
 }
 
 //change init block
-func (client *BaseClient) InitBlock() {
-	block, err := client.RequestLastBlock()
+func (bc *BaseClient) InitBlock() {
+	block, err := bc.RequestLastBlock()
 	if err != nil {
 		panic(err)
 	}
@@ -101,25 +101,25 @@ func (client *BaseClient) InitBlock() {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
-		newblock.BlockTime = client.Cfg.GenesisBlockTime
+		newblock.BlockTime = bc.Cfg.GenesisBlockTime
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
-		tx := client.child.CreateGenesisTx()
+		tx := bc.child.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		client.WriteBlock(zeroHash[:], newblock)
+		bc.WriteBlock(zeroHash[:], newblock)
 	} else {
-		client.SetCurrentBlock(block)
+		bc.SetCurrentBlock(block)
 	}
 }
 
-func (client *BaseClient) Close() {
-	atomic.StoreInt32(&client.minerStart, 0)
-	client.client.Close()
+func (bc *BaseClient) Close() {
+	atomic.StoreInt32(&bc.minerStart, 0)
+	bc.client.Close()
 	log.Info("consensus base closed")
 }
 
-func (client *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
+func (bc *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
 	var checkHashList types.TxHashList
 	txMap := make(map[string]*types.Transaction)
 	for _, tx := range txs {
@@ -130,9 +130,9 @@ func (client *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*
 	// 发送Hash过后的交易列表给blockchain模块
 	//beg := time.Now()
 	//log.Error("----EventTxHashList----->[beg]", "time", beg)
-	hashList := client.client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-	client.client.Send(hashList, true)
-	dupTxList, _ := client.client.Wait(hashList)
+	hashList := bc.client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
+	bc.client.Send(hashList, true)
+	dupTxList, _ := bc.client.Wait(hashList)
 	//log.Error("----EventTxHashList----->[end]", "time", time.Now().Sub(beg))
 	// 取出blockchain返回的重复交易列表
 	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
@@ -147,17 +147,17 @@ func (client *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*
 	return transactions
 }
 
-func (client *BaseClient) IsMining() bool {
-	return atomic.LoadInt32(&client.minerStart) == 1
+func (bc *BaseClient) IsMining() bool {
+	return atomic.LoadInt32(&bc.minerStart) == 1
 }
 
-func (client *BaseClient) IsCaughtUp() bool {
-	if client.client == nil {
-		panic("client not bind message queue.")
+func (bc *BaseClient) IsCaughtUp() bool {
+	if bc.client == nil {
+		panic("bc not bind message queue.")
 	}
-	msg := client.client.NewMessage("blockchain", types.EventIsSync, nil)
-	client.client.Send(msg, true)
-	resp, err := client.client.Wait(msg)
+	msg := bc.client.NewMessage("blockchain", types.EventIsSync, nil)
+	bc.client.Send(msg, true)
+	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return false
 	}
@@ -165,48 +165,48 @@ func (client *BaseClient) IsCaughtUp() bool {
 }
 
 // 准备新区块
-func (client *BaseClient) EventLoop() {
+func (bc *BaseClient) EventLoop() {
 	// 监听blockchain模块，获取当前最高区块
-	client.client.Sub("consensus")
+	bc.client.Sub("consensus")
 	go func() {
-		for msg := range client.client.Recv() {
+		for msg := range bc.client.Recv() {
 			tlog.Debug("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
-				client.SetCurrentBlock(block)
+				bc.SetCurrentBlock(block)
 			} else if msg.Ty == types.EventCheckBlock {
 				block := msg.GetData().(*types.BlockDetail)
-				err := client.CheckBlock(block)
+				err := bc.CheckBlock(block)
 				msg.ReplyErr("EventCheckBlock", err)
 			} else if msg.Ty == types.EventMinerStart {
-				if !atomic.CompareAndSwapInt32(&client.minerStart, 0, 1) {
+				if !atomic.CompareAndSwapInt32(&bc.minerStart, 0, 1) {
 					msg.ReplyErr("EventMinerStart", types.ErrMinerIsStared)
 				} else {
-					client.InitMiner()
+					bc.InitMiner()
 					msg.ReplyErr("EventMinerStart", nil)
 				}
 			} else if msg.Ty == types.EventMinerStop {
-				if !atomic.CompareAndSwapInt32(&client.minerStart, 1, 0) {
+				if !atomic.CompareAndSwapInt32(&bc.minerStart, 1, 0) {
 					msg.ReplyErr("EventMinerStop", types.ErrMinerNotStared)
 				} else {
 					msg.ReplyErr("EventMinerStop", nil)
 				}
 			} else if msg.Ty == types.EventDelBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
-				client.UpdateCurrentBlock(block)
+				bc.UpdateCurrentBlock(block)
 			} else {
-				client.child.ProcEvent(msg)
+				bc.child.ProcEvent(msg)
 			}
 		}
 	}()
 }
 
-func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
+func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	//check parent
 	if block.Block.Height <= 0 { //genesis block not check
 		return nil
 	}
-	parent, err := client.RequestBlock(block.Block.Height - 1)
+	parent, err := bc.RequestBlock(block.Block.Height - 1)
 	if err != nil {
 		return err
 	}
@@ -219,31 +219,31 @@ func (client *BaseClient) CheckBlock(block *types.BlockDetail) error {
 		return types.ErrParentHash
 	}
 	//check by drivers
-	err = client.child.CheckBlock(parent, block)
+	err = bc.child.CheckBlock(parent, block)
 	return err
 }
 
 // Mempool中取交易列表
-func (client *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Transaction {
-	if client.client == nil {
-		panic("client not bind message queue.")
+func (bc *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Transaction {
+	if bc.client == nil {
+		panic("bc not bind message queue.")
 	}
-	msg := client.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{txHashList, int64(listSize)})
-	client.client.Send(msg, true)
-	resp, err := client.client.Wait(msg)
+	msg := bc.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{txHashList, int64(listSize)})
+	bc.client.Send(msg, true)
+	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil
 	}
 	return resp.GetData().(*types.ReplyTxList).GetTxs()
 }
 
-func (client *BaseClient) RequestBlock(start int64) (*types.Block, error) {
-	if client.client == nil {
-		panic("client not bind message queue.")
+func (bc *BaseClient) RequestBlock(start int64) (*types.Block, error) {
+	if bc.client == nil {
+		panic("bc not bind message queue.")
 	}
-	msg := client.client.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false, []string{""}})
-	client.client.Send(msg, true)
-	resp, err := client.client.Wait(msg)
+	msg := bc.client.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false, []string{""}})
+	bc.client.Send(msg, true)
+	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -252,13 +252,13 @@ func (client *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 }
 
 //获取最新的block从blockchain模块
-func (client *BaseClient) RequestLastBlock() (*types.Block, error) {
-	if client.client == nil {
+func (bc *BaseClient) RequestLastBlock() (*types.Block, error) {
+	if bc.client == nil {
 		panic("client not bind message queue.")
 	}
-	msg := client.client.NewMessage("blockchain", types.EventGetLastBlock, nil)
-	client.client.Send(msg, true)
-	resp, err := client.client.Wait(msg)
+	msg := bc.client.NewMessage("blockchain", types.EventGetLastBlock, nil)
+	bc.client.Send(msg, true)
+	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -267,19 +267,19 @@ func (client *BaseClient) RequestLastBlock() (*types.Block, error) {
 }
 
 // 向blockchain写区块
-func (client *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
-	blockdetail, err := client.child.ExecBlock(prev, block)
+func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
+	blockdetail, err := bc.child.ExecBlock(prev, block)
 	if err != nil {
 		return err
 	}
-	msg := client.client.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
-	client.client.Send(msg, true)
-	resp, err := client.client.Wait(msg)
+	msg := bc.client.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
+	bc.client.Send(msg, true)
+	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return err
 	}
 	if resp.GetData().(*types.Reply).IsOk {
-		client.SetCurrentBlock(block)
+		bc.SetCurrentBlock(block)
 	} else {
 		//TODO:
 		//把txs写回mempool
@@ -289,48 +289,48 @@ func (client *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	return nil
 }
 
-func (client *BaseClient) SetCurrentBlock(b *types.Block) {
-	client.mulock.Lock()
-	client.currentBlock = b
-	client.mulock.Unlock()
+func (bc *BaseClient) SetCurrentBlock(b *types.Block) {
+	bc.mulock.Lock()
+	bc.currentBlock = b
+	bc.mulock.Unlock()
 }
 
-func (client *BaseClient) UpdateCurrentBlock(b *types.Block) {
-	client.mulock.Lock()
-	defer client.mulock.Unlock()
-	block, err := client.RequestLastBlock()
+func (bc *BaseClient) UpdateCurrentBlock(b *types.Block) {
+	bc.mulock.Lock()
+	defer bc.mulock.Unlock()
+	block, err := bc.RequestLastBlock()
 	if err != nil {
 		log.Error("UpdateCurrentBlock", "RequestLastBlock", err)
 		return
 	}
-	client.currentBlock = block
+	bc.currentBlock = block
 }
 
-func (client *BaseClient) GetCurrentBlock() (b *types.Block) {
-	client.mulock.Lock()
-	defer client.mulock.Unlock()
-	return client.currentBlock
+func (bc *BaseClient) GetCurrentBlock() (b *types.Block) {
+	bc.mulock.Lock()
+	defer bc.mulock.Unlock()
+	return bc.currentBlock
 }
 
-func (client *BaseClient) GetCurrentHeight() int64 {
-	client.mulock.Lock()
-	start := client.currentBlock.Height
-	client.mulock.Unlock()
+func (bc *BaseClient) GetCurrentHeight() int64 {
+	bc.mulock.Lock()
+	start := bc.currentBlock.Height
+	bc.mulock.Unlock()
 	return start
 }
 
-func (client *BaseClient) Lock() {
-	client.mulock.Lock()
+func (bc *BaseClient) Lock() {
+	bc.mulock.Lock()
 }
 
-func (client *BaseClient) Unlock() {
-	client.mulock.Unlock()
+func (bc *BaseClient) Unlock() {
+	bc.mulock.Unlock()
 }
 
-func (client *BaseClient) ConsensusTicketMiner(iscaughtup *types.IsCaughtUp) {
-	if !atomic.CompareAndSwapInt32(&client.isCaughtUp, 0, 1) {
-		log.Info("ConsensusTicketMiner", "isCaughtUp", client.isCaughtUp)
+func (bc *BaseClient) ConsensusTicketMiner(iscaughtup *types.IsCaughtUp) {
+	if !atomic.CompareAndSwapInt32(&bc.isCaughtUp, 0, 1) {
+		log.Info("ConsensusTicketMiner", "isCaughtUp", bc.isCaughtUp)
 	} else {
-		log.Info("ConsensusTicketMiner", "isCaughtUp", client.isCaughtUp)
+		log.Info("ConsensusTicketMiner", "isCaughtUp", bc.isCaughtUp)
 	}
 }
