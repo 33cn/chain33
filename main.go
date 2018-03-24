@@ -89,40 +89,40 @@ func main() {
 
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueueClient(q.NewClient())
+	chain.SetQueueClient(q.Client())
 
 	log.Info("loading mempool module")
 	mem := mempool.New(cfg.MemPool)
-	mem.SetQueueClient(q.NewClient())
+	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
 	exec := executor.New()
-	exec.SetQueueClient(q.NewClient())
+	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
 	s := store.New(cfg.Store)
-	s.SetQueueClient(q.NewClient())
+	s.SetQueueClient(q.Client())
 
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueueClient(q.NewClient())
+	cs.SetQueueClient(q.Client())
 
 	var network *p2p.P2p
 	if cfg.P2P.Enable {
 		log.Info("loading p2p module")
 		network = p2p.New(cfg.P2P)
-		network.SetQueueClient(q.NewClient())
+		network.SetQueueClient(q.Client())
 	}
 	//jsonrpc, grpc, channel 三种模式
 	rpc.Init(cfg.Rpc)
-	gapi := rpc.NewGRpcServer(q.NewClient())
+	gapi := rpc.NewGRpcServer(q.Client())
 	go gapi.Listen()
-	japi := rpc.NewJsonRpcServer(q.NewClient())
+	japi := rpc.NewJsonRpcServer(q.Client())
 	go japi.Listen()
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
-	walletm.SetQueueClient(q.NewClient())
+	walletm.SetQueueClient(q.Client())
 
 	defer func() {
 		//close all module,clean some resource
