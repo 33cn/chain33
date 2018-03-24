@@ -12,12 +12,12 @@ import (
 type Query struct {
 	db        dbm.DB
 	stateHash []byte
-	q         *queue.Queue
+	client    queue.Client
 	mu        sync.Mutex
 }
 
-func NewQuery(db dbm.DB, q *queue.Queue, stateHash []byte) *Query {
-	return &Query{db: db, q: q, stateHash: stateHash}
+func NewQuery(db dbm.DB, client queue.Client, stateHash []byte) *Query {
+	return &Query{db: db, client: client, stateHash: stateHash}
 }
 
 func (q *Query) Query(driver string, funcname string, param []byte) (types.Message, error) {
@@ -27,7 +27,7 @@ func (q *Query) Query(driver string, funcname string, param []byte) (types.Messa
 		return nil, err
 	}
 	exec.SetQueryDB(q.db)
-	exec.SetDB(executor.NewStateDB(q.q, q.getStateHash()))
+	exec.SetDB(executor.NewStateDB(q.client.Clone(), q.getStateHash()))
 	return exec.Query(funcname, param)
 }
 
