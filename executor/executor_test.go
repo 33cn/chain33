@@ -36,27 +36,27 @@ func init() {
 	common.SetLogLevel("info")
 }
 
-func initEnv() (*queue.Queue, *blockchain.BlockChain, *store.Store, queue.Module, *p2p.P2p, *mempool.Mempool) {
+func initEnv() (queue.Queue, *blockchain.BlockChain, *store.Store, queue.Module, *p2p.P2p, *mempool.Mempool) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueueClient(q.NewClient())
+	chain.SetQueueClient(q.Client())
 
 	exec := executor.New()
-	exec.SetQueueClient(q.NewClient())
+	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
-	s.SetQueueClient(q.NewClient())
+	s.SetQueueClient(q.Client())
 
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueueClient(q.NewClient())
+	cs.SetQueueClient(q.Client())
 
 	p2pnet := p2p.New(cfg.P2P)
-	p2pnet.SetQueueClient(q.NewClient())
+	p2pnet.SetQueueClient(q.Client())
 
 	mem := mempool.New(cfg.MemPool)
-	mem.SetQueueClient(q.NewClient())
+	mem.SetQueueClient(q.Client())
 
 	return q, chain, s, cs, p2pnet, mem
 }
@@ -112,7 +112,7 @@ func TestExecBlock(t *testing.T) {
 	defer p2pnet.Close()
 	defer mem.Close()
 	block := createBlock(10000)
-	util.ExecBlock(q.NewClient(), zeroHash[:], block, false)
+	util.ExecBlock(q.Client(), zeroHash[:], block, false)
 }
 
 //gen 1万币需要 2s，主要是签名的花费
@@ -133,6 +133,6 @@ func BenchmarkExecBlock(b *testing.B) {
 	block := createBlock(10000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		util.ExecBlock(q.NewClient(), zeroHash[:], block, false)
+		util.ExecBlock(q.Client(), zeroHash[:], block, false)
 	}
 }

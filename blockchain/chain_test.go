@@ -29,8 +29,8 @@ func initEnv() (*BlockChain, queue.Client) {
 	cfg.DbPath = "datadir"
 
 	blockchain := New(&cfg)
-	blockchain.SetQueueClient(q.NewClient())
-	return blockchain, q.NewClient()
+	blockchain.SetQueueClient(q.Client())
+	return blockchain, q.Client()
 }
 
 /*
@@ -657,7 +657,7 @@ func execprocess(client queue.Client) {
 }
 
 // test
-func testExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
+func testExecBlock(q queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	var blockdetal types.BlockDetail
 	blockdetal.Block = block
 	var rdata []*types.ReceiptData
