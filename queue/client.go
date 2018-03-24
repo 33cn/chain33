@@ -34,6 +34,12 @@ type Client interface {
 	Clone() Client
 }
 
+/// Module be used for module interface
+type Module interface {
+	SetQueueClient(client Client)
+	Close()
+}
+
 type client struct {
 	q        *Queue
 	recv     chan Message
