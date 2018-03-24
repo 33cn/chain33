@@ -14,7 +14,7 @@ import (
 //消息队列的主要作用是解耦合，让各个模块相对的独立运行。
 //每个模块都会有一个client 对象
 //主要的操作大致如下：
-// client := queue.NewClient()
+// client := queue.Client()
 // client.Sub("topicname")
 // for msg := range client.Recv() {
 //     process(msg)
@@ -41,7 +41,7 @@ type Module interface {
 }
 
 type client struct {
-	q        *Queue
+	q        *queue
 	recv     chan Message
 	done     chan struct{}
 	wg       *sync.WaitGroup
@@ -49,7 +49,7 @@ type client struct {
 	isClosed int32
 }
 
-func newClient(q *Queue) Client {
+func newClient(q *queue) Client {
 	client := &client{}
 	client.q = q
 	client.recv = make(chan Message, 5)
@@ -58,7 +58,7 @@ func newClient(q *Queue) Client {
 	return client
 }
 
-/// Clone clone new client for Queue
+/// Clone clone new client for queue
 func (client *client) Clone() Client {
 	return newClient(client.q)
 }
@@ -70,10 +70,10 @@ func (client *client) Send(msg Message, wait bool) (err error) {
 		return types.ErrIsClosed
 	}
 	if !wait {
-		msg.ChReply = nil
-		return client.q.SendAsyn(msg)
+		msg.chReply = nil
+		return client.q.sendAsyn(msg)
 	}
-	err = client.q.Send(msg)
+	err = client.q.send(msg)
 	if err == types.ErrTimeout {
 		panic(err)
 	}
@@ -88,7 +88,7 @@ func (client *client) SendAsyn(msg Message, wait bool) (err error) {
 		return types.ErrIsClosed
 	}
 	if !wait {
-		msg.ChReply = nil
+		msg.chReply = nil
 	}
 	//wait for sendasyn
 	i := 0
@@ -97,7 +97,7 @@ func (client *client) SendAsyn(msg Message, wait bool) (err error) {
 		if i%1000 == 0 {
 			qlog.Error("SendAsyn retry too many times", "n", i)
 		}
-		err = client.q.SendAsyn(msg)
+		err = client.q.sendAsyn(msg)
 		if err != nil && err != types.ErrChannelFull {
 			return err
 		}
@@ -117,13 +117,13 @@ func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg 
 }
 
 func (client *client) Wait(msg Message) (Message, error) {
-	if msg.ChReply == nil {
+	if msg.chReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
 	timeout := time.NewTimer(time.Second * 61)
 	defer timeout.Stop()
 	select {
-	case msg = <-msg.ChReply:
+	case msg = <-msg.chReply:
 		return msg, msg.Err()
 	case <-client.done:
 		return Message{}, errors.New("client is closed")
