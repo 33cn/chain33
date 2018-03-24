@@ -25,7 +25,7 @@ func initEnv() (*Wallet, *queue.Queue) {
 	cfg.MinFee = 1000000
 
 	wallet := New(&cfg)
-	wallet.SetQueue(q.NewClient())
+	wallet.SetQueueClient(q.NewClient())
 	return wallet, q
 }
 
@@ -35,7 +35,7 @@ func storeModProc(q *queue.Queue) *store.Store {
 	cfg.DbPath = "datadir"
 	cfg.Driver = "leveldb"
 	s := store.New(&cfg)
-	s.SetQueue(q.NewClient())
+	s.SetQueueClient(q.NewClient())
 	return s
 }
 

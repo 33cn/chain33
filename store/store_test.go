@@ -19,7 +19,7 @@ func initEnv() (*queue.Queue, *Store) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("chain33.toml")
 	s := New(cfg.Store)
-	s.SetQueue(q.NewClient())
+	s.SetQueueClient(q.NewClient())
 	return q, s
 }
 

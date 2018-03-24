@@ -29,7 +29,7 @@ func initEnv() (*BlockChain, queue.Client) {
 	cfg.DbPath = "datadir"
 
 	blockchain := New(&cfg)
-	blockchain.SetQueue(q.NewClient())
+	blockchain.SetQueueClient(q.NewClient())
 	return blockchain, q.NewClient()
 }
 

@@ -56,7 +56,7 @@ type Node struct {
 	closed   int32
 }
 
-func (n *Node) SetQueue(client queue.Client) {
+func (n *Node) SetQueueClient(client queue.Client) {
 	n.nodeInfo.client = client
 }
 
