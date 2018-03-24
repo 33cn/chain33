@@ -59,9 +59,9 @@ func (network *P2p) Close() {
 	pub.Shutdown()
 }
 
-func (network *P2p) SetQueue(client queue.Client) {
+func (network *P2p) SetQueueClient(client queue.Client) {
 	network.client = client
-	network.node.SetQueue(client.Clone())
+	network.node.SetQueueClient(client.Clone())
 	go func() {
 		network.node.Start()
 		network.subP2pMsg()

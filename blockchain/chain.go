@@ -121,7 +121,7 @@ func (chain *BlockChain) Close() {
 	chainlog.Info("blockchain module closed")
 }
 
-func (chain *BlockChain) SetQueue(client queue.Client) {
+func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client = client
 	chain.client.Sub("blockchain")
 

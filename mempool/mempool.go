@@ -415,7 +415,7 @@ func (mem *Mempool) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
 	return mem.cache.GetAccTxs(addrs)
 }
 
-func (mem *Mempool) SetQueue(client queue.Client) {
+func (mem *Mempool) SetQueueClient(client queue.Client) {
 	mem.client = client
 	mem.client.Sub("mempool")
 

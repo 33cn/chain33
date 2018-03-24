@@ -64,7 +64,7 @@ func (client *BaseClient) SetChild(c Miner) {
 }
 
 func (client *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
-	log.Info("Enter SetQueue method of consensus")
+	log.Info("Enter SetQueueClient method of consensus")
 	client.client = c
 	client.minerstartCB = minerstartCB
 	client.InitMiner()
@@ -82,7 +82,7 @@ func (client *BaseClient) InitMiner() {
 	client.once.Do(client.minerstartCB)
 }
 
-func (client *BaseClient) SetQueue(c queue.Client) {
+func (client *BaseClient) SetQueueClient(c queue.Client) {
 	client.InitClient(c, func() {
 		//call init block
 		client.InitBlock()

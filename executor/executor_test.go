@@ -36,27 +36,27 @@ func init() {
 	common.SetLogLevel("info")
 }
 
-func initEnv() (*queue.Queue, *blockchain.BlockChain, *store.Store, consensus.Consensus, *p2p.P2p, *mempool.Mempool) {
+func initEnv() (*queue.Queue, *blockchain.BlockChain, *store.Store, queue.Module, *p2p.P2p, *mempool.Mempool) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q.NewClient())
+	chain.SetQueueClient(q.NewClient())
 
 	exec := executor.New()
-	exec.SetQueue(q.NewClient())
+	exec.SetQueueClient(q.NewClient())
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
-	s.SetQueue(q.NewClient())
+	s.SetQueueClient(q.NewClient())
 
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q.NewClient())
+	cs.SetQueueClient(q.NewClient())
 
 	p2pnet := p2p.New(cfg.P2P)
-	p2pnet.SetQueue(q.NewClient())
+	p2pnet.SetQueueClient(q.NewClient())
 
 	mem := mempool.New(cfg.MemPool)
-	mem.SetQueue(q.NewClient())
+	mem.SetQueueClient(q.NewClient())
 
 	return q, chain, s, cs, p2pnet, mem
 }

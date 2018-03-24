@@ -98,22 +98,22 @@ func initEnv2(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q.NewClient())
+	chain.SetQueueClient(q.NewClient())
 
 	exec := executor.New()
-	exec.SetQueue(q.NewClient())
+	exec.SetQueueClient(q.NewClient())
 
 	s := store.New(cfg.Store)
-	s.SetQueue(q.NewClient())
+	s.SetQueueClient(q.NewClient())
 
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q.NewClient())
+	cs.SetQueueClient(q.NewClient())
 
 	mem := New(cfg.MemPool)
-	mem.SetQueue(q.NewClient())
+	mem.SetQueueClient(q.NewClient())
 
 	network := p2p.New(cfg.P2P)
-	network.SetQueue(q.NewClient())
+	network.SetQueueClient(q.NewClient())
 
 	if size > 0 {
 		mem.Resize(size)
@@ -127,19 +127,19 @@ func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.S
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q.NewClient())
+	chain.SetQueueClient(q.NewClient())
 
 	exec := executor.New()
-	exec.SetQueue(q.NewClient())
+	exec.SetQueueClient(q.NewClient())
 
 	s := store.New(cfg.Store)
-	s.SetQueue(q.NewClient())
+	s.SetQueueClient(q.NewClient())
 
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q.NewClient())
+	cs.SetQueueClient(q.NewClient())
 
 	mem := New(cfg.MemPool)
-	mem.SetQueue(q.NewClient())
+	mem.SetQueueClient(q.NewClient())
 	mem.sync = true
 
 	if size > 0 {

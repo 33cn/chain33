@@ -112,7 +112,7 @@ func (wallet *Wallet) IsWalletLocked() bool {
 	return wallet.isWalletLocked
 }
 
-func (wallet *Wallet) SetQueue(client queue.Client) {
+func (wallet *Wallet) SetQueueClient(client queue.Client) {
 	wallet.client = client
 	wallet.client.Sub("wallet")
 	wallet.wg.Add(2)
