@@ -15,11 +15,11 @@ func init() {
 	common.SetLogLevel("debug")
 }
 
-func initEnv() (*queue.Queue, *Store) {
+func initEnv() (queue.Queue, *Store) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("chain33.toml")
 	s := New(cfg.Store)
-	s.SetQueueClient(q.NewClient())
+	s.SetQueueClient(q.Client())
 	return q, s
 }
 
@@ -91,7 +91,7 @@ func rollback(qclient queue.Client, hash []byte) ([]byte, error) {
 
 func TestGetAndSet(t *testing.T) {
 	q, s := initEnv()
-	qclient := q.NewClient()
+	qclient := q.Client()
 	var stateHash [32]byte
 	//先set一个数
 	key := []byte("hello")
@@ -126,7 +126,7 @@ func randstr() string {
 
 func TestGetAndSetCommitAndRollback(t *testing.T) {
 	q, s := initEnv()
-	qclient := q.NewClient()
+	qclient := q.Client()
 	var stateHash [32]byte
 	//先set一个数
 	key := []byte("hello" + randstr())
@@ -182,7 +182,7 @@ func TestGetAndSetCommitAndRollback(t *testing.T) {
 
 func BenchmarkGetKey(b *testing.B) {
 	q, s := initEnv()
-	qclient := q.NewClient()
+	qclient := q.Client()
 	var stateHash [32]byte
 	hash := stateHash[:]
 	var err error
@@ -214,7 +214,7 @@ func BenchmarkGetKey(b *testing.B) {
 
 func BenchmarkSetKeyOneByOne(b *testing.B) {
 	q, s := initEnv()
-	qclient := q.NewClient()
+	qclient := q.Client()
 	var stateHash [32]byte
 	hash := stateHash[:]
 	var err error
@@ -232,7 +232,7 @@ func BenchmarkSetKeyOneByOne(b *testing.B) {
 
 func BenchmarkSetKey1000(b *testing.B) {
 	q, s := initEnv()
-	qclient := q.NewClient()
+	qclient := q.Client()
 	var stateHash [32]byte
 	hash := stateHash[:]
 	set := &types.StoreSet{}
