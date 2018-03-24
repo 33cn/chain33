@@ -58,7 +58,7 @@ func (store *Store) Close() {
 	slog.Info("store module closed")
 }
 
-func (store *Store) SetQueue(client queue.Client) {
+func (store *Store) SetQueueClient(client queue.Client) {
 	store.client = client
 	client.Sub("store")
 

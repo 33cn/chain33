@@ -38,7 +38,7 @@ func New() *Executor {
 	return exec
 }
 
-func (exec *Executor) SetQueue(client queue.Client) {
+func (exec *Executor) SetQueueClient(client queue.Client) {
 	exec.client = client
 	exec.client.Sub("execs")
 

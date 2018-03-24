@@ -7,7 +7,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-func New(cfg *types.Consensus) Consensus {
+func New(cfg *types.Consensus) queue.Module {
 	consensusType := cfg.Name
 	if consensusType == "solo" {
 		con := solo.New(cfg)
@@ -21,9 +21,4 @@ func New(cfg *types.Consensus) Consensus {
 		return t
 	}
 	panic("Unsupported consensus type")
-}
-
-type Consensus interface {
-	SetQueue(client queue.Client)
-	Close()
 }
