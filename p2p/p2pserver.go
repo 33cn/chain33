@@ -144,7 +144,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
 	client.Send(msg, false)
 	return &pb.Reply{IsOk: true, Msg: []byte("ok")}, nil
@@ -157,7 +157,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
 
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
 		Isdetail: false})
 	err := client.Send(msg, true)
@@ -207,7 +207,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 		return fmt.Errorf(VersionNotSupport)
 	}
 	invs := in.GetInvs()
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	for _, inv := range invs { //过滤掉不需要的数据
 		var invdata pb.InvData
 		var memtx = make(map[string]*pb.Transaction)
@@ -278,7 +278,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 		return nil, fmt.Errorf("out of range")
 	}
 
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeight()})
 	err := client.Send(msg, true)
 	if err != nil {
@@ -300,7 +300,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	log.Debug("GetPeerInfo", "GetMempoolSize", "befor")
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
 	err := client.Send(msg, true)
@@ -346,7 +346,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 }
 
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
 	err := client.Send(msg, false)
 	if err != nil {
@@ -407,8 +407,8 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 			log.Info("ServerStreamRead", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
 			if block.GetBlock() != nil {
-				msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-				err := s.node.nodeInfo.qclient.Send(msg, false)
+				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+				err := s.node.nodeInfo.client.Send(msg, false)
 				if err != nil {
 					log.Error("ServerStreamRead", "Error", err.Error())
 					continue
@@ -423,8 +423,8 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				continue
 			}
 			if tx.GetTx() != nil {
-				msg := s.node.nodeInfo.qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
-				s.node.nodeInfo.qclient.Send(msg, false)
+				msg := s.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
+				s.node.nodeInfo.client.Send(msg, false)
 			}
 			Filter.RegData(txhash)
 
@@ -485,7 +485,7 @@ func (s *p2pServer) checkVersion(version int32) bool {
 func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 
 	var txmap = make(map[string]*pb.Transaction)
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
 	err := client.Send(msg, true)
 	if err != nil {
