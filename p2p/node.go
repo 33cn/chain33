@@ -56,9 +56,8 @@ type Node struct {
 	closed   int32
 }
 
-func (n *Node) SetQueue(q *queue.Queue) {
-	n.nodeInfo.q = q
-	n.nodeInfo.qclient = q.NewClient()
+func (n *Node) SetQueueClient(client queue.Client) {
+	n.nodeInfo.client = client
 }
 
 func NewNode(cfg *types.P2P) (*Node, error) {
