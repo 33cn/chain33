@@ -31,7 +31,13 @@ func NewCoinsAccount() *AccountDB {
 	return newAccountDB("mavl-coins-bty-")
 }
 
-func NewTokenAccount(symbol string) *AccountDB {
+func NewTokenAccount(symbol string, db dbm.KVDB) *AccountDB {
+	accDB := newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+	accDB.SetDB(db)
+	return accDB
+}
+
+func NewTokenAccountWithoutDB(symbol string) *AccountDB {
 	return newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
 }
 
@@ -46,6 +52,10 @@ func newAccountDB(prefix string) *AccountDB {
 func (acc *AccountDB) SetDB(db dbm.KVDB) *AccountDB {
 	acc.db = db
 	return acc
+}
+
+func (acc *AccountDB) IsTokenAccount() bool {
+	return "token" == string(acc.accountKeyPerfix[len("mavl-"):len("mavl-token")])
 }
 
 func (acc *AccountDB) LoadAccount(addr string) *types.Account {
@@ -109,14 +119,22 @@ func (acc *AccountDB) depositBalance(execaddr string, amount int64) (*types.Rece
 	acc1.Balance += amount
 	receiptBalance := &types.ReceiptAccountTransfer{&copyacc, acc1}
 	acc.SaveAccount(acc1)
-	log1 := &types.ReceiptLog{types.TyLogDeposit, types.Encode(receiptBalance)}
+	ty := int32(types.TyLogDeposit)
+	if acc.IsTokenAccount() {
+		ty = types.TyLogTokenDeposit
+	}
+	log1 := &types.ReceiptLog{ty, types.Encode(receiptBalance)}
 	kv := acc.GetKVSet(acc1)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}, nil
 }
 
 func (acc *AccountDB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
-	log1 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptFrom)}
-	log2 := &types.ReceiptLog{types.TyLogTransfer, types.Encode(receiptTo)}
+	ty := int32(types.TyLogTransfer)
+	if acc.IsTokenAccount() {
+		ty = types.TyLogTokenTransfer
+	}
+	log1 := &types.ReceiptLog{ty, types.Encode(receiptFrom)}
+	log2 := &types.ReceiptLog{ty, types.Encode(receiptTo)}
 	kv := acc.GetKVSet(accFrom)
 	kv = append(kv, acc.GetKVSet(accTo)...)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}

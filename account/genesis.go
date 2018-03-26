@@ -25,13 +25,21 @@ func (acc *AccountDB) GenesisInitExec(addr string, amount int64, execaddr string
 	if err != nil {
 		panic(err)
 	}
-	receipt2.Ty = types.TyLogGenesisDeposit
+	ty := int32(types.TyLogGenesisDeposit)
+	if acc.IsTokenAccount() {
+		ty = int32(types.TyLogTokenGenesisDeposit)
+	}
+	receipt2.Ty = ty
 	receipt = acc.mergeReceipt(receipt, receipt2)
 	return receipt, nil
 }
 
 func (acc *AccountDB) genesisReceipt(accTo *types.Account, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
-	log2 := &types.ReceiptLog{types.TyLogGenesisTransfer, types.Encode(receiptTo)}
+	ty := int32(types.TyLogGenesisTransfer)
+	if acc.IsTokenAccount() {
+		ty = int32(types.TyLogTokenGenesisTransfer)
+	}
+	log2 := &types.ReceiptLog{ty, types.Encode(receiptTo)}
 	kv := acc.GetKVSet(accTo)
 	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log2}}
 }
