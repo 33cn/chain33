@@ -979,3 +979,8 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 	}
 	return rd, nil
 }
+
+func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
+	*result = c.cli.IsNtpClockSync()
+	return nil
+}
