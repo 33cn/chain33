@@ -60,14 +60,14 @@ const (
 	//InvalidStartTime = 0
 	//InvalidStopTime = 0
 	//====== =
-	Coin                  int64 = 1e8
-	MaxCoin               int64 = 1e17
+	Coin                int64   = 1e8
+	MaxCoin             int64   = 1e17
 	MaxTxSize                   = 100000   //100K
 	MaxBlockSize                = 10000000 //10M
 	MaxTxsPerBlock              = 100000
-	TokenPrecision        int64 = 1e4
+	TokenPrecision      int64   = 1e4
 	InputPrecision      float64 = 1e4
-	CoinMultiple          int64 = 1e4
+	CoinMultiple        int64   = 1e4
 	TokenNameLenLimit           = 128
 	TokenSymbolLenLimit         = 16
 	TokenIntroLenLimit          = 1024
@@ -376,7 +376,7 @@ const (
 
 //coinsaction
 const (
-	InvalidAction       = iota
+	InvalidAction = iota
 	CoinsActionTransfer
 	CoinsActionGenesis
 	CoinsActionWithdraw
@@ -417,13 +417,13 @@ const (
 )
 
 const (
-	TokenStatusPreCreated    = iota
+	TokenStatusPreCreated = iota
 	TokenStatusCreated
 	TokenStatusCreateRevoked
 )
 
 const (
-	TradeSell       = iota
+	TradeSell = iota
 	TradeBuy
 	TradeRevokeSell
 )
@@ -454,6 +454,6 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 //hard fork block height
 const (
 	ForkV1           = 75260
-	ForkV2_add_token = 104000
+	ForkV2_add_token = 100899
 	ForkV3           = 110000
 )
