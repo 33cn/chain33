@@ -120,14 +120,14 @@ func (client *Wallet) GetHeight() int64 {
 	return h
 }
 
-func (wallet *Wallet) closeAllTickets() (int, error) {
+func (wallet *Wallet) closeAllTickets(height int64) (int, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
 		return 0, err
 	}
 	var hashes [][]byte
 	for _, key := range keys {
-		hash, err := wallet.closeTicketsByAddr(key)
+		hash, err := wallet.closeTicketsByAddr(height, key)
 		if err != nil {
 			walletlog.Error("close Tickets By Addr", "err", err)
 			continue
@@ -144,14 +144,14 @@ func (wallet *Wallet) closeAllTickets() (int, error) {
 	return 0, nil
 }
 
-func (wallet *Wallet) forceCloseAllTicket() ([][]byte, error) {
+func (wallet *Wallet) forceCloseAllTicket(height int64) ([][]byte, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
 		return nil, err
 	}
 	var hashes [][]byte
 	for _, key := range keys {
-		hash, err := wallet.forceCloseTicketsByAddr(key)
+		hash, err := wallet.forceCloseTicketsByAddr(height, key)
 		if err != nil {
 			walletlog.Error("close Tickets By Addr", "err", err)
 			continue
@@ -180,7 +180,7 @@ func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error)
 	return nil, nil
 }
 
-func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) ([]byte, int, error) {
+func (wallet *Wallet) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
 	//ticket balance and coins balance
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc1, err := wallet.getBalance(addr, "coins")
@@ -194,7 +194,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) ([]byte, int, error) {
 	//留一个币作为手续费，如果手续费不够了，不能挖矿
 	//判断手续费是否足够，如果不足要及时补充。
 	fee := types.Coin
-	if acc1.Balance+acc2.Balance-2*fee >= types.TicketPrice {
+	if acc1.Balance+acc2.Balance-2*fee >= types.GetP(height).TicketPrice {
 		//第一步。转移币到 ticket
 		toaddr := account.ExecAddress("ticket").String()
 		amount := acc1.Balance - 2*fee
@@ -212,7 +212,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) ([]byte, int, error) {
 		if err != nil {
 			return nil, 0, err
 		}
-		count := acc.Balance / types.TicketPrice
+		count := acc.Balance / types.GetP(height).TicketPrice
 		if count > 0 {
 			txhash, err := wallet.openticket(addr, addr, priv, int32(count))
 			return txhash, int(count), err
@@ -221,7 +221,7 @@ func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) ([]byte, int, error) {
 	return nil, 0, nil
 }
 
-func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) ([][]byte, int, error) {
+func (wallet *Wallet) buyMinerAddrTicketOne(height int64, priv crypto.PrivKey) ([][]byte, int, error) {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	//判断是否绑定了coldaddr
 	addrs, err := wallet.getMinerColdAddr(addr)
@@ -236,7 +236,7 @@ func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) ([][]byte, int,
 		if err != nil {
 			return nil, 0, err
 		}
-		count := acc.Balance / types.TicketPrice
+		count := acc.Balance / types.GetP(height).TicketPrice
 		if count > 0 {
 			txhash, err := wallet.openticket(addr, addrs[i], priv, int32(count))
 			if err != nil {
@@ -272,7 +272,7 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	return nil
 }
 
-func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
+func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
 	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist, err := wallet.getTickets(addr, 2)
@@ -284,10 +284,10 @@ func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
 	now := time.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
-			if now-t.GetCreateTime() < types.TicketWithdrawTime {
+			if now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
 				continue
 			}
-			if now-t.GetMinerTime() < types.TicketMinerWaitTime {
+			if now-t.GetMinerTime() < types.GetP(height).TicketMinerWaitTime {
 				continue
 			}
 		}
@@ -302,7 +302,7 @@ func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
 	return nil, nil
 }
 
-func (wallet *Wallet) forceCloseTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
+func (wallet *Wallet) forceCloseTicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
 	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist1, err1 := wallet.getTickets(addr, 1)
@@ -319,13 +319,13 @@ func (wallet *Wallet) forceCloseTicketsByAddr(priv crypto.PrivKey) ([]byte, erro
 	now := time.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
-			if t.Status == 1 && now-t.GetCreateTime() < types.TicketWithdrawTime {
+			if t.Status == 1 && now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
 				continue
 			}
-			if t.Status == 2 && now-t.GetCreateTime() < types.TicketWithdrawTime {
+			if t.Status == 2 && now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
 				continue
 			}
-			if t.Status == 2 && now-t.GetMinerTime() < types.TicketMinerWaitTime {
+			if t.Status == 2 && now-t.GetMinerTime() < types.GetP(height).TicketMinerWaitTime {
 				continue
 			}
 		}

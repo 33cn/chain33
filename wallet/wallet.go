@@ -148,15 +148,15 @@ func (wallet *Wallet) autoMining() {
 			wallet.lastHeight = height
 			walletlog.Info("BEG miningTicket")
 			if wallet.isAutoMining() {
-				n1, err := wallet.closeTicket()
+				n1, err := wallet.closeTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
-				hashes1, n2, err := wallet.buyTicket()
+				hashes1, n2, err := wallet.buyTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("buyTicket", "err", err)
 				}
-				hashes2, n3, err := wallet.buyMinerAddrTicket()
+				hashes2, n3, err := wallet.buyMinerAddrTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("buyMinerAddrTicket", "err", err)
 				}
@@ -168,7 +168,7 @@ func (wallet *Wallet) autoMining() {
 					wallet.flushTicket()
 				}
 			} else {
-				n1, err := wallet.closeTicket()
+				n1, err := wallet.closeTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
@@ -190,7 +190,7 @@ func (wallet *Wallet) autoMining() {
 	}
 }
 
-func (wallet *Wallet) buyTicket() ([][]byte, int, error) {
+func (wallet *Wallet) buyTicket(height int64) ([][]byte, int, error) {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
 		walletlog.Error("buyTicket.getAllPrivKeys", "err", err)
@@ -199,7 +199,7 @@ func (wallet *Wallet) buyTicket() ([][]byte, int, error) {
 	count := 0
 	var hashes [][]byte
 	for _, priv := range privs {
-		hash, n, err := wallet.buyTicketOne(priv)
+		hash, n, err := wallet.buyTicketOne(height, priv)
 		if err != nil {
 			walletlog.Error("buyTicketOne", "err", err)
 			continue
@@ -212,7 +212,7 @@ func (wallet *Wallet) buyTicket() ([][]byte, int, error) {
 	return hashes, count, nil
 }
 
-func (wallet *Wallet) buyMinerAddrTicket() ([][]byte, int, error) {
+func (wallet *Wallet) buyMinerAddrTicket(height int64) ([][]byte, int, error) {
 	privs, err := wallet.getAllPrivKeys()
 	if err != nil {
 		walletlog.Error("buyMinerAddrTicket.getAllPrivKeys", "err", err)
@@ -221,7 +221,7 @@ func (wallet *Wallet) buyMinerAddrTicket() ([][]byte, int, error) {
 	count := 0
 	var hashes [][]byte
 	for _, priv := range privs {
-		hashlist, n, err := wallet.buyMinerAddrTicketOne(priv)
+		hashlist, n, err := wallet.buyMinerAddrTicketOne(height, priv)
 		if err != nil {
 			if err != types.ErrNotFound {
 				walletlog.Error("buyMinerAddrTicketOne", "err", err)
@@ -255,12 +255,12 @@ func (wallet *Wallet) withdrawFromTicket() (hashes [][]byte, err error) {
 	return hashes, nil
 }
 
-func (wallet *Wallet) closeTicket() (int, error) {
-	return wallet.closeAllTickets()
+func (wallet *Wallet) closeTicket(height int64) (int, error) {
+	return wallet.closeAllTickets(height)
 }
 
-func (wallet *Wallet) forceCloseTicket() ([][]byte, error) {
-	return wallet.forceCloseAllTicket()
+func (wallet *Wallet) forceCloseTicket(height int64) ([][]byte, error) {
+	return wallet.forceCloseAllTicket(height)
 }
 
 func (wallet *Wallet) flushTicket() {
@@ -485,7 +485,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventCloseTickets:
 			var reply types.Reply
 			reply.IsOk = true
-			hashes, err := wallet.forceCloseTicket()
+			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
 			if err != nil {
 				walletlog.Error("closeTicket", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, err))

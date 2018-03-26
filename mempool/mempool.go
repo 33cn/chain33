@@ -468,10 +468,6 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				hashList := msg.GetData().(*types.TxHashList)
-				//不能超过最大的交易数目 - 1 (有一笔挖矿交易)
-				if hashList.Count >= types.MaxTxNumber {
-					hashList.Count = types.MaxTxNumber - 1
-				}
 				if hashList.Count <= 0 {
 					msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, types.ErrSize))
 					mlog.Error("not an valid size", "msg", msg)

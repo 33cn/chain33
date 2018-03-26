@@ -54,7 +54,7 @@ func (client *SoloClient) CheckBlock(parent *types.Block, current *types.BlockDe
 func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
 	//exec block
 	if block.Height == 0 {
-		block.Difficulty = types.PowLimitBits
+		block.Difficulty = types.GetP(0).PowLimitBits
 	}
 	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
@@ -76,7 +76,8 @@ func (client *SoloClient) CreateBlock() {
 		if issleep {
 			time.Sleep(time.Second)
 		}
-		txs := client.RequestTx(int(types.MaxTxNumber), nil)
+		lastBlock := client.GetCurrentBlock()
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -84,12 +85,12 @@ func (client *SoloClient) CreateBlock() {
 		issleep = false
 		//check dup
 		//txs = client.CheckTxDup(txs)
-		lastBlock := client.GetCurrentBlock()
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
-		newblock.Difficulty = types.PowLimitBits
+		//solo 挖矿固定难度
+		newblock.Difficulty = types.GetP(0).PowLimitBits
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		newblock.BlockTime = time.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
