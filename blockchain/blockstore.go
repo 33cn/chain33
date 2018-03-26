@@ -53,15 +53,19 @@ type BlockStore struct {
 	lastBlock *types.Block
 }
 
-func NewBlockStore(db dbm.DB, q *queue.Queue) *BlockStore {
+func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 	height, err := LoadBlockStoreHeight(db)
 	if err != nil {
-		chainlog.Error("init::LoadBlockStoreHeight::database may be crash")
+		chainlog.Error("init::LoadBlockStoreHeight::database may be crash", "err", err.Error())
+		if err != types.ErrHeightNotExist {
+			panic(err)
+		}
+
 	}
 	blockStore := &BlockStore{
 		height: height,
 		db:     db,
-		client: q.NewClient(),
+		client: client,
 	}
 	if height == -1 {
 		chainlog.Error("load block height error, many init database", "height", height)

@@ -301,8 +301,8 @@ func (p *peer) readStream() {
 						}
 					}
 					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
-					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-					err = (*p.nodeInfo).qclient.Send(msg, false)
+					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					err = (*p.nodeInfo).client.Send(msg, false)
 					if err != nil {
 						log.Error("readStream", "send to blockchain Error", err.Error())
 						continue
@@ -318,8 +318,8 @@ func (p *peer) readStream() {
 					if Filter.QueryData(txhash) == true {
 						continue //处理方式同上
 					}
-					msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
-					(*p.nodeInfo).qclient.Send(msg, false)
+					msg := (*p.nodeInfo).client.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					(*p.nodeInfo).client.Send(msg, false)
 					Filter.RegData(txhash) //登记
 				}
 			}
