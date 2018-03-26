@@ -65,6 +65,7 @@ func (network *P2p) SetQueueClient(client queue.Client) {
 	go func() {
 		network.node.Start()
 		network.subP2pMsg()
+		network.loadP2PPrivKeyToWallet()
 	}()
 }
 
@@ -82,6 +83,58 @@ func (network *P2p) ShowTaskCapcity() {
 
 		}
 	}
+}
+
+func (network *P2p) loadP2PPrivKeyToWallet() error {
+
+	for {
+
+		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
+		err := network.client.Send(msg, true)
+		if err != nil {
+			log.Error("GetWalletStatus", "Error", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+		resp, err := network.client.Wait(msg)
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if resp.GetData().(*types.WalletStatus).GetIsHasSeed() == false { //无种子
+			time.Sleep(time.Second)
+			continue
+		}
+
+		break
+	}
+	var parm types.ReqWalletImportPrivKey
+	parm.Privkey = network.node.nodeInfo.addrBook.GetKey()
+	parm.Label = "node award"
+	msg := network.client.NewMessage("wallet", types.EventWalletImportprivkey, &parm)
+	err := network.client.Send(msg, true)
+	if err != nil {
+		log.Error("ImportPrivkey", "Error", err.Error())
+		return err
+	}
+	resp, err := network.client.Wait(msg)
+	if err != nil {
+		if err == types.ErrPrivkeyExist || err == types.ErrLabelHasUsed {
+			return nil
+		}
+		log.Error("loadP2PPrivKeyToWallet", "err", err.Error())
+		return err
+	}
+
+	log.Debug("loadP2PPrivKeyToWallet", "resp", resp.GetData())
+	return nil
+
 }
 
 func (network *P2p) subP2pMsg() {
