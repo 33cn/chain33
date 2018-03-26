@@ -121,3 +121,8 @@ message IsCaughtUp {
 	bool Iscaughtup  = 1;
 }
 
+//  ntp时钟状态
+message IsNtpClockSync {
+	bool isntpclocksync  = 1;
+}
+

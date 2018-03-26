@@ -1,9 +1,5 @@
 package types
 
-import (
-	"time"
-)
-
 var (
 	AllowDepositExec       = []string{"ticket"}
 	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade"}
@@ -35,33 +31,48 @@ func SetMinFee(fee int64) {
 }
 
 const (
-	Coin                     int64   = 1e8
-	TokenPrecision           int64   = 1e4
-	InputPrecision           float64 = 1e4
-	CoinMultiple             int64   = 1e4
-	MaxCoin                  int64   = 1e17
-	FutureBlockTime          int64   = 16
-	CoinReward               int64   = 18 * Coin //用户回报
-	CoinDevFund              int64   = 12 * Coin //发展基金回报
-	TicketPrice              int64   = 10000 * Coin
-	TicketFrozenTime         int64   = 5        //5s only for test
-	TicketWithdrawTime       int64   = 10       //10s only for test
-	TicketMinerWaitTime      int64   = 2        // 2s only for test
-	MaxTxSize                int64   = 100000   //100K
-	MaxBlockSize             int64   = 10000000 //10M
-	MaxTxNumber              int64   = 1600     //160
-	PowLimitBits             uint32  = uint32(0x1f00ffff)
-	TargetTimespan                   = 144 * 16 * time.Second
-	TargetTimePerBlock               = 16 * time.Second
-	RetargetAdjustmentFactor         = 4
-	MaxTxsPerBlock                   = 100000
-	TokenNameLenLimit                = 128
-	TokenSymbolLenLimit              = 16
-	TokenIntroLenLimit               = 1024
-	TokenPrecisionLen                = 1e6
-	TokenCreatePriceStand            = 10000 * Coin
-	InvalidStartTime                 = 0
-	InvalidStopTime                  = 0
+	//<<<<<<< HEAD
+	//Coin                     int64 = 1e8
+	//TokenPrecision           int64 = 1e4
+	//InputPrecision           float64 = 1e4
+	//CoinMultiple             int64 = 1e4
+	//MaxCoin                  int64 = 1e17
+	//FutureBlockTime          int64 = 16
+	//CoinReward               int64 = 18 * Coin //用户回报
+	//CoinDevFund              int64 = 12 * Coin //发展基金回报
+	//TicketPrice              int64 = 10000 * Coin
+	//TicketFrozenTime         int64 = 5        //5s only for test
+	//TicketWithdrawTime       int64 = 10       //10s only for test
+	//TicketMinerWaitTime      int64 = 2        // 2s only for test
+	//MaxTxSize                int64 = 100000   //100K
+	//MaxBlockSize             int64 = 10000000 //10M
+	//MaxTxNumber              int64 = 1600     //160
+	//PowLimitBits             uint32 = uint32(0x1f00ffff)
+	//TargetTimespan                   = 144 * 16 * time.Second
+	//TargetTimePerBlock               = 16 * time.Second
+	//RetargetAdjustmentFactor = 4
+	//MaxTxsPerBlock = 100000
+	//TokenNameLenLimit = 128
+	//TokenSymbolLenLimit              = 16
+	//TokenIntroLenLimit = 1024
+	//TokenPrecisionLen = 1e6
+	//TokenCreatePriceStand = 10000 * Coin
+	//InvalidStartTime = 0
+	//InvalidStopTime = 0
+	//====== =
+	Coin                  int64 = 1e8
+	MaxCoin               int64 = 1e17
+	MaxTxSize                   = 100000   //100K
+	MaxBlockSize                = 10000000 //10M
+	MaxTxsPerBlock              = 100000
+	TokenPrecision        int64 = 1e4
+	InputPrecision      float64 = 1e4
+	CoinMultiple          int64 = 1e4
+	TokenNameLenLimit           = 128
+	TokenSymbolLenLimit         = 16
+	TokenIntroLenLimit          = 1024
+	InvalidStartTime            = 0
+	InvalidStopTime             = 0
 )
 
 const (
@@ -165,9 +176,12 @@ const (
 	EventReplyPrivkey        = 95
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
+
 	EventCloseTickets        = 98
 	EventGetAddrTxs          = 99
 	EventReplyAddrTxs        = 100
+	EventIsNtpClockSync      = 101
+	EventReplyIsNtpClockSync = 102
 	// Token
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
@@ -284,6 +298,8 @@ var eventName = map[int]string{
 	98:  "EventCloseTickets",
 	99:  "EventGetAddrTxs",
 	100: "EventReplyAddrTxs",
+	101: "EventIsNtpClockSync",
+	102: "EventReplyIsNtpClockSync",
 	// Token
 	EventTokenPreCreate:         "EventTokenPreCreate",
 	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
@@ -360,7 +376,7 @@ const (
 
 //coinsaction
 const (
-	InvalidAction = iota
+	InvalidAction       = iota
 	CoinsActionTransfer
 	CoinsActionGenesis
 	CoinsActionWithdraw
@@ -439,4 +455,5 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 const (
 	ForkV1           = 75260
 	ForkV2_add_token = 104000
+	ForkV3           = 110000
 )

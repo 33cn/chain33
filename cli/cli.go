@@ -389,6 +389,12 @@ func main() {
 			return
 		}
 		RevokeCreateToken(argsWithoutProg[1:])
+	case "isntpclocksync":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		IsNtpClockSync()
 	default:
 		fmt.Print("指令错误")
 	}
@@ -453,6 +459,8 @@ func LoadHelp() {
 	fmt.Println("showonesbuyorder [buyer]                                       : 显示指定用户下所有token成交的购买单")
 	fmt.Println("showonesbuytokenorder [buyer, token0, [token1, token2]]        : 显示指定用户下指定token成交的购买单")
 	fmt.Println("sellcrowdfund [owner, token, Amountpbl, minbl, pricepbl, totalpbl, start, stop]              : 卖出众筹")
+	fmt.Println("isntpclocksync []                                           : 获取网络时间同步状态")
+
 }
 
 type AccountsResult struct {
@@ -2331,4 +2339,20 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		rd.Logs = append(rd.Logs, rl)
 	}
 	return rd
+}
+
+func IsNtpClockSync() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res bool
+	err = rpc.Call("Chain33.IsNtpClockSync", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println("ntpclocksync status:", res)
 }

@@ -38,6 +38,7 @@ It has these top-level messages:
 	ReplyBlockHeight
 	BlockBody
 	IsCaughtUp
+	IsNtpClockSync
 	Reply
 	ReqString
 	ReplyString
