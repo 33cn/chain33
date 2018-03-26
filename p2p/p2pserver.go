@@ -401,7 +401,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			return err
 		}
 		if block := in.GetBlock(); block != nil {
-			if Filter.QueryData(block.GetBlock().GetTxHash()) { //已经注册了相同的区块高度，则不会再发送给blockchain
+
+			blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+			if Filter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
 				continue
 			}
 
@@ -414,19 +416,19 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 					continue
 				}
 			}
-			Filter.RegData(block.GetBlock().GetTxHash()) //注册已经收到的区块
+			Filter.RegRecvData(blockhash) //注册已经收到的区块
 
 		} else if tx := in.GetTx(); tx != nil {
 			txhash := hex.EncodeToString(tx.GetTx().Hash())
 			log.Debug("ServerStreamRead", "txhash:", "0x"+txhash)
-			if Filter.QueryData(txhash) == true { //同上
+			if Filter.QueryRecvData(txhash) == true { //同上
 				continue
 			}
 			if tx.GetTx() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
 				s.node.nodeInfo.client.Send(msg, false)
 			}
-			Filter.RegData(txhash)
+			Filter.RegRecvData(txhash)
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
