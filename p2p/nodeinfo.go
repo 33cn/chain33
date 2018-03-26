@@ -2,8 +2,10 @@ package p2p
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/queue"
@@ -11,10 +13,7 @@ import (
 )
 
 type NodeInfo struct {
-	mtx sync.Mutex
-
-	pubKey         []byte
-	network        string
+	mtx            sync.Mutex
 	externalAddr   *NetAddress
 	listenAddr     *NetAddress
 	version        string
@@ -22,10 +21,11 @@ type NodeInfo struct {
 	natNoticeChain chan struct{}
 	natResultChain chan bool
 	cfg            *types.P2P
-	q              *queue.Queue
-	qclient        queue.Client
+	client         queue.Client
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
+	addrBook       *AddrBook // known peers
+	natDone        int32
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
@@ -39,6 +39,8 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
+	os.MkdirAll(cfg.GetDbPath(), 0755)
+	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath())
 	return nodeInfo
 }
 
@@ -112,6 +114,7 @@ func (nf *NodeInfo) flushPeerInfos(in []*types.Peer) {
 func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 	var peerlist = make(map[string]*types.Peer)
 	peers := n.GetRegisterPeers()
+	log.Debug("latestPeerInfo", "register peer num", len(peers))
 	for _, peer := range peers {
 
 		if peer.Addr() == n.nodeInfo.GetExternalAddr().String() { //fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort())
@@ -122,6 +125,7 @@ func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 			if strings.Contains(err.Error(), VersionNotSupport) {
 				peer.version.SetSupport(false)
 				P2pComm.CollectPeerStat(err, peer)
+				log.Error("latestPeerInfo", "Err", err.Error(), "peer", peer.Addr())
 
 			}
 			continue
@@ -170,6 +174,14 @@ func (nf *NodeInfo) GetListenAddr() *NetAddress {
 	nf.mtx.Lock()
 	defer nf.mtx.Unlock()
 	return nf.listenAddr
+}
+
+func (nf *NodeInfo) SetNatDone() {
+	atomic.StoreInt32(&nf.natDone, 1)
+}
+
+func (nf *NodeInfo) IsNatDone() bool {
+	return atomic.LoadInt32(&nf.natDone) == 1
 }
 
 func (bl *BlackList) Add(addr string) {

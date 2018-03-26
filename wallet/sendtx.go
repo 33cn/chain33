@@ -109,9 +109,9 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 }
 
 func (client *Wallet) GetHeight() int64 {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlockHeight, nil)
-	client.qclient.Send(msg, true)
-	replyHeight, err := client.qclient.Wait(msg)
+	msg := client.client.NewMessage("blockchain", types.EventGetBlockHeight, nil)
+	client.client.Send(msg, true)
+	replyHeight, err := client.client.Wait(msg)
 	h := replyHeight.GetData().(*types.ReplyBlockHeight).Height
 	walletlog.Debug("getheight = ", "height", h)
 	if err != nil {
@@ -346,9 +346,9 @@ func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, er
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
 	req.Payload = types.Encode(reqaddr)
-	msg := client.qclient.NewMessage("blockchain", types.EventQuery, &req)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := client.client.NewMessage("blockchain", types.EventQuery, &req)
+	client.client.Send(msg, true)
+	resp, err := client.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -375,9 +375,9 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	if to == "" {
 		to = account.ExecAddress(string(execer)).String()
 	}
-	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
+	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: minFee, To: to}
 	tx.Nonce = wallet.random.Int63()
-	tx.Fee, err = tx.GetRealFee(minFee)
+	tx.Fee, err = tx.GetRealFee(wallet.getFee())
 	if err != nil {
 		return nil, err
 	}
@@ -395,16 +395,16 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 }
 
 func (wallet *Wallet) sendTx(tx *types.Transaction) (*types.Reply, error) {
-	if wallet.qclient == nil {
+	if wallet.client == nil {
 		panic("client not bind message queue.")
 	}
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	err := wallet.qclient.Send(msg, true)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	err := wallet.client.Send(msg, true)
 	if err != nil {
 		walletlog.Error("SendTx", "Error", err.Error())
 		return nil, err
 	}
-	resp, err := wallet.qclient.Wait(msg)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -441,13 +441,13 @@ func (wallet *Wallet) waitTxs(hashes [][]byte) (ret []*types.TransactionDetail) 
 }
 
 func (client *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
-	err := client.qclient.Send(msg, true)
+	msg := client.client.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
+	err := client.client.Send(msg, true)
 	if err != nil {
 		walletlog.Error("QueryTx", "Error", err.Error())
 		return nil, err
 	}
-	resp, err := client.qclient.Wait(msg)
+	resp, err := client.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -466,13 +466,14 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 		transfer.Ty = types.CoinsActionWithdraw
 	}
 	//初始化随机数d
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
+	tx.SetExpire(time.Second * 120)
 	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "Send err", err)
 		return nil, err
@@ -498,7 +499,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := accountdb.LoadAccounts(client.qclient, exaddrs)
+		accounts, err := accountdb.LoadAccounts(client.client, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -509,7 +510,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := accountdb.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
+			account, err := accountdb.LoadExecAccountQueue(client.client, addr, execaddress.String())
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
@@ -528,9 +529,9 @@ func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	req.FuncName = "MinerSourceList"
 	req.Payload = types.Encode(reqaddr)
 
-	msg := client.qclient.NewMessage("blockchain", types.EventQuery, &req)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := client.client.NewMessage("blockchain", types.EventQuery, &req)
+	client.client.Send(msg, true)
+	resp, err := client.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -539,12 +540,12 @@ func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 }
 
 func (client *Wallet) IsCaughtUp() bool {
-	if client.qclient == nil {
+	if client.client == nil {
 		panic("wallet client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("blockchain", types.EventIsSync, nil)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := client.client.NewMessage("blockchain", types.EventIsSync, nil)
+	client.client.Send(msg, true)
+	resp, err := client.client.Wait(msg)
 	if err != nil {
 		return false
 	}

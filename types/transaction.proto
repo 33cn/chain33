@@ -84,6 +84,7 @@ message ReplyTxList {
 
 message TxHashList {
 	repeated bytes hashes = 1;
+	int64 count = 2;
 }
 
 message ReplyTxInfos {
@@ -133,4 +134,8 @@ message TransactionDetail {
 
 message TransactionDetails {
 	repeated TransactionDetail txs = 1;
+}
+
+message ReqAddrs  {
+   repeated string addrs = 1;
 }

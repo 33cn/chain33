@@ -4,10 +4,38 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"testing"
 
 	. "github.com/tendermint/tmlibs/common"
 )
+
+// leveldb迭代器测试
+func TestGoLevelDBIterator(t *testing.T) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	leveldb, err := NewGoLevelDB("gobagderdb", dir, 128)
+	require.NoError(t, err)
+	defer leveldb.Close()
+
+	testDBIterator(t, leveldb)
+}
+
+// leveldb边界测试
+func TestGoLevelDBBoundary(t *testing.T) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	leveldb, err := NewGoLevelDB("gobagderdb", dir, 128)
+	require.NoError(t, err)
+	defer leveldb.Close()
+
+	testDBBoundary(t, leveldb)
+}
 
 func BenchmarkRandomReadsWrites(b *testing.B) {
 	b.StopTimer()

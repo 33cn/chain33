@@ -30,6 +30,7 @@
 - 已知bugs：  
   - 在windows环境下，系统重启后会因LOCK文件已存在，不能启动，需要手动删除
     通过修改 vendor/github.com/dgraph-io/badger/dir_windows.go 72行暂时解决
+  - 在0xff的情况下，边界测试有问题，详见db_test.go
 
 # 实现自定义数据库接口说明
 
@@ -42,16 +43,11 @@ type DB interface {
 	DeleteSync([]byte)		// 同步删除
 	Close()				// 关闭数据库
 	NewBatch(sync bool) Batch 	// 批量操作
-
+	//迭代prefix 范围的所有key value, 支持正反顺序迭代
+	Iterator(prefix []byte, key []byte, count int32, reserver bool) Iterator
 	// For debugging
 	Print()				// 调试打印
-	Iterator() Iterator 		// 暂为使用
 	Stats() map[string]string	// 数据库状态
-	PrefixScan(key []byte) [][]byte	// 迭代器，查询key前缀
-	IteratorScan(Prefix []byte, key []byte, count int32, direction int32) [][]byte 	// 迭代器，查询Prefix前缀，定位key，根据direction排序 1-升序 0-降序
-	IteratorScanFromLast(key []byte, count int32, direction int32) [][]byte 	// 反向迭代器，查询key前缀
-	IteratorScanFromFirst(key []byte, count int32, direction int32) [][]byte 	// 迭代器，查询key前缀
-	List(prefix, key []byte, count, direction int32) (values [][]byte) 		// 同IteratorScan
 }
 
 type Batch interface {
