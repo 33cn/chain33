@@ -78,7 +78,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		peerList:           nil,
 		cfg:                cfg,
 		recvwg:             &sync.WaitGroup{},
-		task:               newTask(90 * time.Second),
+		task:               newTask(160 * time.Second),
 		quit:               make(chan struct{}, 0),
 		synblock:           make(chan struct{}, 1),
 		orphanPool:         NewOrphanPool(),
