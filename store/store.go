@@ -8,7 +8,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
-func New(cfg *types.Store) Store {
+func New(cfg *types.Store) queue.Module {
 	storeType := cfg.Name
 	if storeType == "mavl" {
 		m := mavl.New(cfg)
@@ -20,9 +20,4 @@ func New(cfg *types.Store) Store {
 		// TODO:
 	}
 	panic("Unsupported store type")
-}
-
-type Store interface {
-	SetQueue(q *queue.Queue)
-	Close()
 }

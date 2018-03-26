@@ -56,7 +56,7 @@ func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 	if block.Height == 0 {
 		block.Difficulty = types.PowLimitBits
 	}
-	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
+	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (client *SoloClient) CreateBlock() {
 		if issleep {
 			time.Sleep(time.Second)
 		}
-		txs := client.RequestTx(int(types.MaxTxNumber))
+		txs := client.RequestTx(int(types.MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue

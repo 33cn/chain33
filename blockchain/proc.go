@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
+	"code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 )
@@ -14,10 +15,10 @@ func (chain *BlockChain) queryTx(msg queue.Message) {
 	TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
 	if err != nil {
 		chainlog.Error("ProcQueryTxMsg", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetail, err))
 	} else {
 		chainlog.Debug("ProcQueryTxMsg", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetail, TransactionDetail))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetail, TransactionDetail))
 	}
 }
 
@@ -26,10 +27,10 @@ func (chain *BlockChain) getBlocks(msg queue.Message) {
 	blocks, err := chain.ProcGetBlockDetailsMsg(requestblocks)
 	if err != nil {
 		chainlog.Error("ProcGetBlockDetailsMsg", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventBlocks, err))
 	} else {
 		chainlog.Debug("ProcGetBlockDetailsMsg", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlocks, blocks))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventBlocks, blocks))
 	}
 }
 
@@ -47,21 +48,21 @@ func (chain *BlockChain) addBlock(msg queue.Message) {
 		//chain.notifySync()
 	}
 	chainlog.Debug("EventAddBlock", "height", block.Height, "success", "ok")
-	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 
 func (chain *BlockChain) getBlockHeight(msg queue.Message) {
 	var replyBlockHeight types.ReplyBlockHeight
 	replyBlockHeight.Height = chain.GetBlockHeight()
 	chainlog.Debug("EventGetBlockHeight", "success", "ok")
-	msg.Reply(chain.qclient.NewMessage("consensus", types.EventReplyBlockHeight, &replyBlockHeight))
+	msg.Reply(chain.client.NewMessage("consensus", types.EventReplyBlockHeight, &replyBlockHeight))
 }
 
 func (chain *BlockChain) txHashList(msg queue.Message) {
 	txhashlist := (msg.Data).(*types.TxHashList)
 	duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
 	chainlog.Debug("EventTxHashList", "success", "ok")
-	msg.Reply(chain.qclient.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
+	msg.Reply(chain.client.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 }
 
 func (chain *BlockChain) getHeaders(msg queue.Message) {
@@ -69,26 +70,26 @@ func (chain *BlockChain) getHeaders(msg queue.Message) {
 	headers, err := chain.ProcGetHeadersMsg(requestblocks)
 	if err != nil {
 		chainlog.Error("ProcGetHeadersMsg", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventHeaders, err))
 	} else {
 		chainlog.Debug("EventGetHeaders", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventHeaders, headers))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventHeaders, headers))
 	}
 }
 
 func (chain *BlockChain) isSync(msg queue.Message) {
 	ok := chain.IsCaughtUp()
-	msg.Reply(chain.qclient.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{ok}))
+	msg.Reply(chain.client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{ok}))
 }
 
 func (chain *BlockChain) getLastHeader(msg queue.Message) {
 	header, err := chain.ProcGetLastHeaderMsg()
 	if err != nil {
 		chainlog.Error("ProcGetLastHeaderMsg", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, err))
+		msg.Reply(chain.client.NewMessage("account", types.EventHeader, err))
 	} else {
 		chainlog.Debug("EventGetLastHeader", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("account", types.EventHeader, header))
+		msg.Reply(chain.client.NewMessage("account", types.EventHeader, header))
 	}
 	//本节点共识模块发送过来的blockdetail，需要广播到全网
 }
@@ -111,7 +112,7 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 		//chain.SynBlockToDbOneByOne()
 	}
 	chainlog.Debug("EventAddBlockDetail", "success", "ok")
-	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 
 	//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
 }
@@ -132,7 +133,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	}
 	chainlog.Debug("EventBroadcastAddBlock", "height", block.Height, "hash", common.ToHex(block.Hash()), "success", "ok")
 
-	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 
 func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
@@ -141,10 +142,10 @@ func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
 	replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
 	if err != nil {
 		chainlog.Error("ProcGetTransactionByAddr", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyTxInfo, err))
 	} else {
 		chainlog.Debug("EventGetTransactionByAddr", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyTxInfo, replyTxInfos))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyTxInfo, replyTxInfos))
 	}
 }
 
@@ -154,10 +155,10 @@ func (chain *BlockChain) getTransactionByHashes(msg queue.Message) {
 	TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes)
 	if err != nil {
 		chainlog.Error("ProcGetTransactionByHashes", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, err))
 	} else {
 		chainlog.Debug("EventGetTransactionByHash", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
 	}
 }
 
@@ -166,10 +167,10 @@ func (chain *BlockChain) getBlockOverview(msg queue.Message) {
 	BlockOverview, err := chain.ProcGetBlockOverview(ReqHash)
 	if err != nil {
 		chainlog.Error("ProcGetBlockOverview", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyBlockOverview, err))
 	} else {
 		chainlog.Debug("ProcGetBlockOverview", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyBlockOverview, BlockOverview))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyBlockOverview, BlockOverview))
 	}
 }
 
@@ -178,10 +179,10 @@ func (chain *BlockChain) getAddrOverview(msg queue.Message) {
 	AddrOverview, err := chain.ProcGetAddrOverview(addr)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyAddrOverview, err))
 	} else {
 		chainlog.Debug("ProcGetAddrOverview", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyAddrOverview, AddrOverview))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyAddrOverview, AddrOverview))
 	}
 }
 
@@ -190,26 +191,32 @@ func (chain *BlockChain) getBlockHash(msg queue.Message) {
 	replyhash, err := chain.ProcGetBlockHash(height)
 	if err != nil {
 		chainlog.Error("ProcGetBlockHash", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventBlockHash, err))
 	} else {
 		chainlog.Debug("ProcGetBlockHash", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventBlockHash, replyhash))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventBlockHash, replyhash))
 	}
 }
 
 func (chain *BlockChain) localGet(msg queue.Message) {
 	keys := (msg.Data).(*types.LocalDBGet)
 	values := chain.blockStore.Get(keys)
-	msg.Reply(chain.qclient.NewMessage("rpc", types.EventLocalReplyValue, values))
+	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, values))
+}
+
+func (chain *BlockChain) localList(msg queue.Message) {
+	q := (msg.Data).(*types.LocalDBList)
+	values := db.NewListHelper(chain.blockStore.db).List(q.Prefix, q.Key, q.Count, q.Direction)
+	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, values))
 }
 
 func (chain *BlockChain) getQuery(msg queue.Message) {
 	query := (msg.Data).(*types.Query)
 	reply, err := chain.query.Query(string(query.Execer), query.FuncName, query.Payload)
 	if err != nil {
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyQuery, err))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyQuery, err))
 	} else {
-		msg.Reply(chain.qclient.NewMessage("rpc", types.EventReplyQuery, reply))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyQuery, reply))
 	}
 }
 
@@ -225,17 +232,17 @@ func (chain *BlockChain) addBlockHeaders(msg queue.Message) {
 	} else {
 	}
 	chainlog.Debug("addBlockHeaders", "success", "ok")
-	msg.Reply(chain.qclient.NewMessage("p2p", types.EventReply, &reply))
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 
 func (chain *BlockChain) getLastBlock(msg queue.Message) {
 	block, err := chain.ProcGetLastBlockMsg()
 	if err != nil {
 		chainlog.Error("ProcGetLastBlockMsg", "err", err.Error())
-		msg.Reply(chain.qclient.NewMessage("consensus", types.EventBlock, err))
+		msg.Reply(chain.client.NewMessage("consensus", types.EventBlock, err))
 	} else {
 		chainlog.Debug("ProcGetLastBlockMsg", "success", "ok")
-		msg.Reply(chain.qclient.NewMessage("consensus", types.EventBlock, block))
+		msg.Reply(chain.client.NewMessage("consensus", types.EventBlock, block))
 	}
 }
 
