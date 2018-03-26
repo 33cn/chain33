@@ -640,3 +640,19 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.Accoun
 	}
 	return acc, nil
 }
+
+func (c *channelClient) IsSync() bool {
+	msg := c.NewMessage("blockchain", types.EventIsSync, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("IsSync", "Send Error", err.Error())
+		return false
+	}
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("IsSync", "Wait Error", err.Error())
+		return false
+	}
+	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
+}

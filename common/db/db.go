@@ -7,6 +7,7 @@ import (
 type KVDB interface {
 	Get(key []byte) (value []byte, err error)
 	Set(key []byte, value []byte) (err error)
+	List(prefix, key []byte, count, direction int32) (values [][]byte, err error)
 }
 
 type DB interface {
@@ -17,15 +18,11 @@ type DB interface {
 	DeleteSync([]byte)
 	Close()
 	NewBatch(sync bool) Batch
-
+	//迭代prefix 范围的所有key value, 支持正反顺序迭代
+	Iterator(prefix []byte, reserver bool) Iterator
 	// For debugging
 	Print()
-	Iterator() Iterator
 	Stats() map[string]string
-	PrefixScan(key []byte) [][]byte
-	IteratorScan(Prefix []byte, key []byte, count int32, direction int32) [][]byte
-	IteratorScanFromLast(key []byte, count int32, direction int32) [][]byte
-	List(prefix, key []byte, count, direction int32) (values [][]byte)
 }
 
 type Batch interface {
@@ -34,11 +31,34 @@ type Batch interface {
 	Write()
 }
 
-type Iterator interface {
+type IteratorSeeker interface {
+	Rewind() bool
+	Seek(key []byte) bool
 	Next() bool
+}
 
+type Iterator interface {
+	IteratorSeeker
+	Valid() bool
 	Key() []byte
 	Value() []byte
+	ValueCopy() []byte
+	Error() error
+	Close()
+}
+
+func bytesPrefix(prefix []byte) []byte {
+	var limit []byte
+	for i := len(prefix) - 1; i >= 0; i-- {
+		c := prefix[i]
+		if c < 0xff {
+			limit = make([]byte, i+1)
+			copy(limit, prefix)
+			limit[i] = c + 1
+			break
+		}
+	}
+	return limit
 }
 
 //-----------------------------------------------------------------------------

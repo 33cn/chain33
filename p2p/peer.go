@@ -12,8 +12,8 @@ import (
 )
 
 func (p *peer) Start() {
+
 	log.Debug("Peer", "Start", p.Addr())
-	p.mconn.key = p.key
 	go p.heartBeat()
 
 	return
@@ -22,7 +22,6 @@ func (p *peer) Close() {
 	p.SetRunning(false)
 	p.mconn.Close()
 	close(p.taskPool)
-	close(p.filterTask.loopDone)
 	pub.Unsub(p.taskChan, "block", "tx")
 }
 
@@ -38,7 +37,6 @@ type peer struct {
 	mconn      *MConnection
 	peerAddr   *NetAddress
 	peerStat   *Stat
-	filterTask *FilterTask
 	taskPool   chan struct{}
 	taskChan   chan interface{} //tx block
 }
@@ -49,22 +47,16 @@ func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *pe
 		taskPool: make(chan struct{}, 50),
 		nodeInfo: nodeinfo,
 	}
-	p.filterTask = new(FilterTask)
-	p.filterTask.loopDone = make(chan struct{}, 1)
-	p.filterTask.regTask = make(map[interface{}]time.Duration)
+
 	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.SetSupport(true)
 	p.SetRunning(true)
+	p.key = (*nodeinfo).addrBook.GetKey()
 	p.mconn = NewMConnection(conn, remote, p)
 	return p
 }
 
-type FilterTask struct {
-	mtx      sync.Mutex
-	loopDone chan struct{}
-	regTask  map[interface{}]time.Duration
-}
 type Version struct {
 	mtx            sync.Mutex
 	versionSupport bool
@@ -103,48 +95,19 @@ func (v *Version) IsSupport() bool {
 	defer v.mtx.Unlock()
 	return v.versionSupport
 }
-func (f *FilterTask) RegTask(key interface{}) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	f.regTask[key] = time.Duration(time.Now().Unix())
-}
-func (f *FilterTask) QueryTask(key interface{}) bool {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	_, ok := f.regTask[key]
-	return ok
-
-}
-func (f *FilterTask) RemoveTask(key interface{}) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	delete(f.regTask, key)
-}
-
-func (f *FilterTask) ManageFilterTask() {
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-	for {
-
-		select {
-		case <-f.loopDone:
-			log.Debug("peer mangerFilterTask", "loop", "done")
-			return
-		case <-ticker.C:
-			f.mtx.Lock()
-			now := time.Now().Unix()
-			for key, regtime := range f.regTask {
-				if now-int64(regtime) > 50 {
-					delete(f.regTask, key)
-				}
-			}
-			f.mtx.Unlock()
-
-		}
-	}
-}
 
 func (p *peer) heartBeat() {
+	for {
+		if p.GetRunning() == false {
+			return
+		}
+
+		if (*p.nodeInfo).IsNatDone() { //如果nat 没有结束，在nat 重试的过程中，exter port 是在随机变化，
+			//此时对连接的远程节点公布自己的外端端口将是不准确的,导致外网无法获取其nat结束后真正的端口。
+			break
+		}
+		time.Sleep(time.Second) //wait for natwork done
+	}
 
 	pcli := NewP2pCli(nil)
 	for {
@@ -155,7 +118,6 @@ func (p *peer) heartBeat() {
 		P2pComm.CollectPeerStat(err, p)
 		if err == nil {
 			p.taskChan = pub.Sub("block", "tx")
-			go p.filterTask.ManageFilterTask()
 			go p.sendStream()
 			go p.readStream()
 			break
@@ -183,7 +145,7 @@ func (p *peer) heartBeat() {
 }
 
 func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
-	return p.mconn.conn.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
+	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
 
 func (p *peer) sendStream() {
@@ -194,7 +156,7 @@ func (p *peer) sendStream() {
 			return
 		}
 		ctx, cancel := context.WithCancel(context.Background())
-		resp, err := p.mconn.conn.ServerStreamRead(ctx)
+		resp, err := p.mconn.gcli.ServerStreamRead(ctx)
 		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
 			cancel()
@@ -204,16 +166,18 @@ func (p *peer) sendStream() {
 		}
 		//send ping package
 		ping, err := P2pComm.NewPingData(p)
-		if err == nil {
-			p2pdata := new(pb.BroadCastData)
-			p2pdata.Value = &pb.BroadCastData_Ping{Ping: ping}
-			if err := resp.Send(p2pdata); err != nil {
-				resp.CloseSend()
-				cancel()
-				log.Error("sendStream", "sendping", err)
-				time.Sleep(time.Second)
-				continue
-			}
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		p2pdata := new(pb.BroadCastData)
+		p2pdata.Value = &pb.BroadCastData_Ping{Ping: ping}
+		if err := resp.Send(p2pdata); err != nil {
+			resp.CloseSend()
+			cancel()
+			log.Error("sendStream", "sendping", err)
+			time.Sleep(time.Second)
+			continue
 		}
 
 		timeout := time.NewTimer(time.Second * 2)
@@ -240,21 +204,21 @@ func (p *peer) sendStream() {
 							continue
 						}
 					}
-					if p.filterTask.QueryTask(height) == true {
+					if Filter.QueryData(height) == true {
 						timeout.Stop()
 						continue //已经接收的消息不再发送
 					}
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 					//登记新的发送消息
-					p.filterTask.RegTask(height)
+					Filter.RegData(height)
 
 				} else if tx, ok := task.(*pb.P2PTx); ok {
-					sig := tx.GetTx().GetSignature().GetSignature()
-					if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+					txhash := hex.EncodeToString(tx.GetTx().Hash())
+					if Filter.QueryData(txhash) == true {
 						continue
 					}
 					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-					p.filterTask.RegTask(hex.EncodeToString(sig))
+					Filter.RegData(txhash)
 				}
 				err := resp.Send(p2pdata)
 				P2pComm.CollectPeerStat(err, p)
@@ -296,7 +260,7 @@ func (p *peer) readStream() {
 			log.Error("readStream", "err:", err.Error())
 			continue
 		}
-		resp, err := p.mconn.conn.ServerStreamSend(context.Background(), ping)
+		resp, err := p.mconn.gcli.ServerStreamSend(context.Background(), ping)
 		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
 			log.Error("readStream", "serverstreamsend,err:", err)
@@ -324,7 +288,7 @@ func (p *peer) readStream() {
 			if block := data.GetBlock(); block != nil {
 				if block.GetBlock() != nil {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
-					if p.filterTask.QueryTask(block.GetBlock().GetHeight()) == true {
+					if Filter.QueryData(block.GetBlock().GetHeight()) == true {
 						continue
 					}
 
@@ -336,27 +300,27 @@ func (p *peer) readStream() {
 							continue
 						}
 					}
-					log.Info("SubStreamBlock", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
-					msg := (*p.nodeInfo).qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-					err = (*p.nodeInfo).qclient.Send(msg, false)
+					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
+					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					err = (*p.nodeInfo).client.Send(msg, false)
 					if err != nil {
-						log.Error("subStreamBlock", "send to blockchain Error", err.Error())
+						log.Error("readStream", "send to blockchain Error", err.Error())
 						continue
 					}
-					p.filterTask.RegTask(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
+					Filter.RegData(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
 				}
 
 			} else if tx := data.GetTx(); tx != nil {
 
 				if tx.GetTx() != nil {
-					log.Debug("SubStreamBlock", "tx", tx.GetTx())
-					sig := tx.GetTx().GetSignature().GetSignature()
-					if p.filterTask.QueryTask(hex.EncodeToString(sig)) == true {
+					txhash := hex.EncodeToString(tx.Tx.Hash())
+					log.Debug("readStream", "tx", "0x"+txhash)
+					if Filter.QueryData(txhash) == true {
 						continue //处理方式同上
 					}
-					msg := (*p.nodeInfo).qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
-					(*p.nodeInfo).qclient.Send(msg, false)
-					p.filterTask.RegTask(hex.EncodeToString(sig)) //登记
+					msg := (*p.nodeInfo).client.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					(*p.nodeInfo).client.Send(msg, false)
+					Filter.RegData(txhash) //登记
 				}
 			}
 		}
@@ -389,21 +353,4 @@ func (p *peer) Addr() string {
 // IsPersistent returns true if the peer is persitent, false otherwise.
 func (p *peer) IsPersistent() bool {
 	return p.persistent
-}
-
-func (p *peer) AllockTask() (err error) {
-	defer func() {
-		isErr := recover()
-		if isErr != nil {
-			err = isErr.(error)
-		}
-	}()
-	p.taskPool <- struct{}{}
-	return err
-
-}
-
-func (p *peer) ReleaseTask() {
-	<-p.taskPool
-	return
 }

@@ -18,24 +18,24 @@ func init() {
 	queue.DisableLog()
 }
 
-func initEnv() (*Wallet, *queue.Queue) {
+func initEnv() (*Wallet, queue.Queue) {
 	var q = queue.New("channel")
 	var cfg types.Wallet
 	cfg.DbPath = "datadir"
 	cfg.MinFee = 1000000
 
 	wallet := New(&cfg)
-	wallet.SetQueue(q)
+	wallet.SetQueueClient(q.Client())
 	return wallet, q
 }
 
-func storeModProc(q *queue.Queue) *store.Store {
+func storeModProc(q queue.Queue) *store.Store {
 	//store
 	var cfg types.Store
 	cfg.DbPath = "datadir"
 	cfg.Driver = "leveldb"
 	s := store.New(&cfg)
-	s.SetQueue(q)
+	s.SetQueueClient(q.Client())
 	return s
 }
 
@@ -47,10 +47,10 @@ var (
 	ToAddr2   string = ""
 )
 
-func blockchainModProc(q *queue.Queue) {
+func blockchainModProc(q queue.Queue) {
 	//store
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		client.Sub("blockchain")
 		for msg := range client.Recv() {
 			//walletlog.Info("blockchain", "msg.Ty", msg.Ty)
@@ -92,10 +92,10 @@ func blockchainModProc(q *queue.Queue) {
 	}()
 }
 
-func mempoolModProc(q *queue.Queue) {
+func mempoolModProc(q queue.Queue) {
 	//store
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		client.Sub("mempool")
 		for msg := range client.Recv() {
 			//walletlog.Info("mempool", "msg.Ty", msg.Ty)
@@ -106,7 +106,7 @@ func mempoolModProc(q *queue.Queue) {
 	}()
 }
 
-func SaveAccountTomavl(q *queue.Queue, prevStateRoot []byte, accs []*types.Account) []byte {
+func SaveAccountTomavl(q queue.Queue, prevStateRoot []byte, accs []*types.Account) []byte {
 	var kvset []*types.KeyValue
 
 	for _, acc := range accs {
