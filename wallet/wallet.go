@@ -487,22 +487,22 @@ func (wallet *Wallet) ProcRecvMsg() {
 			reply, err := wallet.procTokenPreCreate(preCreate)
 			if err != nil {
 				walletlog.Error("procTokenPreCreate", "err", err.Error())
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, err))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenPreCreate, err))
 			} else {
 				walletlog.Info("procTokenPreCreate", "symbol", preCreate.GetSymbol(),
 					"txhash", common.ToHex(reply.Hash))
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenPreCreate, reply))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenPreCreate, reply))
 			}
 		case types.EventTokenFinishCreate:
 			finishCreate := msg.Data.(*types.ReqTokenFinishCreate)
 			reply, err := wallet.procTokenFinishCreate(finishCreate)
 			if err != nil {
 				walletlog.Error("procTokenPreCreate", "err", err.Error())
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenFinishCreate, err))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenFinishCreate, err))
 			} else {
 				walletlog.Info("procTokenPreCreate", "symbol", finishCreate.GetSymbol(),
 					"txhash", common.ToHex(reply.Hash))
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenFinishCreate, reply))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenFinishCreate, reply))
 			}
 		case types.EventTokenRevokeCreate:
 			revoke := msg.Data.(*types.ReqTokenRevokeCreate)
@@ -510,11 +510,11 @@ func (wallet *Wallet) ProcRecvMsg() {
 			if err != nil {
 				walletlog.Error("procTokenRevokeCreate", "err", err.Error())
 
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenRevokeCreate, err))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenRevokeCreate, err))
 			} else {
 				walletlog.Info("procTokenRevokeCreate", "symbol", revoke.GetSymbol(),
 					"txhash", common.ToHex(reply.Hash))
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyTokenRevokeCreate, reply))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenRevokeCreate, reply))
 			}
 		case types.EventSellToken:
 			sellToken := msg.Data.(*types.ReqSellToken)
@@ -524,12 +524,12 @@ func (wallet *Wallet) ProcRecvMsg() {
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 				walletlog.Error("procSellToken", "err", err.Error())
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplySellToken, err))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySellToken, err))
 			} else {
 				reply.IsOk = true
 				reply.Msg = replyHash.Hash
 				walletlog.Info("procSellToken", "tx hash", common.Bytes2Hex(replyHash.Hash), "symbol", sellToken.Sell.Tokensymbol, "result", "success")
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplySellToken, &reply))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySellToken, &reply))
 			}
 		case types.EventBuyToken:
 			buyToken := msg.Data.(*types.ReqBuyToken)
@@ -538,12 +538,12 @@ func (wallet *Wallet) ProcRecvMsg() {
 			if err != nil {
 				reply.IsOk = false
 				walletlog.Error("procBuyToken", "err", err.Error())
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyBuyToken, err))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyBuyToken, err))
 			} else {
 				reply.IsOk = true
 				reply.Msg = replyHash.Hash
 				walletlog.Info("procBuyToken", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyBuyToken, &reply))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyBuyToken, &reply))
 			}
 		case types.EventRevokeSellToken:
 			revokeSell := msg.Data.(*types.ReqRevokeSell)
@@ -552,12 +552,12 @@ func (wallet *Wallet) ProcRecvMsg() {
 			if err != nil {
 				reply.IsOk = false
 				walletlog.Error("procRevokeSell", "err", err.Error())
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyRevokeSellToken, err))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRevokeSellToken, err))
 			} else {
 				reply.IsOk = true
 				reply.Msg = replyHash.Hash
 				walletlog.Info("procRevokeSell", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.qclient.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
 			}
 
 		case types.EventCloseTickets:
@@ -724,7 +724,7 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr.String()
-	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
 	if err != nil {
 		walletlog.Error("ProcCreatNewAccount", "LoadAccounts err", err)
 		return nil, err
@@ -927,7 +927,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 			accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
 		}
 		tokenAccDB := accTokenMap[SendToAddress.TokenSymbol]
-		tokenAccounts, err = tokenAccDB.LoadAccounts(wallet.qclient, addrs)
+		tokenAccounts, err = tokenAccDB.LoadAccounts(wallet.client, addrs)
 		if err != nil || len(tokenAccounts) == 0 {
 			walletlog.Error("ProcSendToAddress", "Load Token Accounts err", err)
 			return nil, err
@@ -1742,7 +1742,7 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 
 	addrs := make([]string, 1)
 	addrs[0] = creator
-	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("procTokenPreCreate", "LoadAccounts err", err)
 		return nil, err
@@ -1753,7 +1753,7 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrInsufficientBalance
 	}
 
-	creatorAcc, err := accountdb.LoadExecAccountQueue(wallet.qclient, creator, account.ExecAddress("token").String())
+	creatorAcc, err := accountdb.LoadExecAccountQueue(wallet.client, creator, account.ExecAddress("token").String())
 	if err != nil {
 		walletlog.Error("procTokenPreCreate", "LoadExecAccountQueue err", err)
 		return nil, err
@@ -1803,7 +1803,7 @@ func (wallet *Wallet) procTokenFinishCreate(req *types.ReqTokenFinishCreate) (*t
 
 	addrs := make([]string, 1)
 	addrs[0] = req.GetFinisherAddr()
-	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("procTokenFinishCreate", "LoadAccounts err", err)
 		return nil, err
@@ -1845,7 +1845,7 @@ func (wallet *Wallet) procTokenFinishCreate(req *types.ReqTokenFinishCreate) (*t
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	creatorAcc, err3 := accountdb.LoadExecAccountQueue(wallet.qclient, token2.Creator, account.ExecAddress("token").String())
+	creatorAcc, err3 := accountdb.LoadExecAccountQueue(wallet.client, token2.Creator, account.ExecAddress("token").String())
 	if err3 != nil {
 		walletlog.Error("procTokenFinishCreate", "LoadAccounts err", err3)
 		return nil, err3
@@ -1868,9 +1868,9 @@ func (wallet *Wallet) checkTokenSymbolExists(symbol, owner string) (*types.Token
 	//通过txhashs获取对应的txdetail
 	token := types.ReqString{Data: symbol}
 	query := types.Query{Execer: []byte("token"), FuncName: "GetTokenInfo", Payload: types.Encode(&token)}
-	msg := wallet.qclient.NewMessage("blockchain", types.EventQuery, &query)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("blockchain", types.EventQuery, &query)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil && err != types.ErrEmpty {
 		walletlog.Error("checkTokenSymbolExists", "err", err)
 		return nil, err
@@ -1893,9 +1893,9 @@ func (wallet *Wallet) checkTokenStatus(symbol string, status int32, owner string
 	reqtokens := types.ReqTokens{false, status, tokens}
 
 	query := types.Query{Execer: []byte("token"), FuncName: "GetTokens", Payload: types.Encode(&reqtokens)}
-	msg := wallet.qclient.NewMessage("blockchain", types.EventQuery, &query)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("blockchain", types.EventQuery, &query)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil && err != types.ErrEmpty {
 		walletlog.Error("checkTokenSymbolStauts", "err", err)
 		return nil, err
@@ -1932,7 +1932,7 @@ func (wallet *Wallet) procTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (*t
 
 	addrs := make([]string, 1)
 	addrs[0] = req.GetRevokerAddr()
-	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("procTokenRevokeCreate", "LoadAccounts err", err)
 		return nil, err
@@ -1976,7 +1976,7 @@ func (wallet *Wallet) procSellToken(reqSellToken *types.ReqSellToken) (*types.Re
 	addrs := make([]string, 1)
 	addrs[0] = reqSellToken.GetOwner()
 	accountTokendb := getTokenAccountDB(reqSellToken.Sell.Tokensymbol)
-	accounts, err := accountTokendb.LoadAccounts(wallet.qclient, addrs)
+	accounts, err := accountTokendb.LoadAccounts(wallet.client, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("procSellToken", "LoadAccounts err", err)
 		return nil, err
@@ -2009,7 +2009,7 @@ func (wallet *Wallet) procBuyToken(reqBuyToken *types.ReqBuyToken) (*types.Reply
 		return nil, types.ErrInputPara
 	}
 	execaddress := account.ExecAddress("trade")
-	account, err := accountdb.LoadExecAccountQueue(wallet.qclient, reqBuyToken.GetBuyer(), execaddress.String())
+	account, err := accountdb.LoadExecAccountQueue(wallet.client, reqBuyToken.GetBuyer(), execaddress.String())
 	if err != nil {
 		log.Error("GetBalance", "err", err.Error())
 		return nil, err
@@ -2017,7 +2017,7 @@ func (wallet *Wallet) procBuyToken(reqBuyToken *types.ReqBuyToken) (*types.Reply
 	balance := account.Balance
 
 	var sellorder *types.SellOrder
-	if sellorder, err = loadSellOrderQueue(wallet.qclient, reqBuyToken.GetBuy().GetSellid()); err != nil {
+	if sellorder, err = loadSellOrderQueue(wallet.client, reqBuyToken.GetBuy().GetSellid()); err != nil {
 		walletlog.Error("procBuyToken failed to loadSellOrderQueue", "token sellid", reqBuyToken.GetBuy().GetSellid())
 		return nil, err
 	}

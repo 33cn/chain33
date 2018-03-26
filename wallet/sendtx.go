@@ -590,9 +590,9 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("procTokenPreCreate", "Send err", err)
 		return nil, err
@@ -621,9 +621,9 @@ func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqToken
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("procTokenFinishCreate", "Send err", err)
 		return nil, err
@@ -652,9 +652,9 @@ func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqToken
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("procTokenRevokeCreate", "Send err", err)
 		return nil, err
@@ -683,9 +683,9 @@ func (wallet *Wallet) sellToken(priv crypto.PrivKey, reqSellToken *types.ReqSell
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("sellToken", "Send err", err)
 		return nil, err
@@ -714,9 +714,9 @@ func (wallet *Wallet) buyToken(priv crypto.PrivKey, reqBuyToken *types.ReqBuyTok
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("buyToken", "Send err", err)
 		return nil, err
@@ -745,9 +745,9 @@ func (wallet *Wallet) revokeSell(priv crypto.PrivKey, reqRevoke *types.ReqRevoke
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("revoke sell token", "Send err", err)
 		return nil, err

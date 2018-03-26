@@ -309,7 +309,7 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 	return exec.ExecDelLocal(tx, r, index)
 }
 
-func (e *executor) loadDriverForExec(exector string)(c drivers.Driver) {
+func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 	if ("token" == exector || "trade" == exector) && e.height < types.ForkV2_add_token {
 		exector = "none"
 	}
