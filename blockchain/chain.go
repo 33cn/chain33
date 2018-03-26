@@ -579,8 +579,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	//chainlog.Info("ProcGetTransactionByHashes", "txhash len:", len(hashs))
 	var txDetails types.TransactionDetails
 
-	txDetails.Txs = make([]*types.TransactionDetail, len(hashs))
-	for index, txhash := range hashs {
+	for _, txhash := range hashs {
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
@@ -602,12 +601,12 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			pubkey := txresult.GetTx().Signature.GetPubkey()
 			addr := account.PubKeyToAddress(pubkey)
 			txDetail.Fromaddr = addr.String()
-			if string(txDetail.Tx.GetExecer()) == "coins" && txDetail.GetActionName() == "withdraw" {
+			if (string(txDetail.Tx.GetExecer()) == "coins" || "token" == string(txDetail.Tx.GetExecer())) && txDetail.GetActionName() == "withdraw" {
 				//swap from and to
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
 			}
 			chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
-			txDetails.Txs[index] = &txDetail
+			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		}
 	}
 	return &txDetails, nil
