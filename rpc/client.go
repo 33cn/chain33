@@ -632,3 +632,19 @@ func (c *channelClient) IsSync() bool {
 	}
 	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
 }
+
+func (c *channelClient) IsNtpClockSync() bool {
+	msg := c.NewMessage("blockchain", types.EventIsNtpClockSync, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("IsNtpClockSync", "Send Error", err.Error())
+		return false
+	}
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("IsNtpClockSync", "Wait Error", err.Error())
+		return false
+	}
+	return resp.GetData().(*types.IsNtpClockSync).GetIsntpclocksync()
+}
