@@ -63,11 +63,11 @@ func main() {
 	//	}
 	//	SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 	case "submitRecord": //发送到地址
-		if len(argsWithoutProg) != 5 {
+		if len(argsWithoutProg) != 6 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		submitRecord(argsWithoutProg[1],argsWithoutProg[2],argsWithoutProg[3],argsWithoutProg[4])
+		submitRecord(argsWithoutProg[1],argsWithoutProg[2],argsWithoutProg[3],argsWithoutProg[4],argsWithoutProg[5])
 	case "queryRecord":
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -134,7 +134,7 @@ func main() {
 
 func LoadHelp() {
 	fmt.Println("Available Commands:")
-	fmt.Println("[ip] submitRecord [privkey ,orgId ,clientId ,clientName ]  : 发布黑名单记录")
+	fmt.Println("[ip] submitRecord [privkey ,orgId ,clientId ,clientName,recordId ]  : 发布黑名单记录")
 	fmt.Println("[ip] queryRecord [privKey，recordId]                       : 查询黑名单记录")
 	fmt.Println("[ip] queryRecordByName [privKey, name]                     : 根据名字查询黑名单记录")
 	fmt.Println("[ip] createOrg [privkey, orgId, orgName]                   : 注册机构")
@@ -339,8 +339,9 @@ func QueryOrg(privkey string,orgId string)  {
 	value := reply.String()
 	fmt.Println("GetValue =", value)
 }
-func submitRecord(privkey string,orgId string,clientId string,clientName string) {
+func submitRecord(privkey string,orgId string,clientId string,clientName string,recordId string) {
 	rc := &blacklist.Record{}
+	rc.RecordId = recordId
 	rc.OrgId = orgId
 	rc.ClientId = clientId
 	rc.ClientName = clientName
@@ -370,7 +371,7 @@ func queryRecord(privKey string, recordId string) {
 	qb := &blacklist.QueryRecordParam{}
 	qb.ByClientId = recordId
 	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb}, privKey}
-	req.Payload = []byte(query.String())
+	req.Payload = types.Encode(query)
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
