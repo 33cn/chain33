@@ -146,6 +146,7 @@ It has these top-level messages:
 	TxResult
 	TransactionDetail
 	TransactionDetails
+	ReqAddrs
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
