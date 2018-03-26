@@ -3,17 +3,21 @@ package token
 import (
 	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	"fmt"
 )
 
-func (t *token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction) (*types.Receipt, error) {
+func (t *token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction, index int) (*types.Receipt, error) {
+	_, err := t.DriverBase.Exec(tx, index)
+	if err != nil {
+		return nil, err
+	}
+
 	if (action.Ty == types.ActionTransfer) && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To) {
+		if t.GetExecDriver().IsDriverAddress(tx.To) {
 			return accountDB.TransferToExec(from, tx.To, transfer.Amount)
 		}
 		return accountDB.Transfer(from, tx.To, transfer.Amount)
@@ -21,14 +25,14 @@ func (t *token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transa
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To) {
+		if t.GetExecDriver().IsDriverAddress(tx.To) {
 			return accountDB.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if (action.Ty == types.ActionGenesis) && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if t.GetHeight() == 0 {
-			if drivers.IsDriverAddress(tx.To) {
+			if t.GetExecDriver().IsDriverAddress(tx.To) {
 				return accountDB.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
 			return accountDB.GenesisInit(tx.To, genesis.Amount)

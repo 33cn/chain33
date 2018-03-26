@@ -22,7 +22,7 @@ var tokenlog = log.New("module", "execs.token")
 
 func init() {
 	t := newToken()
-	drivers.Register(t.GetName(), t)
+	drivers.Register(t.GetName(), t, types.ForkV2_add_token)
 }
 
 type token struct {
@@ -62,11 +62,11 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	case types.ActionTransfer:
 		token := tokenAction.GetTransfer().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction)
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction, index)
 
 	case types.ActionWithdraw:
 		token := tokenAction.GetWithdraw().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction)
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction, index)
 	}
 
 	return nil, types.ErrActionNotSupport
