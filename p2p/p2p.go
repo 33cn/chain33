@@ -65,7 +65,7 @@ func (network *P2p) SetQueueClient(client queue.Client) {
 	go func() {
 		network.node.Start()
 		network.subP2pMsg()
-		network.LoadP2PPrivKeyToWallet()
+		network.loadP2PPrivKeyToWallet()
 	}()
 }
 
@@ -85,7 +85,7 @@ func (network *P2p) ShowTaskCapcity() {
 	}
 }
 
-func (network *P2p) LoadP2PPrivKeyToWallet() error {
+func (network *P2p) loadP2PPrivKeyToWallet() error {
 	var parm types.ReqWalletImportPrivKey
 	parm.Privkey = network.node.nodeInfo.addrBook.GetKey()
 	parm.Label = "node award"
@@ -101,6 +101,7 @@ func (network *P2p) LoadP2PPrivKeyToWallet() error {
 		if err == types.ErrPrivkeyExist || err == types.ErrLabelHasUsed {
 			return nil
 		}
+		log.Error("loadP2PPrivKeyToWallet", "err", err.Error())
 		return err
 	}
 	log.Info("LoadP2PPrivKeyToWallet", "accounts", resp)
