@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"io/ioutil"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -220,9 +221,12 @@ func submitRecord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rc := &blacklist.Record{}
-	rc.OrgId = r.Header.Get("orgId")
-	rc.ClientId = r.Header.Get("clientId")
-	rc.ClientName = r.Header.Get("clientName")
+	body, _ := ioutil.ReadAll(r.Body)
+	err :=json.Unmarshal(body,rc)
+	if err !=nil {
+		w.WriteHeader(403)
+		return
+	}
 	rc.Searchable = true
 	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc}, FuncName: blacklist.FuncName_SubmitRecord}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
