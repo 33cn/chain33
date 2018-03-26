@@ -141,7 +141,10 @@ service grpcservice {
 	
 	//获取程序版本
 	rpc Version(ReqNil)returns(Reply){}
-	
+
 	//是否同步
 	rpc IsSync(ReqNil)returns(Reply){}
+
+	//ntpclock是否同步
+	rpc IsNtpClockSync(ReqNil)returns(Reply){}
 }

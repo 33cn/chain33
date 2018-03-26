@@ -139,7 +139,8 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
-	// 定时同步缓存中的block to db
+
+	// 定时检测/同步block
 	go chain.SynRoutine()
 }
 
@@ -153,61 +154,6 @@ func (chain *BlockChain) getStateHash() []byte {
 		return blockdetail.GetBlock().GetStateHash()
 	}
 	return zeroHash[:]
-}
-
-func (chain *BlockChain) ProcRecvMsg() {
-	reqnum := make(chan struct{}, 1000)
-	for msg := range chain.client.Recv() {
-		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
-		msgtype := msg.Ty
-		reqnum <- struct{}{}
-		chain.recvwg.Add(1)
-		switch msgtype {
-		case types.EventLocalGet:
-			go chain.processMsg(msg, reqnum, chain.localGet)
-		case types.EventLocalList:
-			go chain.processMsg(msg, reqnum, chain.localList)
-		case types.EventQueryTx:
-			go chain.processMsg(msg, reqnum, chain.queryTx)
-		case types.EventGetBlocks:
-			go chain.processMsg(msg, reqnum, chain.getBlocks)
-		case types.EventAddBlock: // block
-			go chain.processMsg(msg, reqnum, chain.addBlock)
-		case types.EventGetBlockHeight:
-			go chain.processMsg(msg, reqnum, chain.getBlockHeight)
-		case types.EventTxHashList:
-			go chain.processMsg(msg, reqnum, chain.txHashList)
-		case types.EventGetHeaders:
-			go chain.processMsg(msg, reqnum, chain.getHeaders)
-		case types.EventGetLastHeader:
-			go chain.processMsg(msg, reqnum, chain.getLastHeader)
-		case types.EventAddBlockDetail:
-			go chain.processMsg(msg, reqnum, chain.addBlockDetail)
-		case types.EventBroadcastAddBlock: //block
-			go chain.processMsg(msg, reqnum, chain.broadcastAddBlock)
-		case types.EventGetTransactionByAddr:
-			go chain.processMsg(msg, reqnum, chain.getTransactionByAddr)
-		case types.EventGetTransactionByHash:
-			go chain.processMsg(msg, reqnum, chain.getTransactionByHashes)
-		case types.EventGetBlockOverview: //blockOverview
-			go chain.processMsg(msg, reqnum, chain.getBlockOverview)
-		case types.EventGetAddrOverview: //addrOverview
-			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
-		case types.EventGetBlockHash: //GetBlockHash
-			go chain.processMsg(msg, reqnum, chain.getBlockHash)
-		case types.EventQuery:
-			go chain.processMsg(msg, reqnum, chain.getQuery)
-		case types.EventAddBlockHeaders:
-			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
-		case types.EventGetLastBlock:
-			go chain.processMsg(msg, reqnum, chain.getLastBlock)
-		case types.EventIsSync:
-			go chain.processMsg(msg, reqnum, chain.isSync)
-		default:
-			<-reqnum
-			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
-		}
-	}
 }
 
 /*
@@ -348,7 +294,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		chain.task.Done(blockdetail.Block.GetHeight())
 	}
 	//此处只更新广播block的高度
-	if broadcast && (ismain == true || isorphan == true) {
+	if broadcast {
 		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
 	}
 

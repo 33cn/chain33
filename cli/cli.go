@@ -287,6 +287,13 @@ func main() {
 			return
 		}
 		IsSync()
+
+	case "isntpclocksync":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		IsNtpClockSync()
 	default:
 		fmt.Print("指令错误")
 	}
@@ -335,6 +342,7 @@ func LoadHelp() {
 	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
 	fmt.Println("closetickets []                                             : 关闭挖矿票")
 	fmt.Println("issync []                                                   : 获取同步状态")
+	fmt.Println("isntpclocksync []                                           : 获取网络时间同步状态")
 }
 
 type AccountsResult struct {
@@ -1688,4 +1696,20 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		rd.Logs = append(rd.Logs, rl)
 	}
 	return rd
+}
+
+func IsNtpClockSync() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res bool
+	err = rpc.Call("Chain33.IsNtpClockSync", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println("ntpclocksync status:", res)
 }
