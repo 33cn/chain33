@@ -22,6 +22,7 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
+var runningHeight int64 = 0
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -216,6 +217,7 @@ type executor struct {
 	stateDB      dbm.KVDB
 	localDB      dbm.KVDB
 	coinsAccount *account.AccountDB
+	execDriver   *drivers.ExecDrivers
 	height       int64
 	blocktime    int64
 }
@@ -225,10 +227,12 @@ func newExecutor(stateHash []byte, q *queue.Queue, height, blocktime int64) *exe
 		stateDB:      NewStateDB(q, stateHash),
 		localDB:      NewLocalDB(q),
 		coinsAccount: account.NewCoinsAccount(),
+		execDriver:   drivers.CreateDrivers4CurrentHeight(height),
 		height:       height,
 		blocktime:    blocktime,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
+	runningHeight = height
 	return e
 }
 
@@ -277,13 +281,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 	}
 	//checkInExec
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
+	exec := e.loadDriverForExec(string(tx.Execer))
 	exec.SetDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
@@ -311,20 +309,19 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriverForExec(exector string)(c drivers.Driver) {
-	if ("token" == exector || "trade" == exector) && e.height < types.ForkV2_add_token {
-		exector = "none"
-	}
-	exec, err := drivers.LoadDriver(exector)
+	exec, err := e.execDriver.LoadDriver(exector)
 	if err != nil {
-		exec, err = drivers.LoadDriver("none")
+		exec, err = e.execDriver.LoadDriver("none")
 		if err != nil {
 			panic(err)
 		}
 	}
+	exec.SetExecDriver(e.execDriver)
 
 	return exec
 }
 
 func LoadDriver(name string) (c drivers.Driver, err error) {
-	return drivers.LoadDriver(name)
+	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
+	return execDrivers.LoadDriver(name)
 }
