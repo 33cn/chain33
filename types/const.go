@@ -360,7 +360,7 @@ const (
 
 //coinsaction
 const (
-	InvalidAction       = iota
+	InvalidAction = iota
 	CoinsActionTransfer
 	CoinsActionGenesis
 	CoinsActionWithdraw
