@@ -10,6 +10,64 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 )
 
+//blockchain模块的消息接收处理
+func (chain *BlockChain) ProcRecvMsg() {
+	reqnum := make(chan struct{}, 1000)
+	for msg := range chain.client.Recv() {
+		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
+		msgtype := msg.Ty
+		reqnum <- struct{}{}
+		chain.recvwg.Add(1)
+		switch msgtype {
+		case types.EventLocalGet:
+			go chain.processMsg(msg, reqnum, chain.localGet)
+		case types.EventLocalList:
+			go chain.processMsg(msg, reqnum, chain.localList)
+		case types.EventQueryTx:
+			go chain.processMsg(msg, reqnum, chain.queryTx)
+		case types.EventGetBlocks:
+			go chain.processMsg(msg, reqnum, chain.getBlocks)
+		case types.EventAddBlock: // block
+			go chain.processMsg(msg, reqnum, chain.addBlock)
+		case types.EventGetBlockHeight:
+			go chain.processMsg(msg, reqnum, chain.getBlockHeight)
+		case types.EventTxHashList:
+			go chain.processMsg(msg, reqnum, chain.txHashList)
+		case types.EventGetHeaders:
+			go chain.processMsg(msg, reqnum, chain.getHeaders)
+		case types.EventGetLastHeader:
+			go chain.processMsg(msg, reqnum, chain.getLastHeader)
+		case types.EventAddBlockDetail:
+			go chain.processMsg(msg, reqnum, chain.addBlockDetail)
+		case types.EventBroadcastAddBlock: //block
+			go chain.processMsg(msg, reqnum, chain.broadcastAddBlock)
+		case types.EventGetTransactionByAddr:
+			go chain.processMsg(msg, reqnum, chain.getTransactionByAddr)
+		case types.EventGetTransactionByHash:
+			go chain.processMsg(msg, reqnum, chain.getTransactionByHashes)
+		case types.EventGetBlockOverview: //blockOverview
+			go chain.processMsg(msg, reqnum, chain.getBlockOverview)
+		case types.EventGetAddrOverview: //addrOverview
+			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
+		case types.EventGetBlockHash: //GetBlockHash
+			go chain.processMsg(msg, reqnum, chain.getBlockHash)
+		case types.EventQuery:
+			go chain.processMsg(msg, reqnum, chain.getQuery)
+		case types.EventAddBlockHeaders:
+			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
+		case types.EventGetLastBlock:
+			go chain.processMsg(msg, reqnum, chain.getLastBlock)
+		case types.EventIsSync:
+			go chain.processMsg(msg, reqnum, chain.isSync)
+		case types.EventIsNtpClockSync:
+			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
+		default:
+			<-reqnum
+			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
+		}
+	}
+}
+
 func (chain *BlockChain) queryTx(msg queue.Message) {
 	txhash := (msg.Data).(*types.ReqHash)
 	TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
@@ -244,6 +302,11 @@ func (chain *BlockChain) getLastBlock(msg queue.Message) {
 		chainlog.Debug("ProcGetLastBlockMsg", "success", "ok")
 		msg.Reply(chain.client.NewMessage("consensus", types.EventBlock, block))
 	}
+}
+
+func (chain *BlockChain) isNtpClockSync(msg queue.Message) {
+	ok := GetNtpClockSyncStatus()
+	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{ok}))
 }
 
 type funcProcess func(msg queue.Message)
