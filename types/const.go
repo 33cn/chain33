@@ -1,9 +1,5 @@
 package types
 
-import (
-	"time"
-)
-
 var (
 	AllowDepositExec       = []string{"ticket"}
 	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none"}
@@ -28,23 +24,11 @@ func SetMinFee(fee int64) {
 }
 
 const (
-	Coin                     int64  = 1e8
-	MaxCoin                  int64  = 1e17
-	FutureBlockTime          int64  = 16
-	CoinReward               int64  = 18 * Coin //用户回报
-	CoinDevFund              int64  = 12 * Coin //发展基金回报
-	TicketPrice              int64  = 10000 * Coin
-	TicketFrozenTime         int64  = 5        //5s only for test
-	TicketWithdrawTime       int64  = 10       //10s only for test
-	TicketMinerWaitTime      int64  = 2        // 2s only for test
-	MaxTxSize                int64  = 100000   //100K
-	MaxBlockSize             int64  = 10000000 //10M
-	MaxTxNumber              int64  = 1600     //160
-	PowLimitBits             uint32 = uint32(0x1f00ffff)
-	TargetTimespan                  = 144 * 16 * time.Second
-	TargetTimePerBlock              = 16 * time.Second
-	RetargetAdjustmentFactor        = 4
-	MaxTxsPerBlock                  = 100000
+	Coin           int64 = 1e8
+	MaxCoin        int64 = 1e17
+	MaxTxSize            = 100000   //100K
+	MaxBlockSize         = 10000000 //10M
+	MaxTxsPerBlock       = 100000
 )
 
 const (
@@ -332,4 +316,5 @@ const (
 //hard fork block height
 const (
 	ForkV1 = 75260
+	ForkV3 = 110000
 )
