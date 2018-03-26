@@ -196,6 +196,7 @@ func (p *peer) sendStream() {
 				p2pdata := new(pb.BroadCastData)
 				if block, ok := task.(*pb.P2PBlock); ok {
 					height := block.GetBlock().GetHeight()
+					log.Debug("sendStream", "will send block", hex.EncodeToString(block.GetBlock().GetTxHash()))
 					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
 					P2pComm.CollectPeerStat(err, p)
 					if err == nil {
@@ -204,16 +205,17 @@ func (p *peer) sendStream() {
 							continue
 						}
 					}
-					if Filter.QueryData(height) == true {
+					if Filter.QueryData(block.GetBlock().GetTxHash()) == true {
 						timeout.Stop()
 						continue //已经接收的消息不再发送
 					}
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 					//登记新的发送消息
-					Filter.RegData(height)
+					Filter.RegData(block.GetBlock().GetTxHash())
 
 				} else if tx, ok := task.(*pb.P2PTx); ok {
 					txhash := hex.EncodeToString(tx.GetTx().Hash())
+					log.Debug("sendStream", "will send tx", txhash)
 					if Filter.QueryData(txhash) == true {
 						continue
 					}
