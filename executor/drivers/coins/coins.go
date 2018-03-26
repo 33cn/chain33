@@ -56,7 +56,7 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		//to 是 execs 合约地址
 		//TODO:这个逻辑在正式发布的时候需要修改，现在只是为解决开发工程中往测试链发送了一笔交易导致执行结果不一致采取的workaroud
 		if !drivers.IsDriverAddress(tx.To) ||
-			(("token" == drivers.GetExecNameByAddr(tx.To) || "trade" == drivers.GetExecNameByAddr(tx.To)) && c.GetHeight() < types.ForkV2_add_token ){
+			(("token" == drivers.GetExecNameByAddr(tx.To) || "trade" == drivers.GetExecNameByAddr(tx.To)) && c.GetHeight() < types.ForkV2_add_token) {
 			return coinsAccount.Transfer(from, tx.To, transfer.Amount)
 		} else {
 			return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
