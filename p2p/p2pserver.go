@@ -362,8 +362,10 @@ func (s *p2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
+			log.Debug("ServerStreamSend", "blockhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
 			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 		} else if tx, ok := data.(*pb.P2PTx); ok {
+			log.Debug("ServerStreamSend", "txhash", hex.EncodeToString(tx.GetTx().Hash()))
 			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
 		} else {
 			log.Error("RoutChate", "Convert error", data)
