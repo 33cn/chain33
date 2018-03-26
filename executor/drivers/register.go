@@ -20,11 +20,11 @@ func DisableLog() {
 }
 
 type ExecDrivers struct {
-	ExecName2Driver       map[string]Driver //from name to driver
-	ExecAddr2Name         map[string]string //from address to name
+	ExecName2Driver map[string]Driver //from name to driver
+	ExecAddr2Name   map[string]string //from address to name
 }
 
-type driverWithHeight struct{
+type driverWithHeight struct {
 	driver Driver
 	height int64
 }
@@ -43,7 +43,7 @@ func Register(name string, driver Driver, height int64) {
 	if _, dup := registedExecDriver[name]; dup {
 		panic("Execute: Register called twice for driver " + name)
 	}
-	driverWithHeight := &driverWithHeight {
+	driverWithHeight := &driverWithHeight{
 		driver,
 		height,
 	}
@@ -55,19 +55,18 @@ func CreateDrivers4CurrentHeight(height int64) *ExecDrivers {
 	var drivers ExecDrivers
 	drivers.ExecName2Driver = make(map[string]Driver)
 	drivers.ExecAddr2Name = make(map[string]string)
-
-	if 0 != len(registedExecDriver) {
+	if len(registedExecDriver) > 0 {
 		for name, driverInfo := range registedExecDriver {
-			if height >= driverInfo.height {
+			//height -> -1 only for test
+			if height >= driverInfo.height || height < 0 {
 				drivers.ExecName2Driver[name] = driverInfo.driver
 				drivers.ExecAddr2Name[ExecAddress(name)] = name
 			}
 		}
 	}
-
 	return &drivers
 }
-func (execDrivers *ExecDrivers)LoadDriver(name string) (c Driver, err error) {
+func (execDrivers *ExecDrivers) LoadDriver(name string) (c Driver, err error) {
 	c, ok := execDrivers.ExecName2Driver[name]
 	if !ok {
 		err = fmt.Errorf("unknown driver %q", name)
@@ -76,7 +75,7 @@ func (execDrivers *ExecDrivers)LoadDriver(name string) (c Driver, err error) {
 	return c, nil
 }
 
-func (execDrivers *ExecDrivers)IsDriverAddress(addr string) bool {
+func (execDrivers *ExecDrivers) IsDriverAddress(addr string) bool {
 	_, ok := execDrivers.ExecAddr2Name[addr]
 	return ok
 }
