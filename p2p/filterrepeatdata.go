@@ -10,8 +10,8 @@ var Filter *Filterdata
 
 func NewFilter() *Filterdata {
 	filter := new(Filterdata)
-	filter.regSData = make(map[interface{}]time.Duration)
-	filter.regRData = make(map[interface{}]time.Duration)
+	filter.regSData = make(map[string]time.Duration)
+	filter.regRData = make(map[string]time.Duration)
 	return filter
 }
 
@@ -19,25 +19,25 @@ type Filterdata struct {
 	smtx     sync.Mutex
 	rmtx     sync.Mutex
 	isclose  int32
-	regSData map[interface{}]time.Duration
-	regRData map[interface{}]time.Duration
+	regSData map[string]time.Duration
+	regRData map[string]time.Duration
 }
 
-func (f *Filterdata) RegSendData(key interface{}) bool {
+func (f *Filterdata) RegSendData(key string) bool {
 	f.smtx.Lock()
 	defer f.smtx.Unlock()
 	f.regSData[key] = time.Duration(time.Now().Unix())
 	return true
 }
 
-func (f *Filterdata) RegRecvData(key interface{}) bool {
+func (f *Filterdata) RegRecvData(key string) bool {
 	f.rmtx.Lock()
 	defer f.rmtx.Unlock()
 	f.regRData[key] = time.Duration(time.Now().Unix())
 	return true
 }
 
-func (f *Filterdata) QuerySendData(key interface{}) bool {
+func (f *Filterdata) QuerySendData(key string) bool {
 	f.smtx.Lock()
 	defer f.smtx.Unlock()
 	_, ok := f.regSData[key]
@@ -45,7 +45,7 @@ func (f *Filterdata) QuerySendData(key interface{}) bool {
 
 }
 
-func (f *Filterdata) QueryRecvData(key interface{}) bool {
+func (f *Filterdata) QueryRecvData(key string) bool {
 	f.rmtx.Lock()
 	defer f.rmtx.Unlock()
 	_, ok := f.regRData[key]
@@ -53,13 +53,13 @@ func (f *Filterdata) QueryRecvData(key interface{}) bool {
 
 }
 
-func (f *Filterdata) RemoveSendData(key interface{}) {
+func (f *Filterdata) RemoveSendData(key string) {
 	f.smtx.Lock()
 	defer f.smtx.Unlock()
 	delete(f.regSData, key)
 }
 
-func (f *Filterdata) RemoveRecvData(key interface{}) {
+func (f *Filterdata) RemoveRecvData(key string) {
 	f.rmtx.Lock()
 	defer f.rmtx.Unlock()
 	delete(f.regRData, key)
