@@ -35,6 +35,7 @@ type SubStore interface {
 	Get(datas *types.StoreGet) [][]byte
 	MemSet(datas *types.StoreSet) []byte
 	Commit(hash *types.ReqHash) []byte
+	Rollback(req *types.ReqHash) []byte
 	ProcEvent(msg queue.Message)
 }
 
@@ -90,6 +91,14 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 			msg.Reply(client.NewMessage("", types.EventStoreCommit, types.ErrHashNotFound))
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreCommit, &types.ReplyHash{hash}))
+		}
+	} else if msg.Ty == types.EventStoreRollback {
+		req := msg.GetData().(*types.ReqHash)
+		hash := store.child.Rollback(req)
+		if hash == nil {
+			msg.Reply(client.NewMessage("", types.EventStoreRollback, types.ErrHashNotFound))
+		} else {
+			msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash}))
 		}
 	} else {
 		store.child.ProcEvent(msg)
