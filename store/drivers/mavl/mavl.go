@@ -108,16 +108,5 @@ func (mavls *MavlStore) Rollback(req *types.ReqHash) []byte {
 }
 
 func (mavls *MavlStore) ProcEvent(msg queue.Message) {
-	qclient := mavls.GetQueueClient()
-	if msg.Ty == types.EventStoreRollback {
-		req := msg.GetData().(*types.ReqHash)
-		hash := mavls.Rollback(req)
-		if hash == nil {
-			msg.Reply(qclient.NewMessage("", types.EventStoreRollback, types.ErrHashNotFound))
-		} else {
-			msg.Reply(qclient.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash}))
-		}
-	} else {
-		msg.ReplyErr("MavlStore", types.ErrActionNotSupport)
-	}
+	msg.ReplyErr("MavlStore", types.ErrActionNotSupport)
 }

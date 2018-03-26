@@ -103,18 +103,7 @@ func (kvs *KVStore) Rollback(req *types.ReqHash) []byte {
 }
 
 func (kvs *KVStore) ProcEvent(msg queue.Message) {
-	qclient := kvs.GetQueueClient()
-	if msg.Ty == types.EventStoreRollback {
-		req := msg.GetData().(*types.ReqHash)
-		hash := kvs.Rollback(req)
-		if hash == nil {
-			msg.Reply(qclient.NewMessage("", types.EventStoreRollback, types.ErrHashNotFound))
-		} else {
-			msg.Reply(qclient.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash}))
-		}
-	} else {
-		msg.ReplyErr("KVStore", types.ErrActionNotSupport)
-	}
+	msg.ReplyErr("KVStore", types.ErrActionNotSupport)
 }
 
 func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
