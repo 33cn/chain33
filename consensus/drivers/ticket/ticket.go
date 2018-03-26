@@ -606,7 +606,7 @@ func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*typ
 	if block.Height == 0 {
 		block.Difficulty = types.PowLimitBits
 	}
-	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
+	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
 		return nil, err
 	}

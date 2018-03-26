@@ -13,7 +13,7 @@ func TestMultiTopic(t *testing.T) {
 
 	//mempool
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		client.Sub("mempool")
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
@@ -25,7 +25,7 @@ func TestMultiTopic(t *testing.T) {
 
 	//blockchain
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		client.Sub("blockchain")
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventGetBlockHeight {
@@ -36,7 +36,7 @@ func TestMultiTopic(t *testing.T) {
 
 	//rpc server
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		//rpc 模块 会向其他模块发送消息，自己本身不需要订阅消息
 		msg := client.NewMessage("mempool", types.EventTx, "hello")
 		log.Println("send tx")
@@ -72,7 +72,7 @@ func TestHighLow(t *testing.T) {
 
 	//mempool
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		client.Sub("mempool")
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
@@ -85,7 +85,7 @@ func TestHighLow(t *testing.T) {
 
 	//rpc server
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		//rpc 模块 会向其他模块发送消息，自己本身不需要订阅消息
 		for {
 			msg := client.NewMessage("mempool", types.EventTx, "hello")
@@ -117,7 +117,7 @@ func TestClientClose(t *testing.T) {
 	q := New("channel")
 	//mempool
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		client.Sub("mempool")
 		i := 0
 		for msg := range client.Recv() {
@@ -138,7 +138,7 @@ func TestClientClose(t *testing.T) {
 
 	//rpc server
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		//high 优先级
 		done := make(chan struct{}, 100)
 		for i := 0; i < 100; i++ {
@@ -172,7 +172,7 @@ func TestClientClose(t *testing.T) {
 
 func TestPrintMessage(t *testing.T) {
 	q := New("channel")
-	client := q.NewClient()
+	client := q.Client()
 	msg := client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")})
 	t.Log(msg)
 }
