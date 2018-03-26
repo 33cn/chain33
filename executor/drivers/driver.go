@@ -234,7 +234,8 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	}
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
-		txinfos = db.IteratorScanFromLast(prefix, addr.Count, addr.Direction)
+		list := dbm.NewListHelper(db)
+		txinfos = list.IteratorScanFromLast(prefix, addr.Count)
 		if len(txinfos) == 0 {
 			return nil, errors.New("does not exist tx!")
 		}
@@ -248,7 +249,8 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		} else {
 			return nil, errors.New("Flag unknow!")
 		}
-		txinfos = db.IteratorScan(prefix, key, addr.Count, addr.Direction)
+		list := dbm.NewListHelper(db)
+		txinfos = list.IteratorScan(prefix, key, addr.Count, addr.Direction)
 		if len(txinfos) == 0 {
 			return nil, errors.New("does not exist tx!")
 		}

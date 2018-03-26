@@ -55,8 +55,8 @@ func NewBaseStore(cfg *types.Store) *BaseStore {
 	return store
 }
 
-func (store *BaseStore) SetQueue(q *queue.Queue) {
-	store.qclient = q.NewClient()
+func (store *BaseStore) SetQueueClient(c queue.Client) {
+	store.qclient = c
 	store.qclient.Sub("store")
 
 	//recv 消息的处理
