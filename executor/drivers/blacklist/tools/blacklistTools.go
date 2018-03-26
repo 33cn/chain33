@@ -347,8 +347,6 @@ func submitRecord(privkey string,orgId string,clientId string,clientName string,
 	rc.ClientName = clientName
 	rc.Searchable = true
 	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Rc{rc}, FuncName: blacklist.FuncName_SubmitRecord}
-	//nput := &types.NormAction_Nput{&types.NormPut{Key: key,Value: []byte(value)}}
-	//action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
 	tx.To = "user.blacklist"
 	tx.Nonce = r.Int63()
@@ -369,7 +367,7 @@ func queryRecord(privKey string, recordId string) {
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_QueryRecordById
 	qb := &blacklist.QueryRecordParam{}
-	qb.ByClientId = recordId
+	qb.ByRecordId = recordId
 	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb}, privKey}
 	req.Payload = types.Encode(query)
 
@@ -382,8 +380,6 @@ func queryRecord(privKey string, recordId string) {
 		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
 		return
 	}
-	//the first two byte is not valid
-	//QueryChain() need to change
 	value := string(reply.Msg[:])
 	fmt.Println("GetValue =", value)
 }

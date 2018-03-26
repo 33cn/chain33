@@ -254,7 +254,7 @@ func queryRecord(w http.ResponseWriter, r *http.Request) {
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_QueryRecordById
 	qb := &blacklist.QueryRecordParam{}
-	qb.ByClientId = r.Header.Get("recordId")
+	qb.ByRecordId = r.Header.Get("recordId")
 	query := &blacklist.Query{&blacklist.Query_QueryRecord{qb}, r.Header.Get("privateKey")}
 	req.Payload = types.Encode(query)
 

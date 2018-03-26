@@ -73,7 +73,7 @@ message QueryTransactionParam {
     string byFromAddr = 3;
 }
 message QueryRecordParam {
-    string byClientId = 1;
+    string byRecordId = 1;
     string byClientName = 2;
 }
 message DeleteRecordParam {
