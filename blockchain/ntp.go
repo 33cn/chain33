@@ -34,6 +34,7 @@ func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func checkClockDrift() {
 	drift, err := sntpDrift(ntpChecks)
 	if err != nil {
+		ntpLog.Debug("checkClockDrift", "sntpDrift err", err)
 		return
 	}
 	if drift < -driftThreshold || drift > driftThreshold {
@@ -45,7 +46,9 @@ func checkClockDrift() {
 		ntpLog.Warn(fmt.Sprint(warning))
 		ntpLog.Warn(fmt.Sprint(howtofix))
 		ntpLog.Warn(fmt.Sprint(separator))
+		UpdateNtpClockSyncStatus(false)
 	} else {
+		UpdateNtpClockSyncStatus(true)
 		ntpLog.Debug(fmt.Sprintf("Sanity NTP check reported %v drift, all ok", drift))
 	}
 }

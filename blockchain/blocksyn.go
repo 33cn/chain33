@@ -12,9 +12,13 @@ import (
 )
 
 var (
-	synBlocklock            sync.Mutex
-	peerMaxBlklock          sync.Mutex
-	castlock                sync.Mutex
+	synBlocklock     sync.Mutex
+	peerMaxBlklock   sync.Mutex
+	castlock         sync.Mutex
+	ntpClockSynclock sync.Mutex
+
+	isNtpClockSync bool = true //ntp时间是否同步
+
 	MaxFetchBlockNum        int64 = 128 * 6 //一次最多申请获取block个数
 	TimeoutSeconds          int64 = 2
 	BackBlockNum            int64 = 128    //节点高度不增加时向后取blocks的个数
@@ -614,4 +618,18 @@ func (chain *BlockChain) IsCaughtUp() bool {
 
 	synlog.Debug("IsCaughtUp", "IsCaughtUp ", isCaughtUp, "height", height, "maxPeerHeight", maxPeerHeight, "peersNo", peersNo)
 	return isCaughtUp
+}
+
+//获取ntp时间是否同步状态
+func GetNtpClockSyncStatus() bool {
+	ntpClockSynclock.Lock()
+	defer ntpClockSynclock.Unlock()
+	return isNtpClockSync
+}
+
+//定时更新ntp时间同步状态
+func UpdateNtpClockSyncStatus(Sync bool) {
+	ntpClockSynclock.Lock()
+	defer ntpClockSynclock.Unlock()
+	isNtpClockSync = Sync
 }
