@@ -401,11 +401,11 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			return err
 		}
 		if block := in.GetBlock(); block != nil {
-			if Filter.QueryData(block.GetBlock().GetHeight()) { //已经注册了相同的区块高度，则不会再发送给blockchain
+			if Filter.QueryData(block.GetBlock().GetTxHash()) { //已经注册了相同的区块高度，则不会再发送给blockchain
 				continue
 			}
 
-			log.Info("ServerStreamRead", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
+			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block txhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 				err := s.node.nodeInfo.client.Send(msg, false)
@@ -414,7 +414,7 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 					continue
 				}
 			}
-			Filter.RegData(block.GetBlock().GetHeight()) //注册已经收到的区块
+			Filter.RegData(block.GetBlock().GetTxHash()) //注册已经收到的区块
 
 		} else if tx := in.GetTx(); tx != nil {
 			txhash := hex.EncodeToString(tx.GetTx().Hash())
