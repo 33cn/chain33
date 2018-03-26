@@ -123,8 +123,10 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 		return kvs
 	} else if action.FuncName == FuncName_CreateOrg && action.GetOr() != nil {
 		org := action.GetOr()
-		//生成随机不重复addr
-		org.OrgAddr = generateAddr()
+		//如果传入的地址空，则生成随机不重复addr
+		if org.GetOrgAddr()==""{
+			org.OrgAddr = generateAddr()
+		}
 		//机构只要注册就会获得100积分，用于消费
 		org.OrgCredit = 100
 		org.CreateTime = time.Now().In(loc).Format(layout)
@@ -230,7 +232,7 @@ func (b *BlackList) Query(funcname string, params []byte) (types.Message, error)
 		return nil, ErrQueryNotSupport
 	}
 	if funcname == FuncName_QueryRecordById && query.GetQueryRecord() != nil {
-		value := b.queryRecord([]byte(query.GetQueryRecord().GetByClientId()))
+		value := b.queryRecord([]byte(query.GetQueryRecord().GetByRecordId()))
 		if value == "" {
 			return nil, types.ErrNotFound
 		}
