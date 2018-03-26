@@ -537,7 +537,7 @@ func (client *TicketClient) createMinerTx(ticketAction *types.TicketAction, priv
 }
 
 func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
-	txs := client.RequestTx(int(types.MaxTxNumber) - 1)
+	txs := client.RequestTx(int(types.MaxTxNumber)-1, nil)
 	lastBlock := client.GetCurrentBlock()
 	var newblock types.Block
 	newblock.ParentHash = lastBlock.Hash()
@@ -550,14 +550,15 @@ func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
 	return &newblock, lastBlock
 }
 
-func (client *TicketClient) updateBlock(newblock *types.Block) *types.Block {
+func (client *TicketClient) updateBlock(newblock *types.Block, txHashList [][]byte) (*types.Block, [][]byte) {
 	var txs []*types.Transaction
 	if len(newblock.Txs) < int(types.MaxTxNumber-1) {
-		txs = client.RequestTx(int(types.MaxTxNumber) - 1 - len(newblock.Txs))
+		txs = client.RequestTx(int(types.MaxTxNumber)-1-len(newblock.Txs), txHashList)
 	}
 	//tx 有更新
 	if len(txs) > 0 {
 		newblock.Txs = append(newblock.Txs, txs...)
+		txHashList = append(txHashList, getTxHashes(txs)...)
 	}
 	lastBlock := client.GetCurrentBlock()
 	//需要去重复
@@ -570,7 +571,7 @@ func (client *TicketClient) updateBlock(newblock *types.Block) *types.Block {
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
-	return lastBlock
+	return lastBlock, txHashList
 }
 
 func (client *TicketClient) CreateBlock() {
@@ -584,19 +585,28 @@ func (client *TicketClient) CreateBlock() {
 			continue
 		}
 		block, lastBlock := client.createBlock()
+		hashlist := getTxHashes(block.Txs)
 		for !client.Miner(lastBlock, block) {
 			time.Sleep(time.Second)
 			//加入新的txs, 继续挖矿
-			lastBlock = client.updateBlock(block)
+			lastBlock, hashlist = client.updateBlock(block, hashlist)
 		}
 	}
+}
+
+func getTxHashes(txs []*types.Transaction) (hashes [][]byte) {
+	hashes = make([][]byte, len(txs))
+	for i := 0; i < len(txs); i++ {
+		hashes[i] = txs[i].Hash()
+	}
+	return hashes
 }
 
 func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
 	if block.Height == 0 {
 		block.Difficulty = types.PowLimitBits
 	}
-	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
+	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
 		return nil, err
 	}

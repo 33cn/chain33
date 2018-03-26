@@ -33,11 +33,11 @@ func DisableLog() {
 }
 
 type Store struct {
-	db      dbm.DB
-	qclient queue.Client
-	done    chan struct{}
-	trees   map[string]*mavl.MAVLTree
-	cache   *lru.Cache
+	db     dbm.DB
+	client queue.Client
+	done   chan struct{}
+	trees  map[string]*mavl.MAVLTree
+	cache  *lru.Cache
 }
 
 //driver
@@ -52,20 +52,19 @@ func New(cfg *types.Store) *Store {
 }
 
 func (store *Store) Close() {
-	store.qclient.Close()
+	store.client.Close()
 	<-store.done
 	store.db.Close()
 	slog.Info("store module closed")
 }
 
-func (store *Store) SetQueue(q *queue.Queue) {
-	store.qclient = q.NewClient()
-	client := store.qclient
+func (store *Store) SetQueueClient(client queue.Client) {
+	store.client = client
 	client.Sub("store")
 
 	//recv 消息的处理
 	go func() {
-		for msg := range client.Recv() {
+		for msg := range store.client.Recv() {
 			slog.Debug("stroe recv", "msg", msg)
 			store.processMessage(msg)
 		}
@@ -74,7 +73,7 @@ func (store *Store) SetQueue(q *queue.Queue) {
 }
 
 func (store *Store) processMessage(msg queue.Message) {
-	client := store.qclient
+	client := store.client
 	if msg.Ty == types.EventStoreSet {
 		datas := msg.GetData().(*types.StoreSet)
 		hash := mavl.SetKVPair(store.db, datas)

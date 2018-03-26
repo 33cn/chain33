@@ -8,12 +8,10 @@ import (
 )
 
 type MConnection struct {
-	nodeInfo **NodeInfo
-	gconn    *grpc.ClientConn
-	conn     pb.P2PgserviceClient // source connection
-	config   *MConnConfig
-	key      string //privkey
-
+	nodeInfo      **NodeInfo
+	gconn         *grpc.ClientConn
+	gcli          pb.P2PgserviceClient // source connection
+	config        *MConnConfig
 	remoteAddress *NetAddress //peer 的地址
 	peer          *peer
 	once          sync.Once
@@ -22,7 +20,7 @@ type MConnection struct {
 // MConnConfig is a MConnection configuration.
 type MConnConfig struct {
 	gconn *grpc.ClientConn
-	conn  pb.P2PgserviceClient
+	gcli  pb.P2PgserviceClient
 }
 
 // DefaultMConnConfig returns the default config.
@@ -30,10 +28,10 @@ func DefaultMConnConfig() *MConnConfig {
 	return &MConnConfig{}
 }
 
-func NewTemMConnConfig(gconn *grpc.ClientConn, conn pb.P2PgserviceClient) *MConnConfig {
+func NewTemMConnConfig(gconn *grpc.ClientConn, gcli pb.P2PgserviceClient) *MConnConfig {
 	return &MConnConfig{
 		gconn: gconn,
-		conn:  conn,
+		gcli:  gcli,
 	}
 }
 
@@ -42,7 +40,7 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MCon
 
 	mconn := &MConnection{
 		gconn: conn,
-		conn:  pb.NewP2PgserviceClient(conn),
+		gcli:  pb.NewP2PgserviceClient(conn),
 		peer:  peer,
 	}
 	mconn.nodeInfo = peer.nodeInfo
@@ -55,7 +53,7 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MCon
 func NewMConnectionWithConfig(cfg *MConnConfig) *MConnection {
 	mconn := &MConnection{
 		gconn: cfg.gconn,
-		conn:  cfg.conn,
+		gcli:  cfg.gcli,
 	}
 
 	return mconn

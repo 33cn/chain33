@@ -351,7 +351,8 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 }
 
 func TicketList(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message, error) {
-	values := db.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
+	list := dbm.NewListHelper(db)
+	values := list.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
 	if len(values) == 0 {
 		return &types.ReplyTicketList{}, nil
 	}
