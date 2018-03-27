@@ -4,6 +4,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
@@ -28,6 +29,44 @@ func isAllowExecName(name string) bool {
 		}
 	}
 	return false
+}
+
+type TransactionCache struct {
+	*Transaction
+	hash []byte
+	size int
+}
+
+func NewTransactionCache(tx *Transaction) *TransactionCache {
+	return &TransactionCache{tx, tx.Hash(), tx.Size()}
+}
+
+func (tx *TransactionCache) Hash() []byte {
+	return tx.hash
+}
+
+func (tx *TransactionCache) Size() int {
+	return tx.size
+}
+
+func (tx *TransactionCache) Tx() *Transaction {
+	return tx.Transaction
+}
+
+func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
+	caches = make([]*TransactionCache, len(txs), len(txs))
+	for i := 0; i < len(caches); i++ {
+		caches[i] = NewTransactionCache(txs[i])
+	}
+	return caches
+}
+
+func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
+	txs = make([]*Transaction, len(caches), len(caches))
+	for i := 0; i < len(caches); i++ {
+		txs[i] = caches[i].Tx()
+	}
+	return txs
 }
 
 //hash 不包含签名，用户通过修改签名无法重新发送交易
@@ -60,7 +99,7 @@ func (tx *Transaction) CheckSign() bool {
 	return CheckSign(data, tx.GetSignature())
 }
 
-func (tx *Transaction) Check(needfee bool) error {
+func (tx *Transaction) Check(minfee int64) error {
 	if !isAllowExecName(string(tx.Execer)) {
 		return ErrExecNameNotAllow
 	}
@@ -68,18 +107,27 @@ func (tx *Transaction) Check(needfee bool) error {
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
 	}
-	if !needfee {
+	if minfee == 0 {
 		return nil
 	}
 	// 检查交易费是否小于最低值
-	realFee := int64(txSize/1000+1) * MinFee
+	realFee := int64(txSize/1000+1) * minfee
 	if tx.Fee < realFee {
 		return ErrTxFeeTooLow
 	}
 	return nil
 }
 
-func (tx *Transaction) GetRealFee() (int64, error) {
+func (tx *Transaction) SetExpire(expire time.Duration) {
+	if int64(expire) > expireBound {
+		//用秒数来表示的时间
+		tx.Expire = time.Now().Unix() + int64(expire/time.Second)
+	} else {
+		tx.Expire = int64(expire)
+	}
+}
+
+func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	txSize := Size(tx)
 	//如果签名为空，那么加上签名的空间
 	if tx.Signature == nil {
@@ -89,7 +137,7 @@ func (tx *Transaction) GetRealFee() (int64, error) {
 		return 0, ErrTxMsgSizeTooBig
 	}
 	// 检查交易费是否小于最低值
-	realFee := int64(txSize/1000+1) * MinFee
+	realFee := int64(txSize/1000+1) * minFee
 	return realFee, nil
 }
 
@@ -98,7 +146,7 @@ var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound�
 //检查交易是否过期，过期返回true，未过期返回false
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	valid := tx.Expire
-	// Expire为0，返回true
+	// Expire为0，返回false
 	if valid == 0 {
 		return false
 	}
@@ -216,6 +264,8 @@ func (tx *Transaction) ActionName() string {
 			return "close"
 		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
 			return "miner"
+		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
+			return "bindminer"
 		}
 	} else if "none" == string(tx.Execer) {
 		return "none"

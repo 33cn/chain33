@@ -16,11 +16,12 @@ import (
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus"
 	"code.aliyun.com/chain33/chain33/executor"
-	"code.aliyun.com/chain33/chain33/util"
-	//"code.aliyun.com/chain33/chain33/p2p"
+	"code.aliyun.com/chain33/chain33/mempool"
+	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/store"
 	"code.aliyun.com/chain33/chain33/types"
+	"code.aliyun.com/chain33/chain33/util"
 )
 
 var random *rand.Rand
@@ -35,23 +36,29 @@ func init() {
 	common.SetLogLevel("info")
 }
 
-func initEnv() *queue.Queue {
+func initEnv() (queue.Queue, *blockchain.BlockChain, *store.Store, queue.Module, *p2p.P2p, *mempool.Mempool) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q)
+	chain.SetQueueClient(q.Client())
 
 	exec := executor.New()
-	exec.SetQueue(q)
-	exec.SetNeedFee(false)
+	exec.SetQueueClient(q.Client())
+	types.SetMinFee(0)
 	s := store.New(cfg.Store)
-	s.SetQueue(q)
+	s.SetQueueClient(q.Client())
 
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q)
+	cs.SetQueueClient(q.Client())
 
-	return q
+	p2pnet := p2p.New(cfg.P2P)
+	p2pnet.SetQueueClient(q.Client())
+
+	mem := mempool.New(cfg.MemPool)
+	mem.SetQueueClient(q.Client())
+
+	return q, chain, s, cs, p2pnet, mem
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
@@ -97,14 +104,35 @@ func createBlock(n int64) *types.Block {
 }
 
 func TestExecBlock(t *testing.T) {
-	q := initEnv()
+	q, chain, s, cs, p2pnet, mem := initEnv()
+	defer chain.Close()
+	defer s.Close()
+	defer q.Close()
+	defer cs.Close()
+	defer p2pnet.Close()
+	defer mem.Close()
 	block := createBlock(10000)
-	util.ExecBlock(q, zeroHash[:], block, false)
+	util.ExecBlock(q.Client(), zeroHash[:], block, false)
 }
 
 //gen 1万币需要 2s，主要是签名的花费
 func BenchmarkGenRandBlock(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		createBlock(10000)
+	}
+}
+
+func BenchmarkExecBlock(b *testing.B) {
+	q, chain, s, cs, p2pnet, mem := initEnv()
+	defer chain.Close()
+	defer s.Close()
+	defer q.Close()
+	defer cs.Close()
+	defer p2pnet.Close()
+	defer mem.Close()
+	block := createBlock(10000)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		util.ExecBlock(q.Client(), zeroHash[:], block, false)
 	}
 }

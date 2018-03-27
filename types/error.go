@@ -17,6 +17,7 @@ var (
 	ErrNoTicket                = errors.New("ErrNoTicket")
 	ErrMinerIsStared           = errors.New("ErrMinerIsStared")
 	ErrMinerNotStared          = errors.New("ErrMinerNotStared")
+	ErrMinerNotClosed          = errors.New("ErrMinerNotClosed")
 	ErrTicketCount             = errors.New("ErrTicketCount")
 	ErrHashlockAmount          = errors.New("ErrHashlockAmount")
 	ErrHashlockHash            = errors.New("ErrHashlockHash")
@@ -105,6 +106,8 @@ var (
 	ErrFutureBlock                = errors.New("ErrFutureBlock")
 	ErrHashNotFound               = errors.New("ErrHashNotFound")
 	ErrTxDup                      = errors.New("ErrTxDup")
+	ErrNotSync                    = errors.New("ErrNotSync")
+	ErrSize                       = errors.New("ErrSize")
 
 	// BlockChain Error Types
 	ErrHashNotExist           = errors.New("ErrHashNotExist")
@@ -146,9 +149,16 @@ var (
 	ErrSeedExist            = errors.New("ErrSeedExist")
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
+
+	ErrOnlyTicketUnLocked   = errors.New("ErrOnlyTicketUnLocked")
+	ErrNewCrypto            = errors.New("ErrNewCrypto")
+	ErrFromHex              = errors.New("ErrFromHex")
+	ErrPrivKeyFromBytes     = errors.New("ErrFromHex")
+	ErrParentHash           = errors.New("ErrParentHash")
 	// manage
 	ErrNoPrivilege          = errors.New("ErrNoPrivilege")
-	ErrBadConfigKey          = errors.New("ErrBadConfigKey")
+	ErrBadConfigKey         = errors.New("ErrBadConfigKey")
 	ErrBadConfigOp          = errors.New("ErrBadConfigOp")
-	ErrBadConfigValue          = errors.New("ErrBadConfigValue")
+	ErrBadConfigValue       = errors.New("ErrBadConfigValue")
+
 )

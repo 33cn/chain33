@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -99,16 +100,21 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 	{ //重新格式化数据
 
 		var transDetail TransactionDetail
-		transDetail.Tx, err = DecodeTx(*(reply.GetTx()))
+		transDetail.Tx, err = DecodeTx(reply.GetTx())
 		if err != nil {
 			return err
 		}
 
-		transDetail.Receipt = &ReceiptData{Ty: reply.GetReceipt().GetTy()}
+		receiptTmp := &ReceiptData{Ty: reply.GetReceipt().GetTy()}
 		logs := reply.GetReceipt().GetLogs()
 		for _, log := range logs {
-			transDetail.Receipt.Logs = append(transDetail.Receipt.Logs,
+			receiptTmp.Logs = append(receiptTmp.Logs,
 				&ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
+		}
+
+		transDetail.Receipt, err = DecodeLog(receiptTmp)
+		if err != nil {
+			return err
 		}
 
 		for _, proof := range reply.Proofs {
@@ -152,7 +158,7 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
 			txs := item.Block.GetTxs()
 			for _, tx := range txs {
-				tran, err := DecodeTx(*tx)
+				tran, err := DecodeTx(tx)
 				if err != nil {
 					continue
 				}
@@ -167,7 +173,11 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 					recp.Logs = append(recp.Logs,
 						&ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
 				}
-				bdtl.Receipts = append(bdtl.Receipts, &recp)
+				rd, err := DecodeLog(&recp)
+				if err != nil {
+					continue
+				}
+				bdtl.Receipts = append(bdtl.Receipts, rd)
 			}
 
 			blockDetails.Items = append(blockDetails.Items, &bdtl)
@@ -246,9 +256,9 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	{
-		var txdetails TransactionDetails
-		txs := reply.GetTxs()
+	txs := reply.GetTxs()
+	var txdetails TransactionDetails
+	if 0 != len(txs) {
 		for _, tx := range txs {
 			var recp ReceiptData
 			logs := tx.GetReceipt().GetLogs()
@@ -257,13 +267,17 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
+			recpResult, err := DecodeLog(&recp)
+			if err != nil {
+				continue
+			}
 
 			var proofs []string
 			txProofs := tx.GetProofs()
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
 			}
-			tran, err := DecodeTx(*(tx.GetTx()))
+			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
 				continue
 			}
@@ -274,16 +288,15 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 					Height:     tx.GetHeight(),
 					Index:      tx.GetIndex(),
 					Blocktime:  tx.GetBlocktime(),
-					Receipt:    &recp,
+					Receipt:    recpResult,
 					Proofs:     proofs,
 					Amount:     tx.GetAmount(),
 					Fromaddr:   tx.GetFromaddr(),
 					ActionName: tx.GetActionName(),
 				})
 		}
-		*result = &txdetails
 	}
-
+	*result = &txdetails
 	return nil
 }
 
@@ -302,7 +315,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 				amount = 0
 			}
 			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-			tran, err := DecodeTx(*tx)
+			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
 			}
@@ -371,13 +384,17 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			tran, err := DecodeTx(*(tx.GetTx()))
+			rd, err := DecodeLog(&recp)
+			if err != nil {
+				continue
+			}
+			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
 				continue
 			}
 			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
 				Tx:         tran,
-				Receipt:    &recp,
+				Receipt:    rd,
 				Height:     tx.GetHeight(),
 				Index:      tx.GetIndex(),
 				Blocktime:  tx.GetBlocktime(),
@@ -567,7 +584,7 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 		var txlist ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
-			tran, err := DecodeTx(*tx)
+			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
 			}
@@ -763,6 +780,24 @@ func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
 	return nil
 }
 
+func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.CloseTickets()
+	if err != nil {
+		return err
+	}
+	*result = resp
+	return nil
+}
+
+func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
+	*result = common.GetVersion()
+	return nil
+}
+
+func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
+	*result = c.cli.IsSync()
+	return nil
+}
 func (c *Chain33) SellToken(in types.ReqSellToken, result *interface{}) error {
 
 	reply, err := c.cli.SellToken(&in)
@@ -793,10 +828,14 @@ func (c *Chain33) RevokeSellToken(in types.ReqRevokeSell, result *interface{}) e
 	}
 
 	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+
 	return nil
 }
 
-func DecodeTx(tx types.Transaction) (*Transaction, error) {
+func DecodeTx(tx *types.Transaction) (*Transaction, error) {
+	if tx == nil {
+		return nil, types.ErrEmpty
+	}
 	var pl interface{}
 	if "coins" == string(tx.Execer) {
 		var action types.CoinsAction
@@ -814,6 +853,20 @@ func DecodeTx(tx types.Transaction) (*Transaction, error) {
 		pl = &action
 	} else if "hashlock" == string(tx.Execer) {
 		var action types.HashlockAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "token" == string(tx.Execer) {
+		var action types.TokenAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "trade" == string(tx.Execer) {
+		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
 			return nil, err
@@ -838,7 +891,6 @@ func DecodeTx(tx types.Transaction) (*Transaction, error) {
 	}
 	return result, nil
 }
-
 func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}) error {
 	reply, err := c.cli.TokenPreCreate(&in)
 	if err != nil {
@@ -873,5 +925,281 @@ func (c *Chain33) ModifyConfig(in types.ReqModifyConfig, result *interface{}) er
 		return err
 	}
 	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
+	return nil
+}
+
+func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
+	var rTy string
+	switch rlog.Ty {
+	case 0:
+		rTy = "ExecErr"
+	case 1:
+		rTy = "ExecPack"
+	case 2:
+		rTy = "ExecOk"
+	default:
+		return nil, errors.New("wrong log type")
+	}
+	rd := &ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
+
+	for _, l := range rlog.Logs {
+		var lTy string
+		var logIns interface{}
+
+		lLog, err := hex.DecodeString(l.Log[2:])
+		if err != nil {
+			return nil, err
+		}
+
+		switch l.Ty {
+		case types.TyLogErr:
+			lTy = "LogErr"
+			logIns = string(lLog)
+		case types.TyLogFee:
+			lTy = "LogFee"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTransfer:
+			lTy = "LogTransfer"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogGenesis:
+			lTy = "LogGenesis"
+			logIns = nil
+		case types.TyLogDeposit:
+			lTy = "LogDeposit"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogExecTransfer:
+			lTy = "LogExecTransfer"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogExecWithdraw:
+			lTy = "LogExecWithdraw"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogExecDeposit:
+			lTy = "LogExecDeposit"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogExecFrozen:
+			lTy = "LogExecFrozen"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogExecActive:
+			lTy = "LogExecActive"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogGenesisTransfer:
+			lTy = "LogGenesisTransfer"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogGenesisDeposit:
+			lTy = "LogGenesisDeposit"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogNewTicket:
+			lTy = "LogNewTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogCloseTicket:
+			lTy = "LogCloseTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogMinerTicket:
+			lTy = "LogMinerTicket"
+			var logTmp types.ReceiptTicket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTicketBind:
+			lTy = "LogTicketBind"
+			var logTmp types.ReceiptTicketBind
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogPreCreateToken:
+			lTy = "LogPreCreateToken"
+			var logTmp types.ReceiptToken
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogFinishCreateToken:
+			lTy = "LogFinishCreateToken"
+			var logTmp types.ReceiptToken
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRevokeCreateToken:
+			lTy = "LogRevokeCreateToken"
+			var logTmp types.ReceiptToken
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeSell:
+			lTy = "LogTradeSell"
+			var logTmp types.ReceiptTradeSell
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeBuy:
+			lTy = "LogTradeBuy"
+			var logTmp types.ReceiptTradeBuy
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeRevoke:
+			lTy = "LogTradeRevoke"
+			var logTmp types.ReceiptTradeRevoke
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenTransfer:
+			lTy = "LogTokenTransfer"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenDeposit:
+			lTy = "LogTokenDeposit"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecTransfer:
+			lTy = "LogTokenExecTransfer"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecWithdraw:
+			lTy = "LogTokenExecWithdraw"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecDeposit:
+			lTy = "LogTokenExecDeposit"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecFrozen:
+			lTy = "LogTokenExecFrozen"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenExecActive:
+			lTy = "LogTokenExecActive"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenGenesisTransfer:
+			lTy = "LogTokenGenesisTransfer"
+			var logTmp types.ReceiptAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTokenGenesisDeposit:
+			lTy = "LogTokenGenesisDeposit"
+			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		default:
+			log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
+			return nil, errors.New("wrong log type")
+		}
+		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
+	}
+	return rd, nil
+}
+
+func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
+	*result = c.cli.IsNtpClockSync()
 	return nil
 }

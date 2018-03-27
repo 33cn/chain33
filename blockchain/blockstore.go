@@ -53,16 +53,30 @@ type BlockStore struct {
 	lastBlock *types.Block
 }
 
-func NewBlockStore(db dbm.DB, q *queue.Queue) *BlockStore {
-	height, _ := LoadBlockStoreHeight(db)
+func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
+	height, err := LoadBlockStoreHeight(db)
+	if err != nil {
+		chainlog.Error("init::LoadBlockStoreHeight::database may be crash", "err", err.Error())
+		if err != types.ErrHeightNotExist {
+			panic(err)
+		}
+
+	}
 	blockStore := &BlockStore{
 		height: height,
 		db:     db,
-		client: q.NewClient(),
+		client: client,
 	}
-
-	blockdetail, _ := blockStore.LoadBlockByHeight(height)
-	blockStore.lastBlock = blockdetail.GetBlock()
+	if height == -1 {
+		chainlog.Error("load block height error, many init database", "height", height)
+	} else {
+		blockdetail, err := blockStore.LoadBlockByHeight(height)
+		if err != nil {
+			chainlog.Error("init::LoadBlockByHeight::database may be crash")
+			panic(err)
+		}
+		blockStore.lastBlock = blockdetail.GetBlock()
+	}
 	return blockStore
 }
 
@@ -234,11 +248,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	storeBatch.Set(calcHashToBlockHeaderKey(hash), header)
 
 	//更新最新的block 高度
-	heightbytes, err := json.Marshal(height)
-	if err != nil {
-		storeLog.Error("SaveBlock Marshal height", "height", height, "hash", common.ToHex(hash), "error", err)
-		return err
-	}
+	heightbytes := types.Encode(&types.Int64{height})
 	storeBatch.Set(blockLastHeight, heightbytes)
 
 	//存储block hash和height的对应关系，便于通过hash查询block
@@ -264,11 +274,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	//storeBatch.Delete(calcHashToBlockHeaderKey(hash))
 
 	//更新最新的block高度为前一个高度
-	bytes, err := json.Marshal(height - 1)
-	if err != nil {
-		storeLog.Error("DelBlock  Could not marshal hight bytes", "error", err)
-		return err
-	}
+	bytes := types.Encode(&types.Int64{height - 1})
 	storeBatch.Set(blockLastHeight, bytes)
 
 	//删除block hash和height的对应关系
@@ -350,13 +356,21 @@ func (bs *BlockStore) GetHeightByBlockHash(hash []byte) (int64, error) {
 	if heightbytes == nil {
 		return -1, types.ErrHashNotExist
 	}
-	var height int64
-	err := json.Unmarshal(heightbytes, &height)
+	return decodeHeight(heightbytes)
+}
+
+func decodeHeight(heightbytes []byte) (int64, error) {
+	var height types.Int64
+	err := types.Decode(heightbytes, &height)
 	if err != nil {
-		storeLog.Error("GetHeightByBlockHash Could not unmarshal height bytes", "error", err)
-		return -1, types.ErrUnmarshal
+		//may be old database format json...
+		err = json.Unmarshal(heightbytes, &height.Data)
+		if err != nil {
+			storeLog.Error("GetHeightByBlockHash Could not unmarshal height bytes", "error", err)
+			return -1, types.ErrUnmarshal
+		}
 	}
-	return height, nil
+	return height.Data, nil
 }
 
 //从db数据库中获取指定height对应的blockhash
@@ -460,29 +474,12 @@ func (bs *BlockStore) NewBatch(sync bool) dbm.Batch {
 	return storeBatch
 }
 
-func SaveBlockStoreHeight(db dbm.DB, height int64) error {
-	bytes, err := json.Marshal(height)
-	if err != nil {
-		storeLog.Error("SaveBlockStoreHeight  Marshal hight", "error", err)
-		return types.ErrMarshal
-	}
-	db.SetSync(blockLastHeight, bytes)
-	return nil
-}
-
 func LoadBlockStoreHeight(db dbm.DB) (int64, error) {
-	var height int64
 	bytes := db.Get(blockLastHeight)
 	if bytes == nil {
 		return -1, types.ErrHeightNotExist
 	}
-
-	err := json.Unmarshal(bytes, &height)
-	if err != nil {
-		storeLog.Error("LoadBlockStoreHeight Unmarshal height", "error", err)
-		return -1, types.ErrUnmarshal
-	}
-	return height, nil
+	return decodeHeight(bytes)
 }
 
 // 将收到的block都暂时存储到db中，加入主链之后会重新覆盖。主要是用于chain重组时获取侧链的block使用

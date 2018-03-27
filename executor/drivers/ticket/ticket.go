@@ -15,6 +15,7 @@ EventTransfer -> 转移资产
 import (
 	"fmt"
 
+	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -24,8 +25,7 @@ var clog = log.New("module", "execs.ticket")
 
 func init() {
 	t := newTicket()
-	drivers.Register(t.GetName(), t)
-	drivers.RegisterAddress(t.GetName())
+	drivers.Register(t.GetName(), t, 0)
 }
 
 type Ticket struct {
@@ -240,7 +240,8 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		key := calcBindMinerKeyPrefix(reqaddr.Data)
-		values := t.GetQueryDB().List(key, nil, 0, 1)
+		list := dbm.NewListHelper(t.GetQueryDB())
+		values := list.List(key, nil, 0, 1)
 		if len(values) == 0 {
 			return nil, types.ErrNotFound
 		}

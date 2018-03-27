@@ -18,7 +18,7 @@ var clog = log.New("module", "execs.manage")
 
 func init() {
 	n := newManage()
-	drivers.Register(n.GetName(), n)
+	drivers.Register(n.GetName(), n, types.ForkV4_add_manage)
 }
 
 type Manage struct {

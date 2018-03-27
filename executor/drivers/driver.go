@@ -21,6 +21,8 @@ type Driver interface {
 	GetCoinsAccount() *account.AccountDB
 	SetLocalDB(dbm.KVDB)
 	SetQueryDB(dbm.DB)
+	SetExecDriver(execDriver *ExecDrivers)
+	GetExecDriver()*ExecDrivers
 	GetName() string
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64)
@@ -39,6 +41,7 @@ type DriverBase struct {
 	blocktime    int64
 	child        Driver
 	coinsaccount *account.AccountDB
+	execDriver   *ExecDrivers
 }
 
 func (d *DriverBase) SetEnv(height, blocktime int64) {
@@ -50,8 +53,16 @@ func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
 }
 
+func (d *DriverBase) SetExecDriver(execDriver *ExecDrivers) {
+	d.execDriver = execDriver
+}
+
+func (d *DriverBase) GetExecDriver()*ExecDrivers {
+	return d.execDriver
+}
+
 func (d *DriverBase) GetAddr() string {
-	return ExecAddress(d.child.GetName()).String()
+	return ExecAddress(d.child.GetName())
 }
 
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
@@ -137,14 +148,21 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	return &set, nil
 }
 
+func (d *DriverBase) checkAddress(addr string) error {
+	if _, ok := d.execDriver.ExecAddr2Name[addr]; ok {
+		return nil
+	}
+	return account.CheckAddress(addr)
+}
+
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	//检查ToAddr
-	if err := account.CheckAddress(tx.To); err != nil {
+	if err := d.checkAddress(tx.To); err != nil {
 		return nil, err
 	}
-	//非coins 模块的 ToAddr 指向合约
+	//非coins 或token 模块的 ToAddr 指向合约
 	exec := string(tx.Execer)
-	if exec != "coins" && ExecAddress(exec).String() != tx.To {
+	if exec != "coins" && exec != "token" && ExecAddress(exec) != tx.To {
 		return nil, types.ErrToAddrNotSameToExecAddr
 	}
 	return nil, nil
@@ -227,7 +245,8 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	}
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
-		txinfos = db.IteratorScanFromLast(prefix, addr.Count, addr.Direction)
+		list := dbm.NewListHelper(db)
+		txinfos = list.IteratorScanFromLast(prefix, addr.Count)
 		if len(txinfos) == 0 {
 			return nil, errors.New("does not exist tx!")
 		}
@@ -241,7 +260,8 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		} else {
 			return nil, errors.New("Flag unknow!")
 		}
-		txinfos = db.IteratorScan(prefix, key, addr.Count, addr.Direction)
+		list := dbm.NewListHelper(db)
+		txinfos = list.IteratorScan(prefix, key, addr.Count, addr.Direction)
 		if len(txinfos) == 0 {
 			return nil, errors.New("does not exist tx!")
 		}
