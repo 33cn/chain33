@@ -21,6 +21,7 @@ import (
 	"os"
 	"code.aliyun.com/chain33/chain33/types"
 	"github.com/gogo/protobuf/proto"
+	cmn "github.com/tendermint/tmlibs/common"
 )
 
 //-----------------------------------------------------------------------------
@@ -742,8 +743,9 @@ func (cs *ConsensusState) needProofBlock(height int64) bool {
 	if height == 1 {
 		return true
 	}
-
+	cs.Logger.Info("needProofBlock", "height", height)
 	lastBlockMeta := cs.blockStore.LoadBlockMeta(height - 1)
+	cs.Logger.Info("needProofBlock", "lastBlockMeta", lastBlockMeta, "apphash", cs.state.AppHash, "headerhash", lastBlockMeta.Header.AppHash)
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
 
@@ -912,32 +914,24 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	var blockTime int64
 	var lastStateHash []byte
 	var err error
-	if cs.Height == 1 {
-		txs, newtxs, err =cs.CreateGenesisTx()
-		if err != nil {
-			cs.Logger.Error("enterPropose: CreateGenesisTx failed.", "error", err)
-		}
-		lastParentHash = zeroHash[:]
-		blockTime = cs.client.Cfg.GenesisBlockTime
-		lastStateHash = lastParentHash
-	} else {
-		lastBlock := cs.client.GetCurrentBlock()
-		lastParentHash = lastBlock.Hash()
-		blockTime = 0
-		lastStateHash = lastBlock.StateHash
-		txs = cs.client.RequestTx()
+
+	lastBlock := cs.client.GetCurrentBlock()
+	lastParentHash = lastBlock.Hash()
+	blockTime = 0
+	lastStateHash = lastBlock.StateHash
+	txs = cs.client.RequestTx()
+	if len(txs) > 0 {
 		cs.NewTxsFinished <- true
-		if len(txs) > 0 {
-			//check dup
-			txs = cs.client.CheckTxDup(txs)
-			newtxs, err= cs.Convert2ByteTxs(txs)
-			if err != nil {
-				cs.Logger.Error("enterPropose: Convert2ByteTxs failed.", "error", err)
-			}
-		} else {
-			return nil, nil
+		//check dup
+		txs = cs.client.CheckTxDup(txs)
+		newtxs, err = cs.Convert2ByteTxs(txs)
+		if err != nil {
+			cs.Logger.Error("enterPropose: Convert2ByteTxs failed.", "error", err)
 		}
+	} else {
+		return nil, nil
 	}
+
 	/*
 	if err != nil{
 		cs.Logger.Error("enterPropose: TxEncode", "error", err)
@@ -1337,7 +1331,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		var newblock gtypes.Block
 		var err error
 		newblock.ParentHash = block.LastParentHash
-		newblock.Height = block.Height - 1
+		newblock.Height = block.Height
 		newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
 		if err !=nil{
 			cs.Logger.Error("convert TXs to transaction failed", "err", err)
@@ -1359,17 +1353,25 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 		err = cs.client.WriteBlock(block.LastStateHash, &newblock)
 		if err != nil {
+			err := cmn.Kill()
 			cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
-		} else {
-			cs.updateState(stateCopy, block, blockID)
+			return
 		}
+
 	} else {
-		time.Sleep(3*time.Second)
-		if block.Height == cs.client.GetCurrentHeight() + 1 {
-			cs.updateState(stateCopy, block, blockID)
+		for {
+			 if cs.client.GetCurrentHeight() == block.Height {
+			 	cs.Logger.Info("inalizeCommit:get current height equal")
+			 	break
+			} else {
+				cs.Logger.Info("inalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
+				time.Sleep(10*time.Millisecond)
+			 }
 		}
 	}
-
+	cs.Logger.Info("state before:", "state", stateCopy)
+	cs.updateState(stateCopy, block, blockID)
+	cs.Logger.Info("state after:", "state", stateCopy)
 	/*
 	// NOTE: the block.AppHash wont reflect these txs until the next block
 	var err error
@@ -1393,6 +1395,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
+	cs.Logger.Info("round state", "state", cs.RoundState)
 	cs.scheduleRound0(&cs.RoundState)
 
 	// By here,
