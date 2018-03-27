@@ -2292,7 +2292,7 @@ func ShowOnesBuyOrder(buyer string, tokens []string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
+		fmt.Printf("---The %dth buyorder is below--------------------\n", i)
 		fmt.Println(string(data))
 	}
 }
