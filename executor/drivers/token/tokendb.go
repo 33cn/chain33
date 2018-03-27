@@ -235,12 +235,9 @@ func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KVDB) bool
 }
 
 func validFinisher(addr string, db dbm.KVDB) (bool, error) {
-	return validOperator(addr, types.ConfigKey(types.FinisherKey), db)
+	return validOperator(addr, types.ConfigKey(finisherKey), db)
 }
 
-func validRevoker(addr string, db dbm.KVDB) (bool, error) {
-	return validOperator(addr, types.ConfigKey(types.RevokerKey), db)
-}
 
 func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
 	value, err := db.Get([]byte(key))

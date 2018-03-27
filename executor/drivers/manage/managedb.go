@@ -6,7 +6,6 @@ import (
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/wallet"
 )
 
 
@@ -33,7 +32,7 @@ func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt,
 	//	return nil, types.ErrNoPrivilege
 	//}
 
-	if !wallet.IsSuperManager(m.fromaddr) {
+	if !IsSuperManager(m.fromaddr) {
 		return nil, types.ErrNoPrivilege
 	}
 	if len(modify.Key) == 0 {
