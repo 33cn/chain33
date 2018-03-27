@@ -559,16 +559,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procRevokeSell", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
 			}
-		case types.EventModifyConfig:
-			req := msg.Data.(*types.ReqModifyConfig)
-			replyHash, err := wallet.procModifyConfig(req)
-			if err != nil {
-				walletlog.Error("procModifyConfig", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyModifyConfig, err))
-			} else {
-				walletlog.Info("procModifyConfig", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyModifyConfig, replyHash))
-			}
 		case types.EventCloseTickets:
 			var reply types.Reply
 			reply.IsOk = true
@@ -1811,12 +1801,6 @@ func (wallet *Wallet) procTokenFinishCreate(req *types.ReqTokenFinishCreate) (*t
 		return nil, types.ErrInsufficientBalance
 	}
 
-    hasPriv, err := validFinisher(req.GetFinisherAddr(), wallet.client)
-    if err != nil || hasPriv != true {
-		walletlog.Error("procTokenFinishCreate", "finisher", types.ErrTokenCreatedApprover)
-		return nil, types.ErrTokenCreatedApprover
-	}
-
 	//  check symbol-owner 是否不存在
 	token, err := wallet.checkTokenSymbolExists(req.GetSymbol(), req.GetOwnerAddr())
 	if err != nil {
@@ -2107,44 +2091,8 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 
 }
 
-func (wallet *Wallet) procModifyConfig(reqModify *types.ReqModifyConfig) (*types.ReplyHash, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-	if reqModify == nil {
-		walletlog.Error("procModifyConfig input para is nil")
-		return nil, types.ErrInputPara
-	}
-
-	priv, err := wallet.getPrivKeyByAddr(reqModify.GetModifier())
-	if err != nil {
-		return nil, err
-	}
-
-	if !IsSuperManager(reqModify.GetModifier()) {
-		return nil, types.ErrNoPrivilege
-	}
-	//if reqModify.GetKey() == "Manager-managers" && ! IsSuperManager(reqModify.GetModifier()) {
-	//	return nil, types.ErrNoPrivilege
-	//}
-
-	return wallet.modifyConfig(priv, reqModify)
-}
-
-func IsSuperManager(addr string) bool {
-	for _, m := range types.SuperManager {
-		if addr == m {
-			return true
-		}
-	}
-	return false
-}
-
-func getFromStore(key string, client queue.Client) ([]byte, error) {
+func GetFromStore(key string, client queue.Client) ([]byte, error) {
 	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
@@ -2168,42 +2116,4 @@ func getFromStore(key string, client queue.Client) ([]byte, error) {
 	return value, nil
 }
 
-func validOperator(operator, key string, client queue.Client) (bool, error) {
-	value, err := getFromStore(key, client)
-	if err != nil {
-		walletlog.Info("wallet", "config key", "not found")
-		return false, err
-	}
-	if value == nil {
-		walletlog.Info("wallet", "config key", "  found nil value")
-		return false, nil
-	}
-	var item types.ConfigItem
-	err = types.Decode(value, &item)
-	if err != nil {
-		walletlog.Error("wallet", "get db key", err)
-		return false, err  // types.ErrBadConfigValue
-	}
-
-	for _, op := range item.GetArr().Value {
-		if op == operator {
-			return true, nil
-		}
-	}
-
-	return false, nil
-
-}
-
-func validCreator(addr string, client queue.Client) (bool, error) {
-	return validOperator(addr, types.ConfigKey(types.CreatorKey), client)
-}
-
-func validFinisher(addr string, client queue.Client) (bool, error) {
-	return validOperator(addr, types.ConfigKey(types.FinisherKey), client)
-}
-
-func validRevoker(addr string, client queue.Client) (bool, error) {
-	return validOperator(addr, types.ConfigKey(types.RevokerKey), client)
-}
 

@@ -919,15 +919,6 @@ func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *inter
 	return nil
 }
 
-func (c *Chain33) ModifyConfig(in types.ReqModifyConfig, result *interface{}) error {
-	reply, err := c.cli.ModifyConfig(&in)
-	if err != nil {
-		return err
-	}
-	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
-	return nil
-}
-
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 	var rTy string
 	switch rlog.Ty {

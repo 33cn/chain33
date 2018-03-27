@@ -20,6 +20,10 @@ import (
 
 var tokenlog = log.New("module", "execs.token")
 
+const (
+	finisherKey = "token-finisher"
+)
+
 func init() {
 	t := newToken()
 	drivers.Register(t.GetName(), t, types.ForkV2_add_token)

@@ -156,3 +156,12 @@ func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
 	}
 	return nil, types.ErrActionNotSupport
 }
+
+func IsSuperManager(addr string) bool {
+	for _, m := range types.SuperManager {
+		if addr == m {
+			return true
+		}
+	}
+	return false
+}
