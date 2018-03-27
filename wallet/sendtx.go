@@ -12,6 +12,7 @@ import (
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
+	walletlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", int32(count))
 	ta := &types.TicketAction{}
 	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
 	ta.Value = &types.TicketAction_Topen{topen}
@@ -29,18 +30,17 @@ func (wallet *Wallet) bindminer(mineraddr, returnaddr string, priv crypto.PrivKe
 
 //通过rpc 精选close 操作
 func (wallet *Wallet) closeTickets(priv crypto.PrivKey, ids []string) ([]byte, error) {
-	for i := 0; i < len(ids); i += 100 {
-		end := i + 100
-		if end > len(ids) {
-			end = len(ids)
-		}
-		ta := &types.TicketAction{}
-		tclose := &types.TicketClose{ids[i:end]}
-		ta.Value = &types.TicketAction_Tclose{tclose}
-		ta.Ty = types.TicketActionClose
-		return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
+	//每次最多close 200个
+	end := 200
+	if end > len(ids) {
+		end = len(ids)
 	}
-	return nil, nil
+	walletlog.Info("closeTickets", "ids", ids[0:end])
+	ta := &types.TicketAction{}
+	tclose := &types.TicketClose{ids[0:end]}
+	ta.Value = &types.TicketAction_Tclose{tclose}
+	ta.Ty = types.TicketActionClose
+	return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
 }
 
 func (wallet *Wallet) getBalance(addr string, execer string) (*types.Account, error) {
@@ -60,7 +60,7 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 	ok, err := wallet.CheckWalletStatus()
-	if !ok {
+	if !ok && err != types.ErrOnlyTicketUnLocked {
 		return nil, nil, err
 	}
 	//循环遍历所有的账户-->保证钱包已经解锁
@@ -94,7 +94,7 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 	ok, err := wallet.CheckWalletStatus()
-	if !ok {
+	if !ok && err != types.ErrOnlyTicketUnLocked {
 		return nil, err
 	}
 	var privs []crypto.PrivKey
@@ -108,17 +108,29 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	return privs, nil
 }
 
-func (wallet *Wallet) closeAllTickets() (int, error) {
+func (client *Wallet) GetHeight() int64 {
+	msg := client.client.NewMessage("blockchain", types.EventGetBlockHeight, nil)
+	client.client.Send(msg, true)
+	replyHeight, err := client.client.Wait(msg)
+	h := replyHeight.GetData().(*types.ReplyBlockHeight).Height
+	walletlog.Debug("getheight = ", "height", h)
+	if err != nil {
+		return 0
+	}
+	return h
+}
+
+func (wallet *Wallet) closeAllTickets(height int64) (int, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
 		return 0, err
 	}
 	var hashes [][]byte
 	for _, key := range keys {
-		hash, err := wallet.closeTicketsByAddr(key)
+		hash, err := wallet.closeTicketsByAddr(height, key)
 		if err != nil {
 			walletlog.Error("close Tickets By Addr", "err", err)
-			return 0, err
+			continue
 		}
 		if hash == nil {
 			continue
@@ -132,86 +144,113 @@ func (wallet *Wallet) closeAllTickets() (int, error) {
 	return 0, nil
 }
 
-func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) error {
+func (wallet *Wallet) forceCloseAllTicket(height int64) ([][]byte, error) {
+	keys, err := wallet.getAllPrivKeys()
+	if err != nil {
+		return nil, err
+	}
+	var hashes [][]byte
+	for _, key := range keys {
+		hash, err := wallet.forceCloseTicketsByAddr(height, key)
+		if err != nil {
+			walletlog.Error("close Tickets By Addr", "err", err)
+			continue
+		}
+		if hash == nil {
+			continue
+		}
+		hashes = append(hashes, hash)
+	}
+	return hashes, nil
+}
+
+func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error) {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc, err := wallet.getBalance(addr, "ticket")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if acc.Balance > 0 {
-		_, err := wallet.sendToAddress(priv, account.ExecAddress("ticket").String(), -acc.Balance, "autominer->withdraw", false, "")
+		hash, err := wallet.sendToAddress(priv, account.ExecAddress("ticket").String(), -acc.Balance, "autominer->withdraw", false, "")
+
 		if err != nil {
-			return err
+			return nil, err
 		}
+		return hash.GetHash(), nil
 	}
-	return nil
+	return nil, nil
 }
 
-func (wallet *Wallet) buyTicketOne(priv crypto.PrivKey) (int, error) {
+func (wallet *Wallet) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
 	//ticket balance and coins balance
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc1, err := wallet.getBalance(addr, "coins")
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
 	acc2, err := wallet.getBalance(addr, "ticket")
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
 	//留一个币作为手续费，如果手续费不够了，不能挖矿
 	//判断手续费是否足够，如果不足要及时补充。
 	fee := types.Coin
-	if acc1.Balance+acc2.Balance-2*fee >= types.TicketPrice {
+	if acc1.Balance+acc2.Balance-2*fee >= types.GetP(height).TicketPrice {
 		//第一步。转移币到 ticket
 		toaddr := account.ExecAddress("ticket").String()
 		amount := acc1.Balance - 2*fee
 		//必须大于0，才需要转移币
 		var hash *types.ReplyHash
 		if amount > 0 {
-			walletlog.Error("buyTicketOne", "toaddr", toaddr, "amount", amount)
+			walletlog.Info("buyTicketOne.send", "toaddr", toaddr, "amount", amount)
 			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket", false, "")
+
 			if err != nil {
-				return 0, err
+				return nil, 0, err
 			}
 			wallet.waitTx(hash.Hash)
 		}
 		acc, err := wallet.getBalance(addr, "ticket")
 		if err != nil {
-			return 0, err
+			return nil, 0, err
 		}
-		count := acc.Balance / types.TicketPrice
+		count := acc.Balance / types.GetP(height).TicketPrice
 		if count > 0 {
-			_, err := wallet.openticket(addr, addr, priv, int32(count))
-			return 0, err
+			txhash, err := wallet.openticket(addr, addr, priv, int32(count))
+			return txhash, int(count), err
 		}
-		return int(count), nil
 	}
-	return 0, nil
+	return nil, 0, nil
 }
 
-func (wallet *Wallet) buyMinerAddrTicketOne(priv crypto.PrivKey) (int, error) {
+func (wallet *Wallet) buyMinerAddrTicketOne(height int64, priv crypto.PrivKey) ([][]byte, int, error) {
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	//判断是否绑定了coldaddr
 	addrs, err := wallet.getMinerColdAddr(addr)
 	if err != nil {
-		return 0, err
+		return nil, 0, err
 	}
+	total := 0
+	var hashes [][]byte
 	for i := 0; i < len(addrs); i++ {
-		walletlog.Error("sourceaddr", "addr", addrs[i])
+		walletlog.Info("sourceaddr", "addr", addrs[i])
 		acc, err := wallet.getBalance(addrs[i], "ticket")
 		if err != nil {
-			return 0, err
+			return nil, 0, err
 		}
-		if acc.Balance >= types.TicketPrice {
-			count := acc.Balance / types.TicketPrice
-			if count > 0 {
-				_, err := wallet.openticket(addr, addrs[i], priv, int32(count))
-				return 0, err
+		count := acc.Balance / types.GetP(height).TicketPrice
+		if count > 0 {
+			txhash, err := wallet.openticket(addr, addrs[i], priv, int32(count))
+			if err != nil {
+				return nil, 0, err
 			}
-			return int(count), nil
+			total += int(count)
+			if txhash != nil {
+				hashes = append(hashes, txhash)
+			}
 		}
 	}
-	return 0, nil
+	return hashes, total, nil
 }
 
 func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
@@ -235,24 +274,69 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	return nil
 }
 
-func (wallet *Wallet) closeTicketsByAddr(priv crypto.PrivKey) ([]byte, error) {
+func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
 	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist, err := wallet.getTickets(addr, 2)
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
 	}
-	if len(tlist) == 0 {
-		return nil, nil
-	}
-	now := time.Now().Unix()
 	var ids []string
-	for i := 0; i < len(tlist); i++ {
-		if now-tlist[i].CreateTime > types.TicketWithdrawTime {
-			ids = append(ids, tlist[i].TicketId)
+	var tl []*types.Ticket
+	now := time.Now().Unix()
+	for _, t := range tlist {
+		if !t.IsGenesis {
+			if now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
+				continue
+			}
+			if now-t.GetMinerTime() < types.GetP(height).TicketMinerWaitTime {
+				continue
+			}
 		}
+		tl = append(tl, t)
 	}
-	if len(ids) > 1 {
+	for i := 0; i < len(tl); i++ {
+		ids = append(ids, tl[i].TicketId)
+	}
+	if len(ids) > 0 {
+		return wallet.closeTickets(priv, ids)
+	}
+	return nil, nil
+}
+
+func (wallet *Wallet) forceCloseTicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
+	wallet.processFee(priv)
+	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	tlist1, err1 := wallet.getTickets(addr, 1)
+	if err1 != nil && err1 != types.ErrNotFound {
+		return nil, err1
+	}
+	tlist2, err2 := wallet.getTickets(addr, 2)
+	if err2 != nil && err2 != types.ErrNotFound {
+		return nil, err1
+	}
+	tlist := append(tlist1, tlist2...)
+	var ids []string
+	var tl []*types.Ticket
+	now := time.Now().Unix()
+	for _, t := range tlist {
+		if !t.IsGenesis {
+			if t.Status == 1 && now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
+				continue
+			}
+			if t.Status == 2 && now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
+				continue
+			}
+			if t.Status == 2 && now-t.GetMinerTime() < types.GetP(height).TicketMinerWaitTime {
+				continue
+			}
+		}
+		tl = append(tl, t)
+	}
+	for i := 0; i < len(tl); i++ {
+		ids = append(ids, tl[i].TicketId)
+	}
+	if len(ids) > 0 {
 		return wallet.closeTickets(priv, ids)
 	}
 	return nil, nil
@@ -264,13 +348,16 @@ func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, er
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
 	req.Payload = types.Encode(reqaddr)
-	msg := client.qclient.NewMessage("blockchain", types.EventQuery, &req)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := client.client.NewMessage("blockchain", types.EventQuery, &req)
+	client.client.Send(msg, true)
+	resp, err := client.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
 	reply := resp.GetData().(types.Message).(*types.ReplyTicketList)
+	for i := 0; i < len(reply.Tickets); i++ {
+		walletlog.Debug("Tickets", "id", reply.Tickets[i].GetTicketId(), "addr", addr, "req", status, "res", reply.Tickets[i].Status)
+	}
 	return reply.Tickets, nil
 }
 
@@ -290,12 +377,13 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	if to == "" {
 		to = account.ExecAddress(string(execer)).String()
 	}
-	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
+	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: minFee, To: to}
 	tx.Nonce = wallet.random.Int63()
-	tx.Fee, err = tx.GetRealFee()
+	tx.Fee, err = tx.GetRealFee(wallet.getFee())
 	if err != nil {
 		return nil, err
 	}
+	tx.SetExpire(time.Second * 120)
 	tx.Sign(int32(SignType), priv)
 	reply, err := wallet.sendTx(tx)
 	if err != nil {
@@ -309,16 +397,16 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 }
 
 func (wallet *Wallet) sendTx(tx *types.Transaction) (*types.Reply, error) {
-	if wallet.qclient == nil {
+	if wallet.client == nil {
 		panic("client not bind message queue.")
 	}
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	err := wallet.qclient.Send(msg, true)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	err := wallet.client.Send(msg, true)
 	if err != nil {
 		walletlog.Error("SendTx", "Error", err.Error())
 		return nil, err
 	}
-	resp, err := wallet.qclient.Wait(msg)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -355,13 +443,13 @@ func (wallet *Wallet) waitTxs(hashes [][]byte) (ret []*types.TransactionDetail) 
 }
 
 func (client *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
-	err := client.qclient.Send(msg, true)
+	msg := client.client.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
+	err := client.client.Send(msg, true)
 	if err != nil {
 		walletlog.Error("QueryTx", "Error", err.Error())
 		return nil, err
 	}
-	resp, err := client.qclient.Wait(msg)
+	resp, err := client.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +469,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
 	} else {
 		transfer := &types.TokenAction{}
 		if amount > 0 {
@@ -393,15 +481,15 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
 	}
-	//初始化随机数d
+	tx.SetExpire(time.Second * 120)
 	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "Send err", err)
 		return nil, err
@@ -427,7 +515,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := accountdb.LoadAccounts(client.qclient, exaddrs)
+		accounts, err := accountdb.LoadAccounts(client.client, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -438,7 +526,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := accountdb.LoadExecAccountQueue(client.qclient, addr, execaddress.String())
+			account, err := accountdb.LoadExecAccountQueue(client.client, addr, execaddress.String())
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
@@ -457,9 +545,9 @@ func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	req.FuncName = "MinerSourceList"
 	req.Payload = types.Encode(reqaddr)
 
-	msg := client.qclient.NewMessage("blockchain", types.EventQuery, &req)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := client.client.NewMessage("blockchain", types.EventQuery, &req)
+	client.client.Send(msg, true)
+	resp, err := client.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -468,12 +556,12 @@ func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 }
 
 func (client *Wallet) IsCaughtUp() bool {
-	if client.qclient == nil {
+	if client.client == nil {
 		panic("wallet client not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("blockchain", types.EventIsSync, nil)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := client.client.NewMessage("blockchain", types.EventIsSync, nil)
+	client.client.Send(msg, true)
+	resp, err := client.client.Wait(msg)
 	if err != nil {
 		return false
 	}
@@ -498,12 +586,13 @@ func (wallet *Wallet) tokenPreCreate(priv crypto.PrivKey, reqTokenPrcCreate *typ
 		Payload: types.Encode(precreate),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("token").String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("procTokenPreCreate", "Send err", err)
 		return nil, err
@@ -523,12 +612,18 @@ func (wallet *Wallet) tokenFinishCreate(priv crypto.PrivKey, req *types.ReqToken
 		Ty:    types.TokenActionFinishCreate,
 		Value: &types.TokenAction_Tokenfinishcreate{v},
 	}
-	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(finish), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(finish),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("token").String(),
+	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("procTokenFinishCreate", "Send err", err)
 		return nil, err
@@ -548,12 +643,18 @@ func (wallet *Wallet) tokenRevokeCreate(priv crypto.PrivKey, req *types.ReqToken
 		Ty:    types.TokenActionRevokeCreate,
 		Value: &types.TokenAction_Tokenrevokecreate{v},
 	}
-	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(revoke), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(revoke),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("token").String(),
+	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("procTokenRevokeCreate", "Send err", err)
 		return nil, err
@@ -578,12 +679,13 @@ func (wallet *Wallet) sellToken(priv crypto.PrivKey, reqSellToken *types.ReqSell
 		Payload: types.Encode(sell),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("trade").String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("sellToken", "Send err", err)
 		return nil, err
@@ -608,12 +710,13 @@ func (wallet *Wallet) buyToken(priv crypto.PrivKey, reqBuyToken *types.ReqBuyTok
 		Payload: types.Encode(buy),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("trade").String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("buyToken", "Send err", err)
 		return nil, err
@@ -638,12 +741,13 @@ func (wallet *Wallet) revokeSell(priv crypto.PrivKey, reqRevoke *types.ReqRevoke
 		Payload: types.Encode(revoke),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To:      account.ExecAddress("trade").String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("revoke sell token", "Send err", err)
 		return nil, err
@@ -667,9 +771,9 @@ func (wallet *Wallet) modifyConfig(priv crypto.PrivKey, req *types.ReqModifyConf
 	tx := &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.qclient.NewMessage("mempool", types.EventTx, tx)
-	wallet.qclient.Send(msg, true)
-	resp, err := wallet.qclient.Wait(msg)
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		walletlog.Error("modifyConfig", "Send err", err)
 		return nil, err
