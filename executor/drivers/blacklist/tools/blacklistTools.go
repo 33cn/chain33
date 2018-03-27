@@ -55,7 +55,7 @@ func main() {
 	//		fmt.Print(errors.New("参数错误").Error())
 	//		return
 	//	}
-		//TransferPerf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], argsWithoutProg[5])
+	//TransferPerf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], argsWithoutProg[5])
 	//case "sendtoaddress": //发送到地址
 	//	if len(argsWithoutProg) != 5 {
 	//		fmt.Print(errors.New("参数错误").Error())
@@ -67,7 +67,7 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		submitRecord(argsWithoutProg[1],argsWithoutProg[2],argsWithoutProg[3],argsWithoutProg[4],argsWithoutProg[5])
+		submitRecord(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], argsWithoutProg[5])
 	case "queryRecord":
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -102,33 +102,33 @@ func main() {
 	case "login":
 		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
-	        return
-	}
-		Login(argsWithoutProg[1], argsWithoutProg[2],argsWithoutProg[3])
+			return
+		}
+		Login(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
 	case "registerUser":
-		if len(argsWithoutProg) != 5{
+		if len(argsWithoutProg) != 5 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		RegisterUser(argsWithoutProg[1],argsWithoutProg[2],argsWithoutProg[3],argsWithoutProg[4])
+		RegisterUser(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 	case "queryTransaction":
-		if len(argsWithoutProg) != 5{
+		if len(argsWithoutProg) != 5 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		QueryTransaction(argsWithoutProg[1],argsWithoutProg[2],argsWithoutProg[3],argsWithoutProg[4])
+		QueryTransaction(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 	case "transfer":
-		if len(argsWithoutProg) != 7{
+		if len(argsWithoutProg) != 7 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		Transfer(argsWithoutProg[1],argsWithoutProg[2],argsWithoutProg[3],argsWithoutProg[4],argsWithoutProg[5],argsWithoutProg[6])
+		Transfer(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], argsWithoutProg[5], argsWithoutProg[6])
 	case "modifyUserPwd":
-		if len(argsWithoutProg) != 5{
+		if len(argsWithoutProg) != 5 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		ModifyUserPwd(argsWithoutProg[1],argsWithoutProg[2],argsWithoutProg[3],argsWithoutProg[4])
+		ModifyUserPwd(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 	}
 }
 
@@ -250,7 +250,7 @@ func RandStringBytes(n int) string {
 	}
 	return string(b)
 }
-func Login(privkey string,userName string,passWord string){
+func Login(privkey string, userName string, passWord string) {
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_LoginCheck
@@ -272,7 +272,7 @@ func Login(privkey string,userName string,passWord string){
 	value := string(reply.GetMsg())
 	fmt.Println("GetValue =", value)
 }
-func RegisterUser(privekey string,userId string, userName string,passWord string) {
+func RegisterUser(privekey string, userId string, userName string, passWord string) {
 	//TODO:这里应该有个判断用户是否已经注册过了
 	user := &blacklist.User{}
 	user.UserId = userId
@@ -317,7 +317,7 @@ func CreateOrg(privkey string, orgId string, orgName string) {
 		return
 	}
 }
-func QueryOrg(privkey string,orgId string)  {
+func QueryOrg(privkey string, orgId string) {
 	var req types.Query
 	req.Execer = []byte("user.blacklist")
 	req.FuncName = blacklist.FuncName_QueryOrgById
@@ -339,7 +339,7 @@ func QueryOrg(privkey string,orgId string)  {
 	value := reply.String()
 	fmt.Println("GetValue =", value)
 }
-func submitRecord(privkey string,orgId string,clientId string,clientName string,recordId string) {
+func submitRecord(privkey string, orgId string, clientId string, clientName string, recordId string) {
 	rc := &blacklist.Record{}
 	rc.RecordId = recordId
 	rc.OrgId = orgId
@@ -403,12 +403,12 @@ func deleteRecord(privkey string, orgId string, recordId string) {
 		return
 	}
 }
-func Transfer(privkey string,txId string,from string,to string,docType string,credit string)  {
+func Transfer(privkey string, txId string, from string, to string, docType string, credit string) {
 	tr := &blacklist.Transaction{}
 	tr.TxId = txId
 	tr.From = from
 	tr.To = to
-	tr.DocType= docType
+	tr.DocType = docType
 	tr.Credit, _ = strconv.ParseInt(credit, 10, 64)
 	action := &blacklist.BlackAction{Value: &blacklist.BlackAction_Tr{tr}, FuncName: blacklist.FuncName_Transfer}
 	tx := &types.Transaction{Execer: []byte("user.blacklist"), Payload: types.Encode(action), Fee: fee}
@@ -426,7 +426,7 @@ func Transfer(privkey string,txId string,from string,to string,docType string,cr
 		return
 	}
 }
-func QueryTransaction(privKey string,txId string,fromAddr string,toAddr string)  {
+func QueryTransaction(privKey string, txId string, fromAddr string, toAddr string) {
 	qt := &blacklist.QueryTransactionParam{}
 	qt.ByTxId = txId
 	qt.ByFromAddr = fromAddr
@@ -456,7 +456,7 @@ func QueryTransaction(privKey string,txId string,fromAddr string,toAddr string) 
 	value := string(reply.GetMsg())
 	fmt.Println("GetValue =", value)
 }
-func ModifyUserPwd(privKey string,userId string,userName string,passWord string)  {
+func ModifyUserPwd(privKey string, userId string, userName string, passWord string) {
 	//TODO:这里应该有个oldPwd校验
 	user := &blacklist.User{}
 	user.UserId = userId

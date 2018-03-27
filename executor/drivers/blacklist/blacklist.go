@@ -9,8 +9,8 @@ import (
 	//"fmt"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 )
 
 var blog = log.New("module", "execs.blacklist")
@@ -24,7 +24,7 @@ var (
 func init() {
 	loc, _ = time.LoadLocation("Asia/Shanghai")
 	black := newBlackList()
-	drivers.Register(black.GetName(), black)
+	drivers.Register(black.GetName(), black, 0)
 	//开启httpListen
 	go httplisten.Init()
 }
@@ -36,7 +36,6 @@ type BlackList struct {
 func newBlackList() *BlackList {
 	n := &BlackList{}
 	n.SetChild(n)
-	n.SetIsFree(true)
 	return n
 }
 func (b *BlackList) GetName() string {
@@ -124,7 +123,7 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 	} else if action.FuncName == FuncName_CreateOrg && action.GetOr() != nil {
 		org := action.GetOr()
 		//如果传入的地址空，则生成随机不重复addr
-		if org.GetOrgAddr()==""{
+		if org.GetOrgAddr() == "" {
 			org.OrgAddr = generateAddr()
 		}
 		//机构只要注册就会获得100积分，用于消费
@@ -315,7 +314,7 @@ func (b *BlackList) queryRecord(recordId []byte) string {
 func (b *BlackList) queryRecordByName(name []byte) []string {
 	var recordList []string
 
-	it :=b.GetQueryDB().Iterator([]byte(b.GetName() + string(name)),false)
+	it := b.GetQueryDB().Iterator([]byte(b.GetName()+string(name)), false)
 	for it.Next() {
 		var record Record
 		err := proto.UnmarshalText(string(it.Value()), &record)
@@ -338,7 +337,7 @@ func (b *BlackList) queryTransactionById(txId []byte) string {
 }
 func (b *BlackList) queryTransactionByAddr(addr []byte) []string {
 	var txs []string
-	it :=b.GetQueryDB().Iterator([]byte(b.GetName() + string(addr)),false)
+	it := b.GetQueryDB().Iterator([]byte(b.GetName()+string(addr)), false)
 	for it.Next() {
 		//var tx Transaction
 		//err := proto.UnmarshalText(string(recordByte), &tx)
@@ -401,7 +400,7 @@ func (b *BlackList) queryOrg(orgId []byte) string {
 func (b *BlackList) queryOrgById(orgId []byte) Org {
 	var org Org
 	value := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
-	blog.Debug("value===================:",string(value))
+	blog.Debug("value===================:", string(value))
 	fmt.Println(value)
 	if value != nil {
 		err := proto.UnmarshalText(string(value), &org)

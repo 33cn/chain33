@@ -2,11 +2,7 @@ package types
 
 var (
 	AllowDepositExec       = []string{"ticket"}
-<<<<<<< HEAD
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm", "retrieve", "none"}
-=======
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade"}
->>>>>>> origin/develop
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm", "retrieve", "none", "token", "trade"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -35,25 +31,6 @@ func SetMinFee(fee int64) {
 }
 
 const (
-<<<<<<< HEAD
-	Coin                     int64  = 1e8
-	MaxCoin                  int64  = 1e17
-	FutureBlockTime          int64  = 16
-	CoinReward               int64  = 18 * Coin //用户回报
-	CoinDevFund              int64  = 12 * Coin //发展基金回报
-	TicketPrice              int64  = 10000 * Coin
-	TicketFrozenTime         int64  = 5        //5s only for test
-	TicketWithdrawTime       int64  = 10       //10s only for test
-	TicketMinerWaitTime      int64  = 2        // 2s only for test
-	MaxTxSize                int64  = 100000   //100K
-	MaxBlockSize             int64  = 10000000 //10M
-	MaxTxNumber              int64  = 10000    //160
-	PowLimitBits             uint32 = uint32(0x1f00ffff)
-	TargetTimespan                  = 144 * 16 * time.Second
-	TargetTimePerBlock              = 16 * time.Second
-	RetargetAdjustmentFactor        = 4
-	MaxTxsPerBlock                  = 100000
-=======
 	//<<<<<<< HEAD
 	//Coin                     int64 = 1e8
 	//TokenPrecision           int64 = 1e4
@@ -96,7 +73,6 @@ const (
 	TokenIntroLenLimit          = 1024
 	InvalidStartTime            = 0
 	InvalidStopTime             = 0
->>>>>>> origin/develop
 )
 
 const (

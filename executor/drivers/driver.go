@@ -22,7 +22,7 @@ type Driver interface {
 	SetLocalDB(dbm.KVDB)
 	SetQueryDB(dbm.DB)
 	SetExecDriver(execDriver *ExecDrivers)
-	GetExecDriver()*ExecDrivers
+	GetExecDriver() *ExecDrivers
 	GetName() string
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64)
@@ -31,7 +31,6 @@ type Driver interface {
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	Query(funcName string, params []byte) (types.Message, error)
-	IsFree() bool
 }
 
 type DriverBase struct {
@@ -42,19 +41,9 @@ type DriverBase struct {
 	blocktime    int64
 	child        Driver
 	coinsaccount *account.AccountDB
-<<<<<<< HEAD
-	isFree       bool
-=======
 	execDriver   *ExecDrivers
->>>>>>> origin/develop
 }
 
-func (d *DriverBase) SetIsFree(isFree bool) {
-	d.isFree = isFree
-}
-func (d *DriverBase) IsFree() bool {
-	return d.isFree
-}
 func (d *DriverBase) SetEnv(height, blocktime int64) {
 	d.height = height
 	d.blocktime = blocktime
@@ -68,7 +57,7 @@ func (d *DriverBase) SetExecDriver(execDriver *ExecDrivers) {
 	d.execDriver = execDriver
 }
 
-func (d *DriverBase) GetExecDriver()*ExecDrivers {
+func (d *DriverBase) GetExecDriver() *ExecDrivers {
 	return d.execDriver
 }
 

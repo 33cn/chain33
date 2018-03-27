@@ -9,7 +9,8 @@ import (
 var clog = log.New("module", "execs.norm")
 
 func init() {
-	drivers.Register("norm", newNorm())
+	n := newNorm()
+	drivers.Register(n.GetName(), n, 0)
 }
 
 type Norm struct {
@@ -19,7 +20,6 @@ type Norm struct {
 func newNorm() *Norm {
 	n := &Norm{}
 	n.SetChild(n)
-	n.SetIsFree(true)
 	return n
 }
 

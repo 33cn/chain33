@@ -66,9 +66,9 @@ func (client *RaftClient) ProcEvent(msg queue.Message) {
 func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
 	//exec block
 	if block.Height == 0 {
-		block.Difficulty = types.PowLimitBits
+		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, err := util.ExecBlock(client.GetQueue(), prevHash, block, false)
+	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
 		return nil, err
 	}
@@ -95,15 +95,15 @@ func (client *RaftClient) recoverFromSnapshot(snapshot []byte) error {
 	return nil
 }
 
-func (client *RaftClient) SetQueue(q *queue.Queue) {
+func (client *RaftClient) SetQueueClient(c queue.Client) {
 	log.Info("Enter SetQueue method of raft consensus")
-	client.InitClient(q, func() {
+	client.InitClient(c, func() {
 		//初始化应该等到leader选举成功之后在pollingTask中执行
 		//client.InitBlock()
 	})
 	go client.EventLoop()
 	go client.readCommits(client.commitC, client.errorC)
-	go client.pollingTask(q)
+	go client.pollingTask(c)
 }
 
 func (client *RaftClient) Close() {
@@ -155,7 +155,8 @@ func (client *RaftClient) CreateBlock() {
 		if issleep {
 			time.Sleep(10 * time.Second)
 		}
-		txs := client.RequestTx(int(types.MaxTxNumber), nil)
+		lastBlock := client.GetCurrentBlock()
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -165,7 +166,6 @@ func (client *RaftClient) CreateBlock() {
 		//check dup
 		txs = client.CheckTxDup(txs)
 		fmt.Println(len(txs))
-		lastBlock := client.GetCurrentBlock()
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -226,7 +226,7 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 }
 
 //轮询任务，去检测本机器是否为validator节点，如果是，则执行打包任务
-func (client *RaftClient) pollingTask(q *queue.Queue) {
+func (client *RaftClient) pollingTask(c queue.Client) {
 	for {
 		select {
 		case validator := <-client.validatorC:
