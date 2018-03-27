@@ -332,7 +332,7 @@ func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 
 	msg := mem.client.NewMessage("p2p", types.EventTxBroadcast, tx)
 	mem.client.Send(msg, false)
-	mlog.Debug("tx sent to p2p", "msg", msg)
+	mlog.Debug("tx sent to p2p", "tx.Hash", tx.Hash())
 }
 
 // Mempool.pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
