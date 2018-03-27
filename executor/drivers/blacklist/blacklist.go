@@ -7,6 +7,7 @@ import (
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 	//"fmt"
+	"strconv"
 	"time"
 
 	"fmt"
@@ -136,12 +137,17 @@ func (b *BlackList) GetKVPairs(tx *types.Transaction) []*types.KeyValue {
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + org.GetOrgAddr()), []byte(org.String())})
 		return kvs
 	} else if action.FuncName == FuncName_DeleteRecord {
-		record := b.deleteRecord([]byte(b.GetName() + action.GetRc().GetClientName() + action.GetRc().GetRecordId()))
+		record := b.deleteRecord([]byte(action.GetRc().GetRecordId()))
+		blog.Info("blacklist+++++++++++record+++++recordId:"+strconv.FormatBool(record.GetSearchable()), nil)
+		if record.GetRecordId() == "" {
+			return kvs
+		}
+		blog.Info("record Searchable:"+strconv.FormatBool(record.GetSearchable()), nil)
 		record.UpdateTime = time.Now().In(loc).Format(layout)
 		//key=user.blacklist+clientName+recordId
 		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientName() + record.GetRecordId()), []byte(record.String())})
 		//key=user.blacklist+clientId+recordId
-		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetClientId() + record.GetRecordId()), []byte(record.String())})
+		kvs = append(kvs, &types.KeyValue{[]byte(b.GetName() + record.GetRecordId()), []byte(record.String())})
 		return kvs
 	} else if action.FuncName == FuncName_Transfer && action.GetTr() != nil {
 		kvs_ts, err := b.transfer(action.GetTr())
@@ -303,11 +309,20 @@ func (b *BlackList) deleteRecord(recordId []byte) Record {
 
 //TODO:由于levedb不支持多键值查询，因此在写接口函数的时候只能做些规避
 func (b *BlackList) queryRecord(recordId []byte) string {
+	blog.Debug("recordId:============"+string(recordId), nil)
 	recordbytes := b.GetQueryDB().Get([]byte(b.GetName() + string(recordId)))
-	if recordbytes != nil {
-		return string(recordbytes)
+	if recordbytes == nil {
+		return ""
 	}
-	return ""
+	var record Record
+	err := proto.UnmarshalText(string(recordbytes), &record)
+	if err != nil {
+		panic(err)
+	}
+	if !record.GetSearchable() {
+		return ""
+	}
+	return record.String()
 }
 
 //需要传入name和recordId
