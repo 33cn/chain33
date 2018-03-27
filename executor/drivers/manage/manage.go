@@ -48,8 +48,10 @@ func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 		return nil, err
 	}
 	clog.Info("manage.Exec", "ty", manageAction.Ty)
-	switch manageAction.Ty {
-	case types.ManageActionModifyConfig:
+	if manageAction.Ty == types.ManageActionModifyConfig {
+		if manageAction.GetModify() == nil {
+			return nil, types.ErrInputPara
+		}
 		action := NewManageAction(c, tx)
 		return action.modifyConfig(manageAction.GetModify())
 	}
