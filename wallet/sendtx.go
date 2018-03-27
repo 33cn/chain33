@@ -144,12 +144,12 @@ func (wallet *Wallet) closeAllTickets(height int64) (int, error) {
 	return 0, nil
 }
 
-func (wallet *Wallet) forceCloseAllTicket(height int64) ([][]byte, error) {
+func (wallet *Wallet) forceCloseAllTicket(height int64) (*types.ReplyHashes, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
 		return nil, err
 	}
-	var hashes [][]byte
+	var hashes types.ReplyHashes
 	for _, key := range keys {
 		hash, err := wallet.forceCloseTicketsByAddr(height, key)
 		if err != nil {
@@ -159,9 +159,9 @@ func (wallet *Wallet) forceCloseAllTicket(height int64) ([][]byte, error) {
 		if hash == nil {
 			continue
 		}
-		hashes = append(hashes, hash)
+		hashes.Hashes = append(hashes.Hashes, hash)
 	}
-	return hashes, nil
+	return &hashes, nil
 }
 
 func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error) {
