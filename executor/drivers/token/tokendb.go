@@ -103,10 +103,6 @@ func (action *TokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenSymbolUpper
 	}
 
-	hasPriv, ok := validCreator(action.fromaddr, action.db)
-	if ok != nil || hasPriv != true {
-		return  nil, types.ErrNoPrivilege
-	}
 
 	if checkTokenExist(token.GetSymbol(), action.db) {
 		return nil, types.ErrTokenExist
@@ -206,6 +202,12 @@ func (action *TokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	if (ok != nil || hasPriv != true) && action.fromaddr != token.Creator {
 		tokenlog.Error("token revokeCreate, different creator vs actor of this revoke",
 			"action.fromaddr", action.fromaddr, "creator", token.Creator)
+		return nil, types.ErrTokenRevoker
+	}
+
+	if action.fromaddr != token.Owner && action.fromaddr != token.Creator {
+		tokenlog.Error("tprocTokenRevokeCreate, different creator/owner vs actor of this revoke",
+			"action.fromaddr", action.fromaddr, "creator", token.Creator, "owner", token.Owner)
 		return nil, types.ErrTokenRevoker
 	}
 
