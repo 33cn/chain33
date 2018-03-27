@@ -922,6 +922,7 @@ func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *inter
 	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
 	return nil
 }
+
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 	var rTy string
 	switch rlog.Ty {
