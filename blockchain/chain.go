@@ -28,8 +28,7 @@ var (
 )
 
 type BlockChain struct {
-	qclient queue.Client
-	q       *queue.Queue
+	client queue.Client
 	// 永久存储数据到db中
 	blockStore *BlockStore
 	//cache  缓存block方便快速查询
@@ -79,7 +78,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		peerList:           nil,
 		cfg:                cfg,
 		recvwg:             &sync.WaitGroup{},
-		task:               newTask(90 * time.Second),
+		task:               newTask(160 * time.Second),
 		quit:               make(chan struct{}, 0),
 		synblock:           make(chan struct{}, 1),
 		orphanPool:         NewOrphanPool(),
@@ -115,23 +114,22 @@ func (chain *BlockChain) Close() {
 	chain.recvwg.Wait()
 
 	//退出接受数据, 在最后一个block写磁盘时addtx还需要接受数据
-	chain.qclient.Close()
+	chain.client.Close()
 
 	//关闭数据库
 	chain.blockStore.db.Close()
 	chainlog.Info("blockchain module closed")
 }
 
-func (chain *BlockChain) SetQueue(q *queue.Queue) {
-	chain.qclient = q.NewClient()
-	chain.qclient.Sub("blockchain")
+func (chain *BlockChain) SetQueueClient(client queue.Client) {
+	chain.client = client
+	chain.client.Sub("blockchain")
 
 	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, 128)
-	blockStore := NewBlockStore(blockStoreDB, q)
+	blockStore := NewBlockStore(blockStoreDB, client.Clone())
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
-	chain.query = NewQuery(blockStoreDB, q, stateHash)
-	chain.q = q
+	chain.query = NewQuery(blockStoreDB, chain.client.Clone(), stateHash)
 
 	//获取lastblock从数据库,创建bestviewtip节点
 	chain.InitIndexAndBestView()
@@ -141,7 +139,8 @@ func (chain *BlockChain) SetQueue(q *queue.Queue) {
 
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
-	// 定时同步缓存中的block to db
+
+	// 定时检测/同步block
 	go chain.SynRoutine()
 }
 
@@ -155,61 +154,6 @@ func (chain *BlockChain) getStateHash() []byte {
 		return blockdetail.GetBlock().GetStateHash()
 	}
 	return zeroHash[:]
-}
-
-func (chain *BlockChain) ProcRecvMsg() {
-	reqnum := make(chan struct{}, 1000)
-	for msg := range chain.qclient.Recv() {
-		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
-		msgtype := msg.Ty
-		reqnum <- struct{}{}
-		chain.recvwg.Add(1)
-		switch msgtype {
-		case types.EventLocalGet:
-			go chain.processMsg(msg, reqnum, chain.localGet)
-		case types.EventLocalList:
-			go chain.processMsg(msg, reqnum, chain.localList)
-		case types.EventQueryTx:
-			go chain.processMsg(msg, reqnum, chain.queryTx)
-		case types.EventGetBlocks:
-			go chain.processMsg(msg, reqnum, chain.getBlocks)
-		case types.EventAddBlock: // block
-			go chain.processMsg(msg, reqnum, chain.addBlock)
-		case types.EventGetBlockHeight:
-			go chain.processMsg(msg, reqnum, chain.getBlockHeight)
-		case types.EventTxHashList:
-			go chain.processMsg(msg, reqnum, chain.txHashList)
-		case types.EventGetHeaders:
-			go chain.processMsg(msg, reqnum, chain.getHeaders)
-		case types.EventGetLastHeader:
-			go chain.processMsg(msg, reqnum, chain.getLastHeader)
-		case types.EventAddBlockDetail:
-			go chain.processMsg(msg, reqnum, chain.addBlockDetail)
-		case types.EventBroadcastAddBlock: //block
-			go chain.processMsg(msg, reqnum, chain.broadcastAddBlock)
-		case types.EventGetTransactionByAddr:
-			go chain.processMsg(msg, reqnum, chain.getTransactionByAddr)
-		case types.EventGetTransactionByHash:
-			go chain.processMsg(msg, reqnum, chain.getTransactionByHashes)
-		case types.EventGetBlockOverview: //blockOverview
-			go chain.processMsg(msg, reqnum, chain.getBlockOverview)
-		case types.EventGetAddrOverview: //addrOverview
-			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
-		case types.EventGetBlockHash: //GetBlockHash
-			go chain.processMsg(msg, reqnum, chain.getBlockHash)
-		case types.EventQuery:
-			go chain.processMsg(msg, reqnum, chain.getQuery)
-		case types.EventAddBlockHeaders:
-			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
-		case types.EventGetLastBlock:
-			go chain.processMsg(msg, reqnum, chain.getLastBlock)
-		case types.EventIsSync:
-			go chain.processMsg(msg, reqnum, chain.isSync)
-		default:
-			<-reqnum
-			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
-		}
-	}
 }
 
 /*
@@ -350,7 +294,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		chain.task.Done(blockdetail.Block.GetHeight())
 	}
 	//此处只更新广播block的高度
-	if broadcast && (ismain == true || isorphan == true) {
+	if broadcast {
 		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
 	}
 
@@ -361,7 +305,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 
 //blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
 func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error) {
-	if chain.qclient == nil {
+	if chain.client == nil {
 		fmt.Println("chain client not bind message queue.")
 		return types.ErrClientNotBindQueue
 	}
@@ -372,24 +316,24 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	chainlog.Debug("SendAddBlockEvent", "Height", block.Block.Height)
 
 	chainlog.Debug("SendAddBlockEvent -->>mempool")
-	msg := chain.qclient.NewMessage("mempool", types.EventAddBlock, block)
-	chain.qclient.Send(msg, false)
+	msg := chain.client.NewMessage("mempool", types.EventAddBlock, block)
+	chain.client.Send(msg, false)
 
 	chainlog.Debug("SendAddBlockEvent -->>consensus")
 
-	msg = chain.qclient.NewMessage("consensus", types.EventAddBlock, block)
-	chain.qclient.Send(msg, false)
+	msg = chain.client.NewMessage("consensus", types.EventAddBlock, block)
+	chain.client.Send(msg, false)
 
 	chainlog.Debug("SendAddBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
-	msg = chain.qclient.NewMessage("wallet", types.EventAddBlock, block)
-	chain.qclient.Send(msg, false)
+	msg = chain.client.NewMessage("wallet", types.EventAddBlock, block)
+	chain.client.Send(msg, false)
 
 	return nil
 }
 
 //blockchain模块广播此block到网络中
 func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
-	if chain.qclient == nil {
+	if chain.client == nil {
 		fmt.Println("chain client not bind message queue.")
 		return
 	}
@@ -399,8 +343,8 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	}
 	chainlog.Debug("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
 
-	msg := chain.qclient.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
-	chain.qclient.Send(msg, false)
+	msg := chain.client.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
+	chain.client.Send(msg, false)
 	return
 }
 
@@ -635,8 +579,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	//chainlog.Info("ProcGetTransactionByHashes", "txhash len:", len(hashs))
 	var txDetails types.TransactionDetails
 
-	txDetails.Txs = make([]*types.TransactionDetail, len(hashs))
-	for index, txhash := range hashs {
+	for _, txhash := range hashs {
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
@@ -658,12 +601,12 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			pubkey := txresult.GetTx().Signature.GetPubkey()
 			addr := account.PubKeyToAddress(pubkey)
 			txDetail.Fromaddr = addr.String()
-			if string(txDetail.Tx.GetExecer()) == "coins" && txDetail.GetActionName() == "withdraw" {
+			if (string(txDetail.Tx.GetExecer()) == "coins" || "token" == string(txDetail.Tx.GetExecer())) && txDetail.GetActionName() == "withdraw" {
 				//swap from and to
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
 			}
 			chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
-			txDetails.Txs[index] = &txDetail
+			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		}
 	}
 	return &txDetails, nil
@@ -776,7 +719,7 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 
 //blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
 func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error) {
-	if chain.qclient == nil {
+	if chain.client == nil {
 		fmt.Println("chain client not bind message queue.")
 		err := types.ErrClientNotBindQueue
 		return err
@@ -788,14 +731,14 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 
 	chainlog.Debug("SendDelBlockEvent -->>mempool&consensus&wallet", "height", block.GetBlock().GetHeight())
 
-	msg := chain.qclient.NewMessage("consensus", types.EventDelBlock, block)
-	chain.qclient.Send(msg, false)
+	msg := chain.client.NewMessage("consensus", types.EventDelBlock, block)
+	chain.client.Send(msg, false)
 
-	msg = chain.qclient.NewMessage("mempool", types.EventDelBlock, block)
-	chain.qclient.Send(msg, false)
+	msg = chain.client.NewMessage("mempool", types.EventDelBlock, block)
+	chain.client.Send(msg, false)
 
-	msg = chain.qclient.NewMessage("wallet", types.EventDelBlock, block)
-	chain.qclient.Send(msg, false)
+	msg = chain.client.NewMessage("wallet", types.EventDelBlock, block)
+	chain.client.Send(msg, false)
 
 	return nil
 }

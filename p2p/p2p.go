@@ -16,7 +16,7 @@ var (
 )
 
 type P2p struct {
-	qCli         queue.Client
+	client       queue.Client
 	node         *Node
 	addrBook     *AddrBook // known peers
 	p2pCli       *P2pCli
@@ -50,8 +50,8 @@ func (network *P2p) Close() {
 	log.Debug("close", "network", "ShowTaskCapcity done")
 	network.node.Close()
 	log.Debug("close", "node", "done")
-	if network.qCli != nil {
-		network.qCli.Close()
+	if network.client != nil {
+		network.client.Close()
 	}
 
 	close(network.txFactory)
@@ -59,12 +59,13 @@ func (network *P2p) Close() {
 	pub.Shutdown()
 }
 
-func (network *P2p) SetQueue(q *queue.Queue) {
-	network.qCli = q.NewClient()
-	network.node.SetQueue(q)
+func (network *P2p) SetQueueClient(client queue.Client) {
+	network.client = client
+	network.node.SetQueueClient(client.Clone())
 	go func() {
 		network.node.Start()
 		network.subP2pMsg()
+		network.loadP2PPrivKeyToWallet()
 	}()
 }
 
@@ -84,16 +85,68 @@ func (network *P2p) ShowTaskCapcity() {
 	}
 }
 
+func (network *P2p) loadP2PPrivKeyToWallet() error {
+
+	for {
+
+		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
+		err := network.client.Send(msg, true)
+		if err != nil {
+			log.Error("GetWalletStatus", "Error", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+		resp, err := network.client.Wait(msg)
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if resp.GetData().(*types.WalletStatus).GetIsHasSeed() == false { //无种子
+			time.Sleep(time.Second)
+			continue
+		}
+
+		break
+	}
+	var parm types.ReqWalletImportPrivKey
+	parm.Privkey = network.node.nodeInfo.addrBook.GetKey()
+	parm.Label = "node award"
+	msg := network.client.NewMessage("wallet", types.EventWalletImportprivkey, &parm)
+	err := network.client.Send(msg, true)
+	if err != nil {
+		log.Error("ImportPrivkey", "Error", err.Error())
+		return err
+	}
+	resp, err := network.client.Wait(msg)
+	if err != nil {
+		if err == types.ErrPrivkeyExist || err == types.ErrLabelHasUsed {
+			return nil
+		}
+		log.Error("loadP2PPrivKeyToWallet", "err", err.Error())
+		return err
+	}
+
+	log.Debug("loadP2PPrivKeyToWallet", "resp", resp.GetData())
+	return nil
+
+}
+
 func (network *P2p) subP2pMsg() {
-	if network.qCli == nil {
+	if network.client == nil {
 		return
 	}
 	var taskIndex int64
 	network.txCapcity = 1000
-	network.qCli.Sub("p2p")
+	network.client.Sub("p2p")
 	go network.ShowTaskCapcity()
 	go func() {
-		for msg := range network.qCli.Recv() {
+		for msg := range network.client.Recv() {
 			if network.IsClose() {
 				return
 			}
@@ -123,7 +176,7 @@ func (network *P2p) subP2pMsg() {
 				go network.p2pCli.GetHeaders(msg, taskIndex)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
-				msg.Reply(network.qCli.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
+				msg.Reply(network.client.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
 				<-network.otherFactory
 				continue
 			}

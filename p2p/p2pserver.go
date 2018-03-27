@@ -144,7 +144,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
 	client.Send(msg, false)
 	return &pb.Reply{IsOk: true, Msg: []byte("ok")}, nil
@@ -157,7 +157,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
 
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
 		Isdetail: false})
 	err := client.Send(msg, true)
@@ -207,7 +207,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 		return fmt.Errorf(VersionNotSupport)
 	}
 	invs := in.GetInvs()
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	for _, inv := range invs { //过滤掉不需要的数据
 		var invdata pb.InvData
 		var memtx = make(map[string]*pb.Transaction)
@@ -278,7 +278,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 		return nil, fmt.Errorf("out of range")
 	}
 
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeight()})
 	err := client.Send(msg, true)
 	if err != nil {
@@ -300,7 +300,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	if s.checkVersion(in.GetVersion()) == false {
 		return nil, fmt.Errorf(VersionNotSupport)
 	}
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	log.Debug("GetPeerInfo", "GetMempoolSize", "befor")
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
 	err := client.Send(msg, true)
@@ -346,7 +346,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 }
 
 func (s *p2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
 	err := client.Send(msg, false)
 	if err != nil {
@@ -362,8 +362,10 @@ func (s *p2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	for data := range dataChain {
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
+			log.Debug("ServerStreamSend", "blockhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
 			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 		} else if tx, ok := data.(*pb.P2PTx); ok {
+			log.Debug("ServerStreamSend", "txhash", hex.EncodeToString(tx.GetTx().Hash()))
 			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
 		} else {
 			log.Error("RoutChate", "Convert error", data)
@@ -401,32 +403,34 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			return err
 		}
 		if block := in.GetBlock(); block != nil {
-			if Filter.QueryData(block.GetBlock().GetHeight()) { //已经注册了相同的区块高度，则不会再发送给blockchain
+
+			blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+			if Filter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
 				continue
 			}
 
-			log.Info("ServerStreamRead", " Recv block==+=====+=====+=>Height", block.GetBlock().GetHeight())
+			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block txhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
 			if block.GetBlock() != nil {
-				msg := s.node.nodeInfo.qclient.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-				err := s.node.nodeInfo.qclient.Send(msg, false)
+				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+				err := s.node.nodeInfo.client.Send(msg, false)
 				if err != nil {
 					log.Error("ServerStreamRead", "Error", err.Error())
 					continue
 				}
 			}
-			Filter.RegData(block.GetBlock().GetHeight()) //注册已经收到的区块
+			Filter.RegRecvData(blockhash) //注册已经收到的区块
 
 		} else if tx := in.GetTx(); tx != nil {
 			txhash := hex.EncodeToString(tx.GetTx().Hash())
 			log.Debug("ServerStreamRead", "txhash:", "0x"+txhash)
-			if Filter.QueryData(txhash) == true { //同上
+			if Filter.QueryRecvData(txhash) == true { //同上
 				continue
 			}
 			if tx.GetTx() != nil {
-				msg := s.node.nodeInfo.qclient.NewMessage("mempool", pb.EventTx, tx.GetTx())
-				s.node.nodeInfo.qclient.Send(msg, false)
+				msg := s.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
+				s.node.nodeInfo.client.Send(msg, false)
 			}
-			Filter.RegData(txhash)
+			Filter.RegRecvData(txhash)
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
@@ -485,7 +489,7 @@ func (s *p2pServer) checkVersion(version int32) bool {
 func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 
 	var txmap = make(map[string]*pb.Transaction)
-	client := s.node.nodeInfo.qclient
+	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
 	err := client.Send(msg, true)
 	if err != nil {
