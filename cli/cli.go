@@ -389,12 +389,12 @@ func main() {
 			return
 		}
 		RevokeCreateToken(argsWithoutProg[1:])
-	case "config":
+	case "configtransaction":
 		if len(argsWithoutProg) != 5 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		ModifyConfig(argsWithoutProg[1:])
+		ManageConfigTransactioin(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 	case "queryconfig": //查询配置
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -471,7 +471,7 @@ func LoadHelp() {
 	fmt.Println("showonesbuyorder [buyer]                                       : 显示指定用户下所有token成交的购买单")
 	fmt.Println("showonesbuytokenorder [buyer, token0, [token1, token2]]        : 显示指定用户下指定token成交的购买单")
 	fmt.Println("sellcrowdfund [owner, token, Amountpbl, minbl, pricepbl, totalpbl, start, stop]              : 卖出众筹")
-	fmt.Println("config [configKey, operate, value, modifier-addr]              : 修改配置")
+	fmt.Println("configtransaction [configKey, operate, value, privkey]         : 修改配置")
 	fmt.Println("queryconfig [Key]                                              : 查询配置")
 	fmt.Println("isntpclocksync []                                           : 获取网络时间同步状态")
 
@@ -2144,35 +2144,6 @@ func RevokeCreateToken(args []string) {
 	fmt.Println(string(data))
 }
 
-func ModifyConfig(args []string) {
-	// revoker, symbol, owner, string) {
-	key := args[0]
-	op := args[1]
-	value := args[2]
-	addr := args[3]
-
-	params := types.ReqModifyConfig{Key: key, Op: op, Value: value, Modifier: addr}
-	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	var res jsonrpc.ReplyHash
-	err = rpc.Call("Chain33.ModifyConfig", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
-}
-
 //revokeselltoken [seller, sellid]
 func RevokeSellToken(seller string, sellid string) {
 	revoke := &types.TradeForRevokeSell{sellid}
@@ -2417,4 +2388,33 @@ func IsNtpClockSync() {
 	}
 
 	fmt.Println("ntpclocksync status:", res)
+}
+
+func ManageConfigTransactioin(key, op, opAddr,  priv string) {
+	c, _ := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	a, _ := common.FromHex(priv)
+	privKey, _ := c.PrivKeyFromBytes(a)
+	originaddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+
+	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr }
+	modify := &types.ManageAction{
+		Ty:    types.ManageActionModifyConfig,
+		Value: &types.ManageAction_Modify{v},
+	}
+	tx := &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
+
+	var random *rand.Rand
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	tx.Fee += types.MinFee
+	tx.Sign(types.SECP256K1, privKey)
+	txHex := types.Encode(tx)
+	fmt.Println(hex.EncodeToString(txHex))
 }
