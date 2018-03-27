@@ -493,16 +493,6 @@ func (g *Grpc) RevokeSellToken(ctx context.Context, in *pb.ReqRevokeSell) (*pb.R
 	return result, nil
 }
 
-
-func (g *Grpc) ModifyConfig(ctx context.Context, in *pb.ReqModifyConfig) (*pb.ReplyHash, error) {
-	reply, err := g.cli.ModifyConfig(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
-}
-
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if g.checkWhitlist(ctx) == false {
 		return nil, fmt.Errorf("reject")
