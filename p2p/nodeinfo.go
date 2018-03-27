@@ -21,8 +21,7 @@ type NodeInfo struct {
 	natNoticeChain chan struct{}
 	natResultChain chan bool
 	cfg            *types.P2P
-	q              *queue.Queue
-	qclient        queue.Client
+	client         queue.Client
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
 	addrBook       *AddrBook // known peers

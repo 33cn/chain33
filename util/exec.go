@@ -14,7 +14,7 @@ import (
 
 var ulog = log.New("module", "util")
 
-func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
+func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
@@ -29,7 +29,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
 	oldtxscount := len(cacheTxs)
-	cacheTxs = CheckTxDup(q, cacheTxs, block.Height)
+	cacheTxs = CheckTxDup(client, cacheTxs, block.Height)
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, types.ErrTxDup
@@ -37,7 +37,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
 
-	receipts := ExecTx(q, prevStateRoot, block)
+	receipts := ExecTx(client, prevStateRoot, block)
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
@@ -88,24 +88,24 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	if kvset == nil {
 		block.StateHash = prevStateRoot
 	} else {
-		block.StateHash = ExecKVMemSet(q, prevStateRoot, kvset)
+		block.StateHash = ExecKVMemSet(client, prevStateRoot, kvset)
 	}
 	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
-		ExecKVSetRollback(q, block.StateHash)
+		ExecKVSetRollback(client, block.StateHash)
 		return nil, types.ErrCheckStateHash
 	}
 
 	detail.Block = block
 	detail.Receipts = rdata
 	if detail.Block.Height > 0 {
-		err := CheckBlock(q, &detail)
+		err := CheckBlock(client, &detail)
 		if err != nil {
 			return nil, err
 		}
 	}
 	//save to db
 	if kvset != nil {
-		ExecKVSetCommit(q, block.StateHash)
+		ExecKVSetCommit(client, block.StateHash)
 	}
 
 	//get receipts
@@ -114,8 +114,7 @@ func ExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errRetu
 	return &detail, nil
 }
 
-func CheckBlock(q *queue.Queue, block *types.BlockDetail) error {
-	client := q.NewClient()
+func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
 	client.Send(msg, true)
@@ -130,8 +129,7 @@ func CheckBlock(q *queue.Queue, block *types.BlockDetail) error {
 	return errors.New(string(reply.GetMsg()))
 }
 
-func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Receipts {
-	client := q.NewClient()
+func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
@@ -143,21 +141,7 @@ func ExecTx(q *queue.Queue, prevStateRoot []byte, block *types.Block) *types.Rec
 	return receipts
 }
 
-func ExecTxList(q *queue.Queue, prevStateRoot []byte, txs []*types.Transaction, header *types.Header) *types.Receipts {
-	client := q.NewClient()
-	list := &types.ExecTxList{prevStateRoot, txs, header.BlockTime, header.Height}
-	msg := client.NewMessage("execs", types.EventExecTxList, list)
-	client.Send(msg, true)
-	resp, err := client.Wait(msg)
-	if err != nil {
-		panic(err)
-	}
-	receipts := resp.GetData().(*types.Receipts)
-	return receipts
-}
-
-func ExecKVMemSet(q *queue.Queue, prevStateRoot []byte, kvset []*types.KeyValue) []byte {
-	client := q.NewClient()
+func ExecKVMemSet(client queue.Client, prevStateRoot []byte, kvset []*types.KeyValue) []byte {
 	set := &types.StoreSet{prevStateRoot, kvset}
 	msg := client.NewMessage("store", types.EventStoreMemSet, set)
 	client.Send(msg, true)
@@ -169,12 +153,11 @@ func ExecKVMemSet(q *queue.Queue, prevStateRoot []byte, kvset []*types.KeyValue)
 	return hash.GetHash()
 }
 
-func ExecKVSetCommit(q *queue.Queue, hash []byte) error {
-	qclient := q.NewClient()
+func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{hash}
-	msg := qclient.NewMessage("store", types.EventStoreCommit, req)
-	qclient.Send(msg, true)
-	msg, err := qclient.Wait(msg)
+	msg := client.NewMessage("store", types.EventStoreCommit, req)
+	client.Send(msg, true)
+	msg, err := client.Wait(msg)
 	if err != nil {
 		return err
 	}
@@ -182,12 +165,11 @@ func ExecKVSetCommit(q *queue.Queue, hash []byte) error {
 	return nil
 }
 
-func ExecKVSetRollback(q *queue.Queue, hash []byte) error {
-	qclient := q.NewClient()
+func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{hash}
-	msg := qclient.NewMessage("store", types.EventStoreRollback, req)
-	qclient.Send(msg, true)
-	msg, err := qclient.Wait(msg)
+	msg := client.NewMessage("store", types.EventStoreRollback, req)
+	client.Send(msg, true)
+	msg, err := client.Wait(msg)
 	if err != nil {
 		return err
 	}
@@ -208,8 +190,7 @@ func CheckTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCac
 	return ret
 }
 
-func CheckTxDup(q *queue.Queue, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache) {
-	qclient := q.NewClient()
+func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache) {
 	var checkHashList types.TxHashList
 	if height >= types.ForkV1 {
 		txs = CheckTxDupInner(txs)
@@ -218,9 +199,9 @@ func CheckTxDup(q *queue.Queue, txs []*types.TransactionCache, height int64) (tr
 		hash := tx.Hash()
 		checkHashList.Hashes = append(checkHashList.Hashes, hash)
 	}
-	hashList := qclient.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-	qclient.Send(hashList, true)
-	dupTxList, _ := qclient.Wait(hashList)
+	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
+	client.Send(hashList, true)
+	dupTxList, _ := client.Wait(hashList)
 	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
 	dupMap := make(map[string]bool)
 	for _, hash := range dupTxs {

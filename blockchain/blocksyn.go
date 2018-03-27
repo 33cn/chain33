@@ -12,9 +12,13 @@ import (
 )
 
 var (
-	synBlocklock            sync.Mutex
-	peerMaxBlklock          sync.Mutex
-	castlock                sync.Mutex
+	synBlocklock     sync.Mutex
+	peerMaxBlklock   sync.Mutex
+	castlock         sync.Mutex
+	ntpClockSynclock sync.Mutex
+
+	isNtpClockSync bool = true //ntp时间是否同步
+
 	MaxFetchBlockNum        int64 = 128 * 6 //一次最多申请获取block个数
 	TimeoutSeconds          int64 = 2
 	BackBlockNum            int64 = 128    //节点高度不增加时向后取blocks的个数
@@ -120,7 +124,7 @@ blockchain 模块回复 EventReply
 结构体：
 */
 func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string) (err error) {
-	if chain.qclient == nil {
+	if chain.client == nil {
 		synlog.Error("FetchBlock chain client not bind message queue.")
 		return types.ErrClientNotBindQueue
 	}
@@ -151,15 +155,15 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string) (err e
 		return err
 	}
 	synlog.Debug("FetchBlock", "Start", requestblock.Start, "End", requestblock.End)
-	msg := chain.qclient.NewMessage("p2p", types.EventFetchBlocks, &requestblock)
-	Err := chain.qclient.Send(msg, true)
+	msg := chain.client.NewMessage("p2p", types.EventFetchBlocks, &requestblock)
+	Err := chain.client.Send(msg, true)
 	if Err != nil {
-		synlog.Error("FetchBlock", "qclient.Send err:", Err)
+		synlog.Error("FetchBlock", "client.Send err:", Err)
 		return err
 	}
-	resp, err := chain.qclient.Wait(msg)
+	resp, err := chain.client.Wait(msg)
 	if err != nil {
-		synlog.Error("FetchBlock", "qclient.Wait err:", err)
+		synlog.Error("FetchBlock", "client.Wait err:", err)
 		return err
 	}
 	return resp.Err()
@@ -174,19 +178,19 @@ func (chain *BlockChain) FetchPeerList() {
 var debugflag int = 60
 
 func (chain *BlockChain) fetchPeerList() error {
-	if chain.qclient == nil {
+	if chain.client == nil {
 		synlog.Error("fetchPeerList chain client not bind message queue.")
 		return nil
 	}
-	msg := chain.qclient.NewMessage("p2p", types.EventPeerInfo, nil)
-	Err := chain.qclient.Send(msg, true)
+	msg := chain.client.NewMessage("p2p", types.EventPeerInfo, nil)
+	Err := chain.client.Send(msg, true)
 	if Err != nil {
-		synlog.Error("fetchPeerList", "qclient.Send err:", Err)
+		synlog.Error("fetchPeerList", "client.Send err:", Err)
 		return Err
 	}
-	resp, err := chain.qclient.Wait(msg)
+	resp, err := chain.client.Wait(msg)
 	if err != nil {
-		synlog.Error("fetchPeerList", "qclient.Wait err:", err)
+		synlog.Error("fetchPeerList", "client.Wait err:", err)
 		return err
 	}
 
@@ -420,7 +424,7 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 
 //从指定pid获取start到end之间的headers
 func (chain *BlockChain) FetchBlockHeaders(start int64, end int64, pid string) (err error) {
-	if chain.qclient == nil {
+	if chain.client == nil {
 		synlog.Error("FetchBlockHeaders chain client not bind message queue.")
 		return types.ErrClientNotBindQueue
 	}
@@ -433,15 +437,15 @@ func (chain *BlockChain) FetchBlockHeaders(start int64, end int64, pid string) (
 	requestblock.Isdetail = false
 	requestblock.Pid = []string{pid}
 
-	msg := chain.qclient.NewMessage("p2p", types.EventFetchBlockHeaders, &requestblock)
-	Err := chain.qclient.Send(msg, true)
+	msg := chain.client.NewMessage("p2p", types.EventFetchBlockHeaders, &requestblock)
+	Err := chain.client.Send(msg, true)
 	if Err != nil {
-		synlog.Error("FetchBlockHeaders", "qclient.Send err:", Err)
+		synlog.Error("FetchBlockHeaders", "client.Send err:", Err)
 		return err
 	}
-	resp, err := chain.qclient.Wait(msg)
+	resp, err := chain.client.Wait(msg)
 	if err != nil {
-		synlog.Error("FetchBlockHeaders", "qclient.Wait err:", err)
+		synlog.Error("FetchBlockHeaders", "client.Wait err:", err)
 		return err
 	}
 	return resp.Err()
@@ -614,4 +618,18 @@ func (chain *BlockChain) IsCaughtUp() bool {
 
 	synlog.Debug("IsCaughtUp", "IsCaughtUp ", isCaughtUp, "height", height, "maxPeerHeight", maxPeerHeight, "peersNo", peersNo)
 	return isCaughtUp
+}
+
+//获取ntp时间是否同步状态
+func GetNtpClockSyncStatus() bool {
+	ntpClockSynclock.Lock()
+	defer ntpClockSynclock.Unlock()
+	return isNtpClockSync
+}
+
+//定时更新ntp时间同步状态
+func UpdateNtpClockSyncStatus(Sync bool) {
+	ntpClockSynclock.Lock()
+	defer ntpClockSynclock.Unlock()
+	isNtpClockSync = Sync
 }

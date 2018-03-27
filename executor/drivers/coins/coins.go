@@ -22,7 +22,7 @@ var clog = log.New("module", "execs.coins")
 
 func init() {
 	n := newCoins()
-	drivers.Register(n.GetName(), n)
+	drivers.Register(n.GetName(), n, 0)
 }
 
 type Coins struct {
@@ -54,22 +54,23 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To) {
+		if c.GetExecDriver().IsDriverAddress(tx.To) {
 			return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
 		}
+
 		return coinsAccount.Transfer(from, tx.To, transfer.Amount)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To) {
+		if c.GetExecDriver().IsDriverAddress(tx.To) {
 			return coinsAccount.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if c.GetHeight() == 0 {
-			if drivers.IsDriverAddress(tx.To) {
+			if c.GetExecDriver().IsDriverAddress(tx.To) {
 				return coinsAccount.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
 			return coinsAccount.GenesisInit(tx.To, genesis.Amount)
