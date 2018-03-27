@@ -260,7 +260,7 @@ func (wallet *Wallet) closeTicket(height int64) (int, error) {
 	return wallet.closeAllTickets(height)
 }
 
-func (wallet *Wallet) forceCloseTicket(height int64) ([][]byte, error) {
+func (wallet *Wallet) forceCloseTicket(height int64) (*types.ReplyHashes, error) {
 	return wallet.forceCloseAllTicket(height)
 }
 
@@ -431,7 +431,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			wallet.ProcWalletDelBlock(block)
 			walletlog.Debug("wallet del block --->", "height", block.Block.GetHeight())
 
-			//seed
+		//seed
 		case types.EventGenSeed:
 			genSeedLang := msg.Data.(*types.GenSeedLang)
 			replySeed, err := wallet.genSeed(genSeedLang.Lang)
@@ -561,16 +561,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 
 		case types.EventCloseTickets:
-			var reply types.Reply
-			reply.IsOk = true
 			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
+			wallet.flushTicket()
 			if err != nil {
 				walletlog.Error("closeTicket", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, err))
 			} else {
-				var replyHashes types.TxHashList
-				replyHashes.Hashes = hashes
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, &replyHashes))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, hashes))
 			}
 
 		default:
