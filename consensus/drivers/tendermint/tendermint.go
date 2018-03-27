@@ -23,11 +23,19 @@ import (
 	"strings"
 	"math/rand"
 	wire "github.com/tendermint/go-wire"
+	"sync"
+	"code.aliyun.com/chain33/chain33/common/merkle"
 )
 
 var (
 	tendermintlog = log.New("module", "tendermint")
 	genesisDocKey = []byte("genesisDoc")
+
+	listSize     int = 10000
+	zeroHash     [32]byte
+	currentBlock *types.Block
+	mulock       sync.Mutex
+
 )
 
 type TendermintClient struct{
@@ -127,7 +135,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 		privValidator = privVal
 		//return nil
 	}
-
+/*
 	fastSync := true
 	if state.Validators.Size() == 1 {
 		addr, _ := state.Validators.GetByIndex(0)
@@ -135,7 +143,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 			fastSync = false
 		}
 	}
-
+*/
 	// Log whether this node is a validator or an observer
 	if state.Validators.HasAddress(privValidator.GetAddress()) {
 		tendermintlog.Info("This node is a validator")
@@ -145,6 +153,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 
 	c := drivers.NewBaseClient(cfg)
 
+	/*
 	// Make ConsensusReactor
 	csState := core.NewConsensusState(c, state, blockStore)
 	csState.SetPrivValidator(privValidator)
@@ -153,7 +162,8 @@ func New(cfg *types.Consensus) *TendermintClient {
 
 	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
 	sw.AddReactor("CONSENSUS", consensusReactor)
-
+	*/
+	/*
 	// Optionally, start the pex reactor
 	var addrBook *p2p.AddrBook
 	//var trustMetricStore *trust.TrustMetricStore
@@ -173,11 +183,12 @@ func New(cfg *types.Consensus) *TendermintClient {
 		pexReactor := p2p.NewPEXReactor(addrBook, c.Cfg.Seeds)
 		sw.AddReactor("PEX", pexReactor)
 	}
+	*/
 
-	eventBus := ttypes.NewEventBus()
+	//eventBus := ttypes.NewEventBus()
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
-	consensusReactor.SetEventBus(eventBus)
+	//consensusReactor.SetEventBus(eventBus)
 
 
 	client := &TendermintClient{
@@ -188,10 +199,10 @@ func New(cfg *types.Consensus) *TendermintClient {
 		Logger:           logger,
 		state:            state,
 		blockStore:       blockStore,
-		sw:               sw,
-		csState:          csState,
-		csReactor:        consensusReactor,
-		eventBus:         eventBus,
+		sw:               nil,
+		csState:          nil,
+		csReactor:        nil,
+		eventBus:         nil,
 		//ListenPort:       "36656",
 		//Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
 	}
@@ -254,14 +265,17 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 			if err != nil {
 				tendermintlog.Error("TendermintClientSetQueue", "msg", "GetMempoolTxs failed", "error", err)
 			} else if len(txs) != 0{
+				tendermintlog.Info("get mempool txs not empty")
 				txs = client.CheckTxDup(txs)
 				lastBlock := client.GetCurrentBlock()
 				if len(txs) != 0{
 					//our chain index init -1, tendermint index init 0
-					client.csState.NewTxsAvailable(lastBlock.Height + 1)
+					client.csState.NewTxsAvailable(lastBlock.Height)
+					tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs comming")
 					select {
 					case finish := <- client.csState.NewTxsFinished :
 						if finish {
+							tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing")
 							continue
 						} else {
 							tendermintlog.Error("TendermintClientSetQueue", "msg", "GetMempoolTxs msg not finiish", "error", err)
@@ -282,26 +296,74 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 func (client *TendermintClient) InitBlock(){
 	height := client.GetInitHeight()
 	if height == -1 {
-		// 创世区块
-		/* do nothing, will use tendermint to write genesis block
+		// 创世区块 不需要共识
 		newblock := &types.Block{}
 		newblock.Height = 0
 		newblock.BlockTime = client.Cfg.GenesisBlockTime
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
-		tx := client.child.CreateGenesisTx()
+		tx := client.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		client.WriteBlock(zeroHash[:], newblock)
-		*/
+		height = 0
 	} else {
 		block, err := client.RequestBlock(height)
 		if err != nil {
 			panic(err)
 		}
 		client.SetCurrentBlock(block)
-		client.state.LastBlockHeight = height
 	}
+
+	client.initStateHeight(height)
+}
+
+func (client *TendermintClient) initStateHeight(height int64) {
+	//added hg 20180326
+	state := client.state.Copy()
+	state.LastBlockHeight = height
+
+	fastSync := true
+	if state.Validators.Size() == 1 {
+		addr, _ := state.Validators.GetByIndex(0)
+		if bytes.Equal(client.privValidator.GetAddress(), addr) {
+			fastSync = false
+		}
+	}
+
+	// Make ConsensusReactor
+	csState := core.NewConsensusState(client.BaseClient, state, client.blockStore)
+	csState.SetPrivValidator(client.privValidator)
+
+	consensusReactor := core.NewConsensusReactor(csState, fastSync)
+
+	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
+	sw.AddReactor("CONSENSUS", consensusReactor)
+
+	eventBus := ttypes.NewEventBus()
+	// services which will be publishing and/or subscribing for messages (events)
+	// consensusReactor will set it on consensusState and blockExecutor
+	consensusReactor.SetEventBus(eventBus)
+
+	if client.csState != nil {
+		client.csState.Stop()
+	}
+	client.csState = csState
+
+	if client.csReactor != nil {
+		client.csReactor.Stop()
+	}
+	client.csReactor = consensusReactor
+
+	if client.sw != nil {
+		client.sw.Stop()
+	}
+	client.sw = sw
+
+	if client.eventBus != nil {
+		client.eventBus.Stop()
+	}
+	client.eventBus = eventBus
 }
 
 func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
@@ -380,7 +442,9 @@ FOR_LOOP:
 			tendermintlog.Debug("Consensus ticker","outbound", outbound, "inbound", inbound)
 			if client.checkValidators() {
 				conR := client.sw.Reactor("CONSENSUS").(consensusReactor)
-				conR.SwitchToConsensus(client.state, 0)
+				state := client.state.Copy()
+				state.LastBlockHeight = client.GetCurrentHeight()
+				conR.SwitchToConsensus(state, 0)
 
 				break FOR_LOOP
 			}

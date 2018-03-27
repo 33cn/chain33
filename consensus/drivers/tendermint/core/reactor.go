@@ -67,7 +67,8 @@ func NewConsensusReactor(consensusState *ConsensusState, fastSync bool) *Consens
 		//Switch:   nil,
 	}
 	if conR.Logger == nil{
-		conR.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensusReactor")
+		//conR.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensusReactor")
+		conR.Logger = log.NewNopLogger()
 	}
 
 	conR.BaseReactor = *p2p.NewBaseReactor("ConsensusReactor", conR)
