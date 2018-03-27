@@ -20,9 +20,9 @@ isSeed=false
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
-version=118
-verMix=118
-verMax=119
+version=120
+verMix=120
+verMax=121
 
 [rpc]
 jrpcBindAddr="localhost:8801"
