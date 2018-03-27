@@ -1660,12 +1660,6 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrTokenSymbolUpper
 	}
 
-	hasPriv, err := validCreator(reqTokenPrcCreate.CreatorAddr, wallet.qclient)
-	if err != nil || hasPriv != true {
-		walletlog.Error("procTokenFinishCreate", "creater", types.ErrTokenCreatedApprover)
-		return  nil, types.ErrNoPrivilege
-	}
-
 	addrs := make([]string, 1)
 	addrs[0] = reqTokenPrcCreate.GetCreatorAddr()
 	accounts, err := accountdb.LoadAccounts(wallet.qclient, addrs)
@@ -1858,10 +1852,9 @@ func (wallet *Wallet) procTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (*t
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	hasPriv, ok := validRevoker(req.RevokerAddr, wallet.qclient)
-	if (ok != nil || hasPriv != true) && req.RevokerAddr != token.Creator {
-		walletlog.Error("tprocTokenRevokeCreate, different creator vs actor of this revoke",
-			"action.fromaddr", req.RevokerAddr, "creator", token.Creator)
+	if req.RevokerAddr != token.Owner && req.RevokerAddr != token.Creator {
+		walletlog.Error("tprocTokenRevokeCreate, different creator/owner vs actor of this revoke",
+			"action.fromaddr", req.RevokerAddr, "creator", token.Creator, "owner", token.Owner)
 		return nil, types.ErrTokenRevoker
 	}
 
