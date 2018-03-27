@@ -250,8 +250,6 @@ message CancelRetrieve{
 }
 //message for retrieve end
 
-<<<<<<< HEAD
-=======
 
 //////////////////////////////////////////////////////////////////////////////
 //message for token start/////////////////////////////////////////////////////
@@ -434,4 +432,3 @@ message TradeBuyDone {
 message ReplyTradeBuyOrders {
 	repeated TradeBuyDone tradebuydones = 1;
 }
->>>>>>> origin/develop

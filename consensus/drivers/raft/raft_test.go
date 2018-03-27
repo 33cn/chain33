@@ -44,11 +44,11 @@ func TestRaft(t *testing.T) {
 	q := queue.New("channel")
 
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q)
+	chain.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
 	s := store.New(cfg.Store)
-	s.SetQueue(q)
+	s.SetQueueClient(q.Client())
 
 	urls := "http://127.0.0.1:9021"
 	nodeId := 1
@@ -67,17 +67,16 @@ func TestRaft(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	b.SetQueue(q)
+	b.SetQueueClient(q.Client())
 
-	go sendReplyList(q)
+	go sendReplyList(q.Client())
 
 	log.Info("start")
 	q.Start()
 }
 
 // 向共识发送交易列表
-func sendReplyList(q *queue.Queue) {
-	client := q.NewClient()
+func sendReplyList(client queue.Client) {
 	client.Sub("mempool")
 	var accountNum int
 	for msg := range client.Recv() {
@@ -95,7 +94,7 @@ func sendReplyList(q *queue.Queue) {
 			}
 			if accountNum == endLoop+1 {
 				log.Info("Test finished!!")
-				q.Close()
+				client.Close()
 				break
 			}
 		}
