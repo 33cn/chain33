@@ -446,6 +446,17 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, er
 	return result, nil
 }
 
+func (g *Grpc) CloseTickets(ctx context.Context, in *pb.ReqNil) (*pb.ReplyHashes, error) {
+	if g.checkWhitlist(ctx) == false {
+		return nil, fmt.Errorf("reject")
+	}
+	result, err := g.cli.CloseTickets()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*pb.ReplyHash, error) {
 	result, err := g.cli.TokenPreCreate(in)
 	if err != nil {
