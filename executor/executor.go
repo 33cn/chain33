@@ -15,6 +15,8 @@ import (
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/norm"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/token"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/trade"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -22,6 +24,7 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
+var runningHeight int64 = 0
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -32,7 +35,7 @@ func DisableLog() {
 }
 
 type Executor struct {
-	qclient queue.Client
+	client queue.Client
 }
 
 func New() *Executor {
@@ -40,31 +43,30 @@ func New() *Executor {
 	return exec
 }
 
-func (exec *Executor) SetQueue(q *queue.Queue) {
-	exec.qclient = q.NewClient()
-	client := exec.qclient
-	client.Sub("execs")
+func (exec *Executor) SetQueueClient(client queue.Client) {
+	exec.client = client
+	exec.client.Sub("execs")
 
 	//recv 消息的处理
 	go func() {
 		for msg := range client.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
-				exec.procExecTxList(msg, q)
+				exec.procExecTxList(msg)
 			} else if msg.Ty == types.EventAddBlock {
-				exec.procExecAddBlock(msg, q)
+				exec.procExecAddBlock(msg)
 			} else if msg.Ty == types.EventDelBlock {
-				exec.procExecDelBlock(msg, q)
+				exec.procExecDelBlock(msg)
 			} else if msg.Ty == types.EventCheckTx {
-				exec.procExecCheckTx(msg, q)
+				exec.procExecCheckTx(msg)
 			}
 		}
 	}()
 }
 
-func (exec *Executor) procExecCheckTx(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, q, datas.Height, datas.BlockTime)
+	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime)
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
@@ -76,12 +78,12 @@ func (exec *Executor) procExecCheckTx(msg queue.Message, q *queue.Queue) {
 			result.Errs = append(result.Errs, "")
 		}
 	}
-	msg.Reply(q.NewClient().NewMessage("", types.EventReceiptCheckTx, result))
+	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, q, datas.Height, datas.BlockTime)
+	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime)
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
@@ -157,14 +159,14 @@ func (exec *Executor) procExecTxList(msg queue.Message, q *queue.Queue) {
 		receipts = append(receipts, feelog)
 		elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer))
 	}
-	msg.Reply(q.NewClient().NewMessage("", types.EventReceipts,
+	msg.Reply(exec.client.NewMessage("", types.EventReceipts,
 		&types.Receipts{receipts}))
 }
 
-func (exec *Executor) procExecAddBlock(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, q, b.Height, b.BlockTime)
+	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
@@ -173,25 +175,25 @@ func (exec *Executor) procExecAddBlock(msg queue.Message, q *queue.Queue) {
 			continue
 		}
 		if err != nil {
-			msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, err))
+			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 			return
 		}
 		if kv != nil && kv.KV != nil {
 			err := exec.checkPrefix(tx.Execer, kv.KV)
 			if err != nil {
-				msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, err))
+				msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 				return
 			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
-	msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, &kvset))
+	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func (exec *Executor) procExecDelBlock(msg queue.Message, q *queue.Queue) {
+func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, q, b.Height, b.BlockTime)
+	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
@@ -200,20 +202,20 @@ func (exec *Executor) procExecDelBlock(msg queue.Message, q *queue.Queue) {
 			continue
 		}
 		if err != nil {
-			msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, err))
+			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 			return
 		}
 
 		if kv != nil && kv.KV != nil {
 			err := exec.checkPrefix(tx.Execer, kv.KV)
 			if err != nil {
-				msg.Reply(q.NewClient().NewMessage("", types.EventDelBlock, err))
+				msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 				return
 			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
-	msg.Reply(q.NewClient().NewMessage("", types.EventAddBlock, &kvset))
+	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
 func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
@@ -239,19 +241,22 @@ type executor struct {
 	stateDB      dbm.KVDB
 	localDB      dbm.KVDB
 	coinsAccount *account.AccountDB
+	execDriver   *drivers.ExecDrivers
 	height       int64
 	blocktime    int64
 }
 
-func newExecutor(stateHash []byte, q *queue.Queue, height, blocktime int64) *executor {
+func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64) *executor {
 	e := &executor{
-		stateDB:      NewStateDB(q, stateHash),
-		localDB:      NewLocalDB(q),
+		stateDB:      NewStateDB(client.Clone(), stateHash),
+		localDB:      NewLocalDB(client.Clone()),
 		coinsAccount: account.NewCoinsAccount(),
+		execDriver:   drivers.CreateDrivers4CurrentHeight(height),
 		height:       height,
 		blocktime:    blocktime,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
+	runningHeight = height
 	return e
 }
 
@@ -292,6 +297,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	}
 
 	//checkInExec
+<<<<<<< HEAD
 	exec, err := drivers.LoadDriver(string(tx.Execer))
 	if err != nil {
 		exec, err = drivers.LoadDriver("none")
@@ -309,50 +315,50 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 			}
 		}
 	}
+=======
+	exec := e.loadDriverForExec(string(tx.Execer))
+>>>>>>> origin/develop
 	exec.SetDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
+	exec := e.loadDriverForExec(string(tx.Execer))
 	exec.SetDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.Exec(tx, index)
 }
 
 func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
+	exec := e.loadDriverForExec(string(tx.Execer))
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecLocal(tx, r, index)
 }
 
 func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
+	exec := e.loadDriverForExec(string(tx.Execer))
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecDelLocal(tx, r, index)
 }
 
-func LoadDriver(name string) (c drivers.Driver, err error) {
-	return drivers.LoadDriver(name)
+func (e *executor) loadDriverForExec(exector string)(c drivers.Driver) {
+	exec, err := e.execDriver.LoadDriver(exector)
+	if err != nil {
+		exec, err = e.execDriver.LoadDriver("none")
+		if err != nil {
+			panic(err)
+		}
+	}
+	exec.SetExecDriver(e.execDriver)
+
+	return exec
 }
+
+func LoadDriver(name string) (c drivers.Driver, err error) {
+	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
+	return execDrivers.LoadDriver(name)
+}
+
