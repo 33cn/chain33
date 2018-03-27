@@ -105,39 +105,16 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			receipts = append(receipts, receipt)
 			continue
 		}
-
-		exec, err := drivers.LoadDriver(string(tx.Execer))
-		if err != nil {
-			exec, err = drivers.LoadDriver("none")
-			if err != nil {
-				panic(err)
-			}
-		}
-		//常规读写不检查手续费，需要检查签名
-		if exec.IsFree() {
-			receipt, err := execute.Exec(tx, index)
-			index++
-			if err != nil {
-				elog.Error("exec tx error = ", "err", err, "tx", tx)
-				//add error log
-				errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
-				receipt.Logs = append(receipt.Logs, errlog)
-			}
-			receipts = append(receipts, receipt)
-			continue
-		}
 		//处理交易手续费(先把手续费收了)
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		if !exec.IsFree() {
-			if types.MinFee > 0 {
-				feelog, err = execute.processFee(tx)
-				if err != nil {
-					receipt := types.NewErrReceipt(err)
-					receipts = append(receipts, receipt)
-					continue
-				}
+		if types.MinFee > 0 {
+			feelog, err = execute.processFee(tx)
+			if err != nil {
+				receipt := types.NewErrReceipt(err)
+				receipts = append(receipts, receipt)
+				continue
 			}
 		}
 		//只有到pack级别的，才会增加index
@@ -296,28 +273,16 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 
+	//手续费检查
+	if types.MinFee > 0 {
+		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+		accFrom := e.coinsAccount.LoadAccount(from)
+		if accFrom.GetBalance() < types.MinBalanceTransfer {
+			return types.ErrBalanceLessThanTenTimesFee
+		}
+	}
 	//checkInExec
-<<<<<<< HEAD
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
-	if !exec.IsFree() {
-		//如果执行器不是免费的，则进行手续费检查
-		if types.MinFee > 0 {
-			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-			accFrom := e.coinsAccount.LoadAccount(from)
-			if accFrom.GetBalance() < types.MinBalanceTransfer {
-				return types.ErrBalanceLessThanTenTimesFee
-			}
-		}
-	}
-=======
 	exec := e.loadDriverForExec(string(tx.Execer))
->>>>>>> origin/develop
 	exec.SetDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
@@ -344,7 +309,7 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 	return exec.ExecDelLocal(tx, r, index)
 }
 
-func (e *executor) loadDriverForExec(exector string)(c drivers.Driver) {
+func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 	exec, err := e.execDriver.LoadDriver(exector)
 	if err != nil {
 		exec, err = e.execDriver.LoadDriver("none")
@@ -361,4 +326,3 @@ func LoadDriver(name string) (c drivers.Driver, err error) {
 	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
 	return execDrivers.LoadDriver(name)
 }
-

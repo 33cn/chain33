@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
-	"io/ioutil"
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
@@ -222,8 +222,8 @@ func submitRecord(w http.ResponseWriter, r *http.Request) {
 	}
 	rc := &blacklist.Record{}
 	body, _ := ioutil.ReadAll(r.Body)
-	err :=json.Unmarshal(body,rc)
-	if err !=nil {
+	err := json.Unmarshal(body, rc)
+	if err != nil {
 		w.WriteHeader(403)
 		return
 	}
