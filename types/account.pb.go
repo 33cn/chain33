@@ -129,6 +129,14 @@ It has these top-level messages:
 	ReceiptTradeRevoke
 	TradeBuyDone
 	ReplyTradeBuyOrders
+	ArrayConfig
+	StringConfig
+	Int32Config
+	ConfigItem
+	ModifyConfig
+	ManageAction
+	ReceiptConfig
+	ReplyConfig
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -201,6 +209,7 @@ It has these top-level messages:
 	ReqSellToken
 	ReqBuyToken
 	ReqRevokeSell
+	ReqModifyConfig
 */
 package types
 

@@ -761,3 +761,30 @@ func (wallet *Wallet) revokeSell(priv crypto.PrivKey, reqRevoke *types.ReqRevoke
 	hash.Hash = tx.Hash()
 	return &hash, nil
 }
+
+func (wallet *Wallet) modifyConfig(priv crypto.PrivKey, req *types.ReqModifyConfig) (*types.ReplyHash, error) {
+	v := &types.ModifyConfig{Key: req.GetKey(), Op: req.GetOp(), Value: req.GetValue(), Addr: req.GetModifier(), }
+	modify := &types.ManageAction{
+		Ty:    types.ManageActionModifyConfig,
+		Value: &types.ManageAction_Modify{v},
+	}
+	tx := &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("modifyConfig", "Send err", err)
+		return nil, err
+	}
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	walletlog.Debug("modifyConfig", "sendTx", hash.Hash)
+	return &hash, nil
+}
