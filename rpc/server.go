@@ -1,16 +1,14 @@
 package rpc
 
 import (
-	"io"
-	"net"
-
 	"code.aliyun.com/chain33/chain33/queue"
+	"code.aliyun.com/chain33/chain33/types"
 )
 
-type Server interface {
-	Listen(addr string)
-	io.Closer
-}
+var (
+	whitlist = make(map[string]bool)
+	rpcCfg   *types.Rpc
+)
 
 type server struct {
 	cli channelClient
@@ -21,32 +19,56 @@ type Grpc server
 
 type Grpcserver struct {
 	grpc Grpc
-	net.Listener
+	addr string
 }
 
 type JsonRpcServer struct {
 	jrpc Chain33
-	net.Listener
+	addr string
 }
 
-func (s *JsonRpcServer) Close() error {
+func (s *JsonRpcServer) Close() {
 	s.jrpc.cli.Close()
-	return s.Listener.Close()
+
+}
+func checkWhitlist(addr string) bool {
+
+	if _, ok := whitlist["0.0.0.0"]; ok {
+		return true
+	}
+
+	if _, ok := whitlist[addr]; ok {
+		return true
+	}
+	return false
 }
 
-func (j *Grpcserver) Close() error {
+func (j *Grpcserver) Close() {
 	j.grpc.cli.Close()
-	return j.Listener.Close()
+
 }
 
-func NewGRpcServer(client queue.Client) Server {
+func NewGRpcServer(client queue.Client) *Grpcserver {
 	s := &Grpcserver{}
 	s.grpc.cli.Client = client
 	return s
 }
 
-func NewJsonRpcServer(client queue.Client) Server {
+func NewJsonRpcServer(client queue.Client) *JsonRpcServer {
 	j := &JsonRpcServer{}
 	j.jrpc.cli.Client = client
 	return j
+}
+
+func Init(cfg *types.Rpc) {
+	rpcCfg = cfg
+	if len(cfg.Whitlist) == 1 && cfg.Whitlist[0] == "*" {
+		whitlist["0.0.0.0"] = true
+		return
+	}
+
+	for _, addr := range cfg.Whitlist {
+		whitlist[addr] = true
+	}
+
 }

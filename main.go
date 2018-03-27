@@ -29,7 +29,6 @@ import (
 	"code.aliyun.com/chain33/chain33/store"
 	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
-	"github.com/stackimpact/stackimpact-go"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -40,21 +39,12 @@ var (
 	configPath = flag.String("f", "chain33.toml", "configfile")
 )
 
-const Version = "v0.1.0"
-
 func main() {
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
 	os.Chdir(pwd())
 	d, _ = os.Getwd()
 	log.Info("current dir:", "dir", d)
-	//set file limit
-	agent := stackimpact.Start(stackimpact.Options{
-		AgentKey: "eb4c12dfe2d4b23b22634e7fed4d65899d5ca925",
-		AppName:  "MyGoApp",
-	})
-	span := agent.Profile()
-	defer span.Stop()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -93,45 +83,46 @@ func main() {
 	}
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info("chain33 " + Version)
+	log.Info("chain33 " + common.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q)
+	chain.SetQueueClient(q.Client())
 
 	log.Info("loading mempool module")
 	mem := mempool.New(cfg.MemPool)
-	mem.SetQueue(q)
+	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
 	exec := executor.New()
-	exec.SetQueue(q)
+	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
 	s := store.New(cfg.Store)
-	s.SetQueue(q)
+	s.SetQueueClient(q.Client())
 
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q)
+	cs.SetQueueClient(q.Client())
 
 	var network *p2p.P2p
 	if cfg.P2P.Enable {
 		log.Info("loading p2p module")
 		network = p2p.New(cfg.P2P)
-		network.SetQueue(q)
+		network.SetQueueClient(q.Client())
 	}
 	//jsonrpc, grpc, channel 三种模式
-	gapi := rpc.NewGRpcServer(q.NewClient())
-	go gapi.Listen(":8802")
-	api := rpc.NewJsonRpcServer(q.NewClient())
-	go api.Listen(":8801")
+	rpc.Init(cfg.Rpc)
+	gapi := rpc.NewGRpcServer(q.Client())
+	go gapi.Listen()
+	japi := rpc.NewJsonRpcServer(q.Client())
+	go japi.Listen()
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
-	walletm.SetQueue(q)
+	walletm.SetQueueClient(q.Client())
 
 	defer func() {
 		//close all module,clean some resource
@@ -150,7 +141,7 @@ func main() {
 		log.Info("begin close consensus module")
 		cs.Close()
 		log.Info("begin close jsonrpc module")
-		api.Close()
+		japi.Close()
 		log.Info("begin close grpc module")
 		gapi.Close()
 		log.Info("begin close queue module")
@@ -166,8 +157,8 @@ func startTrace() {
 	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
 		return true, true
 	}
-	go http.ListenAndServe(":50051", nil)
-	log.Info("Trace listen on 50051")
+	go http.ListenAndServe("localhost:50051", nil)
+	log.Info("Trace listen on localhost:50051")
 }
 
 func createFile(filename string) (*os.File, error) {

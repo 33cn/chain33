@@ -3,17 +3,21 @@ package token
 import (
 	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	"fmt"
 )
 
-func (t *Token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction) (*types.Receipt, error) {
+func (t *token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction, index int) (*types.Receipt, error) {
+	_, err := t.DriverBase.Exec(tx, index)
+	if err != nil {
+		return nil, err
+	}
+
 	if (action.Ty == types.ActionTransfer) && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To) {
+		if t.GetExecDriver().IsDriverAddress(tx.To) {
 			return accountDB.TransferToExec(from, tx.To, transfer.Amount)
 		}
 		return accountDB.Transfer(from, tx.To, transfer.Amount)
@@ -21,14 +25,14 @@ func (t *Token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transa
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To) {
+		if t.GetExecDriver().IsDriverAddress(tx.To) {
 			return accountDB.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if (action.Ty == types.ActionGenesis) && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if t.GetHeight() == 0 {
-			if drivers.IsDriverAddress(tx.To) {
+			if t.GetExecDriver().IsDriverAddress(tx.To) {
 				return accountDB.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
 			return accountDB.GenesisInit(tx.To, genesis.Amount)
@@ -44,8 +48,8 @@ func (t *Token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transa
 //1: from tx
 //2: to tx
 
-func (t *Token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.ExecLocal(tx, receipt, index)
+func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := t.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +83,8 @@ func (t *Token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.Rec
 	return set, nil
 }
 
-func (t *Token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.ExecDelLocal(tx, receipt, index)
+func (t *token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := t.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
@@ -112,25 +116,20 @@ func (t *Token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *t
 }
 
 //存储地址上收币的信息
-func CalcAddrKey(token string, addr string) []byte {
-	return []byte(fmt.Sprintf("Token:%s-Addr:%s", token, addr))
+func calcAddrKey(token string, addr string) []byte {
+	return []byte(fmt.Sprintf("token:%s-Addr:%s", token, addr))
 }
 
-type AddrRecv struct {
-	addr   string
-	amount int64
-}
-
-func geAddrReciverKV(token string, addr string, reciverAmount int64) *types.KeyValue {
+func getAddrReciverKV(token string, addr string, reciverAmount int64) *types.KeyValue {
 	reciver := &types.Int64{reciverAmount}
 	amountbytes := types.Encode(reciver)
-	kv := &types.KeyValue{CalcAddrKey(token, addr), amountbytes}
+	kv := &types.KeyValue{calcAddrKey(token, addr), amountbytes}
 	return kv
 }
 
 func getAddrReciver(db dbm.KVDB, token string, addr string) (int64, error) {
 	reciver := types.Int64{}
-	addrReciver, err := db.Get(CalcAddrKey(token, addr))
+	addrReciver, err := db.Get(calcAddrKey(token, addr))
 	if err != nil && err != types.ErrNotFound {
 		return 0, err
 	}
@@ -145,7 +144,7 @@ func getAddrReciver(db dbm.KVDB, token string, addr string) (int64, error) {
 }
 
 func setAddrReciver(db dbm.KVDB, token string, addr string, reciverAmount int64) error {
-	kv := geAddrReciverKV(addr, token, reciverAmount)
+	kv := getAddrReciverKV(addr, token, reciverAmount)
 	return db.Set(kv.Key, kv.Value)
 }
 
@@ -161,5 +160,5 @@ func updateAddrReciver(cachedb dbm.KVDB, token string, addr string, amount int64
 	}
 	setAddrReciver(cachedb, token, addr, recv)
 	//keyvalue
-	return geAddrReciverKV(token, addr, recv), nil
+	return getAddrReciverKV(token, addr, recv), nil
 }
