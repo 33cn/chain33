@@ -1758,12 +1758,17 @@ func CloseTickets() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.TxHashList
+	var res types.ReplyHashes
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	if len(res.Hashes) == 0 {
+		fmt.Println("no ticket to be close")
+		return
+	}
+
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
