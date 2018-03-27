@@ -33,3 +33,11 @@ message ReqBalance {
 message Accounts {
 	repeated Account acc = 1;
 }
+
+message ReqTokenBalance {
+	repeated string addresses   = 1;
+	string tokenSymbol = 2;
+	string execer      = 3;
+}
+
+
