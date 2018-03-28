@@ -617,7 +617,7 @@ func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
 	return resp.GetData().(*types.TxHashList), nil
 }
 
-func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.Account, error) {
+func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
 	blockHash, err := c.GetBlockHash(&types.ReqInt{in.Height})
 	if err != nil {
 		return nil, err
@@ -632,9 +632,7 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.Accoun
 
 
 	//获取地址账户的余额通过account模块
-	addrs := make([]string, 1)
-	addrs[0] = in.Symbol
-	acc, err := accountdb.GetTotalCoins(c.Client, blockOverview.Head.StateHash)
+	acc, err := accountdb.GetTotalCoins(c.Client, in, blockOverview.Head.StateHash)
 	if err != nil {
 		return nil, err
 	}

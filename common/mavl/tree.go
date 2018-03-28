@@ -358,32 +358,11 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 	return
 }
 
-func GetTotalCoins(db dbm.DB, statehash []byte) int64 {
+func IterateRangeByStateHash(db dbm.DB, statehash , start, end []byte, ascending bool, fn func([]byte, []byte) bool) {
 	tree := NewMAVLTree(db)
 	tree.Load(statehash)
-	treelog.Info("GetTotalCoins", "statehash", hex.EncodeToString(statehash))
+	treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
 
-	it := IterateBalance{}
-	tree.IterateRange([]byte("mavl-coins-bty-"), []byte("mavl-coins-btyb"), true, it.view)
-	treelog.Info("GetTotalCoins", "count", it.Count, "amount", it.Amount)
-	return it.Amount
+	tree.IterateRange(start, end, ascending, fn)
 }
 
-type IterateBalance struct {
-	Count  int64
-        Amount int64
-}
-
-func (t *IterateBalance) view(key, value []byte) bool {
-	//treelog.Info("view", "key", string(key), "value", string(value))
-	var acc types.Account
-	err := types.Decode(value, &acc)
-	if err != nil {
-		treelog.Error("view err！", "err", err)
-        	return true
-	}
-	//treelog.Info("acc:", "value", acc)
-	t.Count += 1
-	t.Amount += acc.Balance
-        return false
-}

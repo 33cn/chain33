@@ -185,15 +185,19 @@ func (acc *AccountDB) AccountKey(address string) (key []byte) {
 	return key
 }
 
-func (acc *AccountDB) GetTotalCoins(client queue.Client, hash []byte) (accs *types.Account, err error) {
-	get := types.StoreGet{}
-	get.StateHash = hash
-	msg := client.NewMessage("store", types.EventStoreGetTotalCoins, &get)
+func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins, hash []byte) (accs *types.ReplyGetTotalCoins, err error) {
+	req := types.IterateGetTotalCoins{}
+	req.StateHash = hash
+	req.Start = []byte("mavl-coins-bty-")
+	req.End = []byte("mavl-coins-bty-exec")
+
+	msg := client.NewMessage("store", types.EventStoreGetTotalCoins, &req)
 	client.Send(msg, true)
 	msg, err = client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	accs = msg.Data.(*types.Account)
+	accs = msg.Data.(*types.ReplyGetTotalCoins)
 	return accs, nil
 }
+

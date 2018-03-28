@@ -11,10 +11,10 @@ import (
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	"github.com/golang/protobuf/proto"
-	//log "github.com/inconshreveable/log15"
+	log "github.com/inconshreveable/log15"
 )
 
-//var tlog = log.New("module", "types")
+var tlog = log.New("module", "types")
 
 type Message proto.Message
 
@@ -455,4 +455,23 @@ func GetSignatureTypeName(signType int) string {
 	} else {
 		return "unknow"
 	}
+}
+
+func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
+        tlog.Info("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
+        var acc Account
+        err := Decode(value, &acc)
+        if err != nil {
+                tlog.Error("ReplyGetTotalCoins.IterateRangeByStateHash", "err", err)
+                return true
+        }
+        //tlog.Info("acc:", "value", acc)
+        t.Count += 1
+        t.Amount += acc.Balance
+/*
+        if t.Count == t.Sum {
+                return true
+        }
+*/
+        return false
 }

@@ -226,7 +226,3 @@ type WalletStatus struct {
 	IsTicketLock bool `json:"isticketlock"`
 }
 
-type GetTotalCoins struct {
-	Symbol	string `json:"symbol"`
-	Height	int64  `json:"height"`
-}
