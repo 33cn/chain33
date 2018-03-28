@@ -12,6 +12,7 @@ import (
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	"github.com/golang/protobuf/proto"
 	//log "github.com/inconshreveable/log15"
+	"fmt"
 )
 
 //var tlog = log.New("module", "types")
@@ -196,6 +197,40 @@ func (tx *Transaction) Amount() (int64, error) {
 			ticketMiner := action.GetMiner()
 			return ticketMiner.Reward, nil
 		}
+	} else if "token" == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+		var action TokenAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
+			precreate := action.GetTokenprecreate()
+			return precreate.Price, nil
+		} else if TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
+			return 0, nil
+		} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
+			return 0, nil
+		} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
+			return 0, nil
+		} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
+			return 0, nil
+		}
+
+	} else if "trade" == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.GetPayload(), &trade)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TradeSell == trade.Ty && trade.GetTokensell() != nil {
+			return 0, nil
+		} else if TradeBuy == trade.Ty && trade.GetTokenbuy() != nil {
+			return 0, nil
+		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+			return 0, nil
+		}
 	}
 	return 0, nil
 }
@@ -214,8 +249,6 @@ func (tx *Transaction) ActionName() string {
 			return "withdraw"
 		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
-		} else {
-			return "unknow"
 		}
 	} else if "ticket" == string(tx.Execer) {
 		var action TicketAction
@@ -234,7 +267,6 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
 			return "bindminer"
 		}
-		return "unknow"
 	} else if "none" == string(tx.Execer) {
 		return "none"
 	} else if "hashlock" == string(tx.Execer) {
@@ -249,8 +281,6 @@ func (tx *Transaction) ActionName() string {
 			return "unlock"
 		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
 			return "send"
-		} else {
-			return "unknow"
 		}
 	} else if "retrieve" == string(tx.Execer) {
 		var action RetrieveAction
@@ -266,10 +296,41 @@ func (tx *Transaction) ActionName() string {
 			return "backup"
 		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
 			return "cancel"
-		} else {
-			return "unknow"
+		}
+	} else if "token" == string(tx.Execer) {
+		var action TokenAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if action.Ty == TokenActionPreCreate && action.GetTokenprecreate() != nil {
+			return "preCreate"
+		} else if action.Ty == TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
+			return "finishCreate"
+		} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
+			return "revokeCreate"
+		} else if action.Ty == ActionTransfer && action.GetTransfer() != nil {
+			return "transferToken"
+		} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
+			return "withdrawToken"
+		}
+	} else if "trade" == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.Payload, &trade)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if trade.Ty == TradeSell && trade.GetTokensell() != nil {
+			return "selltoken"
+		} else if trade.Ty == TradeBuy && trade.GetTokenbuy() != nil {
+			return "buytoken"
+		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
+			return "revokeselltoken"
 		}
 	}
+
 	return "unknow"
 }
 
@@ -455,4 +516,8 @@ func GetSignatureTypeName(signType int) string {
 	} else {
 		return "unknow"
 	}
+}
+
+func ConfigKey(key string) string {
+	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }

@@ -390,6 +390,14 @@ func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts,
 	return &pb.Accounts{Acc: reply}, nil
 }
 
+func (g *Grpc) GetTokenBalance(ctx context.Context, in *pb.ReqTokenBalance) (*pb.Accounts, error) {
+	reply, err := g.cli.GetTokenBalance(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Accounts{Acc: reply}, nil
+}
+
 func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
 	if g.checkWhitlist(ctx) == false {
 		return nil, fmt.Errorf("reject")
@@ -438,6 +446,64 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, er
 	return result, nil
 }
 
+func (g *Grpc) CloseTickets(ctx context.Context, in *pb.ReqNil) (*pb.ReplyHashes, error) {
+	if g.checkWhitlist(ctx) == false {
+		return nil, fmt.Errorf("reject")
+	}
+	result, err := g.cli.CloseTickets()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*pb.ReplyHash, error) {
+	result, err := g.cli.TokenPreCreate(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (g *Grpc) TokenFinishCreate(ctx context.Context, in *pb.ReqTokenFinishCreate) (*pb.ReplyHash, error) {
+	result, err := g.cli.TokenFinishCreate(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+func (g *Grpc) TokenRevokeCreate(ctx context.Context, in *pb.ReqTokenRevokeCreate) (*pb.ReplyHash, error) {
+	result, err := g.cli.TokenRevokeCreate(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (g *Grpc) SellToken(ctx context.Context, in *pb.ReqSellToken) (*pb.Reply, error) {
+	result, err := g.cli.SellToken(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (g *Grpc) BuyToken(ctx context.Context, in *pb.ReqBuyToken) (*pb.Reply, error) {
+	result, err := g.cli.BuyToken(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (g *Grpc) RevokeSellToken(ctx context.Context, in *pb.ReqRevokeSell) (*pb.Reply, error) {
+	result, err := g.cli.RevokeSellToken(in)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if g.checkWhitlist(ctx) == false {
 		return nil, fmt.Errorf("reject")
@@ -452,6 +518,14 @@ func (g *Grpc) IsSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	}
 
 	return &pb.Reply{IsOk: g.cli.IsSync()}, nil
+}
+
+func (g *Grpc) IsNtpClockSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
+	if g.checkWhitlist(ctx) == false {
+		return nil, fmt.Errorf("reject")
+	}
+
+	return &pb.Reply{IsOk: g.cli.IsNtpClockSync()}, nil
 }
 
 func (g *Grpc) checkWhitlist(ctx context.Context) bool {

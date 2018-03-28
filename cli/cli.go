@@ -87,7 +87,13 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
+		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], false, "")
+	case "transwithdrawtoken":
+		if len(argsWithoutProg) != 6 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[5], true, argsWithoutProg[4])
 	case "importprivkey": //引入私钥
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -221,6 +227,18 @@ func main() {
 			return
 		}
 		GetBalance(argsWithoutProg[1], argsWithoutProg[2])
+	case "gettokenbalance":
+		argsCnt := len(argsWithoutProg)
+		if argsCnt < 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		var addresses []string
+		for _, args := range argsWithoutProg[3:] {
+			addresses = append(addresses, args)
+		}
+
+		GetTokenBalance(addresses, argsWithoutProg[1], argsWithoutProg[2])
 	case "getexecaddr":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -287,6 +305,108 @@ func main() {
 			return
 		}
 		IsSync()
+	case "gettokensprecreated":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTokensPrecreated()
+	case "gettokensfinishcreated":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTokensFinishCreated()
+	case "precreatetoken":
+		if len(argsWithoutProg) != 8 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		PreCreateToken(argsWithoutProg[1:])
+	case "finishcreatetoken":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		FinishCreateToken(argsWithoutProg[1:])
+	case "selltoken":
+		if len(argsWithoutProg) != 7 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+
+		SellToken(argsWithoutProg[1:], "0", "0", false)
+	case "selltokencrowdfund":
+		if len(argsWithoutProg) != 9 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		SellToken(argsWithoutProg[1:6], argsWithoutProg[6], argsWithoutProg[7], true)
+	case "buytoken":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		BuyToken(argsWithoutProg[1:])
+	case "revokeselltoken":
+		if len(argsWithoutProg) != 3 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		RevokeSellToken(argsWithoutProg[1], argsWithoutProg[2])
+	case "showonesselltokenorder":
+		if len(argsWithoutProg) < 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		var tokens []string
+		if len(argsWithoutProg) > 2 {
+			tokens = append(tokens, argsWithoutProg[2:]...)
+		}
+		ShowOnesSellTokenOrders(argsWithoutProg[1], tokens)
+	case "showsellorderwithstatus":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowSellOrderWithStatus(argsWithoutProg[1])
+	case "showonesbuyorder":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		var tokens []string
+		ShowOnesBuyOrder(argsWithoutProg[1], tokens)
+	case "showonesbuytokenorder":
+		if len(argsWithoutProg) < 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowOnesBuyOrder(argsWithoutProg[1], argsWithoutProg[2:])
+	case "revokecreatetoken":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		RevokeCreateToken(argsWithoutProg[1:])
+	case "configtransaction":
+		if len(argsWithoutProg) != 5 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ManageConfigTransactioin(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
+	case "queryconfig": //查询配置
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		QueryConfigItem(argsWithoutProg[1])
+	case "isntpclocksync":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		IsNtpClockSync()
 	default:
 		fmt.Print("指令错误")
 	}
@@ -303,6 +423,7 @@ func LoadHelp() {
 	fmt.Println("mergebalance [to]                                           : 合并余额")
 	fmt.Println("settxfee [amount]                                           : 设置交易费")
 	fmt.Println("sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
+	fmt.Println("transwithdrawtoken [from, to, amount, token, note]          : 转账或提取token")
 	fmt.Println("createrawsendtx [privkey, to, amount, note]                 : 创建交易")
 	fmt.Println("importprivkey [privkey, label]                              : 引入私钥")
 	fmt.Println("dumpprivkey [addr]                                          : 导出私钥")
@@ -326,6 +447,7 @@ func LoadHelp() {
 	fmt.Println("getseed [password]                                          : 通过密码获取种子")
 	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
+	fmt.Println("gettokenbalance [token execer addr0 [addr1 addr2]]          : 查询多个地址在token的余额")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
@@ -335,6 +457,24 @@ func LoadHelp() {
 	fmt.Println("getcoldaddrbyminer [address]                                : 获取miner冷钱包地址")
 	fmt.Println("closetickets []                                             : 关闭挖矿票")
 	fmt.Println("issync []                                                   : 获取同步状态")
+	fmt.Println("precreatetoken [creator_address, name, symbol, introduction, owner_address, total, price]")
+	fmt.Println("                                                            : 预创建token")
+	fmt.Println("finishcreatetoken [finish_address, symbol, owner_address]   : 完成创建token")
+	fmt.Println("revokecreatetoken [creator_address, symbol, owner_address]  : 取消创建token")
+	fmt.Println("gettokensprecreated                                         : 获取所有预创建的token")
+	fmt.Println("gettokensfinishcreated                                      : 获取所有完成创建的token")
+	fmt.Println("selltoken [owner, token, Amountpbl, minbl, pricepbl, totalpbl] : 卖出token")
+	fmt.Println("buytoken [buyer, sellid, countboardlot]                        : 买入token")
+	fmt.Println("revokeselltoken [seller, sellid]                               : 撤销token卖单")
+	fmt.Println("showonesselltokenorder [seller, [token0, token1, token2]]      : 显示一个用户下的token卖单")
+	fmt.Println("showsellorderwithstatus [onsale | soldout | revoked]           : 显示指定状态下的所有卖单")
+	fmt.Println("showonesbuyorder [buyer]                                       : 显示指定用户下所有token成交的购买单")
+	fmt.Println("showonesbuytokenorder [buyer, token0, [token1, token2]]        : 显示指定用户下指定token成交的购买单")
+	fmt.Println("sellcrowdfund [owner, token, Amountpbl, minbl, pricepbl, totalpbl, start, stop]              : 卖出众筹")
+	fmt.Println("configtransaction [configKey, operate, value, privkey]         : 修改配置")
+	fmt.Println("queryconfig [Key]                                              : 查询配置")
+	fmt.Println("isntpclocksync []                                           : 获取网络时间同步状态")
+
 }
 
 type AccountsResult struct {
@@ -347,6 +487,14 @@ type WalletResult struct {
 }
 
 type AccountResult struct {
+	Currency int32  `json:"currency,omitempty"`
+	Balance  string `json:"balance,omitempty"`
+	Frozen   string `json:"frozen,omitempty"`
+	Addr     string `json:"addr,omitempty"`
+}
+
+type TokenAccountResult struct {
+	Token    string `json:"Token,omitempty"`
 	Currency int32  `json:"currency,omitempty"`
 	Balance  string `json:"balance,omitempty"`
 	Frozen   string `json:"frozen,omitempty"`
@@ -451,6 +599,22 @@ type AddrOverviewResult struct {
 	TxCount int64  `json:"txCount"`
 }
 
+type SellOrder2Show struct {
+	Tokensymbol       string `json:"tokensymbol"`
+	Seller            string `json:"address"`
+	Amountperboardlot string `json:"amountperboardlot"`
+	Minboardlot       int64  `json:"minboardlot"`
+	Priceperboardlot  string `json:"priceperboardlot"`
+	Totalboardlot     int64  `json:"totalboardlot"`
+	Soldboardlot      int64  `json:"soldboardlot"`
+	Starttime         int64  `json:"starttime"`
+	Stoptime          int64  `json:"stoptime"`
+	Crowdfund         bool   `json:"crowdfund"`
+	SellID            string `json:"sellid"`
+	Status            string `json:"status"`
+	Height            int64  `json:"height"`
+}
+
 func GetVersion() {
 	fmt.Println(common.GetVersion())
 }
@@ -549,7 +713,7 @@ func SetLabl(addr string, label string) {
 		return
 	}
 
-	accResult := decodeAccount(res.GetAcc())
+	accResult := decodeAccount(res.GetAcc(), types.Coin)
 	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -575,7 +739,7 @@ func NewAccount(lb string) {
 		return
 	}
 
-	accResult := decodeAccount(res.GetAcc())
+	accResult := decodeAccount(res.GetAcc(), types.Coin)
 	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -675,14 +839,21 @@ func SetTxFee(amount string) {
 	fmt.Println(string(data))
 }
 
-func SendToAddress(from string, to string, amount string, note string) {
+func SendToAddress(from string, to string, amount string, note string, isToken bool, tokenSymbol string) {
 	amountFloat64, err := strconv.ParseFloat(amount, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountFloat64 * 1e4)
-	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64 * 1e4, Note: note}
+	amountInt64 := int64(amountFloat64 * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
+	if !isToken {
+		params.Istoken = false
+		params.Amount *= types.CoinMultiple
+	} else {
+		params.Istoken = true
+		params.TokenSymbol = tokenSymbol
+	}
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -718,7 +889,7 @@ func ImportPrivKey(privkey string, label string) {
 		return
 	}
 
-	accResult := decodeAccount(res.GetAcc())
+	accResult := decodeAccount(res.GetAcc(), types.Coin)
 	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
 
 	data, err := json.MarshalIndent(result, "", "    ")
@@ -1283,10 +1454,60 @@ func GetBalance(address string, execer string) {
 	fmt.Println(string(data))
 }
 
+func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
+	//var addrs []string
+	//addrs = append(addrs, address)
+	params := types.ReqTokenBalance{Addresses: addresses, TokenSymbol: tokenSymbol, Execer: execer}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res []*jsonrpc.Account
+	err = rpc.Call("Chain33.GetTokenBalance", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for _, result := range res {
+		balanceResult := strconv.FormatFloat(float64(result.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(result.Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
+		result := &TokenAccountResult{
+			Token:    tokenSymbol,
+			Addr:     result.Addr,
+			Currency: result.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		fmt.Println(string(data))
+	}
+
+}
+
 func GetExecAddr(exec string) {
-	addrResult := account.ExecAddress(exec)
-	result := addrResult.String()
-	fmt.Println("exec addr:", result)
+	switch exec {
+	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
+		addrResult := account.ExecAddress(exec)
+		result := addrResult.String()
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		fmt.Println(string(data))
+
+	default:
+		fmt.Println("exec not exist!")
+	}
 }
 
 func BindMiner(mineraddr string, priv string) {
@@ -1551,12 +1772,17 @@ func CloseTickets() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.TxHashList
+	var res types.ReplyHashes
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	if len(res.Hashes) == 0 {
+		fmt.Println("no ticket to be close")
+		return
+	}
+
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1622,9 +1848,9 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	return result
 }
 
-func decodeAccount(acc *types.Account) *AccountResult {
-	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(types.Coin), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(acc.GetFrozen())/float64(types.Coin), 'f', 4, 64)
+func decodeAccount(acc *types.Account, precision int64) *AccountResult {
+	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(precision), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(acc.GetFrozen())/float64(precision), 'f', 4, 64)
 	accResult := &AccountResult{
 		Addr:     acc.GetAddr(),
 		Currency: acc.GetCurrency(),
@@ -1659,33 +1885,541 @@ func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account
 	}
 }
 
+func GetTokensPrecreated() {
+	var reqtokens types.ReqTokens
+	reqtokens.Status = types.TokenStatusPreCreated
+	reqtokens.Queryall = true
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetTokens"
+	params.Payload = hex.EncodeToString(types.Encode(&reqtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyTokens
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, preCreatedToken := range res.Tokens {
+		preCreatedToken.Price = preCreatedToken.Price / types.Coin
+		preCreatedToken.Total = preCreatedToken.Total / types.TokenPrecision
+
+		fmt.Printf("---The %dth precreated token is below--------------------\n", i)
+		data, err := json.MarshalIndent(preCreatedToken, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		fmt.Println(string(data))
+	}
+
+}
+
+func GetTokensFinishCreated() {
+	var reqtokens types.ReqTokens
+	reqtokens.Status = types.TokenStatusCreated
+	reqtokens.Queryall = true
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetTokens"
+	params.Payload = hex.EncodeToString(types.Encode(&reqtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyTokens
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, createdToken := range res.Tokens {
+		createdToken.Price = createdToken.Price / types.Coin
+		createdToken.Total = createdToken.Total / types.TokenPrecision
+
+		fmt.Printf("---The %dth Finish Created token is below--------------------\n", i)
+		data, err := json.MarshalIndent(createdToken, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		fmt.Println(string(data))
+	}
+}
+
+func PreCreateToken(args []string) {
+	// creator, name, symbol, introduction, owner, totalStr, priceStr string) {
+	creator := args[0]
+	name := args[1]
+	symbol := args[2]
+	introduction := args[3]
+	owner := args[4]
+	total, err := strconv.ParseInt(args[5], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	price, err := strconv.ParseInt(args[6], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	params := types.ReqTokenPreCreate{CreatorAddr: creator, Name: name, Symbol: symbol, Introduction: introduction, OwnerAddr: owner, Total: total * types.TokenPrecision, Price: price * types.Coin}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.TokenPreCreate", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func SellToken(args []string, starttime string, stoptime string, isCrowfund bool) {
+	owner := args[0]
+	sell := types.TradeForSell{}
+	params := &types.ReqSellToken{&sell, owner}
+
+	sell.Tokensymbol = args[1]
+	var err error
+	amountperboardlot, err := strconv.ParseFloat(args[2], 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	amountInt64 := int64(amountperboardlot * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	sell.Amountperboardlot = amountInt64
+
+	sell.Minboardlot, err = strconv.ParseInt(args[3], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	price, err := strconv.ParseFloat(args[4], 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	sell.Priceperboardlot = int64(price*types.InputPrecision) * types.CoinMultiple
+
+	sell.Totalboardlot, err = strconv.ParseInt(args[5], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	sell.Starttime, err = strconv.ParseInt(starttime, 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	sell.Stoptime, err = strconv.ParseInt(starttime, 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	sell.Crowdfund = isCrowfund
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+
+	err = rpc.Call("Chain33.SellToken", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func FinishCreateToken(args []string) {
+	// finisher, symbol, owner, string) {
+	finisher := args[0]
+	symbol := args[1]
+	owner := args[2]
+
+	params := types.ReqTokenFinishCreate{FinisherAddr: finisher, Symbol: symbol, OwnerAddr: owner}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+
+	err = rpc.Call("Chain33.TokenFinishCreate", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+//buytoken [0-owner, 1-sellid, 2-countboardlot]
+func BuyToken(args []string) {
+	cntBoardlot, err := strconv.ParseInt(args[2], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	buy := &types.TradeForBuy{args[1], cntBoardlot}
+	params := &types.ReqBuyToken{buy, args[0]}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.BuyToken", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func RevokeCreateToken(args []string) {
+	// revoker, symbol, owner, string) {
+	revoker := args[0]
+	symbol := args[1]
+	owner := args[2]
+
+	params := types.ReqTokenRevokeCreate{RevokerAddr: revoker, Symbol: symbol, OwnerAddr: owner}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.TokenRevokeCreate", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+//revokeselltoken [seller, sellid]
+func RevokeSellToken(seller string, sellid string) {
+	revoke := &types.TradeForRevokeSell{sellid}
+	params := &types.ReqRevokeSell{revoke, seller}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.RevokeSellToken", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+//获取并显示一个指定用户下的所有token的卖单或者是指定token的卖单
+func ShowOnesSellTokenOrders(seller string, tokens []string) {
+	var reqAddrtokens types.ReqAddrTokens
+	reqAddrtokens.Status = types.OnSale
+	reqAddrtokens.Addr = seller
+	if 0 != len(tokens) {
+		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
+	}
+	var params jsonrpc.Query
+	params.Execer = "trade"
+	params.FuncName = "GetOnesSellOrder"
+	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplySellOrders
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, sellorder := range res.Selloders {
+		var sellOrders2show SellOrder2Show
+		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
+		sellOrders2show.Seller = sellorder.Address
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Minboardlot = sellorder.Minboardlot
+		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
+		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
+		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
+		sellOrders2show.Starttime = sellorder.Starttime
+		sellOrders2show.Stoptime = sellorder.Stoptime
+		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
+		sellOrders2show.Crowdfund = sellorder.Crowdfund
+		sellOrders2show.SellID = sellorder.Sellid
+		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
+		sellOrders2show.Height = sellorder.Height
+
+		data, err := json.MarshalIndent(sellOrders2show, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
+		fmt.Println(string(data))
+	}
+}
+
+func QueryConfigItem(key string) {
+	req := &types.ReqString{key}
+	var params jsonrpc.Query
+	params.Execer = "manage"
+	params.FuncName = "GetConfigItem"
+	params.Payload = hex.EncodeToString(types.Encode(req))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	var res types.ReplyConfig
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	fmt.Println(string(data))
+}
+
+func ShowSellOrderWithStatus(status string) {
+	statusInt, ok := types.MapSellOrderStatusStr2Int[status]
+	if !ok {
+		fmt.Print(errors.New("参数错误\n").Error())
+		return
+	}
+	var reqAddrtokens types.ReqAddrTokens
+	reqAddrtokens.Status = statusInt
+
+	var params jsonrpc.Query
+	params.Execer = "trade"
+	params.FuncName = "GetAllSellOrdersWithStatus"
+	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var res types.ReplySellOrders
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, sellorder := range res.Selloders {
+		var sellOrders2show SellOrder2Show
+		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
+		sellOrders2show.Seller = sellorder.Address
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Minboardlot = sellorder.Minboardlot
+		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
+		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
+		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
+		sellOrders2show.Starttime = sellorder.Starttime
+		sellOrders2show.Stoptime = sellorder.Stoptime
+		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
+		sellOrders2show.Crowdfund = sellorder.Crowdfund
+		sellOrders2show.SellID = sellorder.Sellid
+		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
+		sellOrders2show.Height = sellorder.Height
+
+		data, err := json.MarshalIndent(sellOrders2show, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
+		fmt.Println(string(data))
+	}
+}
+
+func ShowOnesBuyOrder(buyer string, tokens []string) {
+
+	var reqAddrtokens types.ReqAddrTokens
+	reqAddrtokens.Addr = buyer
+	reqAddrtokens.Token = tokens
+
+	var params jsonrpc.Query
+	params.Execer = "trade"
+	params.FuncName = "GetOnesBuyOrder"
+	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyTradeBuyOrders
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, buy := range res.Tradebuydones {
+		data, err := json.MarshalIndent(buy, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Printf("---The %dth buyorder is below--------------------\n", i)
+		fmt.Println(string(data))
+	}
+}
+
 func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 	rd := &ReceiptData{Ty: rlog.Ty, TyName: rlog.TyName}
 
 	for _, l := range rlog.Logs {
 		rl := &ReceiptLog{Ty: l.Ty, TyName: l.TyName, RawLog: l.RawLog}
 		switch l.Ty {
-		case 1, 4, 111, 112, 113, 114:
+		//case 1, 4, 111, 112, 113, 114:
+		case types.TyLogErr, types.TyLogGenesis, types.TyLogNewTicket, types.TyLogCloseTicket, types.TyLogMinerTicket,
+			types.TyLogTicketBind, types.TyLogPreCreateToken, types.TyLogFinishCreateToken, types.TyLogRevokeCreateToken,
+			types.TyLogTradeSell, types.TyLogTradeBuy, types.TyLogTradeRevoke:
 			rl.Log = l.Log
-		case 2, 3, 5, 11:
+		//case 2, 3, 5, 11:
+		case types.TyLogFee, types.TyLogTransfer, types.TyLogDeposit, types.TyLogGenesisTransfer,
+			types.TyLogTokenTransfer, types.TyLogTokenDeposit:
 			rl.Log = &ReceiptAccountTransfer{
-				Prev:    decodeAccount(constructAccFromLog(l, "prev")),
-				Current: decodeAccount(constructAccFromLog(l, "current")),
+				Prev:    decodeAccount(constructAccFromLog(l, "prev"), types.Coin),
+				Current: decodeAccount(constructAccFromLog(l, "current"), types.Coin),
 			}
-		case 6, 7, 8, 9, 10, 12:
+		//case 6, 7, 8, 9, 10, 12:
+		case types.TyLogExecTransfer, types.TyLogExecWithdraw, types.TyLogExecDeposit, types.TyLogExecFrozen, types.TyLogExecActive, types.TyLogGenesisDeposit:
 			var execaddr string
 			if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
 				execaddr = tmp
 			}
 			rl.Log = &ReceiptExecAccountTransfer{
 				ExecAddr: execaddr,
-				Prev:     decodeAccount(constructAccFromLog(l, "prev")),
-				Current:  decodeAccount(constructAccFromLog(l, "current")),
+				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.Coin),
+				Current:  decodeAccount(constructAccFromLog(l, "current"), types.Coin),
+			}
+		case types.TyLogTokenExecTransfer, types.TyLogTokenExecWithdraw, types.TyLogTokenExecDeposit, types.TyLogTokenExecFrozen, types.TyLogTokenExecActive,
+			types.TyLogTokenGenesisTransfer, types.TyLogTokenGenesisDeposit:
+			var execaddr string
+			if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
+				execaddr = tmp
+			}
+			rl.Log = &ReceiptExecAccountTransfer{
+				ExecAddr: execaddr,
+				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
+				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
 		default:
+			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
 		}
 		rd.Logs = append(rd.Logs, rl)
 	}
 	return rd
+}
+
+func IsNtpClockSync() {
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res bool
+	err = rpc.Call("Chain33.IsNtpClockSync", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println("ntpclocksync status:", res)
+}
+
+func ManageConfigTransactioin(key, op, opAddr,  priv string) {
+	c, _ := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	a, _ := common.FromHex(priv)
+	privKey, _ := c.PrivKeyFromBytes(a)
+	originaddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+
+	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr }
+	modify := &types.ManageAction{
+		Ty:    types.ManageActionModifyConfig,
+		Value: &types.ManageAction_Modify{v},
+	}
+	tx := &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
+
+	var random *rand.Rand
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	tx.Fee += types.MinFee
+	tx.Sign(types.SECP256K1, privKey)
+	txHex := types.Encode(tx)
+	fmt.Println(hex.EncodeToString(txHex))
 }
