@@ -53,6 +53,7 @@ var (
 	ErrRetrieveRelateLimit     = errors.New("ErrRetrieveRelateLimit")
 	ErrRetrieveRelation        = errors.New("ErrRetrieveRelation")
 	ErrRetrieveNoBalance       = errors.New("ErrRetrieveNoBalance")
+	ErrLogType                 = errors.New("ErrLogType")
 	//err for token
 	ErrTokenNameLen         = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen       = errors.New("ErrTokenSymbolLength")
