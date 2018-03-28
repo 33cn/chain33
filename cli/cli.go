@@ -458,6 +458,14 @@ type AddrOverviewResult struct {
 	TxCount int64  `json:"txCount"`
 }
 
+type GetTotalCoinsResult struct {
+	AccountCount int64 `json:"accountCount"`
+	ExpectedBalance string `json:"expectedBalance"`
+	ActualBalance string `json:"actualBalance"`
+	DifferenceBalance string `json:"differenceBalance"`
+}
+
+
 func GetVersion() {
 	fmt.Println(common.GetVersion())
 }
@@ -1593,7 +1601,16 @@ func GetTotalCoins(symbol string, height string) {
 		return
 	}
 
-	data, err := json.MarshalIndent(res, "", "    ")
+	expectedBalance := strconv.FormatFloat(float64(res.Balance)/float64(types.Coin), 'f', 4, 64)
+	actualBalance := strconv.FormatFloat(float64(res.Balance)/float64(types.Coin), 'f', 4, 64)
+	differenceBalance := strconv.FormatFloat(float64(res.Balance-res.Balance)/float64(types.Coin), 'f', 4, 64)
+			
+	resp := GetTotalCoinsResult{
+		ExpectedBalance: expectedBalance,
+		ActualBalance: actualBalance,
+		DifferenceBalance: differenceBalance,
+	}
+	data, err := json.MarshalIndent(resp, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -1615,10 +1632,6 @@ func IsSync() {
 		return
 	}
 
-	fmt.Println(string(data))
-}
-
-func decodeTransaction(tx jsonrpc.Transaction) *TxResult {
 	fmt.Println("sync completed:", res)
 }
 
