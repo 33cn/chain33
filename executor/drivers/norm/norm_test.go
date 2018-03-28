@@ -6,11 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"testing"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	"code.aliyun.com/chain33/chain33/types"
@@ -21,9 +19,6 @@ var conn *grpc.ClientConn
 var r *rand.Rand
 var c types.GrpcserviceClient
 var ErrTest = errors.New("ErrTest")
-
-var addr string
-var privkey crypto.PrivKey
 
 const fee = 1e6
 const secretLen = 32
@@ -36,23 +31,6 @@ func init() {
 	}
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	c = types.NewGrpcserviceClient(conn)
-}
-
-func TestInitAccount(t *testing.T) {
-	fmt.Println("TestInitAccount start")
-	time.Sleep(5 * time.Second)
-	defer fmt.Println("TestInitAccount end\n")
-
-	addr, privkey = genaddress()
-	label := strconv.Itoa(int(time.Now().UnixNano()))
-	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
-	_, err := c.ImportPrivKey(context.Background(), &params)
-	if err != nil {
-		fmt.Println(err)
-		time.Sleep(time.Second)
-		t.Error(err)
-		return
-	}
 }
 
 type TestOrg struct {
@@ -81,11 +59,12 @@ func TestNormPut(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	privGenesis := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	vput := &types.NormAction_Nput{&types.NormPut{Key: testKey, Value: testValue}}
 	transfer := &types.NormAction{Value: vput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: fee}
 	tx.Nonce = r.Int63()
-	tx.Sign(types.SECP256K1, privkey)
+	tx.Sign(types.SECP256K1, privGenesis)
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
 		t.Error(err)
@@ -134,20 +113,12 @@ func TestNormHas(t *testing.T) {
 	fmt.Println("TestNormHas start")
 	defer fmt.Println("TestNormHas end\n")
 
-	has, err := Has([]byte(testKey))
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	has, _ := Has([]byte(testKey))
 	if !has {
 		t.Error(errors.New(testKey + " does exist"))
 	}
 
-	has, err = Has([]byte("nokey"))
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	has, _ = Has([]byte("nokey"))
 	if has {
 		t.Error(errors.New(testKey + " does not exist"))
 	}
@@ -174,15 +145,18 @@ func Has(key []byte) (bool, error) {
 	return false, nil
 }
 
-func genaddress() (string, crypto.PrivKey) {
+func getprivkey(key string) crypto.PrivKey {
 	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
-	privto, err := cr.GenKey()
+	bkey, err := common.FromHex(key)
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
-	return addrto.String(), privto
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
 }
