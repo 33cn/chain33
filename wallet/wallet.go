@@ -260,7 +260,7 @@ func (wallet *Wallet) closeTicket(height int64) (int, error) {
 	return wallet.closeAllTickets(height)
 }
 
-func (wallet *Wallet) forceCloseTicket(height int64) ([][]byte, error) {
+func (wallet *Wallet) forceCloseTicket(height int64) (*types.ReplyHashes, error) {
 	return wallet.forceCloseAllTicket(height)
 }
 
@@ -431,7 +431,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			wallet.ProcWalletDelBlock(block)
 			walletlog.Debug("wallet del block --->", "height", block.Block.GetHeight())
 
-			//seed
+		//seed
 		case types.EventGenSeed:
 			genSeedLang := msg.Data.(*types.GenSeedLang)
 			replySeed, err := wallet.genSeed(genSeedLang.Lang)
@@ -559,18 +559,14 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procRevokeSell", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
 			}
-
 		case types.EventCloseTickets:
-			var reply types.Reply
-			reply.IsOk = true
 			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
+			wallet.flushTicket()
 			if err != nil {
 				walletlog.Error("closeTicket", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, err))
 			} else {
-				var replyHashes types.TxHashList
-				replyHashes.Hashes = hashes
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, &replyHashes))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, hashes))
 			}
 
 		default:
@@ -1726,20 +1722,8 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrTokenSymbolUpper
 	}
 
+
 	creator := reqTokenPrcCreate.GetCreatorAddr()
-	approverValid := false
-	for _, approver := range types.TokenApprs {
-		if approver == creator {
-			approverValid = true
-			break
-		}
-	}
-
-	if approverValid == false {
-		walletlog.Error("procTokenPreCreate", "creater", types.ErrTokenCreatedApprover)
-		return nil, types.ErrTokenCreatedApprover
-	}
-
 	addrs := make([]string, 1)
 	addrs[0] = creator
 	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
@@ -1812,18 +1796,6 @@ func (wallet *Wallet) procTokenFinishCreate(req *types.ReqTokenFinishCreate) (*t
 	Balance := accounts[0].Balance
 	if Balance < wallet.FeeAmount {
 		return nil, types.ErrInsufficientBalance
-	}
-
-	approverValid := false
-	for _, approver := range types.TokenApprs {
-		if approver == addrs[0] {
-			approverValid = true
-			break
-		}
-	}
-	if approverValid == false {
-		walletlog.Error("procTokenFinishCreate", "finisher", types.ErrTokenCreatedApprover)
-		return nil, types.ErrTokenCreatedApprover
 	}
 
 	//  check symbol-owner 是否不存在
@@ -1947,8 +1919,10 @@ func (wallet *Wallet) procTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (*t
 		walletlog.Error("procTokenRevokeCreate", "err", types.ErrTokenNotPrecreated)
 		return nil, types.ErrTokenNotPrecreated
 	}
-	if token.Creator != req.GetRevokerAddr() {
-		walletlog.Error("procTokenRevokeCreate", "err", types.ErrTokenRevoker)
+
+	if req.RevokerAddr != token.Owner && req.RevokerAddr != token.Creator {
+		walletlog.Error("tprocTokenRevokeCreate, different creator/owner vs actor of this revoke",
+			"action.fromaddr", req.RevokerAddr, "creator", token.Creator, "owner", token.Owner)
 		return nil, types.ErrTokenRevoker
 	}
 
@@ -2113,3 +2087,30 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	return ok, err
 
 }
+
+
+func GetFromStore(key string, client queue.Client) ([]byte, error) {
+	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	client.Send(msg, true)
+	msg, err := client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	get := types.StoreGet{}
+	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+	get.Keys = append(get.Keys, []byte(key))
+	msg = client.NewMessage("store", types.EventStoreGet, &get)
+	client.Send(msg, true)
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	values := msg.GetData().(*types.StoreReplyValue)
+	value := values.Values[0]
+	if value == nil {
+		return nil, types.ErrEmpty
+	}
+	return value, nil
+}
+
+

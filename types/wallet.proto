@@ -212,3 +212,10 @@ message ReqRevokeSell {
     TradeForRevokeSell revoke = 1;
     string             owner  = 2;
 }
+
+message ReqModifyConfig {
+    string key = 1;
+    string op = 2;
+    string value = 3;
+    string modifier = 4;
+}

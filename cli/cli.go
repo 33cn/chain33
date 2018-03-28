@@ -389,6 +389,18 @@ func main() {
 			return
 		}
 		RevokeCreateToken(argsWithoutProg[1:])
+	case "configtransaction":
+		if len(argsWithoutProg) != 5 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ManageConfigTransactioin(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
+	case "queryconfig": //查询配置
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		QueryConfigItem(argsWithoutProg[1])
 	case "isntpclocksync":
 		if len(argsWithoutProg) != 1 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -459,6 +471,8 @@ func LoadHelp() {
 	fmt.Println("showonesbuyorder [buyer]                                       : 显示指定用户下所有token成交的购买单")
 	fmt.Println("showonesbuytokenorder [buyer, token0, [token1, token2]]        : 显示指定用户下指定token成交的购买单")
 	fmt.Println("sellcrowdfund [owner, token, Amountpbl, minbl, pricepbl, totalpbl, start, stop]              : 卖出众筹")
+	fmt.Println("configtransaction [configKey, operate, value, privkey]         : 修改配置")
+	fmt.Println("queryconfig [Key]                                              : 查询配置")
 	fmt.Println("isntpclocksync []                                           : 获取网络时间同步状态")
 
 }
@@ -1758,12 +1772,17 @@ func CloseTickets() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.TxHashList
+	var res types.ReplyHashes
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	if len(res.Hashes) == 0 {
+		fmt.Println("no ticket to be close")
+		return
+	}
+
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2207,6 +2226,24 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 	}
 }
 
+func QueryConfigItem(key string) {
+	req := &types.ReqString{key}
+	var params jsonrpc.Query
+	params.Execer = "manage"
+	params.FuncName = "GetConfigItem"
+	params.Payload = hex.EncodeToString(types.Encode(req))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	var res types.ReplyConfig
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	fmt.Println(string(data))
+}
+
 func ShowSellOrderWithStatus(status string) {
 	statusInt, ok := types.MapSellOrderStatusStr2Int[status]
 	if !ok {
@@ -2225,6 +2262,7 @@ func ShowSellOrderWithStatus(status string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+
 	var res types.ReplySellOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
@@ -2287,7 +2325,7 @@ func ShowOnesBuyOrder(buyer string, tokens []string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
+		fmt.Printf("---The %dth buyorder is below--------------------\n", i)
 		fmt.Println(string(data))
 	}
 }
@@ -2355,4 +2393,33 @@ func IsNtpClockSync() {
 	}
 
 	fmt.Println("ntpclocksync status:", res)
+}
+
+func ManageConfigTransactioin(key, op, opAddr,  priv string) {
+	c, _ := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	a, _ := common.FromHex(priv)
+	privKey, _ := c.PrivKeyFromBytes(a)
+	originaddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+
+	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr }
+	modify := &types.ManageAction{
+		Ty:    types.ManageActionModifyConfig,
+		Value: &types.ManageAction_Modify{v},
+	}
+	tx := &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
+
+	var random *rand.Rand
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	tx.Fee += types.MinFee
+	tx.Sign(types.SECP256K1, privKey)
+	txHex := types.Encode(tx)
+	fmt.Println(hex.EncodeToString(txHex))
 }

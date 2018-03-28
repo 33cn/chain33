@@ -500,6 +500,7 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message, taskindex int64) {
 		log.Debug("BlockBroadcast", "task complete:", taskindex)
 	}()
 	pub.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, "block")
+
 }
 
 func (m *P2pCli) GetExternIp(addr string) (string, bool) {

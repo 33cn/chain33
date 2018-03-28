@@ -645,7 +645,7 @@ func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
 	return resp.GetData().(*types.ReplyStr), nil
 }
 
-func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
+func (c *channelClient) CloseTickets() (*types.ReplyHashes, error) {
 	msg := c.NewMessage("wallet", types.EventCloseTickets, nil)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -656,7 +656,7 @@ func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resp.GetData().(*types.TxHashList), nil
+	return resp.GetData().(*types.ReplyHashes), nil
 }
 
 func (c *channelClient) IsSync() bool {
