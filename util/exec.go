@@ -107,6 +107,18 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		ExecKVSetCommit(client, block.StateHash)
 	}
 
+	for _, tmp := range rdata {
+		rds, err := tmp.DecodeReceiptLog()
+		if err == nil {
+			ulog.Debug("receipt decode", "receipt data", rds)
+			for _, rdl := range rds.Logs {
+				ulog.Debug("receipt log", "log", rdl)
+			}
+		} else {
+			ulog.Error("decodelogerr", "err", err)
+		}
+	}
+
 	//get receipts
 	//save kvset and get state hash
 	//ulog.Debug("blockdetail-->", "detail=", detail)
