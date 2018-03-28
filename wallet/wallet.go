@@ -1722,6 +1722,12 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrTokenSymbolUpper
 	}
 
+	total := reqTokenPrcCreate.GetTotal()
+	if total > types.MaxTokenBalance  || total <= 0 {
+		walletlog.Error("procTokenPreCreate", "total overflow", total)
+		return nil, types.ErrTokenTotalOverflow
+	}
+
 
 	creator := reqTokenPrcCreate.GetCreatorAddr()
 	addrs := make([]string, 1)
