@@ -1420,6 +1420,17 @@ func GetWalletStatus(isCloseTickets bool) (interface{}, error) {
 }
 
 func GetBalance(address string, execer string) {
+	isExecer := false
+	for _, e := range [7]string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+		if e == execer {
+			isExecer = true
+			break
+		}
+	}
+	if !isExecer {
+		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+		return
+	}
 	var addrs []string
 	addrs = append(addrs, address)
 	params := types.ReqBalance{Addresses: addrs, Execer: execer}
@@ -1505,7 +1516,7 @@ func GetExecAddr(exec string) {
 		fmt.Println(string(data))
 
 	default:
-		fmt.Println("exec not exist!")
+		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
 	}
 }
 
