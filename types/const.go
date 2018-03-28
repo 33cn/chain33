@@ -1,17 +1,22 @@
 package types
 
-import (
-	"time"
-)
-
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	SuperManager           = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	ConfigPrefix           = "mavl-config-"
+	TokenApprs             = []string{
+		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
+		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
+		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
+		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
+	}
 )
 
 var (
@@ -28,23 +33,48 @@ func SetMinFee(fee int64) {
 }
 
 const (
-	Coin                     int64  = 1e8
-	MaxCoin                  int64  = 1e17
-	FutureBlockTime          int64  = 16
-	CoinReward               int64  = 18 * Coin //用户回报
-	CoinDevFund              int64  = 12 * Coin //发展基金回报
-	TicketPrice              int64  = 10000 * Coin
-	TicketFrozenTime         int64  = 5        //5s only for test
-	TicketWithdrawTime       int64  = 10       //10s only for test
-	TicketMinerWaitTime      int64  = 2        // 2s only for test
-	MaxTxSize                int64  = 100000   //100K
-	MaxBlockSize             int64  = 10000000 //10M
-	MaxTxNumber              int64  = 1600     //160
-	PowLimitBits             uint32 = uint32(0x1f00ffff)
-	TargetTimespan                  = 144 * 16 * time.Second
-	TargetTimePerBlock              = 16 * time.Second
-	RetargetAdjustmentFactor        = 4
-	MaxTxsPerBlock                  = 100000
+	//<<<<<<< HEAD
+	//Coin                     int64 = 1e8
+	//TokenPrecision           int64 = 1e4
+	//InputPrecision           float64 = 1e4
+	//CoinMultiple             int64 = 1e4
+	//MaxCoin                  int64 = 1e17
+	//FutureBlockTime          int64 = 16
+	//CoinReward               int64 = 18 * Coin //用户回报
+	//CoinDevFund              int64 = 12 * Coin //发展基金回报
+	//TicketPrice              int64 = 10000 * Coin
+	//TicketFrozenTime         int64 = 5        //5s only for test
+	//TicketWithdrawTime       int64 = 10       //10s only for test
+	//TicketMinerWaitTime      int64 = 2        // 2s only for test
+	//MaxTxSize                int64 = 100000   //100K
+	//MaxBlockSize             int64 = 10000000 //10M
+	//MaxTxNumber              int64 = 1600     //160
+	//PowLimitBits             uint32 = uint32(0x1f00ffff)
+	//TargetTimespan                   = 144 * 16 * time.Second
+	//TargetTimePerBlock               = 16 * time.Second
+	//RetargetAdjustmentFactor = 4
+	//MaxTxsPerBlock = 100000
+	//TokenNameLenLimit = 128
+	//TokenSymbolLenLimit              = 16
+	//TokenIntroLenLimit = 1024
+	//TokenPrecisionLen = 1e6
+	//TokenCreatePriceStand = 10000 * Coin
+	//InvalidStartTime = 0
+	//InvalidStopTime = 0
+	//====== =
+	Coin                int64   = 1e8
+	MaxCoin             int64   = 1e17
+	MaxTxSize                   = 100000   //100K
+	MaxBlockSize                = 10000000 //10M
+	MaxTxsPerBlock              = 100000
+	TokenPrecision      int64   = 1e4
+	InputPrecision      float64 = 1e4
+	CoinMultiple        int64   = 1e4
+	TokenNameLenLimit           = 128
+	TokenSymbolLenLimit         = 16
+	TokenIntroLenLimit          = 1024
+	InvalidStartTime            = 0
+	InvalidStopTime             = 0
 )
 
 const (
@@ -149,9 +179,27 @@ const (
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
 
-	EventCloseTickets = 98
-	EventGetAddrTxs   = 99
-	EventReplyAddrTxs = 100
+	EventCloseTickets        = 98
+	EventGetAddrTxs          = 99
+	EventReplyAddrTxs        = 100
+	EventIsNtpClockSync      = 101
+	EventReplyIsNtpClockSync = 102
+	// Token
+	EventTokenPreCreate         = 200
+	EventReplyTokenPreCreate    = 201
+	EventTokenFinishCreate      = 202
+	EventReplyTokenFinishCreate = 203
+	EventTokenRevokeCreate      = 204
+	EventReplyTokenRevokeCreate = 205
+	EventSellToken              = 206
+	EventReplySellToken         = 207
+	EventBuyToken               = 208
+	EventReplyBuyToken          = 209
+	EventRevokeSellToken        = 210
+	EventReplyRevokeSellToken   = 211
+	// config
+	EventModifyConfig      = 300
+	EventReplyModifyConfig = 301
 )
 
 var eventName = map[int]string{
@@ -255,6 +303,24 @@ var eventName = map[int]string{
 	98:  "EventCloseTickets",
 	99:  "EventGetAddrTxs",
 	100: "EventReplyAddrTxs",
+	101: "EventIsNtpClockSync",
+	102: "EventReplyIsNtpClockSync",
+	// Token
+	EventTokenPreCreate:         "EventTokenPreCreate",
+	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
+	EventTokenFinishCreate:      "EventTokenFinishCreate",
+	EventReplyTokenFinishCreate: "EventReplyTokenFinishCreate",
+	EventTokenRevokeCreate:      "EventTokenRevokeCreate",
+	EventReplyTokenRevokeCreate: "EventReplyTokenRevokeCreate",
+	EventSellToken:              "EventSellToken",
+	EventReplySellToken:         "EventReplySellToken",
+	EventBuyToken:               "EventBuyToken",
+	EventReplyBuyToken:          "EventReplyBuyToken",
+	EventRevokeSellToken:        "EventRevokeSellToken",
+	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
+	// config
+	EventModifyConfig:           "EventModifyConfig",
+	EventReplyModifyConfig:      "EventReplyModifyConfig",
 }
 
 //ty = 1 -> secp256k1
@@ -287,6 +353,29 @@ const (
 	TyLogCloseTicket = 112
 	TyLogMinerTicket = 113
 	TyLogTicketBind  = 114
+
+	//log for token create
+	TyLogPreCreateToken    = 211
+	TyLogFinishCreateToken = 212
+	TyLogRevokeCreateToken = 213
+
+	//log for trade
+	TyLogTradeSell            = 310
+	TyLogTradeBuy             = 311
+	TyLogTradeRevoke          = 312
+	TyLogTokenTransfer        = 313
+	TyLogTokenGenesis         = 314
+	TyLogTokenDeposit         = 315
+	TyLogTokenExecTransfer    = 316
+	TyLogTokenExecWithdraw    = 317
+	TyLogTokenExecDeposit     = 318
+	TyLogTokenExecFrozen      = 319
+	TyLogTokenExecActive      = 320
+	TyLogTokenGenesisTransfer = 321
+	TyLogTokenGenesisDeposit  = 322
+
+	// log for config
+	TyLogModifyConfig         = 410
 )
 
 //exec type
@@ -298,9 +387,18 @@ const (
 
 //coinsaction
 const (
-	CoinsActionTransfer = 1
-	CoinsActionGenesis  = 2
-	CoinsActionWithdraw = 3
+	InvalidAction = iota
+	CoinsActionTransfer
+	CoinsActionGenesis
+	CoinsActionWithdraw
+
+	//action for token
+	ActionTransfer
+	ActionGenesis
+	ActionWithdraw
+	TokenActionPreCreate
+	TokenActionFinishCreate
+	TokenActionRevokeCreate
 )
 
 //ticket
@@ -329,7 +427,55 @@ const (
 	RetrieveCancel = 4
 )
 
+const (
+	TokenStatusPreCreated = iota
+	TokenStatusCreated
+	TokenStatusCreateRevoked
+)
+
+const (
+	TradeSell = iota
+	TradeBuy
+	TradeRevokeSell
+)
+
+//0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
+const (
+	NotStart = iota
+	OnSale
+	SoldOut
+	Revoked
+	Expired
+)
+
+var SellOrderStatus = map[int32]string{
+	NotStart: "NotStart",
+	OnSale:   "OnSale",
+	SoldOut:  "SoldOut",
+	Revoked:  "Revoked",
+	Expired:  "Expired",
+}
+
+const (
+	ManageActionModifyConfig = iota
+)
+
+const (
+	ConfigItemArrayConfig = iota
+	ConfigItemIntConfig
+	ConfigItemStringConfig
+)
+
+var MapSellOrderStatusStr2Int = map[string]int32{
+	"onsale":  OnSale,
+	"soldout": SoldOut,
+	"revoked": Revoked,
+}
+
 //hard fork block height
 const (
-	ForkV1 = 75260
+	ForkV1           = 75260
+	ForkV2_add_token = 100899
+	ForkV3           = 110000
+	ForkV4_add_manage= 120000
 )

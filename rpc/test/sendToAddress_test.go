@@ -21,7 +21,12 @@ func TestSendToAddress(t *testing.T) {
 		return
 	}
 	hex := "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-	priv, err := cr.PrivKeyFromBytes(common.FromHex(hex))
+	hexbytes, err := common.FromHex(hex)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	priv, err := cr.PrivKeyFromBytes(hexbytes)
 	if err != nil {
 		t.Error(err)
 		return

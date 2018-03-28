@@ -26,11 +26,13 @@ message CoinsGenesis {
 }
 
 message CoinsTransfer {
-	int64 amount = 2;
-	string note = 3;
+	string cointoken = 1;
+	int64 amount     = 2;
+	string note      = 3;
 }
 
 message CoinsWithdraw {
+	string cointoken = 1;
 	int64 amount = 2;
 	string note = 3;
 }
@@ -226,3 +228,232 @@ message CancelRetrieve{
 	string defaultAddress    = 2;
 }
 //message for retrieve end
+
+
+//////////////////////////////////////////////////////////////////////////////
+//message for token start/////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+message TokenAction {
+	oneof value {
+		TokenPreCreate    tokenprecreate    = 1;
+		TokenFinishCreate tokenfinishcreate = 2;
+		TokenRevokeCreate tokenrevokecreate = 3;
+		CoinsTransfer     transfer          = 4;
+		CoinsWithdraw     withdraw          = 5;
+		CoinsGenesis      genesis           = 6;
+	}
+	int32 Ty = 7;
+}
+
+//创建token，支持最大精确度是6位小数,即存入数据库的实际总额需要放大1e6倍
+message TokenPreCreate {
+	string name         = 1;
+	string symbol       = 2;
+	string introduction = 3;
+	int64 total         = 4;
+	int64  price        = 5;
+	string owner        = 6;
+}
+
+message TokenFinishCreate {
+	string symbol       = 1;
+	string owner        = 2;
+}
+
+message TokenRevokeCreate {
+	string symbol       = 1;
+	string owner        = 2;
+}
+
+message Token {
+	string name         = 1;
+	string symbol       = 2;
+	string introduction = 3;
+	int64  total        = 4;
+	int64  price        = 5;
+	string owner        = 6;
+	string creator      = 7;
+	int32  status       = 8;
+}
+
+message ReqTokens {
+	bool queryall          = 1;
+	int32 status           = 2;
+	repeated string tokens = 3;
+}
+
+message ReplyTokens {
+	repeated Token tokens = 1;
+}
+
+message ReceiptToken {
+	string symbol       = 1;
+	string owner        = 2;
+	int32  status       = 3;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//message for Trade start/////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+message Trade {
+	oneof value {
+		TradeForSell              tokensell            = 1;
+		TradeForBuy               tokenbuy             = 2;
+		TradeForRevokeSell        tokenrevokesell      = 3;
+	}
+	int32 ty = 4;
+}
+
+//创建众筹交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
+message TradeForSell {
+	string tokensymbol          = 1;
+	int64 amountperboardlot     = 2; //每一手出售的token的数量
+	int64 minboardlot           = 3; //起卖手数,必须达到这个门槛才允许进行交易
+	int64 priceperboardlot      = 4; //每一手token的价格
+	int64 totalboardlot         = 5;
+	int64  starttime            = 6; //此次出售的起始时间，如果非众筹则可以忽略此时间
+	int64  stoptime             = 7;
+	bool   crowdfund            = 8;
+}
+
+message SellOrder {
+	string tokensymbol          = 1;
+	string address              = 2;
+	int64 amountperboardlot     = 3; //每一手出售的token的数量
+    int64 minboardlot           = 4;
+	int64 priceperboardlot      = 5; //每一手token的价格
+	int64 totalboardlot         = 6;
+	int64 soldboardlot          = 7;
+	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
+	int64  stoptime             = 9;
+	bool   crowdfund            = 10;
+	string  sellid              = 11; //此处使用tx的hash来指定
+	int32  status               = 12;
+	int64  height               = 13;
+}
+
+message SellOrderReceipt {
+	string sellid = 1;
+}
+
+message ReqAddrTokens{
+	string addr           = 1;
+	int32  status         = 2;
+	repeated string token = 3;
+}
+
+message ReplySellOrders {
+	repeated SellOrder selloders = 1;
+}
+
+message TokenRecv {
+	string token = 1;
+	int64  recv  = 2;
+}
+message ReplyAddrRecvForTokens {
+	repeated TokenRecv tokenrecv = 1;
+}
+
+//购买者发起交易用来购买token持有者之前挂单出售的token
+//其中的hash为token出售者发起出售交易的hash
+message TradeForBuy {
+	string sellid      = 1;
+	int64 boardlotcnt  = 2;
+}
+
+//允许token的持有者撤销之前未成交出售token的挂单
+message TradeForRevokeSell {
+	string sellid      = 1;
+}
+
+message ReceiptTradeBase {
+	string tokensymbol          = 1;
+	string owner                = 2;
+    string amountperboardlot    = 3; //每一手出售的token的数量
+	int64 minboardlot           = 4;
+    string priceperboardlot     = 5; //每一手token的价格
+	int64 totalboardlot         = 6;
+	int64 soldboardlot          = 7;
+	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
+	int64  stoptime             = 9;
+	bool   crowdfund            = 10;
+	string  sellid              = 11;  //此处使用tx的hash来指定
+    string  status              = 12;
+}
+
+message ReceiptTradeSell {
+	ReceiptTradeBase base = 1;
+}
+
+message ReceiptTradeBuy {
+	string buyeraddr             = 1;
+	string sellid                = 2;
+	string token                 = 3;
+	int64 boardlotcnt            = 4;
+	string amountperboardlot     = 5;
+	string priceperboardlot      = 6;
+    string buytxhash             = 7;
+}
+
+message ReceiptTradeRevoke {
+	ReceiptTradeBase base = 1;
+}
+
+message TradeBuyDone {
+	string token                 = 1;
+	int64  boardlotcnt           = 2;
+	string amountperboardlot     = 3;
+    string priceperboardlot      = 4;
+   	string buytxhash             = 5;
+   	int64  height                = 6;
+}
+
+message ReplyTradeBuyOrders {
+	repeated TradeBuyDone tradebuydones = 1;
+}
+
+// 配置修改部分
+message ArrayConfig {
+    repeated string value = 3;
+}
+message StringConfig {
+    string value = 3;
+}
+message Int32Config {
+    int32 value = 3;
+}
+
+message ConfigItem {
+    string key = 1;
+    string addr = 2;
+    oneof value {
+        ArrayConfig arr = 3;
+        StringConfig str = 4;
+        Int32Config int = 5;
+    }
+    int32 Ty = 11;
+}
+
+message ModifyConfig {
+    string key = 1;
+    string value = 2;
+    string op = 3;
+    string addr = 4;
+}
+
+message ManageAction {
+    oneof value {
+        ModifyConfig modify = 1;
+    }
+    int32 Ty = 2;
+}
+
+message ReceiptConfig {
+    ConfigItem prev = 1;
+    ConfigItem current = 2;
+}
+
+message ReplyConfig {
+    string key = 1;
+    string value = 2;
+}
