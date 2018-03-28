@@ -845,11 +845,10 @@ func SendToAddress(from string, to string, amount string, note string, isToken b
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountFloat64 * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	amountInt64 := int64(amountFloat64 * types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	if !isToken {
 		params.Istoken = false
-		params.Amount *= types.CoinMultiple
 	} else {
 		params.Istoken = true
 		params.TokenSymbol = tokenSymbol
@@ -2007,7 +2006,7 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountperboardlot * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	amountInt64 := int64(amountperboardlot * types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	sell.Amountperboardlot = amountInt64
 
 	sell.Minboardlot, err = strconv.ParseInt(args[3], 10, 64)
@@ -2020,7 +2019,7 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	sell.Priceperboardlot = int64(price*types.InputPrecision) * types.CoinMultiple
+	sell.Priceperboardlot = int64(price*types.InputPrecision) * types.Multiple1E4
 
 	sell.Totalboardlot, err = strconv.ParseInt(args[5], 10, 64)
 	if err != nil {
@@ -2203,7 +2202,7 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
 		sellOrders2show.Seller = sellorder.Address
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
 		sellOrders2show.Minboardlot = sellorder.Minboardlot
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
@@ -2274,7 +2273,7 @@ func ShowSellOrderWithStatus(status string) {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
 		sellOrders2show.Seller = sellorder.Address
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
 		sellOrders2show.Minboardlot = sellorder.Minboardlot
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
