@@ -202,49 +202,43 @@ func (p *peer) sendStream() {
 					P2pComm.CollectPeerStat(err, p)
 					if err == nil {
 						if pinfo.GetHeader().GetHeight() >= height {
-							timeout.Stop()
+							log.Debug("sendStream", "find peer height>this broadblock ,send process", "break")
 							continue
 						}
 					}
-					if Filter.QuerySendData(blockhash) == true {
-						timeout.Stop()
-						continue //已经接收的消息不再发送
-					}
+
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
-					//登记新的发送消息
-					Filter.RegSendData(blockhash)
 
 				} else if tx, ok := task.(*pb.P2PTx); ok {
 					txhash := hex.EncodeToString(tx.GetTx().Hash())
 					log.Debug("sendStream", "will send tx", txhash)
-					if Filter.QuerySendData(txhash) == true {
-						continue
-					}
-
 					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-					Filter.RegSendData(txhash)
 				}
+
 				err := resp.Send(p2pdata)
 				P2pComm.CollectPeerStat(err, p)
 				if err != nil {
 					log.Error("sendStream", "send", err)
-
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 						(*p.nodeInfo).blacklist.Add(p.Addr())
 					}
 					time.Sleep(time.Second) //have a rest
 					resp.CloseSend()
 					cancel()
+
 					break SEND_LOOP //下一次外循环重新获取stream
 				}
+				log.Debug("sendStream", "send data", "ok")
+
 			case <-timeout.C:
 				if p.GetRunning() == false {
 					log.Error("sendStream timeout")
 					resp.CloseSend()
 					cancel()
-
 					return
 				}
+				timeout.Reset(time.Second * 2)
+
 			}
 		}
 

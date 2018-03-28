@@ -144,12 +144,12 @@ func (wallet *Wallet) closeAllTickets(height int64) (int, error) {
 	return 0, nil
 }
 
-func (wallet *Wallet) forceCloseAllTicket(height int64) ([][]byte, error) {
+func (wallet *Wallet) forceCloseAllTicket(height int64) (*types.ReplyHashes, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
 		return nil, err
 	}
-	var hashes [][]byte
+	var hashes types.ReplyHashes
 	for _, key := range keys {
 		hash, err := wallet.forceCloseTicketsByAddr(height, key)
 		if err != nil {
@@ -159,9 +159,9 @@ func (wallet *Wallet) forceCloseAllTicket(height int64) ([][]byte, error) {
 		if hash == nil {
 			continue
 		}
-		hashes = append(hashes, hash)
+		hashes.Hashes = append(hashes.Hashes, hash)
 	}
-	return hashes, nil
+	return &hashes, nil
 }
 
 func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error) {
@@ -759,5 +759,32 @@ func (wallet *Wallet) revokeSell(priv crypto.PrivKey, reqRevoke *types.ReqRevoke
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
+	return &hash, nil
+}
+
+func (wallet *Wallet) modifyConfig(priv crypto.PrivKey, req *types.ReqModifyConfig) (*types.ReplyHash, error) {
+	v := &types.ModifyConfig{Key: req.GetKey(), Op: req.GetOp(), Value: req.GetValue(), Addr: req.GetModifier(), }
+	modify := &types.ManageAction{
+		Ty:    types.ManageActionModifyConfig,
+		Value: &types.ManageAction_Modify{v},
+	}
+	tx := &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify), Fee: wallet.FeeAmount, Nonce: wallet.random.Int63()}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("modifyConfig", "Send err", err)
+		return nil, err
+	}
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	walletlog.Debug("modifyConfig", "sendTx", hash.Hash)
 	return &hash, nil
 }

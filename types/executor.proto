@@ -425,10 +425,56 @@ message TradeBuyDone {
 	int64  boardlotcnt           = 2;
 	string amountperboardlot     = 3;
     string priceperboardlot      = 4;
-	string buytxhash             = 5;
-	int64  height                = 6;
+   	string buytxhash             = 5;
+   	int64  height                = 6;
 }
 
 message ReplyTradeBuyOrders {
 	repeated TradeBuyDone tradebuydones = 1;
+}
+
+// 配置修改部分
+message ArrayConfig {
+    repeated string value = 3;
+}
+message StringConfig {
+    string value = 3;
+}
+message Int32Config {
+    int32 value = 3;
+}
+
+message ConfigItem {
+    string key = 1;
+    string addr = 2;
+    oneof value {
+        ArrayConfig arr = 3;
+        StringConfig str = 4;
+        Int32Config int = 5;
+    }
+    int32 Ty = 11;
+}
+
+message ModifyConfig {
+    string key = 1;
+    string value = 2;
+    string op = 3;
+    string addr = 4;
+}
+
+message ManageAction {
+    oneof value {
+        ModifyConfig modify = 1;
+    }
+    int32 Ty = 2;
+}
+
+message ReceiptConfig {
+    ConfigItem prev = 1;
+    ConfigItem current = 2;
+}
+
+message ReplyConfig {
+    string key = 1;
+    string value = 2;
 }
