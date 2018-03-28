@@ -15,7 +15,7 @@ var (
 //const maxTimeWeight = 2
 func init() {
 	h := newRetrieve()
-	drivers.Register(h.GetName(), h)
+	drivers.Register(h.GetName(), h, 0)
 }
 
 type Retrieve struct {

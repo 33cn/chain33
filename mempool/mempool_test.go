@@ -244,114 +244,114 @@ func checkReply(reply *types.Reply) error {
 	return nil
 }
 
-func add4Tx(qclient queue.Client) error {
-	msg1 := qclient.NewMessage("mempool", types.EventTx, tx1)
-	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
-	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
-	msg4 := qclient.NewMessage("mempool", types.EventTx, tx4)
-	qclient.Send(msg1, true)
-	_, err := qclient.Wait(msg1)
+func add4Tx(client queue.Client) error {
+	msg1 := client.NewMessage("mempool", types.EventTx, tx1)
+	msg2 := client.NewMessage("mempool", types.EventTx, tx2)
+	msg3 := client.NewMessage("mempool", types.EventTx, tx3)
+	msg4 := client.NewMessage("mempool", types.EventTx, tx4)
+	client.Send(msg1, true)
+	_, err := client.Wait(msg1)
 	if err != nil {
 		return err
 	}
 
-	qclient.Send(msg2, true)
-	_, err = qclient.Wait(msg2)
+	client.Send(msg2, true)
+	_, err = client.Wait(msg2)
 	if err != nil {
 		return err
 	}
 
-	qclient.Send(msg3, true)
-	_, err = qclient.Wait(msg3)
+	client.Send(msg3, true)
+	_, err = client.Wait(msg3)
 	if err != nil {
 		return err
 	}
 
-	qclient.Send(msg4, true)
-	_, err = qclient.Wait(msg4)
+	client.Send(msg4, true)
+	_, err = client.Wait(msg4)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func add4TxHash(qclient queue.Client) ([]string, error) {
-	msg1 := qclient.NewMessage("mempool", types.EventTx, tx5)
-	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
-	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
-	msg4 := qclient.NewMessage("mempool", types.EventTx, tx4)
+func add4TxHash(client queue.Client) ([]string, error) {
+	msg1 := client.NewMessage("mempool", types.EventTx, tx5)
+	msg2 := client.NewMessage("mempool", types.EventTx, tx2)
+	msg3 := client.NewMessage("mempool", types.EventTx, tx3)
+	msg4 := client.NewMessage("mempool", types.EventTx, tx4)
 	hashList := []string{string(tx5.Hash()), string(tx2.Hash()), string(tx3.Hash()), string(tx4.Hash())}
-	qclient.Send(msg1, true)
-	_, err := qclient.Wait(msg1)
+	client.Send(msg1, true)
+	_, err := client.Wait(msg1)
 	if err != nil {
 		return nil, err
 	}
 
-	qclient.Send(msg2, true)
-	_, err = qclient.Wait(msg2)
+	client.Send(msg2, true)
+	_, err = client.Wait(msg2)
 	if err != nil {
 		return nil, err
 	}
 
-	qclient.Send(msg3, true)
-	_, err = qclient.Wait(msg3)
+	client.Send(msg3, true)
+	_, err = client.Wait(msg3)
 	if err != nil {
 		return nil, err
 	}
 
-	qclient.Send(msg4, true)
-	_, err = qclient.Wait(msg4)
+	client.Send(msg4, true)
+	_, err = client.Wait(msg4)
 	if err != nil {
 		return nil, err
 	}
 	return hashList, nil
 }
 
-func add10Tx(qclient queue.Client) error {
-	err := add4Tx(qclient)
+func add10Tx(client queue.Client) error {
+	err := add4Tx(client)
 	if err != nil {
 		return err
 	}
 
-	msg5 := qclient.NewMessage("mempool", types.EventTx, tx5)
-	msg6 := qclient.NewMessage("mempool", types.EventTx, tx6)
-	msg7 := qclient.NewMessage("mempool", types.EventTx, tx7)
-	msg8 := qclient.NewMessage("mempool", types.EventTx, tx8)
-	msg9 := qclient.NewMessage("mempool", types.EventTx, tx9)
-	msg10 := qclient.NewMessage("mempool", types.EventTx, tx10)
+	msg5 := client.NewMessage("mempool", types.EventTx, tx5)
+	msg6 := client.NewMessage("mempool", types.EventTx, tx6)
+	msg7 := client.NewMessage("mempool", types.EventTx, tx7)
+	msg8 := client.NewMessage("mempool", types.EventTx, tx8)
+	msg9 := client.NewMessage("mempool", types.EventTx, tx9)
+	msg10 := client.NewMessage("mempool", types.EventTx, tx10)
 
-	qclient.Send(msg5, true)
-	_, err = qclient.Wait(msg5)
+	client.Send(msg5, true)
+	_, err = client.Wait(msg5)
 	if err != nil {
 		return err
 	}
 
-	qclient.Send(msg6, true)
-	_, err = qclient.Wait(msg6)
+	client.Send(msg6, true)
+	_, err = client.Wait(msg6)
 	if err != nil {
 		return err
 	}
 
-	qclient.Send(msg7, true)
-	_, err = qclient.Wait(msg7)
+	client.Send(msg7, true)
+	_, err = client.Wait(msg7)
 	if err != nil {
 		return err
 	}
 
-	qclient.Send(msg8, true)
-	_, err = qclient.Wait(msg8)
+	client.Send(msg8, true)
+	_, err = client.Wait(msg8)
 	if err != nil {
 		return err
 	}
 
-	qclient.Send(msg9, true)
-	_, err = qclient.Wait(msg9)
+	client.Send(msg9, true)
+	_, err = client.Wait(msg9)
 	if err != nil {
 		return err
 	}
 
-	qclient.Send(msg10, true)
-	_, err = qclient.Wait(msg10)
+	client.Send(msg10, true)
+	_, err = client.Wait(msg10)
 	if err != nil {
 		return err
 	}

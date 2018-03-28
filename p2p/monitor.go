@@ -242,5 +242,5 @@ func (n *Node) monitorBlackList() {
 
 func (n *Node) monitorFilter() {
 	Filter = NewFilter()
-	Filter.ManageFilter()
+	Filter.ManageRecvFilter()
 }
