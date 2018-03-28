@@ -149,9 +149,16 @@ var (
 	ErrSeedExist            = errors.New("ErrSeedExist")
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
+
 	ErrOnlyTicketUnLocked   = errors.New("ErrOnlyTicketUnLocked")
 	ErrNewCrypto            = errors.New("ErrNewCrypto")
 	ErrFromHex              = errors.New("ErrFromHex")
 	ErrPrivKeyFromBytes     = errors.New("ErrFromHex")
 	ErrParentHash           = errors.New("ErrParentHash")
+	// manage
+	ErrNoPrivilege          = errors.New("ErrNoPrivilege")
+	ErrBadConfigKey         = errors.New("ErrBadConfigKey")
+	ErrBadConfigOp          = errors.New("ErrBadConfigOp")
+	ErrBadConfigValue       = errors.New("ErrBadConfigValue")
+
 )

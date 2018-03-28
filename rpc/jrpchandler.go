@@ -785,7 +785,11 @@ func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = resp
+	var hashes ReplyHashes
+	for _, has := range resp.Hashes {
+		hashes.Hashes = append(hashes.Hashes, hex.EncodeToString(has))
+	}
+	*result = &hashes
 	return nil
 }
 
@@ -918,6 +922,7 @@ func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *inter
 	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
 	return nil
 }
+
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 	var rTy string
 	switch rlog.Ty {

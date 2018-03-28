@@ -4,6 +4,7 @@ import (
 	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
+	"strings"
 )
 
 type tokenDB struct {
@@ -93,6 +94,12 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	} else if len(token.GetSymbol()) > types.TokenSymbolLenLimit {
 		return nil, types.ErrTokenSymbolLen
 	}
+	upSymbol := strings.ToUpper(token.GetSymbol())
+	if upSymbol != token.GetSymbol() {
+		tokenlog.Error("token precreate ", "symbol need be upper", token.GetSymbol())
+		return nil, types.ErrTokenSymbolUpper
+	}
+
 
 	if checkTokenExist(token.GetSymbol(), action.db) {
 		return nil, types.ErrTokenExist
@@ -128,23 +135,15 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	return receipt, nil
 }
 
-func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate, approvers []string) (*types.Receipt, error) {
+func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*types.Receipt, error) {
 	token, err := getTokenFromDB(action.db, tokenFinish.GetSymbol(), tokenFinish.GetOwner())
 	if err != nil || token.Status != types.TokenStatusPreCreated {
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	//确认交易发起者的身份，只有平台审核人才有权限执行该项操作
-	approver_valid := false
-	for _, approver := range approvers {
-		if approver == action.fromaddr {
-			approver_valid = true
-			break
-		}
-	}
-
-	if !approver_valid {
-		return nil, types.ErrTokenCreatedApprover
+	hasPriv, ok := validFinisher(action.fromaddr, action.db)
+	if ok != nil || hasPriv != true {
+		return  nil, types.ErrTokenCreatedApprover
 	}
 
 	//将之前冻结的资金转账到fund合约账户中
@@ -195,10 +194,10 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	}
 
 	//确认交易发起者的身份，token的发起人可以撤销该项token的创建
-	//token的owner不允许撤销交易
-	if action.fromaddr != token.Creator {
-		tokenlog.Error("token revokeCreate, different creator vs actor of this revoke",
-			"action.fromaddr", action.fromaddr, "creator", token.Creator)
+	//token的owner允许撤销交易
+	if action.fromaddr != token.Owner && action.fromaddr != token.Creator {
+		tokenlog.Error("tprocTokenRevokeCreate, different creator/owner vs actor of this revoke",
+			"action.fromaddr", action.fromaddr, "creator", token.Creator, "owner", token.Owner)
 		return nil, types.ErrTokenRevoker
 	}
 
@@ -234,3 +233,36 @@ func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KVDB) bool
 	_, err := db.Get(calcTokenAddrKey(token, owner))
 	return err == nil
 }
+
+func validFinisher(addr string, db dbm.KVDB) (bool, error) {
+	return validOperator(addr, types.ConfigKey(finisherKey), db)
+}
+
+
+func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
+	value, err := db.Get([]byte(key))
+	if err != nil {
+		tokenlog.Info("tokendb", "get db key", "not found")
+		return false, err
+	}
+	if value == nil {
+		tokenlog.Info("tokendb", "get db key", "  found nil value")
+		return false, nil
+	}
+
+	var item types.ConfigItem
+	err = types.Decode(value, &item)
+	if err != nil {
+		tokenlog.Error("tokendb", "get db key", err)
+		return false, err  // types.ErrBadConfigValue
+	}
+
+	for _, op := range item.GetArr().Value {
+		if op == addr {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+

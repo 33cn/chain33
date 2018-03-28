@@ -12,6 +12,7 @@ import (
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	"github.com/golang/protobuf/proto"
 	//log "github.com/inconshreveable/log15"
+	"fmt"
 )
 
 //var tlog = log.New("module", "types")
@@ -515,4 +516,8 @@ func GetSignatureTypeName(signType int) string {
 	} else {
 		return "unknow"
 	}
+}
+
+func ConfigKey(key string) string {
+	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }
