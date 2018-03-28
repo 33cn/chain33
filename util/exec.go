@@ -92,6 +92,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
 		ExecKVSetRollback(client, block.StateHash)
+		if len(rdata) > 0 {
+			for _, rd := range rdata {
+				rd.OutputReceiptDetails(ulog)
+			}
+		}
 		return nil, types.ErrCheckStateHash
 	}
 	detail.Block = block
@@ -105,18 +110,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//save to db
 	if kvset != nil {
 		ExecKVSetCommit(client, block.StateHash)
-	}
-
-	for _, tmp := range rdata {
-		rds, err := tmp.DecodeReceiptLog()
-		if err == nil {
-			ulog.Debug("receipt decode", "receipt data", rds)
-			for _, rdl := range rds.Logs {
-				ulog.Debug("receipt log", "log", rdl)
-			}
-		} else {
-			ulog.Error("decodelogerr", "err", err)
-		}
 	}
 
 	//get receipts
