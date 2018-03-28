@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/hex"
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -12,7 +14,6 @@ import (
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	"github.com/golang/protobuf/proto"
 	//log "github.com/inconshreveable/log15"
-	"fmt"
 )
 
 //var tlog = log.New("module", "types")
@@ -520,4 +521,288 @@ func GetSignatureTypeName(signType int) string {
 
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
+}
+
+type ReceiptDataResult struct {
+	Ty     int32               `json:"ty"`
+	TyName string              `json:"tyname"`
+	Logs   []*ReceiptLogResult `json:"logs"`
+}
+
+type ReceiptLogResult struct {
+	Ty     int32       `json:"ty"`
+	TyName string      `json:"tyname"`
+	Log    interface{} `json:"log"`
+	RawLog string      `json:"rawlog"`
+}
+
+func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
+	result := &ReceiptDataResult{Ty: rpt.GetTy()}
+	switch rpt.Ty {
+	case 0:
+		result.TyName = "ExecErr"
+	case 1:
+		result.TyName = "ExecPack"
+	case 2:
+		result.TyName = "ExecOk"
+	default:
+		return nil, ErrLogType
+	}
+
+	logs := rpt.GetLogs()
+	for _, l := range logs {
+		var lTy string
+		var logIns interface{}
+
+		lLog, err := hex.DecodeString(common.ToHex(l.GetLog())[2:])
+		if err != nil {
+			return nil, err
+		}
+
+		switch l.Ty {
+		case TyLogErr:
+			lTy = "LogErr"
+			logIns = string(lLog)
+		case TyLogFee:
+			lTy = "LogFee"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTransfer:
+			lTy = "LogTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesis:
+			lTy = "LogGenesis"
+			logIns = nil
+		case TyLogDeposit:
+			lTy = "LogDeposit"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecTransfer:
+			lTy = "LogExecTransfer"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecWithdraw:
+			lTy = "LogExecWithdraw"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecDeposit:
+			lTy = "LogExecDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecFrozen:
+			lTy = "LogExecFrozen"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecActive:
+			lTy = "LogExecActive"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesisTransfer:
+			lTy = "LogGenesisTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesisDeposit:
+			lTy = "LogGenesisDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogNewTicket:
+			lTy = "LogNewTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogCloseTicket:
+			lTy = "LogCloseTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogMinerTicket:
+			lTy = "LogMinerTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTicketBind:
+			lTy = "LogTicketBind"
+			var logTmp ReceiptTicketBind
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogPreCreateToken:
+			lTy = "LogPreCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogFinishCreateToken:
+			lTy = "LogFinishCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRevokeCreateToken:
+			lTy = "LogRevokeCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeSell:
+			lTy = "LogTradeSell"
+			var logTmp ReceiptTradeSell
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeBuy:
+			lTy = "LogTradeBuy"
+			var logTmp ReceiptTradeBuy
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeRevoke:
+			lTy = "LogTradeRevoke"
+			var logTmp ReceiptTradeRevoke
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenTransfer:
+			lTy = "LogTokenTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenDeposit:
+			lTy = "LogTokenDeposit"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecTransfer:
+			lTy = "LogTokenExecTransfer"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecWithdraw:
+			lTy = "LogTokenExecWithdraw"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecDeposit:
+			lTy = "LogTokenExecDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecFrozen:
+			lTy = "LogTokenExecFrozen"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecActive:
+			lTy = "LogTokenExecActive"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenGenesisTransfer:
+			lTy = "LogTokenGenesisTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenGenesisDeposit:
+			lTy = "LogTokenGenesisDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		default:
+			//log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
+			return nil, ErrLogType
+		}
+		result.Logs = append(result.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: common.ToHex(l.GetLog())})
+	}
+	return result, nil
 }
