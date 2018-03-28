@@ -1,34 +1,20 @@
 package p2p
 
 import (
-	"net"
 	"time"
 )
 
-func (n *Node) AddrTest(addrs []string) []string {
-	var enableAddrs []string
-	for _, addr := range addrs {
-
-		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
-		if err == nil {
-			conn.Close()
-			enableAddrs = append(enableAddrs, addr)
-		}
-	}
-
-	return enableAddrs
-
-}
 func (n *Node) checkActivePeers() {
-	ticker := time.NewTicker(time.Second * 5)
+	ticker := time.NewTicker(CheckActivePeersInterVal)
 	defer ticker.Stop()
-FOR_LOOP:
+
 	for {
 		select {
-		case <-n.loopDone:
-			log.Debug("checkActivePeers", "loop", "done")
-			break FOR_LOOP
 		case <-ticker.C:
+			if n.IsClose() {
+				log.Debug("checkActivePeers", "loop", "done")
+				return
+			}
 			peers := n.GetRegisterPeers()
 			for _, peer := range peers {
 				if peer.mconn == nil {
@@ -37,10 +23,9 @@ FOR_LOOP:
 				}
 
 				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
-				if stat := n.addrBook.GetPeerStat(peer.Addr()); stat != nil {
-					if stat.GetAttempts() > 20 || peer.GetRunning() == false {
-						log.Info("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
-
+				if stat := n.nodeInfo.addrBook.GetPeerStat(peer.Addr()); stat != nil {
+					if stat.GetAttempts() > MaxAttemps || peer.GetRunning() == false {
+						log.Debug("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
 						n.destroyPeer(peer)
 					}
 				}
@@ -51,63 +36,60 @@ FOR_LOOP:
 	}
 }
 func (n *Node) destroyPeer(peer *peer) {
-	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
-	n.addrBook.RemoveAddr(peer.Addr())
-	n.addrBook.Save()
+	log.Info("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
+	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 	n.Remove(peer.Addr())
+
 }
+
 func (n *Node) monitorErrPeer() {
-
 	for {
-
 		peer := <-n.nodeInfo.monitorChan
-		log.Debug("deleteErrPeer", "REMOVE", peer.Addr())
-		if peer.version.IsSupport() == false { //如果版本不支持，则加入黑名单，下次不再发起连接
-
-			//n.nodeInfo.blacklist.Add(peer.Addr()) //加入黑名单
+		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
+			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
+			n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), false)
+			//加入黑名单
+			n.nodeInfo.blacklist.Add(peer.Addr())
+			continue
 		}
-
-		n.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
-
+		n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
 	}
-
 }
+
 func (n *Node) getAddrFromOnline() {
-	ticker := time.NewTicker(time.Second * 5)
+	ticker := time.NewTicker(GetAddrFromOnlineInterval)
 	defer ticker.Stop()
 	pcli := NewP2pCli(nil)
-FOR_LOOP:
+
 	for {
 		select {
-		case <-n.loopDone:
-			log.Debug("GetAddrFromOnLine", "loop", "Done")
-			break FOR_LOOP
 		case <-ticker.C:
+			if n.IsClose() {
+				log.Debug("GetAddrFromOnLine", "loop", "done")
+				return
+			}
 			if n.needMore() {
 				peers, _ := n.GetActivePeers()
 				for _, peer := range peers { //向其他节点发起请求，获取地址列表
 					log.Debug("Getpeer", "addr", peer.Addr())
 					addrlist, err := pcli.GetAddr(peer)
+					P2pComm.CollectPeerStat(err, peer)
 					if err != nil {
 						log.Error("getAddrFromOnline", "ERROR", err.Error())
 						continue
 					}
-					//log.Error("getAddrFromOnline", "ADDRLIST", addrlist)
-					//过滤无法连接的节点
 
+					log.Debug("GetAddrFromOnline", "addrlist", addrlist)
 					//过滤黑名单的地址
-					oklist := n.AddrTest(addrlist)
-					var whitlist = make(map[string]bool)
+					oklist := P2pComm.AddrRouteble(addrlist)
 					for _, addr := range oklist {
 						if n.nodeInfo.blacklist.Has(addr) == false {
-							whitlist[addr] = true
+							pub.FIFOPub(addr, "addr")
 						} else {
 							log.Debug("Filter addr", "BlackList", addr)
 						}
 					}
-
-					go n.DialPeers(whitlist) //对获取的地址列表发起连接
 
 				}
 			}
@@ -117,48 +99,46 @@ FOR_LOOP:
 }
 
 func (n *Node) getAddrFromOffline() {
-	ticker := time.NewTicker(time.Second * 5)
+	ticker := time.NewTicker(GetAddrFromOfflineInterval)
 	defer ticker.Stop()
-FOR_LOOP:
+
 	for {
 		select {
-		case <-n.loopDone:
-			log.Debug("GetAddrFromOffLine", "loop", "Done")
-			break FOR_LOOP
 		case <-ticker.C:
+			if n.IsClose() {
+				log.Debug("GetAddrFromOnLine", "loop", "done")
+				return
+			}
 			if n.needMore() {
-				var savelist = make(map[string]bool)
+				var testlist []string
 				for _, seed := range n.nodeInfo.cfg.Seeds {
 					if n.Has(seed) == false && n.nodeInfo.blacklist.Has(seed) == false {
 						log.Debug("GetAddrFromOffline", "Add Seed", seed)
-						savelist[seed] = true
+						testlist = append(testlist, seed)
+
 					}
 				}
 
-				log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.addrBook.GetPeers())
-				peeraddrs := n.addrBook.GetPeers()
+				log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.nodeInfo.addrBook.GetPeers())
+				peeraddrs := n.nodeInfo.addrBook.GetPeers()
 
 				if len(peeraddrs) != 0 {
-					var testlist []string
+
 					for _, peer := range peeraddrs {
 						testlist = append(testlist, peer.String())
 					}
-					oklist := n.AddrTest(testlist)
-					for _, addr := range oklist {
+				}
 
-						if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
-							log.Debug("GetAddrFromOffline", "Add addr", addr)
-							savelist[addr] = true
-						}
-						//log.Error("getAddrFromOffline", "list", savelist)
+				oklist := P2pComm.AddrRouteble(testlist)
+				for _, addr := range oklist {
+
+					if n.Has(addr) == false && n.nodeInfo.blacklist.Has(addr) == false {
+						log.Debug("GetAddrFromOffline", "Add addr", addr)
+						pub.FIFOPub(addr, "addr")
 					}
+
 				}
 
-				if len(savelist) == 0 {
-					continue
-				}
-
-				go n.DialPeers(savelist)
 			} else {
 				log.Debug("getAddrFromOffline", "nodestable", n.needMore())
 				for _, seed := range n.nodeInfo.cfg.Seeds {
@@ -173,4 +153,94 @@ FOR_LOOP:
 		}
 	}
 
+}
+
+func (n *Node) monitorPeerInfo() {
+
+	go func() {
+		n.nodeInfo.FetchPeerInfo(n)
+		ticker := time.NewTicker(MonitorPeerInfoInterval)
+		defer ticker.Stop()
+		for {
+			if n.IsClose() {
+				return
+			}
+			select {
+			case <-ticker.C:
+				n.nodeInfo.FetchPeerInfo(n)
+
+			}
+		}
+	}()
+}
+
+func (n *Node) monitorDialPeers() {
+
+	addrChan := pub.Sub("addr")
+	for addr := range addrChan {
+		if n.IsClose() {
+			log.Info("monitorDialPeers", "loop", "done")
+			return
+		}
+		netAddr, err := NewNetAddressString(addr.(string))
+		if err != nil {
+			continue
+		}
+
+		if n.nodeInfo.addrBook.ISOurAddress(netAddr) == true {
+			continue
+		}
+
+		//不对已经连接上的地址重新发起连接
+		if n.Has(netAddr.String()) {
+			log.Debug("DialPeers", "find hash", netAddr.String())
+			continue
+		}
+
+		if n.needMore() == false {
+			time.Sleep(time.Second * 10)
+			continue
+		}
+		log.Debug("DialPeers", "peer", netAddr.String())
+		peer, err := P2pComm.DialPeer(netAddr, &n.nodeInfo)
+		if err != nil {
+			log.Error("DialPeers", "Err", err.Error())
+			continue
+		}
+		n.AddPeer(peer)
+		n.nodeInfo.addrBook.AddAddress(netAddr)
+
+	}
+
+}
+
+func (n *Node) monitorBlackList() {
+	ticker := time.NewTicker(CheckBlackListInterVal)
+	defer ticker.Stop()
+	for {
+		if n.IsClose() {
+			log.Info("monitorBlackList", "loop", "done")
+			return
+		}
+
+		select {
+		case <-ticker.C:
+			badPeers := n.nodeInfo.blacklist.GetBadPeers()
+			now := time.Now().Unix()
+			for badPeer, intime := range badPeers {
+				if n.nodeInfo.addrBook.IsOurStringAddress(badPeer) {
+					continue
+				}
+				if now-intime > 3600 { //one hour
+					n.nodeInfo.blacklist.Delete(badPeer)
+				}
+			}
+		}
+
+	}
+}
+
+func (n *Node) monitorFilter() {
+	Filter = NewFilter()
+	Filter.ManageRecvFilter()
 }

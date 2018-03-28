@@ -12,17 +12,16 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
-
-	"path/filepath"
 
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/common/limits"
 	"code.aliyun.com/chain33/chain33/consensus"
-	"code.aliyun.com/chain33/chain33/execs"
+	"code.aliyun.com/chain33/chain33/executor"
 	"code.aliyun.com/chain33/chain33/mempool"
 	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -30,32 +29,22 @@ import (
 	"code.aliyun.com/chain33/chain33/store"
 	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
-	"github.com/stackimpact/stackimpact-go"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
 
 var (
-	CPUNUM     = runtime.NumCPU()
-	configpath = flag.String("f", "chain33.toml", "configfile")
+	cpuNum     = runtime.NumCPU()
+	configPath = flag.String("f", "chain33.toml", "configfile")
 )
-
-const Version = "v0.1.0"
 
 func main() {
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
-	os.Chdir(getcurrentdir())
+	os.Chdir(pwd())
 	d, _ = os.Getwd()
 	log.Info("current dir:", "dir", d)
-	//set file limit
-	agent := stackimpact.Start(stackimpact.Options{
-		AgentKey: "eb4c12dfe2d4b23b22634e7fed4d65899d5ca925",
-		AppName:  "MyGoApp",
-	})
-	span := agent.Profile()
-	defer span.Stop()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -63,11 +52,8 @@ func main() {
 	//set watching
 	t := time.Tick(10 * time.Second)
 	go func() {
-		for {
-			select {
-			case <-t:
-				watching()
-			}
+		for range t {
+			watching()
 		}
 	}()
 	//set pprof
@@ -78,16 +64,16 @@ func main() {
 	grpc.EnableTracing = true
 	go startTrace()
 	//set maxprocs
-	runtime.GOMAXPROCS(CPUNUM)
+	runtime.GOMAXPROCS(cpuNum)
 
 	flag.Parse()
 	//set config
-	cfg := config.InitCfg(*configpath)
+	cfg := config.InitCfg(*configPath)
 
 	//set file log
 	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
 	//set grpc log
-	f, err := CreateFile(cfg.P2P.GetGrpcLogFile())
+	f, err := createFile(cfg.P2P.GetGrpcLogFile())
 	if err != nil {
 		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
 		grpclog.SetLoggerV2(glogv2)
@@ -97,46 +83,47 @@ func main() {
 	}
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info("chain33 " + Version)
+	log.Info("chain33 " + common.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q)
+	chain.SetQueueClient(q.Client())
 
 	log.Info("loading mempool module")
 	mem := mempool.New(cfg.MemPool)
-	mem.SetQueue(q)
+	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
-	exec := execs.New()
-	exec.SetQueue(q)
+	exec := executor.New()
+	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
 	s := store.New(cfg.Store)
-	s.SetQueue(q)
+	s.SetQueueClient(q.Client())
 
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q)
+	cs.SetQueueClient(q.Client())
 
 	var network *p2p.P2p
 	if cfg.P2P.Enable {
 		log.Info("loading p2p module")
 		network = p2p.New(cfg.P2P)
-		network.SetQueue(q)
+		network.SetQueueClient(q.Client())
 	}
+	//jsonrpc, grpc, channel 三种模式
+	rpc.Init(cfg.Rpc)
+	gapi := rpc.NewGRpcServer(q.Client())
+	go gapi.Listen()
+	japi := rpc.NewJsonRpcServer(q.Client())
+	go japi.Listen()
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
-	walletm.SetQueue(q)
+	walletm.SetQueueClient(q.Client())
 
-	//jsonrpc, grpc, channel 三种模式
-	api := rpc.NewServer("jsonrpc", ":8801", q)
-	//api.SetQueue(q)
-	gapi := rpc.NewServer("grpc", ":8802", q)
-	//gapi.SetQueue(q)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
@@ -154,7 +141,7 @@ func main() {
 		log.Info("begin close consensus module")
 		cs.Close()
 		log.Info("begin close jsonrpc module")
-		api.Close()
+		japi.Close()
 		log.Info("begin close grpc module")
 		gapi.Close()
 		log.Info("begin close queue module")
@@ -170,11 +157,11 @@ func startTrace() {
 	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
 		return true, true
 	}
-	go http.ListenAndServe(":50051", nil)
-	log.Info("Trace listen on 50051")
+	go http.ListenAndServe("localhost:50051", nil)
+	log.Info("Trace listen on localhost:50051")
 }
 
-func CreateFile(filename string) (*os.File, error) {
+func createFile(filename string) (*os.File, error) {
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
@@ -189,7 +176,7 @@ func watching() {
 	log.Info("info:", "Mem:", m.Sys/(1024*1024))
 }
 
-func getcurrentdir() string {
+func pwd() string {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		panic(err)

@@ -18,7 +18,7 @@ func init() {
 	queue.DisableLog()
 }
 
-func initEnv() (*BlockChain, *queue.Queue) {
+func initEnv() (*BlockChain, queue.Client) {
 	var q = queue.New("channel")
 	var cfg types.BlockChain
 	cfg.DefCacheSize = 500
@@ -29,8 +29,8 @@ func initEnv() (*BlockChain, *queue.Queue) {
 	cfg.DbPath = "datadir"
 
 	blockchain := New(&cfg)
-	blockchain.SetQueue(q)
-	return blockchain, q
+	blockchain.SetQueueClient(q.Client())
+	return blockchain, q.Client()
 }
 
 /*
@@ -178,9 +178,9 @@ func PrintBlockInfo(block *types.BlockDetail) {
 //同步过来的block
 func TestProcAddBlockMsg(t *testing.T) {
 	chainlog.Info("testProcAddBlockMsg begin --------------------")
-	blockchain, q := initEnv()
+	blockchain, client := initEnv()
 
-	execprocess(q)
+	execprocess(client)
 	curheight := blockchain.GetBlockHeight()
 	chainlog.Info("testProcAddBlockMsg", "curheight", curheight)
 	addblockheight := curheight + 10
@@ -213,9 +213,9 @@ func TestProcAddBlockMsg(t *testing.T) {
 //共识模块发过来的block
 func TestProcAddBlockDetail(t *testing.T) {
 	chainlog.Info("TestProcAddBlockDetail begin --------------------")
-	blockchain, q := initEnv()
+	blockchain, client := initEnv()
 
-	execprocess(q)
+	execprocess(client)
 	curheight := blockchain.GetBlockHeight()
 
 	addblockheight := curheight + 1
@@ -449,8 +449,8 @@ func TestGetBlockByHash(t *testing.T) {
 func TestProcGetTransactionByHashes(t *testing.T) {
 	chainlog.Info("TestProcGetTransactionByHashes begin --------------------")
 
-	blockchain, q := initEnv()
-	execprocess(q)
+	blockchain, client := initEnv()
+	execprocess(client)
 
 	curheight := blockchain.GetBlockHeight()
 	block, _ := blockchain.GetBlock(curheight)
@@ -488,8 +488,8 @@ func TestProcGetTransactionByHashes(t *testing.T) {
 func TestProcGetTransactionByAddr(t *testing.T) {
 	chainlog.Info("TestProcGetTransactionByAddr begin --------------------")
 
-	blockchain, q := initEnv()
-	execprocess(q)
+	blockchain, client := initEnv()
+	execprocess(client)
 
 	curheight := blockchain.GetBlockHeight()
 	block, _ := blockchain.GetBlock(curheight)
@@ -534,7 +534,6 @@ func TestProcGetTransactionByAddr(t *testing.T) {
 		parentHash = block.Hash()
 	}
 	addr = account.PubKeyToAddress([]byte(pubkey))
-	address = addr.String()
 
 	chainlog.Info(" get txs by addr:TestProcGetTransactionByAddr-4444")
 	addrr := "TestProcGetTransactionByAddr-4444"
@@ -634,10 +633,9 @@ func constructpeerlist() *types.PeerList {
 	return &peerlist
 }
 
-func execprocess(q *queue.Queue) {
+func execprocess(client queue.Client) {
 	//execs
 	go func() {
-		client := q.NewClient()
 		client.Sub("execs")
 		for msg := range client.Recv() {
 			chainlog.Info("execprocess exec", "msg.Ty", msg.Ty)
@@ -659,7 +657,7 @@ func execprocess(q *queue.Queue) {
 }
 
 // test
-func testExecBlock(q *queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
+func testExecBlock(q queue.Queue, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
 	var blockdetal types.BlockDetail
 	blockdetal.Block = block
 	var rdata []*types.ReceiptData

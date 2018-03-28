@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"net/rpc/jsonrpc"
+	"strings"
 
 	pb "code.aliyun.com/chain33/chain33/types"
 	"github.com/rs/cors"
@@ -23,23 +24,25 @@ func (c *HttpConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
 func (c *HttpConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
 func (c *HttpConn) Close() error                      { return nil }
 
-func (jrpc *jsonrpcServer) CreateServer(addr string) {
-	listener, e := net.Listen("tcp", addr)
-	if e != nil {
-		log.Crit("listen:", "err", e)
-		panic(e)
+func (j *JsonRpcServer) Listen() {
+	listener, err := net.Listen("tcp", rpcCfg.GetJrpcBindAddr())
+	if err != nil {
+		log.Crit("listen:", "err", err)
+		panic(err)
 	}
-	jrpc.listener = listener
 	server := rpc.NewServer()
-	var chain33 Chain33
-	chain33.cli = NewClient("channel", "")
-	chain33.cli.SetQueue(jrpc.q)
-	chain33.jserver = jrpc
-	server.Register(&chain33)
-	c := cors.New(cors.Options{})
+
+	server.Register(&j.jrpc)
+	co := cors.New(cors.Options{})
 
 	// Insert the middleware
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if checkWhitlist(strings.Split(r.RemoteAddr, ":")[0]) == false {
+			w.Write([]byte(`{"errcode":"-1","result":null,"msg":"reject"}`))
+			return
+		}
+
 		if r.URL.Path == "/" {
 			serverCodec := jsonrpc.NewServerCodec(&HttpConn{in: r.Body, out: w})
 			w.Header().Set("Content-type", "application/json")
@@ -51,28 +54,19 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 			}
 		}
 	})
-	handler = c.Handler(handler)
-	go http.Serve(listener, handler)
+
+	handler = co.Handler(handler)
+	http.Serve(listener, handler)
 }
 
-func (jrpc *jsonrpcServer) Close() {
-	jrpc.listener.Close()
-}
-
-func (grpcx *grpcServer) CreateServer(addr string) {
-
-	listener, err := net.Listen("tcp", addr)
+func (g *Grpcserver) Listen() {
+	listener, err := net.Listen("tcp", rpcCfg.GetGrpcBindAddr())
 	if err != nil {
 		log.Crit("failed to listen:", "err", err)
 		panic(err)
 	}
-	grpcx.listener = listener
 	s := grpc.NewServer()
-	var grpc Grpc
-	grpc.cli = NewClient("channel", "")
-	grpc.cli.SetQueue(grpcx.q)
-	grpc.gserver = grpcx
-	pb.RegisterGrpcserviceServer(s, &grpc)
-	go s.Serve(listener)
+	pb.RegisterGrpcserviceServer(s, &g.grpc)
+	s.Serve(listener)
 
 }

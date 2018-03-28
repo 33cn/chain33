@@ -28,10 +28,9 @@ func NewBlockPool() *BlockPool {
 //从缓存中删除已经加载到db中的block
 func (pool *BlockPool) DelBlock(height int64) {
 	pool.mtx.Lock()
-	defer pool.mtx.Unlock()
-
 	delete(pool.recvBlocks, height)
 	delete(pool.broadcast, height)
+	pool.mtx.Unlock()
 	//poollog.Info("DelBlock", "Height", height)
 }
 

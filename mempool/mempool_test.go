@@ -1,18 +1,20 @@
 package mempool
 
 import (
+	"errors"
 	"flag"
 	"math/rand"
 	"testing"
 	"time"
-	//	"code.aliyun.com/chain33/chain33/account"
+
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/common/crypto"
+	"code.aliyun.com/chain33/chain33/common/limits"
 	"code.aliyun.com/chain33/chain33/consensus"
-	"code.aliyun.com/chain33/chain33/execs"
+	"code.aliyun.com/chain33/chain33/executor"
 	"code.aliyun.com/chain33/chain33/p2p"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/store"
@@ -20,29 +22,30 @@ import (
 )
 
 //----------------------------- data for testing ---------------------------------
+var (
+	amount   = int64(1e8)
+	v        = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+	transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 1}
+	tx2      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0}
+	tx3      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0}
+	tx4      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0}
+	tx5      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0}
+	tx6      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0}
+	tx7      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0}
+	tx8      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0}
+	tx9      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0}
+	tx10     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0}
+	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
+	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0}
 
-var amount = int64(1e8)
-var v = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-var transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-var tx1 = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0}
-
-var tx2 = &types.Transaction{Execer: []byte("tester2"), Payload: []byte("mempool"), Fee: 40000000, Expire: 0}
-var tx3 = &types.Transaction{Execer: []byte("tester3"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-var tx4 = &types.Transaction{Execer: []byte("tester4"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
-var tx5 = &types.Transaction{Execer: []byte("tester5"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-var tx6 = &types.Transaction{Execer: []byte("tester6"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-var tx7 = &types.Transaction{Execer: []byte("tester7"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-var tx8 = &types.Transaction{Execer: []byte("tester8"), Payload: []byte("mempool"), Fee: 30000000, Expire: 0}
-var tx9 = &types.Transaction{Execer: []byte("tester9"), Payload: []byte("mempool"), Fee: 50000000, Expire: 0}
-var tx10 = &types.Transaction{Execer: []byte("tester10"), Payload: []byte("mempool"), Fee: 20000000, Expire: 0}
-var tx11 = &types.Transaction{Execer: []byte("tester11"), Payload: []byte("mempool"), Fee: 10000000, Expire: 0}
-var tx12 = &types.Transaction{Execer: []byte("tester12"), Payload: []byte("mempool"), Fee: 10000000000000000, Expire: 0}
-
-var c, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-var hex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-
-var a, _ = common.FromHex(hex)
-var privKey, _ = c.PrivKeyFromBytes(a)
+	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+	a, _       = common.FromHex(hex)
+	privKey, _ = c.PrivKeyFromBytes(a)
+	random     *rand.Rand
+	mainPriv   crypto.PrivKey
+)
 
 //var privTo, _ = c.GenKey()
 //var ad = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
@@ -56,20 +59,21 @@ var blk = &types.Block{
 	Txs:        []*types.Transaction{tx3, tx5},
 }
 
-var random *rand.Rand
-var mainPriv crypto.PrivKey
-
 func init() {
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	queue.DisableLog()
-	//	DisableLog() // 不输出任何log
+	DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log
 	//	SetLogLevel("info") // 输出INFO(含)以下log
 	SetLogLevel("error") // 输出WARN(含)以下log
 	//	SetLogLevel("eror") // 输出EROR(含)以下log
 	//	SetLogLevel("crit") // 输出CRIT(含)以下log
 	//	SetLogLevel("") // 输出所有log
-	maxTxNumPerAccount = 10000
+	//	maxTxNumPerAccount = 10000
 	mainPriv = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 }
 
@@ -89,27 +93,27 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv2(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.Store, *p2p.P2p) {
+func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, *store.Store, *p2p.P2p) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q)
+	chain.SetQueueClient(q.Client())
 
-	exec := execs.New()
-	exec.SetQueue(q)
+	exec := executor.New()
+	exec.SetQueueClient(q.Client())
 
 	s := store.New(cfg.Store)
-	s.SetQueue(q)
+	s.SetQueueClient(q.Client())
 
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q)
+	cs.SetQueueClient(q.Client())
 
 	mem := New(cfg.MemPool)
-	mem.SetQueue(q)
+	mem.SetQueueClient(q.Client())
 
 	network := p2p.New(cfg.P2P)
-	network.SetQueue(q)
+	network.SetQueueClient(q.Client())
 
 	if size > 0 {
 		mem.Resize(size)
@@ -118,33 +122,31 @@ func initEnv2(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.
 	return mem, q, chain, s, network
 }
 
-func initEnv(size int) (*Mempool, *queue.Queue, *blockchain.BlockChain, *store.Store) {
+func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, *store.Store) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")
 	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueue(q)
+	chain.SetQueueClient(q.Client())
 
-	exec := execs.New()
-	exec.SetQueue(q)
+	exec := executor.New()
+	exec.SetQueueClient(q.Client())
 
 	s := store.New(cfg.Store)
-	s.SetQueue(q)
+	s.SetQueueClient(q.Client())
 
 	cs := consensus.New(cfg.Consensus)
-	cs.SetQueue(q)
+	cs.SetQueueClient(q.Client())
 
 	mem := New(cfg.MemPool)
-	mem.SetQueue(q)
-
-	network := p2p.New(cfg.P2P)
-	network.SetQueue(q)
+	mem.SetQueueClient(q.Client())
+	mem.sync = true
 
 	if size > 0 {
 		mem.Resize(size)
 	}
 
-	mem.SetMinFee(0)
+	mem.SetMinFee(types.MinFee)
 
 	tx1.Sign(types.SECP256K1, privKey)
 	tx2.Sign(types.SECP256K1, privKey)
@@ -186,10 +188,9 @@ func genaddress() (string, crypto.PrivKey) {
 
 func TestAddTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
-
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx1)
-	mem.qclient.Send(msg, true)
-	mem.qclient.Wait(msg)
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx2)
+	mem.client.Send(msg, true)
+	mem.client.Wait(msg)
 
 	if mem.Size() != 1 {
 		t.Error("TestAddTx failed")
@@ -202,95 +203,214 @@ func TestAddTx(t *testing.T) {
 
 func TestAddDuplicatedTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
-
-	msg1 := mem.qclient.NewMessage("mempool", types.EventTx, tx2)
-	mem.qclient.Send(msg1, true)
-	mem.qclient.Wait(msg1)
-
-	msg2 := mem.qclient.NewMessage("mempool", types.EventTx, tx2)
-	mem.qclient.Send(msg2, true)
-	mem.qclient.Wait(msg2)
+	defer func() {
+		chain.Close()
+		s.Close()
+		mem.Close()
+	}()
+	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx2)
+	err := mem.client.Send(msg1, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	msg1, err = mem.client.Wait(msg1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	reply := msg1.GetData().(*types.Reply)
+	err = checkReply(reply)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if mem.Size() != 1 {
+		t.Error("TestAddDuplicatedTx failed", "size", mem.Size())
+	}
+	msg2 := mem.client.NewMessage("mempool", types.EventTx, tx2)
+	mem.client.Send(msg2, true)
+	mem.client.Wait(msg2)
 
 	if mem.Size() != 1 {
-		t.Error("TestAddDuplicatedTx failed")
+		t.Error("TestAddDuplicatedTx failed", "size", mem.Size())
+	}
+}
+
+func checkReply(reply *types.Reply) error {
+	if !reply.GetIsOk() {
+		return errors.New(string(reply.GetMsg()))
+	}
+	return nil
+}
+
+func add4Tx(client queue.Client) error {
+	msg1 := client.NewMessage("mempool", types.EventTx, tx1)
+	msg2 := client.NewMessage("mempool", types.EventTx, tx2)
+	msg3 := client.NewMessage("mempool", types.EventTx, tx3)
+	msg4 := client.NewMessage("mempool", types.EventTx, tx4)
+	client.Send(msg1, true)
+	_, err := client.Wait(msg1)
+	if err != nil {
+		return err
 	}
 
-	chain.Close()
-	s.Close()
-	mem.Close()
+	client.Send(msg2, true)
+	_, err = client.Wait(msg2)
+	if err != nil {
+		return err
+	}
+
+	client.Send(msg3, true)
+	_, err = client.Wait(msg3)
+	if err != nil {
+		return err
+	}
+
+	client.Send(msg4, true)
+	_, err = client.Wait(msg4)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func add4Tx(qclient queue.Client) {
-	msg1 := qclient.NewMessage("mempool", types.EventTx, tx1)
-	msg2 := qclient.NewMessage("mempool", types.EventTx, tx2)
-	msg3 := qclient.NewMessage("mempool", types.EventTx, tx3)
-	msg4 := qclient.NewMessage("mempool", types.EventTx, tx4)
+func add4TxHash(client queue.Client) ([]string, error) {
+	msg1 := client.NewMessage("mempool", types.EventTx, tx5)
+	msg2 := client.NewMessage("mempool", types.EventTx, tx2)
+	msg3 := client.NewMessage("mempool", types.EventTx, tx3)
+	msg4 := client.NewMessage("mempool", types.EventTx, tx4)
+	hashList := []string{string(tx5.Hash()), string(tx2.Hash()), string(tx3.Hash()), string(tx4.Hash())}
+	client.Send(msg1, true)
+	_, err := client.Wait(msg1)
+	if err != nil {
+		return nil, err
+	}
 
-	qclient.Send(msg1, true)
-	qclient.Wait(msg1)
+	client.Send(msg2, true)
+	_, err = client.Wait(msg2)
+	if err != nil {
+		return nil, err
+	}
 
-	qclient.Send(msg2, true)
-	qclient.Wait(msg2)
+	client.Send(msg3, true)
+	_, err = client.Wait(msg3)
+	if err != nil {
+		return nil, err
+	}
 
-	qclient.Send(msg3, true)
-	qclient.Wait(msg3)
-
-	qclient.Send(msg4, true)
-	qclient.Wait(msg4)
+	client.Send(msg4, true)
+	_, err = client.Wait(msg4)
+	if err != nil {
+		return nil, err
+	}
+	return hashList, nil
 }
 
-func add10Tx(qclient queue.Client) {
-	add4Tx(qclient)
+func add10Tx(client queue.Client) error {
+	err := add4Tx(client)
+	if err != nil {
+		return err
+	}
 
-	msg5 := qclient.NewMessage("mempool", types.EventTx, tx5)
-	msg6 := qclient.NewMessage("mempool", types.EventTx, tx6)
-	msg7 := qclient.NewMessage("mempool", types.EventTx, tx7)
-	msg8 := qclient.NewMessage("mempool", types.EventTx, tx8)
-	msg9 := qclient.NewMessage("mempool", types.EventTx, tx9)
-	msg10 := qclient.NewMessage("mempool", types.EventTx, tx10)
+	msg5 := client.NewMessage("mempool", types.EventTx, tx5)
+	msg6 := client.NewMessage("mempool", types.EventTx, tx6)
+	msg7 := client.NewMessage("mempool", types.EventTx, tx7)
+	msg8 := client.NewMessage("mempool", types.EventTx, tx8)
+	msg9 := client.NewMessage("mempool", types.EventTx, tx9)
+	msg10 := client.NewMessage("mempool", types.EventTx, tx10)
 
-	qclient.Send(msg5, true)
-	qclient.Wait(msg5)
+	client.Send(msg5, true)
+	_, err = client.Wait(msg5)
+	if err != nil {
+		return err
+	}
 
-	qclient.Send(msg6, true)
-	qclient.Wait(msg6)
+	client.Send(msg6, true)
+	_, err = client.Wait(msg6)
+	if err != nil {
+		return err
+	}
 
-	qclient.Send(msg7, true)
-	qclient.Wait(msg7)
+	client.Send(msg7, true)
+	_, err = client.Wait(msg7)
+	if err != nil {
+		return err
+	}
 
-	qclient.Send(msg8, true)
-	qclient.Wait(msg8)
+	client.Send(msg8, true)
+	_, err = client.Wait(msg8)
+	if err != nil {
+		return err
+	}
 
-	qclient.Send(msg9, true)
-	qclient.Wait(msg9)
+	client.Send(msg9, true)
+	_, err = client.Wait(msg9)
+	if err != nil {
+		return err
+	}
 
-	qclient.Send(msg10, true)
-	qclient.Wait(msg10)
+	client.Send(msg10, true)
+	_, err = client.Wait(msg10)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func TestGetTxList(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	// add tx
-	add4Tx(mem.qclient)
+	hashes, err := add4TxHash(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
 
-	msg := mem.qclient.NewMessage("mempool", types.EventTxList, 100)
-	mem.qclient.Send(msg, true)
-	data, err := mem.qclient.Wait(msg)
-
+	msg1 := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 2, Hashes: nil})
+	mem.client.Send(msg1, true)
+	data1, err := mem.client.Wait(msg1)
 	if err != nil {
 		t.Error(err)
 		return
 	}
+	txs1 := data1.GetData().(*types.ReplyTxList).GetTxs()
 
-	txs := data.GetData().(*types.ReplyTxList).GetTxs()
-
-	if len(txs) != 4 {
+	if len(txs1) != 2 {
 		t.Error("get txlist number error")
 	}
 
-	if mem.Size() != 0 {
-		t.Error("TestGetTxList failed")
+	var hashList [][]byte
+	for i, tx := range txs1 {
+		hashList = append(hashList, tx.Hash())
+		if hashes[i] != string(tx.Hash()) {
+			t.Error("gettxlist not in time order1")
+		}
+	}
+	msg2 := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 1, Hashes: hashList})
+	mem.client.Send(msg2, true)
+	data2, err := mem.client.Wait(msg2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txs2 := data2.GetData().(*types.ReplyTxList).GetTxs()
+	for i, tx := range txs2 {
+		hashList = append(hashList, tx.Hash())
+		if hashes[2+i] != string(tx.Hash()) {
+			t.Error("gettxlist not in time order2")
+		}
+	}
+OutsideLoop:
+	for _, t1 := range txs1 {
+		for _, t2 := range txs2 {
+			if string(t1.Hash()) == string(t2.Hash()) {
+				t.Error("TestGetTxList failed")
+				break OutsideLoop
+			}
+		}
 	}
 
 	chain.Close()
@@ -301,13 +421,17 @@ func TestGetTxList(t *testing.T) {
 func TestAddMoreTxThanPoolSize(t *testing.T) {
 	mem, _, chain, s := initEnv(4)
 
-	add4Tx(mem.qclient)
+	err := add4Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
 
-	msg5 := mem.qclient.NewMessage("mempool", types.EventTx, tx5)
-	mem.qclient.Send(msg5, true)
-	mem.qclient.Wait(msg5)
+	msg5 := mem.client.NewMessage("mempool", types.EventTx, tx5)
+	mem.client.Send(msg5, true)
+	mem.client.Wait(msg5)
 
-	if mem.Size() != 4 || mem.cache.Exists(tx1) {
+	if mem.Size() != 4 || mem.cache.Exists(tx5) {
 		t.Error("TestAddMoreTxThanPoolSize failed")
 	}
 
@@ -319,16 +443,20 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 func TestRemoveTxOfBlock(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
-	add4Tx(mem.qclient)
+	err := add4Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
 
 	blkDetail := &types.BlockDetail{Block: blk}
-	msg5 := mem.qclient.NewMessage("mempool", types.EventAddBlock, blkDetail)
-	mem.qclient.Send(msg5, false)
+	msg5 := mem.client.NewMessage("mempool", types.EventAddBlock, blkDetail)
+	mem.client.Send(msg5, false)
 
-	msg := mem.qclient.NewMessage("mempool", types.EventGetMempoolSize, nil)
-	mem.qclient.Send(msg, true)
+	msg := mem.client.NewMessage("mempool", types.EventGetMempoolSize, nil)
+	mem.client.Send(msg, true)
 
-	reply, err := mem.qclient.Wait(msg)
+	reply, err := mem.client.Wait(msg)
 
 	if err != nil {
 		t.Error(err)
@@ -348,12 +476,16 @@ func TestDuplicateMempool(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	// add 10 txs
-	add10Tx(mem.qclient)
+	err := add10Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
 
-	msg := mem.qclient.NewMessage("mempool", types.EventGetMempool, nil)
-	mem.qclient.Send(msg, true)
+	msg := mem.client.NewMessage("mempool", types.EventGetMempool, nil)
+	mem.client.Send(msg, true)
 
-	reply, err := mem.qclient.Wait(msg)
+	reply, err := mem.client.Wait(msg)
 
 	if err != nil {
 		t.Error(err)
@@ -373,12 +505,16 @@ func TestGetLatestTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	// add 10 txs
-	add10Tx(mem.qclient)
+	err := add10Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
 
-	msg := mem.qclient.NewMessage("mempool", types.EventGetLastMempool, nil)
-	mem.qclient.Send(msg, true)
+	msg := mem.client.NewMessage("mempool", types.EventGetLastMempool, nil)
+	mem.client.Send(msg, true)
 
-	reply, err := mem.qclient.Wait(msg)
+	reply, err := mem.client.Wait(msg)
 
 	if err != nil {
 		t.Error(err)
@@ -386,50 +522,28 @@ func TestGetLatestTx(t *testing.T) {
 	}
 
 	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 10 {
-		t.Error("TestGetLatestTx failed")
+		t.Error("TestGetLatestTx failed", len(reply.GetData().(*types.ReplyTxList).GetTxs()), mem.Size())
 	}
 
 	chain.Close()
 	s.Close()
 	mem.Close()
 }
-
-//func TestBigMessage(t *testing.T) {
-//	mem, q, chain := initEnv(0)
-//	mem.qclient := q.NewClient()
-//}
 
 func TestCheckLowFee(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	mem.SetMinFee(1000)
+	tmp := *tx11
+	copytx := &tmp
+	copytx.Fee = 100 // make low tx fee
+	copytx.Sign(types.SECP256K1, privKey)
+	msg := mem.client.NewMessage("mempool", types.EventTx, copytx)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
 
-	tx11.Fee = 100 // make low tx fee
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx11)
-	mem.qclient.Send(msg, true)
-	resp, _ := mem.qclient.Wait(msg)
-
-	if string(resp.GetData().(*types.Reply).GetMsg()) != lowFeeErr.Error() {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
 		t.Error("TestCheckLowFee failed")
-	}
-
-	chain.Close()
-	s.Close()
-	mem.Close()
-}
-
-func TestCheckManyTxs(t *testing.T) {
-	mem, _, chain, s := initEnv(0)
-
-	// add 10 txs for the same account
-	add10Tx(mem.qclient)
-
-	msg11 := mem.qclient.NewMessage("mempool", types.EventTx, tx11)
-	mem.qclient.Send(msg11, true)
-	resp, _ := mem.qclient.Wait(msg11)
-
-	if string(resp.GetData().(*types.Reply).GetMsg()) != manyTxErr.Error() || mem.Size() != int(maxTxNumPerAccount) {
-		t.Error("TestCheckManyTxs failed")
 	}
 
 	chain.Close()
@@ -441,15 +555,14 @@ func TestCheckSignature(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	// make wrong signature
-	tx11.Signature.Signature[0] = 0
-	tx11.Signature.Signature[1] = 0
+	tx12.Signature.Signature = tx12.Signature.Signature[5:]
 
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx11)
-	mem.qclient.Send(msg, true)
-	resp, _ := mem.qclient.Wait(msg)
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx12)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != signErr.Error() {
-		t.Error("TestCheckSignature failed")
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrSign.Error() {
+		t.Error("TestCheckSignature failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
 
 	chain.Close()
@@ -457,15 +570,47 @@ func TestCheckSignature(t *testing.T) {
 	mem.Close()
 }
 
-func TestCheckBalance(t *testing.T) {
+func TestCheckExpire1(t *testing.T) {
+	mem, _, chain, s := initEnv(0)
+	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx1)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxExpire.Error() {
+		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
+	}
+
+	chain.Close()
+	s.Close()
+	mem.Close()
+}
+
+func TestCheckExpire2(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx12)
-	mem.qclient.Send(msg, true)
-	resp, _ := mem.qclient.Wait(msg)
+	// add tx
+	err := add4Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
 
-	if string(resp.GetData().(*types.Reply).GetMsg()) != lowBalanceErr.Error() {
-		t.Error("TestCheckBalance failed")
+	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
+
+	msg := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100, Hashes: nil})
+	mem.client.Send(msg, true)
+	data, err := mem.client.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	txs := data.GetData().(*types.ReplyTxList).GetTxs()
+
+	if len(txs) != 3 {
+		t.Error("TestCheckExpire failed", len(txs))
 	}
 
 	chain.Close()
@@ -473,44 +618,26 @@ func TestCheckBalance(t *testing.T) {
 	mem.Close()
 }
 
-func TestCheckExpire(t *testing.T) {
+func BenchmarkMempool(b *testing.B) {
+	maxTxNumPerAccount = 100000
 	mem, _, chain, s := initEnv(0)
-
-	tx11.Expire = -1 // make tx expired
-	msg := mem.qclient.NewMessage("mempool", types.EventTx, tx11)
-	mem.qclient.Send(msg, true)
-	resp, _ := mem.qclient.Wait(msg)
-
-	if string(resp.GetData().(*types.Reply).GetMsg()) != expireErr.Error() {
-		t.Error("TestCheckExpire failed")
-	}
-
-	chain.Close()
-	s.Close()
-	mem.Close()
-}
-
-func TestBenchMempool(t *testing.T) {
-	mem, q, chain, s, network := initEnv2(0)
-	for i := 0; i < 1000000; i++ {
+	for i := 0; i < b.N; i++ {
 		to, _ := genaddress()
 		tx := createTx(mainPriv, to, 10000)
-		msg := mem.qclient.NewMessage("mempool", types.EventTx, tx)
-		err := mem.qclient.Send(msg, true)
+		msg := mem.client.NewMessage("mempool", types.EventTx, tx)
+		err := mem.client.Send(msg, true)
 		if err != nil {
-			time.Sleep(time.Second)
-		}
-		if i%10000 == 0 {
-			println(i)
-		}
-		if mem.Size() > 10000 {
-			time.Sleep(time.Second)
+			println(err)
 		}
 	}
-	q.Start()
+	to0, _ := genaddress()
+	tx0 := createTx(mainPriv, to0, 10000)
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx0)
+	mem.client.Send(msg, true)
+	mem.client.Wait(msg)
+	println(mem.Size() == b.N+1)
+
 	chain.Close()
-	mem.Close()
 	s.Close()
-	q.Close()
-	network.Close()
+	mem.Close()
 }

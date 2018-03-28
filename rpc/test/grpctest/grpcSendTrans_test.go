@@ -16,8 +16,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-var conn *grpc.ClientConn
-var random *rand.Rand
+var (
+	conn   *grpc.ClientConn
+	random *rand.Rand
+)
 
 func init() {
 	var err error
@@ -40,7 +42,7 @@ func TestGrpcSendToAddress(t *testing.T) {
 	fmt.Println("before send...", header.Height)
 	for i := 0; i < N; i++ {
 		addrto, privkey := genaddress()
-		err := sendtoaddress(priv, addrto, 1e9)
+		err := sendtoaddress(priv, addrto, 1e7)
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(time.Second)
@@ -55,7 +57,7 @@ func TestGrpcSendToAddress(t *testing.T) {
 		return
 	}
 	fmt.Println("after send...", header.Height)
-	fmt.Println("wait for balance pack\n")
+	fmt.Println("wait for balance pack")
 	time.Sleep(time.Second * 10)
 	header, err = getlastheader()
 	if err != nil {
@@ -69,7 +71,7 @@ func TestGrpcSendToAddress(t *testing.T) {
 		go func(pkey crypto.PrivKey) {
 			for i := 0; i < N; {
 				addrto, _ := genaddress()
-				err := sendtoaddress(pkey, addrto, 10000)
+				err := sendtoaddress(pkey, addrto, 1e7)
 				if err != nil {
 					atomic.AddInt64(&errcount, 1)
 					time.Sleep(time.Second)

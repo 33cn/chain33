@@ -22,10 +22,10 @@ func TestSolo(t *testing.T) {
 	q := queue.New("channel")
 
 	chain := blockchain.New()
-	chain.SetQueue(q)
+	chain.SetQueueClient(q.Client())
 
 	con := NewSolo()
-	con.SetQueue(q)
+	con.SetQueueClient(q.Client())
 
 	go sendReplyList(q)
 
@@ -35,8 +35,8 @@ func TestSolo(t *testing.T) {
 }
 
 // 向共识发送交易列表
-func sendReplyList(q *queue.Queue) {
-	client := q.NewClient()
+func sendReplyList(q queue.Queue) {
+	client := q.Client()
 	client.Sub("mempool")
 	var accountNum int
 	for msg := range client.Recv() {

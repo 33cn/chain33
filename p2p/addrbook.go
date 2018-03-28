@@ -3,23 +3,30 @@ package p2p
 import (
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	pb "code.aliyun.com/chain33/chain33/types"
+	"code.aliyun.com/chain33/chain33/common/db"
+	//pb "code.aliyun.com/chain33/chain33/types"
+)
+
+const (
+	Addrkey = "addrs"
+	PrivKey = "privkey"
 )
 
 func (a *AddrBook) Start() error {
-	a.loadFromFile()
+	log.Debug("addrbook start")
+	a.loadDb()
 	go a.saveRoutine()
 	return nil
 }
+
 func (a *AddrBook) Close() {
 	a.Quit <- struct{}{}
+	a.bookDb.Close()
+
 }
 
 //peer address manager
@@ -29,6 +36,7 @@ type AddrBook struct {
 	addrPeer map[string]*knownAddress
 	filePath string
 	key      string
+	bookDb   db.DB
 	Quit     chan struct{}
 }
 
@@ -49,6 +57,7 @@ func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
 	return nil
 
 }
+
 func (a *AddrBook) SetAddrStat(addr string, run bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -60,6 +69,7 @@ func (a *AddrBook) SetAddrStat(addr string, run bool) {
 		peer.markAttempt()
 	}
 }
+
 func NewAddrBook(filePath string) *AddrBook {
 	peers := make(map[string]*knownAddress, 0)
 	a := &AddrBook{
@@ -69,7 +79,6 @@ func NewAddrBook(filePath string) *AddrBook {
 		Quit:     make(chan struct{}),
 	}
 
-	a.init()
 	a.Start()
 	return a
 }
@@ -80,26 +89,31 @@ func (a *AddrBook) setKey(key string) {
 	a.key = key
 }
 
-func (a *AddrBook) getKey() string {
+func (a *AddrBook) GetKey() string {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	return a.key
 }
 
-func (a *AddrBook) init() {
-	c, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+func (a *AddrBook) initKey() {
+	var maxRetry = 10
+	key, err := P2pComm.GenPrivkey()
 	if err != nil {
-		log.Error("CryPto Error", "Error", err.Error())
-		return
+		for i := 0; i < maxRetry; i++ {
+			key, err = P2pComm.GenPrivkey()
+			if err == nil {
+				break
+			}
+			if i == maxRetry-1 && err != nil {
+				panic(err.Error())
+			}
+		}
+
 	}
 
-	key, err := c.GenKey()
-	if err != nil {
-		log.Error("GenKey", "Error", err)
-		return
-	}
-	a.setKey(hex.EncodeToString((key.Bytes())))
+	a.setKey(hex.EncodeToString(key))
 }
+
 func newKnownAddress(addr *NetAddress) *knownAddress {
 	return &knownAddress{
 		Addr:        addr,
@@ -107,6 +121,7 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 		LastAttempt: time.Now(),
 	}
 }
+
 func (ka *knownAddress) markGood() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
@@ -118,10 +133,15 @@ func (ka *knownAddress) markGood() {
 
 func (ka *knownAddress) Copy() *knownAddress {
 	ka.kmtx.Lock()
-	defer ka.kmtx.Unlock()
-	copytmp := *ka
-	copytmp.Addr = copytmp.Addr.Copy()
-	return &copytmp
+	ret := knownAddress{
+		kmtx:        sync.Mutex{},
+		Addr:        ka.Addr.Copy(),
+		Attempts:    ka.Attempts,
+		LastAttempt: ka.LastAttempt,
+		LastSuccess: ka.LastSuccess,
+	}
+	ka.kmtx.Unlock()
+	return &ret
 }
 
 func (ka *knownAddress) markAttempt() {
@@ -137,10 +157,29 @@ func (ka *knownAddress) GetLastOk() time.Time {
 	defer ka.kmtx.Unlock()
 	return ka.LastSuccess
 }
+
 func (ka *knownAddress) GetAttempts() uint {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
 	return ka.Attempts
+}
+
+func (a *AddrBook) ISOurAddress(addr *NetAddress) bool {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	if _, ok := a.ourAddrs[addr.String()]; ok {
+		return true
+	}
+	return false
+}
+
+func (a *AddrBook) IsOurStringAddress(addr string) bool {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	if _, ok := a.ourAddrs[addr]; ok {
+		return true
+	}
+	return false
 }
 
 func (a *AddrBook) AddOurAddress(addr *NetAddress) {
@@ -149,6 +188,7 @@ func (a *AddrBook) AddOurAddress(addr *NetAddress) {
 	log.Debug("Add our address to book", "addr", addr)
 	a.ourAddrs[addr.String()] = addr
 }
+
 func (a *AddrBook) Size() int {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -156,141 +196,100 @@ func (a *AddrBook) Size() int {
 }
 
 type addrBookJSON struct {
-	Key    string          `json:"key"`
-	Pubkey string          `json:"pubkey"`
-	Addrs  []*knownAddress `json:"addrs"`
+	Addrs []*knownAddress `json:"addrs"`
 }
 
-func (a *AddrBook) saveToFile(filePath string) {
+func (a *AddrBook) saveToDb() {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	// Compile Addrs
 	addrs := []*knownAddress{}
 	for _, ka := range a.addrPeer {
+
+		if len(P2pComm.AddrRouteble([]string{ka.Addr.String()})) == 0 {
+			continue
+		}
 		addrs = append(addrs, ka.Copy())
 	}
 	if len(addrs) == 0 {
 		return
 	}
 	aJSON := &addrBookJSON{
-		Key:    a.key,
-		Pubkey: a.Pubkey(),
-		Addrs:  addrs,
+		Addrs: addrs,
 	}
 
-	jsonBytes, err := json.MarshalIndent(aJSON, "", "\t")
+	jsonBytes, err := json.Marshal(aJSON)
 	if err != nil {
 		log.Error("Failed to save AddrBook to file", "err", err)
 		return
 	}
-	log.Debug("saveToFile", string(jsonBytes), "")
-
-	err = a.writeFile(filePath, jsonBytes, 0666)
-	if err != nil {
-		log.Error("Error: Failed to save AddrBook to file", "file", filePath, "err", err)
-	}
+	log.Debug("saveToDb", "addrs", string(jsonBytes))
+	a.bookDb.Set([]byte(Addrkey), jsonBytes)
 
 }
-func (a *AddrBook) Pubkey() string {
-	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+
+func (a *AddrBook) Pubkey() (string, error) {
+	pubkey, err := P2pComm.Pubkey(a.GetKey())
 	if err != nil {
-		log.Error("CryPto Error", "Error", err.Error())
-		return ""
-	}
-	pribyts, err := hex.DecodeString(a.key)
-	if err != nil {
-		log.Error("DecodeString Error", "Error", err.Error())
-		return ""
-	}
-	priv, err := cr.PrivKeyFromBytes(pribyts)
-	if err != nil {
-		log.Error("Load PrivKey", "Error", err.Error())
-		return ""
+		return "", err
 	}
 
-	return hex.EncodeToString(priv.PubKey().Bytes())
-}
-
-func (a *AddrBook) writeFile(filePath string, bytes []byte, mode os.FileMode) error {
-	dir := filepath.Dir(filePath)
-	f, err := ioutil.TempFile(dir, "")
-	if err != nil {
-		return err
-	}
-	//write
-	_, err = f.Write(bytes)
-	if err != nil {
-		f.Close()
-		return err
-	}
-	//close
-	err = f.Close()
-	if err != nil {
-		return err
-	}
-	if permErr := os.Chmod(f.Name(), mode); permErr != nil {
-		return permErr
-	}
-	//rename
-	err = os.Rename(f.Name(), filePath)
-	if err != nil {
-		os.Remove(f.Name())
-		return err
-	}
-	return nil
+	return pubkey, nil
 }
 
 // Returns false if file does not exist.
 // cmn.Panics if file is corrupt.
-func (a *AddrBook) loadFromFile() bool {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	_, err := os.Stat(a.filePath)
-	if os.IsNotExist(err) {
+
+func (a *AddrBook) loadDb() bool {
+	a.bookDb = db.NewDB("addrbook", "leveldb", a.filePath, 128)
+
+	privkey := a.bookDb.Get([]byte(PrivKey))
+
+	if len(privkey) == 0 {
+		a.initKey()
+		a.bookDb.Set([]byte(PrivKey), []byte(a.GetKey()))
 		return false
 	}
+	a.setKey(string(privkey))
+	iteror := a.bookDb.Iterator(nil, false)
+	for iteror.Next() {
+		if string(iteror.Key()) == Addrkey {
+			//读取存入的其他节点地址信息
+			aJSON := &addrBookJSON{}
+			dec := json.NewDecoder(strings.NewReader(string(iteror.Value())))
+			err := dec.Decode(aJSON)
+			if err != nil {
+				log.Crit("Error reading file %s: %v", a.filePath, err)
+			}
 
-	r, err := os.Open(a.filePath)
-	if err != nil {
-		log.Crit("Error opening file %s: %v", a.filePath, err)
+			for _, ka := range aJSON.Addrs {
+				log.Debug("loadDb", "peer", ka)
+				a.addrPeer[ka.Addr.String()] = ka
+			}
+		}
 	}
-	defer r.Close()
-	aJSON := &addrBookJSON{}
-	dec := json.NewDecoder(r)
-	err = dec.Decode(aJSON)
-	if err != nil {
-		log.Crit("Error reading file %s: %v", a.filePath, err)
-	}
-
-	a.key = aJSON.Key
-
-	for _, ka := range aJSON.Addrs {
-		a.addrPeer[ka.Addr.String()] = ka
-	}
-
 	return true
+
 }
 
 // Save saves the book.
 func (a *AddrBook) Save() {
-	a.saveToFile(a.filePath)
+	a.saveToDb()
 }
 
 func (a *AddrBook) saveRoutine() {
-	dumpAddressTicker := time.NewTicker(10 * time.Second)
+	dumpAddressTicker := time.NewTicker(120 * time.Second)
 	defer dumpAddressTicker.Stop()
 out:
 	for {
 		select {
 		case <-dumpAddressTicker.C:
-			a.saveToFile(a.filePath)
+			a.Save()
 		case <-a.Quit:
 			break out
 		}
 	}
-	dumpAddressTicker.Stop()
-	a.saveToFile(a.filePath)
-	log.Warn("Address handler done")
+
+	log.Info("Address handler done")
 }
 
 // NOTE: addr must not be nil
@@ -319,7 +318,6 @@ func (a *AddrBook) AddAddress(addr *NetAddress) {
 func (a *AddrBook) RemoveAddr(peeraddr string) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	log.Warn("RemoveAddr", "peer", peeraddr)
 	if _, ok := a.addrPeer[peeraddr]; ok {
 		delete(a.addrPeer, peeraddr)
 	}

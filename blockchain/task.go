@@ -42,7 +42,7 @@ func (t *Task) tick() {
 			continue
 		}
 		t.Lock()
-		if err := t.stop(); err == nil {
+		if err := t.stop(false); err == nil {
 			chainlog.Debug("task is done", "timer is stop", t.start)
 		}
 		t.Unlock()
@@ -102,16 +102,23 @@ func (t *Task) Done(height int64) {
 	}
 }
 
-func (t *Task) stop() error {
+func (t *Task) stop(runcb bool) error {
 	if !t.isruning {
 		return errors.New("not runing")
 	}
 	t.isruning = false
-	if t.cb != nil {
+	if t.cb != nil && runcb {
 		go t.cb()
 	}
 	t.TimerStop()
 	return nil
+}
+
+func (t *Task) Cancel() error {
+	t.Lock()
+	defer t.Unlock()
+	chainlog.Warn("----task is cancel----")
+	return t.stop(false)
 }
 
 func (t *Task) done(height int64) {
@@ -128,7 +135,7 @@ func (t *Task) done(height int64) {
 		}
 		if t.start > t.end {
 			chainlog.Debug("----task is done----")
-			t.stop()
+			t.stop(true)
 		}
 	}
 	t.donelist[height] = struct{}{}

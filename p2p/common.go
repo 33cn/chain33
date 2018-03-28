@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -13,10 +14,9 @@ import (
 
 var P2pComm Comm
 
-type Comm struct {
-}
+type Comm struct{}
 
-func (Comm) AddrTest(addrs []string) []string {
+func (Comm) AddrRouteble(addrs []string) []string {
 	var enableAddrs []string
 	for _, addr := range addrs {
 
@@ -50,14 +50,14 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 		return nil, err
 	}
 
-	peer, err := c.NewPeerFromConn(conn, true, addr, nodeinfo)
+	peer, err := c.NewPeerFromConn(conn, addr, nodeinfo)
 	if err != nil {
 		conn.Close()
 		return nil, err
 	}
 	peer.peerAddr = addr
 
-	log.Debug("DialPeerWithAddress", "peer", *peer, "persistent:", persistent)
+	log.Debug("DialPeerWithAddress", "peer", peer.Addr(), "persistent:", persistent)
 
 	if persistent {
 		peer.makePersistent()
@@ -66,10 +66,10 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 	return peer, nil
 }
 
-func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, outbound bool, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
 	// Key and NodeInfo are set after Handshake
-	p := NewPeer(outbound, rawConn, nodeinfo, remote)
+	p := NewPeer(rawConn, nodeinfo, remote)
 
 	return p, nil
 }
@@ -90,6 +90,21 @@ func (c Comm) DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 	//获取远程节点的信息 peer
 	log.Debug("DialPeer", "Peer info", peer)
 	return peer, nil
+}
+
+func (c Comm) GenPrivkey() ([]byte, error) {
+	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+	if err != nil {
+		log.Error("CryPto Error", "Error", err.Error())
+		return nil, err
+	}
+
+	key, err := cr.GenKey()
+	if err != nil {
+		log.Error("GenKey", "Error", err)
+		return nil, err
+	}
+	return key.Bytes(), nil
 }
 func (c Comm) Pubkey(key string) (string, error) {
 
@@ -112,6 +127,90 @@ func (c Comm) Pubkey(key string) (string, error) {
 
 	return hex.EncodeToString(priv.PubKey().Bytes()), nil
 }
+func (c Comm) NewPingData(peer *peer) (*pb.P2PPing, error) {
+	randNonce := rand.Int31n(102040)
+	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: (*peer.nodeInfo).GetExternalAddr().IP.String(), Port: int32((*peer.nodeInfo).GetExternalAddr().Port)}
+	var err error
+	ping, err = c.Signature(peer.key, ping)
+	if err != nil {
+		log.Error("Signature", "Error", err.Error())
+		return nil, err
+	}
+	return ping, nil
+
+}
+
+func (c Comm) Signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
+
+	data := pb.Encode(in)
+	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+	if err != nil {
+		log.Error("CryPto Error", "Error", err.Error())
+		return nil, err
+	}
+	pribyts, err := hex.DecodeString(key)
+	if err != nil {
+		log.Error("DecodeString Error", "Error", err.Error())
+		return nil, err
+	}
+	priv, err := cr.PrivKeyFromBytes(pribyts)
+	if err != nil {
+		log.Error("Load PrivKey", "Error", err.Error())
+		return nil, err
+	}
+	in.Sign = new(pb.Signature)
+	in.Sign.Signature = priv.Sign(data).Bytes()
+	in.Sign.Ty = pb.SECP256K1
+	in.Sign.Pubkey = priv.PubKey().Bytes()
+
+	return in, nil
+}
+func (c Comm) CheckSign(in *pb.P2PPing) bool {
+	data := pb.Encode(in)
+	sign := in.GetSign()
+	if sign == nil {
+		log.Error("CheckSign Get sign err")
+		return false
+	}
+	cr, err := crypto.New(pb.GetSignatureTypeName(int(sign.Ty)))
+	if err != nil {
+		log.Error("CheckSign", "crypto.New err", err.Error())
+		return false
+	}
+	pub, err := cr.PubKeyFromBytes(sign.Pubkey)
+	if err != nil {
+		log.Error("CheckSign", "PubKeyFromBytes err", err.Error())
+		return false
+	}
+	signbytes, err := cr.SignatureFromBytes(sign.Signature)
+	if err != nil {
+		log.Error("CheckSign", "SignatureFromBytes err", err.Error())
+		return false
+	}
+	return pub.VerifyBytes(data, signbytes)
+}
+
+func (c Comm) CollectPeerStat(err error, peer *peer) {
+	if err != nil {
+		peer.peerStat.NotOk()
+	} else {
+		peer.peerStat.Ok()
+	}
+	c.reportPeerStat(peer)
+}
+
+func (c Comm) reportPeerStat(peer *peer) {
+	timeout := time.NewTimer(time.Second)
+	select {
+	case (*peer.nodeInfo).monitorChan <- peer:
+	case <-timeout.C:
+		timeout.Stop()
+		return
+	}
+	if !timeout.Stop() {
+		<-timeout.C
+	}
+}
 
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
@@ -125,17 +224,15 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 	var sendVersiontimeout = 5 * time.Second
 	var pingtimeout = 10 * time.Second
 	var MethodConf = map[string]grpc.MethodConfig{
-		"/types.p2pgservice/Ping":        grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types.p2pgservice/Version2":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &sendVersiontimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types.p2pgservice/BroadCastTx": grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types.p2pgservice/GetMemPool":  grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		//"/types.p2pgservice/GetData":        grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
+		"/types.p2pgservice/Ping":           grpc.MethodConfig{WaitForReady: &ready, Timeout: &pingtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
+		"/types.p2pgservice/Version2":       grpc.MethodConfig{WaitForReady: &ready, Timeout: &sendVersiontimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
+		"/types.p2pgservice/BroadCastTx":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
+		"/types.p2pgservice/GetMemPool":     grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/GetBlocks":      grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/GetPeerInfo":    grpc.MethodConfig{WaitForReady: &ready, Timeout: &getPeerinfotimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/BroadCastBlock": grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/GetAddr":        grpc.MethodConfig{WaitForReady: &ready, Timeout: &getAddrtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/GetHeaders":     grpc.MethodConfig{WaitForReady: &ready, Timeout: &getHeadertimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		//"/types.p2pgservice/":               grpc.MethodConfig{WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 	}
 
 	return grpc.ServiceConfig{Methods: MethodConf}

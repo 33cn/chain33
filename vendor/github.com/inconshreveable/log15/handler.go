@@ -17,18 +17,31 @@ import (
 // them to achieve the logging structure that suits your applications.
 type Handler interface {
 	Log(r *Record) error
+	MaxLevel() int
+	SetMaxLevel(int)
 }
 
 // FuncHandler returns a Handler that logs records with the given
 // function.
-func FuncHandler(fn func(r *Record) error) Handler {
-	return funcHandler(fn)
+func FuncHandler(maxLevel int, fn func(r *Record) error) Handler {
+	return &handlebase{fn, maxLevel}
 }
 
-type funcHandler func(r *Record) error
+type handlebase struct {
+	funcHandler func(r *Record) error
+	maxLevel    int
+}
 
-func (h funcHandler) Log(r *Record) error {
-	return h(r)
+func (h *handlebase) Log(r *Record) error {
+	return h.funcHandler(r)
+}
+
+func (h *handlebase) MaxLevel() int {
+	return h.maxLevel
+}
+
+func (h *handlebase) SetMaxLevel(maxLevel int) {
+	h.maxLevel = maxLevel
 }
 
 // StreamHandler writes log records to an io.Writer
@@ -39,7 +52,7 @@ func (h funcHandler) Log(r *Record) error {
 // StreamHandler wraps itself with LazyHandler and SyncHandler
 // to evaluate Lazy objects and perform safe concurrent writes.
 func StreamHandler(wr io.Writer, fmtr Format) Handler {
-	h := FuncHandler(func(r *Record) error {
+	h := FuncHandler(int(LvlDebug), func(r *Record) error {
 		_, err := wr.Write(fmtr.Format(r))
 		return err
 	})
@@ -51,10 +64,11 @@ func StreamHandler(wr io.Writer, fmtr Format) Handler {
 // for thread-safe concurrent writes.
 func SyncHandler(h Handler) Handler {
 	var mu sync.Mutex
-	return FuncHandler(func(r *Record) error {
-		defer mu.Unlock()
+	return FuncHandler(h.MaxLevel(), func(r *Record) error {
 		mu.Lock()
-		return h.Log(r)
+		err := h.Log(r)
+		mu.Unlock()
+		return err
 	})
 }
 
@@ -96,7 +110,7 @@ func (h *closingHandler) Close() error {
 // CallerFileHandler returns a Handler that adds the line number and file of
 // the calling function to the context with key "caller".
 func CallerFileHandler(h Handler) Handler {
-	return FuncHandler(func(r *Record) error {
+	return FuncHandler(h.MaxLevel(), func(r *Record) error {
 		r.Ctx = append(r.Ctx, "caller", fmt.Sprint(r.Call))
 		return h.Log(r)
 	})
@@ -105,7 +119,7 @@ func CallerFileHandler(h Handler) Handler {
 // CallerFuncHandler returns a Handler that adds the calling function name to
 // the context with key "fn".
 func CallerFuncHandler(h Handler) Handler {
-	return FuncHandler(func(r *Record) error {
+	return FuncHandler(h.MaxLevel(), func(r *Record) error {
 		r.Ctx = append(r.Ctx, "fn", fmt.Sprintf("%+n", r.Call))
 		return h.Log(r)
 	})
@@ -117,7 +131,7 @@ func CallerFuncHandler(h Handler) Handler {
 // Each call site is formatted according to format. See the documentation of
 // package github.com/go-stack/stack for the list of supported formats.
 func CallerStackHandler(format string, h Handler) Handler {
-	return FuncHandler(func(r *Record) error {
+	return FuncHandler(h.MaxLevel(), func(r *Record) error {
 		s := stack.Trace().TrimBelow(r.Call).TrimRuntime()
 		if len(s) > 0 {
 			r.Ctx = append(r.Ctx, "stack", fmt.Sprintf(format, s))
@@ -140,7 +154,7 @@ func CallerStackHandler(format string, h Handler) Handler {
 //    }, h))
 //
 func FilterHandler(fn func(r *Record) bool, h Handler) Handler {
-	return FuncHandler(func(r *Record) error {
+	return FuncHandler(h.MaxLevel(), func(r *Record) error {
 		if fn(r) {
 			return h.Log(r)
 		}
@@ -183,6 +197,7 @@ func MatchFilterHandler(key string, value interface{}, h Handler) Handler {
 //     log.LvlFilterHandler(log.LvlError, log.StdoutHandler)
 //
 func LvlFilterHandler(maxLvl Lvl, h Handler) Handler {
+	h.SetMaxLevel(int(maxLvl))
 	return FilterHandler(func(r *Record) (pass bool) {
 		return r.Lvl <= maxLvl
 	}, h)
@@ -197,8 +212,19 @@ func LvlFilterHandler(maxLvl Lvl, h Handler) Handler {
 //         log.Must.FileHandler("/var/log/app.log", log.LogfmtFormat()),
 //         log.StderrHandler)
 //
+
+func maxLevelHanldes(hs []Handler) int {
+	maxLevel := 0
+	for _, handle := range hs {
+		if handle.MaxLevel() > maxLevel {
+			maxLevel = handle.MaxLevel()
+		}
+	}
+	return maxLevel
+}
+
 func MultiHandler(hs ...Handler) Handler {
-	return FuncHandler(func(r *Record) error {
+	return FuncHandler(maxLevelHanldes(hs), func(r *Record) error {
 		for _, h := range hs {
 			// what to do about failures?
 			h.Log(r)
@@ -223,7 +249,7 @@ func MultiHandler(hs ...Handler) Handler {
 // the form "failover_err_{idx}" which explain the error encountered while
 // trying to write to the handlers before them in the list.
 func FailoverHandler(hs ...Handler) Handler {
-	return FuncHandler(func(r *Record) error {
+	return FuncHandler(maxLevelHanldes(hs), func(r *Record) error {
 		var err error
 		for i, h := range hs {
 			err = h.Log(r)
@@ -239,8 +265,8 @@ func FailoverHandler(hs ...Handler) Handler {
 // ChannelHandler writes all records to the given channel.
 // It blocks if the channel is full. Useful for async processing
 // of log messages, it's used by BufferedHandler.
-func ChannelHandler(recs chan<- *Record) Handler {
-	return FuncHandler(func(r *Record) error {
+func ChannelHandler(recs chan<- *Record, maxLevel int) Handler {
+	return FuncHandler(maxLevel, func(r *Record) error {
 		recs <- r
 		return nil
 	})
@@ -258,7 +284,7 @@ func BufferedHandler(bufSize int, h Handler) Handler {
 			_ = h.Log(m)
 		}
 	}()
-	return ChannelHandler(recs)
+	return ChannelHandler(recs, h.MaxLevel())
 }
 
 // LazyHandler writes all values to the wrapped handler after evaluating
@@ -266,7 +292,7 @@ func BufferedHandler(bufSize int, h Handler) Handler {
 // around StreamHandler and SyslogHandler in this library, you'll only need
 // it if you write your own Handler.
 func LazyHandler(h Handler) Handler {
-	return FuncHandler(func(r *Record) error {
+	return FuncHandler(h.MaxLevel(), func(r *Record) error {
 		// go through the values (odd indices) and reassign
 		// the values of any lazy fn to the result of its execution
 		hadErr := false
@@ -325,7 +351,7 @@ func evaluateLazy(lz Lazy) (interface{}, error) {
 // It is useful for dynamically disabling logging at runtime via
 // a Logger's SetHandler method.
 func DiscardHandler() Handler {
-	return FuncHandler(func(r *Record) error {
+	return FuncHandler(int(LvlCrit), func(r *Record) error {
 		return nil
 	})
 }

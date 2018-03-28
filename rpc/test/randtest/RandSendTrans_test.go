@@ -13,8 +13,10 @@ import (
 	"time"
 )
 
-var thread = flag.Int("thread", 1, "threadnum")
-var n = flag.Int("num", 1, "times")
+var (
+	thread = flag.Int("thread", 1, "threadnum")
+	n      = flag.Int("num", 1, "times")
+)
 
 func SendTransaction(account, payload, signature string) {
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"JRpcRequest.SendTransaction","params":[{"account":"%s","payload":"%s","signature":"%s"}]}`, account, payload, signature)
@@ -49,7 +51,7 @@ func Test_RandSendTransaction(t *testing.T) {
 		var payload uint32
 		var paybytes [4]byte
 		binary.Read(bytes.NewBuffer(paybytes[:]), binary.LittleEndian, &payload)
-		SendTransaction(accounts[index], fmt.Sprintf("%s", payload), fmt.Sprintf("%s", index))
+		SendTransaction(accounts[index], fmt.Sprintf("%d", payload), fmt.Sprintf("%d", index))
 		time.Sleep(time.Second * 1)
 	}
 
@@ -76,7 +78,7 @@ func Test_RandSendTransactionBench(t *testing.T) {
 				var paybytes [4]byte
 				rand.Read(paybytes[:])
 				binary.Read(bytes.NewBuffer(paybytes[:]), binary.LittleEndian, &payload)
-				SendTransaction(accounts[index], fmt.Sprintf("%s", payload), fmt.Sprintf("%s", index))
+				SendTransaction(accounts[index], fmt.Sprintf("%d", payload), fmt.Sprintf("%d", index))
 				fmt.Println("account:", accounts[index], "payload:", payload)
 				//time.Sleep(time.Second * 1)
 
