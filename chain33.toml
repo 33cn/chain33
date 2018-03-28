@@ -3,30 +3,34 @@ Title="chain33"
 Loglevel="debug"
 LogConsoleLevel="info"
 LogFile="chain33.log"
-
 [blockchain]
-defCacheSize=500
-maxFetchBlockNum=100
+defCacheSize=512
+maxFetchBlockNum=128
 timeoutSeconds=5
-batchBlockNum=100
+batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
+isStrongConsistency=false
+singleMode=false
 
 [p2p]
-seeds=["114.55.101.159:13802"]
+seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
 enable=true
 isSeed=false
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
-version=16
-verMix=16
-verMax=17
+version=118
+verMix=118
+verMax=119
 
+[rpc]
+jrpcBindAddr="localhost:8801"
+grpcBindAddr="localhost:8802"
+whitlist=["127.0.0.1"]
 [mempool]
 poolCacheSize=10240
-minTxFee=1000000
-
+minTxFee=100000
 
 [consensus]
 name="pbft"
@@ -34,6 +38,17 @@ minerstart=false
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
 hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+timeoutPropose=3000
+timeoutProposeDelta=500
+timeoutPrevote=1000
+timeoutPrevoteDelta=500
+timeoutPrecommit=1000
+timeoutPrecommitDelta=500
+timeoutCommit=1000
+skipTimeoutCommit=false
+createEmptyBlocks=false
+createEmptyBlocksInterval=0
+seeds=["192.168.3.13:46656","192.168.3.4:46656"]
 
 [store]
 driver="leveldb"
@@ -44,7 +59,9 @@ driver="leveldb"
 dbPath="datadir/mavltree"
 
 [wallet]
-minFee=1000000
+minFee=100000
+driver="leveldb"
 dbPath="datadir/wallet"
+signType="secp256k1"
 
 [exec]

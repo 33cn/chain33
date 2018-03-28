@@ -92,6 +92,15 @@ func (node *MAVLNode) has(t *MAVLTree, key []byte) (has bool) {
 	}
 }
 
+func (node *MAVLNode) loadCache(t *MAVLTree, stopHeight int) {
+	if node.height == 0 || stopHeight <= 0 {
+		return
+	} else {
+		node.getLeftNode(t).loadCache(t, stopHeight-1)
+		node.getRightNode(t).loadCache(t, stopHeight-1)
+	}
+}
+
 func (node *MAVLNode) get(t *MAVLTree, key []byte) (index int32, value []byte, exists bool) {
 	if node.height == 0 {
 		cmp := bytes.Compare(node.key, key)
@@ -121,7 +130,6 @@ func (node *MAVLNode) getByIndex(t *MAVLTree, index int32) (key []byte, value []
 			return node.key, node.value
 		} else {
 			panic("getByIndex asked for invalid index")
-			return nil, nil
 		}
 	} else {
 		// TODO: could improve this by storing the sizes as well as left/right hash.
@@ -198,7 +206,7 @@ func (node *MAVLNode) save(t *MAVLTree) {
 	}
 
 	// save node
-	t.ndb.SaveNode(t, node)
+	t.batch.SaveNode(t, node)
 	return
 }
 
@@ -437,7 +445,6 @@ func removeOrphan(t *MAVLTree, node *MAVLNode) {
 	if t.ndb == nil {
 		return
 	}
-	t.ndb.RemoveNode(t, node)
 }
 
 // Only used in testing...

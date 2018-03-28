@@ -6,14 +6,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/types"
 	"unsafe"
+
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 //消息队列的主要作用是解耦合，让各个模块相对的独立运行。
 //每个模块都会有一个client 对象
 //主要的操作大致如下：
-// client := queue.NewClient()
+// client := queue.Client()
 // client.Sub("topicname")
 // for msg := range client.Recv() {
 //     process(msg)
@@ -30,10 +31,17 @@ type Client interface {
 	Sub(topic string) //订阅消息
 	Close()
 	NewMessage(topic string, ty int64, data interface{}) (msg Message)
+	Clone() Client
+}
+
+/// Module be used for module interface
+type Module interface {
+	SetQueueClient(client Client)
+	Close()
 }
 
 type client struct {
-	q        *Queue
+	q        *queue
 	recv     chan Message
 	done     chan struct{}
 	wg       *sync.WaitGroup
@@ -41,7 +49,7 @@ type client struct {
 	isClosed int32
 }
 
-func newClient(q *Queue) Client {
+func newClient(q *queue) Client {
 	client := &client{}
 	client.q = q
 	client.recv = make(chan Message, 5)
@@ -50,14 +58,22 @@ func newClient(q *Queue) Client {
 	return client
 }
 
+/// Clone clone new client for queue
+func (client *client) Clone() Client {
+	return newClient(client.q)
+}
+
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃
 //2. 系统保证每个消息都有对应的 response 消息
 func (client *client) Send(msg Message, wait bool) (err error) {
-	if !wait {
-		msg.ChReply = nil
-		return client.q.SendAsyn(msg)
+	if client.isClose() {
+		return types.ErrIsClosed
 	}
-	err = client.q.Send(msg)
+	if !wait {
+		msg.chReply = nil
+		return client.q.sendAsyn(msg)
+	}
+	err = client.q.send(msg)
 	if err == types.ErrTimeout {
 		panic(err)
 	}
@@ -68,8 +84,11 @@ func (client *client) Send(msg Message, wait bool) (err error) {
 //1. SendAsyn 低优先级
 //2. Send 高优先级别的发送消息
 func (client *client) SendAsyn(msg Message, wait bool) (err error) {
+	if client.isClose() {
+		return types.ErrIsClosed
+	}
 	if !wait {
-		msg.ChReply = nil
+		msg.chReply = nil
 	}
 	//wait for sendasyn
 	i := 0
@@ -78,7 +97,7 @@ func (client *client) SendAsyn(msg Message, wait bool) (err error) {
 		if i%1000 == 0 {
 			qlog.Error("SendAsyn retry too many times", "n", i)
 		}
-		err = client.q.SendAsyn(msg)
+		err = client.q.sendAsyn(msg)
 		if err != nil && err != types.ErrChannelFull {
 			return err
 		}
@@ -98,16 +117,17 @@ func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg 
 }
 
 func (client *client) Wait(msg Message) (Message, error) {
-	if msg.ChReply == nil {
+	if msg.chReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
-	timeout := time.After(time.Second * 60)
+	timeout := time.NewTimer(time.Second * 120)
+	defer timeout.Stop()
 	select {
-	case msg = <-msg.ChReply:
+	case msg = <-msg.chReply:
 		return msg, msg.Err()
 	case <-client.done:
 		return Message{}, errors.New("client is closed")
-	case <-timeout:
+	case <-timeout.C:
 		panic("wait for message timeout.")
 	}
 }
@@ -124,6 +144,10 @@ func (client *client) getTopic() string {
 func (client *client) setTopic(topic string) {
 	address := unsafe.Pointer(&(client.topic))
 	atomic.StorePointer(&address, unsafe.Pointer(&topic))
+}
+
+func (client *client) isClose() bool {
+	return atomic.LoadInt32(&client.isClosed) == 1
 }
 
 func (client *client) Close() {
@@ -158,6 +182,7 @@ func (client *client) Sub(topic string) {
 			select {
 			case data, ok := <-sub.high:
 				if client.isEnd(data, ok) {
+					qlog.Info("unsub1", "topic", topic)
 					return
 				}
 				client.Recv() <- data
@@ -165,15 +190,18 @@ func (client *client) Sub(topic string) {
 				select {
 				case data, ok := <-sub.high:
 					if client.isEnd(data, ok) {
+						qlog.Info("unsub2", "topic", topic)
 						return
 					}
 					client.Recv() <- data
 				case data, ok := <-sub.low:
 					if client.isEnd(data, ok) {
+						qlog.Info("unsub3", "topic", topic)
 						return
 					}
 					client.Recv() <- data
 				case <-client.done:
+					qlog.Error("unsub4", "topic", topic)
 					return
 				}
 			}

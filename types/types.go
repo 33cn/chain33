@@ -4,16 +4,18 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
-	proto "github.com/golang/protobuf/proto"
-	log "github.com/inconshreveable/log15"
+	"github.com/golang/protobuf/proto"
+	//log "github.com/inconshreveable/log15"
+	"fmt"
 )
 
-var tlog = log.New("module", "types")
+//var tlog = log.New("module", "types")
 
 type Message proto.Message
 
@@ -27,6 +29,44 @@ func isAllowExecName(name string) bool {
 		}
 	}
 	return false
+}
+
+type TransactionCache struct {
+	*Transaction
+	hash []byte
+	size int
+}
+
+func NewTransactionCache(tx *Transaction) *TransactionCache {
+	return &TransactionCache{tx, tx.Hash(), tx.Size()}
+}
+
+func (tx *TransactionCache) Hash() []byte {
+	return tx.hash
+}
+
+func (tx *TransactionCache) Size() int {
+	return tx.size
+}
+
+func (tx *TransactionCache) Tx() *Transaction {
+	return tx.Transaction
+}
+
+func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
+	caches = make([]*TransactionCache, len(txs), len(txs))
+	for i := 0; i < len(caches); i++ {
+		caches[i] = NewTransactionCache(txs[i])
+	}
+	return caches
+}
+
+func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
+	txs = make([]*Transaction, len(caches), len(caches))
+	for i := 0; i < len(caches); i++ {
+		txs[i] = caches[i].Tx()
+	}
+	return txs
 }
 
 //hash 不包含签名，用户通过修改签名无法重新发送交易
@@ -59,7 +99,7 @@ func (tx *Transaction) CheckSign() bool {
 	return CheckSign(data, tx.GetSignature())
 }
 
-func (tx *Transaction) Check() error {
+func (tx *Transaction) Check(minfee int64) error {
 	if !isAllowExecName(string(tx.Execer)) {
 		return ErrExecNameNotAllow
 	}
@@ -67,12 +107,38 @@ func (tx *Transaction) Check() error {
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
 	}
+	if minfee == 0 {
+		return nil
+	}
 	// 检查交易费是否小于最低值
-	realFee := int64(txSize/1000+1) * MinFee
+	realFee := int64(txSize/1000+1) * minfee
 	if tx.Fee < realFee {
 		return ErrTxFeeTooLow
 	}
 	return nil
+}
+
+func (tx *Transaction) SetExpire(expire time.Duration) {
+	if int64(expire) > expireBound {
+		//用秒数来表示的时间
+		tx.Expire = time.Now().Unix() + int64(expire/time.Second)
+	} else {
+		tx.Expire = int64(expire)
+	}
+}
+
+func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
+	txSize := Size(tx)
+	//如果签名为空，那么加上签名的空间
+	if tx.Signature == nil {
+		txSize += 300
+	}
+	if txSize > int(MaxTxSize) {
+		return 0, ErrTxMsgSizeTooBig
+	}
+	// 检查交易费是否小于最低值
+	realFee := int64(txSize/1000+1) * minFee
+	return realFee, nil
 }
 
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
@@ -80,7 +146,7 @@ var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound�
 //检查交易是否过期，过期返回true，未过期返回false
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	valid := tx.Expire
-	// Expire为0，返回true
+	// Expire为0，返回false
 	if valid == 0 {
 		return false
 	}
@@ -102,6 +168,172 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	}
 }
 
+//解析tx的payload获取amount值
+func (tx *Transaction) Amount() (int64, error) {
+
+	if "coins" == string(tx.Execer) {
+		var action CoinsAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+			transfer := action.GetTransfer()
+			return transfer.Amount, nil
+		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
+			gen := action.GetGenesis()
+			return gen.Amount, nil
+		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
+			transfer := action.GetWithdraw()
+			return transfer.Amount, nil
+		}
+	} else if "ticket" == string(tx.Execer) {
+		var action TicketAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			ticketMiner := action.GetMiner()
+			return ticketMiner.Reward, nil
+		}
+	} else if "token" == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+		var action TokenAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
+			precreate := action.GetTokenprecreate()
+			return precreate.Price, nil
+		} else if TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
+			return 0, nil
+		} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
+			return 0, nil
+		} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
+			return 0, nil
+		} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
+			return 0, nil
+		}
+
+	} else if "trade" == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.GetPayload(), &trade)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TradeSell == trade.Ty && trade.GetTokensell() != nil {
+			return 0, nil
+		} else if TradeBuy == trade.Ty && trade.GetTokenbuy() != nil {
+			return 0, nil
+		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+			return 0, nil
+		}
+	}
+	return 0, nil
+}
+
+//获取tx交易的Actionname
+func (tx *Transaction) ActionName() string {
+	if "coins" == string(tx.Execer) {
+		var action CoinsAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+			return "transfer"
+		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
+			return "withdraw"
+		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
+			return "genesis"
+		}
+	} else if "ticket" == string(tx.Execer) {
+		var action TicketAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == TicketActionGenesis && action.GetGenesis() != nil {
+			return "genesis"
+		} else if action.Ty == TicketActionOpen && action.GetTopen() != nil {
+			return "open"
+		} else if action.Ty == TicketActionClose && action.GetTclose() != nil {
+			return "close"
+		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			return "miner"
+		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
+			return "bindminer"
+		}
+	} else if "none" == string(tx.Execer) {
+		return "none"
+	} else if "hashlock" == string(tx.Execer) {
+		var action HashlockAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == HashlockActionLock && action.GetHlock() != nil {
+			return "lock"
+		} else if action.Ty == HashlockActionUnlock && action.GetHunlock() != nil {
+			return "unlock"
+		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
+			return "send"
+		}
+	} else if "retrieve" == string(tx.Execer) {
+		var action RetrieveAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == RetrievePre && action.GetPreRet() != nil {
+			return "prepare"
+		} else if action.Ty == RetrievePerf && action.GetPerfRet() != nil {
+			return "perform"
+		} else if action.Ty == RetrieveBackup && action.GetBackup() != nil {
+			return "backup"
+		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
+			return "cancel"
+		}
+	} else if "token" == string(tx.Execer) {
+		var action TokenAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if action.Ty == TokenActionPreCreate && action.GetTokenprecreate() != nil {
+			return "preCreate"
+		} else if action.Ty == TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
+			return "finishCreate"
+		} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
+			return "revokeCreate"
+		} else if action.Ty == ActionTransfer && action.GetTransfer() != nil {
+			return "transferToken"
+		} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
+			return "withdrawToken"
+		}
+	} else if "trade" == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.Payload, &trade)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if trade.Ty == TradeSell && trade.GetTokensell() != nil {
+			return "selltoken"
+		} else if trade.Ty == TradeBuy && trade.GetTokenbuy() != nil {
+			return "buytoken"
+		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
+			return "revokeselltoken"
+		}
+	}
+
+	return "unknow"
+}
+
 func (block *Block) Hash() []byte {
 	head := &Header{}
 	head.Version = block.Version
@@ -116,6 +348,16 @@ func (block *Block) Hash() []byte {
 	return common.Sha256(data)
 }
 
+func (block *Block) GetHeader() *Header {
+	head := &Header{}
+	head.Version = block.Version
+	head.ParentHash = block.ParentHash
+	head.TxHash = block.TxHash
+	head.BlockTime = block.BlockTime
+	head.Height = block.Height
+	return head
+}
+
 func (block *Block) CheckSign() bool {
 	//检查区块的签名
 	if block.Signature != nil {
@@ -127,7 +369,7 @@ func (block *Block) CheckSign() bool {
 	}
 	//检查交易的签名
 	cpu := runtime.NumCPU()
-	ok := checkall(block.Txs, cpu)
+	ok := checkAll(block.Txs, cpu)
 	return ok
 }
 
@@ -166,7 +408,7 @@ func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result
 	}
 }
 
-func checkall(task []*Transaction, n int) bool {
+func checkAll(task []*Transaction, n int) bool {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -254,4 +496,28 @@ func CheckAmount(amount int64) bool {
 		return false
 	}
 	return true
+}
+
+func GetEventName(event int) string {
+	name, ok := eventName[event]
+	if ok {
+		return name
+	}
+	return "unknow-event"
+}
+
+func GetSignatureTypeName(signType int) string {
+	if signType == 1 {
+		return "secp256k1"
+	} else if signType == 2 {
+		return "ed25519"
+	} else if signType == 3 {
+		return "sm2"
+	} else {
+		return "unknow"
+	}
+}
+
+func ConfigKey(key string) string {
+	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }

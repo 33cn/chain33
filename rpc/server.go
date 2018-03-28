@@ -1,75 +1,74 @@
 package rpc
 
 import (
-	"net"
-
 	"code.aliyun.com/chain33/chain33/queue"
+	"code.aliyun.com/chain33/chain33/types"
 )
 
-func NewServer(name string, addr string, q *queue.Queue) IServer {
-	if name == "channel" {
-		return newChannelServer(q)
-	} else if name == "grpc" {
-		return newGrpcServer(addr, q)
-	} else if name == "jsonrpc" {
-		return newJsonrpcServer(addr, q)
+var (
+	whitlist = make(map[string]bool)
+	rpcCfg   *types.Rpc
+)
+
+type server struct {
+	cli channelClient
+}
+
+type Chain33 server
+type Grpc server
+
+type Grpcserver struct {
+	grpc Grpc
+	addr string
+}
+
+type JsonRpcServer struct {
+	jrpc Chain33
+	addr string
+}
+
+func (s *JsonRpcServer) Close() {
+	s.jrpc.cli.Close()
+
+}
+func checkWhitlist(addr string) bool {
+
+	if _, ok := whitlist["0.0.0.0"]; ok {
+		return true
 	}
-	panic("server name not support")
+
+	if _, ok := whitlist[addr]; ok {
+		return true
+	}
+	return false
 }
 
-type IServer interface {
-	SetQueue(q *queue.Queue)
-	GetQueue() *queue.Queue
-	Close()
-}
-
-//channelServer 不需要做任何的事情，grpc 和 jsonrpc 需要建立服务，监听
-type channelServer struct {
-	q        *queue.Queue
-	c        queue.Client
-	listener net.Listener
-}
-
-func newChannelServer(q *queue.Queue) *channelServer {
-	return &channelServer{q: q}
-}
-
-func (server *channelServer) SetQueue(q *queue.Queue) {
-	server.q = q
-	server.c = q.NewClient() //创建一个Queue Client
+func (j *Grpcserver) Close() {
+	j.grpc.cli.Close()
 
 }
 
-func (server *channelServer) GetQueue() *queue.Queue {
-	return server.q
+func NewGRpcServer(client queue.Client) *Grpcserver {
+	s := &Grpcserver{}
+	s.grpc.cli.Client = client
+	return s
 }
 
-func (server *channelServer) Close() {
-	server.listener.Close()
+func NewJsonRpcServer(client queue.Client) *JsonRpcServer {
+	j := &JsonRpcServer{}
+	j.jrpc.cli.Client = client
+	return j
 }
 
-type grpcServer struct {
-	channelServer
-}
+func Init(cfg *types.Rpc) {
+	rpcCfg = cfg
+	if len(cfg.Whitlist) == 1 && cfg.Whitlist[0] == "*" {
+		whitlist["0.0.0.0"] = true
+		return
+	}
 
-type jsonrpcServer struct {
-	channelServer
-}
+	for _, addr := range cfg.Whitlist {
+		whitlist[addr] = true
+	}
 
-func newGrpcServer(addr string, q *queue.Queue) *grpcServer {
-	server := &grpcServer{}
-	server.q = q
-	server.CreateServer(addr)
-	return server
-}
-
-func (r *grpcServer) Close() {
-	r.listener.Close()
-}
-
-func newJsonrpcServer(addr string, q *queue.Queue) *jsonrpcServer {
-	server := &jsonrpcServer{}
-	server.q = q
-	server.CreateServer(addr)
-	return server
 }

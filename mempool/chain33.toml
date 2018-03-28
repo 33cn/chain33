@@ -12,6 +12,7 @@ dbPath="datadir"
 [p2p]
 seeds=["113.55.101.159:13802"]
 isSeed=false
+enable=false
 seedPort=13802
 dbPath="datadir/addrbook"
 
