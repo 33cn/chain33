@@ -13,7 +13,7 @@ import (
 	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
 	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	"github.com/golang/protobuf/proto"
-	//log "github.com/inconshreveable/log15"
+	log "github.com/inconshreveable/log15"
 )
 
 //var tlog = log.New("module", "types")
@@ -548,17 +548,14 @@ func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 	default:
 		return nil, ErrLogType
 	}
-
 	logs := rpt.GetLogs()
 	for _, l := range logs {
 		var lTy string
 		var logIns interface{}
-
 		lLog, err := hex.DecodeString(common.ToHex(l.GetLog())[2:])
 		if err != nil {
 			return nil, err
 		}
-
 		switch l.Ty {
 		case TyLogErr:
 			lTy = "LogErr"
@@ -805,4 +802,16 @@ func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 		result.Logs = append(result.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: common.ToHex(l.GetLog())})
 	}
 	return result, nil
+}
+
+func (rd *ReceiptData) OutputReceiptDetails(logger log.Logger) {
+	rds, err := rd.DecodeReceiptLog()
+	if err == nil {
+		logger.Debug("receipt decode", "receipt data", rds)
+		for _, rdl := range rds.Logs {
+			logger.Debug("receipt log", "log", rdl)
+		}
+	} else {
+		logger.Error("decodelogerr", "err", err)
+	}
 }
