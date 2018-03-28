@@ -1,10 +1,9 @@
 package mavl
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
-	"bytes"
-	"encoding/hex"
 
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
@@ -177,6 +176,48 @@ func (t *MAVLTree) Remove(key []byte) (value []byte, removed bool) {
 	return value, true
 }
 
+// 依次迭代遍历树的所有键
+func (t *MAVLTree) Iterate(fn func(key []byte, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverse(t, true, func(node *MAVLNode) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
+// 在start和end之间的键进行迭代回调[start, end)
+func (t *MAVLTree) IterateRange(start, end []byte, ascending bool, fn func(key []byte, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverseInRange(t, start, end, ascending, false, 0, func(node *MAVLNode, _ uint8) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
+// 在start和end之间的键进行迭代回调[start, end]
+func (t *MAVLTree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(key, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverseInRange(t, start, end, ascending, true, 0, func(node *MAVLNode, _ uint8) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
@@ -320,29 +361,29 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 func GetTotalCoins(db dbm.DB, statehash []byte) int64 {
 	tree := NewMAVLTree(db)
 	tree.Load(statehash)
-treelog.Info("GetTotalCoins", "statehash", hex.EncodeToString(statehash))
+	treelog.Info("GetTotalCoins", "statehash", hex.EncodeToString(statehash))
 
-	var i int32 = 0
-	var amount int64 = 0
-	var acc types.Account
-	if tree.root != nil {
-		leafs := tree.root.size
-treelog.Info("GetTotalCoins", "leafs", leafs)
-		treelog.Info("PrintTreeLeaf info")
-		for i = 0; i < leafs; i++ {
-			key, value := tree.GetByIndex(i)
-			treelog.Info("leaf:", "index:", i, "key", string(key), "value", string(value))
-			if bytes.HasPrefix(key, []byte("mavl-coins-bty-")) && !bytes.HasPrefix(key, []byte("mavl-coins-bty-exec")) {
-				err := types.Decode(value, &acc)
-				if err != nil {
-					treelog.Error("GetTotalCoins err！", "err", err)
-					return 0
-				}
-				treelog.Info("acc:", "value", acc)
-				amount += acc.Balance
-			}
-		}
-	}
-	return amount
+	it := IterateBalance{}
+	tree.IterateRange([]byte("mavl-coins-bty-"), []byte("mavl-coins-btyb"), true, it.view)
+	treelog.Info("GetTotalCoins", "count", it.Count, "amount", it.Amount)
+	return it.Amount
 }
 
+type IterateBalance struct {
+	Count  int64
+        Amount int64
+}
+
+func (t *IterateBalance) view(key, value []byte) bool {
+	//treelog.Info("view", "key", string(key), "value", string(value))
+	var acc types.Account
+	err := types.Decode(value, &acc)
+	if err != nil {
+		treelog.Error("view err！", "err", err)
+        	return true
+	}
+	//treelog.Info("acc:", "value", acc)
+	t.Count += 1
+	t.Amount += acc.Balance
+        return false
+}
