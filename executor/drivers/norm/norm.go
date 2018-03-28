@@ -67,52 +67,38 @@ func (n *Norm) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Debug("exec norm tx=", "tx=", action)
 
 	receipt := &types.Receipt{types.ExecOk, nil, nil}
-	normKV := &types.KeyValue{[]byte("Key4Norm"), []byte("Value4Norm")}
+	normKV := n.GetKVPair(tx)
 	receipt.KV = append(receipt.KV, normKV)
 	return receipt, nil
-	//actiondb := NewNormAction(n.GetDB(), tx, n.GetAddr(), n.GetBlockTime(), n.GetHeight())
-	//if action.Ty == types.NormActionPut && action.GetNput() != nil {
-	//	return actiondb.Normput(action.GetNput())
-	//}
-	//return nil, types.ErrActionNotSupport
 }
 
 func (n *Norm) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//save tx
-	//hash, result := n.GetTx(tx, receipt, index)
-	//set.KV = append(set.KV, &types.KeyValue{hash, types.Encode(result)})
-	if n.GetKVPair(tx) != nil {
-		set.KV = append(set.KV, n.GetKVPair(tx))
-	}
-
+	hash, result := n.GetTx(tx, receipt, index)
+	set.KV = append(set.KV, &types.KeyValue{hash, types.Encode(result)})
 	return &set, nil
 }
 
 func (n *Norm) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
-	pair := n.GetKVPair(tx)
-	if pair != nil {
-		set.KV = append(set.KV, &types.KeyValue{pair.Key, nil})
-	}
 	//del tx
-	//hash, _ := n.GetTx(tx, receipt, index)
-	//set.KV = append(set.KV, &types.KeyValue{hash, nil})
-
+	hash, _ := n.GetTx(tx, receipt, index)
+	set.KV = append(set.KV, &types.KeyValue{hash, nil})
 	return &set, nil
 }
 
 func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
 	if funcname == "NormGet" {
-		value := n.GetQueryDB().Get(params)
-		if value == nil {
+		value, err := n.GetDB().Get(params)
+		if err != nil {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{string(value)}, nil
 	} else if funcname == "NormHas" {
-		value := n.GetQueryDB().Get(params)
-		if value == nil {
-			return &types.ReplyString{"false"}, nil
+		_, err := n.GetDB().Get(params)
+		if err != nil {
+			return &types.ReplyString{"false"}, err
 		}
 		return &types.ReplyString{"true"}, nil
 	}
