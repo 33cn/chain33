@@ -166,7 +166,7 @@ func NormPerf(privkey string, size string, num string, duration string) {
 		go func() {
 			txs := 0
 			for {
-				key = RandStringBytes(10)
+				key = RandStringBytes(20)
 				value = RandStringBytes(sizeInt)
 				NormPut(privkey, key, value)
 				txs++
@@ -186,7 +186,7 @@ func NormPerf(privkey string, size string, num string, duration string) {
 func RandStringBytes(n int) string {
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		b[i] = letterBytes[r.Intn(len(letterBytes))]
 	}
 	return string(b)
 }
