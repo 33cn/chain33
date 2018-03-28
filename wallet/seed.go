@@ -4,11 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	//	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
-	//	"io"
 	"math/big"
 	"strings"
 
@@ -17,13 +14,17 @@ import (
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
+	sccrypto "github.com/NebulousLabs/Sia/crypto"
+	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
 	"github.com/piotrnar/gocoin/lib/btc"
 )
 
-var SeedLong int = 15
-var WalletSeed = []byte("walletseed")
-var seedlog = log.New("module", "wallet")
+var (
+	SeedLong   int = 15
+	WalletSeed     = []byte("walletseed")
+	seedlog        = log.New("module", "wallet")
+)
 
 const BACKUPKEYINDEX = "backupkeyindex"
 
@@ -38,7 +39,7 @@ func CreateSeed(folderpath string, lang int32) (string, error) {
 	} else if lang == 1 {
 		strs = strings.Split(Chinese_text, " ")
 	} else {
-		return "", errors.New("CreateSeed lang err!")
+		return "", types.ErrSeedlang
 	}
 
 	strnum := len(strs)
@@ -69,7 +70,7 @@ func CreateSeed(folderpath string, lang int32) (string, error) {
 //使用password加密seed存储到db中
 func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 	if len(seed) == 0 || len(password) == 0 {
-		return false, ErrInputPara
+		return false, types.ErrInputPara
 	}
 
 	Encrypted, err := AesgcmEncrypter([]byte(password), []byte(seed))
@@ -85,11 +86,11 @@ func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 //使用password解密seed上报给上层
 func GetSeed(db dbm.DB, password string) (string, error) {
 	if len(password) == 0 {
-		return "", ErrInputPara
+		return "", types.ErrInputPara
 	}
 	Encryptedseed := db.Get(WalletSeed)
 	if len(Encryptedseed) == 0 {
-		return "", errors.New("seed is not exit!")
+		return "", types.ErrSeedNotExist
 	}
 	seed, err := AesgcmDecrypter([]byte(password), Encryptedseed)
 	if err != nil {
@@ -102,23 +103,16 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 func HasSeed(db dbm.DB) (bool, error) {
 	Encryptedseed := db.Get(WalletSeed)
 	if len(Encryptedseed) == 0 {
-		return false, errors.New("seed is not exit!")
+		return false, types.ErrSeedNotExist
 	}
-	return true, errors.New("seed is exit!")
+	return true, nil
 }
 
 //通过seed生成子私钥十六进制字符串
 func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	var backupindex uint32
-
-	pkx := btc.MasterKey([]byte(seed), false)
-	masterprivkey := pkx.String() //主私钥字符串
-	xpubkey := pkx.Pub().String() //主公钥字符串
-	//seedlog.Info("GetPrivkeyBySeed", "seed", seed, "masterprivkey", masterprivkey, "xpubkey", xpubkey)
-
-	//hexmpub := hex.EncodeToString(pkx.Pub().Key)
-	//hexmpriv := hex.EncodeToString(pkx.Key)
-	//seedlog.Info("GetPrivkeyBySeed", "seed", seed, "hexmpriv", hexmpriv, "hexmpub", hexmpub)
+	var Hexsubprivkey string
+	var err error
 
 	//通过主私钥随机生成child私钥十六进制字符串
 	backuppubkeyindex := db.Get([]byte(BACKUPKEYINDEX))
@@ -130,29 +124,55 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 		}
 	}
 	index := backupindex + 1
-	//生成子私钥和子公钥字符串，并校验是否相同
-	subprivkey := btc.StringChild(masterprivkey, index)
-	subpubkey := btc.StringChild(xpubkey, index)
-	//seedlog.Info("GetPrivkeyBySeed", "subprivkey", subprivkey, "subpubkey", subpubkey)
 
-	//通过子私钥字符串生成对应的hex字符串
-	wallet, _ := btc.StringWallet(subprivkey)
-	rec := btc.NewPrivateAddr(wallet.Key, 0x80, true)
-	Hexsubprivkey := common.ToHex(rec.Key[1:])
+	//secp256k1
+	if SignType == 1 {
+		pkx := btc.MasterKey([]byte(seed), false)
+		masterprivkey := pkx.String() //主私钥字符串
+		xpubkey := pkx.Pub().String() //主公钥字符串
 
-	//对生成的子公钥做交易
-	creatpubkey := wallet.Pub().String()
-	if subpubkey != creatpubkey {
-		seedlog.Error("GetPrivkeyBySeed subpubkey != creatpubkeybypriv")
-		return "", errors.New("subpubkey verify fail!")
+		//生成子私钥和子公钥字符串，并校验是否相同
+		subprivkey := btc.StringChild(masterprivkey, index)
+		subpubkey := btc.StringChild(xpubkey, index)
+		//seedlog.Info("GetPrivkeyBySeed", "subprivkey", subprivkey, "subpubkey", subpubkey)
+
+		//通过子私钥字符串生成对应的hex字符串
+		wallet, _ := btc.StringWallet(subprivkey)
+		rec := btc.NewPrivateAddr(wallet.Key, 0x80, true)
+		Hexsubprivkey = common.ToHex(rec.Key[1:])
+
+		//对生成的子公钥做校验
+		creatpubkey := wallet.Pub().String()
+		if subpubkey != creatpubkey {
+			seedlog.Error("GetPrivkeyBySeed subpubkey != creatpubkeybypriv")
+			return "", types.ErrSubPubKeyVerifyFail
+		}
+	} else if SignType == 2 { //ed25519
+
+		//通过助记词形式的seed生成私钥和公钥,一个seed根据不同的index可以生成许多组密钥
+		//字符串形式的助记词(英语单词)通过计算一次hash转成字节形式的seed
+
+		var Seed modules.Seed
+		hash := common.Sha256([]byte(seed))
+
+		copy(Seed[:], hash)
+		sk, _ := sccrypto.GenerateKeyPairDeterministic(sccrypto.HashAll(Seed, index))
+		secretKey := fmt.Sprintf("%x", sk)
+		//publicKey := fmt.Sprintf("%x", pk)
+		//seedlog.Error("GetPrivkeyBySeed", "index", index, "secretKey", secretKey, "publicKey", publicKey)
+
+		Hexsubprivkey = secretKey
+	} else if SignType == 3 { //sm2
+		return "", types.ErrNotSupport
+	} else {
+		return "", types.ErrNotSupport
 	}
-
 	// back up index in db
 	var pubkeyindex []byte
-	pubkeyindex, err := json.Marshal(index)
+	pubkeyindex, err = json.Marshal(index)
 	if err != nil {
 		seedlog.Error("GetPrivkeyBySeed", "Marshal err ", err)
-		return "", err
+		return "", types.ErrMarshal
 	}
 
 	db.SetSync([]byte(BACKUPKEYINDEX), pubkeyindex)
@@ -163,7 +183,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 //通过私钥生成对应的公钥地址，传入的私钥是十六进制字符串，输出addr
 func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 	if len(HexPrivkey) == 0 {
-		return "", ErrInputPara
+		return "", types.ErrInputPara
 	}
 	//解码hex格式的私钥
 	privkeybyte, err := common.FromHex(HexPrivkey)
@@ -171,7 +191,7 @@ func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 		return "", err
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		seedlog.Error("GetAddrByPrivkey", "err", err)
 		return "", err

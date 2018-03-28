@@ -1,9 +1,9 @@
 package blockchain
 
 import (
+	"math/rand"
 	"testing"
 	"time"
-	"math/rand"
 )
 
 func TestTask(t *testing.T) {

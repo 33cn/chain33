@@ -6,24 +6,28 @@ import (
 
 var log = l.New("module", "rpc")
 
-type JTransparm struct {
+type TransParm struct {
 	Execer    string     `json:"execer"`
 	Payload   string     `json:"payload"`
 	Signature *Signature `json:"signature"`
 	Fee       int64      `json:"fee"`
 }
+
 type SignedTx struct {
 	Unsign string `json:"unsigntx"`
 	Sign   string `json:"sign"`
 	Pubkey string `json:"pubkey"`
 	Ty     int32  `json:"ty"`
 }
+
 type RawParm struct {
 	Data string `json:"data"`
 }
+
 type QueryParm struct {
 	Hash string `json:"hash"`
 }
+
 type BlockParam struct {
 	Start    int64 `json:"start"`
 	End      int64 `json:"end"`
@@ -46,23 +50,43 @@ type Signature struct {
 	Pubkey    string `json:"pubkey"`
 	Signature string `json:"signature"`
 }
+
 type Transaction struct {
-	Execer    string     `json:"execer"`
-	Payload   string     `json:"payload"`
-	Signature *Signature `json:"signature"`
-	Fee       int64      `json:"fee"`
-	Expire    int64      `json:"expire"`
-	Nonce     int64      `json:"nonce"`
-	To        string     `json:"to"`
+	Execer     string      `json:"execer"`
+	Payload    interface{} `json:"payload"`
+	RawPayload string      `json:"rawpayload"`
+	Signature  *Signature  `json:"signature"`
+	Fee        int64       `json:"fee"`
+	Expire     int64       `json:"expire"`
+	Nonce      int64       `json:"nonce"`
+	From       string      `json:"from,omitempty"`
+	To         string      `json:"to"`
+	Amount     int64       `json:"amount,omitempty"`
 }
+
 type ReceiptLog struct {
 	Ty  int32  `json:"ty"`
 	Log string `json:"log"`
 }
+
 type ReceiptData struct {
 	Ty   int32         `json:"ty"`
 	Logs []*ReceiptLog `json:"logs"`
 }
+
+type ReceiptDataResult struct {
+	Ty     int32               `json:"ty"`
+	TyName string              `json:"tyname"`
+	Logs   []*ReceiptLogResult `json:"logs"`
+}
+
+type ReceiptLogResult struct {
+	Ty     int32       `json:"ty"`
+	TyName string      `json:"tyname"`
+	Log    interface{} `json:"log"`
+	RawLog string      `json:"rawlog"`
+}
+
 type Block struct {
 	Version    int64          `json:"version"`
 	ParentHash string         `json:"parenthash"`
@@ -72,9 +96,10 @@ type Block struct {
 	BlockTime  int64          `json:"blocktime"`
 	Txs        []*Transaction `json:"txs"`
 }
+
 type BlockDetail struct {
-	Block    *Block         `json:"block"`
-	Receipts []*ReceiptData `json:"recipts"`
+	Block    *Block               `json:"block"`
+	Receipts []*ReceiptDataResult `json:"recipts"`
 }
 
 type BlockDetails struct {
@@ -82,14 +107,15 @@ type BlockDetails struct {
 }
 
 type TransactionDetail struct {
-	Tx        *Transaction `json:"tx"`
-	Receipt   *ReceiptData `json:"receipt"`
-	Proofs    []string     `json:"proofs"`
-	Height    int64        `json:"height"`
-	Index     int64        `json:"index"`
-	Blocktime int64        `json:"blocktime"`
-	Amount    int64        `json:"amount"`
-	Fromaddr  string       `json:"fromaddr"`
+	Tx         *Transaction       `json:"tx"`
+	Receipt    *ReceiptDataResult `json:"receipt"`
+	Proofs     []string           `json:"proofs"`
+	Height     int64              `json:"height"`
+	Index      int64              `json:"index"`
+	Blocktime  int64              `json:"blocktime"`
+	Amount     int64              `json:"amount"`
+	Fromaddr   string             `json:"fromaddr"`
+	ActionName string             `json:"actionname"`
 }
 
 type ReplyTxInfos struct {
@@ -101,6 +127,7 @@ type ReplyTxInfo struct {
 	Height int64  `json:"height"`
 	Index  int64  `json:"index"`
 }
+
 type TransactionDetails struct {
 	//Txs []*Transaction `json:"txs"`
 	Txs []*TransactionDetail `protobuf:"bytes,1,rep,name=txs" json:"txs"`
@@ -109,11 +136,13 @@ type TransactionDetails struct {
 type ReplyTxList struct {
 	Txs []*Transaction `json:"txs"`
 }
+
 type ReplyHash struct {
 	Hash string `json:"hash"`
 }
+
 type ReplyHashes struct {
-	Hashes []string `json:hashes`
+	Hashes []string `json:"hashes"`
 }
 type PeerList struct {
 	Peers []*Peer `json:"peers"`
@@ -167,18 +196,32 @@ type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txdetails"`
 }
 type WalletTxDetail struct {
-	Tx        *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx"`
-	Receipt   *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
-	Height    int64        `protobuf:"varint,3,opt,name=height" json:"height"`
-	Index     int64        `protobuf:"varint,4,opt,name=index" json:"index"`
-	Blocktime int64        `json:"blocktime"`
-	Amount    int64        `json:"amount"`
-	Fromaddr  string       `json:"fromaddr"`
-	Txhash    string       `json:"txhash"`
+	Tx         *Transaction       `protobuf:"bytes,1,opt,name=tx" json:"tx"`
+	Receipt    *ReceiptDataResult `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
+	Height     int64              `protobuf:"varint,3,opt,name=height" json:"height"`
+	Index      int64              `protobuf:"varint,4,opt,name=index" json:"index"`
+	Blocktime  int64              `json:"blocktime"`
+	Amount     int64              `json:"amount"`
+	Fromaddr   string             `json:"fromaddr"`
+	Txhash     string             `json:"txhash"`
+	ActionName string             `json:"actionname"`
 }
 
 type BlockOverview struct {
 	Head     *Header  `protobuf:"bytes,1,opt,name=head" json:"head"`
 	TxCount  int64    `protobuf:"varint,2,opt,name=txCount" json:"txcount"`
 	TxHashes []string `protobuf:"bytes,3,rep,name=txHashes,proto3" json:"txhashes"`
+}
+
+type Query struct {
+	Execer   string `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	FuncName string `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
+	Payload  string `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload"`
+}
+
+type WalletStatus struct {
+	IsWalletLock bool `json:"iswalletlock"`
+	IsAutoMining bool `json:"isautomining"`
+	IsHasSeed    bool `json:"ishasseed"`
+	IsTicketLock bool `json:"isticketlock"`
 }

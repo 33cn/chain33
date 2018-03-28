@@ -22,12 +22,10 @@ import (
 //1.2 消息的回复直接通过消息自带的channel 回复
 var qlog = log.New("module", "queue")
 
-const DefaultChanBuffer = 64
-const DefaultLowChanBuffer = 40960
-
-func SetLogLevel(level int) {
-
-}
+const (
+	DefaultChanBuffer    = 64
+	DefaultLowChanBuffer = 40960
+)
 
 func DisableLog() {
 	qlog.SetHandler(log.DiscardHandler())
@@ -39,18 +37,34 @@ type chanSub struct {
 	isClose int32
 }
 
-type Queue struct {
-	chanSubs map[string]chanSub
+/// Queue only one obj in project
+/// Queue only generate Client and start、Close operate,
+/// if you send massage or receive massage on Queue, please use Client.
+type Queue interface {
+	Close()
+	Start()
+	Client() Client
+	Name() string
+}
+
+type queue struct {
+	chanSubs map[string]*chanSub
 	mu       sync.Mutex
 	done     chan struct{}
 	isClose  int32
+	name     string
 }
 
-func New(name string) *Queue {
-	return &Queue{chanSubs: make(map[string]chanSub), done: make(chan struct{}, 1)}
+func New(name string) Queue {
+	q := &queue{chanSubs: make(map[string]*chanSub), name: name, done: make(chan struct{}, 1)}
+	return q
 }
 
-func (q *Queue) Start() {
+func (q *queue) Name() string {
+	return q.name
+}
+
+func (q *queue) Start() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	// Block until a signal is received.
@@ -63,12 +77,12 @@ func (q *Queue) Start() {
 	}
 }
 
-func (q *Queue) IsClosed() bool {
+func (q *queue) isClosed() bool {
 	return atomic.LoadInt32(&q.isClose) == 1
 }
 
-func (q *Queue) Close() {
-	if q.IsClosed() {
+func (q *queue) Close() {
+	if q.isClosed() {
 		return
 	}
 	q.mu.Lock()
@@ -76,7 +90,7 @@ func (q *Queue) Close() {
 		if ch.isClose == 0 {
 			ch.high <- Message{}
 			ch.low <- Message{}
-			q.chanSubs[topic] = chanSub{isClose: 1}
+			q.chanSubs[topic] = &chanSub{isClose: 1}
 		}
 	}
 	q.mu.Unlock()
@@ -86,17 +100,17 @@ func (q *Queue) Close() {
 	qlog.Info("queue module closed")
 }
 
-func (q *Queue) chanSub(topic string) chanSub {
+func (q *queue) chanSub(topic string) *chanSub {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	_, ok := q.chanSubs[topic]
 	if !ok {
-		q.chanSubs[topic] = chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
+		q.chanSubs[topic] = &chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
 	}
 	return q.chanSubs[topic]
 }
 
-func (q *Queue) closeTopic(topic string) {
+func (q *queue) closeTopic(topic string) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	sub, ok := q.chanSubs[topic]
@@ -107,11 +121,11 @@ func (q *Queue) closeTopic(topic string) {
 		sub.high <- Message{}
 		sub.low <- Message{}
 	}
-	q.chanSubs[topic] = chanSub{isClose: 1}
+	q.chanSubs[topic] = &chanSub{isClose: 1}
 }
 
-func (q *Queue) Send(msg Message) (err error) {
-	if q.IsClosed() {
+func (q *queue) send(msg Message) (err error) {
+	if q.isClosed() {
 		return types.ErrChannelClosed
 	}
 	sub := q.chanSub(msg.Topic)
@@ -124,18 +138,19 @@ func (q *Queue) Send(msg Message) (err error) {
 			err = res.(error)
 		}
 	}()
-	timeout := time.After(time.Second * 60)
+	timeout := time.NewTimer(time.Second * 60)
+	defer timeout.Stop()
 	select {
 	case sub.high <- msg:
-	case <-timeout:
+	case <-timeout.C:
 		return types.ErrTimeout
 	}
-	qlog.Debug("send ok", "msg", msg)
+	qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
 	return nil
 }
 
-func (q *Queue) SendAsyn(msg Message) error {
-	if q.IsClosed() {
+func (q *queue) sendAsyn(msg Message) error {
+	if q.isClosed() {
 		return types.ErrChannelClosed
 	}
 	sub := q.chanSub(msg.Topic)
@@ -153,7 +168,7 @@ func (q *Queue) SendAsyn(msg Message) error {
 
 }
 
-func (q *Queue) NewClient() Client {
+func (q *queue) Client() Client {
 	return newClient(q)
 }
 
@@ -162,7 +177,7 @@ type Message struct {
 	Ty      int64
 	Id      int64
 	Data    interface{}
-	ChReply chan Message
+	chReply chan Message
 }
 
 func NewMessage(id int64, topic string, ty int64, data interface{}) (msg Message) {
@@ -170,7 +185,7 @@ func NewMessage(id int64, topic string, ty int64, data interface{}) (msg Message
 	msg.Ty = ty
 	msg.Data = data
 	msg.Topic = topic
-	msg.ChReply = make(chan Message, 1)
+	msg.chReply = make(chan Message, 1)
 	return msg
 }
 
@@ -189,17 +204,17 @@ func (msg Message) Err() error {
 }
 
 func (msg Message) Reply(replyMsg Message) {
-	if msg.ChReply == nil {
+	if msg.chReply == nil {
 		qlog.Debug("reply a empty chreply", "msg", msg)
 		return
 	}
-	msg.ChReply <- replyMsg
+	msg.chReply <- replyMsg
 	qlog.Debug("reply msg ok", "msg", msg)
 }
 
 func (msg Message) String() string {
 	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v, Ch:%v}", msg.Topic,
-		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.ChReply != nil)
+		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.chReply != nil)
 }
 
 func (msg Message) ReplyErr(title string, err error) {

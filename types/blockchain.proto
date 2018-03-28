@@ -1,0 +1,128 @@
+syntax = "proto3";
+import "transaction.proto";
+
+package types;
+
+//区块头信息
+// 	 version : 版本信息
+//	 parentHash :父哈希
+// 	 txHash : 交易根哈希
+//	 stateHash :状态哈希
+// 	 height : 区块高度
+//	 blockTime :区块产生时的时标
+// 	 txCount : 区块上所有交易个数
+//	 difficulty :区块难度系数，
+//	 signature :交易签名
+message Header {
+	int64 version = 1;
+	bytes parentHash = 2;
+	bytes txHash = 3;
+	bytes stateHash = 4;
+	int64 height = 5;
+	int64 blockTime = 6;
+	int64 txCount = 9;
+	bytes hash = 10;
+	uint32 difficulty = 11;
+	Signature signature = 8;
+}
+//  参考Header解释
+message Block {
+	int64 version = 1;
+	bytes parentHash = 2;
+	bytes txHash = 3;
+	bytes stateHash = 4;
+	int64 height = 5;
+	int64 blockTime = 6;
+	uint32 difficulty = 11;
+	Signature signature = 8;
+	repeated Transaction txs = 7;
+}
+
+message Blocks {
+	repeated Block items = 1;
+}
+
+//resp
+message BlockDetails {
+	repeated BlockDetail items = 1;
+}
+
+//resp
+message Headers {
+	repeated Header items = 1;
+}
+
+//区块视图
+// 	 head : 区块头信息
+//	 txCount :区块上交易个数
+// 	 txHashes : 区块上交易的哈希列表
+
+message BlockOverview {
+	Header head = 1;
+	int64 txCount = 2;
+	repeated bytes txHashes = 3;
+}
+
+//区块详细信息
+// 	 block : 区块信息
+//	 receipts :区块上所有交易的收据信息列表
+message BlockDetail {
+	Block block = 1;
+	repeated ReceiptData receipts = 2;
+}
+
+message Receipts {
+	repeated Receipt receipts = 1;
+}
+
+message ReceiptCheckTxList {
+	repeated string errs = 1;
+}
+
+//区块链状态
+// 	 currentHeight : 区块最新高度
+//	 mempoolSize :内存池大小
+// 	 msgQueueSize : 消息队列大小
+message ChainStatus {
+	int64 currentHeight = 1;
+	int64 mempoolSize = 2;
+	int64 msgQueueSize = 3;
+}
+
+//获取区块信息
+// 	 start : 获取区块的开始高度
+//	 end :获取区块的结束高度
+// 	 Isdetail : 是否需要获取区块的详细信息
+// 	 pid : peer列表
+message ReqBlocks {
+	int64 start = 1;
+	int64 end = 2;
+	bool Isdetail = 3;
+	repeated string pid = 4;
+}
+
+message MempoolSize {
+	int64 size = 1;
+}
+
+message ReplyBlockHeight {
+	int64 height = 1;
+}
+
+//区块体信息
+// 	 txs : 区块上所有交易列表
+//	 receipts :区块上所有交易的收据信息列表
+message BlockBody {
+	repeated Transaction txs = 1;
+	repeated ReceiptData receipts = 2;
+}
+//  区块追赶主链状态，用于判断本节点区块是否已经同步好
+message IsCaughtUp {
+	bool Iscaughtup  = 1;
+}
+
+//  ntp时钟状态
+message IsNtpClockSync {
+	bool isntpclocksync  = 1;
+}
+

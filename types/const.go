@@ -1,79 +1,74 @@
 package types
 
-import (
-	"errors"
-	"math/big"
-	"time"
+var (
+	AllowDepositExec       = []string{"ticket"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+	GenesisBlockTime int64 = 1514533394
+	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	SuperManager           = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	ConfigPrefix           = "mavl-config-"
 )
 
-var ErrNotFound = errors.New("ErrNotFound")
-var ErrNoBalance = errors.New("ErrNoBalance")
-var ErrBlockExec = errors.New("ErrBlockExec")
-var ErrCheckStateHash = errors.New("ErrCheckStateHash")
-var ErrCheckTxHash = errors.New("ErrCheckTxHash")
-var ErrReRunGenesis = errors.New("ErrReRunGenesis")
-var ErrActionNotSupport = errors.New("ErrActionNotSupport")
-var ErrChannelFull = errors.New("ErrChannelFull")
-var ErrAmount = errors.New("ErrAmount")
-var ErrTxExpire = errors.New("ErrTxExpire")
-var ErrNoTicket = errors.New("ErrNoTicket")
-var ErrMinerIsStared = errors.New("ErrMinerIsStared")
-var ErrMinerNotStared = errors.New("ErrMinerNotStared")
-var ErrTicketCount = errors.New("ErrTicketCount")
-var ErrHashlockAmount = errors.New("ErrHashlockAmount")
-var ErrHashlockHash = errors.New("ErrHashlockHash")
-var ErrHashlockStatus = errors.New("ErrHashlockStatus")
-var ErrFeeTooLow = errors.New("ErrFeeTooLow")
-var ErrNoPeer = errors.New("ErrNoPeer")
-var ErrSign = errors.New("ErrSign")
-var ErrExecNameNotMath = errors.New("ErrExecNameNotMath")
-var ErrChannelClosed = errors.New("ErrChannelClosed")
-var ErrNotMinered = errors.New("ErrNotMinered")
-var ErrTime = errors.New("ErrTime")
-var ErrFromAddr = errors.New("ErrFromAddr")
-var ErrBlockHeight = errors.New("ErrBlockHeight")
-var ErrEmptyTx = errors.New("ErrEmptyTx")
-var ErrCoinBaseExecer = errors.New("ErrCoinBaseExecer")
-var ErrCoinBaseTxType = errors.New("ErrCoinBaseTxType")
-var ErrCoinBaseExecErr = errors.New("ErrCoinBaseExecErr")
-var ErrCoinBaseTarget = errors.New("ErrCoinBaseTarget")
-var ErrCoinbaseReward = errors.New("ErrCoinbaseReward")
-var ErrNotAllowDeposit = errors.New("ErrNotAllowDeposit")
-var ErrCoinBaseIndex = errors.New("ErrCoinBaseIndex")
-var ErrCoinBaseTicketStatus = errors.New("ErrCoinBaseTicketStatus")
-var ErrBlockNotFound = errors.New("ErrBlockNotFound")
-var ErrHashlockReturnAddrss = errors.New("ErrHashlockReturnAddrss")
-var ErrHashlockTime = errors.New("ErrHashlockTime")
-var ErrHashlockReapeathash = errors.New("ErrHashlockReapeathash")
-var ErrStartBigThanEnd = errors.New("ErrStartBigThanEnd")
-var ErrToAddrNotSameToExecAddr = errors.New("ErrToAddrNotSameToExecAddr")
-var ErrTypeAsset = errors.New("ErrTypeAsset")
-var ErrEmpty = errors.New("ErrEmpty")
-var ErrSendSameToRecv = errors.New("ErrSendSameToRecv")
-var ErrTxMsgSizeTooBig = errors.New("ErrTxMsgSizeTooBig")
-var ErrTxFeeTooLow = errors.New("ErrTxFeeTooLow")
-var ErrExecNameNotAllow = errors.New("ErrExecNameNotAllow")
-var ErrLocalDBPerfix = errors.New("ErrLocalDBPerfix")
-var ErrTimeout = errors.New("ErrTimeout")
+var (
+	MinFee             int64 = 1e5
+	MinBalanceTransfer int64 = 1e6
+)
 
-const Coin int64 = 1e8
-const MaxCoin int64 = 1e17
-const CoinReward int64 = 1e9
-const MinFee int64 = 1e6
-const MinBalanceTransfer = 1e7
-const MaxTxSize int64 = 100000      //100K
-const MaxBlockSize int64 = 10000000 //10M
-const PowLimitBits uint32 = uint32(0)
+func SetMinFee(fee int64) {
+	if fee < 0 {
+		panic("fee less than zero")
+	}
+	MinFee = fee
+	MinBalanceTransfer = fee * 10
+}
 
-const TargetTimespan = 144 * 16 * time.Second
-const TargetTimePerBlock = 16 * time.Second
-const RetargetAdjustmentFactor = 4
-const MaxTxsPerBlock = 100000
-
-var AllowDepositExec = []string{"ticket"}
-var AllowUserExec = []string{"coins", "ticket", "hashlock", "none"}
-
-var PowLimit = big.NewInt(0)
+const (
+	//<<<<<<< HEAD
+	//Coin                     int64 = 1e8
+	//TokenPrecision           int64 = 1e4
+	//InputPrecision           float64 = 1e4
+	//CoinMultiple             int64 = 1e4
+	//MaxCoin                  int64 = 1e17
+	//FutureBlockTime          int64 = 16
+	//CoinReward               int64 = 18 * Coin //用户回报
+	//CoinDevFund              int64 = 12 * Coin //发展基金回报
+	//TicketPrice              int64 = 10000 * Coin
+	//TicketFrozenTime         int64 = 5        //5s only for test
+	//TicketWithdrawTime       int64 = 10       //10s only for test
+	//TicketMinerWaitTime      int64 = 2        // 2s only for test
+	//MaxTxSize                int64 = 100000   //100K
+	//MaxBlockSize             int64 = 10000000 //10M
+	//MaxTxNumber              int64 = 1600     //160
+	//PowLimitBits             uint32 = uint32(0x1f00ffff)
+	//TargetTimespan                   = 144 * 16 * time.Second
+	//TargetTimePerBlock               = 16 * time.Second
+	//RetargetAdjustmentFactor = 4
+	//MaxTxsPerBlock = 100000
+	//TokenNameLenLimit = 128
+	//TokenSymbolLenLimit              = 16
+	//TokenIntroLenLimit = 1024
+	//TokenPrecisionLen = 1e6
+	//TokenCreatePriceStand = 10000 * Coin
+	//InvalidStartTime = 0
+	//InvalidStopTime = 0
+	//====== =
+	Coin                int64   = 1e8
+	MaxCoin             int64   = 1e17
+	MaxTxSize                   = 100000   //100K
+	MaxBlockSize                = 10000000 //10M
+	MaxTxsPerBlock              = 100000
+	TokenPrecision      int64   = 1e4
+	InputPrecision      float64 = 1e4
+	CoinMultiple        int64   = 1e4
+	TokenNameLenLimit           = 128
+	TokenSymbolLenLimit         = 16
+	TokenIntroLenLimit          = 1024
+	InvalidStartTime            = 0
+	InvalidStopTime             = 0
+)
 
 const (
 	EventTx                   = 1
@@ -154,18 +149,53 @@ const (
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
 	//local store
-	EventLocalGet        = 76
-	EventLocalReplyValue = 77
-	EventLocalList       = 78
-	EventLocalSet        = 79
-	EventGetWalletStatus = 80
-	EventCheckTx         = 81
-	EventReceiptCheckTx  = 82
-	EventQuery           = 83
-	EventReplyQuery      = 84
+	EventLocalGet            = 76
+	EventLocalReplyValue     = 77
+	EventLocalList           = 78
+	EventLocalSet            = 79
+	EventGetWalletStatus     = 80
+	EventCheckTx             = 81
+	EventReceiptCheckTx      = 82
+	EventQuery               = 83
+	EventReplyQuery          = 84
+	EventFlushTicket         = 85
+	EventFetchBlockHeaders   = 86
+	EventAddBlockHeaders     = 87
+	EventWalletAutoMiner     = 88
+	EventReplyWalletStatus   = 89
+	EventGetLastBlock        = 90
+	EventBlock               = 91
+	EventGetTicketCount      = 92
+	EventReplyGetTicketCount = 93
+	EventDumpPrivkey         = 94
+	EventReplyPrivkey        = 95
+	EventIsSync              = 96
+	EventReplyIsSync         = 97
+
+	EventCloseTickets        = 98
+	EventGetAddrTxs          = 99
+	EventReplyAddrTxs        = 100
+	EventIsNtpClockSync      = 101
+	EventReplyIsNtpClockSync = 102
+	// Token
+	EventTokenPreCreate         = 200
+	EventReplyTokenPreCreate    = 201
+	EventTokenFinishCreate      = 202
+	EventReplyTokenFinishCreate = 203
+	EventTokenRevokeCreate      = 204
+	EventReplyTokenRevokeCreate = 205
+	EventSellToken              = 206
+	EventReplySellToken         = 207
+	EventBuyToken               = 208
+	EventReplyBuyToken          = 209
+	EventRevokeSellToken        = 210
+	EventReplyRevokeSellToken   = 211
+	// config
+	EventModifyConfig      = 300
+	EventReplyModifyConfig = 301
 )
 
-var eventname = map[int]string{
+var eventName = map[int]string{
 	1:  "EventTx",
 	2:  "EventGetBlocks",
 	3:  "EventBlocks",
@@ -213,51 +243,77 @@ var eventname = map[int]string{
 	45: "EventWalletSetFee",
 	46: "EventWalletSetLabel",
 	//47: "EventWalletAccount",
-	48: "EventWalletMergeBalance",
-	49: "EventReplyHashes",
-	50: "EventWalletSetPasswd",
-	51: "EventWalletLock",
-	52: "EventWalletUnLock",
-	53: "EventTransactionDetails",
-	54: "EventBroadcastAddBlock",
-	55: "EventGetBlockOverview",
-	56: "EventGetAddrOverview",
-	57: "EventReplyBlockOverview",
-	58: "EventReplyAddrOverview",
-	59: "EventGetBlockHash",
-	60: "EventBlockHash",
-	61: "EventGetLastMempool",
-	62: "EventWalletGetTickets",
-	63: "EventMinerStart",
-	64: "EventMinerStop",
-	65: "EventWalletTickets",
-	66: "EventStoreMemSet",
-	67: "EventStoreRollback",
-	68: "EventStoreCommit",
-	69: "EventCheckBlock",
-	70: "EventGenSeed",
-	71: "EventReplyGenSeed",
-	72: "EventSaveSeed",
-	73: "EventGetSeed",
-	74: "EventReplyGetSeed",
-	75: "EventDelBlock",
-	76: "EventLocalGet",
-	77: "EventLocalReplyValue",
-	78: "EventLocalList",
-	79: "EventLocalSet",
-	80: "EventGetWalletStatus",
-	81: "EventCheckTx",
-	82: "EventReceiptCheckTx",
-	83: "EventQuery",
-	84: "EventReplyQuery",
-}
-
-func GetEventName(event int) string {
-	name, ok := eventname[event]
-	if ok {
-		return name
-	}
-	return "unknow-event"
+	48:  "EventWalletMergeBalance",
+	49:  "EventReplyHashes",
+	50:  "EventWalletSetPasswd",
+	51:  "EventWalletLock",
+	52:  "EventWalletUnLock",
+	53:  "EventTransactionDetails",
+	54:  "EventBroadcastAddBlock",
+	55:  "EventGetBlockOverview",
+	56:  "EventGetAddrOverview",
+	57:  "EventReplyBlockOverview",
+	58:  "EventReplyAddrOverview",
+	59:  "EventGetBlockHash",
+	60:  "EventBlockHash",
+	61:  "EventGetLastMempool",
+	62:  "EventWalletGetTickets",
+	63:  "EventMinerStart",
+	64:  "EventMinerStop",
+	65:  "EventWalletTickets",
+	66:  "EventStoreMemSet",
+	67:  "EventStoreRollback",
+	68:  "EventStoreCommit",
+	69:  "EventCheckBlock",
+	70:  "EventGenSeed",
+	71:  "EventReplyGenSeed",
+	72:  "EventSaveSeed",
+	73:  "EventGetSeed",
+	74:  "EventReplyGetSeed",
+	75:  "EventDelBlock",
+	76:  "EventLocalGet",
+	77:  "EventLocalReplyValue",
+	78:  "EventLocalList",
+	79:  "EventLocalSet",
+	80:  "EventGetWalletStatus",
+	81:  "EventCheckTx",
+	82:  "EventReceiptCheckTx",
+	83:  "EventQuery",
+	84:  "EventReplyQuery",
+	85:  "EventFlushTicket",
+	86:  "EventFetchBlockHeaders",
+	87:  "EventAddBlockHeaders",
+	88:  "EventWalletAutoMiner",
+	89:  "EventReplyWalletStatus",
+	90:  "EventGetLastBlock",
+	91:  "EventBlock",
+	92:  "EventGetTicketCount",
+	93:  "EventReplyGetTicketCount",
+	94:  "EventDumpPrivkey",
+	95:  "EventReplyPrivkey",
+	96:  "EventIsSync",
+	97:  "EventReplyIsSync",
+	98:  "EventCloseTickets",
+	99:  "EventGetAddrTxs",
+	100: "EventReplyAddrTxs",
+	101: "EventIsNtpClockSync",
+	102: "EventReplyIsNtpClockSync",
+	// Token
+	EventTokenPreCreate:         "EventTokenPreCreate",
+	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
+	EventTokenFinishCreate:      "EventTokenFinishCreate",
+	EventReplyTokenFinishCreate: "EventReplyTokenFinishCreate",
+	EventTokenRevokeCreate:      "EventTokenRevokeCreate",
+	EventReplyTokenRevokeCreate: "EventReplyTokenRevokeCreate",
+	EventSellToken:              "EventSellToken",
+	EventReplySellToken:         "EventReplySellToken",
+	EventBuyToken:               "EventBuyToken",
+	EventReplyBuyToken:          "EventReplyBuyToken",
+	EventRevokeSellToken:        "EventRevokeSellToken",
+	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
+	// config
+	EventModifyConfig:           "EventModifyConfig",
+	EventReplyModifyConfig:      "EventReplyModifyConfig",
 }
 
 //ty = 1 -> secp256k1
@@ -269,29 +325,50 @@ const (
 	SM2       = 3
 )
 
-func GetSignatureTypeName(signType int) string {
-	if signType == 1 {
-		return "secp256k1"
-	} else if signType == 2 {
-		return "ed25519"
-	} else if signType == 3 {
-		return "sm2"
-	} else {
-		return "unknow"
-	}
-}
-
 //log type
 const (
-	TyLogErr      = 1
-	TyLogFee      = 2
-	TyLogTransfer = 3
-	TyLogGenesis  = 4
+	TyLogErr = 1
+	TyLogFee = 2
+	//coins
+	TyLogTransfer        = 3
+	TyLogGenesis         = 4
+	TyLogDeposit         = 5
+	TyLogExecTransfer    = 6
+	TyLogExecWithdraw    = 7
+	TyLogExecDeposit     = 8
+	TyLogExecFrozen      = 9
+	TyLogExecActive      = 10
+	TyLogGenesisTransfer = 11
+	TyLogGenesisDeposit  = 12
 
 	//log for ticket
-	TyLogNewTicket   = 11
-	TyLogCloseTicket = 12
-	TyLogMinerTicket = 13
+	TyLogNewTicket   = 111
+	TyLogCloseTicket = 112
+	TyLogMinerTicket = 113
+	TyLogTicketBind  = 114
+
+	//log for token create
+	TyLogPreCreateToken    = 211
+	TyLogFinishCreateToken = 212
+	TyLogRevokeCreateToken = 213
+
+	//log for trade
+	TyLogTradeSell            = 310
+	TyLogTradeBuy             = 311
+	TyLogTradeRevoke          = 312
+	TyLogTokenTransfer        = 313
+	TyLogTokenGenesis         = 314
+	TyLogTokenDeposit         = 315
+	TyLogTokenExecTransfer    = 316
+	TyLogTokenExecWithdraw    = 317
+	TyLogTokenExecDeposit     = 318
+	TyLogTokenExecFrozen      = 319
+	TyLogTokenExecActive      = 320
+	TyLogTokenGenesisTransfer = 321
+	TyLogTokenGenesisDeposit  = 322
+
+	// log for config
+	TyLogModifyConfig         = 410
 )
 
 //exec type
@@ -303,9 +380,18 @@ const (
 
 //coinsaction
 const (
-	CoinsActionTransfer = 1
-	CoinsActionGenesis  = 2
-	CoinsActionWithdraw = 3
+	InvalidAction = iota
+	CoinsActionTransfer
+	CoinsActionGenesis
+	CoinsActionWithdraw
+
+	//action for token
+	ActionTransfer
+	ActionGenesis
+	ActionWithdraw
+	TokenActionPreCreate
+	TokenActionFinishCreate
+	TokenActionRevokeCreate
 )
 
 //ticket
@@ -316,6 +402,7 @@ const (
 	TicketActionList    = 14 //读的接口不直接经过transaction
 	TicketActionInfos   = 15 //读的接口不直接经过transaction
 	TicketActionMiner   = 16
+	TicketActionBind    = 17
 )
 
 //hashlock const
@@ -323,4 +410,65 @@ const (
 	HashlockActionLock   = 1
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
+)
+
+//retrieve
+const (
+	RetrievePre    = 1
+	RetrievePerf   = 2
+	RetrieveBackup = 3
+	RetrieveCancel = 4
+)
+
+const (
+	TokenStatusPreCreated = iota
+	TokenStatusCreated
+	TokenStatusCreateRevoked
+)
+
+const (
+	TradeSell = iota
+	TradeBuy
+	TradeRevokeSell
+)
+
+//0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
+const (
+	NotStart = iota
+	OnSale
+	SoldOut
+	Revoked
+	Expired
+)
+
+var SellOrderStatus = map[int32]string{
+	NotStart: "NotStart",
+	OnSale:   "OnSale",
+	SoldOut:  "SoldOut",
+	Revoked:  "Revoked",
+	Expired:  "Expired",
+}
+
+const (
+	ManageActionModifyConfig = iota
+)
+
+const (
+	ConfigItemArrayConfig = iota
+	ConfigItemIntConfig
+	ConfigItemStringConfig
+)
+
+var MapSellOrderStatusStr2Int = map[string]int32{
+	"onsale":  OnSale,
+	"soldout": SoldOut,
+	"revoked": Revoked,
+}
+
+//hard fork block height
+const (
+	ForkV1           = 75260
+	ForkV2_add_token = 100899
+	ForkV3           = 110000
+	ForkV4_add_manage = 120000
 )

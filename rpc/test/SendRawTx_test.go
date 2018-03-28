@@ -24,7 +24,7 @@ func CreateRawTx() string {
 		fmt.Println("err:", err.Error())
 		return ""
 	}
-	fmt.Println("postdata:%v", postdata)
+	fmt.Printf("postdata:%v\n", postdata)
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("err:", err.Error())

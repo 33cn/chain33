@@ -18,37 +18,39 @@ func init() {
 	queue.DisableLog()
 }
 
-func initEnv() (*Wallet, *queue.Queue) {
+func initEnv() (*Wallet, queue.Queue) {
 	var q = queue.New("channel")
 	var cfg types.Wallet
 	cfg.DbPath = "datadir"
 	cfg.MinFee = 1000000
 
 	wallet := New(&cfg)
-	wallet.SetQueue(q)
+	wallet.SetQueueClient(q.Client())
 	return wallet, q
 }
 
-func storeModProc(q *queue.Queue) *store.Store {
+func storeModProc(q queue.Queue) *store.Store {
 	//store
 	var cfg types.Store
 	cfg.DbPath = "datadir"
 	cfg.Driver = "leveldb"
 	s := store.New(&cfg)
-	s.SetQueue(q)
+	s.SetQueueClient(q.Client())
 	return s
 }
 
-var Statehash []byte
-var CutHeight int64 = 0
-var FromAddr string = ""
-var ToAddr1 string = ""
-var ToAddr2 string = ""
+var (
+	Statehash []byte
+	CutHeight int64  = 0
+	FromAddr  string = ""
+	ToAddr1   string = ""
+	ToAddr2   string = ""
+)
 
-func blockchainModProc(q *queue.Queue) {
+func blockchainModProc(q queue.Queue) {
 	//store
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		client.Sub("blockchain")
 		for msg := range client.Recv() {
 			//walletlog.Info("blockchain", "msg.Ty", msg.Ty)
@@ -90,10 +92,10 @@ func blockchainModProc(q *queue.Queue) {
 	}()
 }
 
-func mempoolModProc(q *queue.Queue) {
+func mempoolModProc(q queue.Queue) {
 	//store
 	go func() {
-		client := q.NewClient()
+		client := q.Client()
 		client.Sub("mempool")
 		for msg := range client.Recv() {
 			//walletlog.Info("mempool", "msg.Ty", msg.Ty)
@@ -104,7 +106,7 @@ func mempoolModProc(q *queue.Queue) {
 	}()
 }
 
-func SaveAccountTomavl(q *queue.Queue, prevStateRoot []byte, accs []*types.Account) []byte {
+func SaveAccountTomavl(q queue.Queue, prevStateRoot []byte, accs []*types.Account) []byte {
 	var kvset []*types.KeyValue
 
 	for _, acc := range accs {
@@ -118,6 +120,7 @@ func SaveAccountTomavl(q *queue.Queue, prevStateRoot []byte, accs []*types.Accou
 	Statehash = hash
 	return hash
 }
+
 func TestProcCreatNewAccount(t *testing.T) {
 	walletlog.Info("TestProcCreatNewAccount begin --------------------")
 	wallet, q := initEnv()
@@ -158,7 +161,7 @@ func TestProcCreatNewAccount(t *testing.T) {
 	}
 
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err)
 	}
@@ -223,7 +226,7 @@ func TestProcImportPrivKey(t *testing.T) {
 	var PrivKey types.ReqWalletImportPrivKey
 
 	//生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
 		walletlog.Error("TestProcImportPrivKey", "err", err)
 	}
