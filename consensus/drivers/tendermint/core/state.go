@@ -919,7 +919,7 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	lastParentHash = lastBlock.Hash()
 	blockTime = 0
 	lastStateHash = lastBlock.StateHash
-	txs = cs.client.RequestTx()
+	txs = cs.client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
 	if len(txs) > 0 {
 		cs.NewTxsFinished <- true
 		//check dup

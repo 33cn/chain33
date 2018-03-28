@@ -24,7 +24,7 @@ import (
 	"math/rand"
 	wire "github.com/tendermint/go-wire"
 	"sync"
-	"code.aliyun.com/chain33/chain33/common/merkle"
+	"code.aliyun.com/chain33/chain33/util"
 )
 
 var (
@@ -226,12 +226,12 @@ func (client *TendermintClient) Close() {
 	tendermintlog.Info("TendermintClientClose","consensus tendermint closed")
 }
 
-func (client *TendermintClient) SetQueue(q *queue.Queue) {
+func (client *TendermintClient) SetQueueClient(q queue.Client) {
 	client.InitClient(q, func() {
 		//call init block
 		client.InitBlock()
 	})
-
+	client.initStateHeight(client.GetCurrentHeight())
 	//event start
 	err := client.eventBus.Start()
 	if err != nil {
@@ -291,31 +291,6 @@ func (client *TendermintClient) SetQueue(q *queue.Queue) {
 	go client.checkValidator2StartConsensus()
 	go client.EventLoop()
 	//go client.child.CreateBlock()
-}
-
-func (client *TendermintClient) InitBlock(){
-	height := client.GetInitHeight()
-	if height == -1 {
-		// 创世区块 不需要共识
-		newblock := &types.Block{}
-		newblock.Height = 0
-		newblock.BlockTime = client.Cfg.GenesisBlockTime
-		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
-		newblock.ParentHash = zeroHash[:]
-		tx := client.CreateGenesisTx()
-		newblock.Txs = tx
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		client.WriteBlock(zeroHash[:], newblock)
-		height = 0
-	} else {
-		block, err := client.RequestBlock(height)
-		if err != nil {
-			panic(err)
-		}
-		client.SetCurrentBlock(block)
-	}
-
-	client.initStateHeight(height)
 }
 
 func (client *TendermintClient) initStateHeight(height int64) {
@@ -382,6 +357,25 @@ func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
 //暂不检查任何的交易
 func (client *TendermintClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
+}
+
+func (client *TendermintClient) ProcEvent(msg queue.Message) {
+
+}
+
+func (client *TendermintClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
+	//exec block
+	if block.Height == 0 {
+		block.Difficulty = types.GetP(0).PowLimitBits
+	}
+	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
+	if err != nil { //never happen
+		return nil, err
+	}
+	if len(blockdetail.Block.Txs) == 0 {
+		return nil, types.ErrNoTx
+	}
+	return blockdetail, nil
 }
 
 func (client *TendermintClient) CreateBlock() {
