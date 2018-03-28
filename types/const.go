@@ -10,6 +10,13 @@ var (
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	SuperManager           = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
 	ConfigPrefix           = "mavl-config-"
+	TokenApprs             = []string{
+		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
+		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
+		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
+		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
+	}
 )
 
 var (
@@ -470,5 +477,5 @@ const (
 	ForkV1           = 75260
 	ForkV2_add_token = 100899
 	ForkV3           = 110000
-	ForkV4_add_manage = 120000
+	ForkV4_add_manage= 120000
 )
