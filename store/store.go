@@ -140,8 +140,10 @@ func (store *Store) processMessage(msg queue.Message) {
 		delete(store.trees, string(hash.Hash))
 		msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash.Hash}))
 	} else if msg.Ty == types.EventStoreGetTotalCoins {
-		datas := msg.GetData().(*types.StoreGet)
-		amt := mavl.GetTotalCoins(store.db, datas.StateHash)
-		msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, &types.Account{Balance:amt}))
+		req := msg.GetData().(*types.IterateGetTotalCoins)
+		resp := &types.ReplyGetTotalCoins{}
+		mavl.IterateRangeByStateHash(store.db, req.StateHash, req.Start, req.End, true, resp.IterateRangeByStateHash)
+		msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
 	}
 }
+

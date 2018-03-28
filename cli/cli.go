@@ -459,12 +459,11 @@ type AddrOverviewResult struct {
 }
 
 type GetTotalCoinsResult struct {
-	AccountCount int64 `json:"accountCount"`
-	ExpectedBalance string `json:"expectedBalance"`
-	ActualBalance string `json:"actualBalance"`
-	DifferenceBalance string `json:"differenceBalance"`
+	AccountCount     int32  `json:"accountCount"`
+	ExpectedAmount   string `json:"expectedBalance"`
+	ActualAmount     string `json:"actualAmount"`
+	DifferenceAmount string `json:"differenceAmount"`
 }
-
 
 func GetVersion() {
 	fmt.Println(common.GetVersion())
@@ -1588,28 +1587,40 @@ func GetTotalCoins(symbol string, height string) {
 		return
 	}
 
-	params := jsonrpc.GetTotalCoins{Symbol: symbol, Height: heightInt64}
-	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	var res types.Account
-	err = rpc.Call("Chain33.GetTotalCoins", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	resp := GetTotalCoinsResult{}
+	var expectedAmount int64
+	var actualAmount int64
+
+	var startKey []byte
+	var count int32
+	for count = 1000; count == 1000; {
+		params := types.ReqGetTotalCoins{Symbol: symbol, Height: heightInt64, StartKey: startKey, Count: count}
+		rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var res types.ReplyGetTotalCoins
+		err = rpc.Call("Chain33.GetTotalCoins", params, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		count = res.Count
+		resp.AccountCount += res.Count
+		actualAmount += res.Amount
+		startKey = res.LastKey
 	}
 
-	expectedBalance := strconv.FormatFloat(float64(res.Balance)/float64(types.Coin), 'f', 4, 64)
-	actualBalance := strconv.FormatFloat(float64(res.Balance)/float64(types.Coin), 'f', 4, 64)
-	differenceBalance := strconv.FormatFloat(float64(res.Balance-res.Balance)/float64(types.Coin), 'f', 4, 64)
-			
-	resp := GetTotalCoinsResult{
-		ExpectedBalance: expectedBalance,
-		ActualBalance: actualBalance,
-		DifferenceBalance: differenceBalance,
+	if symbol == "bty" {
+		expectedAmount = (3e+8+30*heightInt64) * types.Coin
+		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
+		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
+		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
+	} else {
+
 	}
+
 	data, err := json.MarshalIndent(resp, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1742,4 +1753,3 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 	}
 	return rd
 }
-
