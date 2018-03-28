@@ -93,6 +93,8 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenIntroLen
 	} else if len(token.GetSymbol()) > types.TokenSymbolLenLimit {
 		return nil, types.ErrTokenSymbolLen
+	} else if token.GetTotal() > types.MaxTokenBalance  || token.GetTotal() <= 0 {
+		return nil, types.ErrTokenTotalOverflow
 	}
 	upSymbol := strings.ToUpper(token.GetSymbol())
 	if upSymbol != token.GetSymbol() {
