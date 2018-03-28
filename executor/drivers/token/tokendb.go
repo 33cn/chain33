@@ -141,8 +141,16 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 		return nil, types.ErrTokenNotPrecreated
 	}
 
+	approver_valid := false
+	for _, approver := range types.TokenApprs {
+		if approver == action.fromaddr {
+			approver_valid = true
+			break
+		}
+	}
+
 	hasPriv, ok := validFinisher(action.fromaddr, action.db)
-	if ok != nil || hasPriv != true {
+	if (ok != nil || hasPriv != true) && !approver_valid {
 		return  nil, types.ErrTokenCreatedApprover
 	}
 
