@@ -53,7 +53,7 @@ type Config struct {
 func (m *Config) Reset()                    { *m = Config{} }
 func (m *Config) String() string            { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()               {}
-func (*Config) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (*Config) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
 
 func (m *Config) GetTitle() string {
 	if m != nil {
@@ -147,7 +147,7 @@ type MemPool struct {
 func (m *MemPool) Reset()                    { *m = MemPool{} }
 func (m *MemPool) String() string            { return proto.CompactTextString(m) }
 func (*MemPool) ProtoMessage()               {}
-func (*MemPool) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (*MemPool) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
 
 func (m *MemPool) GetPoolCacheSize() int64 {
 	if m != nil {
@@ -185,7 +185,7 @@ type Consensus struct {
 func (m *Consensus) Reset()                    { *m = Consensus{} }
 func (m *Consensus) String() string            { return proto.CompactTextString(m) }
 func (*Consensus) ProtoMessage()               {}
-func (*Consensus) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (*Consensus) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
 
 func (m *Consensus) GetName() string {
 	if m != nil {
@@ -309,7 +309,7 @@ type Wallet struct {
 func (m *Wallet) Reset()                    { *m = Wallet{} }
 func (m *Wallet) String() string            { return proto.CompactTextString(m) }
 func (*Wallet) ProtoMessage()               {}
-func (*Wallet) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+func (*Wallet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{3} }
 
 func (m *Wallet) GetMinFee() int64 {
 	if m != nil {
@@ -347,7 +347,7 @@ type Store struct {
 func (m *Store) Reset()                    { *m = Store{} }
 func (m *Store) String() string            { return proto.CompactTextString(m) }
 func (*Store) ProtoMessage()               {}
-func (*Store) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+func (*Store) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{4} }
 
 func (m *Store) GetDriver() string {
 	if m != nil {
@@ -371,7 +371,7 @@ type LocalStore struct {
 func (m *LocalStore) Reset()                    { *m = LocalStore{} }
 func (m *LocalStore) String() string            { return proto.CompactTextString(m) }
 func (*LocalStore) ProtoMessage()               {}
-func (*LocalStore) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+func (*LocalStore) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{5} }
 
 func (m *LocalStore) GetDriver() string {
 	if m != nil {
@@ -401,7 +401,7 @@ type BlockChain struct {
 func (m *BlockChain) Reset()                    { *m = BlockChain{} }
 func (m *BlockChain) String() string            { return proto.CompactTextString(m) }
 func (*BlockChain) ProtoMessage()               {}
-func (*BlockChain) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*BlockChain) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{6} }
 
 func (m *BlockChain) GetDefCacheSize() int64 {
 	if m != nil {
@@ -475,7 +475,7 @@ type P2P struct {
 func (m *P2P) Reset()                    { *m = P2P{} }
 func (m *P2P) String() string            { return proto.CompactTextString(m) }
 func (*P2P) ProtoMessage()               {}
-func (*P2P) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+func (*P2P) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{7} }
 
 func (m *P2P) GetSeedPort() int32 {
 	if m != nil {
@@ -556,7 +556,7 @@ type Rpc struct {
 func (m *Rpc) Reset()                    { *m = Rpc{} }
 func (m *Rpc) String() string            { return proto.CompactTextString(m) }
 func (*Rpc) ProtoMessage()               {}
-func (*Rpc) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+func (*Rpc) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{8} }
 
 func (m *Rpc) GetJrpcBindAddr() string {
 	if m != nil {
@@ -591,9 +591,9 @@ func init() {
 	proto.RegisterType((*Rpc)(nil), "types.Rpc")
 }
 
-func init() { proto.RegisterFile("config.proto", fileDescriptor0) }
+func init() { proto.RegisterFile("config.proto", fileDescriptor3) }
 
-var fileDescriptor0 = []byte{
+var fileDescriptor3 = []byte{
 	// 871 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x96, 0xd1, 0x6e, 0x23, 0x35,
 	0x17, 0xc7, 0xd5, 0xce, 0x4e, 0x9a, 0x9c, 0xa6, 0xdd, 0xae, 0xf7, 0xfb, 0xd0, 0x80, 0x10, 0xaa,
