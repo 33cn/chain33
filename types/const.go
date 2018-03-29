@@ -185,6 +185,7 @@ const (
 	EventReplyAddrTxs        = 100
 	EventIsNtpClockSync      = 101
 	EventReplyIsNtpClockSync = 102
+	EventDelTxList           = 103
 	// Token
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
@@ -306,6 +307,7 @@ var eventName = map[int]string{
 	100: "EventReplyAddrTxs",
 	101: "EventIsNtpClockSync",
 	102: "EventReplyIsNtpClockSync",
+	103: "EventDelTxList",
 	// Token
 	EventTokenPreCreate:         "EventTokenPreCreate",
 	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
