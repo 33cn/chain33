@@ -96,16 +96,19 @@ func (a *AddrBook) GetKey() string {
 }
 
 func (a *AddrBook) initKey() {
-
+	var maxRetry = 10
 	key, err := P2pComm.GenPrivkey()
 	if err != nil {
-		for i := 0; i < 10; i++ {
+		for i := 0; i < maxRetry; i++ {
 			key, err = P2pComm.GenPrivkey()
 			if err == nil {
 				break
 			}
+			if i == maxRetry-1 && err != nil {
+				panic(err.Error())
+			}
 		}
-		panic(err.Error())
+
 	}
 
 	a.setKey(hex.EncodeToString(key))

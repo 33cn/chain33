@@ -30,7 +30,7 @@ type Miner interface {
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg queue.Message)
-	ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error)
+	ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error)
 }
 
 type BaseClient struct {
@@ -266,9 +266,35 @@ func (bc *BaseClient) RequestLastBlock() (*types.Block, error) {
 	return block, nil
 }
 
+//del mempool
+func (bc *BaseClient) delMempoolTx(deltx []*types.Transaction) error {
+	hashList := buildHashList(deltx)
+	msg := bc.client.NewMessage("mempool", types.EventDelTxList, hashList)
+	bc.client.Send(msg, true)
+	resp, err := bc.client.Wait(msg)
+	if err != nil {
+		return err
+	}
+	if resp.GetData().(*types.Reply).GetIsOk() {
+		return nil
+	}
+	return errors.New(string(resp.GetData().(*types.Reply).GetMsg()))
+}
+
+func buildHashList(deltx []*types.Transaction) *types.TxHashList {
+	list := &types.TxHashList{}
+	for i := 0; i < len(deltx); i++ {
+		list.Hashes = append(list.Hashes, deltx[i].Hash())
+	}
+	return list
+}
+
 // 向blockchain写区块
 func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
-	blockdetail, err := bc.child.ExecBlock(prev, block)
+	blockdetail, deltx, err := bc.child.ExecBlock(prev, block)
+	if len(deltx) > 0 {
+		bc.delMempoolTx(deltx)
+	}
 	if err != nil {
 		return err
 	}
@@ -278,11 +304,11 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	if err != nil {
 		return err
 	}
+	//从mempool 中删除错误的交易
+
 	if resp.GetData().(*types.Reply).IsOk {
 		bc.SetCurrentBlock(block)
 	} else {
-		//TODO:
-		//把txs写回mempool
 		reply := resp.GetData().(*types.Reply)
 		return errors.New(string(reply.GetMsg()))
 	}
