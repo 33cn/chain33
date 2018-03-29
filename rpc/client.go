@@ -546,6 +546,48 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 	return nil, nil
 }
 
+//TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
+func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
+	accountTokendb := account.NewTokenAccountWithoutDB(in.GetTokenSymbol())
+
+	switch in.GetExecer() {
+	case "token":
+		addrs := in.GetAddresses()
+		var queryAddrs []string
+		for _, addr := range addrs {
+			if err := account.CheckAddress(addr); err != nil {
+				addr = account.ExecAddress(addr).String()
+
+			}
+			queryAddrs = append(queryAddrs, addr)
+		}
+
+		accounts, err := accountTokendb.LoadAccounts(c.Client, queryAddrs)
+		if err != nil {
+			log.Error("GetTokenBalance", "err", err.Error(), "token symbol", in.GetTokenSymbol(), "address", queryAddrs)
+			return nil, err
+		}
+		return accounts, nil
+
+	default: //trade
+		execaddress := account.ExecAddress(in.GetExecer())
+		addrs := in.GetAddresses()
+		var accounts []*types.Account
+		for _, addr := range addrs {
+			account, err := accountTokendb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
+			if err != nil {
+				log.Error("GetTokenBalance for exector", "err", err.Error(), "token symbol", in.GetTokenSymbol(),
+					"address", addr)
+				continue
+			}
+			accounts = append(accounts, account)
+		}
+
+		return accounts, nil
+	}
+	return nil, nil
+}
+
 func (c *channelClient) QueryHash(in *types.Query) (*types.Message, error) {
 
 	msg := c.NewMessage("blockchain", types.EventQuery, in)
@@ -603,7 +645,7 @@ func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
 	return resp.GetData().(*types.ReplyStr), nil
 }
 
-func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
+func (c *channelClient) CloseTickets() (*types.ReplyHashes, error) {
 	msg := c.NewMessage("wallet", types.EventCloseTickets, nil)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -614,7 +656,7 @@ func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resp.GetData().(*types.TxHashList), nil
+	return resp.GetData().(*types.ReplyHashes), nil
 }
 
 func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
@@ -640,4 +682,121 @@ func (c *channelClient) IsSync() bool {
 		return false
 	}
 	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
+}
+
+func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventTokenPreCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenPreCreate", "Error", err.Error())
+
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+
+		log.Error("TokenPreCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenPreCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventTokenFinishCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenFinishCreate", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("TokenFinishCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenFinishCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) TokenRevokeCreate(parm *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventTokenRevokeCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenRevokeCreate", "Error", err.Error())
+
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("TokenRevokeCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenRevokeCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) SellToken(parm *types.ReqSellToken) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventSellToken, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("SellToken", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("SellToken", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("SellToken", "result", "success", "symbol", parm.Sell.Tokensymbol)
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) BuyToken(parm *types.ReqBuyToken) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventBuyToken, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("BuyToken", "Error", err.Error())
+		return nil, err
+	}
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("BuyToken", "Error", err.Error())
+		return nil, err
+	}
+
+	log.Info("BuyToken", "result", "send tx successful", "buyer", parm.Buyer, "sell order", parm.Buy.Sellid)
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) RevokeSellToken(parm *types.ReqRevokeSell) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventRevokeSellToken, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("RevokeSellToken", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("RevokeSellToken", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("RevokeSellToken", "result", "send tx successful", "order owner", parm.Owner, "sell order", parm.Revoke.Sellid)
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) IsNtpClockSync() bool {
+	msg := c.NewMessage("blockchain", types.EventIsNtpClockSync, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("IsNtpClockSync", "Send Error", err.Error())
+		return false
+	}
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("IsNtpClockSync", "Wait Error", err.Error())
+		return false
+	}
+	return resp.GetData().(*types.IsNtpClockSync).GetIsntpclocksync()
 }

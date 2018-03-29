@@ -16,7 +16,7 @@ const minLockTime = 60
 
 func init() {
 	h := newHashlock()
-	drivers.Register(h.GetName(), h)
+	drivers.Register(h.GetName(), h, 0)
 }
 
 type Hashlock struct {

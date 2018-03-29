@@ -34,6 +34,12 @@ message Accounts {
 	repeated Account acc = 1;
 }
 
+message ReqTokenBalance {
+	repeated string addresses   = 1;
+	string tokenSymbol = 2;
+	string execer      = 3;
+}
+
 //查询symbol代币总额
 message ReqGetTotalCoins {
 	string symbol = 1;
@@ -57,3 +63,4 @@ message IterateGetTotalCoins {
         bytes end = 3;
         int32 count = 4;
 }
+

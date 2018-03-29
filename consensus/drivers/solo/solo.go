@@ -51,19 +51,19 @@ func (client *SoloClient) CheckBlock(parent *types.Block, current *types.BlockDe
 	return nil
 }
 
-func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
+func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
 	//exec block
 	if block.Height == 0 {
-		block.Difficulty = types.PowLimitBits
+		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
-		return nil, err
+		return nil, deltx, err
 	}
 	if len(blockdetail.Block.Txs) == 0 {
-		return nil, types.ErrNoTx
+		return nil, deltx, types.ErrNoTx
 	}
-	return blockdetail, nil
+	return blockdetail, deltx, nil
 }
 
 func (client *SoloClient) CreateBlock() {
@@ -76,7 +76,8 @@ func (client *SoloClient) CreateBlock() {
 		if issleep {
 			time.Sleep(time.Second)
 		}
-		txs := client.RequestTx(int(types.MaxTxNumber), nil)
+		lastBlock := client.GetCurrentBlock()
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -84,18 +85,19 @@ func (client *SoloClient) CreateBlock() {
 		issleep = false
 		//check dup
 		//txs = client.CheckTxDup(txs)
-		lastBlock := client.GetCurrentBlock()
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
-		newblock.Difficulty = types.PowLimitBits
+		//solo 挖矿固定难度
+		newblock.Difficulty = types.GetP(0).PowLimitBits
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		newblock.BlockTime = time.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
+		//判断有没有交易是被删除的，这类交易要从mempool 中删除
 		if err != nil {
 			issleep = true
 			continue
