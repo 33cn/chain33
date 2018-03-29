@@ -1,8 +1,6 @@
 package kvdb
 
 import (
-	"bytes"
-
 	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/store/drivers"
@@ -119,12 +117,6 @@ func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
 }
 
 func calcHash(datas *types.StoreSet) []byte {
-	var hashes [][]byte
-	hashes = append(hashes, datas.StateHash)
-	kvset := datas.KV
-	for _, kv := range kvset {
-		hashes = append(hashes, kv.Key, kv.Value)
-	}
-	data := bytes.Join(hashes, []byte(""))
-	return common.Sha256(data)
+	b := []byte(datas.String())
+	return common.Sha256(b)
 }
