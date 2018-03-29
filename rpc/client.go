@@ -618,25 +618,12 @@ func (c *channelClient) CloseTickets() (*types.TxHashList, error) {
 }
 
 func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
-	blockHash, err := c.GetBlockHash(&types.ReqInt{in.Height})
-	if err != nil {
-		return nil, err
-	}
-	log.Debug("GetTotalCoins", "blockhash", blockHash)
-
-	blockOverview, err := c.GetBlockOverview(&types.ReqHash{Hash:blockHash.GetHash()})
-	if err != nil {
-		return nil, err
-	}
-	log.Debug("GetTotalCoins", "statehash", blockOverview.Head.StateHash)
-
-
 	//获取地址账户的余额通过account模块
-	acc, err := accountdb.GetTotalCoins(c.Client, in, blockOverview.Head.StateHash)
+	resp, err := accountdb.GetTotalCoins(c.Client, in)
 	if err != nil {
 		return nil, err
 	}
-	return acc, nil
+	return resp, nil
 }
 
 func (c *channelClient) IsSync() bool {
