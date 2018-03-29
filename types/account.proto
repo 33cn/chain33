@@ -49,7 +49,7 @@ message ReplyGetTotalCoins{
         bytes lastKey  = 3;
 }
 
-//查询symbol代币总额
+//迭代查询symbol代币总额
 message IterateGetTotalCoins {
 	bytes stateHash = 1;
 	bytes start = 2;
