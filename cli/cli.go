@@ -1581,15 +1581,30 @@ func CloseTickets() {
 }
 
 func GetTotalCoins(symbol string, height string) {
+	// 获取高度哈希
 	heightInt64, err := strconv.ParseInt(height, 10, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	resp := GetTotalCoinsResult{}
+        params := types.ReqInt{Height: heightInt64}
+        rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+        if err != nil {
+                fmt.Fprintln(os.Stderr, err)
+                return
+        }
+        var res jsonrpc.ReplyHash
+        err = rpc.Call("Chain33.GetBlockHash", params, &res)
+        if err != nil {
+                fmt.Fprintln(os.Stderr, err)
+                return
+        }
+	
+	// 查询高度哈希对应数据
 	var expectedAmount int64
 	var actualAmount int64
+	resp := GetTotalCoinsResult{}
 
 	var startKey []byte
 	var count int32
@@ -1613,7 +1628,7 @@ func GetTotalCoins(symbol string, height string) {
 	}
 
 	if symbol == "bty" {
-		expectedAmount = (3e+8+30*heightInt64) * types.Coin
+		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin
 		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
