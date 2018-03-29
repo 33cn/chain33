@@ -1876,20 +1876,20 @@ func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 
 func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account {
 	var cur int32
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"].(float32); ok {
-		cur = int32(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"]; ok {
+		cur = int32(tmp.(float32))
 	}
 	var bal int64
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["balance"].(float64); ok {
-		bal = int64(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["balance"]; ok {
+		bal = int64(tmp.(float64))
 	}
 	var fro int64
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["frozen"].(float64); ok {
-		fro = int64(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["frozen"]; ok {
+		fro = int64(tmp.(float64))
 	}
 	var ad string
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["addr"].(string); ok {
-		ad = tmp
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["addr"]; ok {
+		ad = tmp.(string)
 	}
 	return &types.Account{
 		Currency: cur,
