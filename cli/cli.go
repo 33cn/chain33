@@ -1837,16 +1837,20 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	payloacValue := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
 	for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
 		if _, ok := payloacValue[e]; ok {
-			amt := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"].(float64) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
-			break
+			if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
+				amt := amtValue.(float64) / float64(types.Coin)
+				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
+				break
+			}
 		}
 	}
 	if _, ok := payloacValue["Miner"]; ok {
-		rwd := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"].(float64) / float64(types.Coin)
-		rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
-		result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
+		if rwdValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"]; ok {
+			rwd := rwdValue.(float64) / float64(types.Coin)
+			rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
+			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
+		}
 	}
 
 	if tx.Amount != 0 {
@@ -1872,20 +1876,20 @@ func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 
 func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account {
 	var cur int32
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"].(float32); ok {
-		cur = int32(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"]; ok {
+		cur = int32(tmp.(float32))
 	}
 	var bal int64
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["balance"].(float64); ok {
-		bal = int64(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["balance"]; ok {
+		bal = int64(tmp.(float64))
 	}
 	var fro int64
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["frozen"].(float64); ok {
-		fro = int64(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["frozen"]; ok {
+		fro = int64(tmp.(float64))
 	}
 	var ad string
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["addr"].(string); ok {
-		ad = tmp
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["addr"]; ok {
+		ad = tmp.(string)
 	}
 	return &types.Account{
 		Currency: cur,
