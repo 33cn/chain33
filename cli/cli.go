@@ -845,7 +845,7 @@ func SendToAddress(from string, to string, amount string, note string, isToken b
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountFloat64 * types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
+	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	if !isToken {
 		params.Istoken = false
@@ -2017,7 +2017,7 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountperboardlot * types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
+	amountInt64 := int64(amountperboardlot*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	sell.Amountperboardlot = amountInt64
 
 	sell.Minboardlot, err = strconv.ParseInt(args[3], 10, 64)
@@ -2405,13 +2405,13 @@ func IsNtpClockSync() {
 	fmt.Println("ntpclocksync status:", res)
 }
 
-func ManageConfigTransactioin(key, op, opAddr,  priv string) {
+func ManageConfigTransactioin(key, op, opAddr, priv string) {
 	c, _ := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	a, _ := common.FromHex(priv)
 	privKey, _ := c.PrivKeyFromBytes(a)
 	originaddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 
-	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr }
+	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr}
 	modify := &types.ManageAction{
 		Ty:    types.ManageActionModifyConfig,
 		Value: &types.ManageAction_Modify{v},

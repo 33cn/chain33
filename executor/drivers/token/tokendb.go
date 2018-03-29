@@ -93,7 +93,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenIntroLen
 	} else if len(token.GetSymbol()) > types.TokenSymbolLenLimit {
 		return nil, types.ErrTokenSymbolLen
-	} else if token.GetTotal() > types.MaxTokenBalance  || token.GetTotal() <= 0 {
+	} else if token.GetTotal() > types.MaxTokenBalance || token.GetTotal() <= 0 {
 		return nil, types.ErrTokenTotalOverflow
 	}
 	upSymbol := strings.ToUpper(token.GetSymbol())
@@ -101,7 +101,6 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		tokenlog.Error("token precreate ", "symbol need be upper", token.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper
 	}
-
 
 	if checkTokenExist(token.GetSymbol(), action.db) {
 		return nil, types.ErrTokenExist
@@ -153,7 +152,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 
 	hasPriv, ok := validFinisher(action.fromaddr, action.db)
 	if (ok != nil || hasPriv != true) && !approver_valid {
-		return  nil, types.ErrTokenCreatedApprover
+		return nil, types.ErrTokenCreatedApprover
 	}
 
 	//将之前冻结的资金转账到fund合约账户中
@@ -248,7 +247,6 @@ func validFinisher(addr string, db dbm.KVDB) (bool, error) {
 	return validOperator(addr, types.ConfigKey(finisherKey), db)
 }
 
-
 func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
 	value, err := db.Get([]byte(key))
 	if err != nil {
@@ -264,7 +262,7 @@ func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
 	err = types.Decode(value, &item)
 	if err != nil {
 		tokenlog.Error("tokendb", "get db key", err)
-		return false, err  // types.ErrBadConfigValue
+		return false, err // types.ErrBadConfigValue
 	}
 
 	for _, op := range item.GetArr().Value {
@@ -275,4 +273,3 @@ func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
 
 	return false, nil
 }
-
