@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/hex"
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -196,6 +198,40 @@ func (tx *Transaction) Amount() (int64, error) {
 			ticketMiner := action.GetMiner()
 			return ticketMiner.Reward, nil
 		}
+	} else if "token" == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+		var action TokenAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
+			precreate := action.GetTokenprecreate()
+			return precreate.Price, nil
+		} else if TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
+			return 0, nil
+		} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
+			return 0, nil
+		} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
+			return 0, nil
+		} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
+			return 0, nil
+		}
+
+	} else if "trade" == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.GetPayload(), &trade)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TradeSell == trade.Ty && trade.GetTokensell() != nil {
+			return 0, nil
+		} else if TradeBuy == trade.Ty && trade.GetTokenbuy() != nil {
+			return 0, nil
+		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+			return 0, nil
+		}
 	}
 	return 0, nil
 }
@@ -214,8 +250,6 @@ func (tx *Transaction) ActionName() string {
 			return "withdraw"
 		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
-		} else {
-			return "unknow"
 		}
 	} else if "ticket" == string(tx.Execer) {
 		var action TicketAction
@@ -234,7 +268,6 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
 			return "bindminer"
 		}
-		return "unknow"
 	} else if "none" == string(tx.Execer) {
 		return "none"
 	} else if "hashlock" == string(tx.Execer) {
@@ -249,8 +282,6 @@ func (tx *Transaction) ActionName() string {
 			return "unlock"
 		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
 			return "send"
-		} else {
-			return "unknow"
 		}
 	} else if "retrieve" == string(tx.Execer) {
 		var action RetrieveAction
@@ -266,10 +297,41 @@ func (tx *Transaction) ActionName() string {
 			return "backup"
 		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
 			return "cancel"
-		} else {
-			return "unknow"
+		}
+	} else if "token" == string(tx.Execer) {
+		var action TokenAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if action.Ty == TokenActionPreCreate && action.GetTokenprecreate() != nil {
+			return "preCreate"
+		} else if action.Ty == TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
+			return "finishCreate"
+		} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
+			return "revokeCreate"
+		} else if action.Ty == ActionTransfer && action.GetTransfer() != nil {
+			return "transferToken"
+		} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
+			return "withdrawToken"
+		}
+	} else if "trade" == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.Payload, &trade)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if trade.Ty == TradeSell && trade.GetTokensell() != nil {
+			return "selltoken"
+		} else if trade.Ty == TradeBuy && trade.GetTokenbuy() != nil {
+			return "buytoken"
+		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
+			return "revokeselltoken"
 		}
 	}
+
 	return "unknow"
 }
 
@@ -457,20 +519,317 @@ func GetSignatureTypeName(signType int) string {
 	}
 }
 
+func ConfigKey(key string) string {
+	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
+}
+
+type ReceiptDataResult struct {
+	Ty     int32               `json:"ty"`
+	TyName string              `json:"tyname"`
+	Logs   []*ReceiptLogResult `json:"logs"`
+}
+
+type ReceiptLogResult struct {
+	Ty     int32       `json:"ty"`
+	TyName string      `json:"tyname"`
+	Log    interface{} `json:"log"`
+	RawLog string      `json:"rawlog"`
+}
+
+func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
+	result := &ReceiptDataResult{Ty: rpt.GetTy()}
+	switch rpt.Ty {
+	case 0:
+		result.TyName = "ExecErr"
+	case 1:
+		result.TyName = "ExecPack"
+	case 2:
+		result.TyName = "ExecOk"
+	default:
+		return nil, ErrLogType
+	}
+	logs := rpt.GetLogs()
+	for _, l := range logs {
+		var lTy string
+		var logIns interface{}
+		lLog, err := hex.DecodeString(common.ToHex(l.GetLog())[2:])
+		if err != nil {
+			return nil, err
+		}
+		switch l.Ty {
+		case TyLogErr:
+			lTy = "LogErr"
+			logIns = string(lLog)
+		case TyLogFee:
+			lTy = "LogFee"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTransfer:
+			lTy = "LogTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesis:
+			lTy = "LogGenesis"
+			logIns = nil
+		case TyLogDeposit:
+			lTy = "LogDeposit"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecTransfer:
+			lTy = "LogExecTransfer"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecWithdraw:
+			lTy = "LogExecWithdraw"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecDeposit:
+			lTy = "LogExecDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecFrozen:
+			lTy = "LogExecFrozen"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecActive:
+			lTy = "LogExecActive"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesisTransfer:
+			lTy = "LogGenesisTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesisDeposit:
+			lTy = "LogGenesisDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogNewTicket:
+			lTy = "LogNewTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogCloseTicket:
+			lTy = "LogCloseTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogMinerTicket:
+			lTy = "LogMinerTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTicketBind:
+			lTy = "LogTicketBind"
+			var logTmp ReceiptTicketBind
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogPreCreateToken:
+			lTy = "LogPreCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogFinishCreateToken:
+			lTy = "LogFinishCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRevokeCreateToken:
+			lTy = "LogRevokeCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeSell:
+			lTy = "LogTradeSell"
+			var logTmp ReceiptTradeSell
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeBuy:
+			lTy = "LogTradeBuy"
+			var logTmp ReceiptTradeBuy
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeRevoke:
+			lTy = "LogTradeRevoke"
+			var logTmp ReceiptTradeRevoke
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenTransfer:
+			lTy = "LogTokenTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenDeposit:
+			lTy = "LogTokenDeposit"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecTransfer:
+			lTy = "LogTokenExecTransfer"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecWithdraw:
+			lTy = "LogTokenExecWithdraw"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecDeposit:
+			lTy = "LogTokenExecDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecFrozen:
+			lTy = "LogTokenExecFrozen"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecActive:
+			lTy = "LogTokenExecActive"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenGenesisTransfer:
+			lTy = "LogTokenGenesisTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenGenesisDeposit:
+			lTy = "LogTokenGenesisDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		default:
+			//log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
+			return nil, ErrLogType
+		}
+		result.Logs = append(result.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: common.ToHex(l.GetLog())})
+	}
+	return result, nil
+}
+
+func (rd *ReceiptData) OutputReceiptDetails(logger log.Logger) {
+	rds, err := rd.DecodeReceiptLog()
+	if err == nil {
+		logger.Debug("receipt decode", "receipt data", rds)
+		for _, rdl := range rds.Logs {
+			logger.Debug("receipt log", "log", rdl)
+		}
+	} else {
+		logger.Error("decodelogerr", "err", err)
+	}
+}
+
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
-        tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
-        var acc Account
-        err := Decode(value, &acc)
-        if err != nil {
-                tlog.Error("ReplyGetTotalCoins.IterateRangeByStateHash", "err", err)
-                return true
-        }
-        //tlog.Info("acc:", "value", acc)
-        if t.Num >= t.Count {
+	//tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
+	var acc Account
+	err := Decode(value, &acc)
+	if err != nil {
+		tlog.Error("ReplyGetTotalCoins.IterateRangeByStateHash", "err", err)
+		return true
+	}
+	//tlog.Info("acc:", "value", acc)
+	if t.Num >= t.Count {
 		t.NextKey = key
-                return true
-        }
-        t.Num += 1
-        t.Amount += acc.Balance
-        return false
+		return true
+	}
+	t.Num += 1
+	t.Amount += acc.Balance
+	return false
 }

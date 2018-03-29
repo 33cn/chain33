@@ -10,9 +10,12 @@ import (
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/manage"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/token"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/trade"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -20,6 +23,7 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
+var runningHeight int64 = 0
 
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
@@ -213,6 +217,7 @@ type executor struct {
 	stateDB      dbm.KVDB
 	localDB      dbm.KVDB
 	coinsAccount *account.AccountDB
+	execDriver   *drivers.ExecDrivers
 	height       int64
 	blocktime    int64
 }
@@ -222,10 +227,12 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 		stateDB:      NewStateDB(client.Clone(), stateHash),
 		localDB:      NewLocalDB(client.Clone()),
 		coinsAccount: account.NewCoinsAccount(),
+		execDriver:   drivers.CreateDrivers4CurrentHeight(height),
 		height:       height,
 		blocktime:    blocktime,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
+	runningHeight = height
 	return e
 }
 
@@ -274,57 +281,47 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 	}
 	//checkInExec
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
+	exec := e.loadDriverForExec(string(tx.Execer))
 	exec.SetDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
+	exec := e.loadDriverForExec(string(tx.Execer))
 	exec.SetDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.Exec(tx, index)
 }
 
 func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
+	exec := e.loadDriverForExec(string(tx.Execer))
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecLocal(tx, r, index)
 }
 
 func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec, err := drivers.LoadDriver(string(tx.Execer))
-	if err != nil {
-		exec, err = drivers.LoadDriver("none")
-		if err != nil {
-			panic(err)
-		}
-	}
+	exec := e.loadDriverForExec(string(tx.Execer))
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecDelLocal(tx, r, index)
 }
 
+func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
+	exec, err := e.execDriver.LoadDriver(exector)
+	if err != nil {
+		exec, err = e.execDriver.LoadDriver("none")
+		if err != nil {
+			panic(err)
+		}
+	}
+	exec.SetExecDriver(e.execDriver)
+
+	return exec
+}
+
 func LoadDriver(name string) (c drivers.Driver, err error) {
-	return drivers.LoadDriver(name)
+	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
+	return execDrivers.LoadDriver(name)
 }

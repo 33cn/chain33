@@ -196,51 +196,49 @@ func (p *peer) sendStream() {
 				p2pdata := new(pb.BroadCastData)
 				if block, ok := task.(*pb.P2PBlock); ok {
 					height := block.GetBlock().GetHeight()
+					blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+					log.Debug("sendStream", "will send block", blockhash)
 					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
 					P2pComm.CollectPeerStat(err, p)
 					if err == nil {
 						if pinfo.GetHeader().GetHeight() >= height {
-							timeout.Stop()
+							log.Debug("sendStream", "find peer height>this broadblock ,send process", "break")
 							continue
 						}
 					}
-					if Filter.QueryData(height) == true {
-						timeout.Stop()
-						continue //已经接收的消息不再发送
-					}
+
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
-					//登记新的发送消息
-					Filter.RegData(height)
 
 				} else if tx, ok := task.(*pb.P2PTx); ok {
 					txhash := hex.EncodeToString(tx.GetTx().Hash())
-					if Filter.QueryData(txhash) == true {
-						continue
-					}
+					log.Debug("sendStream", "will send tx", txhash)
 					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-					Filter.RegData(txhash)
 				}
+
 				err := resp.Send(p2pdata)
 				P2pComm.CollectPeerStat(err, p)
 				if err != nil {
 					log.Error("sendStream", "send", err)
-
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 						(*p.nodeInfo).blacklist.Add(p.Addr())
 					}
 					time.Sleep(time.Second) //have a rest
 					resp.CloseSend()
 					cancel()
+
 					break SEND_LOOP //下一次外循环重新获取stream
 				}
+				log.Debug("sendStream", "send data", "ok")
+
 			case <-timeout.C:
 				if p.GetRunning() == false {
 					log.Error("sendStream timeout")
 					resp.CloseSend()
 					cancel()
-
 					return
 				}
+				timeout.Reset(time.Second * 2)
+
 			}
 		}
 
@@ -288,7 +286,8 @@ func (p *peer) readStream() {
 			if block := data.GetBlock(); block != nil {
 				if block.GetBlock() != nil {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
-					if Filter.QueryData(block.GetBlock().GetHeight()) == true {
+					blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+					if Filter.QueryRecvData(blockhash) == true {
 						continue
 					}
 
@@ -307,7 +306,7 @@ func (p *peer) readStream() {
 						log.Error("readStream", "send to blockchain Error", err.Error())
 						continue
 					}
-					Filter.RegData(block.GetBlock().GetHeight()) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
+					Filter.RegRecvData(blockhash) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
 				}
 
 			} else if tx := data.GetTx(); tx != nil {
@@ -315,12 +314,12 @@ func (p *peer) readStream() {
 				if tx.GetTx() != nil {
 					txhash := hex.EncodeToString(tx.Tx.Hash())
 					log.Debug("readStream", "tx", "0x"+txhash)
-					if Filter.QueryData(txhash) == true {
+					if Filter.QueryRecvData(txhash) == true {
 						continue //处理方式同上
 					}
 					msg := (*p.nodeInfo).client.NewMessage("mempool", pb.EventTx, tx.GetTx())
 					(*p.nodeInfo).client.Send(msg, false)
-					Filter.RegData(txhash) //登记
+					Filter.RegRecvData(txhash) //登记
 				}
 			}
 		}

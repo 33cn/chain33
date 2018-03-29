@@ -10,7 +10,7 @@ import (
 
 func init() {
 	n := newNone()
-	drivers.Register(n.GetName(), n)
+	drivers.Register(n.GetName(), n, 0)
 }
 
 type None struct {
