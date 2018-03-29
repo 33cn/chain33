@@ -320,8 +320,8 @@ var eventName = map[int]string{
 	EventRevokeSellToken:        "EventRevokeSellToken",
 	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
 	// config
-	EventModifyConfig:           "EventModifyConfig",
-	EventReplyModifyConfig:      "EventReplyModifyConfig",
+	EventModifyConfig:      "EventModifyConfig",
+	EventReplyModifyConfig: "EventReplyModifyConfig",
 }
 
 //ty = 1 -> secp256k1
@@ -376,7 +376,7 @@ const (
 	TyLogTokenGenesisDeposit  = 322
 
 	// log for config
-	TyLogModifyConfig         = 410
+	TyLogModifyConfig = 410
 )
 
 //exec type
@@ -475,8 +475,8 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 
 //hard fork block height
 const (
-	ForkV1           = 75260
-	ForkV2_add_token = 100899
-	ForkV3           = 110000
-	ForkV4_add_manage= 120000
+	ForkV1            = 75260
+	ForkV2_add_token  = 100899
+	ForkV3            = 110000
+	ForkV4_add_manage = 120000
 )
