@@ -458,7 +458,7 @@ func GetSignatureTypeName(signType int) string {
 }
 
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
-        tlog.Info("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
+        tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
         var acc Account
         err := Decode(value, &acc)
         if err != nil {
@@ -466,12 +466,11 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
                 return true
         }
         //tlog.Info("acc:", "value", acc)
-        t.Count += 1
-        t.Amount += acc.Balance
-/*
-        if t.Count == t.Sum {
+        if t.Num >= t.Count {
+		t.NextKey = key
                 return true
         }
-*/
+        t.Num += 1
+        t.Amount += acc.Balance
         return false
 }

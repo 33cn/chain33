@@ -1588,14 +1588,20 @@ func GetTotalCoins(symbol string, height string) {
 		return
 	}
 
-        params := types.ReqInt{Height: heightInt64}
-        rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
-        if err != nil {
-                fmt.Fprintln(os.Stderr, err)
-                return
-        }
-        var res jsonrpc.ReplyHash
-        err = rpc.Call("Chain33.GetBlockHash", params, &res)
+	params := jsonrpc.BlockParam{Start: heightInt64, End: heightInt64, Isdetail: false}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.BlockDetails
+	err = rpc.Call("Chain33.GetBlocks", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	stateHash, err := common.FromHex(res.Items[0].Block.StateHash)
         if err != nil {
                 fmt.Fprintln(os.Stderr, err)
                 return
@@ -1609,7 +1615,7 @@ func GetTotalCoins(symbol string, height string) {
 	var startKey []byte
 	var count int32
 	for count = 1000; count == 1000; {
-		params := types.ReqGetTotalCoins{Symbol: symbol, Height: heightInt64, StartKey: startKey, Count: count}
+		params := types.ReqGetTotalCoins{Symbol: symbol, StateHash: stateHash, StartKey: startKey, Count: count}
 		rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -1621,10 +1627,10 @@ func GetTotalCoins(symbol string, height string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		count = res.Count
-		resp.AccountCount += res.Count
+		count = res.Num
+		resp.AccountCount += res.Num
 		actualAmount += res.Amount
-		startKey = res.LastKey
+		startKey = res.NextKey
 	}
 
 	if symbol == "bty" {

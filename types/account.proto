@@ -37,7 +37,7 @@ message Accounts {
 //查询symbol代币总额
 message ReqGetTotalCoins {
 	string symbol = 1;
-	int64 height  = 2;
+	bytes stateHash = 2;
         bytes startKey = 3;
         int32 count = 4;
 }
@@ -45,8 +45,9 @@ message ReqGetTotalCoins {
 //查询symbol代币总额应答
 message ReplyGetTotalCoins{
         int32 count = 1;
-        int64 amount = 2;
-        bytes lastKey  = 3;
+        int32 num   = 2;
+        int64 amount = 3;
+        bytes nextKey  = 4;
 }
 
 //迭代查询symbol代币总额
