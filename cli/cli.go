@@ -1837,16 +1837,20 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	payloacValue := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
 	for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
 		if _, ok := payloacValue[e]; ok {
-			amt := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"].(float64) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
-			break
+			if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
+				amt := amtValue.(float64) / float64(types.Coin)
+				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
+				break
+			}
 		}
 	}
 	if _, ok := payloacValue["Miner"]; ok {
-		rwd := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"].(float64) / float64(types.Coin)
-		rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
-		result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
+		if rwdValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"]; ok {
+			rwd := rwdValue.(float64) / float64(types.Coin)
+			rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
+			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
+		}
 	}
 
 	if tx.Amount != 0 {
