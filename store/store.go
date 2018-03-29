@@ -142,6 +142,7 @@ func (store *Store) processMessage(msg queue.Message) {
 	} else if msg.Ty == types.EventStoreGetTotalCoins {
 		req := msg.GetData().(*types.IterateGetTotalCoins)
 		resp := &types.ReplyGetTotalCoins{}
+		resp.Count = req.Count
 		mavl.IterateRangeByStateHash(store.db, req.StateHash, req.Start, req.End, true, resp.IterateRangeByStateHash)
 		msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
 	}

@@ -185,12 +185,25 @@ func (acc *AccountDB) AccountKey(address string) (key []byte) {
 	return key
 }
 
-func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins, hash []byte) (reply *types.ReplyGetTotalCoins, err error) {
+func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
 	req := types.IterateGetTotalCoins{}
-	req.StateHash = hash
-	req.Start = []byte("mavl-coins-bty-")
-	req.End = []byte("mavl-coins-bty-exec")
+	req.StateHash = in.StateHash
 	req.Count = in.Count
+	if in.Symbol == "bty" {
+		if in.StartKey == nil {
+			req.Start = []byte("mavl-coins-bty-")
+		} else {
+			req.Start = in.StartKey
+		}
+		req.End = []byte("mavl-coins-bty-exec")
+	} else {
+		if in.StartKey == nil {
+			req.Start = []byte(fmt.Sprintf("mavl-token-%s-", in.Symbol))
+		} else {
+			req.Start = in.StartKey
+		}
+		req.End = []byte(fmt.Sprintf("mavl-token-%s-exec", in.Symbol))
+	}
 
 	msg := client.NewMessage("store", types.EventStoreGetTotalCoins, &req)
 	client.Send(msg, true)
