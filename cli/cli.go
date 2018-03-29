@@ -845,11 +845,10 @@ func SendToAddress(from string, to string, amount string, note string, isToken b
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountFloat64 * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	if !isToken {
 		params.Istoken = false
-		params.Amount *= types.CoinMultiple
 	} else {
 		params.Istoken = true
 		params.TokenSymbol = tokenSymbol
@@ -1421,6 +1420,17 @@ func GetWalletStatus(isCloseTickets bool) (interface{}, error) {
 }
 
 func GetBalance(address string, execer string) {
+	isExecer := false
+	for _, e := range [7]string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+		if e == execer {
+			isExecer = true
+			break
+		}
+	}
+	if !isExecer {
+		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+		return
+	}
 	var addrs []string
 	addrs = append(addrs, address)
 	params := types.ReqBalance{Addresses: addrs, Execer: execer}
@@ -1506,7 +1516,7 @@ func GetExecAddr(exec string) {
 		fmt.Println(string(data))
 
 	default:
-		fmt.Println("exec not exist!")
+		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
 	}
 }
 
@@ -2007,7 +2017,7 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountperboardlot * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	amountInt64 := int64(amountperboardlot*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	sell.Amountperboardlot = amountInt64
 
 	sell.Minboardlot, err = strconv.ParseInt(args[3], 10, 64)
@@ -2020,7 +2030,7 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	sell.Priceperboardlot = int64(price*types.InputPrecision) * types.CoinMultiple
+	sell.Priceperboardlot = int64(price*types.InputPrecision) * types.Multiple1E4
 
 	sell.Totalboardlot, err = strconv.ParseInt(args[5], 10, 64)
 	if err != nil {
@@ -2203,7 +2213,7 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
 		sellOrders2show.Seller = sellorder.Address
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
 		sellOrders2show.Minboardlot = sellorder.Minboardlot
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
@@ -2274,7 +2284,7 @@ func ShowSellOrderWithStatus(status string) {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
 		sellOrders2show.Seller = sellorder.Address
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
 		sellOrders2show.Minboardlot = sellorder.Minboardlot
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
@@ -2395,13 +2405,13 @@ func IsNtpClockSync() {
 	fmt.Println("ntpclocksync status:", res)
 }
 
-func ManageConfigTransactioin(key, op, opAddr,  priv string) {
+func ManageConfigTransactioin(key, op, opAddr, priv string) {
 	c, _ := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	a, _ := common.FromHex(priv)
 	privKey, _ := c.PrivKeyFromBytes(a)
 	originaddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 
-	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr }
+	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr}
 	modify := &types.ManageAction{
 		Ty:    types.ManageActionModifyConfig,
 		Value: &types.ManageAction_Modify{v},

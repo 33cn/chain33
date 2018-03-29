@@ -36,7 +36,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32) *types.ReceiptLog {
 	base = &types.ReceiptTradeBase{
 		selldb.Tokensymbol,
 		selldb.Address,
-		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
 		selldb.Minboardlot,
 		strconv.FormatFloat(float64(selldb.Priceperboardlot)/float64(types.Coin), 'f', 8, 64),
 		selldb.Totalboardlot,
@@ -67,7 +67,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, sellid string, boardlotcnt in
 		sellid,
 		selldb.Tokensymbol,
 		boardlotcnt,
-		strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
 		strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64),
 		txhash,
 	}

@@ -22,7 +22,7 @@ type Driver interface {
 	SetLocalDB(dbm.KVDB)
 	SetQueryDB(dbm.DB)
 	SetExecDriver(execDriver *ExecDrivers)
-	GetExecDriver()*ExecDrivers
+	GetExecDriver() *ExecDrivers
 	GetName() string
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64)
@@ -57,7 +57,7 @@ func (d *DriverBase) SetExecDriver(execDriver *ExecDrivers) {
 	d.execDriver = execDriver
 }
 
-func (d *DriverBase) GetExecDriver()*ExecDrivers {
+func (d *DriverBase) GetExecDriver() *ExecDrivers {
 	return d.execDriver
 }
 
