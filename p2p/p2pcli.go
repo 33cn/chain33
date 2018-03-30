@@ -1,9 +1,11 @@
 package p2p
 
 import (
+	"container/list"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"sync"
 
 	//"math/big"
 	"math/rand"
@@ -381,31 +383,18 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 			}
 
 		}
-		//过滤掉不符合要求的节点
-		var tempStore []*peer
+
 		for _, peer := range peers {
 			peerinfo, ok := infos[peer.Addr()]
 			if !ok {
 				continue
 			}
-			if peerinfo.GetHeader().GetHeight() < req.GetEnd() { //高度不符合要求
+			if peerinfo.GetHeader().GetHeight() < req.GetStart() { //高度不符合要求
 				continue
 			}
 
-			if m.network.node.nodeInfo.slowPeer.Has(peerinfo.GetName()) { //下载速度不符合要求
-				tempStore = append(tempStore, peer)
-				continue //过滤下载速度低于100KB/s的节点
-			}
 			downloadPeers = append(downloadPeers, peer)
 		}
-
-		if len(downloadPeers) == 0 && len(tempStore) != 0 {
-			//如果所有节点均被过滤掉，则重新启用下载速度较慢的节点
-			for _, peer := range tempStore {
-				downloadPeers = append(downloadPeers, peer)
-			}
-		}
-
 	}
 
 	log.Debug("Invs", "Invs show", MaxInvs.GetInvs())
@@ -413,16 +402,15 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 		log.Error("GetBlocks", "getInvs", 0)
 		return
 	}
-	var intervals = make(map[int]*intervalInfo)
 
-	intervals = m.caculateInterval(len(downloadPeers), len(MaxInvs.GetInvs()))
+	//使用新的下载模式进行下载
 	var bChan = make(chan *pb.Block, 256)
-	log.Debug("downloadblock", "intervals", intervals)
-	var gcount int
-	for index, interval := range intervals {
-		gcount++
-		go m.downloadBlock(index, interval, MaxInvs, bChan, downloadPeers, infos)
-	}
+	l := list.New()
+	Invs := MaxInvs.GetInvs()
+	var wg sync.WaitGroup
+	m.allocTask(l, Invs, downloadPeers, infos, &wg, bChan)
+	m.reDownload(l, downloadPeers, &wg, bChan)
+
 	i := 0
 	for {
 		timeout := time.NewTimer(time.Minute)
@@ -442,6 +430,115 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 			<-timeout.C
 		}
 	}
+
+}
+func (m *P2pCli) reDownload(l *list.List, peers []*peer, wg *sync.WaitGroup, bchan chan *pb.Block) {
+	go func(l *list.List) {
+		for {
+			timeout := time.NewTimer(time.Second * 20)
+			select {
+			case <-timeout.C:
+				log.Error("reDownload timeout")
+				return
+			default:
+				for {
+					wg.Wait()
+					if l.Len() == 0 {
+						return
+					}
+
+					peers, infos := m.network.node.GetActivePeers()
+					var prs []*peer
+					for _, peer := range peers {
+						prs = append(prs, peer)
+					}
+
+					var invs []*pb.Inventory
+					for e := l.Front(); e != nil; e = e.Next() {
+						invs = append(invs, e.Value.(*pb.Inventory)) //把下载遗漏的区块，重新组合进行下载
+					}
+
+					m.allocTask(l, invs, prs, infos, wg, bchan)
+				}
+			}
+
+			if !timeout.Stop() {
+				<-timeout.C
+			}
+
+		}
+	}(l)
+}
+
+func (m *P2pCli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, infos map[string]*pb.Peer,
+	wg *sync.WaitGroup, bchan chan *pb.Block) {
+	peerNum := len(peers)
+	for i, inv := range invs { //让一个节点一次下载一个区块，下载失败区块，交给下一轮下载
+		index := i
+		for j := 0; j < peerNum; j++ {
+			index = index % peerNum
+			info, ok := infos[peers[index].Addr()]
+			if !ok {
+				index++
+				continue
+			}
+			if info.GetHeader().GetHeight() < inv.GetHeight() {
+				index++
+				continue
+			}
+			break
+		}
+
+		wg.Add(1)
+		go func(peer *peer, inv *pb.Inventory) {
+			defer wg.Done()
+			err := m.syncDownloadBlock(peer, inv, bchan)
+			if err != nil {
+				l.PushBack(inv) //失败的下载，放在下一轮ReDownload进行下载
+			}
+		}(peers[index], inv)
+
+	}
+
+}
+
+func (m *P2pCli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb.Block) error {
+	//每次下载一个高度的数据，通过bchan返回上层
+	if peer == nil {
+		return fmt.Errorf("peer is not exist")
+	}
+	if peer.GetRunning() == false {
+		return fmt.Errorf("peer not running")
+	}
+	var p2pdata pb.P2PGetData
+	p2pdata.Version = m.network.node.nodeInfo.cfg.GetVersion()
+	p2pdata.Invs = []*pb.Inventory{inv}
+	resp, err := peer.mconn.gcli.GetData(context.Background(), &p2pdata)
+	P2pComm.CollectPeerStat(err, peer)
+	if err != nil {
+		log.Error("downloadBlock", "GetData err", err.Error())
+		return err
+	}
+	defer resp.CloseSend()
+
+	for {
+		invdatas, err := resp.Recv()
+		if err != nil {
+			if err == io.EOF {
+				log.Info("download", "from", peer.Addr(), "block", inv.GetHeight())
+				return nil
+			}
+			log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
+			return err
+		}
+		for _, item := range invdatas.Items {
+			bchan <- item.GetBlock() //下载完成后插入bchan
+
+		}
+	}
+
+	return nil
+
 }
 
 func (m *P2pCli) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, bchan chan *pb.Block,
@@ -507,17 +604,13 @@ FOOR_LOOP:
 				var speedReport string
 				if speed > 1024 {
 					speed = speed / 1024.0
-					speedReport = fmt.Sprintf("%v download block %v speed %2f MB/s", peer.Addr(), count, speed)
+					speedReport = fmt.Sprintf("%v download block %v speed %.2f MB/s", peer.Addr(), count, speed)
 				} else {
 					speedReport = fmt.Sprintf("%v download block %v speed %v KB/s", peer.Addr(), count, speed)
 				}
 
 				log.Info(speedReport)
 
-				//把下载速度低于100KB/s的节点从下载列表中删除
-				//				if int(speed) < 100 && count != 0 {
-				//					m.network.node.nodeInfo.slowPeer.Add(peerName, speed)
-				//				}
 				break FOOR_LOOP
 			}
 			if err != nil {
