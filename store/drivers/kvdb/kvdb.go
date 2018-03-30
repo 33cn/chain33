@@ -117,6 +117,6 @@ func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
 }
 
 func calcHash(datas *types.StoreSet) []byte {
-	b := []byte(datas.String())
+	b := types.Encode(datas)
 	return common.Sha256(b)
 }
