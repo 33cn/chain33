@@ -2386,8 +2386,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
 		default:
-			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
-			return nil
+			// fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
+			rl.Log = nil
 		}
 		rd.Logs = append(rd.Logs, rl)
 	}
