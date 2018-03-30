@@ -515,9 +515,9 @@ FOOR_LOOP:
 				log.Info(speedReport)
 
 				//把下载速度低于100KB/s的节点从下载列表中删除
-				if int(speed) < 100 && count != 0 {
-					m.network.node.nodeInfo.slowPeer.Add(peerName, speed)
-				}
+				//				if int(speed) < 100 && count != 0 {
+				//					m.network.node.nodeInfo.slowPeer.Add(peerName, speed)
+				//				}
 				break FOOR_LOOP
 			}
 			if err != nil {
