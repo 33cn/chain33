@@ -383,6 +383,12 @@ func main() {
 			return
 		}
 		ShowOnesBuyOrder(argsWithoutProg[1], argsWithoutProg[2:])
+	case "showtokensellorder":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowTokenSellOrder(argsWithoutProg[1:])
 	case "revokecreatetoken":
 		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -467,6 +473,7 @@ func LoadHelp() {
 	fmt.Println("buytoken [buyer, sellid, countboardlot]                        : 买入token")
 	fmt.Println("revokeselltoken [seller, sellid]                               : 撤销token卖单")
 	fmt.Println("showonesselltokenorder [seller, [token0, token1, token2]]      : 显示一个用户下的token卖单")
+	fmt.Println("showtokensellorder [token, pagenumber, pagesize]               : 分页显示token的卖单")
 	fmt.Println("showsellorderwithstatus [onsale | soldout | revoked]           : 显示指定状态下的所有卖单")
 	fmt.Println("showonesbuyorder [buyer]                                       : 显示指定用户下所有token成交的购买单")
 	fmt.Println("showonesbuytokenorder [buyer, token0, [token1, token2]]        : 显示指定用户下指定token成交的购买单")
@@ -2340,6 +2347,66 @@ func ShowOnesBuyOrder(buyer string, tokens []string) {
 			return
 		}
 		fmt.Printf("---The %dth buyorder is below--------------------\n", i)
+		fmt.Println(string(data))
+	}
+}
+
+func ShowTokenSellOrder(args []string) {
+	var reqAddrtokens types.ReqAddrTokens
+	reqAddrtokens.Token = append(reqAddrtokens.Token, args[0])
+	reqAddrtokens.Status = types.OnSale
+	pageNumber, err := strconv.ParseInt(args[1], 10, 32)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	pageSize, err   := strconv.ParseInt(args[2], 10, 32)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	reqAddrtokens.PageSize = int32(pageSize)
+	reqAddrtokens.PageNumber = int32(pageNumber)
+
+	var params jsonrpc.Query
+	params.Execer = "trade"
+	params.FuncName = "GetTokenSellOrderByStatus"
+	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplySellOrders
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, sellorder := range res.Selloders {
+		var sellOrders2show SellOrder2Show
+		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
+		sellOrders2show.Seller = sellorder.Address
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
+		sellOrders2show.Minboardlot = sellorder.Minboardlot
+		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
+		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
+		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
+		sellOrders2show.Starttime = sellorder.Starttime
+		sellOrders2show.Stoptime = sellorder.Stoptime
+		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
+		sellOrders2show.Crowdfund = sellorder.Crowdfund
+		sellOrders2show.SellID = sellorder.Sellid
+		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
+		sellOrders2show.Height = sellorder.Height
+
+		data, err := json.MarshalIndent(sellOrders2show, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
 		fmt.Println(string(data))
 	}
 }
