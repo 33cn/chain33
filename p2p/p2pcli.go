@@ -4,10 +4,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+
+	//"math/big"
 	"math/rand"
 	"strconv"
 	"strings"
-	"sync"
+	//"sync"
 	"sync/atomic"
 	"time"
 
@@ -19,7 +21,7 @@ import (
 
 type P2pCli struct {
 	network *P2p
-	mtx     sync.Mutex
+	//mtx     sync.Mutex
 }
 type intervalInfo struct {
 	start int
@@ -60,6 +62,10 @@ func (m *P2pCli) GetMemPool(msg queue.Message, taskindex int64) {
 		resp, err := peer.mconn.gcli.GetMemPool(context.Background(), &pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		P2pComm.CollectPeerStat(err, peer)
 		if err != nil {
+			if err == pb.ErrVersion {
+				peer.version.SetSupport(false)
+				P2pComm.CollectPeerStat(err, peer)
+			}
 			continue
 		}
 
@@ -151,7 +157,7 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
 	if err != nil {
 		log.Error("SendVersion", "Verson", err.Error(), "peer", peer.Addr())
-		if strings.Contains(err.Error(), VersionNotSupport) {
+		if err == pb.ErrVersion {
 			peer.version.SetSupport(false)
 			P2pComm.CollectPeerStat(err, peer)
 		}
@@ -188,16 +194,17 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-	log.Debug("SendPing", "Peer", peer.Addr(), "nonce", randNonce)
+
 	r, err := peer.mconn.gcli.Ping(context.Background(), ping)
 	P2pComm.CollectPeerStat(err, peer)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("SendPing", "recv pone", r.Nonce, "Ping nonce:", randNonce)
+	log.Debug("SendPing", "Peer", peer.Addr(), "nonce", randNonce, "recv", r.Nonce)
 	return nil
 }
+
 func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	client := nodeinfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
@@ -270,6 +277,10 @@ func (m *P2pCli) GetHeaders(msg queue.Message, taskindex int64) {
 				P2pComm.CollectPeerStat(err, peer)
 				if err != nil {
 					log.Error("GetBlocks", "Err", err.Error())
+					if err == pb.ErrVersion {
+						peer.version.SetSupport(false)
+						P2pComm.CollectPeerStat(err, peer)
+					}
 					return
 				}
 				client := m.network.node.nodeInfo.client
@@ -318,6 +329,10 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 						P2pComm.CollectPeerStat(err, peer)
 						if err != nil {
 							log.Error("GetBlocks", "Err", err.Error())
+							if err == pb.ErrVersion {
+								peer.version.SetSupport(false)
+								P2pComm.CollectPeerStat(err, peer)
+							}
 							continue
 						}
 					}
@@ -328,6 +343,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 
 	} else {
 		log.Info("fetch from all peers in pids")
+
 		for _, peer := range peers { //限制对peer 的高频次调用
 			log.Info("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
 			peerinfo, ok := infos[peer.Addr()]
@@ -341,17 +357,22 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 			pr.MempoolSize = peerinfo.GetMempoolSize()
 			pr.Header = peerinfo.GetHeader()
 
-			m.network.node.nodeInfo.peerInfos.SetPeerInfo(&pr)
 			if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
 				continue
 			}
+
 			invs, err := peer.mconn.gcli.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 				Version: m.network.node.nodeInfo.cfg.GetVersion()})
 			P2pComm.CollectPeerStat(err, peer)
 			if err != nil {
 				log.Error("GetBlocks", "Err", err.Error())
+				if err == pb.ErrVersion {
+					peer.version.SetSupport(false)
+					P2pComm.CollectPeerStat(err, peer)
+				}
 				continue
 			}
+
 			if len(invs.Invs) > len(MaxInvs.Invs) {
 				MaxInvs = invs
 				if len(MaxInvs.GetInvs()) == int(req.GetEnd()-req.GetStart())+1 {
@@ -360,9 +381,31 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 			}
 
 		}
+		//过滤掉不符合要求的节点
+		var tempStore []*peer
 		for _, peer := range peers {
+			peerinfo, ok := infos[peer.Addr()]
+			if !ok {
+				continue
+			}
+			if peerinfo.GetHeader().GetHeight() < req.GetEnd() { //高度不符合要求
+				continue
+			}
+
+			if m.network.node.nodeInfo.slowPeer.Has(peerinfo.GetName()) { //下载速度不符合要求
+				tempStore = append(tempStore, peer)
+				continue //过滤下载速度低于100KB/s的节点
+			}
 			downloadPeers = append(downloadPeers, peer)
 		}
+
+		if len(downloadPeers) == 0 && len(tempStore) != 0 {
+			//如果所有节点均被过滤掉，则重新启用下载速度较慢的节点
+			for _, peer := range tempStore {
+				downloadPeers = append(downloadPeers, peer)
+			}
+		}
+
 	}
 
 	log.Debug("Invs", "Invs show", MaxInvs.GetInvs())
@@ -385,6 +428,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 		timeout := time.NewTimer(time.Minute)
 		select {
 		case <-timeout.C:
+			log.Error("download timeout")
 			return
 		case block := <-bChan:
 			newmsg := m.network.node.nodeInfo.client.NewMessage("blockchain", pb.EventAddBlock, block)
@@ -406,6 +450,7 @@ func (m *P2pCli) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PIn
 		return
 	}
 	peersize := len(peers)
+	var peerName string
 	log.Debug("downloadBlock", "download from index", index, "interval", interval, "peersize", peersize)
 FOOR_LOOP:
 	for i := 0; i < peersize; i++ {
@@ -430,13 +475,16 @@ FOOR_LOOP:
 		if pinfo, ok := pinfos[peer.Addr()]; ok {
 			if pinfo.GetHeader().GetHeight() < int64(invs.Invs[interval.end-1].GetHeight()) {
 				index++
+
 				continue
 			}
+			peerName = pinfo.GetName()
 		} else {
 			log.Debug("download", "pinfo", "no this addr", peer.Addr())
 			index++
 			continue
 		}
+
 		log.Debug("downloadBlock", "index", index, "peersize", peersize, "peeraddr", peer.Addr(), "p2pdata", p2pdata)
 		resp, err := peer.mconn.gcli.GetData(context.Background(), &p2pdata)
 		P2pComm.CollectPeerStat(err, peer)
@@ -446,25 +494,46 @@ FOOR_LOOP:
 			continue
 		}
 		var count int
+		downloadStart := time.Now().UnixNano()
+		downloadSize := 0
+
 		for {
 			invdatas, err := resp.Recv()
 			if err == io.EOF {
-				log.Info("download", "recv", "IO.EOF", "count", count)
 				resp.CloseSend()
+				downloadFinish := time.Now().UnixNano()
+				costDownloadTime := downloadFinish - downloadStart
+				speed := float64(int64(downloadSize) * 1e9 / (costDownloadTime * 1024)) //KB/s
+				var speedReport string
+				if speed > 1024 {
+					speed = speed / 1024.0
+					speedReport = fmt.Sprintf("%v download block %v speed %2f MB/s", peer.Addr(), count, speed)
+				} else {
+					speedReport = fmt.Sprintf("%v download block %v speed %v KB/s", peer.Addr(), count, speed)
+				}
+
+				log.Info(speedReport)
+
+				//把下载速度低于100KB/s的节点从下载列表中删除
+				if int(speed) < 100 && count != 0 {
+					m.network.node.nodeInfo.slowPeer.Add(peerName, speed)
+				}
 				break FOOR_LOOP
 			}
 			if err != nil {
 				log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
 				resp.CloseSend()
-				break FOOR_LOOP
+				index++
+				break //下载失败，去下一个节点下载
 			}
 			count++
 			for _, item := range invdatas.Items {
+				downloadSize += len(pb.Encode(item.GetBlock()))
 				bchan <- item.GetBlock()
 			}
 		}
 	}
-	log.Info("download", "out of func", "ok")
+
 }
 
 func (m *P2pCli) caculateInterval(peerNum, invsNum int) map[int]*intervalInfo {

@@ -16,6 +16,7 @@ var (
 	GetAddrFromOnlineInterval  = 5 * time.Second
 	CheckActivePeersInterVal   = 5 * time.Second
 	CheckBlackListInterVal     = 30 * time.Second
+	checkSlowPeerInterVal      = 30 * time.Second
 )
 
 const (
@@ -44,10 +45,6 @@ const (
 	NODE_NETWORK = 1
 	NODE_GETUTXO = 2
 	NODE_BLOOM   = 4
-)
-
-const (
-	VersionNotSupport = "Version No Support"
 )
 
 var (
