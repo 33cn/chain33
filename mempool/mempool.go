@@ -149,17 +149,18 @@ func (mem *Mempool) RemoveExpiredAndDuplicateMempoolTxs() []*types.Transaction {
 
 	var result []*types.Transaction
 	for _, v := range mem.cache.txMap {
-		if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolExpiredInterval {
+		item := v.Value.(*Item)
+		hash := item.value.Hash()
+		if time.Now().UnixNano()/1000000-item.enterTime >= mempoolExpiredInterval {
 			// 清理滞留Mempool中超过10分钟的交易
-			mem.cache.Remove(v.Value.(*Item).value)
-		} else if v.Value.(*Item).value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+			mem.cache.Remove(hash)
+		} else if item.value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 			// 清理过期的交易
-			mem.cache.Remove(v.Value.(*Item).value)
+			mem.cache.Remove(hash)
 		} else {
-			result = append(result, v.Value.(*Item).value)
+			result = append(result, item.value)
 		}
 	}
-
 	return result
 }
 
@@ -168,13 +169,27 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, tx := range block.Txs {
-		mem.addedTxs.Add(string(tx.Hash()), nil)
-		exist := mem.cache.Exists(tx)
+		hash := tx.Hash()
+		mem.addedTxs.Add(string(hash), nil)
+		exist := mem.cache.Exists(hash)
 		if exist {
-			mem.cache.Remove(tx)
+			mem.cache.Remove(hash)
 		}
 	}
 	return true
+}
+
+func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	for _, hash := range hashList.Hashes {
+		mem.addedTxs.Add(string(hash), nil)
+		exist := mem.cache.Exists(hash)
+		if exist {
+			mem.cache.Remove(hash)
+		}
+	}
+	return nil
 }
 
 // Mempool.DelBlock将回退的区块内的交易重新加入mempool中
@@ -279,7 +294,7 @@ func (mem *Mempool) RemoveBlockedTxs() {
 		for _, t := range dupTxs {
 			txValue, exists := mem.cache.txMap[string(t)]
 			if exists {
-				mem.cache.Remove(txValue.Value.(*Item).value)
+				mem.cache.Remove(txValue.Value.(*Item).value.Hash())
 			}
 		}
 		mem.proxyMtx.Unlock()
@@ -475,6 +490,15 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					txList := mem.GetTxList(hashList)
 					msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, &types.ReplyTxList{Txs: txList}))
 					mlog.Debug("reply EventTxList ok", "msg", msg)
+				}
+			case types.EventDelTxList:
+				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
+				hashList := msg.GetData().(*types.TxHashList)
+				if len(hashList.GetHashes()) == 0 {
+					msg.ReplyErr("EventDelTxList", types.ErrSize)
+				} else {
+					err := mem.RemoveTxs(hashList)
+					msg.ReplyErr("EventDelTxList", err)
 				}
 			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
