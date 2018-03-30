@@ -2,7 +2,7 @@ package rpc
 
 import (
 	"encoding/hex"
-	"errors"
+	//"errors"
 	"fmt"
 
 	"code.aliyun.com/chain33/chain33/account"
@@ -877,7 +877,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		}
 		pl = &action
 	} else {
-		pl = common.ToHex(tx.GetPayload())
+		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),
@@ -933,7 +933,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 	case 2:
 		rTy = "ExecOk"
 	default:
-		return nil, errors.New("wrong log type")
+		rTy = "Unkown"
 	}
 	rd := &ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
 
@@ -1186,8 +1186,9 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		default:
-			log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
-			return nil, errors.New("wrong log type")
+			log.Error("DecodeLog", "Fail to decodeLog with type value:%d", l.Ty)
+			lTy = "unkownType"
+			logIns = nil
 		}
 		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
 	}
