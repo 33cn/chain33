@@ -215,7 +215,7 @@ func (n *Node) monitor() {
 	go n.monitorPeerInfo()
 	go n.monitorDialPeers()
 	go n.monitorBlackList()
-	//go n.monitorFilter()
+	go n.monitorFilter()
 
 }
 
