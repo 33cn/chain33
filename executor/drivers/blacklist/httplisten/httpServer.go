@@ -135,6 +135,7 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(os.Stderr, errors.New(string(respon.GetMsg())))
 		return
 	}
+
 	value := strings.Replace(string(respon.GetMsg()[2:]),"","",-1)
 	fmt.Println("Value =", value)
 	fmt.Println("GetValue =", strings.TrimSpace(value))
@@ -394,11 +395,9 @@ func modifyUserPwd(w http.ResponseWriter, r *http.Request) {
 	//msg := string(respon.GetMsg()[2:])
 	//fmt.Println("msg =",msg)
 	value := strings.Replace(string(respon.GetMsg()[2:]),"","",-1)
-	//value :=tring(reply.Msg[2:])
-	//value := string(respon.GetMsg())
-	//fmt.Println("Value =",value)
+
 	fmt.Println("GetValue =",strings.TrimSpace(value))
-	//subvalue := []byte(value )
+
 	if strings.TrimSpace(value) != blacklist.SUCESS {
 		w.WriteHeader(403)
 	}
