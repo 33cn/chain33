@@ -450,7 +450,7 @@ func (m *P2pCli) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PIn
 		return
 	}
 	peersize := len(peers)
-	var peerName string
+	//	var peerName string
 	log.Debug("downloadBlock", "download from index", index, "interval", interval, "peersize", peersize)
 FOOR_LOOP:
 	for i := 0; i < peersize; i++ {
@@ -478,7 +478,7 @@ FOOR_LOOP:
 
 				continue
 			}
-			peerName = pinfo.GetName()
+			//peerName = pinfo.GetName()
 		} else {
 			log.Debug("download", "pinfo", "no this addr", peer.Addr())
 			index++
