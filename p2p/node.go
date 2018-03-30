@@ -20,7 +20,7 @@ import (
 //4.启动监控模块，进行节点管理
 
 func (n *Node) Start() {
-	n.l = NewListener(Protocol, n)
+
 	n.detectNodeAddr()
 	go n.doNat()
 	go n.monitor()
@@ -28,14 +28,14 @@ func (n *Node) Start() {
 }
 
 func (n *Node) Close() {
-	atomic.StoreInt32(&n.closed, 1)
-	log.Debug("stop", "versionDone", "closed")
+	atomic.StoreInt32(&n.isclose, 1)
 	if n.l != nil {
 		n.l.Close()
 	}
-	log.Debug("stop", "listen", "closed")
+	log.Debug("listen close")
 	n.nodeInfo.addrBook.Close()
 	log.Debug("stop", "addrBook", "closed")
+
 	n.RemoveAll()
 	if Filter != nil {
 		Filter.Close()
@@ -45,15 +45,16 @@ func (n *Node) Close() {
 }
 
 func (n *Node) IsClose() bool {
-	return atomic.LoadInt32(&n.closed) == 1
+	return atomic.LoadInt32(&n.isclose) == 1
 }
 
 type Node struct {
 	omtx     sync.Mutex
+	smtx     sync.Mutex
 	nodeInfo *NodeInfo
 	outBound map[string]*peer
 	l        Listener
-	closed   int32
+	isclose  int32
 }
 
 func (n *Node) SetQueueClient(client queue.Client) {
@@ -67,6 +68,9 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	}
 
 	node.nodeInfo = NewNodeInfo(cfg)
+	if 1 == 1 {
+		node.l = NewListener(Protocol, node)
+	}
 
 	return node, nil
 }
@@ -178,6 +182,7 @@ func (n *Node) GetActivePeers() (map[string]*peer, map[string]*types.Peer) {
 	}
 	return peers, infos
 }
+
 func (n *Node) Remove(peerAddr string) {
 
 	n.omtx.Lock()
@@ -213,6 +218,7 @@ func (n *Node) monitor() {
 	go n.monitorDialPeers()
 	go n.monitorBlackList()
 	go n.monitorFilter()
+	go n.monitorSlowPeers()
 
 }
 
