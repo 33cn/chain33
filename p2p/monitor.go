@@ -246,7 +246,7 @@ func (n *Node) monitorFilter() {
 }
 
 func (n *Node) monitorSlowPeers() {
-	ticker := time.NewTicker(CheckBlackListInterVal)
+	ticker := time.NewTicker(checkSlowPeerInterVal)
 	defer ticker.Stop()
 	for {
 		if n.IsClose() {
@@ -259,7 +259,7 @@ func (n *Node) monitorSlowPeers() {
 			now := time.Now().Unix()
 			slowPeers := n.nodeInfo.slowPeer.GetSlowPeers()
 			for peername, dinfo := range slowPeers {
-				if now-dinfo.timestamp > 60 {
+				if now-dinfo.timestamp > 60 { //下载隔离60秒
 					n.nodeInfo.slowPeer.Delete(peername)
 				}
 			}
