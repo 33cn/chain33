@@ -194,14 +194,14 @@ func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 		log.Error("Signature", "Error", err.Error())
 		return err
 	}
-	log.Debug("SendPing", "Peer", peer.Addr(), "nonce", randNonce)
+
 	r, err := peer.mconn.gcli.Ping(context.Background(), ping)
 	P2pComm.CollectPeerStat(err, peer)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("SendPing", "recv pone", r.Nonce, "Ping nonce:", randNonce)
+	log.Debug("SendPing", "Peer", peer.Addr(), "nonce", randNonce, "recv", r.Nonce)
 	return nil
 }
 
