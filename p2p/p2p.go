@@ -45,6 +45,7 @@ func New(cfg *types.P2P) *P2p {
 func (network *P2p) IsClose() bool {
 	return atomic.LoadInt32(&network.closed) == 1
 }
+
 func (network *P2p) Close() {
 	atomic.StoreInt32(&network.closed, 1)
 	log.Debug("close", "network", "ShowTaskCapcity done")
@@ -53,10 +54,10 @@ func (network *P2p) Close() {
 	if network.client != nil {
 		network.client.Close()
 	}
-
 	close(network.txFactory)
 	close(network.otherFactory)
 	pub.Shutdown()
+
 }
 
 func (network *P2p) SetQueueClient(client queue.Client) {
