@@ -166,12 +166,13 @@ func (c Comm) Signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 	return in, nil
 }
 func (c Comm) CheckSign(in *pb.P2PPing) bool {
-	data := pb.Encode(in)
+
 	sign := in.GetSign()
 	if sign == nil {
 		log.Error("CheckSign Get sign err")
 		return false
 	}
+
 	cr, err := crypto.New(pb.GetSignatureTypeName(int(sign.Ty)))
 	if err != nil {
 		log.Error("CheckSign", "crypto.New err", err.Error())
@@ -187,6 +188,8 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 		log.Error("CheckSign", "SignatureFromBytes err", err.Error())
 		return false
 	}
+	in.Sign = nil
+	data := pb.Encode(in)
 	return pub.VerifyBytes(data, signbytes)
 }
 
