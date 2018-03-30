@@ -22,7 +22,7 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 		return msg
 	}
 	mem.addedTxs.Add(string(tx.Hash()), nil)
-	// 检查交易消息是否过大
+	// 检查交易费是否小于最低值
 	err := tx.Check(mem.minFee)
 	if err != nil {
 		msg.Data = err
@@ -62,6 +62,19 @@ func (mem *Mempool) CheckSignList() {
 	}
 }
 
+// Mempool.CheckTxList读取balanChan数据存入msgs，待检查交易账户余额
+func (mem *Mempool) CheckTxList() {
+	for {
+		var msgs [1024]queue.Message
+		n, err := readToChan(mem.balanChan, msgs[:], 1024)
+		if err != nil {
+			mlog.Error("CheckTxList.readToChan", "err", err)
+			return
+		}
+		mem.checkTxList(msgs[0:n])
+	}
+}
+
 // readToChan将ch中数据依次存入buf
 func readToChan(ch chan queue.Message, buf []queue.Message, max int) (n int, err error) {
 	i := 0
@@ -89,20 +102,7 @@ func readToChan(ch chan queue.Message, buf []queue.Message, max int) (n int, err
 	}
 }
 
-// Mempool.CheckTxList读取balanChan数据存入msgs，待检查交易账户余额
-func (mem *Mempool) CheckTxList() {
-	for {
-		var msgs [1024]queue.Message
-		n, err := readToChan(mem.balanChan, msgs[:], 1024)
-		if err != nil {
-			mlog.Error("CheckTxList.readToChan", "err", err)
-			return
-		}
-		mem.checkTxList(msgs[0:n])
-	}
-}
-
-// Mempool.checkBalance检查交易账户余额
+// Mempool.checkTxList检查账户余额是否足够，并加入到Mempool，成功则传入goodChan，若加入Mempool失败则传入badChan
 func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	txlist := &types.ExecTxList{}
 	for i := range msgs {
