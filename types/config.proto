@@ -63,12 +63,13 @@ message P2P {
 	string dbPath = 2;
 	string grpcLogFile = 3;
 	bool isSeed = 4;
-	repeated string seeds = 5;
-	bool enable = 6;
-	int32 msgCacheSize = 7;
-	int32 version = 8;
-	int32 verMix = 9;
-	int32 verMax = 10;
+	bool serverStart=5;
+	repeated string seeds = 6;
+	bool enable = 7;
+	int32 msgCacheSize = 8;
+	int32 version = 9;
+	int32 verMix = 10;
+	int32 verMax = 11;
 }
 
 message Rpc {
