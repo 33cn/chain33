@@ -37,14 +37,6 @@ func newTxCache(cacheSize int64) *txCache {
 	}
 }
 
-// txCache.LowestFee返回txHeap第一个元素的交易Fee
-//func (cache *txCache) LowestFee() int64 {
-//	if cache.Size() == 0 {
-//		return types.MinFee
-//	}
-//	return cache.txLlrb.Min().(*Item).priority
-//}
-
 // txCache.TxNumOfAccount返回账户在Mempool中交易数量
 func (cache *txCache) TxNumOfAccount(addr string) int64 {
 	return int64(len(cache.accMap[addr]))
@@ -56,7 +48,7 @@ func (cache *txCache) Exists(hash []byte) bool {
 	return exists
 }
 
-// txCache.Push把给定tx添加到txCache并返回true；如果tx已经存在txCache中则返回false
+// txCache.Push把给定tx添加到txCache；如果tx已经存在txCache中或Mempool已满则返回对应error
 func (cache *txCache) Push(tx *types.Transaction) error {
 	hash := tx.Hash()
 	if cache.Exists(hash) {
@@ -116,6 +108,7 @@ func (cache *txCache) SetSize(newSize int) {
 	cache.size = newSize
 }
 
+// txCache.GetAccTxs用来获取对应账户地址（列表）中的全部交易详细信息
 func (cache *txCache) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
 	var res *types.TransactionDetails
 	for _, addr := range addrs.Addrs {
@@ -138,7 +131,7 @@ func (cache *txCache) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails
 	return res
 }
 
-// txCache.AccountTxNumDecrease使得账户的交易计数减一
+// txCache.AccountTxNumDecrease根据交易哈希删除对应账户的对应交易
 func (cache *txCache) AccountTxNumDecrease(addr string, hash []byte) {
 	if value, ok := cache.accMap[addr]; ok {
 		for i, t := range value {
