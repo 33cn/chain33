@@ -38,8 +38,9 @@ message Wallet {
 }
 
 message Store {
-	string driver = 1;
-	string dbPath = 2;
+	string name = 1;
+	string driver = 2;
+	string dbPath = 3;
 }
 
 message LocalStore {
