@@ -24,6 +24,7 @@ type NodeInfo struct {
 	client         queue.Client
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
+	slowPeer       *SlowPeer
 	addrBook       *AddrBook // known peers
 	natDone        int32
 }
@@ -41,6 +42,8 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.listenAddr = new(NetAddress)
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath())
+	nodeInfo.slowPeer = new(SlowPeer)
+	nodeInfo.slowPeer.peer = make(map[string]*DownloadInfo)
 	return nodeInfo
 }
 
@@ -210,5 +213,50 @@ func (bl *BlackList) GetBadPeers() map[string]int64 {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
 	return bl.badPeers
+
+}
+
+//-------------------
+type SlowPeer struct {
+	mtx  sync.Mutex
+	peer map[string]*DownloadInfo //ip->name 记录下载过程中，耗时较长的节点
+}
+
+type DownloadInfo struct {
+	timestamp     int64
+	downloadSpeed float64
+}
+
+func (slow *SlowPeer) Add(peerName string, speed float64) {
+	slow.mtx.Lock()
+	defer slow.mtx.Unlock()
+
+	if _, ok := slow.peer[peerName]; !ok {
+		slow.peer[peerName] = new(DownloadInfo)
+	}
+
+	slow.peer[peerName].timestamp = time.Now().Unix()
+	slow.peer[peerName].downloadSpeed = speed
+	return
+}
+
+func (slow *SlowPeer) Delete(peerName string) {
+	slow.mtx.Lock()
+	defer slow.mtx.Unlock()
+
+	delete(slow.peer, peerName)
+}
+
+func (slow *SlowPeer) Has(peerName string) bool {
+	slow.mtx.Lock()
+	defer slow.mtx.Unlock()
+	_, ok := slow.peer[peerName]
+	return ok
+}
+
+func (slow *SlowPeer) GetSlowPeers() map[string]*DownloadInfo {
+	slow.mtx.Lock()
+	defer slow.mtx.Unlock()
+	return slow.peer
 
 }

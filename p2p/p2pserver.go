@@ -360,6 +360,9 @@ func (s *p2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
 	dataChain := s.addStreamHandler(stream)
 	for data := range dataChain {
+		if s.IsClose() {
+			return fmt.Errorf("node close")
+		}
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
 			log.Debug("ServerStreamSend", "blockhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
@@ -393,6 +396,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
 	for {
+		if s.IsClose() {
+			return fmt.Errorf("node close")
+		}
 		in, err := stream.Recv()
 		if err == io.EOF {
 			log.Info("ServerStreamRead", "Recv", "EOF")
@@ -517,6 +523,8 @@ func (s *p2pServer) manageStream() {
 		defer ticker.Stop()
 		for {
 			if s.IsClose() {
+				//close all send stream
+				s.closeAllSendStream()
 				return
 			}
 			select {
@@ -545,6 +553,14 @@ func (s *p2pServer) addStreamHandler(stream pb.P2Pgservice_ServerStreamSendServe
 	s.streams[stream] = make(chan interface{}, 1024)
 	return s.streams[stream]
 
+}
+
+func (s *p2pServer) closeAllSendStream() {
+	s.smtx.Lock()
+	defer s.smtx.Unlock()
+	for _, schan := range s.streams {
+		close(schan)
+	}
 }
 
 func (s *p2pServer) addStreamData(data interface{}) {
