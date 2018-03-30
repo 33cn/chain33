@@ -244,3 +244,26 @@ func (n *Node) monitorFilter() {
 	Filter = NewFilter()
 	Filter.ManageRecvFilter()
 }
+
+func (n *Node) monitorSlowPeers() {
+	ticker := time.NewTicker(CheckBlackListInterVal)
+	defer ticker.Stop()
+	for {
+		if n.IsClose() {
+			log.Info("monitorSlowPeers", "loop", "done")
+			return
+		}
+
+		select {
+		case <-ticker.C:
+			now := time.Now().Unix()
+			slowPeers := n.nodeInfo.slowPeer.GetSlowPeers()
+			for peername, dinfo := range slowPeers {
+				if now-dinfo.timestamp > 60 {
+					n.nodeInfo.slowPeer.Delete(peername)
+				}
+			}
+		}
+
+	}
+}

@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/hex"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	pb "code.aliyun.com/chain33/chain33/types"
@@ -19,7 +20,7 @@ func (p *peer) Start() {
 	return
 }
 func (p *peer) Close() {
-	p.SetRunning(false)
+	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
 	close(p.taskPool)
 	pub.Unsub(p.taskChan, "block", "tx")
@@ -31,7 +32,7 @@ type peer struct {
 	nodeInfo   **NodeInfo
 	conn       *grpc.ClientConn // source connection
 	persistent bool
-	isrunning  bool
+	isclose    int32
 	version    *Version
 	key        string
 	mconn      *MConnection
@@ -51,7 +52,6 @@ func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *pe
 	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.SetSupport(true)
-	p.SetRunning(true)
 	p.key = (*nodeinfo).addrBook.GetKey()
 	p.mconn = NewMConnection(conn, remote, p)
 	return p
@@ -160,7 +160,7 @@ func (p *peer) sendStream() {
 		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
 			cancel()
-			log.Error("sendStream", "CollectPeerStat", err)
+			log.Error("sendStream", "ServerStreamRead", err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -326,15 +326,9 @@ func (p *peer) readStream() {
 	}
 }
 
-func (p *peer) SetRunning(run bool) {
-	p.pmutx.Lock()
-	defer p.pmutx.Unlock()
-	p.isrunning = run
-}
 func (p *peer) GetRunning() bool {
-	p.pmutx.Lock()
-	defer p.pmutx.Unlock()
-	return p.isrunning
+	return atomic.LoadInt32(&p.isclose) != 1
+
 }
 
 // makePersistent marks the peer as persistent.
