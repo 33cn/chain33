@@ -411,12 +411,12 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		}
 		if block := in.GetBlock(); block != nil {
 
-			blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+			blockhash := hex.EncodeToString(block.GetBlock().Hash())
 			if Filter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
 				continue
 			}
 
-			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block txhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
+			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block hash", hex.EncodeToString(block.GetBlock().GetTxHash()))
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 				err := s.node.nodeInfo.client.Send(msg, false)

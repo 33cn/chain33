@@ -286,7 +286,7 @@ func (p *peer) readStream() {
 			if block := data.GetBlock(); block != nil {
 				if block.GetBlock() != nil {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
-					blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+					blockhash := hex.EncodeToString(block.GetBlock().Hash())
 					if Filter.QueryRecvData(blockhash) == true {
 						continue
 					}
@@ -299,7 +299,8 @@ func (p *peer) readStream() {
 							continue
 						}
 					}
-					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr())
+					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr(), "block hash",
+						blockhash)
 					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 					err = (*p.nodeInfo).client.Send(msg, false)
 					if err != nil {
