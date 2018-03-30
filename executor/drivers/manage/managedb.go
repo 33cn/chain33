@@ -1,13 +1,10 @@
 package manage
 
-
-
 import (
+	"code.aliyun.com/chain33/chain33/account"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/account"
 )
-
 
 type ManageAction struct {
 	coinsAccount *account.AccountDB
@@ -52,7 +49,7 @@ func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt,
 		err = types.Decode(value, &item)
 		if err != nil {
 			clog.Error("modifyConfig", "decode db key", modify.Key)
-			return nil, err  // types.ErrBadConfigValue
+			return nil, err // types.ErrBadConfigValue
 		}
 	} else { // if config item not exist, create a new empty
 		item.Key = modify.Key
@@ -83,33 +80,28 @@ func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt,
 		}
 		clog.Info("modifyConfig", "delete key", modify.Key, "from", copyItem.GetArr().Value, "to", item.GetArr().Value)
 		/*
-	case "assign":
-		if item.Ty == types.ConfigItemIntConfig {
-			intvalue, err := strconv.Atoi(modify.Value)
-			if err != nil {
-				clog.Error("modifyConfig", "key", modify.Key, "strconv.Atoi", err)
-			}
-			item.GetInt().Value = int32(intvalue)
-			clog.Info("modifyConfig", "key", modify.Key, "from", copyItem.GetInt().Value, "to", item.GetInt().Value)
-		} else {
-			item.GetStr().Value = modify.Value
-			clog.Info("modifyConfig", "key", modify.Key, "from", copyItem.GetStr().Value, "to", item.GetStr().Value)
-		}*/
+			case "assign":
+				if item.Ty == types.ConfigItemIntConfig {
+					intvalue, err := strconv.Atoi(modify.Value)
+					if err != nil {
+						clog.Error("modifyConfig", "key", modify.Key, "strconv.Atoi", err)
+					}
+					item.GetInt().Value = int32(intvalue)
+					clog.Info("modifyConfig", "key", modify.Key, "from", copyItem.GetInt().Value, "to", item.GetInt().Value)
+				} else {
+					item.GetStr().Value = modify.Value
+					clog.Info("modifyConfig", "key", modify.Key, "from", copyItem.GetStr().Value, "to", item.GetStr().Value)
+				}*/
 	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	key := types.ConfigKey(modify.Key)
-	valueSave :=  types.Encode(&item)
+	valueSave := types.Encode(&item)
 	m.db.Set([]byte(key), valueSave)
 	kv = append(kv, &types.KeyValue{[]byte(key), valueSave})
 	log := types.ReceiptConfig{Prev: &copyItem, Current: &item}
 	logs = append(logs, &types.ReceiptLog{Ty: types.TyLogModifyConfig, Log: types.Encode(&log)})
-	receipt := &types.Receipt{Ty:types.ExecOk, KV:kv, Logs: logs}
+	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
 	return receipt, nil
 }
-
-
-
-
-
