@@ -450,7 +450,7 @@ func (m *P2pCli) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PIn
 		return
 	}
 	peersize := len(peers)
-	var peerName string
+	//	var peerName string
 	log.Debug("downloadBlock", "download from index", index, "interval", interval, "peersize", peersize)
 FOOR_LOOP:
 	for i := 0; i < peersize; i++ {
@@ -478,7 +478,7 @@ FOOR_LOOP:
 
 				continue
 			}
-			peerName = pinfo.GetName()
+			//peerName = pinfo.GetName()
 		} else {
 			log.Debug("download", "pinfo", "no this addr", peer.Addr())
 			index++
@@ -515,9 +515,9 @@ FOOR_LOOP:
 				log.Info(speedReport)
 
 				//把下载速度低于100KB/s的节点从下载列表中删除
-				if int(speed) < 100 && count != 0 {
-					m.network.node.nodeInfo.slowPeer.Add(peerName, speed)
-				}
+				//				if int(speed) < 100 && count != 0 {
+				//					m.network.node.nodeInfo.slowPeer.Add(peerName, speed)
+				//				}
 				break FOOR_LOOP
 			}
 			if err != nil {
