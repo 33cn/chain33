@@ -255,7 +255,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	//广播或者同步过来的blcok需要调用执行模块
 
 	if !isStrongConsistency || blockdetail.Receipts == nil {
-		blockdetail, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true)
+		blockdetail, _, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true)
 		if err != nil {
 			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 			return err

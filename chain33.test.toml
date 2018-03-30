@@ -30,7 +30,7 @@ poolCacheSize=10240
 minTxFee=1000000
 
 [consensus]
-name="ticket"
+name="solo"
 minerstart=true
 
 [store]
@@ -46,4 +46,8 @@ minFee=1000000
 driver="leveldb"
 dbPath="datadir/wallet"
 
-[exec]
+[rpc]
+jrpcBindAddr="localhost:8801"
+grpcBindAddr="localhost:8802"
+whitlist=["127.0.0.1"]
+
