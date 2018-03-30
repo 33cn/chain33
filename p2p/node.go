@@ -22,9 +22,7 @@ import (
 func (n *Node) Start() {
 
 	n.detectNodeAddr()
-	if n.nodeInfo.cfg.GetServerStart() {
-		go n.doNat()
-	}
+	go n.doNat()
 	go n.monitor()
 	return
 }
@@ -94,7 +92,7 @@ func (n *Node) natOk() bool {
 
 func (n *Node) doNat() {
 	go n.natMapPort()
-	if OutSide == false { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
+	if OutSide == false && n.nodeInfo.cfg.GetServerStart() { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.natOk() {
 			SERVICE -= NODE_NETWORK //nat 失败，不对外提供服务
@@ -293,7 +291,7 @@ func (n *Node) detectNodeAddr() {
 }
 
 func (n *Node) natMapPort() {
-	if OutSide == true { //在外网或者关闭p2p server 的节点不需要映射端口
+	if OutSide == true || n.nodeInfo.cfg.GetServerStart() == false { //在外网或者关闭p2p server 的节点不需要映射端口
 		return
 	}
 	n.waitForNat()
