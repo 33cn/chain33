@@ -22,7 +22,9 @@ import (
 func (n *Node) Start() {
 
 	n.detectNodeAddr()
-	go n.doNat()
+	if n.nodeInfo.cfg.GetServerStart() {
+		go n.doNat()
+	}
 	go n.monitor()
 	return
 }
@@ -291,7 +293,7 @@ func (n *Node) detectNodeAddr() {
 }
 
 func (n *Node) natMapPort() {
-	if OutSide == true { //在外网的节点不需要映射端口
+	if OutSide == true { //在外网或者关闭p2p server 的节点不需要映射端口
 		return
 	}
 	n.waitForNat()
