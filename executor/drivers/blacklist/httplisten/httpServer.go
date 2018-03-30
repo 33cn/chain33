@@ -135,8 +135,9 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(os.Stderr, errors.New(string(respon.GetMsg())))
 		return
 	}
-	value := string(respon.GetMsg())
-	fmt.Println("GetValue =", value)
+	value := strings.Replace(string(respon.GetMsg()[2:]),"","",-1)
+	fmt.Println("Value =", value)
+	fmt.Println("GetValue =", strings.TrimSpace(value))
 	if strings.TrimSpace(value) != blacklist.FAIL {
 		w.Header().Add("error", "the userName have been registered!")
 		w.WriteHeader(403)
@@ -221,8 +222,14 @@ func submitRecord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rc := &blacklist.Record{}
+	//rc.RecordId =r.Header.Get("recordId")
+	//rc.OrgId = r.Header.Get("orgId")
+	//rc.ClientId = r.Header.Get("clientId")
+	//rc.ClientName = r.Header.Get("clientName")
 	body, _ := ioutil.ReadAll(r.Body)
+	fmt.Println("body==============",body)
 	err := json.Unmarshal(body, rc)
+	fmt.Println("err==============",err)
 	if err != nil {
 		w.WriteHeader(403)
 		return
@@ -384,8 +391,14 @@ func modifyUserPwd(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(os.Stderr, errors.New(string(respon.GetMsg())))
 		return
 	}
-	value := string(respon.GetMsg())
-	fmt.Println("GetValue =", value)
+	//msg := string(respon.GetMsg()[2:])
+	//fmt.Println("msg =",msg)
+	value := strings.Replace(string(respon.GetMsg()[2:]),"","",-1)
+	//value :=tring(reply.Msg[2:])
+	//value := string(respon.GetMsg())
+	//fmt.Println("Value =",value)
+	fmt.Println("GetValue =",strings.TrimSpace(value))
+	//subvalue := []byte(value )
 	if strings.TrimSpace(value) != blacklist.SUCESS {
 		w.WriteHeader(403)
 	}
