@@ -1,6 +1,6 @@
 package common
 
-const version = "v0.1.3"
+const version = "v0.1.4"
 
 func GetVersion() string {
 	return version
@@ -12,3 +12,7 @@ func GetVersion() string {
 
 //v0.1.3
 //硬分叉
+
+//v0.1.4
+//更新内容
+// p2p  增加节点下载速度监控功能

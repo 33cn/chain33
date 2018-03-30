@@ -28,14 +28,14 @@ func (n *Node) Start() {
 }
 
 func (n *Node) Close() {
-	atomic.StoreInt32(&n.isclose, 1)
+	atomic.StoreInt32(&n.closed, 1)
+	log.Debug("stop", "versionDone", "closed")
 	if n.l != nil {
 		n.l.Close()
 	}
-	log.Debug("listen close")
+	log.Debug("stop", "listen", "closed")
 	n.nodeInfo.addrBook.Close()
 	log.Debug("stop", "addrBook", "closed")
-
 	n.RemoveAll()
 	if Filter != nil {
 		Filter.Close()
@@ -45,16 +45,15 @@ func (n *Node) Close() {
 }
 
 func (n *Node) IsClose() bool {
-	return atomic.LoadInt32(&n.isclose) == 1
+	return atomic.LoadInt32(&n.closed) == 1
 }
 
 type Node struct {
 	omtx     sync.Mutex
-	smtx     sync.Mutex
 	nodeInfo *NodeInfo
 	outBound map[string]*peer
 	l        Listener
-	isclose  int32
+	closed   int32
 }
 
 func (n *Node) SetQueueClient(client queue.Client) {
@@ -68,7 +67,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	}
 
 	node.nodeInfo = NewNodeInfo(cfg)
-	if 1 == 1 {
+	if cfg.GetServerStart() {
 		node.l = NewListener(Protocol, node)
 	}
 
@@ -182,7 +181,6 @@ func (n *Node) GetActivePeers() (map[string]*peer, map[string]*types.Peer) {
 	}
 	return peers, infos
 }
-
 func (n *Node) Remove(peerAddr string) {
 
 	n.omtx.Lock()
@@ -218,7 +216,6 @@ func (n *Node) monitor() {
 	go n.monitorDialPeers()
 	go n.monitorBlackList()
 	go n.monitorFilter()
-	go n.monitorSlowPeers()
 
 }
 
