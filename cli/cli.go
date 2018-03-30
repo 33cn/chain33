@@ -317,6 +317,12 @@ func main() {
 			return
 		}
 		GetTokensFinishCreated()
+	case "gettokeninfo":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTokenInfo(argsWithoutProg[1])
 	case "precreatetoken":
 		if len(argsWithoutProg) != 8 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -469,6 +475,7 @@ func LoadHelp() {
 	fmt.Println("revokecreatetoken [creator_address, symbol, owner_address]  : 取消创建token")
 	fmt.Println("gettokensprecreated                                         : 获取所有预创建的token")
 	fmt.Println("gettokensfinishcreated                                      : 获取所有完成创建的token")
+	fmt.Println("gettokeninfo                                                : 获取token信息")
 	fmt.Println("selltoken [owner, token, Amountpbl, minbl, pricepbl, totalpbl] : 卖出token")
 	fmt.Println("buytoken [buyer, sellid, countboardlot]                        : 买入token")
 	fmt.Println("revokeselltoken [seller, sellid]                               : 撤销token卖单")
@@ -1984,6 +1991,38 @@ func GetTokensFinishCreated() {
 	}
 }
 
+//获取Token信息
+func GetTokenInfo(symbol string) {
+	var req types.ReqString
+	req.Data = symbol
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetTokenInfo"
+	params.Payload = hex.EncodeToString(types.Encode(&req))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.Token
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	res.Price = res.Price / types.Coin
+	res.Total = res.Total / types.TokenPrecision
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
 func PreCreateToken(args []string) {
 	// creator, name, symbol, introduction, owner, totalStr, priceStr string) {
 	creator := args[0]
@@ -2511,7 +2550,29 @@ func GetTotalCoins(symbol string, height string) {
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
 	} else {
+		//查询Token总量
+		var req types.ReqString
+		req.Data = symbol
+		var params jsonrpc.Query
+		params.Execer = "token"
+		params.FuncName = "GetTokenInfo"
+		params.Payload = hex.EncodeToString(types.Encode(&req))
+		rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var res types.Token
+		err = rpc.Call("Chain33.Query", params, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
 
+		expectedAmount = res.Total
+		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.TokenPrecision), 'f', 4, 64)
+		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.TokenPrecision), 'f', 4, 64)
+		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.TokenPrecision), 'f', 4, 64)
 	}
 
 	data, err := json.MarshalIndent(resp, "", "    ")
