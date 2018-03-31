@@ -521,20 +521,27 @@ func (m *P2pCli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb
 		return err
 	}
 	defer resp.CloseSend()
-
 	for {
-		invdatas, err := resp.Recv()
-		if err != nil {
-			if err == io.EOF {
-				log.Info("download", "from", peer.Addr(), "block", inv.GetHeight())
-				return nil
-			}
-			log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
-			return err
-		}
-		for _, item := range invdatas.Items {
-			bchan <- item.GetBlock() //下载完成后插入bchan
+		timeout := time.NewTimer(time.Second * 5)
+		select {
+		case <-timeout.C:
+			return fmt.Errorf("timeout download")
+		default:
+			for {
+				invdatas, err := resp.Recv()
+				if err != nil {
+					if err == io.EOF {
+						log.Info("download", "from", peer.Addr(), "block", inv.GetHeight())
+						return nil
+					}
+					log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
+					return err
+				}
+				for _, item := range invdatas.Items {
+					bchan <- item.GetBlock() //下载完成后插入bchan
 
+				}
+			}
 		}
 	}
 
