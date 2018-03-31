@@ -494,6 +494,7 @@ func (m *P2pCli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, in
 			defer wg.Done()
 			err := m.syncDownloadBlock(peer, inv, bchan)
 			if err != nil {
+				log.Warn("redownload", "block num", inv.GetHeight())
 				l.PushBack(inv) //失败的下载，放在下一轮ReDownload进行下载
 			}
 		}(peers[index], inv)
