@@ -409,7 +409,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 	Invs := MaxInvs.GetInvs()
 	var wg sync.WaitGroup
 	m.allocTask(l, Invs, downloadPeers, infos, &wg, bChan)
-	m.reDownload(l, downloadPeers, &wg, bChan)
+	m.retryDownload(l, downloadPeers, &wg, bChan)
 
 	i := 0
 	for {
@@ -432,13 +432,13 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 	}
 
 }
-func (m *P2pCli) reDownload(l *list.List, peers []*peer, wg *sync.WaitGroup, bchan chan *pb.Block) {
+func (m *P2pCli) retryDownload(l *list.List, peers []*peer, wg *sync.WaitGroup, bchan chan *pb.Block) {
 	go func(l *list.List) {
 		for {
 			timeout := time.NewTimer(time.Second * 20)
 			select {
 			case <-timeout.C:
-				log.Error("reDownload timeout")
+				log.Error("retryDownload timeout")
 				return
 			default:
 				for {
@@ -475,7 +475,8 @@ func (m *P2pCli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, in
 	peerNum := len(peers)
 	for i, inv := range invs { //让一个节点一次下载一个区块，下载失败区块，交给下一轮下载
 		index := i
-		for j := 0; j < peerNum; j++ {
+		j := 0
+		for j = 0; j < peerNum; j++ {
 			index = index % peerNum
 			info, ok := infos[peers[index].Addr()]
 			if !ok {
@@ -488,16 +489,21 @@ func (m *P2pCli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, in
 			}
 			break
 		}
+		if index >= peerNum {
+			log.Warn("allocTask", "no peer can download this block", inv.GetHeight(), "index", index)
+			return
+		}
 
+		pr := peers[index]
 		wg.Add(1)
 		go func(peer *peer, inv *pb.Inventory) {
 			defer wg.Done()
 			err := m.syncDownloadBlock(peer, inv, bchan)
 			if err != nil {
-				log.Warn("redownload", "block num", inv.GetHeight())
+				log.Warn("retrydownload", "block num", inv.GetHeight())
 				l.PushBack(inv) //失败的下载，放在下一轮ReDownload进行下载
 			}
-		}(peers[index], inv)
+		}(pr, inv)
 
 	}
 
@@ -517,12 +523,12 @@ func (m *P2pCli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb
 	resp, err := peer.mconn.gcli.GetData(context.Background(), &p2pdata)
 	P2pComm.CollectPeerStat(err, peer)
 	if err != nil {
-		log.Error("downloadBlock", "GetData err", err.Error())
+		log.Error("syncDownloadBlock", "GetData err", err.Error())
 		return err
 	}
 	defer resp.CloseSend()
 	for {
-		timeout := time.NewTimer(time.Second * 15)
+		timeout := time.NewTimer(time.Second * 30)
 		select {
 		case <-timeout.C:
 			return fmt.Errorf("timeout download")
