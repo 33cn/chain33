@@ -522,7 +522,7 @@ func (m *P2pCli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb
 	}
 	defer resp.CloseSend()
 	for {
-		timeout := time.NewTimer(time.Second * 5)
+		timeout := time.NewTimer(time.Second * 15)
 		select {
 		case <-timeout.C:
 			return fmt.Errorf("timeout download")
@@ -543,6 +543,10 @@ func (m *P2pCli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb
 				}
 			}
 		}
+		if !timeout.Stop() {
+			<-timeout.C
+		}
+
 	}
 
 	return nil
