@@ -44,18 +44,21 @@ func NewListener(protocol string, node *Node) Listener {
 	pServer.node = dl.node
 	pServer.Start()
 
-	writeOp := grpc.WriteBufferSize(1024 * 1024 * 50)                //设置写做大缓冲空间为50M
-	msgRecvOp := grpc.MaxMsgSize(10 * 1024 * 1024)                   //设置最大接收数据大小位10M
-	msgSendOp := grpc.MaxSendMsgSize(10 * 1024 * 1024)               //设置最大发送数据大小为10M
-	readOp := grpc.ReadBufferSize(50 * 1024 * 1024)                  //设置最大读缓冲空间为50M
-	compressOp := grpc.RPCCompressor(grpc.NewGZIPCompressor())       //设置grpc 采用gzip形式进行 压缩
-	decompressOp := grpc.RPCDecompressor(grpc.NewGZIPDecompressor()) //设置 grpc gzip 解压缩
+	writeOp := grpc.WriteBufferSize(1024 * 1024 * 50)  //设置写做大缓冲空间为50M
+	msgRecvOp := grpc.MaxMsgSize(10 * 1024 * 1024)     //设置最大接收数据大小位10M
+	msgSendOp := grpc.MaxSendMsgSize(10 * 1024 * 1024) //设置最大发送数据大小为10M
+	readOp := grpc.ReadBufferSize(50 * 1024 * 1024)    //设置最大读缓冲空间为50M
+
+	//暂时不启用解压缩进行发送接收
+	//compressOp := grpc.RPCCompressor(grpc.NewGZIPCompressor())       //设置grpc 采用gzip形式进行 压缩
+	//decompressOp := grpc.RPCDecompressor(grpc.NewGZIPDecompressor()) //设置 grpc gzip 解压缩
 	var keepparm keepalive.ServerParameters
 	keepparm.Time = 10 * time.Second
 	keepparm.Timeout = 5 * time.Second
 	keepOp := grpc.KeepaliveParams(keepparm)
 
-	dl.server = grpc.NewServer(writeOp, readOp, msgRecvOp, msgSendOp, compressOp, decompressOp, keepOp)
+	dl.server = grpc.NewServer(writeOp, readOp, msgRecvOp, msgSendOp,
+		/*compressOp, decompressOp,*/ keepOp)
 	dl.p2pserver = pServer
 
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
