@@ -476,6 +476,7 @@ func (m *P2pCli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, in
 				index++
 				continue
 			}
+
 			if info.GetHeader().GetHeight() < inv.GetHeight() {
 				index++
 				continue

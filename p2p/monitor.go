@@ -48,12 +48,14 @@ func (n *Node) monitorErrPeer() {
 		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
 			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
-			n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), false)
 			//加入黑名单
 			n.nodeInfo.blacklist.Add(peer.Addr())
 			continue
 		}
 		n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
+		if n.nodeInfo.addrBook.GetPeerStat(peer.Addr()).GetAttempts() >= MaxAttemps {
+			n.destroyPeer(peer)
+		}
 	}
 }
 
