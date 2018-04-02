@@ -18,6 +18,7 @@ import (
 
 	"code.aliyun.com/chain33/chain33/blockchain"
 	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	"code.aliyun.com/chain33/chain33/common/config"
 	"code.aliyun.com/chain33/chain33/common/limits"
 	"code.aliyun.com/chain33/chain33/consensus"
@@ -71,7 +72,7 @@ func main() {
 	cfg := config.InitCfg(*configPath)
 
 	//set file log
-	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
+	clog.SetFileLog(cfg.Log)
 	//set grpc log
 	f, err := createFile(cfg.P2P.GetGrpcLogFile())
 	if err != nil {
