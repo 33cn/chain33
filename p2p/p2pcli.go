@@ -449,6 +449,7 @@ func (m *P2pCli) retryDownload(l *list.List, peers []*peer, wg *sync.WaitGroup, 
 			var invs []*pb.Inventory
 			for e := l.Front(); e != nil; e = e.Next() {
 				invs = append(invs, e.Value.(*pb.Inventory)) //把下载遗漏的区块，重新组合进行下载
+				l.Remove(e)
 			}
 			log.Warn("retrydownload", "invs", invs)
 			m.allocTask(l, invs, prs, infos, wg, bchan)
