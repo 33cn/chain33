@@ -306,7 +306,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("downloading...")}))
 
 	req := msg.GetData().(*pb.ReqBlocks)
-	log.Info("GetBlocks", "reqblocks", req)
+
 	pids := req.GetPid()
 	var MaxInvs = new(pb.P2PInv)
 	var downloadPeers []*peer
@@ -409,7 +409,7 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 	Invs := MaxInvs.GetInvs()
 	var wg sync.WaitGroup
 	m.allocTask(l, Invs, downloadPeers, infos, &wg, bChan)
-	m.retryDownload(l, &wg, bChan)
+	m.retryDownload(l, downloadPeers, &wg, bChan)
 
 	i := 0
 	for {
@@ -432,14 +432,11 @@ func (m *P2pCli) GetBlocks(msg queue.Message, taskindex int64) {
 	}
 
 }
-func (m *P2pCli) retryDownload(l *list.List, wg *sync.WaitGroup, bchan chan *pb.Block) {
+func (m *P2pCli) retryDownload(l *list.List, peers []*peer, wg *sync.WaitGroup, bchan chan *pb.Block) {
 	go func(l *list.List) {
-
 		for {
 			wg.Wait()
-
 			if l.Len() == 0 {
-				log.Info("retrydownload", "retry list.Len ", 0)
 				return
 			}
 
@@ -451,12 +448,9 @@ func (m *P2pCli) retryDownload(l *list.List, wg *sync.WaitGroup, bchan chan *pb.
 
 			var invs []*pb.Inventory
 			for e := l.Front(); e != nil; e = e.Next() {
-
-				log.Warn("retrydownload", "will retry", e.Value.(*pb.Inventory).GetHeight())
 				invs = append(invs, e.Value.(*pb.Inventory)) //把下载遗漏的区块，重新组合进行下载
-				l.Remove(e)
 			}
-			log.Info("retry", "invs", invs)
+			log.Warn("retrydownload", "invs", invs)
 			m.allocTask(l, invs, prs, infos, wg, bchan)
 		}
 
@@ -476,7 +470,6 @@ func (m *P2pCli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, in
 				index++
 				continue
 			}
-
 			if info.GetHeader().GetHeight() < inv.GetHeight() {
 				index++
 				continue
@@ -494,10 +487,9 @@ func (m *P2pCli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, in
 			defer wg.Done()
 			err := m.syncDownloadBlock(peer, inv, bchan)
 			if err != nil {
-				//log.Warn("retrydownload", "block num", inv.GetHeight())
+
 				l.PushBack(inv) //失败的下载，放在下一轮ReDownload进行下载
 			}
-
 		}(pr, inv)
 
 	}
@@ -518,8 +510,7 @@ func (m *P2pCli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb
 	resp, err := peer.mconn.gcli.GetData(context.Background(), &p2pdata)
 	P2pComm.CollectPeerStat(err, peer)
 	if err != nil {
-		log.Error("syncDownloadBlock", "GetData err", err.Error(), "from", peer.Addr())
-
+		log.Error("syncDownloadBlock", "GetData err", err.Error())
 		return err
 	}
 	defer resp.CloseSend()
@@ -531,8 +522,7 @@ func (m *P2pCli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb
 				log.Info("download", "from", peer.Addr(), "block", inv.GetHeight())
 				return nil
 			}
-			log.Error("download", "Recv err", err.Error(), "block", inv.GetHeight(), "from", peer.Addr())
-
+			log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
 			return err
 		}
 		for _, item := range invdatas.Items {
