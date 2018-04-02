@@ -384,7 +384,7 @@ func main() {
 		}
 		ShowOnesBuyOrder(argsWithoutProg[1], argsWithoutProg[2:])
 	case "showtokensellorder":
-		if len(argsWithoutProg) != 4 {
+		if len(argsWithoutProg) != 4 && len(argsWithoutProg) != 5 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
@@ -473,7 +473,7 @@ func LoadHelp() {
 	fmt.Println("buytoken [buyer, sellid, countboardlot]                        : 买入token")
 	fmt.Println("revokeselltoken [seller, sellid]                               : 撤销token卖单")
 	fmt.Println("showonesselltokenorder [seller, [token0, token1, token2]]      : 显示一个用户下的token卖单")
-	fmt.Println("showtokensellorder [token, pagenumber, pagesize]               : 分页显示token的卖单")
+	fmt.Println("showtokensellorder [token, count, direction, fromSellId]       : 分页显示token的卖单")
 	fmt.Println("showsellorderwithstatus [onsale | soldout | revoked]           : 显示指定状态下的所有卖单")
 	fmt.Println("showonesbuyorder [buyer]                                       : 显示指定用户下所有token成交的购买单")
 	fmt.Println("showonesbuytokenorder [buyer, token0, [token1, token2]]        : 显示指定用户下指定token成交的购买单")
@@ -2352,26 +2352,33 @@ func ShowOnesBuyOrder(buyer string, tokens []string) {
 }
 
 func ShowTokenSellOrder(args []string) {
-	var reqAddrtokens types.ReqAddrTokens
-	reqAddrtokens.Token = append(reqAddrtokens.Token, args[0])
-	reqAddrtokens.Status = types.OnSale
-	pageNumber, err := strconv.ParseInt(args[1], 10, 32)
+	var req types.ReqTokenSellOrder
+	req.TokenSymbol = args[0]
+	count, err := strconv.ParseInt(args[1], 10, 32)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	pageSize, err   := strconv.ParseInt(args[2], 10, 32)
+	direction, err := strconv.ParseInt(args[2], 10, 32)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	reqAddrtokens.PageSize = int32(pageSize)
-	reqAddrtokens.PageNumber = int32(pageNumber)
+	if direction != 0 && direction != 1 {
+		fmt.Fprintln(os.Stderr, "direction must be 0 (previous-page) or 1(next-page)")
+	}
+	req.Count = int32(count)
+	req.Direction = int32(direction)
+	if len(args) == 4 {
+		req.FromSellId = args[3]
+	} else {
+		req.FromSellId = ""
+	}
 
 	var params jsonrpc.Query
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
-	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	params.Payload = hex.EncodeToString(types.Encode(&req))
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

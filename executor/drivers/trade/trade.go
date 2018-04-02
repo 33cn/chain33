@@ -153,12 +153,12 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		}
 		return t.GetAllSellOrdersWithStatus(t.GetDB(), t.GetQueryDB(), addrTokens.Status)
 	case "GetTokenSellOrderByStatus":
-		var addrTokens types.ReqAddrTokens
-		err := types.Decode(params, &addrTokens)
+		var req types.ReqTokenSellOrder
+		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
 		}
-		return t.GetTokenByStatus(t.GetDB(), t.GetQueryDB(), &addrTokens)
+		return t.GetTokenByStatus(t.GetDB(), t.GetQueryDB(), &req, types.OnSale)
 	default:
 	}
 	tradelog.Error("trade Query", "Query type not supprt with func name", funcName)
@@ -288,43 +288,33 @@ func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types
 	return selloders
 }
 
-func (t *trade) GetTokenByStatus(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
-	if 1 != len(addrTokens.Token) {
-		return nil, types.ErrNotSupport
+func (t *trade) GetTokenByStatus(db dbm.KVDB, querydb dbm.DB, req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
+	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
+		return nil, types.ErrInputPara
 	}
 
-	if 0 == addrTokens.PageSize {
-		// get all orders for token trade
-		// TODO impl or not support
-		//     danger, maybe too many orders
-		return nil, types.ErrNotSupport
-	} else {
-		token := addrTokens.Token[0]
-		prefix := calcTokensSellOrderPrefixStatus(token, addrTokens.Status)
-
-		// 看交易行情的后续页是出于什么心态？ 了解行情的大致情况？
-		// 为了让看起来一致的行为， 第二页的价格应该比第一页的高
-		// 这样如果请求里把上一页的价格发来， List就可以直接跳到key， 去取后续
-		// 如果是随机选的页， 那就只能先用数个数的方式跳过， 再读取
-
-		list := dbm.NewListHelper(querydb)
-		total := addrTokens.PageNumber * addrTokens.PageSize + addrTokens.PageSize
-		start := addrTokens.PageNumber * addrTokens.PageSize
-		values := list.List(prefix, nil, total, 1)
-
-		var reply types.ReplySellOrders
-		if len(values) <= int(start) {
-			return &reply, nil
+	fromKey := []byte("")
+	if len(req.FromSellId) != 0 {
+		sellorder, err := getSellOrderFromID([]byte(req.FromSellId), db)
+		if err != nil {
+			tradelog.Error("GetTokenByStatus get sellorder err", err)
+			return nil, err
 		}
-		for i := int(start) ; i < len(values); i = i + 1 {
-			sellid := values[i]
-			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
-				tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
-				reply.Selloders = append(reply.Selloders, sellorder)
-			}
-		}
-		return &reply, nil
+		fromKey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8*sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
 	}
+
+	list := dbm.NewListHelper(querydb)
+	prefix := calcTokensSellOrderPrefixStatus(req.TokenSymbol, status)
+	values := list.List(prefix, fromKey, req.Count, req.Direction)
+
+	var reply types.ReplySellOrders
+	for _, sellid := range values {
+		if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
+			tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
+			reply.Selloders = append(reply.Selloders, sellorder)
+		}
+	}
+	return &reply, nil
 }
 
 func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
@@ -348,7 +338,7 @@ func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 
 	// make a number as token's price whether cheap or dear
 	// support 1e8 bty pre token or 1/1e8 bty pre token,
-	// the number in key is used to sort sell orders and pages 
+	// the number in key is used to sort sell orders and pages
 	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8 * sellorder.Priceperboardlot / sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
 
