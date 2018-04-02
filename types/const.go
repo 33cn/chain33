@@ -188,6 +188,7 @@ const (
 	EventDelTxList           = 103
 	EventStoreGetTotalCoins  = 104
 	EventGetTotalCoinsReply  = 105
+	EventQueryTotalFee       = 106
 	// Token
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
@@ -312,6 +313,7 @@ var eventName = map[int]string{
 	103: "EventDelTxList",
 	104: "EventStoreGetTotalCoins",
 	105: "EventGetTotalCoinsReply",
+	106: "EventQueryTotalFee",
 	// Token
 	EventTokenPreCreate:         "EventTokenPreCreate",
 	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",

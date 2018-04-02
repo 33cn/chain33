@@ -21,6 +21,10 @@ import (
 
 var alog = log.New("module", "account")
 
+func TotalFeeKey() []byte {
+        return []byte("TotalFeeKey")
+}
+
 type AccountDB struct {
 	db                   dbm.KVDB
 	accountKeyPerfix     []byte
@@ -233,3 +237,26 @@ func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCo
 	return reply, nil
 }
 
+func (acc *AccountDB) QueryTotalFee(client queue.Client, in *types.ReqHash) (reply *types.Int64, err error) {
+	req := types.StoreGet{}
+	req.StateHash = in.Hash
+	req.Keys = append(req.Keys, TotalFeeKey())
+
+	msg := client.NewMessage("store", types.EventStoreGet, &req)
+	client.Send(msg, true)
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	values := msg.GetData().(*types.StoreReplyValue)
+	value := values.Values[0]
+
+	var totalFee types.Int64
+	err = types.Decode(value, &totalFee)
+	if err != nil {
+		return nil, err
+	}
+	*reply = totalFee
+	
+	return reply, nil
+}

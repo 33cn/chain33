@@ -2545,7 +2545,21 @@ func GetTotalCoins(symbol string, height string) {
 	}
 
 	if symbol == "bty" {
-		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin
+		//查询手续费
+		params := types.ReqHash{Hash: stateHash}
+		rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var res types.Int64
+		err = rpc.Call("Chain33.QueryTotalFee", params, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		
+		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res.Data
 		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
