@@ -17,6 +17,7 @@ singleMode=false
 seeds=["192.168.3.4:13802","192.168.3.13:13802"]
 enable=true
 isSeed=true
+serverStart=true
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
@@ -51,6 +52,7 @@ createEmptyBlocksInterval=0
 seeds=["192.168.3.13:46656","192.168.3.4:46656"]
 
 [store]
+name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 
