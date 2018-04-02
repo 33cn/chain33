@@ -1207,3 +1207,13 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 	*result = c.cli.IsNtpClockSync()
 	return nil
 }
+
+func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
+	reply, err := c.cli.QueryTotalFee(in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+
+}
