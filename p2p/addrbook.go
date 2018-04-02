@@ -48,27 +48,29 @@ type knownAddress struct {
 	LastSuccess time.Time   `json:"lastsuccess"`
 }
 
-func (a *AddrBook) GetPeerStat(addr string) (*knownAddress, bool) {
+func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
-		return peer, true
+		return peer
 	}
-	return nil, false
+	return nil
 
 }
 
-func (a *AddrBook) SetAddrStat(addr string, run bool) {
+func (a *AddrBook) SetAddrStat(addr string, run bool) (*knownAddress, bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
 		if run {
 			peer.markGood()
+
 		} else {
 			peer.markAttempt()
 		}
-
+		return peer, true
 	}
+	return nil, false
 }
 
 func NewAddrBook(filePath string) *AddrBook {
