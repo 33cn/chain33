@@ -15,7 +15,6 @@ type Listener interface {
 }
 
 func (l *listener) Close() bool {
-	l.server.Stop()
 	l.p2pserver.Close()
 	log.Info("stop", "listener", "close")
 	return true
