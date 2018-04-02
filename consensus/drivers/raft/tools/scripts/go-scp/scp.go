@@ -12,18 +12,19 @@ import (
 	"golang.org/x/crypto/ssh"
 	"io"
 	//"io/ioutil"
+	tml "github.com/BurntSushi/toml"
 	"path/filepath"
 	"strings"
-	"strconv"
+	"flag"
 )
-
+var configPath = flag.String("f", "servers.toml", "configfile")
 type ScpInfo struct {
-	userName      string
-	passWord      string
-	hostIp        string
-	port          int
-	localFilePath string
-	remoteDir     string
+	UserName      string
+	PassWord      string
+	HostIp        string
+	Port          int
+	LocalFilePath string
+	RemoteDir     string
 }
 type CmdInfo struct {
 	userName string
@@ -31,6 +32,11 @@ type CmdInfo struct {
 	hostIp   string
 	port     int
 	cmd      string
+	remoteDir string
+}
+type tomlConfig struct {
+	Title   string
+    Servers   map[string]ScpInfo
 }
 
 func sshconnect(user, password, host string, port int) (*ssh.Session, error) {
@@ -101,23 +107,23 @@ func sftpconnect(user, password, host string, port int) (*sftp.Client, error) {
 	return sftpClient, nil
 }
 func ScpFileFromLocalToRemote(si *ScpInfo) {
-	sftpClient, err := sftpconnect(si.userName, si.passWord, si.hostIp, si.port)
+	sftpClient, err := sftpconnect(si.UserName, si.PassWord, si.HostIp, si.Port)
 	if err != nil {
 		fmt.Println("sftconnect have a err!")
 		log.Fatal(err)
 		panic(err)
 	}
 	defer sftpClient.Close()
-	srcFile, err := os.Open(si.localFilePath)
+	srcFile, err := os.Open(si.LocalFilePath)
 	if err != nil {
 		log.Fatal(err)
 		panic(err)
 	}
 	defer srcFile.Close()
 
-	var remoteFileName = path.Base(si.localFilePath)
+	var remoteFileName = path.Base(si.LocalFilePath)
 	fmt.Println("remoteFileName:", remoteFileName)
-	dstFile, err := sftpClient.Create(path.Join(si.remoteDir, remoteFileName))
+	dstFile, err := sftpClient.Create(path.Join(si.RemoteDir, remoteFileName))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -142,18 +148,18 @@ func ScpFileFromLocalToRemote(si *ScpInfo) {
 	}
 	fmt.Println("copy file to remote server finished!")
 }
-func RemoteExec(cmdInfo *CmdInfo)error{
+func RemoteExec(cmdInfo *CmdInfo) error {
 	//A Session only accepts one call to Run, Start or Shell.
 	session, err := sshconnect(cmdInfo.userName, cmdInfo.passWord, cmdInfo.hostIp, cmdInfo.port)
 	if err != nil {
-	   return err
+		return err
 	}
 	defer session.Close()
 	session.Stdout = os.Stdout
 	session.Stderr = os.Stderr
 	err = session.Run(cmdInfo.cmd)
-	if err !=nil {
-      return err
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -165,7 +171,6 @@ func remoteScp(si *ScpInfo, reqnum chan struct{}) {
 	//session, err := sshconnect("ubuntu", "Fuzamei#123456", "raft15258.chinacloudapp.cn", 22)
 	fmt.Println("remote exec cmds.......:")
 
-
 }
 func getCurrentDirectory() string {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -175,7 +180,24 @@ func getCurrentDirectory() string {
 	fmt.Println(dir)
 	return strings.Replace(dir, "\\", "/", -1)
 }
+func InitCfg(path string) *tomlConfig{
+	var cfg tomlConfig
+	if _, err := tml.DecodeFile(path, &cfg); err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+
+	}
+	return &cfg
+}
+func pwd() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		panic(err)
+	}
+	return dir
+}
 func main() {
+	conf :=InitCfg("D:/Repository/src/code.aliyun.com/chain33/chain33/consensus/drivers/raft/tools/scripts/go-scp/servers.toml")
 	start := time.Now()
 
 	////读取当前目录下的文件
@@ -187,36 +209,33 @@ func main() {
 	//for i, v := range dir_list {
 	//	fmt.Println(i, "=", v.Name())
 	//}
-
+     for name,server :=range conf.Servers{
+     	fmt.Println(name)
+     	fmt.Println(server.HostIp)
+	 }
 	fmt.Println(getCurrentDirectory())
-	scpInfo := &ScpInfo{}
-	scpInfo.userName = "ubuntu"
-	scpInfo.passWord = "Fuzamei#123456"
-	scpInfo.hostIp = "raft15258.chinacloudapp.cn"
-	scpInfo.port = 22
-	scpInfo.localFilePath = "D:/Repository/src/code.aliyun.com/chain33/chain33/consensus/drivers/raft/tools/scripts/chain33.tgz"
-	scpInfo.remoteDir = "/home/ubuntu/deploy"
 
-	cmdInfo:=&CmdInfo{}
-	cmdInfo.userName = "ubuntu"
-	cmdInfo.passWord = "Fuzamei#123456"
-	cmdInfo.hostIp = "raft15258.chinacloudapp.cn"
-	cmdInfo.port = 22
-	var arr []*ScpInfo
-	arr = append(arr, scpInfo)
-	// os.Open(scpInfo.localFilePath)
+
+	arrMap := make(map[string]*CmdInfo)
 	//多协程启动部署
-	reqC := make(chan struct{}, len(arr))
-	for _, sc := range arr {
-		cmdInfo.cmd="mkdir -p /home/ubuntu/deploy"
+	reqC := make(chan struct{}, len(conf.Servers))
+	for index, sc := range conf.Servers {
+		cmdInfo := &CmdInfo{}
+		cmdInfo.hostIp=sc.HostIp
+		cmdInfo.userName=sc.UserName
+		cmdInfo.port=sc.Port
+		cmdInfo.passWord=sc.PassWord
+		cmdInfo.cmd =fmt.Sprintf("mkdir -p %s",sc.RemoteDir)
+		cmdInfo.remoteDir=sc.RemoteDir
 		RemoteExec(cmdInfo)
-		go remoteScp(sc, reqC)
+		go remoteScp(&sc, reqC)
+		arrMap[index]=cmdInfo
 	}
-	for i := 0; i < len(arr); i++ {
+	for i := 0; i < len(conf.Servers); i++ {
 		<-reqC
 	}
-	for i,_ := range arr {
-		cmdInfo.cmd="cd /home/ubuntu/deploy;tar -xvf chain33.tgz;bash raft_conf.sh;bash run.sh "+strconv.FormatInt(int64(i)+1,10)
+	for i, cmdInfo := range arrMap {
+		cmdInfo.cmd = fmt.Sprintf("cd %s;tar -xvf chain33.tgz;bash raft_conf.sh %s;bash run.sh start",cmdInfo.remoteDir,i)
 		RemoteExec(cmdInfo)
 	}
 	timeCommon := time.Now()

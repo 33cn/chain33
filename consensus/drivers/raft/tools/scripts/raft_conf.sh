@@ -6,7 +6,7 @@ function echo_green {
 }
 function main {
     sed -i "s/singleMode=true/singleMode=true/g" chain33.toml
-    sed -i"s/nodeId=1/nodeId=$nodeId/g" chain33.toml
+    sed -i "s/nodeId=1/nodeId=$nodeId/g" chain33.toml
 }
 
 main

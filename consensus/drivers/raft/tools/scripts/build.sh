@@ -10,7 +10,7 @@ cp chain33.toml $SHELL_FOLDER
 curDir=$(pwd)
 echo "当前目录是:X":$curDir
 cd $SHELL_FOLDER
-tar cvf chain33.tgz chain33 chain33.toml raft_conf.sh
+tar cvf chain33.tgz chain33 chain33.toml raft_conf.sh run.sh
 rm -rf chain33
 rm -rf chain33.toml
 echo "---- chain33 build success!----- "

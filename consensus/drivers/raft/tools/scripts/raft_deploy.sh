@@ -1,6 +1,16 @@
-#!/bin/expect
+#!/usr/bin/env bash
 #这是个用于分发部署chain33的脚本
-
+SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
+echo "当前目录是:"$SHELL_FOLDER
+cd $SHELL_FOLDER/go-scp/
+go build -o go_scp
+cp go_scp  servers.toml ../
+rm -rf go_scp
+cd $SHELL_FOLDER
+./go_scp
+rm -rf go_scp
+rm -rf servers.toml
+rm -rf chain33.tgz
 
 
 #变量定义
