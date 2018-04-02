@@ -209,7 +209,7 @@ func (n *Node) RemoveAll() {
 
 func (n *Node) monitor() {
 	go n.monitorErrPeer()
-	go n.checkActivePeers()
+	//	go n.checkActivePeers()
 	go n.getAddrFromOnline()
 	go n.getAddrFromOffline()
 	go n.monitorPeerInfo()
