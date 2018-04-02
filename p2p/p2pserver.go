@@ -396,6 +396,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 	defer s.deleteInBoundPeerInfo(peername)
 
 	for {
+		if s.IsClose() {
+			return fmt.Errorf("node close")
+		}
 		in, err := stream.Recv()
 		if err == io.EOF {
 			log.Info("ServerStreamRead", "Recv", "EOF")
@@ -407,12 +410,12 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		}
 		if block := in.GetBlock(); block != nil {
 
-			blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+			blockhash := hex.EncodeToString(block.GetBlock().Hash())
 			if Filter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
 				continue
 			}
 
-			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block txhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
+			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block hash", hex.EncodeToString(block.GetBlock().GetTxHash()))
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 				err := s.node.nodeInfo.client.Send(msg, false)
@@ -473,7 +476,7 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 
 func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
 	if P2pComm.CheckSign(in) == false {
-		log.Info("Ping", "CollectInPeers", "check sig err")
+		log.Info("CollectInPeers", "ping", "signatrue err")
 		return nil, pb.ErrPing
 	}
 	inPeers := s.getInBoundPeers()
