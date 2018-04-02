@@ -5,10 +5,8 @@ import (
 )
 
 func (n *Node) destroyPeer(peer *peer) {
-	if peer == nil {
-		return
-	}
-	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "stat running", peer.GetRunning(), "version support", peer.version.IsSupport())
+	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
+		"version support", peer.version.IsSupport())
 	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 	n.Remove(peer.Addr())
 
@@ -18,7 +16,7 @@ func (n *Node) monitorErrPeer() {
 	for {
 		peer := <-n.nodeInfo.monitorChan
 		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
-			log.Debug("monitorErrPeer", "NotSupport,addr", peer.Addr())
+			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
 			//加入黑名单
 			n.nodeInfo.blacklist.Add(peer.Addr())
@@ -32,12 +30,11 @@ func (n *Node) monitorErrPeer() {
 
 		pstat, ok := n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
 		if ok {
-			if pstat.GetAttempts() >= uint(MaxAttemps) {
-				log.Debug("monitorErrPeer", "over maxAttemps", pstat.GetAttempts())
+			if pstat.GetAttempts() > MaxAttemps {
+				log.Debug("monitorErrPeer", "over maxattamps", pstat.GetAttempts())
 				n.destroyPeer(peer)
 			}
 		}
-
 	}
 }
 
@@ -128,7 +125,7 @@ func (n *Node) getAddrFromOffline() {
 				for _, seed := range n.nodeInfo.cfg.Seeds {
 					//如果达到稳定节点数量，则断开种子节点
 					if n.Has(seed) == true {
-						n.destroyPeer(n.GetRegisterPeer(seed))
+						n.Remove(seed)
 					}
 				}
 			}
