@@ -25,6 +25,10 @@ var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
 var runningHeight int64 = 0
 
+func TotalFeeKey() []byte {
+	return []byte("TotalFeeKey")
+}
+
 func SetLogLevel(level string) {
 	common.SetLogLevel(level)
 }
@@ -143,9 +147,25 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
+
+	totalFeeBytes, err := execute.stateDB.Get(TotalFeeKey())
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+	
+	var totalFee types.Int64
+	err = types.Decode(totalFeeBytes, &totalFee)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+
+	var fee int64
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
+		fee += tx.Fee
 		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
@@ -163,6 +183,15 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
+
+	totalFee.Data += fee
+	totalFeeBytes = types.Encode(&totalFee)
+        if err != nil {
+                msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+                return
+        }
+	kvset.KV = append(kvset.KV, &types.KeyValue{TotalFeeKey(),totalFeeBytes})
+	
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -170,9 +199,25 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
+
+	totalFeeBytes, err := execute.stateDB.Get(TotalFeeKey())
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+	
+	var totalFee types.Int64
+	err = types.Decode(totalFeeBytes, &totalFee)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+
+	var fee int64
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
+		fee += tx.Fee
 		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
@@ -191,6 +236,15 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
+
+	totalFee.Data -= fee
+	totalFeeBytes = types.Encode(&totalFee)
+        if err != nil {
+                msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+                return
+        }
+	kvset.KV = append(kvset.KV, &types.KeyValue{TotalFeeKey(),totalFeeBytes})
+
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
