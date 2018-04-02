@@ -561,12 +561,17 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 		case types.EventCloseTickets:
 			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
-			wallet.flushTicket()
 			if err != nil {
 				walletlog.Error("closeTicket", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, err))
 			} else {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, hashes))
+				go func() {
+					if len(hashes.Hashes) > 0 {
+						wallet.waitTxs(hashes.Hashes)
+						wallet.flushTicket()
+					}
+				}()
 			}
 
 		default:
