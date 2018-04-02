@@ -921,12 +921,12 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	lastStateHash = lastBlock.StateHash
 	txs = cs.client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
 	if len(txs) > 0 {
-		cs.NewTxsFinished <- true
 		//check dup
 		txs = cs.client.CheckTxDup(txs)
 		newtxs, err = cs.Convert2ByteTxs(txs)
 		if err != nil {
 			cs.Logger.Error("enterPropose: Convert2ByteTxs failed.", "error", err)
+			cs.NewTxsFinished <- false
 		}
 	} else {
 		return nil, nil
@@ -1353,6 +1353,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 		err = cs.client.WriteBlock(block.LastStateHash, &newblock)
 		if err != nil {
+			cs.NewTxsFinished <- false
 			err := cmn.Kill()
 			cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
 			return
@@ -1369,6 +1370,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			 }
 		}
 	}
+	cs.NewTxsFinished <- true
 	cs.Logger.Info("state before:", "state", stateCopy)
 	cs.updateState(stateCopy, block, blockID)
 	cs.Logger.Info("state after:", "state", stateCopy)
