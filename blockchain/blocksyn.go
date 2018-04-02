@@ -5,6 +5,7 @@ import (
 	"math"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.aliyun.com/chain33/chain33/common"
@@ -29,7 +30,9 @@ var (
 	MaxRollBlockNum         int64 = 5000   //最大回退block数量
 	blockSynSeconds               = time.Duration(TimeoutSeconds)
 	checkBlockNum           int64 = 128
-	synlog                        = chainlog.New("submodule", "syn")
+	batchsyncblocknum       int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
+
+	synlog = chainlog.New("submodule", "syn")
 )
 
 //blockchain模块需要保存的peerinfo
@@ -370,6 +373,13 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	curheight := chain.GetBlockHeight()
 	RcvLastCastBlkHeight := chain.GetRcvLastCastBlkHeight()
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
+
+	// 节点同步阶段自己高度小于最大高度batchsyncblocknum时存储block到db批量处理时不刷盘
+	if peerMaxBlkHeight > curheight+batchsyncblocknum {
+		atomic.CompareAndSwapInt32(&chain.isbatchsync, 1, 0)
+	} else {
+		atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
+	}
 	//如果任务正常，那么不重复启动任务
 	if chain.task.InProgress() {
 		synlog.Info("chain task InProgress")
