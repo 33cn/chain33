@@ -132,8 +132,8 @@ func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig) (*grpc.ClientConn, err
 	cliparm.Timeout = 5 * time.Second  //等待5秒，如果Ping 没有响应，则超时
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
-	readOp := grpc.WithReadBufferSize(1024 * 1024 * 50)   //设置读缓存为50M
-	writeOp := grpc.WithWriteBufferSize(1024 * 1024 * 10) //设置写缓存为10M
+	readOp := grpc.WithReadBufferSize(1024 * 1024 * 1)   //设置读缓存为1M
+	writeOp := grpc.WithWriteBufferSize(1024 * 1024 * 1) //设置写缓存为1M
 	//暂时不开放 压缩发送解压缩
 	//gizpCompressDialOp := grpc.WithCompressor(grpc.NewGZIPCompressor())  //采用gzip 压缩格式发送
 	//gizpDeComDialOp := grpc.WithDecompressor(grpc.NewGZIPDecompressor()) //采用gzip 解压缩格式解压

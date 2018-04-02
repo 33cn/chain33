@@ -54,8 +54,9 @@ func NewP2pServer() *p2pServer {
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 
 	peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
-	if P2pComm.CheckSign(in) {
-		log.Info("Ping", "p2p server", "recv ping")
+	if P2pComm.CheckSign(in) == false {
+		log.Error("Ping", "p2p server", "check sig err")
+		return nil, pb.ErrPing
 	}
 
 	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, in.GetPort()))
@@ -436,6 +437,10 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
+			if P2pComm.CheckSign(ping) == false {
+				log.Error("ServerStreamRead", "check stream", "check sig err")
+				return pb.ErrStreamPing
+			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
 			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: time.Now().Unix()})
@@ -467,8 +472,9 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
  */
 
 func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
-	if P2pComm.CheckSign(in) {
-		log.Info("Ping", "CollectInPeers", "recv ping")
+	if P2pComm.CheckSign(in) == false {
+		log.Info("Ping", "CollectInPeers", "check sig err")
+		return nil, pb.ErrPing
 	}
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
