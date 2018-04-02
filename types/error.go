@@ -166,4 +166,5 @@ var (
 	ErrPing       = errors.New("ErrPingSignature")
 	ErrVersion    = errors.New("ErrVersionNoSupport")
 	ErrStreamPing = errors.New("ErrStreamPing")
+	ErrPeerStop   = errors.New("ErrPeerStop")
 )
