@@ -274,13 +274,8 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 					tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs comming")
 					select {
 					case finish := <- client.csState.NewTxsFinished :
-						if finish {
-							tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing")
+							tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
 							continue
-						} else {
-							tendermintlog.Error("TendermintClientSetQueue", "msg", "GetMempoolTxs msg not finiish", "error", err)
-						}
-
 					}
 				}
 			}

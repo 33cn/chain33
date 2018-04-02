@@ -16,13 +16,13 @@ singleMode=false
 [p2p]
 seeds=["192.168.3.4:13802","192.168.3.13:13802"]
 enable=true
-isSeed=true
+isSeed=false
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
-version=199
-verMix=199
-verMax=199
+version=118
+verMix=118
+verMax=119
 
 [rpc]
 jrpcBindAddr="localhost:8801"
