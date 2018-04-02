@@ -6,7 +6,7 @@ title = "raft"
         hostIp="raft15258.chinacloudapp.cn"
         passWord="Fuzamei#123456"
         port=22
-        localFilePath="D:/Repository/src/code.aliyun.com/chain33/chain33/consensus/drivers/raft/tools/scripts/chain33.tgz"
+        localFilePath="chain33.tgz"
         remoteDir="/home/ubuntu/deploy"
 #    [servers.2]
 #        userName="ubuntu"

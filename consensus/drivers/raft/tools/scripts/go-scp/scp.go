@@ -12,12 +12,15 @@ import (
 	"golang.org/x/crypto/ssh"
 	"io"
 	//"io/ioutil"
+	"errors"
+	"flag"
 	tml "github.com/BurntSushi/toml"
 	"path/filepath"
 	"strings"
-	"flag"
 )
+
 var configPath = flag.String("f", "servers.toml", "configfile")
+
 type ScpInfo struct {
 	UserName      string
 	PassWord      string
@@ -27,16 +30,16 @@ type ScpInfo struct {
 	RemoteDir     string
 }
 type CmdInfo struct {
-	userName string
-	passWord string
-	hostIp   string
-	port     int
-	cmd      string
+	userName  string
+	passWord  string
+	hostIp    string
+	port      int
+	cmd       string
 	remoteDir string
 }
 type tomlConfig struct {
 	Title   string
-    Servers   map[string]ScpInfo
+	Servers map[string]ScpInfo
 }
 
 func sshconnect(user, password, host string, port int) (*ssh.Session, error) {
@@ -180,7 +183,7 @@ func getCurrentDirectory() string {
 	fmt.Println(dir)
 	return strings.Replace(dir, "\\", "/", -1)
 }
-func InitCfg(path string) *tomlConfig{
+func InitCfg(path string) *tomlConfig {
 	var cfg tomlConfig
 	if _, err := tml.DecodeFile(path, &cfg); err != nil {
 		fmt.Println(err)
@@ -197,8 +200,43 @@ func pwd() string {
 	return dir
 }
 func main() {
-	conf :=InitCfg("D:/Repository/src/code.aliyun.com/chain33/chain33/consensus/drivers/raft/tools/scripts/go-scp/servers.toml")
+	conf := InitCfg(*configPath)
 	start := time.Now()
+	if len(os.Args) == 1 || os.Args[1] == "-h" {
+		LoadHelp()
+		return
+	}
+	argsWithoutProg := os.Args[1:]
+	switch argsWithoutProg[0] {
+	case "-h": //使用帮助
+		LoadHelp()
+	case "start":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		if argsWithoutProg[1] == "all" {
+			startAll(conf)
+		}
+
+	case "stop":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		if argsWithoutProg[1] == "all" {
+			stopAll(conf)
+		}
+	case "clear":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		if argsWithoutProg[1] == "all" {
+			clearAll(conf)
+		}
+
+	}
 
 	////读取当前目录下的文件
 	//dir_list, e := ioutil.ReadDir("D:/Repository/src/code.aliyun.com/chain33/chain33/consensus/drivers/raft/tools/scripts")
@@ -209,35 +247,63 @@ func main() {
 	//for i, v := range dir_list {
 	//	fmt.Println(i, "=", v.Name())
 	//}
-     for name,server :=range conf.Servers{
-     	fmt.Println(name)
-     	fmt.Println(server.HostIp)
-	 }
-	fmt.Println(getCurrentDirectory())
 
-
+	timeCommon := time.Now()
+	log.Printf("read common cost time %v\n", timeCommon.Sub(start))
+}
+func LoadHelp() {
+	fmt.Println("Available Commands:")
+	fmt.Println(" start  : 启动服务 ")
+	fmt.Println(" stop   : 停止服务")
+	fmt.Println(" clear  : 清空数据")
+}
+func startAll(conf *tomlConfig) {
+	//fmt.Println(getCurrentDirectory())
 	arrMap := make(map[string]*CmdInfo)
 	//多协程启动部署
 	reqC := make(chan struct{}, len(conf.Servers))
 	for index, sc := range conf.Servers {
 		cmdInfo := &CmdInfo{}
-		cmdInfo.hostIp=sc.HostIp
-		cmdInfo.userName=sc.UserName
-		cmdInfo.port=sc.Port
-		cmdInfo.passWord=sc.PassWord
-		cmdInfo.cmd =fmt.Sprintf("mkdir -p %s",sc.RemoteDir)
-		cmdInfo.remoteDir=sc.RemoteDir
+		cmdInfo.hostIp = sc.HostIp
+		cmdInfo.userName = sc.UserName
+		cmdInfo.port = sc.Port
+		cmdInfo.passWord = sc.PassWord
+		cmdInfo.cmd = fmt.Sprintf("mkdir -p %s", sc.RemoteDir)
+		cmdInfo.remoteDir = sc.RemoteDir
 		RemoteExec(cmdInfo)
 		go remoteScp(&sc, reqC)
-		arrMap[index]=cmdInfo
+		arrMap[index] = cmdInfo
 	}
 	for i := 0; i < len(conf.Servers); i++ {
 		<-reqC
 	}
 	for i, cmdInfo := range arrMap {
-		cmdInfo.cmd = fmt.Sprintf("cd %s;tar -xvf chain33.tgz;bash raft_conf.sh %s;bash run.sh start",cmdInfo.remoteDir,i)
+		cmdInfo.cmd = fmt.Sprintf("cd %s;tar -xvf chain33.tgz;bash raft_conf.sh %s;bash run.sh start", cmdInfo.remoteDir, i)
 		RemoteExec(cmdInfo)
 	}
-	timeCommon := time.Now()
-	log.Printf("read common cost time %v\n", timeCommon.Sub(start))
+}
+func stopAll(conf *tomlConfig) {
+	//执行速度快，不需要多起多协程工作
+	for _, sc := range conf.Servers {
+		cmdInfo := &CmdInfo{}
+		cmdInfo.hostIp = sc.HostIp
+		cmdInfo.userName = sc.UserName
+		cmdInfo.port = sc.Port
+		cmdInfo.passWord = sc.PassWord
+		cmdInfo.cmd = fmt.Sprintf("cd %s;bash run.sh stop", sc.RemoteDir)
+		cmdInfo.remoteDir = sc.RemoteDir
+		RemoteExec(cmdInfo)
+	}
+}
+func clearAll(conf *tomlConfig) {
+	for _, sc := range conf.Servers {
+		cmdInfo := &CmdInfo{}
+		cmdInfo.hostIp = sc.HostIp
+		cmdInfo.userName = sc.UserName
+		cmdInfo.port = sc.Port
+		cmdInfo.passWord = sc.PassWord
+		cmdInfo.cmd = fmt.Sprintf("cd %s;bash run.sh clear", sc.RemoteDir)
+		cmdInfo.remoteDir = sc.RemoteDir
+		RemoteExec(cmdInfo)
+	}
 }
