@@ -63,19 +63,19 @@ func (client *RaftClient) ProcEvent(msg queue.Message) {
 
 }
 
-func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
+func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
 	//exec block
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
-		return nil, err
+		return nil, deltx, err
 	}
 	if len(blockdetail.Block.Txs) == 0 {
-		return nil, types.ErrNoTx
+		return nil, deltx, types.ErrNoTx
 	}
-	return blockdetail, nil
+	return blockdetail, deltx, nil
 }
 func (client *RaftClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
