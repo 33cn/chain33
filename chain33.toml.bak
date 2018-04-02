@@ -16,8 +16,12 @@ singleMode=false
 [p2p]
 seeds=["192.168.3.4:13802","192.168.3.13:13802"]
 enable=true
+<<<<<<< HEAD
 isSeed=true
+=======
+isSeed=false
 serverStart=true
+>>>>>>> develop
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"

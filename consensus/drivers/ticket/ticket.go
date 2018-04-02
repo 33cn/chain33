@@ -606,23 +606,23 @@ func getTxHashes(txs []*types.Transaction) (hashes [][]byte) {
 	return hashes
 }
 
-func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
+func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
-		return nil, err
+		return nil, deltx, err
 	}
 	if len(blockdetail.Block.Txs) == 0 {
-		return nil, types.ErrNoTx
+		return nil, deltx, types.ErrNoTx
 	}
 	//判断txs[0] 是否执行OK
 	if block.Height > 0 {
 		err = client.CheckBlock(client.GetCurrentBlock(), blockdetail)
 		if err != nil {
-			return nil, err
+			return nil, deltx, err
 		}
 	}
-	return blockdetail, nil
+	return blockdetail, deltx, nil
 }
