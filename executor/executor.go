@@ -10,12 +10,12 @@ import (
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
+	_ "code.aliyun.com/chain33/chain33/executor/drivers/manage"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/token"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/trade"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/manage"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
@@ -308,7 +308,7 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 	return exec.ExecDelLocal(tx, r, index)
 }
 
-func (e *executor) loadDriverForExec(exector string)(c drivers.Driver) {
+func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 	exec, err := e.execDriver.LoadDriver(exector)
 	if err != nil {
 		exec, err = e.execDriver.LoadDriver("none")
@@ -325,4 +325,3 @@ func LoadDriver(name string) (c drivers.Driver, err error) {
 	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
 	return execDrivers.LoadDriver(name)
 }
-

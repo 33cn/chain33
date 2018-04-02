@@ -29,7 +29,7 @@ func initEnv() (*Wallet, queue.Queue) {
 	return wallet, q
 }
 
-func storeModProc(q queue.Queue) *store.Store {
+func storeModProc(q queue.Queue) queue.Module {
 	//store
 	var cfg types.Store
 	cfg.DbPath = "datadir"
