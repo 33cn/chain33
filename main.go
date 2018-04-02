@@ -32,6 +32,7 @@ import (
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
+	"code.aliyun.com/chain33/chain33/types"
 )
 
 var (
@@ -69,6 +70,8 @@ func main() {
 	flag.Parse()
 	//set config
 	cfg := config.InitCfg(*configPath)
+
+	types.SetMinFee(0)
 
 	//set file log
 	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
