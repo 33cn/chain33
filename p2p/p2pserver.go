@@ -54,8 +54,9 @@ func NewP2pServer() *p2pServer {
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 
 	peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
-	if P2pComm.CheckSign(in) {
-		log.Info("Ping", "p2p server", "recv ping")
+	if P2pComm.CheckSign(in) == false {
+		log.Error("ping check signature err")
+		return nil, pb.ErrPing
 	}
 
 	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, in.GetPort()))
@@ -115,7 +116,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 
 	if s.checkVersion(in.GetVersion()) == false {
-		return nil, fmt.Errorf(VersionNotSupport)
+		return nil, pb.ErrVersion
 	}
 
 	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
@@ -154,7 +155,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 
 	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
 	if s.checkVersion(in.GetVersion()) == false {
-		return nil, fmt.Errorf(VersionNotSupport)
+		return nil, pb.ErrVersion
 	}
 
 	client := s.node.nodeInfo.client
@@ -184,7 +185,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 func (s *p2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
 	log.Debug("p2pServer Recv GetMempool", "version", in)
 	if s.checkVersion(in.GetVersion()) == false {
-		return nil, fmt.Errorf(VersionNotSupport)
+		return nil, pb.ErrVersion
 	}
 	memtx, err := s.loadMempool()
 	if err != nil {
@@ -204,7 +205,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 	var p2pInvData = make([]*pb.InvData, 0)
 	var count = 0
 	if s.checkVersion(in.GetVersion()) == false {
-		return fmt.Errorf(VersionNotSupport)
+		return pb.ErrVersion
 	}
 	invs := in.GetInvs()
 	client := s.node.nodeInfo.client
@@ -272,7 +273,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
 	log.Debug("p2pServer GetHeaders", "p2p version", in.GetVersion())
 	if s.checkVersion(in.GetVersion()) == false {
-		return nil, fmt.Errorf(VersionNotSupport)
+		return nil, pb.ErrVersion
 	}
 	if in.GetEndHeight()-in.GetStartHeight() > 2000 || in.GetEndHeight() < in.GetStartHeight() {
 		return nil, fmt.Errorf("out of range")
@@ -298,7 +299,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
 	log.Debug("p2pServer GetPeerInfo", "p2p version", in.GetVersion())
 	if s.checkVersion(in.GetVersion()) == false {
-		return nil, fmt.Errorf(VersionNotSupport)
+		return nil, pb.ErrVersion
 	}
 	client := s.node.nodeInfo.client
 	log.Debug("GetPeerInfo", "GetMempoolSize", "befor")
@@ -360,6 +361,9 @@ func (s *p2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
 	dataChain := s.addStreamHandler(stream)
 	for data := range dataChain {
+		if s.IsClose() {
+			return fmt.Errorf("node close")
+		}
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
 			log.Debug("ServerStreamSend", "blockhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
@@ -393,6 +397,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
 	for {
+		if s.IsClose() {
+			return fmt.Errorf("node close")
+		}
 		in, err := stream.Recv()
 		if err == io.EOF {
 			log.Info("ServerStreamRead", "Recv", "EOF")
@@ -404,12 +411,12 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		}
 		if block := in.GetBlock(); block != nil {
 
-			blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+			blockhash := hex.EncodeToString(block.GetBlock().Hash())
 			if Filter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
 				continue
 			}
 
-			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block txhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
+			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block hash", hex.EncodeToString(block.GetBlock().GetTxHash()))
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 				err := s.node.nodeInfo.client.Send(msg, false)
@@ -434,6 +441,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
+			if P2pComm.CheckSign(ping) == false {
+				return pb.ErrStreamPing
+			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
 			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: time.Now().Unix()})
@@ -465,8 +475,10 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
  */
 
 func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
-	if P2pComm.CheckSign(in) {
-		log.Info("Ping", "CollectInPeers", "recv ping")
+	if P2pComm.CheckSign(in) == false {
+		log.Error("CollectInPeers", "ping", "signatrue err")
+		return nil, pb.ErrPing
+
 	}
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
@@ -517,6 +529,8 @@ func (s *p2pServer) manageStream() {
 		defer ticker.Stop()
 		for {
 			if s.IsClose() {
+				//close all send stream
+				s.closeAllSendStream()
 				return
 			}
 			select {
@@ -545,6 +559,14 @@ func (s *p2pServer) addStreamHandler(stream pb.P2Pgservice_ServerStreamSendServe
 	s.streams[stream] = make(chan interface{}, 1024)
 	return s.streams[stream]
 
+}
+
+func (s *p2pServer) closeAllSendStream() {
+	s.smtx.Lock()
+	defer s.smtx.Unlock()
+	for _, schan := range s.streams {
+		close(schan)
+	}
 }
 
 func (s *p2pServer) addStreamData(data interface{}) {

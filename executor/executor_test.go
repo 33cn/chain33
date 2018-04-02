@@ -36,7 +36,7 @@ func init() {
 	common.SetLogLevel("info")
 }
 
-func initEnv() (queue.Queue, *blockchain.BlockChain, *store.Store, queue.Module, *p2p.P2p, *mempool.Mempool) {
+func initEnv() (queue.Queue, *blockchain.BlockChain, queue.Module, queue.Module, *p2p.P2p, *mempool.Mempool) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
