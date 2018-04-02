@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 // NetAddress defines information about a peer on the network
@@ -125,8 +127,17 @@ func (na *NetAddress) Copy() *NetAddress {
 func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig) (*grpc.ClientConn, error) {
 	ch := make(chan grpc.ServiceConfig, 1)
 	ch <- cfg
+	var cliparm keepalive.ClientParameters
+	cliparm.Time = 5 * time.Second     //5秒Ping 一次
+	cliparm.Timeout = 5 * time.Second  //等待5秒，如果Ping 没有响应，则超时
+	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
+	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
+	//暂时不开放 压缩发送解压缩
+	//gizpCompressDialOp := grpc.WithCompressor(grpc.NewGZIPCompressor())  //采用gzip 压缩格式发送
+	//gizpDeComDialOp := grpc.WithDecompressor(grpc.NewGZIPDecompressor()) //采用gzip 解压缩格式解压
 
-	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch))
+	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch),
+		/*gizpCompressDialOp, gizpDeComDialOp,*/ keepaliveOp)
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect", err)
 		return nil, err

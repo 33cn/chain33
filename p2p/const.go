@@ -38,7 +38,7 @@ const (
 	StableBoundNum       = 15
 	MaxAddrListNum       = 256
 	MaxRangeBlockNum     = 100
-	MaxAttemps           = 20
+	MaxAttemps           = 5
 )
 
 const (

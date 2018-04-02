@@ -24,6 +24,7 @@ func (p *peer) Close() {
 	p.mconn.Close()
 	close(p.taskPool)
 	pub.Unsub(p.taskChan, "block", "tx")
+
 }
 
 type peer struct {
