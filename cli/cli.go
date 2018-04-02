@@ -845,11 +845,10 @@ func SendToAddress(from string, to string, amount string, note string, isToken b
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountFloat64 * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	if !isToken {
 		params.Istoken = false
-		params.Amount *= types.CoinMultiple
 	} else {
 		params.Istoken = true
 		params.TokenSymbol = tokenSymbol
@@ -1421,6 +1420,17 @@ func GetWalletStatus(isCloseTickets bool) (interface{}, error) {
 }
 
 func GetBalance(address string, execer string) {
+	isExecer := false
+	for _, e := range [7]string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+		if e == execer {
+			isExecer = true
+			break
+		}
+	}
+	if !isExecer {
+		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+		return
+	}
 	var addrs []string
 	addrs = append(addrs, address)
 	params := types.ReqBalance{Addresses: addrs, Execer: execer}
@@ -1506,7 +1516,7 @@ func GetExecAddr(exec string) {
 		fmt.Println(string(data))
 
 	default:
-		fmt.Println("exec not exist!")
+		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
 	}
 }
 
@@ -1824,21 +1834,26 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		Nonce:      tx.Nonce,
 		To:         tx.To,
 	}
-	payloacValue := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
-	for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
-		if _, ok := payloacValue[e]; ok {
-			amt := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"].(float64) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
-			break
+	if plValue, ok := tx.Payload.(map[string]interface{})["Value"]; ok {
+		payloadValue := plValue.(map[string]interface{})
+		for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
+			if _, ok := payloadValue[e]; ok {
+				if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
+					amt := amtValue.(float64) / float64(types.Coin)
+					amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+					result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
+					break
+				}
+			}
+		}
+		if _, ok := payloadValue["Miner"]; ok {
+			if rwdValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"]; ok {
+				rwd := rwdValue.(float64) / float64(types.Coin)
+				rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
+				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
+			}
 		}
 	}
-	if _, ok := payloacValue["Miner"]; ok {
-		rwd := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"].(float64) / float64(types.Coin)
-		rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
-		result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
-	}
-
 	if tx.Amount != 0 {
 		result.Amount = amountResult
 	}
@@ -1862,20 +1877,20 @@ func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 
 func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account {
 	var cur int32
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"].(float32); ok {
-		cur = int32(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"]; ok {
+		cur = int32(tmp.(float32))
 	}
 	var bal int64
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["balance"].(float64); ok {
-		bal = int64(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["balance"]; ok {
+		bal = int64(tmp.(float64))
 	}
 	var fro int64
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["frozen"].(float64); ok {
-		fro = int64(tmp)
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["frozen"]; ok {
+		fro = int64(tmp.(float64))
 	}
 	var ad string
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["addr"].(string); ok {
-		ad = tmp
+	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["addr"]; ok {
+		ad = tmp.(string)
 	}
 	return &types.Account{
 		Currency: cur,
@@ -2007,7 +2022,7 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64 := int64(amountperboardlot * types.InputPrecision) //支持4位小数输入，多余的输入将被截断
+	amountInt64 := int64(amountperboardlot*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	sell.Amountperboardlot = amountInt64
 
 	sell.Minboardlot, err = strconv.ParseInt(args[3], 10, 64)
@@ -2020,7 +2035,7 @@ func SellToken(args []string, starttime string, stoptime string, isCrowfund bool
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	sell.Priceperboardlot = int64(price*types.InputPrecision) * types.CoinMultiple
+	sell.Priceperboardlot = int64(price*types.InputPrecision) * types.Multiple1E4
 
 	sell.Totalboardlot, err = strconv.ParseInt(args[5], 10, 64)
 	if err != nil {
@@ -2203,7 +2218,7 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
 		sellOrders2show.Seller = sellorder.Address
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
 		sellOrders2show.Minboardlot = sellorder.Minboardlot
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
@@ -2274,7 +2289,7 @@ func ShowSellOrderWithStatus(status string) {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
 		sellOrders2show.Seller = sellorder.Address
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.InputPrecision), 'f', 4, 64)
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
 		sellOrders2show.Minboardlot = sellorder.Minboardlot
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
@@ -2371,8 +2386,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
 		default:
-			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
-			return nil
+			// fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
+			rl.Log = nil
 		}
 		rd.Logs = append(rd.Logs, rl)
 	}
@@ -2395,13 +2410,13 @@ func IsNtpClockSync() {
 	fmt.Println("ntpclocksync status:", res)
 }
 
-func ManageConfigTransactioin(key, op, opAddr,  priv string) {
+func ManageConfigTransactioin(key, op, opAddr, priv string) {
 	c, _ := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	a, _ := common.FromHex(priv)
 	privKey, _ := c.PrivKeyFromBytes(a)
 	originaddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 
-	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr }
+	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originaddr}
 	modify := &types.ManageAction{
 		Ty:    types.ManageActionModifyConfig,
 		Value: &types.ManageAction_Modify{v},
