@@ -135,7 +135,6 @@ func ScpFileFromLocalToRemote(si *ScpInfo) {
 	//b := bytes.NewBuffer(make([]byte,0))
 
 	buf := make([]byte, 1024000)
-	i := 0
 	for {
 		//n, err := bufReader.Read(buf)
 		n, _ := srcFile.Read(buf)
@@ -145,8 +144,6 @@ func ScpFileFromLocalToRemote(si *ScpInfo) {
 		if n == 0 {
 			break
 		}
-		i++
-		fmt.Println("times:==========", i)
 		dstFile.Write(buf[0:n])
 	}
 	fmt.Println("copy file to remote server finished!")
@@ -172,7 +169,7 @@ func remoteScp(si *ScpInfo, reqnum chan struct{}) {
 	}()
 	ScpFileFromLocalToRemote(si)
 	//session, err := sshconnect("ubuntu", "Fuzamei#123456", "raft15258.chinacloudapp.cn", 22)
-	fmt.Println("remote exec cmds.......:")
+	fmt.Println("remoteScp file sucessfully!:")
 
 }
 func getCurrentDirectory() string {
