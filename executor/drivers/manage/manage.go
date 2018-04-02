@@ -10,8 +10,8 @@ manage 负责管理配置
 import (
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
-	log "github.com/inconshreveable/log15"
 	"fmt"
+	log "github.com/inconshreveable/log15"
 )
 
 var clog = log.New("module", "execs.manage")
@@ -146,7 +146,7 @@ func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
 			err = types.Decode(value, &item)
 			if err != nil {
 				clog.Error("modifyConfig", "get db key", in.Data)
-				return nil, err  // types.ErrBadConfigValue
+				return nil, err // types.ErrBadConfigValue
 			}
 			reply.Value = fmt.Sprint(item.GetArr().Value)
 		} else { // if config item not exist
