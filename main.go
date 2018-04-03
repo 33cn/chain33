@@ -18,10 +18,10 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
@@ -84,7 +84,7 @@ func main() {
 	}
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info("chain33 " + common.GetVersion())
+	log.Info("chain33 " + version.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
