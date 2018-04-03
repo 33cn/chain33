@@ -3,6 +3,7 @@ package retrieve
 import (
 	"fmt"
 
+	log "github.com/inconshreveable/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -99,7 +100,7 @@ func (r *Retrieve) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
-
+	rlog.Debug("Retrieve ExecLocal")
 	var action types.RetrieveAction
 	err = types.Decode(tx.GetPayload(), &action)
 	if err != nil {
@@ -110,19 +111,19 @@ func (r *Retrieve) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	if action.Ty == types.RetrieveBackup && action.GetBackup() != nil {
 		backupRet := action.GetBackup()
 		info := types.RetrieveQuery{backupRet.BackupAddress, backupRet.DefaultAddress, backupRet.DelayPeriod, zeroPrepareTime, zeroRemainTime, Retrieve_Backup}
-		kv, err = SaveRetrieveInfo(&info, Retrieve_Backup, r.GetDB())
+		kv, err = SaveRetrieveInfo(&info, Retrieve_Backup, r.GetLocalDB())
 	} else if action.Ty == types.RetrievePre && action.GetPreRet() != nil {
 		preRet := action.GetPreRet()
 		info := types.RetrieveQuery{preRet.BackupAddress, preRet.DefaultAddress, zeroDelay, r.GetBlockTime(), zeroRemainTime, Retrieve_Prepared}
-		kv, err = SaveRetrieveInfo(&info, Retrieve_Prepared, r.GetDB())
+		kv, err = SaveRetrieveInfo(&info, Retrieve_Prepared, r.GetLocalDB())
 	} else if action.Ty == types.RetrievePerf && action.GetPerfRet() != nil {
 		perfRet := action.GetPerfRet()
 		info := types.RetrieveQuery{perfRet.BackupAddress, perfRet.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, Retrieve_Performed}
-		kv, err = SaveRetrieveInfo(&info, Retrieve_Performed, r.GetDB())
+		kv, err = SaveRetrieveInfo(&info, Retrieve_Performed, r.GetLocalDB())
 	} else if action.Ty == types.RetrieveCancel && action.GetCancel() != nil {
 		cancel := action.GetCancel()
 		info := types.RetrieveQuery{cancel.BackupAddress, cancel.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, Retrieve_Canceled}
-		kv, err = SaveRetrieveInfo(&info, Retrieve_Canceled, r.GetDB())
+		kv, err = SaveRetrieveInfo(&info, Retrieve_Canceled, r.GetLocalDB())
 	}
 
 	if err != nil {
@@ -153,19 +154,19 @@ func (r *Retrieve) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDat
 	if action.Ty == types.RetrieveBackup && action.GetBackup() != nil {
 		backupRet := action.GetBackup()
 		info := types.RetrieveQuery{backupRet.BackupAddress, backupRet.DefaultAddress, backupRet.DelayPeriod, zeroPrepareTime, zeroRemainTime, Retrieve_Backup}
-		kv, err = DelRetrieveInfo(&info, Retrieve_Backup, r.GetDB())
+		kv, err = DelRetrieveInfo(&info, Retrieve_Backup, r.GetLocalDB())
 	} else if action.Ty == types.RetrievePre && action.GetPreRet() != nil {
 		preRet := action.GetPreRet()
 		info := types.RetrieveQuery{preRet.BackupAddress, preRet.DefaultAddress, zeroDelay, r.GetBlockTime(), zeroRemainTime, Retrieve_Prepared}
-		kv, err = DelRetrieveInfo(&info, Retrieve_Prepared, r.GetDB())
+		kv, err = DelRetrieveInfo(&info, Retrieve_Prepared, r.GetLocalDB())
 	} else if action.Ty == types.RetrievePerf && action.GetPerfRet() != nil {
 		perfRet := action.GetPerfRet()
 		info := types.RetrieveQuery{perfRet.BackupAddress, perfRet.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, Retrieve_Performed}
-		kv, err = DelRetrieveInfo(&info, Retrieve_Performed, r.GetDB())
+		kv, err = DelRetrieveInfo(&info, Retrieve_Performed, r.GetLocalDB())
 	} else if action.Ty == types.RetrieveCancel && action.GetCancel() != nil {
 		cancel := action.GetCancel()
 		info := types.RetrieveQuery{cancel.BackupAddress, cancel.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, Retrieve_Canceled}
-		kv, err = DelRetrieveInfo(&info, Retrieve_Canceled, r.GetDB())
+		kv, err = DelRetrieveInfo(&info, Retrieve_Canceled, r.GetLocalDB())
 	}
 	if err != nil {
 		return set, nil
@@ -177,15 +178,16 @@ func (r *Retrieve) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDat
 }
 
 func SaveRetrieveInfo(info *types.RetrieveQuery, Status int64, db dbm.KVDB) (*types.KeyValue, error) {
+	rlog.Debug("Retrieve SaveRetrieveInfo", "backupaddr", info.BackupAddress, "defaddr", info.DefaultAddress)
 	switch Status {
 	case Retrieve_Backup:
-		//TRY TO USE DB
 		oldInfo, err := getRetrieveInfo(db, info.BackupAddress, info.DefaultAddress)
 		if oldInfo != nil && oldInfo.Status == Retrieve_Backup {
 			return nil, err
 		}
 		value := types.Encode(info)
 		kv := &types.KeyValue{calcRetrieveKey(info.BackupAddress, info.DefaultAddress), value}
+		db.Set(kv.Key, kv.Value)
 		return kv, nil
 	case Retrieve_Prepared:
 		oldInfo, err := getRetrieveInfo(db, info.BackupAddress, info.DefaultAddress)
@@ -195,6 +197,7 @@ func SaveRetrieveInfo(info *types.RetrieveQuery, Status int64, db dbm.KVDB) (*ty
 		info.DelayPeriod = oldInfo.DelayPeriod
 		value := types.Encode(info)
 		kv := &types.KeyValue{calcRetrieveKey(info.BackupAddress, info.DefaultAddress), value}
+		db.Set(kv.Key, kv.Value)
 		return kv, nil
 	case Retrieve_Performed:
 		fallthrough
@@ -207,6 +210,7 @@ func SaveRetrieveInfo(info *types.RetrieveQuery, Status int64, db dbm.KVDB) (*ty
 		info.PrepareTime = oldInfo.PrepareTime
 		value := types.Encode(info)
 		kv := &types.KeyValue{calcRetrieveKey(info.BackupAddress, info.DefaultAddress), value}
+		db.Set(kv.Key, kv.Value)
 		return kv, nil
 	default:
 		return nil, nil
@@ -218,6 +222,7 @@ func DelRetrieveInfo(info *types.RetrieveQuery, Status int64, db dbm.KVDB) (*typ
 	switch Status {
 	case Retrieve_Backup:
 		kv := &types.KeyValue{calcRetrieveKey(info.BackupAddress, info.DefaultAddress), nil}
+		db.Set(kv.Key, kv.Value)
 		return kv, nil
 	case Retrieve_Prepared:
 		oldInfo, err := getRetrieveInfo(db, info.BackupAddress, info.DefaultAddress)
@@ -229,6 +234,7 @@ func DelRetrieveInfo(info *types.RetrieveQuery, Status int64, db dbm.KVDB) (*typ
 		info.PrepareTime = 0
 		value := types.Encode(info)
 		kv := &types.KeyValue{calcRetrieveKey(info.BackupAddress, info.DefaultAddress), value}
+		db.Set(kv.Key, kv.Value)
 		return kv, nil
 	case Retrieve_Performed:
 		fallthrough
@@ -242,6 +248,7 @@ func DelRetrieveInfo(info *types.RetrieveQuery, Status int64, db dbm.KVDB) (*typ
 		info.PrepareTime = oldInfo.PrepareTime
 		value := types.Encode(info)
 		kv := &types.KeyValue{calcRetrieveKey(info.BackupAddress, info.DefaultAddress), value}
+		db.Set(kv.Key, kv.Value)
 		return kv, nil
 	default:
 		return nil, nil
@@ -250,13 +257,13 @@ func DelRetrieveInfo(info *types.RetrieveQuery, Status int64, db dbm.KVDB) (*typ
 
 func (r *Retrieve) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == "GetRetrieveInfo" {
-		rlog.Debug("Query action")
 		var req types.ReqRetrieveInfo
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
 		}
-		info, err := getRetrieveInfo(r.GetDB(), req.BackupAddress, req.DefaultAddress)
+		rlog.Debug("Retrieve Query", "backupaddr", req.BackupAddress, "defaddr", req.DefaultAddress)
+		info, err := getRetrieveInfo(r.GetLocalDB(), req.BackupAddress, req.DefaultAddress)
 		if info == nil {
 			return nil, err
 		}
@@ -273,7 +280,7 @@ func calcRetrieveKey(backupAddr string, defaultAddr string) []byte {
 func getRetrieveInfo(db dbm.KVDB, backupAddr string, defaultAddr string) (*types.RetrieveQuery, error) {
 	info := types.RetrieveQuery{}
 	retInfo, err := db.Get(calcRetrieveKey(backupAddr, defaultAddr))
-	if err != nil && err != types.ErrNotFound {
+	if err != nil {
 		return nil, err
 	}
 
