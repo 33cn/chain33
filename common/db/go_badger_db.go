@@ -48,8 +48,12 @@ func (db *GoBadgerDB) Get(key []byte) []byte {
 	err := db.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
 		if err != nil {
-			blog.Error("Get", "txn.Get.error", err)
-			return nil
+			if err == badger.ErrKeyNotFound {
+				return nil
+			} else {
+				blog.Error("Get", "txn.Get.error", err)
+				return nil
+			}
 		}
 		val, err = item.Value()
 		if err != nil {

@@ -171,11 +171,12 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 		}
 	}
 
-	feekv, err := dealFee(&execute.stateDB, fee)
+	feekv, err := dealFee(execute, fee)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 		return
 	}
+	elog.Error("dealFee", "feekv", feekv)
 	kvset.KV = append(kvset.KV, feekv)
 
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
@@ -210,7 +211,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		}
 	}
 
-	feekv, err := dealFee(&execute.stateDB, -fee)
+	feekv, err := dealFee(execute, -fee)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 		return
@@ -352,22 +353,26 @@ func LoadDriver(name string) (c drivers.Driver, err error) {
 	return execDrivers.LoadDriver(name)
 }
 
-func dealFee(db *dbm.KVDB, fee int64) (*types.KeyValue, error) {
-	totalFeeBytes, err := (*db).Get(TotalFeeKey())
-	if err != nil {
-		return nil, err
-	}
+func dealFee(ex *executor, fee int64) (*types.KeyValue, error) {
+	totalFee := &types.Int64{}
 
-	var totalFee types.Int64
-	err = types.Decode(totalFeeBytes, &totalFee)
-	if err != nil {
+	elog.Error("dealFee", "1", 1)
+	//totalFeeBytes, err := ex.stateDB.Get(TotalFeeKey())
+	totalFeeBytes, err := ex.stateDB.Get([]byte("mavl-coins-bty-12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"))
+	if err == nil {
+	elog.Error("dealFee", "2", 2)
+		err = types.Decode(totalFeeBytes, totalFee)
+		if err != nil {
+			return nil, err
+		}
+	} else if err != types.ErrNotFound {
+	elog.Error("dealFee", "3", 3)
 		return nil, err
 	}
+	elog.Error("dealFee", "fee", fee)
 
 	totalFee.Data += fee
-	totalFeeBytes = types.Encode(&totalFee)
-	if err != nil {
-		return nil, err
-	}
+	elog.Error("dealFee", "data", totalFee.Data)
+	totalFeeBytes = types.Encode(totalFee)
 	return &types.KeyValue{TotalFeeKey(), totalFeeBytes}, nil
 }
