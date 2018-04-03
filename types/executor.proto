@@ -227,6 +227,20 @@ message CancelRetrieve{
 	string backupAddress     = 1;
 	string defaultAddress    = 2;
 }
+
+message ReqRetrieveInfo{
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
+}
+
+message RetrieveQuery{
+	string backupAddress  = 1;
+	string defaultAddress = 2;
+	int64 delayPeriod     = 3;
+	int64 prepareTime     = 4;
+	int64 remainTime      = 5;
+	int32 status          = 6;
+}
 //message for retrieve end
 
 
