@@ -75,6 +75,7 @@ It has these top-level messages:
 	LocalDBGet
 	LocalReplyValue
 	StoreSet
+	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
 	Genesis
@@ -111,6 +112,8 @@ It has these top-level messages:
 	PreRetrieve
 	PerformRetrieve
 	CancelRetrieve
+	ReqRetrieveInfo
+	RetrieveQuery
 	TokenAction
 	TokenPreCreate
 	TokenFinishCreate

@@ -1,4 +1,4 @@
-package common
+package version
 
 const version = "v0.1.4"
 

@@ -28,8 +28,9 @@ func set(client queue.Client, hash, key, value []byte) ([]byte, error) {
 	set := &types.StoreSet{}
 	set.StateHash = hash
 	set.KV = append(set.KV, kv)
+	setwithsync := &types.StoreSetWithSync{set, true}
 
-	msg := client.NewMessage("store", types.EventStoreSet, set)
+	msg := client.NewMessage("store", types.EventStoreSet, setwithsync)
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
 	if err != nil {
@@ -248,7 +249,8 @@ func BenchmarkSetKey1000(b *testing.B) {
 		set.KV = append(set.KV, kv)
 
 		if i > 0 && i%1000 == 0 {
-			msg := client.NewMessage("store", types.EventStoreSet, set)
+			setwithsync := &types.StoreSetWithSync{set, true}
+			msg := client.NewMessage("store", types.EventStoreSet, setwithsync)
 			client.Send(msg, true)
 			msg, err := client.Wait(msg)
 			if err != nil {
