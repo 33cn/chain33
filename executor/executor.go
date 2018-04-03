@@ -5,7 +5,7 @@ import (
 	"bytes"
 
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
@@ -26,7 +26,7 @@ var coinsAccount = account.NewCoinsAccount()
 var runningHeight int64 = 0
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
@@ -108,7 +108,14 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		if types.MinFee > 0 {
+		e, err := LoadDriver(string(tx.Execer))
+		if err != nil {
+			e, err = LoadDriver("none")
+			if err != nil {
+				panic(err)
+			}
+		}
+		if !e.IsFree() && types.MinFee > 0 {
 			feelog, err = execute.processFee(tx)
 			if err != nil {
 				receipt := types.NewErrReceipt(err)
@@ -271,17 +278,17 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	if err != nil {
 		return err
 	}
-
+	//checkInExec
+	exec := e.loadDriverForExec(string(tx.Execer))
 	//手续费检查
-	if types.MinFee > 0 {
+	if !exec.IsFree() && types.MinFee > 0 {
 		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 		accFrom := e.coinsAccount.LoadAccount(from)
 		if accFrom.GetBalance() < types.MinBalanceTransfer {
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 	}
-	//checkInExec
-	exec := e.loadDriverForExec(string(tx.Execer))
+
 	exec.SetDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
