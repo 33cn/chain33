@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	pb "code.aliyun.com/chain33/chain33/types"
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )

@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type NodeInfo struct {

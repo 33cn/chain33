@@ -4,15 +4,15 @@ import (
 	"sync"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {

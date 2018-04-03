@@ -4,21 +4,21 @@ package executor
 import (
 	"bytes"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/executor/drivers"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/manage"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/token"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/trade"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/coins"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/none"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var elog = log.New("module", "execs")
@@ -30,7 +30,7 @@ func TotalFeeKey() []byte {
 }
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
@@ -112,7 +112,14 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		if types.MinFee > 0 {
+		e, err := LoadDriver(string(tx.Execer))
+		if err != nil {
+			e, err = LoadDriver("none")
+			if err != nil {
+				panic(err)
+			}
+		}
+		if !e.IsFree() && types.MinFee > 0 {
 			feelog, err = execute.processFee(tx)
 			if err != nil {
 				receipt := types.NewErrReceipt(err)
@@ -298,17 +305,17 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	if err != nil {
 		return err
 	}
-
+	//checkInExec
+	exec := e.loadDriverForExec(string(tx.Execer))
 	//手续费检查
-	if types.MinFee > 0 {
+	if !exec.IsFree() && types.MinFee > 0 {
 		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 		accFrom := e.coinsAccount.LoadAccount(from)
 		if accFrom.GetBalance() < types.MinBalanceTransfer {
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 	}
-	//checkInExec
-	exec := e.loadDriverForExec(string(tx.Execer))
+
 	exec.SetDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
