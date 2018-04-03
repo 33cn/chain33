@@ -9,10 +9,10 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
@@ -33,7 +33,7 @@ func init() {
 		panic(err)
 	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	common.SetLogLevel("info")
+	log.SetLogLevel("info")
 }
 
 func initEnv() (queue.Queue, *blockchain.BlockChain, queue.Module, queue.Module, *p2p.P2p, *mempool.Mempool) {
@@ -112,7 +112,7 @@ func TestExecBlock(t *testing.T) {
 	defer p2pnet.Close()
 	defer mem.Close()
 	block := createBlock(10000)
-	util.ExecBlock(q.Client(), zeroHash[:], block, false)
+	util.ExecBlock(q.Client(), zeroHash[:], block, false, true)
 }
 
 //gen 1万币需要 2s，主要是签名的花费
@@ -133,6 +133,6 @@ func BenchmarkExecBlock(b *testing.B) {
 	block := createBlock(10000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		util.ExecBlock(q.Client(), zeroHash[:], block, false)
+		util.ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	}
 }
