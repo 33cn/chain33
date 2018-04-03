@@ -45,13 +45,13 @@ func resetLog(log *types.Log) {
 	log15.Root().SetHandler(log15.MultiHandler(*getConsoleLogHandler(log.LogConsoleLevel), *getFileLogHandler(log)))
 }
 
-// 保证默认性况下为info级别，防止debug打印太多日志
+// 保证默认性况下为error级别，防止打印太多日志
 func fillDefaultValue(log *types.Log) {
 	if log.Loglevel == "" {
-		log.Loglevel = log15.LvlInfo.String()
+		log.Loglevel = log15.LvlError.String()
 	}
 	if log.LogConsoleLevel == "" {
-		log.LogConsoleLevel = log15.LvlInfo.String()
+		log.LogConsoleLevel = log15.LvlError.String()
 	}
 }
 
@@ -106,7 +106,8 @@ func getFileLogHandler(log *types.Log) *log15.Handler {
 func getLevel(lvlString string) log15.Lvl {
 	lvl, err := log15.LvlFromString(lvlString)
 	if err != nil {
-		return 5
+		// 日志级别配置不正确时默认为error级别
+		return log15.LvlError
 	}
 	return lvl
 }
