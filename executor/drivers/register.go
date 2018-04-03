@@ -4,15 +4,15 @@ package drivers
 import (
 	"fmt"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
 )
 
 var elog = log.New("module", "execs")
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {

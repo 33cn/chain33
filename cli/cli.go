@@ -10,15 +10,16 @@ import (
 	"strconv"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func main() {
-	common.SetLogLevel("eror")
+	clog.SetLogLevel("eror")
 	//	argsWithProg := os.Args
 	if len(os.Args) == 1 {
 		LoadHelp()

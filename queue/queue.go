@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 
 	log "github.com/inconshreveable/log15"
 )

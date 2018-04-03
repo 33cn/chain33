@@ -55,6 +55,7 @@ It has these top-level messages:
 	ReplyHashes
 	KeyValue
 	Config
+	Log
 	MemPool
 	Consensus
 	Wallet
