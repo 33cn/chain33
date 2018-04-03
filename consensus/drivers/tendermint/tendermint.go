@@ -2,15 +2,15 @@ package tendermint
 
 import (
 	log "github.com/inconshreveable/log15"
-	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/consensus/drivers"
-	ttypes "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/types"
-	sm "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/state"
+	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers"
+	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/core"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/core"
 	dbm "github.com/tendermint/tmlibs/db"
-	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/p2p"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	crypto "github.com/tendermint/go-crypto"
 	tlog "github.com/tendermint/tmlibs/log"
 	"bytes"
@@ -24,7 +24,7 @@ import (
 	"math/rand"
 	wire "github.com/tendermint/go-wire"
 	"sync"
-	"code.aliyun.com/chain33/chain33/util"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 var (

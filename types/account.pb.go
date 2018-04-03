@@ -137,6 +137,7 @@ It has these top-level messages:
 	ManageAction
 	ReceiptConfig
 	ReplyConfig
+	ReqTokenSellOrder
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
