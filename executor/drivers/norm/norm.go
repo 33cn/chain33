@@ -1,9 +1,9 @@
 package norm
 
 import (
+	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	log "github.com/inconshreveable/log15"
 )
 
 var clog = log.New("module", "execs.norm")
@@ -20,6 +20,7 @@ type Norm struct {
 func newNorm() *Norm {
 	n := &Norm{}
 	n.SetChild(n)
+	n.SetIsFree(true)
 	return n
 }
 
