@@ -14,17 +14,17 @@ import (
 
 var ulog = log.New("module", "util")
 
-func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, error) {
+func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, []*types.Transaction, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	defer func() {
-		ulog.Info("ExecBlock", "cost", time.Now().Sub(beg))
+		ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs), "cost", time.Now().Sub(beg))
 	}()
 	if errReturn && block.Height > 0 && block.CheckSign() == false {
 		//block的来源不是自己的mempool，而是别人的区块
-		return nil, types.ErrSign
+		return nil, nil, types.ErrSign
 	}
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
@@ -32,7 +32,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	cacheTxs = CheckTxDup(client, cacheTxs, block.Height)
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
-		return nil, types.ErrTxDup
+		return nil, nil, types.ErrTxDup
 	}
 	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
@@ -46,9 +46,9 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		receipt := receipts.Receipts[i]
 		if receipt.Ty == types.ExecErr {
 			if errReturn { //认为这个是一个错误的区块
-				return nil, types.ErrBlockExec
+				return nil, nil, types.ErrBlockExec
 			}
-			ulog.Error("exec tx err", "err", receipt)
+			//ulog.Error("exec tx err", "err", receipt)
 			deltxlist[i] = true
 			continue
 		}
@@ -68,14 +68,17 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 
 	calcHash := merkle.CalcMerkleRoot(block.Txs)
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
-		return nil, types.ErrCheckTxHash
+		return nil, nil, types.ErrCheckTxHash
 	}
 	block.TxHash = calcHash
 	//删除无效的交易
+	var deltx []*types.Transaction
 	if len(deltxlist) > 0 {
 		var newtx []*types.Transaction
 		for i := 0; i < len(block.Txs); i++ {
-			if !deltxlist[i] {
+			if deltxlist[i] {
+				deltx = append(deltx, block.Txs[i])
+			} else {
 				newtx = append(newtx, block.Txs[i])
 			}
 		}
@@ -92,14 +95,19 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
 		ExecKVSetRollback(client, block.StateHash)
-		return nil, types.ErrCheckStateHash
+		if len(rdata) > 0 {
+			for _, rd := range rdata {
+				rd.OutputReceiptDetails(ulog)
+			}
+		}
+		return nil, nil, types.ErrCheckStateHash
 	}
 	detail.Block = block
 	detail.Receipts = rdata
 	if detail.Block.Height > 0 {
 		err := CheckBlock(client, &detail)
 		if err != nil {
-			return nil, err
+			return nil, deltx, err
 		}
 	}
 	//save to db
@@ -110,7 +118,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//get receipts
 	//save kvset and get state hash
 	//ulog.Debug("blockdetail-->", "detail=", detail)
-	return &detail, nil
+	return &detail, deltx, nil
 }
 
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
