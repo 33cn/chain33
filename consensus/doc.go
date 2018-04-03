@@ -24,8 +24,8 @@ package consensus
 	GO版本：	  go1.8.4
 	步骤：
 		//  1.编译版本
-		cd $GOPATH/src/code.aliyun.com/chain33
-		git clone git@code.aliyun.com:chain33/chain33.git
+		cd $GOPATH/src/gitlab.33.cn/chain33
+		git clone git@gitlab.33.cn:chain33/chain33.git
 		cd chain33
 		go build
 

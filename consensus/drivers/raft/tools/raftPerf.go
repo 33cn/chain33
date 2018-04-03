@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
 

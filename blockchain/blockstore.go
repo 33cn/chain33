@@ -8,11 +8,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (

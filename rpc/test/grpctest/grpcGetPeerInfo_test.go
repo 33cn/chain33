@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
 

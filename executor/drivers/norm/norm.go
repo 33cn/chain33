@@ -1,8 +1,8 @@
 package norm
 
 import (
-	"code.aliyun.com/chain33/chain33/executor/drivers"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
 )
 

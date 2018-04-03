@@ -8,10 +8,10 @@ manage 负责管理配置
 */
 
 import (
-	"code.aliyun.com/chain33/chain33/executor/drivers"
-	"code.aliyun.com/chain33/chain33/types"
 	"fmt"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var clog = log.New("module", "execs.manage")
