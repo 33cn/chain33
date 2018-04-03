@@ -254,13 +254,19 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Error("connectBlock hash err", "height", blockdetail.Block.Height, "Tip.height", b.bestChain.Tip().height)
 		return types.ErrBlockHashNoMatch
 	}
+
+	var sync bool = true
+	if atomic.LoadInt32(&b.isbatchsync) == 0 {
+		sync = false
+	}
+
 	var err error
 	block := blockdetail.Block
 	prevStateHash := b.bestChain.Tip().statehash
 	//广播或者同步过来的blcok需要调用执行模块
 
 	if !isStrongConsistency || blockdetail.Receipts == nil {
-		blockdetail, _, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true)
+		blockdetail, _, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true, sync)
 		if err != nil {
 			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 			return err
@@ -270,10 +276,6 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	beg := time.Now()
 	// 写入磁盘
 	//批量将block信息写入磁盘
-	var sync bool = true
-	if atomic.LoadInt32(&b.isbatchsync) == 0 {
-		sync = false
-	}
 
 	newbatch := b.blockStore.NewBatch(sync)
 	//保存tx信息到db中 (newbatch, blockdetail)
