@@ -66,6 +66,12 @@ func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.Rec
 	if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, true)
+
+		// 添加个人资产列表
+		kv := AddTokenToAssets(tx.To, t.GetLocalDB(), transfer.Cointoken)
+		if kv != nil {
+			set.KV = append(set.KV, kv...)
+		}
 	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()

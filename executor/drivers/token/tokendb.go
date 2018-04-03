@@ -5,6 +5,7 @@ import (
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/types"
 	"strings"
+	"fmt"
 )
 
 type tokenDB struct {
@@ -272,4 +273,51 @@ func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func CalcTokenAssetsKey(addr string) []byte {
+	return []byte(fmt.Sprintf(tokenAssetsPrefix+"%s", addr))
+}
+
+func GetTokenAssetsKey(addr string, db dbm.KVDB) (*types.ReplyStrings, error) {
+	key := CalcTokenAssetsKey(addr)
+	value, err := db.Get(key)
+	if err != nil && err != types.ErrNotFound {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
+		return nil, err
+	}
+	var assets types.ReplyStrings
+	if err == types.ErrNotFound {
+		return &assets, nil
+	}
+	err = types.Decode(value, &assets)
+	if err != nil {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
+		return nil, err
+	}
+	return &assets, nil
+}
+
+func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue {
+	tokenAssets, err := GetTokenAssetsKey(addr, db)
+	if err != nil {
+		return nil
+	}
+	if tokenAssets == nil {
+		tokenAssets = &types.ReplyStrings{}
+	}
+
+	var found = false
+	for sym := range tokenAssets.Datas {
+		if string(sym) == symbol {
+			found = true
+			break
+		}
+	}
+	if found == false {
+		tokenAssets.Datas = append(tokenAssets.Datas, symbol)
+	}
+	var kv []*types.KeyValue
+	kv = append(kv, &types.KeyValue{CalcTokenAssetsKey(addr), types.Encode(tokenAssets)} )
+	return kv
 }

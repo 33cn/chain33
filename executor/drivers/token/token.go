@@ -22,6 +22,7 @@ var tokenlog = log.New("module", "execs.token")
 
 const (
 	finisherKey = "token-finisher"
+	tokenAssetsPrefix = "token-assets:"
 )
 
 func init() {
@@ -106,6 +107,14 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 
 				receiptKV := t.saveLogs(&receipt)
 				set.KV = append(set.KV, receiptKV...)
+
+				// 添加个人资产列表
+				if item.Ty == types.TyLogFinishCreateToken {
+					kv := AddTokenToAssets(action.GetTokenfinishcreate().Owner, t.GetLocalDB(), action.GetTokenfinishcreate().Symbol)
+					if kv != nil {
+						set.KV = append(set.KV, kv...)
+					}
+				}
 			}
 		}
 	}
