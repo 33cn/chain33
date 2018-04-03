@@ -1,12 +1,12 @@
 package kvdb
 
 import (
-	"code.aliyun.com/chain33/chain33/common"
-	clog "code.aliyun.com/chain33/chain33/common/log"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/store/drivers"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/store/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var klog = log.New("module", "kvdb")

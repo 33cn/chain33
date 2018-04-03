@@ -1,13 +1,13 @@
 package mavl
 
 import (
-	"code.aliyun.com/chain33/chain33/common/mavl"
-	clog "code.aliyun.com/chain33/chain33/common/log"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/store/drivers"
-	"code.aliyun.com/chain33/chain33/types"
 	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/common/mavl"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/store/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var mlog = log.New("module", "mavl")

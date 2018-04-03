@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"code.aliyun.com/chain33/chain33/types"
 	tml "github.com/BurntSushi/toml"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func InitCfg(path string) *types.Config {
