@@ -267,6 +267,12 @@ func (r *Retrieve) Query(funcName string, params []byte) (types.Message, error) 
 		if info == nil {
 			return nil, err
 		}
+		if info.Status == Retrieve_Prepared {
+			info.RemainTime = info.DelayPeriod - (r.GetBlockTime() - info.PrepareTime)
+			if info.RemainTime < 0 {
+				info.RemainTime = 0
+			}
+		}
 		return info, nil
 	}
 	return nil, types.ErrActionNotSupport
