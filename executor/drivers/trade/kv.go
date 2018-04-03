@@ -6,6 +6,7 @@ const (
 	sellOrderSHTAS = "token-sellorder-shtas:"
 	sellOrderASTS  = "token-sellorder-asts:"
 	sellOrderATSS  = "token-sellorder-atss:"
+	sellOrderTSPAS = "token-sellorder-tspas:"
 	buyOrderAHTSB  = "token-buyorder-ahtsb:"
 	buyOrderTAHSB  = "token-buyorder-tahsb:"
 	sellIDPrefix   = "mavl-trade-sell-"
@@ -27,6 +28,17 @@ func calcOnesSellOrderKeyStatus(token string, addr string, status int32, sellOrd
 func calcOnesSellOrderKeyToken(token string, addr string, status int32, sellOrderID string) []byte {
 	key := fmt.Sprintf(sellOrderATSS+"%s:%s:%d:%s", addr, token, status, sellOrderID)
 	return []byte(key)
+}
+
+//指定token的卖单， 带上价格方便排序
+func calcTokensSellOrderKeyStatus(token string, status int32, price int64, addr string, sellOrderID string) []byte {
+	key := fmt.Sprintf(sellOrderTSPAS+"%s:%d:%016d:%s:%s", token, status, price, addr, sellOrderID)
+	return []byte(key)
+}
+
+func calcTokensSellOrderPrefixStatus(token string, status int32) []byte {
+	prefix := fmt.Sprintf(sellOrderTSPAS+"%s:%d:", token, status)
+	return []byte(prefix)
 }
 
 //特定账户下指定token的卖单

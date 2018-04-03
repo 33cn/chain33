@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (

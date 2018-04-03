@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	pb "code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
 

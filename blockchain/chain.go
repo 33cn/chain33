@@ -7,13 +7,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/common/merkle"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
@@ -46,11 +46,12 @@ type BlockChain struct {
 	synBlockHeight int64
 
 	//记录peer的最新block高度,用于节点追赶active链
-	peerList PeerInfoList
-	recvwg   *sync.WaitGroup
-	synblock chan struct{}
-	quit     chan struct{}
-	isclosed int32
+	peerList    PeerInfoList
+	recvwg      *sync.WaitGroup
+	synblock    chan struct{}
+	quit        chan struct{}
+	isclosed    int32
+	isbatchsync int32
 
 	// 孤儿链
 	orphanPool *OrphanPool
@@ -84,6 +85,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		orphanPool:         NewOrphanPool(),
 		index:              newBlockIndex(),
 		isCaughtUp:         false,
+		isbatchsync:        1,
 	}
 	return blockchain
 }

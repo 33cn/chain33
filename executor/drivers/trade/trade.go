@@ -10,11 +10,11 @@ trade执行器支持trade的创建和交易，
 */
 
 import (
-	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/executor/drivers"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var tradelog = log.New("module", "execs.trade")
@@ -152,6 +152,13 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAllSellOrdersWithStatus(t.GetDB(), t.GetQueryDB(), addrTokens.Status)
+	case "GetTokenSellOrderByStatus":
+		var req types.ReqTokenSellOrder
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetTokenByStatus(t.GetDB(), t.GetQueryDB(), &req, types.OnSale)
 	default:
 	}
 	tradelog.Error("trade Query", "Query type not supprt with func name", funcName)
@@ -281,6 +288,35 @@ func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types
 	return selloders
 }
 
+func (t *trade) GetTokenByStatus(db dbm.KVDB, querydb dbm.DB, req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
+	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
+		return nil, types.ErrInputPara
+	}
+
+	fromKey := []byte("")
+	if len(req.FromSellId) != 0 {
+		sellorder, err := getSellOrderFromID([]byte(req.FromSellId), db)
+		if err != nil {
+			tradelog.Error("GetTokenByStatus get sellorder err", err)
+			return nil, err
+		}
+		fromKey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8*sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
+	}
+
+	list := dbm.NewListHelper(querydb)
+	prefix := calcTokensSellOrderPrefixStatus(req.TokenSymbol, status)
+	values := list.List(prefix, fromKey, req.Count, req.Direction)
+
+	var reply types.ReplySellOrders
+	for _, sellid := range values {
+		if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
+			tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
+			reply.Selloders = append(reply.Selloders, sellorder)
+		}
+	}
+	return &reply, nil
+}
+
 func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	db := t.GetDB()
 	value, err := db.Get(sellid)
@@ -300,6 +336,12 @@ func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
 
+	// make a number as token's price whether cheap or dear
+	// support 1e8 bty pre token or 1/1e8 bty pre token,
+	// the number in key is used to sort sell orders and pages
+	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8*sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
+	kv = append(kv, &types.KeyValue{newkey, sellid})
+
 	if types.SoldOut == status || types.Revoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
 		kv = deleteSellOrderKeyValue(kv, &sellorder, types.OnSale)
@@ -316,6 +358,9 @@ func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, s
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
 	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
+	kv = append(kv, &types.KeyValue{newkey, nil})
+
+	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
 	return kv

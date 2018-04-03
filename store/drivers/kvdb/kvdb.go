@@ -1,17 +1,18 @@
 package kvdb
 
 import (
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/store/drivers"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/store/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var klog = log.New("module", "kvdb")
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
