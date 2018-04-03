@@ -1,10 +1,10 @@
 package retrieve
 
 import (
-	//"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/executor/drivers"
-	"code.aliyun.com/chain33/chain33/types"
+	//"gitlab.33.cn/chain33/chain33/account"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (

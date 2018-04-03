@@ -3,7 +3,7 @@ package log
 import (
 	"os"
 
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 
 	"github.com/inconshreveable/log15"
 	"gopkg.in/natefinch/lumberjack.v2"

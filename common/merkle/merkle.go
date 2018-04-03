@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var merklelog = log.New("module", "merkle")
