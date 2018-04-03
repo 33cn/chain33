@@ -16,19 +16,20 @@ import (
 	"runtime"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/blockchain"
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/common/config"
-	"code.aliyun.com/chain33/chain33/common/limits"
-	"code.aliyun.com/chain33/chain33/consensus"
-	"code.aliyun.com/chain33/chain33/executor"
-	"code.aliyun.com/chain33/chain33/mempool"
-	"code.aliyun.com/chain33/chain33/p2p"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/rpc"
-	"code.aliyun.com/chain33/chain33/store"
-	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/blockchain"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/limits"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/consensus"
+	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/mempool"
+	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/store"
+	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -71,7 +72,7 @@ func main() {
 	cfg := config.InitCfg(*configPath)
 
 	//set file log
-	common.SetFileLog(cfg.LogFile, cfg.Loglevel, cfg.LogConsoleLevel)
+	clog.SetFileLog(cfg.Log)
 	//set grpc log
 	f, err := createFile(cfg.P2P.GetGrpcLogFile())
 	if err != nil {
