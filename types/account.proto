@@ -40,6 +40,17 @@ message ReqTokenBalance {
 	string execer      = 3;
 }
 
+//手续费
+message TotalFee {
+        int64 fee = 1; 
+}
+
+//手续费总额改变的交易回报
+message ReceiptTotalFee {
+	TotalFee prev = 1;  //转移前
+	TotalFee current = 2; //转移后
+}
+
 //查询symbol代币总额
 message ReqGetTotalCoins {
 	string symbol = 1;

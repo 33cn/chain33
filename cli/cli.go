@@ -2628,14 +2628,14 @@ func GetTotalCoins(symbol string, height string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		var res types.Int64
+		var res types.TotalFee
 		err = rpc.Call("Chain33.QueryTotalFee", params, &res)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
 		
-		//expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res.Data
+		//expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res.Fee
 		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin
 		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
