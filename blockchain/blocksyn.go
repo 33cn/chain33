@@ -375,11 +375,13 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 
 	// 节点同步阶段自己高度小于最大高度batchsyncblocknum时存储block到db批量处理时不刷盘
-	if peerMaxBlkHeight > curheight+batchsyncblocknum {
+	if peerMaxBlkHeight > curheight+batchsyncblocknum && !chain.cfgBatchSync {
 		atomic.CompareAndSwapInt32(&chain.isbatchsync, 1, 0)
 	} else {
 		atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
 	}
+	//synlog.Info("SynBlocksFromPeers", "isbatchsync", chain.isbatchsync)
+
 	//如果任务正常，那么不重复启动任务
 	if chain.task.InProgress() {
 		synlog.Info("chain task InProgress")

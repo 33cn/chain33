@@ -39,8 +39,8 @@ func (mavls *MavlStore) Close() {
 	mlog.Info("store mavl closed")
 }
 
-func (mavls *MavlStore) Set(datas *types.StoreSet) []byte {
-	hash := mavl.SetKVPair(mavls.GetDB(), datas)
+func (mavls *MavlStore) Set(datas *types.StoreSet, sync bool) []byte {
+	hash := mavl.SetKVPair(mavls.GetDB(), datas, sync)
 	return hash
 }
 
@@ -54,7 +54,7 @@ func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
 	} else if data, ok := mavls.trees[search]; ok {
 		tree = data
 	} else {
-		tree = mavl.NewMAVLTree(mavls.GetDB())
+		tree = mavl.NewMAVLTree(mavls.GetDB(), true)
 		err = tree.Load(datas.StateHash)
 		if err == nil {
 			mavls.cache.Add(search, tree)
@@ -72,8 +72,8 @@ func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
-func (mavls *MavlStore) MemSet(datas *types.StoreSet) []byte {
-	tree := mavl.NewMAVLTree(mavls.GetDB())
+func (mavls *MavlStore) MemSet(datas *types.StoreSet, sync bool) []byte {
+	tree := mavl.NewMAVLTree(mavls.GetDB(), sync)
 	tree.Load(datas.StateHash)
 	for i := 0; i < len(datas.KV); i++ {
 		tree.Set(datas.KV[i].Key, datas.KV[i].Value)

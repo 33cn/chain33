@@ -43,6 +43,7 @@ var (
 	ErrHashlockReapeathash     = errors.New("ErrHashlockReapeathash")
 	ErrHashlockSendAddress     = errors.New("ErrHashlockSendAddress")
 	ErrRetrieveRepeatAddress   = errors.New("ErrRetrieveRepeatAddress")
+	ErrRetrieveDefaultAddress  = errors.New("ErrRetrieveDefaultAddress")
 	ErrRetrievePeriodLimit     = errors.New("ErrRetrievePeriodLimit")
 	ErrRetrieveAmountLimit     = errors.New("ErrRetrieveAmountLimit")
 	ErrRetrieveTimeweightLimit = errors.New("ErrRetrieveTimeweightLimit")

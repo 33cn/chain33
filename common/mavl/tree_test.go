@@ -423,7 +423,7 @@ func TestSetAndGetKVPair(t *testing.T) {
 	}
 	// storeSet hash is nil
 	storeSet.StateHash = nil
-	newhash := SetKVPair(db, &storeSet)
+	newhash := SetKVPair(db, &storeSet, true)
 
 	//打印指定roothash的tree
 	treelog.Info("TestSetAndGetKVPair newhash tree")
@@ -463,7 +463,7 @@ func TestSetAndGetKVPair(t *testing.T) {
 	}
 	// storeSet hash is newhash
 	storeSet2.StateHash = delhash
-	newhash2 := SetKVPair(db, &storeSet2)
+	newhash2 := SetKVPair(db, &storeSet2, true)
 
 	treelog.Info("TestSetAndGetKVPair newhash2 tree")
 	PrintTreeLeaf(db, newhash2)
@@ -504,7 +504,7 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 	}
 	// storeSet hash is nil
 	storeSet.StateHash = nil
-	newhash := SetKVPair(db, &storeSet)
+	newhash := SetKVPair(db, &storeSet, true)
 
 	i = 0
 	for i = 0; i < total; i++ {
