@@ -5,7 +5,7 @@ import (
 	"bytes"
 
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
@@ -26,7 +26,7 @@ var coinsAccount = account.NewCoinsAccount()
 var runningHeight int64 = 0
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
