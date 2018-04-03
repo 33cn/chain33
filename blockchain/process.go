@@ -201,20 +201,13 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	chainlog.Debug("connectBestChain", "parentHash", common.ToHex(parentHash), "bestChain.Tip().hash", common.ToHex(b.bestChain.Tip().hash))
 
 	// 获取tip节点的block总难度tipid
-	tiptd, err := b.blockStore.GetTdByBlockHash(b.bestChain.Tip().hash)
-	if err != nil {
-		chainlog.Error("connectBestChain tip", "err", err)
-	}
+	tiptd, _ := b.blockStore.GetTdByBlockHash(b.bestChain.Tip().hash)
 	parenttd, _ := b.blockStore.GetTdByBlockHash(parentHash)
 	if parenttd == nil {
 		chainlog.Error("connectBestChain parenttd is not exits!", "hieght", block.Block.Height, "parentHash", common.ToHex(parentHash), "block.Block.hash", common.ToHex(block.Block.Hash()))
 		return false, types.ErrParentTdNoExist
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
-	chainlog.Debug("connectBestChain tip:", "1111", tiptd)
-	chainlog.Debug("connectBestChain tip:", "2222", common.ToHex(b.bestChain.Tip().hash))
-	chainlog.Debug("connectBestChain tip:", "2222", b.bestChain.Tip().height)
-	chainlog.Debug("connectBestChain tip:", "2222", common.BigToCompact(tiptd))
 
 	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", common.BigToCompact(tiptd))
 	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", common.BigToCompact(blocktd))
@@ -239,7 +232,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 
 	// Reorganize the chain.
 	//chainlog.Info("connectBestChain REORGANIZE:", "block height", node.height, "block hash", common.ToHex(node.hash))
-	err = b.reorganizeChain(detachNodes, attachNodes)
+	err := b.reorganizeChain(detachNodes, attachNodes)
 	if err != nil {
 		return false, err
 	}

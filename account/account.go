@@ -256,7 +256,7 @@ func (acc *AccountDB) QueryTotalFee(client queue.Client, in *types.ReqHash) (rep
 	if err != nil {
 		return nil, err
 	}
-	*reply = totalFee
-
+	
+	reply = &totalFee
 	return reply, nil
 }

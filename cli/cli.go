@@ -2634,7 +2634,8 @@ func GetTotalCoins(symbol string, height string) {
 			return
 		}
 		
-		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res.Data
+		//expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res.Data
+		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin
 		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
