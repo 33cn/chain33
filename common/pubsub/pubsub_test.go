@@ -1,7 +1,7 @@
 // Copyright 2013, Chandra Sekar S.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the README.md file.
-package common
+package pubsub
 
 import (
 	"runtime"
