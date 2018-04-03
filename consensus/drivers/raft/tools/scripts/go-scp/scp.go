@@ -236,7 +236,7 @@ func main() {
 	}
 
 	////读取当前目录下的文件
-	//dir_list, e := ioutil.ReadDir("D:/Repository/src/code.aliyun.com/chain33/chain33/consensus/drivers/raft/tools/scripts")
+	//dir_list, e := ioutil.ReadDir("D:/Repository/src/gitlab.33.cn/chain33/chain33/consensus/drivers/raft/tools/scripts")
 	//if e != nil {
 	//	fmt.Println("read dir error")
 	//	return

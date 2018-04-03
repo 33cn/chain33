@@ -11,7 +11,7 @@ import (
 
 	"context"
 
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/coreos/etcd/etcdserver/stats"
 	"github.com/coreos/etcd/pkg/fileutil"
 	typec "github.com/coreos/etcd/pkg/types"

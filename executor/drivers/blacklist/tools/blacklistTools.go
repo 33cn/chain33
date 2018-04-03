@@ -10,12 +10,12 @@ import (
 	"strconv"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	blacklist "code.aliyun.com/chain33/chain33/executor/drivers/blacklist/types"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	blacklist "gitlab.33.cn/chain33/chain33/executor/drivers/blacklist/types"
+	"gitlab.33.cn/chain33/chain33/types"
 
-	//"code.aliyun.com/chain33/chain33/executor/drivers/blacklist"
+	//"gitlab.33.cn/chain33/chain33/executor/drivers/blacklist"
 	"google.golang.org/grpc"
 )
 

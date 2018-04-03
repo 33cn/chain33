@@ -3,7 +3,7 @@ package raft
 import (
 	"strings"
 
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/coreos/etcd/raft/raftpb"
 	log "github.com/inconshreveable/log15"
 )
