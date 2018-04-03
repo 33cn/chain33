@@ -8,7 +8,7 @@
 // Topics must be strings and messages of any type can be
 // published. A topic can have any number of subcribers and
 // all of them receive messages published on the topic.
-package common
+package pubsub
 
 //"log"
 
