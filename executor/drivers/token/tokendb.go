@@ -110,6 +110,14 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenHavePrecreated
 	}
 
+	found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
+	if err != nil {
+		return nil, err
+	}
+	if found == true {
+		return nil, types.ErrTokenBlacklist
+	}
+
 	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
 	if err != nil {
 		tokenlog.Error("token precreate ", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", token.GetTotal())
@@ -320,4 +328,9 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{CalcTokenAssetsKey(addr), types.Encode(tokenAssets)} )
 	return kv
+}
+
+func inBlacklist(symbol, key string, db dbm.KVDB) (bool, error) {
+	found, err :=validOperator(symbol, types.ConfigKey(key), db)
+	return found, err
 }
