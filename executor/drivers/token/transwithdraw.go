@@ -1,10 +1,10 @@
 package token
 
 import (
-	"code.aliyun.com/chain33/chain33/account"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/types"
 	"fmt"
+	"gitlab.33.cn/chain33/chain33/account"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (t *token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction, index int) (*types.Receipt, error) {
