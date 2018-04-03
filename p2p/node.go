@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/p2p/nat"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/p2p/nat"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // 启动Node节点
@@ -209,7 +209,7 @@ func (n *Node) RemoveAll() {
 
 func (n *Node) monitor() {
 	go n.monitorErrPeer()
-	go n.checkActivePeers()
+	//	go n.checkActivePeers()
 	go n.getAddrFromOnline()
 	go n.getAddrFromOffline()
 	go n.monitorPeerInfo()

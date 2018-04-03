@@ -1,11 +1,11 @@
 package consensus
 
 import (
-	"code.aliyun.com/chain33/chain33/consensus/drivers/solo"
-	"code.aliyun.com/chain33/chain33/consensus/drivers/ticket"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/solo"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/ticket"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint"
 )
 
 func New(cfg *types.Consensus) queue.Module {

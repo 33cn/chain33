@@ -583,6 +583,10 @@
 			"revisionTime": "2017-08-12T16:00:11Z"
 		},
 		{
+			"path": "gopkg.in/natefinch/lumberjack.v2",
+			"revision": ""
+		},
+		{
 		  "checksumSHA1": "5f26fDGh9jH/f++nQEdXb73q3eg=",
 			"path": "github.com/ebuchman/fail-test",
 			"revision": "95f809107225be108efcf10a3509e4ea6ceef3c4",

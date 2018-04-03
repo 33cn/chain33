@@ -14,9 +14,9 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 	"github.com/tendermint/tmlibs/log"
 
-	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/types"
-	sm "code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/state"
-	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/p2p"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	crypto "github.com/tendermint/go-crypto"
 	"os"
 	"sync/atomic"

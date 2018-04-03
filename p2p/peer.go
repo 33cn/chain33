@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	pb "code.aliyun.com/chain33/chain33/types"
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,6 +24,7 @@ func (p *peer) Close() {
 	p.mconn.Close()
 	close(p.taskPool)
 	pub.Unsub(p.taskChan, "block", "tx")
+
 }
 
 type peer struct {

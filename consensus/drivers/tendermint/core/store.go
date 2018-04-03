@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	wire "github.com/tendermint/go-wire"
-	"code.aliyun.com/chain33/chain33/consensus/drivers/tendermint/types"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	cmn "github.com/tendermint/tmlibs/common"
 	dbm "github.com/tendermint/tmlibs/db"
 )

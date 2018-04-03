@@ -4,6 +4,7 @@ datadir*
 *.log
 *.exe
 *.orig
+logs
 common/mavl/datastore
 mavltree
 cli/cli

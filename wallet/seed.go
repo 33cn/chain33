@@ -9,15 +9,15 @@ import (
 	"math/big"
 	"strings"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/types"
 	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
 	"github.com/piotrnar/gocoin/lib/btc"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
