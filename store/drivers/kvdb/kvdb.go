@@ -2,6 +2,7 @@ package kvdb
 
 import (
 	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/store/drivers"
 	"code.aliyun.com/chain33/chain33/types"
@@ -11,7 +12,7 @@ import (
 var klog = log.New("module", "kvdb")
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
