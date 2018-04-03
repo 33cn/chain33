@@ -5,7 +5,7 @@ package none
 //nofee transaction will not pack into block
 
 import (
-	"code.aliyun.com/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 )
 
 func init() {

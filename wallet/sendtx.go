@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {

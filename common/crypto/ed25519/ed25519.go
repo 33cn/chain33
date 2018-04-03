@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	. "code.aliyun.com/chain33/chain33/common/crypto"
 	"github.com/tendermint/ed25519"
+	. "gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 type Ed25519Driver struct{}
