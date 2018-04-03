@@ -12,6 +12,7 @@ import (
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/queue"
@@ -51,7 +52,7 @@ type Wallet struct {
 }
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
@@ -561,12 +562,17 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 		case types.EventCloseTickets:
 			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
-			wallet.flushTicket()
 			if err != nil {
 				walletlog.Error("closeTicket", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, err))
 			} else {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, hashes))
+				go func() {
+					if len(hashes.Hashes) > 0 {
+						wallet.waitTxs(hashes.Hashes)
+						wallet.flushTicket()
+					}
+				}()
 			}
 
 		default:

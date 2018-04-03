@@ -55,7 +55,7 @@ func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 
 	peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
 	if P2pComm.CheckSign(in) == false {
-		log.Error("ping check signature err")
+		log.Error("Ping", "p2p server", "check sig err")
 		return nil, pb.ErrPing
 	}
 
@@ -253,6 +253,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 
 		}
 	}
+
 	var counts int
 	for _, invdata := range p2pInvData {
 		counts++
@@ -396,6 +397,7 @@ func (s *p2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServer) error {
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
+
 	for {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
@@ -442,6 +444,7 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
 			if P2pComm.CheckSign(ping) == false {
+				log.Error("ServerStreamRead", "check stream", "check sig err")
 				return pb.ErrStreamPing
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
@@ -476,9 +479,8 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 
 func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
 	if P2pComm.CheckSign(in) == false {
-		log.Error("CollectInPeers", "ping", "signatrue err")
+		log.Info("CollectInPeers", "ping", "signatrue err")
 		return nil, pb.ErrPing
-
 	}
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
@@ -529,8 +531,6 @@ func (s *p2pServer) manageStream() {
 		defer ticker.Stop()
 		for {
 			if s.IsClose() {
-				//close all send stream
-				s.closeAllSendStream()
 				return
 			}
 			select {
@@ -559,14 +559,6 @@ func (s *p2pServer) addStreamHandler(stream pb.P2Pgservice_ServerStreamSendServe
 	s.streams[stream] = make(chan interface{}, 1024)
 	return s.streams[stream]
 
-}
-
-func (s *p2pServer) closeAllSendStream() {
-	s.smtx.Lock()
-	defer s.smtx.Unlock()
-	for _, schan := range s.streams {
-		close(schan)
-	}
 }
 
 func (s *p2pServer) addStreamData(data interface{}) {

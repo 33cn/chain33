@@ -2,7 +2,7 @@ package drivers
 
 //store package store the world - state data
 import (
-	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	dbm "code.aliyun.com/chain33/chain33/common/db"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
@@ -23,7 +23,7 @@ import (
 var slog = log.New("module", "store")
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
