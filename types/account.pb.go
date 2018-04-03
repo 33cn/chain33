@@ -52,6 +52,7 @@ It has these top-level messages:
 	ReplyHashes
 	KeyValue
 	Config
+	Log
 	MemPool
 	Consensus
 	Wallet
@@ -69,6 +70,7 @@ It has these top-level messages:
 	LocalDBGet
 	LocalReplyValue
 	StoreSet
+	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
 	Genesis

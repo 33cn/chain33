@@ -36,7 +36,7 @@ func (kvs *KVStore) Close() {
 	klog.Info("store kvdb closed")
 }
 
-func (kvs *KVStore) Set(datas *types.StoreSet) []byte {
+func (kvs *KVStore) Set(datas *types.StoreSet, sync bool) []byte {
 	hash := calcHash(datas)
 	kvmap := make(map[string]*types.KeyValue)
 	for _, kv := range datas.KV {
@@ -67,7 +67,7 @@ func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
-func (kvs *KVStore) MemSet(datas *types.StoreSet) []byte {
+func (kvs *KVStore) MemSet(datas *types.StoreSet, sync bool) []byte {
 	hash := calcHash(datas)
 	kvmap := make(map[string]*types.KeyValue)
 	for _, kv := range datas.KV {
