@@ -12,10 +12,10 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/executor/drivers"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var clog = log.New("module", "execs.coins")
