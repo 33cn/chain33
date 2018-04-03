@@ -22,7 +22,7 @@ import (
 var alog = log.New("module", "account")
 
 func TotalFeeKey() []byte {
-        return []byte("TotalFeeKey")
+	return []byte("TotalFeeKey")
 }
 
 type AccountDB struct {
@@ -208,7 +208,7 @@ func (acc *AccountDB) AccountKey(address string) (key []byte) {
 }
 
 func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
-	req := types.IterateGetTotalCoins{}
+	req := types.IterateRangeByStateHash{}
 	req.StateHash = in.StateHash
 	req.Count = in.Count
 	if in.Symbol == "bty" {
@@ -257,6 +257,6 @@ func (acc *AccountDB) QueryTotalFee(client queue.Client, in *types.ReqHash) (rep
 		return nil, err
 	}
 	*reply = totalFee
-	
+
 	return reply, nil
 }

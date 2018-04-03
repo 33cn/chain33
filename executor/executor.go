@@ -148,19 +148,6 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
 
-	totalFeeBytes, err := execute.stateDB.Get(TotalFeeKey())
-	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-		return
-	}
-	
-	var totalFee types.Int64
-	err = types.Decode(totalFeeBytes, &totalFee)
-	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-		return
-	}
-
 	var fee int64
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
@@ -184,14 +171,13 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 		}
 	}
 
-	totalFee.Data += fee
-	totalFeeBytes = types.Encode(&totalFee)
-        if err != nil {
-                msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-                return
-        }
-	kvset.KV = append(kvset.KV, &types.KeyValue{TotalFeeKey(),totalFeeBytes})
-	
+	feekv, err := dealFee(&execute.stateDB, fee)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+	kvset.KV = append(kvset.KV, feekv)
+
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -199,19 +185,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
-
-	totalFeeBytes, err := execute.stateDB.Get(TotalFeeKey())
-	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-		return
-	}
-	
-	var totalFee types.Int64
-	err = types.Decode(totalFeeBytes, &totalFee)
-	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-		return
-	}
 
 	var fee int64
 	var kvset types.LocalDBSet
@@ -237,13 +210,12 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		}
 	}
 
-	totalFee.Data -= fee
-	totalFeeBytes = types.Encode(&totalFee)
-        if err != nil {
-                msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-                return
-        }
-	kvset.KV = append(kvset.KV, &types.KeyValue{TotalFeeKey(),totalFeeBytes})
+	feekv, err := dealFee(&execute.stateDB, -fee)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+	kvset.KV = append(kvset.KV, feekv)
 
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
@@ -378,4 +350,24 @@ func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 func LoadDriver(name string) (c drivers.Driver, err error) {
 	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
 	return execDrivers.LoadDriver(name)
+}
+
+func dealFee(db *dbm.KVDB, fee int64) (*types.KeyValue, error) {
+	totalFeeBytes, err := (*db).Get(TotalFeeKey())
+	if err != nil {
+		return nil, err
+	}
+
+	var totalFee types.Int64
+	err = types.Decode(totalFeeBytes, &totalFee)
+	if err != nil {
+		return nil, err
+	}
+
+	totalFee.Data += fee
+	totalFeeBytes = types.Encode(&totalFee)
+	if err != nil {
+		return nil, err
+	}
+	return &types.KeyValue{TotalFeeKey(), totalFeeBytes}, nil
 }

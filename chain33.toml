@@ -17,6 +17,7 @@ singleMode=false
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
 enable=true
 isSeed=false
+serverStart=true
 msgCacheSize=10240
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
@@ -37,6 +38,7 @@ name="ticket"
 minerstart=true
 
 [store]
+name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 

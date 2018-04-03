@@ -4,39 +4,9 @@ import (
 	"time"
 )
 
-func (n *Node) checkActivePeers() {
-	ticker := time.NewTicker(CheckActivePeersInterVal)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if n.IsClose() {
-				log.Debug("checkActivePeers", "loop", "done")
-				return
-			}
-			peers := n.GetRegisterPeers()
-			for _, peer := range peers {
-				if peer.mconn == nil {
-					n.destroyPeer(peer)
-					continue
-				}
-
-				log.Debug("checkActivePeers", "remotepeer", peer.mconn.remoteAddress.String())
-				if stat := n.nodeInfo.addrBook.GetPeerStat(peer.Addr()); stat != nil {
-					if stat.GetAttempts() > MaxAttemps || peer.GetRunning() == false {
-						log.Debug("checkActivePeers", "Delete peer", peer.Addr(), "Attemps", stat.GetAttempts(), "ISRUNNING", peer.GetRunning())
-						n.destroyPeer(peer)
-					}
-				}
-
-			}
-		}
-
-	}
-}
 func (n *Node) destroyPeer(peer *peer) {
-	log.Info("deleteErrPeer", "Delete peer", peer.Addr(), "RUNNING", peer.GetRunning(), "IsSuuport", peer.version.IsSupport())
+	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
+		"version support", peer.version.IsSupport())
 	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 	n.Remove(peer.Addr())
 
@@ -48,12 +18,23 @@ func (n *Node) monitorErrPeer() {
 		if peer.version.IsSupport() == false { //如果版本不支持,直接删除节点
 			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
-			n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), false)
 			//加入黑名单
 			n.nodeInfo.blacklist.Add(peer.Addr())
 			continue
 		}
-		n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
+
+		if peer.GetRunning() == false {
+			n.destroyPeer(peer)
+			continue
+		}
+
+		pstat, ok := n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
+		if ok {
+			if pstat.GetAttempts() > MaxAttemps {
+				log.Debug("monitorErrPeer", "over maxattamps", pstat.GetAttempts())
+				n.destroyPeer(peer)
+			}
+		}
 	}
 }
 

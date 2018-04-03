@@ -155,7 +155,12 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail) 
 	}
 
 	//将此block存储到db中，方便后面blockchain重组时使用，加入到主链saveblock时通过hash重新覆盖即可
-	b.blockStore.dbMaybeStoreBlock(block)
+	var sync bool = true
+	if atomic.LoadInt32(&b.isbatchsync) == 0 {
+		sync = false
+	}
+
+	b.blockStore.dbMaybeStoreBlock(block, sync)
 
 	// 创建一个node并添加到内存中index
 	newNode := newBlockNode(broadcast, block.Block)
@@ -196,13 +201,20 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	chainlog.Debug("connectBestChain", "parentHash", common.ToHex(parentHash), "bestChain.Tip().hash", common.ToHex(b.bestChain.Tip().hash))
 
 	// 获取tip节点的block总难度tipid
-	tiptd, _ := b.blockStore.GetTdByBlockHash(b.bestChain.Tip().hash)
+	tiptd, err := b.blockStore.GetTdByBlockHash(b.bestChain.Tip().hash)
+	if err != nil {
+		chainlog.Error("connectBestChain tip", "err", err)
+	}
 	parenttd, _ := b.blockStore.GetTdByBlockHash(parentHash)
 	if parenttd == nil {
 		chainlog.Error("connectBestChain parenttd is not exits!", "hieght", block.Block.Height, "parentHash", common.ToHex(parentHash), "block.Block.hash", common.ToHex(block.Block.Hash()))
 		return false, types.ErrParentTdNoExist
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
+	chainlog.Debug("connectBestChain tip:", "1111", tiptd)
+	chainlog.Debug("connectBestChain tip:", "2222", common.ToHex(b.bestChain.Tip().hash))
+	chainlog.Debug("connectBestChain tip:", "2222", b.bestChain.Tip().height)
+	chainlog.Debug("connectBestChain tip:", "2222", common.BigToCompact(tiptd))
 
 	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", common.BigToCompact(tiptd))
 	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", common.BigToCompact(blocktd))
@@ -227,7 +239,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 
 	// Reorganize the chain.
 	//chainlog.Info("connectBestChain REORGANIZE:", "block height", node.height, "block hash", common.ToHex(node.hash))
-	err := b.reorganizeChain(detachNodes, attachNodes)
+	err = b.reorganizeChain(detachNodes, attachNodes)
 	if err != nil {
 		return false, err
 	}
@@ -265,14 +277,19 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	beg := time.Now()
 	// 写入磁盘
 	//批量将block信息写入磁盘
-	newbatch := b.blockStore.NewBatch(true)
+	var sync bool = true
+	if atomic.LoadInt32(&b.isbatchsync) == 0 {
+		sync = false
+	}
+
+	newbatch := b.blockStore.NewBatch(sync)
 	//保存tx信息到db中 (newbatch, blockdetail)
 	err = b.blockStore.AddTxs(newbatch, blockdetail)
 	if err != nil {
 		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "err", err)
 		return err
 	}
-	chainlog.Debug("connectBlock AddTxs!", "height", block.Height)
+	//chainlog.Debug("connectBlock AddTxs!", "height", block.Height, "batchsync", sync)
 
 	//保存block信息到db中
 	err = b.blockStore.SaveBlock(newbatch, blockdetail)
@@ -300,7 +317,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 	newbatch.Write()
 
-	chainlog.Debug("connectBlock write db", "height", block.Height, "cost", time.Now().Sub(beg))
+	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Now().Sub(beg))
 
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight()

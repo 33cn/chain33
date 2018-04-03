@@ -51,7 +51,13 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 	defer it.Close()
 
 	var i int32 = 0
-	for it.Seek(key); it.Valid(); it.Next() {
+	it.Seek(key)
+	if it.Valid() != true {
+		listlog.Error("PrefixScan it.Value()", "error", it.Error())
+		values = nil
+		return
+	}
+	for it.Next(); it.Valid(); it.Next() {
 		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
