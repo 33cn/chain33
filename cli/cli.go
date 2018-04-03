@@ -12,13 +12,14 @@ import (
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
 func main() {
-	common.SetLogLevel("eror")
+	clog.SetLogLevel("eror")
 	//	argsWithProg := os.Args
 	if len(os.Args) == 1 {
 		LoadHelp()
