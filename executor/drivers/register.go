@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	log "github.com/inconshreveable/log15"
 )
 
 var elog = log.New("module", "execs")
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {

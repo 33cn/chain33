@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	lru "github.com/hashicorp/golang-lru"
@@ -12,7 +12,7 @@ import (
 )
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
