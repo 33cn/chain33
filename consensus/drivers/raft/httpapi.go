@@ -11,17 +11,12 @@ import (
 
 // Handler for a http based httpRaftAPI backed by raft
 type httpRaftAPI struct {
-	//store       *kvstore
 	confChangeC chan<- raftpb.ConfChange
 }
 
 func (h *httpRaftAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := r.RequestURI
 	switch {
-	//case r.Method == "PUT":
-	//	//TODO
-	//	w.WriteHeader(http.StatusNoContent)
-	//case r.Method == "GET":
 	case r.Method == "POST":
 		url, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -43,7 +38,6 @@ func (h *httpRaftAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Context: url,
 		}
 		h.confChangeC <- cc
-
 		// As above, optimistic that raft will apply the conf change
 		w.WriteHeader(http.StatusCreated)
 	case r.Method == "DELETE":
@@ -53,19 +47,14 @@ func (h *httpRaftAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed on DELETE", http.StatusBadRequest)
 			return
 		}
-
 		cc := raftpb.ConfChange{
-			//ID:     nodeId,
 			Type:   raftpb.ConfChangeRemoveNode,
 			NodeID: nodeId,
 		}
 		h.confChangeC <- cc
-
 		// As above, optimistic that raft will apply the conf change
 		w.WriteHeader(http.StatusAccepted)
 	default:
-		//w.Header().Set("Allow", "PUT")
-		//w.Header().Add("Allow", "GET")
 		w.Header().Add("Allow", "POST")
 		w.Header().Add("Allow", "DELETE")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
