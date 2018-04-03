@@ -57,7 +57,7 @@ message ReplyGetTotalCoins{
 }
 
 //迭代查询symbol代币总额
-message IterateGetTotalCoins {
+message IterateRangeByStateHash {
 	bytes stateHash = 1;
 	bytes start = 2;
         bytes end = 3;
