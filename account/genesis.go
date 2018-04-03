@@ -1,7 +1,7 @@
 package account
 
 import (
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (acc *AccountDB) GenesisInit(addr string, amount int64) (*types.Receipt, error) {

@@ -3,9 +3,9 @@ package mavl
 import (
 	"bytes"
 
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var nodelog = log.New("module", "mptnode")

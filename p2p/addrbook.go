@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common/db"
-	//pb "code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/db"
+	//pb "gitlab.33.cn/chain33/chain33/types"
 )
 
 const (

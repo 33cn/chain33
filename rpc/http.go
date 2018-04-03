@@ -8,8 +8,8 @@ import (
 	"net/rpc/jsonrpc"
 	"strings"
 
-	pb "code.aliyun.com/chain33/chain33/types"
 	"github.com/rs/cors"
+	pb "gitlab.33.cn/chain33/chain33/types"
 
 	"google.golang.org/grpc"
 )

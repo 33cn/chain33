@@ -1,9 +1,9 @@
 package manage
 
 import (
-	"code.aliyun.com/chain33/chain33/account"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type ManageAction struct {
