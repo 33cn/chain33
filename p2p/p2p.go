@@ -5,14 +5,14 @@ import (
 	"time"
 
 	l "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/pubsub"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
 	log = l.New("module", "p2p")
-	pub *common.PubSub
+	pub *pubsub.PubSub
 )
 
 type P2p struct {
@@ -28,7 +28,7 @@ type P2p struct {
 
 func New(cfg *types.P2P) *P2p {
 
-	pub = common.NewPubSub(int(cfg.GetMsgCacheSize()))
+	pub = pubsub.NewPubSub(int(cfg.GetMsgCacheSize()))
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
