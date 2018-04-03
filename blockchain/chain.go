@@ -46,11 +46,12 @@ type BlockChain struct {
 	synBlockHeight int64
 
 	//记录peer的最新block高度,用于节点追赶active链
-	peerList PeerInfoList
-	recvwg   *sync.WaitGroup
-	synblock chan struct{}
-	quit     chan struct{}
-	isclosed int32
+	peerList    PeerInfoList
+	recvwg      *sync.WaitGroup
+	synblock    chan struct{}
+	quit        chan struct{}
+	isclosed    int32
+	isbatchsync int32
 
 	// 孤儿链
 	orphanPool *OrphanPool
@@ -84,6 +85,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		orphanPool:         NewOrphanPool(),
 		index:              newBlockIndex(),
 		isCaughtUp:         false,
+		isbatchsync:        1,
 	}
 	return blockchain
 }
