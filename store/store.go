@@ -2,10 +2,10 @@ package store
 
 //store package store the world - state data
 import (
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/store/drivers/kvdb"
-	"code.aliyun.com/chain33/chain33/store/drivers/mavl"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/store/drivers/kvdb"
+	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func New(cfg *types.Store) queue.Module {

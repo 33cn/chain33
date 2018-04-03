@@ -3,9 +3,9 @@ package mempool
 import (
 	"errors"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // Mempool.CheckTxList初步检查并筛选交易消息
