@@ -1,8 +1,8 @@
 package mavl
 
 import (
-	"code.aliyun.com/chain33/chain33/common"
 	"code.aliyun.com/chain33/chain33/common/mavl"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/store/drivers"
 	"code.aliyun.com/chain33/chain33/types"
@@ -13,7 +13,7 @@ import (
 var mlog = log.New("module", "mavl")
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
