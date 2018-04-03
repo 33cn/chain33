@@ -2,11 +2,11 @@ package drivers
 
 //store package store the world - state data
 import (
-	clog "code.aliyun.com/chain33/chain33/common/log"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 /*

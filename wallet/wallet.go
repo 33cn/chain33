@@ -10,15 +10,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
-	clog "code.aliyun.com/chain33/chain33/common/log"
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
