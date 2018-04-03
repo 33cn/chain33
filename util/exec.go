@@ -20,7 +20,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	defer func() {
-		ulog.Info("ExecBlock", "cost", time.Now().Sub(beg))
+		ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs), "cost", time.Now().Sub(beg))
 	}()
 	if errReturn && block.Height > 0 && block.CheckSign() == false {
 		//block的来源不是自己的mempool，而是别人的区块

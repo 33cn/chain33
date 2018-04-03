@@ -483,13 +483,13 @@ func LoadBlockStoreHeight(db dbm.DB) (int64, error) {
 }
 
 // 将收到的block都暂时存储到db中，加入主链之后会重新覆盖。主要是用于chain重组时获取侧链的block使用
-func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail) error {
+func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync bool) error {
 	if blockdetail == nil {
 		return types.ErrInputPara
 	}
 	height := blockdetail.Block.GetHeight()
 	hash := blockdetail.Block.Hash()
-	storeBatch := bs.NewBatch(true)
+	storeBatch := bs.NewBatch(sync)
 
 	// Save blockbody通过block hash
 	var blockbody types.BlockBody
