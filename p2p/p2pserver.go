@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	pb "code.aliyun.com/chain33/chain33/types"
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	pr "google.golang.org/grpc/peer"
 )

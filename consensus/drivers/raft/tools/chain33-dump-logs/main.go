@@ -28,7 +28,7 @@ import (
 	"github.com/coreos/etcd/raft/raftpb"
 	"github.com/coreos/etcd/wal"
 	"github.com/coreos/etcd/wal/walpb"
-	// chain33Types "code.aliyun.com/chain33/chain33/types"
+	// chain33Types "gitlab.33.cn/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
 	//"github.com/coreos/etcd/snapshot"
 )
