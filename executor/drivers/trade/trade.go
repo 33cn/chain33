@@ -15,6 +15,7 @@ import (
 	"code.aliyun.com/chain33/chain33/executor/drivers"
 	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"code.aliyun.com/chain33/chain33/executor/drivers/token"
 )
 
 var tradelog = log.New("module", "execs.trade")
@@ -88,6 +89,12 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 			kv := t.saveBuy(&receipt)
 			set.KV = append(set.KV, kv...)
+
+			// 添加个人资产列表
+			kv = token.AddTokenToAssets(receipt.Buyeraddr, t.GetLocalDB(), receipt.Token)
+			if kv != nil {
+				set.KV = append(set.KV, kv...)
+			}
 		}
 	}
 
