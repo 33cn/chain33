@@ -21,6 +21,7 @@ func init() {
 
 // 设置控制台日志输出级别
 // [fixbug]原逻辑在已经设置文件日志的情况下会覆盖文件的Handler
+// TODO 可以对接命令行接口，运行态修改日志级别
 func SetLogLevel(logLevel string) {
 	handler := getConsoleLogHandler(logLevel)
 	(*handler).SetMaxLevel(int(getLevel(logLevel)))
@@ -28,18 +29,14 @@ func SetLogLevel(logLevel string) {
 
 // 设置文件日志和控制台日志信息
 func SetFileLog(log *types.Log) {
-	if log == nil{
-		log = &types.Log{LogFile:"logs/chain33.log"}
+	if log == nil {
+		log = &types.Log{LogFile: "logs/chain33.log"}
 	}
 	if log.LogFile == "" {
 		SetLogLevel(log.LogConsoleLevel)
 	} else {
 		resetLog(log)
 	}
-}
-
-func isWindows() bool {
-	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
 }
 
 // 清空原来所有的日志Handler，根据配置文件信息重置文件和控制台日志
@@ -50,7 +47,7 @@ func resetLog(log *types.Log) {
 
 // 保证默认性况下为info级别，防止debug打印太多日志
 func fillDefaultValue(log *types.Log) {
-	if log.Loglevel == ""  {
+	if log.Loglevel == "" {
 		log.Loglevel = log15.LvlInfo.String()
 	}
 	if log.LogConsoleLevel == "" {
@@ -61,18 +58,17 @@ func fillDefaultValue(log *types.Log) {
 func getConsoleLogHandler(logLevel string) *log15.Handler {
 	if consoleHandler != nil {
 		return consoleHandler
-	} else {
-		format := log15.TerminalFormat()
-		if isWindows() {
-			format = log15.LogfmtFormat()
-		}
-
-		stdouth := log15.LvlFilterHandler(
-			getLevel(logLevel),
-			log15.StreamHandler(os.Stdout, format),
-		)
-		return &stdouth
 	}
+	format := log15.TerminalFormat()
+
+	stdouth := log15.LvlFilterHandler(
+		getLevel(logLevel),
+		log15.StreamHandler(os.Stdout, format),
+	)
+
+	consoleHandler = &stdouth
+
+	return &stdouth
 }
 
 func getFileLogHandler(log *types.Log) *log15.Handler {
@@ -94,10 +90,16 @@ func getFileLogHandler(log *types.Log) *log15.Handler {
 		log15.StreamHandler(rotateLogger, log15.LogfmtFormat()),
 	)
 
-	// 在调试级别下，默认在日志中打印源文件代码行信息
-	if log15.LvlDebug == getLevel(log.Loglevel) {
+	// 增加打印调用源文件、方法和代码行的判断
+	if log.CallerFile {
 		fileh = log15.CallerFileHandler(fileh)
 	}
+	if log.CallerFunction {
+		fileh = log15.CallerFuncHandler(fileh)
+	}
+
+	fileHandler = &fileh
+
 	return &fileh
 }
 

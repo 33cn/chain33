@@ -31,6 +31,10 @@ message Log {
 	bool localTime = 7;
 	// 历史日志文件是否压缩（压缩格式为gz）
 	bool compress = 8;
+	// 是否打印调用源文件和行号
+	bool callerFile = 9;
+	// 是否打印调用方法
+	bool callerFunction = 10;
 }
 message MemPool {
 	int64 poolCacheSize = 1;

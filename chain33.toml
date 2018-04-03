@@ -16,6 +16,10 @@ maxAge = 28
 localTime = true
 # 历史日志文件是否压缩（压缩格式为gz）
 compress = false
+# 是否打印调用源文件和行号
+callerFile = false
+# 是否打印调用方法
+callerFunction = false
 
 
 [blockchain]
