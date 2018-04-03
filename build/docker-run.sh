@@ -2,5 +2,5 @@
 # first you must build docker image, you can use make docker command
 
 sudo docker run -it -p 8801:8801 -p 8802:8802 -p 6060:6060 -p 50051:50051 -l linux-chain33-run \
-    -v $GOPATH/src/code.aliyun.com/chain33/chain33:/go/src/code.aliyun.com/chain33/chain33 \
-    -w /go/src/code.aliyun.com/chain33/chain33 chain33:latest
+    -v $GOPATH/src/gitlab.33.cn/chain33/chain33:/go/src/gitlab.33.cn/chain33/chain33 \
+    -w /go/src/gitlab.33.cn/chain33/chain33 chain33:latest
