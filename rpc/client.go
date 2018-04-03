@@ -801,8 +801,8 @@ func (c *channelClient) IsNtpClockSync() bool {
 	return resp.GetData().(*types.IsNtpClockSync).GetIsntpclocksync()
 }
 
-func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.Int64, error) {
-	resp, err := accountdb.QueryTotalFee(c.Client, in)
+func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.TotalFee, error) {
+	resp, err := accountdb.LoadTotalFeeByHash(c.Client, in)
 	if err != nil {
 		return nil, err
 	}

@@ -237,7 +237,7 @@ func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCo
 	return reply, nil
 }
 
-func (acc *AccountDB) QueryTotalFee(client queue.Client, in *types.ReqHash) (reply *types.Int64, err error) {
+func (acc *AccountDB) LoadTotalFeeByHash(client queue.Client, in *types.ReqHash) (reply *types.TotalFee, err error) {
 	req := types.StoreGet{}
 	req.StateHash = in.Hash
 	req.Keys = append(req.Keys, TotalFeeKey())
@@ -250,8 +250,8 @@ func (acc *AccountDB) QueryTotalFee(client queue.Client, in *types.ReqHash) (rep
 	}
 	values := msg.GetData().(*types.StoreReplyValue)
 	value := values.Values[0]
-
-	var totalFee types.Int64
+	
+	var totalFee types.TotalFee
 	err = types.Decode(value, &totalFee)
 	if err != nil {
 		return nil, err
@@ -260,3 +260,31 @@ func (acc *AccountDB) QueryTotalFee(client queue.Client, in *types.ReqHash) (rep
 	reply = &totalFee
 	return reply, nil
 }
+
+func (acc *AccountDB) LoadTotalFee() *types.TotalFee {
+	var fee types.TotalFee
+	value, err := acc.db.Get(TotalFeeKey())
+	if err != nil {
+		return &fee
+	}
+
+	err = types.Decode(value, &fee)
+	if err != nil {
+		panic(err) //数据库已经损坏
+	}
+	return &fee
+}
+
+func (acc *AccountDB) SaveTotalFee(fee *types.TotalFee) {
+	set := acc.GetTotalFeeKVSet(fee)
+	for i := 0; i < len(set); i++ {
+		acc.db.Set(set[i].GetKey(), set[i].Value)
+	}
+}
+
+func (acc *AccountDB) GetTotalFeeKVSet(fee *types.TotalFee) (kvset []*types.KeyValue) {
+	value := types.Encode(fee)
+	kvset = append(kvset, &types.KeyValue{TotalFeeKey(), value})
+	return kvset
+}
+

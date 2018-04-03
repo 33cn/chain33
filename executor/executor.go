@@ -154,12 +154,9 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
-
-	var fee int64
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		fee += tx.Fee
 		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
@@ -178,14 +175,6 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 		}
 	}
 
-	feekv, err := dealFee(execute, fee)
-	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-		return
-	}
-	elog.Error("dealFee", "feekv", feekv)
-	kvset.KV = append(kvset.KV, feekv)
-
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -193,12 +182,9 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
-
-	var fee int64
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		fee += tx.Fee
 		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
@@ -217,13 +203,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
-
-	feekv, err := dealFee(execute, -fee)
-	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-		return
-	}
-	kvset.KV = append(kvset.KV, feekv)
 
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
@@ -273,15 +252,30 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	accFrom := e.coinsAccount.LoadAccount(from)
+	totalFee := e.coinsAccount.LoadTotalFee()
 	if accFrom.GetBalance()-tx.Fee >= 0 {
 		copyfrom := *accFrom
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
 		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
 		e.coinsAccount.SaveAccount(accFrom)
+		//统计手续费
+		//copyfee:= *totalFee
+		totalFee.Fee = totalFee.Fee + tx.Fee
+		//receiptFee := &types.ReceiptTotalFee{&copyfee, totalFee}
+		e.coinsAccount.SaveTotalFee(totalFee)
+		//return e.cutFeeReceipt(accFrom, totalFee, receiptBalance, receiptFee), nil
 		return e.cutFeeReceipt(accFrom, receiptBalance), nil
 	}
 	return nil, types.ErrNoBalance
 }
+/*
+func (e *executor) cutFeeReceipt(acc *types.Account, fee *types.TotalFee, receiptBalance *types.ReceiptAccountTransfer, receiptFee *types.ReceiptTotalFee) *types.Receipt {
+	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
+	feelog2 := &types.ReceiptLog{types.TyLogTotalFee, types.Encode(receiptFee)}
+	kvset := e.coinsAccount.GetKVSet(acc)
+	kvset = append(kvset, e.coinsAccount.GetTotalFeeKVSet(fee)...)
+	return &types.Receipt{types.ExecPack, kvset, []*types.ReceiptLog{feelog, feelog2}}
+}*/
 
 func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptAccountTransfer) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
@@ -360,26 +354,33 @@ func LoadDriver(name string) (c drivers.Driver, err error) {
 	return execDrivers.LoadDriver(name)
 }
 
-func dealFee(ex *executor, fee int64) (*types.KeyValue, error) {
+func saveFee(ex *executor, fee int64) (*types.KeyValue, error) {
 	totalFee := &types.Int64{}
 
-	elog.Error("dealFee", "1", 1)
-	//totalFeeBytes, err := ex.stateDB.Get(TotalFeeKey())
-	totalFeeBytes, err := ex.stateDB.Get([]byte("mavl-coins-bty-12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"))
+elog.Error("saveFee", "1", 1)
+	totalFeeBytes, err := ex.localDB.Get(TotalFeeKey())
+	//totalFeeBytes, err := ex.localDB.Get([]byte("mavl-coins-bty-12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"))
 	if err == nil {
-	elog.Error("dealFee", "2", 2)
+elog.Error("saveFee", "2", 2)
 		err = types.Decode(totalFeeBytes, totalFee)
 		if err != nil {
 			return nil, err
 		}
 	} else if err != types.ErrNotFound {
-	elog.Error("dealFee", "3", 3)
+elog.Error("saveFee", "3", 3)
 		return nil, err
 	}
-	elog.Error("dealFee", "fee", fee)
+elog.Error("saveFee", "fee", fee)
 
 	totalFee.Data += fee
-	elog.Error("dealFee", "data", totalFee.Data)
+elog.Error("saveFee", "data", totalFee.Data)
 	totalFeeBytes = types.Encode(totalFee)
+
+err = types.Decode(totalFeeBytes, totalFee)
+if err != nil {
+	return nil, err
+}
+elog.Error("saveFee", "data", totalFee)
+
 	return &types.KeyValue{TotalFeeKey(), totalFeeBytes}, nil
 }
