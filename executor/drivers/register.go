@@ -4,9 +4,9 @@ package drivers
 import (
 	"fmt"
 
-	"code.aliyun.com/chain33/chain33/account"
-	clog "code.aliyun.com/chain33/chain33/common/log"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
 )
 
 var elog = log.New("module", "execs")

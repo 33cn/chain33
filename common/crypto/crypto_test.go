@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.aliyun.com/chain33/chain33/common/crypto"
-	_ "code.aliyun.com/chain33/chain33/common/crypto/ed25519"
-	_ "code.aliyun.com/chain33/chain33/common/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
+	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
 )
 
 func TestAll(t *testing.T) {
