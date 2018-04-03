@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -675,7 +676,7 @@ type SellOrder2Show struct {
 }
 
 func GetVersion() {
-	fmt.Println(common.GetVersion())
+	fmt.Println(version.GetVersion())
 }
 
 func Lock() {
@@ -1564,7 +1565,7 @@ func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 
 }
 
-func GetExecAddr(exec string, needPrint bool) string{
+func GetExecAddr(exec string, needPrint bool) string {
 	var addr string
 	switch exec {
 	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":

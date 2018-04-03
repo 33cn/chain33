@@ -7,6 +7,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -794,7 +795,7 @@ func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
 }
 
 func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
-	*result = common.GetVersion()
+	*result = version.GetVersion()
 	return nil
 }
 

@@ -1,4 +1,4 @@
-package common
+package difficulty
 
 import (
 	"math/big"
