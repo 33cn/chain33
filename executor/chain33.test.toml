@@ -34,6 +34,7 @@ name="ticket"
 minerstart=true
 
 [store]
+name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 
