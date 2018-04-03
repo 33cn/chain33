@@ -3,6 +3,7 @@ package raft
 import (
 	"sync"
 	"time"
+	"fmt"
 
 	"code.aliyun.com/chain33/chain33/common/merkle"
 	"code.aliyun.com/chain33/chain33/consensus/drivers"
@@ -12,10 +13,6 @@ import (
 	"github.com/coreos/etcd/snap"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
-
-	//"sync/atomic"
-	//"golang.org/x/tools/go/gcimporter15/testdata"
-	"fmt"
 )
 
 var (
@@ -25,12 +22,7 @@ var (
 	mulock       sync.Mutex
 )
 
-//type Miner interface {
-//	CreateGenesisTx() []*types.Transaction
-//	CreateBlock()
-//}
 type RaftClient struct {
-	//TODO: BaseClient中有些参数访问不了，所以暂时不用baseClient
 	*drivers.BaseClient
 	proposeC    chan<- *types.Block
 	commitC     <-chan *types.Block
@@ -98,8 +90,6 @@ func (client *RaftClient) recoverFromSnapshot(snapshot []byte) error {
 func (client *RaftClient) SetQueueClient(c queue.Client) {
 	log.Info("Enter SetQueue method of raft consensus")
 	client.InitClient(c, func() {
-		//初始化应该等到leader选举成功之后在pollingTask中执行
-		//client.InitBlock()
 	})
 	go client.EventLoop()
 	go client.readCommits(client.commitC, client.errorC)
@@ -120,20 +110,15 @@ func (client *RaftClient) InitBlock() {
 		newblock := &types.Block{}
 		newblock.Height = 0
 		newblock.BlockTime = client.Cfg.GenesisBlockTime
-		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
 		tx := client.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		// 初始块不需要参与共识
-		//client.propose(newblock)
-		// 把区块放在内存中
-		//TODO:这里要等确认后才能把当前的块设置为新块
-		client.SetCurrentBlock(newblock)
 		err := client.WriteBlock(zeroHash[:], newblock)
 		if err != nil {
 			log.Error("chain33 init block failed!", err)
 		}
+		client.SetCurrentBlock(newblock)
 	} else {
 		block, err := client.RequestBlock(block.GetHeight())
 		if err != nil {
@@ -165,7 +150,7 @@ func (client *RaftClient) CreateBlock() {
 		rlog.Info("==================start create new block!=====================")
 		//check dup
 		txs = client.CheckTxDup(txs)
-		fmt.Println(len(txs))
+		rlog.Info(fmt.Sprintf("the len txs is: %v",len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -181,7 +166,7 @@ func (client *RaftClient) CreateBlock() {
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			issleep = true
-			log.Error("********************err:", err)
+			rlog.Error("********************err:"+err.Error(),nil)
 			continue
 		}
 
@@ -200,16 +185,6 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 		select {
 		case data := <-commitC:
 			if data == nil {
-				//此处不需要从snapshot中加载，当前内存中block信息可从blockchain模块获取
-				//snapshot, err := client.snapshotter.Load()
-				//if err == snap.ErrNoSnapshot {
-				//	return
-				//}
-				//
-				//log.Info("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
-				//if err := client.recoverFromSnapshot(snapshot.Data); err != nil {
-				//	panic(err)
-				//}
 				continue
 			}
 			rlog.Info("===============Get block from commit channel===========")
@@ -243,10 +218,7 @@ func (client *RaftClient) pollingTask(c queue.Client) {
 						func() {
 							client.InitMiner()
 						})
-					//TODO：当raft集群中的leader节点突然发生故障，此时另外的节点已经选举出新的leader，
-					// 老的leader中运行的打包程此刻应该被终止？
 					isLeader = true
-					//go client.EventLoop()
 					go client.CreateBlock()
 				}
 			}

@@ -23,10 +23,7 @@ import (
 	"github.com/coreos/etcd/wal/walpb"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
-	//"github.com/pkg/errors"
 )
-
-//var once sync.Once
 
 const (
 	IsLeader   = "0"
@@ -34,7 +31,6 @@ const (
 )
 
 var (
-	//wasLeader               bool   = false
 	defaultSnapCount        uint64 = 10000
 	snapshotCatchUpEntriesN uint64 = 10000
 	leaderCache             uint64
@@ -69,12 +65,9 @@ type raftNode struct {
 	stopc            chan struct{}
 	httpstopc        chan struct{}
 	httpdonec        chan struct{}
-	//备用的leaderC用于watch leader节点的变更，暂时没用
-	//leaderC    chan int
-	validatorC chan map[string]bool
+	validatorC       chan map[string]bool
 	//用于判断该节点是否重启过
 	restartC chan struct{}
-	//addNodeReadyC chan struct{}
 }
 
 func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
@@ -229,7 +222,6 @@ func (rc *raftNode) serveChannels() {
 				if !ok {
 					rc.proposeC = nil
 				} else {
-					//fmt.Println(prop.String())
 					out, err := proto.Marshal(prop)
 					if err != nil {
 						log.Error("failed to marshal block: ", err)
@@ -283,7 +275,7 @@ func (rc *raftNode) serveChannels() {
 
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
-	//TODO 这块监听后期需要根据场景进行优化
+	//这块监听后期需要根据场景进行优化
 	time.Sleep(5 * time.Second)
 
 	//用于标记readOnlyPeers是否已经被添加到集群中了
@@ -300,7 +292,7 @@ func (rc *raftNode) updateValidator() {
 	for {
 		validatorMap = make(map[string]bool)
 		if rc.Leader() == raft.None {
-			//TODO:当节点被删除时需要如下提示信息需要优化，删除节点是不可逆操作，因此需要记录被删节点信息
+			//TODO 当节点被删除时需要如下提示信息需要优化，删除节点是不可逆操作，因此需要记录被删节点信息
 			rlog.Info("==============Leader is not ready==============")
 			validatorMap[LeaderIsOK] = false
 		} else {
@@ -321,6 +313,11 @@ func (rc *raftNode) updateValidator() {
 		time.Sleep(time.Second)
 		rc.validatorC <- validatorMap
 	}
+}
+func (rc *raftNode) Status() raft.Status {
+	rc.stopMu.RLock()
+	defer rc.stopMu.RUnlock()
+	return rc.node.Status()
 }
 
 // isLeader checks if we are the leader or not, without the protection of lock
@@ -460,7 +457,6 @@ func (rc *raftNode) stop() {
 	rc.stopHTTP()
 	close(rc.commitC)
 	close(rc.errorC)
-	//close(rc.validatorC)
 	rc.node.Stop()
 }
 
@@ -475,7 +471,6 @@ func (rc *raftNode) writeError(err error) {
 	close(rc.commitC)
 	rc.errorC <- err
 	close(rc.errorC)
-	//close(rc.validatorC)
 	rc.node.Stop()
 }
 
@@ -580,28 +575,3 @@ func (rc *raftNode) addReadOnlyPeers() {
 		}
 	}
 }
-
-//func (rc *raftNode) removePeer(id uint64, status raft.SnapshotStatus)     {}
-//func (rc *raftNode) addPeer(id uint64, status raft.SnapshotStatus)        {}
-
-// 等待集群中leader节点的选举结果，并返回leadId
-//func (rc *raftNode) WaitForLeader() (uint64, error) {
-//	leadId := rc.node.Status().Lead
-//	if leadId != raft.None {
-//		return leadId, nil
-//	}
-//	ticker := time.NewTicker(50 * time.Millisecond)
-//	defer ticker.Stop()
-//	for leadId == raft.None {
-//		select {
-//		case <-ticker.C:
-//		}
-//		leadId := rc.node.Status().Lead
-//		log.Info("chain33_raft==========leaderId===========:"+strconv.FormatUint(leadId,10))
-//		if leadId != raft.None {
-//			log.Info("=====chain-33-raft has elected cluster leader====.")
-//			return leadId, nil
-//		}
-//	}
-//	return leadId, errors.New("raft: no elected cluster leader")
-//}
