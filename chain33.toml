@@ -31,6 +31,7 @@ driver="leveldb"
 dbPath="datadir"
 isStrongConsistency=false
 singleMode=false
+batchsync=false
 
 [p2p]
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]

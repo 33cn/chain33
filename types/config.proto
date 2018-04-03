@@ -76,6 +76,7 @@ message BlockChain {
 	string dbPath = 6;
 	bool isStrongConsistency = 7;
 	bool singleMode = 8;
+	bool batchsync = 9;
 }
 
 message P2P {
