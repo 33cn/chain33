@@ -3,7 +3,6 @@ package p2p
 import (
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,8 +23,9 @@ type NodeInfo struct {
 	client         queue.Client
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
-	addrBook       *AddrBook // known peers
-	natDone        int32
+
+	addrBook *AddrBook // known peers
+	natDone  int32
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
@@ -39,8 +39,10 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
+
 	os.MkdirAll(cfg.GetDbPath(), 0755)
 	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath())
+
 	return nodeInfo
 }
 
@@ -122,7 +124,7 @@ func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 		}
 		peerinfo, err := peer.GetPeerInfo(nf.cfg.GetVersion())
 		if err != nil {
-			if strings.Contains(err.Error(), VersionNotSupport) {
+			if err == types.ErrVersion {
 				peer.version.SetSupport(false)
 				P2pComm.CollectPeerStat(err, peer)
 				log.Error("latestPeerInfo", "Err", err.Error(), "peer", peer.Addr())

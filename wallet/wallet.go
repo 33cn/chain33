@@ -561,12 +561,17 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 		case types.EventCloseTickets:
 			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
-			wallet.flushTicket()
 			if err != nil {
 				walletlog.Error("closeTicket", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, err))
 			} else {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyHashes, hashes))
+				go func() {
+					if len(hashes.Hashes) > 0 {
+						wallet.waitTxs(hashes.Hashes)
+						wallet.flushTicket()
+					}
+				}()
 			}
 
 		default:
@@ -1722,6 +1727,11 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrTokenSymbolUpper
 	}
 
+	total := reqTokenPrcCreate.GetTotal()
+	if total > types.MaxTokenBalance || total <= 0 {
+		walletlog.Error("procTokenPreCreate", "total overflow", total)
+		return nil, types.ErrTokenTotalOverflow
+	}
 
 	creator := reqTokenPrcCreate.GetCreatorAddr()
 	addrs := make([]string, 1)
@@ -2088,7 +2098,6 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 
 }
 
-
 func GetFromStore(key string, client queue.Client) ([]byte, error) {
 	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	client.Send(msg, true)
@@ -2112,5 +2121,3 @@ func GetFromStore(key string, client queue.Client) ([]byte, error) {
 	}
 	return value, nil
 }
-
-

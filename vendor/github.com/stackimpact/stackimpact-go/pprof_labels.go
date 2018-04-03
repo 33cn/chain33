@@ -3,8 +3,8 @@
 package stackimpact
 
 import (
-	"net/http"
 	"context"
+	"net/http"
 	"runtime/pprof"
 )
 

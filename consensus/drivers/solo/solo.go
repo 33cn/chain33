@@ -51,19 +51,19 @@ func (client *SoloClient) CheckBlock(parent *types.Block, current *types.BlockDe
 	return nil
 }
 
-func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, error) {
+func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
 	//exec block
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
 	if err != nil { //never happen
-		return nil, err
+		return nil, deltx, err
 	}
 	if len(blockdetail.Block.Txs) == 0 {
-		return nil, types.ErrNoTx
+		return nil, deltx, types.ErrNoTx
 	}
-	return blockdetail, nil
+	return blockdetail, deltx, nil
 }
 
 func (client *SoloClient) CreateBlock() {
@@ -97,6 +97,7 @@ func (client *SoloClient) CreateBlock() {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
+		//判断有没有交易是被删除的，这类交易要从mempool 中删除
 		if err != nil {
 			issleep = true
 			continue
