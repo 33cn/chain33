@@ -10,6 +10,13 @@ var (
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	SuperManager           = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
 	ConfigPrefix           = "mavl-config-"
+	TokenApprs             = []string{
+		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
+		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
+		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
+		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
+	}
 )
 
 var (
@@ -60,9 +67,10 @@ const (
 	MaxTxSize                   = 100000   //100K
 	MaxBlockSize                = 10000000 //10M
 	MaxTxsPerBlock              = 100000
-	TokenPrecision      int64   = 1e4
+	TokenPrecision      int64   = 1e8
+	MaxTokenBalance     int64   = 900 * 1e8 * TokenPrecision //900亿
 	InputPrecision      float64 = 1e4
-	CoinMultiple        int64   = 1e4
+	Multiple1E4         int64   = 1e4
 	TokenNameLenLimit           = 128
 	TokenSymbolLenLimit         = 16
 	TokenIntroLenLimit          = 1024
@@ -177,6 +185,7 @@ const (
 	EventReplyAddrTxs        = 100
 	EventIsNtpClockSync      = 101
 	EventReplyIsNtpClockSync = 102
+	EventDelTxList           = 103
 	// Token
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
@@ -298,6 +307,7 @@ var eventName = map[int]string{
 	100: "EventReplyAddrTxs",
 	101: "EventIsNtpClockSync",
 	102: "EventReplyIsNtpClockSync",
+	103: "EventDelTxList",
 	// Token
 	EventTokenPreCreate:         "EventTokenPreCreate",
 	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
@@ -312,8 +322,8 @@ var eventName = map[int]string{
 	EventRevokeSellToken:        "EventRevokeSellToken",
 	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
 	// config
-	EventModifyConfig:           "EventModifyConfig",
-	EventReplyModifyConfig:      "EventReplyModifyConfig",
+	EventModifyConfig:      "EventModifyConfig",
+	EventReplyModifyConfig: "EventReplyModifyConfig",
 }
 
 //ty = 1 -> secp256k1
@@ -368,7 +378,7 @@ const (
 	TyLogTokenGenesisDeposit  = 322
 
 	// log for config
-	TyLogModifyConfig         = 410
+	TyLogModifyConfig = 410
 )
 
 //exec type
@@ -467,8 +477,8 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 
 //hard fork block height
 const (
-	ForkV1           = 75260
-	ForkV2_add_token = 100899
-	ForkV3           = 110000
+	ForkV1            = 75260
+	ForkV2_add_token  = 100899
+	ForkV3            = 110000
 	ForkV4_add_manage = 120000
 )

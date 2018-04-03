@@ -53,14 +53,14 @@ func testDBIterator(t *testing.T, db DB) {
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
-	require.Equal(t, list, [][]byte{[]byte("my_key/3"), []byte("my_key/4")})
+	require.Equal(t, list, [][]byte{[]byte("my_key/4")})
 
 	t.Log("test IteratorScan 0")
 	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 0)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
-	require.Equal(t, list, [][]byte{[]byte("my_key/3"), []byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
+	require.Equal(t, list, [][]byte{[]byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
 }
 
 // 边界测试
@@ -145,11 +145,11 @@ func testDBBoundary(t *testing.T, db DB) {
 
 	t.Log("IteratorScan 1")
 	list = it.IteratorScan(a, a, 100, 1)
-	require.Equal(t, list, [][]byte{[]byte("0x0f"), []byte("0x0fff")})
+	require.Equal(t, list, [][]byte{[]byte("0x0fff")})
 
 	t.Log("IteratorScan 0")
 	list = it.IteratorScan(a, a, 100, 0)
-	require.Equal(t, list, [][]byte{[]byte("0x0f")})
+	require.Equal(t, list, [][]byte(nil))
 
 	// ff为prefix
 	t.Log("PrefixScan")
@@ -166,9 +166,9 @@ func testDBBoundary(t *testing.T, db DB) {
 
 	t.Log("IteratorScan 1")
 	list = it.IteratorScan(b, b, 100, 1)
-	require.Equal(t, list, [][]byte{[]byte("0xff"), []byte("0xffff")})
+	require.Equal(t, list, [][]byte{[]byte("0xffff")})
 
 	t.Log("IteratorScan 0")
 	list = it.IteratorScan(b, d, 100, 0)
-	require.Equal(t, list, [][]byte{[]byte("0xffff"), []byte("0xff")})
+	require.Equal(t, list, [][]byte{[]byte("0xff")})
 }
