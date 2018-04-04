@@ -101,6 +101,12 @@ func (kvs *KVStore) Rollback(req *types.ReqHash) []byte {
 	return req.Hash
 }
 
+func (kvs *KVStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool,fn func(key, value []byte) bool) {
+	return
+	//TODO:
+        //kvs.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, fn)
+}
+
 func (kvs *KVStore) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("KVStore", types.ErrActionNotSupport)
 }

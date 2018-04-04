@@ -29,13 +29,13 @@ func (p *peer) Close() {
 
 type peer struct {
 	wg         sync.WaitGroup
-	pmutx      sync.Mutex
+	mutx       sync.Mutex
 	nodeInfo   **NodeInfo
 	conn       *grpc.ClientConn // source connection
 	persistent bool
 	isclose    int32
 	version    *Version
-	key        string
+	name       string //远程节点的name
 	mconn      *MConnection
 	peerAddr   *NetAddress
 	peerStat   *Stat
@@ -53,7 +53,6 @@ func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *pe
 	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.SetSupport(true)
-	p.key = (*nodeinfo).addrBook.GetKey()
 	p.mconn = NewMConnection(conn, remote, p)
 	return p
 }
@@ -115,9 +114,10 @@ func (p *peer) heartBeat() {
 		if p.GetRunning() == false {
 			return
 		}
-		err := pcli.SendVersion(p, *p.nodeInfo)
+		peername, err := pcli.SendVersion(p, *p.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
 		if err == nil {
+			p.setPeerName(peername) //设置连接的远程节点的节点名称
 			p.taskChan = pub.Sub("block", "tx")
 			go p.sendStream()
 			go p.readStream()
@@ -252,6 +252,7 @@ func (p *peer) readStream() {
 
 	for {
 		if p.GetRunning() == false {
+			log.Debug("readstream", "loop", "done")
 			return
 		}
 		ping, err := P2pComm.NewPingData(p)
@@ -262,8 +263,8 @@ func (p *peer) readStream() {
 		resp, err := p.mconn.gcli.ServerStreamSend(context.Background(), ping)
 		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
-			log.Error("readStream", "serverstreamsend,err:", err)
-			time.Sleep(time.Second * 5)
+			log.Error("readStream", "serverstreamsend,err:", err, "peer", p.Addr())
+			time.Sleep(time.Second)
 			continue
 		}
 		log.Debug("SubStreamBlock", "Start", p.Addr())
@@ -348,4 +349,16 @@ func (p *peer) Addr() string {
 // IsPersistent returns true if the peer is persitent, false otherwise.
 func (p *peer) IsPersistent() bool {
 	return p.persistent
+}
+
+func (p *peer) setPeerName(name string) {
+	p.mutx.Lock()
+	defer p.mutx.Unlock()
+	p.name = name
+}
+
+func (p *peer) GetPeerName() string {
+	p.mutx.Lock()
+	defer p.mutx.Unlock()
+	return p.name
 }
