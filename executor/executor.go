@@ -39,7 +39,16 @@ type Executor struct {
 	client queue.Client
 }
 
-func New() *Executor {
+func New(cfg *types.Exec) *Executor {
+	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
+	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
+	if cfg.MinExecFee == 0 && cfg.IsFree == true {
+		elog.Warn("set executor to free fee")
+		types.SetMinFee(0)
+	}
+	if cfg.MinExecFee > 0 {
+		types.SetMinFee(cfg.MinExecFee)
+	}
 	exec := &Executor{}
 	return exec
 }

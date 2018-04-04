@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var Filter *Filterdata
+var Filter = NewFilter()
 
 func NewFilter() *Filterdata {
 	filter := new(Filterdata)

@@ -20,11 +20,10 @@ func init() {
 }
 
 // 设置控制台日志输出级别
-// [fixbug]原逻辑在已经设置文件日志的情况下会覆盖文件的Handler
-// TODO 可以对接命令行接口，运行态修改日志级别
 func SetLogLevel(logLevel string) {
 	handler := getConsoleLogHandler(logLevel)
 	(*handler).SetMaxLevel(int(getLevel(logLevel)))
+	log15.Root().SetHandler(*handler)
 }
 
 // 设置文件日志和控制台日志信息
@@ -55,12 +54,18 @@ func fillDefaultValue(log *types.Log) {
 	}
 }
 
+func isWindows() bool {
+	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
+}
+
 func getConsoleLogHandler(logLevel string) *log15.Handler {
 	if consoleHandler != nil {
 		return consoleHandler
 	}
 	format := log15.TerminalFormat()
-
+	if isWindows() {
+		format = log15.LogfmtFormat()
+	}
 	stdouth := log15.LvlFilterHandler(
 		getLevel(logLevel),
 		log15.StreamHandler(os.Stdout, format),
