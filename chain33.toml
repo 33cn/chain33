@@ -30,6 +30,7 @@ driver="leveldb"
 dbPath="datadir"
 isStrongConsistency=true
 singleMode=true
+batchsync=false
 
 [p2p]
 seeds=["127.0.0.1:13802"]
@@ -88,3 +89,5 @@ dbPath="datadir/wallet"
 signType="secp256k1"
 
 [exec]
+isFree=false
+minExecFee=100000

@@ -58,6 +58,11 @@ message StoreSet {
 	repeated KeyValue KV = 2;
 }
 
+message StoreSetWithSync {
+	StoreSet storeset = 1;
+	bool sync = 2;
+}
+
 message StoreGet {
 	bytes stateHash = 1;
 	repeated bytes keys = 2;

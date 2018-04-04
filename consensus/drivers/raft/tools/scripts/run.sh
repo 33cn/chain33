@@ -13,7 +13,7 @@ then
 elif [ $1 == "clear" ]
 then
   rm -rf console.log
-  rm -rf chain33.log
+  rm -rf logs/
   rm -rf grpc33.log
   rm -rf chain33_raft*
   rm -rf datadir/

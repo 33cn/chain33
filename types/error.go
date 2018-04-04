@@ -43,6 +43,7 @@ var (
 	ErrHashlockReapeathash     = errors.New("ErrHashlockReapeathash")
 	ErrHashlockSendAddress     = errors.New("ErrHashlockSendAddress")
 	ErrRetrieveRepeatAddress   = errors.New("ErrRetrieveRepeatAddress")
+	ErrRetrieveDefaultAddress  = errors.New("ErrRetrieveDefaultAddress")
 	ErrRetrievePeriodLimit     = errors.New("ErrRetrievePeriodLimit")
 	ErrRetrieveAmountLimit     = errors.New("ErrRetrieveAmountLimit")
 	ErrRetrieveTimeweightLimit = errors.New("ErrRetrieveTimeweightLimit")
@@ -67,6 +68,7 @@ var (
 	ErrTokenCanotRevoked    = errors.New("ErrTokenCanotRevokedWithWrongStatus")
 	ErrTokenOwner           = errors.New("ErrTokenSymbolOwnerNotMatch")
 	ErrTokenHavePrecreated  = errors.New("ErrOwnerHaveTokenPrecreateYet")
+	ErrTokenBlacklist       = errors.New("ErrTokenBlacklist")
 	//err for trade
 	ErrTSellBalanceNotEnough = errors.New("ErrTradeSellBalanceNotEnough")
 	ErrTSellOrderNotExist    = errors.New("ErrTradeSellOrderNotExist")
