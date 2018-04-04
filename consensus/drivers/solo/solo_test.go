@@ -1,28 +1,29 @@
 package solo
 
 import (
-	"testing"
-	"math/rand"
 	"flag"
+	"math/rand"
+	"testing"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common/config"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
-	"gitlab.33.cn/chain33/chain33/executor"
-	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	endLoop     int = 50
-	txNumber	int64 = 100
-	random 		*rand.Rand
+	endLoop  int   = 50
+	txNumber int64 = 100
+	random   *rand.Rand
 )
 
 func init() {
@@ -30,6 +31,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	log.SetLogLevel("info")
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
@@ -80,10 +82,10 @@ func sendReplyList(q queue.Queue) {
 	var count int
 	for msg := range client.Recv() {
 		if msg.Ty == types.EventTxList {
-			count ++
+			count++
 			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
 				&types.ReplyTxList{genTxs(txNumber)}))
-			if (count == endLoop) {
+			if count == endLoop {
 				break
 			}
 		}
