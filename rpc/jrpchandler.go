@@ -1215,7 +1215,13 @@ func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
-	return nil
+	//resp := reply.(*types.LocalReplyValue)
 
+	var fee types.TotalFee
+	err = types.Decode(reply.Values[0], &fee)
+	if err != nil {
+		return err
+	}
+	*result = fee
+	return nil
 }
