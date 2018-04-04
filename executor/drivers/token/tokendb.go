@@ -5,6 +5,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	"strings"
+	"fmt"
 )
 
 type tokenDB struct {
@@ -107,6 +108,14 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	}
 	if checkTokenHasPrecreate(token.GetSymbol(), token.GetOwner(), types.TokenStatusPreCreated, action.db) {
 		return nil, types.ErrTokenHavePrecreated
+	}
+
+	found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
+	if err != nil {
+		return nil, err
+	}
+	if found == true {
+		return nil, types.ErrTokenBlacklist
 	}
 
 	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
@@ -272,4 +281,72 @@ func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func CalcTokenAssetsKey(addr string) []byte {
+	return []byte(fmt.Sprintf(tokenAssetsPrefix+"%s", addr))
+}
+
+func GetTokenAssetsKey(addr string, db dbm.KVDB) (*types.ReplyStrings, error) {
+	key := CalcTokenAssetsKey(addr)
+	value, err := db.Get(key)
+	if err != nil && err != types.ErrNotFound {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
+		return nil, err
+	}
+	var assets types.ReplyStrings
+	if err == types.ErrNotFound {
+		return &assets, nil
+	}
+	err = types.Decode(value, &assets)
+	if err != nil {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
+		return nil, err
+	}
+	return &assets, nil
+}
+
+func QueryTokenAssetsKey(addr string, db dbm.DB) (*types.ReplyStrings, error) {
+	key := CalcTokenAssetsKey(addr)
+	value := db.Get(key)
+	if value == nil   {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
+		return nil, types.ErrNotFound
+	}
+	var assets types.ReplyStrings
+	err := types.Decode(value, &assets)
+	if err != nil {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
+		return nil, err
+	}
+	return &assets, nil
+}
+
+func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue {
+	tokenAssets, err := GetTokenAssetsKey(addr, db)
+	if err != nil {
+		return nil
+	}
+	if tokenAssets == nil {
+		tokenAssets = &types.ReplyStrings{}
+	}
+
+	var found = false
+	for sym := range tokenAssets.Datas {
+		if string(sym) == symbol {
+			found = true
+			break
+		}
+	}
+	if found == false {
+		tokenAssets.Datas = append(tokenAssets.Datas, symbol)
+	}
+	var kv []*types.KeyValue
+	kv = append(kv, &types.KeyValue{CalcTokenAssetsKey(addr), types.Encode(tokenAssets)} )
+	return kv
+}
+
+func inBlacklist(symbol, key string, db dbm.KVDB) (bool, error) {
+	found, err :=validOperator(symbol, types.ConfigKey(key), db)
+	return found, err
 }
