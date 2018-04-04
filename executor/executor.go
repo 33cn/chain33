@@ -4,21 +4,21 @@ package executor
 import (
 	"bytes"
 
-	"code.aliyun.com/chain33/chain33/account"
-	clog "code.aliyun.com/chain33/chain33/common/log"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/executor/drivers"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/coins"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/hashlock"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/manage"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/none"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/retrieve"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/ticket"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/token"
-	_ "code.aliyun.com/chain33/chain33/executor/drivers/trade"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/coins"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/none"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var elog = log.New("module", "execs")
@@ -37,7 +37,16 @@ type Executor struct {
 	client queue.Client
 }
 
-func New() *Executor {
+func New(cfg *types.Exec) *Executor {
+	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
+	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
+	if cfg.MinExecFee == 0 && cfg.IsFree == true {
+		elog.Warn("set executor to free fee")
+		types.SetMinFee(0)
+	}
+	if cfg.MinExecFee > 0 {
+		types.SetMinFee(cfg.MinExecFee)
+	}
 	exec := &Executor{}
 	return exec
 }

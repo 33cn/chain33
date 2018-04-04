@@ -7,9 +7,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/util"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/difficulty"
+	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 // 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
@@ -209,8 +210,8 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
 
-	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", common.BigToCompact(tiptd))
-	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", common.BigToCompact(blocktd))
+	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", difficulty.BigToCompact(tiptd))
+	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", difficulty.BigToCompact(blocktd))
 
 	if blocktd.Cmp(tiptd) <= 0 {
 		fork := b.bestChain.FindFork(node)
@@ -254,13 +255,19 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Error("connectBlock hash err", "height", blockdetail.Block.Height, "Tip.height", b.bestChain.Tip().height)
 		return types.ErrBlockHashNoMatch
 	}
+
+	var sync bool = true
+	if atomic.LoadInt32(&b.isbatchsync) == 0 {
+		sync = false
+	}
+
 	var err error
 	block := blockdetail.Block
 	prevStateHash := b.bestChain.Tip().statehash
 	//广播或者同步过来的blcok需要调用执行模块
 
 	if !isStrongConsistency || blockdetail.Receipts == nil {
-		blockdetail, _, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true)
+		blockdetail, _, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true, sync)
 		if err != nil {
 			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 			return err
@@ -270,10 +277,6 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	beg := time.Now()
 	// 写入磁盘
 	//批量将block信息写入磁盘
-	var sync bool = true
-	if atomic.LoadInt32(&b.isbatchsync) == 0 {
-		sync = false
-	}
 
 	newbatch := b.blockStore.NewBatch(sync)
 	//保存tx信息到db中 (newbatch, blockdetail)
@@ -292,15 +295,15 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 
 	//保存block的总难度到db中
-	difficulty := common.CalcWork(block.Difficulty)
+	difficulty := difficulty.CalcWork(block.Difficulty)
 	var blocktd *big.Int
 	if block.Height == 0 {
 		blocktd = difficulty
 	} else {
 		parenttd, _ := b.blockStore.GetTdByBlockHash(parentHash)
 		blocktd = new(big.Int).Add(difficulty, parenttd)
-		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "parenttd.td", common.BigToCompact(parenttd))
-		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "self.td", common.BigToCompact(blocktd))
+		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "parenttd.td", difficulty.BigToCompact(parenttd))
+		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "self.td", difficulty.BigToCompact(blocktd))
 	}
 
 	err = b.blockStore.SaveTdByBlockHash(newbatch, blockdetail.Block.Hash(), blocktd)

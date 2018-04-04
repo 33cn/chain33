@@ -16,20 +16,20 @@ import (
 	"runtime"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/blockchain"
-	"code.aliyun.com/chain33/chain33/common"
-	clog "code.aliyun.com/chain33/chain33/common/log"
-	"code.aliyun.com/chain33/chain33/common/config"
-	"code.aliyun.com/chain33/chain33/common/limits"
-	"code.aliyun.com/chain33/chain33/consensus"
-	"code.aliyun.com/chain33/chain33/executor"
-	"code.aliyun.com/chain33/chain33/mempool"
-	"code.aliyun.com/chain33/chain33/p2p"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/rpc"
-	"code.aliyun.com/chain33/chain33/store"
-	"code.aliyun.com/chain33/chain33/wallet"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/blockchain"
+	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/limits"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/common/version"
+	"gitlab.33.cn/chain33/chain33/consensus"
+	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/mempool"
+	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/store"
+	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -50,6 +50,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	//set watching
 	t := time.Tick(10 * time.Second)
 	go func() {
@@ -70,6 +71,10 @@ func main() {
 	flag.Parse()
 	//set config
 	cfg := config.InitCfg(*configPath)
+	//compare minFee in wallet, mempool, exec
+	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
+		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
+	}
 
 	//set file log
 	clog.SetFileLog(cfg.Log)
@@ -84,7 +89,7 @@ func main() {
 	}
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info("chain33 " + common.GetVersion())
+	log.Info("chain33 " + version.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
@@ -97,7 +102,7 @@ func main() {
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
-	exec := executor.New()
+	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
