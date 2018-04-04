@@ -20,13 +20,13 @@ dbPath="datadir/addrbook"
 poolCacheSize=10240
 minTxFee=1000000
 
-
 [consensus]
 name="solo"
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 minerstart=true
 
 [store]
+name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 
