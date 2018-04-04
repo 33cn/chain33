@@ -70,3 +70,5 @@ jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
 whitlist=["127.0.0.1"]
 
+[exec]
+minExecFee=100000
