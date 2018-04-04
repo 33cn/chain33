@@ -54,12 +54,18 @@ func fillDefaultValue(log *types.Log) {
 	}
 }
 
+func isWindows() bool {
+	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
+}
+
 func getConsoleLogHandler(logLevel string) *log15.Handler {
 	if consoleHandler != nil {
 		return consoleHandler
 	}
 	format := log15.TerminalFormat()
-
+	if isWindows() {
+		format = log15.LogfmtFormat()
+	}
 	stdouth := log15.LvlFilterHandler(
 		getLevel(logLevel),
 		log15.StreamHandler(os.Stdout, format),
