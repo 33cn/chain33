@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -21,6 +22,7 @@ var random *rand.Rand
 //poolRoutine函数中，以及ProcAddBlockMsg函数中
 func init() {
 	queue.DisableLog()
+	log.SetLogLevel("info")
 }
 
 func initEnv() (*BlockChain, queue.Queue) {
