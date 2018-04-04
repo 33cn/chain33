@@ -2643,7 +2643,7 @@ func ManageConfigTransactioin(key, op, opAddr, priv string) {
 }
 
 func GetTotalCoins(symbol string, height string) {
-	// 获取高度哈希
+	// 获取高度statehash
 	heightInt64, err := strconv.ParseInt(height, 10, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2678,11 +2678,6 @@ func GetTotalCoins(symbol string, height string) {
 	var count int32
 	for count = 1000; count == 1000; {
 		params := types.ReqGetTotalCoins{Symbol: symbol, StateHash: stateHash, StartKey: startKey, Count: count}
-		rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
 		var res types.ReplyGetTotalCoins
 		err = rpc.Call("Chain33.GetTotalCoins", params, &res)
 		if err != nil {
@@ -2696,22 +2691,31 @@ func GetTotalCoins(symbol string, height string) {
 	}
 
 	if symbol == "bty" {
-		//查询手续费
-		params := types.ReqHash{Hash: stateHash}
-		rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+		//查询高度blockhash
+		params := types.ReqInt{heightInt64}
+		var res1 jsonrpc.ReplyHash
+		err = rpc.Call("Chain33.GetBlockHash", params, &res1)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		var res types.TotalFee
-		err = rpc.Call("Chain33.QueryTotalFee", params, &res)
+
+		blockHash, err := common.FromHex(res1.Hash)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		//查询手续费
+		params2 := types.ReqHash{Hash: blockHash}
+		var res2 types.TotalFee
+		err = rpc.Call("Chain33.QueryTotalFee", params2, &res2)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
 		
-		//expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res.Fee
-		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin
+		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res2.Fee
 		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
@@ -2723,11 +2727,6 @@ func GetTotalCoins(symbol string, height string) {
 		params.Execer = "token"
 		params.FuncName = "GetTokenInfo"
 		params.Payload = hex.EncodeToString(types.Encode(&req))
-		rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
 		var res types.Token
 		err = rpc.Call("Chain33.Query", params, &res)
 		if err != nil {
