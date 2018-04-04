@@ -487,4 +487,5 @@ const (
 	ForkV2_add_token  = 100899
 	ForkV3            = 110000
 	ForkV4_add_manage = 120000
+	ForkV5_retrieve   = 180000
 )
