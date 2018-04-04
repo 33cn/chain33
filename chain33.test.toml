@@ -1,8 +1,26 @@
 Title="chain33"
 
-Loglevel="debug"
-LogConsoleLevel="info"
-LogFile="chain33.log"
+
+[log]
+# 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
+loglevel = "debug"
+logConsoleLevel = "info"
+# 日志文件名，可带目录，所有生成的日志文件都放到此目录下
+logFile = "logs/chain33.log"
+# 单个日志文件的最大值（单位：兆）
+maxFileSize = 20
+# 最多保存的历史日志文件个数
+maxBackups = 20
+# 最多保存的历史日志消息（单位：天）
+maxAge = 28
+# 日志文件名是否使用本地事件（否则使用UTC时间）
+localTime = true
+# 历史日志文件是否压缩（压缩格式为gz）
+compress = false
+# 是否打印调用源文件和行号
+callerFile = true
+# 是否打印调用方法
+callerFunction = true
 
 [blockchain]
 defCacheSize=512
@@ -34,6 +52,7 @@ name="solo"
 minerstart=true
 
 [store]
+name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 

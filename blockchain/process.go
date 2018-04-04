@@ -155,7 +155,12 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail) 
 	}
 
 	//将此block存储到db中，方便后面blockchain重组时使用，加入到主链saveblock时通过hash重新覆盖即可
-	b.blockStore.dbMaybeStoreBlock(block)
+	var sync bool = true
+	if atomic.LoadInt32(&b.isbatchsync) == 0 {
+		sync = false
+	}
+
+	b.blockStore.dbMaybeStoreBlock(block, sync)
 
 	// 创建一个node并添加到内存中index
 	newNode := newBlockNode(broadcast, block.Block)
@@ -265,14 +270,19 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	beg := time.Now()
 	// 写入磁盘
 	//批量将block信息写入磁盘
-	newbatch := b.blockStore.NewBatch(true)
+	var sync bool = true
+	if atomic.LoadInt32(&b.isbatchsync) == 0 {
+		sync = false
+	}
+
+	newbatch := b.blockStore.NewBatch(sync)
 	//保存tx信息到db中 (newbatch, blockdetail)
 	err = b.blockStore.AddTxs(newbatch, blockdetail)
 	if err != nil {
 		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "err", err)
 		return err
 	}
-	chainlog.Debug("connectBlock AddTxs!", "height", block.Height)
+	//chainlog.Debug("connectBlock AddTxs!", "height", block.Height, "batchsync", sync)
 
 	//保存block信息到db中
 	err = b.blockStore.SaveBlock(newbatch, blockdetail)
@@ -300,7 +310,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 	newbatch.Write()
 
-	chainlog.Debug("connectBlock write db", "height", block.Height, "cost", time.Now().Sub(beg))
+	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Now().Sub(beg))
 
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight()

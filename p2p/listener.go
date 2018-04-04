@@ -3,10 +3,11 @@ package p2p
 import (
 	"fmt"
 	"net"
+	"time"
 
 	pb "code.aliyun.com/chain33/chain33/types"
-
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 type Listener interface {
@@ -14,7 +15,6 @@ type Listener interface {
 }
 
 func (l *listener) Close() bool {
-	l.server.Stop()
 	l.p2pserver.Close()
 	log.Info("stop", "listener", "close")
 	return true
@@ -42,8 +42,22 @@ func NewListener(protocol string, node *Node) Listener {
 	pServer := NewP2pServer()
 	pServer.node = dl.node
 	pServer.Start()
-	dl.server = grpc.NewServer()
+
+	msgRecvOp := grpc.MaxMsgSize(10 * 1024 * 1024)     //设置最大接收数据大小位10M
+	msgSendOp := grpc.MaxSendMsgSize(10 * 1024 * 1024) //设置最大发送数据大小为10M
+
+	//暂时不启用解压缩进行发送接收
+	//compressOp := grpc.RPCCompressor(grpc.NewGZIPCompressor())       //设置grpc 采用gzip形式进行 压缩
+	//decompressOp := grpc.RPCDecompressor(grpc.NewGZIPDecompressor()) //设置 grpc gzip 解压缩
+	var keepparm keepalive.ServerParameters
+	keepparm.Time = 100 * time.Second
+	keepparm.Timeout = 5 * time.Second
+	keepOp := grpc.KeepaliveParams(keepparm)
+
+	dl.server = grpc.NewServer(msgRecvOp, msgSendOp,
+		/*compressOp, decompressOp,*/ keepOp)
 	dl.p2pserver = pServer
+
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	go dl.server.Serve(l)
 	return dl

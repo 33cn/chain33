@@ -12,13 +12,14 @@ import (
 
 	"code.aliyun.com/chain33/chain33/account"
 	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	"code.aliyun.com/chain33/chain33/common/crypto"
 	jsonrpc "code.aliyun.com/chain33/chain33/rpc"
 	"code.aliyun.com/chain33/chain33/types"
 )
 
 func main() {
-	common.SetLogLevel("eror")
+	clog.SetLogLevel("eror")
 	//	argsWithProg := os.Args
 	if len(os.Args) == 1 {
 		LoadHelp()
@@ -1894,25 +1895,26 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		Nonce:      tx.Nonce,
 		To:         tx.To,
 	}
-	payloacValue := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
-	for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
-		if _, ok := payloacValue[e]; ok {
-			if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
-				amt := amtValue.(float64) / float64(types.Coin)
-				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
-				break
+	if plValue, ok := tx.Payload.(map[string]interface{})["Value"]; ok {
+		payloadValue := plValue.(map[string]interface{})
+		for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
+			if _, ok := payloadValue[e]; ok {
+				if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
+					amt := amtValue.(float64) / float64(types.Coin)
+					amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+					result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
+					break
+				}
+			}
+		}
+		if _, ok := payloadValue["Miner"]; ok {
+			if rwdValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"]; ok {
+				rwd := rwdValue.(float64) / float64(types.Coin)
+				rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
+				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
 			}
 		}
 	}
-	if _, ok := payloacValue["Miner"]; ok {
-		if rwdValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"]; ok {
-			rwd := rwdValue.(float64) / float64(types.Coin)
-			rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
-			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
-		}
-	}
-
 	if tx.Amount != 0 {
 		result.Amount = amountResult
 	}
@@ -2512,8 +2514,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
 		default:
-			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
-			return nil
+			// fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
+			rl.Log = nil
 		}
 		rd.Logs = append(rd.Logs, rl)
 	}
