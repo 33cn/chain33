@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common"
+	clog "code.aliyun.com/chain33/chain33/common/log"
 	"code.aliyun.com/chain33/chain33/queue"
 	"code.aliyun.com/chain33/chain33/types"
 	lru "github.com/hashicorp/golang-lru"
@@ -12,7 +12,7 @@ import (
 )
 
 func SetLogLevel(level string) {
-	common.SetLogLevel(level)
+	clog.SetLogLevel(level)
 }
 
 func DisableLog() {
@@ -112,7 +112,7 @@ func (mem *Mempool) TxNumOfAccount(addr string) int64 {
 	return mem.cache.TxNumOfAccount(addr)
 }
 
-// Mempool.GetTxList从txCache中返回给定数目的tx并从txCache中删除返回的tx
+// Mempool.GetTxList从txCache中返回给定数目的tx
 func (mem *Mempool) GetTxList(hashList *types.TxHashList) []*types.Transaction {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
@@ -179,6 +179,7 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	return true
 }
 
+// Mempool.RemoveTxs从Mempool中删除给定Hash的txs
 func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
@@ -216,7 +217,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 	}
 }
 
-// Mempool.PushTx将交易推入Mempool，成功返回true，失败返回false和失败原因
+// Mempool.PushTx将交易推入Mempool，并返回结果（error）
 func (mem *Mempool) PushTx(tx *types.Transaction) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
@@ -231,6 +232,7 @@ func (mem *Mempool) GetLatestTx() []*types.Transaction {
 	return mem.cache.GetLatestTx()
 }
 
+// Mempool.ReTrySend每隔两分钟运行一次ReTry
 func (mem *Mempool) ReTrySend() {
 	for {
 		time.Sleep(time.Minute * 2)
@@ -238,6 +240,7 @@ func (mem *Mempool) ReTrySend() {
 	}
 }
 
+// Mempool.ReTry检查Mempool，将未过期的交易重发送给P2P
 func (mem *Mempool) ReTry() {
 	var result []*types.Transaction
 	mem.proxyMtx.Lock()
@@ -301,6 +304,7 @@ func (mem *Mempool) RemoveBlockedTxs() {
 	}
 }
 
+// Mempool.GetHeader获取Mempool.header
 func (mem *Mempool) GetHeader() *types.Header {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
@@ -322,6 +326,44 @@ func (mem *Mempool) GetLastHeader() (interface{}, error) {
 	return mem.client.Wait(msg)
 }
 
+// Mempool.GetAccTxs用来获取对应账户地址（列表）中的全部交易详细信息
+func (mem *Mempool) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.GetAccTxs(addrs)
+}
+
+// Mempool.SendTxToP2P向"p2p"发送消息
+func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
+	if mem.client == nil {
+		panic("client not bind message queue.")
+	}
+
+	msg := mem.client.NewMessage("p2p", types.EventTxBroadcast, tx)
+	mem.client.Send(msg, false)
+	mlog.Debug("tx sent to p2p", "tx.Hash", tx.Hash())
+}
+
+// Mempool.CheckExpireValid检查交易过期有效性，过期返回false，未过期返回true
+func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	if mem.header == nil {
+		return false
+	}
+	tx := msg.GetData().(*types.Transaction)
+	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+		return false
+	}
+	return true
+}
+
+// Mempool.Close关闭Mempool
+func (mem *Mempool) Close() {
+	mlog.Debug("mempool module closed")
+}
+
+// Mempool.checkTxListRemote发送消息给执行模块检查交易
 func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptCheckTxList, error) {
 	if mem.client == nil {
 		panic("client not bind message queue.")
@@ -339,17 +381,6 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 	return msg.GetData().(*types.ReceiptCheckTxList), nil
 }
 
-// Mempool.SendTxToP2P向"p2p"发送消息
-func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
-	if mem.client == nil {
-		panic("client not bind message queue.")
-	}
-
-	msg := mem.client.NewMessage("p2p", types.EventTxBroadcast, tx)
-	mem.client.Send(msg, false)
-	mlog.Debug("tx sent to p2p", "tx.Hash", tx.Hash())
-}
-
 // Mempool.pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
 	for {
@@ -365,43 +396,28 @@ func (mem *Mempool) pollLastHeader() {
 	}
 }
 
+// Mempool.setHeader设置Mempool.header
 func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Lock()
 	mem.header = h
 	mem.proxyMtx.Unlock()
 }
 
-// Mempool.Close关闭Mempool
-func (mem *Mempool) Close() {
-	mlog.Debug("mempool module closed")
-}
-
-// Mempool.CheckExpireValid检查交易过期有效性，过期返回false，未过期返回true
-func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	if mem.header == nil {
-		return false
-	}
-	tx := msg.GetData().(*types.Transaction)
-	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
-		return false
-	}
-	return true
-}
-
+// Mempool.setSync设置Mempool同步状态
 func (mem *Mempool) setSync(status bool) {
 	mem.proxyMtx.Lock()
 	mem.sync = status
 	mem.proxyMtx.Unlock()
 }
 
+// Mempool.isSync检查Mempool是否同步完成
 func (mem *Mempool) isSync() bool {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	return mem.sync
 }
 
+// Mempool.getSync获取Mempool同步状态
 func (mem *Mempool) getSync() {
 	for {
 		if mem.client == nil {
@@ -422,12 +438,6 @@ func (mem *Mempool) getSync() {
 			continue
 		}
 	}
-}
-
-func (mem *Mempool) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
-	return mem.cache.GetAccTxs(addrs)
 }
 
 func (mem *Mempool) SetQueueClient(client queue.Client) {

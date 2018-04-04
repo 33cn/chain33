@@ -93,7 +93,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, *store.Store, *p2p.P2p) {
+func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Module, *p2p.P2p) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")
@@ -122,7 +122,7 @@ func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, *store.S
 	return mem, q, chain, s, network
 }
 
-func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, *store.Store) {
+func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")

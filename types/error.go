@@ -163,4 +163,9 @@ var (
 	ErrBadConfigKey   = errors.New("ErrBadConfigKey")
 	ErrBadConfigOp    = errors.New("ErrBadConfigOp")
 	ErrBadConfigValue = errors.New("ErrBadConfigValue")
+	//p2p
+	ErrPing       = errors.New("ErrPingSignature")
+	ErrVersion    = errors.New("ErrVersionNoSupport")
+	ErrStreamPing = errors.New("ErrStreamPing")
+	ErrPeerStop   = errors.New("ErrPeerStop")
 )
