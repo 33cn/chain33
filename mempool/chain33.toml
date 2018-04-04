@@ -10,21 +10,23 @@ driver="leveldb"
 dbPath="datadir"
 
 [p2p]
-seeds=["114.55.101.159:13802"]
+seeds=["113.55.101.159:13802"]
 isSeed=false
+enable=false
 seedPort=13802
 dbPath="datadir/addrbook"
 
 [mempool]
-poolCacheSize=1024
+poolCacheSize=10240
 minTxFee=1000000
-
 
 [consensus]
 name="solo"
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+minerstart=true
 
 [store]
+name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 

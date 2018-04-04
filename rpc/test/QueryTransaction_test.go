@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"testing"
 	"net/http"
+	"testing"
 )
 
 var hash = flag.String("txhash", "", "txhash")
@@ -30,4 +30,3 @@ func TestQueryTransaction(t *testing.T) {
 	fmt.Printf("returned JSON: %s\n", string(b))
 
 }
-

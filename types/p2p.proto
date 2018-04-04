@@ -1,0 +1,265 @@
+syntax = "proto3";
+
+import "transaction.proto";
+import "common.proto";
+import "blockchain.proto";
+
+package types;
+
+service p2pgservice {
+	//广播交易
+	rpc BroadCastTx (P2PTx) returns (Reply) {
+	}
+	//广播区块
+	rpc BroadCastBlock (P2PBlock) returns (Reply) {
+	}
+	
+	//PING
+	rpc Ping (P2PPing) returns (P2PPong) {
+	}
+	
+	//获取地址
+	rpc GetAddr (P2PGetAddr) returns (P2PAddr) {
+	}
+	
+	//版本
+	rpc Version (P2PVersion) returns (P2PVerAck) {
+	}
+	
+	rpc Version2 (P2PVersion) returns (P2PVersion) {
+	}
+	
+	//获取区块，最高200
+	rpc GetBlocks (P2PGetBlocks) returns (P2PInv) {
+	}
+	
+	//获取mempool
+	rpc GetMemPool (P2PGetMempool) returns (P2PInv) {
+	}
+	
+	//获取数据
+	rpc GetData (P2PGetData) returns (stream InvDatas) {
+	}
+	
+	//获取头部
+	rpc GetHeaders (P2PGetHeaders) returns (P2PHeaders) {
+	}
+	
+	//获取 peerinfo
+	rpc GetPeerInfo (P2PGetPeerInfo) returns (P2PPeerInfo) {
+	}
+	
+	//获取本节点外网地址信息
+	rpc RemotePeerAddr (P2PGetAddr) returns (P2PExternalInfo) {
+	}
+	
+	//grpc server 读客户端发送来的数据
+	rpc ServerStreamRead(stream BroadCastData) returns (ReqNil){
+	}
+	
+	// grpc server 发送数据给客户端
+	rpc ServerStreamSend(P2PPing) returns (stream BroadCastData){
+	}
+	// grpc 收集inpeers
+	rpc CollectInPeers(P2PPing)returns(PeerList){
+	}
+}
+
+
+/**
+* 请求获取远程节点的节点信息
+*/
+message P2PGetPeerInfo {
+	int32 version = 1;///p2p版本
+}
+
+
+/**
+* 节点信息
+*/
+message P2PPeerInfo {
+	string addr = 1;///节点的IP地址
+	int32 port = 2;///节点的外网端口
+	string name = 3;///节点的名称
+	int32 mempoolSize = 4;///mempool 的大小
+	Header header = 5;///节点当前高度头部数据
+}
+
+
+/**
+ * p2p节点间发送版本数据结构
+ */
+message P2PVersion {
+	int32 version = 1;///当前版本
+	int64 service = 2;///服务类型
+	int64 timestamp = 3;///时间戳
+	string addrRecv = 4;///数据包的目的地址
+	string addrFrom = 5;///数据发送的源地址
+	int64 nonce = 6;///随机数
+	string userAgent = 7;///用户代理
+	int64 startHeight = 8;///当前节点的高度
+}
+
+/**
+* P2P 版本返回
+*/
+message P2PVerAck {
+	int32 version = 1;
+	int64 service = 2;
+	int64 nonce = 3;
+}
+/**
+* P2P 心跳包
+*/
+
+message P2PPing {
+	int64 nonce = 1;///随机数
+	string addr = 2;///节点的外网地址
+	int32 port = 3;///节点的外网端口
+	Signature sign = 4;//签名
+}
+
+/**
+* 心跳返回包
+*/
+message P2PPong {
+	int64 nonce = 1;
+}
+
+/**
+* 获取对方节点所连接的其他节点地址的请求包
+*/
+message P2PGetAddr {
+	int64 nonce = 1;
+}
+
+/**
+* 返回请求地址列表的社保
+*/
+message P2PAddr {
+	int64 nonce = 1;
+	repeated string addrlist = 2; ///对方节点返回的其他节点信息
+	
+}
+
+/**
+* 节点外网信息
+*/
+message P2PExternalInfo {
+	string addr = 1;///节点的外网地址
+	bool isoutside = 2;//节点是否在外网
+}
+
+/**
+* 获取区间区块
+*/
+message P2PGetBlocks {
+	int32 version = 1;
+	int64 startHeight = 2;
+	int64 endHeight = 3;
+}
+
+/**
+* 获取mempool
+*/
+message P2PGetMempool {
+	int32 version = 1;
+}
+
+message P2PInv {
+	repeated Inventory invs = 1;
+	
+}
+
+//ty=MSG_TX MSG_BLOCK
+message Inventory {
+	int32 ty = 1; //类型，数据类型，MSG_TX MSG_BLOCK
+	bytes hash = 2;///哈希
+	int64 height = 3;//高度
+}
+
+/**
+* 通过invs 下载数据
+*/
+message P2PGetData {
+	int32 version = 1; ///p2p版本
+	repeated Inventory invs = 2;/// invs 数组
+}
+
+/**
+* p2p 发送交易协议
+*/
+message P2PTx {
+	Transaction tx = 1;
+}
+
+/**
+* p2p 发送区块协议
+*/
+message P2PBlock {
+	Block block = 1;
+}
+
+/**
+* p2p 广播数据协议
+*/
+message BroadCastData {
+	oneof value {
+		P2PTx tx = 1;
+		P2PBlock block = 2;
+		P2PPing ping =3;
+	}
+}
+
+/**
+* p2p 获取区块区间头部信息协议
+*/
+message P2PGetHeaders {
+	int32 version = 1;
+	int64 startHeight = 2;
+	int64 endHeight = 3;
+}
+
+/**
+* p2p 区块头传输协议
+*/
+message P2PHeaders {
+	repeated Header headers = 1;
+}
+
+/**
+* inv 请求协议
+*/
+message InvData {
+	oneof value {
+		Transaction tx = 1;
+		Block block = 2;
+	}
+	int32 ty = 3;
+}
+
+/**
+* inv 返回数据
+*/
+message InvDatas {
+	repeated InvData items = 1;
+}
+
+/**
+* peer 信息
+*/
+message Peer {
+	string addr = 1;
+	int32 port = 2;
+	string name = 3;
+	bool self = 4;
+	int32 mempoolSize = 5;
+	Header header = 6;
+}
+
+/**
+* peer 列表
+*/
+message PeerList {
+	repeated Peer peers = 1;
+}

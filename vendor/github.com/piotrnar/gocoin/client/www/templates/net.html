@@ -1,0 +1,466 @@
+<style>
+.dbg {
+	//display:table-cell;
+	display:none;
+}
+td.agent {
+	//max-width: auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap
+}
+</style>
+<script type="text/javascript" src="webui/jquery.min.js"></script>
+<script type="text/javascript" src="webui/jquery.flot.min.js"></script>
+<b id="out_connections"></b> outgoing and <b id="in_connections"></b> incoming connections<br>
+Listening for incoming TCP connections: <b>{LISTEN_TCP}</b>
+<span id="el_tcp_listen_switch" style="display:none">&nbsp;&nbsp;[<a href="javascript:config('lonoff')">Switch ON/OFF</a>]</span><br>
+External address: <b>{EXTERNAL_ADDR}</b><br>
+
+<div id="chart" style="height:180px;margin:2px"></div>
+
+<div style="text-align:right;margin-bottom:8px;">
+<input type="radio" name="net_list_order" id="net_list_order_sp" onchange="switch_order_type()"><span onclick="net_list_order_sp.click()" style="cursor:pointer"> Sort by speed</span>
+&nbsp;&bull;&nbsp;
+<input type="radio" name="net_list_order" id="net_list_order_id" onchange="switch_order_type()"><span onclick="net_list_order_id.click()" style="cursor:pointer"> Sort by age</span>
+</div>
+<table class="netcons bord" width="100%" id="netcons">
+<tr>
+	<th width="30">ID
+	<th width="80">Age
+	<th width="130" colspan="2">Peer Address
+	<th width="20">Ping
+	<th class="dbg">Rcvd
+	<th class="dbg">Sent
+	<th width="60" >Tot In
+	<th width="60" >Tot Out
+	<th colspan="3">Node Version
+	<th width="60" colspan="2" title="Received / In Progress">Blks
+	<th >Txs
+	<th class="dbg" title="Bytes waiting to be sent">ToSend
+	<th class="dbg" title="Max bytes waiting to be sent">MaxSend
+	<th>&nbsp;
+</tr>
+<!--PEER_ROW-->
+</table>
+
+
+<table width="100%"><tr>
+<td>
+Node Version Legend:<br>
+&bull; <b>H</b> - Supports BIP130<br>
+&bull; <b>B</b> - Supports Bloom Filtering<br>
+&bull; <b>1,2</b> - Supports Compact Blocks (<b>+</b> for high bandwidth)<br>
+&bull; <b>W</b> - Supports Segregate Witness<br>
+<a name="rawdiv"></a><pre id="rawdiv" class="mono"></pre>
+</td>
+<td align="right" valign="top">
+<span class="hand" onclick="show_debug_mode.click()">More info </span><input type="checkbox" id="show_debug_mode" onchange="switch_debug_mode()">
+</td></tr>
+</table>
+
+
+<script>
+if (!server_mode) {
+	el_tcp_listen_switch.style.display='inline'
+}
+
+var raw_timer = null
+var curr_monitor_id = -1
+
+function hide_peer_info() {
+	if (raw_timer!=null) {
+		clearTimeout(raw_timer)
+		raw_timer = null
+	}
+	document.getElementById('rawdiv').innerHTML = ''
+	curr_monitor_id = -1
+}
+
+
+function update_connection_info(ci) {
+	var s = 'Connection ID ' + ci.ID + ':\n'
+
+	s += (ci.Incomming ? 'Coming from ' : 'Going to ') + ci.PeerIp + '\n'
+	s += 'Connected at ' + tim2str(Date.parse(ci.ConnectedAt)/1000) + '\n'
+	s += 'Node Version: ' + ci.Version + ' / Services: 0x' + ci.Services.toString(16) + '\n'
+	s += 'User Agent: ' + ci.Agent + '\n'
+	s += 'Chain Height: ' + ci.Height + '\n'
+	s += 'Reported IP: ' + int2ip(ci.ReportedIp4) + '\n'
+	s += 'SendHeaders: ' + ci.SendHeaders + ' / SendCmpctVer: ' + ci.SendCmpctVer + ' / HighBandwidth: ' + ci.HighBandwidth + '\n'
+	s += 'Last command rcvd at ' + tim2str(Date.parse(ci.LastDataGot)/1000, true) + ' - ' + ci.LastCmdRcvd + ':' + ci.LastBtsRcvd + '\n'
+	s += 'Last command sent at ' + tim2str(Date.parse(ci.LastSent)/1000, true) + ' - ' + ci.LastCmdSent + ':' + ci.LastBtsSent + '\n'
+	s += 'Invs  Done:' + ci.InvsDone + '   Recieved:' + ci.InvsRecieved + '  Pending:' + ci.InvsToSend +  '\n'
+	s += 'Bytes to send:' + ci.BytesToSend + ' (' + ci.MaxSentBufSize + ' max)\n'
+	s += 'BlockInProgress:' + ci.BlocksInProgress + '  GetHeadersInProgress:' + ci.GetHeadersInProgress + '\n'
+	s += 'GetBlocksDataNow:' + ci.GetBlocksDataNow + '  AllHeadersReceived:' + ci.AllHeadersReceived + '\n'
+	s += 'Total Received:' + ci.BytesReceived + ' / Sent:' + ci.BytesSent +'\n'
+	s += 'GetAddrDone:' + ci.GetAddrDone + ' / MinFeeSPKB:' + ci.MinFeeSPKB +'\n'
+	s += 'Ping history:'
+
+	var idx = ci.PingHistoryIdx
+	for (var i=0; i<ci.PingHistory.length; i++) {
+		if (ci.PingHistory[idx]>0) {
+			s += ' ' + ci.PingHistory[idx]
+		}
+		idx = (idx+1)%ci.PingHistory.length
+	}
+	s += ' -> ' + ci.AveragePing + ' ms\n'
+
+	var cnts = ''
+	var msgs = new Array()
+
+	for (var k in ci.Counters) {
+		if (k[4]=='_') {
+			if (isNaN(msgs[k.substr(5)])) msgs[k.substr(5)] = new Array()
+			msgs[k.substr(5)][k.substr(0,4)] = ci.Counters[k]
+		} else {
+			if (cnts!='') cnts+=',  '
+			cnts += k + '=' + ci.Counters[k]
+		}
+	}
+	if (cnts!='') {
+		s += 'Counters: ' + cnts + '\n'
+	}
+
+	s += '----------------------------------------------------------------\n'
+	s += ' Network message     Received from peer          Sent to peer\n'
+	s += '----------------------------------------------------------------\n'
+	var kks = []
+	for (var k in msgs) {
+		kks.push(k)
+	}
+	kks.sort(kks)
+	for (var i=0; i<kks.length; i++) {
+		var v
+		var k = kks[i]
+		s += ' ' + rightpad(k,  ' ', 16) + ' '
+		v = msgs[k]["rcvd"]
+		s += leftpad(isNaN(v)?' ':v, ' ', 8)
+		v = msgs[k]["rbts"]
+		s += ' ' + leftpad(isNaN(v)?' ':v,  ' ', 12)
+		s += '   '
+
+
+		v = msgs[k]["sent"]
+		s += leftpad(isNaN(v)?' ':v, ' ', 8)
+		v = msgs[k]["sbts"]
+		s += ' ' + leftpad(isNaN(v)?' ':v,  ' ', 12)
+		s += '\n'
+	}
+	s += '----------------------------------------------------------------\n'
+
+	document.getElementById('rawdiv').innerHTML = s
+}
+
+function raw_load(id) {
+	//console.log(this)
+	if (raw_timer!=null) {
+		clearTimeout(raw_timer)
+		raw_timer = null
+	}
+	curr_monitor_id = id
+	var aj = ajax()
+	aj.onload=function() {
+		try {
+			var ci = JSON.parse(aj.responseText)
+			update_connection_info(ci)
+		} catch (e) {
+			console.log("Closing peer info because", e)
+			hide_peer_info()
+		}
+		raw_timer = setTimeout('raw_load('+id+')', 900)
+	}
+	aj.open("GET","peerst.json?id="+id, true);
+	aj.send(null);
+}
+
+function row_clicked(id) {
+	if (id==curr_monitor_id) { // hide when clicked again
+		hide_peer_info()
+	} else {
+		raw_load(id)
+	}
+}
+
+function net_drop(id) {
+	if (server_mode) {
+		alert('Droping connections is not available in Server Mode')
+		return
+	}
+	if (confirm("Drop Connection ID "+id+" and ban its IP")) {
+		document.location = 'cfg?drop='+id+'&sid='+sid
+	}
+	return false
+}
+
+function refreshconnections() {
+	function onc(c,id) {
+		c.onclick = function() {row_clicked(id)}
+	}
+
+	var aj = ajax()
+	aj.onerror=function() {
+		setTimeout(refreshconnections, 5000)
+	}
+	aj.onload=function() {
+		try {
+			var cs = JSON.parse(aj.responseText)
+
+			if (net_list_order_id.checked) {
+				cs.sort(function(a,b){
+					return (a.ID>b.ID) ? 1 : -1;
+				})
+			}
+
+			while (netcons.rows.length>1) netcons.deleteRow(1)
+
+			var ins=0, outs=0
+			var id_found = false
+
+			for (var i=0; i<cs.length; i++) {
+				var td, row = netcons.insertRow(-1)
+				var id = cs[i].ID
+
+				if (curr_monitor_id==id) {
+					update_connection_info(cs[i])
+					id_found = true
+				}
+
+				row.id = id
+				row.className = 'hov small'
+
+				// id
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.className = 'nodeid'
+				td.innerHTML = '&nbsp;<b>'+id+'</b>&nbsp;'
+
+				// age
+				td = row.insertCell(-1)
+				td.noWrap = true
+				td.style.textAlign = 'right'
+				if (cs[i].ConnectedAt!=0 && typeof(time_now)=="number") {
+					var secs = time_now - parseInt(Date.parse(cs[i].ConnectedAt)/1000)
+					if (secs<0)  secs = 0
+					if (secs<120) {
+						td.innerHTML = (secs/60).toFixed(1) + ' min'
+					} else {
+						td.innerHTML = period2str( secs )
+					}
+				}
+
+				// addr
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.innerHTML = cs[i].PeerIp
+
+				// direction
+				td = row.insertCell(-1)
+				if (cs[i].Incomming) {
+					td.innerHTML = "<img src=\"webui/incoming.png\">"
+					ins++
+				} else {
+					td.innerHTML = "<img src=\"webui/outgoing.png\">"
+					outs++
+				}
+
+				// ping
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.innerHTML = '<i>'+cs[i].AveragePing+'&nbsp;ms</i>'
+
+				// last_cmd_rcvd
+				td = row.insertCell(-1)
+				td.className = 'dbg mono'
+				td.title = cs[i].LastBtsRcvd
+				td.innerHTML = cs[i].LastCmdRcvd
+
+				// last_cmd_sent
+				td = row.insertCell(-1)
+				td.className = 'dbg mono'
+				td.title = cs[i].LastBtsSent
+				td.innerHTML = cs[i].LastCmdSent
+
+				// total_rcvd
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.noWrap = true
+				td.innerHTML = bignum(cs[i].BytesReceived)+'B'
+
+				// total_sent
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.noWrap = true
+				td.innerHTML = bignum(cs[i].BytesSent)+'B'
+
+				// node_version
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.innerHTML = cs[i].Version + (cs[i].DoNotRelayTxs ? '*' : '')
+				td.title = 'Services : 0x' + cs[i].Services.toString(16)
+
+				//Flags: X-compact blocks,  W - SegWit
+				td = row.insertCell(-1)
+				td.className = 'bold'
+				td.style.textAlign = 'center'
+				var s = ''
+				if (cs[i].SendHeaders) s += 'H'
+				if (cs[i].Services&4) s += 'B'
+				if (cs[i].SendCmpctVer) {
+					s += cs[i].SendCmpctVer
+					if (cs[i].HighBandwidth)  s += '+'
+				}
+				if (cs[i].Services&8)  s += 'W'
+				td.innerText = s
+
+				// user agent
+				td = row.insertCell(-1)
+				td.style.overay = 'auto'
+				td.className = 'agent'
+				td.title = td.innerText = cs[i].Agent//.substr(0,20)
+
+				// blocks received
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.noWrap = true
+				if (cs[i].BlocksReceived>0) td.innerHTML = cs[i].BlocksReceived
+
+				// blocks in progress
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.noWrap = true
+				if (cs[i].BlocksInProgress>0) {
+					td.innerHTML = cs[i].BlocksInProgress + ( cs[i].GetHeadersInProgress ? '*' : '')
+				} else if (cs[i].GetHeadersInProgress) {
+					td.innerHTML = '*'
+				}
+
+				/*
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.noWrap = true
+				td.innerHTML = cs[i].TotalNewHeadersCount
+
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.innerHTML = cs[i].LastHeadersEmpty
+				td.title = cs[i].LastHeadersHeightAsk
+				*/
+
+				td = row.insertCell(-1)
+				td.style.textAlign = 'right'
+				td.noWrap = true
+				if (cs[i].TxsReceived!=0) td.innerHTML = cs[i].TxsReceived
+
+				td = row.insertCell(-1)
+				td.className = "dbg"
+				td.style.textAlign = 'right'
+				td.noWrap = true
+				if (cs[i].BytesToSend>0) td.innerHTML = cs[i].BytesToSend
+
+				td = row.insertCell(-1)
+				td.className = "dbg"
+				td.style.textAlign = 'right'
+				td.noWrap = true
+				td.innerHTML = cs[i].MaxSentBufSize
+
+				// drop conn
+				td = row.insertCell(-1)
+				td.style.width = '20px'
+				td.style.textAlign = 'right'
+				td.innerHTML = '<img title="Drop this connection and ban peer" class="hand" src="webui/del.png" onclick="net_drop('+id+')">'
+
+				onc(row, id)
+				row.title = "Connection Details"
+				row.style.cursor = 'pointer'
+
+				if (cs[i].HasImmunity) {
+					row.classList.add("immune")
+				}
+			}
+
+			if (curr_monitor_id!=-1 && !id_found) {
+				//console.log(curr_monitor_id, "not found - hide")
+				hide_peer_info()
+			}
+
+			in_connections.innerText = ins
+			out_connections.innerText = outs
+		} catch(e) {
+			console.log(e)
+		}
+		setTimeout(refreshconnections, 1000)
+	}
+	aj.open("GET","netcon.json",true)
+	aj.send(null)
+}
+
+function switch_debug_mode() {
+	if (show_debug_mode.checked) {
+		css('.dbg', 'display', 'table-cell')
+		css('td.agent', 'max-width', '100px')
+	} else {
+		css('.dbg', 'display', 'none')
+		css('td.agent', 'max-width', '350px')
+	}
+}
+
+function draw_chart() {
+	var aj = ajax()
+	aj.onerror=function() {
+		setTimeout(draw_chart, 1000)
+	}
+
+	aj.onload=function() {
+		try {
+			cs = JSON.parse(aj.responseText)
+
+			var plot_data = [
+				{ data : [], label:"Downloading in kB/s", color:3, lines: {show:true, fill:true} },
+				{ data : [], label:"Uploading in kB/s",   color:2, lines: {show:true, fill:true} }
+				];
+			var plot_options = {
+				xaxis: { tickSize:60,  tickFormatter : function(a,b) {return a ? (parseInt(-a/60) + 'min') : ''} },
+				yaxis : {labelWidth : 40, min : 0, position : "right",  label:"kB/s" },
+				legend: { position: 'nw' }
+			}
+
+			for (var i=0; i<256; i++) {
+				plot_data[0].data.push([-i, cs.DL[i]/1e3])
+				plot_data[1].data.push([-i, cs.UL[i]/1e3])
+			}
+
+			$.plot($("#chart"), plot_data, plot_options)
+
+		} catch(e) {
+			console.log(e)
+		}
+		setTimeout(draw_chart, 1000)
+	}
+	aj.open("GET","bwchar.json",true)
+	aj.send(null)
+}
+
+
+draw_chart()
+
+function switch_order_type() {
+	if (net_list_order_sp.checked) {
+		localStorage.setItem("net_order", "sp")
+	} else {
+		localStorage.setItem("net_order", "id")
+	}
+	refreshconnections()
+}
+function remember_info_setting() {
+	var mod = localStorage.getItem("net_order")
+	if ((mod+'').length!=2) mod = "sp"
+	document.getElementById('net_list_order_'+mod).checked = true
+}
+remember_info_setting()
+switch_order_type()
+switch_debug_mode()
+
+
+</script>

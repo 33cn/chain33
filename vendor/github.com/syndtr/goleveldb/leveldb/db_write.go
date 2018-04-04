@@ -7,6 +7,8 @@
 package leveldb
 
 import (
+	"runtime/debug"
+	"sync/atomic"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb/memdb"
@@ -69,6 +71,7 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 	flush := func() (retry bool) {
 		mdb = db.getEffectiveMem()
 		if mdb == nil {
+			debug.PrintStack()
 			err = ErrClosed
 			return false
 		}
@@ -117,6 +120,8 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 		db.writeDelayN++
 	} else if db.writeDelayN > 0 {
 		db.logf("db@write was delayed N·%d T·%v", db.writeDelayN, db.writeDelay)
+		atomic.AddInt32(&db.cWriteDelayN, int32(db.writeDelayN))
+		atomic.AddInt64(&db.cWriteDelay, int64(db.writeDelay))
 		db.writeDelay = 0
 		db.writeDelayN = 0
 	}
@@ -287,6 +292,7 @@ func (db *DB) Write(batch *Batch, wo *opt.WriteOptions) error {
 			return err
 		case <-db.closeC:
 			// Closed
+			debug.PrintStack()
 			return ErrClosed
 		}
 	} else {
@@ -298,6 +304,7 @@ func (db *DB) Write(batch *Batch, wo *opt.WriteOptions) error {
 			return err
 		case <-db.closeC:
 			// Closed
+			debug.PrintStack()
 			return ErrClosed
 		}
 	}
@@ -329,6 +336,7 @@ func (db *DB) putRec(kt keyType, key, value []byte, wo *opt.WriteOptions) error 
 			return err
 		case <-db.closeC:
 			// Closed
+			debug.PrintStack()
 			return ErrClosed
 		}
 	} else {
@@ -340,6 +348,7 @@ func (db *DB) putRec(kt keyType, key, value []byte, wo *opt.WriteOptions) error 
 			return err
 		case <-db.closeC:
 			// Closed
+			debug.PrintStack()
 			return ErrClosed
 		}
 	}
@@ -396,12 +405,14 @@ func (db *DB) CompactRange(r util.Range) error {
 	case err := <-db.compPerErrC:
 		return err
 	case <-db.closeC:
+		debug.PrintStack()
 		return ErrClosed
 	}
 
 	// Check for overlaps in memdb.
 	mdb := db.getEffectiveMem()
 	if mdb == nil {
+		debug.PrintStack()
 		return ErrClosed
 	}
 	defer mdb.decref()
@@ -436,6 +447,7 @@ func (db *DB) SetReadOnly() error {
 	case err := <-db.compPerErrC:
 		return err
 	case <-db.closeC:
+		debug.PrintStack()
 		return ErrClosed
 	}
 
@@ -445,6 +457,7 @@ func (db *DB) SetReadOnly() error {
 	case perr := <-db.compPerErrC:
 		return perr
 	case <-db.closeC:
+		debug.PrintStack()
 		return ErrClosed
 	}
 

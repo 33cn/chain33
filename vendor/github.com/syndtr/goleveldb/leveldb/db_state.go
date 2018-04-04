@@ -8,6 +8,7 @@ package leveldb
 
 import (
 	"errors"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -233,6 +234,7 @@ func (db *DB) isClosed() bool {
 // Check read ok status.
 func (db *DB) ok() error {
 	if db.isClosed() {
+		debug.PrintStack()
 		return ErrClosed
 	}
 	return nil

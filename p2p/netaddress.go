@@ -1,14 +1,17 @@
 package p2p
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
 	"strconv"
 	"time"
 
-	"golang.org/x/net/context"
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/keepalive"
 )
 
 // NetAddress defines information about a peer on the network
@@ -118,31 +121,51 @@ func (na *NetAddress) String() string {
 	return na.str
 }
 
-// Dial calls net.Dial on the address.
-func (na *NetAddress) Dial() (*grpc.ClientConn, error) {
-
-	conn, err := grpc.Dial(na.String(), grpc.WithInsecure())
-	if err != nil {
-		log.Error("did not connect: %v", err)
-		return nil, err
-	}
-	return conn, nil
-
+func (na *NetAddress) Copy() *NetAddress {
+	copytmp := *na
+	return &copytmp
 }
 
 // DialTimeout calls net.DialTimeout on the address.
-func (na *NetAddress) DialTimeout(timeout time.Duration) (*grpc.ClientConn, error) {
+func isCompressSupport(err error) bool {
+	var errstr = `grpc: Decompressor is not installed for grpc-encoding "gzip"`
+	if grpc.Code(err) == codes.Unimplemented && grpc.ErrorDesc(err) == errstr {
+		return false
+	}
+	return true
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	conn, err := grpc.DialContext(ctx, na.String(), grpc.WithInsecure())
+func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.ClientConn, error) {
+	ch := make(chan grpc.ServiceConfig, 1)
+	ch <- cfg
+	var cliparm keepalive.ClientParameters
+	cliparm.Time = 10 * time.Second    //10秒Ping 一次
+	cliparm.Timeout = 10 * time.Second //等待10秒，如果Ping 没有响应，则超时
+	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
+	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
+
+	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch),
+		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), keepaliveOp)
 	if err != nil {
-		log.Error("grpc DialCon", "did not connect: %v", err)
+		log.Error("grpc DialCon", "did not connect", err)
 		return nil, err
 	}
-
+	//判断是否对方是否支持压缩
+	cli := pb.NewP2PgserviceClient(conn)
+	_, err = cli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: version})
+	if err != nil && !isCompressSupport(err) {
+		//compress not support
+		log.Error("compress not supprot , rollback to uncompress version")
+		conn.Close()
+		ch2 := make(chan grpc.ServiceConfig, 1)
+		ch2 <- cfg
+		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch2), keepaliveOp)
+	}
+	if err != nil {
+		log.Error("grpc DialCon", "did not connect", err)
+		return nil, err
+	}
 	return conn, nil
-
 }
 
 // Routable returns true if the address is routable.
@@ -221,19 +244,21 @@ func (na *NetAddress) ReachabilityTo(o *NetAddress) int {
 // RFC4862: IPv6 Autoconfig (FE80::/64)
 // RFC6052: IPv6 well known prefix (64:FF9B::/96)
 // RFC6145: IPv6 IPv4 translated address ::FFFF:0:0:0/96
-var rfc1918_10 = net.IPNet{IP: net.ParseIP("10.0.0.0"), Mask: net.CIDRMask(8, 32)}
-var rfc1918_192 = net.IPNet{IP: net.ParseIP("192.168.0.0"), Mask: net.CIDRMask(16, 32)}
-var rfc1918_172 = net.IPNet{IP: net.ParseIP("172.16.0.0"), Mask: net.CIDRMask(12, 32)}
-var rfc3849 = net.IPNet{IP: net.ParseIP("2001:0DB8::"), Mask: net.CIDRMask(32, 128)}
-var rfc3927 = net.IPNet{IP: net.ParseIP("169.254.0.0"), Mask: net.CIDRMask(16, 32)}
-var rfc3964 = net.IPNet{IP: net.ParseIP("2002::"), Mask: net.CIDRMask(16, 128)}
-var rfc4193 = net.IPNet{IP: net.ParseIP("FC00::"), Mask: net.CIDRMask(7, 128)}
-var rfc4380 = net.IPNet{IP: net.ParseIP("2001::"), Mask: net.CIDRMask(32, 128)}
-var rfc4843 = net.IPNet{IP: net.ParseIP("2001:10::"), Mask: net.CIDRMask(28, 128)}
-var rfc4862 = net.IPNet{IP: net.ParseIP("FE80::"), Mask: net.CIDRMask(64, 128)}
-var rfc6052 = net.IPNet{IP: net.ParseIP("64:FF9B::"), Mask: net.CIDRMask(96, 128)}
-var rfc6145 = net.IPNet{IP: net.ParseIP("::FFFF:0:0:0"), Mask: net.CIDRMask(96, 128)}
-var zero4 = net.IPNet{IP: net.ParseIP("0.0.0.0"), Mask: net.CIDRMask(8, 32)}
+var (
+	rfc1918_10  = net.IPNet{IP: net.ParseIP("10.0.0.0"), Mask: net.CIDRMask(8, 32)}
+	rfc1918_192 = net.IPNet{IP: net.ParseIP("192.168.0.0"), Mask: net.CIDRMask(16, 32)}
+	rfc1918_172 = net.IPNet{IP: net.ParseIP("172.16.0.0"), Mask: net.CIDRMask(12, 32)}
+	rfc3849     = net.IPNet{IP: net.ParseIP("2001:0DB8::"), Mask: net.CIDRMask(32, 128)}
+	rfc3927     = net.IPNet{IP: net.ParseIP("169.254.0.0"), Mask: net.CIDRMask(16, 32)}
+	rfc3964     = net.IPNet{IP: net.ParseIP("2002::"), Mask: net.CIDRMask(16, 128)}
+	rfc4193     = net.IPNet{IP: net.ParseIP("FC00::"), Mask: net.CIDRMask(7, 128)}
+	rfc4380     = net.IPNet{IP: net.ParseIP("2001::"), Mask: net.CIDRMask(32, 128)}
+	rfc4843     = net.IPNet{IP: net.ParseIP("2001:10::"), Mask: net.CIDRMask(28, 128)}
+	rfc4862     = net.IPNet{IP: net.ParseIP("FE80::"), Mask: net.CIDRMask(64, 128)}
+	rfc6052     = net.IPNet{IP: net.ParseIP("64:FF9B::"), Mask: net.CIDRMask(96, 128)}
+	rfc6145     = net.IPNet{IP: net.ParseIP("::FFFF:0:0:0"), Mask: net.CIDRMask(96, 128)}
+	zero4       = net.IPNet{IP: net.ParseIP("0.0.0.0"), Mask: net.CIDRMask(8, 32)}
+)
 
 func (na *NetAddress) RFC1918() bool {
 	return rfc1918_10.Contains(na.IP) ||

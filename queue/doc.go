@@ -6,7 +6,7 @@ package queue
 为系统的分布式化，微服务化做准备。
 每个模块相对来说独立，不是通过接口调用，而是通过消息进行通信。
 queue 的主要接口:
-type IClient interface {
+type Client interface {
 	Send(msg Message) (err error) //异步发送消息
 	Wait()                        //等待消息处理完成
 	Recv() chan Message

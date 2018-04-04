@@ -2,153 +2,63 @@ package p2p
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
-	"strings"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/p2p/nat"
-	"code.aliyun.com/chain33/chain33/queue"
-	pb "code.aliyun.com/chain33/chain33/types"
-
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 type Listener interface {
-	Stop() bool
+	Close() bool
 }
 
-// Implements Listener
-type DefaultListener struct {
-	listener net.Listener
-	nodeInfo *NodeBase
-	q        *queue.Queue
-	c        chan struct{}
-	n        *Node
+func (l *listener) Close() bool {
+	l.p2pserver.Close()
+	log.Info("stop", "listener", "close")
+	return true
 }
 
-func NewDefaultListener(protocol string, node *Node) Listener {
-	// Create listener
-	listener, err := net.Listen(protocol, fmt.Sprintf(":%v", node.localPort))
+type listener struct {
+	server    *grpc.Server
+	nodeInfo  *NodeInfo
+	p2pserver *p2pServer
+	node      *Node
+}
+
+func NewListener(protocol string, node *Node) Listener {
+	log.Debug("NewListener", "localPort", DefaultPort)
+	l, err := net.Listen(protocol, fmt.Sprintf(":%v", DefaultPort))
 	if err != nil {
 		log.Crit("Failed to listen", "Error", err.Error())
 		return nil
 	}
 
-	var C = make(chan struct{})
-	dl := &DefaultListener{
-		listener: listener,
+	dl := &listener{
 		nodeInfo: node.nodeInfo,
-		q:        node.q,
-		c:        C,
-		n:        node,
+		node:     node,
 	}
-
-	go dl.Start() // Started upon construction
-	return dl
-}
-
-func (l *DefaultListener) Start() {
-	log.Debug("defaultlistener", "localport:", l.nodeInfo.GetListenAddr().Port)
-	go l.NatMapPort()
-	go l.listenRoutine()
-	return
-}
-
-func (l *DefaultListener) NatMapPort() {
-	if l.nodeInfo.cfg.GetIsSeed() == true {
-		return
-	}
-	for i := 0; i < tryMapPortTimes; i++ {
-
-		if nat.Map(nat.Any(), l.c, "TCP", int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port), "chain33 p2p") != nil {
-
-			{
-				l.n.localPort = uint16(rand.Intn(64512) + 1023)
-				l.n.externalPort = uint16(rand.Intn(64512) + 1023)
-				l.n.flushNodeInfo()
-				log.Debug("newLocalPort", "Port", l.n.localPort)
-				log.Debug("newExternalPort", "Port", l.n.externalPort)
-			}
-
-			continue
-		}
-
-	}
-	//TODO
-	//MAP FAILED
-	log.Error("Nat Map", "Error Map Port Failed ----------------")
-
-}
-func (l *DefaultListener) Stop() bool {
-	nat.Any().DeleteMapping(Protocol, int(l.nodeInfo.GetExternalAddr().Port), int(l.nodeInfo.GetListenAddr().Port))
-	l.listener.Close()
-	return true
-}
-
-func (l *DefaultListener) listenRoutine() {
-
-	log.Debug("LISTENING", "Start Listening+++++++++++++++++Port", l.nodeInfo.listenAddr.Port)
-
 	pServer := NewP2pServer()
-	pServer.q = l.q
-	pServer.book = l.n.addrBook
-	pServer.OutBound = l.n.outBound
-	pServer.nodeinfo = l.nodeInfo
-	pServer.Monitor()
-	server := grpc.NewServer()
-	pb.RegisterP2PgserviceServer(server, pServer)
-	server.Serve(l.listener)
+	pServer.node = dl.node
+	pServer.Start()
 
-}
+	msgRecvOp := grpc.MaxMsgSize(10 * 1024 * 1024)     //设置最大接收数据大小位10M
+	msgSendOp := grpc.MaxSendMsgSize(10 * 1024 * 1024) //设置最大发送数据大小为10M
 
-func initAddr(cfg *pb.P2P) {
+	//暂时不启用解压缩进行发送接收
+	//compressOp := grpc.RPCCompressor(grpc.NewGZIPCompressor())       //设置grpc 采用gzip形式进行 压缩
+	//decompressOp := grpc.RPCDecompressor(grpc.NewGZIPDecompressor()) //设置 grpc gzip 解压缩
+	var keepparm keepalive.ServerParameters
+	keepparm.Time = 100 * time.Second
+	keepparm.Timeout = 5 * time.Second
+	keepOp := grpc.KeepaliveParams(keepparm)
 
-	LOCALADDR = localBindAddr()
-	log.Debug("LOCALADDR", "addr:", LOCALADDR)
-	// Determine external address...
-	for i := 0; i < 30; i++ {
-		if cfg.GetIsSeed() {
-			EXTERNALADDR = LOCALADDR
-			return
-		}
-		exnet, err := nat.Any().ExternalIP()
-		if err == nil {
-			EXTERNALADDR = exnet.String()
-			log.Debug("EXTERNALADDR", "Addr", EXTERNALADDR)
-			break
-		} else {
-			log.Error("ExternalIp", "Error", err.Error())
-		}
-	}
-	//获取外网失败，默认本地与外网地址一致
-	//确认自己的服务范围1，2，4
-	go func() {
+	dl.server = grpc.NewServer(msgRecvOp, msgSendOp,
+		/*compressOp, decompressOp,*/ keepOp)
+	dl.p2pserver = pServer
 
-		defer log.Debug("Addrs", "LocalAddr", LOCALADDR, "ExternalAddr", EXTERNALADDR)
-		time.Sleep(time.Second * 10)
-		serveraddr := strings.Split(cfg.Seeds[0], ":")[0]
-		var trytimes uint = 3
-		for {
-			selfexaddrs := getSelfExternalAddr(fmt.Sprintf("%v:%v", serveraddr, DefalutP2PRemotePort))
-			if len(selfexaddrs) != 0 {
-				log.Debug("GetSelfExternalAddr", "Addr", selfexaddrs[0])
-				if selfexaddrs[0] != EXTERNALADDR && selfexaddrs[0] != LOCALADDR {
-					SERVICE -= NODE_NETWORK
-				}
-				EXTERNALADDR = selfexaddrs[0]
-				break
-			}
-			trytimes--
-			if trytimes == 0 {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
-		if len(EXTERNALADDR) == 0 {
-			EXTERNALADDR = LOCALADDR
-		}
-	}()
-
+	pb.RegisterP2PgserviceServer(dl.server, pServer)
+	go dl.server.Serve(l)
+	return dl
 }

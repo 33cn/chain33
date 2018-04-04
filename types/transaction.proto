@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package types;
+
+message CreateTx {
+	string to = 1;
+	int64 amount = 2;
+	int64 fee = 3;
+	string note = 4;
+}
+
+message UnsignTx {
+	bytes data = 1;
+}
+
+message SignedTx {
+	bytes unsign = 1;
+	bytes sign = 2;
+	bytes pubkey = 3;
+	int32 ty = 4;
+}
+
+message Transaction {
+	bytes execer = 1;
+	bytes payload = 2;
+	Signature signature = 3;
+	int64 fee = 4;
+	int64 expire = 5;
+	int64 nonce = 6; //随机ID，可以防止payload 相同的时候，交易重复
+	string to = 7; //对方地址，如果没有对方地址，可以为空
+}
+
+
+//对于一个交易组中的交易，要么全部成功，要么全部失败
+//这个要好好设计一下
+//最好交易构成一个链条[prevhash].独立的交易构成链条
+//只要这个组中有一个执行是出错的，那么就执行不成功
+
+//三种签名支持
+//ty = 1 -> secp256k1
+//ty = 2 -> ed25519
+//ty = 3 -> sm2
+message Signature {
+	int32 ty = 1;
+	bytes pubkey = 2;
+	bytes signature = 3;
+}
+
+
+message AddrOverview {
+	int64 reciver = 1;
+	int64 balance = 2;
+	int64 txCount = 3;
+}
+
+message ReqAddr {
+	string addr = 1;
+	int32 flag = 2; //表示取所有/from/to/其他的hash列表
+	int32 count = 3;
+	int32 direction = 4;
+	int64 height = 5;
+	int64 index = 6;
+}
+
+message HexTx {
+	string tx = 1;
+}
+
+message ReplyTxInfo {
+	bytes hash = 1;
+	int64 height = 2;
+	int64 index = 3;
+}
+
+message ReqTxList {
+	int64 count = 1;
+}
+
+message ReplyTxList {
+	repeated Transaction txs = 1;
+}
+
+message TxHashList {
+	repeated bytes hashes = 1;
+	int64 count = 2;
+}
+
+message ReplyTxInfos {
+	repeated ReplyTxInfo txInfos = 1;
+}
+
+
+message ReceiptLog {
+	int32 ty = 1;
+	bytes log = 2;
+}
+
+//ty = 0 -> error Receipt
+//ty = 1 -> CutFee //cut fee ,bug exec not ok
+//ty = 2 -> exec ok
+message Receipt {
+	int32 ty = 1;
+	repeated KeyValue KV = 2;
+	repeated ReceiptLog logs = 3;
+}
+
+message ReceiptData {
+	int32 ty = 1;
+	repeated ReceiptLog logs = 3;
+}
+
+message TxResult {
+	int64 height = 1;
+	int32 index = 2;
+	Transaction tx = 3;
+	ReceiptData receiptdate = 4;
+	int64 blocktime = 5;
+	string actionName = 6;
+}
+
+message TransactionDetail {
+	Transaction tx = 1;
+	ReceiptData receipt = 2;
+	repeated bytes proofs = 3;
+	int64 height = 4;
+	int64 index = 5;
+	int64 blocktime = 6;
+	int64 amount = 7;
+	string fromaddr = 8;
+	string actionName   = 9;
+}
+
+message TransactionDetails {
+	repeated TransactionDetail txs = 1;
+}
+
+message ReqAddrs  {
+   repeated string addrs = 1;
+}

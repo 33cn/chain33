@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	. "code.aliyun.com/chain33/chain33/common/crypto"
 	secp256k1 "github.com/btcsuite/btcd/btcec"
+	. "gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 type Secp256k1Driver struct{}

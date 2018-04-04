@@ -1,0 +1,556 @@
+1.9.2
+* Wallet: Fix: "-f" was substracting the fee from every output's value, not only the first one
+* Client: Changed/fixed the way how own txs are inserted into mempool (e.g. it wasn't updating SpentOutputs)
+* Client/WebUI/Wallet: Show unconfirmed transactions
+* Client/WebUI/MakeTx: pay_cmd inside will not apply changes to the balance folder
+* Client: changed the way freshly mined txs are removed from mempool so it also works for reorgs
+* Client/WebUI/Network: Make some extra information about the nodes switchable on/off
+* Client: Show number of records (txs) while loading UTXO.db
+* Client/WebUI/Blocks: Removed minimum fee from the block table. Moved to the fee stats chart, also added maximum
+* Client: show progess of loading/saving balance of P2KH/P2SH addresses
+* Client: removed "config.Beeps" and all the related beeping functionality
+* Client/WebUI/Blocks: transactions in the fee stats can be grouped now to smooth the graph
+* Client: fee stats fpor WebUI/Blocks are being saved now
+* Client/WebUI: "Limit range" checkbox added to SPB graphs
+
+1.9.1 - 2017-08-01
+* Client: Removed AnySendTimeout as it was causing problems with limited UL bandwidth
+* Client/WebUI: The font is set to Arial
+* Client/WebUI/Network: Show how long each connection has been active and removes lest sent/rcvd command
+* Client: Write new blocks and UTXO set to disk 2 seconds after the last successfull AcceptBlock()
+* Client/WebUI/Blocks: The block's fee chart appears as a popup now
+* Client/WebUI: Pressing ESC closes popups
+* Client/WebUI: Removed Segwit related statistics
+* Client/WebUI/Wallet: Show Segwit deposit addresses if segwit is active
+* Client: WebUI/Blocks shows new blocks' extended fee stats
+* Added support fro BIP91 in chain.PreCheckBlock() as well as on WebUI (mining info)
+* LIb: fixed panic in chain.NewChainExt() when called with nil options (used by importblocks tool)
+* Client: When calculating initial average block size, assume MAX_BLOCK_SIZE for the purged ones
+* Client: changed configuration related data
+* Client: Changed rules of choosing the "slowest" peer to drop
+* Client/WebIO: shows New York Agreement support related info in "Block" and "Miners" tabs
+* Client: "SaveOnDisk" config option for "TXPool" and "AllBalances" (defaults to false)
+* Client: save mempool on exit and load in on startup
+* Client: on close save all balances to "balances.db" (for quicker start next time)
+* Client: adding of a new block to block's db is accounted inside the queue time statistics
+* Client: abort saving of UITXO.db before starting to precess a new block
+* Added some protection against nodes sending own IP instead of ours (bitcointalk.org/index.php?topic=1954151.0)
+* Node's TxsReceived stat only counts the last hour
+* "btc.Uint256IdxLen" and "utxo.UtxoIdxLen" set back to 8 bytes, to decrease memory usage
+* Client: fixed the way best external IP is selected
+* WebUI/Txs: Limit memory pool fees graph to first 10 MB
+* WebUI: Do not display wallet name(s) in each tab's header (privacy)
+* WebUI/Blocks: Dispaly either mining info or block processing info
+* client/wallet: Use hashmap (instead of list) for addresses with "CFG.AllBalances.UseMapCnt"+ unspent outputs
+* WebUI: Do not show Wallet and MakeTx tabs in NoWallet mode
+* WebUI/Wallet: Show QR code when clicking on the address
+
+1.9.0 - 2017-05-05
+* Got rid of "qdb" for UTXO.
+* New package "lib/utxo" extracted from "lib/chain"
+* Announce a new block to peers before its fully verified (like Core 0.14.0 / net protocol 70015)
+* bdb: -purgeto <block_height> to purge all blocks up to given height
+* client: does not offer to import core's blocks-db anymore
+* Optimized the way new blocks are written to disk (verification should be faster now)
+* Client: New TextUI command "purge", to purge unspendable records from UTXO-db
+* New tool "fetchblock" and new functions in "lib/others/utils" for fetching raw blocks from the web
+* UTXO index has now configurable length (via "lib/utxo/UtxoIdxLen"), to address possible collision attacks (now set to 16 bytes)
+* Block index increased to 16 bytes, to address possible collision attacks
+* Client: Fixed "ConnectOnly" mode
+* WebUI: Show MinValue for accounted outputs on "Wallet" and "MakeTx" tabs
+* Client: New config value FreeAtStart, to free all possible memory after initial loading of block chain
+* WebUI/Wallet: Fixed problem with switching to different wallet while balance for previous none is still being fetched
+* Client: the balance of all the addresses is fetched after the blockchain finishes loading. It saves memory and speeds up potential rescans
+
+1.8.1
+* Client: each call to common.BlockChain.DeleteBranch() also does DelB2G() recursively
+* WebUI: Added (switchable) sound notifications when a new block is mined
+* Client: Support for new config value "WebUI.ServerMode" - many users to share the same node
+* WebUI/Miners: Redone
+* WebUI: When a block with a wallet's unspent tx is purged from blockchain.dat, the raw tx gets fetched from the web
+* WebUI/Wallet: Fixed error "Form submission canceled because the form is not connected"
+* Client: enable it to work with purged blockchain.new/blockchain.dat
+* bdb: -purgeall to purge all the blocks from blockchain.new (delete blockchain.dat manually)
+* Client: added some BU-singnalling related stats
+
+1.8.0 - 2017-02-06
+* Segregated Witness related functionality and many other changes here and there
+* Client: drop_worst_peer - do not drop peers that send new transactions
+* Client: Requires new consensus lib (from bitcon-core 0.13.1)
+* Client: Added "-trust" switch, with which client should be as fast as downloader
+* Downloader: replaced by "client -trust" and removed from the source base
+* The concept of "dust" outputs has been removed. Only the fees are important.
+
+1.7.4
+* Lib: Fixed rejecting of too big blocks
+* Client: Added TX_REJECTED_RBF_100 to the rejection reasons
+* WebUI/Blocks: Show lowest fee's SPB in the recently processed blocks
+
+1.7.3 - 2016-10-18
+* Client: Properly handle new blocks comming from Cornell-Falcon-Network
+* Client: Fixed excessive memory usage when synchronizing large amount of blocks
+* Client: Added mutex locks around reading of conn's GetBlockInProgress map
+* Client: Added OneConnection.Maintanence() method, to be called every minute
+* Client: Peer's BlocksReceived are now expired after 48 hours.
+* Client: Parameters for droping slowest peers are now configurable via gocoin.conf
+
+1.7.2 - 2016-09-27
+* Client: drop_slowest_peer changed to drop_worst_peer - do not drop peers that send new blocks
+* WebUI: "Blocks" tab shows some new statistics
+* Client: Keep per-peer list of the last 500 invs, to avoid duplicate sending
+* "Version" moved from "github.com/piotrnar/gocoin/lib" to "github.com/piotrnar/gocoin"
+* Leave external dependencies (siphash, snappy, ripemd160) to be dealt with by "go get"
+* Client: support for BIP-152 - "Compact Block Relay"
+
+1.7.1 - 2016-08-22
+* Client: WebUI/MakeTX - display raw transaction after clicking no the ID.
+* Client: "common.CFG.AllBalances.MinValue" is only applied during init now (change it restart to apply)
+* Downloader: fix loosing the content of *btc.Block structure between PreCheckBlock() and PostCheckBlock()
+* Client: shows text messages attached to transactions (the first push after OP_RETURN)
+* Downloader: fix for getting stuck at fetching headers if the top would happen to be orphaned
+* Client: WebUI - "balance.json" support "summary" (to not include list of unspent outputs)
+* Client: WebUI/MakeTX - fixed sorting of outputs by block height
+* Client: records in balance/unsepnt.txt (inside balance.zip) are sorted by block height
+* Client: New TextUI command "unspent"
+* Client: P2SH and P2KH balance indexes are kept in separate maps
+* Client: support for BIP 133 ("feefilter" messages)
+* Client: responds at most once to a getaddr request during the lifetime of a connection
+* Client: expire peer's GetBlockInProgress after one hour
+* WebUI: new buttons "Move left" & "Move right" in "Wallet" tab, for sorting order of the wallets
+
+1.7.0 - 2016-07-24
+* AllBalances mode - enabled by config value AllBalances
+* WebUI: Import / export wallets form/to a JSON file
+* Switched off support for stealth addresses
+* Client: do not try to commit a block until all off its parents are done - added HasAllParents() method
+* Client: CommitBlock() returns error, discard all the blocks that depend on it - added network.DiscardedBlocks
+* Wallet: "-p2sh <hex>" command can be used with "-input <int>" to alter only a single input of the transaction
+* WebUI: Option to show averaged value of the blocks' sizes, tx counts, SPBs
+
+1.6.4 - 2016-06-27
+* Use trully volatile, quickly switachable wallets from WebUI (requires 1.5GB more RAM)
+* Changed the first parameter to NotifyTxDel() to be more descriptive (than just TxID)
+* Do not use VER_LOW_S for now (to verify mempool txs) as it is baning some peers
+* Enforce CVS verification for blocks height 417312 or higher (not for testnet)
+* Implemented BIP113 (Median time-past as endpoint for lock-time calculations)
+* New TextUI command "bip9" - extracts BIP9 relevant info from the current chain
+
+1.6.3 - 2016-05-28
+* Lib: Inteface to TheBlueMatt's block_validator tests - see https://github.com/piotrnar/btc_block_validator
+* WebUI/Miners: Removed BIP100 voting stats
+* WebUI/Miners: Block version numbers are shown in a table, from a span of the consensus window
+* Wallet: use sequence value of 0 for RBF type transactions (instead of unix timestamp as before)
+* WebUI/MakeTx: Default sequence value changed to 0 and added "Final" checkbox
+* WebUI/Transactions: Shows processing time of the txs and which are RBF enabled (non-final)
+* Client: Implemented Replace-By-Fee for the memory pool
+* Removed support for "alert" messages
+* Tools/fetchtx: updated to the latest block explorers API
+* Lib/script: added support for OP_CHECKSEQUENCEVERIFY opcode (enabled by VER_CSV flag) - BIP-112
+* Lib/script: added support for all core's verification flags and updated the test suite to the latest one
+* New tool "verify_tx.go", usefull for debugging scripts
+
+1.6.2 - 2016-04-12
+* Client: fixed crash on calling the consensus lib with empty pkscript
+* Lib: Several compatibility fixes in the consensus checks on the block level
+* Client: getheadres uses genesis block if no locator has been found
+* Qdb: Memory bindings for Windows and Linux are being used automatically
+* Client: each input's script is checked in a parallell for accepting tx to mempool
+* Lib: simplified the way tx's inputs are checked in parallell goroutines
+
+1.6.1 - 2016-04-06
+* Client: network queue for txs processing increased to 2000
+* Client: WebUI/Transactions - The fees chart shows age of a transaction (on hovering)
+* Downloader: excessive memory consumption shall no longer be an issue
+* Client: some changes in how the core's consensus lib is called, as it had been giving false positives
+
+1.6.0 - 2016-03-30
+* Client: added option to use bitcoin's consensus lib for ensuring that scripts are processed properly
+* Qdb: Writing the entire database content (e.g. during defrag) is much faster now
+* Client: peer's send buffer made as a static circular buffer (with max size of 4MB)
+* Client: improved bandwidth statistics
+* New tool "bdb", for managing and deframenting the blocks database
+* Lib: check each new block for MAX_BLOCK_SIGOPS
+* Lib: check for merkle tree malleability (CVE-2012-2459) when accepting block
+* Client: RPC API for mining (supports "getblocktemplate", "validateaddress" and "submitblock")
+* Lib: fixed a critical issue of accepting a block hash which does not match the bits field from teh header
+* Lib: fixed issue with recalculating difficulty each 2016 blocks that was appearing on testnet3
+* Lib: script.VerifyTxScript() counts number of sigops when called with COUNT_SIGOPS flag
+* Updated snappy package to the latest version from https://github.com/golang/snappy
+
+1.5.0 - 2016-03-16
+* Client: Fixed maximul allowed message size for "getheaders" that was causing issues on testnet
+* Client: Do not allow into the mempool transactions spending inmature coinbase inputs
+* WebUI: Allows to specify the sequence number for Replace By Fee feature
+* Wallet: By default tx's sequence numbers are same as currrent unix time. Can be overwritten with "-seq <val>"
+* Client: Additional mining statistics
+* Client: support for Web Wallets (volatile wallets provided by the browser, not kept on the server)
+* Client: Implemented BIP 130 - Direct headers announcement
+* Qdb: added "volatile mode" in which records are being written to disk only when closing the database
+* Client: "client -r" rebuilds UTXO database in a volatile mode (should be much faster) and exits
+* Headers-first blockchain sync
+* ripemd160 and snappy libs has been included in the sources (GitHub repo)
+
+1.4.1
+* WebUI: More of teal time UI refresh (without reloading the pages)
+* secp256k1: Fixed issue #15 - BaseMultiply returning wrong result for certain input values
+
+1.4.0 - 2015-11-09
+* peersdb: MinPeersInDB changed from 256 to 512
+* Client: Added BIP100 stats to the mining UI
+* Wallet: Added support for Type-4 wallet, which is based on BIP-32 keys derivation (HD wallets)
+* Lib: Some changes to btc.WalletHD API
+* WebUI: Real time UI refresh (without reloading the pages)
+* Client/WebUI: Fixed double bug that occurred when switching "Listening for incoming TCP connections" on/off
+* secp256k1: Force Low S values in ECDSA Sign function
+* OP_CHECKLOCKTIMEVERIFY - BIP65 integreated into blocks version 4
+
+1.2.0 - 2015-07-31
+* Lib: enforce blocks version 3, starting from #364000
+* WebUI: LoadTx shows only own transactions
+* WebUI: Fixed transaction upload form at the Home tab
+* WebUI: Transactions tab has an option to only show "own" transactions
+* WebUI: Miners tab shows fee statistics
+* Fix: peers DB getting empty after disconnecting the network (keep at least 256 records)
+* Fix: BlockChain.BlockIndexAccess wasn't being unlocked when a panic from FindPathTo() was handled
+* Lib: reject old version blocks based on the super-majority principles
+* Lib: implemented BIT-0066
+
+1.1.0 - 2015-06-12
+* Client: configuring "Walletdir" to allow improved privacy of the wallets
+* Downloader: look for "Datadir" in "gocoin.conf" or "../client/gocoin.conf"
+* Client: the Blocks page of WebUI shows version of the recent blocks
+* Fix for issue #12 (Snappy URL changed)
+
+1.0.3 - 2015-03-27
+* Fix: GetHeaders for orphaned block does not cause panic anymore
+* Fix: Github issue #11 (panic when first time run client)
+
+1.0.2 - 2015-01-02
+* Fix: GetHeaders for unknown block does not cause panic anymore
+* Fix: Index out of range in "client/usif/webui/wallets.go" seen when quickly switching wallets
+* Baning of incomming peers ignores the remote port number (only checks IP)
+* WebUI: show last block number in the top level menu
+
+1.0.1 - 2014-10-19
+* Parallel processing switched back on (was accidentally disabled in "lib/others/sys/const.go")
+
+1.0.0 - 2014-08-07
+* Updated script/transaction test cases with the most recent files from bitcoin core
+* Mining pool tags are now in miners.json - can be changed without restarting the node
+* Allows to edit label of a wallet's address directly from WebUI
+* Allows to select a hidden wallet at the Wallet tab of WebUI (so you can edit it)
+
+1.0.0rc8 - 2014-06-19
+* Wallet: shows hashed value of stealth prefixes (in decoded tx)
+* Client: unspent4 - new format of UTXO database (lower memory and disk usage)
+* Lib: add to UTXO records info about it coming from a coinbase
+* Lib: bct.WriteVlen trakes 64-bit value now (previously 32)
+* Downloader: further optimized, pings mode removed
+
+1.0.0rc7 - 2014-06-11
+* Wallet: more reorganizing and cleaning
+* Wallet: removed "-hashes" option (added in 0.9.2)
+* Reject blocks version < 2 of main chain's height >= 200000
+* Check the block height from coinbase to match expected height value (for blocks version >=2)
+* Check transactions for consistency and finality in parallel
+* PeersDB extrancted from "client/network" to "lib/others/peersdb"
+* Downloader: the seed node is optional now
+* Client: print the size of blocks which are being orphaned
+
+1.0.0rc6 - 2014-05-28
+* Wallet: "-raw" command can now sign also multisig inputs (if they already have the script)
+* Stealth addresses: fixed the ephemkey's 03 issue (makes it incompatible with current DW)
+* Wallet: lots of reorganizing, cleaing and some basic tests added
+
+1.0.0rc5 - 2014-05-26
+* btcversig tool: added Litecoin support (specify LTC address or add "-ltc" switch for testnet)
+* lib/btc: BtcAddr.OutScript() handles version 48 (Litecoin's P2KH) & panics if cannot output right script
+* WebUI: shows page generation time
+* WebUI: fixed non-existing page tails
+* Wallet: added litcoin mode ("-ltc" switch)
+* New tool: "balio". Like "fetchbal", but also works with Testnet and Litecoin. Uses only "http://blockr.io/"
+
+1.0.0rc4 - 2014-05-22
+* secp256k1 uses precomputed constants instead of calculating them during initialization (wallet starts faster)
+* Source files and packeges moved around like hell. Don't even ask, but it was a change for good.
+* Btc: added API functions for HDWallets (see "wallethd.go")
+* Wallet: you can add "seed" param to the config file, as a potential countermeasure against keyboard loggers
+* Client: new TextUI commands ("arm", "unarm", "armed") help to secure your stealth addresses' scan-keys
+* Client: the balance of all the wallets gets pre-cached while opening UTXO database
+* Client: configuring "Memory.NoCacheBefore" can now lower mem usage with no much visible performance drop
+* Client: "NoCacheBefore" can have a negative value, that will define an offset from the highest known block
+* Client: More help topics in WebUI
+* Further refactor of the code
+
+0.9.14 - 2014-05-13 (1.0.0-rc2)
+* Qdb: Uses malloc() and free() from libc, to optimize usage of system memory (skips garbage collector)
+* Client: improved statistics page of WebUI and renamed from Stats to Counters
+* Client: added new command "age" to TextUI
+
+0.9.13 - 2014-05-10 (1.0.0-rc1)
+* Huge refactor of the entire repo
+* Support for stealth addresses
+* Wallet: support for "-p" switch that forces asking for seed password
+* Wallet: support for "-f" swicth, to exclude fee from the fist output's value
+* Wallet: many other changes
+
+0.9.10 (intermediate checkpoint tag)
+* Client: an address listed more than once in a wallet gets removed (was showing wrong balance)
+* Wallet: can generate a stealth address. Use "-scankey <key>". Uses the first private key for spend.
+
+0.9.9 - 2014-04-30 *LAST_STABLE*
+* Wallet: if you specify "-msg <text>" parameter it adds a null output with the text to the tx
+* Client: fixed a crash when loading a transaction with an output that has no standard address
+* Client: proper removing (from the memory pool) transactions altered by the malleability
+* Client: Relevant records are removed from SpentOutputs when expiring txs from mempool (memleak fix)
+* Client: Do not save connected (alive) peer's record into DB more often than once per minute
+* goc - a new tool to control the node from a remote console, using a WebUI interface
+* peers - a new tool to display content of the peers database
+* base58 - a new tool to encode/decode base58 strings
+* Added "restore leading zeros" to btc.Decodeb58(), to reflect behaviour from the satoshi's code
+
+0.9.8 - 2014-04-22
+* Added locally served "Help" page to WebUI
+* Some additional features on WebUI's "Home" page (e.g. network's hasharate)
+* The block database uses a different index file ("blockchain.new" instead of "blockchain.idx")
+  The client will convert the old index into the new one, during the first start.
+  Going back to a previous version (after conversion), rename blockchain_backup.idx to blockchain.idx
+  If you don't plan to go back to a previous version anymore, delete blockchain_backup.idx
+* Added support for "getheaders" and "notfound" commands
+* Some code in the btc lib has been restructured (now ther are functions in place of fields)
+
+0.9.7 - 2014-04-13
+* Wallets tab of WebUI has an option to move an empty address to UNUSED wallet
+* A user can quickly switch wallet being at any tab of the WebUI, as well as to reload it
+* SendTx tab of WebUI refreshed Address Book using Ajax and addrs.xml
+* Fixes and additional test cases around parsing of alert messages
+* Added unit tests for "sighash.json" from the satoshi's repo and some more unit test rework
+* A link to the user manual (served at google sites) in the header of each WebUI page
+
+0.9.6 - 2014-04-02
+* Client has a hammering protection (bans peers that keep trying to reconnect)
+* Miners tab of WebUI does not show crap anymore is the chain isn't up do date.
+* MakeTx tab of WebUI calculates estimated transaction size after signed (assumes compressed keys)
+* Downloader can work with testnet and got a fix around an empty peers db after the headers stage
+* New function "tools/utils/fetchtx.go", to download raw tx data from other websites
+* If neccessary, FetchBal and FetchTx try several websites to fetch a raw transaction data
+
+0.9.5 - 2014-03-24
+* "MakeTx" tab of WebUI automatically recalculates the payment values to mBTC (for verification)
+* The downloader does not have a default seed node anymore (you need to find one by youself)
+* Do not block connections from 129.132.230.70-100 anymore
+* Some changes in wallet's decode transaction functionality to better deal with non stardard txs
+* "wallet -d <txfile.txt>" ignores spaces, tabs and EOLs in the hexdump of the transaction
+
+0.9.4 - 2014-03-20
+* The default "FeePerByte" changed from 10 to 1 (like they have done it in the reference client)
+* The "-d" option of the wallet can now proparly decode coinbase transactions
+* The client can work with multisig address description JSON files (place them in "wallet/multisig")
+* Having the files in "wallet/multisig", MakeTx tab of client's WebUI can now create "multi2sign.txt"
+  ... for the wallet, even properly mixing inputs from different addresses and address types.
+* For multisig payments, "payment.zip" from the client contains "multi2sign.txt" and "multi_pay_cmd"
+* The wallet can now deal with mixed (multisig and regular) inputs
+
+0.9.3 - 2014-03-14
+* Fixed a critical bug in parsing OP_CHECKMULTISIG and OP_CHECKMULTISIGVERIFY
+* Wallet has a new option "-msign" that signs a multisig transaction with a single key
+* Wallet has a new option "-p2sh" to prepare a raw transaction for multisig processsing
+* Wallet can print public key of a given bitcoin address ("-pub <addr>")
+* Wallet can now properly send money to P2SH-type addresses
+* The new tool "mkmulti" that can be used for generating multisig addresses
+* Few improvements around handling P2SH-type scripts and addresses
+
+0.9.2 - 2014-03-06
+* Order of B_secret and A_public_key arguments swapped for "type2determ" tool
+* A new tool "type2next" to calculate a next type-2 deterministic public key/address
+* Wallet has a new option "-1" that used along with "-l" does not re-ask for password
+* Wallet can print hashes of each transaction's input to be signed ("-raw <txfile> -hashes")
+* Wallet can sign a raw hash ("-hash <hash>") with a given key ("-sign <pubadr>")
+* A new tool "txaddsig" for inserting signature + public key into a raw transaction
+* Show entire content of the current wallet in MakeTx tab, if the book would be empty
+
+0.9.1 - 2014-03-01
+* Little faster algos (by peterdettman) for field's sqrt() and inv() (in "btc/newec")
+* Fix: wallet is not able to properly "-sign" with imported (un)compressed addresses
+* Pre-caching of all the wallets' balances include commented out addresses
+* "Discus Fish" added to the mining pools
+
+0.9.0 - 2014-01-23
+* The "downloader" app which can download the entire blockchain in less than 2 hours
+* Major performance improvement of UTX reindexing (rebuilding) functionality
+* Bugfix: the blance cache could cause panic when two outputs were being spent from the same address
+* Pre-cache all the addresses from all the wallet files at startup
+* Banned IP range 129.132.230.0/24 changed to 129.132.230.70 - 129.132.230.100
+* No TexUI mode for apps with no access to stdin (use "-textui=false" switch)
+
+* Added a special wallet "ADRESSES" that contains the address book (for MakeTx tab)
+* Support for "virgin" addresses in the wallet files (put space before the address).
+  (virgin addresses are hidden the wallet tab as long as their balance is zero)
+
+0.8.6 - 2013-12-30
+* Added "Load TX" to the top menu in WebUI
+* Allow for hidden wallets (start filename with ".") and a nested sub-wallets (up to 3 levels deep)
+* Fix: after changing a label in a wallet file it get changed in the unspent list as well
+* Fix: the list of unspent outputs is now being sorted properly (by block height)
+* "wallet -d" prints number of (yet) unsigned inputs
+* "versigmsg" renamed to "btcversig" and some new features were added
+* Expire external IPs after one hour from last seen
+* Added new fields "Nonce", "TxCount", and "TxOffset" to "btc.Block" (set in "btc.NewBlock")
+
+0.8.5 - 2013-12-18
+* From now on every "payment.zip" contains also the unsigned raw transaction file ("tx2sign.txt")
+* Added a cache for address balances to speed up switching between wallets
+* Building the wallet for Windows does not require mingw anymore (now it uses msvcrt.dll for _getch)
+
+0.8.4 - 2013-12-14
+* Support for JoinCoin sort of transaction in the wallet
+* We do not add mined txs to TransactionsRejected map (or at least try to)
+* WebUI cosmetic here and there...
+* Transaction and EC signing parts moved from the wallet app to the btc package
+* Added "-raw <filename>" and "-d <filename>" command to the wallet (to sign, decode transaction file)
+* Fixed decoding of P2SH-type addresses in btc.NewAddrFromPkScript()
+* Added support for relay=0 received from peers (do not send tx invs to them)
+
+0.8.3 - 2013-11-28
+* Support for GOCOIN_WALLET_CONFIG env variable (enforces the wallet's config file)
+* Added CFG.PayCommandName so you could e.g. make it .bat or .sh (the default is "pay_cmd.txt")
+* The home tab shows time next to each unspent outputs
+* Cosmetic here and there...
+
+0.8.2 - 2013-11-10
+* "fetchbal" can work via tor now (set env variable TOR=localhost:9150)
+* Any own tx can now be sent to only a single random peer (privacy feature)
+* You can include another wallet inside a text wallet file (use "@filename")
+
+0.8.1 - 2013-11-06
+* "fetchbalance" renamed "fetchbal" and now it works with coinbase txs properly
+* New tool fetchtx to downlaod raw tx from blockexplorer.com
+* Block subnet 129.132.230.0/24 (fixed for now)
+* Allow to setup User-Agent reported by the version messsage (a privacy feature)
+* Some minor changes in fetchbalance
+* Disconnect & Ban peers that have not sent a single inv to us for 15 min since connecting
+
+0.8.0 - 2013-10-26
+* Souce code of the client hugely restructured
+* A new tool "fetchbalance" that can fetch the ballance from blockchain.info & blockexplorer.com
+
+0.7.8 - 2013-10-12
+* Password chars are hidden when being input (if wallet does not build, delete "wallet/hidepass.go").
+* "MakeTx" tab is precise now converting between Satoshi and BTC values
+
+0.7.6 - 2013-09-29
+* "MakeTx" tab in WebUI (to pre-make the command for the wallet app)
+* Droppig a peer (from TextUI or WebUI) bans its IP by the way
+* Added "-useallinputs" switch to the wallet app
+* Added CFG.MiningStatHours so minig stats are not fixed to 24 hours anymore
+
+0.7.4 - 2013-09-20
+* A new port of sipa's secp256k1 lib, based on the 10x26 filed implemetnation (btc/newec)
+* The new btc/newec speedup enabled by default.
+* The old native speedup's source code removed.
+
+0.7.3 - 2013-09-19
+* A new (native Go) EC_Verify speedup, based on sipa's secp256k1 code (client/speedup/mygonat.go)
+* Cosmetic chanegs in WebUI
+* A new (DLL based) EC_Verify speedup for Windows (client/speedup/sipadll.go)
+
+0.7.1 - 2013-09-10
+* Wallet's random numbers (used for ECDSA_Sign) don't rely on security of "crypt/random" package
+
+0.7.0 - 2013-09-03
+* A major rewrite around shared memory access, in the network client
+* Added some protection against racing conditions
+* Do not switch off GC while verifying a block
+* Added UI command "defrag" that purges and recompresses the block database
+* Added snappy compression for the block database (its faster than gzip)
+
+0.6.6 - 2013-08-27
+* Added support for wallet.cfg to specify some default values
+* Wallet's "-t2" and "-t3" command line swiches replaced with "-type=X"
+* Labels returned in balance.xml are HTML escaped
+
+0.6.5 - 2013-08-25
+* Fixed a critical bug in script parsing (0x00 at top of the stack was not considered as "if true")
+* Fetch seed peers in a background and save peers DB to disk before quiting
+* Ctrl+C works now also during rescan and allows to continue later from where stopped.
+
+0.6.4 - 2013-08-15
+* Support for deterministic wallet Type-3 (keeps other keys safe, if one got compromised)
+* The wallet can export private key now, in the satoshi's base58 format (-dump switch)
+
+0.6.3 - 2013-08-09
+* Show balance of per address at the Wallets tab
+* Added support for WebUI switchable wallets
+* Improved script_test.go, so it works directly with satoshi's json files
+
+0.6.0 - 2013-07-27
+* Added support for verifying (rejecting) P2SH transactions
+* Added handling of OP_1ADD script opcopde and fixed some other opcodes
+* UI cmd "unspent" returns outputs sorted by block height
+
+0.5.8 - 2013-07-25
+* Added some more satoshi-script-evaluation compatiblity patches (and unit tests)
+* By default, don't download same block from more than 3 peers simultaneously (CFG.Net.MaxBlockAtOnce)
+* Fixed a critical blockchain parsing issue, with SIGHASH_SINGLE sigs (was rejecting valid blocks)
+
+0.5.5 - 2013-07-20
+* The wallet now supports Type-2 deterministic keys (use "-t2" switch)
+* Make the node's beeping setup configurable though gocoin.conf
+* Allow to decode (display) a transaction's details (only txs that are in memory pool)
+* Minor improvements in net module (i.e. shrink send buffer after each write)
+
+0.5.3 - 2013-07-11
+* XSS protection on WebUI and IP access control
+* Some new network security features
+* Like Satoshi client, do not process incoming messages having more than 1MB in send buffer
+* Some changes around qdb database (improved syncs for unspent db, added counters)
+
+0.5.2 - 2013-07-07
+* WebUI improvements
+* Yet more improved "qdb" is now a part of the repo
+
+0.5.0 - 2013-07-04
+* Requires new "qdb" ... much imporved statrup times.
+* Never keeps unwind records in memory (only on disk)
+* Allows to not keep old unspent outputs in mem. Modify "UTXOCacheBlks" in the config to switch it on.
+
+0.4.8 - 2013-07-02
+* Added new blocks' timing stats to the WebUI
+* New tool "importblocks" for importing blocks from Satoshi's DB
+* Improvements in tx memory pool
+* Big rework in the network module
+* Allow sorting of transaction tables in WebUI
+
+0.4.3 - 2013-06-27
+* Some more WebUI templates, and further extensions
+* Fixed a bug with checking new block height in block_check.go
+* Allows loading and broadcasting of local txs via WebUI
+* Allows to download the balance folder via WebUI
+* More WebUI templates
+
+0.4.1 - 2013-06-25
+* Do not route txs that have any output lower than a fee for 0.5KB
+* Added support for a config file
+* Fixed a bug introduced in 0.4.0 that was removing own txs from the pool
+* Templates for WebUI
+
+0.4.0 - 2013-06-24
+* Added tx routing (you can switch it off with "-txr=false")
+* Further WebUI extensions
+* A bunch of other code changes, that I don't remember now
+
+0.3.5 - 2013-06-23
+* Addded WebUI - by default on http://127.0.0.1:8833/
+* Improved framework for mining stats
+* Changed the way "getblocks" is requested, plus some other hard to describe net related changes
+
+0.3.4 - 2013-06-20
+* Arithmetic script opcodes check for the 4 bytes limit at input values
+* Better external IP address discovery and droping connections to self
+* Added a memory cache for blocks database (in btc/blockdb.go)
+* Added sipasec cgo for EC_Verify (over 5 times faster than openssl)
+
+0.2.15 - 2013-06-18
+* Support for gzip compressed blocks inside blockchain.dat
+* A tool to compress blockchain.dat (tools/compressdb.go)
+* Rejects blocks that would cause forks long ago in a past
