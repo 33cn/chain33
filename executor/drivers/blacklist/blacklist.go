@@ -1,11 +1,11 @@
 package blacklist
 
 import (
+	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/blacklist/httplisten"
 	. "gitlab.33.cn/chain33/chain33/executor/drivers/blacklist/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	log "github.com/inconshreveable/log15"
 	//"fmt"
 	"strconv"
 	"time"

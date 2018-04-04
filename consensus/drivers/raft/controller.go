@@ -3,9 +3,9 @@ package raft
 import (
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/coreos/etcd/raft/raftpb"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var genesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
@@ -14,7 +14,6 @@ var rlog = log.New("module", "raft")
 
 var (
 	isLeader    bool = false
-	leaderIsOK  bool = false
 	confChangeC chan raftpb.ConfChange
 )
 

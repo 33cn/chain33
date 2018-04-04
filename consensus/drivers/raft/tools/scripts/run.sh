@@ -3,7 +3,7 @@
 # This is a chain33 deploy scripts!
 if [ $1 == "start" ]
 then
-  nohup ./chain33 > run.log 2>&1 &
+  nohup ./chain33 > console.log 2>&1 &
   echo $! >chain33.pid
 elif [ $1 == "stop" ]
 then
@@ -12,8 +12,7 @@ then
   rm -rf  chain33.pid
 elif [ $1 == "clear" ]
 then
-  rm -rf run.log
-  rm -rf nohup.out
+  rm -rf console.log
   rm -rf chain33.log
   rm -rf grpc33.log
   rm -rf chain33_raft*
