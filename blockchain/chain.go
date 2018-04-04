@@ -7,13 +7,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/account"
-	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/common/merkle"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
@@ -66,6 +66,10 @@ type BlockChain struct {
 
 	//标记本节点是否已经追赶上主链
 	isCaughtUp bool
+
+	//同步block批量写数据库时，是否需要刷盘的标志。
+	//非固态硬盘的电脑可以关闭刷盘，提高同步性能.
+	cfgBatchSync bool
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -86,6 +90,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		index:              newBlockIndex(),
 		isCaughtUp:         false,
 		isbatchsync:        1,
+		cfgBatchSync:       cfg.Batchsync,
 	}
 	return blockchain
 }

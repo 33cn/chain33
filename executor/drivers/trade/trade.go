@@ -10,12 +10,14 @@ trade执行器支持trade的创建和交易，
 */
 
 import (
-	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/executor/drivers"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
-	"code.aliyun.com/chain33/chain33/executor/drivers/token"
+
+	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
+	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
+
 )
 
 var tradelog = log.New("module", "execs.trade")
@@ -346,7 +348,7 @@ func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 	// make a number as token's price whether cheap or dear
 	// support 1e8 bty pre token or 1/1e8 bty pre token,
 	// the number in key is used to sort sell orders and pages
-	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8 * sellorder.Priceperboardlot / sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
+	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8*sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, sellid})
 
 	if types.SoldOut == status || types.Revoked == status {
@@ -367,7 +369,7 @@ func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, s
 	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
-	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, sellorder.Priceperboardlot / sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
+	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
 	return kv

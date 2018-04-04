@@ -5,8 +5,9 @@ import (
 	"math/big"
 	"sync"
 
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/difficulty"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type blockNode struct {
@@ -33,7 +34,7 @@ var indexlog = chainlog.New("submodule", "blockindex")
 func initBlockNode(node *blockNode, block *types.Block, broadcast bool) {
 	*node = blockNode{
 		hash:       block.Hash(),
-		Difficulty: common.CalcWork(block.Difficulty),
+		Difficulty: difficulty.CalcWork(block.Difficulty),
 		height:     block.Height,
 		statehash:  block.GetStateHash(),
 		broadcast:  broadcast,

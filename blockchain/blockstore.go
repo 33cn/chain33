@@ -8,11 +8,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/difficulty"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
@@ -527,9 +528,9 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	parentHash := blockdetail.Block.ParentHash
 
 	//转换自己的难度成big.int
-	difficulty := common.CalcWork(blockdetail.Block.Difficulty)
+	difficulty := difficulty.CalcWork(blockdetail.Block.Difficulty)
 	//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "Block.Difficulty", blockdetail.Block.Difficulty)
-	//chainlog.Error("dbMaybeStoreBlock Difficulty bigint", "height", height, "self.Difficulty", common.BigToCompact(difficulty))
+	//chainlog.Error("dbMaybeStoreBlock Difficulty bigint", "height", height, "self.Difficulty", difficulty.BigToCompact(difficulty))
 
 	var blocktd *big.Int
 	if height == 0 {
@@ -537,8 +538,8 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	} else {
 		parenttd, _ := bs.GetTdByBlockHash(parentHash)
 		blocktd = new(big.Int).Add(difficulty, parenttd)
-		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "parenttd.td", common.BigToCompact(parenttd))
-		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "self.td", common.BigToCompact(blocktd))
+		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "parenttd.td", difficulty.BigToCompact(parenttd))
+		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "self.td", difficulty.BigToCompact(blocktd))
 	}
 
 	err = bs.SaveTdByBlockHash(storeBatch, blockdetail.Block.Hash(), blocktd)

@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"testing"
 
-	. "code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/types"
+	. "gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const testReadLimit = 1 << 20 // Some reasonable limit for wire.Read*() lmt
@@ -66,7 +66,7 @@ func b2i(bz []byte) int {
 
 // 测试set和get功能
 func TestBasic(t *testing.T) {
-	var tree *MAVLTree = NewMAVLTree(nil)
+	var tree *MAVLTree = NewMAVLTree(nil, true)
 	var up bool
 	up = tree.Set([]byte("1"), []byte("one"))
 	if up {
@@ -86,7 +86,7 @@ func TestBasic(t *testing.T) {
 	}
 	hash := tree.Hash()
 
-	treelog.Info("TestBasic", "roothash", hash)
+	t.Log("TestBasic", "roothash", hash)
 
 	//PrintMAVLNode(tree.root)
 
@@ -148,7 +148,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestTreeHeightAndSize(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore")
+	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
 
 	// Create some random key value pairs
 	records := make(map[string]string)
@@ -159,7 +159,7 @@ func TestTreeHeightAndSize(t *testing.T) {
 	}
 
 	// Construct some tree and save it
-	t1 := NewMAVLTree(db)
+	t1 := NewMAVLTree(db, true)
 
 	for key, value := range records {
 		t1.Set([]byte(key), []byte(value))
@@ -168,23 +168,23 @@ func TestTreeHeightAndSize(t *testing.T) {
 	for key, value := range records {
 		index, t2value, _ := t1.Get([]byte(key))
 		if string(t2value) != value {
-			treelog.Info("TestTreeHeightAndSize", "index", index, "key", []byte(key))
+			t.Log("TestTreeHeightAndSize", "index", index, "key", []byte(key))
 		}
 	}
 	t1.Hash()
 	//PrintMAVLNode(t1.root)
 	t1.Save()
 	if int32(count) != t1.Size() {
-		treelog.Error("TestTreeHeightAndSize Size != count", "treesize", t1.Size(), "count", count)
+		t.Error("TestTreeHeightAndSize Size != count", "treesize", t1.Size(), "count", count)
 	}
-	//treelog.Info("TestTreeHeightAndSize", "treeheight", t1.Height(), "leafcount", count)
-	//treelog.Info("TestTreeHeightAndSize", "treesize", t1.Size())
+	//t.Log("TestTreeHeightAndSize", "treeheight", t1.Height(), "leafcount", count)
+	//t.Log("TestTreeHeightAndSize", "treesize", t1.Size())
 	db.Close()
 }
 
 //测试hash，save,load以及节点value值的更新功能
 func TestPersistence(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore")
+	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
 
 	records := make(map[string]string)
 
@@ -194,21 +194,21 @@ func TestPersistence(t *testing.T) {
 		records[randstr(20)] = randstr(20)
 	}
 
-	t1 := NewMAVLTree(db)
+	t1 := NewMAVLTree(db, true)
 
 	for key, value := range records {
 		t1.Set([]byte(key), []byte(value))
-		//treelog.Info("TestPersistence tree1 set", "key", key, "value", value)
+		//t.Log("TestPersistence tree1 set", "key", key, "value", value)
 		recordbaks[key] = randstr(20)
 	}
 
 	hash := t1.Hash()
 	t1.Save()
 
-	treelog.Info("TestPersistence", "roothash1", hash)
+	t.Log("TestPersistence", "roothash1", hash)
 
 	// Load a tree
-	t2 := NewMAVLTree(db)
+	t2 := NewMAVLTree(db, true)
 	t2.Load(hash)
 
 	for key, value := range records {
@@ -226,19 +226,19 @@ func TestPersistence(t *testing.T) {
 			break
 		}
 		t2.Set([]byte(key), []byte(value))
-		//treelog.Info("TestPersistence insert new node treee2", "key", string(key), "value", string(value))
+		//t.Log("TestPersistence insert new node treee2", "key", string(key), "value", string(value))
 	}
 
 	hash2 := t2.Hash()
 	t2.Save()
-	treelog.Info("TestPersistence", "roothash2", hash2)
+	t.Log("TestPersistence", "roothash2", hash2)
 
 	// 重新加载hash
 
-	t11 := NewMAVLTree(db)
+	t11 := NewMAVLTree(db, true)
 	t11.Load(hash)
 
-	treelog.Info("------tree11------TestPersistence---------")
+	t.Log("------tree11------TestPersistence---------")
 	for key, value := range records {
 		_, t2value, _ := t11.Get([]byte(key))
 		if string(t2value) != value {
@@ -246,15 +246,15 @@ func TestPersistence(t *testing.T) {
 		}
 	}
 	//重新加载hash2
-	t22 := NewMAVLTree(db)
+	t22 := NewMAVLTree(db, true)
 	t22.Load(hash2)
-	treelog.Info("------tree22------TestPersistence---------")
+	t.Log("------tree22------TestPersistence---------")
 
 	//有5个key对应的value值有变化
 	for key, value := range records {
 		_, t2value, _ := t22.Get([]byte(key))
 		if string(t2value) != value {
-			treelog.Info("tree22 value update.", "oldvalue", string(value), "newvalue", string(t2value), "key", string(key))
+			t.Log("tree22 value update.", "oldvalue", string(value), "newvalue", string(t2value), "key", string(key))
 		}
 	}
 	count = 0
@@ -274,9 +274,9 @@ func TestPersistence(t *testing.T) {
 //测试key:value对的proof证明功能
 func TestIAVLProof(t *testing.T) {
 
-	db := db.NewDB("mavltree", "leveldb", "datastore")
+	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
 
-	var tree *MAVLTree = NewMAVLTree(db)
+	var tree *MAVLTree = NewMAVLTree(db, true)
 
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("TestIAVLProof key:%d!", i)
@@ -298,9 +298,9 @@ func TestIAVLProof(t *testing.T) {
 	hashetr := ToHex(rootHashBytes)
 	hashbyte, _ := FromHex(hashetr)
 
-	treelog.Info("TestIAVLProof", "rootHashBytes", rootHashBytes)
-	treelog.Info("TestIAVLProof", "hashetr", hashetr)
-	treelog.Info("TestIAVLProof", "hashbyte", hashbyte)
+	t.Log("TestIAVLProof", "rootHashBytes", rootHashBytes)
+	t.Log("TestIAVLProof", "hashetr", hashetr)
+	t.Log("TestIAVLProof", "hashbyte", hashbyte)
 
 	var KEY9proofbyte []byte
 
@@ -312,17 +312,18 @@ func TestIAVLProof(t *testing.T) {
 		_, KEY9proofbyte, _ = tree.Proof(keyBytes)
 		value2, proof := tree.ConstructProof(keyBytes)
 		if !bytes.Equal(value2, valueBytes) {
-			treelog.Info("TestIAVLProof", "value2", string(value2), "value", string(valueBytes))
+			t.Log("TestIAVLProof", "value2", string(value2), "value", string(valueBytes))
 		}
 		if proof != nil {
 			istrue := proof.Verify([]byte(key), []byte(value), rootHashBytes)
 			if !istrue {
-				treelog.Error("TestIAVLProof Verify fail", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", rootHashBytes)
+				t.Error("TestIAVLProof Verify fail", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", rootHashBytes)
 			}
 		}
 	}
 
-	treelog.Info("TestIAVLProof test Persistence data----------------")
+	t.Log("TestIAVLProof test Persistence data----------------")
+	tree = NewMAVLTree(db, true)
 
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("TestIAVLProof key:%d!", i)
@@ -332,7 +333,7 @@ func TestIAVLProof(t *testing.T) {
 
 		value2, proofbyte, _ := tree.Proof(keyBytes)
 		if !bytes.Equal(value2, valueBytes) {
-			treelog.Info("TestIAVLProof", "value2", string(value2), "value", string(valueBytes))
+			t.Log("TestIAVLProof", "value2", string(value2), "value", string(valueBytes))
 		}
 		if proofbyte != nil {
 
@@ -341,11 +342,11 @@ func TestIAVLProof(t *testing.T) {
 
 			proof, err := ReadProof(rootHashBytes, leafHash, proofbyte)
 			if err != nil {
-				treelog.Info("TestIAVLProof ReadProof err ", "err", err)
+				t.Log("TestIAVLProof ReadProof err ", "err", err)
 			}
 			istrue := proof.Verify([]byte(key), []byte(value), rootHashBytes)
 			if !istrue {
-				treelog.Info("TestIAVLProof Verify fail!", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", rootHashBytes)
+				t.Log("TestIAVLProof Verify fail!", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", rootHashBytes)
 			}
 		}
 	}
@@ -363,33 +364,33 @@ func TestIAVLProof(t *testing.T) {
 	leafHash := leafNode.Hash()
 
 	// verify proof in tree1
-	treelog.Info("TestIAVLProof  Verify key proof in tree1 ", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", hash1)
+	t.Log("TestIAVLProof  Verify key proof in tree1 ", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", hash1)
 
 	proof, err := ReadProof(hash1, leafHash, KEY9proofbyte)
 	if err != nil {
-		treelog.Info("TestIAVLProof ReadProof err ", "err", err)
+		t.Log("TestIAVLProof ReadProof err ", "err", err)
 	}
 	istrue := proof.Verify(keyBytes, valueBytes, hash1)
 	if !istrue {
-		treelog.Info("TestIAVLProof  key not in tree ", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", hash1)
+		t.Log("TestIAVLProof  key not in tree ", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", hash1)
 	}
 
 	// verify proof in tree2
-	treelog.Info("TestIAVLProof  Verify key proof in tree2 ", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", roothash)
+	t.Log("TestIAVLProof  Verify key proof in tree2 ", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", roothash)
 
 	proof, err = ReadProof(roothash, leafHash, KEY9proofbyte)
 	if err != nil {
-		treelog.Info("TestIAVLProof ReadProof err ", "err", err)
+		t.Log("TestIAVLProof ReadProof err ", "err", err)
 	}
 	istrue = proof.Verify(keyBytes, valueBytes, roothash)
 	if istrue {
-		treelog.Info("TestIAVLProof  key in tree2 ", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", roothash)
+		t.Log("TestIAVLProof  key in tree2 ", "keyBytes", string(keyBytes), "valueBytes", string(valueBytes), "roothash", roothash)
 	}
 	db.Close()
 }
 
 func TestSetAndGetKVPair(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore")
+	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
 
 	var storeSet types.StoreSet
 	var storeGet types.StoreGet
@@ -421,17 +422,17 @@ func TestSetAndGetKVPair(t *testing.T) {
 	}
 	// storeSet hash is nil
 	storeSet.StateHash = nil
-	newhash := SetKVPair(db, &storeSet)
+	newhash := SetKVPair(db, &storeSet, true)
 
 	//打印指定roothash的tree
-	treelog.Info("TestSetAndGetKVPair newhash tree")
+	t.Log("TestSetAndGetKVPair newhash tree")
 	PrintTreeLeaf(db, newhash)
 
 	//删除5个节点
 	storeDel.StateHash = newhash
 	delhash, _ := DelKVPair(db, &storeDel)
 	//打印指定roothash的tree
-	treelog.Info("TestSetAndGetKVPair delhash tree")
+	t.Log("TestSetAndGetKVPair delhash tree")
 	PrintTreeLeaf(db, delhash)
 
 	// 在原来的基础上再次插入10个节点
@@ -461,21 +462,21 @@ func TestSetAndGetKVPair(t *testing.T) {
 	}
 	// storeSet hash is newhash
 	storeSet2.StateHash = delhash
-	newhash2 := SetKVPair(db, &storeSet2)
+	newhash2 := SetKVPair(db, &storeSet2, true)
 
-	treelog.Info("TestSetAndGetKVPair newhash2 tree")
+	t.Log("TestSetAndGetKVPair newhash2 tree")
 	PrintTreeLeaf(db, newhash2)
 
-	treelog.Info("TestSetAndGetKVPair delhash tree again !!!")
+	t.Log("TestSetAndGetKVPair delhash tree again !!!")
 	PrintTreeLeaf(db, delhash)
 
-	treelog.Info("TestSetAndGetKVPair newhash tree again !!!")
+	t.Log("TestSetAndGetKVPair newhash tree again !!!")
 	PrintTreeLeaf(db, newhash)
 	db.Close()
 }
 
 func TestGetAndVerifyKVPairProof(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore")
+	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
 
 	var storeSet types.StoreSet
 	var storeGet types.StoreGet
@@ -502,7 +503,7 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 	}
 	// storeSet hash is nil
 	storeSet.StateHash = nil
-	newhash := SetKVPair(db, &storeSet)
+	newhash := SetKVPair(db, &storeSet, true)
 
 	i = 0
 	for i = 0; i < total; i++ {
@@ -514,7 +515,7 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 		keyvalue.Value = []byte(records[string(storeGet.Keys[i])])
 		exit := VerifyKVPairProof(db, newhash, keyvalue, proof)
 		if !exit {
-			treelog.Info("TestGetAndVerifyKVPairProof  Verify proof fail!", "keyvalue", keyvalue.String(), "newhash", newhash)
+			t.Log("TestGetAndVerifyKVPairProof  Verify proof fail!", "keyvalue", keyvalue.String(), "newhash", newhash)
 		}
 	}
 	db.Close()
@@ -523,8 +524,8 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 func BenchmarkSetMerkleAvlTree(b *testing.B) {
 	b.StopTimer()
 
-	db := db.NewDB("test", "leveldb", "./")
-	t := NewMAVLTree(db)
+	db := db.NewDB("test", "leveldb", "./", 100)
+	t := NewMAVLTree(db, true)
 
 	for i := 0; i < 10000; i++ {
 		key := i2b(int32(RandInt32()))
@@ -554,8 +555,8 @@ func BenchmarkSetMerkleAvlTree(b *testing.B) {
 func BenchmarkGetMerkleAvlTree(b *testing.B) {
 	b.StopTimer()
 
-	db := db.NewDB("test", "leveldb", "./")
-	t := NewMAVLTree(db)
+	db := db.NewDB("test", "leveldb", "./", 100)
+	t := NewMAVLTree(db, true)
 	var key []byte
 	for i := 0; i < 10000; i++ {
 		key = i2b(int32(i))
