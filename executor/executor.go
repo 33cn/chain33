@@ -159,9 +159,12 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
+	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
+		totalFee.Fee += tx.Fee
+		totalFee.TxCount += 1
 		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
@@ -179,6 +182,15 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
+	
+	//保存手续费
+	feekv, err := saveFee(execute, &totalFee, b.ParentHash, b.Hash())
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+	kvset.KV = append(kvset.KV, feekv)
+	
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -207,6 +219,15 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
+
+	//删除手续费
+	feekv, err := delFee(execute, b.Hash())
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+	kvset.KV = append(kvset.KV, feekv)
+
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -340,4 +361,31 @@ func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 func LoadDriver(name string) (c drivers.Driver, err error) {
 	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
 	return execDrivers.LoadDriver(name)
+}
+
+func totalFeeKey(hash []byte) []byte {
+	s := [][]byte{[]byte("TotalFeeKey:"), hash}
+    	sep := []byte("")
+	return bytes.Join(s, sep)
+}
+
+func saveFee(ex *executor, fee *types.TotalFee, parentHash, hash []byte) (*types.KeyValue, error) {
+	totalFee := &types.TotalFee{}
+	totalFeeBytes, err := ex.localDB.Get(totalFeeKey(parentHash))
+	if err == nil {
+		err = types.Decode(totalFeeBytes, totalFee)
+		if err != nil {
+			return nil, err
+		}
+	} else if err != types.ErrNotFound {
+		return nil, err
+	}
+
+	totalFee.Fee += fee.Fee
+	totalFee.TxCount += fee.TxCount
+	return &types.KeyValue{totalFeeKey(hash), types.Encode(totalFee)}, nil
+}
+
+func delFee(ex *executor, hash []byte) (*types.KeyValue, error) {
+	return &types.KeyValue{totalFeeKey(hash), types.Encode(&types.TotalFee{})}, nil
 }
