@@ -22,6 +22,8 @@ var tokenlog = log.New("module", "execs.token")
 
 const (
 	finisherKey = "token-finisher"
+	tokenAssetsPrefix = "token-assets:"
+	blacklist = "token-blacklist"
 )
 
 func init() {
@@ -86,6 +88,16 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecLocalTransWithdraw(tx, receipt, index)
+
+		if action.Ty == types.ActionTransfer {
+			transfer := action.GetTransfer()
+			// 添加个人资产列表
+			tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
+			kv := AddTokenToAssets(tx.To, t.GetLocalDB(), transfer.Cointoken)
+			if kv != nil {
+				set.KV = append(set.KV, kv...)
+			}
+		}
 	} else {
 		set, err = t.DriverBase.ExecLocal(tx, receipt, index)
 		if err != nil {
@@ -106,6 +118,14 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 
 				receiptKV := t.saveLogs(&receipt)
 				set.KV = append(set.KV, receiptKV...)
+
+				// 添加个人资产列表
+				if item.Ty == types.TyLogFinishCreateToken {
+					kv := AddTokenToAssets(action.GetTokenfinishcreate().Owner, t.GetLocalDB(), action.GetTokenfinishcreate().Symbol)
+					if kv != nil {
+						set.KV = append(set.KV, kv...)
+					}
+				}
 			}
 		}
 	}
@@ -173,8 +193,40 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAddrReceiverforTokens(&addrTokens)
+	case "GetAccountTokenAssets":
+		var req types.ReqAccountTokenAssets
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetAccountTokenAssets(&req)
 	}
 	return nil, types.ErrActionNotSupport
+}
+
+func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.Message, error) {
+	var reply = &types.ReplyAccountTokenAssets{}
+	assets, err := QueryTokenAssetsKey(req.Address, t.GetQueryDB())
+	if err != nil {
+		return nil, err
+	}
+	for _, asset := range assets.Datas {
+		acc := account.NewTokenAccount(asset, t.GetDB())
+		var acc1 *types.Account
+		if req.Execer == "trade" {
+			execaddress := account.ExecAddress(req.Execer)
+			acc1 = acc.LoadExecAccount(req.Address, execaddress.String())
+		} else if req.Execer == "token" {
+			acc1 = acc.LoadAccount(req.Address)
+		}
+		if acc1 == nil {
+			continue
+		}
+		tokenAsset := &types.TokenAsset{asset, acc1}
+		tokenlog.Info("GetAccountTokenAssets", "token-asset-symbol", asset, "info", acc1)
+		reply.TokenAssets = append(reply.TokenAssets, tokenAsset)
+	}
+	return reply, nil
 }
 
 func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types.Message, error) {

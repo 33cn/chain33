@@ -261,6 +261,18 @@ func main() {
 		}
 
 		GetTokenBalance(addresses, argsWithoutProg[1], argsWithoutProg[2])
+	case "gettokenassets":
+		if len(argsWithoutProg) < 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		exec := "token"
+		if len(argsWithoutProg) == 3 {
+			if argsWithoutProg[2] == "token" || argsWithoutProg[2] == "trade" {
+				exec = argsWithoutProg[2]
+			}
+		}
+		GetTokenAssets(argsWithoutProg[1], exec)
 	case "getexecaddr":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -365,6 +377,12 @@ func main() {
 			return
 		}
 		GetTokensFinishCreated()
+	case "gettokeninfo":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTokenInfo(argsWithoutProg[1])
 	case "precreatetoken":
 		if len(argsWithoutProg) != 8 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -461,6 +479,12 @@ func main() {
 			return
 		}
 		IsNtpClockSync()
+	case "gettotalcoins": //查询代币总数
+		if len(argsWithoutProg) != 3 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		GetTotalCoins(argsWithoutProg[1], argsWithoutProg[2])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -507,6 +531,7 @@ func LoadHelp() {
 	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 	fmt.Println("gettokenbalance [token execer addr0 [addr1 addr2]]          : 查询多个地址在token的余额")
+	fmt.Println("gettokenassets [addr execer]                                : 查询地址下的token/trace合约下的token资产")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
@@ -522,6 +547,7 @@ func LoadHelp() {
 	fmt.Println("revokecreatetoken [creator_address, symbol, owner_address]  : 取消创建token")
 	fmt.Println("gettokensprecreated                                         : 获取所有预创建的token")
 	fmt.Println("gettokensfinishcreated                                      : 获取所有完成创建的token")
+	fmt.Println("gettokeninfo                                                : 获取token信息")
 	fmt.Println("selltoken [owner, token, Amountpbl, minbl, pricepbl, totalpbl] : 卖出token")
 	fmt.Println("buytoken [buyer, sellid, countboardlot]                        : 买入token")
 	fmt.Println("revokeselltoken [seller, sellid]                               : 撤销token卖单")
@@ -534,6 +560,7 @@ func LoadHelp() {
 	fmt.Println("configtransaction [configKey, operate, value, privkey]         : 修改配置")
 	fmt.Println("queryconfig [Key]                                              : 查询配置")
 	fmt.Println("isntpclocksync []                                           : 获取网络时间同步状态")
+	fmt.Println("gettotalcoins [symbol, height]                              : 查询代币总数")
 
 }
 
@@ -673,6 +700,14 @@ type SellOrder2Show struct {
 	SellID            string `json:"sellid"`
 	Status            string `json:"status"`
 	Height            int64  `json:"height"`
+}
+
+type GetTotalCoinsResult struct {
+	TxCount          int64  `json:"txCount"`
+	AccountCount     int64  `json:"accountCount"`
+	ExpectedAmount   string `json:"expectedAmount"`
+	ActualAmount     string `json:"actualAmount"`
+	DifferenceAmount string `json:"differenceAmount"`
 }
 
 func GetVersion() {
@@ -1565,6 +1600,47 @@ func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 
 }
 
+
+func GetTokenAssets(addr, execer string) {
+	req := types.ReqAccountTokenAssets{Address: addr, Execer: execer}
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetAccountTokenAssets"
+	params.Payload = hex.EncodeToString(types.Encode(&req))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res *types.ReplyAccountTokenAssets
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for _, result := range res.TokenAssets {
+		balanceResult := strconv.FormatFloat(float64(result.Account.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(result.Account.Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
+		result := &TokenAccountResult{
+			Token:    result.Symbol,
+			Addr:     result.Account.Addr,
+			Currency: result.Account.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		fmt.Println(string(data))
+	}
+
+}
+
 func GetExecAddr(exec string, needPrint bool) string {
 	var addr string
 	switch exec {
@@ -2052,6 +2128,38 @@ func GetTokensFinishCreated() {
 
 		fmt.Println(string(data))
 	}
+}
+
+//获取Token信息
+func GetTokenInfo(symbol string) {
+	var req types.ReqString
+	req.Data = symbol
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetTokenInfo"
+	params.Payload = hex.EncodeToString(types.Encode(&req))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.Token
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	res.Price = res.Price / types.Coin
+	res.Total = res.Total / types.TokenPrecision
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
 
 func PreCreateToken(args []string) {
@@ -2587,4 +2695,112 @@ func ManageConfigTransactioin(key, op, opAddr, priv string) {
 	tx.Sign(types.SECP256K1, privKey)
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
+}
+
+func GetTotalCoins(symbol string, height string) {
+	// 获取高度statehash
+	heightInt64, err := strconv.ParseInt(height, 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	params := jsonrpc.BlockParam{Start: heightInt64, End: heightInt64, Isdetail: false}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.BlockDetails
+	err = rpc.Call("Chain33.GetBlocks", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	stateHash, err := common.FromHex(res.Items[0].Block.StateHash)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	// 查询高度哈希对应数据
+	var expectedAmount int64
+	var actualAmount int64
+	resp := GetTotalCoinsResult{}
+
+	var startKey []byte
+	var count int64
+	for count = 1000; count == 1000; {
+		params := types.ReqGetTotalCoins{Symbol: symbol, StateHash: stateHash, StartKey: startKey, Count: count}
+		var res types.ReplyGetTotalCoins
+		err = rpc.Call("Chain33.GetTotalCoins", params, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		count = res.Num
+		resp.AccountCount += res.Num
+		actualAmount += res.Amount
+		startKey = res.NextKey
+	}
+
+	if symbol == "bty" {
+		//查询高度blockhash
+		params := types.ReqInt{heightInt64}
+		var res1 jsonrpc.ReplyHash
+		err = rpc.Call("Chain33.GetBlockHash", params, &res1)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		blockHash, err := common.FromHex(res1.Hash)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		//查询手续费
+		params2 := types.ReqHash{Hash: blockHash}
+		var res2 types.TotalFee
+		err = rpc.Call("Chain33.QueryTotalFee", params2, &res2)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		
+		resp.TxCount = res2.TxCount
+		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res2.Fee
+		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
+		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
+		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
+	} else {
+		//查询Token总量
+		var req types.ReqString
+		req.Data = symbol
+		var params jsonrpc.Query
+		params.Execer = "token"
+		params.FuncName = "GetTokenInfo"
+		params.Payload = hex.EncodeToString(types.Encode(&req))
+		var res types.Token
+		err = rpc.Call("Chain33.Query", params, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		expectedAmount = res.Total
+		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.TokenPrecision), 'f', 4, 64)
+		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.TokenPrecision), 'f', 4, 64)
+		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.TokenPrecision), 'f', 4, 64)
+	}
+
+	data, err := json.MarshalIndent(resp, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
