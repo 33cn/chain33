@@ -5,22 +5,24 @@ import (
 	"errors"
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/common/merkle"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var ulog = log.New("module", "util")
 
-func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, []*types.Transaction, error) {
+//block执行函数增加一个批量存储区块是否刷盘的标志位，提高区块的同步性能。
+//只有blockchain在同步阶段会设置不刷盘，其余模块处理时默认都是刷盘的
+func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	defer func() {
-		ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs), "cost", time.Now().Sub(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Now().Sub(beg))
 	}()
 	if errReturn && block.Height > 0 && block.CheckSign() == false {
 		//block的来源不是自己的mempool，而是别人的区块
@@ -91,7 +93,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if kvset == nil {
 		block.StateHash = prevStateRoot
 	} else {
-		block.StateHash = ExecKVMemSet(client, prevStateRoot, kvset)
+		block.StateHash = ExecKVMemSet(client, prevStateRoot, kvset, sync)
 	}
 	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
 		ExecKVSetRollback(client, block.StateHash)
@@ -148,9 +150,11 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *type
 	return receipts
 }
 
-func ExecKVMemSet(client queue.Client, prevStateRoot []byte, kvset []*types.KeyValue) []byte {
+func ExecKVMemSet(client queue.Client, prevStateRoot []byte, kvset []*types.KeyValue, sync bool) []byte {
 	set := &types.StoreSet{prevStateRoot, kvset}
-	msg := client.NewMessage("store", types.EventStoreMemSet, set)
+	setwithsync := &types.StoreSetWithSync{set, sync}
+
+	msg := client.NewMessage("store", types.EventStoreMemSet, setwithsync)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
 	if err != nil {

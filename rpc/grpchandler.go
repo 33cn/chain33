@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/types"
-	pb "code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/version"
+	"gitlab.33.cn/chain33/chain33/types"
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	pr "google.golang.org/grpc/peer"
 )
@@ -509,7 +509,7 @@ func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 		return nil, fmt.Errorf("reject")
 	}
 
-	return &pb.Reply{IsOk: true, Msg: []byte(common.GetVersion())}, nil
+	return &pb.Reply{IsOk: true, Msg: []byte(version.GetVersion())}, nil
 }
 
 func (g *Grpc) IsSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {

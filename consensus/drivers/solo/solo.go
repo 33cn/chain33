@@ -3,12 +3,12 @@ package solo
 import (
 	"time"
 
-	"code.aliyun.com/chain33/chain33/common/merkle"
-	"code.aliyun.com/chain33/chain33/consensus/drivers"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
-	"code.aliyun.com/chain33/chain33/util"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 var slog = log.New("module", "solo")
@@ -56,7 +56,7 @@ func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
 	if err != nil { //never happen
 		return nil, deltx, err
 	}

@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"code.aliyun.com/chain33/chain33/common"
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/decred/base58"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var addrSeed = []byte("address seed bytes for public key")

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var ErrNodeNotExist = errors.New("ErrNodeNotExist")
@@ -21,7 +21,7 @@ type MAVLTree struct {
 }
 
 // 新建一个merkle avl 树
-func NewMAVLTree(db dbm.DB) *MAVLTree {
+func NewMAVLTree(db dbm.DB, sync bool) *MAVLTree {
 	if db == nil {
 		// In-memory IAVLTree
 		return &MAVLTree{}
@@ -30,7 +30,7 @@ func NewMAVLTree(db dbm.DB) *MAVLTree {
 		ndb := newNodeDB(db)
 		return &MAVLTree{
 			ndb:   ndb,
-			batch: ndb.GetBatch(),
+			batch: ndb.GetBatch(sync),
 		}
 	}
 }
@@ -208,8 +208,8 @@ func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
 	return node, nil
 }
 
-func (ndb *nodeDB) GetBatch() *nodeBatch {
-	return &nodeBatch{ndb.db.NewBatch(true)}
+func (ndb *nodeDB) GetBatch(sync bool) *nodeBatch {
+	return &nodeBatch{ndb.db.NewBatch(sync)}
 }
 
 func (ndb *nodeBatch) SaveNode(t *MAVLTree, node *MAVLNode) {
@@ -232,8 +232,8 @@ func (ndb *nodeBatch) Commit() {
 }
 
 //对外接口
-func SetKVPair(db dbm.DB, storeSet *types.StoreSet) []byte {
-	tree := NewMAVLTree(db)
+func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
+	tree := NewMAVLTree(db, sync)
 	tree.Load(storeSet.StateHash)
 
 	for i := 0; i < len(storeSet.KV); i++ {
@@ -243,7 +243,7 @@ func SetKVPair(db dbm.DB, storeSet *types.StoreSet) []byte {
 }
 
 func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
-	tree := NewMAVLTree(db)
+	tree := NewMAVLTree(db, true)
 	err := tree.Load(storeGet.StateHash)
 	values := make([][]byte, len(storeGet.Keys))
 	if err != nil {
@@ -259,7 +259,7 @@ func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
 }
 
 func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
-	tree := NewMAVLTree(db)
+	tree := NewMAVLTree(db, true)
 	tree.Load(roothash)
 	_, proof, exit := tree.Proof(key)
 	if exit {
@@ -270,7 +270,7 @@ func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
 
 //剔除key对应的节点在本次tree中，返回新的roothash和key对应的value
 func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
-	tree := NewMAVLTree(db)
+	tree := NewMAVLTree(db, true)
 	tree.Load(storeDel.StateHash)
 
 	values := make([][]byte, len(storeDel.Keys))
@@ -301,7 +301,7 @@ func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proo
 }
 
 func PrintTreeLeaf(db dbm.DB, roothash []byte) {
-	tree := NewMAVLTree(db)
+	tree := NewMAVLTree(db, true)
 	tree.Load(roothash)
 	var i int32 = 0
 	if tree.root != nil {

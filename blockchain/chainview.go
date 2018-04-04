@@ -5,7 +5,7 @@ import (
 	"container/list"
 	"sync"
 
-	"code.aliyun.com/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 const blockNodeCacheLimit = 500
