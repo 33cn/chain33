@@ -509,6 +509,10 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "eb3733d160e74a9c7e442f435eb3bea458e1d19f",
 			"revisionTime": "2017-08-12T16:00:11Z"
+		},
+		{
+			"path": "gopkg.in/natefinch/lumberjack.v2",
+			"revision": ""
 		}
 	],
 	"rootPath": "code.aliyun.com/chain33/chain33"

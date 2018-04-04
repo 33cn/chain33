@@ -58,16 +58,19 @@ func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
 
 }
 
-func (a *AddrBook) SetAddrStat(addr string, run bool) {
+func (a *AddrBook) SetAddrStat(addr string, run bool) (*knownAddress, bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
 		if run {
 			peer.markGood()
-			return
+
+		} else {
+			peer.markAttempt()
 		}
-		peer.markAttempt()
+		return peer, true
 	}
+	return nil, false
 }
 
 func NewAddrBook(filePath string) *AddrBook {
@@ -150,6 +153,7 @@ func (ka *knownAddress) markAttempt() {
 	now := time.Now()
 	ka.LastAttempt = now
 	ka.Attempts += 1
+
 }
 
 func (ka *knownAddress) GetLastOk() time.Time {
