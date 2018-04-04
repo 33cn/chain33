@@ -37,7 +37,9 @@ type Executor struct {
 	client queue.Client
 }
 
-func New() *Executor {
+func New(cfg *types.Exec) *Executor {
+	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
+	types.SetMinFee(cfg.MinExecFee)
 	exec := &Executor{}
 	return exec
 }
