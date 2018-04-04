@@ -4,6 +4,7 @@ import (
 	"testing"
 	"math/rand"
 	"flag"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -16,13 +17,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/common/limits"
-	"time"
 )
 
 var (
-	transactions []*types.Transaction
-	txSize       int = 10000
-	endLoop      int = 10
+	endLoop     int = 50
+	txNumber	int64 = 100
 	random 		*rand.Rand
 )
 
@@ -35,7 +34,6 @@ func init() {
 }
 
 // 执行： go test -cover
-// 多次执行，需要删除之前的数据库文件，不然交易都是重复的
 func TestSolo(t *testing.T) {
 	q, chain, s, p2pnet, mem := initEnvSolo()
 
@@ -84,8 +82,8 @@ func sendReplyList(q queue.Queue) {
 		if msg.Ty == types.EventTxList {
 			count ++
 			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
-				&types.ReplyTxList{genTxs(100)}))
-			if (count == 50) {
+				&types.ReplyTxList{genTxs(txNumber)}))
+			if (count == endLoop) {
 				break
 			}
 		}
