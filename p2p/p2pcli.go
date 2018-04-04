@@ -664,7 +664,7 @@ func (m *P2pCli) GetExternIp(addr string) (string, bool) {
 	var addrlist string
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect: %v", err)
 		return addrlist, false
