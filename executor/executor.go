@@ -150,11 +150,12 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
-	var fee int64
+	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		fee += tx.Fee
+		totalFee.Fee += tx.Fee
+		totalFee.TxCount += 1
 		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
@@ -174,7 +175,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	}
 	
 	//保存手续费
-	feekv, err := saveFee(execute, fee, b.ParentHash, b.Hash())
+	feekv, err := saveFee(execute, &totalFee, b.ParentHash, b.Hash())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 		return
@@ -359,7 +360,7 @@ func totalFeeKey(hash []byte) []byte {
 	return bytes.Join(s, sep)
 }
 
-func saveFee(ex *executor, fee int64, parentHash, hash []byte) (*types.KeyValue, error) {
+func saveFee(ex *executor, fee *types.TotalFee, parentHash, hash []byte) (*types.KeyValue, error) {
 	totalFee := &types.TotalFee{}
 	totalFeeBytes, err := ex.localDB.Get(totalFeeKey(parentHash))
 	if err == nil {
@@ -371,7 +372,8 @@ func saveFee(ex *executor, fee int64, parentHash, hash []byte) (*types.KeyValue,
 		return nil, err
 	}
 
-	totalFee.Fee += fee
+	totalFee.Fee += fee.Fee
+	totalFee.TxCount += fee.TxCount
 	return &types.KeyValue{totalFeeKey(hash), types.Encode(totalFee)}, nil
 }
 
