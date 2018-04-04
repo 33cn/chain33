@@ -8,6 +8,7 @@ package leveldb
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"sync/atomic"
 
@@ -366,6 +367,7 @@ func (t *tOps) open(f *tFile) (ch *cache.Handle, err error) {
 
 	})
 	if ch == nil && err == nil {
+		debug.PrintStack()
 		err = ErrClosed
 	}
 	return

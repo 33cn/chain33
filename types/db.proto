@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+import "common.proto";
+
+package types;
+
+// merkle avl tree
+message LeafNode {
+	bytes key = 1;
+	bytes value = 2;
+	int32 height = 3;
+	int32 size = 4;
+}
+
+message InnerNode {
+	bytes leftHash = 1;
+	bytes rightHash = 2;
+	int32 height = 3;
+	int32 size = 4;
+}
+
+message MAVLProof {
+	bytes leafHash = 1;
+	repeated InnerNode innerNodes = 2;
+	bytes rootHash = 3;
+}
+
+message StoreNode {
+	bytes key = 1;
+	bytes value = 2;
+	bytes leftHash = 3;
+	bytes rightHash = 4;
+	int32 height = 5;
+	int32 size = 6;
+}
+
+message LocalDBSet {
+	repeated KeyValue KV = 2;
+}
+
+message LocalDBList {
+	bytes prefix = 1;
+	bytes key = 2;
+	int32 direction = 3;
+	int32 count = 4;
+}
+
+message LocalDBGet {
+	repeated bytes keys = 2;
+}
+
+message LocalReplyValue {
+	repeated bytes values = 2;
+}
+
+message StoreSet {
+	bytes stateHash = 1;
+	repeated KeyValue KV = 2;
+}
+
+message StoreSetWithSync {
+	StoreSet storeset = 1;
+	bool sync = 2;
+}
+
+message StoreGet {
+	bytes stateHash = 1;
+	repeated bytes keys = 2;
+}
+
+message StoreReplyValue {
+	repeated bytes values = 2;
+}

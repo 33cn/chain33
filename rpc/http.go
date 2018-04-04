@@ -2,13 +2,14 @@ package rpc
 
 import (
 	"io"
-
 	"net"
 	"net/http"
 	"net/rpc"
 	"net/rpc/jsonrpc"
+	"strings"
 
-	pb "code.aliyun.com/chain33/chain33/types"
+	"github.com/rs/cors"
+	pb "gitlab.33.cn/chain33/chain33/types"
 
 	"google.golang.org/grpc"
 )
@@ -23,18 +24,26 @@ func (c *HttpConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
 func (c *HttpConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
 func (c *HttpConn) Close() error                      { return nil }
 
-func (jrpc *jsonrpcServer) CreateServer(addr string) {
-	server := rpc.NewServer()
-	server.Register(&Chain33{jserver: jrpc})
-	listener, e := net.Listen("tcp", addr)
-	if e != nil {
-		log.Crit("listen error:", e)
+func (j *JsonRpcServer) Listen() {
+	listener, err := net.Listen("tcp", rpcCfg.GetJrpcBindAddr())
+	if err != nil {
+		log.Crit("listen:", "err", err)
+		panic(err)
 	}
+	server := rpc.NewServer()
 
-	go http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server.Register(&j.jrpc)
+	co := cors.New(cors.Options{})
+
+	// Insert the middleware
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if checkWhitlist(strings.Split(r.RemoteAddr, ":")[0]) == false {
+			w.Write([]byte(`{"errcode":"-1","result":null,"msg":"reject"}`))
+			return
+		}
 
 		if r.URL.Path == "/" {
-
 			serverCodec := jsonrpc.NewServerCodec(&HttpConn{in: r.Body, out: w})
 			w.Header().Set("Content-type", "application/json")
 			w.WriteHeader(200)
@@ -44,20 +53,20 @@ func (jrpc *jsonrpcServer) CreateServer(addr string) {
 				return
 			}
 		}
+	})
 
-	}))
-
+	handler = co.Handler(handler)
+	http.Serve(listener, handler)
 }
 
-func (grpcx *grpcServer) CreateServer(addr string) {
-
-	listener, err := net.Listen("tcp", addr)
+func (g *Grpcserver) Listen() {
+	listener, err := net.Listen("tcp", rpcCfg.GetGrpcBindAddr())
 	if err != nil {
-		log.Crit("failed to listen: %v", err)
+		log.Crit("failed to listen:", "err", err)
+		panic(err)
 	}
-
 	s := grpc.NewServer()
-	pb.RegisterGrpcserviceServer(s, &Grpc{gserver: grpcx})
-	go s.Serve(listener)
+	pb.RegisterGrpcserviceServer(s, &g.grpc)
+	s.Serve(listener)
 
 }

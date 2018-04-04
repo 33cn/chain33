@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 
-	"code.aliyun.com/chain33/chain33/types"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var merklelog = log.New("module", "merkle")
@@ -178,6 +178,21 @@ func GetMerkleRootAndBranch(leaves [][]byte, position uint32) (roothash []byte, 
 var zeroHash [32]byte
 
 func CalcMerkleRoot(txs []*types.Transaction) []byte {
+	var hashes [][]byte
+	for _, tx := range txs {
+		hashes = append(hashes, tx.Hash())
+	}
+	if hashes == nil {
+		return zeroHash[:]
+	}
+	merkleroot := GetMerkleRoot(hashes)
+	if merkleroot == nil {
+		panic("calc merkle root error")
+	}
+	return merkleroot
+}
+
+func CalcMerkleRootCache(txs []*types.TransactionCache) []byte {
 	var hashes [][]byte
 	for _, tx := range txs {
 		hashes = append(hashes, tx.Hash())

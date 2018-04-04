@@ -1,0 +1,221 @@
+syntax = "proto3";
+
+import "transaction.proto";
+import "blockchain.proto";
+import "account.proto";
+import "executor.proto";
+
+package types;
+
+//钱包模块存贮的tx交易详细信息
+// 	 tx : tx交易信息
+//	 receipt :交易收据信息
+//	 height :交易所在的区块高度
+//	 index :交易所在区块中的索引
+//	 blocktime :交易所在区块的时标
+//	 amount :交易量
+//	 fromaddr :交易打出地址
+//	 txhash : 交易对应的哈希值
+//	 actionName  :交易对应的函数调用
+message WalletTxDetail {
+	Transaction tx = 1;
+	ReceiptData receipt = 2;
+	int64 height = 3;
+	int64 index = 4;
+	int64 blocktime = 5;
+	int64 amount = 6;
+	string fromaddr = 7;
+	bytes txhash = 8;
+	string actionName  =9;
+}
+
+message WalletTxDetails {
+	repeated WalletTxDetail txDetails = 1;
+}
+
+//钱包模块存贮的账户信息
+// 	 privkey : 账户地址对应的私钥
+//	 label :账户地址对应的标签
+//	 addr :账户地址
+//	 timeStamp :创建账户时的时标
+message WalletAccountStore {
+	string privkey = 1;
+	string label = 2;
+	string addr = 3;
+	string timeStamp = 4;
+}
+
+
+//钱包模块通过一个随机值对钱包密码加密
+// 	 pwHash : 对钱包密码和一个随机值组合进行哈希计算
+//	 randstr :对钱包密码加密的一个随机值
+message WalletPwHash {
+	bytes pwHash = 1;
+	string randstr = 2;
+}
+
+//钱包当前的状态
+// 	 isWalletLock : 钱包是否锁状态，true锁定，false解锁
+//	 isAutoMining :钱包是否开启挖矿功能，true开启挖矿，false关闭挖矿
+// 	 isHasSeed : 钱包是否有种子，true已有，false没有
+//	 isTicketLock :钱包挖矿买票锁状态，true锁定，false解锁，只能用于挖矿转账
+message WalletStatus {
+	bool isWalletLock = 1;
+	bool isAutoMining = 2;
+	bool isHasSeed = 3;
+	bool isTicketLock = 4;
+}
+
+message WalletAccounts {
+	repeated WalletAccount wallets = 1;
+}
+
+//钱包账户信息
+// 	 acc : 钱包账户信息
+//	 label :钱包账户对应的标签
+
+message WalletAccount {
+	Account acc = 1;
+	string label = 2;
+}
+
+//钱包解锁
+// 	 passwd : 钱包密码
+//	 timeout :钱包解锁时间，0，一直解锁，非0值，超时之后继续锁定
+//	 walletOrTicket :解锁整个钱包还是只解锁挖矿买票功能，1只解锁挖矿买票，0解锁整个钱包
+message WalletUnLock {
+	string passwd = 1;
+	int64 timeout = 2;
+	bool walletOrTicket = 3;
+}
+
+message GenSeedLang {
+	int32 lang = 1;
+}
+
+message GetSeedByPw {
+	string passwd = 1;
+}
+
+//存储钱包的种子
+// 	 seed : 钱包种子
+//	 passwd :钱包密码
+message SaveSeedByPw {
+	string seed = 1;
+	string passwd = 2;
+}
+
+message ReplySeed {
+	string seed = 1;
+}
+
+message ReqWalletSetPasswd {
+	string oldpass = 1;
+	string newpass = 2;
+}
+
+message ReqNewAccount {
+	string label = 1;
+}
+
+message MinerFlag {
+	int32 flag = 1;
+	int64 reserve = 2;
+
+}
+
+//获取钱包交易的详细信息
+// 	 fromTx : []byte( Sprintf("%018d", height*100000 + index)，
+//				表示从高度 height 中的 index 开始获取交易列表；
+//			    第一次传参为空，获取最新的交易。)
+//	 count :获取交易列表的个数。
+//	 direction :查找方式；0，上一页；1，下一页。
+message ReqWalletTransactionList {
+	bytes fromTx = 1; 
+	int32 count = 2;
+	int32 direction = 3;
+}
+
+message ReqWalletImportPrivKey {
+	string privkey = 1; //bitcoin 的私钥格式
+	string label = 2;
+}
+
+//发送交易
+// 	 from : 打出地址
+//	 to :接受地址
+// 	 amount : 转账额度
+//	 note :转账备注
+message ReqWalletSendToAddress {
+	string from        = 1;
+	string to          = 2;
+	int64  amount      = 3;
+	string note        = 4;
+	bool   istoken     = 5;
+	string tokenSymbol = 6;
+}
+
+message ReqWalletSetFee {
+	int64 amount = 1;
+}
+
+message ReqWalletSetLabel {
+	string addr = 1;
+	string label = 2;
+}
+
+message ReqWalletMergeBalance {
+	string to = 1;
+}
+
+message ReqStr {
+	string reqstr = 1;
+}
+
+message ReplyStr {
+	string replystr = 1;
+}
+
+message ReqTokenPreCreate {
+    string creator_addr = 1;
+    string name = 2;
+    string symbol = 3;
+    string introduction = 4;
+    string owner_addr = 5;
+    int64  total = 6;
+    int64  price = 7;
+}
+
+message ReqTokenFinishCreate {
+	string finisher_addr = 1;
+	string symbol = 2;
+	string owner_addr = 3;
+}
+
+message ReqTokenRevokeCreate {
+	string revoker_addr = 1;
+	string symbol = 2;
+	string owner_addr = 3;
+}
+
+message ReqSellToken {
+	TradeForSell sell  = 1;
+	string       owner = 2;
+}
+
+message ReqBuyToken {
+    TradeForBuy buy   = 1;
+    string      buyer = 2;
+}
+
+message ReqRevokeSell {
+    TradeForRevokeSell revoke = 1;
+    string             owner  = 2;
+}
+
+message ReqModifyConfig {
+    string key = 1;
+    string op = 2;
+    string value = 3;
+    string modifier = 4;
+}

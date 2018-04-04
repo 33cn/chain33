@@ -5,8 +5,10 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
+	"time"
 
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 
 	log "github.com/inconshreveable/log15"
 )
@@ -20,31 +22,51 @@ import (
 //1.2 消息的回复直接通过消息自带的channel 回复
 var qlog = log.New("module", "queue")
 
-const DefaultChanBuffer = 1024
-
-func SetLogLevel(level int) {
-
-}
+const (
+	DefaultChanBuffer    = 64
+	DefaultLowChanBuffer = 40960
+)
 
 func DisableLog() {
 	qlog.SetHandler(log.DiscardHandler())
 }
 
-type Queue struct {
-	chans map[string]chan Message
-	mu    sync.Mutex
-	done  chan struct{}
+type chanSub struct {
+	high    chan Message
+	low     chan Message
+	isClose int32
 }
 
-func New(name string) *Queue {
-	chs := make(map[string]chan Message)
-	return &Queue{chans: chs, done: make(chan struct{}, 1)}
+/// Queue only one obj in project
+/// Queue only generate Client and start、Close operate,
+/// if you send massage or receive massage on Queue, please use Client.
+type Queue interface {
+	Close()
+	Start()
+	Client() Client
+	Name() string
 }
 
-func (q *Queue) Start() {
+type queue struct {
+	chanSubs map[string]*chanSub
+	mu       sync.Mutex
+	done     chan struct{}
+	isClose  int32
+	name     string
+}
+
+func New(name string) Queue {
+	q := &queue{chanSubs: make(map[string]*chanSub), name: name, done: make(chan struct{}, 1)}
+	return q
+}
+
+func (q *queue) Name() string {
+	return q.name
+}
+
+func (q *queue) Start() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-
 	// Block until a signal is received.
 	select {
 	case <-q.done:
@@ -55,29 +77,98 @@ func (q *Queue) Start() {
 	}
 }
 
-func (q *Queue) Close() {
+func (q *queue) isClosed() bool {
+	return atomic.LoadInt32(&q.isClose) == 1
+}
+
+func (q *queue) Close() {
+	if q.isClosed() {
+		return
+	}
+	q.mu.Lock()
+	for topic, ch := range q.chanSubs {
+		if ch.isClose == 0 {
+			ch.high <- Message{}
+			ch.low <- Message{}
+			q.chanSubs[topic] = &chanSub{isClose: 1}
+		}
+	}
+	q.mu.Unlock()
 	q.done <- struct{}{}
 	close(q.done)
+	atomic.StoreInt32(&q.isClose, 1)
+	qlog.Info("queue module closed")
 }
 
-func (q *Queue) getChannel(topic string) chan Message {
+func (q *queue) chanSub(topic string) *chanSub {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-	_, ok := q.chans[topic]
+	_, ok := q.chanSubs[topic]
 	if !ok {
-		q.chans[topic] = make(chan Message, DefaultChanBuffer)
+		q.chanSubs[topic] = &chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
 	}
-	ch1 := q.chans[topic]
-	return ch1
+	return q.chanSubs[topic]
 }
 
-func (q *Queue) Send(msg Message) {
-	chrecv := q.getChannel(msg.Topic)
-	chrecv <- msg
-	qlog.Info("send ok", "msg", msg)
+func (q *queue) closeTopic(topic string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	sub, ok := q.chanSubs[topic]
+	if !ok {
+		return
+	}
+	if sub.isClose == 0 {
+		sub.high <- Message{}
+		sub.low <- Message{}
+	}
+	q.chanSubs[topic] = &chanSub{isClose: 1}
 }
 
-func (q *Queue) GetClient() IClient {
+func (q *queue) send(msg Message) (err error) {
+	if q.isClosed() {
+		return types.ErrChannelClosed
+	}
+	sub := q.chanSub(msg.Topic)
+	if sub.isClose == 1 {
+		return types.ErrChannelClosed
+	}
+	defer func() {
+		res := recover()
+		if res != nil {
+			err = res.(error)
+		}
+	}()
+	timeout := time.NewTimer(time.Second * 60)
+	defer timeout.Stop()
+	select {
+	case sub.high <- msg:
+	case <-timeout.C:
+		return types.ErrTimeout
+	}
+	qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
+	return nil
+}
+
+func (q *queue) sendAsyn(msg Message) error {
+	if q.isClosed() {
+		return types.ErrChannelClosed
+	}
+	sub := q.chanSub(msg.Topic)
+	if sub.isClose == 1 {
+		return types.ErrChannelClosed
+	}
+	select {
+	case sub.low <- msg:
+		qlog.Debug("send asyn ok", "msg", msg)
+		return nil
+	default:
+		qlog.Error("send asyn ok", "msg", msg)
+		return types.ErrChannelFull
+	}
+
+}
+
+func (q *queue) Client() Client {
 	return newClient(q)
 }
 
@@ -86,7 +177,16 @@ type Message struct {
 	Ty      int64
 	Id      int64
 	Data    interface{}
-	ChReply chan Message
+	chReply chan Message
+}
+
+func NewMessage(id int64, topic string, ty int64, data interface{}) (msg Message) {
+	msg.Id = id
+	msg.Ty = ty
+	msg.Data = data
+	msg.Topic = topic
+	msg.chReply = make(chan Message, 1)
+	return msg
 }
 
 func (msg Message) GetData() interface{} {
@@ -104,11 +204,29 @@ func (msg Message) Err() error {
 }
 
 func (msg Message) Reply(replyMsg Message) {
-	msg.ChReply <- replyMsg
-	qlog.Info("reply msg ok", "msg", msg)
+	if msg.chReply == nil {
+		qlog.Debug("reply a empty chreply", "msg", msg)
+		return
+	}
+	msg.chReply <- replyMsg
+	qlog.Debug("reply msg ok", "msg", msg)
 }
 
 func (msg Message) String() string {
-	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v}", msg.Topic,
-		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err())
+	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v, Ch:%v}", msg.Topic,
+		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.chReply != nil)
+}
+
+func (msg Message) ReplyErr(title string, err error) {
+	var reply types.Reply
+	if err != nil {
+		qlog.Error(title, "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	} else {
+		qlog.Debug(title, "success", "ok")
+		reply.IsOk = true
+	}
+	id := atomic.AddInt64(&gId, 1)
+	msg.Reply(NewMessage(id, "", types.EventReply, &reply))
 }

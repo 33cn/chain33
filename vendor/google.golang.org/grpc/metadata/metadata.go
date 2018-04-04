@@ -17,7 +17,8 @@
  */
 
 // Package metadata define the structure of the metadata supported by gRPC library.
-// Please refer to http://www.grpc.io/docs/guides/wire.html for more information about custom-metadata.
+// Please refer to https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
+// for more information about custom-metadata.
 package metadata // import "google.golang.org/grpc/metadata"
 
 import (
@@ -37,7 +38,16 @@ func DecodeKeyValue(k, v string) (string, string, error) {
 type MD map[string][]string
 
 // New creates an MD from a given key-value map.
-// Keys are automatically converted to lowercase.
+//
+// Only the following ASCII characters are allowed in keys:
+//  - digits: 0-9
+//  - uppercase letters: A-Z (normalized to lower)
+//  - lowercase letters: a-z
+//  - special characters: -_.
+// Uppercase letters are automatically converted to lowercase.
+//
+// Keys beginning with "grpc-" are reserved for grpc-internal use only and may
+// result in errors if set in metadata.
 func New(m map[string]string) MD {
 	md := MD{}
 	for k, val := range m {
@@ -49,7 +59,16 @@ func New(m map[string]string) MD {
 
 // Pairs returns an MD formed by the mapping of key, value ...
 // Pairs panics if len(kv) is odd.
-// Keys are automatically converted to lowercase.
+//
+// Only the following ASCII characters are allowed in keys:
+//  - digits: 0-9
+//  - uppercase letters: A-Z (normalized to lower)
+//  - lowercase letters: a-z
+//  - special characters: -_.
+// Uppercase letters are automatically converted to lowercase.
+//
+// Keys beginning with "grpc-" are reserved for grpc-internal use only and may
+// result in errors if set in metadata.
 func Pairs(kv ...string) MD {
 	if len(kv)%2 == 1 {
 		panic(fmt.Sprintf("metadata: Pairs got the odd number of input pairs for metadata: %d", len(kv)))
@@ -92,11 +111,6 @@ func Join(mds ...MD) MD {
 type mdIncomingKey struct{}
 type mdOutgoingKey struct{}
 
-// NewContext is a wrapper for NewOutgoingContext(ctx, md).  Deprecated.
-func NewContext(ctx context.Context, md MD) context.Context {
-	return NewOutgoingContext(ctx, md)
-}
-
 // NewIncomingContext creates a new context with incoming md attached.
 func NewIncomingContext(ctx context.Context, md MD) context.Context {
 	return context.WithValue(ctx, mdIncomingKey{}, md)
@@ -105,11 +119,6 @@ func NewIncomingContext(ctx context.Context, md MD) context.Context {
 // NewOutgoingContext creates a new context with outgoing md attached.
 func NewOutgoingContext(ctx context.Context, md MD) context.Context {
 	return context.WithValue(ctx, mdOutgoingKey{}, md)
-}
-
-// FromContext is a wrapper for FromIncomingContext(ctx).  Deprecated.
-func FromContext(ctx context.Context) (md MD, ok bool) {
-	return FromIncomingContext(ctx)
 }
 
 // FromIncomingContext returns the incoming metadata in ctx if it exists.  The

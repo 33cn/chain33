@@ -14,6 +14,14 @@ func (h *swapHandler) Log(r *Record) error {
 	return (*h.handler.Load().(*Handler)).Log(r)
 }
 
+func (h *swapHandler) MaxLevel() int {
+	return (*h.handler.Load().(*Handler)).MaxLevel()
+}
+
+func (h *swapHandler) SetMaxLevel(maxLevel int) {
+	(*h.handler.Load().(*Handler)).SetMaxLevel(maxLevel)
+}
+
 func (h *swapHandler) Swap(newHandler Handler) {
 	h.handler.Store(&newHandler)
 }

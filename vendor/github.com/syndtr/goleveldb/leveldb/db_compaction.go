@@ -7,6 +7,7 @@
 package leveldb
 
 import (
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -698,6 +699,7 @@ func (db *DB) compTriggerWait(compC chan<- cCmd) (err error) {
 	case err = <-db.compErrC:
 		return
 	case <-db.closeC:
+		debug.PrintStack()
 		return ErrClosed
 	}
 	// Wait cmd.
@@ -705,6 +707,7 @@ func (db *DB) compTriggerWait(compC chan<- cCmd) (err error) {
 	case err = <-ch:
 	case err = <-db.compErrC:
 	case <-db.closeC:
+		debug.PrintStack()
 		return ErrClosed
 	}
 	return err
@@ -720,6 +723,7 @@ func (db *DB) compTriggerRange(compC chan<- cCmd, level int, min, max []byte) (e
 	case err := <-db.compErrC:
 		return err
 	case <-db.closeC:
+		debug.PrintStack()
 		return ErrClosed
 	}
 	// Wait cmd.
@@ -727,6 +731,7 @@ func (db *DB) compTriggerRange(compC chan<- cCmd, level int, min, max []byte) (e
 	case err = <-ch:
 	case err = <-db.compErrC:
 	case <-db.closeC:
+		debug.PrintStack()
 		return ErrClosed
 	}
 	return err

@@ -1,19 +1,23 @@
 package db
 
 import (
-	"fmt"
+	"bytes"
 	"path"
 
+	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+var llog = log.New("module", "db.goleveldb")
+
 func init() {
-	dbCreator := func(name string, dir string) (DB, error) {
-		return NewGoLevelDB(name, dir)
+	dbCreator := func(name string, dir string, cache int) (DB, error) {
+		return NewGoLevelDB(name, dir, cache)
 	}
 	registerDBCreator(LevelDBBackendStr, dbCreator, false)
 	registerDBCreator(GoLevelDBBackendStr, dbCreator, false)
@@ -23,10 +27,18 @@ type GoLevelDB struct {
 	db *leveldb.DB
 }
 
-func NewGoLevelDB(name string, dir string) (*GoLevelDB, error) {
+func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
 	dbPath := path.Join(dir, name+".db")
-	cache := 128
-	handles := 128
+	if cache == 0 {
+		cache = 64
+	}
+	handles := cache
+	if handles < 16 {
+		handles = 16
+	}
+	if cache < 16 {
+		cache = 16
+	}
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(dbPath, &opt.Options{
 		OpenFilesCacheCapacity: handles,
@@ -50,7 +62,7 @@ func (db *GoLevelDB) Get(key []byte) []byte {
 		if err == errors.ErrNotFound {
 			return nil
 		} else {
-			fmt.Println(err)
+			llog.Error("Get", "error", err)
 		}
 	}
 	return res
@@ -59,28 +71,28 @@ func (db *GoLevelDB) Get(key []byte) []byte {
 func (db *GoLevelDB) Set(key []byte, value []byte) {
 	err := db.db.Put(key, value, nil)
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("Set", "error", err)
 	}
 }
 
 func (db *GoLevelDB) SetSync(key []byte, value []byte) {
 	err := db.db.Put(key, value, &opt.WriteOptions{Sync: true})
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("SetSync", "error", err)
 	}
 }
 
 func (db *GoLevelDB) Delete(key []byte) {
 	err := db.db.Delete(key, nil)
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("Delete", "error", err)
 	}
 }
 
 func (db *GoLevelDB) DeleteSync(key []byte) {
 	err := db.db.Delete(key, &opt.WriteOptions{Sync: true})
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("DeleteSync", "error", err)
 	}
 }
 
@@ -94,13 +106,14 @@ func (db *GoLevelDB) Close() {
 
 func (db *GoLevelDB) Print() {
 	str, _ := db.db.GetProperty("leveldb.stats")
-	fmt.Printf("%v\n", str)
+	llog.Info("Print", "stats", str)
 
 	iter := db.db.NewIterator(nil, nil)
 	for iter.Next() {
 		key := iter.Key()
 		value := iter.Value()
-		fmt.Printf("[%X]:\t[%X]\n", key, value)
+		//fmt.Printf("[%X]:\t[%X]\n", key, value)
+		llog.Info("Print", "key", string(key), "value", string(value))
 	}
 }
 
@@ -126,65 +139,61 @@ func (db *GoLevelDB) Stats() map[string]string {
 	return stats
 }
 
-func (db *GoLevelDB) Iterator() Iterator {
-	return db.db.NewIterator(nil, nil)
+func (db *GoLevelDB) Iterator(prefix []byte, reserve bool) Iterator {
+	r := &util.Range{prefix, bytesPrefix(prefix)}
+	it := db.db.NewIterator(r, nil)
+	return &goLevelDBIt{it, reserve, prefix}
+}
+
+type goLevelDBIt struct {
+	iterator.Iterator
+	reserve bool
+	prefix  []byte
+}
+
+func (dbit *goLevelDBIt) Close() {
+	dbit.Iterator.Release()
+}
+
+func (dbit *goLevelDBIt) Next() bool {
+	if dbit.reserve {
+		return dbit.Iterator.Prev() && dbit.Valid()
+	}
+	return dbit.Iterator.Next() && dbit.Valid()
+}
+
+func (dbit *goLevelDBIt) Rewind() bool {
+	if dbit.reserve {
+		return dbit.Iterator.Last() && dbit.Valid()
+	}
+	return dbit.Iterator.First() && dbit.Valid()
+}
+
+func (dbit *goLevelDBIt) Value() []byte {
+	return dbit.Iterator.Value()
+}
+
+func (dbit *goLevelDBIt) ValueCopy() []byte {
+	v := dbit.Iterator.Value()
+	value := make([]byte, len(v))
+	copy(value, v)
+	return value
+}
+
+func (dbit *goLevelDBIt) Valid() bool {
+	return dbit.Iterator.Valid() && bytes.HasPrefix(dbit.Key(), dbit.prefix)
+}
+
+type goLevelDBBatch struct {
+	db    *GoLevelDB
+	batch *leveldb.Batch
+	wop   *opt.WriteOptions
 }
 
 func (db *GoLevelDB) NewBatch(sync bool) Batch {
 	batch := new(leveldb.Batch)
 	wop := &opt.WriteOptions{Sync: sync}
 	return &goLevelDBBatch{db, batch, wop}
-}
-
-func (db *GoLevelDB) PrefixScan(key []byte) (txhashs [][]byte) {
-	iter := db.db.NewIterator(util.BytesPrefix(key), nil)
-	for iter.Next() {
-		value := iter.Value()
-		//fmt.Printf("PrefixScan:%s\n", string(iter.Key()))
-		value1 := make([]byte, len(value))
-		copy(value1, value)
-		txhashs = append(txhashs, value1)
-	}
-	iter.Release()
-	err := iter.Error()
-	if err != nil {
-		return nil
-	}
-	return txhashs
-}
-func (db *GoLevelDB) IteratorScan(key []byte, count int32, direction int32) (values [][]byte) {
-	iter := db.db.NewIterator(nil, nil)
-	var i int32 = 0
-	for ok := iter.Seek(key); ok; {
-		value := iter.Value()
-		//fmt.Printf("PrefixScan:%v\n", value)
-		value1 := make([]byte, len(value))
-		copy(value1, value)
-		values = append(values, value1)
-		if direction == 0 {
-			ok = iter.Prev()
-		} else {
-			ok = iter.Next()
-		}
-		i++
-		if i >= count {
-			break
-		}
-	}
-	iter.Release()
-	err := iter.Error()
-	if err != nil {
-		return nil
-	}
-	return values
-}
-
-//--------------------------------------------------------------------------------
-
-type goLevelDBBatch struct {
-	db    *GoLevelDB
-	batch *leveldb.Batch
-	wop   *opt.WriteOptions
 }
 
 func (mBatch *goLevelDBBatch) Set(key, value []byte) {
@@ -198,6 +207,6 @@ func (mBatch *goLevelDBBatch) Delete(key []byte) {
 func (mBatch *goLevelDBBatch) Write() {
 	err := mBatch.db.db.Write(mBatch.batch, mBatch.wop)
 	if err != nil {
-		fmt.Println(err)
+		llog.Error("Write", "error", err)
 	}
 }

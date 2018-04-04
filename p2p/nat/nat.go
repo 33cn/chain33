@@ -20,6 +20,7 @@ package nat
 import (
 	"errors"
 	"fmt"
+	"log"
 	//"log"
 	"net"
 	"strings"
@@ -98,37 +99,69 @@ const (
 
 // Map adds a port mapping on m and keeps it alive until c is closed.
 // This function is typically invoked in its own goroutine.
-func Map(m Interface, c chan struct{}, protocol string, extport, intport int, name string) error {
+// Map adds a port mapping on m and keeps it alive until c is closed.
+// This function is typically invoked in its own goroutine.
+func Map(m Interface, c chan struct{}, protocol string, extport, intport int, name string) {
 	//log := log.New("proto", protocol, "extport", extport, "intport", intport, "interface", m)
 	refresh := time.NewTimer(mapUpdateInterval)
 	defer func() {
-		refresh.Stop()
 
-		fmt.Println("Deleting port mapping")
+		refresh.Stop()
+		log.Println("Deleting port mapping")
 		m.DeleteMapping(protocol, extport, intport)
 	}()
 	if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
-		fmt.Println("Couldn't add port mapping", "err", err)
-		return err
+		log.Println("Couldn't add port mapping", "err", err)
 	} else {
-		fmt.Println("Mapped network port")
+		log.Println("Mapped network port")
 	}
 	for {
 		select {
 		case _, ok := <-c:
 			if !ok {
-				return nil
+				return
 			}
 		case <-refresh.C:
-			fmt.Println("Refreshing port mapping")
+			log.Println("Refreshing port mapping")
 			if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
-				fmt.Println("Couldn't add port mapping", "err", err, "extport:", extport)
-				return err
+				log.Println("Couldn't add port mapping", "err", err)
 			}
 			refresh.Reset(mapUpdateInterval)
 		}
 	}
 }
+
+//func Map(m Interface, c chan struct{}, protocol string, extport, intport int, name string) error {
+//	//log := log.New("proto", protocol, "extport", extport, "intport", intport, "interface", m)
+//	refresh := time.NewTimer(mapUpdateInterval)
+//	defer func() {
+//		refresh.Stop()
+
+//		fmt.Println("Deleting port mapping")
+//		m.DeleteMapping(protocol, extport, intport)
+//	}()
+//	if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
+//		fmt.Println("Couldn't add port mapping", "err", err)
+//		return err
+//	} else {
+//		fmt.Println("Mapped network port")
+//	}
+//	for {
+//		select {
+//		case _, ok := <-c:
+//			if !ok {
+//				return nil
+//			}
+//		case <-refresh.C:
+//			fmt.Println("Refreshing port mapping")
+//			if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
+//				fmt.Println("Couldn't add port mapping", "err", err, "extport:", extport)
+//				return err
+//			}
+//			refresh.Reset(mapUpdateInterval)
+//		}
+//	}
+//}
 
 // ExtIP assumes that the local machine is reachable on the given
 // external IP address, and that any required ports were mapped manually.

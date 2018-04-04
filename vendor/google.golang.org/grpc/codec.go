@@ -1,5 +1,5 @@
 /*
-*
+ *
  * Copyright 2014 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
-*/
+ */
 
 package grpc
 
@@ -69,6 +69,11 @@ func (p protoCodec) marshal(v interface{}, cb *cachedProtoBuffer) ([]byte, error
 }
 
 func (p protoCodec) Marshal(v interface{}) ([]byte, error) {
+	if pm, ok := v.(proto.Marshaler); ok {
+		// object can marshal itself, no need for buffer
+		return pm.Marshal()
+	}
+
 	cb := protoBufferPool.Get().(*cachedProtoBuffer)
 	out, err := p.marshal(v, cb)
 
@@ -79,10 +84,17 @@ func (p protoCodec) Marshal(v interface{}) ([]byte, error) {
 }
 
 func (p protoCodec) Unmarshal(data []byte, v interface{}) error {
+	protoMsg := v.(proto.Message)
+	protoMsg.Reset()
+
+	if pu, ok := protoMsg.(proto.Unmarshaler); ok {
+		// object can unmarshal itself, no need for buffer
+		return pu.Unmarshal(data)
+	}
+
 	cb := protoBufferPool.Get().(*cachedProtoBuffer)
 	cb.SetBuf(data)
-	v.(proto.Message).Reset()
-	err := cb.Unmarshal(v.(proto.Message))
+	err := cb.Unmarshal(protoMsg)
 	cb.SetBuf(nil)
 	protoBufferPool.Put(cb)
 	return err
@@ -92,13 +104,11 @@ func (protoCodec) String() string {
 	return "proto"
 }
 
-var (
-	protoBufferPool = &sync.Pool{
-		New: func() interface{} {
-			return &cachedProtoBuffer{
-				Buffer:            proto.Buffer{},
-				lastMarshaledSize: 16,
-			}
-		},
-	}
-)
+var protoBufferPool = &sync.Pool{
+	New: func() interface{} {
+		return &cachedProtoBuffer{
+			Buffer:            proto.Buffer{},
+			lastMarshaledSize: 16,
+		}
+	},
+}

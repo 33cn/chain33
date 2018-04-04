@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+import "common.proto";
+import "transaction.proto";
+import "blockchain.proto";
+import "wallet.proto";
+import "p2p.proto";
+import "account.proto";
+import "executor.proto";
+
+package types;
+
+service grpcservice {
+    //chain33 对外提供服务的接口
+    //区块链接口
+    rpc GetBlocks (ReqBlocks) returns (Reply) {
+    }
+    //获取最新的区块头
+    rpc GetLastHeader (ReqNil) returns (Header) {
+    }
+    //交易接口
+    rpc CreateRawTransaction (CreateTx) returns (UnsignTx) {
+    }
+    //发送签名后交易
+    rpc SendRawTransaction (SignedTx) returns (Reply) {
+    }
+    // 根据哈希查询交易
+    rpc QueryTransaction (ReqHash) returns (TransactionDetail) {
+    }
+    // 发送交易
+    rpc SendTransaction (Transaction) returns (Reply) {
+    }
+
+    //通过地址获取交易信息
+    rpc GetTransactionByAddr (ReqAddr) returns (ReplyTxInfos) {
+    }
+
+    //通过哈希数组获取对应的交易
+    rpc GetTransactionByHashes (ReqHashes) returns (TransactionDetails) {
+    }
+
+    //缓存接口
+    rpc GetMemPool (ReqNil) returns (ReplyTxList) {
+    }
+
+    //钱包接口
+    //获取钱包账户信息
+    rpc GetAccounts (ReqNil) returns (WalletAccounts) {
+    }
+
+    //创建钱包账户
+    rpc NewAccount (ReqNewAccount) returns (WalletAccount) {
+    }
+
+    //获取钱包的交易列表
+    rpc WalletTransactionList (ReqWalletTransactionList) returns (WalletTxDetails) {
+    }
+
+    //导入钱包私钥
+    rpc ImportPrivKey (ReqWalletImportPrivKey) returns (WalletAccount) {
+    }
+
+    // 发送交易
+    rpc SendToAddress (ReqWalletSendToAddress) returns (ReplyHash) {
+    }
+
+    //设置交易手续费
+    rpc SetTxFee (ReqWalletSetFee) returns (Reply) {
+    }
+
+    //设置标签
+    rpc SetLabl (ReqWalletSetLabel) returns (WalletAccount) {
+    }
+
+    //合并钱包余额
+    rpc MergeBalance (ReqWalletMergeBalance) returns (ReplyHashes) {
+    }
+
+    //设置钱包密码
+    rpc SetPasswd (ReqWalletSetPasswd) returns (Reply) {
+    }
+
+    //给钱包上锁
+    rpc Lock (ReqNil) returns (Reply) {
+    }
+
+    //给钱包解锁
+    rpc UnLock (WalletUnLock) returns (Reply) {
+    }
+
+    //获取当前节点连接的其他节点信息
+    rpc GetPeerInfo (ReqNil) returns (PeerList) {
+    }
+
+    //获取最新的Mempool
+    rpc GetLastMemPool (ReqNil) returns (ReplyTxList) {
+    }
+
+    // 获取钱包状态
+    rpc GetWalletStatus (ReqNil) returns (WalletStatus) {
+    }
+    //区块浏览器接口
+    ///
+    rpc GetBlockOverview (ReqHash) returns (BlockOverview) {
+    }
+    rpc GetAddrOverview (ReqAddr) returns (AddrOverview) {
+    }
+    rpc GetBlockHash (ReqInt) returns (ReplyHash) {
+    }
+    //seed
+    // 创建seed
+    rpc GenSeed (GenSeedLang) returns (ReplySeed) {
+    }
+    //获取seed
+    rpc GetSeed (GetSeedByPw) returns (ReplySeed) {
+    }
+
+    //保存seed
+    rpc SaveSeed (SaveSeedByPw) returns (Reply) {
+    }
+    //Balance Query
+    //获取余额
+    rpc GetBalance (ReqBalance) returns (Accounts) {
+    }
+    rpc QueryChain (Query) returns (Reply) {
+    }
+    //Miner
+    //设置自动挖矿
+    rpc SetAutoMining (MinerFlag) returns (Reply) {
+    }
+
+    //获取交易的十六进制编码
+    rpc GetHexTxByHash (ReqHash) returns (HexTx) {
+    }
+    //查询钱包票数
+    rpc GetTicketCount (types.ReqNil) returns (Int64) {
+    }
+
+    // 导出私钥
+    rpc DumpPrivkey (ReqStr) returns (ReplyStr) {
+    }
+
+    //获取程序版本
+    rpc Version (ReqNil) returns (Reply) {
+    }
+
+    //是否同步
+    rpc IsSync (ReqNil) returns (Reply) {
+    }
+
+    //预创建token
+    rpc TokenPreCreate (types.ReqTokenPreCreate) returns (ReplyHash) {
+    }
+
+    //完成token的创建
+    rpc TokenFinishCreate (types.ReqTokenFinishCreate) returns (ReplyHash) {
+    }
+    //撤销创建
+    rpc TokenRevokeCreate (types.ReqTokenRevokeCreate) returns (ReplyHash) {
+    }
+    //卖出token
+    rpc SellToken (types.ReqSellToken) returns (Reply) {
+    }
+    //买入token
+    rpc BuyToken (types.ReqBuyToken) returns (Reply) {
+    }
+    //撤销token的卖出
+    rpc RevokeSellToken (types.ReqRevokeSell) returns (Reply) {
+    }
+
+    //ntpclock是否同步
+    rpc IsNtpClockSync (ReqNil) returns (Reply) {
+    }
+}

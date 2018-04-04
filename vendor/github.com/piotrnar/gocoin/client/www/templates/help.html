@@ -1,0 +1,202 @@
+<h3>Other help topics</h3>
+ &bull; External link: <a target="_blank" href="http://gocoin.pl/">Gocoin Homepage with User manual</a><br>
+<br>
+<hr>
+<a href="/"><h2>Home</h2></a>
+
+The home page of Gocoin's WebUI consists fo the following parts.
+
+<h3>Wallet</h3>
+In this section you see the balance of your currently selected wallet.<br>
+You can download the balance.zip file that is needed by gocoin's wallet app in order to spend any of the bitcoins from this wallet.<br>
+You can also peek at all the unspent outputs belonging to your currently selected wallet.<br>
+
+<h3>Last Block</h3>
+Information about the top most block of the block chain known to your node.
+
+<h3>Network</h3>
+Network related information and statistics, concerning the node.
+
+<h3>Others</h3>
+Some other data related to your running node.<br>
+In this section you can also order the node (its garbage collector engine) to free as much memory as possible.
+
+<h3>Edit configuration</h3>
+If you press this button a text area will appear with JSON encoded content of the gocoin client configuration file.
+See some help about its content <a href="http://gocoin.pl/gocoin_manual_client_config.html" target="_blank">here</a>.
+<br>
+Change the values you need an press either <span class="but">Apply</span> or <span class="but">Apply & Save</span>.<br>
+If you do not save, the changes will not be permanent and will get undone at the next shut down of the node.<br>
+To cancel editing, press the <span class="but">Cancel</span> button reload the page.<br>
+
+<h3>Save configuration</h3>
+Whenever you have made any changes to a running node and you want to apply they permanently, press this button to do so.
+
+<h3>Shutting down the node</h3>
+Press the <span class="but">Shutdown Node</span> button and confirm to shut down the node.<br>
+<span class="note">Note that after the node is off, you will not be able to launch it from the web interface (it will shut down as well).</span>
+
+<hr>
+<a name="wal" href=/wal"><h2>Wallet</h2></a>
+
+At this page you can check a balance of each address of you currently selected wallet, as well as quickly switch between all your available wallets.
+
+<h3>Special wallets</h3>
+There are three wallets with a fixed name that have a special meaning:
+<ul>
+<li><b>ADDRESS</b> - this is your address book (the addresses you will be able to select at <a href="snd">MakeTx</a> page)</li>
+<li><b>DEFAULT</b> - this is the wallet that is always loaded when the node starts</li>
+<li><b>UNUSED</b> - this is wallet where you can move the addresses that you are no longer planing to use (to remove them from your wallets, though still being able to monitor a balance on them, just in case)</li>
+</ul>
+
+<h3>Address book</h3>
+The address book is a special kind of wallet. You can select it only at this page - when you leave the page, it will switch back to the default wallet.<br>
+On the Wallet page you can edit the address book just like any other wallet.
+
+<h3>Editing wallet</h3>
+Select a wallet that you wish to edit, end press <span class="but">Edit</span>.<br>
+After you are done press <span class="but">Save wallet & Recalc balance</span> button.<br>
+
+<h3>Adding wallets</h3>
+To add a new wallet press the <span class="but">Edit</span> button, enter the new wallet's name in
+<span class="but">File Name</span> filed, place the desired content of the wallet in the text area
+and press the <span class="but">Save wallet & Recalc balance</span> button.
+
+<h3>Deleting wallets</h3>
+You cannot delete wallet files from the web interface.
+In order to delete a wallet you need to remove the wallet file from the
+<span class="cod">wallet/</span> folder (that is a sub-folder in your gocoin's data dir),
+
+<h3>Hidden wallets</h3>
+You can have a wallet that won't be visible on the list. Just give it a file name that starts with a dot (.)
+
+<h3>Including wallets</h3>
+You can include a content (addressees) of one wallet in another. In order to do this, inside the parent wallet put a line like this:<br>
+&nbsp;<span class="cod">@filename</span><br>
+<i>(make sure that the @ character is the first one in the line)</i><br>
+The wallets you include can be of a hidden type. In fact, including hidden wallets inside parent wallets is their only meaning of their existence.
+
+<hr>
+<a name="snd" href="/snd"><h2>MakeTx</h2></a>
+
+Create a transaction to be further signed by gocoin's wallet.<br>
+It will also crate a raw transaction, which you can sign by any other wallet (e.g. bitcoin-qt).
+
+<h3>Payment details</h3>
+Fill in the outputs of the transaction, the fee and the change address.<br>
+If you need more outputs, press the <a>+ add output</a> link.<br>
+Note that <i>mBTC</i> values and the value of <b>Change</b> are read-only.<br>
+
+<h3>Estimated tx size</h3>
+Note that the estimated transaction size may not be accurate.<br>
+It always assumes compressed public keys and 2 of 3 required signatures in case of unknown P2SH input scripts (without corresponding JSON files in wallet/multisig/).
+
+<h3>Select Inputs</h3>
+Select the unspent outputs that you want to have in the transaction.<br>
+Obviously they must carry enough bitcoins to satisfy your output volume along with the fee - only then <span class="but">Download payment.zip</span> button will be enabled.<br>
+
+<h3>Download payment.zip</h3>
+If the button is not enabled, something in the forms is filled in incorrectly.<br>
+Otherwise press it to download <b>payment.zip</b>, which you will need to extract at your wallet machine.
+Then execute the payment command (by default it will be in file <span class="cod">pay_cmd.txt</span>) and the wallet shall create and sign the transaction, just as you have defined it here.<br>
+
+<hr>
+<a name="net" href="/net"><h2>Network</h2></a>
+
+The current network connections to other bitcoin peers.
+
+<h3>Incoming connections</h3>
+Click in the link [<a>Switch ON/OFF</a>] (right from the label
+<span class="but">Listening for incoming TCP connections</span>)
+to switch between allowing or blocking remote connections coming to your node from internet.<br>
+<br>
+<span class="note">Note that switching on this does not automatically mean that peers will be able to connect to your node.
+In most cases you will also need to configure your network gateway to allow incoming connections at the desired TCP port and route them to the host running the node.
+Also mind that the recent versions of Satoshi client will not connect to your node on any port other then the default one (that is 8333, or 18333 for testnet).</span><br>
+<br>
+<span class="note">Note that you need to save configuration at the <a href="/">Home</a> page to make the change permanent.</span><br>
+
+<h3>Peer statistics</h3>
+Click on any row in the network connections table to see detailed info about each peer.<br>
+The info appears as a text box, below the table.
+
+<h3>Drop a connection</h3>
+Click on <img src="webui/del.png"> icon at the right column of a row describing  a peer connection to disconnect from it.
+
+
+<hr>
+<a name="txs" href="/txs"><h2>Transactions</h2></a>
+
+Transactions memory pool, broadcasting and routing control.
+
+<h3>Memory pool</h3>
+If the memory pool is disabled the node only operates on the full blocks and never downloads any transactions.<br>
+<br>
+To enable/disable memory pool click the [<a>Switch ON/OFF</a>] link next to the "Memory pool" label.<br>
+<br>
+<span class="note">Note that you need to save configuration at the <a href="/">Home</a> page to make the change permanent.</span><br>
+
+<h3>Relay transactions</h3>
+Having the memory pool enabled, you can setup your node to either relay incoming transactions, or not.<br>
+<br>
+Press the [<a>Switch ON/OFF</a>] link right from the label to switch this option on/off.<br>
+<br>
+<span class="note">Note that you need to save configuration at the <a href="/">Home</a> page to make the change permanent.</span><br>
+
+<h3>Accepted transactions</h3>
+The value on the button shows how many transactions are there in the memory pool - click on it to see the list.<br>
+Your own transaction (loaded locally) always appear on the top of the list.<br>
+The <b>Sent</b> column in the table says to how many times the transaction's data was sent to a peer and (after slash) how many times the inv was sent out.<br>
+If the transaction was blocked from being relayed (assuming that the relaying was enabled), the <b>Extras</b> column will show the reason.
+
+<h3>Own transactions</h3>
+Locally loaded transactions appear on a light-red background and they have three special icons at the right side of the row.<br>
+ &bull; Clicking on <img src="webui/send_once.png"> - orders the node to broadcast a transaction to one random peer (useful for privacy purposes)<br>
+ &bull; Clicking on <img src="webui/send.png"> - broadcasts the transaction to all the currently connected peers.<br>
+ &bull; Clicking on <img src="webui/del.png"> - removes (unloads) the transaction from the memory pool.<br>
+
+
+<h3>UTXOs spent in memory</h3>
+The number shows how many inputs are currently considered <i>spent</i> by the transactions that have been accepted into the memory pool.
+When an input is on this list any new transaction that tries to re-use it will be rejected as a <i>double-spend</i>.
+
+<h3>Rejected transactions</h3>
+The value of the button next to the label shows you how many transactions were not accepted into the memory pool.
+You will see their list when clicking the button, along with the reason of the rejection.
+The node maintains this list to avoid downloading transactions that it had already rejected once.
+Transactions are removed from this list either when they get mined into a block or when the node decides to expire them.
+
+<h3>Transactions waiting for inputs</h3>
+Here you can check transactions that are waiting for inputs, assuming that you allowed such transaction into memory pool,
+which is controlled by configuration parameter <span class="mono">TXPool.AllowMemInputs</span>.
+
+<h3>Transactions being processed</h3>
+Number of transaction in the network queue.
+These are transactions that are already received from the network (via <b>tx</b> command), but have not been yet processed by the memory pool handler.
+In most cases both the number should be equal.
+
+<hr>
+<a name="blocks" href="/blocks"><h2>Blocks</h2></a>
+
+This page shows an information about the recent blocks added to the block chain.<br>
+<br>
+
+<hr>
+<a name="miners" href="/miners"><h2>Miners</h2></a>
+
+This page shows an information about the block chain mining statistic.<br>
+<br>
+
+<hr>
+<h2>LoadTx</h2>
+
+Allows to quickly import own transaction to the memory pool.<br>
+The transaction must be in a raw (hex-encoded) format with no spaces, nor any other characters except hex digits.<br>
+If the operation succeeds you will end up in <a href="txs">Transactions</a> page that will display the decoded transaction data.<br>
+<br>
+<span class="note">In order to send you transaction out, make sure to broadcast it after loading.</span>
+
+<hr>
+<a name="counters" href="/counters"><h2>Counters</h2></a>
+
+The node's internal real time counters and statistics.

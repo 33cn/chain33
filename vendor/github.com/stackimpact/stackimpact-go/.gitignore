@@ -1,0 +1,10 @@
+*.o
+*.a
+*.so
+*.exe
+*.test
+*.prof
+*.test
+*.out
+*.DS_Store
+.DS_Store

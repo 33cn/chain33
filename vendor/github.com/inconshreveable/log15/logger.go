@@ -95,14 +95,20 @@ type Logger interface {
 	Warn(msg string, ctx ...interface{})
 	Error(msg string, ctx ...interface{})
 	Crit(msg string, ctx ...interface{})
+	SetMaxLevel(int)
 }
 
 type logger struct {
-	ctx []interface{}
-	h   *swapHandler
+	ctx      []interface{}
+	h        *swapHandler
+	children []Logger
+	maxLevel int
 }
 
 func (l *logger) write(msg string, lvl Lvl, ctx []interface{}) {
+	if l.maxLevel < int(lvl) {
+		return
+	}
 	l.h.Log(&Record{
 		Time: time.Now(),
 		Lvl:  lvl,
@@ -118,9 +124,14 @@ func (l *logger) write(msg string, lvl Lvl, ctx []interface{}) {
 }
 
 func (l *logger) New(ctx ...interface{}) Logger {
-	child := &logger{newContext(l.ctx, ctx), new(swapHandler)}
+	child := &logger{newContext(l.ctx, ctx), new(swapHandler), nil, l.maxLevel}
 	child.SetHandler(l.h)
+	l.children = append(l.children, child)
 	return child
+}
+
+func (l *logger) SetMaxLevel(maxLevel int) {
+	l.maxLevel = maxLevel
 }
 
 func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
@@ -157,6 +168,10 @@ func (l *logger) GetHandler() Handler {
 
 func (l *logger) SetHandler(h Handler) {
 	l.h.Swap(h)
+	l.maxLevel = h.MaxLevel()
+	for _, logger := range l.children {
+		logger.SetMaxLevel(l.maxLevel)
+	}
 }
 
 func normalize(ctx []interface{}) []interface{} {

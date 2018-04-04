@@ -1,315 +1,826 @@
 package rpc
 
 import (
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
+	"errors"
+	"math/rand"
+	"time"
+	"bytes"
+
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 //提供系统rpc接口
-//sendTx
-//status
-//channel 主要用于内部测试，实际情况主要采用 jsonrpc 和 Grpc
 
-type IRClient interface {
-	SendTx(tx *types.Transaction) queue.Message
-	SetQueue(q *queue.Queue)
-	QueryTx(hash []byte) (proof *types.TransactionDetail, err error)
-	GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error)
-	GetLastHeader() (*types.Header, error)
-	GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
-	GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
-	GetMempool() (*types.ReplyTxList, error)
-	GetAccounts() (*types.WalletAccounts, error)
-	NewAccount(parm *types.ReqNewAccount) (*types.WalletAccount, error)
-	WalletTxList(parm *types.ReqWalletTransactionList) (*types.TransactionDetails, error)
-	ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error)
-	SendToAddress(parm *types.ReqWalletSendToAddress) (*types.ReplyHash, error)
-	SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error)
-	SetLabl(parm *types.ReqWalletSetLabel) (*types.WalletAccount, error)
-	MergeBalance(parm *types.ReqWalletMergeBalance) (*types.ReplyHashes, error)
-	SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error)
-	Lock() (*types.Reply, error)
-	UnLock(parm *types.WalletUnLock) (*types.Reply, error)
-	GetPeerInfo() (*types.PeerList, error)
-}
+var accountdb = account.NewCoinsAccount()
 
 type channelClient struct {
-	qclient queue.IClient
+	queue.Client
 }
 
-type jsonClient struct {
-	channelClient
-}
-
-type grpcClient struct {
-	channelClient
-}
-
-func NewClient(name string, addr string) IRClient {
-	if name == "channel" {
-		return &channelClient{}
-	} else if name == "jsonrpc" {
-		return &jsonClient{} //需要设置服务地址，与其他模块通信使用
-	} else if name == "grpc" {
-		return &grpcClient{} //需要设置服务地址，与其他模块通信使用
+func (c *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
 	}
-	panic("client name not support")
+	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: parm.GetAmount(), Note: parm.GetNote()}}
+	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+
+	//初始化随机数
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: parm.GetFee(), To: parm.GetTo(), Nonce: r.Int63()}
+	data := types.Encode(tx)
+	return data, nil
+
 }
 
-func (client *channelClient) SetQueue(q *queue.Queue) {
+func (c *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
+	var tx types.Transaction
+	err := types.Decode(parm.GetUnsign(), &tx)
 
-	client.qclient = q.GetClient()
+	if err == nil {
+		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
+		msg := c.NewMessage("mempool", types.EventTx, &tx)
+		err := c.Send(msg, true)
+		if err != nil {
+			var msg queue.Message
+			log.Error("SendRawTransaction", "Error", err.Error())
+			msg.Data = err
+			return msg
+		}
+		resp, err := c.Wait(msg)
+
+		if err != nil {
+
+			resp.Data = err
+
+		}
+		if resp.GetData().(*types.Reply).GetIsOk() {
+			resp.GetData().(*types.Reply).Msg = tx.Hash()
+		}
+
+		return resp
+	}
+	var msg queue.Message
+	msg.Data = err
+	return msg
 
 }
 
 //channel
-func (client *channelClient) SendTx(tx *types.Transaction) queue.Message {
-	if client.qclient == nil {
-		panic("client not bind message queue.")
+func (c *channelClient) SendTx(tx *types.Transaction) queue.Message {
+	if c == nil {
+		panic("c not bind message queue.")
 	}
-	msg := client.qclient.NewMessage("mempool", types.EventTx, tx)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := c.NewMessage("mempool", types.EventTx, tx)
+	err := c.Send(msg, true)
+	if err != nil {
+		var msg queue.Message
+		log.Error("SendTx", "Error", err.Error())
+		msg.Data = err
+		return msg
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 
 		resp.Data = err
 	}
-
+	if resp.GetData().(*types.Reply).GetIsOk() {
+		resp.GetData().(*types.Reply).Msg = tx.Hash()
+	}
 	return resp
 }
 
-func (client *channelClient) GetBlocks(start int64, end int64, isdetail bool) (blocks *types.BlockDetails, err error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail})
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
+	msg := c.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, end, isdetail, []string{""}})
+	err := c.Send(msg, true)
+	if err != nil {
+
+		log.Error("SendRawTransaction", "Error", err.Error())
+
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.BlockDetails), nil
 }
 
-func (client *channelClient) QueryTx(hash []byte) (proof *types.TransactionDetail, err error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) QueryTx(hash []byte) (*types.TransactionDetail, error) {
+	msg := c.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("QueryTx", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.TransactionDetail), nil
 }
 
-func (client *channelClient) GetLastHeader() (*types.Header, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) GetLastHeader() (*types.Header, error) {
+	msg := c.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetLastHeader", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.Header), nil
 }
 
-func (client *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error) {
-	msg := client.qclient.NewMessage("blockchain", types.EventGetTransactionByAddr, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfos, error) {
+	msg := c.NewMessage("blockchain", types.EventGetTransactionByAddr, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetTxByAddr", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	return resp.Data.(*types.ReplyTxInfo), nil
+
+	return resp.Data.(*types.ReplyTxInfos), nil
 }
 
-func (client *channelClient) GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error) {
+func (c *channelClient) GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error) {
 
-	msg := client.qclient.NewMessage("blockchain", types.EventGetTransactionByHash, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	msg := c.NewMessage("blockchain", types.EventGetTransactionByHash, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetTxByHashes", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
+
 	return resp.Data.(*types.TransactionDetails), nil
 }
 
-func (client *channelClient) GetMempool() (*types.ReplyTxList, error) {
-	msg := client.qclient.NewMessage("mempool", types.EventGetMempool, nil)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) GetMempool() (*types.ReplyTxList, error) {
+	msg := c.NewMessage("mempool", types.EventGetMempool, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetMempool", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.ReplyTxList), nil
+}
+
+func (c *channelClient) GetAccounts() (*types.WalletAccounts, error) {
+	msg := c.NewMessage("wallet", types.EventWalletGetAccountList, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetAccounts", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.WalletAccounts), nil
+}
+
+func (c *channelClient) NewAccount(parm *types.ReqNewAccount) (*types.WalletAccount, error) {
+	msg := c.NewMessage("wallet", types.EventNewAccount, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("NewAccount", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.WalletAccount), nil
+}
+
+func (c *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
+	msg := c.NewMessage("wallet", types.EventWalletTransactionList, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("NewAccount", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.WalletTxDetails), nil
+}
+
+func (c *channelClient) ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
+	msg := c.NewMessage("wallet", types.EventWalletImportprivkey, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("ImportPrivkey", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.WalletAccount), nil
+}
+
+func (c *channelClient) SendToAddress(parm *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventWalletSendToAddress, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("SendToAddress", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventWalletSetFee, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("SetTxFee", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.Reply), nil
+
+}
+
+func (c *channelClient) SetLabl(parm *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
+	msg := c.NewMessage("wallet", types.EventWalletSetLabel, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("SetLabl", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
 	if resp.Err() != nil {
 		return nil, resp.Err()
+	}
+	return resp.Data.(*types.WalletAccount), nil
+}
+
+func (c *channelClient) MergeBalance(parm *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
+	msg := c.NewMessage("wallet", types.EventWalletMergeBalance, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("MergeBalance", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.ReplyHashes), nil
+}
+
+func (c *channelClient) SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventWalletSetPasswd, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("SetPasswd", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) Lock() (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventWalletLock, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("Lock", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) UnLock(parm *types.WalletUnLock) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventWalletUnLock, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("UnLock", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) GetPeerInfo() (*types.PeerList, error) {
+	msg := c.NewMessage("p2p", types.EventPeerInfo, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetPeerInfo", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.PeerList), nil
+}
+
+func (c *channelClient) GetHeaders(in *types.ReqBlocks) (*types.Headers, error) {
+	msg := c.NewMessage("blockchain", types.EventGetHeaders, &types.ReqBlocks{Start: in.GetStart(), End: in.GetEnd(),
+		Isdetail: in.GetIsdetail()})
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetHeaders", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.Headers), nil
+}
+
+func (c *channelClient) GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, error) {
+	msg := c.NewMessage("mempool", types.EventGetLastMempool, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetLastMemPool", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
 	}
 	return resp.Data.(*types.ReplyTxList), nil
 }
 
-func (client *channelClient) GetAccounts() (*types.WalletAccounts, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletGetAccountList, nil)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error) {
+	msg := c.NewMessage("blockchain", types.EventGetBlockOverview, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetBlockOverview", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	return resp.Data.(*types.WalletAccounts), nil
+
+	return resp.Data.(*types.BlockOverview), nil
 }
 
-func (client *channelClient) NewAccount(parm *types.ReqNewAccount) (*types.WalletAccount, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventNewAccount, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
+	msg := c.NewMessage("blockchain", types.EventGetAddrOverview, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetAddrOverview", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
+	addrOverview := resp.Data.(*types.AddrOverview)
+
+	//获取地址账户的余额通过account模块
+	addrs := make([]string, 1)
+	addrs[0] = parm.Addr
+	accounts, err := accountdb.LoadAccounts(c.Client, addrs)
+	if err != nil {
+		return nil, err
 	}
-	return resp.Data.(*types.WalletAccount), nil
+	if len(accounts) != 0 {
+		addrOverview.Balance = accounts[0].Balance
+	}
+	return addrOverview, nil
 }
 
-func (client *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) (*types.TransactionDetails, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletTransactionList, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
+	msg := c.NewMessage("blockchain", types.EventGetBlockHash, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetBlockHash", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	return resp.Data.(*types.TransactionDetails), nil
-}
 
-func (client *channelClient) ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletImportprivkey, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	return resp.Data.(*types.WalletAccount), nil
-}
-
-func (client *channelClient) SendToAddress(parm *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletSendToAddress, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
 	return resp.Data.(*types.ReplyHash), nil
 }
 
-func (client *channelClient) SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletSetFee, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+//seed
+func (c *channelClient) GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error) {
+	msg := c.NewMessage("wallet", types.EventGenSeed, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GenSeed", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	return resp.Data.(*types.Reply), nil
-
+	return resp.Data.(*types.ReplySeed), nil
 }
 
-func (client *channelClient) SetLabl(parm *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletSetLabel, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventSaveSeed, parm)
+	err := c.Send(msg, true)
 	if err != nil {
+		log.Error("SaveSeed", "Error", err.Error())
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	return resp.Data.(*types.WalletAccount), nil
-}
-
-func (client *channelClient) MergeBalance(parm *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletMergeBalance, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
-	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	return resp.Data.(*types.ReplyHashes), nil
-}
-
-func (client *channelClient) SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletSetPasswd, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
 	}
 	return resp.Data.(*types.Reply), nil
 }
-
-func (client *channelClient) Lock() (*types.Reply, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletLock, nil)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error) {
+	msg := c.NewMessage("wallet", types.EventGetSeed, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetSeed", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
+	return resp.Data.(*types.ReplySeed), nil
+}
+
+func (c *channelClient) GetWalletStatus() (*WalletStatus, error) {
+	msg := c.NewMessage("wallet", types.EventGetWalletStatus, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("GetWalletStatus", "Error", err.Error())
+		return nil, err
 	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return (*WalletStatus)(resp.Data.(*types.WalletStatus)), nil
+}
+
+func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
+
+	switch in.GetExecer() {
+	case "coins":
+		addrs := in.GetAddresses()
+		var exaddrs []string
+		for _, addr := range addrs {
+			if err := account.CheckAddress(addr); err != nil {
+				addr = account.ExecAddress(addr).String()
+
+			}
+			exaddrs = append(exaddrs, addr)
+		}
+
+		accounts, err := accountdb.LoadAccounts(c.Client, exaddrs)
+		if err != nil {
+			log.Error("GetBalance", "err", err.Error())
+			return nil, err
+		}
+		return accounts, nil
+	default:
+		execaddress := account.ExecAddress(in.GetExecer())
+		addrs := in.GetAddresses()
+		var accounts []*types.Account
+		for _, addr := range addrs {
+
+			account, err := accountdb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
+			if err != nil {
+				log.Error("GetBalance", "err", err.Error())
+				continue
+			}
+			accounts = append(accounts, account)
+		}
+
+		return accounts, nil
+	}
+	return nil, nil
+}
+
+//TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
+func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
+	accountTokendb := account.NewTokenAccountWithoutDB(in.GetTokenSymbol())
+
+	switch in.GetExecer() {
+	case "token":
+		addrs := in.GetAddresses()
+		var queryAddrs []string
+		for _, addr := range addrs {
+			if err := account.CheckAddress(addr); err != nil {
+				addr = account.ExecAddress(addr).String()
+
+			}
+			queryAddrs = append(queryAddrs, addr)
+		}
+
+		accounts, err := accountTokendb.LoadAccounts(c.Client, queryAddrs)
+		if err != nil {
+			log.Error("GetTokenBalance", "err", err.Error(), "token symbol", in.GetTokenSymbol(), "address", queryAddrs)
+			return nil, err
+		}
+		return accounts, nil
+
+	default: //trade
+		execaddress := account.ExecAddress(in.GetExecer())
+		addrs := in.GetAddresses()
+		var accounts []*types.Account
+		for _, addr := range addrs {
+			account, err := accountTokendb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
+			if err != nil {
+				log.Error("GetTokenBalance for exector", "err", err.Error(), "token symbol", in.GetTokenSymbol(),
+					"address", addr)
+				continue
+			}
+			accounts = append(accounts, account)
+		}
+
+		return accounts, nil
+	}
+	return nil, nil
+}
+
+func (c *channelClient) QueryHash(in *types.Query) (*types.Message, error) {
+
+	msg := c.NewMessage("blockchain", types.EventQuery, in)
+	err := c.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	querydata := resp.GetData().(types.Message)
+
+	return &querydata, nil
+
+}
+
+func (c *channelClient) SetAutoMiner(in *types.MinerFlag) (*types.Reply, error) {
+
+	msg := c.NewMessage("wallet", types.EventWalletAutoMiner, in)
+	err := c.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.Reply), nil
+}
+
+func (c *channelClient) GetTicketCount() (*types.Int64, error) {
+	msg := c.NewMessage("consensus", types.EventGetTicketCount, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.Int64), nil
+}
+
+func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
+	msg := c.NewMessage("wallet", types.EventDumpPrivkey, in)
+	err := c.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.ReplyStr), nil
+}
+
+func (c *channelClient) CloseTickets() (*types.ReplyHashes, error) {
+	msg := c.NewMessage("wallet", types.EventCloseTickets, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("CloseTickets", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.ReplyHashes), nil
+}
+
+func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
+	//获取地址账户的余额通过account模块
+	resp, err := accountdb.GetTotalCoins(c.Client, in)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *channelClient) IsSync() bool {
+	msg := c.NewMessage("blockchain", types.EventIsSync, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("IsSync", "Send Error", err.Error())
+		return false
+	}
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("IsSync", "Wait Error", err.Error())
+		return false
+	}
+	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
+}
+
+func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventTokenPreCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenPreCreate", "Error", err.Error())
+
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+
+		log.Error("TokenPreCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenPreCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventTokenFinishCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenFinishCreate", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("TokenFinishCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenFinishCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) TokenRevokeCreate(parm *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
+	msg := c.NewMessage("wallet", types.EventTokenRevokeCreate, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("TokenRevokeCreate", "Error", err.Error())
+
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("TokenRevokeCreate", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("TokenRevokeCreate", "result", "success", "symbol", parm.GetSymbol())
+	return resp.Data.(*types.ReplyHash), nil
+}
+
+func (c *channelClient) SellToken(parm *types.ReqSellToken) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventSellToken, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("SellToken", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("SellToken", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("SellToken", "result", "success", "symbol", parm.Sell.Tokensymbol)
 	return resp.Data.(*types.Reply), nil
 }
 
-func (client *channelClient) UnLock(parm *types.WalletUnLock) (*types.Reply, error) {
-	msg := client.qclient.NewMessage("wallet", types.EventWalletUnLock, parm)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) BuyToken(parm *types.ReqBuyToken) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventBuyToken, parm)
+	err := c.Send(msg, true)
 	if err != nil {
+		log.Error("BuyToken", "Error", err.Error())
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("BuyToken", "Error", err.Error())
+		return nil, err
 	}
+
+	log.Info("BuyToken", "result", "send tx successful", "buyer", parm.Buyer, "sell order", parm.Buy.Sellid)
 	return resp.Data.(*types.Reply), nil
 }
 
-func (client *channelClient) GetPeerInfo() (*types.PeerList, error) {
-	msg := client.qclient.NewMessage("p2p", types.EventPeerInfo, nil)
-	client.qclient.Send(msg, true)
-	resp, err := client.qclient.Wait(msg)
+func (c *channelClient) RevokeSellToken(parm *types.ReqRevokeSell) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventRevokeSellToken, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("RevokeSellToken", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("RevokeSellToken", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("RevokeSellToken", "result", "send tx successful", "order owner", parm.Owner, "sell order", parm.Revoke.Sellid)
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) IsNtpClockSync() bool {
+	msg := c.NewMessage("blockchain", types.EventIsNtpClockSync, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("IsNtpClockSync", "Send Error", err.Error())
+		return false
+	}
+
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("IsNtpClockSync", "Wait Error", err.Error())
+		return false
+	}
+	return resp.GetData().(*types.IsNtpClockSync).GetIsntpclocksync()
+}
+
+func totalFeeKey(hash []byte) []byte {
+        s := [][]byte{[]byte("TotalFeeKey:"), hash}
+        sep := []byte("")
+        return bytes.Join(s, sep)
+}
+
+func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.LocalReplyValue, error) {
+	var keys [][]byte
+	keys = append(keys, totalFeeKey(in.Hash))
+	msg := c.NewMessage("blockchain", types.EventLocalGet, &types.LocalDBGet{keys})
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("QueryTotalFee", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	return resp.Data.(*types.PeerList), nil
+
+	return resp.Data.(*types.LocalReplyValue), nil
 }
