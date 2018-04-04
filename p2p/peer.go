@@ -118,8 +118,6 @@ func (p *peer) heartBeat() {
 		P2pComm.CollectPeerStat(err, p)
 		if err == nil {
 			p.setPeerName(peername) //设置连接的远程节点的节点名称
-			//加入节点池
-			pub.FIFOPub(p, "peer")
 			p.taskChan = pub.Sub("block", "tx")
 			go p.sendStream()
 			go p.readStream()
