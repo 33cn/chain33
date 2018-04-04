@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package types;
+
+message Config {
+	string title = 1;
+	Log log = 2;
+	Store store = 3;
+	LocalStore localStore = 4;
+	Consensus consensus = 5;
+	MemPool memPool = 6;
+	BlockChain blockChain = 7;
+	Wallet wallet = 8;
+	P2P p2p = 9;
+	Rpc rpc = 10;
+	Exec exec = 11;
+}
+
+message Log {
+	// 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
+	string loglevel = 1;
+	string logConsoleLevel = 2;
+	// 日志文件名，可带目录，所有生成的日志文件都放到此目录下
+	string logFile = 3;
+	// 单个日志文件的最大值（单位：兆）
+	uint32 maxFileSize = 4;
+	// 最多保存的历史日志文件个数
+	uint32 maxBackups = 5;
+	// 最多保存的历史日志消息（单位：天）
+	uint32 maxAge = 6;
+	// 日志文件名是否使用本地事件（否则使用UTC时间）
+	bool localTime = 7;
+	// 历史日志文件是否压缩（压缩格式为gz）
+	bool compress = 8;
+	// 是否打印调用源文件和行号
+	bool callerFile = 9;
+	// 是否打印调用方法
+	bool callerFunction = 10;
+}
+message MemPool {
+	int64 poolCacheSize = 1;
+	int64 minTxFee = 2;
+}
+
+message Consensus {
+	string name = 1;
+	string genesis = 2;
+	bool minerstart = 3;
+	int64 genesisBlockTime = 4;
+	string hotkeyAddr = 5;
+}
+
+message Wallet {
+	int64 minFee = 1;
+	string driver = 2;
+	string dbPath = 3;
+	string signType =4;
+}
+
+message Store {
+	string name = 1;
+	string driver = 2;
+	string dbPath = 3;
+}
+
+message LocalStore {
+	string driver = 1;
+	string dbPath = 2;
+}
+
+message BlockChain {
+	int64 defCacheSize = 1;
+	int64 maxFetchBlockNum = 2;
+	int64 timeoutSeconds = 3;
+	int64 batchBlockNum = 4;
+	string driver = 5;
+	string dbPath = 6;
+	bool isStrongConsistency = 7;
+	bool singleMode = 8;
+	bool batchsync = 9;
+}
+
+message P2P {
+	int32 seedPort = 1;
+	string dbPath = 2;
+	string grpcLogFile = 3;
+	bool isSeed = 4;
+	bool serverStart=5;
+	repeated string seeds = 6;
+	bool enable = 7;
+	int32 msgCacheSize = 8;
+	int32 version = 9;
+	int32 verMix = 10;
+	int32 verMax = 11;
+}
+
+message Rpc {
+	string jrpcBindAddr=1;
+	string grpcBindAddr=2;
+	repeated string whitlist=3;
+}
+
+message Exec {
+	int64 minExecFee = 1;
+	bool  isFree = 2;
+}

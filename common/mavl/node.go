@@ -3,9 +3,9 @@ package mavl
 import (
 	"bytes"
 
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var nodelog = log.New("module", "mptnode")
@@ -92,6 +92,15 @@ func (node *MAVLNode) has(t *MAVLTree, key []byte) (has bool) {
 	}
 }
 
+func (node *MAVLNode) loadCache(t *MAVLTree, stopHeight int) {
+	if node.height == 0 || stopHeight <= 0 {
+		return
+	} else {
+		node.getLeftNode(t).loadCache(t, stopHeight-1)
+		node.getRightNode(t).loadCache(t, stopHeight-1)
+	}
+}
+
 func (node *MAVLNode) get(t *MAVLTree, key []byte) (index int32, value []byte, exists bool) {
 	if node.height == 0 {
 		cmp := bytes.Compare(node.key, key)
@@ -121,7 +130,6 @@ func (node *MAVLNode) getByIndex(t *MAVLTree, index int32) (key []byte, value []
 			return node.key, node.value
 		} else {
 			panic("getByIndex asked for invalid index")
-			return nil, nil
 		}
 	} else {
 		// TODO: could improve this by storing the sizes as well as left/right hash.
@@ -198,7 +206,7 @@ func (node *MAVLNode) save(t *MAVLTree) {
 	}
 
 	// save node
-	t.ndb.SaveNode(t, node)
+	t.batch.SaveNode(t, node)
 	return
 }
 
@@ -378,6 +386,122 @@ func (node *MAVLNode) balance(t *MAVLTree) (newSelf *MAVLNode) {
 	}
 	// Nothing changed
 	return node
+}
+
+// newHash/newNode: The new hash or node to replace node after remove.
+// newKey: new leftmost leaf key for tree after successfully removing 'key' if changed.
+// value: removed value.
+func (node *MAVLNode) remove(t *MAVLTree, key []byte) (
+	newHash []byte, newNode *MAVLNode, newKey []byte, value []byte, removed bool) {
+	if node.height == 0 {
+		if bytes.Compare(key, node.key) == 0 {
+			removeOrphan(t, node)
+			return nil, nil, nil, node.value, true
+		} else {
+			return node.hash, node, nil, nil, false
+		}
+	} else {
+		if bytes.Compare(key, node.key) < 0 {
+			var newLeftHash []byte
+			var newLeftNode *MAVLNode
+			newLeftHash, newLeftNode, newKey, value, removed = node.getLeftNode(t).remove(t, key)
+			if !removed {
+				return node.hash, node, nil, value, false
+			} else if newLeftHash == nil && newLeftNode == nil { // left node held value, was removed
+				return node.rightHash, node.rightNode, node.key, value, true
+			}
+			removeOrphan(t, node)
+			node = node._copy()
+			node.leftHash, node.leftNode = newLeftHash, newLeftNode
+			node.calcHeightAndSize(t)
+			node = node.balance(t)
+			return node.hash, node, newKey, value, true
+		} else {
+			var newRightHash []byte
+			var newRightNode *MAVLNode
+			newRightHash, newRightNode, newKey, value, removed = node.getRightNode(t).remove(t, key)
+			if !removed {
+				return node.hash, node, nil, value, false
+			} else if newRightHash == nil && newRightNode == nil { // right node held value, was removed
+				return node.leftHash, node.leftNode, nil, value, true
+			}
+			removeOrphan(t, node)
+			node = node._copy()
+			node.rightHash, node.rightNode = newRightHash, newRightNode
+			if newKey != nil {
+				node.key = newKey
+			}
+			node.calcHeightAndSize(t)
+			node = node.balance(t)
+			return node.hash, node, nil, value, true
+		}
+	}
+}
+
+func removeOrphan(t *MAVLTree, node *MAVLNode) {
+	if !node.persisted {
+		return
+	}
+	if t.ndb == nil {
+		return
+	}
+}
+
+// 迭代整个树
+func (node *MAVLNode) traverse(t *MAVLTree, ascending bool, cb func(*MAVLNode) bool) bool {
+	return node.traverseInRange(t, nil, nil, ascending, false, 0, func(node *MAVLNode, depth uint8) bool {
+		return cb(node)
+	})
+}
+
+func (node *MAVLNode) traverseWithDepth(t *MAVLTree, ascending bool, cb func(*MAVLNode, uint8) bool) bool {
+	return node.traverseInRange(t, nil, nil, ascending, false, 0, cb)
+}
+
+func (node *MAVLNode) traverseInRange(t *MAVLTree, start, end []byte, ascending bool, inclusive bool, depth uint8, cb func(*MAVLNode, uint8) bool) bool {
+	afterStart := start == nil || bytes.Compare(start, node.key) <= 0
+	beforeEnd := end == nil || bytes.Compare(node.key, end) < 0
+	if inclusive {
+		beforeEnd = end == nil || bytes.Compare(node.key, end) <= 0
+	}
+
+	stop := false
+	if afterStart && beforeEnd {
+		// IterateRange ignores this if not leaf
+		stop = cb(node, depth)
+	}
+	if stop {
+		return stop
+	}
+	if node.height == 0 {
+		return stop
+	}
+
+	if ascending {
+		// check lower nodes, then higher
+		if afterStart {
+			stop = node.getLeftNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, cb)
+		}
+		if stop {
+			return stop
+		}
+		if beforeEnd {
+			stop = node.getRightNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, cb)
+		}
+	} else {
+		// check the higher nodes first
+		if beforeEnd {
+			stop = node.getRightNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, cb)
+		}
+		if stop {
+			return stop
+		}
+		if afterStart {
+			stop = node.getLeftNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, cb)
+		}
+	}
+
+	return stop
 }
 
 // Only used in testing...

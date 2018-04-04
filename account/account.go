@@ -11,80 +11,149 @@ package account
 //8. gen a private key -> private key to address (bitcoin likes)
 
 import (
-	"math/big"
+	"fmt"
 
-	"code.aliyun.com/chain33/chain33/common"
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
+	log "github.com/inconshreveable/log15"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var genesisKey = []byte("mavl-acc-genesis")
+var alog = log.New("module", "account")
 
-func LoadAccount(db dbm.KVDB, addr string) *types.Account {
-	value, err := db.Get(AccountKey(addr))
+type AccountDB struct {
+	db                   dbm.KVDB
+	accountKeyPerfix     []byte
+	execAccountKeyPerfix []byte
+}
+
+func NewCoinsAccount() *AccountDB {
+	return newAccountDB("mavl-coins-bty-")
+}
+
+func NewTokenAccount(symbol string, db dbm.KVDB) *AccountDB {
+	accDB := newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+	accDB.SetDB(db)
+	return accDB
+}
+
+func NewTokenAccountWithoutDB(symbol string) *AccountDB {
+	return newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+}
+
+func newAccountDB(prefix string) *AccountDB {
+	acc := &AccountDB{}
+	acc.accountKeyPerfix = []byte(prefix)
+	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
+	//alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
+	return acc
+}
+
+func (acc *AccountDB) SetDB(db dbm.KVDB) *AccountDB {
+	acc.db = db
+	return acc
+}
+
+func (acc *AccountDB) IsTokenAccount() bool {
+	return "token" == string(acc.accountKeyPerfix[len("mavl-"):len("mavl-token")])
+}
+
+func (acc *AccountDB) LoadAccount(addr string) *types.Account {
+	value, err := acc.db.Get(acc.AccountKey(addr))
 	if err != nil {
 		return &types.Account{Addr: addr}
 	}
-	var acc types.Account
-	err = types.Decode(value, &acc)
+	var acc1 types.Account
+	err = types.Decode(value, &acc1)
 	if err != nil {
 		panic(err) //数据库已经损坏
 	}
-	return &acc
+	return &acc1
 }
 
-func GetGenesis(db dbm.KVDB) *types.Genesis {
-	value, err := db.Get(genesisKey)
-	if err != nil {
-		return &types.Genesis{}
+func (acc *AccountDB) CheckTransfer(from, to string, amount int64) error {
+	if !types.CheckAmount(amount) {
+		return types.ErrAmount
 	}
-	var g types.Genesis
-	err = types.Decode(value, &g)
-	if err != nil {
-		panic(err) //数据库已经损坏
+	accFrom := acc.LoadAccount(from)
+	b := accFrom.GetBalance() - amount
+	if b < 0 {
+		return types.ErrNoBalance
 	}
-	return &g
+	return nil
 }
 
-func SaveGenesis(db dbm.KVDB, g *types.Genesis) {
-	set := GetGenesisKVSet(g)
+func (acc *AccountDB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+	accFrom := acc.LoadAccount(from)
+	accTo := acc.LoadAccount(to)
+	if accFrom.Addr == accTo.Addr {
+		return nil, types.ErrSendSameToRecv
+	}
+	if accFrom.GetBalance()-amount >= 0 {
+		copyfrom := *accFrom
+		copyto := *accTo
+
+		accFrom.Balance = accFrom.GetBalance() - amount
+		accTo.Balance = accTo.GetBalance() + amount
+
+		receiptBalanceFrom := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
+		receiptBalanceTo := &types.ReceiptAccountTransfer{&copyto, accTo}
+
+		acc.SaveAccount(accFrom)
+		acc.SaveAccount(accTo)
+		return acc.transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
+	} else {
+		return nil, types.ErrNoBalance
+	}
+}
+
+func (acc *AccountDB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+	acc1 := acc.LoadAccount(execaddr)
+	copyacc := *acc1
+	acc1.Balance += amount
+	receiptBalance := &types.ReceiptAccountTransfer{&copyacc, acc1}
+	acc.SaveAccount(acc1)
+	ty := int32(types.TyLogDeposit)
+	if acc.IsTokenAccount() {
+		ty = types.TyLogTokenDeposit
+	}
+	log1 := &types.ReceiptLog{ty, types.Encode(receiptBalance)}
+	kv := acc.GetKVSet(acc1)
+	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}, nil
+}
+
+func (acc *AccountDB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
+	ty := int32(types.TyLogTransfer)
+	if acc.IsTokenAccount() {
+		ty = types.TyLogTokenTransfer
+	}
+	log1 := &types.ReceiptLog{ty, types.Encode(receiptFrom)}
+	log2 := &types.ReceiptLog{ty, types.Encode(receiptTo)}
+	kv := acc.GetKVSet(accFrom)
+	kv = append(kv, acc.GetKVSet(accTo)...)
+	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
+}
+
+func (acc *AccountDB) SaveAccount(acc1 *types.Account) {
+	set := acc.GetKVSet(acc1)
 	for i := 0; i < len(set); i++ {
-		db.Set(set[i].GetKey(), set[i].Value)
+		acc.db.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func SaveAccount(db dbm.KVDB, acc *types.Account) {
-	set := GetKVSet(acc)
-	for i := 0; i < len(set); i++ {
-		db.Set(set[i].GetKey(), set[i].Value)
-	}
-}
-
-func GetKVSet(acc *types.Account) (kvset []*types.KeyValue) {
-	value := types.Encode(acc)
-	kvset = append(kvset, &types.KeyValue{AccountKey(acc.Addr), value})
+func (acc *AccountDB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
+	value := types.Encode(acc1)
+	kvset = append(kvset, &types.KeyValue{acc.AccountKey(acc1.Addr), value})
 	return kvset
 }
 
-func GetGenesisKVSet(g *types.Genesis) (kvset []*types.KeyValue) {
-	value := types.Encode(g)
-	kvset = append(kvset, &types.KeyValue{genesisKey, value})
-	return kvset
-}
-
-func PubKeyToAddress(in []byte) *Address {
-	a := new(Address)
-	a.Pubkey = make([]byte, len(in))
-	copy(a.Pubkey[:], in[:])
-	a.Version = 0
-	a.Hash160 = common.Rimp160AfterSha256(in)
-	return a
-}
-
-func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err error) {
-	client := q.GetClient()
-	//get current head ->
+func (acc *AccountDB) LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, err error) {
 	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	client.Send(msg, true)
 	msg, err = client.Wait(msg)
@@ -94,7 +163,7 @@ func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err er
 	get := types.StoreGet{}
 	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
 	for i := 0; i < len(addrs); i++ {
-		get.Keys = append(get.Keys, AccountKey(addrs[i]))
+		get.Keys = append(get.Keys, acc.AccountKey(addrs[i]))
 	}
 	msg = client.NewMessage("store", types.EventStoreGet, &get)
 	client.Send(msg, true)
@@ -106,7 +175,7 @@ func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err er
 	for i := 0; i < len(values.Values); i++ {
 		value := values.Values[i]
 		if value == nil {
-			accs = append(accs, &types.Account{})
+			accs = append(accs, &types.Account{Addr: addrs[i]})
 		} else {
 			var acc types.Account
 			err := types.Decode(value, &acc)
@@ -119,93 +188,48 @@ func LoadAccounts(q *queue.Queue, addrs []string) (accs []*types.Account, err er
 	return accs, nil
 }
 
+func (acc *AccountDB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error) {
+	for i := 0; i < len(addrs); i++ {
+		acc1 := acc.LoadAccount(addrs[i])
+		accs = append(accs, acc1)
+	}
+	return accs, nil
+}
+
 //address to save key
-func AccountKey(address string) (key []byte) {
-	key = append(key, []byte("mavl-acc-")...)
+func (acc *AccountDB) AccountKey(address string) (key []byte) {
+	key = append(key, acc.accountKeyPerfix...)
 	key = append(key, []byte(address)...)
 	return key
 }
 
-type Address struct {
-	Version  byte
-	Hash160  [20]byte // For a stealth address: it's HASH160
-	Checksum []byte   // Unused for a stealth address
-	Pubkey   []byte   // Unused for a stealth address
-	Enc58str string
-}
-
-func (a *Address) String() string {
-	if a.Enc58str == "" {
-		var ad [25]byte
-		ad[0] = a.Version
-		copy(ad[1:21], a.Hash160[:])
-		if a.Checksum == nil {
-			sh := common.Sha2Sum(ad[0:21])
-			a.Checksum = make([]byte, 4)
-			copy(a.Checksum, sh[:4])
+func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
+	req := types.IterateRangeByStateHash{}
+	req.StateHash = in.StateHash
+	req.Count = in.Count
+	if in.Symbol == "bty" {
+		if in.StartKey == nil {
+			req.Start = []byte("mavl-coins-bty-")
+		} else {
+			req.Start = in.StartKey
 		}
-		copy(ad[21:25], a.Checksum[:])
-		a.Enc58str = Encodeb58(ad[:])
-	}
-	return a.Enc58str
-}
-
-var b58set []byte = []byte("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
-
-func b58chr2int(chr byte) int {
-	for i := range b58set {
-		if b58set[i] == chr {
-			return i
+		req.End = []byte("mavl-coins-bty-exec")
+	} else {
+		if in.StartKey == nil {
+			req.Start = []byte(fmt.Sprintf("mavl-token-%s-", in.Symbol))
+		} else {
+			req.Start = in.StartKey
 		}
+		req.End = []byte(fmt.Sprintf("mavl-token-%s-exec", in.Symbol))
 	}
-	return -1
+
+	msg := client.NewMessage("store", types.EventStoreGetTotalCoins, &req)
+	client.Send(msg, true)
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	reply = msg.Data.(*types.ReplyGetTotalCoins)
+	return reply, nil
 }
 
-var bn0 *big.Int = big.NewInt(0)
-var bn58 *big.Int = big.NewInt(58)
-
-func Encodeb58(a []byte) (s string) {
-	idx := len(a)*138/100 + 1
-	buf := make([]byte, idx)
-	bn := new(big.Int).SetBytes(a)
-	var mo *big.Int
-	for bn.Cmp(bn0) != 0 {
-		bn, mo = bn.DivMod(bn, bn58, new(big.Int))
-		idx--
-		buf[idx] = b58set[mo.Int64()]
-	}
-	for i := range a {
-		if a[i] != 0 {
-			break
-		}
-		idx--
-		buf[idx] = b58set[0]
-	}
-
-	s = string(buf[idx:])
-
-	return
-}
-
-func Decodeb58(s string) (res []byte) {
-	bn := big.NewInt(0)
-	for i := range s {
-		v := b58chr2int(byte(s[i]))
-		if v < 0 {
-			return nil
-		}
-		bn = bn.Mul(bn, bn58)
-		bn = bn.Add(bn, big.NewInt(int64(v)))
-	}
-
-	// We want to "restore leading zeros" as satoshi's implementation does:
-	var i int
-	for i < len(s) && s[i] == b58set[0] {
-		i++
-	}
-	if i > 0 {
-		res = make([]byte, i)
-	}
-	res = append(res, bn.Bytes()...)
-	return
-}

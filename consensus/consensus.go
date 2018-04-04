@@ -1,38 +1,24 @@
 package consensus
 
 import (
-	"code.aliyun.com/chain33/chain33/consensus/solo"
-	"code.aliyun.com/chain33/chain33/queue"
-	"code.aliyun.com/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/solo"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/ticket"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func New(cfg *types.Consensus) Consumer {
+func New(cfg *types.Consensus) queue.Module {
 	consensusType := cfg.Name
-	if !cfg.Minerstart {
-		return &nopMiner{}
-	}
 	if consensusType == "solo" {
-		con := solo.NewSolo(cfg)
+		con := solo.New(cfg)
 		return con
 	} else if consensusType == "raft" {
 		// TODO:
 	} else if consensusType == "pbft" {
 		// TODO:
+	} else if consensusType == "ticket" {
+		t := ticket.New(cfg)
+		return t
 	}
 	panic("Unsupported consensus type")
-}
-
-type nopMiner struct{}
-
-func (m *nopMiner) SetQueue(q *queue.Queue) {
-
-}
-
-func (m *nopMiner) Close() {
-
-}
-
-type Consumer interface {
-	SetQueue(q *queue.Queue)
-	Close()
 }

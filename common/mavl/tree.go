@@ -3,12 +3,11 @@ package mavl
 import (
 	"errors"
 	"fmt"
-	"sync"
 
-	dbm "code.aliyun.com/chain33/chain33/common/db"
-	"code.aliyun.com/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var ErrNodeNotExist = errors.New("ErrNodeNotExist")
@@ -16,12 +15,13 @@ var treelog = log.New("module", "mavl")
 
 //merkle avl tree
 type MAVLTree struct {
-	root *MAVLNode
-	ndb  *nodeDB
+	root  *MAVLNode
+	ndb   *nodeDB
+	batch *nodeBatch
 }
 
 // 新建一个merkle avl 树
-func NewMAVLTree(db dbm.DB) *MAVLTree {
+func NewMAVLTree(db dbm.DB, sync bool) *MAVLTree {
 	if db == nil {
 		// In-memory IAVLTree
 		return &MAVLTree{}
@@ -29,7 +29,8 @@ func NewMAVLTree(db dbm.DB) *MAVLTree {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db)
 		return &MAVLTree{
-			ndb: ndb,
+			ndb:   ndb,
+			batch: ndb.GetBatch(sync),
 		}
 	}
 }
@@ -104,7 +105,7 @@ func (t *MAVLTree) Save() []byte {
 	}
 	if t.ndb != nil {
 		t.root.save(t)
-		t.ndb.Commit()
+		t.batch.Commit()
 	}
 	return t.root.hash
 }
@@ -115,6 +116,8 @@ func (t *MAVLTree) Load(hash []byte) (err error) {
 		t.root = nil
 	} else {
 		t.root, err = t.ndb.GetNode(t, hash)
+		//load cache of 16 heigh 2^16 个数据
+		//t.root.loadCache(t, 16)
 	}
 	return
 }
@@ -151,28 +154,90 @@ func (t *MAVLTree) Proof(key []byte) (value []byte, proofBytes []byte, exists bo
 	return value, proofBytes, true
 }
 
+//删除key对应的节点
+func (t *MAVLTree) Remove(key []byte) (value []byte, removed bool) {
+	if t.root == nil {
+		return nil, false
+	}
+	newRootHash, newRoot, _, value, removed := t.root.remove(t, key)
+	if !removed {
+		return nil, false
+	}
+	if newRoot == nil && newRootHash != nil {
+		root, err := t.ndb.GetNode(t, newRootHash)
+		if err != nil {
+			panic(err) //数据库已经损坏
+		}
+		t.root = root
+	} else {
+		t.root = newRoot
+	}
+	return value, true
+}
+
+// 依次迭代遍历树的所有键
+func (t *MAVLTree) Iterate(fn func(key []byte, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverse(t, true, func(node *MAVLNode) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
+// 在start和end之间的键进行迭代回调[start, end)
+func (t *MAVLTree) IterateRange(start, end []byte, ascending bool, fn func(key []byte, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverseInRange(t, start, end, ascending, false, 0, func(node *MAVLNode, _ uint8) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
+// 在start和end之间的键进行迭代回调[start, end]
+func (t *MAVLTree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(key, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverseInRange(t, start, end, ascending, true, 0, func(node *MAVLNode, _ uint8) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
-	mtx   sync.Mutex
-	db    dbm.DB
+	db dbm.DB
+}
+
+type nodeBatch struct {
 	batch dbm.Batch
 }
 
 func newNodeDB(db dbm.DB) *nodeDB {
 	ndb := &nodeDB{
-		db:    db,
-		batch: db.NewBatch(true),
+		db: db,
 	}
 	return ndb
 }
 
 func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
 	// Doesn't exist, load from db.
-	buf := ndb.db.Get(hash)
+	var buf []byte
+	buf = ndb.db.Get(hash)
 	if len(buf) == 0 {
 		return nil, ErrNodeNotExist
 	}
@@ -183,12 +248,13 @@ func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
 	node.hash = hash
 	node.persisted = true
 	return node, nil
-
 }
 
-func (ndb *nodeDB) SaveNode(t *MAVLTree, node *MAVLNode) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
+func (ndb *nodeDB) GetBatch(sync bool) *nodeBatch {
+	return &nodeBatch{ndb.db.NewBatch(sync)}
+}
+
+func (ndb *nodeBatch) SaveNode(t *MAVLTree, node *MAVLNode) {
 	if node.hash == nil {
 		panic("Expected to find node.hash, but none found.")
 	}
@@ -201,18 +267,15 @@ func (ndb *nodeDB) SaveNode(t *MAVLTree, node *MAVLNode) {
 	node.persisted = true
 }
 
-func (ndb *nodeDB) Commit() {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
+func (ndb *nodeBatch) Commit() {
 	// Write saves
 	ndb.batch.Write()
-	ndb.batch = ndb.db.NewBatch(true)
+	ndb.batch = nil
 }
 
 //对外接口
-func SetKVPair(db dbm.DB, storeSet *types.StoreSet) []byte {
-	tree := NewMAVLTree(db)
+func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
+	tree := NewMAVLTree(db, sync)
 	tree.Load(storeSet.StateHash)
 
 	for i := 0; i < len(storeSet.KV); i++ {
@@ -222,7 +285,7 @@ func SetKVPair(db dbm.DB, storeSet *types.StoreSet) []byte {
 }
 
 func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
-	tree := NewMAVLTree(db)
+	tree := NewMAVLTree(db, true)
 	err := tree.Load(storeGet.StateHash)
 	values := make([][]byte, len(storeGet.Keys))
 	if err != nil {
@@ -238,13 +301,28 @@ func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
 }
 
 func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
-	tree := NewMAVLTree(db)
+	tree := NewMAVLTree(db, true)
 	tree.Load(roothash)
 	_, proof, exit := tree.Proof(key)
 	if exit {
 		return proof
 	}
 	return nil
+}
+
+//剔除key对应的节点在本次tree中，返回新的roothash和key对应的value
+func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
+	tree := NewMAVLTree(db, true)
+	tree.Load(storeDel.StateHash)
+
+	values := make([][]byte, len(storeDel.Keys))
+	for i := 0; i < len(storeDel.Keys); i++ {
+		value, removed := tree.Remove(storeDel.Keys[i])
+		if removed {
+			values[i] = value
+		}
+	}
+	return tree.Save(), values
 }
 
 func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {
@@ -265,7 +343,7 @@ func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proo
 }
 
 func PrintTreeLeaf(db dbm.DB, roothash []byte) {
-	tree := NewMAVLTree(db)
+	tree := NewMAVLTree(db, true)
 	tree.Load(roothash)
 	var i int32 = 0
 	if tree.root != nil {
@@ -277,4 +355,12 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 		}
 	}
 	return
+}
+
+func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending bool, fn func([]byte, []byte) bool) {
+	tree := NewMAVLTree(db, true)
+	tree.Load(statehash)
+	//treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
+
+	tree.IterateRange(start, end, ascending, fn)
 }

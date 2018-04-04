@@ -1,74 +1,74 @@
 package rpc
 
 import (
-	"code.aliyun.com/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func NewServer(name string, addr string) IServer {
-	if name == "channel" {
-		return newChannelServer()
-	} else if name == "grpc" {
-		return newGrpcServer(addr)
-	} else if name == "jsonrpc" {
-		return newJsonrpcServer(addr)
+var (
+	whitlist = make(map[string]bool)
+	rpcCfg   *types.Rpc
+)
+
+type server struct {
+	cli channelClient
+}
+
+type Chain33 server
+type Grpc server
+
+type Grpcserver struct {
+	grpc Grpc
+	addr string
+}
+
+type JsonRpcServer struct {
+	jrpc Chain33
+	addr string
+}
+
+func (s *JsonRpcServer) Close() {
+	s.jrpc.cli.Close()
+
+}
+func checkWhitlist(addr string) bool {
+
+	if _, ok := whitlist["0.0.0.0"]; ok {
+		return true
 	}
-	panic("server name not support")
+
+	if _, ok := whitlist[addr]; ok {
+		return true
+	}
+	return false
 }
 
-type IServer interface {
-	SetQueue(q *queue.Queue)
-	GetQueue() *queue.Queue
-	Close()
-}
-
-//channelServer 不需要做任何的事情，grpc 和 jsonrpc 需要建立服务，监听
-type channelServer struct {
-	q *queue.Queue
-	c queue.IClient
-}
-
-func newChannelServer() *channelServer {
-	return &channelServer{}
-}
-
-func (server *channelServer) SetQueue(q *queue.Queue) {
-	server.q = q
-	server.c = q.GetClient() //创建一个Queue Client
+func (j *Grpcserver) Close() {
+	j.grpc.cli.Close()
 
 }
 
-func (server *channelServer) GetQueue() *queue.Queue {
-	return server.q
+func NewGRpcServer(client queue.Client) *Grpcserver {
+	s := &Grpcserver{}
+	s.grpc.cli.Client = client
+	return s
 }
 
-func (server *channelServer) Close() {
+func NewJsonRpcServer(client queue.Client) *JsonRpcServer {
+	j := &JsonRpcServer{}
+	j.jrpc.cli.Client = client
+	return j
 }
 
-type grpcServer struct {
-	channelServer
-}
+func Init(cfg *types.Rpc) {
+	rpcCfg = cfg
+	if len(cfg.Whitlist) == 1 && cfg.Whitlist[0] == "*" {
+		whitlist["0.0.0.0"] = true
+		return
+	}
 
-type jsonrpcServer struct {
-	channelServer
-}
-
-func newGrpcServer(addr string) *grpcServer {
-	server := &grpcServer{}
-	server.CreateServer(addr)
-	return server
-}
-
-func (r *grpcServer) Close() {
-
-}
-
-func newJsonrpcServer(addr string) *jsonrpcServer {
-	server := &jsonrpcServer{}
-	server.CreateServer(addr)
-
-	return server
-}
-
-func (r *jsonrpcServer) Close() {
+	for _, addr := range cfg.Whitlist {
+		whitlist[addr] = true
+	}
 
 }

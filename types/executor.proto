@@ -1,0 +1,486 @@
+syntax = "proto3";
+
+import "transaction.proto";
+
+package types;
+
+message Genesis {
+	bool isrun = 1;
+}
+
+//message for execs.coins
+message CoinsAction {
+	oneof value {
+		CoinsTransfer transfer = 1;
+		CoinsWithdraw withdraw = 4;
+		CoinsGenesis genesis = 2;
+	}
+	int32 ty = 3;
+}
+
+//给某个地址凭空打币
+//只能执行一次，不能执行第二次
+message CoinsGenesis {
+	int64 amount = 2;
+	string returnAddress = 3;
+}
+
+message CoinsTransfer {
+	string cointoken = 1;
+	int64 amount     = 2;
+	string note      = 3;
+}
+
+message CoinsWithdraw {
+	string cointoken = 1;
+	int64 amount = 2;
+	string note = 3;
+}
+
+message Hashlock {
+	bytes hashlockId = 1;
+	int32 status = 2;
+	int64 CreateTime = 3;
+	string toAddress = 4;
+	string returnAddress = 5;
+	int64 amount = 6;
+	int64 frozentime = 7;
+}
+
+//message for hashlock
+message HashlockAction {
+	oneof value {
+		HashlockLock hlock = 1;
+		HashlockSend hsend = 2;
+		HashlockUnlock hunlock = 3;
+	}
+	int32 ty = 4;
+}
+
+message HashlockLock {
+	int64 amount = 1;
+	int64 time = 2;
+	bytes hash = 3;
+	string toAddress = 4;
+	string returnAddress = 5;
+}
+
+message HashlockUnlock {
+	bytes secret = 1;
+	//bytes  hash     = 3;
+}
+
+message HashlockSend {
+	bytes secret = 1;
+	//bytes  hash     = 3;
+}
+
+message HashRecv  {
+	bytes HashlockId  = 1;
+	Hashlockquery Infomation = 2;
+}
+
+message Hashlockquery  {
+	int64 time    = 1;
+	int32 status  = 2;
+	int64 amount  = 3;
+	int64 createTime = 4;
+	int64 currentTime = 5;
+}
+
+message Ticket {
+	string ticketId = 1;
+	int32 status = 2; //0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
+	bool isGenesis = 3; //genesis 创建的私钥比较特殊
+	int64 createTime = 4; //创建时间
+	int64 minerTime = 5; //挖矿时间
+	int64 minerValue = 8; //挖到的币的数目
+	string minerAddress = 6;
+	string returnAddress = 7; //return wallet
+}
+
+//message for execs.ticket
+message TicketAction {
+	oneof value {
+		TicketBind tbind = 5;
+		TicketOpen topen = 1;
+		TicketGenesis genesis = 2;
+		TicketClose tclose = 3;
+		TicketMiner miner = 4;
+	}
+	int32 ty = 10;
+}
+
+message TicketMiner {
+	uint32 bits = 1;
+	int64 reward = 2;
+	string ticketId = 3;
+	bytes modify = 4;
+}
+
+message TicketBind {
+	string minerAddress = 1;
+	string returnAddress = 2;
+}
+
+message TicketOpen {
+	string minerAddress = 1; //用户挖矿的ticket 地址
+	int32 count = 2; //购买ticket的数目
+	string returnAddress = 3; //币实际存储的地址
+}
+
+message TicketGenesis {
+	string minerAddress = 1;
+	string returnAddress = 2;
+	int32 count = 3;
+}
+
+message TicketClose {
+	repeated string ticketId = 1;
+}
+
+message TicketList {
+	string addr = 1;
+	int32 status = 3;
+}
+
+message TicketInfos {
+	repeated string ticketIds = 1;
+}
+
+message ReplyTicketList {
+	repeated Ticket tickets = 1;
+}
+
+message ReplyWalletTickets {
+	repeated Ticket tickets = 1;
+	repeated bytes privkeys = 2;
+}
+
+message ReceiptTicket {
+	string ticketId = 1;
+	int32 status = 2;
+	int32 prevStatus = 3;
+	string addr = 4;
+}
+
+message ReceiptTicketBind {
+	string oldMinerAddress = 1;
+	string newMinerAddress = 2;
+	string returnAddress = 3;
+}
+
+message ExecTxList {
+	bytes stateHash = 1;
+	repeated Transaction txs = 2;
+	int64 blockTime = 3;
+	int64 height = 4;
+}
+
+message Query {
+	bytes execer = 1;
+	string funcName = 2;
+	bytes payload = 3;
+}
+
+//message for retrieve start
+message RetrievePara{
+	string defaultAddress = 1;
+	int32 status          = 2;
+	int64 createTime      = 3;
+	int64 prepareTime     = 4;
+	int64 delayPeriod     = 5;
+}
+
+message Retrieve{
+	string backupAddress          = 1;//used as key
+	repeated RetrievePara retPara = 2;
+}
+
+message RetrieveAction {
+	oneof value {
+		PreRetrieve          preRet    = 1;
+		PerformRetrieve      perfRet   = 2;
+		BackupRetrieve	     backup    = 3;
+		CancelRetrieve       cancel    = 4;
+	}
+	int32 ty = 5;
+}
+
+message BackupRetrieve{
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
+	int64 delayPeriod        = 3;
+}
+
+message PreRetrieve{	
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
+}
+
+message PerformRetrieve{
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
+}
+
+message CancelRetrieve{
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
+}
+
+message ReqRetrieveInfo{
+	string backupAddress     = 1;
+	string defaultAddress    = 2;
+}
+
+message RetrieveQuery{
+	string backupAddress  = 1;
+	string defaultAddress = 2;
+	int64 delayPeriod     = 3;
+	int64 prepareTime     = 4;
+	int64 remainTime      = 5;
+	int32 status          = 6;
+}
+//message for retrieve end
+
+
+//////////////////////////////////////////////////////////////////////////////
+//message for token start/////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+message TokenAction {
+	oneof value {
+		TokenPreCreate    tokenprecreate    = 1;
+		TokenFinishCreate tokenfinishcreate = 2;
+		TokenRevokeCreate tokenrevokecreate = 3;
+		CoinsTransfer     transfer          = 4;
+		CoinsWithdraw     withdraw          = 5;
+		CoinsGenesis      genesis           = 6;
+	}
+	int32 Ty = 7;
+}
+
+//创建token，支持最大精确度是6位小数,即存入数据库的实际总额需要放大1e6倍
+message TokenPreCreate {
+	string name         = 1;
+	string symbol       = 2;
+	string introduction = 3;
+	int64 total         = 4;
+	int64  price        = 5;
+	string owner        = 6;
+}
+
+message TokenFinishCreate {
+	string symbol       = 1;
+	string owner        = 2;
+}
+
+message TokenRevokeCreate {
+	string symbol       = 1;
+	string owner        = 2;
+}
+
+message Token {
+	string name         = 1;
+	string symbol       = 2;
+	string introduction = 3;
+	int64  total        = 4;
+	int64  price        = 5;
+	string owner        = 6;
+	string creator      = 7;
+	int32  status       = 8;
+}
+
+message ReqTokens {
+	bool queryall          = 1;
+	int32 status           = 2;
+	repeated string tokens = 3;
+}
+
+message ReplyTokens {
+	repeated Token tokens = 1;
+}
+
+message ReceiptToken {
+	string symbol       = 1;
+	string owner        = 2;
+	int32  status       = 3;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//message for Trade start/////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+message Trade {
+	oneof value {
+		TradeForSell              tokensell            = 1;
+		TradeForBuy               tokenbuy             = 2;
+		TradeForRevokeSell        tokenrevokesell      = 3;
+	}
+	int32 ty = 4;
+}
+
+//创建众筹交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
+message TradeForSell {
+	string tokensymbol          = 1;
+	int64 amountperboardlot     = 2; //每一手出售的token的数量
+	int64 minboardlot           = 3; //起卖手数,必须达到这个门槛才允许进行交易
+	int64 priceperboardlot      = 4; //每一手token的价格
+	int64 totalboardlot         = 5;
+	int64  starttime            = 6; //此次出售的起始时间，如果非众筹则可以忽略此时间
+	int64  stoptime             = 7;
+	bool   crowdfund            = 8;
+}
+
+message SellOrder {
+	string tokensymbol          = 1;
+	string address              = 2;
+	int64 amountperboardlot     = 3; //每一手出售的token的数量
+    int64 minboardlot           = 4;
+	int64 priceperboardlot      = 5; //每一手token的价格
+	int64 totalboardlot         = 6;
+	int64 soldboardlot          = 7;
+	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
+	int64  stoptime             = 9;
+	bool   crowdfund            = 10;
+	string  sellid              = 11; //此处使用tx的hash来指定
+	int32  status               = 12;
+	int64  height               = 13;
+}
+
+message SellOrderReceipt {
+	string sellid = 1;
+}
+
+message ReqAddrTokens{
+	string addr           = 1;
+	int32  status         = 2;
+	repeated string token = 3;
+	int32 pageNumber      = 4;
+	int32 pageSize        = 5;
+}
+
+message ReplySellOrders {
+	repeated SellOrder selloders = 1;
+}
+
+message TokenRecv {
+	string token = 1;
+	int64  recv  = 2;
+}
+message ReplyAddrRecvForTokens {
+	repeated TokenRecv tokenrecv = 1;
+}
+
+//购买者发起交易用来购买token持有者之前挂单出售的token
+//其中的hash为token出售者发起出售交易的hash
+message TradeForBuy {
+	string sellid      = 1;
+	int64 boardlotcnt  = 2;
+}
+
+//允许token的持有者撤销之前未成交出售token的挂单
+message TradeForRevokeSell {
+	string sellid      = 1;
+}
+
+message ReceiptTradeBase {
+	string tokensymbol          = 1;
+	string owner                = 2;
+    string amountperboardlot    = 3; //每一手出售的token的数量
+	int64 minboardlot           = 4;
+    string priceperboardlot     = 5; //每一手token的价格
+	int64 totalboardlot         = 6;
+	int64 soldboardlot          = 7;
+	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
+	int64  stoptime             = 9;
+	bool   crowdfund            = 10;
+	string  sellid              = 11;  //此处使用tx的hash来指定
+    string  status              = 12;
+}
+
+message ReceiptTradeSell {
+	ReceiptTradeBase base = 1;
+}
+
+message ReceiptTradeBuy {
+	string buyeraddr             = 1;
+	string sellid                = 2;
+	string token                 = 3;
+	int64 boardlotcnt            = 4;
+	string amountperboardlot     = 5;
+	string priceperboardlot      = 6;
+    string buytxhash             = 7;
+}
+
+message ReceiptTradeRevoke {
+	ReceiptTradeBase base = 1;
+}
+
+message TradeBuyDone {
+	string token                 = 1;
+	int64  boardlotcnt           = 2;
+	string amountperboardlot     = 3;
+    string priceperboardlot      = 4;
+   	string buytxhash             = 5;
+   	int64  height                = 6;
+}
+
+message ReplyTradeBuyOrders {
+	repeated TradeBuyDone tradebuydones = 1;
+}
+
+// 配置修改部分
+message ArrayConfig {
+    repeated string value = 3;
+}
+message StringConfig {
+    string value = 3;
+}
+message Int32Config {
+    int32 value = 3;
+}
+
+message ConfigItem {
+    string key = 1;
+    string addr = 2;
+    oneof value {
+        ArrayConfig arr = 3;
+        StringConfig str = 4;
+        Int32Config int = 5;
+    }
+    int32 Ty = 11;
+}
+
+message ModifyConfig {
+    string key = 1;
+    string value = 2;
+    string op = 3;
+    string addr = 4;
+}
+
+message ManageAction {
+    oneof value {
+        ModifyConfig modify = 1;
+    }
+    int32 Ty = 2;
+}
+
+message ReceiptConfig {
+    ConfigItem prev = 1;
+    ConfigItem current = 2;
+}
+
+message ReplyConfig {
+    string key = 1;
+    string value = 2;
+}
+
+// 获取Token未完成卖单的交易列表
+// 	 fromSellId : 第一次传参为空，获取卖单单价最低的列表。 当要获得下一页时， 传当前页最后一个；当要获得上一页时， 传当前页第一个。
+// 	 count :获取交易列表的个数。
+// 	 direction :查找方式；0，上一页；1，下一页。  越靠后的也单价越贵
+message ReqTokenSellOrder {
+	string tokenSymbol = 1;
+	string fromSellId  = 2;
+	int32 count        = 3;
+	int32 direction    = 4;
+}
