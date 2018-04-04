@@ -40,4 +40,19 @@ message ReqTokenBalance {
 	string execer      = 3;
 }
 
+message ReqAccountTokenAssets {
+	string address   = 1;
+	string execer    = 2;
+}
+
+message TokenAsset {
+    string symbol   = 1;
+    Account account = 2;
+}
+
+message ReplyAccountTokenAssets {
+	repeated TokenAsset tokenAssets = 1;
+}
+
+
 
