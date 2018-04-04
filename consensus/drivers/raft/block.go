@@ -1,18 +1,17 @@
 package raft
 
 import (
+	"fmt"
 	"sync"
 	"time"
-	"fmt"
 
+	"github.com/coreos/etcd/snap"
+	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-	"github.com/coreos/etcd/snap"
-	"github.com/golang/protobuf/proto"
-	log "github.com/inconshreveable/log15"
 )
 
 var (
@@ -88,7 +87,7 @@ func (client *RaftClient) recoverFromSnapshot(snapshot []byte) error {
 }
 
 func (client *RaftClient) SetQueueClient(c queue.Client) {
-	log.Info("Enter SetQueue method of raft consensus")
+	rlog.Info("Enter SetQueue method of raft consensus")
 	client.InitClient(c, func() {
 	})
 	go client.EventLoop()
@@ -116,7 +115,7 @@ func (client *RaftClient) InitBlock() {
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		err := client.WriteBlock(zeroHash[:], newblock)
 		if err != nil {
-			log.Error("chain33 init block failed!", err)
+			rlog.Error("chain33 init block failed!", err)
 		}
 		client.SetCurrentBlock(newblock)
 	} else {
@@ -133,7 +132,7 @@ func (client *RaftClient) CreateBlock() {
 	for {
 		//如果leader节点突然挂了，不是打包节点，需要退出
 		if !isLeader {
-			log.Warn("I'm not the validator node anymore,exit.=============================")
+			rlog.Warn("I'm not the validator node anymore,exit.=============================")
 			break
 		}
 		rlog.Info("==================This is Leader node=====================")
@@ -150,7 +149,7 @@ func (client *RaftClient) CreateBlock() {
 		rlog.Info("==================start create new block!=====================")
 		//check dup
 		txs = client.CheckTxDup(txs)
-		rlog.Info(fmt.Sprintf("the len txs is: %v",len(txs)))
+		rlog.Info(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -166,7 +165,7 @@ func (client *RaftClient) CreateBlock() {
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			issleep = true
-			rlog.Error("********************err:"+err.Error(),nil)
+			rlog.Error("********************err:"+err.Error(), nil)
 			continue
 		}
 
@@ -202,26 +201,28 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 
 //轮询任务，去检测本机器是否为validator节点，如果是，则执行打包任务
 func (client *RaftClient) pollingTask(c queue.Client) {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
 	for {
 		select {
 		case validator := <-client.validatorC:
-			if value, ok := validator[LeaderIsOK]; ok && value {
-				//各个节点Block只初始化一次
-				client.once.Do(func() {
-					client.InitBlock()
-				})
-				if value, ok := validator[IsLeader]; ok && !value {
-					rlog.Warn("================I'm not the validator node!=============")
-					isLeader = false
-				} else if !isLeader && value {
-					client.once.Do(
-						func() {
-							client.InitMiner()
-						})
-					isLeader = true
-					go client.CreateBlock()
-				}
+			//各个节点Block只初始化一次
+			client.once.Do(func() {
+				client.InitBlock()
+			})
+			if value, ok := validator[IsLeader]; ok && !value {
+				rlog.Debug("================I'm not the validator node!=============")
+				isLeader = false
+			} else if !isLeader && value {
+				client.once.Do(
+					func() {
+						client.InitMiner()
+					})
+				isLeader = true
+				go client.CreateBlock()
 			}
+		case <-ticker.C:
+			rlog.Debug("Gets the leader node information timeout and triggers the ticker.")
 		}
 	}
 }

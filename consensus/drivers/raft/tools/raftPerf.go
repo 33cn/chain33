@@ -12,6 +12,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	rlog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -37,7 +38,7 @@ func createConn(ip string) {
 }
 
 func main() {
-	common.SetLogLevel("eror")
+	rlog.SetLogLevel("eror")
 	if len(os.Args) == 1 || os.Args[1] == "-h" {
 		LoadHelp()
 		return

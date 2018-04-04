@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coreos/etcd/raft/raftpb"
+	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -14,8 +16,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/coreos/etcd/raft/raftpb"
-	log "github.com/inconshreveable/log15"
 )
 
 var (
