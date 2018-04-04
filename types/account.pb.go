@@ -65,6 +65,7 @@ It has these top-level messages:
 	BlockChain
 	P2P
 	Rpc
+	Exec
 	LeafNode
 	InnerNode
 	MAVLProof
