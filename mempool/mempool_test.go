@@ -431,7 +431,7 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 	mem.client.Send(msg5, true)
 	mem.client.Wait(msg5)
 
-	if mem.Size() != 4 || mem.cache.Exists(tx5) {
+	if mem.Size() != 4 || mem.cache.Exists(tx5.Hash()) {
 		t.Error("TestAddMoreTxThanPoolSize failed")
 	}
 
