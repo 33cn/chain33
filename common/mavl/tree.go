@@ -361,7 +361,7 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending bool, fn func([]byte, []byte) bool) {
 	tree := NewMAVLTree(db, true)
 	tree.Load(statehash)
-	treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
+	//treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
 
 	tree.IterateRange(start, end, ascending, fn)
 }
