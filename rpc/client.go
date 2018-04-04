@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/rand"
 	"time"
+	"bytes"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -801,10 +802,25 @@ func (c *channelClient) IsNtpClockSync() bool {
 	return resp.GetData().(*types.IsNtpClockSync).GetIsntpclocksync()
 }
 
-func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.TotalFee, error) {
-	resp, err := accountdb.LoadTotalFeeByHash(c.Client, in)
+func totalFeeKey(hash []byte) []byte {
+        s := [][]byte{[]byte("TotalFeeKey:"), hash}
+        sep := []byte("")
+        return bytes.Join(s, sep)
+}
+
+func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.LocalReplyValue, error) {
+	var keys [][]byte
+	keys = append(keys, totalFeeKey(in.Hash))
+	msg := c.NewMessage("blockchain", types.EventLocalGet, &types.LocalDBGet{keys})
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("QueryTotalFee", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	return resp, nil
+
+	return resp.Data.(*types.LocalReplyValue), nil
 }
