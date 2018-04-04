@@ -225,3 +225,4 @@ type WalletStatus struct {
 	IsHasSeed    bool `json:"ishasseed"`
 	IsTicketLock bool `json:"isticketlock"`
 }
+
