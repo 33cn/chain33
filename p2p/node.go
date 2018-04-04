@@ -268,12 +268,20 @@ func (n *Node) detectNodeAddr() {
 		}
 
 		var externaladdr string
-		exportBytes := n.nodeInfo.addrBook.bookDb.Get([]byte(ExternaPortTag))
-		if len(exportBytes) != 0 {
-			externaladdr = fmt.Sprintf("%v:%v", externalIp, P2pComm.BytesToInt32(exportBytes))
+		var externalPort int
+
+		if cfg.GetIsSeed() == true || OutSide == true {
+			externalPort = DefaultPort
 		} else {
-			externaladdr = fmt.Sprintf("%v:%v", externalIp, DefaultPort)
+			exportBytes := n.nodeInfo.addrBook.bookDb.Get([]byte(ExternaPortTag))
+			if len(exportBytes) != 0 {
+				externalPort = int(P2pComm.BytesToInt32(exportBytes))
+			} else {
+				externalPort = DefalutNatPort
+			}
 		}
+
+		externaladdr = fmt.Sprintf("%v:%v", externalIp, externalPort)
 
 		log.Debug("DetectionNodeAddr", "AddBlackList", externaladdr)
 		n.nodeInfo.blacklist.Add(externaladdr) //把自己的外网地址加入到黑名单，以防连接self
