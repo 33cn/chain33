@@ -16,7 +16,7 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
 )
 
-//var tlog = log.New("module", "types")
+var tlog = log.New("module", "types")
 
 type Message proto.Message
 
@@ -814,4 +814,22 @@ func (rd *ReceiptData) OutputReceiptDetails(logger log.Logger) {
 	} else {
 		logger.Error("decodelogerr", "err", err)
 	}
+}
+
+func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
+	//tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
+	var acc Account
+	err := Decode(value, &acc)
+	if err != nil {
+		tlog.Error("ReplyGetTotalCoins.IterateRangeByStateHash", "err", err)
+		return true
+	}
+	//tlog.Info("acc:", "value", acc)
+	if t.Num >= t.Count {
+		t.NextKey = key
+		return true
+	}
+	t.Num += 1
+	t.Amount += acc.Balance
+	return false
 }

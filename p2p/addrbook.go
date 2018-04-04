@@ -8,12 +8,6 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/db"
-	//pb "gitlab.33.cn/chain33/chain33/types"
-)
-
-const (
-	Addrkey = "addrs"
-	PrivKey = "privkey"
 )
 
 func (a *AddrBook) Start() error {
@@ -35,7 +29,8 @@ type AddrBook struct {
 	ourAddrs map[string]*NetAddress
 	addrPeer map[string]*knownAddress
 	filePath string
-	key      string
+	privkey  string
+	pubkey   string
 	bookDb   db.DB
 	Quit     chan struct{}
 }
@@ -84,37 +79,6 @@ func NewAddrBook(filePath string) *AddrBook {
 
 	a.Start()
 	return a
-}
-
-func (a *AddrBook) setKey(key string) {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	a.key = key
-}
-
-func (a *AddrBook) GetKey() string {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	return a.key
-}
-
-func (a *AddrBook) initKey() {
-	var maxRetry = 10
-	key, err := P2pComm.GenPrivkey()
-	if err != nil {
-		for i := 0; i < maxRetry; i++ {
-			key, err = P2pComm.GenPrivkey()
-			if err == nil {
-				break
-			}
-			if i == maxRetry-1 && err != nil {
-				panic(err.Error())
-			}
-		}
-
-	}
-
-	a.setKey(hex.EncodeToString(key))
 }
 
 func newKnownAddress(addr *NetAddress) *knownAddress {
@@ -227,17 +191,25 @@ func (a *AddrBook) saveToDb() {
 		return
 	}
 	log.Debug("saveToDb", "addrs", string(jsonBytes))
-	a.bookDb.Set([]byte(Addrkey), jsonBytes)
+	a.bookDb.Set([]byte(AddrkeyTag), jsonBytes)
 
 }
-
-func (a *AddrBook) Pubkey() (string, error) {
-	pubkey, err := P2pComm.Pubkey(a.GetKey())
+func (a *AddrBook) genPubkey(privkey string) string {
+	pubkey, err := P2pComm.Pubkey(privkey)
 	if err != nil {
-		return "", err
+		var maxRetry = 10
+		for i := 0; i < maxRetry; i++ {
+			pubkey, err = P2pComm.Pubkey(privkey)
+			if err == nil {
+				break
+			}
+			if i == maxRetry-1 && err != nil {
+				panic(err.Error())
+			}
+		}
 	}
 
-	return pubkey, nil
+	return pubkey
 }
 
 // Returns false if file does not exist.
@@ -246,17 +218,20 @@ func (a *AddrBook) Pubkey() (string, error) {
 func (a *AddrBook) loadDb() bool {
 	a.bookDb = db.NewDB("addrbook", "leveldb", a.filePath, 128)
 
-	privkey := a.bookDb.Get([]byte(PrivKey))
+	privkey := a.bookDb.Get([]byte(PrivKeyTag))
 
 	if len(privkey) == 0 {
 		a.initKey()
-		a.bookDb.Set([]byte(PrivKey), []byte(a.GetKey()))
+		privkey, _ := a.GetPrivPubKey()
+		a.bookDb.Set([]byte(PrivKeyTag), []byte(privkey))
 		return false
 	}
-	a.setKey(string(privkey))
+
+	a.setKey(string(privkey), a.genPubkey(string(privkey)))
+
 	iteror := a.bookDb.Iterator(nil, false)
 	for iteror.Next() {
-		if string(iteror.Key()) == Addrkey {
+		if string(iteror.Key()) == AddrkeyTag {
 			//读取存入的其他节点地址信息
 			aJSON := &addrBookJSON{}
 			dec := json.NewDecoder(strings.NewReader(string(iteror.Value())))
@@ -349,4 +324,38 @@ func (a *AddrBook) GetAddrs() []string {
 
 	}
 	return addrlist
+}
+
+func (a *AddrBook) initKey() {
+
+	priv, pub, err := P2pComm.GenPrivPubkey()
+	if err != nil {
+		var maxRetry = 10
+		for i := 0; i < maxRetry; i++ {
+			priv, pub, err = P2pComm.GenPrivPubkey()
+			if err == nil {
+				break
+			}
+			if i == maxRetry-1 && err != nil {
+				panic(err.Error())
+			}
+		}
+
+	}
+
+	a.setKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
+}
+
+func (a *AddrBook) setKey(privkey, pubkey string) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.privkey = privkey
+	a.pubkey = pubkey
+
+}
+
+func (a *AddrBook) GetPrivPubKey() (string, string) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.privkey, a.pubkey
 }
