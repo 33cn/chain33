@@ -33,6 +33,8 @@ import (
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
+
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 var (
@@ -81,10 +83,10 @@ func main() {
 	//set grpc log
 	f, err := createFile(cfg.P2P.GetGrpcLogFile())
 	if err != nil {
-		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
+		glogv2 := grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout)
 		grpclog.SetLoggerV2(glogv2)
 	} else {
-		glogv2 := grpclog.NewLoggerV2(f, f, f)
+		glogv2 := grpclog.NewLoggerV2WithVerbosity(f, f, f, 10)
 		grpclog.SetLoggerV2(glogv2)
 	}
 	//开始区块链模块加载
