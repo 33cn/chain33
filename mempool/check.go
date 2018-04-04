@@ -17,6 +17,18 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	}
 	// 检查交易是否为重复交易
 	tx := msg.GetData().(*types.Transaction)
+	if "ticket" == string(tx.Execer) {
+		var action types.TicketAction
+		err := types.Decode(tx.Payload, &action)
+		if err != nil {
+			msg.Data = err
+			return msg
+		}
+		if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+			msg.Data = types.ErrMinerTx
+			return msg
+		}
+	}
 	if mem.addedTxs.Contains(string(tx.Hash())) {
 		msg.Data = types.ErrDupTx
 		return msg
