@@ -30,16 +30,16 @@ var (
 )
 
 const (
-	DefaultPort          = 13802
-	DefalutP2PRemotePort = 14802
-	MixOutBoundNum       = 5
-	MaxOutBoundNum       = 25
-	StableBoundNum       = 15
-	MaxAddrListNum       = 256
-	MaxRangeBlockNum     = 100
-	MaxAttemps           = 5
-	Protocol             = "tcp"
-	ExternaPortTag       = "externalport"
+	DefaultPort      = 13802
+	DefalutNatPort   = 23802
+	MixOutBoundNum   = 5
+	MaxOutBoundNum   = 25
+	StableBoundNum   = 15
+	MaxAddrListNum   = 256
+	MaxRangeBlockNum = 100
+	MaxAttemps       = 5
+	Protocol         = "tcp"
+	ExternaPortTag   = "externalport"
 )
 
 const (
