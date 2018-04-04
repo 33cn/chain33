@@ -319,10 +319,7 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	meminfo := resp.GetData().(*pb.MempoolSize)
 	var peerinfo pb.P2PPeerInfo
 
-	pub, err := P2pComm.Pubkey(s.node.nodeInfo.addrBook.key)
-	if err != nil {
-		log.Error("getpubkey", "error", err.Error())
-	}
+	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 
 	log.Debug("GetPeerInfo", "EventGetLastHeader", "befor")
 	//get header
@@ -367,7 +364,10 @@ func (s *p2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 		}
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
-			log.Debug("ServerStreamSend", "blockhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
+			if block.GetBlock() != nil {
+				log.Debug("ServerStreamSend", "blockhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
+			}
+
 			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 		} else if tx, ok := data.(*pb.P2PTx); ok {
 			log.Debug("ServerStreamSend", "txhash", hex.EncodeToString(tx.GetTx().Hash()))

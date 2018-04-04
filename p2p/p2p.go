@@ -18,7 +18,6 @@ var (
 type P2p struct {
 	client       queue.Client
 	node         *Node
-	addrBook     *AddrBook // known peers
 	p2pCli       *P2pCli
 	txCapcity    int32
 	txFactory    chan struct{}
@@ -116,7 +115,7 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 		break
 	}
 	var parm types.ReqWalletImportPrivKey
-	parm.Privkey = network.node.nodeInfo.addrBook.GetKey()
+	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
 	msg := network.client.NewMessage("wallet", types.EventWalletImportprivkey, &parm)
 	err := network.client.Send(msg, true)
