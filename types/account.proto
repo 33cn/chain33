@@ -43,12 +43,7 @@ message ReqTokenBalance {
 //手续费
 message TotalFee {
         int64 fee = 1; 
-}
-
-//手续费总额改变的交易回报
-message ReceiptTotalFee {
-	TotalFee prev = 1;  //转移前
-	TotalFee current = 2; //转移后
+	int64 txCount = 2;
 }
 
 //查询symbol代币总额
@@ -56,13 +51,13 @@ message ReqGetTotalCoins {
 	string symbol = 1;
 	bytes stateHash = 2;
         bytes startKey = 3;
-        int32 count = 4;
+        int64 count = 4;
 }
 
 //查询symbol代币总额应答
 message ReplyGetTotalCoins{
-        int32 count = 1;
-        int32 num   = 2;
+        int64 count = 1;
+        int64 num   = 2;
         int64 amount = 3;
         bytes nextKey  = 4;
 }
@@ -72,6 +67,6 @@ message IterateRangeByStateHash {
 	bytes stateHash = 1;
 	bytes start = 2;
         bytes end = 3;
-        int32 count = 4;
+        int64 count = 4;
 }
 

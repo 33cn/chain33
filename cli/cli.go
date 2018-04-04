@@ -690,8 +690,9 @@ type SellOrder2Show struct {
 }
 
 type GetTotalCoinsResult struct {
-	AccountCount     int32  `json:"accountCount"`
-	ExpectedAmount   string `json:"expectedBalance"`
+	TxCount          int64  `json:"txCount"`
+	AccountCount     int64  `json:"accountCount"`
+	ExpectedAmount   string `json:"expectedAmount"`
 	ActualAmount     string `json:"actualAmount"`
 	DifferenceAmount string `json:"differenceAmount"`
 }
@@ -2675,7 +2676,7 @@ func GetTotalCoins(symbol string, height string) {
 	resp := GetTotalCoinsResult{}
 
 	var startKey []byte
-	var count int32
+	var count int64
 	for count = 1000; count == 1000; {
 		params := types.ReqGetTotalCoins{Symbol: symbol, StateHash: stateHash, StartKey: startKey, Count: count}
 		var res types.ReplyGetTotalCoins
@@ -2715,6 +2716,7 @@ func GetTotalCoins(symbol string, height string) {
 			return
 		}
 		
+		resp.TxCount = res2.TxCount
 		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res2.Fee
 		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
