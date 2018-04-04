@@ -2,10 +2,10 @@ package raft
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 
+	"fmt"
 	"github.com/coreos/etcd/raft/raftpb"
 )
 
@@ -20,14 +20,14 @@ func (h *httpRaftAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == "POST":
 		url, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Printf("Failed to read on POST (%v)\n", err)
+			rlog.Error(fmt.Sprintf("Failed to convert ID for conf change (%v)\n", err), nil)
 			http.Error(w, "Failed on POST", http.StatusBadRequest)
 			return
 		}
 
 		nodeId, err := strconv.ParseUint(key[1:], 0, 64)
 		if err != nil {
-			log.Printf("Failed to convert ID for conf change (%v)\n", err)
+			rlog.Error(fmt.Sprintf("Failed to convert ID for conf change (%v)\n", err), nil)
 			http.Error(w, "Failed on POST", http.StatusBadRequest)
 			return
 		}
@@ -43,7 +43,7 @@ func (h *httpRaftAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == "DELETE":
 		nodeId, err := strconv.ParseUint(key[1:], 0, 64)
 		if err != nil {
-			log.Printf("Failed to convert ID for conf change (%v)\n", err)
+			rlog.Error(fmt.Sprintf("Failed to convert ID for conf change (%v)\n", err), nil)
 			http.Error(w, "Failed on DELETE", http.StatusBadRequest)
 			return
 		}
@@ -70,12 +70,12 @@ func serveHttpRaftAPI(port int, confChangeC chan<- raftpb.ConfChange, errorC <-c
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Fatal(err)
+			rlog.Error(fmt.Sprintf("ListenAndServe have a err: (%v)\n", err), nil)
 		}
 	}()
 
 	// exit when raft goes down
 	if err, ok := <-errorC; ok {
-		log.Fatal(err)
+		rlog.Error(fmt.Sprintf("the errorC chan receive a err (%v)\n", err), nil)
 	}
 }

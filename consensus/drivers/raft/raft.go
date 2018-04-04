@@ -11,7 +11,6 @@ import (
 
 	"context"
 
-	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/coreos/etcd/etcdserver/stats"
 	"github.com/coreos/etcd/pkg/fileutil"
 	typec "github.com/coreos/etcd/pkg/types"
@@ -22,12 +21,11 @@ import (
 	"github.com/coreos/etcd/wal"
 	"github.com/coreos/etcd/wal/walpb"
 	"github.com/golang/protobuf/proto"
-	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
-	IsLeader   = "0"
-	LeaderIsOK = "1"
+	IsLeader = "0"
 )
 
 var (
@@ -73,13 +71,10 @@ type raftNode struct {
 func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
 	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan map[string]bool) {
 
-	log.Info("Enter consensus raft")
+	rlog.Info("Enter consensus raft")
 	// commit channel
 	commitC := make(chan *types.Block)
 	errorC := make(chan error)
-	//storage := raft.NewMemoryStorage()
-	//var readOnlyPeers []string
-	//readOnlyPeers :=[]string{"http://172.31.2.210:9021"}
 	rc := &raftNode{
 		proposeC:         proposeC,
 		confChangeC:      confChangeC,
@@ -111,7 +106,7 @@ func (rc *raftNode) startRaft() {
 	// 有snapshot就打开，没有则创建
 	if !fileutil.Exist(rc.snapdir) {
 		if err := os.Mkdir(rc.snapdir, 0750); err != nil {
-			log.Error("chain33_raft: cannot create dir for snapshot (%v)", err)
+			rlog.Error("chain33_raft: cannot create dir for snapshot (%v)", err)
 		}
 	}
 
@@ -182,19 +177,19 @@ func (rc *raftNode) serveRaft() {
 	peers = append(peers, rc.addPeers...)
 	nodeURL, err := url.Parse(peers[rc.id-1])
 	if err != nil {
-		log.Error("raft: Failed parsing URL (%v)", err)
+		rlog.Error("raft: Failed parsing URL (%v)", err)
 	}
 
 	ln, err := newStoppableListener(nodeURL.Host, rc.httpstopc)
 	if err != nil {
-		log.Error("raft: Failed to listen rafthttp (%v)", err)
+		rlog.Error("raft: Failed to listen rafthttp (%v)", err)
 	}
 
 	err = (&http.Server{Handler: rc.transport.Handler()}).Serve(ln)
 	select {
 	case <-rc.httpstopc:
 	default:
-		log.Error("raft: Failed to serve rafthttp (%v)", err)
+		rlog.Error("raft: Failed to serve rafthttp (%v)", err)
 	}
 	close(rc.httpdonec)
 }
@@ -224,7 +219,7 @@ func (rc *raftNode) serveChannels() {
 				} else {
 					out, err := proto.Marshal(prop)
 					if err != nil {
-						log.Error("failed to marshal block: ", err)
+						rlog.Error("failed to marshal block: ", err)
 					}
 					rc.node.Propose(context.TODO(), out)
 				}
@@ -275,7 +270,7 @@ func (rc *raftNode) serveChannels() {
 
 func (rc *raftNode) updateValidator() {
 	var validatorMap map[string]bool
-	//这块监听后期需要根据场景进行优化
+	//TODO 这块监听后期需要根据场景进行优化?
 	time.Sleep(5 * time.Second)
 
 	//用于标记readOnlyPeers是否已经被添加到集群中了
@@ -290,16 +285,16 @@ func (rc *raftNode) updateValidator() {
 		ticker.Stop()
 	}
 	for {
+		time.Sleep(time.Second)
 		validatorMap = make(map[string]bool)
-		if rc.Leader() == raft.None {
-			//TODO 当节点被删除时需要如下提示信息需要优化，删除节点是不可逆操作，因此需要记录被删节点信息
-			rlog.Info("==============Leader is not ready==============")
-			validatorMap[LeaderIsOK] = false
+		status := rc.Status()
+		if status.Lead == raft.None {
+			rlog.Debug(fmt.Sprintf("==============This is %s node!==============", status.RaftState.String()))
+			continue
 		} else {
 
 			// 获取到leader Id,选主成功
-			validatorMap[LeaderIsOK] = true
-			if rc.id == int(rc.Leader()) {
+			if rc.id == int(status.Lead) {
 				//leader选举出来之后即可添加addReadOnlyPeers
 				if !flag && !isRestart {
 					go rc.addReadOnlyPeers()
@@ -310,7 +305,6 @@ func (rc *raftNode) updateValidator() {
 			}
 			flag = true
 		}
-		time.Sleep(time.Second)
 		rc.validatorC <- validatorMap
 	}
 }
@@ -320,24 +314,13 @@ func (rc *raftNode) Status() raft.Status {
 	return rc.node.Status()
 }
 
-// isLeader checks if we are the leader or not, without the protection of lock
-func (rc *raftNode) leader() uint64 {
-	return rc.node.Status().Lead
-}
-
-// IsLeader checks if we are the leader or not, with the protection of lock
-func (rc *raftNode) Leader() uint64 {
-	rc.stopMu.RLock()
-	defer rc.stopMu.RUnlock()
-	return rc.leader()
-}
 func (rc *raftNode) replayWAL() *wal.WAL {
-	log.Info("replaying WAL of member %d", rc.id)
+	rlog.Info("replaying WAL of member %d", rc.id)
 	snapshot := rc.loadSnapshot()
 	w := rc.openWAL(snapshot)
 	_, st, ents, err := w.ReadAll()
 	if err != nil {
-		log.Error("chain33_raft: failed to read WAL (%v)", err)
+		rlog.Error("chain33_raft: failed to read WAL (%v)", err)
 	}
 	rc.raftStorage = raft.NewMemoryStorage()
 	if snapshot != nil {
@@ -359,7 +342,7 @@ func (rc *raftNode) replayWAL() *wal.WAL {
 func (rc *raftNode) loadSnapshot() *raftpb.Snapshot {
 	snapshot, err := rc.snapshotter.Load()
 	if err != nil && err != snap.ErrNoSnapshot {
-		log.Error("chain33_raft: error loading snapshot (%v)", err)
+		rlog.Error("chain33_raft: error loading snapshot (%v)", err)
 	}
 	return snapshot
 }
@@ -383,10 +366,10 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 		return
 	}
 
-	log.Info("start snapshot [applied index: %d | last snapshot index: %d]", rc.appliedIndex, rc.snapshotIndex)
+	rlog.Info("start snapshot [applied index: %d | last snapshot index: %d]", rc.appliedIndex, rc.snapshotIndex)
 	data, err := rc.getSnapshot()
 	if err != nil {
-		log.Error("Err happened when get snapshot")
+		rlog.Error("Err happened when get snapshot")
 	}
 	snapShot, err := rc.raftStorage.CreateSnapshot(rc.appliedIndex, &rc.confState, data)
 	if err != nil {
@@ -404,7 +387,7 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 		panic(err)
 	}
 
-	log.Info("compacted log at index %d", compactIndex)
+	rlog.Info("compacted log at index %d", compactIndex)
 	rc.snapshotIndex = rc.appliedIndex
 }
 
@@ -413,11 +396,11 @@ func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
 		return
 	}
 
-	log.Info("publishing snapshot at index %d", rc.snapshotIndex)
-	defer log.Info("finished publishing snapshot at index %d", rc.snapshotIndex)
+	rlog.Info("publishing snapshot at index %d", rc.snapshotIndex)
+	defer rlog.Info("finished publishing snapshot at index %d", rc.snapshotIndex)
 
 	if snapshotToSave.Metadata.Index <= rc.appliedIndex {
-		log.Error("snapshot index [%d] should > progress.appliedIndex [%d] + 1", snapshotToSave.Metadata.Index, rc.appliedIndex)
+		rlog.Error("snapshot index [%d] should > progress.appliedIndex [%d] + 1", snapshotToSave.Metadata.Index, rc.appliedIndex)
 	}
 	rc.commitC <- nil // trigger kvstore to load snapshot
 
@@ -429,12 +412,12 @@ func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
 func (rc *raftNode) openWAL(snapshot *raftpb.Snapshot) *wal.WAL {
 	if !wal.Exist(rc.waldir) {
 		if err := os.Mkdir(rc.waldir, 0750); err != nil {
-			log.Error("chain33_raft: cannot create dir for wal (%v)", err)
+			rlog.Error("chain33_raft: cannot create dir for wal (%v)", err)
 		}
 
 		w, err := wal.Create(rc.waldir, nil)
 		if err != nil {
-			log.Error("chain33_raft: create wal error (%v)", err)
+			rlog.Error("chain33_raft: create wal error (%v)", err)
 		}
 		w.Close()
 	}
@@ -443,10 +426,10 @@ func (rc *raftNode) openWAL(snapshot *raftpb.Snapshot) *wal.WAL {
 	if snapshot != nil {
 		walsnap.Index, walsnap.Term = snapshot.Metadata.Index, snapshot.Metadata.Term
 	}
-	log.Info("loading WAL at term %d and index %d", walsnap.Term, walsnap.Index)
+	rlog.Info("loading WAL at term %d and index %d", walsnap.Term, walsnap.Index)
 	w, err := wal.Open(rc.waldir, walsnap)
 	if err != nil {
-		log.Error("chain33_raft: error loading wal (%v)", err)
+		rlog.Error("chain33_raft: error loading wal (%v)", err)
 	}
 
 	return w
@@ -485,7 +468,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 			// 解码
 			block := &types.Block{}
 			if err := proto.Unmarshal(ents[i].Data, block); err != nil {
-				log.Error("failed to unmarshal: ", err)
+				rlog.Error("failed to unmarshal: ", err)
 			}
 			select {
 			case rc.commitC <- block:
@@ -504,7 +487,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 				}
 			case raftpb.ConfChangeRemoveNode:
 				if cc.NodeID == uint64(rc.id) {
-					log.Info("I've been removed from the cluster! Shutting down.")
+					rlog.Info("I've been removed from the cluster! Shutting down.")
 					return false
 				}
 				rc.transport.RemovePeer(typec.ID(cc.NodeID))
@@ -536,7 +519,7 @@ func (rc *raftNode) entriesToApply(ents []raftpb.Entry) (nents []raftpb.Entry) {
 	}
 	firstIdx := ents[0].Index
 	if firstIdx > rc.appliedIndex+1 {
-		log.Error("first index of committed entry[%d] should <= progress.appliedIndex[%d] 1", firstIdx, rc.appliedIndex)
+		rlog.Error("first index of committed entry[%d] should <= progress.appliedIndex[%d] 1", firstIdx, rc.appliedIndex)
 	}
 	if rc.appliedIndex-firstIdx+1 < uint64(len(ents)) {
 		nents = ents[rc.appliedIndex-firstIdx+1:]
