@@ -273,7 +273,7 @@ func (n *Node) detectNodeAddr() {
 		if cfg.GetIsSeed() == true || OutSide == true {
 			externalPort = DefaultPort
 		} else {
-			exportBytes := n.nodeInfo.addrBook.bookDb.Get([]byte(ExternaPortTag))
+			exportBytes := n.nodeInfo.addrBook.bookDb.Get([]byte(ExternalPortTag))
 			if len(exportBytes) != 0 {
 				externalPort = int(P2pComm.BytesToInt32(exportBytes))
 			} else {
@@ -331,7 +331,7 @@ func (n *Node) natMapPort() {
 		return
 	}
 
-	n.nodeInfo.addrBook.bookDb.Set([]byte(ExternaPortTag),
+	n.nodeInfo.addrBook.bookDb.Set([]byte(ExternalPortTag),
 		P2pComm.Int32ToBytes(int32(n.nodeInfo.GetExternalAddr().Port))) //把映射成功的端口信息刷入db
 	log.Info("natMapPort", "export inser into db", n.nodeInfo.GetExternalAddr().Port)
 	n.nodeInfo.natResultChain <- true

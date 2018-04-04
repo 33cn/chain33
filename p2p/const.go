@@ -39,7 +39,7 @@ const (
 	MaxRangeBlockNum = 100
 	MaxAttemps       = 5
 	Protocol         = "tcp"
-	ExternaPortTag   = "externalport"
+	ExternalPortTag  = "externalport"
 )
 
 const (
