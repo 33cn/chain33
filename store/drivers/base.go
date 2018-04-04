@@ -36,6 +36,7 @@ type SubStore interface {
 	MemSet(datas *types.StoreSet, sync bool) []byte
 	Commit(hash *types.ReqHash) []byte
 	Rollback(req *types.ReqHash) []byte
+	IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool)
 	ProcEvent(msg queue.Message)
 }
 
@@ -100,6 +101,12 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash}))
 		}
+	} else if msg.Ty == types.EventStoreGetTotalCoins {
+		req := msg.GetData().(*types.IterateRangeByStateHash)
+		resp := &types.ReplyGetTotalCoins{}
+		resp.Count = req.Count
+		store.child.IterateRangeByStateHash(req.StateHash, req.Start, req.End, true, resp.IterateRangeByStateHash)
+		msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
 	} else {
 		store.child.ProcEvent(msg)
 	}
