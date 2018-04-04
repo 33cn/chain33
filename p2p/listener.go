@@ -7,7 +7,6 @@ import (
 
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
-	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 )
 
