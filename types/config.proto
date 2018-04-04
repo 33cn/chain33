@@ -102,4 +102,5 @@ message Rpc {
 
 message Exec {
 	int64 minExecFee = 1;
+	bool  isFree = 2;
 }
