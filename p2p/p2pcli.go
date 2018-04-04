@@ -664,13 +664,12 @@ func (m *P2pCli) BlockBroadcast(msg queue.Message, taskindex int64) {
 }
 
 func (m *P2pCli) GetExternIp(addr string) (string, bool) {
-	var addrlist string
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect: %v", err)
-		return addrlist, false
+		return "", false
 	}
 	defer conn.Close()
 	gconn := pb.NewP2PgserviceClient(conn)
@@ -678,13 +677,10 @@ func (m *P2pCli) GetExternIp(addr string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-
 	return resp.Addr, resp.Isoutside
-
 }
 
 func (m *P2pCli) peerInfos() []*pb.Peer {
-
 	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*pb.Peer
 	for _, peer := range peerinfos {
