@@ -68,7 +68,6 @@ var (
 	ErrTokenCanotRevoked    = errors.New("ErrTokenCanotRevokedWithWrongStatus")
 	ErrTokenOwner           = errors.New("ErrTokenSymbolOwnerNotMatch")
 	ErrTokenHavePrecreated  = errors.New("ErrOwnerHaveTokenPrecreateYet")
-	ErrTokenBlacklist       = errors.New("ErrTokenBlacklist")
 	//err for trade
 	ErrTSellBalanceNotEnough = errors.New("ErrTradeSellBalanceNotEnough")
 	ErrTSellOrderNotExist    = errors.New("ErrTradeSellOrderNotExist")
@@ -112,6 +111,7 @@ var (
 	ErrTxDup                      = errors.New("ErrTxDup")
 	ErrNotSync                    = errors.New("ErrNotSync")
 	ErrSize                       = errors.New("ErrSize")
+	ErrMinerTx                    = errors.New("ErrMinerTx")
 
 	// BlockChain Error Types
 	ErrHashNotExist           = errors.New("ErrHashNotExist")
