@@ -43,7 +43,7 @@ func initEnv() (queue.Queue, *blockchain.BlockChain, queue.Module, queue.Module,
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New()
+	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
