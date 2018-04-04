@@ -26,7 +26,6 @@ type P2p struct {
 }
 
 func New(cfg *types.P2P) *P2p {
-
 	pub = pubsub.NewPubSub(int(cfg.GetMsgCacheSize()))
 	node, err := NewNode(cfg)
 	if err != nil {
