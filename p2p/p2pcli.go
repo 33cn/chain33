@@ -127,27 +127,28 @@ func (m *P2pCli) GetAddr(peer *peer) ([]string, error) {
 	return resp.Addrlist, nil
 }
 
-func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
+func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) (string, error) {
 
 	client := nodeinfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("SendVesion", "Error", err.Error())
-		return err
+		return "", err
 	}
 	rsp, err := client.Wait(msg)
 	if err != nil {
 		log.Error("GetHeight", "Error", err.Error())
-		return err
+		return "", err
 	}
 
 	blockheight := rsp.GetData().(*pb.ReplyBlockHeight).GetHeight()
 	randNonce := rand.Int31n(102040)
-	in, err := P2pComm.Signature(peer.key, &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)})
+	p2pPrivKey, _ := nodeinfo.addrBook.GetPrivPubKey()
+	in, err := P2pComm.Signature(p2pPrivKey, &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)})
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
-		return err
+		return "", err
 	}
 	addrfrom := nodeinfo.GetExternalAddr().String()
 
@@ -163,19 +164,20 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 			peer.version.SetSupport(false)
 			P2pComm.CollectPeerStat(err, peer)
 		}
-		return err
+		return "", err
 	}
 	P2pComm.CollectPeerStat(err, peer)
 	port, err := strconv.Atoi(strings.Split(resp.GetAddrRecv(), ":")[1])
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
 
 	if peer.IsPersistent() == false {
-		return nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
+		return resp.GetUserAgent(), nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
 	}
+
 	if strings.Split(resp.GetAddrRecv(), ":")[0] != nodeinfo.GetExternalAddr().IP.String() {
 		externalIp := strings.Split(resp.GetAddrRecv(), ":")[0]
 		log.Debug("sendVersion", "externalip", externalIp)
@@ -185,13 +187,14 @@ func (m *P2pCli) SendVersion(peer *peer, nodeinfo *NodeInfo) error {
 
 	}
 
-	return nil
+	return resp.GetUserAgent(), nil
 }
 
 func (m *P2pCli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 	randNonce := rand.Int31n(102040)
 	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)}
-	_, err := P2pComm.Signature(peer.key, ping)
+	p2pPrivKey, _ := nodeinfo.addrBook.GetPrivPubKey()
+	_, err := P2pComm.Signature(p2pPrivKey, ping)
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return err
@@ -223,13 +226,13 @@ func (m *P2pCli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	header := resp.GetData().(*pb.Header)
 	return header.GetHeight(), nil
 }
+
 func (m *P2pCli) GetPeerInfo(msg queue.Message, taskindex int64) {
 	defer func() {
 		log.Debug("GetPeerInfo", "task complete:", taskindex)
 	}()
-	tempServer := NewP2pServer()
-	tempServer.node = m.network.node
-	peerinfo, err := tempServer.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: m.network.node.nodeInfo.cfg.GetVersion()})
+
+	peerinfo, err := m.getLocalPeerInfo()
 	if err != nil {
 		log.Error("GetPeerInfo", "Err", err.Error())
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.peerInfos()}))
@@ -692,4 +695,46 @@ func (m *P2pCli) peerInfos() []*pb.Peer {
 		peers = append(peers, peer)
 	}
 	return peers
+}
+
+func (m *P2pCli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
+	client := m.network.client
+	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("GetPeerInfo mempool", "Error", err.Error())
+		return nil, err
+	}
+	log.Debug("GetPeerInfo", "GetMempoolSize", "after")
+	resp, err := client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	meminfo := resp.GetData().(*pb.MempoolSize)
+	var localpeerinfo pb.P2PPeerInfo
+
+	_, pub := m.network.node.nodeInfo.addrBook.GetPrivPubKey()
+
+	log.Debug("getLocalPeerInfo", "EventGetLastHeader", "befor")
+	//get header
+	msg = client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
+	err = client.Send(msg, true)
+	if err != nil {
+		log.Error("getLocalPeerInfo blockchain", "Error", err.Error())
+		return nil, err
+	}
+	resp, err = client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("getLocalPeerInfo", "EventGetLastHeader", "after")
+	header := resp.GetData().(*pb.Header)
+
+	localpeerinfo.Header = header
+	localpeerinfo.Name = pub
+	localpeerinfo.MempoolSize = int32(meminfo.GetSize())
+	localpeerinfo.Addr = m.network.node.nodeInfo.GetExternalAddr().IP.String()
+	localpeerinfo.Port = int32(m.network.node.nodeInfo.GetExternalAddr().Port)
+	return &localpeerinfo, nil
 }
