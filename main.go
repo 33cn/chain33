@@ -50,6 +50,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	//set watching
 	t := time.Tick(10 * time.Second)
 	go func() {
@@ -70,6 +71,10 @@ func main() {
 	flag.Parse()
 	//set config
 	cfg := config.InitCfg(*configPath)
+	//compare minFee in wallet, mempool, exec
+	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
+		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
+	}
 
 	//set file log
 	clog.SetFileLog(cfg.Log)
@@ -97,7 +102,7 @@ func main() {
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
-	exec := executor.New()
+	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
