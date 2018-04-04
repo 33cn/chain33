@@ -23,9 +23,8 @@ type NodeInfo struct {
 	client         queue.Client
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
-
-	addrBook *AddrBook // known peers
-	natDone  int32
+	addrBook       *AddrBook // known peers
+	natDone        int32
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
