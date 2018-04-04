@@ -12,7 +12,8 @@ message Config {
 	BlockChain blockChain = 7;
 	Wallet wallet = 8;
 	P2P p2p = 9;
-	Rpc rpc=10;
+	Rpc rpc = 10;
+	Exec exec = 11;
 }
 
 message Log {
@@ -82,6 +83,7 @@ message BlockChain {
 	string dbPath = 6;
 	bool isStrongConsistency = 7;
 	bool singleMode = 8;
+	bool batchsync = 9;
 }
 
 message P2P {
@@ -102,4 +104,9 @@ message Rpc {
 	string jrpcBindAddr=1;
 	string grpcBindAddr=2;
 	repeated string whitlist=3;
+}
+
+message Exec {
+	int64 minExecFee = 1;
+	bool  isFree = 2;
 }

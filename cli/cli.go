@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -88,13 +89,33 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], false, "")
-	case "transwithdrawtoken":
+		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], false, "", false)
+	case "withdrawfromexec":
+		if len(argsWithoutProg) != 5 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		execaddr := GetExecAddr(argsWithoutProg[2], false)
+		if execaddr == "" {
+			return
+		}
+		SendToAddress(argsWithoutProg[1], execaddr, argsWithoutProg[3], argsWithoutProg[4], false, "", true)
+	case "transfertoken":
 		if len(argsWithoutProg) != 6 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[5], true, argsWithoutProg[4])
+		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[5], true, argsWithoutProg[4], false)
+	case "withdrawtoken":
+		if len(argsWithoutProg) != 6 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		execaddr := GetExecAddr(argsWithoutProg[2], false)
+		if execaddr == "" {
+			return
+		}
+		SendToAddress(argsWithoutProg[1], execaddr, argsWithoutProg[3], argsWithoutProg[5], true, argsWithoutProg[4], true)
 	case "importprivkey": //引入私钥
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -240,12 +261,24 @@ func main() {
 		}
 
 		GetTokenBalance(addresses, argsWithoutProg[1], argsWithoutProg[2])
+	case "gettokenassets":
+		if len(argsWithoutProg) < 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		exec := "token"
+		if len(argsWithoutProg) == 3 {
+			if argsWithoutProg[2] == "token" || argsWithoutProg[2] == "trade" {
+				exec = argsWithoutProg[2]
+			}
+		}
+		GetTokenAssets(argsWithoutProg[1], exec)
 	case "getexecaddr":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		GetExecAddr(argsWithoutProg[1])
+		GetExecAddr(argsWithoutProg[1], true)
 	case "bindminer":
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -299,7 +332,33 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		CreateRawSendTx(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
+		CreateRawSendTx(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], false, false, "")
+	case "createrawwithdrawtx":
+		if len(argsWithoutProg) != 5 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		execaddr := GetExecAddr(argsWithoutProg[2], false)
+		if execaddr == "" {
+			return
+		}
+		CreateRawSendTx(argsWithoutProg[1], execaddr, argsWithoutProg[3], argsWithoutProg[4], true, false, "")
+	case "createrawtokentransfer":
+		if len(argsWithoutProg) != 6 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		CreateRawSendTx(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], false, true, argsWithoutProg[5])
+	case "createrawtokenwithdraw":
+		if len(argsWithoutProg) != 6 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		execaddr := GetExecAddr(argsWithoutProg[2], false)
+		if execaddr == "" {
+			return
+		}
+		CreateRawSendTx(argsWithoutProg[1], execaddr, argsWithoutProg[3], argsWithoutProg[4], true, true, argsWithoutProg[5])
 	case "issync":
 		if len(argsWithoutProg) != 1 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -430,8 +489,13 @@ func LoadHelp() {
 	fmt.Println("mergebalance [to]                                           : 合并余额")
 	fmt.Println("settxfee [amount]                                           : 设置交易费")
 	fmt.Println("sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
-	fmt.Println("transwithdrawtoken [from, to, amount, token, note]          : 转账或提取token")
+	fmt.Println("withdrawfromexec [addr, exec, amount, note]                 : 从合约地址提币")
+	fmt.Println("transfertoken [from, to, amount, tokensymbol, note]         : 转账token")
+	fmt.Println("withdrawtoken [addr, token, amount, symbol, note]           : 提取token")
 	fmt.Println("createrawsendtx [privkey, to, amount, note]                 : 创建交易")
+	fmt.Println("createrawwithdrawtx [privkey, exec, amount, note]           : 创建提币交易")
+	fmt.Println("createtokentransfer [privkey, to, amount, note]             : 创建token转账交易")
+	fmt.Println("createtokenwithdraw [privkey, token, amount, note, symbol]  : 创建token提币交易")
 	fmt.Println("importprivkey [privkey, label]                              : 引入私钥")
 	fmt.Println("dumpprivkey [addr]                                          : 导出私钥")
 	fmt.Println("wallettxlist [from, count, direction]                       : 钱包交易列表")
@@ -455,6 +519,7 @@ func LoadHelp() {
 	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 	fmt.Println("gettokenbalance [token execer addr0 [addr1 addr2]]          : 查询多个地址在token的余额")
+	fmt.Println("gettokenassets [addr execer]                                : 查询地址下的token/trace合约下的token资产")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
@@ -624,7 +689,7 @@ type SellOrder2Show struct {
 }
 
 func GetVersion() {
-	fmt.Println(common.GetVersion())
+	fmt.Println(version.GetVersion())
 }
 
 func Lock() {
@@ -847,13 +912,16 @@ func SetTxFee(amount string) {
 	fmt.Println(string(data))
 }
 
-func SendToAddress(from string, to string, amount string, note string, isToken bool, tokenSymbol string) {
+func SendToAddress(from string, to string, amount string, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
 	amountFloat64, err := strconv.ParseFloat(amount, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
+	if isWithdraw {
+		amountInt64 = -amountInt64
+	}
 	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amountInt64, Note: note}
 	if !isToken {
 		params.Istoken = false
@@ -1510,11 +1578,36 @@ func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 
 }
 
-func GetExecAddr(exec string) {
-	switch exec {
-	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
-		addrResult := account.ExecAddress(exec)
-		result := addrResult.String()
+
+func GetTokenAssets(addr, execer string) {
+	req := types.ReqAccountTokenAssets{Address: addr, Execer: execer}
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetAccountTokenAssets"
+	params.Payload = hex.EncodeToString(types.Encode(&req))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res *types.ReplyAccountTokenAssets
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for _, result := range res.TokenAssets {
+		balanceResult := strconv.FormatFloat(float64(result.Account.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(result.Account.Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
+		result := &TokenAccountResult{
+			Token:    result.Symbol,
+			Addr:     result.Account.Addr,
+			Currency: result.Account.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+
 		data, err := json.MarshalIndent(result, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -1522,10 +1615,30 @@ func GetExecAddr(exec string) {
 		}
 
 		fmt.Println(string(data))
+	}
 
+}
+
+func GetExecAddr(exec string, needPrint bool) string {
+	var addr string
+	switch exec {
+	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
+		addrResult := account.ExecAddress(exec)
+		result := addrResult.String()
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return ""
+		}
+		addr = result
+		if needPrint {
+			fmt.Println(string(data))
+		}
 	default:
 		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+		addr = ""
 	}
+	return addr
 }
 
 func BindMiner(mineraddr string, priv string) {
@@ -1555,7 +1668,7 @@ func BindMiner(mineraddr string, priv string) {
 	fmt.Println(hex.EncodeToString(txHex))
 }
 
-func CreateRawSendTx(priv string, to string, amount string, note string) {
+func CreateRawSendTx(priv string, to string, amount string, note string, withdraw bool, isToken bool, tokenSymbol string) {
 	amountFloat64, err := strconv.ParseFloat(amount, 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1579,17 +1692,33 @@ func CreateRawSendTx(priv string, to string, amount string, note string) {
 		return
 	}
 	// addrFrom := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
-	transfer := &types.CoinsAction{}
-	if amountInt64 > 0 {
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amountInt64, Note: note}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionTransfer
+	var tx *types.Transaction
+	if !isToken {
+		transfer := &types.CoinsAction{}
+		if !withdraw {
+			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionTransfer
+		} else {
+			v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
 	} else {
-		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amountInt64, Note: note}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionWithdraw
+		transfer := &types.TokenAction{}
+		if !withdraw {
+			v := &types.TokenAction_Transfer{&types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.ActionTransfer
+		} else {
+			v := &types.TokenAction_Withdraw{&types.CoinsWithdraw{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.ActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: to}
 	}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
+
 	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

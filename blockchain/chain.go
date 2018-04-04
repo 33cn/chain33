@@ -66,6 +66,10 @@ type BlockChain struct {
 
 	//标记本节点是否已经追赶上主链
 	isCaughtUp bool
+
+	//同步block批量写数据库时，是否需要刷盘的标志。
+	//非固态硬盘的电脑可以关闭刷盘，提高同步性能.
+	cfgBatchSync bool
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -86,6 +90,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		index:              newBlockIndex(),
 		isCaughtUp:         false,
 		isbatchsync:        1,
+		cfgBatchSync:       cfg.Batchsync,
 	}
 	return blockchain
 }
