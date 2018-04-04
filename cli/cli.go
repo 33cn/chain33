@@ -261,6 +261,18 @@ func main() {
 		}
 
 		GetTokenBalance(addresses, argsWithoutProg[1], argsWithoutProg[2])
+	case "gettokenassets":
+		if len(argsWithoutProg) < 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		exec := "token"
+		if len(argsWithoutProg) == 3 {
+			if argsWithoutProg[2] == "token" || argsWithoutProg[2] == "trade" {
+				exec = argsWithoutProg[2]
+			}
+		}
+		GetTokenAssets(argsWithoutProg[1], exec)
 	case "getexecaddr":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -507,6 +519,7 @@ func LoadHelp() {
 	fmt.Println("getwalletstatus []                                          : 获取钱包的状态")
 	fmt.Println("getbalance [address, execer]                                : 查询地址余额")
 	fmt.Println("gettokenbalance [token execer addr0 [addr1 addr2]]          : 查询多个地址在token的余额")
+	fmt.Println("gettokenassets [addr execer]                                : 查询地址下的token/trace合约下的token资产")
 	fmt.Println("getexecaddr [execer]                                        : 获取执行器地址")
 	fmt.Println("bindminer [mineraddr, privkey]                              : 绑定挖矿地址")
 	fmt.Println("setautomining [flag]                                        : 设置自动挖矿")
@@ -1550,6 +1563,47 @@ func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 			Token:    tokenSymbol,
 			Addr:     result.Addr,
 			Currency: result.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		fmt.Println(string(data))
+	}
+
+}
+
+
+func GetTokenAssets(addr, execer string) {
+	req := types.ReqAccountTokenAssets{Address: addr, Execer: execer}
+	var params jsonrpc.Query
+	params.Execer = "token"
+	params.FuncName = "GetAccountTokenAssets"
+	params.Payload = hex.EncodeToString(types.Encode(&req))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res *types.ReplyAccountTokenAssets
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for _, result := range res.TokenAssets {
+		balanceResult := strconv.FormatFloat(float64(result.Account.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(result.Account.Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
+		result := &TokenAccountResult{
+			Token:    result.Symbol,
+			Addr:     result.Account.Addr,
+			Currency: result.Account.Currency,
 			Balance:  balanceResult,
 			Frozen:   frozenResult,
 		}
