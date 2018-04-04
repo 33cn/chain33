@@ -485,7 +485,7 @@ func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers) error {
 
 			if height > BackBlockNum {
 				chain.FetchBlockHeaders(height-BackBlockNum, height, pid)
-			} else {
+			} else if height != 0 {
 				chain.FetchBlockHeaders(0, height, pid)
 			}
 		}
