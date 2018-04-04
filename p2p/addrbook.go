@@ -81,40 +81,6 @@ func NewAddrBook(filePath string) *AddrBook {
 	return a
 }
 
-//func (a *AddrBook) setKey(privkey, pubkey string) {
-//	a.mtx.Lock()
-//	defer a.mtx.Unlock()
-//	a.privkey = privkey
-//	a.pubkey = pubkey
-
-//}
-
-//func (a *AddrBook) GetPrivPubKey() (string, string) {
-//	a.mtx.Lock()
-//	defer a.mtx.Unlock()
-//	return a.privkey, a.pubkey
-//}
-
-//func (a *AddrBook) initKey() {
-
-//	priv, pub, err := P2pComm.GenPrivPubkey()
-//	if err != nil {
-//		var maxRetry = 10
-//		for i := 0; i < maxRetry; i++ {
-//			priv, pub, err = P2pComm.GenPrivPubkey()
-//			if err == nil {
-//				break
-//			}
-//			if i == maxRetry-1 && err != nil {
-//				panic(err.Error())
-//			}
-//		}
-
-//	}
-
-//	a.setKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
-//}
-
 func newKnownAddress(addr *NetAddress) *knownAddress {
 	return &knownAddress{
 		Addr:        addr,
