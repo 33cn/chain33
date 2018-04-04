@@ -1,7 +1,6 @@
 package mavl
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 
