@@ -107,7 +107,7 @@ func (mavls *MavlStore) Rollback(req *types.ReqHash) []byte {
 	return req.Hash
 }
 
-func (mavls *MavlStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool,fn func(key, value []byte) bool) {
+func (mavls *MavlStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
 	mavl.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, fn)
 }
 
