@@ -232,4 +232,3 @@ func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCo
 	reply = msg.Data.(*types.ReplyGetTotalCoins)
 	return reply, nil
 }
-

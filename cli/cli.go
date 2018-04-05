@@ -1600,7 +1600,6 @@ func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 
 }
 
-
 func GetTokenAssets(addr, execer string) {
 	req := types.ReqAccountTokenAssets{Address: addr, Execer: execer}
 	var params jsonrpc.Query
@@ -2769,9 +2768,9 @@ func GetTotalCoins(symbol string, height string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		
+
 		resp.TxCount = res2.TxCount
-		expectedAmount = (3e+8 + 30000 + 30*heightInt64) * types.Coin - res2.Fee
+		expectedAmount = (3e+8+30000+30*heightInt64)*types.Coin - res2.Fee
 		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)

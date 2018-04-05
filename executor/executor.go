@@ -182,7 +182,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
-	
+
 	//保存手续费
 	feekv, err := saveFee(execute, &totalFee, b.ParentHash, b.Hash())
 	if err != nil {
@@ -190,7 +190,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 		return
 	}
 	kvset.KV = append(kvset.KV, feekv)
-	
+
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -365,7 +365,7 @@ func LoadDriver(name string) (c drivers.Driver, err error) {
 
 func totalFeeKey(hash []byte) []byte {
 	s := [][]byte{[]byte("TotalFeeKey:"), hash}
-    	sep := []byte("")
+	sep := []byte("")
 	return bytes.Join(s, sep)
 }
 
