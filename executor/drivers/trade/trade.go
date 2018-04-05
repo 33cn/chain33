@@ -12,12 +12,11 @@ trade执行器支持trade的创建和交易，
 import (
 	log "github.com/inconshreveable/log15"
 
-	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/types"
-
 )
 
 var tradelog = log.New("module", "execs.trade")

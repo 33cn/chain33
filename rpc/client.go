@@ -1,10 +1,10 @@
 package rpc
 
 import (
+	"bytes"
 	"errors"
 	"math/rand"
 	"time"
-	"bytes"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -803,9 +803,9 @@ func (c *channelClient) IsNtpClockSync() bool {
 }
 
 func totalFeeKey(hash []byte) []byte {
-        s := [][]byte{[]byte("TotalFeeKey:"), hash}
-        sep := []byte("")
-        return bytes.Join(s, sep)
+	s := [][]byte{[]byte("TotalFeeKey:"), hash}
+	sep := []byte("")
+	return bytes.Join(s, sep)
 }
 
 func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.LocalReplyValue, error) {
