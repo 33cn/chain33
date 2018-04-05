@@ -1,11 +1,11 @@
 package token
 
 import (
+	"fmt"
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	"strings"
-	"fmt"
 )
 
 type tokenDB struct {
@@ -309,7 +309,7 @@ func GetTokenAssetsKey(addr string, db dbm.KVDB) (*types.ReplyStrings, error) {
 func QueryTokenAssetsKey(addr string, db dbm.DB) (*types.ReplyStrings, error) {
 	key := CalcTokenAssetsKey(addr)
 	value := db.Get(key)
-	if value == nil   {
+	if value == nil {
 		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
 		return nil, types.ErrNotFound
 	}
@@ -342,11 +342,11 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 		tokenAssets.Datas = append(tokenAssets.Datas, symbol)
 	}
 	var kv []*types.KeyValue
-	kv = append(kv, &types.KeyValue{CalcTokenAssetsKey(addr), types.Encode(tokenAssets)} )
+	kv = append(kv, &types.KeyValue{CalcTokenAssetsKey(addr), types.Encode(tokenAssets)})
 	return kv
 }
 
 func inBlacklist(symbol, key string, db dbm.KVDB) (bool, error) {
-	found, err :=validOperator(symbol, types.ConfigKey(key), db)
+	found, err := validOperator(symbol, types.ConfigKey(key), db)
 	return found, err
 }
