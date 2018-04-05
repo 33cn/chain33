@@ -1,0 +1,66 @@
+before_script:
+    - export GO_PROJECT_PATH="$GOPATH/src/gitlab.33.cn/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
+    - echo $GO_PROJECT_PATH
+    - mkdir -p $GO_PROJECT_PATH
+    - cd $GO_PROJECT_PATH
+    - make clean
+
+after_script:
+    - make clean
+
+stages:
+    - build
+    - test
+
+go_fmt:
+    stage: build
+    tags:
+        - 33cn
+    script:
+        - make checkgofmt
+
+go_build:
+    stage: build
+    tags:
+        - 33cn
+    script:
+        - make build
+
+go_build_cli:
+    stage: build
+    tags:
+        - 33cn
+    script:
+        - make cli
+
+go_test:
+    stage: test
+    tags:
+        - 33cn
+    script:
+        - go test -race $(go list ./... | grep -v "vendor" | grep -v "rpc" | grep -v "p2p")
+        - cd ~
+        - rm -rf $GO_PROJECT_PATH
+#go_vet:
+#    stage: test
+#    script:
+#        - go vet $(go list ./... | grep -v "vendor")
+
+#staticcheck:
+#    stage: test
+#    script:
+#        - go get -u honnef.co/go/staticcheck/cmd/staticcheck
+#        - staticcheck $(go list ./... | grep -v "vendor")
+
+#golint:
+#    stage: test
+#    script:
+#        - go get -u github.com/golang/lint/golint
+#        - out=$(golint $(go list ./... | grep -v "vendor"))
+#        - if [ "$out" ]; then echo "$out"; exit 1; fi
+
+#gosimple:
+#    stage: test
+#    script:
+#        - go get -u honnef.co/go/simple/cmd/gosimple
+#        - gosimple $(go list ./... | grep -v "vendor")
