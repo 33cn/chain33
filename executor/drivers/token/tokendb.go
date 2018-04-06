@@ -110,12 +110,14 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenHavePrecreated
 	}
 
-	found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
-	if err != nil {
-		return nil, err
-	}
-	if found == true {
-		return nil, types.ErrTokenBlacklist
+	if action.height >= types.ForkV6_token_blacklist {
+		found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
+		if err != nil {
+			return nil, err
+		}
+		if found == true {
+			return nil, types.ErrTokenBlacklist
+		}
 	}
 
 	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
