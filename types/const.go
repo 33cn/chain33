@@ -488,4 +488,5 @@ const (
 	ForkV3            = 110000
 	ForkV4_add_manage = 120000
 	ForkV5_retrieve   = 180000
+	ForkV6_token_blacklist = 190000
 )
