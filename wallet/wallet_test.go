@@ -564,46 +564,46 @@ func TestProcWalletSetPasswd(t *testing.T) {
 }
 
 //ProcWalletLock
-func TestProcWalletLock(t *testing.T) {
-	walletlog.Info("TestProcWalletLock begin --------------------")
-	wallet, q := initEnv()
-	mempoolModProc(q)
-	stor := storeModProc(q)
-	blockchainModProc(q)
-	err := wallet.ProcWalletLock()
-	if err == nil {
-		walletlog.Info("ProcWalletLock ok ")
-	}
-	_, err = wallet.ProcGetAccountList()
-	if err != nil {
-		walletlog.Info("TestProcWalletLock", "err", err)
-	}
-	//解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "Newpass" //wallet.Password
-	WalletUnLock.Timeout = 1
-	WalletUnLock.WalletOrTicket = false
-	err = wallet.ProcWalletUnLock(&WalletUnLock)
-	if err == nil {
-		walletlog.Info("ProcWalletUnLock ok")
-	}
-	flag := 0
-	//测试timeout
-	for {
-		var WalletSetFee types.ReqWalletSetFee
-		WalletSetFee.Amount = 10000000
-		seed, err := wallet.getSeed("Newpass")
-		if err == nil {
-			if flag == 0 {
-				walletlog.Info("getSeed success", "seed", seed)
-				flag = 1
-			}
-		} else {
-			walletlog.Info("getSeed", "err", err)
-			break
-		}
-	}
-	walletlog.Info("TestProcWalletLock end --------------------")
-	stor.Close()
-	wallet.Close()
-}
+//func TestProcWalletLock(t *testing.T) {
+//	walletlog.Info("TestProcWalletLock begin --------------------")
+//	wallet, q := initEnv()
+//	mempoolModProc(q)
+//	stor := storeModProc(q)
+//	blockchainModProc(q)
+//	err := wallet.ProcWalletLock()
+//	if err == nil {
+//		walletlog.Info("ProcWalletLock ok ")
+//	}
+//	_, err = wallet.ProcGetAccountList()
+//	if err != nil {
+//		walletlog.Info("TestProcWalletLock", "err", err)
+//	}
+//	//解锁
+//	var WalletUnLock types.WalletUnLock
+//	WalletUnLock.Passwd = "Newpass" //wallet.Password
+//	WalletUnLock.Timeout = 1
+//	WalletUnLock.WalletOrTicket = false
+//	err = wallet.ProcWalletUnLock(&WalletUnLock)
+//	if err == nil {
+//		walletlog.Info("ProcWalletUnLock ok")
+//	}
+//	flag := 0
+//	//测试timeout
+//	for {
+//		var WalletSetFee types.ReqWalletSetFee
+//		WalletSetFee.Amount = 10000000
+//		seed, err := wallet.getSeed("Newpass")
+//		if err == nil {
+//			if flag == 0 {
+//				walletlog.Info("getSeed success", "seed", seed)
+//				flag = 1
+//			}
+//		} else {
+//			walletlog.Info("getSeed", "err", err)
+//			break
+//		}
+//	}
+//	walletlog.Info("TestProcWalletLock end --------------------")
+//	stor.Close()
+//	wallet.Close()
+//}
