@@ -7,6 +7,7 @@ import (
 func (n *Node) destroyPeer(peer *peer) {
 	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
 		"version support", peer.version.IsSupport())
+
 	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 	n.Remove(peer.Addr())
 
