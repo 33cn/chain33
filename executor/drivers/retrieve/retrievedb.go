@@ -97,21 +97,21 @@ func (action *RetrieveAction) RetrieveBackup(backupRet *types.BackupRetrieve) (*
 	var receipt *types.Receipt
 	var r *RetrieveDB
 	var newRetrieve bool = false
+	if action.height >= types.ForkV5_retrieve {
+		if err := account.CheckAddress(backupRet.BackupAddress); err != nil {
+			rlog.Debug("retrieve checkaddress")
+			return nil, err
+		}
+		if err := account.CheckAddress(backupRet.DefaultAddress); err != nil {
+			rlog.Debug("retrieve checkaddress")
+			return nil, err
+		}
 
-	if err := account.CheckAddress(backupRet.BackupAddress); err != nil {
-		rlog.Debug("retrieve checkaddress")
-		return nil, err
+		if action.fromaddr != backupRet.DefaultAddress {
+			rlog.Debug("RetrieveBackup", "action.fromaddr", action.fromaddr, "backupRet.DefaultAddress", backupRet.DefaultAddress)
+			return nil, types.ErrRetrieveDefaultAddress
+		}
 	}
-	if err := account.CheckAddress(backupRet.DefaultAddress); err != nil {
-		rlog.Debug("retrieve checkaddress")
-		return nil, err
-	}
-
-	if action.fromaddr != backupRet.DefaultAddress {
-		rlog.Debug("RetrieveBackup", "action.fromaddr", action.fromaddr, "backupRet.DefaultAddress", backupRet.DefaultAddress)
-		return nil, types.ErrRetrieveDefaultAddress
-	}
-
 	//用备份地址检索，如果没有，就建立新的，然后检查并处理关联
 	retrieve, err := readRetrieve(action.db, backupRet.BackupAddress)
 	if err != nil && err != types.ErrNotFound {

@@ -21,9 +21,9 @@ import (
 var tokenlog = log.New("module", "execs.token")
 
 const (
-	finisherKey = "token-finisher"
+	finisherKey       = "token-finisher"
 	tokenAssetsPrefix = "token-assets:"
-	blacklist = "token-blacklist"
+	blacklist         = "token-blacklist"
 )
 
 func init() {

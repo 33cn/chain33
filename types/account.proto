@@ -40,6 +40,36 @@ message ReqTokenBalance {
 	string execer      = 3;
 }
 
+//手续费
+message TotalFee {
+        int64 fee = 1; 
+	int64 txCount = 2;
+}
+
+//查询symbol代币总额
+message ReqGetTotalCoins {
+	string symbol = 1;
+	bytes stateHash = 2;
+        bytes startKey = 3;
+        int64 count = 4;
+}
+
+//查询symbol代币总额应答
+message ReplyGetTotalCoins{
+        int64 count = 1;
+        int64 num   = 2;
+        int64 amount = 3;
+        bytes nextKey  = 4;
+}
+
+//迭代查询symbol代币总额
+message IterateRangeByStateHash {
+	bytes stateHash = 1;
+	bytes start = 2;
+        bytes end = 3;
+        int64 count = 4;
+}
+
 message ReqAccountTokenAssets {
 	string address   = 1;
 	string execer    = 2;
@@ -53,6 +83,4 @@ message TokenAsset {
 message ReplyAccountTokenAssets {
 	repeated TokenAsset tokenAssets = 1;
 }
-
-
 

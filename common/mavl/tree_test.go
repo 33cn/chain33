@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"math/rand"
 	"runtime"
+	"sort"
 	"testing"
 
 	. "gitlab.33.cn/chain33/chain33/common"
@@ -519,6 +521,91 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 		}
 	}
 	db.Close()
+}
+
+type traverser struct {
+	Values []string
+}
+
+func (t *traverser) view(key, value []byte) bool {
+	t.Values = append(t.Values, string(value))
+	return false
+}
+
+// 迭代测试
+func TestIterateRange(t *testing.T) {
+	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	tree := NewMAVLTree(db, true)
+
+	type record struct {
+		key   string
+		value string
+	}
+
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+		{"foo", "foo"},
+		{"foobaz", "foobaz"},
+		{"good", "good"},
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+	keys := make([]string, len(records))
+	for i, r := range records {
+		keys[i] = r.key
+	}
+	sort.Strings(keys)
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+
+	// test traversing the whole node works... in order
+	list := []string{}
+	tree.Iterate(func(key []byte, value []byte) bool {
+		list = append(list, string(value))
+		return false
+	})
+	require.Equal(t, list, []string{"abc", "fan", "foml", "foo", "foobang", "foobar", "foobaz", "food", "good", "low"})
+
+	trav := traverser{}
+	tree.IterateRange([]byte("foo"), []byte("goo"), true, trav.view)
+	require.Equal(t, trav.Values, []string{"foo", "foobang", "foobar", "foobaz", "food"})
+
+	trav = traverser{}
+	tree.IterateRangeInclusive([]byte("foo"), []byte("good"), true, trav.view)
+	require.Equal(t, trav.Values, []string{"foo", "foobang", "foobar", "foobaz", "food", "good"})
+
+	trav = traverser{}
+	tree.IterateRange(nil, []byte("flap"), true, trav.view)
+	require.Equal(t, trav.Values, []string{"abc", "fan"})
+
+	trav = traverser{}
+	tree.IterateRange([]byte("foob"), nil, true, trav.view)
+	require.Equal(t, trav.Values, []string{"foobang", "foobar", "foobaz", "food", "good", "low"})
+
+	trav = traverser{}
+	tree.IterateRange([]byte("very"), nil, true, trav.view)
+	require.Equal(t, trav.Values, []string(nil))
+
+	trav = traverser{}
+	tree.IterateRange([]byte("fooba"), []byte("food"), true, trav.view)
+	require.Equal(t, trav.Values, []string{"foobang", "foobar", "foobaz"})
+
+	trav = traverser{}
+	tree.IterateRange([]byte("fooba"), []byte("food"), false, trav.view)
+	require.Equal(t, trav.Values, []string{"foobaz", "foobar", "foobang"})
+
+	trav = traverser{}
+	tree.IterateRange([]byte("g"), nil, false, trav.view)
+	require.Equal(t, trav.Values, []string{"low", "good"})
 }
 
 func BenchmarkSetMerkleAvlTree(b *testing.B) {
