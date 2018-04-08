@@ -80,7 +80,7 @@ func init() {
 	addrexec = account.ExecAddress("hashlock")
 }
 
-func TestInitAccount(t *testing.T) {
+func estInitAccount(t *testing.T) {
 	fmt.Println("TestInitAccount start")
 	defer fmt.Println("TestInitAccount end")
 
@@ -126,7 +126,7 @@ func TestInitAccount(t *testing.T) {
 	currBalanceB = defaultAmount
 }
 
-func TestHashlock(t *testing.T) {
+func estHashlock(t *testing.T) {
 
 	fmt.Println("TestHashlock start")
 	defer fmt.Println("TestHashlock end")
@@ -179,7 +179,7 @@ func TestHashlock(t *testing.T) {
 	fmt.Println("QueryHashlock =", hashlockquery)
 }
 
-func TestHashunlock(t *testing.T) {
+func estHashunlock(t *testing.T) {
 	fmt.Println("TestHashunlock start")
 	defer fmt.Println("TestHashunlock end")
 	//not sucess as time not enough
@@ -278,7 +278,7 @@ func TestHashunlock(t *testing.T) {
 	fmt.Println("QueryHashlock =", hashlockquery)
 }
 
-func TestHashsend(t *testing.T) {
+func estHashsend(t *testing.T) {
 	fmt.Println("TestHashsend start")
 	defer fmt.Println("TestHashsend end")
 	//lock it again &send failed as secret is not right
