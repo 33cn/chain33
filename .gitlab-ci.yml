@@ -38,7 +38,7 @@ go_test:
     tags:
         - 33cn
     script:
-        - go test -race $(go list ./... | grep -v "vendor" | grep -v "rpc" | grep -v "p2p")
+        - go test -race $(go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "drivers/retrieve" | grep -v "drivers/hashlock" | grep -v "drivers/solo")
         - cd ~
         - rm -rf $GO_PROJECT_PATH
 #go_vet:
