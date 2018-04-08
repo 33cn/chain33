@@ -186,6 +186,9 @@ const (
 	EventIsNtpClockSync      = 101
 	EventReplyIsNtpClockSync = 102
 	EventDelTxList           = 103
+	EventStoreGetTotalCoins  = 104
+	EventGetTotalCoinsReply  = 105
+	EventQueryTotalFee       = 106
 	// Token
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
@@ -308,6 +311,9 @@ var eventName = map[int]string{
 	101: "EventIsNtpClockSync",
 	102: "EventReplyIsNtpClockSync",
 	103: "EventDelTxList",
+	104: "EventStoreGetTotalCoins",
+	105: "EventGetTotalCoinsReply",
+	106: "EventQueryTotalFee",
 	// Token
 	EventTokenPreCreate:         "EventTokenPreCreate",
 	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
@@ -482,8 +488,10 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 
 //hard fork block height
 const (
-	ForkV1            = 75260
-	ForkV2_add_token  = 100899
-	ForkV3            = 110000
-	ForkV4_add_manage = 120000
+	ForkV1                 = 75260
+	ForkV2_add_token       = 100899
+	ForkV3                 = 110000
+	ForkV4_add_manage      = 120000
+	ForkV5_retrieve        = 180000
+	ForkV6_token_blacklist = 190000
 )

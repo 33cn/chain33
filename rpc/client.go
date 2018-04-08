@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"errors"
 	"math/rand"
 	"time"
@@ -659,6 +660,15 @@ func (c *channelClient) CloseTickets() (*types.ReplyHashes, error) {
 	return resp.GetData().(*types.ReplyHashes), nil
 }
 
+func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
+	//获取地址账户的余额通过account模块
+	resp, err := accountdb.GetTotalCoins(c.Client, in)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (c *channelClient) IsSync() bool {
 	msg := c.NewMessage("blockchain", types.EventIsSync, nil)
 	err := c.Send(msg, true)
@@ -790,4 +800,27 @@ func (c *channelClient) IsNtpClockSync() bool {
 		return false
 	}
 	return resp.GetData().(*types.IsNtpClockSync).GetIsntpclocksync()
+}
+
+func totalFeeKey(hash []byte) []byte {
+	s := [][]byte{[]byte("TotalFeeKey:"), hash}
+	sep := []byte("")
+	return bytes.Join(s, sep)
+}
+
+func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.LocalReplyValue, error) {
+	var keys [][]byte
+	keys = append(keys, totalFeeKey(in.Hash))
+	msg := c.NewMessage("blockchain", types.EventLocalGet, &types.LocalDBGet{keys})
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("QueryTotalFee", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data.(*types.LocalReplyValue), nil
 }
