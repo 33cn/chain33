@@ -14,14 +14,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
-	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	endLoop  int   = 50
+	endLoop  int   = 10
 	txNumber int64 = 100
 	random   *rand.Rand
 )
@@ -37,19 +36,17 @@ func init() {
 
 // 执行： go test -cover
 func TestSolo(t *testing.T) {
-	q, chain, s, p2pnet, mem := initEnvSolo()
+	q, chain, s, mem := initEnvSolo()
 
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
-
-	defer p2pnet.Close()
 	defer mem.Close()
 
 	sendReplyList(q)
 }
 
-func initEnvSolo() (queue.Queue, *blockchain.BlockChain, *mavl.MavlStore, *p2p.P2p, *mempool.Mempool) {
+func initEnvSolo() (queue.Queue, *blockchain.BlockChain, *mavl.MavlStore, *mempool.Mempool) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
@@ -66,13 +63,10 @@ func initEnvSolo() (queue.Queue, *blockchain.BlockChain, *mavl.MavlStore, *p2p.P
 	cs := New(cfg.Consensus)
 	cs.SetQueueClient(q.Client())
 
-	p2pnet := p2p.New(cfg.P2P)
-	p2pnet.SetQueueClient(q.Client())
-
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 
-	return q, chain, s, p2pnet, mem
+	return q, chain, s, mem
 }
 
 // 向共识发送交易列表
