@@ -37,8 +37,8 @@ type Wallet struct {
 	timeout        *time.Timer
 	minertimeout   *time.Timer
 	isclosed       int32
-	isWalletLocked bool
-	isTicketLocked bool
+	isWalletLocked int32
+	isTicketLocked int32
 	lastHeight     int64
 	autoMinerFlag  int32
 	Password       string
@@ -72,8 +72,8 @@ func New(cfg *types.Wallet) *Wallet {
 	}
 	wallet := &Wallet{
 		walletStore:    walletStore,
-		isWalletLocked: true,
-		isTicketLocked: true,
+		isWalletLocked: 1,
+		isTicketLocked: 1,
 		autoMinerFlag:  0,
 		wg:             &sync.WaitGroup{},
 		FeeAmount:      walletStore.GetFeeAmount(),
@@ -110,8 +110,22 @@ func (wallet *Wallet) Close() {
 	walletlog.Info("wallet module closed")
 }
 
+//返回钱包锁的状态
 func (wallet *Wallet) IsWalletLocked() bool {
-	return wallet.isWalletLocked
+	if atomic.LoadInt32(&wallet.isWalletLocked) == 0 {
+		return false
+	} else {
+		return true
+	}
+}
+
+//返回挖矿买票锁的状态
+func (wallet *Wallet) IsTicketLocked() bool {
+	if atomic.LoadInt32(&wallet.isTicketLocked) == 0 {
+		return false
+	} else {
+		return true
+	}
 }
 
 func (wallet *Wallet) SetQueueClient(client queue.Client) {
@@ -1171,10 +1185,13 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		return err
 	}
 	//保存钱包的锁状态，需要暂时的解锁，函数退出时再恢复回去
-	tempislock := wallet.isWalletLocked
-	wallet.isWalletLocked = false
+	tempislock := atomic.LoadInt32(&wallet.isWalletLocked)
+	//wallet.isWalletLocked = false
+	atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 1, 0)
+
 	defer func() {
-		wallet.isWalletLocked = tempislock
+		//wallet.isWalletLocked = tempislock
+		atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 0, tempislock)
 	}()
 
 	// 钱包已经加密需要验证oldpass的正确性
@@ -1251,8 +1268,8 @@ func (wallet *Wallet) ProcWalletLock() error {
 		return types.ErrSaveSeedFirst
 	}
 
-	wallet.isWalletLocked = true
-	wallet.isTicketLocked = true
+	atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 0, 1)
+	atomic.CompareAndSwapInt32(&wallet.isTicketLocked, 0, 1)
 	return nil
 }
 
@@ -1285,11 +1302,13 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 
 	//walletlog.Error("ProcWalletUnLock !", "WalletOrTicket", WalletUnLock.WalletOrTicket)
 
-	//只解锁挖矿的转账
+	//只解锁挖矿转账
 	if WalletUnLock.WalletOrTicket {
-		wallet.isTicketLocked = false
+		//wallet.isTicketLocked = false
+		atomic.CompareAndSwapInt32(&wallet.isTicketLocked, 1, 0)
 	} else {
-		wallet.isWalletLocked = false
+		//wallet.isWalletLocked = false
+		atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 1, 0)
 	}
 	if WalletUnLock.Timeout != 0 {
 		wallet.resetTimeout(WalletUnLock.WalletOrTicket, WalletUnLock.Timeout)
@@ -1304,7 +1323,8 @@ func (wallet *Wallet) resetTimeout(IsTicket bool, Timeout int64) {
 	if IsTicket {
 		if wallet.minertimeout == nil {
 			wallet.minertimeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-				wallet.isTicketLocked = true
+				//wallet.isTicketLocked = true
+				atomic.CompareAndSwapInt32(&wallet.isTicketLocked, 0, 1)
 			})
 		} else {
 			wallet.minertimeout.Reset(time.Second * time.Duration(Timeout))
@@ -1312,7 +1332,8 @@ func (wallet *Wallet) resetTimeout(IsTicket bool, Timeout int64) {
 	} else { //整个钱包的解锁超时
 		if wallet.timeout == nil {
 			wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-				wallet.isWalletLocked = true
+				//wallet.isWalletLocked = true
+				atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 0, 1)
 			})
 		} else {
 			wallet.timeout.Reset(time.Second * time.Duration(Timeout))
@@ -1664,7 +1685,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 //钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	// 钱包锁定，ticket已经解锁，返回只解锁了ticket的错误
-	if wallet.IsWalletLocked() && !wallet.isTicketLocked {
+	if wallet.IsWalletLocked() && !wallet.IsTicketLocked() {
 		return false, types.ErrOnlyTicketUnLocked
 	} else if wallet.IsWalletLocked() {
 		return false, types.ErrWalletIsLocked
@@ -1683,7 +1704,7 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s.IsWalletLock = wallet.IsWalletLocked()
 	s.IsHasSeed, _ = HasSeed(wallet.walletStore.db)
 	s.IsAutoMining = wallet.isAutoMining()
-	s.IsTicketLock = wallet.isTicketLocked
+	s.IsTicketLock = wallet.IsTicketLocked()
 	return s
 }
 
@@ -2090,7 +2111,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 		return ok, err
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
-	if wallet.isTicketLocked == false {
+	if wallet.IsTicketLocked() == false {
 		if addr == account.ExecAddress("ticket").String() {
 			return true, nil
 		}
