@@ -51,6 +51,7 @@ type TendermintClient struct{
 	Logger        tlog.Logger
 	state         sm.State
 	blockStore    *core.BlockStore
+	stateDB       dbm.DB
 	//ListenPort    string
 	//Moniker       string  //node name
 }
@@ -203,6 +204,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 		csState:          nil,
 		csReactor:        nil,
 		eventBus:         nil,
+		stateDB:          stateDB,
 		//ListenPort:       "36656",
 		//Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
 	}
@@ -261,22 +263,22 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 	//client.csReactor.SwitchToConsensus(client.state, 0)
 	go func() {
 		for {
-			txs, err:=client.GetMempoolTxs()
-			if err != nil {
-				tendermintlog.Error("TendermintClientSetQueue", "msg", "GetMempoolTxs failed", "error", err)
-			} else if len(txs) != 0{
+			lastBlock := client.GetCurrentBlock()
+			txs := client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
+
+			if len(txs) != 0 {
 				tendermintlog.Info("get mempool txs not empty")
-				txs = client.CheckTxDup(txs)
-				lastBlock := client.GetCurrentBlock()
-				if len(txs) != 0{
+				//txs = client.CheckTxDup(txs)
+
+				//if len(txs) != 0{
 					//our chain index init -1, tendermint index init 0
-					client.csState.NewTxsAvailable(lastBlock.Height)
-					tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs comming")
-					select {
-					case finish := <- client.csState.NewTxsFinished :
-							tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
-							continue
-					}
+				client.csState.NewTxsAvailable(lastBlock.Height)
+				tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs comming")
+				select {
+				case finish := <- client.csState.NewTxsFinished :
+						tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
+						continue
+				//	}
 				}
 			}
 			time.Sleep(1*time.Second)
@@ -302,7 +304,7 @@ func (client *TendermintClient) initStateHeight(height int64) {
 	}
 
 	// Make ConsensusReactor
-	csState := core.NewConsensusState(client.BaseClient, state, client.blockStore)
+	csState := core.NewConsensusState(client.BaseClient, state, client.blockStore, client.stateDB)
 	csState.SetPrivValidator(client.privValidator)
 
 	consensusReactor := core.NewConsensusReactor(csState, fastSync)
