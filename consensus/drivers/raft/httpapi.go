@@ -63,7 +63,7 @@ func (h *httpRaftAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func serveHttpRaftAPI(port int, confChangeC chan<- raftpb.ConfChange, errorC <-chan error) {
 	srv := http.Server{
-		Addr: ":" + strconv.Itoa(port),
+		Addr: "localhost:" + strconv.Itoa(port),
 		Handler: &httpRaftAPI{
 			confChangeC: confChangeC,
 		},
