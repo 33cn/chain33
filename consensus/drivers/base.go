@@ -360,23 +360,3 @@ func (bc *BaseClient) ConsensusTicketMiner(iscaughtup *types.IsCaughtUp) {
 		log.Info("ConsensusTicketMiner", "isCaughtUp", bc.isCaughtUp)
 	}
 }
-
-// Mempool中取交易列表
-func (client *BaseClient) GetMempoolTxs() ([]*types.Transaction, error) {
-	if client.client == nil {
-		panic("client not bind message queue.")
-	}
-	//debug.PrintStack()
-	//tlog.Error("requestTx", "time", time.Now().Format(time.RFC3339Nano))
-	msg := client.client.NewMessage("mempool", types.EventGetMempool, nil)
-	err := client.client.Send(msg, true)
-	if err != nil {
-		log.Error("GetMempool", "Error", err.Error())
-		return nil, err
-	}
-	resp, err := client.client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	return resp.GetData().(*types.ReplyTxList).GetTxs(), nil
-}
