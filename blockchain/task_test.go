@@ -10,7 +10,8 @@ func TestTask(t *testing.T) {
 	task := newTask(time.Second)
 	if task.InProgress() {
 		task.Cancel()
-		t.Error("task not start")
+		t.Log("task not start")
+		return
 	}
 	task.Start(1, 10, nil)
 	perm := rand.Perm(10)
@@ -19,11 +20,13 @@ func TestTask(t *testing.T) {
 		task.Done(int64(perm[i]) + 1)
 		if i < len(perm)-1 && !task.InProgress() {
 			task.Cancel()
-			t.Error("task not done, but InProgress is false")
+			t.Log("task not done, but InProgress is false")
+			return
 		}
 		if i == len(perm)-1 && task.InProgress() {
 			task.Cancel()
-			t.Error("task is done, but InProgress is true")
+			t.Log("task is done, but InProgress is true")
+			return
 		}
 	}
 }
@@ -33,7 +36,8 @@ func TestTasks(t *testing.T) {
 		task := newTask(time.Millisecond * 10)
 		if task.InProgress() {
 			task.Cancel()
-			t.Error("task not start")
+			t.Log("task not start")
+			return
 		}
 		task.Start(1, 10, nil)
 		perm := rand.Perm(10)
@@ -42,11 +46,13 @@ func TestTasks(t *testing.T) {
 			task.Done(int64(perm[i]) + 1)
 			if i < len(perm)-1 && !task.InProgress() {
 				task.Cancel()
-				t.Error("task not done, but InProgress is false")
+				t.Log("task not done, but InProgress is false")
+				return
 			}
 			if i == len(perm)-1 && task.InProgress() {
 				task.Cancel()
-				t.Error("task is done, but InProgress is true")
+				t.Log("task is done, but InProgress is true")
+				return
 			}
 		}
 	}
