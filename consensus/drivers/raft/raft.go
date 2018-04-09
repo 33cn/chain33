@@ -106,7 +106,8 @@ func (rc *raftNode) startRaft() {
 	// 有snapshot就打开，没有则创建
 	if !fileutil.Exist(rc.snapdir) {
 		if err := os.Mkdir(rc.snapdir, 0750); err != nil {
-			rlog.Error("chain33_raft: cannot create dir for snapshot (%v)", err)
+			rlog.Error(fmt.Sprintf("chain33_raft: cannot create dir for snapshot (%v)", err.Error()))
+			panic(err)
 		}
 	}
 
@@ -172,24 +173,31 @@ func (rc *raftNode) startRaft() {
 // 网络监听
 func (rc *raftNode) serveRaft() {
 	var peers []string
+	//TODO: 配置太繁琐，有风险
 	peers = append(peers, rc.bootstrapPeers...)
 	peers = append(peers, rc.readOnlyPeers...)
 	peers = append(peers, rc.addPeers...)
 	nodeURL, err := url.Parse(peers[rc.id-1])
 	if err != nil {
-		rlog.Error("raft: Failed parsing URL (%v)", err)
+		rlog.Error(fmt.Sprintf("raft: Failed parsing URL (%v)", err.Error()))
+		panic(err)
 	}
 
 	ln, err := newStoppableListener(nodeURL.Host, rc.httpstopc)
 	if err != nil {
-		rlog.Error("raft: Failed to listen rafthttp (%v)", err)
+		rlog.Error(fmt.Sprintf("raft: Failed to listen rafthttp (%v)", err.Error()))
+		panic(err)
 	}
 
 	err = (&http.Server{Handler: rc.transport.Handler()}).Serve(ln)
+	if err != nil {
+		rlog.Error(fmt.Sprintf("raft: Failed to serve rafthttp (%v)", err.Error()))
+		panic(err)
+	}
 	select {
 	case <-rc.httpstopc:
 	default:
-		rlog.Error("raft: Failed to serve rafthttp (%v)", err)
+		rlog.Error(fmt.Sprintf("raft: Failed to serve rafthttp (%v)", err.Error()))
 	}
 	close(rc.httpdonec)
 }
@@ -219,7 +227,7 @@ func (rc *raftNode) serveChannels() {
 				} else {
 					out, err := proto.Marshal(prop)
 					if err != nil {
-						rlog.Error("failed to marshal block: ", err)
+						rlog.Error(fmt.Sprintf("failed to marshal block:%v ", err.Error()))
 					}
 					rc.node.Propose(context.TODO(), out)
 				}
@@ -315,12 +323,12 @@ func (rc *raftNode) Status() raft.Status {
 }
 
 func (rc *raftNode) replayWAL() *wal.WAL {
-	rlog.Info("replaying WAL of member %d", rc.id)
+	rlog.Info(fmt.Sprintf("replaying WAL of member %v", rc.id))
 	snapshot := rc.loadSnapshot()
 	w := rc.openWAL(snapshot)
 	_, st, ents, err := w.ReadAll()
 	if err != nil {
-		rlog.Error("chain33_raft: failed to read WAL (%v)", err)
+		rlog.Error(fmt.Sprintf("chain33_raft: failed to read WAL (%v)", err.Error()))
 	}
 	rc.raftStorage = raft.NewMemoryStorage()
 	if snapshot != nil {
@@ -342,7 +350,7 @@ func (rc *raftNode) replayWAL() *wal.WAL {
 func (rc *raftNode) loadSnapshot() *raftpb.Snapshot {
 	snapshot, err := rc.snapshotter.Load()
 	if err != nil && err != snap.ErrNoSnapshot {
-		rlog.Error("chain33_raft: error loading snapshot (%v)", err)
+		rlog.Error(fmt.Sprintf("chain33_raft: error loading snapshot (%v)", err.Error()))
 	}
 	return snapshot
 }
@@ -366,10 +374,10 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 		return
 	}
 
-	rlog.Info("start snapshot [applied index: %d | last snapshot index: %d]", rc.appliedIndex, rc.snapshotIndex)
+	rlog.Info(fmt.Sprintf("start snapshot [applied index: %d | last snapshot index: %d]", rc.appliedIndex, rc.snapshotIndex))
 	data, err := rc.getSnapshot()
 	if err != nil {
-		rlog.Error("Err happened when get snapshot")
+		rlog.Error(fmt.Sprintf("Err happened when get snapshot:%v", err.Error()))
 	}
 	snapShot, err := rc.raftStorage.CreateSnapshot(rc.appliedIndex, &rc.confState, data)
 	if err != nil {
@@ -387,7 +395,7 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 		panic(err)
 	}
 
-	rlog.Info("compacted log at index %d", compactIndex)
+	rlog.Info(fmt.Sprintf("compacted log at index %d", compactIndex))
 	rc.snapshotIndex = rc.appliedIndex
 }
 
@@ -396,11 +404,11 @@ func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
 		return
 	}
 
-	rlog.Info("publishing snapshot at index %d", rc.snapshotIndex)
+	rlog.Info(fmt.Sprintf("publishing snapshot at index %d", rc.snapshotIndex))
 	defer rlog.Info("finished publishing snapshot at index %d", rc.snapshotIndex)
 
 	if snapshotToSave.Metadata.Index <= rc.appliedIndex {
-		rlog.Error("snapshot index [%d] should > progress.appliedIndex [%d] + 1", snapshotToSave.Metadata.Index, rc.appliedIndex)
+		rlog.Error(fmt.Sprintf("snapshot index [%d] should > progress.appliedIndex [%d] + 1", snapshotToSave.Metadata.Index, rc.appliedIndex))
 	}
 	rc.commitC <- nil // trigger kvstore to load snapshot
 
@@ -412,12 +420,12 @@ func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
 func (rc *raftNode) openWAL(snapshot *raftpb.Snapshot) *wal.WAL {
 	if !wal.Exist(rc.waldir) {
 		if err := os.Mkdir(rc.waldir, 0750); err != nil {
-			rlog.Error("chain33_raft: cannot create dir for wal (%v)", err)
+			rlog.Error(fmt.Sprintf("chain33_raft: cannot create dir for wal (%v)", err.Error()))
 		}
 
 		w, err := wal.Create(rc.waldir, nil)
 		if err != nil {
-			rlog.Error("chain33_raft: create wal error (%v)", err)
+			rlog.Error(fmt.Sprintf("chain33_raft: create wal error (%v)", err))
 		}
 		w.Close()
 	}
@@ -426,10 +434,10 @@ func (rc *raftNode) openWAL(snapshot *raftpb.Snapshot) *wal.WAL {
 	if snapshot != nil {
 		walsnap.Index, walsnap.Term = snapshot.Metadata.Index, snapshot.Metadata.Term
 	}
-	rlog.Info("loading WAL at term %d and index %d", walsnap.Term, walsnap.Index)
+	rlog.Info(fmt.Sprintf("loading WAL at term %d and index %d", walsnap.Term, walsnap.Index))
 	w, err := wal.Open(rc.waldir, walsnap)
 	if err != nil {
-		rlog.Error("chain33_raft: error loading wal (%v)", err)
+		rlog.Error(fmt.Sprintf("chain33_raft: error loading wal (%v)", err.Error()))
 	}
 
 	return w
@@ -468,7 +476,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 			// 解码
 			block := &types.Block{}
 			if err := proto.Unmarshal(ents[i].Data, block); err != nil {
-				rlog.Error("failed to unmarshal: ", err)
+				rlog.Error(fmt.Sprintf("failed to unmarshal: ", err.Error()))
 			}
 			select {
 			case rc.commitC <- block:
@@ -519,7 +527,7 @@ func (rc *raftNode) entriesToApply(ents []raftpb.Entry) (nents []raftpb.Entry) {
 	}
 	firstIdx := ents[0].Index
 	if firstIdx > rc.appliedIndex+1 {
-		rlog.Error("first index of committed entry[%d] should <= progress.appliedIndex[%d] 1", firstIdx, rc.appliedIndex)
+		rlog.Error(fmt.Sprintf("first index of committed entry[%d] should <= progress.appliedIndex[%d] 1", firstIdx, rc.appliedIndex))
 	}
 	if rc.appliedIndex-firstIdx+1 < uint64(len(ents)) {
 		nents = ents[rc.appliedIndex-firstIdx+1:]
