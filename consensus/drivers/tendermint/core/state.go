@@ -22,6 +22,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/gogo/protobuf/proto"
 	cmn "github.com/tendermint/tmlibs/common"
+	dbm "github.com/tendermint/tmlibs/db"
 )
 
 //-----------------------------------------------------------------------------
@@ -121,10 +122,12 @@ type ConsensusState struct {
 
 	NewTxsHeight  chan int64
 	NewTxsFinished   chan bool
+
+	stateDB dbm.DB
 }
 
 // NewConsensusState returns a new ConsensusState.
-func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *BlockStore) *ConsensusState {
+func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *BlockStore, stateDB dbm.DB) *ConsensusState {
 	cs := &ConsensusState{
 		client:           client,
 		//blockExec:        blockExec,
@@ -140,6 +143,7 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 		evpool:           ttypes.MockEvidencePool{},
 		NewTxsHeight:     make(chan int64, 1),
 		NewTxsFinished:   make(chan bool),
+		stateDB:          stateDB,
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -1438,6 +1442,7 @@ func (cs *ConsensusState) updateState(state sm.State, block *ttypes.Block, block
 		LastResultsHash:                  nil,//abciResponses.ResultsHash(),
 		AppHash:                          nil,
 	}
+	sm.SaveState(cs.stateDB, state)
 	cs.updateToState(state)
 }
 //-----------------------------------------------------------------------------

@@ -67,7 +67,7 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["192.168.3.13:46656","192.168.3.4:46656"]
+seeds=["192.168.3.4:46656","192.168.3.13:46656"]
 
 [store]
 name="mavl"
