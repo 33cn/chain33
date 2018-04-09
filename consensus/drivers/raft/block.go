@@ -59,7 +59,7 @@ func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false,true)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
 	if err != nil { //never happen
 		return nil, deltx, err
 	}
@@ -115,7 +115,8 @@ func (client *RaftClient) InitBlock() {
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		err := client.WriteBlock(zeroHash[:], newblock)
 		if err != nil {
-			rlog.Error("chain33 init block failed!", err)
+			rlog.Error(fmt.Sprintf("chain33 init block failed!", err.Error()))
+			return
 		}
 		client.SetCurrentBlock(newblock)
 	} else {
@@ -146,10 +147,10 @@ func (client *RaftClient) CreateBlock() {
 			continue
 		}
 		issleep = false
-		rlog.Info("==================start create new block!=====================")
+		rlog.Debug("==================start create new block!=====================")
 		//check dup
-		txs = client.CheckTxDup(txs)
-		rlog.Info(fmt.Sprintf("the len txs is: %v", len(txs)))
+		//txs = client.CheckTxDup(txs)
+		rlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -165,7 +166,7 @@ func (client *RaftClient) CreateBlock() {
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			issleep = true
-			rlog.Error("********************err:"+err.Error(), nil)
+			rlog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 			continue
 		}
 
@@ -186,7 +187,7 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 			if data == nil {
 				continue
 			}
-			rlog.Info("===============Get block from commit channel===========")
+			rlog.Debug("===============Get block from commit channel===========")
 			// 在程序刚开始启动的时候有可能存在丢失数据的问题
 			client.SetCurrentBlock(data)
 
