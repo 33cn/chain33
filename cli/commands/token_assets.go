@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -40,10 +39,10 @@ func tokenAssets(cmd *cobra.Command, args []string) {
 		Execer:  execer,
 	}
 
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetAccountTokenAssets"
-	params.Payload = hex.EncodeToString(types.Encode(&req))
+	params.Payload = req
 	rpc, err := jsonrpc.NewJsonClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
