@@ -365,4 +365,3 @@ func ValidSymbol(cs []byte) bool {
 	}
 	return true
 }
-
