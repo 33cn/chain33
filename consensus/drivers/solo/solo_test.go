@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/store"
 )
 
 var (
@@ -36,17 +37,17 @@ func init() {
 
 // 执行： go test -cover
 func TestSolo(t *testing.T) {
-	q, chain, s, mem := initEnvSolo()
+	q, chain, mem, s := initEnvSolo()
 
 	defer chain.Close()
-	defer s.Close()
 	defer q.Close()
 	defer mem.Close()
+	defer s.Close()
 
 	sendReplyList(q)
 }
 
-func initEnvSolo() (queue.Queue, *blockchain.BlockChain, *mavl.MavlStore, *mempool.Mempool) {
+func initEnvSolo() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
@@ -57,7 +58,7 @@ func initEnvSolo() (queue.Queue, *blockchain.BlockChain, *mavl.MavlStore, *mempo
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
 
-	s := mavl.New(cfg.Store)
+	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
 
 	cs := New(cfg.Consensus)
@@ -66,7 +67,7 @@ func initEnvSolo() (queue.Queue, *blockchain.BlockChain, *mavl.MavlStore, *mempo
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 
-	return q, chain, s, mem
+	return q, chain, mem, s
 }
 
 // 向共识发送交易列表
