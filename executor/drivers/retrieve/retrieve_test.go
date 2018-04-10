@@ -72,7 +72,7 @@ func init() {
 	addrexec = account.ExecAddress("retrieve")
 }
 
-func TestInitAccount(t *testing.T) {
+func estInitAccount(t *testing.T) {
 	fmt.Println("\nTestInitAccount start")
 	fmt.Println("*This case is used for initilizing accounts\n*Four accounts A/B/a/b will be set as 1e10/1e10/50*fee/50*fee, 50*fee is used for passing check in mempool\n")
 	defer fmt.Println("TestInitAccount end\n")
@@ -144,7 +144,7 @@ func TestInitAccount(t *testing.T) {
 	currBalanceb = 50 * fee
 }
 
-func TestRetrieveBackup(t *testing.T) {
+func estRetrieveBackup(t *testing.T) {
 
 	fmt.Println("\nTestRetrieveBackup start")
 	fmt.Println("*This case is used for checking backup operation\n*Backup action is done with privkey of account A/B, Backup: A->a, A->b, B->b;\n*currentbalanceA = currentbalanceA- 2*1e8 - 3*fee. currentbalanceB = currentbalanceB - 1e8 - 2*fee\n")
@@ -219,7 +219,7 @@ func TestRetrieveBackup(t *testing.T) {
 	}
 }
 
-func TestRetrievePrepare(t *testing.T) {
+func estRetrievePrepare(t *testing.T) {
 	fmt.Println("\nTestRetrievePrepare start")
 	fmt.Println("*This case is used for checking prepare operation\n*Prepare action is done with privkey of account a/b, currBalancea = currBalancea- fee,currBalanceb = currBalanceb -2*fee\n")
 	defer fmt.Println("TestRetrievePrepare end\n")
@@ -273,7 +273,7 @@ func TestRetrievePrepare(t *testing.T) {
 	return
 }
 
-func TestRetrievePerform(t *testing.T) {
+func estRetrievePerform(t *testing.T) {
 	fmt.Println("\nTestRetrievePerform start")
 	fmt.Println("*This case is used for checking perform operation\n*perform action is done with privkey of account a/b, b can't withdraw balance as time is not enough\n*currBalancea = currBalancea +2*1e8 -2*fee, currBalanceb = currBalanceb -2*fee\n")
 	defer fmt.Println("TestRetrievePerform end\n")
@@ -341,7 +341,7 @@ func TestRetrievePerform(t *testing.T) {
 	}
 }
 
-func TestRetrieveCancel(t *testing.T) {
+func estRetrieveCancel(t *testing.T) {
 	fmt.Println("\nTestRetrieveCancel start")
 	fmt.Println("*This case is used for checking cancel operation\n*Cancel action is done with privkey of account A/B, although the cancel action for A could succeed, but the balance have been transfered by last action with backup a\n*currBalanceA = currBalanceA - 2*fee currBalanceB = currBalanceB + 1e8 - 2*fee\n")
 	defer fmt.Println("TestRetrieveCancel end\n")
@@ -402,7 +402,7 @@ func TestRetrieveCancel(t *testing.T) {
 	}
 }
 
-func TestRetrievePerformB(t *testing.T) {
+func estRetrievePerformB(t *testing.T) {
 	fmt.Println("\nTestRetrievePerformB start")
 	fmt.Println("*This case is used for checking perform operation for B again\n*perform action is done with privkey of account b, b can't withdraw balance as it has been canceled before\n*currBalanceb = currBalanceb -2*fee\n")
 	defer fmt.Println("TestRetrievePerformB end\n")

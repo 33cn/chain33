@@ -100,7 +100,7 @@ func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mo
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New()
+	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 
 	s := store.New(cfg.Store)
@@ -129,7 +129,7 @@ func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mod
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New()
+	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 
 	s := store.New(cfg.Store)
@@ -431,7 +431,7 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 	mem.client.Send(msg5, true)
 	mem.client.Wait(msg5)
 
-	if mem.Size() != 4 || mem.cache.Exists(tx5) {
+	if mem.Size() != 4 || mem.cache.Exists(tx5.Hash()) {
 		t.Error("TestAddMoreTxThanPoolSize failed")
 	}
 

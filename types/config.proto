@@ -12,7 +12,8 @@ message Config {
 	BlockChain blockChain = 7;
 	Wallet wallet = 8;
 	P2P p2p = 9;
-	Rpc rpc=10;
+	Rpc rpc = 10;
+	Exec exec = 11;
 }
 
 message Log {
@@ -97,4 +98,9 @@ message Rpc {
 	string jrpcBindAddr=1;
 	string grpcBindAddr=2;
 	repeated string whitlist=3;
+}
+
+message Exec {
+	int64 minExecFee = 1;
+	bool  isFree = 2;
 }
