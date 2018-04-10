@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cli/commands"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/common/version"
 )
 
 var rootCmd = &cobra.Command{
@@ -19,7 +19,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version info",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(common.GetVersion())
+		fmt.Println(version.GetVersion())
 	},
 }
 
