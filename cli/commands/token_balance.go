@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -24,7 +24,7 @@ func TokenBalanceCmd() *cobra.Command {
 }
 
 func addTokenBalanceFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&token, "token", "t", "", "token symbol")
+	cmd.Flags().StringVarP(&tokenName, "token", "t", "", "token symbol")
 	cmd.MarkFlagRequired("token")
 
 	cmd.Flags().StringP("exec", "e", "", "execer name")
