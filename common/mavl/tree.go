@@ -175,6 +175,48 @@ func (t *MAVLTree) Remove(key []byte) (value []byte, removed bool) {
 	return value, true
 }
 
+// 依次迭代遍历树的所有键
+func (t *MAVLTree) Iterate(fn func(key []byte, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverse(t, true, func(node *MAVLNode) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
+// 在start和end之间的键进行迭代回调[start, end)
+func (t *MAVLTree) IterateRange(start, end []byte, ascending bool, fn func(key []byte, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverseInRange(t, start, end, ascending, false, 0, func(node *MAVLNode, _ uint8) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
+// 在start和end之间的键进行迭代回调[start, end]
+func (t *MAVLTree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(key, value []byte) bool) (stopped bool) {
+	if t.root == nil {
+		return false
+	}
+	return t.root.traverseInRange(t, start, end, ascending, true, 0, func(node *MAVLNode, _ uint8) bool {
+		if node.height == 0 {
+			return fn(node.key, node.value)
+		} else {
+			return false
+		}
+	})
+}
+
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
@@ -313,4 +355,12 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 		}
 	}
 	return
+}
+
+func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending bool, fn func([]byte, []byte) bool) {
+	tree := NewMAVLTree(db, true)
+	tree.Load(statehash)
+	//treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
+
+	tree.IterateRange(start, end, ascending, fn)
 }

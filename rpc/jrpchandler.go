@@ -7,6 +7,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -794,7 +795,16 @@ func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
 }
 
 func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
-	*result = common.GetVersion()
+	*result = version.GetVersion()
+	return nil
+}
+
+func (c *Chain33) GetTotalCoins(in *types.ReqGetTotalCoins, result *interface{}) error {
+	resp, err := c.cli.GetTotalCoins(in)
+	if err != nil {
+		return err
+	}
+	*result = resp
 	return nil
 }
 
@@ -1197,5 +1207,20 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 
 func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 	*result = c.cli.IsNtpClockSync()
+	return nil
+}
+
+func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
+	reply, err := c.cli.QueryTotalFee(in)
+	if err != nil {
+		return err
+	}
+
+	var fee types.TotalFee
+	err = types.Decode(reply.Values[0], &fee)
+	if err != nil {
+		return err
+	}
+	*result = fee
 	return nil
 }

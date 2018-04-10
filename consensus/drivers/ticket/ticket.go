@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	driver "gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -300,10 +301,10 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 		return types.ErrCoinBaseTarget
 	}
 	//当前难度
-	currentTarget := common.CompactToBig(current.Block.Difficulty)
-	if currentTarget.Cmp(common.CompactToBig(miner.Bits)) != 0 {
+	currentTarget := difficulty.CompactToBig(current.Block.Difficulty)
+	if currentTarget.Cmp(difficulty.CompactToBig(miner.Bits)) != 0 {
 		tlog.Error("block error: calc tagget not the same to miner",
-			"cacl", printBInt(currentTarget), "current", printBInt(common.CompactToBig(miner.Bits)))
+			"cacl", printBInt(currentTarget), "current", printBInt(difficulty.CompactToBig(miner.Bits)))
 		return types.ErrCoinBaseTarget
 	}
 	if currentTarget.Cmp(target) != 0 {
@@ -321,21 +322,21 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 
 func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big.Int, []byte, error) {
 	if block.Height == 0 {
-		powLimit := common.CompactToBig(types.GetP(0).PowLimitBits)
+		powLimit := difficulty.CompactToBig(types.GetP(0).PowLimitBits)
 		return powLimit, defaultModify, nil
 	}
 	targetBits, modify, err := client.GetNextRequiredDifficulty(block, bits)
 	if err != nil {
 		return nil, nil, err
 	}
-	return common.CompactToBig(targetBits), modify, nil
+	return difficulty.CompactToBig(targetBits), modify, nil
 }
 
 func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
 	s := fmt.Sprintf("%d:%s:%x", blocktime, id, modify)
 	hash := common.Sha2Sum([]byte(s))
-	num := common.HashToBig(hash[:])
-	return common.CompactToBig(common.BigToCompact(num))
+	num := difficulty.HashToBig(hash[:])
+	return difficulty.CompactToBig(difficulty.BigToCompact(num))
 }
 
 // calcNextRequiredDifficulty calculates the required difficulty for the block
@@ -395,13 +396,13 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	// The result uses integer division which means it will be slightly
 	// rounded down.  Bitcoind also uses integer division to calculate this
 	// result.
-	oldTarget := common.CompactToBig(bits)
+	oldTarget := difficulty.CompactToBig(bits)
 	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
 	targetTimeSpan := int64(cfg.TargetTimespan / time.Second)
 	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
 
 	// Limit new value to the proof of work limit.
-	powLimit := common.CompactToBig(cfg.PowLimitBits)
+	powLimit := difficulty.CompactToBig(cfg.PowLimitBits)
 	if newTarget.Cmp(powLimit) > 0 {
 		newTarget.Set(powLimit)
 	}
@@ -410,10 +411,10 @@ func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits u
 	// intentionally converting the bits back to a number instead of using
 	// newTarget since conversion to the compact representation loses
 	// precision.
-	newTargetBits := common.BigToCompact(newTarget)
+	newTargetBits := difficulty.BigToCompact(newTarget)
 	tlog.Info(fmt.Sprintf("Difficulty retarget at block height %d", block.Height+1))
 	tlog.Info(fmt.Sprintf("Old target %08x, (%064x)", bits, oldTarget))
-	tlog.Info(fmt.Sprintf("New target %08x, (%064x)", newTargetBits, common.CompactToBig(newTargetBits)))
+	tlog.Info(fmt.Sprintf("New target %08x, (%064x)", newTargetBits, difficulty.CompactToBig(newTargetBits)))
 	tlog.Info("Timespan", "Actual timespan", time.Duration(actualTimespan)*time.Second,
 		"adjusted timespan", time.Duration(adjustedTimespan)*time.Second,
 		"target timespan", cfg.TargetTimespan)
@@ -516,7 +517,7 @@ func (client *TicketClient) addMinerTx(parent, block *types.Block, diff *big.Int
 	var ticketAction types.TicketAction
 	miner := &types.TicketMiner{}
 	miner.TicketId = tid
-	miner.Bits = common.BigToCompact(diff)
+	miner.Bits = difficulty.BigToCompact(diff)
 	miner.Modify = modify
 	miner.Reward = types.GetP(block.Height).CoinReward + fee
 	ticketAction.Value = &types.TicketAction_Miner{miner}

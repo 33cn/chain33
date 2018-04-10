@@ -73,3 +73,5 @@ dbPath="datadir/wallet"
 signType="secp256k1"
 
 [exec]
+isFree=false
+minExecFee=100000
