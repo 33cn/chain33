@@ -25,6 +25,7 @@ import (
 	wire "github.com/tendermint/go-wire"
 	"sync"
 	"gitlab.33.cn/chain33/chain33/util"
+	bc "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/blockchain"
 )
 
 var (
@@ -285,7 +286,7 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 		}
 	}()
 
-	go client.checkValidator2StartConsensus()
+	//go client.checkValidator2StartConsensus()
 	go client.EventLoop()
 	//go client.child.CreateBlock()
 }
@@ -303,14 +304,24 @@ func (client *TendermintClient) initStateHeight(height int64) {
 		}
 	}
 
+	evidencePool := ttypes.MockEvidencePool{}
+
+	blockExecLogger := client.Logger.With("module", "state")
+	// make block executor for consensus and blockchain reactors to execute blocks
+	blockExec := sm.NewBlockExecutor(client.stateDB, blockExecLogger, evidencePool)
+
+	// Make BlockchainReactor
+	bcReactor := bc.NewBlockchainReactor(state.Copy(), blockExec, client.blockStore, fastSync)
+
 	// Make ConsensusReactor
-	csState := core.NewConsensusState(client.BaseClient, state, client.blockStore, client.stateDB)
+	csState := core.NewConsensusState(client.BaseClient, state, client.blockStore, blockExec, evidencePool)
 	csState.SetPrivValidator(client.privValidator)
 
 	consensusReactor := core.NewConsensusReactor(csState, fastSync)
 
 	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
 	sw.AddReactor("CONSENSUS", consensusReactor)
+	sw.AddReactor("BLOCKCHAIN", bcReactor)
 
 	eventBus := ttypes.NewEventBus()
 	// services which will be publishing and/or subscribing for messages (events)

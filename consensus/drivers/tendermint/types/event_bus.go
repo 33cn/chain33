@@ -41,11 +41,11 @@ func (b *EventBus) SetLogger(l log.Logger) {
 */
 
 func (b *EventBus) Start() error {
-	return b.pubsub.OnStart()
+	return b.pubsub.Start()
 }
 
 func (b *EventBus) Stop() {
-	b.pubsub.OnStop()
+	b.pubsub.Stop()
 }
 
 func (b *EventBus) Subscribe(ctx context.Context, subscriber string, query Query, out chan<- interface{}) error {

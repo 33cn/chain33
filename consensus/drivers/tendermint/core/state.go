@@ -22,7 +22,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/gogo/protobuf/proto"
 	cmn "github.com/tendermint/tmlibs/common"
-	dbm "github.com/tendermint/tmlibs/db"
 )
 
 //-----------------------------------------------------------------------------
@@ -76,11 +75,11 @@ type ConsensusState struct {
 	// config details
 	client        *drivers.BaseClient
 	privValidator ttypes.PrivValidator // for signing votes
-/*
+
 	// services for creating and executing blocks
 	// TODO: encapsulate all of this in one "BlockManager"
 	blockExec  *sm.BlockExecutor
-
+/*
 	mempool    ttypes.Mempool
 */
 	blockStore *BlockStore
@@ -122,12 +121,10 @@ type ConsensusState struct {
 
 	NewTxsHeight  chan int64
 	NewTxsFinished   chan bool
-
-	stateDB dbm.DB
 }
 
 // NewConsensusState returns a new ConsensusState.
-func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *BlockStore, stateDB dbm.DB) *ConsensusState {
+func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *BlockStore, blockExec *sm.BlockExecutor, evpool ttypes.EvidencePool) *ConsensusState {
 	cs := &ConsensusState{
 		client:           client,
 		//blockExec:        blockExec,
@@ -140,10 +137,10 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 		doWALCatchup:     true,
 		//wal:              nilWAL{},
 		// mock the evidence pool hg 20180227
-		evpool:           ttypes.MockEvidencePool{},
+		evpool:           evpool,
 		NewTxsHeight:     make(chan int64, 1),
 		NewTxsFinished:   make(chan bool),
-		stateDB:          stateDB,
+		blockExec:          blockExec,
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -168,8 +165,7 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 // SetEventBus sets event bus.
 func (cs *ConsensusState) SetEventBus(b *ttypes.EventBus) {
 	cs.eventBus = b
-	//publish hg 20180226
-	//cs.blockExec.SetEventBus(b)
+	cs.blockExec.SetEventBus(b)
 }
 
 // String returns a string.
@@ -1044,7 +1040,7 @@ func (cs *ConsensusState) defaultDoPrevote(height int64, round int) {
 	}
 
 	// Validate proposal block
-	err := validateBlock(cs.state, cs.ProposalBlock)
+	err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock)
 	if err != nil {
 		// ProposalBlock is invalid, prevote nil.
 		logger.Error("enterPrevote: ProposalBlock is invalid", "err", err)
@@ -1152,7 +1148,7 @@ func (cs *ConsensusState) enterPrecommit(height int64, round int) {
 	if cs.ProposalBlock.HashesTo(blockID.Hash) {
 		cs.Logger.Info("enterPrecommit: +2/3 prevoted proposal block. Locking", "hash", blockID.Hash)
 		// Validate the block.
-		if err := validateBlock(cs.state, cs.ProposalBlock); err != nil {
+		if err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock); err != nil {
 			panic(fmt.Sprintf("Panicked on a Consensus Failure: %v",fmt.Sprintf("enterPrecommit: +2/3 prevoted for an invalid block: %v", err)))
 		}
 		cs.LockedRound = round
@@ -1287,7 +1283,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	if !block.HashesTo(blockID.Hash) {
 		panic(fmt.Sprintf("Panicked on a Sanity Check: %v",fmt.Sprintf("Cannot finalizeCommit, ProposalBlock does not hash to commit hash")))
 	}
-	if err := validateBlock(cs.state, block); err != nil {
+	if err := cs.blockExec.ValidateBlock(cs.state, block); err != nil {
 		panic(fmt.Sprintf("Panicked on a Sanity Check: %v",fmt.Sprintf("+2/3 committed an invalid block: %v", err)))
 	}
 
@@ -1366,19 +1362,16 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	} else {
 		for {
 			 if cs.client.GetCurrentHeight() == block.Height {
-			 	cs.Logger.Info("inalizeCommit:get current height equal")
+			 	cs.Logger.Info("finalizeCommit:get current height equal")
 			 	break
 			} else {
-				cs.Logger.Info("inalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
+				cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
 				time.Sleep(10*time.Millisecond)
 			 }
 		}
 	}
 	cs.NewTxsFinished <- true
-	cs.Logger.Info("state before:", "state", stateCopy)
-	cs.updateState(stateCopy, block, blockID)
-	cs.Logger.Info("state after:", "state", stateCopy)
-	/*
+
 	// NOTE: the block.AppHash wont reflect these txs until the next block
 	var err error
 	stateCopy, err = cs.blockExec.ApplyBlock(stateCopy, ttypes.BlockID{block.Hash(), blockParts.Header()}, block)
@@ -1390,12 +1383,11 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		}
 		return
 	}
-	*/
 
 	fail.Fail() // XXX
 
 	// NewHeightStep!
-	//cs.updateToState(stateCopy)
+	cs.updateToState(stateCopy)
 
 	fail.Fail() // XXX
 
@@ -1410,41 +1402,6 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// * cs.StartTime is set to when we will start round0.
 }
 
-func (cs *ConsensusState) updateState(state sm.State, block *ttypes.Block, blockID ttypes.BlockID) {
-	// copy the valset so we can apply changes from EndBlock
-	// and update s.LastValidators and s.Validators
-	prevValSet := state.Validators.Copy()
-	nextValSet := prevValSet.Copy()
-	// update the validator set with the latest abciResponses
-	lastHeightValsChanged := state.LastHeightValidatorsChanged
-
-	// Update validator accums and set state variables
-	nextValSet.IncrementAccum(1)
-
-	// update the params with the latest abciResponses
-	nextParams := state.ConsensusParams
-	lastHeightParamsChanged := state.LastHeightConsensusParamsChanged
-
-
-	// NOTE: the AppHash has not been populated.
-	// It will be filled on state.Save.
-	state = sm.State{
-		ChainID:                          state.ChainID,
-		LastBlockHeight:                  block.Header.Height,
-		LastBlockTotalTx:                 state.LastBlockTotalTx + block.Header.NumTxs,
-		LastBlockID:                      blockID,
-		LastBlockTime:                    block.Header.Time,
-		Validators:                       nextValSet,
-		LastValidators:                   state.Validators.Copy(),
-		LastHeightValidatorsChanged:      lastHeightValsChanged,
-		ConsensusParams:                  nextParams,
-		LastHeightConsensusParamsChanged: lastHeightParamsChanged,
-		LastResultsHash:                  nil,//abciResponses.ResultsHash(),
-		AppHash:                          nil,
-	}
-	sm.SaveState(cs.stateDB, state)
-	cs.updateToState(state)
-}
 //-----------------------------------------------------------------------------
 
 func (cs *ConsensusState) defaultSetProposal(proposal *ttypes.Proposal) error {
@@ -1756,76 +1713,4 @@ func (cs *ConsensusState) PeerGossipSleep() time.Duration {
 // PeerQueryMaj23Sleep returns the amount of time to sleep after each VoteSetMaj23Message is sent in the ConsensusReactor
 func (cs *ConsensusState) PeerQueryMaj23Sleep() time.Duration {
 	return time.Duration(/*cs.PeerQueryMaj23SleepDuration*/2000) * time.Millisecond
-}
-
-func validateBlock(s sm.State, b *ttypes.Block) error {
-	// validate internal consistency
-	if err := b.ValidateBasic(); err != nil {
-		return err
-	}
-
-	// validate basic info
-	if b.ChainID != s.ChainID {
-		return fmt.Errorf("Wrong Block.Header.ChainID. Expected %v, got %v", s.ChainID, b.ChainID)
-	}
-	if b.Height != s.LastBlockHeight+1 {
-		return fmt.Errorf("Wrong Block.Header.Height. Expected %v, got %v", s.LastBlockHeight+1, b.Height)
-	}
-	/*	TODO: Determine bounds for Time
-		See blockchain/reactor "stopSyncingDurationMinutes"
-
-		if !b.Time.After(lastBlockTime) {
-			return errors.New("Invalid Block.Header.Time")
-		}
-	*/
-
-	// validate prev block info
-	if !b.LastBlockID.Equals(s.LastBlockID) {
-		return fmt.Errorf("Wrong Block.Header.LastBlockID.  Expected %v, got %v", s.LastBlockID, b.LastBlockID)
-	}
-	newTxs := int64(len(b.Data.Txs))
-	if b.TotalTxs != s.LastBlockTotalTx+newTxs {
-		return fmt.Errorf("Wrong Block.Header.TotalTxs. Expected %v, got %v", s.LastBlockTotalTx+newTxs, b.TotalTxs)
-	}
-
-	// validate app info
-	if !bytes.Equal(b.AppHash, s.AppHash) {
-		return fmt.Errorf("Wrong Block.Header.AppHash.  Expected %X, got %v", s.AppHash, b.AppHash)
-	}
-	if !bytes.Equal(b.ConsensusHash, s.ConsensusParams.Hash()) {
-		return fmt.Errorf("Wrong Block.Header.ConsensusHash.  Expected %X, got %v", s.ConsensusParams.Hash(), b.ConsensusHash)
-	}
-	if !bytes.Equal(b.LastResultsHash, s.LastResultsHash) {
-		return fmt.Errorf("Wrong Block.Header.LastResultsHash.  Expected %X, got %v", s.LastResultsHash, b.LastResultsHash)
-	}
-	if !bytes.Equal(b.ValidatorsHash, s.Validators.Hash()) {
-		return fmt.Errorf("Wrong Block.Header.ValidatorsHash.  Expected %X, got %v", s.Validators.Hash(), b.ValidatorsHash)
-	}
-
-	// Validate block LastCommit.
-	if b.Height == 1 {
-		if len(b.LastCommit.Precommits) != 0 {
-			return errors.New("Block at height 1 (first block) should have no LastCommit precommits")
-		}
-	} else {
-		if len(b.LastCommit.Precommits) != s.LastValidators.Size() {
-			return fmt.Errorf("Invalid block commit size. Expected %v, got %v",
-				s.LastValidators.Size(), len(b.LastCommit.Precommits))
-		}
-		err := s.LastValidators.VerifyCommit(
-			s.ChainID, s.LastBlockID, b.Height-1, b.LastCommit)
-		if err != nil {
-			return err
-		}
-	}
-	//hg do it later
-	/*
-	for _, ev := range b.Evidence.Evidence {
-		if err := VerifyEvidence(stateDB, s, ev); err != nil {
-			return types.NewEvidenceInvalidErr(ev, err)
-		}
-
-	}
-    */
-	return nil
 }
