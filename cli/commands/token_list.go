@@ -2,12 +2,13 @@ package commands
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/spf13/cobra"
 )
 
 func ListTokenCmd() *cobra.Command {
@@ -44,21 +45,30 @@ func listToken(cmd *cobra.Command, args []string) {
 	params.Payload = hex.EncodeToString(types.Encode(&reqtokens))
 
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res types.ReplyTokens
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
-	ctx.SetResultCb(parseTokenListRes)
-	ctx.Run()
-}
-
-func parseTokenListRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.ReplyTokens)
-	var result []*types.Token
-	for _, preCreatedToken := range res.Tokens {
-		one := &types.Token{
-			Price: preCreatedToken.Price / types.Coin,
-			Total: preCreatedToken.Total / types.TokenPrecision,
-		}
-		result = append(result, one)
+	rpc, err := jsonrpc.NewJsonClient(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
-	return result, nil
+
+	var res types.ReplyTokens
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, createdToken := range res.Tokens {
+		createdToken.Price = createdToken.Price / types.Coin
+		createdToken.Total = createdToken.Total / types.TokenPrecision
+
+		fmt.Printf("---The %dth token is below--------------------\n", i)
+		data, err := json.MarshalIndent(createdToken, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		fmt.Println(string(data))
+	}
 }
