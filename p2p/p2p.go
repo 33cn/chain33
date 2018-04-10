@@ -5,20 +5,19 @@ import (
 	"time"
 
 	l "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/pubsub"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
 	log = l.New("module", "p2p")
-	pub *common.PubSub
+	pub *pubsub.PubSub
 )
 
 type P2p struct {
 	client       queue.Client
 	node         *Node
-	addrBook     *AddrBook // known peers
 	p2pCli       *P2pCli
 	txCapcity    int32
 	txFactory    chan struct{}
@@ -27,8 +26,7 @@ type P2p struct {
 }
 
 func New(cfg *types.P2P) *P2p {
-
-	pub = common.NewPubSub(int(cfg.GetMsgCacheSize()))
+	pub = pubsub.NewPubSub(int(cfg.GetMsgCacheSize()))
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
@@ -116,7 +114,7 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 		break
 	}
 	var parm types.ReqWalletImportPrivKey
-	parm.Privkey = network.node.nodeInfo.addrBook.GetKey()
+	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
 	msg := network.client.NewMessage("wallet", types.EventWalletImportprivkey, &parm)
 	err := network.client.Send(msg, true)

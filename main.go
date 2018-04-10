@@ -14,14 +14,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"time"
-
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
@@ -31,8 +29,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
+
+	_ "google.golang.org/grpc/encoding/gzip"
+	"time"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -50,6 +51,27 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	flag.Parse()
+	//set config
+	cfg := config.InitCfg(*configPath)
+	//compare minFee in wallet, mempool, exec
+	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
+		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
+	}
+
+	//set file log
+	clog.SetFileLog(cfg.Log)
+	//set grpc log
+	f, err := createFile(cfg.P2P.GetGrpcLogFile())
+	if err != nil {
+		glogv2 := grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout)
+		grpclog.SetLoggerV2(glogv2)
+	} else {
+		glogv2 := grpclog.NewLoggerV2WithVerbosity(f, f, f, 10)
+		grpclog.SetLoggerV2(glogv2)
+	}
+
 	//set watching
 	t := time.Tick(10 * time.Second)
 	go func() {
@@ -67,24 +89,9 @@ func main() {
 	//set maxprocs
 	runtime.GOMAXPROCS(cpuNum)
 
-	flag.Parse()
-	//set config
-	cfg := config.InitCfg(*configPath)
-
-	//set file log
-	clog.SetFileLog(cfg.Log)
-	//set grpc log
-	f, err := createFile(cfg.P2P.GetGrpcLogFile())
-	if err != nil {
-		glogv2 := grpclog.NewLoggerV2(os.Stdin, os.Stdin, os.Stderr)
-		grpclog.SetLoggerV2(glogv2)
-	} else {
-		glogv2 := grpclog.NewLoggerV2(f, f, f)
-		grpclog.SetLoggerV2(glogv2)
-	}
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info("chain33 " + common.GetVersion())
+	log.Info("chain33 " + version.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
@@ -97,7 +104,7 @@ func main() {
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
-	exec := executor.New()
+	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
