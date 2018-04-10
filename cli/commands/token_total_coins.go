@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -116,10 +115,10 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		//查询Token总量
 		var req types.ReqString
 		req.Data = symbol
-		var params jsonrpc.Query
+		var params jsonrpc.Query4Cli
 		params.Execer = "token"
 		params.FuncName = "GetTokenInfo"
-		params.Payload = hex.EncodeToString(types.Encode(&req))
+		params.Payload = req
 		var res types.Token
 		err = rpc.Call("Chain33.Query", params, &res)
 		if err != nil {

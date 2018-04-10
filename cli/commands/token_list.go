@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -39,10 +38,10 @@ func listToken(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
-	params.Payload = hex.EncodeToString(types.Encode(&reqtokens))
+	params.Payload = reqtokens
 
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	rpc, err := jsonrpc.NewJsonClient(rpcLaddr)

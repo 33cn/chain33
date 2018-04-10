@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -81,10 +80,10 @@ func showsellorderwithstatus(rpcAddr string) {
 	var reqAddrtokens types.ReqAddrTokens
 	reqAddrtokens.Status = statusInt
 
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetAllSellOrdersWithStatus"
-	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	params.Payload = reqAddrtokens
 	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -132,10 +131,10 @@ func showonesbuyorder(rpcAddr string) {
 		reqAddrtokens.Token = strings.Split(token, ",")
 	}
 
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
-	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	params.Payload = reqAddrtokens
 	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -167,10 +166,10 @@ func showonesselltokenorder(rpcAddr string) {
 		reqAddrtokens.Token = strings.Split(token, ",")
 	}
 
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesSellOrder"
-	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	params.Payload = reqAddrtokens
 
 	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
