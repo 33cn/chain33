@@ -38,9 +38,10 @@ go_test:
     tags:
         - 33cn
     script:
-        - go test -race $(go list ./... | grep -v "vendor" | grep -v "rpc" | grep -v "p2p")
+#        - go test $(go list ./... | grep  "mempool")
+        - go test -parallel 1 -race $(go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mempool")
         - cd ~
-        - rm -rf $GO_PROJECT_PATH
+#        - rm -rf $GO_PROJECT_PATH
 #go_vet:
 #    stage: test
 #    script:
