@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	//"encoding/json"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -733,11 +734,12 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	return nil
 }
 
-func (c *Chain33) Query(in Query, result *interface{}) error {
-	decodePayload, err := hex.DecodeString(in.Payload)
+func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
+	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
 		return err
 	}
+
 	resp, err := c.cli.QueryHash(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
