@@ -7,12 +7,13 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func init() {
-	common.SetLogLevel("debug")
+	log.SetLogLevel("error")
 }
 
 func initEnv() (queue.Queue, queue.Module) {
@@ -45,7 +46,7 @@ func setmem(client queue.Client, hash, key, value []byte) ([]byte, error) {
 	set.StateHash = hash
 	set.KV = append(set.KV, kv)
 
-	msg := client.NewMessage("store", types.EventStoreMemSet, set)
+	msg := client.NewMessage("store", types.EventStoreMemSet, &types.StoreSetWithSync{set, true})
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
 	if err != nil {

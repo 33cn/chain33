@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -209,8 +210,8 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
 
-	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", common.BigToCompact(tiptd))
-	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", common.BigToCompact(blocktd))
+	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", difficulty.BigToCompact(tiptd))
+	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", difficulty.BigToCompact(blocktd))
 
 	if blocktd.Cmp(tiptd) <= 0 {
 		fork := b.bestChain.FindFork(node)
@@ -294,15 +295,15 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 
 	//保存block的总难度到db中
-	difficulty := common.CalcWork(block.Difficulty)
+	difficulty := difficulty.CalcWork(block.Difficulty)
 	var blocktd *big.Int
 	if block.Height == 0 {
 		blocktd = difficulty
 	} else {
 		parenttd, _ := b.blockStore.GetTdByBlockHash(parentHash)
 		blocktd = new(big.Int).Add(difficulty, parenttd)
-		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "parenttd.td", common.BigToCompact(parenttd))
-		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "self.td", common.BigToCompact(blocktd))
+		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "parenttd.td", difficulty.BigToCompact(parenttd))
+		//chainlog.Error("connectBlock Difficulty", "height", block.Height, "self.td", difficulty.BigToCompact(blocktd))
 	}
 
 	err = b.blockStore.SaveTdByBlockHash(newbatch, blockdetail.Block.Hash(), blocktd)

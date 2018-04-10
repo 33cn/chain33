@@ -1,6 +1,8 @@
 package p2p
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"math/rand"
 	"net"
@@ -45,7 +47,7 @@ func (c Comm) GetLocalAddr() string {
 
 func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*peer, error) {
 
-	conn, err := addr.DialTimeout(c.GrpcConfig())
+	conn, err := addr.DialTimeout(c.GrpcConfig(), (*nodeinfo).cfg.GetVersion())
 	if err != nil {
 		return nil, err
 	}
@@ -92,19 +94,19 @@ func (c Comm) DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 	return peer, nil
 }
 
-func (c Comm) GenPrivkey() ([]byte, error) {
+func (c Comm) GenPrivPubkey() ([]byte, []byte, error) {
 	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
 	if err != nil {
 		log.Error("CryPto Error", "Error", err.Error())
-		return nil, err
+		return nil, nil, err
 	}
 
 	key, err := cr.GenKey()
 	if err != nil {
 		log.Error("GenKey", "Error", err)
-		return nil, err
+		return nil, nil, err
 	}
-	return key.Bytes(), nil
+	return key.Bytes(), key.PubKey().Bytes(), nil
 }
 func (c Comm) Pubkey(key string) (string, error) {
 
@@ -131,7 +133,8 @@ func (c Comm) NewPingData(peer *peer) (*pb.P2PPing, error) {
 	randNonce := rand.Int31n(102040)
 	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: (*peer.nodeInfo).GetExternalAddr().IP.String(), Port: int32((*peer.nodeInfo).GetExternalAddr().Port)}
 	var err error
-	ping, err = c.Signature(peer.key, ping)
+	p2pPrivKey, _ := (*peer.nodeInfo).addrBook.GetPrivPubKey()
+	ping, err = c.Signature(p2pPrivKey, ping)
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
 		return nil, err
@@ -213,6 +216,20 @@ func (c Comm) reportPeerStat(peer *peer) {
 	if !timeout.Stop() {
 		<-timeout.C
 	}
+}
+
+func (c Comm) BytesToInt32(b []byte) int32 {
+	bytesBuffer := bytes.NewBuffer(b)
+	var tmp int32
+	binary.Read(bytesBuffer, binary.LittleEndian, &tmp)
+	return tmp
+}
+
+func (c Comm) Int32ToBytes(n int32) []byte {
+	tmp := n
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	binary.Write(bytesBuffer, binary.LittleEndian, tmp)
+	return bytesBuffer.Bytes()
 }
 
 func (c Comm) GrpcConfig() grpc.ServiceConfig {

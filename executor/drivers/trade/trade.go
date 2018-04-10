@@ -11,9 +11,11 @@ trade执行器支持trade的创建和交易，
 
 import (
 	log "github.com/inconshreveable/log15"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -88,6 +90,12 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 			kv := t.saveBuy(&receipt)
 			set.KV = append(set.KV, kv...)
+
+			// 添加个人资产列表
+			kv = token.AddTokenToAssets(receipt.Buyeraddr, t.GetLocalDB(), receipt.Token)
+			if kv != nil {
+				set.KV = append(set.KV, kv...)
+			}
 		}
 	}
 
