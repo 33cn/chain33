@@ -22,6 +22,7 @@ func TokenCmd() *cobra.Command {
 		BuyTokenCmd(),
 		ShowTokenOrderCmd(),
 		TotalCoinsCmd(),
+		TokenAssetsCmd(),
 	)
 
 	return cmd
