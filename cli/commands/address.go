@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -127,10 +126,10 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	reqaddr := &types.ReqString{
 		Data: addr,
 	}
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "ticket"
 	params.FuncName = "MinerSourceList"
-	params.Payload = hex.EncodeToString(types.Encode(reqaddr))
+	params.Payload = reqaddr
 
 	var res types.Message
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
