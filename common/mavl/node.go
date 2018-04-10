@@ -447,6 +447,63 @@ func removeOrphan(t *MAVLTree, node *MAVLNode) {
 	}
 }
 
+// 迭代整个树
+func (node *MAVLNode) traverse(t *MAVLTree, ascending bool, cb func(*MAVLNode) bool) bool {
+	return node.traverseInRange(t, nil, nil, ascending, false, 0, func(node *MAVLNode, depth uint8) bool {
+		return cb(node)
+	})
+}
+
+func (node *MAVLNode) traverseWithDepth(t *MAVLTree, ascending bool, cb func(*MAVLNode, uint8) bool) bool {
+	return node.traverseInRange(t, nil, nil, ascending, false, 0, cb)
+}
+
+func (node *MAVLNode) traverseInRange(t *MAVLTree, start, end []byte, ascending bool, inclusive bool, depth uint8, cb func(*MAVLNode, uint8) bool) bool {
+	afterStart := start == nil || bytes.Compare(start, node.key) <= 0
+	beforeEnd := end == nil || bytes.Compare(node.key, end) < 0
+	if inclusive {
+		beforeEnd = end == nil || bytes.Compare(node.key, end) <= 0
+	}
+
+	stop := false
+	if afterStart && beforeEnd {
+		// IterateRange ignores this if not leaf
+		stop = cb(node, depth)
+	}
+	if stop {
+		return stop
+	}
+	if node.height == 0 {
+		return stop
+	}
+
+	if ascending {
+		// check lower nodes, then higher
+		if afterStart {
+			stop = node.getLeftNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, cb)
+		}
+		if stop {
+			return stop
+		}
+		if beforeEnd {
+			stop = node.getRightNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, cb)
+		}
+	} else {
+		// check the higher nodes first
+		if beforeEnd {
+			stop = node.getRightNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, cb)
+		}
+		if stop {
+			return stop
+		}
+		if afterStart {
+			stop = node.getLeftNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, cb)
+		}
+	}
+
+	return stop
+}
+
 // Only used in testing...
 func (node *MAVLNode) lmd(t *MAVLTree) *MAVLNode {
 	if node.height == 0 {

@@ -27,15 +27,15 @@ ticket:
 	./chain33 -f chain33.test.toml
 
 build: ## Build the binary file
-	@go build -v -o $(APP)
+	@go build -race -v -o $(APP)
 	@cp chain33.toml build/
 
 release: ## Build the binary file
-	@go build -v -o $(APP) $(LDFLAGS)
+	@go build -race -v -o $(APP) $(LDFLAGS)
 	@cp chain33.toml build/
 
 cli: ## Build cli binary
-	@go build -v -o $(CLI) cli/cli.go
+	@go build -race -v -o $(CLI) cli/cli.go
 
 linter: ## Use gometalinter check code
 	@gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
@@ -91,3 +91,12 @@ cleandata:
 	rm -rf datadir/mavltree
 	rm -rf chain33.log
 
+GOFILES := find . -name '*.go' -not -path "./vendor/*"
+
+.PHONY: checkgofmt
+checkgofmt: ## get all go files and run go fmt on them
+	@files=$$($(GOFILES) | xargs gofmt -l); if [ -n "$$files" ]; then \
+		  echo "Error: '$(GOFMT)' needs to be run on:"; \
+		  echo "$${files}"; \
+		  exit 1; \
+		  fi;
