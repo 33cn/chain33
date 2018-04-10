@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/spf13/cobra"
 )
 
 var (

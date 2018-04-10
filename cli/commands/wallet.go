@@ -3,9 +3,9 @@ package commands
 import (
 	"strconv"
 
+	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/spf13/cobra"
 )
 
 func WalletCmd() *cobra.Command {
