@@ -17,9 +17,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 )
 
 var (
@@ -1743,7 +1743,7 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		walletlog.Error("procTokenPreCreate input para is nil")
 		return nil, types.ErrInputPara
 	}
-	
+
 	if token.ValidSymbol([]byte(reqTokenPrcCreate.GetSymbol())) == false {
 		walletlog.Error("procTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper

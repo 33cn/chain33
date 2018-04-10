@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"github.com/spf13/cobra"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
 
 func MempoolCmd() *cobra.Command {

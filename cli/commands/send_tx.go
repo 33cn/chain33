@@ -1,8 +1,8 @@
 package commands
 
 import (
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"github.com/spf13/cobra"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
 
 func SendTxCmd() *cobra.Command {

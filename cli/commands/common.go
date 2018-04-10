@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/spf13/cobra"
 )
 
 func CommonCmd() *cobra.Command {
