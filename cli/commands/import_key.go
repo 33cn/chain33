@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func ImportKeyCmd() *cobra.Command {
