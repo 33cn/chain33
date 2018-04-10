@@ -1,8 +1,8 @@
 package rpc
 
 import (
-	l "github.com/inconshreveable/log15"
 	"encoding/json"
+	l "github.com/inconshreveable/log15"
 )
 
 var log = l.New("module", "rpc")
@@ -215,14 +215,14 @@ type BlockOverview struct {
 }
 
 type Query4Cli struct {
-	Execer   string `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
-	FuncName string `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
-	Payload  interface {} `protobuf:"bytes,3,opt,name=payload" json:"payload"`
+	Execer   string      `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	FuncName string      `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
+	Payload  interface{} `protobuf:"bytes,3,opt,name=payload" json:"payload"`
 }
 
 type Query4Jrpc struct {
-	Execer   string `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
-	FuncName string `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
+	Execer   string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	FuncName string          `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
 	Payload  json.RawMessage `protobuf:"bytes,3,opt,name=payload" json:"payload"`
 }
 
