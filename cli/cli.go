@@ -1602,10 +1602,10 @@ func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 
 func GetTokenAssets(addr, execer string) {
 	req := types.ReqAccountTokenAssets{Address: addr, Execer: execer}
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetAccountTokenAssets"
-	params.Payload = hex.EncodeToString(types.Encode(&req))
+	params.Payload = req
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1900,10 +1900,10 @@ func QueryTransaction(h string) {
 
 func GetColdAddrByMiner(addr string) {
 	reqaddr := &types.ReqString{addr}
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "ticket"
 	params.FuncName = "MinerSourceList"
-	params.Payload = hex.EncodeToString(types.Encode(reqaddr))
+	params.Payload = reqaddr
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2062,10 +2062,10 @@ func GetTokensPrecreated() {
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusPreCreated
 	reqtokens.Queryall = true
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
-	params.Payload = hex.EncodeToString(types.Encode(&reqtokens))
+	params.Payload = reqtokens
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2098,10 +2098,12 @@ func GetTokensFinishCreated() {
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusCreated
 	reqtokens.Queryall = true
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
-	params.Payload = hex.EncodeToString(types.Encode(&reqtokens))
+	params.Payload = reqtokens
+
+	fmt.Fprintln(os.Stderr, "Payload is: ", params.Payload)
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2133,10 +2135,10 @@ func GetTokensFinishCreated() {
 func GetTokenInfo(symbol string) {
 	var req types.ReqString
 	req.Data = symbol
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetTokenInfo"
-	params.Payload = hex.EncodeToString(types.Encode(&req))
+	params.Payload = req
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2388,10 +2390,10 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
 	}
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesSellOrder"
-	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	params.Payload = reqAddrtokens
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2433,10 +2435,10 @@ func ShowOnesSellTokenOrders(seller string, tokens []string) {
 
 func QueryConfigItem(key string) {
 	req := &types.ReqString{key}
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "manage"
 	params.FuncName = "GetConfigItem"
-	params.Payload = hex.EncodeToString(types.Encode(req))
+	params.Payload = req
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	var res types.ReplyConfig
 	err = rpc.Call("Chain33.Query", params, &res)
@@ -2458,10 +2460,10 @@ func ShowSellOrderWithStatus(status string) {
 	var reqAddrtokens types.ReqAddrTokens
 	reqAddrtokens.Status = statusInt
 
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetAllSellOrdersWithStatus"
-	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	params.Payload = reqAddrtokens
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2508,10 +2510,10 @@ func ShowOnesBuyOrder(buyer string, tokens []string) {
 	reqAddrtokens.Addr = buyer
 	reqAddrtokens.Token = tokens
 
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
-	params.Payload = hex.EncodeToString(types.Encode(&reqAddrtokens))
+	params.Payload = reqAddrtokens
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2559,10 +2561,10 @@ func ShowTokenSellOrder(args []string) {
 		req.FromSellId = ""
 	}
 
-	var params jsonrpc.Query
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
-	params.Payload = hex.EncodeToString(types.Encode(&req))
+	params.Payload = req
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2778,10 +2780,10 @@ func GetTotalCoins(symbol string, height string) {
 		//查询Token总量
 		var req types.ReqString
 		req.Data = symbol
-		var params jsonrpc.Query
+		var params jsonrpc.Query4Cli
 		params.Execer = "token"
 		params.FuncName = "GetTokenInfo"
-		params.Payload = hex.EncodeToString(types.Encode(&req))
+		params.Payload = req
 		var res types.Token
 		err = rpc.Call("Chain33.Query", params, &res)
 		if err != nil {
