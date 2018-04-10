@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	cmn "github.com/tendermint/tmlibs/common"
+	//cmn "github.com/tendermint/tmlibs/common"
 )
 
 //---------------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ type MetricHistoryJSON struct {
 // TrustMetric - keeps track of peer reliability
 // See tendermint/docs/architecture/adr-006-trust-metric.md for details
 type TrustMetric struct {
-	cmn.BaseService
+	//cmn.BaseService
 
 	// Mutex that protects the metric from concurrent access
 	mtx sync.Mutex
@@ -79,6 +79,8 @@ type TrustMetric struct {
 
 	// Used during testing in order to control the passing of time intervals
 	testTicker MetricTicker
+
+	Quit chan struct{}
 }
 
 // NewMetric returns a trust metric with the default configuration.
@@ -104,22 +106,24 @@ func NewMetricWithConfig(tmc TrustMetricConfig) *TrustMetric {
 	// This metric has a perfect history so far
 	tm.historyValue = 1.0
 
-	tm.BaseService = *cmn.NewBaseService(nil, "TrustMetric", tm)
+	//tm.BaseService = *cmn.NewBaseService(nil, "TrustMetric", tm)
 	return tm
 }
 
 // OnStart implements Service
-func (tm *TrustMetric) OnStart() error {
+func (tm *TrustMetric) Start() error {
+	/*
 	if err := tm.BaseService.OnStart(); err != nil {
 		return err
 	}
+	*/
 	go tm.processRequests()
 	return nil
 }
 
 // OnStop implements Service
 // Nothing to do since the goroutine shuts down by itself via BaseService.Quit
-func (tm *TrustMetric) OnStop() {}
+func (tm *TrustMetric) Stop() {}
 
 // Returns a snapshot of the trust metric history data
 func (tm *TrustMetric) HistoryJSON() MetricHistoryJSON {
