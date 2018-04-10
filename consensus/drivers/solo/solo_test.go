@@ -15,7 +15,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/store"
 )
@@ -40,9 +39,9 @@ func TestSolo(t *testing.T) {
 	q, chain, mem, s := initEnvSolo()
 
 	defer chain.Close()
+	defer s.Close()
 	defer q.Close()
 	defer mem.Close()
-	defer s.Close()
 
 	sendReplyList(q)
 }
