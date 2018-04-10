@@ -1,10 +1,10 @@
 package rpc
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func tokenPayloadType(funcname string) (proto.Message, error) {
@@ -36,7 +36,6 @@ func coinsPayloadType(funcname string) (proto.Message, error) {
 	}
 	return req, nil
 }
-
 
 func managePayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
@@ -94,7 +93,7 @@ func tradePayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
-func payloadType(execer, funcname string)  (proto.Message, error) {
+func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
 	case "token":
 		return tokenPayloadType(funcname)

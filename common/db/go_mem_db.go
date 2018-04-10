@@ -145,11 +145,11 @@ func (dbit *goMemDBIt) Close() {
 func (dbit *goMemDBIt) Next() bool {
 
 	if dbit.reserve { // 反向
-	    dbit.index -= 1 //将当前key值指向前一个
-	    return true
+		dbit.index -= 1 //将当前key值指向前一个
+		return true
 	} else { // 正向
-	    dbit.index += 1 //将当前key值指向后一个
-	    return true
+		dbit.index += 1 //将当前key值指向后一个
+		return true
 	}
 }
 
@@ -189,11 +189,11 @@ func (dbit *goMemDBIt) ValueCopy() []byte {
 
 func (dbit *goMemDBIt) Valid() bool {
 
-	if (dbit.goMemDb == nil) && (len(dbit.keys) == 0){
+	if (dbit.goMemDb == nil) && (len(dbit.keys) == 0) {
 		return false
 	}
 
-	if len(dbit.keys) > dbit.index && dbit.index >= 0{
+	if len(dbit.keys) > dbit.index && dbit.index >= 0 {
 		return true
 	} else {
 		return false
@@ -231,7 +231,7 @@ func (b *memBatch) Write() {
 		if kv.v == nil {
 			b.db.Delete(kv.k)
 		} else {
-			b.db.Set(kv.k,kv.v)
+			b.db.Set(kv.k, kv.v)
 		}
 	}
 }
