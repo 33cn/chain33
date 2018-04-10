@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tendermint/tendermint/p2p/upnp"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p/upnp"
 	cmn "github.com/tendermint/tmlibs/common"
 	"github.com/tendermint/tmlibs/log"
 )

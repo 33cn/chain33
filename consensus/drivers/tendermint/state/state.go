@@ -315,3 +315,42 @@ func saveConsensusParamsInfo(db dbm.DB, nextHeight, changeHeight int64, params t
 	}
 	db.SetSync(calcConsensusParamsKey(nextHeight), paramsInfo.Bytes())
 }
+
+func loadValidatorsInfo(db dbm.DB, height int64) *ValidatorsInfo {
+	buf := db.Get(calcValidatorsKey(height))
+	if len(buf) == 0 {
+		return nil
+	}
+
+	v := new(ValidatorsInfo)
+	r, n, err := bytes.NewReader(buf), new(int), new(error)
+	wire.ReadBinaryPtr(v, r, 0, n, err)
+	if *err != nil {
+		// DATA HAS BEEN CORRUPTED OR THE SPEC HAS CHANGED
+		fmt.Printf(fmt.Sprintf(`LoadValidators: Data has been corrupted or its spec has changed:
+                %v\n`, *err))
+		os.Exit(1)
+	}
+	// TODO: ensure that buf is completely read.
+
+	return v
+}
+
+// LoadValidators loads the ValidatorSet for a given height.
+// Returns ErrNoValSetForHeight if the validator set can't be found for this height.
+func LoadValidators(db dbm.DB, height int64) (*types.ValidatorSet, error) {
+	valInfo := loadValidatorsInfo(db, height)
+	if valInfo == nil {
+		return nil, ErrNoValSetForHeight{height}
+	}
+
+	if valInfo.ValidatorSet == nil {
+		valInfo = loadValidatorsInfo(db, valInfo.LastHeightChanged)
+		if valInfo == nil {
+			panic(fmt.Sprintf("Panicked on a Sanity Check: %v",fmt.Sprintf(`Couldn't find validators at height %d as
+                        last changed from height %d`, valInfo.LastHeightChanged, height)))
+		}
+	}
+
+	return valInfo.ValidatorSet, nil
+}

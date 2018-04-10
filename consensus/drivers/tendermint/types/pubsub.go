@@ -187,7 +187,7 @@ func (s *Server) PublishWithTags(ctx context.Context, msg interface{}, tags map[
 }
 
 // OnStop implements Service.OnStop by shutting down the server.
-func (s *Server) OnStop() {
+func (s *Server) Stop() {
 	s.cmds <- cmd{op: shutdown}
 }
 
@@ -200,7 +200,7 @@ type state struct {
 }
 
 // OnStart implements Service.OnStart by starting the server.
-func (s *Server) OnStart() error {
+func (s *Server) Start() error {
 	go s.loop(state{
 		queries: make(map[Query]map[string]chan<- interface{}),
 		clients: make(map[string]map[Query]struct{}),
