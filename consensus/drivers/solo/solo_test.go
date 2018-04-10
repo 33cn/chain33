@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	endLoop  int   = 10
+	endLoop  int   = 5
 	txNumber int64 = 100
 	random   *rand.Rand
 )
@@ -76,14 +76,16 @@ func sendReplyList(q queue.Queue) {
 	var count int
 	for msg := range client.Recv() {
 		if msg.Ty == types.EventTxList {
-			count++
 			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
 				&types.ReplyTxList{genTxs(txNumber)}))
+			count++
 			if count == endLoop {
 				break
 			}
 		}
 	}
+
+	time.Sleep(4 * time.Second)
 }
 
 func genTxs(n int64) (txs []*types.Transaction) {
