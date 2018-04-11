@@ -99,8 +99,14 @@ func (acc *AccountDB) Transfer(from, to string, amount int64) (*types.Receipt, e
 		accFrom.Balance = accFrom.GetBalance() - amount
 		accTo.Balance = accTo.GetBalance() + amount
 
-		receiptBalanceFrom := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
-		receiptBalanceTo := &types.ReceiptAccountTransfer{&copyto, accTo}
+		receiptBalanceFrom := &types.ReceiptAccountTransfer{
+			Prev:    &copyfrom,
+			Current: accFrom,
+		}
+		receiptBalanceTo := &types.ReceiptAccountTransfer{
+			Prev:    &copyto,
+			Current: accTo,
+		}
 
 		acc.SaveAccount(accFrom)
 		acc.SaveAccount(accTo)
@@ -117,15 +123,25 @@ func (acc *AccountDB) depositBalance(execaddr string, amount int64) (*types.Rece
 	acc1 := acc.LoadAccount(execaddr)
 	copyacc := *acc1
 	acc1.Balance += amount
-	receiptBalance := &types.ReceiptAccountTransfer{&copyacc, acc1}
+	receiptBalance := &types.ReceiptAccountTransfer{
+		Prev:    &copyacc,
+		Current: acc1,
+	}
 	acc.SaveAccount(acc1)
 	ty := int32(types.TyLogDeposit)
 	if acc.IsTokenAccount() {
 		ty = types.TyLogTokenDeposit
 	}
-	log1 := &types.ReceiptLog{ty, types.Encode(receiptBalance)}
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receiptBalance),
+	}
 	kv := acc.GetKVSet(acc1)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}, nil
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1},
+	}, nil
 }
 
 func (acc *AccountDB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
@@ -133,11 +149,21 @@ func (acc *AccountDB) transferReceipt(accFrom, accTo *types.Account, receiptFrom
 	if acc.IsTokenAccount() {
 		ty = types.TyLogTokenTransfer
 	}
-	log1 := &types.ReceiptLog{ty, types.Encode(receiptFrom)}
-	log2 := &types.ReceiptLog{ty, types.Encode(receiptTo)}
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receiptFrom),
+	}
+	log2 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receiptTo),
+	}
 	kv := acc.GetKVSet(accFrom)
 	kv = append(kv, acc.GetKVSet(accTo)...)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1, log2},
+	}
 }
 
 func (acc *AccountDB) SaveAccount(acc1 *types.Account) {
@@ -149,7 +175,10 @@ func (acc *AccountDB) SaveAccount(acc1 *types.Account) {
 
 func (acc *AccountDB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
 	value := types.Encode(acc1)
-	kvset = append(kvset, &types.KeyValue{acc.AccountKey(acc1.Addr), value})
+	kvset = append(kvset, &types.KeyValue{
+		Key:   acc.AccountKey(acc1.Addr),
+		Value: value,
+	})
 	return kvset
 }
 

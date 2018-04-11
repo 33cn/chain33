@@ -8,7 +8,10 @@ func (acc *AccountDB) GenesisInit(addr string, amount int64) (*types.Receipt, er
 	accTo := acc.LoadAccount(addr)
 	copyto := *accTo
 	accTo.Balance = accTo.GetBalance() + amount
-	receiptBalanceTo := &types.ReceiptAccountTransfer{&copyto, accTo}
+	receiptBalanceTo := &types.ReceiptAccountTransfer{
+		Prev:    &copyto,
+		Current: accTo,
+	}
 	acc.SaveAccount(accTo)
 	receipt := acc.genesisReceipt(accTo, receiptBalanceTo)
 	return receipt, nil
@@ -18,7 +21,10 @@ func (acc *AccountDB) GenesisInitExec(addr string, amount int64, execaddr string
 	accTo := acc.LoadAccount(execaddr)
 	copyto := *accTo
 	accTo.Balance = accTo.GetBalance() + amount
-	receiptBalanceTo := &types.ReceiptAccountTransfer{&copyto, accTo}
+	receiptBalanceTo := &types.ReceiptAccountTransfer{
+		Prev:    &copyto,
+		Current: accTo,
+	}
 	acc.SaveAccount(accTo)
 	receipt := acc.genesisReceipt(accTo, receiptBalanceTo)
 	receipt2, err := acc.execDeposit(addr, execaddr, amount)
@@ -39,7 +45,14 @@ func (acc *AccountDB) genesisReceipt(accTo *types.Account, receiptTo *types.Rece
 	if acc.IsTokenAccount() {
 		ty = int32(types.TyLogTokenGenesisTransfer)
 	}
-	log2 := &types.ReceiptLog{ty, types.Encode(receiptTo)}
+	log2 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receiptTo),
+	}
 	kv := acc.GetKVSet(accTo)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log2}}
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log2},
+	}
 }
