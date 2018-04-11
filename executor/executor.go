@@ -253,7 +253,7 @@ func (exec *Executor) Close() {
 type executor struct {
 	stateDB      dbm.KVDB
 	localDB      dbm.KVDB
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	execDriver   *drivers.ExecDrivers
 	height       int64
 	blocktime    int64

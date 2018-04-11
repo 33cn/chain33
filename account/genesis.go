@@ -4,7 +4,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (acc *AccountDB) GenesisInit(addr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) GenesisInit(addr string, amount int64) (*types.Receipt, error) {
 	accTo := acc.LoadAccount(addr)
 	copyto := *accTo
 	accTo.Balance = accTo.GetBalance() + amount
@@ -17,7 +17,7 @@ func (acc *AccountDB) GenesisInit(addr string, amount int64) (*types.Receipt, er
 	return receipt, nil
 }
 
-func (acc *AccountDB) GenesisInitExec(addr string, amount int64, execaddr string) (*types.Receipt, error) {
+func (acc *DB) GenesisInitExec(addr string, amount int64, execaddr string) (*types.Receipt, error) {
 	accTo := acc.LoadAccount(execaddr)
 	copyto := *accTo
 	accTo.Balance = accTo.GetBalance() + amount
@@ -40,7 +40,7 @@ func (acc *AccountDB) GenesisInitExec(addr string, amount int64, execaddr string
 	return receipt, nil
 }
 
-func (acc *AccountDB) genesisReceipt(accTo *types.Account, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
+func (acc *DB) genesisReceipt(accTo *types.Account, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
 	ty := int32(types.TyLogGenesisTransfer)
 	if acc.IsTokenAccount() {
 		ty = int32(types.TyLogTokenGenesisTransfer)

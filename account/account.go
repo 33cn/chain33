@@ -21,44 +21,45 @@ import (
 
 var alog = log.New("module", "account")
 
-type AccountDB struct {
+// DB for account
+type DB struct {
 	db                   dbm.KVDB
 	accountKeyPerfix     []byte
 	execAccountKeyPerfix []byte
 }
 
-func NewCoinsAccount() *AccountDB {
+func NewCoinsAccount() *DB {
 	return newAccountDB("mavl-coins-bty-")
 }
 
-func NewTokenAccount(symbol string, db dbm.KVDB) *AccountDB {
+func NewTokenAccount(symbol string, db dbm.KVDB) *DB {
 	accDB := newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
 	accDB.SetDB(db)
 	return accDB
 }
 
-func NewTokenAccountWithoutDB(symbol string) *AccountDB {
+func NewTokenAccountWithoutDB(symbol string) *DB {
 	return newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
 }
 
-func newAccountDB(prefix string) *AccountDB {
-	acc := &AccountDB{}
+func newAccountDB(prefix string) *DB {
+	acc := &DB{}
 	acc.accountKeyPerfix = []byte(prefix)
 	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
 	//alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
 	return acc
 }
 
-func (acc *AccountDB) SetDB(db dbm.KVDB) *AccountDB {
+func (acc *DB) SetDB(db dbm.KVDB) *DB {
 	acc.db = db
 	return acc
 }
 
-func (acc *AccountDB) IsTokenAccount() bool {
+func (acc *DB) IsTokenAccount() bool {
 	return "token" == string(acc.accountKeyPerfix[len("mavl-"):len("mavl-token")])
 }
 
-func (acc *AccountDB) LoadAccount(addr string) *types.Account {
+func (acc *DB) LoadAccount(addr string) *types.Account {
 	value, err := acc.db.Get(acc.AccountKey(addr))
 	if err != nil {
 		return &types.Account{Addr: addr}
@@ -71,7 +72,7 @@ func (acc *AccountDB) LoadAccount(addr string) *types.Account {
 	return &acc1
 }
 
-func (acc *AccountDB) CheckTransfer(from, to string, amount int64) error {
+func (acc *DB) CheckTransfer(from, to string, amount int64) error {
 	if !types.CheckAmount(amount) {
 		return types.ErrAmount
 	}
@@ -83,7 +84,7 @@ func (acc *AccountDB) CheckTransfer(from, to string, amount int64) error {
 	return nil
 }
 
-func (acc *AccountDB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
+func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -116,7 +117,7 @@ func (acc *AccountDB) Transfer(from, to string, amount int64) (*types.Receipt, e
 	}
 }
 
-func (acc *AccountDB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -144,7 +145,7 @@ func (acc *AccountDB) depositBalance(execaddr string, amount int64) (*types.Rece
 	}, nil
 }
 
-func (acc *AccountDB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
+func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
 	ty := int32(types.TyLogTransfer)
 	if acc.IsTokenAccount() {
 		ty = types.TyLogTokenTransfer
@@ -166,14 +167,14 @@ func (acc *AccountDB) transferReceipt(accFrom, accTo *types.Account, receiptFrom
 	}
 }
 
-func (acc *AccountDB) SaveAccount(acc1 *types.Account) {
+func (acc *DB) SaveAccount(acc1 *types.Account) {
 	set := acc.GetKVSet(acc1)
 	for i := 0; i < len(set); i++ {
 		acc.db.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func (acc *AccountDB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
+func (acc *DB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
 	value := types.Encode(acc1)
 	kvset = append(kvset, &types.KeyValue{
 		Key:   acc.AccountKey(acc1.Addr),
@@ -182,7 +183,7 @@ func (acc *AccountDB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (acc *AccountDB) LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, err error) {
+func (acc *DB) LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, err error) {
 	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 	client.Send(msg, true)
 	msg, err = client.Wait(msg)
@@ -217,7 +218,7 @@ func (acc *AccountDB) LoadAccounts(client queue.Client, addrs []string) (accs []
 	return accs, nil
 }
 
-func (acc *AccountDB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error) {
+func (acc *DB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error) {
 	for i := 0; i < len(addrs); i++ {
 		acc1 := acc.LoadAccount(addrs[i])
 		accs = append(accs, acc1)
@@ -226,13 +227,13 @@ func (acc *AccountDB) LoadAccountsDB(addrs []string) (accs []*types.Account, err
 }
 
 //address to save key
-func (acc *AccountDB) AccountKey(address string) (key []byte) {
+func (acc *DB) AccountKey(address string) (key []byte) {
 	key = append(key, acc.accountKeyPerfix...)
 	key = append(key, []byte(address)...)
 	return key
 }
 
-func (acc *AccountDB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
+func (acc *DB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
 	req := types.IterateRangeByStateHash{}
 	req.StateHash = in.StateHash
 	req.Count = in.Count
