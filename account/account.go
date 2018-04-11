@@ -112,9 +112,9 @@ func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 		acc.SaveAccount(accFrom)
 		acc.SaveAccount(accTo)
 		return acc.transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
-	} else {
-		return nil, types.ErrNoBalance
 	}
+
+	return nil, types.ErrNoBalance
 }
 
 func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
@@ -226,7 +226,7 @@ func (acc *DB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error)
 	return accs, nil
 }
 
-//address to save key
+// AccountKey return the key of address in DB
 func (acc *DB) AccountKey(address string) (key []byte) {
 	key = append(key, acc.accountKeyPerfix...)
 	key = append(key, []byte(address)...)
