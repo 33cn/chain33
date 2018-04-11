@@ -38,14 +38,15 @@ func (acc *DB) LoadExecAccountQueue(client queue.Client, addr, execaddr string) 
 	value := values.Values[0]
 	if value == nil {
 		return &types.Account{Addr: addr}, nil
-	} else {
-		var acc1 types.Account
-		err := types.Decode(value, &acc1)
-		if err != nil {
-			return nil, err
-		}
-		return &acc1, nil
 	}
+
+	var acc1 types.Account
+	err = types.Decode(value, &acc1)
+	if err != nil {
+		return nil, err
+	}
+
+	return &acc1, nil
 }
 
 func (acc *DB) SaveExecAccount(execaddr string, acc1 *types.Account) {
