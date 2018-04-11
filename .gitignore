@@ -11,7 +11,6 @@ cli/cli
 cli/run.sh
 datadir2/
 rpc/test/1.png
-chain33_raft
 chain33_raft*
 common/mavl/test.db
 .idea
