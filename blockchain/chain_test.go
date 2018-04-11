@@ -32,7 +32,7 @@ func initEnv() (*BlockChain, queue.Queue) {
 	cfg.MaxFetchBlockNum = 100
 	cfg.TimeoutSeconds = 5
 	cfg.BatchBlockNum = 10
-	cfg.Driver = "leveldb"
+	cfg.Driver = "memdb"
 	cfg.DbPath = "datadir"
 
 	blockchain := New(&cfg)

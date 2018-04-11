@@ -72,7 +72,7 @@ func (db *GoBadgerDB) Get(key []byte) []byte {
 		blog.Error("Get", "error", err)
 		return nil
 	}
-	
+
 	return val
 }
 
