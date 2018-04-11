@@ -94,7 +94,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv2(size int) (*Mempool, queue.Queue, queue.Module, *p2p.P2p) {
+func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Module, *p2p.P2p) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")
@@ -121,7 +121,7 @@ func initEnv2(size int) (*Mempool, queue.Queue, queue.Module, *p2p.P2p) {
 		mem.Resize(size)
 	}
 	mem.SetMinFee(0)
-	return mem, q, s, network
+	return mem, q, chain, s, network
 }
 
 func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Module) {
@@ -641,20 +641,4 @@ func BenchmarkMempool(b *testing.B) {
 	s.Close()
 	mem.Close()
 	chain.Close()
-}
-
-func blockChainProc(q queue.Queue) {
-	go func() {
-		client := q.Client()
-		client.Sub("blockchain")
-		for msg := range client.Recv() {
-			if msg.Ty == types.EventIsSync {
-				msg.Reply(client.NewMessage("mempool", types.EventReply, &types.IsCaughtUp{Iscaughtup: true}))
-			} else if msg.Ty == types.EventTxHashList {
-				msg.Reply(client.NewMessage("mempool", types.EventReply, &types.TxHashList{}))
-			} else if msg.Ty == types.EventGetLastHeader {
-				msg.Reply(client.NewMessage("mempool", types.EventReply, queue.Message{Data: &types.Header{Height: 0, BlockTime: 0}}))
-			}
-		}
-	}()
 }
