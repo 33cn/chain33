@@ -43,22 +43,22 @@ func NewGoBadgerDB(name string, dir string, cache int) (*GoBadgerDB, error) {
 	return &GoBadgerDB{db: db}, nil
 }
 
-func (db *GoBadgerDB) Get(key []byte) []byte {
+func (db *GoBadgerDB) Get(key []byte) ([]byte, error) {
 	var val []byte
 	err := db.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
-				return nil
+				return ErrNotFoundInDb
 			} else {
 				blog.Error("Get", "txn.Get.error", err)
-				return nil
+				return err
 			}
 		}
 		val, err = item.Value()
 		if err != nil {
 			blog.Error("Get", "item.Value.error", err)
-			return nil
+			return err
 		}
 
 		// 兼容leveldb
@@ -69,14 +69,13 @@ func (db *GoBadgerDB) Get(key []byte) []byte {
 	})
 
 	if err != nil {
-		blog.Error("Get", "error", err)
-		return nil
+		return nil, err
 	}
 
-	return val
+	return val, nil
 }
 
-func (db *GoBadgerDB) Set(key []byte, value []byte) {
+func (db *GoBadgerDB) Set(key []byte, value []byte) error {
 	err := db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(key, value)
 		return err
@@ -84,10 +83,12 @@ func (db *GoBadgerDB) Set(key []byte, value []byte) {
 
 	if err != nil {
 		blog.Error("Set", "error", err)
+		return err
 	}
+	return nil
 }
 
-func (db *GoBadgerDB) SetSync(key []byte, value []byte) {
+func (db *GoBadgerDB) SetSync(key []byte, value []byte) error {
 	err := db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(key, value)
 		return err
@@ -95,10 +96,12 @@ func (db *GoBadgerDB) SetSync(key []byte, value []byte) {
 
 	if err != nil {
 		blog.Error("SetSync", "error", err)
+		return err
 	}
+	return nil
 }
 
-func (db *GoBadgerDB) Delete(key []byte) {
+func (db *GoBadgerDB) Delete(key []byte) error {
 	err := db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Delete(key)
 		return err
@@ -106,10 +109,12 @@ func (db *GoBadgerDB) Delete(key []byte) {
 
 	if err != nil {
 		blog.Error("Delete", "error", err)
+		return err
 	}
+	return nil
 }
 
-func (db *GoBadgerDB) DeleteSync(key []byte) {
+func (db *GoBadgerDB) DeleteSync(key []byte) error {
 	err := db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Delete(key)
 		return err
@@ -117,7 +122,9 @@ func (db *GoBadgerDB) DeleteSync(key []byte) {
 
 	if err != nil {
 		blog.Error("DeleteSync", "error", err)
+		return err
 	}
+	return nil
 }
 
 func (db *GoBadgerDB) DB() *badger.DB {
@@ -251,10 +258,12 @@ func (mBatch *GoBadgerDBBatch) Delete(key []byte) {
 	mBatch.batch.Delete(key)
 }
 
-func (mBatch *GoBadgerDBBatch) Write() {
+func (mBatch *GoBadgerDBBatch) Write() error {
 	defer mBatch.batch.Discard()
 
 	if err := mBatch.batch.Commit(nil); err != nil {
 		blog.Error("Write", "error", err)
+		return err
 	}
+	return nil
 }

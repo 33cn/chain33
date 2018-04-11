@@ -183,6 +183,7 @@ func (p *peer) sendStream() {
 
 		timeout := time.NewTimer(time.Second * 2)
 		defer timeout.Stop()
+		var hash [64]byte
 	SEND_LOOP:
 		for {
 
@@ -197,7 +198,8 @@ func (p *peer) sendStream() {
 				p2pdata := new(pb.BroadCastData)
 				if block, ok := task.(*pb.P2PBlock); ok {
 					height := block.GetBlock().GetHeight()
-					blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+					hex.Encode(hash[:], block.GetBlock().Hash())
+					blockhash := string(hash[:])
 					log.Debug("sendStream", "will send block", blockhash)
 					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
 					P2pComm.CollectPeerStat(err, p)
@@ -211,7 +213,8 @@ func (p *peer) sendStream() {
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
 
 				} else if tx, ok := task.(*pb.P2PTx); ok {
-					txhash := hex.EncodeToString(tx.GetTx().Hash())
+					hex.Encode(hash[:], tx.GetTx().Hash())
+					txhash := string(hash[:])
 					log.Debug("sendStream", "will send tx", txhash)
 					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
 				}
@@ -268,7 +271,7 @@ func (p *peer) readStream() {
 			continue
 		}
 		log.Debug("SubStreamBlock", "Start", p.Addr())
-
+		var hash [64]byte
 		for {
 			if p.GetRunning() == false {
 				return
@@ -288,7 +291,8 @@ func (p *peer) readStream() {
 			if block := data.GetBlock(); block != nil {
 				if block.GetBlock() != nil {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
-					blockhash := hex.EncodeToString(block.GetBlock().Hash())
+					hex.Encode(hash[:], block.GetBlock().Hash())
+					blockhash := string(hash[:])
 					if Filter.QueryRecvData(blockhash) == true {
 						continue
 					}
@@ -315,8 +319,9 @@ func (p *peer) readStream() {
 			} else if tx := data.GetTx(); tx != nil {
 
 				if tx.GetTx() != nil {
-					txhash := hex.EncodeToString(tx.Tx.Hash())
-					log.Debug("readStream", "tx", "0x"+txhash)
+					hex.Encode(hash[:], tx.Tx.Hash())
+					txhash := string(hash[:])
+					log.Debug("readStream", "tx", txhash)
 					if Filter.QueryRecvData(txhash) == true {
 						continue //处理方式同上
 					}
