@@ -234,11 +234,11 @@ func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types
 	db := t.GetQueryDB()
 	reciver := types.Int64{}
 	for _, token := range addrTokens.Token {
-		addrRecv := db.Get(calcAddrKey(token, addrTokens.Addr))
-		if addrRecv == nil {
+		addrRecv, err := db.Get(calcAddrKey(token, addrTokens.Addr))
+		if addrRecv == nil || err != nil {
 			continue
 		}
-		err := types.Decode(addrRecv, &reciver)
+		err = types.Decode(addrRecv, &reciver)
 		if err != nil {
 			continue
 		}
