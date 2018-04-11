@@ -595,7 +595,7 @@ func TestCheckExpire2(t *testing.T) {
 		t.Error("add tx error", err.Error())
 		return
 	}
-	
+
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
 	msg := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100, Hashes: nil})
 	mem.client.Send(msg, true)
