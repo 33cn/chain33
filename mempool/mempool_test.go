@@ -572,7 +572,7 @@ func TestCheckSignature(t *testing.T) {
 
 func TestCheckExpire1(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
-	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
+	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx1)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)
@@ -596,8 +596,7 @@ func TestCheckExpire2(t *testing.T) {
 		return
 	}
 
-	mem.header = &types.Header{Height: 50, BlockTime: 1e9 + 1}
-
+	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
 	msg := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100, Hashes: nil})
 	mem.client.Send(msg, true)
 	data, err := mem.client.Wait(msg)
