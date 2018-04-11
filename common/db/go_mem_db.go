@@ -34,9 +34,11 @@ func NewGoMemDB(name string, dir string, cache int) (*GoMemDB, error) {
 }
 
 func CopyBytes(b []byte) (copiedBytes []byte) {
+	/* 兼容leveldb
 	if b == nil {
 		return nil
 	}
+	*/
 	copiedBytes = make([]byte, len(b))
 	copy(copiedBytes, b)
 
@@ -234,9 +236,9 @@ func (b *memBatch) Write() error {
 
 	for _, kv := range b.writes {
 		if kv.v == nil {
-			b.db.Delete(kv.k)
+			delete(b.db.db, string(kv.k))
 		} else {
-			b.db.Set(kv.k, kv.v)
+			b.db.db[string(kv.k)] = kv.v
 		}
 	}
 	return nil
