@@ -147,6 +147,7 @@ func SendToAddress(from string, to string, amount string, note string) {
 func NormPerf(privkey string, size string, num string, duration string) {
 	var key string
 	var value string
+	var numThread int
 	sizeInt, err := strconv.Atoi(size)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -162,24 +163,28 @@ func NormPerf(privkey string, size string, num string, duration string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	ch := make(chan struct{}, numInt)
-	for i := 0; i < numInt; i++ {
+	if numInt < 10 {
+		numThread = 1
+	} else if numInt > 100 {
+		numThread = 10
+	} else {
+		numThread = numInt / 10
+	}
+	ch := make(chan struct{}, numThread)
+	for i := 0; i < numThread; i++ {
 		go func() {
-			txs := 0
-			for {
-				key = RandStringBytes(20)
-				value = RandStringBytes(sizeInt)
-				NormPut(privkey, key, value)
-				txs++
-				if durInt != 0 && txs == durInt {
-					break
+			for sec := 0; durInt == 0 || sec < durInt; sec++ {
+				for txs := 0; txs < numInt/numThread; txs++ {
+					key = RandStringBytes(20)
+					value = RandStringBytes(sizeInt)
+					NormPut(privkey, key, value)
 				}
 				time.Sleep(time.Second)
 			}
 			ch <- struct{}{}
 		}()
 	}
-	for j := 0; j < numInt; j++ {
+	for j := 0; j < numThread; j++ {
 		<-ch
 	}
 }
