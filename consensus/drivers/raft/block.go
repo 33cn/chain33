@@ -161,7 +161,7 @@ func (client *RaftClient) CreateBlock() {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 		client.propose(&newblock)
-		time.Sleep(time.Second)
+		time.Sleep(100 * time.Millisecond)
 
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
