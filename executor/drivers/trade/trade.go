@@ -335,7 +335,7 @@ func (t *trade) getSellOrderFromDb(db dbm.KVDB, sellid []byte) *types.SellOrder 
 	return &sellorder
 }
 
-func genSaveSellKv(sellorder *types.SellOrder ) []*types.KeyValue {
+func genSaveSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = saveSellOrderKeyValue(kv, sellorder, status)
@@ -366,7 +366,6 @@ func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, s
 
 	return kv
 }
-
 
 func saveSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
 	sellid := []byte(sellorder.Sellid)
