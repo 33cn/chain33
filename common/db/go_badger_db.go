@@ -60,6 +60,11 @@ func (db *GoBadgerDB) Get(key []byte) []byte {
 			blog.Error("Get", "item.Value.error", err)
 			return nil
 		}
+
+		// 兼容leveldb
+		if val == nil {
+			val = make([]byte, 0)
+		}
 		return nil
 	})
 
@@ -67,6 +72,7 @@ func (db *GoBadgerDB) Get(key []byte) []byte {
 		blog.Error("Get", "error", err)
 		return nil
 	}
+	
 	return val
 }
 
