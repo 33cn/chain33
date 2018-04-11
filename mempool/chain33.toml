@@ -6,7 +6,7 @@ defCacheSize=500
 maxFetchBlockNum=100
 timeoutSeconds=5
 batchBlockNum=100
-driver="leveldb"
+driver="memdb"
 dbPath="datadir"
 
 [p2p]
@@ -27,11 +27,12 @@ minerstart=true
 
 [store]
 name="mavl"
-driver="leveldb"
+driver="memdb"
 dbPath="datadir/mavltree"
 
 [wallet]
 minFee=1000000
+driver="memdb"
 dbPath="datadir/wallet"
 
 [exec]
