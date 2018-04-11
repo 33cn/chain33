@@ -9,6 +9,12 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"path/filepath"
+	"runtime"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -25,15 +31,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc/grpclog"
-	"net/http"
-	_ "net/http/pprof"
-	"os"
-	"path/filepath"
-	"runtime"
+
+	"time"
 
 	"google.golang.org/grpc"
-	_ "google.golang.org/grpc/encoding/gzip"
-	"time"
 )
 
 var (
