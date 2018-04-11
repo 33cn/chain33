@@ -85,7 +85,7 @@ func TicketBindKey(id string) (key []byte) {
 }
 
 type TicketAction struct {
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	db           dbm.KVDB
 	txhash       []byte
 	fromaddr     string

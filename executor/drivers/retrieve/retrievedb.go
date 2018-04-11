@@ -75,7 +75,7 @@ func RetrieveKey(address string) (key []byte) {
 }
 
 type RetrieveAction struct {
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	db           dbm.KVDB
 	txhash       []byte
 	fromaddr     string
