@@ -210,6 +210,12 @@ func (bl *BlackList) Has(addr string) bool {
 func (bl *BlackList) GetBadPeers() map[string]int64 {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
-	return bl.badPeers
+
+	var copyData map[string]int64
+
+	for k, v := range bl.badPeers {
+		copyData[k] = v
+	}
+	return copyData
 
 }
