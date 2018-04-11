@@ -325,24 +325,30 @@ func (t *trade) GetTokenByStatus(db dbm.KVDB, querydb dbm.DB, req *types.ReqToke
 	return &reply, nil
 }
 
-func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
-	db := t.GetDB()
+func (t *trade) getSellOrderFromDb(db dbm.KVDB, sellid []byte) *types.SellOrder {
 	value, err := db.Get(sellid)
 	if err != nil {
 		panic(err)
 	}
 	var sellorder types.SellOrder
 	types.Decode(value, &sellorder)
+	return &sellorder
+}
+
+func genSaveSellKv(sellorder *types.SellOrder ) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
-
-	kv = saveSellOrderKeyValue(kv, &sellorder, status)
+	kv = saveSellOrderKeyValue(kv, sellorder, status)
 	if types.SoldOut == status || types.Revoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
-		kv = deleteSellOrderKeyValue(kv, &sellorder, types.OnSale)
+		kv = deleteSellOrderKeyValue(kv, sellorder, types.OnSale)
 	}
-
 	return kv
+}
+
+func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
+	sellorder := t.getSellOrderFromDb(t.GetDB(), sellid)
+	return genSaveSellKv(sellorder)
 }
 
 func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
@@ -382,23 +388,20 @@ func saveSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, sta
 	return kv
 }
 
-func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
-	db := t.GetDB()
-	value, err := db.Get(sellid)
-	if err != nil {
-		panic(err)
-	}
-	var sellorder types.SellOrder
-	types.Decode(value, &sellorder)
+func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
-	kv = deleteSellOrderKeyValue(kv, &sellorder, status)
+	kv = deleteSellOrderKeyValue(kv, sellorder, status)
 	if types.SoldOut == status || types.Revoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
-		kv = saveSellOrderKeyValue(kv, &sellorder, types.OnSale)
+		kv = saveSellOrderKeyValue(kv, sellorder, types.OnSale)
 	}
-
 	return kv
+}
+
+func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
+	sellorder := t.getSellOrderFromDb(t.GetDB(), sellid)
+	return genDeleteSellKv(sellorder)
 }
 
 func (t *trade) saveBuy(receiptTradeBuy *types.ReceiptTradeBuy) []*types.KeyValue {
