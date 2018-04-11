@@ -38,6 +38,7 @@ var (
 	tx10     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0}
 	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
 	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0}
+	tx13     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0}
 
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
@@ -93,7 +94,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Module, *p2p.P2p) {
+func initEnv2(size int) (*Mempool, queue.Queue, queue.Module, *p2p.P2p) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")
@@ -111,6 +112,7 @@ func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mo
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
+	mem.sync = true
 
 	network := p2p.New(cfg.P2P)
 	network.SetQueueClient(q.Client())
@@ -119,7 +121,7 @@ func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mo
 		mem.Resize(size)
 	}
 	mem.SetMinFee(0)
-	return mem, q, chain, s, network
+	return mem, q, s, network
 }
 
 func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Module) {
@@ -160,12 +162,13 @@ func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mod
 	tx10.Sign(types.SECP256K1, privKey)
 	tx11.Sign(types.SECP256K1, privKey)
 	tx12.Sign(types.SECP256K1, privKey)
+	tx13.Sign(types.SECP256K1, privKey)
 
 	return mem, q, chain, s
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = rand.Int63()
@@ -188,6 +191,7 @@ func genaddress() (string, crypto.PrivKey) {
 
 func TestAddTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
+
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx2)
 	mem.client.Send(msg, true)
 	mem.client.Wait(msg)
@@ -196,17 +200,18 @@ func TestAddTx(t *testing.T) {
 		t.Error("TestAddTx failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
+
 	defer func() {
-		chain.Close()
 		s.Close()
 		mem.Close()
+		chain.Close()
 	}()
 	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx2)
 	err := mem.client.Send(msg1, true)
@@ -413,9 +418,9 @@ OutsideLoop:
 		}
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestAddMoreTxThanPoolSize(t *testing.T) {
@@ -435,9 +440,9 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 		t.Error("TestAddMoreTxThanPoolSize failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestRemoveTxOfBlock(t *testing.T) {
@@ -467,9 +472,9 @@ func TestRemoveTxOfBlock(t *testing.T) {
 		t.Error("TestGetMempoolSize failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestDuplicateMempool(t *testing.T) {
@@ -496,9 +501,9 @@ func TestDuplicateMempool(t *testing.T) {
 		t.Error("TestDuplicateMempool failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestGetLatestTx(t *testing.T) {
@@ -525,20 +530,16 @@ func TestGetLatestTx(t *testing.T) {
 		t.Error("TestGetLatestTx failed", len(reply.GetData().(*types.ReplyTxList).GetTxs()), mem.Size())
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestCheckLowFee(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	mem.SetMinFee(1000)
-	tmp := *tx11
-	copytx := &tmp
-	copytx.Fee = 100 // make low tx fee
-	copytx.Sign(types.SECP256K1, privKey)
-	msg := mem.client.NewMessage("mempool", types.EventTx, copytx)
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx13)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)
 
@@ -546,9 +547,9 @@ func TestCheckLowFee(t *testing.T) {
 		t.Error("TestCheckLowFee failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestCheckSignature(t *testing.T) {
@@ -565,13 +566,14 @@ func TestCheckSignature(t *testing.T) {
 		t.Error("TestCheckSignature failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestCheckExpire1(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
+
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx1)
 	mem.client.Send(msg, true)
@@ -581,9 +583,9 @@ func TestCheckExpire1(t *testing.T) {
 		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestCheckExpire2(t *testing.T) {
@@ -612,9 +614,9 @@ func TestCheckExpire2(t *testing.T) {
 		t.Error("TestCheckExpire failed", len(txs))
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func BenchmarkMempool(b *testing.B) {
@@ -636,7 +638,23 @@ func BenchmarkMempool(b *testing.B) {
 	mem.client.Wait(msg)
 	println(mem.Size() == b.N+1)
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
+}
+
+func blockChainProc(q queue.Queue) {
+	go func() {
+		client := q.Client()
+		client.Sub("blockchain")
+		for msg := range client.Recv() {
+			if msg.Ty == types.EventIsSync {
+				msg.Reply(client.NewMessage("mempool", types.EventReply, &types.IsCaughtUp{Iscaughtup: true}))
+			} else if msg.Ty == types.EventTxHashList {
+				msg.Reply(client.NewMessage("mempool", types.EventReply, &types.TxHashList{}))
+			} else if msg.Ty == types.EventGetLastHeader {
+				msg.Reply(client.NewMessage("mempool", types.EventReply, queue.Message{Data: &types.Header{Height: 0, BlockTime: 0}}))
+			}
+		}
+	}()
 }
