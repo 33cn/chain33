@@ -1,4 +1,3 @@
-
 Title="chain33"
 Loglevel="debug"
 
@@ -7,7 +6,7 @@ defCacheSize=500
 maxFetchBlockNum=100
 timeoutSeconds=5
 batchBlockNum=100
-driver="memdb"
+driver="leveldb"
 dbPath="datadir"
 
 [p2p]
@@ -32,12 +31,12 @@ hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
 [store]
 name="mavl"
-driver="memdb"
+driver="leveldb"
 dbPath="datadir/mavltree"
 
 [wallet]
 minFee=1000000
-driver="memdb"
+driver="leveldb"
 dbPath="datadir/wallet"
 
 [exec]
