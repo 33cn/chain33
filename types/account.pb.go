@@ -64,7 +64,6 @@ It has these top-level messages:
 	Consensus
 	Wallet
 	Store
-	LocalStore
 	BlockChain
 	P2P
 	Rpc
