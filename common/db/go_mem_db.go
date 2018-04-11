@@ -43,17 +43,28 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 	return copiedBytes
 }
 
-func (db *GoMemDB) Get(key []byte) []byte {
+func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
 	if entry, ok := db.db[string(key)]; ok {
-		return CopyBytes(entry)
+		return CopyBytes(entry), nil
+	}
+	return nil, nil
+}
+
+func (db *GoMemDB) Set(key []byte, value []byte) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	db.db[string(key)] = CopyBytes(value)
+	if db.db[string(key)] == nil {
+		mlog.Error("Set", "error have no mem")
 	}
 	return nil
 }
 
-func (db *GoMemDB) Set(key []byte, value []byte) {
+func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -61,30 +72,23 @@ func (db *GoMemDB) Set(key []byte, value []byte) {
 	if db.db[string(key)] == nil {
 		mlog.Error("Set", "error have no mem")
 	}
+	return nil
 }
 
-func (db *GoMemDB) SetSync(key []byte, value []byte) {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
-	db.db[string(key)] = CopyBytes(value)
-	if db.db[string(key)] == nil {
-		mlog.Error("Set", "error have no mem")
-	}
-}
-
-func (db *GoMemDB) Delete(key []byte) {
+func (db *GoMemDB) Delete(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
 	delete(db.db, string(key))
+	return nil
 }
 
-func (db *GoMemDB) DeleteSync(key []byte) {
+func (db *GoMemDB) DeleteSync(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
 	delete(db.db, string(key))
+	return nil
 }
 
 func (db *GoMemDB) DB() map[string][]byte {
@@ -177,11 +181,12 @@ func (dbit *goMemDBIt) Key() []byte {
 }
 
 func (dbit *goMemDBIt) Value() []byte {
-	return dbit.goMemDb.Get([]byte(dbit.keys[dbit.index]))
+	value, _ := dbit.goMemDb.Get([]byte(dbit.keys[dbit.index]))
+	return value
 }
 
 func (dbit *goMemDBIt) ValueCopy() []byte {
-	v := dbit.goMemDb.Get([]byte(dbit.keys[dbit.index]))
+	v, _ := dbit.goMemDb.Get([]byte(dbit.keys[dbit.index]))
 	value := make([]byte, len(v))
 	copy(value, v)
 	return value
@@ -223,7 +228,7 @@ func (b *memBatch) Delete(key []byte) {
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(nil)})
 }
 
-func (b *memBatch) Write() {
+func (b *memBatch) Write() error {
 	b.db.lock.Lock()
 	defer b.db.lock.Unlock()
 
@@ -234,4 +239,5 @@ func (b *memBatch) Write() {
 			b.db.Set(kv.k, kv.v)
 		}
 	}
+	return nil
 }

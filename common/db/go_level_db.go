@@ -56,44 +56,53 @@ func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
 	return database, nil
 }
 
-func (db *GoLevelDB) Get(key []byte) []byte {
+func (db *GoLevelDB) Get(key []byte) ([]byte, error) {
 	res, err := db.db.Get(key, nil)
 	if err != nil {
 		if err == errors.ErrNotFound {
-			return nil
+			return nil, ErrNotFoundInDb
 		} else {
 			llog.Error("Get", "error", err)
+			return nil, err
 		}
 	}
-	return res
+	return res, nil
 }
 
-func (db *GoLevelDB) Set(key []byte, value []byte) {
+func (db *GoLevelDB) Set(key []byte, value []byte) error {
 	err := db.db.Put(key, value, nil)
 	if err != nil {
 		llog.Error("Set", "error", err)
+		return err
 	}
+	return nil
 }
 
-func (db *GoLevelDB) SetSync(key []byte, value []byte) {
+func (db *GoLevelDB) SetSync(key []byte, value []byte) error {
 	err := db.db.Put(key, value, &opt.WriteOptions{Sync: true})
 	if err != nil {
 		llog.Error("SetSync", "error", err)
+		return err
 	}
+	return nil
 }
 
-func (db *GoLevelDB) Delete(key []byte) {
+func (db *GoLevelDB) Delete(key []byte) error {
 	err := db.db.Delete(key, nil)
 	if err != nil {
 		llog.Error("Delete", "error", err)
+		return err
 	}
+	return nil
 }
 
-func (db *GoLevelDB) DeleteSync(key []byte) {
+func (db *GoLevelDB) DeleteSync(key []byte) error {
 	err := db.db.Delete(key, &opt.WriteOptions{Sync: true})
 	if err != nil {
 		llog.Error("DeleteSync", "error", err)
+		return err
 	}
+	return nil
 }
 
 func (db *GoLevelDB) DB() *leveldb.DB {
@@ -204,9 +213,11 @@ func (mBatch *goLevelDBBatch) Delete(key []byte) {
 	mBatch.batch.Delete(key)
 }
 
-func (mBatch *goLevelDBBatch) Write() {
+func (mBatch *goLevelDBBatch) Write() error {
 	err := mBatch.db.db.Write(mBatch.batch, mBatch.wop)
 	if err != nil {
 		llog.Error("Write", "error", err)
+		return err
 	}
+	return nil
 }
