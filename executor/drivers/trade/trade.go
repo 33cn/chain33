@@ -392,11 +392,10 @@ func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 	types.Decode(value, &sellorder)
 	status := sellorder.Status
 	var kv []*types.KeyValue
-	kv = saveSellOrderKeyValue(kv, &sellorder, status)
-	if types.OnSale == status {
+	kv = deleteSellOrderKeyValue(kv, &sellorder, status)
+	if types.SoldOut == status || types.Revoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
-		kv = deleteSellOrderKeyValue(kv, &sellorder, types.SoldOut)
-		kv = deleteSellOrderKeyValue(kv, &sellorder, types.Revoked)
+		kv = saveSellOrderKeyValue(kv, &sellorder, types.OnSale)
 	}
 
 	return kv
