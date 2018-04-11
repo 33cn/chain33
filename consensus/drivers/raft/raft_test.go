@@ -2,119 +2,147 @@ package raft
 
 import (
 	"flag"
-	"strconv"
-	"strings"
+	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/coreos/etcd/raft/raftpb"
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/store"
+	"encoding/binary"
+	"os"
 )
 
 var (
-	transactions []*types.Transaction
-	txSize       int = 10000
-	endLoop      int = 10
-	configpath       = flag.String("f", "chain33.toml", "configfile")
+	random     *rand.Rand
+	result []*types.Transaction
+	txNumber int = 10
+	loopCount int = 10
 )
-var amount = int64(1e8)
-var v = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-var transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-var tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0}
 
-var c, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-var hex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-var data, _ = common.FromHex(hex)
-var privKey, _ = c.PrivKeyFromBytes(data)
+func init() {
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	log.SetLogLevel("info")
+}
 
-// 执行： go test -cover
-// 多次执行，需要删除之前的数据库文件，不然交易都是重复的
-func TestRaft(t *testing.T) {
-	flag.PrintDefaults()
+func TestRaftPerf(t *testing.T) {
+	q, chain, s, mem  := initEnvRaft()
+
+	defer chain.Close()
+	defer s.Close()
+	defer q.Close()
+	defer mem.Close()
+
+	sendReplyList(q)
+}
+
+func initEnvRaft() (queue.Queue, *blockchain.BlockChain,  queue.Module, *mempool.Mempool) {
+	var q = queue.New("channel")
 	flag.Parse()
-	cfg := config.InitCfg(*configpath)
-
-	q := queue.New("channel")
-
+	cfg := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	log.Info("loading store module")
+	exec := executor.New(cfg.Exec)
+	exec.SetQueueClient(q.Client())
+	types.SetMinFee(0)
 	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
 
-	urls := "http://127.0.0.1:9021"
-	nodeId := 1
-	//isValidator = true
+	cs := NewRaftCluster(cfg.Consensus)
+	cs.SetQueueClient(q.Client())
 
-	// propose channel
-	proposeC := make(chan *types.Block)
-	confChangeC := make(chan raftpb.ConfChange)
-	//var cfg *types.Consensus
-	var b *RaftClient
-	getSnapshot := func() ([]byte, error) { return b.getSnapshot() }
-	var peers []string
-	commitC, errorC, snapshotterReady, validatorC := NewRaftNode(nodeId, false, strings.Split(urls, ","), peers, peers, getSnapshot, proposeC, confChangeC)
+	mem := mempool.New(cfg.MemPool)
+	mem.SetQueueClient(q.Client())
 
-	b = NewBlockstore(cfg.Consensus, <-snapshotterReady, proposeC, commitC, errorC, validatorC)
-
-	time.Sleep(5 * time.Second)
-
-	b.SetQueueClient(q.Client())
-
-	go sendReplyList(q.Client())
-
-	log.Info("start")
-	q.Start()
+	return q, chain, s, mem
 }
 
-// 向共识发送交易列表
-func sendReplyList(client queue.Client) {
+func generateKey(i, valI int) string {
+	key := make([]byte, valI)
+	binary.PutUvarint(key[:10], uint64(valI))
+	binary.PutUvarint(key[12:24], uint64(i))
+	if _, err := rand.Read(key[24:]); err != nil {
+		os.Exit(1)
+	}
+	return string(key)
+}
+
+func generateValue(i, valI int) string {
+	value := make([]byte, valI)
+	binary.PutUvarint(value[:16], uint64(i))
+	binary.PutUvarint(value[32:128], uint64(i))
+	if _, err := rand.Read(value[128:]); err != nil {
+		os.Exit(1)
+	}
+	return string(value)
+}
+
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func sendReplyList(q queue.Queue) {
+	client := q.Client()
 	client.Sub("mempool")
-	var accountNum int
+	var count int
 	for msg := range client.Recv() {
 		if msg.Ty == types.EventTxList {
-			accountNum++
-			if accountNum < endLoop/5 {
-				// 无交易
-				msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
-					&types.ReplyTxList{}))
-			} else {
-				// 有交易
-				createReplyList("test" + strconv.Itoa(accountNum))
-				msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
-					&types.ReplyTxList{transactions}))
-			}
-			if accountNum == endLoop+1 {
-				log.Info("Test finished!!")
-				client.Close()
+			count ++
+			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
+				&types.ReplyTxList{getReplyList(txNumber)}))
+			if (count >= loopCount) {
+				time.Sleep(4 * time.Second)
 				break
 			}
 		}
 	}
 }
 
-// 准备交易列表
-func createReplyList(account string) {
-	var result []*types.Transaction
-	for j := 0; j < txSize; j++ {
-		tx := &types.Transaction{}
-		if j > 1000 && j%1000 == 0 {
-			// 重复交易
-			tx = &types.Transaction{Execer: []byte("coin"), Payload: []byte("duplicate"), Fee: 1000, Expire: 0}
-		} else {
-			tx = &types.Transaction{Execer: []byte(account + "This is a payload" + strconv.Itoa(j)), Payload: []byte(account + "This is a account" + strconv.Itoa(j)), Fee: 1000, Expire: 0}
-		}
+func prepareTxList() *types.Transaction {
+	var key string
+	var value string
+	var i int
 
-		result = append(result, tx)
+	key = generateKey(i, 32)
+	value = generateValue(i, 180)
+
+	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
+	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
+	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: 0}
+	tx.Nonce = random.Int63()
+	tx.Sign(types.SECP256K1, getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"))
+	return tx
+}
+
+func getReplyList(n int) (txs []*types.Transaction) {
+
+	for i := 0; i < int(n); i++ {
+		txs = append(txs, prepareTxList())
 	}
-	//result = append(result, tx)
-	transactions = result
+	return txs
 }
