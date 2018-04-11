@@ -1,0 +1,68 @@
+Title="chain33"
+
+Loglevel="info"
+LogConsoleLevel="info"
+LogFile="chain33.log"
+
+[blockchain]
+defCacheSize=512
+maxFetchBlockNum=128
+timeoutSeconds=5
+batchBlockNum=128
+driver="leveldb"
+dbPath="datadir"
+isStrongConsistency=true
+singleMode=true
+
+[p2p]
+seeds=["127.0.0.1:13802"]
+enable=false
+isSeed=false
+msgCacheSize=10240
+dbPath="datadir/addrbook"
+grpcLogFile="grpc33.log"
+version=15
+verMix=15
+verMax=16
+
+[mempool]
+poolCacheSize=10240
+minTxFee=1000000
+
+[consensus]
+# 共识驱动名,支持solo/raft/ticket/tendermint/pbft
+name="raft"
+minerstart=true
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+# =============== raft共识配置参数 ===========================
+# 共识节点ID，raft共识用到，不同的节点设置不同的nodeId（目前只支持1，2，3这种设置）
+nodeId=1
+# raft共识用到，通过这个端口进行节点的增加和删除
+raftApiPort=9121
+# raft共识用到，指示这个节点是否新增加节点
+isNewJoinNode=false
+# raft共识用到，指示raft集群中的服务器IP和端口
+peersURL="http://127.0.0.1:9021"
+# raft共识用到，指示raft集群中只读节点的IP（只同步日志，不参与raft共识）
+readOnlyPeersURL=""
+addPeersURL=""
+# =============== raft共识配置参数 ===========================
+genesisBlockTime=1514533394
+hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+
+[store]
+name="mavl"
+driver="leveldb"
+dbPath="datadir/mavltree"
+
+[localstore]
+driver="leveldb"
+dbPath="datadir/mavltree"
+
+[wallet]
+minFee=1000000
+dbPath="datadir/wallet"
+
+[exec]
+isFree=false
+minExecFee=100000
