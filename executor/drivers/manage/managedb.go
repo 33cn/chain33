@@ -7,7 +7,7 @@ import (
 )
 
 type ManageAction struct {
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	db           dbm.KVDB
 	txhash       []byte
 	fromaddr     string

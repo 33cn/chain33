@@ -70,7 +70,7 @@ func deleteTokenDB(db dbm.KVDB, symbol string) {
 }
 
 type tokenAction struct {
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	db           dbm.KVDB
 	txhash       []byte
 	fromaddr     string
