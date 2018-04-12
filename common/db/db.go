@@ -10,7 +10,6 @@ var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 type KVDB interface {
 	Get(key []byte) ([]byte, error)
 	Set(key []byte, value []byte) (err error)
-	List(prefix, key []byte, count, direction int32) ([][]byte, error)
 }
 
 type DB interface {
