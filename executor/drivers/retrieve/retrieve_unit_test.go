@@ -79,7 +79,7 @@ func TestExecPerform(t *testing.T) {
 
 func constructRetrieveInstance() *Retrieve {
 	r := newRetrieve()
-	r.SetDB(NewTestDB())
+	r.SetStateDB(NewTestDB())
 	return r
 }
 

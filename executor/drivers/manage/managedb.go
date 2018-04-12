@@ -16,7 +16,7 @@ type Action struct {
 }
 
 func NewAction(m *Manage, tx *types.Transaction) *Action {
-	return &Action{db: m.GetDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()}
+	return &Action{db: m.GetStateDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()}
 
 }
 

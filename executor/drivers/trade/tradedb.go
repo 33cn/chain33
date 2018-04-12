@@ -112,7 +112,7 @@ type tradeAction struct {
 func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 	hash := common.Bytes2Hex(tx.Hash())
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &tradeAction{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr,
+	return &tradeAction{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
 		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 

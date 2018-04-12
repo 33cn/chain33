@@ -177,7 +177,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
 	if 0 == len(addrTokens.Token) {
-		list := dbm.NewListHelper(t.GetQueryDB())
+		list := dbm.NewListHelper(t.GetLocalDB())
 		values := list.List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 		if len(values) != 0 {
 			tradelog.Debug("trade Query", "get number of sellid", len(values))
@@ -185,7 +185,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 		}
 	} else {
 		for _, token := range addrTokens.Token {
-			list := dbm.NewListHelper(t.GetQueryDB())
+			list := dbm.NewListHelper(t.GetLocalDB())
 			values := list.List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
 			if len(values) != 0 {
@@ -198,7 +198,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 	for _, sellid := range sellids {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
-			if sellorder, err := getSellOrderFromID(sellid, t.GetDB()); err == nil {
+			if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
 				tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
 				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
 			}
@@ -211,7 +211,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	gotAlready := make(map[interface{}]bool)
 	var reply types.ReplyTradeBuyOrders
-	list := dbm.NewListHelper(t.GetQueryDB())
+	list := dbm.NewListHelper(t.GetLocalDB())
 	values := list.List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 	if len(values) != 0 {
 		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(values))
@@ -250,7 +250,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 func (t *trade) GetAllSellOrdersWithStatus(status int32) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
-	list := dbm.NewListHelper(t.GetQueryDB())
+	list := dbm.NewListHelper(t.GetLocalDB())
 	values := list.List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
 	if len(values) != 0 {
 		tradelog.Debug("trade Query", "get number of sellid", len(values))
@@ -261,7 +261,7 @@ func (t *trade) GetAllSellOrdersWithStatus(status int32) (types.Message, error) 
 	for _, sellid := range sellids {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
-			if sellorder, err := getSellOrderFromID(sellid, t.GetDB()); err == nil {
+			if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
 				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
 				tradelog.Debug("trade Query", "height of sellid", sellorder.Height,
 					"len of reply.Selloders", len(reply.Selloders))
@@ -303,7 +303,7 @@ func (t *trade) GetTokenByStatus(req *types.ReqTokenSellOrder, status int32) (ty
 
 	fromKey := []byte("")
 	if len(req.FromSellId) != 0 {
-		sellorder, err := getSellOrderFromID([]byte(req.FromSellId), t.GetDB())
+		sellorder, err := getSellOrderFromID([]byte(req.FromSellId), t.GetStateDB())
 		if err != nil {
 			tradelog.Error("GetTokenByStatus get sellorder err", err)
 			return nil, err
@@ -311,13 +311,13 @@ func (t *trade) GetTokenByStatus(req *types.ReqTokenSellOrder, status int32) (ty
 		fromKey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8*sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
 	}
 
-	list := dbm.NewListHelper(t.GetQueryDB())
+	list := dbm.NewListHelper(t.GetLocalDB())
 	prefix := calcTokensSellOrderPrefixStatus(req.TokenSymbol, status)
 	values := list.List(prefix, fromKey, req.Count, req.Direction)
 
 	var reply types.ReplySellOrders
 	for _, sellid := range values {
-		if sellorder, err := getSellOrderFromID(sellid, t.GetDB()); err == nil {
+		if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
 			tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
 			reply.Selloders = append(reply.Selloders, sellorder)
 		}
@@ -326,7 +326,7 @@ func (t *trade) GetTokenByStatus(req *types.ReqTokenSellOrder, status int32) (ty
 }
 
 func (t *trade) getSellOrderFromDb(sellid []byte) *types.SellOrder {
-	value, err := t.GetDB().Get(sellid)
+	value, err := t.GetStateDB().Get(sellid)
 	if err != nil {
 		panic(err)
 	}

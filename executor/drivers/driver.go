@@ -17,10 +17,9 @@ import (
 var blog = log.New("module", "execs.base")
 
 type Driver interface {
-	SetDB(dbm.KVDB)
+	SetStateDB(dbm.KVDB)
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
-	SetQueryDB(dbm.DB)
 	SetExecDriver(execDriver *ExecDrivers)
 	GetExecDriver() *ExecDrivers
 	GetName() string
@@ -35,9 +34,8 @@ type Driver interface {
 }
 
 type DriverBase struct {
-	db           dbm.KVDB
+	statedb      dbm.KVDB
 	localdb      dbm.KVDB
-	querydb      dbm.DB
 	height       int64
 	blocktime    int64
 	child        Driver
@@ -186,24 +184,24 @@ func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error
 	return nil, types.ErrActionNotSupport
 }
 
-func (d *DriverBase) SetDB(db dbm.KVDB) {
+func (d *DriverBase) SetStateDB(db dbm.KVDB) {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
 	}
-	d.db = db
+	d.statedb = db
 	d.coinsaccount.SetDB(db)
 }
 
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
-		d.coinsaccount.SetDB(d.db)
+		d.coinsaccount.SetDB(d.statedb)
 	}
 	return d.coinsaccount
 }
 
-func (d *DriverBase) GetDB() dbm.KVDB {
-	return d.db
+func (d *DriverBase) GetStateDB() dbm.KVDB {
+	return d.statedb
 }
 
 func (d *DriverBase) SetLocalDB(db dbm.KVDB) {
@@ -212,14 +210,6 @@ func (d *DriverBase) SetLocalDB(db dbm.KVDB) {
 
 func (d *DriverBase) GetLocalDB() dbm.KVDB {
 	return d.localdb
-}
-
-func (d *DriverBase) SetQueryDB(db dbm.DB) {
-	d.querydb = db
-}
-
-func (d *DriverBase) GetQueryDB() dbm.DB {
-	return d.querydb
 }
 
 func (d *DriverBase) GetHeight() int64 {
@@ -241,7 +231,7 @@ func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 // 通过addr前缀查找本地址参与的所有交易
 //查询交易默认放到：coins 中查询
 func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
-	db := d.GetQueryDB()
+	db := d.GetLocalDB()
 	var prefix []byte
 	var key []byte
 	var txinfos [][]byte
@@ -256,6 +246,7 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
 		list := dbm.NewListHelper(db)
+
 		txinfos = list.IteratorScanFromLast(prefix, addr.Count)
 		if len(txinfos) == 0 {
 			return nil, errors.New("tx does not exist")

@@ -68,9 +68,26 @@ func (exec *Executor) SetQueueClient(client queue.Client) {
 				exec.procExecDelBlock(msg)
 			} else if msg.Ty == types.EventCheckTx {
 				exec.procExecCheckTx(msg)
+			} else if msg.Ty == types.EventBlockChainQuery {
+				exec.procExecQuery(msg)
 			}
 		}
 	}()
+}
+
+func (exec *Executor) procExecQuery(msg queue.Message) {
+	data := msg.GetData().(*types.BlockChainQuery)
+	driver, err := LoadDriver(data.Driver)
+	if err != nil {
+		msg.ReplyErr("EventBlockChainQuery", err)
+	}
+	driver.SetLocalDB(NewLocalDB(exec.client.Clone()))
+	driver.SetStateDB(NewStateDB(exec.client.Clone(), data.StateHash))
+	ret, err := driver.Query(data.FuncName, data.Param)
+	if err != nil {
+		msg.ReplyErr("EventBlockChainQuery", err)
+	}
+	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, &ret))
 }
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
@@ -320,14 +337,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 	}
 
-	exec.SetDB(e.stateDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriverForExec(string(tx.Execer))
-	exec.SetDB(e.stateDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.Exec(tx, index)
 }
