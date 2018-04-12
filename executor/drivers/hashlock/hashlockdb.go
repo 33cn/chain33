@@ -58,7 +58,7 @@ func HashlockKey(id []byte) (key []byte) {
 }
 
 type HashlockAction struct {
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	db           dbm.KVDB
 	txhash       []byte
 	fromaddr     string

@@ -29,7 +29,7 @@ var (
 	walletlog               = log.New("module", "wallet")
 	SignType          int   = 1 //1；secp256k1，2：ed25519，3：sm2
 	accountdb               = account.NewCoinsAccount()
-	accTokenMap             = make(map[string]*account.AccountDB)
+	accTokenMap             = make(map[string]*account.DB)
 )
 
 type Wallet struct {
@@ -82,7 +82,7 @@ func New(cfg *types.Wallet) *Wallet {
 		miningTicket:   time.NewTicker(2 * time.Minute),
 		done:           make(chan struct{}),
 	}
-	value := walletStore.db.Get([]byte("WalletAutoMiner"))
+	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
 		wallet.autoMinerFlag = 1
 	}
@@ -2064,7 +2064,7 @@ func (wallet *Wallet) procRevokeSell(reqRevoke *types.ReqRevokeSell) (*types.Rep
 	return wallet.revokeSell(priv, reqRevoke)
 }
 
-func getTokenAccountDB(token string) *account.AccountDB {
+func getTokenAccountDB(token string) *account.DB {
 	if nil == accTokenMap[token] {
 		tokenAccDB := account.NewTokenAccountWithoutDB(token)
 		accTokenMap[token] = tokenAccDB

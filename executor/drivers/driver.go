@@ -18,7 +18,7 @@ var blog = log.New("module", "execs.base")
 
 type Driver interface {
 	SetDB(dbm.KVDB)
-	GetCoinsAccount() *account.AccountDB
+	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
 	SetQueryDB(dbm.DB)
 	SetExecDriver(execDriver *ExecDrivers)
@@ -41,7 +41,7 @@ type DriverBase struct {
 	height       int64
 	blocktime    int64
 	child        Driver
-	coinsaccount *account.AccountDB
+	coinsaccount *account.DB
 	execDriver   *ExecDrivers
 	isFree       bool
 }
@@ -194,7 +194,7 @@ func (d *DriverBase) SetDB(db dbm.KVDB) {
 	d.coinsaccount.SetDB(db)
 }
 
-func (d *DriverBase) GetCoinsAccount() *account.AccountDB {
+func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
 		d.coinsaccount.SetDB(d.db)
