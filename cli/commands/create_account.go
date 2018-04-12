@@ -27,7 +27,7 @@ func createAccount(cmd *cobra.Command, args []string) {
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.NewAccount", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.NewAccount", params, &res)
 	ctx.SetResultCb(parseCreateAccountRes)
 	ctx.Run()
 }

@@ -37,7 +37,7 @@ func LastHeaderCmd() *cobra.Command {
 func lastHeader(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.Header
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
 	ctx.Run()
 }
 
@@ -64,7 +64,7 @@ func blockHeightHash(cmd *cobra.Command, args []string) {
 		Height: height,
 	}
 	var res jsonrpc.ReplyHash
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
 	ctx.Run()
 }
 
@@ -91,6 +91,6 @@ func blockViewByHash(cmd *cobra.Command, args []string) {
 		Hash: blockHash,
 	}
 	var res jsonrpc.BlockOverview
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockOverview", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetBlockOverview", params, &res)
 	ctx.Run()
 }

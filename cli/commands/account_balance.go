@@ -51,7 +51,7 @@ func balance(cmd *cobra.Command, args []string) {
 	}
 
 	var res []*jsonrpc.Account
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
 	ctx.SetResultCb(parseGetBalanceRes)
 	ctx.Run()
 }

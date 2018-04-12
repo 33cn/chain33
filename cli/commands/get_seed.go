@@ -27,6 +27,6 @@ func getSeed(cmd *cobra.Command, args []string) {
 		Passwd: pwd,
 	}
 	var res types.ReplySeed
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
 	ctx.Run()
 }

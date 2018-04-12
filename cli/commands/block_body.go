@@ -36,7 +36,7 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 		Isdetail: isDetail,
 	}
 	var res jsonrpc.BlockDetails
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlocks", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetBlocks", params, &res)
 	ctx.SetResultCb(parseBlockDetail)
 	ctx.Run()
 }
