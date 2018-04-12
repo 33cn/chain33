@@ -237,8 +237,9 @@ func newNodeDB(db dbm.DB) *nodeDB {
 func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
 	// Doesn't exist, load from db.
 	var buf []byte
-	buf = ndb.db.Get(hash)
-	if len(buf) == 0 {
+	buf, err := ndb.db.Get(hash)
+
+	if len(buf) == 0 || err != nil {
 		return nil, ErrNodeNotExist
 	}
 	node, err := MakeMAVLNode(buf, t)

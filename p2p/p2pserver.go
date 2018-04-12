@@ -395,9 +395,9 @@ func (s *p2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 }
 
 func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServer) error {
+	var hash [64]byte
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
-
 	for {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
@@ -411,14 +411,15 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			log.Error("ServerStreamRead", "Recv", err)
 			return err
 		}
-		if block := in.GetBlock(); block != nil {
 
-			blockhash := hex.EncodeToString(block.GetBlock().Hash())
+		if block := in.GetBlock(); block != nil {
+			hex.Encode(hash[:], block.GetBlock().Hash())
+			blockhash := string(hash[:])
 			if Filter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
 				continue
 			}
 
-			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block hash", hex.EncodeToString(block.GetBlock().GetTxHash()))
+			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block hash", blockhash)
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 				err := s.node.nodeInfo.client.Send(msg, false)
@@ -430,8 +431,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			Filter.RegRecvData(blockhash) //注册已经收到的区块
 
 		} else if tx := in.GetTx(); tx != nil {
-			txhash := hex.EncodeToString(tx.GetTx().Hash())
-			log.Debug("ServerStreamRead", "txhash:", "0x"+txhash)
+			hex.Encode(hash[:], tx.GetTx().Hash())
+			txhash := string(hash[:])
+			log.Debug("ServerStreamRead", "txhash:", txhash)
 			if Filter.QueryRecvData(txhash) == true { //同上
 				continue
 			}
@@ -447,9 +449,11 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				log.Error("ServerStreamRead", "check stream", "check sig err")
 				return pb.ErrStreamPing
 			}
+
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
 			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: time.Now().Unix()})
+
 		}
 	}
 

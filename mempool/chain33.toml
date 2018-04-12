@@ -1,4 +1,3 @@
-
 Title="chain33"
 
 [blockchain]
@@ -32,6 +31,7 @@ dbPath="datadir/mavltree"
 
 [wallet]
 minFee=1000000
+driver="leveldb"
 dbPath="datadir/wallet"
 
 [exec]

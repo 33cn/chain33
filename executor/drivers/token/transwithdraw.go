@@ -2,12 +2,13 @@ package token
 
 import (
 	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (t *token) ExecTransWithdraw(accountDB *account.AccountDB, tx *types.Transaction, action *types.TokenAction, index int) (*types.Receipt, error) {
+func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, action *types.TokenAction, index int) (*types.Receipt, error) {
 	_, err := t.DriverBase.Exec(tx, index)
 	if err != nil {
 		return nil, err
