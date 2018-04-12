@@ -144,14 +144,14 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return t.GetOnesSellOrder(t.GetDB(), t.GetQueryDB(), &addrTokens)
+		return t.GetOnesSellOrder(&addrTokens)
 	case "GetOnesBuyOrder":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
 		}
-		return t.GetOnesBuyOrder(t.GetDB(), t.GetQueryDB(), &addrTokens)
+		return t.GetOnesBuyOrder(&addrTokens)
 		//查寻所有的可以进行交易的卖单
 	case "GetAllSellOrdersWithStatus":
 		var addrTokens types.ReqAddrTokens
@@ -159,25 +159,25 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return t.GetAllSellOrdersWithStatus(t.GetDB(), t.GetQueryDB(), addrTokens.Status)
+		return t.GetAllSellOrdersWithStatus(addrTokens.Status)
 	case "GetTokenSellOrderByStatus":
 		var req types.ReqTokenSellOrder
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
 		}
-		return t.GetTokenByStatus(t.GetDB(), t.GetQueryDB(), &req, types.OnSale)
+		return t.GetTokenByStatus(&req, types.OnSale)
 	default:
 	}
 	tradelog.Error("trade Query", "Query type not supprt with func name", funcName)
 	return nil, types.ErrQueryNotSupport
 }
 
-func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
 	if 0 == len(addrTokens.Token) {
-		list := dbm.NewListHelper(querydb)
+		list := dbm.NewListHelper(t.GetQueryDB())
 		values := list.List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 		if len(values) != 0 {
 			tradelog.Debug("trade Query", "get number of sellid", len(values))
@@ -185,7 +185,7 @@ func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 		}
 	} else {
 		for _, token := range addrTokens.Token {
-			list := dbm.NewListHelper(querydb)
+			list := dbm.NewListHelper(t.GetQueryDB())
 			values := list.List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
 			if len(values) != 0 {
@@ -198,7 +198,7 @@ func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 	for _, sellid := range sellids {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
-			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
+			if sellorder, err := getSellOrderFromID(sellid, t.GetDB()); err == nil {
 				tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
 				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
 			}
@@ -208,10 +208,10 @@ func (t *trade) GetOnesSellOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.
 	return &reply, nil
 }
 
-func (t *trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	gotAlready := make(map[interface{}]bool)
 	var reply types.ReplyTradeBuyOrders
-	list := dbm.NewListHelper(querydb)
+	list := dbm.NewListHelper(t.GetQueryDB())
 	values := list.List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 	if len(values) != 0 {
 		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(values))
@@ -247,10 +247,10 @@ func (t *trade) GetOnesBuyOrder(db dbm.KVDB, querydb dbm.DB, addrTokens *types.R
 	return &reply, nil
 }
 
-func (t *trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status int32) (types.Message, error) {
+func (t *trade) GetAllSellOrdersWithStatus(status int32) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
-	list := dbm.NewListHelper(querydb)
+	list := dbm.NewListHelper(t.GetQueryDB())
 	values := list.List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
 	if len(values) != 0 {
 		tradelog.Debug("trade Query", "get number of sellid", len(values))
@@ -261,7 +261,7 @@ func (t *trade) GetAllSellOrdersWithStatus(db dbm.KVDB, querydb dbm.DB, status i
 	for _, sellid := range sellids {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
-			if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
+			if sellorder, err := getSellOrderFromID(sellid, t.GetDB()); err == nil {
 				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
 				tradelog.Debug("trade Query", "height of sellid", sellorder.Height,
 					"len of reply.Selloders", len(reply.Selloders))
@@ -296,14 +296,14 @@ func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types
 	return selloders
 }
 
-func (t *trade) GetTokenByStatus(db dbm.KVDB, querydb dbm.DB, req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
+func (t *trade) GetTokenByStatus(req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
 		return nil, types.ErrInputPara
 	}
 
 	fromKey := []byte("")
 	if len(req.FromSellId) != 0 {
-		sellorder, err := getSellOrderFromID([]byte(req.FromSellId), db)
+		sellorder, err := getSellOrderFromID([]byte(req.FromSellId), t.GetDB())
 		if err != nil {
 			tradelog.Error("GetTokenByStatus get sellorder err", err)
 			return nil, err
@@ -311,13 +311,13 @@ func (t *trade) GetTokenByStatus(db dbm.KVDB, querydb dbm.DB, req *types.ReqToke
 		fromKey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8*sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
 	}
 
-	list := dbm.NewListHelper(querydb)
+	list := dbm.NewListHelper(t.GetQueryDB())
 	prefix := calcTokensSellOrderPrefixStatus(req.TokenSymbol, status)
 	values := list.List(prefix, fromKey, req.Count, req.Direction)
 
 	var reply types.ReplySellOrders
 	for _, sellid := range values {
-		if sellorder, err := getSellOrderFromID(sellid, db); err == nil {
+		if sellorder, err := getSellOrderFromID(sellid, t.GetDB()); err == nil {
 			tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
 			reply.Selloders = append(reply.Selloders, sellorder)
 		}
@@ -325,8 +325,8 @@ func (t *trade) GetTokenByStatus(db dbm.KVDB, querydb dbm.DB, req *types.ReqToke
 	return &reply, nil
 }
 
-func (t *trade) getSellOrderFromDb(db dbm.KVDB, sellid []byte) *types.SellOrder {
-	value, err := db.Get(sellid)
+func (t *trade) getSellOrderFromDb(sellid []byte) *types.SellOrder {
+	value, err := t.GetDB().Get(sellid)
 	if err != nil {
 		panic(err)
 	}
@@ -347,7 +347,7 @@ func genSaveSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 }
 
 func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
-	sellorder := t.getSellOrderFromDb(t.GetDB(), sellid)
+	sellorder := t.getSellOrderFromDb(sellid)
 	return genSaveSellKv(sellorder)
 }
 
@@ -399,7 +399,7 @@ func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 }
 
 func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
-	sellorder := t.getSellOrderFromDb(t.GetDB(), sellid)
+	sellorder := t.getSellOrderFromDb(sellid)
 	return genDeleteSellKv(sellorder)
 }
 
