@@ -256,12 +256,12 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 	if err != nil {
 		return nil, types.ErrEmpty
 	}
-	var token_info types.Token
-	err = types.Decode(token, &token_info)
+	var tokenInfo types.Token
+	err = types.Decode(token, &tokenInfo)
 	if err != nil {
-		return &token_info, err
+		return &tokenInfo, err
 	}
-	return &token_info, nil
+	return &tokenInfo, nil
 }
 
 func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {

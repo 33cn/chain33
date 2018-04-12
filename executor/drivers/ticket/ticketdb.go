@@ -15,13 +15,13 @@ var tlog = log.New("module", "ticket.db")
 var genesisKey = []byte("mavl-acc-genesis")
 var addrSeed = []byte("address seed bytes for public key")
 
-type TicketDB struct {
+type DB struct {
 	types.Ticket
 	prevstatus int32
 }
 
-func NewTicketDB(id, minerAddress, returnWallet string, blocktime int64, isGenesis bool) *TicketDB {
-	t := &TicketDB{}
+func NewDB(id, minerAddress, returnWallet string, blocktime int64, isGenesis bool) *DB {
+	t := &DB{}
 	t.TicketId = id
 	t.MinerAddress = minerAddress
 	t.ReturnAddress = returnWallet
@@ -40,7 +40,7 @@ func NewTicketDB(id, minerAddress, returnWallet string, blocktime int64, isGenes
 //add prevStatus:  便于回退状态，以及删除原来状态
 //list 保存的方法:
 //minerAddress:status:ticketId=ticketId
-func (t *TicketDB) GetReceiptLog() *types.ReceiptLog {
+func (t *DB) GetReceiptLog() *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	if t.Status == 1 {
 		log.Ty = types.TyLogNewTicket
@@ -58,13 +58,13 @@ func (t *TicketDB) GetReceiptLog() *types.ReceiptLog {
 	return log
 }
 
-func (t *TicketDB) GetKVSet() (kvset []*types.KeyValue) {
+func (t *DB) GetKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&t.Ticket)
-	kvset = append(kvset, &types.KeyValue{TicketKey(t.TicketId), value})
+	kvset = append(kvset, &types.KeyValue{Key(t.TicketId), value})
 	return kvset
 }
 
-func (t *TicketDB) Save(db dbm.KVDB) {
+func (t *DB) Save(db dbm.KVDB) {
 	set := t.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -72,19 +72,19 @@ func (t *TicketDB) Save(db dbm.KVDB) {
 }
 
 //address to save key
-func TicketKey(id string) (key []byte) {
+func Key(id string) (key []byte) {
 	key = append(key, []byte("mavl-ticket-")...)
 	key = append(key, []byte(id)...)
 	return key
 }
 
-func TicketBindKey(id string) (key []byte) {
+func BindKey(id string) (key []byte) {
 	key = append(key, []byte("mavl-ticket-tbind-")...)
 	key = append(key, []byte(id)...)
 	return key
 }
 
-type TicketAction struct {
+type Action struct {
 	coinsAccount *account.DB
 	db           dbm.KVDB
 	txhash       []byte
@@ -94,13 +94,13 @@ type TicketAction struct {
 	execaddr     string
 }
 
-func NewTicketAction(t *Ticket, tx *types.Transaction) *TicketAction {
+func NewAction(t *Ticket, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &TicketAction{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+	return &Action{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
-func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt, error) {
+func (action *Action) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt, error) {
 	prefix := common.ToHex(action.txhash)
 	prefix = genesis.MinerAddress + ":" + prefix + ":"
 	var logs []*types.ReceiptLog
@@ -108,7 +108,7 @@ func (action *TicketAction) GenesisInit(genesis *types.TicketGenesis) (*types.Re
 	cfg := types.GetP(action.height)
 	for i := 0; i < int(genesis.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
-		t := NewTicketDB(id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime, true)
+		t := NewDB(id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime, true)
 		//冻结子账户资金
 		receipt, err := action.coinsAccount.ExecFrozen(genesis.ReturnAddress, action.execaddr, cfg.TicketPrice)
 		if err != nil {
@@ -134,7 +134,7 @@ func saveBind(db dbm.KVDB, tbind *types.TicketBind) {
 
 func getBindKV(tbind *types.TicketBind) (kvset []*types.KeyValue) {
 	value := types.Encode(tbind)
-	kvset = append(kvset, &types.KeyValue{TicketBindKey(tbind.ReturnAddress), value})
+	kvset = append(kvset, &types.KeyValue{BindKey(tbind.ReturnAddress), value})
 	return kvset
 }
 
@@ -149,8 +149,8 @@ func getBindLog(tbind *types.TicketBind, old string) *types.ReceiptLog {
 	return log
 }
 
-func (action *TicketAction) getBind(addr string) string {
-	value, err := action.db.Get(TicketBindKey(addr))
+func (action *Action) getBind(addr string) string {
+	value, err := action.db.Get(BindKey(addr))
 	if err != nil || value == nil {
 		return ""
 	}
@@ -164,7 +164,7 @@ func (action *TicketAction) getBind(addr string) string {
 
 //授权某个地址进行挖矿
 //todo: query address is a minered address
-func (action *TicketAction) TicketBind(tbind *types.TicketBind) (*types.Receipt, error) {
+func (action *Action) TicketBind(tbind *types.TicketBind) (*types.Receipt, error) {
 	if action.fromaddr != tbind.ReturnAddress {
 		return nil, types.ErrFromAddr
 	}
@@ -186,7 +186,7 @@ func (action *TicketAction) TicketBind(tbind *types.TicketBind) (*types.Receipt,
 	return receipt, nil
 }
 
-func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt, error) {
+func (action *Action) TicketOpen(topen *types.TicketOpen) (*types.Receipt, error) {
 	prefix := common.ToHex(action.txhash)
 	prefix = topen.MinerAddress + ":" + prefix + ":"
 	var logs []*types.ReceiptLog
@@ -205,7 +205,7 @@ func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt,
 	cfg := types.GetP(action.height)
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
-		t := NewTicketDB(id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, false)
+		t := NewDB(id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, false)
 
 		//冻结子账户资金
 		receipt, err := action.coinsAccount.ExecFrozen(topen.ReturnAddress, action.execaddr, cfg.TicketPrice)
@@ -224,7 +224,7 @@ func (action *TicketAction) TicketOpen(topen *types.TicketOpen) (*types.Receipt,
 }
 
 func readTicket(db dbm.KVDB, id string) (*types.Ticket, error) {
-	data, err := db.Get(TicketKey(id))
+	data, err := db.Get(Key(id))
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func readTicket(db dbm.KVDB, id string) (*types.Ticket, error) {
 	return &ticket, nil
 }
 
-func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*types.Receipt, error) {
+func (action *Action) TicketMiner(miner *types.TicketMiner, index int) (*types.Receipt, error) {
 	if index != 0 {
 		return nil, types.ErrCoinBaseIndex
 	}
@@ -261,7 +261,7 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 	prevstatus := ticket.Status
 	ticket.Status = 2
 	ticket.MinerValue = miner.Reward
-	t := &TicketDB{*ticket, prevstatus}
+	t := &DB{*ticket, prevstatus}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
@@ -287,8 +287,8 @@ func (action *TicketAction) TicketMiner(miner *types.TicketMiner, index int) (*t
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Receipt, error) {
-	tickets := make([]*TicketDB, len(tclose.TicketId))
+func (action *Action) TicketClose(tclose *types.TicketClose) (*types.Receipt, error) {
+	tickets := make([]*DB, len(tclose.TicketId))
 	cfg := types.GetP(action.height)
 	for i := 0; i < len(tclose.TicketId); i++ {
 		ticket, err := readTicket(action.db, tclose.TicketId[i])
@@ -319,7 +319,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 		}
 		prevstatus := ticket.Status
 		ticket.Status = 3
-		tickets[i] = &TicketDB{*ticket, prevstatus}
+		tickets[i] = &DB{*ticket, prevstatus}
 	}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -354,7 +354,7 @@ func (action *TicketAction) TicketClose(tclose *types.TicketClose) (*types.Recei
 	return receipt, nil
 }
 
-func TicketList(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message, error) {
+func List(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message, error) {
 	list := dbm.NewListHelper(db)
 	values := list.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
 	if len(values) == 0 {
@@ -364,10 +364,10 @@ func TicketList(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message
 	for i := 0; i < len(values); i++ {
 		ids.TicketIds = append(ids.TicketIds, string(values[i]))
 	}
-	return TicketInfos(db2, &ids)
+	return Infos(db2, &ids)
 }
 
-func TicketInfos(db dbm.KVDB, tinfos *types.TicketInfos) (types.Message, error) {
+func Infos(db dbm.KVDB, tinfos *types.TicketInfos) (types.Message, error) {
 	var tickets []*types.Ticket
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]
