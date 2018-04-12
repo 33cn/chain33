@@ -113,6 +113,8 @@ func (db *GoMemDB) Stats() map[string]string {
 }
 
 func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
 
 	var keys []string
 	for k := range db.db {
