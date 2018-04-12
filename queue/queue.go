@@ -23,8 +23,8 @@ import (
 var qlog = log.New("module", "queue")
 
 const (
-	DefaultChanBuffer    = 64
-	DefaultLowChanBuffer = 40960
+	defaultChanBuffer    = 64
+	defaultLowChanBuffer = 40960
 )
 
 func DisableLog() {
@@ -105,7 +105,7 @@ func (q *queue) chanSub(topic string) *chanSub {
 	defer q.mu.Unlock()
 	_, ok := q.chanSubs[topic]
 	if !ok {
-		q.chanSubs[topic] = &chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
+		q.chanSubs[topic] = &chanSub{make(chan Message, defaultChanBuffer), make(chan Message, defaultLowChanBuffer), 0}
 	}
 	return q.chanSubs[topic]
 }
@@ -227,6 +227,6 @@ func (msg Message) ReplyErr(title string, err error) {
 		qlog.Debug(title, "success", "ok")
 		reply.IsOk = true
 	}
-	id := atomic.AddInt64(&gId, 1)
+	id := atomic.AddInt64(&gid, 1)
 	msg.Reply(NewMessage(id, "", types.EventReply, &reply))
 }

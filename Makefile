@@ -43,7 +43,7 @@ linter: ## Use gometalinter check code
 
 lint: ## Lint the files
 	@res=$$(golint -set_exit_status ${PKG_LIST} | grep -v "should have comment or be unexported" | \
-		grep -v "should be of the form" | grep -v "if block ends with a return statement"); \
+		grep -v "should be of the form" | grep -v "if block ends with a return statement" | grep -v "Id should be ID"); \
 	if [ -n "$$res" ]; then \
 		echo "$${res}"; \
 		exit 1; \
