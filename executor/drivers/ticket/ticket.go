@@ -228,8 +228,8 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		value := t.GetQueryDB().Get(calcBindReturnKey(reqaddr.Data))
-		if value == nil {
+		value, err := t.GetQueryDB().Get(calcBindReturnKey(reqaddr.Data))
+		if value == nil || err != nil {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{string(value)}, nil
