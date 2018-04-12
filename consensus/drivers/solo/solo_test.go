@@ -49,7 +49,7 @@ func TestSolo(t *testing.T) {
 func initEnvSolo() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
-	cfg := config.InitCfg("chain33.test.toml")
+	cfg := config.InitCfg("../../../chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 

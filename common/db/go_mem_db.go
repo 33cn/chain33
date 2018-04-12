@@ -52,7 +52,7 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	if entry, ok := db.db[string(key)]; ok {
 		return CopyBytes(entry), nil
 	}
-	return nil, nil
+	return nil, ErrNotFoundInDb
 }
 
 func (db *GoMemDB) Set(key []byte, value []byte) error {
