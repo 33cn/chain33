@@ -24,8 +24,8 @@ var ErrTest = errors.New("ErrTest")
 
 var addrexec *account.Address
 
-var delayLevel1 int64 = minPeriod + 10
-var delayLevel2 int64 = 5*minPeriod + 10
+var delayLevel1 = minPeriod + 10
+var delayLevel2 = 5*minPeriod + 10
 
 var currHeight int64
 
