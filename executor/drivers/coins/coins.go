@@ -156,11 +156,11 @@ func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 func (c *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
 	reciver := types.Int64{}
 	db := c.GetQueryDB()
-	addrReciver := db.Get(calcAddrKey(addr.Addr))
-	if addrReciver == nil {
+	addrReciver, err := db.Get(calcAddrKey(addr.Addr))
+	if addrReciver == nil || err != nil {
 		return &reciver, types.ErrEmpty
 	}
-	err := types.Decode(addrReciver, &reciver)
+	err = types.Decode(addrReciver, &reciver)
 	if err != nil {
 		return &reciver, err
 	}
