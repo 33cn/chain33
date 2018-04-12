@@ -63,8 +63,8 @@ func (ws *WalletStore) SetWalletPassword(newpass string) {
 }
 
 func (ws *WalletStore) GetWalletPassword() string {
-	Passwordbytes := ws.db.Get(WalletPassKey)
-	if Passwordbytes == nil {
+	Passwordbytes, err := ws.db.Get(WalletPassKey)
+	if Passwordbytes == nil || err != nil {
 		return ""
 	}
 	return string(Passwordbytes)
@@ -83,11 +83,11 @@ func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
 
 func (ws *WalletStore) GetFeeAmount() int64 {
 	var FeeAmount int64
-	FeeAmountbytes := ws.db.Get(WalletFeeAmount)
-	if FeeAmountbytes == nil {
+	FeeAmountbytes, err := ws.db.Get(WalletFeeAmount)
+	if FeeAmountbytes == nil || err != nil {
 		return minFee
 	}
-	err := json.Unmarshal(FeeAmountbytes, &FeeAmount)
+	err = json.Unmarshal(FeeAmountbytes, &FeeAmount)
 	if err != nil {
 		walletlog.Error("GetFeeAmount unmarshal", "err", err)
 		return minFee
@@ -133,12 +133,14 @@ func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore,
 		walletlog.Error("GetAccountByAddr addr is nil")
 		return nil, types.ErrInputPara
 	}
-	data := ws.db.Get(calcAddrKey(addr))
-	if data == nil {
-		walletlog.Debug("GetAccountByAddr addr not exist")
+	data, err := ws.db.Get(calcAddrKey(addr))
+	if data == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			walletlog.Debug("GetAccountByAddr addr", "err", err)
+		}
 		return nil, types.ErrAddrNotExist
 	}
-	err := proto.Unmarshal(data, &account)
+	err = proto.Unmarshal(data, &account)
 	if err != nil {
 		walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
 		return nil, types.ErrUnmarshal
@@ -152,12 +154,14 @@ func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStor
 		walletlog.Error("SetWalletAccount label is nil")
 		return nil, types.ErrInputPara
 	}
-	data := ws.db.Get(calcLabelKey(label))
-	if data == nil {
-		walletlog.Error("GetAccountByLabel label not exist")
+	data, err := ws.db.Get(calcLabelKey(label))
+	if data == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			walletlog.Error("GetAccountByLabel label", "err", err)
+		}
 		return nil, types.ErrLabelNotExist
 	}
-	err := proto.Unmarshal(data, &account)
+	err = proto.Unmarshal(data, &account)
 	if err != nil {
 		walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
 		return nil, types.ErrUnmarshal
@@ -251,11 +255,11 @@ func (ws *WalletStore) SetEncryptionFlag() error {
 
 func (ws *WalletStore) GetEncryptionFlag() int64 {
 	var flag int64
-	data := ws.db.Get(EncryptionFlag)
-	if data == nil {
+	data, err := ws.db.Get(EncryptionFlag)
+	if data == nil || err != nil {
 		return 0
 	}
-	err := json.Unmarshal(data, &flag)
+	err = json.Unmarshal(data, &flag)
 	if err != nil {
 		walletlog.Error("GetEncryptionFlag unmarshal", "err", err)
 		return 0
@@ -286,11 +290,11 @@ func (ws *WalletStore) SetPasswordHash(password string) error {
 
 func (ws *WalletStore) VerifyPasswordHash(password string) bool {
 	var WalletPwHash types.WalletPwHash
-	pwhashbytes := ws.db.Get(PasswordHash)
-	if pwhashbytes == nil {
+	pwhashbytes, err := ws.db.Get(PasswordHash)
+	if pwhashbytes == nil || err != nil {
 		return false
 	}
-	err := json.Unmarshal(pwhashbytes, &WalletPwHash)
+	err = json.Unmarshal(pwhashbytes, &WalletPwHash)
 	if err != nil {
 		walletlog.Error("GetEncryptionFlag unmarshal", "err", err)
 		return false

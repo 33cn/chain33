@@ -38,6 +38,7 @@ var (
 	tx10     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0}
 	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
 	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0}
+	tx13     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0}
 
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
@@ -160,7 +161,7 @@ func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mod
 	tx10.Sign(types.SECP256K1, privKey)
 	tx11.Sign(types.SECP256K1, privKey)
 	tx12.Sign(types.SECP256K1, privKey)
-
+	tx13.Sign(types.SECP256K1, privKey)
 	return mem, q, chain, s
 }
 
@@ -534,11 +535,7 @@ func TestCheckLowFee(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
 
 	mem.SetMinFee(1000)
-	tmp := *tx11
-	copytx := &tmp
-	copytx.Fee = 100 // make low tx fee
-	copytx.Sign(types.SECP256K1, privKey)
-	msg := mem.client.NewMessage("mempool", types.EventTx, copytx)
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx13)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)
 
