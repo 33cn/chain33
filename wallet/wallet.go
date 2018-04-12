@@ -82,7 +82,7 @@ func New(cfg *types.Wallet) *Wallet {
 		miningTicket:   time.NewTicker(2 * time.Minute),
 		done:           make(chan struct{}),
 	}
-	value := walletStore.db.Get([]byte("WalletAutoMiner"))
+	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
 		wallet.autoMinerFlag = 1
 	}

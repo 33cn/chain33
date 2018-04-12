@@ -3,6 +3,7 @@ package rpc
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 var (
