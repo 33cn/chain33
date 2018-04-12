@@ -17,7 +17,7 @@ func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
 		return NewGoMemDB(name, dir, cache)
 	}
-	registerDBCreator(MemDBBackendStr, dbCreator, false)
+	registerDBCreator(memDBBackendStr, dbCreator, false)
 }
 
 type GoMemDB struct {
@@ -115,13 +115,13 @@ func (db *GoMemDB) Stats() map[string]string {
 func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
 
 	var keys []string
-	for k, _ := range db.db {
+	for k := range db.db {
 		if strings.HasPrefix(k, string(prefix)) {
 			keys = append(keys, k)
 		}
 	}
 	sort.Strings(keys)
-	var index int = 0
+	var index int
 	return &goMemDBIt{index, keys, db, reserve, prefix}
 }
 
@@ -151,10 +151,10 @@ func (dbit *goMemDBIt) Close() {
 func (dbit *goMemDBIt) Next() bool {
 
 	if dbit.reserve { // 反向
-		dbit.index -= 1 //将当前key值指向前一个
+		dbit.index-- //将当前key值指向前一个
 		return true
 	} else { // 正向
-		dbit.index += 1 //将当前key值指向后一个
+		dbit.index++ //将当前key值指向后一个
 		return true
 	}
 }
