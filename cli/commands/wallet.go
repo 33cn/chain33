@@ -36,7 +36,7 @@ func WalletStatusCmd() *cobra.Command {
 func walletStatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.WalletStatus
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetWalletStatus", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetWalletStatus", nil, &res)
 	ctx.Run()
 }
 
@@ -73,7 +73,7 @@ func WalletListTxs(cmd *cobra.Command, args []string) {
 		Direction: direction,
 	}
 	var res jsonrpc.WalletTxDetails
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
 	ctx.SetResultCb(parseWalletTxListRes)
 	ctx.Run()
 }

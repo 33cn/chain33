@@ -48,7 +48,7 @@ func LockCmd() *cobra.Command {
 func lock(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.Reply
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Lock", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.Lock", nil, &res)
 	ctx.Run()
 }
 
@@ -82,7 +82,7 @@ func unLock(cmd *cobra.Command, args []string) {
 		WalletOrTicket: walletOrTicket,
 	}
 	var res jsonrpc.Reply
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.UnLock", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.UnLock", params, &res)
 	ctx.Run()
 }
 
@@ -99,7 +99,7 @@ func IsSyncCmd() *cobra.Command {
 func isSync(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res bool
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.IsSync", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.IsSync", nil, &res)
 	ctx.Run()
 }
 
@@ -131,7 +131,7 @@ func autoMine(cmd *cobra.Command, args []string) {
 	}
 
 	var res jsonrpc.Reply
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetAutoMining", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.SetAutoMining", params, &res)
 	ctx.Run()
 }
 
@@ -148,7 +148,7 @@ func PeerInfoCmd() *cobra.Command {
 func peerInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.PeerList
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
 	ctx.Run()
 }
 
@@ -218,6 +218,6 @@ func IsClockSync() *cobra.Command {
 func isClockSync(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res bool
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.IsNtpClockSync", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.IsNtpClockSync", nil, &res)
 	ctx.Run()
 }

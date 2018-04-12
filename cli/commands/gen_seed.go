@@ -26,6 +26,6 @@ func genSeed(cmd *cobra.Command, args []string) {
 		Lang: lang,
 	}
 	var res types.ReplySeed
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
 	ctx.Run()
 }
