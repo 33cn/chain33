@@ -9,6 +9,7 @@ manage 负责管理配置
 
 import (
 	"fmt"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -52,7 +53,7 @@ func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 		if manageAction.GetModify() == nil {
 			return nil, types.ErrInputPara
 		}
-		action := NewManageAction(c, tx)
+		action := NewAction(c, tx)
 		return action.modifyConfig(manageAction.GetModify())
 	}
 
