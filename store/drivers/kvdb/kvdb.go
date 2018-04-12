@@ -58,7 +58,7 @@ func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
 	} else {
 		db := kvs.GetDB()
 		for i := 0; i < len(datas.Keys); i++ {
-			value := db.Get(datas.Keys[i])
+			value, _ := db.Get(datas.Keys[i])
 			if value != nil {
 				values[i] = value
 			}
