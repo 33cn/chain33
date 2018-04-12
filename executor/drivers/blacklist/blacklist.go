@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"fmt"
+
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -310,7 +311,7 @@ func (b *BlackList) deleteRecord(recordId []byte) Record {
 //TODO:由于levedb不支持多键值查询，因此在写接口函数的时候只能做些规避
 func (b *BlackList) queryRecord(recordId []byte) string {
 	blog.Debug("recordId:============"+string(recordId), nil)
-	recordbytes := b.GetQueryDB().Get([]byte(b.GetName() + string(recordId)))
+	recordbytes, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(recordId)))
 	if recordbytes == nil {
 		return ""
 	}
@@ -344,7 +345,7 @@ func (b *BlackList) queryRecordByName(name []byte) []string {
 	return recordList
 }
 func (b *BlackList) queryTransactionById(txId []byte) string {
-	value := b.GetQueryDB().Get([]byte(b.GetName() + string(txId)))
+	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(txId)))
 	if value != nil {
 		return string(value)
 	}
@@ -406,7 +407,7 @@ func (b *BlackList) transfer(ts *Transaction) ([]*types.KeyValue, error) {
 	return kvs, nil
 }
 func (b *BlackList) queryOrg(orgId []byte) string {
-	value := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
+	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
 	if value != nil {
 		return string(value)
 	}
@@ -414,7 +415,7 @@ func (b *BlackList) queryOrg(orgId []byte) string {
 }
 func (b *BlackList) queryOrgById(orgId []byte) Org {
 	var org Org
-	value := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
+	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
 	blog.Debug("value===================:", string(value))
 	fmt.Println(value)
 	if value != nil {
@@ -427,7 +428,7 @@ func (b *BlackList) queryOrgById(orgId []byte) Org {
 }
 func (b *BlackList) queryOrgByAddr(addr []byte) Org {
 	var org Org
-	value := b.GetQueryDB().Get([]byte(b.GetName() + string(addr)))
+	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(addr)))
 	if value != nil {
 		err := proto.UnmarshalText(string(value), &org)
 		if err != nil {
@@ -439,7 +440,7 @@ func (b *BlackList) queryOrgByAddr(addr []byte) Org {
 }
 func (b *BlackList) loginCheck(user *User) bool {
 	var u User
-	value := b.GetQueryDB().Get([]byte(b.GetName() + string(user.GetUserName())))
+	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(user.GetUserName())))
 	if value != nil {
 		err := proto.UnmarshalText(string(value), &u)
 		if err != nil {
@@ -453,7 +454,7 @@ func (b *BlackList) loginCheck(user *User) bool {
 }
 func (b *BlackList) getUserByName(name string) *User {
 	var u User
-	value := b.GetQueryDB().Get([]byte(b.GetName() + name))
+	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + name))
 	if value != nil {
 		err := proto.UnmarshalText(string(value), &u)
 		if err != nil {
@@ -463,7 +464,7 @@ func (b *BlackList) getUserByName(name string) *User {
 	return &u
 }
 func (b *BlackList) checkKeyIsExsit(key string) bool {
-	value := b.GetQueryDB().Get([]byte(b.GetName() + key))
+	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + key))
 	if value != nil {
 		return true
 	}
