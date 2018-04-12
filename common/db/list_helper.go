@@ -10,7 +10,7 @@ type ListHelper struct {
 
 var listlog = log.New("module", "db.ListHelper")
 
-func NewListHelper(db DB) *ListHelper {
+func NewListHelper(db KVDB) *ListHelper {
 	return &ListHelper{db}
 }
 

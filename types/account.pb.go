@@ -46,6 +46,7 @@ It has these top-level messages:
 	BlockBody
 	IsCaughtUp
 	IsNtpClockSync
+	BlockChainQuery
 	Reply
 	ReqString
 	ReplyString
