@@ -88,8 +88,8 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 	if len(password) == 0 {
 		return "", types.ErrInputPara
 	}
-	Encryptedseed := db.Get(WalletSeed)
-	if len(Encryptedseed) == 0 {
+	Encryptedseed, err := db.Get(WalletSeed)
+	if len(Encryptedseed) == 0 || err != nil {
 		return "", types.ErrSeedNotExist
 	}
 	seed, err := AesgcmDecrypter([]byte(password), Encryptedseed)
@@ -101,8 +101,8 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 
 //判断钱包是否已经保存seed
 func HasSeed(db dbm.DB) (bool, error) {
-	Encryptedseed := db.Get(WalletSeed)
-	if len(Encryptedseed) == 0 {
+	Encryptedseed, err := db.Get(WalletSeed)
+	if len(Encryptedseed) == 0 || err != nil {
 		return false, types.ErrSeedNotExist
 	}
 	return true, nil
@@ -115,11 +115,11 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	var err error
 
 	//通过主私钥随机生成child私钥十六进制字符串
-	backuppubkeyindex := db.Get([]byte(BACKUPKEYINDEX))
-	if backuppubkeyindex == nil {
+	backuppubkeyindex, err := db.Get([]byte(BACKUPKEYINDEX))
+	if backuppubkeyindex == nil || err != nil {
 		backupindex = 0
 	} else {
-		if err := json.Unmarshal([]byte(backuppubkeyindex), &backupindex); err != nil {
+		if err = json.Unmarshal([]byte(backuppubkeyindex), &backupindex); err != nil {
 			return "", err
 		}
 	}

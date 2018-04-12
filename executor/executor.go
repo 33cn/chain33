@@ -201,7 +201,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
-	for i := 0; i < len(b.Txs); i++ {
+	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
 		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
