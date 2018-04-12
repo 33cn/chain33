@@ -44,7 +44,7 @@ type knownAddress struct {
 	LastSuccess time.Time   `json:"lastsuccess"`
 }
 
-func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
+func (a *AddrBook) getPeerStat(addr string) *knownAddress {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
@@ -54,7 +54,7 @@ func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
 
 }
 
-func (a *AddrBook) SetAddrStat(addr string, run bool) (*knownAddress, bool) {
+func (a *AddrBook) setAddrStat(addr string, run bool) (*knownAddress, bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
@@ -118,7 +118,7 @@ func (ka *knownAddress) markAttempt() {
 	defer ka.kmtx.Unlock()
 	now := time.Now()
 	ka.LastAttempt = now
-	ka.Attempts += 1
+	ka.Attempts++
 
 }
 
@@ -193,7 +193,7 @@ func (a *AddrBook) saveToDb() {
 		return
 	}
 	log.Debug("saveToDb", "addrs", string(jsonBytes))
-	a.bookDb.Set([]byte(AddrkeyTag), jsonBytes)
+	a.bookDb.Set([]byte(addrkeyTag), jsonBytes)
 
 }
 func (a *AddrBook) genPubkey(privkey string) string {
@@ -220,12 +220,12 @@ func (a *AddrBook) genPubkey(privkey string) string {
 func (a *AddrBook) loadDb() bool {
 	a.bookDb = db.NewDB("addrbook", a.dbDriver, a.filePath, 128)
 
-	privkey, _ := a.bookDb.Get([]byte(PrivKeyTag))
+	privkey, _ := a.bookDb.Get([]byte(privKeyTag))
 
 	if len(privkey) == 0 {
 		a.initKey()
 		privkey, _ := a.GetPrivPubKey()
-		a.bookDb.Set([]byte(PrivKeyTag), []byte(privkey))
+		a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
 		return false
 	}
 
@@ -233,7 +233,7 @@ func (a *AddrBook) loadDb() bool {
 
 	iteror := a.bookDb.Iterator(nil, false)
 	for iteror.Next() {
-		if string(iteror.Key()) == AddrkeyTag {
+		if string(iteror.Key()) == addrkeyTag {
 			//读取存入的其他节点地址信息
 			aJSON := &addrBookJSON{}
 			dec := json.NewDecoder(strings.NewReader(string(iteror.Value())))

@@ -310,7 +310,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
 		}
-		err := errors.New("tx not exit!")
+		err := errors.New("tx not exist")
 		return nil, err
 	}
 

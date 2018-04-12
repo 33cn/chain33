@@ -75,7 +75,7 @@ func testDBBoundary2(t *testing.T, db DB) {
 	db.Set(d, []byte("0xffffffff"))
 
 	values := [][]byte{[]byte("0xff"), []byte("0xffff"), []byte("0xffffff"), []byte("0xffffffff")}
-	values_reverse := [][]byte{[]byte("0xffffffff"), []byte("0xffffff"), []byte("0xffff"), []byte("0xff")}
+	valuesReverse := [][]byte{[]byte("0xffffffff"), []byte("0xffffff"), []byte("0xffff"), []byte("0xff")}
 	var v []byte
 	_ = v
 	it := NewListHelper(db)
@@ -99,7 +99,7 @@ func testDBBoundary2(t *testing.T, db DB) {
 	for i, v := range list {
 		t.Log(i, string(v))
 	}
-	require.Equal(t, list, values_reverse)
+	require.Equal(t, list, valuesReverse)
 
 	t.Log("IteratorScan 1") //seek 第二个
 	list = it.IteratorScan(a, b, 100, 1)
@@ -113,7 +113,7 @@ func testDBBoundary2(t *testing.T, db DB) {
 	for i, v := range list {
 		t.Log(i, string(v))
 	}
-	require.Equal(t, list, values_reverse[1:])
+	require.Equal(t, list, valuesReverse[1:])
 }
 
 func testDBBoundary(t *testing.T, db DB) {
