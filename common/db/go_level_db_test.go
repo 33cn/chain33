@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	. "github.com/tendermint/tmlibs/common"
 )
@@ -73,7 +74,7 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 			idx := (int64(RandInt()) % numItems)
 			val := internal[idx]
 			idxBytes := int642Bytes(int64(idx))
-			valBytes := db.Get(idxBytes)
+			valBytes, _ := db.Get(idxBytes)
 			//fmt.Printf("Get %X -> %X\n", idxBytes, valBytes)
 			if val == 0 {
 				if !bytes.Equal(valBytes, nil) {
