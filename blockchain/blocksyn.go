@@ -18,17 +18,17 @@ var (
 	castlock         sync.Mutex
 	ntpClockSynclock sync.Mutex
 
-	isNtpClockSync bool = true //ntp时间是否同步
+	isNtpClockSync = true //ntp时间是否同步
 
 	MaxFetchBlockNum        int64 = 128 * 6 //一次最多申请获取block个数
 	TimeoutSeconds          int64 = 2
 	BackBlockNum            int64 = 128    //节点高度不增加时向后取blocks的个数
 	BackwardBlockNum        int64 = 16     //本节点高度不增加时并且落后peer的高度数
-	checkHeightNoIncSeconds int64 = 5 * 60 // 高度不增长时的检测周期目前暂定5分钟
+	checkHeightNoIncSeconds int64 = 5 * 60 //高度不增长时的检测周期目前暂定5分钟
 	checkBlockHashSeconds   int64 = 1 * 60 //1分钟检测一次tip hash和peer 对应高度的hash是否一致
 	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
 	MaxRollBlockNum         int64 = 5000   //最大回退block数量
-	blockSynSeconds               = time.Duration(TimeoutSeconds)
+	blockSynInterVal              = time.Duration(TimeoutSeconds)
 	checkBlockNum           int64 = 128
 	batchsyncblocknum       int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
 
@@ -59,7 +59,7 @@ func (list PeerInfoList) Less(i, j int) bool {
 }
 
 func (list PeerInfoList) Swap(i, j int) {
-	var temp *PeerInfo = list[i]
+	temp := list[i]
 	list[i] = list[j]
 	list[j] = temp
 }
@@ -76,10 +76,10 @@ func (chain *BlockChain) SynRoutine() {
 	fetchPeerListTicker := time.NewTicker(time.Duration(fetchPeerListSeconds) * time.Second)
 
 	//向peer请求同步block的定时器，默认5s
-	blockSynTicker := time.NewTicker(time.Duration(blockSynSeconds) * time.Second)
+	blockSynTicker := time.NewTicker(time.Duration(blockSynInterVal) * time.Second)
 
 	//5分钟检测一次bestchain主链高度是否有增长，如果没有增长可能是目前主链在侧链上，
-	// 需要从最高peer向后同步指定的headers用来获取分叉点，再后从指定peer获取分叉点以后的blocks
+	//需要从最高peer向后同步指定的headers用来获取分叉点，再后从指定peer获取分叉点以后的blocks
 	checkHeightNoIncreaseTicker := time.NewTicker(time.Duration(checkHeightNoIncSeconds) * time.Second)
 
 	//目前暂定1分钟检测一次本bestchain的tiphash和最高peer的对应高度的blockshash是否一致。
@@ -178,7 +178,7 @@ func (chain *BlockChain) FetchPeerList() {
 	chain.fetchPeerList()
 }
 
-var debugflag int = 60
+var debugflag = 60
 
 func (chain *BlockChain) fetchPeerList() error {
 	if chain.client == nil {
@@ -250,7 +250,7 @@ func maxSubList(list PeerInfoList) (sub PeerInfoList) {
 		return list
 	}
 	for i := 0; i < len(list); i++ {
-		var nextheight int64 = 0
+		var nextheight int64
 		if i+1 == len(list) {
 			nextheight = math.MaxInt64
 		} else {
@@ -324,7 +324,7 @@ func (chain *BlockChain) GetPeerMaxBlkPid() string {
 
 	//获取peerlist中最高高度的pid
 	var maxPeerHeight int64 = -1
-	var pid string = ""
+	var pid string
 	if chain.peerList != nil {
 		for _, peer := range chain.peerList {
 			if peer != nil && maxPeerHeight < peer.Height {
@@ -341,7 +341,7 @@ func (chain *BlockChain) GetPeerMaxBlkHash() []byte {
 
 	//获取peerlist中最高高度的blockhash
 	var maxPeerHeight int64 = -1
-	var hash []byte = common.Hash{}.Bytes()
+	hash := common.Hash{}.Bytes()
 
 	if chain.peerList != nil {
 		for _, peer := range chain.peerList {

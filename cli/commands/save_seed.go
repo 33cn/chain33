@@ -33,6 +33,6 @@ func saveSeed(cmd *cobra.Command, args []string) {
 		Passwd: pwd,
 	}
 	var res jsonrpc.Reply
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
 	ctx.Run()
 }

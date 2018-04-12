@@ -58,7 +58,7 @@ func BenchmarkRandomGoMemDBReadsWrites(b *testing.B) {
 		// Write something
 		{
 			idx := (int64(RandInt()) % numItems)
-			internal[idx] += 1
+			internal[idx]++
 			val := internal[idx]
 			idxBytes := int642Bytes(int64(idx))
 			valBytes := int642Bytes(int64(val))

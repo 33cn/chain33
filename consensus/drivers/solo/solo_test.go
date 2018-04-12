@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	endLoop  int   = 5
+	endLoop        = 5
 	txNumber int64 = 100
 	random   *rand.Rand
 )
