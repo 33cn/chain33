@@ -211,7 +211,7 @@ func (bl *BlackList) GetBadPeers() map[string]int64 {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
 
-	var copyData map[string]int64
+	var copyData = make(map[string]int64)
 
 	for k, v := range bl.badPeers {
 		copyData[k] = v
