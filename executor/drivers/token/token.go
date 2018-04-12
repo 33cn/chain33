@@ -204,9 +204,25 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 
+func (t *token) QueryTokenAssetsKey(addr string) (*types.ReplyStrings, error) {
+	key := CalcTokenAssetsKey(addr)
+	value, err := t.GetQueryDB().Get(key)
+	if value == nil || err != nil {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
+		return nil, types.ErrNotFound
+	}
+	var assets types.ReplyStrings
+	err = types.Decode(value, &assets)
+	if err != nil {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
+		return nil, err
+	}
+	return &assets, nil
+}
+
 func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.Message, error) {
 	var reply = &types.ReplyAccountTokenAssets{}
-	assets, err := QueryTokenAssetsKey(req.Address, t.GetQueryDB())
+	assets, err := t.QueryTokenAssetsKey(req.Address)
 	if err != nil {
 		return nil, err
 	}
