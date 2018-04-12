@@ -18,7 +18,7 @@ var blog = log.New("module", "execs.base")
 
 type Driver interface {
 	SetDB(dbm.KVDB)
-	GetCoinsAccount() *account.AccountDB
+	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
 	SetQueryDB(dbm.DB)
 	SetExecDriver(execDriver *ExecDrivers)
@@ -41,7 +41,7 @@ type DriverBase struct {
 	height       int64
 	blocktime    int64
 	child        Driver
-	coinsaccount *account.AccountDB
+	coinsaccount *account.DB
 	execDriver   *ExecDrivers
 	isFree       bool
 }
@@ -81,7 +81,7 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	hash, result := d.GetTx(tx, receipt, index)
 	set.KV = append(set.KV, &types.KeyValue{hash, types.Encode(result)})
 	//保存: from/to
-	txindex := d.GetTxIndex(tx, receipt, index)
+	txindex := d.getTxIndex(tx, receipt, index)
 	txinfobyte := types.Encode(txindex.index)
 	if len(txindex.from) != 0 {
 		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
@@ -120,7 +120,7 @@ type txIndex struct {
 }
 
 //交易中 from/to 的索引
-func (d *DriverBase) GetTxIndex(tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
+func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
 	var txIndexInfo txIndex
 	var txinf types.ReplyTxInfo
 	txinf.Hash = tx.Hash()
@@ -141,7 +141,7 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	//del：tx
 	hash, _ := d.GetTx(tx, receipt, index)
 	//del: addr index
-	txindex := d.GetTxIndex(tx, receipt, index)
+	txindex := d.getTxIndex(tx, receipt, index)
 	if len(txindex.from) != 0 {
 		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
@@ -194,7 +194,7 @@ func (d *DriverBase) SetDB(db dbm.KVDB) {
 	d.coinsaccount.SetDB(db)
 }
 
-func (d *DriverBase) GetCoinsAccount() *account.AccountDB {
+func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
 		d.coinsaccount.SetDB(d.db)
@@ -251,14 +251,14 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	} else if addr.Flag > 0 { //from的交易hash列表
 		prefix = CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, "")
 	} else {
-		return nil, errors.New("Flag unknow!")
+		return nil, errors.New("flag unknown")
 	}
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
 		list := dbm.NewListHelper(db)
 		txinfos = list.IteratorScanFromLast(prefix, addr.Count)
 		if len(txinfos) == 0 {
-			return nil, errors.New("does not exist tx!")
+			return nil, errors.New("tx does not exist")
 		}
 	} else { //翻页查找指定的txhash列表
 		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + int64(addr.GetIndex())
@@ -268,12 +268,12 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		} else if addr.Flag > 0 { //from的交易hash列表
 			key = CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, heightstr)
 		} else {
-			return nil, errors.New("Flag unknow!")
+			return nil, errors.New("flag unknown")
 		}
 		list := dbm.NewListHelper(db)
 		txinfos = list.IteratorScan(prefix, key, addr.Count, addr.Direction)
 		if len(txinfos) == 0 {
-			return nil, errors.New("does not exist tx!")
+			return nil, errors.New("tx does not exist")
 		}
 	}
 	var replyTxInfos types.ReplyTxInfos

@@ -20,7 +20,7 @@ func ListAccountCmd() *cobra.Command {
 func listAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.WalletAccounts
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
 	ctx.SetResultCb(parseListAccountRes)
 	ctx.Run()
 }

@@ -28,6 +28,6 @@ func mergeBalance(cmd *cobra.Command, args []string) {
 		To: toAddr,
 	}
 	var res jsonrpc.ReplyHashes
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.MergeBalance", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.MergeBalance", params, &res)
 	ctx.Run()
 }

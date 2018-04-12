@@ -9,7 +9,7 @@ import (
 )
 
 // TODO: SetPostRunCb()
-type RpcCtx struct {
+type RPCCtx struct {
 	Addr   string
 	Method string
 	Params interface{}
@@ -20,8 +20,8 @@ type RpcCtx struct {
 
 type Callback func(res interface{}) (interface{}, error)
 
-func NewRpcCtx(laddr, methed string, params, res interface{}) *RpcCtx {
-	return &RpcCtx{
+func NewRPCCtx(laddr, methed string, params, res interface{}) *RPCCtx {
+	return &RPCCtx{
 		Addr:   laddr,
 		Method: methed,
 		Params: params,
@@ -29,11 +29,11 @@ func NewRpcCtx(laddr, methed string, params, res interface{}) *RpcCtx {
 	}
 }
 
-func (c *RpcCtx) SetResultCb(cb Callback) {
+func (c *RPCCtx) SetResultCb(cb Callback) {
 	c.cb = cb
 }
 
-func (c *RpcCtx) Run() {
+func (c *RPCCtx) Run() {
 	rpc, err := jsonrpc.NewJsonClient(c.Addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

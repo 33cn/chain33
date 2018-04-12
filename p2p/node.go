@@ -69,7 +69,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 
 	node.nodeInfo = NewNodeInfo(cfg)
 	if cfg.GetServerStart() {
-		node.l = NewListener(Protocol, node)
+		node.l = NewListener(protocol, node)
 	}
 
 	return node, nil
@@ -96,7 +96,7 @@ func (n *Node) doNat() {
 	if OutSide == false && n.nodeInfo.cfg.GetServerStart() { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.natOk() {
-			SERVICE -= NODE_NETWORK //nat 失败，不对外提供服务
+			Service -= nodeNetwork //nat 失败，不对外提供服务
 			log.Info("doNat", "NatFaild", "No Support Service")
 		} else {
 			log.Info("doNat", "NatOk", "Support Service")
@@ -145,7 +145,7 @@ func (n *Node) Has(paddr string) bool {
 	return false
 }
 
-func (n *Node) GetRegisterPeer(paddr string) *peer {
+func (n *Node) getRegisterPeer(paddr string) *peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
 	if peer, ok := n.outBound[paddr]; ok {
@@ -154,7 +154,7 @@ func (n *Node) GetRegisterPeer(paddr string) *peer {
 	return nil
 }
 
-func (n *Node) GetRegisterPeers() []*peer {
+func (n *Node) getRegisterPeers() []*peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
 	var peers []*peer
@@ -168,8 +168,8 @@ func (n *Node) GetRegisterPeers() []*peer {
 	return peers
 }
 
-func (n *Node) GetActivePeers() (map[string]*peer, map[string]*types.Peer) {
-	regPeers := n.GetRegisterPeers()
+func (n *Node) getActivePeers() (map[string]*peer, map[string]*types.Peer) {
+	regPeers := n.getRegisterPeers()
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
 
 	var peers = make(map[string]*peer)
@@ -220,7 +220,7 @@ func (n *Node) monitor() {
 
 func (n *Node) needMore() bool {
 	outBoundNum := n.Size()
-	if outBoundNum > MaxOutBoundNum || outBoundNum > StableBoundNum {
+	if outBoundNum > maxOutBoundNum || outBoundNum > stableBoundNum {
 		return false
 	}
 	return true
@@ -228,7 +228,7 @@ func (n *Node) needMore() bool {
 
 func (n *Node) detectNodeAddr() {
 
-	var externalIp string
+	var externalIP string
 	for {
 		cfg := n.nodeInfo.cfg
 		LocalAddr = P2pComm.GetLocalAddr()
@@ -240,7 +240,7 @@ func (n *Node) detectNodeAddr() {
 		}
 		if cfg.GetIsSeed() {
 			log.Info("DetectNodeAddr", "ExIp", LocalAddr)
-			externalIp = LocalAddr
+			externalIP = LocalAddr
 			OutSide = true
 			goto SET_ADDR
 		}
@@ -250,38 +250,38 @@ func (n *Node) detectNodeAddr() {
 		}
 		for _, seed := range cfg.Seeds {
 
-			pcli := NewP2pCli(nil)
-			selfexaddrs, outside := pcli.GetExternIp(seed)
+			pcli := NewCli(nil)
+			selfexaddrs, outside := pcli.GetExternIP(seed)
 			if len(selfexaddrs) != 0 {
 				OutSide = outside
-				externalIp = selfexaddrs
-				log.Info("DetectNodeAddr", " seed Exterip", externalIp)
+				externalIP = selfexaddrs
+				log.Info("DetectNodeAddr", " seed Exterip", externalIP)
 				break
 			}
 
 		}
 	SET_ADDR:
 		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
-		if len(externalIp) == 0 {
-			externalIp = LocalAddr
-			log.Info("DetectNodeAddr", " SET_ADDR Exterip", externalIp)
+		if len(externalIP) == 0 {
+			externalIP = LocalAddr
+			log.Info("DetectNodeAddr", " SET_ADDR Exterip", externalIP)
 		}
 
 		var externaladdr string
 		var externalPort int
 
 		if cfg.GetIsSeed() == true || OutSide == true {
-			externalPort = DefaultPort
+			externalPort = defaultPort
 		} else {
-			exportBytes, _ := n.nodeInfo.addrBook.bookDb.Get([]byte(ExternalPortTag))
+			exportBytes, _ := n.nodeInfo.addrBook.bookDb.Get([]byte(externalPortTag))
 			if len(exportBytes) != 0 {
 				externalPort = int(P2pComm.BytesToInt32(exportBytes))
 			} else {
-				externalPort = DefalutNatPort
+				externalPort = defalutNatPort
 			}
 		}
 
-		externaladdr = fmt.Sprintf("%v:%v", externalIp, externalPort)
+		externaladdr = fmt.Sprintf("%v:%v", externalIP, externalPort)
 
 		log.Debug("DetectionNodeAddr", "AddBlackList", externaladdr)
 		n.nodeInfo.blacklist.Add(externaladdr) //把自己的外网地址加入到黑名单，以防连接self
@@ -291,11 +291,11 @@ func (n *Node) detectNodeAddr() {
 		} else {
 			log.Error("DetectionNodeAddr", "error", err.Error())
 		}
-		if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, DefaultPort)); err == nil {
+		if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, defaultPort)); err == nil {
 			n.nodeInfo.SetListenAddr(listaddr)
 		}
 
-		log.Info("DetectionNodeAddr", " Finish ExternalIp", externalIp, "LocalAddr", LocalAddr, "IsOutSide", OutSide)
+		log.Info("DetectionNodeAddr", " Finish ExternalIp", externalIP, "LocalAddr", LocalAddr, "IsOutSide", OutSide)
 		break
 	}
 }
@@ -308,13 +308,12 @@ func (n *Node) natMapPort() {
 	var err error
 
 	_, nodename := n.nodeInfo.addrBook.GetPrivPubKey()
-	for i := 0; i < TryMapPortTimes; i++ {
-
-		err = nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort), nodename[:8], time.Minute*20)
+	for i := 0; i < tryMapPortTimes; i++ {
+		err = nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort), nodename[:8], time.Minute*20)
 		if err != nil {
-			if i > TryMapPortTimes/2 { //如果连续失败次数超过最大限制次数的二分之一则切换为随机端口映射
+			if i > tryMapPortTimes/2 { //如果连续失败次数超过最大限制次数的二分之一则切换为随机端口映射
 				log.Error("NatMapPort", "err", err.Error())
-				n.FlushNodePort(DefaultPort, uint16(rand.Intn(64512)+1023))
+				n.FlushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
 
 			}
 			log.Info("NatMapPort", "External Port", n.nodeInfo.GetExternalAddr())
@@ -331,7 +330,7 @@ func (n *Node) natMapPort() {
 		return
 	}
 
-	n.nodeInfo.addrBook.bookDb.Set([]byte(ExternalPortTag),
+	n.nodeInfo.addrBook.bookDb.Set([]byte(externalPortTag),
 		P2pComm.Int32ToBytes(int32(n.nodeInfo.GetExternalAddr().Port))) //把映射成功的端口信息刷入db
 	log.Info("natMapPort", "export inser into db", n.nodeInfo.GetExternalAddr().Port)
 	n.nodeInfo.natResultChain <- true
@@ -340,7 +339,7 @@ func (n *Node) natMapPort() {
 
 		select {
 		case <-refresh.C:
-			nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort), "chain33-p2p", time.Minute*20)
+			nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort), "chain33-p2p", time.Minute*20)
 			refresh.Reset(mapUpdateInterval)
 		default:
 			if n.IsClose() {
@@ -353,7 +352,7 @@ func (n *Node) natMapPort() {
 	}
 }
 func (n *Node) deleteNatMapPort() {
-	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(DefaultPort))
+	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort))
 }
 
 func (n *Node) waitForNat() {

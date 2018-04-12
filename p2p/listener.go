@@ -28,8 +28,8 @@ type listener struct {
 }
 
 func NewListener(protocol string, node *Node) Listener {
-	log.Debug("NewListener", "localPort", DefaultPort)
-	l, err := net.Listen(protocol, fmt.Sprintf(":%v", DefaultPort))
+	log.Debug("NewListener", "localPort", defaultPort)
+	l, err := net.Listen(protocol, fmt.Sprintf(":%v", defaultPort))
 	if err != nil {
 		log.Crit("Failed to listen", "Error", err.Error())
 		return nil
@@ -39,7 +39,7 @@ func NewListener(protocol string, node *Node) Listener {
 		nodeInfo: node.nodeInfo,
 		node:     node,
 	}
-	pServer := NewP2pServer()
+	pServer := newP2pServer()
 	pServer.node = dl.node
 	pServer.Start()
 
