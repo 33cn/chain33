@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -37,6 +38,10 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 
 func (s *StateDB) Set(key []byte, value []byte) error {
 	s.cache[string(key)] = value
+	return nil
+}
+
+func (s *StateDB) Iterator(prefix []byte, reserver bool) db.Iterator {
 	return nil
 }
 
@@ -90,4 +95,8 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 		return nil, types.ErrNotFound
 	}
 	return values, nil
+}
+
+func (l *LocalDB) Iterator(prefix []byte, reserver bool) db.Iterator {
+	return nil
 }
