@@ -35,10 +35,6 @@ func (e *StateDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-func (e *StateDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
-	return nil, types.ErrNotSupport
-}
-
 type LocalDB struct {
 	cache map[string][]byte
 	db    *DataBaseLocal
@@ -67,10 +63,6 @@ func (e *LocalDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return nil
-}
-
-func (e *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
-	return e.db.List(prefix, key, count, direction)
 }
 
 type DataBase struct {
