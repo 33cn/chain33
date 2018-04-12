@@ -2,7 +2,6 @@ package mempool
 
 import (
 	"errors"
-	"flag"
 	"math/rand"
 	"testing"
 	"time"
@@ -96,8 +95,7 @@ func getprivkey(key string) crypto.PrivKey {
 
 func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Module, *p2p.P2p) {
 	var q = queue.New("channel")
-	flag.Parse()
-	cfg := config.InitCfg("chain33.toml")
+	cfg := config.InitCfg("../chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
@@ -125,8 +123,7 @@ func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mo
 
 func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Module) {
 	var q = queue.New("channel")
-	flag.Parse()
-	cfg := config.InitCfg("chain33.toml")
+	cfg := config.InitCfg("../chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
