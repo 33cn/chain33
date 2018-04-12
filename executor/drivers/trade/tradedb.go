@@ -1,11 +1,12 @@
 package trade
 
 import (
+	"strconv"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strconv"
 )
 
 type sellDB struct {
@@ -99,7 +100,7 @@ func (selldb *sellDB) getKVSet() (kvset []*types.KeyValue) {
 }
 
 type tradeAction struct {
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	db           dbm.KVDB
 	txhash       string
 	fromaddr     string

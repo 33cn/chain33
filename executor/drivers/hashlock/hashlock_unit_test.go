@@ -39,7 +39,7 @@ func TestInit(t *testing.T) {
 func TestExecHashlock(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr error = nil
+	var targetErr error
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -61,7 +61,7 @@ func TestExecHashlock(t *testing.T) {
 func TestExecHashunlock(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr error = types.ErrTime
+	var targetErr = types.ErrTime
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -78,7 +78,7 @@ func TestExecHashunlock(t *testing.T) {
 func TestExecHashsend(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr error = nil
+	var targetErr error
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2

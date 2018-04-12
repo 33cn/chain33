@@ -58,7 +58,7 @@ func (p *PeerInfos) FlushPeerInfos(in []*types.Peer) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
-	for k, _ := range p.infos {
+	for k := range p.infos {
 		delete(p.infos, k)
 	}
 
@@ -112,7 +112,7 @@ func (nf *NodeInfo) flushPeerInfos(in []*types.Peer) {
 }
 func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 	var peerlist = make(map[string]*types.Peer)
-	peers := n.GetRegisterPeers()
+	peers := n.getRegisterPeers()
 	log.Debug("latestPeerInfo", "register peer num", len(peers))
 	for _, peer := range peers {
 
@@ -208,6 +208,12 @@ func (bl *BlackList) Has(addr string) bool {
 func (bl *BlackList) GetBadPeers() map[string]int64 {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
-	return bl.badPeers
+
+	var copyData = make(map[string]int64)
+
+	for k, v := range bl.badPeers {
+		copyData[k] = v
+	}
+	return copyData
 
 }

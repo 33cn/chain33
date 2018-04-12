@@ -110,6 +110,7 @@ func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mo
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
+	mem.setSync(true)
 
 	network := p2p.New(cfg.P2P)
 	network.SetQueueClient(q.Client())
@@ -138,7 +139,7 @@ func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mod
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
-	mem.sync = true
+	mem.setSync(true)
 
 	if size > 0 {
 		mem.Resize(size)
@@ -159,11 +160,12 @@ func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mod
 	tx11.Sign(types.SECP256K1, privKey)
 	tx12.Sign(types.SECP256K1, privKey)
 	tx13.Sign(types.SECP256K1, privKey)
+
 	return mem, q, chain, s
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = rand.Int63()
@@ -186,6 +188,7 @@ func genaddress() (string, crypto.PrivKey) {
 
 func TestAddTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
+
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx2)
 	mem.client.Send(msg, true)
 	mem.client.Wait(msg)
@@ -194,17 +197,18 @@ func TestAddTx(t *testing.T) {
 		t.Error("TestAddTx failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
+
 	defer func() {
-		chain.Close()
 		s.Close()
 		mem.Close()
+		chain.Close()
 	}()
 	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx2)
 	err := mem.client.Send(msg1, true)
@@ -411,9 +415,9 @@ OutsideLoop:
 		}
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestAddMoreTxThanPoolSize(t *testing.T) {
@@ -433,9 +437,9 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 		t.Error("TestAddMoreTxThanPoolSize failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestRemoveTxOfBlock(t *testing.T) {
@@ -465,9 +469,9 @@ func TestRemoveTxOfBlock(t *testing.T) {
 		t.Error("TestGetMempoolSize failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestDuplicateMempool(t *testing.T) {
@@ -494,9 +498,9 @@ func TestDuplicateMempool(t *testing.T) {
 		t.Error("TestDuplicateMempool failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestGetLatestTx(t *testing.T) {
@@ -523,9 +527,9 @@ func TestGetLatestTx(t *testing.T) {
 		t.Error("TestGetLatestTx failed", len(reply.GetData().(*types.ReplyTxList).GetTxs()), mem.Size())
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestCheckLowFee(t *testing.T) {
@@ -540,9 +544,9 @@ func TestCheckLowFee(t *testing.T) {
 		t.Error("TestCheckLowFee failed")
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestCheckSignature(t *testing.T) {
@@ -559,13 +563,14 @@ func TestCheckSignature(t *testing.T) {
 		t.Error("TestCheckSignature failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestCheckExpire1(t *testing.T) {
 	mem, _, chain, s := initEnv(0)
+
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx1)
 	mem.client.Send(msg, true)
@@ -575,9 +580,9 @@ func TestCheckExpire1(t *testing.T) {
 		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func TestCheckExpire2(t *testing.T) {
@@ -606,9 +611,9 @@ func TestCheckExpire2(t *testing.T) {
 		t.Error("TestCheckExpire failed", len(txs))
 	}
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }
 
 func BenchmarkMempool(b *testing.B) {
@@ -630,7 +635,7 @@ func BenchmarkMempool(b *testing.B) {
 	mem.client.Wait(msg)
 	println(mem.Size() == b.N+1)
 
-	chain.Close()
 	s.Close()
 	mem.Close()
+	chain.Close()
 }

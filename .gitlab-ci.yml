@@ -42,7 +42,7 @@ go_test:
         - 33cn
     script:
 #        - go test $(go list ./... | grep  "mempool")
-        - go test -parallel 1 -race $(go list ./... | grep -v "vendor" | grep -v "chain33/test")
+        - go test -v -race $(go list ./... | grep -v "vendor" | grep -v "chain33/test")
         - cd ~
 #        - rm -rf $GO_PROJECT_PATH
 #go_vet:

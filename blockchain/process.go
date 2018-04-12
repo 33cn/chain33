@@ -113,7 +113,7 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 		//  处理以processHash为父hash的所有子block
 		count := b.orphanPool.GetChildOrphanCount(processHash)
 		for i := 0; i < count; i++ {
-			orphan := b.orphanPool.GetChildOrphan(processHash, i)
+			orphan := b.orphanPool.getChildOrphan(processHash, i)
 			if orphan == nil {
 				chainlog.Debug("processOrphans", "Found a nil entry at index", i, "orphan dependency list for block", common.ToHex([]byte(processHash)))
 				continue
@@ -156,7 +156,7 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail) 
 	}
 
 	//将此block存储到db中，方便后面blockchain重组时使用，加入到主链saveblock时通过hash重新覆盖即可
-	var sync bool = true
+	sync := true
 	if atomic.LoadInt32(&b.isbatchsync) == 0 {
 		sync = false
 	}
@@ -256,7 +256,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		return types.ErrBlockHashNoMatch
 	}
 
-	var sync bool = true
+	sync := true
 	if atomic.LoadInt32(&b.isbatchsync) == 0 {
 		sync = false
 	}

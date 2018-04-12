@@ -29,9 +29,9 @@ func (n *Node) monitorErrPeer() {
 			continue
 		}
 
-		pstat, ok := n.nodeInfo.addrBook.SetAddrStat(peer.Addr(), peer.peerStat.IsOk())
+		pstat, ok := n.nodeInfo.addrBook.setAddrStat(peer.Addr(), peer.peerStat.IsOk())
 		if ok {
-			if pstat.GetAttempts() > MaxAttemps {
+			if pstat.GetAttempts() > maxAttemps {
 				log.Debug("monitorErrPeer", "over maxattamps", pstat.GetAttempts())
 				n.destroyPeer(peer)
 			}
@@ -42,7 +42,7 @@ func (n *Node) monitorErrPeer() {
 func (n *Node) getAddrFromOnline() {
 	ticker := time.NewTicker(GetAddrFromOnlineInterval)
 	defer ticker.Stop()
-	pcli := NewP2pCli(nil)
+	pcli := NewCli(nil)
 
 	for {
 		select {
@@ -52,7 +52,7 @@ func (n *Node) getAddrFromOnline() {
 				return
 			}
 			if n.needMore() {
-				peers, _ := n.GetActivePeers()
+				peers, _ := n.getActivePeers()
 				for _, peer := range peers { //向其他节点发起请求，获取地址列表
 					log.Debug("Getpeer", "addr", peer.Addr())
 					addrlist, err := pcli.GetAddr(peer)
@@ -184,9 +184,9 @@ func (n *Node) monitorDialPeers() {
 			continue
 		}
 		log.Debug("DialPeers", "peer", netAddr.String())
-		peer, err := P2pComm.DialPeer(netAddr, &n.nodeInfo)
+		peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
 		if err != nil {
-			log.Error("DialPeers", "Err", err.Error())
+			log.Error("ialPeers", "Err", err.Error())
 			continue
 		}
 		n.AddPeer(peer)
