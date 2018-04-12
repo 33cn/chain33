@@ -7,7 +7,6 @@ import (
 	"testing"
 	//. "github.com/smartystreets/goconvey/convey"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -154,9 +153,5 @@ func (e *TestDB) Get(key []byte) (value []byte, err error) {
 func (e *TestDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
-	return nil
-}
-
-func (e *TestDB) Iterator(prefix []byte, reserver bool) db.Iterator {
 	return nil
 }

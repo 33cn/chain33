@@ -5,12 +5,12 @@ import (
 )
 
 type ListHelper struct {
-	db KVDB
+	db DB
 }
 
 var listlog = log.New("module", "db.ListHelper")
 
-func NewListHelper(db KVDB) *ListHelper {
+func NewListHelper(db DB) *ListHelper {
 	return &ListHelper{db}
 }
 

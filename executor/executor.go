@@ -79,15 +79,17 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	data := msg.GetData().(*types.BlockChainQuery)
 	driver, err := LoadDriver(data.Driver)
 	if err != nil {
-		msg.ReplyErr("EventBlockChainQuery", err)
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
 	}
 	driver.SetLocalDB(NewLocalDB(exec.client.Clone()))
 	driver.SetStateDB(NewStateDB(exec.client.Clone(), data.StateHash))
 	ret, err := driver.Query(data.FuncName, data.Param)
 	if err != nil {
-		msg.ReplyErr("EventBlockChainQuery", err)
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
 	}
-	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, &ret))
+	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
 }
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
@@ -269,7 +271,7 @@ func (exec *Executor) Close() {
 
 //执行器 -> db 环境
 type executor struct {
-	stateDB      dbm.KVDB
+	stateDB      dbm.KV
 	localDB      dbm.KVDB
 	coinsAccount *account.DB
 	execDriver   *drivers.ExecDrivers

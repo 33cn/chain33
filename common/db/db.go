@@ -7,20 +7,29 @@ import (
 
 var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 
-type KVDB interface {
+type Lister interface {
+	List(prefix, key []byte, count, direction int32) ([][]byte, error)
+}
+
+type KV interface {
 	Get(key []byte) ([]byte, error)
 	Set(key []byte, value []byte) (err error)
-	//迭代prefix 范围的所有key value, 支持正反顺序迭代
-	Iterator(prefix []byte, reserver bool) Iterator
+}
+
+type KVDB interface {
+	KV
+	Lister
 }
 
 type DB interface {
-	KVDB
+	KV
 	SetSync([]byte, []byte) error
 	Delete([]byte) error
 	DeleteSync([]byte) error
 	Close()
 	NewBatch(sync bool) Batch
+	//迭代prefix 范围的所有key value, 支持正反顺序迭代
+	Iterator(prefix []byte, reserver bool) Iterator
 	// For debugging
 	Print()
 	Stats() map[string]string

@@ -8,7 +8,7 @@ import (
 
 type Action struct {
 	coinsAccount *account.DB
-	db           dbm.KVDB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64

@@ -16,7 +16,6 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -240,8 +239,10 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		key := calcBindMinerKeyPrefix(reqaddr.Data)
-		list := dbm.NewListHelper(t.GetLocalDB())
-		values := list.List(key, nil, 0, 1)
+		values, err := t.GetLocalDB().List(key, nil, 0, 1)
+		if err != nil {
+			return nil, err
+		}
 		if len(values) == 0 {
 			return nil, types.ErrNotFound
 		}

@@ -12,7 +12,7 @@ type StateDB struct {
 	stateHash []byte
 }
 
-func NewStateDB(client queue.Client, stateHash []byte) *StateDB {
+func NewStateDB(client queue.Client, stateHash []byte) db.KV {
 	return &StateDB{make(map[string][]byte), client, stateHash}
 }
 
@@ -41,16 +41,12 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-func (s *StateDB) Iterator(prefix []byte, reserver bool) db.Iterator {
-	return nil
-}
-
 type LocalDB struct {
 	cache  map[string][]byte
 	client queue.Client
 }
 
-func NewLocalDB(client queue.Client) *LocalDB {
+func NewLocalDB(client queue.Client) db.KVDB {
 	return &LocalDB{make(map[string][]byte), client}
 }
 
@@ -95,8 +91,4 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 		return nil, types.ErrNotFound
 	}
 	return values, nil
-}
-
-func (l *LocalDB) Iterator(prefix []byte, reserver bool) db.Iterator {
-	return nil
 }

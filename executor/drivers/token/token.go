@@ -13,7 +13,6 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -286,8 +285,11 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 
 	replyTokens := &types.ReplyTokens{}
 	if reqTokens.Queryall {
-		list := dbm.NewListHelper(querydb)
-		keys := list.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		//list := dbm.NewListHelper(querydb)
+		keys, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		if err != nil {
+			return nil, err
+		}
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		if len(keys) != 0 {
 			for _, key := range keys {
@@ -304,8 +306,11 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 
 	} else {
 		for _, token := range reqTokens.Tokens {
-			list := dbm.NewListHelper(querydb)
-			keys := list.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
+			//list := dbm.NewListHelper(querydb)
+			keys, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
+			if err != nil {
+				return nil, err
+			}
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 			if len(keys) != 0 {
 				for _, key := range keys {
