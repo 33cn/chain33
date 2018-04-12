@@ -36,6 +36,13 @@ func (c *Manage) GetName() string {
 	return "manage"
 }
 
+func (c *Manage) Clone() drivers.Driver {
+	clone := &Manage{}
+	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)
 	//_, err := c.DriverBase.Exec(tx, index)
