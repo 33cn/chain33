@@ -31,6 +31,7 @@ type Driver interface {
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
+	Clone() Driver
 }
 
 type DriverBase struct {
@@ -42,6 +43,16 @@ type DriverBase struct {
 	coinsaccount *account.DB
 	execDriver   *ExecDrivers
 	isFree       bool
+}
+
+func (d *DriverBase) Clone() Driver {
+	dc := new(DriverBase)
+	dc.height = d.height
+	dc.blocktime = d.blocktime
+	dc.coinsaccount = d.coinsaccount
+	dc.execDriver = d.execDriver
+	dc.isFree = d.isFree
+	return dc
 }
 
 func (d *DriverBase) SetEnv(height, blocktime int64) {

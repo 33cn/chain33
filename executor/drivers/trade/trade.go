@@ -39,6 +39,13 @@ func (t *trade) GetName() string {
 	return "trade"
 }
 
+func (t *trade) Clone() drivers.Driver {
+	clone := &trade{}
+	clone.DriverBase = *(t.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var trade types.Trade
 	err := types.Decode(tx.Payload, &trade)
