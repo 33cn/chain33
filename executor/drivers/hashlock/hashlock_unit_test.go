@@ -173,7 +173,3 @@ func (e *TestDB) Set(key []byte, value []byte) error {
 	e.cache[string(key)] = value
 	return nil
 }
-
-func (e *TestDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
-	return nil, types.ErrNotSupport
-}

@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"errors"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -111,10 +110,6 @@ func (db *GoMemDB) Print() {
 func (db *GoMemDB) Stats() map[string]string {
 	//TODO
 	return nil
-}
-
-func (db *GoMemDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
-	return nil, errors.New("ErrNotSupport")
 }
 
 func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
