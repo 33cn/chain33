@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -69,7 +70,7 @@ func deleteTokenDB(db dbm.KVDB, symbol string) {
 }
 
 type tokenAction struct {
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	db           dbm.KVDB
 	txhash       []byte
 	fromaddr     string
@@ -309,13 +310,13 @@ func GetTokenAssetsKey(addr string, db dbm.KVDB) (*types.ReplyStrings, error) {
 
 func QueryTokenAssetsKey(addr string, db dbm.DB) (*types.ReplyStrings, error) {
 	key := CalcTokenAssetsKey(addr)
-	value := db.Get(key)
-	if value == nil {
+	value, err := db.Get(key)
+	if value == nil || err != nil {
 		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
 		return nil, types.ErrNotFound
 	}
 	var assets types.ReplyStrings
-	err := types.Decode(value, &assets)
+	err = types.Decode(value, &assets)
 	if err != nil {
 		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
 		return nil, err

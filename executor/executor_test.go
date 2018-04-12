@@ -111,7 +111,7 @@ func TestExecBlock(t *testing.T) {
 	defer cs.Close()
 	defer p2pnet.Close()
 	defer mem.Close()
-	block := createBlock(10000)
+	block := createBlock(10)
 	util.ExecBlock(q.Client(), zeroHash[:], block, false, true)
 }
 
