@@ -32,7 +32,7 @@ func TestInit(t *testing.T) {
 func TestExecBackup(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr error = nil
+	var targetErr error
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -47,7 +47,7 @@ func TestExecBackup(t *testing.T) {
 
 func TestExecPrepare(t *testing.T) {
 	var targetReceipt types.Receipt
-	var targetErr error = nil
+	var targetErr error
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -63,7 +63,7 @@ func TestExecPrepare(t *testing.T) {
 //timelimit
 func TestExecPerform(t *testing.T) {
 	var targetReceipt types.Receipt
-	var targetErr error = types.ErrRetrievePeriodLimit
+	var targetErr = types.ErrRetrievePeriodLimit
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
