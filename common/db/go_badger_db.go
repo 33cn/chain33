@@ -16,7 +16,7 @@ func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
 		return NewGoBadgerDB(name, dir, cache)
 	}
-	registerDBCreator(GoBadgerDBBackendStr, dbCreator, false)
+	registerDBCreator(goBadgerDBBackendStr, dbCreator, false)
 }
 
 func NewGoBadgerDB(name string, dir string, cache int) (*GoBadgerDB, error) {

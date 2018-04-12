@@ -38,7 +38,7 @@ func CountTicketCmd() *cobra.Command {
 func countTicket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res int64
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTicketCount", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetTicketCount", nil, &res)
 	ctx.Run()
 }
 
@@ -66,7 +66,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.ReplyHashes
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CloseTickets", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.CloseTickets", nil, &res)
 	ctx.Run()
 }
 

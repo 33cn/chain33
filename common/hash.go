@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	HashLength = 32
+	hashLength = 32
 )
 
-type Hash [HashLength]byte
+type Hash [hashLength]byte
 
 func BytesToHash(b []byte) Hash {
 	var h Hash
@@ -56,10 +56,10 @@ func (h Hash) Format(s fmt.State, c rune) {
 // Sets the hash to the value of b. If b is larger than len(h), 'b' will be cropped (from the left).
 func (h *Hash) SetBytes(b []byte) {
 	if len(b) > len(h) {
-		b = b[len(b)-HashLength:]
+		b = b[len(b)-hashLength:]
 	}
 
-	copy(h[HashLength-len(b):], b)
+	copy(h[hashLength-len(b):], b)
 }
 
 // Set string `s` to h. If s is larger than len(h) s will be cropped (from left) to fit.

@@ -42,7 +42,12 @@ linter: ## Use gometalinter check code
 	--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck --vendor ./...
 
 lint: ## Lint the files
-	@golint -set_exit_status ${PKG_LIST}
+	@res=$$(golint -set_exit_status ${PKG_LIST} | grep -v "should have comment or be unexported" | \
+		grep -v "should be of the form" | grep -v "if block ends with a return statement"); \
+	if [ -n "$$res" ]; then \
+		echo "$${res}"; \
+		exit 1; \
+		fi;
 
 race: dep ## Run data race detector
 	@go test -race -short ./...

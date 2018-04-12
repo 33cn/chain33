@@ -6,26 +6,21 @@ import (
 	"fmt"
 
 	secp256k1 "github.com/btcsuite/btcd/btcec"
-	. "gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
-type Secp256k1Driver struct{}
-
-const (
-	TypeSecp256k1 = byte(0x02)
-	NameSecp256k1 = "secp256k1"
-)
+type Driver struct{}
 
 // Ctypto
-func (d Secp256k1Driver) GenKey() (PrivKey, error) {
+func (d Driver) GenKey() (crypto.PrivKey, error) {
 	privKeyBytes := [32]byte{}
-	copy(privKeyBytes[:], CRandBytes(32))
+	copy(privKeyBytes[:], crypto.CRandBytes(32))
 	priv, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKeyBytes[:])
 	copy(privKeyBytes[:], priv.Serialize())
 	return PrivKeySecp256k1(privKeyBytes), nil
 }
 
-func (d Secp256k1Driver) PrivKeyFromBytes(b []byte) (privKey PrivKey, err error) {
+func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
 	if len(b) != 32 {
 		return nil, errors.New("invalid priv key byte")
 	}
@@ -36,7 +31,7 @@ func (d Secp256k1Driver) PrivKeyFromBytes(b []byte) (privKey PrivKey, err error)
 	return PrivKeySecp256k1(*privKeyBytes), nil
 }
 
-func (d Secp256k1Driver) PubKeyFromBytes(b []byte) (pubKey PubKey, err error) {
+func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
 	if len(b) != 33 {
 		return nil, errors.New("invalid pub key byte")
 	}
@@ -45,7 +40,7 @@ func (d Secp256k1Driver) PubKeyFromBytes(b []byte) (pubKey PubKey, err error) {
 	return PubKeySecp256k1(*pubKeyBytes), nil
 }
 
-func (d Secp256k1Driver) SignatureFromBytes(b []byte) (sig Signature, err error) {
+func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	return SignatureSecp256k1(b), nil
 }
 
@@ -58,23 +53,23 @@ func (privKey PrivKeySecp256k1) Bytes() []byte {
 	return s
 }
 
-func (privKey PrivKeySecp256k1) Sign(msg []byte) Signature {
-	priv__, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey[:])
-	sig__, err := priv__.Sign(Sha256(msg))
+func (privKey PrivKeySecp256k1) Sign(msg []byte) crypto.Signature {
+	priv, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey[:])
+	sig, err := priv.Sign(crypto.Sha256(msg))
 	if err != nil {
 		panic("Error signing secp256k1" + err.Error())
 	}
-	return SignatureSecp256k1(sig__.Serialize())
+	return SignatureSecp256k1(sig.Serialize())
 }
 
-func (privKey PrivKeySecp256k1) PubKey() PubKey {
-	_, pub__ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey[:])
-	var pub PubKeySecp256k1
-	copy(pub[:], pub__.SerializeCompressed())
-	return pub
+func (privKey PrivKeySecp256k1) PubKey() crypto.PubKey {
+	_, pub := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey[:])
+	var pubSecp256k1 PubKeySecp256k1
+	copy(pubSecp256k1[:], pub.SerializeCompressed())
+	return pubSecp256k1
 }
 
-func (privKey PrivKeySecp256k1) Equals(other PrivKey) bool {
+func (privKey PrivKeySecp256k1) Equals(other crypto.PrivKey) bool {
 	if otherSecp, ok := other.(PrivKeySecp256k1); ok {
 		return bytes.Equal(privKey[:], otherSecp[:])
 	} else {
@@ -98,26 +93,26 @@ func (pubKey PubKeySecp256k1) Bytes() []byte {
 	return s
 }
 
-func (pubKey PubKeySecp256k1) VerifyBytes(msg []byte, sig_ Signature) bool {
+func (pubKey PubKeySecp256k1) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 	// unwrap if needed
-	if wrap, ok := sig_.(SignatureS); ok {
-		sig_ = wrap.Signature
+	if wrap, ok := sig.(SignatureS); ok {
+		sig = wrap.Signature
 	}
 	// and assert same algorithm to sign and verify
-	sig, ok := sig_.(SignatureSecp256k1)
+	sigSecp256k1, ok := sig.(SignatureSecp256k1)
 	if !ok {
 		return false
 	}
 
-	pub__, err := secp256k1.ParsePubKey(pubKey[:], secp256k1.S256())
+	pub, err := secp256k1.ParsePubKey(pubKey[:], secp256k1.S256())
 	if err != nil {
 		return false
 	}
-	sig__, err := secp256k1.ParseDERSignature(sig[:], secp256k1.S256())
+	sig2, err := secp256k1.ParseDERSignature(sigSecp256k1[:], secp256k1.S256())
 	if err != nil {
 		return false
 	}
-	return sig__.Verify(Sha256(msg), pub__)
+	return sig2.Verify(crypto.Sha256(msg), pub)
 }
 
 func (pubKey PubKeySecp256k1) String() string {
@@ -130,7 +125,7 @@ func (pubKey PubKeySecp256k1) KeyString() string {
 	return fmt.Sprintf("%X", pubKey[:])
 }
 
-func (pubKey PubKeySecp256k1) Equals(other PubKey) bool {
+func (pubKey PubKeySecp256k1) Equals(other crypto.PubKey) bool {
 	if otherSecp, ok := other.(PubKeySecp256k1); ok {
 		return bytes.Equal(pubKey[:], otherSecp[:])
 	} else {
@@ -142,7 +137,7 @@ func (pubKey PubKeySecp256k1) Equals(other PubKey) bool {
 type SignatureSecp256k1 []byte
 
 type SignatureS struct {
-	Signature
+	crypto.Signature
 }
 
 func (sig SignatureSecp256k1) Bytes() []byte {
@@ -160,7 +155,7 @@ func (sig SignatureSecp256k1) String() string {
 
 }
 
-func (sig SignatureSecp256k1) Equals(other Signature) bool {
+func (sig SignatureSecp256k1) Equals(other crypto.Signature) bool {
 	if otherEd, ok := other.(SignatureSecp256k1); ok {
 		return bytes.Equal(sig[:], otherEd[:])
 	} else {
@@ -169,5 +164,5 @@ func (sig SignatureSecp256k1) Equals(other Signature) bool {
 }
 
 func init() {
-	Register(NameSecp256k1, &Secp256k1Driver{})
+	crypto.Register("secp256k1", &Driver{})
 }
