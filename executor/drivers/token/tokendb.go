@@ -26,7 +26,7 @@ func newTokenDB(preCreate *types.TokenPreCreate, creator string) *tokenDB {
 	return t
 }
 
-func (t *tokenDB) save(db dbm.KVDB, key []byte) {
+func (t *tokenDB) save(db dbm.KV, key []byte) {
 	set := t.getKVSet(key)
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -48,7 +48,7 @@ func (t *tokenDB) getKVSet(key []byte) (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func getTokenFromDB(db dbm.KVDB, symbol string, owner string) (*types.Token, error) {
+func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error) {
 	tokenlog.Info("getTokenFromDB", "symbol:", symbol, "owner:", owner)
 	key := calcTokenAddrKey(symbol, owner)
 	value, err := db.Get(key)
@@ -71,7 +71,7 @@ func deleteTokenDB(db dbm.KVDB, symbol string) {
 
 type tokenAction struct {
 	coinsAccount *account.DB
-	db           dbm.KVDB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	toaddr       string
@@ -244,21 +244,21 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	return receipt, nil
 }
 
-func checkTokenExist(token string, db dbm.KVDB) bool {
+func checkTokenExist(token string, db dbm.KV) bool {
 	_, err := db.Get(calcTokenKey(token))
 	return err == nil
 }
 
-func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KVDB) bool {
+func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KV) bool {
 	_, err := db.Get(calcTokenAddrKey(token, owner))
 	return err == nil
 }
 
-func validFinisher(addr string, db dbm.KVDB) (bool, error) {
+func validFinisher(addr string, db dbm.KV) (bool, error) {
 	return validOperator(addr, types.ConfigKey(finisherKey), db)
 }
 
-func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
+func validOperator(addr, key string, db dbm.KV) (bool, error) {
 	value, err := db.Get([]byte(key))
 	if err != nil {
 		tokenlog.Info("tokendb", "get db key", "not found")
@@ -332,7 +332,7 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 	return kv
 }
 
-func inBlacklist(symbol, key string, db dbm.KVDB) (bool, error) {
+func inBlacklist(symbol, key string, db dbm.KV) (bool, error) {
 	found, err := validOperator(symbol, types.ConfigKey(key), db)
 	return found, err
 }
