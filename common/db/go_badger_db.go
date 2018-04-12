@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
 	log "github.com/inconshreveable/log15"
@@ -162,6 +163,10 @@ func (db *GoBadgerDB) Print() {
 func (db *GoBadgerDB) Stats() map[string]string {
 	//TODO
 	return nil
+}
+
+func (db *GoBadgerDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
+	return nil, errors.New("ErrNotSupport")
 }
 
 func (db *GoBadgerDB) Iterator(prefix []byte, reserse bool) Iterator {
