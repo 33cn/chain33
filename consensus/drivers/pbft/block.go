@@ -38,7 +38,7 @@ func (client *PbftClient) ExecBlock(prevHash []byte, block *pb.Block) (*pb.Block
 	if block.Height == 0 {
 		block.Difficulty = pb.GetP(0).PowLimitBits
 	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, false)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
 	if err != nil { //never happen
 		return nil, deltx, err
 	}
@@ -65,7 +65,7 @@ func (client *PbftClient) SetQueueClient(c queue.Client) {
 		client.InitBlock()
 	})
 	go client.EventLoop()
-	go client.readReply()
+	//go client.readReply()
 	go client.CreateBlock()
 }
 
@@ -88,7 +88,7 @@ func (client *PbftClient) CreateBlock() {
 		issleep = false
 		plog.Info("==================start create new block!=====================")
 		//check dup
-		txs = client.CheckTxDup(txs)
+		//txs = client.CheckTxDup(txs)
 		//fmt.Println(len(txs))
 
 		var newblock pb.Block
@@ -101,8 +101,9 @@ func (client *PbftClient) CreateBlock() {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 		client.Propose(&newblock)
-		time.Sleep(time.Second)
-
+		//time.Sleep(time.Second)
+		client.readReply()
+		plog.Info("===============readreply and writeblock done===============")
 	}
 }
 
@@ -121,20 +122,23 @@ func (client *PbftClient) CreateGenesisTx() (ret []*pb.Transaction) {
 
 func (client *PbftClient) readReply() {
 	for {
-		select {
-		case data := <-client.replyChan:
-			if data == nil {
-				plog.Error("block is nil")
-				continue
-			}
-			plog.Info("===============Get block from reply channel===========")
-			//client.SetCurrentBlock(data.Result.Value)
-			lastBlock := client.GetCurrentBlock()
-			err := client.WriteBlock(lastBlock.StateHash, data.Result.Value)
-			if err != nil {
-				plog.Error("********************err:", err)
-				continue
-			}
+
+		data := <-client.replyChan
+		if data == nil {
+			plog.Error("block is nil")
+			break
 		}
+		plog.Info("===============Get block from reply channel===========")
+		//client.SetCurrentBlock(data.Result.Value)
+		lastBlock := client.GetCurrentBlock()
+		err := client.WriteBlock(lastBlock.StateHash, data.Result.Value)
+
+		if err != nil {
+			plog.Error("********************err:", err)
+			break
+		}
+		client.SetCurrentBlock(data.Result.Value)
+		break
+
 	}
 }
