@@ -1,0 +1,152 @@
+package pbft
+
+import (
+	"gitlab.33.cn/chain33/chain33/blockchain"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"testing"
+	//"gitlab.33.cn/chain33/chain33/store"
+	//"gitlab.33.cn/chain33/chain33/p2p"
+	"flag"
+	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/mempool"
+	"gitlab.33.cn/chain33/chain33/types"
+	"math/rand"
+	//"time"
+	//"gitlab.33.cn/chain33/chain33/execs"
+	//"os/exec"
+	//"github.com/piotrnar/gocoin/lib/chain"
+	"gitlab.33.cn/chain33/chain33/store"
+	//"gitlab.33.cn/chain33/chain33/execs"
+	"encoding/binary"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/p2p"
+	"os"
+	"strconv"
+	"time"
+)
+
+var (
+	random       *rand.Rand
+	transactions []*types.Transaction
+	txSize       = 10000
+)
+
+func init() {
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	//common.SetLogLevel("info")
+	log.SetLogLevel("info")
+}
+func TestPbft(t *testing.T) {
+	q, chain, p2pnet, s, mem := initEnvPbft()
+	defer chain.Close()
+	defer s.Close()
+	defer q.Close()
+	defer p2pnet.Close()
+	defer mem.Close()
+
+	time.Sleep(20 * time.Second)
+
+	sendReplyList(q)
+
+}
+
+func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool) {
+	var q = queue.New("channel")
+	flag.Parse()
+	cfg := config.InitCfg("chain33.test.toml")
+	chain := blockchain.New(cfg.BlockChain)
+	chain.SetQueueClient(q.Client())
+	exec := executor.New(cfg.Exec)
+	exec.SetQueueClient(q.Client())
+	types.SetMinFee(0)
+	s := store.New(cfg.Store)
+	s.SetQueueClient(q.Client())
+	cs := NewPbft(cfg.Consensus)
+	cs.SetQueueClient(q.Client())
+	p2pnet := p2p.New(cfg.P2P)
+	p2pnet.SetQueueClient(q.Client())
+
+	mem := mempool.New(cfg.MemPool)
+	mem.SetQueueClient(q.Client())
+	return q, chain, p2pnet, s, mem
+
+}
+
+func sendReplyList(q queue.Queue) {
+	client := q.Client()
+	client.Sub("mempool")
+	var count int
+	for msg := range client.Recv() {
+		if msg.Ty == types.EventTxList {
+			count++
+			createReplyList("test" + strconv.Itoa(count))
+			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
+				&types.ReplyTxList{transactions}))
+			if count == 10 {
+				break
+			}
+		}
+	}
+}
+
+func generateKey(i, valI int) string {
+	key := make([]byte, valI)
+	binary.PutUvarint(key[:10], uint64(valI))
+	binary.PutUvarint(key[12:24], uint64(i))
+	if _, err := rand.Read(key[24:]); err != nil {
+		os.Exit(1)
+	}
+	return string(key)
+}
+
+func generateValue(i, valI int) string {
+	value := make([]byte, valI)
+	binary.PutUvarint(value[:16], uint64(i))
+	binary.PutUvarint(value[32:128], uint64(i))
+	if _, err := rand.Read(value[128:]); err != nil {
+		os.Exit(1)
+	}
+	return string(value)
+}
+
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func createReplyList(account string) {
+	var result []*types.Transaction
+	for j := 0; j < txSize; j++ {
+		//tx := &types.Transaction{}
+		val := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: 10}}
+		action := &types.CoinsAction{Value: val, Ty: types.CoinsActionTransfer}
+		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(action), Fee: 0}
+		tx.To = "14qViLJfdGaP4EeHnDyJbEGQysnCpwn1gZ"
+
+		tx.Nonce = random.Int63()
+
+		tx.Sign(types.SECP256K1, getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"))
+		result = append(result, tx)
+	}
+	//result = append(result, tx)
+	transactions = result
+}
