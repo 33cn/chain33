@@ -229,6 +229,10 @@ func (rep *Replica) sendRoutine() {
 				view := REQ.GetAck().View
 				primaryID := rep.newPrimary(view)
 				primary := rep.replicas[primaryID]
+				if primary == "" {
+					plog.Error("primary not exeist")
+					continue
+				}
 				err := pb.WriteMessage(primary, REQ)
 				if err != nil {
 					go func() {
@@ -708,9 +712,9 @@ func (rep *Replica) handleRequestPrepare(REQ *pb.Request) {
 
 	replica := REQ.GetPrepare().Replica
 
-	if rep.isPrimary(replica) {
-		//return
-	}
+	//if rep.isPrimary(replica) {
+	//return
+	//}
 
 	view := REQ.GetPrepare().View
 
@@ -728,12 +732,12 @@ func (rep *Replica) handleRequestPrepare(REQ *pb.Request) {
 
 	rep.logRequest(REQ)
 
-	prePrepared := make(chan bool, 1)
+	//prePrepared := make(chan bool, 1)
 	twoThirds := make(chan bool, 1)
 
-	go func() {
-		prePrepared <- rep.hasRequest(REQ)
-	}()
+	//go func() {
+	//prePrepared <- rep.hasRequest(REQ)
+	//}()
 
 	go func() {
 		count := 0
@@ -754,11 +758,11 @@ func (rep *Replica) handleRequestPrepare(REQ *pb.Request) {
 				twoThirds <- true
 				return
 			}
+			twoThirds <- false
 		}
-		twoThirds <- false
 	}()
 
-	if !<-twoThirds || !<-prePrepared {
+	if !<-twoThirds {
 		return
 	}
 
@@ -791,85 +795,92 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 	replica := REQ.GetCommit().Replica
 
 	rep.logRequest(REQ)
-
-	count := 0
-	for _, req := range rep.requests["commit"] {
-		v := req.GetCommit().View
-		s := req.GetCommit().Sequence
-		rr := req.GetCommit().Replica
-		if v != view || s != sequence {
-			continue
-		}
-		if rr == replica {
-			plog.Info("Replica %d sent multiple commit requests\n", replica)
-			//continue
-		}
-		count++
-		if !rep.overTwoThirds(count) {
-
-			continue
-		}
-		//log.Println(count)
-		//log.Println("overtwothirds done")
-		var digest []byte
-		digests := make(map[string]struct{})
-		for _, req := range rep.requests["pre-prepare"] {
-			v := req.GetPreprepare().View
-			s := req.GetPreprepare().Sequence
-			if v == view && s <= sequence {
-				digests[string(req.GetPreprepare().Digest)] = struct{}{}
-				//log.Println(string(req.Digest()))
-				if s == sequence {
-					//log.Println("break done ")
-					digest = req.GetPreprepare().Digest
-					break
-				}
-			}
-		}
-		for _, req := range rep.requests["client"] {
-			d := req.Digest()
-			//log.Println(string(d) )
-			if _, exists := digests[string(d)]; !exists {
-				//log.Println("not exisit digest")
+	twoThirds := make(chan bool, 1)
+	go func() {
+		count := 0
+		for _, req := range rep.requests["commit"] {
+			v := req.GetCommit().View
+			s := req.GetCommit().Sequence
+			rr := req.GetCommit().Replica
+			if v != view || s != sequence {
 				continue
 			}
-			if !pb.EQ(d, digest) {
-				//log.Println("not eq error")
-				// Unexecuted message op with
-				// lower sequence number...
-				continue
+			if rr == replica {
+				plog.Info("Replica %d sent multiple commit requests\n", replica)
+				//continue
 			}
-
-			op := req.GetClient().Op
-			timestamp := req.GetClient().Timestamp
-			client := req.GetClient().Client
-			result := &pb.Result{op.Value}
-
-			rep.executed = append(rep.executed, sequence)
-			reply := pb.ToReply(view, timestamp, client, rep.ID, result)
-
-			rep.logReply(client, reply)
-			plog.Info("commit done")
-			rep.lastReply = reply
-
-			go func() {
-				rep.replyChan <- reply
-			}()
-
-			if !rep.isCheckpoint(sequence) {
+			count++
+			if rep.overTwoThirds(count) {
+				twoThirds <- true
 				return
 			}
-			stateDigest := rep.stateDigest()
-			req := pb.ToRequestCheckpoint(sequence, stateDigest, rep.ID)
-			rep.logRequest(req)
-			checkpoint := pb.ToCheckpoint(sequence, stateDigest)
-			rep.addCheckpoint(checkpoint)
-			go func() {
-				rep.requestChan <- req
-			}()
-			return
+		}
+		twoThirds <- false
+	}()
+	if !<-twoThirds {
+		return
+	}
+	//log.Println(count)
+	//log.Println("overtwothirds done")
+	var digest []byte
+	digests := make(map[string]struct{})
+	for _, req := range rep.requests["pre-prepare"] {
+		v := req.GetPreprepare().View
+		s := req.GetPreprepare().Sequence
+		if v == view && s <= sequence {
+			digests[string(req.GetPreprepare().Digest)] = struct{}{}
+			//log.Println(string(req.Digest()))
+			if s == sequence {
+				//log.Println("break done ")
+				digest = req.GetPreprepare().Digest
+				break
+			}
 		}
 	}
+	for _, req := range rep.requests["client"] {
+		d := req.Digest()
+		//log.Println(string(d) )
+		if _, exists := digests[string(d)]; !exists {
+			//log.Println("not exisit digest")
+			continue
+		}
+		if !pb.EQ(d, digest) {
+			//log.Println("not eq error")
+			// Unexecuted message op with
+			// lower sequence number...
+			continue
+		}
+
+		op := req.GetClient().Op
+		timestamp := req.GetClient().Timestamp
+		client := req.GetClient().Client
+		result := &pb.Result{op.Value}
+
+		rep.executed = append(rep.executed, sequence)
+		reply := pb.ToReply(view, timestamp, client, rep.ID, result)
+
+		rep.logReply(client, reply)
+		plog.Info("commit done")
+		rep.lastReply = reply
+
+		go func() {
+			rep.replyChan <- reply
+		}()
+
+		if !rep.isCheckpoint(sequence) {
+			return
+		}
+		stateDigest := rep.stateDigest()
+		req := pb.ToRequestCheckpoint(sequence, stateDigest, rep.ID)
+		rep.logRequest(req)
+		checkpoint := pb.ToCheckpoint(sequence, stateDigest)
+		rep.addCheckpoint(checkpoint)
+		go func() {
+			rep.requestChan <- req
+		}()
+		return
+	}
+
 	return
 }
 

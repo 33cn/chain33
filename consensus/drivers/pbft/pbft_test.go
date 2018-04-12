@@ -19,12 +19,10 @@ import (
 	//"github.com/piotrnar/gocoin/lib/chain"
 	"gitlab.33.cn/chain33/chain33/store"
 	//"gitlab.33.cn/chain33/chain33/execs"
-	"encoding/binary"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/p2p"
-	"os"
 	"strconv"
 	"time"
 )
@@ -52,7 +50,7 @@ func TestPbft(t *testing.T) {
 	defer p2pnet.Close()
 	defer mem.Close()
 
-	time.Sleep(20 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	sendReplyList(q)
 
@@ -95,26 +93,6 @@ func sendReplyList(q queue.Queue) {
 			}
 		}
 	}
-}
-
-func generateKey(i, valI int) string {
-	key := make([]byte, valI)
-	binary.PutUvarint(key[:10], uint64(valI))
-	binary.PutUvarint(key[12:24], uint64(i))
-	if _, err := rand.Read(key[24:]); err != nil {
-		os.Exit(1)
-	}
-	return string(key)
-}
-
-func generateValue(i, valI int) string {
-	value := make([]byte, valI)
-	binary.PutUvarint(value[:16], uint64(i))
-	binary.PutUvarint(value[32:128], uint64(i))
-	if _, err := rand.Read(value[128:]); err != nil {
-		os.Exit(1)
-	}
-	return string(value)
 }
 
 func getprivkey(key string) crypto.PrivKey {
