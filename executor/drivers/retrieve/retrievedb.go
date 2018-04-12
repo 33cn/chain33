@@ -61,7 +61,7 @@ func (r *DB) GetKVSet() (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (r *DB) Save(db dbm.KVDB) {
+func (r *DB) Save(db dbm.KV) {
 	set := r.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -76,7 +76,7 @@ func Key(address string) (key []byte) {
 
 type Action struct {
 	coinsAccount *account.DB
-	db           dbm.KVDB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64
@@ -281,7 +281,7 @@ func (action *Action) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Recei
 	return receipt, nil
 }
 
-func readRetrieve(db dbm.KVDB, address string) (*types.Retrieve, error) {
+func readRetrieve(db dbm.KV, address string) (*types.Retrieve, error) {
 	data, err := db.Get(Key(address))
 	if err != nil {
 		rlog.Debug("readRetrieve", "get", err)

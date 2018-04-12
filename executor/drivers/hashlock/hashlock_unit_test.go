@@ -11,7 +11,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	db "gitlab.33.cn/chain33/chain33/common/db"
 	//"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -171,9 +170,5 @@ func (e *TestDB) Get(key []byte) (value []byte, err error) {
 func (e *TestDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
-	return nil
-}
-
-func (e *TestDB) Iterator(prefix []byte, reserver bool) db.Iterator {
 	return nil
 }

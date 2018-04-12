@@ -17,7 +17,7 @@ import (
 var blog = log.New("module", "execs.base")
 
 type Driver interface {
-	SetStateDB(dbm.KVDB)
+	SetStateDB(dbm.KV)
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
 	SetExecDriver(execDriver *ExecDrivers)
@@ -34,7 +34,7 @@ type Driver interface {
 }
 
 type DriverBase struct {
-	statedb      dbm.KVDB
+	statedb      dbm.KV
 	localdb      dbm.KVDB
 	height       int64
 	blocktime    int64
@@ -184,7 +184,7 @@ func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error
 	return nil, types.ErrActionNotSupport
 }
 
-func (d *DriverBase) SetStateDB(db dbm.KVDB) {
+func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
 	}
@@ -200,7 +200,7 @@ func (d *DriverBase) GetCoinsAccount() *account.DB {
 	return d.coinsaccount
 }
 
-func (d *DriverBase) GetStateDB() dbm.KVDB {
+func (d *DriverBase) GetStateDB() dbm.KV {
 	return d.statedb
 }
 
@@ -245,9 +245,10 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	}
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
-		list := dbm.NewListHelper(db)
-
-		txinfos = list.IteratorScanFromLast(prefix, addr.Count)
+		txinfos, err := db.List(prefix, nil, addr.Count, 0)
+		if err != nil {
+			return nil, err
+		}
 		if len(txinfos) == 0 {
 			return nil, errors.New("tx does not exist")
 		}
@@ -261,8 +262,10 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		} else {
 			return nil, errors.New("flag unknown")
 		}
-		list := dbm.NewListHelper(db)
-		txinfos = list.IteratorScan(prefix, key, addr.Count, addr.Direction)
+		txinfos, err := db.List(prefix, key, addr.Count, addr.Direction)
+		if err != nil {
+			return nil, err
+		}
 		if len(txinfos) == 0 {
 			return nil, errors.New("tx does not exist")
 		}

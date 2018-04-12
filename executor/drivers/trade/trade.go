@@ -13,7 +13,6 @@ import (
 	log "github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/common"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -177,17 +176,22 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
 	if 0 == len(addrTokens.Token) {
-		list := dbm.NewListHelper(t.GetLocalDB())
-		values := list.List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+		//list := dbm.NewListHelper(t.GetLocalDB())
+		values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+		if err != nil {
+			return nil, err
+		}
 		if len(values) != 0 {
 			tradelog.Debug("trade Query", "get number of sellid", len(values))
 			sellids = append(sellids, values...)
 		}
 	} else {
 		for _, token := range addrTokens.Token {
-			list := dbm.NewListHelper(t.GetLocalDB())
-			values := list.List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
+			values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
+			if err != nil {
+				return nil, err
+			}
 			if len(values) != 0 {
 				sellids = append(sellids, values...)
 			}
@@ -211,8 +215,10 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	gotAlready := make(map[interface{}]bool)
 	var reply types.ReplyTradeBuyOrders
-	list := dbm.NewListHelper(t.GetLocalDB())
-	values := list.List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+	values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+	if err != nil {
+		return nil, err
+	}
 	if len(values) != 0 {
 		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(values))
 		for _, value := range values {
@@ -250,8 +256,10 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 func (t *trade) GetAllSellOrdersWithStatus(status int32) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
-	list := dbm.NewListHelper(t.GetLocalDB())
-	values := list.List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
+	values, err := t.GetLocalDB().List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
+	if err != nil {
+		return nil, err
+	}
 	if len(values) != 0 {
 		tradelog.Debug("trade Query", "get number of sellid", len(values))
 		sellids = append(sellids, values...)
@@ -310,11 +318,10 @@ func (t *trade) GetTokenByStatus(req *types.ReqTokenSellOrder, status int32) (ty
 		}
 		fromKey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status, 1e8*sellorder.Priceperboardlot/sellorder.Amountperboardlot, sellorder.Address, sellorder.Sellid)
 	}
-
-	list := dbm.NewListHelper(t.GetLocalDB())
-	prefix := calcTokensSellOrderPrefixStatus(req.TokenSymbol, status)
-	values := list.List(prefix, fromKey, req.Count, req.Direction)
-
+	values, err := t.GetLocalDB().List(calcTokensSellOrderPrefixStatus(req.TokenSymbol, status), fromKey, req.Count, req.Direction)
+	if err != nil {
+		return nil, err
+	}
 	var reply types.ReplySellOrders
 	for _, sellid := range values {
 		if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
