@@ -112,7 +112,7 @@ func initEnv2(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mo
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
-	mem.sync = true
+	mem.setSync(true)
 
 	network := p2p.New(cfg.P2P)
 	network.SetQueueClient(q.Client())
@@ -142,7 +142,7 @@ func initEnv(size int) (*Mempool, queue.Queue, *blockchain.BlockChain, queue.Mod
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
-	mem.sync = true
+	mem.setSync(true)
 
 	if size > 0 {
 		mem.Resize(size)
@@ -641,4 +641,20 @@ func BenchmarkMempool(b *testing.B) {
 	s.Close()
 	mem.Close()
 	chain.Close()
+}
+
+func blockChainProc(q queue.Queue) {
+	go func() {
+		client := q.Client()
+		client.Sub("blockchain")
+		for msg := range client.Recv() {
+			if msg.Ty == types.EventIsSync {
+				msg.Reply(client.NewMessage("mempool", types.EventReply, &types.IsCaughtUp{Iscaughtup: true}))
+			} else if msg.Ty == types.EventTxHashList {
+				msg.Reply(client.NewMessage("mempool", types.EventReply, &types.TxHashList{}))
+			} else if msg.Ty == types.EventGetLastHeader {
+				msg.Reply(client.NewMessage("mempool", types.EventReply, queue.Message{Data: &types.Header{Height: 0, BlockTime: 0}}))
+			}
+		}
+	}()
 }
