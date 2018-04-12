@@ -9,6 +9,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	// register drivers
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
@@ -23,7 +24,7 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var runningHeight int64 = 0
+var runningHeight int64
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -164,7 +165,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
 		totalFee.Fee += tx.Fee
-		totalFee.TxCount += 1
+		totalFee.TxCount++
 		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
