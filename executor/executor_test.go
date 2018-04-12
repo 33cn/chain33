@@ -33,7 +33,7 @@ func init() {
 		panic(err)
 	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	log.SetLogLevel("info")
+	log.SetLogLevel("error")
 }
 
 func initEnv() (queue.Queue, *blockchain.BlockChain, queue.Module, queue.Module, *p2p.P2p, *mempool.Mempool) {
