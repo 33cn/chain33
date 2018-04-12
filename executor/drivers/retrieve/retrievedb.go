@@ -87,7 +87,7 @@ type Action struct {
 func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &Action{r.GetCoinsAccount(), r.GetDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
+	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
 }
 
 //wait for valuable comment

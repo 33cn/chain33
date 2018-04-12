@@ -214,21 +214,21 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return Infos(t.GetDB(), &info)
+		return Infos(t.GetStateDB(), &info)
 	} else if funcname == "TicketList" {
 		var l types.TicketList
 		err := types.Decode(params, &l)
 		if err != nil {
 			return nil, err
 		}
-		return List(t.GetQueryDB(), t.GetDB(), &l)
+		return List(t.GetLocalDB(), t.GetStateDB(), &l)
 	} else if funcname == "MinerAddress" {
 		var reqaddr types.ReqString
 		err := types.Decode(params, &reqaddr)
 		if err != nil {
 			return nil, err
 		}
-		value, err := t.GetQueryDB().Get(calcBindReturnKey(reqaddr.Data))
+		value, err := t.GetLocalDB().Get(calcBindReturnKey(reqaddr.Data))
 		if value == nil || err != nil {
 			return nil, types.ErrNotFound
 		}
@@ -240,7 +240,7 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		key := calcBindMinerKeyPrefix(reqaddr.Data)
-		list := dbm.NewListHelper(t.GetQueryDB())
+		list := dbm.NewListHelper(t.GetLocalDB())
 		values := list.List(key, nil, 0, 1)
 		if len(values) == 0 {
 			return nil, types.ErrNotFound

@@ -68,11 +68,11 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	case types.ActionTransfer:
 		token := tokenAction.GetTransfer().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction, index)
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
 
 	case types.ActionWithdraw:
 		token := tokenAction.GetWithdraw().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction, index)
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
 	}
 
 	return nil, types.ErrActionNotSupport
@@ -206,7 +206,7 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 
 func (t *token) QueryTokenAssetsKey(addr string) (*types.ReplyStrings, error) {
 	key := CalcTokenAssetsKey(addr)
-	value, err := t.GetQueryDB().Get(key)
+	value, err := t.GetLocalDB().Get(key)
 	if value == nil || err != nil {
 		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
 		return nil, types.ErrNotFound
@@ -227,7 +227,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		return nil, err
 	}
 	for _, asset := range assets.Datas {
-		acc := account.NewTokenAccount(asset, t.GetDB())
+		acc := account.NewTokenAccount(asset, t.GetStateDB())
 		var acc1 *types.Account
 		if req.Execer == "trade" {
 			execaddress := account.ExecAddress(req.Execer)
@@ -247,7 +247,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 
 func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	var reply = &types.ReplyAddrRecvForTokens{}
-	db := t.GetQueryDB()
+	db := t.GetLocalDB()
 	reciver := types.Int64{}
 	for _, token := range addrTokens.Token {
 		addrRecv, err := db.Get(calcAddrKey(token, addrTokens.Addr))
@@ -267,7 +267,7 @@ func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types
 }
 
 func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
-	db := t.GetDB()
+	db := t.GetStateDB()
 	token, err := db.Get(calcTokenKey(symbol))
 	if err != nil {
 		return nil, types.ErrEmpty
@@ -281,8 +281,8 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 }
 
 func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
-	querydb := t.GetQueryDB()
-	db := t.GetDB()
+	querydb := t.GetLocalDB()
+	db := t.GetStateDB()
 
 	replyTokens := &types.ReplyTokens{}
 	if reqTokens.Queryall {

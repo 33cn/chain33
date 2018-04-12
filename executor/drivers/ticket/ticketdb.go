@@ -97,7 +97,7 @@ type Action struct {
 func NewAction(t *Ticket, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &Action{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+	return &Action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
 func (action *Action) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt, error) {
@@ -354,7 +354,7 @@ func (action *Action) TicketClose(tclose *types.TicketClose) (*types.Receipt, er
 	return receipt, nil
 }
 
-func List(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message, error) {
+func List(db dbm.KVDB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message, error) {
 	list := dbm.NewListHelper(db)
 	values := list.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
 	if len(values) == 0 {

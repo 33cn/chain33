@@ -94,7 +94,7 @@ func TestExecHashsend(t *testing.T) {
 
 func constructHashlockInstance() *Hashlock {
 	h := newHashlock()
-	h.SetDB(NewTestDB())
+	h.SetStateDB(NewTestDB())
 	return h
 }
 
