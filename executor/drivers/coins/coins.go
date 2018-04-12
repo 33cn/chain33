@@ -39,6 +39,13 @@ func (c *Coins) GetName() string {
 	return "coins"
 }
 
+func (c *Coins) Clone() drivers.Driver {
+	clone := &Coins{}
+	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	_, err := c.DriverBase.Exec(tx, index)
 	if err != nil {

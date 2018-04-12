@@ -69,7 +69,7 @@ func (exec *Executor) SetQueueClient(client queue.Client) {
 			} else if msg.Ty == types.EventCheckTx {
 				exec.procExecCheckTx(msg)
 			} else if msg.Ty == types.EventBlockChainQuery {
-				exec.procExecQuery(msg)
+				go exec.procExecQuery(msg)
 			}
 		}
 	}()
@@ -82,6 +82,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
 	}
+	driver = driver.Clone()
 	driver.SetLocalDB(NewLocalDB(exec.client.Clone()))
 	driver.SetStateDB(NewStateDB(exec.client.Clone(), data.StateHash))
 	ret, err := driver.Query(data.FuncName, data.Param)

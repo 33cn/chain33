@@ -41,6 +41,13 @@ func (t *Ticket) GetName() string {
 	return "ticket"
 }
 
+func (t *Ticket) Clone() drivers.Driver {
+	clone := &Ticket{}
+	clone.DriverBase = *(t.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.TicketAction
 	err := types.Decode(tx.Payload, &action)
