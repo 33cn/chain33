@@ -308,22 +308,6 @@ func GetTokenAssetsKey(addr string, db dbm.KVDB) (*types.ReplyStrings, error) {
 	return &assets, nil
 }
 
-func QueryTokenAssetsKey(addr string, db dbm.DB) (*types.ReplyStrings, error) {
-	key := CalcTokenAssetsKey(addr)
-	value, err := db.Get(key)
-	if value == nil || err != nil {
-		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
-		return nil, types.ErrNotFound
-	}
-	var assets types.ReplyStrings
-	err = types.Decode(value, &assets)
-	if err != nil {
-		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
-		return nil, err
-	}
-	return &assets, nil
-}
-
 func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue {
 	tokenAssets, err := GetTokenAssetsKey(addr, db)
 	if err != nil {
