@@ -88,7 +88,7 @@ func sendReplyList(q queue.Queue) {
 			createReplyList("test" + strconv.Itoa(count))
 			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
 				&types.ReplyTxList{transactions}))
-			if count == 10 {
+			if count == 5 {
 				break
 			}
 		}
