@@ -54,7 +54,7 @@ func setLabel(cmd *cobra.Command, args []string) {
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetLabl", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.SetLabl", params, &res)
 	ctx.SetResultCb(parseSetLabelRes)
 	ctx.Run()
 }
@@ -97,6 +97,6 @@ func setPwd(cmd *cobra.Command, args []string) {
 		Newpass: newPwd,
 	}
 	var res jsonrpc.Reply
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
 	ctx.Run()
 }

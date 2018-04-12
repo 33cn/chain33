@@ -52,7 +52,7 @@ func viewAddress(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.AddrOverview
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
 	ctx.SetResultCb(parseAddrOverview)
 	ctx.Run()
 }
@@ -132,6 +132,6 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	params.Payload = reqaddr
 
 	var res types.Message
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }

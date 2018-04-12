@@ -44,6 +44,6 @@ func queryTxByAddr(cmd *cobra.Command, args []string) {
 		Index:     index,
 	}
 	var res jsonrpc.ReplyTxInfos
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
 	ctx.Run()
 }

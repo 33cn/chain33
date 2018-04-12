@@ -46,6 +46,6 @@ func transfer(cmd *cobra.Command, args []string) {
 		TokenSymbol: token,
 	}
 	var res jsonrpc.ReplyHash
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendToAddress", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.SendToAddress", params, &res)
 	ctx.Run()
 }
