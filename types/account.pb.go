@@ -14,6 +14,7 @@ It is generated from these files:
 	p2p.proto
 	rpc.proto
 	transaction.proto
+	pbft.proto
 	wallet.proto
 
 It has these top-level messages:
@@ -193,6 +194,22 @@ It has these top-level messages:
 	TransactionDetail
 	TransactionDetails
 	ReqAddrs
+	Operation
+	Checkpoint
+	Entry
+	ViewChange
+	Summary
+	Result
+	Request
+	RequestClient
+	RequestPrePrepare
+	RequestPrepare
+	RequestCommit
+	RequestCheckpoint
+	RequestViewChange
+	RequestAck
+	RequestNewView
+	ClientReply
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore

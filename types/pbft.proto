@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+import "blockchain.proto";
+package types;
+
+
+
+message Operation {
+    Block value = 1;
+}
+
+message Checkpoint {
+	uint64 sequence = 1;
+	bytes digest = 2;
+}
+
+message Entry {
+	uint64 sequence = 1;
+	bytes digest = 2;
+	uint64 view = 3;
+}
+
+message ViewChange {
+	uint64 viewchanger = 1;
+	bytes digest = 2;
+}
+
+message Summary {
+	uint64 sequence = 1;
+	bytes digest = 2;
+}
+
+
+
+message Result {
+    Block value = 1;
+}
+
+// -------------------------------- //
+
+message Request {
+	oneof value{
+		RequestClient client = 1;
+		RequestPrePrepare preprepare = 2;
+		RequestPrepare prepare = 3;
+		RequestCommit commit = 4;
+		RequestCheckpoint checkpoint = 5;
+		RequestViewChange viewchange = 6;
+		RequestAck ack = 7;
+		RequestNewView newview = 8;
+	}
+}
+
+message RequestClient {
+	Operation op = 1;
+	string timestamp = 2;
+	string client = 3;
+}
+
+message RequestPrePrepare {
+	uint64 view = 1;
+	uint64 sequence = 2;
+	bytes digest = 3;
+	uint64 replica = 4;
+}
+
+message RequestPrepare {
+	uint64 view = 1;
+	uint64 sequence = 2;
+	bytes digest = 3;
+	uint64 replica = 4;
+} 
+
+message RequestCommit {
+	uint64 view = 1;
+	uint64 sequence = 2;
+	uint64 replica = 3;
+}
+
+message RequestCheckpoint {
+	uint64 sequence = 1;
+	bytes digest = 2;
+	uint64 replica = 3;
+}
+
+message RequestViewChange {
+	uint64 view = 1;
+	uint64 sequence = 2;
+	repeated Checkpoint checkpoints = 3;
+	repeated Entry preps = 4;
+	repeated Entry prepreps = 5;
+	uint64 replica = 6; 
+}
+
+message RequestAck {
+	uint64 view = 1;
+	uint64 replica = 2;
+	uint64 viewchanger = 3;
+	bytes digest = 4;
+}
+
+message RequestNewView {
+	uint64 view = 1;
+	repeated ViewChange viewchanges = 2;
+	repeated Summary summaries = 4;
+	uint64 replica = 5;
+}
+
+message ClientReply {
+	uint64 view = 1;
+	string timestamp = 2;
+	string client = 3;
+	uint64 replica = 4;
+	Result result = 5;
+}
