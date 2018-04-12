@@ -148,6 +148,10 @@ func (db *GoLevelDB) Stats() map[string]string {
 	return stats
 }
 
+func (db *GoLevelDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
+	return nil, errors.ErrNotFound
+}
+
 func (db *GoLevelDB) Iterator(prefix []byte, reserve bool) Iterator {
 	r := &util.Range{prefix, bytesPrefix(prefix)}
 	it := db.db.NewIterator(r, nil)
