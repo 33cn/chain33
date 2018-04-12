@@ -21,7 +21,7 @@ import (
 // }
 // process 函数会调用 处理具体的消息逻辑
 
-var gId int64
+var gid int64
 
 type Client interface {
 	Send(msg Message, wait bool) (err error)     //异步发送消息
@@ -112,7 +112,7 @@ func (client *client) SendAsyn(msg Message, wait bool) (err error) {
 }
 
 func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
-	id := atomic.AddInt64(&gId, 1)
+	id := atomic.AddInt64(&gid, 1)
 	return NewMessage(id, topic, ty, data)
 }
 
