@@ -22,7 +22,7 @@ var (
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
 	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
-	isStrongConsistency bool  = false
+	isStrongConsistency       = false
 
 	chainlog = log.New("module", "blockchain")
 )
@@ -755,9 +755,9 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 func (chain *BlockChain) InitIndexAndBestView() {
 	//获取lastblocks从数据库,创建bestviewtip节点
 	var node *blockNode
-	var prevNode *blockNode = nil
+	var prevNode *blockNode
 	var height int64
-	var initflag bool = false
+	var initflag = false
 	curheight := chain.blockStore.height
 	if curheight == -1 {
 		node = newPreGenBlockNode()

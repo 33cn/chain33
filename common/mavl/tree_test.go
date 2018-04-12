@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"math/rand"
 	"runtime"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	. "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
@@ -54,21 +55,21 @@ func RandInt32() uint32 {
 
 func i2b(i int32) []byte {
 
-	b_buf := bytes.NewBuffer([]byte{})
-	binary.Write(b_buf, binary.BigEndian, i)
-	return b_buf.Bytes()
+	bbuf := bytes.NewBuffer([]byte{})
+	binary.Write(bbuf, binary.BigEndian, i)
+	return bbuf.Bytes()
 }
 
 func b2i(bz []byte) int {
 	var x int
-	b_buf := bytes.NewBuffer(bz)
-	binary.Read(b_buf, binary.BigEndian, &x)
+	bbuf := bytes.NewBuffer(bz)
+	binary.Read(bbuf, binary.BigEndian, &x)
 	return x
 }
 
 // 测试set和get功能
 func TestBasic(t *testing.T) {
-	var tree *MAVLTree = NewMAVLTree(nil, true)
+	var tree = NewTree(nil, true)
 	var up bool
 	up = tree.Set([]byte("1"), []byte("one"))
 	if up {
@@ -161,7 +162,7 @@ func TestTreeHeightAndSize(t *testing.T) {
 	}
 
 	// Construct some tree and save it
-	t1 := NewMAVLTree(db, true)
+	t1 := NewTree(db, true)
 
 	for key, value := range records {
 		t1.Set([]byte(key), []byte(value))
@@ -196,7 +197,7 @@ func TestPersistence(t *testing.T) {
 		records[randstr(20)] = randstr(20)
 	}
 
-	t1 := NewMAVLTree(db, true)
+	t1 := NewTree(db, true)
 
 	for key, value := range records {
 		t1.Set([]byte(key), []byte(value))
@@ -210,7 +211,7 @@ func TestPersistence(t *testing.T) {
 	t.Log("TestPersistence", "roothash1", hash)
 
 	// Load a tree
-	t2 := NewMAVLTree(db, true)
+	t2 := NewTree(db, true)
 	t2.Load(hash)
 
 	for key, value := range records {
@@ -221,7 +222,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// update 5个key的value在hash2 tree中，验证这个5个key在hash和hash2中的值不一样
-	var count int = 0
+	var count int
 	for key, value := range recordbaks {
 		count++
 		if count > 5 {
@@ -237,7 +238,7 @@ func TestPersistence(t *testing.T) {
 
 	// 重新加载hash
 
-	t11 := NewMAVLTree(db, true)
+	t11 := NewTree(db, true)
 	t11.Load(hash)
 
 	t.Log("------tree11------TestPersistence---------")
@@ -248,7 +249,7 @@ func TestPersistence(t *testing.T) {
 		}
 	}
 	//重新加载hash2
-	t22 := NewMAVLTree(db, true)
+	t22 := NewTree(db, true)
 	t22.Load(hash2)
 	t.Log("------tree22------TestPersistence---------")
 
@@ -278,7 +279,7 @@ func TestIAVLProof(t *testing.T) {
 
 	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
 
-	var tree *MAVLTree = NewMAVLTree(db, true)
+	var tree = NewTree(db, true)
 
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("TestIAVLProof key:%d!", i)
@@ -325,7 +326,7 @@ func TestIAVLProof(t *testing.T) {
 	}
 
 	t.Log("TestIAVLProof test Persistence data----------------")
-	tree = NewMAVLTree(db, true)
+	tree = NewTree(db, true)
 
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("TestIAVLProof key:%d!", i)
@@ -535,7 +536,7 @@ func (t *traverser) view(key, value []byte) bool {
 // 迭代测试
 func TestIterateRange(t *testing.T) {
 	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
-	tree := NewMAVLTree(db, true)
+	tree := NewTree(db, true)
 
 	type record struct {
 		key   string
@@ -612,7 +613,7 @@ func BenchmarkSetMerkleAvlTree(b *testing.B) {
 	b.StopTimer()
 
 	db := db.NewDB("test", "leveldb", "./", 100)
-	t := NewMAVLTree(db, true)
+	t := NewTree(db, true)
 
 	for i := 0; i < 10000; i++ {
 		key := i2b(int32(RandInt32()))
@@ -643,7 +644,7 @@ func BenchmarkGetMerkleAvlTree(b *testing.B) {
 	b.StopTimer()
 
 	db := db.NewDB("test", "leveldb", "./", 100)
-	t := NewMAVLTree(db, true)
+	t := NewTree(db, true)
 	var key []byte
 	for i := 0; i < 10000; i++ {
 		key = i2b(int32(i))
