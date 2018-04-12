@@ -14,8 +14,7 @@ type KVDB interface {
 }
 
 type DB interface {
-	Get([]byte) ([]byte, error)
-	Set([]byte, []byte) error
+	KVDB
 	SetSync([]byte, []byte) error
 	Delete([]byte) error
 	DeleteSync([]byte) error
