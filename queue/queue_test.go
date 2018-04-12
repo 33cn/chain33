@@ -8,6 +8,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+func init() {
+	DisableLog()
+}
+
 func TestMultiTopic(t *testing.T) {
 	q := New("channel")
 
@@ -17,7 +21,6 @@ func TestMultiTopic(t *testing.T) {
 		client.Sub("mempool")
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
-				log.Println("recv msg:", msg)
 				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
 			}
 		}
@@ -47,7 +50,6 @@ func TestMultiTopic(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		log.Println("wait message ok ")
 		t.Log(string(reply.GetData().(types.Reply).Msg))
 
 		msg = client.NewMessage("blockchain", types.EventGetBlockHeight, nil)
@@ -77,7 +79,6 @@ func TestHighLow(t *testing.T) {
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
 				time.Sleep(time.Second)
-				log.Println("recv msg:", msg)
 				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
 			}
 		}
@@ -95,7 +96,6 @@ func TestHighLow(t *testing.T) {
 			}
 		}
 		//high 优先级
-		log.Println("send high tx")
 		msg := client.NewMessage("mempool", types.EventTx, "hello")
 		client.Send(msg, true)
 		reply, err := client.Wait(msg)
@@ -103,7 +103,6 @@ func TestHighLow(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		log.Println("wait message ok ")
 		t.Log(string(reply.GetData().(types.Reply).Msg))
 		q.Close()
 	}()
@@ -123,7 +122,6 @@ func TestClientClose(t *testing.T) {
 		for msg := range client.Recv() {
 			if msg.Ty == types.EventTx {
 				time.Sleep(time.Second / 10)
-				log.Println("recv msg:", msg)
 				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
 			}
 			i++
@@ -152,13 +150,11 @@ func TestClientClose(t *testing.T) {
 					log.Println(err)
 					return
 				}
-				reply, err := client.Wait(msg)
+				_, err = client.Wait(msg)
 				if err != nil {
 					t.Error(err)
 					return
 				}
-				log.Println("wait message ok ")
-				t.Log(string(reply.GetData().(types.Reply).Msg))
 			}()
 		}
 		for i := 0; i < 100; i++ {
@@ -166,7 +162,6 @@ func TestClientClose(t *testing.T) {
 		}
 		q.Close()
 	}()
-	log.Println("start")
 	q.Start()
 }
 
