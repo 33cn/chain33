@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/pubsub"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	// register gzip
 	_ "google.golang.org/grpc/encoding/gzip"
 )
 
@@ -19,7 +20,7 @@ var (
 type P2p struct {
 	client       queue.Client
 	node         *Node
-	p2pCli       *P2pCli
+	p2pCli       *Cli
 	txCapcity    int32
 	txFactory    chan struct{}
 	otherFactory chan struct{}
@@ -35,7 +36,7 @@ func New(cfg *types.P2P) *P2p {
 	}
 	p2p := new(P2p)
 	p2p.node = node
-	p2p.p2pCli = NewP2pCli(p2p)
+	p2p.p2pCli = NewCli(p2p)
 	p2p.txFactory = make(chan struct{}, 1000)    // 1000 task
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	return p2p
