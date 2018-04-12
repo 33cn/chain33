@@ -30,7 +30,7 @@ import (
 var (
 	random       *rand.Rand
 	transactions []*types.Transaction
-	txSize       = 10000
+	txSize       = 1000
 )
 
 func init() {
