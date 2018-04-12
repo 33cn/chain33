@@ -1,8 +1,11 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 )
+
+var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 
 type KVDB interface {
 	Get(key []byte) (value []byte, err error)
@@ -11,11 +14,11 @@ type KVDB interface {
 }
 
 type DB interface {
-	Get([]byte) []byte
-	Set([]byte, []byte)
-	SetSync([]byte, []byte)
-	Delete([]byte)
-	DeleteSync([]byte)
+	Get([]byte) ([]byte, error)
+	Set([]byte, []byte) error
+	SetSync([]byte, []byte) error
+	Delete([]byte) error
+	DeleteSync([]byte) error
 	Close()
 	NewBatch(sync bool) Batch
 	//迭代prefix 范围的所有key value, 支持正反顺序迭代
@@ -28,7 +31,7 @@ type DB interface {
 type Batch interface {
 	Set(key, value []byte)
 	Delete(key []byte)
-	Write()
+	Write() error
 }
 
 type IteratorSeeker interface {

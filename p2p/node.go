@@ -273,7 +273,7 @@ func (n *Node) detectNodeAddr() {
 		if cfg.GetIsSeed() == true || OutSide == true {
 			externalPort = DefaultPort
 		} else {
-			exportBytes := n.nodeInfo.addrBook.bookDb.Get([]byte(ExternalPortTag))
+			exportBytes, _ := n.nodeInfo.addrBook.bookDb.Get([]byte(ExternalPortTag))
 			if len(exportBytes) != 0 {
 				externalPort = int(P2pComm.BytesToInt32(exportBytes))
 			} else {
