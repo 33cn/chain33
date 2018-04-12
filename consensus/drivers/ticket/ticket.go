@@ -24,7 +24,7 @@ var (
 	defaultModify = []byte("modify")
 )
 
-type TicketClient struct {
+type Client struct {
 	*drivers.BaseClient
 	//ticket list for miner
 	tlist    *types.ReplyTicketList
@@ -33,15 +33,15 @@ type TicketClient struct {
 	done     chan struct{}
 }
 
-func New(cfg *types.Consensus) *TicketClient {
+func New(cfg *types.Consensus) *Client {
 	c := drivers.NewBaseClient(cfg)
-	t := &TicketClient{c, &types.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{})}
+	t := &Client{c, &types.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{})}
 	c.SetChild(t)
 	go t.flushTicketBackend()
 	return t
 }
 
-func (client *TicketClient) flushTicketBackend() {
+func (client *Client) flushTicketBackend() {
 	ticket := time.NewTicker(time.Hour)
 	defer ticket.Stop()
 Loop:
@@ -55,13 +55,13 @@ Loop:
 	}
 }
 
-func (client *TicketClient) Close() {
+func (client *Client) Close() {
 	close(client.done)
 	client.BaseClient.Close()
 	tlog.Info("consensus ticket closed")
 }
 
-func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
+func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	//给ticket 合约打 3亿 个币
 	//产生3w张初始化ticket
 	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
@@ -107,17 +107,17 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	return ret
 }
 
-func (client *TicketClient) ProcEvent(msg queue.Message) {
+func (client *Client) ProcEvent(msg queue.Message) {
 	if msg.Ty == types.EventFlushTicket {
 		client.flushTicketMsg(msg)
 	} else if msg.Ty == types.EventGetTicketCount {
 		client.getTicketCountMsg(msg)
 	} else {
-		msg.ReplyErr("TicketClient", types.ErrActionNotSupport)
+		msg.ReplyErr("Client", types.ErrActionNotSupport)
 	}
 }
 
-func (client *TicketClient) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
+func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
 	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func (client *TicketClient) privFromBytes(privkey []byte) (crypto.PrivKey, error
 	return cr.PrivKeyFromBytes(privkey)
 }
 
-func (client *TicketClient) getTickets() ([]*types.Ticket, []crypto.PrivKey, error) {
+func (client *Client) getTickets() ([]*types.Ticket, []crypto.PrivKey, error) {
 	msg := client.GetQueueClient().NewMessage("wallet", types.EventWalletGetTickets, nil)
 	client.GetQueueClient().Send(msg, true)
 	resp, err := client.GetQueueClient().Wait(msg)
@@ -145,27 +145,27 @@ func (client *TicketClient) getTickets() ([]*types.Ticket, []crypto.PrivKey, err
 	return reply.Tickets, keys, nil
 }
 
-func (client *TicketClient) getTicketCount() int64 {
+func (client *Client) getTicketCount() int64 {
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
 	return int64(len(client.tlist.Tickets))
 }
 
-func (client *TicketClient) getTicketCountMsg(msg queue.Message) {
+func (client *Client) getTicketCountMsg(msg queue.Message) {
 	//list accounts
 	var ret types.Int64
 	ret.Data = client.getTicketCount()
 	msg.Reply(client.GetQueueClient().NewMessage("", types.EventReplyGetTicketCount, &ret))
 }
 
-func (client *TicketClient) setTicket(tlist *types.ReplyTicketList, privmap map[string]crypto.PrivKey) {
+func (client *Client) setTicket(tlist *types.ReplyTicketList, privmap map[string]crypto.PrivKey) {
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
 	client.tlist = tlist
 	client.privmap = privmap
 }
 
-func (client *TicketClient) flushTicket() error {
+func (client *Client) flushTicket() error {
 	//list accounts
 	tickets, privs, err := client.getTickets()
 	if err == types.ErrMinerNotStared {
@@ -181,7 +181,7 @@ func (client *TicketClient) flushTicket() error {
 	return nil
 }
 
-func (client *TicketClient) flushTicketMsg(msg queue.Message) {
+func (client *Client) flushTicketMsg(msg queue.Message) {
 	//list accounts
 	err := client.flushTicket()
 	msg.ReplyErr("FlushTicket", err)
@@ -196,7 +196,7 @@ func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 	return list
 }
 
-func (client *TicketClient) getMinerTx(current *types.Block) (*types.TicketAction, error) {
+func (client *Client) getMinerTx(current *types.Block) (*types.TicketAction, error) {
 	//检查第一个笔交易的execs, 以及执行状态
 	if len(current.Txs) == 0 {
 		return nil, types.ErrEmptyTx
@@ -222,7 +222,7 @@ func (client *TicketClient) getMinerTx(current *types.Block) (*types.TicketActio
 	return &ticketAction, nil
 }
 
-func (client *TicketClient) getModify(block *types.Block) ([]byte, error) {
+func (client *Client) getModify(block *types.Block) ([]byte, error) {
 	ticketAction, err := client.getMinerTx(block)
 	if err != nil {
 		return defaultModify, err
@@ -230,7 +230,7 @@ func (client *TicketClient) getModify(block *types.Block) ([]byte, error) {
 	return ticketAction.GetMiner().GetModify(), nil
 }
 
-func (client *TicketClient) GetModify(beg, end int64) ([]byte, error) {
+func (client *Client) GetModify(beg, end int64) ([]byte, error) {
 	//通过某个区间计算modify
 	timeSource := int64(0)
 	total := int64(0)
@@ -260,7 +260,7 @@ func (client *TicketClient) GetModify(beg, end int64) ([]byte, error) {
 	return []byte(modify), nil
 }
 
-func (client *TicketClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	cfg := types.GetP(current.Block.Height)
 	if current.Block.BlockTime-time.Now().Unix() > cfg.FutureBlockTime {
 		return types.ErrFutureBlock
@@ -320,7 +320,7 @@ func (client *TicketClient) CheckBlock(parent *types.Block, current *types.Block
 	return nil
 }
 
-func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big.Int, []byte, error) {
+func (client *Client) getNextTarget(block *types.Block, bits uint32) (*big.Int, []byte, error) {
 	if block.Height == 0 {
 		powLimit := difficulty.CompactToBig(types.GetP(0).PowLimitBits)
 		return powLimit, defaultModify, nil
@@ -332,7 +332,7 @@ func (client *TicketClient) getNextTarget(block *types.Block, bits uint32) (*big
 	return difficulty.CompactToBig(targetBits), modify, nil
 }
 
-func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
+func (client *Client) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
 	s := fmt.Sprintf("%d:%s:%x", blocktime, id, modify)
 	hash := common.Sha2Sum([]byte(s))
 	num := difficulty.HashToBig(hash[:])
@@ -344,7 +344,7 @@ func (client *TicketClient) getCurrentTarget(blocktime int64, id string, modify 
 // This function differs from the exported CalcNextRequiredDifficulty in that
 // the exported version uses the current best chain as the previous block node
 // while this function accepts any block node.
-func (client *TicketClient) GetNextRequiredDifficulty(block *types.Block, bits uint32) (uint32, []byte, error) {
+func (client *Client) GetNextRequiredDifficulty(block *types.Block, bits uint32) (uint32, []byte, error) {
 	// Genesis block.
 	if block == nil {
 		return types.GetP(0).PowLimitBits, defaultModify, nil
@@ -431,7 +431,7 @@ func printBInt(data *big.Int) string {
 	return strings.Repeat("0", 64-len(txt)) + txt
 }
 
-func (client *TicketClient) searchTargetTicket(parent, block *types.Block) (*types.Ticket, crypto.PrivKey, *big.Int, []byte, int, error) {
+func (client *Client) searchTargetTicket(parent, block *types.Block) (*types.Ticket, crypto.PrivKey, *big.Int, []byte, int, error) {
 	bits := parent.Difficulty
 	diff, modify, err := client.getNextTarget(parent, bits)
 	if err != nil {
@@ -462,7 +462,7 @@ func (client *TicketClient) searchTargetTicket(parent, block *types.Block) (*typ
 	return nil, nil, nil, nil, 0, nil
 }
 
-func (client *TicketClient) delTicket(ticket *types.Ticket, index int) {
+func (client *Client) delTicket(ticket *types.Ticket, index int) {
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
 	//1. 结构体没有被重新调整过
@@ -483,7 +483,7 @@ func (client *TicketClient) delTicket(ticket *types.Ticket, index int) {
 	}
 }
 
-func (client *TicketClient) Miner(parent, block *types.Block) bool {
+func (client *Client) Miner(parent, block *types.Block) bool {
 	//add miner address
 	ticket, priv, diff, modify, index, err := client.searchTargetTicket(parent, block)
 	if err != nil {
@@ -512,7 +512,7 @@ func calcTotalFee(block *types.Block) (total int64) {
 	return 0
 }
 
-func (client *TicketClient) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) {
+func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) {
 	fee := calcTotalFee(block)
 	var ticketAction types.TicketAction
 	miner := &types.TicketMiner{}
@@ -529,7 +529,7 @@ func (client *TicketClient) addMinerTx(parent, block *types.Block, diff *big.Int
 	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
 }
 
-func (client *TicketClient) createMinerTx(ticketAction *types.TicketAction, priv crypto.PrivKey) *types.Transaction {
+func (client *Client) createMinerTx(ticketAction *types.TicketAction, priv crypto.PrivKey) *types.Transaction {
 	tx := &types.Transaction{}
 	tx.Execer = []byte("ticket")
 	tx.Fee = types.MinFee
@@ -540,7 +540,7 @@ func (client *TicketClient) createMinerTx(ticketAction *types.TicketAction, priv
 	return tx
 }
 
-func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
+func (client *Client) createBlock() (*types.Block, *types.Block) {
 	lastBlock := client.GetCurrentBlock()
 	var newblock types.Block
 	newblock.ParentHash = lastBlock.Hash()
@@ -553,7 +553,7 @@ func (client *TicketClient) createBlock() (*types.Block, *types.Block) {
 	return &newblock, lastBlock
 }
 
-func (client *TicketClient) updateBlock(newblock *types.Block, txHashList [][]byte) (*types.Block, [][]byte) {
+func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*types.Block, [][]byte) {
 	lastBlock := client.GetCurrentBlock()
 	//需要去重复
 	newblock.ParentHash = lastBlock.Hash()
@@ -579,7 +579,7 @@ func (client *TicketClient) updateBlock(newblock *types.Block, txHashList [][]by
 	return lastBlock, txHashList
 }
 
-func (client *TicketClient) CreateBlock() {
+func (client *Client) CreateBlock() {
 	for {
 		if !client.IsMining() || !client.IsCaughtUp() {
 			time.Sleep(time.Second)
@@ -607,7 +607,7 @@ func getTxHashes(txs []*types.Transaction) (hashes [][]byte) {
 	return hashes
 }
 
-func (client *TicketClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
+func (client *Client) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
 	}
