@@ -10,6 +10,8 @@ var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 type KVDB interface {
 	Get(key []byte) ([]byte, error)
 	Set(key []byte, value []byte) (err error)
+	//迭代prefix 范围的所有key value, 支持正反顺序迭代
+	Iterator(prefix []byte, reserver bool) Iterator
 }
 
 type DB interface {
@@ -19,9 +21,6 @@ type DB interface {
 	DeleteSync([]byte) error
 	Close()
 	NewBatch(sync bool) Batch
-	//迭代prefix 范围的所有key value, 支持正反顺序迭代
-	Iterator(prefix []byte, reserver bool) Iterator
-
 	// For debugging
 	Print()
 	Stats() map[string]string
