@@ -23,9 +23,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/wallet"
 	"strconv"
 	"time"
-	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
 var (
@@ -43,7 +43,7 @@ func init() {
 	//common.SetLogLevel("info")
 }
 func TestPbft(t *testing.T) {
-	q, chain, _, s, mem, exec, cs, wallet:= initEnvPbft()
+	q, chain, _, s, mem, exec, cs, wallet := initEnvPbft()
 	defer chain.Close()
 	defer mem.Close()
 	//defer p2pnet.Close()
@@ -51,7 +51,7 @@ func TestPbft(t *testing.T) {
 	defer s.Close()
 	defer cs.Close()
 	defer q.Close()
-    defer wallet.Close()
+	defer wallet.Close()
 	time.Sleep(5 * time.Second)
 
 	sendReplyList(q)
