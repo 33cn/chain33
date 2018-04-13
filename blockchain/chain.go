@@ -500,24 +500,15 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 	return &headers, nil
 }
 
-//type Header struct {
-//	Version    int64
-//	ParentHash []byte
-//	TxHash     []byte
-//	StateHash  []byte
-//	Height     int64
-//	BlockTime  int64
-//}
-func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err error) {
+func (chain *BlockChain) ProcGetLastHeaderMsg() (*types.Header, error) {
 	//首先从缓存中获取最新的blockheader
 	head := chain.blockStore.LastHeader()
 	if head == nil {
 		blockhight := chain.GetBlockHeight()
-		head, err := chain.blockStore.GetBlockHeaderByHeight(blockhight)
-
-		if err == nil && head != nil {
-			chainlog.Error("ProcGetLastHeaderMsg from cache is nil.", "blockhight", blockhight, "hash", common.ToHex(head.Hash))
-			return head, nil
+		tmpHead, err := chain.blockStore.GetBlockHeaderByHeight(blockhight)
+		if err == nil && tmpHead != nil {
+			chainlog.Error("ProcGetLastHeaderMsg from cache is nil.", "blockhight", blockhight, "hash", common.ToHex(tmpHead.Hash))
+			return tmpHead, nil
 		} else {
 			return nil, err
 		}

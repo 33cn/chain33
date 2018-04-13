@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var merklelog = log.New("module", "merkle")
 
 /*     WARNING! If you're reading this because you're learning about crypto
 and/or designing a new system that will use merkle trees, keep in mind

@@ -198,7 +198,7 @@ func TestProcAddBlockDetail(t *testing.T) {
 	}
 	chainlog.Info("TestProcAddBlockDetail", "addblockheight", addblockheight)
 	for i := curheight + 1; i <= addblockheight; i++ {
-		block, _, _ := ConstructionBlockDetail(parentHash, i, 5)
+		block, _, _ = ConstructionBlockDetail(parentHash, i, 5)
 		blockchain.ProcAddBlockMsg(true, block)
 		parentHash = block.Block.Hash()
 	}

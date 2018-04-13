@@ -3,14 +3,11 @@ package retrieve
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"testing"
-	//. "github.com/smartystreets/goconvey/convey"
+
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var random *rand.Rand
 
 var backupAddr string
 var defaultAddr string

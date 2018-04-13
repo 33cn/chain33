@@ -16,7 +16,6 @@ var (
 	GetAddrFromOnlineInterval  = 5 * time.Second
 	CheckActivePeersInterVal   = 5 * time.Second
 	CheckBlackListInterVal     = 30 * time.Second
-	checkSlowPeerInterVal      = 30 * time.Second
 )
 
 const (
@@ -30,16 +29,14 @@ var (
 )
 
 const (
-	defaultPort      = 13802
-	defalutNatPort   = 23802
-	mixOutBoundNum   = 5
-	maxOutBoundNum   = 25
-	stableBoundNum   = 15
-	maxAddrListNum   = 256
-	maxRangeBlockNum = 100
-	maxAttemps       = 5
-	protocol         = "tcp"
-	externalPortTag  = "externalport"
+	defaultPort     = 13802
+	defalutNatPort  = 23802
+	maxOutBoundNum  = 25
+	stableBoundNum  = 15
+	maxAddrListNum  = 256
+	maxAttemps      = 5
+	protocol        = "tcp"
+	externalPortTag = "externalport"
 )
 
 const (

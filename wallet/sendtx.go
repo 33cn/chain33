@@ -535,7 +535,6 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		}
 		return accounts, nil
 	}
-	return nil, nil
 }
 
 func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {

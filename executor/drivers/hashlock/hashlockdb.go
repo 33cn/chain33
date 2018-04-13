@@ -2,7 +2,6 @@ package hashlock
 
 //database opeartion for execs hashlock
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -205,10 +204,6 @@ func readHashlock(db dbm.KVDB, id []byte) (*types.Hashlock, error) {
 		return nil, err
 	}
 	return &hashlock, nil
-}
-
-func checksecret(secret []byte, hashresult []byte) bool {
-	return bytes.Equal(common.Sha256(secret), hashresult)
 }
 
 func NewHashlockquery() *types.Hashlockquery {
