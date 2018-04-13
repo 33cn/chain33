@@ -72,7 +72,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 
 // TODO
 func GetWalletStatus(rpcAddr string, isCloseTickets bool) (interface{}, error) {
-	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err

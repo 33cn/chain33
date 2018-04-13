@@ -43,7 +43,7 @@ func tokenAssets(cmd *cobra.Command, args []string) {
 	params.Execer = "token"
 	params.FuncName = "GetAccountTokenAssets"
 	params.Payload = req
-	rpc, err := jsonrpc.NewJsonClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

@@ -15,16 +15,16 @@ import (
 )
 
 // adapt HTTP connection to ReadWriteCloser
-type HttpConn struct {
+type HTTPConn struct {
 	in  io.Reader
 	out io.Writer
 }
 
-func (c *HttpConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
-func (c *HttpConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
-func (c *HttpConn) Close() error                      { return nil }
+func (c *HTTPConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
+func (c *HTTPConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
+func (c *HTTPConn) Close() error                      { return nil }
 
-func (j *JsonRpcServer) Listen() {
+func (j *JSONRPCServer) Listen() {
 	listener, err := net.Listen("tcp", rpcCfg.GetJrpcBindAddr())
 	if err != nil {
 		log.Crit("listen:", "err", err)
@@ -44,7 +44,7 @@ func (j *JsonRpcServer) Listen() {
 		}
 
 		if r.URL.Path == "/" {
-			serverCodec := jsonrpc.NewServerCodec(&HttpConn{in: r.Body, out: w})
+			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w})
 			w.Header().Set("Content-type", "application/json")
 			w.WriteHeader(200)
 			err := server.ServeRequest(serverCodec)
