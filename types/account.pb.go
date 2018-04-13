@@ -193,6 +193,12 @@ It has these top-level messages:
 	TransactionDetail
 	TransactionDetails
 	ReqAddrs
+	TokenPreCreateTx
+	TokenFinishTx
+	TokenRevokeTx
+	TradeSellTx
+	TradeBuyTx
+	TradeRevokeTx
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
