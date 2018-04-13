@@ -61,16 +61,36 @@ func (exec *Executor) SetQueueClient(client queue.Client) {
 		for msg := range client.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
-				exec.procExecTxList(msg)
+				go exec.procExecTxList(msg)
 			} else if msg.Ty == types.EventAddBlock {
-				exec.procExecAddBlock(msg)
+				go exec.procExecAddBlock(msg)
 			} else if msg.Ty == types.EventDelBlock {
-				exec.procExecDelBlock(msg)
+				go exec.procExecDelBlock(msg)
 			} else if msg.Ty == types.EventCheckTx {
-				exec.procExecCheckTx(msg)
+				go exec.procExecCheckTx(msg)
+			} else if msg.Ty == types.EventBlockChainQuery {
+				go exec.procExecQuery(msg)
 			}
 		}
 	}()
+}
+
+func (exec *Executor) procExecQuery(msg queue.Message) {
+	data := msg.GetData().(*types.BlockChainQuery)
+	driver, err := LoadDriver(data.Driver)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
+	driver = driver.Clone()
+	driver.SetLocalDB(NewLocalDB(exec.client.Clone()))
+	driver.SetStateDB(NewStateDB(exec.client.Clone(), data.StateHash))
+	ret, err := driver.Query(data.FuncName, data.Param)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
+	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
 }
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
@@ -252,7 +272,7 @@ func (exec *Executor) Close() {
 
 //执行器 -> db 环境
 type executor struct {
-	stateDB      dbm.KVDB
+	stateDB      dbm.KV
 	localDB      dbm.KVDB
 	coinsAccount *account.DB
 	execDriver   *drivers.ExecDrivers
@@ -320,14 +340,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 	}
 
-	exec.SetDB(e.stateDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriverForExec(string(tx.Execer))
-	exec.SetDB(e.stateDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.Exec(tx, index)
 }

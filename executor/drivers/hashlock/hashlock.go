@@ -33,6 +33,13 @@ func (h *Hashlock) GetName() string {
 	return "hashlock"
 }
 
+func (h *Hashlock) Clone() drivers.Driver {
+	clone := &Hashlock{}
+	clone.DriverBase = *(h.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.HashlockAction
 	err := types.Decode(tx.Payload, &action)

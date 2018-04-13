@@ -265,7 +265,7 @@ func (chain *BlockChain) localGet(msg queue.Message) {
 func (chain *BlockChain) localList(msg queue.Message) {
 	q := (msg.Data).(*types.LocalDBList)
 	values := db.NewListHelper(chain.blockStore.db).List(q.Prefix, q.Key, q.Count, q.Direction)
-	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, values))
+	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.LocalReplyValue{Values: values}))
 }
 
 func (chain *BlockChain) getQuery(msg queue.Message) {
