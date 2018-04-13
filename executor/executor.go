@@ -61,13 +61,13 @@ func (exec *Executor) SetQueueClient(client queue.Client) {
 		for msg := range client.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
-				exec.procExecTxList(msg)
+				go exec.procExecTxList(msg)
 			} else if msg.Ty == types.EventAddBlock {
-				exec.procExecAddBlock(msg)
+				go exec.procExecAddBlock(msg)
 			} else if msg.Ty == types.EventDelBlock {
-				exec.procExecDelBlock(msg)
+				go exec.procExecDelBlock(msg)
 			} else if msg.Ty == types.EventCheckTx {
-				exec.procExecCheckTx(msg)
+				go exec.procExecCheckTx(msg)
 			} else if msg.Ty == types.EventBlockChainQuery {
 				go exec.procExecQuery(msg)
 			}
