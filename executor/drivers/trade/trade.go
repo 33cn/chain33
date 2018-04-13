@@ -23,7 +23,7 @@ var tradelog = log.New("module", "execs.trade")
 
 func init() {
 	t := newTrade()
-	drivers.Register(t.GetName(), t, types.ForkV2_add_token)
+	drivers.Register(t.GetName(), t, types.ForkV2AddToken)
 }
 
 type trade struct {

@@ -34,7 +34,7 @@ func (c *RPCCtx) SetResultCb(cb Callback) {
 }
 
 func (c *RPCCtx) Run() {
-	rpc, err := jsonrpc.NewJsonClient(c.Addr)
+	rpc, err := jsonrpc.NewJSONClient(c.Addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
