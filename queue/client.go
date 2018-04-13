@@ -128,7 +128,7 @@ func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, 
 		return msg, msg.Err()
 	case <-client.done:
 		return Message{}, errors.New("client is closed")
-	case <-timeout.C:
+	case <-t.C:
 		return Message{}, types.ErrTimeout
 	}
 }
