@@ -132,12 +132,12 @@ func (m *Cli) SendVersion(peer *peer, nodeinfo *NodeInfo) (string, error) {
 
 	client := nodeinfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
-	err := client.Send(msg, true)
+	err := client.SendTimeout(msg, true, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("SendVesion", "Error", err.Error())
 		return "", err
 	}
-	rsp, err := client.Wait(msg)
+	rsp, err := client.WaitTimeout(msg, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("GetHeight", "Error", err.Error())
 		return "", err
@@ -214,12 +214,12 @@ func (m *Cli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
 func (m *Cli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	client := nodeinfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
-	err := client.Send(msg, true)
+	err := client.SendTimeout(msg, true, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("GetBlockHeight", "Error", err.Error())
 		return 0, err
 	}
-	resp, err := client.Wait(msg)
+	resp, err := client.WaitTimeout(msg, time.Duration(time.Minute))
 	if err != nil {
 		return 0, err
 	}
@@ -697,13 +697,14 @@ func (m *Cli) peerInfos() []*pb.Peer {
 func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	client := m.network.client
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
-	err := client.Send(msg, true)
+	err := client.SendTimeout(msg, true, time.Duration(time.Minute)) //发送超时
 	if err != nil {
 		log.Error("GetPeerInfo mempool", "Error", err.Error())
 		return nil, err
 	}
 	log.Debug("GetPeerInfo", "GetMempoolSize", "after")
-	resp, err := client.Wait(msg)
+
+	resp, err := client.WaitTimeout(msg, time.Duration(time.Minute))
 	if err != nil {
 		return nil, err
 	}
@@ -716,12 +717,12 @@ func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	log.Debug("getLocalPeerInfo", "EventGetLastHeader", "befor")
 	//get header
 	msg = client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
-	err = client.Send(msg, true)
+	err = client.SendTimeout(msg, true, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("getLocalPeerInfo blockchain", "Error", err.Error())
 		return nil, err
 	}
-	resp, err = client.Wait(msg)
+	resp, err = client.WaitTimeout(msg, time.Duration(time.Minute))
 	if err != nil {
 		return nil, err
 	}
