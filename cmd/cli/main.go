@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/cli/commands"
+	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/version"
 )

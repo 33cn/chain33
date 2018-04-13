@@ -1,4 +1,3 @@
-chain33
 datadir*
 .DS_Store
 *.log
@@ -6,14 +5,8 @@ datadir*
 *.orig
 logs
 common/mavl/datastore
-mavltree
-cli/cli
-cli/run.sh
 datadir2/
-common/mavl/test.db
 .idea
 build/chain33*
 build/datadir
 build/*.log
-build/coverage
-executor/executor.test
