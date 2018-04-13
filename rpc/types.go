@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/json"
 	l "github.com/inconshreveable/log15"
 )
 
@@ -213,10 +214,16 @@ type BlockOverview struct {
 	TxHashes []string `protobuf:"bytes,3,rep,name=txHashes,proto3" json:"txhashes"`
 }
 
-type Query struct {
-	Execer   string `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
-	FuncName string `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
-	Payload  string `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload"`
+type Query4Cli struct {
+	Execer   string      `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	FuncName string      `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
+	Payload  interface{} `protobuf:"bytes,3,opt,name=payload" json:"payload"`
+}
+
+type Query4Jrpc struct {
+	Execer   string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	FuncName string          `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
+	Payload  json.RawMessage `protobuf:"bytes,3,opt,name=payload" json:"payload"`
 }
 
 type WalletStatus struct {

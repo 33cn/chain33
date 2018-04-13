@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -31,10 +30,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 
-	_ "google.golang.org/grpc/encoding/gzip"
+	"time"
+
+	"google.golang.org/grpc"
 )
 
 var (
@@ -52,23 +52,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	//set watching
-	t := time.Tick(10 * time.Second)
-	go func() {
-		for range t {
-			watching()
-		}
-	}()
-	//set pprof
-	go func() {
-		http.ListenAndServe("localhost:6060", nil)
-	}()
-	//set trace
-	grpc.EnableTracing = true
-	go startTrace()
-	//set maxprocs
-	runtime.GOMAXPROCS(cpuNum)
 
 	flag.Parse()
 	//set config
@@ -89,6 +72,24 @@ func main() {
 		glogv2 := grpclog.NewLoggerV2WithVerbosity(f, f, f, 10)
 		grpclog.SetLoggerV2(glogv2)
 	}
+
+	//set watching
+	t := time.Tick(10 * time.Second)
+	go func() {
+		for range t {
+			watching()
+		}
+	}()
+	//set pprof
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
+	//set trace
+	grpc.EnableTracing = true
+	go startTrace()
+	//set maxprocs
+	runtime.GOMAXPROCS(cpuNum)
+
 	//开始区块链模块加载
 	//channel, rabitmq 等
 	log.Info("chain33 " + version.GetVersion())

@@ -23,7 +23,7 @@ func testDBIterator(t *testing.T, db DB) {
 	db.Set(b, []byte("0xff"))
 
 	t.Log("test Get")
-	v := db.Get([]byte("aaaaaa/1"))
+	v, _ := db.Get([]byte("aaaaaa/1"))
 	require.Equal(t, string(v), "aaaaaa/1")
 
 	t.Log("test PrefixScan")
