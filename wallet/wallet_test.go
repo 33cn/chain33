@@ -45,10 +45,10 @@ func storeModProc(q queue.Queue) queue.Module {
 
 var (
 	Statehash []byte
-	CutHeight int64  = 0
-	FromAddr  string = ""
-	ToAddr1   string = ""
-	ToAddr2   string = ""
+	CutHeight int64
+	FromAddr  string
+	ToAddr1   string
+	ToAddr2   string
 )
 
 func blockchainModProc(q queue.Queue) {
@@ -75,7 +75,7 @@ func blockchainModProc(q queue.Queue) {
 					replyTxInfo.Height = CutHeight + 1
 					replyTxInfo.Index = int64(index)
 					replyTxInfos.TxInfos[index] = &replyTxInfo
-					CutHeight += 1
+					CutHeight++
 				}
 				msg.Reply(client.NewMessage("rpc", types.EventReplyTxInfo, &replyTxInfos))
 
