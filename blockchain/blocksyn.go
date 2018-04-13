@@ -28,7 +28,7 @@ var (
 	checkBlockHashSeconds   int64 = 1 * 60 //1分钟检测一次tip hash和peer 对应高度的hash是否一致
 	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
 	MaxRollBlockNum         int64 = 5000   //最大回退block数量
-	blockSynInterVal              = time.Duration(TimeoutSeconds)
+	//blockSynInterVal              = time.Duration(TimeoutSeconds)
 	checkBlockNum           int64 = 128
 	batchsyncblocknum       int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
 
@@ -75,8 +75,8 @@ func (chain *BlockChain) SynRoutine() {
 	//获取peerlist的定时器，默认1分钟
 	fetchPeerListTicker := time.NewTicker(time.Duration(fetchPeerListSeconds) * time.Second)
 
-	//向peer请求同步block的定时器，默认5s
-	blockSynTicker := time.NewTicker(time.Duration(blockSynInterVal) * time.Second)
+	//向peer请求同步block的定时器，默认2s
+	blockSynTicker := time.NewTicker(time.Duration(TimeoutSeconds) * time.Second)
 
 	//5分钟检测一次bestchain主链高度是否有增长，如果没有增长可能是目前主链在侧链上，
 	//需要从最高peer向后同步指定的headers用来获取分叉点，再后从指定peer获取分叉点以后的blocks
