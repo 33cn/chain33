@@ -4,6 +4,8 @@
 # 3. make build
 # ...
 
+SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
+SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
 APP := build/chain33
 CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
@@ -19,23 +21,20 @@ dep: ## Get the dependencies
 	@go get -u github.com/mitchellh/gox
 
 all: ## Builds for multiple platforms
-	@gox $(LDFLAGS)
+	@gox $(LDFLAGS) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 	@mv chain33* build/
 
-ticket:
-	go build -i -v -o chain33
-	./chain33 -f chain33.test.toml
-
 build: ## Build the binary file
-	@go build -race -v -o $(APP)
-	@cp chain33.toml build/
+	@go build -race -v -o $(APP) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 
 release: ## Build the binary file
-	@go build -race -v -o $(APP) $(LDFLAGS)
-	@cp chain33.toml build/
+	@go build -race -v -o $(APP) $(LDFLAGS) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 
 cli: ## Build cli binary
-	@go build -race -v -o $(CLI) cli/cli.go
+	@go build -race -v -o $(CLI) $(SRC_CLI)
 
 linter: ## Use gometalinter check code, ignore some unserious warning
 	@res=$$(gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
