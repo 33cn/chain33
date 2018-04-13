@@ -126,3 +126,10 @@ message IsNtpClockSync {
 	bool isntpclocksync  = 1;
 }
 
+
+message BlockChainQuery{
+	string driver = 1;
+	string funcName = 2;
+	bytes stateHash = 3;
+	bytes param = 4;
+}

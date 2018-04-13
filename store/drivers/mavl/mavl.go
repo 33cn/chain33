@@ -22,13 +22,13 @@ func DisableLog() {
 
 type MavlStore struct {
 	*drivers.BaseStore
-	trees map[string]*mavl.MAVLTree
+	trees map[string]*mavl.Tree
 	cache *lru.Cache
 }
 
 func New(cfg *types.Store) *MavlStore {
 	bs := drivers.NewBaseStore(cfg)
-	mavls := &MavlStore{bs, make(map[string]*mavl.MAVLTree), nil}
+	mavls := &MavlStore{bs, make(map[string]*mavl.Tree), nil}
 	mavls.cache, _ = lru.New(10)
 	bs.SetChild(mavls)
 	return mavls
@@ -45,16 +45,16 @@ func (mavls *MavlStore) Set(datas *types.StoreSet, sync bool) []byte {
 }
 
 func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
-	var tree *mavl.MAVLTree
+	var tree *mavl.Tree
 	var err error
 	values := make([][]byte, len(datas.Keys))
 	search := string(datas.StateHash)
 	if data, ok := mavls.cache.Get(search); ok {
-		tree = data.(*mavl.MAVLTree)
+		tree = data.(*mavl.Tree)
 	} else if data, ok := mavls.trees[search]; ok {
 		tree = data
 	} else {
-		tree = mavl.NewMAVLTree(mavls.GetDB(), true)
+		tree = mavl.NewTree(mavls.GetDB(), true)
 		err = tree.Load(datas.StateHash)
 		if err == nil {
 			mavls.cache.Add(search, tree)
@@ -73,7 +73,7 @@ func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
 }
 
 func (mavls *MavlStore) MemSet(datas *types.StoreSet, sync bool) []byte {
-	tree := mavl.NewMAVLTree(mavls.GetDB(), sync)
+	tree := mavl.NewTree(mavls.GetDB(), sync)
 	tree.Load(datas.StateHash)
 	for i := 0; i < len(datas.KV); i++ {
 		tree.Set(datas.KV[i].Key, datas.KV[i].Value)

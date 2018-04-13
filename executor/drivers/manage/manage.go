@@ -9,6 +9,7 @@ manage 负责管理配置
 
 import (
 	"fmt"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -35,6 +36,13 @@ func (c *Manage) GetName() string {
 	return "manage"
 }
 
+func (c *Manage) Clone() drivers.Driver {
+	clone := &Manage{}
+	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)
 	//_, err := c.DriverBase.Exec(tx, index)
@@ -52,7 +60,7 @@ func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 		if manageAction.GetModify() == nil {
 			return nil, types.ErrInputPara
 		}
-		action := NewManageAction(c, tx)
+		action := NewAction(c, tx)
 		return action.modifyConfig(manageAction.GetModify())
 	}
 
@@ -132,7 +140,7 @@ func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
 		}
 
 		// Load config from store
-		value, err := c.GetDB().Get([]byte(types.ConfigKey(in.Data)))
+		value, err := c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
 		if err != nil {
 			clog.Info("modifyConfig", "get db key", "not found")
 			value = nil

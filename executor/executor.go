@@ -9,6 +9,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	// register drivers
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
@@ -23,7 +24,7 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var runningHeight int64 = 0
+var runningHeight int64
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -60,16 +61,36 @@ func (exec *Executor) SetQueueClient(client queue.Client) {
 		for msg := range client.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
-				exec.procExecTxList(msg)
+				go exec.procExecTxList(msg)
 			} else if msg.Ty == types.EventAddBlock {
-				exec.procExecAddBlock(msg)
+				go exec.procExecAddBlock(msg)
 			} else if msg.Ty == types.EventDelBlock {
-				exec.procExecDelBlock(msg)
+				go exec.procExecDelBlock(msg)
 			} else if msg.Ty == types.EventCheckTx {
-				exec.procExecCheckTx(msg)
+				go exec.procExecCheckTx(msg)
+			} else if msg.Ty == types.EventBlockChainQuery {
+				go exec.procExecQuery(msg)
 			}
 		}
 	}()
+}
+
+func (exec *Executor) procExecQuery(msg queue.Message) {
+	data := msg.GetData().(*types.BlockChainQuery)
+	driver, err := LoadDriver(data.Driver)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
+	driver = driver.Clone()
+	driver.SetLocalDB(NewLocalDB(exec.client.Clone()))
+	driver.SetStateDB(NewStateDB(exec.client.Clone(), data.StateHash))
+	ret, err := driver.Query(data.FuncName, data.Param)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
+	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
 }
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
@@ -164,7 +185,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
 		totalFee.Fee += tx.Fee
-		totalFee.TxCount += 1
+		totalFee.TxCount++
 		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
@@ -251,9 +272,9 @@ func (exec *Executor) Close() {
 
 //执行器 -> db 环境
 type executor struct {
-	stateDB      dbm.KVDB
+	stateDB      dbm.KV
 	localDB      dbm.KVDB
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	execDriver   *drivers.ExecDrivers
 	height       int64
 	blocktime    int64
@@ -319,14 +340,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 	}
 
-	exec.SetDB(e.stateDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriverForExec(string(tx.Execer))
-	exec.SetDB(e.stateDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.Exec(tx, index)
 }

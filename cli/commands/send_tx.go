@@ -28,6 +28,6 @@ func sendTx(cmd *cobra.Command, args []string) {
 		Data: data,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.SendTransaction", params, &res)
 	ctx.Run()
 }
