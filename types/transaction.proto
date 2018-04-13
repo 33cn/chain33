@@ -139,3 +139,48 @@ message TransactionDetails {
 message ReqAddrs  {
    repeated string addrs = 1;
 }
+
+// Token Transaction
+message TokenPreCreateTx {
+    int64  price = 1;
+    string name = 2;
+    string symbol = 3;
+    string introduction = 4;
+    string owner_addr = 5;
+    int64  total = 6;
+    int64 fee = 7;
+}
+
+message TokenFinishTx {
+	string owner_addr = 1;
+	string symbol = 2;
+	int64 fee = 3;
+}
+
+message TokenRevokeTx {
+	string owner_addr = 1;
+	string symbol = 2;
+	int64 fee = 3;
+}
+
+// Trade Transaction
+message TradeSellTx {
+	string token_symbol       = 1;
+	int64 amount_per_boardlot = 2; //每一手出售的token的数量
+	int64 min_boardlot        = 3; //起卖手数,必须达到这个门槛才允许进行交易
+	int64 price_per_boardlot  = 4; //每一手token的价格
+	int64 total_boardlot      = 5;
+	int64 fee = 6;
+}
+
+message TradeBuyTx {
+	string sell_id      = 1;
+	int64 boardlot_cnt  = 2;
+	int64 fee = 3;
+
+}
+
+message TradeRevokeTx {
+	string sell_id      = 1;
+	int64 fee = 2;
+}

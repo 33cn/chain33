@@ -824,3 +824,147 @@ func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.LocalReplyValue
 
 	return resp.Data.(*types.LocalReplyValue), nil
 }
+
+func (c *channelClient) CreateRawTokenPreCreateTx(parm *types.TokenPreCreateTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
+	}
+	v := &types.TokenPreCreate{
+		Name:         parm.GetName(),
+		Symbol:       parm.GetSymbol(),
+		Introduction: parm.GetIntroduction(),
+		Total:        parm.GetTotal(),
+		Price:        parm.GetPrice(),
+		Owner:        parm.GetOwnerAddr(),
+	}
+	precreate := &types.TokenAction{
+		Ty:    types.TokenActionPreCreate,
+		Value: &types.TokenAction_Tokenprecreate{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(precreate),
+		Fee:     parm.GetFee(),
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("token").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTokenFinishTx(parm *types.TokenFinishTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
+	}
+
+	v := &types.TokenFinishCreate{Symbol: parm.GetSymbol(), Owner: parm.GetOwnerAddr()}
+	finish := &types.TokenAction{
+		Ty:    types.TokenActionFinishCreate,
+		Value: &types.TokenAction_Tokenfinishcreate{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(finish),
+		Fee:     parm.GetFee(),
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("token").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTokenRevokeTx(parm *types.TokenRevokeTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
+	}
+	v := &types.TokenRevokeCreate{Symbol: parm.GetSymbol(), Owner: parm.GetOwnerAddr()}
+	revoke := &types.TokenAction{
+		Ty:    types.TokenActionRevokeCreate,
+		Value: &types.TokenAction_Tokenrevokecreate{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(revoke),
+		Fee:     parm.GetFee(),
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("token").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTradeSellTx(parm *types.TradeSellTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
+	}
+	v := &types.TradeForSell{
+		Tokensymbol:       parm.TokenSymbol,
+		Amountperboardlot: parm.AmountPerBoardlot,
+		Minboardlot:       parm.MinBoardlot,
+		Priceperboardlot:  parm.PricePerBoardlot,
+		Totalboardlot:     parm.TotalBoardlot,
+		Starttime:         0,
+		Stoptime:          0,
+		Crowdfund:         false,
+	}
+	sell := &types.Trade{
+		Ty:    types.TradeSell,
+		Value: &types.Trade_Tokensell{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(sell),
+		Fee:     parm.GetFee(),
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTradeBuyTx(parm *types.TradeBuyTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
+	}
+	v := &types.TradeForBuy{Sellid: parm.SellId, Boardlotcnt: parm.BoardlotCnt}
+	buy := &types.Trade{
+		Ty:    types.TradeBuy,
+		Value: &types.Trade_Tokenbuy{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(buy),
+		Fee:     parm.GetFee(),
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTradeRevokeTx(parm *types.TradeRevokeTx) ([]byte, error) {
+	if parm == nil {
+		return nil, errors.New("parm is null")
+	}
+
+	v := &types.TradeForRevokeSell{Sellid: parm.SellId}
+	buy := &types.Trade{
+		Ty:    types.TradeRevokeSell,
+		Value: &types.Trade_Tokenrevokesell{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(buy),
+		Fee:     parm.GetFee(),
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
