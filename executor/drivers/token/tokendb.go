@@ -6,6 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"strings"
 )
 
 type tokenDB struct {
@@ -98,7 +99,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenTotalOverflow
 	}
 
-	if ValidSymbol([]byte(token.GetSymbol())) == false {
+	if ValidSymbolWithHeight([]byte(token.GetSymbol()), action.height) == false {
 		tokenlog.Error("token precreate ", "symbol need be upper", token.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper
 	}
@@ -365,4 +366,16 @@ func ValidSymbol(cs []byte) bool {
 		}
 	}
 	return true
+}
+
+func ValidSymbolWithHeight(cs []byte, height int64) bool {
+	if height < types.ForkV7_bad_tokensymbol {
+		symbol := string(cs)
+		upSymbol := strings.ToUpper(symbol)
+		if upSymbol != symbol {
+			return false
+		}
+		return true
+	}
+	return ValidSymbol(cs)
 }
