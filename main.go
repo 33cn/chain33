@@ -126,7 +126,7 @@ func main() {
 	rpc.Init(cfg.Rpc)
 	gapi := rpc.NewGRpcServer(q.Client())
 	go gapi.Listen()
-	japi := rpc.NewJsonRpcServer(q.Client())
+	japi := rpc.NewJSONRPCServer(q.Client())
 	go japi.Listen()
 
 	log.Info("loading wallet module")
