@@ -24,9 +24,10 @@ import (
 var gId int64
 
 type Client interface {
-	Send(msg Message, wait bool) (err error)     //异步发送消息
-	SendAsyn(msg Message, wait bool) (err error) //异步发送消息
-	Wait(msg Message) (Message, error)           //等待消息处理完成
+	Send(msg Message, wait bool) (err error)                         //异步发送消息
+	SendAsyn(msg Message, wait bool) (err error)                     //异步发送消息
+	Wait(msg Message) (Message, error)                               //等待消息处理完成
+	WaitTimeout(msg Message, timeout time.Duration) (Message, error) //等待消息处理完成
 	Recv() chan Message
 	Sub(topic string) //订阅消息
 	Close()
@@ -116,20 +117,28 @@ func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg 
 	return NewMessage(id, topic, ty, data)
 }
 
-func (client *client) Wait(msg Message) (Message, error) {
+func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, error) {
 	if msg.chReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
-	timeout := time.NewTimer(time.Second * 120)
-	defer timeout.Stop()
+	t := time.NewTimer(timeout)
+	defer t.Stop()
 	select {
 	case msg = <-msg.chReply:
 		return msg, msg.Err()
 	case <-client.done:
 		return Message{}, errors.New("client is closed")
 	case <-timeout.C:
-		panic("wait for message timeout.")
+		return Message{}, types.ErrTimeout
 	}
+}
+
+func (client *client) Wait(msg Message) (Message, error) {
+	msg, err := client.WaitTimeout(msg, 120*time.Second)
+	if err == types.ErrTimeout {
+		panic(err)
+	}
+	return msg, err
 }
 
 func (client *client) Recv() chan Message {
