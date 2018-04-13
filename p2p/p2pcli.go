@@ -61,7 +61,6 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 
 	for _, peer := range peers {
 		//获取远程 peer invs
-
 		resp, err := peer.mconn.gcli.GetMemPool(context.Background(), &pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.GetVersion()})
 		P2pComm.CollectPeerStat(err, peer)
 		if err != nil {
@@ -74,8 +73,8 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 
 		invs := resp.GetInvs()
 		//与本地mempool 对比 tx数组
-		msg := m.network.client.NewMessage("mempool", pb.EventGetMempool, nil)
-		txresp, err := m.network.client.Wait(msg)
+		tmpMsg := m.network.client.NewMessage("mempool", pb.EventGetMempool, nil)
+		txresp, err := m.network.client.Wait(tmpMsg)
 		if err != nil {
 			continue
 		}
@@ -113,7 +112,6 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 		break
 	}
 	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
-
 }
 
 func (m *Cli) GetAddr(peer *peer) ([]string, error) {
@@ -532,12 +530,8 @@ func (m *Cli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb.Bl
 		}
 		for _, item := range invdatas.Items {
 			bchan <- item.GetBlock() //下载完成后插入bchan
-
 		}
 	}
-
-	return nil
-
 }
 
 func (m *Cli) downloadBlock(index int, interval *intervalInfo, invs *pb.P2PInv, bchan chan *pb.Block,
@@ -669,7 +663,7 @@ func (m *Cli) GetExternIP(addr string) (string, bool) {
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
 	if err != nil {
-		log.Error("grpc DialCon", "did not connect: %v", err)
+		log.Error("grpc DialConn", "err", err.Error())
 		return "", false
 	}
 	defer conn.Close()

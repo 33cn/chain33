@@ -97,7 +97,7 @@ func (action *Action) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Re
 	var receipt *types.Receipt
 	var r *DB
 	var newRetrieve = false
-	if action.height >= types.ForkV5_retrieve {
+	if action.height >= types.ForkV5Retrive {
 		if err := account.CheckAddress(backupRet.BackupAddress); err != nil {
 			rlog.Debug("retrieve checkaddress")
 			return nil, err

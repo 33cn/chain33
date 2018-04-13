@@ -3,10 +3,11 @@ package token
 import (
 	"fmt"
 
+	"strings"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
 )
 
 type tokenDB struct {
@@ -65,11 +66,6 @@ func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error
 	return &token, nil
 }
 
-func deleteTokenDB(db dbm.KVDB, symbol string) {
-	key := calcTokenKey(symbol)
-	db.Set(key, nil)
-}
-
 type tokenAction struct {
 	coinsAccount *account.DB
 	db           dbm.KV
@@ -111,7 +107,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenHavePrecreated
 	}
 
-	if action.height >= types.ForkV6_token_blacklist {
+	if action.height >= types.ForkV6TokenBlackList {
 		found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
 		if err != nil {
 			return nil, err
@@ -353,7 +349,7 @@ func ValidSymbol(cs []byte) bool {
 }
 
 func ValidSymbolWithHeight(cs []byte, height int64) bool {
-	if height < types.ForkV7_bad_tokensymbol {
+	if height < types.ForkV7BadTokenSymbol {
 		symbol := string(cs)
 		upSymbol := strings.ToUpper(symbol)
 		if upSymbol != symbol {
