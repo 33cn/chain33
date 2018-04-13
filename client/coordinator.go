@@ -72,9 +72,9 @@ func (q *QueueCoordinator) QueryTxList(count int64, hashes [][]byte) (*types.Rep
 
 func (q *QueueCoordinator) QueryGetBlocksRange(start int64, end int64) (*types.BlockDetails, error) {
 	return q.QueryGetBlocks(&types.ReqBlocks{Start: start,
-	End: end,
-	Isdetail:false,
-	Pid: []string{""}})
+		End:      end,
+		Isdetail: false,
+		Pid:      []string{""}})
 }
 
 func (q *QueueCoordinator) QueryGetBlocks(data interface{}) (*types.BlockDetails, error) {
