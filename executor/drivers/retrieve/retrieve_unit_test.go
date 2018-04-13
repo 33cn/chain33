@@ -78,7 +78,7 @@ func TestExecPerform(t *testing.T) {
 
 func constructRetrieveInstance() *Retrieve {
 	r := newRetrieve()
-	r.SetDB(NewTestDB())
+	r.SetStateDB(NewTestDB())
 	return r
 }
 
@@ -154,8 +154,4 @@ func (e *TestDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return nil
-}
-
-func (e *TestDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
-	return nil, types.ErrNotSupport
 }
