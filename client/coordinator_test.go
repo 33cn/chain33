@@ -1,21 +1,21 @@
 package client_test
 
 import (
+	"flag"
 	_ "gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	_ "gitlab.33.cn/chain33/chain33/common/limits"
-	_ "gitlab.33.cn/chain33/chain33/p2p"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/mempool"
-	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
-	"flag"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
-	"gitlab.33.cn/chain33/chain33/store"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	_ "gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/consensus"
+	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/mempool"
+	_ "gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/store"
+	"gitlab.33.cn/chain33/chain33/types"
 	"testing"
 )
 
@@ -57,13 +57,13 @@ var blk = &types.Block{
 */
 
 type mockSystem struct {
-	q		queue.Queue
-	mem		*mempool.Mempool
-	exec	*executor.Executor
-	chain	*blockchain.BlockChain
-	store	queue.Module
-	cons	queue.Module
-	qc		*client.QueueCoordinator
+	q     queue.Queue
+	mem   *mempool.Mempool
+	exec  *executor.Executor
+	chain *blockchain.BlockChain
+	store queue.Module
+	cons  queue.Module
+	qc    *client.QueueCoordinator
 }
 
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
@@ -125,7 +125,7 @@ func (mock *mockSystem) stop() {
 	mock.q.Close()
 }
 
-func (mock *mockSystem) getAPI() client.QueueProtocolAPI  {
+func (mock *mockSystem) getAPI() client.QueueProtocolAPI {
 	return mock.qc
 }
 
