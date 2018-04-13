@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -16,6 +17,7 @@ import (
 
 func init() {
 	queue.DisableLog()
+	log.SetLogLevel("err")
 }
 
 func initEnv() (*Wallet, queue.Queue) {
@@ -130,7 +132,7 @@ func SaveAccountTomavl(client queue.Client, prevStateRoot []byte, accs []*types.
 func TestSaveSeed(t *testing.T) {
 	walletlog.Info("TestSaveSeed begin --------------------")
 	wallet, _ := initEnv()
-	seed := "何 玉 斌 何 玉 斌 何 玉 斌 何 玉 斌 何 玉 斌"
+	seed := "何 玉 玉 何 玉 玉 何 玉 玉 何 玉 玉 何 玉 玉"
 	password := "heyubin"
 	ok, _ := wallet.saveSeed(password, seed)
 	if ok {

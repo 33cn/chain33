@@ -36,6 +36,13 @@ func newRetrieve() *Retrieve {
 	return r
 }
 
+func (r *Retrieve) Clone() drivers.Driver {
+	clone := &Retrieve{}
+	clone.DriverBase = *(r.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.RetrieveAction
 	err := types.Decode(tx.Payload, &action)

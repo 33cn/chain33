@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -585,6 +586,24 @@ func execprocess(q queue.Queue) {
 					kvset.KV = append(kvset.KV, set.KV...)
 				}
 				msg.Reply(client.NewMessage("", types.EventAddBlock, &kvset))
+
+			} else if msg.Ty == types.EventBlockChainQuery {
+				data := msg.GetData().(*types.BlockChainQuery)
+				driver, err := executor.LoadDriver(data.Driver)
+				if err != nil {
+					msg.Reply(client.NewMessage("", types.EventBlockChainQuery, err))
+				} else {
+					driver.SetLocalDB(executor.NewLocalDB(client.Clone()))
+					driver.SetStateDB(executor.NewStateDB(client.Clone(), data.StateHash))
+
+					ret, err := driver.Query(data.FuncName, data.Param)
+					if err != nil {
+						msg.Reply(client.NewMessage("", types.EventBlockChainQuery, err))
+
+					} else {
+						msg.Reply(client.NewMessage("", types.EventBlockChainQuery, &ret))
+					}
+				}
 			}
 		}
 	}()

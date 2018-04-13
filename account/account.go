@@ -23,7 +23,7 @@ var alog = log.New("module", "account")
 
 // DB for account
 type DB struct {
-	db                   dbm.KVDB
+	db                   dbm.KV
 	accountKeyPerfix     []byte
 	execAccountKeyPerfix []byte
 }
@@ -32,7 +32,7 @@ func NewCoinsAccount() *DB {
 	return newAccountDB("mavl-coins-bty-")
 }
 
-func NewTokenAccount(symbol string, db dbm.KVDB) *DB {
+func NewTokenAccount(symbol string, db dbm.KV) *DB {
 	accDB := newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
 	accDB.SetDB(db)
 	return accDB
@@ -50,7 +50,7 @@ func newAccountDB(prefix string) *DB {
 	return acc
 }
 
-func (acc *DB) SetDB(db dbm.KVDB) *DB {
+func (acc *DB) SetDB(db dbm.KV) *DB {
 	acc.db = db
 	return acc
 }
