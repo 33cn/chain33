@@ -21,9 +21,9 @@ import (
 )
 
 var (
-	SeedLong   int = 15
-	WalletSeed     = []byte("walletseed")
-	seedlog        = log.New("module", "wallet")
+	SeedLong   = 15
+	WalletSeed = []byte("walletseed")
+	seedlog    = log.New("module", "wallet")
 )
 
 const BACKUPKEYINDEX = "backupkeyindex"
@@ -35,9 +35,9 @@ const BACKUPKEYINDEX = "backupkeyindex"
 func CreateSeed(folderpath string, lang int32) (string, error) {
 	var strs []string
 	if lang == 0 {
-		strs = strings.Split(English_text, " ")
+		strs = strings.Split(englishText, " ")
 	} else if lang == 1 {
-		strs = strings.Split(Chinese_text, " ")
+		strs = strings.Split(chineseText, " ")
 	} else {
 		return "", types.ErrSeedlang
 	}
