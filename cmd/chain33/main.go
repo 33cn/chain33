@@ -31,7 +31,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc/grpclog"
-
 	"time"
 
 	"google.golang.org/grpc"
