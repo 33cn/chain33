@@ -1,24 +1,22 @@
 package client_test
 
 import (
-	"testing"
-	"flag"
-	"math/rand"
-
 	_ "gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	_ "gitlab.33.cn/chain33/chain33/common/limits"
-	"gitlab.33.cn/chain33/chain33/consensus"
-	"gitlab.33.cn/chain33/chain33/executor"
 	_ "gitlab.33.cn/chain33/chain33/p2p"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/mempool"
+	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
+	"flag"
+	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/store"
+	"gitlab.33.cn/chain33/chain33/consensus"
+	"testing"
 )
 
 //----------------------------- data for testing ---------------------------------
@@ -43,10 +41,11 @@ var (
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 	a, _       = common.FromHex(hex)
 	privKey, _ = c.PrivKeyFromBytes(a)
-	random     *rand.Rand
-	mainPriv   crypto.PrivKey
+	//random     *rand.Rand
+	//mainPriv   crypto.PrivKey
 )
 
+/*
 var blk = &types.Block{
 	Version:    1,
 	ParentHash: []byte("parent hash"),
@@ -55,6 +54,7 @@ var blk = &types.Block{
 	BlockTime:  1,
 	Txs:        []*types.Transaction{tx3, tx5},
 }
+*/
 
 type mockSystem struct {
 	q		queue.Queue
@@ -63,7 +63,7 @@ type mockSystem struct {
 	chain	*blockchain.BlockChain
 	store	queue.Module
 	cons	queue.Module
-	coord	*client.QueueCoordinator
+	qc		*client.QueueCoordinator
 }
 
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
@@ -90,8 +90,8 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	}
 	mem.SetMinFee(types.MinFee)
 
-	coord := client.New()
-	coord.SetQueueClient(q.Client())
+	qc := client.New()
+	qc.SetQueueClient(q.Client())
 
 	tx1.Sign(types.SECP256K1, privKey)
 	tx2.Sign(types.SECP256K1, privKey)
@@ -111,7 +111,7 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	mock.chain = chain
 	mock.store = s
 	mock.cons = cs
-	mock.coord = coord
+	mock.qc = qc
 
 	return mock.getAPI()
 }
@@ -121,12 +121,12 @@ func (mock *mockSystem) stop() {
 	mock.store.Close()
 	mock.chain.Close()
 	mock.exec.Close()
-	mock.coord.Close()
+	mock.qc.Close()
 	mock.q.Close()
 }
 
 func (mock *mockSystem) getAPI() client.QueueProtocolAPI  {
-	return mock.coord
+	return mock.qc
 }
 
 func TestQueueCoordinator_QueryTx(t *testing.T) {

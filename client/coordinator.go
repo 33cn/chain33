@@ -18,14 +18,14 @@ type QueueProtocolAPI interface {
 
 const (
 	mempoolKey 		= "mempool"		// 未打包交易池
-	p2pKey			= "p2p"			//
-	rpcKey			= "rpc"
-	consensusKey	= "consensus"	// 共识系统
-	accountKey		= "accout"		// 账号系统
-	executorKey		= "execs"		// 交易执行器
-	walletKey		= "wallet"		// 钱包
+	//p2pKey			= "p2p"			//
+	//rpcKey			= "rpc"
+	//consensusKey	= "consensus"	// 共识系统
+	//accountKey		= "accout"		// 账号系统
+	//executorKey		= "execs"		// 交易执行器
+	//walletKey		= "wallet"		// 钱包
 	blockchainKey	= "blockchain"	// 区块
-	storeKey		= "store"
+	//storeKey		= "store"
 )
 
 // 消息通道协议实现
