@@ -197,7 +197,7 @@ func (rep *Replica) acceptConnections(addr string) {
 			if err != nil {
 				plog.Error("readmessage error")
 			}
-			go rep.handleRequest(req)
+			rep.handleRequest(req)
 			//log.Println("handle mes done")
 			//rep.doneChan<-"handle mes done"
 		}
