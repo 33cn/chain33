@@ -6,7 +6,6 @@ message Config {
 	string title = 1;
 	Log log = 2;
 	Store store = 3;
-	LocalStore localStore = 4;
 	Consensus consensus = 5;
 	MemPool memPool = 6;
 	BlockChain blockChain = 7;
@@ -61,11 +60,6 @@ message Store {
 	string name = 1;
 	string driver = 2;
 	string dbPath = 3;
-}
-
-message LocalStore {
-	string driver = 1;
-	string dbPath = 2;
 }
 
 message BlockChain {

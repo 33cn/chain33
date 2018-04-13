@@ -39,6 +39,13 @@ func (c *Coins) GetName() string {
 	return "coins"
 }
 
+func (c *Coins) Clone() drivers.Driver {
+	clone := &Coins{}
+	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	_, err := c.DriverBase.Exec(tx, index)
 	if err != nil {
@@ -155,7 +162,7 @@ func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 func (c *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
 	reciver := types.Int64{}
-	db := c.GetQueryDB()
+	db := c.GetLocalDB()
 	addrReciver, err := db.Get(calcAddrKey(addr.Addr))
 	if addrReciver == nil || err != nil {
 		return &reciver, types.ErrEmpty
