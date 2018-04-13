@@ -36,6 +36,13 @@ func (c *Manage) GetName() string {
 	return "manage"
 }
 
+func (c *Manage) Clone() drivers.Driver {
+	clone := &Manage{}
+	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)
 	//_, err := c.DriverBase.Exec(tx, index)
@@ -133,7 +140,7 @@ func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
 		}
 
 		// Load config from store
-		value, err := c.GetDB().Get([]byte(types.ConfigKey(in.Data)))
+		value, err := c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
 		if err != nil {
 			clog.Info("modifyConfig", "get db key", "not found")
 			value = nil

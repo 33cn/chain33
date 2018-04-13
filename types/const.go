@@ -175,6 +175,7 @@ const (
 	EventReplyBuyToken          = 209
 	EventRevokeSellToken        = 210
 	EventReplyRevokeSellToken   = 211
+	EventBlockChainQuery        = 212
 	// config
 	EventModifyConfig      = 300
 	EventReplyModifyConfig = 301
@@ -300,6 +301,7 @@ var eventName = map[int]string{
 	EventReplyBuyToken:          "EventReplyBuyToken",
 	EventRevokeSellToken:        "EventRevokeSellToken",
 	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
+	EventBlockChainQuery:        "EventBlockChainQuery",
 	// config
 	EventModifyConfig:      "EventModifyConfig",
 	EventReplyModifyConfig: "EventReplyModifyConfig",
@@ -466,4 +468,5 @@ const (
 	ForkV4AddManage      = 120000
 	ForkV5Retrive        = 180000
 	ForkV6TokenBlackList = 190000
+	ForkV7BadTokenSymbol = 184000
 )
