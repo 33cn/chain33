@@ -24,8 +24,8 @@ import (
 var gId int64
 
 type Client interface {
-	Send(msg Message, wait bool) (err error)                         //异步发送消息
-	SendAsyn(msg Message, wait bool) (err error)                     //异步发送消息
+	Send(msg Message, waitReply bool) (err error)                    //同步发送消息
+	SendAsyn(msg Message, waitReply bool) (err error)                //异步发送消息
 	Wait(msg Message) (Message, error)                               //等待消息处理完成
 	WaitTimeout(msg Message, timeout time.Duration) (Message, error) //等待消息处理完成
 	Recv() chan Message
@@ -66,11 +66,11 @@ func (client *client) Clone() Client {
 
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃
 //2. 系统保证每个消息都有对应的 response 消息
-func (client *client) Send(msg Message, wait bool) (err error) {
+func (client *client) Send(msg Message, waitReply bool) (err error) {
 	if client.isClose() {
 		return types.ErrIsClosed
 	}
-	if !wait {
+	if !waitReply {
 		msg.chReply = nil
 		return client.q.sendAsyn(msg)
 	}
@@ -84,11 +84,11 @@ func (client *client) Send(msg Message, wait bool) (err error) {
 //系统设计出两种优先级别的消息发送
 //1. SendAsyn 低优先级
 //2. Send 高优先级别的发送消息
-func (client *client) SendAsyn(msg Message, wait bool) (err error) {
+func (client *client) SendAsyn(msg Message, waitReply bool) (err error) {
 	if client.isClose() {
 		return types.ErrIsClosed
 	}
-	if !wait {
+	if !waitReply {
 		msg.chReply = nil
 	}
 	//wait for sendasyn
