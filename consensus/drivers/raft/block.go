@@ -127,9 +127,6 @@ func (client *RaftClient) InitBlock() {
 
 func (client *RaftClient) CreateBlock() {
 	issleep := true
-	var lastBlock *types.Block
-	var newblock types.Block
-	var txs []*types.Transaction
 	for {
 		//如果leader节点突然挂了，不是打包节点，需要退出
 		if !isLeader {
@@ -140,8 +137,8 @@ func (client *RaftClient) CreateBlock() {
 		if issleep {
 			time.Sleep(10 * time.Second)
 		}
-		lastBlock = client.GetCurrentBlock()
-		txs = client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
+		lastBlock := client.GetCurrentBlock()
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -151,6 +148,7 @@ func (client *RaftClient) CreateBlock() {
 		//check dup
 		//txs = client.CheckTxDup(txs)
 		rlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
+		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
