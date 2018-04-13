@@ -43,7 +43,7 @@ type peer struct {
 	taskChan   chan interface{} //tx block
 }
 
-func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
+func newPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
 	p := &peer{
 		conn:     conn,
 		taskPool: make(chan struct{}, 50),
@@ -109,7 +109,7 @@ func (p *peer) heartBeat() {
 		time.Sleep(time.Second) //wait for natwork done
 	}
 
-	pcli := NewP2pCli(nil)
+	pcli := NewCli(nil)
 	for {
 		if p.GetRunning() == false {
 			return
@@ -251,7 +251,7 @@ func (p *peer) sendStream() {
 
 func (p *peer) readStream() {
 
-	pcli := NewP2pCli(nil)
+	pcli := NewCli(nil)
 
 	for {
 		if p.GetRunning() == false {

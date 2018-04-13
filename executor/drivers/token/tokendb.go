@@ -6,6 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"strings"
 )
 
 type tokenDB struct {
@@ -26,7 +27,7 @@ func newTokenDB(preCreate *types.TokenPreCreate, creator string) *tokenDB {
 	return t
 }
 
-func (t *tokenDB) save(db dbm.KVDB, key []byte) {
+func (t *tokenDB) save(db dbm.KV, key []byte) {
 	set := t.getKVSet(key)
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -48,7 +49,7 @@ func (t *tokenDB) getKVSet(key []byte) (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func getTokenFromDB(db dbm.KVDB, symbol string, owner string) (*types.Token, error) {
+func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error) {
 	tokenlog.Info("getTokenFromDB", "symbol:", symbol, "owner:", owner)
 	key := calcTokenAddrKey(symbol, owner)
 	value, err := db.Get(key)
@@ -70,8 +71,8 @@ func deleteTokenDB(db dbm.KVDB, symbol string) {
 }
 
 type tokenAction struct {
-	coinsAccount *account.AccountDB
-	db           dbm.KVDB
+	coinsAccount *account.DB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	toaddr       string
@@ -83,7 +84,7 @@ type tokenAction struct {
 func newTokenAction(t *token, toaddr string, tx *types.Transaction) *tokenAction {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &tokenAction{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr, toaddr,
+	return &tokenAction{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, toaddr,
 		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
@@ -98,7 +99,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenTotalOverflow
 	}
 
-	if ValidSymbol([]byte(token.GetSymbol())) == false {
+	if ValidSymbolWithHeight([]byte(token.GetSymbol()), action.height) == false {
 		tokenlog.Error("token precreate ", "symbol need be upper", token.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper
 	}
@@ -153,16 +154,16 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	approver_valid := false
+	approverValid := false
 	for _, approver := range types.TokenApprs {
 		if approver == action.fromaddr {
-			approver_valid = true
+			approverValid = true
 			break
 		}
 	}
 
 	hasPriv, ok := validFinisher(action.fromaddr, action.db)
-	if (ok != nil || hasPriv != true) && !approver_valid {
+	if (ok != nil || hasPriv != true) && !approverValid {
 		return nil, types.ErrTokenCreatedApprover
 	}
 
@@ -244,21 +245,21 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	return receipt, nil
 }
 
-func checkTokenExist(token string, db dbm.KVDB) bool {
+func checkTokenExist(token string, db dbm.KV) bool {
 	_, err := db.Get(calcTokenKey(token))
 	return err == nil
 }
 
-func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KVDB) bool {
+func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KV) bool {
 	_, err := db.Get(calcTokenAddrKey(token, owner))
 	return err == nil
 }
 
-func validFinisher(addr string, db dbm.KVDB) (bool, error) {
+func validFinisher(addr string, db dbm.KV) (bool, error) {
 	return validOperator(addr, types.ConfigKey(finisherKey), db)
 }
 
-func validOperator(addr, key string, db dbm.KVDB) (bool, error) {
+func validOperator(addr, key string, db dbm.KV) (bool, error) {
 	value, err := db.Get([]byte(key))
 	if err != nil {
 		tokenlog.Info("tokendb", "get db key", "not found")
@@ -308,22 +309,6 @@ func GetTokenAssetsKey(addr string, db dbm.KVDB) (*types.ReplyStrings, error) {
 	return &assets, nil
 }
 
-func QueryTokenAssetsKey(addr string, db dbm.DB) (*types.ReplyStrings, error) {
-	key := CalcTokenAssetsKey(addr)
-	value, err := db.Get(key)
-	if value == nil || err != nil {
-		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
-		return nil, types.ErrNotFound
-	}
-	var assets types.ReplyStrings
-	err = types.Decode(value, &assets)
-	if err != nil {
-		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
-		return nil, err
-	}
-	return &assets, nil
-}
-
 func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue {
 	tokenAssets, err := GetTokenAssetsKey(addr, db)
 	if err != nil {
@@ -348,7 +333,7 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 	return kv
 }
 
-func inBlacklist(symbol, key string, db dbm.KVDB) (bool, error) {
+func inBlacklist(symbol, key string, db dbm.KV) (bool, error) {
 	found, err := validOperator(symbol, types.ConfigKey(key), db)
 	return found, err
 }
@@ -365,4 +350,16 @@ func ValidSymbol(cs []byte) bool {
 		}
 	}
 	return true
+}
+
+func ValidSymbolWithHeight(cs []byte, height int64) bool {
+	if height < types.ForkV7_bad_tokensymbol {
+		symbol := string(cs)
+		upSymbol := strings.ToUpper(symbol)
+		if upSymbol != symbol {
+			return false
+		}
+		return true
+	}
+	return ValidSymbol(cs)
 }

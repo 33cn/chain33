@@ -32,7 +32,7 @@ func importKey(cmd *cobra.Command, args []string) {
 		Label:   label,
 	}
 	var res types.WalletAccount
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.ImportPrivkey", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkey", params, &res)
 	ctx.SetResultCb(parseImportKeyRes)
 	ctx.Run()
 }

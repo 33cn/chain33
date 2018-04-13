@@ -14,30 +14,30 @@ var ErrNodeNotExist = errors.New("ErrNodeNotExist")
 var treelog = log.New("module", "mavl")
 
 //merkle avl tree
-type MAVLTree struct {
-	root  *MAVLNode
+type Tree struct {
+	root  *Node
 	ndb   *nodeDB
 	batch *nodeBatch
 }
 
 // 新建一个merkle avl 树
-func NewMAVLTree(db dbm.DB, sync bool) *MAVLTree {
+func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
-		return &MAVLTree{}
+		return &Tree{}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db)
-		return &MAVLTree{
+		return &Tree{
 			ndb:   ndb,
 			batch: ndb.GetBatch(sync),
 		}
 	}
 }
 
-func (t *MAVLTree) Copy() *MAVLTree {
+func (t *Tree) Copy() *Tree {
 	if t.root == nil {
-		return &MAVLTree{
+		return &Tree{
 			root: nil,
 			ndb:  t.ndb,
 		}
@@ -47,14 +47,14 @@ func (t *MAVLTree) Copy() *MAVLTree {
 	} else if t.ndb == nil && t.root.hash == nil {
 		t.root.Hash(t)
 	}
-	return &MAVLTree{
+	return &Tree{
 		root: t.root,
 		ndb:  t.ndb,
 	}
 }
 
 // 获取tree的叶子节点数
-func (t *MAVLTree) Size() int32 {
+func (t *Tree) Size() int32 {
 	if t.root == nil {
 		return 0
 	}
@@ -62,7 +62,7 @@ func (t *MAVLTree) Size() int32 {
 }
 
 // 获取tree的高度
-func (t *MAVLTree) Height() int32 {
+func (t *Tree) Height() int32 {
 	if t.root == nil {
 		return 0
 	}
@@ -70,7 +70,7 @@ func (t *MAVLTree) Height() int32 {
 }
 
 //判断key是否存在tree中
-func (t *MAVLTree) Has(key []byte) bool {
+func (t *Tree) Has(key []byte) bool {
 	if t.root == nil {
 		return false
 	}
@@ -78,11 +78,11 @@ func (t *MAVLTree) Has(key []byte) bool {
 }
 
 //设置k:v pair到tree中
-func (t *MAVLTree) Set(key []byte, value []byte) (updated bool) {
+func (t *Tree) Set(key []byte, value []byte) (updated bool) {
 	//treelog.Info("IAVLTree.Set", "key", key, "value",value)
 
 	if t.root == nil {
-		t.root = NewMAVLNode(key, value)
+		t.root = NewNode(key, value)
 		return false
 	}
 	t.root, updated = t.root.set(t, key, value)
@@ -90,7 +90,7 @@ func (t *MAVLTree) Set(key []byte, value []byte) (updated bool) {
 }
 
 //计算tree 的roothash
-func (t *MAVLTree) Hash() []byte {
+func (t *Tree) Hash() []byte {
 	if t.root == nil {
 		return nil
 	}
@@ -99,7 +99,7 @@ func (t *MAVLTree) Hash() []byte {
 }
 
 // 保存整个tree的节点信息到db中
-func (t *MAVLTree) Save() []byte {
+func (t *Tree) Save() []byte {
 	if t.root == nil {
 		return nil
 	}
@@ -111,7 +111,7 @@ func (t *MAVLTree) Save() []byte {
 }
 
 // 从db中加载rootnode
-func (t *MAVLTree) Load(hash []byte) (err error) {
+func (t *Tree) Load(hash []byte) (err error) {
 	if len(hash) == 0 {
 		t.root = nil
 	} else {
@@ -123,7 +123,7 @@ func (t *MAVLTree) Load(hash []byte) (err error) {
 }
 
 //通过key获取leaf节点信息
-func (t *MAVLTree) Get(key []byte) (index int32, value []byte, exists bool) {
+func (t *Tree) Get(key []byte) (index int32, value []byte, exists bool) {
 	if t.root == nil {
 		return 0, nil, false
 	}
@@ -131,7 +131,7 @@ func (t *MAVLTree) Get(key []byte) (index int32, value []byte, exists bool) {
 }
 
 //通过index获取leaf节点信息
-func (t *MAVLTree) GetByIndex(index int32) (key []byte, value []byte) {
+func (t *Tree) GetByIndex(index int32) (key []byte, value []byte) {
 	if t.root == nil {
 		return nil, nil
 	}
@@ -139,7 +139,7 @@ func (t *MAVLTree) GetByIndex(index int32) (key []byte, value []byte) {
 }
 
 //获取指定k:v pair的proof证明
-func (t *MAVLTree) Proof(key []byte) (value []byte, proofBytes []byte, exists bool) {
+func (t *Tree) Proof(key []byte) (value []byte, proofBytes []byte, exists bool) {
 	value, proof := t.ConstructProof(key)
 	if proof == nil {
 		return nil, nil, false
@@ -155,7 +155,7 @@ func (t *MAVLTree) Proof(key []byte) (value []byte, proofBytes []byte, exists bo
 }
 
 //删除key对应的节点
-func (t *MAVLTree) Remove(key []byte) (value []byte, removed bool) {
+func (t *Tree) Remove(key []byte) (value []byte, removed bool) {
 	if t.root == nil {
 		return nil, false
 	}
@@ -176,11 +176,11 @@ func (t *MAVLTree) Remove(key []byte) (value []byte, removed bool) {
 }
 
 // 依次迭代遍历树的所有键
-func (t *MAVLTree) Iterate(fn func(key []byte, value []byte) bool) (stopped bool) {
+func (t *Tree) Iterate(fn func(key []byte, value []byte) bool) (stopped bool) {
 	if t.root == nil {
 		return false
 	}
-	return t.root.traverse(t, true, func(node *MAVLNode) bool {
+	return t.root.traverse(t, true, func(node *Node) bool {
 		if node.height == 0 {
 			return fn(node.key, node.value)
 		} else {
@@ -190,11 +190,11 @@ func (t *MAVLTree) Iterate(fn func(key []byte, value []byte) bool) (stopped bool
 }
 
 // 在start和end之间的键进行迭代回调[start, end)
-func (t *MAVLTree) IterateRange(start, end []byte, ascending bool, fn func(key []byte, value []byte) bool) (stopped bool) {
+func (t *Tree) IterateRange(start, end []byte, ascending bool, fn func(key []byte, value []byte) bool) (stopped bool) {
 	if t.root == nil {
 		return false
 	}
-	return t.root.traverseInRange(t, start, end, ascending, false, 0, func(node *MAVLNode, _ uint8) bool {
+	return t.root.traverseInRange(t, start, end, ascending, false, 0, func(node *Node, _ uint8) bool {
 		if node.height == 0 {
 			return fn(node.key, node.value)
 		} else {
@@ -204,11 +204,11 @@ func (t *MAVLTree) IterateRange(start, end []byte, ascending bool, fn func(key [
 }
 
 // 在start和end之间的键进行迭代回调[start, end]
-func (t *MAVLTree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(key, value []byte) bool) (stopped bool) {
+func (t *Tree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(key, value []byte) bool) (stopped bool) {
 	if t.root == nil {
 		return false
 	}
-	return t.root.traverseInRange(t, start, end, ascending, true, 0, func(node *MAVLNode, _ uint8) bool {
+	return t.root.traverseInRange(t, start, end, ascending, true, 0, func(node *Node, _ uint8) bool {
 		if node.height == 0 {
 			return fn(node.key, node.value)
 		} else {
@@ -234,7 +234,7 @@ func newNodeDB(db dbm.DB) *nodeDB {
 	return ndb
 }
 
-func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
+func (ndb *nodeDB) GetNode(t *Tree, hash []byte) (*Node, error) {
 	// Doesn't exist, load from db.
 	var buf []byte
 	buf, err := ndb.db.Get(hash)
@@ -242,7 +242,7 @@ func (ndb *nodeDB) GetNode(t *MAVLTree, hash []byte) (*MAVLNode, error) {
 	if len(buf) == 0 || err != nil {
 		return nil, ErrNodeNotExist
 	}
-	node, err := MakeMAVLNode(buf, t)
+	node, err := MakeNode(buf, t)
 	if err != nil {
 		panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
 	}
@@ -255,7 +255,7 @@ func (ndb *nodeDB) GetBatch(sync bool) *nodeBatch {
 	return &nodeBatch{ndb.db.NewBatch(sync)}
 }
 
-func (ndb *nodeBatch) SaveNode(t *MAVLTree, node *MAVLNode) {
+func (ndb *nodeBatch) SaveNode(t *Tree, node *Node) {
 	if node.hash == nil {
 		panic("Expected to find node.hash, but none found.")
 	}
@@ -276,7 +276,7 @@ func (ndb *nodeBatch) Commit() {
 
 //对外接口
 func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
-	tree := NewMAVLTree(db, sync)
+	tree := NewTree(db, sync)
 	tree.Load(storeSet.StateHash)
 
 	for i := 0; i < len(storeSet.KV); i++ {
@@ -286,7 +286,7 @@ func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
 }
 
 func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
-	tree := NewMAVLTree(db, true)
+	tree := NewTree(db, true)
 	err := tree.Load(storeGet.StateHash)
 	values := make([][]byte, len(storeGet.Keys))
 	if err != nil {
@@ -302,7 +302,7 @@ func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
 }
 
 func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
-	tree := NewMAVLTree(db, true)
+	tree := NewTree(db, true)
 	tree.Load(roothash)
 	_, proof, exit := tree.Proof(key)
 	if exit {
@@ -313,7 +313,7 @@ func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
 
 //剔除key对应的节点在本次tree中，返回新的roothash和key对应的value
 func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
-	tree := NewMAVLTree(db, true)
+	tree := NewTree(db, true)
 	tree.Load(storeDel.StateHash)
 
 	values := make([][]byte, len(storeDel.Keys))
@@ -344,9 +344,9 @@ func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proo
 }
 
 func PrintTreeLeaf(db dbm.DB, roothash []byte) {
-	tree := NewMAVLTree(db, true)
+	tree := NewTree(db, true)
 	tree.Load(roothash)
-	var i int32 = 0
+	var i int32
 	if tree.root != nil {
 		leafs := tree.root.size
 		treelog.Info("PrintTreeLeaf info")
@@ -359,7 +359,7 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 }
 
 func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending bool, fn func([]byte, []byte) bool) {
-	tree := NewMAVLTree(db, true)
+	tree := NewTree(db, true)
 	tree.Load(statehash)
 	//treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
 

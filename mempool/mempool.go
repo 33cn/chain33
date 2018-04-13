@@ -284,7 +284,11 @@ func (mem *Mempool) RemoveBlockedTxs() {
 			mlog.Error("blockchain closed", "err", err.Error())
 			return
 		}
-		dupTxList, _ := mem.client.Wait(hashList)
+		dupTxList, err := mem.client.Wait(hashList)
+		if err != nil {
+			mlog.Error("blockchain get txhashlist err", "err", err)
+			continue
+		}
 
 		// 取出blockchain返回的重复交易列表
 		dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
@@ -419,6 +423,9 @@ func (mem *Mempool) isSync() bool {
 
 // Mempool.getSync获取Mempool同步状态
 func (mem *Mempool) getSync() {
+	if mem.isSync() {
+		return
+	}
 	for {
 		if mem.client == nil {
 			panic("client not bind message queue.")
