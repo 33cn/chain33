@@ -152,7 +152,8 @@ func TestWallet(t *testing.T) {
 //ProcWalletLock
 func testSaveSeed(t *testing.T, wallet *Wallet) {
 	walletlog.Info("TestSaveSeed begin --------------------")
-	seed := "何 玉 斌 何 玉 斌 何 玉 斌 何 玉 斌 何 玉 斌"
+	wallet, _ := initEnv()
+	seed := "何 玉 玉 何 玉 玉 何 玉 玉 何 玉 玉 何 玉 玉"
 	password := "heyubin"
 	ok, _ := wallet.saveSeed(password, seed)
 	if ok {

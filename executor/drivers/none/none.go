@@ -26,3 +26,10 @@ func newNone() *None {
 func (n *None) GetName() string {
 	return "none"
 }
+
+func (n *None) Clone() drivers.Driver {
+	clone := &None{}
+	clone.DriverBase = *(n.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}

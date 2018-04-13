@@ -66,10 +66,6 @@ name="mavl"
 driver="memdb"
 dbPath="datadir/mavltree"
 
-[localstore]
-driver="memdb"
-dbPath="datadir/mavltree"
-
 [wallet]
 minFee=1000000
 driver="memdb"
