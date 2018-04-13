@@ -478,12 +478,12 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
 					continue
 				}
-				msg := mem.CheckTx(msg)
-				if msg.Err() != nil {
-					mlog.Error("wrong tx", "err", msg.Err())
-					mem.badChan <- msg
+				checkedMsg := mem.CheckTx(msg)
+				if checkedMsg.Err() != nil {
+					mlog.Error("wrong tx", "err", checkedMsg.Err())
+					mem.badChan <- checkedMsg
 				} else {
-					mem.signChan <- msg
+					mem.signChan <- checkedMsg
 				}
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易

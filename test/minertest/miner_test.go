@@ -105,6 +105,7 @@ func TestMinerBind(t *testing.T) {
 	}
 }
 
+/*
 func TestAutoClose(t *testing.T) {
 	//取出已经miner的列表
 	addr := account.PubKeyToAddress(privMiner.PubKey().Bytes()).String()
@@ -132,6 +133,7 @@ func TestAutoClose(t *testing.T) {
 		}
 	}
 }
+*/
 
 func openticket(mineraddr, returnaddr string, priv crypto.PrivKey) error {
 	ta := &types.TicketAction{}
@@ -311,7 +313,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
 	tx.Nonce = random.Int63()
-	tx.Fee, err = tx.GetRealFee()
+	tx.Fee, err = tx.GetRealFee(0)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +334,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 }
 
 func setAutoMining(flag int32) (err error) {
-	req := &types.MinerFlag{flag}
+	req := &types.MinerFlag{Flag: flag}
 	c := types.NewGrpcserviceClient(conn)
 	reply, err := c.SetAutoMining(context.Background(), req)
 	if err != nil {

@@ -68,7 +68,6 @@ func bytesPrefix(prefix []byte) []byte {
 
 const (
 	levelDBBackendStr    = "leveldb" // legacy, defaults to goleveldb.
-	cLevelDBBackendStr   = "cleveldb"
 	goLevelDBBackendStr  = "goleveldb"
 	memDBBackendStr      = "memdb"
 	goBadgerDBBackendStr = "gobadgerdb"

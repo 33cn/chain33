@@ -7,9 +7,9 @@
 APP := build/chain33
 CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := $(shell go list ./... | grep -v /vendor/)
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
 
-.PHONY: default dep all build release cli linter lint race test fmt vet bench msan coverage coverhtml docker protobuf clean help
+.PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker protobuf clean help
 
 default: build
 
@@ -37,13 +37,16 @@ release: ## Build the binary file
 cli: ## Build cli binary
 	@go build -race -v -o $(CLI) cli/cli.go
 
-linter: ## Use gometalinter check code
-	@gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
-	--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck --vendor ./...
-
-lint: ## Lint the files
-	@res=$$(gometalinter.v2 --disable-all --enable=golint --vendor ./... | grep -v "should have comment or be unexported" | \
-		grep -v "should be of the form" | grep -v "if block ends with a return statement" | grep -v "Id should be ID"); \
+linter: ## Use gometalinter check code, ignore some unserious warning
+	@res=$$(gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
+		--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck --enable=golint --vendor ./... | \
+		grep -v "error return value not checked" | \
+		grep -v "composite literal uses unkeyed fields" | \
+		grep -v "declaration of \"err\" shadows declaration at" | \
+		grep -v "should have comment or be unexported" | \
+		grep -v "should be of the form" | \
+		grep -v "if block ends with a return statement" | \
+		grep -v "Id should be ID"); \
 	if [ -n "$$res" ]; then \
 		echo "$${res}"; \
 		exit 1; \
@@ -53,7 +56,7 @@ race: dep ## Run data race detector
 	@go test -race -short ./...
 
 test: ## Run unittests
-	@go test -parallel 1 -race $(shell go list ./... | grep -v "vendor" | grep -v "chain33/test")
+	@go test -parallel 1 -race $(PKG_LIST)
 
 fmt: ## go fmt
 	@go fmt ./...
@@ -76,7 +79,6 @@ coverhtml: ## Generate global code coverage report in HTML
 docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
-DATADIR:=find . -name 'datadir' -not -path "./vendor/*"
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
 	@rm -rf build/chain33*
@@ -98,11 +100,9 @@ cleandata:
 	rm -rf datadir/mavltree
 	rm -rf chain33.log
 
-GOFILES := find . -name '*.go' -not -path "./vendor/*"
-
 .PHONY: checkgofmt
 checkgofmt: ## get all go files and run go fmt on them
-	@files=$$($(GOFILES) | xargs gofmt -l); if [ -n "$$files" ]; then \
+	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
 		  echo "$${files}"; \
 		  exit 1; \

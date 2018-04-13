@@ -14,12 +14,12 @@ func NewStateDB(client queue.Client, stateHash []byte) *StateDB {
 	return &StateDB{make(map[string][]byte), NewDataBase(client, stateHash)}
 }
 
-func (e *StateDB) Get(key []byte) (value []byte, err error) {
+func (e *StateDB) Get(key []byte) ([]byte, error) {
 	if value, ok := e.cache[string(key)]; ok {
 		//elog.Error("getkey", "key", string(key), "value", string(value))
 		return value, nil
 	}
-	value, err = e.db.Get(key)
+	value, err := e.db.Get(key)
 	if err != nil {
 		//elog.Error("getkey", "key", string(key), "err", err)
 		return nil, err
@@ -48,12 +48,12 @@ func NewLocalDB(client queue.Client) *LocalDB {
 	return &LocalDB{make(map[string][]byte), NewDataBaseLocal(client)}
 }
 
-func (e *LocalDB) Get(key []byte) (value []byte, err error) {
+func (e *LocalDB) Get(key []byte) ([]byte, error) {
 	if value, ok := e.cache[string(key)]; ok {
 		//elog.Error("getkey", "key", string(key), "value", string(value))
 		return value, nil
 	}
-	value, err = e.db.Get(key)
+	value, err := e.db.Get(key)
 	if err != nil {
 		//elog.Error("getkey", "key", string(key), "err", err)
 		return nil, err

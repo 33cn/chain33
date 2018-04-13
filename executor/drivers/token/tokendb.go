@@ -64,11 +64,6 @@ func getTokenFromDB(db dbm.KVDB, symbol string, owner string) (*types.Token, err
 	return &token, nil
 }
 
-func deleteTokenDB(db dbm.KVDB, symbol string) {
-	key := calcTokenKey(symbol)
-	db.Set(key, nil)
-}
-
 type tokenAction struct {
 	coinsAccount *account.DB
 	db           dbm.KVDB

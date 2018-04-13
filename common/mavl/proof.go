@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const proofLimit = 1 << 16 // 64 KB
+//const proofLimit = 1 << 16 // 64 KB
 
 //merkle avl tree proof证明结构体
 type Proof struct {

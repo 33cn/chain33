@@ -27,7 +27,7 @@ go_lint:
     tags:
         - 33cn
     script:
-        - make lint
+        - make linter
 
 go_build:
     stage: build
@@ -48,8 +48,7 @@ go_test:
     tags:
         - 33cn
     script:
-        - go test -parallel 1 -race $(go list ./... | grep -v "vendor" | grep -v "chain33/test")
-        - cd ~
+        - make test
 
 #go_vet:
 #    stage: test
