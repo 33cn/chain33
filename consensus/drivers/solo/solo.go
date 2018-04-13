@@ -26,7 +26,7 @@ func New(cfg *types.Consensus) *Client {
 }
 
 func (client *Client) Close() {
-	log.Info("consensus solo closed")
+	slog.Info("consensus solo closed")
 }
 
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {

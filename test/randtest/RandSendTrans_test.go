@@ -67,7 +67,7 @@ func Test_RandSendTransactionBench(t *testing.T) {
 	var chans = make(chan bool, *thread)
 	for i := 0; i < *thread; i++ {
 		go func(n, threadnum int) {
-			for i := 0; i < n; i++ {
+			for j := 0; j < n; j++ {
 				bigi, err := rand.Int(rand.Reader, big.NewInt(int64(len(accounts))))
 				if err != nil {
 					fmt.Println(err.Error())
@@ -80,12 +80,9 @@ func Test_RandSendTransactionBench(t *testing.T) {
 				binary.Read(bytes.NewBuffer(paybytes[:]), binary.LittleEndian, &payload)
 				SendTransaction(accounts[index], fmt.Sprintf("%d", payload), fmt.Sprintf("%d", index))
 				fmt.Println("account:", accounts[index], "payload:", payload)
-				//time.Sleep(time.Second * 1)
-
 			}
 			chans <- true
 		}(times, i)
-
 	}
 	var tcount = 0
 	for {

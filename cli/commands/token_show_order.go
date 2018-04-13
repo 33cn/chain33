@@ -83,7 +83,7 @@ func showsellorderwithstatus(rpcAddr string) {
 	params.Execer = "trade"
 	params.FuncName = "GetAllSellOrdersWithStatus"
 	params.Payload = reqAddrtokens
-	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -134,7 +134,7 @@ func showonesbuyorder(rpcAddr string) {
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
-	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -170,7 +170,7 @@ func showonesselltokenorder(rpcAddr string) {
 	params.FuncName = "GetOnesSellOrder"
 	params.Payload = reqAddrtokens
 
-	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

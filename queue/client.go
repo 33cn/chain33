@@ -21,7 +21,7 @@ import (
 // }
 // process 函数会调用 处理具体的消息逻辑
 
-var gId int64
+var gid int64
 
 type Client interface {
 	Send(msg Message, waitReply bool) (err error) //同步发送消息
@@ -90,7 +90,7 @@ func (client *client) SendTimeout(msg Message, waitReply bool, timeout time.Dura
 //2. Send 高优先级别的发送消息
 
 func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
-	id := atomic.AddInt64(&gId, 1)
+	id := atomic.AddInt64(&gid, 1)
 	return NewMessage(id, topic, ty, data)
 }
 
