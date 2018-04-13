@@ -132,7 +132,7 @@ func SaveAccountTomavl(client queue.Client, prevStateRoot []byte, accs []*types.
 func TestSaveSeed(t *testing.T) {
 	walletlog.Info("TestSaveSeed begin --------------------")
 	wallet, _ := initEnv()
-	seed := "何 玉 斌 何 玉 斌 何 玉 斌 何 玉 斌 何 玉 斌"
+	seed := "何 玉 玉 何 玉 玉 何 玉 玉 何 玉 玉 何 玉 玉"
 	password := "heyubin"
 	ok, _ := wallet.saveSeed(password, seed)
 	if ok {
