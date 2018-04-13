@@ -11,7 +11,7 @@ PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
 
 .PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker protobuf clean help
 
-default: build
+default: build cli
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2

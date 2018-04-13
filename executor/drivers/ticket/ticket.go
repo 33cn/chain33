@@ -16,7 +16,6 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -40,6 +39,13 @@ func newTicket() *Ticket {
 
 func (t *Ticket) GetName() string {
 	return "ticket"
+}
+
+func (t *Ticket) Clone() drivers.Driver {
+	clone := &Ticket{}
+	clone.DriverBase = *(t.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
 }
 
 func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -214,21 +220,21 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return Infos(t.GetDB(), &info)
+		return Infos(t.GetStateDB(), &info)
 	} else if funcname == "TicketList" {
 		var l types.TicketList
 		err := types.Decode(params, &l)
 		if err != nil {
 			return nil, err
 		}
-		return List(t.GetQueryDB(), t.GetDB(), &l)
+		return List(t.GetLocalDB(), t.GetStateDB(), &l)
 	} else if funcname == "MinerAddress" {
 		var reqaddr types.ReqString
 		err := types.Decode(params, &reqaddr)
 		if err != nil {
 			return nil, err
 		}
-		value, err := t.GetQueryDB().Get(calcBindReturnKey(reqaddr.Data))
+		value, err := t.GetLocalDB().Get(calcBindReturnKey(reqaddr.Data))
 		if value == nil || err != nil {
 			return nil, types.ErrNotFound
 		}
@@ -240,8 +246,10 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		key := calcBindMinerKeyPrefix(reqaddr.Data)
-		list := dbm.NewListHelper(t.GetQueryDB())
-		values := list.List(key, nil, 0, 1)
+		values, err := t.GetLocalDB().List(key, nil, 0, 1)
+		if err != nil {
+			return nil, err
+		}
 		if len(values) == 0 {
 			return nil, types.ErrNotFound
 		}

@@ -7,15 +7,22 @@ import (
 
 var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 
-type KVDB interface {
-	Get(key []byte) (value []byte, err error)
+type Lister interface {
+	List(prefix, key []byte, count, direction int32) ([][]byte, error)
+}
+
+type KV interface {
+	Get(key []byte) ([]byte, error)
 	Set(key []byte, value []byte) (err error)
-	List(prefix, key []byte, count, direction int32) (values [][]byte, err error)
+}
+
+type KVDB interface {
+	KV
+	Lister
 }
 
 type DB interface {
-	Get([]byte) ([]byte, error)
-	Set([]byte, []byte) error
+	KV
 	SetSync([]byte, []byte) error
 	Delete([]byte) error
 	DeleteSync([]byte) error
