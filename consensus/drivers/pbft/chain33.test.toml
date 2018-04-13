@@ -5,7 +5,7 @@ Title="chain33"
 loglevel = "info"
 logConsoleLevel = "info"
 # 日志文件名，可带目录，所有生成的日志文件都放到此目录下
-logFile = "logs/chain33.log"
+logFile = "D:/goprogram/src/gitlab.33.cn/chain33/chain33/logs/pbft.log"
 # 单个日志文件的最大值（单位：兆）
 maxFileSize = 100
 # 最多保存的历史日志文件个数
@@ -22,13 +22,14 @@ callerFile = false
 callerFunction = false
 
 [blockchain]
-defCacheSize=500
-maxFetchBlockNum=100
+defCacheSize=512
+maxFetchBlockNum=128
 timeoutSeconds=5
-batchBlockNum=100
+batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
 isStrongConsistency=true
+
 
 [p2p]
 seeds=["127.0.0.1:13802"]

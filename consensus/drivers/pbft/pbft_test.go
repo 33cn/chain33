@@ -25,6 +25,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"strconv"
 	"time"
+	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
 var (
@@ -40,10 +41,9 @@ func init() {
 	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	//common.SetLogLevel("info")
-	log.SetLogLevel("info")
 }
 func TestPbft(t *testing.T) {
-	q, chain, _, s, mem, exec, cs := initEnvPbft()
+	q, chain, _, s, mem, exec, cs, wallet:= initEnvPbft()
 	defer chain.Close()
 	defer mem.Close()
 	//defer p2pnet.Close()
@@ -51,17 +51,18 @@ func TestPbft(t *testing.T) {
 	defer s.Close()
 	defer cs.Close()
 	defer q.Close()
-
+    defer wallet.Close()
 	time.Sleep(5 * time.Second)
 
 	sendReplyList(q)
 
 }
 
-func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool, queue.Module, *PbftClient) {
+func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool, queue.Module, *PbftClient, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
+	log.SetFileLog(cfg.Log)
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 	mem := mempool.New(cfg.MemPool)
@@ -75,8 +76,10 @@ func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module,
 	cs.SetQueueClient(q.Client())
 	p2pnet := p2p.New(cfg.P2P)
 	p2pnet.SetQueueClient(q.Client())
+	walletm := wallet.New(cfg.Wallet)
+	walletm.SetQueueClient(q.Client())
 
-	return q, chain, p2pnet, s, mem, exec, cs
+	return q, chain, p2pnet, s, mem, exec, cs, walletm
 
 }
 
