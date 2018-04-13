@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	maxOrphanBlocks int64 = 2 * MaxFetchBlockNum //最大孤儿block数量，考虑到同步阶段孤儿block会很多
-	orphanlog             = chainlog.New("submodule", "orphan")
+	maxOrphanBlocks = 2 * MaxFetchBlockNum //最大孤儿block数量，考虑到同步阶段孤儿block会很多
+	orphanlog       = chainlog.New("submodule", "orphan")
 )
 
 const orphanExpirationTime = time.Second * 300
@@ -163,7 +163,7 @@ func (op *OrphanPool) GetChildOrphanCount(hash string) int {
 	return len(op.prevOrphans[hash])
 }
 
-func (op *OrphanPool) GetChildOrphan(hash string, index int) *orphanBlock {
+func (op *OrphanPool) getChildOrphan(hash string, index int) *orphanBlock {
 	op.orphanLock.RLock()
 	defer op.orphanLock.RUnlock()
 	if index >= len(op.prevOrphans[hash]) {

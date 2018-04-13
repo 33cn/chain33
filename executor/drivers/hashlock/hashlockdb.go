@@ -16,50 +16,50 @@ import (
 var hlog = log.New("module", "hashlock.db")
 
 const (
-	Hashlock_Locked   = 1
-	Hashlock_Unlocked = 2
-	Hashlock_Sent     = 3
+	hashlockLocked   = 1
+	hashlockUnlocked = 2
+	hashlockSent     = 3
 )
 
-type HashlockDB struct {
+type DB struct {
 	types.Hashlock
 }
 
-func NewHashlockDB(id []byte, returnWallet string, toAddress string, blocktime int64, amount int64, time int64) *HashlockDB {
-	h := &HashlockDB{}
+func NewDB(id []byte, returnWallet string, toAddress string, blocktime int64, amount int64, time int64) *DB {
+	h := &DB{}
 	h.HashlockId = id
 	h.ReturnAddress = returnWallet
 	h.ToAddress = toAddress
 	h.CreateTime = blocktime
-	h.Status = Hashlock_Locked
+	h.Status = hashlockLocked
 	h.Amount = amount
 	h.Frozentime = time
 	return h
 }
 
-func (h *HashlockDB) GetKVSet() (kvset []*types.KeyValue) {
+func (h *DB) GetKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&h.Hashlock)
 
-	kvset = append(kvset, &types.KeyValue{HashlockKey(h.HashlockId), value})
+	kvset = append(kvset, &types.KeyValue{Key(h.HashlockId), value})
 	return kvset
 }
 
-func (h *HashlockDB) Save(db dbm.KVDB) {
+func (h *DB) Save(db dbm.KV) {
 	set := h.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func HashlockKey(id []byte) (key []byte) {
+func Key(id []byte) (key []byte) {
 	key = append(key, []byte("mavl-hashlock-")...)
 	key = append(key, id...)
 	return key
 }
 
-type HashlockAction struct {
-	coinsAccount *account.AccountDB
-	db           dbm.KVDB
+type Action struct {
+	coinsAccount *account.DB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64
@@ -67,13 +67,13 @@ type HashlockAction struct {
 	execaddr     string
 }
 
-func NewHashlockAction(h *Hashlock, tx *types.Transaction, execaddr string) *HashlockAction {
+func NewAction(h *Hashlock, tx *types.Transaction, execaddr string) *Action {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &HashlockAction{h.GetCoinsAccount(), h.GetDB(), hash, fromaddr, h.GetBlockTime(), h.GetHeight(), execaddr}
+	return &Action{h.GetCoinsAccount(), h.GetStateDB(), hash, fromaddr, h.GetBlockTime(), h.GetHeight(), execaddr}
 }
 
-func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Receipt, error) {
+func (action *Action) Hashlocklock(hlock *types.HashlockLock) (*types.Receipt, error) {
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -85,7 +85,7 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 		return nil, types.ErrHashlockReapeathash
 	}
 
-	h := NewHashlockDB(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
+	h := NewDB(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
 	//冻结子账户资金
 	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, hlock.Amount)
 
@@ -104,7 +104,7 @@ func (action *HashlockAction) Hashlocklock(hlock *types.HashlockLock) (*types.Re
 	return receipt, nil
 }
 
-func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*types.Receipt, error) {
+func (action *Action) Hashlockunlock(unlock *types.HashlockUnlock) (*types.Receipt, error) {
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -120,7 +120,7 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 		return nil, types.ErrHashlockReturnAddrss
 	}
 
-	if hash.Status != Hashlock_Locked {
+	if hash.Status != hashlockLocked {
 		hlog.Error("Hashlockunlock", "hash.Status", hash.Status)
 		return nil, types.ErrHashlockStatus
 	}
@@ -131,14 +131,14 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 	}
 
 	//different with typedef in C
-	h := &HashlockDB{*hash}
+	h := &DB{*hash}
 	receipt, errR := action.coinsAccount.ExecActive(h.ReturnAddress, action.execaddr, h.Amount)
 	if errR != nil {
 		hlog.Error("ExecActive error", "ReturnAddress", h.ReturnAddress, "execaddr", action.execaddr, "amount", h.Amount)
 		return nil, errR
 	}
 
-	h.Status = Hashlock_Unlocked
+	h.Status = hashlockUnlocked
 	h.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
@@ -149,7 +149,7 @@ func (action *HashlockAction) Hashlockunlock(unlock *types.HashlockUnlock) (*typ
 	return receipt, nil
 }
 
-func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Receipt, error) {
+func (action *Action) Hashlocksend(send *types.HashlockSend) (*types.Receipt, error) {
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -160,7 +160,7 @@ func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Rec
 		return nil, err
 	}
 
-	if hash.Status != Hashlock_Locked {
+	if hash.Status != hashlockLocked {
 		hlog.Error("Hashlocksend", "hash.Status", hash.Status)
 		return nil, types.ErrHashlockStatus
 	}
@@ -176,13 +176,13 @@ func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Rec
 	}
 
 	//different with typedef in C
-	h := &HashlockDB{*hash}
+	h := &DB{*hash}
 	receipt, errR := action.coinsAccount.ExecTransferFrozen(h.ReturnAddress, h.ToAddress, action.execaddr, h.Amount)
 	if errR != nil {
 		hlog.Error("ExecTransferFrozen error", "ReturnAddress", h.ReturnAddress, "ToAddress", h.ToAddress, "execaddr", action.execaddr, "amount", h.Amount)
 		return nil, errR
 	}
-	h.Status = Hashlock_Sent
+	h.Status = hashlockSent
 	h.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
@@ -193,8 +193,8 @@ func (action *HashlockAction) Hashlocksend(send *types.HashlockSend) (*types.Rec
 	return receipt, nil
 }
 
-func readHashlock(db dbm.KVDB, id []byte) (*types.Hashlock, error) {
-	data, err := db.Get(HashlockKey(id))
+func readHashlock(db dbm.KV, id []byte) (*types.Hashlock, error) {
+	data, err := db.Get(Key(id))
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func NewHashlockquery() *types.Hashlockquery {
 }
 
 //将Information转换成byte类型，使输出为kv模式
-func GeHashReciverKV(hashlockId []byte, information *types.Hashlockquery) *types.KeyValue {
+func GeHashReciverKV(hashlockID []byte, information *types.Hashlockquery) *types.KeyValue {
 	clog.Error("GeHashReciverKV action")
 	infor := types.Hashlockquery{information.Time, information.Status, information.Amount, information.CreateTime, information.CurrentTime}
 	clog.Error("GeHashReciverKV action", "Status", information.Status)
@@ -228,17 +228,17 @@ func GeHashReciverKV(hashlockId []byte, information *types.Hashlockquery) *types
 		fmt.Println(err)
 	}
 	clog.Error("GeHashReciverKV action", "reciver", reciver)
-	kv := &types.KeyValue{hashlockId, reciver}
+	kv := &types.KeyValue{hashlockID, reciver}
 	clog.Error("GeHashReciverKV action", "kv", kv)
 	return kv
 }
 
 //从db里面根据key获取value,期间需要进行解码
-func GetHashReciver(db dbm.KVDB, hashlockId []byte) (*types.Hashlockquery, error) {
+func GetHashReciver(db dbm.KVDB, hashlockID []byte) (*types.Hashlockquery, error) {
 	//reciver := types.Int64{}
-	clog.Error("GetHashReciver action", "hashlockID", hashlockId)
+	clog.Error("GetHashReciver action", "hashlockID", hashlockID)
 	reciver := NewHashlockquery()
-	hashReciver, err := db.Get(hashlockId)
+	hashReciver, err := db.Get(hashlockID)
 	if err != nil {
 		clog.Error("Get err")
 		return reciver, err
@@ -260,16 +260,16 @@ func GetHashReciver(db dbm.KVDB, hashlockId []byte) (*types.Hashlockquery, error
 }
 
 //将hashlockId和information都以key和value形式存入db
-func SetHashReciver(db dbm.KVDB, hashlockId []byte, information *types.Hashlockquery) error {
+func SetHashReciver(db dbm.KVDB, hashlockID []byte, information *types.Hashlockquery) error {
 	clog.Error("SetHashReciver action")
-	kv := GeHashReciverKV(hashlockId, information)
+	kv := GeHashReciverKV(hashlockID, information)
 	return db.Set(kv.Key, kv.Value)
 }
 
 //根据状态值对db中存入的数据进行更改
-func UpdateHashReciver(cachedb dbm.KVDB, hashlockId []byte, information types.Hashlockquery) (*types.KeyValue, error) {
-	clog.Error("UpdateHashReciver", "hashlockId", hashlockId)
-	recv, err := GetHashReciver(cachedb, hashlockId)
+func UpdateHashReciver(cachedb dbm.KVDB, hashlockID []byte, information types.Hashlockquery) (*types.KeyValue, error) {
+	clog.Error("UpdateHashReciver", "hashlockId", hashlockID)
+	recv, err := GetHashReciver(cachedb, hashlockID)
 	if err != nil && err != types.ErrNotFound {
 		clog.Error("UpdateHashReciver", "err", err)
 		return nil, err
@@ -277,44 +277,44 @@ func UpdateHashReciver(cachedb dbm.KVDB, hashlockId []byte, information types.Ha
 	fmt.Println(recv)
 	clog.Error("UpdateHashReciver", "recv", recv)
 	//	clog.Error("UpdateHashReciver", "Status", information.Status)
-	//	var action types.HashlockAction
+	//	var action types.Action
 	//当处于lock状态时，在db中是找不到的，此时需要创建并存储于db中，其他状态则能从db中找到
-	if information.Status == Hashlock_Locked {
-		clog.Error("UpdateHashReciver", "Hashlock_Locked", Hashlock_Locked)
+	if information.Status == hashlockLocked {
+		clog.Error("UpdateHashReciver", "Hashlock_Locked", hashlockLocked)
 		if err == types.ErrNotFound {
 			clog.Error("UpdateHashReciver", "Hashlock_Locked")
 			recv.Time = information.Time
-			recv.Status = Hashlock_Locked //1
+			recv.Status = hashlockLocked //1
 			recv.Amount = information.Amount
 			recv.CreateTime = information.CreateTime
 			//			clog.Error("UpdateHashReciver", "Statuslock", recv.Status)
 			clog.Error("UpdateHashReciver", "recv", recv)
 		}
-	} else if information.Status == Hashlock_Unlocked {
-		clog.Error("UpdateHashReciver", "Hashlock_Unlocked", Hashlock_Unlocked)
+	} else if information.Status == hashlockUnlocked {
+		clog.Error("UpdateHashReciver", "Hashlock_Unlocked", hashlockUnlocked)
 		if err == nil {
-			recv.Status = Hashlock_Unlocked //2
+			recv.Status = hashlockUnlocked //2
 			//			clog.Error("UpdateHashReciver", "Statusunlock", recv.Status)
 			clog.Error("UpdateHashReciver", "recv", recv)
 		}
-	} else if information.Status == Hashlock_Sent {
-		clog.Error("UpdateHashReciver", "Hashlock_Sent", Hashlock_Sent)
+	} else if information.Status == hashlockSent {
+		clog.Error("UpdateHashReciver", "Hashlock_Sent", hashlockSent)
 		if err == nil {
-			recv.Status = Hashlock_Sent //3
+			recv.Status = hashlockSent //3
 			//			clog.Error("UpdateHashReciver", "Statussend", recv.Status)
 			clog.Error("UpdateHashReciver", "recv", recv)
 		}
 	}
-	SetHashReciver(cachedb, hashlockId, recv)
+	SetHashReciver(cachedb, hashlockID, recv)
 	//keyvalue
-	return GeHashReciverKV(hashlockId, recv), nil
+	return GeHashReciverKV(hashlockID, recv), nil
 }
 
 //根据hashlockid获取相关信息
-func (n *Hashlock) GetTxsByHashlockId(hashlockId []byte, differTime int64) (types.Message, error) {
+func (n *Hashlock) GetTxsByHashlockID(hashlockID []byte, differTime int64) (types.Message, error) {
 	clog.Error("GetTxsByHashlockId action")
 	db := n.GetLocalDB()
-	query, err := GetHashReciver(db, hashlockId)
+	query, err := GetHashReciver(db, hashlockID)
 	if err != nil {
 		return nil, err
 	}

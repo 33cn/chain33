@@ -11,7 +11,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	//dbm "gitlab.33.cn/chain33/chain33/common/db"
 	//"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -39,7 +38,7 @@ func TestInit(t *testing.T) {
 func TestExecHashlock(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr error = nil
+	var targetErr error
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -61,7 +60,7 @@ func TestExecHashlock(t *testing.T) {
 func TestExecHashunlock(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr error = types.ErrTime
+	var targetErr = types.ErrTime
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -78,7 +77,7 @@ func TestExecHashunlock(t *testing.T) {
 func TestExecHashsend(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr error = nil
+	var targetErr error
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -94,7 +93,7 @@ func TestExecHashsend(t *testing.T) {
 
 func constructHashlockInstance() *Hashlock {
 	h := newHashlock()
-	h.SetDB(NewTestDB())
+	h.SetStateDB(NewTestDB())
 	return h
 }
 
@@ -172,8 +171,4 @@ func (e *TestDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return nil
-}
-
-func (e *TestDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
-	return nil, types.ErrNotSupport
 }

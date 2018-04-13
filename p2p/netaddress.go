@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -71,7 +70,7 @@ func NewNetAddressStrings(addrs []string) ([]*NetAddress, error) {
 	for i, addr := range addrs {
 		netAddr, err := NewNetAddressString(addr)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Error in address %s: %v", addr, err))
+			return nil, fmt.Errorf("error in address %s: %v", addr, err)
 		}
 		netAddrs[i] = netAddr
 	}
@@ -193,9 +192,9 @@ func (na *NetAddress) ReachabilityTo(o *NetAddress) int {
 		Unreachable = 0
 		Default     = iota
 		Teredo
-		Ipv6_weak
+		Ipv6Weak
 		Ipv4
-		Ipv6_strong
+		Ipv6Strong
 	)
 	if !na.Routable() {
 		return Unreachable
@@ -207,7 +206,7 @@ func (na *NetAddress) ReachabilityTo(o *NetAddress) int {
 		} else if o.IP.To4() != nil {
 			return Ipv4
 		} else { // ipv6
-			return Ipv6_weak
+			return Ipv6Weak
 		}
 	} else if na.IP.To4() != nil {
 		if o.Routable() && o.IP.To4() != nil {
@@ -228,9 +227,9 @@ func (na *NetAddress) ReachabilityTo(o *NetAddress) int {
 			return Ipv4
 		} else if tunnelled {
 			// only prioritise ipv6 if we aren't tunnelling it.
-			return Ipv6_weak
+			return Ipv6Weak
 		}
-		return Ipv6_strong
+		return Ipv6Strong
 	}
 }
 

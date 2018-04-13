@@ -6,21 +6,21 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type ManageAction struct {
-	coinsAccount *account.AccountDB
-	db           dbm.KVDB
+type Action struct {
+	coinsAccount *account.DB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64
 	height       int64
 }
 
-func NewManageAction(m *Manage, tx *types.Transaction) *ManageAction {
-	return &ManageAction{db: m.GetDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()}
+func NewAction(m *Manage, tx *types.Transaction) *Action {
+	return &Action{db: m.GetStateDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()}
 
 }
 
-func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error) {
+func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error) {
 
 	//if modify.Key == "Manager-managers" && !wallet.IsSuperManager(modify.GetAddr()) {
 	//	return nil, types.ErrNoPrivilege

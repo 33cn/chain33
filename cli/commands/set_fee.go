@@ -28,6 +28,6 @@ func setFee(cmd *cobra.Command, args []string) {
 		Amount: amount,
 	}
 	var res jsonrpc.Reply
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
 	ctx.Run()
 }

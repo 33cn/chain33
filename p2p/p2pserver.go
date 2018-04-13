@@ -42,7 +42,7 @@ func (s *p2pServer) IsClose() bool {
 	return atomic.LoadInt32(&s.closed) == 1
 }
 
-func NewP2pServer() *p2pServer {
+func newP2pServer() *p2pServer {
 	return &p2pServer{
 		streams:      make(map[pb.P2Pgservice_ServerStreamSendServer]chan interface{}),
 		deleteSChan:  make(chan pb.P2Pgservice_ServerStreamSendServer, 1024),
@@ -75,11 +75,11 @@ func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
 	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", s.node.Size())
 	addrBucket := make(map[string]bool)
-	peers, _ := s.node.GetActivePeers()
+	peers, _ := s.node.getActivePeers()
 	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
 
-		if stat := s.node.nodeInfo.addrBook.GetPeerStat(peer.Addr()); stat != nil {
+		if stat := s.node.nodeInfo.addrBook.getPeerStat(peer.Addr()); stat != nil {
 			if stat.GetAttempts() == 0 {
 				addrBucket[peer.Addr()] = true
 			}
@@ -90,12 +90,12 @@ func (s *p2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 	for _, addr := range addrList {
 
 		addrBucket[addr] = true
-		if len(addrBucket) > MaxAddrListNum { //最多一次性返回256个地址
+		if len(addrBucket) > maxAddrListNum { //最多一次性返回256个地址
 			break
 		}
 	}
 	var addrlist []string
-	for addr, _ := range addrBucket {
+	for addr := range addrBucket {
 		addrlist = append(addrlist, addr)
 	}
 	return &pb.P2PAddr{Nonce: in.Nonce, Addrlist: addrlist}, nil
@@ -129,7 +129,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 					return
 				}
 
-				peers, _ := s.node.GetActivePeers()
+				peers, _ := s.node.getActivePeers()
 				for _, peer := range peers {
 					peer.mconn.gcli.Version2(context.Background(), in)
 				}
@@ -139,7 +139,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
-	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: SERVICE, Nonce: in.Nonce,
+	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: Service, Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
 }
 
@@ -174,7 +174,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 	var invs = make([]*pb.Inventory, 0)
 	for _, item := range headers.Items {
 		var inv pb.Inventory
-		inv.Ty = MSG_BLOCK
+		inv.Ty = msgBlock
 		inv.Height = item.GetHeight()
 		invs = append(invs, &inv)
 	}
@@ -194,7 +194,7 @@ func (s *p2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P
 
 	var invlist = make([]*pb.Inventory, 0)
 	for _, tx := range memtx {
-		invlist = append(invlist, &pb.Inventory{Hash: tx.Hash(), Ty: MSG_TX})
+		invlist = append(invlist, &pb.Inventory{Hash: tx.Hash(), Ty: msgTx})
 	}
 
 	return &pb.P2PInv{Invs: invlist}, nil
@@ -212,7 +212,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 	for _, inv := range invs { //过滤掉不需要的数据
 		var invdata pb.InvData
 		var memtx = make(map[string]*pb.Transaction)
-		if inv.GetTy() == MSG_TX {
+		if inv.GetTy() == msgTx {
 			//loadMempool
 			if count == 0 {
 				var err error
@@ -225,11 +225,11 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 			txhash := hex.EncodeToString(inv.GetHash())
 			if tx, ok := memtx[txhash]; ok {
 				invdata.Value = &pb.InvData_Tx{Tx: tx}
-				invdata.Ty = MSG_TX
+				invdata.Ty = msgTx
 				p2pInvData = append(p2pInvData, &invdata)
 			}
 
-		} else if inv.GetTy() == MSG_BLOCK {
+		} else if inv.GetTy() == msgBlock {
 			height := inv.GetHeight()
 			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false, []string{""}})
 			err := client.Send(msg, true)
@@ -245,7 +245,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 
 			blocks := resp.Data.(*pb.BlockDetails)
 			for _, item := range blocks.Items {
-				invdata.Ty = MSG_BLOCK
+				invdata.Ty = msgBlock
 				invdata.Value = &pb.InvData_Block{Block: item.Block}
 
 				p2pInvData = append(p2pInvData, &invdata)
@@ -466,7 +466,7 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 	if ok {
 		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
 
-		if len(P2pComm.AddrRouteble([]string{fmt.Sprintf("%v:%v", remoteaddr, DefaultPort)})) == 0 {
+		if len(P2pComm.AddrRouteble([]string{fmt.Sprintf("%v:%v", remoteaddr, defaultPort)})) == 0 {
 
 			outside = false
 		} else {
@@ -570,7 +570,7 @@ func (s *p2pServer) addStreamData(data interface{}) {
 	defer s.smtx.Unlock()
 	timetikc := time.NewTicker(time.Second * 1)
 	defer timetikc.Stop()
-	for stream, _ := range s.streams {
+	for stream := range s.streams {
 		if _, ok := s.streams[stream]; !ok {
 			log.Error("AddStreamBLock", "No this Stream", "++++++")
 			continue

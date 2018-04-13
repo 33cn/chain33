@@ -37,6 +37,6 @@ func blockHeader(cmd *cobra.Command, args []string) {
 		Isdetail: isDetail,
 	}
 	var res jsonrpc.Headers
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
 	ctx.Run()
 }

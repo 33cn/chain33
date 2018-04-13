@@ -45,21 +45,21 @@ func (c Comm) GetLocalAddr() string {
 	return strings.Split(conn.LocalAddr().String(), ":")[0]
 }
 
-func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*peer, error) {
 
 	conn, err := addr.DialTimeout(c.GrpcConfig(), (*nodeinfo).cfg.GetVersion())
 	if err != nil {
 		return nil, err
 	}
 
-	peer, err := c.NewPeerFromConn(conn, addr, nodeinfo)
+	peer, err := c.newPeerFromConn(conn, addr, nodeinfo)
 	if err != nil {
 		conn.Close()
 		return nil, err
 	}
 	peer.peerAddr = addr
 
-	log.Debug("DialPeerWithAddress", "peer", peer.Addr(), "persistent:", persistent)
+	log.Debug("dialPeerWithAddress", "peer", peer.Addr(), "persistent:", persistent)
 
 	if persistent {
 		peer.makePersistent()
@@ -68,29 +68,29 @@ func (c Comm) DialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 	return peer, nil
 }
 
-func (c Comm) NewPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
 
 	// Key and NodeInfo are set after Handshake
-	p := NewPeer(rawConn, nodeinfo, remote)
+	p := newPeer(rawConn, nodeinfo, remote)
 
 	return p, nil
 }
 
-func (c Comm) DialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
-	log.Debug("DialPeer", "will connect", addr.String())
+func (c Comm) dialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+	log.Debug("dialPeer", "will connect", addr.String())
 	var persistent bool
 	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
 		if seed == addr.String() {
 			persistent = true //种子节点要一直连接
 		}
 	}
-	peer, err := c.DialPeerWithAddress(addr, persistent, nodeinfo)
+	peer, err := c.dialPeerWithAddress(addr, persistent, nodeinfo)
 	if err != nil {
-		log.Error("DialPeer", "dial peer err:", err.Error())
+		log.Error("dialPeer", "dial peer err:", err.Error())
 		return nil, err
 	}
 	//获取远程节点的信息 peer
-	log.Debug("DialPeer", "Peer info", peer)
+	log.Debug("dialPeer", "Peer info", peer)
 	return peer, nil
 }
 

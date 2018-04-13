@@ -44,7 +44,7 @@ func queryByHashOutputHex(rpcAddr, txHash string) {
 		Hash: txHash,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcAddr, "Chain33.GetHexTxByHash", params, &res)
+	ctx := NewRPCCtx(rpcAddr, "Chain33.GetHexTxByHash", params, &res)
 	ctx.Run()
 }
 
@@ -53,7 +53,7 @@ func queryByHash(rpcAddr, txHash string) {
 		Hash: txHash,
 	}
 	var res jsonrpc.TransactionDetail
-	ctx := NewRpcCtx(rpcAddr, "Chain33.QueryTransaction", params, &res)
+	ctx := NewRPCCtx(rpcAddr, "Chain33.QueryTransaction", params, &res)
 	ctx.SetResultCb(parseQueryTxRes)
 	ctx.Run()
 }

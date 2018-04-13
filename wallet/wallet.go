@@ -29,7 +29,7 @@ var (
 	walletlog               = log.New("module", "wallet")
 	SignType          int   = 1 //1；secp256k1，2：ed25519，3：sm2
 	accountdb               = account.NewCoinsAccount()
-	accTokenMap             = make(map[string]*account.AccountDB)
+	accTokenMap             = make(map[string]*account.DB)
 )
 
 type Wallet struct {
@@ -135,6 +135,7 @@ func (wallet *Wallet) SetQueueClient(client queue.Client) {
 	wallet.wg.Add(2)
 	go wallet.ProcRecvMsg()
 	go wallet.autoMining()
+	InitSeedLibrary()
 }
 
 //检查周期 --> 10分
@@ -1650,19 +1651,27 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	if exit {
 		return false, types.ErrSeedExist
 	}
-	//入参数校验，seed必须是15个单词或者汉字
+	//入参数校验，seed必须是大于等于12个单词或者汉字
 	if len(password) == 0 || len(seed) == 0 {
 		return false, types.ErrInputPara
 	}
 
 	seedarry := strings.Fields(seed)
-	if len(seedarry) != SeedLong {
+	curseedlen := len(seedarry)
+	if curseedlen < SaveSeedLong {
+		walletlog.Error("saveSeed VeriySeedwordnum", "curseedlen", curseedlen, "SaveSeedLong", SaveSeedLong)
 		return false, types.ErrSeedWordNum
+	}
+	//校验seed是否在标准单词表中
+	have, errword := VerifySeed(seedarry)
+	if !have {
+		walletlog.Error("saveSeed VerifySeed", "errword", errword)
+		return false, types.ErrSeedWord
 	}
 	var newseed string
 	for index, seedstr := range seedarry {
 		//walletlog.Error("saveSeed", "seedstr", seedstr)
-		if index != SeedLong-1 {
+		if index != curseedlen-1 {
 			newseed += seedstr + " "
 		} else {
 			newseed += seedstr
@@ -1744,7 +1753,7 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrInputPara
 	}
 
-	if token.ValidSymbol([]byte(reqTokenPrcCreate.GetSymbol())) == false {
+	if token.ValidSymbolWithHeight([]byte(reqTokenPrcCreate.GetSymbol()), wallet.lastHeight) == false {
 		walletlog.Error("procTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper
 	}
@@ -2064,7 +2073,7 @@ func (wallet *Wallet) procRevokeSell(reqRevoke *types.ReqRevokeSell) (*types.Rep
 	return wallet.revokeSell(priv, reqRevoke)
 }
 
-func getTokenAccountDB(token string) *account.AccountDB {
+func getTokenAccountDB(token string) *account.DB {
 	if nil == accTokenMap[token] {
 		tokenAccDB := account.NewTokenAccountWithoutDB(token)
 		accTokenMap[token] = tokenAccDB

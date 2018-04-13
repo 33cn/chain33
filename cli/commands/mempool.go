@@ -35,8 +35,8 @@ func LastMempoolTxsCmd() *cobra.Command {
 }
 
 func lastMempoolTxs(cmd *cobra.Command, args []string) {
-	rpc_laddr, _ := cmd.Flags().GetString("rpc_laddr")
-	rpc, err := jsonrpc.NewJsonClient(rpc_laddr)
+	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -76,7 +76,7 @@ func ListMempoolTxsCmd() *cobra.Command {
 func listMempoolTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.ReplyTxList
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetMempool", nil, &res)
+	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetMempool", nil, &res)
 	ctx.SetResultCb(parseListMempoolTxsRes)
 	ctx.Run()
 }
