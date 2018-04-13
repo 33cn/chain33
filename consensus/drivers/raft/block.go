@@ -15,10 +15,7 @@ import (
 )
 
 var (
-	listSize     int = 10000
-	zeroHash     [32]byte
-	currentBlock *types.Block
-	mulock       sync.Mutex
+	zeroHash [32]byte
 )
 
 type RaftClient struct {
@@ -27,11 +24,11 @@ type RaftClient struct {
 	commitC     <-chan *types.Block
 	errorC      <-chan error
 	snapshotter *snap.Snapshotter
-	validatorC  <-chan map[string]bool
+	validatorC  <-chan bool
 	once        sync.Once
 }
 
-func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan map[string]bool) *RaftClient {
+func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan bool) *RaftClient {
 	c := drivers.NewBaseClient(cfg)
 	client := &RaftClient{BaseClient: c, proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, commitC: commitC, errorC: errorC}
 	c.SetChild(client)
@@ -130,6 +127,9 @@ func (client *RaftClient) InitBlock() {
 
 func (client *RaftClient) CreateBlock() {
 	issleep := true
+	var lastBlock *types.Block
+	var newblock types.Block
+	var txs []*types.Transaction
 	for {
 		//如果leader节点突然挂了，不是打包节点，需要退出
 		if !isLeader {
@@ -140,8 +140,8 @@ func (client *RaftClient) CreateBlock() {
 		if issleep {
 			time.Sleep(10 * time.Second)
 		}
-		lastBlock := client.GetCurrentBlock()
-		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
+		lastBlock = client.GetCurrentBlock()
+		txs = client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -151,7 +151,6 @@ func (client *RaftClient) CreateBlock() {
 		//check dup
 		//txs = client.CheckTxDup(txs)
 		rlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
-		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
@@ -180,16 +179,18 @@ func (client *RaftClient) propose(block *types.Block) {
 
 // 从receive channel中读leader发来的block
 func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan error) {
-	//var prevHash []byte
+	var data *types.Block
+	var ok bool
 	for {
 		select {
-		case data := <-commitC:
-			if data == nil {
+		case data, ok = <-commitC:
+			if !ok || data == nil {
 				continue
 			}
 			rlog.Debug("===============Get block from commit channel===========")
 			// 在程序刚开始启动的时候有可能存在丢失数据的问题
-			client.SetCurrentBlock(data)
+			//区块高度统一由base中的相关代码进行变更，防止错误区块出现
+			//client.SetCurrentBlock(data)
 
 		case err, ok := <-errorC:
 			if ok {
@@ -206,21 +207,23 @@ func (client *RaftClient) pollingTask(c queue.Client) {
 	defer ticker.Stop()
 	for {
 		select {
-		case validator := <-client.validatorC:
+		case value, ok := <-client.validatorC:
 			//各个节点Block只初始化一次
 			client.once.Do(func() {
 				client.InitBlock()
 			})
-			if value, ok := validator[IsLeader]; ok && !value {
+			if ok && !value {
 				rlog.Debug("================I'm not the validator node!=============")
 				isLeader = false
-			} else if !isLeader && value {
+			} else if ok && !isLeader && value {
 				client.once.Do(
 					func() {
 						client.InitMiner()
 					})
 				isLeader = true
 				go client.CreateBlock()
+			} else if !ok {
+				break
 			}
 		case <-ticker.C:
 			rlog.Debug("Gets the leader node information timeout and triggers the ticker.")

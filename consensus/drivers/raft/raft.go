@@ -24,10 +24,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const (
-	IsLeader = "0"
-)
-
 var (
 	defaultSnapCount        uint64 = 10000
 	snapshotCatchUpEntriesN uint64 = 10000
@@ -63,13 +59,13 @@ type raftNode struct {
 	stopc            chan struct{}
 	httpstopc        chan struct{}
 	httpdonec        chan struct{}
-	validatorC       chan map[string]bool
+	validatorC       chan bool
 	//用于判断该节点是否重启过
 	restartC chan struct{}
 }
 
 func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
-	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan map[string]bool) {
+	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan bool) {
 
 	rlog.Info("Enter consensus raft")
 	// commit channel
@@ -92,7 +88,7 @@ func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addP
 		stopc:            make(chan struct{}),
 		httpstopc:        make(chan struct{}),
 		httpdonec:        make(chan struct{}),
-		validatorC:       make(chan map[string]bool),
+		validatorC:       make(chan bool),
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
 		restartC:         make(chan struct{}, 1),
 	}
@@ -277,7 +273,6 @@ func (rc *raftNode) serveChannels() {
 }
 
 func (rc *raftNode) updateValidator() {
-	var validatorMap map[string]bool
 	//TODO 这块监听后期需要根据场景进行优化?
 	time.Sleep(5 * time.Second)
 
@@ -294,26 +289,23 @@ func (rc *raftNode) updateValidator() {
 	}
 	for {
 		time.Sleep(time.Second)
-		validatorMap = make(map[string]bool)
 		status := rc.Status()
 		if status.Lead == raft.None {
 			rlog.Debug(fmt.Sprintf("==============This is %s node!==============", status.RaftState.String()))
 			continue
 		} else {
-
 			// 获取到leader Id,选主成功
 			if rc.id == int(status.Lead) {
 				//leader选举出来之后即可添加addReadOnlyPeers
 				if !flag && !isRestart {
 					go rc.addReadOnlyPeers()
 				}
-				validatorMap[IsLeader] = true
+				rc.validatorC <- true
 			} else {
-				validatorMap[IsLeader] = false
+				rc.validatorC <- false
 			}
 			flag = true
 		}
-		rc.validatorC <- validatorMap
 	}
 }
 func (rc *raftNode) Status() raft.Status {
