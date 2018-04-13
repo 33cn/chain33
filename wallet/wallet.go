@@ -1744,7 +1744,7 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrInputPara
 	}
 
-	if token.ValidSymbol([]byte(reqTokenPrcCreate.GetSymbol())) == false {
+	if token.ValidSymbolWithHeight([]byte(reqTokenPrcCreate.GetSymbol()), wallet.lastHeight) == false {
 		walletlog.Error("procTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper
 	}
