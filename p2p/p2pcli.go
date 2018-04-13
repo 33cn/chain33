@@ -424,7 +424,7 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 			return
 		case block := <-bChan:
 			newmsg := m.network.node.nodeInfo.client.NewMessage("blockchain", pb.EventAddBlock, block)
-			m.network.node.nodeInfo.client.SendAsyn(newmsg, false)
+			m.network.node.nodeInfo.client.SendTimeout(newmsg, false, 60*time.Second)
 			i++
 			if i == len(MaxInvs.GetInvs()) {
 				return
