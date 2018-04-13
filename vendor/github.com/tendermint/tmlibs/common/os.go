@@ -50,11 +50,12 @@ func TrapSignal(cb func()) {
 	select {}
 }
 
+// db test
 // Kill the running process by sending itself SIGTERM
-func Kill() error {
-	pid := os.Getpid()
-	return syscall.Kill(pid, syscall.SIGTERM)
-}
+//func Kill() error {
+//	pid := os.Getpid()
+//	return syscall.Kill(pid, syscall.SIGTERM)
+//}
 
 func Exit(s string) {
 	fmt.Printf(s + "\n")

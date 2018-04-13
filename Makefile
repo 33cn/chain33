@@ -48,7 +48,7 @@ race: dep ## Run data race detector
 	@go test -race -short ./...
 
 test: ## Run unittests
-	@go test -short -v ./...
+	@go test -parallel 1 -race $(shell go list ./... | grep -v "vendor" | grep -v "chain33/test")
 
 fmt: ## go fmt
 	@go fmt ./...
@@ -71,10 +71,12 @@ coverhtml: ## Generate global code coverage report in HTML
 docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
+DATADIR:=find . -name 'datadir' -not -path "./vendor/*"
 clean: ## Remove previous build
-	@rm -rf build/datadir
+	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
 	@rm -rf build/chain33*
 	@rm -rf build/*.log
+	@rm -rf build/logs
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
@@ -96,7 +98,7 @@ GOFILES := find . -name '*.go' -not -path "./vendor/*"
 .PHONY: checkgofmt
 checkgofmt: ## get all go files and run go fmt on them
 	@files=$$($(GOFILES) | xargs gofmt -l); if [ -n "$$files" ]; then \
-		  echo "Error: '$(GOFMT)' needs to be run on:"; \
+		  echo "Error: 'make fmt' needs to be run on:"; \
 		  echo "$${files}"; \
 		  exit 1; \
 		  fi;
