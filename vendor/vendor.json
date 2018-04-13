@@ -469,18 +469,6 @@
 			"revisionTime": "2017-10-27T05:02:19Z"
 		},
 		{
-			"checksumSHA1": "rOyY2TETd1m3NZqRBnB6QoSa3pA=",
-			"path": "github.com/tendermint/tmlibs/common",
-			"revision": "d9525c0fb671204450b160807480e1263053fb20",
-			"revisionTime": "2017-10-27T16:05:43Z"
-		},
-		{
-			"checksumSHA1": "IHlTQ0JZGOXvtF/VoEONoCCopCE=",
-			"path": "github.com/tendermint/tmlibs/log",
-			"revision": "d9525c0fb671204450b160807480e1263053fb20",
-			"revisionTime": "2017-10-27T16:05:43Z"
-		},
-		{
 			"checksumSHA1": "D34ZqOW907kHAGTRU6lmxJs1ToU=",
 			"path": "go4.org/syncutil/singleflight",
 			"revision": "034d17a462f7b2dcd1a4a73553ec5357ff6e6c6e",
