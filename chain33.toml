@@ -63,10 +63,6 @@ name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 
-[localstore]
-driver="leveldb"
-dbPath="datadir/mavltree"
-
 [wallet]
 minFee=100000
 driver="leveldb"
