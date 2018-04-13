@@ -16,7 +16,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const testReadLimit = 1 << 20 // Some reasonable limit for wire.Read*() lmt
 const (
 	strChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" // 62 characters
 )
@@ -449,7 +448,7 @@ func TestSetAndGetKVPair(t *testing.T) {
 
 	records2 := make(map[string]string)
 
-	for i := 0; i < total; i++ {
+	for j := 0; j < total; j++ {
 		records2[randstr(20)] = randstr(20)
 	}
 	i = 0

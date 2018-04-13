@@ -4,7 +4,6 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
-	"math/rand"
 	"testing"
 
 	//. "github.com/smartystreets/goconvey/convey"
@@ -15,8 +14,6 @@ import (
 	//"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var random *rand.Rand
 
 var toAddr string
 var returnAddr string

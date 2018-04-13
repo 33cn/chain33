@@ -12,8 +12,9 @@ import (
 )
 
 var tlog = log.New("module", "ticket.db")
-var genesisKey = []byte("mavl-acc-genesis")
-var addrSeed = []byte("address seed bytes for public key")
+
+//var genesisKey = []byte("mavl-acc-genesis")
+//var addrSeed = []byte("address seed bytes for public key")
 
 type DB struct {
 	types.Ticket
