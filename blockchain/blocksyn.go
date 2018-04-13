@@ -29,8 +29,8 @@ var (
 	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
 	MaxRollBlockNum         int64 = 5000   //最大回退block数量
 	//blockSynInterVal              = time.Duration(TimeoutSeconds)
-	checkBlockNum           int64 = 128
-	batchsyncblocknum       int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
+	checkBlockNum     int64 = 128
+	batchsyncblocknum int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
 
 	synlog = chainlog.New("submodule", "syn")
 )
