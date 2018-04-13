@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -25,6 +26,7 @@ type P2p struct {
 	txFactory    chan struct{}
 	otherFactory chan struct{}
 	closed       int32
+	wg           sync.WaitGroup
 }
 
 func New(cfg *types.P2P) *P2p {
@@ -48,6 +50,7 @@ func (network *P2p) IsClose() bool {
 
 func (network *P2p) Close() {
 	atomic.StoreInt32(&network.closed, 1)
+	network.wg.Wait()
 	log.Debug("close", "network", "ShowTaskCapcity done")
 	network.node.Close()
 	log.Debug("close", "node", "done")
@@ -139,6 +142,8 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 }
 
 func (network *P2p) subP2pMsg() {
+	network.wg.Add(1)
+	defer network.wg.Done()
 	if network.client == nil {
 		return
 	}
