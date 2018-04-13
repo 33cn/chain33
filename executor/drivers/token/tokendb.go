@@ -2,10 +2,10 @@ package token
 
 import (
 	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
 )
 
 type tokenDB struct {
@@ -97,8 +97,8 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	} else if token.GetTotal() > types.MaxTokenBalance || token.GetTotal() <= 0 {
 		return nil, types.ErrTokenTotalOverflow
 	}
-	upSymbol := strings.ToUpper(token.GetSymbol())
-	if upSymbol != token.GetSymbol() {
+
+	if ValidSymbol([]byte(token.GetSymbol())) == false {
 		tokenlog.Error("token precreate ", "symbol need be upper", token.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper
 	}
@@ -310,13 +310,13 @@ func GetTokenAssetsKey(addr string, db dbm.KVDB) (*types.ReplyStrings, error) {
 
 func QueryTokenAssetsKey(addr string, db dbm.DB) (*types.ReplyStrings, error) {
 	key := CalcTokenAssetsKey(addr)
-	value := db.Get(key)
-	if value == nil {
+	value, err := db.Get(key)
+	if value == nil || err != nil {
 		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
 		return nil, types.ErrNotFound
 	}
 	var assets types.ReplyStrings
-	err := types.Decode(value, &assets)
+	err = types.Decode(value, &assets)
 	if err != nil {
 		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
 		return nil, err
@@ -351,4 +351,18 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 func inBlacklist(symbol, key string, db dbm.KVDB) (bool, error) {
 	found, err := validOperator(symbol, types.ConfigKey(key), db)
 	return found, err
+}
+
+func IsUpperChar(a byte) bool {
+	res := (a <= 'Z' && a >= 'A')
+	return res
+}
+
+func ValidSymbol(cs []byte) bool {
+	for _, c := range cs {
+		if IsUpperChar(c) == false {
+			return false
+		}
+	}
+	return true
 }

@@ -1,7 +1,10 @@
 before_script:
-    - export GO_PROJECT_PATH="$GOPATH/src/gitlab.33.cn/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
+    - export GO_PROJECT_NAMESPACE="$GOPATH/src/gitlab.33.cn/$CI_PROJECT_NAMESPACE"
+    - echo $GO_PROJECT_NAMESPACE
+    - mkdir -p $GO_PROJECT_NAMESPACE
+    - ln -srf $(pwd) $GO_PROJECT_NAMESPACE
+    - export GO_PROJECT_PATH="$GO_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
     - echo $GO_PROJECT_PATH
-    - mkdir -p $GO_PROJECT_PATH
     - cd $GO_PROJECT_PATH
     - make clean
 
@@ -38,9 +41,10 @@ go_test:
     tags:
         - 33cn
     script:
-        - go test -race $(go list ./... | grep -v "vendor" | grep -v "rpc" | grep -v "p2p")
+#        - go test $(go list ./... | grep  "mempool")
+        - go test -parallel 1 -race $(go list ./... | grep -v "vendor" | grep -v "chain33/test")
         - cd ~
-        - rm -rf $GO_PROJECT_PATH
+#        - rm -rf $GO_PROJECT_PATH
 #go_vet:
 #    stage: test
 #    script:
