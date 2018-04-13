@@ -43,12 +43,14 @@ func init() {
 	log.SetLogLevel("info")
 }
 func TestPbft(t *testing.T) {
-	q, chain, p2pnet, s, mem := initEnvPbft()
+	q, chain, _, s, mem, exec, cs := initEnvPbft()
 	defer chain.Close()
-	defer s.Close()
-	defer q.Close()
-	defer p2pnet.Close()
 	defer mem.Close()
+	//defer p2pnet.Close()
+	defer exec.Close()
+	defer s.Close()
+	defer cs.Close()
+	defer q.Close()
 
 	time.Sleep(5 * time.Second)
 
@@ -56,12 +58,14 @@ func TestPbft(t *testing.T) {
 
 }
 
-func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool) {
+func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool, queue.Module, *PbftClient) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
+	mem := mempool.New(cfg.MemPool)
+	mem.SetQueueClient(q.Client())
 	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
@@ -72,9 +76,7 @@ func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module,
 	p2pnet := p2p.New(cfg.P2P)
 	p2pnet.SetQueueClient(q.Client())
 
-	mem := mempool.New(cfg.MemPool)
-	mem.SetQueueClient(q.Client())
-	return q, chain, p2pnet, s, mem
+	return q, chain, p2pnet, s, mem, exec, cs
 
 }
 
@@ -89,6 +91,7 @@ func sendReplyList(q queue.Queue) {
 			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
 				&types.ReplyTxList{transactions}))
 			if count == 5 {
+				time.Sleep(5 * time.Second)
 				break
 			}
 		}
