@@ -4,11 +4,8 @@ import (
 	"bytes"
 
 	"github.com/golang/protobuf/proto"
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var nodelog = log.New("module", "mptnode")
 
 // merkle avl Node
 type Node struct {

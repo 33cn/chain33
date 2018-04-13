@@ -23,13 +23,14 @@ import (
 )
 
 var (
-	minFee            int64 = types.MinFee
+	minFee                  = types.MinFee
 	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
-	SignType          int   = 1 //1；secp256k1，2：ed25519，3：sm2
-	accountdb               = account.NewCoinsAccount()
-	accTokenMap             = make(map[string]*account.DB)
+	// 1；secp256k1，2：ed25519，3：sm2
+	SignType    = 1
+	accountdb   = account.NewCoinsAccount()
+	accTokenMap = make(map[string]*account.DB)
 )
 
 type Wallet struct {
@@ -47,7 +48,7 @@ type Wallet struct {
 	EncryptFlag    int64
 	miningTicket   *time.Ticker
 	wg             *sync.WaitGroup
-	walletStore    *WalletStore
+	walletStore    *Store
 	random         *rand.Rand
 	done           chan struct{}
 }
@@ -64,7 +65,7 @@ func DisableLog() {
 func New(cfg *types.Wallet) *Wallet {
 	//walletStore
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, 16)
-	walletStore := NewWalletStore(walletStoreDB)
+	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
 	if "secp256k1" == cfg.SignType {
 		SignType = 1

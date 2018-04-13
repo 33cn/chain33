@@ -36,7 +36,7 @@ func LastMempoolTxsCmd() *cobra.Command {
 
 func lastMempoolTxs(cmd *cobra.Command, args []string) {
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
-	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
