@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	CHECKPOINT_PERIOD uint64 = 128
-	CONSTANT_FACTOR   uint64 = 2
+	CHECKPOINT_PERIOD uint32 = 128
+	CONSTANT_FACTOR   uint32 = 2
 )
 
 //var plog = log.New("module", "Pbft")
@@ -17,12 +17,12 @@ const (
 type Replica struct {
 	ln net.Listener
 
-	ID       uint64
-	replicas map[uint64]string
+	ID       uint32
+	replicas map[uint32]string
 
 	activeView bool
-	view       uint64
-	sequence   uint64
+	view       uint32
+	sequence   uint32
 
 	requestChan chan *pb.Request
 	replyChan   chan *pb.ClientReply
@@ -37,16 +37,16 @@ type Replica struct {
 
 	pendingVC []*pb.Request
 
-	executed    []uint64
+	executed    []uint32
 	checkpoints []*pb.Checkpoint
 }
 
-func NewReplica(id uint64, PeersURL string, addr string) (chan *pb.ClientReply, chan *pb.Request, bool) {
+func NewReplica(id uint32, PeersURL string, addr string) (chan *pb.ClientReply, chan *pb.Request, bool) {
 	replyChan := make(chan *pb.ClientReply)
 	requestChan := make(chan *pb.Request)
 	pn := &Replica{
 		ID:          id,
-		replicas:    make(map[uint64]string),
+		replicas:    make(map[uint32]string),
 		activeView:  true,
 		view:        1,
 		sequence:    0,
@@ -58,13 +58,13 @@ func NewReplica(id uint64, PeersURL string, addr string) (chan *pb.ClientReply, 
 		doneChan:    make(chan string),
 		lastReply:   nil,
 		pendingVC:   make([]*pb.Request, 10),
-		executed:    make([]uint64, 10),
+		executed:    make([]uint32, 10),
 		//checkpoints: make([]*pb.Checkpoint,10),
 
 	}
 	peers := strings.Split(PeersURL, ",")
 	for num, peer := range peers {
-		pn.replicas[uint64(num)] = peer
+		pn.replicas[uint32(num)] = peer
 	}
 	pn.checkpoints = []*pb.Checkpoint{pb.ToCheckpoint(0, []byte(""))}
 
@@ -77,7 +77,7 @@ func NewReplica(id uint64, PeersURL string, addr string) (chan *pb.ClientReply, 
 func (rep *Replica) Startnode(addr string) {
 	//log.Println("hello")
 	rep.acceptConnections(addr)
-	/*var operation uint64
+	/*var operation uint32
 	go func(){
 		for   {
 			fmt.Scanf("%d",&operation)
@@ -96,15 +96,15 @@ func (rep *Replica) Startnode(addr string) {
 
 // Basic operations
 
-func (rep *Replica) primary() uint64 {
-	return rep.view % uint64(len(rep.replicas)+1)
+func (rep *Replica) primary() uint32 {
+	return rep.view % uint32(len(rep.replicas)+1)
 }
 
-func (rep *Replica) newPrimary(view uint64) uint64 {
-	return view % uint64(len(rep.replicas)+1)
+func (rep *Replica) newPrimary(view uint32) uint32 {
+	return view % uint32(len(rep.replicas)+1)
 }
 
-func (rep *Replica) isPrimary(ID uint64) bool {
+func (rep *Replica) isPrimary(ID uint32) bool {
 	return ID == rep.primary()
 }
 
@@ -124,19 +124,19 @@ func (rep *Replica) overTwoThirds(count int) bool {
 	return count > 2*(len(rep.replicas)-1)/3
 }
 
-func (rep *Replica) lowWaterMark() uint64 {
+func (rep *Replica) lowWaterMark() uint32 {
 	return rep.lastStable().Sequence
 }
 
-func (rep *Replica) highWaterMark() uint64 {
+func (rep *Replica) highWaterMark() uint32 {
 	return rep.lowWaterMark() + CHECKPOINT_PERIOD*CONSTANT_FACTOR
 }
 
-func (rep *Replica) sequenceInRange(sequence uint64) bool {
+func (rep *Replica) sequenceInRange(sequence uint32) bool {
 	return sequence > rep.lowWaterMark() && sequence <= rep.highWaterMark()
 }
 
-func (rep *Replica) lastExecuted() uint64 {
+func (rep *Replica) lastExecuted() uint32 {
 	return rep.executed[len(rep.executed)-1]
 }
 
@@ -168,7 +168,7 @@ func (rep *Replica) stateDigest() []byte {
 	return rep.theLastReply().Digest()
 }
 
-func (rep *Replica) isCheckpoint(sequence uint64) bool {
+func (rep *Replica) isCheckpoint(sequence uint32) bool {
 	return sequence%CHECKPOINT_PERIOD == 0
 }
 
@@ -189,6 +189,7 @@ func (rep *Replica) acceptConnections(addr string) {
 		for {
 			// log.Println("start to listen")
 			conn, err := ln.Accept()
+
 			if err != nil {
 				plog.Error("Accept error")
 			}
@@ -432,12 +433,12 @@ func (rep *Replica) hasRequestNewView(REQ *pb.Request) bool {
 }
 
 /*
-func (rep *Replica) clearEntries(sequence uint64) {
+func (rep *Replica) clearEntries(sequence uint32) {
 	go rep.clearPrepared(sequence)
 	go rep.clearPreprepared(sequence)
 }
 
-func (rep *Replica) clearPrepared(sequence uint64) {
+func (rep *Replica) clearPrepared(sequence uint32) {
 	prepared := rep.prepared
 	for idx, entry := range rep.prepared {
 		s := entry.sequence
@@ -448,7 +449,7 @@ func (rep *Replica) clearPrepared(sequence uint64) {
 	rep.prepared = prepared
 }
 
-func (rep *Replica) clearPreprepared(sequence uint64) {
+func (rep *Replica) clearPreprepared(sequence uint32) {
 	prePrepared := rep.prePrepared
 	for idx, entry := range rep.prePrepared {
 		s := entry.sequence
@@ -462,7 +463,7 @@ func (rep *Replica) clearPreprepared(sequence uint64) {
 
 // Clear requests
 
-func (rep *Replica) clearRequestsBySeq(sequence uint64) {
+func (rep *Replica) clearRequestsBySeq(sequence uint32) {
 	rep.clearRequestClients()
 	rep.clearRequestPrepreparesBySeq(sequence)
 	rep.clearRequestPreparesBySeq(sequence)
@@ -482,7 +483,7 @@ func (rep *Replica) clearRequestClients() {
 	rep.requests["client"] = clientReqs
 }
 
-func (rep *Replica) clearRequestPrepreparesBySeq(sequence uint64) {
+func (rep *Replica) clearRequestPrepreparesBySeq(sequence uint32) {
 	prePrepares := rep.requests["pre-prepare"]
 	for idx, req := range rep.requests["pre-prepare"] {
 		s := req.GetPreprepare().Sequence
@@ -493,7 +494,7 @@ func (rep *Replica) clearRequestPrepreparesBySeq(sequence uint64) {
 	rep.requests["pre-prepare"] = prePrepares
 }
 
-func (rep *Replica) clearRequestPreparesBySeq(sequence uint64) {
+func (rep *Replica) clearRequestPreparesBySeq(sequence uint32) {
 	prepares := rep.requests["prepare"]
 	for idx, req := range rep.requests["prepare"] {
 		s := req.GetPrepare().Sequence
@@ -504,7 +505,7 @@ func (rep *Replica) clearRequestPreparesBySeq(sequence uint64) {
 	rep.requests["prepare"] = prepares
 }
 
-func (rep *Replica) clearRequestCommitsBySeq(sequence uint64) {
+func (rep *Replica) clearRequestCommitsBySeq(sequence uint32) {
 	commits := rep.requests["commit"]
 	for idx, req := range rep.requests["commit"] {
 		s := req.GetCommit().Sequence
@@ -515,7 +516,7 @@ func (rep *Replica) clearRequestCommitsBySeq(sequence uint64) {
 	rep.requests["commit"] = commits
 }
 
-func (rep *Replica) clearRequestCheckpointsBySeq(sequence uint64) {
+func (rep *Replica) clearRequestCheckpointsBySeq(sequence uint32) {
 	checkpoints := rep.requests["checkpoint"]
 	for idx, req := range rep.requests["checkpoint"] {
 		s := req.GetCheckpoint().Sequence
@@ -526,14 +527,14 @@ func (rep *Replica) clearRequestCheckpointsBySeq(sequence uint64) {
 	rep.requests["checkpoint"] = checkpoints
 }
 
-func (rep *Replica) clearRequestsByView(view uint64) {
+func (rep *Replica) clearRequestsByView(view uint32) {
 	rep.clearRequestPrepreparesByView(view)
 	rep.clearRequestPreparesByView(view)
 	rep.clearRequestCommitsByView(view)
 	//add others
 }
 
-func (rep *Replica) clearRequestPrepreparesByView(view uint64) {
+func (rep *Replica) clearRequestPrepreparesByView(view uint32) {
 	prePrepares := rep.requests["pre-prepare"]
 	for idx, req := range rep.requests["pre-prepare"] {
 		v := req.GetPreprepare().View
@@ -544,7 +545,7 @@ func (rep *Replica) clearRequestPrepreparesByView(view uint64) {
 	rep.requests["pre-prepare"] = prePrepares
 }
 
-func (rep *Replica) clearRequestPreparesByView(view uint64) {
+func (rep *Replica) clearRequestPreparesByView(view uint32) {
 	prepares := rep.requests["prepare"]
 	for idx, req := range rep.requests["prepare"] {
 		v := req.GetPrepare().View
@@ -555,7 +556,7 @@ func (rep *Replica) clearRequestPreparesByView(view uint64) {
 	rep.requests["prepare"] = prepares
 }
 
-func (rep *Replica) clearRequestCommitsByView(view uint64) {
+func (rep *Replica) clearRequestCommitsByView(view uint32) {
 	commits := rep.requests["commit"]
 	for idx, req := range rep.requests["commit"] {
 		v := req.GetCommit().View
@@ -1087,7 +1088,7 @@ func (rep *Replica) correctViewChanges(viewChanges []*pb.ViewChange) (requests [
 	}
 
 	if rep.isPrimary(rep.ID) {
-		reps := make(map[uint64]int)
+		reps := make(map[uint32]int)
 		valid = false
 		for _, req := range rep.requests["ack"] {
 			reqAck := req.GetAck()
@@ -1109,9 +1110,9 @@ func (rep *Replica) correctSummaries(requests []*pb.Request, summaries []*pb.Sum
 
 	// Verify SUMMARIES
 
-	var start uint64
+	var start uint32
 	var digest []byte
-	digests := make(map[uint64][]byte)
+	digests := make(map[uint32][]byte)
 
 	for _, summary := range summaries {
 		s := summary.Sequence
@@ -1121,7 +1122,7 @@ func (rep *Replica) correctSummaries(requests []*pb.Request, summaries []*pb.Sum
 		} else if !ok {
 			digests[s] = d
 		}
-		if s < start || start == uint64(0) {
+		if s < start || start == uint32(0) {
 			start = s
 			digest = d
 		}
@@ -1168,7 +1169,7 @@ func (rep *Replica) correctSummaries(requests []*pb.Request, summaries []*pb.Sum
 
 			if summary.Digest != nil {
 
-				var view uint64
+				var view uint32
 
 				for _, req := range requests {
 					reqViewChange := req.GetViewchange()
@@ -1319,16 +1320,16 @@ func (rep *Replica) processNewView(REQ *pb.Request) (success bool) {
 		return
 	}
 
-	var h uint64
+	var h uint32
 	for _, checkpoint := range rep.checkpoints {
-		if checkpoint.Sequence < h || h == uint64(0) {
+		if checkpoint.Sequence < h || h == uint32(0) {
 			h = checkpoint.Sequence
 		}
 	}
 
-	var s uint64
+	var s uint32
 	for _, summary := range summaries {
-		if summary.Sequence < s || s == uint64(0) {
+		if summary.Sequence < s || s == uint32(0) {
 			s = summary.Sequence
 		}
 		if summary.Sequence > h {
@@ -1390,7 +1391,7 @@ func (rep *Replica) processNewView(REQ *pb.Request) (success bool) {
 		}
 	}
 
-	var maxSequence uint64
+	var maxSequence uint32
 	for _, req := range rep.requests["pre-prepare"] {
 		reqPrePrepare := req.GetPreprepare()
 		if reqPrePrepare.Sequence > maxSequence {
@@ -1401,8 +1402,8 @@ func (rep *Replica) processNewView(REQ *pb.Request) (success bool) {
 	return true
 }
 
-func (rep *Replica) prePrepBySequence(sequence uint64) []*pb.Entry {
-	var view uint64
+func (rep *Replica) prePrepBySequence(sequence uint32) []*pb.Entry {
+	var view uint32
 	var requests []*pb.Request
 	for _, req := range rep.requests["pre-prepare"] {
 		v := req.GetPreprepare().View
@@ -1437,7 +1438,7 @@ FOR_LOOP:
 	return prePreps
 }
 
-func (rep *Replica) prepBySequence(sequence uint64) ([]*pb.Entry, []*pb.Entry) {
+func (rep *Replica) prepBySequence(sequence uint32) ([]*pb.Entry, []*pb.Entry) {
 
 	prePreps := rep.prePrepBySequence(sequence)
 
@@ -1453,7 +1454,7 @@ FOR_LOOP:
 		view := prePrep.View
 		digest := prePrep.Digest
 
-		replicas := make(map[uint64]int)
+		replicas := make(map[uint32]int)
 		for _, req := range rep.requests["prepare"] {
 			reqPrepare := req.GetPrepare()
 			v := reqPrepare.View
@@ -1476,9 +1477,9 @@ FOR_LOOP:
 }
 
 /*
-func (rep *Replica) prepBySequence(sequence uint64) *pb.Entry {
+func (rep *Replica) prepBySequence(sequence uint32) *pb.Entry {
 	var REQ *pb.Request
-	var view uint64
+	var view uint32
 	// Looking for a commit that
 	// replica sent with sequence#
 	for _, req := range rep.requests["commit"] {
@@ -1497,9 +1498,9 @@ func (rep *Replica) prepBySequence(sequence uint64) *pb.Entry {
 	return entry
 }
 
-func (rep *Replica) prePrepBySequence(sequence uint64) *pb.Entry {
+func (rep *Replica) prePrepBySequence(sequence uint32) *pb.Entry {
 	var REQ *pb.Request
-	var view uint64
+	var view uint32
 	// Looking for prepare/pre-prepare that
 	// replica sent with matching sequence
 	for _, req := range rep.requests["pre-prepare"] {
@@ -1535,7 +1536,7 @@ func (rep *Replica) prePrepBySequence(sequence uint64) *pb.Entry {
 }
 */
 
-func (rep *Replica) requestViewChange(view uint64) {
+func (rep *Replica) requestViewChange(view uint32) {
 
 	if view != rep.view+1 {
 		return
@@ -1578,7 +1579,7 @@ func (rep *Replica) requestViewChange(view uint64) {
 	rep.clearRequestsByView(view)
 }
 
-func (rep *Replica) createNewView(view uint64) (request *pb.Request) {
+func (rep *Replica) createNewView(view uint32) (request *pb.Request) {
 
 	// Returns RequestNewView if successful, else returns nil
 	// create viewChanges
@@ -1696,7 +1697,7 @@ FOR_LOOP_2:
 	return
 }
 
-func (rep *Replica) requestNewView(view uint64) {
+func (rep *Replica) requestNewView(view uint32) {
 
 	req := rep.createNewView(view)
 

@@ -10,23 +10,23 @@ message Operation {
 }
 
 message Checkpoint {
-	uint64 sequence = 1;
+	uint32 sequence = 1;
 	bytes digest = 2;
 }
 
 message Entry {
-	uint64 sequence = 1;
+	uint32 sequence = 1;
 	bytes digest = 2;
-	uint64 view = 3;
+	uint32 view = 3;
 }
 
 message ViewChange {
-	uint64 viewchanger = 1;
+	uint32 viewchanger = 1;
 	bytes digest = 2;
 }
 
 message Summary {
-	uint64 sequence = 1;
+	uint32 sequence = 1;
 	bytes digest = 2;
 }
 
@@ -58,58 +58,58 @@ message RequestClient {
 }
 
 message RequestPrePrepare {
-	uint64 view = 1;
-	uint64 sequence = 2;
+	uint32 view = 1;
+	uint32 sequence = 2;
 	bytes digest = 3;
-	uint64 replica = 4;
+	uint32 replica = 4;
 }
 
 message RequestPrepare {
-	uint64 view = 1;
-	uint64 sequence = 2;
+	uint32 view = 1;
+	uint32 sequence = 2;
 	bytes digest = 3;
-	uint64 replica = 4;
+	uint32 replica = 4;
 } 
 
 message RequestCommit {
-	uint64 view = 1;
-	uint64 sequence = 2;
-	uint64 replica = 3;
+	uint32 view = 1;
+	uint32 sequence = 2;
+	uint32 replica = 3;
 }
 
 message RequestCheckpoint {
-	uint64 sequence = 1;
+	uint32 sequence = 1;
 	bytes digest = 2;
-	uint64 replica = 3;
+	uint32 replica = 3;
 }
 
 message RequestViewChange {
-	uint64 view = 1;
-	uint64 sequence = 2;
+	uint32 view = 1;
+	uint32 sequence = 2;
 	repeated Checkpoint checkpoints = 3;
 	repeated Entry preps = 4;
 	repeated Entry prepreps = 5;
-	uint64 replica = 6; 
+	uint32 replica = 6; 
 }
 
 message RequestAck {
-	uint64 view = 1;
-	uint64 replica = 2;
-	uint64 viewchanger = 3;
+	uint32 view = 1;
+	uint32 replica = 2;
+	uint32 viewchanger = 3;
 	bytes digest = 4;
 }
 
 message RequestNewView {
-	uint64 view = 1;
+	uint32 view = 1;
 	repeated ViewChange viewchanges = 2;
 	repeated Summary summaries = 4;
-	uint64 replica = 5;
+	uint32 replica = 5;
 }
 
 message ClientReply {
-	uint64 view = 1;
+	uint32 view = 1;
 	string timestamp = 2;
 	string client = 3;
-	uint64 replica = 4;
+	uint32 replica = 4;
 	Result result = 5;
 }

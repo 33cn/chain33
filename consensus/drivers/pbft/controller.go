@@ -14,7 +14,7 @@ func NewPbft(cfg *pb.Consensus) *PbftClient {
 		plog.Error("nodeid or ip error")
 	}
 	var c *PbftClient
-	replyChan, requestChan, isPrimary := NewReplica(uint64(cfg.NodeId), cfg.PeersURL, cfg.ClientAddr)
+	replyChan, requestChan, isPrimary := NewReplica(uint32(cfg.NodeId), cfg.PeersURL, cfg.ClientAddr)
 	c = NewBlockstore(cfg, replyChan, requestChan, isPrimary)
 	return c
 }

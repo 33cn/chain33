@@ -23,25 +23,25 @@ func EQ(d1 []byte, d2 []byte) bool {
 
 // Checkpoint
 
-func ToCheckpoint(sequence uint64, digest []byte) *Checkpoint {
+func ToCheckpoint(sequence uint32, digest []byte) *Checkpoint {
 	return &Checkpoint{sequence, digest}
 }
 
 // Entry
 
-func ToEntry(sequence uint64, digest []byte, view uint64) *Entry {
+func ToEntry(sequence uint32, digest []byte, view uint32) *Entry {
 	return &Entry{sequence, digest, view}
 }
 
 // ViewChange
 
-func ToViewChange(viewchanger uint64, digest []byte) *ViewChange {
+func ToViewChange(viewchanger uint32, digest []byte) *ViewChange {
 	return &ViewChange{viewchanger, digest}
 }
 
 // Summary
 
-func ToSummary(sequence uint64, digest []byte) *Summary {
+func ToSummary(sequence uint32, digest []byte) *Summary {
 	return &Summary{sequence, digest}
 }
 
@@ -54,49 +54,49 @@ func ToRequestClient(op *Operation, timestamp, client string) *Request {
 	}
 }
 
-func ToRequestPreprepare(view, sequence uint64, digest []byte, replica uint64) *Request {
+func ToRequestPreprepare(view, sequence uint32, digest []byte, replica uint32) *Request {
 	return &Request{
 		Value: &Request_Preprepare{
 			&RequestPrePrepare{view, sequence, digest, replica}},
 	}
 }
 
-func ToRequestPrepare(view, sequence uint64, digest []byte, replica uint64) *Request {
+func ToRequestPrepare(view, sequence uint32, digest []byte, replica uint32) *Request {
 	return &Request{
 		Value: &Request_Prepare{
 			&RequestPrepare{view, sequence, digest, replica}},
 	}
 }
 
-func ToRequestCommit(view, sequence, replica uint64) *Request {
+func ToRequestCommit(view, sequence, replica uint32) *Request {
 	return &Request{
 		Value: &Request_Commit{
 			&RequestCommit{view, sequence, replica}},
 	}
 }
 
-func ToRequestCheckpoint(sequence uint64, digest []byte, replica uint64) *Request {
+func ToRequestCheckpoint(sequence uint32, digest []byte, replica uint32) *Request {
 	return &Request{
 		Value: &Request_Checkpoint{
 			&RequestCheckpoint{sequence, digest, replica}},
 	}
 }
 
-func ToRequestViewChange(view, sequence uint64, checkpoints []*Checkpoint, preps, prePreps []*Entry, replica uint64) *Request {
+func ToRequestViewChange(view, sequence uint32, checkpoints []*Checkpoint, preps, prePreps []*Entry, replica uint32) *Request {
 	return &Request{
 		Value: &Request_Viewchange{
 			&RequestViewChange{view, sequence, checkpoints, preps, prePreps, replica}},
 	}
 }
 
-func ToRequestAck(view, replica, viewchanger uint64, digest []byte) *Request {
+func ToRequestAck(view, replica, viewchanger uint32, digest []byte) *Request {
 	return &Request{
 		Value: &Request_Ack{
 			&RequestAck{view, replica, viewchanger, digest}},
 	}
 }
 
-func ToRequestNewView(view uint64, viewChanges []*ViewChange, summaries []*Summary, replica uint64) *Request {
+func ToRequestNewView(view uint32, viewChanges []*ViewChange, summaries []*Summary, replica uint32) *Request {
 	return &Request{
 		Value: &Request_Newview{
 			&RequestNewView{view, viewChanges, summaries, replica}},
@@ -113,7 +113,7 @@ func (req *Request) Digest() []byte {
 	return bytes[:]
 }
 
-func (req *Request) LowWaterMark() uint64 {
+func (req *Request) LowWaterMark() uint32 {
 	// only for requestViewChange
 	reqViewChange := req.GetViewchange()
 	checkpoints := reqViewChange.GetCheckpoints()
@@ -124,7 +124,7 @@ func (req *Request) LowWaterMark() uint64 {
 
 // Reply
 
-func ToReply(view uint64, timestamp, client string, replica uint64, result *Result) *ClientReply {
+func ToReply(view uint32, timestamp, client string, replica uint32, result *Result) *ClientReply {
 	return &ClientReply{view, timestamp, client, replica, result}
 }
 
