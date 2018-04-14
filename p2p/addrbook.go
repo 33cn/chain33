@@ -293,7 +293,6 @@ func (a *AddrBook) AddAddress(addr *NetAddress) {
 
 	ka := newKnownAddress(addr)
 	a.addrPeer[ka.Addr.String()] = ka
-	return
 }
 
 func (a *AddrBook) RemoveAddr(peeraddr string) {
