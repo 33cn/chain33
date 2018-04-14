@@ -189,8 +189,7 @@ func bindMiner(cmd *cobra.Command, args []string) {
 	execer := []byte("ticket")
 	to := account.ExecAddress(string(execer)).String()
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	var random *rand.Rand
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
