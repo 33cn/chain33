@@ -29,7 +29,6 @@ func (n *Node) Start() {
 
 func (n *Node) Close() {
 	atomic.StoreInt32(&n.closed, 1)
-	log.Debug("stop", "versionDone", "closed")
 	if n.l != nil {
 		n.l.Close()
 	}
