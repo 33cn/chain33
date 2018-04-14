@@ -74,7 +74,7 @@ func InnerNodeProofHash(childHash []byte, branch *types.InnerNode) []byte {
 
 func (node *Node) constructProof(t *Tree, key []byte, valuePtr *[]byte, proof *Proof) (exists bool) {
 	if node.height == 0 {
-		if bytes.Compare(node.key, key) == 0 {
+		if bytes.Equal(node.key, key) {
 			*valuePtr = node.value
 			proof.LeafHash = node.hash
 			return true

@@ -62,8 +62,7 @@ func Test_RandSendTransactionBench(t *testing.T) {
 	flag.Parse()
 	fmt.Println("*thread:", *thread, "count:", *n)
 	var accounts = []string{"xiaoming", "xiaowang", "xiaoli", "xiaosi", "zhangsan", "wang2", "xiaohe", "liangliang", "bobo", "shuoshuo"}
-	var times int
-	times = *n
+	times := *n
 	var chans = make(chan bool, *thread)
 	for i := 0; i < *thread; i++ {
 		go func(n, threadnum int) {

@@ -50,7 +50,6 @@ func TestExecHashlock(t *testing.T) {
 	if !CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 //timelimit
@@ -68,7 +67,6 @@ func TestExecHashunlock(t *testing.T) {
 	if CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 func TestExecHashsend(t *testing.T) {
@@ -85,7 +83,6 @@ func TestExecHashsend(t *testing.T) {
 	if !CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 func constructHashlockInstance() *Hashlock {
