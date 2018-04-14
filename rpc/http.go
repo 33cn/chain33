@@ -38,7 +38,7 @@ func (j *JSONRPCServer) Listen() {
 	// Insert the middleware
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		if checkWhitlist(strings.Split(r.RemoteAddr, ":")[0]) == false {
+		if !checkWhitlist(strings.Split(r.RemoteAddr, ":")[0]) {
 			w.Write([]byte(`{"errcode":"-1","result":null,"msg":"reject"}`))
 			return
 		}
