@@ -7,12 +7,8 @@ import (
 )
 
 type Action struct {
-	coinsAccount *account.DB
-	db           dbm.KV
-	txhash       []byte
-	fromaddr     string
-	blocktime    int64
-	height       int64
+	db       dbm.KV
+	fromaddr string
 }
 
 func NewAction(m *Manage, tx *types.Transaction) *Action {

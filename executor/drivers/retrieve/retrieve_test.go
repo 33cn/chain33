@@ -17,15 +17,15 @@ import (
 	"google.golang.org/grpc"
 )
 
-var conn *grpc.ClientConn
-var r *rand.Rand
-var c types.GrpcserviceClient
-var ErrTest = errors.New("ErrTest")
-
-var addrexec *account.Address
-
-var delayLevel1 = minPeriod + 10
-var delayLevel2 = 5*minPeriod + 10
+var (
+	conn        *grpc.ClientConn
+	r           *rand.Rand
+	c           types.GrpcserviceClient
+	ErrTest     = errors.New("ErrTest")
+	addrexec    *account.Address
+	delayLevel1 = minPeriod + 10
+	delayLevel2 = 5*minPeriod + 10
+)
 
 //account:b will be used as backup for both acc A & B in this test
 const (
@@ -266,7 +266,6 @@ func estRetrievePrepare(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	return
 }
 
 func estRetrievePerform(t *testing.T) {
