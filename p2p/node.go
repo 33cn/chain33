@@ -24,7 +24,6 @@ func (n *Node) Start() {
 	n.detectNodeAddr()
 	go n.doNat()
 	go n.monitor()
-	return
 }
 
 func (n *Node) Close() {
@@ -92,7 +91,7 @@ func (n *Node) natOk() bool {
 
 func (n *Node) doNat() {
 	go n.natMapPort()
-	if OutSide == false && n.nodeInfo.cfg.GetServerStart() { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
+	if !OutSide && n.nodeInfo.cfg.GetServerStart() { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.natOk() {
 			Service -= nodeNetwork //nat 失败，不对外提供服务
@@ -108,8 +107,6 @@ func (n *Node) doNat() {
 	if selefNet, err := NewNetAddressString(fmt.Sprintf("127.0.0.1:%v", n.nodeInfo.GetListenAddr().Port)); err == nil {
 		n.nodeInfo.addrBook.AddOurAddress(selefNet)
 	}
-
-	return
 }
 
 func (n *Node) AddPeer(pr *peer) {
@@ -125,8 +122,6 @@ func (n *Node) AddPeer(pr *peer) {
 	log.Debug("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
 	pr.Start()
-	return
-
 }
 
 func (n *Node) Size() int {
@@ -189,10 +184,7 @@ func (n *Node) Remove(peerAddr string) {
 		delete(n.outBound, peerAddr)
 		peer.Close()
 		peer = nil
-		return
 	}
-
-	return
 }
 
 func (n *Node) RemoveAll() {
@@ -203,7 +195,6 @@ func (n *Node) RemoveAll() {
 		peer.Close()
 		peer = nil
 	}
-	return
 }
 
 func (n *Node) monitor() {
@@ -219,10 +210,7 @@ func (n *Node) monitor() {
 
 func (n *Node) needMore() bool {
 	outBoundNum := n.Size()
-	if outBoundNum > maxOutBoundNum || outBoundNum > stableBoundNum {
-		return false
-	}
-	return true
+	return !(outBoundNum > maxOutBoundNum || outBoundNum > stableBoundNum)
 }
 
 func (n *Node) detectNodeAddr() {
@@ -269,7 +257,7 @@ func (n *Node) detectNodeAddr() {
 		var externaladdr string
 		var externalPort int
 
-		if cfg.GetIsSeed() == true || OutSide == true {
+		if cfg.GetIsSeed() || OutSide {
 			externalPort = defaultPort
 		} else {
 			exportBytes, _ := n.nodeInfo.addrBook.bookDb.Get([]byte(externalPortTag))
@@ -300,7 +288,7 @@ func (n *Node) detectNodeAddr() {
 }
 
 func (n *Node) natMapPort() {
-	if OutSide == true || n.nodeInfo.cfg.GetServerStart() == false { //在外网或者关闭p2p server 的节点不需要映射端口
+	if OutSide || !n.nodeInfo.cfg.GetServerStart() { //在外网或者关闭p2p server 的节点不需要映射端口
 		return
 	}
 	n.waitForNat()
@@ -356,5 +344,4 @@ func (n *Node) deleteNatMapPort() {
 
 func (n *Node) waitForNat() {
 	<-n.nodeInfo.natNoticeChain
-	return
 }

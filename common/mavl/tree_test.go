@@ -69,8 +69,7 @@ func b2i(bz []byte) int {
 // 测试set和get功能
 func TestBasic(t *testing.T) {
 	var tree = NewTree(nil, true)
-	var up bool
-	up = tree.Set([]byte("1"), []byte("one"))
+	up := tree.Set([]byte("1"), []byte("one"))
 	if up {
 		t.Error("Did not expect an update (should have been create)")
 	}
