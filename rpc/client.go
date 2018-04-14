@@ -791,3 +791,70 @@ func (c *channelClient) IsNtpClockSync() bool {
 	}
 	return resp.GetData().(*types.IsNtpClockSync).GetIsntpclocksync()
 }
+
+//////////privacy tx//////////////////////////////
+func (c *channelClient) ShowPrivacykey(parm *types.ReqString) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventShowPrivacyPK, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("ShowPrivacykey", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("ShowPrivacykey", "Error", err.Error())
+		return nil, err
+	}
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) MakeTxPublic2privacy(parm *types.ReqPub2Pri) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventPublic2privacy, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("MakeTxPublic2privacy", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("MakeTxPublic2privacy", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("MakeTxPublic2privacy", "result", "send tx successful", "sender", parm.Sender, "note", parm.Note)
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) MakeTxPrivacy2privacy(parm *types.ReqPri2Pri) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventPrivacy2privacy, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("MakeTxPrivacy2privacy", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("MakeTxPrivacy2privacy", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("MakeTxPrivacy2privacy", "result", "send tx successful",
+		"ViewAddr", parm.ViewAddr, "SpendAddr", parm.SpendAddr, "note", parm.Note)
+	return resp.Data.(*types.Reply), nil
+}
+
+func (c *channelClient) MakeTxPrivacy2public(parm *types.ReqPri2Pub) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventPrivacy2public, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("MakeTxPrivacy2public", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("MakeTxPrivacy2public", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("MakeTxPrivacy2public", "result", "send tx successful",
+		    "ViewAddr", parm.ViewAddr, "SpendAddr", parm.SpendAddr,
+			"receiver", parm.Receiver, "note", parm.Note)
+	return resp.Data.(*types.Reply), nil
+}

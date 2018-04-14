@@ -6,9 +6,6 @@
 // Edwards curve that is isomorphic to curve25519. See
 // http://ed25519.cr.yp.to/.
 package edwards25519
-
-import "fmt"
-
 // This code is a port of the public domain, "ref10" implementation of ed25519
 // from SUPERCOP.
 
@@ -783,7 +780,7 @@ func (p *PreComputedGroupElement) Zero() {
 	FeZero(&p.xy2d)
 }
 
-func geAdd(r *CompletedGroupElement, p *ExtendedGroupElement, q *CachedGroupElement) {
+func GeAdd(r *CompletedGroupElement, p *ExtendedGroupElement, q *CachedGroupElement) {
 	var t0 FieldElement
 
 	FeAdd(&r.X, &p.Y, &p.X)
@@ -1781,10 +1778,6 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 //   s[0]+256*s[1]+...+256^31*s[31] = s mod l
 //   where l = 2^252 + 27742317777372353535851937790883648493.
 func ScAdd(out *[32]byte, a, b *[32]byte) {
-	fmt.Printf("***********ScAdd out:%X  \n", out[:])
-	fmt.Printf("***********ScAdd a:%X  \n", a[:])
-	fmt.Printf("***********ScAdd b:%X  \n", b[:])
-
     a0 := 2097151 & load3(a[:])
     a1 := 2097151 & (load4(a[2:]) >> 5)
     a2 := 2097151 & (load3(a[5:]) >> 2)
@@ -2016,10 +2009,6 @@ func ScAdd(out *[32]byte, a, b *[32]byte) {
     out[29] = byte((s11 >> 1))
     out[30] = byte((s11 >> 9))
     out[31] = byte((s11 >> 17))
-	fmt.Printf("***********after ScAdd out:%X  \n", out[:])
-	fmt.Printf("***********ScAdd a:%X  \n", a[:])
-	fmt.Printf("***********ScAdd b:%X  \n", b[:])
-
 }
 
 func signum(a int64) int64 {

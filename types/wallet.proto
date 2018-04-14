@@ -219,3 +219,36 @@ message ReqModifyConfig {
     string value = 3;
     string modifier = 4;
 }
+
+message ReqPub2Pri {
+	string viewPublic  = 1; //接收人可见公钥A
+	string spendPublic = 2; //接收人花费公钥B
+	bool op4token     = 3; //是否进行token的隐私操作
+	string token      = 4;
+	int64 amount      = 5;
+	string note       = 6;
+	string Sender     = 7; //发送人地址
+}
+
+message ReqPri2Pri {
+	string viewPublic  = 1; //A
+	string spendPublic = 2; //B
+	bool op4token     = 3; //是否进行token的隐私操作
+	string token      = 4;
+	int64 amount      = 5;
+	string note       = 6;
+	string viewAddr   = 7; //隐私交易发起人地址
+	string spendAddr  = 8;
+	string txhash     = 9;
+}
+
+message ReqPri2Pub {
+	string receiver   = 1;
+	bool op4token     = 3; //是否进行token的隐私操作
+	string token      = 4;
+	int64 amount      = 5;
+	string note       = 6;
+	string viewAddr   = 7; //隐私交易发起人地址
+	string spendAddr  = 8;
+	string txhash     = 9;
+}

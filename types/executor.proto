@@ -484,3 +484,44 @@ message ReqTokenSellOrder {
 	int32 count        = 3;
 	int32 direction    = 4;
 }
+
+//////////////////////////////////////////////////////////////////////////////
+//message for Privacy start/////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+message PrivacyAction {
+	oneof value {
+		Public2Privacy  public2privacy  = 1;
+		Privacy2Privacy privacy2privacy = 2;
+		Privacy2Public  privacy2public  = 3;
+	}
+	int32 ty = 4;
+}
+
+message Public2Privacy {
+//	bytes viewPublic    = 1; //A
+//	bytes spendPublic   = 2; //B
+	bool op4token       = 3; //是否进行token的隐私操作
+	string token        = 4;
+	int64 amount        = 5;
+	string note         = 6;
+	bytes RpubKeytx     = 7; //txpubkey, rG => R
+    bytes onetimePubKey = 8; //Hs(rA)G + B
+}
+
+message Privacy2Privacy {
+//	bytes viewPublic  = 1; //A
+//	bytes spendPublic = 2; //B
+	bool op4token     = 3; //是否进行token的隐私操作
+	string token      = 4;
+	int64 amount      = 5;
+	string note       = 6;
+    bytes RpubKeytx     = 7; //txpubkey, rG
+    bytes onetimePubKey = 8; //Hs(rA)G + B
+}
+
+message Privacy2Public {
+	bool op4token    = 1;
+	string token     = 2;
+	int64 amount     = 3;
+	string note      = 4;
+}
