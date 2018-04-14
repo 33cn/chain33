@@ -54,7 +54,7 @@ func newP2pServer() *p2pServer {
 func (s *p2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 
 	peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
-	if P2pComm.CheckSign(in) == false {
+	if !P2pComm.CheckSign(in) {
 		log.Error("Ping", "p2p server", "check sig err")
 		return nil, pb.ErrPing
 	}
@@ -115,7 +115,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		log.Debug("Version2", "Addr", peeraddr)
 	}
 
-	if s.checkVersion(in.GetVersion()) == false {
+	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
 
@@ -154,7 +154,7 @@ func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
 
 	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
-	if s.checkVersion(in.GetVersion()) == false {
+	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
 
@@ -184,7 +184,7 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 //服务端查询本地mempool
 func (s *p2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
 	log.Debug("p2pServer Recv GetMempool", "version", in)
-	if s.checkVersion(in.GetVersion()) == false {
+	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
 	memtx, err := s.loadMempool()
@@ -204,7 +204,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 	log.Debug("p2pServer Recv GetDataTx", "p2p version", in.GetVersion())
 	var p2pInvData = make([]*pb.InvData, 0)
 	var count = 0
-	if s.checkVersion(in.GetVersion()) == false {
+	if !s.checkVersion(in.GetVersion()) {
 		return pb.ErrVersion
 	}
 	invs := in.GetInvs()
@@ -273,7 +273,7 @@ func (s *p2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 
 func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
 	log.Debug("p2pServer GetHeaders", "p2p version", in.GetVersion())
-	if s.checkVersion(in.GetVersion()) == false {
+	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
 	if in.GetEndHeight()-in.GetStartHeight() > 2000 || in.GetEndHeight() < in.GetStartHeight() {
@@ -299,7 +299,7 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 
 func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
 	log.Debug("p2pServer GetPeerInfo", "p2p version", in.GetVersion())
-	if s.checkVersion(in.GetVersion()) == false {
+	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
 	client := s.node.nodeInfo.client
@@ -434,7 +434,7 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			hex.Encode(hash[:], tx.GetTx().Hash())
 			txhash := string(hash[:])
 			log.Debug("ServerStreamRead", "txhash:", txhash)
-			if Filter.QueryRecvData(txhash) == true { //同上
+			if Filter.QueryRecvData(txhash) { //同上
 				continue
 			}
 			if tx.GetTx() != nil {
@@ -445,7 +445,7 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
-			if P2pComm.CheckSign(ping) == false {
+			if !P2pComm.CheckSign(ping) {
 				log.Error("ServerStreamRead", "check stream", "check sig err")
 				return pb.ErrStreamPing
 			}
@@ -482,7 +482,7 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
  */
 
 func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
-	if P2pComm.CheckSign(in) == false {
+	if !P2pComm.CheckSign(in) {
 		log.Info("CollectInPeers", "ping", "signatrue err")
 		return nil, pb.ErrPing
 	}
@@ -537,13 +537,9 @@ func (s *p2pServer) manageStream() {
 			if s.IsClose() {
 				return
 			}
-			select {
-			case <-ticker.C:
-				s.addStreamData(&pb.P2PBlock{})
-
-			}
+			<-ticker.C
+			s.addStreamData(&pb.P2PBlock{})
 		}
-
 	}()
 	go func() {
 		fifoChan := pub.Sub("block", "tx")

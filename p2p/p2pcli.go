@@ -173,7 +173,7 @@ func (m *Cli) SendVersion(peer *peer, nodeinfo *NodeInfo) (string, error) {
 
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
 
-	if peer.IsPersistent() == false {
+	if !peer.IsPersistent() {
 		return resp.GetUserAgent(), nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
 	}
 
@@ -248,7 +248,6 @@ func (m *Cli) GetPeerInfo(msg queue.Message, taskindex int64) {
 	peer.Header = peerinfo.GetHeader()
 	peers = append(peers, &peer)
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
-	return
 }
 
 func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
@@ -504,7 +503,7 @@ func (m *Cli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb.Bl
 	if peer == nil {
 		return fmt.Errorf("peer is not exist")
 	}
-	if peer.GetRunning() == false {
+	if !peer.GetRunning() {
 		return fmt.Errorf("peer not running")
 	}
 	var p2pdata pb.P2PGetData

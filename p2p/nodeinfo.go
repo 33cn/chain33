@@ -14,7 +14,6 @@ type NodeInfo struct {
 	mtx            sync.Mutex
 	externalAddr   *NetAddress
 	listenAddr     *NetAddress
-	version        string
 	monitorChan    chan *peer
 	natNoticeChain chan struct{}
 	natResultChain chan bool
