@@ -84,7 +84,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		cfg:                cfg,
 		recvwg:             &sync.WaitGroup{},
 		task:               newTask(160 * time.Second),
-		quit:               make(chan struct{}, 0),
+		quit:               make(chan struct{}),
 		synblock:           make(chan struct{}, 1),
 		orphanPool:         NewOrphanPool(),
 		index:              newBlockIndex(),
@@ -353,7 +353,6 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 
 	msg := chain.client.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
 	chain.client.Send(msg, false)
-	return
 }
 
 func (chain *BlockChain) GetBlockHeight() int64 {
@@ -518,8 +517,7 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (*types.Header, error) {
 }
 
 func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
-	var block *types.Block
-	block = chain.blockStore.LastBlock()
+	block := chain.blockStore.LastBlock()
 	return block, nil
 }
 
