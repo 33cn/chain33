@@ -200,8 +200,18 @@ const (
 	EventRevokeSellToken        = 210
 	EventReplyRevokeSellToken   = 211
 	// config
-	EventModifyConfig      = 300
-	EventReplyModifyConfig = 301
+	EventModifyConfig           = 300
+	EventReplyModifyConfig      = 301
+
+	// privacy
+	EventPublic2privacy         = 400
+	EventReplyPublic2privacy    = 401
+	EventPrivacy2privacy        = 402
+	EventReplyPrivacy2privacy   = 403
+	EventPrivacy2public         = 404
+	EventReplyPrivacy2public    = 405
+	EventShowPrivacyPK          = 406
+	EventReplyShowPrivacyPK     = 407
 )
 
 var eventName = map[int]string{
@@ -322,8 +332,16 @@ var eventName = map[int]string{
 	EventRevokeSellToken:        "EventRevokeSellToken",
 	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
 	// config
-	EventModifyConfig:      "EventModifyConfig",
-	EventReplyModifyConfig: "EventReplyModifyConfig",
+	EventModifyConfig:           "EventModifyConfig",
+	EventReplyModifyConfig:      "EventReplyModifyConfig",
+
+	//privacy
+	EventPublic2privacy:         "EventPublic2privacy",
+	EventReplyPublic2privacy:    "EventReplyPublic2privacy",
+	EventPrivacy2privacy:        "EventPrivacy2privacy",
+	EventReplyPrivacy2privacy:   "EventReplyPrivacy2privacy",
+	EventPrivacy2public:         "EventPrivacy2public",
+	EventReplyPrivacy2public:    "EventReplyPrivacy2public",
 }
 
 //ty = 1 -> secp256k1
@@ -388,7 +406,6 @@ const (
 	ExecOk   = 2
 )
 
-//coinsaction
 const (
 	InvalidAction = iota
 	CoinsActionTransfer
@@ -402,6 +419,11 @@ const (
 	TokenActionPreCreate
 	TokenActionFinishCreate
 	TokenActionRevokeCreate
+    //action type for privacy
+	ActionPublic2Privacy    = iota + 100
+	ActionPrivacy2Privacy
+	ActionMPrivacy2Privacy
+	ActionPrivacy2Public
 )
 
 //ticket
@@ -481,4 +503,5 @@ const (
 	ForkV2_add_token  = 100899
 	ForkV3            = 110000
 	ForkV4_add_manage = 120000
+	ForkV5_add_privacy = 200000
 )

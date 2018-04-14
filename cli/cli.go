@@ -461,6 +461,30 @@ func main() {
 			return
 		}
 		IsNtpClockSync()
+	case "showprivacykey":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowPrivacykey(argsWithoutProg[1])
+	case "pub2priv":
+		if len(argsWithoutProg) != 6 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		TransferPub2priv(argsWithoutProg[1:])
+	case "priv2priv":
+		if len(argsWithoutProg) != 8 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		TransferPriv2Priv(argsWithoutProg[1:])
+	case "priv2pub":
+		if len(argsWithoutProg) != 7 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		TransferPriv2Pub(argsWithoutProg[1:])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -533,8 +557,11 @@ func LoadHelp() {
 	fmt.Println("sellcrowdfund [owner, token, Amountpbl, minbl, pricepbl, totalpbl, start, stop]              : 卖出众筹")
 	fmt.Println("configtransaction [configKey, operate, value, privkey]         : 修改配置")
 	fmt.Println("queryconfig [Key]                                              : 查询配置")
-	fmt.Println("isntpclocksync []                                           : 获取网络时间同步状态")
-
+	fmt.Println("isntpclocksync []                                              : 获取网络时间同步状态")
+	fmt.Println("showprivacykey addr                                            : 显示地址对应的隐私账户的view和spend的公钥")
+	fmt.Println("pub2priv from to_viewpubkey to_spendpubkey amout note          : 公开账户向隐私账户转账")
+	fmt.Println("pri2priv from_viewpubkey from_spendpubkey to_viewpubkey to_spendpubkey amout hash note         : 隐私账户向隐私账户转账")
+	fmt.Println("pri2pub from_viewpubkey from_spendpubkey recevier amout hash note          : 隐私账户向公开账户转账")
 }
 
 type AccountsResult struct {
@@ -2587,4 +2614,150 @@ func ManageConfigTransactioin(key, op, opAddr, priv string) {
 	tx.Sign(types.SECP256K1, privKey)
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
+}
+
+////////////////privacy////////////////////////////
+func ShowPrivacykey(addr string) {
+	params := &types.ReqString{
+		addr,
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.PrivacyPKPair
+	err = rpc.Call("Chain33.ShowPrivacykey", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+//"from to_viewpubkey to_spendpubkey amout note          : 公开账户向隐私账户转账")
+func TransferPub2priv(args []string) {
+	amountFloat64, err := strconv.ParseFloat(args[3], 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
+	params := &types.ReqPub2Pri{
+		args[1],
+		args[2],
+		false,
+		"",
+		amountInt64,
+		args[4],
+		args[0],
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.MakeTxPublic2privacy", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+//"from_viewpubkey from_spendpubkey to_viewpubkey to_spendpubkey amout hash note         : 隐私账户向隐私账户转账")
+func TransferPriv2Priv(args []string) {
+	amountFloat64, err := strconv.ParseFloat(args[4], 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
+	params := &types.ReqPri2Pri{
+		args[0],
+		args[1],
+		false,
+		"",
+		amountInt64,
+		args[5],
+		args[2],
+		args[3],
+		args[4],
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.MakeTxPrivacy2privacy", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+//"from_viewpubkey from_spendpubkey receiver amout hash note: 隐私账户
+func TransferPriv2Pub(args []string) {
+	amountFloat64, err := strconv.ParseFloat(args[3], 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
+	params := &types.ReqPri2Pub{
+		args[2],
+		false,
+		"",
+		amountInt64,
+		args[5],
+		args[0],
+		args[1],
+		args[4],
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.MakeTxPublic2privacy", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }

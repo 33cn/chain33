@@ -8,6 +8,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	local_ed25519 "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -788,3 +789,210 @@ func (wallet *Wallet) modifyConfig(priv crypto.PrivKey, req *types.ReqModifyConf
 	walletlog.Debug("modifyConfig", "sendTx", hash.Hash)
 	return &hash, nil
 }
+
+func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.ReplyHash, error) {
+	viewPublic := new([32]byte)
+	spendPublic := new([32]byte)
+	copy(viewPublic[:], []byte(reqPub2Pri.ViewPublic)[:32])
+	copy(spendPublic[:], []byte(reqPub2Pri.SpendPublic)[:32])
+
+	pubkeyOnetime, txPublicKey, err := local_ed25519.GenerateOneTimeAddr(viewPublic, spendPublic)
+	if err != nil {
+		return nil, err
+	}
+	value := &types.Public2Privacy{
+		//ViewPublic:  reqPub2Pri.ViewPublic,
+		//SpendPublic: reqPub2Pri.SpendPublic,
+		Op4Token:    reqPub2Pri.Op4Token,
+		Token:       reqPub2Pri.Token,
+		Amount:      reqPub2Pri.Amount,
+		Note:        reqPub2Pri.Note,
+		RpubKeytx:   txPublicKey[:],
+		OnetimePubKey: pubkeyOnetime[:],
+	}
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPublic2Privacy,
+		Value: &types.PrivacyAction_Public2Privacy{value},
+	}
+	addrOneTime := account.PubKeyToAddress(pubkeyOnetime[:]).String()
+	tx := &types.Transaction{
+		Execer:  []byte("privacy"),
+		Payload: types.Encode(action),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+		To:      addrOneTime,
+	}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("revoke sell token", "Send err", err)
+		return nil, err
+	}
+
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
+}
+
+func (wallet *Wallet) transPri2Pri(viewPriv, spendPriv crypto.PrivKey, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
+	viewPublic := new([32]byte)
+	spendPublic := new([32]byte)
+	copy(viewPublic[:], []byte(reqPri2Pri.ViewPublic)[:32])
+	copy(spendPublic[:], []byte(reqPri2Pri.SpendPublic)[:32])
+
+	pubkeyOnetime, txPublicKey, err := local_ed25519.GenerateOneTimeAddr(viewPublic, spendPublic)
+	value := &types.Privacy2Privacy{
+		//ViewPublic:  reqPri2Pri.ViewPublic,
+		//SpendPublic: reqPri2Pri.SpendPublic,
+		Op4Token:    reqPri2Pri.Op4Token,
+		Token:       reqPri2Pri.Token,
+		Amount:      reqPri2Pri.Amount,
+		Note:        reqPri2Pri.Note,
+		RpubKeytx:   txPublicKey[:],
+		OnetimePubKey: pubkeyOnetime[:],
+	}
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPrivacy2Privacy,
+		Value: &types.PrivacyAction_Privacy2Privacy{value},
+	}
+	addrOneTime := account.PubKeyToAddress(pubkeyOnetime[:]).String()
+	tx := &types.Transaction{
+		Execer:  []byte("privacy"),
+		Payload: types.Encode(action),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+		To:      addrOneTime,
+	}
+
+	txhash := []byte(reqPri2Pri.Txhash)
+	txhahes := make([][]byte, 1)
+	txhahes[0] = txhash
+	var reqHashes types.ReqHashes
+	reqHashes.Hashes = txhahes
+	R, err := wallet.GetRofPrivateTx(&reqHashes)
+	if err != nil {
+		return nil, err
+	}
+	//x = Hs(aR) + b
+	priv, err := local_ed25519.RecoverOnetimePriKey(R, viewPriv, spendPriv)
+	if err != nil {
+		return nil, err
+	}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("revoke sell token", "Send err", err)
+		return nil, err
+	}
+
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
+}
+
+func (wallet *Wallet) transPri2Pub(viewPriv, spendPriv crypto.PrivKey, reqPri2Pub *types.ReqPri2Pub) (*types.ReplyHash, error) {
+	value := &types.Privacy2Public{
+		//ViewPublic:  reqPri2Pri.ViewPublic,
+		//SpendPublic: reqPri2Pri.SpendPublic,
+		Op4Token:    reqPri2Pub.Op4Token,
+		Token:       reqPri2Pub.Token,
+		Amount:      reqPri2Pub.Amount,
+		Note:        reqPri2Pub.Note,
+	}
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPrivacy2Public,
+		Value: &types.PrivacyAction_Privacy2Public{value},
+	}
+
+	tx := &types.Transaction{
+		Execer:  []byte("privacy"),
+		Payload: types.Encode(action),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+		To:      reqPri2Pub.Receiver,
+	}
+    //获取隐私交易的tx public key
+	txhash := []byte(reqPri2Pub.Txhash)
+	txhahes := make([][]byte, 1)
+	txhahes[0] = txhash
+	var reqHashes types.ReqHashes
+	reqHashes.Hashes = txhahes
+	R, err := wallet.GetRofPrivateTx(&reqHashes)
+	if err != nil {
+		return nil, err
+	}
+	//x = Hs(aR) + b
+	priv, err := local_ed25519.RecoverOnetimePriKey(R, viewPriv, spendPriv)
+	if err != nil {
+		return nil, err
+	}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("revoke sell token", "Send err", err)
+		return nil, err
+	}
+
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
+}
+
+func (wallet *Wallet) GetRofPrivateTx(ReqHashes *types.ReqHashes)(R_txpubkey []byte, err error) {
+	//通过txhashs获取对应的txdetail
+	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, ReqHashes)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("GetPrivateTxByHashes EventGetTransactionByHash", "err", err)
+		return nil, err
+	}
+	TxDetails := resp.GetData().(*types.TransactionDetails)
+	if TxDetails == nil {
+		walletlog.Info("GetPrivateTxByHashes TransactionDetails is nil")
+		return nil, errors.New("ErrTxDetail")
+	}
+
+	if "privacy" != string(TxDetails.Txs[0].Tx.Execer) {
+		walletlog.Info("GetPrivateTxByHashes get tx but not privacy")
+		return nil, errors.New("ErrPrivacyExecer")
+	}
+
+	var privateAction types.PrivacyAction
+	if err := types.Decode(TxDetails.Txs[0].Tx.Payload, &privateAction); err != nil {
+		walletlog.Info("GetPrivateTxByHashes failed to decode payload")
+		return nil, errors.New("ErrPrivacyPayload")
+	}
+
+	if types.ActionPublic2Privacy == privateAction.Ty {
+		return privateAction.GetPublic2Privacy().GetRpubKeytx(), nil
+	} else if types.ActionPrivacy2Privacy == privateAction.Ty {
+		return privateAction.GetPrivacy2Privacy().GetRpubKeytx(), nil
+	} else {
+		walletlog.Info("GetPrivateTxByHashes failed to get value required", "privacy type is", privateAction.Ty)
+		return nil, errors.New("ErrPrivacyType")
+	}
+}
+
+

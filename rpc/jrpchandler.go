@@ -1200,3 +1200,54 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 	*result = c.cli.IsNtpClockSync()
 	return nil
 }
+
+/////////////////privacy///////////////
+
+
+func (c *Chain33) ShowPrivacykey(in types.ReqString, result *interface{}) error {
+
+	reply, err := c.cli.ShowPrivacykey(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+
+	return nil
+}
+
+func (c *Chain33) MakeTxPublic2privacy(in types.ReqPub2Pri, result *interface{}) error {
+
+	reply, err := c.cli.MakeTxPublic2privacy(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+
+	return nil
+}
+
+func (c *Chain33) MakeTxPrivacy2privacy(in types.ReqPri2Pri, result *interface{}) error {
+
+	reply, err := c.cli.MakeTxPrivacy2privacy(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+
+	return nil
+}
+
+func (c *Chain33) MakeTxPrivacy2public(in types.ReqPri2Pub, result *interface{}) error {
+
+	reply, err := c.cli.MakeTxPrivacy2public(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+
+	return nil
+}

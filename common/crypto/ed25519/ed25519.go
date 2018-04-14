@@ -145,3 +145,4 @@ func (sig SignatureEd25519) Equals(other Signature) bool {
 func init() {
 	Register(NameEd25519, &Ed25519Driver{})
 }
+

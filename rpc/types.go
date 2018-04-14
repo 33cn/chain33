@@ -225,3 +225,8 @@ type WalletStatus struct {
 	IsHasSeed    bool `json:"ishasseed"`
 	IsTicketLock bool `json:"isticketlock"`
 }
+
+type PrivacyPKPair struct {
+	ViewPubKey string `json:"ViewPubKey"`
+	SpendPubKey string `json:"SpendPubKey"`
+}
