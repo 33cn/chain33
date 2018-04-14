@@ -96,23 +96,23 @@ func (chain *BlockChain) SynRoutine() {
 		case <-chain.quit:
 			//synlog.Info("quit poolRoutine!")
 			return
-		case _ = <-blockSynTicker.C:
+		case <-blockSynTicker.C:
 			//synlog.Info("blockSynTicker")
 			chain.SynBlocksFromPeers()
 
-		case _ = <-fetchPeerListTicker.C:
+		case <-fetchPeerListTicker.C:
 			//synlog.Info("blockUpdateTicker")
 			chain.FetchPeerList()
 
-		case _ = <-checkHeightNoIncreaseTicker.C:
+		case <-checkHeightNoIncreaseTicker.C:
 			//synlog.Info("CheckHeightNoIncrease")
 			chain.CheckHeightNoIncrease()
 
-		case _ = <-checkBlockHashTicker.C:
+		case <-checkBlockHashTicker.C:
 			//synlog.Info("checkBlockHashTicker")
 			chain.CheckTipBlockHash()
 		//定时检查系统时间，如果系统时间有问题，那么会有一个报警
-		case _ = <-checkClockDriftTicker.C:
+		case <-checkClockDriftTicker.C:
 			checkClockDrift()
 		}
 	}
@@ -393,8 +393,6 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 		chain.FetchBlock(curheight+1, peerMaxBlkHeight, chain.GetPeerPids())
 	}
-
-	return
 }
 
 //在规定时间本链的高度没有增长，但peerlist中最新高度远远高于本节点高度，
@@ -432,7 +430,6 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 			chain.FetchBlockHeaders(0, tipheight, pid)
 		}
 	}
-	return
 }
 
 //从指定pid获取start到end之间的headers
@@ -627,7 +624,7 @@ func (chain *BlockChain) IsCaughtUp() bool {
 		peersNo++
 	}
 
-	isCaughtUp := (height > 0 || time.Now().Sub(chain.startTime) > 60*time.Second) && (maxPeerHeight == 0 || height >= maxPeerHeight)
+	isCaughtUp := (height > 0 || time.Since(chain.startTime) > 60*time.Second) && (maxPeerHeight == 0 || height >= maxPeerHeight)
 
 	synlog.Debug("IsCaughtUp", "IsCaughtUp ", isCaughtUp, "height", height, "maxPeerHeight", maxPeerHeight, "peersNo", peersNo)
 	return isCaughtUp
