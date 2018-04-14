@@ -274,10 +274,7 @@ func add4Tx(client queue.Client) error {
 
 	client.Send(msg4, true)
 	_, err = client.Wait(msg4)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func add4TxHash(client queue.Client) ([]string, error) {
@@ -357,11 +354,7 @@ func add10Tx(client queue.Client) error {
 
 	client.Send(msg10, true)
 	_, err = client.Wait(msg10)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func TestGetTxList(t *testing.T) {

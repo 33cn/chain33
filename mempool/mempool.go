@@ -356,10 +356,7 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 		return false
 	}
 	tx := msg.GetData().(*types.Transaction)
-	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
-		return false
-	}
-	return true
+	return !tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime())
 }
 
 // Mempool.Close关闭Mempool
@@ -561,7 +558,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				mlog.Debug("reply EventGetAddrTxs ok", "msg", msg)
 			default:
 			}
-			mlog.Debug("mempool", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }

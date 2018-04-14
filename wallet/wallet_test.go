@@ -108,10 +108,7 @@ func SaveAccountTomavl(client queue.Client, prevStateRoot []byte, accs []*types.
 
 	for _, acc := range accs {
 		kvs := accountdb.GetKVSet(acc)
-		for _, kv := range kvs {
-			kvset = append(kvset, kv)
-		}
-
+		kvset = append(kvset, kvs...)
 	}
 	hash := util.ExecKVMemSet(client, prevStateRoot, kvset, true)
 	Statehash = hash

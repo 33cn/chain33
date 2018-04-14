@@ -37,15 +37,15 @@ cli: ## Build cli binary
 	@go build -race -v -o $(CLI) $(SRC_CLI)
 
 linter: ## Use gometalinter check code, ignore some unserious warning
-	@res=$$(gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
-		--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck --enable=golint --vendor ./... | \
-		grep -v "error return value not checked" | \
-		grep -v "composite literal uses unkeyed fields" | \
-		grep -v "declaration of \"err\" shadows declaration at" | \
-		grep -v "should have comment or be unexported" | \
-		grep -v "should be of the form" | \
-		grep -v "if block ends with a return statement" | \
-		grep -v "Id should be ID"); \
+	@res=$$(gometalinter.v2 -t --sort=line --enable-gc --disable-all \
+	--enable=gofmt \
+	--enable=gosimple \
+	--enable=deadcode \
+	--enable=vet \
+	--vendor ./...) \
+#	--enable=staticcheck \
+#	--enable=golint \
+#	--enable=unused \
 	if [ -n "$$res" ]; then \
 		echo "$${res}"; \
 		exit 1; \

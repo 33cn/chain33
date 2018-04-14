@@ -68,8 +68,7 @@ func createTx(cmd *cobra.Command, args []string) {
 
 	// TODO
 	tx.Fee += realFee + types.MinBalanceTransfer
-	var random *rand.Rand
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 
 	c, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))

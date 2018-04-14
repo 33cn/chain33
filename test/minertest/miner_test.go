@@ -15,11 +15,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-var conn *grpc.ClientConn
-var random *rand.Rand
-var privCold crypto.PrivKey      //冷钱包
-var privMiner crypto.PrivKey     //热钱包
-var privAutoMiner crypto.PrivKey //自动挖矿钱包
+var (
+	conn          *grpc.ClientConn
+	random        *rand.Rand
+	privCold      crypto.PrivKey //冷钱包
+	privMiner     crypto.PrivKey //热钱包
+	privAutoMiner crypto.PrivKey //自动挖矿钱包
+)
 
 func init() {
 	var err error
@@ -141,10 +143,7 @@ func openticket(mineraddr, returnaddr string, priv crypto.PrivKey) error {
 	ta.Value = &types.TicketAction_Topen{topen}
 	ta.Ty = types.TicketActionOpen
 	err := sendTransactionWait(ta, []byte("ticket"), priv, "")
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func bindminer(mineraddr, returnaddr string, priv crypto.PrivKey) error {
@@ -153,10 +152,7 @@ func bindminer(mineraddr, returnaddr string, priv crypto.PrivKey) error {
 	ta.Value = &types.TicketAction_Tbind{tbind}
 	ta.Ty = types.TicketActionBind
 	err := sendTransactionWait(ta, []byte("ticket"), priv, "")
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 //通过rpc 精选close 操作
