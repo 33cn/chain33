@@ -79,11 +79,9 @@ func (network *P2p) ShowTaskCapcity() {
 			log.Debug("ShowTaskCapcity", "loop", "done")
 			return
 		}
-		select {
-		case <-ticker.C:
-			log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 
-		}
+		<-ticker.C
+		log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 	}
 }
 
@@ -109,7 +107,7 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 			continue
 		}
 
-		if resp.GetData().(*types.WalletStatus).GetIsHasSeed() == false { //无种子
+		if !resp.GetData().(*types.WalletStatus).GetIsHasSeed() { //无种子
 			time.Sleep(time.Second)
 			continue
 		}

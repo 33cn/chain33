@@ -70,7 +70,7 @@ func (a *AddrBook) setAddrStat(addr string, run bool) (*knownAddress, bool) {
 }
 
 func NewAddrBook(filePath string, driver string) *AddrBook {
-	peers := make(map[string]*knownAddress, 0)
+	peers := make(map[string]*knownAddress)
 	a := &AddrBook{
 		ourAddrs: make(map[string]*NetAddress),
 		addrPeer: peers,
