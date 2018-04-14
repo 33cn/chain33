@@ -9,14 +9,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var backupAddr string
-var defaultAddr string
-var backupPriv crypto.PrivKey
-var defaultPriv crypto.PrivKey
-
-var testNormErr error
-
-var retrieve *Retrieve
+var (
+	backupAddr  string
+	defaultAddr string
+	backupPriv  crypto.PrivKey
+	defaultPriv crypto.PrivKey
+	testNormErr error
+	retrieve    *Retrieve
+)
 
 func TestInit(t *testing.T) {
 	backupAddr, backupPriv = genaddress()
@@ -39,7 +39,6 @@ func TestExecBackup(t *testing.T) {
 	if !CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 func TestExecPrepare(t *testing.T) {
@@ -54,7 +53,6 @@ func TestExecPrepare(t *testing.T) {
 	if !CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 //timelimit
@@ -70,7 +68,6 @@ func TestExecPerform(t *testing.T) {
 	if CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 func constructRetrieveInstance() *Retrieve {
