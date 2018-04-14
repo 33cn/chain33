@@ -1,6 +1,5 @@
 Title="chain33"
 
-
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 loglevel = "debug"
@@ -27,21 +26,29 @@ defCacheSize=512
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
-driver="leveldb"
+driver="memdb"
 dbPath="datadir"
 isStrongConsistency=false
 singleMode=true
+batchsync=false
 
 [p2p]
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
 enable=true
 isSeed=true
+serverStart=true
 msgCacheSize=10240
+driver="memdb"
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
 version=216
 verMix=216
 verMax=217
+
+[rpc]
+jrpcBindAddr="localhost:8801"
+grpcBindAddr="localhost:8802"
+whitlist=["127.0.0.1"]
 
 [mempool]
 poolCacheSize=10240
@@ -50,21 +57,21 @@ minTxFee=1000000
 [consensus]
 name="solo"
 minerstart=true
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+genesisBlockTime=1514533394
+hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
 [store]
 name="mavl"
-driver="leveldb"
+driver="memdb"
 dbPath="datadir/mavltree"
 
 [wallet]
 minFee=1000000
-driver="leveldb"
+driver="memdb"
 dbPath="datadir/wallet"
-
-[rpc]
-jrpcBindAddr="localhost:8801"
-grpcBindAddr="localhost:8802"
-whitlist=["127.0.0.1"]
+signType="secp256k1"
 
 [exec]
+isFree=false
 minExecFee=100000

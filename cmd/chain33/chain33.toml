@@ -39,6 +39,7 @@ enable=true
 isSeed=false
 serverStart=true
 msgCacheSize=10240
+driver="leveldb"
 dbPath="datadir/addrbook"
 grpcLogFile="grpc33.log"
 version=118
