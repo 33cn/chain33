@@ -102,7 +102,7 @@ func (kvs *KVStore) Rollback(req *types.ReqHash) []byte {
 }
 
 func (kvs *KVStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
-	return
+	panic("empty")
 	//TODO:
 	//kvs.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, fn)
 }

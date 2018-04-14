@@ -56,7 +56,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 }
 
 func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
-	caches = make([]*TransactionCache, len(txs), len(txs))
+	caches = make([]*TransactionCache, len(txs))
 	for i := 0; i < len(caches); i++ {
 		caches[i] = NewTransactionCache(txs[i])
 	}
@@ -64,7 +64,7 @@ func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
 }
 
 func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
-	txs = make([]*Transaction, len(caches), len(caches))
+	txs = make([]*Transaction, len(caches))
 	for i := 0; i < len(caches); i++ {
 		txs[i] = caches[i].Tx()
 	}
@@ -432,7 +432,7 @@ func checkAll(task []*Transaction, n int) bool {
 	}()
 	// End of pipeline. OMIT
 	for r := range c {
-		if r.isok == false {
+		if !r.isok {
 			return false
 		}
 	}
