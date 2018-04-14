@@ -16,14 +16,13 @@ func (p *peer) Start() {
 
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
-
 	return
 }
 func (p *peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
-	close(p.taskPool)
 	pub.Unsub(p.taskChan, "block", "tx")
+	log.Debug("Peer", "closed", p.Addr())
 
 }
 
@@ -39,14 +38,12 @@ type peer struct {
 	mconn      *MConnection
 	peerAddr   *NetAddress
 	peerStat   *Stat
-	taskPool   chan struct{}
 	taskChan   chan interface{} //tx block
 }
 
 func newPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
 	p := &peer{
 		conn:     conn,
-		taskPool: make(chan struct{}, 50),
 		nodeInfo: nodeinfo,
 	}
 

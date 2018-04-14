@@ -161,12 +161,12 @@ func (s *p2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
 		Isdetail: false})
-	err := client.Send(msg, true)
+	err := client.SendTimeout(msg, true, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("GetBlocks", "Error", err.Error())
 		return nil, err
 	}
-	resp, err := client.Wait(msg)
+	resp, err := client.WaitTimeout(msg, time.Duration(time.Minute))
 	if err != nil {
 		return nil, err
 	}
@@ -282,12 +282,12 @@ func (s *p2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.GetStartHeight(), End: in.GetEndHeight()})
-	err := client.Send(msg, true)
+	err := client.SendTimeout(msg, true, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("GetHeaders", "Error", err.Error())
 		return nil, err
 	}
-	resp, err := client.Wait(msg)
+	resp, err := client.WaitTimeout(msg, time.Duration(time.Minute))
 	if err != nil {
 		return nil, err
 	}
@@ -305,13 +305,13 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	client := s.node.nodeInfo.client
 	log.Debug("GetPeerInfo", "GetMempoolSize", "befor")
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
-	err := client.Send(msg, true)
+	err := client.SendTimeout(msg, true, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("GetPeerInfo mempool", "Error", err.Error())
 		return nil, err
 	}
 	log.Debug("GetPeerInfo", "GetMempoolSize", "after")
-	resp, err := client.Wait(msg)
+	resp, err := client.WaitTimeout(msg, time.Duration(time.Second*10))
 	if err != nil {
 		return nil, err
 	}
@@ -324,12 +324,12 @@ func (s *p2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	log.Debug("GetPeerInfo", "EventGetLastHeader", "befor")
 	//get header
 	msg = client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
-	err = client.Send(msg, true)
+	err = client.SendTimeout(msg, true, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("GetPeerInfo blockchain", "Error", err.Error())
 		return nil, err
 	}
-	resp, err = client.Wait(msg)
+	resp, err = client.WaitTimeout(msg, time.Duration(time.Second*10))
 	if err != nil {
 		return nil, err
 	}
@@ -509,12 +509,12 @@ func (s *p2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	var txmap = make(map[string]*pb.Transaction)
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventGetMempool, nil)
-	err := client.Send(msg, true)
+	err := client.SendTimeout(msg, true, time.Duration(time.Minute))
 	if err != nil {
 		log.Error("loadMempool", "Error", err.Error())
 		return txmap, err
 	}
-	resp, err := client.Wait(msg)
+	resp, err := client.WaitTimeout(msg, time.Duration(time.Minute))
 	if err != nil {
 		return txmap, err
 	}
