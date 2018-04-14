@@ -303,11 +303,7 @@ func (ws *Store) VerifyPasswordHash(password string) bool {
 	pwhash := sha256.Sum256([]byte(pwhashstr))
 	Pwhash := pwhash[:]
 	//通过新的密码计算pwhash最对比
-	if bytes.Equal(WalletPwHash.GetPwHash(), Pwhash) {
-		return true
-	}
-	return false
-
+	return bytes.Equal(WalletPwHash.GetPwHash(), Pwhash)
 }
 
 func (ws *Store) DelAccountByLabel(label string) {

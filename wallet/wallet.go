@@ -1240,25 +1240,25 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 	if err != nil || len(WalletAccStores) == 0 {
 		walletlog.Error("ProcWalletSetPasswd", "GetAccountByPrefix:err", err)
 	}
-	if WalletAccStores != nil {
-		for _, AccStore := range WalletAccStores {
-			//使用old Password解密存储的私钥
-			storekey, err := common.FromHex(AccStore.GetPrivkey())
-			if err != nil || len(storekey) == 0 {
-				walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
-				continue
-			}
-			Decrypter := CBCDecrypterPrivkey([]byte(Passwd.Oldpass), storekey)
 
-			//使用新的密码重新加密私钥
-			Encrypter := CBCEncrypterPrivkey([]byte(Passwd.Newpass), Decrypter)
-			AccStore.Privkey = common.ToHex(Encrypter)
-			err = wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
-			if err != nil {
-				walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "SetWalletAccount err", err)
-			}
+	for _, AccStore := range WalletAccStores {
+		//使用old Password解密存储的私钥
+		storekey, err := common.FromHex(AccStore.GetPrivkey())
+		if err != nil || len(storekey) == 0 {
+			walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
+			continue
+		}
+		Decrypter := CBCDecrypterPrivkey([]byte(Passwd.Oldpass), storekey)
+
+		//使用新的密码重新加密私钥
+		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.Newpass), Decrypter)
+		AccStore.Privkey = common.ToHex(Encrypter)
+		err = wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
+		if err != nil {
+			walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "SetWalletAccount err", err)
 		}
 	}
+
 	wallet.Password = Passwd.Newpass
 	return nil
 }
@@ -1419,10 +1419,7 @@ func (wallet *Wallet) needFlushTicket(tx *types.Transaction, receipt *types.Rece
 	}
 	pubkey := tx.Signature.GetPubkey()
 	addr := account.PubKeyToAddress(pubkey)
-	if wallet.AddrInWallet(addr.String()) {
-		return true
-	}
-	return false
+	return wallet.AddrInWallet(addr.String())
 }
 
 //wallet模块收到blockchain广播的delblock消息，需要解析钱包相关的tx并存db中删除
@@ -1479,6 +1476,7 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 	}
 	return false
 }
+
 func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 	//通过txhashs获取对应的txdetail
 	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, ReqHashes)
@@ -1754,7 +1752,7 @@ func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCre
 		return nil, types.ErrInputPara
 	}
 
-	if token.ValidSymbolWithHeight([]byte(reqTokenPrcCreate.GetSymbol()), wallet.lastHeight) == false {
+	if !token.ValidSymbolWithHeight([]byte(reqTokenPrcCreate.GetSymbol()), wallet.lastHeight) {
 		walletlog.Error("procTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper
 	}
@@ -2121,7 +2119,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 		return ok, err
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
-	if wallet.IsTicketLocked() == false {
+	if !wallet.IsTicketLocked() {
 		if addr == account.ExecAddress("ticket").String() {
 			return true, nil
 		}
