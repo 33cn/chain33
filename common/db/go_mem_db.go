@@ -52,7 +52,7 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	if entry, ok := db.db[string(key)]; ok {
 		return CopyBytes(entry), nil
 	}
-	return nil, nil
+	return nil, ErrNotFoundInDb
 }
 
 func (db *GoMemDB) Set(key []byte, value []byte) error {
@@ -113,6 +113,8 @@ func (db *GoMemDB) Stats() map[string]string {
 }
 
 func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
 
 	var keys []string
 	for k := range db.db {
