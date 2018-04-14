@@ -439,18 +439,6 @@
 			"revisionTime": "2017-08-14T20:04:35Z"
 		},
 		{
-			"checksumSHA1": "/DB9/UNUMYS4k4MopZLGdkXSRBQ=",
-			"path": "github.com/tendermint/ed25519",
-			"revision": "d8387025d2b9d158cf4efb07e7ebf814bcce2057",
-			"revisionTime": "2017-10-27T05:02:19Z"
-		},
-		{
-			"checksumSHA1": "PX22ovkpLWYpJMxlCCT1t+SXJls=",
-			"path": "github.com/tendermint/ed25519/edwards25519",
-			"revision": "d8387025d2b9d158cf4efb07e7ebf814bcce2057",
-			"revisionTime": "2017-10-27T05:02:19Z"
-		},
-		{
 			"checksumSHA1": "rOyY2TETd1m3NZqRBnB6QoSa3pA=",
 			"path": "github.com/tendermint/tmlibs/common",
 			"revision": "d9525c0fb671204450b160807480e1263053fb20",
