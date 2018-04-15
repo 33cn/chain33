@@ -103,7 +103,7 @@ func (db *GoMemDB) Close() {
 
 func (db *GoMemDB) Print() {
 	for key, value := range db.db {
-		mlog.Info("Print", "key", string(key), "value", string(value))
+		mlog.Info("Print", "key", key, "value", string(value))
 	}
 }
 
