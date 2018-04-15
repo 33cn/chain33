@@ -29,6 +29,8 @@ batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
 isStrongConsistency=true
+singleMode=false
+batchsync=false
 
 
 [p2p]
