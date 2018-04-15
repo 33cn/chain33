@@ -28,6 +28,7 @@ type AddrBook struct {
 	mtx      sync.Mutex
 	ourAddrs map[string]*NetAddress
 	addrPeer map[string]*knownAddress
+	dbDriver string
 	filePath string
 	privkey  string
 	pubkey   string
@@ -68,12 +69,13 @@ func (a *AddrBook) setAddrStat(addr string, run bool) (*knownAddress, bool) {
 	return nil, false
 }
 
-func NewAddrBook(filePath string) *AddrBook {
-	peers := make(map[string]*knownAddress, 0)
+func NewAddrBook(filePath string, driver string) *AddrBook {
+	peers := make(map[string]*knownAddress)
 	a := &AddrBook{
 		ourAddrs: make(map[string]*NetAddress),
 		addrPeer: peers,
 		filePath: filePath,
+		dbDriver: driver,
 		Quit:     make(chan struct{}),
 	}
 
@@ -216,7 +218,7 @@ func (a *AddrBook) genPubkey(privkey string) string {
 // cmn.Panics if file is corrupt.
 
 func (a *AddrBook) loadDb() bool {
-	a.bookDb = db.NewDB("addrbook", "leveldb", a.filePath, 128)
+	a.bookDb = db.NewDB("addrbook", a.dbDriver, a.filePath, 128)
 
 	privkey, _ := a.bookDb.Get([]byte(privKeyTag))
 
@@ -291,7 +293,6 @@ func (a *AddrBook) AddAddress(addr *NetAddress) {
 
 	ka := newKnownAddress(addr)
 	a.addrPeer[ka.Addr.String()] = ka
-	return
 }
 
 func (a *AddrBook) RemoveAddr(peeraddr string) {

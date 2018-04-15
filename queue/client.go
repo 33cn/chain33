@@ -21,12 +21,13 @@ import (
 // }
 // process 函数会调用 处理具体的消息逻辑
 
-var gId int64
+var gid int64
 
 type Client interface {
-	Send(msg Message, wait bool) (err error)     //异步发送消息
-	SendAsyn(msg Message, wait bool) (err error) //异步发送消息
-	Wait(msg Message) (Message, error)           //等待消息处理完成
+	Send(msg Message, waitReply bool) (err error) //同步发送消息
+	SendTimeout(msg Message, waitReply bool, timeout time.Duration) (err error)
+	Wait(msg Message) (Message, error)                               //等待消息处理完成
+	WaitTimeout(msg Message, timeout time.Duration) (Message, error) //等待消息处理完成
 	Recv() chan Message
 	Sub(topic string) //订阅消息
 	Close()
@@ -65,71 +66,56 @@ func (client *client) Clone() Client {
 
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃
 //2. 系统保证每个消息都有对应的 response 消息
-func (client *client) Send(msg Message, wait bool) (err error) {
-	if client.isClose() {
-		return types.ErrIsClosed
-	}
-	if !wait {
-		msg.chReply = nil
-		return client.q.sendAsyn(msg)
-	}
-	err = client.q.send(msg)
+func (client *client) Send(msg Message, waitReply bool) (err error) {
+	err = client.SendTimeout(msg, waitReply, time.Second*60)
 	if err == types.ErrTimeout {
 		panic(err)
 	}
 	return err
 }
 
-//系统设计出两种优先级别的消息发送
-//1. SendAsyn 低优先级
-//2. Send 高优先级别的发送消息
-func (client *client) SendAsyn(msg Message, wait bool) (err error) {
+func (client *client) SendTimeout(msg Message, waitReply bool, timeout time.Duration) (err error) {
 	if client.isClose() {
 		return types.ErrIsClosed
 	}
-	if !wait {
+	if !waitReply {
 		msg.chReply = nil
+		return client.q.sendLowTimeout(msg, timeout)
 	}
-	//wait for sendasyn
-	i := 0
-	for {
-		i++
-		if i%1000 == 0 {
-			qlog.Error("SendAsyn retry too many times", "n", i)
-		}
-		err = client.q.sendAsyn(msg)
-		if err != nil && err != types.ErrChannelFull {
-			return err
-		}
-		if err == types.ErrChannelFull {
-			qlog.Error("SendAsyn retry")
-			time.Sleep(time.Millisecond)
-			continue
-		}
-		break
-	}
-	return err
+	return client.q.send(msg, timeout)
 }
 
+//系统设计出两种优先级别的消息发送
+//1. SendAsyn 低优先级
+//2. Send 高优先级别的发送消息
+
 func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
-	id := atomic.AddInt64(&gId, 1)
+	id := atomic.AddInt64(&gid, 1)
 	return NewMessage(id, topic, ty, data)
 }
 
-func (client *client) Wait(msg Message) (Message, error) {
+func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, error) {
 	if msg.chReply == nil {
 		return Message{}, errors.New("empty wait channel")
 	}
-	timeout := time.NewTimer(time.Second * 120)
-	defer timeout.Stop()
+	t := time.NewTimer(timeout)
+	defer t.Stop()
 	select {
 	case msg = <-msg.chReply:
 		return msg, msg.Err()
 	case <-client.done:
 		return Message{}, errors.New("client is closed")
-	case <-timeout.C:
-		panic("wait for message timeout.")
+	case <-t.C:
+		return Message{}, types.ErrTimeout
 	}
+}
+
+func (client *client) Wait(msg Message) (Message, error) {
+	msg, err := client.WaitTimeout(msg, 120*time.Second)
+	if err == types.ErrTimeout {
+		panic(err)
+	}
+	return msg, err
 }
 
 func (client *client) Recv() chan Message {
