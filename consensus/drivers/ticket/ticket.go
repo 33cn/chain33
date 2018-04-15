@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -529,7 +530,7 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
 }
 
-func (client *Client) createMinerTx(ticketAction *types.TicketAction, priv crypto.PrivKey) *types.Transaction {
+func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.PrivKey) *types.Transaction {
 	tx := &types.Transaction{}
 	tx.Execer = []byte("ticket")
 	tx.Fee = types.MinFee
