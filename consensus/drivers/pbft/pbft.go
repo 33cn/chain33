@@ -468,7 +468,7 @@ func (rep *Replica) clearRequestsBySeq(sequence uint32) {
 	rep.clearRequestPrepreparesBySeq(sequence)
 	rep.clearRequestPreparesBySeq(sequence)
 	rep.clearRequestCommitsBySeq(sequence)
-	rep.clearRequestCheckpointsBySeq(sequence)
+	//rep.clearRequestCheckpointsBySeq(sequence)
 }
 
 func (rep *Replica) clearRequestClients() {
@@ -476,8 +476,10 @@ func (rep *Replica) clearRequestClients() {
 	lastTimestamp := rep.theLastReply().Timestamp
 	for idx, req := range rep.requests["client"] {
 		timestamp := req.GetClient().Timestamp
-		if lastTimestamp >= timestamp {
+		if lastTimestamp >= timestamp && idx < (len(clientReqs)-1) {
 			clientReqs = append(clientReqs[:idx], clientReqs[idx+1:]...)
+		} else {
+			clientReqs = clientReqs[:idx-1]
 		}
 	}
 	rep.requests["client"] = clientReqs
@@ -487,8 +489,10 @@ func (rep *Replica) clearRequestPrepreparesBySeq(sequence uint32) {
 	prePrepares := rep.requests["pre-prepare"]
 	for idx, req := range rep.requests["pre-prepare"] {
 		s := req.GetPreprepare().Sequence
-		if s <= sequence {
+		if s <= sequence && idx < (len(prePrepares)-1) {
 			prePrepares = append(prePrepares[:idx], prePrepares[idx+1:]...)
+		} else {
+			prePrepares = prePrepares[:idx-1]
 		}
 	}
 	rep.requests["pre-prepare"] = prePrepares
@@ -498,8 +502,10 @@ func (rep *Replica) clearRequestPreparesBySeq(sequence uint32) {
 	prepares := rep.requests["prepare"]
 	for idx, req := range rep.requests["prepare"] {
 		s := req.GetPrepare().Sequence
-		if s <= sequence {
+		if s <= sequence && idx < (len(prepares)-1) {
 			prepares = append(prepares[:idx], prepares[idx+1:]...)
+		} else {
+			prepares = prepares[:idx-1]
 		}
 	}
 	rep.requests["prepare"] = prepares
@@ -509,8 +515,10 @@ func (rep *Replica) clearRequestCommitsBySeq(sequence uint32) {
 	commits := rep.requests["commit"]
 	for idx, req := range rep.requests["commit"] {
 		s := req.GetCommit().Sequence
-		if s <= sequence {
+		if s <= sequence && idx < (len(commits)-1) {
 			commits = append(commits[:idx], commits[idx+1:]...)
+		} else {
+			commits = commits[:idx-1]
 		}
 	}
 	rep.requests["commit"] = commits
@@ -520,8 +528,10 @@ func (rep *Replica) clearRequestCheckpointsBySeq(sequence uint32) {
 	checkpoints := rep.requests["checkpoint"]
 	for idx, req := range rep.requests["checkpoint"] {
 		s := req.GetCheckpoint().Sequence
-		if s <= sequence {
+		if s <= sequence && idx < (len(checkpoints)-1) {
 			checkpoints = append(checkpoints[:idx], checkpoints[idx+1:]...)
+		} else {
+			checkpoints = checkpoints[:idx-1]
 		}
 	}
 	rep.requests["checkpoint"] = checkpoints
@@ -874,8 +884,8 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 		stateDigest := rep.stateDigest()
 		req := pb.ToRequestCheckpoint(sequence, stateDigest, rep.ID)
 		rep.logRequest(req)
-		checkpoint := pb.ToCheckpoint(sequence, stateDigest)
-		rep.addCheckpoint(checkpoint)
+		//checkpoint := pb.ToCheckpoint(sequence, stateDigest)
+		//rep.addCheckpoint(checkpoint)
 		go func() {
 			rep.requestChan <- req
 		}()
@@ -906,7 +916,7 @@ func (rep *Replica) handleRequestCheckpoint(REQ *pb.Request) {
 		}
 		if r == replica {
 			plog.Info("Replica %d sent multiple checkpoint requests\n", replica)
-			continue
+			//continue
 		}
 		count++
 		if !rep.overTwoThirds(count) {
@@ -914,6 +924,9 @@ func (rep *Replica) handleRequestCheckpoint(REQ *pb.Request) {
 		}
 		// rep.clearEntries(sequence)
 		rep.clearRequestsBySeq(sequence)
+		checkpoint := pb.ToCheckpoint(sequence, digest)
+		rep.addCheckpoint(checkpoint)
+		plog.Info("checkpoint and clear request done")
 		return
 	}
 	return
