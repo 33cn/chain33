@@ -1,11 +1,7 @@
 datadir*
-.DS_Store
 *.log
 *.exe
 *.orig
-logs
-common/mavl/datastore
-datadir2/
 .idea
 build/chain33*
 build/datadir
