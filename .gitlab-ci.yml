@@ -1,3 +1,5 @@
+image: chain33-build:latest
+
 before_script:
     - export GO_PROJECT_NAMESPACE="$GOPATH/src/gitlab.33.cn/$CI_PROJECT_NAMESPACE"
     - echo $GO_PROJECT_NAMESPACE
@@ -15,13 +17,6 @@ stages:
     - build
     - test
 
-go_fmt:
-    stage: build
-    tags:
-        - 33cn
-    script:
-        - make checkgofmt
-
 go_lint:
     stage: build
     tags:
@@ -29,7 +24,7 @@ go_lint:
     script:
         - make linter
 
-go_build:
+go_build_chain33:
     stage: build
     tags:
         - 33cn
@@ -49,20 +44,3 @@ go_test:
         - 33cn
     script:
         - make test
-
-#go_vet:
-#    stage: test
-#    script:
-#        - go vet $(go list ./... | grep -v "vendor")
-
-#staticcheck:
-#    stage: test
-#    script:
-#        - go get -u honnef.co/go/staticcheck/cmd/staticcheck
-#        - staticcheck $(go list ./... | grep -v "vendor")
-
-#gosimple:
-#    stage: test
-#    script:
-#        - go get -u honnef.co/go/simple/cmd/gosimple
-#        - gosimple $(go list ./... | grep -v "vendor")
