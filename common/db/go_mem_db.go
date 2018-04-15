@@ -217,7 +217,7 @@ type kv struct{ k, v []byte }
 type memBatch struct {
 	db     *GoMemDB
 	writes []kv
-	size   int
+	//size   int
 }
 
 func (db *GoMemDB) NewBatch(sync bool) Batch {
