@@ -12,8 +12,9 @@ import (
 )
 
 var tlog = log.New("module", "ticket.db")
-var genesisKey = []byte("mavl-acc-genesis")
-var addrSeed = []byte("address seed bytes for public key")
+
+//var genesisKey = []byte("mavl-acc-genesis")
+//var addrSeed = []byte("address seed bytes for public key")
 
 type DB struct {
 	types.Ticket
@@ -64,7 +65,7 @@ func (t *DB) GetKVSet() (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (t *DB) Save(db dbm.KVDB) {
+func (t *DB) Save(db dbm.KV) {
 	set := t.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -86,7 +87,7 @@ func BindKey(id string) (key []byte) {
 
 type Action struct {
 	coinsAccount *account.DB
-	db           dbm.KVDB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64
@@ -97,7 +98,7 @@ type Action struct {
 func NewAction(t *Ticket, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &Action{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+	return &Action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
 func (action *Action) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt, error) {
@@ -125,7 +126,7 @@ func (action *Action) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt,
 	return receipt, nil
 }
 
-func saveBind(db dbm.KVDB, tbind *types.TicketBind) {
+func saveBind(db dbm.KV, tbind *types.TicketBind) {
 	set := getBindKV(tbind)
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -223,7 +224,7 @@ func (action *Action) TicketOpen(topen *types.TicketOpen) (*types.Receipt, error
 	return receipt, nil
 }
 
-func readTicket(db dbm.KVDB, id string) (*types.Ticket, error) {
+func readTicket(db dbm.KV, id string) (*types.Ticket, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
 		return nil, err
@@ -354,9 +355,11 @@ func (action *Action) TicketClose(tclose *types.TicketClose) (*types.Receipt, er
 	return receipt, nil
 }
 
-func List(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message, error) {
-	list := dbm.NewListHelper(db)
-	values := list.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
+func List(db dbm.KVDB, db2 dbm.KV, tlist *types.TicketList) (types.Message, error) {
+	values, err := db.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
+	if err != nil {
+		return nil, err
+	}
 	if len(values) == 0 {
 		return &types.ReplyTicketList{}, nil
 	}
@@ -367,7 +370,7 @@ func List(db dbm.DB, db2 dbm.KVDB, tlist *types.TicketList) (types.Message, erro
 	return Infos(db2, &ids)
 }
 
-func Infos(db dbm.KVDB, tinfos *types.TicketInfos) (types.Message, error) {
+func Infos(db dbm.KV, tinfos *types.TicketInfos) (types.Message, error) {
 	var tickets []*types.Ticket
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]

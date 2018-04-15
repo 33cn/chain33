@@ -16,14 +16,12 @@ func (p *peer) Start() {
 
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
-
-	return
 }
 func (p *peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
-	close(p.taskPool)
 	pub.Unsub(p.taskChan, "block", "tx")
+	log.Debug("Peer", "closed", p.Addr())
 
 }
 
@@ -39,14 +37,12 @@ type peer struct {
 	mconn      *MConnection
 	peerAddr   *NetAddress
 	peerStat   *Stat
-	taskPool   chan struct{}
 	taskChan   chan interface{} //tx block
 }
 
 func newPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
 	p := &peer{
 		conn:     conn,
-		taskPool: make(chan struct{}, 50),
 		nodeInfo: nodeinfo,
 	}
 
@@ -98,7 +94,7 @@ func (v *Version) IsSupport() bool {
 
 func (p *peer) heartBeat() {
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			return
 		}
 
@@ -111,7 +107,7 @@ func (p *peer) heartBeat() {
 
 	pcli := NewCli(nil)
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			return
 		}
 		peername, err := pcli.SendVersion(p, *p.nodeInfo)
@@ -131,18 +127,14 @@ func (p *peer) heartBeat() {
 	ticker := time.NewTicker(PingTimeout)
 	defer ticker.Stop()
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			return
 		}
-		select {
-		case <-ticker.C:
-			err := pcli.SendPing(p, *p.nodeInfo)
-			P2pComm.CollectPeerStat(err, p)
 
-		}
-
+		<-ticker.C
+		err := pcli.SendPing(p, *p.nodeInfo)
+		P2pComm.CollectPeerStat(err, p)
 	}
-
 }
 
 func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
@@ -152,7 +144,7 @@ func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 func (p *peer) sendStream() {
 	//Stream Send data
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			log.Info("sendStream peer is not running")
 			return
 		}
@@ -189,7 +181,7 @@ func (p *peer) sendStream() {
 
 			select {
 			case task := <-p.taskChan:
-				if p.GetRunning() == false {
+				if !p.GetRunning() {
 					resp.CloseSend()
 					cancel()
 					log.Error("sendStream peer is not running")
@@ -235,7 +227,7 @@ func (p *peer) sendStream() {
 				log.Debug("sendStream", "send data", "ok")
 
 			case <-timeout.C:
-				if p.GetRunning() == false {
+				if !p.GetRunning() {
 					log.Error("sendStream timeout")
 					resp.CloseSend()
 					cancel()
@@ -254,7 +246,7 @@ func (p *peer) readStream() {
 	pcli := NewCli(nil)
 
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			log.Debug("readstream", "loop", "done")
 			return
 		}
@@ -273,7 +265,7 @@ func (p *peer) readStream() {
 		log.Debug("SubStreamBlock", "Start", p.Addr())
 		var hash [64]byte
 		for {
-			if p.GetRunning() == false {
+			if !p.GetRunning() {
 				return
 			}
 			data, err := resp.Recv()
@@ -293,7 +285,7 @@ func (p *peer) readStream() {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
 					hex.Encode(hash[:], block.GetBlock().Hash())
 					blockhash := string(hash[:])
-					if Filter.QueryRecvData(blockhash) == true {
+					if Filter.QueryRecvData(blockhash) {
 						continue
 					}
 
@@ -322,7 +314,7 @@ func (p *peer) readStream() {
 					hex.Encode(hash[:], tx.Tx.Hash())
 					txhash := string(hash[:])
 					log.Debug("readStream", "tx", txhash)
-					if Filter.QueryRecvData(txhash) == true {
+					if Filter.QueryRecvData(txhash) {
 						continue //处理方式同上
 					}
 					msg := (*p.nodeInfo).client.NewMessage("mempool", pb.EventTx, tx.GetTx())

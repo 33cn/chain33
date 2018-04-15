@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var merklelog = log.New("module", "merkle")
 
 /*     WARNING! If you're reading this because you're learning about crypto
 and/or designing a new system that will use merkle trees, keep in mind
@@ -76,7 +73,7 @@ func Computation(leaves [][]byte, flage int, branchpos uint32) (roothash []byte,
 		for level = 0; 0 == ((count) & (1 << uint32(level))); level++ {
 			//需要计算branch
 			if (flage & 2) != 0 {
-				if matchh == true {
+				if matchh {
 					branch = append(branch, inner[level])
 				} else if matchlevel == level {
 					branch = append(branch, h)

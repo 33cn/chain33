@@ -356,10 +356,7 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 		return false
 	}
 	tx := msg.GetData().(*types.Transaction)
-	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
-		return false
-	}
-	return true
+	return !tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime())
 }
 
 // Mempool.Close关闭Mempool
@@ -485,12 +482,12 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
 					continue
 				}
-				msg := mem.CheckTx(msg)
-				if msg.Err() != nil {
-					mlog.Error("wrong tx", "err", msg.Err())
-					mem.badChan <- msg
+				checkedMsg := mem.CheckTx(msg)
+				if checkedMsg.Err() != nil {
+					mlog.Error("wrong tx", "err", checkedMsg.Err())
+					mem.badChan <- checkedMsg
 				} else {
-					mem.signChan <- msg
+					mem.signChan <- checkedMsg
 				}
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
@@ -561,7 +558,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				mlog.Debug("reply EventGetAddrTxs ok", "msg", msg)
 			default:
 			}
-			mlog.Debug("mempool", "cost", time.Now().Sub(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }
