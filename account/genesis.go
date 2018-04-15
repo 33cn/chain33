@@ -1,6 +1,7 @@
 package account
 
 import (
+	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -40,7 +41,7 @@ func (acc *DB) GenesisInitExec(addr string, amount int64, execaddr string) (*typ
 	return receipt, nil
 }
 
-func (acc *DB) genesisReceipt(accTo *types.Account, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
+func (acc *DB) genesisReceipt(accTo *types.Account, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogGenesisTransfer)
 	if acc.IsTokenAccount() {
 		ty = int32(types.TyLogTokenGenesisTransfer)

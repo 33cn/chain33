@@ -43,6 +43,9 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 	--enable=deadcode \
 	--enable=vet \
 	--enable=unconvert \
+	--enable=gotype \
+	--enable=gotypex \
+	--enable=interfacer \
 	--vendor ./...) \
 #	--enable=staticcheck \
 #	--enable=golint \
