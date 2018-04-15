@@ -36,6 +36,13 @@ func newRetrieve() *Retrieve {
 	return r
 }
 
+func (r *Retrieve) Clone() drivers.Driver {
+	clone := &Retrieve{}
+	clone.DriverBase = *(r.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
+}
+
 func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.RetrieveAction
 	err := types.Decode(tx.Payload, &action)
@@ -84,9 +91,9 @@ func (r *Retrieve) GetActionName(tx *types.Transaction) string {
 		return "retrieve prepare"
 	} else if action.Ty == types.RetrievePerf && action.GetPerfRet() != nil {
 		return "retrieve perform"
-	} else if action.Ty == types.RetrieveBackup && action.GetBackup != nil {
+	} else if action.Ty == types.RetrieveBackup && action.GetBackup() != nil {
 		return "retrieve backup"
-	} else if action.Ty == types.RetrieveCancel && action.GetCancel != nil {
+	} else if action.Ty == types.RetrieveCancel && action.GetCancel() != nil {
 		return "retrieve cancel"
 	}
 	return "unknow"

@@ -29,8 +29,6 @@ const (
 	indexCacheLimit = 500
 )
 
-var indexlog = chainlog.New("submodule", "blockindex")
-
 func initBlockNode(node *blockNode, block *types.Block, broadcast bool) {
 	*node = blockNode{
 		hash:       block.Hash(),

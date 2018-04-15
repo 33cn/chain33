@@ -43,10 +43,10 @@ func (c *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
 		msg := c.NewMessage("mempool", types.EventTx, &tx)
 		err := c.Send(msg, true)
 		if err != nil {
-			var msg queue.Message
+			var tmpMsg queue.Message
 			log.Error("SendRawTransaction", "Error", err.Error())
-			msg.Data = err
-			return msg
+			tmpMsg.Data = err
+			return tmpMsg
 		}
 		resp, err := c.Wait(msg)
 
@@ -75,10 +75,10 @@ func (c *channelClient) SendTx(tx *types.Transaction) queue.Message {
 	msg := c.NewMessage("mempool", types.EventTx, tx)
 	err := c.Send(msg, true)
 	if err != nil {
-		var msg queue.Message
+		var tmpMsg queue.Message
 		log.Error("SendTx", "Error", err.Error())
-		msg.Data = err
-		return msg
+		tmpMsg.Data = err
+		return tmpMsg
 	}
 	resp, err := c.Wait(msg)
 	if err != nil {
@@ -544,7 +544,6 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 		return accounts, nil
 	}
-	return nil, nil
 }
 
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
@@ -586,7 +585,6 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 
 		return accounts, nil
 	}
-	return nil, nil
 }
 
 func (c *channelClient) QueryHash(in *types.Query) (*types.Message, error) {

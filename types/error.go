@@ -154,6 +154,7 @@ var (
 	ErrSeedExist            = errors.New("ErrSeedExist")
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
+	ErrSeedWord             = errors.New("ErrSeedWord")
 
 	ErrOnlyTicketUnLocked = errors.New("ErrOnlyTicketUnLocked")
 	ErrNewCrypto          = errors.New("ErrNewCrypto")

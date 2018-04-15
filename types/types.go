@@ -12,6 +12,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	// register crypto algorithms
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
 )
@@ -55,7 +56,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 }
 
 func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
-	caches = make([]*TransactionCache, len(txs), len(txs))
+	caches = make([]*TransactionCache, len(txs))
 	for i := 0; i < len(caches); i++ {
 		caches[i] = NewTransactionCache(txs[i])
 	}
@@ -63,7 +64,7 @@ func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
 }
 
 func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
-	txs = make([]*Transaction, len(caches), len(caches))
+	txs = make([]*Transaction, len(caches))
 	for i := 0; i < len(caches); i++ {
 		txs[i] = caches[i].Tx()
 	}
@@ -431,7 +432,7 @@ func checkAll(task []*Transaction, n int) bool {
 	}()
 	// End of pipeline. OMIT
 	for r := range c {
-		if r.isok == false {
+		if !r.isok {
 			return false
 		}
 	}
@@ -536,9 +537,9 @@ type ReceiptLogResult struct {
 	RawLog string      `json:"rawlog"`
 }
 
-func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
-	result := &ReceiptDataResult{Ty: rpt.GetTy()}
-	switch rpt.Ty {
+func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
+	result := &ReceiptDataResult{Ty: r.GetTy()}
+	switch r.Ty {
 	case 0:
 		result.TyName = "ExecErr"
 	case 1:
@@ -548,7 +549,7 @@ func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 	default:
 		return nil, ErrLogType
 	}
-	logs := rpt.GetLogs()
+	logs := r.GetLogs()
 	for _, l := range logs {
 		var lTy string
 		var logIns interface{}
@@ -804,8 +805,8 @@ func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 	return result, nil
 }
 
-func (rd *ReceiptData) OutputReceiptDetails(logger log.Logger) {
-	rds, err := rd.DecodeReceiptLog()
+func (r *ReceiptData) OutputReceiptDetails(logger log.Logger) {
+	rds, err := r.DecodeReceiptLog()
 	if err == nil {
 		logger.Debug("receipt decode", "receipt data", rds)
 		for _, rdl := range rds.Logs {
@@ -829,7 +830,7 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 		t.NextKey = key
 		return true
 	}
-	t.Num += 1
+	t.Num++
 	t.Amount += acc.Balance
 	return false
 }

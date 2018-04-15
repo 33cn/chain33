@@ -61,7 +61,7 @@ func (r *DB) GetKVSet() (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (r *DB) Save(db dbm.KVDB) {
+func (r *DB) Save(db dbm.KV) {
 	set := r.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -76,7 +76,7 @@ func Key(address string) (key []byte) {
 
 type Action struct {
 	coinsAccount *account.DB
-	db           dbm.KVDB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64
@@ -87,7 +87,7 @@ type Action struct {
 func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &Action{r.GetCoinsAccount(), r.GetDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
+	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
 }
 
 //wait for valuable comment
@@ -97,7 +97,7 @@ func (action *Action) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Re
 	var receipt *types.Receipt
 	var r *DB
 	var newRetrieve = false
-	if action.height >= types.ForkV5_retrieve {
+	if action.height >= types.ForkV5Retrive {
 		if err := account.CheckAddress(backupRet.BackupAddress); err != nil {
 			rlog.Debug("retrieve checkaddress")
 			return nil, err
@@ -281,7 +281,7 @@ func (action *Action) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Recei
 	return receipt, nil
 }
 
-func readRetrieve(db dbm.KVDB, address string) (*types.Retrieve, error) {
+func readRetrieve(db dbm.KV, address string) (*types.Retrieve, error) {
 	data, err := db.Get(Key(address))
 	if err != nil {
 		rlog.Debug("readRetrieve", "get", err)

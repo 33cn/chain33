@@ -47,6 +47,7 @@ It has these top-level messages:
 	BlockBody
 	IsCaughtUp
 	IsNtpClockSync
+	BlockChainQuery
 	Reply
 	ReqString
 	ReplyString
@@ -65,7 +66,6 @@ It has these top-level messages:
 	Consensus
 	Wallet
 	Store
-	LocalStore
 	BlockChain
 	P2P
 	Rpc
