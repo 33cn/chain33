@@ -1,6 +1,7 @@
 package kvdb
 
 import (
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -123,7 +124,7 @@ func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
 	storeBatch.Write()
 }
 
-func calcHash(datas *types.StoreSet) []byte {
+func calcHash(datas proto.Message) []byte {
 	b := types.Encode(datas)
 	return common.Sha256(b)
 }

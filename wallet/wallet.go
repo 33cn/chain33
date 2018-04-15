@@ -1387,7 +1387,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		//from addr
 		fromaddress := addr.String()
 		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-			newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+			newbatch.Set(calcTxKey(heightstr), txdetailbyte)
 			walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
 			continue
 		}
@@ -1395,7 +1395,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		//toaddr
 		toaddr := block.Block.Txs[index].GetTo()
 		if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-			newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+			newbatch.Set(calcTxKey(heightstr), txdetailbyte)
 			walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
 		}
 
@@ -1448,14 +1448,14 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		addr := account.PubKeyToAddress(pubkey)
 		fromaddress := addr.String()
 		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-			newbatch.Delete([]byte(calcTxKey(heightstr)))
+			newbatch.Delete(calcTxKey(heightstr))
 			//walletlog.Error("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
 			continue
 		}
 		//toaddr
 		toaddr := block.Block.Txs[index].GetTo()
 		if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-			newbatch.Delete([]byte(calcTxKey(heightstr)))
+			newbatch.Delete(calcTxKey(heightstr))
 			//walletlog.Error("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
 		}
 	}
@@ -1498,7 +1498,7 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		height := txdetal.GetHeight()
 		txindex := txdetal.GetIndex()
 
-		blockheight := height*maxTxNumPerBlock + int64(txindex)
+		blockheight := height*maxTxNumPerBlock + txindex
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		var txdetail types.WalletTxDetail
 		txdetail.Tx = txdetal.GetTx()
@@ -1515,7 +1515,7 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 			storelog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
 			return
 		}
-		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+		newbatch.Set(calcTxKey(heightstr), txdetailbyte)
 		walletlog.Debug("GetTxDetailByHashs", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
