@@ -206,14 +206,14 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
 		list := dbm.NewListHelper(ws.db)
-		txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
+		txbytes = list.IteratorScanFromLast(calcTxKey(""), TxList.Count)
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist
 		}
 	} else {
 		list := dbm.NewListHelper(ws.db)
-		txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		txbytes = list.IteratorScan([]byte("Tx:"), calcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
 			return nil, types.ErrTxNotExist

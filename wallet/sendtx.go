@@ -12,7 +12,7 @@ import (
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
-	walletlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", int32(count))
+	walletlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", count)
 	ta := &types.TicketAction{}
 	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
 	ta.Value = &types.TicketAction_Topen{topen}
