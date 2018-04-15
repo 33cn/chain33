@@ -6,3 +6,4 @@ datadir*
 build/chain33*
 build/datadir
 build/*.log
+common/mavl/datastore
