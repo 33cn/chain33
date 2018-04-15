@@ -37,15 +37,23 @@ cli: ## Build cli binary
 	@go build -race -v -o $(CLI) $(SRC_CLI)
 
 linter: ## Use gometalinter check code, ignore some unserious warning
-	@res=$$(gometalinter.v2 -t --sort=line --enable-gc --disable-all \
+	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
 	--enable=gofmt \
 	--enable=gosimple \
 	--enable=deadcode \
 	--enable=vet \
+	--enable=unconvert \
+	--enable=interfacer \
+	--enable=varcheck \
+	--enable=structcheck \
 	--vendor ./...) \
+#	--enable=staticcheck \
+#	--enable=gocyclo \
 #	--enable=staticcheck \
 #	--enable=golint \
 #	--enable=unused \
+#	--enable=gotype \
+#	--enable=gotypex \
 	if [ -n "$$res" ]; then \
 		echo "$${res}"; \
 		exit 1; \

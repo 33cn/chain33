@@ -163,7 +163,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	if backuppubkeyindex == nil || err != nil {
 		backupindex = 0
 	} else {
-		if err = json.Unmarshal([]byte(backuppubkeyindex), &backupindex); err != nil {
+		if err = json.Unmarshal(backuppubkeyindex, &backupindex); err != nil {
 			return "", err
 		}
 	}
@@ -270,7 +270,7 @@ func AesgcmEncrypter(password []byte, seed []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	Encrypted := aesgcm.Seal(nil, key[:12], []byte(seed), nil)
+	Encrypted := aesgcm.Seal(nil, key[:12], seed, nil)
 	//seedlog.Info("AesgcmEncrypter Seal", "seed", seed, "key", key, "Encrypted", Encrypted)
 	return Encrypted, nil
 }
