@@ -1,7 +1,6 @@
 image: chain33-build:latest
 
 before_script:
-    - docker info
     - export GO_PROJECT_NAMESPACE="$GOPATH/src/gitlab.33.cn/$CI_PROJECT_NAMESPACE"
     - echo $GO_PROJECT_NAMESPACE
     - mkdir -p $GO_PROJECT_NAMESPACE
@@ -13,11 +12,6 @@ before_script:
 
 after_script:
     - make clean
-
-build:
-    stage: build
-    script:
-        - docker build -f build/Dockerfile-run -t chain33-build .
 
 stages:
     - build
