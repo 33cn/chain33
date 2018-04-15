@@ -77,7 +77,7 @@ func (chain *BlockChain) SynRoutine() {
 	fetchPeerListTicker := time.NewTicker(time.Duration(fetchPeerListSeconds) * time.Second)
 
 	//向peer请求同步block的定时器，默认2s
-	blockSynTicker := time.NewTicker(time.Duration(blockSynInterVal) * time.Second)
+	blockSynTicker := time.NewTicker(blockSynInterVal * time.Second)
 
 	//5分钟检测一次bestchain主链高度是否有增长，如果没有增长可能是目前主链在侧链上，
 	//需要从最高peer向后同步指定的headers用来获取分叉点，再后从指定peer获取分叉点以后的blocks

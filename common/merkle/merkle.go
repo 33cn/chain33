@@ -70,7 +70,7 @@ func Computation(leaves [][]byte, flage int, branchpos uint32) (roothash []byte,
 		}
 		count++
 		// 1左移level位
-		for level = 0; 0 == ((count) & (1 << uint32(level))); level++ {
+		for level = 0; 0 == ((count) & (1 << level)); level++ {
 			//需要计算branch
 			if (flage & 2) != 0 {
 				if matchh {

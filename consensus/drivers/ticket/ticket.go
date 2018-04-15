@@ -385,8 +385,8 @@ func (client *Client) GetNextRequiredDifficulty(block *types.Block, bits uint32)
 
 	minRetargetTimespan := targetTimespan / (cfg.RetargetAdjustmentFactor)
 	maxRetargetTimespan := targetTimespan * cfg.RetargetAdjustmentFactor
-	if actualTimespan < int64(minRetargetTimespan) {
-		adjustedTimespan = int64(minRetargetTimespan)
+	if actualTimespan < minRetargetTimespan {
+		adjustedTimespan = minRetargetTimespan
 	} else if actualTimespan > maxRetargetTimespan {
 		adjustedTimespan = maxRetargetTimespan
 	}
