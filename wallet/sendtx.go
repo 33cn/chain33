@@ -68,6 +68,9 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 	var privs [][]byte
 	for _, account := range accounts.Wallets {
 		t, err := wallet.getTickets(account.Acc.Addr, status)
+		if err == types.ErrNotFound {
+			continue
+		}
 		if err != nil {
 			return nil, nil, err
 		}
