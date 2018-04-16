@@ -1205,14 +1205,11 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 
 
 func (c *Chain33) ShowPrivacykey(in types.ReqString, result *interface{}) error {
-
 	reply, err := c.cli.ShowPrivacykey(&in)
 	if err != nil {
 		return err
 	}
-
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-
+	*result = reply
 	return nil
 }
 
@@ -1242,12 +1239,11 @@ func (c *Chain33) MakeTxPrivacy2privacy(in types.ReqPri2Pri, result *interface{}
 
 func (c *Chain33) MakeTxPrivacy2public(in types.ReqPri2Pub, result *interface{}) error {
 
-	reply, err := c.cli.MakeTxPrivacy2public(&in)
+	replyPrivacyPkPair, err := c.cli.MakeTxPrivacy2public(&in)
 	if err != nil {
 		return err
 	}
-
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+	*result = replyPrivacyPkPair
 
 	return nil
 }

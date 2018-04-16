@@ -13,8 +13,7 @@ import (
 	"crypto/sha512"
 	"crypto/subtle"
 	"io"
-
-	"github.com/tendermint/ed25519/edwards25519"
+	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 )
 
 const (

@@ -226,7 +226,8 @@ type WalletStatus struct {
 	IsTicketLock bool `json:"isticketlock"`
 }
 
-type PrivacyPKPair struct {
-	ViewPubKey string `json:"ViewPubKey"`
-	SpendPubKey string `json:"SpendPubKey"`
+type ReplyPrivacyPkPair struct {
+	ShowSuccessful bool   `json:"showSuccessful,omitempty"`
+	ViewPub        string `json:"viewPub,omitempty"`
+	SpendPub       string `json:"spendPub,omitempty"`
 }
