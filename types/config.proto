@@ -47,9 +47,10 @@ message Consensus {
 	bool minerstart = 3;
 	int64 genesisBlockTime = 4;
 	string hotkeyAddr = 5;
-	int32 NodeId = 6;
-	string PeersURL = 7;
-	string ClientAddr = 8;
+	bool forceMining = 6;
+	int32 NodeId = 7;
+	string PeersURL = 8;
+	string ClientAddr = 9;
 }
 
 message Wallet {
@@ -57,6 +58,7 @@ message Wallet {
 	string driver = 2;
 	string dbPath = 3;
 	string signType =4;
+	bool forceMining = 5;
 }
 
 message Store {

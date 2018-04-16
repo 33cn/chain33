@@ -26,7 +26,7 @@ func (p *peer) Close() {
 }
 
 type peer struct {
-	wg         sync.WaitGroup
+	//wg         sync.WaitGroup
 	mutx       sync.Mutex
 	nodeInfo   **NodeInfo
 	conn       *grpc.ClientConn // source connection

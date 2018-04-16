@@ -6,3 +6,10 @@ datadir*
 build/chain33*
 build/datadir
 build/*.log
+common/mavl/datastore
+.DS_Store
+common/.DS_Store
+common/config/.DS_Store
+executor/executor.test
+logs/
+
