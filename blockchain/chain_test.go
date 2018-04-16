@@ -30,7 +30,7 @@ func init() {
 
 func initEnv() (*BlockChain, queue.Queue) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../chain33.test.toml")
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 
 	blockchain := New(cfg.BlockChain)
 	blockchain.SetQueueClient(q.Client())
