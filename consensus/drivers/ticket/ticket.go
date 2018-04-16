@@ -164,6 +164,7 @@ func (client *Client) setTicket(tlist *types.ReplyTicketList, privmap map[string
 	defer client.ticketmu.Unlock()
 	client.tlist = tlist
 	client.privmap = privmap
+	tlog.Debug("setTicket", "n", len(tlist.GetTickets()))
 }
 
 func (client *Client) flushTicket() error {
@@ -198,10 +199,6 @@ func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 }
 
 func (client *Client) getMinerTx(current *types.Block) (*types.TicketAction, error) {
-	//检查第一个笔交易的execs, 以及执行状态
-	if len(current.Txs) == 0 {
-		return nil, types.ErrEmptyTx
-	}
 	//检查第一个笔交易的execs, 以及执行状态
 	if len(current.Txs) == 0 {
 		return nil, types.ErrEmptyTx
@@ -583,10 +580,12 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 func (client *Client) CreateBlock() {
 	for {
 		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.GetForceMining()) {
+			tlog.Debug("createblock.ismining is disable or client is caughtup is false")
 			time.Sleep(time.Second)
 			continue
 		}
 		if client.getTicketCount() == 0 {
+			tlog.Debug("createblock.getticketcount = 0")
 			time.Sleep(time.Second)
 			continue
 		}
