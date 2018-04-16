@@ -7,3 +7,11 @@ build/chain33*
 build/datadir
 build/*.log
 common/mavl/datastore
+.DS_Store
+chain33
+cli/
+common/.DS_Store
+common/config/.DS_Store
+executor/executor.test
+logs/
+
