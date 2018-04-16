@@ -52,8 +52,9 @@ message Consensus {
 	string peersURL = 7;
 	string readOnlyPeersURL = 8;
 	string addPeersURL = 9;
-	int64 genesisBlockTime = 10;
-	string hotkeyAddr = 11;
+	int64 defaultSnapCount = 10;
+	int64 genesisBlockTime = 11;
+	string hotkeyAddr = 12;
 }
 
 message Wallet {
