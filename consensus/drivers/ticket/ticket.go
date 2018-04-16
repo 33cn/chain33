@@ -582,7 +582,7 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 
 func (client *Client) CreateBlock() {
 	for {
-		if !client.IsMining() || !client.IsCaughtUp() {
+		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.GetForceMining()) {
 			time.Sleep(time.Second)
 			continue
 		}
