@@ -115,7 +115,7 @@ func (chain *BlockChain) Close() {
 	atomic.StoreInt32(&chain.isclosed, 1)
 
 	//退出线程
-	chain.quit <- struct{}{}
+	//chain.quit <- struct{}{}
 	close(chain.quit)
 
 	//wait for recvwg quit:
@@ -133,7 +133,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client = client
 	chain.client.Sub("blockchain")
 
-	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, 128)
+	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, 64)
 	blockStore := NewBlockStore(blockStoreDB, client.Clone())
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()

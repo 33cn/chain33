@@ -3,7 +3,7 @@ package executor
 //store package store the world - state data
 import (
 	"bytes"
-
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -307,7 +307,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	return nil, types.ErrNoBalance
 }
 
-func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptAccountTransfer) *types.Receipt {
+func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
 	return &types.Receipt{types.ExecPack, e.coinsAccount.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }

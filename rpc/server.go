@@ -12,21 +12,22 @@ var (
 	rpcCfg   *types.Rpc
 )
 
-type server struct {
+type Chain33 struct {
 	cli channelClient
 }
 
-type Chain33 server
-type Grpc server
+type Grpc struct {
+	cli channelClient
+}
 
 type Grpcserver struct {
 	grpc Grpc
-	addr string
+	//addr string
 }
 
 type JSONRPCServer struct {
 	jrpc Chain33
-	addr string
+	//addr string
 }
 
 func (s *JSONRPCServer) Close() {
