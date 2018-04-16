@@ -158,6 +158,8 @@ var (
 	ErrFromHex            = errors.New("ErrFromHex")
 	ErrPrivKeyFromBytes   = errors.New("ErrFromHex")
 	ErrParentHash         = errors.New("ErrParentHash")
+	ErrPrivacyNotExist    = errors.New("ErrPrivacyNotExist")
+
 	// manage
 	ErrNoPrivilege    = errors.New("ErrNoPrivilege")
 	ErrBadConfigKey   = errors.New("ErrBadConfigKey")

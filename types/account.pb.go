@@ -193,6 +193,7 @@ It has these top-level messages:
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
+	WalletAccountPrivacy
 	WalletPwHash
 	WalletStatus
 	WalletAccounts
@@ -223,6 +224,7 @@ It has these top-level messages:
 	ReqPub2Pri
 	ReqPri2Pri
 	ReqPri2Pub
+	ReplyPrivacyPkPair
 */
 package types
 

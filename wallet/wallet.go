@@ -15,10 +15,19 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"unsafe"
+)
+
+const (
+	SignTypeInvalid = iota
+	SignTypeSecp256k1 //1
+	SignTypeED25519   //2
+	SignTypeSM2
 )
 
 var (
@@ -66,9 +75,9 @@ func New(cfg *types.Wallet) *Wallet {
 	walletStore := NewWalletStore(walletStoreDB)
 	minFee = cfg.MinFee
 	if "secp256k1" == cfg.SignType {
-		SignType = 1
+		SignType = SignTypeSecp256k1
 	} else if "ed25519" == cfg.SignType {
-		SignType = 2
+		SignType = SignTypeED25519
 	}
 	wallet := &Wallet{
 		walletStore:    walletStore,
@@ -576,17 +585,12 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 		case types.EventShowPrivacyPK:
 			reqAddr := msg.Data.(*types.ReqStr)
-			replyHash, err := wallet.procPublic2Privacy(reqAddr)
-			var reply types.Reply
+			replyPrivacyPair, err := wallet.showPrivacyPkPair(reqAddr)
 			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procPublic2Privacy", "err", err.Error())
+				walletlog.Error("showPrivacyPkPair", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, err))
 			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procPublic2Privacy", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, &reply))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, replyPrivacyPair))
 			}
 		case types.EventPublic2privacy:
 			reqPub2Pri := msg.Data.(*types.ReqPub2Pri)
@@ -2155,7 +2159,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 
 }
 
-func (wallet *Wallet) showPrivacyPkPair(addr * types.ReqStr) (*types.ReplyHash, error) {
+func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -2163,20 +2167,53 @@ func (wallet *Wallet) showPrivacyPkPair(addr * types.ReqStr) (*types.ReplyHash, 
 	if !ok {
 		return nil, err
 	}
-	if addr == nil {
-		walletlog.Error("public2private input para is nil")
-		return nil, types.ErrInputPara
-	}
 
-	priv, err := wallet.getPrivKeyByAddr(public2private.GetSender())
+	if accPrivacy, _ := wallet.walletStore.GetWalletAccountPrivacy(addr); accPrivacy != nil {
+		privacyInfo := &privacy.Privacy{}
+		copy(privacyInfo.ViewPubkey[:], accPrivacy.ViewPubkey)
+		copy(privacyInfo.ViewPrivKey[:], accPrivacy.ViewPrivKey)
+		copy(privacyInfo.SpendPubkey[:], accPrivacy.SpendPubkey)
+		copy(privacyInfo.SpendPrivKey[:], accPrivacy.SpendPrivKey)
+
+		return privacyInfo, nil
+	}
+	priv, err := wallet.getPrivKeyByAddr(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	return wallet.transPub2Pri(priv, public2private)
+	newPrivacy, err := privacy.NewPrivacyWithPrivKey((*[privacy.KeyLen32]byte)(unsafe.Pointer(&priv.Bytes()[0])))
+	if err != nil {
+		return nil, err
+	}
+
+	walletPrivacy := &types.WalletAccountPrivacy{
+		ViewPubkey:   newPrivacy.ViewPubkey[:],
+		ViewPrivKey:  newPrivacy.ViewPrivKey[:],
+		SpendPubkey:  newPrivacy.SpendPubkey[:],
+		SpendPrivKey: newPrivacy.SpendPrivKey[:],
+	}
+    //save the privacy created to wallet db
+	wallet.walletStore.SetWalletAccountPrivacy(addr, walletPrivacy)
+	return newPrivacy, nil
 }
 
-func (wallet *Wallet) procPublic2Privacy(public2private * types.ReqPub2Pri) (*types.ReplyHash, error) {
+func (wallet *Wallet) showPrivacyPkPair(reqAddr *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
+	privacyInfo, err := wallet.getPrivacykeyPair(reqAddr.GetReqstr())
+	if err != nil {
+		return nil, err
+	}
+
+	replyPrivacyPkPair := &types.ReplyPrivacyPkPair{
+		true,
+		common.ToHex(privacyInfo.ViewPubkey[:]),
+		common.ToHex(privacyInfo.SpendPubkey[:]),
+	}
+
+	return replyPrivacyPkPair, nil
+}
+
+func (wallet *Wallet) procPublic2Privacy(public2private *types.ReqPub2Pri) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -2197,7 +2234,7 @@ func (wallet *Wallet) procPublic2Privacy(public2private * types.ReqPub2Pri) (*ty
 	return wallet.transPub2Pri(priv, public2private)
 }
 
-func (wallet *Wallet) procPrivacy2Privacy(privacy2privacy * types.ReqPri2Pri) (*types.ReplyHash, error) {
+func (wallet *Wallet) procPrivacy2Privacy(privacy2privacy *types.ReqPri2Pri) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -2209,21 +2246,16 @@ func (wallet *Wallet) procPrivacy2Privacy(privacy2privacy * types.ReqPri2Pri) (*
 		walletlog.Error("privacy2privacy input para is nil")
 		return nil, types.ErrInputPara
 	}
-    //get 'a'
-	viewPriv, err := wallet.getPrivKeyByAddr(privacy2privacy.GetViewAddr())
+
+	privacyInfo, err := wallet.getPrivacykeyPair(privacy2privacy.GetSender())
 	if err != nil {
 		return nil, err
 	}
 
-	spendPriv, err := wallet.getPrivKeyByAddr(privacy2privacy.GetSpendAddr())
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.transPri2Pri(viewPriv, spendPriv, privacy2privacy)
+	return wallet.transPri2Pri(privacyInfo, privacy2privacy)
 }
 
-func (wallet *Wallet) procPrivacy2Public(privacy2privacy * types.ReqPri2Pub) (*types.ReplyHash, error) {
+func (wallet *Wallet) procPrivacy2Public(privacy2Pub *types.ReqPri2Pub) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -2231,20 +2263,15 @@ func (wallet *Wallet) procPrivacy2Public(privacy2privacy * types.ReqPri2Pub) (*t
 	if !ok {
 		return nil, err
 	}
-	if privacy2privacy == nil {
+	if privacy2Pub == nil {
 		walletlog.Error("privacy2privacy input para is nil")
 		return nil, types.ErrInputPara
 	}
 	//get 'a'
-	viewPriv, err := wallet.getPrivKeyByAddr(privacy2privacy.GetViewAddr())
+	privacyInfo, err := wallet.getPrivacykeyPair(privacy2Pub.GetSender())
 	if err != nil {
 		return nil, err
 	}
 
-	spendPriv, err := wallet.getPrivKeyByAddr(privacy2privacy.GetSpendAddr())
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.transPri2Pub(viewPriv, spendPriv, privacy2privacy)
+	return wallet.transPri2Pub(privacyInfo, privacy2Pub)
 }
