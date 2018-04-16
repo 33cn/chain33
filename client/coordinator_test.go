@@ -108,6 +108,7 @@ func (mock *mockSystem) startup(size int) QueueProtocolAPI {
 	mock.chain = chain
 	mock.store = s
 	mock.cons = cs
+	mock.mem = mem
 
 	return mock.getAPI()
 }
@@ -117,6 +118,7 @@ func (mock *mockSystem) stop() {
 	mock.store.Close()
 	mock.chain.Close()
 	mock.exec.Close()
+	mock.mem.Close()
 	mock.q.Close()
 }
 
@@ -297,4 +299,12 @@ func TestQueueCoordinator_PeerInfo(t *testing.T) {
 }
 
 func TestQueueCoordinator_GetTicketCount(t *testing.T) {
+	var mock mockSystem
+	api := mock.startup(0)
+	defer mock.stop()
+
+	_, err := api.GetTicketCount()
+	if nil != err {
+		t.Error("Call GetTickedCount failed. error: ", err)
+	}
 }
