@@ -12,8 +12,9 @@ import (
 )
 
 var tlog = log.New("module", "ticket.db")
-var genesisKey = []byte("mavl-acc-genesis")
-var addrSeed = []byte("address seed bytes for public key")
+
+//var genesisKey = []byte("mavl-acc-genesis")
+//var addrSeed = []byte("address seed bytes for public key")
 
 type DB struct {
 	types.Ticket
@@ -354,7 +355,7 @@ func (action *Action) TicketClose(tclose *types.TicketClose) (*types.Receipt, er
 	return receipt, nil
 }
 
-func List(db dbm.KVDB, db2 dbm.KV, tlist *types.TicketList) (types.Message, error) {
+func List(db dbm.Lister, db2 dbm.KV, tlist *types.TicketList) (types.Message, error) {
 	values, err := db.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
 	if err != nil {
 		return nil, err

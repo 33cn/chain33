@@ -54,20 +54,17 @@ func (f *Filterdata) ManageRecvFilter() {
 	var timeout int64 = 60
 	defer ticker.Stop()
 	for {
-
-		select {
-
-		case <-ticker.C:
-			f.rmtx.Lock()
-			now := time.Now().Unix()
-			for key, regtime := range f.regRData {
-				if now-int64(regtime) > timeout {
-					delete(f.regRData, key)
-				}
+		<-ticker.C
+		f.rmtx.Lock()
+		now := time.Now().Unix()
+		for key, regtime := range f.regRData {
+			if now-int64(regtime) > timeout {
+				delete(f.regRData, key)
 			}
-			f.rmtx.Unlock()
 		}
-		if f.isClose() == false {
+		f.rmtx.Unlock()
+
+		if !f.isClose() {
 			return
 		}
 	}

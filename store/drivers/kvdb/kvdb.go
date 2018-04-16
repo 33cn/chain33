@@ -1,6 +1,7 @@
 package kvdb
 
 import (
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -102,7 +103,7 @@ func (kvs *KVStore) Rollback(req *types.ReqHash) []byte {
 }
 
 func (kvs *KVStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
-	return
+	panic("empty")
 	//TODO:
 	//kvs.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, fn)
 }
@@ -123,7 +124,7 @@ func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
 	storeBatch.Write()
 }
 
-func calcHash(datas *types.StoreSet) []byte {
+func calcHash(datas proto.Message) []byte {
 	b := types.Encode(datas)
 	return common.Sha256(b)
 }
