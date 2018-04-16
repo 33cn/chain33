@@ -1,4 +1,4 @@
-#image: chain33-build:latest
+image: chain33-build:latest
 
 before_script:
     - export GO_PROJECT_NAMESPACE="$GOPATH/src/gitlab.33.cn/$CI_PROJECT_NAMESPACE"
