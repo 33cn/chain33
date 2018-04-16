@@ -22,6 +22,9 @@ var (
 )
 
 func main() {
+	//set maxprocs
+	runtime.GOMAXPROCS(cpuNum)
+
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
 	os.Chdir(pwd())
@@ -33,12 +36,8 @@ func main() {
 	}
 
 	flag.Parse()
-	//set config
 	cfg := config.InitCfg(*configPath)
-
-	//set file log
 	clog.SetFileLog(cfg.Log)
-	//set grpc log
 	//f, err := createFile(cfg.P2P.GetGrpcLogFile())
 
 	//set watching
@@ -48,15 +47,17 @@ func main() {
 			watching()
 		}
 	}()
+
 	//set pprof
 	go func() {
 		http.ListenAndServe("localhost:6061", nil)
 	}()
+
 	//set trace
 	grpc.EnableTracing = true
 	go startTrace()
-	//set maxprocs
-	runtime.GOMAXPROCS(cpuNum)
+
+
 }
 
 // 开启trace
