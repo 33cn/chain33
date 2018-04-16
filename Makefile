@@ -40,7 +40,7 @@ build: ## Build the binary file
 	@cp cmd/chain33/chain33.toml build/
 
 release: ## Build the binary file
-	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 cli: ## Build cli binary
@@ -60,6 +60,9 @@ build_ci: ## Build the binary file for CI
 	@go build -race -v -o $(CLI) $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+
+relayd: ## Build relay deamon binary
+	@go build -race -v -o $(RELAYD) $(SRC_RELAYD)
 
 linter: ## Use gometalinter check code, ignore some unserious warning
 	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
@@ -127,6 +130,7 @@ docker-compose: ## build docker-compose for chain33 run
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
 	@rm -rf build/chain33*
+	@rm -rf build/relayd*
 	@rm -rf build/*.log
 	@rm -rf build/logs
 	@go clean
