@@ -63,7 +63,6 @@ type mockSystem struct {
 	chain *blockchain.BlockChain
 	store queue.Module
 	cons  queue.Module
-	qc    *client.QueueCoordinator
 }
 
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
@@ -90,9 +89,6 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	}
 	mem.SetMinFee(types.MinFee)
 
-	qc := client.New()
-	qc.SetQueueClient(q.Client())
-
 	tx1.Sign(types.SECP256K1, privKey)
 	tx2.Sign(types.SECP256K1, privKey)
 	tx3.Sign(types.SECP256K1, privKey)
@@ -111,7 +107,6 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	mock.chain = chain
 	mock.store = s
 	mock.cons = cs
-	mock.qc = qc
 
 	return mock.getAPI()
 }
@@ -121,12 +116,12 @@ func (mock *mockSystem) stop() {
 	mock.store.Close()
 	mock.chain.Close()
 	mock.exec.Close()
-	mock.qc.Close()
 	mock.q.Close()
 }
 
 func (mock *mockSystem) getAPI() client.QueueProtocolAPI {
-	return mock.qc
+	api, _ := client.NewQueueAPI(mock.q.Client())
+	return api
 }
 
 func TestQueueCoordinator_QueryTx(t *testing.T) {
@@ -134,7 +129,7 @@ func TestQueueCoordinator_QueryTx(t *testing.T) {
 	api := mock.startup(0)
 	defer mock.stop()
 
-	_, err := api.QueryTx(tx1)
+	_, err := api.GetTx(tx1)
 	if nil != err {
 		t.Error("QueryTx error. ", err)
 	}
@@ -145,7 +140,7 @@ func TestQueueCoordinator_QueryTxList(t *testing.T) {
 	api := mock.startup(0)
 	defer mock.stop()
 
-	_, err := api.QueryTxList(2, nil)
+	_, err := api.GetTxList(&types.TxHashList{Count: 2, Hashes: nil})
 	if nil != err {
 		t.Error("QueryTxList error. ", err)
 	}
