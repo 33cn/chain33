@@ -239,13 +239,14 @@ func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
 
-// 通过addr前缀查找本地址参与的所有交易
+//通过addr前缀查找本地址参与的所有交易
 //查询交易默认放到：coins 中查询
 func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	db := d.GetLocalDB()
 	var prefix []byte
 	var key []byte
 	var txinfos [][]byte
+	var err error
 	//取最新的交易hash列表
 	if addr.Flag == 0 { //所有的交易hash列表
 		prefix = CalcTxAddrHashKey(addr.GetAddr(), "")
@@ -256,7 +257,7 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	}
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
-		txinfos, err := db.List(prefix, nil, addr.Count, 0)
+		txinfos, err = db.List(prefix, nil, addr.Count, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +265,7 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 			return nil, errors.New("tx does not exist")
 		}
 	} else { //翻页查找指定的txhash列表
-		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + int64(addr.GetIndex())
+		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + addr.GetIndex()
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		if addr.Flag == 0 {
 			key = CalcTxAddrHashKey(addr.GetAddr(), heightstr)
@@ -273,7 +274,7 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		} else {
 			return nil, errors.New("flag unknown")
 		}
-		txinfos, err := db.List(prefix, key, addr.Count, addr.Direction)
+		txinfos, err = db.List(prefix, key, addr.Count, addr.Direction)
 		if err != nil {
 			return nil, err
 		}

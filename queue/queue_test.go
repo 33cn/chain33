@@ -29,7 +29,7 @@ func TestTimeout(t *testing.T) {
 	client := q.Client()
 	//rpc 模块 会向其他模块发送消息，自己本身不需要订阅消息
 	msg := client.NewMessage("blockchain", types.EventTx, "hello")
-	for i := 0; i < DefaultChanBuffer; i++ {
+	for i := 0; i < defaultChanBuffer; i++ {
 		err := client.SendTimeout(msg, true, 0)
 		if err != nil {
 			t.Error(err)

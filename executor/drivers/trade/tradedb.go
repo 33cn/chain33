@@ -33,8 +33,7 @@ func (selldb *sellDB) save(db dbm.KV) []*types.KeyValue {
 func (selldb *sellDB) getSellLogs(tradeType int32) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = tradeType
-	var base *types.ReceiptTradeBase
-	base = &types.ReceiptTradeBase{
+	base := &types.ReceiptTradeBase{
 		selldb.Tokensymbol,
 		selldb.Address,
 		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
