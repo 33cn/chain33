@@ -35,6 +35,7 @@ type Mempool struct {
 	minFee    int64
 	addedTxs  *lru.Cache
 	sync      bool
+	cfg       *types.MemPool
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -48,6 +49,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.goodChan = make(chan queue.Message, channelSize)
 	pool.minFee = cfg.MinTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
+	pool.cfg = cfg
 	return pool
 }
 
@@ -422,6 +424,9 @@ func (mem *Mempool) isSync() bool {
 func (mem *Mempool) getSync() {
 	if mem.isSync() {
 		return
+	}
+	if mem.cfg.ForceAccept {
+		mem.setSync(true)
 	}
 	for {
 		if mem.client == nil {
