@@ -52,8 +52,6 @@ func NewReplica(id uint32, PeersURL string, addr string) (chan *pb.ClientReply, 
 		lastReply:   nil,
 		pendingVC:   make([]*pb.Request, 10),
 		executed:    make([]uint32, 10),
-		//checkpoints: make([]*pb.Checkpoint,10),
-
 	}
 	peers := strings.Split(PeersURL, ",")
 	for num, peer := range peers {
@@ -61,30 +59,15 @@ func NewReplica(id uint32, PeersURL string, addr string) (chan *pb.ClientReply, 
 	}
 	pn.checkpoints = []*pb.Checkpoint{pb.ToCheckpoint(0, []byte(""))}
 
-	//go func(){pn.requestChan<-req}()
 	pn.Startnode(addr)
 	return replyChan, requestChan, pn.isPrimary(pn.ID)
 
 }
 
 func (rep *Replica) Startnode(addr string) {
-	//log.Println("hello")
+
 	rep.acceptConnections(addr)
-	/*var operation uint32
-	go func(){
-		for   {
-			fmt.Scanf("%d",&operation)
-			//ep.doneChan<-"enter the req done"
-			op:=&pb.Operation{operation}
-			req:=pb.ToRequestClient(op,time.Now().String(),addr)
-			rep.multicast(req)
-		}
-	}()*/
-	/*go func() {
-		for {
-			log.Println(<-rep.doneChan)
-		}
-	}()*/
+
 }
 
 // Basic operations
@@ -134,7 +117,6 @@ func (rep *Replica) lastExecuted() uint32 {
 }
 
 func (rep *Replica) lastStable() *pb.Checkpoint {
-	//log.Println(len(rep.checkpoints)-1)
 	return rep.checkpoints[len(rep.checkpoints)-1]
 }
 
@@ -180,7 +162,7 @@ func (rep *Replica) acceptConnections(addr string) {
 	go func() {
 
 		for {
-			// log.Println("start to listen")
+
 			conn, err := ln.Accept()
 
 			if err != nil {
@@ -192,8 +174,7 @@ func (rep *Replica) acceptConnections(addr string) {
 				plog.Error("readmessage error")
 			}
 			rep.handleRequest(req)
-			//log.Println("handle mes done")
-			//rep.doneChan<-"handle mes done"
+
 		}
 	}()
 }
@@ -232,7 +213,7 @@ func (rep *Replica) sendRoutine() {
 			}
 		default:
 			err := rep.multicast(REQ)
-			//log.Println("take from chan and multicast")
+
 			if err != nil {
 				go func() {
 					rep.errChan <- err
@@ -293,16 +274,6 @@ func (rep *Replica) logReply(client string, reply *pb.ClientReply) {
 		rep.replies[client] = append(rep.replies[client], reply)
 	}
 }
-
-/*
-func (rep *Replica) logPrep(prep *pb.RequestPrepare)
-	rep.prep = append(rep.prep, prep)
-}
-
-func (rep *Replica) logPrePrep(prePrep *pb.RequestPrePrepare) {
-	rep.prePrep = append(rep.prePrep, prePrep)
-}
-*/
 
 // Has requests
 
@@ -411,35 +382,6 @@ func (rep *Replica) hasRequestNewView(REQ *pb.Request) bool {
 	}
 	return false
 }
-
-/*
-func (rep *Replica) clearEntries(sequence uint32) {
-	go rep.clearPrepared(sequence)
-	go rep.clearPreprepared(sequence)
-}
-
-func (rep *Replica) clearPrepared(sequence uint32) {
-	prepared := rep.prepared
-	for idx, entry := range rep.prepared {
-		s := entry.sequence
-		if s <= sequence {
-			prepared = append(prepared[:idx], prepared[idx+1:]...)
-		}
-	}
-	rep.prepared = prepared
-}
-
-func (rep *Replica) clearPreprepared(sequence uint32) {
-	prePrepared := rep.prePrepared
-	for idx, entry := range rep.prePrepared {
-		s := entry.sequence
-		if s <= sequence {
-			prePrepared = append(prePrepared[:idx], prePrepared[idx+1:]...)
-		}
-	}
-	rep.prePrepared = prePrepared
-}
-*/
 
 // Clear requests
 
@@ -621,19 +563,10 @@ func (rep *Replica) handleRequestClient(REQ *pb.Request) {
 	rep.logRequest(req)
 	plog.Info("Client-request done")
 
-	// prePrep := req.GetPreprepare()
-	// rep.logPrePrep(prePrep)
-
 	go func() {
 		rep.requestChan <- req
 	}()
 
-	/*
-		err := rep.multicast(prePrepare)
-		if err != nil {
-			return err
-		}
-	*/
 }
 
 func (rep *Replica) handleRequestPreprepare(REQ *pb.Request) {
@@ -830,15 +763,13 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 	}
 	for _, req := range rep.requests["client"] {
 		d := req.Digest()
-		//log.Println(string(d) )
+
 		if _, exists := digests[string(d)]; !exists {
-			//log.Println("not exisit digest")
+
 			continue
 		}
 		if !pb.EQ(d, digest) {
-			//log.Println("not eq error")
-			// Unexecuted message op with
-			// lower sequence number...
+
 			continue
 		}
 
@@ -864,8 +795,7 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 		stateDigest := rep.stateDigest()
 		req := pb.ToRequestCheckpoint(sequence, stateDigest, rep.ID)
 		rep.logRequest(req)
-		//checkpoint := pb.ToCheckpoint(sequence, stateDigest)
-		//rep.addCheckpoint(checkpoint)
+
 		go func() {
 			rep.requestChan <- req
 		}()
