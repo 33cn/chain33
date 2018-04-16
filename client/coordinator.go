@@ -7,10 +7,11 @@ package client
 
 import (
 	"bytes"
+	"reflect"
+
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"reflect"
 )
 
 const (
@@ -76,6 +77,9 @@ func (q *QueueCoordinator) GetTxList(param *types.TxHashList) (*types.ReplyTxLis
 	msg, err := q.query(mempoolKey, types.EventTxList, param)
 	if nil != err {
 		return nil, err
+	}
+	if "*types.ReplyTxList" != reflect.TypeOf(msg.GetData()).String() {
+		return nil, types.ErrNotSupport
 	}
 	return msg.GetData().(*types.ReplyTxList), nil
 }
