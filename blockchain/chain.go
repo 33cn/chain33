@@ -115,7 +115,7 @@ func (chain *BlockChain) Close() {
 	atomic.StoreInt32(&chain.isclosed, 1)
 
 	//退出线程
-	chain.quit <- struct{}{}
+	//chain.quit <- struct{}{}
 	close(chain.quit)
 
 	//wait for recvwg quit:
