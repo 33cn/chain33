@@ -50,7 +50,7 @@ type BaseStore struct {
 //driver
 //dbpath
 func NewBaseStore(cfg *types.Store) *BaseStore {
-	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, 256)
+	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, 128)
 	store := &BaseStore{db: db}
 	store.done = make(chan struct{}, 1)
 	slog.Info("Enter store " + cfg.GetName())

@@ -4,11 +4,8 @@ import (
 	"bytes"
 
 	"github.com/golang/protobuf/proto"
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var nodelog = log.New("module", "mptnode")
 
 // merkle avl Node
 type Node struct {
@@ -78,7 +75,7 @@ func (node *Node) _copy() *Node {
 }
 
 func (node *Node) has(t *Tree, key []byte) (has bool) {
-	if bytes.Compare(node.key, key) == 0 {
+	if bytes.Equal(node.key, key) {
 		return true
 	}
 	if node.height == 0 {
@@ -207,7 +204,6 @@ func (node *Node) save(t *Tree) {
 
 	// save node
 	t.batch.SaveNode(t, node)
-	return
 }
 
 //将内存中的node转换成存储到db中的格式
@@ -394,7 +390,7 @@ func (node *Node) balance(t *Tree) (newSelf *Node) {
 func (node *Node) remove(t *Tree, key []byte) (
 	newHash []byte, newNode *Node, newKey []byte, value []byte, removed bool) {
 	if node.height == 0 {
-		if bytes.Compare(key, node.key) == 0 {
+		if bytes.Equal(key, node.key) {
 			removeOrphan(t, node)
 			return nil, nil, nil, node.value, true
 		} else {

@@ -4,19 +4,15 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
-	"math/rand"
 	"testing"
 
 	//. "github.com/smartystreets/goconvey/convey"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	//dbm "gitlab.33.cn/chain33/chain33/common/db"
 	//"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var random *rand.Rand
 
 var toAddr string
 var returnAddr string
@@ -54,7 +50,6 @@ func TestExecHashlock(t *testing.T) {
 	if !CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 //timelimit
@@ -72,7 +67,6 @@ func TestExecHashunlock(t *testing.T) {
 	if CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 func TestExecHashsend(t *testing.T) {
@@ -89,12 +83,11 @@ func TestExecHashsend(t *testing.T) {
 	if !CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 func constructHashlockInstance() *Hashlock {
 	h := newHashlock()
-	h.SetDB(NewTestDB())
+	h.SetStateDB(NewTestDB())
 	return h
 }
 
@@ -172,8 +165,4 @@ func (e *TestDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return nil
-}
-
-func (e *TestDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
-	return nil, types.ErrNotSupport
 }

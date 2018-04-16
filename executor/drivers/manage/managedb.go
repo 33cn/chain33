@@ -7,16 +7,12 @@ import (
 )
 
 type Action struct {
-	coinsAccount *account.DB
-	db           dbm.KVDB
-	txhash       []byte
-	fromaddr     string
-	blocktime    int64
-	height       int64
+	db       dbm.KV
+	fromaddr string
 }
 
 func NewAction(m *Manage, tx *types.Transaction) *Action {
-	return &Action{db: m.GetDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()}
+	return &Action{db: m.GetStateDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()}
 
 }
 
