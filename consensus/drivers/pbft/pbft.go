@@ -12,8 +12,6 @@ const (
 	CONSTANT_FACTOR   uint32 = 2
 )
 
-//var plog = log.New("module", "Pbft")
-
 type Replica struct {
 	ln net.Listener
 
@@ -31,12 +29,7 @@ type Replica struct {
 	requests    map[string][]*pb.Request
 	replies     map[string][]*pb.ClientReply
 	lastReply   *pb.ClientReply
-
-	// prep    []*pb.Entry
-	// prePrep []*pb.Entry
-
-	pendingVC []*pb.Request
-
+	pendingVC   []*pb.Request
 	executed    []uint32
 	checkpoints []*pb.Checkpoint
 }
@@ -218,49 +211,36 @@ func (rep *Replica) multicast(REQ *pb.Request) error {
 }
 
 func (rep *Replica) sendRoutine() {
-	//log.Println("start select from chan ")
-	//timeout:=time.After(time.Second)
-	for {
-		select {
-		//case <-timeout:
-		//log.Println("timeout")
-		case REQ := <-rep.requestChan:
-			switch REQ.Value.(type) {
-			case *pb.Request_Ack:
-				view := REQ.GetAck().View
-				primaryID := rep.newPrimary(view)
-				primary := rep.replicas[primaryID]
-				if primary == "" {
-					plog.Error("primary not exeist")
-					continue
-				}
-				err := pb.WriteMessage(primary, REQ)
-				if err != nil {
-					go func() {
-						rep.errChan <- err
-					}()
-				}
-			default:
-				err := rep.multicast(REQ)
-				//log.Println("take from chan and multicast")
-				if err != nil {
-					go func() {
-						rep.errChan <- err
-					}()
-				}
+
+	for REQ := range rep.requestChan {
+
+		//case REQ := <-rep.requestChan:
+		switch REQ.Value.(type) {
+		case *pb.Request_Ack:
+			view := REQ.GetAck().View
+			primaryID := rep.newPrimary(view)
+			primary := rep.replicas[primaryID]
+			if primary == "" {
+				plog.Error("primary not exeist")
+				continue
 			}
-			//case reply := <-rep.replyChan:
-			//client := reply.Client
-			/*err := pb.WriteMessage(client, reply)
+			err := pb.WriteMessage(primary, REQ)
 			if err != nil {
 				go func() {
 					rep.errChan <- err
 				}()
-			}*/
-			//log.Println("client: "+client+"req has done")
+			}
+		default:
+			err := rep.multicast(REQ)
+			//log.Println("take from chan and multicast")
+			if err != nil {
+				go func() {
+					rep.errChan <- err
+				}()
+			}
 		}
-		//rep.doneChan<-"take from chan and multicast"
 	}
+
 }
 
 func (rep *Replica) allRequests() []*pb.Request {

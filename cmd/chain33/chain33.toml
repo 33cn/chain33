@@ -50,6 +50,7 @@ verMax=119
 jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
 whitlist=["127.0.0.1"]
+
 [mempool]
 poolCacheSize=10240
 minTxFee=100000
