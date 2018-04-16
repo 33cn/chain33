@@ -781,6 +781,10 @@ func (p *PreComputedGroupElement) Zero() {
 }
 
 func GeAdd(r *CompletedGroupElement, p *ExtendedGroupElement, q *CachedGroupElement) {
+	geAdd(r, p, q)
+}
+
+func geAdd(r *CompletedGroupElement, p *ExtendedGroupElement, q *CachedGroupElement) {
 	var t0 FieldElement
 
 	FeAdd(&r.X, &p.Y, &p.X)

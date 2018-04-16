@@ -3,11 +3,13 @@ package privacy
 import (
 	"unsafe"
 	"errors"
+	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
 	"golang.org/x/crypto/sha3"
 	"fmt"
 	"bytes"
+	"io"
 )
 const (
 	PublicKeyLen  = 32
@@ -16,9 +18,6 @@ const (
 	TypePrivacyOneTime = byte(0x03)
 	NamePrivacyOneTime = "OneTimeEd25519"
 )
-type PubKeyPrivacy [PublicKeyLen]byte
-type PrivKeyPrivacy [PrivateKeyLen]byte
-type OneTimeEd25519 struct{}
 
 type Privacy struct{
 	ViewPubkey   PubKeyPrivacy
@@ -28,47 +27,14 @@ type Privacy struct{
 }
 
 var (
-    ErrViewPub                   = errors.New("ErrViewPub")
-    ErrSpendPub                  = errors.New("ErrSpendPub")
-    ErrViewSecret                = errors.New("ErrViewSecret")
-    ErrSpendSecret               = errors.New("ErrSpendSecret")
+	ErrViewPub                   = errors.New("ErrViewPub")
+	ErrSpendPub                  = errors.New("ErrSpendPub")
+	ErrViewSecret                = errors.New("ErrViewSecret")
+	ErrSpendSecret               = errors.New("ErrSpendSecret")
+	ErrNullRandInput             = errors.New("ErrNullRandInput")
 )
 
-func init() {
-	Register(NamePrivacyOneTime, &OneTimeEd25519{})
-}
-
-func (onetime *OneTimeEd25519) GenKey() (PrivKey, error) {
-
-}
-
-func (onetime *OneTimeEd25519) PrivKeyFromBytes(b []byte) (privKey PrivKey, err error) {
-	if len(b) != 64 {
-		return nil, errors.New("invalid priv key byte")
-	}
-	privKeyBytes := new([64]byte)
-	copy(privKeyBytes[:32], b[:32])
-	ed25519.MakePublicKey(privKeyBytes)
-	return PrivKeyEd25519(*privKeyBytes), nil
-}
-
-func (onetime *OneTimeEd25519) PubKeyFromBytes(b []byte) (pubKey PubKey, err error) {
-	if len(b) != 32 {
-		return nil, errors.New("invalid pub key byte")
-	}
-	pubKeyBytes := new([32]byte)
-	copy(pubKeyBytes[:], b[:])
-	return PubKeyEd25519(*pubKeyBytes), nil
-}
-
-func (onetime *OneTimeEd25519) SignatureFromBytes(b []byte) (sig Signature, err error) {
-	sigBytes := new([64]byte)
-	copy(sigBytes[:], b[:])
-	return SignatureEd25519(*sigBytes), nil
-}
-
 //////////////
-
 func NewPrivacy() *Privacy {
 	privacy := &Privacy{}
 	generateKeyPair(&privacy.SpendPrivKey, &privacy.SpendPubkey)
@@ -77,21 +43,20 @@ func NewPrivacy() *Privacy {
 	return privacy
 }
 
-func generateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) {
-	copy(privKeyPrivacyPtr[:PrivateKeyLen], CRandBytes(PrivateKeyLen))
+func NewPrivacyWithPrivKey(privKey *[KeyLen32]byte) (privacy *Privacy, err error) {
+	hash := sccrypto.HashAll(*privKey)
+	privacy = &Privacy{}
 
-	addr32 := (*[KeyLen32]byte)(unsafe.Pointer(privKeyPrivacyPtr))
-	addr64 := (*[PrivateKeyLen]byte)(unsafe.Pointer(privKeyPrivacyPtr))
-	edwards25519.ScReduce(addr32, addr64)
+	if err = generateKeyPairWithPrivKey((*[KeyLen32]byte)(unsafe.Pointer(&hash[0])), &privacy.SpendPrivKey, &privacy.SpendPubkey); err != nil {
+		return nil, err
+	}
 
-	//to generate the publickey
-	var A edwards25519.ExtendedGroupElement
-	pubKeyAddr32 := (*[KeyLen32]byte)(unsafe.Pointer(pubKeyPrivacyPtr))
-	edwards25519.GeScalarMultBase(&A, addr32)
-	A.ToBytes(pubKeyAddr32)
-	copy(addr64[KeyLen32:], pubKeyAddr32[:])
+	hashViewPriv := sccrypto.HashAll(privacy.SpendPrivKey[0:KeyLen32])
+	if err = generateKeyPairWithPrivKey((*[KeyLen32]byte)(unsafe.Pointer(&hashViewPriv[0])), &privacy.ViewPrivKey, &privacy.ViewPubkey); err != nil {
+		return nil, err
+	}
 
-	return
+	return privacy, nil
 }
 
 //(A, B) => Hs(rA)G + B, rG=>R
@@ -107,7 +72,7 @@ func (privacy *Privacy)GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyO
 	if res := point.FromBytes(viewPub); !res {
 		return nil, nil, ErrViewPub
 	}
-    skAddr32 := (*[KeyLen32]byte)(unsafe.Pointer(sk))
+	skAddr32 := (*[KeyLen32]byte)(unsafe.Pointer(sk))
 	if !edwards25519.ScCheck(skAddr32) {
 		fmt.Printf("xxx GenerateOneTimeAddr Fail to do edwards25519.ScCheck with sk \n")
 		return nil, nil, ErrViewSecret
@@ -211,6 +176,47 @@ func (privacy *Privacy)RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecret
 	return PrivKeyPrivacy(*onetimePriKeydata), nil
 }
 
+func generateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) {
+	copy(privKeyPrivacyPtr[:PrivateKeyLen], CRandBytes(PrivateKeyLen))
+
+	addr32 := (*[KeyLen32]byte)(unsafe.Pointer(privKeyPrivacyPtr))
+	addr64 := (*[PrivateKeyLen]byte)(unsafe.Pointer(privKeyPrivacyPtr))
+	edwards25519.ScReduce(addr32, addr64)
+
+	//to generate the publickey
+	var A edwards25519.ExtendedGroupElement
+	pubKeyAddr32 := (*[KeyLen32]byte)(unsafe.Pointer(pubKeyPrivacyPtr))
+	edwards25519.GeScalarMultBase(&A, addr32)
+	A.ToBytes(pubKeyAddr32)
+	copy(addr64[KeyLen32:], pubKeyAddr32[:])
+
+	return
+}
+
+func generateKeyPairWithPrivKey(privByte *[KeyLen32]byte, privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) (error) {
+	if nil == privByte {
+		return ErrNullRandInput
+	}
+
+	_, err := io.ReadFull(bytes.NewReader(privByte[:]), privKeyPrivacyPtr[:32])
+	if err != nil {
+		return err
+	}
+
+	addr32 := (*[KeyLen32]byte)(unsafe.Pointer(privKeyPrivacyPtr))
+	addr64 := (*[PrivateKeyLen]byte)(unsafe.Pointer(privKeyPrivacyPtr))
+	edwards25519.ScReduce(addr32, addr64)
+
+	//to generate the publickey
+	var A edwards25519.ExtendedGroupElement
+	pubKeyAddr32 := (*[KeyLen32]byte)(unsafe.Pointer(pubKeyPrivacyPtr))
+	edwards25519.GeScalarMultBase(&A, addr32)
+	A.ToBytes(pubKeyAddr32)
+	copy(addr64[KeyLen32:], pubKeyAddr32[:])
+
+	return nil
+}
+
 func mul8(r *edwards25519.CompletedGroupElement, t *edwards25519.ProjectiveGroupElement) {
 	var u edwards25519.ProjectiveGroupElement
 	t.Double(r)
@@ -241,91 +247,3 @@ func derivation2scalar(derivation_rA *[32]byte, outputIndex int64) (ellipticCurv
 
 	return &hash
 }
-/////////////////////////////////
-func (privKey *PrivKeyPrivacy) Bytes() []byte {
-	s := make([]byte, 64)
-	copy(s, privKey[:])
-	return s
-}
-
-func (privKey *PrivKeyPrivacy) Sign(msg []byte) Signature {
-	privKeyBytes := [64]byte(privKey)
-	signatureBytes := ed25519.Sign(&privKeyBytes, msg)
-	return SignatureEd25519(*signatureBytes)
-}
-
-func (privKey *PrivKeyPrivacy) PubKey() PubKey {
-	privKeyBytes := [64]byte(privKey)
-	return PubKeyEd25519(*ed25519.MakePublicKey(&privKeyBytes))
-}
-
-func (privKey *PrivKeyPrivacy) Equals(other PrivKey) bool {
-	if otherEd, ok := other.(PrivKeyEd25519); ok {
-		return bytes.Equal(privKey[:], otherEd[:])
-	} else {
-		return false
-	}
-}
-
-func (pubKey *PubKeyPrivacy) Bytes() []byte {
-	s := make([]byte, 32)
-	copy(s, pubKey[:])
-	return s
-}
-
-func (pubKey *PubKeyPrivacy) VerifyBytes(msg []byte, sig_ Signature) bool {
-	// unwrap if needed
-	if wrap, ok := sig_.(SignatureS); ok {
-		sig_ = wrap.Signature
-	}
-	// make sure we use the same algorithm to sign
-	sig, ok := sig_.(SignatureOnetime)
-	if !ok {
-		return false
-	}
-	pubKeyBytes := [32]byte(pubKey)
-	sigBytes := [64]byte(sig)
-	return ed25519.Verify(&pubKeyBytes, msg, &sigBytes)
-}
-
-func (pubKey *PubKeyPrivacy) KeyString() string {
-	return fmt.Sprintf("%X", pubKey[:])
-}
-
-func (pubKey *PubKeyPrivacy) Equals(other PubKey) bool {
-	if otherEd, ok := other.(PubKeyEd25519); ok {
-		return bytes.Equal(pubKey[:], otherEd[:])
-	} else {
-		return false
-	}
-}
-
-// Signature
-type SignatureOnetime [64]byte
-
-type SignatureS struct {
-	Signature
-}
-
-func (sig *SignatureOnetime) Bytes() []byte {
-	s := make([]byte, 64)
-	copy(s, sig[:])
-	return s
-}
-
-func (sig *SignatureOnetime) IsZero() bool { return len(sig) == 0 }
-
-func (sig *SignatureOnetime) String() string {
-	fingerprint := make([]byte, len(sig[:]))
-	copy(fingerprint, sig[:])
-	return fmt.Sprintf("/%X.../", fingerprint)
-}
-
-func (sig *SignatureOnetime) Equals(other Signature) bool {
-	if otherEd, ok := other.(SignatureOnetime); ok {
-		return bytes.Equal(sig[:], otherEd[:])
-	} else {
-		return false
-	}
-}
-

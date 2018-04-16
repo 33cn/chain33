@@ -8,8 +8,9 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	local_ed25519 "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
+	"unsafe"
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
@@ -791,18 +792,15 @@ func (wallet *Wallet) modifyConfig(priv crypto.PrivKey, req *types.ReqModifyConf
 }
 
 func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.ReplyHash, error) {
-	viewPublic := new([32]byte)
-	spendPublic := new([32]byte)
-	copy(viewPublic[:], []byte(reqPub2Pri.ViewPublic)[:32])
-	copy(spendPublic[:], []byte(reqPub2Pri.SpendPublic)[:32])
+	privacyPtr := &privacy.Privacy{}
+	viewPublic := (*[32]byte)(unsafe.Pointer(&[]byte(reqPub2Pri.ViewPublic)[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&[]byte(reqPub2Pri.SpendPublic)[0]))
 
-	pubkeyOnetime, txPublicKey, err := local_ed25519.GenerateOneTimeAddr(viewPublic, spendPublic)
+	pubkeyOnetime, txPublicKey, err := privacyPtr.GenerateOneTimeAddr(viewPublic, spendPublic)
 	if err != nil {
 		return nil, err
 	}
 	value := &types.Public2Privacy{
-		//ViewPublic:  reqPub2Pri.ViewPublic,
-		//SpendPublic: reqPub2Pri.SpendPublic,
 		Op4Token:    reqPub2Pri.Op4Token,
 		Token:       reqPub2Pri.Token,
 		Amount:      reqPub2Pri.Amount,
@@ -841,16 +839,12 @@ func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub
 	return &hash, nil
 }
 
-func (wallet *Wallet) transPri2Pri(viewPriv, spendPriv crypto.PrivKey, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
-	viewPublic := new([32]byte)
-	spendPublic := new([32]byte)
-	copy(viewPublic[:], []byte(reqPri2Pri.ViewPublic)[:32])
-	copy(spendPublic[:], []byte(reqPri2Pri.SpendPublic)[:32])
+func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
+	viewPublic := (*[32]byte)(unsafe.Pointer(&[]byte(reqPri2Pri.ViewPublic)[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&[]byte(reqPri2Pri.SpendPublic)[0]))
 
-	pubkeyOnetime, txPublicKey, err := local_ed25519.GenerateOneTimeAddr(viewPublic, spendPublic)
+	pubkeyOnetime, txPublicKey, err := privacykeyParirs.GenerateOneTimeAddr(viewPublic, spendPublic)
 	value := &types.Privacy2Privacy{
-		//ViewPublic:  reqPri2Pri.ViewPublic,
-		//SpendPublic: reqPri2Pri.SpendPublic,
 		Op4Token:    reqPri2Pri.Op4Token,
 		Token:       reqPri2Pri.Token,
 		Amount:      reqPri2Pri.Amount,
@@ -881,11 +875,11 @@ func (wallet *Wallet) transPri2Pri(viewPriv, spendPriv crypto.PrivKey, reqPri2Pr
 		return nil, err
 	}
 	//x = Hs(aR) + b
-	priv, err := local_ed25519.RecoverOnetimePriKey(R, viewPriv, spendPriv)
+	priv, err := privacykeyParirs.RecoverOnetimePriKey(R, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
 	if err != nil {
 		return nil, err
 	}
-	tx.Sign(int32(SignType), priv)
+	tx.Sign(int32(SignTypeED25519), priv)
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)
@@ -904,10 +898,8 @@ func (wallet *Wallet) transPri2Pri(viewPriv, spendPriv crypto.PrivKey, reqPri2Pr
 	return &hash, nil
 }
 
-func (wallet *Wallet) transPri2Pub(viewPriv, spendPriv crypto.PrivKey, reqPri2Pub *types.ReqPri2Pub) (*types.ReplyHash, error) {
+func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub *types.ReqPri2Pub) (*types.ReplyHash, error) {
 	value := &types.Privacy2Public{
-		//ViewPublic:  reqPri2Pri.ViewPublic,
-		//SpendPublic: reqPri2Pri.SpendPublic,
 		Op4Token:    reqPri2Pub.Op4Token,
 		Token:       reqPri2Pub.Token,
 		Amount:      reqPri2Pub.Amount,
@@ -936,11 +928,11 @@ func (wallet *Wallet) transPri2Pub(viewPriv, spendPriv crypto.PrivKey, reqPri2Pu
 		return nil, err
 	}
 	//x = Hs(aR) + b
-	priv, err := local_ed25519.RecoverOnetimePriKey(R, viewPriv, spendPriv)
+	priv, err := privacykeyParirs.RecoverOnetimePriKey(R, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
 	if err != nil {
 		return nil, err
 	}
-	tx.Sign(int32(SignType), priv)
+	tx.Sign(int32(SignTypeED25519), priv)
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)

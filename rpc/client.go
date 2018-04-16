@@ -793,7 +793,7 @@ func (c *channelClient) IsNtpClockSync() bool {
 }
 
 //////////privacy tx//////////////////////////////
-func (c *channelClient) ShowPrivacykey(parm *types.ReqString) (*types.Reply, error) {
+func (c *channelClient) ShowPrivacykey(parm *types.ReqString) (*types.ReplyPrivacyPkPair, error) {
 	msg := c.NewMessage("wallet", types.EventShowPrivacyPK, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -805,7 +805,7 @@ func (c *channelClient) ShowPrivacykey(parm *types.ReqString) (*types.Reply, err
 		log.Error("ShowPrivacykey", "Error", err.Error())
 		return nil, err
 	}
-	return resp.Data.(*types.Reply), nil
+	return resp.Data.(*types.ReplyPrivacyPkPair), nil
 }
 
 func (c *channelClient) MakeTxPublic2privacy(parm *types.ReqPub2Pri) (*types.Reply, error) {
@@ -837,7 +837,7 @@ func (c *channelClient) MakeTxPrivacy2privacy(parm *types.ReqPri2Pri) (*types.Re
 		return nil, err
 	}
 	log.Info("MakeTxPrivacy2privacy", "result", "send tx successful",
-		"ViewAddr", parm.ViewAddr, "SpendAddr", parm.SpendAddr, "note", parm.Note)
+		"sender", parm.Sender, "note", parm.Note)
 	return resp.Data.(*types.Reply), nil
 }
 
@@ -854,7 +854,6 @@ func (c *channelClient) MakeTxPrivacy2public(parm *types.ReqPri2Pub) (*types.Rep
 		return nil, err
 	}
 	log.Info("MakeTxPrivacy2public", "result", "send tx successful",
-		    "ViewAddr", parm.ViewAddr, "SpendAddr", parm.SpendAddr,
-			"receiver", parm.Receiver, "note", parm.Note)
+		    "sender", parm.Sender, "receiver", parm.Receiver, "note", parm.Note)
 	return resp.Data.(*types.Reply), nil
 }

@@ -41,6 +41,10 @@ func calcLabelKey(label string) []byte {
 	return []byte(fmt.Sprintf("Label:%s", label))
 }
 
+func calcPrivacyAddrKey(addr string) []byte {
+	return []byte(fmt.Sprintf("Privacy4Addr:%s", addr))
+}
+
 //通过height*100000+index 查询Tx交易信息
 //key:Tx:height*100000+index
 func calcTxKey(key string) []byte {
@@ -308,4 +312,47 @@ func (ws *WalletStore) VerifyPasswordHash(password string) bool {
 
 func (ws *WalletStore) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
+}
+
+func (ws *WalletStore) SetWalletAccountPrivacy(addr string, privacy *types.WalletAccountPrivacy) error {
+	if len(addr) == 0 {
+		walletlog.Error("SetWalletAccountPrivacy addr is nil")
+		return types.ErrInputPara
+	}
+	if privacy == nil {
+		walletlog.Error("SetWalletAccountPrivacy privacy is nil")
+		return types.ErrInputPara
+	}
+
+	privacybyte, err := proto.Marshal(privacy)
+	if err != nil {
+		walletlog.Error("SetWalletAccountPrivacy proto.Marshal err!", "err", err)
+		return types.ErrMarshal
+	}
+
+	//需要同时修改三个表，Account，Addr，Label，批量处理
+	newbatch := ws.db.NewBatch(true)
+	ws.db.Set(calcPrivacyAddrKey(addr), privacybyte)
+	newbatch.Write()
+
+	return nil
+}
+
+func (ws *WalletStore) GetWalletAccountPrivacy(addr string) (*types.WalletAccountPrivacy, error) {
+	if len(addr) == 0 {
+		walletlog.Error("GetWalletAccountPrivacy addr is nil")
+		return nil, types.ErrInputPara
+	}
+
+	privacyByte := ws.db.Get(calcPrivacyAddrKey(addr))
+	if nil == privacyByte {
+		return nil, types.ErrPrivacyNotExist
+	}
+	var accPrivacy types.WalletAccountPrivacy
+	err := proto.Unmarshal(privacyByte, &accPrivacy)
+	if err != nil {
+		walletlog.Error("GetWalletAccountPrivacy", "proto.Unmarshal err:", err)
+		return nil, types.ErrUnmarshal
+	}
+	return &accPrivacy, nil
 }
