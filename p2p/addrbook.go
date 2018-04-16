@@ -218,10 +218,8 @@ func (a *AddrBook) genPubkey(privkey string) string {
 // cmn.Panics if file is corrupt.
 
 func (a *AddrBook) loadDb() bool {
-	a.bookDb = db.NewDB("addrbook", a.dbDriver, a.filePath, 128)
-
+	a.bookDb = db.NewDB("addrbook", a.dbDriver, a.filePath, 4)
 	privkey, _ := a.bookDb.Get([]byte(privKeyTag))
-
 	if len(privkey) == 0 {
 		a.initKey()
 		privkey, _ := a.GetPrivPubKey()
