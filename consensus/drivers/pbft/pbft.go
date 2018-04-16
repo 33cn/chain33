@@ -892,7 +892,6 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 		return
 	}
 
-	return
 }
 
 func (rep *Replica) handleRequestCheckpoint(REQ *pb.Request) {
@@ -929,7 +928,7 @@ func (rep *Replica) handleRequestCheckpoint(REQ *pb.Request) {
 		plog.Info("checkpoint and clear request done")
 		return
 	}
-	return
+
 }
 
 func (rep *Replica) handleRequestViewChange(REQ *pb.Request) {
