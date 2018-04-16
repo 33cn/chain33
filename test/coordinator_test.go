@@ -1,4 +1,4 @@
-package client_test
+package main
 
 import (
 	"flag"
@@ -38,8 +38,8 @@ var (
 	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0}
 
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-	a, _       = common.FromHex(hex)
+	hex_val    = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+	a, _       = common.FromHex(hex_val)
 	privKey, _ = c.PrivKeyFromBytes(a)
 	//random     *rand.Rand
 	//mainPriv   crypto.PrivKey
@@ -68,7 +68,7 @@ type mockSystem struct {
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	var q = queue.New("channel")
 	flag.Parse()
-	cfg := config.InitCfg("../chain33.toml")
+	cfg := config.InitCfg("chain33.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
