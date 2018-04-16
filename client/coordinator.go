@@ -97,7 +97,7 @@ func (q *QueueCoordinator) GetTransactionByHash(param *types.ReqHashes) (*types.
 }
 
 func (q *QueueCoordinator) GetMempool() (*types.ReplyTxList, error) {
-	msg, err := q.query(blockchainKey, types.EventGetMempool, nil)
+	msg, err := q.query(mempoolKey, types.EventGetMempool, nil)
 	if nil != err {
 		return nil, err
 	}
