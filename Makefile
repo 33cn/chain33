@@ -26,11 +26,11 @@ all: ## Builds for multiple platforms
 	@mv chain33* build/
 
 build: ## Build the binary file
-	@go build -v -o $(APP) $(SRC)
+	@go build -v -i -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 release: ## Build the binary file
-	@go build -v -o $(APP) $(LDFLAGS) $(SRC)
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 cli: ## Build cli binary
