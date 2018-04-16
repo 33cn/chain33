@@ -124,7 +124,7 @@ func (mock *mockSystem) getAPI() client.QueueProtocolAPI {
 	return api
 }
 
-func TestQueueCoordinator_QueryTx(t *testing.T) {
+func TestQueueCoordinator_GetTx(t *testing.T) {
 	var mock mockSystem
 	api := mock.startup(0)
 	defer mock.stop()
@@ -165,5 +165,27 @@ func TestQueueCoordinator_GetLastMempool(t *testing.T) {
 	_, err := api.GetLastMempool(nil)
 	if nil != err {
 		t.Error("GetMempool error. ", err)
+	}
+}
+
+func TestQueueCoordinator_GetBlocks(t *testing.T) {
+	var mock mockSystem
+	api := mock.startup(0)
+	defer mock.stop()
+
+	_, err := api.GetBlocks(&types.ReqBlocks{0, 10, false, []string{""}})
+	if nil != err {
+		t.Error("GetBlocks error. ", err)
+	}
+}
+
+func TestQueueCoordinator_QueryTx(t *testing.T) {
+	var mock mockSystem
+	api := mock.startup(0)
+	defer mock.stop()
+
+	_, err := api.QueryTx(nil)
+	if nil == err {
+		t.Error("QueryTx error. ", err)
 	}
 }
