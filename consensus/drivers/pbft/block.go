@@ -13,9 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
-var listsize = 10000
-var zeroHash [32]byte
-
 type PbftClient struct {
 	*drivers.BaseClient
 	replyChan   chan *pb.ClientReply
