@@ -90,13 +90,13 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 	for {
 
 		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
-		err := network.client.SendTimeout(msg, true, time.Duration(time.Minute))
+		err := network.client.SendTimeout(msg, true, time.Minute)
 		if err != nil {
 			log.Error("GetWalletStatus", "Error", err.Error())
 			time.Sleep(time.Second)
 			continue
 		}
-		resp, err := network.client.WaitTimeout(msg, time.Duration(time.Minute))
+		resp, err := network.client.WaitTimeout(msg, time.Minute)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -118,12 +118,12 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
 	msg := network.client.NewMessage("wallet", types.EventWalletImportprivkey, &parm)
-	err := network.client.SendTimeout(msg, true, time.Duration(time.Minute))
+	err := network.client.SendTimeout(msg, true, time.Minute)
 	if err != nil {
 		log.Error("ImportPrivkey", "Error", err.Error())
 		return err
 	}
-	resp, err := network.client.WaitTimeout(msg, time.Duration(time.Minute))
+	resp, err := network.client.WaitTimeout(msg, time.Minute)
 	if err != nil {
 		if err == types.ErrPrivkeyExist || err == types.ErrLabelHasUsed {
 			return nil
