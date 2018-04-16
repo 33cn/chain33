@@ -211,9 +211,6 @@ func (rc *raftNode) serveChannels() {
 
 	go func() {
 		var confChangeCount uint64 = 0
-		//初始化一个bytes内存池
-		//pool := make([][]byte, 5)
-		//recv, send := makeRecycler()
 		// 通过propose和proposeConfchange方法往RaftNode发通知
 		for rc.proposeC != nil && rc.confChangeC != nil {
 			select {
@@ -221,11 +218,11 @@ func (rc *raftNode) serveChannels() {
 				if !ok {
 					rc.proposeC = nil
 				} else {
-					_, err := proto.Marshal(prop)
+					out, err := proto.Marshal(prop)
 					if err != nil {
 						rlog.Error(fmt.Sprintf("failed to marshal block:%v ", err.Error()))
 					}
-					//rc.node.Propose(context.TODO(), out)
+					rc.node.Propose(context.TODO(), out)
 				}
 
 			case cc, ok := <-rc.confChangeC:
