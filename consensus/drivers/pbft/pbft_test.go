@@ -43,10 +43,10 @@ func init() {
 	//common.SetLogLevel("info")
 }
 func TestPbft(t *testing.T) {
-	q, chain, _, s, mem, exec, cs, wallet := initEnvPbft()
+	q, chain, p2pnet, s, mem, exec, cs, wallet := initEnvPbft()
 	defer chain.Close()
 	defer mem.Close()
-	//defer p2pnet.Close()
+	defer p2pnet.Close()
 	defer exec.Close()
 	defer s.Close()
 	defer cs.Close()
