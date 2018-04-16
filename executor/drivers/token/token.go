@@ -27,7 +27,7 @@ const (
 
 func init() {
 	t := newToken()
-	drivers.Register(t.GetName(), t, types.ForkV2_add_token)
+	drivers.Register(t.GetName(), t, types.ForkV2AddToken)
 }
 
 type token struct {

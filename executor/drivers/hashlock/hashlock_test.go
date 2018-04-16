@@ -151,7 +151,7 @@ func estHashlock(t *testing.T) {
 		return
 	}
 	fmt.Println("TestHashlockQuery start")
-	defer fmt.Println("TestHashlockQuery end\n")
+	defer fmt.Println("TestHashlockQuery end")
 	var req types.Query
 	req.Execer = []byte("hashlock")
 	req.FuncName = "GetHashlocKById"
@@ -250,7 +250,7 @@ func estHashunlock(t *testing.T) {
 		return
 	}
 	fmt.Println("TestHashunlockQuery start")
-	defer fmt.Println("TestHashlockQuery end\n")
+	defer fmt.Println("TestHashlockQuery end")
 	var req types.Query
 	req.Execer = []byte("hashlock")
 	req.FuncName = "GetHashlocKById"
@@ -350,7 +350,7 @@ func estHashsend(t *testing.T) {
 	}
 	//lock it again & failed as overtime
 	fmt.Println("TestHashsendQuery start")
-	defer fmt.Println("TestHashsendQuery end\n")
+	defer fmt.Println("TestHashsendQuery end")
 	var req types.Query
 	req.Execer = []byte("hashlock")
 	req.FuncName = "GetHashlocKById"

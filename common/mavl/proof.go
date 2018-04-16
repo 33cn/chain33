@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const proofLimit = 1 << 16 // 64 KB
+//const proofLimit = 1 << 16 // 64 KB
 
 //merkle avl tree proof证明结构体
 type Proof struct {
@@ -74,7 +74,7 @@ func InnerNodeProofHash(childHash []byte, branch *types.InnerNode) []byte {
 
 func (node *Node) constructProof(t *Tree, key []byte, valuePtr *[]byte, proof *Proof) (exists bool) {
 	if node.height == 0 {
-		if bytes.Compare(node.key, key) == 0 {
+		if bytes.Equal(node.key, key) {
 			*valuePtr = node.value
 			proof.LeafHash = node.hash
 			return true

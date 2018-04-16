@@ -1,8 +1,6 @@
 package p2p
 
 import (
-	"sync"
-
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -11,10 +9,8 @@ type MConnection struct {
 	nodeInfo      **NodeInfo
 	gconn         *grpc.ClientConn
 	gcli          pb.P2PgserviceClient // source connection
-	config        *MConnConfig
-	remoteAddress *NetAddress //peer 的地址
+	remoteAddress *NetAddress          //peer 的地址
 	peer          *peer
-	once          sync.Once
 }
 
 // MConnConfig is a MConnection configuration.

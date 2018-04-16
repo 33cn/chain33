@@ -3,10 +3,11 @@ package token
 import (
 	"fmt"
 
+	"strings"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
 )
 
 type tokenDB struct {
@@ -65,11 +66,6 @@ func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error
 	return &token, nil
 }
 
-func deleteTokenDB(db dbm.KVDB, symbol string) {
-	key := calcTokenKey(symbol)
-	db.Set(key, nil)
-}
-
 type tokenAction struct {
 	coinsAccount *account.DB
 	db           dbm.KV
@@ -99,7 +95,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenTotalOverflow
 	}
 
-	if ValidSymbolWithHeight([]byte(token.GetSymbol()), action.height) == false {
+	if !ValidSymbolWithHeight([]byte(token.GetSymbol()), action.height) {
 		tokenlog.Error("token precreate ", "symbol need be upper", token.GetSymbol())
 		return nil, types.ErrTokenSymbolUpper
 	}
@@ -111,12 +107,12 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenHavePrecreated
 	}
 
-	if action.height >= types.ForkV6_token_blacklist {
+	if action.height >= types.ForkV6TokenBlackList {
 		found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
 		if err != nil {
 			return nil, err
 		}
-		if found == true {
+		if found {
 			return nil, types.ErrTokenBlacklist
 		}
 	}
@@ -163,7 +159,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 	}
 
 	hasPriv, ok := validFinisher(action.fromaddr, action.db)
-	if (ok != nil || hasPriv != true) && !approverValid {
+	if (ok != nil || !hasPriv) && !approverValid {
 		return nil, types.ErrTokenCreatedApprover
 	}
 
@@ -197,8 +193,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 	//因为该token已经被创建，需要保存一个全局的token，防止其他用户再次创建
 	tokendb.save(action.db, key)
 	kv = append(kv, tokendb.getKVSet(key)...)
-	var receipt *types.Receipt
-	receipt = &types.Receipt{types.ExecOk, kv, logs}
+	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
 
@@ -325,7 +320,7 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 			break
 		}
 	}
-	if found == false {
+	if !found {
 		tokenAssets.Datas = append(tokenAssets.Datas, symbol)
 	}
 	var kv []*types.KeyValue
@@ -345,7 +340,7 @@ func IsUpperChar(a byte) bool {
 
 func ValidSymbol(cs []byte) bool {
 	for _, c := range cs {
-		if IsUpperChar(c) == false {
+		if !IsUpperChar(c) {
 			return false
 		}
 	}
@@ -353,13 +348,10 @@ func ValidSymbol(cs []byte) bool {
 }
 
 func ValidSymbolWithHeight(cs []byte, height int64) bool {
-	if height < types.ForkV7_bad_tokensymbol {
+	if height < types.ForkV7BadTokenSymbol {
 		symbol := string(cs)
 		upSymbol := strings.ToUpper(symbol)
-		if upSymbol != symbol {
-			return false
-		}
-		return true
+		return upSymbol == symbol
 	}
 	return ValidSymbol(cs)
 }
