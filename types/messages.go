@@ -5,6 +5,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/tendermint/go-wire"
 	"net"
+	"io"
 )
 
 // Digest
@@ -157,7 +158,7 @@ func WriteMessage(addr string, msg proto.Message) error {
 
 // Read proto message
 
-func ReadMessage(conn net.Conn, msg proto.Message) error {
+func ReadMessage(conn io.Reader, msg proto.Message) error {
 	n, err := int(0), error(nil)
 	buf := wire.ReadByteSlice(conn, 0, &n, &err)
 	if err != nil {

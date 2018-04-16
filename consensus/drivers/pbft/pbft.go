@@ -5,6 +5,7 @@ import (
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"net"
 	"strings"
+	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -13,7 +14,6 @@ const (
 )
 
 type Replica struct {
-	ln          net.Listener
 	ID          uint32
 	replicas    map[uint32]string
 	activeView  bool
@@ -169,7 +169,7 @@ func (rep *Replica) acceptConnections(addr string) {
 
 // Sends
 
-func (rep *Replica) multicast(REQ *pb.Request) error {
+func (rep *Replica) multicast(REQ proto.Message) error {
 	for _, replica := range rep.replicas {
 		err := pb.WriteMessage(replica, REQ)
 		if err != nil {
