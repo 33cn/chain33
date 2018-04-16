@@ -36,6 +36,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
 	}
+	ulog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
 	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
 
@@ -50,7 +51,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			if errReturn { //认为这个是一个错误的区块
 				return nil, nil, types.ErrBlockExec
 			}
-			//ulog.Error("exec tx err", "err", receipt)
+			ulog.Error("exec tx err", "err", receipt)
 			deltxlist[i] = true
 			continue
 		}
@@ -109,6 +110,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if detail.Block.Height > 0 {
 		err := CheckBlock(client, &detail)
 		if err != nil {
+			ulog.Debug("CheckBlock-->", "err=", err)
 			return nil, deltx, err
 		}
 	}
@@ -228,3 +230,4 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	}
 	return transactions
 }
+
