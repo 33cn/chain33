@@ -230,4 +230,3 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	}
 	return transactions
 }
-
