@@ -1,10 +1,9 @@
-package main
+package client
 
 import (
 	"flag"
 	_ "gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -41,6 +40,8 @@ var (
 	hex_val    = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 	a, _       = common.FromHex(hex_val)
 	privKey, _ = c.PrivKeyFromBytes(a)
+	//tx_hash	   = "611dde807369601588ed1b901f116c9b647b960e55f0798603ce0f47c271f985"
+	//tx_hash_b, _  = common.FromHex(tx_hash)
 	//random     *rand.Rand
 	//mainPriv   crypto.PrivKey
 )
@@ -65,7 +66,7 @@ type mockSystem struct {
 	cons  queue.Module
 }
 
-func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
+func (mock *mockSystem) startup(size int) QueueProtocolAPI {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.toml")
@@ -119,8 +120,8 @@ func (mock *mockSystem) stop() {
 	mock.q.Close()
 }
 
-func (mock *mockSystem) getAPI() client.QueueProtocolAPI {
-	api, _ := client.NewQueueAPI(mock.q.Client())
+func (mock *mockSystem) getAPI() QueueProtocolAPI {
+	api, _ := NewQueueAPI(mock.q.Client())
 	return api
 }
 
@@ -181,11 +182,119 @@ func TestQueueCoordinator_GetBlocks(t *testing.T) {
 
 func TestQueueCoordinator_QueryTx(t *testing.T) {
 	var mock mockSystem
-	api := mock.startup(0)
+	mock.startup(0)
 	defer mock.stop()
 
-	_, err := api.QueryTx(nil)
-	if nil == err {
-		t.Error("QueryTx error. ", err)
-	}
+	// 需要获取正确的交易hash值
+	/*
+		_, err := api.QueryTx(&types.ReqHash{tx_hash_b})
+		if nil != err {
+			t.Error("QueryTx error. ", err)
+		}
+	*/
+}
+
+func TestQueueCoordinator_GetTransactionByAddr(t *testing.T) {
+}
+
+func TestQueueCoordinator_GetTransactionByHash(t *testing.T) {
+}
+
+func TestQueueCoordinator_GetHeaders(t *testing.T) {
+}
+
+func TestQueueCoordinator_GetBlockOverview(t *testing.T) {
+}
+
+func TestQueueCoordinator_GetAddrOverview(t *testing.T) {
+}
+
+func TestQueueCoordinator_GetBlockHash(t *testing.T) {
+}
+
+func TestQueueCoordinator_IsSync(t *testing.T) {
+}
+
+func TestQueueCoordinator_IsNtpClockSync(t *testing.T) {
+}
+
+func TestQueueCoordinator_LocalGet(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletGetAccountList(t *testing.T) {
+}
+
+func TestQueueCoordinator_NewAccount(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletTransactionList(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletImportprivkey(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletSendToAddress(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletSetFee(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletSetLabel(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletMergeBalance(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletSetPasswd(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletLock(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletUnLock(t *testing.T) {
+}
+
+func TestQueueCoordinator_GenSeed(t *testing.T) {
+}
+
+func TestQueueCoordinator_SaveSeed(t *testing.T) {
+}
+
+func TestQueueCoordinator_GetSeed(t *testing.T) {
+}
+
+func TestQueueCoordinator_GetWalletStatus(t *testing.T) {
+}
+
+func TestQueueCoordinator_WalletAutoMiner(t *testing.T) {
+}
+
+func TestQueueCoordinator_DumpPrivkey(t *testing.T) {
+}
+
+func TestQueueCoordinator_CloseTickets(t *testing.T) {
+}
+
+func TestQueueCoordinator_TokenPreCreate(t *testing.T) {
+}
+
+func TestQueueCoordinator_TokenFinishCreate(t *testing.T) {
+}
+
+func TestQueueCoordinator_TokenRevokeCreate(t *testing.T) {
+}
+
+func TestQueueCoordinator_SellToken(t *testing.T) {
+}
+
+func TestQueueCoordinator_BuyToken(t *testing.T) {
+}
+
+func TestQueueCoordinator_RevokeSellToken(t *testing.T) {
+}
+
+func TestQueueCoordinator_PeerInfo(t *testing.T) {
+}
+
+func TestQueueCoordinator_GetTicketCount(t *testing.T) {
 }
