@@ -1198,7 +1198,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		default:
-			log.Error("DecodeLog", "Fail to decodeLog with type value:%d", l.Ty)
+			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"
 			logIns = nil
 		}

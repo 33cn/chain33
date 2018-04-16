@@ -355,7 +355,6 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 			treelog.Info("leaf:", "index:", i, "key", string(key), "value", string(value))
 		}
 	}
-	return
 }
 
 func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending bool, fn func([]byte, []byte) bool) {

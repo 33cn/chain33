@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -385,8 +386,8 @@ func (client *Client) GetNextRequiredDifficulty(block *types.Block, bits uint32)
 
 	minRetargetTimespan := targetTimespan / (cfg.RetargetAdjustmentFactor)
 	maxRetargetTimespan := targetTimespan * cfg.RetargetAdjustmentFactor
-	if actualTimespan < int64(minRetargetTimespan) {
-		adjustedTimespan = int64(minRetargetTimespan)
+	if actualTimespan < minRetargetTimespan {
+		adjustedTimespan = minRetargetTimespan
 	} else if actualTimespan > maxRetargetTimespan {
 		adjustedTimespan = maxRetargetTimespan
 	}
@@ -529,7 +530,7 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
 }
 
-func (client *Client) createMinerTx(ticketAction *types.TicketAction, priv crypto.PrivKey) *types.Transaction {
+func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.PrivKey) *types.Transaction {
 	tx := &types.Transaction{}
 	tx.Execer = []byte("ticket")
 	tx.Fee = types.MinFee
@@ -581,7 +582,7 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 
 func (client *Client) CreateBlock() {
 	for {
-		if !client.IsMining() || !client.IsCaughtUp() {
+		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.GetForceMining()) {
 			time.Sleep(time.Second)
 			continue
 		}

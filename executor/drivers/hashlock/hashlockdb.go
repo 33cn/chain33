@@ -2,7 +2,6 @@ package hashlock
 
 //database opeartion for execs hashlock
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -44,7 +43,7 @@ func (h *DB) GetKVSet() (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (h *DB) Save(db dbm.KVDB) {
+func (h *DB) Save(db dbm.KV) {
 	set := h.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -59,7 +58,7 @@ func Key(id []byte) (key []byte) {
 
 type Action struct {
 	coinsAccount *account.DB
-	db           dbm.KVDB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64
@@ -70,7 +69,7 @@ type Action struct {
 func NewAction(h *Hashlock, tx *types.Transaction, execaddr string) *Action {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &Action{h.GetCoinsAccount(), h.GetDB(), hash, fromaddr, h.GetBlockTime(), h.GetHeight(), execaddr}
+	return &Action{h.GetCoinsAccount(), h.GetStateDB(), hash, fromaddr, h.GetBlockTime(), h.GetHeight(), execaddr}
 }
 
 func (action *Action) Hashlocklock(hlock *types.HashlockLock) (*types.Receipt, error) {
@@ -193,7 +192,7 @@ func (action *Action) Hashlocksend(send *types.HashlockSend) (*types.Receipt, er
 	return receipt, nil
 }
 
-func readHashlock(db dbm.KVDB, id []byte) (*types.Hashlock, error) {
+func readHashlock(db dbm.KV, id []byte) (*types.Hashlock, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
 		return nil, err
@@ -205,10 +204,6 @@ func readHashlock(db dbm.KVDB, id []byte) (*types.Hashlock, error) {
 		return nil, err
 	}
 	return &hashlock, nil
-}
-
-func checksecret(secret []byte, hashresult []byte) bool {
-	return bytes.Equal(common.Sha256(secret), hashresult)
 }
 
 func NewHashlockquery() *types.Hashlockquery {

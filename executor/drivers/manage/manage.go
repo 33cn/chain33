@@ -19,7 +19,7 @@ var clog = log.New("module", "execs.manage")
 
 func init() {
 	n := newManage()
-	drivers.Register(n.GetName(), n, types.ForkV4_add_manage)
+	drivers.Register(n.GetName(), n, types.ForkV4AddManage)
 }
 
 type Manage struct {
@@ -34,6 +34,13 @@ func newManage() *Manage {
 
 func (c *Manage) GetName() string {
 	return "manage"
+}
+
+func (c *Manage) Clone() drivers.Driver {
+	clone := &Manage{}
+	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
 }
 
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -133,7 +140,7 @@ func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
 		}
 
 		// Load config from store
-		value, err := c.GetDB().Get([]byte(types.ConfigKey(in.Data)))
+		value, err := c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
 		if err != nil {
 			clog.Info("modifyConfig", "get db key", "not found")
 			value = nil

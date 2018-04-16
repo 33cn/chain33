@@ -17,10 +17,9 @@ import (
 var blog = log.New("module", "execs.base")
 
 type Driver interface {
-	SetDB(dbm.KVDB)
+	SetStateDB(dbm.KV)
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
-	SetQueryDB(dbm.DB)
 	SetExecDriver(execDriver *ExecDrivers)
 	GetExecDriver() *ExecDrivers
 	GetName() string
@@ -32,18 +31,28 @@ type Driver interface {
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
+	Clone() Driver
 }
 
 type DriverBase struct {
-	db           dbm.KVDB
+	statedb      dbm.KV
 	localdb      dbm.KVDB
-	querydb      dbm.DB
 	height       int64
 	blocktime    int64
 	child        Driver
 	coinsaccount *account.DB
 	execDriver   *ExecDrivers
 	isFree       bool
+}
+
+func (d *DriverBase) Clone() Driver {
+	dc := new(DriverBase)
+	dc.height = d.height
+	dc.blocktime = d.blocktime
+	dc.coinsaccount = d.coinsaccount
+	dc.execDriver = d.execDriver
+	dc.isFree = d.isFree
+	return dc
 }
 
 func (d *DriverBase) SetEnv(height, blocktime int64) {
@@ -186,24 +195,24 @@ func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error
 	return nil, types.ErrActionNotSupport
 }
 
-func (d *DriverBase) SetDB(db dbm.KVDB) {
+func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
 	}
-	d.db = db
+	d.statedb = db
 	d.coinsaccount.SetDB(db)
 }
 
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
-		d.coinsaccount.SetDB(d.db)
+		d.coinsaccount.SetDB(d.statedb)
 	}
 	return d.coinsaccount
 }
 
-func (d *DriverBase) GetDB() dbm.KVDB {
-	return d.db
+func (d *DriverBase) GetStateDB() dbm.KV {
+	return d.statedb
 }
 
 func (d *DriverBase) SetLocalDB(db dbm.KVDB) {
@@ -212,14 +221,6 @@ func (d *DriverBase) SetLocalDB(db dbm.KVDB) {
 
 func (d *DriverBase) GetLocalDB() dbm.KVDB {
 	return d.localdb
-}
-
-func (d *DriverBase) SetQueryDB(db dbm.DB) {
-	d.querydb = db
-}
-
-func (d *DriverBase) GetQueryDB() dbm.DB {
-	return d.querydb
 }
 
 func (d *DriverBase) GetHeight() int64 {
@@ -238,13 +239,14 @@ func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
 
-// 通过addr前缀查找本地址参与的所有交易
+//通过addr前缀查找本地址参与的所有交易
 //查询交易默认放到：coins 中查询
 func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
-	db := d.GetQueryDB()
+	db := d.GetLocalDB()
 	var prefix []byte
 	var key []byte
 	var txinfos [][]byte
+	var err error
 	//取最新的交易hash列表
 	if addr.Flag == 0 { //所有的交易hash列表
 		prefix = CalcTxAddrHashKey(addr.GetAddr(), "")
@@ -255,13 +257,15 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	}
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
-		list := dbm.NewListHelper(db)
-		txinfos = list.IteratorScanFromLast(prefix, addr.Count)
+		txinfos, err = db.List(prefix, nil, addr.Count, 0)
+		if err != nil {
+			return nil, err
+		}
 		if len(txinfos) == 0 {
 			return nil, errors.New("tx does not exist")
 		}
 	} else { //翻页查找指定的txhash列表
-		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + int64(addr.GetIndex())
+		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + addr.GetIndex()
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		if addr.Flag == 0 {
 			key = CalcTxAddrHashKey(addr.GetAddr(), heightstr)
@@ -270,8 +274,10 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		} else {
 			return nil, errors.New("flag unknown")
 		}
-		list := dbm.NewListHelper(db)
-		txinfos = list.IteratorScan(prefix, key, addr.Count, addr.Direction)
+		txinfos, err = db.List(prefix, key, addr.Count, addr.Direction)
+		if err != nil {
+			return nil, err
+		}
 		if len(txinfos) == 0 {
 			return nil, errors.New("tx does not exist")
 		}
