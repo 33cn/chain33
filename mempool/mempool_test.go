@@ -95,7 +95,7 @@ func getprivkey(key string) crypto.PrivKey {
 
 func initEnv2(size int) (queue.Queue, *blockchain.BlockChain, *executor.Executor, queue.Module, queue.Module, *Mempool, *p2p.P2p) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../chain33.test.toml")
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
@@ -124,7 +124,7 @@ func initEnv2(size int) (queue.Queue, *blockchain.BlockChain, *executor.Executor
 
 func initEnv(size int) (queue.Queue, *blockchain.BlockChain, *executor.Executor, queue.Module, queue.Module, *Mempool) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../chain33.test.toml")
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
