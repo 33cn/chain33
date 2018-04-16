@@ -22,15 +22,10 @@ go_lint:
     script:
         - make linter
 
-go_build_chain33:
+go_build:
     stage: build
     script:
-        - make build
-
-go_build_cli:
-    stage: build
-    script:
-        - make cli
+        - make build_ci
 
 go_test:
     stage: test
