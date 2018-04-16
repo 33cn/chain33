@@ -4,8 +4,8 @@ import (
 	"crypto/md5"
 	"github.com/golang/protobuf/proto"
 	"github.com/tendermint/go-wire"
-	"net"
 	"io"
+	"net"
 )
 
 // Digest
