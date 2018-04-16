@@ -145,3 +145,25 @@ func TestQueueCoordinator_QueryTxList(t *testing.T) {
 		t.Error("QueryTxList error. ", err)
 	}
 }
+
+func TestQueueCoordinator_GetMempool(t *testing.T) {
+	var mock mockSystem
+	api := mock.startup(0)
+	defer mock.stop()
+
+	_, err := api.GetMempool()
+	if nil != err {
+		t.Error("GetMempool error. ", err)
+	}
+}
+
+func TestQueueCoordinator_GetLastMempool(t *testing.T) {
+	var mock mockSystem
+	api := mock.startup(0)
+	defer mock.stop()
+
+	_, err := api.GetLastMempool(nil)
+	if nil != err {
+		t.Error("GetMempool error. ", err)
+	}
+}
