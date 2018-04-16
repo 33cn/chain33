@@ -24,7 +24,7 @@ func init() {
 
 func initEnv() (*Wallet, queue.Module, queue.Queue) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../chain33.test.toml")
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 
 	wallet := New(cfg.Wallet)
 	wallet.SetQueueClient(q.Client())
