@@ -13,15 +13,12 @@ const (
 )
 
 type Replica struct {
-	ln net.Listener
-
-	ID       uint32
-	replicas map[uint32]string
-
-	activeView bool
-	view       uint32
-	sequence   uint32
-
+	ln          net.Listener
+	ID          uint32
+	replicas    map[uint32]string
+	activeView  bool
+	view        uint32
+	sequence    uint32
 	requestChan chan *pb.Request
 	replyChan   chan *pb.ClientReply
 	errChan     chan error
@@ -58,16 +55,13 @@ func NewReplica(id uint32, PeersURL string, addr string) (chan *pb.ClientReply, 
 		pn.replicas[uint32(num)] = peer
 	}
 	pn.checkpoints = []*pb.Checkpoint{pb.ToCheckpoint(0, []byte(""))}
-
 	pn.Startnode(addr)
 	return replyChan, requestChan, pn.isPrimary(pn.ID)
 
 }
 
 func (rep *Replica) Startnode(addr string) {
-
 	rep.acceptConnections(addr)
-
 }
 
 // Basic operations
@@ -152,19 +146,14 @@ func (rep *Replica) addCheckpoint(checkpoint *pb.Checkpoint) {
 }
 
 func (rep *Replica) acceptConnections(addr string) {
-	//log.Println("out msg")
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		plog.Error("tcp connect error")
 	}
-
 	go rep.sendRoutine()
 	go func() {
-
 		for {
-
 			conn, err := ln.Accept()
-
 			if err != nil {
 				plog.Error("Accept error")
 			}
@@ -174,7 +163,6 @@ func (rep *Replica) acceptConnections(addr string) {
 				plog.Error("readmessage error")
 			}
 			rep.handleRequest(req)
-
 		}
 	}()
 }
@@ -192,10 +180,7 @@ func (rep *Replica) multicast(REQ *pb.Request) error {
 }
 
 func (rep *Replica) sendRoutine() {
-
 	for REQ := range rep.requestChan {
-
-		//case REQ := <-rep.requestChan:
 		switch REQ.Value.(type) {
 		case *pb.Request_Ack:
 			view := REQ.GetAck().View
@@ -221,7 +206,6 @@ func (rep *Replica) sendRoutine() {
 			}
 		}
 	}
-
 }
 
 func (rep *Replica) allRequests() []*pb.Request {
@@ -278,7 +262,6 @@ func (rep *Replica) logReply(client string, reply *pb.ClientReply) {
 // Has requests
 
 func (rep *Replica) hasRequest(REQ *pb.Request) bool {
-
 	switch REQ.Value.(type) {
 	case *pb.Request_Preprepare:
 		return rep.hasRequestPreprepare(REQ)
@@ -552,84 +535,55 @@ func (rep *Replica) handleRequestClient(REQ *pb.Request) {
 			return
 		}
 	}
-
 	rep.logRequest(REQ)
-
 	if !rep.isPrimary(rep.ID) {
 		return
 	}
-
 	req := pb.ToRequestPreprepare(rep.view, rep.sequence, REQ.Digest(), rep.ID)
 	rep.logRequest(req)
 	plog.Info("Client-request done")
-
 	go func() {
 		rep.requestChan <- req
 	}()
-
 }
 
 func (rep *Replica) handleRequestPreprepare(REQ *pb.Request) {
-
 	replica := REQ.GetPreprepare().Replica
-
 	if !rep.isPrimary(replica) {
 		return
 	}
-
 	view := REQ.GetPreprepare().View
-
 	if rep.view != view {
 		return
 	}
-
 	sequence := REQ.GetPreprepare().Sequence
-
 	if !rep.sequenceInRange(sequence) {
 		return
 	}
-
 	digest := REQ.GetPreprepare().Digest
-
 	accept := true
 	for _, req := range rep.requests["pre-prepare"] {
 		v := req.GetPreprepare().View
 		s := req.GetPreprepare().Sequence
 		d := req.GetPreprepare().Digest
-
 		if v == view && s == sequence && !pb.EQ(d, digest) {
 			accept = false
 			break
 		}
 	}
-
 	if !accept {
 		return
 	}
-
 	rep.logRequest(REQ)
 	plog.Info("pre-prepare done")
-
-	/*
-		if rep.isPrimary() {
-			return nil
-		}
-	*/
-
 	req := pb.ToRequestPrepare(view, sequence, digest, rep.ID)
-
 	if rep.hasRequest(req) {
 		return
 	}
-
 	rep.logRequest(req)
-
 	go func() {
 		rep.requestChan <- req
 	}()
-
-	// prePrep := REQ.GetPreprepare()
-	// rep.logPrePrep(prePrep)
 }
 
 func (rep *Replica) handleRequestPrepare(REQ *pb.Request) {
