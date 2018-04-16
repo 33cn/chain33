@@ -13,8 +13,10 @@ var genesisAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 var rlog = log.New("module", "raft")
 
 var (
-	isLeader    bool = false
-	confChangeC chan raftpb.ConfChange
+	defaultSnapCount        uint64 = 1000
+	snapshotCatchUpEntriesN uint64 = 1000
+	isLeader                bool   = false
+	confChangeC             chan raftpb.ConfChange
 )
 
 func NewRaftCluster(cfg *types.Consensus) *RaftClient {
@@ -28,6 +30,15 @@ func NewRaftCluster(cfg *types.Consensus) *RaftClient {
 		//TODO 当传入的参数异常时，返回给主函数的是个nil,这时候需要做异常处理
 		return nil
 	}
+	// 默认1000个Entry打一个snapshot
+	if cfg.DefaultSnapCount <= 0 {
+		defaultSnapCount = 1000
+		snapshotCatchUpEntriesN = 1000
+	} else {
+		defaultSnapCount = uint64(cfg.DefaultSnapCount)
+		snapshotCatchUpEntriesN = uint64(cfg.DefaultSnapCount)
+	}
+
 	// propose channel
 	proposeC := make(chan *types.Block)
 	confChangeC = make(chan raftpb.ConfChange)
