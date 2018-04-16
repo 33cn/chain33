@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	ntpPool             = "pool.ntp.org"   // ntpPool is the NTP server to query for the current time
-	ntpChecks           = 3                // Number of measurements to do against the NTP server
-	ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
-	ntpWarningCooldown  = 10 * time.Minute // Minimum amount of time to pass before repeating NTP warning
-	driftThreshold      = 10 * time.Second // Allowed clock drift before warning user
+	ntpPool   = "pool.ntp.org" // ntpPool is the NTP server to query for the current time
+	ntpChecks = 3              // Number of measurements to do against the NTP server
+	//ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
+	//ntpWarningCooldown  = 10 * time.Minute // Minimum amount of time to pass before repeating NTP warning
+	driftThreshold = 10 * time.Second // Allowed clock drift before warning user
 
 )
 

@@ -90,10 +90,7 @@ func (b *BlockChain) blockExists(hash []byte) bool {
 		return false
 	}
 	height, _ := b.blockStore.GetHeightByBlockHash(hash)
-	if height != -1 {
-		return true
-	}
-	return false
+	return height != -1
 }
 
 //孤儿链的处理,将本hash对应的子block插入chain中
@@ -313,7 +310,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 	newbatch.Write()
 
-	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Now().Sub(beg))
+	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Since(beg))
 
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight()

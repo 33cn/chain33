@@ -12,7 +12,7 @@ package account
 
 import (
 	"fmt"
-
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -23,7 +23,7 @@ var alog = log.New("module", "account")
 
 // DB for account
 type DB struct {
-	db                   dbm.KVDB
+	db                   dbm.KV
 	accountKeyPerfix     []byte
 	execAccountKeyPerfix []byte
 }
@@ -32,7 +32,7 @@ func NewCoinsAccount() *DB {
 	return newAccountDB("mavl-coins-bty-")
 }
 
-func NewTokenAccount(symbol string, db dbm.KVDB) *DB {
+func NewTokenAccount(symbol string, db dbm.KV) *DB {
 	accDB := newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
 	accDB.SetDB(db)
 	return accDB
@@ -50,7 +50,7 @@ func newAccountDB(prefix string) *DB {
 	return acc
 }
 
-func (acc *DB) SetDB(db dbm.KVDB) *DB {
+func (acc *DB) SetDB(db dbm.KV) *DB {
 	acc.db = db
 	return acc
 }
@@ -145,7 +145,7 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 	}, nil
 }
 
-func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
+func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogTransfer)
 	if acc.IsTokenAccount() {
 		ty = types.TyLogTokenTransfer

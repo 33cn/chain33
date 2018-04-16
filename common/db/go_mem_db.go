@@ -52,7 +52,7 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	if entry, ok := db.db[string(key)]; ok {
 		return CopyBytes(entry), nil
 	}
-	return nil, nil
+	return nil, ErrNotFoundInDb
 }
 
 func (db *GoMemDB) Set(key []byte, value []byte) error {
@@ -103,7 +103,7 @@ func (db *GoMemDB) Close() {
 
 func (db *GoMemDB) Print() {
 	for key, value := range db.db {
-		mlog.Info("Print", "key", string(key), "value", string(value))
+		mlog.Info("Print", "key", key, "value", string(value))
 	}
 }
 
@@ -113,6 +113,8 @@ func (db *GoMemDB) Stats() map[string]string {
 }
 
 func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
 
 	var keys []string
 	for k := range db.db {
@@ -215,7 +217,7 @@ type kv struct{ k, v []byte }
 type memBatch struct {
 	db     *GoMemDB
 	writes []kv
-	size   int
+	//size   int
 }
 
 func (db *GoMemDB) NewBatch(sync bool) Batch {

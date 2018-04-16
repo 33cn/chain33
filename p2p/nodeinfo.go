@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,7 +14,6 @@ type NodeInfo struct {
 	mtx            sync.Mutex
 	externalAddr   *NetAddress
 	listenAddr     *NetAddress
-	version        string
 	monitorChan    chan *peer
 	natNoticeChain chan struct{}
 	natResultChain chan bool
@@ -39,8 +37,7 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
 
-	os.MkdirAll(cfg.GetDbPath(), 0755)
-	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath())
+	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath(), cfg.GetDriver())
 
 	return nodeInfo
 }

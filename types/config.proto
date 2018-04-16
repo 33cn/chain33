@@ -6,7 +6,6 @@ message Config {
 	string title = 1;
 	Log log = 2;
 	Store store = 3;
-	LocalStore localStore = 4;
 	Consensus consensus = 5;
 	MemPool memPool = 6;
 	BlockChain blockChain = 7;
@@ -48,6 +47,7 @@ message Consensus {
 	bool minerstart = 3;
 	int64 genesisBlockTime = 4;
 	string hotkeyAddr = 5;
+	bool forceMining = 6;
 }
 
 message Wallet {
@@ -55,17 +55,13 @@ message Wallet {
 	string driver = 2;
 	string dbPath = 3;
 	string signType =4;
+	bool forceMining = 5;
 }
 
 message Store {
 	string name = 1;
 	string driver = 2;
 	string dbPath = 3;
-}
-
-message LocalStore {
-	string driver = 1;
-	string dbPath = 2;
 }
 
 message BlockChain {
@@ -82,16 +78,17 @@ message BlockChain {
 
 message P2P {
 	int32 seedPort = 1;
-	string dbPath = 2;
-	string grpcLogFile = 3;
-	bool isSeed = 4;
-	bool serverStart=5;
-	repeated string seeds = 6;
-	bool enable = 7;
-	int32 msgCacheSize = 8;
-	int32 version = 9;
-	int32 verMix = 10;
-	int32 verMax = 11;
+	string driver = 2;
+	string dbPath = 3;
+	string grpcLogFile = 4;
+	bool isSeed = 5;
+	bool serverStart=6;
+	repeated string seeds = 7;
+	bool enable = 8;
+	int32 msgCacheSize = 9;
+	int32 version = 10;
+	int32 verMix = 11;
+	int32 verMax = 12;
 }
 
 message Rpc {

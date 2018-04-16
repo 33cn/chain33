@@ -172,8 +172,6 @@ func Test_TwoTxMerkle(t *testing.T) {
 			t.Logf("Test_TwoTxMerkle bitroothash == brroothash :%d", txindex)
 		}
 	}
-
-	return
 }
 
 //测试三个交易的roothash以及branch
@@ -246,8 +244,6 @@ func Test_OddTxMerkle(t *testing.T) {
 			t.Logf("Test_OddTxMerkle bitroothash == brroothash :%d", txindex)
 		}
 	}
-
-	return
 }
 
 //测试六个交易的roothash以及branch
@@ -348,5 +344,4 @@ func Test_SixTxMerkle(t *testing.T) {
 			t.Logf("Test_SixTxMerkle bitroothash == brroothash :%d", txindex)
 		}
 	}
-	return
 }
