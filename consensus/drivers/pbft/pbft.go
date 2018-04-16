@@ -1461,7 +1461,7 @@ func (rep *Replica) createNewView(view uint32) (request *pb.Request) {
 	// create viewChanges
 	viewChanges := make([]*pb.ViewChange, len(rep.pendingVC))
 
-	for idx, _ := range viewChanges {
+	for idx := range viewChanges {
 		req := rep.pendingVC[idx]
 		viewchanger := req.GetViewchange().Replica
 		vc := pb.ToViewChange(viewchanger, req.Digest())
