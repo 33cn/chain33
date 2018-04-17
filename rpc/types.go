@@ -276,4 +276,3 @@ type TradeRevokeTx struct {
 	SellId string `json:"sell_id,omitempty"`
 	Fee    int64  `json:"fee,omitempty"`
 }
-
