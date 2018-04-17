@@ -35,6 +35,7 @@ type Mempool struct {
 	minFee    int64
 	addedTxs  *lru.Cache
 	sync      bool
+	cfg       *types.MemPool
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -48,6 +49,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.goodChan = make(chan queue.Message, channelSize)
 	pool.minFee = cfg.MinTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
+	pool.cfg = cfg
 	return pool
 }
 
@@ -198,14 +200,18 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 	if len(block.Txs) <= 0 {
 		return
 	}
-
 	blkTxs := block.Txs
-	tx0 := blkTxs[0]
-	if string(tx0.Execer) == "ticket" {
-		blkTxs = blkTxs[1:]
-	}
-
 	for _, tx := range blkTxs {
+		if "ticket" == string(tx.Execer) {
+			var action types.TicketAction
+			err := types.Decode(tx.Payload, &action)
+			if err != nil {
+				continue
+			}
+			if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+				continue
+			}
+		}
 		err := tx.Check(mem.minFee)
 		if err != nil {
 			continue
@@ -422,6 +428,9 @@ func (mem *Mempool) isSync() bool {
 func (mem *Mempool) getSync() {
 	if mem.isSync() {
 		return
+	}
+	if mem.cfg.ForceAccept {
+		mem.setSync(true)
 	}
 	for {
 		if mem.client == nil {
