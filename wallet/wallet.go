@@ -580,6 +580,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procRevokeSell", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
 			}
+
 		case types.EventCloseTickets:
 			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
 			if err != nil {
@@ -594,6 +595,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 					}
 				}()
 			}
+
 		case types.EventSignRawTx:
 			unsigned := msg.GetData().(*types.ReqSignRawTx)
 			txHex, err := wallet.ProcSignRawTx(unsigned)
@@ -604,6 +606,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("Reply EventSignRawTx", "msg", msg)
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySignRawTx, &types.ReplySignRawTx{TxHex: txHex}))
 			}
+
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -644,7 +647,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	tx.Sign(types.SECP256K1, key)
+	tx.Sign(SignType, key)
 	txHex := types.Encode(&tx)
 	signedTx := hex.EncodeToString(txHex)
 	return signedTx, nil
