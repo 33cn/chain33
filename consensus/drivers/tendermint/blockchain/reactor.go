@@ -37,7 +37,7 @@ const (
 type consensusReactor interface {
 	// for when we switch from blockchain reactor and fast sync to
 	// the consensus machine
-	SwitchToConsensus(sm.State, int)
+	SwitchToConsensus(sm.State, int, bool)
 }
 
 // BlockchainReactor handles long-term catchup syncing.
@@ -222,6 +222,8 @@ func (bcR *BlockchainReactor) poolRoutine() {
 	lastHundred := time.Now()
 	lastRate := 0.0
 
+	lastBlockNeedDeal := false
+
 FOR_LOOP:
 	for {
 		select {
@@ -254,11 +256,11 @@ FOR_LOOP:
 			bcR.Logger.Debug("Consensus ticker", "numPending", numPending, "total", lenRequesters,
 				"outbound", outbound, "inbound", inbound)
 			if bcR.pool.IsCaughtUp() {
-				bcR.Logger.Info("Time to switch to consensus reactor!", "height", height)
+				bcR.Logger.Info("Time to switch to consensus reactor!", "height", height, "blocksSynced", blocksSynced, "lastheight", state.LastBlockHeight, "lastBlockNeedDeal", lastBlockNeedDeal)
 				bcR.pool.Stop()
 
 				conR := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
-				conR.SwitchToConsensus(state, blocksSynced)
+				conR.SwitchToConsensus(state, blocksSynced, lastBlockNeedDeal)
 
 				break FOR_LOOP
 			}
@@ -272,6 +274,13 @@ FOR_LOOP:
 				bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 				if first == nil || second == nil {
 					// We need both to sync the first block.
+					if first != nil && second == nil {
+						bcR.Logger.Info("TrySync need recheck last one", "first height", first.Height)
+						lastBlockNeedDeal = true
+					} else {
+						bcR.Logger.Info("TrySync no need recheck")
+						lastBlockNeedDeal = false
+					}
 					break SYNC_LOOP
 				}
 				firstParts := first.MakePartSet(state.ConsensusParams.BlockPartSizeBytes)

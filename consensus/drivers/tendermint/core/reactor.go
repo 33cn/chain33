@@ -131,8 +131,11 @@ func (conR *ConsensusReactor) Stop() {
 
 // SwitchToConsensus switches from fast_sync mode to consensus mode.
 // It resets the state, turns off fast_sync, and starts the consensus state-machine
-func (conR *ConsensusReactor) SwitchToConsensus(state sm.State, blocksSynced int) {
-	conR.Logger.Info("SwitchToConsensus")
+func (conR *ConsensusReactor) SwitchToConsensus(state sm.State, blocksSynced int, lastBlockNeedDeal bool) {
+	conR.Logger.Info("SwitchToConsensus", "lastBlockNeedDeal", lastBlockNeedDeal)
+
+	conR.conS.SyncLastBlock = lastBlockNeedDeal
+
 	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
 	// broadcast a NewRoundStepMessage.
