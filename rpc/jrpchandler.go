@@ -1286,3 +1286,13 @@ func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{})
 	*result = hex.EncodeToString(reply)
 	return nil
 }
+
+func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
+	resp, err := c.cli.SignRawTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = resp
+	return nil
+}
