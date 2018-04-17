@@ -164,7 +164,7 @@ const (
 	EventQueryTotalFee       = 106
 	EventSignRawTx           = 107
 	EventReplySignRawTx      = 108
-	
+
 	// Token
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
