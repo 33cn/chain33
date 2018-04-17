@@ -1,4 +1,4 @@
-image: chain33-build:latest
+#image: chain33-build:latest
 
 before_script:
     - export GO_PROJECT_NAMESPACE="$GOPATH/src/gitlab.33.cn/$CI_PROJECT_NAMESPACE"
@@ -19,15 +19,21 @@ stages:
 
 go_lint:
     stage: build
+    tags:
+        - 33cn
     script:
         - make linter
 
 go_build:
     stage: build
+    tags:
+        - 33cn
     script:
         - make build_ci
 
 go_test:
     stage: test
+    tags:
+        - 33cn
     script:
         - make test
