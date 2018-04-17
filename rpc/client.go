@@ -966,3 +966,17 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, err
 	data := types.Encode(tx)
 	return data, nil
 }
+
+func (c *channelClient) SignRawTx(in *types.ReqSignRawTx) (*types.ReplySignRawTx, error) {
+	msg := c.NewMessage("wallet", types.EventSignRawTx, &types.ReqSignRawTx{Addr: in.GetAddr(), PrivKey: in.GetPrivKey(), TxHex: in.GetTxHex()})
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("SignRawTx", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData().(*types.ReplySignRawTx), nil
+}
