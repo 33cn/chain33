@@ -11,7 +11,6 @@ import (
 
 var (
 	maxOrphanBlocks = 2 * MaxFetchBlockNum //最大孤儿block数量，考虑到同步阶段孤儿block会很多
-	orphanlog       = chainlog.New("submodule", "orphan")
 )
 
 const orphanExpirationTime = time.Second * 300
