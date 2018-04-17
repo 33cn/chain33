@@ -118,24 +118,21 @@ func (client *PbftClient) CreateGenesisTx() (ret []*pb.Transaction) {
 }
 
 func (client *PbftClient) readReply() {
-	for {
 
-		data := <-client.replyChan
-		if data == nil {
-			plog.Error("block is nil")
-			break
-		}
-		plog.Info("===============Get block from reply channel===========")
-		//client.SetCurrentBlock(data.Result.Value)
-		lastBlock := client.GetCurrentBlock()
-		err := client.WriteBlock(lastBlock.StateHash, data.Result.Value)
-
-		if err != nil {
-			plog.Error("********************err:", err)
-			break
-		}
-		client.SetCurrentBlock(data.Result.Value)
-		break
-
+	data := <-client.replyChan
+	if data == nil {
+		plog.Error("block is nil")
+		return
 	}
+	plog.Info("===============Get block from reply channel===========")
+	//client.SetCurrentBlock(data.Result.Value)
+	lastBlock := client.GetCurrentBlock()
+	err := client.WriteBlock(lastBlock.StateHash, data.Result.Value)
+
+	if err != nil {
+		plog.Error("********************err:", err)
+		return
+	}
+	client.SetCurrentBlock(data.Result.Value)
+
 }
