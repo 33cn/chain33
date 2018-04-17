@@ -50,6 +50,7 @@ type Wallet struct {
 	wg             *sync.WaitGroup
 	walletStore    *Store
 	random         *rand.Rand
+	cfg            *types.Wallet
 	done           chan struct{}
 }
 
@@ -82,6 +83,7 @@ func New(cfg *types.Wallet) *Wallet {
 		EncryptFlag:    walletStore.GetEncryptionFlag(),
 		miningTicket:   time.NewTicker(2 * time.Minute),
 		done:           make(chan struct{}),
+		cfg:            cfg,
 	}
 	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
@@ -154,7 +156,7 @@ func (wallet *Wallet) autoMining() {
 	for {
 		select {
 		case <-wallet.miningTicket.C:
-			if !wallet.IsCaughtUp() {
+			if !(wallet.IsCaughtUp() && wallet.cfg.GetForceMining()) {
 				walletlog.Error("wallet IsCaughtUp false")
 				break
 			}
