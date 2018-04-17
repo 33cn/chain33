@@ -39,6 +39,7 @@ message Log {
 message MemPool {
 	int64 poolCacheSize = 1;
 	int64 minTxFee = 2;
+	bool forceAccept = 3;
 }
 
 message Consensus {
@@ -47,6 +48,7 @@ message Consensus {
 	bool minerstart = 3;
 	int64 genesisBlockTime = 4;
 	string hotkeyAddr = 5;
+	bool forceMining = 6;
 }
 
 message Wallet {
@@ -54,6 +56,7 @@ message Wallet {
 	string driver = 2;
 	string dbPath = 3;
 	string signType =4;
+	bool forceMining = 5;
 }
 
 message Store {
