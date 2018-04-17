@@ -179,6 +179,9 @@ const (
 	// config
 	EventModifyConfig      = 300
 	EventReplyModifyConfig = 301
+
+	EventSignRawTx      = 401
+	EventReplySignRawTx = 402
 )
 
 var eventName = map[int]string{
