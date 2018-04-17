@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"time"
 )
 
 const (
@@ -26,13 +27,14 @@ const (
 	//storeKey		= "store"
 )
 
-func reflectTypename(i interface{}) string {
-	return reflect.TypeOf(i).String()
-}
-
 // 消息通道协议实现
 type QueueCoordinator struct {
-	client queue.Client // 消息队列
+	// 消息队列
+	client queue.Client
+	// 发送请求超时时间
+	sendTimeout time.Duration
+	// 接收应答超时时间
+	waitTimeout time.Duration
 }
 
 func NewQueueAPI(client queue.Client) (QueueProtocolAPI, error) {
@@ -41,17 +43,19 @@ func NewQueueAPI(client queue.Client) (QueueProtocolAPI, error) {
 	}
 	q := &QueueCoordinator{}
 	q.client = client
+	q.sendTimeout = 120 * time.Second
+	q.waitTimeout = 60 * time.Second
 	return q, nil
 }
 
 func (q *QueueCoordinator) query(topic string, ty int64, data interface{}) (queue.Message, error) {
 	client := q.client
 	msg := client.NewMessage(topic, ty, data)
-	err := client.Send(msg, true)
+	err := client.SendTimeout(msg, true, q.sendTimeout)
 	if nil != err {
 		return queue.Message{}, err
 	}
-	return client.Wait(msg)
+	return client.WaitTimeout(msg, q.waitTimeout)
 }
 
 func (q *QueueCoordinator) checkInputParam(param interface{}) error {
@@ -61,131 +65,94 @@ func (q *QueueCoordinator) checkInputParam(param interface{}) error {
 	return nil
 }
 
-func (q *QueueCoordinator) checkResponse(ty string, response interface{}) error {
-	if reflect.ValueOf(response).IsNil() {
-		return types.ErrNotSupport
-	}
-	reflectType := reflectTypename(response)
-	if ty == reflectType {
-		return nil
-	}
-
-	if "*types.Reply" == reflectType {
-		reply := response.(*types.Reply)
-		if reply.GetIsOk() {
-			return nil
-		}
-		return errors.New(reply.String())
-	}
-	return types.ErrNotSupport
-}
-
-func (q *QueueCoordinator) GetTx(param *types.Transaction) (r *types.Reply, err error) {
-	err = q.checkInputParam(param)
+func (q *QueueCoordinator) GetTx(param *types.Transaction) (*types.Reply, error) {
+	err := q.checkInputParam(param)
 	if nil != err {
-		return
+		return nil, err
 	}
 	msg, err := q.query(mempoolKey, types.EventTx, param)
 	if nil != err {
-		return
+		return nil, err
 	}
-	data := msg.GetData()
-	err = q.checkResponse(reflectTypename(r), data)
-	if nil != err {
-		return
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
 	}
-	r = data.(*types.Reply)
-	return
+	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) GetTxList(param *types.TxHashList) (r *types.ReplyTxList, err error) {
-	err = q.checkInputParam(param)
+func (q *QueueCoordinator) GetTxList(param *types.TxHashList) (*types.ReplyTxList, error) {
+	err := q.checkInputParam(param)
 	if nil != err {
-		return
+		return nil, err
 	}
 	msg, err := q.query(mempoolKey, types.EventTxList, param)
 	if nil != err {
-		return
+		return nil, err
 	}
-	data := msg.GetData()
-	err = q.checkResponse(reflectTypename(r), data)
-	if nil != err {
-		return
+	if reply, ok := msg.GetData().(*types.ReplyTxList); ok {
+		return reply, nil
 	}
-	r = data.(*types.ReplyTxList)
-	return
+	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) GetBlocks(param *types.ReqBlocks) (r *types.BlockDetails, err error) {
-	err = q.checkInputParam(param)
+func (q *QueueCoordinator) GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error) {
+	err := q.checkInputParam(param)
 	if nil != err {
-		return
+		return nil, err
 	}
 	msg, err := q.query(blockchainKey, types.EventGetBlocks, param)
 	if nil != err {
-		return
+		return nil, err
 	}
-	data := msg.GetData()
-	err = q.checkResponse(reflectTypename(r), data)
-	if nil != err {
-		return
+	if reply, ok := msg.GetData().(*types.BlockDetails); ok {
+		return reply, nil
 	}
-	r = data.(*types.BlockDetails)
-	return
+	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) QueryTx(param *types.ReqHash) (r *types.TransactionDetail, err error) {
-	err = q.checkInputParam(param)
+func (q *QueueCoordinator) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
+	err := q.checkInputParam(param)
 	if nil != err {
-		return
+		return nil, err
 	}
 	msg, err := q.query(blockchainKey, types.EventQueryTx, param)
 	if nil != err {
-		return
+		return nil, err
 	}
-	data := msg.GetData()
-	err = q.checkResponse(reflectTypename(r), data)
-	if nil != err {
-		return
+	if reply, ok := msg.GetData().(*types.TransactionDetail); ok {
+		return reply, nil
 	}
-	r = data.(*types.TransactionDetail)
-	return
+	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) GetTransactionByAddr(param *types.ReqAddr) (r *types.ReplyTxInfos, err error) {
-	err = q.checkInputParam(param)
+func (q *QueueCoordinator) GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error) {
+	err := q.checkInputParam(param)
 	if nil != err {
-		return
+		return nil, err
 	}
 	msg, err := q.query(blockchainKey, types.EventGetTransactionByAddr, param)
 	if nil != err {
-		return
+		return nil, err
 	}
-	data := msg.GetData()
-	err = q.checkResponse(reflectTypename(r), data)
-	if nil != err {
-		return
+	if reply, ok := msg.GetData().(*types.ReplyTxInfos); ok {
+		return reply, nil
 	}
-	r = data.(*types.ReplyTxInfos)
-	return
+	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) GetTransactionByHash(param *types.ReqHashes) (r *types.TransactionDetails, err error) {
-	err = q.checkInputParam(param)
+func (q *QueueCoordinator) GetTransactionByHash(param *types.ReqHashes) (*types.TransactionDetails, error) {
+	err := q.checkInputParam(param)
 	if nil != err {
-		return
+		return nil, err
 	}
 	msg, err := q.query(blockchainKey, types.EventGetTransactionByHash, param)
 	if nil != err {
-		return
+		return nil, err
 	}
-	data := msg.GetData()
-	err = q.checkResponse(reflectTypename(r), data)
-	if nil != err {
-		return
+	if reply, ok := msg.GetData().(*types.TransactionDetails); ok {
+		return reply, nil
 	}
-	r = data.(*types.TransactionDetails)
-	return
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) GetMempool() (*types.ReplyTxList, error) {
@@ -193,7 +160,10 @@ func (q *QueueCoordinator) GetMempool() (*types.ReplyTxList, error) {
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyTxList), nil
+	if reply, ok := msg.GetData().(*types.ReplyTxList); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletGetAccountList() (*types.WalletAccounts, error) {
