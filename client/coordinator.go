@@ -171,7 +171,10 @@ func (q *QueueCoordinator) WalletGetAccountList() (*types.WalletAccounts, error)
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.WalletAccounts), nil
+	if reply, ok := msg.GetData().(*types.WalletAccounts); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error) {
@@ -183,7 +186,10 @@ func (q *QueueCoordinator) NewAccount(param *types.ReqNewAccount) (*types.Wallet
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.WalletAccount), nil
+	if reply, ok := msg.GetData().(*types.WalletAccount); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
@@ -195,7 +201,10 @@ func (q *QueueCoordinator) WalletTransactionList(param *types.ReqWalletTransacti
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.WalletTxDetails), nil
+	if reply, ok := msg.GetData().(*types.WalletTxDetails); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletImportprivkey(param *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
@@ -207,7 +216,10 @@ func (q *QueueCoordinator) WalletImportprivkey(param *types.ReqWalletImportPrivK
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.WalletAccount), nil
+	if reply, ok := msg.GetData().(*types.WalletAccount); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
@@ -219,7 +231,10 @@ func (q *QueueCoordinator) WalletSendToAddress(param *types.ReqWalletSendToAddre
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyHash), nil
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletSetFee(param *types.ReqWalletSetFee) (*types.Reply, error) {
@@ -231,7 +246,10 @@ func (q *QueueCoordinator) WalletSetFee(param *types.ReqWalletSetFee) (*types.Re
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletSetLabel(param *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
@@ -243,7 +261,10 @@ func (q *QueueCoordinator) WalletSetLabel(param *types.ReqWalletSetLabel) (*type
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.WalletAccount), nil
+	if reply, ok := msg.GetData().(*types.WalletAccount); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletMergeBalance(param *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
@@ -255,7 +276,10 @@ func (q *QueueCoordinator) WalletMergeBalance(param *types.ReqWalletMergeBalance
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyHashes), nil
+	if reply, ok := msg.GetData().(*types.ReplyHashes); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletSetPasswd(param *types.ReqWalletSetPasswd) (*types.Reply, error) {
@@ -267,7 +291,10 @@ func (q *QueueCoordinator) WalletSetPasswd(param *types.ReqWalletSetPasswd) (*ty
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletLock() (*types.Reply, error) {
@@ -275,7 +302,10 @@ func (q *QueueCoordinator) WalletLock() (*types.Reply, error) {
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletUnLock() (*types.Reply, error) {
@@ -283,7 +313,10 @@ func (q *QueueCoordinator) WalletUnLock() (*types.Reply, error) {
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) PeerInfo() (*types.PeerList, error) {
@@ -291,7 +324,10 @@ func (q *QueueCoordinator) PeerInfo() (*types.PeerList, error) {
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.PeerList), nil
+	if reply, ok := msg.GetData().(*types.PeerList); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) GetHeaders(param *types.ReqBlocks) (*types.Headers, error) {
@@ -303,15 +339,25 @@ func (q *QueueCoordinator) GetHeaders(param *types.ReqBlocks) (*types.Headers, e
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Headers), nil
+	if reply, ok := msg.GetData().(*types.Headers); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) GetLastMempool(param *types.ReqNil) (*types.ReplyTxList, error) {
+	err := q.checkInputParam(param)
+	if nil != err {
+		return nil, err
+	}
 	msg, err := q.query(mempoolKey, types.EventGetLastMempool, param)
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyTxList), nil
+	if reply, ok := msg.GetData().(*types.ReplyTxList); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error) {
@@ -323,10 +369,13 @@ func (q *QueueCoordinator) GetBlockOverview(param *types.ReqHash) (*types.BlockO
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.BlockOverview), nil
+	if reply, ok := msg.GetData().(*types.BlockOverview); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) GetAddrOverview(param *types.ReqAddr) (*types.BlockOverview, error) {
+func (q *QueueCoordinator) GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
 		return nil, err
@@ -335,7 +384,10 @@ func (q *QueueCoordinator) GetAddrOverview(param *types.ReqAddr) (*types.BlockOv
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.BlockOverview), nil
+	if reply, ok := msg.GetData().(*types.AddrOverview); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error) {
@@ -347,10 +399,13 @@ func (q *QueueCoordinator) GetBlockHash(param *types.ReqInt) (*types.ReplyHash, 
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyHash), nil
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) GenSeed(param *types.GenSeedLang) (*types.Reply, error) {
+func (q *QueueCoordinator) GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
 		return nil, err
@@ -359,7 +414,10 @@ func (q *QueueCoordinator) GenSeed(param *types.GenSeedLang) (*types.Reply, erro
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.ReplySeed); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) SaveSeed(param *types.SaveSeedByPw) (*types.Reply, error) {
@@ -371,10 +429,13 @@ func (q *QueueCoordinator) SaveSeed(param *types.SaveSeedByPw) (*types.Reply, er
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) GetSeed(param *types.GetSeedByPw) (*types.Reply, error) {
+func (q *QueueCoordinator) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
 		return nil, err
@@ -383,7 +444,10 @@ func (q *QueueCoordinator) GetSeed(param *types.GetSeedByPw) (*types.Reply, erro
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.ReplySeed); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) GetWalletStatus() (*types.WalletStatus, error) {
@@ -391,7 +455,10 @@ func (q *QueueCoordinator) GetWalletStatus() (*types.WalletStatus, error) {
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.WalletStatus), nil
+	if reply, ok := msg.GetData().(*types.WalletStatus); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error) {
@@ -403,7 +470,10 @@ func (q *QueueCoordinator) WalletAutoMiner(param *types.MinerFlag) (*types.Reply
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) GetTicketCount() (*types.Int64, error) {
@@ -411,7 +481,10 @@ func (q *QueueCoordinator) GetTicketCount() (*types.Int64, error) {
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Int64), nil
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error) {
@@ -419,11 +492,14 @@ func (q *QueueCoordinator) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, er
 	if nil != err {
 		return nil, err
 	}
-	msg, err := q.query(walletKey, types.EventWalletAutoMiner, param)
+	msg, err := q.query(walletKey, types.EventDumpPrivkey, param)
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyStr), nil
+	if reply, ok := msg.GetData().(*types.ReplyStr); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) CloseTickets() (*types.ReplyHashes, error) {
@@ -431,7 +507,10 @@ func (q *QueueCoordinator) CloseTickets() (*types.ReplyHashes, error) {
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyHashes), nil
+	if reply, ok := msg.GetData().(*types.ReplyHashes); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) IsSync() (ret bool, err error) {
@@ -440,7 +519,11 @@ func (q *QueueCoordinator) IsSync() (ret bool, err error) {
 	if nil != err {
 		return
 	}
-	ret = msg.GetData().(*types.IsCaughtUp).GetIscaughtup()
+	if reply, ok := msg.GetData().(*types.IsCaughtUp); ok {
+		ret = reply.GetIscaughtup()
+	} else {
+		err = types.ErrNotSupport
+	}
 	return
 }
 
@@ -453,7 +536,10 @@ func (q *QueueCoordinator) TokenPreCreate(param *types.ReqTokenPreCreate) (*type
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyHash), nil
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) TokenFinishCreate(param *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
@@ -465,7 +551,10 @@ func (q *QueueCoordinator) TokenFinishCreate(param *types.ReqTokenFinishCreate) 
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyHash), nil
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) TokenRevokeCreate(param *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
@@ -477,7 +566,10 @@ func (q *QueueCoordinator) TokenRevokeCreate(param *types.ReqTokenRevokeCreate) 
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReplyHash), nil
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) SellToken(param *types.ReqSellToken) (*types.Reply, error) {
@@ -489,7 +581,10 @@ func (q *QueueCoordinator) SellToken(param *types.ReqSellToken) (*types.Reply, e
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) BuyToken(param *types.ReqBuyToken) (*types.Reply, error) {
@@ -501,7 +596,10 @@ func (q *QueueCoordinator) BuyToken(param *types.ReqBuyToken) (*types.Reply, err
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) RevokeSellToken(param *types.ReqRevokeSell) (*types.Reply, error) {
@@ -513,7 +611,10 @@ func (q *QueueCoordinator) RevokeSellToken(param *types.ReqRevokeSell) (*types.R
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.Reply), nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
 
 func (q *QueueCoordinator) IsNtpClockSync() (ret bool, err error) {
@@ -522,7 +623,11 @@ func (q *QueueCoordinator) IsNtpClockSync() (ret bool, err error) {
 	if nil != err {
 		return
 	}
-	ret = msg.GetData().(*types.IsNtpClockSync).GetIsntpclocksync()
+	if reply, ok := msg.GetData().(*types.IsNtpClockSync); ok {
+		ret = reply.GetIsntpclocksync()
+	} else {
+		err = types.ErrNotSupport
+	}
 	return
 }
 
@@ -543,5 +648,8 @@ func (q *QueueCoordinator) LocalGet(param *types.ReqHash) (*types.LocalReplyValu
 	if nil != err {
 		return nil, err
 	}
-	return msg.GetData().(*types.LocalReplyValue), nil
+	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
 }
