@@ -148,7 +148,7 @@ func (rep *Replica) addCheckpoint(checkpoint *pb.Checkpoint) {
 func (rep *Replica) acceptConnections(addr string) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		plog.Error("tcp connect error")
+		plog.Error("tcp connect error", "err", err)
 	}
 	go rep.sendRoutine()
 	go func() {
@@ -160,7 +160,7 @@ func (rep *Replica) acceptConnections(addr string) {
 			req := &pb.Request{}
 			err = ReadMessage(conn, req)
 			if err != nil {
-				plog.Error("readmessage error")
+				plog.Error("readmessage error", "err", err)
 			}
 			rep.handleRequest(req)
 		}
@@ -628,7 +628,7 @@ func (rep *Replica) handleRequestPrepare(REQ *pb.Request) {
 				continue
 			}
 			if r == replica {
-				plog.Info("Replica %d sent multiple prepare requests\n", replica)
+				plog.Debug("multiple prepare requests", "Replica ", replica, " sent multiple prepare requests")
 				//continue
 			}
 			count++
@@ -684,7 +684,7 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 				continue
 			}
 			if rr == replica {
-				plog.Info("Replica %d sent multiple commit requests\n", replica)
+				plog.Debug("multiple commit requests", "Replica ", replica, " sent multiple commit requests")
 				//continue
 			}
 			count++

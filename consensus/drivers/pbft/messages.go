@@ -2,12 +2,10 @@ package pbft
 
 import (
 	"crypto/md5"
-	"github.com/golang/protobuf/proto"
-	"github.com/tendermint/go-wire"
-	"gitlab.33.cn/chain33/chain33/types"
-	"io"
-	"net"
 	"fmt"
+	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/types"
+	"net"
 )
 
 // Digest
@@ -153,19 +151,20 @@ func WriteMessage(addr string, msg proto.Message) error {
 	if err != nil {
 		return err
 	}
-	var n int
-	wire.WriteBinary(bz, conn, &n, &err)
+	n, err := conn.Write(bz)
+	plog.Debug("size of byte is", "", n)
 	return err
 }
 
 // Read proto message
 
-func ReadMessage(conn io.Reader, msg proto.Message) error {
-	n, err := int(0), error(nil)
-	buf := wire.ReadByteSlice(conn, 0, &n, &err)
+func ReadMessage(conn net.Conn, msg proto.Message) error {
+	buf := make([]byte, 409600)
+	n, err := conn.Read(buf)
+	plog.Debug("size of byte is", "", n)
 	if err != nil {
 		return err
 	}
-	err = proto.Unmarshal(buf, msg)
+	err = proto.Unmarshal(buf[:n], msg)
 	return err
 }
