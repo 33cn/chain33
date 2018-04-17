@@ -162,6 +162,9 @@ const (
 	EventStoreGetTotalCoins  = 104
 	EventGetTotalCoinsReply  = 105
 	EventQueryTotalFee       = 106
+	EventSignRawTx           = 107
+	EventReplySignRawTx      = 108
+	
 	// Token
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
@@ -179,9 +182,6 @@ const (
 	// config
 	EventModifyConfig      = 300
 	EventReplyModifyConfig = 301
-
-	EventSignRawTx      = 401
-	EventReplySignRawTx = 402
 )
 
 var eventName = map[int]string{
