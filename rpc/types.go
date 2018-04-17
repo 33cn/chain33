@@ -232,3 +232,47 @@ type WalletStatus struct {
 	IsHasSeed    bool `json:"ishasseed"`
 	IsTicketLock bool `json:"isticketlock"`
 }
+
+// Token Transaction
+type TokenPreCreateTx struct {
+	Price        int64  `json:"price,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Symbol       string `json:"symbol,omitempty"`
+	Introduction string `json:"introduction,omitempty"`
+	OwnerAddr    string `json:"owner_addr,omitempty"`
+	Total        int64  `json:"total,omitempty"`
+	Fee          int64  `json:"fee,omitempty"`
+}
+
+type TokenFinishTx struct {
+	OwnerAddr string `json:"owner_addr,omitempty"`
+	Symbol    string `json:"symbol,omitempty"`
+	Fee       int64  `json:"fee,omitempty"`
+}
+
+type TokenRevokeTx struct {
+	OwnerAddr string `json:"owner_addr,omitempty"`
+	Symbol    string `json:"symbol,omitempty"`
+	Fee       int64  `json:"fee,omitempty"`
+}
+
+// Trade Transaction
+type TradeSellTx struct {
+	TokenSymbol       string `json:"token_symbol,omitempty"`
+	AmountPerBoardlot int64  `json:"amount_per_boardlot,omitempty"`
+	MinBoardlot       int64  `json:"min_boardlot,omitempty"`
+	PricePerBoardlot  int64  `json:"price_per_boardlot,omitempty"`
+	TotalBoardlot     int64  `json:"total_boardlot,omitempty"`
+	Fee               int64  `json:"fee,omitempty"`
+}
+
+type TradeBuyTx struct {
+	SellId      string `json:"sell_id,omitempty"`
+	BoardlotCnt int64  `json:"boardlot_cnt,omitempty"`
+	Fee         int64  `json:"fee,omitempty"`
+}
+
+type TradeRevokeTx struct {
+	SellId string `json:"sell_id,omitempty"`
+	Fee    int64  `json:"fee,omitempty"`
+}
