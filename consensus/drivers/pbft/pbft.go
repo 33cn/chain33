@@ -54,7 +54,7 @@ func NewReplica(id uint32, PeersURL string, addr string) (chan *pb.ClientReply, 
 	for num, peer := range peers {
 		pn.replicas[uint32(num)] = peer
 	}
-	pn.checkpoints = []*pb.Checkpoint{pb.ToCheckpoint(0, []byte(""))}
+	pn.checkpoints = []*pb.Checkpoint{ToCheckpoint(0, []byte(""))}
 	pn.Startnode(addr)
 	return replyChan, requestChan, pn.isPrimary(pn.ID)
 
@@ -134,7 +134,7 @@ func (rep *Replica) lastReplyToClient(client string) *pb.ClientReply {
 }
 
 func (rep *Replica) stateDigest() []byte {
-	return rep.theLastReply().Digest()
+	return RepDigest(rep.theLastReply())
 }
 
 func (rep *Replica) isCheckpoint(sequence uint32) bool {
@@ -158,7 +158,7 @@ func (rep *Replica) acceptConnections(addr string) {
 				plog.Error("Accept error")
 			}
 			req := &pb.Request{}
-			err = pb.ReadMessage(conn, req)
+			err = ReadMessage(conn, req)
 			if err != nil {
 				plog.Error("readmessage error")
 			}
@@ -171,7 +171,7 @@ func (rep *Replica) acceptConnections(addr string) {
 
 func (rep *Replica) multicast(REQ proto.Message) error {
 	for _, replica := range rep.replicas {
-		err := pb.WriteMessage(replica, REQ)
+		err := WriteMessage(replica, REQ)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func (rep *Replica) sendRoutine() {
 				plog.Error("primary not exeist")
 				continue
 			}
-			err := pb.WriteMessage(primary, REQ)
+			err := WriteMessage(primary, REQ)
 			if err != nil {
 				go func() {
 					rep.errChan <- err
@@ -288,7 +288,7 @@ func (rep *Replica) hasRequestPreprepare(REQ *pb.Request) bool {
 		v := req.GetPreprepare().View
 		s := req.GetPreprepare().Sequence
 		d := req.GetPreprepare().Digest
-		if v == view && s == sequence && pb.EQ(d, digest) {
+		if v == view && s == sequence && EQ(d, digest) {
 			return true
 		}
 	}
@@ -305,7 +305,7 @@ func (rep *Replica) hasRequestPrepare(REQ *pb.Request) bool {
 		s := req.GetPrepare().Sequence
 		d := req.GetPrepare().Digest
 		r := req.GetPrepare().Replica
-		if v == view && s == sequence && pb.EQ(d, digest) && r == replica {
+		if v == view && s == sequence && EQ(d, digest) && r == replica {
 			return true
 		}
 	}
@@ -527,7 +527,7 @@ func (rep *Replica) handleRequestClient(REQ *pb.Request) {
 	lastReplyToClient := rep.lastReplyToClient(client)
 	if lastReplyToClient != nil {
 		if lastReplyToClient.Timestamp == timestamp {
-			reply := pb.ToReply(rep.view, timestamp, client, rep.ID, lastReplyToClient.Result)
+			reply := ToReply(rep.view, timestamp, client, rep.ID, lastReplyToClient.Result)
 			rep.logReply(client, reply)
 			go func() {
 				rep.replyChan <- reply
@@ -539,7 +539,7 @@ func (rep *Replica) handleRequestClient(REQ *pb.Request) {
 	if !rep.isPrimary(rep.ID) {
 		return
 	}
-	req := pb.ToRequestPreprepare(rep.view, rep.sequence, REQ.Digest(), rep.ID)
+	req := ToRequestPreprepare(rep.view, rep.sequence, ReqDigest(REQ), rep.ID)
 	rep.logRequest(req)
 	plog.Info("Client-request done")
 	go func() {
@@ -566,7 +566,7 @@ func (rep *Replica) handleRequestPreprepare(REQ *pb.Request) {
 		v := req.GetPreprepare().View
 		s := req.GetPreprepare().Sequence
 		d := req.GetPreprepare().Digest
-		if v == view && s == sequence && !pb.EQ(d, digest) {
+		if v == view && s == sequence && !EQ(d, digest) {
 			accept = false
 			break
 		}
@@ -576,7 +576,7 @@ func (rep *Replica) handleRequestPreprepare(REQ *pb.Request) {
 	}
 	rep.logRequest(REQ)
 	plog.Info("pre-prepare done")
-	req := pb.ToRequestPrepare(view, sequence, digest, rep.ID)
+	req := ToRequestPrepare(view, sequence, digest, rep.ID)
 	if rep.hasRequest(req) {
 		return
 	}
@@ -624,7 +624,7 @@ func (rep *Replica) handleRequestPrepare(REQ *pb.Request) {
 			s := req.GetPrepare().Sequence
 			d := req.GetPrepare().Digest
 			r := req.GetPrepare().Replica
-			if v != view || s != sequence || !pb.EQ(d, digest) {
+			if v != view || s != sequence || !EQ(d, digest) {
 				continue
 			}
 			if r == replica {
@@ -644,7 +644,7 @@ func (rep *Replica) handleRequestPrepare(REQ *pb.Request) {
 		return
 	}
 
-	req := pb.ToRequestCommit(view, sequence, rep.ID)
+	req := ToRequestCommit(view, sequence, rep.ID)
 	if rep.hasRequest(req) {
 		return
 	}
@@ -716,13 +716,13 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 		}
 	}
 	for _, req := range rep.requests["client"] {
-		d := req.Digest()
+		d := ReqDigest(req)
 
 		if _, exists := digests[string(d)]; !exists {
 
 			continue
 		}
-		if !pb.EQ(d, digest) {
+		if !EQ(d, digest) {
 
 			continue
 		}
@@ -733,7 +733,7 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 		result := &pb.Result{op.Value}
 
 		rep.executed = append(rep.executed, sequence)
-		reply := pb.ToReply(view, timestamp, client, rep.ID, result)
+		reply := ToReply(view, timestamp, client, rep.ID, result)
 
 		rep.logReply(client, reply)
 		plog.Info("commit done")
@@ -747,7 +747,7 @@ func (rep *Replica) handleRequestCommit(REQ *pb.Request) {
 			return
 		}
 		stateDigest := rep.stateDigest()
-		req := pb.ToRequestCheckpoint(sequence, stateDigest, rep.ID)
+		req := ToRequestCheckpoint(sequence, stateDigest, rep.ID)
 		rep.logRequest(req)
 
 		go func() {
@@ -774,7 +774,7 @@ func (rep *Replica) handleRequestCheckpoint(REQ *pb.Request) {
 		s := req.GetCheckpoint().Sequence
 		d := req.GetCheckpoint().Digest
 		r := req.GetCheckpoint().Replica
-		if s != sequence || !pb.EQ(d, digest) {
+		if s != sequence || !EQ(d, digest) {
 			continue
 		}
 		if r == replica {
@@ -787,7 +787,7 @@ func (rep *Replica) handleRequestCheckpoint(REQ *pb.Request) {
 		}
 		// rep.clearEntries(sequence)
 		rep.clearRequestsBySeq(sequence)
-		checkpoint := pb.ToCheckpoint(sequence, digest)
+		checkpoint := ToCheckpoint(sequence, digest)
 		rep.addCheckpoint(checkpoint)
 		plog.Info("checkpoint and clear request done")
 		return
@@ -836,11 +836,11 @@ func (rep *Replica) handleRequestViewChange(REQ *pb.Request) {
 
 	viewchanger := reqViewChange.Replica
 
-	req := pb.ToRequestAck(
+	req := ToRequestAck(
 		view,
 		rep.ID,
 		viewchanger,
-		REQ.Digest())
+		ReqDigest(REQ))
 
 	go func() {
 		rep.requestChan <- req
@@ -887,7 +887,7 @@ func (rep *Replica) handleRequestAck(REQ *pb.Request) {
 			r := req.GetAck().Replica
 			vc := req.GetAck().Viewchanger
 			d := req.GetAck().Digest
-			if v != view || vc != viewchanger || !pb.EQ(d, digest) {
+			if v != view || vc != viewchanger || !EQ(d, digest) {
 				continue
 			}
 			if r == replica {
@@ -946,8 +946,8 @@ func (rep *Replica) correctViewChanges(viewChanges []*pb.ViewChange) (requests [
 	valid := false
 	for _, vc := range viewChanges {
 		for _, req := range rep.requests["view-change"] {
-			d := req.Digest()
-			if !pb.EQ(d, vc.Digest) {
+			d := ReqDigest(req)
+			if !EQ(d, vc.Digest) {
 				continue
 			}
 			requests = append(requests, req)
@@ -993,7 +993,7 @@ func (rep *Replica) correctSummaries(requests []*pb.Request, summaries []*pb.Sum
 	for _, summary := range summaries {
 		s := summary.Sequence
 		d := summary.Digest
-		if _d, ok := digests[s]; ok && !pb.EQ(_d, d) {
+		if _d, ok := digests[s]; ok && !EQ(_d, d) {
 			return
 		} else if !ok {
 			digests[s] = d
@@ -1016,7 +1016,7 @@ func (rep *Replica) correctSummaries(requests []*pb.Request, summaries []*pb.Sum
 		}
 		checkpoints := reqViewChange.GetCheckpoints()
 		for _, checkpoint := range checkpoints {
-			if checkpoint.Sequence == start && pb.EQ(checkpoint.Digest, digest) {
+			if checkpoint.Sequence == start && EQ(checkpoint.Digest, digest) {
 				A2 = append(A2, req)
 				break
 			}
@@ -1053,7 +1053,7 @@ func (rep *Replica) correctSummaries(requests []*pb.Request, summaries []*pb.Sum
 					for _, prep := range preps {
 						s := prep.Sequence
 						d := prep.Digest
-						if s != summary.Sequence || !pb.EQ(d, summary.Digest) {
+						if s != summary.Sequence || !EQ(d, summary.Digest) {
 							continue
 						}
 						v := prep.View
@@ -1085,7 +1085,7 @@ func (rep *Replica) correctSummaries(requests []*pb.Request, summaries []*pb.Sum
 							}
 							d := prep.Digest
 							v := prep.View
-							if v > view || (v == view && !pb.EQ(d, summary.Digest)) {
+							if v > view || (v == view && !EQ(d, summary.Digest)) {
 								continue FOR_LOOP
 							}
 						}
@@ -1112,7 +1112,7 @@ func (rep *Replica) correctSummaries(requests []*pb.Request, summaries []*pb.Sum
 							s := prePrep.Sequence
 							d := prePrep.Digest
 							v := prePrep.View
-							if s == summary.Sequence && pb.EQ(d, summary.Digest) && v >= view {
+							if s == summary.Sequence && EQ(d, summary.Digest) && v >= view {
 								A2 = append(A2, req)
 								break
 							}
@@ -1211,7 +1211,7 @@ func (rep *Replica) processNewView(REQ *pb.Request) (success bool) {
 		if summary.Sequence > h {
 			valid := false
 			for _, req := range rep.requests["view-change"] { //in
-				if pb.EQ(req.Digest(), summary.Digest) {
+				if EQ(ReqDigest(req), summary.Digest) {
 					valid = true
 					break
 				}
@@ -1232,7 +1232,7 @@ func (rep *Replica) processNewView(REQ *pb.Request) (success bool) {
 	for _, summary := range summaries {
 
 		if rep.ID != reqNewView.Replica {
-			req := pb.ToRequestPrepare(
+			req := ToRequestPrepare(
 				reqNewView.View,
 				summary.Sequence,
 				summary.Digest,
@@ -1256,7 +1256,7 @@ func (rep *Replica) processNewView(REQ *pb.Request) (success bool) {
 			}
 		}
 
-		req := pb.ToRequestPreprepare(
+		req := ToRequestPreprepare(
 			reqNewView.View,
 			summary.Sequence,
 			summary.Digest,
@@ -1298,14 +1298,14 @@ func (rep *Replica) prePrepBySequence(sequence uint32) []*pb.Entry {
 		if v == view {
 			s := req.GetPreprepare().Sequence
 			d := req.GetPreprepare().Digest
-			prePrep := pb.ToEntry(s, d, v)
+			prePrep := ToEntry(s, d, v)
 			prePreps = append(prePreps, prePrep)
 		}
 	}
 FOR_LOOP:
 	for _, prePrep := range prePreps {
 		for _, req := range rep.allRequests() { //TODO: optimize
-			if pb.EQ(req.Digest(), prePrep.Digest) {
+			if EQ(ReqDigest(req), prePrep.Digest) {
 				continue FOR_LOOP
 			}
 		}
@@ -1336,11 +1336,11 @@ FOR_LOOP:
 			v := reqPrepare.View
 			s := reqPrepare.Sequence
 			d := reqPrepare.Digest
-			if v == view && s == sequence && pb.EQ(d, digest) {
+			if v == view && s == sequence && EQ(d, digest) {
 				r := reqPrepare.Replica
 				replicas[r]++
 				if rep.twoThirds(replicas[r]) {
-					prep := pb.ToEntry(s, d, v)
+					prep := ToEntry(s, d, v)
 					preps = append(preps, prep)
 					continue FOR_LOOP
 				}
@@ -1438,7 +1438,7 @@ func (rep *Replica) requestViewChange(view uint32) {
 
 	sequence := rep.lowWaterMark()
 
-	req := pb.ToRequestViewChange(
+	req := ToRequestViewChange(
 		view,
 		sequence,
 		rep.checkpoints, //
@@ -1464,7 +1464,7 @@ func (rep *Replica) createNewView(view uint32) (request *pb.Request) {
 	for idx := range viewChanges {
 		req := rep.pendingVC[idx]
 		viewchanger := req.GetViewchange().Replica
-		vc := pb.ToViewChange(viewchanger, req.Digest())
+		vc := ToViewChange(viewchanger, ReqDigest(req))
 		viewChanges[idx] = vc
 	}
 
@@ -1498,7 +1498,7 @@ FOR_LOOP_1:
 				}
 			}
 			if rep.twoThirds(overLWM) && rep.oneThird(digests[string(digest)]) {
-				summary = pb.ToSummary(seq, digest)
+				summary = ToSummary(seq, digest)
 				continue FOR_LOOP_1
 			}
 		}
@@ -1530,7 +1530,7 @@ FOR_LOOP_2:
 			var A2 []*pb.Request
 
 			view := REQ.GetViewchange().View
-			digest := REQ.Digest()
+			digest := ReqDigest(REQ)
 
 		FOR_LOOP_3:
 			for _, req := range rep.pendingVC {
@@ -1543,7 +1543,7 @@ FOR_LOOP_2:
 						if prep.Sequence != sequence {
 							continue
 						}
-						if prep.View > view || (prep.View == view && !pb.EQ(prep.Digest, digest)) {
+						if prep.View > view || (prep.View == view && !EQ(prep.Digest, digest)) {
 							continue FOR_LOOP_3
 						}
 					}
@@ -1554,7 +1554,7 @@ FOR_LOOP_2:
 					if prePrep.Sequence != sequence {
 						continue
 					}
-					if prePrep.View >= view && pb.EQ(prePrep.Digest, digest) {
+					if prePrep.View >= view && EQ(prePrep.Digest, digest) {
 						A2 = append(A2, req)
 						continue FOR_LOOP_3
 					}
@@ -1562,14 +1562,14 @@ FOR_LOOP_2:
 			}
 
 			if rep.twoThirds(len(A1)) && rep.oneThird(len(A2)) {
-				summary = pb.ToSummary(sequence, digest)
+				summary = ToSummary(sequence, digest)
 				summaries = append(summaries, summary)
 				continue FOR_LOOP_2
 			}
 		}
 	}
 
-	request = pb.ToRequestNewView(view, viewChanges, summaries, rep.ID)
+	request = ToRequestNewView(view, viewChanges, summaries, rep.ID)
 	return
 }
 
