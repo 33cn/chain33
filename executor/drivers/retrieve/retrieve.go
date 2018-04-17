@@ -91,9 +91,9 @@ func (r *Retrieve) GetActionName(tx *types.Transaction) string {
 		return "retrieve prepare"
 	} else if action.Ty == types.RetrievePerf && action.GetPerfRet() != nil {
 		return "retrieve perform"
-	} else if action.Ty == types.RetrieveBackup && action.GetBackup != nil {
+	} else if action.Ty == types.RetrieveBackup && action.GetBackup() != nil {
 		return "retrieve backup"
-	} else if action.Ty == types.RetrieveCancel && action.GetCancel != nil {
+	} else if action.Ty == types.RetrieveCancel && action.GetCancel() != nil {
 		return "retrieve cancel"
 	}
 	return "unknow"

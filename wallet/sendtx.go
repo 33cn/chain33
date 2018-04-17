@@ -12,7 +12,7 @@ import (
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
-	walletlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", int32(count))
+	walletlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", count)
 	ta := &types.TicketAction{}
 	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
 	ta.Value = &types.TicketAction_Topen{topen}
@@ -68,6 +68,9 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 	var privs [][]byte
 	for _, account := range accounts.Wallets {
 		t, err := wallet.getTickets(account.Acc.Addr, status)
+		if err == types.ErrNotFound {
+			continue
+		}
 		if err != nil {
 			return nil, nil, err
 		}
@@ -108,10 +111,10 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	return privs, nil
 }
 
-func (client *Wallet) GetHeight() int64 {
-	msg := client.client.NewMessage("blockchain", types.EventGetBlockHeight, nil)
-	client.client.Send(msg, true)
-	replyHeight, err := client.client.Wait(msg)
+func (wallet *Wallet) GetHeight() int64 {
+	msg := wallet.client.NewMessage("blockchain", types.EventGetBlockHeight, nil)
+	wallet.client.Send(msg, true)
+	replyHeight, err := wallet.client.Wait(msg)
 	h := replyHeight.GetData().(*types.ReplyBlockHeight).Height
 	walletlog.Debug("getheight = ", "height", h)
 	if err != nil {
@@ -342,15 +345,15 @@ func (wallet *Wallet) forceCloseTicketsByAddr(height int64, priv crypto.PrivKey)
 	return nil, nil
 }
 
-func (client *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, error) {
+func (wallet *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, error) {
 	reqaddr := &types.TicketList{addr, status}
 	var req types.Query
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
 	req.Payload = types.Encode(reqaddr)
-	msg := client.client.NewMessage("blockchain", types.EventQuery, &req)
-	client.client.Send(msg, true)
-	resp, err := client.client.Wait(msg)
+	msg := wallet.client.NewMessage("blockchain", types.EventQuery, &req)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -442,14 +445,14 @@ func (wallet *Wallet) waitTxs(hashes [][]byte) (ret []*types.TransactionDetail) 
 	return ret
 }
 
-func (client *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
-	msg := client.client.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
-	err := client.client.Send(msg, true)
+func (wallet *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
+	msg := wallet.client.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
+	err := wallet.client.Send(msg, true)
 	if err != nil {
 		walletlog.Error("QueryTx", "Error", err.Error())
 		return nil, err
 	}
-	resp, err := client.client.Wait(msg)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -503,7 +506,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	return &hash, nil
 }
 
-func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, error) {
+func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, error) {
 
 	switch in.GetExecer() {
 	case "coins":
@@ -515,7 +518,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := accountdb.LoadAccounts(client.client, exaddrs)
+		accounts, err := accountdb.LoadAccounts(wallet.client, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -526,7 +529,7 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := accountdb.LoadExecAccountQueue(client.client, addr, execaddress.String())
+			account, err := accountdb.LoadExecAccountQueue(wallet.client, addr, execaddress.String())
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
@@ -535,19 +538,18 @@ func (client *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		}
 		return accounts, nil
 	}
-	return nil, nil
 }
 
-func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
+func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
 	var req types.Query
 	req.Execer = []byte("ticket")
 	req.FuncName = "MinerSourceList"
 	req.Payload = types.Encode(reqaddr)
 
-	msg := client.client.NewMessage("blockchain", types.EventQuery, &req)
-	client.client.Send(msg, true)
-	resp, err := client.client.Wait(msg)
+	msg := wallet.client.NewMessage("blockchain", types.EventQuery, &req)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -555,13 +557,13 @@ func (client *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	return reply.Datas, nil
 }
 
-func (client *Wallet) IsCaughtUp() bool {
-	if client.client == nil {
+func (wallet *Wallet) IsCaughtUp() bool {
+	if wallet.client == nil {
 		panic("wallet client not bind message queue.")
 	}
-	msg := client.client.NewMessage("blockchain", types.EventIsSync, nil)
-	client.client.Send(msg, true)
-	resp, err := client.client.Wait(msg)
+	msg := wallet.client.NewMessage("blockchain", types.EventIsSync, nil)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		return false
 	}

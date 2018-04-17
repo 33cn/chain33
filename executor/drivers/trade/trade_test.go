@@ -74,7 +74,7 @@ func check(t *testing.T, kvSave, kvDel []*types.KeyValue) {
 
 	for _, kv := range kvDel {
 		v, ok := kvmapSave[string(kv.Key)]
-		if ok != true {
+		if !ok {
 			t.Error("error 1")
 		}
 		if len(v) == 0 && len(kv.Value) == 0 {
