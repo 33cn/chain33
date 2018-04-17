@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
-	"net"
 	"io"
+	"net"
 )
 
 // Digest
