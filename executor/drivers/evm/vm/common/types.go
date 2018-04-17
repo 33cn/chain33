@@ -21,6 +21,9 @@ func BytesToAddress(b []byte) Address {
 func StringToAddress(s string) Address { return BytesToAddress([]byte(s)) }
 func BigToAddress(b *big.Int) Address  { return BytesToAddress(b.Bytes()) }
 func HexToAddress(s string) Address    { return BytesToAddress(FromHex(s)) }
+func EmptyAddress() Address {
+	return BytesToAddress([]byte(""))
+}
 
 // Sets the address to the value of b. If b is larger than len(a) it will panic
 func (a *Address) SetBytes(b []byte) {
