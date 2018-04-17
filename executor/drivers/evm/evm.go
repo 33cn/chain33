@@ -56,6 +56,8 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	config := evm.GetChainConfig()
 	statedb := evm.GetStateDB()
 	vmcfg := evm.GetVMConfig()
+
+	// 获取当前区块的高度和时间
 	height := evm.DriverBase.GetHeight()
 	time := evm.DriverBase.GetBlockTime()
 
@@ -69,8 +71,13 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	// 创建EVM运行时对象
 	runtime := vm.NewEVM(context, statedb, config, *vmcfg)
 
-	// 执行合约
-	ret, gas, failed, err := vm.NewStateTransition(runtime, msg, gp).TransitionDb()
+	isCreate := msg.To() == nil
+
+	if isCreate {
+		ret, contractAddr, leftOverGas , err := runtime.Create(vm.AccountRef(msg.From()), tx.Payload, context.GasLimit, big.NewInt(0))
+	}else{
+		ret, leftOverGas , err :=  runtime.Call(vm.AccountRef(msg.From()), *msg.To(), tx.Payload, context.GasLimit, big.NewInt(0))
+	}
 
 	if err != nil {
 		return nil, err
@@ -79,6 +86,7 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	if failed {
 		return nil, nil
 	}
+
 	// 更新内存状态，计算root哈希
 	// Update the state with pending changes
 	statedb.Finalise(true)
@@ -91,7 +99,7 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		&ctypes.KeyValue{[]byte("constractResult"), ret},
 		&ctypes.KeyValue{[]byte("ContractAddress"), []byte("xxx")},
 	}
-	if msg.To() == nil {
+	if isCreate {
 		addr := crypto.CreateAddress(runtime.Context.Origin, uint64(tx.Nonce))
 		kvset = append(kvset, &ctypes.KeyValue{[]byte("ContractAddress"), addr.Bytes()})
 	} else {
