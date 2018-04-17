@@ -26,7 +26,7 @@ type QueueProtocolAPI interface {
 	// types.EventGetBlockOverview
 	GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error)
 	// types.EventGetAddrOverview
-	GetAddrOverview(param *types.ReqAddr) (*types.BlockOverview, error)
+	GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error)
 	// types.EventGetBlockHash
 	GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error)
 	// types.EventIsSync
@@ -59,16 +59,16 @@ type QueueProtocolAPI interface {
 	// types.EventWalletUnLock
 	WalletUnLock() (*types.Reply, error)
 	// types.EventGenSeed
-	GenSeed(param *types.GenSeedLang) (*types.Reply, error)
+	GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error)
 	// types.EventSaveSeed
 	SaveSeed(param *types.SaveSeedByPw) (*types.Reply, error)
 	// types.EventGetSeed
-	GetSeed(param *types.GetSeedByPw) (*types.Reply, error)
+	GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error)
 	// types.EventGetWalletStatus
 	GetWalletStatus() (*types.WalletStatus, error)
 	// types.EventWalletAutoMiner
 	WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error)
-	// types.EventWalletAutoMiner
+	// types.EventDumpPrivkey
 	DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error)
 	// types.EventCloseTickets
 	CloseTickets() (*types.ReplyHashes, error)
