@@ -4,12 +4,14 @@
 # 3. make build
 # ...
 
+SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
+SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
 APP := build/chain33
 CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := $(shell go list ./... | grep -v /vendor/)
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
 
-.PHONY: default dep all build release cli linter lint race test fmt vet bench msan coverage coverhtml docker protobuf clean help
+.PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker protobuf clean help
 
 default: build cli
 
@@ -19,31 +21,44 @@ dep: ## Get the dependencies
 	@go get -u github.com/mitchellh/gox
 
 all: ## Builds for multiple platforms
-	@gox $(LDFLAGS)
+	@gox $(LDFLAGS) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 	@mv chain33* build/
 
-ticket:
-	go build -i -v -o chain33
-	./chain33 -f chain33.test.toml
-
 build: ## Build the binary file
-	@go build -race -v -o $(APP)
-	@cp chain33.toml build/
+	@go build -v -i -o $(APP) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 
 release: ## Build the binary file
-	@go build -race -v -o $(APP) $(LDFLAGS)
-	@cp chain33.toml build/
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 
 cli: ## Build cli binary
-	@go build -race -v -o $(CLI) cli/cli.go
+	@go build -v -o $(CLI) $(SRC_CLI)
 
-linter: ## Use gometalinter check code
-	@gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
-	--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck --vendor ./...
+build_ci: ## Build the binary file for CI
+	@go build -race -v -o $(CLI) $(SRC_CLI)
+	@go build -race -v -o $(APP) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 
-lint: ## Lint the files
-	@res=$$(golint -set_exit_status ${PKG_LIST} | grep -v "should have comment or be unexported" | \
-		grep -v "should be of the form" | grep -v "if block ends with a return statement"); \
+linter: ## Use gometalinter check code, ignore some unserious warning
+	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
+	--enable=gofmt \
+	--enable=gosimple \
+	--enable=deadcode \
+	--enable=vet \
+	--enable=unconvert \
+	--enable=interfacer \
+	--enable=varcheck \
+	--enable=structcheck \
+	--vendor ./...) \
+#	--enable=staticcheck \
+#	--enable=gocyclo \
+#	--enable=staticcheck \
+#	--enable=golint \
+#	--enable=unused \
+#	--enable=gotype \
+#	--enable=gotypex \
 	if [ -n "$$res" ]; then \
 		echo "$${res}"; \
 		exit 1; \
@@ -53,7 +68,7 @@ race: dep ## Run data race detector
 	@go test -race -short ./...
 
 test: ## Run unittests
-	@go test -parallel 1 -race $(shell go list ./... | grep -v "vendor" | grep -v "chain33/test")
+	@go test -parallel 1 -race $(PKG_LIST)
 
 fmt: ## go fmt
 	@go fmt ./...
@@ -76,7 +91,6 @@ coverhtml: ## Generate global code coverage report in HTML
 docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
-DATADIR:=find . -name 'datadir' -not -path "./vendor/*"
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
 	@rm -rf build/chain33*
@@ -98,11 +112,9 @@ cleandata:
 	rm -rf datadir/mavltree
 	rm -rf chain33.log
 
-GOFILES := find . -name '*.go' -not -path "./vendor/*"
-
 .PHONY: checkgofmt
 checkgofmt: ## get all go files and run go fmt on them
-	@files=$$($(GOFILES) | xargs gofmt -l); if [ -n "$$files" ]; then \
+	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
 		  echo "$${files}"; \
 		  exit 1; \

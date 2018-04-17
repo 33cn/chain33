@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -163,6 +164,7 @@ func (client *Client) setTicket(tlist *types.ReplyTicketList, privmap map[string
 	defer client.ticketmu.Unlock()
 	client.tlist = tlist
 	client.privmap = privmap
+	tlog.Debug("setTicket", "n", len(tlist.GetTickets()))
 }
 
 func (client *Client) flushTicket() error {
@@ -197,10 +199,6 @@ func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 }
 
 func (client *Client) getMinerTx(current *types.Block) (*types.TicketAction, error) {
-	//检查第一个笔交易的execs, 以及执行状态
-	if len(current.Txs) == 0 {
-		return nil, types.ErrEmptyTx
-	}
 	//检查第一个笔交易的execs, 以及执行状态
 	if len(current.Txs) == 0 {
 		return nil, types.ErrEmptyTx
@@ -385,8 +383,8 @@ func (client *Client) GetNextRequiredDifficulty(block *types.Block, bits uint32)
 
 	minRetargetTimespan := targetTimespan / (cfg.RetargetAdjustmentFactor)
 	maxRetargetTimespan := targetTimespan * cfg.RetargetAdjustmentFactor
-	if actualTimespan < int64(minRetargetTimespan) {
-		adjustedTimespan = int64(minRetargetTimespan)
+	if actualTimespan < minRetargetTimespan {
+		adjustedTimespan = minRetargetTimespan
 	} else if actualTimespan > maxRetargetTimespan {
 		adjustedTimespan = maxRetargetTimespan
 	}
@@ -529,7 +527,7 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
 }
 
-func (client *Client) createMinerTx(ticketAction *types.TicketAction, priv crypto.PrivKey) *types.Transaction {
+func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.PrivKey) *types.Transaction {
 	tx := &types.Transaction{}
 	tx.Execer = []byte("ticket")
 	tx.Fee = types.MinFee
@@ -581,11 +579,13 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 
 func (client *Client) CreateBlock() {
 	for {
-		if !client.IsMining() || !client.IsCaughtUp() {
+		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.GetForceMining()) {
+			tlog.Debug("createblock.ismining is disable or client is caughtup is false")
 			time.Sleep(time.Second)
 			continue
 		}
 		if client.getTicketCount() == 0 {
+			tlog.Debug("createblock.getticketcount = 0")
 			time.Sleep(time.Second)
 			continue
 		}

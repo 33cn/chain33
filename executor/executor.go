@@ -3,7 +3,7 @@ package executor
 //store package store the world - state data
 import (
 	"bytes"
-
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -41,7 +41,7 @@ type Executor struct {
 func New(cfg *types.Exec) *Executor {
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
-	if cfg.MinExecFee == 0 && cfg.IsFree == true {
+	if cfg.MinExecFee == 0 && cfg.IsFree {
 		elog.Warn("set executor to free fee")
 		types.SetMinFee(0)
 	}
@@ -307,7 +307,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	return nil, types.ErrNoBalance
 }
 
-func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptAccountTransfer) *types.Receipt {
+func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
 	return &types.Receipt{types.ExecPack, e.coinsAccount.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }

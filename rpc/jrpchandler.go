@@ -1198,7 +1198,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		default:
-			log.Error("DecodeLog", "Fail to decodeLog with type value:%d", l.Ty)
+			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"
 			logIns = nil
 		}
@@ -1224,5 +1224,65 @@ func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
 		return err
 	}
 	*result = fee
+	return nil
+}
+
+func (c *Chain33) CreateRawTokenPreCreateTx(in *TokenPreCreateTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTokenPreCreateTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTokenFinishTx(in *TokenFinishTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTokenFinishTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTokenRevokeTx(in *TokenRevokeTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTokenRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeSellTx(in *TradeSellTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeSellTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeBuyTx(in *TradeBuyTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeBuyTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
 	return nil
 }

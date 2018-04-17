@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	. "github.com/tendermint/tmlibs/common"
 )
 
 // leveldb迭代器测试
@@ -46,7 +44,7 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 	for i := 0; i < int(numItems); i++ {
 		internal[int64(i)] = int64(0)
 	}
-	db, err := NewGoLevelDB(Fmt("test_%x", RandStr(12)), "", 1000)
+	db, err := NewGoLevelDB(fmt.Sprintf("test_%x", RandStr(12)), "", 1000)
 	if err != nil {
 		b.Fatal(err.Error())
 		return
