@@ -1,6 +1,7 @@
 package pbft
 
 import (
+	"bytes"
 	"crypto/md5"
 	"fmt"
 	"github.com/golang/protobuf/proto"
@@ -160,12 +161,12 @@ func WriteMessage(addr string, msg proto.Message) error {
 // Read proto message
 
 func ReadMessage(conn io.Reader, msg proto.Message) error {
-	buf := make([]byte, 409600)
-	n, err := conn.Read(buf)
+	var buf bytes.Buffer
+	n, err := io.Copy(&buf, conn)
 	plog.Debug("size of byte is", "", n)
 	if err != nil {
 		return err
 	}
-	err = proto.Unmarshal(buf[:n], msg)
+	err = proto.Unmarshal(buf.Bytes(), msg)
 	return err
 }
