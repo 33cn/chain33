@@ -8,11 +8,13 @@ package client
 import (
 	"bytes"
 	"reflect"
+	"time"
 
+	"fmt"
+	"github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"time"
 )
 
 const (
@@ -26,6 +28,8 @@ const (
 	blockchainKey = "blockchain" // 区块
 	//storeKey		= "store"
 )
+
+var log = log15.New("module", "api")
 
 // 消息通道协议实现
 type QueueCoordinator struct {
@@ -65,19 +69,30 @@ func (q *QueueCoordinator) checkInputParam(param interface{}) error {
 	return nil
 }
 
-func (q *QueueCoordinator) GetTx(param *types.Transaction) (*types.Reply, error) {
+func (q *QueueCoordinator) SendTx(param *types.Transaction) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
+		log.Error("SendTx() check param", "Error", err.Error())
 		return nil, err
 	}
 	msg, err := q.query(mempoolKey, types.EventTx, param)
 	if nil != err {
+		log.Error("SendTx() query", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
+	reply, ok := msg.GetData().(*types.Reply)
+	if ok {
+		if reply.GetIsOk() {
+			reply.Msg = param.Hash()
+		} else {
+			msg := string(reply.Msg)
+			log.Error("SendTx() return", "Error:", msg)
+			err = fmt.Errorf(msg)
+		}
+	} else {
+		err = types.ErrNotSupport
 	}
-	return nil, types.ErrNotSupport
+	return reply, err
 }
 
 func (q *QueueCoordinator) GetTxList(param *types.TxHashList) (*types.ReplyTxList, error) {

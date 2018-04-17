@@ -5,7 +5,7 @@ import "gitlab.33.cn/chain33/chain33/types"
 // 消息通道交互API接口定义
 type QueueProtocolAPI interface {
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
-	GetTx(param *types.Transaction) (*types.Reply, error)
+	SendTx(param *types.Transaction) (*types.Reply, error)
 	// types.EventTxList
 	GetTxList(param *types.TxHashList) (*types.ReplyTxList, error)
 	// types.EventGetMempool
