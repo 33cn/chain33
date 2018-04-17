@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"io"
 	"net"
+	"fmt"
 )
 
 // Digest
@@ -132,7 +133,7 @@ func ToReply(view uint32, timestamp, client string, replica uint32, result *type
 
 // Reply Methods
 
-func RepDigest(reply *types.ClientReply) []byte {
+func RepDigest(reply fmt.Stringer) []byte {
 	if reply == nil {
 		return nil
 	}
