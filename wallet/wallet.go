@@ -647,7 +647,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	tx.Sign(SignType, key)
+	tx.Sign(int32(SignType), key)
 	txHex := types.Encode(&tx)
 	signedTx := hex.EncodeToString(txHex)
 	return signedTx, nil
