@@ -823,17 +823,17 @@ func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.LocalReplyValue
 	return resp.Data.(*types.LocalReplyValue), nil
 }
 
-func (c *channelClient) CreateRawTokenPreCreateTx(parm *types.TokenPreCreateTx) ([]byte, error) {
+func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byte, error) {
 	if parm == nil {
 		return nil, errors.New("parm is null")
 	}
 	v := &types.TokenPreCreate{
-		Name:         parm.GetName(),
-		Symbol:       parm.GetSymbol(),
-		Introduction: parm.GetIntroduction(),
-		Total:        parm.GetTotal(),
-		Price:        parm.GetPrice(),
-		Owner:        parm.GetOwnerAddr(),
+		Name:         parm.Name,
+		Symbol:       parm.Symbol,
+		Introduction: parm.Introduction,
+		Total:        parm.Total,
+		Price:        parm.Price,
+		Owner:        parm.OwnerAddr,
 	}
 	precreate := &types.TokenAction{
 		Ty:    types.TokenActionPreCreate,
@@ -842,7 +842,7 @@ func (c *channelClient) CreateRawTokenPreCreateTx(parm *types.TokenPreCreateTx) 
 	tx := &types.Transaction{
 		Execer:  []byte("token"),
 		Payload: types.Encode(precreate),
-		Fee:     parm.GetFee(),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      account.ExecAddress("token").String(),
 	}
@@ -851,12 +851,12 @@ func (c *channelClient) CreateRawTokenPreCreateTx(parm *types.TokenPreCreateTx) 
 	return data, nil
 }
 
-func (c *channelClient) CreateRawTokenFinishTx(parm *types.TokenFinishTx) ([]byte, error) {
+func (c *channelClient) CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, error) {
 	if parm == nil {
 		return nil, errors.New("parm is null")
 	}
 
-	v := &types.TokenFinishCreate{Symbol: parm.GetSymbol(), Owner: parm.GetOwnerAddr()}
+	v := &types.TokenFinishCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
 	finish := &types.TokenAction{
 		Ty:    types.TokenActionFinishCreate,
 		Value: &types.TokenAction_Tokenfinishcreate{v},
@@ -864,7 +864,7 @@ func (c *channelClient) CreateRawTokenFinishTx(parm *types.TokenFinishTx) ([]byt
 	tx := &types.Transaction{
 		Execer:  []byte("token"),
 		Payload: types.Encode(finish),
-		Fee:     parm.GetFee(),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      account.ExecAddress("token").String(),
 	}
@@ -873,11 +873,11 @@ func (c *channelClient) CreateRawTokenFinishTx(parm *types.TokenFinishTx) ([]byt
 	return data, nil
 }
 
-func (c *channelClient) CreateRawTokenRevokeTx(parm *types.TokenRevokeTx) ([]byte, error) {
+func (c *channelClient) CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, error) {
 	if parm == nil {
 		return nil, errors.New("parm is null")
 	}
-	v := &types.TokenRevokeCreate{Symbol: parm.GetSymbol(), Owner: parm.GetOwnerAddr()}
+	v := &types.TokenRevokeCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
 	revoke := &types.TokenAction{
 		Ty:    types.TokenActionRevokeCreate,
 		Value: &types.TokenAction_Tokenrevokecreate{v},
@@ -885,7 +885,7 @@ func (c *channelClient) CreateRawTokenRevokeTx(parm *types.TokenRevokeTx) ([]byt
 	tx := &types.Transaction{
 		Execer:  []byte("token"),
 		Payload: types.Encode(revoke),
-		Fee:     parm.GetFee(),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      account.ExecAddress("token").String(),
 	}
@@ -894,7 +894,7 @@ func (c *channelClient) CreateRawTokenRevokeTx(parm *types.TokenRevokeTx) ([]byt
 	return data, nil
 }
 
-func (c *channelClient) CreateRawTradeSellTx(parm *types.TradeSellTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) {
 	if parm == nil {
 		return nil, errors.New("parm is null")
 	}
@@ -915,7 +915,7 @@ func (c *channelClient) CreateRawTradeSellTx(parm *types.TradeSellTx) ([]byte, e
 	tx := &types.Transaction{
 		Execer:  []byte("trade"),
 		Payload: types.Encode(sell),
-		Fee:     parm.GetFee(),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      account.ExecAddress("trade").String(),
 	}
@@ -924,7 +924,7 @@ func (c *channelClient) CreateRawTradeSellTx(parm *types.TradeSellTx) ([]byte, e
 	return data, nil
 }
 
-func (c *channelClient) CreateRawTradeBuyTx(parm *types.TradeBuyTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 	if parm == nil {
 		return nil, errors.New("parm is null")
 	}
@@ -936,7 +936,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *types.TradeBuyTx) ([]byte, err
 	tx := &types.Transaction{
 		Execer:  []byte("trade"),
 		Payload: types.Encode(buy),
-		Fee:     parm.GetFee(),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      account.ExecAddress("trade").String(),
 	}
@@ -945,7 +945,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *types.TradeBuyTx) ([]byte, err
 	return data, nil
 }
 
-func (c *channelClient) CreateRawTradeRevokeTx(parm *types.TradeRevokeTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, error) {
 	if parm == nil {
 		return nil, errors.New("parm is null")
 	}
@@ -958,7 +958,7 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *types.TradeRevokeTx) ([]byt
 	tx := &types.Transaction{
 		Execer:  []byte("trade"),
 		Payload: types.Encode(buy),
-		Fee:     parm.GetFee(),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      account.ExecAddress("trade").String(),
 	}

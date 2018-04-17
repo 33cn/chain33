@@ -1227,7 +1227,7 @@ func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenPreCreateTx(in *types.TokenPreCreateTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenPreCreateTx(in *TokenPreCreateTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenPreCreateTx(in)
 	if err != nil {
 		return err
@@ -1237,7 +1237,7 @@ func (c *Chain33) CreateRawTokenPreCreateTx(in *types.TokenPreCreateTx, result *
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenFinishTx(in *types.TokenFinishTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenFinishTx(in *TokenFinishTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenFinishTx(in)
 	if err != nil {
 		return err
@@ -1247,7 +1247,7 @@ func (c *Chain33) CreateRawTokenFinishTx(in *types.TokenFinishTx, result *interf
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenRevokeTx(in *types.TokenRevokeTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenRevokeTx(in *TokenRevokeTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenRevokeTx(in)
 	if err != nil {
 		return err
@@ -1257,7 +1257,7 @@ func (c *Chain33) CreateRawTokenRevokeTx(in *types.TokenRevokeTx, result *interf
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeSellTx(in *types.TradeSellTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeSellTx(in *TradeSellTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeSellTx(in)
 	if err != nil {
 		return err
@@ -1267,7 +1267,7 @@ func (c *Chain33) CreateRawTradeSellTx(in *types.TradeSellTx, result *interface{
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeBuyTx(in *types.TradeBuyTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeBuyTx(in *TradeBuyTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeBuyTx(in)
 	if err != nil {
 		return err
@@ -1277,7 +1277,7 @@ func (c *Chain33) CreateRawTradeBuyTx(in *types.TradeBuyTx, result *interface{})
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeRevokeTx(in *types.TradeRevokeTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeRevokeTx(in)
 	if err != nil {
 		return err
