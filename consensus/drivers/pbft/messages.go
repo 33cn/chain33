@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"net"
+	"io"
 )
 
 // Digest
@@ -158,7 +159,7 @@ func WriteMessage(addr string, msg proto.Message) error {
 
 // Read proto message
 
-func ReadMessage(conn net.Conn, msg proto.Message) error {
+func ReadMessage(conn io.Reader, msg proto.Message) error {
 	buf := make([]byte, 409600)
 	n, err := conn.Read(buf)
 	plog.Debug("size of byte is", "", n)
