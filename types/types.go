@@ -354,7 +354,7 @@ func (block *Block) GetHeader() *Header {
 	if head.Height >= ForkBlockHash {
 		head.Difficulty = block.Difficulty
 		head.StateHash = block.StateHash
-		head.TxCount = len(block.Txs)
+		head.TxCount = int64(len(block.Txs))
 	}
 	return head
 }
