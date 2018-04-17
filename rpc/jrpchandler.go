@@ -60,14 +60,11 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	}
 	types.Decode(data, &parm)
 	log.Debug("SendTransaction", "parm", parm)
-	reply := c.cli.SendTx(&parm)
-	if reply.GetData().(*types.Reply).IsOk {
-		*result = common.ToHex(reply.GetData().(*types.Reply).Msg)
-		return nil
-	} else {
-		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
+	reply, err := c.api.SendTx(&parm)
+	if nil == err {
+		*result = common.ToHex(reply.Msg)
 	}
-
+	return err
 }
 
 func (c *Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
@@ -77,13 +74,13 @@ func (c *Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
 		return err
 	}
 	data.Hash = hash
-	reply, err := c.cli.QueryTx(data.Hash)
-	if err != nil {
+	log.Debug("QueryTx", "data", data)
+	reply, err := c.api.QueryTx(&data)
+	if nil != err {
 		return err
 	}
 	*result = hex.EncodeToString(types.Encode(reply.GetTx()))
 	return nil
-
 }
 
 func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {

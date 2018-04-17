@@ -230,7 +230,7 @@ func TestCoordinator(t *testing.T) {
 	api := mock.startup(0)
 	defer mock.stop()
 
-	testGetTx(t, api)
+	testSendTx(t, api)
 	testGetTxList(t, api)
 	testGetBlocks(t, api)
 	testGetTransactionByAddr(t, api)
@@ -553,8 +553,8 @@ func testGetTxList(t *testing.T, api QueueProtocolAPI) {
 	}
 }
 
-func testGetTx(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.GetTx(&types.Transaction{})
+func testSendTx(t *testing.T, api QueueProtocolAPI) {
+	_, err := api.SendTx(&types.Transaction{})
 	if nil != err {
 		t.Error("Call GetTx Failed.", err)
 	}
