@@ -47,7 +47,7 @@ func (client *PbftClient) ExecBlock(prevHash []byte, block *pb.Block) (*pb.Block
 
 func (client *PbftClient) Propose(block *pb.Block) {
 	op := &pb.Operation{block}
-	req := pb.ToRequestClient(op, time.Now().String(), client.BaseClient.Cfg.ClientAddr)
+	req := ToRequestClient(op, time.Now().String(), client.BaseClient.Cfg.ClientAddr)
 	client.requestChan <- req
 }
 
