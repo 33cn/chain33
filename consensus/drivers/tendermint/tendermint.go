@@ -26,6 +26,7 @@ import (
 	"sync"
 	"gitlab.33.cn/chain33/chain33/util"
 	bc "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/blockchain"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/evidence"
 )
 
 var (
@@ -53,6 +54,7 @@ type TendermintClient struct{
 	state         sm.State
 	blockStore    *core.BlockStore
 	stateDB       dbm.DB
+	evidenceDB    dbm.DB
 	//ListenPort    string
 	//Moniker       string  //node name
 }
@@ -146,6 +148,14 @@ func New(cfg *types.Consensus) *TendermintClient {
 		}
 	}
 */
+
+	// Make Evidence Reactor
+	evidenceDB, err := DefaultDBProvider("evidence")
+	if err != nil {
+		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider evidenceDB failded", "error", err)
+		return nil
+	}
+
 	// Log whether this node is a validator or an observer
 	if state.Validators.HasAddress(privValidator.GetAddress()) {
 		tendermintlog.Info("This node is a validator")
@@ -206,6 +216,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 		csReactor:        nil,
 		eventBus:         nil,
 		stateDB:          stateDB,
+		evidenceDB:       evidenceDB,
 		//ListenPort:       "36656",
 		//Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
 	}
@@ -263,26 +274,29 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 
 	//client.csReactor.SwitchToConsensus(client.state, 0)
 	go func() {
+		issleep := true
 		for {
+
+			if issleep {
+				time.Sleep(time.Second)
+			}
+
 			lastBlock := client.GetCurrentBlock()
 			txs := client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
 
-			if len(txs) != 0 {
-				tendermintlog.Info("get mempool txs not empty")
-				//txs = client.CheckTxDup(txs)
-
-				//if len(txs) != 0{
-					//our chain index init -1, tendermint index init 0
-				client.csState.NewTxsAvailable(lastBlock.Height)
-				tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs comming")
-				select {
-				case finish := <- client.csState.NewTxsFinished :
-						tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
-						continue
-				//	}
-				}
+			if len(txs) == 0 {
+				issleep = true
+				continue
 			}
-			time.Sleep(1*time.Second)
+			issleep = false
+			tendermintlog.Info("get mempool txs not empty")
+			client.csState.NewTxsAvailable(lastBlock.Height)
+			tendermintlog.Info("waiting NewTxsFinished")
+			select {
+			case finish := <- client.csState.NewTxsFinished :
+					tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
+					continue
+			}
 		}
 	}()
 
@@ -304,7 +318,13 @@ func (client *TendermintClient) initStateHeight(height int64) {
 		}
 	}
 
-	evidencePool := ttypes.MockEvidencePool{}
+	//make evidenceReactor
+	evidenceLogger := client.Logger.With("module", "evidence")
+	evidenceStore := evidence.NewEvidenceStore(client.evidenceDB)
+	evidencePool := evidence.NewEvidencePool(client.stateDB, evidenceStore)
+	evidencePool.SetLogger(evidenceLogger)
+	evidenceReactor := evidence.NewEvidenceReactor(evidencePool)
+	evidenceReactor.SetLogger(evidenceLogger)
 
 	blockExecLogger := client.Logger.With("module", "state")
 	// make block executor for consensus and blockchain reactors to execute blocks
@@ -322,6 +342,7 @@ func (client *TendermintClient) initStateHeight(height int64) {
 	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
 	sw.AddReactor("CONSENSUS", consensusReactor)
 	sw.AddReactor("BLOCKCHAIN", bcReactor)
+	sw.AddReactor("EVIDENCE", evidenceReactor)
 
 	eventBus := ttypes.NewEventBus()
 	// services which will be publishing and/or subscribing for messages (events)
@@ -423,35 +444,6 @@ func (client *TendermintClient) CreateBlock() {
 		}
 	}
 	*/
-}
-
-type consensusReactor interface {
-	// for when we switch from blockchain reactor and fast sync to
-	// the consensus machine
-	SwitchToConsensus(sm.State, int)
-}
-
-func (client *TendermintClient) checkValidator2StartConsensus() {
-	if client.state.Validators.HasAddress(client.privValidator.GetAddress()) && client.state.Validators.Size() == 1	{
-		return
-	}
-	switchToConsensusTicker := time.NewTicker(1 * time.Second)
-FOR_LOOP:
-	for {
-		select {
-		case <-switchToConsensusTicker.C:
-			outbound, inbound, _ := client.sw.NumPeers()
-			tendermintlog.Debug("Consensus ticker","outbound", outbound, "inbound", inbound)
-			if client.checkValidators() {
-				conR := client.sw.Reactor("CONSENSUS").(consensusReactor)
-				state := client.state.Copy()
-				state.LastBlockHeight = client.GetCurrentHeight()
-				conR.SwitchToConsensus(state, 0)
-
-				break FOR_LOOP
-			}
-		}
-	}
 }
 
 func (client *TendermintClient) checkValidators() bool {
