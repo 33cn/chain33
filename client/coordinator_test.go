@@ -211,7 +211,7 @@ func (mock *mockSystem) stop() {
 }
 
 func (mock *mockSystem) getAPI() QueueProtocolAPI {
-	api, _ := New(mock.q.Client())
+	api, _ := New(mock.q.Client(), nil)
 	return api
 }
 
