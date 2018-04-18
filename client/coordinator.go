@@ -668,3 +668,14 @@ func (q *QueueCoordinator) LocalGet(param *types.ReqHash) (*types.LocalReplyValu
 	}
 	return nil, types.ErrNotSupport
 }
+
+func (q *QueueCoordinator) GetLastHeader() (*types.Header, error) {
+	msg, err := q.query(blockchainKey, types.EventGetLastHeader, nil)
+	if nil != err {
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Header); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
+}

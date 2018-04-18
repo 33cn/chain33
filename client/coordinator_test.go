@@ -78,6 +78,8 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.IsCaughtUp{}))
 			case types.EventIsNtpClockSync:
 				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.IsNtpClockSync{}))
+			case types.EventGetLastHeader:
+				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Header{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -271,6 +273,14 @@ func TestCoordinator(t *testing.T) {
 	testRevokeSellToken(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
+	testGetLastHeader(t, api)
+}
+
+func testGetLastHeader(t *testing.T, api QueueProtocolAPI) {
+	_, err := api.GetLastHeader()
+	if nil != err {
+		t.Error("Call GetLastHeader Failed.", err)
+	}
 }
 
 func testLocalGet(t *testing.T, api QueueProtocolAPI) {
