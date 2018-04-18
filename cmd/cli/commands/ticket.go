@@ -67,7 +67,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.ReplyHashes
-	rpc, err := jsonrpc.NewJsonClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -88,7 +88,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 }
 
 func getWalletStatus(rpcAddr string) (interface{}, error) {
-	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
