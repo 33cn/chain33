@@ -162,23 +162,11 @@ const (
 	EventStoreGetTotalCoins  = 104
 	EventGetTotalCoinsReply  = 105
 	EventQueryTotalFee       = 106
+	EventSignRawTx           = 107
+	EventReplySignRawTx      = 108
+
 	// Token
-	EventTokenPreCreate         = 200
-	EventReplyTokenPreCreate    = 201
-	EventTokenFinishCreate      = 202
-	EventReplyTokenFinishCreate = 203
-	EventTokenRevokeCreate      = 204
-	EventReplyTokenRevokeCreate = 205
-	EventSellToken              = 206
-	EventReplySellToken         = 207
-	EventBuyToken               = 208
-	EventReplyBuyToken          = 209
-	EventRevokeSellToken        = 210
-	EventReplyRevokeSellToken   = 211
-	EventBlockChainQuery        = 212
-	// config
-	EventModifyConfig      = 300
-	EventReplyModifyConfig = 301
+	EventBlockChainQuery = 212
 )
 
 var eventName = map[int]string{
@@ -289,22 +277,7 @@ var eventName = map[int]string{
 	105: "EventGetTotalCoinsReply",
 	106: "EventQueryTotalFee",
 	// Token
-	EventTokenPreCreate:         "EventTokenPreCreate",
-	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
-	EventTokenFinishCreate:      "EventTokenFinishCreate",
-	EventReplyTokenFinishCreate: "EventReplyTokenFinishCreate",
-	EventTokenRevokeCreate:      "EventTokenRevokeCreate",
-	EventReplyTokenRevokeCreate: "EventReplyTokenRevokeCreate",
-	EventSellToken:              "EventSellToken",
-	EventReplySellToken:         "EventReplySellToken",
-	EventBuyToken:               "EventBuyToken",
-	EventReplyBuyToken:          "EventReplyBuyToken",
-	EventRevokeSellToken:        "EventRevokeSellToken",
-	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
-	EventBlockChainQuery:        "EventBlockChainQuery",
-	// config
-	EventModifyConfig:      "EventModifyConfig",
-	EventReplyModifyConfig: "EventReplyModifyConfig",
+	EventBlockChainQuery: "EventBlockChainQuery",
 }
 
 //ty = 1 -> secp256k1
@@ -469,4 +442,5 @@ const (
 	ForkV5Retrive        = 180000
 	ForkV6TokenBlackList = 190000
 	ForkV7BadTokenSymbol = 184000
+	ForkBlockHash        = 208986 + 200
 )

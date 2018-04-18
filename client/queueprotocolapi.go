@@ -74,18 +74,6 @@ type QueueProtocolAPI interface {
 	DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error)
 	// types.EventCloseTickets
 	CloseTickets() (*types.ReplyHashes, error)
-	// types.EventTokenPreCreate
-	TokenPreCreate(param *types.ReqTokenPreCreate) (*types.ReplyHash, error)
-	// types.EventTokenFinishCreate
-	TokenFinishCreate(param *types.ReqTokenFinishCreate) (*types.ReplyHash, error)
-	// types.EventTokenRevokeCreate
-	TokenRevokeCreate(param *types.ReqTokenRevokeCreate) (*types.ReplyHash, error)
-	// types.EventSellToken
-	SellToken(param *types.ReqSellToken) (*types.Reply, error)
-	// types.EventBuyToken
-	BuyToken(param *types.ReqBuyToken) (*types.Reply, error)
-	// types.EventRevokeSellToken
-	RevokeSellToken(param *types.ReqRevokeSell) (*types.Reply, error)
 
 	// types.EventPeerInfo
 	PeerInfo() (*types.PeerList, error)
