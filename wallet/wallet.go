@@ -293,7 +293,7 @@ func (wallet *Wallet) flushTicket() {
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
-		walletlog.Debug("wallet recv", "msg", msg)
+		walletlog.Debug("wallet recv", "msg", msg.Id)
 		msgtype := msg.Ty
 		switch msgtype {
 
@@ -532,7 +532,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
-		walletlog.Debug("end process")
+		walletlog.Debug("end process", msg.Id)
 	}
 }
 

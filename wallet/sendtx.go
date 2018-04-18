@@ -271,6 +271,7 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
 		_, err := wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins", false, "")
 		if err != nil {
+			walletlog.Error("processFee sendToAddress ", "err", err)
 			return err
 		}
 	}
@@ -358,9 +359,6 @@ func (wallet *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, er
 		return nil, err
 	}
 	reply := resp.GetData().(types.Message).(*types.ReplyTicketList)
-	for i := 0; i < len(reply.Tickets); i++ {
-		walletlog.Debug("Tickets", "id", reply.Tickets[i].GetTicketId(), "addr", addr, "req", status, "res", reply.Tickets[i].Status)
-	}
 	return reply.Tickets, nil
 }
 
