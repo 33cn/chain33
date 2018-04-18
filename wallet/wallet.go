@@ -186,6 +186,7 @@ func (wallet *Wallet) autoMining() {
 					wallet.waitTxs(hashes)
 				}
 				if n1+n2+n3 > 0 {
+					wallet.processFees()
 					wallet.flushTicket()
 				}
 			} else {
@@ -201,6 +202,10 @@ func (wallet *Wallet) autoMining() {
 					wallet.waitTxs(hashes)
 				}
 				if n1 > 0 {
+					err := wallet.processFees()
+					if err != nil {
+						walletlog.Error("processFees", "err", err)
+					}
 					wallet.flushTicket()
 				}
 			}
