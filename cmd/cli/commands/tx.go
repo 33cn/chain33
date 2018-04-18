@@ -27,7 +27,7 @@ func TxCmd() *cobra.Command {
 		SendTxCmd(),
 		QueryTxCmd(),
 		QueryTxByAddrCmd(),
-		QueryTxsByHashesCmd(),
+		//QueryTxsByHashesCmd(),
 		GetRawTxCmd(),
 		DecodeTxCmd(),
 	)
@@ -308,15 +308,15 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-func QueryTxsByHashesCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "get_hex",
-		Short: "get transaction hex by hash",
-		Run:   getTxsByHashes,
-	}
-	addGetTxsByHashesFlags(cmd)
-	return cmd
-}
+//func QueryTxsByHashesCmd() *cobra.Command {
+//	cmd := &cobra.Command{
+//		Use:   "get_hex",
+//		Short: "get transaction hex by hash",
+//		Run:   getTxsByHashes,
+//	}
+//	addGetTxsByHashesFlags(cmd)
+//	return cmd
+//}
 
 
 // get raw transaction hex
