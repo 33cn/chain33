@@ -3,6 +3,7 @@ package rpc
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	// register gzip
 	_ "google.golang.org/grpc/encoding/gzip"
 )
@@ -51,15 +52,15 @@ func (j *Grpcserver) Close() {
 
 }
 
-func NewGRpcServer(client queue.Client) *Grpcserver {
+func NewGRpcServer(c queue.Client) *Grpcserver {
 	s := &Grpcserver{}
-	s.grpc.cli.Client = client
+	s.grpc.cli.Init(c)
 	return s
 }
 
-func NewJSONRPCServer(client queue.Client) *JSONRPCServer {
+func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 	j := &JSONRPCServer{}
-	j.jrpc.cli.Client = client
+	j.jrpc.cli.Init(c)
 	return j
 }
 
