@@ -356,30 +356,6 @@ func (c *channelClient) IsSync() bool {
 	return reply
 }
 
-func (c *channelClient) TokenPreCreate(parm *types.ReqTokenPreCreate) (*types.ReplyHash, error) {
-	return c.api.TokenPreCreate(parm)
-}
-
-func (c *channelClient) TokenFinishCreate(parm *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
-	return c.api.TokenFinishCreate(parm)
-}
-
-func (c *channelClient) TokenRevokeCreate(parm *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
-	return c.api.TokenRevokeCreate(parm)
-}
-
-func (c *channelClient) SellToken(parm *types.ReqSellToken) (*types.Reply, error) {
-	return c.api.SellToken(parm)
-}
-
-func (c *channelClient) BuyToken(parm *types.ReqBuyToken) (*types.Reply, error) {
-	return c.api.BuyToken(parm)
-}
-
-func (c *channelClient) RevokeSellToken(parm *types.ReqRevokeSell) (*types.Reply, error) {
-	return c.api.RevokeSellToken(parm)
-}
-
 func (c *channelClient) IsNtpClockSync() bool {
 	reply, err := c.api.IsNtpClockSync()
 	if err != nil {
