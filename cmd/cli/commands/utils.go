@@ -165,7 +165,7 @@ func sendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func createRawTx(priv string, to string, amount float64, note string, withdraw bool, isToken bool, tokenSymbol string) (string, error){
+func createRawTx(priv string, to string, amount float64, note string, withdraw bool, isToken bool, tokenSymbol string) (string, error) {
 	amountInt64 := int64(amount*1e4) * 1e4
 	c, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
 	if err != nil {
