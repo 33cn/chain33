@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -47,7 +48,7 @@ func isStatusSell() bool {
 }
 
 func showTokenOrder(cmd *cobra.Command, args []string) {
-	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+	rpc_laddr, _ := cmd.Flags().GetString("rpc_laddr")
 
 	//fmt.Println("showsellorderwithstatus [onsale | soldout | revoked]           : 显示指定状态下的所有卖单")
 	//fmt.Println("showonesbuyorder [buyer]                                       : 显示指定用户下所有token成交的购买单")
@@ -59,11 +60,11 @@ func showTokenOrder(cmd *cobra.Command, args []string) {
 	//   b       √    both            showonesbuyorder/showonesbuytokenorder
 	//   x       √    both            showonesselltokenorder
 	if isStatusSell() && owner == "" && token == "" {
-		showsellorderwithstatus(rpcAddr)
+		showsellorderwithstatus(rpc_laddr)
 	} else if isStatusBuy() && owner != "" {
-		showonesbuyorder(rpcAddr)
+		showonesbuyorder(rpc_laddr)
 	} else if !isStatusSet() && owner != "" {
-		showonesselltokenorder(rpcAddr)
+		showonesselltokenorder(rpc_laddr)
 	} else {
 		cmd.UsageFunc()(cmd)
 		return
@@ -73,7 +74,7 @@ func showTokenOrder(cmd *cobra.Command, args []string) {
 func showsellorderwithstatus(rpcAddr string) {
 	statusInt, ok := types.MapSellOrderStatusStr2Int[status]
 	if !ok {
-		fmt.Fprintln(os.Stderr, "invalid status arg")
+		fmt.Print(errors.New("status 参数错误\n").Error())
 		return
 	}
 	var reqAddrtokens types.ReqAddrTokens
@@ -83,7 +84,7 @@ func showsellorderwithstatus(rpcAddr string) {
 	params.Execer = "trade"
 	params.FuncName = "GetAllSellOrdersWithStatus"
 	params.Payload = reqAddrtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -134,7 +135,7 @@ func showonesbuyorder(rpcAddr string) {
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -170,7 +171,7 @@ func showonesselltokenorder(rpcAddr string) {
 	params.FuncName = "GetOnesSellOrder"
 	params.Payload = reqAddrtokens
 
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

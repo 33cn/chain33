@@ -44,7 +44,7 @@ func listToken(cmd *cobra.Command, args []string) {
 	params.Payload = reqtokens
 
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJsonClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

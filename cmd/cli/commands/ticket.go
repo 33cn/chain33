@@ -13,7 +13,7 @@ import (
 func TicketCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ticket",
-		Short: "Ticket managerment",
+		Short: "Ticket management",
 		Args:  cobra.MinimumNArgs(1),
 	}
 
@@ -25,7 +25,7 @@ func TicketCmd() *cobra.Command {
 	return cmd
 }
 
-// count
+// get ticket count
 func CountTicketCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "count",
@@ -38,11 +38,11 @@ func CountTicketCmd() *cobra.Command {
 func countTicket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res int64
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetTicketCount", nil, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTicketCount", nil, &res)
 	ctx.Run()
 }
 
-// close
+// close all accessible tickets
 func CloseTicketCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "close",
@@ -54,8 +54,9 @@ func CloseTicketCmd() *cobra.Command {
 
 func closeTicket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	status, err := GetWalletStatus(rpcLaddr, true)
+	status, err := getWalletStatus(rpcLaddr)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
@@ -66,13 +67,28 @@ func closeTicket(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.ReplyHashes
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.CloseTickets", nil, &res)
-	ctx.Run()
+	rpc, err := jsonrpc.NewJsonClient(rpcLaddr)
+	err = rpc.Call("Chain33.CloseTickets", nil, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if len(res.Hashes) == 0 {
+		fmt.Println("no ticket to be close")
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
 
-// TODO
-func GetWalletStatus(rpcAddr string, isCloseTickets bool) (interface{}, error) {
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+func getWalletStatus(rpcAddr string) (interface{}, error) {
+	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
@@ -82,16 +98,6 @@ func GetWalletStatus(rpcAddr string, isCloseTickets bool) (interface{}, error) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
-	}
-
-	data, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return nil, err
-	}
-
-	if !isCloseTickets {
-		fmt.Println(string(data))
 	}
 
 	return res, nil

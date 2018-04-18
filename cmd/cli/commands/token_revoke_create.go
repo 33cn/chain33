@@ -38,6 +38,6 @@ func tokenRevokeCreate(cmd *cobra.Command, args []string) {
 		OwnerAddr:   owner,
 	}
 	var res jsonrpc.ReplyHash
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.TokenRevokeCreate", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.TokenRevokeCreate", params, &res)
 	ctx.Run()
 }
