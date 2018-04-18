@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+//////////////////////////////////////////////////////////////////////////////
+//message for Relay exchange start/////////////////////////////////////////////////////
+//  Sell      Exchange
+//  BTY       BTC
+//  TOKEN     BTC
+//  ------挂卖单---------
+//  BTC       BTY
+//  BTC       TOKEN
+//  ------BTY 内部----------
+//  BTY       TOKEN
+//  TOKEN     BTY
+//
+//Note:	第一步先实现BTY <--> BTC
+//////////////////////////////////////////////////////////////////////////////
+
+//创建交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
+
+message RelayAction {
+    oneof value {
+        RelaySell 			rsell 		= 1;
+        RelayRevokeSell 	rrevokesell = 2;
+        RelayBuy 			rbuy 		= 3;
+        RelayRevokeBuy 		rrevokebuy 	= 4;
+        RelayVerifyBTC		rverifybtc 	= 5;
+    }
+    int32 ty = 10;
+}
+
+
+message RelaySell {
+    int64  sellamount			= 1;
+    //string selladdr          	= 2；   //自身帐号，如果自己是外链账户，需要填
+    //string  selltoken		   	= 3; //卖的token  当前缺省是BTY
+    string exchgcoin          	= 4;
+    int64  exchgamount          = 5; //起卖手数,必须达到这个门槛才允许进行交易
+    string exchgaddr	       	= 6;   //兑换账户
+    int32  waitbtcblocks        = 7; //客户愿意等待的确认块数，默认是6个块，可以自己设置
+
+}
+
+message RelayOrder {
+    string orderid				= 1; //此处使用buyer tx的hash来指定
+    int32  status               = 2;
+    int64  sellamount           = 3;
+    //string selltoken          = 4;
+    string selladdr             = 5;
+    string exchgcoin            = 6;      //每一手出售的token的数量
+    int64  exchgamount          = 7; // 在BTC原始交易里面验证
+    string exchgaddr          	= 8;     //
+    int32  waitcoinblocks       = 9;
+    int64  createtime           = 10;
+    string buyeraddr          	= 11;
+    int64  buyertime            = 12;
+    int32  buyercoinblknum    	= 13;   //buy的时候的btcblock
+    int64  finishtime           = 14;    //订单最终结算时间
+    int64  height               = 15;
+}
+
+message RelayBuy {
+    string orderid      = 1;
+}
+
+//允许token的持有者撤销之前未成交出售token的挂单
+message RelayRevokeSell {
+    string orderid      = 1;
+}
+
+//允许token的持有者撤销之前未成交出售token的挂单
+message RelayRevokeBuy {
+    string orderid      = 1;
+}
+
+message RelayVerifyBTC {
+    string orderid		= 1;
+    string rawtx		= 2;
+    uint32 txindex		= 3;
+    string sibling		= 4;
+    string blockhash	= 5;
+}
+
+
+message ReceiptRelayBase {
+    string orderid				= 1;
+    int32  status				= 2;
+    string owner                = 3;
+    int64  sellamount			= 4;
+    //string selltoken			= 5;
+    string exchgcoin            = 6;      //
+    int64  exchgamount          = 7; // 在BTC原始交易里面验证
+    string exchgaddr            = 8;     //
+    int32  waitcoinblocks       = 9;
+    int64  createtime           = 10;
+    string buyeraddr            = 11;
+    int64  buyertime            = 12;
+    int32  buyercoinblocknum    = 13;
+    int64  finishtime           = 14;
+
+}
+
+message ReceiptRelaySell {
+    ReceiptRelayBase base = 1;
+}
+
+message ReceiptRelayBuy {
+    string orderid             	= 1;
+    string buyeraddr			= 2;
+    int64  buyamount			= 3;
+    string exchgtoken			= 4;
+    int64  exchgamount			= 5;
+    string exchgaccount			= 6;
+    string buytxhash            = 7;
+}
+
+message ReceiptRelayRevoke {
+    ReceiptRelayBase base = 1;
+}
+
+message ReceiptRelayVerify {
+    ReceiptRelayBase base = 1;
+}
