@@ -23,7 +23,6 @@ import (
 
 type Cli struct {
 	network *P2p
-	//mtx     sync.Mutex
 }
 
 type intervalInfo struct {
@@ -127,7 +126,6 @@ func (m *Cli) GetAddr(peer *peer) ([]string, error) {
 }
 
 func (m *Cli) SendVersion(peer *peer, nodeinfo *NodeInfo) (string, error) {
-
 	client := nodeinfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	err := client.SendTimeout(msg, true, time.Minute)
@@ -155,7 +153,6 @@ func (m *Cli) SendVersion(peer *peer, nodeinfo *NodeInfo) (string, error) {
 	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: Service, Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
-
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
 	if err != nil {
 		log.Error("SendVersion", "Verson", err.Error(), "peer", peer.Addr())
@@ -286,8 +283,9 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 					}
 					return
 				}
+
 				client := m.network.node.nodeInfo.client
-				msg := client.NewMessage("blockchain", pb.EventAddBlockHeaders, &pb.Headers{Items: headers.GetHeaders()})
+				msg := client.NewMessage("blockchain", pb.EventAddBlockHeaders, &pb.HeadersPid{pid[0], &pb.Headers{headers.GetHeaders()}})
 				client.Send(msg, false)
 			}
 		}
@@ -405,7 +403,8 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	}
 
 	//使用新的下载模式进行下载
-	var bChan = make(chan *pb.Block, 256)
+	//var bChan = make(chan *pb.Block, 256)
+	var bChan = make(chan *pb.BlockPid, 256)
 	l := list.New()
 	Invs := MaxInvs.GetInvs()
 	var wg sync.WaitGroup
@@ -419,8 +418,8 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 		case <-timeout.C:
 			log.Error("download timeout")
 			return
-		case block := <-bChan:
-			newmsg := m.network.node.nodeInfo.client.NewMessage("blockchain", pb.EventAddBlock, block)
+		case blockpid := <-bChan:
+			newmsg := m.network.node.nodeInfo.client.NewMessage("blockchain", pb.EventSyncBlock, blockpid)
 			m.network.node.nodeInfo.client.SendTimeout(newmsg, false, 60*time.Second)
 			i++
 			if i == len(MaxInvs.GetInvs()) {
@@ -433,7 +432,7 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	}
 
 }
-func (m *Cli) retryDownload(l *list.List, peers []*peer, wg *sync.WaitGroup, bchan chan *pb.Block) {
+func (m *Cli) retryDownload(l *list.List, peers []*peer, wg *sync.WaitGroup, bchan chan *pb.BlockPid) {
 	go func(l *list.List) {
 		for {
 			wg.Wait()
@@ -460,11 +459,12 @@ func (m *Cli) retryDownload(l *list.List, peers []*peer, wg *sync.WaitGroup, bch
 }
 
 func (m *Cli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, infos map[string]*pb.Peer,
-	wg *sync.WaitGroup, bchan chan *pb.Block) {
+	wg *sync.WaitGroup, bchan chan *pb.BlockPid) {
 	peerNum := len(peers)
 	for i, inv := range invs { //让一个节点一次下载一个区块，下载失败区块，交给下一轮下载
 		index := i
 		j := 0
+		var peername string
 		for j = 0; j < peerNum; j++ {
 			index = index % peerNum
 			info, ok := infos[peers[index].Addr()]
@@ -476,6 +476,7 @@ func (m *Cli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, infos
 				index++
 				continue
 			}
+			peername = info.GetName()
 			break
 		}
 		if index >= peerNum {
@@ -484,6 +485,9 @@ func (m *Cli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, infos
 		}
 
 		pr := peers[index]
+		if len(pr.GetPeerName()) == 0 {
+			pr.SetPeerName(peername)
+		}
 		wg.Add(1)
 		go func(peer *peer, inv *pb.Inventory) {
 			defer wg.Done()
@@ -498,7 +502,7 @@ func (m *Cli) allocTask(l *list.List, invs []*pb.Inventory, peers []*peer, infos
 
 }
 
-func (m *Cli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb.Block) error {
+func (m *Cli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb.BlockPid) error {
 	//每次下载一个高度的数据，通过bchan返回上层
 	if peer == nil {
 		return fmt.Errorf("peer is not exist")
@@ -528,7 +532,8 @@ func (m *Cli) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb.Bl
 			return err
 		}
 		for _, item := range invdatas.Items {
-			bchan <- item.GetBlock() //下载完成后插入bchan
+			//bchan <- item.GetBlock() //下载完成后插入bchan
+			bchan <- &pb.BlockPid{peer.GetPeerName(), item.GetBlock()}
 		}
 	}
 }
