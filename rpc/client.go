@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -17,6 +18,12 @@ var accountdb = account.NewCoinsAccount()
 
 type channelClient struct {
 	queue.Client
+	api client.QueueProtocolAPI
+}
+
+func (c *channelClient) Init(q queue.Client) {
+	c.Client = q
+	c.api, _ = client.NewQueueAPI(q)
 }
 
 func (c *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, error) {
@@ -534,12 +541,12 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		var accounts []*types.Account
 		for _, addr := range addrs {
 
-			account, err := accountdb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
+			acc, err := accountdb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
 			}
-			accounts = append(accounts, account)
+			accounts = append(accounts, acc)
 		}
 
 		return accounts, nil
@@ -574,13 +581,13 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := accountTokendb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
+			acc, err := accountTokendb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetTokenBalance for exector", "err", err.Error(), "token symbol", in.GetTokenSymbol(),
 					"address", addr)
 				continue
 			}
-			accounts = append(accounts, account)
+			accounts = append(accounts, acc)
 		}
 
 		return accounts, nil
