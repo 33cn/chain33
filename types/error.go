@@ -55,6 +55,7 @@ var (
 	ErrRetrieveRelation        = errors.New("ErrRetrieveRelation")
 	ErrRetrieveNoBalance       = errors.New("ErrRetrieveNoBalance")
 	ErrLogType                 = errors.New("ErrLogType")
+	ErrInvalidParam            = errors.New("ErrInvalidParameters")
 	//err for token
 	ErrTokenNameLen         = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen       = errors.New("ErrTokenSymbolLength")
