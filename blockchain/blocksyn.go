@@ -418,10 +418,12 @@ func (chain *BlockChain) GetPeerInfo(pid string) *PeerInfo {
 func (chain *BlockChain) IsFaultPeer(pid string) bool {
 	faultpeerlock.Lock()
 	defer faultpeerlock.Unlock()
+
 	if chain.faultPeerList[pid] != nil {
 		return true
+	} else {
+		return false
 	}
-	return false
 }
 
 //判断此block是否被记录在本节点执行错误。
