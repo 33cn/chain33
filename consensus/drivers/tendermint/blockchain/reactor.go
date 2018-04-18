@@ -275,7 +275,7 @@ FOR_LOOP:
 				if first == nil || second == nil {
 					// We need both to sync the first block.
 					if first != nil && second == nil {
-						bcR.Logger.Info("TrySync need recheck last one", "first height", first.Height)
+						bcR.Logger.Info("TrySync need recheck last one", "first-height", first.Height)
 						lastBlockNeedDeal = true
 					} else {
 						bcR.Logger.Info("TrySync no need recheck")
