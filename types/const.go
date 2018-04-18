@@ -1,8 +1,9 @@
 package types
 
 var (
-	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	AllowDepositExec = []string{"ticket"}
+	//TODO:修改这种静态的方式为动态注册
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage", "privacy"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -200,18 +201,18 @@ const (
 	EventRevokeSellToken        = 210
 	EventReplyRevokeSellToken   = 211
 	// config
-	EventModifyConfig           = 300
-	EventReplyModifyConfig      = 301
+	EventModifyConfig      = 300
+	EventReplyModifyConfig = 301
 
 	// privacy
-	EventPublic2privacy         = 400
-	EventReplyPublic2privacy    = 401
-	EventPrivacy2privacy        = 402
-	EventReplyPrivacy2privacy   = 403
-	EventPrivacy2public         = 404
-	EventReplyPrivacy2public    = 405
-	EventShowPrivacyPK          = 406
-	EventReplyShowPrivacyPK     = 407
+	EventPublic2privacy       = 400
+	EventReplyPublic2privacy  = 401
+	EventPrivacy2privacy      = 402
+	EventReplyPrivacy2privacy = 403
+	EventPrivacy2public       = 404
+	EventReplyPrivacy2public  = 405
+	EventShowPrivacyPK        = 406
+	EventReplyShowPrivacyPK   = 407
 )
 
 var eventName = map[int]string{
@@ -332,16 +333,16 @@ var eventName = map[int]string{
 	EventRevokeSellToken:        "EventRevokeSellToken",
 	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
 	// config
-	EventModifyConfig:           "EventModifyConfig",
-	EventReplyModifyConfig:      "EventReplyModifyConfig",
+	EventModifyConfig:      "EventModifyConfig",
+	EventReplyModifyConfig: "EventReplyModifyConfig",
 
 	//privacy
-	EventPublic2privacy:         "EventPublic2privacy",
-	EventReplyPublic2privacy:    "EventReplyPublic2privacy",
-	EventPrivacy2privacy:        "EventPrivacy2privacy",
-	EventReplyPrivacy2privacy:   "EventReplyPrivacy2privacy",
-	EventPrivacy2public:         "EventPrivacy2public",
-	EventReplyPrivacy2public:    "EventReplyPrivacy2public",
+	EventPublic2privacy:       "EventPublic2privacy",
+	EventReplyPublic2privacy:  "EventReplyPublic2privacy",
+	EventPrivacy2privacy:      "EventPrivacy2privacy",
+	EventReplyPrivacy2privacy: "EventReplyPrivacy2privacy",
+	EventPrivacy2public:       "EventPrivacy2public",
+	EventReplyPrivacy2public:  "EventReplyPrivacy2public",
 }
 
 //ty = 1 -> secp256k1
@@ -419,8 +420,8 @@ const (
 	TokenActionPreCreate
 	TokenActionFinishCreate
 	TokenActionRevokeCreate
-    //action type for privacy
-	ActionPublic2Privacy    = iota + 100
+	//action type for privacy
+	ActionPublic2Privacy = iota + 100
 	ActionPrivacy2Privacy
 	ActionMPrivacy2Privacy
 	ActionPrivacy2Public
@@ -499,9 +500,24 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 
 //hard fork block height
 const (
-	ForkV1            = 75260
-	ForkV2_add_token  = 100899
-	ForkV3            = 110000
-	ForkV4_add_manage = 120000
+	ForkV1             = 75260
+	ForkV2_add_token   = 100899
+	ForkV3             = 110000
+	ForkV4_add_manage  = 120000
 	ForkV5_add_privacy = 200000
 )
+
+const (
+	SignTypeInvalid        = 0
+	SignTypeSecp256k1      = 1
+	SignTypeED25519        = 2
+	SignTypeSM2            = 3
+	SignTypeOnetimeED25519 = 4
+)
+
+var MapSignType2name = map[int]string {
+	SignTypeSecp256k1: "secp256k1",
+	SignTypeED25519: "ed25519",
+	SignTypeSM2: "sm2",
+	SignTypeOnetimeED25519: "onetimeed25519",
+}

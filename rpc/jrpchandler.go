@@ -1204,7 +1204,7 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 /////////////////privacy///////////////
 
 
-func (c *Chain33) ShowPrivacykey(in types.ReqString, result *interface{}) error {
+func (c *Chain33) ShowPrivacykey(in types.ReqStr, result *interface{}) error {
 	reply, err := c.cli.ShowPrivacykey(&in)
 	if err != nil {
 		return err

@@ -23,13 +23,6 @@ import (
 	"unsafe"
 )
 
-const (
-	SignTypeInvalid = iota
-	SignTypeSecp256k1 //1
-	SignTypeED25519   //2
-	SignTypeSM2
-)
-
 var (
 	minFee            int64 = types.MinFee
 	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
@@ -588,9 +581,9 @@ func (wallet *Wallet) ProcRecvMsg() {
 			replyPrivacyPair, err := wallet.showPrivacyPkPair(reqAddr)
 			if err != nil {
 				walletlog.Error("showPrivacyPkPair", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, err))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyPK, err))
 			} else {
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, replyPrivacyPair))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyPK, replyPrivacyPair))
 			}
 		case types.EventPublic2privacy:
 			reqPub2Pri := msg.Data.(*types.ReqPub2Pri)
@@ -2160,14 +2153,6 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 }
 
 func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-
 	if accPrivacy, _ := wallet.walletStore.GetWalletAccountPrivacy(addr); accPrivacy != nil {
 		privacyInfo := &privacy.Privacy{}
 		copy(privacyInfo.ViewPubkey[:], accPrivacy.ViewPubkey)
@@ -2199,6 +2184,9 @@ func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 }
 
 func (wallet *Wallet) showPrivacyPkPair(reqAddr *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	privacyInfo, err := wallet.getPrivacykeyPair(reqAddr.GetReqstr())
 	if err != nil {
 		return nil, err
@@ -2238,6 +2226,7 @@ func (wallet *Wallet) procPrivacy2Privacy(privacy2privacy *types.ReqPri2Pri) (*t
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
+	walletlog.Info("privacy2privacy begin to getPrivacykeyPair")
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
 		return nil, err
@@ -2249,8 +2238,11 @@ func (wallet *Wallet) procPrivacy2Privacy(privacy2privacy *types.ReqPri2Pri) (*t
 
 	privacyInfo, err := wallet.getPrivacykeyPair(privacy2privacy.GetSender())
 	if err != nil {
+		walletlog.Error("privacy2privacy failed to getPrivacykeyPair")
 		return nil, err
 	}
+
+	walletlog.Info("privacy2privacy finish getPrivacykeyPair")
 
 	return wallet.transPri2Pri(privacyInfo, privacy2privacy)
 }

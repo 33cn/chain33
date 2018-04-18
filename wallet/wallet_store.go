@@ -330,7 +330,6 @@ func (ws *WalletStore) SetWalletAccountPrivacy(addr string, privacy *types.Walle
 		return types.ErrMarshal
 	}
 
-	//需要同时修改三个表，Account，Addr，Label，批量处理
 	newbatch := ws.db.NewBatch(true)
 	ws.db.Set(calcPrivacyAddrKey(addr), privacybyte)
 	newbatch.Write()

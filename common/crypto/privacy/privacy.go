@@ -10,13 +10,15 @@ import (
 	"fmt"
 	"bytes"
 	"io"
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 const (
 	PublicKeyLen  = 32
 	PrivateKeyLen = 64
 	KeyLen32      = 32
 	TypePrivacyOneTime = byte(0x03)
-	NamePrivacyOneTime = "OneTimeEd25519"
+	NamePrivacyOneTime = "onetimeed25519"
 )
 
 type Privacy struct{
@@ -26,6 +28,15 @@ type Privacy struct{
 	SpendPrivKey PrivKeyPrivacy
 }
 
+type EllipticCurvePoint [32]byte
+type sigcommArray [32 * 3]byte
+
+type sigcomm struct {
+	hash [32]byte
+	pubkey EllipticCurvePoint
+	comm EllipticCurvePoint
+}
+
 var (
 	ErrViewPub                   = errors.New("ErrViewPub")
 	ErrSpendPub                  = errors.New("ErrSpendPub")
@@ -33,6 +44,8 @@ var (
 	ErrSpendSecret               = errors.New("ErrSpendSecret")
 	ErrNullRandInput             = errors.New("ErrNullRandInput")
 )
+
+var privacylog = log.New("module", "crypto.privacy")
 
 //////////////
 func NewPrivacy() *Privacy {
@@ -44,6 +57,7 @@ func NewPrivacy() *Privacy {
 }
 
 func NewPrivacyWithPrivKey(privKey *[KeyLen32]byte) (privacy *Privacy, err error) {
+	privacylog.Info("NewPrivacyWithPrivKey", "input prikey", common.Bytes2Hex(privKey[:]))
 	hash := sccrypto.HashAll(*privKey)
 	privacy = &Privacy{}
 
@@ -55,6 +69,8 @@ func NewPrivacyWithPrivKey(privKey *[KeyLen32]byte) (privacy *Privacy, err error
 	if err = generateKeyPairWithPrivKey((*[KeyLen32]byte)(unsafe.Pointer(&hashViewPriv[0])), &privacy.ViewPrivKey, &privacy.ViewPubkey); err != nil {
 		return nil, err
 	}
+	privacylog.Info("NewPrivacyWithPrivKey", "the new privacy created with viewpub", common.Bytes2Hex(privacy.ViewPubkey[:]))
+	privacylog.Info("NewPrivacyWithPrivKey", "the new privacy created with spendpub", common.Bytes2Hex(privacy.SpendPubkey[:]))
 
 	return privacy, nil
 }
@@ -65,7 +81,9 @@ func (privacy *Privacy)GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyO
 	sk := &PrivKeyPrivacy{}
 	generateKeyPair(sk, pk)
 	RtxPublicKey = (*[KeyLen32]byte)(unsafe.Pointer(pk))
-	fmt.Printf("GenerateOneTimeAddr RtxPublicKey is:%X\n", RtxPublicKey[:])
+	privacylog.Info("GenerateOneTimeAddr", "GenerateOneTimeAddr RtxPublicKey is", RtxPublicKey[:])
+	privacylog.Info("GenerateOneTimeAddr", "input viewPub", common.Bytes2Hex(viewPub[:]))
+	privacylog.Info("GenerateOneTimeAddr", "input spendPub", common.Bytes2Hex(spendPub[:]))
 
 	//to calculate rA
 	var point edwards25519.ExtendedGroupElement
@@ -93,7 +111,7 @@ func (privacy *Privacy)GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyO
 	//to calculate Hs(rA)G + B
 	var B edwards25519.ExtendedGroupElement//A
 	if res := B.FromBytes(spendPub); !res {
-		return nil, nil, ErrViewPub
+		return nil, nil, ErrSpendPub
 	}
 	//Hs(rA)
 	Hs_rA := derivation2scalar(rA, 0)
@@ -172,8 +190,11 @@ func (privacy *Privacy)RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecret
 	onetimePriKeyAddr := (*[32]byte)(unsafe.Pointer(onetimePriKeydata))
 	edwards25519.ScAdd(onetimePriKeyAddr, Hs_aR, spendSecAddr)
 
+	prikey := PrivKeyPrivacy(*onetimePriKeydata)
+	prikey.PubKey()
+
 	fmt.Printf("RecoverOnetimePriKey's result is %X \n", onetimePriKeydata[:])
-	return PrivKeyPrivacy(*onetimePriKeydata), nil
+	return prikey, nil
 }
 
 func generateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) {
@@ -246,4 +267,11 @@ func derivation2scalar(derivation_rA *[32]byte, outputIndex int64) (ellipticCurv
 	edwards25519.ScReduce(&hash, digest)
 
 	return &hash
+}
+
+func hash2scalar(buf []byte, out *[32]byte) {
+	hash := sha3.Sum256(buf[:])
+	digest := new([64]byte)
+	copy(digest[:], hash[:])
+	edwards25519.ScReduce(out, digest)
 }
