@@ -17,8 +17,7 @@
 package trie
 
 import (
-
-	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 )
 
 // SecureTrie wraps a trie with key hashing. In a secure trie, all
