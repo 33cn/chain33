@@ -8,7 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/ethdb"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
@@ -24,12 +23,13 @@ type FakeEVM struct {
 }
 
 func init() {
-	evm := newFakeEVM()
+	evm := NewFakeEVM()
+
 	// TODO 注册的驱动高度需要更新为上线时的正确高度
 	drivers.Register(evm.GetName(), evm, types.ForkV1)
 }
 
-func newFakeEVM() *FakeEVM {
+func NewFakeEVM() *FakeEVM {
 	fake := &FakeEVM{}
 	fake.vmCfg = &vm.Config{}
 	fake.SetChild(fake)
@@ -44,8 +44,8 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 
 	// TODO:GAS计费信息先不考虑，后续补充
 	var (
-		gp      = new(vm.GasPool).AddGas(uint64(tx.Fee))
-		usedGas = uint64(0)
+		//gp      = new(vm.GasPool).AddGas(uint64(tx.Fee))
+		//usedGas = uint64(0)
 	)
 
 	// 先转换消息
@@ -74,40 +74,42 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	isCreate := msg.To() == nil
 
 	if isCreate {
-		ret, contractAddr, leftOverGas , err := runtime.Create(vm.AccountRef(msg.From()), tx.Payload, context.GasLimit, big.NewInt(0))
+		//ret, contractAddr, leftOverGas , err := runtime.Create(vm.AccountRef(msg.From()), tx.Payload, context.GasLimit, big.NewInt(0))
+		runtime.Create(vm.AccountRef(msg.From()), tx.Payload, context.GasLimit, big.NewInt(0))
 	}else{
-		ret, leftOverGas , err :=  runtime.Call(vm.AccountRef(msg.From()), *msg.To(), tx.Payload, context.GasLimit, big.NewInt(0))
+		//ret, leftOverGas , err :=  runtime.Call(vm.AccountRef(msg.From()), *msg.To(), tx.Payload, context.GasLimit, big.NewInt(0))
+		runtime.Call(vm.AccountRef(msg.From()), *msg.To(), tx.Payload, context.GasLimit, big.NewInt(0))
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	if failed {
-		return nil, nil
-	}
-
-	// 更新内存状态，计算root哈希
-	// Update the state with pending changes
-	statedb.Finalise(true)
-
-	usedGas += gas
-
-	// 组装结果
-	kvset := []*ctypes.KeyValue{
-		&ctypes.KeyValue{[]byte("caller"), getCaller(tx).Bytes()},
-		&ctypes.KeyValue{[]byte("constractResult"), ret},
-		&ctypes.KeyValue{[]byte("ContractAddress"), []byte("xxx")},
-	}
-	if isCreate {
-		addr := crypto.CreateAddress(runtime.Context.Origin, uint64(tx.Nonce))
-		kvset = append(kvset, &ctypes.KeyValue{[]byte("ContractAddress"), addr.Bytes()})
-	} else {
-		kvset = append(kvset, &ctypes.KeyValue{[]byte("receiver"), getReceiver(tx).Bytes()})
-	}
-
-	receipt := &ctypes.Receipt{ctypes.ExecOk, kvset, nil}
-	return receipt, nil
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//if failed {
+	//	return nil, nil
+	//}
+	//
+	//// 更新内存状态，计算root哈希
+	//// Update the state with pending changes
+	//statedb.Finalise(true)
+	//
+	//usedGas += gas
+	//
+	//// 组装结果
+	//kvset := []*ctypes.KeyValue{
+	//	&ctypes.KeyValue{[]byte("caller"), getCaller(tx).Bytes()},
+	//	&ctypes.KeyValue{[]byte("constractResult"), ret},
+	//	&ctypes.KeyValue{[]byte("ContractAddress"), []byte("xxx")},
+	//}
+	//if isCreate {
+	//	addr := crypto.CreateAddress(runtime.Context.Origin, uint64(tx.Nonce))
+	//	kvset = append(kvset, &ctypes.KeyValue{[]byte("ContractAddress"), addr.Bytes()})
+	//} else {
+	//	kvset = append(kvset, &ctypes.KeyValue{[]byte("receiver"), getReceiver(tx).Bytes()})
+	//}
+	//
+	//receipt := &ctypes.Receipt{ctypes.ExecOk, kvset, nil}
+	return nil, nil
 
 }
 
@@ -182,6 +184,6 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 }
 
 func getHashFn(number uint64) common.Hash {
-	// TODO 此处逻辑需要补充，获取指定数字对应的哈希，可参考evm.go/GetHashFn
-	return common.HexToHash("test")
+	// TODO 此处逻辑需要补充，获取指定数字高度区块对应的哈希，可参考evm.go/GetHashFn
+	return common.Hash{}
 }
