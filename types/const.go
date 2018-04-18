@@ -162,6 +162,9 @@ const (
 	EventStoreGetTotalCoins  = 104
 	EventGetTotalCoinsReply  = 105
 	EventQueryTotalFee       = 106
+	EventSignRawTx           = 107
+	EventReplySignRawTx      = 108
+
 	// Token
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
@@ -469,4 +472,5 @@ const (
 	ForkV5Retrive        = 180000
 	ForkV6TokenBlackList = 190000
 	ForkV7BadTokenSymbol = 184000
+	ForkBlockHash        = 208986 + 200
 )

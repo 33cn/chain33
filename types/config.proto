@@ -49,6 +49,9 @@ message Consensus {
 	int64 genesisBlockTime = 4;
 	string hotkeyAddr = 5;
 	bool forceMining = 6;
+	int32 NodeId = 7;
+	string PeersURL = 8;
+	string ClientAddr = 9;
 }
 
 message Wallet {
