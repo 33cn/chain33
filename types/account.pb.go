@@ -223,6 +223,8 @@ It has these top-level messages:
 	ReqBuyToken
 	ReqRevokeSell
 	ReqModifyConfig
+	ReqSignRawTx
+	ReplySignRawTx
 */
 package types
 
