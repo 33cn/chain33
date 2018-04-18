@@ -8,11 +8,13 @@ package client
 import (
 	"bytes"
 	"reflect"
+	"time"
 
+	"fmt"
+	"github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"time"
 )
 
 const (
@@ -26,6 +28,8 @@ const (
 	blockchainKey = "blockchain" // 区块
 	//storeKey		= "store"
 )
+
+var log = log15.New("module", "api")
 
 // 消息通道协议实现
 type QueueCoordinator struct {
@@ -65,19 +69,38 @@ func (q *QueueCoordinator) checkInputParam(param interface{}) error {
 	return nil
 }
 
-func (q *QueueCoordinator) GetTx(param *types.Transaction) (*types.Reply, error) {
+func (q *QueueCoordinator) SetSendTimeout(duration time.Duration) {
+	q.sendTimeout = duration
+}
+
+func (q *QueueCoordinator) SetWaitTimeout(duration time.Duration) {
+	q.waitTimeout = duration
+}
+
+func (q *QueueCoordinator) SendTx(param *types.Transaction) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
+		log.Error("SendTx() check param", "Error", err.Error())
 		return nil, err
 	}
 	msg, err := q.query(mempoolKey, types.EventTx, param)
 	if nil != err {
+		log.Error("SendTx() query", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
+	reply, ok := msg.GetData().(*types.Reply)
+	if ok {
+		if reply.GetIsOk() {
+			reply.Msg = param.Hash()
+		} else {
+			msg := string(reply.Msg)
+			log.Error("SendTx() return", "Error:", msg)
+			err = fmt.Errorf(msg)
+		}
+	} else {
+		err = types.ErrNotSupport
 	}
-	return nil, types.ErrNotSupport
+	return reply, err
 }
 
 func (q *QueueCoordinator) GetTxList(param *types.TxHashList) (*types.ReplyTxList, error) {
@@ -308,8 +331,8 @@ func (q *QueueCoordinator) WalletLock() (*types.Reply, error) {
 	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) WalletUnLock() (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventWalletUnLock, nil)
+func (q *QueueCoordinator) WalletUnLock(param *types.WalletUnLock) (*types.Reply, error) {
+	msg, err := q.query(walletKey, types.EventWalletUnLock, param)
 	if nil != err {
 		return nil, err
 	}
@@ -567,6 +590,7 @@ func (q *QueueCoordinator) TokenRevokeCreate(param *types.ReqTokenRevokeCreate) 
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		log.Info("TokenRevokeCreate", "result", "success", "symbol", param.GetSymbol())
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport
@@ -575,13 +599,16 @@ func (q *QueueCoordinator) TokenRevokeCreate(param *types.ReqTokenRevokeCreate) 
 func (q *QueueCoordinator) SellToken(param *types.ReqSellToken) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
+		log.Error("SellToken", "Error", err.Error())
 		return nil, err
 	}
 	msg, err := q.query(walletKey, types.EventSellToken, param)
 	if nil != err {
+		log.Error("SellToken", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Reply); ok {
+		log.Info("SellToken", "result", "success", "symbol", param.GetSell().GetTokensymbol())
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport
@@ -590,13 +617,16 @@ func (q *QueueCoordinator) SellToken(param *types.ReqSellToken) (*types.Reply, e
 func (q *QueueCoordinator) BuyToken(param *types.ReqBuyToken) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
+		log.Error("BuyToken", "Error", err.Error())
 		return nil, err
 	}
 	msg, err := q.query(walletKey, types.EventBuyToken, param)
 	if nil != err {
+		log.Error("BuyToken", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Reply); ok {
+		log.Info("BuyToken", "result", "send tx successful", "buyer", param.GetBuyer(), "sell order", param.GetBuy().GetSellid())
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport
@@ -605,13 +635,16 @@ func (q *QueueCoordinator) BuyToken(param *types.ReqBuyToken) (*types.Reply, err
 func (q *QueueCoordinator) RevokeSellToken(param *types.ReqRevokeSell) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
+		log.Error("RevokeSellToken", "Error", err.Error())
 		return nil, err
 	}
 	msg, err := q.query(walletKey, types.EventRevokeSellToken, param)
 	if nil != err {
+		log.Error("RevokeSellToken", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Reply); ok {
+		log.Info("RevokeSellToken", "result", "send tx successful", "order owner", param.GetOwner(), "sell order", param.GetRevoke().GetSellid())
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport
@@ -649,6 +682,17 @@ func (q *QueueCoordinator) LocalGet(param *types.ReqHash) (*types.LocalReplyValu
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
+		return reply, nil
+	}
+	return nil, types.ErrNotSupport
+}
+
+func (q *QueueCoordinator) GetLastHeader() (*types.Header, error) {
+	msg, err := q.query(blockchainKey, types.EventGetLastHeader, nil)
+	if nil != err {
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Header); ok {
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport

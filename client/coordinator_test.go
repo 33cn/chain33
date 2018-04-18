@@ -78,6 +78,8 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.IsCaughtUp{}))
 			case types.EventIsNtpClockSync:
 				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.IsNtpClockSync{}))
+			case types.EventGetLastHeader:
+				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Header{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -230,7 +232,7 @@ func TestCoordinator(t *testing.T) {
 	api := mock.startup(0)
 	defer mock.stop()
 
-	testGetTx(t, api)
+	testSendTx(t, api)
 	testGetTxList(t, api)
 	testGetBlocks(t, api)
 	testGetTransactionByAddr(t, api)
@@ -271,6 +273,14 @@ func TestCoordinator(t *testing.T) {
 	testRevokeSellToken(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
+	testGetLastHeader(t, api)
+}
+
+func testGetLastHeader(t *testing.T, api QueueProtocolAPI) {
+	_, err := api.GetLastHeader()
+	if nil != err {
+		t.Error("Call GetLastHeader Failed.", err)
+	}
 }
 
 func testLocalGet(t *testing.T, api QueueProtocolAPI) {
@@ -435,7 +445,7 @@ func testPeerInfo(t *testing.T, api QueueProtocolAPI) {
 }
 
 func testWalletUnLock(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.WalletUnLock()
+	_, err := api.WalletUnLock(&types.WalletUnLock{})
 	if nil != err {
 		t.Error("Call WalletUnLock Failed.", err)
 	}
@@ -553,8 +563,8 @@ func testGetTxList(t *testing.T, api QueueProtocolAPI) {
 	}
 }
 
-func testGetTx(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.GetTx(&types.Transaction{})
+func testSendTx(t *testing.T, api QueueProtocolAPI) {
+	_, err := api.SendTx(&types.Transaction{})
 	if nil != err {
 		t.Error("Call GetTx Failed.", err)
 	}

@@ -5,7 +5,7 @@ import "gitlab.33.cn/chain33/chain33/types"
 // 消息通道交互API接口定义
 type QueueProtocolAPI interface {
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
-	GetTx(param *types.Transaction) (*types.Reply, error)
+	SendTx(param *types.Transaction) (*types.Reply, error)
 	// types.EventTxList
 	GetTxList(param *types.TxHashList) (*types.ReplyTxList, error)
 	// types.EventGetMempool
@@ -35,6 +35,8 @@ type QueueProtocolAPI interface {
 	IsNtpClockSync() (bool, error)
 	// types.EventLocalGet
 	LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error)
+	// types.EventGetLastHeader
+	GetLastHeader() (*types.Header, error)
 
 	// types.EventWalletGetAccountList
 	WalletGetAccountList() (*types.WalletAccounts, error)
@@ -57,7 +59,7 @@ type QueueProtocolAPI interface {
 	// types.EventWalletLock
 	WalletLock() (*types.Reply, error)
 	// types.EventWalletUnLock
-	WalletUnLock() (*types.Reply, error)
+	WalletUnLock(param *types.WalletUnLock) (*types.Reply, error)
 	// types.EventGenSeed
 	GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error)
 	// types.EventSaveSeed
