@@ -3,6 +3,7 @@ package wallet
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -579,6 +580,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procRevokeSell", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
 			}
+
 		case types.EventCloseTickets:
 			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
 			if err != nil {
@@ -594,11 +596,61 @@ func (wallet *Wallet) ProcRecvMsg() {
 				}()
 			}
 
+		case types.EventSignRawTx:
+			unsigned := msg.GetData().(*types.ReqSignRawTx)
+			txHex, err := wallet.ProcSignRawTx(unsigned)
+			if err != nil {
+				walletlog.Error("EventSignRawTx", "err", err)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySignRawTx, err))
+			} else {
+				walletlog.Info("Reply EventSignRawTx", "msg", msg)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySignRawTx, &types.ReplySignRawTx{TxHex: txHex}))
+			}
+
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
 		walletlog.Debug("end process")
 	}
+}
+
+func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
+	var key crypto.PrivKey
+	if unsigned.GetPrivKey() != "" {
+		keyByte, err := common.FromHex(unsigned.GetPrivKey())
+		if err != nil || len(keyByte) == 0 {
+			return "", err
+		}
+		cr, err := crypto.New(types.GetSignatureTypeName(SignType))
+		if err != nil {
+			return "", err
+		}
+		key, err = cr.PrivKeyFromBytes(keyByte)
+		if err != nil {
+			return "", err
+		}
+	} else if unsigned.GetAddr() != "" {
+		var err error
+		key, err = wallet.getPrivKeyByAddr(unsigned.GetAddr())
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", types.ErrNoPrivKeyOrAddr
+	}
+	var tx types.Transaction
+	bytes, err := common.FromHex(unsigned.GetTxHex())
+	if err != nil {
+		return "", err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return "", err
+	}
+	tx.Sign(int32(SignType), key)
+	txHex := types.Encode(&tx)
+	signedTx := hex.EncodeToString(txHex)
+	return signedTx, nil
 }
 
 //output:
