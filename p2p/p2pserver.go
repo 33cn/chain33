@@ -489,7 +489,6 @@ func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 	}
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
-	log.Info("CollectInPeers", "inpeers", inPeers)
 	for _, inpeer := range inPeers {
 		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: in.GetAddr(), Port: in.GetPort()}) ///仅用name,addr,port字段，用于统计peer num.
 	}
