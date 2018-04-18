@@ -191,9 +191,14 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 		log.Error("CheckSign", "SignatureFromBytes err", err.Error())
 		return false
 	}
+
 	in.Sign = nil
 	data := pb.Encode(in)
-	return pub.VerifyBytes(data, signbytes)
+	if pub.VerifyBytes(data, signbytes) == true {
+		in.Sign = sign
+		return true
+	}
+	return false
 }
 
 func (c Comm) CollectPeerStat(err error, peer *peer) {
