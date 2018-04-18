@@ -157,8 +157,7 @@ func configTx(cmd *cobra.Command, args []string) {
 	}
 	tx := &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
 
-	var random *rand.Rand
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 
 	var err error

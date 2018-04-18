@@ -216,8 +216,7 @@ func createRawTx(priv string, to string, amount float64, note string, withdraw b
 		return "", err
 	}
 	tx.Fee += types.MinBalanceTransfer
-	var random *rand.Rand
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	tx.Sign(int32(wallet.SignType), privKey)
 	txHex := types.Encode(tx)
@@ -233,5 +232,4 @@ func getExecAddr(exec string) (string, error) {
 	default:
 		return "", errors.New("only none, coins, hashlock, retrieve, ticket, token, trade supported")
 	}
-	return "", nil
 }
