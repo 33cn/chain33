@@ -173,6 +173,10 @@ func (wallet *Wallet) autoMining() {
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
+				err = wallet.processFees()
+				if err != nil {
+					walletlog.Error("processFees", "err", err)
+				}
 				hashes1, n2, err := wallet.buyTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("buyTicket", "err", err)
@@ -186,13 +190,16 @@ func (wallet *Wallet) autoMining() {
 					wallet.waitTxs(hashes)
 				}
 				if n1+n2+n3 > 0 {
-					wallet.processFees()
 					wallet.flushTicket()
 				}
 			} else {
 				n1, err := wallet.closeTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
+				}
+				err = wallet.processFees()
+				if err != nil {
+					walletlog.Error("processFees", "err", err)
 				}
 				hashes, err := wallet.withdrawFromTicket()
 				if err != nil {
@@ -202,10 +209,6 @@ func (wallet *Wallet) autoMining() {
 					wallet.waitTxs(hashes)
 				}
 				if n1 > 0 {
-					err := wallet.processFees()
-					if err != nil {
-						walletlog.Error("processFees", "err", err)
-					}
 					wallet.flushTicket()
 				}
 			}
