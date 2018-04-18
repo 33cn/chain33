@@ -69,6 +69,14 @@ func (q *QueueCoordinator) checkInputParam(param interface{}) error {
 	return nil
 }
 
+func (q *QueueCoordinator) SetSendTimeout(duration time.Duration) {
+	q.sendTimeout = duration
+}
+
+func (q *QueueCoordinator) SetWaitTimeout(duration time.Duration) {
+	q.waitTimeout = duration
+}
+
 func (q *QueueCoordinator) SendTx(param *types.Transaction) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
@@ -323,8 +331,8 @@ func (q *QueueCoordinator) WalletLock() (*types.Reply, error) {
 	return nil, types.ErrNotSupport
 }
 
-func (q *QueueCoordinator) WalletUnLock() (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventWalletUnLock, nil)
+func (q *QueueCoordinator) WalletUnLock(param *types.WalletUnLock) (*types.Reply, error) {
+	msg, err := q.query(walletKey, types.EventWalletUnLock, param)
 	if nil != err {
 		return nil, err
 	}
@@ -582,6 +590,7 @@ func (q *QueueCoordinator) TokenRevokeCreate(param *types.ReqTokenRevokeCreate) 
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		log.Info("TokenRevokeCreate", "result", "success", "symbol", param.GetSymbol())
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport
@@ -590,13 +599,16 @@ func (q *QueueCoordinator) TokenRevokeCreate(param *types.ReqTokenRevokeCreate) 
 func (q *QueueCoordinator) SellToken(param *types.ReqSellToken) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
+		log.Error("SellToken", "Error", err.Error())
 		return nil, err
 	}
 	msg, err := q.query(walletKey, types.EventSellToken, param)
 	if nil != err {
+		log.Error("SellToken", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Reply); ok {
+		log.Info("SellToken", "result", "success", "symbol", param.GetSell().GetTokensymbol())
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport
@@ -605,13 +617,16 @@ func (q *QueueCoordinator) SellToken(param *types.ReqSellToken) (*types.Reply, e
 func (q *QueueCoordinator) BuyToken(param *types.ReqBuyToken) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
+		log.Error("BuyToken", "Error", err.Error())
 		return nil, err
 	}
 	msg, err := q.query(walletKey, types.EventBuyToken, param)
 	if nil != err {
+		log.Error("BuyToken", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Reply); ok {
+		log.Info("BuyToken", "result", "send tx successful", "buyer", param.GetBuyer(), "sell order", param.GetBuy().GetSellid())
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport
@@ -620,13 +635,16 @@ func (q *QueueCoordinator) BuyToken(param *types.ReqBuyToken) (*types.Reply, err
 func (q *QueueCoordinator) RevokeSellToken(param *types.ReqRevokeSell) (*types.Reply, error) {
 	err := q.checkInputParam(param)
 	if nil != err {
+		log.Error("RevokeSellToken", "Error", err.Error())
 		return nil, err
 	}
 	msg, err := q.query(walletKey, types.EventRevokeSellToken, param)
 	if nil != err {
+		log.Error("RevokeSellToken", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Reply); ok {
+		log.Info("RevokeSellToken", "result", "send tx successful", "order owner", param.GetOwner(), "sell order", param.GetRevoke().GetSellid())
 		return reply, nil
 	}
 	return nil, types.ErrNotSupport

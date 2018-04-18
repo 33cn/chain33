@@ -59,7 +59,7 @@ type QueueProtocolAPI interface {
 	// types.EventWalletLock
 	WalletLock() (*types.Reply, error)
 	// types.EventWalletUnLock
-	WalletUnLock() (*types.Reply, error)
+	WalletUnLock(param *types.WalletUnLock) (*types.Reply, error)
 	// types.EventGenSeed
 	GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error)
 	// types.EventSaveSeed
