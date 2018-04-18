@@ -62,9 +62,9 @@ func parseAddrOverview(view interface{}) (interface{}, error) {
 	balance := strconv.FormatFloat(float64(res.GetBalance())/float64(types.Coin), 'f', 4, 64)
 	receiver := strconv.FormatFloat(float64(res.GetReciver())/float64(types.Coin), 'f', 4, 64)
 	addrOverview := &AddrOverviewResult{
-		Balance: balance,
+		Balance:  balance,
 		Receiver: receiver,
-		TxCount: res.GetTxCount(),
+		TxCount:  res.GetTxCount(),
 	}
 	return addrOverview, nil
 }

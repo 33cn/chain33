@@ -283,8 +283,8 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	params := types.ReqSignRawTx{
 		PrivKey: key,
-		Addr: addr,
-		TxHex: data,
+		Addr:    addr,
+		TxHex:   data,
 	}
 	var res types.ReplySignRawTx
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, &res)
