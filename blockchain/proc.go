@@ -27,7 +27,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.queryTx)
 		case types.EventGetBlocks:
 			go chain.processMsg(msg, reqnum, chain.getBlocks)
-		case types.EventAddBlock: // block
+		case types.EventSyncBlock: // block
 			go chain.processMsg(msg, reqnum, chain.addBlock)
 		case types.EventGetBlockHeight:
 			go chain.processMsg(msg, reqnum, chain.getBlockHeight)
@@ -93,11 +93,11 @@ func (chain *BlockChain) getBlocks(msg queue.Message) {
 }
 
 func (chain *BlockChain) addBlock(msg queue.Message) {
-	var block *types.Block
+	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
-	block = msg.Data.(*types.Block)
-	err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: block})
+	blockpid := msg.Data.(*types.BlockPid)
+	err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 		reply.IsOk = false
@@ -105,7 +105,7 @@ func (chain *BlockChain) addBlock(msg queue.Message) {
 	} else {
 		//chain.notifySync()
 	}
-	chainlog.Debug("EventAddBlock", "height", block.Height, "success", "ok")
+	chainlog.Debug("EventAddBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid, "success", "ok")
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 
@@ -160,7 +160,7 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 
 	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "hash", common.ToHex(blockDetail.Block.Hash()))
 
-	err := chain.ProcAddBlockMsg(true, blockDetail)
+	err := chain.ProcAddBlockMsg(true, blockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 		reply.IsOk = false
@@ -176,12 +176,11 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 }
 
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
-	var block *types.Block
+	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
-	block = msg.Data.(*types.Block)
-
-	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: block})
+	blockwithpid := msg.Data.(*types.BlockPid)
+	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: blockwithpid.Block}, blockwithpid.Pid)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 		reply.IsOk = false
@@ -189,7 +188,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	} else {
 		//chain.notifySync()
 	}
-	chainlog.Debug("EventBroadcastAddBlock", "height", block.Height, "hash", common.ToHex(block.Hash()), "success", "ok")
+	chainlog.Debug("EventBroadcastAddBlock", "height", blockwithpid.Block.Height, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "success", "ok")
 
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
@@ -281,15 +280,15 @@ func (chain *BlockChain) getQuery(msg queue.Message) {
 func (chain *BlockChain) addBlockHeaders(msg queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
-	headers := msg.Data.(*types.Headers)
-	err := chain.ProcAddBlockHeadersMsg(headers)
+	headerspid := msg.Data.(*types.HeadersPid)
+	err := chain.ProcAddBlockHeadersMsg(headerspid.Headers, headerspid.Pid)
 	if err != nil {
 		chainlog.Error("addBlockHeaders", "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {
 	}
-	chainlog.Debug("addBlockHeaders", "success", "ok")
+	chainlog.Debug("addBlockHeaders", "pid", headerspid.Pid, "success", "ok")
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 
