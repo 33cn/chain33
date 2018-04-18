@@ -445,7 +445,7 @@ func testPeerInfo(t *testing.T, api QueueProtocolAPI) {
 }
 
 func testWalletUnLock(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.WalletUnLock()
+	_, err := api.WalletUnLock(&types.WalletUnLock{})
 	if nil != err {
 		t.Error("Call WalletUnLock Failed.", err)
 	}
