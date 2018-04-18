@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 
@@ -16,12 +15,10 @@ var (
 
 type Chain33 struct {
 	cli channelClient
-	api client.QueueProtocolAPI
 }
 
 type Grpc struct {
 	cli channelClient
-	api client.QueueProtocolAPI
 }
 
 type Grpcserver struct {
@@ -57,15 +54,13 @@ func (j *Grpcserver) Close() {
 
 func NewGRpcServer(c queue.Client) *Grpcserver {
 	s := &Grpcserver{}
-	s.grpc.cli.Client = c
-	s.grpc.api, _ = client.NewQueueAPI(c)
+	s.grpc.cli.Init(c)
 	return s
 }
 
 func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 	j := &JSONRPCServer{}
-	j.jrpc.cli.Client = c
-	j.jrpc.api, _ = client.NewQueueAPI(c)
+	j.jrpc.cli.Init(c)
 	return j
 }
 

@@ -13,22 +13,15 @@ import (
 )
 
 func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
-	/*
-		if !g.checkWhitlist(ctx) {
-			return nil, fmt.Errorf("reject")
-		}
-		reply := g.cli.SendTx(in)
-		if reply.GetData().(*pb.Reply).IsOk {
-			return reply.GetData().(*pb.Reply), nil
-		} else {
-			return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
-		}
-	*/
-
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.api.SendTx(in)
+	reply := g.cli.SendTx(in)
+	if reply.GetData().(*pb.Reply).IsOk {
+		return reply.GetData().(*pb.Reply), nil
+	} else {
+		return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
+	}
 }
 
 func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
