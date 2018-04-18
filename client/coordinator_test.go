@@ -265,12 +265,6 @@ func TestCoordinator(t *testing.T) {
 	testDumpPrivkey(t, api)
 	testCloseTickets(t, api)
 	testIsSync(t, api)
-	testTokenPreCreate(t, api)
-	testTokenFinishCreate(t, api)
-	testTokenRevokeCreate(t, api)
-	testSellToken(t, api)
-	testBuyToken(t, api)
-	testRevokeSellToken(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
 	testGetLastHeader(t, api)
@@ -294,48 +288,6 @@ func testIsNtpClockSync(t *testing.T, api QueueProtocolAPI) {
 	_, err := api.IsNtpClockSync()
 	if nil != err {
 		t.Error("Call IsNtpClockSync Failed.", err)
-	}
-}
-
-func testRevokeSellToken(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.RevokeSellToken(&types.ReqRevokeSell{})
-	if nil != err {
-		t.Error("Call RevokeSellToken Failed.", err)
-	}
-}
-
-func testBuyToken(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.BuyToken(&types.ReqBuyToken{})
-	if nil != err {
-		t.Error("Call BuyToken Failed.", err)
-	}
-}
-
-func testSellToken(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.SellToken(&types.ReqSellToken{})
-	if nil != err {
-		t.Error("Call SellToken Failed.", err)
-	}
-}
-
-func testTokenRevokeCreate(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.TokenRevokeCreate(&types.ReqTokenRevokeCreate{})
-	if nil != err {
-		t.Error("Call TokenRevokeCreate Failed.", err)
-	}
-}
-
-func testTokenFinishCreate(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.TokenFinishCreate(&types.ReqTokenFinishCreate{})
-	if nil != err {
-		t.Error("Call TokenFinishCreate Failed.", err)
-	}
-}
-
-func testTokenPreCreate(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.TokenPreCreate(&types.ReqTokenPreCreate{})
-	if nil != err {
-		t.Error("Call TokenPreCreate Failed.", err)
 	}
 }
 

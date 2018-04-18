@@ -457,53 +457,6 @@ func (g *Grpc) CloseTickets(ctx context.Context, in *pb.ReqNil) (*pb.ReplyHashes
 	return result, nil
 }
 
-func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*pb.ReplyHash, error) {
-	result, err := g.cli.TokenPreCreate(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (g *Grpc) TokenFinishCreate(ctx context.Context, in *pb.ReqTokenFinishCreate) (*pb.ReplyHash, error) {
-	result, err := g.cli.TokenFinishCreate(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-func (g *Grpc) TokenRevokeCreate(ctx context.Context, in *pb.ReqTokenRevokeCreate) (*pb.ReplyHash, error) {
-	result, err := g.cli.TokenRevokeCreate(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (g *Grpc) SellToken(ctx context.Context, in *pb.ReqSellToken) (*pb.Reply, error) {
-	result, err := g.cli.SellToken(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (g *Grpc) BuyToken(ctx context.Context, in *pb.ReqBuyToken) (*pb.Reply, error) {
-	result, err := g.cli.BuyToken(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (g *Grpc) RevokeSellToken(ctx context.Context, in *pb.ReqRevokeSell) (*pb.Reply, error) {
-	result, err := g.cli.RevokeSellToken(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")

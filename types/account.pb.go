@@ -12,6 +12,7 @@ It is generated from these files:
 	db.proto
 	executor.proto
 	p2p.proto
+	pbft.proto
 	rpc.proto
 	transaction.proto
 	wallet.proto
@@ -173,6 +174,22 @@ It has these top-level messages:
 	InvDatas
 	Peer
 	PeerList
+	Operation
+	Checkpoint
+	Entry
+	ViewChange
+	Summary
+	Result
+	Request
+	RequestClient
+	RequestPrePrepare
+	RequestPrepare
+	RequestCommit
+	RequestCheckpoint
+	RequestViewChange
+	RequestAck
+	RequestNewView
+	ClientReply
 	CreateTx
 	UnsignTx
 	SignedTx
@@ -223,6 +240,8 @@ It has these top-level messages:
 	ReqBuyToken
 	ReqRevokeSell
 	ReqModifyConfig
+	ReqSignRawTx
+	ReplySignRawTx
 */
 package types
 

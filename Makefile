@@ -26,15 +26,20 @@ all: ## Builds for multiple platforms
 	@mv chain33* build/
 
 build: ## Build the binary file
-	@go build -race -v -o $(APP) $(SRC)
+	@go build -v -i -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 release: ## Build the binary file
-	@go build -race -v -o $(APP) $(LDFLAGS) $(SRC)
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 cli: ## Build cli binary
+	@go build -v -o $(CLI) $(SRC_CLI)
+
+build_ci: ## Build the binary file for CI
 	@go build -race -v -o $(CLI) $(SRC_CLI)
+	@go build -race -v -o $(APP) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 
 linter: ## Use gometalinter check code, ignore some unserious warning
 	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
