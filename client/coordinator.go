@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -30,43 +29,49 @@ const (
 
 var log = log15.New("module", "client")
 
+type QueueCoordinatorOption struct {
+	// 发送请求超时时间
+	SendTimeout time.Duration
+	// 接收应答超时时间
+	WaitTimeout time.Duration
+}
+
 // 消息通道协议实现
 type QueueCoordinator struct {
 	// 消息队列
 	client queue.Client
-	// 发送请求超时时间
-	sendTimeout time.Duration
-	// 接收应答超时时间
-	waitTimeout time.Duration
+	option QueueCoordinatorOption
 }
 
-func New(client queue.Client) (QueueProtocolAPI, error) {
+func New(client queue.Client, option *QueueCoordinatorOption) (QueueProtocolAPI, error) {
 	if client == nil {
-		return nil, errors.New("Invalid param")
+		return nil, types.ErrInvalidParam
 	}
 	q := &QueueCoordinator{}
 	q.client = client
-	q.sendTimeout = 120 * time.Second
-	q.waitTimeout = 60 * time.Second
+	if option != nil {
+		q.option = *option
+	} else {
+		q.option.SendTimeout = 120 * time.Second
+		q.option.WaitTimeout = 60 * time.Second
+	}
 	return q, nil
 }
 
 func (q *QueueCoordinator) query(topic string, ty int64, data interface{}) (queue.Message, error) {
 	client := q.client
 	msg := client.NewMessage(topic, ty, data)
-	err := client.SendTimeout(msg, true, q.sendTimeout)
+	err := client.SendTimeout(msg, true, q.option.SendTimeout)
 	if err != nil {
 		return queue.Message{}, err
 	}
-	return client.WaitTimeout(msg, q.waitTimeout)
+	return client.WaitTimeout(msg, q.option.WaitTimeout)
 }
 
-func (q *QueueCoordinator) SetSendTimeout(duration time.Duration) {
-	q.sendTimeout = duration
-}
-
-func (q *QueueCoordinator) SetWaitTimeout(duration time.Duration) {
-	q.waitTimeout = duration
+func (q *QueueCoordinator) SetOption(option *QueueCoordinatorOption) {
+	if option != nil {
+		q.option = *option
+	}
 }
 
 func (q *QueueCoordinator) SendTx(param *types.Transaction) (*types.Reply, error) {
