@@ -158,18 +158,6 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyStr{}))
 			case types.EventCloseTickets:
 				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyHashes{}))
-			case types.EventTokenPreCreate:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyHash{}))
-			case types.EventTokenFinishCreate:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyHash{}))
-			case types.EventTokenRevokeCreate:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyHash{}))
-			case types.EventSellToken:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Reply{}))
-			case types.EventBuyToken:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Reply{}))
-			case types.EventRevokeSellToken:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Reply{}))
 			case types.EventLocalGet:
 				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.LocalReplyValue{}))
 			default:
