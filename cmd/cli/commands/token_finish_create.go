@@ -38,6 +38,6 @@ func tokenFinishCreate(cmd *cobra.Command, args []string) {
 		OwnerAddr:    owner,
 	}
 	var res jsonrpc.ReplyHash
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.TokenFinishCreate", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.TokenFinishCreate", params, &res)
 	ctx.Run()
 }

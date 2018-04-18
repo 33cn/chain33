@@ -65,6 +65,6 @@ func sellToken(cmd *cobra.Command, args []string) {
 		Owner: owner,
 	}
 	var res jsonrpc.ReplyHash
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.SellToken", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SellToken", params, &res)
 	ctx.Run()
 }

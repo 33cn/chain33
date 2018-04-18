@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
+	"gitlab.33.cn/chain33/chain33/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/version"
 )
@@ -27,17 +27,16 @@ func init() {
 	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "RPC listen address")
 
 	rootCmd.AddCommand(
-		commands.CommonCmd(),
-		commands.SeedCmd(),
-		commands.KeyCmd(),
 		commands.AccountCmd(),
-		commands.TxCmd(),
-		commands.TokenCmd(),
-		commands.TicketCmd(),
-		commands.MempoolCmd(),
-		commands.WalletCmd(),
 		commands.AddressCmd(),
 		commands.BlockCmd(),
+		commands.CommonCmd(),
+		commands.MempoolCmd(),
+		commands.SeedCmd(),
+		commands.TicketCmd(),
+		commands.TokenCmd(),
+		commands.TxCmd(),
+		commands.WalletCmd(),
 		versionCmd)
 }
 

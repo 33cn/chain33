@@ -46,7 +46,7 @@ func tokenBalance(cmd *cobra.Command, args []string) {
 		Execer:      execer,
 	}
 	var res []*jsonrpc.Account
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetTokenBalance", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTokenBalance", params, &res)
 	ctx.SetResultCb(parseTokenBalanceRes)
 	ctx.Run()
 }

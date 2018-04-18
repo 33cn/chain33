@@ -30,16 +30,16 @@ func addBuyTokenFlags(cmd *cobra.Command) {
 func buyToken(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	buyer, _ := cmd.Flags().GetString("buyer")
-	sellID, _ := cmd.Flags().GetString("sellid")
+	sellId, _ := cmd.Flags().GetString("sellid")
 	amount, _ := cmd.Flags().GetInt64("amount")
 	params := &types.ReqBuyToken{
 		Buy: &types.TradeForBuy{
-			Sellid:      sellID,
+			Sellid:      sellId,
 			Boardlotcnt: amount,
 		},
 		Buyer: buyer,
 	}
 	var res jsonrpc.ReplyHash
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.BuyToken", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.BuyToken", params, &res)
 	ctx.Run()
 }
