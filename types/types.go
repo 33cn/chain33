@@ -337,13 +337,7 @@ func (tx *Transaction) ActionName() string {
 }
 
 func (block *Block) Hash() []byte {
-	head := &Header{}
-	head.Version = block.Version
-	head.ParentHash = block.ParentHash
-	head.TxHash = block.TxHash
-	head.BlockTime = block.BlockTime
-	head.Height = block.Height
-	data, err := proto.Marshal(head)
+	data, err := proto.Marshal(block.GetHeader())
 	if err != nil {
 		panic(err)
 	}
@@ -357,6 +351,11 @@ func (block *Block) GetHeader() *Header {
 	head.TxHash = block.TxHash
 	head.BlockTime = block.BlockTime
 	head.Height = block.Height
+	if head.Height >= ForkBlockHash {
+		head.Difficulty = block.Difficulty
+		head.StateHash = block.StateHash
+		head.TxCount = int64(len(block.Txs))
+	}
 	return head
 }
 
