@@ -182,6 +182,16 @@ func (nf *NodeInfo) IsNatDone() bool {
 	return atomic.LoadInt32(&nf.natDone) == 1
 }
 
+func (nf *NodeInfo) IsOutService() bool {
+	if nf.IsNatDone() == false {
+		return false
+	}
+	if OutSide == true || Service == 7 {
+		return true
+	}
+	return false
+}
+
 func (bl *BlackList) Add(addr string) {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
