@@ -508,15 +508,11 @@ func GetEventName(event int) string {
 }
 
 func GetSignatureTypeName(signType int) string {
-	if signType == 1 {
-		return "secp256k1"
-	} else if signType == 2 {
-		return "ed25519"
-	} else if signType == 3 {
-		return "sm2"
-	} else {
-		return "unknow"
+	if name, exist := MapSignType2name[signType]; exist {
+		return name
 	}
+
+	return "unknow"
 }
 
 func ConfigKey(key string) string {

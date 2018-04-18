@@ -3,9 +3,11 @@ package privacy
 import (
 	"bytes"
 	"unsafe"
-	"gitlab.33.cn/chain33/chain33/common/ed25519"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
+	"golang.org/x/crypto/sha3"
+	"fmt"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 
@@ -16,9 +18,39 @@ func (privKey PrivKeyPrivacy) Bytes() []byte {
 }
 
 func (privKey PrivKeyPrivacy) Sign(msg []byte) Signature {
-	privKeyBytes := [64]byte(privKey)
-	signatureBytes := ed25519.Sign(&privKeyBytes, msg)
-	return SignatureOnetime(*signatureBytes)
+
+	fmt.Printf("~~~~~~~~~~~~~~privKey is:%X\n", privKey[:])
+
+	temp := new([64]byte)
+	randomScalar := new([32]byte)
+    copy(temp[:], CRandBytes(64))
+	edwards25519.ScReduce(randomScalar, temp)
+
+	////////////////////
+	randomScalarStub, _ := common.Hex2Bytes("FE7B1D8218D0B02C402BCA5AB2F6B6726C662E5CADA915D0D72323CA2F60D403")
+	copy(randomScalar[:], randomScalarStub)
+	fmt.Printf("~~~~~~~~~~~~~~randomScalar is:%X\n", randomScalar[:])
+	////////////////////
+
+	var sigcommdata sigcommArray
+	sigcommPtr := (*sigcomm)(unsafe.Pointer(&sigcommdata))
+	copy(sigcommPtr.pubkey[:], privKey.PubKey().Bytes())
+	hash := sha3.Sum256(msg)
+	copy(sigcommPtr.hash[:], hash[:])
+
+	var K edwards25519.ExtendedGroupElement
+	edwards25519.GeScalarMultBase(&K, randomScalar)
+	K.ToBytes((*[KeyLen32]byte)(unsafe.Pointer(&sigcommPtr.comm[0])))
+
+	var sigOnetime SignatureOnetime
+	addr32 := (*[KeyLen32]byte)(unsafe.Pointer(&sigOnetime))
+	hash2scalar(sigcommdata[:], addr32)
+
+	addr32Latter := (*[KeyLen32]byte)(unsafe.Pointer(&sigOnetime[KeyLen32]))
+	addr32Priv := (*[KeyLen32]byte)(unsafe.Pointer(&privKey))
+	edwards25519.ScMulSub(addr32Latter, addr32, addr32Priv, randomScalar)
+
+    return sigOnetime
 }
 
 func (privKey PrivKeyPrivacy) PubKey() PubKey {

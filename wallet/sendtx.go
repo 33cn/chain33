@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"unsafe"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
@@ -793,8 +794,22 @@ func (wallet *Wallet) modifyConfig(priv crypto.PrivKey, req *types.ReqModifyConf
 
 func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.ReplyHash, error) {
 	privacyPtr := &privacy.Privacy{}
-	viewPublic := (*[32]byte)(unsafe.Pointer(&[]byte(reqPub2Pri.ViewPublic)[0]))
-	spendPublic := (*[32]byte)(unsafe.Pointer(&[]byte(reqPub2Pri.SpendPublic)[0]))
+
+	viewPubSlice, err := common.FromHex(reqPub2Pri.ViewPublic)
+	if err != nil {
+		return nil, err
+	}
+	spendPubSlice, err := common.FromHex(reqPub2Pri.SpendPublic)
+	if err != nil {
+		return nil, err
+	}
+
+	if 32 != len(viewPubSlice) || 32 != len(spendPubSlice) {
+		return nil, types.ErrPubKeyLen
+	}
+
+	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
 
 	pubkeyOnetime, txPublicKey, err := privacyPtr.GenerateOneTimeAddr(viewPublic, spendPublic)
 	if err != nil {
@@ -840,10 +855,20 @@ func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub
 }
 
 func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
-	viewPublic := (*[32]byte)(unsafe.Pointer(&[]byte(reqPri2Pri.ViewPublic)[0]))
-	spendPublic := (*[32]byte)(unsafe.Pointer(&[]byte(reqPri2Pri.SpendPublic)[0]))
+	viewPublicSlice, spendPublicSlice, err := convertPubPairstr2bytes(&reqPri2Pri.ViewPublic, &reqPri2Pri.SpendPublic)
+	if err != nil {
+		return nil, err
+	}
+	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPublicSlice[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPublicSlice[0]))
+
+	walletlog.Info("transPri2Pri", "viewPublic", viewPublic, "spendPublic", spendPublic,)
 
 	pubkeyOnetime, txPublicKey, err := privacykeyParirs.GenerateOneTimeAddr(viewPublic, spendPublic)
+	if err != nil {
+		walletlog.Error("transPri2Pri", "Failed to GenerateOneTimeAddr")
+		return nil, err
+	}
 	value := &types.Privacy2Privacy{
 		Op4Token:    reqPri2Pri.Op4Token,
 		Token:       reqPri2Pri.Token,
@@ -865,27 +890,32 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 		To:      addrOneTime,
 	}
 
-	txhash := []byte(reqPri2Pri.Txhash)
-	txhahes := make([][]byte, 1)
-	txhahes[0] = txhash
+    txhash, err := common.FromHex(reqPri2Pri.Txhash)
+    if err != nil {
+    	return nil, err
+	}
 	var reqHashes types.ReqHashes
-	reqHashes.Hashes = txhahes
+	reqHashes.Hashes = append(reqHashes.Hashes, txhash)
+
 	R, err := wallet.GetRofPrivateTx(&reqHashes)
 	if err != nil {
+		walletlog.Error("transPri2Pri", "Failed to GetRofPrivateTx")
 		return nil, err
 	}
+	walletlog.Info("transPri2Pri", "R of GetRofPrivateTx", R)
 	//x = Hs(aR) + b
 	priv, err := privacykeyParirs.RecoverOnetimePriKey(R, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
 	if err != nil {
+		walletlog.Error("transPri2Pri", "Failed to RecoverOnetimePriKey", err)
 		return nil, err
 	}
-	tx.Sign(int32(SignTypeED25519), priv)
+	tx.Sign(int32(types.SignTypeOnetimeED25519), priv)
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)
 	resp, err := wallet.client.Wait(msg)
 	if err != nil {
-		walletlog.Error("revoke sell token", "Send err", err)
+		walletlog.Error("transPri2Pri", "Send err", err)
 		return nil, err
 	}
 
@@ -932,7 +962,7 @@ func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub
 	if err != nil {
 		return nil, err
 	}
-	tx.Sign(int32(SignTypeED25519), priv)
+	tx.Sign(int32(types.SignTypeOnetimeED25519), priv)
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)
@@ -957,23 +987,23 @@ func (wallet *Wallet) GetRofPrivateTx(ReqHashes *types.ReqHashes)(R_txpubkey []b
 	wallet.client.Send(msg, true)
 	resp, err := wallet.client.Wait(msg)
 	if err != nil {
-		walletlog.Error("GetPrivateTxByHashes EventGetTransactionByHash", "err", err)
+		walletlog.Error("GetRofPrivateTx EventGetTransactionByHash", "err", err)
 		return nil, err
 	}
 	TxDetails := resp.GetData().(*types.TransactionDetails)
 	if TxDetails == nil {
-		walletlog.Info("GetPrivateTxByHashes TransactionDetails is nil")
+		walletlog.Error("GetRofPrivateTx TransactionDetails is nil")
 		return nil, errors.New("ErrTxDetail")
 	}
 
 	if "privacy" != string(TxDetails.Txs[0].Tx.Execer) {
-		walletlog.Info("GetPrivateTxByHashes get tx but not privacy")
+		walletlog.Error("GetRofPrivateTx get tx but not privacy")
 		return nil, errors.New("ErrPrivacyExecer")
 	}
 
 	var privateAction types.PrivacyAction
 	if err := types.Decode(TxDetails.Txs[0].Tx.Payload, &privateAction); err != nil {
-		walletlog.Info("GetPrivateTxByHashes failed to decode payload")
+		walletlog.Error("GetRofPrivateTx failed to decode payload")
 		return nil, errors.New("ErrPrivacyPayload")
 	}
 
@@ -985,6 +1015,23 @@ func (wallet *Wallet) GetRofPrivateTx(ReqHashes *types.ReqHashes)(R_txpubkey []b
 		walletlog.Info("GetPrivateTxByHashes failed to get value required", "privacy type is", privateAction.Ty)
 		return nil, errors.New("ErrPrivacyType")
 	}
+}
+
+func convertPubPairstr2bytes(viewPub, spendPub *string) (viewPubSlice, spendPubSlice []byte, err error) {
+	viewPubSlice, err = common.FromHex(*viewPub)
+	if err != nil {
+		return nil, nil, err
+	}
+	spendPubSlice, err = common.FromHex(*spendPub)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if 32 != len(viewPubSlice) || 32 != len(spendPubSlice) {
+		return nil, nil, types.ErrPubKeyLen
+	}
+
+	return
 }
 
 

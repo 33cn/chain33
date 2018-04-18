@@ -1511,7 +1511,7 @@ func GetWalletStatus(isCloseTickets bool) (interface{}, error) {
 
 func GetBalance(address string, execer string) {
 	isExecer := false
-	for _, e := range [7]string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+	for _, e := range [8]string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "privacy"} {
 		if e == execer {
 			isExecer = true
 			break
@@ -1595,7 +1595,7 @@ func GetTokenBalance(addresses []string, tokenSymbol string, execer string) {
 func GetExecAddr(exec string, needPrint bool) string {
 	var addr string
 	switch exec {
-	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
+	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "privacy":
 		addrResult := account.ExecAddress(exec)
 		result := addrResult.String()
 		data, err := json.MarshalIndent(result, "", "    ")
@@ -2618,7 +2618,7 @@ func ManageConfigTransactioin(key, op, opAddr, priv string) {
 
 ////////////////privacy////////////////////////////
 func ShowPrivacykey(addr string) {
-	params := &types.ReqString{
+	params := &types.ReqStr{
 		addr,
 	}
 
