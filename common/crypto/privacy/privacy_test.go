@@ -2,60 +2,182 @@ package privacy
 
 import (
 	"testing"
-	"unsafe"
-	"bytes"
+	//"unsafe"
+	//"bytes"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/types"
 )
+//
+//func TestPrivacyOnetimeKey(t *testing.T) {
+//	t.Logf("Begin to do TestPrivacyOnetimeKey\n")
+//
+//	priKey := "BC7621CE84D3D67851326C360B518DB5"
+//	pribyte, _ := common.Hex2Bytes(priKey)
+//	priaddr32 := (*[32]byte)(unsafe.Pointer(&pribyte[0]))
+//	privacyInfo, err := NewPrivacyWithPrivKey(priaddr32)
+//	if err != nil {
+//		t.Errorf("Failed to NewPrivacyWithPrivKey", "err info is", err)
+//		return
+//	}
+//
+//	t.Logf("viewprikey:%X, viewpubkey:%X\n", privacyInfo.ViewPrivKey, privacyInfo.ViewPubkey)
+//	t.Logf("spendprikey:%X, spendpubkey:%X\n", privacyInfo.SpendPrivKey, privacyInfo.SpendPubkey)
+//
+//	viewPublic := (*[32]byte)(unsafe.Pointer(&privacyInfo.ViewPubkey[0]))
+//	spendPublic := (*[32]byte)(unsafe.Pointer(&privacyInfo.SpendPubkey[0]))
+//	pubkeyOnetime, txPublicKey, err := privacyInfo.GenerateOneTimeAddr(viewPublic, spendPublic)
+//	if err != nil {
+//		t.Errorf("Failed to GenerateOneTimeAddr")
+//		return
+//	}
+//	t.Logf("The generated pubkeyOnetime: %X \n", pubkeyOnetime[:])
+//	t.Logf("The generated txPublicKey:   %X \n", txPublicKey[:])
+//
+//	onetimePriKey, err := privacyInfo.RecoverOnetimePriKey(txPublicKey[:], privacyInfo.ViewPrivKey, privacyInfo.SpendPrivKey)
+//	if err != nil {
+//		t.Errorf("Failed to RecoverOnetimePriKey")
+//		return
+//	}
+//	t.Logf("The recovered one time privicy key is:%X", onetimePriKey.Bytes())
+//
+//	recoverPub := onetimePriKey.PubKey().Bytes()[:]
+//	originPub := pubkeyOnetime[:]
+//	t.Logf("****￥￥￥*****The recoverPub key is:%X", recoverPub)
+//	t.Logf("****￥￥￥*****The originPub  key is:%X", originPub)
+//
+//
+//	if !bytes.Equal(recoverPub, originPub) {
+//		t.Failed()
+//		t.Errorf("recoverPub is not equal to originPub")
+//		return
+//
+//	} else {
+//		t.Logf("Yea!!! Succeed to do the TestPrivacyOnetimeKey.")
+//	}
+//
+//	t.Logf("End to do TestPrivacyOnetimeKey\n")
+//}
 
-func TestPrivacyOnetimeKey(t *testing.T) {
-	t.Logf("Begin to do TestPrivacyOnetimeKey\n")
+//func TestPrivacySign(t *testing.T) {
+//	t.Logf("Begin to do TestPrivacyOnetimeKey\n")
+//
+//	priKey := "BC7621CE84D3D67851326C360B518DB5"
+//	pribyte, _ := common.Hex2Bytes(priKey)
+//	priaddr32 := (*[32]byte)(unsafe.Pointer(&pribyte[0]))
+//	privacyInfo, err := NewPrivacyWithPrivKey(priaddr32)
+//	if err != nil {
+//		t.Errorf("Failed to NewPrivacyWithPrivKey", "err info is", err)
+//		return
+//	}
+//
+//	t.Logf("viewprikey:%X, viewpubkey:%X\n", privacyInfo.ViewPrivKey, privacyInfo.ViewPubkey)
+//	t.Logf("spendprikey:%X, spendpubkey:%X\n", privacyInfo.SpendPrivKey, privacyInfo.SpendPubkey)
+//
+//	viewPublic := (*[32]byte)(unsafe.Pointer(&privacyInfo.ViewPubkey[0]))
+//	spendPublic := (*[32]byte)(unsafe.Pointer(&privacyInfo.SpendPubkey[0]))
+//	pubkeyOnetime, txPublicKey, err := privacyInfo.GenerateOneTimeAddr(viewPublic, spendPublic)
+//	if err != nil {
+//		t.Errorf("Failed to GenerateOneTimeAddr")
+//		return
+//	}
+//	t.Logf("The generated pubkeyOnetime: %X \n", pubkeyOnetime[:])
+//	t.Logf("The generated txPublicKey:   %X \n", txPublicKey[:])
+//
+//	onetimePriKey, err := privacyInfo.RecoverOnetimePriKey(txPublicKey[:], privacyInfo.ViewPrivKey, privacyInfo.SpendPrivKey)
+//	if err != nil {
+//		t.Errorf("Failed to RecoverOnetimePriKey")
+//		return
+//	}
+//	t.Logf("The recovered one time privicy key is:%X", onetimePriKey.Bytes())
+//
+//	recoverPub := onetimePriKey.PubKey().Bytes()[:]
+//	originPub := pubkeyOnetime[:]
+//	t.Logf("****￥￥￥*****The recoverPub key is:%X", recoverPub)
+//	t.Logf("****￥￥￥*****The originPub  key is:%X", originPub)
+//
+//
+//	if !bytes.Equal(recoverPub, originPub) {
+//		t.Failed()
+//		t.Errorf("recoverPub is not equal to originPub")
+//		return
+//
+//	} else {
+//		t.Logf("Yea!!! Succeed to do the TestPrivacyOnetimeKey.")
+//	}
+//    data := []byte("Yea!!! Succeed to do the TestPrivacyOnetimeKey")
+//	sig := onetimePriKey.Sign(data)
+//	sign := &types.Signature{
+//		Ty: 4,
+//		Pubkey: recoverPub,
+//		Signature:sig.Bytes(),
+//	}
+//
+//	c := &OneTimeEd25519{}
+//
+//	pub, err := c.PubKeyFromBytes(sign.Pubkey)
+//	if err != nil {
+//		t.Failed()
+//		t.Errorf("Failed to PubKeyFromBytes")
+//		return
+//	}
+//	signbytes, err := c.SignatureFromBytes(sign.Signature)
+//	if err != nil {
+//		t.Failed()
+//		t.Errorf("Failed to SignatureFromBytes")
+//		return
+//	}
+//
+//	if pub.VerifyBytes(data, signbytes) {
+//		t.Logf("Yea!!! Succeed to pass CheckSign.")
+//
+//	} else {
+//		t.Failed()
+//		t.Errorf("Fail the CheckSign")
+//		return
+//
+//	}
+//
+//	t.Logf("End to do TestPrivacyOnetimeKey\n")
+//}
 
-	//receiver's key-pair
-	viewprikey := PrivacyProc.GenPriKey()
-	viewPublic := PrivacyProc.MakePublicKey((*[32]byte)(unsafe.Pointer(&viewprikey.Bytes()[0])))
-	//viewpubkey := viewprikey.PubKey()
-	spendprikey := PrivacyProc.GenPriKey()
-	spendPublic := PrivacyProc.MakePublicKey((*[32]byte)(unsafe.Pointer(&spendprikey.Bytes()[0])))
+func TestPrivacySignWithFixInput(t *testing.T) {
+	prislice, _ := common.Hex2Bytes("9E0ED368F3DDAA9F472FE7F319F866227A74A2EF16B43410CEB3CE7C1BAAEB09")
+	var onetimePriKey PrivKeyPrivacy
+	copy(onetimePriKey[:], prislice)
 
-	//viewPublic := (*[32]byte)(unsafe.Pointer(&viewpubkey.Bytes()[0]))
-	//spendPublic := (*[32]byte)(unsafe.Pointer(&spendpubkey.Bytes()[0]))
+	recoverPub := onetimePriKey.PubKey().Bytes()[:]
 
-    t.Logf("viewprikey:%X, viewpubkey:%X\n", viewprikey.Bytes(), viewPublic[:])
-	t.Logf("spendprikey:%X, spendpubkey:%X\n", spendprikey.Bytes(), spendPublic[:])
-
-	pubkeyOnetime, txPublicKey, err := PrivacyProc.GenerateOneTimeAddr(viewPublic, spendPublic)
-	if err != nil {
-		t.Errorf("Failed to GenerateOneTimeAddr")
-		return
+	data := []byte("Yea!!! Succeed to do the TestPrivacyOnetimeKey")
+	sig := onetimePriKey.Sign(data)
+	sign := &types.Signature{
+		Ty: 4,
+		Pubkey: recoverPub,
+		Signature:sig.Bytes(),
 	}
-	//addrOneTime := account.PubKeyToAddress(pubkeyOnetime[:]).String()
-	t.Logf("The generated pubkeyOnetime: %X \n", pubkeyOnetime[:])
-	t.Logf("The generated txPublicKey:   %X \n", txPublicKey[:])
 
-	onetimePriKey, err := PrivacyProc.RecoverOnetimePriKey(txPublicKey[:], viewprikey, spendprikey)
+	c := &OneTimeEd25519{}
+
+	pub, err := c.PubKeyFromBytes(sign.Pubkey)
 	if err != nil {
-		t.Errorf("Failed to RecoverOnetimePriKey")
-		return
-	}
-	t.Logf("The recovered one time privicy key is:%X", onetimePriKey.Bytes())
-
-	recoverPub := PrivacyProc.MakePublicKey((*[32]byte)(unsafe.Pointer(&onetimePriKey.Bytes()[0])))[:]
-	originPub := pubkeyOnetime[:]
-	t.Logf("****￥￥￥*****The recoverPub key is:%X", recoverPub)
-	t.Logf("****￥￥￥*****The originPub  key is:%X", originPub)
-
-	//recoverPub := onetimePriKey.PubKey()
-	//originPub, err := ed25519Driver.PubKeyFromBytes(pubkeyOnetime[:])
-	//if err != nil {
-	//	t.Errorf("Failed to ed25519Driver.PubKeyFromBytes")
-	//}
-	if !bytes.Equal(recoverPub, originPub) {
-	//if !recoverPub.Equals(originPub){
 		t.Failed()
-		t.Errorf("recoverPub is not equal to originPub")
+		t.Errorf("Failed to PubKeyFromBytes")
 		return
+	}
+	signbytes, err := c.SignatureFromBytes(sign.Signature)
+	if err != nil {
+		t.Failed()
+		t.Errorf("Failed to SignatureFromBytes")
+		return
+	}
+
+	if pub.VerifyBytes(data, signbytes) {
+		t.Logf("Yea!!! Succeed to pass CheckSign.")
 
 	} else {
-		t.Logf("Yea!!! Succeed to do the TestPrivacyOnetimeKey.")
+		t.Failed()
+		t.Errorf("Fail the CheckSign")
+		return
+
 	}
 
 	t.Logf("End to do TestPrivacyOnetimeKey\n")

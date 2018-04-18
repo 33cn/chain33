@@ -26,7 +26,8 @@ var privacylog = log.New("module", "execs.privacy")
 
 func init() {
 	t := newPrivacy()
-	drivers.Register(t.GetName(), t, types.ForkV5_add_privacy)
+	//drivers.Register(t.GetName(), t, types.ForkV5_add_privacy)
+	drivers.Register(t.GetName(), t, 0)
 }
 
 type privacy struct {

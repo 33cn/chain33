@@ -793,7 +793,7 @@ func (c *channelClient) IsNtpClockSync() bool {
 }
 
 //////////privacy tx//////////////////////////////
-func (c *channelClient) ShowPrivacykey(parm *types.ReqString) (*types.ReplyPrivacyPkPair, error) {
+func (c *channelClient) ShowPrivacykey(parm *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
 	msg := c.NewMessage("wallet", types.EventShowPrivacyPK, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -825,6 +825,7 @@ func (c *channelClient) MakeTxPublic2privacy(parm *types.ReqPub2Pri) (*types.Rep
 }
 
 func (c *channelClient) MakeTxPrivacy2privacy(parm *types.ReqPri2Pri) (*types.Reply, error) {
+	log.Info("MakeTxPrivacy2privacy is called","sender", parm.Sender)
 	msg := c.NewMessage("wallet", types.EventPrivacy2privacy, parm)
 	err := c.Send(msg, true)
 	if err != nil {
