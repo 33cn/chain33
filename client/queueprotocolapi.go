@@ -35,6 +35,8 @@ type QueueProtocolAPI interface {
 	IsNtpClockSync() (bool, error)
 	// types.EventLocalGet
 	LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error)
+	// types.EventGetLastHeader
+	GetLastHeader() (*types.Header, error)
 
 	// types.EventWalletGetAccountList
 	WalletGetAccountList() (*types.WalletAccounts, error)
