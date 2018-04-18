@@ -445,6 +445,7 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
+
 			if !P2pComm.CheckSign(ping) {
 				log.Error("ServerStreamRead", "check stream", "check sig err")
 				return pb.ErrStreamPing
@@ -488,9 +489,9 @@ func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 	}
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
-
+	log.Info("CollectInPeers", "inpeers", inPeers)
 	for _, inpeer := range inPeers {
-		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name}) ///仅用name字段，用于统计peer num.
+		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: in.GetAddr(), Port: in.GetPort()}) ///仅用name,addr,port字段，用于统计peer num.
 	}
 
 	return &pb.PeerList{Peers: p2pPeers}, nil

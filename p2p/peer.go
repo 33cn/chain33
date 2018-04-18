@@ -203,12 +203,14 @@ func (p *peer) sendStream() {
 					}
 
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+					Filter.RegRecvData(blockhash)
 
 				} else if tx, ok := task.(*pb.P2PTx); ok {
 					hex.Encode(hash[:], tx.GetTx().Hash())
 					txhash := string(hash[:])
 					log.Debug("sendStream", "will send tx", txhash)
 					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+					Filter.RegRecvData(txhash)
 				}
 
 				err := resp.Send(p2pdata)
