@@ -118,6 +118,7 @@ func CreateRawTransferCmd() *cobra.Command {
 	addCreateTransferFlags(cmd)
 	return cmd
 }
+
 // TODO
 func addCreateTransferFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key of sender")
@@ -156,6 +157,7 @@ func CreateRawWithdrawCmd() *cobra.Command {
 	addCreateWithdrawFlags(cmd)
 	return cmd
 }
+
 // TODO
 func addCreateWithdrawFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key of user")
@@ -317,7 +319,6 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 //	addGetTxsByHashesFlags(cmd)
 //	return cmd
 //}
-
 
 // get raw transaction hex
 func GetRawTxCmd() *cobra.Command {

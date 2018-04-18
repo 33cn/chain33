@@ -120,8 +120,8 @@ type WalletTxDetailResult struct {
 
 type AddrOverviewResult struct {
 	Receiver string `json:"receiver"`
-	Balance string `json:"balance"`
-	TxCount int64  `json:"txCount"`
+	Balance  string `json:"balance"`
+	TxCount  int64  `json:"txCount"`
 }
 
 type SellOrder2Show struct {
