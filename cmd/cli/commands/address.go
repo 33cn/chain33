@@ -15,21 +15,21 @@ import (
 func AddressCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "addr",
-		Short: "Address managerment",
+		Short: "Address management",
 		Args:  cobra.MinimumNArgs(1),
 	}
 
 	cmd.AddCommand(
-		AddressViewCmd(),
-		GetAddressCmd(),
-		ColdAddressOfMinerCmd(),
+		GetAddrOverviewCmd(),
+		GetExecAddrCmd(),
+		GetColdAddrByMinerCmd(),
 	)
 
 	return cmd
 }
 
-// view
-func AddressViewCmd() *cobra.Command {
+// get overview of an address
+func GetAddrOverviewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "view",
 		Short: "View transactions of address",
@@ -52,28 +52,28 @@ func viewAddress(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.AddrOverview
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
 	ctx.SetResultCb(parseAddrOverview)
 	ctx.Run()
 }
 
 func parseAddrOverview(view interface{}) (interface{}, error) {
 	res := view.(*types.AddrOverview)
-	Balance := strconv.FormatFloat(float64(res.GetBalance())/float64(types.Coin), 'f', 4, 64)
-	Reciver := strconv.FormatFloat(float64(res.GetReciver())/float64(types.Coin), 'f', 4, 64)
+	balance := strconv.FormatFloat(float64(res.GetBalance())/float64(types.Coin), 'f', 4, 64)
+	receiver := strconv.FormatFloat(float64(res.GetReciver())/float64(types.Coin), 'f', 4, 64)
 	addrOverview := &AddrOverviewResult{
-		Balance: Balance,
-		Reciver: Reciver,
+		Balance: balance,
+		Receiver: receiver,
 		TxCount: res.GetTxCount(),
 	}
 	return addrOverview, nil
 }
 
-// get
-func GetAddressCmd() *cobra.Command {
+// get address of an execer
+func GetExecAddrCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "get",
-		Short: "Get address of executer",
+		Use:   "exec",
+		Short: "Get address of executor",
 		Run:   getAddrByExec,
 	}
 	addGetAddrFlags(cmd)
@@ -81,7 +81,7 @@ func GetAddressCmd() *cobra.Command {
 }
 
 func addGetAddrFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("exec", "e", "", `executer name ("none", "coins", "hashlock", "retrieve", "ticket", "token" and "trade" supported)`)
+	cmd.Flags().StringP("exec", "e", "", `executor name ("none", "coins", "hashlock", "retrieve", "ticket", "token" and "trade" supported)`)
 	cmd.MarkFlagRequired("exec")
 }
 
@@ -104,8 +104,8 @@ func getAddrByExec(cmd *cobra.Command, args []string) {
 	}
 }
 
-// cold
-func ColdAddressOfMinerCmd() *cobra.Command {
+// get cold address by miner
+func GetColdAddrByMinerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cold",
 		Short: "Get cold wallet address of miner",
@@ -132,6 +132,6 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	params.Payload = reqaddr
 
 	var res types.Message
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }

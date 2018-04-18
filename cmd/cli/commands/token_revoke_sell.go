@@ -27,14 +27,14 @@ func addRevokeSellTokenFlags(cmd *cobra.Command) {
 func revokeSellToken(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	seller, _ := cmd.Flags().GetString("seller")
-	sellID, _ := cmd.Flags().GetString("sellid")
+	sellId, _ := cmd.Flags().GetString("sellid")
 	params := &types.ReqRevokeSell{
 		Revoke: &types.TradeForRevokeSell{
-			Sellid: sellID,
+			Sellid: sellId,
 		},
 		Owner: seller,
 	}
 	var res jsonrpc.ReplyHash
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.RevokeSellToken", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.RevokeSellToken", params, &res)
 	ctx.Run()
 }

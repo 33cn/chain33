@@ -41,7 +41,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		Isdetail: false,
 	}
 
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonrpc.NewJsonClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

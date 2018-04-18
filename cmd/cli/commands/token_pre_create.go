@@ -58,6 +58,6 @@ func tokenPreCreate(cmd *cobra.Command, args []string) {
 		Price:        price * types.Coin,
 	}
 	var res jsonrpc.ReplyHash
-	ctx := NewRPCCtx(rpcLaddr, "Chain33.TokenPreCreate", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.TokenPreCreate", params, &res)
 	ctx.Run()
 }
