@@ -22,7 +22,7 @@ type channelClient struct {
 
 func (c *channelClient) Init(q queue.Client) {
 	c.Client = q
-	c.api, _ = client.NewQueueAPI(q)
+	c.api, _ = client.New(q)
 }
 
 func (c *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, error) {
