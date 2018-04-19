@@ -28,7 +28,6 @@ func init() {
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),
-		//commands.AddressCmd(),
 		commands.BlockCmd(),
 		commands.BTYCmd(),
 		commands.ConfigCmd(),
