@@ -158,7 +158,7 @@ func (p *peer) sendStream() {
 			continue
 		}
 		//send ping package
-		ping, err := P2pComm.NewPingData(p)
+		ping, err := P2pComm.NewPingData(*p.nodeInfo)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -252,7 +252,7 @@ func (p *peer) readStream() {
 			log.Debug("readstream", "loop", "done")
 			return
 		}
-		ping, err := P2pComm.NewPingData(p)
+		ping, err := P2pComm.NewPingData(*p.nodeInfo)
 		if err != nil {
 			log.Error("readStream", "err:", err.Error())
 			continue

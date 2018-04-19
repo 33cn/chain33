@@ -139,7 +139,7 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
-	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: Service, Nonce: in.Nonce,
+	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
 }
 
@@ -460,6 +460,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 }
 
+/**
+* 提供远程节点自身网络定位服务
+ */
 func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PExternalInfo, error) {
 	var remoteaddr string
 	var outside bool
@@ -472,10 +475,25 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 			outside = false
 		} else {
 			outside = true
-
 		}
 	}
 	return &pb.P2PExternalInfo{Addr: remoteaddr, Isoutside: outside}, nil
+}
+
+/**
+* 提供检验自身节点网络映射后服务是否开启的服务
+ */
+func (s *p2pServer) RemotePeerNatOk(ctx context.Context, in *pb.P2PPing) (*pb.P2PExternalInfo, error) {
+	if !P2pComm.CheckSign(in) {
+		return nil, pb.ErrPing
+	}
+	var natok bool
+	remoteaddr := fmt.Sprintf("%v:%v", in.GetAddr(), in.GetPort())
+	if len(P2pComm.AddrRouteble([]string{remoteaddr})) != 0 {
+		natok = true
+	}
+	return &pb.P2PExternalInfo{remoteaddr, natok}, nil
+
 }
 
 /**
