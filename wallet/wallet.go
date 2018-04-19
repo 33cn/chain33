@@ -173,6 +173,10 @@ func (wallet *Wallet) autoMining() {
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
 				}
+				err = wallet.processFees()
+				if err != nil {
+					walletlog.Error("processFees", "err", err)
+				}
 				hashes1, n2, err := wallet.buyTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("buyTicket", "err", err)
@@ -192,6 +196,10 @@ func (wallet *Wallet) autoMining() {
 				n1, err := wallet.closeTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
+				}
+				err = wallet.processFees()
+				if err != nil {
+					walletlog.Error("processFees", "err", err)
 				}
 				hashes, err := wallet.withdrawFromTicket()
 				if err != nil {
@@ -293,7 +301,7 @@ func (wallet *Wallet) flushTicket() {
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
-		walletlog.Debug("wallet recv", "msg", msg)
+		walletlog.Debug("wallet recv", "msg", msg.Id)
 		msgtype := msg.Ty
 		switch msgtype {
 
@@ -532,7 +540,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
-		walletlog.Debug("end process")
+		walletlog.Debug("end process", msg.Id)
 	}
 }
 

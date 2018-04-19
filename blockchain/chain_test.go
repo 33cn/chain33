@@ -192,7 +192,7 @@ func testProcAddBlockMsg(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcAddBlockMsg", "addblockheight", addblockheight)
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block, _, _ := ConstructionBlock(parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil})
+		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil}, "")
 		parentHash = block.Hash()
 	}
 
@@ -221,7 +221,7 @@ func testProcAddBlockDetail(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("TestProcAddBlockDetail", "addblockheight", addblockheight)
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block, _, _ = ConstructionBlockDetail(parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(true, block)
+		blockchain.ProcAddBlockMsg(true, block, "")
 		parentHash = block.Block.Hash()
 	}
 
@@ -429,7 +429,7 @@ func testProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
 	j := 0
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block, _, _ := ConstructionBlock(parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil})
+		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil}, "")
 		parentHash = block.Hash()
 		txhashs[j] = block.Txs[0].Hash()
 		j++
@@ -462,7 +462,7 @@ func testProcGetTransactionByAddr(t *testing.T, blockchain *BlockChain) {
 
 	for i := curheight + 1; i <= addblockheight; i++ {
 		block, fromaddr, toaddr = ConstructionBlock(parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil})
+		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil}, "")
 		parentHash = block.Hash()
 	}
 
