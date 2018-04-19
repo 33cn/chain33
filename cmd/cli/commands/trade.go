@@ -21,7 +21,6 @@ func TradeCmd() *cobra.Command {
 		RevokeSellTokenCmd(),
 		BuyTokenCmd(),
 		ShowTokenOrderCmd(),
-
 		TokenAssetsCmd(),
 	)
 
