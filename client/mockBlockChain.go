@@ -33,9 +33,9 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 			case types.EventIsSync:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsSync, &types.IsCaughtUp{}))
 			case types.EventIsNtpClockSync:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{}))
 			case types.EventGetLastHeader:
-				msg.Reply(client.NewMessage(walletKey, types.EventHeader, &types.Header{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventHeader, &types.Header{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
