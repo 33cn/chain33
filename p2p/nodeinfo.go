@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,7 +14,6 @@ type NodeInfo struct {
 	mtx            sync.Mutex
 	externalAddr   *NetAddress
 	listenAddr     *NetAddress
-	version        string
 	monitorChan    chan *peer
 	natNoticeChain chan struct{}
 	natResultChain chan bool
@@ -39,8 +37,7 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
 
-	os.MkdirAll(cfg.GetDbPath(), 0755)
-	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath())
+	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath(), cfg.GetDriver())
 
 	return nodeInfo
 }
@@ -60,7 +57,7 @@ func (p *PeerInfos) FlushPeerInfos(in []*types.Peer) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
-	for k, _ := range p.infos {
+	for k := range p.infos {
 		delete(p.infos, k)
 	}
 
@@ -114,7 +111,7 @@ func (nf *NodeInfo) flushPeerInfos(in []*types.Peer) {
 }
 func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 	var peerlist = make(map[string]*types.Peer)
-	peers := n.GetRegisterPeers()
+	peers := n.getRegisterPeers()
 	log.Debug("latestPeerInfo", "register peer num", len(peers))
 	for _, peer := range peers {
 

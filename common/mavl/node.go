@@ -4,28 +4,25 @@ import (
 	"bytes"
 
 	"github.com/golang/protobuf/proto"
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nodelog = log.New("module", "mptnode")
-
 // merkle avl Node
-type MAVLNode struct {
+type Node struct {
 	key       []byte
 	value     []byte
 	height    int32
 	size      int32
 	hash      []byte
 	leftHash  []byte
-	leftNode  *MAVLNode
+	leftNode  *Node
 	rightHash []byte
-	rightNode *MAVLNode
+	rightNode *Node
 	persisted bool
 }
 
-func NewMAVLNode(key []byte, value []byte) *MAVLNode {
-	return &MAVLNode{
+func NewNode(key []byte, value []byte) *Node {
+	return &Node{
 		key:    key,
 		value:  value,
 		height: 0,
@@ -35,8 +32,8 @@ func NewMAVLNode(key []byte, value []byte) *MAVLNode {
 
 // NOTE: The hash is not saved or set.  The caller should set the hash afterwards.
 // (Presumably the caller already has the hash)
-func MakeMAVLNode(buf []byte, t *MAVLTree) (node *MAVLNode, err error) {
-	node = &MAVLNode{}
+func MakeNode(buf []byte, t *Tree) (node *Node, err error) {
+	node = &Node{}
 
 	var storeNode types.StoreNode
 
@@ -60,11 +57,11 @@ func MakeMAVLNode(buf []byte, t *MAVLTree) (node *MAVLNode, err error) {
 	return node, nil
 }
 
-func (node *MAVLNode) _copy() *MAVLNode {
+func (node *Node) _copy() *Node {
 	if node.height == 0 {
 		panic("Why are you copying a value node?")
 	}
-	return &MAVLNode{
+	return &Node{
 		key:       node.key,
 		height:    node.height,
 		size:      node.size,
@@ -77,8 +74,8 @@ func (node *MAVLNode) _copy() *MAVLNode {
 	}
 }
 
-func (node *MAVLNode) has(t *MAVLTree, key []byte) (has bool) {
-	if bytes.Compare(node.key, key) == 0 {
+func (node *Node) has(t *Tree, key []byte) (has bool) {
+	if bytes.Equal(node.key, key) {
 		return true
 	}
 	if node.height == 0 {
@@ -92,7 +89,7 @@ func (node *MAVLNode) has(t *MAVLTree, key []byte) (has bool) {
 	}
 }
 
-func (node *MAVLNode) loadCache(t *MAVLTree, stopHeight int) {
+func (node *Node) loadCache(t *Tree, stopHeight int) {
 	if node.height == 0 || stopHeight <= 0 {
 		return
 	} else {
@@ -101,7 +98,7 @@ func (node *MAVLNode) loadCache(t *MAVLTree, stopHeight int) {
 	}
 }
 
-func (node *MAVLNode) get(t *MAVLTree, key []byte) (index int32, value []byte, exists bool) {
+func (node *Node) get(t *Tree, key []byte) (index int32, value []byte, exists bool) {
 	if node.height == 0 {
 		cmp := bytes.Compare(node.key, key)
 		if cmp == 0 {
@@ -124,7 +121,7 @@ func (node *MAVLNode) get(t *MAVLTree, key []byte) (index int32, value []byte, e
 }
 
 //通过index获取leaf节点信息
-func (node *MAVLNode) getByIndex(t *MAVLTree, index int32) (key []byte, value []byte) {
+func (node *Node) getByIndex(t *Tree, index int32) (key []byte, value []byte) {
 	if node.height == 0 {
 		if index == 0 {
 			return node.key, node.value
@@ -143,7 +140,7 @@ func (node *MAVLNode) getByIndex(t *MAVLTree, index int32) (key []byte, value []
 }
 
 // 计算节点的hash
-func (node *MAVLNode) Hash(t *MAVLTree) []byte {
+func (node *Node) Hash(t *Tree) []byte {
 	if node.hash != nil {
 		return node.hash
 	}
@@ -187,7 +184,7 @@ func (node *MAVLNode) Hash(t *MAVLTree) []byte {
 }
 
 // NOTE: clears leftNode/rigthNode recursively sets hashes recursively
-func (node *MAVLNode) save(t *MAVLTree) {
+func (node *Node) save(t *Tree) {
 	if node.hash == nil {
 		node.hash = node.Hash(t)
 	}
@@ -207,11 +204,10 @@ func (node *MAVLNode) save(t *MAVLTree) {
 
 	// save node
 	t.batch.SaveNode(t, node)
-	return
 }
 
 //将内存中的node转换成存储到db中的格式
-func (node *MAVLNode) storeNode(t *MAVLTree) []byte {
+func (node *Node) storeNode(t *Tree) []byte {
 	var storeNode types.StoreNode
 
 	// node header
@@ -246,26 +242,26 @@ func (node *MAVLNode) storeNode(t *MAVLTree) []byte {
 }
 
 //从指定node开始插入一个新的node，updated表示是否有叶子结点的value更新
-func (node *MAVLNode) set(t *MAVLTree, key []byte, value []byte) (newSelf *MAVLNode, updated bool) {
+func (node *Node) set(t *Tree, key []byte, value []byte) (newSelf *Node, updated bool) {
 	if node.height == 0 {
 		cmp := bytes.Compare(key, node.key)
 		if cmp < 0 {
-			return &MAVLNode{
+			return &Node{
 				key:       node.key,
 				height:    1,
 				size:      2,
-				leftNode:  NewMAVLNode(key, value),
+				leftNode:  NewNode(key, value),
 				rightNode: node,
 			}, false
 		} else if cmp == 0 {
-			return NewMAVLNode(key, value), true
+			return NewNode(key, value), true
 		} else {
-			return &MAVLNode{
+			return &Node{
 				key:       key,
 				height:    1,
 				size:      2,
 				leftNode:  node,
-				rightNode: NewMAVLNode(key, value),
+				rightNode: NewNode(key, value),
 			}, false
 		}
 	} else {
@@ -286,7 +282,7 @@ func (node *MAVLNode) set(t *MAVLTree, key []byte, value []byte) (newSelf *MAVLN
 	}
 }
 
-func (node *MAVLNode) getLeftNode(t *MAVLTree) *MAVLNode {
+func (node *Node) getLeftNode(t *Tree) *Node {
 	if node.leftNode != nil {
 		return node.leftNode
 	} else {
@@ -298,7 +294,7 @@ func (node *MAVLNode) getLeftNode(t *MAVLTree) *MAVLNode {
 	}
 }
 
-func (node *MAVLNode) getRightNode(t *MAVLTree) *MAVLNode {
+func (node *Node) getRightNode(t *Tree) *Node {
 	if node.rightNode != nil {
 		return node.rightNode
 	} else {
@@ -311,7 +307,7 @@ func (node *MAVLNode) getRightNode(t *MAVLTree) *MAVLNode {
 }
 
 // NOTE: overwrites node TODO: optimize balance & rotate
-func (node *MAVLNode) rotateRight(t *MAVLTree) *MAVLNode {
+func (node *Node) rotateRight(t *Tree) *Node {
 	node = node._copy()
 	l := node.getLeftNode(t)
 	_l := l._copy()
@@ -327,7 +323,7 @@ func (node *MAVLNode) rotateRight(t *MAVLTree) *MAVLNode {
 }
 
 // NOTE: overwrites node TODO: optimize balance & rotate
-func (node *MAVLNode) rotateLeft(t *MAVLTree) *MAVLNode {
+func (node *Node) rotateLeft(t *Tree) *Node {
 	node = node._copy()
 	r := node.getRightNode(t)
 	_r := r._copy()
@@ -343,17 +339,17 @@ func (node *MAVLNode) rotateLeft(t *MAVLTree) *MAVLNode {
 }
 
 // NOTE: mutates height and size
-func (node *MAVLNode) calcHeightAndSize(t *MAVLTree) {
+func (node *Node) calcHeightAndSize(t *Tree) {
 	node.height = maxInt32(node.getLeftNode(t).height, node.getRightNode(t).height) + 1
 	node.size = node.getLeftNode(t).size + node.getRightNode(t).size
 }
 
-func (node *MAVLNode) calcBalance(t *MAVLTree) int {
+func (node *Node) calcBalance(t *Tree) int {
 	return int(node.getLeftNode(t).height) - int(node.getRightNode(t).height)
 }
 
 // NOTE: assumes that node can be modified TODO: optimize balance & rotate
-func (node *MAVLNode) balance(t *MAVLTree) (newSelf *MAVLNode) {
+func (node *Node) balance(t *Tree) (newSelf *Node) {
 	if node.persisted {
 		panic("Unexpected balance() call on persisted node")
 	}
@@ -391,10 +387,10 @@ func (node *MAVLNode) balance(t *MAVLTree) (newSelf *MAVLNode) {
 // newHash/newNode: The new hash or node to replace node after remove.
 // newKey: new leftmost leaf key for tree after successfully removing 'key' if changed.
 // value: removed value.
-func (node *MAVLNode) remove(t *MAVLTree, key []byte) (
-	newHash []byte, newNode *MAVLNode, newKey []byte, value []byte, removed bool) {
+func (node *Node) remove(t *Tree, key []byte) (
+	newHash []byte, newNode *Node, newKey []byte, value []byte, removed bool) {
 	if node.height == 0 {
-		if bytes.Compare(key, node.key) == 0 {
+		if bytes.Equal(key, node.key) {
 			removeOrphan(t, node)
 			return nil, nil, nil, node.value, true
 		} else {
@@ -403,7 +399,7 @@ func (node *MAVLNode) remove(t *MAVLTree, key []byte) (
 	} else {
 		if bytes.Compare(key, node.key) < 0 {
 			var newLeftHash []byte
-			var newLeftNode *MAVLNode
+			var newLeftNode *Node
 			newLeftHash, newLeftNode, newKey, value, removed = node.getLeftNode(t).remove(t, key)
 			if !removed {
 				return node.hash, node, nil, value, false
@@ -418,7 +414,7 @@ func (node *MAVLNode) remove(t *MAVLTree, key []byte) (
 			return node.hash, node, newKey, value, true
 		} else {
 			var newRightHash []byte
-			var newRightNode *MAVLNode
+			var newRightNode *Node
 			newRightHash, newRightNode, newKey, value, removed = node.getRightNode(t).remove(t, key)
 			if !removed {
 				return node.hash, node, nil, value, false
@@ -438,7 +434,7 @@ func (node *MAVLNode) remove(t *MAVLTree, key []byte) (
 	}
 }
 
-func removeOrphan(t *MAVLTree, node *MAVLNode) {
+func removeOrphan(t *Tree, node *Node) {
 	if !node.persisted {
 		return
 	}
@@ -448,17 +444,17 @@ func removeOrphan(t *MAVLTree, node *MAVLNode) {
 }
 
 // 迭代整个树
-func (node *MAVLNode) traverse(t *MAVLTree, ascending bool, cb func(*MAVLNode) bool) bool {
-	return node.traverseInRange(t, nil, nil, ascending, false, 0, func(node *MAVLNode, depth uint8) bool {
+func (node *Node) traverse(t *Tree, ascending bool, cb func(*Node) bool) bool {
+	return node.traverseInRange(t, nil, nil, ascending, false, 0, func(node *Node, depth uint8) bool {
 		return cb(node)
 	})
 }
 
-func (node *MAVLNode) traverseWithDepth(t *MAVLTree, ascending bool, cb func(*MAVLNode, uint8) bool) bool {
+func (node *Node) traverseWithDepth(t *Tree, ascending bool, cb func(*Node, uint8) bool) bool {
 	return node.traverseInRange(t, nil, nil, ascending, false, 0, cb)
 }
 
-func (node *MAVLNode) traverseInRange(t *MAVLTree, start, end []byte, ascending bool, inclusive bool, depth uint8, cb func(*MAVLNode, uint8) bool) bool {
+func (node *Node) traverseInRange(t *Tree, start, end []byte, ascending bool, inclusive bool, depth uint8, cb func(*Node, uint8) bool) bool {
 	afterStart := start == nil || bytes.Compare(start, node.key) <= 0
 	beforeEnd := end == nil || bytes.Compare(node.key, end) < 0
 	if inclusive {
@@ -505,7 +501,7 @@ func (node *MAVLNode) traverseInRange(t *MAVLTree, start, end []byte, ascending 
 }
 
 // Only used in testing...
-func (node *MAVLNode) lmd(t *MAVLTree) *MAVLNode {
+func (node *Node) lmd(t *Tree) *Node {
 	if node.height == 0 {
 		return node
 	}
@@ -513,7 +509,7 @@ func (node *MAVLNode) lmd(t *MAVLTree) *MAVLNode {
 }
 
 // Only used in testing...
-func (node *MAVLNode) rmd(t *MAVLTree) *MAVLNode {
+func (node *Node) rmd(t *Tree) *Node {
 	if node.height == 0 {
 		return node
 	}

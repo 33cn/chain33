@@ -311,7 +311,7 @@ func (b *BlackList) deleteRecord(recordId []byte) Record {
 //TODO:由于levedb不支持多键值查询，因此在写接口函数的时候只能做些规避
 func (b *BlackList) queryRecord(recordId []byte) string {
 	blog.Debug("recordId:============"+string(recordId), nil)
-	recordbytes, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(recordId)))
+	recordbytes, _ := b.GetStateDB().Get([]byte(b.GetName() + string(recordId)))
 	if recordbytes == nil {
 		return ""
 	}
@@ -330,22 +330,22 @@ func (b *BlackList) queryRecord(recordId []byte) string {
 func (b *BlackList) queryRecordByName(name []byte) []string {
 	var recordList []string
 
-	it := b.GetQueryDB().Iterator([]byte(b.GetName()+string(name)), false)
-	for it.Next() {
-		var record Record
-		err := proto.UnmarshalText(string(it.Value()), &record)
-		if err != nil {
-			panic(err)
-		}
-		if !record.GetSearchable() {
-			continue
-		}
-		recordList = append(recordList, string(it.Value()))
-	}
+	//it := b.GetStateDB().Iterator([]byte(b.GetName()+string(name)), false)
+	//for it.Next() {
+	//	var record Record
+	//	err := proto.UnmarshalText(string(it.Value()), &record)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	if !record.GetSearchable() {
+	//		continue
+	//	}
+	//	recordList = append(recordList, string(it.Value()))
+	//}
 	return recordList
 }
 func (b *BlackList) queryTransactionById(txId []byte) string {
-	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(txId)))
+	value, _ := b.GetStateDB().Get([]byte(b.GetName() + string(txId)))
 	if value != nil {
 		return string(value)
 	}
@@ -353,15 +353,15 @@ func (b *BlackList) queryTransactionById(txId []byte) string {
 }
 func (b *BlackList) queryTransactionByAddr(addr []byte) []string {
 	var txs []string
-	it := b.GetQueryDB().Iterator([]byte(b.GetName()+string(addr)), false)
-	for it.Next() {
-		//var tx Transaction
-		//err := proto.UnmarshalText(string(recordByte), &tx)
-		//if err != nil {
-		//	panic(err)
-		//}
-		txs = append(txs, string(it.Value()))
-	}
+	//it := b.GetStateDB().Iterator([]byte(b.GetName()+string(addr)), false)
+	//for it.Next() {
+	//var tx Transaction
+	//err := proto.UnmarshalText(string(recordByte), &tx)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//	txs = append(txs, string(it.Value()))
+	//}
 	return txs
 }
 func (b *BlackList) issueCredit() {
@@ -407,7 +407,7 @@ func (b *BlackList) transfer(ts *Transaction) ([]*types.KeyValue, error) {
 	return kvs, nil
 }
 func (b *BlackList) queryOrg(orgId []byte) string {
-	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
+	value, _ := b.GetStateDB().Get([]byte(b.GetName() + string(orgId)))
 	if value != nil {
 		return string(value)
 	}
@@ -415,7 +415,7 @@ func (b *BlackList) queryOrg(orgId []byte) string {
 }
 func (b *BlackList) queryOrgById(orgId []byte) Org {
 	var org Org
-	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(orgId)))
+	value, _ := b.GetStateDB().Get([]byte(b.GetName() + string(orgId)))
 	blog.Debug("value===================:", string(value))
 	fmt.Println(value)
 	if value != nil {
@@ -428,7 +428,7 @@ func (b *BlackList) queryOrgById(orgId []byte) Org {
 }
 func (b *BlackList) queryOrgByAddr(addr []byte) Org {
 	var org Org
-	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(addr)))
+	value, _ := b.GetStateDB().Get([]byte(b.GetName() + string(addr)))
 	if value != nil {
 		err := proto.UnmarshalText(string(value), &org)
 		if err != nil {
@@ -440,7 +440,7 @@ func (b *BlackList) queryOrgByAddr(addr []byte) Org {
 }
 func (b *BlackList) loginCheck(user *User) bool {
 	var u User
-	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + string(user.GetUserName())))
+	value, _ := b.GetStateDB().Get([]byte(b.GetName() + string(user.GetUserName())))
 	if value != nil {
 		err := proto.UnmarshalText(string(value), &u)
 		if err != nil {
@@ -454,7 +454,7 @@ func (b *BlackList) loginCheck(user *User) bool {
 }
 func (b *BlackList) getUserByName(name string) *User {
 	var u User
-	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + name))
+	value, _ := b.GetStateDB().Get([]byte(b.GetName() + name))
 	if value != nil {
 		err := proto.UnmarshalText(string(value), &u)
 		if err != nil {
@@ -464,7 +464,7 @@ func (b *BlackList) getUserByName(name string) *User {
 	return &u
 }
 func (b *BlackList) checkKeyIsExsit(key string) bool {
-	value, _ := b.GetQueryDB().Get([]byte(b.GetName() + key))
+	value, _ := b.GetStateDB().Get([]byte(b.GetName() + key))
 	if value != nil {
 		return true
 	}

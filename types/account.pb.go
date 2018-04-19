@@ -12,6 +12,7 @@ It is generated from these files:
 	db.proto
 	executor.proto
 	p2p.proto
+	pbft.proto
 	rpc.proto
 	transaction.proto
 	wallet.proto
@@ -33,8 +34,10 @@ It has these top-level messages:
 	Header
 	Block
 	Blocks
+	BlockPid
 	BlockDetails
 	Headers
+	HeadersPid
 	BlockOverview
 	BlockDetail
 	Receipts
@@ -46,6 +49,7 @@ It has these top-level messages:
 	BlockBody
 	IsCaughtUp
 	IsNtpClockSync
+	BlockChainQuery
 	Reply
 	ReqString
 	ReplyString
@@ -64,7 +68,6 @@ It has these top-level messages:
 	Consensus
 	Wallet
 	Store
-	LocalStore
 	BlockChain
 	P2P
 	Rpc
@@ -176,6 +179,22 @@ It has these top-level messages:
 	InvDatas
 	Peer
 	PeerList
+	Operation
+	Checkpoint
+	Entry
+	ViewChange
+	Summary
+	Result
+	Request
+	RequestClient
+	RequestPrePrepare
+	RequestPrepare
+	RequestCommit
+	RequestCheckpoint
+	RequestViewChange
+	RequestAck
+	RequestNewView
+	ClientReply
 	CreateTx
 	UnsignTx
 	SignedTx
@@ -226,6 +245,8 @@ It has these top-level messages:
 	ReqBuyToken
 	ReqRevokeSell
 	ReqModifyConfig
+	ReqSignRawTx
+	ReplySignRawTx
 */
 package types
 

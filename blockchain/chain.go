@@ -22,7 +22,7 @@ var (
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
 	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
-	isStrongConsistency bool  = false
+	isStrongConsistency       = false
 
 	chainlog = log.New("module", "blockchain")
 )
@@ -70,6 +70,10 @@ type BlockChain struct {
 	//同步block批量写数据库时，是否需要刷盘的标志。
 	//非固态硬盘的电脑可以关闭刷盘，提高同步性能.
 	cfgBatchSync bool
+
+	//记录可疑故障节点peer信息
+	//在ExecBlock执行失败时记录对应的peerid以及故障区块的高度和hash
+	faultPeerList map[string]*FaultPeerInfo
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -84,13 +88,14 @@ func New(cfg *types.BlockChain) *BlockChain {
 		cfg:                cfg,
 		recvwg:             &sync.WaitGroup{},
 		task:               newTask(160 * time.Second),
-		quit:               make(chan struct{}, 0),
+		quit:               make(chan struct{}),
 		synblock:           make(chan struct{}, 1),
 		orphanPool:         NewOrphanPool(),
 		index:              newBlockIndex(),
 		isCaughtUp:         false,
 		isbatchsync:        1,
 		cfgBatchSync:       cfg.Batchsync,
+		faultPeerList:      make(map[string]*FaultPeerInfo),
 	}
 	return blockchain
 }
@@ -115,6 +120,7 @@ func (chain *BlockChain) Close() {
 	atomic.StoreInt32(&chain.isclosed, 1)
 
 	//退出线程
+	//chain.quit <- struct{}{}
 	close(chain.quit)
 
 	//wait for recvwg quit:
@@ -132,7 +138,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client = client
 	chain.client.Sub("blockchain")
 
-	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, 128)
+	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, 64)
 	blockStore := NewBlockStore(blockStoreDB, client.Clone())
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
@@ -289,13 +295,13 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 }
 
 //处理从peer对端同步过来的block消息
-func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail) (err error) {
+func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (err error) {
 	block := blockdetail.Block
 	if block == nil {
 		chainlog.Error("ProcAddBlockMsg input block is null")
 		return types.ErrInputPara
 	}
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail)
+	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid)
 	//非孤儿block或者已经存在的block
 	if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
 		chain.task.Done(blockdetail.Block.GetHeight())
@@ -352,7 +358,6 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 
 	msg := chain.client.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
 	chain.client.Send(msg, false)
-	return
 }
 
 func (chain *BlockChain) GetBlockHeight() int64 {
@@ -500,24 +505,15 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 	return &headers, nil
 }
 
-//type Header struct {
-//	Version    int64
-//	ParentHash []byte
-//	TxHash     []byte
-//	StateHash  []byte
-//	Height     int64
-//	BlockTime  int64
-//}
-func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err error) {
+func (chain *BlockChain) ProcGetLastHeaderMsg() (*types.Header, error) {
 	//首先从缓存中获取最新的blockheader
 	head := chain.blockStore.LastHeader()
 	if head == nil {
 		blockhight := chain.GetBlockHeight()
-		head, err := chain.blockStore.GetBlockHeaderByHeight(blockhight)
-
-		if err == nil && head != nil {
-			chainlog.Error("ProcGetLastHeaderMsg from cache is nil.", "blockhight", blockhight, "hash", common.ToHex(head.Hash))
-			return head, nil
+		tmpHead, err := chain.blockStore.GetBlockHeaderByHeight(blockhight)
+		if err == nil && tmpHead != nil {
+			chainlog.Error("ProcGetLastHeaderMsg from cache is nil.", "blockhight", blockhight, "hash", common.ToHex(tmpHead.Hash))
+			return tmpHead, nil
 		} else {
 			return nil, err
 		}
@@ -526,8 +522,7 @@ func (chain *BlockChain) ProcGetLastHeaderMsg() (respheader *types.Header, err e
 }
 
 func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err error) {
-	var block *types.Block
-	block = chain.blockStore.LastBlock()
+	block := chain.blockStore.LastBlock()
 	return block, nil
 }
 
@@ -750,14 +745,14 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	return nil
 }
 
-// 第一次启动之后需要将数据库中最新的24*60*4个block的node添加到index和bestchain中
+// 第一次启动之后需要将数据库中最新的128个block的node添加到index和bestchain中
 // 主要是为了接下来分叉时的block处理，.........todo
 func (chain *BlockChain) InitIndexAndBestView() {
 	//获取lastblocks从数据库,创建bestviewtip节点
 	var node *blockNode
-	var prevNode *blockNode = nil
+	var prevNode *blockNode
 	var height int64
-	var initflag bool = false
+	var initflag = false
 	curheight := chain.blockStore.height
 	if curheight == -1 {
 		node = newPreGenBlockNode()
@@ -776,7 +771,7 @@ func (chain *BlockChain) InitIndexAndBestView() {
 			if block == nil {
 				return
 			}
-			newNode := newBlockNode(false, block.Block)
+			newNode := newBlockNode(false, block.Block, "self")
 			newNode.parent = prevNode
 			prevNode = newNode
 
