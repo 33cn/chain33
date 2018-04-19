@@ -174,6 +174,7 @@ It has these top-level messages:
 	InvDatas
 	Peer
 	PeerList
+	NodeNetInfo
 	Operation
 	Checkpoint
 	Entry
