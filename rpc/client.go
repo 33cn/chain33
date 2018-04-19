@@ -128,22 +128,7 @@ func (c *channelClient) GetBlockOverview(parm *types.ReqHash) (*types.BlockOverv
 }
 
 func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
-	addrOverview, err := c.api.GetAddrOverview(parm)
-	if nil != err {
-		return nil, err
-	}
-
-	//获取地址账户的余额通过account模块
-	addrs := make([]string, 1)
-	addrs[0] = parm.Addr
-	accounts, err := accountdb.LoadAccounts(c.Client, addrs)
-	if err != nil {
-		return nil, err
-	}
-	if len(accounts) != 0 {
-		addrOverview.Balance = accounts[0].Balance
-	}
-	return addrOverview, nil
+	return c.api.GetAddrOverview(parm)
 }
 
 func (c *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {

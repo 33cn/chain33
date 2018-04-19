@@ -27,7 +27,7 @@ const (
 	//executorKey		= "execs"		// 交易执行器
 	walletKey     = "wallet"     // 钱包
 	blockchainKey = "blockchain" // 区块
-	storeKey      = "store"
+	//storeKey      = "store"
 )
 
 var log = log15.New("module", "client")
@@ -448,7 +448,6 @@ func (q *QueueProtocol) GetAddrOverview(param *types.ReqAddr) (*types.AddrOvervi
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.AddrOverview); ok {
-
 		//获取地址账户的余额通过account模块
 		addrs := make([]string, 1)
 		addrs[0] = param.Addr
