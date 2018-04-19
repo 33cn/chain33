@@ -57,7 +57,6 @@ func main() {
 	grpc.EnableTracing = true
 	go startTrace()
 
-
 }
 
 // 开启trace
