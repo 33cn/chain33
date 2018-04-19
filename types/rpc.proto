@@ -151,4 +151,9 @@ service grpcservice {
     //ntpclock是否同步
     rpc IsNtpClockSync (ReqNil) returns (Reply) {
     }
+	
+	//获取当前节点的网络信息
+	rpc NetInfo(ReqNil)returns(NodeNetInfo){
+		
+	}
 }
