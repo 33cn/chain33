@@ -185,7 +185,7 @@ func (q *QueueProtocol) GetTransactionByHash(param *types.ReqHashes) (*types.Tra
 }
 
 func (q *QueueProtocol) GetMempool() (*types.ReplyTxList, error) {
-	msg, err := q.query(mempoolKey, types.EventGetMempool, nil)
+	msg, err := q.query(mempoolKey, types.EventGetMempool, &types.ReqNil{})
 	if err != nil {
 		log.Error("GetMempool", "Error", err.Error())
 		return nil, err
@@ -197,7 +197,7 @@ func (q *QueueProtocol) GetMempool() (*types.ReplyTxList, error) {
 }
 
 func (q *QueueProtocol) WalletGetAccountList() (*types.WalletAccounts, error) {
-	msg, err := q.query(walletKey, types.EventWalletGetAccountList, nil)
+	msg, err := q.query(walletKey, types.EventWalletGetAccountList, &types.ReqNil{})
 	if err != nil {
 		log.Error("WalletGetAccountList", "Error", err.Error())
 		return nil, err
@@ -345,7 +345,7 @@ func (q *QueueProtocol) WalletSetPasswd(param *types.ReqWalletSetPasswd) (*types
 }
 
 func (q *QueueProtocol) WalletLock() (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventWalletLock, nil)
+	msg, err := q.query(walletKey, types.EventWalletLock, &types.ReqNil{})
 	if err != nil {
 		log.Error("WalletLock", "Error", err.Error())
 		return nil, err
@@ -369,7 +369,7 @@ func (q *QueueProtocol) WalletUnLock(param *types.WalletUnLock) (*types.Reply, e
 }
 
 func (q *QueueProtocol) PeerInfo() (*types.PeerList, error) {
-	msg, err := q.query(p2pKey, types.EventPeerInfo, nil)
+	msg, err := q.query(p2pKey, types.EventPeerInfo, &types.ReqNil{})
 	if err != nil {
 		log.Error("PeerInfo", "Error", err.Error())
 		return nil, err
@@ -517,7 +517,7 @@ func (q *QueueProtocol) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, err
 }
 
 func (q *QueueProtocol) GetWalletStatus() (*types.WalletStatus, error) {
-	msg, err := q.query(walletKey, types.EventGetWalletStatus, nil)
+	msg, err := q.query(walletKey, types.EventGetWalletStatus, &types.ReqNil{})
 	if err != nil {
 		log.Error("GetWalletStatus", "Error", err.Error())
 		return nil, err
@@ -546,7 +546,7 @@ func (q *QueueProtocol) WalletAutoMiner(param *types.MinerFlag) (*types.Reply, e
 }
 
 func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
-	msg, err := q.query(consensusKey, types.EventGetTicketCount, nil)
+	msg, err := q.query(consensusKey, types.EventGetTicketCount, &types.ReqNil{})
 	if err != nil {
 		log.Error("GetTicketCount", "Error", err.Error())
 		return nil, err
@@ -575,7 +575,7 @@ func (q *QueueProtocol) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error
 }
 
 func (q *QueueProtocol) CloseTickets() (*types.ReplyHashes, error) {
-	msg, err := q.query(walletKey, types.EventCloseTickets, nil)
+	msg, err := q.query(walletKey, types.EventCloseTickets, &types.ReqNil{})
 	if err != nil {
 		log.Error("CloseTickets", "Error", err.Error())
 		return nil, err
@@ -588,7 +588,7 @@ func (q *QueueProtocol) CloseTickets() (*types.ReplyHashes, error) {
 
 func (q *QueueProtocol) IsSync() (ret bool, err error) {
 	ret = false
-	msg, err := q.query(blockchainKey, types.EventIsSync, nil)
+	msg, err := q.query(blockchainKey, types.EventIsSync, &types.ReqNil{})
 	if err != nil {
 		log.Error("IsSync", "Error", err.Error())
 		return
@@ -603,7 +603,7 @@ func (q *QueueProtocol) IsSync() (ret bool, err error) {
 
 func (q *QueueProtocol) IsNtpClockSync() (ret bool, err error) {
 	ret = false
-	msg, err := q.query(blockchainKey, types.EventIsNtpClockSync, nil)
+	msg, err := q.query(blockchainKey, types.EventIsNtpClockSync, &types.ReqNil{})
 	if err != nil {
 		log.Error("IsNtpClockSync", "Error", err.Error())
 		return
@@ -641,7 +641,7 @@ func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, 
 }
 
 func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
-	msg, err := q.query(blockchainKey, types.EventGetLastHeader, nil)
+	msg, err := q.query(blockchainKey, types.EventGetLastHeader, &types.ReqNil{})
 	if err != nil {
 		log.Error("GetLastHeader", "Error", err.Error())
 		return nil, err
