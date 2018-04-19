@@ -137,10 +137,11 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		}
 
 	}
-
+	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
 	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
-		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
+		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1]), UserAgent: pub}, nil
+
 }
 
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
@@ -398,11 +399,13 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 	var hash [64]byte
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
+	var in = new(pb.BroadCastData)
+	var err error
 	for {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
 		}
-		in, err := stream.Recv()
+		in, err = stream.Recv()
 		if err == io.EOF {
 			log.Info("ServerStreamRead", "Recv", "EOF")
 			return err
@@ -421,7 +424,8 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block hash", blockhash)
 			if block.GetBlock() != nil {
-				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+				//msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{peername, block.GetBlock()})
 				err := s.node.nodeInfo.client.Send(msg, false)
 				if err != nil {
 					log.Error("ServerStreamRead", "Error", err.Error())

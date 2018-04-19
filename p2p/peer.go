@@ -113,7 +113,8 @@ func (p *peer) heartBeat() {
 		peername, err := pcli.SendVersion(p, *p.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
 		if err == nil {
-			p.setPeerName(peername) //设置连接的远程节点的节点名称
+			log.Info("sendVersion", "peer name", peername)
+			p.SetPeerName(peername) //设置连接的远程节点的节点名称
 			p.taskChan = pub.Sub("block", "tx")
 			go p.sendStream()
 			go p.readStream()
@@ -301,7 +302,7 @@ func (p *peer) readStream() {
 					}
 					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr(), "block hash",
 						blockhash)
-					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{p.GetPeerName(), block.GetBlock()})
 					err = (*p.nodeInfo).client.Send(msg, false)
 					if err != nil {
 						log.Error("readStream", "send to blockchain Error", err.Error())
@@ -350,7 +351,7 @@ func (p *peer) IsPersistent() bool {
 	return p.persistent
 }
 
-func (p *peer) setPeerName(name string) {
+func (p *peer) SetPeerName(name string) {
 	p.mutx.Lock()
 	defer p.mutx.Unlock()
 	p.name = name
