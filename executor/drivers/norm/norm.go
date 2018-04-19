@@ -28,6 +28,14 @@ func (n *Norm) GetName() string {
 	return "norm"
 }
 
+func (n *Norm) Clone() drivers.Driver {
+	clone := &Norm{}
+	clone.DriverBase = *(n.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	clone.SetIsFree(true)
+	return clone
+}
+
 func (n *Norm) GetActionValue(tx *types.Transaction) (*types.NormAction, error) {
 	action := &types.NormAction{}
 	err := types.Decode(tx.Payload, action)
@@ -90,13 +98,11 @@ func (n *Norm) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 }
 
 func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
-	clog.Info("===Query", "funcname", funcname)
 	if funcname == "NormGet" {
 		value, err := n.GetStateDB().Get(params)
 		if err != nil {
 			return nil, types.ErrNotFound
 		}
-		clog.Info("===NormGet", "value", string(value))
 		return &types.ReplyString{string(value)}, nil
 	} else if funcname == "NormHas" {
 		_, err := n.GetStateDB().Get(params)
