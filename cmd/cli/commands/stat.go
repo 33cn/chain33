@@ -85,10 +85,10 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	var count int64
 	for count = 100; count == 100; {
 		params := types.ReqGetTotalCoins{
-			Symbol: symbol,
+			Symbol:    symbol,
 			StateHash: stateHash,
-			StartKey: startKey,
-			Count: count,
+			StartKey:  startKey,
+			Count:     count,
 		}
 		var res types.ReplyGetTotalCoins
 		err = rpc.Call("Chain33.GetTotalCoins", params, &res)
