@@ -1341,15 +1341,15 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		} else {
 			times := 0
 			for {
-				if cs.client.GetCurrentHeight() == block.Height {
-					cs.Logger.Info("finalizeCommit:get current height equal")
+				if cs.client.GetCurrentHeight() >= block.Height {
+					cs.Logger.Info("finalizeCommit:get current height equal or higher", "p2p-height", cs.client.GetCurrentHeight(), "consensus-height", block.Height)
 					break
 				} else {
 					cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
 					time.Sleep(10*time.Millisecond)
 					times++
-					//wait 1.5s
-					if times >= 150 {
+					//wait 30s
+					if times >= 3000 {
 						cs.scheduleTimeout(cs.Precommit(cs.CommitRound), height, cs.CommitRound, ttypes.RoundStepPrecommitWait)
 						cs.updateRoundStep(cs.CommitRound, ttypes.RoundStepPrecommitWait)
 						cs.newStep()
