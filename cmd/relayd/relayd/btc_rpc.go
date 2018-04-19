@@ -1,6 +1,7 @@
 package relayd
 
 import (
+	"bytes"
 	"errors"
 	"sync"
 	"time"
@@ -8,9 +9,9 @@ import (
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	btcrpcclient "github.com/btcsuite/btcd/rpcclient"
+	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/wtxmgr"
 )
 
 type BlockStamp struct {
@@ -18,11 +19,16 @@ type BlockStamp struct {
 	Hash   chainhash.Hash
 }
 
+type BlockMeta struct {
+	BlockStamp
+	Time time.Time
+}
+
 // RPCClient represents a persistent client connection to a bitcoin RPC server
 // for information regarding the current best block chain.
 type RPCClient struct {
-	*btcrpcclient.Client
-	connConfig        *btcrpcclient.ConnConfig // Work around unexported field
+	*rpcclient.Client
+	connConfig        *rpcclient.ConnConfig // Work around unexported field
 	chainParams       *chaincfg.Params
 	reconnectAttempts int
 
@@ -50,7 +56,7 @@ func NewRPCClient(chainParams *chaincfg.Params, connect, user, pass string, cert
 	}
 
 	client := &RPCClient{
-		connConfig: &btcrpcclient.ConnConfig{
+		connConfig: &rpcclient.ConnConfig{
 			Host:                 connect,
 			Endpoint:             "ws",
 			User:                 user,
@@ -67,7 +73,7 @@ func NewRPCClient(chainParams *chaincfg.Params, connect, user, pass string, cert
 		currentBlock:        make(chan *BlockStamp),
 		quit:                make(chan struct{}),
 	}
-	ntfnCallbacks := &btcrpcclient.NotificationHandlers{
+	ntfnCallbacks := &rpcclient.NotificationHandlers{
 		OnClientConnected:   client.onClientConnect,
 		OnBlockConnected:    client.onBlockConnected,
 		OnBlockDisconnected: client.onBlockDisconnected,
@@ -76,7 +82,7 @@ func NewRPCClient(chainParams *chaincfg.Params, connect, user, pass string, cert
 		OnRescanFinished:    client.onRescanFinished,
 		OnRescanProgress:    client.onRescanProgress,
 	}
-	rpcClient, err := btcrpcclient.New(client.connConfig, ntfnCallbacks)
+	rpcClient, err := rpcclient.New(client.connConfig, ntfnCallbacks)
 	if err != nil {
 		return nil, err
 	}
@@ -139,9 +145,17 @@ func (c *RPCClient) WaitForShutdown() {
 	c.wg.Wait()
 }
 
+// TxRecord represents a transaction managed by the Store.
+type TxRecord struct {
+	MsgTx        wire.MsgTx
+	Hash         chainhash.Hash
+	Received     time.Time
+	SerializedTx []byte // Optional: may be nil
+}
+
 // Notification types.  These are defined here and processed from from reading
 // a notificationChan to avoid handling these notifications directly in
-// btcrpcclient callbacks, which isn't very Go-like and doesn't allow
+// rpcclient callbacks, which isn't very Go-like and doesn't allow
 // blocking client calls.
 type (
 	// ClientConnected is a notification for when a client connection is
@@ -150,17 +164,17 @@ type (
 
 	// BlockConnected is a notification for a newly-attached block to the
 	// best chain.
-	BlockConnected wtxmgr.BlockMeta
+	BlockConnected BlockMeta
 
 	// BlockDisconnected is a notifcation that the block described by the
 	// BlockStamp was reorganized out of the best chain.
-	BlockDisconnected wtxmgr.BlockMeta
+	BlockDisconnected BlockMeta
 
 	// RelevantTx is a notification for a transaction which spends wallet
 	// inputs or pays to a watched address.
 	RelevantTx struct {
-		TxRecord *wtxmgr.TxRecord
-		Block    *wtxmgr.BlockMeta // nil if unmined
+		TxRecord *TxRecord
+		Block    *BlockMeta // nil if unmined
 	}
 
 	// RescanProgress is a notification describing the current status
@@ -201,8 +215,8 @@ func (c *RPCClient) BlockStamp() (*BlockStamp, error) {
 
 // parseBlock parses a btcws definition of the block a tx is mined it to the
 // Block structure of the wtxmgr package, and the block index.  This is done
-// here since btcrpcclient doesn't parse this nicely for us.
-func parseBlock(block *btcjson.BlockDetails) (*wtxmgr.BlockMeta, error) {
+// here since rpcclient doesn't parse this nicely for us.
+func parseBlock(block *btcjson.BlockDetails) (*BlockMeta, error) {
 	if block == nil {
 		return nil, nil
 	}
@@ -210,8 +224,8 @@ func parseBlock(block *btcjson.BlockDetails) (*wtxmgr.BlockMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	blk := &wtxmgr.BlockMeta{
-		Block: wtxmgr.Block{
+	blk := &BlockMeta{
+		BlockStamp: BlockStamp{
 			Height: block.Height,
 			Hash:   *blkHash,
 		},
@@ -230,7 +244,7 @@ func (c *RPCClient) onClientConnect() {
 func (c *RPCClient) onBlockConnected(hash *chainhash.Hash, height int32, time time.Time) {
 	select {
 	case c.enqueueNotification <- BlockConnected{
-		Block: wtxmgr.Block{
+		BlockStamp: BlockStamp{
 			Hash:   *hash,
 			Height: height,
 		},
@@ -243,7 +257,7 @@ func (c *RPCClient) onBlockConnected(hash *chainhash.Hash, height int32, time ti
 func (c *RPCClient) onBlockDisconnected(hash *chainhash.Hash, height int32, time time.Time) {
 	select {
 	case c.enqueueNotification <- BlockDisconnected{
-		Block: wtxmgr.Block{
+		BlockStamp: BlockStamp{
 			Hash:   *hash,
 			Height: height,
 		},
@@ -251,6 +265,23 @@ func (c *RPCClient) onBlockDisconnected(hash *chainhash.Hash, height int32, time
 	}:
 	case <-c.quit:
 	}
+}
+
+// NewTxRecordFromMsgTx creates a new transaction record that may be inserted
+// into the store.
+func NewTxRecordFromMsgTx(msgTx *wire.MsgTx, received time.Time) (*TxRecord, error) {
+	buf := bytes.NewBuffer(make([]byte, 0, msgTx.SerializeSize()))
+	err := msgTx.Serialize(buf)
+	if err != nil {
+		return nil, err
+	}
+	rec := &TxRecord{
+		MsgTx:        *msgTx,
+		Received:     received,
+		SerializedTx: buf.Bytes(),
+	}
+	copy(rec.Hash[:], chainhash.DoubleHashB(rec.SerializedTx))
+	return rec, nil
 }
 
 //OnRecvTx func(transaction *btcutil.Tx, details *btcjson.BlockDetails)
@@ -262,7 +293,7 @@ func (c *RPCClient) onRecvTx(tx *btcutil.Tx, block *btcjson.BlockDetails) {
 		return
 	}
 
-	rec, err := wtxmgr.NewTxRecordFromMsgTx(tx.MsgTx(), time.Now())
+	rec, err := NewTxRecordFromMsgTx(tx.MsgTx(), time.Now())
 	if err != nil {
 		//log.Errorf("Cannot create transaction record for relevant "+
 		//	"tx: %v", err)
@@ -408,9 +439,9 @@ out:
 	c.wg.Done()
 }
 
-// POSTClient creates the equivalent HTTP POST btcrpcclient.Client.
-func (c *RPCClient) POSTClient() (*btcrpcclient.Client, error) {
+// POSTClient creates the equivalent HTTP POST rpcclient.Client.
+func (c *RPCClient) POSTClient() (*rpcclient.Client, error) {
 	configCopy := *c.connConfig
 	configCopy.HTTPPostMode = true
-	return btcrpcclient.New(&configCopy, nil)
+	return rpcclient.New(&configCopy, nil)
 }
