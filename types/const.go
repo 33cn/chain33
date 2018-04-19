@@ -164,7 +164,8 @@ const (
 	EventQueryTotalFee       = 106
 	EventSignRawTx           = 107
 	EventReplySignRawTx      = 108
-
+	EventGetNetInfo          = 109
+	EventReplyNetInfo        = 110
 	// Token
 	EventBlockChainQuery = 212
 )

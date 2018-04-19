@@ -23,6 +23,8 @@ type NodeInfo struct {
 	peerInfos      *PeerInfos
 	addrBook       *AddrBook // known peers
 	natDone        int32
+	outSide        int32
+	ServiceType    int32
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
@@ -183,13 +185,32 @@ func (nf *NodeInfo) IsNatDone() bool {
 }
 
 func (nf *NodeInfo) IsOutService() bool {
-	if nf.IsNatDone() == false {
+	if !nf.IsNatDone() {
 		return false
 	}
-	if OutSide == true || Service == 7 {
+	if nf.OutSide() || nf.ServiceTy() == 7 {
 		return true
 	}
 	return false
+}
+
+func (nf *NodeInfo) SetServiceTy(ty int32) {
+	atomic.StoreInt32(&nf.ServiceType, ty)
+}
+func (nf *NodeInfo) ServiceTy() int32 {
+	return atomic.LoadInt32(&nf.ServiceType)
+}
+func (nf *NodeInfo) SetNetSide(ok bool) {
+	var isoutside int32 = 0
+	if ok {
+		isoutside = 1
+	}
+	atomic.StoreInt32(&nf.outSide, isoutside)
+
+}
+
+func (nf *NodeInfo) OutSide() bool {
+	return atomic.LoadInt32(&nf.outSide) == 1
 }
 
 func (bl *BlackList) Add(addr string) {

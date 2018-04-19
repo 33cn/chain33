@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/hex"
-	//"errors"
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/account"
@@ -1234,5 +1233,15 @@ func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
 	}
 
 	*result = resp
+	return nil
+}
+
+func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetNetInfo()
+	if err != nil {
+		return err
+	}
+
+	*result = &NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService()}
 	return nil
 }
