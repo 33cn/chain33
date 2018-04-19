@@ -481,6 +481,18 @@ func (g *Grpc) IsNtpClockSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, er
 	return &pb.Reply{IsOk: g.cli.IsNtpClockSync()}, nil
 }
 
+func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, error) {
+	if !g.checkWhitlist(ctx) {
+		return nil, fmt.Errorf("reject")
+	}
+	resp, err := g.cli.GetNetInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (g *Grpc) checkWhitlist(ctx context.Context) bool {
 
 	getctx, ok := pr.FromContext(ctx)
