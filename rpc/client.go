@@ -445,7 +445,7 @@ func (c *channelClient) SignRawTx(in *types.ReqSignRawTx) (*types.ReplySignRawTx
 		Addr: in.GetAddr(),
 		PrivKey: in.GetPrivKey(),
 		TxHex: in.GetTxHex(),
-		TimeOut: in.GetTimeout(),
+		Expire: in.GetExpire(),
 	}
 	msg := c.NewMessage("wallet", types.EventSignRawTx, data)
 	err := c.Send(msg, true)
