@@ -310,7 +310,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
 		}
-		err := errors.New("tx not exit!")
+		err = errors.New("tx not exist")
 		return nil, err
 	}
 
@@ -564,7 +564,11 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	if height == 0 {
 		blocktd = difficulty
 	} else {
-		parenttd, _ := bs.GetTdByBlockHash(parentHash)
+		parenttd, err := bs.GetTdByBlockHash(parentHash)
+		if err != nil {
+			chainlog.Error("dbMaybeStoreBlock GetTdByBlockHash", "height", height, "parentHash", common.ToHex(parentHash))
+			return err
+		}
 		blocktd = new(big.Int).Add(difficulty, parenttd)
 		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "parenttd.td", difficulty.BigToCompact(parenttd))
 		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "self.td", difficulty.BigToCompact(blocktd))

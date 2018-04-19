@@ -139,3 +139,4 @@ message TransactionDetails {
 message ReqAddrs  {
    repeated string addrs = 1;
 }
+

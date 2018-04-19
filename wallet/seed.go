@@ -21,9 +21,14 @@ import (
 )
 
 var (
-	SeedLong   int = 15
-	WalletSeed     = []byte("walletseed")
-	seedlog        = log.New("module", "wallet")
+	SeedLong     = 15
+	SaveSeedLong = 12
+
+	WalletSeed = []byte("walletseed")
+	seedlog    = log.New("module", "wallet")
+
+	ChineseSeedCache = make(map[string]string)
+	EnglishSeedCache = make(map[string]string)
 )
 
 const BACKUPKEYINDEX = "backupkeyindex"
@@ -35,9 +40,9 @@ const BACKUPKEYINDEX = "backupkeyindex"
 func CreateSeed(folderpath string, lang int32) (string, error) {
 	var strs []string
 	if lang == 0 {
-		strs = strings.Split(English_text, " ")
+		strs = strings.Split(englishText, " ")
 	} else if lang == 1 {
-		strs = strings.Split(Chinese_text, " ")
+		strs = strings.Split(chineseText, " ")
 	} else {
 		return "", types.ErrSeedlang
 	}
@@ -65,6 +70,45 @@ func CreateSeed(folderpath string, lang int32) (string, error) {
 		}
 	}
 	return seedS, nil
+}
+
+//初始化seed标准库的单词到map中，方便seed单词的校验
+func InitSeedLibrary() {
+	//首先将标准seed库转换成字符串数组
+	englieshstrs := strings.Split(englishText, " ")
+	chinesestrs := strings.Split(chineseText, " ")
+
+	//中引文标准seed库保存到map中
+	for _, wordstr := range chinesestrs {
+		ChineseSeedCache[wordstr] = wordstr
+	}
+
+	for _, wordstr := range englieshstrs {
+		EnglishSeedCache[wordstr] = wordstr
+	}
+}
+
+//校验输入的seed字符串数组是否在标准库中，
+//首先从第一个单词开始在英文和中文库中查找来区分seed是英文还是中文，
+//都查找不到就直接返回校验错误,以及出错的单词或者汉字
+func VerifySeed(seedarry []string) (bool, string) {
+	//首先通过seed的第一个单词来确定seed是英文的还是中文组合
+	//第一个单词是英文并存在英文标准库中
+	if EnglishSeedCache[seedarry[0]] == seedarry[0] {
+		for _, seedstr := range seedarry {
+			if EnglishSeedCache[seedstr] != seedstr {
+				return false, seedstr
+			}
+		}
+		return true, ""
+	} else { //第一个单词不存在英文标准中，需要尝试看是否存在中文库中
+		for _, seedstr := range seedarry {
+			if ChineseSeedCache[seedstr] != seedstr {
+				return false, seedstr
+			}
+		}
+		return true, ""
+	}
 }
 
 //使用password加密seed存储到db中
@@ -119,7 +163,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	if backuppubkeyindex == nil || err != nil {
 		backupindex = 0
 	} else {
-		if err = json.Unmarshal([]byte(backuppubkeyindex), &backupindex); err != nil {
+		if err = json.Unmarshal(backuppubkeyindex, &backupindex); err != nil {
 			return "", err
 		}
 	}
@@ -226,7 +270,7 @@ func AesgcmEncrypter(password []byte, seed []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	Encrypted := aesgcm.Seal(nil, key[:12], []byte(seed), nil)
+	Encrypted := aesgcm.Seal(nil, key[:12], seed, nil)
 	//seedlog.Info("AesgcmEncrypter Seal", "seed", seed, "key", key, "Encrypted", Encrypted)
 	return Encrypted, nil
 }

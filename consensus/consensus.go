@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/pbft"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/raft"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/solo"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/ticket"
@@ -17,10 +18,16 @@ func New(cfg *types.Consensus) queue.Module {
 		con := raft.NewRaftCluster(cfg)
 		return con
 	} else if consensusType == "pbft" {
-		// TODO:
+		con := pbft.NewPbft(cfg)
+		return con
 	} else if consensusType == "ticket" {
 		t := ticket.New(cfg)
 		return t
 	}
 	panic("Unsupported consensus type")
+}
+
+type Consensus interface {
+	SetQueue(q *queue.Queue)
+	Close()
 }

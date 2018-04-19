@@ -17,6 +17,7 @@ type blockNode struct {
 	height     int64
 	statehash  []byte
 	broadcast  bool
+	pid        string
 }
 
 type blockIndex struct {
@@ -29,21 +30,20 @@ const (
 	indexCacheLimit = 500
 )
 
-var indexlog = chainlog.New("submodule", "blockindex")
-
-func initBlockNode(node *blockNode, block *types.Block, broadcast bool) {
+func initBlockNode(node *blockNode, block *types.Block, broadcast bool, pid string) {
 	*node = blockNode{
 		hash:       block.Hash(),
 		Difficulty: difficulty.CalcWork(block.Difficulty),
 		height:     block.Height,
 		statehash:  block.GetStateHash(),
 		broadcast:  broadcast,
+		pid:        pid,
 	}
 }
 
-func newBlockNode(broadcast bool, block *types.Block) *blockNode {
+func newBlockNode(broadcast bool, block *types.Block, pid string) *blockNode {
 	var node blockNode
-	initBlockNode(&node, block, broadcast)
+	initBlockNode(&node, block, broadcast, pid)
 	return &node
 }
 func newPreGenBlockNode() *blockNode {
@@ -53,6 +53,7 @@ func newPreGenBlockNode() *blockNode {
 		height:     -1,
 		statehash:  common.Hash{}.Bytes(),
 		broadcast:  false,
+		pid:        "self",
 	}
 	return node
 }

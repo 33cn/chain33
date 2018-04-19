@@ -148,7 +148,7 @@ func (s *Suite) TestUnsubAfterClose(c *check.C) {
 func (s *Suite) TestShutdown(c *check.C) {
 	start := runtime.NumGoroutine()
 	NewPubSub(10).Shutdown()
-	time.Sleep(1)
+	time.Sleep(2000)
 	c.Check(runtime.NumGoroutine(), check.Equals, start)
 }
 

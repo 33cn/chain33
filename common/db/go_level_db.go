@@ -19,8 +19,8 @@ func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
 		return NewGoLevelDB(name, dir, cache)
 	}
-	registerDBCreator(LevelDBBackendStr, dbCreator, false)
-	registerDBCreator(GoLevelDBBackendStr, dbCreator, false)
+	registerDBCreator(levelDBBackendStr, dbCreator, false)
+	registerDBCreator(goLevelDBBackendStr, dbCreator, false)
 }
 
 type GoLevelDB struct {
@@ -36,8 +36,8 @@ func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
 	if handles < 16 {
 		handles = 16
 	}
-	if cache < 16 {
-		cache = 16
+	if cache < 4 {
+		cache = 4
 	}
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(dbPath, &opt.Options{

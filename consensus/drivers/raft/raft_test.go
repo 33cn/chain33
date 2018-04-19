@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"encoding/binary"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -15,16 +16,15 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/store"
-	"encoding/binary"
+	"gitlab.33.cn/chain33/chain33/types"
 	"os"
 )
 
 var (
-	random     *rand.Rand
-	result []*types.Transaction
-	txNumber int = 10
+	random    *rand.Rand
+	result    []*types.Transaction
+	txNumber  int = 10
 	loopCount int = 10
 )
 
@@ -38,7 +38,7 @@ func init() {
 }
 
 func TestRaftPerf(t *testing.T) {
-	q, chain, s, mem  := initEnvRaft()
+	q, chain, s, mem := initEnvRaft()
 
 	defer chain.Close()
 	defer s.Close()
@@ -48,7 +48,7 @@ func TestRaftPerf(t *testing.T) {
 	sendReplyList(q)
 }
 
-func initEnvRaft() (queue.Queue, *blockchain.BlockChain,  queue.Module, *mempool.Mempool) {
+func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
@@ -112,10 +112,10 @@ func sendReplyList(q queue.Queue) {
 	var count int
 	for msg := range client.Recv() {
 		if msg.Ty == types.EventTxList {
-			count ++
+			count++
 			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
 				&types.ReplyTxList{getReplyList(txNumber)}))
-			if (count >= loopCount) {
+			if count >= loopCount {
 				time.Sleep(4 * time.Second)
 				break
 			}

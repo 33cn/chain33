@@ -3,23 +3,20 @@ package retrieve
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"testing"
-	//. "github.com/smartystreets/goconvey/convey"
+
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var random *rand.Rand
-
-var backupAddr string
-var defaultAddr string
-var backupPriv crypto.PrivKey
-var defaultPriv crypto.PrivKey
-
-var testNormErr error
-
-var retrieve *Retrieve
+var (
+	backupAddr  string
+	defaultAddr string
+	backupPriv  crypto.PrivKey
+	defaultPriv crypto.PrivKey
+	testNormErr error
+	retrieve    *Retrieve
+)
 
 func TestInit(t *testing.T) {
 	backupAddr, backupPriv = genaddress()
@@ -32,7 +29,7 @@ func TestInit(t *testing.T) {
 func TestExecBackup(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr error = nil
+	var targetErr error
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -42,12 +39,11 @@ func TestExecBackup(t *testing.T) {
 	if !CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 func TestExecPrepare(t *testing.T) {
 	var targetReceipt types.Receipt
-	var targetErr error = nil
+	var targetErr error
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -57,13 +53,12 @@ func TestExecPrepare(t *testing.T) {
 	if !CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 //timelimit
 func TestExecPerform(t *testing.T) {
 	var targetReceipt types.Receipt
-	var targetErr error = types.ErrRetrievePeriodLimit
+	var targetErr = types.ErrRetrievePeriodLimit
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2
@@ -73,12 +68,11 @@ func TestExecPerform(t *testing.T) {
 	if CompareRetrieveExecResult(receipt, err, &targetReceipt, targetErr) {
 		t.Error(testNormErr)
 	}
-	return
 }
 
 func constructRetrieveInstance() *Retrieve {
 	r := newRetrieve()
-	r.SetDB(NewTestDB())
+	r.SetStateDB(NewTestDB())
 	return r
 }
 
@@ -154,8 +148,4 @@ func (e *TestDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return nil
-}
-
-func (e *TestDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
-	return nil, types.ErrNotSupport
 }
