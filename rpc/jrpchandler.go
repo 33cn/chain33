@@ -814,39 +814,6 @@ func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
 	*result = c.cli.IsSync()
 	return nil
 }
-func (c *Chain33) SellToken(in types.ReqSellToken, result *interface{}) error {
-
-	reply, err := c.cli.SellToken(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-	return nil
-}
-
-func (c *Chain33) BuyToken(in types.ReqBuyToken, result *interface{}) error {
-
-	reply, err := c.cli.BuyToken(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-	return nil
-}
-
-func (c *Chain33) RevokeSellToken(in types.ReqRevokeSell, result *interface{}) error {
-
-	reply, err := c.cli.RevokeSellToken(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-
-	return nil
-}
 
 func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	if tx == nil {
@@ -906,33 +873,6 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		To:     tx.To,
 	}
 	return result, nil
-}
-func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}) error {
-	reply, err := c.cli.TokenPreCreate(&in)
-	if err != nil {
-		return err
-	}
-	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
-	return nil
-}
-
-func (c *Chain33) TokenFinishCreate(in types.ReqTokenFinishCreate, result *interface{}) error {
-	reply, err := c.cli.TokenFinishCreate(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
-	return nil
-}
-
-func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *interface{}) error {
-	reply, err := c.cli.TokenRevokeCreate(&in)
-	if err != nil {
-		return err
-	}
-	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
-	return nil
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
@@ -1284,5 +1224,15 @@ func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{})
 	}
 
 	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
+	resp, err := c.cli.SignRawTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = resp
 	return nil
 }

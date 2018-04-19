@@ -162,24 +162,12 @@ const (
 	EventStoreGetTotalCoins  = 104
 	EventGetTotalCoinsReply  = 105
 	EventQueryTotalFee       = 106
-	EventSyncBlock           = 107
+	EventSignRawTx           = 107
+	EventReplySignRawTx      = 108
+	EventSyncBlock           = 109
+
 	// Token
-	EventTokenPreCreate         = 200
-	EventReplyTokenPreCreate    = 201
-	EventTokenFinishCreate      = 202
-	EventReplyTokenFinishCreate = 203
-	EventTokenRevokeCreate      = 204
-	EventReplyTokenRevokeCreate = 205
-	EventSellToken              = 206
-	EventReplySellToken         = 207
-	EventBuyToken               = 208
-	EventReplyBuyToken          = 209
-	EventRevokeSellToken        = 210
-	EventReplyRevokeSellToken   = 211
-	EventBlockChainQuery        = 212
-	// config
-	EventModifyConfig      = 300
-	EventReplyModifyConfig = 301
+	EventBlockChainQuery = 212
 )
 
 var eventName = map[int]string{
@@ -289,24 +277,11 @@ var eventName = map[int]string{
 	104: "EventStoreGetTotalCoins",
 	105: "EventGetTotalCoinsReply",
 	106: "EventQueryTotalFee",
-	107: "EventSyncBlock",
+	107: "EventSignRawTx",
+	108: "EventReplySignRawTx",
+	109: "EventSyncBlock",
 	// Token
-	EventTokenPreCreate:         "EventTokenPreCreate",
-	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
-	EventTokenFinishCreate:      "EventTokenFinishCreate",
-	EventReplyTokenFinishCreate: "EventReplyTokenFinishCreate",
-	EventTokenRevokeCreate:      "EventTokenRevokeCreate",
-	EventReplyTokenRevokeCreate: "EventReplyTokenRevokeCreate",
-	EventSellToken:              "EventSellToken",
-	EventReplySellToken:         "EventReplySellToken",
-	EventBuyToken:               "EventBuyToken",
-	EventReplyBuyToken:          "EventReplyBuyToken",
-	EventRevokeSellToken:        "EventRevokeSellToken",
-	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
-	EventBlockChainQuery:        "EventBlockChainQuery",
-	// config
-	EventModifyConfig:      "EventModifyConfig",
-	EventReplyModifyConfig: "EventReplyModifyConfig",
+	EventBlockChainQuery: "EventBlockChainQuery",
 }
 
 //ty = 1 -> secp256k1
