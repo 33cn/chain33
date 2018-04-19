@@ -276,7 +276,7 @@ func decodeTx(cmd *cobra.Command, args []string) {
 // get overview of an address
 func GetAddrOverviewCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "view",
+		Use:   "addr_overview",
 		Short: "View transactions of address",
 		Run:   viewAddress,
 	}
