@@ -13,23 +13,23 @@ import (
 
 var slog = log.New("module", "solo")
 
-type SoloClient struct {
+type Client struct {
 	*drivers.BaseClient
 }
 
-func New(cfg *types.Consensus) *SoloClient {
+func New(cfg *types.Consensus) *Client {
 
 	c := drivers.NewBaseClient(cfg)
-	solo := &SoloClient{c}
+	solo := &Client{c}
 	c.SetChild(solo)
 	return solo
 }
 
-func (client *SoloClient) Close() {
-	log.Info("consensus solo closed")
+func (client *Client) Close() {
+	slog.Info("consensus solo closed")
 }
 
-func (client *SoloClient) CreateGenesisTx() (ret []*types.Transaction) {
+func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
 	tx.Execer = []byte("coins")
 	tx.To = client.Cfg.Genesis
@@ -42,16 +42,16 @@ func (client *SoloClient) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
-func (client *SoloClient) ProcEvent(msg queue.Message) {
+func (client *Client) ProcEvent(msg queue.Message) {
 
 }
 
 //solo 不检查任何的交易
-func (client *SoloClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
 }
 
-func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
+func (client *Client) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
 	//exec block
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
@@ -66,7 +66,7 @@ func (client *SoloClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 	return blockdetail, deltx, nil
 }
 
-func (client *SoloClient) CreateBlock() {
+func (client *Client) CreateBlock() {
 	issleep := true
 	for {
 		if !client.IsMining() || !client.IsCaughtUp() {

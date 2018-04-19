@@ -17,7 +17,7 @@ func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
 		return NewGoMemDB(name, dir, cache)
 	}
-	registerDBCreator(MemDBBackendStr, dbCreator, false)
+	registerDBCreator(memDBBackendStr, dbCreator, false)
 }
 
 type GoMemDB struct {
@@ -52,7 +52,7 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	if entry, ok := db.db[string(key)]; ok {
 		return CopyBytes(entry), nil
 	}
-	return nil, nil
+	return nil, ErrNotFoundInDb
 }
 
 func (db *GoMemDB) Set(key []byte, value []byte) error {
@@ -103,7 +103,7 @@ func (db *GoMemDB) Close() {
 
 func (db *GoMemDB) Print() {
 	for key, value := range db.db {
-		mlog.Info("Print", "key", string(key), "value", string(value))
+		mlog.Info("Print", "key", key, "value", string(value))
 	}
 }
 
@@ -113,15 +113,17 @@ func (db *GoMemDB) Stats() map[string]string {
 }
 
 func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
 
 	var keys []string
-	for k, _ := range db.db {
+	for k := range db.db {
 		if strings.HasPrefix(k, string(prefix)) {
 			keys = append(keys, k)
 		}
 	}
 	sort.Strings(keys)
-	var index int = 0
+	var index int
 	return &goMemDBIt{index, keys, db, reserve, prefix}
 }
 
@@ -151,10 +153,10 @@ func (dbit *goMemDBIt) Close() {
 func (dbit *goMemDBIt) Next() bool {
 
 	if dbit.reserve { // 反向
-		dbit.index -= 1 //将当前key值指向前一个
+		dbit.index-- //将当前key值指向前一个
 		return true
 	} else { // 正向
-		dbit.index += 1 //将当前key值指向后一个
+		dbit.index++ //将当前key值指向后一个
 		return true
 	}
 }
@@ -215,7 +217,7 @@ type kv struct{ k, v []byte }
 type memBatch struct {
 	db     *GoMemDB
 	writes []kv
-	size   int
+	//size   int
 }
 
 func (db *GoMemDB) NewBatch(sync bool) Batch {

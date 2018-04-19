@@ -16,13 +16,12 @@ var (
 	GetAddrFromOnlineInterval  = 5 * time.Second
 	CheckActivePeersInterVal   = 5 * time.Second
 	CheckBlackListInterVal     = 30 * time.Second
-	checkSlowPeerInterVal      = 30 * time.Second
 )
 
 const (
-	MSG_TX          = 1
-	MSG_BLOCK       = 2
-	TryMapPortTimes = 20
+	msgTx           = 1
+	msgBlock        = 2
+	tryMapPortTimes = 20
 )
 
 var (
@@ -30,31 +29,29 @@ var (
 )
 
 const (
-	DefaultPort      = 13802
-	DefalutNatPort   = 23802
-	MixOutBoundNum   = 5
-	MaxOutBoundNum   = 25
-	StableBoundNum   = 15
-	MaxAddrListNum   = 256
-	MaxRangeBlockNum = 100
-	MaxAttemps       = 5
-	Protocol         = "tcp"
-	ExternalPortTag  = "externalport"
+	defaultPort     = 13802
+	defalutNatPort  = 23802
+	maxOutBoundNum  = 25
+	stableBoundNum  = 15
+	maxAddrListNum  = 256
+	maxAttemps      = 5
+	protocol        = "tcp"
+	externalPortTag = "externalport"
 )
 
 const (
-	NODE_NETWORK = 1
-	NODE_GETUTXO = 2
-	NODE_BLOOM   = 4
+	nodeNetwork = 1
+	nodeGetUTXO = 2
+	nodeBloom   = 4
 )
 
 var (
-	SERVICE int64 = NODE_BLOOM + NODE_NETWORK + NODE_GETUTXO
+	Service int64 = nodeBloom + nodeNetwork + nodeGetUTXO
 	OutSide bool
 )
 
-//leveldb 中p2p privkey,addrkey
+// leveldb 中p2p privkey,addrkey
 const (
-	AddrkeyTag = "addrs"
-	PrivKeyTag = "privkey"
+	addrkeyTag = "addrs"
+	privKeyTag = "privkey"
 )
