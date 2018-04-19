@@ -16,6 +16,7 @@ func NetCmd() *cobra.Command {
 		GetPeerInfoCmd(),
 		IsClockSyncCmd(),
 		IsSyncCmd(),
+		GetNetInfoCmd(),
 	)
 
 	return cmd
@@ -69,5 +70,22 @@ func isSync(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res bool
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.IsSync", nil, &res)
+	ctx.Run()
+}
+
+// get net info
+func GetNetInfoCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "info",
+		Short: "Get net information",
+		Run:   netInfo,
+	}
+	return cmd
+}
+
+func netInfo(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res jsonrpc.NodeNetinfo
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
 	ctx.Run()
 }

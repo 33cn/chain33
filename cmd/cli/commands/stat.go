@@ -26,6 +26,7 @@ func StatCmd() *cobra.Command {
 	return cmd
 }
 
+// get total coins
 func GetTotalCoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "total_coins",
