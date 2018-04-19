@@ -17,7 +17,7 @@ func (m *mockConsensus) SetQueueClient(q queue.Queue) {
 		for msg := range client.Recv() {
 			switch msg.Ty {
 			case types.EventGetTicketCount:
-				msg.Reply(client.NewMessage(consensusKey, msg.Ty, &types.Int64{}))
+				msg.Reply(client.NewMessage(consensusKey, types.EventReplyGetTicketCount, &types.Int64{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -38,7 +38,7 @@ func (m *mockP2P) SetQueueClient(q queue.Queue) {
 		for msg := range client.Recv() {
 			switch msg.Ty {
 			case types.EventPeerInfo:
-				msg.Reply(client.NewMessage(mempoolKey, msg.Ty, &types.PeerList{}))
+				msg.Reply(client.NewMessage(mempoolKey, types.EventPeerList, &types.PeerList{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -59,27 +59,27 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 		for msg := range client.Recv() {
 			switch msg.Ty {
 			case types.EventGetBlocks:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.BlockDetails{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventBlocks, &types.BlockDetails{}))
 			case types.EventGetTransactionByAddr:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.ReplyTxInfos{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyTxInfo, &types.ReplyTxInfos{}))
 			case types.EventQueryTx:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.TransactionDetail{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventTransactionDetail, &types.TransactionDetail{}))
 			case types.EventGetTransactionByHash:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.TransactionDetails{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventTransactionDetails, &types.TransactionDetails{}))
 			case types.EventGetHeaders:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.Headers{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventHeaders, &types.Headers{}))
 			case types.EventGetBlockOverview:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.BlockOverview{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyBlockOverview, &types.BlockOverview{}))
 			case types.EventGetAddrOverview:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.AddrOverview{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyAddrOverview, &types.AddrOverview{}))
 			case types.EventGetBlockHash:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.ReplyHash{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventBlockHash, &types.ReplyHash{}))
 			case types.EventIsSync:
-				msg.Reply(client.NewMessage(blockchainKey, msg.Ty, &types.IsCaughtUp{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsSync, &types.IsCaughtUp{}))
 			case types.EventIsNtpClockSync:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.IsNtpClockSync{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{}))
 			case types.EventGetLastHeader:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Header{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventHeader, &types.Header{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -100,13 +100,13 @@ func (m *mockMempool) SetQueueClient(q queue.Queue) {
 		for msg := range client.Recv() {
 			switch msg.Ty {
 			case types.EventTx:
-				msg.Reply(client.NewMessage(mempoolKey, msg.Ty, &types.Reply{IsOk: true, Msg: []byte("word")}))
+				msg.Reply(client.NewMessage(mempoolKey, types.EventReply, &types.Reply{IsOk: true, Msg: []byte("word")}))
 			case types.EventTxList:
-				msg.Reply(client.NewMessage(mempoolKey, msg.Ty, &types.ReplyTxList{}))
+				msg.Reply(client.NewMessage(mempoolKey, types.EventReplyTxList, &types.ReplyTxList{}))
 			case types.EventGetMempool:
-				msg.Reply(client.NewMessage(mempoolKey, msg.Ty, &types.ReplyTxList{}))
+				msg.Reply(client.NewMessage(mempoolKey, types.EventReplyTxList, &types.ReplyTxList{}))
 			case types.EventGetLastMempool:
-				msg.Reply(client.NewMessage(mempoolKey, msg.Ty, &types.ReplyTxList{}))
+				msg.Reply(client.NewMessage(mempoolKey, types.EventReplyTxList, &types.ReplyTxList{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -127,39 +127,39 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 		for msg := range client.Recv() {
 			switch msg.Ty {
 			case types.EventWalletGetAccountList:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.WalletAccounts{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventWalletAccountList, &types.WalletAccounts{}))
 			case types.EventNewAccount:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.WalletAccount{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.WalletAccount{}))
 			case types.EventWalletTransactionList:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.WalletTxDetails{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventTransactionDetails, &types.WalletTxDetails{}))
 			case types.EventWalletImportprivkey:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.WalletAccount{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.WalletAccount{}))
 			case types.EventWalletSendToAddress:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyHash{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHash{}))
 			case types.EventWalletSetFee:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Reply{IsOk: true}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{IsOk: true}))
 			case types.EventWalletSetLabel:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.WalletAccount{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.WalletAccount{}))
 			case types.EventWalletMergeBalance:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyHashes{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHashes{}))
 			case types.EventWalletSetPasswd:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Reply{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
 			case types.EventGenSeed:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplySeed{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyGenSeed, &types.ReplySeed{}))
 			case types.EventSaveSeed:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Reply{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
 			case types.EventGetSeed:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplySeed{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyGetSeed, &types.ReplySeed{}))
 			case types.EventGetWalletStatus:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.WalletStatus{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{}))
 			case types.EventWalletAutoMiner:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.Reply{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
 			case types.EventDumpPrivkey:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyStr{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivkey, &types.ReplyStr{}))
 			case types.EventCloseTickets:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.ReplyHashes{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHashes{}))
 			case types.EventLocalGet:
-				msg.Reply(client.NewMessage(walletKey, msg.Ty, &types.LocalReplyValue{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventLocalReplyValue, &types.LocalReplyValue{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
