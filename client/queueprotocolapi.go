@@ -80,4 +80,6 @@ type QueueProtocolAPI interface {
 
 	// types.EventGetTicketCount
 	GetTicketCount() (*types.Int64, error)
+
+	CreateRawTransaction(param *types.CreateTx) ([]byte, error)
 }

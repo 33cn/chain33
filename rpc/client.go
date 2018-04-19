@@ -26,18 +26,7 @@ func (c *channelClient) Init(q queue.Client) {
 }
 
 func (c *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, error) {
-	if parm == nil {
-		return nil, errors.New("parm is null")
-	}
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: parm.GetAmount(), Note: parm.GetNote()}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-
-	//初始化随机数
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: parm.GetFee(), To: parm.GetTo(), Nonce: r.Int63()}
-	data := types.Encode(tx)
-	return data, nil
-
+	return c.api.CreateRawTransaction(parm)
 }
 
 func (c *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {

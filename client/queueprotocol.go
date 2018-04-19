@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"math/rand"
 )
 
 const (
@@ -28,6 +30,8 @@ const (
 )
 
 var log = log15.New("module", "client")
+
+//var accountdb = account.NewCoinsAccount()
 
 type QueueProtocolOption struct {
 	// 发送请求超时时间
@@ -650,4 +654,20 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("CreateRawTransaction", "Error", err)
+		return nil, err
+	}
+	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: param.GetAmount(), Note: param.GetNote()}}
+	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+
+	//初始化随机数
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+	data := types.Encode(tx)
+	return data, nil
 }
