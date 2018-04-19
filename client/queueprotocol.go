@@ -29,7 +29,7 @@ const (
 
 var log = log15.New("module", "client")
 
-type QueueCoordinatorOption struct {
+type QueueProtocolOption struct {
 	// 发送请求超时时间
 	SendTimeout time.Duration
 	// 接收应答超时时间
@@ -37,17 +37,17 @@ type QueueCoordinatorOption struct {
 }
 
 // 消息通道协议实现
-type QueueCoordinator struct {
+type QueueProtocol struct {
 	// 消息队列
 	client queue.Client
-	option QueueCoordinatorOption
+	option QueueProtocolOption
 }
 
-func New(client queue.Client, option *QueueCoordinatorOption) (QueueProtocolAPI, error) {
+func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, error) {
 	if client == nil {
 		return nil, types.ErrInvalidParam
 	}
-	q := &QueueCoordinator{}
+	q := &QueueProtocol{}
 	q.client = client
 	if option != nil {
 		q.option = *option
@@ -58,7 +58,7 @@ func New(client queue.Client, option *QueueCoordinatorOption) (QueueProtocolAPI,
 	return q, nil
 }
 
-func (q *QueueCoordinator) query(topic string, ty int64, data interface{}) (queue.Message, error) {
+func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.Message, error) {
 	client := q.client
 	msg := client.NewMessage(topic, ty, data)
 	err := client.SendTimeout(msg, true, q.option.SendTimeout)
@@ -68,13 +68,13 @@ func (q *QueueCoordinator) query(topic string, ty int64, data interface{}) (queu
 	return client.WaitTimeout(msg, q.option.WaitTimeout)
 }
 
-func (q *QueueCoordinator) SetOption(option *QueueCoordinatorOption) {
+func (q *QueueProtocol) SetOption(option *QueueProtocolOption) {
 	if option != nil {
 		q.option = *option
 	}
 }
 
-func (q *QueueCoordinator) SendTx(param *types.Transaction) (*types.Reply, error) {
+func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("SendTx", "Error", err)
@@ -99,7 +99,7 @@ func (q *QueueCoordinator) SendTx(param *types.Transaction) (*types.Reply, error
 	return reply, err
 }
 
-func (q *QueueCoordinator) GetTxList(param *types.TxHashList) (*types.ReplyTxList, error) {
+func (q *QueueProtocol) GetTxList(param *types.TxHashList) (*types.ReplyTxList, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetTxList", "Error", err)
@@ -116,7 +116,7 @@ func (q *QueueCoordinator) GetTxList(param *types.TxHashList) (*types.ReplyTxLis
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error) {
+func (q *QueueProtocol) GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetBlocks", "Error", err)
@@ -133,7 +133,7 @@ func (q *QueueCoordinator) GetBlocks(param *types.ReqBlocks) (*types.BlockDetail
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
+func (q *QueueProtocol) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("QueryTx", "Error", err)
@@ -150,7 +150,7 @@ func (q *QueueCoordinator) QueryTx(param *types.ReqHash) (*types.TransactionDeta
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error) {
+func (q *QueueProtocol) GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetTransactionByAddr", "Error", err)
@@ -167,7 +167,7 @@ func (q *QueueCoordinator) GetTransactionByAddr(param *types.ReqAddr) (*types.Re
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetTransactionByHash(param *types.ReqHashes) (*types.TransactionDetails, error) {
+func (q *QueueProtocol) GetTransactionByHash(param *types.ReqHashes) (*types.TransactionDetails, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetTransactionByHash", "Error", err)
@@ -184,7 +184,7 @@ func (q *QueueCoordinator) GetTransactionByHash(param *types.ReqHashes) (*types.
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetMempool() (*types.ReplyTxList, error) {
+func (q *QueueProtocol) GetMempool() (*types.ReplyTxList, error) {
 	msg, err := q.query(mempoolKey, types.EventGetMempool, nil)
 	if err != nil {
 		log.Error("GetMempool", "Error", err.Error())
@@ -196,7 +196,7 @@ func (q *QueueCoordinator) GetMempool() (*types.ReplyTxList, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletGetAccountList() (*types.WalletAccounts, error) {
+func (q *QueueProtocol) WalletGetAccountList() (*types.WalletAccounts, error) {
 	msg, err := q.query(walletKey, types.EventWalletGetAccountList, nil)
 	if err != nil {
 		log.Error("WalletGetAccountList", "Error", err.Error())
@@ -208,7 +208,7 @@ func (q *QueueCoordinator) WalletGetAccountList() (*types.WalletAccounts, error)
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error) {
+func (q *QueueProtocol) NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("NewAccount", "Error", err)
@@ -225,7 +225,7 @@ func (q *QueueCoordinator) NewAccount(param *types.ReqNewAccount) (*types.Wallet
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
+func (q *QueueProtocol) WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletTransactionList", "Error", err)
@@ -242,7 +242,7 @@ func (q *QueueCoordinator) WalletTransactionList(param *types.ReqWalletTransacti
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletImportprivkey(param *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
+func (q *QueueProtocol) WalletImportprivkey(param *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletImportprivkey", "Error", err)
@@ -259,7 +259,7 @@ func (q *QueueCoordinator) WalletImportprivkey(param *types.ReqWalletImportPrivK
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
+func (q *QueueProtocol) WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletSendToAddress", "Error", err)
@@ -276,7 +276,7 @@ func (q *QueueCoordinator) WalletSendToAddress(param *types.ReqWalletSendToAddre
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletSetFee(param *types.ReqWalletSetFee) (*types.Reply, error) {
+func (q *QueueProtocol) WalletSetFee(param *types.ReqWalletSetFee) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletSetFee", "Error", err)
@@ -293,7 +293,7 @@ func (q *QueueCoordinator) WalletSetFee(param *types.ReqWalletSetFee) (*types.Re
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletSetLabel(param *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
+func (q *QueueProtocol) WalletSetLabel(param *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletSetLabel", "Error", err)
@@ -310,7 +310,7 @@ func (q *QueueCoordinator) WalletSetLabel(param *types.ReqWalletSetLabel) (*type
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletMergeBalance(param *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
+func (q *QueueProtocol) WalletMergeBalance(param *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletMergeBalance", "Error", err)
@@ -327,7 +327,7 @@ func (q *QueueCoordinator) WalletMergeBalance(param *types.ReqWalletMergeBalance
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletSetPasswd(param *types.ReqWalletSetPasswd) (*types.Reply, error) {
+func (q *QueueProtocol) WalletSetPasswd(param *types.ReqWalletSetPasswd) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletSetPasswd", "Error", err)
@@ -344,7 +344,7 @@ func (q *QueueCoordinator) WalletSetPasswd(param *types.ReqWalletSetPasswd) (*ty
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletLock() (*types.Reply, error) {
+func (q *QueueProtocol) WalletLock() (*types.Reply, error) {
 	msg, err := q.query(walletKey, types.EventWalletLock, nil)
 	if err != nil {
 		log.Error("WalletLock", "Error", err.Error())
@@ -356,7 +356,7 @@ func (q *QueueCoordinator) WalletLock() (*types.Reply, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletUnLock(param *types.WalletUnLock) (*types.Reply, error) {
+func (q *QueueProtocol) WalletUnLock(param *types.WalletUnLock) (*types.Reply, error) {
 	msg, err := q.query(walletKey, types.EventWalletUnLock, param)
 	if err != nil {
 		log.Error("WalletUnLock", "Error", err.Error())
@@ -368,7 +368,7 @@ func (q *QueueCoordinator) WalletUnLock(param *types.WalletUnLock) (*types.Reply
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) PeerInfo() (*types.PeerList, error) {
+func (q *QueueProtocol) PeerInfo() (*types.PeerList, error) {
 	msg, err := q.query(p2pKey, types.EventPeerInfo, nil)
 	if err != nil {
 		log.Error("PeerInfo", "Error", err.Error())
@@ -380,7 +380,7 @@ func (q *QueueCoordinator) PeerInfo() (*types.PeerList, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetHeaders(param *types.ReqBlocks) (*types.Headers, error) {
+func (q *QueueProtocol) GetHeaders(param *types.ReqBlocks) (*types.Headers, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetHeaders", "Error", err)
@@ -397,7 +397,7 @@ func (q *QueueCoordinator) GetHeaders(param *types.ReqBlocks) (*types.Headers, e
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetLastMempool(param *types.ReqNil) (*types.ReplyTxList, error) {
+func (q *QueueProtocol) GetLastMempool(param *types.ReqNil) (*types.ReplyTxList, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetLastMempool", "Error", err)
@@ -414,7 +414,7 @@ func (q *QueueCoordinator) GetLastMempool(param *types.ReqNil) (*types.ReplyTxLi
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error) {
+func (q *QueueProtocol) GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetBlockOverview", "Error", err)
@@ -431,7 +431,7 @@ func (q *QueueCoordinator) GetBlockOverview(param *types.ReqHash) (*types.BlockO
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error) {
+func (q *QueueProtocol) GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetAddrOverview", "Error", err)
@@ -448,7 +448,7 @@ func (q *QueueCoordinator) GetAddrOverview(param *types.ReqAddr) (*types.AddrOve
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error) {
+func (q *QueueProtocol) GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetBlockHash", "Error", err)
@@ -465,7 +465,7 @@ func (q *QueueCoordinator) GetBlockHash(param *types.ReqInt) (*types.ReplyHash, 
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error) {
+func (q *QueueProtocol) GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GenSeed", "Error", err)
@@ -482,7 +482,7 @@ func (q *QueueCoordinator) GenSeed(param *types.GenSeedLang) (*types.ReplySeed, 
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) SaveSeed(param *types.SaveSeedByPw) (*types.Reply, error) {
+func (q *QueueProtocol) SaveSeed(param *types.SaveSeedByPw) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("SaveSeed", "Error", err)
@@ -499,7 +499,7 @@ func (q *QueueCoordinator) SaveSeed(param *types.SaveSeedByPw) (*types.Reply, er
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error) {
+func (q *QueueProtocol) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetSeed", "Error", err)
@@ -516,7 +516,7 @@ func (q *QueueCoordinator) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, 
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetWalletStatus() (*types.WalletStatus, error) {
+func (q *QueueProtocol) GetWalletStatus() (*types.WalletStatus, error) {
 	msg, err := q.query(walletKey, types.EventGetWalletStatus, nil)
 	if err != nil {
 		log.Error("GetWalletStatus", "Error", err.Error())
@@ -528,7 +528,7 @@ func (q *QueueCoordinator) GetWalletStatus() (*types.WalletStatus, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error) {
+func (q *QueueProtocol) WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletAutoMiner", "Error", err)
@@ -545,7 +545,7 @@ func (q *QueueCoordinator) WalletAutoMiner(param *types.MinerFlag) (*types.Reply
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetTicketCount() (*types.Int64, error) {
+func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
 	msg, err := q.query(consensusKey, types.EventGetTicketCount, nil)
 	if err != nil {
 		log.Error("GetTicketCount", "Error", err.Error())
@@ -557,7 +557,7 @@ func (q *QueueCoordinator) GetTicketCount() (*types.Int64, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error) {
+func (q *QueueProtocol) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("DumpPrivkey", "Error", err)
@@ -574,7 +574,7 @@ func (q *QueueCoordinator) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, er
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) CloseTickets() (*types.ReplyHashes, error) {
+func (q *QueueProtocol) CloseTickets() (*types.ReplyHashes, error) {
 	msg, err := q.query(walletKey, types.EventCloseTickets, nil)
 	if err != nil {
 		log.Error("CloseTickets", "Error", err.Error())
@@ -586,7 +586,7 @@ func (q *QueueCoordinator) CloseTickets() (*types.ReplyHashes, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) IsSync() (ret bool, err error) {
+func (q *QueueProtocol) IsSync() (ret bool, err error) {
 	ret = false
 	msg, err := q.query(blockchainKey, types.EventIsSync, nil)
 	if err != nil {
@@ -601,7 +601,7 @@ func (q *QueueCoordinator) IsSync() (ret bool, err error) {
 	return
 }
 
-func (q *QueueCoordinator) IsNtpClockSync() (ret bool, err error) {
+func (q *QueueProtocol) IsNtpClockSync() (ret bool, err error) {
 	ret = false
 	msg, err := q.query(blockchainKey, types.EventIsNtpClockSync, nil)
 	if err != nil {
@@ -616,7 +616,7 @@ func (q *QueueCoordinator) IsNtpClockSync() (ret bool, err error) {
 	return
 }
 
-func (q *QueueCoordinator) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error) {
+func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("LocalGet", "Error", err)
@@ -640,7 +640,7 @@ func (q *QueueCoordinator) LocalGet(param *types.ReqHash) (*types.LocalReplyValu
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueCoordinator) GetLastHeader() (*types.Header, error) {
+func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 	msg, err := q.query(blockchainKey, types.EventGetLastHeader, nil)
 	if err != nil {
 		log.Error("GetLastHeader", "Error", err.Error())
