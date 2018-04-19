@@ -256,6 +256,22 @@ func TestCoordinator(t *testing.T) {
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
 	testGetLastHeader(t, api)
+	testCreateRawTransaction(t, api)
+	testSendRawTransaction(t, api)
+}
+
+func testSendRawTransaction(t *testing.T, api QueueProtocolAPI) {
+	_, err := api.CreateRawTransaction(&types.CreateTx{})
+	if nil != err {
+		t.Error("Call CreateRawTransaction Failed.", err)
+	}
+}
+
+func testCreateRawTransaction(t *testing.T, api QueueProtocolAPI) {
+	_, err := api.CreateRawTransaction(&types.CreateTx{})
+	if nil != err {
+		t.Error("Call CreateRawTransaction Failed.", err)
+	}
 }
 
 func testGetLastHeader(t *testing.T, api QueueProtocolAPI) {

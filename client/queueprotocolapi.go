@@ -1,6 +1,9 @@
 package client
 
-import "gitlab.33.cn/chain33/chain33/types"
+import (
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
+)
 
 // 消息通道交互API接口定义
 type QueueProtocolAPI interface {
@@ -82,4 +85,5 @@ type QueueProtocolAPI interface {
 	GetTicketCount() (*types.Int64, error)
 
 	CreateRawTransaction(param *types.CreateTx) ([]byte, error)
+	SendRawTransaction(param *types.SignedTx) (queue.Message, error)
 }

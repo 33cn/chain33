@@ -636,6 +636,7 @@ func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, 
 
 	msg, err := q.query(walletKey, types.EventLocalGet, &types.LocalDBGet{keys})
 	if err != nil {
+		log.Error("LocalGet", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
@@ -670,4 +671,30 @@ func (q *QueueProtocol) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
 	data := types.Encode(tx)
 	return data, nil
+}
+
+func (q *QueueProtocol) SendRawTransaction(param *types.SignedTx) (queue.Message, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("SendRawTransaction", "Error", err)
+		return queue.Message{}, err
+	}
+	var tx types.Transaction
+	err := types.Decode(param.GetUnsign(), &tx)
+	if err == nil {
+		tx.Signature = &types.Signature{param.GetTy(), param.GetPubkey(), param.GetSign()}
+		msg, err := q.query(mempoolKey, types.EventTx, &tx)
+		if err != nil {
+			log.Error("SendRawTransaction", "Error", err.Error())
+			return msg, err
+		}
+		if reply, ok := msg.GetData().(*types.Reply); ok {
+			if reply.GetIsOk() {
+				reply.Msg = tx.Hash()
+			}
+			return msg, nil
+		}
+		return queue.Message{}, types.ErrTypeAsset
+	}
+	return queue.Message{}, err
 }
