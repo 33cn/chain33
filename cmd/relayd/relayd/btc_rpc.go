@@ -14,15 +14,56 @@ import (
 	"github.com/btcsuite/btcutil"
 )
 
-type BlockStamp struct {
-	Height int32
-	Hash   chainhash.Hash
-}
+// Notification types.  These are defined here and processed from from reading
+// a notificationChan to avoid handling these notifications directly in
+// rpcclient callbacks, which isn't very Go-like and doesn't allow
+// blocking client calls.
+type (
+	BlockStamp struct {
+		Height int32
+		Hash   chainhash.Hash
+	}
 
-type BlockMeta struct {
-	BlockStamp
-	Time time.Time
-}
+	BlockMeta struct {
+		BlockStamp
+		Time time.Time
+	}
+
+	// ClientConnected is a notification for when a client connection is
+	// opened or reestablished to the chain server.
+	ClientConnected struct{}
+
+	// BlockConnected is a notification for a newly-attached block to the
+	// best chain.
+	BlockConnected BlockMeta
+
+	// BlockDisconnected is a notifcation that the block described by the
+	// BlockStamp was reorganized out of the best chain.
+	BlockDisconnected BlockMeta
+
+	// RelevantTx is a notification for a transaction which spends wallet
+	// inputs or pays to a watched address.
+	RelevantTx struct {
+		TxRecord *TxRecord
+		Block    *BlockMeta // nil if unmined
+	}
+
+	// RescanProgress is a notification describing the current status
+	// of an in-progress rescan.
+	RescanProgress struct {
+		Hash   *chainhash.Hash
+		Height int32
+		Time   time.Time
+	}
+
+	// RescanFinished is a notification that a previous rescan request
+	// has finished.
+	RescanFinished struct {
+		Hash   *chainhash.Hash
+		Height int32
+		Time   time.Time
+	}
+)
 
 // RPCClient represents a persistent client connection to a bitcoin RPC server
 // for information regarding the current best block chain.
@@ -152,47 +193,6 @@ type TxRecord struct {
 	Received     time.Time
 	SerializedTx []byte // Optional: may be nil
 }
-
-// Notification types.  These are defined here and processed from from reading
-// a notificationChan to avoid handling these notifications directly in
-// rpcclient callbacks, which isn't very Go-like and doesn't allow
-// blocking client calls.
-type (
-	// ClientConnected is a notification for when a client connection is
-	// opened or reestablished to the chain server.
-	ClientConnected struct{}
-
-	// BlockConnected is a notification for a newly-attached block to the
-	// best chain.
-	BlockConnected BlockMeta
-
-	// BlockDisconnected is a notifcation that the block described by the
-	// BlockStamp was reorganized out of the best chain.
-	BlockDisconnected BlockMeta
-
-	// RelevantTx is a notification for a transaction which spends wallet
-	// inputs or pays to a watched address.
-	RelevantTx struct {
-		TxRecord *TxRecord
-		Block    *BlockMeta // nil if unmined
-	}
-
-	// RescanProgress is a notification describing the current status
-	// of an in-progress rescan.
-	RescanProgress struct {
-		Hash   *chainhash.Hash
-		Height int32
-		Time   time.Time
-	}
-
-	// RescanFinished is a notification that a previous rescan request
-	// has finished.
-	RescanFinished struct {
-		Hash   *chainhash.Hash
-		Height int32
-		Time   time.Time
-	}
-)
 
 // Notifications returns a channel of parsed notifications sent by the remote
 // bitcoin RPC server.  This channel must be continually read or the process
