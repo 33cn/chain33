@@ -10,11 +10,8 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
