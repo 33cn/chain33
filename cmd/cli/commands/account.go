@@ -1,20 +1,12 @@
 package commands
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/rand"
-	"os"
 	"strconv"
-	"time"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
 func AccountCmd() *cobra.Command {
@@ -25,7 +17,6 @@ func AccountCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		BindMinerCmd(),
 		DumpKeyCmd(),
 		GetAccountListCmd(),
 		GetBalanceCmd(),
@@ -35,57 +26,6 @@ func AccountCmd() *cobra.Command {
 	)
 
 	return cmd
-}
-
-// bind miner
-func BindMinerCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "bind_miner",
-		Short: "Bind private key to miner address",
-		Run:   bindMiner,
-	}
-	addBindMinerFlags(cmd)
-	return cmd
-}
-
-func addBindMinerFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", `miner address`)
-	cmd.MarkFlagRequired("addr")
-
-	cmd.Flags().StringP("key", "k", "", `private key`)
-	cmd.MarkFlagRequired("key")
-}
-
-// Todo
-func bindMiner(cmd *cobra.Command, args []string) {
-	addr, _ := cmd.Flags().GetString("addr")
-	key, _ := cmd.Flags().GetString("key")
-	c, _ := crypto.New(types.GetSignatureTypeName(wallet.SignType))
-	a, _ := common.FromHex(key)
-	privKey, _ := c.PrivKeyFromBytes(a)
-	originAddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
-	ta := &types.TicketAction{}
-	tBind := &types.TicketBind{
-		MinerAddress:  addr,
-		ReturnAddress: originAddr,
-	}
-	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
-	ta.Ty = types.TicketActionBind
-	execer := []byte("ticket")
-	to := account.ExecAddress(string(execer)).String()
-	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	tx.Fee += types.MinFee
-	tx.Sign(int32(wallet.SignType), privKey)
-	txHex := types.Encode(tx)
-	fmt.Println(hex.EncodeToString(txHex))
 }
 
 // dump private key

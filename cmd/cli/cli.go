@@ -28,11 +28,15 @@ func init() {
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),
-		commands.AddressCmd(),
+		//commands.AddressCmd(),
 		commands.BlockCmd(),
-		commands.CommonCmd(),
+		commands.BTYCmd(),
+		commands.ConfigCmd(),
+		commands.ExecCmd(),
 		commands.MempoolCmd(),
+		commands.NetCmd(),
 		commands.SeedCmd(),
+		commands.StatCmd(),
 		commands.TicketCmd(),
 		commands.TokenCmd(),
 		commands.TxCmd(),

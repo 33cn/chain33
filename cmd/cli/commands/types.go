@@ -139,3 +139,11 @@ type SellOrder2Show struct {
 	Status            string `json:"status"`
 	Height            int64  `json:"height"`
 }
+
+type GetTotalCoinsResult struct {
+	TxCount          int64  `json:"txCount"`
+	AccountCount     int64  `json:"accountCount"`
+	ExpectedAmount   string `json:"expectedAmount"`
+	ActualAmount     string `json:"actualAmount"`
+	DifferenceAmount string `json:"differenceAmount"`
+}

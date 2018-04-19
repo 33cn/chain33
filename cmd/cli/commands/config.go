@@ -16,102 +16,19 @@ import (
 	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
-func CommonCmd() *cobra.Command {
+func ConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "common",
-		Short: "Common operation",
+		Use:   "config",
+		Short: "Configuration",
 		Args:  cobra.MinimumNArgs(1),
 	}
 
 	cmd.AddCommand(
 		ConfigTxCmd(),
-		GetPeerInfoCmd(),
-		IsClockSyncCmd(),
-		IsSyncCmd(),
 		QueryConfigCmd(),
-		SetFeeCmd(),
 	)
 
 	return cmd
-}
-
-// get peers connected info
-func GetPeerInfoCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "peer_info",
-		Short: "Get remote peer nodes",
-		Run:   peerInfo,
-	}
-	return cmd
-}
-
-func peerInfo(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.PeerList
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
-	ctx.Run()
-}
-
-// get ntp clock sync status
-func IsClockSyncCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "is_clock_sync",
-		Short: "Get ntp clock synchronization status",
-		Run:   isClockSync,
-	}
-	return cmd
-}
-
-func isClockSync(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res bool
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.IsNtpClockSync", nil, &res)
-	ctx.Run()
-}
-
-// get local db sync status
-func IsSyncCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "is_sync",
-		Short: "Get blockchain synchronization status",
-		Run:   isSync,
-	}
-	return cmd
-}
-
-func isSync(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res bool
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.IsSync", nil, &res)
-	ctx.Run()
-}
-
-// set tx fee
-func SetFeeCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "set_fee",
-		Short: "Set transaction fee",
-		Run:   setFee,
-	}
-	addSetFeeFlags(cmd)
-	return cmd
-}
-
-func addSetFeeFlags(cmd *cobra.Command) {
-	cmd.Flags().Float64P("amount", "a", 0, "tx fee amount")
-	cmd.MarkFlagRequired("amount")
-}
-
-func setFee(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	amount, _ := cmd.Flags().GetFloat64("amount")
-	amountInt64 := int64(amount * 1e4)
-	params := types.ReqWalletSetFee{
-		Amount: amountInt64 * 1e4,
-	}
-	var res jsonrpc.Reply
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
-	ctx.Run()
 }
 
 // config transaction

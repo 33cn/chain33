@@ -19,10 +19,6 @@ import (
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
-	amountResult := ""
-	if tx.Amount != 0 {
-		amountResult = strconv.FormatFloat(float64(tx.Amount)/float64(types.Coin), 'f', 4, 64)
-	}
 	result := &TxResult{
 		Execer:     tx.Execer,
 		Payload:    tx.Payload,
@@ -33,9 +29,20 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		Nonce:      tx.Nonce,
 		To:         tx.To,
 	}
-	payloacValue := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
+
+	if tx.Amount != 0 {
+		result.Amount = strconv.FormatFloat(float64(tx.Amount)/float64(types.Coin), 'f', 4, 64)
+	}
+	if tx.From != "" {
+		result.From = tx.From
+	}
+
+	payloadValue, ok := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
+	if !ok {
+		return result
+	}
 	for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
-		if _, ok := payloacValue[e]; ok {
+		if _, ok := payloadValue[e]; ok {
 			if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
 				amt := amtValue.(float64) / float64(types.Coin)
 				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
@@ -44,7 +51,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			}
 		}
 	}
-	if _, ok := payloacValue["Miner"]; ok {
+	if _, ok := payloadValue["Miner"]; ok {
 		if rwdValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"]; ok {
 			rwd := rwdValue.(float64) / float64(types.Coin)
 			rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
@@ -52,12 +59,6 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		}
 	}
 
-	if tx.Amount != 0 {
-		result.Amount = amountResult
-	}
-	if tx.From != "" {
-		result.From = tx.From
-	}
 	return result
 }
 
@@ -165,23 +166,23 @@ func sendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func createRawTx(priv string, to string, amount float64, note string, withdraw bool, isToken bool, tokenSymbol string) (string, error) {
+func createRawTx(to string, amount float64, note string, withdraw bool, isToken bool, tokenSymbol string) (string, error) {
 	amountInt64 := int64(amount*1e4) * 1e4
-	c, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return "", err
-	}
-	a, err := common.FromHex(priv)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return "", err
-	}
-	privKey, err := c.PrivKeyFromBytes(a)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return "", err
-	}
+	//c, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
+	//if err != nil {
+	//	fmt.Fprintln(os.Stderr, err)
+	//	return "", err
+	//}
+	//a, err := common.FromHex(priv)
+	//if err != nil {
+	//	fmt.Fprintln(os.Stderr, err)
+	//	return "", err
+	//}
+	//privKey, err := c.PrivKeyFromBytes(a)
+	//if err != nil {
+	//	fmt.Fprintln(os.Stderr, err)
+	//	return "", err
+	//}
 	// addrFrom := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	var tx *types.Transaction
 	if !isToken {
@@ -210,6 +211,7 @@ func createRawTx(priv string, to string, amount float64, note string, withdraw b
 		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: to}
 	}
 
+	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -218,7 +220,7 @@ func createRawTx(priv string, to string, amount float64, note string, withdraw b
 	tx.Fee += types.MinBalanceTransfer
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
-	tx.Sign(int32(wallet.SignType), privKey)
+	//tx.Sign(int32(wallet.SignType), privKey)
 	txHex := types.Encode(tx)
 	return hex.EncodeToString(txHex), nil
 }

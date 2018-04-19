@@ -12,7 +12,21 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func TotalCoinsCmd() *cobra.Command {
+func StatCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "stat",
+		Short: "Coin statistic",
+		Args:  cobra.MinimumNArgs(1),
+	}
+
+	cmd.AddCommand(
+		GetTotalCoinsCmd(),
+	)
+
+	return cmd
+}
+
+func GetTotalCoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "total_coins",
 		Short: "Get total amount of a token",
@@ -26,7 +40,8 @@ func addTotalCoinsCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("symbol", "s", "", "token symbol")
 	cmd.MarkFlagRequired("symbol")
 
-	cmd.Flags().Int64("height", 0, "block height")
+	cmd.Flags().Int64P("height", "t", 0, "block height")
+	cmd.MarkFlagRequired("height")
 }
 
 func totalCoins(cmd *cobra.Command, args []string) {
@@ -67,8 +82,13 @@ func totalCoins(cmd *cobra.Command, args []string) {
 
 	var startKey []byte
 	var count int64
-	for count = 1000; count == 1000; {
-		params := types.ReqGetTotalCoins{Symbol: symbol, StateHash: stateHash, StartKey: startKey, Count: count}
+	for count = 100; count == 100; {
+		params := types.ReqGetTotalCoins{
+			Symbol: symbol,
+			StateHash: stateHash,
+			StartKey: startKey,
+			Count: count,
+		}
 		var res types.ReplyGetTotalCoins
 		err = rpc.Call("Chain33.GetTotalCoins", params, &res)
 		if err != nil {
@@ -139,12 +159,4 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(data))
-}
-
-type GetTotalCoinsResult struct {
-	TxCount          int64  `json:"txCount"`
-	AccountCount     int64  `json:"accountCount"`
-	ExpectedAmount   string `json:"expectedAmount"`
-	ActualAmount     string `json:"actualAmount"`
-	DifferenceAmount string `json:"differenceAmount"`
 }
