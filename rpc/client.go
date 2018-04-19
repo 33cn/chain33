@@ -30,36 +30,11 @@ func (c *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, erro
 }
 
 func (c *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
-	var tx types.Transaction
-	err := types.Decode(parm.GetUnsign(), &tx)
-
-	if err == nil {
-		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
-		msg := c.NewMessage("mempool", types.EventTx, &tx)
-		err := c.Send(msg, true)
-		if err != nil {
-			var tmpMsg queue.Message
-			log.Error("SendRawTransaction", "Error", err.Error())
-			tmpMsg.Data = err
-			return tmpMsg
-		}
-		resp, err := c.Wait(msg)
-
-		if err != nil {
-
-			resp.Data = err
-
-		}
-		if resp.GetData().(*types.Reply).GetIsOk() {
-			resp.GetData().(*types.Reply).Msg = tx.Hash()
-		}
-
-		return resp
+	msg, err := c.api.SendRawTransaction(parm)
+	if err != nil {
+		msg.Data = err
 	}
-	var msg queue.Message
-	msg.Data = err
 	return msg
-
 }
 
 //channel
