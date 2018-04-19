@@ -123,6 +123,21 @@ func (wallet *Wallet) GetHeight() int64 {
 	return h
 }
 
+//手续费处理
+func (wallet *Wallet) processFees() error {
+	keys, err := wallet.getAllPrivKeys()
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		e := wallet.processFee(key)
+		if e != nil {
+			err = e
+		}
+	}
+	return err
+}
+
 func (wallet *Wallet) closeAllTickets(height int64) (int, error) {
 	keys, err := wallet.getAllPrivKeys()
 	if err != nil {
@@ -278,7 +293,6 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 }
 
 func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
-	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist, err := wallet.getTickets(addr, 2)
 	if err != nil && err != types.ErrNotFound {
@@ -308,7 +322,6 @@ func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]b
 }
 
 func (wallet *Wallet) forceCloseTicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
-	wallet.processFee(priv)
 	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist1, err1 := wallet.getTickets(addr, 1)
 	if err1 != nil && err1 != types.ErrNotFound {
@@ -358,9 +371,6 @@ func (wallet *Wallet) getTickets(addr string, status int32) ([]*types.Ticket, er
 		return nil, err
 	}
 	reply := resp.GetData().(types.Message).(*types.ReplyTicketList)
-	for i := 0; i < len(reply.Tickets); i++ {
-		walletlog.Debug("Tickets", "id", reply.Tickets[i].GetTicketId(), "addr", addr, "req", status, "res", reply.Tickets[i].Status)
-	}
 	return reply.Tickets, nil
 }
 

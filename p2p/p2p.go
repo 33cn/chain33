@@ -79,7 +79,6 @@ func (network *P2p) ShowTaskCapcity() {
 			log.Debug("ShowTaskCapcity", "loop", "done")
 			return
 		}
-
 		<-ticker.C
 		log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 	}
@@ -88,7 +87,6 @@ func (network *P2p) ShowTaskCapcity() {
 func (network *P2p) loadP2PPrivKeyToWallet() error {
 
 	for {
-
 		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
 		err := network.client.SendTimeout(msg, true, time.Minute)
 		if err != nil {
@@ -96,12 +94,12 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 			time.Sleep(time.Second)
 			continue
 		}
+
 		resp, err := network.client.WaitTimeout(msg, time.Minute)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
 		}
-
 		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
 			time.Sleep(time.Second)
 			continue
@@ -165,7 +163,6 @@ func (network *P2p) subP2pMsg() {
 				if msg.Ty != types.EventPeerInfo {
 					network.otherFactory <- struct{}{}
 				}
-
 			}
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
