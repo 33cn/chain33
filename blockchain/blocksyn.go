@@ -803,7 +803,10 @@ func (chain *BlockChain) IsCaughtUp() bool {
 	peersNo := 0
 	for _, peer := range chain.peerList {
 		if peer != nil && maxPeerHeight < peer.Height {
-			maxPeerHeight = peer.Height
+			ok := chain.IsFaultPeer(peer.Name)
+			if !ok {
+				maxPeerHeight = peer.Height
+			}
 		}
 		peersNo++
 	}
