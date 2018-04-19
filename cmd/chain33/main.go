@@ -1,3 +1,5 @@
+// +build go1.9 go1.10
+
 package main
 
 //说明：
