@@ -23,7 +23,7 @@ func TxCmd() *cobra.Command {
 		SendTxCmd(),
 		QueryTxCmd(),
 		QueryTxByAddrCmd(),
-		//QueryTxsByHashesCmd(),
+		QueryTxsByHashesCmd(),
 		GetRawTxCmd(),
 		DecodeTxCmd(),
 		GetAddrOverviewCmd(),
@@ -151,15 +151,54 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-//func QueryTxsByHashesCmd() *cobra.Command {
-//	cmd := &cobra.Command{
-//		Use:   "get_hex",
-//		Short: "get transaction hex by hash",
-//		Run:   getTxsByHashes,
-//	}
-//	addGetTxsByHashesFlags(cmd)
-//	return cmd
-//}
+func QueryTxsByHashesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get_hex",
+		Short: "get transaction hex by hash",
+		Run:   getTxsByHashes,
+	}
+	addGetTxsByHashesFlags(cmd)
+	return cmd
+}
+
+func addGetTxsByHashesFlags(cmd *cobra.Command) {
+	emptySlice := []string{""}
+	cmd.Flags().StringArrayP("hashes", "s", emptySlice, "transaction hash")
+	cmd.MarkFlagRequired("hashes")
+}
+
+func getTxsByHashes(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	hashes, _ := cmd.Flags().GetStringSlice("hashes")
+	params := jsonrpc.ReqHashes{
+		Hashes: hashes,
+	}
+
+	var res jsonrpc.TransactionDetails
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTxByHashes", params, &res)
+	ctx.SetResultCb(parseQueryTxsByHashesRes)
+	ctx.Run()
+}
+
+func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
+	var result TxDetailsResult
+	for _, v := range arg.(*jsonrpc.TransactionDetails).Txs {
+		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
+		td := TxDetailResult{
+			Tx:         decodeTransaction(v.Tx),
+			Receipt:    decodeLog(*(v.Receipt)),
+			Proofs:     v.Proofs,
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.Blocktime,
+			Amount:     amountResult,
+			Fromaddr:   v.Fromaddr,
+			ActionName: v.ActionName,
+		}
+		result.Txs = append(result.Txs, &td)
+	}
+	return result, nil
+}
 
 // get raw transaction hex
 func GetRawTxCmd() *cobra.Command {
