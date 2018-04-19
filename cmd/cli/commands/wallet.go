@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -24,6 +25,7 @@ func WalletCmd() *cobra.Command {
 		MergeBalanceCmd(),
 		AutoMineCmd(),
 		SignRawTxCmd(),
+		SetFeeCmd(),
 	)
 
 	return cmd
@@ -62,22 +64,22 @@ func addUnlockFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("pwd")
 
 	cmd.Flags().Int64P("time_out", "t", 0, "time out for unlock operation(0 for unlimited)")
-	cmd.Flags().Int32P("scope", "s", 0, "unlock scope(0: whole wallet, 1: only ticket)")
+	cmd.Flags().StringP("scope", "s", "wallet", "unlock scope(wallet/ticket)")
 }
 
 func unLock(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	pwd, _ := cmd.Flags().GetString("pwd")
 	timeOut, _ := cmd.Flags().GetInt64("time_out")
-	scope, _ := cmd.Flags().GetInt32("scope")
+	scope, _ := cmd.Flags().GetString("scope")
 	var walletOrTicket bool
 	switch scope {
-	case 0:
+	case "wallet":
 		walletOrTicket = false
-	case 1:
+	case "ticket":
 		walletOrTicket = true
 	default:
-		cmd.UsageFunc()(cmd)
+		fmt.Println("unlock scope code wrong: wallet or ticket")
 		return
 	}
 
@@ -270,10 +272,15 @@ func SignRawTxCmd() *cobra.Command {
 
 func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("data", "d", "", "raw transaction data")
-	cmd.MarkFlagRequired("to")
+	cmd.MarkFlagRequired("data")
 
-	cmd.Flags().StringP("key", "k", "", "private key")
-	cmd.Flags().StringP("addr", "a", "", "destination account address")
+	cmd.Flags().StringP("key", "k", "", "private key (optional)")
+	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
+	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
+	// A duration string is a possibly signed sequence of
+	// decimal numbers, each with optional fraction and a unit suffix,
+	// such as "300ms", "-1.5h" or "2h45m".
+	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 }
 
 func signRawTx(cmd *cobra.Command, args []string) {
@@ -288,5 +295,33 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	}
 	var res types.ReplySignRawTx
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, &res)
+	ctx.Run()
+}
+
+// set tx fee
+func SetFeeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "set_fee",
+		Short: "Set transaction fee",
+		Run:   setFee,
+	}
+	addSetFeeFlags(cmd)
+	return cmd
+}
+
+func addSetFeeFlags(cmd *cobra.Command) {
+	cmd.Flags().Float64P("amount", "a", 0, "tx fee amount")
+	cmd.MarkFlagRequired("amount")
+}
+
+func setFee(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	amount, _ := cmd.Flags().GetFloat64("amount")
+	amountInt64 := int64(amount * 1e4)
+	params := types.ReqWalletSetFee{
+		Amount: amountInt64 * 1e4,
+	}
+	var res jsonrpc.Reply
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
 	ctx.Run()
 }
