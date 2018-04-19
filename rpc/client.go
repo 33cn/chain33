@@ -1,14 +1,12 @@
 package rpc
 
 import (
-	"errors"
-	"math/rand"
-	"time"
-
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"math/rand"
+	"time"
 )
 
 //提供系统rpc接口
@@ -38,27 +36,8 @@ func (c *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
 }
 
 //channel
-func (c *channelClient) SendTx(tx *types.Transaction) queue.Message {
-	if c == nil {
-		panic("c not bind message queue.")
-	}
-	msg := c.NewMessage("mempool", types.EventTx, tx)
-	err := c.Send(msg, true)
-	if err != nil {
-		var tmpMsg queue.Message
-		log.Error("SendTx", "Error", err.Error())
-		tmpMsg.Data = err
-		return tmpMsg
-	}
-	resp, err := c.Wait(msg)
-	if err != nil {
-
-		resp.Data = err
-	}
-	if resp.GetData().(*types.Reply).GetIsOk() {
-		resp.GetData().(*types.Reply).Msg = tx.Hash()
-	}
-	return resp
+func (c *channelClient) SendTx(tx *types.Transaction) (*types.Reply, error) {
+	return c.api.SendTx(tx)
 }
 
 func (c *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
@@ -334,7 +313,7 @@ func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.LocalReplyValue
 
 func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byte, error) {
 	if parm == nil {
-		return nil, errors.New("parm is null")
+		return nil, types.ErrInvalidParam
 	}
 	v := &types.TokenPreCreate{
 		Name:         parm.Name,
@@ -362,7 +341,7 @@ func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byt
 
 func (c *channelClient) CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, error) {
 	if parm == nil {
-		return nil, errors.New("parm is null")
+		return nil, types.ErrInvalidParam
 	}
 
 	v := &types.TokenFinishCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
@@ -384,7 +363,7 @@ func (c *channelClient) CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, err
 
 func (c *channelClient) CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, error) {
 	if parm == nil {
-		return nil, errors.New("parm is null")
+		return nil, types.ErrInvalidParam
 	}
 	v := &types.TokenRevokeCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
 	revoke := &types.TokenAction{
@@ -405,7 +384,7 @@ func (c *channelClient) CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, err
 
 func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) {
 	if parm == nil {
-		return nil, errors.New("parm is null")
+		return nil, types.ErrInvalidParam
 	}
 	v := &types.TradeForSell{
 		Tokensymbol:       parm.TokenSymbol,
@@ -435,7 +414,7 @@ func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) 
 
 func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 	if parm == nil {
-		return nil, errors.New("parm is null")
+		return nil, types.ErrInvalidParam
 	}
 	v := &types.TradeForBuy{Sellid: parm.SellId, Boardlotcnt: parm.BoardlotCnt}
 	buy := &types.Trade{
@@ -456,7 +435,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 
 func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, error) {
 	if parm == nil {
-		return nil, errors.New("parm is null")
+		return nil, types.ErrInvalidParam
 	}
 
 	v := &types.TradeForRevokeSell{Sellid: parm.SellId}
