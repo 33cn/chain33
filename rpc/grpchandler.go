@@ -16,12 +16,7 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply := g.cli.SendTx(in)
-	if reply.GetData().(*pb.Reply).IsOk {
-		return reply.GetData().(*pb.Reply), nil
-	} else {
-		return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
-	}
+	return g.cli.SendTx(in)
 }
 
 func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
