@@ -27,7 +27,7 @@ const (
 	//executorKey		= "execs"		// 交易执行器
 	walletKey     = "wallet"     // 钱包
 	blockchainKey = "blockchain" // 区块
-	//storeKey		= "store"
+	storeKey      = "store"
 )
 
 var log = log15.New("module", "client")

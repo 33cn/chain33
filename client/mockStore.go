@@ -5,17 +5,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type mockP2P struct {
+type mockStore struct {
 }
 
-func (m *mockP2P) SetQueueClient(q queue.Queue) {
+func (m *mockStore) SetQueueClient(q queue.Queue) {
 	go func() {
 		client := q.Client()
-		client.Sub(p2pKey)
+		client.Sub(storeKey)
 		for msg := range client.Recv() {
 			switch msg.Ty {
-			case types.EventPeerInfo:
-				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.PeerList{}))
+			case types.EventStoreGet:
+				msg.Reply(client.NewMessage(storeKey, types.EventStoreGetReply, &types.StoreReplyValue{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -23,5 +23,5 @@ func (m *mockP2P) SetQueueClient(q queue.Queue) {
 	}()
 }
 
-func (m *mockP2P) Close() {
+func (m *mockStore) Close() {
 }
