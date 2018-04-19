@@ -242,6 +242,10 @@ func (a *AddrBook) loadDb() bool {
 
 			for _, ka := range aJSON.Addrs {
 				log.Debug("loadDb", "peer", ka)
+				//添加校验，如果连接不上的，则pass
+				if len(P2pComm.AddrRouteble([]string{ka.Addr.String()})) == 0 {
+					continue
+				}
 				a.addrPeer[ka.Addr.String()] = ka
 			}
 		}

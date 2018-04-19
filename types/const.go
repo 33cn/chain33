@@ -164,6 +164,9 @@ const (
 	EventQueryTotalFee       = 106
 	EventSignRawTx           = 107
 	EventReplySignRawTx      = 108
+	EventSyncBlock           = 109
+	EventGetNetInfo          = 110
+	EventReplyNetInfo        = 111
 
 	// Token
 	EventBlockChainQuery = 212
@@ -276,6 +279,9 @@ var eventName = map[int]string{
 	104: "EventStoreGetTotalCoins",
 	105: "EventGetTotalCoinsReply",
 	106: "EventQueryTotalFee",
+	107: "EventSignRawTx",
+	108: "EventReplySignRawTx",
+	109: "EventSyncBlock",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
