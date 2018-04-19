@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
-	//"encoding/json"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -60,14 +59,11 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	}
 	types.Decode(data, &parm)
 	log.Debug("SendTransaction", "parm", parm)
-	reply := c.cli.SendTx(&parm)
-	if reply.GetData().(*types.Reply).IsOk {
-		*result = common.ToHex(reply.GetData().(*types.Reply).Msg)
-		return nil
-	} else {
-		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
+	reply, err := c.cli.api.SendTx(&parm)
+	if err == nil {
+		*result = common.ToHex(reply.GetMsg())
 	}
-
+	return err
 }
 
 func (c *Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {

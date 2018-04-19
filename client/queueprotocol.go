@@ -12,6 +12,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"math/rand"
@@ -31,7 +32,7 @@ const (
 
 var log = log15.New("module", "client")
 
-//var accountdb = account.NewCoinsAccount()
+var accountdb = account.NewCoinsAccount()
 
 type QueueProtocolOption struct {
 	// 发送请求超时时间
@@ -77,7 +78,6 @@ func (q *QueueProtocol) SetOption(option *QueueProtocolOption) {
 		q.option = *option
 	}
 }
-
 func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -96,6 +96,7 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 		} else {
 			msg := string(reply.Msg)
 			err = fmt.Errorf(msg)
+			reply = nil
 		}
 	} else {
 		err = types.ErrTypeAsset
@@ -447,6 +448,17 @@ func (q *QueueProtocol) GetAddrOverview(param *types.ReqAddr) (*types.AddrOvervi
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.AddrOverview); ok {
+
+		//获取地址账户的余额通过account模块
+		addrs := make([]string, 1)
+		addrs[0] = param.Addr
+		accounts, err := accountdb.LoadAccounts(q.client, addrs)
+		if err != nil {
+			return nil, err
+		}
+		if len(accounts) != 0 {
+			reply.Balance = accounts[0].Balance
+		}
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
