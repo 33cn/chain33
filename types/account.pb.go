@@ -34,8 +34,10 @@ It has these top-level messages:
 	Header
 	Block
 	Blocks
+	BlockPid
 	BlockDetails
 	Headers
+	HeadersPid
 	BlockOverview
 	BlockDetail
 	Receipts
