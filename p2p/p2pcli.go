@@ -152,7 +152,7 @@ func (m *Cli) SendVersion(peer *peer, nodeinfo *NodeInfo) (string, error) {
 	addrfrom := nodeinfo.GetExternalAddr().String()
 
 	nodeinfo.blacklist.Add(addrfrom)
-	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: Service, Timestamp: time.Now().Unix(),
+	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: int64(nodeinfo.ServiceTy()), Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight})
 
@@ -657,21 +657,57 @@ func (m *Cli) BlockBroadcast(msg queue.Message, taskindex int64) {
 
 }
 
-func (m *Cli) GetExternIP(addr string) (string, bool) {
+func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
+	defer func() {
+		<-m.network.otherFactory
+		log.Debug("GetNetInfo", "task complete:", taskindex)
+	}()
+
+	var netinfo pb.NodeNetInfo
+	netinfo.Externaladdr = m.network.node.nodeInfo.GetExternalAddr().String()
+	netinfo.Localaddr = m.network.node.nodeInfo.GetListenAddr().String()
+	netinfo.Service = m.network.node.nodeInfo.IsOutService()
+
+	msg.Reply(m.network.client.NewMessage("rpc", pb.EventReplyNetInfo, &netinfo))
+
+}
+
+func (m *Cli) GetExternIP(addr string) (string, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
 	if err != nil {
 		log.Error("grpc DialConn", "err", err.Error())
-		return "", false
+		return "", false, err
 	}
 	defer conn.Close()
 	gconn := pb.NewP2PgserviceClient(conn)
 	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12})
 	if err != nil {
-		return "", false
+		return "", false, err
 	}
-	return resp.Addr, resp.Isoutside
+	return resp.Addr, resp.Isoutside, nil
+}
+
+func (m *Cli) CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+	if err != nil {
+		log.Error("grpc DialConn", "err", err.Error())
+		return false, err
+	}
+	defer conn.Close()
+	gconn := pb.NewP2PgserviceClient(conn)
+	ping, err := P2pComm.NewPingData(nodeinfo)
+	if err != nil {
+		return false, err
+	}
+	resp, err := gconn.RemotePeerNatOk(context.Background(), ping)
+	if err != nil {
+		return false, err
+	}
+	return resp.Isoutside, nil
 }
 
 func (m *Cli) peerInfos() []*pb.Peer {

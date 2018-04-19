@@ -91,13 +91,32 @@ func (n *Node) natOk() bool {
 
 func (n *Node) doNat() {
 	go n.natMapPort()
-	if !OutSide && n.nodeInfo.cfg.GetServerStart() { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
+	if !n.nodeInfo.OutSide() && n.nodeInfo.cfg.GetServerStart() { //如果能作为服务方，则Nat,进行端口映射，否则，不启动Nat
 
 		if !n.natOk() {
-			Service -= nodeNetwork //nat 失败，不对外提供服务
+			n.nodeInfo.SetServiceTy(Service - nodeNetwork) //nat 失败，不对外提供服务
 			log.Info("doNat", "NatFaild", "No Support Service")
 		} else {
-			log.Info("doNat", "NatOk", "Support Service")
+			//检测映射成功后，能否对外提供服务
+			addrs := n.nodeInfo.cfg.GetSeeds()
+			addrs = append(addrs, n.nodeInfo.addrBook.GetAddrs()...)
+			addrNum := len(addrs)
+			var maxRetryCount = addrNum
+			log.Debug("doNat", "maxRetryCount", maxRetryCount)
+			p2pcli := NewCli(nil)
+			for _, addr := range addrs {
+				if ok, err := p2pcli.CheckPeerNatOk(addr, n.nodeInfo); err == nil {
+					if ok {
+						n.nodeInfo.SetServiceTy(Service)
+						log.Info("doNat", "NatOk", "Support Service")
+					} else {
+						n.nodeInfo.SetServiceTy(Service - nodeNetwork)
+					}
+					break
+
+				}
+			}
+
 		}
 
 	}
@@ -228,26 +247,25 @@ func (n *Node) detectNodeAddr() {
 		if cfg.GetIsSeed() {
 			log.Info("DetectNodeAddr", "ExIp", LocalAddr)
 			externalIP = LocalAddr
-			OutSide = true
-			goto SET_ADDR
+			//goto SET_ADDR
 		}
 
-		if len(cfg.Seeds) == 0 {
-			goto SET_ADDR
-		}
-		for _, seed := range cfg.Seeds {
+		//检查是否在外网
+		addrs := n.nodeInfo.cfg.GetSeeds()
+		addrs = append(addrs, n.nodeInfo.addrBook.GetAddrs()...)
+		for _, addr := range addrs {
 
 			pcli := NewCli(nil)
-			selfexaddrs, outside := pcli.GetExternIP(seed)
-			if len(selfexaddrs) != 0 {
-				OutSide = outside
+			selfexaddrs, outside, err := pcli.GetExternIP(addr)
+			if err == nil {
+				n.nodeInfo.SetNetSide(outside)
 				externalIP = selfexaddrs
 				log.Info("DetectNodeAddr", " seed Exterip", externalIP)
 				break
 			}
 
 		}
-	SET_ADDR:
+
 		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
 		if len(externalIP) == 0 {
 			externalIP = LocalAddr
@@ -257,7 +275,7 @@ func (n *Node) detectNodeAddr() {
 		var externaladdr string
 		var externalPort int
 
-		if cfg.GetIsSeed() || OutSide {
+		if cfg.GetIsSeed() || n.nodeInfo.OutSide() {
 			externalPort = defaultPort
 		} else {
 			exportBytes, _ := n.nodeInfo.addrBook.bookDb.Get([]byte(externalPortTag))
@@ -282,13 +300,13 @@ func (n *Node) detectNodeAddr() {
 			n.nodeInfo.SetListenAddr(listaddr)
 		}
 
-		log.Info("DetectionNodeAddr", " Finish ExternalIp", externalIP, "LocalAddr", LocalAddr, "IsOutSide", OutSide)
+		log.Info("DetectionNodeAddr", " Finish ExternalIp", externalIP, "LocalAddr", LocalAddr, "IsOutSide", n.nodeInfo.OutSide())
 		break
 	}
 }
 
 func (n *Node) natMapPort() {
-	if OutSide || !n.nodeInfo.cfg.GetServerStart() { //在外网或者关闭p2p server 的节点不需要映射端口
+	if n.nodeInfo.OutSide() || !n.nodeInfo.cfg.GetServerStart() { //在外网或者关闭p2p server 的节点不需要映射端口
 		return
 	}
 	n.waitForNat()

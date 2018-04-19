@@ -129,11 +129,11 @@ func (c Comm) Pubkey(key string) (string, error) {
 
 	return hex.EncodeToString(priv.PubKey().Bytes()), nil
 }
-func (c Comm) NewPingData(peer *peer) (*pb.P2PPing, error) {
+func (c Comm) NewPingData(nodeInfo *NodeInfo) (*pb.P2PPing, error) {
 	randNonce := rand.Int31n(102040)
-	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: (*peer.nodeInfo).GetExternalAddr().IP.String(), Port: int32((*peer.nodeInfo).GetExternalAddr().Port)}
+	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeInfo.GetExternalAddr().IP.String(), Port: int32(nodeInfo.GetExternalAddr().Port)}
 	var err error
-	p2pPrivKey, _ := (*peer.nodeInfo).addrBook.GetPrivPubKey()
+	p2pPrivKey, _ := nodeInfo.addrBook.GetPrivPubKey()
 	ping, err = c.Signature(p2pPrivKey, ping)
 	if err != nil {
 		log.Error("Signature", "Error", err.Error())
@@ -194,7 +194,7 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 
 	in.Sign = nil
 	data := pb.Encode(in)
-	if pub.VerifyBytes(data, signbytes) == true {
+	if pub.VerifyBytes(data, signbytes) {
 		in.Sign = sign
 		return true
 	}
