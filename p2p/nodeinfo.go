@@ -188,7 +188,7 @@ func (nf *NodeInfo) IsOutService() bool {
 	if !nf.IsNatDone() {
 		return false
 	}
-	if nf.OutSide() || nf.ServiceTy() == 7 {
+	if nf.OutSide() || nf.ServiceTy() == Service {
 		return true
 	}
 	return false
