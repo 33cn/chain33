@@ -879,3 +879,18 @@ func (c *channelClient) SignRawTx(in *types.ReqSignRawTx) (*types.ReplySignRawTx
 	}
 	return resp.GetData().(*types.ReplySignRawTx), nil
 }
+
+func (c *channelClient) GetNetInfo() (*types.NodeNetInfo, error) {
+	msg := c.NewMessage("p2p", types.EventGetNetInfo, nil)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("NetInfo", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.GetData().(*types.NodeNetInfo), nil
+}
