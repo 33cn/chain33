@@ -38,10 +38,10 @@ type (
 	GetHashFunc func(uint64) common.Hash
 )
 
-// run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
+// 依据合约地址判断是否为预编译合约，如果不是，则全部通过解释器解释执行
 func run(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
 	if contract.CodeAddr != nil {
-		// 预编译合约以拜占庭分支为初始版本
+		// 预编译合约以拜占庭分支为初始版本，后继如有分叉，需要在此处理
 		precompiles := PrecompiledContractsByzantium
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
@@ -107,6 +107,9 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
+
+	// 支持的最长合约代码大小
+	maxCodeSize int
 }
 
 // NewEVM retutrns a new EVM . The returned EVM is not thread safe and should
@@ -118,6 +121,7 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		vmConfig:    vmConfig,
 		chainConfig: chainConfig,
 		chainRules:  chainConfig.Rules(ctx.BlockNumber),
+		maxCodeSize: params.MaxCodeSize,
 	}
 
 	evm.interpreter = NewInterpreter(evm, vmConfig)
@@ -128,6 +132,10 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 // it's safe to be called multiple times.
 func (evm *EVM) Cancel() {
 	atomic.StoreInt32(&evm.abort, 1)
+}
+
+func (evm *EVM) SetMaxCodeSize(maxCodeSize int) {
+	evm.maxCodeSize = maxCodeSize
 }
 
 // Call executes the contract associated with the addr with the given input as
@@ -307,40 +315,37 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	return ret, contract.Gas, err
 }
 
-// Create creates a new contract using code as deployment code.
+// 使用传入的部署代码创建新的合约
 func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
 
-	// Depth check execution. Fail if we're trying to execute above the
-	// limit.
+	// 检查合约代码递归调用深度，防止无限递归的情况出现，即使Gas充足，也不允许
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, common.Address{}, gas, ErrDepth
 	}
+
 	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, ErrInsufficientBalance
 	}
-	// Ensure there's no existing contract already at the designated address
-	nonce := evm.StateDB.GetNonce(caller.Address())
-	evm.StateDB.SetNonce(caller.Address(), nonce+1)
 
-	contractAddr = crypto.CreateAddress(caller.Address(), nonce)
-	contractHash := evm.StateDB.GetCodeHash(contractAddr)
-	if evm.StateDB.GetNonce(contractAddr) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+	// 使用随机生成的地址作为合约地址（这个可以保证每次创建的合约地址不会重复，不存在冲突的情况）
+	contractAddr = *crypto.RandomAddress()
+
+	if !evm.StateDB.Empty(contractAddr) {
 		return nil, common.Address{}, 0, ErrContractAddressCollision
 	}
-	// Create a new account on the state
+
+	// 使用生成的地址创建一个新的账户对象（会同时创建coins账户和合约账户）
 	snapshot := evm.StateDB.Snapshot()
 	evm.StateDB.CreateAccount(contractAddr)
-	if evm.ChainConfig().IsEIP158(evm.BlockNumber) {
-		evm.StateDB.SetNonce(contractAddr, 1)
-	}
+
+	// 向从创建者向合约账户转账
 	evm.Transfer(evm.StateDB, caller.Address(), contractAddr, value)
 
-	// initialise a new contract and set the code that is to be used by the
-	// E The contract is a scoped evmironment for this execution context
-	// only.
+	// 创建新的合约对象，包含双方地址以及合约代码，可用Gas信息
 	contract := NewContract(caller, AccountRef(contractAddr), value, gas)
-	contract.SetCallCode(&contractAddr, crypto.Keccak256Hash(code), code)
+	contract.SetCallCode(&contractAddr, common.BytesToHash(code), code)
 
+	// 如果EVM配置中不允许递归调用，但是深度不为0（说明是通过递归调进来的），出错
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, contractAddr, gas, nil
 	}
@@ -350,44 +355,47 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 	}
 	start := time.Now()
 
+	// 通过预编译指令和解释器执行合约
 	ret, err = run(evm, contract, nil)
 
-	// check whether the max code size has been exceeded
-	maxCodeSizeExceeded := evm.ChainConfig().IsEIP158(evm.BlockNumber) && len(ret) > params.MaxCodeSize
-	// if the contract creation ran successfully and no errors were returned
-	// calculate the gas required to store the code. If the code could not
-	// be stored due to not enough gas set an error and let it be handled
-	// by the error checking condition below.
+	// 检查部署后的合约代码大小是否超限
+	maxCodeSizeExceeded := len(ret) > evm.maxCodeSize
+
+	// 如果执行成功，计算存储合约代码需要花费的Gas
 	if err == nil && !maxCodeSizeExceeded {
 		createDataGas := uint64(len(ret)) * params.CreateDataGas
 		if contract.UseGas(createDataGas) {
 			evm.StateDB.SetCode(contractAddr, ret)
 		} else {
+			// 如果Gas不足，返回这个错误，让外部程序处理
 			err = ErrCodeStoreOutOfGas
 		}
 	}
 
-	// When an error was returned by the EVM or when setting the creation code
-	// above we revert to the snapshot and consume any gas remaining. Additionally
-	// when we're in homestead this also counts for code storage gas errors.
-	if maxCodeSizeExceeded || (err != nil && (evm.ChainConfig().IsHomestead(evm.BlockNumber) || err != ErrCodeStoreOutOfGas)) {
+	// 如果合约代码超大，或者出现除Gas不足外的其它错误情况
+	// 则回滚本次合约创建操作
+	if maxCodeSizeExceeded || (err != nil &&  err != ErrCodeStoreOutOfGas) {
 		evm.StateDB.RevertToSnapshot(snapshot)
+
+		// 如果之前步骤出错，且没有回滚过，则依然扣除Gas
 		if err != errExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
-	// Assign err if contract code size exceeds the max while the err is still empty.
+
+	// 如果前面的步骤都没有问题，单纯只是合约大小超大，则设置错误为合约代码超限，让外部程序处理
 	if maxCodeSizeExceeded && err == nil {
 		err = errMaxCodeSizeExceeded
 	}
+
 	if evm.vmConfig.Debug && evm.depth == 0 {
 		evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 	}
+
 	return ret, contractAddr, contract.Gas, err
 }
 
-// ChainConfig returns the environment's chain configuration
+// TODO 返回区块链的整体配置，供合约执行逻辑使用（后续需要精简属性）
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
-// Interpreter returns the EVM interpreter
 func (evm *EVM) Interpreter() *Interpreter { return evm.interpreter }

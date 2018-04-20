@@ -6,6 +6,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/rlp"
 	"math/big"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
 )
 
 var (
@@ -42,4 +45,20 @@ func Ecrecover(hash, sig []byte) ([]byte, error) {
 func CreateAddress(b common.Address, nonce uint64) common.Address {
 	data, _ := rlp.EncodeToBytes([]interface{}{b, nonce})
 	return common.BytesToAddress(Keccak256(data)[12:])
+}
+
+// 随机生成一个新的地址，给新创建的合约地址使用
+func RandomAddress() *common.Address {
+	c, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		return nil
+	}
+	key, err := c.GenKey()
+	if err != nil {
+		return nil
+	}
+
+	acc := account.PubKeyToAddress(key.PubKey().Bytes())
+	addr := common.BytesToAddress(acc.Hash160[:])
+	return &addr
 }
