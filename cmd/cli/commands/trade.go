@@ -292,7 +292,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 func CreateRawTradeSellTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sell",
-		Short: "create a selling token transaction",
+		Short: "Create a selling token transaction",
 		Run:   tokenSell,
 	}
 	addTokenSellFlags(cmd)
@@ -347,7 +347,7 @@ func tokenSell(cmd *cobra.Command, args []string) {
 func CreateRawTradeBuyTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "buy",
-		Short: "create a buying token transaction",
+		Short: "Create a buying token transaction",
 		Run:   tokenBuy,
 	}
 	addTokenBuyFlags(cmd)
@@ -386,7 +386,7 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 func CreateRawTradeRevokeTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "revoke",
-		Short: "create a revoke token transaction",
+		Short: "Create a revoke token transaction",
 		Run:   tokenSellRevoke,
 	}
 	addTokenSellRevokeFlags(cmd)

@@ -26,7 +26,7 @@ func ExecCmd() *cobra.Command {
 // get address of an execer
 func GetExecAddrCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "exec",
+		Use:   "addr",
 		Short: "Get address of executor",
 		Run:   getAddrByExec,
 	}
