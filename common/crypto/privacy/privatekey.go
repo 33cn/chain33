@@ -5,7 +5,7 @@ import (
 	"unsafe"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
-	"golang.org/x/crypto/sha3"
+	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	"fmt"
 	"gitlab.33.cn/chain33/chain33/common"
 )
@@ -18,7 +18,6 @@ func (privKey PrivKeyPrivacy) Bytes() []byte {
 }
 
 func (privKey PrivKeyPrivacy) Sign(msg []byte) Signature {
-
 	fmt.Printf("~~~~~~~~~~~~~~privKey is:%X\n", privKey[:])
 
 	temp := new([64]byte)
@@ -41,14 +40,20 @@ func (privKey PrivKeyPrivacy) Sign(msg []byte) Signature {
 	var K edwards25519.ExtendedGroupElement
 	edwards25519.GeScalarMultBase(&K, randomScalar)
 	K.ToBytes((*[KeyLen32]byte)(unsafe.Pointer(&sigcommPtr.comm[0])))
+	fmt.Printf("~~~~~~~~~~~~~~sigcommPtr.comm is:%x\n", sigcommPtr.comm[:])
 
 	var sigOnetime SignatureOnetime
 	addr32 := (*[KeyLen32]byte)(unsafe.Pointer(&sigOnetime))
 	hash2scalar(sigcommdata[:], addr32)
+	fmt.Printf("~~~~~~~~~~~~~~hash2scalar hash is:%X\n", addr32[:])
 
 	addr32Latter := (*[KeyLen32]byte)(unsafe.Pointer(&sigOnetime[KeyLen32]))
 	addr32Priv := (*[KeyLen32]byte)(unsafe.Pointer(&privKey))
+	fmt.Printf("~~~~~~~~~~~~~~The input privKey :%x\n", addr32Priv[:])
+	fmt.Printf("~~~~~~~~~~~~~~The randomScalar :%x\n", randomScalar[:])
 	edwards25519.ScMulSub(addr32Latter, addr32, addr32Priv, randomScalar)
+
+	fmt.Printf("~~~~~~~~~~~~~~The new generated signature :%x\n", sigOnetime[:])
 
     return sigOnetime
 }

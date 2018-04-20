@@ -255,15 +255,33 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	accFrom := e.coinsAccount.LoadAccount(from)
-	if accFrom.GetBalance()-tx.Fee >= 0 {
-		copyfrom := *accFrom
-		accFrom.Balance = accFrom.GetBalance() - tx.Fee
-		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
-		e.coinsAccount.SaveAccount(accFrom)
-		return e.cutFeeReceipt(accFrom, receiptBalance), nil
+	if types.PrivacyX != string(tx.Execer) {
+		accFrom := e.coinsAccount.LoadAccount(from)
+		if accFrom.GetBalance()-tx.Fee >= 0 {
+			copyfrom := *accFrom
+			accFrom.Balance = accFrom.GetBalance() - tx.Fee
+			receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
+			e.coinsAccount.SaveAccount(accFrom)
+			return e.cutFeeReceipt(accFrom, receiptBalance), nil
+		}
+	} else {
+		execaddr := drivers.ExecAddress(types.PrivacyX)
+		accFrom := e.coinsAccount.LoadExecAccount(from, execaddr)
+		if accFrom.GetBalance() - tx.Fee >= 0 {
+			copyacc := *accFrom
+			accFrom.Balance -= tx.Fee
+			receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, accFrom}
+			e.coinsAccount.SaveExecAccount(execaddr, accFrom)
+			return e.cutFeeReceipt4Privacy(execaddr, accFrom, receiptBalance), nil
+		}
 	}
+
 	return nil, types.ErrNoBalance
+}
+
+func (e *executor) cutFeeReceipt4Privacy(execaddr string, acc *types.Account, receiptBalance *types.ReceiptExecAccountTransfer) *types.Receipt {
+	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
+	return &types.Receipt{types.ExecPack, e.coinsAccount.GetExecKVSet(execaddr, acc), []*types.ReceiptLog{feelog}}
 }
 
 func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptAccountTransfer) *types.Receipt {
@@ -293,7 +311,16 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {
 		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-		accFrom := e.coinsAccount.LoadAccount(from)
+		var accFrom *types.Account
+		if types.PrivacyX != string(tx.Execer) {
+			accFrom = e.coinsAccount.LoadAccount(from)
+
+		} else {
+			//in case of private transaction, fee is paid from exector account of privacy
+			exectorAddr := drivers.ExecAddress(types.PrivacyX)
+			accFrom = e.coinsAccount.LoadExecAccount(from, exectorAddr)
+		}
+
 		if accFrom.GetBalance() < types.MinBalanceTransfer {
 			return types.ErrBalanceLessThanTenTimesFee
 		}
