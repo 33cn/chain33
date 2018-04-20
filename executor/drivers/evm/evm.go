@@ -8,11 +8,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/ethdb"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	ctypes "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/core"
 )
 
 var clog = log.New("module", "execs.evm")
@@ -118,13 +117,16 @@ func (evm *FakeEVM) GetChainConfig() *params.ChainConfig {
 	return params.TestChainConfig
 }
 
-func (evm *FakeEVM) GetStateDB() *state.StateDB {
-	//FIXME 这里没有关联到statedb，后续需要使用StateDB的接口包装chain33的statedb操作
-	db, _ := ethdb.NewMemDatabase()
-	inst, _ := state.New(common.Hash{}, state.NewDatabase(db))
-	return inst
+func (evm *FakeEVM) GetStateDB() *core.MemoryStateDB {
+	inst := core.NewMemoryStateDB()
+	statedb := evm.DriverBase.GetStateDB()
+	inst.StateDB = statedb
+	localdb := evm.DriverBase.GetLocalDB()
+	inst.LocalDB = &localdb
+	return &inst
 }
 
+//FIXME 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
 func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg ctypes.Message) {
 
 	// 此处暂时不考虑消息发送这签名的处理，chain33在mempool中对签名做了检查
@@ -171,19 +173,19 @@ func NewEVMContext(msg ctypes.Message, height int64, time int64, coinbase common
 	}
 }
 
-// CanTransfer checks wether there are enough funds in the address' account to make a transfer.
-// This does not take the necessary gas in to account to make the transfer valid.
+// 检查合约调用账户是否有充足的金额进行转账交易操作
 func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 	return db.GetBalance(addr).Cmp(amount) >= 0
 }
 
-// Transfer subtracts amount from sender and adds amount to recipient using the given Db
+// 在内存数据库中执行转账操作（只修改内存中的金额）
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }
 
-func getHashFn(number uint64) common.Hash {
+// 获取制定高度区块的哈希
+func getHashFn(blockHeight uint64) common.Hash {
 	// TODO 此处逻辑需要补充，获取指定数字高度区块对应的哈希，可参考evm.go/GetHashFn
 	return common.Hash{}
 }
