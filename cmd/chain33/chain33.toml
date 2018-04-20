@@ -29,6 +29,7 @@ timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
+dbCache=64
 isStrongConsistency=false
 singleMode=false
 batchsync=false
@@ -41,6 +42,7 @@ serverStart=true
 msgCacheSize=10240
 driver="leveldb"
 dbPath="datadir/addrbook"
+dbCache=4
 grpcLogFile="grpc33.log"
 version=118
 verMix=118
@@ -63,11 +65,13 @@ minerstart=true
 name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
+dbCache=128
 
 [wallet]
 minFee=100000
 driver="leveldb"
 dbPath="datadir/wallet"
+dbCache=16
 signType="secp256k1"
 
 [exec]
