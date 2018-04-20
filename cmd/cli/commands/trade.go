@@ -12,7 +12,16 @@ func TradeCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		TokenBalanceCmd(),
+		ShowOnesSellTokenOrdersCmd(),
+		ShowTokenSellOrderCmd(),
+		ShowOnesBuyOrderCmd(),
+		ShowOnesBuyTokenOrderCmd(),
+		ShowSellOrderWithStatusCmd(),
+		CreateRawTradeSellTxCmd(),
+		CreateRawTradeBuyTxCmd(),
+		CreateRawTradeRevokeTxCmd(),
+
+
 		TokenPreCreateCmd(),
 		TokenFinishCreateCmd(),
 		TokenRevokeCreateCmd(),

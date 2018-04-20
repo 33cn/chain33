@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"strings"
 )
 
 func TxCmd() *cobra.Command {
@@ -162,16 +163,16 @@ func QueryTxsByHashesCmd() *cobra.Command {
 }
 
 func addGetTxsByHashesFlags(cmd *cobra.Command) {
-	emptySlice := []string{""}
-	cmd.Flags().StringSliceP("hashes", "s", emptySlice, "transaction hash")
+	cmd.Flags().StringP("hashes", "s", "", "transaction hash(es), separated by space")
 	cmd.MarkFlagRequired("hashes")
 }
 
 func getTxsByHashes(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	hashes, _ := cmd.Flags().GetStringSlice("hashes")
+	hashes, _ := cmd.Flags().GetString("hashes")
+	hashesArr := strings.Split(hashes, " ")
 	params := jsonrpc.ReqHashes{
-		Hashes: hashes,
+		Hashes: hashesArr,
 	}
 
 	var res jsonrpc.TransactionDetails
