@@ -49,7 +49,7 @@ message Consensus {
 	int64 genesisBlockTime = 4;
 	string hotkeyAddr = 5;
 	bool forceMining = 6;
-	int32 NodeId = 7;
+	int64 NodeId = 7;
 	string PeersURL = 8;
 	string ClientAddr = 9;
 }
@@ -58,14 +58,16 @@ message Wallet {
 	int64 minFee = 1;
 	string driver = 2;
 	string dbPath = 3;
-	string signType =4;
-	bool forceMining = 5;
+	int32 dbCache = 4;
+	string signType =5;
+	bool forceMining = 6;
 }
 
 message Store {
 	string name = 1;
 	string driver = 2;
 	string dbPath = 3;
+	int32 dbCache = 4;
 }
 
 message BlockChain {
@@ -75,24 +77,26 @@ message BlockChain {
 	int64 batchBlockNum = 4;
 	string driver = 5;
 	string dbPath = 6;
-	bool isStrongConsistency = 7;
-	bool singleMode = 8;
-	bool batchsync = 9;
+	int32 dbCache = 7;
+	bool isStrongConsistency = 8;
+	bool singleMode = 9;
+	bool batchsync = 10;
 }
 
 message P2P {
 	int32 seedPort = 1;
 	string driver = 2;
 	string dbPath = 3;
-	string grpcLogFile = 4;
-	bool isSeed = 5;
-	bool serverStart=6;
-	repeated string seeds = 7;
-	bool enable = 8;
-	int32 msgCacheSize = 9;
-	int32 version = 10;
-	int32 verMix = 11;
-	int32 verMax = 12;
+	int32 dbCache = 4;
+	string grpcLogFile = 5;
+	bool isSeed = 6;
+	bool serverStart=7;
+	repeated string seeds = 8;
+	bool enable = 9;
+	int32 msgCacheSize = 10;
+	int32 version = 11;
+	int32 verMix = 12;
+	int32 verMax = 13;
 }
 
 message Rpc {
