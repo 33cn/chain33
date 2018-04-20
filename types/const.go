@@ -1,5 +1,17 @@
 package types
 
+const (
+	CoinsX    = "coins"
+	TicketX   = "ticket"
+	HashlockX = "hashlock"
+	RetrieveX = "retrieve"
+	NoneX     = "none"
+	TokenX    = "token"
+	TradeX    = "trade"
+	ManageX   = "manage"
+	PrivacyX  = "privacy"
+)
+
 var (
 	AllowDepositExec = []string{"ticket"}
 	//TODO:修改这种静态的方式为动态注册
@@ -515,9 +527,9 @@ const (
 	SignTypeOnetimeED25519 = 4
 )
 
-var MapSignType2name = map[int]string {
-	SignTypeSecp256k1: "secp256k1",
-	SignTypeED25519: "ed25519",
-	SignTypeSM2: "sm2",
+var MapSignType2name = map[int]string{
+	SignTypeSecp256k1:      "secp256k1",
+	SignTypeED25519:        "ed25519",
+	SignTypeSM2:            "sm2",
 	SignTypeOnetimeED25519: "onetimeed25519",
 }

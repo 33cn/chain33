@@ -1,27 +1,28 @@
 package privacy
 
 import (
-	"unsafe"
-	"errors"
-	sccrypto "github.com/NebulousLabs/Sia/crypto"
-	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
-	. "gitlab.33.cn/chain33/chain33/common/crypto"
-	"golang.org/x/crypto/sha3"
-	"fmt"
 	"bytes"
-	"io"
+	"errors"
+	"fmt"
+	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
+	. "gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
+	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
+	"io"
+	"unsafe"
 )
+
 const (
-	PublicKeyLen  = 32
-	PrivateKeyLen = 64
-	KeyLen32      = 32
+	PublicKeyLen       = 32
+	PrivateKeyLen      = 64
+	KeyLen32           = 32
 	TypePrivacyOneTime = byte(0x03)
 	NamePrivacyOneTime = "onetimeed25519"
 )
 
-type Privacy struct{
+type Privacy struct {
 	ViewPubkey   PubKeyPrivacy
 	ViewPrivKey  PrivKeyPrivacy
 	SpendPubkey  PubKeyPrivacy
@@ -32,17 +33,17 @@ type EllipticCurvePoint [32]byte
 type sigcommArray [32 * 3]byte
 
 type sigcomm struct {
-	hash [32]byte
+	hash   [32]byte
 	pubkey EllipticCurvePoint
-	comm EllipticCurvePoint
+	comm   EllipticCurvePoint
 }
 
 var (
-	ErrViewPub                   = errors.New("ErrViewPub")
-	ErrSpendPub                  = errors.New("ErrSpendPub")
-	ErrViewSecret                = errors.New("ErrViewSecret")
-	ErrSpendSecret               = errors.New("ErrSpendSecret")
-	ErrNullRandInput             = errors.New("ErrNullRandInput")
+	ErrViewPub       = errors.New("ErrViewPub")
+	ErrSpendPub      = errors.New("ErrSpendPub")
+	ErrViewSecret    = errors.New("ErrViewSecret")
+	ErrSpendSecret   = errors.New("ErrSpendSecret")
+	ErrNullRandInput = errors.New("ErrNullRandInput")
 )
 
 var privacylog = log.New("module", "crypto.privacy")
@@ -76,7 +77,7 @@ func NewPrivacyWithPrivKey(privKey *[KeyLen32]byte) (privacy *Privacy, err error
 }
 
 //(A, B) => Hs(rA)G + B, rG=>R
-func (privacy *Privacy)GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicKey *[32]byte, errInfo error) {
+func (privacy *Privacy) GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicKey *[32]byte, errInfo error) {
 	pk := &PubKeyPrivacy{}
 	sk := &PrivKeyPrivacy{}
 	generateKeyPair(sk, pk)
@@ -109,7 +110,7 @@ func (privacy *Privacy)GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyO
 	fmt.Printf("GenerateOneTimeAddr rA is:%X\n", rA[:])
 
 	//to calculate Hs(rA)G + B
-	var B edwards25519.ExtendedGroupElement//A
+	var B edwards25519.ExtendedGroupElement //A
 	if res := B.FromBytes(spendPub); !res {
 		return nil, nil, ErrSpendPub
 	}
@@ -136,7 +137,7 @@ func (privacy *Privacy)GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyO
 }
 
 //calculate Hs(aR) + b
-func (privacy *Privacy)RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (PrivKey, error) {
+func (privacy *Privacy) RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (PrivKey, error) {
 	fmt.Printf("Begin to process RecoverOnetimePriKey\n")
 	var viewSecAddr, spendSecAddr, RtxPubAddr *[32]byte
 	viewSecAddr = (*[32]byte)(unsafe.Pointer(&viewSecretKey.Bytes()[0]))
@@ -214,7 +215,7 @@ func generateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKey
 	return
 }
 
-func generateKeyPairWithPrivKey(privByte *[KeyLen32]byte, privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) (error) {
+func generateKeyPairWithPrivKey(privByte *[KeyLen32]byte, privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) error {
 	if nil == privByte {
 		return ErrNullRandInput
 	}
@@ -248,12 +249,12 @@ func mul8(r *edwards25519.CompletedGroupElement, t *edwards25519.ProjectiveGroup
 }
 
 func derivation2scalar(derivation_rA *[32]byte, outputIndex int64) (ellipticCurveScalar *[32]byte) {
-	len := 32 + (unsafe.Sizeof(outputIndex) * 8 + 6) / 7
+	len := 32 + (unsafe.Sizeof(outputIndex)*8+6)/7
 	//buf := new([len]byte)
 	buf := make([]byte, len)
 	copy(buf[:32], derivation_rA[:])
 	index := 32
-	for (outputIndex >= 0x80) {
+	for outputIndex >= 0x80 {
 		buf[index] = byte((outputIndex & 0x7f) | 0x80)
 		outputIndex >>= 7
 		index++
@@ -270,7 +271,7 @@ func derivation2scalar(derivation_rA *[32]byte, outputIndex int64) (ellipticCurv
 }
 
 func hash2scalar(buf []byte, out *[32]byte) {
-	hash := sha3.Sum256(buf[:])
+	hash := sha3.KeccakSum256(buf[:])
 	digest := new([64]byte)
 	copy(digest[:], hash[:])
 	edwards25519.ScReduce(out, digest)
