@@ -156,7 +156,7 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 func QueryTxsByHashesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query_hash",
-		Short: "get transactions by hashes",
+		Short: "Get transactions by hashes",
 		Run:   getTxsByHashes,
 	}
 	addGetTxsByHashesFlags(cmd)
@@ -206,7 +206,7 @@ func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 func GetRawTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get_hex",
-		Short: "get transaction hex by hash",
+		Short: "Get transaction hex by hash",
 		Run:   getTxHexByHash,
 	}
 	addGetRawTxFlags(cmd)
