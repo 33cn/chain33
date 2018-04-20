@@ -152,6 +152,7 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
+// get transactions by hashes
 func QueryTxsByHashesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query_hash",
