@@ -2,6 +2,8 @@ package relay
 
 import (
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/types"
 	"strings"
 
 	"bytes"
@@ -31,8 +33,8 @@ import (
 //	return(ERR_MERKLE_ROOT)
 //
 
-func GetMerkleRootFromHeader(blockhash string) {
-
+func GetMerkleRootFromHeader(blockhash string) []byte {
+	return nil
 }
 
 func getRawTxHash(rawtx string) []byte {
@@ -59,11 +61,11 @@ func getSiblingHash(sibling string) [][]byte {
 //sibling like "aaaaaa-bbbbbb-cccccc..."
 
 func BTCVerifyTx(verify *types.RelayVerifyBTC) (bool, error) {
-	rawhash := getRawTxHash(verify.rawtx)
-	sibs := getSiblingHash(verify.sibling)
+	rawhash := getRawTxHash(verify.Rawtx)
+	sibs := getSiblingHash(verify.Sibling)
 
-	verifymerkleroot := merkle.GetMerkleRootFromBranch(sibs, rawhash, verify.txindex)
-	realmerkleroot := GetMerkleRootFromHeader(verify.blockhash)
+	verifymerkleroot := merkle.GetMerkleRootFromBranch(sibs, rawhash, verify.Txindex)
+	realmerkleroot := GetMerkleRootFromHeader(verify.Blockhash)
 	return bytes.Equal(realmerkleroot, verifymerkleroot), nil
 
 }
