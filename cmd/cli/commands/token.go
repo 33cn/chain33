@@ -13,6 +13,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+var (
+	tokenName string
+)
+
 func TokenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "token",
@@ -250,7 +254,7 @@ func GetTokenBalanceCmd() *cobra.Command {
 }
 
 func addTokenBalanceFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("symbol", "s", "", "token symbol")
+	cmd.Flags().StringVarP(&tokenName, "symbol", "s", "", "token symbol")
 	cmd.MarkFlagRequired("symbol")
 
 	cmd.Flags().StringP("exec", "e", "", "execer name")
@@ -284,7 +288,7 @@ func parseTokenBalanceRes(arg interface{}) (interface{}, error) {
 		balanceResult := strconv.FormatFloat(float64(one.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
 		frozenResult := strconv.FormatFloat(float64(one.Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
 		tokenAccount := &TokenAccountResult{
-			Token:    ,
+			Token:    tokenName,
 			Addr:     one.Addr,
 			Currency: one.Currency,
 			Balance:  balanceResult,
