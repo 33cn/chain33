@@ -39,7 +39,7 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
 
-	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath(), cfg.GetDriver())
+	nodeInfo.addrBook = NewAddrBook(cfg)
 
 	return nodeInfo
 }
