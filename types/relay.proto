@@ -83,7 +83,7 @@ message RelayVerifyBTC {
 
 message ReceiptRelayBase {
     string orderid				= 1;
-    int32  status				= 2;
+    string  status				= 2;
     string owner                = 3;
     int64  sellamount			= 4;
     //string selltoken			= 5;
@@ -107,9 +107,9 @@ message ReceiptRelayBuy {
     string orderid             	= 1;
     string buyeraddr			= 2;
     int64  buyamount			= 3;
-    string exchgtoken			= 4;
+    string exchgcoin			= 4;
     int64  exchgamount			= 5;
-    string exchgaccount			= 6;
+    string exchgaddr			= 6;
     string buytxhash            = 7;
 }
 

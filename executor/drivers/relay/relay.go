@@ -25,7 +25,7 @@ var relaylog = log.New("module", "execs.relay")
 
 func init() {
 	r := newRelay()
-	drivers.Register(r.GetName(), r, types.ForkV7_add_relay) //TODO: ForkV2_add_token
+	drivers.Register(r.GetName(), r, types.ForkV7AddRelay) //TODO: ForkV7AddRelay
 }
 
 type relay struct {
@@ -48,7 +48,7 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
-	relaylog.Info("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", relay.GetTy())
+	relaylog.Info("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", action.GetTy())
 
 	actiondb := newRelayAction(r, tx)
 	switch action.GetTy() {
@@ -66,18 +66,24 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	/* orderid, rawTx, index sibling, blockhash */
 	case types.RelayActionVerifyBTCTx:
-		return actiondb.relayVerifyBTCTx(action.GetRverifybtc)
+		return actiondb.relayVerifyBTCTx(action.GetRverifybtc())
 
 	default:
 		return nil, types.ErrActionNotSupport
 	}
 }
 
-func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-
+//获取运行状态名
+func (r *relay) GetActionName(tx *types.Transaction) string {
+	return tx.ActionName()
 }
 
-func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := r.DriverBase.ExecDelLocal(tx, receipt, index)
 
-}
+//func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+//
+//}
+//
+//func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+//	set, err := r.DriverBase.ExecDelLocal(tx, receipt, index)
+//
+//}
