@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (a *AddrBook) Start() error {
@@ -28,8 +29,7 @@ type AddrBook struct {
 	mtx      sync.Mutex
 	ourAddrs map[string]*NetAddress
 	addrPeer map[string]*knownAddress
-	dbDriver string
-	filePath string
+	cfg      *types.P2P
 	privkey  string
 	pubkey   string
 	bookDb   db.DB
@@ -69,13 +69,12 @@ func (a *AddrBook) setAddrStat(addr string, run bool) (*knownAddress, bool) {
 	return nil, false
 }
 
-func NewAddrBook(filePath string, driver string) *AddrBook {
+func NewAddrBook(cfg *types.P2P) *AddrBook {
 	peers := make(map[string]*knownAddress)
 	a := &AddrBook{
 		ourAddrs: make(map[string]*NetAddress),
 		addrPeer: peers,
-		filePath: filePath,
-		dbDriver: driver,
+		cfg:      cfg,
 		Quit:     make(chan struct{}),
 	}
 
@@ -218,7 +217,7 @@ func (a *AddrBook) genPubkey(privkey string) string {
 // cmn.Panics if file is corrupt.
 
 func (a *AddrBook) loadDb() bool {
-	a.bookDb = db.NewDB("addrbook", a.dbDriver, a.filePath, 4)
+	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
 	privkey, _ := a.bookDb.Get([]byte(privKeyTag))
 	if len(privkey) == 0 {
 		a.initKey()
@@ -237,7 +236,7 @@ func (a *AddrBook) loadDb() bool {
 			dec := json.NewDecoder(strings.NewReader(string(iteror.Value())))
 			err := dec.Decode(aJSON)
 			if err != nil {
-				log.Crit("Error reading file %s: %v", a.filePath, err)
+				log.Crit("Error reading file %s: %v", a.cfg.DbPath, err)
 			}
 
 			for _, ka := range aJSON.Addrs {

@@ -92,13 +92,13 @@ func registerDBCreator(backend string, creator dbCreator, force bool) {
 	backends[backend] = creator
 }
 
-func NewDB(name string, backend string, dir string, cache int) DB {
+func NewDB(name string, backend string, dir string, cache int32) DB {
 	dbCreator, ok := backends[backend]
 	if !ok {
 		fmt.Printf("Error initializing DB: %v\n", backend)
 		panic("initializing DB error")
 	}
-	db, err := dbCreator(name, dir, cache)
+	db, err := dbCreator(name, dir, int(cache))
 	if err != nil {
 		fmt.Printf("Error initializing DB: %v\n", err)
 		panic("initializing DB error")
