@@ -263,7 +263,7 @@ func autoMine(cmd *cobra.Command, args []string) {
 func SignRawTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sign",
-		Short: "sign transaction",
+		Short: "Sign transaction",
 		Run:   signRawTx,
 	}
 	addSignRawTxFlags(cmd)
