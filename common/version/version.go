@@ -1,8 +1,13 @@
 package version
 
-const version = "v0.1.4"
+const version = "0.1.5"
+
+var GitCommit string
 
 func GetVersion() string {
+	if GitCommit != "" {
+		return version + "-" + GitCommit
+	}
 	return version
 }
 

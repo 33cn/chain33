@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/hex"
 	"io"
+	"strconv"
 	"sync/atomic"
 
 	"fmt"
@@ -426,11 +427,7 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			if block.GetBlock() != nil {
 				//msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{peername, block.GetBlock()})
-				err := s.node.nodeInfo.client.Send(msg, false)
-				if err != nil {
-					log.Error("ServerStreamRead", "Error", err.Error())
-					continue
-				}
+				s.node.nodeInfo.client.Send(msg, false)
 			}
 			Filter.RegRecvData(blockhash) //注册已经收到的区块
 
@@ -512,7 +509,14 @@ func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
 	for _, inpeer := range inPeers {
-		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: in.GetAddr(), Port: in.GetPort()}) ///仅用name,addr,port字段，用于统计peer num.
+		addrport := strings.Split(inpeer.addr, ":")
+		var addr string
+		var port int
+		if len(addrport) == 2 {
+			addr = addrport[0]
+			port, _ = strconv.Atoi(addrport[1])
+		}
+		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: addr, Port: int32(port)}) ///仅用name,addr,port字段，用于统计peer num.
 	}
 
 	return &pb.PeerList{Peers: p2pPeers}, nil
