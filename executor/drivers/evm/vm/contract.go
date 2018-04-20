@@ -41,13 +41,13 @@ func (ar AccountRef) Address() common.Address { return (common.Address)(ar) }
 // Contract represents an ethereum contract in the state database. It contains
 // the the contract code, calling arguments. Contract implements ContractRef
 type Contract struct {
-	// CallerAddress is the result of the caller which initialised this
-	// contract. However when the "call method" is delegated this value
-	// needs to be initialised to that of the caller's caller.
+	// 调用者地址，应该为外部账户的地址
+	// 如果是通过合约再调用合约时，会从上级合约中获取调用者地址进行赋值
 	CallerAddress common.Address
 	caller        ContractRef
 	self          ContractRef
 
+	// 存储跳转信息，供JUMP和JUMPI指令使用
 	jumpdests destinations // result of JUMPDEST analysis.
 
 	Code     []byte
@@ -63,21 +63,22 @@ type Contract struct {
 	DelegateCall bool
 }
 
-// NewContract returns a new contract environment for the execution of EVM.
+// 创建一个新的合约调用对象
+// 不管合约是否存在，每次调用时都会新创建一个合约对象交给解释器执行，对象持有合约代码和合约地址
 func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
+
 	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object, Args: nil}
 
+	// 如果是合约调用合约的情况，则直接赋值父合约的jumpdests
+	// 否则，创建一个新的jumpdests
 	if parent, ok := caller.(*Contract); ok {
-		// Reuse JUMPDEST analysis from parent context if available.
 		c.jumpdests = parent.jumpdests
 	} else {
 		c.jumpdests = make(destinations)
 	}
 
-	// Gas should be a pointer so it can safely be reduced through the run
-	// This pointer will be off the state transition
+	// 持有gas引用，方便正确计算消耗的gas
 	c.Gas = gas
-	// ensures a value is set
 	c.value = value
 
 	return c
@@ -118,7 +119,7 @@ func (c *Contract) Caller() common.Address {
 	return c.CallerAddress
 }
 
-// UseGas attempts the use gas and subtracts it and returns true on success
+// 从合约的可用gas中进行gas消费
 func (c *Contract) UseGas(gas uint64) (ok bool) {
 	if c.Gas < gas {
 		return false
@@ -137,14 +138,14 @@ func (c *Contract) Value() *big.Int {
 	return c.value
 }
 
-// SetCode sets the code to the contract
+// 设置合约代码内容
 func (self *Contract) SetCode(hash common.Hash, code []byte) {
 	self.Code = code
 	self.CodeHash = hash
 }
 
-// SetCallCode sets the code of the contract and address of the backing data
-// object
+
+// 设置合约代码和代码哈希
 func (self *Contract) SetCallCode(addr *common.Address, hash common.Hash, code []byte) {
 	self.Code = code
 	self.CodeHash = hash

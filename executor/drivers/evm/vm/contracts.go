@@ -40,8 +40,7 @@ type PrecompiledContract interface {
 }
 
 
-// PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
-// contracts used in the Byzantium release.
+// 保存拜占庭版本支持的所有预编译合约（包括之前版本的合约）
 var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{1}): &ecrecover{},
 	common.BytesToAddress([]byte{2}): &sha256hash{},
@@ -53,7 +52,7 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
-// RunPrecompiledContract runs and evaluates the output of a precompiled contract.
+// 调用预编译的合约逻辑并返回结果
 func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
 	gas := p.RequiredGas(input)
 	if contract.UseGas(gas) {
