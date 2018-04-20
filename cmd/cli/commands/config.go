@@ -93,7 +93,7 @@ func configTx(cmd *cobra.Command, args []string) {
 func QueryConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query_config",
-		Short: "query config item",
+		Short: "Query config item",
 		Run:   queryConfig,
 	}
 	addQueryConfigFlags(cmd)
