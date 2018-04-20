@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,13 +13,13 @@ import (
 )
 
 var (
-	tokenName string
+	tokenSymbol string
 )
 
 func TokenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "token",
-		Short: "Token managerment",
+		Short: "Token management",
 		Args:  cobra.MinimumNArgs(1),
 	}
 
@@ -31,20 +30,9 @@ func TokenCmd() *cobra.Command {
 		GetTokensFinishCreatedCmd(),
 		GetTokenAssetsCmd(),
 		GetTokenBalanceCmd(),
-		CreateRawTokenPreCreateCmd(),
-		CreateRawTokenFinishCmd(),
-		CreateRawTokenRevokeCmd(),
-
-
-		TokenPreCreateCmd(),
-		TokenFinishCreateCmd(),
-		TokenRevokeCreateCmd(),
-		ListTokenCmd(),
-		SellTokenCmd(),
-		RevokeSellTokenCmd(),
-		BuyTokenCmd(),
-		ShowTokenOrderCmd(),
-		TokenAssetsCmd(),
+		CreateRawTokenPreCreateTxCmd(),
+		CreateRawTokenFinishTxCmd(),
+		CreateRawTokenRevokeTxCmd(),
 	)
 
 	return cmd
@@ -139,6 +127,7 @@ func createTokenWithdraw(cmd *cobra.Command, args []string) {
 	fmt.Println(txHex)
 }
 
+// get precreated tokens
 func GetTokensPreCreatedCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get_precreated",
@@ -184,6 +173,7 @@ func getPreCreatedTokens(cmd *cobra.Command, args []string) {
 	}
 }
 
+// get finish created tokens
 func GetTokensFinishCreatedCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get_finish_created",
@@ -229,20 +219,64 @@ func getFinishCreatedTokens(cmd *cobra.Command, args []string) {
 	}
 }
 
+// get token assets
 func GetTokenAssetsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "token_asset",
-		Short: "Get token assets",
-		Run:   tokenBalance,
+		Use:   "token_assets",
+		Short: "get token assets",
+		Run:   tokenAssets,
 	}
-	addTokenBalanceFlags(cmd)
+	addTokenAssetsFlags(cmd)
 	return cmd
 }
 
+func addTokenAssetsFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("exec", "e", "", "execer name")
+	cmd.MarkFlagRequired("exec")
 
+	cmd.Flags().StringP("addr", "a", "", "account address")
+	cmd.MarkFlagRequired("addr")
+}
 
+func tokenAssets(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	execer, _ := cmd.Flags().GetString("exec")
+	req := types.ReqAccountTokenAssets{
+		Address: addr,
+		Execer:  execer,
+	}
 
+	var params jsonrpc.Query4Cli
+	params.Execer = "token"
+	params.FuncName = "GetAccountTokenAssets"
+	params.Payload = req
 
+	var res types.ReplyAccountTokenAssets
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseTokenAssetsRes)
+	ctx.Run()
+}
+
+func parseTokenAssetsRes(arg interface{}) (interface{}, error) {
+	res := arg.(*types.ReplyAccountTokenAssets)
+	var result []*TokenAccountResult
+	for _, ta := range res.TokenAssets {
+		balanceResult := strconv.FormatFloat(float64(ta.Account.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(ta.Account.Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
+		tokenAccount := &TokenAccountResult{
+			Token:    ta.Symbol,
+			Addr:     ta.Account.Addr,
+			Currency: ta.Account.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+		result = append(result, tokenAccount)
+	}
+	return result, nil
+}
+
+// get token balance
 func GetTokenBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "token_balance",
@@ -254,13 +288,13 @@ func GetTokenBalanceCmd() *cobra.Command {
 }
 
 func addTokenBalanceFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&tokenName, "symbol", "s", "", "token symbol")
+	cmd.Flags().StringVarP(&tokenSymbol, "symbol", "s", "", "token symbol")
 	cmd.MarkFlagRequired("symbol")
 
 	cmd.Flags().StringP("exec", "e", "", "execer name")
 	cmd.MarkFlagRequired("exec")
 
-	cmd.Flags().StringP("address", "a", "", "account addresses, seperated by ','")
+	cmd.Flags().StringP("address", "a", "", "account addresses, separated by space")
 	cmd.MarkFlagRequired("address")
 }
 
@@ -288,7 +322,7 @@ func parseTokenBalanceRes(arg interface{}) (interface{}, error) {
 		balanceResult := strconv.FormatFloat(float64(one.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
 		frozenResult := strconv.FormatFloat(float64(one.Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
 		tokenAccount := &TokenAccountResult{
-			Token:    tokenName,
+			Token:    tokenSymbol,
 			Addr:     one.Addr,
 			Currency: one.Currency,
 			Balance:  balanceResult,
@@ -297,4 +331,142 @@ func parseTokenBalanceRes(arg interface{}) (interface{}, error) {
 		result = append(result, tokenAccount)
 	}
 	return result, nil
+}
+
+// create raw token precreate transaction
+func CreateRawTokenPreCreateTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "precreate",
+		Short: "create a precreated token transaction",
+		Run:   tokenPrecreated,
+	}
+	addTokenPrecreatedFlags(cmd)
+	return cmd
+}
+
+func addTokenPrecreatedFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("name", "n", "", "token name")
+	cmd.MarkFlagRequired("name")
+
+	cmd.Flags().StringP("symbol", "s", "", "token symbol")
+	cmd.MarkFlagRequired("symbol")
+
+	cmd.Flags().StringP("introduction", "i", "", "token introduction")
+	cmd.MarkFlagRequired("introduction")
+
+	cmd.Flags().StringP("owner_addr", "a", "", "address of token owner")
+	cmd.MarkFlagRequired("owner_addr")
+
+	cmd.Flags().Float64P("price", "p", 0, "token price")
+	cmd.MarkFlagRequired("price")
+
+	cmd.Flags().Int64P("total", "t", 0, "total amount of the token")
+	cmd.MarkFlagRequired("total")
+
+	cmd.Flags().Float64P("fee", "f", 0, "token transaction fee")
+	cmd.MarkFlagRequired("fee")
+}
+
+func tokenPrecreated(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	name, _ := cmd.Flags().GetString("name")
+	symbol, _ := cmd.Flags().GetString("symbol")
+	introduction, _ := cmd.Flags().GetString("introduction")
+	ownerAddr, _ := cmd.Flags().GetString("owner_addr")
+	price, _ := cmd.Flags().GetFloat64("price")
+	fee, _ := cmd.Flags().GetFloat64("fee")
+	total, _ := cmd.Flags().GetInt64("total")
+
+	priceInt64 := int64(price * 1e4)
+	feeInt64 := int64(fee * 1e4)
+	params := &jsonrpc.TokenPreCreateTx{
+		Price:        priceInt64 * 1e4,
+		Name:         name,
+		Symbol:       symbol,
+		Introduction: introduction,
+		OwnerAddr:    ownerAddr,
+		Total:        total,
+		Fee:          feeInt64 * 1e4,
+	}
+	var res string
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenPreCreateTx", params, &res)
+	ctx.Run()
+}
+
+// create raw token finish create transaction
+func CreateRawTokenFinishTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "finish",
+		Short: "create a finish created token transaction",
+		Run:   tokenFinish,
+	}
+	addTokenFinishFlags(cmd)
+	return cmd
+}
+
+func addTokenFinishFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("owner_addr", "a", "", "address of token owner")
+	cmd.MarkFlagRequired("owner_addr")
+
+	cmd.Flags().StringP("symbol", "s", "", "token symbol")
+	cmd.MarkFlagRequired("symbol")
+
+	cmd.Flags().Float64P("fee", "f", 0, "token transaction fee")
+	cmd.MarkFlagRequired("fee")
+}
+
+func tokenFinish(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	symbol, _ := cmd.Flags().GetString("symbol")
+	ownerAddr, _ := cmd.Flags().GetString("owner_addr")
+	fee, _ := cmd.Flags().GetFloat64("fee")
+
+	feeInt64 := int64(fee * 1e4)
+	params := &jsonrpc.TokenFinishTx{
+		Symbol:    symbol,
+		OwnerAddr: ownerAddr,
+		Fee:       feeInt64 * 1e4,
+	}
+	var res string
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenFinishTx", params, &res)
+	ctx.Run()
+}
+
+// create raw token revoke transaction
+func CreateRawTokenRevokeTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "revoke",
+		Short: "revoke a token transaction",
+		Run:   tokenRevoke,
+	}
+	addTokenRevokeFlags(cmd)
+	return cmd
+}
+
+func addTokenRevokeFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("owner_addr", "a", "", "address of token owner")
+	cmd.MarkFlagRequired("owner_addr")
+
+	cmd.Flags().StringP("symbol", "s", "", "token symbol")
+	cmd.MarkFlagRequired("symbol")
+
+	cmd.Flags().Float64P("fee", "f", 0, "token transaction fee")
+	cmd.MarkFlagRequired("fee")
+}
+
+func tokenRevoke(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	symbol, _ := cmd.Flags().GetString("symbol")
+	ownerAddr, _ := cmd.Flags().GetString("owner_addr")
+	fee, _ := cmd.Flags().GetFloat64("fee")
+
+	feeInt64 := int64(fee * 1e4)
+	params := &jsonrpc.TokenRevokeTx{
+		Symbol:    symbol,
+		OwnerAddr: ownerAddr,
+		Fee:       feeInt64 * 1e4,
+	}
+	var res string
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenRevokeTx", params, &res)
+	ctx.Run()
 }
