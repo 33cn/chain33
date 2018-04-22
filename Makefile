@@ -10,7 +10,7 @@ APP := build/chain33
 CLI := build/chain33-cli
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
-
+BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 .PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker protobuf clean help
 
 default: build cli
@@ -21,16 +21,16 @@ dep: ## Get the dependencies
 	@go get -u github.com/mitchellh/gox
 
 all: ## Builds for multiple platforms
-	@gox $(LDFLAGS) $(SRC)
+	@gox  $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@mv chain33* build/
 
 build: ## Build the binary file
-	@go build -v -i -o $(APP) $(SRC)
+	@go build $(BUILD_FLAGS) -v -i -o  $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 release: ## Build the binary file
-	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
 	@cp cmd/chain33/chain33.toml build/
 
 cli: ## Build cli binary
@@ -38,7 +38,7 @@ cli: ## Build cli binary
 
 build_ci: ## Build the binary file for CI
 	@go build -race -v -o $(CLI) $(SRC_CLI)
-	@go build -race -v -o $(APP) $(SRC)
+	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 linter: ## Use gometalinter check code, ignore some unserious warning
@@ -51,7 +51,7 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 	--enable=interfacer \
 	--enable=varcheck \
 	--enable=structcheck \
-	--vendor ./...) \
+	GS)
 #	--enable=staticcheck \
 #	--enable=gocyclo \
 #	--enable=staticcheck \

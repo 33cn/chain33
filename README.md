@@ -18,7 +18,7 @@ To install Chain33 Core Developer Edition on Mac, Windows, or Linux, please visi
 
 Building chain33 requires both a Go (version 1.9 or later) and a protoc compiler.
 
-* [Go](https://golang.org/doc/install) version 1.9, with $GOPATH set to your preferred directory.
+* [Go](https://golang.org/doc/install) or [GOCN](https://golang.google.cn/dl/) version 1.9, with $GOPATH set to your preferred directory.
 
 * [protoc](https://github.com/google/protobuf#protocol-compiler-installation) 3.1.0 or later and if you need to compile protos.
 

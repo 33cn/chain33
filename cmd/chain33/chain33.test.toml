@@ -28,6 +28,7 @@ timeoutSeconds=5
 batchBlockNum=128
 driver="memdb"
 dbPath="datadir"
+dbCache=64
 isStrongConsistency=false
 singleMode=true
 batchsync=false
@@ -40,6 +41,7 @@ serverStart=true
 msgCacheSize=10240
 driver="memdb"
 dbPath="datadir/addrbook"
+dbCache=4
 grpcLogFile="grpc33.log"
 version=216
 verMix=216
@@ -65,11 +67,13 @@ hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 name="mavl"
 driver="memdb"
 dbPath="datadir/mavltree"
+dbCache=128
 
 [wallet]
 minFee=1000000
 driver="memdb"
 dbPath="datadir/wallet"
+dbCache=16
 signType="secp256k1"
 
 [exec]
