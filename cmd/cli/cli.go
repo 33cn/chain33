@@ -27,17 +27,20 @@ func init() {
 	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "RPC listen address")
 
 	rootCmd.AddCommand(
-		commands.CommonCmd(),
-		commands.SeedCmd(),
-		commands.KeyCmd(),
 		commands.AccountCmd(),
-		commands.TxCmd(),
-		commands.TokenCmd(),
-		commands.TicketCmd(),
-		commands.MempoolCmd(),
-		commands.WalletCmd(),
-		commands.AddressCmd(),
 		commands.BlockCmd(),
+		commands.BTYCmd(),
+		commands.ConfigCmd(),
+		commands.ExecCmd(),
+		commands.MempoolCmd(),
+		commands.NetCmd(),
+		commands.SeedCmd(),
+		commands.StatCmd(),
+		commands.TicketCmd(),
+		commands.TokenCmd(),
+		commands.TradeCmd(),
+		commands.TxCmd(),
+		commands.WalletCmd(),
 		versionCmd)
 }
 

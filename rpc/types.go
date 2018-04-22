@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/json"
+
 	l "github.com/inconshreveable/log15"
 )
 
@@ -235,44 +236,50 @@ type WalletStatus struct {
 
 // Token Transaction
 type TokenPreCreateTx struct {
-	Price        int64  `json:"price,omitempty"`
-	Name         string `json:"name,omitempty"`
-	Symbol       string `json:"symbol,omitempty"`
-	Introduction string `json:"introduction,omitempty"`
-	OwnerAddr    string `json:"owner_addr,omitempty"`
-	Total        int64  `json:"total,omitempty"`
-	Fee          int64  `json:"fee,omitempty"`
+	Price        int64  `json:"price"`
+	Name         string `json:"name"`
+	Symbol       string `json:"symbol"`
+	Introduction string `json:"introduction"`
+	OwnerAddr    string `json:"owner_addr"`
+	Total        int64  `json:"total"`
+	Fee          int64  `json:"fee"`
 }
 
 type TokenFinishTx struct {
-	OwnerAddr string `json:"owner_addr,omitempty"`
-	Symbol    string `json:"symbol,omitempty"`
-	Fee       int64  `json:"fee,omitempty"`
+	OwnerAddr string `json:"owner_addr"`
+	Symbol    string `json:"symbol"`
+	Fee       int64  `json:"fee"`
 }
 
 type TokenRevokeTx struct {
-	OwnerAddr string `json:"owner_addr,omitempty"`
-	Symbol    string `json:"symbol,omitempty"`
-	Fee       int64  `json:"fee,omitempty"`
+	OwnerAddr string `json:"owner_addr"`
+	Symbol    string `json:"symbol"`
+	Fee       int64  `json:"fee"`
 }
 
 // Trade Transaction
 type TradeSellTx struct {
-	TokenSymbol       string `json:"token_symbol,omitempty"`
-	AmountPerBoardlot int64  `json:"amount_per_boardlot,omitempty"`
-	MinBoardlot       int64  `json:"min_boardlot,omitempty"`
-	PricePerBoardlot  int64  `json:"price_per_boardlot,omitempty"`
-	TotalBoardlot     int64  `json:"total_boardlot,omitempty"`
-	Fee               int64  `json:"fee,omitempty"`
+	TokenSymbol       string `json:"token_symbol"`
+	AmountPerBoardlot int64  `json:"amount_per_boardlot"`
+	MinBoardlot       int64  `json:"min_boardlot"`
+	PricePerBoardlot  int64  `json:"price_per_boardlot"`
+	TotalBoardlot     int64  `json:"total_boardlot"`
+	Fee               int64  `json:"fee"`
 }
 
 type TradeBuyTx struct {
-	SellId      string `json:"sell_id,omitempty"`
-	BoardlotCnt int64  `json:"boardlot_cnt,omitempty"`
-	Fee         int64  `json:"fee,omitempty"`
+	SellId      string `json:"sell_id"`
+	BoardlotCnt int64  `json:"boardlot_cnt"`
+	Fee         int64  `json:"fee"`
 }
 
 type TradeRevokeTx struct {
-	SellId string `json:"sell_id,omitempty"`
-	Fee    int64  `json:"fee,omitempty"`
+	SellId string `json:"sell_id,"`
+	Fee    int64  `json:"fee"`
+}
+
+type NodeNetinfo struct {
+	Externaladdr string `json:"externaladdr"`
+	Localaddr    string `json:"localaddr"`
+	Service      bool   `json:"service"`
 }

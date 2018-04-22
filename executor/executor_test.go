@@ -134,3 +134,20 @@ func BenchmarkExecBlock(b *testing.B) {
 		util.ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	}
 }
+
+func TestLoadDriver(t *testing.T) {
+	d, err := executor.LoadDriver("none")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if d.GetName() != "none" {
+		t.Error(d.GetName())
+	}
+
+	// if no, happen panic!
+	driver := d.Clone()
+	if driver.GetName() != "none" {
+		t.Error(d.GetName())
+	}
+}
