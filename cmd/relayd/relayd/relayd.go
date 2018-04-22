@@ -1,20 +1,13 @@
 package relayd
 
 import (
+	"net/http"
 	"sync"
-
 	//"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcwallet/chain"
-	"net/http"
+	//con "gitlab.33.cn/chain33/chain33/cmd/relayd/connection"
 )
-
-type BtcPeer struct {
-	ipPort string
-}
-
-type ChainPeer struct {
-}
 
 // confirmed checks whether a transaction at height txHeight has met minconf
 // confirmations for a blockchain at height curHeight.
@@ -31,42 +24,22 @@ func confirms(txHeight, curHeight int32) int32 {
 	}
 }
 
-type btcConnection struct {
-}
-
-type chain33Connection struct {
-}
-
 type Relayd struct {
-	httpServer http.Server
-	db         RelaydDB
-
-	btcPeers   BtcPeer
-	chainPeers ChainPeer
-	mu         sync.Mutex
-	bestBlock  btcjson.GetBestBlockResult
-
+	config        *Config
+	httpServer    http.Server
+	db            RelaydDB
+	mu            sync.Mutex
+	bestBlock     btcjson.GetBestBlockResult
 	btcClient     *chain.RPCClient
 	btcClientLock sync.Mutex
-
-	chainClient     Chain33Client
-	chainClientLock sync.Mutex
-
-	wg      sync.WaitGroup
-	started bool
-	quit    chan struct{}
-	quitMu  sync.Mutex
+	wg            sync.WaitGroup
+	started       bool
+	quit          chan struct{}
+	quitMu        sync.Mutex
+	cons33        *Connections33
 }
 
-func (r *Relayd) GetTransaction() {
-
-}
-
-func (r *Relayd) GetBestBlockHeader() {
-
-}
-
-func (r *Relayd) GetBestBlock() {
+func NewRelayd(config *Config) {
 
 }
 
@@ -75,6 +48,7 @@ func (r *Relayd) ShuttingDown() bool {
 	return true
 }
 
+// Ping
 func (r *Relayd) Ping() error {
 	return nil
 }
