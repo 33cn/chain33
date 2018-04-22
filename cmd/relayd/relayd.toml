@@ -1,0 +1,35 @@
+title = "relayd"
+
+[[chain33]]
+id = "123"
+host = "127.0.0.1"
+endpiot = "8802"
+user = "123"
+pass = "123"
+disableAutoReconnect = true
+
+[[chain33]]
+id = "abc"
+host = "127.0.0.1"
+endpiot = "8803"
+user = "1234"
+pass = "1234"
+disableAutoReconnect = true
+
+[[bitcoin]]
+id = "123abc"
+host = "127.0.0.1"
+endpoint = "8834"
+user = ""
+pass = ""
+disableTLS = false
+certPath = ""
+proxy = ""
+proxyUser = ""
+proxyPass = ""
+disableAutoReconnect = true
+disableConnectOnNew = false
+HTTPPostMode = false
+enableBCInfoHacks = false
+
+

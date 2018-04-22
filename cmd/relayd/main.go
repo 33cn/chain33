@@ -3,9 +3,8 @@ package main
 import (
 	"flag"
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
-	clog "gitlab.33.cn/chain33/chain33/common/log"
+	//clog "gitlab.33.cn/chain33/chain33/common/log"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"net/http"
@@ -36,8 +35,8 @@ func main() {
 	}
 
 	flag.Parse()
-	cfg := config.InitCfg(*configPath)
-	clog.SetFileLog(cfg.Log)
+	//cfg := config(*configPath)
+	//clog.SetFileLog(cfg.Log)
 	//f, err := createFile(cfg.P2P.GetGrpcLogFile())
 
 	//set watching

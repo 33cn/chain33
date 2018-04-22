@@ -445,3 +445,12 @@ func (c *RPCClient) POSTClient() (*rpcclient.Client, error) {
 	configCopy.HTTPPostMode = true
 	return rpcclient.New(&configCopy, nil)
 }
+
+//func (c *RPCClient) GetTransaction() {
+//	c.GetTransaction()
+//
+//}
+
+func (c *RPCClient) GetBestBlockHeader() {
+	c.GetTransaction()
+}
