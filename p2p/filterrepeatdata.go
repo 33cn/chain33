@@ -52,7 +52,7 @@ func (f *Filterdata) ManageRecvFilter() {
 		now := time.Now().Unix()
 		for _, key := range f.regRData.Keys() {
 			regtime, _ := f.regRData.Get(key)
-			if now-regtime.(int64) < timeout {
+			if now-int64(regtime.(time.Duration)) < timeout {
 				break
 			}
 			f.regRData.Remove(key)

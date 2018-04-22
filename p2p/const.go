@@ -56,5 +56,5 @@ const (
 )
 
 const (
-	P2pCacheTxSize = 102400
+	P2pCacheTxSize = 10240
 )
