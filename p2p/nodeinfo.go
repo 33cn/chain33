@@ -23,6 +23,8 @@ type NodeInfo struct {
 	peerInfos      *PeerInfos
 	addrBook       *AddrBook // known peers
 	natDone        int32
+	outSide        int32
+	ServiceType    int32
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
@@ -37,7 +39,7 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
 
-	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath(), cfg.GetDriver())
+	nodeInfo.addrBook = NewAddrBook(cfg)
 
 	return nodeInfo
 }
@@ -180,6 +182,35 @@ func (nf *NodeInfo) SetNatDone() {
 
 func (nf *NodeInfo) IsNatDone() bool {
 	return atomic.LoadInt32(&nf.natDone) == 1
+}
+
+func (nf *NodeInfo) IsOutService() bool {
+	if !nf.IsNatDone() {
+		return false
+	}
+	if nf.OutSide() || nf.ServiceTy() == Service {
+		return true
+	}
+	return false
+}
+
+func (nf *NodeInfo) SetServiceTy(ty int32) {
+	atomic.StoreInt32(&nf.ServiceType, ty)
+}
+func (nf *NodeInfo) ServiceTy() int32 {
+	return atomic.LoadInt32(&nf.ServiceType)
+}
+func (nf *NodeInfo) SetNetSide(ok bool) {
+	var isoutside int32 = 0
+	if ok {
+		isoutside = 1
+	}
+	atomic.StoreInt32(&nf.outSide, isoutside)
+
+}
+
+func (nf *NodeInfo) OutSide() bool {
+	return atomic.LoadInt32(&nf.outSide) == 1
 }
 
 func (bl *BlackList) Add(addr string) {

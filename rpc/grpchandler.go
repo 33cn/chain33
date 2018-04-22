@@ -16,12 +16,7 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply := g.cli.SendTx(in)
-	if reply.GetData().(*pb.Reply).IsOk {
-		return reply.GetData().(*pb.Reply), nil
-	} else {
-		return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
-	}
+	return g.cli.SendTx(in)
 }
 
 func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
@@ -479,6 +474,18 @@ func (g *Grpc) IsNtpClockSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, er
 	}
 
 	return &pb.Reply{IsOk: g.cli.IsNtpClockSync()}, nil
+}
+
+func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, error) {
+	if !g.checkWhitlist(ctx) {
+		return nil, fmt.Errorf("reject")
+	}
+	resp, err := g.cli.GetNetInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (g *Grpc) checkWhitlist(ctx context.Context) bool {
