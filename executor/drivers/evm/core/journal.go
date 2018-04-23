@@ -17,16 +17,13 @@
 package core
 
 import (
-	"math/big"
-
-	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type journalEntry interface {
-	undo(kv *MemoryStateDB)
-	getData(kv *MemoryStateDB) []*types.KeyValue
+	undo(mdb *MemoryStateDB)
+	getData(mdb *MemoryStateDB) []*types.KeyValue
 }
 
 type journal []journalEntry
@@ -41,13 +38,6 @@ type (
 	suicideChange struct {
 		account     *common.Address
 		prev        bool // whether account had already suicided
-		prevbalance *big.Int
-	}
-
-	// 外部账户余额变更事件
-	balanceChange struct {
-		account *common.Address
-		prev    int64
 	}
 
 	// nonce变更事件
@@ -100,119 +90,101 @@ func (ch createAccountChange) getData(s *MemoryStateDB) []*types.KeyValue {
 }
 
 
-func (ch suicideChange) undo(kv *MemoryStateDB) {
+func (ch suicideChange) undo(mdb *MemoryStateDB) {
 	// 如果已经自杀过了，不处理
 	if ch.prev {
 		return
 	}
-	acc := kv.accounts[*ch.account]
+	acc := mdb.accounts[*ch.account]
 	if acc != nil {
 		acc.suicided = ch.prev
-
-		if ch.prevbalance.Int64() > 0 {
-			acc.Balance = ch.prevbalance.Int64()
-		}
 	}
 }
 
-func (ch suicideChange) getData(kv *MemoryStateDB) []*types.KeyValue {
+func (ch suicideChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	// 如果已经自杀过了，不处理
 	if ch.prev {
 		return nil
 	}
-	acc := kv.accounts[*ch.account]
+	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-
-		if ch.prevbalance.Int64() > 0 {
-			return acc.getCoinsData()
-		}
-		return nil
+		return acc.getSuicideData()
 	}
 	return nil
 }
 
-var ripemd = common.HexToAddress("0000000000000000000000000000000000000003")
-
-func (ch touchChange) undo(s db.KV) {
-	// TODO empty
-}
-
-func (ch balanceChange) undo(kv *MemoryStateDB) {
-	// TODO empty
-}
-
-func (ch balanceChange) getData(kv *MemoryStateDB) []*types.KeyValue {
-	acc := kv.accounts[*ch.account]
-	if acc != nil {
-		return acc.getCoinsData()
-	}
-	return nil
-}
-
-func (ch nonceChange) undo(kv *MemoryStateDB) {
-	acc := kv.accounts[*ch.account]
+func (ch nonceChange) undo(mdb *MemoryStateDB) {
+	acc := mdb.accounts[*ch.account]
 	if acc != nil {
 		acc.nonce = ch.prev
 	}
 }
 
-func (ch nonceChange) getData(kv *MemoryStateDB) []*types.KeyValue {
-	acc := kv.accounts[*ch.account]
+func (ch nonceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		return acc.GetContractData()
+		return acc.GetChangeData()
 	}
 	return nil
 }
 
 
-func (ch codeChange) undo(kv *MemoryStateDB) {
-	acc := kv.accounts[*ch.account]
+func (ch codeChange) undo(mdb *MemoryStateDB) {
+	acc := mdb.accounts[*ch.account]
 	if acc != nil {
 		acc.code = ch.prevcode
 		acc.codeHash = common.BytesToHash(ch.prevhash)
 	}
 }
 
-func (ch codeChange) getData(kv *MemoryStateDB) []*types.KeyValue {
-	acc := kv.accounts[*ch.account]
+func (ch codeChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+	acc := mdb.accounts[*ch.account]
 	if acc != nil {
 		return acc.GetContractData()
 	}
 	return nil
 }
 
-func (ch storageChange) undo(kv *MemoryStateDB) {
-	acc := kv.accounts[*ch.account]
+func (ch storageChange) undo(mdb *MemoryStateDB) {
+	acc := mdb.accounts[*ch.account]
 	if acc != nil {
 		acc.SetState(ch.key, ch.prevalue)
 	}
 }
 
-func (ch storageChange) getData(kv *MemoryStateDB) []*types.KeyValue {
-	acc := kv.accounts[*ch.account]
+func (ch storageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		return acc.GetContractData()
+		return acc.GetChangeData()
 	}
 	return nil
 }
 
-func (ch refundChange) undo(kv *MemoryStateDB) {
-	kv.refund = ch.prev
+func (ch refundChange) undo(mdb *MemoryStateDB) {
+	mdb.refund = ch.prev
 }
-func (ch refundChange) getData(kv *MemoryStateDB) []*types.KeyValue {
+func (ch refundChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return nil
 }
 
-func (ch addLogChange) undo(s db.KV) {
-	logs := s.logs[ch.txhash]
+
+func (ch addLogChange) undo(mdb *MemoryStateDB) {
+	logs := mdb.logs[ch.txhash]
 	if len(logs) == 1 {
-		delete(s.logs, ch.txhash)
+		delete(mdb.logs, ch.txhash)
 	} else {
-		s.logs[ch.txhash] = logs[:len(logs)-1]
+		mdb.logs[ch.txhash] = logs[:len(logs)-1]
 	}
-	s.logSize--
+	mdb.logSize--
+}
+func (ch addLogChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+	return nil
 }
 
-func (ch addPreimageChange) undo(s db.KV) {
-	delete(s.preimages, ch.hash)
+
+func (ch addPreimageChange) undo(mdb *MemoryStateDB) {
+	delete(mdb.preimages, ch.hash)
+}
+func (ch addPreimageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+	return nil
 }
