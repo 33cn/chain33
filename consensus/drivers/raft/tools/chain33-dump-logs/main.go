@@ -109,7 +109,7 @@ func main() {
 			// 解码
 			block := &Block{}
 			if err := proto.Unmarshal(e.Data, block); err != nil {
-				log.Printf("failed to unmarshal: ", err)
+				log.Printf("failed to unmarshal: %v", err)
 				break
 			}
 			msg = fmt.Sprintf("%s\t BlockHeight:%d", msg, block.Height)
@@ -126,9 +126,9 @@ func main() {
 	}
 }
 
-func walDir(dataDir string) string { return filepath.Join(dataDir, "", "wal") }
+//func walDir(dataDir string) string { return filepath.Join(dataDir, "", "wal") }
 
-func snapDir(dataDir string) string { return filepath.Join(dataDir, "", "snap") }
+//func snapDir(dataDir string) string { return filepath.Join(dataDir, "", "snap") }
 
 func parseWALMetadata(b []byte) (id, cid types.ID) {
 	var metadata etcdserverpb.Metadata
@@ -138,22 +138,22 @@ func parseWALMetadata(b []byte) (id, cid types.ID) {
 	return id, cid
 }
 
-func genIDSlice(a []uint64) []types.ID {
-	ids := make([]types.ID, len(a))
-	for i, id := range a {
-		ids[i] = types.ID(id)
-	}
-	return ids
-}
+//func genIDSlice(a []uint64) []types.ID {
+//	ids := make([]types.ID, len(a))
+//	for i, id := range a {
+//		ids[i] = types.ID(id)
+//	}
+//	return ids
+//}
 
 // excerpt replaces middle part with ellipsis and returns a double-quoted
 // string safely escaped with Go syntax.
-func excerpt(str string, pre, suf int) string {
-	if pre+suf > len(str) {
-		return fmt.Sprintf("%q", str)
-	}
-	return fmt.Sprintf("%q...%q", str[:pre], str[len(str)-suf:])
-}
+//func excerpt(str string, pre, suf int) string {
+//	if pre+suf > len(str) {
+//		return fmt.Sprintf("%q", str)
+//	}
+//	return fmt.Sprintf("%q...%q", str[:pre], str[len(str)-suf:])
+//}
 
 type Block struct {
 	Version    int64  `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
