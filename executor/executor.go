@@ -275,12 +275,11 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 			return e.cutFeeReceipt4Privacy(execaddr, accFrom, receiptBalance), nil
 		}
 	}
-
 	return nil, types.ErrNoBalance
 }
 
 func (e *executor) cutFeeReceipt4Privacy(execaddr string, acc *types.Account, receiptBalance *types.ReceiptExecAccountTransfer) *types.Receipt {
-	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
+	feelog := &types.ReceiptLog{types.TyLogPrivacyFee, types.Encode(receiptBalance)}
 	return &types.Receipt{types.ExecPack, e.coinsAccount.GetExecKVSet(execaddr, acc), []*types.ReceiptLog{feelog}}
 }
 
