@@ -74,7 +74,8 @@ service p2pgservice {
 * 请求获取远程节点的节点信息
 */
 message P2PGetPeerInfo {
-	int32 version = 1;///p2p版本
+	///p2p版本
+	int32 version = 1;
 }
 
 
@@ -82,11 +83,16 @@ message P2PGetPeerInfo {
 * 节点信息
 */
 message P2PPeerInfo {
-	string addr = 1;///节点的IP地址
-	int32 port = 2;///节点的外网端口
-	string name = 3;///节点的名称
-	int32 mempoolSize = 4;///mempool 的大小
-	Header header = 5;///节点当前高度头部数据
+	///节点的IP地址
+	string addr = 1;
+	///节点的外网端口
+	int32 port = 2;
+	///节点的名称
+	string name = 3;
+	///mempool 的大小
+	int32 mempoolSize = 4;
+	///节点当前高度头部数据
+	Header header = 5;
 }
 
 
@@ -94,14 +100,22 @@ message P2PPeerInfo {
  * p2p节点间发送版本数据结构
  */
 message P2PVersion {
-	int32 version = 1;///当前版本
-	int64 service = 2;///服务类型
-	int64 timestamp = 3;///时间戳
-	string addrRecv = 4;///数据包的目的地址
-	string addrFrom = 5;///数据发送的源地址
-	int64 nonce = 6;///随机数
-	string userAgent = 7;///用户代理
-	int64 startHeight = 8;///当前节点的高度
+	///当前版本
+	int32 version = 1;
+	///服务类型
+	int64 service = 2;
+	///时间戳
+	int64 timestamp = 3;
+	///数据包的目的地址
+	string addrRecv = 4;
+	///数据发送的源地址
+	string addrFrom = 5;
+	///随机数
+	int64 nonce = 6;
+	///用户代理
+	string userAgent = 7;
+	///当前节点的高度
+	int64 startHeight = 8;
 }
 
 /**
@@ -112,15 +126,19 @@ message P2PVerAck {
 	int64 service = 2;
 	int64 nonce = 3;
 }
+
 /**
 * P2P 心跳包
 */
-
 message P2PPing {
-	int64 nonce = 1;///随机数
-	string addr = 2;///节点的外网地址
-	int32 port = 3;///节点的外网端口
-	Signature sign = 4;//签名
+	///随机数
+	int64 nonce = 1;
+	///节点的外网地址
+	string addr = 2;
+	///节点的外网端口
+	int32 port = 3;
+	//签名
+	Signature sign = 4;
 }
 
 /**
@@ -142,7 +160,8 @@ message P2PGetAddr {
 */
 message P2PAddr {
 	int64 nonce = 1;
-	repeated string addrlist = 2; ///对方节点返回的其他节点信息
+	///对方节点返回的其他节点信息
+	repeated string addrlist = 2; 
 	
 }
 
@@ -150,8 +169,10 @@ message P2PAddr {
 * 节点外网信息
 */
 message P2PExternalInfo {
-	string addr = 1;///节点的外网地址
-	bool isoutside = 2;//节点是否在外网
+	///节点的外网地址
+	string addr = 1;
+	//节点是否在外网
+	bool isoutside = 2;
 }
 
 /**
@@ -177,17 +198,22 @@ message P2PInv {
 
 //ty=MSG_TX MSG_BLOCK
 message Inventory {
-	int32 ty = 1; //类型，数据类型，MSG_TX MSG_BLOCK
-	bytes hash = 2;///哈希
-	int64 height = 3;//高度
+	//类型，数据类型，MSG_TX MSG_BLOCK
+	int32 ty = 1; 
+	///哈希
+	bytes hash = 2;
+	//高度
+	int64 height = 3;
 }
 
 /**
 * 通过invs 下载数据
 */
 message P2PGetData {
-	int32 version = 1; ///p2p版本
-	repeated Inventory invs = 2;/// invs 数组
+	 ///p2p版本
+	int32 version = 1;
+	/// invs 数组
+	repeated Inventory invs = 2;
 }
 
 /**
