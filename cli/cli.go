@@ -467,6 +467,12 @@ func main() {
 			return
 		}
 		ShowPrivacykey(argsWithoutProg[1])
+	case "showprivacybalance":
+		if len(argsWithoutProg) != 3 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowPrivacyBalance(argsWithoutProg[1], argsWithoutProg[2])
 	case "pub2priv":
 		if len(argsWithoutProg) != 6 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -559,9 +565,10 @@ func LoadHelp() {
 	fmt.Println("queryconfig [Key]                                              : 查询配置")
 	fmt.Println("isntpclocksync []                                              : 获取网络时间同步状态")
 	fmt.Println("showprivacykey addr                                            : 显示地址对应的隐私账户的view和spend的公钥")
-	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout note          : 公开账户向隐私账户转账")
-	fmt.Println("pri2priv from toviewpubkey tospendpubkey amout hash note     : 隐私账户向隐私账户转账")
-	fmt.Println("pri2pub from to amout hash note                                : 隐私账户向公开账户转账")
+	fmt.Println("showprivacybalance addr txhash                                 : 显示特定交易接收到的隐私转账")
+	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout note            : 公开账户向隐私账户转账")
+	fmt.Println("priv2priv from toviewpubkey tospendpubkey amout hash note       : 隐私账户向隐私账户转账")
+	fmt.Println("priv2pub from to amout hash note                                : 隐私账户向公开账户转账")
 }
 
 type AccountsResult struct {
@@ -2617,6 +2624,42 @@ func ManageConfigTransactioin(key, op, opAddr, priv string) {
 }
 
 ////////////////privacy////////////////////////////
+func ShowPrivacyBalance(addr string, txhash string) {
+	params := &types.ReqPrivacyBalance{
+		addr,
+		txhash,
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res *jsonrpc.Account
+	err = rpc.Call("Chain33.ShowPrivacyBalance", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	balanceResult := strconv.FormatFloat(float64(res.Balance)/float64(types.Coin), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res.Frozen)/float64(types.Coin), 'f', 4, 64)
+	result := &AccountResult{
+		Addr:     res.Addr,
+		Currency: res.Currency,
+		Balance:  balanceResult,
+		Frozen:   frozenResult,
+	}
+
+	data, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
 func ShowPrivacykey(addr string) {
 	params := &types.ReqStr{
 		addr,
@@ -2745,7 +2788,7 @@ func TransferPriv2Pub(args []string) {
 		return
 	}
 	var res jsonrpc.ReplyHash
-	err = rpc.Call("Chain33.MakeTxPublic2privacy", params, &res)
+	err = rpc.Call("Chain33.MakeTxPrivacy2public", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
