@@ -165,6 +165,8 @@ const (
 	EventSignRawTx           = 107
 	EventReplySignRawTx      = 108
 	EventSyncBlock           = 109
+	EventGetNetInfo          = 110
+	EventReplyNetInfo        = 111
 
 	// Token
 	EventBlockChainQuery = 212
