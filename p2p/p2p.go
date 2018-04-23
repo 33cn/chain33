@@ -177,6 +177,8 @@ func (network *P2p) subP2pMsg() {
 				go network.p2pCli.GetPeerInfo(msg, taskIndex)
 			case types.EventFetchBlockHeaders:
 				go network.p2pCli.GetHeaders(msg, taskIndex)
+			case types.EventGetNetInfo:
+				go network.p2pCli.GetNetInfo(msg, taskIndex)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.client.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))

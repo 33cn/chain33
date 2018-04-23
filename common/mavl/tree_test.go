@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"runtime"
 	"sort"
@@ -149,7 +150,11 @@ func TestBasic(t *testing.T) {
 }
 
 func TestTreeHeightAndSize(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	// Create some random key value pairs
 	records := make(map[string]string)
@@ -185,7 +190,11 @@ func TestTreeHeightAndSize(t *testing.T) {
 
 //测试hash，save,load以及节点value值的更新功能
 func TestPersistence(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	records := make(map[string]string)
 
@@ -274,8 +283,11 @@ func TestPersistence(t *testing.T) {
 
 //测试key:value对的proof证明功能
 func TestIAVLProof(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
 
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	var tree = NewTree(db, true)
 
@@ -391,7 +403,11 @@ func TestIAVLProof(t *testing.T) {
 }
 
 func TestSetAndGetKVPair(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	var storeSet types.StoreSet
 	var storeGet types.StoreGet
@@ -477,7 +493,11 @@ func TestSetAndGetKVPair(t *testing.T) {
 }
 
 func TestGetAndVerifyKVPairProof(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	var storeSet types.StoreSet
 	var storeGet types.StoreGet
@@ -533,7 +553,11 @@ func (t *traverser) view(key, value []byte) bool {
 
 // 迭代测试
 func TestIterateRange(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 	tree := NewTree(db, true)
 
 	type record struct {
@@ -608,9 +632,12 @@ func TestIterateRange(t *testing.T) {
 }
 
 func BenchmarkSetMerkleAvlTree(b *testing.B) {
-	b.StopTimer()
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
 
-	db := db.NewDB("test", "leveldb", "./", 100)
+	b.StopTimer()
+	db := db.NewDB("test", "leveldb", dir, 100)
 	t := NewTree(db, true)
 
 	for i := 0; i < 10000; i++ {
@@ -639,9 +666,12 @@ func BenchmarkSetMerkleAvlTree(b *testing.B) {
 }
 
 func BenchmarkGetMerkleAvlTree(b *testing.B) {
-	b.StopTimer()
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
 
-	db := db.NewDB("test", "leveldb", "./", 100)
+	b.StopTimer()
+	db := db.NewDB("test", "leveldb", dir, 100)
 	t := NewTree(db, true)
 	var key []byte
 	for i := 0; i < 10000; i++ {

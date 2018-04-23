@@ -65,7 +65,7 @@ func DisableLog() {
 
 func New(cfg *types.Wallet) *Wallet {
 	//walletStore
-	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, 16)
+	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
 	if "secp256k1" == cfg.SignType {
@@ -577,6 +577,11 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
+	expire, err := time.ParseDuration(unsigned.GetExpire())
+	if err != nil {
+		return "", err
+	}
+	tx.SetExpire(expire)
 	tx.Sign(int32(SignType), key)
 	txHex := types.Encode(&tx)
 	signedTx := hex.EncodeToString(txHex)
