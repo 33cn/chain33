@@ -28,8 +28,10 @@ message Transaction {
 	Signature signature = 3;
 	int64 fee = 4;
 	int64 expire = 5;
-	int64 nonce = 6; //随机ID，可以防止payload 相同的时候，交易重复
-	string to = 7; //对方地址，如果没有对方地址，可以为空
+	//随机ID，可以防止payload 相同的时候，交易重复
+	int64 nonce = 6; 
+	//对方地址，如果没有对方地址，可以为空
+	string to = 7; 
 }
 
 
@@ -37,7 +39,6 @@ message Transaction {
 //这个要好好设计一下
 //最好交易构成一个链条[prevhash].独立的交易构成链条
 //只要这个组中有一个执行是出错的，那么就执行不成功
-
 //三种签名支持
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
@@ -57,7 +58,8 @@ message AddrOverview {
 
 message ReqAddr {
 	string addr = 1;
-	int32 flag = 2; //表示取所有/from/to/其他的hash列表
+	//表示取所有/from/to/其他的hash列表
+	int32 flag = 2; 
 	int32 count = 3;
 	int32 direction = 4;
 	int64 height = 5;

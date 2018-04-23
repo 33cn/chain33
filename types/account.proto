@@ -4,29 +4,40 @@ package types;
 
 //Account 的信息
 message Account {
-	int32 currency = 1; //coins标识，目前只有0 一个值
-	int64 balance = 2;  //账户可用余额
-	int64 frozen = 3;   //账户冻结余额
-	string addr = 4;    //账户的地址
+    //coins标识，目前只有0 一个值
+	int32 currency = 1;
+	//账户可用余额
+	int64 balance = 2;
+	//账户冻结余额
+	int64 frozen = 3;
+	//账户的地址
+	string addr = 4;
 }
 
 //账户余额改变的一个交易回报（合约内）
 message ReceiptExecAccountTransfer {
-	string execAddr = 1; //合约地址
-	Account prev = 2;    //转移前
-	Account current = 3; //转移后
+        //合约地址
+	string execAddr = 1;
+	//转移前
+	Account prev = 2;    
+	//转移后
+	Account current = 3; 
 }
 
 //账户余额改变的一个交易回报（coins内）
 message ReceiptAccountTransfer {
-	Account prev = 1; //转移前
-	Account current = 2; //转移后
+	 //转移前
+	Account prev = 1;
+	 //转移后
+	Account current = 2;
 }
 
 //查询一个地址列表在某个执行器中余额
 message ReqBalance {
-	repeated string addresses = 1; //地址列表
-	string execer = 2; //执行器名称
+	//地址列表
+	repeated string addresses = 1; 
+	//执行器名称
+	string execer = 2; 
 }
 
 //Account 的列表
