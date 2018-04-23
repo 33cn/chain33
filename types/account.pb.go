@@ -225,6 +225,8 @@ It has these top-level messages:
 	ReqPri2Pri
 	ReqPri2Pub
 	ReplyPrivacyPkPair
+	ReqPrivacyBalance
+	ReplyPrivacyBalance
 */
 package types
 

@@ -217,14 +217,16 @@ const (
 	EventReplyModifyConfig = 301
 
 	// privacy
-	EventPublic2privacy       = 400
-	EventReplyPublic2privacy  = 401
-	EventPrivacy2privacy      = 402
-	EventReplyPrivacy2privacy = 403
-	EventPrivacy2public       = 404
-	EventReplyPrivacy2public  = 405
-	EventShowPrivacyPK        = 406
-	EventReplyShowPrivacyPK   = 407
+	EventPublic2privacy          = 400
+	EventReplyPublic2privacy     = 401
+	EventPrivacy2privacy         = 402
+	EventReplyPrivacy2privacy    = 403
+	EventPrivacy2public          = 404
+	EventReplyPrivacy2public     = 405
+	EventShowPrivacyPK           = 406
+	EventReplyShowPrivacyPK      = 407
+	EventShowPrivacyBalance      = 407
+	EventReplyShowPrivacyBalance = 408
 )
 
 var eventName = map[int]string{
@@ -368,8 +370,9 @@ const (
 
 //log type
 const (
-	TyLogErr = 1
-	TyLogFee = 2
+	TyLogReserved = 0
+	TyLogErr      = 1
+	TyLogFee      = 2
 	//coins
 	TyLogTransfer        = 3
 	TyLogGenesis         = 4
@@ -410,6 +413,9 @@ const (
 
 	// log for config
 	TyLogModifyConfig = 410
+
+	// log for privacy
+	TyLogPrivacyFee = 500
 )
 
 //exec type

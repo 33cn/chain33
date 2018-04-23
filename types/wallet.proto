@@ -262,3 +262,13 @@ message ReplyPrivacyPkPair {
 	string viewPub       = 2;
 	string spendPub      = 3;
 }
+
+message ReqPrivacyBalance {
+	string addr   =  1;
+	string txhash =  2; //隐私交易hash
+}
+
+message ReplyPrivacyBalance {
+    string onetimeaddr   =  1;
+    int64 balance        =  2;
+}

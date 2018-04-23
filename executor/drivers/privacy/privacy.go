@@ -55,6 +55,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		return nil, err
 	}
 
+	privacylog.Info("Privacy exec", "action type", action.Ty)
 	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		public2Privacy := action.GetPublic2Privacy()
 		if !public2Privacy.Op4Token {

@@ -805,6 +805,8 @@ func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub
 	}
 
 	if 32 != len(viewPubSlice) || 32 != len(spendPubSlice) {
+		walletlog.Error("transPub2Pri", "viewPubSlice with len", len(viewPubSlice), "viewPubSlice", viewPubSlice)
+		walletlog.Error("transPub2Pri", "spendPubSlice with len", len(spendPubSlice), "spendPubSlice", spendPubSlice)
 		return nil, types.ErrPubKeyLen
 	}
 
@@ -890,14 +892,7 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 		To:      addrOneTime,
 	}
 
-    txhash, err := common.FromHex(reqPri2Pri.Txhash)
-    if err != nil {
-    	return nil, err
-	}
-	var reqHashes types.ReqHashes
-	reqHashes.Hashes = append(reqHashes.Hashes, txhash)
-
-	R, err := wallet.GetRofPrivateTx(&reqHashes)
+	R, err := wallet.GetRofPrivateTx(&reqPri2Pri.Txhash)
 	if err != nil {
 		walletlog.Error("transPri2Pri", "Failed to GetRofPrivateTx")
 		return nil, err
@@ -948,12 +943,7 @@ func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub
 		To:      reqPri2Pub.Receiver,
 	}
     //获取隐私交易的tx public key
-	txhash := []byte(reqPri2Pub.Txhash)
-	txhahes := make([][]byte, 1)
-	txhahes[0] = txhash
-	var reqHashes types.ReqHashes
-	reqHashes.Hashes = txhahes
-	R, err := wallet.GetRofPrivateTx(&reqHashes)
+	R, err := wallet.GetRofPrivateTx(&reqPri2Pub.Txhash)
 	if err != nil {
 		return nil, err
 	}
@@ -981,9 +971,17 @@ func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub
 	return &hash, nil
 }
 
-func (wallet *Wallet) GetRofPrivateTx(ReqHashes *types.ReqHashes)(R_txpubkey []byte, err error) {
+func (wallet *Wallet) GetRofPrivateTx(txhashptr *string)(R_txpubkey []byte, err error) {
+	txhash, err := common.FromHex(*txhashptr)
+	if err != nil {
+		walletlog.Error("GetRofPrivateTx common.FromHex", "err", err)
+		return nil, err
+	}
+	var reqHashes types.ReqHashes
+	reqHashes.Hashes = append(reqHashes.Hashes, txhash)
+
 	//通过txhashs获取对应的txdetail
-	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, ReqHashes)
+	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, &reqHashes)
 	wallet.client.Send(msg, true)
 	resp, err := wallet.client.Wait(msg)
 	if err != nil {
