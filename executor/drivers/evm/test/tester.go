@@ -1,6 +1,9 @@
 package test
 
-import "testing"
+import (
+	"testing"
+	"encoding/hex"
+)
 
 type Tester struct {
 	t *testing.T
@@ -19,14 +22,14 @@ func (t *Tester) assertNil(val interface{})  {
 
 func (t *Tester) assertNilB(val []byte)  {
 	if val != nil {
-		t.t.Errorf("value {%s} is not nil", val)
+		t.t.Errorf("value {%s} is not nil", hex.EncodeToString(val))
 		t.t.Fail()
 	}
 }
 
 func (t *Tester) assertNotNil(val interface{})  {
 	if val == nil {
-		t.t.Errorf("value {%s} is not nil", val)
+		t.t.Errorf("value {%s} is nil", val)
 		t.t.Fail()
 	}
 }
@@ -59,7 +62,7 @@ func (t *Tester) assertEqualsE(val1 , val2 error)  {
 
 func (t *Tester) assertEqualsB(val1 , val2 []byte)  {
 	if string(val1) != string(val2) {
-		t.t.Errorf("value {%s} is not equals to {%s}", val1, val2)
+		t.t.Errorf("value {%s} is not equals to {%s}", hex.EncodeToString(val1), hex.EncodeToString(val2))
 		t.t.Fail()
 	}
 }

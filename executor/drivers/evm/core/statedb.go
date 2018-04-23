@@ -346,14 +346,8 @@ func (self *MemoryStateDB) ForEachStorage(addr common.Address, cb func(common.Ha
 		return
 	}
 
-	// 首先遍历缓存
-	for key, value := range acc.cachedStorage {
-		cb(key, value)
-	}
-
-	// 再遍历原有数据
+	// 遍历存储
 	for key, value := range acc.storage {
 		cb(key, value)
 	}
-
 }

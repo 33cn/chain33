@@ -21,8 +21,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 )
 
@@ -128,30 +128,34 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 	return evm
 }
 
-// Cancel cancels any running EVM operation. This may be called concurrently and
-// it's safe to be called multiple times.
+// 调用此操作会在任意时刻取消此EVM的解释运行逻辑，支持重复调用
 func (evm *EVM) Cancel() {
 	atomic.StoreInt32(&evm.abort, 1)
 }
 
+// 设置合约代码的最大支持长度
 func (evm *EVM) SetMaxCodeSize(maxCodeSize int) {
+	if maxCodeSize < 1 || maxCodeSize > params.MaxCodeSize {
+		return
+	}
+
 	evm.maxCodeSize = maxCodeSize
 }
 
-// Call executes the contract associated with the addr with the given input as
-// parameters. It also handles any necessary value transfer required and takes
-// the necessary steps to create accounts and reverses the state in case of an
-// execution error or failed value transfer.
+// 根据合约地址调用已经存在的合约，input为合约调用参数
+// 合约调用逻辑支持在合约调用的同时进行向合约转账的操作（FIXME 待完善）
 func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	// 检查调用深度是否合法
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil
 	}
 
-	// Fail if we're trying to execute above the call depth limit
+	// 允许递归，但深度不合法
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, ErrDepth
 	}
-	// Fail if we're trying to transfer more than the available balance
+
+	// 如有转账，检查余额是否充足
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, gas, ErrInsufficientBalance
 	}
@@ -160,35 +164,40 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		to       = AccountRef(addr)
 		snapshot = evm.StateDB.Snapshot()
 	)
+
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
-		if precompiles[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
+
+		// 合约地址在自定义合约和预编译合约中都不存在，说明为无效调用
+		if precompiles[addr] == nil {
 			return nil, gas, nil
 		}
+
+		// 否则，为预编译合约，创建一个新的账号
 		evm.StateDB.CreateAccount(addr)
 	}
+
+	// 向合约地址转账
 	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 
-	// Initialise a new contract and set the code that is to be used by the EVM.
-	// The contract is a scoped environment for this execution context only.
+	// 创建新的合约对象，包含双方地址以及合约代码，可用Gas信息
 	contract := NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
 	start := time.Now()
 
-	// Capture the tracer start/end events in debug mode
+	// 调试模式下启用跟踪
 	if evm.vmConfig.Debug && evm.depth == 0 {
 		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 
-		defer func() { // Lazy evaluation of the parameters
+		defer func() {
 			evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 		}()
 	}
+
 	ret, err = run(evm, contract, input)
 
-	// When an error was returned by the EVM or when setting the creation code
-	// above we revert to the snapshot and consume any gas remaining. Additionally
-	// when we're in homestead this also counts for code storage gas errors.
+	// 当合约调用出错时，操作将会回滚（对数据的变更操作会被恢复），并且会消耗掉所有的gas
 	if err != nil {
 		evm.StateDB.RevertToSnapshot(snapshot)
 		if err != errExecutionReverted {
@@ -374,7 +383,7 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	// 如果合约代码超大，或者出现除Gas不足外的其它错误情况
 	// 则回滚本次合约创建操作
-	if maxCodeSizeExceeded || (err != nil &&  err != ErrCodeStoreOutOfGas) {
+	if maxCodeSizeExceeded || (err != nil && err != ErrCodeStoreOutOfGas) {
 		evm.StateDB.RevertToSnapshot(snapshot)
 
 		// 如果之前步骤出错，且没有回滚过，则依然扣除Gas
