@@ -14,6 +14,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/core"
 )
 
+var (
+	GasPrice = big.NewInt(1)
+)
 var clog = log.New("module", "execs.evm")
 
 type FakeEVM struct {
@@ -133,8 +136,14 @@ func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg ctypes.Message) {
 	from := getCaller(tx)
 	to := getReceiver(tx)
 
-	// FIXME:目前对合约不进行计费
-	msg = ctypes.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(0), uint64(tx.Fee), big.NewInt(1), tx.Payload, false)
+	// 注意Transaction中的payload内容同时包含转账金额和合约代码
+	// payload[:8]为转账金额，payload[8:]为合约代码
+	//amount := binary.LittleEndian.Uint64(tx.Payload[:8])
+	// FIXME 目前不支持对EVM合约的转账逻辑，等合约其它功能稳定后再考虑加入
+	amount := int64(0)
+
+	// 合约的GasLimit即为调用者为本次合约调用准备支付的手续费
+	msg = ctypes.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(amount), uint64(tx.Fee), GasPrice, tx.Payload[8:], false)
 	return msg
 }
 
@@ -144,7 +153,7 @@ func (evm *FakeEVM) GetVMConfig() *vm.Config {
 
 // 从交易信息中获取交易发起人地址
 func getCaller(tx *types.Transaction) common.Address {
-	return common.BytesToAddress(account.From(tx).Hash160[:])
+	return common.StringToAddress(account.From(tx).String())
 }
 
 // 从交易信息中获取交易目标地址，在创建合约交易中，此地址为空
@@ -175,13 +184,18 @@ func NewEVMContext(msg ctypes.Message, height int64, time int64, coinbase common
 
 // 检查合约调用账户是否有充足的金额进行转账交易操作
 func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
-	return db.GetBalance(addr).Cmp(amount) >= 0
+	if amount.Uint64() ==0 {
+		return true
+	}
+	return db.CanTransfer(addr,amount)
 }
 
 // 在内存数据库中执行转账操作（只修改内存中的金额）
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
-	db.SubBalance(sender, amount)
-	db.AddBalance(recipient, amount)
+	if amount.Uint64() ==0{
+		return
+	}
+	db.Transfer(sender,recipient,amount)
 }
 
 // 获取制定高度区块的哈希

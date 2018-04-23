@@ -59,6 +59,6 @@ func RandomAddress() *common.Address {
 	}
 
 	acc := account.PubKeyToAddress(key.PubKey().Bytes())
-	addr := common.BytesToAddress(acc.Hash160[:])
+	addr := common.StringToAddress(acc.String())
 	return &addr
 }

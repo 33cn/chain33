@@ -65,8 +65,9 @@ func NewMemoryStateDB() MemoryStateDB {
 
 // 创建一个新的合约账户对象
 func (self *MemoryStateDB) CreateAccount(addr common.Address) {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc == nil {
+		// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
 		ac := types.Account{Addr:addr.Str()}
 		acc := NewContractAccount(ac, self)
 
@@ -82,32 +83,27 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 }
 
 func (self *MemoryStateDB) SubBalance(addr common.Address, value *big.Int) {
-	acc := self.getAccount(addr)
-	if acc != nil {
-		acc.SubBalance(value)
-		self.accountsDirty[addr] = struct{}{}
-	}
+	//FIXME 不执行，需要借助coins执行器
 }
 
 func (self *MemoryStateDB) AddBalance(addr common.Address, value *big.Int) {
-	acc := self.getAccount(addr)
-	if acc != nil {
-		acc.AddBalance(value)
-		self.accountsDirty[addr] = struct{}{}
-	}
+	//FIXME 不执行，需要借助coins执行器
 }
 
 func (self *MemoryStateDB) GetBalance(addr common.Address) *big.Int {
-	acc := self.getAccount(addr)
-	if acc != nil {
-		return big.NewInt(acc.Balance)
+	//FIXME 不执行，需要借助coins执行器
+	acc := account.NewCoinsAccount()
+	acc.SetDB(self.StateDB)
+	ac := acc.LoadAccount(addr.Str())
+	if ac != nil{
+		return big.NewInt(ac.Balance)
 	}
 	return common.Big0
 }
 
 //TODO 目前chain33中没有保留账户的nonce信息，这里临时添加到合约账户中
 func (self *MemoryStateDB) GetNonce(addr common.Address) uint64 {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		return acc.GetNonce()
 	}
@@ -115,14 +111,14 @@ func (self *MemoryStateDB) GetNonce(addr common.Address) uint64 {
 }
 
 func (self *MemoryStateDB) SetNonce(addr common.Address, nonce uint64) {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		acc.SetNonce(nonce)
 	}
 }
 
 func (self *MemoryStateDB) GetCodeHash(addr common.Address) common.Hash {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		return acc.codeHash
 	}
@@ -130,7 +126,7 @@ func (self *MemoryStateDB) GetCodeHash(addr common.Address) common.Hash {
 }
 
 func (self *MemoryStateDB) GetCode(addr common.Address) []byte {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		return acc.code
 	}
@@ -138,7 +134,7 @@ func (self *MemoryStateDB) GetCode(addr common.Address) []byte {
 }
 
 func (self *MemoryStateDB) SetCode(addr common.Address, code []byte) {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		acc.SetCode(code)
 		self.contractsDirty[addr] = struct{}{}
@@ -163,7 +159,7 @@ func (self *MemoryStateDB) GetRefund() uint64 {
 }
 
 // 从缓存中获取账户或加载账户
-func (self *MemoryStateDB) getAccount(addr common.Address) *ContractAccount {
+func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
 	if acc, ok := self.accounts[addr]; ok {
 		return acc
 	} else {
@@ -175,15 +171,24 @@ func (self *MemoryStateDB) getAccount(addr common.Address) *ContractAccount {
 			contract.LoadContract(self.StateDB)
 			self.accounts[addr] = contract
 			return contract
+		}else{
+			// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
+			// 要考虑到这种情况，还是要加载合约，看看合约信息是否存在，如果都不存在，则说明真不存在
+			ac := types.Account{Addr:addr.Str()}
+			contract := NewContractAccount(ac, self)
+			contract.LoadContract(self.StateDB)
+			if contract.code != nil {
+				return contract
+			}
+			return nil
 		}
-		return nil
 	}
 	return nil
 }
 
 func (self *MemoryStateDB) GetState(addr common.Address, key common.Hash) common.Hash {
 	// 先从合约缓存中获取
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		return acc.GetState(key)
 	}
@@ -191,19 +196,18 @@ func (self *MemoryStateDB) GetState(addr common.Address, key common.Hash) common
 }
 
 func (self *MemoryStateDB) SetState(addr common.Address, key common.Hash, value common.Hash) {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		acc.SetState(key, value)
 	}
 }
 
 func (self *MemoryStateDB) Suicide(addr common.Address) bool {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		self.journal = append(self.journal, suicideChange{
 			account:     &addr,
 			prev:        acc.suicided,
-			prevbalance: big.NewInt(acc.Balance),
 		})
 		return acc.Suicide()
 	}
@@ -211,7 +215,7 @@ func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 }
 
 func (self *MemoryStateDB) HasSuicided(addr common.Address) bool {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc != nil {
 		return acc.HasSuicided()
 	}
@@ -219,13 +223,14 @@ func (self *MemoryStateDB) HasSuicided(addr common.Address) bool {
 }
 
 func (self *MemoryStateDB) Exist(addr common.Address) bool {
-	return self.getAccount(addr) != nil
+	return self.GetAccount(addr) != nil
 }
 
 func (self *MemoryStateDB) Empty(addr common.Address) bool {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	return acc == nil || acc.Empty()
 }
+
 
 // 将数据状态回滚到指定快照版本（中间的版本数据将会被删除）
 func (self *MemoryStateDB) RevertToSnapshot(version int) {
@@ -261,9 +266,66 @@ func (self *MemoryStateDB) Snapshot() int {
 	return id
 }
 
+// 获取最后一次成功的快照版本号
+func (self *MemoryStateDB) GetLastSnapshot() int {
+	return self.reversionId-1
+}
 
-func (self *MemoryStateDB) AddLog(*etypes.Log) {
+// 获取本次操作所引起的状态数据变更
+func (self *MemoryStateDB) GetChangedStatedData(version int) (kvSet []*types.KeyValue) {
+
+	// 从一堆快照列表中找出本次制定版本的快照索引位置
+	idx := sort.Search(len(self.validRevisions), func(i int) bool {
+		return self.validRevisions[i].id >= version
+	})
+
+	// 如果版本号不对，回滚失败
+	if idx == len(self.validRevisions) || self.validRevisions[idx].id != version {
+		panic(fmt.Errorf("revision id %v cannot be reverted", version))
+	}
+
+	// 获取快照版本
+	snapshot := self.validRevisions[idx].journalIndex
+
+	// 执行回滚动作
+	for i := len(self.journal) - 1; i >= snapshot; i-- {
+		kv := self.journal[i].getData(self)
+		if kv != nil {
+			kvSet = append(kvSet,kv...)
+		}
+	}
+	return kvSet
+}
+
+// 借助coins执行器进行转账相关操作
+func (self *MemoryStateDB) CanTransfer(addr common.Address, amount *big.Int) bool {
+	acc := account.NewCoinsAccount()
+	acc.SetDB(self.StateDB)
+	err := acc.CheckTransfer(addr.Str(), "", amount.Int64())
+	if err !=nil {
+		return false
+	}
+	return true
+}
+
+// 借助coins执行器进行转账相关操作
+func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount *big.Int) {
+	acc := account.NewCoinsAccount()
+	acc.SetDB(self.StateDB)
+	acc.Transfer(sender.Str(), recipient.Str(), amount.Int64())
+}
+
+
+func (self *MemoryStateDB) AddLog(log *etypes.Log) {
 	//TODO 日志记录暂不实现
+	//self.journal = append(self.journal, addLogChange{txhash: self.thash})
+	//
+	//log.TxHash = self.thash
+	//log.BlockHash = self.bhash
+	//log.TxIndex = uint(self.txIndex)
+	//log.Index = self.logSize
+	//self.logs[self.thash] = append(self.logs[self.thash], log)
+	//self.logSize++
 
 }
 
@@ -279,7 +341,7 @@ func (self *MemoryStateDB) AddPreimage(hash common.Hash, data []byte) {
 
 // FIXME 目前此方法也业务逻辑中没有地方使用到，单纯为测试实现，后继去除
 func (self *MemoryStateDB) ForEachStorage(addr common.Address, cb func(common.Hash, common.Hash) bool) {
-	acc := self.getAccount(addr)
+	acc := self.GetAccount(addr)
 	if acc == nil {
 		return
 	}
