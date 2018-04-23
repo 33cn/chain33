@@ -53,6 +53,10 @@ service p2pgservice {
 	rpc RemotePeerAddr (P2PGetAddr) returns (P2PExternalInfo) {
 	}
 	
+	//提供检验自身节点网络映射后服务是否开启的服务
+	rpc	RemotePeerNatOk(P2PPing) returns (P2PExternalInfo){
+		
+	}
 	//grpc server 读客户端发送来的数据
 	rpc ServerStreamRead(stream BroadCastData) returns (ReqNil){
 	}
@@ -262,4 +266,13 @@ message Peer {
 */
 message PeerList {
 	repeated Peer peers = 1;
+}
+
+/**
+*当前节点的网络信息
+*/
+message NodeNetInfo{
+	string externaladdr=1;
+	string localaddr=2;
+	bool service=3;
 }
