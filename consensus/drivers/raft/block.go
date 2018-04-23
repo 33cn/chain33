@@ -112,7 +112,7 @@ func (client *RaftClient) InitBlock() {
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		err := client.WriteBlock(zeroHash[:], newblock)
 		if err != nil {
-			rlog.Error(fmt.Sprintf("chain33 init block failed!", err.Error()))
+			rlog.Error(fmt.Sprintf("chain33 init block failed: %v", err.Error()))
 			return
 		}
 		client.SetCurrentBlock(newblock)

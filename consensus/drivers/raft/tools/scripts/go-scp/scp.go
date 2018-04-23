@@ -8,15 +8,17 @@ import (
 	"path"
 	"time"
 
+	"io"
+
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-	"io"
 	//"io/ioutil"
 	"errors"
 	"flag"
-	tml "github.com/BurntSushi/toml"
 	"path/filepath"
 	"strings"
+
+	tml "github.com/BurntSushi/toml"
 )
 
 var configPath = flag.String("f", "servers.toml", "configfile")
@@ -189,13 +191,14 @@ func InitCfg(path string) *tomlConfig {
 	}
 	return &cfg
 }
-func pwd() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
+
+//func pwd() string {
+//	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+//	if err != nil {
+//		panic(err)
+//	}
+//	return dir
+//}
 func main() {
 	conf := InitCfg(*configPath)
 	start := time.Now()
