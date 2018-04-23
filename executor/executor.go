@@ -11,7 +11,6 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	// register drivers
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/blacklist"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"

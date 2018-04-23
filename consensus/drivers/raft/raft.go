@@ -465,7 +465,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 			// 解码
 			block := &types.Block{}
 			if err := proto.Unmarshal(ents[i].Data, block); err != nil {
-				rlog.Error(fmt.Sprintf("failed to unmarshal: ", err.Error()))
+				rlog.Error(fmt.Sprintf("failed to unmarshal: %v", err.Error()))
 			}
 			select {
 			case rc.commitC <- block:
