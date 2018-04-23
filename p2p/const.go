@@ -54,3 +54,7 @@ const (
 	addrkeyTag = "addrs"
 	privKeyTag = "privkey"
 )
+
+const (
+	P2pCacheTxSize = 10240
+)
