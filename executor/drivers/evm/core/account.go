@@ -46,11 +46,11 @@ type ContractAccount struct {
 	code     Code
 	codeHash common.Hash
 
+	// 合约执行过程中的状态数据变更存储
+	// 与合约原有状态的存储合并，因为当前是存储在同一个键值之下的，暂不分开
 	storage     Storage
 	storageHash common.Hash
 
-	// 合约执行过程中的状态数据变更存储
-	cachedStorage Storage
 	dirtyStorage  bool
 	dirtyAccount  bool
 
@@ -63,11 +63,14 @@ type ContractAccount struct {
 func NewContractAccount(acc types.Account, db *MemoryStateDB) *ContractAccount {
 	ca := &ContractAccount{Account: acc}
 	ca.mdb = db
+
+	ca.storage = NewStorage()
+
 	return ca
 }
 
 func (self *ContractAccount) GetState(key common.Hash) common.Hash {
-	return self.cachedStorage[key]
+	return self.storage[key]
 }
 
 func (self *ContractAccount) SetState(key, value common.Hash) {
@@ -78,7 +81,7 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 		prevalue: self.GetState(key),
 	})
 
-	self.cachedStorage[key] = value
+	self.storage[key] = value
 	self.dirtyStorage = true
 }
 
@@ -163,12 +166,12 @@ func Byte2Bool(value []byte) bool {
 
 func Int2Byte(value uint64) []byte {
 	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, value)
+	binary.BigEndian.PutUint64(b, value)
 	return b
 }
 
 func Byte2Int(value []byte) uint64 {
-	return  binary.LittleEndian.Uint64(value)
+	return  binary.BigEndian.Uint64(value)
 }
 
 // 获取自杀相关的数据
@@ -286,4 +289,9 @@ func (st Storage) LoadFromBytes(data []byte) {
 		value := d[common.HashLength:]
 		st[common.BytesToHash(key)] = common.BytesToHash(value)
 	}
+}
+
+func NewStorage() Storage {
+	data := make(map[common.Hash]common.Hash)
+	return Storage(data)
 }

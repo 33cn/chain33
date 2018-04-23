@@ -1,12 +1,13 @@
 package test
 
 import (
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"testing"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
 	"encoding/hex"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/core"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"testing"
+	"encoding/binary"
 )
 
 // 正常创建合约逻辑
@@ -17,18 +18,19 @@ func TestCreateContract1(t *testing.T) {
 	privKey := getPrivKey()
 
 	gas := uint64(210000)
-	tx := createTx(privKey, deployCode, gas,0)
-	ret,addr,leftGas,err,statedb := createContract(tx,0)
+	tx := createTx(privKey, deployCode, gas, 0)
+	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
+	ret, addr, leftGas, err, statedb := createContract(mdb, tx, 0)
 
 	test := NewTester(t)
 	test.assertNil(err)
 
-	test.assertEqualsB(ret,execCode)
+	test.assertEqualsB(ret, execCode)
 	test.assertBigger(int(gas), int(leftGas))
-	test.assertNotEqualsI(common.Address(addr) , common.EmptyAddress())
+	test.assertNotEqualsI(common.Address(addr), common.EmptyAddress())
 
 	// 检查返回数据是否正确
-	test.assertEqualsV(statedb.GetLastSnapshot() , 0)
+	test.assertEqualsV(statedb.GetLastSnapshot(), 0)
 
 	kvset := statedb.GetChangedStatedData(statedb.GetLastSnapshot())
 	data := kv2map(kvset)
@@ -60,8 +62,9 @@ func TestCreateContract2(t *testing.T) {
 	privKey := getPrivKey()
 	// 以上合约代码部署逻辑需要消耗61个Gas，存储代码需要消耗10600个Gas
 	gas := uint64(60)
-	tx := createTx(privKey, deployCode, gas,0)
-	ret,_,leftGas,err,_ := createContract(tx,0)
+	tx := createTx(privKey, deployCode, gas, 0)
+	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
+	ret, _, leftGas, err, _ := createContract(mdb, tx, 0)
 
 	test := NewTester(t)
 
@@ -84,16 +87,17 @@ func TestCreateContract3(t *testing.T) {
 	// 以上合约代码部署逻辑需要消耗61个Gas，存储代码需要消耗10600个Gas
 	usedGas := uint64(61)
 	gas := uint64(100)
-	tx := createTx(privKey, deployCode, gas,0)
-	ret,_,leftGas,err,_ := createContract(tx,0)
+	tx := createTx(privKey, deployCode, gas, 0)
+	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
+	ret, _, leftGas, err, _ := createContract(mdb, tx, 0)
 
 	test := NewTester(t)
 
 	// 这是合约代码已经生成了，但是没有存储到StateDb
-	test.assertEqualsB(ret,execCode)
+	test.assertEqualsB(ret, execCode)
 
 	//合约gas不足
-	test.assertEqualsE(err,vm.ErrCodeStoreOutOfGas)
+	test.assertEqualsE(err, vm.ErrCodeStoreOutOfGas)
 
 	// 合约计算是否正确
 	// Gas消耗了部署的61个，还应该剩下
@@ -105,24 +109,112 @@ func TestCreateContract4(t *testing.T) {
 	deployCode, _ := hex.DecodeString("60606040523415600e57600080fd5b603580601b6000396000f3006060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
 	execCode, _ := hex.DecodeString("6060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
 
-
 	privKey := getPrivKey()
 	// 以上合约代码部署逻辑需要消耗61个Gas，存储代码需要消耗10600个Gas
 	gas := uint64(210000)
-	tx := createTx(privKey, deployCode, gas,0)
-	ret,_,_,err,_ := createContract(tx,50)
+	tx := createTx(privKey, deployCode, gas, 0)
+	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
+	ret, _, _, err, _ := createContract(mdb, tx, 50)
 
 	test := NewTester(t)
 
 	// 合约代码正常返回
 	test.assertNotNil(ret)
-	test.assertEqualsB(ret,execCode)
+	test.assertEqualsB(ret, execCode)
 
 	// 返回指定错误
 	test.assertNotNil(err)
-	test.assertEqualsS(err.Error(),"evm: max code size exceeded")
-
+	test.assertEqualsS(err.Error(), "evm: max code size exceeded")
 }
 
+// 下面测试合约调用时的合约代码
+// 对应二进制：608060405234801561001057600080fd5b506298967f60008190555060df806100296000396000f3006080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806360fe47b114604e5780636d4ce63c146078575b600080fd5b348015605957600080fd5b5060766004803603810190808035906020019092919050505060a0565b005b348015608357600080fd5b50608a60aa565b6040518082815260200191505060405180910390f35b8060008190555050565b600080549050905600a165627a7a72305820b3ccec4d8cbe393844da31834b7464f23d3b81b24f36ce7e18bb09601f2eb8660029
+// contract MyStore {
+//     uint value;
+//     constructor() public{
+//         value=9999999;
+//     }
+//     function set(uint x) public {
+//         value = x;
+//     }
+//
+//     function get() public constant returns (uint){
+//         return value;
+//     }
+// }
 
+func TestCallContract1(t *testing.T) {
+	code := "608060405234801561001057600080fd5b506298967f60008190555060df806100296000396000f3006080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806360fe47b114604e5780636d4ce63c146078575b600080fd5b348015605957600080fd5b5060766004803603810190808035906020019092919050505060a0565b005b348015608357600080fd5b50608a60aa565b6040518082815260200191505060405180910390f35b8060008190555050565b600080549050905600a165627a7a72305820b3ccec4d8cbe393844da31834b7464f23d3b81b24f36ce7e18bb09601f2eb8660029"
+	deployCode, _ := hex.DecodeString(code)
+	execCode, _ := hex.DecodeString(code[82:])
 
+	privKey := getPrivKey()
+
+	gas := uint64(210000)
+	usedGas := 64707
+	tx := createTx(privKey, deployCode, gas, 0)
+	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
+	ret, addr, leftGas, err, statedb := createContract(mdb, tx, 0)
+
+	test := NewTester(t)
+	test.assertNil(err)
+
+	test.assertEqualsB(ret, execCode)
+
+	test.assertBigger(int(gas), int(leftGas))
+	test.assertEqualsV(usedGas, int(gas-leftGas))
+	test.assertNotEqualsI(common.Address(addr), common.EmptyAddress())
+
+	// 检查返回数据是否正确
+	test.assertEqualsV(statedb.GetLastSnapshot(), 0)
+
+	// 将创建合约得出来的变更数据写入statedb，给调用合约时使用
+	kvset := statedb.GetChangedStatedData(statedb.GetLastSnapshot())
+	for i := 0; i < len(kvset); i++ {
+		mdb.Set(kvset[i].Key, kvset[i].Value)
+	}
+
+	// 合约创建完成后，开始调用测试
+	// 首先调用get方法，检查初始值设置是否正确
+	gas = uint64(210000)
+	params := "6d4ce63c"
+	callCode, _ := hex.DecodeString(params)
+	tx = createTx(privKey, callCode, gas, 0)
+	ret, leftGas, err, statedb = callContract(mdb, tx, addr, callCode)
+
+	test.assertNil(err)
+	test.assertBigger(int(gas), int(leftGas))
+	test.assertNotNil(ret)
+	test.assertEqualsV(int(9999999), int(binary.BigEndian.Uint64(ret[24:])))
+
+	// 调用合约的set(11)
+	gas = uint64(210000)
+	params = "60fe47b1000000000000000000000000000000000000000000000000000000000000000b"
+	callCode, _ = hex.DecodeString(params)
+	tx = createTx(privKey, callCode, gas, 0)
+
+	ret, leftGas, err, statedb = callContract(mdb, tx, addr, callCode)
+
+	test.assertNil(err)
+	test.assertBigger(int(gas), int(leftGas))
+	test.assertNilB(ret)
+
+	// 再复制一次数据，确保set引起的变更被写入
+	kvset = statedb.GetChangedStatedData(statedb.GetLastSnapshot())
+	for i := 0; i < len(kvset); i++ {
+		mdb.Set(kvset[i].Key, kvset[i].Value)
+	}
+
+	// 再调用get方法，检查设置的值是否生效
+	gas = uint64(210000)
+	params = "6d4ce63c"
+	callCode, _ = hex.DecodeString(params)
+	tx = createTx(privKey, callCode, gas, 0)
+	ret, leftGas, err, statedb = callContract(mdb, tx, addr, callCode)
+
+	println(hex.EncodeToString(ret))
+	test.assertNil(err)
+	test.assertBigger(int(gas), int(leftGas))
+	test.assertNotNil(ret)
+	test.assertEqualsV(int(11), int(binary.BigEndian.Uint64(ret[24:])))
+}
