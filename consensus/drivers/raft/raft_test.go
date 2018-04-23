@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"encoding/binary"
+	"os"
+
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -18,7 +20,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
-	"os"
 )
 
 var (
@@ -38,17 +39,19 @@ func init() {
 }
 
 func TestRaftPerf(t *testing.T) {
-	q, chain, s, mem := initEnvRaft()
+	q, chain, s, mem, exec, cs := initEnvRaft()
 
 	defer chain.Close()
-	defer s.Close()
-	defer q.Close()
 	defer mem.Close()
+	defer exec.Close()
+	defer s.Close()
+	defer cs.Close()
+	defer q.Close()
 
 	sendReplyList(q)
 }
 
-func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool) {
+func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, *RaftClient) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
@@ -67,7 +70,7 @@ func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 
-	return q, chain, s, mem
+	return q, chain, s, mem, exec, cs
 }
 
 func generateKey(i, valI int) string {

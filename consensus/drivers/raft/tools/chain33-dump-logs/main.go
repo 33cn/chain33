@@ -18,7 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"path/filepath"
+	//"path/filepath"
 	//	"time"
 
 	"github.com/coreos/etcd/etcdserver/etcdserverpb"
