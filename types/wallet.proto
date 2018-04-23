@@ -219,3 +219,14 @@ message ReqModifyConfig {
     string value = 3;
     string modifier = 4;
 }
+
+message ReqSignRawTx {
+    string addr = 1;
+    string privKey = 2;
+    string txHex = 3;
+    string expire = 4;
+}
+
+message ReplySignRawTx {
+    string txHex = 1;
+}

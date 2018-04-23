@@ -3,6 +3,7 @@ package wallet
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -65,7 +65,7 @@ func DisableLog() {
 
 func New(cfg *types.Wallet) *Wallet {
 	//walletStore
-	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, 16)
+	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
 	if "secp256k1" == cfg.SignType {
@@ -156,7 +156,7 @@ func (wallet *Wallet) autoMining() {
 	for {
 		select {
 		case <-wallet.miningTicket.C:
-			if !(wallet.IsCaughtUp() && wallet.cfg.GetForceMining()) {
+			if !(wallet.IsCaughtUp() || wallet.cfg.GetForceMining()) {
 				walletlog.Error("wallet IsCaughtUp false")
 				break
 			}
@@ -172,6 +172,10 @@ func (wallet *Wallet) autoMining() {
 				n1, err := wallet.closeTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
+				}
+				err = wallet.processFees()
+				if err != nil {
+					walletlog.Error("processFees", "err", err)
 				}
 				hashes1, n2, err := wallet.buyTicket(wallet.lastHeight + 1)
 				if err != nil {
@@ -192,6 +196,10 @@ func (wallet *Wallet) autoMining() {
 				n1, err := wallet.closeTicket(wallet.lastHeight + 1)
 				if err != nil {
 					walletlog.Error("closeTicket", "err", err)
+				}
+				err = wallet.processFees()
+				if err != nil {
+					walletlog.Error("processFees", "err", err)
 				}
 				hashes, err := wallet.withdrawFromTicket()
 				if err != nil {
@@ -293,7 +301,7 @@ func (wallet *Wallet) flushTicket() {
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
-		walletlog.Debug("wallet recv", "msg", msg)
+		walletlog.Debug("wallet recv", "msg", msg.Id)
 		msgtype := msg.Ty
 		switch msgtype {
 
@@ -502,83 +510,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				replyStr.Replystr = privkey
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivkey, &replyStr))
 			}
-		case types.EventTokenPreCreate:
-			preCreate := msg.Data.(*types.ReqTokenPreCreate)
-			reply, err := wallet.procTokenPreCreate(preCreate)
-			if err != nil {
-				walletlog.Error("procTokenPreCreate", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenPreCreate, err))
-			} else {
-				walletlog.Info("procTokenPreCreate", "symbol", preCreate.GetSymbol(),
-					"txhash", common.ToHex(reply.Hash))
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenPreCreate, reply))
-			}
-		case types.EventTokenFinishCreate:
-			finishCreate := msg.Data.(*types.ReqTokenFinishCreate)
-			reply, err := wallet.procTokenFinishCreate(finishCreate)
-			if err != nil {
-				walletlog.Error("procTokenPreCreate", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenFinishCreate, err))
-			} else {
-				walletlog.Info("procTokenPreCreate", "symbol", finishCreate.GetSymbol(),
-					"txhash", common.ToHex(reply.Hash))
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenFinishCreate, reply))
-			}
-		case types.EventTokenRevokeCreate:
-			revoke := msg.Data.(*types.ReqTokenRevokeCreate)
-			reply, err := wallet.procTokenRevokeCreate(revoke)
-			if err != nil {
-				walletlog.Error("procTokenRevokeCreate", "err", err.Error())
 
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenRevokeCreate, err))
-			} else {
-				walletlog.Info("procTokenRevokeCreate", "symbol", revoke.GetSymbol(),
-					"txhash", common.ToHex(reply.Hash))
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyTokenRevokeCreate, reply))
-			}
-		case types.EventSellToken:
-			sellToken := msg.Data.(*types.ReqSellToken)
-			replyHash, err := wallet.procSellToken(sellToken)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-				walletlog.Error("procSellToken", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySellToken, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procSellToken", "tx hash", common.Bytes2Hex(replyHash.Hash), "symbol", sellToken.Sell.Tokensymbol, "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySellToken, &reply))
-			}
-		case types.EventBuyToken:
-			buyToken := msg.Data.(*types.ReqBuyToken)
-			replyHash, err := wallet.procBuyToken(buyToken)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procBuyToken", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyBuyToken, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procBuyToken", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyBuyToken, &reply))
-			}
-		case types.EventRevokeSellToken:
-			revokeSell := msg.Data.(*types.ReqRevokeSell)
-			replyHash, err := wallet.procRevokeSell(revokeSell)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procRevokeSell", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRevokeSellToken, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procRevokeSell", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRevokeSellToken, &reply))
-			}
 		case types.EventCloseTickets:
 			hashes, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
 			if err != nil {
@@ -594,11 +526,66 @@ func (wallet *Wallet) ProcRecvMsg() {
 				}()
 			}
 
+		case types.EventSignRawTx:
+			unsigned := msg.GetData().(*types.ReqSignRawTx)
+			txHex, err := wallet.ProcSignRawTx(unsigned)
+			if err != nil {
+				walletlog.Error("EventSignRawTx", "err", err)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySignRawTx, err))
+			} else {
+				walletlog.Info("Reply EventSignRawTx", "msg", msg)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySignRawTx, &types.ReplySignRawTx{TxHex: txHex}))
+			}
+
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
-		walletlog.Debug("end process")
+		walletlog.Debug("end process", msg.Id)
 	}
+}
+
+func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
+	var key crypto.PrivKey
+	if unsigned.GetPrivKey() != "" {
+		keyByte, err := common.FromHex(unsigned.GetPrivKey())
+		if err != nil || len(keyByte) == 0 {
+			return "", err
+		}
+		cr, err := crypto.New(types.GetSignatureTypeName(SignType))
+		if err != nil {
+			return "", err
+		}
+		key, err = cr.PrivKeyFromBytes(keyByte)
+		if err != nil {
+			return "", err
+		}
+	} else if unsigned.GetAddr() != "" {
+		var err error
+		key, err = wallet.getPrivKeyByAddr(unsigned.GetAddr())
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", types.ErrNoPrivKeyOrAddr
+	}
+	var tx types.Transaction
+	bytes, err := common.FromHex(unsigned.GetTxHex())
+	if err != nil {
+		return "", err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return "", err
+	}
+	expire, err := time.ParseDuration(unsigned.GetExpire())
+	if err != nil {
+		return "", err
+	}
+	tx.SetExpire(expire)
+	tx.Sign(int32(SignType), key)
+	txHex := types.Encode(&tx)
+	signedTx := hex.EncodeToString(txHex)
+	return signedTx, nil
 }
 
 //output:
@@ -1738,378 +1725,6 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 		return "", err
 	}
 	return strings.ToUpper(common.ToHex(priv.Bytes())), nil
-}
-
-func (wallet *Wallet) procTokenPreCreate(reqTokenPrcCreate *types.ReqTokenPreCreate) (*types.ReplyHash, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-
-	if reqTokenPrcCreate == nil {
-		walletlog.Error("procTokenPreCreate input para is nil")
-		return nil, types.ErrInputPara
-	}
-
-	if !token.ValidSymbolWithHeight([]byte(reqTokenPrcCreate.GetSymbol()), wallet.lastHeight) {
-		walletlog.Error("procTokenPreCreate", "symbol need be upper", reqTokenPrcCreate.GetSymbol())
-		return nil, types.ErrTokenSymbolUpper
-	}
-
-	total := reqTokenPrcCreate.GetTotal()
-	if total > types.MaxTokenBalance || total <= 0 {
-		walletlog.Error("procTokenPreCreate", "total overflow", total)
-		return nil, types.ErrTokenTotalOverflow
-	}
-
-	creator := reqTokenPrcCreate.GetCreatorAddr()
-	addrs := make([]string, 1)
-	addrs[0] = creator
-	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
-	if err != nil || len(accounts) == 0 {
-		walletlog.Error("procTokenPreCreate", "LoadAccounts err", err)
-		return nil, err
-	}
-
-	Balance := accounts[0].Balance
-	if Balance < wallet.FeeAmount {
-		return nil, types.ErrInsufficientBalance
-	}
-
-	creatorAcc, err := accountdb.LoadExecAccountQueue(wallet.client, creator, account.ExecAddress("token").String())
-	if err != nil {
-		walletlog.Error("procTokenPreCreate", "LoadExecAccountQueue err", err)
-		return nil, err
-	}
-
-	price := reqTokenPrcCreate.GetPrice()
-	if creatorAcc.Balance < price {
-		return nil, types.ErrInsufficientBalance
-	}
-
-	//  symbol 不存在
-	token, err := wallet.checkTokenSymbolExists(reqTokenPrcCreate.GetSymbol(), reqTokenPrcCreate.GetOwnerAddr())
-	if err != nil {
-		return nil, err
-	}
-	if token != nil {
-		walletlog.Error("procTokenPreCreate", "err", types.ErrTokenExist)
-		return nil, types.ErrTokenExist
-	}
-
-	priv, err := wallet.getPrivKeyByAddr(addrs[0])
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.tokenPreCreate(priv, reqTokenPrcCreate)
-}
-
-func (wallet *Wallet) procTokenFinishCreate(req *types.ReqTokenFinishCreate) (*types.ReplyHash, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-	if req == nil {
-		walletlog.Error("procTokenFinishCreate input para is nil")
-		return nil, types.ErrInputPara
-	}
-
-	upSymbol := strings.ToUpper(req.GetSymbol())
-	if upSymbol != req.GetSymbol() {
-		walletlog.Error("procTokenFinishCreate", "symbol need be upper", req.GetSymbol())
-		return nil, types.ErrTokenSymbolUpper
-	}
-
-	addrs := make([]string, 1)
-	addrs[0] = req.GetFinisherAddr()
-	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
-	if err != nil || len(accounts) == 0 {
-		walletlog.Error("procTokenFinishCreate", "LoadAccounts err", err)
-		return nil, err
-	}
-
-	Balance := accounts[0].Balance
-	if Balance < wallet.FeeAmount {
-		return nil, types.ErrInsufficientBalance
-	}
-
-	//  check symbol-owner 是否不存在
-	token, err := wallet.checkTokenSymbolExists(req.GetSymbol(), req.GetOwnerAddr())
-	if err != nil {
-		return nil, err
-	}
-	if token != nil {
-		walletlog.Error("procTokenFinishCreate", "err", types.ErrTokenExist)
-		return nil, types.ErrTokenExist
-	}
-
-	token2, err2 := wallet.checkTokenStatus(req.GetSymbol(), types.TokenStatusPreCreated, req.GetOwnerAddr())
-	if err2 != nil {
-		return nil, err
-	}
-	if token2 == nil {
-		walletlog.Error("procTokenFinishCreate", "err", types.ErrTokenNotPrecreated)
-		return nil, types.ErrTokenNotPrecreated
-	}
-
-	creatorAcc, err3 := accountdb.LoadExecAccountQueue(wallet.client, token2.Creator, account.ExecAddress("token").String())
-	if err3 != nil {
-		walletlog.Error("procTokenFinishCreate", "LoadAccounts err", err3)
-		return nil, err3
-	}
-
-	frozen := creatorAcc.Frozen
-	if frozen < token2.Price {
-		return nil, types.ErrInsufficientBalance
-	}
-
-	priv, err := wallet.getPrivKeyByAddr(addrs[0])
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.tokenFinishCreate(priv, req)
-}
-
-func (wallet *Wallet) checkTokenSymbolExists(symbol, owner string) (*types.Token, error) {
-	//通过txhashs获取对应的txdetail
-	token := types.ReqString{Data: symbol}
-	query := types.Query{Execer: []byte("token"), FuncName: "GetTokenInfo", Payload: types.Encode(&token)}
-	msg := wallet.client.NewMessage("blockchain", types.EventQuery, &query)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
-	if err != nil && err != types.ErrEmpty {
-		walletlog.Error("checkTokenSymbolExists", "err", err)
-		return nil, err
-	} else if err == types.ErrEmpty {
-		return nil, nil
-	}
-
-	tokenInfo := resp.GetData().(*types.Token)
-	if tokenInfo == nil {
-		walletlog.Info("checkTokenSymbolExists  is nil")
-		return nil, nil
-	}
-
-	walletlog.Debug("checkTokenSymbolExists", "tokenInfo", tokenInfo.String())
-	return tokenInfo, nil
-}
-
-func (wallet *Wallet) checkTokenStatus(symbol string, status int32, owner string) (*types.Token, error) {
-	tokens := []string{symbol}
-	reqtokens := types.ReqTokens{false, status, tokens}
-
-	query := types.Query{Execer: []byte("token"), FuncName: "GetTokens", Payload: types.Encode(&reqtokens)}
-	msg := wallet.client.NewMessage("blockchain", types.EventQuery, &query)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
-	if err != nil && err != types.ErrEmpty {
-		walletlog.Error("checkTokenSymbolStauts", "err", err)
-		return nil, err
-	} else if err == types.ErrEmpty {
-		return nil, nil
-	}
-
-	tokenInfos := resp.GetData().(*types.ReplyTokens).Tokens
-	if tokenInfos == nil {
-		walletlog.Info("checkTokenSymbolStauts  is nil")
-		return nil, nil
-	}
-	for _, tokenInfo := range tokenInfos {
-		if tokenInfo.GetOwner() == owner {
-			return tokenInfo, nil
-		}
-	}
-
-	walletlog.Debug("checkTokenSymbolStauts", "tokenInfo", "not find")
-	return nil, nil
-}
-
-func (wallet *Wallet) procTokenRevokeCreate(req *types.ReqTokenRevokeCreate) (*types.ReplyHash, error) {
-	if req == nil {
-		walletlog.Error("procTokenRevokeCreate input para is nil")
-		return nil, types.ErrInputPara
-	}
-
-	upSymbol := strings.ToUpper(req.GetSymbol())
-	if upSymbol != req.GetSymbol() {
-		walletlog.Error("procTokenRevokeCreate", "symbol need be upper", req.GetSymbol())
-		return nil, types.ErrTokenSymbolUpper
-	}
-
-	addrs := make([]string, 1)
-	addrs[0] = req.GetRevokerAddr()
-	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
-	if err != nil || len(accounts) == 0 {
-		walletlog.Error("procTokenRevokeCreate", "LoadAccounts err", err)
-		return nil, err
-	}
-
-	//  check symbol-owner 是否不存在, 是否是precreate 状态， 地址是否对应
-	token, err := wallet.checkTokenStatus(req.GetSymbol(), types.TokenStatusPreCreated, req.GetOwnerAddr())
-	if err != nil {
-		return nil, err
-	}
-	if token == nil {
-		walletlog.Error("procTokenRevokeCreate", "err", types.ErrTokenNotPrecreated)
-		return nil, types.ErrTokenNotPrecreated
-	}
-
-	if req.RevokerAddr != token.Owner && req.RevokerAddr != token.Creator {
-		walletlog.Error("tprocTokenRevokeCreate, different creator/owner vs actor of this revoke",
-			"action.fromaddr", req.RevokerAddr, "creator", token.Creator, "owner", token.Owner)
-		return nil, types.ErrTokenRevoker
-	}
-
-	priv, err := wallet.getPrivKeyByAddr(addrs[0])
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.tokenRevokeCreate(priv, req)
-}
-
-func (wallet *Wallet) procSellToken(reqSellToken *types.ReqSellToken) (*types.ReplyHash, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-	if reqSellToken == nil {
-		walletlog.Error("procSellToken input para is nil")
-		return nil, types.ErrInputPara
-	}
-
-	addrs := make([]string, 1)
-	addrs[0] = reqSellToken.GetOwner()
-	accountTokendb := getTokenAccountDB(reqSellToken.Sell.Tokensymbol)
-	accounts, err := accountTokendb.LoadAccounts(wallet.client, addrs)
-	if err != nil || len(accounts) == 0 {
-		walletlog.Error("procSellToken", "LoadAccounts err", err)
-		return nil, err
-	}
-
-	balance := accounts[0].Balance
-	if balance < reqSellToken.Sell.Amountperboardlot*reqSellToken.Sell.Totalboardlot {
-		return nil, types.ErrInsufficientBalance
-	}
-
-	priv, err := wallet.getPrivKeyByAddr(addrs[0])
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.sellToken(priv, reqSellToken)
-}
-
-func (wallet *Wallet) procBuyToken(reqBuyToken *types.ReqBuyToken) (*types.ReplyHash, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-
-	if reqBuyToken == nil {
-		walletlog.Error("procBuyToken input para is nil")
-		return nil, types.ErrInputPara
-	}
-	execaddress := account.ExecAddress("trade")
-	account, err := accountdb.LoadExecAccountQueue(wallet.client, reqBuyToken.GetBuyer(), execaddress.String())
-	if err != nil {
-		log.Error("GetBalance", "err", err.Error())
-		return nil, err
-	}
-	balance := account.Balance
-
-	var sellorder *types.SellOrder
-	if sellorder, err = loadSellOrderQueue(wallet.client, reqBuyToken.GetBuy().GetSellid()); err != nil {
-		walletlog.Error("procBuyToken failed to loadSellOrderQueue", "token sellid", reqBuyToken.GetBuy().GetSellid())
-		return nil, err
-	}
-
-	if balance < reqBuyToken.Buy.Boardlotcnt*sellorder.Priceperboardlot {
-		return nil, types.ErrInsufficientBalance
-	} else if reqBuyToken.Buy.Boardlotcnt > (sellorder.Totalboardlot - sellorder.Soldboardlot) {
-		return nil, types.ErrInsuffSellOrder
-	}
-
-	priv, err := wallet.getPrivKeyByAddr(reqBuyToken.GetBuyer())
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.buyToken(priv, reqBuyToken)
-}
-
-func (wallet *Wallet) procRevokeSell(reqRevoke *types.ReqRevokeSell) (*types.ReplyHash, error) {
-
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return nil, err
-	}
-	if reqRevoke == nil {
-		walletlog.Error("procBuyToken input para is nil")
-		return nil, types.ErrInputPara
-	}
-
-	priv, err := wallet.getPrivKeyByAddr(reqRevoke.GetOwner())
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.revokeSell(priv, reqRevoke)
-}
-
-func getTokenAccountDB(token string) *account.DB {
-	if nil == accTokenMap[token] {
-		tokenAccDB := account.NewTokenAccountWithoutDB(token)
-		accTokenMap[token] = tokenAccDB
-	}
-	return accTokenMap[token]
-}
-
-func loadSellOrderQueue(client queue.Client, sellid string) (*types.SellOrder, error) {
-	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	get := types.StoreGet{}
-	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
-	get.Keys = append(get.Keys, []byte(sellid))
-	msg = client.NewMessage("store", types.EventStoreGet, &get)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	values := msg.GetData().(*types.StoreReplyValue)
-	value := values.Values[0]
-	if value == nil {
-		return nil, types.ErrTSellNoSuchOrder
-	} else {
-		var sellOrder types.SellOrder
-		err := types.Decode(value, &sellOrder)
-		if err != nil {
-			return nil, err
-		}
-		return &sellOrder, nil
-	}
 }
 
 //检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁

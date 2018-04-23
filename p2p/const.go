@@ -45,13 +45,16 @@ const (
 	nodeBloom   = 4
 )
 
-var (
-	Service int64 = nodeBloom + nodeNetwork + nodeGetUTXO
-	OutSide bool
+const (
+	Service int32 = nodeBloom + nodeNetwork + nodeGetUTXO
 )
 
 // leveldb 中p2p privkey,addrkey
 const (
 	addrkeyTag = "addrs"
 	privKeyTag = "privkey"
+)
+
+const (
+	P2pCacheTxSize = 10240
 )
