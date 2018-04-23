@@ -64,20 +64,14 @@ func (client *TicketClient) Close() {
 func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	//给ticket 合约打 3亿 个币
 	//产生3w张初始化ticket
-	//tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
-	//ret = append(ret, tx1...)
-	//
-	//tx2 := createTicket("1PUiGcbsccfxW3zuvHXZBJfznziph5miAo", "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 10000, 0)
-	//ret = append(ret, tx2...)
-	//
-	//tx3 := createTicket("1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX", "1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa", 10000, 0)
-	//ret = append(ret, tx3...)
-
-	tx1 := createTicket("1NuCa2naomHbmKafEk7mufob5Pr2jUwWUv", "1NuCa2naomHbmKafEk7mufob5Pr2jUwWUv", 10000, 0)
+	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
 	ret = append(ret, tx1...)
 
-	tx2 := createTicket("1Bnbrx1LJ7DJ73pUKegXb6EcwS1tAdRDMQ", "12dvbh4jQ1VwfTqZF6sU1x3QZyfvSZGVse", 10000, 0)
+	tx2 := createTicket("1PUiGcbsccfxW3zuvHXZBJfznziph5miAo", "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 10000, 0)
 	ret = append(ret, tx2...)
+
+	tx3 := createTicket("1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX", "1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa", 10000, 0)
+	ret = append(ret, tx3...)
 	return
 }
 
@@ -89,7 +83,7 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	tx1.To = minerAddr
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{Amount: types.GetP(height).TicketPrice + 88888}
+	g.Genesis = &types.CoinsGenesis{Amount: types.GetP(height).TicketPrice}
 	tx1.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx1)
 
@@ -99,7 +93,7 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	tx2.To = driver.ExecAddress("ticket")
 	//gen payload
 	g = &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{int64(count) * types.GetP(height).TicketPrice + 99999, returnAddr}
+	g.Genesis = &types.CoinsGenesis{int64(count) * types.GetP(height).TicketPrice, returnAddr}
 	tx2.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
 	ret = append(ret, &tx2)
 

@@ -569,6 +569,7 @@ func LoadHelp() {
 	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout note            : 公开账户向隐私账户转账")
 	fmt.Println("priv2priv from toviewpubkey tospendpubkey amout hash note       : 隐私账户向隐私账户转账")
 	fmt.Println("priv2pub from to amout hash note                                : 隐私账户向公开账户转账")
+	fmt.Println("addpribal2acc                                                   : 增加隐私余额到到户中")
 }
 
 type AccountsResult struct {
