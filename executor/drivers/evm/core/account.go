@@ -1,11 +1,11 @@
 package core
 
 import (
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
-	"math/big"
+	"encoding/binary"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 var (
@@ -20,6 +20,8 @@ var (
 	ContractStorageHashPrefix = "evm_storage_hash: "
 	// 合约是否自杀，键为 前缀+合约地址，值为合约是否被杀
 	ContractSuicidePrefix = "evm_contract_suicide: "
+	// 合约Nonce，键为 前缀+合约地址，值为合约Nonce
+	ContractNoncePrefix = "evm_contract_nonce: "
 
 	// 注意，合约账户本身也有余额信息，这部分在CoinsAccount处理
 )
@@ -49,7 +51,7 @@ type ContractAccount struct {
 
 	// 合约执行过程中的状态数据变更存储
 	cachedStorage Storage
-	dirtyStorage  Storage
+	dirtyStorage  bool
 	dirtyAccount  bool
 
 	// 此合约是否已经自杀 （合约对象依然存在）
@@ -77,6 +79,7 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 	})
 
 	self.cachedStorage[key] = value
+	self.dirtyStorage = true
 }
 
 func (self *ContractAccount) IsContract() bool {
@@ -89,19 +92,46 @@ func (self *ContractAccount) SetContract(contract bool) {
 
 func (self *ContractAccount) LoadContract(db db.KV) {
 
-	content, err := db.Get(self.getCodeKey())
+	content, err := db.Get(self.GetCodeKey())
 	if err != nil {
 		return
 	}
 	self.code = Code(content)
 	self.contract = true
 
-	content, err = db.Get(self.getStorageKey())
+	content, err = db.Get(self.GetStorageKey())
 	if err != nil {
 		return
 	}
 
 	self.storage.LoadFromBytes(content)
+
+	content, err = db.Get(self.GetCodeHashKey())
+	if err != nil {
+		return
+	}
+	// FIXME 这里考虑增加校验，再计算一次哈希
+	self.codeHash = common.BytesToHash(content)
+
+
+	content, err = db.Get(self.GetStorageHashKey())
+	if err != nil {
+		return
+	}
+	// FIXME 这里考虑增加校验，再计算一次哈希
+	self.storageHash = common.BytesToHash(content)
+
+	content, err = db.Get(self.GetNonceKey())
+	if err != nil {
+		return
+	}
+	self.nonce = Byte2Int(content)
+
+	content, err = db.Get(self.GetSuicideKey())
+	if err != nil {
+		return
+	}
+	self.suicided = Byte2Bool(content)
 }
 
 func (self *ContractAccount) SetCode(code []byte) {
@@ -114,75 +144,91 @@ func (self *ContractAccount) SetCode(code []byte) {
 	})
 
 	self.code = code
-	self.codeHash = common.BytesToHash(code)
+	self.codeHash = common.BytesToHash(crypto.Sha256(code))
 }
 
-// 获取和coins相关的数据
-func (self *ContractAccount) getCoinsData() []*types.KeyValue {
-	coins := account.NewCoinsAccount()
-	// 注意，这里不用设置DB，因为只是组装传入的数据
-	return coins.GetKVSet(&self.Account)
+func Bool2Byte(value bool) byte {
+	if value {
+		return 1
+	}
+	return 0
+}
 
+func Byte2Bool(value []byte) bool {
+	if len(value) != 1 || len(value) ==0{
+		return false
+	}
+	return true
+}
+
+func Int2Byte(value uint64) []byte {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, value)
+	return b
+}
+
+func Byte2Int(value []byte) uint64 {
+	return  binary.LittleEndian.Uint64(value)
 }
 
 // 获取自杀相关的数据
-func (self *ContractAccount) getSuicideData() []*types.KeyValue {
-	kvSet := make([]*types.KeyValue, 4)
-
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getCodeKey(), Value: []byte("")})
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getStorageKey(), Value: []byte("")})
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getCodeHashKey(), Value: common.Hash{}.Bytes()})
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getStorageHashKey(), Value: common.Hash{}.Bytes()})
-
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getSuicideKey(), Value: []byte(string(self.suicided))})
-
+// 合约自杀时使用
+func (self *ContractAccount) getSuicideData() (kvSet []*types.KeyValue) {
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetCodeKey(), Value: []byte("")})
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetStorageKey(), Value: []byte("")})
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetCodeHashKey(), Value: common.Hash{}.Bytes()})
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetStorageHashKey(), Value: common.Hash{}.Bytes()})
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetSuicideKey(), Value: []byte{Bool2Byte(self.suicided)}})
 	return kvSet
 
 }
 
-func (self *ContractAccount) SubBalance(value *big.Int) {
-	addr := common.StringToAddress(self.Addr)
-	self.mdb.journal = append(self.mdb.journal, balanceChange{&addr, self.Balance})
 
-	self.Balance -= value.Int64()
-}
+// 获取和合约相关的数据集
+// 用于合约创建时的场景
+func (self *ContractAccount) GetContractData() (kvSet []*types.KeyValue) {
+	kvSet = append(kvSet, self.GetChangeData()...)
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetCodeKey(), Value: self.code})
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetCodeHashKey(), Value: self.codeHash.Bytes()})
 
-func (self *ContractAccount) AddBalance(value *big.Int) {
-	self.Balance += value.Int64()
-}
-
-func (self *ContractAccount) getCodeKey() []byte {
-	return []byte(ContractCodePrefix + self.Addr)
-}
-func (self *ContractAccount) getStorageKey() []byte {
-	return []byte(ContractStoragePrefix + self.Addr)
-}
-func (self *ContractAccount) getCodeHashKey() []byte {
-	return []byte(ContractCodeHashPrefix + self.Addr)
-}
-func (self *ContractAccount) getStorageHashKey() []byte {
-	return []byte(ContractStorageHashPrefix + self.Addr)
-}
-func (self *ContractAccount) getSuicideKey() []byte {
-	return []byte(ContractSuicidePrefix + self.Addr)
+	return kvSet
 }
 
 // 获取和合约相关的数据集
-func (self *ContractAccount) GetContractData() []*types.KeyValue {
-	kvSet := make([]*types.KeyValue, 4)
-
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getCodeKey(), Value: self.code})
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getStorageKey(), Value: self.storage.ToBytes()})
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getCodeHashKey(), Value: self.codeHash.Bytes()})
-	kvSet = append(kvSet, &types.KeyValue{Key: self.getStorageHashKey(), Value: self.getStorageHash().Bytes()})
+// 用于合约创建后的调用场景，这时只会有数据和状态变更，代码不会变更
+func (self *ContractAccount) GetChangeData() (kvSet []*types.KeyValue) {
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetStorageKey(), Value: self.storage.ToBytes()})
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetStorageHashKey(), Value: self.getStorageHash().Bytes()})
+	kvSet = append(kvSet, &types.KeyValue{Key: self.GetNonceKey(), Value: Int2Byte(self.nonce)})
 
 	return kvSet
 }
+
 
 func (self *ContractAccount) getStorageHash() common.Hash {
 	self.storageHash = common.BytesToHash(self.storage.ToBytes())
 	return self.storageHash
 }
+
+func (self *ContractAccount) GetCodeKey() []byte {
+	return []byte(ContractCodePrefix + self.Addr)
+}
+func (self *ContractAccount) GetStorageKey() []byte {
+	return []byte(ContractStoragePrefix + self.Addr)
+}
+func (self *ContractAccount) GetCodeHashKey() []byte {
+	return []byte(ContractCodeHashPrefix + self.Addr)
+}
+func (self *ContractAccount) GetStorageHashKey() []byte {
+	return []byte(ContractStorageHashPrefix + self.Addr)
+}
+func (self *ContractAccount) GetSuicideKey() []byte {
+	return []byte(ContractSuicidePrefix + self.Addr)
+}
+func (self *ContractAccount) GetNonceKey() []byte {
+	return []byte(ContractNoncePrefix + self.Addr)
+}
+
 
 func (self *ContractAccount) Suicide() bool {
 	self.suicided = true
