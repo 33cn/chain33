@@ -16,12 +16,7 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply := g.cli.SendTx(in)
-	if reply.GetData().(*pb.Reply).IsOk {
-		return reply.GetData().(*pb.Reply), nil
-	} else {
-		return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
-	}
+	return g.cli.SendTx(in)
 }
 
 func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
@@ -457,53 +452,6 @@ func (g *Grpc) CloseTickets(ctx context.Context, in *pb.ReqNil) (*pb.ReplyHashes
 	return result, nil
 }
 
-func (g *Grpc) TokenPreCreate(ctx context.Context, in *pb.ReqTokenPreCreate) (*pb.ReplyHash, error) {
-	result, err := g.cli.TokenPreCreate(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (g *Grpc) TokenFinishCreate(ctx context.Context, in *pb.ReqTokenFinishCreate) (*pb.ReplyHash, error) {
-	result, err := g.cli.TokenFinishCreate(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-func (g *Grpc) TokenRevokeCreate(ctx context.Context, in *pb.ReqTokenRevokeCreate) (*pb.ReplyHash, error) {
-	result, err := g.cli.TokenRevokeCreate(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (g *Grpc) SellToken(ctx context.Context, in *pb.ReqSellToken) (*pb.Reply, error) {
-	result, err := g.cli.SellToken(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (g *Grpc) BuyToken(ctx context.Context, in *pb.ReqBuyToken) (*pb.Reply, error) {
-	result, err := g.cli.BuyToken(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (g *Grpc) RevokeSellToken(ctx context.Context, in *pb.ReqRevokeSell) (*pb.Reply, error) {
-	result, err := g.cli.RevokeSellToken(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
@@ -526,6 +474,18 @@ func (g *Grpc) IsNtpClockSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, er
 	}
 
 	return &pb.Reply{IsOk: g.cli.IsNtpClockSync()}, nil
+}
+
+func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, error) {
+	if !g.checkWhitlist(ctx) {
+		return nil, fmt.Errorf("reject")
+	}
+	resp, err := g.cli.GetNetInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (g *Grpc) checkWhitlist(ctx context.Context) bool {

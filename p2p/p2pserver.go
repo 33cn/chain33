@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/hex"
 	"io"
+	"strconv"
 	"sync/atomic"
 
 	"fmt"
@@ -137,10 +138,11 @@ func (s *p2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		}
 
 	}
-
+	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
-	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: Service, Nonce: in.Nonce,
-		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1])}, nil
+	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
+		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1]), UserAgent: pub}, nil
+
 }
 
 func (s *p2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
@@ -398,11 +400,13 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 	var hash [64]byte
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
+	var in = new(pb.BroadCastData)
+	var err error
 	for {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
 		}
-		in, err := stream.Recv()
+		in, err = stream.Recv()
 		if err == io.EOF {
 			log.Info("ServerStreamRead", "Recv", "EOF")
 			return err
@@ -421,12 +425,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(), "block hash", blockhash)
 			if block.GetBlock() != nil {
-				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
-				err := s.node.nodeInfo.client.Send(msg, false)
-				if err != nil {
-					log.Error("ServerStreamRead", "Error", err.Error())
-					continue
-				}
+				//msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{peername, block.GetBlock()})
+				s.node.nodeInfo.client.Send(msg, false)
 			}
 			Filter.RegRecvData(blockhash) //注册已经收到的区块
 
@@ -445,6 +446,7 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
+
 			if !P2pComm.CheckSign(ping) {
 				log.Error("ServerStreamRead", "check stream", "check sig err")
 				return pb.ErrStreamPing
@@ -459,6 +461,9 @@ func (s *p2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 }
 
+/**
+* 提供远程节点自身网络定位服务
+ */
 func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PExternalInfo, error) {
 	var remoteaddr string
 	var outside bool
@@ -471,10 +476,25 @@ func (s *p2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 			outside = false
 		} else {
 			outside = true
-
 		}
 	}
 	return &pb.P2PExternalInfo{Addr: remoteaddr, Isoutside: outside}, nil
+}
+
+/**
+* 提供检验自身节点网络映射后服务是否开启的服务
+ */
+func (s *p2pServer) RemotePeerNatOk(ctx context.Context, in *pb.P2PPing) (*pb.P2PExternalInfo, error) {
+	if !P2pComm.CheckSign(in) {
+		return nil, pb.ErrPing
+	}
+	var natok bool
+	remoteaddr := fmt.Sprintf("%v:%v", in.GetAddr(), in.GetPort())
+	if len(P2pComm.AddrRouteble([]string{remoteaddr})) != 0 {
+		natok = true
+	}
+	return &pb.P2PExternalInfo{remoteaddr, natok}, nil
+
 }
 
 /**
@@ -488,9 +508,15 @@ func (s *p2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 	}
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
-
 	for _, inpeer := range inPeers {
-		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name}) ///仅用name字段，用于统计peer num.
+		addrport := strings.Split(inpeer.addr, ":")
+		var addr string
+		var port int
+		if len(addrport) == 2 {
+			addr = addrport[0]
+			port, _ = strconv.Atoi(addrport[1])
+		}
+		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: addr, Port: int32(port)}) ///仅用name,addr,port字段，用于统计peer num.
 	}
 
 	return &pb.PeerList{Peers: p2pPeers}, nil
