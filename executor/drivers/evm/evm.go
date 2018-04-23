@@ -6,12 +6,18 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/core"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	ctypes "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/core"
+	"encoding/hex"
+)
+
+const (
+	// 交易payload中，前8个字节固定存储转账信息
+	BALANCE_SIZE = 8
 )
 
 var (
@@ -43,11 +49,10 @@ func (evm *FakeEVM) GetName() string {
 }
 
 func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-
 	// TODO:GAS计费信息先不考虑，后续补充
 	var (
-		//gp      = new(vm.GasPool).AddGas(uint64(tx.Fee))
-		//usedGas = uint64(0)
+	//gp      = new(vm.GasPool).AddGas(uint64(tx.Fee))
+	//usedGas = uint64(0)
 	)
 
 	// 先转换消息
@@ -75,13 +80,31 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 
 	isCreate := msg.To() == nil
 
+	var (
+		ret         []byte
+		vmerr       error
+		leftOverGas uint64
+		addr        common.Address
+	)
+
 	if isCreate {
-		//ret, contractAddr, leftOverGas , err := runtime.Create(vm.AccountRef(msg.From()), tx.Payload, context.GasLimit, big.NewInt(0))
-		runtime.Create(vm.AccountRef(msg.From()), tx.Payload, context.GasLimit, big.NewInt(0))
-	}else{
-		//ret, leftOverGas , err :=  runtime.Call(vm.AccountRef(msg.From()), *msg.To(), tx.Payload, context.GasLimit, big.NewInt(0))
-		runtime.Call(vm.AccountRef(msg.From()), *msg.To(), tx.Payload, context.GasLimit, big.NewInt(0))
+		ret, addr, leftOverGas, vmerr = runtime.Create(vm.AccountRef(msg.From()), msg.Data(), context.GasLimit, big.NewInt(0))
+	} else {
+		ret, leftOverGas, vmerr = runtime.Call(vm.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, big.NewInt(0))
 	}
+
+	if vmerr != nil {
+		log.Debug("VM returned with error", "err", vmerr)
+		if vmerr == vm.ErrInsufficientBalance {
+			return nil, vmerr
+		}
+	}
+
+	log.Debug("leftOverGas is ",leftOverGas)
+	log.Debug("return data is "+hex.EncodeToString(ret))
+	log.Debug("create contract address is ",hex.EncodeToString(addr.Bytes()))
+
+	kvset := statedb.GetChangedStatedData(statedb.GetLastSnapshot())
 
 	//if err != nil {
 	//	return nil, err
@@ -110,9 +133,8 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	//	kvset = append(kvset, &ctypes.KeyValue{[]byte("receiver"), getReceiver(tx).Bytes()})
 	//}
 	//
-	//receipt := &ctypes.Receipt{ctypes.ExecOk, kvset, nil}
-	return nil, nil
-
+	receipt := &types.Receipt{types.ExecOk, kvset, nil}
+	return receipt, nil
 }
 
 func (evm *FakeEVM) GetChainConfig() *params.ChainConfig {
@@ -143,7 +165,7 @@ func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg ctypes.Message) {
 	amount := int64(0)
 
 	// 合约的GasLimit即为调用者为本次合约调用准备支付的手续费
-	msg = ctypes.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(amount), uint64(tx.Fee), GasPrice, tx.Payload[8:], false)
+	msg = ctypes.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(amount), uint64(tx.Fee), GasPrice, tx.Payload[BALANCE_SIZE:], false)
 	return msg
 }
 
@@ -184,18 +206,18 @@ func NewEVMContext(msg ctypes.Message, height int64, time int64, coinbase common
 
 // 检查合约调用账户是否有充足的金额进行转账交易操作
 func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
-	if amount.Uint64() ==0 {
+	if amount.Uint64() == 0 {
 		return true
 	}
-	return db.CanTransfer(addr,amount)
+	return db.CanTransfer(addr, amount)
 }
 
 // 在内存数据库中执行转账操作（只修改内存中的金额）
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
-	if amount.Uint64() ==0{
+	if amount.Uint64() == 0 {
 		return
 	}
-	db.Transfer(sender,recipient,amount)
+	db.Transfer(sender, recipient, amount)
 }
 
 // 获取制定高度区块的哈希
