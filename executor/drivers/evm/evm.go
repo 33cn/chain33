@@ -138,7 +138,7 @@ func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg ctypes.Message) {
 
 	// 注意Transaction中的payload内容同时包含转账金额和合约代码
 	// payload[:8]为转账金额，payload[8:]为合约代码
-	//amount := binary.LittleEndian.Uint64(tx.Payload[:8])
+	//amount := binary.BigEndian.Uint64(tx.Payload[:8])
 	// FIXME 目前不支持对EVM合约的转账逻辑，等合约其它功能稳定后再考虑加入
 	amount := int64(0)
 
