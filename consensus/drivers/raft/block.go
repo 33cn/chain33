@@ -157,8 +157,6 @@ func (client *RaftClient) CreateBlock() {
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
-		client.propose(&newblock)
-		time.Sleep(100 * time.Millisecond)
 
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
@@ -166,6 +164,9 @@ func (client *RaftClient) CreateBlock() {
 			rlog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 			continue
 		}
+
+		client.propose(&newblock)
+		time.Sleep(100 * time.Millisecond)
 
 	}
 }
