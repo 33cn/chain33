@@ -337,7 +337,7 @@ func (n *Node) natMapPort() {
 
 	n.nodeInfo.addrBook.bookDb.Set([]byte(externalPortTag),
 		P2pComm.Int32ToBytes(int32(n.nodeInfo.GetExternalAddr().Port))) //把映射成功的端口信息刷入db
-	log.Info("natMapPort", "export inser into db", n.nodeInfo.GetExternalAddr().Port)
+	log.Info("natMapPort", "export insert into db", n.nodeInfo.GetExternalAddr().Port)
 	n.nodeInfo.natResultChain <- true
 	refresh := time.NewTimer(mapUpdateInterval)
 	for {
