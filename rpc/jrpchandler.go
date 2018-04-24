@@ -1228,7 +1228,7 @@ func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
 		return err
 	}
 
-	*result = resp
+	*result = resp.TxHex
 	return nil
 }
 
