@@ -1,5 +1,9 @@
 package relayd
 
+import (
+	"gitlab.33.cn/chain33/chain33/common/db"
+)
+
 // Store hash and blockHeader
 // SPV information
 
@@ -9,4 +13,14 @@ var (
 	blockHeader = []byte("b")
 )
 
-type RelaydDB struct{}
+type relaydDB struct {
+	*db.GoLevelDB
+}
+
+func NewRelayDB(name string, dir string, cache int) *relaydDB {
+	d, err := db.NewGoLevelDB(name, dir, cache)
+	if err != nil {
+		panic(err)
+	}
+	return &relaydDB{d}
+}

@@ -1,0 +1,92 @@
+package relayd
+
+import (
+	"errors"
+	"fmt"
+	"io"
+
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+)
+
+type Client33 struct {
+	config     *Chain33
+	isSyncing  bool
+	isClosed   bool
+	lastHeader int64
+	types.GrpcserviceClient
+	closer io.Closer
+}
+
+func NewClient33(cfg *Chain33) *Client33 {
+	address := cfg.Host + ":" + cfg.Endpoint
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+
+	client := types.NewGrpcserviceClient(conn)
+	c := &Client33{
+		config:            cfg,
+		closer:            conn,
+		GrpcserviceClient: client,
+	}
+	return c
+}
+
+func (c *Client33) Start(ctx context.Context) error {
+	unlock := types.WalletUnLock{
+		Passwd: c.config.Pass,
+	}
+	ret, err := c.GrpcserviceClient.UnLock(ctx, &unlock, nil)
+	if err != nil {
+		return err
+	}
+	log.Info("Start", fmt.Sprintf("%#v", ret))
+	return nil
+}
+
+func (c *Client33) Ping(ctx context.Context) error {
+	lastHeader, err := c.GetLastHeader(ctx, &types.ReqNil{})
+	if err != nil {
+		c.isClosed = false
+		return err
+	}
+
+	c.isClosed = true
+	c.lastHeader = lastHeader.Height
+	log.Info("Ping:", fmt.Sprintf("latest height: %#v", c.lastHeader))
+	isSync, err := c.IsSync(ctx, &types.ReqNil{})
+	if err != nil {
+		return err
+	}
+
+	if isSync.IsOk {
+		c.isSyncing = isSync.IsOk
+		return errors.New(isSync.String())
+	}
+	c.isSyncing = false
+	return nil
+}
+
+func (c *Client33) AutoReconnect(ctx context.Context) {
+	if c.isClosed && !c.config.DisableAutoReconnect {
+		c.closer.Close()
+		conn, err := grpc.Dial(c.config.Host+c.config.Endpoint, grpc.WithInsecure())
+		if err != nil {
+			panic(err)
+		}
+
+		client := types.NewGrpcserviceClient(conn)
+		c.closer = conn
+		c.GrpcserviceClient = client
+		c.isClosed = true
+		c.Start(ctx)
+	}
+}
+
+func (c *Client33) Close() error {
+	return c.closer.Close()
+}

@@ -2,17 +2,21 @@ package main
 
 import (
 	"flag"
-	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common/limits"
-	//clog "gitlab.33.cn/chain33/chain33/common/log"
-	"golang.org/x/net/trace"
-	"google.golang.org/grpc"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"time"
+
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/cmd/relayd/relayd"
+	"gitlab.33.cn/chain33/chain33/common/limits"
+	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"golang.org/x/net/trace"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -21,7 +25,6 @@ var (
 )
 
 func main() {
-	//set maxprocs
 	runtime.GOMAXPROCS(cpuNum)
 
 	d, _ := os.Getwd()
@@ -35,44 +38,52 @@ func main() {
 	}
 
 	flag.Parse()
-	//cfg := config(*configPath)
-	//clog.SetFileLog(cfg.Log)
-	//f, err := createFile(cfg.P2P.GetGrpcLogFile())
+	cfg := relayd.NewConfig(*configPath)
+	clog.SetFileLog(&cfg.Log)
 
-	//set watching
-	t := time.Tick(10 * time.Second)
-	go func() {
-		for range t {
-			watching()
-		}
-	}()
+	if cfg.Watch {
+		// set watching
+		log.Info("watching 10s")
+		t := time.Tick(10 * time.Second)
+		go func() {
+			for range t {
+				watching()
+			}
+		}()
+	}
 
-	//set pprof
-	go func() {
-		http.ListenAndServe("localhost:6061", nil)
-	}()
+	if cfg.Watch {
+		// set pprof
+		log.Info("pprof localhost:6068")
+		go func() {
+			http.ListenAndServe("localhost:6068", nil)
+		}()
+	}
 
-	//set trace
-	grpc.EnableTracing = true
-	go startTrace()
+	if cfg.Trace {
+		// set trace
+		log.Info("listen on localhost:50055")
+		grpc.EnableTracing = true
+		go startTrace()
+	}
 
+	// fmt.Printf("%#v", *cfg)
+
+	r := relayd.NewRelayd(cfg)
+	r.Loop()
+	r.Heartbeat()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	s := <-c
+	log.Info("Got signal:", fmt.Sprintf("%#v", s))
 }
 
-// 开启trace
 func startTrace() {
 	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
 		return true, true
 	}
-	go http.ListenAndServe("localhost:50052", nil)
-	log.Info("Trace listen on localhost:50052")
-}
-
-func createFile(filename string) (*os.File, error) {
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, err
-	}
-	return f, nil
+	go http.ListenAndServe("localhost:50055", nil)
 }
 
 func watching() {
