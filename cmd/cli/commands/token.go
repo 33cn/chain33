@@ -72,7 +72,7 @@ func createTokenTransfer(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
-	txHex, err := createRawTx(toAddr, amount, note, false, true, symbol)
+	txHex, err := CreateRawTx(toAddr, amount, note, false, true, symbol)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -114,12 +114,12 @@ func createTokenWithdraw(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
-	execAddr, err := getExecAddr(exec)
+	execAddr, err := GetExecAddr(exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := createRawTx(execAddr, amount, note, true, true, symbol)
+	txHex, err := CreateRawTx(execAddr, amount, note, true, true, symbol)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
