@@ -540,7 +540,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
-		walletlog.Debug("end process", msg.Id)
+		walletlog.Debug("end process", "msg.id", msg.Id)
 	}
 }
 
