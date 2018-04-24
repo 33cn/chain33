@@ -8,10 +8,9 @@ import (
 	"sync"
 	"time"
 
-	dbm "github.com/tendermint/tmlibs/db"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"fmt"
-	"github.com/tendermint/tmlibs/log"
-	"os"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 const defaultStorePeriodicSaveInterval = 1 * time.Minute
@@ -20,7 +19,7 @@ var trustMetricKey = []byte("trustMetricStore")
 
 // TrustMetricStore - Manages all trust metrics for peers
 type TrustMetricStore struct {
-	//cmn.BaseService
+	cmn.BaseService
 
 	// Maps a Peer.Key to that peer's TrustMetric
 	peerMetrics map[string]*TrustMetric
@@ -34,8 +33,6 @@ type TrustMetricStore struct {
 	// This configuration will be used when creating new TrustMetrics
 	config TrustMetricConfig
 
-	Logger  log.Logger
-	Quit    chan struct{}
 }
 
 // NewTrustMetricStore returns a store that saves data to the DB
@@ -47,20 +44,18 @@ func NewTrustMetricStore(db dbm.DB, tmc TrustMetricConfig) *TrustMetricStore {
 		db:          db,
 		config:      tmc,
 	}
-	if tms.Logger == nil{
-		tms.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "TrustMetricStore")
-	}
-	//tms.BaseService = *cmn.NewBaseService(nil, "TrustMetricStore", tms)
+
+	tms.BaseService = *cmn.NewBaseService(nil, "TrustMetricStore", tms)
 	return tms
 }
 
 // OnStart implements Service
-func (tms *TrustMetricStore) Start() error {
-	/*
+func (tms *TrustMetricStore) OnStart() error {
+
 	if err := tms.BaseService.OnStart(); err != nil {
 		return err
 	}
-*/
+
 	tms.mtx.Lock()
 	defer tms.mtx.Unlock()
 
@@ -70,8 +65,8 @@ func (tms *TrustMetricStore) Start() error {
 }
 
 // OnStop implements Service
-func (tms *TrustMetricStore) Stop() {
-	//tms.BaseService.OnStop()
+func (tms *TrustMetricStore) OnStop() {
+	tms.BaseService.OnStop()
 
 	tms.mtx.Lock()
 	defer tms.mtx.Unlock()

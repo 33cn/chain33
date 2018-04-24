@@ -8,9 +8,8 @@ import (
 	"time"
 
 	wire "github.com/tendermint/go-wire"
-	cmn "github.com/tendermint/tmlibs/common"
-	"github.com/tendermint/tmlibs/log"
-	"os"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -66,20 +65,17 @@ func NewPEXReactor(b *AddrBook, seeds []string) *PEXReactor {
 		maxMsgCountByPeer: defaultMaxMsgCountByPeer,
 		seeds:             seeds,
 	}
-	if r.Logger == nil {
-		r.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "PEXReactor")
-	}
 	r.BaseReactor = *NewBaseReactor("PEXReactor", r)
 	return r
 }
 
 // OnStart implements BaseService
-func (r *PEXReactor) Start() error {
-	/*
+func (r *PEXReactor) OnStart() error {
+
 	if err := r.BaseReactor.OnStart(); err != nil {
 		return err
 	}
-	*/
+
 	err := r.book.Start()
 	if err != nil && err != cmn.ErrAlreadyStarted {
 		return err
@@ -90,8 +86,8 @@ func (r *PEXReactor) Start() error {
 }
 
 // OnStop implements BaseService
-func (r *PEXReactor) Stop() {
-	//r.BaseReactor.OnStop()
+func (r *PEXReactor) OnStop() {
+	r.BaseReactor.OnStop()
 	r.book.Stop()
 }
 

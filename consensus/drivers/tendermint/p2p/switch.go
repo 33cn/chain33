@@ -9,10 +9,8 @@ import (
 	"github.com/pkg/errors"
 
 	crypto "github.com/tendermint/go-crypto"
-	//cfg "github.com/tendermint/tendermint/config"
-	cmn "github.com/tendermint/tmlibs/common"
-	"github.com/tendermint/tmlibs/log"
-	//"os"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -32,8 +30,7 @@ const (
 )
 
 type Reactor interface {
-	Start() error
-	Stop()
+	cmn.Service
 	SetSwitch(*Switch)
 	GetChannels() []*ChannelDescriptor
 	AddPeer(peer Peer)
@@ -44,15 +41,13 @@ type Reactor interface {
 //--------------------------------------
 
 type BaseReactor struct {
-	//cmn.BaseService // Provides Start, Stop, .Quit
-	Reactor
+	cmn.BaseService // Provides Start, Stop, .Quit
 	Switch          *Switch
 }
 
 func NewBaseReactor(name string, impl Reactor) *BaseReactor {
 	return &BaseReactor{
-		//BaseService: *cmn.NewBaseService(nil, name, impl),
-		Reactor: impl,
+		BaseService: *cmn.NewBaseService(nil, name, impl),
 		Switch:      nil,
 	}
 }
@@ -60,6 +55,10 @@ func NewBaseReactor(name string, impl Reactor) *BaseReactor {
 func (br *BaseReactor) SetSwitch(sw *Switch) {
 	br.Switch = sw
 }
+func (_ *BaseReactor) GetChannels() []*ChannelDescriptor             { return nil }
+func (_ *BaseReactor) AddPeer(peer Peer)                             {}
+func (_ *BaseReactor) RemovePeer(peer Peer, reason interface{})      {}
+func (_ *BaseReactor) Receive(chID byte, peer Peer, msgBytes []byte) {}
 //-----------------------------------------------------------------------------
 
 /*
@@ -70,7 +69,7 @@ incoming messages are received on the reactor.
 */
 type Switch struct {
 
-	Logger  log.Logger
+	cmn.BaseService
 	config       *P2PConfig
 	peerConfig   *PeerConfig
 	listeners    []Listener
@@ -170,12 +169,12 @@ func NewSwitch(config *P2PConfig) *Switch {
 	sw.peerConfig.MConfig.RecvRate = config.RecvRate
 	sw.peerConfig.MConfig.maxMsgPacketPayloadSize = config.MaxMsgPacketPayloadSize
 
-	if sw.Logger == nil{
-		//sw.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "p2p")
-		sw.Logger = log.NewNopLogger()
-	}
-	//sw.BaseService = *cmn.NewBaseService(nil, "P2P Switch", sw)
+	sw.BaseService = *cmn.NewBaseService(nil, "P2P Switch", sw)
 	return sw
+}
+
+func (bs *Switch) SetLogger(l log.Logger) {
+	bs.Logger = l
 }
 
 // AddReactor adds the given reactor to the switch.
@@ -250,7 +249,7 @@ func (sw *Switch) SetNodePrivKey(nodePrivKey crypto.PrivKeyEd25519) {
 }
 
 // OnStart implements BaseService. It starts all the reactors, peers, and listeners.
-func (sw *Switch) Start() error {
+func (sw *Switch) OnStart() error {
 	// Start reactors
 	for _, reactor := range sw.reactors {
 		err := reactor.Start()
@@ -267,7 +266,7 @@ func (sw *Switch) Start() error {
 }
 
 // OnStop implements BaseService. It stops all listeners, peers, and reactors.
-func (sw *Switch) Stop() {
+func (sw *Switch) OnStop() {
 	// Stop listeners
 	for _, listener := range sw.listeners {
 		listener.Stop()
@@ -319,13 +318,11 @@ func (sw *Switch) addPeer(peer *peer) error {
 
 	}
 
-	/* hg 20180302
 	// Start peer
 	if sw.IsRunning() {
 		sw.startInitPeer(peer)
 	}
-	*/
-	sw.startInitPeer(peer)
+
 
 	// Add the peer to .peers.
 	// We start it first so that a peer in the list is safe to Stop.
@@ -438,7 +435,7 @@ func (sw *Switch) DialPeerWithAddress(addr *NetAddress, persistent bool) (Peer, 
 		sw.Logger.Error("Failed to dial peer", "address", addr, "err", err)
 		return nil, err
 	}
-	peer.SetLogger(sw.Logger.With("peer", addr))
+	peer.SetLogger(sw.Logger)
 	if persistent {
 		peer.makePersistent()
 	}
@@ -689,7 +686,7 @@ func (sw *Switch) addPeerWithConnection(conn net.Conn) error {
 		}
 		return err
 	}
-	peer.SetLogger(sw.Logger.With("peer", conn.RemoteAddr()))
+	peer.SetLogger(sw.Logger)
 	if err = sw.addPeer(peer); err != nil {
 		peer.CloseConn()
 		return err
@@ -706,7 +703,7 @@ func (sw *Switch) addPeerWithConnectionAndConfig(conn net.Conn, config *PeerConf
 		}
 		return err
 	}
-	peer.SetLogger(sw.Logger.With("peer", conn.RemoteAddr()))
+	peer.SetLogger(sw.Logger)
 	if err = sw.addPeer(peer); err != nil {
 		peer.CloseConn()
 		return err

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p/upnp"
-	cmn "github.com/tendermint/tmlibs/common"
-	"github.com/tendermint/tmlibs/log"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	log "github.com/inconshreveable/log15"
 )
 
 type Listener interface {

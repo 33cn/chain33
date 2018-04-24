@@ -2,8 +2,8 @@ package core
 
 import (
 	"time"
-	"github.com/tendermint/tmlibs/log"
-	"os"
+	log "github.com/inconshreveable/log15"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 var (
@@ -19,7 +19,7 @@ type TimeoutTicker interface {
 	Chan() <-chan timeoutInfo       // on which to receive a timeout
 	ScheduleTimeout(ti timeoutInfo) // reset the timer
 
-	//SetLogger(log.Logger)
+	SetLogger(log.Logger)
 }
 
 // timeoutTicker wraps time.Timer,
@@ -28,8 +28,7 @@ type TimeoutTicker interface {
 // Timeouts are scheduled along the tickChan,
 // and fired on the tockChan.
 type timeoutTicker struct {
-	//cmn.BaseService
-	Logger  log.Logger
+	cmn.BaseService
 	timer    *time.Timer
 	tickChan chan timeoutInfo // for scheduling timeouts
 	tockChan chan timeoutInfo // for notifying about them
@@ -42,16 +41,13 @@ func NewTimeoutTicker() TimeoutTicker {
 		tickChan: make(chan timeoutInfo, tickTockBufferSize),
 		tockChan: make(chan timeoutInfo, tickTockBufferSize),
 	}
-	if tt.Logger == nil{
-		tt.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "timeticker")
-	}
-	//tt.BaseService = *cmn.NewBaseService(nil, "TimeoutTicker", tt)
+	tt.BaseService = *cmn.NewBaseService(nil, "TimeoutTicker", tt)
 	tt.stopTimer() // don't want to fire until the first scheduled timeout
 	return tt
 }
 
 // OnStart implements cmn.Service. It starts the timeout routine.
-func (t *timeoutTicker) Start() error {
+func (t *timeoutTicker) OnStart() error {
 
 	go t.timeoutRoutine()
 
@@ -59,10 +55,9 @@ func (t *timeoutTicker) Start() error {
 }
 
 // OnStop implements cmn.Service. It stops the timeout routine.
-func (t *timeoutTicker) Stop() error{
-	//t.BaseService.OnStop()
+func (t *timeoutTicker) OnStop() {
+	t.BaseService.OnStop()
 	t.stopTimer()
-	return nil
 }
 
 // Chan returns a channel on which timeouts are sent.
@@ -109,9 +104,9 @@ func (t *timeoutTicker) timeoutRoutine() {
 				if newti.Round < ti.Round {
 					continue
 				} else if newti.Round == ti.Round {
-					//if ti.Step > 0 && newti.Step <= ti.Step {
-					//	continue
-					//}
+					if ti.Step > 0 && newti.Step <= ti.Step {
+						continue
+					}
 				}
 			}
 

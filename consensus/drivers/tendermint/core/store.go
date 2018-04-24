@@ -9,8 +9,8 @@ import (
 
 	wire "github.com/tendermint/go-wire"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	cmn "github.com/tendermint/tmlibs/common"
-	dbm "github.com/tendermint/tmlibs/db"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 )
 
 /*

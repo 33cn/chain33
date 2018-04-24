@@ -9,7 +9,7 @@ import (
 
 	crypto "github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire/data"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 //------------------------------------------------------------

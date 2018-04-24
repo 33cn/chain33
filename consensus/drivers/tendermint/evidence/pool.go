@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	dbm "github.com/tendermint/tmlibs/db"
-	"github.com/tendermint/tmlibs/log"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	log "github.com/inconshreveable/log15"
 
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	"os"
 )
 
 // EvidencePool maintains a pool of valid evidence
@@ -34,7 +33,7 @@ func NewEvidencePool(stateDB dbm.DB, evidenceStore *EvidenceStore) *EvidencePool
 	evpool := &EvidencePool{
 		stateDB:       stateDB,
 		state:         sm.LoadState(stateDB),
-		logger:        log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "evidencePool"),
+		logger:        nil,
 		evidenceStore: evidenceStore,
 		evidenceChan:  make(chan types.Evidence),
 	}

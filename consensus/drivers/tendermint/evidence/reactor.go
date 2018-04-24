@@ -7,7 +7,7 @@ import (
 	"time"
 
 	wire "github.com/tendermint/go-wire"
-	"github.com/tendermint/tmlibs/log"
+	log "github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -45,12 +45,11 @@ func (evR *EvidenceReactor) SetLogger(l log.Logger) {
 }
 
 // OnStart implements cmn.Service
-func (evR *EvidenceReactor) Start() error {
-	/*
+func (evR *EvidenceReactor) OnStart() error {
 	if err := evR.BaseReactor.OnStart(); err != nil {
 		return err
 	}
-	*/
+
 	go evR.broadcastRoutine()
 	return nil
 }
