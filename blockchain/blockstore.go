@@ -90,7 +90,7 @@ func (bs *BlockStore) Height() int64 {
 func (bs *BlockStore) UpdateHeight() {
 	height, _ := LoadBlockStoreHeight(bs.db)
 	atomic.StoreInt64(&bs.height, height)
-	storeLog.Info("UpdateHeight", "curblockheight", height)
+	storeLog.Debug("UpdateHeight", "curblockheight", height)
 }
 
 // 返回BlockStore保存的当前blockheader

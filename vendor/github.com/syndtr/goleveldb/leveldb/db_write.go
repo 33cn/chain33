@@ -87,6 +87,7 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 		case tLen >= slowdownTrigger && !delayed:
 			delayed = true
 			time.Sleep(time.Millisecond)
+			db.logf("slowdownTrigger...")
 		case mdbFree >= n:
 			return false
 		case tLen >= pauseTrigger:
@@ -95,6 +96,7 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 			if err != nil {
 				return false
 			}
+			db.logf("pauseTrigger...")
 		default:
 			// Allow memdb to grow if it has no entry.
 			if mdb.Len() == 0 {
@@ -114,6 +116,7 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 	}
 	start := time.Now()
 	for flush() {
+		db.logf("flush...")
 	}
 	if delayed {
 		db.writeDelay += time.Since(start)
