@@ -54,7 +54,7 @@ func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 	if err != nil {
 		return nil, err
 	}
-	clog.Info("exec ticket tx=", "tx=", action)
+	clog.Debug("exec ticket tx=", "tx=", action)
 	actiondb := NewAction(t, tx)
 	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
