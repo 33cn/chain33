@@ -177,7 +177,7 @@ func (d *downloadJob) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan cha
 		invdatas, err := resp.Recv()
 		if err != nil {
 			if err == io.EOF {
-				log.Info("download", "from", peer.Addr(), "block", inv.GetHeight())
+				log.Debug("download", "from", peer.Addr(), "block", inv.GetHeight())
 				return nil
 			}
 			log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
