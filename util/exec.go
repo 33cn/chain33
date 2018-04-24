@@ -68,11 +68,12 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		}
 	}
 	//check TxHash
-	//calcHash := merkle.CalcMerkleRoot(block.Txs)
-	//if errReturn && !bytes.Equal(calcHash, block.TxHash) {
-	//	return nil, types.ErrCheckTxHash
-	//}
-	//block.TxHash = calcHash
+
+	calcHash := merkle.CalcMerkleRoot(block.Txs)
+	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
+		return nil, nil, types.ErrCheckTxHash
+	}
+	block.TxHash = calcHash
 	//删除无效的交易
 	var deltx []*types.Transaction
 	if len(deltxlist) > 0 {
@@ -85,7 +86,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			}
 		}
 		block.Txs = newtx
-		//block.TxHash = merkle.CalcMerkleRoot(block.Txs)
+		block.TxHash = merkle.CalcMerkleRoot(block.Txs)
 	}
 
 	var detail types.BlockDetail
@@ -104,7 +105,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		}
 		return nil, nil, types.ErrCheckStateHash
 	}
-
 	detail.Block = block
 	detail.Receipts = rdata
 	if detail.Block.Height > 0 {
