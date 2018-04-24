@@ -16,9 +16,9 @@ import (
 	"time"
 
 	crypto "github.com/tendermint/go-crypto"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"crypto/sha256"
-	"github.com/tendermint/tmlibs/log"
+	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -114,7 +114,7 @@ func NewAddrBook(filePath string, routabilityStrict bool) *AddrBook {
 	}
 	am.init()
 	if am.Logger == nil {
-		am.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "AddrBook")
+		am.Logger = log.New("module", "tendermint-AddrBook")
 	}
 	//am.BaseService = *cmn.NewBaseService(nil, "AddrBook", am)
 	return am

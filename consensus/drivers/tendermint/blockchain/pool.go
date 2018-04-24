@@ -6,12 +6,10 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	flow "github.com/tendermint/tmlibs/flowrate"
-	"github.com/tendermint/tmlibs/log"
-	"os"
+	log "github.com/inconshreveable/log15"
 	"fmt"
-	"sync/atomic"
 	"errors"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 /*
@@ -55,7 +53,7 @@ var peerTimeoutSeconds = time.Duration(15) // not const so we can override with 
 */
 
 type BlockPool struct {
-	//cmn.BaseService
+	cmn.BaseService
 	startTime time.Time
 
 	mtx sync.Mutex
@@ -70,11 +68,6 @@ type BlockPool struct {
 	requestsCh chan<- BlockRequest
 	timeoutsCh chan<- string
 
-	Logger  log.Logger
-	Quit    chan struct{}
-
-	started uint32 // atomic
-	stopped uint32 // atomic
 }
 
 func NewBlockPool(start int64, requestsCh chan<- BlockRequest, timeoutsCh chan<- string) *BlockPool {
@@ -88,46 +81,22 @@ func NewBlockPool(start int64, requestsCh chan<- BlockRequest, timeoutsCh chan<-
 		requestsCh: requestsCh,
 		timeoutsCh: timeoutsCh,
 	}
-	if bp.Logger == nil{
-		bp.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "blockpool")
-		//bcR.Logger = log.NewNopLogger()
-	}
-	//bp.BaseService = *cmn.NewBaseService(nil, "BlockPool", bp)
+
+	bp.BaseService = *cmn.NewBaseService(nil, "BlockPool", bp)
 	return bp
 }
 
-// Implements Service
-func (pool *BlockPool) IsRunning() bool {
-	return atomic.LoadUint32(&pool.started) == 1 && atomic.LoadUint32(&pool.stopped) == 0
+func (pool *BlockPool) OnStart() error {
+	pool.Logger.Info(fmt.Sprintf("Starting blockpool"))
+	go pool.makeRequestersRoutine()
+	pool.startTime = time.Now()
+
+	return nil
 }
 
-func (pool *BlockPool) Start() error {
-
-	if atomic.CompareAndSwapUint32(&pool.started, 0, 1) {
-		if atomic.LoadUint32(&pool.stopped) == 1 {
-			pool.Logger.Error(fmt.Sprintf("Not starting blockpool -- already stopped"))
-			return ErrAlreadyStopped
-		} else {
-			pool.Logger.Info(fmt.Sprintf("Starting blockpool"))
-			go pool.makeRequestersRoutine()
-			pool.startTime = time.Now()
-
-			return nil
-		}
-	} else {
-		pool.Logger.Debug(fmt.Sprintf("Not starting blockpool -- already started"))
-		return ErrAlreadyStarted
-	}
-}
-
-func (pool *BlockPool) Stop() {
-	if atomic.CompareAndSwapUint32(&pool.stopped, 0, 1) {
-		pool.Logger.Info("Stopping blockpool")
-		return
-	} else {
-		pool.Logger.Debug("Stopping blockpool (ignoring: already stopped)")
-		return
-	}
+func (pool *BlockPool) OnStop() {
+	pool.Logger.Info("Stopping blockpool")
+	return
 }
 
 // Run spawns requesters as needed.
@@ -293,7 +262,7 @@ func (pool *BlockPool) SetPeerHeight(peerID string, height int64) {
 		peer.height = height
 	} else {
 		peer = newBPPeer(pool, peerID, height)
-		peer.setLogger(pool.Logger.With("peer", peerID))
+		peer.setLogger(pool.Logger)
 		pool.peers[peerID] = peer
 	}
 
@@ -403,7 +372,7 @@ func (pool *BlockPool) debug() string {
 type bpPeer struct {
 	pool        *BlockPool
 	id          string
-	recvMonitor *flow.Monitor
+	recvMonitor *cmn.Monitor
 
 	height     int64
 	numPending int32
@@ -419,7 +388,7 @@ func newBPPeer(pool *BlockPool, peerID string, height int64) *bpPeer {
 		id:         peerID,
 		height:     height,
 		numPending: 0,
-		logger:     log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "pool"),
+		logger:     log.New("module", "pool"),
 	}
 	return peer
 }
@@ -429,7 +398,7 @@ func (peer *bpPeer) setLogger(l log.Logger) {
 }
 
 func (peer *bpPeer) resetMonitor() {
-	peer.recvMonitor = flow.New(time.Second, time.Second*40)
+	peer.recvMonitor = cmn.New(time.Second, time.Second*40)
 	initialValue := float64(minRecvRate) * math.E
 	peer.recvMonitor.SetREMA(initialValue)
 }
@@ -472,7 +441,7 @@ func (peer *bpPeer) onTimeout() {
 //-------------------------------------
 
 type bpRequester struct {
-	//cmn.BaseService
+	cmn.BaseService
 	pool       *BlockPool
 	height     int64
 	gotBlockCh chan struct{}
@@ -482,11 +451,6 @@ type bpRequester struct {
 	peerID string
 	block  *types.Block
 
-	Logger  log.Logger
-	Quit    chan struct{}
-
-	started uint32 // atomic
-	stopped uint32 // atomic
 }
 
 func newBPRequester(pool *BlockPool, height int64) *bpRequester {
@@ -499,45 +463,21 @@ func newBPRequester(pool *BlockPool, height int64) *bpRequester {
 		peerID: "",
 		block:  nil,
 	}
-	if bpr.Logger == nil{
-		bpr.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "bpRequester")
-		//bcR.Logger = log.NewNopLogger()
-	}
-	//bpr.BaseService = *cmn.NewBaseService(nil, "bpRequester", bpr)
+
+	bpr.BaseService = *cmn.NewBaseService(nil, "bpRequester", bpr)
 	return bpr
 }
 
-// Implements Service
-func (bpr *bpRequester) IsRunning() bool {
-	return atomic.LoadUint32(&bpr.started) == 1 && atomic.LoadUint32(&bpr.stopped) == 0
+func (bpr *bpRequester) OnStart() error {
+	bpr.Logger.Info(fmt.Sprintf("Starting bpRequester"))
+	go bpr.requestRoutine()
+
+	return nil
 }
 
-func (bpr *bpRequester) Start() error {
-
-	if atomic.CompareAndSwapUint32(&bpr.started, 0, 1) {
-		if atomic.LoadUint32(&bpr.stopped) == 1 {
-			bpr.Logger.Error(fmt.Sprintf("Not starting bpRequester -- already stopped"))
-			return ErrAlreadyStopped
-		} else {
-			bpr.Logger.Info(fmt.Sprintf("Starting bpRequester"))
-			go bpr.requestRoutine()
-
-			return nil
-		}
-	} else {
-		bpr.Logger.Debug(fmt.Sprintf("Not starting bpRequester -- already started"))
-		return ErrAlreadyStarted
-	}
-}
-
-func (bpr *bpRequester) Stop() {
-	if atomic.CompareAndSwapUint32(&bpr.stopped, 0, 1) {
-		bpr.Logger.Info("Stopping bpRequester")
-		return
-	} else {
-		bpr.Logger.Debug("Stopping bpRequester (ignoring: already stopped)")
-		return
-	}
+func (bpr *bpRequester) OnStop() {
+	bpr.Logger.Info("Stopping bpRequester")
+	return
 }
 // Returns true if the peer matches
 func (bpr *bpRequester) setBlock(block *types.Block, peerID string) bool {

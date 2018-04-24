@@ -14,14 +14,13 @@ import (
 
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
-	"github.com/tendermint/tmlibs/log"
+	log "github.com/inconshreveable/log15"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	"os"
 	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/gogo/protobuf/proto"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 //-----------------------------------------------------------------------------
@@ -71,7 +70,7 @@ func (ti *timeoutInfo) String() string {
 // commits blocks to the chain and executes them against the application.
 // The internal state machine receives input from peers, the internal validator, and from a timer.
 type ConsensusState struct {
-	Logger  log.Logger
+	cmn.BaseService
 	// config details
 	client        *drivers.BaseClient
 	privValidator ttypes.PrivValidator // for signing votes
@@ -117,8 +116,6 @@ type ConsensusState struct {
 	// closed when we finish shutting down
 	done chan struct{}
 
-	Quit    chan struct{}
-
 	NewTxsHeight  chan int64
 	NewTxsFinished   chan bool
 	SyncLastBlock       bool
@@ -128,7 +125,7 @@ type ConsensusState struct {
 func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *BlockStore, blockExec *sm.BlockExecutor, evpool ttypes.EvidencePool) *ConsensusState {
 	cs := &ConsensusState{
 		client:           client,
-		//blockExec:        blockExec,
+		blockExec:        blockExec,
 		blockStore:       blockStore,
 		//mempool:          mempool,
 		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
@@ -141,7 +138,6 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 		evpool:           evpool,
 		NewTxsHeight:     make(chan int64, 1),
 		NewTxsFinished:   make(chan bool),
-		blockExec:          blockExec,
 		SyncLastBlock:    false,
 	}
 	// set function defaults (may be overwritten before calling Start)
@@ -153,16 +149,19 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
-	if cs.Logger == nil{
-		cs.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensus")
-	}
-	//cs.BaseService = *cmn.NewBaseService(nil, "ConsensusState", cs)
+
+	cs.BaseService = *cmn.NewBaseService(nil, "ConsensusState", cs)
 	return cs
 }
 
 //----------------------------------------
 // Public interface
 
+// SetLogger implements Service.
+func (cs *ConsensusState) SetLogger(l log.Logger) {
+	cs.Logger = l
+	cs.timeoutTicker.SetLogger(l)
+}
 
 // SetEventBus sets event bus.
 func (cs *ConsensusState) SetEventBus(b *ttypes.EventBus) {
@@ -289,18 +288,16 @@ func (cs *ConsensusState) startRoutines(maxSteps int) {
 }
 
 // OnStop implements cmn.Service. It stops all routines and waits for the WAL to finish.
-func (cs *ConsensusState) Stop() {
-	//cs.BaseService.OnStop()
+func (cs *ConsensusState) OnStop() {
+	cs.BaseService.OnStop()
 
 	cs.timeoutTicker.Stop()
 
-	//20180224 hg deal it later
-	/*
+
 	// Make BaseService.Wait() wait until cs.wal.Wait()
 	if cs.IsRunning() {
-		cs.wal.Wait()
+		//cs.wal.Wait()
 	}
-	*/
 }
 
 // Wait waits for the the main routine to return.
@@ -1028,7 +1025,7 @@ func (cs *ConsensusState) enterPrevote(height int64, round int) {
 }
 
 func (cs *ConsensusState) defaultDoPrevote(height int64, round int) {
-	logger := cs.Logger.With("height", height, "round", round)
+	logger := cs.Logger.New("height", height, "round", round)
 	// If a block is locked, prevote that.
 	if cs.LockedBlock != nil {
 		logger.Info("enterPrevote: Block was locked")

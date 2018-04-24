@@ -11,15 +11,12 @@ import (
 	"github.com/pkg/errors"
 
 	wire "github.com/tendermint/go-wire"
-	cmn "github.com/tendermint/tmlibs/common"
-	"github.com/tendermint/tmlibs/log"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	log "github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
-	crypto "github.com/tendermint/go-crypto"
-	"os"
-	"sync/atomic"
 )
 
 const (
@@ -48,13 +45,6 @@ type ConsensusReactor struct {
 	fastSync bool
 
 	eventBus *types.EventBus
-	Logger  log.Logger
-	privKey crypto.PrivKeyEd25519
-	//Switch          *p2p.Switch
-	Quit    chan struct{}
-
-	started uint32 // atomic
-	stopped uint32 // atomic
 }
 
 // NewConsensusReactor returns a new ConsensusReactor with the given consensusState.
@@ -64,69 +54,38 @@ func NewConsensusReactor(consensusState *ConsensusState, fastSync bool) *Consens
 		fastSync: fastSync,
 
 		eventBus: nil,
-		//Switch:   nil,
-	}
-	if conR.Logger == nil{
-		//conR.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensusReactor")
-		conR.Logger = log.NewNopLogger()
 	}
 
 	conR.BaseReactor = *p2p.NewBaseReactor("ConsensusReactor", conR)
 	return conR
 }
 
-// Implements Service
-func (cr *ConsensusReactor) IsRunning() bool {
-	return atomic.LoadUint32(&cr.started) == 1 && atomic.LoadUint32(&cr.stopped) == 0
-}
-
 // OnStart implements BaseService.
-func (conR *ConsensusReactor) Start() error {
+func (conR *ConsensusReactor) OnStart() error {
 	conR.Logger.Info("ConsensusReactor ", "fastSync", conR.FastSync())
-	/*
+
 	if err := conR.BaseReactor.OnStart(); err != nil {
 		return err
 	}
-	*/
-	if atomic.CompareAndSwapUint32(&conR.started, 0, 1) {
-		if atomic.LoadUint32(&conR.stopped) == 1 {
-			conR.Logger.Error(fmt.Sprintf("Not starting ConsensusReactor -- already stopped"))
-			return ErrAlreadyStopped
-		} else {
-			conR.Logger.Info(fmt.Sprintf("Starting ConsensusReactor"))
-			err := conR.startBroadcastRoutine()
-			if err != nil {
-				return err
-			}
-
-			if !conR.FastSync() {
-				err := conR.conS.Start()
-				if err != nil {
-					return err
-				}
-			}
-
-			return nil
-		}
-	} else {
-		conR.Logger.Debug(fmt.Sprintf("Not starting ConsensusReactor -- already started"))
-		return ErrAlreadyStarted
+	conR.Logger.Info(fmt.Sprintf("Starting ConsensusReactor"))
+	err := conR.startBroadcastRoutine()
+	if err != nil {
+		return err
 	}
 
-
+	if !conR.FastSync() {
+		err := conR.conS.Start()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // OnStop implements BaseService
-func (conR *ConsensusReactor) Stop() {
-	//conR.BaseReactor.OnStop()
-	if atomic.CompareAndSwapUint32(&conR.stopped, 0, 1) {
-		conR.Logger.Info("Stopping ConsensusReactor")
-		conR.conS.Stop()
-		return
-	} else {
-		conR.Logger.Debug("Stopping ConsensusReactor (ignoring: already stopped)")
-		return
-	}
+func (conR *ConsensusReactor) OnStop() {
+	conR.BaseReactor.OnStop()
+	conR.conS.Stop()
 }
 
 // SwitchToConsensus switches from fast_sync mode to consensus mode.
@@ -394,23 +353,23 @@ func (conR *ConsensusReactor) startBroadcastRoutine() error {
 
 	// new round steps
 	stepsCh := make(chan interface{})
-	err := conR.eventBus.Subscribe(ctx, subscriber, types.EventQueryNewRoundStep, stepsCh)
+	err := conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name:"tm.event=NewRoundStep"}, stepsCh)
 	if err != nil {
-		return errors.Wrapf(err, "failed to subscribe %s to %s", subscriber, types.EventQueryNewRoundStep)
+		return errors.Wrapf(err, "failed to subscribe %s to NewRoundgoStep", subscriber)
 	}
 
 	// votes
 	votesCh := make(chan interface{})
-	err = conR.eventBus.Subscribe(ctx, subscriber, types.EventQueryVote, votesCh)
+	err = conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name:"tm.event=vote"}, votesCh)
 	if err != nil {
-		return errors.Wrapf(err, "failed to subscribe %s to %s", subscriber, types.EventQueryVote)
+		return errors.Wrapf(err, "failed to subscribe %s to Vote", subscriber)
 	}
 
 	// proposal heartbeats
 	heartbeatsCh := make(chan interface{})
-	err = conR.eventBus.Subscribe(ctx, subscriber, types.EventQueryProposalHeartbeat, heartbeatsCh)
+	err = conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name:"tm.event=ProposalHeartbea"}, heartbeatsCh)
 	if err != nil {
-		return errors.Wrapf(err, "failed to subscribe %s to %s", subscriber, types.EventQueryProposalHeartbeat)
+		return errors.Wrapf(err, "failed to subscribe %s to ProposalHeartbeat", subscriber)
 	}
 
 	go func() {
@@ -515,7 +474,7 @@ func (conR *ConsensusReactor) sendNewRoundStepMessages(peer p2p.Peer) {
 }
 
 func (conR *ConsensusReactor) gossipDataRoutine(peer p2p.Peer, ps *PeerState) {
-	logger := conR.Logger.With("peer", peer)
+	logger := conR.Logger.New("CR-peer", peer)
 
 OUTER_LOOP:
 	for {
@@ -548,7 +507,7 @@ OUTER_LOOP:
 
 		// If the peer is on a previous height, help catch up.
 		if (0 < prs.Height) && (prs.Height < rs.Height) {
-			heightLogger := logger.With("height", prs.Height)
+			heightLogger := logger.New("height", prs.Height)
 
 			// if we never received the commit message from the peer, the block parts wont be initialized
 			if prs.ProposalBlockParts == nil {
@@ -655,7 +614,7 @@ func (conR *ConsensusReactor) gossipDataForCatchup(logger log.Logger, rs *types.
 }
 
 func (conR *ConsensusReactor) gossipVotesRoutine(peer p2p.Peer, ps *PeerState) {
-	logger := conR.Logger.With("peer", peer)
+	logger := conR.Logger.New("peer", peer)
 
 	// Simple hack to throttle logs upon sleep.
 	var sleeping = 0
@@ -683,7 +642,7 @@ OUTER_LOOP:
 
 		// If height matches, then send LastCommit, Prevotes, Precommits.
 		if rs.Height == prs.Height {
-			heightLogger := logger.With("height", prs.Height)
+			heightLogger := logger.New("height", prs.Height)
 			if conR.gossipVotesForHeight(heightLogger, rs, prs, ps) {
 				continue OUTER_LOOP
 			}
@@ -765,7 +724,7 @@ func (conR *ConsensusReactor) gossipVotesForHeight(logger log.Logger, rs *types.
 // NOTE: `queryMaj23Routine` has a simple crude design since it only comes
 // into play for liveness when there's a signature DDoS attack happening.
 func (conR *ConsensusReactor) queryMaj23Routine(peer p2p.Peer, ps *PeerState) {
-	logger := conR.Logger.With("peer", peer)
+	logger := conR.Logger.New("CR-peer", peer)
 
 OUTER_LOOP:
 	for {
@@ -891,7 +850,7 @@ type PeerState struct {
 func NewPeerState(peer p2p.Peer) *PeerState {
 	return &PeerState{
 		Peer:   peer,
-		logger: log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "reactor"),
+		logger: log.New("module", "tendermint-Reactor-Peer"),
 		PeerRoundState: types.PeerRoundState{
 			Round:              -1,
 			ProposalPOLRound:   -1,
@@ -1118,7 +1077,8 @@ func (ps *PeerState) SetHasVote(vote *types.Vote) {
 }
 
 func (ps *PeerState) setHasVote(height int64, round int, type_ byte, index int) {
-	logger := ps.logger.With("peerH/R", cmn.Fmt("%d/%d", ps.Height, ps.Round), "H/R", cmn.Fmt("%d/%d", height, round))
+	logger := ps.logger
+	logger.Info("peerH/R", cmn.Fmt("%d/%d", ps.Height, ps.Round), "H/R", cmn.Fmt("%d/%d", height, round))
 	logger.Debug("setHasVote", "type", type_, "index", index)
 
 	// NOTE: some may be nil BitArrays -> no side effects.

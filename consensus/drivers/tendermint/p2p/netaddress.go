@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 // NetAddress defines information about a peer on the network

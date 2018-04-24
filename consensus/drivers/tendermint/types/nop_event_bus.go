@@ -2,17 +2,15 @@ package types
 
 import (
 	"context"
-
-	tmpubsub "github.com/tendermint/tmlibs/pubsub"
 )
 
 type NopEventBus struct{}
 
-func (NopEventBus) Subscribe(ctx context.Context, subscriber string, query tmpubsub.Query, out chan<- interface{}) error {
+func (NopEventBus) Subscribe(ctx context.Context, subscriber string, query SimpleEventQuery, out chan<- interface{}) error {
 	return nil
 }
 
-func (NopEventBus) Unsubscribe(ctx context.Context, subscriber string, query tmpubsub.Query) error {
+func (NopEventBus) Unsubscribe(ctx context.Context, subscriber string, query SimpleEventQuery) error {
 	return nil
 }
 

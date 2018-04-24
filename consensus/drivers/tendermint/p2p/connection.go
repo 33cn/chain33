@@ -12,9 +12,8 @@ import (
 
 	wire "github.com/tendermint/go-wire"
 	tmlegacy "github.com/tendermint/go-wire/nowriter/tmlegacy"
-	cmn "github.com/tendermint/tmlibs/common"
-	flow "github.com/tendermint/tmlibs/flowrate"
-	"github.com/tendermint/tmlibs/log"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	log "github.com/inconshreveable/log15"
 	"errors"
 )
 
@@ -74,13 +73,13 @@ queue is full.
 Inbound message bytes are handled with an onReceive callback function.
 */
 type MConnection struct {
-	//cmn.BaseService
+	cmn.BaseService
 
 	conn        net.Conn
 	bufReader   *bufio.Reader
 	bufWriter   *bufio.Writer
-	sendMonitor *flow.Monitor
-	recvMonitor *flow.Monitor
+	sendMonitor *cmn.Monitor
+	recvMonitor *cmn.Monitor
 	send        chan struct{}
 	pong        chan struct{}
 	channels    []*Channel
@@ -97,10 +96,6 @@ type MConnection struct {
 
 	LocalAddress  *NetAddress
 	RemoteAddress *NetAddress
-	Logger  log.Logger
-
-	started uint32 // atomic
-	stopped uint32 // atomic
 }
 
 // MConnConfig is a MConnection configuration.
@@ -143,8 +138,8 @@ func NewMConnectionWithConfig(conn net.Conn, chDescs []*ChannelDescriptor, onRec
 		conn:        conn,
 		bufReader:   bufio.NewReaderSize(conn, minReadBufferSize),
 		bufWriter:   bufio.NewWriterSize(conn, minWriteBufferSize),
-		sendMonitor: flow.New(0, 0),
-		recvMonitor: flow.New(0, 0),
+		sendMonitor: cmn.New(0, 0),
+		recvMonitor: cmn.New(0, 0),
 		send:        make(chan struct{}, 1),
 		pong:        make(chan struct{}),
 		onReceive:   onReceive,
@@ -167,74 +162,52 @@ func NewMConnectionWithConfig(conn net.Conn, chDescs []*ChannelDescriptor, onRec
 	mconn.channels = channels
 	mconn.channelsIdx = channelsIdx
 
-	//mconn.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "p2pMconnection")
-	mconn.Logger = log.NewNopLogger()
-	//mconn.BaseService = *cmn.NewBaseService(nil, "MConnection", mconn)
+	mconn.BaseService = *cmn.NewBaseService(nil, "MConnection", mconn)
 
 	return mconn
 }
 
 func (c *MConnection) SetLogger(l log.Logger) {
-	//c.BaseService.SetLogger(l)
+	c.BaseService.SetLogger(l)
 	for _, ch := range c.channels {
 		ch.SetLogger(l)
 	}
 }
 
-// Implements Service
-func (c *MConnection) IsRunning() bool {
-	return atomic.LoadUint32(&c.started) == 1 && atomic.LoadUint32(&c.stopped) == 0
-}
-
 // OnStart implements BaseService
-func (c *MConnection) Start() error {
-	/*
+func (c *MConnection) OnStart() error {
+
 	if err := c.BaseService.OnStart(); err != nil {
 		return err
 	}
-	*/
-	if atomic.CompareAndSwapUint32(&c.started, 0, 1) {
-		if atomic.LoadUint32(&c.stopped) == 1 {
-			c.Logger.Error(fmt.Sprintf("Not starting mconn -- already stopped"))
-			return ErrAlreadyStopped
-		} else {
-			c.Logger.Info(fmt.Sprintf("Starting mconn"))
-			c.quit = make(chan struct{})
-			c.flushTimer = cmn.NewThrottleTimer("flush", c.config.flushThrottle)
-			c.pingTimer = cmn.NewRepeatTimer("ping", pingTimeout)
-			c.chStatsTimer = cmn.NewRepeatTimer("chStats", updateStats)
-			go c.sendRoutine()
-			go c.recvRoutine()
-			return nil
-		}
-	} else {
-		c.Logger.Debug(fmt.Sprintf("Not starting mconn -- already started"))
-		return ErrAlreadyStarted
-	}
+
+	c.Logger.Info(fmt.Sprintf("Starting mconn"))
+	c.quit = make(chan struct{})
+	c.flushTimer = cmn.NewThrottleTimer("flush", c.config.flushThrottle)
+	c.pingTimer = cmn.NewRepeatTimer("ping", pingTimeout)
+	c.chStatsTimer = cmn.NewRepeatTimer("chStats", updateStats)
+	go c.sendRoutine()
+	go c.recvRoutine()
+	return nil
 }
 
 // OnStop implements BaseService
-func (c *MConnection) Stop() {
-	//c.BaseService.OnStop()
-	if atomic.CompareAndSwapUint32(&c.stopped, 0, 1) {
-		c.Logger.Info("Stopping mconn")
-		c.flushTimer.Stop()
-		c.pingTimer.Stop()
-		c.chStatsTimer.Stop()
-		if c.quit != nil {
-			close(c.quit)
-		}
-		c.conn.Close() // nolint: errcheck
-		// We can't close pong safely here because
-		// recvRoutine may write to it after we've stopped.
-		// Though it doesn't need to get closed at all,
-		// we close it @ recvRoutine.
-		// close(c.pong)
-		return
-	} else {
-		c.Logger.Debug("Stopping mconn (ignoring: already stopped)")
-		return
+func (c *MConnection) OnStop() {
+	c.BaseService.OnStop()
+	c.Logger.Info("Stopping mconn")
+	c.flushTimer.Stop()
+	c.pingTimer.Stop()
+	c.chStatsTimer.Stop()
+	if c.quit != nil {
+		close(c.quit)
 	}
+	c.conn.Close() // nolint: errcheck
+	// We can't close pong safely here because
+	// recvRoutine may write to it after we've stopped.
+	// Though it doesn't need to get closed at all,
+	// we close it @ recvRoutine.
+	// close(c.pong)
+	return
 }
 
 func (c *MConnection) String() string {
@@ -550,8 +523,8 @@ FOR_LOOP:
 }
 
 type ConnectionStatus struct {
-	SendMonitor flow.Status
-	RecvMonitor flow.Status
+	SendMonitor cmn.Status
+	RecvMonitor cmn.Status
 	Channels    []ChannelStatus
 }
 
@@ -631,7 +604,6 @@ func newChannel(conn *MConnection, desc ChannelDescriptor) *Channel {
 		sendQueue:               make(chan []byte, desc.SendQueueCapacity),
 		recving:                 make([]byte, 0, desc.RecvBufferCapacity),
 		maxMsgPacketPayloadSize: conn.config.maxMsgPacketPayloadSize,
-		Logger:                  log.NewNopLogger(),
 	}
 }
 

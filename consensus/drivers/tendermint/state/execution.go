@@ -5,8 +5,8 @@ import (
 
 	fail "github.com/ebuchman/fail-test"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	dbm "github.com/tendermint/tmlibs/db"
-	"github.com/tendermint/tmlibs/log"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	log "github.com/inconshreveable/log15"
 )
 
 //-----------------------------------------------------------------------------

@@ -1,11 +1,7 @@
 package types
 
 import (
-	"fmt"
-
 	"github.com/tendermint/go-wire/data"
-	tmpubsub "github.com/tendermint/tmlibs/pubsub"
-	tmquery "github.com/tendermint/tmlibs/pubsub/query"
 )
 
 // Reserved event types
@@ -145,35 +141,6 @@ const (
 	TxHeightKey = "tx.height"
 )
 
-var (
-	EventQueryBond              = QueryForEvent(EventBond)
-	EventQueryUnbond            = QueryForEvent(EventUnbond)
-	EventQueryRebond            = QueryForEvent(EventRebond)
-	EventQueryDupeout           = QueryForEvent(EventDupeout)
-	EventQueryFork              = QueryForEvent(EventFork)
-	EventQueryNewBlock          = QueryForEvent(EventNewBlock)
-	EventQueryNewBlockHeader    = QueryForEvent(EventNewBlockHeader)
-	EventQueryNewRound          = QueryForEvent(EventNewRound)
-	EventQueryNewRoundStep      = QueryForEvent(EventNewRoundStep)
-	EventQueryTimeoutPropose    = QueryForEvent(EventTimeoutPropose)
-	EventQueryCompleteProposal  = QueryForEvent(EventCompleteProposal)
-	EventQueryPolka             = QueryForEvent(EventPolka)
-	EventQueryUnlock            = QueryForEvent(EventUnlock)
-	EventQueryLock              = QueryForEvent(EventLock)
-	EventQueryRelock            = QueryForEvent(EventRelock)
-	EventQueryTimeoutWait       = QueryForEvent(EventTimeoutWait)
-	EventQueryVote              = QueryForEvent(EventVote)
-	EventQueryProposalHeartbeat = QueryForEvent(EventProposalHeartbeat)
-	EventQueryTx                = QueryForEvent(EventTx)
-)
-
-func EventQueryTxFor(tx Tx) tmpubsub.Query {
-	return tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s='%X'", EventTypeKey, EventTx, TxHashKey, tx.Hash()))
-}
-
-func QueryForEvent(eventType string) tmpubsub.Query {
-	return tmquery.MustParse(fmt.Sprintf("%s='%s'", EventTypeKey, eventType))
-}
 
 // BlockEventPublisher publishes all block related events
 type BlockEventPublisher interface {
