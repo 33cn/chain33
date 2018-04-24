@@ -78,7 +78,6 @@ func (r *relay) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
 
-
 //func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 //
 //}

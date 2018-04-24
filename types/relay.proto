@@ -120,3 +120,22 @@ message ReceiptRelayRevoke {
 message ReceiptRelayVerify {
     ReceiptRelayBase base = 1;
 }
+
+enum RelayOrderStatus {
+    unknown = 0;
+    pending = 1;
+    locking = 2;
+    confirming = 3;
+    finished = 4;
+    canceled = 5;
+    timeout = 6;
+}
+
+message QueryRelayOrderParam{
+    RelayOrderStatus status = 1;
+    string orderid = 2;
+}
+
+message QueryRelayOrderResult{
+    repeated RelayOrder orders = 1;
+}
