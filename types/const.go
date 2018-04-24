@@ -524,18 +524,3 @@ const (
 	ForkV4_add_manage  = 120000
 	ForkV5_add_privacy = 200000
 )
-
-const (
-	SignTypeInvalid        = 0
-	SignTypeSecp256k1      = 1
-	SignTypeED25519        = 2
-	SignTypeSM2            = 3
-	SignTypeOnetimeED25519 = 4
-)
-
-var MapSignType2name = map[int]string{
-	SignTypeSecp256k1:      "secp256k1",
-	SignTypeED25519:        "ed25519",
-	SignTypeSM2:            "sm2",
-	SignTypeOnetimeED25519: "onetimeed25519",
-}

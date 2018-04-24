@@ -67,11 +67,12 @@ func New(cfg *types.Wallet) *Wallet {
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, 16)
 	walletStore := NewWalletStore(walletStoreDB)
 	minFee = cfg.MinFee
-	if "secp256k1" == cfg.SignType {
-		SignType = types.SignTypeSecp256k1
-	} else if "ed25519" == cfg.SignType {
-		SignType = types.SignTypeED25519
+	signType, exist := crypto.MapSignName2Type[cfg.SignType]
+	if !exist {
+		signType = crypto.SignTypeSecp256k1
 	}
+	SignType = signType
+
 	wallet := &Wallet{
 		walletStore:    walletStore,
 		isWalletLocked: true,
@@ -2209,7 +2210,7 @@ func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivacyBalance) (*types.A
 	}
 	walletlog.Info("transPri2Pri", "R of GetRofPrivateTx", R)
 	//x = Hs(aR) + b
-	priv, err := privacyInfo.RecoverOnetimePriKey(R, privacyInfo.ViewPrivKey, privacyInfo.SpendPrivKey)
+	priv, err := privacy.RecoverOnetimePriKey(R, privacyInfo.ViewPrivKey, privacyInfo.SpendPrivKey)
 	if err != nil {
 		walletlog.Error("transPri2Pri", "Failed to RecoverOnetimePriKey", err)
 		return nil, err

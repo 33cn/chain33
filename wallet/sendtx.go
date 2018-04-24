@@ -793,8 +793,6 @@ func (wallet *Wallet) modifyConfig(priv crypto.PrivKey, req *types.ReqModifyConf
 }
 
 func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.ReplyHash, error) {
-	privacyPtr := &privacy.Privacy{}
-
 	viewPubSlice, err := common.FromHex(reqPub2Pri.ViewPublic)
 	if err != nil {
 		return nil, err
@@ -813,7 +811,7 @@ func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub
 	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
 	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
 
-	pubkeyOnetime, txPublicKey, err := privacyPtr.GenerateOneTimeAddr(viewPublic, spendPublic)
+	pubkeyOnetime, txPublicKey, err := privacy.GenerateOneTimeAddr(viewPublic, spendPublic)
 	if err != nil {
 		return nil, err
 	}
@@ -866,7 +864,7 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 
 	walletlog.Info("transPri2Pri", "viewPublic", viewPublic, "spendPublic", spendPublic,)
 
-	pubkeyOnetime, txPublicKey, err := privacykeyParirs.GenerateOneTimeAddr(viewPublic, spendPublic)
+	pubkeyOnetime, txPublicKey, err := privacy.GenerateOneTimeAddr(viewPublic, spendPublic)
 	if err != nil {
 		walletlog.Error("transPri2Pri", "Failed to GenerateOneTimeAddr")
 		return nil, err
@@ -899,12 +897,12 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 	}
 	walletlog.Info("transPri2Pri", "R of GetRofPrivateTx", R)
 	//x = Hs(aR) + b
-	priv, err := privacykeyParirs.RecoverOnetimePriKey(R, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
+	priv, err := privacy.RecoverOnetimePriKey(R, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
 	if err != nil {
 		walletlog.Error("transPri2Pri", "Failed to RecoverOnetimePriKey", err)
 		return nil, err
 	}
-	tx.Sign(int32(types.SignTypeOnetimeED25519), priv)
+	tx.Sign(int32(crypto.SignTypeOnetimeED25519), priv)
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)
@@ -948,11 +946,11 @@ func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub
 		return nil, err
 	}
 	//x = Hs(aR) + b
-	priv, err := privacykeyParirs.RecoverOnetimePriKey(R, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
+	priv, err := privacy.RecoverOnetimePriKey(R, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
 	if err != nil {
 		return nil, err
 	}
-	tx.Sign(int32(types.SignTypeOnetimeED25519), priv)
+	tx.Sign(int32(crypto.SignTypeOnetimeED25519), priv)
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)
