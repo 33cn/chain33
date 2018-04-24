@@ -110,7 +110,7 @@ func (d *downloadJob) DownloadBlock(invs []*pb.Inventory,
 	for _, inv := range invs { //让一个节点一次下载一个区块，下载失败区块，交给下一轮下载
 		freePeer := d.GetFreePeer(inv.GetHeight())
 		if freePeer == nil {
-			log.Error("DownloadBlock", "freepeer is null", inv.GetHeight())
+			//log.Error("DownloadBlock", "freepeer is null", inv.GetHeight())
 			d.retryList.PushBack(inv)
 			continue
 		}
