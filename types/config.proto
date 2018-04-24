@@ -43,8 +43,8 @@ message MemPool {
 }
 
 message Consensus {
-	string name=1;
-	string genesis=2;
+	string name = 1;
+	string genesis = 2;
 	bool minerstart = 3;
 	int64 genesisBlockTime = 4;
 	string hotkeyAddr = 5;
@@ -53,7 +53,7 @@ message Consensus {
 	string PeersURL = 8;
 	string ClientAddr = 9;
 	int64 raftApiPort = 15;
-	bool isNewJoinNode= 16;
+	bool isNewJoinNode = 16;
 	string readOnlyPeersURL = 17;
 	string addPeersURL = 18;
 	int64 defaultSnapCount = 19;
