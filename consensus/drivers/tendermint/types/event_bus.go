@@ -2,7 +2,8 @@ package types
 
 import (
 	"context"
-	"github.com/tendermint/tmlibs/log"
+	log "github.com/inconshreveable/log15"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 const defaultCapacity = 1000
@@ -17,6 +18,7 @@ type EventBusSubscriber interface {
 // are proxied to underlying pubsub server. All events must be published using
 // EventBus to ensure correct data types.
 type EventBus struct {
+	cmn.BaseService
 	pubsub *Server
 }
 
@@ -30,22 +32,22 @@ func NewEventBusWithBufferCapacity(cap int) *EventBus {
 	// capacity could be exposed later if needed
 	pubsub := NewServer(BufferCapacity(cap))
 	b := &EventBus{pubsub: pubsub}
+	b.BaseService = *cmn.NewBaseService(nil, "EventBus", b)
 	return b
 }
 
-/*
+
 func (b *EventBus) SetLogger(l log.Logger) {
 	b.BaseService.SetLogger(l)
-	b.pubsub.SetLogger(l.With("module", "pubsub"))
-}
-*/
-
-func (b *EventBus) Start() error {
-	return b.pubsub.Start()
+	b.pubsub.SetLogger(l.New("module", "tendermint-pubsub"))
 }
 
-func (b *EventBus) Stop() {
-	b.pubsub.Stop()
+func (b *EventBus) OnStart() error {
+	return b.pubsub.OnStart()
+}
+
+func (b *EventBus) OnStop() {
+	b.pubsub.OnStop()
 }
 
 func (b *EventBus) Subscribe(ctx context.Context, subscriber string, query Query, out chan<- interface{}) error {

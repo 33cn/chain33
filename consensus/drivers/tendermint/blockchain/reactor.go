@@ -12,10 +12,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	cmn "github.com/tendermint/tmlibs/common"
-	"github.com/tendermint/tmlibs/log"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/core"
-	"os"
 )
 
 const (
@@ -56,10 +55,6 @@ type BlockchainReactor struct {
 	fastSync   bool
 	requestsCh chan BlockRequest
 	timeoutsCh chan string
-
-	Logger  log.Logger
-
-	Quit    chan struct{}
 }
 
 // NewBlockchainReactor returns new reactor instance.
@@ -85,19 +80,21 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *co
 		requestsCh:   requestsCh,
 		timeoutsCh:   timeoutsCh,
 	}
-	if bcR.Logger == nil{
-		bcR.Logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "blockchainReactor")
-		//bcR.Logger = log.NewNopLogger()
-	}
 	bcR.BaseReactor = *p2p.NewBaseReactor("BlockchainReactor", bcR)
 	return bcR
 }
 
+// SetLogger implements cmn.Service by setting the logger on reactor and pool.
+func (bcR *BlockchainReactor) SetLogger(l log.Logger) {
+	bcR.Logger = l
+	bcR.pool.Logger = l
+}
+
 // OnStart implements cmn.Service.
-func (bcR *BlockchainReactor) Start() error {
-	//if err := bcR.BaseReactor.OnStart(); err != nil {
-		//return err
-	//}
+func (bcR *BlockchainReactor) OnStart() error {
+	if err := bcR.BaseReactor.OnStart(); err != nil {
+		return err
+	}
 	if bcR.fastSync {
 		err := bcR.pool.Start()
 		if err != nil {
@@ -109,8 +106,8 @@ func (bcR *BlockchainReactor) Start() error {
 }
 
 // OnStop implements cmn.Service.
-func (bcR *BlockchainReactor) Stop() {
-	bcR.BaseReactor.Stop()
+func (bcR *BlockchainReactor) OnStop() {
+	bcR.BaseReactor.OnStop()
 	bcR.pool.Stop()
 }
 

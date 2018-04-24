@@ -7,8 +7,6 @@ import (
 	"math"
 	"sync"
 	"time"
-
-	//cmn "github.com/tendermint/tmlibs/common"
 )
 
 //---------------------------------------------------------------------------------------

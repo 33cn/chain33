@@ -4,7 +4,7 @@
 
 // Package flowrate provides the tools for monitoring and limiting the flow rate
 // of an arbitrary data stream.
-package flowrate
+package common
 
 import (
 	"math"

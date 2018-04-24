@@ -29,10 +29,10 @@ batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
 isStrongConsistency=false
-singleMode=true
+singleMode=false
 
 [p2p]
-seeds=["192.168.3.4:13802"]
+seeds=["192.168.3.29:13802","192.168.3.30:13802","192.168.3.13:13802","192.168.3.4:13802"]
 enable=true
 isSeed=true
 serverStart=true

@@ -8,13 +8,13 @@ import (
 
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	cmn "github.com/tendermint/tmlibs/common"
-	"github.com/tendermint/tmlibs/log"
-	"sync/atomic"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	log "github.com/inconshreveable/log15"
 )
 
 // Peer is an interface representing a peer connected on a reactor.
 type Peer interface {
+	cmn.Service
 	Key() string
 	IsOutbound() bool
 	IsPersistent() bool
@@ -26,10 +26,6 @@ type Peer interface {
 
 	Set(string, interface{})
 	Get(string) interface{}
-	Start() error
-	Stop()
-
-	IsRunning() bool
 }
 
 // Peer could be marked as persistent, in which case you can use
@@ -38,6 +34,7 @@ type Peer interface {
 //
 // Before using a peer, you will need to perform a handshake on connection.
 type peer struct {
+	cmn.BaseService
 	outbound bool
 
 	conn  net.Conn     // source connection
@@ -48,10 +45,6 @@ type peer struct {
 
 	nodeInfo *NodeInfo
 	Data     *cmn.CMap // User data.
-	Logger  log.Logger
-
-	started uint32 // atomic
-	stopped uint32 // atomic
 }
 
 // PeerConfig is a Peer configuration.
@@ -127,6 +120,8 @@ func newPeerFromConnAndConfig(rawConn net.Conn, outbound bool, reactorsByCh map[
 	}
 
 	p.mconn = createMConnection(conn, p, reactorsByCh, chDescs, onPeerError, config.MConfig)
+
+	p.BaseService = *cmn.NewBaseService(nil, "Peer", p)
 
 	return p, nil
 }
@@ -218,40 +213,20 @@ func (p *peer) PubKey() crypto.PubKeyEd25519 {
 	return p.PubKey()
 }
 
-// Implements Service
-func (p *peer) IsRunning() bool {
-	return atomic.LoadUint32(&p.started) == 1 && atomic.LoadUint32(&p.stopped) == 0
-}
-
 // OnStart implements BaseService.
-func (p *peer) Start() error {
-	if atomic.CompareAndSwapUint32(&p.started, 0, 1) {
-		if atomic.LoadUint32(&p.stopped) == 1 {
-			p.Logger.Error(fmt.Sprintf("Not starting peer -- already stopped"))
-			return ErrAlreadyStopped
-		} else {
-			p.Logger.Info(fmt.Sprintf("Starting peer"))
-			err := p.mconn.Start()
-			return err
-		}
-	} else {
-		p.Logger.Debug(fmt.Sprintf("Not starting peer -- already started"))
-		return ErrAlreadyStarted
+func (p *peer) OnStart() error {
+	if err := p.BaseService.OnStart(); err != nil {
+		return err
 	}
-
+	err := p.mconn.Start()
+	return err
 }
 
 // OnStop implements BaseService.
-func (p *peer) Stop() {
-	if atomic.CompareAndSwapUint32(&p.stopped, 0, 1) {
-		p.Logger.Info("Stopping peer")
-		p.mconn.Stop()
-		return
-	} else {
-		p.Logger.Debug("Stopping peer (ignoring: already stopped)")
-		return
-	}
-
+func (p *peer) OnStop() {
+	p.BaseService.OnStop()
+	p.mconn.Stop()
+	return
 }
 
 // Connection returns underlying MConnection.
@@ -267,17 +242,28 @@ func (p *peer) IsOutbound() bool {
 // Send msg to the channel identified by chID byte. Returns false if the send
 // queue is full after timeout, specified by MConnection.
 func (p *peer) Send(chID byte, msg interface{}) bool {
+	if !p.IsRunning() {
+		// see Switch#Broadcast, where we fetch the list of peers and loop over
+		// them - while we're looping, one peer may be removed and stopped.
+		return false
+	}
 	return p.mconn.Send(chID, msg)
 }
 
 // TrySend msg to the channel identified by chID byte. Immediately returns
 // false if the send queue is full.
 func (p *peer) TrySend(chID byte, msg interface{}) bool {
+	if !p.IsRunning() {
+		return false
+	}
 	return p.mconn.TrySend(chID, msg)
 }
 
 // CanSend returns true if the send queue is not full, false otherwise.
 func (p *peer) CanSend(chID byte) bool {
+	if !p.IsRunning() {
+		return false
+	}
 	return p.mconn.CanSend(chID)
 }
 

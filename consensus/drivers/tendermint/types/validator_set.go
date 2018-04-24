@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"github.com/tendermint/tmlibs/merkle"
 )
 

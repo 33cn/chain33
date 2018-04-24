@@ -15,7 +15,7 @@ import (
 	"context"
 	"errors"
 	"sync"
-
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 type operation int
@@ -45,7 +45,7 @@ type Query interface {
 // Server allows clients to subscribe/unsubscribe for messages, publishing
 // messages with or without tags, and manages internal state.
 type Server struct {
-	//cmn.BaseService
+	cmn.BaseService
 
 	cmds    chan cmd
 	cmdsCap int
@@ -64,7 +64,7 @@ func NewServer(options ...Option) *Server {
 	s := &Server{
 		subscriptions: make(map[string]map[string]struct{}),
 	}
-	//s.BaseService = *cmn.NewBaseService(nil, "PubSub", s)
+	s.BaseService = *cmn.NewBaseService(nil, "PubSub", s)
 
 	for _, option := range options {
 		option(s)
@@ -187,7 +187,7 @@ func (s *Server) PublishWithTags(ctx context.Context, msg interface{}, tags map[
 }
 
 // OnStop implements Service.OnStop by shutting down the server.
-func (s *Server) Stop() {
+func (s *Server) OnStop() {
 	s.cmds <- cmd{op: shutdown}
 }
 
@@ -200,7 +200,7 @@ type state struct {
 }
 
 // OnStart implements Service.OnStart by starting the server.
-func (s *Server) Start() error {
+func (s *Server) OnStart() error {
 	go s.loop(state{
 		queries: make(map[Query]map[string]chan<- interface{}),
 		clients: make(map[string]map[Query]struct{}),

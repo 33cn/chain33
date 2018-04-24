@@ -22,7 +22,7 @@ import (
 
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 // 2 + 1024 == 1026 total frame size
