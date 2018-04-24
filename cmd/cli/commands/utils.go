@@ -145,7 +145,7 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 	return rd
 }
 
-func sendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
+func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
 	amt := amount
 	if isWithdraw {
 		amt = -amount
@@ -163,7 +163,7 @@ func sendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func createRawTx(to string, amount float64, note string, withdraw bool, isToken bool, tokenSymbol string) (string, error) {
+func CreateRawTx(to string, amount float64, note string, withdraw bool, isToken bool, tokenSymbol string) (string, error) {
 	amountInt64 := int64(amount*1e4) * 1e4
 	//c, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
 	//if err != nil {
@@ -222,7 +222,7 @@ func createRawTx(to string, amount float64, note string, withdraw bool, isToken 
 	return hex.EncodeToString(txHex), nil
 }
 
-func getExecAddr(exec string) (string, error) {
+func GetExecAddr(exec string) (string, error) {
 	switch exec {
 	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
 		addrResult := account.ExecAddress(exec)
