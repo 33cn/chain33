@@ -1,0 +1,24 @@
+title = "raft"
+[servers]
+    #按实际需求依次配置
+    [servers.1]
+        userName="ubuntu"
+        hostIp="raft15258.chinacloudapp.cn"
+        passWord="Fuzamei#123456"
+        port=22
+        localFilePath="chain33.tgz"
+        remoteDir="/home/ubuntu/deploy"
+#    [servers.2]
+#        userName="ubuntu"
+#        hostIp="raft15258.chinacloudapp.cn22222"
+#        passWord="Fuzamei#123456"
+#        port=22
+#        localFilePath=""
+#        remoteDir=""
+#    [servers.3]
+#        userName="ubuntu"
+#        hostIp="raft15258.chinacloudapp.cn22222"
+#        passWord="Fuzamei#123456"
+#        port=22
+#        localFilePath=""
+#        remoteDir=""

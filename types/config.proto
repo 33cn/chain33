@@ -52,6 +52,11 @@ message Consensus {
 	int64 NodeId = 7;
 	string PeersURL = 8;
 	string ClientAddr = 9;
+	int64 raftApiPort = 15;
+	bool isNewJoinNode = 16;
+	string readOnlyPeersURL = 17;
+	string addPeersURL = 18;
+	int64 defaultSnapCount = 19;
 }
 
 message Wallet {
