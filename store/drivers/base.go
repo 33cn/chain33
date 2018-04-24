@@ -66,6 +66,7 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 		for msg := range store.qclient.Recv() {
 			slog.Debug("store recv", "msg", msg)
 			store.processMessage(msg)
+			slog.Debug("store process end", "msg.id", msg.Id)
 		}
 		store.done <- struct{}{}
 	}()
