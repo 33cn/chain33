@@ -111,6 +111,9 @@ It has these top-level messages:
 	ReceiptTicketBind
 	ExecTxList
 	Query
+	Norm
+	NormAction
+	NormPut
 	RetrievePara
 	Retrieve
 	RetrieveAction

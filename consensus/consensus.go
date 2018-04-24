@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/pbft"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/raft"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/solo"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/ticket"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -14,7 +15,8 @@ func New(cfg *types.Consensus) queue.Module {
 		con := solo.New(cfg)
 		return con
 	} else if consensusType == "raft" {
-		// TODO:
+		con := raft.NewRaftCluster(cfg)
+		return con
 	} else if consensusType == "pbft" {
 		con := pbft.NewPbft(cfg)
 		return con
