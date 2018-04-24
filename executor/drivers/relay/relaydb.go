@@ -244,6 +244,7 @@ func (action *relayAction) relayBuy(buy *types.RelayBuy) (*types.Receipt, error)
 
 	relaydb := newRelayDB(order)
 	sellOrderKV := relaydb.save(action.db)
+	logs = append(logs, relaydb.getSellLogs(types.TyLogRelaySell))
 	logs = append(logs, relaydb.getBuyLogs(action.txhash))
 	kv = append(kv, sellOrderKV...)
 
@@ -326,6 +327,7 @@ func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC) (*
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
+	logs = append(logs, relaydb.getSellLogs(types.TyLogRelaySell))
 	logs = append(logs, relaydb.getVerifyLogs(action.blocktime))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, orderKV...)
