@@ -18,8 +18,6 @@ const (
 	PublicKeyLen       = 32
 	PrivateKeyLen      = 64
 	KeyLen32           = 32
-	TypePrivacyOneTime = byte(0x03)
-	NamePrivacyOneTime = "onetimeed25519"
 )
 
 type Privacy struct {
@@ -30,13 +28,13 @@ type Privacy struct {
 }
 
 type EllipticCurvePoint [32]byte
-type sigcommArray [32 * 3]byte
-
 type sigcomm struct {
 	hash   [32]byte
 	pubkey EllipticCurvePoint
 	comm   EllipticCurvePoint
 }
+//
+type sigcommArray [32 * 3]byte
 
 var (
 	ErrViewPub       = errors.New("ErrViewPub")
@@ -77,7 +75,7 @@ func NewPrivacyWithPrivKey(privKey *[KeyLen32]byte) (privacy *Privacy, err error
 }
 
 //(A, B) => Hs(rA)G + B, rG=>R
-func (privacy *Privacy) GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicKey *[32]byte, errInfo error) {
+func GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicKey *[32]byte, errInfo error) {
 	pk := &PubKeyPrivacy{}
 	sk := &PrivKeyPrivacy{}
 	generateKeyPair(sk, pk)
@@ -137,7 +135,7 @@ func (privacy *Privacy) GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkey
 }
 
 //calculate Hs(aR) + b
-func (privacy *Privacy) RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (PrivKey, error) {
+func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (PrivKey, error) {
 	fmt.Printf("Begin to process RecoverOnetimePriKey\n")
 	var viewSecAddr, spendSecAddr, RtxPubAddr *[32]byte
 	viewSecAddr = (*[32]byte)(unsafe.Pointer(&viewSecretKey.Bytes()[0]))

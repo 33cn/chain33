@@ -11,11 +11,6 @@ import (
 
 type Ed25519Driver struct{}
 
-const (
-	TypeEd25519 = byte(0x01)
-	NameEd25519 = "ed25519"
-)
-
 // Crypto
 func (d Ed25519Driver) GenKey() (PrivKey, error) {
 	privKeyBytes := new([64]byte)
@@ -143,6 +138,6 @@ func (sig SignatureEd25519) Equals(other Signature) bool {
 }
 
 func init() {
-	Register(NameEd25519, &Ed25519Driver{})
+	Register(SignNameED25519, &Ed25519Driver{})
 }
 

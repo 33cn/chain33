@@ -11,11 +11,6 @@ import (
 
 type Secp256k1Driver struct{}
 
-const (
-	TypeSecp256k1 = byte(0x02)
-	NameSecp256k1 = "secp256k1"
-)
-
 // Ctypto
 func (d Secp256k1Driver) GenKey() (PrivKey, error) {
 	privKeyBytes := [32]byte{}
@@ -169,5 +164,5 @@ func (sig SignatureSecp256k1) Equals(other Signature) bool {
 }
 
 func init() {
-	Register(NameSecp256k1, &Secp256k1Driver{})
+	Register(SignNameSecp256k1, &Secp256k1Driver{})
 }

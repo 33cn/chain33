@@ -27,7 +27,7 @@ func TestPrivacyOnetimeKey(t *testing.T) {
 
 	viewPublic := (*[32]byte)(unsafe.Pointer(&privacyInfo.ViewPubkey[0]))
 	spendPublic := (*[32]byte)(unsafe.Pointer(&privacyInfo.SpendPubkey[0]))
-	pubkeyOnetime, txPublicKey, err := privacyInfo.GenerateOneTimeAddr(viewPublic, spendPublic)
+	pubkeyOnetime, txPublicKey, err := GenerateOneTimeAddr(viewPublic, spendPublic)
 	if err != nil {
 		t.Errorf("Failed to GenerateOneTimeAddr")
 		return
@@ -35,7 +35,7 @@ func TestPrivacyOnetimeKey(t *testing.T) {
 	t.Logf("The generated pubkeyOnetime: %X \n", pubkeyOnetime[:])
 	t.Logf("The generated txPublicKey:   %X \n", txPublicKey[:])
 
-	onetimePriKey, err := privacyInfo.RecoverOnetimePriKey(txPublicKey[:], privacyInfo.ViewPrivKey, privacyInfo.SpendPrivKey)
+	onetimePriKey, err := RecoverOnetimePriKey(txPublicKey[:], privacyInfo.ViewPrivKey, privacyInfo.SpendPrivKey)
 	if err != nil {
 		t.Errorf("Failed to RecoverOnetimePriKey")
 		return
