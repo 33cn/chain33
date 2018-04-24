@@ -55,7 +55,7 @@ func createTransfer(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := createRawTx(toAddr, amount, note, false, false, "")
+	txHex, err := CreateRawTx(toAddr, amount, note, false, false, "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -93,12 +93,12 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := getExecAddr(exec)
+	execAddr, err := GetExecAddr(exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := createRawTx(execAddr, amount, note, true, false, "")
+	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -137,7 +137,7 @@ func transfer(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
-	sendToAddress(rpcLaddr, fromAddr, toAddr, amountInt64, note, false, "", false)
+	SendToAddress(rpcLaddr, fromAddr, toAddr, amountInt64, note, false, "", false)
 }
 
 // withdraw from executor
@@ -170,11 +170,11 @@ func withdraw(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := getExecAddr(exec)
+	execAddr, err := GetExecAddr(exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
-	sendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
+	SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
 }
