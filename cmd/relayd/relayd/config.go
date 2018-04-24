@@ -1,20 +1,29 @@
 package relayd
 
 import (
-	"github.com/BurntSushi/toml"
-	"github.com/btcsuite/btcd/rpcclient"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/BurntSushi/toml"
+	"github.com/btcsuite/btcd/rpcclient"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type Config struct {
-	Title   string
-	Chain33 []Chain33
-	BitCoin []BitCoin
+	Title             string
+	Watch             bool
+	Pprof             bool
+	Trace             bool
+	Heartbeat33       int
+	ReconnectAttempts int
+	HeartbeatBTC      int
+	Chain33           Chain33
+	BitCoin           BitCoin
+	Log               types.Log
 }
 
 type BitCoin struct {
-	id                   string
+	Id                   string
 	Host                 string
 	Endpoint             string
 	User                 string
@@ -53,7 +62,7 @@ func (b *BitCoin) BitConnConfig() *rpcclient.ConnConfig {
 }
 
 type Chain33 struct {
-	id                   string
+	Id                   string
 	Host                 string
 	Endpoint             string
 	User                 string
@@ -61,7 +70,7 @@ type Chain33 struct {
 	DisableAutoReconnect bool
 }
 
-func config(path string) *Config {
+func NewConfig(path string) *Config {
 	var cfg Config
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		panic(err)

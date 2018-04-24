@@ -3,8 +3,8 @@ package relay
 import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // relay status
@@ -77,13 +77,13 @@ func (r *relayDB) getBuyLogs(txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogRelayBuy
 	receiptBuy := &types.ReceiptRelayBuy{
-		Orderid:      r.Orderid,
-		Buyeraddr:    r.Buyeraddr,
-		Buyamount:    r.Sellamount,
-		Exchgcoin:    r.Exchgcoin,
-		Exchgamount:  r.Exchgamount,
-		Exchgaddr: r.Exchgaddr,
-		Buytxhash:    txhash,
+		Orderid:     r.Orderid,
+		Buyeraddr:   r.Buyeraddr,
+		Buyamount:   r.Sellamount,
+		Exchgcoin:   r.Exchgcoin,
+		Exchgamount: r.Exchgamount,
+		Exchgaddr:   r.Exchgaddr,
+		Buytxhash:   txhash,
 	}
 	log.Log = types.Encode(receiptBuy)
 
@@ -160,7 +160,7 @@ func (action *relayAction) relaySell(sell *types.RelaySell) (*types.Receipt, err
 	var kv []*types.KeyValue
 	order := &types.RelayOrder{
 		Orderid:        calcRelaySellID(action.txhash),
-		Status:          Relay_OnSell,
+		Status:         Relay_OnSell,
 		Sellamount:     sell.Sellamount,
 		Selladdr:       action.fromaddr,
 		Exchgcoin:      sell.Exchgcoin,
