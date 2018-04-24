@@ -508,7 +508,7 @@ func GetEventName(event int) string {
 }
 
 func GetSignatureTypeName(signType int) string {
-	if name, exist := MapSignType2name[signType]; exist {
+	if name, exist := crypto.MapSignType2name[signType]; exist {
 		return name
 	}
 

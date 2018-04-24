@@ -9,7 +9,7 @@ import (
 type OneTimeEd25519 struct{}
 
 func init() {
-	Register(NamePrivacyOneTime, &OneTimeEd25519{})
+	Register(SignNameOnetimeED25519, &OneTimeEd25519{})
 }
 
 func (onetime *OneTimeEd25519) GenKey() (PrivKey, error) {
