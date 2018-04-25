@@ -73,9 +73,9 @@ func main() {
 	r := relayd.NewRelayd(cfg)
 	r.Start()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	s := <-c
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	s := <-interrupt
 	log.Info("Got signal:", fmt.Sprintf("%#v", s))
 
 	r.Close()

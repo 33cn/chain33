@@ -83,13 +83,13 @@ func (r *Relayd) Close() {
 func (r *Relayd) Start() {
 	r.btcClient.Start()
 	r.client33.Start(r.ctx)
-	r.loop(r.ctx)
+	r.tick(r.ctx)
 	r.httpServer.SetKeepAlivesEnabled(true)
 	go r.httpServer.ListenAndServe()
 
 }
 
-func (r *Relayd) loop(ctx context.Context) {
+func (r *Relayd) tick(ctx context.Context) {
 out:
 	for {
 		select {
@@ -112,7 +112,7 @@ out:
 				r.latestBlockHash = hash
 				r.latestHeight = uint64(height)
 			} else {
-				log.Error("loop GetBestBlock", err)
+				log.Error("tick GetBestBlock", err)
 			}
 			if r.latestHeight > r.knownHeight {
 				go r.syncBlockHeaders()
@@ -168,7 +168,7 @@ func (r *Relayd) syncBlockHeaders() {
 }
 
 func (r *Relayd) dealOrder() {
-	result, err := r.queryRelayOrders(types.RelayOrderStatus_confirming)
+	result, err := r.requestRelayOrders(types.RelayOrderStatus_confirming)
 	if err != nil {
 		log.Info("dealOrder", err)
 	}
@@ -198,7 +198,7 @@ func (r *Relayd) dealOrder() {
 
 }
 
-func (r *Relayd) queryRelayOrders(status types.RelayOrderStatus) (*types.QueryRelayOrderResult, error) {
+func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.QueryRelayOrderResult, error) {
 	payLoad := types.Encode(&types.QueryRelayOrderParam{
 		Status: status,
 	})
@@ -209,12 +209,12 @@ func (r *Relayd) queryRelayOrders(status types.RelayOrderStatus) (*types.QueryRe
 	}
 	ret, err := r.client33.QueryChain(r.ctx, &query)
 	if err != nil {
-		// log.Info("queryRelayOrders", err)
+		// log.Info("requestRelayOrders", err)
 		return nil, err
 
 	}
 	if !ret.GetIsOk() {
-		log.Info("queryRelayOrders", "error")
+		log.Info("requestRelayOrders", "error")
 	}
 	var result types.QueryRelayOrderResult
 	types.Decode(ret.Msg, &result)
