@@ -5,7 +5,6 @@ import (
 	"io"
 
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	"github.com/tendermint/tmlibs/merkle"
 )
 
 // Signable is an interface for all signable things.
@@ -26,5 +25,5 @@ func SignBytes(chainID string, o Signable) []byte {
 
 // HashSignBytes is a convenience method for getting the hash of the bytes of a signable
 func HashSignBytes(chainID string, o Signable) []byte {
-	return merkle.SimpleHashFromBinary(SignBytes(chainID, o))
+	return cmn.SimpleHashFromBinary(SignBytes(chainID, o))
 }

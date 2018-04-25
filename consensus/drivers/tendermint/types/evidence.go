@@ -6,7 +6,7 @@ import (
 
 	"github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	"github.com/tendermint/tmlibs/merkle"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 // ErrEvidenceInvalid wraps a piece of evidence and the error denoting how or why it is invalid.
@@ -55,7 +55,7 @@ func (evl EvidenceList) Hash() []byte {
 	default:
 		left := EvidenceList(evl[:(len(evl)+1)/2]).Hash()
 		right := EvidenceList(evl[(len(evl)+1)/2:]).Hash()
-		return merkle.SimpleHashFromTwoHashes(left, right)
+		return cmn.SimpleHashFromTwoHashes(left, right)
 	}
 }
 
@@ -120,7 +120,7 @@ func (dve *DuplicateVoteEvidence) Index() int {
 
 // Hash returns the hash of the evidence.
 func (dve *DuplicateVoteEvidence) Hash() []byte {
-	return merkle.SimpleHashFromBinary(dve)
+	return cmn.SimpleHashFromBinary(dve)
 }
 
 // Verify returns an error if the two votes aren't conflicting.
@@ -165,7 +165,7 @@ func (dve *DuplicateVoteEvidence) Equal(ev Evidence) bool {
 	}
 
 	// just check their hashes
-	return bytes.Equal(merkle.SimpleHashFromBinary(dve), merkle.SimpleHashFromBinary(ev))
+	return bytes.Equal(cmn.SimpleHashFromBinary(dve), cmn.SimpleHashFromBinary(ev))
 }
 
 //-----------------------------------------------------------------

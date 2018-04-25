@@ -44,17 +44,11 @@ type TendermintClient struct{
 	genesisDoc    *ttypes.GenesisDoc   // initial validator set
 	privValidator ttypes.PrivValidator
 	csState       *core.ConsensusState
-	csReactor     *core.ConsensusReactor
 	eventBus      *ttypes.EventBus
 	privKey       crypto.PrivKeyEd25519   // local node's p2p key
 	sw            *p2p.Switch
-	Logger        log.Logger
 	state         sm.State
 	blockStore    *core.BlockStore
-	stateDB       dbm.DB
-	evidenceDB    dbm.DB
-	//ListenPort    string
-	//Moniker       string  //node name
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -204,10 +198,6 @@ func New(cfg *types.Consensus) *TendermintClient {
 		sw:               sw,
 		csState:          csState,
 		eventBus:         eventBus,
-		stateDB:          stateDB,
-		evidenceDB:       evidenceDB,
-		//ListenPort:       "36656",
-		//Moniker:          "test_"+fmt.Sprintf("%v",rand.Intn(100)),
 	}
 
 	c.SetChild(client)
@@ -260,37 +250,9 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 		client.sw.DialSeeds(nil, client.Cfg.Seeds)
 	}
 
-	//client.csReactor.SwitchToConsensus(client.state, 0)
-	go func() {
-		issleep := true
-		for {
+	go client.CreateBlock()
 
-			if issleep {
-				time.Sleep(time.Second)
-			}
-
-			lastBlock := client.GetCurrentBlock()
-			txs := client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
-
-			if len(txs) == 0 {
-				issleep = true
-				continue
-			}
-			issleep = false
-			tendermintlog.Info("get mempool txs not empty")
-			client.csState.NewTxsAvailable(lastBlock.Height)
-			tendermintlog.Info("waiting NewTxsFinished")
-			select {
-			case finish := <- client.csState.NewTxsFinished :
-					tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
-					continue
-			}
-		}
-	}()
-
-	//go client.checkValidator2StartConsensus()
 	go client.EventLoop()
-	//go client.child.CreateBlock()
 }
 
 func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
@@ -331,42 +293,43 @@ func (client *TendermintClient) ExecBlock(prevHash []byte, block *types.Block) (
 }
 
 func (client *TendermintClient) CreateBlock() {
-	return
-	/*
 	issleep := true
 	for {
-		if !client.IsMining() {
-			time.Sleep(time.Second)
-			continue
-		}
+
 		if issleep {
 			time.Sleep(time.Second)
 		}
-		txs := client.RequestTx()
+
+		lastBlock := client.GetCurrentBlock()
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
+		//check dup
+		txs = client.CheckTxDup(txs)
+
 		if len(txs) == 0 {
 			issleep = true
 			continue
 		}
 		issleep = false
-		//check dup
-		txs = client.CheckTxDup(txs)
-		lastBlock := client.GetCurrentBlock()
+/*
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		newblock.StateHash = lastBlock.StateHash
 		newblock.BlockTime = time.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
-		err := client.WriteBlock(lastBlock.StateHash, &newblock)
-		if err != nil {
-			issleep = true
+*/
+		tendermintlog.Info("get mempool txs not empty")
+		client.csState.NewTxsAvailable(lastBlock.Height)
+		tendermintlog.Info("waiting NewTxsFinished")
+		select {
+		case finish := <- client.csState.NewTxsFinished :
+			tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
 			continue
 		}
 	}
-	*/
 }
 
 func (client *TendermintClient) checkValidators() bool {

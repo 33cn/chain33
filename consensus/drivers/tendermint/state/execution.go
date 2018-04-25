@@ -3,7 +3,6 @@ package state
 import (
 	"fmt"
 
-	fail "github.com/ebuchman/fail-test"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	log "github.com/inconshreveable/log15"
@@ -75,12 +74,12 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 		return s, ErrProxyAppConn(err)
 	}
 */
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	// save the results before we commit
 	//saveABCIResponses(blockExec.db, block.Height, abciResponses)
 
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	// update the state with the block and responses
 	s, err := updateState(s, blockID, block)
@@ -95,13 +94,13 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 		return s, fmt.Errorf("Commit failed for application: %v", err)
 	}
 */
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	// update the app hash and save the state
 	//s.AppHash = appHash
 	SaveState(blockExec.db, s)
 
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	// Update evpool now that state is saved
 	// TODO: handle the crash/recover scenario

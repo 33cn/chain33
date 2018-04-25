@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/tendermint/go-wire/data"
-	"github.com/tendermint/tmlibs/merkle"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 // Tx is an arbitrary byte array.
@@ -17,7 +17,7 @@ type Tx []byte
 
 // Hash computes the RIPEMD160 hash of the go-wire encoded transaction.
 func (tx Tx) Hash() []byte {
-	return merkle.SimpleHashFromBinary(tx)
+	return cmn.SimpleHashFromBinary(tx)
 }
 
 // String returns the hex-encoded transaction as a string.
@@ -40,7 +40,7 @@ func (txs Txs) Hash() []byte {
 	default:
 		left := Txs(txs[:(len(txs)+1)/2]).Hash()
 		right := Txs(txs[(len(txs)+1)/2:]).Hash()
-		return merkle.SimpleHashFromTwoHashes(left, right)
+		return cmn.SimpleHashFromTwoHashes(left, right)
 	}
 }
 
@@ -71,11 +71,11 @@ func (txs Txs) IndexByHash(hash []byte) int {
 // TODO: optimize this!
 func (txs Txs) Proof(i int) TxProof {
 	l := len(txs)
-	hashables := make([]merkle.Hashable, l)
+	hashables := make([]cmn.Hashable, l)
 	for i := 0; i < l; i++ {
 		hashables[i] = txs[i]
 	}
-	root, proofs := merkle.SimpleProofsFromHashables(hashables)
+	root, proofs := cmn.SimpleProofsFromHashables(hashables)
 
 	return TxProof{
 		Index:    i,
@@ -91,7 +91,7 @@ type TxProof struct {
 	Index, Total int
 	RootHash     data.Bytes
 	Data         Tx
-	Proof        merkle.SimpleProof
+	Proof        cmn.SimpleProof
 }
 
 // LeadHash returns the hash of the transaction this proof refers to.

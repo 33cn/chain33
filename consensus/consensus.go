@@ -17,11 +17,12 @@ func New(cfg *types.Consensus) queue.Module {
 		// TODO:
 	} else if consensusType == "pbft" {
 		// TODO:
-		con := tendermint.New(cfg)
-		return con
 	} else if consensusType == "ticket" {
 		t := ticket.New(cfg)
 		return t
+	} else if consensusType == "tendermint" {
+		con := tendermint.New(cfg)
+		return con
 	}
 	panic("Unsupported consensus type")
 }

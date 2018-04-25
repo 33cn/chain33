@@ -12,7 +12,6 @@ import (
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	"github.com/tendermint/tmlibs/merkle"
 )
 
 var (
@@ -23,7 +22,7 @@ var (
 type Part struct {
 	Index int                `json:"index"`
 	Bytes data.Bytes         `json:"bytes"`
-	Proof merkle.SimpleProof `json:"proof"`
+	Proof cmn.SimpleProof `json:"proof"`
 
 	// Cache
 	hash []byte
@@ -96,7 +95,7 @@ func NewPartSetFromData(data []byte, partSize int) *PartSet {
 	// divide data into 4kb parts.
 	total := (len(data) + partSize - 1) / partSize
 	parts := make([]*Part, total)
-	parts_ := make([]merkle.Hashable, total)
+	parts_ := make([]cmn.Hashable, total)
 	partsBitArray := cmn.NewBitArray(total)
 	for i := 0; i < total; i++ {
 		part := &Part{
@@ -107,8 +106,8 @@ func NewPartSetFromData(data []byte, partSize int) *PartSet {
 		parts_[i] = part
 		partsBitArray.SetIndex(i, true)
 	}
-	// Compute merkle proofs
-	root, proofs := merkle.SimpleProofsFromHashables(parts_)
+	// Compute cmn proofs
+	root, proofs := cmn.SimpleProofsFromHashables(parts_)
 	for i := 0; i < total; i++ {
 		parts[i].Proof = *proofs[i]
 	}

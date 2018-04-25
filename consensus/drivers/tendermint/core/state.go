@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	fail "github.com/ebuchman/fail-test"
 	wire "github.com/tendermint/go-wire"
 
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -134,8 +133,8 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 		done:             make(chan struct{}),
 		doWALCatchup:     true,
 		//wal:              nilWAL{},
-		// mock the evidence pool hg 20180227
 		evpool:           evpool,
+
 		NewTxsHeight:     make(chan int64, 1),
 		NewTxsFinished:   make(chan bool),
 		SyncLastBlock:    false,
@@ -970,25 +969,6 @@ func (client *ConsensusState) Convert2LocalTxs(byteTxs []ttypes.Tx) (txs []*type
 	return txs, nil
 }
 
-func (client *ConsensusState) CreateGenesisTx() (ret []*types.Transaction, txs []ttypes.Tx, err error) {
-	var tx types.Transaction
-	tx.Execer = []byte("coins")
-	tx.To = client.client.Cfg.Genesis
-	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{}
-	g.Genesis.Amount = 1e8 * types.Coin
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
-	ret = append(ret, &tx)
-	var newTx ttypes.Tx
-	newTx, err = proto.Marshal(&tx)
-	if err != nil{
-		return nil, nil, err
-	}
-	txs = append(txs, newTx)
-	return ret, txs, nil
-}
-
 // Enter: `timeoutPropose` after entering Propose.
 // Enter: proposal block and POL is ready.
 // Enter: any +2/3 prevotes for future round.
@@ -1292,7 +1272,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		"height", block.Height, "hash", block.Hash(), "root", block.AppHash)
 	cs.Logger.Info(fmt.Sprintf("%v", block))
 
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	//no need do below when just sync from other node
 	//out p2p already synced
@@ -1313,7 +1293,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 				return
 			}
 
-			fail.Fail() // XXX
+			//fail.Fail() // XXX
 
 			newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 			if block.LastBlockTime == 0 {
@@ -1374,7 +1354,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		cs.Logger.Info("Calling finalizeCommit on already stored block", "height", block.Height)
 	}
 
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	// Finish writing to the WAL for this height.
 	// NOTE: If we fail before writing this, we'll never write it,
@@ -1385,7 +1365,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// until we successfully call ApplyBlock (ie. here or in Handshake after restart)
 	//cs.wal.Save(EndHeightMessage{height})
 
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	// Create a copy of the state for staging
 	// and an event cache for txs
@@ -1403,12 +1383,12 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		return
 	}
 
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	// NewHeightStep!
 	cs.updateToState(stateCopy)
 
-	fail.Fail() // XXX
+	//fail.Fail() // XXX
 
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
