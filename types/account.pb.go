@@ -268,10 +268,14 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Account 的信息
 type Account struct {
-	Currency int32  `protobuf:"varint,1,opt,name=currency" json:"currency,omitempty"`
-	Balance  int64  `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
-	Frozen   int64  `protobuf:"varint,3,opt,name=frozen" json:"frozen,omitempty"`
-	Addr     string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
+	// coins标识，目前只有0 一个值
+	Currency int32 `protobuf:"varint,1,opt,name=currency" json:"currency,omitempty"`
+	// 账户可用余额
+	Balance int64 `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
+	// 账户冻结余额
+	Frozen int64 `protobuf:"varint,3,opt,name=frozen" json:"frozen,omitempty"`
+	// 账户的地址
+	Addr string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
 }
 
 func (m *Account) Reset()                    { *m = Account{} }
@@ -309,9 +313,12 @@ func (m *Account) GetAddr() string {
 
 // 账户余额改变的一个交易回报（合约内）
 type ReceiptExecAccountTransfer struct {
-	ExecAddr string   `protobuf:"bytes,1,opt,name=execAddr" json:"execAddr,omitempty"`
-	Prev     *Account `protobuf:"bytes,2,opt,name=prev" json:"prev,omitempty"`
-	Current  *Account `protobuf:"bytes,3,opt,name=current" json:"current,omitempty"`
+	// 合约地址
+	ExecAddr string `protobuf:"bytes,1,opt,name=execAddr" json:"execAddr,omitempty"`
+	// 转移前
+	Prev *Account `protobuf:"bytes,2,opt,name=prev" json:"prev,omitempty"`
+	// 转移后
+	Current *Account `protobuf:"bytes,3,opt,name=current" json:"current,omitempty"`
 }
 
 func (m *ReceiptExecAccountTransfer) Reset()                    { *m = ReceiptExecAccountTransfer{} }
@@ -342,7 +349,9 @@ func (m *ReceiptExecAccountTransfer) GetCurrent() *Account {
 
 // 账户余额改变的一个交易回报（coins内）
 type ReceiptAccountTransfer struct {
-	Prev    *Account `protobuf:"bytes,1,opt,name=prev" json:"prev,omitempty"`
+	// 转移前
+	Prev *Account `protobuf:"bytes,1,opt,name=prev" json:"prev,omitempty"`
+	// 转移后
 	Current *Account `protobuf:"bytes,2,opt,name=current" json:"current,omitempty"`
 }
 
@@ -367,8 +376,10 @@ func (m *ReceiptAccountTransfer) GetCurrent() *Account {
 
 // 查询一个地址列表在某个执行器中余额
 type ReqBalance struct {
+	// 地址列表
 	Addresses []string `protobuf:"bytes,1,rep,name=addresses" json:"addresses,omitempty"`
-	Execer    string   `protobuf:"bytes,2,opt,name=execer" json:"execer,omitempty"`
+	// 执行器名称
+	Execer string `protobuf:"bytes,2,opt,name=execer" json:"execer,omitempty"`
 }
 
 func (m *ReqBalance) Reset()                    { *m = ReqBalance{} }
