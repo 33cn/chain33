@@ -35,8 +35,29 @@
     * finished: 订单完成，交易已经得到确认。
     * canceled: 挂担人取消订单，只能处于timeout、pending状态的单子才能被取消。
     * timeout: pending状态的单一直无人接受，时间超时；lock状态的单一直没有人去撮合，时间超时； conforming状态的单，一直无法确定转账成功。
-
 * unlock：准确说是一个动作，去解锁正在locking的订单，不能把它划分到订单的状态中，解锁完成立，订单马进入到pending状态。
+* 状态装换图:
+```
+
+
+                      +--------------|---------------|
+                    pending ---+ locking ---+ confirming ---+ finished
+                    |                |               |
+                    |                |               |
+                    |----------------|---------------|------+ cancel
+                    |                |               |
+                    |                +               |
+                     -----------+ timeout +----------
+
+
+分析：
+初始状态有一种：pending
+中间状态有两种：locking、confirming
+最终状态有三种：finished、cancel、timeout.
+
+结论：
+状态的转换需要外部事件的触发。
+```
 
 ## 预言机（触发机）
 
