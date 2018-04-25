@@ -3,6 +3,7 @@ package evm
 import (
 	"math/big"
 
+	"encoding/hex"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
@@ -12,12 +13,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	ctypes "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	"encoding/hex"
 )
 
 const (
 	// 交易payload中，前8个字节固定存储转账信息
 	BALANCE_SIZE = 8
+
+	// 在一个交易中，GasLimit设置为交易费用的倍数(整数)
+	TX_GAS_TIMES_FEE = 2
 )
 
 var (
@@ -28,6 +31,8 @@ var clog = log.New("module", "execs.evm")
 type FakeEVM struct {
 	drivers.DriverBase
 	vmCfg *vm.Config
+
+	mStateDB *core.MemoryStateDB
 }
 
 func init() {
@@ -48,6 +53,22 @@ func (evm *FakeEVM) GetName() string {
 	return "evm"
 }
 
+func (evm *FakeEVM) SetEnv(height, blocktime int64) {
+	// 需要从这里识别出当前执行的Transaction所在的区块高度
+	// 因为执行器框架在调用每一个Transaction时，都会先设置StateDB，在设置区块环境
+	// 因此，在这里判断当前设置的区块高度和上一次缓存的区块高度是否为同一高度，即可判断是否在同一个区块内执行的Transaction
+	if height != evm.DriverBase.GetHeight() || blocktime != evm.DriverBase.GetBlockTime() {
+		// 这时说明区块发生了变化，需要集成原来的设置逻辑，并执行自定义操作
+		evm.DriverBase.SetEnv(height, blocktime)
+
+		// 重新初始化MemoryStateDB
+		// 需要注意的时，在执行器中只执行单个Transaction，但是并没有提交区块的动作
+		// 所以，这个mStateDB只用来缓存一个区块内执行的Transaction引起的状态数据变更
+		evm.mStateDB = core.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
+	}
+	// 两者都和上次的设置相同，不需要任何操作
+}
+
 func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	// TODO:GAS计费信息先不考虑，后续补充
 	var (
@@ -61,7 +82,6 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	// 创建EVM上下文
 	//header := wrapper.GetBlockHeader()
 	config := evm.GetChainConfig()
-	statedb := evm.GetStateDB()
 	vmcfg := evm.GetVMConfig()
 
 	// 获取当前区块的高度和时间
@@ -76,7 +96,7 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	context := NewEVMContext(msg, height, time, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	runtime := vm.NewEVM(context, statedb, config, *vmcfg)
+	runtime := vm.NewEVM(context, evm.mStateDB, config, *vmcfg)
 
 	isCreate := msg.To() == nil
 
@@ -86,6 +106,9 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		leftOverGas uint64
 		addr        common.Address
 	)
+
+	// 合约执行之前，预先扣除GasLimit费用
+	evm.mStateDB.SubBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(msg.GasLimit())), msg.GasPrice()))
 
 	if isCreate {
 		ret, addr, leftOverGas, vmerr = runtime.Create(vm.AccountRef(msg.From()), msg.Data(), context.GasLimit, big.NewInt(0))
@@ -100,12 +123,33 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		}
 	}
 
-	log.Debug("leftOverGas is ",leftOverGas)
-	log.Debug("return data is "+hex.EncodeToString(ret))
-	log.Debug("create contract address is ",hex.EncodeToString(addr.Bytes()))
+	// 计算消耗了多少Gas
+	// 注意：这里和以太坊EVM计费有几处不同：
+	// 1. GasPrice 始终为1，不支持动态调整  TODO 后继版本考虑支持动态调整
+	// 2. 不计算IntrinsicGas，即合约代码的存储字节计费以及合约创建或调用动作本身的计费
+	// 3. 因为前面计费内容较少，不考虑refund奖励
+	usedGas := msg.Gas() - leftOverGas
 
-	kvset := statedb.GetChangedStatedData(statedb.GetLastSnapshot())
-	receipt := &types.Receipt{types.ExecOk, kvset, nil}
+	// 根据真实使用的Gas，将多余的费用返还
+	evm.mStateDB.AddBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(msg.GasLimit()-usedGas)), msg.GasPrice()))
+
+	// 将消耗的费用奖励给区块作者  FIXME 需要确认和前面的扣费操作有否重复
+	evm.mStateDB.Transfer(msg.From(), coinbase, big.NewInt(1).Mul(big.NewInt(int64(usedGas)), msg.GasPrice()))
+
+	log.Debug("leftOverGas is ", leftOverGas)
+	log.Debug("return data is " + hex.EncodeToString(ret))
+	log.Debug("create contract address is ", hex.EncodeToString(addr.Bytes()))
+
+	// FIXME 后面修改成protobuf结构后再添加日志
+	//ty := int32(types.TyLogFee)
+	//log1 := &types.ReceiptLog{
+	//	Ty:  ty,
+	//	Log: []byte(usedGas),
+	//}
+
+	kvset := evm.mStateDB.GetChangedStatedData(evm.mStateDB.GetLastSnapshot())
+
+	receipt := &types.Receipt{types.ExecOk, kvset, []*types.ReceiptLog{}}
 	return receipt, nil
 }
 
@@ -114,19 +158,25 @@ func (evm *FakeEVM) GetChainConfig() *params.ChainConfig {
 	return params.TestChainConfig
 }
 
-func (evm *FakeEVM) GetStateDB() *core.MemoryStateDB {
-	inst := core.NewMemoryStateDB()
-	statedb := evm.DriverBase.GetStateDB()
-	inst.StateDB = statedb
-	localdb := evm.DriverBase.GetLocalDB()
-	inst.LocalDB = &localdb
-	return &inst
+func (evm *FakeEVM) GetMStateDB() *core.MemoryStateDB {
+	return evm.mStateDB
 }
+
+//func (evm *FakeEVM) GetStateDB() *core.MemoryStateDB {
+//	inst := core.NewMemoryStateDB()
+//	statedb := evm.DriverBase.GetStateDB()
+//	inst.StateDB = statedb
+//	localdb := evm.DriverBase.GetLocalDB()
+//	inst.LocalDB = &localdb
+//	coinsdb := evm.DriverBase.GetCoinsAccount()
+//	inst.CoinsAccount = coinsdb
+//	return &inst
+//}
 
 //FIXME 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
 func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg ctypes.Message) {
 
-	// 此处暂时不考虑消息发送这签名的处理，chain33在mempool中对签名做了检查
+	// 此处暂时不考虑消息发送签名的处理，chain33在mempool中对签名做了检查
 	from := getCaller(tx)
 	to := getReceiver(tx)
 
@@ -137,7 +187,7 @@ func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg ctypes.Message) {
 	amount := int64(0)
 
 	// 合约的GasLimit即为调用者为本次合约调用准备支付的手续费
-	msg = ctypes.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(amount), uint64(tx.Fee), GasPrice, tx.Payload[BALANCE_SIZE:], false)
+	msg = ctypes.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(amount), uint64(tx.Fee*TX_GAS_TIMES_FEE), GasPrice, tx.Payload[BALANCE_SIZE:], false)
 	return msg
 }
 

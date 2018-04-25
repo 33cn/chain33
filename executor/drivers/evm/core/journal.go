@@ -81,10 +81,12 @@ func (ch createAccountChange) undo(s *MemoryStateDB) {
 }
 
 // 创建账户对象的数据集
-func (ch createAccountChange) getData(s *MemoryStateDB) []*types.KeyValue {
+func (ch createAccountChange) getData(s *MemoryStateDB) (kvset []*types.KeyValue) {
 	acc := s.accounts[*ch.account]
 	if acc != nil {
-		return acc.GetContractData()
+		kvset = append(kvset, acc.GetDataKV()...)
+		kvset = append(kvset, acc.GetStateKV()...)
+		return kvset
 	}
 	return nil
 }
@@ -108,7 +110,7 @@ func (ch suicideChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	}
 	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		return acc.getSuicideData()
+		return acc.GetStateKV()
 	}
 	return nil
 }
@@ -123,7 +125,7 @@ func (ch nonceChange) undo(mdb *MemoryStateDB) {
 func (ch nonceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		return acc.GetChangeData()
+		return acc.GetStateKV()
 	}
 	return nil
 }
@@ -137,10 +139,12 @@ func (ch codeChange) undo(mdb *MemoryStateDB) {
 	}
 }
 
-func (ch codeChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+func (ch codeChange) getData(mdb *MemoryStateDB) (kvset []*types.KeyValue) {
 	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		return acc.GetContractData()
+		kvset = append(kvset, acc.GetDataKV()...)
+		kvset = append(kvset, acc.GetStateKV()...)
+		return kvset
 	}
 	return nil
 }
@@ -155,7 +159,7 @@ func (ch storageChange) undo(mdb *MemoryStateDB) {
 func (ch storageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		return acc.GetChangeData()
+		return acc.GetStateKV()
 	}
 	return nil
 }
