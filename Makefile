@@ -107,10 +107,10 @@ help: ## Display this help screen
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	
 cleandata:
-	rm -rf datadir/addrbook
-	rm -rf datadir/blockchain.db
-	rm -rf datadir/mavltree
-	rm -rf chain33.log
+	rm -rf build/datadir/addrbook
+	rm -rf build/datadir/blockchain.db
+	rm -rf build/datadir/mavltree
+	rm -rf build/chain33.log
 
 .PHONY: checkgofmt
 checkgofmt: ## get all go files and run go fmt on them
