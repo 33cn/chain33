@@ -7,7 +7,19 @@ signAndSend() {
     ./cli tx send -d `echo ${signed:1:length}`
 }
 
-if [ $1 == "transfer" ]
+if [ $1 == "help" ]
+then
+    echo "transfer        : create transfer transaction and send it"
+    echo "withdraw        : create withdraw transaction and send it"
+    echo "token_transfer  : create token transfer transaction and send it"
+    echo "token_withdraw  : create token withdraw transaction and send it"
+    echo "token_precreate : create token precreate transaction and send it"
+    echo "token_finish    : create token finish transaction and send it"
+    echo "token_revoke    : create token revoke transaction and send it"
+    echo "trade_sell      : create tokem sell transaction and send it"
+    echo "trade_buy       : create token buy transaction and send it"
+    echo "trade_revoke    : create token buying revoke transaction and send it"
+elif [ $1 == "transfer" ]
 then
     read -t 120 -p "please input to_addr amount note priv_key: " to_addr amount note priv_key
     unsigned=`./cli bty transfer -t $to_addr -a $amount -n $note`
@@ -54,7 +66,6 @@ then
     signAndSend $priv_key
 elif [ $1 == "trade_revoke" ]
 then
-
     read -t 120 -p "please input sell_id fee priv_key: " sell_id fee priv_key
     unsigned=`./cli trade revoke -s $sell_id -f $fee`
     signAndSend $priv_key
