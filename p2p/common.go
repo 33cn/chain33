@@ -45,7 +45,7 @@ func (c Comm) GetLocalAddr() string {
 	return strings.Split(conn.LocalAddr().String(), ":")[0]
 }
 
-func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*Peer, error) {
 
 	conn, err := addr.DialTimeout(c.GrpcConfig(), (*nodeinfo).cfg.GetVersion())
 	if err != nil {
@@ -57,26 +57,25 @@ func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 		conn.Close()
 		return nil, err
 	}
-	peer.peerAddr = addr
-
+	peer.SetAddr(addr)
 	log.Debug("dialPeerWithAddress", "peer", peer.Addr(), "persistent:", persistent)
 
 	if persistent {
-		peer.makePersistent()
+		peer.MakePersistent()
 	}
 
 	return peer, nil
 }
 
-func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
 
 	// Key and NodeInfo are set after Handshake
-	p := newPeer(rawConn, nodeinfo, remote)
+	p := NewPeer(rawConn, nodeinfo, remote)
 
 	return p, nil
 }
 
-func (c Comm) dialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) dialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
 	log.Debug("dialPeer", "will connect", addr.String())
 	var persistent bool
 	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
@@ -201,7 +200,7 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 	return false
 }
 
-func (c Comm) CollectPeerStat(err error, peer *peer) {
+func (c Comm) CollectPeerStat(err error, peer *Peer) {
 	if err != nil {
 		peer.peerStat.NotOk()
 	} else {
@@ -210,7 +209,7 @@ func (c Comm) CollectPeerStat(err error, peer *peer) {
 	c.reportPeerStat(peer)
 }
 
-func (c Comm) reportPeerStat(peer *peer) {
+func (c Comm) reportPeerStat(peer *Peer) {
 	timeout := time.NewTimer(time.Second)
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:
@@ -244,7 +243,7 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 	var defaultReqSize = 1024 * 1024 * 10
 	var defaulttimeout = 40 * time.Second
 	var getAddrtimeout = 5 * time.Second
-	var getHeadertimeout = 5 * time.Second
+	var getHeadertimeout = 2 * time.Second
 	var getPeerinfotimeout = 5 * time.Second
 	var sendVersiontimeout = 5 * time.Second
 	var pingtimeout = 10 * time.Second
@@ -258,6 +257,7 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 		"/types.p2pgservice/BroadCastBlock": {WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/GetAddr":        {WaitForReady: &ready, Timeout: &getAddrtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/GetHeaders":     {WaitForReady: &ready, Timeout: &getHeadertimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
+		"/types.p2pgservice/CheckPeerNatOk": {WaitForReady: &ready, Timeout: &getHeadertimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 	}
 
 	return grpc.ServiceConfig{Methods: MethodConf}
