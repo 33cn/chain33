@@ -7,10 +7,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	c "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/account"
 	"encoding/binary"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/core"
 	"time"
+	"encoding/hex"
+	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
 
@@ -131,3 +134,44 @@ func kv2map(kvset []*types.KeyValue) map[string][]byte {
 	return data
 }
 
+func procSignRawTx(wal *wallet.Wallet, unsigned *types.ReqSignRawTx, payload []byte) (ret string, err error) {
+	var key crypto.PrivKey
+	if unsigned.GetPrivKey() != "" {
+		keyByte, err := c.FromHex(unsigned.GetPrivKey())
+		if err != nil || len(keyByte) == 0 {
+			return "", err
+		}
+		cr, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
+		if err != nil {
+			return "", err
+		}
+		key, err = cr.PrivKeyFromBytes(keyByte)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", types.ErrNoPrivKeyOrAddr
+	}
+	var tx types.Transaction
+	bytes, err := c.FromHex(unsigned.GetTxHex())
+	if err != nil {
+		return "", err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return "", err
+	}
+	expire, err := time.ParseDuration(unsigned.GetExpire())
+	if err != nil {
+		return "", err
+	}
+	tx.SetExpire(expire)
+	// 因为反序列化存在问题，重新设置payload
+	tx.Payload = payload
+
+	tx.Sign(int32(wallet.SignType), key)
+
+	txHex := types.Encode(&tx)
+	signedTx := hex.EncodeToString(txHex)
+	return signedTx, nil
+}
