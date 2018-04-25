@@ -34,7 +34,7 @@ func init() {
 	evm := NewFakeEVM()
 
 	// TODO 注册的驱动高度需要更新为上线时的正确高度
-	drivers.Register(evm.GetName(), evm, types.ForkV1)
+	drivers.Register(evm.GetName(), evm, 0)
 }
 
 func NewFakeEVM() *FakeEVM {
@@ -105,34 +105,6 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	log.Debug("create contract address is ",hex.EncodeToString(addr.Bytes()))
 
 	kvset := statedb.GetChangedStatedData(statedb.GetLastSnapshot())
-
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//if failed {
-	//	return nil, nil
-	//}
-	//
-	//// 更新内存状态，计算root哈希
-	//// Update the state with pending changes
-	//statedb.Finalise(true)
-	//
-	//usedGas += gas
-	//
-	//// 组装结果
-	//kvset := []*ctypes.KeyValue{
-	//	&ctypes.KeyValue{[]byte("caller"), getCaller(tx).Bytes()},
-	//	&ctypes.KeyValue{[]byte("constractResult"), ret},
-	//	&ctypes.KeyValue{[]byte("ContractAddress"), []byte("xxx")},
-	//}
-	//if isCreate {
-	//	addr := crypto.CreateAddress(runtime.Context.Origin, uint64(tx.Nonce))
-	//	kvset = append(kvset, &ctypes.KeyValue{[]byte("ContractAddress"), addr.Bytes()})
-	//} else {
-	//	kvset = append(kvset, &ctypes.KeyValue{[]byte("receiver"), getReceiver(tx).Bytes()})
-	//}
-	//
 	receipt := &types.Receipt{types.ExecOk, kvset, nil}
 	return receipt, nil
 }
