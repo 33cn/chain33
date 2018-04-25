@@ -23,9 +23,7 @@ type (
 	}
 
 	ClientConnected struct{}
-
 	BlockConnected BlockMeta
-
 	BlockDisconnected BlockMeta
 )
 
