@@ -11,7 +11,6 @@ import (
 	wire "github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	"github.com/tendermint/tmlibs/merkle"
 )
 
 // Block defines the atomic unit of a Tendermint blockchain.
@@ -186,7 +185,7 @@ func (h *Header) Hash() data.Bytes {
 	if len(h.ValidatorsHash) == 0 {
 		return nil
 	}
-	return merkle.SimpleHashFromMap(map[string]interface{}{
+	return cmn.SimpleHashFromMap(map[string]interface{}{
 		"ChainID":     h.ChainID,
 		"Height":      h.Height,
 		"Time":        h.Time,
@@ -367,7 +366,7 @@ func (commit *Commit) Hash() data.Bytes {
 		for i, precommit := range commit.Precommits {
 			bs[i] = precommit
 		}
-		commit.hash = merkle.SimpleHashFromBinaries(bs)
+		commit.hash = cmn.SimpleHashFromBinaries(bs)
 	}
 	return commit.hash
 }
