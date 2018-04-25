@@ -66,9 +66,13 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 	msg := inst.GetMessage(&tx)
 
 	config := inst.GetChainConfig()
-	statedb = inst.GetStateDB()
+	inst.SetEnv(10,0)
+	statedb = inst.GetMStateDB()
 
 	statedb.StateDB=mdb
+
+	statedb.CoinsAccount = account.NewCoinsAccount()
+	statedb.CoinsAccount.SetDB(statedb.StateDB)
 
 	vmcfg := inst.GetVMConfig()
 
@@ -93,17 +97,23 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 }
 
 // 合约调用（从DB中加载之前创建的合约）
-func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address, input []byte) (ret []byte, leftOverGas uint64, err error, statedb *core.MemoryStateDB) {
+func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (ret []byte, leftOverGas uint64, err error, statedb *core.MemoryStateDB) {
 
 	inst := evm.NewFakeEVM()
 
 	msg := inst.GetMessage(&tx)
 
 	config := inst.GetChainConfig()
-	statedb = inst.GetStateDB()
+
+	inst.SetEnv(10,0)
+
+	statedb = inst.GetMStateDB()
 
 	// 替换statedb中的数据库，获取测试需要的数据
 	statedb.StateDB=mdb
+
+	statedb.CoinsAccount = account.NewCoinsAccount()
+	statedb.CoinsAccount.SetDB(statedb.StateDB)
 
 	vmcfg := inst.GetVMConfig()
 

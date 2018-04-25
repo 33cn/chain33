@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
@@ -8,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"math/big"
 	"sort"
-	"fmt"
 )
 
 // 内存状态数据库，保存在区块操作时内部的数据变更操作
@@ -20,7 +20,9 @@ import (
 type MemoryStateDB struct {
 	StateDB db.KV
 
-	LocalDB *db.KVDB
+	LocalDB db.KVDB
+
+	CoinsAccount *account.DB
 
 	// 缓存账户对象
 	accounts map[common.Address]*ContractAccount
@@ -41,7 +43,7 @@ type MemoryStateDB struct {
 	// 版本号，用于标识数据变更版本
 	journal        journal
 	validRevisions []revision
-	reversionId int
+	reversionId    int
 
 	// 存储sha3指令对应的数据
 	preimages map[common.Hash][]byte
@@ -52,8 +54,11 @@ type revision struct {
 	journalIndex int
 }
 
-func NewMemoryStateDB() MemoryStateDB {
-	mdb := MemoryStateDB{
+func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) *MemoryStateDB {
+	mdb := &MemoryStateDB{
+		StateDB:        StateDB,
+		LocalDB:        LocalDB,
+		CoinsAccount:   CoinsAccount,
 		accounts:       make(map[common.Address]*ContractAccount),
 		accountsDirty:  make(map[common.Address]struct{}),
 		contractsDirty: make(map[common.Address]struct{}),
@@ -68,7 +73,7 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 	acc := self.GetAccount(addr)
 	if acc == nil {
 		// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
-		ac := types.Account{Addr:addr.Str()}
+		ac := types.Account{Addr: addr.Str()}
 		acc := NewContractAccount(ac, self)
 
 		acc.SetContract(true)
@@ -84,18 +89,20 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 
 func (self *MemoryStateDB) SubBalance(addr common.Address, value *big.Int) {
 	//FIXME 不执行，需要借助coins执行器
+
 }
 
 func (self *MemoryStateDB) AddBalance(addr common.Address, value *big.Int) {
 	//FIXME 不执行，需要借助coins执行器
+
 }
 
 func (self *MemoryStateDB) GetBalance(addr common.Address) *big.Int {
-	//FIXME 不执行，需要借助coins执行器
-	acc := account.NewCoinsAccount()
-	acc.SetDB(self.StateDB)
-	ac := acc.LoadAccount(addr.Str())
-	if ac != nil{
+	if self.CoinsAccount == nil {
+		return common.Big0
+	}
+	ac := self.CoinsAccount.LoadAccount(addr.Str())
+	if ac != nil {
 		return big.NewInt(ac.Balance)
 	}
 	return common.Big0
@@ -163,18 +170,21 @@ func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
 	if acc, ok := self.accounts[addr]; ok {
 		return acc
 	} else {
-		db := account.NewCoinsAccount()
-		db.SetDB(self.StateDB)
-		acc := db.LoadAccount(addr.Str())
+		if self.CoinsAccount == nil {
+			return nil
+		}
+
+		acc := self.CoinsAccount.LoadAccount(addr.Str())
+
 		if acc != nil {
 			contract := NewContractAccount(*acc, self)
 			contract.LoadContract(self.StateDB)
 			self.accounts[addr] = contract
 			return contract
-		}else{
+		} else {
 			// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
 			// 要考虑到这种情况，还是要加载合约，看看合约信息是否存在，如果都不存在，则说明真不存在
-			ac := types.Account{Addr:addr.Str()}
+			ac := types.Account{Addr: addr.Str()}
 			contract := NewContractAccount(ac, self)
 			contract.LoadContract(self.StateDB)
 			if contract.code != nil {
@@ -183,7 +193,6 @@ func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
 			return nil
 		}
 	}
-	return nil
 }
 
 func (self *MemoryStateDB) GetState(addr common.Address, key common.Hash) common.Hash {
@@ -206,8 +215,8 @@ func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		self.journal = append(self.journal, suicideChange{
-			account:     &addr,
-			prev:        acc.suicided,
+			account: &addr,
+			prev:    acc.suicided,
 		})
 		return acc.Suicide()
 	}
@@ -230,7 +239,6 @@ func (self *MemoryStateDB) Empty(addr common.Address) bool {
 	acc := self.GetAccount(addr)
 	return acc == nil || acc.Empty()
 }
-
 
 // 将数据状态回滚到指定快照版本（中间的版本数据将会被删除）
 func (self *MemoryStateDB) RevertToSnapshot(version int) {
@@ -268,7 +276,7 @@ func (self *MemoryStateDB) Snapshot() int {
 
 // 获取最后一次成功的快照版本号
 func (self *MemoryStateDB) GetLastSnapshot() int {
-	return self.reversionId-1
+	return self.reversionId - 1
 }
 
 // 获取本次操作所引起的状态数据变更
@@ -279,7 +287,7 @@ func (self *MemoryStateDB) GetChangedStatedData(version int) (kvSet []*types.Key
 		return self.validRevisions[i].id >= version
 	})
 
-	// 如果版本号不对，回滚失败
+	// 如果版本号不对，操作失败
 	if idx == len(self.validRevisions) || self.validRevisions[idx].id != version {
 		panic(fmt.Errorf("revision id %v cannot be reverted", version))
 	}
@@ -287,22 +295,30 @@ func (self *MemoryStateDB) GetChangedStatedData(version int) (kvSet []*types.Key
 	// 获取快照版本
 	snapshot := self.validRevisions[idx].journalIndex
 
-	// 执行回滚动作
+	// 获取中间的数据变更
+	dataMap := make(map[string]*types.KeyValue)
 	for i := len(self.journal) - 1; i >= snapshot; i-- {
-		kv := self.journal[i].getData(self)
-		if kv != nil {
-			kvSet = append(kvSet,kv...)
+		kvset := self.journal[i].getData(self)
+		// 执行去重操作
+		if kvset != nil {
+			for _, kv := range kvset {
+				dataMap[string(kv.Key)] = kv
+			}
 		}
+	}
+	for _, value := range dataMap {
+		kvSet = append(kvSet, value)
 	}
 	return kvSet
 }
 
 // 借助coins执行器进行转账相关操作
 func (self *MemoryStateDB) CanTransfer(addr common.Address, amount *big.Int) bool {
-	acc := account.NewCoinsAccount()
-	acc.SetDB(self.StateDB)
-	err := acc.CheckTransfer(addr.Str(), "", amount.Int64())
-	if err !=nil {
+	if self.CoinsAccount == nil {
+		return false
+	}
+	err := self.CoinsAccount.CheckTransfer(addr.Str(), "", amount.Int64())
+	if err != nil {
 		return false
 	}
 	return true
@@ -310,11 +326,10 @@ func (self *MemoryStateDB) CanTransfer(addr common.Address, amount *big.Int) boo
 
 // 借助coins执行器进行转账相关操作
 func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount *big.Int) {
-	acc := account.NewCoinsAccount()
-	acc.SetDB(self.StateDB)
-	acc.Transfer(sender.Str(), recipient.Str(), amount.Int64())
+	if self.CoinsAccount != nil {
+		self.CoinsAccount.Transfer(sender.Str(), recipient.Str(), amount.Int64())
+	}
 }
-
 
 func (self *MemoryStateDB) AddLog(log *etypes.Log) {
 	//TODO 日志记录暂不实现
