@@ -22,8 +22,8 @@ type (
 		Time time.Time
 	}
 
-	ClientConnected struct{}
-	BlockConnected BlockMeta
+	ClientConnected   struct{}
+	BlockConnected    BlockMeta
 	BlockDisconnected BlockMeta
 )
 
