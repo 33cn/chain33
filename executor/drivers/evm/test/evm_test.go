@@ -8,6 +8,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"testing"
 	"encoding/binary"
+	"gitlab.33.cn/chain33/chain33/types"
+	"math/rand"
+	"time"
+	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
 // 正常创建合约逻辑
@@ -142,6 +146,49 @@ func TestCreateContract4(t *testing.T) {
 //         return value;
 //     }
 // }
+
+func TestCreateTx(t *testing.T) {
+	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+	to := ""
+	code := "608060405234801561001057600080fd5b506298967f60008190555060df806100296000396000f3006080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806360fe47b114604e5780636d4ce63c146078575b600080fd5b348015605957600080fd5b5060766004803603810190808035906020019092919050505060a0565b005b348015608357600080fd5b50608a60aa565b6040518082815260200191505060405180910390f35b8060008190555050565b600080549050905600a165627a7a72305820b3ccec4d8cbe393844da31834b7464f23d3b81b24f36ce7e18bb09601f2eb8660029"
+	deployCode, _ := hex.DecodeString(code)
+	fee := 100
+	amount := 21
+
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b,uint64(amount))
+	tx := &types.Transaction{Execer: []byte("evm"), Payload: append(b, deployCode...), Fee: int64(fee), To:to}
+
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+	tx.Fee += types.MinBalanceTransfer
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	//tx.Sign(int32(wallet.SignType), privKey)
+	txHex := types.Encode(tx)
+	rawTx := hex.EncodeToString(txHex)
+
+	unsignedTx := &types.ReqSignRawTx{
+		Addr:caller,
+		PrivKey:"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
+		TxHex:rawTx,
+		Expire:"2h",
+	}
+
+	wal := &wallet.Wallet{}
+	signedTx, err := procSignRawTx(wal, unsignedTx, tx.Payload)
+	if err != nil{
+		t.Error(err)
+		t.Fail()
+	}else{
+		t.Log(signedTx)
+	}
+
+}
 
 func TestCallContract1(t *testing.T) {
 	code := "608060405234801561001057600080fd5b506298967f60008190555060df806100296000396000f3006080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806360fe47b114604e5780636d4ce63c146078575b600080fd5b348015605957600080fd5b5060766004803603810190808035906020019092919050505060a0565b005b348015608357600080fd5b50608a60aa565b6040518082815260200191505060405180910390f35b8060008190555050565b600080549050905600a165627a7a72305820b3ccec4d8cbe393844da31834b7464f23d3b81b24f36ce7e18bb09601f2eb8660029"
