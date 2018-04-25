@@ -10,16 +10,16 @@ import (
 )
 
 type Config struct {
-	Title             string
-	Watch             bool
-	Pprof             bool
-	Trace             bool
-	Heartbeat33       int
-	ReconnectAttempts int
-	HeartbeatBTC      int
-	Chain33           Chain33
-	BitCoin           BitCoin
-	Log               types.Log
+	Title        string
+	Watch        bool
+	Pprof        bool
+	Trace        bool
+	Tick33       int
+	TickBTC      int
+	Chain33      Chain33
+	MinHeightBTC uint64
+	BitCoin      BitCoin
+	Log          types.Log
 }
 
 type BitCoin struct {
@@ -37,6 +37,7 @@ type BitCoin struct {
 	DisableConnectOnNew  bool
 	HTTPPostMode         bool
 	EnableBCInfoHacks    bool
+	ReconnectAttempts    int
 }
 
 func (b *BitCoin) BitConnConfig() *rpcclient.ConnConfig {
@@ -68,6 +69,7 @@ type Chain33 struct {
 	User                 string
 	Pass                 string
 	DisableAutoReconnect bool
+	ReconnectAttempts    int
 }
 
 func NewConfig(path string) *Config {
