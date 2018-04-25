@@ -69,4 +69,6 @@ then
     read -t 120 -p "please input sell_id fee priv_key: " sell_id fee priv_key
     unsigned=`./cli trade revoke -s $sell_id -f $fee`
     signAndSend $priv_key
+else
+    echo "wrong command"
 fi
