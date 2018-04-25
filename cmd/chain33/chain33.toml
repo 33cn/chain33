@@ -29,10 +29,10 @@ timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
-dbCache=64
+dbCache=256
 isStrongConsistency=false
 singleMode=false
-batchsync=false
+batchsync=true
 
 [p2p]
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
@@ -42,7 +42,7 @@ serverStart=true
 msgCacheSize=10240
 driver="leveldb"
 dbPath="datadir/addrbook"
-dbCache=4
+dbCache=16
 grpcLogFile="grpc33.log"
 version=118
 verMix=118
