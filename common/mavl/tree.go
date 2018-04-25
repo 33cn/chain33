@@ -270,9 +270,7 @@ func (ndb *nodeBatch) SaveNode(t *Tree, node *Node) {
 
 func (ndb *nodeBatch) Commit() {
 	// Write saves
-	treelog.Info("BEG Write")
 	ndb.batch.Write()
-	treelog.Info("END Write")
 	ndb.batch = nil
 }
 
