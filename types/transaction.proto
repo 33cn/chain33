@@ -9,6 +9,8 @@ message CreateTx {
 	int64 amount = 2;
 	int64 fee = 3;
 	string note = 4;
+	bool   istoken     = 5;
+	string tokenSymbol = 6;
 }
 
 message UnsignTx {
