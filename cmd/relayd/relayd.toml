@@ -3,9 +3,9 @@ title = "relayd"
 watch = true
 pprof = true
 trace = false
-heartbeat33 =10
-heartbeatBTC = 10
-reconnectAttempts = 10
+Tick33 =10
+TickBTC = 10
+minHeightBTC = 1000
 
 [chain33]
 id = "123"
@@ -14,6 +14,7 @@ endpoint = "8802"
 user = "123"
 pass = "123"
 disableAutoReconnect = true
+reconnectAttempts = 10
 
 [bitcoin]
 id = "123abc"
@@ -30,7 +31,7 @@ disableAutoReconnect = true
 disableConnectOnNew = false
 HTTPPostMode = false
 enableBCInfoHacks = false
-
+reconnectAttempts = 10
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit

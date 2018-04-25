@@ -8,14 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-// confirmed checks whether a transaction at height txHeight has met minconf
-// confirmations for a blockchain at height curHeight.
 func confirmed(minconf, txHeight, curHeight int32) bool {
 	return confirms(txHeight, curHeight) >= minconf
 }
@@ -35,8 +32,11 @@ type Relayd struct {
 	db         *relaydDB
 	mu         sync.Mutex
 
-	latestBestBlock btcjson.GetBestBlockResult
-	knownBlockHash  *chainhash.Hash
+	latestBlockHash *chainhash.Hash
+	latestHeight    uint64
+
+	knownBlockHash *chainhash.Hash
+	knownHeight    uint64
 
 	btcClient     *BTCClient
 	btcClientLock sync.Mutex
@@ -44,13 +44,6 @@ type Relayd struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
 }
-
-var (
-	currentBlockHashKey chainhash.Hash
-	zeroBlockHeader     = []byte("")
-)
-
-const SETUP = 1000
 
 func NewRelayd(config *Config) *Relayd {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -70,7 +63,7 @@ func NewRelayd(config *Config) *Relayd {
 		// panic(err)
 	}
 	client33 := NewClient33(&config.Chain33)
-	btc, err := NewBTCClient(config.BitCoin.BitConnConfig(), int(config.ReconnectAttempts))
+	btc, err := NewBTCClient(config.BitCoin.BitConnConfig(), int(config.BitCoin.ReconnectAttempts))
 
 	return &Relayd{
 		config:         config,
@@ -82,111 +75,96 @@ func NewRelayd(config *Config) *Relayd {
 	}
 }
 
-func (r *Relayd) Start() {
-	r.btcClient.Start()
-	r.client33.Start(r.ctx)
-}
-
-func (r *Relayd) Heartbeat() {
-	go func(ctx context.Context) {
-	out:
-		for {
-			select {
-			case <-ctx.Done():
-				break out
-
-			case <-time.After(time.Second * time.Duration(3)):
-				err := r.client33.Ping(ctx)
-				if err != nil {
-					log.Info("Heartbeat chain33", err.Error())
-					r.client33.AutoReconnect(ctx)
-					r.config.ReconnectAttempts--
-				}
-
-				// TODO
-				// err = r.btcClient.Ping()
-				// if err != nil {
-				// 	log.Info("Heartbeat btc", err)
-				// }
-
-				if r.config.ReconnectAttempts < 0 {
-					break out
-				}
-			}
-		}
-	}(r.ctx)
-}
-
-func (r *Relayd) Loop() {
-	// chain33 ticket
-	go func(ctx context.Context) {
-	out:
-		for {
-			select {
-			case <-ctx.Done():
-				break out
-
-			case <-time.After(time.Second * time.Duration(r.config.Heartbeat33)):
-				log.Info("deal transaction order")
-				// r.dealOrder()
-
-			case <-time.After(time.Second * 2 * time.Duration(r.config.Heartbeat33)):
-				log.Info("check transaction order")
-				// 定时查询交易是否成功
-
-			}
-		}
-
-	}(r.ctx)
-
-	// btc ticket
-	go func(ctx context.Context) {
-	out:
-		for {
-			select {
-			case <-ctx.Done():
-				break out
-
-			case <-time.After(time.Second * time.Duration(r.config.HeartbeatBTC)):
-				log.Info("sync SPV")
-				// 同步区块头到chain33以及本地
-				// r.btcClient.get
-
-			}
-
-		}
-	}(r.ctx)
-
-}
-
-// Ping
-func (r *Relayd) Ping() error {
-	return nil
-}
-
 func (r *Relayd) Close() {
 	r.cancel()
 	r.client33.Close()
 }
 
-func (r *Relayd) SyncBlockHeaders() {
-	// TODO
-	// latestHash, latestHeight,err := r.btcClient.GetBestBlock()
-	// if err != nil {
-	// 	log.Info("SyncBlockHeaders", err)
-	// }
-	//
-	// header, err := r.btcClient.GetBlockHeaderVerbose(latestHash)
-	// if err != nil{
-	// 	log.Info("SyncBlockHeaders", err)
-	// }
-	// r.btcClient.Getblo
+func (r *Relayd) Start() {
+	r.btcClient.Start()
+	r.client33.Start(r.ctx)
+	r.loop(r.ctx)
+	r.httpServer.SetKeepAlivesEnabled(true)
+	go r.httpServer.ListenAndServe()
 
-	//  header, err := r.btcClient.GetBlockHeaderVerbose()
-	// if err != nil {
-	//
-	//
-	// }
+}
+
+func (r *Relayd) loop(ctx context.Context) {
+out:
+	for {
+		select {
+		case <-ctx.Done():
+			break out
+
+		case <-time.After(time.Second * time.Duration(r.config.Tick33)):
+			log.Info("deal transaction order")
+			// r.dealOrder()
+
+		case <-time.After(time.Second * 2 * time.Duration(r.config.Tick33)):
+			log.Info("check transaction order")
+			// 定时查询交易是否成功
+
+		case <-time.After(time.Second * time.Duration(r.config.TickBTC)):
+			// btc ticket
+			log.Info("sync SPV")
+			hash, height, err := r.btcClient.GetBestBlock()
+			if err == nil {
+				r.latestBlockHash = hash
+				r.latestHeight = uint64(height)
+			} else {
+				log.Error("loop GetBestBlock", err)
+			}
+			if r.latestHeight > r.knownHeight {
+				go r.syncBlockHeaders()
+			}
+		}
+	}
+}
+
+func (r *Relayd) syncBlockHeaders() {
+	// TODO
+	if r.knownHeight <= r.config.MinHeightBTC || r.latestHeight <= r.config.MinHeightBTC {
+		return
+	} else {
+		totalSetup := r.latestHeight - r.knownHeight
+		stage := totalSetup / SETUP
+		little := totalSetup % SETUP
+		var i uint64 = 0
+	out:
+		for ; i <= stage; i++ {
+			var add uint64 = 0
+			if i == stage {
+				add += little
+			} else {
+				add += SETUP
+			}
+			headers := make([][]byte, add)
+			add += r.knownHeight
+			for j := r.knownHeight; j <= add; j++ {
+				hash, err := r.btcClient.GetBlockHash(int64(j))
+				if err != nil {
+					log.Error("syncBlockHeaders", err)
+					break out
+				}
+				header, err := r.btcClient.GetBlockHeaderVerbose(hash)
+				if err != nil {
+					log.Error("syncBlockHeaders", err)
+					break out
+				}
+				data, err := json.Marshal(header)
+				if err != nil {
+					log.Error("syncBlockHeaders", err)
+					break out
+				}
+				// save db
+				// r.db.Set()
+				r.knownHeight++
+				headers = append(headers, data)
+				// TODO
+
+			}
+		}
+	}
 }
 
 func (r *Relayd) dealOrder() {
@@ -220,14 +198,12 @@ func (r *Relayd) dealOrder() {
 
 }
 
-var execer = []byte("relay")
-
 func (r *Relayd) queryRelayOrders(status types.RelayOrderStatus) (*types.QueryRelayOrderResult, error) {
 	payLoad := types.Encode(&types.QueryRelayOrderParam{
 		Status: status,
 	})
 	query := types.Query{
-		Execer:   execer,
+		Execer:   executor,
 		FuncName: "queryRelayOrder",
 		Payload:  payLoad,
 	}
@@ -243,4 +219,13 @@ func (r *Relayd) queryRelayOrders(status types.RelayOrderStatus) (*types.QueryRe
 	var result types.QueryRelayOrderResult
 	types.Decode(ret.Msg, &result)
 	return &result, nil
+}
+
+// triggerOrderStatus Trigger order status for BlockChain
+func (r *Relayd) triggerOrderStatus() {
+	panic("unimplemented")
+}
+
+func (r *Relayd) isExist(id string) {
+	panic("unimplemented")
 }

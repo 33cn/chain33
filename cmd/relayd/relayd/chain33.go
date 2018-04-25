@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -36,19 +37,49 @@ func NewClient33(cfg *Chain33) *Client33 {
 	return c
 }
 
+func (c *Client33) heartbeat(ctx context.Context) {
+	var reconnectAttempts int
+out:
+	for {
+		select {
+		case <-ctx.Done():
+			break out
+
+		case <-time.After(time.Second * time.Duration(3)):
+			err := c.ping(ctx)
+			if err != nil {
+				log.Info("heartbeat chain33", err.Error())
+				c.AutoReconnect(ctx)
+				reconnectAttempts--
+			} else {
+				reconnectAttempts = c.config.ReconnectAttempts
+			}
+			// TODO
+			if reconnectAttempts < 0 {
+				break out
+			}
+		}
+	}
+}
+
 func (c *Client33) Start(ctx context.Context) error {
+	c.unLock(ctx)
+	go c.heartbeat(ctx)
+	return nil
+}
+
+func (c *Client33) unLock(ctx context.Context) {
 	unlock := types.WalletUnLock{
 		Passwd: c.config.Pass,
 	}
 	ret, err := c.GrpcserviceClient.UnLock(ctx, &unlock, nil)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	log.Info("Start", fmt.Sprintf("%#v", ret))
-	return nil
 }
 
-func (c *Client33) Ping(ctx context.Context) error {
+func (c *Client33) ping(ctx context.Context) error {
 	lastHeader, err := c.GetLastHeader(ctx, &types.ReqNil{})
 	if err != nil {
 		c.isClosed = false

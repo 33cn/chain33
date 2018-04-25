@@ -25,6 +25,8 @@ var (
 )
 
 func main() {
+	// TODO this is daemon
+
 	runtime.GOMAXPROCS(cpuNum)
 
 	d, _ := os.Getwd()
@@ -68,15 +70,15 @@ func main() {
 	}
 
 	// fmt.Printf("%#v", *cfg)
-
 	r := relayd.NewRelayd(cfg)
-	r.Loop()
-	r.Heartbeat()
+	r.Start()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	s := <-c
 	log.Info("Got signal:", fmt.Sprintf("%#v", s))
+
+	r.Close()
 }
 
 func startTrace() {
@@ -89,8 +91,8 @@ func startTrace() {
 func watching() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	log.Info("info:", "NumGoroutine:", runtime.NumGoroutine())
-	log.Info("info:", "Mem:", m.Sys/(1024*1024))
+	log.Info("watching:", "NumGoroutine:", runtime.NumGoroutine())
+	log.Info("watching:", "Mem:", m.Sys/(1024*1024))
 }
 
 func pwd() string {
