@@ -243,7 +243,7 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 	var defaultReqSize = 1024 * 1024 * 10
 	var defaulttimeout = 40 * time.Second
 	var getAddrtimeout = 5 * time.Second
-	var getHeadertimeout = 2 * time.Second
+	var getHeadertimeout = 5 * time.Second
 	var getPeerinfotimeout = 5 * time.Second
 	var sendVersiontimeout = 5 * time.Second
 	var pingtimeout = 10 * time.Second
@@ -257,7 +257,6 @@ func (c Comm) GrpcConfig() grpc.ServiceConfig {
 		"/types.p2pgservice/BroadCastBlock": {WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/GetAddr":        {WaitForReady: &ready, Timeout: &getAddrtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 		"/types.p2pgservice/GetHeaders":     {WaitForReady: &ready, Timeout: &getHeadertimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-		"/types.p2pgservice/CheckPeerNatOk": {WaitForReady: &ready, Timeout: &getHeadertimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
 	}
 
 	return grpc.ServiceConfig{Methods: MethodConf}
