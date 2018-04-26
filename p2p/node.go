@@ -356,7 +356,7 @@ func (n *Node) natMapPort() {
 
 		select {
 		case <-refresh.C:
-			nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort), nodename[:8], time.Minute*15)//提前五分钟更新
+			nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort), nodename[:8], time.Minute*20)
 			refresh.Reset(mapUpdateInterval)
 		default:
 			if n.isClose() {
