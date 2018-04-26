@@ -51,7 +51,7 @@ func (n *Node) getAddrFromOnline() {
 			return
 		}
 		if n.needMore() {
-			peers, _ := n.getActivePeers()
+			peers, _ := n.GetActivePeers()
 			for _, peer := range peers { //向其他节点发起请求，获取地址列表
 				log.Debug("Getpeer", "addr", peer.Addr())
 				addrlist, err := pcli.GetAddr(peer)

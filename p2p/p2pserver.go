@@ -76,7 +76,7 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
 	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", s.node.Size())
 	addrBucket := make(map[string]bool)
-	peers, _ := s.node.getActivePeers()
+	peers, _ := s.node.GetActivePeers()
 	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
 
@@ -130,7 +130,7 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 					return
 				}
 
-				peers, _ := s.node.getActivePeers()
+				peers, _ := s.node.GetActivePeers()
 				for _, peer := range peers {
 					peer.mconn.gcli.Version2(context.Background(), in)
 				}
