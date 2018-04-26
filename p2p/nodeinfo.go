@@ -113,7 +113,7 @@ func (nf *NodeInfo) flushPeerInfos(in []*types.Peer) {
 }
 func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 	var peerlist = make(map[string]*types.Peer)
-	peers := n.getRegisterPeers()
+	peers := n.GetRegisterPeers()
 	log.Debug("latestPeerInfo", "register peer num", len(peers))
 	for _, peer := range peers {
 
