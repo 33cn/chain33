@@ -9,7 +9,7 @@ var (
 	PingTimeout                = 14 * time.Second
 	DefaultSendTimeout         = 10 * time.Second
 	DialTimeout                = 5 * time.Second
-	mapUpdateInterval          = 15 * time.Minute
+	mapUpdateInterval          = 45 * time.Hour
 	StreamPingTimeout          = 20 * time.Second
 	MonitorPeerInfoInterval    = 10 * time.Second
 	GetAddrFromOfflineInterval = 5 * time.Second
