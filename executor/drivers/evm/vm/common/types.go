@@ -11,33 +11,27 @@ const (
 )
 
 type Hash common.Hash
-type Address [AddressLength]byte
+type Address struct {
+	addr string
+}
 
 func BytesToAddress(b []byte) Address {
-	var a Address
-	a.SetBytes(b)
-	return a
+	return StringToAddress(string(b))
 }
-func StringToAddress(s string) Address { return BytesToAddress([]byte(s)) }
+func StringToAddress(s string) Address { return Address{addr:s} }
 func BigToAddress(b *big.Int) Address  { return BytesToAddress(b.Bytes()) }
 func HexToAddress(s string) Address    { return BytesToAddress(FromHex(s)) }
 func EmptyAddress() Address {
-	return BytesToAddress([]byte(""))
+	return Address{""}
 }
 
-// Sets the address to the value of b. If b is larger than len(a) it will panic
-func (a *Address) SetBytes(b []byte) {
-	if len(b) > len(a) {
-		b = b[len(b)-AddressLength:]
-	}
-	copy(a[AddressLength-len(b):], b)
-}
 
 // Get the string representation of the underlying address
-func (a Address) Str() string   { return string(a[:]) }
-func (a Address) Bytes() []byte { return a[:] }
-func (a Address) Big() *big.Int { return new(big.Int).SetBytes(a[:]) }
-func (a Address) Hash() Hash    { return BytesToHash(a[:]) }
+func (a Address) Str() string   { return a.addr }
+func (a Address) Bytes() []byte { return []byte(a.addr) }
+func (a Address) Big() *big.Int { return new(big.Int).SetBytes(a.Bytes()) }
+func (a Address) Hash() Hash    { return BytesToHash(a.Bytes()) }
+
 
 // Get the string representation of the underlying hash
 func (h Hash) Str() string   { return string(h[:]) }

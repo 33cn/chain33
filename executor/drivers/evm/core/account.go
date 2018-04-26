@@ -87,6 +87,7 @@ func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 func (self *ContractAccount) SetState(key, value common.Hash) {
 	addr := common.StringToAddress(self.Addr)
 	self.mdb.journal = append(self.mdb.journal, storageChange{
+		baseChange:baseChange{},
 		account:  &addr,
 		key:      key,
 		prevalue: self.GetState(key),
@@ -107,10 +108,10 @@ func (self *ContractAccount) SetContract(contract bool) {
 func (self *ContractAccount) resotreData(data []byte){
 	if data != nil && len(data) > HashLength{
 		// 前面32位是哈希，后面是代码
-		self.code = Code(data[HashLength:])
+		self.codeHash = common.BytesToHash(data[:HashLength])
 
 		// FIXME 这里考虑增加校验，再计算一次哈希
-		self.codeHash = common.BytesToHash(data[:HashLength])
+		self.code = Code(data[HashLength:])
 		self.contract=true
 	}
 }
@@ -156,6 +157,7 @@ func (self *ContractAccount) SetCode(code []byte) {
 	prevcode := self.code
 	addr := common.StringToAddress(self.Addr)
 	self.mdb.journal = append(self.mdb.journal, codeChange{
+		baseChange:baseChange{},
 		account:  &addr,
 		prevhash: self.codeHash.Bytes(),
 		prevcode: []byte(prevcode),
@@ -294,6 +296,7 @@ func (self *ContractAccount) SetNonce(nonce uint64) {
 	addr := common.StringToAddress(self.Addr)
 
 	self.mdb.journal = append(self.mdb.journal, nonceChange{
+		baseChange:baseChange{},
 		account: &addr,
 		prev:    self.nonce,
 	})

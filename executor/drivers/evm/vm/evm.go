@@ -329,18 +329,18 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	// 检查合约代码递归调用深度，防止无限递归的情况出现，即使Gas充足，也不允许
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, common.Address{}, gas, ErrDepth
+		return nil, common.EmptyAddress(), gas, ErrDepth
 	}
 
 	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, common.Address{}, gas, ErrInsufficientBalance
+		return nil, common.EmptyAddress(), gas, ErrInsufficientBalance
 	}
 
 	// 使用随机生成的地址作为合约地址（这个可以保证每次创建的合约地址不会重复，不存在冲突的情况）
 	contractAddr = *crypto.RandomAddress()
 
 	if !evm.StateDB.Empty(contractAddr) {
-		return nil, common.Address{}, 0, ErrContractAddressCollision
+		return nil, common.EmptyAddress(), 0, ErrContractAddressCollision
 	}
 
 	// 使用生成的地址创建一个新的账户对象（会同时创建coins账户和合约账户）

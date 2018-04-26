@@ -18,6 +18,7 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
