@@ -62,7 +62,7 @@ func getSiblingHash(sibling string) [][]byte {
 
 func BTCVerifyTx(verify *types.RelayVerifyBTC) (bool, error) {
 	rawhash := getRawTxHash(verify.Rawtx)
-	sibs := getSiblingHash(verify.Sibling)
+	sibs := getSiblingHash(verify.Merkbranch)
 
 	verifymerkleroot := merkle.GetMerkleRootFromBranch(sibs, rawhash, verify.Txindex)
 	realmerkleroot := GetMerkleRootFromHeader(verify.Blockhash)

@@ -64,7 +64,11 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	case types.RelayActionRevokeBuy:
 		return actiondb.relayRevokeBuy(action.GetRrevokebuy())
 
-	/* orderid, rawTx, index sibling, blockhash */
+	// orderid, txhash
+	//case types.RelayActionVerifyTx:
+	//	return actiondb.relayVerifyBTCTx(action.GetRverifybtc())
+
+	// orderid, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyBTCTx:
 		return actiondb.relayVerifyBTCTx(action.GetRverifybtc())
 
@@ -148,6 +152,181 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 }
 
+func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
+	switch funcName {
+	//查询某个特定用户的一个或者多个coin兑换的卖单,包括所有状态的卖单
+	//TODO:后续可以考虑支持查询不同状态的卖单
+	case "GetRelayOrder":
+		var addrCoins types.ReqRelayAddrCoins
+		err := types.Decode(params, &addrCoins)
+		if err != nil {
+			return nil, err
+		}
+		return r.GetRelayOrder(&addrCoins)
+	case "GetRelayBuyOrder":
+		var addrCoins types.ReqRelayAddrCoins
+		err := types.Decode(params, &addrCoins)
+		if err != nil {
+			return nil, err
+		}
+		return r.GetRelayBuyOrder(&addrCoins)
+		//查寻所有的可以进行交易的卖单
+	case "GetRelayOrderByCoinStatus":
+		var addrCoins types.ReqRelayAddrCoins
+		err := types.Decode(params, &addrCoins)
+		if err != nil {
+			return nil, err
+		}
+		return r.GetOrderByCoinStatus(&addrCoins)
+	default:
+	}
+	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)
+	return nil, types.ErrQueryNotSupport
+}
+
+func (r *relay) GetRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
+	orderidGot := make(map[string]bool)
+	var orderids [][]byte
+	if 0 == len(addrCoins.Coins) {
+		values, err := r.GetLocalDB().List(getRelayOrderPrefixAddr(addrCoins.Addr), nil, 0, 0)
+		if err != nil {
+			return nil, err
+		}
+		if len(values) != 0 {
+			relaylog.Debug("relay Query", "get number of orderid", len(values))
+			orderids = append(orderids, values...)
+		}
+	} else {
+		for _, coin := range addrCoins.Coins {
+			values, err := r.GetLocalDB().List(getRelayOrderPrefixAddrToken(coin, addrCoins.Addr), nil, 0, 0)
+			relaylog.Debug("relay Query", "Begin to list addr with coin", coin, "got values", len(values))
+			if err != nil {
+				return nil, err
+			}
+			if len(values) != 0 {
+				orderids = append(orderids, values...)
+			}
+		}
+	}
+
+	var reply types.ReplyRelayOrders
+	for _, orderid := range orderids {
+		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
+		if !orderidGot[string(orderid)] {
+			if order, err := r.getSellOrderFromDb(orderid); err == nil {
+				relaylog.Debug("trade Query", "getSellOrderFromID", string(orderid))
+				reply.Relayorders = insertOrderDescending(order, reply.Relayorders)
+			}
+			orderidGot[string(orderid)] = true
+		}
+	}
+	return &reply, nil
+}
+
+func insertOrderDescending(toBeInserted *types.RelayOrder, orders []*types.RelayOrder) []*types.RelayOrder {
+	if 0 == len(orders) {
+		orders = append(orders, toBeInserted)
+	} else {
+		index := len(orders)
+		for i, element := range orders {
+			if toBeInserted.Sellamount >= element.Sellamount {
+				index = i
+				break
+			}
+		}
+
+		if len(orders) == index {
+			orders = append(orders, toBeInserted)
+		} else {
+			rear := append([]*types.RelayOrder{}, orders[index:]...)
+			orders = append(orders[0:index], toBeInserted)
+			orders = append(orders, rear...)
+		}
+	}
+	return orders
+}
+
+func (r *relay) GetRelayBuyOrder(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
+	var orderIdGot = make(map[string]bool)
+	var orderIds [][]byte
+
+	values, err := r.GetLocalDB().List(getBuyOrderPrefixAddr(addrCoins.Addr), nil, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) != 0 {
+		relaylog.Debug("relay buy order Query", "get number of order", len(values))
+		orderIds = append(orderIds, values...)
+	}
+
+	var reply types.ReplyRelayOrders
+	for _, orderid := range orderIds {
+		order, err := r.getSellOrderFromDb(orderid)
+		if err != nil {
+			return nil, err
+		}
+
+		if !orderIdGot[order.Orderid] {
+			if len(addrCoins.Coins) != 0 {
+				for _, coin := range addrCoins.Coins {
+					if order.Exchgcoin == coin {
+						reply.Relayorders = append(reply.Relayorders, order)
+					}
+				}
+
+			} else {
+				reply.Relayorders = append(reply.Relayorders, order)
+			}
+
+			orderIdGot[order.Orderid] = true
+		}
+	}
+
+	return &reply, nil
+
+}
+
+func (r *relay) GetOrderByCoinStatus(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
+	orderIdGot := make(map[string]bool)
+	var orderids [][]byte
+	if 0 == len(addrCoins.Coins) {
+		values, err := r.GetLocalDB().List(getRelayOrderPrefixTokenStatus("BTC", addrCoins.Status), nil, 0, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		if 0 != len(values) {
+			relaylog.Debug("relay coin status Query", "get number of orderid", len(values))
+			orderids = append(orderids, values...)
+		}
+	} else {
+		for _, coin := range addrCoins.Coins {
+			values, err := r.GetLocalDB().List(getRelayOrderPrefixTokenStatus(coin, addrCoins.Status), nil, 0, 0)
+			if err != nil {
+				return nil, err
+			}
+
+			if 0 != len(values) {
+				relaylog.Debug("relay coin status Query", "get number of orderid", len(values))
+				orderids = append(orderids, values...)
+			}
+		}
+	}
+
+	var reply types.ReplyRelayOrders
+	for _, orderid := range orderids {
+		if !orderIdGot[string(orderid)] {
+			if order, err := r.getSellOrderFromDb(orderid); err == nil {
+				relaylog.Debug("trade coin status Query", "getSellOrderFromID", string(orderid))
+				reply.Relayorders = append(reply.Relayorders, order)
+			}
+			orderIdGot[string(orderid)] = true
+		}
+	}
+
+	return &reply, nil
+}
+
 func (r *relay) getSellOrderFromDb(orderid []byte) (*types.RelayOrder, error) {
 	value, err := r.GetStateDB().Get(orderid)
 	if err != nil {
@@ -162,8 +341,8 @@ func getSellOrderKv(order *types.RelayOrder) []*types.KeyValue {
 	status := order.Status
 	var kv []*types.KeyValue
 	kv = getSellOrderKeyValue(kv, order, status)
-	if status == Relay_Deal || status == Relay_Revoked {
-		kv = deleteSellOrderKeyValue(kv, order, Relay_OnSell)
+	if status == types.Relay_Deal || status == types.Relay_Revoked {
+		kv = deleteSellOrderKeyValue(kv, order, types.Relay_OnSell)
 	}
 
 	return kv
@@ -173,8 +352,8 @@ func getDeleteSellOrderKv(order *types.RelayOrder) []*types.KeyValue {
 	status := order.Status
 	var kv []*types.KeyValue
 	kv = deleteSellOrderKeyValue(kv, order, status)
-	if status == Relay_Deal || status == Relay_Revoked {
-		kv = getSellOrderKeyValue(kv, order, Relay_OnSell)
+	if status == types.Relay_Deal || status == types.Relay_Revoked {
+		kv = getSellOrderKeyValue(kv, order, types.Relay_OnSell)
 	}
 
 	return kv
@@ -216,13 +395,13 @@ func (r *relay) deleteBuy(orderid []byte, ty int32) []*types.KeyValue {
 func getSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 	orderid := []byte(order.Orderid)
 
-	key := getSellOrderKeyToken(order.Exchgcoin, status, order.Orderid, order.Sellamount, order.Exchgamount, order.Height)
+	key := getRelayOrderKeyToken(order.Exchgcoin, status, order.Orderid, order.Sellamount, order.Exchgamount, order.Height)
 	kv = append(kv, &types.KeyValue{key, orderid})
 
-	key = getSellOrderKeyAddrStatus(order.Exchgcoin, order.Selladdr, status, order.Orderid, order.Sellamount, order.Exchgamount)
+	key = getRelayOrderKeyAddrStatus(order.Exchgcoin, order.Selladdr, status, order.Orderid, order.Sellamount, order.Exchgamount)
 	kv = append(kv, &types.KeyValue{key, orderid})
 
-	key = getSellOrderKeyAddrToken(order.Exchgcoin, order.Selladdr, status, order.Orderid, order.Sellamount, order.Exchgamount)
+	key = getRelayOrderKeyAddrToken(order.Exchgcoin, order.Selladdr, status, order.Orderid, order.Sellamount, order.Exchgamount)
 	kv = append(kv, &types.KeyValue{key, orderid})
 
 	return kv
@@ -231,13 +410,13 @@ func getSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status 
 
 func deleteSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 
-	key := getSellOrderKeyToken(order.Exchgcoin, status, order.Orderid, order.Sellamount, order.Exchgamount, order.Height)
+	key := getRelayOrderKeyToken(order.Exchgcoin, status, order.Orderid, order.Sellamount, order.Exchgamount, order.Height)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getSellOrderKeyAddrStatus(order.Exchgcoin, order.Selladdr, status, order.Orderid, order.Sellamount, order.Exchgamount)
+	key = getRelayOrderKeyAddrStatus(order.Exchgcoin, order.Selladdr, status, order.Orderid, order.Sellamount, order.Exchgamount)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getSellOrderKeyAddrToken(order.Exchgcoin, order.Selladdr, status, order.Orderid, order.Sellamount, order.Exchgamount)
+	key = getRelayOrderKeyAddrToken(order.Exchgcoin, order.Selladdr, status, order.Orderid, order.Sellamount, order.Exchgamount)
 	kv = append(kv, &types.KeyValue{key, nil})
 
 	return kv
