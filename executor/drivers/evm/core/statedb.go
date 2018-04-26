@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"math/big"
 	"sort"
+	"github.com/inconshreveable/log15"
 )
 
 // 内存状态数据库，保存在区块操作时内部的数据变更操作
@@ -37,7 +38,7 @@ type MemoryStateDB struct {
 	refund uint64
 
 	// 存储makeLogN指令对应的日志数据
-	logs    map[common.Hash][]*types.Log
+	logs    map[common.Hash][]*etypes.ContractLog
 	logSize uint
 
 	// 版本号，用于标识数据变更版本
@@ -47,6 +48,10 @@ type MemoryStateDB struct {
 
 	// 存储sha3指令对应的数据
 	preimages map[common.Hash][]byte
+
+	// 当前临时交易哈希和交易序号
+	txHash common.Hash
+	txIndex int
 }
 
 type revision struct {
@@ -62,10 +67,16 @@ func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) 
 		accounts:       make(map[common.Address]*ContractAccount),
 		accountsDirty:  make(map[common.Address]struct{}),
 		contractsDirty: make(map[common.Address]struct{}),
-		logs:           make(map[common.Hash][]*types.Log),
+		logs:           make(map[common.Hash][]*etypes.ContractLog),
 		preimages:      make(map[common.Hash][]byte),
 	}
 	return mdb
+}
+
+
+func (self *MemoryStateDB) Prepare(txHash common.Hash, txIndex int) {
+	self.txHash = txHash
+	self.txIndex = txIndex
 }
 
 // 创建一个新的合约账户对象
@@ -73,10 +84,7 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 	acc := self.GetAccount(addr)
 	if acc == nil {
 		// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
-		ac := types.Account{Addr: addr.Str()}
-		acc := NewContractAccount(ac, self)
-
-		acc.SetContract(true)
+		acc := NewContractAccount(addr.Str(), self)
 		acc.LoadContract(self.StateDB)
 		self.accounts[addr] = acc
 
@@ -160,7 +168,7 @@ func (self *MemoryStateDB) SetNonce(addr common.Address, nonce uint64) {
 func (self *MemoryStateDB) GetCodeHash(addr common.Address) common.Hash {
 	acc := self.GetAccount(addr)
 	if acc != nil {
-		return acc.codeHash
+		return common.BytesToHash(acc.Data.GetCodeHash())
 	}
 	return common.Hash{}
 }
@@ -168,7 +176,7 @@ func (self *MemoryStateDB) GetCodeHash(addr common.Address) common.Hash {
 func (self *MemoryStateDB) GetCode(addr common.Address) []byte {
 	acc := self.GetAccount(addr)
 	if acc != nil {
-		return acc.code
+		return acc.Data.GetCode()
 	}
 	return nil
 }
@@ -198,7 +206,7 @@ func (self *MemoryStateDB) GetRefund() uint64 {
 	return self.refund
 }
 
-// 从缓存中获取账户或加载账户
+// 从缓存中获取或加载合约账户
 func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
 	if acc, ok := self.accounts[addr]; ok {
 		return acc
@@ -207,24 +215,15 @@ func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
 			return nil
 		}
 
-		acc := self.CoinsAccount.LoadAccount(addr.Str())
-
-		if acc != nil {
-			contract := NewContractAccount(*acc, self)
-			contract.LoadContract(self.StateDB)
+		// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
+		// 要考虑到这种情况，还是要加载合约，看看合约信息是否存在，如果都不存在，则说明真不存在
+		contract := NewContractAccount(addr.Str(), self)
+		contract.LoadContract(self.StateDB)
+		if contract.Data.GetCode() != nil {
 			self.accounts[addr] = contract
 			return contract
-		} else {
-			// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
-			// 要考虑到这种情况，还是要加载合约，看看合约信息是否存在，如果都不存在，则说明真不存在
-			ac := types.Account{Addr: addr.Str()}
-			contract := NewContractAccount(ac, self)
-			contract.LoadContract(self.StateDB)
-			if contract.code != nil {
-				return contract
-			}
-			return nil
 		}
+		return nil
 	}
 }
 
@@ -250,7 +249,7 @@ func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 		self.journal = append(self.journal, suicideChange{
 			baseChange: baseChange{},
 			account:    &addr,
-			prev:       acc.suicided,
+			prev:       acc.State.GetSuicided(),
 		})
 		return acc.Suicide()
 	}
@@ -370,17 +369,12 @@ func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount *bi
 	}
 }
 
-func (self *MemoryStateDB) AddLog(log *etypes.Log) {
-	//TODO 日志记录暂不实现
-	//self.journal = append(self.journal, addLogChange{txhash: self.thash})
-	//
-	//log.TxHash = self.thash
-	//log.BlockHash = self.bhash
-	//log.TxIndex = uint(self.txIndex)
-	//log.Index = self.logSize
-	//self.logs[self.thash] = append(self.logs[self.thash], log)
-	//self.logSize++
-
+func (self *MemoryStateDB) AddLog(log *etypes.ContractLog) {
+	self.journal = append(self.journal, addLogChange{txhash: self.txHash})
+	log.TxHash = self.txHash
+	log.Index = int(self.logSize)
+	self.logs[self.txHash] = append(self.logs[self.txHash], log)
+	self.logSize++
 }
 
 // 存储sha3指令对应的数据
@@ -393,6 +387,18 @@ func (self *MemoryStateDB) AddPreimage(hash common.Hash, data []byte) {
 	}
 }
 
+
+// 本合约执行完毕之后打印合约生成的日志（如果有）
+// 这里不保证当前区块可以打包成功，只是在执行区块中的交易时，如果交易执行成功，就会打印合约日志
+func (self *MemoryStateDB) PrintLogs()  {
+	items,_ := self.logs[self.txHash]
+	if items != nil {
+		for _,item := range items {
+			log15.Info(item.String())
+		}
+	}
+}
+
 // FIXME 目前此方法也业务逻辑中没有地方使用到，单纯为测试实现，后继去除
 func (self *MemoryStateDB) ForEachStorage(addr common.Address, cb func(common.Hash, common.Hash) bool) {
 	acc := self.GetAccount(addr)
@@ -401,7 +407,7 @@ func (self *MemoryStateDB) ForEachStorage(addr common.Address, cb func(common.Ha
 	}
 
 	// 遍历存储
-	for key, value := range acc.storage {
-		cb(key, value)
+	for key, value := range acc.State.GetStorage() {
+		cb(common.BytesToHash([]byte(key)), common.BytesToHash(value))
 	}
 }
