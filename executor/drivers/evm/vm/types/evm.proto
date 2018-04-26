@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package types;
-
-//Storage 的信息
-message Storage {
-    map< bytes, bytes> data = 1;
-}

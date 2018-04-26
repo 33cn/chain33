@@ -61,6 +61,11 @@ func (evm *FakeEVM) SetEnv(height, blocktime int64) {
 		// 这时说明区块发生了变化，需要集成原来的设置逻辑，并执行自定义操作
 		evm.DriverBase.SetEnv(height, blocktime)
 
+		// 在生成新的区块状态DB之前，把先前区块中生成的合约日志集中打印出来
+		if evm.mStateDB != nil {
+			evm.mStateDB.PrintLogs()
+		}
+
 		// 重新初始化MemoryStateDB
 		// 需要注意的时，在执行器中只执行单个Transaction，但是并没有提交区块的动作
 		// 所以，这个mStateDB只用来缓存一个区块内执行的Transaction引起的状态数据变更
@@ -107,6 +112,9 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		addr        = *msg.To()
 	)
 
+	// 状态机中设置当前交易状态
+	evm.mStateDB.Prepare(common.BytesToHash(tx.Hash()), index)
+
 	// 合约执行之前，预先扣除GasLimit费用
 	evm.mStateDB.SubBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(msg.GasLimit())), msg.GasPrice()))
 
@@ -139,6 +147,9 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	log.Info("usedGas ", leftOverGas)
 	log.Info("return data is " + hex.EncodeToString(ret))
 	log.Info("contract address is ", addr.Str())
+
+	// 打印合约中生成的日志
+	evm.mStateDB.PrintLogs()
 
 	// FIXME 后面修改成protobuf结构后再添加日志
 	//ty := int32(types.TyLogFee)

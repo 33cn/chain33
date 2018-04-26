@@ -809,13 +809,10 @@ func makeLog(size int) executionFunc {
 		}
 
 		d := memory.Get(mStart.Int64(), mSize.Int64())
-		evm.StateDB.AddLog(&types.Log{
+		evm.StateDB.AddLog(&types.ContractLog{
 			Address: contract.Address(),
 			Topics:  topics,
 			Data:    d,
-			// This is a non-consensus field, but assigned here because
-			// core/state doesn't know the current block number.
-			BlockNumber: evm.BlockNumber.Uint64(),
 		})
 
 		evm.interpreter.intPool.put(mStart, mSize)
