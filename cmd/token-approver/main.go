@@ -1,36 +1,32 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	tml "github.com/BurntSushi/toml"
+	l "github.com/inconshreveable/log15"
+	"github.com/rs/cors"
 	"io"
 	"net"
 	"net/http"
 	"net/rpc"
 	"net/rpc/jsonrpc"
+	"os"
+	"path/filepath"
+	"strings"
 
-	l "github.com/inconshreveable/log15"
-	"github.com/rs/cors"
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/types"
-
-	"math/rand"
-	"time"
-
-	"encoding/hex"
+	"gitlab.33.cn/chain33/chain33/cmd/token-approver/signatory"
 )
 
 var (
-	log      = l.New("module", "token-approver")
-	minFee   = types.MinFee
-	signType = "secp256k1"
+	log        = l.New("module", "signatory")
+	configPath = flag.String("f", "signatory.toml", "configfile")
 )
 
 // 独立的服务， 提供两个功能
 //   1. 帮忙做审核token的交易签名
 //       1. a帐号有审核的权限， 客服核完需要用他的私钥对审核交易进行签名
-//       1. 输入是生成好的， tokenfinishtx 类型的交易 （也可以选择输入 owner, symbol， 费用固定在server端 ）
+//       1. 输入是生成好的， 选择输入 owner, symbol
 //       1. 输出是签过名的交易
 //   1. 给指定帐号打手续费    1bty
 //       1. 给指定帐号打手续费
@@ -39,13 +35,13 @@ var (
 //    app-proto
 //      |
 //      V
-//     rpc      json format req/resp
+//     rpc
 //      |
 //      V
-//     http     serve listener --> conn, conn.io -> request, response
+//     http     serve listener --> conn, io -> type HandlerFunc func(ResponseWriter, *Request)
 //      |
 //      V
-//     tcp ...  构建 listener （socket 支持io）
+//     tcp
 type HTTPConn struct {
 	in  io.Reader
 	out io.Writer
@@ -55,131 +51,42 @@ func (c *HTTPConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
 func (c *HTTPConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
 func (c *HTTPConn) Close() error                      { return nil }
 
-type Signatory struct {
-	privkey string
-}
-
-func (*Signatory) Close() {
-
-}
-
-func (*Signatory) Listen() {
-
-}
-
-func (*Signatory) Echo(in *string, out *interface{}) error {
-	if in == nil {
-		return types.ErrInputPara
-	}
-	*out = *in
-	return nil
-}
-
-type TokenFinish struct {
-	OwnerAddr string `json:"owner_addr"`
-	Symbol    string `json:"symbol"`
-	//	Fee       int64  `json:"fee"`
-}
-
-func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error {
-	if in == nil {
-		return types.ErrInputPara
-	}
-	if checkAddr(in.OwnerAddr) != true || len(in.Symbol) == 0 {
-		return types.ErrInputPara
-	}
-	v := &types.TokenFinishCreate{Symbol: in.Symbol, Owner: in.OwnerAddr}
-	finish := &types.TokenAction{
-		Ty:    types.TokenActionFinishCreate,
-		Value: &types.TokenAction_Tokenfinishcreate{v},
-	}
-
-	tx := &types.Transaction{
-		Execer:  []byte("token"),
-		Payload: types.Encode(finish),
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("token").String(),
-	}
-
-	var err error
-	tx.Fee, err = tx.GetRealFee(minFee)
-	if err != nil {
-		log.Error("SignApprove", "calc fee failed", err)
-		return err
-	}
-	err = signTx(tx, signatory.privkey)
-	if err != nil {
-		return err
-	}
-	txHex := types.Encode(tx)
-	*out = hex.EncodeToString(txHex)
-	return nil
-}
-
-func (signatory *Signatory) SignTranfer(in *string, out *interface{}) error {
-	if in == nil {
-		return types.ErrInputPara
-	}
-	if checkAddr(*in) != true{
-		return types.ErrInputPara
-	}
-
-	amount := 1 * types.Coin
-	v := &types.CoinsTransfer{
-		Amount: amount,
-		Note: "transfer 1 bty by signatory-server",
-	}
-	transfer := &types.CoinsAction{
-		Ty: types.CoinsActionTransfer,
-		Value: &types.CoinsAction_Transfer{v},
-	}
-
-
-	tx := &types.Transaction{
-		Execer:  []byte("coins"),
-		Payload: types.Encode(transfer),
-		To:      *in,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-	}
-
-	var err error
-	tx.Fee, err = tx.GetRealFee(minFee)
-	if err != nil {
-		log.Error("SignTranfer", "calc fee failed", err)
-		return err
-	}
-	err = signTx(tx, signatory.privkey)
-	if err != nil {
-		log.Error("SignTranfer", "signTx failed", err)
-		return err
-	}
-	txHex := types.Encode(tx)
-	*out = hex.EncodeToString(txHex)
-	return nil
-
-}
-
-
 func main() {
-	tcpAddr := "localhost:8888"
-	listen, err := net.Listen("tcp", tcpAddr)
+	d, _ := os.Getwd()
+	log.Debug("current dir:", "dir", d)
+	os.Chdir(pwd())
+	d, _ = os.Getwd()
+	log.Debug("current dir:", "dir", d)
+	flag.Parse()
+	cfg := InitCfg(*configPath)
+	log.Debug("load config", "cfgPath", *configPath, "wl", cfg.Whitelist, "addr", cfg.JrpcBindAddr, "key", cfg.PrivKey)
+	whitelist := InitWhiteList(cfg)
+
+	listen, err := net.Listen("tcp", cfg.JrpcBindAddr)
 	if err != nil {
 		panic(err)
 	}
 
-	approver := Signatory{""} // 这样骨架就有了， 需要在这里加功能
+	approver := signatory.Signatory{cfg.PrivKey}
 	server := rpc.NewServer()
 	server.Register(&approver)
-	// type HandlerFunc func(ResponseWriter, *Request)
+
 	var handler http.Handler = http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(r.URL, r.Header, r.Body)
+
+			if !checkWhitlist(strings.Split(r.RemoteAddr, ":")[0], whitelist) {
+				log.Error("HandlerFunc", "peer not whitelist", r.RemoteAddr)
+				w.Write([]byte(`{"errcode":"-1","result":null,"msg":"reject"}`))
+				return
+			}
+
 			if r.URL.Path == "/" {
-				serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w}) // wrap http to rpc
+				serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w})
 				w.Header().Set("Content-type", "application/json")
 				w.WriteHeader(200)
 
-				err := server.ServeRequest(serverCodec) // 处理io
+				err := server.ServeRequest(serverCodec)
 				if err != nil {
 					log.Debug("Error while serving JSON request: %v", err)
 					return
@@ -196,26 +103,45 @@ func main() {
 
 }
 
-func signTx(tx *types.Transaction, hexPrivKey string) error {
-	signType := types.SECP256K1
-	c, err := crypto.New(types.GetSignatureTypeName(signType))
-
-	bytes, err := common.FromHex(hexPrivKey)
-	if err != nil {
-		log.Error("signTx", "err", err)
-		return err
+func InitCfg(path string) *signatory.Config {
+	var cfg signatory.Config
+	if _, err := tml.DecodeFile(path, &cfg); err != nil {
+		fmt.Println(err)
+		os.Exit(0)
 	}
-
-	privKey, err := c.PrivKeyFromBytes(bytes)
-	if err != nil {
-		log.Error("signTx", "err", err)
-		return err
-	}
-
-	tx.Sign(int32(signType), privKey)
-	return nil
+	fmt.Println(cfg)
+	return &cfg
 }
 
-func checkAddr(addr string) bool {
-	return true // TODO
+func InitWhiteList(cfg *signatory.Config) map[string]bool {
+	whitelist := map[string]bool{}
+	if len(cfg.Whitelist) == 1 && cfg.Whitelist[0] == "*" {
+		whitelist["0.0.0.0"] = true
+		return whitelist
+	}
+
+	for _, addr := range cfg.Whitelist {
+		log.Debug("initWhitelist", "addr", addr)
+		whitelist[addr] = true
+	}
+	return whitelist
+}
+
+func pwd() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		panic(err)
+	}
+	return dir
+}
+
+func checkWhitlist(addr string, whitlist map[string]bool) bool {
+	if _, ok := whitlist["0.0.0.0"]; ok {
+		return true
+	}
+
+	if _, ok := whitlist[addr]; ok {
+		return true
+	}
+	return false
 }
