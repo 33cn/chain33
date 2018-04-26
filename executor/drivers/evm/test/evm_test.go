@@ -191,12 +191,6 @@ func TestCreateTx(t *testing.T) {
 	}else{
 		t.Log(signedTx)
 	}
-
-	tests := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	testb := []byte(tests)
-	t.Logf("binary :%s" , testb)
-	t.Logf("build string : %s", string(testb))
-	t.Logf("build hex string : %s", hex.EncodeToString(testb))
 }
 
 func TestCallContract1(t *testing.T) {

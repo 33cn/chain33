@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package types;
+
+//合约对象信息
+message ContractObject {
+    string addr = 1;
+    ContractData data = 2;
+    ContractState state = 3;
+}
+
+// 存放合约固定数据
+message ContractData {
+    bytes code = 1;
+    bytes codeHash = 2;
+}
+
+// 存放合约变化数据
+message ContractState {
+    uint64 nonce = 1;
+    bool suicided = 2;
+    bytes storageHash = 3;
+    map<string,bytes> storage = 4;
+}

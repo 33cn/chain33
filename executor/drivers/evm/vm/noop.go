@@ -23,11 +23,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/types"
 )
 
-func NoopCanTransfer(db StateDB, from common.Address, balance *big.Int) bool {
-	return true
-}
-func NoopTransfer(db StateDB, from, to common.Address, amount *big.Int) {}
-
 type NoopEVMCallContext struct{}
 
 func (NoopEVMCallContext) Call(caller ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error) {
@@ -65,6 +60,6 @@ func (NoopStateDB) Exist(common.Address) bool                                   
 func (NoopStateDB) Empty(common.Address) bool                                          { return false }
 func (NoopStateDB) RevertToSnapshot(int)                                               {}
 func (NoopStateDB) Snapshot() int                                                      { return 0 }
-func (NoopStateDB) AddLog(*types.Log)                                                  {}
+func (NoopStateDB) AddLog(log *types.ContractLog)                                                  {}
 func (NoopStateDB) AddPreimage(common.Hash, []byte)                                    {}
 func (NoopStateDB) ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) {}

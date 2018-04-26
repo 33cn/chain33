@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/btcsuite/btcd/btcec"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/rlp"
 	"math/big"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -39,12 +38,6 @@ func Ecrecover(hash, sig []byte) ([]byte, error) {
 	}
 
 	return publicKey.SerializeUncompressed(), nil
-}
-
-// Creates an ethereum address given the bytes and the nonce
-func CreateAddress(b common.Address, nonce uint64) common.Address {
-	data, _ := rlp.EncodeToBytes([]interface{}{b, nonce})
-	return common.BytesToAddress(Keccak256(data)[12:])
 }
 
 // 随机生成一个新的地址，给新创建的合约地址使用

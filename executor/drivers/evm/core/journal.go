@@ -130,7 +130,7 @@ func (ch suicideChange) undo(mdb *MemoryStateDB) {
 	}
 	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		acc.suicided = ch.prev
+		acc.State.Suicided = ch.prev
 	}
 }
 
@@ -149,7 +149,7 @@ func (ch suicideChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 func (ch nonceChange) undo(mdb *MemoryStateDB) {
 	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		acc.nonce = ch.prev
+		acc.State.Nonce = ch.prev
 	}
 }
 
@@ -165,8 +165,8 @@ func (ch nonceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 func (ch codeChange) undo(mdb *MemoryStateDB) {
 	acc := mdb.accounts[*ch.account]
 	if acc != nil {
-		acc.code = ch.prevcode
-		acc.codeHash = common.BytesToHash(ch.prevhash)
+		acc.Data.Code = ch.prevcode
+		acc.Data.CodeHash = ch.prevhash
 	}
 }
 
@@ -212,6 +212,7 @@ func (ch addLogChange) undo(mdb *MemoryStateDB) {
 	}
 	mdb.logSize--
 }
+
 func (ch addLogChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return nil
 }
