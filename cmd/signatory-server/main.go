@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/cmd/token-approver/signatory"
+	"gitlab.33.cn/chain33/chain33/cmd/signatory-server/signatory"
 )
 
 var (
