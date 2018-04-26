@@ -71,7 +71,7 @@ func (d *downloadJob) setFreePeer(pid string) {
 }
 
 func (d *downloadJob) GetFreePeer(joblimit int64) *Peer {
-	peermap, infos := d.p2pcli.network.node.getActivePeers()
+	peermap, infos := d.p2pcli.network.node.GetActivePeers()
 	for _, peer := range peermap {
 		pbpeer, ok := infos[peer.Addr()]
 		if ok {

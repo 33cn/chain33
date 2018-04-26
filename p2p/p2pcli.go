@@ -77,7 +77,7 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 	}()
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
-	peers, _ := m.network.node.getActivePeers()
+	peers, _ := m.network.node.GetActivePeers()
 
 	for _, peer := range peers {
 		//获取远程 peer invs
@@ -285,10 +285,10 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 		return
 	}
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("ok")}))
-	peers, infos := m.network.node.getActivePeers()
+	peers, infos := m.network.node.GetActivePeers()
 	for paddr, info := range infos {
 		if info.GetName() == pid[0] { //匹配成功
-			peer := m.network.node.getRegisterPeer(paddr)
+			peer := m.network.node.GetRegisterPeer(paddr)
 			peer, ok := peers[paddr]
 			if ok && peer != nil {
 				var err error
@@ -330,7 +330,7 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	pids := req.GetPid()
 	var MaxInvs = new(pb.P2PInv)
 	var downloadPeers []*Peer
-	peers, infos := m.network.node.getActivePeers()
+	peers, infos := m.network.node.GetActivePeers()
 	if len(pids) > 0 && pids[0] != "" { //指定Pid 下载数据
 		log.Info("fetch from peer in pids")
 		var pidmap = make(map[string]bool)

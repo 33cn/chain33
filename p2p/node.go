@@ -159,7 +159,7 @@ func (n *Node) Has(paddr string) bool {
 	return false
 }
 
-func (n *Node) getRegisterPeer(paddr string) *Peer {
+func (n *Node) GetRegisterPeer(paddr string) *Peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
 	if peer, ok := n.outBound[paddr]; ok {
@@ -168,7 +168,7 @@ func (n *Node) getRegisterPeer(paddr string) *Peer {
 	return nil
 }
 
-func (n *Node) getRegisterPeers() []*Peer {
+func (n *Node) GetRegisterPeers() []*Peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
 	var peers []*Peer
@@ -182,8 +182,8 @@ func (n *Node) getRegisterPeers() []*Peer {
 	return peers
 }
 
-func (n *Node) getActivePeers() (map[string]*Peer, map[string]*types.Peer) {
-	regPeers := n.getRegisterPeers()
+func (n *Node) GetActivePeers() (map[string]*Peer, map[string]*types.Peer) {
+	regPeers := n.GetRegisterPeers()
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
 
 	var peers = make(map[string]*Peer)
