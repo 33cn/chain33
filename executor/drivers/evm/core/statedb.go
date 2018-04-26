@@ -83,18 +83,51 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 		self.accountsDirty[addr] = struct{}{}
 		self.contractsDirty[addr] = struct{}{}
 
-		self.journal = append(self.journal, createAccountChange{&addr})
+		self.journal = append(self.journal, createAccountChange{baseChange: baseChange{}, account: &addr})
 	}
 }
 
-func (self *MemoryStateDB) SubBalance(addr common.Address, value *big.Int) {
-	//FIXME 不执行，需要借助coins执行器
+func (self *MemoryStateDB) processBalance(addr common.Address, value *big.Int, withdraw bool) error {
+	if self.CoinsAccount == nil {
+		return NoCoinsAccount
+	}
 
+	accFrom := self.CoinsAccount.LoadAccount(addr.Str())
+	amount := value.Int64()
+	// 如果是取钱，需要把金额设成负，下面直接加就可以了
+	if withdraw {
+		amount = 0 - amount
+	}
+	if accFrom.GetBalance()+amount >= 0 {
+		copyfrom := *accFrom
+		accFrom.Balance = accFrom.GetBalance() + amount
+		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
+		self.CoinsAccount.SaveAccount(accFrom)
+
+		feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
+		feedata := self.CoinsAccount.GetKVSet(accFrom)
+
+		self.journal = append(self.journal, balanceChange{
+			baseChange: baseChange{},
+			addr:       addr.Str(),
+			amount:     amount,
+			data:       feedata,
+			logs:       []*types.ReceiptLog{feelog},
+		})
+
+		return nil
+	}
+	return types.ErrNoBalance
+}
+
+func (self *MemoryStateDB) SubBalance(addr common.Address, value *big.Int) {
+	//借助coins执行器
+	self.processBalance(addr, value, true)
 }
 
 func (self *MemoryStateDB) AddBalance(addr common.Address, value *big.Int) {
-	//FIXME 不执行，需要借助coins执行器
-
+	//借助coins执行器
+	self.processBalance(addr, value, false)
 }
 
 func (self *MemoryStateDB) GetBalance(addr common.Address) *big.Int {
@@ -157,7 +190,7 @@ func (self *MemoryStateDB) GetCodeSize(addr common.Address) int {
 }
 
 func (self *MemoryStateDB) AddRefund(gas uint64) {
-	self.journal = append(self.journal, refundChange{prev: self.refund})
+	self.journal = append(self.journal, refundChange{baseChange: baseChange{}, prev: self.refund})
 	self.refund += gas
 }
 
@@ -215,8 +248,9 @@ func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		self.journal = append(self.journal, suicideChange{
-			account: &addr,
-			prev:    acc.suicided,
+			baseChange: baseChange{},
+			account:    &addr,
+			prev:       acc.suicided,
 		})
 		return acc.Suicide()
 	}
@@ -280,7 +314,7 @@ func (self *MemoryStateDB) GetLastSnapshot() int {
 }
 
 // 获取本次操作所引起的状态数据变更
-func (self *MemoryStateDB) GetChangedStatedData(version int) (kvSet []*types.KeyValue) {
+func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue, logs []*types.ReceiptLog) {
 
 	// 从一堆快照列表中找出本次制定版本的快照索引位置
 	idx := sort.Search(len(self.validRevisions), func(i int) bool {
@@ -297,8 +331,11 @@ func (self *MemoryStateDB) GetChangedStatedData(version int) (kvSet []*types.Key
 
 	// 获取中间的数据变更
 	dataMap := make(map[string]*types.KeyValue)
-	for i := len(self.journal) - 1; i >= snapshot; i-- {
+	//for i := len(self.journal) - 1; i >= snapshot; i-- {
+	for i := snapshot; i < len(self.journal); i++ {
 		kvset := self.journal[i].getData(self)
+		logs = append(logs, self.journal[i].getLog(self)...)
+
 		// 执行去重操作
 		if kvset != nil {
 			for _, kv := range kvset {
@@ -309,7 +346,9 @@ func (self *MemoryStateDB) GetChangedStatedData(version int) (kvSet []*types.Key
 	for _, value := range dataMap {
 		kvSet = append(kvSet, value)
 	}
-	return kvSet
+
+
+	return kvSet,logs
 }
 
 // 借助coins执行器进行转账相关操作

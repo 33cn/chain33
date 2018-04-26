@@ -2,7 +2,7 @@ package types
 
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage", "evm"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
