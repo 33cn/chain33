@@ -24,54 +24,85 @@ import (
 type journalEntry interface {
 	undo(mdb *MemoryStateDB)
 	getData(mdb *MemoryStateDB) []*types.KeyValue
+	getLog(mdb *MemoryStateDB) []*types.ReceiptLog
 }
 
 type journal []journalEntry
 
 type (
+	baseChange struct {
+	}
 	// 创建合约对象变更事件
 	createAccountChange struct {
+		baseChange
 		account *common.Address
 	}
 
 	// 自杀事件
 	suicideChange struct {
+		baseChange
 		account     *common.Address
 		prev        bool // whether account had already suicided
 	}
 
 	// nonce变更事件
 	nonceChange struct {
+		baseChange
 		account *common.Address
 		prev    uint64
 	}
 
 	// 存储状态变更事件
 	storageChange struct {
+		baseChange
 		account       *common.Address
 		key, prevalue common.Hash
 	}
 
 	// 合约代码状态变更事件
 	codeChange struct {
+		baseChange
 		account            *common.Address
 		prevcode, prevhash []byte
 	}
 
 	// 返还金额变更事件
 	refundChange struct {
+		baseChange
 		prev uint64
+	}
+
+	// 金额变更事件
+	balanceChange struct {
+		baseChange
+		amount int64
+		addr string
+		data []*types.KeyValue
+		logs []*types.ReceiptLog
 	}
 
 
 	addLogChange struct {
+		baseChange
 		txhash common.Hash
 	}
 
 	addPreimageChange struct {
+		baseChange
 		hash common.Hash
 	}
 )
+func (ch baseChange) undo(s *MemoryStateDB) {
+}
+
+func (ch baseChange) getData(s *MemoryStateDB) (kvset []*types.KeyValue) {
+	return nil
+}
+
+func (ch baseChange) getLog(s *MemoryStateDB) (logs []*types.ReceiptLog) {
+	return nil
+}
+
 
 // 创建账户对象的回滚，需要删除缓存中的账户和变更标记
 func (ch createAccountChange) undo(s *MemoryStateDB) {
@@ -191,4 +222,18 @@ func (ch addPreimageChange) undo(mdb *MemoryStateDB) {
 }
 func (ch addPreimageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return nil
+}
+
+// 设置成变化钱的金额
+func (ch balanceChange) undo(mdb *MemoryStateDB) {
+	acc := mdb.CoinsAccount.LoadAccount(ch.addr)
+	acc.Balance -= ch.amount
+	mdb.CoinsAccount.SaveAccount(acc)
+}
+
+func (ch balanceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+	return ch.data
+}
+func (ch balanceChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
+	return ch.logs
 }
