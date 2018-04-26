@@ -7,21 +7,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-// relay status
-const (
-	Relay_OnSell = iota
-	Relay_Deal
-	Relay_Finished
-	Relay_Revoked
-)
-
-var RelayOrderStatus = map[int32]string{
-	Relay_OnSell:   "OnSell",
-	Relay_Deal:     "Deal",
-	Relay_Finished: "Finished",
-	Relay_Revoked:  "Revoked",
-}
-
 type relayDB struct {
 	types.RelayOrder
 }
@@ -52,7 +37,7 @@ func (r *relayDB) getSellLogs(relayType int32) *types.ReceiptLog {
 	log.Ty = relayType
 	base := &types.ReceiptRelayBase{
 		Orderid:        r.Orderid,
-		Status:         RelayOrderStatus[r.Status],
+		Status:         types.RelayOrderStatus[r.Status],
 		Owner:          r.Selladdr,
 		Sellamount:     r.Sellamount,
 		Exchgcoin:      r.Exchgcoin,
@@ -94,19 +79,19 @@ func (r *relayDB) getVerifyLogs(blocktime int64) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogRelayVerify
 	base := &types.ReceiptRelayBase{
-		Orderid:           r.Orderid,
-		Status:            RelayOrderStatus[r.Status],
-		Owner:             r.Selladdr,
-		Sellamount:        r.Sellamount,
-		Exchgcoin:         r.Exchgcoin,
-		Exchgamount:       r.Exchgamount,
-		Exchgaddr:         r.Exchgaddr,
-		Waitcoinblocks:    r.Waitcoinblocks,
-		Createtime:        r.Createtime,
-		Buyeraddr:         r.Buyeraddr,
-		Buyertime:         r.Buyertime,
-		Buyercoinblocknum: r.Buyercoinblknum,
-		Finishtime:        blocktime,
+		Orderid:         r.Orderid,
+		Status:          types.RelayOrderStatus[r.Status],
+		Owner:           r.Selladdr,
+		Sellamount:      r.Sellamount,
+		Exchgcoin:       r.Exchgcoin,
+		Exchgamount:     r.Exchgamount,
+		Exchgaddr:       r.Exchgaddr,
+		Waitcoinblocks:  r.Waitcoinblocks,
+		Createtime:      r.Createtime,
+		Buyeraddr:       r.Buyeraddr,
+		Buyertime:       r.Buyertime,
+		Buyercoinheight: r.Buyercoinheight,
+		Finishtime:      blocktime,
 	}
 
 	receipt := &types.ReceiptRelaySell{base}
@@ -160,13 +145,13 @@ func (action *relayAction) relaySell(sell *types.RelaySell) (*types.Receipt, err
 	var kv []*types.KeyValue
 	order := &types.RelayOrder{
 		Orderid:        calcRelaySellID(action.txhash),
-		Status:         Relay_OnSell,
+		Status:         types.Relay_OnSell,
 		Sellamount:     sell.Sellamount,
 		Selladdr:       action.fromaddr,
 		Exchgcoin:      sell.Exchgcoin,
 		Exchgamount:    sell.Exchgamount,
 		Exchgaddr:      sell.Exchgaddr,
-		Waitcoinblocks: sell.Waitbtcblocks,
+		Waitcoinblocks: sell.Waitcoinblocks,
 		Createtime:     action.blocktime,
 		Height:         action.height,
 	}
@@ -189,9 +174,9 @@ func (action *relayAction) relayRevokeSell(revoke *types.RelayRevokeSell) (*type
 		return nil, types.ErrTRelayOrderNotExist
 	}
 
-	if order.Status == Relay_Deal || order.Status == Relay_Finished {
+	if order.Status == types.Relay_Deal || order.Status == types.Relay_Finished {
 		return nil, types.ErrTRelayOrderSoldout
-	} else if order.Status == Relay_Revoked {
+	} else if order.Status == types.Relay_Revoked {
 		return nil, types.ErrTRelayOrderRevoked
 	}
 
@@ -205,7 +190,7 @@ func (action *relayAction) relayRevokeSell(revoke *types.RelayRevokeSell) (*type
 		return nil, err
 	}
 
-	order.Status = Relay_Revoked
+	order.Status = types.Relay_Revoked
 	relaydb := newRelayDB(order)
 	orderKV := relaydb.save(action.db)
 
@@ -225,16 +210,16 @@ func (action *relayAction) relayBuy(buy *types.RelayBuy) (*types.Receipt, error)
 		return nil, types.ErrTRelayOrderNotExist
 	}
 
-	if order.Status == Relay_OnSell || order.Status == Relay_Finished {
+	if order.Status == types.Relay_OnSell || order.Status == types.Relay_Finished {
 		return nil, types.ErrTRelayOrderSoldout
 
 	}
 
-	if order.Status == Relay_Revoked {
+	if order.Status == types.Relay_Revoked {
 		return nil, types.ErrTRelayOrderRevoked
 	}
 
-	order.Status = Relay_Deal
+	order.Status = types.Relay_Deal
 	order.Buyeraddr = action.fromaddr
 	order.Buyertime = action.blocktime
 	//order.buyercoinblocknum =
@@ -260,11 +245,11 @@ func (action *relayAction) relayRevokeBuy(revoke *types.RelayRevokeBuy) (*types.
 		return nil, types.ErrTRelayOrderNotExist
 	}
 
-	if order.Status == Relay_OnSell {
+	if order.Status == types.Relay_OnSell {
 		return nil, types.ErrTRelayOrderOnSell
-	} else if order.Status == Relay_Revoked {
+	} else if order.Status == types.Relay_Revoked {
 		return nil, types.ErrTRelayOrderRevoked
-	} else if order.Status == Relay_Finished {
+	} else if order.Status == types.Relay_Finished {
 		return nil, types.ErrTRelayOrderFinished
 	}
 
@@ -272,7 +257,7 @@ func (action *relayAction) relayRevokeBuy(revoke *types.RelayRevokeBuy) (*types.
 		return nil, types.ErrTRelayReturnAddr
 	}
 
-	order.Status = Relay_OnSell
+	order.Status = types.Relay_OnSell
 	order.Buyeraddr = ""
 	order.Buyertime = 0
 	//order.buyercoinblocknum = Nil
@@ -296,11 +281,11 @@ func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC) (*
 		return nil, types.ErrTRelayOrderNotExist
 	}
 
-	if order.Status == Relay_Finished {
+	if order.Status == types.Relay_Finished {
 		return nil, types.ErrTRelayOrderSoldout
-	} else if order.Status == Relay_Revoked {
+	} else if order.Status == types.Relay_Revoked {
 		return nil, types.ErrTRelayOrderRevoked
-	} else if order.Status == Relay_OnSell {
+	} else if order.Status == types.Relay_OnSell {
 		return nil, types.ErrTRelayOrderOnSell
 	}
 
@@ -320,7 +305,7 @@ func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC) (*
 		return nil, err
 	}
 
-	order.Status = Relay_Finished
+	order.Status = types.Relay_Finished
 	relaydb := newRelayDB(order)
 	orderKV := relaydb.save(action.db)
 
