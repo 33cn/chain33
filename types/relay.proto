@@ -91,7 +91,7 @@ message RelayVerifyBTC {
 
 message ReceiptRelayBase {
     string orderid				= 1;
-    string status				= 2;
+    int32 status				= 2;
     string owner                = 3;
     int64  sellamount			= 4;
     //string selltoken			= 5;
@@ -153,7 +153,7 @@ enum RelayOrderStatus {
 }
 
 message QueryRelayOrderParam{
-    RelayOrderStatus status = 1;
+    int32 status = 1;
     string orderid = 2;
 }
 
