@@ -73,7 +73,7 @@ func main() {
 
 	var handler http.Handler = http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println(r.URL, r.Header, r.Body)
+			//fmt.Println(r.URL, r.Header, r.Body)
 
 			if !checkWhitlist(strings.Split(r.RemoteAddr, ":")[0], whitelist) {
 				log.Error("HandlerFunc", "peer not whitelist", r.RemoteAddr)
@@ -94,7 +94,11 @@ func main() {
 			}
 		})
 
-	co := cors.New(cors.Options{}) // TOOD 看看这个库是做什么的
+	//co := cors.New(cors.Options{
+	//    AllowedOrigins: []string{"http://foo.com"},
+	//    Debug: true,
+	//})
+	co := cors.New(cors.Options{})
 	handler = co.Handler(handler)
 
 	http.Serve(listen, handler)
