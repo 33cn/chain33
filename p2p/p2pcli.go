@@ -20,16 +20,35 @@ import (
 	"google.golang.org/grpc"
 )
 
+//p2p 订阅的事件处理函数接口
+type EventInterface interface {
+	BroadCastTx(msg queue.Message, taskindex int64)
+	GetMemPool(msg queue.Message, taskindex int64)
+	GetPeerInfo(msg queue.Message, taskindex int64)
+	GetHeaders(msg queue.Message, taskindex int64)
+	GetBlocks(msg queue.Message, taskindex int64)
+	BlockBroadcast(msg queue.Message, taskindex int64)
+	GetNetInfo(msg queue.Message, taskindex int64)
+}
+
+//非p2p 订阅的事件处理函数接口
+type NormalInterface interface {
+	GetAddr(peer *Peer) ([]string, error)
+	SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error)
+	SendPing(peer *Peer, nodeinfo *NodeInfo) error
+	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
+	GetExternIP(addr string) (string, bool, error)
+	CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error)
+}
+
 type Cli struct {
 	network *P2p
 }
 
-type intervalInfo struct {
-	start int
-	end   int
-}
-
-func NewCli(network *P2p) *Cli {
+func NewP2PCli(network *P2p) EventInterface {
+	if network == nil {
+		return nil
+	}
 	pcli := &Cli{
 		network: network,
 	}
@@ -37,6 +56,9 @@ func NewCli(network *P2p) *Cli {
 	return pcli
 }
 
+func NewNormalP2PCli() NormalInterface {
+	return &Cli{}
+}
 func (m *Cli) BroadCastTx(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.txFactory
@@ -55,7 +77,7 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 	}()
 	var Txs = make([]*pb.Transaction, 0)
 	var ableInv = make([]*pb.Inventory, 0)
-	peers, _ := m.network.node.getActivePeers()
+	peers, _ := m.network.node.GetActivePeers()
 
 	for _, peer := range peers {
 		//获取远程 peer invs
@@ -112,7 +134,7 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
 }
 
-func (m *Cli) GetAddr(peer *peer) ([]string, error) {
+func (m *Cli) GetAddr(peer *Peer) ([]string, error) {
 
 	resp, err := peer.mconn.gcli.GetAddr(context.Background(), &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))})
 	P2pComm.CollectPeerStat(err, peer)
@@ -124,7 +146,7 @@ func (m *Cli) GetAddr(peer *peer) ([]string, error) {
 	return resp.Addrlist, nil
 }
 
-func (m *Cli) SendVersion(peer *peer, nodeinfo *NodeInfo) (string, error) {
+func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	client := nodeinfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
 	err := client.SendTimeout(msg, true, time.Minute)
@@ -185,7 +207,7 @@ func (m *Cli) SendVersion(peer *peer, nodeinfo *NodeInfo) (string, error) {
 	return resp.GetUserAgent(), nil
 }
 
-func (m *Cli) SendPing(peer *peer, nodeinfo *NodeInfo) error {
+func (m *Cli) SendPing(peer *Peer, nodeinfo *NodeInfo) error {
 	randNonce := rand.Int31n(102040)
 	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeinfo.GetExternalAddr().IP.String(), Port: int32(nodeinfo.GetExternalAddr().Port)}
 	p2pPrivKey, _ := nodeinfo.addrBook.GetPrivPubKey()
@@ -263,10 +285,10 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 		return
 	}
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{true, []byte("ok")}))
-	peers, infos := m.network.node.getActivePeers()
+	peers, infos := m.network.node.GetActivePeers()
 	for paddr, info := range infos {
 		if info.GetName() == pid[0] { //匹配成功
-			peer := m.network.node.getRegisterPeer(paddr)
+			peer := m.network.node.GetRegisterPeer(paddr)
 			peer, ok := peers[paddr]
 			if ok && peer != nil {
 				var err error
@@ -307,8 +329,8 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	log.Info("GetBlocks", "start", req.GetStart(), "end", req.GetEnd())
 	pids := req.GetPid()
 	var MaxInvs = new(pb.P2PInv)
-	var downloadPeers []*peer
-	peers, infos := m.network.node.getActivePeers()
+	var downloadPeers []*Peer
+	peers, infos := m.network.node.GetActivePeers()
 	if len(pids) > 0 && pids[0] != "" { //指定Pid 下载数据
 		log.Info("fetch from peer in pids")
 		var pidmap = make(map[string]bool)
@@ -497,7 +519,7 @@ func (m *Cli) CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	resp, err := gconn.RemotePeerNatOk(context.Background(), ping)
+	resp, err := gconn.RemotePeerNatOk(ctx, ping)
 	if err != nil {
 		return false, err
 	}

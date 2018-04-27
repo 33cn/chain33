@@ -14,7 +14,7 @@ type NodeInfo struct {
 	mtx            sync.Mutex
 	externalAddr   *NetAddress
 	listenAddr     *NetAddress
-	monitorChan    chan *peer
+	monitorChan    chan *Peer
 	natNoticeChain chan struct{}
 	natResultChain chan bool
 	cfg            *types.P2P
@@ -29,7 +29,7 @@ type NodeInfo struct {
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo := new(NodeInfo)
-	nodeInfo.monitorChan = make(chan *peer, 1024)
+	nodeInfo.monitorChan = make(chan *Peer, 1024)
 	nodeInfo.natNoticeChain = make(chan struct{}, 1)
 	nodeInfo.natResultChain = make(chan bool, 1)
 	nodeInfo.blacklist = &BlackList{badPeers: make(map[string]int64)}
@@ -113,7 +113,7 @@ func (nf *NodeInfo) flushPeerInfos(in []*types.Peer) {
 }
 func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 	var peerlist = make(map[string]*types.Peer)
-	peers := n.getRegisterPeers()
+	peers := n.GetRegisterPeers()
 	log.Debug("latestPeerInfo", "register peer num", len(peers))
 	for _, peer := range peers {
 
