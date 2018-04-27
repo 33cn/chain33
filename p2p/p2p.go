@@ -20,7 +20,7 @@ var (
 type P2p struct {
 	client       queue.Client
 	node         *Node
-	p2pCli       *Cli
+	p2pCli       EventInterface
 	txCapcity    int32
 	txFactory    chan struct{}
 	otherFactory chan struct{}
@@ -36,14 +36,14 @@ func New(cfg *types.P2P) *P2p {
 	}
 	p2p := new(P2p)
 	p2p.node = node
-	p2p.p2pCli = NewCli(p2p)
+	p2p.p2pCli = NewP2PCli(p2p)
 	p2p.txFactory = make(chan struct{}, 1000)    // 1000 task
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	p2p.txCapcity = 1000
 	return p2p
 }
 
-func (network *P2p) IsClose() bool {
+func (network *P2p) isClose() bool {
 	return atomic.LoadInt32(&network.closed) == 1
 }
 
@@ -70,12 +70,12 @@ func (network *P2p) SetQueueClient(client queue.Client) {
 	}()
 }
 
-func (network *P2p) ShowTaskCapcity() {
+func (network *P2p) showTaskCapcity() {
 	ticker := time.NewTicker(time.Second * 5)
 	log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 	defer ticker.Stop()
 	for {
-		if network.IsClose() {
+		if network.isClose() {
 			log.Debug("ShowTaskCapcity", "loop", "done")
 			return
 		}
@@ -141,7 +141,7 @@ func (network *P2p) subP2pMsg() {
 
 	}
 
-	go network.ShowTaskCapcity()
+	go network.showTaskCapcity()
 	go func() {
 		defer func() {
 			close(network.otherFactory)
@@ -150,7 +150,7 @@ func (network *P2p) subP2pMsg() {
 		var taskIndex int64
 		network.client.Sub("p2p")
 		for msg := range network.client.Recv() {
-			if network.IsClose() {
+			if network.isClose() {
 				log.Debug("subP2pMsg", "loop", "done")
 				return
 			}
