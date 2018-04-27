@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/client"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func NetCmd() *cobra.Command {
@@ -34,7 +34,7 @@ func GetPeerInfoCmd() *cobra.Command {
 
 func peerInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.PeerList
+	var res lt.PeerList
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
 	ctx.Run()
 }
@@ -85,7 +85,7 @@ func GetNetInfoCmd() *cobra.Command {
 
 func netInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.NodeNetinfo
+	var res lt.NodeNetinfo
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
 	ctx.Run()
 }

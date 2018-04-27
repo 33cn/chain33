@@ -4,8 +4,9 @@ import (
 	"math/rand"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/types"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 var accountdb = account.NewCoinsAccount()
@@ -46,7 +47,7 @@ func (q *QueueProtocol) GetTotalCoins(param *types.ReqGetTotalCoins) (*types.Rep
 	return resp, nil
 }
 
-func (q *QueueProtocol) CreateRawTradeRevokeTx(param *TradeRevokeTx) (*types.Transaction, error) {
+func (q *QueueProtocol) CreateRawTradeRevokeTx(param *lt.TradeRevokeTx) (*types.Transaction, error) {
 	if param == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -65,7 +66,7 @@ func (q *QueueProtocol) CreateRawTradeRevokeTx(param *TradeRevokeTx) (*types.Tra
 	}, nil
 }
 
-func (q *QueueProtocol) CreateRawTradeBuyTx(param *TradeBuyTx) (*types.Transaction, error) {
+func (q *QueueProtocol) CreateRawTradeBuyTx(param *lt.TradeBuyTx) (*types.Transaction, error) {
 	if param == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -83,7 +84,7 @@ func (q *QueueProtocol) CreateRawTradeBuyTx(param *TradeBuyTx) (*types.Transacti
 	}, nil
 }
 
-func (q *QueueProtocol) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, error) {
+func (q *QueueProtocol) CreateRawTokenPreCreateTx(parm *lt.TokenPreCreateTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -108,7 +109,7 @@ func (q *QueueProtocol) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*type
 	}, nil
 }
 
-func (q *QueueProtocol) CreateRawTokenFinishTx(param *TokenFinishTx) (*types.Transaction, error) {
+func (q *QueueProtocol) CreateRawTokenFinishTx(param *lt.TokenFinishTx) (*types.Transaction, error) {
 	if param == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -127,7 +128,7 @@ func (q *QueueProtocol) CreateRawTokenFinishTx(param *TokenFinishTx) (*types.Tra
 	}, nil
 }
 
-func (q *QueueProtocol) CreateRawTokenRevokeTx(parm *TokenRevokeTx) (*types.Transaction, error) {
+func (q *QueueProtocol) CreateRawTokenRevokeTx(parm *lt.TokenRevokeTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -145,7 +146,7 @@ func (q *QueueProtocol) CreateRawTokenRevokeTx(parm *TokenRevokeTx) (*types.Tran
 	}, nil
 }
 
-func (q *QueueProtocol) CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
+func (q *QueueProtocol) CreateRawTradeSellTx(parm *lt.TradeSellTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}

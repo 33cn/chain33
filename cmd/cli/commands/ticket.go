@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/rpc"
-	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func TicketCmd() *cobra.Command {
@@ -117,7 +117,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	isAutoMining := status.(jsonrpc.WalletStatus).IsAutoMining
+	isAutoMining := status.(lt.WalletStatus).IsAutoMining
 	if isAutoMining {
 		fmt.Fprintln(os.Stderr, types.ErrMinerNotClosed)
 		return
@@ -150,7 +150,7 @@ func getWalletStatus(rpcAddr string) (interface{}, error) {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
 	}
-	var res jsonrpc.WalletStatus
+	var res lt.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -182,7 +182,7 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	reqaddr := &types.ReqString{
 		Data: addr,
 	}
-	var params jsonrpc.Query4Cli
+	var params lt.Query4Cli
 	params.Execer = "ticket"
 	params.FuncName = "MinerSourceList"
 	params.Payload = reqaddr
