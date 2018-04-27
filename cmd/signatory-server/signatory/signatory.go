@@ -1,9 +1,9 @@
 package signatory
 
 import (
+	"encoding/hex"
 	"math/rand"
 	"time"
-	"encoding/hex"
 
 	l "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -12,7 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var log      = l.New("module", "signatory")
+var log = l.New("module", "signatory")
 
 type Signatory struct {
 	Privkey string
@@ -78,10 +78,10 @@ func (signatory *Signatory) SignTransfer(in *string, out *interface{}) error {
 	amount := 1 * types.Coin
 	v := &types.CoinsTransfer{
 		Amount: amount,
-		Note: "transfer 1 bty by signatory-server",
+		Note:   "transfer 1 bty by signatory-server",
 	}
 	transfer := &types.CoinsAction{
-		Ty: types.CoinsActionTransfer,
+		Ty:    types.CoinsActionTransfer,
 		Value: &types.CoinsAction_Transfer{v},
 	}
 
@@ -128,4 +128,3 @@ func signTx(tx *types.Transaction, hexPrivKey string) error {
 	tx.Sign(int32(signType), privKey)
 	return nil
 }
-
