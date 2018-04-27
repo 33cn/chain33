@@ -1,7 +1,9 @@
 package core
 
 import (
+	"encoding/hex"
 	"fmt"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
@@ -9,7 +11,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"math/big"
 	"sort"
-	"github.com/inconshreveable/log15"
 )
 
 // 内存状态数据库，保存在区块操作时内部的数据变更操作
@@ -19,10 +20,13 @@ import (
 // 执行器的Exec阶段会返回：交易收据、合约账户（包含合约地址、合约代码、合约存储信息）
 // 执行器的ExecLocal阶段会返回：合约创建人和合约的关联信息
 type MemoryStateDB struct {
+	// 状态DB，从执行器框架传入
 	StateDB db.KV
 
+	// 本地DB，从执行器框架传入
 	LocalDB db.KVDB
 
+	// Coins账户操作对象，从执行器框架传入
 	CoinsAccount *account.DB
 
 	// 缓存账户对象
@@ -34,7 +38,7 @@ type MemoryStateDB struct {
 	// 缓存合约账户对象变更
 	contractsDirty map[common.Address]struct{}
 
-	// TODO 退回资金
+	// 合约执行过程中退回的资金
 	refund uint64
 
 	// 存储makeLogN指令对应的日志数据
@@ -46,19 +50,23 @@ type MemoryStateDB struct {
 	validRevisions []revision
 	reversionId    int
 
-	// 存储sha3指令对应的数据
+	// 存储sha3指令对应的数据，仅用于debug日志
 	preimages map[common.Hash][]byte
 
 	// 当前临时交易哈希和交易序号
-	txHash common.Hash
+	txHash  common.Hash
 	txIndex int
 }
 
+// 版本结构，包含版本号以及当前版本包含的变更对象在变更序列中的开始序号
 type revision struct {
 	id           int
 	journalIndex int
 }
 
+// 基于执行器框架的三个DB构建内存状态机对象
+// 此对象的生命周期对应一个区块，在同一个区块内的多个交易执行时共享同一个DB对象
+// 开始执行下一个区块时（执行器框架调用setEnv设置的区块高度发生变更时），会重新创建此DB对象
 func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) *MemoryStateDB {
 	mdb := &MemoryStateDB{
 		StateDB:        StateDB,
@@ -69,11 +77,14 @@ func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) 
 		contractsDirty: make(map[common.Address]struct{}),
 		logs:           make(map[common.Hash][]*etypes.ContractLog),
 		preimages:      make(map[common.Hash][]byte),
+		refund:         0,
+		txIndex:        0,
 	}
 	return mdb
 }
 
-
+// 每一个交易执行之前调用此方法，设置此交易的上下文信息
+// 目前的上下文中包含交易哈希以及交易在区块中的序号
 func (self *MemoryStateDB) Prepare(txHash common.Hash, txIndex int) {
 	self.txHash = txHash
 	self.txIndex = txIndex
@@ -95,6 +106,7 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 	}
 }
 
+// 调用Coins执行器的逻辑操作外部账户中的金额
 func (self *MemoryStateDB) processBalance(addr common.Address, value *big.Int, withdraw bool) error {
 	if self.CoinsAccount == nil {
 		return NoCoinsAccount
@@ -189,6 +201,8 @@ func (self *MemoryStateDB) SetCode(addr common.Address, code []byte) {
 	}
 }
 
+// 获取合约代码自身的大小
+// 对应 EXTCODESIZE 操作码
 func (self *MemoryStateDB) GetCodeSize(addr common.Address) int {
 	code := self.GetCode(addr)
 	if code != nil {
@@ -197,6 +211,7 @@ func (self *MemoryStateDB) GetCodeSize(addr common.Address) int {
 	return 0
 }
 
+// 合约自杀或SSTORE指令时，返还Gas
 func (self *MemoryStateDB) AddRefund(gas uint64) {
 	self.journal = append(self.journal, refundChange{baseChange: baseChange{}, prev: self.refund})
 	self.refund += gas
@@ -211,22 +226,18 @@ func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
 	if acc, ok := self.accounts[addr]; ok {
 		return acc
 	} else {
-		if self.CoinsAccount == nil {
-			return nil
-		}
-
-		// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
-		// 要考虑到这种情况，还是要加载合约，看看合约信息是否存在，如果都不存在，则说明真不存在
+		// 需要加载合约对象，根据是否存在合约代码来判断是否有合约对象
 		contract := NewContractAccount(addr.Str(), self)
 		contract.LoadContract(self.StateDB)
-		if contract.Data.GetCode() != nil {
-			self.accounts[addr] = contract
-			return contract
+		if contract.Empty() {
+			return nil
 		}
-		return nil
+		self.accounts[addr] = contract
+		return contract
 	}
 }
 
+// SLOAD 指令加载合约状态数据
 func (self *MemoryStateDB) GetState(addr common.Address, key common.Hash) common.Hash {
 	// 先从合约缓存中获取
 	acc := self.GetAccount(addr)
@@ -236,6 +247,7 @@ func (self *MemoryStateDB) GetState(addr common.Address, key common.Hash) common
 	return common.Hash{}
 }
 
+// SSTORE 指令修改合约状态数据
 func (self *MemoryStateDB) SetState(addr common.Address, key common.Hash, value common.Hash) {
 	acc := self.GetAccount(addr)
 	if acc != nil {
@@ -243,6 +255,8 @@ func (self *MemoryStateDB) SetState(addr common.Address, key common.Hash, value 
 	}
 }
 
+// SELFDESTRUCT 合约对象自杀
+// 合约自杀后，合约对象依然存在，只是无法被调用，也无法恢复
 func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 	acc := self.GetAccount(addr)
 	if acc != nil {
@@ -256,6 +270,8 @@ func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 	return false
 }
 
+// 判断此合约对象是否已经自杀
+// 自杀的合约对象是不允许调用的
 func (self *MemoryStateDB) HasSuicided(addr common.Address) bool {
 	acc := self.GetAccount(addr)
 	if acc != nil {
@@ -264,10 +280,12 @@ func (self *MemoryStateDB) HasSuicided(addr common.Address) bool {
 	return false
 }
 
+// 判断合约对象是否存在
 func (self *MemoryStateDB) Exist(addr common.Address) bool {
 	return self.GetAccount(addr) != nil
 }
 
+// 判断合约对象是否为空
 func (self *MemoryStateDB) Empty(addr common.Address) bool {
 	acc := self.GetAccount(addr)
 	return acc == nil || acc.Empty()
@@ -312,9 +330,21 @@ func (self *MemoryStateDB) GetLastSnapshot() int {
 	return self.reversionId - 1
 }
 
+// 获取合约对象的变更日志
+func (self *MemoryStateDB) GetReceiptLogs(addr common.Address, created bool) (logs []*types.ReceiptLog) {
+	acc := self.GetAccount(addr)
+	if acc != nil {
+		logs = append(logs, acc.BuildStateLog())
+		if created {
+			logs = append(logs, acc.BuildDataLog())
+		}
+		return
+	}
+	return
+}
+
 // 获取本次操作所引起的状态数据变更
 func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue, logs []*types.ReceiptLog) {
-
 	// 从一堆快照列表中找出本次制定版本的快照索引位置
 	idx := sort.Search(len(self.validRevisions), func(i int) bool {
 		return self.validRevisions[i].id >= version
@@ -332,12 +362,12 @@ func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue,
 	dataMap := make(map[string]*types.KeyValue)
 	//for i := len(self.journal) - 1; i >= snapshot; i-- {
 	for i := snapshot; i < len(self.journal); i++ {
-		kvset := self.journal[i].getData(self)
+		items := self.journal[i].getData(self)
 		logs = append(logs, self.journal[i].getLog(self)...)
 
 		// 执行去重操作
-		if kvset != nil {
-			for _, kv := range kvset {
+		if items != nil {
+			for _, kv := range items {
 				dataMap[string(kv.Key)] = kv
 			}
 		}
@@ -346,8 +376,7 @@ func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue,
 		kvSet = append(kvSet, value)
 	}
 
-
-	return kvSet,logs
+	return kvSet, logs
 }
 
 // 借助coins执行器进行转账相关操作
@@ -369,6 +398,8 @@ func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount *bi
 	}
 }
 
+// LOG0-4 指令对应的具体操作
+// 生成对应的日志信息，目前这些生成的日志信息会在合约执行后打印到日志文件中
 func (self *MemoryStateDB) AddLog(log *etypes.ContractLog) {
 	self.journal = append(self.journal, addLogChange{txhash: self.txHash})
 	log.TxHash = self.txHash
@@ -379,35 +410,29 @@ func (self *MemoryStateDB) AddLog(log *etypes.ContractLog) {
 
 // 存储sha3指令对应的数据
 func (self *MemoryStateDB) AddPreimage(hash common.Hash, data []byte) {
-	// TODO  目前只存储，暂不使用
+	// 目前只用于打印日志
 	if _, ok := self.preimages[hash]; !ok {
+		self.journal = append(self.journal, addPreimageChange{hash: hash})
 		pi := make([]byte, len(data))
 		copy(pi, data)
 		self.preimages[hash] = pi
 	}
 }
 
-
 // 本合约执行完毕之后打印合约生成的日志（如果有）
 // 这里不保证当前区块可以打包成功，只是在执行区块中的交易时，如果交易执行成功，就会打印合约日志
-func (self *MemoryStateDB) PrintLogs()  {
-	items,_ := self.logs[self.txHash]
+func (self *MemoryStateDB) PrintLogs() {
+	items, _ := self.logs[self.txHash]
 	if items != nil {
-		for _,item := range items {
-			log15.Info(item.String())
+		for _, item := range items {
+			log15.Debug(item.String())
 		}
 	}
 }
 
-// FIXME 目前此方法也业务逻辑中没有地方使用到，单纯为测试实现，后继去除
-func (self *MemoryStateDB) ForEachStorage(addr common.Address, cb func(common.Hash, common.Hash) bool) {
-	acc := self.GetAccount(addr)
-	if acc == nil {
-		return
-	}
-
-	// 遍历存储
-	for key, value := range acc.State.GetStorage() {
-		cb(common.BytesToHash([]byte(key)), common.BytesToHash(value))
+// 打印本区块内生成的preimages日志
+func (self *MemoryStateDB) WritePreimages(number int64) {
+	for k, v := range self.preimages {
+		log15.Debug("Contract preimages ", "key:", k.Str(), "value:", hex.EncodeToString(v), "block height:", number)
 	}
 }

@@ -61,8 +61,6 @@ type StateDB interface {
 	AddLog(*types.ContractLog)
 	AddPreimage(common.Hash, []byte)
 
-	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
-
 	CanTransfer(addr common.Address, amount *big.Int) bool
 	Transfer(sender, recipient common.Address, amount *big.Int)
 }

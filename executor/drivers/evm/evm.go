@@ -63,7 +63,7 @@ func (evm *FakeEVM) SetEnv(height, blocktime int64) {
 
 		// 在生成新的区块状态DB之前，把先前区块中生成的合约日志集中打印出来
 		if evm.mStateDB != nil {
-			evm.mStateDB.PrintLogs()
+			evm.mStateDB.WritePreimages(height)
 		}
 
 		// 重新初始化MemoryStateDB
@@ -125,48 +125,66 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	}
 
 	if vmerr != nil {
-		log.Debug("VM returned with error", "err", vmerr)
+		log.Info("VM returned with error", "err", vmerr)
+
+		// 只有在出现账户余额不足的时候，才认为是有效的的错误
+		// 其它错误情况目前不需要处理
 		if vmerr == vm.ErrInsufficientBalance {
 			return nil, vmerr
 		}
 	}
 
+	// 根据真实使用的Gas，将多余的费用返还
+	// 此处将合约执行过程中给予的奖励也一并返还
+	refundGas := leftOverGas + evm.mStateDB.GetRefund()
+	evm.mStateDB.AddBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(refundGas)), msg.GasPrice()))
+
 	// 计算消耗了多少Gas
 	// 注意：这里和以太坊EVM计费有几处不同：
 	// 1. GasPrice 始终为1，不支持动态调整  TODO 后继版本考虑支持动态调整
 	// 2. 不计算IntrinsicGas，即合约代码的存储字节计费以及合约创建或调用动作本身的计费
-	// 3. 因为前面计费内容较少，不考虑refund奖励
-	usedGas := msg.Gas() - leftOverGas
-
-	// 根据真实使用的Gas，将多余的费用返还
-	evm.mStateDB.AddBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(msg.GasLimit()-usedGas)), msg.GasPrice()))
+	// 3. 因为前面计费内容较少，不考虑单独的refund奖励（合约执行过程中给予的refund支持返还）
+	usedGas := msg.GasLimit() - refundGas
 
 	// 将消耗的费用奖励给区块作者
 	evm.mStateDB.AddBalance(coinbase, big.NewInt(1).Mul(big.NewInt(int64(usedGas)), msg.GasPrice()))
 
-	log.Info("usedGas ", leftOverGas)
+	log.Info("usedGas ", usedGas)
 	log.Info("return data is " + hex.EncodeToString(ret))
 	log.Info("contract address is ", addr.Str())
 
 	// 打印合约中生成的日志
 	evm.mStateDB.PrintLogs()
 
-	// FIXME 后面修改成protobuf结构后再添加日志
-	//ty := int32(types.TyLogFee)
-	//log1 := &types.ReceiptLog{
-	//	Ty:  ty,
-	//	Log: []byte(usedGas),
-	//}
+	// 这里还需要再进行其它错误的判断（余额不足的错误，前面已经返回）
+	// 因为其它情况的错误，即使合约执行失败，也消耗了资源，调用者需要为此支付费用
+	if vmerr != nil {
+		return nil, vmerr
+	}
 
+	// 从状态机中获取数据变更和变更日志
 	data, logs := evm.mStateDB.GetChangedData(evm.mStateDB.GetLastSnapshot())
-
+	logs = append(logs, evm.mStateDB.GetReceiptLogs(addr, isCreate)...)
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
+
 	return receipt, nil
 }
 
+
 func (evm *FakeEVM) GetChainConfig() *params.ChainConfig {
 	// FIXME 这里先使用测试配置，之后根据代码逻辑再修改
-	return params.TestChainConfig
+	return &params.ChainConfig{
+		ChainId: big.NewInt(1),
+		HomesteadBlock: big.NewInt(0),
+		DAOForkBlock: nil,
+		DAOForkSupport: false,
+		EIP150Block: big.NewInt(0),
+		EIP155Block: big.NewInt(0),
+		EIP158Block: big.NewInt(0),
+		ByzantiumBlock: big.NewInt(0),
+		ConstantinopleBlock: nil,
+		Ethash: new(params.EthashConfig),
+		Clique: nil}
 }
 
 func (evm *FakeEVM) GetMStateDB() *core.MemoryStateDB {
