@@ -651,12 +651,36 @@ func (q *QueueProtocol) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		log.Error("CreateRawTransaction", "Error", err)
 		return nil, err
 	}
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: param.GetAmount(), Note: param.GetNote()}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 
-	//初始化随机数
+	var tx *types.Transaction
+	amount := param.Amount
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+	if !param.Istoken {
+		transfer := &types.CoinsAction{}
+		if amount > 0 {
+			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionTransfer
+		} else {
+			v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+	} else {
+		transfer := &types.TokenAction{}
+		if amount > 0 {
+			v := &types.TokenAction_Transfer{&types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.ActionTransfer
+		} else {
+			v := &types.TokenAction_Withdraw{&types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: -amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.ActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+	}
+
 	data := types.Encode(tx)
 	return data, nil
 }
