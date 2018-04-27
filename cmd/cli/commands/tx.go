@@ -6,11 +6,12 @@ import (
 	"os"
 	"strconv"
 
+	"strings"
+
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
 )
 
 func TxCmd() *cobra.Command {

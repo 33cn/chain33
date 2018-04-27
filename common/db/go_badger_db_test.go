@@ -1,10 +1,11 @@
 package db
 
 import (
-	"github.com/dgraph-io/badger"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"testing"
+
+	"github.com/dgraph-io/badger"
+	"github.com/stretchr/testify/require"
 )
 
 // badgerdb迭代器测试
