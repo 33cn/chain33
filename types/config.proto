@@ -66,6 +66,7 @@ message Wallet {
 	int32 dbCache = 4;
 	string signType =5;
 	bool forceMining = 6;
+	bool minerdisable = 7;
 }
 
 message Store {

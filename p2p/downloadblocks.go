@@ -19,6 +19,7 @@ type downloadJob struct {
 	mtx       sync.Mutex
 	busyPeer  map[string]*peerJob
 }
+
 type peerJob struct {
 	pbPeer *pb.Peer
 	limit  int32
@@ -37,10 +38,7 @@ func (d *downloadJob) isBusyPeer(pid string) bool {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if pjob, ok := d.busyPeer[pid]; ok {
-		if atomic.LoadInt32(&pjob.limit) > 10 { //每个节点最多同时接受10个下载任务
-			return true
-		}
-		return false
+		return atomic.LoadInt32(&pjob.limit) > 10 //每个节点最多同时接受10个下载任务
 	}
 	return false
 }
@@ -70,8 +68,8 @@ func (d *downloadJob) setFreePeer(pid string) {
 	}
 }
 
-func (d *downloadJob) GetFreePeer(joblimit int64) *peer {
-	peermap, infos := d.p2pcli.network.node.getActivePeers()
+func (d *downloadJob) GetFreePeer(joblimit int64) *Peer {
+	peermap, infos := d.p2pcli.network.node.GetActivePeers()
 	for _, peer := range peermap {
 		pbpeer, ok := infos[peer.Addr()]
 		if ok {
@@ -114,8 +112,9 @@ func (d *downloadJob) DownloadBlock(invs []*pb.Inventory,
 			d.retryList.PushBack(inv)
 			continue
 		}
+
 		d.wg.Add(1)
-		go func(peer *peer, inv *pb.Inventory) {
+		go func(peer *Peer, inv *pb.Inventory) {
 			defer d.wg.Done()
 			err := d.syncDownloadBlock(peer, inv, bchan)
 			if err != nil {
@@ -154,11 +153,12 @@ func (d *downloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
 	return invs
 }
 
-func (d *downloadJob) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan chan *pb.BlockPid) error {
+func (d *downloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan chan *pb.BlockPid) error {
 	//每次下载一个高度的数据，通过bchan返回上层
 	if peer == nil {
 		return fmt.Errorf("peer is not exist")
 	}
+
 	if !peer.GetRunning() {
 		return fmt.Errorf("peer not running")
 	}
@@ -172,7 +172,6 @@ func (d *downloadJob) syncDownloadBlock(peer *peer, inv *pb.Inventory, bchan cha
 		return err
 	}
 	defer resp.CloseSend()
-
 	for {
 		invdatas, err := resp.Recv()
 		if err != nil {
