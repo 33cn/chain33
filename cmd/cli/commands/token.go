@@ -436,7 +436,7 @@ func tokenFinish(cmd *cobra.Command, args []string) {
 func CreateRawTokenRevokeTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "revoke",
-		Short: "Revoke a token transaction",
+		Short: "Create a token revoke transaction",
 		Run:   tokenRevoke,
 	}
 	addTokenRevokeFlags(cmd)
