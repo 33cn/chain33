@@ -34,7 +34,11 @@ func (mock *mockSystem) startup(size int) QueueProtocolAPI {
 	mock.p2p = p2p
 	mock.consensus = consensus
 	mock.store = store
+	mock.onStartup()
 	return mock.getAPI()
+}
+func (mock *mockSystem) onStartup() {
+
 }
 
 func (mock *mockSystem) stop() {
@@ -50,4 +54,20 @@ func (mock *mockSystem) stop() {
 func (mock *mockSystem) getAPI() QueueProtocolAPI {
 	api, _ := New(mock.q.Client(), nil)
 	return api
+}
+
+type mockJRPCSystem struct {
+	mockSystem
+}
+
+func (mock *mockJRPCSystem) onStartup() {
+	mock.mockSystem.onStartup()
+}
+
+type mockGRPCSystem struct {
+	mockSystem
+}
+
+func (mock *mockGRPCSystem) onStartup() {
+	mock.mockSystem.onStartup()
 }
