@@ -1,87 +1,70 @@
-// Copyright 2015 The etcd Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
 	"flag"
 	"fmt"
 	"log"
-	//"path/filepath"
-	//	"time"
+	"path/filepath"
+	"strconv"
 
 	"github.com/coreos/etcd/etcdserver/etcdserverpb"
-	//"github.com/coreos/etcd/internal/raftsnap"
 	"github.com/coreos/etcd/pkg/pbutil"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/etcd/raft/raftpb"
+	raftsnap "github.com/coreos/etcd/snap"
 	"github.com/coreos/etcd/wal"
 	"github.com/coreos/etcd/wal/walpb"
-	// chain33Types "gitlab.33.cn/chain33/chain33/types"
 	"github.com/golang/protobuf/proto"
-	//"github.com/coreos/etcd/snapshot"
 )
 
 func main() {
-	//snapfile := flag.String("start-snap", "", "The base name of snap file to start dumping")
-	waldir := flag.String("start-snapwal", "", "The base name of snapwal dir to start dumping")
-	index := flag.Uint64("start-index", 0, "The index to start dumping")
+	snapfile := flag.String("start-snap", "", "The base name of snapshot file to start dumping")
+	index := flag.String("start-index", "", "The index to start dumping")
 	flag.Parse()
 
-	//if len(flag.Args()) != 1 {
-	//	log.Fatalf("Must provide data-dir argument (got %+v)", flag.Args())
-	//}
-	//dataDir := flag.Args()[0]
+	if len(flag.Args()) != 1 {
+		log.Fatalf("Must provide data-dir argument (got %+v)", flag.Args())
+	}
+	dataDir := flag.Args()[0]
 
-	if *waldir != "" && *index != 0 {
-		log.Fatal("start-snapwal and start-index flags cannot be used together.")
+	if *snapfile != "" && *index != "" {
+		log.Fatal("start-snap and start-index flags cannot be used together.")
 	}
 
 	var (
-		walsnap walpb.Snapshot
-		//snapshot *raftpb.Snapshot
-		err error
+		walsnap  walpb.Snapshot
+		snapshot *raftpb.Snapshot
+		err      error
 	)
 
-	isIndex := *index != 0
+	isIndex := *index != ""
 
-	//if isIndex {
-	//	fmt.Printf("Start dumping log entries from index %d.\n", *index)
-	//	walsnap.Index = *index
-	//} else {
-	//	if *snapfile == "" {
-	//		ss := raftsnap.New(snapDir(dataDir))
-	//		snapshot, err = ss.Load()
-	//	} else {
-	//		snapshot, err = raftsnap.Read(filepath.Join(snapDir(dataDir), *snapfile))
-	//	}
-	//
-	//	switch err {
-	//	case nil:
-	//		walsnap.Index, walsnap.Term = snapshot.Metadata.Index, snapshot.Metadata.Term
-	//	    nodes := genIDSlice(snapshot.Metadata.ConfState.Nodes)
-	//		fmt.Printf("Snapshot:\nterm=%d index=%d nodes=%s\n",
-	//			walsnap.Term, walsnap.Index, nodes)
-	//	case raftsnap.ErrNoSnapshot:
-	//		fmt.Printf("Snapshot:\nempty\n")
-	//	default:
-	//		log.Fatalf("Failed loading snapshot: %v", err)
-	//	}
-	//	fmt.Println("Start dupmping log entries from snapshot.")
-	//}
+	if isIndex {
+		fmt.Printf("Start dumping log entries from index %s.\n", *index)
+		walsnap.Index, err = strconv.ParseUint(*index, 10, 64)
+	} else {
+		if *snapfile == "" {
+			ss := raftsnap.New(snapDir(dataDir))
+			snapshot, err = ss.Load()
+		} else {
+			snapshot, err = raftsnap.Read(filepath.Join(snapDir(dataDir), *snapfile))
+		}
 
-	w, err := wal.OpenForRead(*waldir, walsnap)
+		switch err {
+		case nil:
+			walsnap.Index, walsnap.Term = snapshot.Metadata.Index, snapshot.Metadata.Term
+			nodes := genIDSlice(snapshot.Metadata.ConfState.Nodes)
+			fmt.Printf("Snapshot:\nterm=%d index=%d nodes=%s\n",
+				walsnap.Term, walsnap.Index, nodes)
+		case raftsnap.ErrNoSnapshot:
+			fmt.Printf("Snapshot:\nempty\n")
+		default:
+			log.Fatalf("Failed loading snapshot: %v", err)
+		}
+		fmt.Println("Start dupmping log entries from snapshot.")
+	}
+
+	w, err := wal.OpenForRead(walDir(dataDir), walsnap)
 	if err != nil {
 		log.Fatalf("Failed opening WAL: %v", err)
 	}
@@ -126,9 +109,9 @@ func main() {
 	}
 }
 
-//func walDir(dataDir string) string { return filepath.Join(dataDir, "", "wal") }
+func walDir(dataDir string) string { return filepath.Join(dataDir, "wal") }
 
-//func snapDir(dataDir string) string { return filepath.Join(dataDir, "", "snap") }
+func snapDir(dataDir string) string { return filepath.Join(dataDir, "snap") }
 
 func parseWALMetadata(b []byte) (id, cid types.ID) {
 	var metadata etcdserverpb.Metadata
@@ -138,22 +121,22 @@ func parseWALMetadata(b []byte) (id, cid types.ID) {
 	return id, cid
 }
 
-//func genIDSlice(a []uint64) []types.ID {
-//	ids := make([]types.ID, len(a))
-//	for i, id := range a {
-//		ids[i] = types.ID(id)
-//	}
-//	return ids
-//}
+func genIDSlice(a []uint64) []types.ID {
+	ids := make([]types.ID, len(a))
+	for i, id := range a {
+		ids[i] = types.ID(id)
+	}
+	return ids
+}
 
 // excerpt replaces middle part with ellipsis and returns a double-quoted
 // string safely escaped with Go syntax.
-//func excerpt(str string, pre, suf int) string {
-//	if pre+suf > len(str) {
-//		return fmt.Sprintf("%q", str)
-//	}
-//	return fmt.Sprintf("%q...%q", str[:pre], str[len(str)-suf:])
-//}
+func excerpt(str string, pre, suf int) string {
+	if pre+suf > len(str) {
+		return fmt.Sprintf("%q", str)
+	}
+	return fmt.Sprintf("%q...%q", str[:pre], str[len(str)-suf:])
+}
 
 type Block struct {
 	Version    int64  `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`

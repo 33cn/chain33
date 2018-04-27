@@ -165,9 +165,10 @@ func (client *RaftClient) CreateBlock() {
 			continue
 		}
 
-		client.propose(&newblock)
+		blockEntry := newblock
+		blockEntry.Txs = nil
+		client.propose(&blockEntry)
 		time.Sleep(100 * time.Millisecond)
-
 	}
 }
 
