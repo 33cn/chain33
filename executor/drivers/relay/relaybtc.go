@@ -1,10 +1,11 @@
 package relay
 
 import (
+	"strings"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
 
 	"bytes"
 )
