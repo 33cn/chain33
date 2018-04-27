@@ -39,6 +39,7 @@ cli: ## Build cli binary
 	@go build -v -o $(CLI) $(SRC_CLI)
 
 signatory:
+	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
 	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
 	@cp cmd/signatory-server/signatory.toml build/
 
