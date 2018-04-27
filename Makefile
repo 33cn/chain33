@@ -50,9 +50,9 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 	--enable=interfacer \
 	--enable=varcheck \
 	--enable=structcheck \
+	--enable=goimports \
 	--vendor ./...) \
 #	--enable=vet \
-#	--enable=goimports \
 #	--enable=staticcheck \
 #	--enable=gocyclo \
 #	--enable=staticcheck \
@@ -73,6 +73,7 @@ test: ## Run unittests
 
 fmt: ## go fmt
 	@go fmt ./...
+	@$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w)
 
 vet: ## go vet
 	@go vet ./...
@@ -116,6 +117,11 @@ cleandata:
 .PHONY: checkgofmt
 checkgofmt: ## get all go files and run go fmt on them
 	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
+		  echo "Error: 'make fmt' needs to be run on:"; \
+		  echo "$${files}"; \
+		  exit 1; \
+		  fi;
+	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
 		  echo "$${files}"; \
 		  exit 1; \
