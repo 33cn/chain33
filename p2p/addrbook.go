@@ -44,7 +44,7 @@ type knownAddress struct {
 	LastSuccess time.Time   `json:"lastsuccess"`
 }
 
-func (a *AddrBook) getPeerStat(addr string) *knownAddress {
+func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {

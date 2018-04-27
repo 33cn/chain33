@@ -12,10 +12,11 @@ import (
 
 	"github.com/inconshreveable/log15"
 
+	"math/rand"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"math/rand"
 )
 
 const (
