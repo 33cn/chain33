@@ -10,7 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -123,7 +124,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.ReplyHashes
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := rpc.NewJSONClient(rpcLaddr)
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -144,7 +145,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 }
 
 func getWalletStatus(rpcAddr string) (interface{}, error) {
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := rpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err

@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 )
 
 func MempoolCmd() *cobra.Command {

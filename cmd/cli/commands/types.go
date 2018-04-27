@@ -1,6 +1,6 @@
 package commands
 
-import jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+import jsonrpc "gitlab.33.cn/chain33/chain33/client"
 
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
