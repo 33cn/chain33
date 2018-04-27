@@ -2,10 +2,11 @@ package pbft
 
 import (
 	"errors"
-	"github.com/golang/protobuf/proto"
-	pb "gitlab.33.cn/chain33/chain33/types"
 	"net"
 	"strings"
+
+	"github.com/golang/protobuf/proto"
+	pb "gitlab.33.cn/chain33/chain33/types"
 )
 
 const (

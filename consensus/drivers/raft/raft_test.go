@@ -24,7 +24,6 @@ import (
 
 var (
 	random    *rand.Rand
-	result    []*types.Transaction
 	txNumber  int = 10
 	loopCount int = 10
 )

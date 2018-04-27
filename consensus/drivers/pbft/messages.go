@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
-	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/types"
 	"io"
 	"net"
+
+	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // Digest
