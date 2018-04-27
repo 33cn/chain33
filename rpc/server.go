@@ -3,6 +3,7 @@ package rpc
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/client"
 
 	// register gzip
 	_ "google.golang.org/grpc/encoding/gzip"
@@ -14,11 +15,11 @@ var (
 )
 
 type Chain33 struct {
-	cli channelClient
+	api client.QueueProtocolAPI
 }
 
 type Grpc struct {
-	cli channelClient
+	api client.QueueProtocolAPI
 }
 
 type Grpcserver struct {
@@ -32,7 +33,7 @@ type JSONRPCServer struct {
 }
 
 func (s *JSONRPCServer) Close() {
-	s.jrpc.cli.Close()
+	s.jrpc.api.Close()
 
 }
 func checkWhitlist(addr string) bool {
@@ -48,19 +49,19 @@ func checkWhitlist(addr string) bool {
 }
 
 func (j *Grpcserver) Close() {
-	j.grpc.cli.Close()
+	j.grpc.api.Close()
 
 }
 
 func NewGRpcServer(c queue.Client) *Grpcserver {
 	s := &Grpcserver{}
-	s.grpc.cli.Init(c)
+	s.grpc.api, _ = client.New(c, nil)
 	return s
 }
 
 func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 	j := &JSONRPCServer{}
-	j.jrpc.cli.Init(c)
+	j.jrpc.api, _ = client.New(c, nil)
 	return j
 }
 

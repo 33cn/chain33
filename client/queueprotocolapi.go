@@ -1,12 +1,13 @@
 package client
 
 import (
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // 消息通道交互API接口定义
 type QueueProtocolAPI interface {
+	Close()
+	Version() (*types.Reply, error)
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
 	SendTx(param *types.Transaction) (*types.Reply, error)
 	// types.EventTxList
@@ -14,7 +15,7 @@ type QueueProtocolAPI interface {
 	// types.EventGetMempool
 	GetMempool() (*types.ReplyTxList, error)
 	// types.EventGetLastMempool
-	GetLastMempool(param *types.ReqNil) (*types.ReplyTxList, error)
+	GetLastMempool() (*types.ReplyTxList, error)
 
 	// types.EventGetBlocks
 	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
@@ -33,13 +34,15 @@ type QueueProtocolAPI interface {
 	// types.EventGetBlockHash
 	GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error)
 	// types.EventIsSync
-	IsSync() (bool, error)
+	IsSync() (*types.Reply, error)
 	// types.EventIsNtpClockSync
-	IsNtpClockSync() (bool, error)
+	IsNtpClockSync() (*types.Reply, error)
 	// types.EventLocalGet
 	LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error)
 	// types.EventGetLastHeader
 	GetLastHeader() (*types.Header, error)
+	// types.EventQuery
+	Query(param *types.Query) (*types.Message, error)
 
 	// types.EventWalletGetAccountList
 	WalletGetAccountList() (*types.WalletAccounts, error)
@@ -77,6 +80,8 @@ type QueueProtocolAPI interface {
 	DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error)
 	// types.EventCloseTickets
 	CloseTickets() (*types.ReplyHashes, error)
+	// types.EventSignRawTx
+	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 
 	// types.EventPeerInfo
 	PeerInfo() (*types.PeerList, error)
@@ -85,5 +90,18 @@ type QueueProtocolAPI interface {
 	GetTicketCount() (*types.Int64, error)
 
 	CreateRawTransaction(param *types.CreateTx) ([]byte, error)
-	SendRawTransaction(param *types.SignedTx) (queue.Message, error)
+	SendRawTransaction(param *types.SignedTx) (*types.Reply, error)
+
+	GetBalance(param *types.ReqBalance) ([]*types.Account, error)
+	GetTokenBalance(param *types.ReqTokenBalance) ([]*types.Account, error)
+	// types.EventGetNetInfo
+	GetNetInfo() (*types.NodeNetInfo, error)
+	GetTotalCoins(param *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error)
+
+	CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, error)
+	CreateRawTokenFinishTx(parm *TokenFinishTx) (*types.Transaction, error)
+	CreateRawTokenRevokeTx(parm *TokenRevokeTx) (*types.Transaction, error)
+	CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error)
+	CreateRawTradeRevokeTx(param *TradeRevokeTx) (*types.Transaction, error)
+	CreateRawTradeBuyTx(param *TradeBuyTx) (*types.Transaction, error)
 }

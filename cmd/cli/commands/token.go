@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -146,7 +147,7 @@ func getPreCreatedTokens(cmd *cobra.Command, args []string) {
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := rpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -192,7 +193,7 @@ func getFinishCreatedTokens(cmd *cobra.Command, args []string) {
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := rpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
