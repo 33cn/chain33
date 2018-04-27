@@ -46,12 +46,13 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 	--enable=gofmt \
 	--enable=gosimple \
 	--enable=deadcode \
-	--enable=vet \
 	--enable=unconvert \
 	--enable=interfacer \
 	--enable=varcheck \
 	--enable=structcheck \
-	GS)
+	--vendor ./...) \
+#	--enable=vet \
+#	--enable=goimports \
 #	--enable=staticcheck \
 #	--enable=gocyclo \
 #	--enable=staticcheck \

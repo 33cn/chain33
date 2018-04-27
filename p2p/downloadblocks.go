@@ -19,6 +19,7 @@ type downloadJob struct {
 	mtx       sync.Mutex
 	busyPeer  map[string]*peerJob
 }
+
 type peerJob struct {
 	pbPeer *pb.Peer
 	limit  int32
@@ -37,10 +38,7 @@ func (d *downloadJob) isBusyPeer(pid string) bool {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if pjob, ok := d.busyPeer[pid]; ok {
-		if atomic.LoadInt32(&pjob.limit) > 10 { //每个节点最多同时接受10个下载任务
-			return true
-		}
-		return false
+		return atomic.LoadInt32(&pjob.limit) > 10 //每个节点最多同时接受10个下载任务
 	}
 	return false
 }
