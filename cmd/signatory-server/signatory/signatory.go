@@ -67,7 +67,7 @@ func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error
 	return nil
 }
 
-func (signatory *Signatory) SignTranfer(in *string, out *interface{}) error {
+func (signatory *Signatory) SignTransfer(in *string, out *interface{}) error {
 	if in == nil {
 		return types.ErrInputPara
 	}
