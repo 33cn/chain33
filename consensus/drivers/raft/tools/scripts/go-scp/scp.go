@@ -15,8 +15,6 @@ import (
 	//"io/ioutil"
 	"errors"
 	"flag"
-	"path/filepath"
-	"strings"
 
 	tml "github.com/BurntSushi/toml"
 )
@@ -31,6 +29,7 @@ type ScpInfo struct {
 	LocalFilePath string
 	RemoteDir     string
 }
+
 type CmdInfo struct {
 	userName  string
 	passWord  string
@@ -39,6 +38,7 @@ type CmdInfo struct {
 	cmd       string
 	remoteDir string
 }
+
 type tomlConfig struct {
 	Title   string
 	Servers map[string]ScpInfo
@@ -77,6 +77,7 @@ func sshconnect(user, password, host string, port int) (*ssh.Session, error) {
 	}
 	return session, nil
 }
+
 func sftpconnect(user, password, host string, port int) (*sftp.Client, error) {
 	var (
 		auth         []ssh.AuthMethod
@@ -111,6 +112,7 @@ func sftpconnect(user, password, host string, port int) (*sftp.Client, error) {
 	}
 	return sftpClient, nil
 }
+
 func ScpFileFromLocalToRemote(si *ScpInfo) {
 	sftpClient, err := sftpconnect(si.UserName, si.PassWord, si.HostIp, si.Port)
 	if err != nil {
@@ -150,6 +152,7 @@ func ScpFileFromLocalToRemote(si *ScpInfo) {
 	}
 	fmt.Println("copy file to remote server finished!")
 }
+
 func RemoteExec(cmdInfo *CmdInfo) error {
 	//A Session only accepts one call to Run, Start or Shell.
 	session, err := sshconnect(cmdInfo.userName, cmdInfo.passWord, cmdInfo.hostIp, cmdInfo.port)
@@ -160,11 +163,9 @@ func RemoteExec(cmdInfo *CmdInfo) error {
 	session.Stdout = os.Stdout
 	session.Stderr = os.Stderr
 	err = session.Run(cmdInfo.cmd)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
+
 func remoteScp(si *ScpInfo, reqnum chan struct{}) {
 	defer func() {
 		reqnum <- struct{}{}
@@ -174,14 +175,7 @@ func remoteScp(si *ScpInfo, reqnum chan struct{}) {
 	fmt.Println("remoteScp file sucessfully!:")
 
 }
-func getCurrentDirectory() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(dir)
-	return strings.Replace(dir, "\\", "/", -1)
-}
+
 func InitCfg(path string) *tomlConfig {
 	var cfg tomlConfig
 	if _, err := tml.DecodeFile(path, &cfg); err != nil {
@@ -192,13 +186,6 @@ func InitCfg(path string) *tomlConfig {
 	return &cfg
 }
 
-//func pwd() string {
-//	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-//	if err != nil {
-//		panic(err)
-//	}
-//	return dir
-//}
 func main() {
 	conf := InitCfg(*configPath)
 	start := time.Now()
@@ -251,12 +238,14 @@ func main() {
 	timeCommon := time.Now()
 	log.Printf("read common cost time %v\n", timeCommon.Sub(start))
 }
+
 func LoadHelp() {
 	fmt.Println("Available Commands:")
 	fmt.Println(" start  : 启动服务 ")
 	fmt.Println(" stop   : 停止服务")
 	fmt.Println(" clear  : 清空数据")
 }
+
 func startAll(conf *tomlConfig) {
 	//fmt.Println(getCurrentDirectory())
 	arrMap := make(map[string]*CmdInfo)
@@ -282,6 +271,7 @@ func startAll(conf *tomlConfig) {
 		RemoteExec(cmdInfo)
 	}
 }
+
 func stopAll(conf *tomlConfig) {
 	//执行速度快，不需要多起多协程工作
 	for _, sc := range conf.Servers {
@@ -295,6 +285,7 @@ func stopAll(conf *tomlConfig) {
 		RemoteExec(cmdInfo)
 	}
 }
+
 func clearAll(conf *tomlConfig) {
 	for _, sc := range conf.Servers {
 		cmdInfo := &CmdInfo{}

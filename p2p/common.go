@@ -45,7 +45,7 @@ func (c Comm) GetLocalAddr() string {
 	return strings.Split(conn.LocalAddr().String(), ":")[0]
 }
 
-func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*Peer, error) {
 
 	conn, err := addr.DialTimeout(c.GrpcConfig(), (*nodeinfo).cfg.GetVersion())
 	if err != nil {
@@ -57,26 +57,25 @@ func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 		conn.Close()
 		return nil, err
 	}
-	peer.peerAddr = addr
-
+	peer.SetAddr(addr)
 	log.Debug("dialPeerWithAddress", "peer", peer.Addr(), "persistent:", persistent)
 
 	if persistent {
-		peer.makePersistent()
+		peer.MakePersistent()
 	}
 
 	return peer, nil
 }
 
-func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
 
 	// Key and NodeInfo are set after Handshake
-	p := newPeer(rawConn, nodeinfo, remote)
+	p := NewPeer(rawConn, nodeinfo, remote)
 
 	return p, nil
 }
 
-func (c Comm) dialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*peer, error) {
+func (c Comm) dialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
 	log.Debug("dialPeer", "will connect", addr.String())
 	var persistent bool
 	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
@@ -201,7 +200,7 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 	return false
 }
 
-func (c Comm) CollectPeerStat(err error, peer *peer) {
+func (c Comm) CollectPeerStat(err error, peer *Peer) {
 	if err != nil {
 		peer.peerStat.NotOk()
 	} else {
@@ -210,7 +209,7 @@ func (c Comm) CollectPeerStat(err error, peer *peer) {
 	c.reportPeerStat(peer)
 }
 
-func (c Comm) reportPeerStat(peer *peer) {
+func (c Comm) reportPeerStat(peer *Peer) {
 	timeout := time.NewTimer(time.Second)
 	select {
 	case (*peer.nodeInfo).monitorChan <- peer:

@@ -1,10 +1,11 @@
 package difficulty
 
 import (
-	"gitlab.33.cn/chain33/chain33/common"
 	"math/big"
 	"strings"
 	"testing"
+
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 func TestCompact(t *testing.T) {

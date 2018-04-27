@@ -1,10 +1,11 @@
 package pbft
 
 import (
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
 	pb "gitlab.33.cn/chain33/chain33/types"
-	"time"
 	// pb "github.com/zballs/goPBFT/types"
 	//log "github.com/inconshreveable/log15"
 

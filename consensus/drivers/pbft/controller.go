@@ -1,9 +1,10 @@
 package pbft
 
 import (
+	"strings"
+
 	log "github.com/inconshreveable/log15"
 	pb "gitlab.33.cn/chain33/chain33/types"
-	"strings"
 )
 
 var plog = log.New("module", "Pbft")
