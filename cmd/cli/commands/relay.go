@@ -189,7 +189,7 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 	for i, order := range res.Relayorders {
 		var show RelayOrder2Show
 		show.Orderid = order.Orderid
-		show.Status = types.RelayOrderStatus[order.Status]
+		show.Status = order.Status
 		show.Sellamount = order.Sellamount
 		show.Exchgaddr = order.Exchgaddr
 		show.Exchgamount = order.Exchgamount

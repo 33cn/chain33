@@ -37,7 +37,7 @@ func (r *relayDB) getSellLogs(relayType int32) *types.ReceiptLog {
 	log.Ty = relayType
 	base := &types.ReceiptRelayBase{
 		Orderid:        r.Orderid,
-		Status:         types.RelayOrderStatus[r.Status],
+		Status:         r.Status,
 		Owner:          r.Selladdr,
 		Sellamount:     r.Sellamount,
 		Exchgcoin:      r.Exchgcoin,
@@ -80,7 +80,7 @@ func (r *relayDB) getVerifyLogs(blocktime int64) *types.ReceiptLog {
 	log.Ty = types.TyLogRelayVerify
 	base := &types.ReceiptRelayBase{
 		Orderid:         r.Orderid,
-		Status:          types.RelayOrderStatus[r.Status],
+		Status:          r.Status,
 		Owner:           r.Selladdr,
 		Sellamount:      r.Sellamount,
 		Exchgcoin:       r.Exchgcoin,
