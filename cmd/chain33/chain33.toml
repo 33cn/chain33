@@ -73,7 +73,7 @@ driver="leveldb"
 dbPath="datadir/wallet"
 dbCache=16
 signType="secp256k1"
-minerdisable=true
+minerdisable=false
 
 [exec]
 isFree=false
