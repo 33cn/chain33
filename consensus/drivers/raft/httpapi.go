@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"fmt"
+
 	"github.com/coreos/etcd/raft/raftpb"
 )
 

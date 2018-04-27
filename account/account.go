@@ -12,6 +12,7 @@ package account
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"

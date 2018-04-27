@@ -4,12 +4,12 @@ import (
 	"time"
 )
 
-func (n *Node) destroyPeer(peer *peer) {
+func (n *Node) destroyPeer(peer *Peer) {
 	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
 		"version support", peer.version.IsSupport())
 
 	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
-	n.Remove(peer.Addr())
+	n.remove(peer.Addr())
 
 }
 
@@ -42,16 +42,16 @@ func (n *Node) monitorErrPeer() {
 func (n *Node) getAddrFromOnline() {
 	ticker := time.NewTicker(GetAddrFromOnlineInterval)
 	defer ticker.Stop()
-	pcli := NewCli(nil)
+	pcli := NewNormalP2PCli()
 
 	for {
 		<-ticker.C
-		if n.IsClose() {
+		if n.isClose() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
 			return
 		}
 		if n.needMore() {
-			peers, _ := n.getActivePeers()
+			peers, _ := n.GetActivePeers()
 			for _, peer := range peers { //向其他节点发起请求，获取地址列表
 				log.Debug("Getpeer", "addr", peer.Addr())
 				addrlist, err := pcli.GetAddr(peer)
@@ -83,7 +83,7 @@ func (n *Node) getAddrFromOffline() {
 
 	for {
 		<-ticker.C
-		if n.IsClose() {
+		if n.isClose() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
 			return
 		}
@@ -122,7 +122,7 @@ func (n *Node) getAddrFromOffline() {
 			for _, seed := range n.nodeInfo.cfg.Seeds {
 				//如果达到稳定节点数量，则断开种子节点
 				if n.Has(seed) {
-					n.Remove(seed)
+					n.remove(seed)
 				}
 			}
 		}
@@ -139,7 +139,7 @@ func (n *Node) monitorPeerInfo() {
 		ticker := time.NewTicker(MonitorPeerInfoInterval)
 		defer ticker.Stop()
 		for {
-			if n.IsClose() {
+			if n.isClose() {
 				return
 			}
 
@@ -153,7 +153,7 @@ func (n *Node) monitorDialPeers() {
 
 	addrChan := pub.Sub("addr")
 	for addr := range addrChan {
-		if n.IsClose() {
+		if n.isClose() {
 			log.Info("monitorDialPeers", "loop", "done")
 			return
 		}
@@ -182,7 +182,7 @@ func (n *Node) monitorDialPeers() {
 			log.Error("ialPeers", "Err", err.Error())
 			continue
 		}
-		n.AddPeer(peer)
+		n.addPeer(peer)
 		n.nodeInfo.addrBook.AddAddress(netAddr)
 
 	}
@@ -193,7 +193,7 @@ func (n *Node) monitorBlackList() {
 	ticker := time.NewTicker(CheckBlackListInterVal)
 	defer ticker.Stop()
 	for {
-		if n.IsClose() {
+		if n.isClose() {
 			log.Info("monitorBlackList", "loop", "done")
 			return
 		}
