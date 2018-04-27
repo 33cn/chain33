@@ -129,15 +129,6 @@ func genIDSlice(a []uint64) []types.ID {
 	return ids
 }
 
-// excerpt replaces middle part with ellipsis and returns a double-quoted
-// string safely escaped with Go syntax.
-func excerpt(str string, pre, suf int) string {
-	if pre+suf > len(str) {
-		return fmt.Sprintf("%q", str)
-	}
-	return fmt.Sprintf("%q...%q", str[:pre], str[len(str)-suf:])
-}
-
 type Block struct {
 	Version    int64  `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	ParentHash []byte `protobuf:"bytes,2,opt,name=parentHash,proto3" json:"parentHash,omitempty"`

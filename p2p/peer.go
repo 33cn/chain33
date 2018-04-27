@@ -12,12 +12,12 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (p *peer) Start() {
+func (p *Peer) Start() {
 
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
 }
-func (p *peer) Close() {
+func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
 	pub.Unsub(p.taskChan, "block", "tx")
@@ -25,8 +25,7 @@ func (p *peer) Close() {
 
 }
 
-type peer struct {
-	//wg         sync.WaitGroup
+type Peer struct {
 	mutx       sync.Mutex
 	nodeInfo   **NodeInfo
 	conn       *grpc.ClientConn // source connection
@@ -40,8 +39,8 @@ type peer struct {
 	taskChan   chan interface{} //tx block
 }
 
-func newPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
-	p := &peer{
+func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Peer {
+	p := &Peer{
 		conn:     conn,
 		nodeInfo: nodeinfo,
 	}
@@ -92,7 +91,7 @@ func (v *Version) IsSupport() bool {
 	return v.versionSupport
 }
 
-func (p *peer) heartBeat() {
+func (p *Peer) heartBeat() {
 	for {
 		if !p.GetRunning() {
 			return
@@ -105,7 +104,7 @@ func (p *peer) heartBeat() {
 		time.Sleep(time.Second) //wait for natwork done
 	}
 
-	pcli := NewCli(nil)
+	pcli := NewNormalP2PCli()
 	for {
 		if !p.GetRunning() {
 			return
@@ -138,11 +137,11 @@ func (p *peer) heartBeat() {
 	}
 }
 
-func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
+func (p *Peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
 
-func (p *peer) sendStream() {
+func (p *Peer) sendStream() {
 	//Stream Send data
 	for {
 		if !p.GetRunning() {
@@ -244,9 +243,9 @@ func (p *peer) sendStream() {
 	}
 }
 
-func (p *peer) readStream() {
+func (p *Peer) readStream() {
 
-	pcli := NewCli(nil)
+	pcli := NewNormalP2PCli()
 
 	for {
 		if !p.GetRunning() {
@@ -329,35 +328,41 @@ func (p *peer) readStream() {
 	}
 }
 
-func (p *peer) GetRunning() bool {
+func (p *Peer) GetRunning() bool {
 	return atomic.LoadInt32(&p.isclose) != 1
 
 }
 
 // makePersistent marks the peer as persistent.
-func (p *peer) makePersistent() {
+func (p *Peer) MakePersistent() {
 
 	p.persistent = true
 }
 
-// Addr returns peer's remote network address.
-func (p *peer) Addr() string {
-	return p.peerAddr.String()
+func (p *Peer) SetAddr(addr *NetAddress) {
+	p.peerAddr = addr
+}
 
+// Addr returns peer's remote network address.
+func (p *Peer) Addr() string {
+	return p.peerAddr.String()
 }
 
 // IsPersistent returns true if the peer is persitent, false otherwise.
-func (p *peer) IsPersistent() bool {
+func (p *Peer) IsPersistent() bool {
 	return p.persistent
 }
 
-func (p *peer) SetPeerName(name string) {
+func (p *Peer) SetPeerName(name string) {
 	p.mutx.Lock()
 	defer p.mutx.Unlock()
+	if name == "" {
+		return
+	}
 	p.name = name
 }
 
-func (p *peer) GetPeerName() string {
+func (p *Peer) GetPeerName() string {
 	p.mutx.Lock()
 	defer p.mutx.Unlock()
 	return p.name
