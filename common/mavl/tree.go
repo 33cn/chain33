@@ -1,8 +1,10 @@
 package mavl
 
 import (
+	"container/list"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -10,14 +12,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var ErrNodeNotExist = errors.New("ErrNodeNotExist")
-var treelog = log.New("module", "mavl")
+var (
+	ErrNodeNotExist     = errors.New("ErrNodeNotExist")
+	defCacheSize    int = 128
+	treelog             = log.New("module", "mavl")
+)
 
 //merkle avl tree
 type Tree struct {
-	root  *Node
-	ndb   *nodeDB
-	batch *nodeBatch
+	root *Node
+	ndb  *nodeDB
+	//batch *nodeBatch
 }
 
 // 新建一个merkle avl 树
@@ -27,10 +32,10 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 		return &Tree{}
 	} else {
 		// Persistent IAVLTree
-		ndb := newNodeDB(db)
+		ndb := newNodeDB(defCacheSize, db, sync)
 		return &Tree{
-			ndb:   ndb,
-			batch: ndb.GetBatch(sync),
+			ndb: ndb,
+			//batch: ndb.GetBatch(sync),
 		}
 	}
 }
@@ -104,8 +109,9 @@ func (t *Tree) Save() []byte {
 		return nil
 	}
 	if t.ndb != nil {
-		t.root.save(t)
-		t.batch.Commit()
+		saveNodeNo := t.root.save(t)
+		treelog.Debug("Tree.Save", "saveNodeNo", saveNodeNo)
+		t.ndb.Commit()
 	}
 	return t.root.hash
 }
@@ -116,8 +122,6 @@ func (t *Tree) Load(hash []byte) (err error) {
 		t.root = nil
 	} else {
 		t.root, err = t.ndb.GetNode(t, hash)
-		//load cache of 16 heigh 2^16 个数据
-		//t.root.loadCache(t, 16)
 	}
 	return
 }
@@ -220,42 +224,69 @@ func (t *Tree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
-	db dbm.DB
+	mtx        sync.Mutex
+	cache      map[string]*list.Element
+	cacheSize  int
+	cacheQueue *list.List
+	db         dbm.DB
+	batch      dbm.Batch
+	orphans    map[string]struct{}
 }
 
 type nodeBatch struct {
 	batch dbm.Batch
 }
 
-func newNodeDB(db dbm.DB) *nodeDB {
+func newNodeDB(cacheSize int, db dbm.DB, sync bool) *nodeDB {
 	ndb := &nodeDB{
-		db: db,
+		cache:      make(map[string]*list.Element),
+		cacheSize:  cacheSize,
+		cacheQueue: list.New(),
+		db:         db,
+		batch:      db.NewBatch(sync),
+		orphans:    make(map[string]struct{}),
 	}
 	return ndb
 }
 
 func (ndb *nodeDB) GetNode(t *Tree, hash []byte) (*Node, error) {
-	// Doesn't exist, load from db.
-	var buf []byte
-	buf, err := ndb.db.Get(hash)
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
 
-	if len(buf) == 0 || err != nil {
-		return nil, ErrNodeNotExist
+	// Check the cache.
+	elem, ok := ndb.cache[string(hash)]
+	if ok {
+		// Already exists. Move to back of cacheQueue.
+		ndb.cacheQueue.MoveToBack(elem)
+		return elem.Value.(*Node), nil
+	} else {
+		// Doesn't exist, load from db.
+		var buf []byte
+		buf, err := ndb.db.Get(hash)
+
+		if len(buf) == 0 || err != nil {
+			return nil, ErrNodeNotExist
+		}
+		node, err := MakeNode(buf, t)
+		if err != nil {
+			panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
+		}
+		node.hash = hash
+		node.persisted = true
+		ndb.cacheNode(node)
+		return node, nil
 	}
-	node, err := MakeNode(buf, t)
-	if err != nil {
-		panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
-	}
-	node.hash = hash
-	node.persisted = true
-	return node, nil
 }
 
 func (ndb *nodeDB) GetBatch(sync bool) *nodeBatch {
 	return &nodeBatch{ndb.db.NewBatch(sync)}
 }
 
-func (ndb *nodeBatch) SaveNode(t *Tree, node *Node) {
+//保存节点
+func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+
 	if node.hash == nil {
 		panic("Expected to find node.hash, but none found.")
 	}
@@ -266,12 +297,62 @@ func (ndb *nodeBatch) SaveNode(t *Tree, node *Node) {
 	storenode := node.storeNode(t)
 	ndb.batch.Set(node.hash, storenode)
 	node.persisted = true
+
+	ndb.cacheNode(node)
+	delete(ndb.orphans, string(node.hash))
+	//treelog.Debug("SaveNode", "hash", node.hash, "height", node.height, "value", node.value)
+
 }
 
-func (ndb *nodeBatch) Commit() {
+//cache缓存节点
+func (ndb *nodeDB) cacheNode(node *Node) {
+	// Create entry in cache and append to cacheQueue.
+	elem := ndb.cacheQueue.PushBack(node)
+	ndb.cache[string(node.hash)] = elem
+	// Maybe expire an item.
+	if ndb.cacheQueue.Len() > ndb.cacheSize {
+		hash := ndb.cacheQueue.Remove(ndb.cacheQueue.Front()).(*Node).hash
+		delete(ndb.cache, string(hash))
+	}
+}
+
+//删除节点
+func (ndb *nodeDB) RemoveNode(t *Tree, node *Node) {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+
+	if node.hash == nil {
+		panic("Expected to find node.hash, but none found.")
+	}
+	if !node.persisted {
+		panic("Shouldn't be calling remove on a non-persisted node.")
+	}
+	elem, ok := ndb.cache[string(node.hash)]
+	if ok {
+		ndb.cacheQueue.Remove(elem)
+		delete(ndb.cache, string(node.hash))
+		//treelog.Debug("RemoveNode", "hash", node.hash, "height", node.height, "value", node.value)
+	}
+	ndb.orphans[string(node.hash)] = struct{}{}
+}
+
+//提交状态tree，批量写入db中
+func (ndb *nodeDB) Commit() {
+
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+
+	//treelog.Debug("Commit batch.Write begin")
+
 	// Write saves
-	ndb.batch.Write()
+	err := ndb.batch.Write()
+	if err != nil {
+		treelog.Error("Commit batch.Write err", "err", err)
+	}
+	//treelog.Debug("Commit batch.Write end")
+
 	ndb.batch = nil
+	ndb.orphans = make(map[string]struct{})
 }
 
 //对外接口

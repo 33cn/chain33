@@ -156,6 +156,9 @@ func (wallet *Wallet) autoMining() {
 	for {
 		select {
 		case <-wallet.miningTicket.C:
+			if wallet.cfg.GetMinerdisable() {
+				break
+			}
 			if !(wallet.IsCaughtUp() || wallet.cfg.GetForceMining()) {
 				walletlog.Error("wallet IsCaughtUp false")
 				break

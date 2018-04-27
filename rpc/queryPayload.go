@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
 )

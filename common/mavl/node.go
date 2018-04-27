@@ -184,26 +184,29 @@ func (node *Node) Hash(t *Tree) []byte {
 }
 
 // NOTE: clears leftNode/rigthNode recursively sets hashes recursively
-func (node *Node) save(t *Tree) {
+func (node *Node) save(t *Tree) int64 {
 	if node.hash == nil {
 		node.hash = node.Hash(t)
 	}
 	if node.persisted {
-		return
+		return 0
 	}
+	var leftsaveNodeNo int64 = 0
+	var rightsaveNodeNo int64 = 0
 
 	// save children
 	if node.leftNode != nil {
-		node.leftNode.save(t)
+		leftsaveNodeNo = node.leftNode.save(t)
 		node.leftNode = nil
 	}
 	if node.rightNode != nil {
-		node.rightNode.save(t)
+		rightsaveNodeNo = node.rightNode.save(t)
 		node.rightNode = nil
 	}
 
 	// save node
-	t.batch.SaveNode(t, node)
+	t.ndb.SaveNode(t, node)
+	return leftsaveNodeNo + rightsaveNodeNo + 1
 }
 
 //将内存中的node转换成存储到db中的格式
@@ -254,6 +257,7 @@ func (node *Node) set(t *Tree, key []byte, value []byte) (newSelf *Node, updated
 				rightNode: node,
 			}, false
 		} else if cmp == 0 {
+			removeOrphan(t, node)
 			return NewNode(key, value), true
 		} else {
 			return &Node{
@@ -265,6 +269,7 @@ func (node *Node) set(t *Tree, key []byte, value []byte) (newSelf *Node, updated
 			}, false
 		}
 	} else {
+		removeOrphan(t, node)
 		node = node._copy()
 		if bytes.Compare(key, node.key) < 0 {
 			node.leftNode, updated = node.getLeftNode(t).set(t, key, value)
@@ -310,6 +315,7 @@ func (node *Node) getRightNode(t *Tree) *Node {
 func (node *Node) rotateRight(t *Tree) *Node {
 	node = node._copy()
 	l := node.getLeftNode(t)
+	removeOrphan(t, l)
 	_l := l._copy()
 
 	_lrHash, _lrCached := _l.rightHash, _l.rightNode
@@ -326,6 +332,7 @@ func (node *Node) rotateRight(t *Tree) *Node {
 func (node *Node) rotateLeft(t *Tree) *Node {
 	node = node._copy()
 	r := node.getRightNode(t)
+	removeOrphan(t, r)
 	_r := r._copy()
 
 	_rlHash, _rlCached := _r.leftHash, _r.leftNode
@@ -362,6 +369,7 @@ func (node *Node) balance(t *Tree) (newSelf *Node) {
 			// Left Right Case
 			// node = node._copy()
 			left := node.getLeftNode(t)
+			removeOrphan(t, left)
 			node.leftHash, node.leftNode = nil, left.rotateLeft(t)
 			//node.calcHeightAndSize()
 			return node.rotateRight(t)
@@ -375,6 +383,7 @@ func (node *Node) balance(t *Tree) (newSelf *Node) {
 			// Right Left Case
 			// node = node._copy()
 			right := node.getRightNode(t)
+			removeOrphan(t, right)
 			node.rightHash, node.rightNode = nil, right.rotateRight(t)
 			//node.calcHeightAndSize()
 			return node.rotateLeft(t)
@@ -441,6 +450,7 @@ func removeOrphan(t *Tree, node *Node) {
 	if t.ndb == nil {
 		return
 	}
+	t.ndb.RemoveNode(t, node)
 }
 
 // 迭代整个树
