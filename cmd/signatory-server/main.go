@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	tml "github.com/BurntSushi/toml"
-	l "github.com/inconshreveable/log15"
-	"github.com/rs/cors"
 	"io"
 	"net"
 	"net/http"
@@ -14,6 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	tml "github.com/BurntSushi/toml"
+	l "github.com/inconshreveable/log15"
+	"github.com/rs/cors"
 
 	"gitlab.33.cn/chain33/chain33/cmd/signatory-server/signatory"
 )
