@@ -5,8 +5,9 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/client"
+
 	"gitlab.33.cn/chain33/chain33/types"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func AccountCmd() *cobra.Command {
@@ -67,14 +68,14 @@ func GetAccountListCmd() *cobra.Command {
 
 func listAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.WalletAccounts
+	var res lt.WalletAccounts
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
 	ctx.SetResultCb(parseListAccountRes)
 	ctx.Run()
 }
 
 func parseListAccountRes(arg interface{}) (interface{}, error) {
-	res := arg.(*jsonrpc.WalletAccounts)
+	res := arg.(*lt.WalletAccounts)
 	var result AccountsResult
 	for _, r := range res.Wallets {
 		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance)/float64(types.Coin), 'f', 4, 64)
@@ -132,14 +133,14 @@ func balance(cmd *cobra.Command, args []string) {
 		Execer:    execer,
 	}
 
-	var res []*jsonrpc.Account
+	var res []*lt.Account
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
 	ctx.SetResultCb(parseGetBalanceRes)
 	ctx.Run()
 }
 
 func parseGetBalanceRes(arg interface{}) (interface{}, error) {
-	res := *arg.(*[]*jsonrpc.Account)
+	res := *arg.(*[]*lt.Account)
 	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(types.Coin), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(types.Coin), 'f', 4, 64)
 	result := &AccountResult{

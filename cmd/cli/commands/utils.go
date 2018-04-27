@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
-	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
-func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
+func decodeTransaction(tx *lt.Transaction) *TxResult {
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
 	result := &TxResult{
 		Execer:     tx.Execer,
@@ -71,7 +71,7 @@ func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 	return accResult
 }
 
-func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account {
+func constructAccFromLog(l *lt.ReceiptLogResult, key string) *types.Account {
 	var cur int32
 	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"]; ok {
 		cur = int32(tmp.(float32))
@@ -96,7 +96,7 @@ func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account
 	}
 }
 
-func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
+func decodeLog(rlog lt.ReceiptDataResult) *ReceiptData {
 	rd := &ReceiptData{Ty: rlog.Ty, TyName: rlog.TyName}
 
 	for _, l := range rlog.Logs {
@@ -158,7 +158,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 		params.TokenSymbol = tokenSymbol
 	}
 
-	var res jsonrpc.ReplyHash
+	var res lt.ReplyHash
 	ctx := NewRpcCtx(rpcAddr, "Chain33.SendToAddress", params, &res)
 	ctx.Run()
 }

@@ -6,8 +6,9 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/client"
+
 	"gitlab.33.cn/chain33/chain33/types"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func BlockCmd() *cobra.Command {
@@ -59,12 +60,12 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := jsonrpc.BlockParam{
+	params := lt.BlockParam{
 		Start:    startH,
 		End:      endH,
 		Isdetail: detailBool,
 	}
-	var res jsonrpc.BlockDetails
+	var res lt.BlockDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlocks", params, &res)
 	ctx.SetResultCb(parseBlockDetail)
 	ctx.Run()
@@ -73,7 +74,7 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 func parseBlockDetail(res interface{}) (interface{}, error) {
 	var result BlockDetailsResult
 
-	for _, vItem := range res.(*jsonrpc.BlockDetails).Items {
+	for _, vItem := range res.(*lt.BlockDetails).Items {
 		b := &BlockResult{
 			Version:    vItem.Block.Version,
 			ParentHash: vItem.Block.ParentHash,
@@ -118,7 +119,7 @@ func blockHeightHash(cmd *cobra.Command, args []string) {
 	params := types.ReqInt{
 		Height: height,
 	}
-	var res jsonrpc.ReplyHash
+	var res lt.ReplyHash
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
 	ctx.Run()
 }
@@ -142,10 +143,10 @@ func addBlockViewFlags(cmd *cobra.Command) {
 func blockViewByHash(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	blockHash, _ := cmd.Flags().GetString("hash")
-	params := jsonrpc.QueryParm{
+	params := lt.QueryParm{
 		Hash: blockHash,
 	}
-	var res jsonrpc.BlockOverview
+	var res lt.BlockOverview
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockOverview", params, &res)
 	ctx.Run()
 }
@@ -186,7 +187,7 @@ func blockHeader(cmd *cobra.Command, args []string) {
 		End:      endH,
 		Isdetail: detailBool,
 	}
-	var res jsonrpc.Headers
+	var res lt.Headers
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
 	ctx.Run()
 }
@@ -203,7 +204,7 @@ func GetLastHeaderCmd() *cobra.Command {
 
 func lastHeader(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.Header
+	var res lt.Header
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
 	ctx.Run()
 }

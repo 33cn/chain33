@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/rpc"
-	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func TxCmd() *cobra.Command {
@@ -54,7 +54,7 @@ func addSendTxFlags(cmd *cobra.Command) {
 func sendTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
-	params := jsonrpc.RawParm{
+	params := lt.RawParm{
 		Data: data,
 	}
 	var res string
@@ -100,7 +100,7 @@ func queryTxByAddr(cmd *cobra.Command, args []string) {
 		Height:    height,
 		Index:     index,
 	}
-	var res jsonrpc.ReplyTxInfos
+	var res lt.ReplyTxInfos
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
 	ctx.Run()
 }
@@ -128,17 +128,17 @@ func queryTx(cmd *cobra.Command, args []string) {
 		fmt.Print(types.ErrHashNotExist.Error())
 		return
 	}
-	params := jsonrpc.QueryParm{
+	params := lt.QueryParm{
 		Hash: hash,
 	}
-	var res jsonrpc.TransactionDetail
+	var res lt.TransactionDetail
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryTransaction", params, &res)
 	ctx.SetResultCb(parseQueryTxRes)
 	ctx.Run()
 }
 
 func parseQueryTxRes(arg interface{}) (interface{}, error) {
-	res := arg.(*jsonrpc.TransactionDetail)
+	res := arg.(*lt.TransactionDetail)
 	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(types.Coin), 'f', 4, 64)
 	result := TxDetailResult{
 		Tx:         decodeTransaction(res.Tx),
@@ -174,11 +174,11 @@ func getTxsByHashes(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	hashes, _ := cmd.Flags().GetString("hashes")
 	hashesArr := strings.Split(hashes, " ")
-	params := jsonrpc.ReqHashes{
+	params := lt.ReqHashes{
 		Hashes: hashesArr,
 	}
 
-	var res jsonrpc.TransactionDetails
+	var res lt.TransactionDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTxByHashes", params, &res)
 	ctx.SetResultCb(parseQueryTxsByHashesRes)
 	ctx.Run()
@@ -186,7 +186,7 @@ func getTxsByHashes(cmd *cobra.Command, args []string) {
 
 func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 	var result TxDetailsResult
-	for _, v := range arg.(*jsonrpc.TransactionDetails).Txs {
+	for _, v := range arg.(*lt.TransactionDetails).Txs {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		td := TxDetailResult{
 			Tx:         decodeTransaction(v.Tx),
@@ -223,7 +223,7 @@ func addGetRawTxFlags(cmd *cobra.Command) {
 func getTxHexByHash(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	txHash, _ := cmd.Flags().GetString("hash")
-	params := jsonrpc.QueryParm{
+	params := lt.QueryParm{
 		Hash: txHash,
 	}
 	var res string

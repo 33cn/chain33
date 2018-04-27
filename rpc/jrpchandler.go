@@ -8,7 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/client"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -22,7 +22,7 @@ func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) 
 
 }
 
-func (c *Chain33) SendRawTransaction(in client.SignedTx, result *interface{}) error {
+func (c *Chain33) SendRawTransaction(in lt.SignedTx, result *interface{}) error {
 	var stx types.SignedTx
 	var err error
 
@@ -52,7 +52,7 @@ func (c *Chain33) SendRawTransaction(in client.SignedTx, result *interface{}) er
 	}
 }
 
-func (c *Chain33) SendTransaction(in client.RawParm, result *interface{}) error {
+func (c *Chain33) SendTransaction(in lt.RawParm, result *interface{}) error {
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
@@ -67,7 +67,7 @@ func (c *Chain33) SendTransaction(in client.RawParm, result *interface{}) error 
 	return err
 }
 
-func (c *Chain33) GetHexTxByHash(in client.QueryParm, result *interface{}) error {
+func (c *Chain33) GetHexTxByHash(in lt.QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
 	if err != nil {
@@ -82,7 +82,7 @@ func (c *Chain33) GetHexTxByHash(in client.QueryParm, result *interface{}) error
 	return err
 }
 
-func (c *Chain33) QueryTransaction(in client.QueryParm, result *interface{}) error {
+func (c *Chain33) QueryTransaction(in lt.QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
 	if err != nil {
@@ -97,17 +97,17 @@ func (c *Chain33) QueryTransaction(in client.QueryParm, result *interface{}) err
 
 	{ //重新格式化数据
 
-		var transDetail client.TransactionDetail
+		var transDetail lt.TransactionDetail
 		transDetail.Tx, err = DecodeTx(reply.GetTx())
 		if err != nil {
 			return err
 		}
 
-		receiptTmp := &client.ReceiptData{Ty: reply.GetReceipt().GetTy()}
+		receiptTmp := &lt.ReceiptData{Ty: reply.GetReceipt().GetTy()}
 		logs := reply.GetReceipt().GetLogs()
 		for _, log := range logs {
 			receiptTmp.Logs = append(receiptTmp.Logs,
-				&client.ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
+				&lt.ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
 		}
 
 		transDetail.Receipt, err = DecodeLog(receiptTmp)
@@ -130,7 +130,7 @@ func (c *Chain33) QueryTransaction(in client.QueryParm, result *interface{}) err
 	return nil
 }
 
-func (c *Chain33) GetBlocks(in client.BlockParam, result *interface{}) error {
+func (c *Chain33) GetBlocks(in lt.BlockParam, result *interface{}) error {
 	reply, err := c.api.GetBlocks(&types.ReqBlocks{
 		Start:    in.Start,
 		End:      in.End,
@@ -139,11 +139,11 @@ func (c *Chain33) GetBlocks(in client.BlockParam, result *interface{}) error {
 		return err
 	}
 	{
-		var blockDetails client.BlockDetails
+		var blockDetails lt.BlockDetails
 		items := reply.GetItems()
 		for _, item := range items {
-			var bdtl client.BlockDetail
-			var block client.Block
+			var bdtl lt.BlockDetail
+			var block lt.Block
 			block.BlockTime = item.Block.GetBlockTime()
 			block.Height = item.Block.GetHeight()
 			block.Version = item.Block.GetVersion()
@@ -161,11 +161,11 @@ func (c *Chain33) GetBlocks(in client.BlockParam, result *interface{}) error {
 			bdtl.Block = &block
 
 			for _, rp := range item.Receipts {
-				var recp client.ReceiptData
+				var recp lt.ReceiptData
 				recp.Ty = rp.GetTy()
 				for _, log := range rp.Logs {
 					recp.Logs = append(recp.Logs,
-						&client.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
+						&lt.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
 				}
 				rd, err := DecodeLog(&recp)
 				if err != nil {
@@ -191,7 +191,7 @@ func (c *Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 	}
 
 	{
-		var header client.Header
+		var header lt.Header
 		header.BlockTime = reply.GetBlockTime()
 		header.Height = reply.GetHeight()
 		header.ParentHash = common.ToHex(reply.GetParentHash())
@@ -214,10 +214,10 @@ func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 		return err
 	}
 	{
-		var txinfos client.ReplyTxInfos
+		var txinfos lt.ReplyTxInfos
 		infos := reply.GetTxInfos()
 		for _, info := range infos {
-			txinfos.TxInfos = append(txinfos.TxInfos, &client.ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
+			txinfos.TxInfos = append(txinfos.TxInfos, &lt.ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
 				Height: info.GetHeight(), Index: info.GetIndex()})
 		}
 		*result = &txinfos
@@ -232,7 +232,7 @@ GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
 	GetAccounts() (*types.WalletAccounts, error)
 */
 
-func (c *Chain33) GetTxByHashes(in client.ReqHashes, result *interface{}) error {
+func (c *Chain33) GetTxByHashes(in lt.ReqHashes, result *interface{}) error {
 	log.Warn("GetTxByHashes", "hashes", in)
 	var parm types.ReqHashes
 	parm.Hashes = make([][]byte, 0)
@@ -250,15 +250,15 @@ func (c *Chain33) GetTxByHashes(in client.ReqHashes, result *interface{}) error 
 		return err
 	}
 	txs := reply.GetTxs()
-	var txdetails client.TransactionDetails
+	var txdetails lt.TransactionDetails
 	if 0 != len(txs) {
 		for _, tx := range txs {
-			var recp client.ReceiptData
+			var recp lt.ReceiptData
 			logs := tx.GetReceipt().GetLogs()
 			recp.Ty = tx.GetReceipt().GetTy()
 			for _, lg := range logs {
 				recp.Logs = append(recp.Logs,
-					&client.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+					&lt.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
 			recpResult, err := DecodeLog(&recp)
 			if err != nil {
@@ -276,7 +276,7 @@ func (c *Chain33) GetTxByHashes(in client.ReqHashes, result *interface{}) error 
 			}
 
 			txdetails.Txs = append(txdetails.Txs,
-				&client.TransactionDetail{
+				&lt.TransactionDetail{
 					Tx:         tran,
 					Height:     tx.GetHeight(),
 					Index:      tx.GetIndex(),
@@ -300,7 +300,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 		return err
 	}
 	{
-		var txlist client.ReplyTxList
+		var txlist lt.ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
 			amount, err := tx.Amount()
@@ -328,10 +328,10 @@ func (c *Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var accounts client.WalletAccounts
+	var accounts lt.WalletAccounts
 	for _, wallet := range reply.Wallets {
-		accounts.Wallets = append(accounts.Wallets, &client.WalletAccount{Label: wallet.GetLabel(),
-			Acc: &client.Account{Currency: wallet.GetAcc().GetCurrency(), Balance: wallet.GetAcc().GetBalance(),
+		accounts.Wallets = append(accounts.Wallets, &lt.WalletAccount{Label: wallet.GetLabel(),
+			Acc: &lt.Account{Currency: wallet.GetAcc().GetCurrency(), Balance: wallet.GetAcc().GetBalance(),
 				Frozen: wallet.GetAcc().GetFrozen(), Addr: wallet.GetAcc().GetAddr()}})
 	}
 	*result = &accounts
@@ -356,7 +356,7 @@ func (c *Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error 
 	return nil
 }
 
-func (c *Chain33) WalletTxList(in client.ReqWalletTransactionList, result *interface{}) error {
+func (c *Chain33) WalletTxList(in lt.ReqWalletTransactionList, result *interface{}) error {
 	var parm types.ReqWalletTransactionList
 	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
@@ -367,15 +367,15 @@ func (c *Chain33) WalletTxList(in client.ReqWalletTransactionList, result *inter
 	}
 	{
 
-		var txdetails client.WalletTxDetails
+		var txdetails lt.WalletTxDetails
 
 		for _, tx := range reply.TxDetails {
-			var recp client.ReceiptData
+			var recp lt.ReceiptData
 			logs := tx.GetReceipt().GetLogs()
 			recp.Ty = tx.GetReceipt().GetTy()
 			for _, lg := range logs {
 				recp.Logs = append(recp.Logs,
-					&client.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+					&lt.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
 			rd, err := DecodeLog(&recp)
 			if err != nil {
@@ -385,7 +385,7 @@ func (c *Chain33) WalletTxList(in client.ReqWalletTransactionList, result *inter
 			if err != nil {
 				continue
 			}
-			txdetails.TxDetails = append(txdetails.TxDetails, &client.WalletTxDetail{
+			txdetails.TxDetails = append(txdetails.TxDetails, &lt.WalletTxDetail{
 				Tx:         tran,
 				Receipt:    rd,
 				Height:     tx.GetHeight(),
@@ -420,7 +420,7 @@ func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interfa
 		return err
 	}
 	log.Debug("sendtoaddr", "msg", reply.String())
-	*result = &client.ReplyHash{Hash: common.ToHex(reply.GetHash())}
+	*result = &lt.ReplyHash{Hash: common.ToHex(reply.GetHash())}
 	log.Debug("SendToAddress", "resulrt", *result)
 	return nil
 }
@@ -437,7 +437,7 @@ func (c *Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error 
 	if err != nil {
 		return err
 	}
-	var resp client.Reply
+	var resp lt.Reply
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
 	*result = &resp
@@ -450,7 +450,7 @@ func (c *Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error
 		return err
 	}
 
-	*result = &client.WalletAccount{Acc: &client.Account{Addr: reply.GetAcc().Addr, Currency: reply.GetAcc().GetCurrency(),
+	*result = &lt.WalletAccount{Acc: &lt.Account{Addr: reply.GetAcc().Addr, Currency: reply.GetAcc().GetCurrency(),
 		Frozen: reply.GetAcc().GetFrozen(), Balance: reply.GetAcc().GetBalance()}, Label: reply.GetLabel()}
 	return nil
 }
@@ -461,7 +461,7 @@ func (c *Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface
 		return err
 	}
 	{
-		var hashes client.ReplyHashes
+		var hashes lt.ReplyHashes
 		for _, has := range reply.Hashes {
 			hashes.Hashes = append(hashes.Hashes, common.ToHex(has))
 		}
@@ -476,7 +476,7 @@ func (c *Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) er
 	if err != nil {
 		return err
 	}
-	var resp client.Reply
+	var resp lt.Reply
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
 	*result = &resp
@@ -494,7 +494,7 @@ func (c *Chain33) Lock(in types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var resp client.Reply
+	var resp lt.Reply
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
 	*result = &resp
@@ -506,7 +506,7 @@ func (c *Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var resp client.Reply
+	var resp lt.Reply
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
 	*result = &resp
@@ -520,15 +520,15 @@ func (c *Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
 	}
 	{
 
-		var peerlist client.PeerList
+		var peerlist lt.PeerList
 		for _, peer := range reply.Peers {
-			var pr client.Peer
+			var pr lt.Peer
 			pr.Addr = peer.GetAddr()
 			pr.MempoolSize = peer.GetMempoolSize()
 			pr.Name = peer.GetName()
 			pr.Port = peer.GetPort()
 			pr.Self = peer.GetSelf()
-			pr.Header = &client.Header{
+			pr.Header = &lt.Header{
 				BlockTime:  peer.Header.GetBlockTime(),
 				Height:     peer.Header.GetHeight(),
 				ParentHash: common.ToHex(peer.GetHeader().GetParentHash()),
@@ -549,10 +549,10 @@ func (c *Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var headers client.Headers
+	var headers lt.Headers
 	{
 		for _, item := range reply.Items {
-			headers.Items = append(headers.Items, &client.Header{
+			headers.Items = append(headers.Items, &lt.Header{
 				BlockTime:  item.GetBlockTime(),
 				TxCount:    item.GetTxCount(),
 				Hash:       common.ToHex(item.GetHash()),
@@ -574,7 +574,7 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 	}
 
 	{
-		var txlist client.ReplyTxList
+		var txlist lt.ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
 			tran, err := DecodeTx(tx)
@@ -589,7 +589,7 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 }
 
 //GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
-func (c *Chain33) GetBlockOverview(in client.QueryParm, result *interface{}) error {
+func (c *Chain33) GetBlockOverview(in lt.QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
 	if err != nil {
@@ -601,10 +601,10 @@ func (c *Chain33) GetBlockOverview(in client.QueryParm, result *interface{}) err
 	if err != nil {
 		return err
 	}
-	var blockOverview client.BlockOverview
+	var blockOverview lt.BlockOverview
 
 	//获取blockheader信息
-	var header client.Header
+	var header lt.Header
 	header.BlockTime = reply.GetHead().GetBlockTime()
 	header.Height = reply.GetHead().GetHeight()
 	header.ParentHash = common.ToHex(reply.GetHead().GetParentHash())
@@ -643,7 +643,7 @@ func (c *Chain33) GetBlockHash(in types.ReqInt, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var replyHash client.ReplyHash
+	var replyHash lt.ReplyHash
 	replyHash.Hash = common.ToHex(reply.GetHash())
 	*result = &replyHash
 	return nil
@@ -665,7 +665,7 @@ func (c *Chain33) SaveSeed(in types.SaveSeedByPw, result *interface{}) error {
 		return err
 	}
 
-	var resp client.Reply
+	var resp lt.Reply
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
 	*result = &resp
@@ -697,9 +697,9 @@ func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var accounts []*client.Account
+	var accounts []*lt.Account
 	for _, balance := range balances {
-		accounts = append(accounts, &client.Account{Addr: balance.GetAddr(),
+		accounts = append(accounts, &lt.Account{Addr: balance.GetAddr(),
 			Balance:  balance.GetBalance(),
 			Currency: balance.GetCurrency(),
 			Frozen:   balance.GetFrozen()})
@@ -714,9 +714,9 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	if err != nil {
 		return err
 	}
-	var accounts []*client.Account
+	var accounts []*lt.Account
 	for _, balance := range balances {
-		accounts = append(accounts, &client.Account{Addr: balance.GetAddr(),
+		accounts = append(accounts, &lt.Account{Addr: balance.GetAddr(),
 			Balance:  balance.GetBalance(),
 			Currency: balance.GetCurrency(),
 			Frozen:   balance.GetFrozen()})
@@ -725,7 +725,7 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	return nil
 }
 
-func (c *Chain33) Query(in client.Query4Jrpc, result *interface{}) error {
+func (c *Chain33) Query(in lt.Query4Jrpc, result *interface{}) error {
 	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
 		return err
@@ -747,7 +747,7 @@ func (c *Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error {
 		log.Error("SetAutoMiner", "err", err.Error())
 		return err
 	}
-	var reply client.Reply
+	var reply lt.Reply
 	reply.IsOk = resp.GetIsOk()
 	reply.Msg = string(resp.GetMsg())
 	*result = &reply
@@ -779,7 +779,7 @@ func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	var hashes client.ReplyHashes
+	var hashes lt.ReplyHashes
 	for _, has := range resp.Hashes {
 		hashes.Hashes = append(hashes.Hashes, hex.EncodeToString(has))
 	}
@@ -811,7 +811,7 @@ func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func DecodeTx(tx *types.Transaction) (*client.Transaction, error) {
+func DecodeTx(tx *types.Transaction) (*lt.Transaction, error) {
 	if tx == nil {
 		return nil, types.ErrEmpty
 	}
@@ -854,11 +854,11 @@ func DecodeTx(tx *types.Transaction) (*client.Transaction, error) {
 	} else {
 		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 	}
-	result := &client.Transaction{
+	result := &lt.Transaction{
 		Execer:     string(tx.Execer),
 		Payload:    pl,
 		RawPayload: common.ToHex(tx.GetPayload()),
-		Signature: &client.Signature{
+		Signature: &lt.Signature{
 			Ty:        tx.GetSignature().GetTy(),
 			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
 			Signature: common.ToHex(tx.GetSignature().GetSignature()),
@@ -871,7 +871,7 @@ func DecodeTx(tx *types.Transaction) (*client.Transaction, error) {
 	return result, nil
 }
 
-func DecodeLog(rlog *client.ReceiptData) (*client.ReceiptDataResult, error) {
+func DecodeLog(rlog *lt.ReceiptData) (*lt.ReceiptDataResult, error) {
 	var rTy string
 	switch rlog.Ty {
 	case 0:
@@ -883,7 +883,7 @@ func DecodeLog(rlog *client.ReceiptData) (*client.ReceiptDataResult, error) {
 	default:
 		rTy = "Unkown"
 	}
-	rd := &client.ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
+	rd := &lt.ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
 
 	for _, l := range rlog.Logs {
 		var lTy string
@@ -1138,7 +1138,7 @@ func DecodeLog(rlog *client.ReceiptData) (*client.ReceiptDataResult, error) {
 			lTy = "unkownType"
 			logIns = nil
 		}
-		rd.Logs = append(rd.Logs, &client.ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
+		rd.Logs = append(rd.Logs, &lt.ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
 	}
 	return rd, nil
 }
@@ -1168,7 +1168,7 @@ func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenPreCreateTx(in *client.TokenPreCreateTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenPreCreateTx(in *lt.TokenPreCreateTx, result *interface{}) error {
 	reply, err := c.api.CreateRawTokenPreCreateTx(in)
 	if err != nil {
 		return err
@@ -1178,7 +1178,7 @@ func (c *Chain33) CreateRawTokenPreCreateTx(in *client.TokenPreCreateTx, result 
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenFinishTx(in *client.TokenFinishTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenFinishTx(in *lt.TokenFinishTx, result *interface{}) error {
 	reply, err := c.api.CreateRawTokenFinishTx(in)
 	if err != nil {
 		return err
@@ -1187,7 +1187,7 @@ func (c *Chain33) CreateRawTokenFinishTx(in *client.TokenFinishTx, result *inter
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenRevokeTx(in *client.TokenRevokeTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenRevokeTx(in *lt.TokenRevokeTx, result *interface{}) error {
 	reply, err := c.api.CreateRawTokenRevokeTx(in)
 	if err != nil {
 		return err
@@ -1197,7 +1197,7 @@ func (c *Chain33) CreateRawTokenRevokeTx(in *client.TokenRevokeTx, result *inter
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeSellTx(in *client.TradeSellTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeSellTx(in *lt.TradeSellTx, result *interface{}) error {
 	reply, err := c.api.CreateRawTradeSellTx(in)
 	if err != nil {
 		return err
@@ -1207,7 +1207,7 @@ func (c *Chain33) CreateRawTradeSellTx(in *client.TradeSellTx, result *interface
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeBuyTx(in *client.TradeBuyTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeBuyTx(in *lt.TradeBuyTx, result *interface{}) error {
 	reply, err := c.api.CreateRawTradeBuyTx(in)
 	if err != nil {
 		return err
@@ -1217,7 +1217,7 @@ func (c *Chain33) CreateRawTradeBuyTx(in *client.TradeBuyTx, result *interface{}
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeRevokeTx(in *client.TradeRevokeTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeRevokeTx(in *lt.TradeRevokeTx, result *interface{}) error {
 	reply, err := c.api.CreateRawTradeRevokeTx(in)
 	if err != nil {
 		return err
@@ -1242,6 +1242,6 @@ func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
 		return err
 	}
 
-	*result = &client.NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService()}
+	*result = &lt.NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService()}
 	return nil
 }

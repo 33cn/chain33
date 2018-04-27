@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/rpc"
-	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func TradeCmd() *cobra.Command {
@@ -64,7 +64,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
 	}
-	params := jsonrpc.Query4Cli{
+	params := lt.Query4Cli{
 		Execer:   "trade",
 		FuncName: "GetOnesSellOrder",
 		Payload:  reqAddrtokens,
@@ -125,7 +125,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 	req.Count = count
 	req.Direction = dir
 	req.FromSellId = from
-	var params jsonrpc.Query4Cli
+	var params lt.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
 	params.Payload = req
@@ -171,7 +171,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	var reqAddrtokens types.ReqAddrTokens
 	reqAddrtokens.Status = statusInt
 
-	var params jsonrpc.Query4Cli
+	var params lt.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetAllSellOrdersWithStatus"
 	params.Payload = reqAddrtokens
@@ -262,7 +262,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	reqAddrtokens.Addr = buyer
 	reqAddrtokens.Token = tokens
 
-	var params jsonrpc.Query4Cli
+	var params lt.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
@@ -331,7 +331,7 @@ func tokenSell(cmd *cobra.Command, args []string) {
 
 	priceInt64 := int64(price * 1e4)
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TradeSellTx{
+	params := &lt.TradeSellTx{
 		TokenSymbol:       symbol,
 		AmountPerBoardlot: amount,
 		MinBoardlot:       min,
@@ -373,7 +373,7 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 	count, _ := cmd.Flags().GetInt64("count")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TradeBuyTx{
+	params := &lt.TradeBuyTx{
 		SellId:      sellID,
 		BoardlotCnt: count,
 		Fee:         feeInt64 * 1e4,
@@ -408,7 +408,7 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TradeRevokeTx{
+	params := &lt.TradeRevokeTx{
 		SellId: sellID,
 		Fee:    feeInt64 * 1e4,
 	}
