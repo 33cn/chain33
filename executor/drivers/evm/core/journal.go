@@ -1,19 +1,3 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
 package core
 
 import (
@@ -21,17 +5,26 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+// 数据状态变更接口
+// 所有的数据状态变更事件实现此接口，并且封装各自的变更数据以及回滚动作
+// 在调用合约时（具体的Tx执行时），会根据操作生成对应的变更对象并缓存下来
+// 如果合约执行出错，会按生成顺序的倒序，依次调用变更对象的回滚接口进行数据回滚，并同步删除变更对象缓存
+// 如果合约执行成功，会按生成顺序的郑旭，依次调用变更对象的数据和日志变更记录，回传给区块链
 type journalEntry interface {
 	undo(mdb *MemoryStateDB)
 	getData(mdb *MemoryStateDB) []*types.KeyValue
 	getLog(mdb *MemoryStateDB) []*types.ReceiptLog
 }
 
+// 定义变更对象序列
 type journal []journalEntry
 
 type (
+
+	// 基础变更对象，用于封装默认操作
 	baseChange struct {
 	}
+
 	// 创建合约对象变更事件
 	createAccountChange struct {
 		baseChange
@@ -81,17 +74,20 @@ type (
 		logs []*types.ReceiptLog
 	}
 
-
+	// 合约生成日志事件
 	addLogChange struct {
 		baseChange
 		txhash common.Hash
 	}
 
+	// 合约生成sha3事件
 	addPreimageChange struct {
 		baseChange
 		hash common.Hash
 	}
 )
+
+// 在baseChang中定义三个基本操作，子对象中只需要实现必要的操作
 func (ch baseChange) undo(s *MemoryStateDB) {
 }
 
@@ -102,7 +98,6 @@ func (ch baseChange) getData(s *MemoryStateDB) (kvset []*types.KeyValue) {
 func (ch baseChange) getLog(s *MemoryStateDB) (logs []*types.ReceiptLog) {
 	return nil
 }
-
 
 // 创建账户对象的回滚，需要删除缓存中的账户和变更标记
 func (ch createAccountChange) undo(s *MemoryStateDB) {
@@ -198,10 +193,6 @@ func (ch storageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 func (ch refundChange) undo(mdb *MemoryStateDB) {
 	mdb.refund = ch.prev
 }
-func (ch refundChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
-	return nil
-}
-
 
 func (ch addLogChange) undo(mdb *MemoryStateDB) {
 	logs := mdb.logs[ch.txhash]
@@ -213,19 +204,13 @@ func (ch addLogChange) undo(mdb *MemoryStateDB) {
 	mdb.logSize--
 }
 
-func (ch addLogChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
-	return nil
-}
-
-
 func (ch addPreimageChange) undo(mdb *MemoryStateDB) {
 	delete(mdb.preimages, ch.hash)
 }
-func (ch addPreimageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
-	return nil
-}
 
-// 设置成变化钱的金额
+// 恢复成变化前的金额
+// 注意，这里需要重新加载coins账户，并增加金额，而不是直接设置金额
+// 避免中间其它交易修改coins账户金额引起的数据覆盖
 func (ch balanceChange) undo(mdb *MemoryStateDB) {
 	acc := mdb.CoinsAccount.LoadAccount(ch.addr)
 	acc.Balance -= ch.amount

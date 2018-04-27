@@ -44,7 +44,12 @@ type Contract struct {
 	// 调用者地址，应该为外部账户的地址
 	// 如果是通过合约再调用合约时，会从上级合约中获取调用者地址进行赋值
 	CallerAddress common.Address
+
+	// 调用此合约的地址，有可能是外部地址（直接调用时），也有可能是合约地址（委托调用时）
 	caller        ContractRef
+
+	// 一般情况下为合约自身地址
+	// 但是，二般情况下（外部账户通过CallCode直接调用合约代码时，此地址会设置为外部账户的地址，就是和caller一样）
 	self          ContractRef
 
 	// 存储跳转信息，供JUMP和JUMPI指令使用
@@ -84,16 +89,19 @@ func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uin
 	return c
 }
 
-// AsDelegate sets the contract to be a delegate call and returns the current
-// contract (for chaining calls)
+// 设置当前的合约对象为被委托调用
+// 返回当前合约对象的指针，以便在多层调用链模式下使用
 func (c *Contract) AsDelegate() *Contract {
 	c.DelegateCall = true
-	// NOTE: caller must, at all times be a contract. It should never happen
-	// that caller is something other than a Contract.
-	parent := c.caller.(*Contract)
-	c.CallerAddress = parent.CallerAddress
-	c.value = parent.value
 
+	// 在委托调用模式下，调用者必定为合约对象，而非外部对象
+	parent := c.caller.(*Contract)
+
+	// 在一个多层的委托调用链中，调用者地址始终为最初发起合约调用的外部账户地址
+	c.CallerAddress = parent.CallerAddress
+
+	// 其它数据正常传递
+	c.value = parent.value
 	return c
 }
 

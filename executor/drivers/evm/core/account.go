@@ -23,9 +23,6 @@ var (
 
 var emptyCodeHash = common.Hash{}
 
-type Code []byte
-type Storage map[common.Hash]common.Hash
-
 // 合约账户对象
 type ContractAccount struct {
 	mdb *MemoryStateDB
@@ -40,6 +37,9 @@ type ContractAccount struct {
 	State ctypes.ContractState
 }
 
+// 创建一个新的合约对象
+// 注意，此时合约对象有可能已经存在也有可能不存在
+// 需要通过LoadContract进行判断
 func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
 	ca := &ContractAccount{Addr: addr}
 	ca.mdb = db
@@ -55,10 +55,12 @@ func hash2String(item common.Hash) string {
 	return string(item.Bytes())
 }
 
+// 获取状态数据
 func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 	return byte2Hash(self.State.GetStorage()[string(key.Bytes())])
 }
 
+// 设置状态数据
 func (self *ContractAccount) SetState(key, value common.Hash) {
 	addr := common.StringToAddress(self.Addr)
 	self.mdb.journal = append(self.mdb.journal, storageChange{
@@ -71,6 +73,7 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 	self.State.GetStorage()[hash2String(key)] = value.Bytes()
 }
 
+// 从外部恢复合约数据
 func (self *ContractAccount) resotreData(data []byte) {
 	var content ctypes.ContractData
 	err := proto.Unmarshal(data, &content)
@@ -82,6 +85,7 @@ func (self *ContractAccount) resotreData(data []byte) {
 	self.Data = content
 }
 
+// 从外部恢复合约状态
 func (self *ContractAccount) resotreState(data []byte) {
 	var content ctypes.ContractState
 	err := proto.Unmarshal(data, &content)
@@ -97,6 +101,7 @@ func (self *ContractAccount) resotreState(data []byte) {
 	}
 }
 
+// 从数据库中加载合约信息（在只有合约地址的情况下）
 func (self *ContractAccount) LoadContract(db db.KV) {
 	// 加载代码数据
 	data, err := db.Get(self.GetDataKey())
@@ -113,6 +118,8 @@ func (self *ContractAccount) LoadContract(db db.KV) {
 	self.resotreState(data)
 }
 
+// 设置合约二进制代码
+// 会同步生成代码哈希
 func (self *ContractAccount) SetCode(code []byte) {
 	prevcode := self.Data.GetCode()
 	addr := common.StringToAddress(self.Addr)
@@ -148,6 +155,28 @@ func (self *ContractAccount) GetStateKV() (kvSet []*types.KeyValue) {
 	kvSet = append(kvSet, &types.KeyValue{Key: self.GetStateKey(), Value: datas})
 	return
 }
+
+// 构建变更日志
+func (self *ContractAccount) BuildDataLog() (log *types.ReceiptLog) {
+	datas, err := proto.Marshal(&self.Data)
+	if err != nil {
+		log15.Error("marshal contract state error!", self.Addr)
+		return
+	}
+	return &types.ReceiptLog{ctypes.TyLogContractData, datas}
+}
+
+// 构建变更日志
+func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
+	datas, err := proto.Marshal(&self.State)
+	if err != nil {
+		log15.Error("marshal contract state error!", self.Addr)
+		return
+	}
+
+	return &types.ReceiptLog{ctypes.TyLogContractState, datas}
+}
+
 
 func (self *ContractAccount) GetDataKey() []byte {
 	return []byte(ContractDataPrefix + self.Addr)
