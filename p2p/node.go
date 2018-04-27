@@ -95,11 +95,10 @@ func (n *Node) natOk() bool {
 }
 
 func (n *Node) doNat() {
-	if !n.nodeInfo.cfg.GetServerStart() {
-		return
-	}
+
 	//在内网，并且非种子节点，则进行端口映射
-	if !n.nodeInfo.OutSide() && !n.nodeInfo.cfg.GetIsSeed() {
+	if !n.nodeInfo.OutSide() && !n.nodeInfo.cfg.GetIsSeed() && n.nodeInfo.cfg.GetServerStart() {
+
 		go n.natMapPort()
 		if !n.natOk() {
 			n.nodeInfo.SetServiceTy(Service - nodeNetwork) //nat 失败，不对外提供服务
