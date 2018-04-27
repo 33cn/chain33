@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -68,7 +69,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		FuncName: "GetOnesSellOrder",
 		Payload:  reqAddrtokens,
 	}
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := rpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -128,7 +129,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
 	params.Payload = req
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := rpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -174,7 +175,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	params.Execer = "trade"
 	params.FuncName = "GetAllSellOrdersWithStatus"
 	params.Payload = reqAddrtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := rpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -265,7 +266,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := rpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

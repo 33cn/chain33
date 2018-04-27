@@ -1,5 +1,17 @@
 package types
 
+const (
+	ExecTypeCoins    = iota
+	ExecTypeTicket
+	ExecTypeHashLock
+	ExecTypeNorm
+	ExecTypeRetrieve
+	ExecTypeNone
+	ExecTypeToken
+	ExecTypeTrade
+	ExecTypeManage
+)
+
 var (
 	AllowDepositExec       = []string{"ticket"}
 	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm", "retrieve", "none", "token", "trade", "manage"}
@@ -34,20 +46,20 @@ func SetMinFee(fee int64) {
 
 // coin conversation
 const (
-	Coin                int64   = 1e8
-	MaxCoin             int64   = 1e17
-	MaxTxSize                   = 100000   //100K
-	MaxBlockSize                = 10000000 //10M
-	MaxTxsPerBlock              = 100000
-	TokenPrecision      int64   = 1e8
-	MaxTokenBalance     int64   = 900 * 1e8 * TokenPrecision //900亿
-	InputPrecision      float64 = 1e4
-	Multiple1E4         int64   = 1e4
-	TokenNameLenLimit           = 128
-	TokenSymbolLenLimit         = 16
-	TokenIntroLenLimit          = 1024
-	InvalidStartTime            = 0
-	InvalidStopTime             = 0
+	Coin                int64 = 1e8
+	MaxCoin             int64 = 1e17
+	MaxTxSize                 = 100000   //100K
+	MaxBlockSize              = 10000000 //10M
+	MaxTxsPerBlock            = 100000
+	TokenPrecision      int64 = 1e8
+	MaxTokenBalance           = 900 * 1e8 * TokenPrecision //900亿
+	InputPrecision            = 1e4
+	Multiple1E4         int64 = 1e4
+	TokenNameLenLimit         = 128
+	TokenSymbolLenLimit       = 16
+	TokenIntroLenLimit        = 1024
+	InvalidStartTime          = 0
+	InvalidStopTime           = 0
 )
 
 // event

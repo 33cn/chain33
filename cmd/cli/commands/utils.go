@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 

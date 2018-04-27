@@ -8,7 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -57,7 +58,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		Isdetail: false,
 	}
 
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := rpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
