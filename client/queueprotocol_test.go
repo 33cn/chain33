@@ -171,7 +171,7 @@ func testGetBlockOverview(t *testing.T, api QueueProtocolAPI) {
 }
 
 func testGetLastMempool(t *testing.T, api QueueProtocolAPI) {
-	_, err := api.GetLastMempool(&types.ReqNil{})
+	_, err := api.GetLastMempool()
 	if nil != err {
 		t.Error("Call GetLastMempool Failed.", err)
 	}
@@ -315,4 +315,12 @@ func testSendTx(t *testing.T, api QueueProtocolAPI) {
 	if nil != err {
 		t.Error("Call GetTx Failed.", err)
 	}
+}
+
+func TestJsonRPC(t *testing.T) {
+
+}
+
+func TestGRPC(t *testing.T) {
+
 }
