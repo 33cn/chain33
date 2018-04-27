@@ -56,10 +56,10 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	action := newTradeAction(t, tx)
 	switch trade.GetTy() {
-	case types.TradeSell:
+	case types.TradeSellLimit:
 		return action.tradeSell(trade.GetTokensell())
 
-	case types.TradeBuy:
+	case types.TradeBuyMarket:
 		return action.tradeBuy(trade.GetTokenbuy())
 
 	case types.TradeRevokeSell:

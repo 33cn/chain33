@@ -383,7 +383,7 @@ func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) 
 		Crowdfund:         false,
 	}
 	sell := &types.Trade{
-		Ty:    types.TradeSell,
+		Ty:    types.TradeSellLimit,
 		Value: &types.Trade_Tokensell{v},
 	}
 	tx := &types.Transaction{
@@ -404,7 +404,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 	}
 	v := &types.TradeForBuy{Sellid: parm.SellId, Boardlotcnt: parm.BoardlotCnt}
 	buy := &types.Trade{
-		Ty:    types.TradeBuy,
+		Ty:    types.TradeBuyMarket,
 		Value: &types.Trade_Tokenbuy{v},
 	}
 	tx := &types.Transaction{
