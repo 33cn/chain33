@@ -59,6 +59,7 @@ func NewP2PCli(network *P2p) EventInterface {
 func NewNormalP2PCli() NormalInterface {
 	return &Cli{}
 }
+
 func (m *Cli) BroadCastTx(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.txFactory
