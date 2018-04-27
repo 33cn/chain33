@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"testing"
 
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
-	"time"
 )
 
 //{ owner:

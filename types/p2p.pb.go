@@ -20,6 +20,7 @@ var _ = math.Inf
 // *
 // 请求获取远程节点的节点信息
 type P2PGetPeerInfo struct {
+	// /p2p版本
 	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 }
 
@@ -38,11 +39,16 @@ func (m *P2PGetPeerInfo) GetVersion() int32 {
 // *
 // 节点信息
 type P2PPeerInfo struct {
-	Addr        string  `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Port        int32   `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
-	Name        string  `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	MempoolSize int32   `protobuf:"varint,4,opt,name=mempoolSize" json:"mempoolSize,omitempty"`
-	Header      *Header `protobuf:"bytes,5,opt,name=header" json:"header,omitempty"`
+	// /节点的IP地址
+	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	// /节点的外网端口
+	Port int32 `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
+	// /节点的名称
+	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	// /mempool 的大小
+	MempoolSize int32 `protobuf:"varint,4,opt,name=mempoolSize" json:"mempoolSize,omitempty"`
+	// /节点当前高度头部数据
+	Header *Header `protobuf:"bytes,5,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *P2PPeerInfo) Reset()                    { *m = P2PPeerInfo{} }
@@ -88,14 +94,22 @@ func (m *P2PPeerInfo) GetHeader() *Header {
 // *
 // p2p节点间发送版本数据结构
 type P2PVersion struct {
-	Version     int32  `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
-	Service     int64  `protobuf:"varint,2,opt,name=service" json:"service,omitempty"`
-	Timestamp   int64  `protobuf:"varint,3,opt,name=timestamp" json:"timestamp,omitempty"`
-	AddrRecv    string `protobuf:"bytes,4,opt,name=addrRecv" json:"addrRecv,omitempty"`
-	AddrFrom    string `protobuf:"bytes,5,opt,name=addrFrom" json:"addrFrom,omitempty"`
-	Nonce       int64  `protobuf:"varint,6,opt,name=nonce" json:"nonce,omitempty"`
-	UserAgent   string `protobuf:"bytes,7,opt,name=userAgent" json:"userAgent,omitempty"`
-	StartHeight int64  `protobuf:"varint,8,opt,name=startHeight" json:"startHeight,omitempty"`
+	// /当前版本
+	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	// /服务类型
+	Service int64 `protobuf:"varint,2,opt,name=service" json:"service,omitempty"`
+	// /时间戳
+	Timestamp int64 `protobuf:"varint,3,opt,name=timestamp" json:"timestamp,omitempty"`
+	// /数据包的目的地址
+	AddrRecv string `protobuf:"bytes,4,opt,name=addrRecv" json:"addrRecv,omitempty"`
+	// /数据发送的源地址
+	AddrFrom string `protobuf:"bytes,5,opt,name=addrFrom" json:"addrFrom,omitempty"`
+	// /随机数
+	Nonce int64 `protobuf:"varint,6,opt,name=nonce" json:"nonce,omitempty"`
+	// /用户代理
+	UserAgent string `protobuf:"bytes,7,opt,name=userAgent" json:"userAgent,omitempty"`
+	// /当前节点的高度
+	StartHeight int64 `protobuf:"varint,8,opt,name=startHeight" json:"startHeight,omitempty"`
 }
 
 func (m *P2PVersion) Reset()                    { *m = P2PVersion{} }
@@ -193,11 +207,17 @@ func (m *P2PVerAck) GetNonce() int64 {
 	return 0
 }
 
+// *
+// P2P 心跳包
 type P2PPing struct {
-	Nonce int64      `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
-	Addr  string     `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
-	Port  int32      `protobuf:"varint,3,opt,name=port" json:"port,omitempty"`
-	Sign  *Signature `protobuf:"bytes,4,opt,name=sign" json:"sign,omitempty"`
+	// /随机数
+	Nonce int64 `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	// /节点的外网地址
+	Addr string `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
+	// /节点的外网端口
+	Port int32 `protobuf:"varint,3,opt,name=port" json:"port,omitempty"`
+	// 签名
+	Sign *Signature `protobuf:"bytes,4,opt,name=sign" json:"sign,omitempty"`
 }
 
 func (m *P2PPing) Reset()                    { *m = P2PPing{} }
@@ -272,7 +292,8 @@ func (m *P2PGetAddr) GetNonce() int64 {
 // *
 // 返回请求地址列表的社保
 type P2PAddr struct {
-	Nonce    int64    `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	Nonce int64 `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	// /对方节点返回的其他节点信息
 	Addrlist []string `protobuf:"bytes,2,rep,name=addrlist" json:"addrlist,omitempty"`
 }
 
@@ -298,8 +319,10 @@ func (m *P2PAddr) GetAddrlist() []string {
 // *
 // 节点外网信息
 type P2PExternalInfo struct {
-	Addr      string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Isoutside bool   `protobuf:"varint,2,opt,name=isoutside" json:"isoutside,omitempty"`
+	// /节点的外网地址
+	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	// 节点是否在外网
+	Isoutside bool `protobuf:"varint,2,opt,name=isoutside" json:"isoutside,omitempty"`
 }
 
 func (m *P2PExternalInfo) Reset()                    { *m = P2PExternalInfo{} }
@@ -391,9 +414,12 @@ func (m *P2PInv) GetInvs() []*Inventory {
 
 // ty=MSG_TX MSG_BLOCK
 type Inventory struct {
-	Ty     int32  `protobuf:"varint,1,opt,name=ty" json:"ty,omitempty"`
-	Hash   []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
-	Height int64  `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
+	// 类型，数据类型，MSG_TX MSG_BLOCK
+	Ty int32 `protobuf:"varint,1,opt,name=ty" json:"ty,omitempty"`
+	// /哈希
+	Hash []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	// 高度
+	Height int64 `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
 }
 
 func (m *Inventory) Reset()                    { *m = Inventory{} }
@@ -425,8 +451,10 @@ func (m *Inventory) GetHeight() int64 {
 // *
 // 通过invs 下载数据
 type P2PGetData struct {
-	Version int32        `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
-	Invs    []*Inventory `protobuf:"bytes,2,rep,name=invs" json:"invs,omitempty"`
+	// /p2p版本
+	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	// / invs 数组
+	Invs []*Inventory `protobuf:"bytes,2,rep,name=invs" json:"invs,omitempty"`
 }
 
 func (m *P2PGetData) Reset()                    { *m = P2PGetData{} }
