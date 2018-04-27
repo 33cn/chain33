@@ -5,6 +5,8 @@ import (
 	"math/big"
 )
 
+// 合约交易消息模型
+// 在EVM执行器中传递此消息，由外部Tx等价构造
 type Message struct {
 	to         *common.Address
 	from       common.Address
@@ -33,9 +35,7 @@ func (m Message) From() common.Address { return m.from }
 func (m Message) To() *common.Address  { return m.to }
 func (m Message) GasPrice() *big.Int   { return m.gasPrice }
 func (m Message) Value() *big.Int      { return m.amount }
-func (m Message) Gas() uint64          { return m.gasLimit }
 func (m Message) Nonce() uint64        { return m.nonce }
 func (m Message) Data() []byte         { return m.data }
 func (m Message) CheckNonce() bool     { return m.checkNonce }
 func (m Message) GasLimit() uint64     { return m.gasLimit }
-
