@@ -25,11 +25,11 @@ Building chain33 requires both a Go (version 1.9 or later) and a protoc compiler
 Clone this repository to $GOPATH
 
 ```shell
-$ mkdir -p $GOPATH/src/gitlab.33.cn/chian33
+$ mkdir -p $GOPATH/src/gitlab.33.cn/chain33
 
-$ git clone https://gitlab.33.cn/chain33/chain33.git $GOPATH/src/gitlab.33.cn/chian33/
+$ git clone https://gitlab.33.cn/chain33/chain33.git $GOPATH/src/gitlab.33.cn/chain33/
 
-$ cd $GOPATH/src/gitlab.33.cn/chian33
+$ cd $GOPATH/src/gitlab.33.cn/chain33
 ```
 
 You can install them using your favourite package manager.

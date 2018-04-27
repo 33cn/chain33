@@ -327,7 +327,7 @@ func (n *Node) natMapPort() {
 
 	for i := 0; i < tryMapPortTimes; i++ {
 		//映射事件持续约48小时
-		err = nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort), nodename[:8], time.Duration(time.Hour*48))
+		err = nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort, nodename[:8], time.Hour*48)
 		if err != nil {
 			if i > tryMapPortTimes/2 { //如果连续失败次数超过最大限制次数的二分之一则切换为随机端口映射
 				log.Error("NatMapPort", "err", err.Error())
@@ -360,7 +360,7 @@ func (n *Node) natMapPort() {
 		case <-refresh.C:
 			log.Info("NatWorkRefresh")
 			for {
-				if err := nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort), nodename[:8], time.Duration(time.Hour*48)); err != nil {
+				if err := nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort, nodename[:8], time.Hour*48); err != nil {
 					log.Error("NatMapPort update", "err", err.Error())
 					time.Sleep(time.Second)
 					continue

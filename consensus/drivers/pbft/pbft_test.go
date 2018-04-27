@@ -1,31 +1,34 @@
 package pbft
 
 import (
+	"testing"
+
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/queue"
-	"testing"
 	//"gitlab.33.cn/chain33/chain33/store"
 	//"gitlab.33.cn/chain33/chain33/p2p"
 	"flag"
+	"math/rand"
+
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/types"
-	"math/rand"
 	//"time"
 	//"gitlab.33.cn/chain33/chain33/execs"
 	//"os/exec"
 	//"github.com/piotrnar/gocoin/lib/chain"
 	"gitlab.33.cn/chain33/chain33/store"
 	//"gitlab.33.cn/chain33/chain33/execs"
+	"strconv"
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/wallet"
-	"strconv"
-	"time"
 )
 
 var (
