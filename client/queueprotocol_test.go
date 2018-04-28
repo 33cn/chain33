@@ -5,6 +5,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
+	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func TestCoordinator(t *testing.T) {
@@ -319,9 +320,26 @@ func testSendTx(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func TestJsonRPC(t *testing.T) {
+	var mock mockSystem
+	var jrpc mockJRPCSystem
+	mock.live = &jrpc
+	api := mock.startup(0)
+	defer mock.stop()
 
+	testGetBlockHashJsonRPC(t, api)
+}
+func testGetBlockHashJsonRPC(t *testing.T, api client.QueueProtocolAPI) {
+	params := types.ReqInt{
+		Height: 10,
+	}
+	var res lt.ReplyHash
+	ctx := NewRpcCtx("Chain33.GetBlockHash",
+		params, &res)
+	ctx.Run()
 }
 
 func TestGRPC(t *testing.T) {
-
+	var mock mockGRPCSystem
+	mock.startup(0)
+	defer mock.stop()
 }

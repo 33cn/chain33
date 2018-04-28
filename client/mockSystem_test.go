@@ -1,11 +1,25 @@
 package client_test
 
 import (
+	"flag"
+
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/rpc"
 )
 
+var (
+	configPath = flag.String("f", "chain33.toml", "configfile")
+)
+
+type MockLive interface {
+	OnStartup(m *mockSystem)
+	OnStop()
+}
+
 type mockSystem struct {
+	live      MockLive
 	q         queue.Queue
 	chain     *mockBlockChain
 	mem       *mockMempool
@@ -16,6 +30,9 @@ type mockSystem struct {
 }
 
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
+	cfg := config.InitCfg(*configPath)
+	rpc.Init(cfg.Rpc)
+
 	var q = queue.New("channel")
 	chain := &mockBlockChain{}
 	chain.SetQueueClient(q)
@@ -37,14 +54,16 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	mock.p2p = p2p
 	mock.consensus = consensus
 	mock.store = store
-	mock.onStartup()
+	if mock.live != nil {
+		mock.live.OnStartup(mock)
+	}
 	return mock.getAPI()
-}
-func (mock *mockSystem) onStartup() {
-
 }
 
 func (mock *mockSystem) stop() {
+	if mock.live != nil {
+		mock.live.OnStop()
+	}
 	mock.chain.Close()
 	mock.mem.Close()
 	mock.wallet.Close()
@@ -60,17 +79,24 @@ func (mock *mockSystem) getAPI() client.QueueProtocolAPI {
 }
 
 type mockJRPCSystem struct {
-	mockSystem
+	japi *rpc.JSONRPCServer
 }
 
-func (mock *mockJRPCSystem) onStartup() {
-	mock.mockSystem.onStartup()
+func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
+	mock.japi = rpc.NewJSONRPCServer(m.q.Client())
+	go mock.japi.Listen()
+}
+
+func (mock *mockJRPCSystem) OnStop() {
+	mock.japi.Close()
 }
 
 type mockGRPCSystem struct {
 	mockSystem
 }
 
-func (mock *mockGRPCSystem) onStartup() {
-	mock.mockSystem.onStartup()
+func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
+}
+
+func (mock *mockGRPCSystem) OnStop() {
 }
