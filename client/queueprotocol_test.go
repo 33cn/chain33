@@ -322,11 +322,87 @@ func testSendTx(t *testing.T, api client.QueueProtocolAPI) {
 func TestJsonRPC(t *testing.T) {
 	var mock mockSystem
 	var jrpc mockJRPCSystem
-	mock.live = &jrpc
+	mock.MockLive = &jrpc
 	mock.startup(0)
 	defer mock.stop()
 
+	testGetBlocksJsonRPC(t, &jrpc)
+	testGetBlockOverviewJsonRPC(t, &jrpc)
 	testGetBlockHashJsonRPC(t, &jrpc)
+	testGetHeadersCmdJsonRPC(t, &jrpc)
+	testGetLastHeaderJsonRPC(t, &jrpc)
+	testGetMempoolJsonRPC(t, &jrpc)
+	testGetLastMemPoolJsonRPC(t, &jrpc)
+}
+
+func testGetLastMemPoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res lt.ReplyTxList
+	err := rpc.newRpcCtx("Chain33.GetLastMemPool",
+		nil, &res)
+	if err != nil {
+		t.Error("testGetLastMemPoolJsonRPC failed. Error", err)
+	}
+}
+
+func testGetMempoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res lt.ReplyTxList
+	err := rpc.newRpcCtx("Chain33.GetMempool",
+		nil, &res)
+	if err != nil {
+		t.Error("testGetMempoolJsonRPC failed. Error", err)
+	}
+}
+
+func testGetLastHeaderJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res lt.Header
+	err := rpc.newRpcCtx("Chain33.GetLastHeader",
+		nil, &res)
+	if err != nil {
+		t.Error("testGetLastHeaderJsonRPC failed. Error", err)
+	}
+}
+
+func testGetHeadersCmdJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	params := types.ReqBlocks{
+		Start:    1,
+		End:      1,
+		Isdetail: true,
+	}
+
+	var res lt.Headers
+	err := rpc.newRpcCtx("Chain33.GetHeaders",
+		params, &res)
+	if err != nil {
+		t.Error("testGetHeadersCmdJsonRPC failed. Error", err)
+	}
+}
+
+func testGetBlockOverviewJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	params := lt.QueryParm{
+		Hash: "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6",
+	}
+
+	var res lt.BlockOverview
+	err := rpc.newRpcCtx("Chain33.GetBlockOverview",
+		params, &res)
+	if err != nil {
+		t.Error("testGetBlockOverviewJsonRPC failed. Error", err)
+	}
+}
+
+func testGetBlocksJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	params := lt.BlockParam{
+		Start:    1,
+		End:      1,
+		Isdetail: true,
+	}
+
+	var res lt.BlockDetails
+	err := rpc.newRpcCtx("Chain33.GetBlocks",
+		params, &res)
+	if err != nil {
+		t.Error("testGetBlocksJsonRPC failed. Error", err)
+	}
 }
 
 func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
