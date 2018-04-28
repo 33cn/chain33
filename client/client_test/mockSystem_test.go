@@ -92,16 +92,24 @@ func (mock *mockJRPCSystem) OnStop() {
 }
 
 func (mock *mockJRPCSystem) newRpcCtx(methed string, params, res interface{}) error {
-	ctx := NewRpcCtx(methed, params, res)
+	ctx := NewJsonRpcCtx(methed, params, res)
 	return ctx.Run()
 }
 
 type mockGRPCSystem struct {
-	mockSystem
+	gapi *rpc.Grpcserver
 }
 
 func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
+	mock.gapi = rpc.NewGRpcServer(m.q.Client())
+	go mock.gapi.Listen()
 }
 
 func (mock *mockGRPCSystem) OnStop() {
+	mock.gapi.Close()
+}
+
+func (mock *mockGRPCSystem) newRpcCtx(method string, param, res interface{}) error {
+	ctx := NewGRpcCtx(method, param, res)
+	return ctx.Run()
 }
