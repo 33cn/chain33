@@ -19,7 +19,7 @@ type MockLive interface {
 }
 
 type mockSystem struct {
-	live      MockLive
+	MockLive
 	q         queue.Queue
 	chain     *mockBlockChain
 	mem       *mockMempool
@@ -54,15 +54,15 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	mock.p2p = p2p
 	mock.consensus = consensus
 	mock.store = store
-	if mock.live != nil {
-		mock.live.OnStartup(mock)
+	if mock.MockLive != nil {
+		mock.MockLive.OnStartup(mock)
 	}
 	return mock.getAPI()
 }
 
 func (mock *mockSystem) stop() {
-	if mock.live != nil {
-		mock.live.OnStop()
+	if mock.MockLive != nil {
+		mock.MockLive.OnStop()
 	}
 	mock.chain.Close()
 	mock.mem.Close()
