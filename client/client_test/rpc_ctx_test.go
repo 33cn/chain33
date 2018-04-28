@@ -1,14 +1,15 @@
 package client_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"time"
 
-	"context"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	"google.golang.org/grpc"
 )
 

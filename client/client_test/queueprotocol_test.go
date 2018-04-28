@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 	lt "gitlab.33.cn/chain33/chain33/types/local"
