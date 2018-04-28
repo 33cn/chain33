@@ -3,11 +3,11 @@ package crypto
 import (
 	"errors"
 	"github.com/btcsuite/btcd/btcec"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"math/big"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 )
 
 var (

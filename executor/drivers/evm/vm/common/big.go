@@ -40,10 +40,10 @@ const (
 
 // Common big integers often used
 var (
+	Big0   = big.NewInt(0)
 	Big1   = big.NewInt(1)
 	Big2   = big.NewInt(2)
 	Big3   = big.NewInt(3)
-	Big0   = big.NewInt(0)
 	Big32  = big.NewInt(32)
 	Big256 = big.NewInt(256)
 	Big257 = big.NewInt(257)
@@ -250,8 +250,6 @@ func ParseBig256(s string) (*big.Int, bool) {
 	}
 	return bigint, ok
 }
-
-// NOTE: The following methods need to be optimised using either bit checking or asm
 
 // SafeSub returns subtraction result and whether overflow occurred.
 func SafeSub(x, y uint64) (uint64, bool) {
