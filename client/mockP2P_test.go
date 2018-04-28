@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -10,6 +10,7 @@ type mockP2P struct {
 
 func (m *mockP2P) SetQueueClient(q queue.Queue) {
 	go func() {
+		p2pKey := "p2p"
 		client := q.Client()
 		client.Sub(p2pKey)
 		for msg := range client.Recv() {
