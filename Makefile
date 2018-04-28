@@ -6,8 +6,10 @@
 
 SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
 SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
+SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
 APP := build/chain33
 CLI := build/chain33-cli
+SIGNATORY := build/signatory-server
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
@@ -35,6 +37,11 @@ release: ## Build the binary file
 
 cli: ## Build cli binary
 	@go build -v -o $(CLI) $(SRC_CLI)
+
+signatory:
+	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
+	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
+	@cp cmd/signatory-server/signatory.toml build/
 
 build_ci: ## Build the binary file for CI
 	@go build -race -v -o $(CLI) $(SRC_CLI)
