@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
-	"time"
 )
 
 // TODO: SetPostRunCb()
@@ -22,7 +22,7 @@ type RpcCtx struct {
 type Callback func(res interface{}) (interface{}, error)
 
 func NewRpcCtx(methed string, params, res interface{}) *RpcCtx {
-	time.Sleep(1 * time.Millisecond) // 这里sleep下避免因为速度太快导致没来的记清理端口宠儿引发端口无法使用的错误
+	time.Sleep(5 * time.Millisecond) // 这里sleep下避免因为速度太快导致没来的记清理端口宠儿引发端口无法使用的错误
 	return &RpcCtx{
 		Addr:   "http://localhost:8801",
 		Method: methed,
