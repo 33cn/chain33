@@ -333,6 +333,19 @@ func TestJsonRPC(t *testing.T) {
 	testGetLastHeaderJsonRPC(t, &jrpc)
 	testGetMempoolJsonRPC(t, &jrpc)
 	testGetLastMemPoolJsonRPC(t, &jrpc)
+	testGenSeedsonRPC(t, &jrpc)
+}
+
+func testGenSeedsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	params := types.GenSeedLang{
+		Lang: 1,
+	}
+	var res types.ReplySeed
+	err := rpc.newRpcCtx("Chain33.GenSeed",
+		params, &res)
+	if err != nil {
+		t.Error("testGenSeedsonRPC failed. Error", err)
+	}
 }
 
 func testGetLastMemPoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
