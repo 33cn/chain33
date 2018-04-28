@@ -3,6 +3,7 @@ package client_test
 import (
 	"testing"
 
+	"fmt"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 	lt "gitlab.33.cn/chain33/chain33/types/local"
@@ -470,8 +471,23 @@ func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	}
 }
 
+func testSendTxGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("Version", nil, &res)
+	if nil != err {
+		t.Error("Call Version Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
 func TestGRPC(t *testing.T) {
-	var mock mockGRPCSystem
+	var mock mockSystem
+	var grpc mockGRPCSystem
+	mock.MockLive = &grpc
 	mock.startup(0)
+
 	defer mock.stop()
+
+	testSendTxGRPC(t, &grpc)
 }

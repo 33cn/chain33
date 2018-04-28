@@ -6,11 +6,14 @@ import (
 	"os"
 	"time"
 
+	"context"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/types"
+	"google.golang.org/grpc"
 )
 
 // TODO: SetPostRunCb()
-type RpcCtx struct {
+type JsonRpcCtx struct {
 	Addr   string
 	Method string
 	Params interface{}
@@ -21,9 +24,9 @@ type RpcCtx struct {
 
 type Callback func(res interface{}) (interface{}, error)
 
-func NewRpcCtx(methed string, params, res interface{}) *RpcCtx {
-	time.Sleep(5 * time.Millisecond) // 这里sleep下避免因为速度太快导致没来的记清理端口宠儿引发端口无法使用的错误
-	return &RpcCtx{
+func NewJsonRpcCtx(methed string, params, res interface{}) *JsonRpcCtx {
+	time.Sleep(5 * time.Millisecond)
+	return &JsonRpcCtx{
 		Addr:   "http://localhost:8801",
 		Method: methed,
 		Params: params,
@@ -31,11 +34,11 @@ func NewRpcCtx(methed string, params, res interface{}) *RpcCtx {
 	}
 }
 
-func (c *RpcCtx) SetResultCb(cb Callback) {
+func (c *JsonRpcCtx) SetResultCb(cb Callback) {
 	c.cb = cb
 }
 
-func (c *RpcCtx) Run() (err error) {
+func (c *JsonRpcCtx) Run() (err error) {
 	rpc, err := jsonrpc.NewJSONClient(c.Addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -68,4 +71,39 @@ func (c *RpcCtx) Run() (err error) {
 
 	fmt.Println(string(data))
 	return
+}
+
+type GrpcCtx struct {
+	Method string
+	Params interface{}
+	Res    interface{}
+}
+
+func NewGRpcCtx(method string, params, res interface{}) *GrpcCtx {
+	time.Sleep(5 * time.Millisecond)
+	return &GrpcCtx{
+		Method: method,
+		Params: params,
+		Res:    res,
+	}
+}
+
+func (c *GrpcCtx) Run() (err error) {
+	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	rpc := types.NewGrpcserviceClient(conn)
+	switch c.Method {
+	case "Version":
+		reply, err := rpc.Version(context.Background(), &types.ReqNil{})
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+	default:
+		err = fmt.Errorf("Unsupport method ", c.Method)
+	}
+	return err
 }
