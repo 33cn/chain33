@@ -15,7 +15,17 @@ package types;
 //Note:	第一步先实现BTY <--> BTC
 //////////////////////////////////////////////////////////////////////////////
 
-//创建交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
+
+enum RelayOrderStatus {
+    unknown = 0;
+    pending = 1;
+    locking = 2;
+    confirming = 3;
+    finished = 4;
+    canceled = 5;
+    timeout = 6;
+}
+
 
 message RelayAction {
     oneof value {
@@ -23,8 +33,9 @@ message RelayAction {
         RelayRevokeSell 	rrevokesell = 2;
         RelayBuy 			rbuy 		= 3;
         RelayRevokeBuy 		rrevokebuy 	= 4;
-        RelayVerify 		rverify 	= 5;
-        RelayVerifyBTC		rverifybtc 	= 6;
+        RelayConfirmTx 		rconfirmtx 	= 5;
+        RelayVerify 		rverify 	= 6;
+        RelayVerifyBTC		rverifybtc 	= 7;
     }
     int32 ty = 10;
 }
@@ -43,7 +54,7 @@ message RelaySell {
 
 message RelayOrder {
     string orderid				= 1;   //此处使用buyer tx的hash来指定
-    int32  status               = 2;
+    RelayOrderStatus  status    = 2;
     int64  sellamount           = 3;
     //string selltoken          = 4;
     string selladdr             = 5;
@@ -53,10 +64,11 @@ message RelayOrder {
     int32  waitcoinblocks       = 9;
     int64  createtime           = 10;
     string buyeraddr          	= 11;
-    int64  buyertime            = 12;
-    int64  buyercoinheight    	= 13;    //buy的时候的coin的block 高度
-    int64  finishtime           = 14;    //订单最终结算时间
-    int64  height               = 15;
+    string buytxhash            = 12;
+    int64  buyertime            = 13;
+    int64  buyercoinheight    	= 14;    //buy的时候的coin的block 高度
+    int64  finishtime           = 15;    //订单最终结算时间
+    int64  height               = 16;
 }
 
 message RelayBuy {
@@ -73,10 +85,21 @@ message RelayRevokeBuy {
     string orderid      = 1;
 }
 
-//只用交易hash验证， 验证需要的其他信息由relayd提供
-message RelayVerify {
+//客户只用交易hash提交， 验证需要的其他信息由relayd提供
+message RelayConfirmTx {
     string orderid		= 1;
     string txhash		= 2;
+}
+
+//relayd提供验证信息
+message RelayVerify {
+    string orderid		= 1;
+    string txhash       = 2;
+    string outaddr	    = 3;
+    int64  outamount    = 4;
+    uint32 txindex		= 5;
+    string merkbranch	= 6;
+    string blockhash	= 7;
 }
 
 //客户自己提供原始交易信息来验证
@@ -91,7 +114,7 @@ message RelayVerifyBTC {
 
 message ReceiptRelayBase {
     string orderid				= 1;
-    int32 status				= 2;
+    RelayOrderStatus status				= 2;
     string owner                = 3;
     int64  sellamount			= 4;
     //string selltoken			= 5;
@@ -125,6 +148,10 @@ message ReceiptRelayRevoke {
     ReceiptRelayBase base = 1;
 }
 
+message ReceiptRelayConfirm {
+    ReceiptRelayBase base = 1;
+}
+
 message ReceiptRelayVerify {
     ReceiptRelayBase base = 1;
 }
@@ -132,7 +159,7 @@ message ReceiptRelayVerify {
 
 message ReqRelayAddrCoins{
     string addr           = 1;
-    int32  status         = 2;
+    RelayOrderStatus  status         = 2;
     repeated string coins = 3;
     int32 pageNumber      = 4;
     int32 pageSize        = 5;
@@ -142,18 +169,10 @@ message ReplyRelayOrders {
     repeated RelayOrder relayorders = 1;
 }
 
-enum RelayOrderStatus {
-    unknown = 0;
-    pending = 1;
-    locking = 2;
-    confirming = 3;
-    finished = 4;
-    canceled = 5;
-    timeout = 6;
-}
+
 
 message QueryRelayOrderParam{
-    int32 status = 1;
+    RelayOrderStatus status = 1;
     string orderid = 2;
 }
 
