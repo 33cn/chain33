@@ -58,7 +58,7 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 	coin, _ := cmd.Flags().GetString("coin")
 	coins := strings.Split(coin, " ")
 	var reqAddrCoins types.ReqRelayAddrCoins
-	reqAddrCoins.Status = types.Relay_OnSell
+	reqAddrCoins.Status = types.RelayOrderStatus_pending
 	reqAddrCoins.Addr = seller
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
@@ -109,7 +109,7 @@ func showRelayBuyOrders(cmd *cobra.Command, args []string) {
 	coin, _ := cmd.Flags().GetString("coin")
 	coins := strings.Split(coin, " ")
 	var reqAddrCoins types.ReqRelayAddrCoins
-	reqAddrCoins.Status = types.Relay_Deal
+	reqAddrCoins.Status = types.RelayOrderStatus_locking
 	reqAddrCoins.Addr = buyer
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
@@ -160,7 +160,7 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 	coin, _ := cmd.Flags().GetString("coin")
 	coins := strings.Split(coin, " ")
 	var reqAddrCoins types.ReqRelayAddrCoins
-	reqAddrCoins.Status = status
+	reqAddrCoins.Status = types.RelayOrderStatus(status)
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
 	}
@@ -189,7 +189,7 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 	for i, order := range res.Relayorders {
 		var show RelayOrder2Show
 		show.Orderid = order.Orderid
-		show.Status = order.Status
+		show.Status = int32(order.Status)
 		show.Sellamount = order.Sellamount
 		show.Exchgaddr = order.Exchgaddr
 		show.Exchgamount = order.Exchgamount
