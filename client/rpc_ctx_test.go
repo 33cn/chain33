@@ -20,9 +20,9 @@ type RpcCtx struct {
 
 type Callback func(res interface{}) (interface{}, error)
 
-func NewRpcCtx(laddr, methed string, params, res interface{}) *RpcCtx {
+func NewRpcCtx(methed string, params, res interface{}) *RpcCtx {
 	return &RpcCtx{
-		Addr:   laddr,
+		Addr:   "http://localhost:8801",
 		Method: methed,
 		Params: params,
 		Res:    res,
