@@ -345,6 +345,9 @@ message Trade {
 		TradeForSell              tokensell            = 1;
 		TradeForBuy               tokenbuy             = 2;
 		TradeForRevokeSell        tokenrevokesell      = 3;
+		TradeForBuyLimit          tokenbuylimit        = 5;
+		TradeForSellMarket        tokensellmarket      = 6;
+		TradeForRevokeBuy         tokenrevokebuy       = 7;
 	}
 	int32 ty = 4;
 }
@@ -405,6 +408,7 @@ message TokenRecv {
 	string token = 1;
 	int64  recv  = 2;
 }
+
 message ReplyAddrRecvForTokens {
 	repeated TokenRecv tokenrecv = 1;
 }
@@ -419,6 +423,45 @@ message TradeForBuy {
 //允许token的持有者撤销之前未成交出售token的挂单
 message TradeForRevokeSell {
 	string sellid      = 1;
+}
+
+// 限价买单构造请求
+message TradeForBuyLimit {
+	string tokenSymbol          = 1;
+	int64 amountPerBoardlot     = 2;
+	int64 minBoardlot           = 3;
+	int64 pricePerBoardlot      = 4;
+	int64 totalBoardlot         = 5;
+}
+
+// 限价买单数据库记录
+message BuyLimitOrder {
+	string tokenSymbol          = 1;
+	string address              = 2;
+	int64 amountPerBoardlot     = 3;
+    int64 minBoardlot           = 4;
+	int64 pricePerBoardlot      = 5;
+	int64 totalBoardlot         = 6;
+	int64 boughtBoardlot          = 7;
+	string  buyid               = 8;
+	int32  status               = 9;
+	int64  height               = 10;
+}
+
+// 限价买单请求回执
+message BuyLimitOrderReceipt {
+	string buyid = 1;
+}
+
+// 现价卖单
+message TradeForSellMarket {
+    string buyid = 1;
+    int64 boardlotCnt = 2;
+}
+
+// 撤销买单
+message TradeForRevokeBuy {
+    string buyid = 1;
 }
 
 message ReceiptTradeBase {
@@ -470,6 +513,7 @@ message TradeBuyDone {
 message ReplyTradeBuyOrders {
 	repeated TradeBuyDone tradebuydones = 1;
 }
+
 
 // 配置修改部分
 message ArrayConfig {
