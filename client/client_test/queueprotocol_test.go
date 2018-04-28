@@ -334,6 +334,46 @@ func TestJsonRPC(t *testing.T) {
 	testGetMempoolJsonRPC(t, &jrpc)
 	testGetLastMemPoolJsonRPC(t, &jrpc)
 	testGenSeedsonRPC(t, &jrpc)
+	testGetPeerInfoJsonRPC(t, &jrpc)
+	testIsNtpClockSyncJsonRPC(t, &jrpc)
+	testIsSyncJsonRPC(t, &jrpc)
+	testGetNetInfoJsonRPC(t, &jrpc)
+}
+
+func testGetNetInfoJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res lt.NodeNetinfo
+	err := rpc.newRpcCtx("Chain33.GetNetInfo",
+		nil, &res)
+	if err != nil {
+		t.Error("testGetNetInfoJsonRPC failed. Error", err)
+	}
+}
+
+func testIsSyncJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res bool
+	err := rpc.newRpcCtx("Chain33.IsSync",
+		nil, &res)
+	if err != nil {
+		t.Error("testIsSyncJsonRPC failed. Error", err)
+	}
+}
+
+func testIsNtpClockSyncJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res bool
+	err := rpc.newRpcCtx("Chain33.IsNtpClockSync",
+		nil, &res)
+	if err != nil {
+		t.Error("testIsNtpClockSyncJsonRPC failed. Error", err)
+	}
+}
+
+func testGetPeerInfoJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res types.PeerList
+	err := rpc.newRpcCtx("Chain33.GetPeerInfo",
+		nil, &res)
+	if err != nil {
+		t.Error("testGetPeerInfoJsonRPC failed. Error", err)
+	}
 }
 
 func testGenSeedsonRPC(t *testing.T, rpc *mockJRPCSystem) {
