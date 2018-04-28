@@ -1,14 +1,18 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
-	"os"
 	"os/exec"
+	"os"
+	"fmt"
+	"bytes"
 )
 
 func main() {
 	argsWithoutProg := os.Args[1:]
+	if argsWithoutProg[0] == "help" || argsWithoutProg[0] == "-h" {
+		loadHelp()
+		return
+	}
 	hasKey := false
 	var key string
 	size := len(argsWithoutProg)
@@ -24,10 +28,6 @@ func main() {
 			}
 		}
 	}
-	if !hasKey || key == "" {
-		fmt.Fprintln(os.Stderr, "no private key found")
-		return
-	}
 
 	cmdCreate := exec.Command("cli", argsWithoutProg...)
 	var outCreate bytes.Buffer
@@ -38,8 +38,15 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
-	fmt.Println("unsignedTx", outCreate.String(), errCreate.String())
+	if errCreate.String() != "" {
+		fmt.Println(errCreate.String())
+	}
+	//fmt.Println("unsignedTx", outCreate.String(), errCreate.String())
 
+	if !hasKey || key == ""{
+		fmt.Fprintln(os.Stderr, "no private key found")
+		return
+	}
 	bufCreate := outCreate.Bytes()
 	cmdSign := exec.Command("cli", "wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), "-k", key)
 	var outSign bytes.Buffer
@@ -50,7 +57,10 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
-	fmt.Println("signedTx", outSign.String(), errSign.String())
+	if errSign.String() != "" {
+		fmt.Println(errSign.String())
+	}
+	//fmt.Println("signedTx", outSign.String(), errSign.String())
 
 	bufSign := outSign.Bytes()
 	cmdSend := exec.Command("cli", "tx", "send", "-d", string(bufSign[1:len(bufSign)-2]))
@@ -62,5 +72,12 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
-	fmt.Println("sentTx", outSend.String(), errSend.String())
+	if errSend.String() != "" {
+		fmt.Println(errSend.String())
+	}
+	fmt.Println(outSend.String())
+}
+
+func loadHelp() {
+	fmt.Println("Use similarly as bty/token/trade raw transaction creation, in addition to the parameter of private key input following \"-k\".")
 }
