@@ -91,6 +91,11 @@ func (mock *mockJRPCSystem) OnStop() {
 	mock.japi.Close()
 }
 
+func (mock *mockJRPCSystem) newRpcCtx(methed string, params, res interface{}) error {
+	ctx := NewRpcCtx(methed, params, res)
+	return ctx.Run()
+}
+
 type mockGRPCSystem struct {
 	mockSystem
 }

@@ -323,19 +323,22 @@ func TestJsonRPC(t *testing.T) {
 	var mock mockSystem
 	var jrpc mockJRPCSystem
 	mock.live = &jrpc
-	api := mock.startup(0)
+	mock.startup(0)
 	defer mock.stop()
 
-	testGetBlockHashJsonRPC(t, api)
+	testGetBlockHashJsonRPC(t, &jrpc)
 }
-func testGetBlockHashJsonRPC(t *testing.T, api client.QueueProtocolAPI) {
+
+func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	params := types.ReqInt{
 		Height: 10,
 	}
 	var res lt.ReplyHash
-	ctx := NewRpcCtx("Chain33.GetBlockHash",
+	err := rpc.newRpcCtx("Chain33.GetBlockHash",
 		params, &res)
-	ctx.Run()
+	if err != nil {
+		t.Error("testGetBlockHashJsonRPC failed. Error", err)
+	}
 }
 
 func TestGRPC(t *testing.T) {
