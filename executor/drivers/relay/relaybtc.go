@@ -57,11 +57,22 @@ func getSiblingHash(sibling string) [][]byte {
 
 }
 
+func VerifyTx(verify *types.RelayVerify) (bool, error) {
+	data, _ := common.FromHex(verify.Txhash)
+	rawhash := common.BytesToHash(data).Revers().Bytes()
+	sibs := getSiblingHash(verify.Merkbranch)
+
+	verifymerkleroot := merkle.GetMerkleRootFromBranch(sibs, rawhash, verify.Txindex)
+	realmerkleroot := GetMerkleRootFromHeader(verify.Blockhash)
+	return bytes.Equal(realmerkleroot, verifymerkleroot), nil
+
+}
+
 //rawtx, txindex, sibling, blockhash
 //
 //sibling like "aaaaaa-bbbbbb-cccccc..."
 
-func BTCVerifyTx(verify *types.RelayVerifyBTC) (bool, error) {
+func VerifyBTCTx(verify *types.RelayVerifyBTC) (bool, error) {
 	rawhash := getRawTxHash(verify.Rawtx)
 	sibs := getSiblingHash(verify.Merkbranch)
 
