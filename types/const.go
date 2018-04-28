@@ -1,15 +1,17 @@
 package types
 
+// 注释掉系统中没有用到的枚举项
+// 与AllowUserExec中驱动名称的顺序一致
 const (
-	ExecTypeCoins    = iota
-	ExecTypeTicket
-	ExecTypeHashLock
-	ExecTypeNorm
-	ExecTypeRetrieve
-	ExecTypeNone
-	ExecTypeToken
-	ExecTypeTrade
-	ExecTypeManage
+	ExecTypeCoins    = 0
+	ExecTypeTicket   = 1
+	ExecTypeHashLock = 2
+	ExecTypeNorm     = 3
+	ExecTypeRetrieve = 4
+	ExecTypeNone     = 5
+	ExecTypeToken    = 6
+	ExecTypeTrade    = 7
+	ExecTypeManage   = 8
 )
 
 var (
