@@ -37,7 +37,7 @@ batchsync=false
 [p2p]
 seeds=["127.0.0.1:13802"]
 enable=true
-isSeed=false
+isSeed=true
 serverStart=true
 msgCacheSize=10240
 driver="leveldb"
