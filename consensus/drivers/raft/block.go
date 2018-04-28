@@ -16,6 +16,7 @@ import (
 
 var (
 	zeroHash [32]byte
+	infoflag int
 )
 
 type RaftClient struct {
@@ -133,9 +134,13 @@ func (client *RaftClient) CreateBlock() {
 			rlog.Warn("I'm not the validator node anymore,exit.=============================")
 			break
 		}
-		rlog.Info("==================This is Leader node=====================")
+		infoflag++
+		if infoflag >= 10 {
+			rlog.Info("==================This is Leader node=====================")
+			infoflag = 0
+		}
 		if issleep {
-			time.Sleep(10 * time.Second)
+			time.Sleep(time.Second)
 		}
 		lastBlock := client.GetCurrentBlock()
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)

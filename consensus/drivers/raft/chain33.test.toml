@@ -75,7 +75,7 @@ peersURL="http://127.0.0.1:9021"
 readOnlyPeersURL=""
 addPeersURL=""
 #raft共识用到，默认raft中多少条记录打包一个snapshot
-defaultSnapCount=1000
+defaultSnapCount=10000
 # =============== raft共识配置参数 ===========================
 genesisBlockTime=1514533394
 hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -92,6 +92,7 @@ driver="leveldb"
 dbPath="datadir/wallet"
 dbCache=16
 signType="secp256k1"
+minerdisable=true
 
 [exec]
 isFree=true
