@@ -10,9 +10,9 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/inconshreveable/log15"
 	"github.com/rs/cors"
 	pb "gitlab.33.cn/chain33/chain33/types"
-	"github.com/inconshreveable/log15"
 )
 
 var log = log15.New("module", "rpc")
