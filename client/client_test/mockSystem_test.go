@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	configPath = flag.String("f", "../cmd/chain33/chain33.toml", "configfile")
+	configPath = flag.String("f", "../../cmd/chain33/chain33.toml", "configfile")
 )
 
 type MockLive interface {
