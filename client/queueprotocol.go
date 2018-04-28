@@ -8,14 +8,14 @@ package client
 import (
 	"bytes"
 	"fmt"
-	"time"
 	"math/rand"
+	"time"
 
 	"github.com/inconshreveable/log15"
 
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common/version"
 )
 
 const (
@@ -31,7 +31,6 @@ const (
 )
 
 var log = log15.New("module", "client")
-
 
 type QueueProtocolOption struct {
 	// 发送请求超时时间

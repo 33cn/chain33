@@ -1,9 +1,9 @@
 package rpc
 
 import (
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/client"
 
 	// register gzip
 	_ "google.golang.org/grpc/encoding/gzip"
