@@ -92,11 +92,12 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 			return false
 		case tLen >= pauseTrigger:
 			delayed = true
+			beg := time.Now()
 			err = db.compTriggerWait(db.tcompCmdC)
 			if err != nil {
 				return false
 			}
-			db.logf("pauseTrigger...")
+			db.logf("pauseTrigger...cost.%v", time.Since(beg))
 		default:
 			// Allow memdb to grow if it has no entry.
 			if mdb.Len() == 0 {
