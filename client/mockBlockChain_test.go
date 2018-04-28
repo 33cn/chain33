@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -10,6 +10,7 @@ type mockBlockChain struct {
 
 func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 	go func() {
+		blockchainKey := "blockchain"
 		client := q.Client()
 		client.Sub(blockchainKey)
 		for msg := range client.Recv() {
