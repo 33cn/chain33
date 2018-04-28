@@ -4,6 +4,7 @@
 package pubsub
 
 import (
+	"os"
 	"runtime"
 	"runtime/pprof"
 	"testing"
@@ -148,10 +149,11 @@ func (s *Suite) TestUnsubAfterClose(c *check.C) {
 
 func (s *Suite) TestShutdown(c *check.C) {
 	start := runtime.NumGoroutine()
-	pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+	pprof.Lookup("goroutine").WriteTo(os.Stdout, 2)
 	NewPubSub(10).Shutdown()
 	time.Sleep(2000)
-	pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+	println("==================================")
+	pprof.Lookup("goroutine").WriteTo(os.Stdout, 2)
 	c.Check(runtime.NumGoroutine(), check.Equals, start)
 }
 
