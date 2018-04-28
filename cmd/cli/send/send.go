@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os/exec"
-	"os"
-	"fmt"
 	"bytes"
+	"fmt"
+	"os"
+	"os/exec"
 )
 
 func main() {
@@ -43,7 +43,7 @@ func main() {
 	}
 	//fmt.Println("unsignedTx", outCreate.String(), errCreate.String())
 
-	if !hasKey || key == ""{
+	if !hasKey || key == "" {
 		fmt.Fprintln(os.Stderr, "no private key found")
 		return
 	}
