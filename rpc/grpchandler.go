@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/types"
 	pb "gitlab.33.cn/chain33/chain33/types"
 
 	"golang.org/x/net/context"
@@ -80,7 +79,7 @@ func (g *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, e
 	if err != nil {
 		return nil, err
 	}
-	return &pb.HexTx{Tx: hex.EncodeToString(types.Encode(reply.GetTx()))}, nil
+	return &pb.HexTx{Tx: hex.EncodeToString(pb.Encode(reply.GetTx()))}, nil
 }
 
 func (g *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.TransactionDetails, error) {
@@ -194,6 +193,7 @@ func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxLi
 	}
 	return g.api.GetLastMempool()
 }
+
 //add by hyb
 //GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 func (g *Grpc) GetBlockOverview(ctx context.Context, in *pb.ReqHash) (*pb.BlockOverview, error) {
@@ -276,9 +276,9 @@ func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) 
 	if err != nil {
 		return nil, err
 	}
-	var reply types.Reply
+	var reply pb.Reply
 	reply.IsOk = true
-	reply.Msg = types.Encode(*msg)
+	reply.Msg = pb.Encode(*msg)
 	return &reply, nil
 }
 
@@ -289,7 +289,7 @@ func (g *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, 
 	return g.api.WalletAutoMiner(in)
 }
 
-func (g *Grpc) GetTicketCount(ctx context.Context, in *types.ReqNil) (*pb.Int64, error) {
+func (g *Grpc) GetTicketCount(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
