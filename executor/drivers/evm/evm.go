@@ -7,12 +7,13 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/core"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
-	ctypes "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/codes"
 )
 
 const (
@@ -30,9 +31,9 @@ var clog = log.New("module", "execs.evm")
 
 type FakeEVM struct {
 	drivers.DriverBase
-	vmCfg *vm.Config
+	vmCfg *runtime.Config
 
-	mStateDB *core.MemoryStateDB
+	mStateDB *state.MemoryStateDB
 }
 
 func init() {
@@ -44,7 +45,7 @@ func init() {
 
 func NewFakeEVM() *FakeEVM {
 	fake := &FakeEVM{}
-	fake.vmCfg = &vm.Config{}
+	fake.vmCfg = &runtime.Config{}
 	fake.SetChild(fake)
 	return fake
 }
@@ -69,7 +70,7 @@ func (evm *FakeEVM) SetEnv(height, blocktime int64) {
 		// 重新初始化MemoryStateDB
 		// 需要注意的时，在执行器中只执行单个Transaction，但是并没有提交区块的动作
 		// 所以，这个mStateDB只用来缓存一个区块内执行的Transaction引起的状态数据变更
-		evm.mStateDB = core.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
+		evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
 	}
 	// 两者都和上次的设置相同，不需要任何操作
 }
@@ -101,7 +102,7 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	context := NewEVMContext(msg, height, time, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	runtime := vm.NewEVM(context, evm.mStateDB, config, *vmcfg)
+	runtime := runtime.NewEVM(context, evm.mStateDB, config, *vmcfg)
 
 	isCreate := msg.To() == nil
 
@@ -119,9 +120,9 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	evm.mStateDB.SubBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(msg.GasLimit())), msg.GasPrice()))
 
 	if isCreate {
-		ret, addr, leftOverGas, vmerr = runtime.Create(vm.AccountRef(msg.From()), msg.Data(), context.GasLimit, big.NewInt(0))
+		ret, addr, leftOverGas, vmerr = runtime.Create(codes.AccountRef(msg.From()), msg.Data(), context.GasLimit, big.NewInt(0))
 	} else {
-		ret, leftOverGas, vmerr = runtime.Call(vm.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, big.NewInt(0))
+		ret, leftOverGas, vmerr = runtime.Call(codes.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, big.NewInt(0))
 	}
 
 	if vmerr != nil {
@@ -129,7 +130,7 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 
 		// 只有在出现账户余额不足的时候，才认为是有效的的错误
 		// 其它错误情况目前不需要处理
-		if vmerr == vm.ErrInsufficientBalance {
+		if vmerr == model.ErrInsufficientBalance {
 			return nil, vmerr
 		}
 	}
@@ -187,12 +188,12 @@ func (evm *FakeEVM) GetChainConfig() *params.ChainConfig {
 		Clique: nil}
 }
 
-func (evm *FakeEVM) GetMStateDB() *core.MemoryStateDB {
+func (evm *FakeEVM) GetMStateDB() *state.MemoryStateDB {
 	return evm.mStateDB
 }
 
 // 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
-func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg ctypes.Message) {
+func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg common.Message) {
 
 	// 此处暂时不考虑消息发送签名的处理，chain33在mempool中对签名做了检查
 	from := getCaller(tx)
@@ -206,11 +207,11 @@ func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg ctypes.Message) {
 
 	gasLimit := uint64(tx.Fee * TX_GAS_TIMES_FEE)
 	// 合约的GasLimit即为调用者为本次合约调用准备支付的手续费
-	msg = ctypes.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(amount), gasLimit, GasPrice, tx.Payload[BALANCE_SIZE:], false)
+	msg = common.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(amount), gasLimit, GasPrice, tx.Payload[BALANCE_SIZE:], false)
 	return msg
 }
 
-func (evm *FakeEVM) GetVMConfig() *vm.Config {
+func (evm *FakeEVM) GetVMConfig() *runtime.Config {
 	return evm.vmCfg
 }
 
@@ -229,9 +230,9 @@ func getReceiver(tx *types.Transaction) *common.Address {
 }
 
 // NewEVMContext creates a new context for use in the EVM.
-func NewEVMContext(msg ctypes.Message, height int64, time int64, coinbase common.Address, difficulty uint64) vm.Context {
+func NewEVMContext(msg common.Message, height int64, time int64, coinbase common.Address, difficulty uint64) runtime.Context {
 
-	return vm.Context{
+	return runtime.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     getHashFn,
@@ -246,7 +247,7 @@ func NewEVMContext(msg ctypes.Message, height int64, time int64, coinbase common
 }
 
 // 检查合约调用账户是否有充足的金额进行转账交易操作
-func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
+func CanTransfer(db state.StateDB, addr common.Address, amount *big.Int) bool {
 	if amount.Uint64() == 0 {
 		return true
 	}
@@ -254,7 +255,7 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 }
 
 // 在内存数据库中执行转账操作（只修改内存中的金额）
-func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
+func Transfer(db state.StateDB, sender, recipient common.Address, amount *big.Int) {
 	if amount.Uint64() == 0 {
 		return
 	}
