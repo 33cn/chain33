@@ -141,6 +141,11 @@ It has these top-level messages:
 	ReplyAddrRecvForTokens
 	TradeForBuy
 	TradeForRevokeSell
+	TradeForBuyLimit
+	BuyLimitOrder
+	BuyLimitOrderReceipt
+	TradeForSellMarket
+	TradeForRevokeBuy
 	ReceiptTradeBase
 	ReceiptTradeSell
 	ReceiptTradeBuy

@@ -409,7 +409,7 @@ const (
 	TradeRevokeSell
 	TradeSellMarket
 	TradeBuyLimit
-	TrandRevokeBuy
+	TradeRevokeBuy
 )
 
 // 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
@@ -419,6 +419,8 @@ const (
 	SoldOut
 	Revoked
 	Expired
+	OnBuy
+	BoughtOut
 )
 
 var SellOrderStatus = map[int32]string{
@@ -427,6 +429,8 @@ var SellOrderStatus = map[int32]string{
 	SoldOut:  "SoldOut",
 	Revoked:  "Revoked",
 	Expired:  "Expired",
+	OnBuy:    "OnBuy",
+	BoughtOut: "BoughtOut",
 }
 
 // manager action
