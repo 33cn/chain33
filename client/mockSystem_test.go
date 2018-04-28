@@ -1,6 +1,9 @@
-package client
+package client_test
 
-import "gitlab.33.cn/chain33/chain33/queue"
+import (
+	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/queue"
+)
 
 type mockSystem struct {
 	q         queue.Queue
@@ -12,7 +15,7 @@ type mockSystem struct {
 	store     *mockStore
 }
 
-func (mock *mockSystem) startup(size int) QueueProtocolAPI {
+func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	var q = queue.New("channel")
 	chain := &mockBlockChain{}
 	chain.SetQueueClient(q)
@@ -51,8 +54,8 @@ func (mock *mockSystem) stop() {
 	mock.q.Close()
 }
 
-func (mock *mockSystem) getAPI() QueueProtocolAPI {
-	api, _ := New(mock.q.Client(), nil)
+func (mock *mockSystem) getAPI() client.QueueProtocolAPI {
+	api, _ := client.New(mock.q.Client(), nil)
 	return api
 }
 
