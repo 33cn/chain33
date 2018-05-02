@@ -8,6 +8,10 @@ import (
 )
 
 func main() {
+    if len(os.Args) <= 1 {
+		loadHelp()
+		return
+	}
 	argsWithoutProg := os.Args[1:]
 	if argsWithoutProg[0] == "help" || argsWithoutProg[0] == "-h" {
 		loadHelp()
