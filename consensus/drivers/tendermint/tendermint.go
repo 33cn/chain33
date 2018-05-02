@@ -23,7 +23,6 @@ import (
 	wire "github.com/tendermint/go-wire"
 	"sync"
 	"gitlab.33.cn/chain33/chain33/util"
-	bc "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/blockchain"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/evidence"
 )
 
@@ -43,12 +42,15 @@ type TendermintClient struct{
 	*drivers.BaseClient
 	genesisDoc    *ttypes.GenesisDoc   // initial validator set
 	privValidator ttypes.PrivValidator
-	csState       *core.ConsensusState
+	//csState       *core.ConsensusState
 	eventBus      *ttypes.EventBus
 	privKey       crypto.PrivKeyEd25519   // local node's p2p key
 	sw            *p2p.Switch
 	state         sm.State
-	blockStore    *core.BlockStore
+	blockExec     *sm.BlockExecutor
+	fastSync      bool
+	evidencePool  *evidence.EvidencePool
+	csState       *core.ConsensusState
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -83,14 +85,6 @@ func saveGenesisDoc(db dbm.DB, genDoc *ttypes.GenesisDoc) {
 
 func New(cfg *types.Consensus) *TendermintClient {
 	tendermintlog.Info("Start to create tendermint client")
-
-	//store block
-	blockStoreDB, err := DefaultDBProvider("CSblockstore")
-	if err != nil {
-		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider blockstore failded", "error", err)
-		return nil
-	}
-	blockStore := core.NewBlockStore(blockStoreDB)
 
 	//store State
 	stateDB, err := DefaultDBProvider("CSstate")
@@ -163,30 +157,14 @@ func New(cfg *types.Consensus) *TendermintClient {
 	// make block executor for consensus and blockchain reactors to execute blocks
 	blockExec := sm.NewBlockExecutor(stateDB, blockExecLogger, evidencePool)
 
-	// Make BlockchainReactor
-	bcReactor := bc.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
-	bcReactor.SetLogger(log.New("module", "tendermint-blockchain"))
-
-	c := drivers.NewBaseClient(cfg)
-
-	// Make ConsensusReactor
-	csState := core.NewConsensusState(c, state.Copy(), blockStore, blockExec, evidencePool)
-	csState.SetPrivValidator(privValidator)
-
-	consensusReactor := core.NewConsensusReactor(csState, fastSync)
-	consensusReactor.SetLogger(tendermintlog)
-
 	p2pLogger := log.New("module", "tendermint-p2p")
 	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
 	sw.SetLogger(p2pLogger)
-	sw.AddReactor("CONSENSUS", consensusReactor)
-	sw.AddReactor("BLOCKCHAIN", bcReactor)
 	sw.AddReactor("EVIDENCE", evidenceReactor)
 
 	eventBus := ttypes.NewEventBus()
-	// services which will be publishing and/or subscribing for messages (events)
-	// consensusReactor will set it on consensusState and blockExecutor
-	consensusReactor.SetEventBus(eventBus)
+
+	c := drivers.NewBaseClient(cfg)
 
 	client := &TendermintClient{
 		BaseClient:       c,
@@ -194,10 +172,11 @@ func New(cfg *types.Consensus) *TendermintClient {
 		privValidator :   privValidator,
 		privKey:          privKey,
 		state:            state,
-		blockStore:       blockStore,
+		blockExec:        blockExec,
+		fastSync:         fastSync,
 		sw:               sw,
-		csState:          csState,
 		eventBus:         eventBus,
+		evidencePool:     evidencePool,
 	}
 
 	c.SetChild(client)
@@ -224,6 +203,58 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 		//call init block
 		client.InitBlock()
 	})
+
+	go client.EventLoop()
+	go client.StartConsensus()
+}
+
+func (client *TendermintClient) StartConsensus() {
+	//caught up
+	for {
+		if !client.IsCaughtUp() {
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+
+	block := client.GetCurrentBlock()
+	if block == nil {
+		tendermintlog.Error("StartConsensus failed for current block is nil")
+		panic("StartConsensus failed for current block is nil")
+	}
+
+	blockstore := ttypes.NewBlockStore(client.BaseClient)
+
+	state := client.state.Copy()
+	blockInfo := ttypes.GetCommitFromBlock(block)
+	if blockInfo != nil {
+		if seenCommit := blockInfo.SeenCommit; seenCommit != nil {
+			state.LastBlockID = ttypes.BlockID{
+				Hash: seenCommit.BlockID.GetHash(),
+				PartsHeader: ttypes.PartSetHeader{
+					Total: int(seenCommit.BlockID.GetPartsHeader().Total),
+					Hash:  seenCommit.BlockID.GetPartsHeader().Hash,
+				},
+			}
+		}
+	}
+	state.LastBlockHeight = block.Height
+
+	// Make ConsensusReactor
+	csState := core.NewConsensusState(client.BaseClient, blockstore, state, client.blockExec, client.evidencePool)
+	csState.SetPrivValidator(client.privValidator)
+
+	consensusReactor := core.NewConsensusReactor(csState, false)
+	consensusReactor.SetLogger(tendermintlog)
+	// services which will be publishing and/or subscribing for messages (events)
+	// consensusReactor will set it on consensusState and blockExecutor
+	consensusReactor.SetEventBus(client.eventBus)
+
+	client.sw.AddReactor("CONSENSUS", consensusReactor)
+
+	client.csState = csState
+
 	//event start
 	err := client.eventBus.Start()
 	if err != nil {
@@ -251,8 +282,6 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 	}
 
 	go client.CreateBlock()
-
-	go client.EventLoop()
 }
 
 func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
@@ -296,6 +325,12 @@ func (client *TendermintClient) CreateBlock() {
 	issleep := true
 	for {
 
+		if !client.csState.IsRunning() {
+			tendermintlog.Info("consensus not running now")
+			time.Sleep(time.Second)
+			continue
+		}
+
 		if issleep {
 			time.Sleep(time.Second)
 		}
@@ -329,14 +364,6 @@ func (client *TendermintClient) CreateBlock() {
 			tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
 			continue
 		}
-	}
-}
-
-func (client *TendermintClient) checkValidators() bool {
-	if client.sw.Peers().Size() > 0{
-		return true
-	} else {
-		return false
 	}
 }
 

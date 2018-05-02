@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
+	//"github.com/xkeyideal/glide/msg"
 )
 
 const (
@@ -90,10 +91,8 @@ func (conR *ConsensusReactor) OnStop() {
 
 // SwitchToConsensus switches from fast_sync mode to consensus mode.
 // It resets the state, turns off fast_sync, and starts the consensus state-machine
-func (conR *ConsensusReactor) SwitchToConsensus(state sm.State, blocksSynced int, lastBlockNeedDeal bool) {
-	conR.Logger.Info("SwitchToConsensus", "lastBlockNeedDeal", lastBlockNeedDeal)
-
-	conR.conS.SyncLastBlock = lastBlockNeedDeal
+func (conR *ConsensusReactor) SwitchToConsensus(state sm.State, blocksSynced int) {
+	conR.Logger.Info("SwitchToConsensus")
 
 	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
@@ -507,6 +506,8 @@ OUTER_LOOP:
 
 		// If the peer is on a previous height, help catch up.
 		if (0 < prs.Height) && (prs.Height < rs.Height) {
+			conR.Logger.Error("gossipDataRoutine", "PeerRoundState_height", prs.Height, "RoundState_height", rs.Height)
+			/*
 			heightLogger := logger.New("height", prs.Height)
 
 			// if we never received the commit message from the peer, the block parts wont be initialized
@@ -522,6 +523,7 @@ OUTER_LOOP:
 			}
 			conR.gossipDataForCatchup(heightLogger, rs, prs, ps, peer)
 			continue OUTER_LOOP
+*/
 		}
 
 		// If height and round don't match, sleep.
@@ -567,7 +569,7 @@ OUTER_LOOP:
 		continue OUTER_LOOP
 	}
 }
-
+/*
 func (conR *ConsensusReactor) gossipDataForCatchup(logger log.Logger, rs *types.RoundState,
 	prs *types.PeerRoundState, ps *PeerState, peer p2p.Peer) {
 
@@ -612,7 +614,7 @@ func (conR *ConsensusReactor) gossipDataForCatchup(logger log.Logger, rs *types.
 		return
 	}
 }
-
+*/
 func (conR *ConsensusReactor) gossipVotesRoutine(peer p2p.Peer, ps *PeerState) {
 	logger := conR.Logger.New("peer", peer)
 

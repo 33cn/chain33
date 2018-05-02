@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package types;
+
+message PartSetHeader {
+    int32 Total = 1;
+    bytes Hash = 2;
+}
+
+message BlockID {
+    bytes Hash = 1;
+    PartSetHeader PartsHeader = 2;
+}
+
+message TendermintBitArray {
+	int32 Bits = 1;
+	repeated uint64 Elems = 2;
+}
+
+message Vote {
+	bytes ValidatorAddress = 1;
+	int32 ValidatorIndex = 2;
+	int64 Height = 3;
+	int32 Round = 4;
+	int64 Timestamp = 5;
+	uint32 Type = 6;
+	BlockID BlockID = 7;
+	bytes Signature = 8;
+}
+
+message TendermintCommit {
+	BlockID BlockID = 1;
+	repeated Vote Precommits = 2;
+}
+
+message TendermintBlockInfo {
+	TendermintCommit SeenCommit = 1;
+	TendermintCommit LastCommit = 2;
+}
+
