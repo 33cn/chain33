@@ -6,8 +6,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type sellDB struct {
@@ -98,7 +98,6 @@ func (selldb *sellDB) getKVSet() (kvset []*types.KeyValue) {
 	kvset = append(kvset, &types.KeyValue{key, value})
 	return kvset
 }
-
 
 type buyDB struct {
 	types.BuyLimitOrder
@@ -454,7 +453,6 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
-
 
 func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) (*types.Receipt, error) {
 	buyidByte := []byte(revoke.Buyid)
