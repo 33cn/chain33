@@ -472,16 +472,6 @@ func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	}
 }
 
-func testSendTxGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
-	err := rpc.newRpcCtx("Version", nil, &res)
-	if nil != err {
-		t.Error("Call Version Failed.", err)
-	} else {
-		fmt.Println(res)
-	}
-}
-
 func TestGRPC(t *testing.T) {
 	var mock mockSystem
 	var grpc mockGRPCSystem
@@ -491,4 +481,443 @@ func TestGRPC(t *testing.T) {
 	defer mock.stop()
 
 	testSendTxGRPC(t, &grpc)
+	testGetBlocksGRPC(t, &grpc)
+	testGetLastHeaderGRPC(t, &grpc)
+	testCreateRawTransactionGRPC(t, &grpc)
+	testSendRawTransactionGRPC(t, &grpc)
+	testQueryTransactionGRPC(t, &grpc)
+	testSendTransactionGRPC(t, &grpc)
+	testGetTransactionByAddrGRPC(t, &grpc)
+	testGetTransactionByHashesGRPC(t, &grpc)
+	testGetMemPoolGRPC(t, &grpc)
+	testGetAccountsGRPC(t, &grpc)
+	testNewAccountGRPC(t, &grpc)
+	testWalletTransactionListGRPC(t, &grpc)
+	testImportPrivKeyGRPC(t, &grpc)
+	testSendToAddressGRPC(t, &grpc)
+	testSetTxFeeGRPC(t, &grpc)
+	testSetLablGRPC(t, &grpc)
+	testMergeBalanceGRPC(t, &grpc)
+	testSetPasswdGRPC(t, &grpc)
+	testLockGRPC(t, &grpc)
+	testUnLockGRPC(t, &grpc)
+	testGetPeerInfoGRPC(t, &grpc)
+	testGetLastMemPoolGRPC(t, &grpc)
+	testGetWalletStatusGRPC(t, &grpc)
+	testGetBlockOverviewGRPC(t, &grpc)
+	testGetAddrOverviewGRPC(t, &grpc)
+	testGetBlockHashGRPC(t, &grpc)
+	testGenSeedGRPC(t, &grpc)
+	testGetSeedGRPC(t, &grpc)
+	testSaveSeedGRPC(t, &grpc)
+	testGetBalanceGRPC(t, &grpc)
+	testQueryChainGRPC(t, &grpc)
+	testSetAutoMiningGRPC(t, &grpc)
+	testGetHexTxByHashGRPC(t, &grpc)
+	testGetTicketCountGRPC(t, &grpc)
+	testDumpPrivkeyGRPC(t, &grpc)
+	testVersionGRPC(t, &grpc)
+	testIsSyncGRPC(t, &grpc)
+	testIsNtpClockSyncGRPC(t, &grpc)
+	testNetInfoGRPC(t, &grpc)
+}
+
+func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.NodeNetInfo
+	err := rpc.newRpcCtx("NetInfo", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call NetInfo Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testIsNtpClockSyncGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("IsNtpClockSync", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call IsNtpClockSync Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testIsSyncGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("IsSync", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call IsSync Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testVersionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("Version", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call Version Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyStr
+	err := rpc.newRpcCtx("DumpPrivkey", &types.ReqStr{}, &res)
+	if nil != err {
+		t.Error("Call DumpPrivkey Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetTicketCountGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Int64
+	err := rpc.newRpcCtx("GetTicketCount", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetTicketCount Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetHexTxByHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.HexTx
+	err := rpc.newRpcCtx("GetHexTxByHash", &types.ReqHash{Hash: []byte("fdafdsafds")}, &res)
+	if nil != err {
+		t.Error("Call GetHexTxByHash Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSetAutoMiningGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SetAutoMining", &types.MinerFlag{}, &res)
+	if nil != err {
+		t.Error("Call SetAutoMining Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testQueryChainGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("QueryChain", &types.Query{}, &res)
+	if nil != err {
+		t.Error("Call QueryChain Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetBalanceGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Accounts
+	err := rpc.newRpcCtx("GetBalance", &types.ReqBalance{}, &res)
+	if nil != err {
+		t.Error("Call GetBalance Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSaveSeedGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SaveSeed", &types.SaveSeedByPw{}, &res)
+	if nil != err {
+		t.Error("Call SaveSeed Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetSeedGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplySeed
+	err := rpc.newRpcCtx("GetSeed", &types.GetSeedByPw{}, &res)
+	if nil != err {
+		t.Error("Call GetSeed Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGenSeedGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplySeed
+	err := rpc.newRpcCtx("GenSeed", &types.GenSeedLang{}, &res)
+	if nil != err {
+		t.Error("Call GenSeed Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetBlockHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyHash
+	err := rpc.newRpcCtx("GetBlockHash", &types.ReqInt{}, &res)
+	if nil != err {
+		t.Error("Call GetBlockHash Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetAddrOverviewGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.AddrOverview
+	err := rpc.newRpcCtx("GetAddrOverview", &types.ReqAddr{}, &res)
+	if nil != err {
+		t.Error("Call GetAddrOverview Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetBlockOverviewGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.BlockOverview
+	err := rpc.newRpcCtx("GetBlockOverview", &types.ReqHash{}, &res)
+	if nil != err {
+		t.Error("Call GetBlockOverview Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetWalletStatusGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletStatus
+	err := rpc.newRpcCtx("GetWalletStatus", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetWalletStatus Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetLastMemPoolGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyTxList
+	err := rpc.newRpcCtx("GetLastMemPool", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetLastMemPool Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetPeerInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.PeerList
+	err := rpc.newRpcCtx("GetPeerInfo", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetPeerInfo Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testUnLockGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("UnLock", &types.WalletUnLock{}, &res)
+	if nil != err {
+		t.Error("Call UnLock Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testLockGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("Lock", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call Lock Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSetPasswdGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SetPasswd", &types.ReqWalletSetPasswd{}, &res)
+	if nil != err {
+		t.Error("Call SetPasswd Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testMergeBalanceGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyHashes
+	err := rpc.newRpcCtx("MergeBalance", &types.ReqWalletMergeBalance{}, &res)
+	if nil != err {
+		t.Error("Call MergeBalance Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSetLablGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletAccount
+	err := rpc.newRpcCtx("SetLabl", &types.ReqWalletSetLabel{}, &res)
+	if nil != err {
+		t.Error("Call SetLabl Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSetTxFeeGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SetTxFee", &types.ReqWalletSetFee{}, &res)
+	if nil != err {
+		t.Error("Call SetTxFee Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSendToAddressGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyHash
+	err := rpc.newRpcCtx("SendToAddress", &types.ReqWalletSendToAddress{}, &res)
+	if nil != err {
+		t.Error("Call SendToAddress Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testImportPrivKeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletAccount
+	err := rpc.newRpcCtx("ImportPrivKey", &types.ReqWalletImportPrivKey{}, &res)
+	if nil != err {
+		t.Error("Call ImportPrivKey Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testWalletTransactionListGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletTxDetails
+	err := rpc.newRpcCtx("WalletTransactionList", &types.ReqWalletTransactionList{}, &res)
+	if nil != err {
+		t.Error("Call WalletTransactionList Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testNewAccountGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletAccount
+	err := rpc.newRpcCtx("NewAccount", &types.ReqNewAccount{}, &res)
+	if nil != err {
+		t.Error("Call NewAccount Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetAccountsGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletAccounts
+	err := rpc.newRpcCtx("GetAccounts", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetAccounts Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetMemPoolGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyTxList
+	err := rpc.newRpcCtx("GetMemPool", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetMemPool Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetTransactionByHashesGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.TransactionDetails
+	err := rpc.newRpcCtx("GetTransactionByHashes", &types.ReqHashes{}, &res)
+	if nil != err {
+		t.Error("Call GetTransactionByHashes Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetTransactionByAddrGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyTxInfos
+	err := rpc.newRpcCtx("GetTransactionByAddr", &types.ReqAddr{}, &res)
+	if nil != err {
+		t.Error("Call GetTransactionByAddr Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSendTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SendTransaction", &types.Transaction{}, &res)
+	if nil != err {
+		t.Error("Call SendTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testQueryTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.TransactionDetail
+	err := rpc.newRpcCtx("QueryTransaction", &types.ReqHash{}, &res)
+	if nil != err {
+		t.Error("Call QueryTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSendRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SendRawTransaction", &types.SignedTx{}, &res)
+	if nil != err {
+		t.Error("Call SendRawTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testCreateRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.UnsignTx
+	err := rpc.newRpcCtx("CreateRawTransaction", &types.CreateTx{}, &res)
+	if nil != err {
+		t.Error("Call CreateRawTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetLastHeaderGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Header
+	err := rpc.newRpcCtx("GetLastHeader", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetLastHeader Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetBlocksGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("GetBlocks", &types.ReqBlocks{}, &res)
+	if nil != err {
+		t.Error("Call GetBlocks Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSendTxGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SendTransaction", &types.Transaction{}, &res)
+	if nil != err {
+		t.Error("Call SendTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
 }
