@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/client"
+	lt "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func TestCoordinator(t *testing.T) {

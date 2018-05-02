@@ -2,7 +2,6 @@ package client
 
 import (
 	"gitlab.33.cn/chain33/chain33/types"
-	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 // 消息通道交互API接口定义
@@ -98,11 +97,4 @@ type QueueProtocolAPI interface {
 	// types.EventGetNetInfo
 	GetNetInfo() (*types.NodeNetInfo, error)
 	GetTotalCoins(param *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error)
-
-	CreateRawTokenPreCreateTx(parm *lt.TokenPreCreateTx) (*types.Transaction, error)
-	CreateRawTokenFinishTx(parm *lt.TokenFinishTx) (*types.Transaction, error)
-	CreateRawTokenRevokeTx(parm *lt.TokenRevokeTx) (*types.Transaction, error)
-	CreateRawTradeSellTx(parm *lt.TradeSellTx) (*types.Transaction, error)
-	CreateRawTradeRevokeTx(param *lt.TradeRevokeTx) (*types.Transaction, error)
-	CreateRawTradeBuyTx(param *lt.TradeBuyTx) (*types.Transaction, error)
 }
