@@ -10,6 +10,7 @@ const (
 	buyOrderAHTSB  = "token-buyorder-ahtsb:"
 	buyOrderTAHSB  = "token-buyorder-tahsb:"
 	sellIDPrefix   = "mavl-trade-sell-"
+	buyIDPrefix    = "mavl-trade-buy-"
 )
 
 //特定状态下的卖单
@@ -74,4 +75,8 @@ func calcOnesBuyOrderPrefixAddr(addr string) []byte {
 
 func calcTokenSellID(hash string) string {
 	return sellIDPrefix + hash
+}
+
+func calcTokenBuyID(hash string) string {
+	return buyIDPrefix + hash
 }

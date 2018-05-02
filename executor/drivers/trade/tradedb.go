@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 )
 
 type sellDB struct {
@@ -16,7 +17,7 @@ type sellDB struct {
 func newSellDB(sellorder types.SellOrder) (selldb *sellDB) {
 	selldb = &sellDB{sellorder}
 	if types.InvalidStartTime != selldb.Starttime {
-		selldb.Status = types.NotStart
+		selldb.Status = types.TracdOrderStatusNotStart
 	}
 	return
 }
@@ -76,68 +77,6 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, sellid string, boardlotcnt in
 	return log
 }
 
-type buyDB struct {
-	types.BuyLimitOrder
-}
-
-func newBuyDB(sellorder types.BuyLimitOrder) (selldb *buyDB) {
-	selldb = &buyDB{sellorder}
-	return
-}
-/*
-func (selldb *buyDB) save(db dbm.KV) []*types.KeyValue {
-	set := selldb.getKVSet()
-	for i := 0; i < len(set); i++ {
-		db.Set(set[i].GetKey(), set[i].Value)
-	}
-
-	return set
-}
-
-func (selldb *buyDB) getSellLogs(tradeType int32) *types.ReceiptLog {
-	log := &types.ReceiptLog{}
-	log.Ty = tradeType
-	base := &types.ReceiptTradeBase{
-		selldb.TokenSymbol,
-		selldb.Address,
-		strconv.FormatFloat(float64(selldb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
-		selldb.MinBoardlot,
-		strconv.FormatFloat(float64(selldb.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64),
-		selldb.TotalBoardlot,
-		selldb.BoughtBoardlot,
-		selldb.Buyid,
-		types.SellOrderStatus[selldb.Status],
-	}
-	if types.TyLogTradeSell == tradeType {
-		receiptTrade := &types.ReceiptTradeSell{base}
-		log.Log = types.Encode(receiptTrade)
-
-	} else if types.TyLogTradeRevoke == tradeType {
-		receiptTrade := &types.ReceiptTradeRevoke{base}
-		log.Log = types.Encode(receiptTrade)
-	}
-
-	return log
-}
-
-func (selldb *buyDB) getBuyLogs(buyerAddr string, sellid string, boardlotcnt int64, sellorder *types.SellOrder, txhash string) *types.ReceiptLog {
-	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogTradeBuy
-	receiptBuy := &types.ReceiptTradeBuy{
-		buyerAddr,
-		sellid,
-		selldb.TokenSymbol,
-		boardlotcnt,
-		strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
-		strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64),
-		txhash,
-	}
-	log.Log = types.Encode(receiptBuy)
-
-	return log
-}
-*/
-
 func getSellOrderFromID(sellid []byte, db dbm.KV) (*types.SellOrder, error) {
 	value, err := db.Get(sellid)
 	if err != nil {
@@ -158,6 +97,90 @@ func (selldb *sellDB) getKVSet() (kvset []*types.KeyValue) {
 	key := []byte(selldb.Sellid)
 	kvset = append(kvset, &types.KeyValue{key, value})
 	return kvset
+}
+
+
+type buyDB struct {
+	types.BuyLimitOrder
+}
+
+func newBuyDB(sellorder types.BuyLimitOrder) (buydb *buyDB) {
+	buydb = &buyDB{sellorder}
+	return
+}
+
+func (selldb *buyDB) save(db dbm.KV) []*types.KeyValue {
+	set := selldb.getKVSet()
+	for i := 0; i < len(set); i++ {
+		db.Set(set[i].GetKey(), set[i].Value)
+	}
+
+	return set
+}
+
+func (buydb *buyDB) getKVSet() (kvset []*types.KeyValue) {
+	value := types.Encode(&buydb.BuyLimitOrder)
+	key := []byte(buydb.Buyid)
+	kvset = append(kvset, &types.KeyValue{key, value})
+	return kvset
+}
+
+func (buydb *buyDB) getBuyLogs(tradeType int32) *types.ReceiptLog {
+	log := &types.ReceiptLog{}
+	log.Ty = tradeType
+	base := &types.ReceiptBuyLimitBase{
+		buydb.TokenSymbol,
+		buydb.Address,
+		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
+		buydb.MinBoardlot,
+		strconv.FormatFloat(float64(buydb.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64),
+		buydb.TotalBoardlot,
+		buydb.BoughtBoardlot,
+		buydb.Buyid,
+		types.SellOrderStatus[buydb.Status],
+	}
+	if types.TyLogTradeBuyLimit == tradeType {
+		receiptTrade := &types.ReceiptTradeBuyLimit{base}
+		log.Log = types.Encode(receiptTrade)
+
+	} else if types.TyLogTradeBuyRevoke == tradeType {
+		receiptTrade := &types.ReceiptTradeBuyRevoke{base}
+		log.Log = types.Encode(receiptTrade)
+	}
+
+	return log
+}
+
+func getBuyOrderFromID(buyid []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
+	value, err := db.Get(buyid)
+	if err != nil {
+		tradelog.Error("getBuyOrderFromID", "Failed to get value frim db wiht buyid", string(buyid))
+		return nil, err
+	}
+
+	var sellorder types.BuyLimitOrder
+	if err = types.Decode(value, &sellorder); err != nil {
+		tradelog.Error("getBuyOrderFromID", "Failed to decode buy order", string(buyid))
+		return nil, err
+	}
+	return &sellorder, nil
+}
+
+func (buydb *buyDB) getSellLogs(sellerAddr string, buyid string, boardlotCnt int64, buyOrder *types.BuyLimitOrder, txhash string) *types.ReceiptLog {
+	log := &types.ReceiptLog{}
+	log.Ty = types.TyLogTradeSellMarket
+	receiptSellMartet := &types.ReceiptTradeSellMarket{
+		sellerAddr,
+		buyid,
+		buydb.TokenSymbol,
+		boardlotCnt,
+		strconv.FormatFloat(float64(buyOrder.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(buyOrder.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64),
+		txhash,
+	}
+	log.Log = types.Encode(receiptSellMartet)
+
+	return log
 }
 
 type tradeAction struct {
@@ -202,7 +225,7 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 		sell.GetStoptime(),
 		sell.GetCrowdfund(),
 		calcTokenSellID(action.txhash),
-		types.OnSale,
+		types.TracdOrderStatusOnSale,
 		action.height,
 	}
 
@@ -224,15 +247,15 @@ func (action *tradeAction) tradeBuy(buyorder *types.TradeForBuy) (*types.Receipt
 		return nil, types.ErrTSellOrderNotExist
 	}
 
-	if sellorder.Status == types.NotStart && sellorder.Starttime > action.blocktime {
+	if sellorder.Status == types.TracdOrderStatusNotStart && sellorder.Starttime > action.blocktime {
 		return nil, types.ErrTSellOrderNotStart
-	} else if sellorder.Status == types.SoldOut {
+	} else if sellorder.Status == types.TracdOrderStatusSoldOut {
 		return nil, types.ErrTSellOrderSoldout
-	} else if sellorder.Status == types.OnSale && sellorder.Totalboardlot-sellorder.Soldboardlot < buyorder.Boardlotcnt {
+	} else if sellorder.Status == types.TracdOrderStatusOnSale && sellorder.Totalboardlot-sellorder.Soldboardlot < buyorder.Boardlotcnt {
 		return nil, types.ErrTSellOrderNotEnough
-	} else if sellorder.Status == types.Revoked {
+	} else if sellorder.Status == types.TracdOrderStatusRevoked {
 		return nil, types.ErrTSellOrderRevoked
-	} else if sellorder.Status == types.Expired {
+	} else if sellorder.Status == types.TracdOrderStatusExpired {
 		return nil, types.ErrTSellOrderExpired
 	}
 
@@ -263,7 +286,7 @@ func (action *tradeAction) tradeBuy(buyorder *types.TradeForBuy) (*types.Receipt
 	sellorder.Soldboardlot += buyorder.Boardlotcnt
 	tradelog.Debug("tradeBuy", "Soldboardlot after this buy", sellorder.Soldboardlot)
 	if sellorder.Soldboardlot == sellorder.Totalboardlot {
-		sellorder.Status = types.SoldOut
+		sellorder.Status = types.TracdOrderStatusSoldOut
 	}
 	sellTokendb := newSellDB(*sellorder)
 	sellOrderKV := sellTokendb.save(action.db)
@@ -285,11 +308,11 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 		return nil, types.ErrTSellOrderNotExist
 	}
 
-	if sellorder.Status == types.SoldOut {
+	if sellorder.Status == types.TracdOrderStatusSoldOut {
 		return nil, types.ErrTSellOrderSoldout
-	} else if sellorder.Status == types.Revoked {
+	} else if sellorder.Status == types.TracdOrderStatusRevoked {
 		return nil, types.ErrTSellOrderRevoked
-	} else if sellorder.Status == types.Expired {
+	} else if sellorder.Status == types.TracdOrderStatusExpired {
 		return nil, types.ErrTSellOrderExpired
 	}
 
@@ -307,7 +330,7 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	sellorder.Status = types.Revoked
+	sellorder.Status = types.TracdOrderStatusRevoked
 	tokendb := newSellDB(*sellorder)
 	sellOrderKV := tokendb.save(action.db)
 
@@ -318,153 +341,143 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-// TODO
 func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Receipt, error) {
 	if buy.TotalBoardlot < 0 || buy.PricePerBoardlot < 0 || buy.MinBoardlot < 0 || buy.AmountPerBoardlot < 0 {
 		return nil, types.ErrInputPara
 	}
 	// check token exist
+	if token.CheckTokenExist(buy.TokenSymbol, action.db) {
+		return nil, types.ErrTokenExist
+	}
 
 	// check enough bty
-
-	//
-/*
-	tokenAccDB := account.NewTokenAccount(sell.TokenSymbol, action.db)
-
-	// 确认发起此次出售或者众筹的余额是否足够
-	totalAmount := sell.GetTotalBoardlot() * sell.GetAmountPerBoardlot()
-	receipt, err := tokenAccDB.ExecFrozen(action.fromaddr, action.execaddr, totalAmount)
+	amount := buy.PricePerBoardlot * buy.TotalBoardlot
+	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, amount)
 	if err != nil {
-		tradelog.Error("trade sell ", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", totalAmount)
+		tradelog.Error("trade tradeBuyLimit ", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", amount)
 		return nil, err
 	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	sellorder := types.BuyLimitOrder{
-		sell.GetTokenSymbol(),
+	buyorder := types.BuyLimitOrder{
+		buy.GetTokenSymbol(),
 		action.fromaddr,
-		sell.GetAmountPerBoardlot(),
-		sell.GetMinBoardlot(),
-		sell.GetPricePerBoardlot(),
-		sell.GetTotalBoardlot(),
+		buy.GetAmountPerBoardlot(),
+		buy.GetMinBoardlot(),
+		buy.GetPricePerBoardlot(),
+		buy.GetTotalBoardlot(),
 		0,
-		calcTokenSellID(action.txhash),
-		types.OnSale,
+		calcTokenBuyID(action.txhash),
+		types.TracdOrderStatusOnBuy,
 		action.height,
 	}
 
-	tokendb := newBuyDB(sellorder)
+	tokendb := newBuyDB(buyorder)
 	sellOrderKV := tokendb.save(action.db)
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeSell))
+	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyLimit))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, sellOrderKV...)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
-*/
-	return nil, nil
 }
-/*
-func (action *tradeAction) tradeSellMarket(buyorder *types.TradeForSellMarket) (*types.Receipt, error) {
-	idByte := []byte(buyorder.Buyid)
-	sellorder, err := getSellOrderFromID(idByte, action.db)
+
+func (action *tradeAction) tradeSellMarket(sellorder *types.TradeForSellMarket) (*types.Receipt, error) {
+	idByte := []byte(sellorder.Buyid)
+	buyorder, err := getBuyOrderFromID(idByte, action.db)
 	if err != nil {
-		return nil, types.ErrTSellOrderNotExist
+		return nil, types.ErrTBuyOrderNotExist
 	}
 
-	if sellorder.Status == types.NotStart && sellorder.Starttime > action.blocktime {
-		return nil, types.ErrTSellOrderNotStart
-	} else if sellorder.Status == types.SoldOut {
-		return nil, types.ErrTSellOrderSoldout
-	} else if sellorder.Status == types.OnSale && sellorder.Totalboardlot-sellorder.Soldboardlot < buyorder.Boardlotcnt {
-		return nil, types.ErrTSellOrderNotEnough
-	} else if sellorder.Status == types.Revoked {
-		return nil, types.ErrTSellOrderRevoked
-	} else if sellorder.Status == types.Expired {
-		return nil, types.ErrTSellOrderExpired
+	if buyorder.Status == types.TracdOrderStatusBoughtOut {
+		return nil, types.ErrTBuyOrderSoldout
+	} else if buyorder.Status == types.TracdOrderStatusRevoked {
+		return nil, types.ErrTBuyOrderRevoked
+	} else if buyorder.Status == types.TracdOrderStatusOnBuy && buyorder.TotalBoardlot-buyorder.BoughtBoardlot < sellorder.BoardlotCnt {
+		return nil, types.ErrTBuyOrderNotEnough
 	}
 
 	//首先购买费用的划转
-	receiptFromAcc, err := action.coinsAccount.ExecTransfer(action.fromaddr, sellorder.Address, action.execaddr, buyorder.Boardlotcnt*sellorder.Priceperboardlot)
+	amount := sellorder.BoardlotCnt * buyorder.PricePerBoardlot
+	receiptFromAcc, err := action.coinsAccount.ExecTransfer(buyorder.Address, action.fromaddr, action.execaddr, amount)
 	if err != nil {
-		tradelog.Error("account.Transfer ", "addrFrom", action.fromaddr, "addrTo", sellorder.Address,
-			"amount", buyorder.Boardlotcnt*sellorder.Priceperboardlot)
+		tradelog.Error("account.Transfer ", "addrFrom", buyorder.Address, "addrTo", action.fromaddr,
+			"amount", amount)
 		return nil, err
 	}
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
 	//TODO: 创建一个LRU用来保存token对应的子合约账户的地址
-	tokenAccDB := account.NewTokenAccount(sellorder.Tokensymbol, action.db)
-	receiptFromExecAcc, err := tokenAccDB.ExecTransferFrozen(sellorder.Address, action.fromaddr, action.execaddr, buyorder.Boardlotcnt*sellorder.Amountperboardlot)
+	tokenAccDB := account.NewTokenAccount(buyorder.TokenSymbol, action.db)
+	amountToken := sellorder.BoardlotCnt * buyorder.AmountPerBoardlot
+	receiptFromExecAcc, err := tokenAccDB.ExecTransferFrozen(action.fromaddr, buyorder.Address, action.execaddr, amountToken)
 	if err != nil {
-		tradelog.Error("account.ExecTransfer token ", "error info", err, "addrFrom", sellorder.Address,
+		tradelog.Error("account.ExecTransfer token ", "error info", err, "addrFrom", buyorder.Address,
 			"addrTo", action.fromaddr, "execaddr", action.execaddr,
-			"amount", buyorder.Boardlotcnt*sellorder.Amountperboardlot)
+			"amount", amountToken)
 		//因为未能成功将对应的token进行转账，所以需要将购买方的账户资金进行回退
-		action.coinsAccount.ExecTransfer(sellorder.Address, action.fromaddr, action.execaddr, buyorder.Boardlotcnt*sellorder.Priceperboardlot)
+		action.coinsAccount.ExecTransfer(action.fromaddr, buyorder.Address, action.execaddr, amount)
 		return nil, err
 	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
-	tradelog.Debug("tradeBuy", "Soldboardlot before this buy", sellorder.Soldboardlot)
-	sellorder.Soldboardlot += buyorder.Boardlotcnt
-	tradelog.Debug("tradeBuy", "Soldboardlot after this buy", sellorder.Soldboardlot)
-	if sellorder.Soldboardlot == sellorder.Totalboardlot {
-		sellorder.Status = types.SoldOut
+	tradelog.Debug("tradeBuy", "BoughtBoardlot before this buy", buyorder.BoughtBoardlot)
+	buyorder.BoughtBoardlot += sellorder.BoardlotCnt
+	tradelog.Debug("tradeBuy", "BoughtBoardlot after this buy", buyorder.BoughtBoardlot)
+	if buyorder.BoughtBoardlot == buyorder.TotalBoardlot {
+		buyorder.Status = types.TracdOrderStatusBoughtOut
 	}
-	sellTokendb := newSellDB(*sellorder)
-	sellOrderKV := sellTokendb.save(action.db)
+	buyTokendb := newBuyDB(*buyorder)
+	sellOrderKV := buyTokendb.save(action.db)
 
 	logs = append(logs, receiptFromAcc.Logs...)
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, sellTokendb.getSellLogs(types.TyLogTradeSell))
-	logs = append(logs, sellTokendb.getBuyLogs(action.fromaddr, buyorder.Sellid, buyorder.Boardlotcnt, sellorder, action.txhash))
+	logs = append(logs, buyTokendb.getBuyLogs(types.TyLogTradeBuyLimit))
+	logs = append(logs, buyTokendb.getSellLogs(action.fromaddr, buyorder.Buyid, sellorder.BoardlotCnt, buyorder, action.txhash))
 	kv = append(kv, receiptFromAcc.KV...)
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*types.Receipt, error) {
-	sellidByte := []byte(revoke.Sellid)
-	sellorder, err := getSellOrderFromID(sellidByte, action.db)
+
+func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) (*types.Receipt, error) {
+	buyidByte := []byte(revoke.Buyid)
+	buyOrder, err := getBuyOrderFromID(buyidByte, action.db)
 	if err != nil {
-		return nil, types.ErrTSellOrderNotExist
+		return nil, types.ErrTBuyOrderNotExist
 	}
 
-	if sellorder.Status == types.SoldOut {
-		return nil, types.ErrTSellOrderSoldout
-	} else if sellorder.Status == types.Revoked {
-		return nil, types.ErrTSellOrderRevoked
-	} else if sellorder.Status == types.Expired {
-		return nil, types.ErrTSellOrderExpired
+	if buyOrder.Status == types.TracdOrderStatusBoughtOut {
+		return nil, types.ErrTBuyOrderSoldout
+	} else if buyOrder.Status == types.TracdOrderStatusRevoked {
+		return nil, types.ErrTBuyOrderRevoked
 	}
 
-	if action.fromaddr != sellorder.Address {
-		return nil, types.ErrTSellOrderRevoke
+	if action.fromaddr != buyOrder.Address {
+		return nil, types.ErrTBuyOrderRevoke
 	}
+
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
-	tokenAccDB := account.NewTokenAccount(sellorder.Tokensymbol, action.db)
-	tradeRest := (sellorder.Totalboardlot - sellorder.Soldboardlot) * sellorder.Amountperboardlot
-	receiptFromExecAcc, err := tokenAccDB.ExecActive(sellorder.Address, action.execaddr, tradeRest)
+	tradeRest := (buyOrder.TotalBoardlot - buyOrder.BoughtBoardlot) * buyOrder.AmountPerBoardlot
+	receiptFromExecAcc, err := action.coinsAccount.ExecActive(buyOrder.Address, action.execaddr, tradeRest)
 	if err != nil {
-		tradelog.Error("account.ExecActive token ", "addrFrom", sellorder.Address, "execaddr", action.execaddr, "amount", tradeRest)
+		tradelog.Error("account.ExecActive bty ", "addrFrom", buyOrder.Address, "execaddr", action.execaddr, "amount", tradeRest)
 		return nil, err
 	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	sellorder.Status = types.Revoked
-	tokendb := newSellDB(*sellorder)
+	buyOrder.Status = types.TracdOrderStatusRevoked
+	tokendb := newBuyDB(*buyOrder)
 	sellOrderKV := tokendb.save(action.db)
 
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeRevoke))
+	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyRevoke))
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
-*/
