@@ -472,16 +472,6 @@ func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	}
 }
 
-func testSendTxGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
-	err := rpc.newRpcCtx("Version", nil, &res)
-	if nil != err {
-		t.Error("Call Version Failed.", err)
-	} else {
-		fmt.Println(res)
-	}
-}
-
 func TestGRPC(t *testing.T) {
 	var mock mockSystem
 	var grpc mockGRPCSystem
@@ -491,4 +481,146 @@ func TestGRPC(t *testing.T) {
 	defer mock.stop()
 
 	testSendTxGRPC(t, &grpc)
+	testGetBlocksGRPC(t, &grpc)
+	testGetLastHeaderGRPC(t, &grpc)
+	testCreateRawTransactionGRPC(t, &grpc)
+	testSendRawTransactionGRPC(t, &grpc)
+	testQueryTransactionGRPC(t, &grpc)
+	testSendTransactionGRPC(t, &grpc)
+	testGetTransactionByAddrGRPC(t, &grpc)
+	testGetTransactionByHashesGRPC(t, &grpc)
+	testGetMemPoolGRPC(t, &grpc)
+	testGetAccountsGRPC(t, &grpc)
+	testNewAccountGRPC(t, &grpc)
+	testWalletTransactionListGRPC(t, &grpc)
+}
+
+func testWalletTransactionListGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletTxDetails
+	err := rpc.newRpcCtx("WalletTransactionList", &types.ReqWalletTransactionList{}, &res)
+	if nil != err {
+		t.Error("Call WalletTransactionList Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testNewAccountGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletAccount
+	err := rpc.newRpcCtx("NewAccount", &types.ReqNewAccount{}, &res)
+	if nil != err {
+		t.Error("Call NewAccount Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetAccountsGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletAccounts
+	err := rpc.newRpcCtx("GetAccounts", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetAccounts Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetMemPoolGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyTxList
+	err := rpc.newRpcCtx("GetMemPool", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetMemPool Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetTransactionByHashesGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.TransactionDetails
+	err := rpc.newRpcCtx("GetTransactionByHashes", &types.ReqHashes{}, &res)
+	if nil != err {
+		t.Error("Call GetTransactionByHashes Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetTransactionByAddrGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyTxInfos
+	err := rpc.newRpcCtx("GetTransactionByAddr", &types.ReqAddr{}, &res)
+	if nil != err {
+		t.Error("Call GetTransactionByAddr Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSendTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SendTransaction", &types.Transaction{}, &res)
+	if nil != err {
+		t.Error("Call SendTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testQueryTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.TransactionDetail
+	err := rpc.newRpcCtx("QueryTransaction", &types.ReqHash{}, &res)
+	if nil != err {
+		t.Error("Call QueryTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSendRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SendRawTransaction", &types.SignedTx{}, &res)
+	if nil != err {
+		t.Error("Call SendRawTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testCreateRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.UnsignTx
+	err := rpc.newRpcCtx("CreateRawTransaction", &types.CreateTx{}, &res)
+	if nil != err {
+		t.Error("Call CreateRawTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetLastHeaderGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Header
+	err := rpc.newRpcCtx("GetLastHeader", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call GetLastHeader Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testGetBlocksGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("GetBlocks", &types.ReqBlocks{}, &res)
+	if nil != err {
+		t.Error("Call GetBlocks Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSendTxGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SendTransaction", &types.Transaction{}, &res)
+	if nil != err {
+		t.Error("Call SendTransaction Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
 }
