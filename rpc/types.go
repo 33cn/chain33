@@ -1,8 +1,12 @@
-package local
+package rpc
 
 import (
 	"encoding/json"
+
+	l "github.com/inconshreveable/log15"
 )
+
+var log = l.New("module", "rpc")
 
 type TransParm struct {
 	Execer    string     `json:"execer"`
