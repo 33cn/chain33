@@ -493,6 +493,94 @@ func TestGRPC(t *testing.T) {
 	testGetAccountsGRPC(t, &grpc)
 	testNewAccountGRPC(t, &grpc)
 	testWalletTransactionListGRPC(t, &grpc)
+	testImportPrivKeyGRPC(t, &grpc)
+	testSendToAddressGRPC(t, &grpc)
+	testSetTxFeeGRPC(t, &grpc)
+	testSetLablGRPC(t, &grpc)
+	testMergeBalanceGRPC(t, &grpc)
+	testSetPasswdGRPC(t, &grpc)
+	testLockGRPC(t, &grpc)
+	testUnLockGRPC(t, &grpc)
+}
+
+func testUnLockGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("UnLock", &types.WalletUnLock{}, &res)
+	if nil != err {
+		t.Error("Call UnLock Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testLockGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("Lock", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("Call Lock Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSetPasswdGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SetPasswd", &types.ReqWalletSetPasswd{}, &res)
+	if nil != err {
+		t.Error("Call SetPasswd Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testMergeBalanceGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyHashes
+	err := rpc.newRpcCtx("MergeBalance", &types.ReqWalletMergeBalance{}, &res)
+	if nil != err {
+		t.Error("Call MergeBalance Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSetLablGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletAccount
+	err := rpc.newRpcCtx("SetLabl", &types.ReqWalletSetLabel{}, &res)
+	if nil != err {
+		t.Error("Call SetLabl Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSetTxFeeGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("SetTxFee", &types.ReqWalletSetFee{}, &res)
+	if nil != err {
+		t.Error("Call SetTxFee Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testSendToAddressGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyHash
+	err := rpc.newRpcCtx("SendToAddress", &types.ReqWalletSendToAddress{}, &res)
+	if nil != err {
+		t.Error("Call SendToAddress Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
+}
+
+func testImportPrivKeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.WalletAccount
+	err := rpc.newRpcCtx("ImportPrivKey", &types.ReqWalletImportPrivKey{}, &res)
+	if nil != err {
+		t.Error("Call ImportPrivKey Failed.", err)
+	} else {
+		fmt.Println(res)
+	}
 }
 
 func testWalletTransactionListGRPC(t *testing.T, rpc *mockGRPCSystem) {

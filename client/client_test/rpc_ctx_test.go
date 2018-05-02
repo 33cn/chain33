@@ -158,6 +158,46 @@ func (c *GrpcCtx) Run() (err error) {
 		if err == nil {
 			*c.Res.(*types.WalletTxDetails) = *reply
 		}
+	case "ImportPrivKey":
+		reply, err := rpc.ImportPrivKey(context.Background(), c.Params.(*types.ReqWalletImportPrivKey))
+		if err == nil {
+			*c.Res.(*types.WalletAccount) = *reply
+		}
+	case "SendToAddress":
+		reply, err := rpc.SendToAddress(context.Background(), c.Params.(*types.ReqWalletSendToAddress))
+		if err == nil {
+			*c.Res.(*types.ReplyHash) = *reply
+		}
+	case "SetTxFee":
+		reply, err := rpc.SetTxFee(context.Background(), c.Params.(*types.ReqWalletSetFee))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+	case "SetLabl":
+		reply, err := rpc.SetLabl(context.Background(), c.Params.(*types.ReqWalletSetLabel))
+		if err == nil {
+			*c.Res.(*types.WalletAccount) = *reply
+		}
+	case "MergeBalance":
+		reply, err := rpc.MergeBalance(context.Background(), c.Params.(*types.ReqWalletMergeBalance))
+		if err == nil {
+			*c.Res.(*types.ReplyHashes) = *reply
+		}
+	case "SetPasswd":
+		reply, err := rpc.SetPasswd(context.Background(), c.Params.(*types.ReqWalletSetPasswd))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+	case "Lock":
+		reply, err := rpc.Lock(context.Background(), c.Params.(*types.ReqNil))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+	case "UnLock":
+		reply, err := rpc.UnLock(context.Background(), c.Params.(*types.WalletUnLock))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
 
 	case "Version":
 		reply, err := rpc.Version(context.Background(), c.Params.(*types.ReqNil))
