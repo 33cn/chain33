@@ -22,9 +22,9 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/codes"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 )
 
 // Config are the configuration options for the Interpreter
@@ -37,15 +37,15 @@ type Config struct {
 	ForceJit bool
 	// Tracer is the op code logger
 	Tracer Tracer
-	// NoRecursion disabled Interpreter codes.CALL, codes.CALLcode,
-	// delegate codes.CALL and create.
+	// NoRecursion disabled Interpreter CALL, CALLcode,
+	// delegate CALL and create.
 	NoRecursion bool
 	// Enable recording of SHA3/keccak preimages
 	EnablePreimageRecording bool
 	// JumpTable contains the EVM instruction table. This
 	// may be left uninitialised and will be set to the default
 	// table.
-	JumpTable [256]codes.Operation
+	JumpTable [256]Operation
 }
 
 // Interpreter is used to run Ethereum based contracts and will utilise the
@@ -56,37 +56,37 @@ type Interpreter struct {
 	evm      *EVM
 	cfg      Config
 	gasTable gas.GasTable
-	IntPool  *IntPool
+	IntPool  *mm.IntPool
 
 	readOnly   bool   // Whether to throw on stateful modifications
-	ReturnData []byte // Last codes.CALL's return data for subsequent reuse
+	ReturnData []byte // Last CALL's return data for subsequent reuse
 }
 
 // NewInterpreter returns a new instance of the Interpreter.
 func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 	// 使用是否包含第一个STOP指令判断jump table是否完成初始化
 	// 需要注意，后继如果新增指令，需要在这里判断硬分叉，指定不同的指令集
-	if !cfg.JumpTable[codes.STOP].Valid {
-		cfg.JumpTable = codes.ConstantinopleInstructionSet
+	if !cfg.JumpTable[STOP].Valid {
+		cfg.JumpTable = ConstantinopleInstructionSet
 	}
 
 	return &Interpreter{
 		evm:      evm,
 		cfg:      cfg,
-		gasTable: evm.ChainConfig().GasTable(evm.BlockNumber),
-		IntPool:  NewIntPool(),
+		gasTable: evm.GasTable(evm.BlockNumber),
+		IntPool:  mm.NewIntPool(),
 	}
 }
 
-func (in *Interpreter) enforceRestrictions(op codes.OpCode, operation codes.Operation, stack *mm.Stack) error {
+func (in *Interpreter) enforceRestrictions(op OpCode, operation Operation, stack *mm.Stack) error {
 	if in.evm.chainRules.IsByzantium {
 		if in.readOnly {
 			// If the Interpreter is operating in readonly mode, make sure no
 			// state-modifying operation is performed. The 3rd stack item
-			// for a codes.CALL operation is the value. Transferring value from one
+			// for a CALL operation is the value. Transferring value from one
 			// account to the others means the state is modified and should also
 			// return with an error.
-			if operation.Writes || (op == codes.CALL && stack.Back(2).BitLen() > 0) {
+			if operation.Writes || (op == CALL && stack.Back(2).BitLen() > 0) {
 				return model.ErrWriteProtection
 			}
 		}
@@ -100,13 +100,13 @@ func (in *Interpreter) enforceRestrictions(op codes.OpCode, operation codes.Oper
 // It's important to note that any errors returned by the Interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
-func (in *Interpreter) Run(contract *codes.Contract, input []byte) (ret []byte, err error) {
-	// Increment the codes.CALL depth which is restricted to 1024
+func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err error) {
+	// Increment the CALL depth which is restricted to 1024
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
 
-	// Reset the previous codes.CALL's return data. It's unimportant to preserve the old buffer
-	// as every returning codes.CALL will return new data anyway.
+	// Reset the previous CALL's return data. It's unimportant to preserve the old buffer
+	// as every returning CALL will return new data anyway.
 	in.ReturnData = nil
 
 	// Don't bother with the execution if there's no code.
@@ -115,12 +115,12 @@ func (in *Interpreter) Run(contract *codes.Contract, input []byte) (ret []byte, 
 	}
 
 	var (
-		op    codes.OpCode        // current codes.OpCode
+		op    OpCode     // current OpCode
 		mem   = mm.NewMemory() // bound memory
 		stack = mm.NewStack()  // local stack
 		// For optimisation reason we're using uint64 as the program counter.
-		// It's theoreticodes.CALLy possible to go above 2^64. The YP defines the PC
-		// to be uint256. Practicodes.CALLy much less so feasible.
+		// It's theoretiCALLy possible to go above 2^64. The YP defines the PC
+		// to be uint256. PractiCALLy much less so feasible.
 		pc   = uint64(0) // program counter
 		cost uint64
 		// copies used by tracer
@@ -156,7 +156,7 @@ func (in *Interpreter) Run(contract *codes.Contract, input []byte) (ret []byte, 
 		op = contract.GetOp(pc)
 		operation := in.cfg.JumpTable[op]
 		if !operation.Valid {
-			return nil, fmt.Errorf("invalid codes.OpCode 0x%x", int(op))
+			return nil, fmt.Errorf("invalid OpCode 0x%x", int(op))
 		}
 		if err := operation.ValidateStack(stack); err != nil {
 			return nil, err
@@ -182,7 +182,11 @@ func (in *Interpreter) Run(contract *codes.Contract, input []byte) (ret []byte, 
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method cas get the proper cost
-		cost, err = operation.GasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		evmParam := buildEVMParam(in.evm)
+		gasParam := buildGasParam(contract)
+		cost, err = operation.GasCost(in.gasTable, evmParam, gasParam, stack, mem, memorySize)
+		fillEVM(evmParam, in.evm)
+
 		if err != nil || !contract.UseGas(cost) {
 			return nil, model.ErrOutOfGas
 		}
@@ -199,8 +203,8 @@ func (in *Interpreter) Run(contract *codes.Contract, input []byte) (ret []byte, 
 		res, err := operation.Execute(&pc, in.evm, contract, mem, stack)
 		// verifyPool is a build flag. Pool verification makes sure the integrity
 		// of the integer pool by comparing values to a default value.
-		if verifyPool {
-			verifyIntegerPool(in.IntPool)
+		if mm.VerifyPool {
+			mm.VerifyIntegerPool(in.IntPool)
 		}
 		// if the operation clears the return data (e.g. it has returning data)
 		// set the last return to the result of the operation.
@@ -220,4 +224,29 @@ func (in *Interpreter) Run(contract *codes.Contract, input []byte) (ret []byte, 
 		}
 	}
 	return nil, nil
+}
+
+// 从Contract构造参数传递给GasFunc逻辑使用
+// 目前只按需构造必要的参数，理论上GasFun进行Gas计算时可以使用Contract中的所有参数
+// 后继视需要修改GasParam结构
+func buildGasParam(contract *Contract) *params.GasParam {
+	return &params.GasParam{contract.Gas, contract.Address()}
+}
+
+// 从EVM构造参数传递给GasFunc逻辑使用
+// 目前只按需构造必要的参数，理论上GasFun进行Gas计算时可以使用EVM中的所有参数
+// 后继视需要修改EVMParam结构
+func buildEVMParam(evm *EVM) *params.EVMParam {
+	return &params.EVMParam{
+		StateDB:     evm.StateDB,
+		ChainConfig: evm.ChainConfig(),
+		CallGasTemp: evm.CallGasTemp,
+		BlockNumber: evm.BlockNumber,
+	}
+}
+
+// 使用操作结果反向填充EVM中的参数
+// 之所以只设置CallGasTemp，是因为其它参数均为指针引用，参数中可以直接修改EVM中的状态
+func fillEVM(param *params.EVMParam, evm *EVM) {
+	evm.CallGasTemp = param.CallGasTemp
 }

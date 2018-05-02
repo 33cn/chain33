@@ -1,4 +1,4 @@
-package codes
+package runtime
 
 import (
 	"crypto/sha256"
@@ -8,8 +8,8 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/crypto"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/crypto/bn256"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto/bn256"
 
 	"golang.org/x/crypto/ripemd160"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"

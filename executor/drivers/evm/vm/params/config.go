@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
 )
 
 var (
@@ -111,15 +110,6 @@ func (c *ChainConfig) IsByzantium(num *big.Int) bool {
 
 func (c *ChainConfig) IsConstantinople(num *big.Int) bool {
 	return isForked(c.ConstantinopleBlock, num)
-}
-
-// 返回不同操作消耗的Gas定价表
-// 接收区块高度作为参数，方便以后在这里作分叉处理
-func (c *ChainConfig) GasTable(num *big.Int) gas.GasTable {
-	if num == nil {
-		return gas.GasTableHomestead
-	}
-	return gas.GasTableHomestead
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported

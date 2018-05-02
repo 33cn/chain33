@@ -1,15 +1,14 @@
-package codes
+package runtime
 
 import (
 	"errors"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 )
 
 type (
-	ExecutionFunc func(pc *uint64, env *runtime.EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error)
+	ExecutionFunc func(pc *uint64, env *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error)
 )
 
 var ErrGasUintOverflow = errors.New("gas uint64 overflow")

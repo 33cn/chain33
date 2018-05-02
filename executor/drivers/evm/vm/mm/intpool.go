@@ -14,11 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package mm
 
 import (
 	"math/big"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
 )
 
 var checkVal = big.NewInt(-42)
@@ -28,11 +27,11 @@ const poolLimit = 256
 // IntPool is a pool of big integers that
 // can be reused for all big.Int operations.
 type IntPool struct {
-	pool *mm.Stack
+	pool *Stack
 }
 
 func NewIntPool() *IntPool {
-	return &IntPool{pool: mm.NewStack()}
+	return &IntPool{pool: NewStack()}
 }
 
 func (p *IntPool) Get() *big.Int {
@@ -47,9 +46,9 @@ func (p *IntPool) Put(is ...*big.Int) {
 	}
 
 	for _, i := range is {
-		// verifyPool is a build flag. Pool verification makes sure the integrity
+		// VerifyPool is a build flag. Pool verification makes sure the integrity
 		// of the integer pool by comparing values to a default value.
-		if verifyPool {
+		if VerifyPool {
 			i.Set(checkVal)
 		}
 

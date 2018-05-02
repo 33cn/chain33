@@ -1,12 +1,12 @@
 // +build VERIFY_EVM_INTEGER_POOL
 
-package runtime
+package mm
 
 import "fmt"
 
-const verifyPool = true
+const VerifyPool = true
 
-func verifyIntegerPool(ip *IntPool) {
+func VerifyIntegerPool(ip *IntPool) {
 	for i, item := range ip.pool.data {
 		if item.Cmp(checkVal) != 0 {
 			panic(fmt.Sprintf("%d'th item failed aggressive pool check. Value was modified", i))

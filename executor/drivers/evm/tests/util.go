@@ -5,7 +5,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	c "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -14,6 +13,7 @@ import (
 	"time"
 	"encoding/hex"
 	"gitlab.33.cn/chain33/chain33/wallet"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 )
 
 
@@ -86,12 +86,12 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 	context := evm.NewEVMContext(msg, height, tm, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	runtime := vm.NewEVM(context, statedb, config, *vmcfg)
+	env := runtime.NewEVM(context, statedb, config, *vmcfg)
 	if(maxCodeSize !=0){
-		runtime.SetMaxCodeSize(maxCodeSize)
+		env.SetMaxCodeSize(maxCodeSize)
 	}
 
-	ret,addr,leftGas,err :=  runtime.Create(vm.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
+	ret,addr,leftGas,err :=  env.Create(runtime.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
 
 	return ret,addr,leftGas,err,statedb
 }
@@ -127,11 +127,11 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 	context := evm.NewEVMContext(msg, height, tm, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	runtime := vm.NewEVM(context, statedb, config, *vmcfg)
+	env := runtime.NewEVM(context, statedb, config, *vmcfg)
 
 	//ret,addr,leftGas,err :=  runtime.Create(vm.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
 
-	ret,leftGas,err := runtime.Call(vm.AccountRef(msg.From()),contractAdd, msg.Data(), msg.GasLimit(), msg.Value())
+	ret,leftGas,err := env.Call(runtime.AccountRef(msg.From()),contractAdd, msg.Data(), msg.GasLimit(), msg.Value())
 
 	return ret,leftGas,err,statedb
 }
