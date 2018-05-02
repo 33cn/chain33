@@ -47,16 +47,17 @@ func (g *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, erro
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	_, err := g.api.GetBlocks(&pb.ReqBlocks{
+	reply, err := g.api.GetBlocks(&pb.ReqBlocks{
 		Start:    in.Start,
 		End:      in.End,
 		Isdetail: in.Isdetail})
 	if err != nil {
 		return nil, err
 	}
-	return &pb.Reply{IsOk: true}, nil
-	//GetBlocks返回类型是BlockDetails,这里这样调用应该是错误的
-	//return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(*pb.Reply).Msg}, nil
+	return &pb.Reply{
+			IsOk: true,
+			Msg:  pb.Encode(reply)},
+		nil
 }
 
 func (g *Grpc) GetLastHeader(ctx context.Context, in *pb.ReqNil) (*pb.Header, error) {
@@ -80,6 +81,10 @@ func (g *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, e
 	reply, err := g.api.QueryTx(in)
 	if err != nil {
 		return nil, err
+	}
+	tx := reply.GetTx()
+	if tx == nil {
+		return &pb.HexTx{}, nil
 	}
 	return &pb.HexTx{Tx: hex.EncodeToString(pb.Encode(reply.GetTx()))}, nil
 }
