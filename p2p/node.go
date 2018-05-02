@@ -263,8 +263,9 @@ func (n *Node) detectNodeAddr() {
 
 		//检查是否在外网
 		addrs := n.nodeInfo.cfg.GetSeeds()
-		addrs = append(addrs, n.nodeInfo.addrBook.GetAddrs()...)
-		for _, addr := range addrs {
+		//随机选择一个seed
+		for {
+			addr := addrs[rand.Int31n(int32(len(addrs)))]
 			if strings.HasPrefix(addr, LocalAddr) {
 				continue
 			}

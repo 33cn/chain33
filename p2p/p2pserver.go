@@ -104,11 +104,12 @@ func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 
 // 版本
 func (s *P2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerAck, error) {
-
+	if s.IsClose() {
+		return nil, fmt.Errorf("node closed")
+	}
 	return &pb.P2PVerAck{Version: s.node.nodeInfo.cfg.GetVersion(), Service: 6, Nonce: in.Nonce}, nil
 }
 func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
-
 	getctx, ok := pr.FromContext(ctx)
 	var peeraddr string
 	if ok {
@@ -146,6 +147,9 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 }
 
 func (s *P2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
+	if s.IsClose() {
+		return nil, fmt.Errorf("node closed")
+	}
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
@@ -154,7 +158,6 @@ func (s *P2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 func (s *P2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
-
 	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
@@ -185,6 +188,9 @@ func (s *P2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 
 //服务端查询本地mempool
 func (s *P2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
+	if s.IsClose() {
+		return nil, fmt.Errorf("node closed")
+	}
 	log.Debug("p2pServer Recv GetMempool", "version", in)
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
@@ -209,6 +215,7 @@ func (s *P2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 	if !s.checkVersion(in.GetVersion()) {
 		return pb.ErrVersion
 	}
+
 	invs := in.GetInvs()
 	client := s.node.nodeInfo.client
 	for _, inv := range invs { //过滤掉不需要的数据
@@ -234,12 +241,12 @@ func (s *P2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 		} else if inv.GetTy() == msgBlock {
 			height := inv.GetHeight()
 			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false, []string{""}})
-			err := client.Send(msg, true)
+			err := client.SendTimeout(msg, true, time.Duration(time.Second*5))
 			if err != nil {
 				log.Error("GetBlocks", "Error", err.Error())
 				return err //blockchain 模块关闭，直接返回，不需要continue
 			}
-			resp, err := client.Wait(msg)
+			resp, err := client.WaitTimeout(msg, time.Duration(time.Second*10))
 			if err != nil {
 				log.Error("GetBlocks Err", "Err", err.Error())
 				continue
