@@ -136,7 +136,6 @@ func (self *Contract) SetCode(hash common.Hash, code []byte) {
 	self.CodeHash = hash
 }
 
-
 // 设置合约代码和代码哈希
 func (self *Contract) SetCallCode(addr *common.Address, hash common.Hash, code []byte) {
 	self.Code = code
