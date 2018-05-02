@@ -67,8 +67,9 @@ func (n *Node) getAddrFromGithub() {
 				continue
 			}
 
-			fileContent := string(bf.Bytes())
-			st := strings.TrimSpace(string(fileContent))
+			//fileContent := string(bf.Bytes())
+			fileContent := bf.String()
+			st := strings.TrimSpace(fileContent)
 			strs := strings.Split(st, "\n")
 			log.Info("getAddrFromGithub", "download file", fileContent)
 			for _, linestr := range strs {
