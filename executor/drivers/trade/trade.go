@@ -72,7 +72,7 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return action.tradeSellMarket(trade.GetTokensellmarket())
 
 	case types.TradeRevokeBuy:
-		return action.tradeRevokeBuy(trade.GetTokenrevokebuy())
+		return action.tradeRevokeBuyLimit(trade.GetTokenrevokebuy())
 
 
 	default:
@@ -182,7 +182,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return t.GetTokenByStatus(&req, types.OnSale)
+		return t.GetTokenByStatus(&req, types.TracdOrderStatusOnSale)
 	default:
 	}
 	tradelog.Error("trade Query", "Query type not supprt with func name", funcName)
@@ -363,9 +363,9 @@ func genSaveSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = saveSellOrderKeyValue(kv, sellorder, status)
-	if types.SoldOut == status || types.Revoked == status {
+	if types.TracdOrderStatusSoldOut == status || types.TracdOrderStatusRevoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
-		kv = deleteSellOrderKeyValue(kv, sellorder, types.OnSale)
+		kv = deleteSellOrderKeyValue(kv, sellorder, types.TracdOrderStatusOnSale)
 	}
 	return kv
 }
@@ -415,9 +415,9 @@ func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = deleteSellOrderKeyValue(kv, sellorder, status)
-	if types.SoldOut == status || types.Revoked == status {
+	if types.TracdOrderStatusSoldOut == status || types.TracdOrderStatusRevoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
-		kv = saveSellOrderKeyValue(kv, sellorder, types.OnSale)
+		kv = saveSellOrderKeyValue(kv, sellorder, types.TracdOrderStatusOnSale)
 	}
 	return kv
 }

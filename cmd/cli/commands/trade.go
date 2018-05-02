@@ -58,7 +58,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 	token, _ := cmd.Flags().GetString("token")
 	tokens := strings.Split(token, " ")
 	var reqAddrtokens types.ReqAddrTokens
-	reqAddrtokens.Status = types.OnSale
+	reqAddrtokens.Status = types.TracdOrderStatusOnSale
 	reqAddrtokens.Addr = seller
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)

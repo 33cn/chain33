@@ -336,6 +336,10 @@ const (
 	TyLogTokenExecActive      = 320
 	TyLogTokenGenesisTransfer = 321
 	TyLogTokenGenesisDeposit  = 322
+	TyLogTradeSellMarket      = 330
+	TyLogTradeBuyLimit        = 331
+	TyLogTradeBuyRevoke       = 332
+
 
 	// log for config
 	TyLogModifyConfig = 410
@@ -414,23 +418,23 @@ const (
 
 // 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
 const (
-	NotStart = iota
-	OnSale
-	SoldOut
-	Revoked
-	Expired
-	OnBuy
-	BoughtOut
+	TracdOrderStatusNotStart = iota
+	TracdOrderStatusOnSale
+	TracdOrderStatusSoldOut
+	TracdOrderStatusRevoked
+	TracdOrderStatusExpired
+	TracdOrderStatusOnBuy
+	TracdOrderStatusBoughtOut
 )
 
 var SellOrderStatus = map[int32]string{
-	NotStart: "NotStart",
-	OnSale:   "OnSale",
-	SoldOut:  "SoldOut",
-	Revoked:  "Revoked",
-	Expired:  "Expired",
-	OnBuy:    "OnBuy",
-	BoughtOut: "BoughtOut",
+	TracdOrderStatusNotStart: "NotStart",
+	TracdOrderStatusOnSale:   "OnSale",
+	TracdOrderStatusSoldOut:  "SoldOut",
+	TracdOrderStatusRevoked:  "Revoked",
+	TracdOrderStatusExpired:  "Expired",
+	TracdOrderStatusOnBuy:    "OnBuy",
+	TracdOrderStatusBoughtOut: "BoughtOut",
 }
 
 // manager action
@@ -446,9 +450,9 @@ const (
 )
 
 var MapSellOrderStatusStr2Int = map[string]int32{
-	"onsale":  OnSale,
-	"soldout": SoldOut,
-	"revoked": Revoked,
+	"onsale":  TracdOrderStatusOnSale,
+	"soldout": TracdOrderStatusSoldOut,
+	"revoked": TracdOrderStatusRevoked,
 }
 
 //hard fork block height
