@@ -21,8 +21,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/codes"
 )
 
 // StateDB is an EVM database for full state querying.
@@ -65,17 +63,4 @@ type StateDB interface {
 
 	CanTransfer(addr common.Address, amount *big.Int) bool
 	Transfer(sender, recipient common.Address, amount *big.Int)
-}
-
-// CallContext provides a basic interface for the EVM calling conventions. The EVM EVM
-// depends on this context being implemented for doing subcalls and initialising new EVM contracts.
-type CallContext interface {
-	// Call another contract
-	Call(env *runtime.EVM, me codes.ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error)
-	// Take another's contract code and execute within our own context
-	CallCode(env *runtime.EVM, me codes.ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error)
-	// Same as CallCode except sender and value is propagated from parent to child scope
-	DelegateCall(env *runtime.EVM, me codes.ContractRef, addr common.Address, data []byte, gas *big.Int) ([]byte, error)
-	// Create a new contract
-	Create(env *runtime.EVM, me codes.ContractRef, data []byte, gas, value *big.Int) ([]byte, common.Address, error)
 }

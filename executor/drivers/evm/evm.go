@@ -13,7 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/codes"
 )
 
 const (
@@ -102,7 +101,7 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	context := NewEVMContext(msg, height, time, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	runtime := runtime.NewEVM(context, evm.mStateDB, config, *vmcfg)
+	env := runtime.NewEVM(context, evm.mStateDB, config, *vmcfg)
 
 	isCreate := msg.To() == nil
 
@@ -120,9 +119,9 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	evm.mStateDB.SubBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(msg.GasLimit())), msg.GasPrice()))
 
 	if isCreate {
-		ret, addr, leftOverGas, vmerr = runtime.Create(codes.AccountRef(msg.From()), msg.Data(), context.GasLimit, big.NewInt(0))
+		ret, addr, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), msg.Data(), context.GasLimit, big.NewInt(0))
 	} else {
-		ret, leftOverGas, vmerr = runtime.Call(codes.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, big.NewInt(0))
+		ret, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, big.NewInt(0))
 	}
 
 	if vmerr != nil {

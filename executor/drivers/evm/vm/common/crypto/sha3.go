@@ -3,7 +3,7 @@ package crypto
 import (
 	"hash"
 	"golang.org/x/crypto/sha3"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 )
 
 // Keccak256 calculates and returns the Keccak256 hash of the input data.
@@ -23,7 +23,7 @@ func NewKeccak256() hash.Hash {
 
 // Keccak256Hash calculates and returns the Keccak256 hash of the input data,
 // converting it to an internal Hash data structure.
-func Keccak256Hash(data ...[]byte) (h model.Hash) {
+func Keccak256Hash(data ...[]byte) (h common.Hash) {
 	d := NewKeccak256()
 	for _, b := range data {
 		d.Write(b)

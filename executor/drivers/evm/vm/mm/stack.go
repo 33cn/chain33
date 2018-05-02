@@ -19,7 +19,6 @@ package mm
 import (
 	"fmt"
 	"math/big"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 )
 
 // stack is an object for basic stack operations. Items popped to the stack are
@@ -61,7 +60,7 @@ func (st *Stack) Swap(n int) {
 	st.Items[st.Len()-n], st.Items[st.Len()-1] = st.Items[st.Len()-1], st.Items[st.Len()-n]
 }
 
-func (st *Stack) Dup(pool *runtime.IntPool, n int) {
+func (st *Stack) Dup(pool *IntPool, n int) {
 	st.Push(pool.Get().Set(st.Items[st.Len()-n]))
 }
 
