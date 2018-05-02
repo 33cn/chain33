@@ -1,6 +1,10 @@
 package p2p
 
 import (
+	"bytes"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 )
 
@@ -34,6 +38,51 @@ func (n *Node) monitorErrPeer() {
 			if pstat.GetAttempts() > maxAttemps {
 				log.Debug("monitorErrPeer", "over maxattamps", pstat.GetAttempts())
 				n.destroyPeer(peer)
+			}
+		}
+	}
+}
+
+func (n *Node) getAddrFromGithub() {
+	ticker := time.NewTicker(GetAddrFromGitHubInterval)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+		if n.isClose() {
+			log.Debug("getAddrFromGithub", "loop", "done")
+			return
+		}
+		if n.needMore() {
+			//从github 上下载种子节点文件
+			res, err := http.Get("https://raw.githubusercontent.com/chainseed/seeds/master/bty.txt")
+			if err != nil {
+				log.Error("getAddrFromGithub", "http.Get", err.Error())
+				continue
+			}
+
+			bf := new(bytes.Buffer)
+			_, err = io.Copy(bf, res.Body)
+			if err != nil {
+				log.Error("getAddrFromGithub", "io.Copy", err.Error())
+				continue
+			}
+
+			fileContent := string(bf.Bytes())
+			st := strings.TrimSpace(string(fileContent))
+			strs := strings.Split(st, "\n")
+			log.Info("getAddrFromGithub", "download file", fileContent)
+			for _, linestr := range strs {
+				pidaddr := strings.Split(linestr, "@")
+				if len(pidaddr) == 2 {
+
+					addr := pidaddr[1]
+					if n.Has(addr) || n.nodeInfo.blacklist.Has(addr) ||
+						len(P2pComm.AddrRouteble([]string{addr})) == 0 {
+						continue
+					}
+					pub.FIFOPub(addr, "addr")
+
+				}
 			}
 		}
 	}
