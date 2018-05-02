@@ -2,7 +2,7 @@ package types
 
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm", "retrieve", "none", "token", "trade", "manage"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -32,36 +32,8 @@ func SetMinFee(fee int64) {
 	MinBalanceTransfer = fee * 10
 }
 
+// coin conversation
 const (
-	//<<<<<<< HEAD
-	//Coin                     int64 = 1e8
-	//TokenPrecision           int64 = 1e4
-	//InputPrecision           float64 = 1e4
-	//CoinMultiple             int64 = 1e4
-	//MaxCoin                  int64 = 1e17
-	//FutureBlockTime          int64 = 16
-	//CoinReward               int64 = 18 * Coin //用户回报
-	//CoinDevFund              int64 = 12 * Coin //发展基金回报
-	//TicketPrice              int64 = 10000 * Coin
-	//TicketFrozenTime         int64 = 5        //5s only for test
-	//TicketWithdrawTime       int64 = 10       //10s only for test
-	//TicketMinerWaitTime      int64 = 2        // 2s only for test
-	//MaxTxSize                int64 = 100000   //100K
-	//MaxBlockSize             int64 = 10000000 //10M
-	//MaxTxNumber              int64 = 1600     //160
-	//PowLimitBits             uint32 = uint32(0x1f00ffff)
-	//TargetTimespan                   = 144 * 16 * time.Second
-	//TargetTimePerBlock               = 16 * time.Second
-	//RetargetAdjustmentFactor = 4
-	//MaxTxsPerBlock = 100000
-	//TokenNameLenLimit = 128
-	//TokenSymbolLenLimit              = 16
-	//TokenIntroLenLimit = 1024
-	//TokenPrecisionLen = 1e6
-	//TokenCreatePriceStand = 10000 * Coin
-	//InvalidStartTime = 0
-	//InvalidStopTime = 0
-	//====== =
 	Coin                int64   = 1e8
 	MaxCoin             int64   = 1e17
 	MaxTxSize                   = 100000   //100K
@@ -78,6 +50,7 @@ const (
 	InvalidStopTime             = 0
 )
 
+// event
 const (
 	EventTx                   = 1
 	EventGetBlocks            = 2
@@ -186,22 +159,17 @@ const (
 	EventIsNtpClockSync      = 101
 	EventReplyIsNtpClockSync = 102
 	EventDelTxList           = 103
+	EventStoreGetTotalCoins  = 104
+	EventGetTotalCoinsReply  = 105
+	EventQueryTotalFee       = 106
+	EventSignRawTx           = 107
+	EventReplySignRawTx      = 108
+	EventSyncBlock           = 109
+	EventGetNetInfo          = 110
+	EventReplyNetInfo        = 111
+
 	// Token
-	EventTokenPreCreate         = 200
-	EventReplyTokenPreCreate    = 201
-	EventTokenFinishCreate      = 202
-	EventReplyTokenFinishCreate = 203
-	EventTokenRevokeCreate      = 204
-	EventReplyTokenRevokeCreate = 205
-	EventSellToken              = 206
-	EventReplySellToken         = 207
-	EventBuyToken               = 208
-	EventReplyBuyToken          = 209
-	EventRevokeSellToken        = 210
-	EventReplyRevokeSellToken   = 211
-	// config
-	EventModifyConfig      = 300
-	EventReplyModifyConfig = 301
+	EventBlockChainQuery = 212
 )
 
 var eventName = map[int]string{
@@ -308,22 +276,14 @@ var eventName = map[int]string{
 	101: "EventIsNtpClockSync",
 	102: "EventReplyIsNtpClockSync",
 	103: "EventDelTxList",
+	104: "EventStoreGetTotalCoins",
+	105: "EventGetTotalCoinsReply",
+	106: "EventQueryTotalFee",
+	107: "EventSignRawTx",
+	108: "EventReplySignRawTx",
+	109: "EventSyncBlock",
 	// Token
-	EventTokenPreCreate:         "EventTokenPreCreate",
-	EventReplyTokenPreCreate:    "EventReplyTokenPreCreate",
-	EventTokenFinishCreate:      "EventTokenFinishCreate",
-	EventReplyTokenFinishCreate: "EventReplyTokenFinishCreate",
-	EventTokenRevokeCreate:      "EventTokenRevokeCreate",
-	EventReplyTokenRevokeCreate: "EventReplyTokenRevokeCreate",
-	EventSellToken:              "EventSellToken",
-	EventReplySellToken:         "EventReplySellToken",
-	EventBuyToken:               "EventBuyToken",
-	EventReplyBuyToken:          "EventReplyBuyToken",
-	EventRevokeSellToken:        "EventRevokeSellToken",
-	EventReplyRevokeSellToken:   "EventReplyRevokeSellToken",
-	// config
-	EventModifyConfig:      "EventModifyConfig",
-	EventReplyModifyConfig: "EventReplyModifyConfig",
+	EventBlockChainQuery: "EventBlockChainQuery",
 }
 
 //ty = 1 -> secp256k1
@@ -415,14 +375,19 @@ const (
 	TicketActionBind    = 17
 )
 
-//hashlock const
+// hashlock status
 const (
 	HashlockActionLock   = 1
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
 )
 
-//retrieve
+//norm
+const (
+	NormActionPut = 1
+)
+
+// retrieve op
 const (
 	RetrievePre    = 1
 	RetrievePerf   = 2
@@ -430,19 +395,21 @@ const (
 	RetrieveCancel = 4
 )
 
+// token status
 const (
 	TokenStatusPreCreated = iota
 	TokenStatusCreated
 	TokenStatusCreateRevoked
 )
 
+// trade op
 const (
 	TradeSell = iota
 	TradeBuy
 	TradeRevokeSell
 )
 
-//0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
+// 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
 const (
 	NotStart = iota
 	OnSale
@@ -459,10 +426,12 @@ var SellOrderStatus = map[int32]string{
 	Expired:  "Expired",
 }
 
+// manager action
 const (
 	ManageActionModifyConfig = iota
 )
 
+// config items
 const (
 	ConfigItemArrayConfig = iota
 	ConfigItemIntConfig
@@ -477,8 +446,12 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 
 //hard fork block height
 const (
-	ForkV1            = 75260
-	ForkV2_add_token  = 100899
-	ForkV3            = 110000
-	ForkV4_add_manage = 120000
+	ForkV1               = 75260
+	ForkV2AddToken       = 100899
+	ForkV3               = 110000
+	ForkV4AddManage      = 120000
+	ForkV5Retrive        = 180000
+	ForkV6TokenBlackList = 190000
+	ForkV7BadTokenSymbol = 184000
+	ForkBlockHash        = 208986 + 200
 )

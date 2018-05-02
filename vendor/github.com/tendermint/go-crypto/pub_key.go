@@ -9,7 +9,7 @@ import (
 	"github.com/tendermint/ed25519/extra25519"
 	"github.com/tendermint/go-wire"
 	data "github.com/tendermint/go-wire/data"
-	. "github.com/tendermint/tmlibs/common"
+	//. "github.com/tendermint/tmlibs/common"
 	"golang.org/x/crypto/ripemd160"
 )
 

@@ -12,13 +12,12 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var clog = log.New("module", "execs.coins")
+//var clog = log.New("module", "execs.coins")
 
 func init() {
 	n := newCoins()
@@ -37,6 +36,13 @@ func newCoins() *Coins {
 
 func (c *Coins) GetName() string {
 	return "coins"
+}
+
+func (c *Coins) Clone() drivers.Driver {
+	clone := &Coins{}
+	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
 }
 
 func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -155,12 +161,12 @@ func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 func (c *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
 	reciver := types.Int64{}
-	db := c.GetQueryDB()
-	addrReciver := db.Get(calcAddrKey(addr.Addr))
-	if addrReciver == nil {
+	db := c.GetLocalDB()
+	addrReciver, err := db.Get(calcAddrKey(addr.Addr))
+	if addrReciver == nil || err != nil {
 		return &reciver, types.ErrEmpty
 	}
-	err := types.Decode(addrReciver, &reciver)
+	err = types.Decode(addrReciver, &reciver)
 	if err != nil {
 		return &reciver, err
 	}

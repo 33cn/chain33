@@ -7,17 +7,18 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func init() {
-	common.SetLogLevel("debug")
+	log.SetLogLevel("error")
 }
 
 func initEnv() (queue.Queue, queue.Module) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("chain33.toml")
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	s := New(cfg.Store)
 	s.SetQueueClient(q.Client())
 	return q, s
@@ -28,8 +29,9 @@ func set(client queue.Client, hash, key, value []byte) ([]byte, error) {
 	set := &types.StoreSet{}
 	set.StateHash = hash
 	set.KV = append(set.KV, kv)
+	setwithsync := &types.StoreSetWithSync{set, true}
 
-	msg := client.NewMessage("store", types.EventStoreSet, set)
+	msg := client.NewMessage("store", types.EventStoreSet, setwithsync)
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
 	if err != nil {
@@ -44,7 +46,7 @@ func setmem(client queue.Client, hash, key, value []byte) ([]byte, error) {
 	set.StateHash = hash
 	set.KV = append(set.KV, kv)
 
-	msg := client.NewMessage("store", types.EventStoreMemSet, set)
+	msg := client.NewMessage("store", types.EventStoreMemSet, &types.StoreSetWithSync{set, true})
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
 	if err != nil {
@@ -248,7 +250,8 @@ func BenchmarkSetKey1000(b *testing.B) {
 		set.KV = append(set.KV, kv)
 
 		if i > 0 && i%1000 == 0 {
-			msg := client.NewMessage("store", types.EventStoreSet, set)
+			setwithsync := &types.StoreSetWithSync{set, true}
+			msg := client.NewMessage("store", types.EventStoreSet, setwithsync)
 			client.Send(msg, true)
 			msg, err := client.Wait(msg)
 			if err != nil {

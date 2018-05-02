@@ -31,11 +31,12 @@ func DisableLog() {
 }
 
 type SubStore interface {
-	Set(datas *types.StoreSet) []byte
+	Set(datas *types.StoreSet, sync bool) []byte
 	Get(datas *types.StoreGet) [][]byte
-	MemSet(datas *types.StoreSet) []byte
+	MemSet(datas *types.StoreSet, sync bool) []byte
 	Commit(hash *types.ReqHash) []byte
 	Rollback(req *types.ReqHash) []byte
+	IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool)
 	ProcEvent(msg queue.Message)
 }
 
@@ -49,7 +50,7 @@ type BaseStore struct {
 //driver
 //dbpath
 func NewBaseStore(cfg *types.Store) *BaseStore {
-	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, 256)
+	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	store := &BaseStore{db: db}
 	store.done = make(chan struct{}, 1)
 	slog.Info("Enter store " + cfg.GetName())
@@ -65,6 +66,7 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 		for msg := range store.qclient.Recv() {
 			slog.Debug("store recv", "msg", msg)
 			store.processMessage(msg)
+			slog.Debug("store process end", "msg.id", msg.Id)
 		}
 		store.done <- struct{}{}
 	}()
@@ -73,16 +75,16 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 func (store *BaseStore) processMessage(msg queue.Message) {
 	client := store.qclient
 	if msg.Ty == types.EventStoreSet {
-		datas := msg.GetData().(*types.StoreSet)
-		hash := store.child.Set(datas)
+		datas := msg.GetData().(*types.StoreSetWithSync)
+		hash := store.child.Set(datas.Storeset, datas.Sync)
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreGet {
 		datas := msg.GetData().(*types.StoreGet)
 		values := store.child.Get(datas)
 		msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
 	} else if msg.Ty == types.EventStoreMemSet { //只是在内存中set 一下，并不改变状态
-		datas := msg.GetData().(*types.StoreSet)
-		hash := store.child.MemSet(datas)
+		datas := msg.GetData().(*types.StoreSetWithSync)
+		hash := store.child.MemSet(datas.Storeset, datas.Sync)
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
 		req := msg.GetData().(*types.ReqHash)
@@ -100,6 +102,12 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash}))
 		}
+	} else if msg.Ty == types.EventStoreGetTotalCoins {
+		req := msg.GetData().(*types.IterateRangeByStateHash)
+		resp := &types.ReplyGetTotalCoins{}
+		resp.Count = req.Count
+		store.child.IterateRangeByStateHash(req.StateHash, req.Start, req.End, true, resp.IterateRangeByStateHash)
+		msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
 	} else {
 		store.child.ProcEvent(msg)
 	}

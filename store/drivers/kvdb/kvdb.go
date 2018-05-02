@@ -1,6 +1,7 @@
 package kvdb
 
 import (
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -36,7 +37,7 @@ func (kvs *KVStore) Close() {
 	klog.Info("store kvdb closed")
 }
 
-func (kvs *KVStore) Set(datas *types.StoreSet) []byte {
+func (kvs *KVStore) Set(datas *types.StoreSet, sync bool) []byte {
 	hash := calcHash(datas)
 	kvmap := make(map[string]*types.KeyValue)
 	for _, kv := range datas.KV {
@@ -58,7 +59,7 @@ func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
 	} else {
 		db := kvs.GetDB()
 		for i := 0; i < len(datas.Keys); i++ {
-			value := db.Get(datas.Keys[i])
+			value, _ := db.Get(datas.Keys[i])
 			if value != nil {
 				values[i] = value
 			}
@@ -67,7 +68,7 @@ func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
-func (kvs *KVStore) MemSet(datas *types.StoreSet) []byte {
+func (kvs *KVStore) MemSet(datas *types.StoreSet, sync bool) []byte {
 	hash := calcHash(datas)
 	kvmap := make(map[string]*types.KeyValue)
 	for _, kv := range datas.KV {
@@ -101,6 +102,12 @@ func (kvs *KVStore) Rollback(req *types.ReqHash) []byte {
 	return req.Hash
 }
 
+func (kvs *KVStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
+	panic("empty")
+	//TODO:
+	//kvs.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, fn)
+}
+
 func (kvs *KVStore) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("KVStore", types.ErrActionNotSupport)
 }
@@ -117,7 +124,7 @@ func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
 	storeBatch.Write()
 }
 
-func calcHash(datas *types.StoreSet) []byte {
+func calcHash(datas proto.Message) []byte {
 	b := types.Encode(datas)
 	return common.Sha256(b)
 }

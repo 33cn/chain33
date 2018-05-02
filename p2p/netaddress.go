@@ -1,13 +1,15 @@
 package p2p
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"net"
 	"strconv"
 	"time"
 
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
 )
 
@@ -68,7 +70,7 @@ func NewNetAddressStrings(addrs []string) ([]*NetAddress, error) {
 	for i, addr := range addrs {
 		netAddr, err := NewNetAddressString(addr)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Error in address %s: %v", addr, err))
+			return nil, fmt.Errorf("error in address %s: %v", addr, err)
 		}
 		netAddrs[i] = netAddr
 	}
@@ -124,27 +126,45 @@ func (na *NetAddress) Copy() *NetAddress {
 }
 
 // DialTimeout calls net.DialTimeout on the address.
-func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig) (*grpc.ClientConn, error) {
+func isCompressSupport(err error) bool {
+	var errstr = `grpc: Decompressor is not installed for grpc-encoding "gzip"`
+	if grpc.Code(err) == codes.Unimplemented && grpc.ErrorDesc(err) == errstr {
+		return false
+	}
+	return true
+}
+
+func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.ClientConn, error) {
 	ch := make(chan grpc.ServiceConfig, 1)
 	ch <- cfg
 	var cliparm keepalive.ClientParameters
-	cliparm.Time = 5 * time.Second     //5秒Ping 一次
-	cliparm.Timeout = 5 * time.Second  //等待5秒，如果Ping 没有响应，则超时
+	cliparm.Time = 10 * time.Second    //10秒Ping 一次
+	cliparm.Timeout = 10 * time.Second //等待10秒，如果Ping 没有响应，则超时
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
-	//暂时不开放 压缩发送解压缩
-	//gizpCompressDialOp := grpc.WithCompressor(grpc.NewGZIPCompressor())  //采用gzip 压缩格式发送
-	//gizpDeComDialOp := grpc.WithDecompressor(grpc.NewGZIPDecompressor()) //采用gzip 解压缩格式解压
 
 	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch),
-		/*gizpCompressDialOp, gizpDeComDialOp,*/ keepaliveOp)
+		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), keepaliveOp)
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect", err)
 		return nil, err
 	}
-
+	//判断是否对方是否支持压缩
+	cli := pb.NewP2PgserviceClient(conn)
+	_, err = cli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: version})
+	if err != nil && !isCompressSupport(err) {
+		//compress not support
+		log.Error("compress not supprot , rollback to uncompress version")
+		conn.Close()
+		ch2 := make(chan grpc.ServiceConfig, 1)
+		ch2 <- cfg
+		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch2), keepaliveOp)
+	}
+	if err != nil {
+		log.Error("grpc DialCon", "did not connect", err)
+		return nil, err
+	}
 	return conn, nil
-
 }
 
 // Routable returns true if the address is routable.
@@ -172,9 +192,9 @@ func (na *NetAddress) ReachabilityTo(o *NetAddress) int {
 		Unreachable = 0
 		Default     = iota
 		Teredo
-		Ipv6_weak
+		Ipv6Weak
 		Ipv4
-		Ipv6_strong
+		Ipv6Strong
 	)
 	if !na.Routable() {
 		return Unreachable
@@ -186,7 +206,7 @@ func (na *NetAddress) ReachabilityTo(o *NetAddress) int {
 		} else if o.IP.To4() != nil {
 			return Ipv4
 		} else { // ipv6
-			return Ipv6_weak
+			return Ipv6Weak
 		}
 	} else if na.IP.To4() != nil {
 		if o.Routable() && o.IP.To4() != nil {
@@ -207,9 +227,9 @@ func (na *NetAddress) ReachabilityTo(o *NetAddress) int {
 			return Ipv4
 		} else if tunnelled {
 			// only prioritise ipv6 if we aren't tunnelling it.
-			return Ipv6_weak
+			return Ipv6Weak
 		}
-		return Ipv6_strong
+		return Ipv6Strong
 	}
 }
 

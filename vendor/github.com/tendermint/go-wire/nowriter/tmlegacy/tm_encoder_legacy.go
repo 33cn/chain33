@@ -2,11 +2,17 @@ package tmlegacy
 
 import (
 	"encoding/binary"
-	cmn "github.com/tendermint/tmlibs/common"
+	//cmn "github.com/tendermint/tmlibs/common"
 	"io"
 	"math"
 	"time"
+	"fmt"
 )
+var Fmt = fmt.Sprintf
+
+func PanicSanity(v interface{}) {
+	panic(Fmt("Panicked on a Sanity Check: %v", v))
+}
 
 // Implementation of the legacy (`TMEncoderFastIOWriter`) interface
 type TMEncoderLegacy struct {
@@ -62,7 +68,7 @@ func (e *TMEncoderLegacy) WriteTime(t time.Time, w io.Writer, n *int, err *error
 	nanosecs := t.UnixNano()
 	millisecs := nanosecs / 1000000
 	if nanosecs < 0 {
-		cmn.PanicSanity("can't encode times below 1970")
+		PanicSanity("can't encode times below 1970")
 	} else {
 		e.WriteInt64(millisecs*1000000, w, n, err)
 	}
