@@ -464,6 +464,37 @@ message TradeForRevokeBuy {
     string buyid = 1;
 }
 
+message ReceiptBuyLimitBase {
+	string tokenSymbol          = 1;
+	string owner                = 2;
+    string amountPerBoardlot    = 3;
+	int64 minBoardlot           = 4;
+    string pricePerBoardlot     = 5;
+	int64 totalboardlot         = 6;
+	int64 soldboardlot          = 7;
+	string  buyid              = 8;
+    string  status              = 9;
+}
+
+message ReceiptTradeBuyLimit {
+	ReceiptBuyLimitBase base = 1;
+}
+
+message ReceiptTradeBuyRevoke {
+	ReceiptBuyLimitBase base = 1;
+}
+
+message ReceiptTradeSellMarket {
+	string sellerAddr            = 1;
+	string buyid                 = 2;
+	string token                 = 3;
+	int64 boardlotCnt            = 4;
+	string amountPerBoardlot     = 5;
+	string pricePerBoardlot      = 6;
+    string sellTxhash            = 7;
+}
+
+
 message ReceiptTradeBase {
 	string tokensymbol          = 1;
 	string owner                = 2;
