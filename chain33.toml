@@ -52,7 +52,7 @@ poolCacheSize=10240
 minTxFee=100000
 
 [consensus]
-name="pbft"
+name="tendermint"
 minerstart=false
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394

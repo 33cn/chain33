@@ -16,10 +16,10 @@ import (
 	log "github.com/inconshreveable/log15"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/gogo/protobuf/proto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 )
 
 //-----------------------------------------------------------------------------
@@ -77,10 +77,7 @@ type ConsensusState struct {
 	// services for creating and executing blocks
 	// TODO: encapsulate all of this in one "BlockManager"
 	blockExec  *sm.BlockExecutor
-/*
-	mempool    ttypes.Mempool
-*/
-	blockStore *BlockStore
+
 	evpool     ttypes.EvidencePool
 
 	// internal state
@@ -117,16 +114,14 @@ type ConsensusState struct {
 
 	NewTxsHeight  chan int64
 	NewTxsFinished   chan bool
-	SyncLastBlock       bool
+	blockStore     *ttypes.BlockStore
 }
 
 // NewConsensusState returns a new ConsensusState.
-func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *BlockStore, blockExec *sm.BlockExecutor, evpool ttypes.EvidencePool) *ConsensusState {
+func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore, state sm.State, blockExec *sm.BlockExecutor, evpool ttypes.EvidencePool) *ConsensusState {
 	cs := &ConsensusState{
 		client:           client,
 		blockExec:        blockExec,
-		blockStore:       blockStore,
-		//mempool:          mempool,
 		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
 		timeoutTicker:    NewTimeoutTicker(),
@@ -137,7 +132,7 @@ func NewConsensusState(client *drivers.BaseClient, state sm.State, blockStore *B
 
 		NewTxsHeight:     make(chan int64, 1),
 		NewTxsFinished:   make(chan bool),
-		SyncLastBlock:    false,
+		blockStore:       blockStore,
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -217,8 +212,8 @@ func (cs *ConsensusState) SetTimeoutTicker(timeoutTicker TimeoutTicker) {
 
 // LoadCommit loads the commit for a given height.
 func (cs *ConsensusState) LoadCommit(height int64) *ttypes.Commit {
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
+	//cs.mtx.Lock()
+	//defer cs.mtx.Unlock()
 	if height == cs.blockStore.Height() {
 		return cs.blockStore.LoadSeenCommit(height)
 	}
@@ -227,7 +222,7 @@ func (cs *ConsensusState) LoadCommit(height int64) *ttypes.Commit {
 
 // OnStart implements cmn.Service.
 // It loads the latest state via the WAL, and starts the timeout and receive routines.
-func (cs *ConsensusState) Start() error {
+func (cs *ConsensusState) OnStart() error {
 	// we may set the WAL in testing before calling Start,
 	// so only OpenWAL if its still the nilWAL
 
@@ -744,9 +739,12 @@ func (cs *ConsensusState) needProofBlock(height int64) bool {
 		return true
 	}
 	cs.Logger.Info("needProofBlock", "height", height)
-	lastBlockMeta := cs.blockStore.LoadBlockMeta(height - 1)
+	/*
+	lastBlockMeta := cs.client.LoadBlockMeta(height - 1)
 	cs.Logger.Info("needProofBlock", "lastBlockMeta", lastBlockMeta, "apphash", cs.state.AppHash, "headerhash", lastBlockMeta.Header.AppHash)
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
+	*/
+	return false
 }
 
 func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
@@ -1276,84 +1274,85 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 	//no need do below when just sync from other node
 	//out p2p already synced
-	if !cs.SyncLastBlock {
-		//hg 20180302
-		if cs.isProposer() {
-			cs.Logger.Info("i am proposer to commit block")
-			if len(block.Data.Txs) == 0 {
-				cs.Logger.Error("txs of block is empty")
+
+	//hg 20180302
+	if cs.isProposer() {
+		cs.Logger.Info("i am proposer to commit block")
+		if len(block.Data.Txs) == 0 {
+			cs.Logger.Error("txs of block is empty")
+		}
+		var newblock gtypes.Block
+		var err error
+		newblock.ParentHash = block.LastParentHash
+		newblock.Height = block.Height
+		newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
+		if err !=nil{
+			cs.Logger.Error("convert TXs to transaction failed", "err", err)
+			return
+		}
+
+		//add info to tx[0]
+		lastCommit := block.LastCommit
+		precommits := cs.Votes.Precommits(cs.CommitRound)
+		seenCommit := precommits.MakeCommit()
+		tx0 := cs.blockStore.CreateCommitTx(lastCommit, seenCommit)
+		newblock.Txs = append([]*types.Transaction{tx0}, newblock.Txs...)
+		//fail.Fail() // XXX
+
+		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		if block.LastBlockTime == 0 {
+			newblock.BlockTime = time.Now().Unix()
+			if block.LastBlockTime >= newblock.BlockTime {
+				newblock.BlockTime = block.LastBlockTime + 1
 			}
-			var newblock gtypes.Block
-			var err error
-			newblock.ParentHash = block.LastParentHash
-			newblock.Height = block.Height
-			newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
-			if err !=nil{
-				cs.Logger.Error("convert TXs to transaction failed", "err", err)
-				return
-			}
-
-			//fail.Fail() // XXX
-
-			newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-			if block.LastBlockTime == 0 {
-				newblock.BlockTime = time.Now().Unix()
-				if block.LastBlockTime >= newblock.BlockTime {
-					newblock.BlockTime = block.LastBlockTime + 1
-				}
-			} else {
-				newblock.BlockTime = block.LastBlockTime
-			}
-
-
-			err = cs.client.WriteBlock(block.LastStateHash, &newblock)
-			if err != nil {
-				cs.Logger.Info("NewTxsFinished set false")
-				cs.NewTxsFinished <- false
-				err := cmn.Kill()
-				cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
-				return
-			}
-
 		} else {
-			times := 0
-			for {
-				if cs.client.GetCurrentHeight() >= block.Height {
-					cs.Logger.Info("finalizeCommit:get current height equal or higher", "p2p-height", cs.client.GetCurrentHeight(), "consensus-height", block.Height)
-					break
-				} else {
-					cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
-					time.Sleep(10*time.Millisecond)
-					times++
-					//wait 30s
-					if times >= 3000 {
-						cs.scheduleTimeout(cs.Precommit(cs.CommitRound), height, cs.CommitRound, ttypes.RoundStepPrecommitWait)
-						cs.updateRoundStep(cs.CommitRound, ttypes.RoundStepPrecommitWait)
-						cs.newStep()
-						return
-					}
+			newblock.BlockTime = block.LastBlockTime
+		}
+
+		err = cs.client.WriteBlock(block.LastStateHash, &newblock)
+		if err != nil {
+			cs.Logger.Info("NewTxsFinished set false")
+			cs.NewTxsFinished <- false
+			err := cmn.Kill()
+			cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
+			return
+		}
+
+	} else {
+		times := 0
+		for {
+			if cs.client.GetCurrentHeight() >= block.Height {
+				cs.Logger.Info("finalizeCommit:get current height equal or higher", "p2p-height", cs.client.GetCurrentHeight(), "consensus-height", block.Height)
+				break
+			} else {
+				cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
+				time.Sleep(10*time.Millisecond)
+				times++
+				//wait 30s
+				if times >= 3000 {
+					cs.scheduleTimeout(cs.Precommit(cs.CommitRound), height, cs.CommitRound, ttypes.RoundStepPrecommitWait)
+					cs.updateRoundStep(cs.CommitRound, ttypes.RoundStepPrecommitWait)
+					cs.newStep()
+					return
 				}
 			}
 		}
-		cs.Logger.Info("NewTxsFinished set true")
-		cs.NewTxsFinished <- true
-	} else {
-		cs.Logger.Info("SyncLastBlock set false")
-		cs.SyncLastBlock = false
 	}
-
+	cs.Logger.Info("NewTxsFinished set true")
+	cs.NewTxsFinished <- true
+/*
 	// Save to blockStore.
-	if cs.blockStore.Height() < block.Height {
+	if cs.client.Height() < block.Height {
 		// NOTE: the seenCommit is local justification to commit this block,
 		// but may differ from the LastCommit included in the next block
 		precommits := cs.Votes.Precommits(cs.CommitRound)
 		seenCommit := precommits.MakeCommit()
-		cs.blockStore.SaveBlock(block, blockParts, seenCommit)
+		cs.client.SaveBlock(block, blockParts, seenCommit)
 	} else {
 		// Happens during replay if we already saved the block but didn't commit
 		cs.Logger.Info("Calling finalizeCommit on already stored block", "height", block.Height)
 	}
-
+*/
 	//fail.Fail() // XXX
 
 	// Finish writing to the WAL for this height.
@@ -1715,4 +1714,8 @@ func (cs *ConsensusState) PeerGossipSleep() time.Duration {
 // PeerQueryMaj23Sleep returns the amount of time to sleep after each VoteSetMaj23Message is sent in the ConsensusReactor
 func (cs *ConsensusState) PeerQueryMaj23Sleep() time.Duration {
 	return time.Duration(/*cs.PeerQueryMaj23SleepDuration*/2000) * time.Millisecond
+}
+
+func (cs *ConsensusState) IsProposer() bool {
+	return cs.isProposer()
 }
