@@ -157,6 +157,7 @@ It has these top-level messages:
 	ReceiptTradeRevoke
 	TradeBuyDone
 	ReplyTradeBuyOrders
+	ReplyBuyLimitOrders
 	ArrayConfig
 	StringConfig
 	Int32Config
@@ -166,6 +167,7 @@ It has these top-level messages:
 	ReceiptConfig
 	ReplyConfig
 	ReqTokenSellOrder
+	ReqTokenBuyLimitOrder
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
