@@ -20,41 +20,41 @@ func DisableLog() {
 	mlog.SetHandler(log.DiscardHandler())
 }
 
-type MavlStore struct {
+type Store struct {
 	*drivers.BaseStore
-	trees map[string]*mavl.MAVLTree
+	trees map[string]*mavl.Tree
 	cache *lru.Cache
 }
 
-func New(cfg *types.Store) *MavlStore {
+func New(cfg *types.Store) *Store {
 	bs := drivers.NewBaseStore(cfg)
-	mavls := &MavlStore{bs, make(map[string]*mavl.MAVLTree), nil}
+	mavls := &Store{bs, make(map[string]*mavl.Tree), nil}
 	mavls.cache, _ = lru.New(10)
 	bs.SetChild(mavls)
 	return mavls
 }
 
-func (mavls *MavlStore) Close() {
+func (mavls *Store) Close() {
 	mavls.BaseStore.Close()
 	mlog.Info("store mavl closed")
 }
 
-func (mavls *MavlStore) Set(datas *types.StoreSet) []byte {
-	hash := mavl.SetKVPair(mavls.GetDB(), datas)
+func (mavls *Store) Set(datas *types.StoreSet, sync bool) []byte {
+	hash := mavl.SetKVPair(mavls.GetDB(), datas, sync)
 	return hash
 }
 
-func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
-	var tree *mavl.MAVLTree
+func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
+	var tree *mavl.Tree
 	var err error
 	values := make([][]byte, len(datas.Keys))
 	search := string(datas.StateHash)
 	if data, ok := mavls.cache.Get(search); ok {
-		tree = data.(*mavl.MAVLTree)
+		tree = data.(*mavl.Tree)
 	} else if data, ok := mavls.trees[search]; ok {
 		tree = data
 	} else {
-		tree = mavl.NewMAVLTree(mavls.GetDB())
+		tree = mavl.NewTree(mavls.GetDB(), true)
 		err = tree.Load(datas.StateHash)
 		if err == nil {
 			mavls.cache.Add(search, tree)
@@ -72,8 +72,8 @@ func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
-func (mavls *MavlStore) MemSet(datas *types.StoreSet) []byte {
-	tree := mavl.NewMAVLTree(mavls.GetDB())
+func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) []byte {
+	tree := mavl.NewTree(mavls.GetDB(), sync)
 	tree.Load(datas.StateHash)
 	for i := 0; i < len(datas.KV); i++ {
 		tree.Set(datas.KV[i].Key, datas.KV[i].Value)
@@ -86,7 +86,7 @@ func (mavls *MavlStore) MemSet(datas *types.StoreSet) []byte {
 	return hash
 }
 
-func (mavls *MavlStore) Commit(req *types.ReqHash) []byte {
+func (mavls *Store) Commit(req *types.ReqHash) []byte {
 	tree, ok := mavls.trees[string(req.Hash)]
 	if !ok {
 		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
@@ -97,7 +97,7 @@ func (mavls *MavlStore) Commit(req *types.ReqHash) []byte {
 	return req.Hash
 }
 
-func (mavls *MavlStore) Rollback(req *types.ReqHash) []byte {
+func (mavls *Store) Rollback(req *types.ReqHash) []byte {
 	_, ok := mavls.trees[string(req.Hash)]
 	if !ok {
 		mlog.Error("store mavl rollback", "err", types.ErrHashNotFound)
@@ -107,6 +107,10 @@ func (mavls *MavlStore) Rollback(req *types.ReqHash) []byte {
 	return req.Hash
 }
 
-func (mavls *MavlStore) ProcEvent(msg queue.Message) {
-	msg.ReplyErr("MavlStore", types.ErrActionNotSupport)
+func (mavls *Store) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
+	mavl.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, fn)
+}
+
+func (mavls *Store) ProcEvent(msg queue.Message) {
+	msg.ReplyErr("Store", types.ErrActionNotSupport)
 }

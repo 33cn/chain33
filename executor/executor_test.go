@@ -2,17 +2,16 @@ package executor_test
 
 import (
 	//"errors"
-	"flag"
 	"math/rand"
 	"testing"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
@@ -33,17 +32,16 @@ func init() {
 		panic(err)
 	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	common.SetLogLevel("info")
+	log.SetLogLevel("error")
 }
 
 func initEnv() (queue.Queue, *blockchain.BlockChain, queue.Module, queue.Module, *p2p.P2p, *mempool.Mempool) {
 	var q = queue.New("channel")
-	flag.Parse()
-	cfg := config.InitCfg("chain33.test.toml")
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New()
+	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
@@ -111,8 +109,8 @@ func TestExecBlock(t *testing.T) {
 	defer cs.Close()
 	defer p2pnet.Close()
 	defer mem.Close()
-	block := createBlock(10000)
-	util.ExecBlock(q.Client(), zeroHash[:], block, false)
+	block := createBlock(10)
+	util.ExecBlock(q.Client(), zeroHash[:], block, false, true)
 }
 
 //gen 1万币需要 2s，主要是签名的花费
@@ -133,6 +131,23 @@ func BenchmarkExecBlock(b *testing.B) {
 	block := createBlock(10000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		util.ExecBlock(q.Client(), zeroHash[:], block, false)
+		util.ExecBlock(q.Client(), zeroHash[:], block, false, true)
+	}
+}
+
+func TestLoadDriver(t *testing.T) {
+	d, err := executor.LoadDriver("none")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if d.GetName() != "none" {
+		t.Error(d.GetName())
+	}
+
+	// if no, happen panic!
+	driver := d.Clone()
+	if driver.GetName() != "none" {
+		t.Error(d.GetName())
 	}
 }

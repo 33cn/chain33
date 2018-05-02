@@ -2,11 +2,11 @@ package rpc
 
 import (
 	"encoding/hex"
-	//"errors"
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -58,14 +58,11 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	}
 	types.Decode(data, &parm)
 	log.Debug("SendTransaction", "parm", parm)
-	reply := c.cli.SendTx(&parm)
-	if reply.GetData().(*types.Reply).IsOk {
-		*result = common.ToHex(reply.GetData().(*types.Reply).Msg)
-		return nil
-	} else {
-		return fmt.Errorf(string(reply.GetData().(*types.Reply).Msg))
+	reply, err := c.cli.api.SendTx(&parm)
+	if err == nil {
+		*result = common.ToHex(reply.GetMsg())
 	}
-
+	return err
 }
 
 func (c *Chain33) GetHexTxByHash(in QueryParm, result *interface{}) error {
@@ -732,11 +729,12 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	return nil
 }
 
-func (c *Chain33) Query(in Query, result *interface{}) error {
-	decodePayload, err := hex.DecodeString(in.Payload)
+func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
+	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
 		return err
 	}
+
 	resp, err := c.cli.QueryHash(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
@@ -794,45 +792,21 @@ func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
 }
 
 func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
-	*result = common.GetVersion()
+	*result = version.GetVersion()
+	return nil
+}
+
+func (c *Chain33) GetTotalCoins(in *types.ReqGetTotalCoins, result *interface{}) error {
+	resp, err := c.cli.GetTotalCoins(in)
+	if err != nil {
+		return err
+	}
+	*result = resp
 	return nil
 }
 
 func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
 	*result = c.cli.IsSync()
-	return nil
-}
-func (c *Chain33) SellToken(in types.ReqSellToken, result *interface{}) error {
-
-	reply, err := c.cli.SellToken(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-	return nil
-}
-
-func (c *Chain33) BuyToken(in types.ReqBuyToken, result *interface{}) error {
-
-	reply, err := c.cli.BuyToken(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-	return nil
-}
-
-func (c *Chain33) RevokeSellToken(in types.ReqRevokeSell, result *interface{}) error {
-
-	reply, err := c.cli.RevokeSellToken(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-
 	return nil
 }
 
@@ -894,33 +868,6 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		To:     tx.To,
 	}
 	return result, nil
-}
-func (c *Chain33) TokenPreCreate(in types.ReqTokenPreCreate, result *interface{}) error {
-	reply, err := c.cli.TokenPreCreate(&in)
-	if err != nil {
-		return err
-	}
-	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
-	return nil
-}
-
-func (c *Chain33) TokenFinishCreate(in types.ReqTokenFinishCreate, result *interface{}) error {
-	reply, err := c.cli.TokenFinishCreate(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
-	return nil
-}
-
-func (c *Chain33) TokenRevokeCreate(in types.ReqTokenRevokeCreate, result *interface{}) error {
-	reply, err := c.cli.TokenRevokeCreate(&in)
-	if err != nil {
-		return err
-	}
-	*result = &ReplyHash{Hash: common.ToHex(reply.GetHash())}
-	return nil
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
@@ -1186,7 +1133,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		default:
-			log.Error("DecodeLog", "Fail to decodeLog with type value:%d", l.Ty)
+			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"
 			logIns = nil
 		}
@@ -1197,5 +1144,100 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 
 func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 	*result = c.cli.IsNtpClockSync()
+	return nil
+}
+
+func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
+	reply, err := c.cli.QueryTotalFee(in)
+	if err != nil {
+		return err
+	}
+
+	var fee types.TotalFee
+	err = types.Decode(reply.Values[0], &fee)
+	if err != nil {
+		return err
+	}
+	*result = fee
+	return nil
+}
+
+func (c *Chain33) CreateRawTokenPreCreateTx(in *TokenPreCreateTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTokenPreCreateTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTokenFinishTx(in *TokenFinishTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTokenFinishTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTokenRevokeTx(in *TokenRevokeTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTokenRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeSellTx(in *TradeSellTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeSellTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeBuyTx(in *TradeBuyTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeBuyTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
+	resp, err := c.cli.SignRawTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = resp.TxHex
+	return nil
+}
+
+func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetNetInfo()
+	if err != nil {
+		return err
+	}
+
+	*result = &NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService()}
 	return nil
 }

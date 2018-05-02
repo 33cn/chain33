@@ -4,9 +4,20 @@ import (
 	"bytes"
 	"io/ioutil"
 
-	. "github.com/tendermint/tmlibs/common"
+	//. "github.com/tendermint/tmlibs/common"
 	"golang.org/x/crypto/openpgp/armor"
+	"fmt"
 )
+
+var Fmt = fmt.Sprintf
+
+func PanicSanity(v interface{}) {
+	panic(Fmt("Panicked on a Sanity Check: %v", v))
+}
+
+func PanicCrisis(v interface{}) {
+	panic(Fmt("Panicked on a Crisis: %v", v))
+}
 
 func EncodeArmor(blockType string, headers map[string]string, data []byte) string {
 	buf := new(bytes.Buffer)

@@ -1,44 +1,38 @@
 package p2p
 
 import (
-	"sync"
 	"sync/atomic"
 	"time"
+
+	lru "github.com/hashicorp/golang-lru"
 )
 
-var Filter *Filterdata
+var Filter = NewFilter()
 
 func NewFilter() *Filterdata {
 	filter := new(Filterdata)
-	filter.regRData = make(map[string]time.Duration)
+	filter.regRData, _ = lru.New(P2pCacheTxSize)
 	return filter
 }
 
 type Filterdata struct {
-	rmtx     sync.Mutex
 	isclose  int32
-	regRData map[string]time.Duration
+	regRData *lru.Cache
 }
 
 func (f *Filterdata) RegRecvData(key string) bool {
-	f.rmtx.Lock()
-	defer f.rmtx.Unlock()
-	f.regRData[key] = time.Duration(time.Now().Unix())
+	f.regRData.Add(key, time.Duration(time.Now().Unix()))
 	return true
 }
 
 func (f *Filterdata) QueryRecvData(key string) bool {
-	f.rmtx.Lock()
-	defer f.rmtx.Unlock()
-	_, ok := f.regRData[key]
+	ok := f.regRData.Contains(key)
 	return ok
 
 }
 
 func (f *Filterdata) RemoveRecvData(key string) {
-	f.rmtx.Lock()
-	defer f.rmtx.Unlock()
-	delete(f.regRData, key)
+	f.regRData.Remove(key)
 }
 
 func (f *Filterdata) Close() {
@@ -54,20 +48,17 @@ func (f *Filterdata) ManageRecvFilter() {
 	var timeout int64 = 60
 	defer ticker.Stop()
 	for {
-
-		select {
-
-		case <-ticker.C:
-			f.rmtx.Lock()
-			now := time.Now().Unix()
-			for key, regtime := range f.regRData {
-				if now-int64(regtime) > timeout {
-					delete(f.regRData, key)
-				}
+		<-ticker.C
+		now := time.Now().Unix()
+		for _, key := range f.regRData.Keys() {
+			regtime, _ := f.regRData.Get(key)
+			if now-int64(regtime.(time.Duration)) < timeout {
+				break
 			}
-			f.rmtx.Unlock()
+			f.regRData.Remove(key)
 		}
-		if f.isClose() == false {
+
+		if !f.isClose() {
 			return
 		}
 	}

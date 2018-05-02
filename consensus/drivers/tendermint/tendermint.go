@@ -61,7 +61,11 @@ func DefaultDBProvider(ID string) (dbm.DB, error) {
 
 // panics if failed to unmarshal bytes
 func loadGenesisDoc(db dbm.DB) (*ttypes.GenesisDoc, error) {
-	bytes := db.Get(genesisDocKey)
+	bytes,e := db.Get(genesisDocKey)
+	if e != nil {
+		tendermintlog.Error(fmt.Sprintf(`loadGenesisDoc: db get key %v failed:%v\n`, genesisDocKey, e))
+		return nil, e
+	}
 	if len(bytes) == 0 {
 		return nil, errors.New("Genesis doc not found")
 	} else {
@@ -311,7 +315,7 @@ func (client *TendermintClient) ExecBlock(prevHash []byte, block *types.Block) (
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, false)
 	if err != nil { //never happen
 		return nil, deltx, err
 	}

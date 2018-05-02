@@ -4,14 +4,18 @@
 # 3. make build
 # ...
 
+SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
+SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
+SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
 APP := build/chain33
 CLI := build/chain33-cli
+SIGNATORY := build/signatory-server
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := $(shell go list ./... | grep -v /vendor/)
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
+BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
+.PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker protobuf clean help
 
-.PHONY: default dep all build release cli linter lint race test fmt vet bench msan coverage coverhtml docker protobuf clean help
-
-default: build
+default: build cli
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -19,39 +23,64 @@ dep: ## Get the dependencies
 	@go get -u github.com/mitchellh/gox
 
 all: ## Builds for multiple platforms
-	@gox $(LDFLAGS)
+	@gox  $(LDFLAGS) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 	@mv chain33* build/
 
-ticket:
-	go build -i -v -o chain33
-	./chain33 -f chain33.test.toml
-
 build: ## Build the binary file
-	@go build -v -o $(APP)
-	@cp chain33.toml build/
+	@go build $(BUILD_FLAGS) -v -i -o  $(APP) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
 
 release: ## Build the binary file
-	@go build -v -o $(APP) $(LDFLAGS)
-	@cp chain33.toml build/
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
+	@cp cmd/chain33/chain33.toml build/
 
 cli: ## Build cli binary
-	@go build -v -o $(CLI) cli/cli.go
+	@go build -v -o $(CLI) $(SRC_CLI)
 
-linter: ## Use gometalinter check code
-	@gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
-	--enable=deadcode --enable=staticcheck --enable=unused --enable=varcheck --vendor ./...
+signatory:
+	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
+	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
+	@cp cmd/signatory-server/signatory.toml build/
 
-lint: ## Lint the files
-	@golint -set_exit_status ${PKG_LIST}
+build_ci: ## Build the binary file for CI
+	@go build -race -v -o $(CLI) $(SRC_CLI)
+	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
+	@cp cmd/chain33/chain33.toml build/
+
+linter: ## Use gometalinter check code, ignore some unserious warning
+	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
+	--enable=gofmt \
+	--enable=gosimple \
+	--enable=deadcode \
+	--enable=unconvert \
+	--enable=interfacer \
+	--enable=varcheck \
+	--enable=structcheck \
+	--enable=goimports \
+	--vendor ./...) \
+#	--enable=vet \
+#	--enable=staticcheck \
+#	--enable=gocyclo \
+#	--enable=staticcheck \
+#	--enable=golint \
+#	--enable=unused \
+#	--enable=gotype \
+#	--enable=gotypex \
+	if [ -n "$$res" ]; then \
+		echo "$${res}"; \
+		exit 1; \
+		fi;
 
 race: dep ## Run data race detector
 	@go test -race -short ./...
 
 test: ## Run unittests
-	@go test -short -v ./...
+	@go test -parallel 1 -race $(PKG_LIST)
 
 fmt: ## go fmt
 	@go fmt ./...
+	@$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w)
 
 vet: ## go vet
 	@go vet ./...
@@ -72,9 +101,10 @@ docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
 clean: ## Remove previous build
-	@rm -rf build/datadir
+	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
 	@rm -rf build/chain33*
 	@rm -rf build/*.log
+	@rm -rf build/logs
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
@@ -86,8 +116,20 @@ help: ## Display this help screen
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	
 cleandata:
-	rm -rf datadir/addrbook
-	rm -rf datadir/blockchain.db
-	rm -rf datadir/mavltree
-	rm -rf chain33.log
+	rm -rf build/datadir/addrbook
+	rm -rf build/datadir/blockchain.db
+	rm -rf build/datadir/mavltree
+	rm -rf build/chain33.log
 
+.PHONY: checkgofmt
+checkgofmt: ## get all go files and run go fmt on them
+	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
+		  echo "Error: 'make fmt' needs to be run on:"; \
+		  echo "$${files}"; \
+		  exit 1; \
+		  fi;
+	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w); if [ -n "$$files" ]; then \
+		  echo "Error: 'make fmt' needs to be run on:"; \
+		  echo "$${files}"; \
+		  exit 1; \
+		  fi;

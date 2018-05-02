@@ -6,13 +6,13 @@ message Config {
 	string title = 1;
 	Log log = 2;
 	Store store = 3;
-	LocalStore localStore = 4;
 	Consensus consensus = 5;
 	MemPool memPool = 6;
 	BlockChain blockChain = 7;
 	Wallet wallet = 8;
 	P2P p2p = 9;
-	Rpc rpc=10;
+	Rpc rpc = 10;
+	Exec exec = 11;
 }
 
 message Log {
@@ -39,6 +39,7 @@ message Log {
 message MemPool {
 	int64 poolCacheSize = 1;
 	int64 minTxFee = 2;
+	bool forceAccept = 3;
 }
 
 message Consensus {
@@ -47,35 +48,43 @@ message Consensus {
 	bool minerstart = 3;
 	int64 genesisBlockTime = 4;
 	string hotkeyAddr = 5;
-	int32 timeoutPropose = 6;
-  int32 timeoutProposeDelta = 7;
-  int32 timeoutPrevote = 8;
-  int32 timeoutPrevoteDelta = 9;
-  int32 timeoutPrecommit = 10;
-  int32 timeoutPrecommitDelta = 11;
-  int32 timeoutCommit = 12;
-  bool skipTimeoutCommit = 13;
-  bool createEmptyBlocks = 14;
-  int32 createEmptyBlocksInterval = 15;
-  repeated string seeds=16;
+	bool forceMining = 6;
+	int64 NodeId = 7;
+	string PeersURL = 8;
+	string ClientAddr = 9;
+	int64 raftApiPort = 15;
+	bool isNewJoinNode = 16;
+	string readOnlyPeersURL = 17;
+	string addPeersURL = 18;
+	int64 defaultSnapCount = 19;
+	int32 timeoutPropose = 20;
+  int32 timeoutProposeDelta = 21;
+  int32 timeoutPrevote = 22;
+  int32 timeoutPrevoteDelta = 23;
+  int32 timeoutPrecommit = 24;
+  int32 timeoutPrecommitDelta = 25;
+  int32 timeoutCommit = 26;
+  bool skipTimeoutCommit = 27;
+  bool createEmptyBlocks = 28;
+  int32 createEmptyBlocksInterval = 29;
+  repeated string seeds=30;
 }
 
 message Wallet {
 	int64 minFee = 1;
 	string driver = 2;
 	string dbPath = 3;
-	string signType =4;
+	int32 dbCache = 4;
+	string signType =5;
+	bool forceMining = 6;
+	bool minerdisable = 7;
 }
 
 message Store {
 	string name = 1;
 	string driver = 2;
 	string dbPath = 3;
-}
-
-message LocalStore {
-	string driver = 1;
-	string dbPath = 2;
+	int32 dbCache = 4;
 }
 
 message BlockChain {
@@ -85,26 +94,35 @@ message BlockChain {
 	int64 batchBlockNum = 4;
 	string driver = 5;
 	string dbPath = 6;
-	bool isStrongConsistency = 7;
-	bool singleMode = 8;
+	int32 dbCache = 7;
+	bool isStrongConsistency = 8;
+	bool singleMode = 9;
+	bool batchsync = 10;
 }
 
 message P2P {
 	int32 seedPort = 1;
-	string dbPath = 2;
-	string grpcLogFile = 3;
-	bool isSeed = 4;
-	bool serverStart=5;
-	repeated string seeds = 6;
-	bool enable = 7;
-	int32 msgCacheSize = 8;
-	int32 version = 9;
-	int32 verMix = 10;
-	int32 verMax = 11;
+	string driver = 2;
+	string dbPath = 3;
+	int32 dbCache = 4;
+	string grpcLogFile = 5;
+	bool isSeed = 6;
+	bool serverStart=7;
+	repeated string seeds = 8;
+	bool enable = 9;
+	int32 msgCacheSize = 10;
+	int32 version = 11;
+	int32 verMix = 12;
+	int32 verMax = 13;
 }
 
 message Rpc {
 	string jrpcBindAddr=1;
 	string grpcBindAddr=2;
 	repeated string whitlist=3;
+}
+
+message Exec {
+	int64 minExecFee = 1;
+	bool  isFree = 2;
 }

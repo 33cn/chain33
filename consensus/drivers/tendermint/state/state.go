@@ -229,7 +229,10 @@ func LoadState(db dbm.DB) State {
 }
 
 func loadState(db dbm.DB, key []byte) (state State) {
-	buf := db.Get(key)
+	buf,e := db.Get(key)
+	if e != nil {
+		fmt.Printf(fmt.Sprintf(`LoadState: db get key %v failed:%v\n`, key, e))
+	}
 	if len(buf) == 0 {
 		return state
 	}
@@ -317,7 +320,11 @@ func saveConsensusParamsInfo(db dbm.DB, nextHeight, changeHeight int64, params t
 }
 
 func loadValidatorsInfo(db dbm.DB, height int64) *ValidatorsInfo {
-	buf := db.Get(calcValidatorsKey(height))
+	buf, e := db.Get(calcValidatorsKey(height))
+	if e != nil {
+		fmt.Printf(fmt.Sprintf(`LoadValidators: db get height key %v failed:
+                %v\n`, calcValidatorsKey(height), e))
+	}
 	if len(buf) == 0 {
 		return nil
 	}

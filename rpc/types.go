@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"encoding/json"
+
 	l "github.com/inconshreveable/log15"
 )
 
@@ -213,10 +215,16 @@ type BlockOverview struct {
 	TxHashes []string `protobuf:"bytes,3,rep,name=txHashes,proto3" json:"txhashes"`
 }
 
-type Query struct {
-	Execer   string `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
-	FuncName string `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
-	Payload  string `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload"`
+type Query4Cli struct {
+	Execer   string      `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	FuncName string      `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
+	Payload  interface{} `protobuf:"bytes,3,opt,name=payload" json:"payload"`
+}
+
+type Query4Jrpc struct {
+	Execer   string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	FuncName string          `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
+	Payload  json.RawMessage `protobuf:"bytes,3,opt,name=payload" json:"payload"`
 }
 
 type WalletStatus struct {
@@ -224,4 +232,54 @@ type WalletStatus struct {
 	IsAutoMining bool `json:"isautomining"`
 	IsHasSeed    bool `json:"ishasseed"`
 	IsTicketLock bool `json:"isticketlock"`
+}
+
+// Token Transaction
+type TokenPreCreateTx struct {
+	Price        int64  `json:"price"`
+	Name         string `json:"name"`
+	Symbol       string `json:"symbol"`
+	Introduction string `json:"introduction"`
+	OwnerAddr    string `json:"owner_addr"`
+	Total        int64  `json:"total"`
+	Fee          int64  `json:"fee"`
+}
+
+type TokenFinishTx struct {
+	OwnerAddr string `json:"owner_addr"`
+	Symbol    string `json:"symbol"`
+	Fee       int64  `json:"fee"`
+}
+
+type TokenRevokeTx struct {
+	OwnerAddr string `json:"owner_addr"`
+	Symbol    string `json:"symbol"`
+	Fee       int64  `json:"fee"`
+}
+
+// Trade Transaction
+type TradeSellTx struct {
+	TokenSymbol       string `json:"token_symbol"`
+	AmountPerBoardlot int64  `json:"amount_per_boardlot"`
+	MinBoardlot       int64  `json:"min_boardlot"`
+	PricePerBoardlot  int64  `json:"price_per_boardlot"`
+	TotalBoardlot     int64  `json:"total_boardlot"`
+	Fee               int64  `json:"fee"`
+}
+
+type TradeBuyTx struct {
+	SellId      string `json:"sell_id"`
+	BoardlotCnt int64  `json:"boardlot_cnt"`
+	Fee         int64  `json:"fee"`
+}
+
+type TradeRevokeTx struct {
+	SellId string `json:"sell_id,"`
+	Fee    int64  `json:"fee"`
+}
+
+type NodeNetinfo struct {
+	Externaladdr string `json:"externaladdr"`
+	Localaddr    string `json:"localaddr"`
+	Service      bool   `json:"service"`
 }

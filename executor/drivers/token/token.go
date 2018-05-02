@@ -13,7 +13,6 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -21,12 +20,14 @@ import (
 var tokenlog = log.New("module", "execs.token")
 
 const (
-	finisherKey = "token-finisher"
+	finisherKey       = "token-finisher"
+	tokenAssetsPrefix = "token-assets:"
+	blacklist         = "token-blacklist"
 )
 
 func init() {
 	t := newToken()
-	drivers.Register(t.GetName(), t, types.ForkV2_add_token)
+	drivers.Register(t.GetName(), t, types.ForkV2AddToken)
 }
 
 type token struct {
@@ -41,6 +42,13 @@ func newToken() *token {
 
 func (t *token) GetName() string {
 	return "token"
+}
+
+func (t *token) Clone() drivers.Driver {
+	clone := &token{}
+	clone.DriverBase = *(t.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	return clone
 }
 
 func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -66,11 +74,11 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	case types.ActionTransfer:
 		token := tokenAction.GetTransfer().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction, index)
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
 
 	case types.ActionWithdraw:
 		token := tokenAction.GetWithdraw().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetDB()), tx, &tokenAction, index)
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
 	}
 
 	return nil, types.ErrActionNotSupport
@@ -86,6 +94,16 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecLocalTransWithdraw(tx, receipt, index)
+
+		if action.Ty == types.ActionTransfer {
+			transfer := action.GetTransfer()
+			// 添加个人资产列表
+			tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
+			kv := AddTokenToAssets(tx.To, t.GetLocalDB(), transfer.Cointoken)
+			if kv != nil {
+				set.KV = append(set.KV, kv...)
+			}
+		}
 	} else {
 		set, err = t.DriverBase.ExecLocal(tx, receipt, index)
 		if err != nil {
@@ -106,6 +124,14 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 
 				receiptKV := t.saveLogs(&receipt)
 				set.KV = append(set.KV, receiptKV...)
+
+				// 添加个人资产列表
+				if item.Ty == types.TyLogFinishCreateToken {
+					kv := AddTokenToAssets(action.GetTokenfinishcreate().Owner, t.GetLocalDB(), action.GetTokenfinishcreate().Symbol)
+					if kv != nil {
+						set.KV = append(set.KV, kv...)
+					}
+				}
 			}
 		}
 	}
@@ -173,20 +199,68 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAddrReceiverforTokens(&addrTokens)
+	case "GetAccountTokenAssets":
+		var req types.ReqAccountTokenAssets
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetAccountTokenAssets(&req)
 	}
 	return nil, types.ErrActionNotSupport
 }
 
-func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types.Message, error) {
-	var reply = &types.ReplyAddrRecvForTokens{}
-	db := t.GetQueryDB()
-	reciver := types.Int64{}
-	for _, token := range addrTokens.Token {
-		addrRecv := db.Get(calcAddrKey(token, addrTokens.Addr))
-		if addrRecv == nil {
+func (t *token) QueryTokenAssetsKey(addr string) (*types.ReplyStrings, error) {
+	key := CalcTokenAssetsKey(addr)
+	value, err := t.GetLocalDB().Get(key)
+	if value == nil || err != nil {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", types.ErrNotFound)
+		return nil, types.ErrNotFound
+	}
+	var assets types.ReplyStrings
+	err = types.Decode(value, &assets)
+	if err != nil {
+		tokenlog.Error("tokendb", "GetTokenAssetsKey", err)
+		return nil, err
+	}
+	return &assets, nil
+}
+
+func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.Message, error) {
+	var reply = &types.ReplyAccountTokenAssets{}
+	assets, err := t.QueryTokenAssetsKey(req.Address)
+	if err != nil {
+		return nil, err
+	}
+	for _, asset := range assets.Datas {
+		acc := account.NewTokenAccount(asset, t.GetStateDB())
+		var acc1 *types.Account
+		if req.Execer == "trade" {
+			execaddress := account.ExecAddress(req.Execer)
+			acc1 = acc.LoadExecAccount(req.Address, execaddress.String())
+		} else if req.Execer == "token" {
+			acc1 = acc.LoadAccount(req.Address)
+		}
+		if acc1 == nil {
 			continue
 		}
-		err := types.Decode(addrRecv, &reciver)
+		tokenAsset := &types.TokenAsset{asset, acc1}
+		tokenlog.Info("GetAccountTokenAssets", "token-asset-symbol", asset, "info", acc1)
+		reply.TokenAssets = append(reply.TokenAssets, tokenAsset)
+	}
+	return reply, nil
+}
+
+func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types.Message, error) {
+	var reply = &types.ReplyAddrRecvForTokens{}
+	db := t.GetLocalDB()
+	reciver := types.Int64{}
+	for _, token := range addrTokens.Token {
+		addrRecv, err := db.Get(calcAddrKey(token, addrTokens.Addr))
+		if addrRecv == nil || err != nil {
+			continue
+		}
+		err = types.Decode(addrRecv, &reciver)
 		if err != nil {
 			continue
 		}
@@ -199,27 +273,30 @@ func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types
 }
 
 func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
-	db := t.GetDB()
+	db := t.GetStateDB()
 	token, err := db.Get(calcTokenKey(symbol))
 	if err != nil {
 		return nil, types.ErrEmpty
 	}
-	var token_info types.Token
-	err = types.Decode(token, &token_info)
+	var tokenInfo types.Token
+	err = types.Decode(token, &tokenInfo)
 	if err != nil {
-		return &token_info, err
+		return &tokenInfo, err
 	}
-	return &token_info, nil
+	return &tokenInfo, nil
 }
 
 func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
-	querydb := t.GetQueryDB()
-	db := t.GetDB()
+	querydb := t.GetLocalDB()
+	db := t.GetStateDB()
 
 	replyTokens := &types.ReplyTokens{}
 	if reqTokens.Queryall {
-		list := dbm.NewListHelper(querydb)
-		keys := list.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		//list := dbm.NewListHelper(querydb)
+		keys, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		if err != nil {
+			return nil, err
+		}
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		if len(keys) != 0 {
 			for _, key := range keys {
@@ -236,8 +313,11 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 
 	} else {
 		for _, token := range reqTokens.Tokens {
-			list := dbm.NewListHelper(querydb)
-			keys := list.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
+			//list := dbm.NewListHelper(querydb)
+			keys, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
+			if err != nil {
+				return nil, err
+			}
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 			if len(keys) != 0 {
 				for _, key := range keys {

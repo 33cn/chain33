@@ -43,6 +43,7 @@ var (
 	ErrHashlockReapeathash     = errors.New("ErrHashlockReapeathash")
 	ErrHashlockSendAddress     = errors.New("ErrHashlockSendAddress")
 	ErrRetrieveRepeatAddress   = errors.New("ErrRetrieveRepeatAddress")
+	ErrRetrieveDefaultAddress  = errors.New("ErrRetrieveDefaultAddress")
 	ErrRetrievePeriodLimit     = errors.New("ErrRetrievePeriodLimit")
 	ErrRetrieveAmountLimit     = errors.New("ErrRetrieveAmountLimit")
 	ErrRetrieveTimeweightLimit = errors.New("ErrRetrieveTimeweightLimit")
@@ -54,6 +55,7 @@ var (
 	ErrRetrieveRelation        = errors.New("ErrRetrieveRelation")
 	ErrRetrieveNoBalance       = errors.New("ErrRetrieveNoBalance")
 	ErrLogType                 = errors.New("ErrLogType")
+	ErrInvalidParam            = errors.New("ErrInvalidParameters")
 	//err for token
 	ErrTokenNameLen         = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen       = errors.New("ErrTokenSymbolLength")
@@ -67,6 +69,7 @@ var (
 	ErrTokenCanotRevoked    = errors.New("ErrTokenCanotRevokedWithWrongStatus")
 	ErrTokenOwner           = errors.New("ErrTokenSymbolOwnerNotMatch")
 	ErrTokenHavePrecreated  = errors.New("ErrOwnerHaveTokenPrecreateYet")
+	ErrTokenBlacklist       = errors.New("ErrTokenBlacklist")
 	//err for trade
 	ErrTSellBalanceNotEnough = errors.New("ErrTradeSellBalanceNotEnough")
 	ErrTSellOrderNotExist    = errors.New("ErrTradeSellOrderNotExist")
@@ -110,6 +113,7 @@ var (
 	ErrTxDup                      = errors.New("ErrTxDup")
 	ErrNotSync                    = errors.New("ErrNotSync")
 	ErrSize                       = errors.New("ErrSize")
+	ErrMinerTx                    = errors.New("ErrMinerTx")
 
 	// BlockChain Error Types
 	ErrHashNotExist           = errors.New("ErrHashNotExist")
@@ -151,6 +155,8 @@ var (
 	ErrSeedExist            = errors.New("ErrSeedExist")
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
+	ErrSeedWord             = errors.New("ErrSeedWord")
+	ErrNoPrivKeyOrAddr      = errors.New("ErrNoPrivKeyOrAddr")
 
 	ErrOnlyTicketUnLocked = errors.New("ErrOnlyTicketUnLocked")
 	ErrNewCrypto          = errors.New("ErrNewCrypto")

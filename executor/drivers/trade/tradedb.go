@@ -1,11 +1,12 @@
 package trade
 
 import (
+	"strconv"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strconv"
 )
 
 type sellDB struct {
@@ -20,7 +21,7 @@ func newSellDB(sellorder types.SellOrder) (selldb *sellDB) {
 	return
 }
 
-func (selldb *sellDB) save(db dbm.KVDB) []*types.KeyValue {
+func (selldb *sellDB) save(db dbm.KV) []*types.KeyValue {
 	set := selldb.getKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
@@ -32,8 +33,7 @@ func (selldb *sellDB) save(db dbm.KVDB) []*types.KeyValue {
 func (selldb *sellDB) getSellLogs(tradeType int32) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = tradeType
-	var base *types.ReceiptTradeBase
-	base = &types.ReceiptTradeBase{
+	base := &types.ReceiptTradeBase{
 		selldb.Tokensymbol,
 		selldb.Address,
 		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
@@ -76,7 +76,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, sellid string, boardlotcnt in
 	return log
 }
 
-func getSellOrderFromID(sellid []byte, db dbm.KVDB) (*types.SellOrder, error) {
+func getSellOrderFromID(sellid []byte, db dbm.KV) (*types.SellOrder, error) {
 	value, err := db.Get(sellid)
 	if err != nil {
 		tradelog.Error("getSellOrderFromID", "Failed to get value frim db wiht sellid", string(sellid))
@@ -99,8 +99,8 @@ func (selldb *sellDB) getKVSet() (kvset []*types.KeyValue) {
 }
 
 type tradeAction struct {
-	coinsAccount *account.AccountDB
-	db           dbm.KVDB
+	coinsAccount *account.DB
+	db           dbm.KV
 	txhash       string
 	fromaddr     string
 	blocktime    int64
@@ -111,7 +111,7 @@ type tradeAction struct {
 func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 	hash := common.Bytes2Hex(tx.Hash())
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &tradeAction{t.GetCoinsAccount(), t.GetDB(), hash, fromaddr,
+	return &tradeAction{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
 		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 

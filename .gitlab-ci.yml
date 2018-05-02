@@ -1,0 +1,46 @@
+#image: chain33-build:latest
+
+before_script:
+    - export GO_PROJECT_NAMESPACE="$GOPATH/src/gitlab.33.cn/$CI_PROJECT_NAMESPACE"
+    - echo $GO_PROJECT_NAMESPACE
+    - mkdir -p $GO_PROJECT_NAMESPACE
+    - ln -srf $(pwd) $GO_PROJECT_NAMESPACE
+    - export GO_PROJECT_PATH="$GO_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
+    - echo $GO_PROJECT_PATH
+    - cd $GO_PROJECT_PATH
+    - make clean
+
+after_script:
+    - make clean
+
+stages:
+    - build
+    - test
+
+go_fmt:
+    stage: build
+    tags:
+        - 33cn
+    script:
+        - make checkgofmt
+
+go_lint:
+    stage: build
+    tags:
+        - 33cn
+    script:
+        - make linter
+
+go_build:
+    stage: build
+    tags:
+        - 33cn
+    script:
+        - make build_ci
+
+go_test:
+    stage: test
+    tags:
+        - 33cn
+    script:
+        - make test

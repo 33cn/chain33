@@ -4,8 +4,15 @@ import (
 	"io"
 	"math"
 
-	cmn "github.com/tendermint/tmlibs/common"
+	//cmn "github.com/tendermint/tmlibs/common"
 )
+
+func MaxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
 
 func WriteByteSlice(bz []byte, w io.Writer, n *int, err *error) {
 	WriteVarint(len(bz), w, n, err)
@@ -27,7 +34,7 @@ func ReadByteSlice(r io.Reader, lmt int, n *int, err *error) []byte {
 		*err = ErrBinaryReadOverflow
 		return nil
 	}
-	if lmt != 0 && lmt < cmn.MaxInt(length, *n+length) {
+	if lmt != 0 && lmt < MaxInt(length, *n+length) {
 		*err = ErrBinaryReadOverflow
 		return nil
 	}
@@ -100,7 +107,7 @@ func ReadByteSlices(r io.Reader, lmt int, n *int, err *error) [][]byte {
 		*err = ErrBinaryReadInvalidLength
 		return nil
 	}
-	if lmt != 0 && lmt < cmn.MaxInt(length, *n+length) {
+	if lmt != 0 && lmt < MaxInt(length, *n+length) {
 		*err = ErrBinaryReadOverflow
 		return nil
 	}

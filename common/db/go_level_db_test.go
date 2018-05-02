@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"testing"
 
-	. "github.com/tendermint/tmlibs/common"
+	"github.com/stretchr/testify/require"
 )
 
 // leveldb迭代器测试
@@ -45,7 +44,7 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 	for i := 0; i < int(numItems); i++ {
 		internal[int64(i)] = int64(0)
 	}
-	db, err := NewGoLevelDB(Fmt("test_%x", RandStr(12)), "", 1000)
+	db, err := NewGoLevelDB(fmt.Sprintf("test_%x", RandStr(12)), "", 1000)
 	if err != nil {
 		b.Fatal(err.Error())
 		return
@@ -58,7 +57,7 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 		// Write something
 		{
 			idx := (int64(RandInt()) % numItems)
-			internal[idx] += 1
+			internal[idx]++
 			val := internal[idx]
 			idxBytes := int642Bytes(int64(idx))
 			valBytes := int642Bytes(int64(val))
@@ -73,7 +72,7 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 			idx := (int64(RandInt()) % numItems)
 			val := internal[idx]
 			idxBytes := int642Bytes(int64(idx))
-			valBytes := db.Get(idxBytes)
+			valBytes, _ := db.Get(idxBytes)
 			//fmt.Printf("Get %X -> %X\n", idxBytes, valBytes)
 			if val == 0 {
 				if !bytes.Equal(valBytes, nil) {
