@@ -66,12 +66,21 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return action.tradeRevokeSell(trade.GetTokenrevokesell())
 
 	case types.TradeBuyLimit:
+		if t.GetHeight() < types.ForTradeBuyLimit {
+			return nil, types.ErrActionNotSupport
+		}
 		return action.tradeBuyLimit(trade.GetTokenbuylimit())
 
 	case types.TradeSellMarket:
+		if t.GetHeight() < types.ForTradeBuyLimit {
+			return nil, types.ErrActionNotSupport
+		}
 		return action.tradeSellMarket(trade.GetTokensellmarket())
 
 	case types.TradeRevokeBuy:
+		if t.GetHeight() < types.ForTradeBuyLimit {
+			return nil, types.ErrActionNotSupport
+		}
 		return action.tradeRevokeBuyLimit(trade.GetTokenrevokebuy())
 
 	default:
