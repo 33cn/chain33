@@ -1,4 +1,4 @@
-package codes
+package runtime
 
 import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
@@ -32,7 +32,7 @@ type Contract struct {
 	self          ContractRef
 
 	// 存储跳转信息，供JUMP和JUMPI指令使用
-	jumpdests destinations
+	Jumpdests Destinations
 
 	// 合约代码和代码哈希
 	Code     []byte
@@ -61,9 +61,9 @@ func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uin
 	// 如果是合约调用合约的情况，则直接赋值父合约的jumpdests
 	// 否则，创建一个新的jumpdests
 	if parent, ok := caller.(*Contract); ok {
-		c.jumpdests = parent.jumpdests
+		c.Jumpdests = parent.Jumpdests
 	} else {
-		c.jumpdests = make(destinations)
+		c.Jumpdests = make(Destinations)
 	}
 
 	// 持有gas引用，方便正确计算消耗的gas

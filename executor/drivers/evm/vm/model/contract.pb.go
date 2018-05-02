@@ -7,7 +7,7 @@ Package types is a generated protocol buffer package.
 It is generated from these files:
 	contract.proto
 
-It has these top-level messages:
+It Has these top-level messages:
 	ContractObject
 	ContractData
 	ContractState

@@ -2,7 +2,6 @@ package tests
 
 import (
 	"encoding/hex"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"testing"
 	"encoding/binary"
@@ -11,6 +10,7 @@ import (
 	"time"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
 // 正常创建合约逻辑
@@ -75,7 +75,7 @@ func TestCreateContract2(t *testing.T) {
 	// 创建时gas不足，应该返回空
 	test.assertNilB(ret)
 
-	test.assertEqualsE(err, vm.ErrOutOfGas)
+	test.assertEqualsE(err, model.ErrOutOfGas)
 
 	// gas不足时，应该是被扣光了
 	test.assertEqualsV(int(leftGas), 0)
@@ -102,7 +102,7 @@ func TestCreateContract3(t *testing.T) {
 	test.assertEqualsB(ret, execCode)
 
 	//合约gas不足
-	test.assertEqualsE(err, vm.ErrCodeStoreOutOfGas)
+	test.assertEqualsE(err, model.ErrCodeStoreOutOfGas)
 
 	// 合约计算是否正确
 	// Gas消耗了部署的61个，还应该剩下

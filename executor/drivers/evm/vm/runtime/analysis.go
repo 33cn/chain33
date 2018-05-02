@@ -1,17 +1,17 @@
-package codes
+package runtime
 
 import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"math/big"
 )
 
-// destinations 存储合约以及代码对应的位向量对象
+// Destinations 存储合约以及代码对应的位向量对象
 // Key为代码哈希，Value为对应的合约代码的位向量
 // JUMPDEST指令会使用此对象进行跳转位置判断
-type destinations map[common.Hash]bitvec
+type Destinations map[common.Hash]bitvec
 
 // 检查PC只想的代码是否存在JUMPDEST指令，并且跳转目标有效
-func (d destinations) has(codehash common.Hash, code []byte, dest *big.Int) bool {
+func (d Destinations) Has(codehash common.Hash, code []byte, dest *big.Int) bool {
 	// 首先需要检查PC（指令指针），它不可能比代码长度还大，也不可能大于63位
 	// 注意，这里的参数dest就是PC指针
 	udest := dest.Uint64()
