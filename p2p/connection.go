@@ -1,8 +1,6 @@
 package p2p
 
 import (
-	"sync"
-
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -11,10 +9,8 @@ type MConnection struct {
 	nodeInfo      **NodeInfo
 	gconn         *grpc.ClientConn
 	gcli          pb.P2PgserviceClient // source connection
-	config        *MConnConfig
-	remoteAddress *NetAddress //peer 的地址
-	peer          *peer
-	once          sync.Once
+	remoteAddress *NetAddress          //peer 的地址
+	peer          *Peer
 }
 
 // MConnConfig is a MConnection configuration.
@@ -36,7 +32,7 @@ func NewTemMConnConfig(gconn *grpc.ClientConn, gcli pb.P2PgserviceClient) *MConn
 }
 
 // NewMConnection wraps net.Conn and creates multiplex connection
-func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MConnection {
+func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MConnection {
 
 	mconn := &MConnection{
 		gconn: conn,

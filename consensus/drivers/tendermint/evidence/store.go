@@ -113,7 +113,10 @@ func (store *EvidenceStore) ListEvidence(prefixKey string) (evidence []types.Evi
 // GetEvidence fetches the evidence with the given height and hash.
 func (store *EvidenceStore) GetEvidence(height int64, hash []byte) *EvidenceInfo {
 	key := keyLookupFromHeightAndHash(height, hash)
-	val := store.db.Get(key)
+	val,e := store.db.Get(key)
+	if e != nil {
+		fmt.Printf(fmt.Sprintf(`GetEvidence: db get key %v failed:%v\n`, key, e))
+	}
 
 	if len(val) == 0 {
 		return nil
@@ -180,7 +183,10 @@ func (store *EvidenceStore) MarkEvidenceAsCommitted(evidence types.Evidence) {
 func (store *EvidenceStore) getEvidenceInfo(evidence types.Evidence) EvidenceInfo {
 	key := keyLookup(evidence)
 	var ei EvidenceInfo
-	b := store.db.Get(key)
+	b ,e := store.db.Get(key)
+	if e != nil {
+		fmt.Printf(fmt.Sprintf(`getEvidenceInfo: db get key %v failed:%v\n`, key, e))
+	}
 	wire.ReadBinaryBytes(b, &ei)
 	return ei
 }

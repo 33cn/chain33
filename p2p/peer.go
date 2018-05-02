@@ -12,48 +12,42 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (p *peer) Start() {
+func (p *Peer) Start() {
 
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
-
-	return
 }
-func (p *peer) Close() {
+func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
-	close(p.taskPool)
 	pub.Unsub(p.taskChan, "block", "tx")
+	log.Debug("Peer", "closed", p.Addr())
 
 }
 
-type peer struct {
-	wg         sync.WaitGroup
-	pmutx      sync.Mutex
+type Peer struct {
+	mutx       sync.Mutex
 	nodeInfo   **NodeInfo
 	conn       *grpc.ClientConn // source connection
 	persistent bool
 	isclose    int32
 	version    *Version
-	key        string
+	name       string //远程节点的name
 	mconn      *MConnection
 	peerAddr   *NetAddress
 	peerStat   *Stat
-	taskPool   chan struct{}
 	taskChan   chan interface{} //tx block
 }
 
-func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *peer {
-	p := &peer{
+func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Peer {
+	p := &Peer{
 		conn:     conn,
-		taskPool: make(chan struct{}, 50),
 		nodeInfo: nodeinfo,
 	}
 
 	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.SetSupport(true)
-	p.key = (*nodeinfo).addrBook.GetKey()
 	p.mconn = NewMConnection(conn, remote, p)
 	return p
 }
@@ -97,9 +91,9 @@ func (v *Version) IsSupport() bool {
 	return v.versionSupport
 }
 
-func (p *peer) heartBeat() {
+func (p *Peer) heartBeat() {
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			return
 		}
 
@@ -110,14 +104,16 @@ func (p *peer) heartBeat() {
 		time.Sleep(time.Second) //wait for natwork done
 	}
 
-	pcli := NewP2pCli(nil)
+	pcli := NewNormalP2PCli()
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			return
 		}
-		err := pcli.SendVersion(p, *p.nodeInfo)
+		peername, err := pcli.SendVersion(p, *p.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
 		if err == nil {
+			log.Debug("sendVersion", "peer name", peername)
+			p.SetPeerName(peername) //设置连接的远程节点的节点名称
 			p.taskChan = pub.Sub("block", "tx")
 			go p.sendStream()
 			go p.readStream()
@@ -131,28 +127,24 @@ func (p *peer) heartBeat() {
 	ticker := time.NewTicker(PingTimeout)
 	defer ticker.Stop()
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			return
 		}
-		select {
-		case <-ticker.C:
-			err := pcli.SendPing(p, *p.nodeInfo)
-			P2pComm.CollectPeerStat(err, p)
 
-		}
-
+		<-ticker.C
+		err := pcli.SendPing(p, *p.nodeInfo)
+		P2pComm.CollectPeerStat(err, p)
 	}
-
 }
 
-func (p *peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
+func (p *Peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
 }
 
-func (p *peer) sendStream() {
+func (p *Peer) sendStream() {
 	//Stream Send data
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
 			log.Info("sendStream peer is not running")
 			return
 		}
@@ -166,7 +158,7 @@ func (p *peer) sendStream() {
 			continue
 		}
 		//send ping package
-		ping, err := P2pComm.NewPingData(p)
+		ping, err := P2pComm.NewPingData(*p.nodeInfo)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -183,12 +175,13 @@ func (p *peer) sendStream() {
 
 		timeout := time.NewTimer(time.Second * 2)
 		defer timeout.Stop()
+		var hash [64]byte
 	SEND_LOOP:
 		for {
 
 			select {
 			case task := <-p.taskChan:
-				if p.GetRunning() == false {
+				if !p.GetRunning() {
 					resp.CloseSend()
 					cancel()
 					log.Error("sendStream peer is not running")
@@ -197,7 +190,8 @@ func (p *peer) sendStream() {
 				p2pdata := new(pb.BroadCastData)
 				if block, ok := task.(*pb.P2PBlock); ok {
 					height := block.GetBlock().GetHeight()
-					blockhash := hex.EncodeToString(block.GetBlock().GetTxHash())
+					hex.Encode(hash[:], block.GetBlock().Hash())
+					blockhash := string(hash[:])
 					log.Debug("sendStream", "will send block", blockhash)
 					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
 					P2pComm.CollectPeerStat(err, p)
@@ -209,11 +203,14 @@ func (p *peer) sendStream() {
 					}
 
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
+					Filter.RegRecvData(blockhash)
 
 				} else if tx, ok := task.(*pb.P2PTx); ok {
-					txhash := hex.EncodeToString(tx.GetTx().Hash())
+					hex.Encode(hash[:], tx.GetTx().Hash())
+					txhash := string(hash[:])
 					log.Debug("sendStream", "will send tx", txhash)
 					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
+					Filter.RegRecvData(txhash)
 				}
 
 				err := resp.Send(p2pdata)
@@ -232,7 +229,7 @@ func (p *peer) sendStream() {
 				log.Debug("sendStream", "send data", "ok")
 
 			case <-timeout.C:
-				if p.GetRunning() == false {
+				if !p.GetRunning() {
 					log.Error("sendStream timeout")
 					resp.CloseSend()
 					cancel()
@@ -246,15 +243,16 @@ func (p *peer) sendStream() {
 	}
 }
 
-func (p *peer) readStream() {
+func (p *Peer) readStream() {
 
-	pcli := NewP2pCli(nil)
+	pcli := NewNormalP2PCli()
 
 	for {
-		if p.GetRunning() == false {
+		if !p.GetRunning() {
+			log.Debug("readstream", "loop", "done")
 			return
 		}
-		ping, err := P2pComm.NewPingData(p)
+		ping, err := P2pComm.NewPingData(*p.nodeInfo)
 		if err != nil {
 			log.Error("readStream", "err:", err.Error())
 			continue
@@ -262,14 +260,14 @@ func (p *peer) readStream() {
 		resp, err := p.mconn.gcli.ServerStreamSend(context.Background(), ping)
 		P2pComm.CollectPeerStat(err, p)
 		if err != nil {
-			log.Error("readStream", "serverstreamsend,err:", err)
-			time.Sleep(time.Second * 5)
+			log.Error("readStream", "serverstreamsend,err:", err, "peer", p.Addr())
+			time.Sleep(time.Second)
 			continue
 		}
 		log.Debug("SubStreamBlock", "Start", p.Addr())
-
+		var hash [64]byte
 		for {
-			if p.GetRunning() == false {
+			if !p.GetRunning() {
 				return
 			}
 			data, err := resp.Recv()
@@ -287,8 +285,9 @@ func (p *peer) readStream() {
 			if block := data.GetBlock(); block != nil {
 				if block.GetBlock() != nil {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
-					blockhash := hex.EncodeToString(block.GetBlock().Hash())
-					if Filter.QueryRecvData(blockhash) == true {
+					hex.Encode(hash[:], block.GetBlock().Hash())
+					blockhash := string(hash[:])
+					if Filter.QueryRecvData(blockhash) {
 						continue
 					}
 
@@ -300,9 +299,11 @@ func (p *peer) readStream() {
 							continue
 						}
 					}
-					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr(), "block hash",
+
+					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr(),
+						"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash",
 						blockhash)
-					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
+					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{p.GetPeerName(), block.GetBlock()})
 					err = (*p.nodeInfo).client.Send(msg, false)
 					if err != nil {
 						log.Error("readStream", "send to blockchain Error", err.Error())
@@ -314,9 +315,10 @@ func (p *peer) readStream() {
 			} else if tx := data.GetTx(); tx != nil {
 
 				if tx.GetTx() != nil {
-					txhash := hex.EncodeToString(tx.Tx.Hash())
-					log.Debug("readStream", "tx", "0x"+txhash)
-					if Filter.QueryRecvData(txhash) == true {
+					hex.Encode(hash[:], tx.Tx.Hash())
+					txhash := string(hash[:])
+					log.Debug("readStream", "tx", txhash)
+					if Filter.QueryRecvData(txhash) {
 						continue //处理方式同上
 					}
 					msg := (*p.nodeInfo).client.NewMessage("mempool", pb.EventTx, tx.GetTx())
@@ -328,24 +330,42 @@ func (p *peer) readStream() {
 	}
 }
 
-func (p *peer) GetRunning() bool {
+func (p *Peer) GetRunning() bool {
 	return atomic.LoadInt32(&p.isclose) != 1
 
 }
 
 // makePersistent marks the peer as persistent.
-func (p *peer) makePersistent() {
+func (p *Peer) MakePersistent() {
 
 	p.persistent = true
 }
 
-// Addr returns peer's remote network address.
-func (p *peer) Addr() string {
-	return p.peerAddr.String()
+func (p *Peer) SetAddr(addr *NetAddress) {
+	p.peerAddr = addr
+}
 
+// Addr returns peer's remote network address.
+func (p *Peer) Addr() string {
+	return p.peerAddr.String()
 }
 
 // IsPersistent returns true if the peer is persitent, false otherwise.
-func (p *peer) IsPersistent() bool {
+func (p *Peer) IsPersistent() bool {
 	return p.persistent
+}
+
+func (p *Peer) SetPeerName(name string) {
+	p.mutx.Lock()
+	defer p.mutx.Unlock()
+	if name == "" {
+		return
+	}
+	p.name = name
+}
+
+func (p *Peer) GetPeerName() string {
+	p.mutx.Lock()
+	defer p.mutx.Unlock()
+	return p.name
 }

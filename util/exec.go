@@ -14,15 +14,17 @@ import (
 
 var ulog = log.New("module", "util")
 
-func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, []*types.Transaction, error) {
+//block执行函数增加一个批量存储区块是否刷盘的标志位，提高区块的同步性能。
+//只有blockchain在同步阶段会设置不刷盘，其余模块处理时默认都是刷盘的
+func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	defer func() {
-		ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs), "cost", time.Now().Sub(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
 	}()
-	if errReturn && block.Height > 0 && block.CheckSign() == false {
+	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
 	}
@@ -34,6 +36,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
 	}
+	ulog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
 	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
 
@@ -48,7 +51,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			if errReturn { //认为这个是一个错误的区块
 				return nil, nil, types.ErrBlockExec
 			}
-			//ulog.Error("exec tx err", "err", receipt)
+			ulog.Error("exec tx err", "err", receipt)
 			deltxlist[i] = true
 			continue
 		}
@@ -91,7 +94,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if kvset == nil {
 		block.StateHash = prevStateRoot
 	} else {
-		block.StateHash = ExecKVMemSet(client, prevStateRoot, kvset)
+		block.StateHash = ExecKVMemSet(client, prevStateRoot, kvset, sync)
 	}
 	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
 		ExecKVSetRollback(client, block.StateHash)
@@ -107,6 +110,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if detail.Block.Height > 0 {
 		err := CheckBlock(client, &detail)
 		if err != nil {
+			ulog.Debug("CheckBlock-->", "err=", err)
 			return nil, deltx, err
 		}
 	}
@@ -148,9 +152,11 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *type
 	return receipts
 }
 
-func ExecKVMemSet(client queue.Client, prevStateRoot []byte, kvset []*types.KeyValue) []byte {
+func ExecKVMemSet(client queue.Client, prevStateRoot []byte, kvset []*types.KeyValue, sync bool) []byte {
 	set := &types.StoreSet{prevStateRoot, kvset}
-	msg := client.NewMessage("store", types.EventStoreMemSet, set)
+	setwithsync := &types.StoreSetWithSync{set, sync}
+
+	msg := client.NewMessage("store", types.EventStoreMemSet, setwithsync)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
 	if err != nil {

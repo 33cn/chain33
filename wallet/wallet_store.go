@@ -21,7 +21,7 @@ var (
 	storelog        = walletlog.New("submodule", "store")
 )
 
-type WalletStore struct {
+type Store struct {
 	db dbm.DB
 }
 
@@ -47,30 +47,30 @@ func calcTxKey(key string) []byte {
 	return []byte(fmt.Sprintf("Tx:%s", key))
 }
 
-func NewWalletStore(db dbm.DB) *WalletStore {
-	return &WalletStore{
+func NewStore(db dbm.DB) *Store {
+	return &Store{
 		db: db,
 	}
 }
 
-func (ws *WalletStore) NewBatch(sync bool) dbm.Batch {
+func (ws *Store) NewBatch(sync bool) dbm.Batch {
 	storeBatch := ws.db.NewBatch(sync)
 	return storeBatch
 }
 
-func (ws *WalletStore) SetWalletPassword(newpass string) {
+func (ws *Store) SetWalletPassword(newpass string) {
 	ws.db.SetSync(WalletPassKey, []byte(newpass))
 }
 
-func (ws *WalletStore) GetWalletPassword() string {
-	Passwordbytes := ws.db.Get(WalletPassKey)
-	if Passwordbytes == nil {
+func (ws *Store) GetWalletPassword() string {
+	Passwordbytes, err := ws.db.Get(WalletPassKey)
+	if Passwordbytes == nil || err != nil {
 		return ""
 	}
 	return string(Passwordbytes)
 }
 
-func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
+func (ws *Store) SetFeeAmount(FeeAmount int64) error {
 	FeeAmountbytes, err := json.Marshal(FeeAmount)
 	if err != nil {
 		walletlog.Error("SetFeeAmount marshal FeeAmount", "err", err)
@@ -81,13 +81,13 @@ func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
 	return nil
 }
 
-func (ws *WalletStore) GetFeeAmount() int64 {
+func (ws *Store) GetFeeAmount() int64 {
 	var FeeAmount int64
-	FeeAmountbytes := ws.db.Get(WalletFeeAmount)
-	if FeeAmountbytes == nil {
+	FeeAmountbytes, err := ws.db.Get(WalletFeeAmount)
+	if FeeAmountbytes == nil || err != nil {
 		return minFee
 	}
-	err := json.Unmarshal(FeeAmountbytes, &FeeAmount)
+	err = json.Unmarshal(FeeAmountbytes, &FeeAmount)
 	if err != nil {
 		walletlog.Error("GetFeeAmount unmarshal", "err", err)
 		return minFee
@@ -95,7 +95,7 @@ func (ws *WalletStore) GetFeeAmount() int64 {
 	return FeeAmount
 }
 
-func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+func (ws *Store) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
 	if len(addr) == 0 {
 		walletlog.Error("SetWalletAccount addr is nil")
 		return types.ErrInputPara
@@ -127,18 +127,20 @@ func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types
 	return nil
 }
 
-func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
+func (ws *Store) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(addr) == 0 {
 		walletlog.Error("GetAccountByAddr addr is nil")
 		return nil, types.ErrInputPara
 	}
-	data := ws.db.Get(calcAddrKey(addr))
-	if data == nil {
-		walletlog.Debug("GetAccountByAddr addr not exist")
+	data, err := ws.db.Get(calcAddrKey(addr))
+	if data == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			walletlog.Debug("GetAccountByAddr addr", "err", err)
+		}
 		return nil, types.ErrAddrNotExist
 	}
-	err := proto.Unmarshal(data, &account)
+	err = proto.Unmarshal(data, &account)
 	if err != nil {
 		walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
 		return nil, types.ErrUnmarshal
@@ -146,18 +148,20 @@ func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore,
 	return &account, nil
 }
 
-func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
+func (ws *Store) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(label) == 0 {
 		walletlog.Error("SetWalletAccount label is nil")
 		return nil, types.ErrInputPara
 	}
-	data := ws.db.Get(calcLabelKey(label))
-	if data == nil {
-		walletlog.Error("GetAccountByLabel label not exist")
+	data, err := ws.db.Get(calcLabelKey(label))
+	if data == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			walletlog.Error("GetAccountByLabel label", "err", err)
+		}
 		return nil, types.ErrLabelNotExist
 	}
-	err := proto.Unmarshal(data, &account)
+	err = proto.Unmarshal(data, &account)
 	if err != nil {
 		walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
 		return nil, types.ErrUnmarshal
@@ -165,7 +169,7 @@ func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStor
 	return &account, nil
 }
 
-func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
+func (ws *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
 
 	if len(addr) == 0 {
 		walletlog.Error("GetAccountByPrefix addr is nil")
@@ -191,7 +195,7 @@ func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountSt
 }
 
 //迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
-func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
+func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	var txDetails types.WalletTxDetails
 	if TxList == nil {
 		walletlog.Error("GetTxDetailByIter TxList is nil")
@@ -202,14 +206,14 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
 		list := dbm.NewListHelper(ws.db)
-		txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
+		txbytes = list.IteratorScanFromLast(calcTxKey(""), TxList.Count)
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist
 		}
 	} else {
 		list := dbm.NewListHelper(ws.db)
-		txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		txbytes = list.IteratorScan([]byte("Tx:"), calcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
 			return nil, types.ErrTxNotExist
@@ -237,7 +241,7 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	return &txDetails, nil
 }
 
-func (ws *WalletStore) SetEncryptionFlag() error {
+func (ws *Store) SetEncryptionFlag() error {
 	var flag int64 = 1
 	data, err := json.Marshal(flag)
 	if err != nil {
@@ -249,13 +253,13 @@ func (ws *WalletStore) SetEncryptionFlag() error {
 	return nil
 }
 
-func (ws *WalletStore) GetEncryptionFlag() int64 {
+func (ws *Store) GetEncryptionFlag() int64 {
 	var flag int64
-	data := ws.db.Get(EncryptionFlag)
-	if data == nil {
+	data, err := ws.db.Get(EncryptionFlag)
+	if data == nil || err != nil {
 		return 0
 	}
-	err := json.Unmarshal(data, &flag)
+	err = json.Unmarshal(data, &flag)
 	if err != nil {
 		walletlog.Error("GetEncryptionFlag unmarshal", "err", err)
 		return 0
@@ -263,7 +267,7 @@ func (ws *WalletStore) GetEncryptionFlag() int64 {
 	return flag
 }
 
-func (ws *WalletStore) SetPasswordHash(password string) error {
+func (ws *Store) SetPasswordHash(password string) error {
 	var WalletPwHash types.WalletPwHash
 	//获取一个随机字符串
 	randstr := fmt.Sprintf("fuzamei:$@%s", crypto.CRandHex(16))
@@ -284,13 +288,13 @@ func (ws *WalletStore) SetPasswordHash(password string) error {
 	return nil
 }
 
-func (ws *WalletStore) VerifyPasswordHash(password string) bool {
+func (ws *Store) VerifyPasswordHash(password string) bool {
 	var WalletPwHash types.WalletPwHash
-	pwhashbytes := ws.db.Get(PasswordHash)
-	if pwhashbytes == nil {
+	pwhashbytes, err := ws.db.Get(PasswordHash)
+	if pwhashbytes == nil || err != nil {
 		return false
 	}
-	err := json.Unmarshal(pwhashbytes, &WalletPwHash)
+	err = json.Unmarshal(pwhashbytes, &WalletPwHash)
 	if err != nil {
 		walletlog.Error("GetEncryptionFlag unmarshal", "err", err)
 		return false
@@ -299,13 +303,9 @@ func (ws *WalletStore) VerifyPasswordHash(password string) bool {
 	pwhash := sha256.Sum256([]byte(pwhashstr))
 	Pwhash := pwhash[:]
 	//通过新的密码计算pwhash最对比
-	if bytes.Equal(WalletPwHash.GetPwHash(), Pwhash) {
-		return true
-	}
-	return false
-
+	return bytes.Equal(WalletPwHash.GetPwHash(), Pwhash)
 }
 
-func (ws *WalletStore) DelAccountByLabel(label string) {
+func (ws *Store) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
 }

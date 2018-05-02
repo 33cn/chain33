@@ -42,6 +42,11 @@ message Blocks {
 	repeated Block items = 1;
 }
 
+//节点ID以及对应的Block
+message BlockPid{
+	string pid=1;
+	Block block=2;
+}
 //resp
 message BlockDetails {
 	repeated BlockDetail items = 1;
@@ -52,11 +57,15 @@ message Headers {
 	repeated Header items = 1;
 }
 
+message HeadersPid{
+	string pid=1;
+	Headers headers=2;
+}
+
 //区块视图
 // 	 head : 区块头信息
 //	 txCount :区块上交易个数
 // 	 txHashes : 区块上交易的哈希列表
-
 message BlockOverview {
 	Header head = 1;
 	int64 txCount = 2;
@@ -126,3 +135,10 @@ message IsNtpClockSync {
 	bool isntpclocksync  = 1;
 }
 
+
+message BlockChainQuery{
+	string driver = 1;
+	string funcName = 2;
+	bytes stateHash = 3;
+	bytes param = 4;
+}

@@ -11,6 +11,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -56,7 +57,7 @@ type BlockStore struct {
 func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 	height, err := LoadBlockStoreHeight(db)
 	if err != nil {
-		chainlog.Error("init::LoadBlockStoreHeight::database may be crash", "err", err.Error())
+		chainlog.Info("init::LoadBlockStoreHeight::database may be crash", "err", err.Error())
 		if err != types.ErrHeightNotExist {
 			panic(err)
 		}
@@ -68,7 +69,7 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 		client: client,
 	}
 	if height == -1 {
-		chainlog.Error("load block height error, many init database", "height", height)
+		chainlog.Info("load block height error, may be init database", "height", height)
 	} else {
 		blockdetail, err := blockStore.LoadBlockByHeight(height)
 		if err != nil {
@@ -89,7 +90,7 @@ func (bs *BlockStore) Height() int64 {
 func (bs *BlockStore) UpdateHeight() {
 	height, _ := LoadBlockStoreHeight(bs.db)
 	atomic.StoreInt64(&bs.height, height)
-	storeLog.Info("UpdateHeight", "curblockheight", height)
+	storeLog.Debug("UpdateHeight", "curblockheight", height)
 }
 
 // 返回BlockStore保存的当前blockheader
@@ -144,7 +145,8 @@ func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
 	var reply types.LocalReplyValue
 	for i := 0; i < len(keys.Keys); i++ {
 		key := keys.Keys[i]
-		reply.Values = append(reply.Values, bs.db.Get(key))
+		value, _ := bs.db.Get(key)
+		reply.Values = append(reply.Values, value)
 	}
 	return &reply
 }
@@ -167,18 +169,24 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 	var block types.Block
 
 	//通过hash获取blockheader
-	header := bs.db.Get(calcHashToBlockHeaderKey(hash))
-	if header == nil {
+	header, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
+	if header == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("LoadBlockByHash calcHashToBlockHeaderKey", "hash", common.ToHex(hash), "err", err)
+		}
 		return nil, types.ErrHashNotExist
 	}
-	err := proto.Unmarshal(header, &blockheader)
+	err = proto.Unmarshal(header, &blockheader)
 	if err != nil {
 		storeLog.Error("LoadBlockByHash", "err", err)
 		return nil, err
 	}
 	//通过hash获取blockbody
-	body := bs.db.Get(calcHashToBlockBodyKey(hash))
-	if body == nil {
+	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
+	if body == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("LoadBlockByHash calcHashToBlockBodyKey ", "err", err)
+		}
 		return nil, types.ErrHashNotExist
 	}
 	err = proto.Unmarshal(body, &blockbody)
@@ -297,14 +305,17 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 		return nil, err
 	}
 
-	rawBytes := bs.db.Get(hash)
-	if rawBytes == nil {
-		err := errors.New("tx not exit!")
+	rawBytes, err := bs.db.Get(hash)
+	if rawBytes == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
+		}
+		err = errors.New("tx not exist")
 		return nil, err
 	}
 
 	var txResult types.TxResult
-	err := proto.Unmarshal(rawBytes, &txResult)
+	err = proto.Unmarshal(rawBytes, &txResult)
 	if err != nil {
 		return nil, err
 	}
@@ -352,8 +363,11 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 //从db数据库中获取指定hash对应的block高度
 func (bs *BlockStore) GetHeightByBlockHash(hash []byte) (int64, error) {
 
-	heightbytes := bs.db.Get(calcHashToHeightKey(hash))
-	if heightbytes == nil {
+	heightbytes, err := bs.db.Get(calcHashToHeightKey(hash))
+	if heightbytes == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetHeightByBlockHash", "error", err)
+		}
 		return -1, types.ErrHashNotExist
 	}
 	return decodeHeight(heightbytes)
@@ -376,8 +390,11 @@ func decodeHeight(heightbytes []byte) (int64, error) {
 //从db数据库中获取指定height对应的blockhash
 func (bs *BlockStore) GetBlockHashByHeight(height int64) ([]byte, error) {
 
-	hash := bs.db.Get(calcHeightToHashKey(height))
-	if hash == nil {
+	hash, err := bs.db.Get(calcHeightToHashKey(height))
+	if hash == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetBlockHashByHeight", "error", err)
+		}
 		return nil, types.ErrHeightNotExist
 	}
 	return hash, nil
@@ -392,8 +409,11 @@ func (bs *BlockStore) GetBlockHeaderByHeight(height int64) (*types.Header, error
 		return nil, err
 	}
 	var header types.Header
-	blockheader := bs.db.Get(calcHashToBlockHeaderKey(hash))
-	if blockheader == nil {
+	blockheader, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
+	if blockheader == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetBlockHeaderByHeight calcHashToBlockHeaderKey", "error", err)
+		}
 		return nil, types.ErrHashNotExist
 	}
 	err = proto.Unmarshal(blockheader, &header)
@@ -408,11 +428,14 @@ func (bs *BlockStore) GetBlockHeaderByHeight(height int64) (*types.Header, error
 func (bs *BlockStore) GetBlockHerderByHash(hash []byte) (*types.Header, error) {
 
 	var header types.Header
-	blockheader := bs.db.Get(calcHashToBlockHeaderKey(hash))
-	if blockheader == nil {
+	blockheader, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
+	if blockheader == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetBlockHerderByHash calcHashToBlockHeaderKey ", "err", err)
+		}
 		return nil, types.ErrHashNotExist
 	}
-	err := proto.Unmarshal(blockheader, &header)
+	err = proto.Unmarshal(blockheader, &header)
 	if err != nil {
 		storeLog.Error("GetBlockHerderByHash", "err", err)
 		return nil, err
@@ -451,8 +474,11 @@ func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSe
 //从db数据库中获取指定blockhash对应的block总难度td
 func (bs *BlockStore) GetTdByBlockHash(hash []byte) (*big.Int, error) {
 
-	blocktd := bs.db.Get(calcHashToTdKey(hash))
-	if blocktd == nil {
+	blocktd, err := bs.db.Get(calcHashToTdKey(hash))
+	if blocktd == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetTdByBlockHash ", "error", err)
+		}
 		return nil, types.ErrHashNotExist
 	}
 	td := new(big.Int)
@@ -475,8 +501,11 @@ func (bs *BlockStore) NewBatch(sync bool) dbm.Batch {
 }
 
 func LoadBlockStoreHeight(db dbm.DB) (int64, error) {
-	bytes := db.Get(blockLastHeight)
-	if bytes == nil {
+	bytes, err := db.Get(blockLastHeight)
+	if bytes == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("LoadBlockStoreHeight", "error", err)
+		}
 		return -1, types.ErrHeightNotExist
 	}
 	return decodeHeight(bytes)
@@ -527,18 +556,22 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	parentHash := blockdetail.Block.ParentHash
 
 	//转换自己的难度成big.int
-	difficulty := common.CalcWork(blockdetail.Block.Difficulty)
+	difficulty := difficulty.CalcWork(blockdetail.Block.Difficulty)
 	//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "Block.Difficulty", blockdetail.Block.Difficulty)
-	//chainlog.Error("dbMaybeStoreBlock Difficulty bigint", "height", height, "self.Difficulty", common.BigToCompact(difficulty))
+	//chainlog.Error("dbMaybeStoreBlock Difficulty bigint", "height", height, "self.Difficulty", difficulty.BigToCompact(difficulty))
 
 	var blocktd *big.Int
 	if height == 0 {
 		blocktd = difficulty
 	} else {
-		parenttd, _ := bs.GetTdByBlockHash(parentHash)
+		parenttd, err := bs.GetTdByBlockHash(parentHash)
+		if err != nil {
+			chainlog.Error("dbMaybeStoreBlock GetTdByBlockHash", "height", height, "parentHash", common.ToHex(parentHash))
+			return err
+		}
 		blocktd = new(big.Int).Add(difficulty, parenttd)
-		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "parenttd.td", common.BigToCompact(parenttd))
-		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "self.td", common.BigToCompact(blocktd))
+		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "parenttd.td", difficulty.BigToCompact(parenttd))
+		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "self.td", difficulty.BigToCompact(blocktd))
 	}
 
 	err = bs.SaveTdByBlockHash(storeBatch, blockdetail.Block.Hash(), blocktd)

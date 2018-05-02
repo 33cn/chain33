@@ -5,21 +5,22 @@ import (
 	"time"
 
 	l "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/pubsub"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	// register gzip
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 var (
 	log = l.New("module", "p2p")
-	pub *common.PubSub
+	pub *pubsub.PubSub
 )
 
 type P2p struct {
 	client       queue.Client
 	node         *Node
-	addrBook     *AddrBook // known peers
-	p2pCli       *P2pCli
+	p2pCli       EventInterface
 	txCapcity    int32
 	txFactory    chan struct{}
 	otherFactory chan struct{}
@@ -27,8 +28,7 @@ type P2p struct {
 }
 
 func New(cfg *types.P2P) *P2p {
-
-	pub = common.NewPubSub(int(cfg.GetMsgCacheSize()))
+	pub = pubsub.NewPubSub(int(cfg.GetMsgCacheSize()))
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
@@ -36,13 +36,14 @@ func New(cfg *types.P2P) *P2p {
 	}
 	p2p := new(P2p)
 	p2p.node = node
-	p2p.p2pCli = NewP2pCli(p2p)
+	p2p.p2pCli = NewP2PCli(p2p)
 	p2p.txFactory = make(chan struct{}, 1000)    // 1000 task
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
+	p2p.txCapcity = 1000
 	return p2p
 }
 
-func (network *P2p) IsClose() bool {
+func (network *P2p) isClose() bool {
 	return atomic.LoadInt32(&network.closed) == 1
 }
 
@@ -54,8 +55,7 @@ func (network *P2p) Close() {
 	if network.client != nil {
 		network.client.Close()
 	}
-	close(network.txFactory)
-	close(network.otherFactory)
+
 	pub.Shutdown()
 
 }
@@ -70,45 +70,42 @@ func (network *P2p) SetQueueClient(client queue.Client) {
 	}()
 }
 
-func (network *P2p) ShowTaskCapcity() {
+func (network *P2p) showTaskCapcity() {
 	ticker := time.NewTicker(time.Second * 5)
-	log.Info("ShowTaskCapcity", "Capcity", network.txCapcity)
+	log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 	defer ticker.Stop()
 	for {
-		if network.IsClose() {
+		if network.isClose() {
+			log.Debug("ShowTaskCapcity", "loop", "done")
 			return
 		}
-		select {
-		case <-ticker.C:
-			log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
-
-		}
+		<-ticker.C
+		log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
 	}
 }
 
 func (network *P2p) loadP2PPrivKeyToWallet() error {
 
 	for {
-
 		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
-		err := network.client.Send(msg, true)
+		err := network.client.SendTimeout(msg, true, time.Minute)
 		if err != nil {
 			log.Error("GetWalletStatus", "Error", err.Error())
 			time.Sleep(time.Second)
 			continue
 		}
-		resp, err := network.client.Wait(msg)
+
+		resp, err := network.client.WaitTimeout(msg, time.Minute)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
 		}
-
 		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
 			time.Sleep(time.Second)
 			continue
 		}
 
-		if resp.GetData().(*types.WalletStatus).GetIsHasSeed() == false { //无种子
+		if !resp.GetData().(*types.WalletStatus).GetIsHasSeed() { //无种子
 			time.Sleep(time.Second)
 			continue
 		}
@@ -116,15 +113,15 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 		break
 	}
 	var parm types.ReqWalletImportPrivKey
-	parm.Privkey = network.node.nodeInfo.addrBook.GetKey()
+	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
 	msg := network.client.NewMessage("wallet", types.EventWalletImportprivkey, &parm)
-	err := network.client.Send(msg, true)
+	err := network.client.SendTimeout(msg, true, time.Minute)
 	if err != nil {
 		log.Error("ImportPrivkey", "Error", err.Error())
 		return err
 	}
-	resp, err := network.client.Wait(msg)
+	resp, err := network.client.WaitTimeout(msg, time.Minute)
 	if err != nil {
 		if err == types.ErrPrivkeyExist || err == types.ErrLabelHasUsed {
 			return nil
@@ -141,14 +138,20 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 func (network *P2p) subP2pMsg() {
 	if network.client == nil {
 		return
+
 	}
-	var taskIndex int64
-	network.txCapcity = 1000
-	network.client.Sub("p2p")
-	go network.ShowTaskCapcity()
+
+	go network.showTaskCapcity()
 	go func() {
+		defer func() {
+			close(network.otherFactory)
+			close(network.txFactory)
+		}()
+		var taskIndex int64
+		network.client.Sub("p2p")
 		for msg := range network.client.Recv() {
-			if network.IsClose() {
+			if network.isClose() {
+				log.Debug("subP2pMsg", "loop", "done")
 				return
 			}
 			taskIndex++
@@ -160,7 +163,6 @@ func (network *P2p) subP2pMsg() {
 				if msg.Ty != types.EventPeerInfo {
 					network.otherFactory <- struct{}{}
 				}
-
 			}
 			switch msg.Ty {
 			case types.EventTxBroadcast: //广播tx
@@ -175,6 +177,8 @@ func (network *P2p) subP2pMsg() {
 				go network.p2pCli.GetPeerInfo(msg, taskIndex)
 			case types.EventFetchBlockHeaders:
 				go network.p2pCli.GetHeaders(msg, taskIndex)
+			case types.EventGetNetInfo:
+				go network.p2pCli.GetNetInfo(msg, taskIndex)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.client.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))

@@ -4,15 +4,18 @@ package executor
 import (
 	"bytes"
 
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	// register drivers
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/none"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/norm"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
@@ -23,7 +26,7 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var runningHeight int64 = 0
+var runningHeight int64
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -37,7 +40,16 @@ type Executor struct {
 	client queue.Client
 }
 
-func New() *Executor {
+func New(cfg *types.Exec) *Executor {
+	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
+	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
+	if cfg.MinExecFee == 0 && cfg.IsFree {
+		elog.Warn("set executor to free fee")
+		types.SetMinFee(0)
+	}
+	if cfg.MinExecFee > 0 {
+		types.SetMinFee(cfg.MinExecFee)
+	}
 	exec := &Executor{}
 	return exec
 }
@@ -51,16 +63,36 @@ func (exec *Executor) SetQueueClient(client queue.Client) {
 		for msg := range client.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
-				exec.procExecTxList(msg)
+				go exec.procExecTxList(msg)
 			} else if msg.Ty == types.EventAddBlock {
-				exec.procExecAddBlock(msg)
+				go exec.procExecAddBlock(msg)
 			} else if msg.Ty == types.EventDelBlock {
-				exec.procExecDelBlock(msg)
+				go exec.procExecDelBlock(msg)
 			} else if msg.Ty == types.EventCheckTx {
-				exec.procExecCheckTx(msg)
+				go exec.procExecCheckTx(msg)
+			} else if msg.Ty == types.EventBlockChainQuery {
+				go exec.procExecQuery(msg)
 			}
 		}
 	}()
+}
+
+func (exec *Executor) procExecQuery(msg queue.Message) {
+	data := msg.GetData().(*types.BlockChainQuery)
+	driver, err := LoadDriver(data.Driver)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
+	driver = driver.Clone()
+	driver.SetLocalDB(NewLocalDB(exec.client.Clone()))
+	driver.SetStateDB(NewStateDB(exec.client.Clone(), data.StateHash))
+	ret, err := driver.Query(data.FuncName, data.Param)
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
+	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
 }
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
@@ -150,9 +182,12 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
+	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
+		totalFee.Fee += tx.Fee
+		totalFee.TxCount++
 		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
@@ -170,6 +205,15 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
+
+	//保存手续费
+	feekv, err := saveFee(execute, &totalFee, b.ParentHash, b.Hash())
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+	kvset.KV = append(kvset.KV, feekv)
+
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -178,7 +222,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
-	for i := 0; i < len(b.Txs); i++ {
+	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
 		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
@@ -198,6 +242,15 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
+
+	//删除手续费
+	feekv, err := delFee(execute, b.Hash())
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		return
+	}
+	kvset.KV = append(kvset.KV, feekv)
+
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -221,9 +274,9 @@ func (exec *Executor) Close() {
 
 //执行器 -> db 环境
 type executor struct {
-	stateDB      dbm.KVDB
+	stateDB      dbm.KV
 	localDB      dbm.KVDB
-	coinsAccount *account.AccountDB
+	coinsAccount *account.DB
 	execDriver   *drivers.ExecDrivers
 	height       int64
 	blocktime    int64
@@ -256,7 +309,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	return nil, types.ErrNoBalance
 }
 
-func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptAccountTransfer) *types.Receipt {
+func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
 	return &types.Receipt{types.ExecPack, e.coinsAccount.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
@@ -289,14 +342,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 	}
 
-	exec.SetDB(e.stateDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriverForExec(string(tx.Execer))
-	exec.SetDB(e.stateDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.Exec(tx, index)
 }
@@ -331,4 +384,31 @@ func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 func LoadDriver(name string) (c drivers.Driver, err error) {
 	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
 	return execDrivers.LoadDriver(name)
+}
+
+func totalFeeKey(hash []byte) []byte {
+	s := [][]byte{[]byte("TotalFeeKey:"), hash}
+	sep := []byte("")
+	return bytes.Join(s, sep)
+}
+
+func saveFee(ex *executor, fee *types.TotalFee, parentHash, hash []byte) (*types.KeyValue, error) {
+	totalFee := &types.TotalFee{}
+	totalFeeBytes, err := ex.localDB.Get(totalFeeKey(parentHash))
+	if err == nil {
+		err = types.Decode(totalFeeBytes, totalFee)
+		if err != nil {
+			return nil, err
+		}
+	} else if err != types.ErrNotFound {
+		return nil, err
+	}
+
+	totalFee.Fee += fee.Fee
+	totalFee.TxCount += fee.TxCount
+	return &types.KeyValue{totalFeeKey(hash), types.Encode(totalFee)}, nil
+}
+
+func delFee(ex *executor, hash []byte) (*types.KeyValue, error) {
+	return &types.KeyValue{totalFeeKey(hash), types.Encode(&types.TotalFee{})}, nil
 }

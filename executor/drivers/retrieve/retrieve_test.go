@@ -17,19 +17,15 @@ import (
 	"google.golang.org/grpc"
 )
 
-var conn *grpc.ClientConn
-var r *rand.Rand
-var c types.GrpcserviceClient
-var ErrTest = errors.New("ErrTest")
-
-var addrexec *account.Address
-
-var delayLevel1 int64 = minPeriod + 10
-var delayLevel2 int64 = 5*minPeriod + 10
-
-var currHeight int64
-
-//var delayPeriod = minPeriod + 10
+var (
+	conn        *grpc.ClientConn
+	r           *rand.Rand
+	c           types.GrpcserviceClient
+	ErrTest     = errors.New("ErrTest")
+	addrexec    *account.Address
+	delayLevel1 = minPeriod + 10
+	delayLevel2 = 5*minPeriod + 10
+)
 
 //account:b will be used as backup for both acc A & B in this test
 const (
@@ -72,10 +68,10 @@ func init() {
 	addrexec = account.ExecAddress("retrieve")
 }
 
-func TestInitAccount(t *testing.T) {
+func estInitAccount(t *testing.T) {
 	fmt.Println("\nTestInitAccount start")
-	fmt.Println("*This case is used for initilizing accounts\n*Four accounts A/B/a/b will be set as 1e10/1e10/50*fee/50*fee, 50*fee is used for passing check in mempool\n")
-	defer fmt.Println("TestInitAccount end\n")
+	fmt.Println("*This case is used for initilizing accounts\n*Four accounts A/B/a/b will be set as 1e10/1e10/50*fee/50*fee, 50*fee is used for passing check in mempool")
+	defer fmt.Println("TestInitAccount end")
 
 	var label [accountMax]string
 	var params types.ReqWalletImportPrivKey
@@ -144,11 +140,11 @@ func TestInitAccount(t *testing.T) {
 	currBalanceb = 50 * fee
 }
 
-func TestRetrieveBackup(t *testing.T) {
+func estRetrieveBackup(t *testing.T) {
 
 	fmt.Println("\nTestRetrieveBackup start")
-	fmt.Println("*This case is used for checking backup operation\n*Backup action is done with privkey of account A/B, Backup: A->a, A->b, B->b;\n*currentbalanceA = currentbalanceA- 2*1e8 - 3*fee. currentbalanceB = currentbalanceB - 1e8 - 2*fee\n")
-	defer fmt.Println("TestRetrieveBackup end\n")
+	fmt.Println("*This case is used for checking backup operation\n*Backup action is done with privkey of account A/B, Backup: A->a, A->b, B->b;\n*currentbalanceA = currentbalanceA- 2*1e8 - 3*fee. currentbalanceB = currentbalanceB - 1e8 - 2*fee")
+	defer fmt.Println("TestRetrieveBackup end")
 
 	var hashes [][]byte
 
@@ -219,10 +215,10 @@ func TestRetrieveBackup(t *testing.T) {
 	}
 }
 
-func TestRetrievePrepare(t *testing.T) {
+func estRetrievePrepare(t *testing.T) {
 	fmt.Println("\nTestRetrievePrepare start")
-	fmt.Println("*This case is used for checking prepare operation\n*Prepare action is done with privkey of account a/b, currBalancea = currBalancea- fee,currBalanceb = currBalanceb -2*fee\n")
-	defer fmt.Println("TestRetrievePrepare end\n")
+	fmt.Println("*This case is used for checking prepare operation\n*Prepare action is done with privkey of account a/b, currBalancea = currBalancea- fee,currBalanceb = currBalanceb -2*fee")
+	defer fmt.Println("TestRetrievePrepare end")
 	var hashes [][]byte
 
 	txhash, err := prepare(accountindexa, accountindexA, accountindexa)
@@ -270,13 +266,12 @@ func TestRetrievePrepare(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	return
 }
 
-func TestRetrievePerform(t *testing.T) {
+func estRetrievePerform(t *testing.T) {
 	fmt.Println("\nTestRetrievePerform start")
-	fmt.Println("*This case is used for checking perform operation\n*perform action is done with privkey of account a/b, b can't withdraw balance as time is not enough\n*currBalancea = currBalancea +2*1e8 -2*fee, currBalanceb = currBalanceb -2*fee\n")
-	defer fmt.Println("TestRetrievePerform end\n")
+	fmt.Println("*This case is used for checking perform operation\n*perform action is done with privkey of account a/b, b can't withdraw balance as time is not enough\n*currBalancea = currBalancea +2*1e8 -2*fee, currBalanceb = currBalanceb -2*fee")
+	defer fmt.Println("TestRetrievePerform end")
 	var hashes [][]byte
 
 	//not success as time not enough
@@ -341,10 +336,10 @@ func TestRetrievePerform(t *testing.T) {
 	}
 }
 
-func TestRetrieveCancel(t *testing.T) {
+func estRetrieveCancel(t *testing.T) {
 	fmt.Println("\nTestRetrieveCancel start")
-	fmt.Println("*This case is used for checking cancel operation\n*Cancel action is done with privkey of account A/B, although the cancel action for A could succeed, but the balance have been transfered by last action with backup a\n*currBalanceA = currBalanceA - 2*fee currBalanceB = currBalanceB + 1e8 - 2*fee\n")
-	defer fmt.Println("TestRetrieveCancel end\n")
+	fmt.Println("*This case is used for checking cancel operation\n*Cancel action is done with privkey of account A/B, although the cancel action for A could succeed, but the balance have been transfered by last action with backup a\n*currBalanceA = currBalanceA - 2*fee currBalanceB = currBalanceB + 1e8 - 2*fee")
+	defer fmt.Println("TestRetrieveCancel end")
 	var hashes [][]byte
 
 	txhash, err := cancel(accountindexb, accountindexA, accountindexA)
@@ -402,10 +397,10 @@ func TestRetrieveCancel(t *testing.T) {
 	}
 }
 
-func TestRetrievePerformB(t *testing.T) {
+func estRetrievePerformB(t *testing.T) {
 	fmt.Println("\nTestRetrievePerformB start")
-	fmt.Println("*This case is used for checking perform operation for B again\n*perform action is done with privkey of account b, b can't withdraw balance as it has been canceled before\n*currBalanceb = currBalanceb -2*fee\n")
-	defer fmt.Println("TestRetrievePerformB end\n")
+	fmt.Println("*This case is used for checking perform operation for B again\n*perform action is done with privkey of account b, b can't withdraw balance as it has been canceled before\n*currBalanceb = currBalanceb -2*fee")
+	defer fmt.Println("TestRetrievePerformB end")
 	var hashes [][]byte
 
 	//failed as canceled before

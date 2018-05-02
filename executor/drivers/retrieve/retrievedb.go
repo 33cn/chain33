@@ -11,42 +11,42 @@ import (
 )
 
 const (
-	Retrieve_Backup    = 1
-	Retrieve_Prepared  = 2
-	Retrieve_Performed = 3
-	Retrieve_Canceled  = 4
+	retrieveBackup    = 1
+	retrievePrepared  = 2
+	retrievePerformed = 3
+	retrieveCanceled  = 4
 )
 
 const MaxRelation = 10
 
-type RetrieveDB struct {
+type DB struct {
 	types.Retrieve
 }
 
-func NewRetrieveDB(backupaddress string) *RetrieveDB {
-	r := &RetrieveDB{}
+func NewDB(backupaddress string) *DB {
+	r := &DB{}
 	r.BackupAddress = backupaddress
 
 	return r
 }
 
-func (r *RetrieveDB) RelateRetrieveDB(defaultAddress string, createTime int64, delayPeriod int64) bool {
+func (r *DB) RelateDB(defaultAddress string, createTime int64, delayPeriod int64) bool {
 	if len(r.RetPara) >= MaxRelation {
 		return false
 	}
-	rlog.Debug("RetrieveBackup", "RelateRetrieveDB", defaultAddress)
-	para := &types.RetrievePara{defaultAddress, Retrieve_Backup, createTime, 0, delayPeriod}
+	rlog.Debug("RetrieveBackup", "RelateDB", defaultAddress)
+	para := &types.RetrievePara{defaultAddress, retrieveBackup, createTime, 0, delayPeriod}
 	r.RetPara = append(r.RetPara, para)
 
 	return true
 }
 
-func (r *RetrieveDB) UnRelateRetrieveDB(index int) bool {
+func (r *DB) UnRelateDB(index int) bool {
 	r.RetPara = append(r.RetPara[:index], r.RetPara[index+1:]...)
 	return true
 }
 
-func (r *RetrieveDB) CheckRelation(defaultAddress string) (int, bool) {
+func (r *DB) CheckRelation(defaultAddress string) (int, bool) {
 	for i := 0; i < len(r.RetPara); i++ {
 		if r.RetPara[i].DefaultAddress == defaultAddress {
 			return i, true
@@ -55,28 +55,28 @@ func (r *RetrieveDB) CheckRelation(defaultAddress string) (int, bool) {
 	return MaxRelation, false
 }
 
-func (r *RetrieveDB) GetKVSet() (kvset []*types.KeyValue) {
+func (r *DB) GetKVSet() (kvset []*types.KeyValue) {
 	value := types.Encode(&r.Retrieve)
-	kvset = append(kvset, &types.KeyValue{RetrieveKey(r.BackupAddress), value})
+	kvset = append(kvset, &types.KeyValue{Key(r.BackupAddress), value})
 	return kvset
 }
 
-func (r *RetrieveDB) Save(db dbm.KVDB) {
+func (r *DB) Save(db dbm.KV) {
 	set := r.GetKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func RetrieveKey(address string) (key []byte) {
+func Key(address string) (key []byte) {
 	key = append(key, []byte("mavl-retrieve-")...)
 	key = append(key, address...)
 	return key
 }
 
-type RetrieveAction struct {
-	coinsAccount *account.AccountDB
-	db           dbm.KVDB
+type Action struct {
+	coinsAccount *account.DB
+	db           dbm.KV
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64
@@ -84,20 +84,34 @@ type RetrieveAction struct {
 	execaddr     string
 }
 
-func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *RetrieveAction {
+func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	return &RetrieveAction{r.GetCoinsAccount(), r.GetDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
+	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
 }
 
 //wait for valuable comment
-func (action *RetrieveAction) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
-	var r *RetrieveDB
-	var newRetrieve bool = false
+	var r *DB
+	var newRetrieve = false
+	if action.height >= types.ForkV5Retrive {
+		if err := account.CheckAddress(backupRet.BackupAddress); err != nil {
+			rlog.Debug("retrieve checkaddress")
+			return nil, err
+		}
+		if err := account.CheckAddress(backupRet.DefaultAddress); err != nil {
+			rlog.Debug("retrieve checkaddress")
+			return nil, err
+		}
 
+		if action.fromaddr != backupRet.DefaultAddress {
+			rlog.Debug("RetrieveBackup", "action.fromaddr", action.fromaddr, "backupRet.DefaultAddress", backupRet.DefaultAddress)
+			return nil, types.ErrRetrieveDefaultAddress
+		}
+	}
 	//用备份地址检索，如果没有，就建立新的，然后检查并处理关联
 	retrieve, err := readRetrieve(action.db, backupRet.BackupAddress)
 	if err != nil && err != types.ErrNotFound {
@@ -109,13 +123,13 @@ func (action *RetrieveAction) RetrieveBackup(backupRet *types.BackupRetrieve) (*
 	}
 
 	if newRetrieve {
-		r = NewRetrieveDB(backupRet.BackupAddress)
+		r = NewDB(backupRet.BackupAddress)
 	} else {
-		r = &RetrieveDB{*retrieve}
+		r = &DB{*retrieve}
 	}
 
 	if index, related := r.CheckRelation(backupRet.DefaultAddress); !related {
-		if !r.RelateRetrieveDB(backupRet.DefaultAddress, action.blocktime, backupRet.DelayPeriod) {
+		if !r.RelateDB(backupRet.DefaultAddress, action.blocktime, backupRet.DelayPeriod) {
 			rlog.Debug("RetrieveBackup", "index", index)
 			return nil, types.ErrRetrieveRelateLimit
 		}
@@ -131,11 +145,11 @@ func (action *RetrieveAction) RetrieveBackup(backupRet *types.BackupRetrieve) (*
 	return receipt, nil
 }
 
-func (action *RetrieveAction) RetrievePrepare(preRet *types.PreRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrievePrepare(preRet *types.PreRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
-	var r *RetrieveDB
+	var r *DB
 	var index int
 	var related bool
 
@@ -144,7 +158,7 @@ func (action *RetrieveAction) RetrievePrepare(preRet *types.PreRetrieve) (*types
 		rlog.Debug("RetrievePrepare", "readRetrieve", err)
 		return nil, err
 	}
-	r = &RetrieveDB{*retrieve}
+	r = &DB{*retrieve}
 	if action.fromaddr != r.BackupAddress {
 		rlog.Debug("RetrievePrepare", "action.fromaddr", action.fromaddr, "r.BackupAddress", r.BackupAddress)
 		return nil, types.ErrRetrievePrepareAddress
@@ -155,12 +169,12 @@ func (action *RetrieveAction) RetrievePrepare(preRet *types.PreRetrieve) (*types
 		return nil, types.ErrRetrieveRelation
 	}
 
-	if r.RetPara[index].Status != Retrieve_Backup {
+	if r.RetPara[index].Status != retrieveBackup {
 		rlog.Debug("RetrievePrepare", "Status", r.RetPara[index].Status)
 		return nil, types.ErrRetrieveStatus
 	}
 	r.RetPara[index].PrepareTime = action.blocktime
-	r.RetPara[index].Status = Retrieve_Prepared
+	r.RetPara[index].Status = retrievePrepared
 
 	r.Save(action.db)
 	kv = append(kv, r.GetKVSet()...)
@@ -169,7 +183,7 @@ func (action *RetrieveAction) RetrievePrepare(preRet *types.PreRetrieve) (*types
 	return receipt, nil
 }
 
-func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrievePerform(perfRet *types.PerformRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -183,7 +197,7 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 		return nil, err
 	}
 
-	r := &RetrieveDB{*retrieve}
+	r := &DB{*retrieve}
 
 	if index, related = r.CheckRelation(perfRet.DefaultAddress); !related {
 		rlog.Debug("RetrievePerform", "CheckRelation", perfRet.DefaultAddress)
@@ -195,7 +209,7 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 		return nil, types.ErrRetrievePerformAddress
 	}
 
-	if r.RetPara[index].Status != Retrieve_Prepared {
+	if r.RetPara[index].Status != retrievePrepared {
 		rlog.Debug("RetrievePerform", "Status", r.RetPara[index].Status)
 		return nil, types.ErrRetrieveStatus
 	}
@@ -218,7 +232,7 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 
 	//r.RetPara[index].Status = Retrieve_Performed
 	//remove the relation
-	r.UnRelateRetrieveDB(index)
+	r.UnRelateDB(index)
 	r.Save(action.db)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
@@ -228,7 +242,7 @@ func (action *RetrieveAction) RetrievePerform(perfRet *types.PerformRetrieve) (*
 	return receipt, nil
 }
 
-func (action *RetrieveAction) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -240,7 +254,7 @@ func (action *RetrieveAction) RetrieveCancel(cancel *types.CancelRetrieve) (*typ
 		rlog.Debug("RetrieveCancel", "readRetrieve err", cancel.BackupAddress)
 		return nil, err
 	}
-	r := &RetrieveDB{*retrieve}
+	r := &DB{*retrieve}
 
 	if index, related = r.CheckRelation(cancel.DefaultAddress); !related {
 		rlog.Debug("RetrieveCancel", "CheckRelation", cancel.DefaultAddress)
@@ -252,14 +266,14 @@ func (action *RetrieveAction) RetrieveCancel(cancel *types.CancelRetrieve) (*typ
 		return nil, types.ErrRetrieveCancelAddress
 	}
 
-	if r.RetPara[index].Status != Retrieve_Prepared {
+	if r.RetPara[index].Status != retrievePrepared {
 		rlog.Debug("RetrieveCancel", "Status", r.RetPara[index].Status)
 		return nil, types.ErrRetrieveStatus
 	}
 
 	//r.RetPara[index].Status = Retrieve_Canceled
 	//remove the relation
-	r.UnRelateRetrieveDB(index)
+	r.UnRelateDB(index)
 	r.Save(action.db)
 	kv = append(kv, r.GetKVSet()...)
 
@@ -267,8 +281,8 @@ func (action *RetrieveAction) RetrieveCancel(cancel *types.CancelRetrieve) (*typ
 	return receipt, nil
 }
 
-func readRetrieve(db dbm.KVDB, address string) (*types.Retrieve, error) {
-	data, err := db.Get(RetrieveKey(address))
+func readRetrieve(db dbm.KV, address string) (*types.Retrieve, error) {
+	data, err := db.Get(Key(address))
 	if err != nil {
 		rlog.Debug("readRetrieve", "get", err)
 		return nil, err

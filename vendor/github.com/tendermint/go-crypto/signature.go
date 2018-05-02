@@ -6,8 +6,14 @@ import (
 
 	"github.com/tendermint/go-wire"
 	data "github.com/tendermint/go-wire/data"
-	. "github.com/tendermint/tmlibs/common"
+	//. "github.com/tendermint/tmlibs/common"
 )
+
+func Fingerprint(slice []byte) []byte {
+	fingerprint := make([]byte, 6)
+	copy(fingerprint, slice)
+	return fingerprint
+}
 
 func SignatureFromBytes(sigBytes []byte) (sig Signature, err error) {
 	err = wire.ReadBinaryBytes(sigBytes, &sig)

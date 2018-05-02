@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,22 +14,22 @@ type NodeInfo struct {
 	mtx            sync.Mutex
 	externalAddr   *NetAddress
 	listenAddr     *NetAddress
-	version        string
-	monitorChan    chan *peer
+	monitorChan    chan *Peer
 	natNoticeChain chan struct{}
 	natResultChain chan bool
 	cfg            *types.P2P
 	client         queue.Client
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
-
-	addrBook *AddrBook // known peers
-	natDone  int32
+	addrBook       *AddrBook // known peers
+	natDone        int32
+	outSide        int32
+	ServiceType    int32
 }
 
 func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo := new(NodeInfo)
-	nodeInfo.monitorChan = make(chan *peer, 1024)
+	nodeInfo.monitorChan = make(chan *Peer, 1024)
 	nodeInfo.natNoticeChain = make(chan struct{}, 1)
 	nodeInfo.natResultChain = make(chan bool, 1)
 	nodeInfo.blacklist = &BlackList{badPeers: make(map[string]int64)}
@@ -40,8 +39,7 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
 
-	os.MkdirAll(cfg.GetDbPath(), 0755)
-	nodeInfo.addrBook = NewAddrBook(cfg.GetDbPath())
+	nodeInfo.addrBook = NewAddrBook(cfg)
 
 	return nodeInfo
 }
@@ -61,7 +59,7 @@ func (p *PeerInfos) FlushPeerInfos(in []*types.Peer) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
-	for k, _ := range p.infos {
+	for k := range p.infos {
 		delete(p.infos, k)
 	}
 
@@ -186,6 +184,35 @@ func (nf *NodeInfo) IsNatDone() bool {
 	return atomic.LoadInt32(&nf.natDone) == 1
 }
 
+func (nf *NodeInfo) IsOutService() bool {
+	if !nf.IsNatDone() {
+		return false
+	}
+	if nf.OutSide() || nf.ServiceTy() == Service {
+		return true
+	}
+	return false
+}
+
+func (nf *NodeInfo) SetServiceTy(ty int32) {
+	atomic.StoreInt32(&nf.ServiceType, ty)
+}
+func (nf *NodeInfo) ServiceTy() int32 {
+	return atomic.LoadInt32(&nf.ServiceType)
+}
+func (nf *NodeInfo) SetNetSide(ok bool) {
+	var isoutside int32 = 0
+	if ok {
+		isoutside = 1
+	}
+	atomic.StoreInt32(&nf.outSide, isoutside)
+
+}
+
+func (nf *NodeInfo) OutSide() bool {
+	return atomic.LoadInt32(&nf.outSide) == 1
+}
+
 func (bl *BlackList) Add(addr string) {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
@@ -211,6 +238,12 @@ func (bl *BlackList) Has(addr string) bool {
 func (bl *BlackList) GetBadPeers() map[string]int64 {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
-	return bl.badPeers
+
+	var copyData = make(map[string]int64)
+
+	for k, v := range bl.badPeers {
+		copyData[k] = v
+	}
+	return copyData
 
 }

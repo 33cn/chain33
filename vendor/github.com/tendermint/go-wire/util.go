@@ -7,14 +7,14 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	cmn "github.com/tendermint/tmlibs/common"
+	//cmn "github.com/tendermint/tmlibs/common"
 )
 
 func BinaryBytes(o interface{}) []byte {
 	w, n, err := new(bytes.Buffer), new(int), new(error)
 	WriteBinary(o, w, n, err)
 	if *err != nil {
-		cmn.PanicSanity(*err)
+		PanicSanity(*err)
 	}
 	return w.Bytes()
 }
@@ -30,7 +30,7 @@ func JSONBytes(o interface{}) []byte {
 	w, n, err := new(bytes.Buffer), new(int), new(error)
 	WriteJSON(o, w, n, err)
 	if *err != nil {
-		cmn.PanicSanity(*err)
+		PanicSanity(*err)
 	}
 	return w.Bytes()
 }
@@ -41,11 +41,11 @@ func JSONBytesPretty(o interface{}) []byte {
 	var object interface{}
 	err := json.Unmarshal(jsonBytes, &object)
 	if err != nil {
-		cmn.PanicSanity(err)
+		PanicSanity(err)
 	}
 	jsonBytes, err = json.MarshalIndent(object, "", "\t")
 	if err != nil {
-		cmn.PanicSanity(err)
+		PanicSanity(err)
 	}
 	return jsonBytes
 }
@@ -75,7 +75,7 @@ func BinarySha256(o interface{}) []byte {
 	hasher, n, err := sha256.New(), new(int), new(error)
 	WriteBinary(o, hasher, n, err)
 	if *err != nil {
-		cmn.PanicSanity(*err)
+		PanicSanity(*err)
 	}
 	return hasher.Sum(nil)
 }
@@ -85,7 +85,7 @@ func BinaryRipemd160(o interface{}) []byte {
 	hasher, n, err := ripemd160.New(), new(int), new(error)
 	WriteBinary(o, hasher, n, err)
 	if *err != nil {
-		cmn.PanicSanity(*err)
+		PanicSanity(*err)
 	}
 	return hasher.Sum(nil)
 }

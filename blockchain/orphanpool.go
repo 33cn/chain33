@@ -10,8 +10,7 @@ import (
 )
 
 var (
-	maxOrphanBlocks int64 = 2 * MaxFetchBlockNum //最大孤儿block数量，考虑到同步阶段孤儿block会很多
-	orphanlog             = chainlog.New("submodule", "orphan")
+	maxOrphanBlocks = 2 * MaxFetchBlockNum //最大孤儿block数量，考虑到同步阶段孤儿block会很多
 )
 
 const orphanExpirationTime = time.Second * 300
@@ -21,6 +20,7 @@ type orphanBlock struct {
 	block      *types.Block
 	expiration time.Time
 	broadcast  bool
+	pid        string
 }
 
 //孤儿节点的存储以blockhash作为map的索引。hash转换成string
@@ -112,7 +112,7 @@ func (op *OrphanPool) removeOrphanBlock(orphan *orphanBlock) {
 // It also imposes a maximum limit on the number of outstanding orphan
 // blocks and will remove the oldest received orphan block if the limit is
 // exceeded.
-func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block) {
+func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid string) {
 
 	chainlog.Debug("addOrphanBlock:", "block.height", block.Height, "block.hash", common.ToHex(block.Hash()))
 
@@ -147,6 +147,7 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block) {
 		block:      block,
 		expiration: expiration,
 		broadcast:  broadcast,
+		pid:        pid,
 	}
 	op.orphans[string(block.Hash())] = oBlock
 
@@ -163,7 +164,7 @@ func (op *OrphanPool) GetChildOrphanCount(hash string) int {
 	return len(op.prevOrphans[hash])
 }
 
-func (op *OrphanPool) GetChildOrphan(hash string, index int) *orphanBlock {
+func (op *OrphanPool) getChildOrphan(hash string, index int) *orphanBlock {
 	op.orphanLock.RLock()
 	defer op.orphanLock.RUnlock()
 	if index >= len(op.prevOrphans[hash]) {

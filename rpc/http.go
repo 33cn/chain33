@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"compress/gzip"
 	"io"
 	"net"
 	"net/http"
@@ -15,16 +16,27 @@ import (
 )
 
 // adapt HTTP connection to ReadWriteCloser
-type HttpConn struct {
+type HTTPConn struct {
+	r   *http.Request
 	in  io.Reader
 	out io.Writer
 }
 
-func (c *HttpConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
-func (c *HttpConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
-func (c *HttpConn) Close() error                      { return nil }
+func (c *HTTPConn) Read(p []byte) (n int, err error) { return c.in.Read(p) }
 
-func (j *JsonRpcServer) Listen() {
+func (c *HTTPConn) Write(d []byte) (n int, err error) { //添加支持gzip 发送
+
+	if strings.Contains(c.r.Header.Get("Accept-Encoding"), "gzip") {
+		gw := gzip.NewWriter(c.out)
+		defer gw.Close()
+		return gw.Write(d)
+	}
+	return c.out.Write(d)
+}
+
+func (c *HTTPConn) Close() error { return nil }
+
+func (j *JSONRPCServer) Listen() {
 	listener, err := net.Listen("tcp", rpcCfg.GetJrpcBindAddr())
 	if err != nil {
 		log.Crit("listen:", "err", err)
@@ -38,14 +50,16 @@ func (j *JsonRpcServer) Listen() {
 	// Insert the middleware
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		if checkWhitlist(strings.Split(r.RemoteAddr, ":")[0]) == false {
+		if !checkWhitlist(strings.Split(r.RemoteAddr, ":")[0]) {
 			w.Write([]byte(`{"errcode":"-1","result":null,"msg":"reject"}`))
 			return
 		}
 
 		if r.URL.Path == "/" {
-			serverCodec := jsonrpc.NewServerCodec(&HttpConn{in: r.Body, out: w})
-			w.Header().Set("Content-type", "application/json")
+			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w, r: r})
+			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				w.Header().Set("Content-Encoding", "gzip")
+			}
 			w.WriteHeader(200)
 			err := server.ServeRequest(serverCodec)
 			if err != nil {

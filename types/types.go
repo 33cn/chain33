@@ -12,11 +12,12 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	// register crypto algorithms
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
 )
 
-//var tlog = log.New("module", "types")
+var tlog = log.New("module", "types")
 
 type Message proto.Message
 
@@ -55,7 +56,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 }
 
 func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
-	caches = make([]*TransactionCache, len(txs), len(txs))
+	caches = make([]*TransactionCache, len(txs))
 	for i := 0; i < len(caches); i++ {
 		caches[i] = NewTransactionCache(txs[i])
 	}
@@ -63,7 +64,7 @@ func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
 }
 
 func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
-	txs = make([]*Transaction, len(caches), len(caches))
+	txs = make([]*Transaction, len(caches))
 	for i := 0; i < len(caches); i++ {
 		txs[i] = caches[i].Tx()
 	}
@@ -336,13 +337,7 @@ func (tx *Transaction) ActionName() string {
 }
 
 func (block *Block) Hash() []byte {
-	head := &Header{}
-	head.Version = block.Version
-	head.ParentHash = block.ParentHash
-	head.TxHash = block.TxHash
-	head.BlockTime = block.BlockTime
-	head.Height = block.Height
-	data, err := proto.Marshal(head)
+	data, err := proto.Marshal(block.GetHeader())
 	if err != nil {
 		panic(err)
 	}
@@ -356,6 +351,11 @@ func (block *Block) GetHeader() *Header {
 	head.TxHash = block.TxHash
 	head.BlockTime = block.BlockTime
 	head.Height = block.Height
+	if head.Height >= ForkBlockHash {
+		head.Difficulty = block.Difficulty
+		head.StateHash = block.StateHash
+		head.TxCount = int64(len(block.Txs))
+	}
 	return head
 }
 
@@ -431,7 +431,7 @@ func checkAll(task []*Transaction, n int) bool {
 	}()
 	// End of pipeline. OMIT
 	for r := range c {
-		if r.isok == false {
+		if !r.isok {
 			return false
 		}
 	}
@@ -536,9 +536,9 @@ type ReceiptLogResult struct {
 	RawLog string      `json:"rawlog"`
 }
 
-func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
-	result := &ReceiptDataResult{Ty: rpt.GetTy()}
-	switch rpt.Ty {
+func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
+	result := &ReceiptDataResult{Ty: r.GetTy()}
+	switch r.Ty {
 	case 0:
 		result.TyName = "ExecErr"
 	case 1:
@@ -548,7 +548,7 @@ func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 	default:
 		return nil, ErrLogType
 	}
-	logs := rpt.GetLogs()
+	logs := r.GetLogs()
 	for _, l := range logs {
 		var lTy string
 		var logIns interface{}
@@ -804,8 +804,8 @@ func (rpt *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 	return result, nil
 }
 
-func (rd *ReceiptData) OutputReceiptDetails(logger log.Logger) {
-	rds, err := rd.DecodeReceiptLog()
+func (r *ReceiptData) OutputReceiptDetails(logger log.Logger) {
+	rds, err := r.DecodeReceiptLog()
 	if err == nil {
 		logger.Debug("receipt decode", "receipt data", rds)
 		for _, rdl := range rds.Logs {
@@ -814,4 +814,22 @@ func (rd *ReceiptData) OutputReceiptDetails(logger log.Logger) {
 	} else {
 		logger.Error("decodelogerr", "err", err)
 	}
+}
+
+func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
+	//tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
+	var acc Account
+	err := Decode(value, &acc)
+	if err != nil {
+		tlog.Error("ReplyGetTotalCoins.IterateRangeByStateHash", "err", err)
+		return true
+	}
+	//tlog.Info("acc:", "value", acc)
+	if t.Num >= t.Count {
+		t.NextKey = key
+		return true
+	}
+	t.Num++
+	t.Amount += acc.Balance
+	return false
 }
