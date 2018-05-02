@@ -484,7 +484,6 @@ func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
 	netinfo.Externaladdr = m.network.node.nodeInfo.GetExternalAddr().String()
 	netinfo.Localaddr = m.network.node.nodeInfo.GetListenAddr().String()
 	netinfo.Service = m.network.node.nodeInfo.IsOutService()
-
 	msg.Reply(m.network.client.NewMessage("rpc", pb.EventReplyNetInfo, &netinfo))
 
 }

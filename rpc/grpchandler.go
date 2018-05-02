@@ -59,7 +59,7 @@ func (g *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, erro
 		return nil, err
 	}
 
-	return &pb.Reply{IsOk: true, Msg: (interface{}(reply)).(*pb.Reply).Msg}, nil
+	return &pb.Reply{IsOk: true, Msg: types.Encode(reply)}, nil
 
 }
 
