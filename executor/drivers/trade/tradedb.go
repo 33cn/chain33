@@ -201,6 +201,10 @@ func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 }
 
 func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, error) {
+	if sell.Totalboardlot < 0 || sell.Priceperboardlot < 0 || sell.Minboardlot < 0 || sell.Amountperboardlot < 0 {
+		return nil, types.ErrInputPara
+	}
+
 	tokenAccDB := account.NewTokenAccount(sell.Tokensymbol, action.db)
 
 	//确认发起此次出售或者众筹的余额是否足够
@@ -241,6 +245,10 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 }
 
 func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt, error) {
+	if buyOrder.Boardlotcnt < 0 {
+		return nil, types.ErrInputPara
+	}
+
 	sellidByte := []byte(buyOrder.Sellid)
 	sellOrder, err := getSellOrderFromID(sellidByte, action.db)
 	if err != nil {
@@ -385,6 +393,10 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 }
 
 func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) (*types.Receipt, error) {
+	if sellOrder.BoardlotCnt < 0 {
+		return nil, types.ErrInputPara
+	}
+
 	idByte := []byte(sellOrder.Buyid)
 	buyOrder, err := getBuyOrderFromID(idByte, action.db)
 	if err != nil {
