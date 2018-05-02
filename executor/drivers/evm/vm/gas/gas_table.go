@@ -7,6 +7,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
+// 本文件中定义各种操作中需要花费的Gas逻辑
+
 type (
 	GasFunc func(GasTable, *params.EVMParam, *params.GasParam, *mm.Stack, *mm.Memory, uint64) (uint64, error) // last parameter is the requested memory size as a uint64
 )
@@ -41,25 +43,20 @@ var (
 	}
 )
 
-// memoryGasCosts calculates the quadratic gas for memory expansion. It does so
-// only for the memory region that is expanded, not the total memory.
+// 计算新开辟内存空间需要使用多少Gas
 func memoryGasCost(mem *mm.Memory, newMemSize uint64) (uint64, error) {
-
 	if newMemSize == 0 {
 		return 0, nil
 	}
-	// The maximum that will fit in a uint64 is max_word_count - 1
-	// anything above that will result in an overflow.
-	// Additionally, a newMemSize which results in a
-	// newMemSizeWords larger than 0x7ffffffff will cause the square operation
-	// to overflow.
-	// The constant 0xffffffffe0 is the highest number that can be used without
-	// overflowing the gas calculation
-	if newMemSize > 0xffffffffe0 {
+
+	// 如果超过最大值，则溢出
+	if newMemSize > MaxNewMemSize {
 		return 0, model.ErrGasUintOverflow
 	}
 
 	newMemSizeWords := common.ToWordSize(newMemSize)
+	// 这里之所以要再算一遍，是因为内存开辟是按字长，
+	// 第一次计算出来的自己长度不一定是字长的整数倍
 	newMemSize = newMemSizeWords * 32
 
 	if newMemSize > uint64(mem.Len()) {
@@ -68,6 +65,7 @@ func memoryGasCost(mem *mm.Memory, newMemSize uint64) (uint64, error) {
 		quadCoef := square / params.QuadCoeffDiv
 		newTotalFee := linCoef + quadCoef
 
+		// 本次逻辑只返回新增的内存空间需要的Gas，所以需要减去上次已经花费的Gas
 		fee := newTotalFee - mem.LastGasCost
 		mem.LastGasCost = newTotalFee
 
@@ -76,12 +74,14 @@ func memoryGasCost(mem *mm.Memory, newMemSize uint64) (uint64, error) {
 	return 0, nil
 }
 
+// Gas计算逻辑封装，返回固定值的Gas计算都可以使用此方法
 func ConstGasFunc(gas uint64) GasFunc {
 	return func(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, stack *mm.Stack, mem *mm.Memory, memorySize uint64) (uint64, error) {
 		return gas, nil
 	}
 }
 
+// 计算数据复制需要花费的Gas
 func GasCallDataCopy(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, stack *mm.Stack, mem *mm.Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
 	if err != nil {
@@ -107,6 +107,7 @@ func GasCallDataCopy(gt GasTable, evm *params.EVMParam, contractGas *params.GasP
 	}
 	return gas, nil
 }
+
 
 func GasReturnDataCopy(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, stack *mm.Stack, mem *mm.Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
@@ -139,19 +140,20 @@ func GasSStore(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, 
 		y, x = stack.Back(1), stack.Back(0)
 		val  = evm.StateDB.GetState(contractGas.Address, common.BigToHash(x))
 	)
-	// This checks for 3 scenario's and calculates gas accordingly
-	// 1. From a zero-value address to a non-zero value         (NEW VALUE)
-	// 2. From a non-zero value address to a zero-value address (DELETE)
-	// 3. From a non-zero to a non-zero                         (CHANGE)
+
+	// 三种场景消耗的Gas是不一样的
 	if common.EmptyHash(val) && !common.EmptyHash(common.BigToHash(y)) {
+		// 从零值地址到非零值地址存储， 赋值的情况
 		// 0 => non 0
 		return params.SstoreSetGas, nil
 	} else if !common.EmptyHash(val) && common.EmptyHash(common.BigToHash(y)) {
+		// 从非零值地址到零值地址存储， 删除值的情况
+		// non 0 => 0
 		evm.StateDB.AddRefund(params.SstoreRefundGas)
-
 		return params.SstoreClearGas, nil
 	} else {
-		// non 0 => non 0 (or 0 => 0)
+		// 从非零值地址到非零值地址存储， 变更值的情况
+		// non 0 => non 0
 		return params.SstoreResetGas, nil
 	}
 }
@@ -338,13 +340,8 @@ func GasCall(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, st
 		gas            = gt.Calls
 		transfersValue = stack.Back(2).Sign() != 0
 		address        = common.BigToAddress(stack.Back(1))
-		eip158         = evm.ChainConfig.IsEIP158(evm.BlockNumber)
 	)
-	if eip158 {
-		if transfersValue && evm.StateDB.Empty(address) {
-			gas += params.CallNewAccountGas
-		}
-	} else if !evm.StateDB.Exist(address) {
+	if !evm.StateDB.Exist(address) {
 		gas += params.CallNewAccountGas
 	}
 	if transfersValue {
@@ -403,24 +400,6 @@ func GasRevert(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, 
 
 func GasSuicide(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, stack *mm.Stack, mem *mm.Memory, memorySize uint64) (uint64, error) {
 	var gas uint64
-	// EIP150 homestead gas reprice fork:
-	if evm.ChainConfig.IsEIP150(evm.BlockNumber) {
-		gas = gt.Suicide
-		var (
-			address = common.BigToAddress(stack.Back(0))
-			eip158  = evm.ChainConfig.IsEIP158(evm.BlockNumber)
-		)
-
-		if eip158 {
-			// if empty and transfers value
-			if evm.StateDB.Empty(address) && evm.StateDB.GetBalance(contractGas.Address).Sign() != 0 {
-				gas += gt.CreateBySuicide
-			}
-		} else if !evm.StateDB.Exist(address) {
-			gas += gt.CreateBySuicide
-		}
-	}
-
 	if !evm.StateDB.HasSuicided(contractGas.Address) {
 		evm.StateDB.AddRefund(params.SuicideRefundGas)
 	}

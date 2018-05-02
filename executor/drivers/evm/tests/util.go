@@ -60,12 +60,11 @@ func buildStateDB(addr string, balance int64) *db.GoMemDB {
 	return mdb
 }
 
-func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error, statedb *state.MemoryStateDB) {
+func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize uint64) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error, statedb *state.MemoryStateDB) {
 	inst := evm.NewFakeEVM()
 
 	msg := inst.GetMessage(&tx)
 
-	config := inst.GetChainConfig()
 	inst.SetEnv(10,0)
 	statedb = inst.GetMStateDB()
 
@@ -86,7 +85,7 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 	context := evm.NewEVMContext(msg, height, tm, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	env := runtime.NewEVM(context, statedb, config, *vmcfg)
+	env := runtime.NewEVM(context, statedb, *vmcfg)
 	if(maxCodeSize !=0){
 		env.SetMaxCodeSize(maxCodeSize)
 	}
@@ -102,8 +101,6 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 	inst := evm.NewFakeEVM()
 
 	msg := inst.GetMessage(&tx)
-
-	config := inst.GetChainConfig()
 
 	inst.SetEnv(10,0)
 
@@ -127,7 +124,7 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 	context := evm.NewEVMContext(msg, height, tm, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	env := runtime.NewEVM(context, statedb, config, *vmcfg)
+	env := runtime.NewEVM(context, statedb, *vmcfg)
 
 	//ret,addr,leftGas,err :=  runtime.Create(vm.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
 

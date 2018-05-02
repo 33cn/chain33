@@ -1,19 +1,3 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
 package runtime
 
 import (
@@ -631,19 +615,10 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack
 		input        = memory.Get(offset.Int64(), size.Int64())
 		gas          = contract.Gas
 	)
-	if evm.ChainConfig().IsEIP150(evm.BlockNumber) {
-		gas -= gas / 64
-	}
 
 	contract.UseGas(gas)
 	res, addr, returnGas, suberr := evm.Create(contract, input, gas, value)
-	// Push item on the stack based on the returned error. If the ruleset is
-	// homestead we must check for CodeStoreOutOfGasError (homestead only
-	// rule) and treat as an error, if the ruleset is frontier we must
-	// ignore this error and pretend the Operation was successful.
-	if evm.ChainConfig().IsHomestead(evm.BlockNumber) && suberr == model.ErrCodeStoreOutOfGas {
-		stack.Push(new(big.Int))
-	} else if suberr != nil && suberr != model.ErrCodeStoreOutOfGas {
+	if suberr != nil && suberr != model.ErrCodeStoreOutOfGas {
 		stack.Push(new(big.Int))
 	} else {
 		stack.Push(addr.Big())

@@ -8,7 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
@@ -86,7 +85,6 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 
 	// 创建EVM上下文
 	//header := wrapper.GetBlockHeader()
-	config := evm.GetChainConfig()
 	vmcfg := evm.GetVMConfig()
 
 	// 获取当前区块的高度和时间
@@ -101,7 +99,7 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	context := NewEVMContext(msg, height, time, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	env := runtime.NewEVM(context, evm.mStateDB, config, *vmcfg)
+	env := runtime.NewEVM(context, evm.mStateDB, *vmcfg)
 
 	isCreate := msg.To() == nil
 
@@ -168,23 +166,6 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
 
 	return receipt, nil
-}
-
-
-func (evm *FakeEVM) GetChainConfig() *params.ChainConfig {
-	// FIXME 这里先使用测试配置，之后根据代码逻辑再修改
-	return &params.ChainConfig{
-		ChainId: big.NewInt(1),
-		HomesteadBlock: big.NewInt(0),
-		DAOForkBlock: nil,
-		DAOForkSupport: false,
-		EIP150Block: big.NewInt(0),
-		EIP155Block: big.NewInt(0),
-		EIP158Block: big.NewInt(0),
-		ByzantiumBlock: big.NewInt(0),
-		ConstantinopleBlock: nil,
-		Ethash: new(params.EthashConfig),
-		Clique: nil}
 }
 
 func (evm *FakeEVM) GetMStateDB() *state.MemoryStateDB {

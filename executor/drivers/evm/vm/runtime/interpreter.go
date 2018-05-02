@@ -1,19 +1,3 @@
-// Copyright 2014 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
 package runtime
 
 import (
@@ -27,42 +11,37 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 )
 
-// Config are the configuration options for the Interpreter
+// 解释器的配置模型
 type Config struct {
-	// Debug enabled debugging Interpreter options
+	// 调试开关
 	Debug bool
-	// EnableJit enabled the JIT VM
+	// 是否启用JIT  FIXME 目前版本暂不支持
 	EnableJit bool
-	// ForceJit forces the JIT VM
+	// 强制使用JIT  FIXME 目前版本暂不支持
 	ForceJit bool
-	// Tracer is the op code logger
+	// 记录操作日志
 	Tracer Tracer
-	// NoRecursion disabled Interpreter CALL, CALLcode,
-	// delegate CALL and create.
+	// 不允许使用Call, CallCode, DelegateCall
 	NoRecursion bool
-	// Enable recording of SHA3/keccak preimages
+	// SHA3/keccak 操作时是否保存数据
 	EnablePreimageRecording bool
-	// JumpTable contains the EVM instruction table. This
-	// may be left uninitialised and will be set to the default
-	// table.
+	// 指令跳转表
 	JumpTable [256]Operation
 }
 
-// Interpreter is used to run Ethereum based contracts and will utilise the
-// passed evmironment to query external sources for state information.
-// The Interpreter will run the byte code VM or JIT VM based on the passed
-// configuration.
+// 解释器接结构定义
 type Interpreter struct {
 	evm      *EVM
 	cfg      Config
 	gasTable gas.GasTable
 	IntPool  *mm.IntPool
 
-	readOnly   bool   // Whether to throw on stateful modifications
-	ReturnData []byte // Last CALL's return data for subsequent reuse
+	// 是否允许修改数据
+	readOnly bool
+	// 合约执行返回的结果数据
+	ReturnData []byte
 }
 
-// NewInterpreter returns a new instance of the Interpreter.
 func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 	// 使用是否包含第一个STOP指令判断jump table是否完成初始化
 	// 需要注意，后继如果新增指令，需要在这里判断硬分叉，指定不同的指令集
@@ -79,54 +58,47 @@ func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 }
 
 func (in *Interpreter) enforceRestrictions(op OpCode, operation Operation, stack *mm.Stack) error {
-	if in.evm.chainRules.IsByzantium {
-		if in.readOnly {
-			// If the Interpreter is operating in readonly mode, make sure no
-			// state-modifying operation is performed. The 3rd stack item
-			// for a CALL operation is the value. Transferring value from one
-			// account to the others means the state is modified and should also
-			// return with an error.
-			if operation.Writes || (op == CALL && stack.Back(2).BitLen() > 0) {
-				return model.ErrWriteProtection
-			}
+	if in.readOnly {
+		// 在只读状态下如果包含了写操作，
+		// 也不允许进行转账操作（通过第二个条件可以判断）
+		if operation.Writes || (op == CALL && stack.Back(2).BitLen() > 0) {
+			return model.ErrWriteProtection
 		}
 	}
 	return nil
 }
 
-// Run loops and evaluates the contract's code with the given input data and returns
-// the return byte-slice and an error if one occurred.
-//
-// It's important to note that any errors returned by the Interpreter should be
-// considered a revert-and-consume-all-gas operation except for
-// errExecutionReverted which means revert-and-keep-gas-left.
+// 合约代码的解释执行主逻辑
+// 需要注意的是，如果返回执行出错，依然会扣除剩余的Gas
+// （除非返回的是ErrExecutionReverted，这种情况下会保留剩余的Gas）
 func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err error) {
-	// Increment the CALL depth which is restricted to 1024
+	// 每次递归调用，深度加1
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
 
-	// Reset the previous CALL's return data. It's unimportant to preserve the old buffer
-	// as every returning CALL will return new data anyway.
+	// 执行前讲返回数据置空
 	in.ReturnData = nil
 
-	// Don't bother with the execution if there's no code.
+	// 无合约代码直接返回
 	if len(contract.Code) == 0 {
 		return nil, nil
 	}
 
 	var (
-		op    OpCode     // current OpCode
-		mem   = mm.NewMemory() // bound memory
-		stack = mm.NewStack()  // local stack
-		// For optimisation reason we're using uint64 as the program counter.
-		// It's theoretiCALLy possible to go above 2^64. The YP defines the PC
-		// to be uint256. PractiCALLy much less so feasible.
-		pc   = uint64(0) // program counter
+		// 当前操作指令码
+		op    OpCode
+		// 内存空间
+		mem   = mm.NewMemory()
+		// 本地栈空间
+		stack = mm.NewStack()
+		// 指令计数器
+		pc   = uint64(0)
+		// 操作消耗的Gas
 		cost uint64
-		// copies used by tracer
-		pcCopy  uint64 // needed for the deferred Tracer
-		gasCopy uint64 // for Tracer to log gas remaining before execution
-		logged  bool   // deferred Tracer should ignore already logged steps
+		// 在使用tracer打印调试日志时，复制一份下面的数据进行操作
+		pcCopy  uint64
+		gasCopy uint64
+		logged  bool
 	)
 	contract.Input = input
 
@@ -141,18 +113,14 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			}
 		}()
 	}
-	// The Interpreter main run loop (contextual). This loop runs until either an
-	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
-	// the execution of one of the operations or until the done flag is set by the
-	// parent context.
+	// 遍历合约代码中的指令执行，知道遇到特殊指令（停止、自毁、暂停、恢复、返回）
 	for atomic.LoadInt32(&in.evm.abort) == 0 {
 		if in.cfg.Debug {
-			// Capture pre-execution values for tracing.
+			// 记录当前指令执行前的状态数据
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
 		}
 
-		// Get the operation from the jump table and validate the stack to ensure there are
-		// enough stack items available to perform the operation.
+		// 从合约代码中获取具体操作指令
 		op = contract.GetOp(pc)
 		operation := in.cfg.JumpTable[op]
 		if !operation.Valid {
@@ -161,27 +129,24 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		if err := operation.ValidateStack(stack); err != nil {
 			return nil, err
 		}
-		// If the operation is valid, enforce and write restrictions
+		// 检查写约束
 		if err := in.enforceRestrictions(op, operation, stack); err != nil {
 			return nil, err
 		}
 
 		var memorySize uint64
-		// calculate the new memory size and expand the memory to fit
-		// the operation
+		// 计算需要开辟的内存空间
 		if operation.MemorySize != nil {
 			memSize, overflow := common.BigUint64(operation.MemorySize(stack))
 			if overflow {
 				return nil, model.ErrGasUintOverflow
 			}
-			// memory is expanded in words of 32 bytes. Gas
-			// is also calculated in words.
+			// 按字长分配内存
 			if memorySize, overflow = common.SafeMul(common.ToWordSize(memSize), 32); overflow {
 				return nil, model.ErrGasUintOverflow
 			}
 		}
-		// consume the gas and return an error if not enough gas is available.
-		// cost is explicitly set so that the capture state defer method cas get the proper cost
+		// 计算本操作具体需要消耗的Gas
 		evmParam := buildEVMParam(in.evm)
 		gasParam := buildGasParam(contract)
 		cost, err = operation.GasCost(in.gasTable, evmParam, gasParam, stack, mem, memorySize)
@@ -191,6 +156,7 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			return nil, model.ErrOutOfGas
 		}
 		if memorySize > 0 {
+			// 开辟内存
 			mem.Resize(memorySize)
 		}
 
@@ -199,15 +165,10 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 			logged = true
 		}
 
-		// execute the operation
+		// 执行具体的指令操作逻辑（合约执行的核心）
 		res, err := operation.Execute(&pc, in.evm, contract, mem, stack)
-		// verifyPool is a build flag. Pool verification makes sure the integrity
-		// of the integer pool by comparing values to a default value.
-		if mm.VerifyPool {
-			mm.VerifyIntegerPool(in.IntPool)
-		}
-		// if the operation clears the return data (e.g. it has returning data)
-		// set the last return to the result of the operation.
+
+		// 如果本操作需要返回，则讲操作返回的结果最为合约执行的结果
 		if operation.Returns {
 			in.ReturnData = res
 		}
@@ -239,7 +200,6 @@ func buildGasParam(contract *Contract) *params.GasParam {
 func buildEVMParam(evm *EVM) *params.EVMParam {
 	return &params.EVMParam{
 		StateDB:     evm.StateDB,
-		ChainConfig: evm.ChainConfig(),
 		CallGasTemp: evm.CallGasTemp,
 		BlockNumber: evm.BlockNumber,
 	}
