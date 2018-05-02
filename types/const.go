@@ -465,4 +465,5 @@ const (
 	ForkV6TokenBlackList = 190000
 	ForkV7BadTokenSymbol = 184000
 	ForkBlockHash        = 208986 + 200
+	ForTradeBuyLimit     = 301000
 )
