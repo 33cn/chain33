@@ -76,11 +76,6 @@ type EVM struct {
 	// 当前调用深度
 	depth int
 
-	// 链的全局配置信息
-	chainConfig *params.ChainConfig
-	// 链的配置规则信息
-	chainRules params.Rules
-
 	// 虚拟机配置属性信息
 	VmConfig Config
 
@@ -103,13 +98,11 @@ type EVM struct {
 // 创建一个新的EVM实例对象
 // 在同一个节点中，一个EVM实例对象只服务于一个交易执行的生命周期
 
-func NewEVM(ctx Context, statedb state.StateDB, chainConfig *params.ChainConfig, vmConfig Config) *EVM {
+func NewEVM(ctx Context, statedb state.StateDB, vmConfig Config) *EVM {
 	evm := &EVM{
 		Context:     ctx,
 		StateDB:     statedb,
 		VmConfig:    vmConfig,
-		chainConfig: chainConfig,
-		chainRules:  chainConfig.Rules(ctx.BlockNumber),
 		maxCodeSize: params.MaxCodeSize,
 	}
 
@@ -403,6 +396,3 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	return ret, contractAddr, contract.Gas, err
 }
-
-// TODO 返回区块链的整体配置，供合约执行逻辑使用（后续需要精简属性）
-func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }

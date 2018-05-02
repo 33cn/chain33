@@ -1,30 +1,16 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
 package mm
 
 import (
 	"fmt"
-	"math/big"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"math/big"
 )
 
-// Memory implements a simple memory model for the ethereum virtual machine.
+// 内存操作封装，在EVM中使用此对象模拟物理内存
 type Memory struct {
-	Store       []byte
+	// 内存中存储的数据
+	Store []byte
+	// 上次开辟内存消耗的Gas
 	LastGasCost uint64
 }
 
@@ -32,37 +18,34 @@ func NewMemory() *Memory {
 	return &Memory{}
 }
 
-// Set sets offset + size to value
+// 设置内存中的值， value => offset:offset + size
 func (m *Memory) Set(offset, size uint64, value []byte) {
-	// length of Store may never be less than offset + size.
-	// The Store should be resized PRIOR to setting the memory
-	if size > uint64(len(m.Store)) {
+	// 偏移量+大小一定不会大于内存长度
+	if offset + size > uint64(len(m.Store)) {
 		panic("INVALID memory: Store empty")
 	}
 
-	// It's possible the offset is greater than 0 and size equals 0. This is because
-	// the calcMemSize (common.go) could potentially return 0 when size is zero (NO-OP)
 	if size > 0 {
 		copy(m.Store[offset:offset+size], value)
 	}
 }
 
-// Resize resizes the memory to size
+// 扩充内存到指定大小
 func (m *Memory) Resize(size uint64) {
 	if uint64(m.Len()) < size {
 		m.Store = append(m.Store, make([]byte, size-uint64(m.Len()))...)
 	}
 }
 
-// Get returns offset + size as a new slice
-func (self *Memory) Get(offset, size int64) (cpy []byte) {
+// 获取内存中制定偏移量开始的指定长度的数据，返回数据的拷贝而非引用
+func (m *Memory) Get(offset, size int64) (cpy []byte) {
 	if size == 0 {
 		return nil
 	}
 
-	if len(self.Store) > int(offset) {
+	if len(m.Store) > int(offset) {
 		cpy = make([]byte, size)
-		copy(cpy, self.Store[offset:offset+size])
+		copy(cpy, m.Store[offset:offset+size])
 
 		return
 	}
@@ -70,29 +53,32 @@ func (self *Memory) Get(offset, size int64) (cpy []byte) {
 	return
 }
 
-// GetPtr returns the offset + size
-func (self *Memory) GetPtr(offset, size int64) []byte {
+
+// 同Get操作，不过这里返回的是数据引用
+func (m *Memory) GetPtr(offset, size int64) []byte {
 	if size == 0 {
 		return nil
 	}
 
-	if len(self.Store) > int(offset) {
-		return self.Store[offset : offset+size]
+	if len(m.Store) > int(offset) {
+		return m.Store[offset : offset+size]
 	}
 
 	return nil
 }
 
-// Len returns the length of the backing slice
+// 返回内存中已开辟空间的大小（以字节计算）
 func (m *Memory) Len() int {
 	return len(m.Store)
 }
 
-// Data returns the backing slice
+// 返回内存中的原始数据引用
 func (m *Memory) Data() []byte {
 	return m.Store
 }
 
+
+// 打印内存中的数据（调试用）
 func (m *Memory) Print() {
 	fmt.Printf("### mem %d bytes ###\n", len(m.Store))
 	if len(m.Store) > 0 {
@@ -107,8 +93,7 @@ func (m *Memory) Print() {
 	fmt.Println("####################")
 }
 
-// calculates the memory size required for a step
-// 计算所需的内存偏移量和大小，计算内存边界
+// 计算所需的内存偏移量和数据大小，计算所需内存大小
 func calcMemSize(off, l *big.Int) *big.Int {
 	if l.Sign() == 0 {
 		return common.Big0

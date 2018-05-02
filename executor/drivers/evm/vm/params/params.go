@@ -2,8 +2,8 @@ package params
 
 import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"math/big"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	"math/big"
 )
 
 // 解释器中调用Gas计算时所传递的合约中和Gas相关的参数结构
@@ -11,7 +11,7 @@ import (
 // 此结构包含的属性均为只读
 type GasParam struct {
 	// 此合约对象的可用Gas（合约执行过程中会修改此值）
-	Gas   uint64
+	Gas uint64
 
 	// 上下文中合约自身的地址
 	// 注意，当合约通过CallCode调用时，这个地址并不是当前合约代码对应的地址，而是调用者的地址
@@ -28,9 +28,6 @@ type EVMParam struct {
 
 	// 状态数据操作入口
 	StateDB state.StateDB
-
-	// 链的全局配置信息
-	ChainConfig *ChainConfig
 
 	// 此属性用于临时存储计算出来的Gas消耗值
 	// 在指令执行时，会调用指令的gasCost方法，计算出此指令需要消耗的Gas，并存放在此临时属性中

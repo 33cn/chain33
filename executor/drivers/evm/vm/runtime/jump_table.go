@@ -1,47 +1,49 @@
 package runtime
 
 import (
-	"errors"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
 )
 
 type (
+	// 指令执行函数，每个操作指令对应一个实现，它实现了指令的具体操作逻辑
 	ExecutionFunc func(pc *uint64, env *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error)
 )
 
-var ErrGasUintOverflow = errors.New("gas uint64 overflow")
-
+// 定义指令操作的结构提
 type Operation struct {
-	// op is the Operation function
+	// 指令的具体操作逻辑
 	Execute ExecutionFunc
-	// GasCost is the gas function and Returns the gas required for execution
+
+	// 计算当前指令执行所需消耗的Gas
 	GasCost gas.GasFunc
-	// ValidateStack validates the stack (size) for the Operation
+
+	// 检查内存栈中的数据是否满足本操作执行的要求
 	ValidateStack mm.StackValidationFunc
-	// MemorySize Returns the memory size required for the Operation
+
+	// 计算本次操作所需要的内存大小
 	MemorySize mm.MemorySizeFunc
 
-	Halts   bool // indicates whether the Operation should halt further execution
-	Jumps   bool // indicates whether the program counter should not increment
-	Writes  bool // determines whether this a state modifying Operation
-	Valid   bool // indication whether the retrieved Operation is Valid and known
-	Reverts bool // determines whether the Operation Reverts state (implicitly Halts)
-	Returns bool // determines whether the operations sets the return data content
+	Halts   bool // 是否需要暂停（将会结束本合约后面操作的执行）
+	Jumps   bool // 是否需要执行跳转（此种情况下PC不递增）
+	Writes  bool // 是否涉及到修改状态操作（在合约委托调用的情况下，此操作非法，将会抛异常）
+	Valid   bool // 是否为有效操作
+	Reverts bool // 是否恢复原始状态（强制暂停，将会结束本合约后面操作的执行）
+	Returns bool // 是否返回
 }
 
 var (
+	// 对应EVM不同版本的指令集，从上往下，从旧版本到新版本，
+	// 新版本包含旧版本的指令集（目前直接使用康士坦丁堡指令集）
 	FrontierInstructionSet       = NewFrontierInstructionSet()
 	HomesteadInstructionSet      = NewHomesteadInstructionSet()
 	ByzantiumInstructionSet      = NewByzantiumInstructionSet()
 	ConstantinopleInstructionSet = NewConstantinopleInstructionSet()
 )
 
-// NewConstantinopleInstructionSet Returns the frontier, homestead
-// byzantium and contantinople instructions.
+// 康士坦丁堡 版本支持的指令集
 func NewConstantinopleInstructionSet() [256]Operation {
-	// instructions that can be executed during the byzantium phase.
 	instructionSet := NewByzantiumInstructionSet()
 	instructionSet[SHL] = Operation{
 		Execute:       opSHL,
@@ -64,10 +66,8 @@ func NewConstantinopleInstructionSet() [256]Operation {
 	return instructionSet
 }
 
-// NewByzantiumInstructionSet Returns the frontier, homestead and
-// byzantium instructions.
+// 拜占庭 版本支持的指令集
 func NewByzantiumInstructionSet() [256]Operation {
-	// instructions that can be executed during the homestead phase.
 	instructionSet := NewHomesteadInstructionSet()
 	instructionSet[STATICCALL] = Operation{
 		Execute:       opStaticCall,
@@ -102,8 +102,7 @@ func NewByzantiumInstructionSet() [256]Operation {
 	return instructionSet
 }
 
-// NewHomesteadInstructionSet Returns the frontier and homestead
-// instructions that can be executed during the homestead phase.
+// 家园 版本支持的指令集
 func NewHomesteadInstructionSet() [256]Operation {
 	instructionSet := NewFrontierInstructionSet()
 	instructionSet[DELEGATECALL] = Operation{
@@ -117,8 +116,7 @@ func NewHomesteadInstructionSet() [256]Operation {
 	return instructionSet
 }
 
-// NewFrontierInstructionSet Returns the frontier instructions
-// that can be executed during the frontier phase.
+// 边境 版本支持的指令集
 func NewFrontierInstructionSet() [256]Operation {
 	return [256]Operation{
 		STOP: {

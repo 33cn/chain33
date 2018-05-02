@@ -12,6 +12,9 @@ const (
 	GasMidStep     uint64 = 8
 	GasSlowStep    uint64 = 10
 	GasExtStep     uint64 = 20
+
+	// 允许开辟的最大内存空间大小，超过此值时将会导致溢出
+	MaxNewMemSize uint64 = 0xffffffffe0
 )
 
 // 返回真实花费的Gas
