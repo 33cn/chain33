@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"compress/gzip"
 	"io"
 	"net"
 	"net/http"
@@ -19,13 +20,24 @@ var log = log15.New("module", "rpc")
 
 // adapt HTTP connection to ReadWriteCloser
 type HTTPConn struct {
+	r   *http.Request
 	in  io.Reader
 	out io.Writer
 }
 
-func (c *HTTPConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
-func (c *HTTPConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
-func (c *HTTPConn) Close() error                      { return nil }
+func (c *HTTPConn) Read(p []byte) (n int, err error) { return c.in.Read(p) }
+
+func (c *HTTPConn) Write(d []byte) (n int, err error) { //添加支持gzip 发送
+
+	if strings.Contains(c.r.Header.Get("Accept-Encoding"), "gzip") {
+		gw := gzip.NewWriter(c.out)
+		defer gw.Close()
+		return gw.Write(d)
+	}
+	return c.out.Write(d)
+}
+
+func (c *HTTPConn) Close() error { return nil }
 
 func (j *JSONRPCServer) Listen() {
 	listener, err := net.Listen("tcp", rpcCfg.GetJrpcBindAddr())
@@ -47,8 +59,10 @@ func (j *JSONRPCServer) Listen() {
 		}
 
 		if r.URL.Path == "/" {
-			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w})
-			w.Header().Set("Content-type", "application/json")
+			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w, r: r})
+			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				w.Header().Set("Content-Encoding", "gzip")
+			}
 			w.WriteHeader(200)
 			err := server.ServeRequest(serverCodec)
 			if err != nil {
