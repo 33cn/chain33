@@ -220,14 +220,6 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 			return "", types.ErrSubPubKeyVerifyFail
 		}
 
-		//打印地址
-		addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
-		if err == nil {
-			seedlog.Error("GetPrivkeyBySeed ", "priv", Hexsubprivkey)
-			seedlog.Error("GetPrivkeyBySeed ", "pub", hex.EncodeToString(pub))
-			seedlog.Error("GetPrivkeyBySeed ", "addr", addr)
-		}
-
 	} else if SignType == 2 { //ed25519
 
 		//通过助记词形式的seed生成私钥和公钥,一个seed根据不同的index可以生成许多组密钥
