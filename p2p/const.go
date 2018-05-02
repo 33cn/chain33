@@ -14,6 +14,7 @@ var (
 	MonitorPeerInfoInterval    = 10 * time.Second
 	GetAddrFromOfflineInterval = 5 * time.Second
 	GetAddrFromOnlineInterval  = 5 * time.Second
+	GetAddrFromGitHubInterval  = 5 * time.Minute
 	CheckActivePeersInterVal   = 5 * time.Second
 	CheckBlackListInterVal     = 30 * time.Second
 )
