@@ -494,6 +494,15 @@ message ReceiptTradeSellMarket {
     string sellTxhash            = 7;
 }
 
+message TradeSellMarketDone {
+	string token                 = 1;
+	int64  boardlotcnt           = 2;
+	string amountperboardlot     = 3;
+    string priceperboardlot      = 4;
+   	string selltxhash             = 5;
+   	int64  height                = 6;
+}
+
 
 message ReceiptTradeBase {
 	string tokensymbol          = 1;
