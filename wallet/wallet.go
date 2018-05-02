@@ -684,14 +684,15 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 	var Account types.Account
 	var walletAccount types.WalletAccount
 	var WalletAccStore types.WalletAccountStore
-	/*
-		//生成一个pubkey然后换算成对应的addr
-		cr, err := crypto.New(types.GetSignatureTypeName(SignType))
-		if err != nil {
-			walletlog.Error("ProcCreatNewAccount", "err", err)
-			return nil, err
-		}
-	*/
+	var cointype uint32
+	if SignType == 1 {
+		cointype = bipwallet.TypeBty
+	} else if SignType == 2 {
+		cointype = bipwallet.TypeYcc
+	} else {
+		cointype = bipwallet.TypeBty
+	}
+
 	//通过seed获取私钥, 首先通过钱包密码解锁seed然后通过seed生成私钥
 	seed, err := wallet.getSeed(wallet.Password)
 	if err != nil {
@@ -709,24 +710,17 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 		return nil, err
 	}
 
-	pub, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	pub, err := bipwallet.PrivkeyToPub(cointype, privkeybyte)
 	if err != nil {
 		seedlog.Error("ProcCreatNewAccount PrivkeyToPub", "err", err)
 		return nil, types.ErrPrivkeyToPub
 	}
-	addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
+	addr, err := bipwallet.PubToAddress(cointype, pub)
 	if err != nil {
 		seedlog.Error("ProcCreatNewAccount PubToAddress", "err", err)
 		return nil, types.ErrPrivkeyToPub
 	}
-	/*
-		priv, err := cr.PrivKeyFromBytes(privkeybyte)
-		if err != nil {
-			walletlog.Error("ProcCreatNewAccount", "PrivKeyFromBytes err", err)
-			return nil, err
-		}
-		addr := account.PubKeyToAddress(priv.PubKey().Bytes())
-	*/
+
 	Account.Addr = addr
 	Account.Currency = 0
 	Account.Balance = 0
@@ -830,38 +824,33 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 		walletlog.Error("ProcImportPrivKey Label is exist in wallet!")
 		return nil, types.ErrLabelHasUsed
 	}
-	/*
-		//通过privkey生成一个pubkey然后换算成对应的addr
-		cr, err := crypto.New(types.GetSignatureTypeName(SignType))
-		if err != nil {
-			walletlog.Error("ProcImportPrivKey", "err", err)
-			return nil, types.ErrNewCrypto
-		}
-	*/
+
+	var cointype uint32
+	if SignType == 1 {
+		cointype = bipwallet.TypeBty
+	} else if SignType == 2 {
+		cointype = bipwallet.TypeYcc
+	} else {
+		cointype = bipwallet.TypeBty
+	}
+
 	privkeybyte, err := common.FromHex(PrivKey.Privkey)
 	if err != nil || len(privkeybyte) == 0 {
 		walletlog.Error("ProcImportPrivKey", "FromHex err", err)
 		return nil, types.ErrFromHex
 	}
 
-	pub, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	pub, err := bipwallet.PrivkeyToPub(cointype, privkeybyte)
 	if err != nil {
 		seedlog.Error("ProcImportPrivKey PrivkeyToPub", "err", err)
 		return nil, types.ErrPrivkeyToPub
 	}
-	addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
+	addr, err := bipwallet.PubToAddress(cointype, pub)
 	if err != nil {
 		seedlog.Error("ProcImportPrivKey PrivkeyToPub", "err", err)
 		return nil, types.ErrPrivkeyToPub
 	}
-	/*
-		priv, err := cr.PrivKeyFromBytes(privkeybyte)
-		if err != nil {
-			walletlog.Error("ProcImportPrivKey", "PrivKeyFromBytes err", err)
-			return nil, types.ErrPrivKeyFromBytes
-		}
-		addr := account.PubKeyToAddress(priv.PubKey().Bytes())
-	*/
+
 	//对私钥加密
 	Encryptered := CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
 	Encrypteredstr := common.ToHex(Encryptered)
