@@ -554,6 +554,10 @@ message ReplyTradeBuyOrders {
 	repeated TradeBuyDone tradebuydones = 1;
 }
 
+message ReplyBuyLimitOrders {
+	repeated BuyLimitOrder buyOrders = 1;
+}
+
 
 // 配置修改部分
 message ArrayConfig {
@@ -608,6 +612,14 @@ message ReplyConfig {
 message ReqTokenSellOrder {
 	string tokenSymbol = 1;
 	string fromSellId  = 2;
+	int32 count        = 3;
+	int32 direction    = 4;
+
+}
+
+message ReqTokenBuyLimitOrder {
+	string tokenSymbol = 1;
+	string fromBuyId   = 2;
 	int32 count        = 3;
 	int32 direction    = 4;
 
