@@ -98,8 +98,69 @@ func (c *GrpcCtx) Run() (err error) {
 
 	rpc := types.NewGrpcserviceClient(conn)
 	switch c.Method {
+	case "GetBlocks":
+		reply, err := rpc.GetBlocks(context.Background(), c.Params.(*types.ReqBlocks))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+	case "GetLastHeader":
+		reply, err := rpc.GetLastHeader(context.Background(), c.Params.(*types.ReqNil))
+		if err == nil {
+			*c.Res.(*types.Header) = *reply
+		}
+	case "CreateRawTransaction":
+		reply, err := rpc.CreateRawTransaction(context.Background(), c.Params.(*types.CreateTx))
+		if err == nil {
+			*c.Res.(*types.UnsignTx) = *reply
+		}
+	case "SendRawTransaction":
+		reply, err := rpc.SendRawTransaction(context.Background(), c.Params.(*types.SignedTx))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+	case "QueryTransaction":
+		reply, err := rpc.QueryTransaction(context.Background(), c.Params.(*types.ReqHash))
+		if err == nil {
+			*c.Res.(*types.TransactionDetail) = *reply
+		}
+	case "SendTransaction":
+		reply, err := rpc.SendTransaction(context.Background(), c.Params.(*types.Transaction))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+	case "GetTransactionByAddr":
+		reply, err := rpc.GetTransactionByAddr(context.Background(), c.Params.(*types.ReqAddr))
+		if err == nil {
+			*c.Res.(*types.ReplyTxInfos) = *reply
+		}
+	case "GetTransactionByHashes":
+		reply, err := rpc.GetTransactionByHashes(context.Background(), c.Params.(*types.ReqHashes))
+		if err == nil {
+			*c.Res.(*types.TransactionDetails) = *reply
+		}
+	case "GetMemPool":
+		reply, err := rpc.GetMemPool(context.Background(), c.Params.(*types.ReqNil))
+		if err == nil {
+			*c.Res.(*types.ReplyTxList) = *reply
+		}
+	case "GetAccounts":
+		reply, err := rpc.GetAccounts(context.Background(), c.Params.(*types.ReqNil))
+		if err == nil {
+			*c.Res.(*types.WalletAccounts) = *reply
+		}
+	case "NewAccount":
+		reply, err := rpc.NewAccount(context.Background(), c.Params.(*types.ReqNewAccount))
+		if err == nil {
+			*c.Res.(*types.WalletAccount) = *reply
+		}
+	case "WalletTransactionList":
+		reply, err := rpc.WalletTransactionList(context.Background(), c.Params.(*types.ReqWalletTransactionList))
+		if err == nil {
+			*c.Res.(*types.WalletTxDetails) = *reply
+		}
+
 	case "Version":
-		reply, err := rpc.Version(context.Background(), &types.ReqNil{})
+		reply, err := rpc.Version(context.Background(), c.Params.(*types.ReqNil))
 		if err == nil {
 			*c.Res.(*types.Reply) = *reply
 		}
