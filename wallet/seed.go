@@ -1,9 +1,12 @@
 package wallet
 
 import (
+	"bipwallet"
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -12,7 +15,7 @@ import (
 	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
-	"github.com/piotrnar/gocoin/lib/btc"
+	//	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -171,26 +174,60 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 
 	//secp256k1
 	if SignType == 1 {
-		pkx := btc.MasterKey([]byte(seed), false)
-		masterprivkey := pkx.String() //主私钥字符串
-		xpubkey := pkx.Pub().String() //主公钥字符串
+		/*
+			pkx := btc.MasterKey([]byte(seed), false)
+			masterprivkey := pkx.String() //主私钥字符串
+			xpubkey := pkx.Pub().String() //主公钥字符串
 
-		//生成子私钥和子公钥字符串，并校验是否相同
-		subprivkey := btc.StringChild(masterprivkey, index)
-		subpubkey := btc.StringChild(xpubkey, index)
-		//seedlog.Info("GetPrivkeyBySeed", "subprivkey", subprivkey, "subpubkey", subpubkey)
+			//生成子私钥和子公钥字符串，并校验是否相同
+			subprivkey := btc.StringChild(masterprivkey, index)
+			subpubkey := btc.StringChild(xpubkey, index)
+			//seedlog.Info("GetPrivkeyBySeed", "subprivkey", subprivkey, "subpubkey", subpubkey)
 
-		//通过子私钥字符串生成对应的hex字符串
-		wallet, _ := btc.StringWallet(subprivkey)
-		rec := btc.NewPrivateAddr(wallet.Key, 0x80, true)
-		Hexsubprivkey = common.ToHex(rec.Key[1:])
+			//通过子私钥字符串生成对应的hex字符串
+			wallet, _ := btc.StringWallet(subprivkey)
+			rec := btc.NewPrivateAddr(wallet.Key, 0x80, true)
+			Hexsubprivkey = common.ToHex(rec.Key[1:])
 
-		//对生成的子公钥做校验
-		creatpubkey := wallet.Pub().String()
-		if subpubkey != creatpubkey {
-			seedlog.Error("GetPrivkeyBySeed subpubkey != creatpubkeybypriv")
+			//对生成的子公钥做校验
+			creatpubkey := wallet.Pub().String()
+			if subpubkey != creatpubkey {
+				seedlog.Error("GetPrivkeyBySeed subpubkey != creatpubkeybypriv")
+				return "", types.ErrSubPubKeyVerifyFail
+			}
+		*/
+		wallet, err := bipwallet.NewWalletFromSeed(bipwallet.TypeBty, []byte(seed))
+		if err != nil {
+			seedlog.Error("GetPrivkeyBySeed NewWalletFromSeed", "err", err)
+			return "", types.ErrNewWalletFromSeed
+		}
+		//通过索引生成Key pair
+		priv, pub, err := wallet.NewKeyPair(index)
+		if err != nil {
+			seedlog.Error("GetPrivkeyBySeed NewKeyPair", "err", err)
+			return "", types.ErrNewKeyPair
+		}
+
+		Hexsubprivkey = hex.EncodeToString(priv)
+
+		public, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, priv)
+		if err != nil {
+			seedlog.Error("GetPrivkeyBySeed PrivkeyToPub", "err", err)
+			return "", types.ErrPrivkeyToPub
+		}
+		if !bytes.Equal(pub, public) {
+			seedlog.Error("GetPrivkeyBySeed NewKeyPair pub  != PrivkeyToPub", "err", err)
 			return "", types.ErrSubPubKeyVerifyFail
 		}
+
+		//打印地址
+		addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
+		if err == nil {
+			seedlog.Error("GetPrivkeyBySeed ", "priv", Hexsubprivkey)
+			seedlog.Error("GetPrivkeyBySeed ", "pub", hex.EncodeToString(pub))
+			seedlog.Error("GetPrivkeyBySeed ", "addr", addr)
+		}
+
 	} else if SignType == 2 { //ed25519
 
 		//通过助记词形式的seed生成私钥和公钥,一个seed根据不同的index可以生成许多组密钥
