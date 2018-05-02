@@ -396,8 +396,7 @@ func (client *Client) GetNextRequiredDifficulty(block *types.Block, bits uint32)
 	// result.
 	oldTarget := difficulty.CompactToBig(bits)
 	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
-	targetTimeSpan := int64(cfg.TargetTimespan / time.Second)
-	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
+	newTarget.Div(newTarget, big.NewInt(targetTimespan))
 
 	// Limit new value to the proof of work limit.
 	powLimit := difficulty.CompactToBig(cfg.PowLimitBits)
