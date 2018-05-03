@@ -27,7 +27,7 @@ func (acc *DB) LoadExecAccountQueue(api client.QueueProtocolAPI, addr, execaddr 
 	get := types.StoreGet{StateHash: header.GetStateHash()}
 	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
 	values, err := api.StoreGet(&get)
-	if err != nil || len(values.Values) <= 0 {
+	if err != nil {
 		return nil, err
 	}
 	if len(values.Values) <= 0 {
