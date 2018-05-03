@@ -411,7 +411,20 @@ func (self *MemoryStateDB) CanTransfer(addr common.Address, amount *big.Int) boo
 // 借助coins执行器进行转账相关操作
 func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount *big.Int) {
 	if self.CoinsAccount != nil {
-		self.CoinsAccount.Transfer(sender.Str(), recipient.Str(), amount.Int64())
+		ret, err := self.CoinsAccount.Transfer(sender.Str(), recipient.Str(), amount.Int64())
+		// 这种情况下转账失败并不进行处理，也不会从sender账户扣款，打印日志即可
+		if err != nil {
+			log15.Error("transfer error", err)
+		} else {
+			self.journal = append(self.journal, transferChange{
+				baseChange: baseChange{},
+				from:       sender.Str(),
+				to:         recipient.Str(),
+				amount:     amount.Int64(),
+				data:       ret.KV,
+				logs:       ret.Logs,
+			})
+		}
 	}
 }
 
