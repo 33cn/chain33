@@ -21,13 +21,11 @@ import (
 //4.启动监控模块，进行节点管理
 
 func (n *Node) Start() {
-
-	n.detectNodeAddr()
-	n.doNat()
 	if n.listener != nil {
 		n.listener.Start()
 	}
-
+	n.detectNodeAddr()
+	n.doNat()
 	n.monitor()
 }
 
@@ -118,6 +116,7 @@ func (n *Node) doNat() {
 						log.Info("doNat", "NatOk", "Support Service")
 					} else {
 						n.nodeInfo.SetServiceTy(Service - nodeNetwork)
+						log.Info("doNat", "NatOk", "No Support Service")
 					}
 					break
 
@@ -228,7 +227,6 @@ func (n *Node) monitor() {
 	go n.monitorErrPeer()
 	go n.getAddrFromOnline()
 	go n.getAddrFromOffline()
-	go n.getAddrFromGithub()
 	go n.monitorPeerInfo()
 	go n.monitorDialPeers()
 	go n.monitorBlackList()
@@ -263,9 +261,8 @@ func (n *Node) detectNodeAddr() {
 
 		//检查是否在外网
 		addrs := n.nodeInfo.cfg.GetSeeds()
-		//随机选择一个seed
-		for {
-			addr := addrs[rand.Int31n(int32(len(addrs)))]
+		addrs = append(addrs, n.nodeInfo.addrBook.GetAddrs()...)
+		for _, addr := range addrs {
 			if strings.HasPrefix(addr, LocalAddr) {
 				continue
 			}
@@ -328,8 +325,8 @@ func (n *Node) natMapPort() {
 	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")
 		p2pcli := NewNormalP2PCli() //检查要映射的IP地址是否已经被映射成功
-		_, err := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
-		if err == nil {
+		ok, err := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
+		if err == nil && ok {
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
 			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
 		}
@@ -365,19 +362,27 @@ func (n *Node) natMapPort() {
 	n.nodeInfo.natResultChain <- true
 	refresh := time.NewTimer(mapUpdateInterval)
 	defer refresh.Stop()
-
 	for {
-		<-refresh.C
-		log.Info("NatWorkRefresh")
-		for {
-			if err := nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort, nodename[:8], time.Hour*48); err != nil {
-				log.Error("NatMapPort update", "err", err.Error())
-				time.Sleep(time.Second)
-				continue
+
+		select {
+		case <-refresh.C:
+			log.Info("NatWorkRefresh")
+			for {
+				if err := nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort, nodename[:8], time.Hour*48); err != nil {
+					log.Error("NatMapPort update", "err", err.Error())
+					time.Sleep(time.Second)
+					continue
+				}
+				break
 			}
-			break
+			refresh.Reset(mapUpdateInterval)
+		default:
+			if n.isClose() {
+				return
+			}
+			time.Sleep(time.Second * 10)
+
 		}
-		refresh.Reset(mapUpdateInterval)
 
 	}
 }
