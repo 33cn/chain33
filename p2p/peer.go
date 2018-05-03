@@ -160,6 +160,8 @@ func (p *Peer) sendStream() {
 		//send ping package
 		ping, err := P2pComm.NewPingData(*p.nodeInfo)
 		if err != nil {
+			resp.CloseSend()
+			cancel()
 			time.Sleep(time.Second)
 			continue
 		}
