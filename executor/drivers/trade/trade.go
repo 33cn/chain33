@@ -231,6 +231,13 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetTokenByStatus(&req, types.TracdOrderStatusOnSale)
+	case "GetTokenBuyLimitOrderByStatus":
+		var req types.ReqTokenBuyLimitOrder
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetTokenBuyLimitOrderByStatus(&req, types.TracdOrderStatusOnBuy)
 	default:
 	}
 	tradelog.Error("trade Query", "Query type not supprt with func name", funcName)
@@ -623,4 +630,36 @@ func (t *trade) deleteSellMarket(receiptTradeBuy *types.ReceiptTradeSellMarket) 
 	kv = append(kv, &types.KeyValue{key, nil})
 
 	return kv
+}
+
+func (t *trade) GetTokenBuyLimitOrderByStatus(req *types.ReqTokenBuyLimitOrder, status int32) (types.Message, error) {
+	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
+		return nil, types.ErrInputPara
+	}
+
+	fromKey := []byte("")
+	if len(req.FromBuyId) != 0 {
+		buyOrder, err := getBuyOrderFromID([]byte(req.FromBuyId), t.GetStateDB())
+		if err != nil {
+			tradelog.Error("GetTokenBuyLimitOrderByStatus get sellorder err", err)
+			return nil, err
+		}
+		fromKey = calcTokensBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, buyOrder.Status,
+			1e8*buyOrder.PricePerBoardlot/buyOrder.AmountPerBoardlot, buyOrder.Address, buyOrder.Buyid)
+
+	}
+	// List Direction 是升序， 买单是要降序， 把高价买的放前面， 在下一页操作时， 显示买价低的。
+	direction := 1 - req.Direction
+	values, err := t.GetLocalDB().List(calcTokensBuyLimitOrderPrefixStatus(req.TokenSymbol, status), fromKey, req.Count, direction)
+	if err != nil {
+		return nil, err
+	}
+	var reply types.ReplyBuyLimitOrders
+	for _, buyid := range values {
+		if buyOrder, err := getBuyOrderFromID(buyid, t.GetStateDB()); err == nil {
+			tradelog.Debug("trade Query", "getBuyOrderFromID", string(buyid))
+			reply.BuyOrders = append(reply.BuyOrders, buyOrder)
+		}
+	}
+	return &reply, nil
 }
