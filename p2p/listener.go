@@ -21,6 +21,8 @@ func (l *listener) Start() {
 
 }
 func (l *listener) Close() {
+	l.netlistener.Close()
+	go l.server.Stop()
 	l.p2pserver.Close()
 	log.Info("stop", "listener", "close")
 

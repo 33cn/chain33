@@ -358,6 +358,9 @@ func (s *P2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 
 func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_ServerStreamSendServer) error {
+	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
+		return fmt.Errorf("beyound max inbound num")
+	}
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
 	dataChain := s.addStreamHandler(stream)
 	for data := range dataChain {
@@ -397,6 +400,9 @@ func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 }
 
 func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServer) error {
+	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
+		return fmt.Errorf("beyound max inbound num")
+	}
 	var hash [64]byte
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
@@ -491,9 +497,16 @@ func (s *P2pServer) RemotePeerNatOk(ctx context.Context, in *pb.P2PPing) (*pb.P2
 	}
 	var natok bool
 	remoteaddr := fmt.Sprintf("%v:%v", in.GetAddr(), in.GetPort())
-	if len(P2pComm.AddrRouteble([]string{remoteaddr})) != 0 {
-		natok = true
+	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
+	if hex.EncodeToString(in.GetSign().GetPubkey()) == pub {
+		//发现是自己节点发来的验证消息
+		natok = false
+	} else {
+		if len(P2pComm.AddrRouteble([]string{remoteaddr})) != 0 {
+			natok = true
+		}
 	}
+
 	return &pb.P2PExternalInfo{remoteaddr, natok}, nil
 
 }

@@ -103,6 +103,8 @@ message P2P {
 	int32 version = 11;
 	int32 verMix = 12;
 	int32 verMax = 13;
+	bool  innerSeedEnable=14;
+	int32 innerBounds=15;
 }
 
 message Rpc {
