@@ -76,7 +76,7 @@ func (g *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, e
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.QueryTx(in.Hash)
+	reply, err := g.cli.QueryTx(in.GetHash())
 	if err != nil {
 		return nil, err
 	}
