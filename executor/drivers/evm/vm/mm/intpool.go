@@ -4,8 +4,7 @@ import (
 	"math/big"
 )
 
-var checkVal = big.NewInt(-42)
-
+// 整数池允许的最大长度
 const poolLimit = 256
 
 // big.Int组成的内存池

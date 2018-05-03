@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	etypes "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/types"
 	"math/big"
 	"sort"
@@ -42,7 +42,7 @@ type MemoryStateDB struct {
 	refund uint64
 
 	// 存储makeLogN指令对应的日志数据
-	logs    map[common.Hash][]*etypes.ContractLog
+	logs    map[common.Hash][]*model.ContractLog
 	logSize uint
 
 	// 版本号，用于标识数据变更版本
@@ -75,7 +75,7 @@ func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) 
 		accounts:       make(map[common.Address]*ContractAccount),
 		accountsDirty:  make(map[common.Address]struct{}),
 		contractsDirty: make(map[common.Address]struct{}),
-		logs:           make(map[common.Hash][]*etypes.ContractLog),
+		logs:           make(map[common.Hash][]*model.ContractLog),
 		preimages:      make(map[common.Hash][]byte),
 		refund:         0,
 		txIndex:        0,
@@ -109,7 +109,7 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 // 调用Coins执行器的逻辑操作外部账户中的金额
 func (self *MemoryStateDB) processBalance(addr common.Address, value *big.Int, withdraw bool) error {
 	if self.CoinsAccount == nil {
-		return NoCoinsAccount
+		return model.NoCoinsAccount
 	}
 
 	accFrom := self.CoinsAccount.LoadAccount(addr.Str())
@@ -124,7 +124,7 @@ func (self *MemoryStateDB) processBalance(addr common.Address, value *big.Int, w
 		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
 		self.CoinsAccount.SaveAccount(accFrom)
 
-		feelog := &types.ReceiptLog{etypes.TyLogGasFee, types.Encode(receiptBalance)}
+		feelog := &types.ReceiptLog{model.TyLogGasFee, types.Encode(receiptBalance)}
 		feedata := self.CoinsAccount.GetKVSet(accFrom)
 
 		self.journal = append(self.journal, balanceChange{
@@ -167,7 +167,8 @@ func (self *MemoryStateDB) GetBalance(addr common.Address) *big.Int {
 	return common.Big0
 }
 
-//TODO 目前chain33中没有保留账户的nonce信息，这里临时添加到合约账户中
+// 目前chain33中没有保留账户的nonce信息，这里临时添加到合约账户中；
+// 所以，目前只有合约对象有nonce值
 func (self *MemoryStateDB) GetNonce(addr common.Address) uint64 {
 	acc := self.GetAccount(addr)
 	if acc != nil {
@@ -294,7 +295,17 @@ func (self *MemoryStateDB) Exist(addr common.Address) bool {
 // 判断合约对象是否为空
 func (self *MemoryStateDB) Empty(addr common.Address) bool {
 	acc := self.GetAccount(addr)
-	return acc == nil || acc.Empty()
+
+	// 如果包含合约代码，则不为空
+	if acc != nil && !acc.Empty() {
+		return false
+	}
+
+	// 账户有余额，也不为空
+	if common.Big0.Cmp(self.GetBalance(addr)) != 0 {
+		return false
+	}
+	return true
 }
 
 // 将数据状态回滚到指定快照版本（中间的版本数据将会被删除）
@@ -406,7 +417,7 @@ func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount *bi
 
 // LOG0-4 指令对应的具体操作
 // 生成对应的日志信息，目前这些生成的日志信息会在合约执行后打印到日志文件中
-func (self *MemoryStateDB) AddLog(log *etypes.ContractLog) {
+func (self *MemoryStateDB) AddLog(log *model.ContractLog) {
 	self.journal = append(self.journal, addLogChange{txhash: self.txHash})
 	log.TxHash = self.txHash
 	log.Index = int(self.logSize)

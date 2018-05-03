@@ -60,8 +60,8 @@ func buildStateDB(addr string, balance int64) *db.GoMemDB {
 	return mdb
 }
 
-func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize uint64) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error, statedb *state.MemoryStateDB) {
-	inst := evm.NewFakeEVM()
+func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error, statedb *state.MemoryStateDB) {
+	inst := evm.NewEVMExecutor()
 
 	msg := inst.GetMessage(&tx)
 
@@ -98,7 +98,7 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize uint64) (
 // 合约调用（从DB中加载之前创建的合约）
 func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (ret []byte, leftOverGas uint64, err error, statedb *state.MemoryStateDB) {
 
-	inst := evm.NewFakeEVM()
+	inst := evm.NewEVMExecutor()
 
 	msg := inst.GetMessage(&tx)
 
