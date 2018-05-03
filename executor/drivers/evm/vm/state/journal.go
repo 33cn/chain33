@@ -74,6 +74,16 @@ type (
 		logs []*types.ReceiptLog
 	}
 
+	// 转账事件
+	transferChange struct {
+		baseChange
+		amount int64
+		from string
+		to string
+		data []*types.KeyValue
+		logs []*types.ReceiptLog
+	}
+
 	// 合约生成日志事件
 	addLogChange struct {
 		baseChange
@@ -221,5 +231,24 @@ func (ch balanceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return ch.data
 }
 func (ch balanceChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
+	return ch.logs
+}
+
+// 恢复成变化前的金额
+// 注意，这里需要重新加载coins账户，并增加金额，而不是直接设置金额
+// 避免中间其它交易修改coins账户金额引起的数据覆盖
+func (ch transferChange) undo(mdb *MemoryStateDB) {
+	accFrom := mdb.CoinsAccount.LoadAccount(ch.from)
+	accTo := mdb.CoinsAccount.LoadAccount(ch.to)
+	accFrom.Balance += ch.amount
+	accTo.Balance -= ch.amount
+	mdb.CoinsAccount.SaveAccount(accFrom)
+	mdb.CoinsAccount.SaveAccount(accTo)
+}
+
+func (ch transferChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+	return ch.data
+}
+func (ch transferChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
 	return ch.logs
 }

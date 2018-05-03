@@ -11,20 +11,19 @@ import (
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
-	"math/big"
 )
 
 // 正常创建合约逻辑
 func TestCreateContract1(t *testing.T) {
-	deployCode, _ := hex.DecodeString("60606040523415600e57600080fd5b603580601b6000396000f3006060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
-	execCode, _ := hex.DecodeString("6060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
+	deployCode, _ := hex.DecodeString("608060405260358060116000396000f3006080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029")
+	execCode, _ := hex.DecodeString("6080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029")
 
 	privKey := getPrivKey()
 
 	gas := uint64(210000)
 	gasLimit := gas * evm.TX_GAS_TIMES_FEE
-	tx := createTx(privKey, deployCode, gas, 0)
-	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
+	tx := createTx(privKey, deployCode, gas, 10000000)
+	mdb := buildStateDB(getAddr(privKey).String(), 500000000)
 	ret, addr, leftGas, err, statedb := createContract(mdb, tx, 0)
 
 	test := NewTester(t)
@@ -154,11 +153,11 @@ func TestCreateContract4(t *testing.T) {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "1HgXQ9b2Y7GSL2e7E1HPBNi35EYv9HZoaR"
-	code := "6d4ce63c"
+	to := ""
+	code := "608060405260358060116000396000f3006080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029"
 	deployCode, _ := hex.DecodeString(code)
 	fee := 50000
-	amount := 2000000000
+	amount := 20000000
 
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b,uint64(amount))
@@ -192,13 +191,10 @@ func TestCreateTx(t *testing.T) {
 	}else{
 		t.Log(signedTx)
 	}
-	t.Log("--------------------")
-	t.Log(new(big.Int).Cmp(common.Big0))
-	t.Log(common.WordBytes)
 }
 
 func TestCallContract1(t *testing.T) {
-	code := "608060405234801561001057600080fd5b506298967f60008190555060df806100296000396000f3006080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806360fe47b114604e5780636d4ce63c146078575b600080fd5b348015605957600080fd5b5060766004803603810190808035906020019092919050505060a0565b005b348015608357600080fd5b50608a60aa565b6040518082815260200191505060405180910390f35b8060008190555050565b600080549050905600a165627a7a72305820b3ccec4d8cbe393844da31834b7464f23d3b81b24f36ce7e18bb09601f2eb8660029"
+	code := "608060405260358060116000396000f3006080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029"
 	deployCode, _ := hex.DecodeString(code)
 	execCode, _ := hex.DecodeString(code[82:])
 
