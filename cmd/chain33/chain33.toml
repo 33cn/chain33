@@ -29,7 +29,7 @@ batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
 dbCache=64
-isStrongConsistency=false
+isStrongConsistency=true
 singleMode=true
 batchsync=false
 

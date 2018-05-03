@@ -340,6 +340,7 @@ func (client *TendermintClient) CreateBlock() {
 		}
 
 		lastBlock := client.GetCurrentBlock()
+		tendermintlog.Info("get last block","height", lastBlock.Height, "time", lastBlock.BlockTime,"txhash",lastBlock.TxHash)
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
 		//check dup
 		txs = client.CheckTxDup(txs)
@@ -360,7 +361,7 @@ func (client *TendermintClient) CreateBlock() {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 */
-		tendermintlog.Info("get mempool txs not empty")
+		tendermintlog.Info("get mempool txs not empty","txslen", len(txs), "tx[0]", txs[0])
 		client.csState.NewTxsAvailable(lastBlock.Height)
 		tendermintlog.Info("waiting NewTxsFinished")
 		select {

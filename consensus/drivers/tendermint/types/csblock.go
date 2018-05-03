@@ -6,9 +6,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"time"
 	log "github.com/inconshreveable/log15"
+	"math/rand"
 )
 var bslog = log.New("module", "tendermint-blockstore")
-
+const fee = 1e6
+var r *rand.Rand
 //------------------------------------------------------------------------------
 type BlockStore struct {
 	client *drivers.BaseClient
@@ -20,6 +22,7 @@ type BlockStore struct {
 }
 
 func NewBlockStore(client *drivers.BaseClient) *BlockStore {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return &BlockStore {
 		client : client,
 	}
@@ -31,9 +34,25 @@ func GetCommitFromBlock(block *gtypes.Block) *gtypes.TendermintBlockInfo {
 	baseTx := block.Txs[0]
 	//判断交易类型和执行情况
 	var blockInfo gtypes.TendermintBlockInfo
-	err := gtypes.Decode(baseTx.GetPayload(), &blockInfo)
+	nGet := &gtypes.NormPut{}
+	action := &gtypes.NormAction{}
+	err := gtypes.Decode(baseTx.GetPayload(), action)
 	if err != nil {
-		bslog.Error("GetCommitFromBlock", "error", err)
+		bslog.Error("GetCommitFromBlock get payload failed", "error", err)
+		return nil
+	}
+	if nGet = action.GetNput(); nGet == nil {
+		bslog.Error("GetCommitFromBlock get nput failed")
+		return nil
+	}
+	infobytes := nGet.GetValue()
+	if infobytes == nil {
+		bslog.Error("GetCommitFromBlock get blockinfo failed")
+		return nil
+	}
+	err = gtypes.Decode(infobytes, &blockInfo)
+	if err != nil {
+		bslog.Error("GetCommitFromBlock get payload failed", "error", err)
 		return nil
 	}
 	return &blockInfo
@@ -41,6 +60,7 @@ func GetCommitFromBlock(block *gtypes.Block) *gtypes.TendermintBlockInfo {
 
 func LoadVotes(des []*Vote, source []*gtypes.Vote) {
 	for i, item := range source {
+		des[i] = &Vote{}
 		des[i].BlockID = BlockID{
 			Hash:item.BlockID.Hash,
 			PartsHeader:PartSetHeader{
@@ -49,12 +69,18 @@ func LoadVotes(des []*Vote, source []*gtypes.Vote) {
 		}
 		des[i].Height = item.Height
 		des[i].Round = int(item.Round)
-		des[i].Signature = crypto.SignatureEd25519FromBytes(item.Signature)
+		sig ,err := crypto.SignatureFromBytes(item.Signature)
+		if err != nil {
+			bslog.Error("SignatureFromBytes failed", "err", err)
+		} else {
+			des[i].Signature = sig.Wrap()
+		}
+
 		des[i].Type = uint8(item.Type)
 		des[i].ValidatorAddress = item.ValidatorAddress
 		des[i].ValidatorIndex = int(item.ValidatorIndex)
-		des[i].Timestamp = time.Unix(item.Timestamp, 0)
-		bslog.Info("convert time", "time", des[i].Timestamp)
+		des[i].Timestamp = time.Unix(0, item.Timestamp)
+		bslog.Info("load votes", "i", i, "source", item, "des", des[i])
 	}
 }
 
@@ -123,10 +149,13 @@ func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 
 func (bs *BlockStore) CreateCommitTx(lastCommit *Commit, seenCommit *Commit ) *gtypes.Transaction {
 	blockInfo := bs.SaveCommits(lastCommit, seenCommit)
-	tx := &gtypes.Transaction{}
-	tx.Execer = []byte("user.tendermint")
-	tx.To = "user.tendermint"
-	tx.Payload = gtypes.Encode(blockInfo)
+
+	nput := &gtypes.NormAction_Nput{&gtypes.NormPut{Key: "BlockInfo", Value: gtypes.Encode(blockInfo)}}
+	action := &gtypes.NormAction{Value: nput, Ty: gtypes.NormActionPut}
+	tx := &gtypes.Transaction{Execer: []byte("norm"), Payload: gtypes.Encode(action), Fee: fee}
+	tx.Nonce = r.Int63()
+	//tx.Sign(gtypes.SECP256K1, getprivkey(privkey))
+
 	return tx
 }
 
@@ -145,12 +174,12 @@ func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 			des[i].BlockID = blockID
 			des[i].Height = item.Height
 			des[i].Round = int32(item.Round)
-			des[i].Signature = item.Signature.Bytes()
+			des[i].Signature = item.Signature.Unwrap().Bytes()
 			des[i].Type = uint32(item.Type)
 			des[i].ValidatorAddress = item.ValidatorAddress
 			des[i].ValidatorIndex = int32(item.ValidatorIndex)
-			des[i].Timestamp = item.Timestamp.Unix()
-			bslog.Info("convert time to int64", "time", des[i].Timestamp)
+			des[i].Timestamp = item.Timestamp.UnixNano()
+			bslog.Info("save votes", "i", i, "source",item, "des", des[i])
 		}
 	}
 }
