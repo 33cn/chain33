@@ -15,13 +15,11 @@ import (
 var accountdb = account.NewCoinsAccount()
 
 type channelClient struct {
-	queue.Client
-	api client.QueueProtocolAPI
+	client.QueueProtocolAPI
 }
 
 func (c *channelClient) Init(q queue.Client) {
-	c.Client = q
-	c.api, _ = client.New(q, nil)
+	c.QueueProtocolAPI, _ = client.New(q, nil)
 }
 
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
@@ -74,105 +72,13 @@ func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply,
 	err := types.Decode(param.GetUnsign(), &tx)
 	if err == nil {
 		tx.Signature = &types.Signature{param.GetTy(), param.GetPubkey(), param.GetSign()}
-		return c.api.SendTx(&tx)
+		return c.SendTx(&tx)
 	}
 	return nil, err
 }
 
-//channel
-func (c *channelClient) SendTx(tx *types.Transaction) (*types.Reply, error) {
-	return c.api.SendTx(tx)
-}
-
-func (c *channelClient) GetBlocks(start int64, end int64, isdetail bool) (*types.BlockDetails, error) {
-	return c.api.GetBlocks(&types.ReqBlocks{start, end, isdetail, []string{""}})
-}
-
-func (c *channelClient) QueryTx(hash []byte) (*types.TransactionDetail, error) {
-	return c.api.QueryTx(&types.ReqHash{hash})
-}
-
-func (c *channelClient) GetLastHeader() (*types.Header, error) {
-	return c.api.GetLastHeader()
-}
-
-func (c *channelClient) GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfos, error) {
-	return c.api.GetTransactionByAddr(parm)
-}
-
-func (c *channelClient) GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error) {
-	return c.api.GetTransactionByHash(parm)
-}
-
-func (c *channelClient) GetMempool() (*types.ReplyTxList, error) {
-	return c.api.GetMempool()
-}
-
-func (c *channelClient) GetAccounts() (*types.WalletAccounts, error) {
-	return c.api.WalletGetAccountList()
-}
-
-func (c *channelClient) NewAccount(parm *types.ReqNewAccount) (*types.WalletAccount, error) {
-	return c.api.NewAccount(parm)
-}
-
-func (c *channelClient) WalletTxList(parm *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
-	return c.api.WalletTransactionList(parm)
-}
-
-func (c *channelClient) ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
-	return c.api.WalletImportprivkey(parm)
-}
-
-func (c *channelClient) SendToAddress(parm *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
-	return c.api.WalletSendToAddress(parm)
-}
-
-func (c *channelClient) SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error) {
-	return c.api.WalletSetFee(parm)
-}
-
-func (c *channelClient) SetLabl(parm *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
-	return c.api.WalletSetLabel(parm)
-}
-
-func (c *channelClient) MergeBalance(parm *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
-	return c.api.WalletMergeBalance(parm)
-}
-
-func (c *channelClient) SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error) {
-	return c.api.WalletSetPasswd(parm)
-}
-
-func (c *channelClient) Lock() (*types.Reply, error) {
-	return c.api.WalletLock()
-}
-
-func (c *channelClient) UnLock(parm *types.WalletUnLock) (*types.Reply, error) {
-	return c.api.WalletUnLock(parm)
-}
-
-func (c *channelClient) GetPeerInfo() (*types.PeerList, error) {
-	return c.api.PeerInfo()
-}
-
-func (c *channelClient) GetHeaders(in *types.ReqBlocks) (*types.Headers, error) {
-	return c.api.GetHeaders(&types.ReqBlocks{
-		Start:    in.GetStart(),
-		End:      in.GetEnd(),
-		Isdetail: in.GetIsdetail()})
-}
-
-func (c *channelClient) GetLastMemPool(*types.ReqNil) (*types.ReplyTxList, error) {
-	return c.api.GetLastMempool()
-}
-
-func (c *channelClient) GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error) {
-	return c.api.GetBlockOverview(parm)
-}
-
 func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
-	reply, err := c.api.GetAddrOverview(parm)
+	reply, err := c.QueueProtocolAPI.GetAddrOverview(parm)
 	if err != nil {
 		log.Error("GetAddrOverview", "Error", err.Error())
 		return nil, err
@@ -180,38 +86,13 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := accountdb.LoadAccounts(c.api, addrs)
+	accounts, err := accountdb.LoadAccounts(c.QueueProtocolAPI, addrs)
 	if err != nil {
 		log.Error("GetAddrOverview", "Error", err.Error())
 		return nil, err
 	}
 	if len(accounts) != 0 {
 		reply.Balance = accounts[0].Balance
-	}
-	return reply, nil
-}
-
-func (c *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
-	return c.api.GetBlockHash(parm)
-}
-
-//seed
-func (c *channelClient) GenSeed(parm *types.GenSeedLang) (*types.ReplySeed, error) {
-	return c.api.GenSeed(parm)
-}
-
-func (c *channelClient) SaveSeed(parm *types.SaveSeedByPw) (*types.Reply, error) {
-	return c.api.SaveSeed(parm)
-}
-
-func (c *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, error) {
-	return c.api.GetSeed(parm)
-}
-
-func (c *channelClient) GetWalletStatus() (*types.WalletStatus, error) {
-	reply, err := c.api.GetWalletStatus()
-	if nil != err {
-		return nil, err
 	}
 	return reply, nil
 }
@@ -230,7 +111,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 			exaddrs = append(exaddrs, addr)
 		}
 
-		accounts, err := accountdb.LoadAccounts(c.api, exaddrs)
+		accounts, err := accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -242,7 +123,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		var accounts []*types.Account
 		for _, addr := range addrs {
 
-			acc, err := accountdb.LoadExecAccountQueue(c.api, addr, execaddress.String())
+			acc, err := accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
@@ -270,7 +151,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 			queryAddrs = append(queryAddrs, addr)
 		}
 
-		accounts, err := accountTokendb.LoadAccounts(c.api, queryAddrs)
+		accounts, err := accountTokendb.LoadAccounts(c.QueueProtocolAPI, queryAddrs)
 		if err != nil {
 			log.Error("GetTokenBalance", "err", err.Error(), "token symbol", in.GetTokenSymbol(), "address", queryAddrs)
 			return nil, err
@@ -282,7 +163,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			acc, err := accountTokendb.LoadExecAccountQueue(c.api, addr, execaddress.String())
+			acc, err := accountTokendb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetTokenBalance for exector", "err", err.Error(), "token symbol", in.GetTokenSymbol(),
 					"address", addr)
@@ -295,53 +176,13 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 	}
 }
 
-func (c *channelClient) QueryHash(in *types.Query) (*types.Message, error) {
-	return c.api.Query(in)
-}
-
-func (c *channelClient) SetAutoMiner(in *types.MinerFlag) (*types.Reply, error) {
-	return c.api.WalletAutoMiner(in)
-}
-
-func (c *channelClient) GetTicketCount() (*types.Int64, error) {
-	return c.api.GetTicketCount()
-}
-
-func (c *channelClient) DumpPrivkey(in *types.ReqStr) (*types.ReplyStr, error) {
-	return c.api.DumpPrivkey(in)
-}
-
-func (c *channelClient) CloseTickets() (*types.ReplyHashes, error) {
-	return c.api.CloseTickets()
-}
-
 func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
 	//获取地址账户的余额通过account模块
-	resp, err := accountdb.GetTotalCoins(c.api, in)
+	resp, err := accountdb.GetTotalCoins(c.QueueProtocolAPI, in)
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
-}
-
-func (c *channelClient) IsSync() bool {
-	reply, err := c.api.IsSync()
-	if nil != err {
-		return false
-	}
-	return reply.IsOk
-}
-
-func (c *channelClient) IsNtpClockSync() bool {
-	reply, err := c.api.IsNtpClockSync()
-	if err != nil {
-		return false
-	}
-	return reply.IsOk
-}
-
-func (c *channelClient) QueryTotalFee(in *types.ReqHash) (*types.LocalReplyValue, error) {
-	return c.api.LocalGet(in)
 }
 
 func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byte, error) {
@@ -486,12 +327,4 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, err
 
 	data := types.Encode(tx)
 	return data, nil
-}
-
-func (c *channelClient) SignRawTx(in *types.ReqSignRawTx) (*types.ReplySignRawTx, error) {
-	return c.api.SignRawTx(in)
-}
-
-func (c *channelClient) GetNetInfo() (*types.NodeNetInfo, error) {
-	return c.api.GetNetInfo()
 }
