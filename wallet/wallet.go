@@ -484,7 +484,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				var replySeed types.ReplySeed
 				replySeed.Seed = seed
-				walletlog.Error("EventGetSeed", "seed", seed)
+				//walletlog.Error("EventGetSeed", "seed", seed)
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyGetSeed, &replySeed))
 			}
 
