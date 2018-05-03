@@ -191,6 +191,20 @@ func PubToAddress(coinType uint32, pub []byte) (string, error) {
 	return "", errors.New("cointype no support to create address")
 }
 
+//创建助记词 lang=0 英文助记词，lang=1 中文助记词bitsize=[128,256]并且bitsize%32=0
+func NewMnemonicString(lang, bitsize int) (string, error) {
+	entropy, err := bip39.NewEntropy(bitsize)
+	if err != nil {
+		return "", err
+	}
+
+	mnemonic, err := bip39.NewMnemonic(entropy, int32(lang))
+	if err != nil {
+		return "", err
+	}
+	return mnemonic, nil
+}
+
 // 通过助记词生成钱包对象
 func NewWalletFromMnemonic(coinType uint32, mnemonic string) (wallet *HDWallet, err error) {
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, "")
