@@ -22,7 +22,7 @@ func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.U
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.api.CreateRawTransaction(in)
+	reply, err := g.cli.CreateRawTransaction(in)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (g *Grpc) SendRawTransaction(ctx context.Context, in *pb.SignedTx) (*pb.Rep
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.api.SendRawTransaction(in)
+	return g.cli.SendRawTransaction(in)
 }
 
 func (g *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.TransactionDetail, error) {
@@ -257,7 +257,7 @@ func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts,
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.api.GetBalance(in)
+	reply, err := g.cli.GetBalance(in)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +268,7 @@ func (g *Grpc) GetTokenBalance(ctx context.Context, in *pb.ReqTokenBalance) (*pb
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.api.GetTokenBalance(in)
+	reply, err := g.cli.GetTokenBalance(in)
 	if err != nil {
 		return nil, err
 	}
