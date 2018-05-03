@@ -295,7 +295,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 
 	default:
-		err = fmt.Errorf("Unsupport method ", c.Method)
+		err = fmt.Errorf("Unsupport method %v", c.Method)
 	}
 	return err
 }
