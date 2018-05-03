@@ -7,9 +7,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/pbkdf2"
 	"math/big"
 	"strings"
+
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // Some bitwise operands for working with big.Ints
@@ -31,7 +32,8 @@ func NewEntropy(bitSize int) ([]byte, error) {
 	return entropy, err
 }
 
-func NewMnemonic(entropy []byte) (string, error) {
+//lang=0 english word lang=1 chinese word
+func NewMnemonic(entropy []byte, lang int32) (string, error) {
 	// Compute some lengths for convenience
 	entropyBitLength := len(entropy) * 8
 	checksumBitLength := entropyBitLength / 32
@@ -68,7 +70,12 @@ func NewMnemonic(entropy []byte) (string, error) {
 		wordBytes := padByteSlice(word.Bytes(), 2)
 
 		// Convert bytes to an index and add that word to the list
-		words[i] = WordList[binary.BigEndian.Uint16(wordBytes)]
+		if lang == 0 {
+			words[i] = WordList[binary.BigEndian.Uint16(wordBytes)]
+		} else {
+			words[i] = WordListCHN[binary.BigEndian.Uint16(wordBytes)]
+		}
+
 	}
 
 	return strings.Join(words, " "), nil
@@ -79,6 +86,11 @@ func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 	//		return nil, fmt.Errorf("Invalid mnemonic")
 	//	}
 	mnemonicSlice := strings.Split(mnemonic, " ")
+	//lang=0 english word lang=1 chinese word
+	var lang int32
+	if _, found := ReverseWordMap[mnemonicSlice[0]]; !found {
+		lang = 1
+	}
 
 	bitSize := len(mnemonicSlice) * 11
 	err := validateEntropyWithChecksumBitSize(bitSize)
@@ -90,10 +102,20 @@ func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 	b := big.NewInt(0)
 	modulo := big.NewInt(2048)
 	for _, v := range mnemonicSlice {
-		index, found := ReverseWordMap[v]
-		if found == false {
-			return nil, fmt.Errorf("Word `%v` not found in reverse map", v)
+		var index int
+		var found bool
+		if lang == 0 {
+			index, found = ReverseWordMap[v]
+			if found == false {
+				return nil, fmt.Errorf("Word `%v` not found in reverse map", v)
+			}
+		} else {
+			index, found = ReverseWordMapCHN[v]
+			if found == false {
+				return nil, fmt.Errorf("Word `%v` not found in reverse map", v)
+			}
 		}
+
 		add := big.NewInt(int64(index))
 		b = b.Mul(b, modulo)
 		b = b.Add(b, add)

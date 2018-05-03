@@ -139,7 +139,7 @@ func (wallet *Wallet) SetQueueClient(client queue.Client) {
 	wallet.wg.Add(2)
 	go wallet.ProcRecvMsg()
 	go wallet.autoMining()
-	InitSeedLibrary()
+	//InitSeedLibrary()
 }
 
 //检查周期 --> 10分
@@ -1670,20 +1670,21 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 		walletlog.Error("saveSeed VeriySeedwordnum", "curseedlen", curseedlen, "SaveSeedLong", SaveSeedLong)
 		return false, types.ErrSeedWordNum
 	}
-	//校验seed是否在标准单词表中
-	have, errword := VerifySeed(seedarry)
-	if !have {
-		walletlog.Error("saveSeed VerifySeed", "errword", errword)
-		return false, types.ErrSeedWord
-	}
+
 	var newseed string
 	for index, seedstr := range seedarry {
-		//walletlog.Error("saveSeed", "seedstr", seedstr)
 		if index != curseedlen-1 {
 			newseed += seedstr + " "
 		} else {
 			newseed += seedstr
 		}
+	}
+
+	//校验seed是否能生成钱包结构类型，从而来校验seed的正确性
+	have, err := VerifySeed(seed)
+	if !have {
+		walletlog.Error("saveSeed VerifySeed", "err", err)
+		return false, types.ErrSeedWord
 	}
 
 	ok, err := SaveSeed(wallet.walletStore.db, newseed, password)
