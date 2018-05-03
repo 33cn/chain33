@@ -228,6 +228,7 @@ func (n *Node) monitor() {
 	go n.monitorErrPeer()
 	go n.getAddrFromOnline()
 	go n.getAddrFromOffline()
+	go n.getAddrFromGithub()
 	go n.monitorPeerInfo()
 	go n.monitorDialPeers()
 	go n.monitorBlackList()
@@ -363,27 +364,19 @@ func (n *Node) natMapPort() {
 	n.nodeInfo.natResultChain <- true
 	refresh := time.NewTimer(mapUpdateInterval)
 	defer refresh.Stop()
+
 	for {
-
-		select {
-		case <-refresh.C:
-			log.Info("NatWorkRefresh")
-			for {
-				if err := nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort, nodename[:8], time.Hour*48); err != nil {
-					log.Error("NatMapPort update", "err", err.Error())
-					time.Sleep(time.Second)
-					continue
-				}
-				break
+		<-refresh.C
+		log.Info("NatWorkRefresh")
+		for {
+			if err := nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort, nodename[:8], time.Hour*48); err != nil {
+				log.Error("NatMapPort update", "err", err.Error())
+				time.Sleep(time.Second)
+				continue
 			}
-			refresh.Reset(mapUpdateInterval)
-		default:
-			if n.isClose() {
-				return
-			}
-			time.Sleep(time.Second * 10)
-
+			break
 		}
+		refresh.Reset(mapUpdateInterval)
 
 	}
 }
