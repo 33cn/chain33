@@ -96,5 +96,4 @@ type QueueProtocolAPI interface {
 	GetTokenBalance(param *types.ReqTokenBalance) ([]*types.Account, error)
 	// types.EventGetNetInfo
 	GetNetInfo() (*types.NodeNetInfo, error)
-	GetTotalCoins(param *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error)
 }

@@ -34,15 +34,6 @@ func (q *QueueProtocol) GetAddrOverview(param *types.ReqAddr) (*types.AddrOvervi
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) GetTotalCoins(param *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
-	//获取地址账户的余额通过account模块
-	resp, err := accountdb.GetTotalCoins(q.client, param)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
 func (q *QueueProtocol) GetBalance(param *types.ReqBalance) ([]*types.Account, error) {
 	if param == nil {
 		err := types.ErrInvalidParam

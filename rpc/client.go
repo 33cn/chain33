@@ -28,6 +28,10 @@ func (c *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, erro
 	return c.api.CreateRawTransaction(parm)
 }
 
+func (c *channelClient) SendRawTransaction(parm *types.SignedTx) (*types.Reply, error) {
+	return c.api.SendRawTransaction(parm)
+}
+
 //channel
 func (c *channelClient) SendTx(tx *types.Transaction) (*types.Reply, error) {
 	return c.api.SendTx(tx)
