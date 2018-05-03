@@ -67,7 +67,9 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	node := &Node{
 		outBound: make(map[string]*Peer),
 	}
-
+	if cfg.GetInnerSeedEnable() {
+		cfg.Seeds = append(cfg.Seeds, InnerSeeds...)
+	}
 	node.nodeInfo = NewNodeInfo(cfg)
 	if cfg.GetServerStart() {
 		node.listener = NewListener(protocol, node)
