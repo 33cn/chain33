@@ -140,6 +140,7 @@ message ReqWalletTransactionList {
 	bytes fromTx = 1; 
 	int32 count = 2;
 	int32 direction = 3;
+	bool isprivacy  = 4;
 }
 
 message ReqWalletImportPrivKey {
@@ -229,32 +230,29 @@ message ReqModifyConfig {
 message ReqPub2Pri {
 	string viewPublic  = 1; //接收人可见公钥A
 	string spendPublic = 2; //接收人花费公钥B
-	bool op4token     = 3; //是否进行token的隐私操作
-	string token      = 4;
-	int64 amount      = 5;
-	string note       = 6;
-	string sender     = 7; //发送人地址
+	string tokenname   = 3;
+	int64 amount       = 4;
+	string note        = 5;
+	string sender      = 6; //发送人地址
 }
 
 message ReqPri2Pri {
 	string viewPublic  = 1; //A
 	string spendPublic = 2; //B
-	bool op4token      = 3; //是否进行token的隐私操作
-	string token       = 4;
-	int64 amount       = 5;
-	string note        = 6;
-    string sender      = 7;//隐私交易发起人地址
-	string txhash      = 8;
+	string tokenname   = 3;
+	int64 amount       = 4;
+	string note        = 5;
+    string sender      = 6;//隐私交易发起人地址
+	string txhash      = 7;
 }
 
 message ReqPri2Pub {
 	string receiver   = 1;
-	bool op4token     = 3;//是否进行token的隐私操作
-	string token      = 4;
-	int64 amount      = 5;
-	string note       = 6;
-	string sender     = 7;//隐私交易发起人地址
-	string txhash     = 8;
+	string tokenname  = 2;
+	int64 amount      = 3;
+	string note       = 4;
+	string sender     = 5;//隐私交易发起人地址
+	string txhash     = 6;
 }
 
 message ReplyPrivacyPkPair {
@@ -271,4 +269,9 @@ message ReqPrivacyBalance {
 message ReplyPrivacyBalance {
     string onetimeaddr   =  1;
     int64 balance        =  2;
+}
+
+message PrivacyDBStore {
+    string onetimeaddr   = 1;    //隐私账户一次性地址
+    string txhash        = 2;
 }

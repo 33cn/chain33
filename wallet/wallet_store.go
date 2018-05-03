@@ -45,10 +45,26 @@ func calcPrivacyAddrKey(addr string) []byte {
 	return []byte(fmt.Sprintf("Privacy4Addr:%s", addr))
 }
 
+func calcPrivacy1timeBalKey(addr string, txhash string) []byte {
+	return []byte(fmt.Sprintf("PrivacyBal4Addr:%s-%s", addr, txhash))
+}
+
+func calcPrivacy1timeBalKeyPrefix(addr string) []byte {
+	return []byte(fmt.Sprintf("PrivacyBal4Addr:%s", addr))
+}
+
 //通过height*100000+index 查询Tx交易信息
 //key:Tx:height*100000+index
 func calcTxKey(key string) []byte {
 	return []byte(fmt.Sprintf("Tx:%s", key))
+}
+
+func calcRecvPrivacyTxKey(key string) []byte {
+	return []byte(fmt.Sprintf("RecvPrivacyTx:%s", key))
+}
+
+func calcSendPrivacyTxKey(key string) []byte {
+	return []byte(fmt.Sprintf("SendPrivacyTx:%s", key))
 }
 
 func NewWalletStore(db dbm.DB) *WalletStore {
@@ -206,14 +222,24 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
 		list := dbm.NewListHelper(ws.db)
-		txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
+		if !TxList.Isprivacy {
+			txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
+		} else {
+			txbytes = list.IteratorScanFromLast([]byte(calcRecvPrivacyTxKey("")), TxList.Count)
+		}
+
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist
 		}
 	} else {
 		list := dbm.NewListHelper(ws.db)
-		txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		if !TxList.Isprivacy {
+			txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		} else {
+			txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcRecvPrivacyTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+		}
+
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
 			return nil, types.ErrTxNotExist
@@ -235,9 +261,8 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 		txhash := txdetail.GetTx().Hash()
 		txdetail.Txhash = txhash
 		txDetails.TxDetails[index] = &txdetail
-		//print
-		//walletlog.Debug("GetTxDetailByIter", "txdetail:", txdetail.String())
 	}
+
 	return &txDetails, nil
 }
 
@@ -312,6 +337,70 @@ func (ws *WalletStore) VerifyPasswordHash(password string) bool {
 
 func (ws *WalletStore) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
+}
+
+func (ws *WalletStore) setWalletPrivacyAccountBalance(addr, txhash *string, dbStore *types.PrivacyDBStore, newbatch dbm.Batch) error {
+	if 0 == len(*addr) || 0 == len(*txhash) {
+		walletlog.Error("SetWalletAccountPrivacy addr or txhash is nil")
+		return types.ErrInputPara
+	}
+	if dbStore == nil {
+		walletlog.Error("SetWalletAccountPrivacy privacy is nil")
+		return types.ErrInputPara
+	}
+
+	privacyStorebyte, err := proto.Marshal(dbStore)
+	if err != nil {
+		walletlog.Error("SetWalletAccountPrivacy proto.Marshal err!", "err", err)
+		return types.ErrMarshal
+	}
+	newbatch.Set(calcPrivacy1timeBalKey(*addr, *txhash), privacyStorebyte)
+	return nil
+}
+
+func (ws *WalletStore) getWalletPrivacyAccountBalance(addr, txhash string) (*types.PrivacyDBStore, error) {
+	if 0 == len(addr) || 0 == len(txhash) {
+		walletlog.Error("getWalletPrivacyAccountBalance addr or txhash is nil")
+		return nil, types.ErrInputPara
+	}
+
+	privacyByte := ws.db.Get(calcPrivacy1timeBalKey(addr, txhash))
+	if nil == privacyByte {
+		return nil, types.ErrPrivacyNotExist
+	}
+	var accPrivacy types.PrivacyDBStore
+	err := proto.Unmarshal(privacyByte, &accPrivacy)
+	if err != nil {
+		walletlog.Error("GetWalletAccountPrivacy", "proto.Unmarshal err:", err)
+		return nil, types.ErrUnmarshal
+	}
+	return &accPrivacy, nil
+}
+
+func (ws *WalletStore) listWalletPrivacyAccount(addr string) ([]*types.PrivacyDBStore, error) {
+	if 0 == len(addr) {
+		walletlog.Error("listWalletPrivacyAccount addr is nil")
+		return nil, types.ErrInputPara
+	}
+
+	list := dbm.NewListHelper(ws.db)
+	onetimeAccbytes := list.PrefixScan(calcPrivacy1timeBalKeyPrefix(addr))
+	if len(onetimeAccbytes) == 0 {
+		walletlog.Error("listWalletPrivacyAccount ", "addr not exist", addr)
+		return nil, types.ErrAccountNotExist
+	}
+
+	privacyDBStoreSlice := make([]*types.PrivacyDBStore, len(onetimeAccbytes))
+	for _, accByte := range onetimeAccbytes {
+		var accPrivacy types.PrivacyDBStore
+		err := proto.Unmarshal(accByte, &accPrivacy)
+		if err != nil {
+			walletlog.Error("GetWalletAccountPrivacy", "proto.Unmarshal err:", err)
+			return nil, types.ErrUnmarshal
+		}
+		privacyDBStoreSlice = append(privacyDBStoreSlice, &accPrivacy)
+	}
+	return privacyDBStoreSlice, nil
 }
 
 func (ws *WalletStore) SetWalletAccountPrivacy(addr string, privacy *types.WalletAccountPrivacy) error {

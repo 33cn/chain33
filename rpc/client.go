@@ -794,20 +794,36 @@ func (c *channelClient) IsNtpClockSync() bool {
 
 //////////privacy tx//////////////////////////////
 
-func (c *channelClient) ShowPrivacyBalance(parm *types.ReqPrivacyBalance) (*types.Account, error) {
-	msg := c.NewMessage("wallet", types.EventShowPrivacyBalance, parm)
+func (c *channelClient) ShowPrivacyAccount(parm *types.ReqStr) ([]*types.Account, error) {
+	msg := c.NewMessage("wallet", types.EventShowPrivacyAccount, parm)
 	err := c.Send(msg, true)
 	if err != nil {
-		log.Error("ShowPrivacyBalance", "Error", err.Error())
+		log.Error("ShowPrivacyTransfer", "Error", err.Error())
 		return nil, err
 	}
 	resp, err := c.Wait(msg)
 	if err != nil {
-		log.Error("ShowPrivacyBalance", "Error", err.Error())
+		log.Error("ShowPrivacyTransfer", "Error", err.Error())
+		return nil, err
+	}
+	return resp.Data.([]*types.Account), nil
+}
+
+func (c *channelClient) ShowPrivacyTransfer(parm *types.ReqPrivacyBalance) (*types.Account, error) {
+	msg := c.NewMessage("wallet", types.EventShowPrivacyTransfer, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("ShowPrivacyTransfer", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("ShowPrivacyTransfer", "Error", err.Error())
 		return nil, err
 	}
 	return resp.Data.(*types.Account), nil
 }
+
 func (c *channelClient) ShowPrivacykey(parm *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
 	msg := c.NewMessage("wallet", types.EventShowPrivacyPK, parm)
 	err := c.Send(msg, true)
