@@ -13,6 +13,7 @@ func (m *mockStore) SetQueueClient(q queue.Queue) {
 		client := q.Client()
 		client.Sub("store")
 		for msg := range client.Recv() {
+			log.Debug("receive ok", "msg", msg)
 			switch msg.Ty {
 			case types.EventStoreGet:
 				msg.Reply(client.NewMessage("store", types.EventStoreGetReply, &types.StoreReplyValue{}))
