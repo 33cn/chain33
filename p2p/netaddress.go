@@ -162,6 +162,7 @@ func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.
 	}
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect", err)
+		conn.Close()
 		return nil, err
 	}
 	return conn, nil
