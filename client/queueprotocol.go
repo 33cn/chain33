@@ -8,7 +8,6 @@ package client
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -437,6 +436,23 @@ func (q *QueueProtocol) GetBlockOverview(param *types.ReqHash) (*types.BlockOver
 	return nil, types.ErrTypeAsset
 }
 
+func (q *QueueProtocol) GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetAddrOverview", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(blockchainKey, types.EventGetAddrOverview, param)
+	if err != nil {
+		log.Error("GetAddrOverview", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.AddrOverview); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 func (q *QueueProtocol) GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -641,77 +657,6 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 	}
 	err = types.ErrTypeAsset
 	log.Error("GetLastHeader", "Error", err.Error())
-	return nil, err
-}
-
-func (q *QueueProtocol) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("CreateRawTransaction", "Error", err)
-		return nil, err
-	}
-
-	var tx *types.Transaction
-	amount := param.Amount
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	if !param.Istoken {
-		transfer := &types.CoinsAction{}
-		if amount > 0 {
-			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransfer
-		} else {
-			v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionWithdraw
-		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
-	} else {
-		transfer := &types.TokenAction{}
-		if amount > 0 {
-			v := &types.TokenAction_Transfer{&types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.ActionTransfer
-		} else {
-			v := &types.TokenAction_Withdraw{&types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: -amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.ActionWithdraw
-		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
-	}
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (q *QueueProtocol) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("SendRawTransaction", "Error", err)
-		return nil, err
-	}
-	var tx types.Transaction
-	err := types.Decode(param.GetUnsign(), &tx)
-	if err == nil {
-		tx.Signature = &types.Signature{param.GetTy(), param.GetPubkey(), param.GetSign()}
-		msg, err := q.query(mempoolKey, types.EventTx, &tx)
-		if err != nil {
-			log.Error("SendRawTransaction query error.", "Error", err.Error())
-			return nil, err
-		}
-		if reply, ok := msg.GetData().(*types.Reply); ok {
-			if reply.GetIsOk() {
-				reply.Msg = tx.Hash()
-				err = nil
-			} else {
-				err = fmt.Errorf(string(reply.Msg))
-				log.Error("SendRawTransaction Reply error. ", "Error", err.Error())
-				reply = nil
-			}
-			return reply, err
-		}
-		err = types.ErrTypeAsset
-	}
 	return nil, err
 }
 

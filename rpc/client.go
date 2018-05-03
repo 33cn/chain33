@@ -24,12 +24,59 @@ func (c *channelClient) Init(q queue.Client) {
 	c.api, _ = client.New(q, nil)
 }
 
-func (c *channelClient) CreateRawTransaction(parm *types.CreateTx) ([]byte, error) {
-	return c.api.CreateRawTransaction(parm)
+func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("CreateRawTransaction", "Error", err)
+		return nil, err
+	}
+
+	var tx *types.Transaction
+	amount := param.Amount
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	if !param.Istoken {
+		transfer := &types.CoinsAction{}
+		if amount > 0 {
+			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionTransfer
+		} else {
+			v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+	} else {
+		transfer := &types.TokenAction{}
+		if amount > 0 {
+			v := &types.TokenAction_Transfer{&types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.ActionTransfer
+		} else {
+			v := &types.TokenAction_Withdraw{&types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: -amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.ActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+	}
+
+	data := types.Encode(tx)
+	return data, nil
 }
 
-func (c *channelClient) SendRawTransaction(parm *types.SignedTx) (*types.Reply, error) {
-	return c.api.SendRawTransaction(parm)
+func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("SendRawTransaction", "Error", err)
+		return nil, err
+	}
+	var tx types.Transaction
+	err := types.Decode(param.GetUnsign(), &tx)
+	if err == nil {
+		tx.Signature = &types.Signature{param.GetTy(), param.GetPubkey(), param.GetSign()}
+		return c.api.SendTx(&tx)
+	}
+	return nil, err
 }
 
 //channel
@@ -125,7 +172,23 @@ func (c *channelClient) GetBlockOverview(parm *types.ReqHash) (*types.BlockOverv
 }
 
 func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
-	return c.api.GetAddrOverview(parm)
+	reply, err := c.api.GetAddrOverview(parm)
+	if err != nil {
+		log.Error("GetAddrOverview", "Error", err.Error())
+		return nil, err
+	}
+	//获取地址账户的余额通过account模块
+	addrs := make([]string, 1)
+	addrs[0] = parm.Addr
+	accounts, err := accountdb.LoadAccounts(c.Client, addrs)
+	if err != nil {
+		log.Error("GetAddrOverview", "Error", err.Error())
+		return nil, err
+	}
+	if len(accounts) != 0 {
+		reply.Balance = accounts[0].Balance
+	}
+	return reply, nil
 }
 
 func (c *channelClient) GetBlockHash(parm *types.ReqInt) (*types.ReplyHash, error) {
