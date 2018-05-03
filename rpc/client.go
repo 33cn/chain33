@@ -180,7 +180,7 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := accountdb.LoadAccounts(c.Client, addrs)
+	accounts, err := accountdb.LoadAccountsAPI(c.api, addrs)
 	if err != nil {
 		log.Error("GetAddrOverview", "Error", err.Error())
 		return nil, err

@@ -15,6 +15,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -203,6 +204,34 @@ func (acc *DB) LoadAccounts(client queue.Client, addrs []string) (accs []*types.
 		return nil, err
 	}
 	values := msg.GetData().(*types.StoreReplyValue)
+	for i := 0; i < len(values.Values); i++ {
+		value := values.Values[i]
+		if value == nil {
+			accs = append(accs, &types.Account{Addr: addrs[i]})
+		} else {
+			var acc types.Account
+			err := types.Decode(value, &acc)
+			if err != nil {
+				return nil, err
+			}
+			accs = append(accs, &acc)
+		}
+	}
+	return accs, nil
+}
+
+// 使用API的方式访问,暂时与LoadAccounts()共存,后续将删除LoadAccounts()
+func (acc *DB) LoadAccountsAPI(api client.QueueProtocolAPI, addrs []string) (accs []*types.Account, err error) {
+	header, err := api.GetLastHeader()
+	if err != nil {
+		return nil, err
+	}
+	get := types.StoreGet{StateHash: header.GetStateHash()}
+	for i := 0; i < len(addrs); i++ {
+		get.Keys = append(get.Keys, acc.AccountKey(addrs[i]))
+	}
+
+	values, err := api.StoreGet(&get)
 	for i := 0; i < len(values.Values); i++ {
 		value := values.Values[i]
 		if value == nil {

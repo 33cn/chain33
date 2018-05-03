@@ -26,7 +26,7 @@ const (
 	//executorKey		= "execs"		// 交易执行器
 	walletKey     = "wallet"     // 钱包
 	blockchainKey = "blockchain" // 区块
-	//storeKey      = "store"
+	storeKey      = "store"
 )
 
 var log = log15.New("module", "client")
@@ -712,5 +712,25 @@ func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRa
 	}
 	err = types.ErrTypeAsset
 	log.Error("SignRawTx", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) StoreGet(param *types.StoreGet) (*types.StoreReplyValue, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreGet", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(storeKey, types.EventStoreGet, param)
+	if err != nil {
+		log.Error("StoreGet", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.StoreReplyValue); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreGet", "Error", err.Error())
 	return nil, err
 }
