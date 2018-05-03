@@ -99,4 +99,11 @@ type QueueProtocolAPI interface {
 	// types.EventGetLastHeader
 	GetLastHeader() (*types.Header, error)
 	// --------------- blockchain interfaces end
+
+	// +++++++++++++++ store interfaces begin
+	StoreGet(*types.StoreGet) (*types.StoreReplyValue, error)
+	// --------------- store interfaces end
+
+	// +++++++++++++++ other interfaces begin
+	// --------------- other interfaces end
 }
