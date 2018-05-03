@@ -13,10 +13,10 @@ import (
 )
 
 func (p *Peer) Start() {
-
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
 }
+
 func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
