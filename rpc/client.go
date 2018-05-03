@@ -180,7 +180,7 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := accountdb.LoadAccountsAPI(c.api, addrs)
+	accounts, err := accountdb.LoadAccounts(c.api, addrs)
 	if err != nil {
 		log.Error("GetAddrOverview", "Error", err.Error())
 		return nil, err
@@ -230,7 +230,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 			exaddrs = append(exaddrs, addr)
 		}
 
-		accounts, err := accountdb.LoadAccounts(c.Client, exaddrs)
+		accounts, err := accountdb.LoadAccounts(c.api, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -242,7 +242,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		var accounts []*types.Account
 		for _, addr := range addrs {
 
-			acc, err := accountdb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
+			acc, err := accountdb.LoadExecAccountQueue(c.api, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
@@ -270,7 +270,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 			queryAddrs = append(queryAddrs, addr)
 		}
 
-		accounts, err := accountTokendb.LoadAccounts(c.Client, queryAddrs)
+		accounts, err := accountTokendb.LoadAccounts(c.api, queryAddrs)
 		if err != nil {
 			log.Error("GetTokenBalance", "err", err.Error(), "token symbol", in.GetTokenSymbol(), "address", queryAddrs)
 			return nil, err
@@ -282,7 +282,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			acc, err := accountTokendb.LoadExecAccountQueue(c.Client, addr, execaddress.String())
+			acc, err := accountTokendb.LoadExecAccountQueue(c.api, addr, execaddress.String())
 			if err != nil {
 				log.Error("GetTokenBalance for exector", "err", err.Error(), "token symbol", in.GetTokenSymbol(),
 					"address", addr)
@@ -329,7 +329,7 @@ func (c *channelClient) CloseTickets() (*types.ReplyHashes, error) {
 
 func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
 	//获取地址账户的余额通过account模块
-	resp, err := accountdb.GetTotalCoinsAPI(c.api, in)
+	resp, err := accountdb.GetTotalCoins(c.api, in)
 	if err != nil {
 		return nil, err
 	}

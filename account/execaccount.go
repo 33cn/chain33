@@ -1,7 +1,7 @@
 package account
 
 import (
-	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -18,23 +18,21 @@ func (acc *DB) LoadExecAccount(addr, execaddr string) *types.Account {
 	return &acc1
 }
 
-func (acc *DB) LoadExecAccountQueue(client queue.Client, addr, execaddr string) (*types.Account, error) {
-	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+func (acc *DB) LoadExecAccountQueue(api client.QueueProtocolAPI, addr, execaddr string) (*types.Account, error) {
+	header, err := api.GetLastHeader()
 	if err != nil {
 		return nil, err
 	}
-	get := types.StoreGet{}
-	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+
+	get := types.StoreGet{StateHash: header.GetStateHash()}
 	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
-	msg = client.NewMessage("store", types.EventStoreGet, &get)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
-	if err != nil {
+	values, err := api.StoreGet(&get)
+	if err != nil || len(values.Values) <= 0 {
 		return nil, err
 	}
-	values := msg.GetData().(*types.StoreReplyValue)
+	if len(values.Values) <= 0 {
+		return nil, types.ErrNotFound
+	}
 	value := values.Values[0]
 	if value == nil {
 		return &types.Account{Addr: addr}, nil
