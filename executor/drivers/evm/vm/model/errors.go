@@ -17,4 +17,6 @@ var (
 	ErrReturnDataOutOfBounds = errors.New("evm: return data out of bounds")
 	ErrExecutionReverted     = errors.New("evm: execution reverted")
 	ErrMaxCodeSizeExceeded   = errors.New("evm: max code size exceeded")
+
+	NoCoinsAccount = errors.New("no coins account in executor!")
 )

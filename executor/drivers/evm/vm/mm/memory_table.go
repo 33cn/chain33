@@ -56,12 +56,6 @@ func MemoryCall(stack *Stack) *big.Int {
 	return common.BigMax(x, y)
 }
 
-func MemoryCallCode(stack *Stack) *big.Int {
-	x := calcMemSize(stack.Back(5), stack.Back(6))
-	y := calcMemSize(stack.Back(3), stack.Back(4))
-
-	return common.BigMax(x, y)
-}
 func MemoryDelegateCall(stack *Stack) *big.Int {
 	x := calcMemSize(stack.Back(4), stack.Back(5))
 	y := calcMemSize(stack.Back(2), stack.Back(3))

@@ -43,9 +43,9 @@ var (
 
 const (
 	// 一个big.Word类型取值占用多少个位
-	wordBits = 32 << (uint64(^big.Word(0)) >> 63)
+	WordBits = 32 << (uint64(^big.Word(0)) >> 63)
 	// 一个big.Word类型取值占用多少个字节
-	wordBytes = wordBits / 8
+	WordBytes = WordBits / 8
 )
 
 // 返回两者之中的较大值
@@ -94,7 +94,7 @@ func Exp(base, exponent *big.Int) *big.Int {
 	result := big.NewInt(1)
 
 	for _, word := range exponent.Bits() {
-		for i := 0; i < wordBits; i++ {
+		for i := 0; i < WordBits; i++ {
 			if word&1 == 1 {
 				U256(result.Mul(result, base))
 			}
@@ -119,7 +119,7 @@ func bigEndianByteAt(bigint *big.Int, n int) byte {
 	words := bigint.Bits()
 
 	// 确保n不会越界
-	i := n / wordBytes
+	i := n / WordBytes
 	if i >= len(words) {
 		return byte(0)
 	}
@@ -128,7 +128,7 @@ func bigEndianByteAt(bigint *big.Int, n int) byte {
 	word := words[i]
 
 	// 要获取的字节在当前字中的偏移量
-	shift := 8 * uint(n%wordBytes)
+	shift := 8 * uint(n%WordBytes)
 
 	return byte(word >> shift)
 }
@@ -147,7 +147,7 @@ func PaddedBigBytes(bigint *big.Int, n int) []byte {
 func ReadBits(bigint *big.Int, buf []byte) {
 	i := len(buf)
 	for _, d := range bigint.Bits() {
-		for j := 0; j < wordBytes && i > 0; j++ {
+		for j := 0; j < WordBytes && i > 0; j++ {
 			i--
 			buf[i] = byte(d)
 			d >>= 8

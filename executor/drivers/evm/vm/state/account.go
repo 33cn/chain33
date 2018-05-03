@@ -6,7 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	ctypes "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -31,10 +31,10 @@ type ContractAccount struct {
 	Addr string
 
 	// 合约固定数据
-	Data ctypes.ContractData
+	Data model.ContractData
 
 	// 合约状态数据
-	State ctypes.ContractState
+	State model.ContractState
 }
 
 // 创建一个新的合约对象
@@ -75,7 +75,7 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 
 // 从外部恢复合约数据
 func (self *ContractAccount) resotreData(data []byte) {
-	var content ctypes.ContractData
+	var content model.ContractData
 	err := proto.Unmarshal(data, &content)
 	if err != nil {
 		log15.Error("read contract data error", self.Addr)
@@ -87,7 +87,7 @@ func (self *ContractAccount) resotreData(data []byte) {
 
 // 从外部恢复合约状态
 func (self *ContractAccount) resotreState(data []byte) {
-	var content ctypes.ContractState
+	var content model.ContractState
 	err := proto.Unmarshal(data, &content)
 	if err != nil {
 		log15.Error("read contract state error", self.Addr)
@@ -163,7 +163,7 @@ func (self *ContractAccount) BuildDataLog() (log *types.ReceiptLog) {
 		log15.Error("marshal contract state error!", self.Addr)
 		return
 	}
-	return &types.ReceiptLog{ctypes.TyLogContractData, datas}
+	return &types.ReceiptLog{model.TyLogContractData, datas}
 }
 
 // 构建变更日志
@@ -174,9 +174,8 @@ func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 		return
 	}
 
-	return &types.ReceiptLog{ctypes.TyLogContractState, datas}
+	return &types.ReceiptLog{model.TyLogContractState, datas}
 }
-
 
 func (self *ContractAccount) GetDataKey() []byte {
 	return []byte(ContractDataPrefix + self.Addr)
