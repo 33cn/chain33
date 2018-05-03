@@ -14,6 +14,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -34,7 +35,9 @@ var (
 )
 
 type Wallet struct {
-	client         queue.Client
+	client queue.Client
+	// 模块间通信的操作接口,建议用api代替client调用
+	api            client.QueueProtocolAPI
 	mtx            sync.Mutex
 	timeout        *time.Timer
 	minertimeout   *time.Timer
@@ -132,9 +135,10 @@ func (wallet *Wallet) IsTicketLocked() bool {
 	}
 }
 
-func (wallet *Wallet) SetQueueClient(client queue.Client) {
-	wallet.client = client
+func (wallet *Wallet) SetQueueClient(cli queue.Client) {
+	wallet.client = cli
 	wallet.client.Sub("wallet")
+	wallet.api, _ = client.New(cli, nil)
 	wallet.wg.Add(2)
 	go wallet.ProcRecvMsg()
 	go wallet.autoMining()
@@ -617,7 +621,7 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 		//walletlog.Debug("ProcGetAccountList", "all AccStore", AccStore.String())
 	}
 	//获取所有地址对应的账户详细信息从account模块
-	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcGetAccountList", "LoadAccounts:err", err)
 		return nil, err
@@ -735,7 +739,7 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr.String()
-	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil {
 		walletlog.Error("ProcCreatNewAccount", "LoadAccounts err", err)
 		return nil, err
@@ -864,7 +868,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr.String()
-	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "LoadAccounts err", err)
 		return nil, err
@@ -916,7 +920,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	addrs[0] = SendToAddress.GetFrom()
 	var accounts []*types.Account
 	var tokenAccounts []*types.Account
-	accounts, err = accountdb.LoadAccounts(wallet.client, addrs)
+	accounts, err = accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcSendToAddress", "LoadAccounts err", err)
 		return nil, err
@@ -938,7 +942,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 			accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
 		}
 		tokenAccDB := accTokenMap[SendToAddress.TokenSymbol]
-		tokenAccounts, err = tokenAccDB.LoadAccounts(wallet.client, addrs)
+		tokenAccounts, err = tokenAccDB.LoadAccounts(wallet.api, addrs)
 		if err != nil || len(tokenAccounts) == 0 {
 			walletlog.Error("ProcSendToAddress", "Load Token Accounts err", err)
 			return nil, err
@@ -1046,7 +1050,7 @@ func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*ty
 			//获取地址对应的账户详细信息从account模块
 			addrs := make([]string, 1)
 			addrs[0] = SetLabel.Addr
-			accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
+			accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
 			if err != nil || len(accounts) == 0 {
 				walletlog.Error("ProcWalletSetLabel", "LoadAccounts err", err)
 				return nil, err
@@ -1095,7 +1099,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		}
 	}
 	//获取所有地址对应的账户信息从account模块
-	accounts, err := accountdb.LoadAccounts(wallet.client, addrs)
+	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcMergeBalance", "LoadAccounts err", err)
 		return nil, err
@@ -1462,8 +1466,8 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 	if len(addr) == 0 {
 		return false
 	}
-	account, err := wallet.walletStore.GetAccountByAddr(addr)
-	if err == nil && account != nil {
+	acc, err := wallet.walletStore.GetAccountByAddr(addr)
+	if err == nil && acc != nil {
 		return true
 	}
 	return false
@@ -1746,28 +1750,4 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	}
 	return ok, err
 
-}
-
-func GetFromStore(key string, client queue.Client) ([]byte, error) {
-	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	get := types.StoreGet{}
-	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
-	get.Keys = append(get.Keys, []byte(key))
-	msg = client.NewMessage("store", types.EventStoreGet, &get)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	values := msg.GetData().(*types.StoreReplyValue)
-	value := values.Values[0]
-	if value == nil {
-		return nil, types.ErrEmpty
-	}
-	return value, nil
 }
