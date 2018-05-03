@@ -108,8 +108,8 @@ func newBuyDB(sellOrder types.BuyLimitOrder) (buydb *buyDB) {
 	return
 }
 
-func (selldb *buyDB) save(db dbm.KV) []*types.KeyValue {
-	set := selldb.getKVSet()
+func (buydb *buyDB) save(db dbm.KV) []*types.KeyValue {
+	set := buydb.getKVSet()
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
 	}
@@ -381,11 +381,11 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 	}
 
 	tokendb := newBuyDB(buyOrder)
-	sellOrderKV := tokendb.save(action.db)
+	buyOrderKV := tokendb.save(action.db)
 	logs = append(logs, receipt.Logs...)
 	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyLimit))
 	kv = append(kv, receipt.KV...)
-	kv = append(kv, sellOrderKV...)
+	kv = append(kv, buyOrderKV...)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
