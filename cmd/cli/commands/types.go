@@ -1,6 +1,6 @@
 package commands
 
-import lt "gitlab.33.cn/chain33/chain33/types/local"
+import jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
@@ -31,16 +31,16 @@ type TxListResult struct {
 }
 
 type TxResult struct {
-	Execer     string        `json:"execer"`
-	Payload    interface{}   `json:"payload"`
-	RawPayload string        `json:"rawpayload"`
-	Signature  *lt.Signature `json:"signature"`
-	Fee        string        `json:"fee"`
-	Expire     int64         `json:"expire"`
-	Nonce      int64         `json:"nonce"`
-	To         string        `json:"to"`
-	Amount     string        `json:"amount,omitempty"`
-	From       string        `json:"from,omitempty"`
+	Execer     string             `json:"execer"`
+	Payload    interface{}        `json:"payload"`
+	RawPayload string             `json:"rawpayload"`
+	Signature  *jsonrpc.Signature `json:"signature"`
+	Fee        string             `json:"fee"`
+	Expire     int64              `json:"expire"`
+	Nonce      int64              `json:"nonce"`
+	To         string             `json:"to"`
+	Amount     string             `json:"amount,omitempty"`
+	From       string             `json:"from,omitempty"`
 }
 
 type ReceiptData struct {

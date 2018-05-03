@@ -10,9 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func TicketCmd() *cobra.Command {
@@ -117,14 +116,14 @@ func closeTicket(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	isAutoMining := status.(lt.WalletStatus).IsAutoMining
+	isAutoMining := status.(jsonrpc.WalletStatus).IsAutoMining
 	if isAutoMining {
 		fmt.Fprintln(os.Stderr, types.ErrMinerNotClosed)
 		return
 	}
 
 	var res types.ReplyHashes
-	rpc, err := rpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -145,12 +144,12 @@ func closeTicket(cmd *cobra.Command, args []string) {
 }
 
 func getWalletStatus(rpcAddr string) (interface{}, error) {
-	rpc, err := rpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
 	}
-	var res lt.WalletStatus
+	var res jsonrpc.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -182,7 +181,7 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	reqaddr := &types.ReqString{
 		Data: addr,
 	}
-	var params lt.Query4Cli
+	var params jsonrpc.Query4Cli
 	params.Execer = "ticket"
 	params.FuncName = "MinerSourceList"
 	params.Payload = reqaddr

@@ -2,8 +2,8 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func SeedCmd() *cobra.Command {
@@ -103,7 +103,7 @@ func saveSeed(cmd *cobra.Command, args []string) {
 		Seed:   seed,
 		Passwd: pwd,
 	}
-	var res lt.Reply
+	var res jsonrpc.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
 	ctx.Run()
 }

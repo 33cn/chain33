@@ -8,9 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func StatCmd() *cobra.Command {
@@ -52,19 +51,19 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	height, _ := cmd.Flags().GetInt64("height")
 
 	// 获取高度statehash
-	params := lt.BlockParam{
+	params := jsonrpc.BlockParam{
 		Start:    height,
 		End:      height,
 		Isdetail: false,
 	}
 
-	rpc, err := rpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	var res lt.BlockDetails
+	var res jsonrpc.BlockDetails
 	err = rpc.Call("Chain33.GetBlocks", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -106,7 +105,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	if symbol == "bty" {
 		//查询高度blockhash
 		params := types.ReqInt{height}
-		var res1 lt.ReplyHash
+		var res1 jsonrpc.ReplyHash
 		err = rpc.Call("Chain33.GetBlockHash", params, &res1)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -137,7 +136,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		//查询Token总量
 		var req types.ReqString
 		req.Data = symbol
-		var params lt.Query4Cli
+		var params jsonrpc.Query4Cli
 		params.Execer = "token"
 		params.FuncName = "GetTokenInfo"
 		params.Payload = req
