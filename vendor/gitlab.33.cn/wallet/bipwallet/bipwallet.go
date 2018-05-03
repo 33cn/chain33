@@ -3,8 +3,9 @@ package bipwallet
 import (
 	"errors"
 
-	"bipwallet/transformer"
-	_ "bipwallet/transformer/btcbase"
+	_ "gitlab.33.cn/wallet/bipwallet/transformer/btcbase"
+
+	"gitlab.33.cn/wallet/bipwallet/transformer"
 
 	"github.com/FactomProject/go-bip32"
 	"github.com/FactomProject/go-bip39"

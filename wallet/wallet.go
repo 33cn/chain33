@@ -1,7 +1,6 @@
 package wallet
 
 import (
-	"bipwallet"
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/hex"
@@ -11,6 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"gitlab.33.cn/wallet/bipwallet"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
