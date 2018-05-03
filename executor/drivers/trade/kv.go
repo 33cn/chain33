@@ -103,7 +103,7 @@ func calcOnesBuyLimitOrderKeyStatus(token string, addr string, status int32, ord
 	return []byte(key)
 }
 
-// 特定账户下特定token的卖单
+// 特定账户下特定token的买单
 func calcOnesBuyLimitOrderKeyToken(token string, addr string, status int32, orderID string) []byte {
 	key := fmt.Sprintf(buyLimitOrderATSS+"%s:%s:%d:%s", addr, token, status, orderID)
 	return []byte(key)

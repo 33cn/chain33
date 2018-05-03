@@ -224,14 +224,14 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAllSellOrdersWithStatus(addrTokens.Status)
-	case "GetTokenSellOrderByStatus":
+	case "GetTokenSellOrderByStatus": // 根据token 分页显示未完成成交卖单
 		var req types.ReqTokenSellOrder
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
 		}
 		return t.GetTokenByStatus(&req, types.TracdOrderStatusOnSale)
-	case "GetTokenBuyLimitOrderByStatus":
+	case "GetTokenBuyLimitOrderByStatus": // 根据token 分页显示未完成成交买单
 		var req types.ReqTokenBuyLimitOrder
 		err := types.Decode(params, &req)
 		if err != nil {
@@ -556,7 +556,7 @@ func saveBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrd
 
 	// make a number as token's price whether cheap or dear
 	// support 1e8 bty pre token or 1/1e8 bty pre token,
-	// the number in key is used to sort sell orders and pages
+	// the number in key is used to sort buy orders and pages
 	newkey = calcTokensBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, status,
 		buyOrder.PricePerBoardlot/buyOrder.AmountPerBoardlot, buyOrder.Address, buyOrder.Buyid)
 	kv = append(kv, &types.KeyValue{newkey, buyid})
