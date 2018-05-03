@@ -296,19 +296,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 }
 
 func (c *channelClient) QueryHash(in *types.Query) (*types.Message, error) {
-
-	msg := c.NewMessage("blockchain", types.EventQuery, in)
-	err := c.Send(msg, true)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	querydata := resp.GetData().(types.Message)
-	return &querydata, nil
-
+	return c.api.Query(in)
 }
 
 func (c *channelClient) SetAutoMiner(in *types.MinerFlag) (*types.Reply, error) {
@@ -501,36 +489,9 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, err
 }
 
 func (c *channelClient) SignRawTx(in *types.ReqSignRawTx) (*types.ReplySignRawTx, error) {
-	data := &types.ReqSignRawTx{
-		Addr:    in.GetAddr(),
-		PrivKey: in.GetPrivKey(),
-		TxHex:   in.GetTxHex(),
-		Expire:  in.GetExpire(),
-	}
-	msg := c.NewMessage("wallet", types.EventSignRawTx, data)
-	err := c.Send(msg, true)
-	if err != nil {
-		log.Error("SignRawTx", "Error", err.Error())
-		return nil, err
-	}
-	resp, err := c.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	return resp.GetData().(*types.ReplySignRawTx), nil
+	return c.api.SignRawTx(in)
 }
 
 func (c *channelClient) GetNetInfo() (*types.NodeNetInfo, error) {
-	msg := c.NewMessage("p2p", types.EventGetNetInfo, nil)
-	err := c.Send(msg, true)
-	if err != nil {
-		log.Error("NetInfo", "Error", err.Error())
-		return nil, err
-	}
-	resp, err := c.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.GetData().(*types.NodeNetInfo), nil
+	return c.api.GetNetInfo()
 }
