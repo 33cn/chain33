@@ -89,11 +89,6 @@ type QueueProtocolAPI interface {
 	// types.EventGetTicketCount
 	GetTicketCount() (*types.Int64, error)
 
-	CreateRawTransaction(param *types.CreateTx) ([]byte, error)
-	SendRawTransaction(param *types.SignedTx) (*types.Reply, error)
-
-	GetBalance(param *types.ReqBalance) ([]*types.Account, error)
-	GetTokenBalance(param *types.ReqTokenBalance) ([]*types.Account, error)
 	// types.EventGetNetInfo
 	GetNetInfo() (*types.NodeNetInfo, error)
 }
