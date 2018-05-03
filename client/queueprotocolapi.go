@@ -6,7 +6,6 @@ import (
 
 // 消息通道交互API接口定义
 type QueueProtocolAPI interface {
-	Close()
 	Version() (*types.Reply, error)
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
 	SendTx(param *types.Transaction) (*types.Reply, error)
