@@ -518,7 +518,7 @@ func (cs *ConsensusState) newStep() {
 }
 
 func (cs *ConsensusState) NewTxsAvailable(height int64){
-	cs.Logger.Info("NewTxsAvailable in")
+	cs.Logger.Info("NewTxsAvailable in", "height", height)
 	cs.NewTxsHeight <- height
 	cs.Logger.Info("NewTxsAvailable out")
 }
@@ -664,10 +664,12 @@ func (cs *ConsensusState) handleTimeout(ti timeoutInfo, rs ttypes.RoundState) {
 }
 
 func (cs *ConsensusState) handleTxsAvailable(height int64) {
+	fmt.Printf("in handleTxsAvailable")
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
 	cs.enterPropose(height, 0)
+	fmt.Printf("enterPropose over")
 }
 
 //-----------------------------------------------------------------------------
@@ -1313,7 +1315,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		if err != nil {
 			cs.Logger.Info("NewTxsFinished set false")
 			cs.NewTxsFinished <- false
-			err := cmn.Kill()
+			//err := cmn.Kill()
 			cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
 			return
 		}
