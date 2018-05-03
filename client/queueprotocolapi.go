@@ -7,6 +7,7 @@ import (
 // 消息通道交互API接口定义
 type QueueProtocolAPI interface {
 	Version() (*types.Reply, error)
+	// +++++++++++++++ mempool interfaces begin
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
 	SendTx(param *types.Transaction) (*types.Reply, error)
 	// types.EventTxList
@@ -15,34 +16,25 @@ type QueueProtocolAPI interface {
 	GetMempool() (*types.ReplyTxList, error)
 	// types.EventGetLastMempool
 	GetLastMempool() (*types.ReplyTxList, error)
-
-	// types.EventGetBlocks
-	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
-	// types.EventQueryTx
-	QueryTx(param *types.ReqHash) (*types.TransactionDetail, error)
-	// types.EventGetTransactionByAddr
-	GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error)
-	// types.EventGetTransactionByHash
-	GetTransactionByHash(param *types.ReqHashes) (*types.TransactionDetails, error)
-	// types.EventGetHeaders
-	GetHeaders(param *types.ReqBlocks) (*types.Headers, error)
-	// types.EventGetBlockOverview
-	GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error)
-	// types.EventGetAddrOverview
-	GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error)
-	// types.EventGetBlockHash
-	GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error)
-	// types.EventIsSync
-	IsSync() (*types.Reply, error)
-	// types.EventIsNtpClockSync
-	IsNtpClockSync() (*types.Reply, error)
-	// types.EventLocalGet
-	LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error)
-	// types.EventGetLastHeader
-	GetLastHeader() (*types.Header, error)
 	// types.EventQuery
 	Query(param *types.Query) (*types.Message, error)
+	// --------------- mempool interfaces end
 
+	// +++++++++++++++ p2p interfaces begin
+	// types.EventPeerInfo
+	PeerInfo() (*types.PeerList, error)
+	// types.EventGetNetInfo
+	GetNetInfo() (*types.NodeNetInfo, error)
+	// --------------- p2p interfaces end
+
+	// +++++++++++++++ consensus interfaces begin
+	// types.EventGetTicketCount
+	GetTicketCount() (*types.Int64, error)
+	// --------------- consensus interfaces end
+
+	// +++++++++++++++ wallet interfaces begin
+	// types.EventLocalGet
+	LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error)
 	// types.EventWalletGetAccountList
 	WalletGetAccountList() (*types.WalletAccounts, error)
 	// types.EventNewAccount
@@ -81,13 +73,30 @@ type QueueProtocolAPI interface {
 	CloseTickets() (*types.ReplyHashes, error)
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
+	// --------------- wallet interfaces end
 
-	// types.EventPeerInfo
-	PeerInfo() (*types.PeerList, error)
-
-	// types.EventGetTicketCount
-	GetTicketCount() (*types.Int64, error)
-
-	// types.EventGetNetInfo
-	GetNetInfo() (*types.NodeNetInfo, error)
+	// +++++++++++++++ blockchain interfaces begin
+	// types.EventGetBlocks
+	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
+	// types.EventQueryTx
+	QueryTx(param *types.ReqHash) (*types.TransactionDetail, error)
+	// types.EventGetTransactionByAddr
+	GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error)
+	// types.EventGetTransactionByHash
+	GetTransactionByHash(param *types.ReqHashes) (*types.TransactionDetails, error)
+	// types.EventGetHeaders
+	GetHeaders(param *types.ReqBlocks) (*types.Headers, error)
+	// types.EventGetBlockOverview
+	GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error)
+	// types.EventGetAddrOverview
+	GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error)
+	// types.EventGetBlockHash
+	GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error)
+	// types.EventIsSync
+	IsSync() (*types.Reply, error)
+	// types.EventIsNtpClockSync
+	IsNtpClockSync() (*types.Reply, error)
+	// types.EventGetLastHeader
+	GetLastHeader() (*types.Header, error)
+	// --------------- blockchain interfaces end
 }
