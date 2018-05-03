@@ -220,7 +220,7 @@ func (acc *DB) LoadAccounts(client queue.Client, addrs []string) (accs []*types.
 	return accs, nil
 }
 
-// 使用API的方式访问,暂时与LoadAccounts()共存,后续将删除LoadAccounts()
+// TODO:使用API的方式访问,暂时与LoadAccounts()共存,后续将删除LoadAccounts()
 func (acc *DB) LoadAccountsAPI(api client.QueueProtocolAPI, addrs []string) (accs []*types.Account, err error) {
 	header, err := api.GetLastHeader()
 	if err != nil {
@@ -291,4 +291,27 @@ func (acc *DB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins) (r
 	}
 	reply = msg.Data.(*types.ReplyGetTotalCoins)
 	return reply, nil
+}
+
+// TODO:暂时保留GetTotalCoins()接口,等到后续实现调整以后删除GetTotalCoins()接口实现
+func (acc *DB) GetTotalCoinsAPI(api client.QueueProtocolAPI, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
+	req := types.IterateRangeByStateHash{}
+	req.StateHash = in.StateHash
+	req.Count = in.Count
+	if in.Symbol == "bty" {
+		if in.StartKey == nil {
+			req.Start = []byte("mavl-coins-bty-")
+		} else {
+			req.Start = in.StartKey
+		}
+		req.End = []byte("mavl-coins-bty-exec")
+	} else {
+		if in.StartKey == nil {
+			req.Start = []byte(fmt.Sprintf("mavl-token-%s-", in.Symbol))
+		} else {
+			req.Start = in.StartKey
+		}
+		req.End = []byte(fmt.Sprintf("mavl-token-%s-exec", in.Symbol))
+	}
+	return api.StoreGetTotalCoins(&req)
 }

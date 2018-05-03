@@ -329,7 +329,7 @@ func (c *channelClient) CloseTickets() (*types.ReplyHashes, error) {
 
 func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
 	//获取地址账户的余额通过account模块
-	resp, err := accountdb.GetTotalCoins(c.Client, in)
+	resp, err := accountdb.GetTotalCoinsAPI(c.api, in)
 	if err != nil {
 		return nil, err
 	}

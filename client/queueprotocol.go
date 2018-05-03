@@ -734,3 +734,22 @@ func (q *QueueProtocol) StoreGet(param *types.StoreGet) (*types.StoreReplyValue,
 	log.Error("StoreGet", "Error", err.Error())
 	return nil, err
 }
+
+func (q *QueueProtocol) StoreGetTotalCoins(param *types.IterateRangeByStateHash) (*types.ReplyGetTotalCoins, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreGetTotalCoins", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(storeKey, types.EventStoreGetTotalCoins, param)
+	if err != nil {
+		log.Error("StoreGetTotalCoins", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyGetTotalCoins); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreGetTotalCoins", "Error", err.Error())
+	return nil, err
+}
