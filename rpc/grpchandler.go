@@ -40,7 +40,7 @@ func (g *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.Transa
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.QueryTx(in.Hash)
+	return g.cli.QueryTx(in)
 }
 
 func (g *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, error) {
@@ -48,7 +48,7 @@ func (g *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, erro
 		return nil, fmt.Errorf("reject")
 	}
 
-	reply, err := g.cli.GetBlocks(in.Start, in.End, in.Isdetail)
+	reply, err := g.cli.GetBlocks(&pb.ReqBlocks{in.Start, in.End, in.Isdetail, []string{""}})
 	if err != nil {
 		return nil, err
 	}
@@ -69,14 +69,14 @@ func (g *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.Re
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.GetTxByAddr(in)
+	return g.cli.GetTransactionByAddr(in)
 }
 
 func (g *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.QueryTx(in.GetHash())
+	reply, err := g.cli.QueryTx(in)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (g *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*p
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.GetTxByHashes(in)
+	return g.cli.GetTransactionByHash(in)
 }
 
 func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
@@ -105,7 +105,7 @@ func (g *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAccoun
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.GetAccounts()
+	return g.cli.WalletGetAccountList()
 }
 
 func (g *Grpc) NewAccount(ctx context.Context, in *pb.ReqNewAccount) (*pb.WalletAccount, error) {
@@ -119,70 +119,70 @@ func (g *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTransa
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.WalletTxList(in)
+	return g.cli.WalletTransactionList(in)
 }
 
 func (g *Grpc) ImportPrivKey(ctx context.Context, in *pb.ReqWalletImportPrivKey) (*pb.WalletAccount, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.ImportPrivkey(in)
+	return g.cli.WalletImportprivkey(in)
 }
 
 func (g *Grpc) SendToAddress(ctx context.Context, in *pb.ReqWalletSendToAddress) (*pb.ReplyHash, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.SendToAddress(in)
+	return g.cli.WalletSendToAddress(in)
 }
 
 func (g *Grpc) SetTxFee(ctx context.Context, in *pb.ReqWalletSetFee) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.SetTxFee(in)
+	return g.cli.WalletSetFee(in)
 }
 
 func (g *Grpc) SetLabl(ctx context.Context, in *pb.ReqWalletSetLabel) (*pb.WalletAccount, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.SetLabl(in)
+	return g.cli.WalletSetLabel(in)
 }
 
 func (g *Grpc) MergeBalance(ctx context.Context, in *pb.ReqWalletMergeBalance) (*pb.ReplyHashes, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.MergeBalance(in)
+	return g.cli.WalletMergeBalance(in)
 }
 
 func (g *Grpc) SetPasswd(ctx context.Context, in *pb.ReqWalletSetPasswd) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.SetPasswd(in)
+	return g.cli.WalletSetPasswd(in)
 }
 
 func (g *Grpc) Lock(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.Lock()
+	return g.cli.WalletLock()
 }
 
 func (g *Grpc) UnLock(ctx context.Context, in *pb.WalletUnLock) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.UnLock(in)
+	return g.cli.WalletUnLock(in)
 }
 
 func (g *Grpc) GetPeerInfo(ctx context.Context, in *pb.ReqNil) (*pb.PeerList, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.GetPeerInfo()
+	return g.cli.PeerInfo()
 }
 
 func (g *Grpc) GetHeaders(ctx context.Context, in *pb.ReqBlocks) (*pb.Headers, error) {
@@ -196,7 +196,7 @@ func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxLi
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.GetLastMemPool(in)
+	return g.cli.GetLastMempool()
 }
 
 //add by hyb
@@ -277,7 +277,7 @@ func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) 
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	msg, err := g.cli.QueryHash(in)
+	msg, err := g.cli.Query(in)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (g *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, 
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.SetAutoMiner(in)
+	return g.cli.WalletAutoMiner(in)
 }
 
 func (g *Grpc) GetTicketCount(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
@@ -318,21 +318,21 @@ func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.api.Version()
+	return g.cli.Version()
 }
 
 func (g *Grpc) IsSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.api.IsSync()
+	return g.cli.IsSync()
 }
 
 func (g *Grpc) IsNtpClockSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.api.IsNtpClockSync()
+	return g.cli.IsNtpClockSync()
 }
 
 func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, error) {
