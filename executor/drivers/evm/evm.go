@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"encoding/binary"
 )
 
 const (
@@ -101,7 +102,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		ret         = []byte("")
 		vmerr       error
 		leftOverGas = uint64(0)
-		addr        = *msg.To()
+		addr        common.Address
 	)
 
 	// 状态机中设置当前交易状态
@@ -111,9 +112,10 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	evm.mStateDB.SubBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(msg.GasLimit())), msg.GasPrice()))
 
 	if isCreate {
-		ret, addr, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), msg.Data(), context.GasLimit, big.NewInt(0))
+		ret, addr, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), msg.Data(), context.GasLimit, msg.Value())
 	} else {
-		ret, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, big.NewInt(0))
+		addr = *msg.To()
+		ret, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
 	}
 
 	if vmerr != nil {
@@ -166,6 +168,9 @@ func (evm *EVMExecutor) GetMStateDB() *state.MemoryStateDB {
 	return evm.mStateDB
 }
 
+func (evm *EVMExecutor) GetVMConfig() *runtime.Config{
+	return evm.vmCfg
+}
 // 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
 func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg common.Message) {
 
@@ -175,13 +180,11 @@ func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg common.Message) {
 
 	// 注意Transaction中的payload内容同时包含转账金额和合约代码
 	// payload[:8]为转账金额，payload[8:]为合约代码
-	//amount := binary.BigEndian.Uint64(tx.Payload[:8])
-	// FIXME 目前不支持对EVM合约的转账逻辑，等合约其它功能稳定后再考虑加入
-	amount := int64(0)
+	amount := binary.BigEndian.Uint64(tx.Payload[:BALANCE_SIZE])
 
 	gasLimit := uint64(tx.Fee * TX_GAS_TIMES_FEE)
 	// 合约的GasLimit即为调用者为本次合约调用准备支付的手续费
-	msg = common.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(amount), gasLimit, GasPrice, tx.Payload[BALANCE_SIZE:], false)
+	msg = common.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(int64(amount)), gasLimit, GasPrice, tx.Payload[BALANCE_SIZE:], false)
 	return msg
 }
 
