@@ -208,12 +208,12 @@ func (c *channelClient) GetSeed(parm *types.GetSeedByPw) (*types.ReplySeed, erro
 	return c.api.GetSeed(parm)
 }
 
-func (c *channelClient) GetWalletStatus() (*WalletStatus, error) {
+func (c *channelClient) GetWalletStatus() (*types.WalletStatus, error) {
 	reply, err := c.api.GetWalletStatus()
 	if nil != err {
 		return nil, err
 	}
-	return (*WalletStatus)(reply), nil
+	return reply, nil
 }
 
 func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
