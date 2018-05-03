@@ -19,7 +19,7 @@ import (
 
 func init() {
 	queue.DisableLog()
-	log.SetLogLevel("info")
+	log.SetLogLevel("err")
 }
 
 func initEnv() (*Wallet, queue.Module, queue.Queue) {
