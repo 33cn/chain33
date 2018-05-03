@@ -268,6 +268,7 @@ func (p *Peer) readStream() {
 		var hash [64]byte
 		for {
 			if !p.GetRunning() {
+				resp.CloseSend()
 				return
 			}
 			data, err := resp.Recv()
