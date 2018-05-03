@@ -128,6 +128,12 @@ func main() {
 			return
 		}
 		WalletTransactionList(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
+	case "showwalletprivacytxs":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowWalletPrivacyTxList(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
 	case "getmempool": //获取Mempool
 		if len(argsWithoutProg) != 1 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -467,12 +473,18 @@ func main() {
 			return
 		}
 		ShowPrivacykey(argsWithoutProg[1])
-	case "showprivacybalance":
+	case "showprivacytransfer":
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		ShowPrivacyBalance(argsWithoutProg[1], argsWithoutProg[2])
+		ShowPrivacyTransfer(argsWithoutProg[1], argsWithoutProg[2])
+	case "showprivacyaccount":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowPrivacyAccount(argsWithoutProg[1])
 	case "pub2priv":
 		if len(argsWithoutProg) != 6 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -517,6 +529,7 @@ func LoadHelp() {
 	fmt.Println("importprivkey [privkey, label]                              : 引入私钥")
 	fmt.Println("dumpprivkey [addr]                                          : 导出私钥")
 	fmt.Println("wallettxlist [from, count, direction]                       : 钱包交易列表")
+	fmt.Println("showwalletprivacytxs from, count direction                  : 钱包相关的隐私交易")
 	fmt.Println("getmempool []                                               : 获取内存池")
 	fmt.Println("sendtransaction [data]                                      : 发送交易")
 	fmt.Println("querytransaction [hash]                                     : 按哈希查询交易")
@@ -565,11 +578,11 @@ func LoadHelp() {
 	fmt.Println("queryconfig [Key]                                              : 查询配置")
 	fmt.Println("isntpclocksync []                                              : 获取网络时间同步状态")
 	fmt.Println("showprivacykey addr                                            : 显示地址对应的隐私账户的view和spend的公钥")
-	fmt.Println("showprivacybalance addr txhash                                 : 显示特定交易接收到的隐私转账")
+	fmt.Println("showprivacytransfer addr txhash                                : 显示地址对应的隐私转账")
+	fmt.Println("showprivacyaccount addr                                        : 显示地址对应的隐私账户信息")
 	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout note            : 公开账户向隐私账户转账")
-	fmt.Println("priv2priv from toviewpubkey tospendpubkey amout hash note       : 隐私账户向隐私账户转账")
-	fmt.Println("priv2pub from to amout hash note                                : 隐私账户向公开账户转账")
-	fmt.Println("addpribal2acc                                                   : 增加隐私余额到到户中")
+	fmt.Println("priv2priv from toviewpubkey tospendpubkey amout hash note      : 隐私账户向隐私账户转账")
+	fmt.Println("priv2pub from to amout hash note                               : 隐私账户向公开账户转账")
 }
 
 type AccountsResult struct {
@@ -988,6 +1001,61 @@ func ImportPrivKey(privkey string, label string) {
 
 	accResult := decodeAccount(res.GetAcc(), types.Coin)
 	result := WalletResult{Acc: accResult, Label: res.GetLabel()}
+
+	data, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func ShowWalletPrivacyTxList(fromTx string, count string, direction string) {
+	countInt32, err := strconv.ParseInt(count, 10, 32)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	directionInt32, err := strconv.ParseInt(direction, 10, 32)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	params := jsonrpc.ReqWalletTransactionList{
+		Isprivacy: true,
+		FromTx:    fromTx,
+		Count:     int32(countInt32),
+		Direction: int32(directionInt32),
+	}
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.WalletTxDetails
+	err = rpc.Call("Chain33.WalletTxList", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var result WalletTxDetailsResult
+	for _, v := range res.TxDetails {
+		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
+		wtxd := &WalletTxDetailResult{
+			Tx:         decodeTransaction(v.Tx),
+			Receipt:    decodeLog(*(v.Receipt)),
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.Blocktime,
+			Amount:     amountResult,
+			Fromaddr:   v.Fromaddr,
+			Txhash:     v.Txhash,
+			ActionName: v.ActionName,
+		}
+		result.TxDetails = append(result.TxDetails, wtxd)
+	}
 
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
@@ -2625,7 +2693,46 @@ func ManageConfigTransactioin(key, op, opAddr, priv string) {
 }
 
 ////////////////privacy////////////////////////////
-func ShowPrivacyBalance(addr string, txhash string) {
+func ShowPrivacyAccount(addr string) {
+	params := &types.ReqStr{
+		addr,
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res []*jsonrpc.Account
+	err = rpc.Call("Chain33.ShowPrivacyAccount", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Printf("------Privacy account for address:%s\n", addr)
+	for index, account := range res {
+		balanceResult := strconv.FormatFloat(float64(account.Balance)/float64(types.Coin), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(account.Frozen)/float64(types.Coin), 'f', 4, 64)
+		result := &AccountResult{
+			Addr:     account.Addr,
+			Currency: account.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+
+		data, err := json.MarshalIndent(result, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Printf("------The %dth privacy account info with onetime address:%s is below", index, account.Addr)
+		fmt.Println(string(data))
+	}
+
+}
+
+func ShowPrivacyTransfer(addr string, txhash string) {
 	params := &types.ReqPrivacyBalance{
 		addr,
 		txhash,
@@ -2637,7 +2744,7 @@ func ShowPrivacyBalance(addr string, txhash string) {
 		return
 	}
 	var res *jsonrpc.Account
-	err = rpc.Call("Chain33.ShowPrivacyBalance", params, &res)
+	err = rpc.Call("Chain33.ShowPrivacyTransfer", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -2698,8 +2805,7 @@ func TransferPub2priv(args []string) {
 	params := &types.ReqPub2Pri{
 		args[1],
 		args[2],
-		false,
-		"",
+		types.BTY,
 		amountInt64,
 		args[4],
 		args[0],
@@ -2737,8 +2843,7 @@ func TransferPriv2Priv(args []string) {
 	params := &types.ReqPri2Pri{
 		args[1],
 		args[2],
-		false,
-		"",
+		types.BTY,
 		amountInt64,
 		args[5],
 		args[0],
@@ -2775,8 +2880,7 @@ func TransferPriv2Pub(args []string) {
 	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := &types.ReqPri2Pub{
 		args[1],
-		false,
-		"",
+		types.BTY,
 		amountInt64,
 		args[4],
 		args[0],

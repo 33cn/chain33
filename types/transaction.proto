@@ -64,6 +64,12 @@ message ReqAddr {
 	int64 index = 6;
 }
 
+message ReqPrivacy {
+	int32 count = 1;
+	int32 direction = 2;
+	int64 height = 3;
+}
+
 message HexTx {
 	string tx = 1;
 }

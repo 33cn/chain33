@@ -188,6 +188,7 @@ type ReqHashes struct {
 }
 
 type ReqWalletTransactionList struct {
+	Isprivacy bool   `json:"Isprivacy"`
 	FromTx    string `json:"fromtx"`
 	Count     int32  `json:"count"`
 	Direction int32  `json:"direction"`

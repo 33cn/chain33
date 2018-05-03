@@ -372,12 +372,12 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
+	parm.Isprivacy = in.Isprivacy
 	reply, err := c.cli.WalletTxList(&parm)
 	if err != nil {
 		return err
 	}
 	{
-
 		var txdetails WalletTxDetails
 
 		for _, tx := range reply.TxDetails {
@@ -1218,8 +1218,17 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 }
 
 /////////////////privacy///////////////
-func (c *Chain33) ShowPrivacyBalance(in types.ReqPrivacyBalance, result *interface{}) error {
-	account, err := c.cli.ShowPrivacyBalance(&in)
+func (c *Chain33) ShowPrivacyAccount(in types.ReqStr, result *interface{}) error {
+	account, err := c.cli.ShowPrivacyAccount(&in)
+	if err != nil {
+		return err
+	}
+	*result = account
+	return nil
+}
+
+func (c *Chain33) ShowPrivacyTransfer(in types.ReqPrivacyBalance, result *interface{}) error {
+	account, err := c.cli.ShowPrivacyTransfer(&in)
 	if err != nil {
 		return err
 	}

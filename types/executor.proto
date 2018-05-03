@@ -498,30 +498,23 @@ message PrivacyAction {
 }
 
 message Public2Privacy {
-//	bytes viewPublic    = 1; //A
-//	bytes spendPublic   = 2; //B
-	bool op4token       = 3; //是否进行token的隐私操作
-	string token        = 4;
-	int64 amount        = 5;
-	string note         = 6;
-	bytes RpubKeytx     = 7; //txpubkey, rG => R
-    bytes onetimePubKey = 8; //Hs(rA)G + B
+	string tokenname    = 1;
+	int64 amount        = 2;
+	bytes RpubKeytx     = 3; //txpubkey, rG => R
+    bytes onetimePubKey = 4; //Hs(rA)G + B
+	string note         = 5;
 }
 
 message Privacy2Privacy {
-//	bytes viewPublic  = 1; //A
-//	bytes spendPublic = 2; //B
-	bool op4token     = 3; //是否进行token的隐私操作
-	string token      = 4;
-	int64 amount      = 5;
-	string note       = 6;
-    bytes RpubKeytx     = 7; //txpubkey, rG
-    bytes onetimePubKey = 8; //Hs(rA)G + B
+	string tokenname    = 1;
+	int64 amount        = 2;
+    bytes RpubKeytx     = 3; //txpubkey, rG
+    bytes onetimePubKey = 4; //Hs(rA)G + B
+	string note         = 5;
 }
 
 message Privacy2Public {
-	bool op4token    = 1;
-	string token     = 2;
-	int64 amount     = 3;
-	string note      = 4;
+	string tokenname    = 1;
+	int64 amount        = 2;
+	string note         = 3;
 }

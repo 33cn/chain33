@@ -21,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"unsafe"
+	"bytes"
 )
 
 var (
@@ -51,6 +52,11 @@ type Wallet struct {
 	walletStore    *WalletStore
 	random         *rand.Rand
 	done           chan struct{}
+}
+
+type addrAndprivacy struct{
+	PrivacyKeyPair *privacy.Privacy
+	Addr           *string
 }
 
 func SetLogLevel(level string) {
@@ -578,14 +584,23 @@ func (wallet *Wallet) ProcRecvMsg() {
 				}()
 			}
 
-		case types.EventShowPrivacyBalance:
+		case types.EventShowPrivacyAccount:
+			reqStr := msg.Data.(*types.ReqStr)
+			account, err := wallet.showPrivacyAccounts(reqStr)
+			if err != nil {
+				walletlog.Error("showPrivacyBalance", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccount, err))
+			} else {
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccount, account))
+			}
+		case types.EventShowPrivacyTransfer:
 			reqAddrAndHash := msg.Data.(*types.ReqPrivacyBalance)
 			account, err := wallet.showPrivacyBalance(reqAddrAndHash)
 			if err != nil {
 				walletlog.Error("showPrivacyBalance", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyBalance, err))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyTransfer, err))
 			} else {
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyBalance, account))
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyTransfer, account))
 			}
 		case types.EventShowPrivacyPK:
 			reqAddr := msg.Data.(*types.ReqStr)
@@ -804,6 +819,7 @@ func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.Wa
 	//从blockchain模块同步Account.Addr对应的所有交易详细信息
 	wallet.wg.Add(1)
 	go wallet.ReqTxDetailByAddr(addr.String())
+	go wallet.ReqPrivacyTxByAddr(addr.String())
 
 	return &walletAccount, nil
 }
@@ -934,6 +950,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	//从blockchain模块同步Account.Addr对应的所有交易详细信息
 	wallet.wg.Add(1)
 	go wallet.ReqTxDetailByAddr(addr.String())
+	go wallet.ReqPrivacyTxByAddr(addr.String())
 
 	return &walletaccount, nil
 }
@@ -1393,64 +1410,104 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	//walletlog.Error("ProcWalletAddBlock", "height", block.GetBlock().GetHeight())
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
-	needflush := false
 	for index := 0; index < txlen; index++ {
-		blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
-		heightstr := fmt.Sprintf("%018d", blockheight)
 
-		var txdetail types.WalletTxDetail
-		txdetail.Tx = block.Block.Txs[index]
-		txdetail.Height = block.Block.Height
-		txdetail.Index = int64(index)
-		txdetail.Receipt = block.Receipts[index]
-		txdetail.Blocktime = block.Block.BlockTime
-
+		tx := block.Block.Txs[index]
 		//获取Amount
-		amount, err := txdetail.Tx.Amount()
+		amount, err := tx.Amount()
 		if err != nil {
 			continue
 		}
-		txdetail.ActionName = txdetail.Tx.ActionName()
-		txdetail.Amount = amount
 
 		//获取from地址
 		pubkey := block.Block.Txs[index].Signature.GetPubkey()
 		addr := account.PubKeyToAddress(pubkey)
-		txdetail.Fromaddr = addr.String()
-
-		txdetailbyte, err := proto.Marshal(&txdetail)
-		if err != nil {
-			storelog.Error("ProcWalletAddBlock Marshal txdetail err", "Height", block.Block.Height, "index", index)
-			continue
-		}
 
 		//from addr
 		fromaddress := addr.String()
 		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-			newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
-			walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
+			wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, false)
+			walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress)
 			continue
 		}
 
 		//toaddr
-		toaddr := block.Block.Txs[index].GetTo()
+		toaddr := tx.GetTo()
 		if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-			newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
-			walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
+			wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, false)
+			walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr)
+			continue
 		}
+        //check whether the privacy tx belong to current wallet
+		if types.PrivacyX == string(tx.Execer) {
+			var privateAction types.PrivacyAction
+			if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
+				walletlog.Error("ProcWalletAddBlock failed to decode payload")
+			}
+            var RpubKey []byte
+			var OnetimePubKey []byte
+			if types.ActionPublic2Privacy == privateAction.Ty {
+				RpubKey = privateAction.GetPublic2Privacy().GetRpubKeytx()
+				OnetimePubKey = privateAction.GetPublic2Privacy().GetOnetimePubKey()
+			} else if types.ActionPrivacy2Privacy == privateAction.Ty {
+				RpubKey = privateAction.GetPrivacy2Privacy().GetRpubKeytx()
+				OnetimePubKey = privateAction.GetPrivacy2Privacy().GetOnetimePubKey()
+			}
 
-		if "ticket" == string(block.Block.Txs[index].Execer) {
-			tx := block.Block.Txs[index]
-			receipt := block.Receipts[index]
-			if wallet.needFlushTicket(tx, receipt) {
-				needflush = true
+			if privacyInfo, err := wallet.getPrivacyKeyPairsOfWallet(); err == nil {
+				for _, info := range privacyInfo {
+					privacykeyParirs := info.PrivacyKeyPair
+					priv, err := privacy.RecoverOnetimePriKey(RpubKey, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
+					if err == nil {
+						recoverPub := priv.PubKey().Bytes()[:]
+						if !bytes.Equal(recoverPub, OnetimePubKey) {
+							txhash := common.Bytes2Hex(tx.Hash())
+							walletlog.Debug("ProcWalletAddBlock got privacy tx belong to current wallet",
+								"Address", *info.Addr, "tx with hash", txhash, "Amount", amount)
+
+                            onetimeAddr := account.PubKeyToAddress(recoverPub).String()
+							info2store := &types.PrivacyDBStore{
+								Onetimeaddr: onetimeAddr,
+								Txhash:txhash,
+							}
+
+							wallet.walletStore.setWalletPrivacyAccountBalance(info.Addr, &txhash, info2store, newbatch)
+							wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, true)
+						}
+					}
+				}
 			}
 		}
 	}
 	newbatch.Write()
-	if needflush {
-		//wallet.flushTicket()
+}
+
+func (wallet *Wallet)buildAndStoreWalletTxDetail(tx *types.Transaction, block *types.BlockDetail, index int, newbatch dbm.Batch, from string, isprivacy bool) {
+	var txdetail types.WalletTxDetail
+	txdetail.Tx = tx
+	txdetail.Height = block.Block.Height
+	txdetail.Index = int64(index)
+	txdetail.Receipt = block.Receipts[index]
+	txdetail.Blocktime = block.Block.BlockTime
+
+
+	txdetail.ActionName = txdetail.Tx.ActionName()
+	txdetail.Amount, _ = tx.Amount()
+	txdetail.Fromaddr = from
+
+	txdetailbyte, err := proto.Marshal(&txdetail)
+	if err != nil {
+		storelog.Error("ProcWalletAddBlock Marshal txdetail err", "Height", block.Block.Height, "index", index)
+		return
 	}
+
+	blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
+	heightstr := fmt.Sprintf("%018d", blockheight)
+	newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+	if isprivacy {
+		newbatch.Set([]byte(calcRecvPrivacyTxKey(heightstr)), txdetailbyte)
+	}
+	walletlog.Debug("ProcWalletAddBlock", "heightstr", heightstr)
 }
 
 func (wallet *Wallet) needFlushTicket(tx *types.Transaction, receipt *types.ReceiptData) bool {
@@ -1519,6 +1576,130 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 	}
 	return false
 }
+func (wallet *Wallet) GetPrivacyTxDetailByHashs(ReqHashes *types.ReqHashes, keyPair *privacy.Privacy, addr *string) {
+	//通过txhashs获取对应的txdetail
+	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, ReqHashes)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("GetPrivacyTxDetailByHashs EventGetTransactionByHash", "err", err)
+		return
+	}
+	TxDetails := resp.GetData().(*types.TransactionDetails)
+	if TxDetails == nil {
+		walletlog.Info("GetPrivacyTxDetailByHashs TransactionDetails is nil")
+		return
+	}
+	newbatch := wallet.walletStore.NewBatch(true)
+	for _, txdetal := range TxDetails.Txs {
+		if types.PrivacyX != string(txdetal.GetTx().Execer) {
+			walletlog.Error("GetPrivacyTxDetailByHashs tx is not with the type of privacy")
+			continue
+		}
+
+		var privateAction types.PrivacyAction
+		if err := types.Decode(txdetal.Tx.Payload, &privateAction); err != nil {
+			walletlog.Error("GetPrivacyTxDetailByHashs failed to decode payload")
+			return
+		}
+
+		var RpubKeytx []byte
+		var onetimePubKey []byte
+		if types.ActionPublic2Privacy == privateAction.Ty {
+			RpubKeytx = privateAction.GetPublic2Privacy().GetRpubKeytx()
+			onetimePubKey = privateAction.GetPublic2Privacy().GetOnetimePubKey()
+		} else if types.ActionPrivacy2Privacy == privateAction.Ty {
+			RpubKeytx = privateAction.GetPrivacy2Privacy().GetRpubKeytx()
+			onetimePubKey = privateAction.GetPrivacy2Privacy().GetOnetimePubKey()
+		} else {
+			continue
+		}
+
+		priv, err := privacy.RecoverOnetimePriKey(RpubKeytx, keyPair.ViewPrivKey, keyPair.SpendPrivKey)
+		if err != nil {
+			walletlog.Error("GetPrivacyTxDetailByHashs", "Failed to RecoverOnetimePriKey", err)
+			return
+		}
+		recoverPub := priv.PubKey()
+		recoverPubByte := recoverPub.Bytes()
+		//该地址作为隐私交易的接收地址
+		if bytes.Equal(recoverPubByte, onetimePubKey) {
+			txhash := common.Bytes2Hex(txdetal.Tx.Hash())
+			onetimeAddr := account.PubKeyToAddress(recoverPubByte).String()
+			info2store := &types.PrivacyDBStore{
+				Onetimeaddr: onetimeAddr,
+				Txhash:txhash,
+			}
+			wallet.walletStore.setWalletPrivacyAccountBalance(addr, &txhash, info2store, newbatch)
+
+			//将该隐私交易进行保存
+			height := txdetal.GetHeight()
+			txindex := txdetal.GetIndex()
+
+			blockheight := height*maxTxNumPerBlock + int64(txindex)
+			heightstr := fmt.Sprintf("%018d", blockheight)
+			var txdetail types.WalletTxDetail
+			txdetail.Tx = txdetal.GetTx()
+			txdetail.Height = txdetal.GetHeight()
+			txdetail.Index = txdetal.GetIndex()
+			txdetail.Receipt = txdetal.GetReceipt()
+			txdetail.Blocktime = txdetal.GetBlocktime()
+			txdetail.Amount = txdetal.GetAmount()
+			txdetail.Fromaddr = txdetal.GetFromaddr()
+			txdetail.ActionName = txdetal.GetTx().ActionName()
+
+			txdetailbyte, err := proto.Marshal(&txdetail)
+			if err != nil {
+				storelog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
+				return
+			}
+			newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+			newbatch.Set([]byte(calcRecvPrivacyTxKey(heightstr)), txdetailbyte)
+		} else {
+			//copytx := *txdetal.Tx
+			//copytx.Signature = nil
+			//data := types.Encode(&copytx)
+			//c, err := crypto.New(types.GetSignatureTypeName(crypto.SignTypeOnetimeED25519))
+			//if err != nil {
+			//	walletlog.Error("GetPrivacyTxDetailByHashs", "Failed to new crypto due to error", err)
+			//	continue
+			//
+			//}
+			//signbytes, err := c.SignatureFromBytes(txdetal.Tx.Signature.Signature)
+			//if err != nil {
+			//	walletlog.Error("GetPrivacyTxDetailByHashs", "Failed to SignatureFromBytes due to error", err)
+			//	continue
+			//}
+			////该地址作为隐私交易的发送地址
+			//if recoverPub.VerifyBytes(data, signbytes) {
+			//	height := txdetal.GetHeight()
+			//	txindex := txdetal.GetIndex()
+			//
+			//	blockheight := height*maxTxNumPerBlock + int64(txindex)
+			//	heightstr := fmt.Sprintf("%018d", blockheight)
+			//	var txdetail types.WalletTxDetail
+			//	txdetail.Tx = txdetal.GetTx()
+			//	txdetail.Height = txdetal.GetHeight()
+			//	txdetail.Index = txdetal.GetIndex()
+			//	txdetail.Receipt = txdetal.GetReceipt()
+			//	txdetail.Blocktime = txdetal.GetBlocktime()
+			//	txdetail.Amount = txdetal.GetAmount()
+			//	txdetail.Fromaddr = txdetal.GetFromaddr()
+			//	txdetail.ActionName = txdetal.GetTx().ActionName()
+			//
+			//	txdetailbyte, err := proto.Marshal(&txdetail)
+			//	if err != nil {
+			//		storelog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
+			//		return
+			//	}
+			//	newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+			//	walletlog.Debug("GetTxDetailByHashs", "heightstr", heightstr, "txdetail", txdetail.String())
+			//}
+		}
+	}
+	newbatch.Write()
+}
+
 func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 	//通过txhashs获取对应的txdetail
 	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, ReqHashes)
@@ -1561,6 +1742,65 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		walletlog.Debug("GetTxDetailByHashs", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
+}
+
+//从blockchain模块同步addr对应隐私地址作为隐私交易接收方的交易
+func (wallet *Wallet) ReqPrivacyTxByAddr(addr string) {
+	defer wallet.wg.Done()
+	if len(addr) == 0 {
+		walletlog.Error("ReqPrivacyTxByAddr input addr is nil!")
+		return
+	}
+	var txInfo types.ReplyTxInfo
+
+	privacyKeyPair, err := wallet.getPrivacykeyPair(addr)
+	if err != nil {
+		walletlog.Error("ReqPrivacyTxByAddr failed to getPrivacykeyPair!", "address is", addr)
+		return
+	}
+
+	i := 0
+	for {
+		//首先从blockchain模块获取地址对应的所有交易hashs列表,从最新的交易开始获取
+		var ReqPrivacy types.ReqPrivacy
+		ReqPrivacy.Direction = 0
+		ReqPrivacy.Count = int32(MaxTxHashsPerTime)
+		if i == 0 {
+			ReqPrivacy.Height = -1
+		} else {
+			ReqPrivacy.Height = txInfo.GetHeight()
+		}
+		i++
+		msg := wallet.client.NewMessage("blockchain", types.EventGetPrivacyTransaction, &ReqPrivacy)
+		wallet.client.Send(msg, true)
+		resp, err := wallet.client.Wait(msg)
+		if err != nil {
+			walletlog.Error("ReqTxInfosByAddr EventGetTransactionByAddr", "err", err, "addr", addr)
+			return
+		}
+
+		ReplyTxInfos := resp.GetData().(*types.ReplyTxInfos)
+		if ReplyTxInfos == nil {
+			walletlog.Info("ReqTxInfosByAddr ReplyTxInfos is nil")
+			return
+		}
+		txcount := len(ReplyTxInfos.TxInfos)
+
+		var ReqHashes types.ReqHashes
+		ReqHashes.Hashes = make([][]byte, len(ReplyTxInfos.TxInfos))
+		for index, ReplyTxInfo := range ReplyTxInfos.TxInfos {
+			ReqHashes.Hashes[index] = ReplyTxInfo.GetHash()
+		}
+		wallet.GetPrivacyTxDetailByHashs(&ReqHashes, privacyKeyPair, &addr)
+		if txcount < int(MaxTxHashsPerTime) {
+			return
+		}
+
+		index := len(ReplyTxInfos.TxInfos) - 1
+		txInfo.Hash = ReplyTxInfos.TxInfos[index].GetHash()
+		txInfo.Height = ReplyTxInfos.TxInfos[index].GetHeight()
+		txInfo.Index = ReplyTxInfos.TxInfos[index].GetIndex()
+	}
 }
 
 //从blockchain模块同步addr参与的所有交易详细信息
@@ -2167,9 +2407,11 @@ func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 	if accPrivacy, _ := wallet.walletStore.GetWalletAccountPrivacy(addr); accPrivacy != nil {
 		privacyInfo := &privacy.Privacy{}
 		copy(privacyInfo.ViewPubkey[:], accPrivacy.ViewPubkey)
-		copy(privacyInfo.ViewPrivKey[:], accPrivacy.ViewPrivKey)
+		decrypteredView := CBCDecrypterPrivkey([]byte(wallet.Password), accPrivacy.ViewPrivKey)
+		copy(privacyInfo.ViewPrivKey[:], decrypteredView)
 		copy(privacyInfo.SpendPubkey[:], accPrivacy.SpendPubkey)
-		copy(privacyInfo.SpendPrivKey[:], accPrivacy.SpendPrivKey)
+		decrypteredSpend := CBCDecrypterPrivkey([]byte(wallet.Password), accPrivacy.SpendPrivKey)
+		copy(privacyInfo.SpendPrivKey[:], decrypteredSpend)
 
 		return privacyInfo, nil
 	}
@@ -2183,15 +2425,47 @@ func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 		return nil, err
 	}
 
+	encrypteredView := CBCEncrypterPrivkey([]byte(wallet.Password), newPrivacy.ViewPrivKey.Bytes())
+	encrypteredSpend := CBCEncrypterPrivkey([]byte(wallet.Password), newPrivacy.SpendPrivKey.Bytes())
 	walletPrivacy := &types.WalletAccountPrivacy{
 		ViewPubkey:   newPrivacy.ViewPubkey[:],
-		ViewPrivKey:  newPrivacy.ViewPrivKey[:],
+		ViewPrivKey:  encrypteredView,
 		SpendPubkey:  newPrivacy.SpendPubkey[:],
-		SpendPrivKey: newPrivacy.SpendPrivKey[:],
+		SpendPrivKey: encrypteredSpend,
 	}
 	//save the privacy created to wallet db
 	wallet.walletStore.SetWalletAccountPrivacy(addr, walletPrivacy)
 	return newPrivacy, nil
+}
+
+
+func (wallet *Wallet) showPrivacyAccounts(req *types.ReqStr) ([]*types.Account, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	addr := req.GetReqstr()
+	privacyDBStore, err := wallet.walletStore.listWalletPrivacyAccount(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if 0 == len(privacyDBStore) {
+		return nil, nil
+	}
+
+	accRes := make([]*types.Account, len(privacyDBStore))
+	for _, ele := range privacyDBStore {
+		addrOneTime := ele.Onetimeaddr
+		execaddress := account.ExecAddress(types.PrivacyX)
+		account, err := accountdb.LoadExecAccountQueue(wallet.client, addrOneTime, execaddress.String())
+		if err != nil {
+			walletlog.Error("showPrivacyBalance", "err", err.Error())
+			return nil, err
+		}
+		accRes = append(accRes, account)
+	}
+
+	return accRes, nil
 }
 
 func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivacyBalance) (*types.Account, error) {
@@ -2312,4 +2586,30 @@ func (wallet *Wallet) procPrivacy2Public(privacy2Pub *types.ReqPri2Pub) (*types.
 	}
 
 	return wallet.transPri2Pub(privacyInfo, privacy2Pub)
+}
+
+func (wallet *Wallet) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error){
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	//通过Account前缀查找获取钱包中的所有账户信息
+	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
+	if err != nil || len(WalletAccStores) == 0 {
+		walletlog.Info("getPrivacyKeyPairsOfWallet", "GetAccountByPrefix:err", err)
+		return nil, err
+	}
+
+	infoPriRes := make([]addrAndprivacy, len(WalletAccStores))
+	for _, AccStore := range WalletAccStores {
+		if len(AccStore.Addr) != 0 {
+			if privacyInfo, err := wallet.getPrivacykeyPair(AccStore.Addr); err == nil {
+				var priInfo addrAndprivacy
+				priInfo.Addr = &AccStore.Addr
+				priInfo.PrivacyKeyPair = privacyInfo
+				infoPriRes = append(infoPriRes, priInfo)
+			}
+		}
+	}
+
+	return infoPriRes, nil
 }

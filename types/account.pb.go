@@ -177,6 +177,7 @@ It has these top-level messages:
 	Signature
 	AddrOverview
 	ReqAddr
+	ReqPrivacy
 	HexTx
 	ReplyTxInfo
 	ReqTxList
@@ -227,6 +228,7 @@ It has these top-level messages:
 	ReplyPrivacyPkPair
 	ReqPrivacyBalance
 	ReplyPrivacyBalance
+	PrivacyDBStore
 */
 package types
 

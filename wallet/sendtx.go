@@ -816,8 +816,7 @@ func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub
 		return nil, err
 	}
 	value := &types.Public2Privacy{
-		Op4Token:    reqPub2Pri.Op4Token,
-		Token:       reqPub2Pri.Token,
+		Tokenname:   reqPub2Pri.Tokenname,
 		Amount:      reqPub2Pri.Amount,
 		Note:        reqPub2Pri.Note,
 		RpubKeytx:   txPublicKey[:],
@@ -870,8 +869,7 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 		return nil, err
 	}
 	value := &types.Privacy2Privacy{
-		Op4Token:    reqPri2Pri.Op4Token,
-		Token:       reqPri2Pri.Token,
+		Tokenname:   reqPri2Pri.Tokenname,
 		Amount:      reqPri2Pri.Amount,
 		Note:        reqPri2Pri.Note,
 		RpubKeytx:   txPublicKey[:],
@@ -923,8 +921,7 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 
 func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub *types.ReqPri2Pub) (*types.ReplyHash, error) {
 	value := &types.Privacy2Public{
-		Op4Token:    reqPri2Pub.Op4Token,
-		Token:       reqPri2Pub.Token,
+		Tokenname:   reqPri2Pub.Tokenname,
 		Amount:      reqPri2Pub.Amount,
 		Note:        reqPri2Pub.Note,
 	}

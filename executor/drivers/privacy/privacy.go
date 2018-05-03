@@ -58,7 +58,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	privacylog.Info("Privacy exec", "action type", action.Ty)
 	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		public2Privacy := action.GetPublic2Privacy()
-		if !public2Privacy.Op4Token {
+		if types.BTY == public2Privacy.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
 			from := account.From(tx).String()
 			return coinsAccount.ExecTransfer(from, tx.To, p.GetAddr(), public2Privacy.Amount)
@@ -69,7 +69,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 
 	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		privacy2Privacy := action.GetPrivacy2Privacy()
-		if !privacy2Privacy.Op4Token {
+		if types.BTY == privacy2Privacy.Tokenname {
 			from := account.From(tx).String()
 			coinsAccount := p.GetCoinsAccount()
 			return coinsAccount.ExecTransfer(from, tx.To, p.GetAddr(), privacy2Privacy.Amount)
@@ -79,7 +79,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 
 	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		privacy2public := action.GetPrivacy2Public()
-		if !privacy2public.Op4Token {
+		if types.BTY == privacy2public.Tokenname {
 			from := account.From(tx).String()
 			coinsAccount := p.GetCoinsAccount()
 			return coinsAccount.ExecTransfer(from, tx.To, p.GetAddr(), privacy2public.Amount)
