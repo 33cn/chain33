@@ -303,7 +303,7 @@ func addTokenSellFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("symbol", "s", "", "token symbol")
 	cmd.MarkFlagRequired("symbol")
 
-	cmd.Flags().Int64P("amount", "a", 0, "amount per boardlot")
+	cmd.Flags().Float64P("amount", "a", 0, "amount per boardlot")
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().Int64P("min", "m", 0, "min boardlot")
@@ -322,7 +322,7 @@ func addTokenSellFlags(cmd *cobra.Command) {
 func tokenSell(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	symbol, _ := cmd.Flags().GetString("symbol")
-	amount, _ := cmd.Flags().GetInt64("amount")
+	amount, _ := cmd.Flags().GetFloat64("amount")
 	min, _ := cmd.Flags().GetInt64("min")
 	price, _ := cmd.Flags().GetFloat64("price")
 	fee, _ := cmd.Flags().GetFloat64("fee")
@@ -330,9 +330,10 @@ func tokenSell(cmd *cobra.Command, args []string) {
 
 	priceInt64 := int64(price * 1e4)
 	feeInt64 := int64(fee * 1e4)
+	amountInt64 := int64(amount * 1e2)
 	params := &jsonrpc.TradeSellTx{
 		TokenSymbol:       symbol,
-		AmountPerBoardlot: amount,
+		AmountPerBoardlot: amountInt64 * 1e6,
 		MinBoardlot:       min,
 		PricePerBoardlot:  priceInt64 * 1e4,
 		TotalBoardlot:     total,
