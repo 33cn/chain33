@@ -8,9 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 func TradeCmd() *cobra.Command {
@@ -64,12 +63,12 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
 	}
-	params := lt.Query4Cli{
+	params := jsonrpc.Query4Cli{
 		Execer:   "trade",
 		FuncName: "GetOnesSellOrder",
 		Payload:  reqAddrtokens,
 	}
-	rpc, err := rpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -125,11 +124,11 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 	req.Count = count
 	req.Direction = dir
 	req.FromSellId = from
-	var params lt.Query4Cli
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
 	params.Payload = req
-	rpc, err := rpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -171,11 +170,11 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	var reqAddrtokens types.ReqAddrTokens
 	reqAddrtokens.Status = statusInt
 
-	var params lt.Query4Cli
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetAllSellOrdersWithStatus"
 	params.Payload = reqAddrtokens
-	rpc, err := rpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -262,11 +261,11 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	reqAddrtokens.Addr = buyer
 	reqAddrtokens.Token = tokens
 
-	var params lt.Query4Cli
+	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
-	rpc, err := rpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -331,7 +330,7 @@ func tokenSell(cmd *cobra.Command, args []string) {
 
 	priceInt64 := int64(price * 1e4)
 	feeInt64 := int64(fee * 1e4)
-	params := &lt.TradeSellTx{
+	params := &jsonrpc.TradeSellTx{
 		TokenSymbol:       symbol,
 		AmountPerBoardlot: amount,
 		MinBoardlot:       min,
@@ -373,7 +372,7 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 	count, _ := cmd.Flags().GetInt64("count")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &lt.TradeBuyTx{
+	params := &jsonrpc.TradeBuyTx{
 		SellId:      sellID,
 		BoardlotCnt: count,
 		Fee:         feeInt64 * 1e4,
@@ -408,7 +407,7 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &lt.TradeRevokeTx{
+	params := &jsonrpc.TradeRevokeTx{
 		SellId: sellID,
 		Fee:    feeInt64 * 1e4,
 	}

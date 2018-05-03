@@ -8,9 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	lt "gitlab.33.cn/chain33/chain33/types/local"
 )
 
 var (
@@ -143,11 +142,11 @@ func getPreCreatedTokens(cmd *cobra.Command, args []string) {
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusPreCreated
 	reqtokens.Queryall = true
-	var params lt.Query4Cli
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
-	rpc, err := rpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -189,11 +188,11 @@ func getFinishCreatedTokens(cmd *cobra.Command, args []string) {
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusCreated
 	reqtokens.Queryall = true
-	var params lt.Query4Cli
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
-	rpc, err := rpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -248,7 +247,7 @@ func tokenAssets(cmd *cobra.Command, args []string) {
 		Execer:  execer,
 	}
 
-	var params lt.Query4Cli
+	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetAccountTokenAssets"
 	params.Payload = req
@@ -310,14 +309,14 @@ func tokenBalance(cmd *cobra.Command, args []string) {
 		TokenSymbol: token,
 		Execer:      execer,
 	}
-	var res []*lt.Account
+	var res []*jsonrpc.Account
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTokenBalance", params, &res)
 	ctx.SetResultCb(parseTokenBalanceRes)
 	ctx.Run()
 }
 
 func parseTokenBalanceRes(arg interface{}) (interface{}, error) {
-	res := arg.(*[]*lt.Account)
+	res := arg.(*[]*jsonrpc.Account)
 	var result []*TokenAccountResult
 	for _, one := range *res {
 		balanceResult := strconv.FormatFloat(float64(one.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
@@ -380,7 +379,7 @@ func tokenPrecreated(cmd *cobra.Command, args []string) {
 
 	priceInt64 := int64(price * 1e4)
 	feeInt64 := int64(fee * 1e4)
-	params := &lt.TokenPreCreateTx{
+	params := &jsonrpc.TokenPreCreateTx{
 		Price:        priceInt64 * 1e4,
 		Name:         name,
 		Symbol:       symbol,
@@ -423,7 +422,7 @@ func tokenFinish(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &lt.TokenFinishTx{
+	params := &jsonrpc.TokenFinishTx{
 		Symbol:    symbol,
 		OwnerAddr: ownerAddr,
 		Fee:       feeInt64 * 1e4,
@@ -462,7 +461,7 @@ func tokenRevoke(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &lt.TokenRevokeTx{
+	params := &jsonrpc.TokenRevokeTx{
 		Symbol:    symbol,
 		OwnerAddr: ownerAddr,
 		Fee:       feeInt64 * 1e4,

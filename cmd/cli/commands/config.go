@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	lt "gitlab.33.cn/chain33/chain33/types/local"
 	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
@@ -112,7 +111,7 @@ func queryConfig(cmd *cobra.Command, args []string) {
 	req := &types.ReqString{
 		Data: key,
 	}
-	var params lt.Query4Cli
+	var params jsonrpc.Query4Cli
 	params.Execer = "manage"
 	params.FuncName = "GetConfigItem"
 	params.Payload = req
