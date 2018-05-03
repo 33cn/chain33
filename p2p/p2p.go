@@ -87,6 +87,9 @@ func (network *P2p) showTaskCapcity() {
 func (network *P2p) loadP2PPrivKeyToWallet() error {
 
 	for {
+		if network.isClose() {
+			return nil
+		}
 		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
 		err := network.client.SendTimeout(msg, true, time.Minute)
 		if err != nil {

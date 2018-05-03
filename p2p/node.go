@@ -21,13 +21,11 @@ import (
 //4.启动监控模块，进行节点管理
 
 func (n *Node) Start() {
-
-	n.detectNodeAddr()
-	n.doNat()
 	if n.listener != nil {
 		n.listener.Start()
 	}
-
+	n.detectNodeAddr()
+	n.doNat()
 	n.monitor()
 }
 
@@ -69,7 +67,9 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	node := &Node{
 		outBound: make(map[string]*Peer),
 	}
-
+	if cfg.GetInnerSeedEnable() {
+		cfg.Seeds = append(cfg.Seeds, InnerSeeds...)
+	}
 	node.nodeInfo = NewNodeInfo(cfg)
 	if cfg.GetServerStart() {
 		node.listener = NewListener(protocol, node)
@@ -118,6 +118,7 @@ func (n *Node) doNat() {
 						log.Info("doNat", "NatOk", "Support Service")
 					} else {
 						n.nodeInfo.SetServiceTy(Service - nodeNetwork)
+						log.Info("doNat", "NatOk", "No Support Service")
 					}
 					break
 
@@ -327,8 +328,8 @@ func (n *Node) natMapPort() {
 	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")
 		p2pcli := NewNormalP2PCli() //检查要映射的IP地址是否已经被映射成功
-		_, err := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
-		if err == nil {
+		ok, err := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
+		if err == nil && ok {
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
 			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
 		}
@@ -364,7 +365,6 @@ func (n *Node) natMapPort() {
 	n.nodeInfo.natResultChain <- true
 	refresh := time.NewTimer(mapUpdateInterval)
 	defer refresh.Stop()
-
 	for {
 		<-refresh.C
 		log.Info("NatWorkRefresh")

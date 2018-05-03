@@ -301,4 +301,6 @@ message NodeNetInfo{
 	string externaladdr=1;
 	string localaddr=2;
 	bool service=3;
+	int32 outbounds=4;
+	int32 inbounds=5;
 }
