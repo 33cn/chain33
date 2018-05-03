@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"math/big"
 )
 
 // 正常创建合约逻辑
@@ -191,6 +192,9 @@ func TestCreateTx(t *testing.T) {
 	}else{
 		t.Log(signedTx)
 	}
+	t.Log("--------------------")
+	t.Log(new(big.Int).Cmp(common.Big0))
+	t.Log(common.WordBytes)
 }
 
 func TestCallContract1(t *testing.T) {

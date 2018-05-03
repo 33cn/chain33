@@ -17,7 +17,6 @@ import (
 const (
 	// 交易payload中，前8个字节固定存储转账信息
 	BALANCE_SIZE = 8
-
 	// 在一个交易中，GasLimit设置为交易费用的倍数(整数)
 	TX_GAS_TIMES_FEE = 2
 )
@@ -25,9 +24,9 @@ const (
 var (
 	GasPrice = big.NewInt(1)
 )
-var clog = log.New("module", "execs.evm")
 
-type FakeEVM struct {
+// EVM执行器结构
+type EVMExecutor struct {
 	drivers.DriverBase
 	vmCfg *runtime.Config
 
@@ -35,24 +34,25 @@ type FakeEVM struct {
 }
 
 func init() {
-	evm := NewFakeEVM()
-
+	evm := NewEVMExecutor()
 	// TODO 注册的驱动高度需要更新为上线时的正确高度
 	drivers.Register(evm.GetName(), evm, 0)
 }
 
-func NewFakeEVM() *FakeEVM {
-	fake := &FakeEVM{}
-	fake.vmCfg = &runtime.Config{}
-	fake.SetChild(fake)
-	return fake
+func NewEVMExecutor() *EVMExecutor {
+	exec := &EVMExecutor{}
+
+	// TODO 目前这里先用默认配置，后面在增加具体实现
+	exec.vmCfg = &runtime.Config{}
+	exec.SetChild(exec)
+	return exec
 }
 
-func (evm *FakeEVM) GetName() string {
+func (evm *EVMExecutor) GetName() string {
 	return "evm"
 }
 
-func (evm *FakeEVM) SetEnv(height, blocktime int64) {
+func (evm *EVMExecutor) SetEnv(height, blocktime int64) {
 	// 需要从这里识别出当前执行的Transaction所在的区块高度
 	// 因为执行器框架在调用每一个Transaction时，都会先设置StateDB，在设置区块环境
 	// 因此，在这里判断当前设置的区块高度和上一次缓存的区块高度是否为同一高度，即可判断是否在同一个区块内执行的Transaction
@@ -73,19 +73,13 @@ func (evm *FakeEVM) SetEnv(height, blocktime int64) {
 	// 两者都和上次的设置相同，不需要任何操作
 }
 
-func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	// TODO:GAS计费信息先不考虑，后续补充
-	var (
-	//gp      = new(vm.GasPool).AddGas(uint64(tx.Fee))
-	//usedGas = uint64(0)
-	)
-
+// 在区块上的执行操作，同一个区块内的多个交易会循环调用此方法进行处理；
+// 返回的结果types.Receipt数据，将会被统一写入到本地状态数据库中；
+// 本操作返回的ReceiptLog数据，在后面调用ExecLocal时会被传入，同样ExecLocal返回的数据将会被写入blockchain.db；
+// FIXME 目前evm执行器暂时没有ExecLocal逻辑，后面根据需要再考虑增加；
+func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	// 先转换消息
 	msg := evm.GetMessage(tx)
-
-	// 创建EVM上下文
-	//header := wrapper.GetBlockHeader()
-	vmcfg := evm.GetVMConfig()
 
 	// 获取当前区块的高度和时间
 	height := evm.DriverBase.GetHeight()
@@ -99,7 +93,7 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	context := NewEVMContext(msg, height, time, coinbase, difficulty)
 
 	// 创建EVM运行时对象
-	env := runtime.NewEVM(context, evm.mStateDB, *vmcfg)
+	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 
 	isCreate := msg.To() == nil
 
@@ -168,12 +162,12 @@ func (evm *FakeEVM) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	return receipt, nil
 }
 
-func (evm *FakeEVM) GetMStateDB() *state.MemoryStateDB {
+func (evm *EVMExecutor) GetMStateDB() *state.MemoryStateDB {
 	return evm.mStateDB
 }
 
 // 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
-func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg common.Message) {
+func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg common.Message) {
 
 	// 此处暂时不考虑消息发送签名的处理，chain33在mempool中对签名做了检查
 	from := getCaller(tx)
@@ -191,10 +185,6 @@ func (evm *FakeEVM) GetMessage(tx *types.Transaction) (msg common.Message) {
 	return msg
 }
 
-func (evm *FakeEVM) GetVMConfig() *runtime.Config {
-	return evm.vmCfg
-}
-
 // 从交易信息中获取交易发起人地址
 func getCaller(tx *types.Transaction) common.Address {
 	return common.StringToAddress(account.From(tx).String())
@@ -209,9 +199,8 @@ func getReceiver(tx *types.Transaction) *common.Address {
 	return &addr
 }
 
-// NewEVMContext creates a new context for use in the EVM.
+// 构造一个新的EVM上下文对象
 func NewEVMContext(msg common.Message, height int64, time int64, coinbase common.Address, difficulty uint64) runtime.Context {
-
 	return runtime.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,

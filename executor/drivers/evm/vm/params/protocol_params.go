@@ -1,7 +1,7 @@
 package params
 
 const (
-	MaxCodeSize     int = 24576 // 合约允许的最大字节数
+	MaxCodeSize     = 24576 // 合约允许的最大字节数
 	CallCreateDepth uint64 = 1024  // 合约递归调用最大深度
 	StackLimit      uint64 = 1024  // 栈允许的最大深度
 
