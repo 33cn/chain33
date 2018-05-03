@@ -84,17 +84,23 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	txindex := d.GetTxIndex(tx, receipt, index)
 	txinfobyte := types.Encode(txindex.index)
 	if len(txindex.from) != 0 {
-		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
+		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{fromkey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{fromkey2, txinfobyte})
 	}
 	if len(txindex.to) != 0 {
-		tokey1 := CalcTxAddrDirHashKey(txindex.to, 2, txindex.heightstr)
+		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
 	}
+    //保存隐私交易
+	if types.PrivacyX == string(tx.Execer) {
+		privacykey := CalcPrivacyTxHashKey(TxIndexPrivacy, txindex.heightstr)
+		set.KV = append(set.KV, &types.KeyValue{privacykey, txinfobyte})
+	}
+
 	return &set, nil
 }
 
@@ -133,6 +139,7 @@ func (d *DriverBase) GetTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 
 	txIndexInfo.from = account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	txIndexInfo.to = tx.To
+
 	return &txIndexInfo
 }
 
@@ -143,13 +150,13 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	//del: addr index
 	txindex := d.GetTxIndex(tx, receipt, index)
 	if len(txindex.from) != 0 {
-		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
+		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{fromkey1, nil})
 		set.KV = append(set.KV, &types.KeyValue{fromkey2, nil})
 	}
 	if len(txindex.to) != 0 {
-		tokey1 := CalcTxAddrDirHashKey(txindex.to, 2, txindex.heightstr)
+		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{tokey1, nil})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, nil})
@@ -275,6 +282,35 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		if len(txinfos) == 0 {
 			return nil, errors.New("does not exist tx!")
 		}
+	}
+	var replyTxInfos types.ReplyTxInfos
+	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))
+	for index, txinfobyte := range txinfos {
+		var replyTxInfo types.ReplyTxInfo
+		err := types.Decode(txinfobyte, &replyTxInfo)
+		if err != nil {
+			blog.Error("GetTxsByAddr proto.Unmarshal!", "err:", err)
+			return nil, err
+		}
+		replyTxInfos.TxInfos[index] = &replyTxInfo
+	}
+	return &replyTxInfos, nil
+}
+
+func (d *DriverBase) GetPrivacyTxs(privacy *types.ReqPrivacy) (types.Message, error) {
+	db := d.GetQueryDB()
+	var prefix []byte
+	var txinfos [][]byte
+
+	prefix = CalcPrivacyTxHashKeyPrefix(TxIndexPrivacy)
+	if privacy.GetHeight() == -1 {
+		list := dbm.NewListHelper(db)
+		txinfos = list.IteratorScanFromLast(prefix, privacy.Count)
+		if len(txinfos) == 0 {
+			return nil, errors.New("does not exist tx!")
+		}
+	} else { //翻页查找指定的txhash列表
+
 	}
 	var replyTxInfos types.ReplyTxInfos
 	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))

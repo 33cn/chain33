@@ -89,6 +89,7 @@ const (
 	TokenIntroLenLimit          = 1024
 	InvalidStartTime            = 0
 	InvalidStopTime             = 0
+	BTY                         = "BTY"
 )
 
 const (
@@ -217,16 +218,20 @@ const (
 	EventReplyModifyConfig = 301
 
 	// privacy
-	EventPublic2privacy          = 400
-	EventReplyPublic2privacy     = 401
-	EventPrivacy2privacy         = 402
-	EventReplyPrivacy2privacy    = 403
-	EventPrivacy2public          = 404
-	EventReplyPrivacy2public     = 405
-	EventShowPrivacyPK           = 406
-	EventReplyShowPrivacyPK      = 407
-	EventShowPrivacyBalance      = 407
-	EventReplyShowPrivacyBalance = 408
+	EventPublic2privacy = iota + 400
+	EventReplyPublic2privacy
+	EventPrivacy2privacy
+	EventReplyPrivacy2privacy
+	EventPrivacy2public
+	EventReplyPrivacy2public
+	EventShowPrivacyPK
+	EventReplyShowPrivacyPK
+	EventShowPrivacyTransfer
+	EventReplyShowPrivacyTransfer
+	EventShowPrivacyAccount
+	EventReplyShowPrivacyAccount
+	EventGetPrivacyTransaction
+	EventReplyGetPrivacyTransaction
 )
 
 var eventName = map[int]string{
@@ -351,12 +356,20 @@ var eventName = map[int]string{
 	EventReplyModifyConfig: "EventReplyModifyConfig",
 
 	//privacy
-	EventPublic2privacy:       "EventPublic2privacy",
-	EventReplyPublic2privacy:  "EventReplyPublic2privacy",
-	EventPrivacy2privacy:      "EventPrivacy2privacy",
-	EventReplyPrivacy2privacy: "EventReplyPrivacy2privacy",
-	EventPrivacy2public:       "EventPrivacy2public",
-	EventReplyPrivacy2public:  "EventReplyPrivacy2public",
+	EventPublic2privacy:             "EventPublic2privacy",
+	EventReplyPublic2privacy:        "EventReplyPublic2privacy",
+	EventPrivacy2privacy:            "EventPrivacy2privacy",
+	EventReplyPrivacy2privacy:       "EventReplyPrivacy2privacy",
+	EventPrivacy2public:             "EventPrivacy2public",
+	EventReplyPrivacy2public:        "EventReplyPrivacy2public",
+	EventShowPrivacyPK:              "EventShowPrivacyPK",
+	EventReplyShowPrivacyPK:         "EventReplyShowPrivacyPK",
+	EventShowPrivacyTransfer:        "EventShowPrivacyTransfer",
+	EventReplyShowPrivacyTransfer:   "EventReplyShowPrivacyTransfer",
+	EventShowPrivacyAccount:         "EventShowPrivacyAccount",
+	EventReplyShowPrivacyAccount:    "EventReplyShowPrivacyAccount",
+	EventGetPrivacyTransaction:      "EventGetPrivacyTransaction",
+	EventReplyGetPrivacyTransaction: "EventReplyGetPrivacyTransaction",
 }
 
 //ty = 1 -> secp256k1
