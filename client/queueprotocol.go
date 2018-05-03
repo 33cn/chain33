@@ -70,10 +70,6 @@ func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.M
 	return client.WaitTimeout(msg, q.option.WaitTimeout)
 }
 
-func (q *QueueProtocol) Close() {
-	q.client.Close()
-}
-
 func (q *QueueProtocol) SetOption(option *QueueProtocolOption) {
 	if option != nil {
 		q.option = *option
