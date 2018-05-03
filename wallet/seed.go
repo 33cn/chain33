@@ -1,10 +1,11 @@
 package wallet
 
 import (
-	"bipwallet"
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+
+	"gitlab.33.cn/wallet/bipwallet"
 	//	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
