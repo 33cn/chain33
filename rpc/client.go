@@ -1,12 +1,13 @@
 package rpc
 
 import (
+	"math/rand"
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"math/rand"
-	"time"
 )
 
 //提供系统rpc接口
