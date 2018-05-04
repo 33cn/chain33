@@ -475,3 +475,73 @@ func (c *channelClient) GetNetInfo() (*types.NodeNetInfo, error) {
 
 	return resp.GetData().(*types.NodeNetInfo), nil
 }
+
+func (c *channelClient) CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.TradeForBuyLimit{
+		TokenSymbol:       parm.TokenSymbol,
+		AmountPerBoardlot: parm.AmountPerBoardlot,
+		MinBoardlot:       parm.MinBoardlot,
+		PricePerBoardlot:  parm.PricePerBoardlot,
+		TotalBoardlot:     parm.TotalBoardlot,
+	}
+	buyLimit := &types.Trade{
+		Ty:    types.TradeBuyLimit,
+		Value: &types.Trade_Tokenbuylimit{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(buyLimit),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.TradeForSellMarket{Buyid: parm.BuyId, BoardlotCnt: parm.BoardlotCnt}
+	sellMarket := &types.Trade{
+		Ty:    types.TradeSellMarket,
+		Value: &types.Trade_Tokensellmarket{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(sellMarket),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &types.TradeForRevokeBuy{Buyid: parm.BuyId}
+	buy := &types.Trade{
+		Ty:    types.TradeRevokeBuy,
+		Value: &types.Trade_Tokenrevokebuy{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(buy),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}

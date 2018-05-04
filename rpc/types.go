@@ -278,8 +278,30 @@ type TradeRevokeTx struct {
 	Fee    int64  `json:"fee"`
 }
 
+type TradeBuyLimitTx struct {
+	TokenSymbol       string `json:"token_symbol"`
+	AmountPerBoardlot int64  `json:"amount_per_boardlot"`
+	MinBoardlot       int64  `json:"min_boardlot"`
+	PricePerBoardlot  int64  `json:"price_per_boardlot"`
+	TotalBoardlot     int64  `json:"total_boardlot"`
+	Fee               int64  `json:"fee"`
+}
+
+type TradeSellMarketTx struct {
+	BuyId      string `json:"buy_id"`
+	BoardlotCnt int64  `json:"boardlot_cnt"`
+	Fee         int64  `json:"fee"`
+}
+
+type TradeRevokeBuyTx struct {
+	BuyId string `json:"buy_id,"`
+	Fee    int64  `json:"fee"`
+}
+
 type NodeNetinfo struct {
 	Externaladdr string `json:"externaladdr"`
 	Localaddr    string `json:"localaddr"`
 	Service      bool   `json:"service"`
 }
+
+
