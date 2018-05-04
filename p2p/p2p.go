@@ -64,6 +64,7 @@ func (network *P2p) SetQueueClient(client queue.Client) {
 	network.client = client
 	network.node.SetQueueClient(client.Clone())
 	go func() {
+		log.Info("p2p", "setqueuecliet", "ok")
 		network.node.Start()
 		network.subP2pMsg()
 		network.loadP2PPrivKeyToWallet()

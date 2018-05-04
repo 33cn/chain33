@@ -105,16 +105,16 @@ func (n *Node) getAddrFromOnline() {
 			peers, _ := n.GetActivePeers()
 			for _, peer := range peers { //向其他节点发起请求，获取地址列表
 				log.Debug("Getpeer", "addr", peer.Addr())
-				addrlist, err := pcli.GetAddr(peer)
+				oklist, err := pcli.GetAddr(peer)
 				P2pComm.CollectPeerStat(err, peer)
 				if err != nil {
 					log.Error("getAddrFromOnline", "ERROR", err.Error())
 					continue
 				}
 
-				log.Debug("GetAddrFromOnline", "addrlist", addrlist)
+				log.Debug("GetAddrFromOnline", "addrlist", oklist)
 				//过滤黑名单的地址
-				oklist := P2pComm.AddrRouteble(addrlist)
+				//oklist := P2pComm.AddrRouteble(addrlist)
 				for _, addr := range oklist {
 					if !n.nodeInfo.blacklist.Has(addr) {
 						pub.FIFOPub(addr, "addr")
@@ -144,6 +144,7 @@ func (n *Node) getAddrFromOffline() {
 			seeds := n.nodeInfo.cfg.GetSeeds()
 			index := rand.Intn(len(seeds))
 			if !n.Has(seeds[index]) && !n.nodeInfo.blacklist.Has(seeds[index]) {
+
 				testlist = append(testlist, seeds[index])
 			}
 			log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.nodeInfo.addrBook.GetPeers())
@@ -156,8 +157,8 @@ func (n *Node) getAddrFromOffline() {
 				}
 			}
 
-			oklist := P2pComm.AddrRouteble(testlist)
-			for _, addr := range oklist {
+			//oklist := P2pComm.AddrRouteble(testlist)
+			for _, addr := range testlist {
 
 				if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
 					log.Debug("GetAddrFromOffline", "Add addr", addr)
@@ -252,11 +253,11 @@ func (n *Node) monitorDialPeers() {
 		log.Debug("DialPeers", "peer", netAddr.String())
 		peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
 		if err != nil {
-			log.Error("ialPeers", "Err", err.Error())
+			log.Error("monitorDialPeers", "Err", err.Error())
 			continue
 		}
 		n.addPeer(peer)
-		n.nodeInfo.addrBook.AddAddress(netAddr)
+		n.nodeInfo.addrBook.AddAddress(netAddr, nil)
 
 	}
 

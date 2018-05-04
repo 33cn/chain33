@@ -249,14 +249,15 @@ func (m *Cli) GetPeerInfo(msg queue.Message, taskindex int64) {
 	defer func() {
 		log.Debug("GetPeerInfo", "task complete:", taskindex)
 	}()
-
+	log.Debug("getlocalpeerinfo", "befor getlocalpeerinfoxxxxxxxxxxx", taskindex)
 	peerinfo, err := m.getLocalPeerInfo()
 	if err != nil {
-		log.Error("GetPeerInfo", "Err", err.Error())
+		log.Error("GetPeerInfo", "p2p cli Err", err.Error())
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.peerInfos()}))
 		return
 	}
-
+	log.Debug("getlocalpeerinfo", "after getlocalpeerinfoxxxxxxxxxxx", taskindex)
+	log.Debug("GetPeerInfo", "p2pcli", "getlocalpeerinfo")
 	var peers = m.peerInfos()
 	var peer pb.Peer
 	peer.Addr = peerinfo.GetAddr()
@@ -427,8 +428,9 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	//使用新的下载模式进行下载
 	var bChan = make(chan *pb.BlockPid, 256)
 	invs := MaxInvs.GetInvs()
-	job := NewDownloadJob(m)
+	job := NewDownloadJob(m, downloadPeers)
 	var jobcancel int32
+	var maxDownloadRetryCount = 100
 	go func(cancel *int32, invs []*pb.Inventory) {
 		for {
 			if atomic.LoadInt32(cancel) == 1 {
@@ -437,6 +439,10 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 
 			invs = job.DownloadBlock(invs, bChan)
 			if len(invs) == 0 {
+				return
+			}
+			maxDownloadRetryCount--
+			if maxDownloadRetryCount < 0 {
 				return
 			}
 		}
@@ -495,7 +501,7 @@ func (m *Cli) GetExternIP(addr string) (string, bool, error) {
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
 	if err != nil {
-		log.Error("grpc DialConn", "err", err.Error())
+		log.Debug("grpc DialConn", "err", err.Error())
 		return "", false, err
 	}
 	defer conn.Close()
@@ -544,18 +550,18 @@ func (m *Cli) peerInfos() []*pb.Peer {
 func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	client := m.network.client
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
-	err := client.SendTimeout(msg, true, time.Minute) //发送超时
+	err := client.SendTimeout(msg, true, time.Second*10) //发送超时
 	if err != nil {
 		log.Error("GetPeerInfo mempool", "Error", err.Error())
 		return nil, err
 	}
-	log.Debug("GetPeerInfo", "GetMempoolSize", "after")
 
-	resp, err := client.WaitTimeout(msg, time.Minute)
+	resp, err := client.WaitTimeout(msg, time.Second*30)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Debug("getLocalPeerInfo", "GetMempoolSize", "after")
 	meminfo := resp.GetData().(*pb.MempoolSize)
 	var localpeerinfo pb.P2PPeerInfo
 
@@ -564,12 +570,12 @@ func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	log.Debug("getLocalPeerInfo", "EventGetLastHeader", "befor")
 	//get header
 	msg = client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
-	err = client.SendTimeout(msg, true, time.Minute)
+	err = client.SendTimeout(msg, true, time.Second*10)
 	if err != nil {
 		log.Error("getLocalPeerInfo blockchain", "Error", err.Error())
 		return nil, err
 	}
-	resp, err = client.WaitTimeout(msg, time.Minute)
+	resp, err = client.WaitTimeout(msg, time.Second*30)
 	if err != nil {
 		return nil, err
 	}
