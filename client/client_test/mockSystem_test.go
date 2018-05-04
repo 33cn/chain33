@@ -11,12 +11,13 @@ import (
 )
 
 var (
-	configPath = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
+	configPath  = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
+	grpcAddress = "localhost:8802"
 )
 
 func init() {
 	cfg := config.InitCfg(*configPath)
-	cfg.GetRpc().GrpcBindAddr = "localhost:8803"
+	cfg.GetRpc().GrpcBindAddr = grpcAddress
 	rpc.Init(cfg.Rpc)
 	log.SetFileLog(cfg.Log)
 }
