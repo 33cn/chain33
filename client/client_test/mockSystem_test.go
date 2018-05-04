@@ -5,13 +5,21 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 )
 
 var (
-	configPath = flag.String("f", "../../cmd/chain33/chain33.toml", "configfile")
+	configPath = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
 )
+
+func init() {
+	cfg := config.InitCfg(*configPath)
+	cfg.GetRpc().GrpcBindAddr = "localhost:8803"
+	rpc.Init(cfg.Rpc)
+	log.SetFileLog(cfg.Log)
+}
 
 type MockLive interface {
 	OnStartup(m *mockSystem)
@@ -30,8 +38,6 @@ type mockSystem struct {
 }
 
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
-	cfg := config.InitCfg(*configPath)
-	rpc.Init(cfg.Rpc)
 
 	var q = queue.New("channel")
 	chain := &mockBlockChain{}
