@@ -70,6 +70,7 @@ var (
 	ErrTokenOwner           = errors.New("ErrTokenSymbolOwnerNotMatch")
 	ErrTokenHavePrecreated  = errors.New("ErrOwnerHaveTokenPrecreateYet")
 	ErrTokenBlacklist       = errors.New("ErrTokenBlacklist")
+	ErrTokenNotExist           = errors.New("ErrTokenSymbolNotExist")
 	//err for trade
 	ErrTSellBalanceNotEnough = errors.New("ErrTradeSellBalanceNotEnough")
 	ErrTSellOrderNotExist    = errors.New("ErrTradeSellOrderNotExist")
