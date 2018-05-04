@@ -229,6 +229,7 @@ It has these top-level messages:
 	ReqPrivacyBalance
 	ReplyPrivacyBalance
 	PrivacyDBStore
+	PrivacyOnetimeAccInfo
 */
 package types
 

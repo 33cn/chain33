@@ -3,7 +3,6 @@ package privacy
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -80,9 +79,6 @@ func GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicK
 	sk := &PrivKeyPrivacy{}
 	generateKeyPair(sk, pk)
 	RtxPublicKey = (*[KeyLen32]byte)(unsafe.Pointer(pk))
-	privacylog.Info("GenerateOneTimeAddr", "GenerateOneTimeAddr RtxPublicKey is", RtxPublicKey[:])
-	privacylog.Info("GenerateOneTimeAddr", "input viewPub", common.Bytes2Hex(viewPub[:]))
-	privacylog.Info("GenerateOneTimeAddr", "input spendPub", common.Bytes2Hex(spendPub[:]))
 
 	//to calculate rA
 	var point edwards25519.ExtendedGroupElement
@@ -91,11 +87,9 @@ func GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicK
 	}
 	skAddr32 := (*[KeyLen32]byte)(unsafe.Pointer(sk))
 	if !edwards25519.ScCheck(skAddr32) {
-		fmt.Printf("xxx GenerateOneTimeAddr Fail to do edwards25519.ScCheck with sk \n")
+		privacylog.Error("xxx GenerateOneTimeAddr Fail to do edwards25519.ScCheck with sk \n")
 		return nil, nil, ErrViewSecret
 	}
-	fmt.Printf("$$$ GenerateOneTimeAddr Succeed to do edwards25519.ScCheck with sk \n")
-
 	var point2 edwards25519.ProjectiveGroupElement
 	zeroValue := &[32]byte{}
 	edwards25519.GeDoubleScalarMultVartime(&point2, skAddr32, &point, zeroValue)
@@ -105,7 +99,6 @@ func GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicK
 	point3.ToProjective(&point2)
 	rA := new([32]byte)
 	point2.ToBytes(rA)
-	fmt.Printf("GenerateOneTimeAddr rA is:%X\n", rA[:])
 
 	//to calculate Hs(rA)G + B
 	var B edwards25519.ExtendedGroupElement //A
@@ -130,32 +123,26 @@ func GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicK
 
 	point5.ToBytes(&onetimePubKey)
 	pubkeyOnetime = &onetimePubKey
-	fmt.Printf("Succeed to GenerateOneTimeAddr\n")
 	return
 }
 
 //calculate Hs(aR) + b
 func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (PrivKey, error) {
-	fmt.Printf("Begin to process RecoverOnetimePriKey\n")
 	var viewSecAddr, spendSecAddr, RtxPubAddr *[32]byte
 	viewSecAddr = (*[32]byte)(unsafe.Pointer(&viewSecretKey.Bytes()[0]))
 	spendSecAddr = (*[32]byte)(unsafe.Pointer(&spendSecretKey.Bytes()[0]))
 	RtxPubAddr = (*[32]byte)(unsafe.Pointer(&R[0]))
 	//1st to calculate aR
 	var point edwards25519.ExtendedGroupElement
-	fmt.Printf("RecoverOnetimePriKey viewSecretKey is :%X\n", viewSecAddr[:])
-	fmt.Printf("RecoverOnetimePriKey R is :%X\n", RtxPubAddr[:])
 	if res := point.FromBytes(RtxPubAddr); !res {
-		fmt.Printf("RecoverOnetimePriKey Fail to do get point.FromBytes with viewSecAddr \n")
+		privacylog.Error("RecoverOnetimePriKey Fail to do get point.FromBytes with viewSecAddr \n")
 		return nil, ErrViewSecret
 	}
-	fmt.Printf("RecoverOnetimePriKey run to phase II\n")
 
 	if !edwards25519.ScCheck(viewSecAddr) {
-		fmt.Printf("xxx RecoverOnetimePriKey Fail to do edwards25519.ScCheck with viewSecAddr \n")
+		privacylog.Error("xxx RecoverOnetimePriKey Fail to do edwards25519.ScCheck with viewSecAddr \n")
 		return nil, ErrViewSecret
 	}
-	fmt.Printf("$$$ RecoverOnetimePriKey Succeed to do edwards25519.ScCheck with viewSecAddr \n")
 
 	var point2 edwards25519.ProjectiveGroupElement
 	zeroValue := &[32]byte{}
@@ -166,19 +153,15 @@ func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (Priv
 	point3.ToProjective(&point2)
 	aR := new([32]byte)
 	point2.ToBytes(aR)
-	fmt.Printf("RecoverOnetimePriKey aR is:%X\n", aR[:])
 
 	if !edwards25519.ScCheck(spendSecAddr) {
-		fmt.Printf("xxx RecoverOnetimePriKey Fail to do edwards25519.ScCheck with spendSecAddr \n")
+		privacylog.Error("xxx RecoverOnetimePriKey Fail to do edwards25519.ScCheck with spendSecAddr \n")
 		return nil, ErrViewSecret
 	}
-	fmt.Printf("$$$ RecoverOnetimePriKey Succeed to do edwards25519.ScCheck with spendSecAddr \n")
 
 	//2rd to calculate Hs(aR) + b
 	//Hs(aR)
 	Hs_aR := derivation2scalar(aR, 0)
-	fmt.Printf("RecoverOnetimePriKey Hs_aR is:%X\n", Hs_aR[:])
-	fmt.Printf("RecoverOnetimePriKey spendSec is:%X\n", spendSecAddr[:])
 
 	//TODO:代码疑问
 	//var onetimePriKey PrivKeyEd25519
@@ -191,8 +174,6 @@ func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (Priv
 
 	prikey := PrivKeyPrivacy(*onetimePriKeydata)
 	prikey.PubKey()
-
-	fmt.Printf("RecoverOnetimePriKey's result is %X \n", onetimePriKeydata[:])
 	return prikey, nil
 }
 

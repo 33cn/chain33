@@ -274,4 +274,13 @@ message ReplyPrivacyBalance {
 message PrivacyDBStore {
     string onetimeaddr   = 1;    //隐私账户一次性地址
     string txhash        = 2;
+    string tokenname     = 3;
+}
+
+message PrivacyOnetimeAccInfo {
+	string tokenname = 1;
+	int64 balance = 2;  //账户可用余额
+	int64 frozen = 3;   //账户冻结余额
+	string addr = 4;    //账户的地址
+	string txhash = 5;
 }

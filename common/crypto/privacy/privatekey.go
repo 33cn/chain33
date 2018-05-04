@@ -6,8 +6,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
-	"fmt"
-	"gitlab.33.cn/chain33/chain33/common"
 )
 
 
@@ -18,18 +16,11 @@ func (privKey PrivKeyPrivacy) Bytes() []byte {
 }
 
 func (privKey PrivKeyPrivacy) Sign(msg []byte) Signature {
-	fmt.Printf("~~~~~~~~~~~~~~privKey is:%X\n", privKey[:])
 
 	temp := new([64]byte)
 	randomScalar := new([32]byte)
     copy(temp[:], CRandBytes(64))
 	edwards25519.ScReduce(randomScalar, temp)
-
-	////////////////////
-	randomScalarStub, _ := common.Hex2Bytes("FE7B1D8218D0B02C402BCA5AB2F6B6726C662E5CADA915D0D72323CA2F60D403")
-	copy(randomScalar[:], randomScalarStub)
-	fmt.Printf("~~~~~~~~~~~~~~randomScalar is:%X\n", randomScalar[:])
-	////////////////////
 
 	var sigcommdata sigcommArray
 	sigcommPtr := (*sigcomm)(unsafe.Pointer(&sigcommdata))
@@ -40,20 +31,14 @@ func (privKey PrivKeyPrivacy) Sign(msg []byte) Signature {
 	var K edwards25519.ExtendedGroupElement
 	edwards25519.GeScalarMultBase(&K, randomScalar)
 	K.ToBytes((*[KeyLen32]byte)(unsafe.Pointer(&sigcommPtr.comm[0])))
-	fmt.Printf("~~~~~~~~~~~~~~sigcommPtr.comm is:%x\n", sigcommPtr.comm[:])
 
 	var sigOnetime SignatureOnetime
 	addr32 := (*[KeyLen32]byte)(unsafe.Pointer(&sigOnetime))
 	hash2scalar(sigcommdata[:], addr32)
-	fmt.Printf("~~~~~~~~~~~~~~hash2scalar hash is:%X\n", addr32[:])
 
 	addr32Latter := (*[KeyLen32]byte)(unsafe.Pointer(&sigOnetime[KeyLen32]))
 	addr32Priv := (*[KeyLen32]byte)(unsafe.Pointer(&privKey))
-	fmt.Printf("~~~~~~~~~~~~~~The input privKey :%x\n", addr32Priv[:])
-	fmt.Printf("~~~~~~~~~~~~~~The randomScalar :%x\n", randomScalar[:])
 	edwards25519.ScMulSub(addr32Latter, addr32, addr32Priv, randomScalar)
-
-	fmt.Printf("~~~~~~~~~~~~~~The new generated signature :%x\n", sigOnetime[:])
 
     return sigOnetime
 }
