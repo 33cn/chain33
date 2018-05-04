@@ -353,8 +353,8 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 		return nil, types.ErrInputPara
 	}
 	// check token exist
-	if token.CheckTokenExist(buy.TokenSymbol, action.db) {
-		return nil, types.ErrTokenExist
+	if token.CheckTokenExist(buy.TokenSymbol, action.db) == false {
+		return nil, types.ErrTokenNotExist
 	}
 
 	// check enough bty
@@ -410,25 +410,27 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 		return nil, types.ErrTBuyOrderNotEnough
 	}
 
-	//首先购买费用的划转
-	amount := sellOrder.BoardlotCnt * buyOrder.PricePerBoardlot
-	receiptFromAcc, err := action.coinsAccount.ExecTransfer(buyOrder.Address, action.fromaddr, action.execaddr, amount)
-	if err != nil {
-		tradelog.Error("account.Transfer ", "addrFrom", buyOrder.Address, "addrTo", action.fromaddr,
-			"amount", amount)
-		return nil, err
-	}
-	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
-	//TODO: 创建一个LRU用来保存token对应的子合约账户的地址
+	// 打token
 	tokenAccDB := account.NewTokenAccount(buyOrder.TokenSymbol, action.db)
 	amountToken := sellOrder.BoardlotCnt * buyOrder.AmountPerBoardlot
-	receiptFromExecAcc, err := tokenAccDB.ExecTransferFrozen(action.fromaddr, buyOrder.Address, action.execaddr, amountToken)
+	tradelog.Debug("tradeSellMarket", "step1 cnt", sellOrder.BoardlotCnt, "amountToken", amountToken)
+	receiptFromExecAcc, err := tokenAccDB.ExecTransfer(action.fromaddr, buyOrder.Address, action.execaddr, amountToken)
 	if err != nil {
 		tradelog.Error("account.ExecTransfer token ", "error info", err, "addrFrom", buyOrder.Address,
 			"addrTo", action.fromaddr, "execaddr", action.execaddr,
-			"amount", amountToken)
-		//因为未能成功将对应的token进行转账，所以需要将购买方的账户资金进行回退
-		action.coinsAccount.ExecTransfer(action.fromaddr, buyOrder.Address, action.execaddr, amount)
+			"amountToken", amountToken)
+		return nil, err
+	}
+
+	//首先购买费用的划转
+	amount := sellOrder.BoardlotCnt * buyOrder.PricePerBoardlot
+	tradelog.Debug("tradeSellMarket", "step2 cnt", sellOrder.BoardlotCnt, "price", buyOrder.PricePerBoardlot, "amount", amount)
+	receiptFromAcc, err := action.coinsAccount.ExecTransferFrozen(buyOrder.Address, action.fromaddr, action.execaddr, amount)
+	if err != nil {
+		tradelog.Error("account.Transfer ", "addrFrom", buyOrder.Address, "addrTo", action.fromaddr,
+			"amount", amount)
+		// 因为未能成功将对应的币进行转账，所以需要回退
+		tokenAccDB.ExecTransfer(buyOrder.Address, action.fromaddr, action.execaddr, amountToken)
 		return nil, err
 	}
 
@@ -472,7 +474,8 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) 
 	}
 
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
-	tradeRest := (buyOrder.TotalBoardlot - buyOrder.BoughtBoardlot) * buyOrder.AmountPerBoardlot
+	tradeRest := (buyOrder.TotalBoardlot - buyOrder.BoughtBoardlot) * buyOrder.PricePerBoardlot
+	tradelog.Info("tradeRevokeBuyLimit", "total-b", buyOrder.TotalBoardlot, "price", buyOrder.PricePerBoardlot, "amount", tradeRest)
 	receiptFromExecAcc, err := action.coinsAccount.ExecActive(buyOrder.Address, action.execaddr, tradeRest)
 	if err != nil {
 		tradelog.Error("account.ExecActive bty ", "addrFrom", buyOrder.Address, "execaddr", action.execaddr, "amount", tradeRest)
