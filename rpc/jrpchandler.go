@@ -1237,6 +1237,6 @@ func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
 		return err
 	}
 
-	*result = &NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService()}
+	*result = &NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService(), resp.GetOutbounds(), resp.GetInbounds()}
 	return nil
 }
