@@ -60,11 +60,10 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 		return nil, pb.ErrPing
 	}
 
-	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peeraddr, in.GetPort()))
+	remoteNetwork, err := NewNetAddressString(peeraddr)
 	if err == nil {
-		if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
-			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork)
-		}
+		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+
 	}
 
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
@@ -75,30 +74,19 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 // 获取地址
 func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
 	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", s.node.Size())
-	addrBucket := make(map[string]bool)
+	var addrlist []string
 	peers, _ := s.node.GetActivePeers()
 	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
 
 		if stat := s.node.nodeInfo.addrBook.GetPeerStat(peer.Addr()); stat != nil {
 			if stat.GetAttempts() == 0 {
-				addrBucket[peer.Addr()] = true
+				addrlist = append(addrlist, peer.Addr())
 			}
 		}
 
 	}
-	addrList := s.node.nodeInfo.addrBook.GetAddrs()
-	for _, addr := range addrList {
 
-		addrBucket[addr] = true
-		if len(addrBucket) > maxAddrListNum { //最多一次性返回256个地址
-			break
-		}
-	}
-	var addrlist []string
-	for addr := range addrBucket {
-		addrlist = append(addrlist, addr)
-	}
 	return &pb.P2PAddr{Nonce: in.Nonce, Addrlist: addrlist}, nil
 }
 
@@ -122,20 +110,20 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 	if err == nil {
-		if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
-			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork)
-			//broadcast again
-			go func() {
-				if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
-					return
-				}
+		//if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
+		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		//broadcast again
+		go func() {
+			if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
+				return
+			}
 
-				peers, _ := s.node.GetActivePeers()
-				for _, peer := range peers {
-					peer.mconn.gcli.Version2(context.Background(), in)
-				}
-			}()
-		}
+			peers, _ := s.node.GetActivePeers()
+			for _, peer := range peers {
+				peer.mconn.gcli.Version2(context.Background(), in)
+			}
+		}()
+		//}
 
 	}
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
@@ -401,7 +389,7 @@ func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 
 func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServer) error {
 	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
-		return fmt.Errorf("beyound max inbound num")
+		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.GetInnerBounds()))
 	}
 	var hash [64]byte
 	var peeraddr, peername string

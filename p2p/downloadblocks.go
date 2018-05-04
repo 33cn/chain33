@@ -12,12 +12,13 @@ import (
 )
 
 type downloadJob struct {
-	wg        sync.WaitGroup
-	retryList *list.List
-	p2pcli    *Cli
-	canceljob int32
-	mtx       sync.Mutex
-	busyPeer  map[string]*peerJob
+	wg            sync.WaitGroup
+	retryList     *list.List
+	p2pcli        *Cli
+	canceljob     int32
+	mtx           sync.Mutex
+	busyPeer      map[string]*peerJob
+	downloadPeers []*Peer
 }
 
 type peerJob struct {
@@ -25,12 +26,12 @@ type peerJob struct {
 	limit  int32
 }
 
-func NewDownloadJob(p2pcli *Cli) *downloadJob {
+func NewDownloadJob(p2pcli *Cli, peers []*Peer) *downloadJob {
 	job := new(downloadJob)
 	job.retryList = list.New()
 	job.p2pcli = p2pcli
 	job.busyPeer = make(map[string]*peerJob)
-
+	job.downloadPeers = peers
 	return job
 }
 
@@ -69,8 +70,8 @@ func (d *downloadJob) setFreePeer(pid string) {
 }
 
 func (d *downloadJob) GetFreePeer(joblimit int64) *Peer {
-	peermap, infos := d.p2pcli.network.node.GetActivePeers()
-	for _, peer := range peermap {
+	_, infos := d.p2pcli.network.node.GetActivePeers()
+	for _, peer := range d.downloadPeers {
 		pbpeer, ok := infos[peer.Addr()]
 		if ok {
 			if len(peer.GetPeerName()) == 0 {

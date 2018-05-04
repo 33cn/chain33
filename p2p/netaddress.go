@@ -139,7 +139,7 @@ func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.
 	ch <- cfg
 	var cliparm keepalive.ClientParameters
 	cliparm.Time = 10 * time.Second    //10秒Ping 一次
-	cliparm.Timeout = 10 * time.Second //等待10秒，如果Ping 没有响应，则超时
+	cliparm.Timeout = 5 * time.Second  //等待5秒，如果Ping 没有响应，则超时
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
 
