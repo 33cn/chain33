@@ -79,7 +79,8 @@ func main() {
 	if errSend.String() != "" {
 		fmt.Println(errSend.String())
 	}
-	fmt.Println(outSend.String())
+	bufSend := outSend.Bytes()
+	fmt.Println(string(bufSend[:len(bufSend)-1]))
 }
 
 func loadHelp() {

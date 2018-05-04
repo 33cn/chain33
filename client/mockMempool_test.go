@@ -13,6 +13,7 @@ func (m *mockMempool) SetQueueClient(q queue.Queue) {
 		client := q.Client()
 		client.Sub(mempoolKey)
 		for msg := range client.Recv() {
+			log.Debug("receive ok", "msg", msg)
 			switch msg.Ty {
 			case types.EventTx:
 				msg.Reply(client.NewMessage(mempoolKey, types.EventReply, &types.Reply{IsOk: true, Msg: []byte("word")}))
