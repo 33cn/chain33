@@ -13,6 +13,7 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 		client := q.Client()
 		client.Sub(walletKey)
 		for msg := range client.Recv() {
+			log.Debug("receive ok", "msg", msg)
 			switch msg.Ty {
 			case types.EventWalletGetAccountList:
 				msg.Reply(client.NewMessage(walletKey, types.EventWalletAccountList, &types.WalletAccounts{}))
