@@ -24,7 +24,7 @@ func (Comm) AddrRouteble(addrs []string) []string {
 	for _, addr := range addrs {
 
 		_, _, err := p2pcli.GetExternIP(addr)
-		if err != nil {
+		if err == nil {
 			enableAddrs = append(enableAddrs, addr)
 		}
 		//		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
