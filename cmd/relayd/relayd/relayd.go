@@ -200,7 +200,7 @@ func (r *Relayd) dealOrder() {
 
 func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.QueryRelayOrderResult, error) {
 	payLoad := types.Encode(&types.QueryRelayOrderParam{
-		Status: 	status,
+		Status: status,
 	})
 	query := types.Query{
 		Execer:   executor,
