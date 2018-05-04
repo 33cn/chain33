@@ -330,6 +330,12 @@ func (tx *Transaction) ActionName() string {
 			return "buytoken"
 		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
 			return "revokeselltoken"
+		} else if trade.Ty == TradeBuyLimit && trade.GetTokenbuylimit() != nil {
+			return "buylimittoken"
+		} else if trade.Ty == TradeSellMarket && trade.GetTokensellmarket() != nil {
+			return "sellmarkettoken"
+		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
+			return "revokebuytoken"
 		}
 	}
 
