@@ -664,12 +664,12 @@ func (cs *ConsensusState) handleTimeout(ti timeoutInfo, rs ttypes.RoundState) {
 }
 
 func (cs *ConsensusState) handleTxsAvailable(height int64) {
-	fmt.Printf("in handleTxsAvailable")
+	fmt.Printf("in handleTxsAvailable\n")
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
 	cs.enterPropose(height, 0)
-	fmt.Printf("enterPropose over")
+	fmt.Printf("enterPropose over\n")
 }
 
 //-----------------------------------------------------------------------------

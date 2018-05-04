@@ -7,6 +7,8 @@ import (
 	"time"
 	log "github.com/inconshreveable/log15"
 	"math/rand"
+	gcrypto "gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 var bslog = log.New("module", "tendermint-blockstore")
 const fee = 1e6
@@ -14,6 +16,7 @@ var r *rand.Rand
 //------------------------------------------------------------------------------
 type BlockStore struct {
 	client *drivers.BaseClient
+	pubkey string
 	//LoadSeenCommit(height int64) *Commit
 	//LoadBlockCommit(height int64) *Commit
 	//Height() int64
@@ -21,10 +24,11 @@ type BlockStore struct {
 	//CreateCommitTx(lastCommit *Commit, seenCommit *Commit) *gtypes.Transaction
 }
 
-func NewBlockStore(client *drivers.BaseClient) *BlockStore {
+func NewBlockStore(client *drivers.BaseClient, pubkey string) *BlockStore {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return &BlockStore {
 		client : client,
+		pubkey:  pubkey,
 	}
 }
 func GetCommitFromBlock(block *gtypes.Block) *gtypes.TendermintBlockInfo {
@@ -147,6 +151,22 @@ func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 	return nil
 }
 
+func getprivkey(key string) gcrypto.PrivKey {
+	cr, err := gcrypto.New(gtypes.GetSignatureTypeName(gtypes.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
 func (bs *BlockStore) CreateCommitTx(lastCommit *Commit, seenCommit *Commit ) *gtypes.Transaction {
 	blockInfo := bs.SaveCommits(lastCommit, seenCommit)
 
@@ -154,34 +174,32 @@ func (bs *BlockStore) CreateCommitTx(lastCommit *Commit, seenCommit *Commit ) *g
 	action := &gtypes.NormAction{Value: nput, Ty: gtypes.NormActionPut}
 	tx := &gtypes.Transaction{Execer: []byte("norm"), Payload: gtypes.Encode(action), Fee: fee}
 	tx.Nonce = r.Int63()
-	//tx.Sign(gtypes.SECP256K1, getprivkey(privkey))
+	tx.Sign(gtypes.SECP256K1, getprivkey(bs.pubkey))
 
 	return tx
 }
 
 func SaveVotes(des []*gtypes.Vote, source []*Vote) {
-	lens := len(des)
-	if lens > 0 {
-		for i, item := range source {
-			vote := gtypes.Vote{}
-			des[i] = &vote
-			partSetHeader := &gtypes.PartSetHeader{}
-			partSetHeader.Hash = item.BlockID.PartsHeader.Hash
-			partSetHeader.Total = int32(item.BlockID.PartsHeader.Total)
-			blockID := &gtypes.BlockID{}
-			blockID.Hash = item.BlockID.Hash
-			blockID.PartsHeader = partSetHeader
-			des[i].BlockID = blockID
-			des[i].Height = item.Height
-			des[i].Round = int32(item.Round)
-			des[i].Signature = item.Signature.Unwrap().Bytes()
-			des[i].Type = uint32(item.Type)
-			des[i].ValidatorAddress = item.ValidatorAddress
-			des[i].ValidatorIndex = int32(item.ValidatorIndex)
-			des[i].Timestamp = item.Timestamp.UnixNano()
-			bslog.Info("save votes", "i", i, "source",item, "des", des[i])
-		}
+	for i, item := range source {
+		vote := gtypes.Vote{}
+		des[i] = &vote
+		partSetHeader := &gtypes.PartSetHeader{}
+		partSetHeader.Hash = item.BlockID.PartsHeader.Hash
+		partSetHeader.Total = int32(item.BlockID.PartsHeader.Total)
+		blockID := &gtypes.BlockID{}
+		blockID.Hash = item.BlockID.Hash
+		blockID.PartsHeader = partSetHeader
+		des[i].BlockID = blockID
+		des[i].Height = item.Height
+		des[i].Round = int32(item.Round)
+		des[i].Signature = item.Signature.Unwrap().Bytes()
+		des[i].Type = uint32(item.Type)
+		des[i].ValidatorAddress = item.ValidatorAddress
+		des[i].ValidatorIndex = int32(item.ValidatorIndex)
+		des[i].Timestamp = item.Timestamp.UnixNano()
+		bslog.Info("save votes", "i", i, "source",item, "des", des[i])
 	}
+
 }
 
 func (bs *BlockStore) SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) *gtypes.TendermintBlockInfo{

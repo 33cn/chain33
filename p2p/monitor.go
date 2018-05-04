@@ -229,7 +229,7 @@ func (n *Node) monitorDialPeers() {
 		log.Debug("DialPeers", "peer", netAddr.String())
 		peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
 		if err != nil {
-			log.Error("ialPeers", "Err", err.Error())
+			log.Error("dialPeers", "Err", err.Error())
 			continue
 		}
 		n.addPeer(peer)
