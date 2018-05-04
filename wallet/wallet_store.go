@@ -341,19 +341,22 @@ func (ws *WalletStore) DelAccountByLabel(label string) {
 
 func (ws *WalletStore) setWalletPrivacyAccountBalance(addr, txhash *string, dbStore *types.PrivacyDBStore, newbatch dbm.Batch) error {
 	if 0 == len(*addr) || 0 == len(*txhash) {
-		walletlog.Error("SetWalletAccountPrivacy addr or txhash is nil")
+		walletlog.Error("setWalletPrivacyAccountBalance addr or txhash is nil")
 		return types.ErrInputPara
 	}
 	if dbStore == nil {
-		walletlog.Error("SetWalletAccountPrivacy privacy is nil")
+		walletlog.Error("setWalletPrivacyAccountBalance privacy is nil")
 		return types.ErrInputPara
 	}
 
 	privacyStorebyte, err := proto.Marshal(dbStore)
 	if err != nil {
-		walletlog.Error("SetWalletAccountPrivacy proto.Marshal err!", "err", err)
+		walletlog.Error("setWalletPrivacyAccountBalance proto.Marshal err!", "err", err)
 		return types.ErrMarshal
 	}
+
+	walletlog.Debug("setWalletPrivacyAccountBalance", "addr", *addr, "tx with hash", *txhash,
+		"PrivacyDBStore", *dbStore)
 	newbatch.Set(calcPrivacy1timeBalKey(*addr, *txhash), privacyStorebyte)
 	return nil
 }
@@ -387,18 +390,18 @@ func (ws *WalletStore) listWalletPrivacyAccount(addr string) ([]*types.PrivacyDB
 	onetimeAccbytes := list.PrefixScan(calcPrivacy1timeBalKeyPrefix(addr))
 	if len(onetimeAccbytes) == 0 {
 		walletlog.Error("listWalletPrivacyAccount ", "addr not exist", addr)
-		return nil, types.ErrAccountNotExist
+		return nil, nil
 	}
 
 	privacyDBStoreSlice := make([]*types.PrivacyDBStore, len(onetimeAccbytes))
-	for _, accByte := range onetimeAccbytes {
+	for index, accByte := range onetimeAccbytes {
 		var accPrivacy types.PrivacyDBStore
 		err := proto.Unmarshal(accByte, &accPrivacy)
 		if err != nil {
-			walletlog.Error("GetWalletAccountPrivacy", "proto.Unmarshal err:", err)
+			walletlog.Error("listWalletPrivacyAccount", "proto.Unmarshal err:", err)
 			return nil, types.ErrUnmarshal
 		}
-		privacyDBStoreSlice = append(privacyDBStoreSlice, &accPrivacy)
+		privacyDBStoreSlice[index] = &accPrivacy
 	}
 	return privacyDBStoreSlice, nil
 }

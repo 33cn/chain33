@@ -172,7 +172,7 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
 
-	if "coins" == string(tx.Execer) {
+	if CoinsX == string(tx.Execer) {
 		var action CoinsAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -188,7 +188,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			transfer := action.GetWithdraw()
 			return transfer.Amount, nil
 		}
-	} else if "ticket" == string(tx.Execer) {
+	} else if TicketX == string(tx.Execer) {
 		var action TicketAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -198,7 +198,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			ticketMiner := action.GetMiner()
 			return ticketMiner.Reward, nil
 		}
-	} else if "token" == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+	} else if TokenX == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
 		var action TokenAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -218,7 +218,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			return 0, nil
 		}
 
-	} else if "trade" == string(tx.Execer) {
+	} else if TradeX == string(tx.Execer) {
 		var trade Trade
 		err := Decode(tx.GetPayload(), &trade)
 		if err != nil {
@@ -232,13 +232,29 @@ func (tx *Transaction) Amount() (int64, error) {
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
 		}
+	} else if PrivacyX == string(tx.Execer) {
+		var action PrivacyAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+			public2Privacy := action.GetPublic2Privacy()
+			return public2Privacy.Amount, nil
+		} else if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+			privacy2Privacy := action.GetPrivacy2Privacy()
+			return privacy2Privacy.Amount, nil
+		} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+			privacy2public := action.GetPrivacy2Public()
+			return privacy2public.Amount, nil
+		}
 	}
 	return 0, nil
 }
 
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
-	if "coins" == string(tx.Execer) {
+	if CoinsX == string(tx.Execer) {
 		var action CoinsAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -251,7 +267,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
 		}
-	} else if "ticket" == string(tx.Execer) {
+	} else if TicketX == string(tx.Execer) {
 		var action TicketAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -268,9 +284,9 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
 			return "bindminer"
 		}
-	} else if "none" == string(tx.Execer) {
+	} else if NoneX == string(tx.Execer) {
 		return "none"
-	} else if "hashlock" == string(tx.Execer) {
+	} else if HashlockX == string(tx.Execer) {
 		var action HashlockAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -283,7 +299,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
 			return "send"
 		}
-	} else if "retrieve" == string(tx.Execer) {
+	} else if RetrieveX == string(tx.Execer) {
 		var action RetrieveAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -298,7 +314,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
 			return "cancel"
 		}
-	} else if "token" == string(tx.Execer) {
+	} else if TokenX == string(tx.Execer) {
 		var action TokenAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -316,7 +332,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
 			return "withdrawToken"
 		}
-	} else if "trade" == string(tx.Execer) {
+	} else if TradeX == string(tx.Execer) {
 		var trade Trade
 		err := Decode(tx.Payload, &trade)
 		if err != nil {
@@ -329,6 +345,19 @@ func (tx *Transaction) ActionName() string {
 			return "buytoken"
 		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
 			return "revokeselltoken"
+		}
+	} else if PrivacyX == string(tx.Execer) {
+		var action PrivacyAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+			return "public2Privacy"
+		} else if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+			return "privacy2Privacy"
+		} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+			return "privacy2public"
 		}
 	}
 

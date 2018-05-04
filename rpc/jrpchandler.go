@@ -1221,6 +1221,7 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 func (c *Chain33) ShowPrivacyAccount(in types.ReqStr, result *interface{}) error {
 	account, err := c.cli.ShowPrivacyAccount(&in)
 	if err != nil {
+		log.Info("ShowPrivacyAccount", "return err info", err)
 		return err
 	}
 	*result = account
