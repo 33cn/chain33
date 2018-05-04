@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -10,10 +10,10 @@ type mockWallet struct {
 
 func (m *mockWallet) SetQueueClient(q queue.Queue) {
 	go func() {
+		walletKey := "wallet"
 		client := q.Client()
 		client.Sub(walletKey)
 		for msg := range client.Recv() {
-			log.Debug("receive ok", "msg", msg)
 			switch msg.Ty {
 			case types.EventWalletGetAccountList:
 				msg.Reply(client.NewMessage(walletKey, types.EventWalletAccountList, &types.WalletAccounts{}))
