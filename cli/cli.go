@@ -609,6 +609,14 @@ type TokenAccountResult struct {
 	Addr     string `json:"addr,omitempty"`
 }
 
+type PrivacyAccountResult struct {
+	TokenName string `json:"Token,omitempty"`
+	Balance   string `json:"balance,omitempty"`
+	Frozen    string `json:"frozen,omitempty"`
+	Addr      string `json:"addr,omitempty"`
+	Txhash    string `json:"txhash,omitempty"`
+}
+
 type TxListResult struct {
 	Txs []*TxResult `json:"txs"`
 }
@@ -2022,7 +2030,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	}
 	if plValue, ok := tx.Payload.(map[string]interface{})["Value"]; ok {
 		payloadValue := plValue.(map[string]interface{})
-		for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
+		for _, e := range []string{"Transfer", "Withdraw", "Genesis", "Hlock", "Public2Privacy", "Privacy2Privacy", "Privacy2Public"} {
 			if _, ok := payloadValue[e]; ok {
 				if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
 					amt := amtValue.(float64) / float64(types.Coin)
@@ -2628,7 +2636,7 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.Coin),
 			}
 		case types.TyLogTokenExecTransfer, types.TyLogTokenExecWithdraw, types.TyLogTokenExecDeposit, types.TyLogTokenExecFrozen, types.TyLogTokenExecActive,
-			types.TyLogTokenGenesisTransfer, types.TyLogTokenGenesisDeposit:
+			types.TyLogTokenGenesisTransfer, types.TyLogTokenGenesisDeposit, types.TyLogPrivacyFee:
 			var execaddr string
 			if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
 				execaddr = tmp
@@ -2703,10 +2711,15 @@ func ShowPrivacyAccount(addr string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res []*jsonrpc.Account
+	var res []*types.PrivacyOnetimeAccInfo
 	err = rpc.Call("Chain33.ShowPrivacyAccount", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	if 0 == len(res) {
+		fmt.Printf("------Currently, no Privacy account for address:%s\n", addr)
 		return
 	}
 
@@ -2714,11 +2727,12 @@ func ShowPrivacyAccount(addr string) {
 	for index, account := range res {
 		balanceResult := strconv.FormatFloat(float64(account.Balance)/float64(types.Coin), 'f', 4, 64)
 		frozenResult := strconv.FormatFloat(float64(account.Frozen)/float64(types.Coin), 'f', 4, 64)
-		result := &AccountResult{
-			Addr:     account.Addr,
-			Currency: account.Currency,
-			Balance:  balanceResult,
-			Frozen:   frozenResult,
+		result := &PrivacyAccountResult{
+			Addr:      account.Addr,
+			TokenName: account.Tokenname,
+			Balance:   balanceResult,
+			Frozen:    frozenResult,
+			Txhash:    account.Txhash,
 		}
 
 		data, err := json.MarshalIndent(result, "", "    ")
@@ -2726,7 +2740,7 @@ func ShowPrivacyAccount(addr string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		fmt.Printf("------The %dth privacy account info with onetime address:%s is below", index, account.Addr)
+		fmt.Printf("------The %dth privacy account info with onetime address:%s is as below\n", index, account.Addr)
 		fmt.Println(string(data))
 	}
 
@@ -2870,6 +2884,7 @@ func TransferPriv2Priv(args []string) {
 
 	fmt.Println(string(data))
 }
+
 //"from receiver amout hash note: 隐私账户
 func TransferPriv2Pub(args []string) {
 	amountFloat64, err := strconv.ParseFloat(args[2], 64)
