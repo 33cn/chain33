@@ -29,7 +29,7 @@ type Miner interface {
 	CreateGenesisTx() []*types.Transaction
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
-	ProcEvent(msg queue.Message)
+	ProcEvent(msg queue.Message) bool
 	ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error)
 }
 
@@ -195,7 +195,9 @@ func (bc *BaseClient) EventLoop() {
 				block := msg.GetData().(*types.BlockDetail).Block
 				bc.UpdateCurrentBlock(block)
 			} else {
-				bc.child.ProcEvent(msg)
+				if !bc.child.ProcEvent(msg) {
+					msg.ReplyErr("BaseClient.EventLoop() ", types.ErrActionNotSupport)
+				}
 			}
 		}
 	}()
