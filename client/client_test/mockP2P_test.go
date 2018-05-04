@@ -14,6 +14,7 @@ func (m *mockP2P) SetQueueClient(q queue.Queue) {
 		client := q.Client()
 		client.Sub(p2pKey)
 		for msg := range client.Recv() {
+			log.Debug("receive ok", "msg", msg)
 			switch msg.Ty {
 			case types.EventPeerInfo:
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.PeerList{}))
