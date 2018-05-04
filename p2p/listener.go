@@ -53,19 +53,17 @@ func NewListener(protocol string, node *Node) Listener {
 	pServer := NewP2pServer()
 	pServer.node = dl.node
 
-	msgRecvOp := grpc.MaxMsgSize(10 * 1024 * 1024)     //设置最大接收数据大小位10M
-	msgSendOp := grpc.MaxSendMsgSize(10 * 1024 * 1024) //设置最大发送数据大小为10M
+	//区块最多10M
+	msgRecvOp := grpc.MaxMsgSize(11 * 1024 * 1024)     //设置最大接收数据大小位11M
+	msgSendOp := grpc.MaxSendMsgSize(11 * 1024 * 1024) //设置最大发送数据大小为11M
 
-	//暂时不启用解压缩进行发送接收
-	//compressOp := grpc.RPCCompressor(grpc.NewGZIPCompressor())       //设置grpc 采用gzip形式进行 压缩
-	//decompressOp := grpc.RPCDecompressor(grpc.NewGZIPDecompressor()) //设置 grpc gzip 解压缩
 	var keepparm keepalive.ServerParameters
-	keepparm.Time = 100 * time.Second
-	keepparm.Timeout = 5 * time.Second
+	keepparm.Time = 10 * time.Minute
+	keepparm.Timeout = 20 * time.Second
+	keepparm.MaxConnectionIdle = 1 * time.Minute
 	keepOp := grpc.KeepaliveParams(keepparm)
 
-	dl.server = grpc.NewServer(msgRecvOp, msgSendOp,
-		/*compressOp, decompressOp,*/ keepOp)
+	dl.server = grpc.NewServer(msgRecvOp, msgSendOp, keepOp)
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	return dl
