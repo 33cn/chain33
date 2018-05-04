@@ -1080,7 +1080,7 @@ func (ps *PeerState) SetHasVote(vote *types.Vote) {
 
 func (ps *PeerState) setHasVote(height int64, round int, type_ byte, index int) {
 	logger := ps.logger
-	logger.Info("peerH/R", cmn.Fmt("%d/%d", ps.Height, ps.Round), "H/R", cmn.Fmt("%d/%d", height, round))
+	logger.Info("setHasVote","peerH/R", cmn.Fmt("%d/%d", ps.Height, ps.Round), "H/R", cmn.Fmt("%d/%d", height, round))
 	logger.Debug("setHasVote", "type", type_, "index", index)
 
 	// NOTE: some may be nil BitArrays -> no side effects.

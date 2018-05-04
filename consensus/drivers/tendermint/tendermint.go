@@ -51,6 +51,7 @@ type TendermintClient struct{
 	fastSync      bool
 	evidencePool  *evidence.EvidencePool
 	csState       *core.ConsensusState
+	blockStore    *ttypes.BlockStore
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -136,6 +137,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 		}
 	}
 
+	pubkey := privValidator.GetPubKey().KeyString()
 	// Log whether this node is a validator or an observer
 	if state.Validators.HasAddress(privValidator.GetAddress()) {
 		tendermintlog.Info("This node is a validator")
@@ -170,6 +172,8 @@ func New(cfg *types.Consensus) *TendermintClient {
 
 	c := drivers.NewBaseClient(cfg)
 
+	blockStore := ttypes.NewBlockStore(c, pubkey)
+
 	client := &TendermintClient{
 		BaseClient:       c,
 		genesisDoc :      genDoc,
@@ -181,6 +185,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 		sw:               sw,
 		eventBus:         eventBus,
 		evidencePool:     evidencePool,
+		blockStore:       blockStore,
 	}
 
 	c.SetChild(client)
@@ -228,8 +233,6 @@ func (client *TendermintClient) StartConsensus() {
 		panic("StartConsensus failed for current block is nil")
 	}
 
-	blockstore := ttypes.NewBlockStore(client.BaseClient)
-
 	state := client.state.Copy()
 	blockInfo := ttypes.GetCommitFromBlock(block)
 	if blockInfo != nil {
@@ -246,7 +249,7 @@ func (client *TendermintClient) StartConsensus() {
 	state.LastBlockHeight = block.Height
 
 	// Make ConsensusReactor
-	csState := core.NewConsensusState(client.BaseClient, blockstore, state, client.blockExec, client.evidencePool)
+	csState := core.NewConsensusState(client.BaseClient, client.blockStore, state, client.blockExec, client.evidencePool)
 	csState.SetPrivValidator(client.privValidator)
 
 	consensusReactor := core.NewConsensusReactor(csState, false)
@@ -340,7 +343,7 @@ func (client *TendermintClient) CreateBlock() {
 		}
 
 		lastBlock := client.GetCurrentBlock()
-		tendermintlog.Info("get last block","height", lastBlock.Height, "time", lastBlock.BlockTime,"txhash",lastBlock.TxHash)
+		//tendermintlog.Info("get last block","height", lastBlock.Height, "time", lastBlock.BlockTime,"txhash",lastBlock.TxHash)
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
 		//check dup
 		txs = client.CheckTxDup(txs)
