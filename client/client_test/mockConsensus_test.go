@@ -14,7 +14,6 @@ func (m *mockConsensus) SetQueueClient(q queue.Queue) {
 		client := q.Client()
 		client.Sub(consensusKey)
 		for msg := range client.Recv() {
-			log.Debug("receive ok", "msg", msg)
 			switch msg.Ty {
 			case types.EventGetTicketCount:
 				msg.Reply(client.NewMessage(consensusKey, types.EventReplyGetTicketCount, &types.Int64{}))

@@ -14,7 +14,6 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 		client := q.Client()
 		client.Sub(blockchainKey)
 		for msg := range client.Recv() {
-			log.Debug("receive ok", "msg", msg)
 			switch msg.Ty {
 			case types.EventGetBlocks:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventBlocks, &types.BlockDetails{}))
