@@ -1,14 +1,10 @@
 package p2p
 
 import (
-	//"container/list"
 	"encoding/hex"
-	"fmt"
 	"io"
-	//	"sync"
 
 	"math/rand"
-	"strconv"
 	"strings"
 
 	"sync/atomic"
@@ -185,24 +181,20 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 		return "", err
 	}
 	P2pComm.CollectPeerStat(err, peer)
-	port, err := strconv.Atoi(strings.Split(resp.GetAddrRecv(), ":")[1])
-	if err != nil {
-		return "", err
-	}
 
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
 
 	if !peer.IsPersistent() {
 		return resp.GetUserAgent(), nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
 	}
-
-	if strings.Split(resp.GetAddrRecv(), ":")[0] != nodeinfo.GetExternalAddr().IP.String() {
-		externalIP := strings.Split(resp.GetAddrRecv(), ":")[0]
-		log.Debug("sendVersion", "externalip", externalIP)
-		if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", externalIP, port)); err == nil {
-			nodeinfo.SetExternalAddr(exaddr)
+	if len(strings.Split(resp.GetAddrRecv(), ":")) == 2 {
+		if strings.Split(resp.GetAddrRecv(), ":")[0] != nodeinfo.GetExternalAddr().IP.String() {
+			externalIP := strings.Split(resp.GetAddrRecv(), ":")[0]
+			log.Debug("sendVersion", "externalip", externalIP)
+			if exaddr, err := NewNetAddressString(resp.GetAddrRecv()); err == nil {
+				nodeinfo.SetExternalAddr(exaddr)
+			}
 		}
-
 	}
 
 	return resp.GetUserAgent(), nil
