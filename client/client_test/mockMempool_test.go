@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -10,10 +10,10 @@ type mockMempool struct {
 
 func (m *mockMempool) SetQueueClient(q queue.Queue) {
 	go func() {
+		mempoolKey := "mempool"
 		client := q.Client()
 		client.Sub(mempoolKey)
 		for msg := range client.Recv() {
-			log.Debug("receive ok", "msg", msg)
 			switch msg.Ty {
 			case types.EventTx:
 				msg.Reply(client.NewMessage(mempoolKey, types.EventReply, &types.Reply{IsOk: true, Msg: []byte("word")}))
