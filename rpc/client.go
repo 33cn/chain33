@@ -205,8 +205,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 		var queryAddrs []string
 		for _, addr := range addrs {
 			if err := account.CheckAddress(addr); err != nil {
-				addr = account.ExecAddress(addr).String()
-
+				addr = string(accountTokendb.AccountKey(addr))
 			}
 			queryAddrs = append(queryAddrs, addr)
 		}
