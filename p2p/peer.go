@@ -13,10 +13,10 @@ import (
 )
 
 func (p *Peer) Start() {
-
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
 }
+
 func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
@@ -160,6 +160,8 @@ func (p *Peer) sendStream() {
 		//send ping package
 		ping, err := P2pComm.NewPingData(*p.nodeInfo)
 		if err != nil {
+			resp.CloseSend()
+			cancel()
 			time.Sleep(time.Second)
 			continue
 		}
@@ -268,6 +270,7 @@ func (p *Peer) readStream() {
 		var hash [64]byte
 		for {
 			if !p.GetRunning() {
+				resp.CloseSend()
 				return
 			}
 			data, err := resp.Recv()
