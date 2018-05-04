@@ -30,11 +30,11 @@ driver="leveldb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=true
-singleMode=true
+singleMode=false
 batchsync=false
 
 [p2p]
-seeds=["192.168.3.4:13802"]
+seeds=["192.168.3.13:13802","192.168.3.4:13802"]
 enable=true
 isSeed=true
 serverStart=true
@@ -51,7 +51,6 @@ verMax=199
 jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
 whitlist=["127.0.0.1"]
-
 [mempool]
 poolCacheSize=10240
 minTxFee=100000
@@ -72,7 +71,7 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["192.168.3.4:46656"]
+seeds=["192.168.3.4:46656","192.168.3.13:46656"]
 
 [store]
 name="mavl"
