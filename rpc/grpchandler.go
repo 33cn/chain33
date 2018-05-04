@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/common/version"
-	"gitlab.33.cn/chain33/chain33/types"
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	pr "google.golang.org/grpc/peer"
@@ -34,259 +32,170 @@ func (g *Grpc) SendRawTransaction(ctx context.Context, in *pb.SignedTx) (*pb.Rep
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply := g.cli.SendRawTransaction(in)
-	if reply.GetData().(*pb.Reply).IsOk {
-		return reply.GetData().(*pb.Reply), nil
-	} else {
-		return nil, fmt.Errorf(string(reply.GetData().(*pb.Reply).Msg))
-	}
-
+	return g.cli.SendRawTransaction(in)
 }
 
 func (g *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.TransactionDetail, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	return g.cli.QueryTx(in.Hash)
+	return g.cli.QueryTx(in)
 }
 
 func (g *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetBlocks(in.Start, in.End, in.Isdetail)
+
+	reply, err := g.cli.GetBlocks(&pb.ReqBlocks{in.Start, in.End, in.Isdetail, []string{""}})
 	if err != nil {
 		return nil, err
 	}
-
+	return &pb.Reply{
 			IsOk: true,
-
+			Msg:  pb.Encode(reply)},
+		nil
 }
 
 func (g *Grpc) GetLastHeader(ctx context.Context, in *pb.ReqNil) (*pb.Header, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetLastHeader()
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetLastHeader()
 }
 
 func (g *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.ReplyTxInfos, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetTxByAddr(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetTransactionByAddr(in)
 }
 
 func (g *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.QueryTx(in.GetHash())
+	reply, err := g.cli.QueryTx(in)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.HexTx{Tx: hex.EncodeToString(types.Encode(reply.GetTx()))}, nil
+	tx := reply.GetTx()
+	if tx == nil {
+		return &pb.HexTx{}, nil
+	}
+	return &pb.HexTx{Tx: hex.EncodeToString(pb.Encode(reply.GetTx()))}, nil
 }
 
 func (g *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.TransactionDetails, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetTxByHashes(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetTransactionByHash(in)
 }
 
 func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetMempool()
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetMempool()
 }
 
 func (g *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAccounts, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetAccounts()
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletGetAccountList()
 }
 
 func (g *Grpc) NewAccount(ctx context.Context, in *pb.ReqNewAccount) (*pb.WalletAccount, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.NewAccount(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.NewAccount(in)
 }
 
 func (g *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTransactionList) (*pb.WalletTxDetails, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.WalletTxList(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletTransactionList(in)
 }
 
 func (g *Grpc) ImportPrivKey(ctx context.Context, in *pb.ReqWalletImportPrivKey) (*pb.WalletAccount, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.ImportPrivkey(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletImportprivkey(in)
 }
 
 func (g *Grpc) SendToAddress(ctx context.Context, in *pb.ReqWalletSendToAddress) (*pb.ReplyHash, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.SendToAddress(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletSendToAddress(in)
 }
 
 func (g *Grpc) SetTxFee(ctx context.Context, in *pb.ReqWalletSetFee) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.SetTxFee(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletSetFee(in)
 }
 
 func (g *Grpc) SetLabl(ctx context.Context, in *pb.ReqWalletSetLabel) (*pb.WalletAccount, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.SetLabl(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletSetLabel(in)
 }
 
 func (g *Grpc) MergeBalance(ctx context.Context, in *pb.ReqWalletMergeBalance) (*pb.ReplyHashes, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.MergeBalance(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletMergeBalance(in)
 }
 
 func (g *Grpc) SetPasswd(ctx context.Context, in *pb.ReqWalletSetPasswd) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.SetPasswd(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletSetPasswd(in)
 }
 
 func (g *Grpc) Lock(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.Lock()
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletLock()
 }
+
 func (g *Grpc) UnLock(ctx context.Context, in *pb.WalletUnLock) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.UnLock(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.WalletUnLock(in)
 }
 
 func (g *Grpc) GetPeerInfo(ctx context.Context, in *pb.ReqNil) (*pb.PeerList, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetPeerInfo()
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.PeerInfo()
 }
 
 func (g *Grpc) GetHeaders(ctx context.Context, in *pb.ReqBlocks) (*pb.Headers, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetHeaders(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetHeaders(in)
 }
 
 func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetLastMemPool(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetLastMempool()
 }
 
 //add by hyb
@@ -295,35 +204,21 @@ func (g *Grpc) GetBlockOverview(ctx context.Context, in *pb.ReqHash) (*pb.BlockO
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetBlockOverview(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetBlockOverview(in)
 }
+
 func (g *Grpc) GetAddrOverview(ctx context.Context, in *pb.ReqAddr) (*pb.AddrOverview, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetAddrOverview(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetAddrOverview(in)
 }
 
 func (g *Grpc) GetBlockHash(ctx context.Context, in *pb.ReqInt) (*pb.ReplyHash, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetBlockHash(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetBlockHash(in)
 }
 
 //seed
@@ -331,47 +226,28 @@ func (g *Grpc) GenSeed(ctx context.Context, in *pb.GenSeedLang) (*pb.ReplySeed, 
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GenSeed(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GenSeed(in)
 }
 
 func (g *Grpc) GetSeed(ctx context.Context, in *pb.GetSeedByPw) (*pb.ReplySeed, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetSeed(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.GetSeed(in)
 }
 
 func (g *Grpc) SaveSeed(ctx context.Context, in *pb.SaveSeedByPw) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.SaveSeed(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
+	return g.cli.SaveSeed(in)
 }
 
 func (g *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.WalletStatus, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	reply, err := g.cli.GetWalletStatus()
-	if err != nil {
-		return nil, err
-	}
-	return (*pb.WalletStatus)(reply), nil
+	return g.cli.GetWalletStatus()
 }
 
 func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts, error) {
@@ -386,6 +262,9 @@ func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts,
 }
 
 func (g *Grpc) GetTokenBalance(ctx context.Context, in *pb.ReqTokenBalance) (*pb.Accounts, error) {
+	if !g.checkWhitlist(ctx) {
+		return nil, fmt.Errorf("reject")
+	}
 	reply, err := g.cli.GetTokenBalance(in)
 	if err != nil {
 		return nil, err
@@ -397,14 +276,13 @@ func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) 
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	result, err := g.cli.QueryHash(in)
+	msg, err := g.cli.Query(in)
 	if err != nil {
 		return nil, err
 	}
-	var reply types.Reply
+	var reply pb.Reply
 	reply.IsOk = true
-	reply.Msg = types.Encode(*result)
-
+	reply.Msg = pb.Encode(*msg)
 	return &reply, nil
 }
 
@@ -412,80 +290,56 @@ func (g *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, 
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	result, err := g.cli.SetAutoMiner(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return g.cli.WalletAutoMiner(in)
 }
 
-func (g *Grpc) GetTicketCount(ctx context.Context, in *types.ReqNil) (*pb.Int64, error) {
+func (g *Grpc) GetTicketCount(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	result, err := g.cli.GetTicketCount()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-
+	return g.cli.GetTicketCount()
 }
+
 func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	result, err := g.cli.DumpPrivkey(in)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return g.cli.DumpPrivkey(in)
 }
 
 func (g *Grpc) CloseTickets(ctx context.Context, in *pb.ReqNil) (*pb.ReplyHashes, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	result, err := g.cli.CloseTickets()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return g.cli.CloseTickets()
 }
 
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-
-	return &pb.Reply{IsOk: true, Msg: []byte(version.GetVersion())}, nil
+	return g.cli.Version()
 }
 
 func (g *Grpc) IsSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-
-	return &pb.Reply{IsOk: g.cli.IsSync()}, nil
+	return g.cli.IsSync()
 }
 
 func (g *Grpc) IsNtpClockSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-
-	return &pb.Reply{IsOk: g.cli.IsNtpClockSync()}, nil
+	return g.cli.IsNtpClockSync()
 }
 
 func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, error) {
 	if !g.checkWhitlist(ctx) {
 		return nil, fmt.Errorf("reject")
 	}
-	resp, err := g.cli.GetNetInfo()
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return g.cli.GetNetInfo()
 }
 
 func (g *Grpc) checkWhitlist(ctx context.Context) bool {
