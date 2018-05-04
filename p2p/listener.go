@@ -58,9 +58,9 @@ func NewListener(protocol string, node *Node) Listener {
 	msgSendOp := grpc.MaxSendMsgSize(11 * 1024 * 1024) //设置最大发送数据大小为11M
 
 	var keepparm keepalive.ServerParameters
-	keepparm.Time = 1 * time.Minute
+	keepparm.Time = 3 * time.Minute
 	keepparm.Timeout = 30 * time.Second
-	keepparm.MaxConnectionIdle = 60 * time.Second
+
 	keepOp := grpc.KeepaliveParams(keepparm)
 
 	dl.server = grpc.NewServer(msgRecvOp, msgSendOp, keepOp)
