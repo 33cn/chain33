@@ -59,7 +59,7 @@ func NewListener(protocol string, node *Node) Listener {
 
 	var keepparm keepalive.ServerParameters
 	keepparm.Time = 1 * time.Minute
-	keepparm.Timeout = 20 * time.Second
+	keepparm.Timeout = 30 * time.Second
 	keepparm.MaxConnectionIdle = 60 * time.Second
 	keepOp := grpc.KeepaliveParams(keepparm)
 
