@@ -634,7 +634,7 @@ func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, 
 		return bytes.Join(s, sep)
 	}(param.Hash))
 
-	msg, err := q.query(walletKey, types.EventLocalGet, &types.LocalDBGet{keys})
+	msg, err := q.query(walletKey, types.EventLocalGet, &types.LocalDBGet{Keys: keys})
 	if err != nil {
 		log.Error("LocalGet", "Error", err.Error())
 		return nil, err
