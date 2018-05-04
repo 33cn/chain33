@@ -87,6 +87,7 @@ func (n *Node) getAddrFromGithub() {
 				}
 			}
 		}
+
 	}
 }
 
