@@ -128,8 +128,12 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
+	var port string
+	if len(strings.Split(in.AddrFrom, ":")) == 2 {
+		port = strings.Split(in.AddrFrom, ":")[1]
+	}
 	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
-		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, strings.Split(in.AddrFrom, ":")[1]), UserAgent: pub}, nil
+		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, port), UserAgent: pub}, nil
 
 }
 
@@ -394,6 +398,7 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 	var hash [64]byte
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
+
 	var in = new(pb.BroadCastData)
 	var err error
 	for {
