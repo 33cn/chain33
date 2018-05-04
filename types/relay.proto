@@ -23,7 +23,7 @@ enum RelayOrderStatus {
     confirming = 3;
     finished = 4;
     canceled = 5;
-    timeout = 6;
+    timeout = 6;  //TODO: may not needed?
 }
 
 
@@ -48,12 +48,12 @@ message RelaySell {
     string exchgcoin          	= 4;    //兑换币符号 比如BTC
     int64  exchgamount          = 5;    //兑换数量
     string exchgaddr	       	= 6;    //兑换账户
-    int32  waitcoinblocks       = 7;   //客户愿意等待的确认块数，默认是6个块，可以自己设置
+    int32  waitcoinblocks       = 7;    //客户愿意等待的确认块数，默认是6个块，可以自己设置
 
 }
 
 message RelayOrder {
-    string orderid				= 1;   //此处使用buyer tx的hash来指定
+    string orderid				= 1;    //此处使用buyer tx的hash来指定
     RelayOrderStatus  status    = 2;
     int64  sellamount           = 3;
     //string selltoken          = 4;
@@ -61,14 +61,19 @@ message RelayOrder {
     string exchgcoin            = 6;
     int64  exchgamount          = 7;
     string exchgaddr          	= 8;
-    int32  waitcoinblocks       = 9;
-    int64  createtime           = 10;
-    string buyeraddr          	= 11;
-    string buytxhash            = 12;
-    int64  buyertime            = 13;
-    int64  buyercoinheight    	= 14;    //buy的时候的coin的block 高度
-    int64  finishtime           = 15;    //订单最终结算时间
-    int64  height               = 16;
+    string exchgtxhash          = 9;     //buyer 提交coin的交易hash
+    int32  waitcoinblocks       = 10;
+    int64  createtime           = 11;
+    string buyeraddr          	= 12;
+    //string buytxhash          = 13;
+    int64  buytime              = 14;
+    int64  buyercoinheight    	= 15;    //buy的时候的coin的block 高度
+    int64  confirmtime          = 16;    //buyer 提交exchgtxhash的时间
+    //int32  lockingtime        = 17;    //buyer交易验证不通过时候 订单重新锁定时间
+    //int32  lockingtimes       = 18;    //buyer 提交coin交易hash待验证的次数，如果超过3次未验证通过 则seller随时可以收回（unlock）交易
+    int64  finishtime           = 19;    //订单最终结算时间
+    string finishresult         = 20;
+    int64  height               = 21;
 }
 
 message RelayBuy {
@@ -114,20 +119,20 @@ message RelayVerifyBTC {
 
 message ReceiptRelayBase {
     string orderid				= 1;
-    RelayOrderStatus status				= 2;
+    RelayOrderStatus status		= 2;
     string owner                = 3;
     int64  sellamount			= 4;
     //string selltoken			= 5;
     string exchgcoin            = 6;
     int64  exchgamount          = 7;
     string exchgaddr            = 8;
-    int32  waitcoinblocks       = 9;
-    int64  createtime           = 10;
-    string buyeraddr            = 11;
-    int64  buyertime            = 12;
-    int64  buyercoinheight      = 13;
+    string exchgtxhash          = 9;
+    int32  waitcoinblocks       = 10;
+    int64  createtime           = 11;
+    string buyeraddr            = 12;
+    int64  buyertime            = 13;
     int64  finishtime           = 14;
-
+    string finishresult         = 15;
 }
 
 message ReceiptRelaySell {
@@ -136,12 +141,14 @@ message ReceiptRelaySell {
 
 message ReceiptRelayBuy {
     string orderid             	= 1;
-    string buyeraddr			= 2;
-    int64  buyamount			= 3;
-    string exchgcoin			= 4;
-    int64  exchgamount			= 5;
-    string exchgaddr			= 6;
-    string buytxhash            = 7;
+    RelayOrderStatus status		= 2;
+    string buyeraddr			= 3;
+    int64  buyamount			= 4;
+    string buytxhash            = 5;
+    string exchgcoin			= 6;
+    int64  exchgamount			= 7;
+    string exchgaddr			= 8;
+    string exchgtxhash          = 9;
 }
 
 message ReceiptRelayRevoke {
@@ -149,7 +156,7 @@ message ReceiptRelayRevoke {
 }
 
 message ReceiptRelayConfirm {
-    ReceiptRelayBase base = 1;
+    ReceiptRelayBuy base = 1;
 }
 
 message ReceiptRelayVerify {
@@ -158,11 +165,11 @@ message ReceiptRelayVerify {
 
 
 message ReqRelayAddrCoins{
-    string addr           = 1;
-    RelayOrderStatus  status         = 2;
-    repeated string coins = 3;
-    int32 pageNumber      = 4;
-    int32 pageSize        = 5;
+    string addr                 = 1;
+    RelayOrderStatus  status    = 2;
+    repeated string coins       = 3;
+    int32 pageNumber            = 4;
+    int32 pageSize              = 5;
 }
 
 message ReplyRelayOrders {
@@ -173,7 +180,7 @@ message ReplyRelayOrders {
 
 message QueryRelayOrderParam{
     RelayOrderStatus status = 1;
-    string orderid = 2;
+    string orderid          = 2;
 }
 
 message QueryRelayOrderResult{

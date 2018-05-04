@@ -20,24 +20,24 @@ func RelayCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		ShowOnesRelayOrdersCmd(),
-		ShowOnesRelayBuyOrdersCmd(),
-		ShowOrdersByCoinStatusCmd(),
+		ShowOnesSellRelayOrdersCmd(),
+		ShowOnesBuyRelayOrdersCmd(),
+		ShowOnesStatusOrdersCmd(),
 		CreateRawRelaySellTxCmd(),
 		CreateRawRevokeSellTxCmd(),
 		CreateRawRelayBuyTxCmd(),
 		CreateRawRevokeBuyTxCmd(),
-		CreateRawRelayVerifyTxCmd(),
+		CreateRawRelayConfirmTxCmd(),
 		CreateRawRelayVerifyBTCTxCmd(),
 	)
 
 	return cmd
 }
 
-func ShowOnesRelayOrdersCmd() *cobra.Command {
+func ShowOnesSellRelayOrdersCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "relay_order",
-		Short: "Show one coin's relay orders",
+		Use:   "sell_order",
+		Short: "Show one seller's relay orders, coins optional",
 		Run:   showOnesRelayOrders,
 	}
 	addShowRelayOrdersFlags(cmd)
@@ -49,7 +49,7 @@ func addShowRelayOrdersFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("seller")
 
 	cmd.Flags().StringP("coin", "c", "", "coins, separated by space")
-	cmd.MarkFlagRequired("coin")
+
 }
 
 func showOnesRelayOrders(cmd *cobra.Command, args []string) {
@@ -65,7 +65,7 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 	}
 	params := jsonrpc.Query4Cli{
 		Execer:   "relay",
-		FuncName: "GetRelayOrder",
+		FuncName: "GetSellRelayOrder",
 		Payload:  reqAddrCoins,
 	}
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
@@ -85,10 +85,10 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 }
 
 ////
-func ShowOnesRelayBuyOrdersCmd() *cobra.Command {
+func ShowOnesBuyRelayOrdersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "buy_order",
-		Short: "Show one coin's buy orders",
+		Short: "Show one buyer's buy orders, coins optional",
 		Run:   showRelayBuyOrders,
 	}
 	addShowRelayBuyOrdersFlags(cmd)
@@ -116,7 +116,7 @@ func showRelayBuyOrders(cmd *cobra.Command, args []string) {
 	}
 	params := jsonrpc.Query4Cli{
 		Execer:   "relay",
-		FuncName: "GetRelayBuyOrder",
+		FuncName: "GetBuyRelayOrder",
 		Payload:  reqAddrCoins,
 	}
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
@@ -136,10 +136,10 @@ func showRelayBuyOrders(cmd *cobra.Command, args []string) {
 }
 
 ////
-func ShowOrdersByCoinStatusCmd() *cobra.Command {
+func ShowOnesStatusOrdersCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "coin_order",
-		Short: "Show all coin's status",
+		Use:   "status",
+		Short: "Show ones status's orders",
 		Run:   showCoinRelayOrders,
 	}
 	addShowCoinOrdersFlags(cmd)
@@ -147,11 +147,10 @@ func ShowOrdersByCoinStatusCmd() *cobra.Command {
 }
 
 func addShowCoinOrdersFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("coin", "c", "", "coins, separated by space")
-	cmd.MarkFlagRequired("coin")
-
-	cmd.Flags().Int32P("status", "s", 0, "relay order status (onsale:0, deal:1, finished:2,revoked:3)")
+	cmd.Flags().Int32P("status", "s", 0, "order status (pending:1, locking:2, confirming:3, finished:4,cancled:5)")
 	cmd.MarkFlagRequired("status")
+
+	cmd.Flags().StringP("coin", "c", "", "coins, separated by space")
 }
 
 func showCoinRelayOrders(cmd *cobra.Command, args []string) {
@@ -166,7 +165,7 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 	}
 	params := jsonrpc.Query4Cli{
 		Execer:   "relay",
-		FuncName: "GetRelayOrderByCoinStatus",
+		FuncName: "GetRelayOrderByStatus",
 		Payload:  reqAddrCoins,
 	}
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
@@ -197,7 +196,7 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 		show.Waitcoinblocks = order.Waitcoinblocks
 		show.Createtime = order.Createtime
 		show.Buyeraddr = order.Buyeraddr
-		show.Buyertime = order.Buyertime
+		show.Buyertime = order.Buytime
 		show.Buyercoinheight = order.Buyercoinheight
 		show.Finishtime = order.Finishtime
 		show.Height = order.Height
@@ -370,17 +369,17 @@ func relayRevokeBuy(cmd *cobra.Command, args []string) {
 }
 
 // create raw verify transaction
-func CreateRawRelayVerifyTxCmd() *cobra.Command {
+func CreateRawRelayConfirmTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "verify",
-		Short: "Create a verify coin transaction",
-		Run:   relayVerify,
+		Use:   "confirm",
+		Short: "Create a confirm coin transaction",
+		Run:   relayConfirm,
 	}
-	addVerifyFlags(cmd)
+	addConfirmFlags(cmd)
 	return cmd
 }
 
-func addVerifyFlags(cmd *cobra.Command) {
+func addConfirmFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("order_id", "i", "", "order id")
 	cmd.MarkFlagRequired("order_id")
 
@@ -391,7 +390,7 @@ func addVerifyFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("fee")
 }
 
-func relayVerify(cmd *cobra.Command, args []string) {
+func relayConfirm(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	orderid, _ := cmd.Flags().GetString("order_id")
 	txhash, _ := cmd.Flags().GetString("tx_hash")
@@ -404,7 +403,7 @@ func relayVerify(cmd *cobra.Command, args []string) {
 		Fee:     feeInt64 * 1e4,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayVerifyTx", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayConfirmTx", params, &res)
 	ctx.Run()
 }
 

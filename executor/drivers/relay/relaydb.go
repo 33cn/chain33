@@ -7,6 +7,15 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+//当前方案没有考虑验证失败后允许buyer重试机制， 待整体功能实现后，再讨论要不要增加buyer重试机制
+//如果购买订单和提交交易过后4小时，仍未交易成功，则seller可以收回订单
+const LOCKING_PERIOD = 4 * 60
+const BUY_CANCLED = "BUY_CANCLED"
+
+//TODO
+// 1,仔细检查状态切换和 命令接受时的状态允许
+// 2, confirm 的状态检查
+
 type relayDB struct {
 	types.RelayOrder
 }
@@ -32,9 +41,28 @@ func (r *relayDB) getKVSet() (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (r *relayDB) getSellLogs(relayType int32) *types.ReceiptLog {
+func (r *relayDB) getBuyLogs(relayLogType int32, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	log.Ty = relayType
+	log.Ty = relayLogType
+	receiptBuy := &types.ReceiptRelayBuy{
+		Orderid:     r.Orderid,
+		Status:      r.Status,
+		Buyeraddr:   r.Buyeraddr,
+		Buyamount:   r.Sellamount,
+		Exchgcoin:   r.Exchgcoin,
+		Exchgamount: r.Exchgamount,
+		Exchgaddr:   r.Exchgaddr,
+		Exchgtxhash: r.Exchgtxhash,
+		Buytxhash:   txhash,
+	}
+	log.Log = types.Encode(receiptBuy)
+
+	return log
+}
+
+func (r *relayDB) getSellLogs(relayLogType int32) *types.ReceiptLog {
+	log := &types.ReceiptLog{}
+	log.Ty = relayLogType
 	base := &types.ReceiptRelayBase{
 		Orderid:        r.Orderid,
 		Status:         r.Status,
@@ -45,53 +73,10 @@ func (r *relayDB) getSellLogs(relayType int32) *types.ReceiptLog {
 		Exchgaddr:      r.Exchgaddr,
 		Waitcoinblocks: r.Waitcoinblocks,
 		Createtime:     r.Createtime,
-	}
-	if types.TyLogRelaySell == relayType {
-		receipt := &types.ReceiptRelaySell{base}
-		log.Log = types.Encode(receipt)
-
-	} else if types.TyLogRelayRevoke == relayType {
-		receipt := &types.ReceiptRelayRevoke{base}
-		log.Log = types.Encode(receipt)
-	}
-
-	return log
-}
-
-func (r *relayDB) getBuyLogs(txhash string) *types.ReceiptLog {
-	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogRelayBuy
-	receiptBuy := &types.ReceiptRelayBuy{
-		Orderid:     r.Orderid,
-		Buyeraddr:   r.Buyeraddr,
-		Buyamount:   r.Sellamount,
-		Exchgcoin:   r.Exchgcoin,
-		Exchgamount: r.Exchgamount,
-		Exchgaddr:   r.Exchgaddr,
-		Buytxhash:   txhash,
-	}
-	log.Log = types.Encode(receiptBuy)
-
-	return log
-}
-
-func (r *relayDB) getVerifyLogs(blocktime int64) *types.ReceiptLog {
-	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogRelayVerify
-	base := &types.ReceiptRelayBase{
-		Orderid:         r.Orderid,
-		Status:          r.Status,
-		Owner:           r.Selladdr,
-		Sellamount:      r.Sellamount,
-		Exchgcoin:       r.Exchgcoin,
-		Exchgamount:     r.Exchgamount,
-		Exchgaddr:       r.Exchgaddr,
-		Waitcoinblocks:  r.Waitcoinblocks,
-		Createtime:      r.Createtime,
-		Buyeraddr:       r.Buyeraddr,
-		Buyertime:       r.Buyertime,
-		Buyercoinheight: r.Buyercoinheight,
-		Finishtime:      blocktime,
+		Buyeraddr:      r.Buyeraddr,
+		Buyertime:      r.Buytime,
+		Finishtime:     r.Finishtime,
+		Finishresult:   r.Finishresult,
 	}
 
 	receipt := &types.ReceiptRelaySell{base}
@@ -144,7 +129,7 @@ func (action *relayAction) relaySell(sell *types.RelaySell) (*types.Receipt, err
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	order := &types.RelayOrder{
-		Orderid:        calcRelaySellID(action.txhash),
+		Orderid:        calcRelayOrderID(action.txhash),
 		Status:         types.RelayOrderStatus_pending,
 		Sellamount:     sell.Sellamount,
 		Selladdr:       action.fromaddr,
@@ -174,7 +159,21 @@ func (action *relayAction) relayRevokeSell(revoke *types.RelayRevokeSell) (*type
 		return nil, types.ErrTRelayOrderNotExist
 	}
 
-	if order.Status == types.RelayOrderStatus_locking || order.Status == types.RelayOrderStatus_finished {
+	if order.Status == types.RelayOrderStatus_locking {
+		if action.blocktime-order.Buytime < LOCKING_PERIOD {
+			relaylog.Error("relay revoke sell ", "action.blocktime-order.Buytime", action.blocktime-order.Buytime, "less", LOCKING_PERIOD)
+			return nil, types.ErrTime
+		}
+	}
+
+	if order.Status == types.RelayOrderStatus_confirming {
+		if action.blocktime-order.Confirmtime < LOCKING_PERIOD {
+			relaylog.Error("relay revoke sell ", "action.blocktime-order.Confirmtime", action.blocktime-order.Confirmtime, "less", LOCKING_PERIOD)
+			return nil, types.ErrTime
+		}
+	}
+
+	if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrTRelayOrderSoldout
 	} else if order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrTRelayOrderRevoked
@@ -183,6 +182,7 @@ func (action *relayAction) relayRevokeSell(revoke *types.RelayRevokeSell) (*type
 	if action.fromaddr != order.Selladdr {
 		return nil, types.ErrTRelayReturnAddr
 	}
+
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
 	receipt, err := action.coinsAccount.ExecActive(order.Selladdr, action.execaddr, order.Sellamount)
 	if err != nil {
@@ -197,7 +197,7 @@ func (action *relayAction) relayRevokeSell(revoke *types.RelayRevokeSell) (*type
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, relaydb.getSellLogs(types.TyLogRelayRevoke))
+	logs = append(logs, relaydb.getSellLogs(types.TyLogRelayRevokeSell))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -210,9 +210,8 @@ func (action *relayAction) relayBuy(buy *types.RelayBuy) (*types.Receipt, error)
 		return nil, types.ErrTRelayOrderNotExist
 	}
 
-	if order.Status == types.RelayOrderStatus_pending || order.Status == types.RelayOrderStatus_finished {
+	if order.Status == types.RelayOrderStatus_locking || order.Status == types.RelayOrderStatus_confirming || order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrTRelayOrderSoldout
-
 	}
 
 	if order.Status == types.RelayOrderStatus_canceled {
@@ -221,7 +220,8 @@ func (action *relayAction) relayBuy(buy *types.RelayBuy) (*types.Receipt, error)
 
 	order.Status = types.RelayOrderStatus_locking
 	order.Buyeraddr = action.fromaddr
-	order.Buyertime = action.blocktime
+	order.Buytime = action.blocktime
+	//order.Lockingtime = action.blocktime
 	//order.buyercoinblocknum =
 
 	var logs []*types.ReceiptLog
@@ -230,7 +230,7 @@ func (action *relayAction) relayBuy(buy *types.RelayBuy) (*types.Receipt, error)
 	relaydb := newRelayDB(order)
 	sellOrderKV := relaydb.save(action.db)
 	logs = append(logs, relaydb.getSellLogs(types.TyLogRelaySell))
-	logs = append(logs, relaydb.getBuyLogs(action.txhash))
+	logs = append(logs, relaydb.getBuyLogs(types.TyLogRelayBuy, action.txhash))
 	kv = append(kv, sellOrderKV...)
 
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
@@ -245,10 +245,10 @@ func (action *relayAction) relayRevokeBuy(revoke *types.RelayRevokeBuy) (*types.
 		return nil, types.ErrTRelayOrderNotExist
 	}
 
-	if order.Status == types.RelayOrderStatus_pending {
-		return nil, types.ErrTRelayOrderOnSell
-	} else if order.Status == types.RelayOrderStatus_canceled {
+	if order.Status == types.RelayOrderStatus_pending || order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrTRelayOrderRevoked
+	} else if order.Status == types.RelayOrderStatus_confirming {
+		return nil, types.ErrTRelayOrderConfirming
 	} else if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrTRelayOrderFinished
 	}
@@ -258,8 +258,8 @@ func (action *relayAction) relayRevokeBuy(revoke *types.RelayRevokeBuy) (*types.
 	}
 
 	order.Status = types.RelayOrderStatus_pending
-	order.Buyeraddr = ""
-	order.Buyertime = 0
+	order.Buyeraddr = BUY_CANCLED
+	order.Buytime = 0
 	//order.buyercoinblocknum = Nil
 
 	var logs []*types.ReceiptLog
@@ -267,34 +267,41 @@ func (action *relayAction) relayRevokeBuy(revoke *types.RelayRevokeBuy) (*types.
 
 	relaydb := newRelayDB(order)
 	sellOrderKV := relaydb.save(action.db)
-	logs = append(logs, relaydb.getBuyLogs(action.txhash))
+	logs = append(logs, relaydb.getSellLogs(types.TyLogRelaySell))
+	logs = append(logs, relaydb.getBuyLogs(types.TyLogRelayRevokeBuy, action.txhash))
 	kv = append(kv, sellOrderKV...)
 
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
 
-
-
-func (action *relayAction) relayConfirmTx(confirmdata *types.RelayConfirmTx) (*types.Receipt, error) {
-	orderid := []byte(confirmdata.Orderid)
+func (action *relayAction) relayConfirmTx(confirm *types.RelayConfirmTx) (*types.Receipt, error) {
+	orderid := []byte(confirm.Orderid)
 	order, err := getRelayOrderFromID(orderid, action.db)
 	if err != nil {
 		return nil, types.ErrTRelayOrderNotExist
 	}
 
-	if order.Status == types.RelayOrderStatus_pending || order.Status == types.RelayOrderStatus_finished {
+	if order.Status == types.RelayOrderStatus_pending {
+		return nil, types.ErrTRelayOrderOnSell
+
+	} else if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrTRelayOrderSoldout
-
-	}
-
-	if order.Status == types.RelayOrderStatus_canceled {
+	} else if order.Status == types.RelayOrderStatus_confirming {
+		return nil, types.ErrTRelayOrderConfirming
+	} else if order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrTRelayOrderRevoked
 	}
 
+	if action.fromaddr != order.Buyeraddr {
+		return nil, types.ErrTRelayReturnAddr
+	}
+
 	order.Status = types.RelayOrderStatus_confirming
-	order.Buyeraddr = action.fromaddr
-	order.Buyertime = action.blocktime
+	order.Confirmtime = action.blocktime
+	order.Exchgtxhash = confirm.Txhash
+	//若超过3次仍未验证通过，则seller随时可以撤回交易
+	//order.Lockingtimes = order.Lockingtimes+1
 	//order.buyercoinblocknum =
 
 	var logs []*types.ReceiptLog
@@ -303,14 +310,13 @@ func (action *relayAction) relayConfirmTx(confirmdata *types.RelayConfirmTx) (*t
 	relaydb := newRelayDB(order)
 	sellOrderKV := relaydb.save(action.db)
 	logs = append(logs, relaydb.getSellLogs(types.TyLogRelaySell))
-	logs = append(logs, relaydb.getBuyLogs(action.txhash))
+	logs = append(logs, relaydb.getBuyLogs(types.TyLogRelayBuy, action.txhash))
 	kv = append(kv, sellOrderKV...)
 
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 
 }
-
 
 func (action *relayAction) relayVerifyTx(verifydata *types.RelayVerify) (*types.Receipt, error) {
 	orderid := []byte(verifydata.Orderid)
@@ -327,38 +333,38 @@ func (action *relayAction) relayVerifyTx(verifydata *types.RelayVerify) (*types.
 		return nil, types.ErrTRelayOrderOnSell
 	}
 
-	if action.fromaddr != order.Buyeraddr {
-		return nil, types.ErrTRelayReturnAddr
-	}
+	var receipt *types.Receipt
 
 	rst, err := VerifyTx(verifydata)
 	if err != nil || rst != true {
 
-		return nil, types.ErrTRelayVerify
+		err = types.ErrTRelayVerify
 	}
 
-	receipt, err := action.coinsAccount.ExecTransferFrozen(order.Selladdr, order.Buyeraddr, action.execaddr, order.Sellamount)
-	if err != nil {
-		//relaylog.Error()
-		return nil, err
+	if rst {
+		receipt, err = action.coinsAccount.ExecTransferFrozen(order.Selladdr, order.Buyeraddr, action.execaddr, order.Sellamount)
 	}
 
 	order.Status = types.RelayOrderStatus_finished
+	order.Finishtime = action.blocktime
+	order.Finishresult = err.Error()
 	relaydb := newRelayDB(order)
 	orderKV := relaydb.save(action.db)
+
+	if err != nil {
+		return nil, err
+	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
 	logs = append(logs, relaydb.getSellLogs(types.TyLogRelaySell))
-	logs = append(logs, relaydb.getVerifyLogs(action.blocktime))
+	logs = append(logs, relaydb.getBuyLogs(types.TyLogRelayBuy, action.txhash))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 
 }
-
-
 
 func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC) (*types.Receipt, error) {
 	orderid := []byte(verifydata.Orderid)
@@ -375,31 +381,33 @@ func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC) (*
 		return nil, types.ErrTRelayOrderOnSell
 	}
 
-	if action.fromaddr != order.Buyeraddr {
-		return nil, types.ErrTRelayReturnAddr
-	}
+	var receipt *types.Receipt
 
 	rst, err := VerifyBTCTx(verifydata)
 	if err != nil || rst != true {
 
-		return nil, types.ErrTRelayVerify
+		err = types.ErrTRelayVerify
 	}
 
-	receipt, err := action.coinsAccount.ExecTransferFrozen(order.Selladdr, order.Buyeraddr, action.execaddr, order.Sellamount)
-	if err != nil {
-		//relaylog.Error()
-		return nil, err
+	if rst {
+		receipt, err = action.coinsAccount.ExecTransferFrozen(order.Selladdr, order.Buyeraddr, action.execaddr, order.Sellamount)
 	}
 
 	order.Status = types.RelayOrderStatus_finished
+	order.Finishtime = action.blocktime
+	order.Finishresult = err.Error()
 	relaydb := newRelayDB(order)
 	orderKV := relaydb.save(action.db)
+
+	if err != nil {
+		return nil, err
+	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
 	logs = append(logs, relaydb.getSellLogs(types.TyLogRelaySell))
-	logs = append(logs, relaydb.getVerifyLogs(action.blocktime))
+	logs = append(logs, relaydb.getBuyLogs(types.TyLogRelayBuy, action.txhash))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
