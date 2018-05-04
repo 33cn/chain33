@@ -300,7 +300,7 @@ func addTokenBalanceFlags(cmd *cobra.Command) {
 
 func tokenBalance(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
+	addr, _ := cmd.Flags().GetString("address")
 	token, _ := cmd.Flags().GetString("symbol")
 	execer, _ := cmd.Flags().GetString("exec")
 	addresses := strings.Split(addr, " ")
