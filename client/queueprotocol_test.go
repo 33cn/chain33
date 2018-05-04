@@ -316,3 +316,50 @@ func testSendTx(t *testing.T, api QueueProtocolAPI) {
 		t.Error("Call GetTx Failed.", err)
 	}
 }
+
+func BenchmarkCoordinate(b *testing.B) {
+	var mock mockSystem
+	api := mock.startup(0)
+	defer mock.stop()
+	t := &testing.T{}
+	for i := 0; i < b.N; i++ {
+		testSendTx(t, api)
+		testGetTxList(t, api)
+		testGetBlocks(t, api)
+		testGetTransactionByAddr(t, api)
+		testQueryTx(t, api)
+		testGetTransactionByHash(t, api)
+		testGetMempool(t, api)
+		testWalletGetAccountList(t, api)
+		testNewAccount(t, api)
+		testWalletTransactionList(t, api)
+		testWalletImportprivkey(t, api)
+		testWalletSendToAddress(t, api)
+		testWalletSetFee(t, api)
+		testWalletSetLabel(t, api)
+		testWalletMergeBalance(t, api)
+		testWalletSetPasswd(t, api)
+		testWalletLock(t, api)
+		testWalletUnLock(t, api)
+		testPeerInfo(t, api)
+		testGetHeaders(t, api)
+		testGetLastMempool(t, api)
+		testGetBlockOverview(t, api)
+		testGetAddrOverview(t, api)
+		testGetBlockHash(t, api)
+		testGenSeed(t, api)
+		testSaveSeed(t, api)
+		testGetSeed(t, api)
+		testGetWalletStatus(t, api)
+		testWalletAutoMiner(t, api)
+		testGetTicketCount(t, api)
+		testDumpPrivkey(t, api)
+		testCloseTickets(t, api)
+		testIsSync(t, api)
+		testIsNtpClockSync(t, api)
+		testLocalGet(t, api)
+		testGetLastHeader(t, api)
+		testCreateRawTransaction(t, api)
+		testSendRawTransaction(t, api)
+	}
+}
