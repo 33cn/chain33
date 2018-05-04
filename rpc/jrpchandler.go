@@ -1222,6 +1222,36 @@ func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{})
 	return nil
 }
 
+func (c *Chain33) CreateRawTradeBuyLimitTx(in *TradeBuyLimitTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeBuyLimitTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeSellMarketTx(in *TradeSellMarketTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeSellMarketTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeRevokeBuyTx(in *TradeRevokeBuyTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeRevokeBuyTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
 func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
 	resp, err := c.cli.SignRawTx(in)
 	if err != nil {
