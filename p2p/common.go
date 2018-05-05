@@ -25,7 +25,7 @@ func (Comm) AddrRouteble(addrs []string) []string {
 
 		addr, _, err := p2pcli.GetExternIP(addr)
 		if err == nil {
-			log.Info("addrRouteble", "addrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", addr)
+			//log.Info("addrRouteble", "addrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", addr)
 			enableAddrs = append(enableAddrs, addr)
 		}
 		//		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
