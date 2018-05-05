@@ -113,16 +113,16 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		//if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
 		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
 		//broadcast again
-		go func() {
-			if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
-				return
-			}
+		//		go func() {
+		//			if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
+		//				return
+		//			}
 
-			peers, _ := s.node.GetActivePeers()
-			for _, peer := range peers {
-				peer.mconn.gcli.Version2(context.Background(), in)
-			}
-		}()
+		//			peers, _ := s.node.GetActivePeers()
+		//			for _, peer := range peers {
+		//				peer.mconn.gcli.Version2(context.Background(), in)
+		//			}
+		//		}()
 		//}
 
 	}
