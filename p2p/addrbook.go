@@ -174,7 +174,7 @@ func (a *AddrBook) saveToDb() {
 	defer a.addrmtx.Unlock()
 	addrs := []*knownAddress{}
 	for _, ka := range a.addrPeer {
-
+		log.Info("savaeToDb")
 		if len(P2pComm.AddrRouteble([]string{ka.Addr.String()})) == 0 {
 			continue
 		}

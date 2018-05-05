@@ -19,13 +19,14 @@ var P2pComm Comm
 type Comm struct{}
 
 func (Comm) AddrRouteble(addrs []string) []string {
+	log.Info("AddrRouteble", "addrs", addrs)
 	var enableAddrs []string
 	p2pcli := NewNormalP2PCli()
 	for _, addr := range addrs {
 
-		addr, _, err := p2pcli.GetExternIP(addr)
+		_, _, err := p2pcli.GetExternIP(addr)
 		if err == nil {
-			log.Info("addrRouteble", "addrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", addr)
+			//log.Info("addrRouteble", "addrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", addr)
 			enableAddrs = append(enableAddrs, addr)
 		}
 		//		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
