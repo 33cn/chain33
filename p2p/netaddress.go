@@ -145,7 +145,7 @@ func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.
 	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), keepaliveOp)
 	if err != nil {
-		log.Error("grpc DialCon", "did not connect", err)
+		//log.Error("grpc DialCon", "did not connect", err)
 		return nil, err
 	}
 	//判断是否对方是否支持压缩
@@ -160,7 +160,7 @@ func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.
 		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch2), keepaliveOp)
 	}
 	if err != nil {
-		log.Error("grpc DialCon", "did not connect", err)
+		log.Error("grpc DialCon Uncompressor", "did not connect", err)
 		conn.Close()
 		return nil, err
 	}
