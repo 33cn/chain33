@@ -498,6 +498,7 @@ func (m *Cli) GetExternIP(addr string) (string, bool, error) {
 	}
 	defer conn.Close()
 	gconn := pb.NewP2PgserviceClient(conn)
+	log.Info("befor ReotePeerAddr", "addr", addr)
 	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12}, grpc.FailFast(true))
 	if err != nil {
 		return "", false, err
