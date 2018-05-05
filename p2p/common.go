@@ -11,6 +11,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	pb "gitlab.33.cn/chain33/chain33/types"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -21,19 +22,26 @@ type Comm struct{}
 func (Comm) AddrRouteble(addrs []string) []string {
 	log.Info("AddrRouteble", "addrs", addrs)
 	var enableAddrs []string
-	p2pcli := NewNormalP2PCli()
-	for _, addr := range addrs {
 
-		_, _, err := p2pcli.GetExternIP(addr)
-		if err == nil {
-			//log.Info("addrRouteble", "addrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", addr)
-			enableAddrs = append(enableAddrs, addr)
+	for _, addr := range addrs {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+
+		conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+		if err != nil {
+			log.Debug("grpc DialConn", "err", err.Error())
+			cancel()
+			return enableAddrs
 		}
-		//		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
-		//		if err == nil {
-		//			conn.Close()
-		//			enableAddrs = append(enableAddrs, addr)
-		//		}
+		gconn := pb.NewP2PgserviceClient(conn)
+		_, err = gconn.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: int32(VERSION)})
+		if err != nil {
+			cancel()
+			conn.Close()
+			return enableAddrs
+		}
+		enableAddrs = append(enableAddrs, addr)
+		cancel()
+		conn.Close()
 	}
 
 	return enableAddrs

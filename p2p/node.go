@@ -268,13 +268,15 @@ func (n *Node) detectNodeAddr() {
 				continue
 			}
 			pcli := NewNormalP2PCli()
+			log.Info("detectNodeAddr")
 			selfexaddrs, outside, err := pcli.GetExternIP(addr)
 			if err == nil {
+				log.Info("GetExternIp ok")
 				n.nodeInfo.SetNetSide(outside)
 				externalIP = selfexaddrs
 				break
 			}
-
+			log.Info("for in addrs")
 		}
 		log.Info("DetectNodeAddr", " seed Exterip", externalIP)
 		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
