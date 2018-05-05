@@ -142,7 +142,7 @@ func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.
 	cliparm.Timeout = 10 * time.Second //等待10秒，如果Ping 没有响应，则超时
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
-	grpc.DialOption
+
 	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), keepaliveOp)
 	if err != nil {
