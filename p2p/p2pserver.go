@@ -466,9 +466,13 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
  */
 func (s *P2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PExternalInfo, error) {
 	log.Info("RemotePeerAddr")
+
 	var remoteaddr string
 	var outside bool
 	getctx, ok := pr.FromContext(ctx)
+	peeraddr := strings.Split(getctx.Addr.String(), ":")[0]
+
+	log.Info("RemotePeerAddr", "Addr", peeraddr)
 	if ok {
 		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
 		log.Info("RemotePeerAddr")
