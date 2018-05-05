@@ -60,10 +60,11 @@ func NewListener(protocol string, node *Node) Listener {
 	var keepparm keepalive.ServerParameters
 	keepparm.Time = 3 * time.Minute
 	keepparm.Timeout = 30 * time.Second
-	maxStreams := grpc.MaxConcurrentStreams(2000)
+	keepparm.MaxConnectionIdle = 5 * time.Second
+	maxStreams := grpc.MaxConcurrentStreams(1000)
 	keepOp := grpc.KeepaliveParams(keepparm)
-
-	dl.server = grpc.NewServer(msgRecvOp, msgSendOp, keepOp, maxStreams)
+	connTimeout := grpc.ConnectionTimeout(0)
+	dl.server = grpc.NewServer(msgRecvOp, msgSendOp, keepOp, maxStreams, connTimeout)
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	return dl
