@@ -350,9 +350,9 @@ func (s *P2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 
 func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_ServerStreamSendServer) error {
-	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
-		return fmt.Errorf("beyound max inbound num")
-	}
+	//	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
+	//		return fmt.Errorf("beyound max inbound num")
+	//	}
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
 	dataChain := s.addStreamHandler(stream)
 	for data := range dataChain {
@@ -392,13 +392,12 @@ func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 }
 
 func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServer) error {
-	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
-		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.GetInnerBounds()))
-	}
+	//	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
+	//		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.GetInnerBounds()))
+	//	}
 	var hash [64]byte
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
-
 	var in = new(pb.BroadCastData)
 	var err error
 	for {

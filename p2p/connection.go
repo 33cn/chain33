@@ -51,12 +51,10 @@ func NewMConnectionWithConfig(cfg *MConnConfig) *MConnection {
 		gconn: cfg.gconn,
 		gcli:  cfg.gcli,
 	}
-
 	return mconn
 }
 
 func (c *MConnection) Close() {
-
 	c.gconn.Close()
 	log.Debug("Mconnection", "Close", "^_^!")
 }
