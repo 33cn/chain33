@@ -158,8 +158,8 @@ func (n *Node) getAddrFromOffline() {
 				}
 			}
 
-			//oklist := P2pComm.AddrRouteble(testlist)
-			for _, addr := range testlist {
+			oklist := P2pComm.AddrRouteble(testlist)
+			for _, addr := range oklist {
 
 				if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
 					log.Debug("GetAddrFromOffline", "Add addr", addr)
