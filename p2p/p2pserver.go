@@ -112,6 +112,7 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if err == nil {
 		//if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
 		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		//}
 		//broadcast again
 		//		go func() {
 		//			if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
