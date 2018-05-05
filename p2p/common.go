@@ -25,7 +25,7 @@ func (Comm) AddrRouteble(addrs []string) []string {
 
 		addr, _, err := p2pcli.GetExternIP(addr)
 		if err == nil {
-			//log.Info("addrRouteble", "addrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", addr)
+			log.Info("addrRouteble", "addrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", addr)
 			enableAddrs = append(enableAddrs, addr)
 		}
 		//		conn, err := net.DialTimeout("tcp", addr, time.Second*1)
@@ -52,7 +52,7 @@ func (c Comm) GetLocalAddr() string {
 }
 
 func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*Peer, error) {
-
+	log.Info("dialPeerWithAddress")
 	conn, err := addr.DialTimeout(c.GrpcConfig(), (*nodeinfo).cfg.GetVersion())
 	if err != nil {
 		return nil, err
