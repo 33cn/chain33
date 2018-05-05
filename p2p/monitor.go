@@ -76,7 +76,7 @@ func (n *Node) getAddrFromGithub() {
 			for _, linestr := range strs {
 				pidaddr := strings.Split(linestr, "@")
 				if len(pidaddr) == 2 {
-
+					log.Info("getadrformgithub")
 					addr := pidaddr[1]
 					if n.Has(addr) || n.nodeInfo.blacklist.Has(addr) ||
 						len(P2pComm.AddrRouteble([]string{addr})) == 0 {
@@ -157,7 +157,7 @@ func (n *Node) getAddrFromOffline() {
 					testlist = append(testlist, peer.String())
 				}
 			}
-
+			log.Info("getaddrfromoffline")
 			oklist := P2pComm.AddrRouteble(testlist)
 			for _, addr := range oklist {
 

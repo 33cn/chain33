@@ -465,12 +465,13 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 * 提供远程节点自身网络定位服务
  */
 func (s *P2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PExternalInfo, error) {
+	log.Info("RemotePeerAddr")
 	var remoteaddr string
 	var outside bool
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
 		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
-
+		log.Info("RemotePeerAddr")
 		if len(P2pComm.AddrRouteble([]string{fmt.Sprintf("%v:%v", remoteaddr, defaultPort)})) == 0 {
 
 			outside = false
@@ -495,6 +496,7 @@ func (s *P2pServer) RemotePeerNatOk(ctx context.Context, in *pb.P2PPing) (*pb.P2
 		//发现是自己节点发来的验证消息
 		natok = false
 	} else {
+		log.Info("RemotePeerNatOk")
 		if len(P2pComm.AddrRouteble([]string{remoteaddr})) != 0 {
 			natok = true
 		}
