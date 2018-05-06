@@ -142,6 +142,7 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
 	timeoutOp := grpc.WithTimeout(time.Duration(time.Second * 3))
+
 	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), keepaliveOp, timeoutOp)
 	if err != nil {
@@ -160,7 +161,9 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	}
 	if err != nil {
 		log.Error("grpc DialCon Uncompressor", "did not connect", err)
-		conn.Close()
+		if conn != nil {
+			conn.Close()
+		}
 		return nil, err
 	}
 	return conn, nil
