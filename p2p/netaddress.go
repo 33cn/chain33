@@ -134,16 +134,16 @@ func isCompressSupport(err error) bool {
 	return true
 }
 
-func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.ClientConn, error) {
-	ch := make(chan grpc.ServiceConfig, 1)
-	ch <- cfg
+func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
+
 	var cliparm keepalive.ClientParameters
 	cliparm.Time = 10 * time.Second    //10秒Ping 一次
 	cliparm.Timeout = 10 * time.Second //等待10秒，如果Ping 没有响应，则超时
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
-	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch),
-		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), keepaliveOp)
+	timeoutOp := grpc.WithTimeout(time.Duration(time.Second * 3))
+	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), keepaliveOp, timeoutOp)
 	if err != nil {
 		log.Error("grpc DialCon", "did not connect", err)
 		return nil, err
@@ -155,9 +155,8 @@ func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.
 		//compress not support
 		log.Error("compress not supprot , rollback to uncompress version")
 		conn.Close()
-		ch2 := make(chan grpc.ServiceConfig, 1)
-		ch2 <- cfg
-		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch2), keepaliveOp)
+
+		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), keepaliveOp, timeoutOp)
 	}
 	if err != nil {
 		log.Error("grpc DialCon Uncompressor", "did not connect", err)

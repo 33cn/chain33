@@ -138,7 +138,7 @@ func (p *Peer) heartBeat() {
 }
 
 func (p *Peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
-	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
+	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version}, grpc.FailFast(true))
 }
 
 func (p *Peer) sendStream() {
