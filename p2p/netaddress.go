@@ -135,7 +135,7 @@ func isCompressSupport(err error) bool {
 }
 
 func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
-
+	log.Info("NetAddress", "DialTimeout", "ok")
 	var cliparm keepalive.ClientParameters
 	cliparm.Time = 10 * time.Second    //10秒Ping 一次
 	cliparm.Timeout = 10 * time.Second //等待10秒，如果Ping 没有响应，则超时

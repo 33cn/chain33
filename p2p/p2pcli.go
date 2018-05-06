@@ -494,16 +494,19 @@ func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
 }
 
 func (m *Cli) GetExternIP(addr string) (string, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+
+	netaddr, err := NewNetAddressString(addr)
 	if err != nil {
-		log.Debug("grpc DialConn", "err", err.Error())
+		log.Error("GetExternIp", "NewNetAddressString", err.Error())
+		return "", false, err
+	}
+	conn, err := netaddr.DialTimeout(m.network.node.nodeInfo.cfg.GetVersion())
+	if err != nil {
+		log.Error("GetExternIp", "DialTimeout", err.Error())
 		return "", false, err
 	}
 	defer conn.Close()
 	gconn := pb.NewP2PgserviceClient(conn)
-	log.Info("befor ReotePeerAddr", "addr", addr)
 	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12}, grpc.FailFast(true))
 	if err != nil {
 		return "", false, err
@@ -512,20 +515,24 @@ func (m *Cli) GetExternIP(addr string) (string, bool, error) {
 }
 
 func (m *Cli) CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+	netaddr, err := NewNetAddressString(addr)
 	if err != nil {
-		log.Error("grpc DialConn", "err", err.Error())
+		log.Error("GetExternIp", "NewNetAddressString", err.Error())
+		return false, err
+	}
+	conn, err := netaddr.DialTimeout(m.network.node.nodeInfo.cfg.GetVersion())
+	if err != nil {
+		log.Error("GetExternIp", "DialTimeout", err.Error())
 		return false, err
 	}
 	defer conn.Close()
+
 	gconn := pb.NewP2PgserviceClient(conn)
 	ping, err := P2pComm.NewPingData(nodeinfo)
 	if err != nil {
 		return false, err
 	}
-	resp, err := gconn.RemotePeerNatOk(ctx, ping, grpc.FailFast(true))
+	resp, err := gconn.RemotePeerNatOk(context.Background(), ping, grpc.FailFast(true))
 	if err != nil {
 		return false, err
 	}
