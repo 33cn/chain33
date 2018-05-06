@@ -500,7 +500,7 @@ func (m *Cli) GetExternIP(addr string) (string, bool, error) {
 		log.Error("GetExternIp", "NewNetAddressString", err.Error())
 		return "", false, err
 	}
-	conn, err := netaddr.DialTimeout(m.network.node.nodeInfo.cfg.GetVersion())
+	conn, err := netaddr.DialTimeout(VERSION)
 	if err != nil {
 		log.Error("GetExternIp", "DialTimeout", err.Error())
 		return "", false, err
@@ -520,7 +520,7 @@ func (m *Cli) CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error) {
 		log.Error("GetExternIp", "NewNetAddressString", err.Error())
 		return false, err
 	}
-	conn, err := netaddr.DialTimeout(m.network.node.nodeInfo.cfg.GetVersion())
+	conn, err := netaddr.DialTimeout(nodeinfo.cfg.GetVersion())
 	if err != nil {
 		log.Error("GetExternIp", "DialTimeout", err.Error())
 		return false, err
