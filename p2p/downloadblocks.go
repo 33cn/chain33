@@ -166,7 +166,7 @@ func (d *downloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan cha
 	var p2pdata pb.P2PGetData
 	p2pdata.Version = d.p2pcli.network.node.nodeInfo.cfg.GetVersion()
 	p2pdata.Invs = []*pb.Inventory{inv}
-	resp, err := peer.mconn.gcli.GetData(context.Background(), &p2pdata)
+	resp, err := peer.mconn.gcli.GetData(context.Background(), &p2pdata, grpc.FailFast(true))
 	P2pComm.CollectPeerStat(err, peer)
 	if err != nil {
 		log.Error("syncDownloadBlock", "GetData err", err.Error())
