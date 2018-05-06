@@ -9,6 +9,7 @@ import (
 
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 type downloadJob struct {
