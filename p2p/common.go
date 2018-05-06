@@ -24,23 +24,26 @@ func (Comm) AddrRouteble(addrs []string) []string {
 	var enableAddrs []string
 
 	for _, addr := range addrs {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-
-		conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+		netaddr, err := NewNetAddressString(addr)
 		if err != nil {
-			log.Debug("grpc DialConn", "err", err.Error())
-			cancel()
-			return enableAddrs
+			log.Error("GetExternIp", "NewNetAddressString", err.Error())
+			continue
 		}
-		gconn := pb.NewP2PgserviceClient(conn)
-		_, err = gconn.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: int32(VERSION)})
+		conn, err := netaddr.DialTimeout(VERSION)
 		if err != nil {
-			cancel()
+			log.Error("GetExternIp", "DialTimeout", err.Error())
+			continue
+		}
+
+		gconn := pb.NewP2PgserviceClient(conn)
+		_, err = gconn.GetHeaders(context.Background(),
+			&pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: int32(VERSION)}, grpc.FailFast(true))
+		if err != nil {
 			conn.Close()
 			return enableAddrs
 		}
 		enableAddrs = append(enableAddrs, addr)
-		cancel()
+
 		conn.Close()
 	}
 
