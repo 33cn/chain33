@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
 	"sync"
@@ -25,6 +26,9 @@ var (
 	isStrongConsistency       = false
 
 	chainlog = log.New("module", "blockchain")
+	bCoins   = []byte("coins")
+	bToken   = []byte("token")
+	withdraw = "withdraw"
 )
 
 type BlockChain struct {
@@ -213,13 +217,22 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	pubkey := txresult.GetTx().Signature.GetPubkey()
 	addr := account.PubKeyToAddress(pubkey)
 	TransactionDetail.Fromaddr = addr.String()
-	if string(TransactionDetail.Tx.GetExecer()) == "coins" && TransactionDetail.GetActionName() == "withdraw" {
+	if isWithdraw(TransactionDetail.Tx.GetExecer(), TransactionDetail.ActionName) {
 		//swap from and to
 		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
 	}
 	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
 
 	return &TransactionDetail, nil
+}
+
+func isWithdraw(execer []byte, actionName string) bool {
+	if bytes.Equal(execer, bCoins) || bytes.Equal(execer, bToken) {
+		if actionName == withdraw {
+			return true
+		}
+	}
+	return false
 }
 
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList) {
@@ -230,8 +243,6 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			dupTxHashList.Hashes = append(dupTxHashList.Hashes, txhash)
-			//chainlog.Debug("GetDuplicateTxHashList txresult", "height", txresult.Height, "index", txresult.Index)
-			//chainlog.Debug("GetDuplicateTxHashList txresult  tx", "txinfo", txresult.Tx.String())
 		}
 	}
 	return &dupTxHashList
@@ -603,7 +614,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			pubkey := txresult.GetTx().Signature.GetPubkey()
 			addr := account.PubKeyToAddress(pubkey)
 			txDetail.Fromaddr = addr.String()
-			if (string(txDetail.Tx.GetExecer()) == "coins" || "token" == string(txDetail.Tx.GetExecer())) && txDetail.GetActionName() == "withdraw" {
+			if isWithdraw(txDetail.Tx.GetExecer(), txDetail.ActionName) {
 				//swap from and to
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
 			}
