@@ -645,10 +645,11 @@ func BenchmarkSetMerkleAvlTree(b *testing.B) {
 		t.Set(key, nil)
 		if i%1000 == 999 {
 			t.Save()
+			t.ndb.batch = db.NewBatch(true)
 		}
 	}
 	t.Save()
-
+	t.ndb.batch = db.NewBatch(true)
 	fmt.Println("BenchmarkSetMerkleAvlTree, starting")
 
 	runtime.GC()
@@ -659,6 +660,7 @@ func BenchmarkSetMerkleAvlTree(b *testing.B) {
 		t.Set(ri, nil)
 		if i%1000 == 999 {
 			t.Save()
+			t.ndb.batch = db.NewBatch(true)
 		}
 	}
 	t.Save()
@@ -679,6 +681,7 @@ func BenchmarkGetMerkleAvlTree(b *testing.B) {
 		t.Set(key, nil)
 		if i%100 == 99 {
 			t.Save()
+			t.ndb.batch = db.NewBatch(true)
 		}
 	}
 	t.Save()

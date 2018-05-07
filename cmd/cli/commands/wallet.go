@@ -288,12 +288,14 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	data, _ := cmd.Flags().GetString("data")
 	key, _ := cmd.Flags().GetString("key")
 	addr, _ := cmd.Flags().GetString("addr")
+	expire, _ := cmd.Flags().GetString("expire")
 	params := types.ReqSignRawTx{
 		PrivKey: key,
 		Addr:    addr,
 		TxHex:   data,
+		Expire:  expire,
 	}
-	var res types.ReplySignRawTx
+	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, &res)
 	ctx.Run()
 }

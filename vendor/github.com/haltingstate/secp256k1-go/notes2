@@ -1,0 +1,66 @@
+//pubkey, seckey
+
+//type XYZ struct {
+//	X, Y, Z Field
+//	Infinity bool
+//}
+
+/*
+
+type XYZ struct {
+	X, Y, Z Field
+	Infinity bool
+}
+
+func (r *XYZ) SetXY(a *XY) {
+func (a *XYZ) IsValid() bool {
+// r = a*G
+func ECmultGen(r *XYZ, a *Number) {
+
+*/
+
+/*
+type XY struct {
+	X, Y Field
+	Infinity bool
+}
+
+//func (elem *XY) ParsePubkey(pub []byte) bool {
+//func (pub *XY) Bytes(compressed bool) (raw []byte) {
+//type XY struct {
+//func (a *XY) IsValid() bool {
+//func (pk *XY) GetPublicKey(out []byte) {
+
+*/
+
+/*
+type Signature struct {
+	R, S Number
+}
+
+func (r *Signature) ParseBytes(sig []byte) int {
+func (r *Signature) Verify(pubkey *XY, message *Number) (ret bool) {
+func (sig *Signature) Sign(seckey, message, nonce *Number, recid *int) int {
+func (sig *Signature) Bytes() []byte {
+
+
+*/
+
+/*
+ec.go
+
+func Verify(k, s, m []byte) bool {
+func DecompressPoint(X []byte, off bool, Y []byte) {
+func RecoverPublicKey(r, s, h []byte, recid int, pubkey *XY) bool {
+
+// Standard EC multiplacation k(xy)
+// xy - is the standarized public key format (33 or 65 bytes long)
+// out - should be the buffer for 33 bytes (1st byte will be set to either 02 or 03)
+func Multiply(xy, k, out []byte) bool {
+
+// Multiply k by G
+// out - should be the buffer for 33 bytes (1st byte will be set to either 02 or 03)
+func BaseMultiply(k, out []byte) bool {
+
+==
+*/

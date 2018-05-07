@@ -3,6 +3,7 @@ package executor
 //store package store the world - state data
 import (
 	"bytes"
+
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -14,6 +15,7 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/none"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/norm"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"

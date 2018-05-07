@@ -137,7 +137,8 @@ message ReqWalletTransactionList {
 }
 
 message ReqWalletImportPrivKey {
-	string privkey = 1; //bitcoin 的私钥格式
+	//bitcoin 的私钥格式
+	string privkey = 1; 
 	string label = 2;
 }
 
