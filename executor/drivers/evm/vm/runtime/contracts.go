@@ -27,7 +27,7 @@ type PrecompiledContract interface {
 }
 
 
-// chain33平台支持拜占庭版本支持的所有预编译合约指令，并从此版本开始同步支持EVM黄皮书中的新增指令；
+// chain33平台支持君士坦丁堡版本支持的所有预编译合约指令，并从此版本开始同步支持EVM黄皮书中的新增指令；
 // 保存拜占庭版本支持的所有预编译合约（包括之前版本的合约）；
 // 后面如果有硬分叉，需要在此处考虑分叉逻辑，根据区块高度分别处理；
 // 下面的8个预编译指令，直接引用go-ethereum中的EVM实现
@@ -39,6 +39,8 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{5}): &bigModExp{},
 	common.BytesToAddress([]byte{6}): &bn256Add{},
 	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
+
+	// FIXME 这里还需要依赖EVM包装过的bn256包（common.crypto.bn256），没法使用原生bn256，后继需要优化为使用原生bn256
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
@@ -62,9 +64,9 @@ func (c *ecrecover) Run(input []byte) ([]byte, error) {
 	const ecRecoverInputLength = 128
 
 	input = common.RightPadBytes(input, ecRecoverInputLength)
+
 	// "input" is (hash, v, r, s), each 32 bytes
 	// but for ecrecover we want (r, s, v)
-
 	r := new(big.Int).SetBytes(input[64:96])
 	s := new(big.Int).SetBytes(input[96:128])
 	v := input[63] - 27
@@ -304,6 +306,7 @@ var (
 	// errBadPairingInput is returned if the bn256 pairing input is invalid.
 	errBadPairingInput = errors.New("bad elliptic curve pairing size")
 )
+
 
 // bn256Pairing implements a pairing pre-compile for the bn256 curve
 type bn256Pairing struct{}
