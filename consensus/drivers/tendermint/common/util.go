@@ -1,15 +1,15 @@
 package common
 
 import (
-	"os"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
+	"math"
+	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
-	"math"
-	"strconv"
 )
 
 func WriteFile(filePath string, contents []byte, mode os.FileMode) error {
@@ -41,6 +41,7 @@ func WriteFileAtomic(filePath string, newBytes []byte, mode os.FileMode) error {
 	}
 	return err
 }
+
 //----------------------------------------------------------
 func Tempfile(prefix string) (*os.File, string) {
 	file, err := ioutil.TempFile("", prefix)
@@ -68,6 +69,7 @@ func Exit(s string) {
 	fmt.Printf(s + "\n")
 	os.Exit(1)
 }
+
 //-----------------------------------------------------------
 func Parallel(tasks ...func()) {
 	var wg sync.WaitGroup
@@ -80,6 +82,7 @@ func Parallel(tasks ...func()) {
 	}
 	wg.Wait()
 }
+
 //-------------------------------------------------------------
 // clockRate is the resolution and precision of clock().
 const clockRate = 20 * time.Millisecond

@@ -114,6 +114,7 @@ func (params *ConsensusParams) Hash() []byte {
 		"tx_size_max_gas":              params.TxSize.MaxGas,
 	})
 }
+
 /* modified 20180222 hg
 // Update returns a copy of the params with updates from the non-zero fields of p2.
 // NOTE: note: must not modify the original

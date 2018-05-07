@@ -1,10 +1,11 @@
 package types
 
 import (
-	"github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire/data"
 	"io"
+
+	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
+	"github.com/tendermint/go-wire/data"
 )
 
 // Heartbeat is a simple vote-like structure so validators can

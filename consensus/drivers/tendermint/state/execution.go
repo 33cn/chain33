@@ -3,9 +3,9 @@ package state
 import (
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	log "github.com/inconshreveable/log15"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 //-----------------------------------------------------------------------------
@@ -26,7 +26,7 @@ type BlockExecutor struct {
 
 	// update these with block results after commit
 	//mempool types.Mempool
-	evpool  types.EvidencePool
+	evpool types.EvidencePool
 
 	logger log.Logger
 }
@@ -35,12 +35,12 @@ type BlockExecutor struct {
 // Call SetEventBus to provide one.
 func NewBlockExecutor(db dbm.DB, logger log.Logger, evpool types.EvidencePool) *BlockExecutor {
 	return &BlockExecutor{
-		db:       db,
+		db: db,
 		//proxyApp: proxyApp,
 		eventBus: types.NopEventBus{},
 		//mempool:  mempool,
-		evpool:   evpool,
-		logger:   logger,
+		evpool: evpool,
+		logger: logger,
 	}
 }
 
@@ -68,12 +68,12 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 	if err := blockExec.ValidateBlock(s, block); err != nil {
 		return s, ErrInvalidBlock(err)
 	}
-/*
-	abciResponses, err := execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block)
-	if err != nil {
-		return s, ErrProxyAppConn(err)
-	}
-*/
+	/*
+		abciResponses, err := execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block)
+		if err != nil {
+			return s, ErrProxyAppConn(err)
+		}
+	*/
 	//fail.Fail() // XXX
 
 	// save the results before we commit
@@ -89,11 +89,11 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 
 	// lock mempool, commit state, update mempoool
 	/*
-	appHash, err := blockExec.Commit(block)
-	if err != nil {
-		return s, fmt.Errorf("Commit failed for application: %v", err)
-	}
-*/
+		appHash, err := blockExec.Commit(block)
+		if err != nil {
+			return s, fmt.Errorf("Commit failed for application: %v", err)
+		}
+	*/
 	//fail.Fail() // XXX
 
 	// update the app hash and save the state
@@ -109,7 +109,7 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 
 	// events are fired after everything else
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	fireEvents(blockExec.logger, blockExec.eventBus, block/*, abciResponses*/)
+	fireEvents(blockExec.logger, blockExec.eventBus, block /*, abciResponses*/)
 
 	return s, nil
 }
@@ -358,26 +358,26 @@ func updateState(s State, blockID types.BlockID, block *types.Block) (State, err
 // Fire NewBlock, NewBlockHeader.
 // Fire TxEvent for every tx.
 // NOTE: if Tendermint crashes before commit, some or all of these events may be published again.
-func fireEvents(logger log.Logger, eventBus types.BlockEventPublisher, block *types.Block/*, abciResponses *ABCIResponses*/) {
+func fireEvents(logger log.Logger, eventBus types.BlockEventPublisher, block *types.Block /*, abciResponses *ABCIResponses*/) {
 	/*
-	// NOTE: do we still need this buffer ?
-	txEventBuffer := types.NewTxEventBuffer(eventBus, int(block.NumTxs))
-	for i, tx := range block.Data.Txs {
-		txEventBuffer.PublishEventTx(types.EventDataTx{types.TxResult{
-			Height: block.Height,
-			Index:  uint32(i),
-			Tx:     tx,
-			Result: *(abciResponses.DeliverTx[i]),
-		}})
-	}
-*/
+		// NOTE: do we still need this buffer ?
+		txEventBuffer := types.NewTxEventBuffer(eventBus, int(block.NumTxs))
+		for i, tx := range block.Data.Txs {
+			txEventBuffer.PublishEventTx(types.EventDataTx{types.TxResult{
+				Height: block.Height,
+				Index:  uint32(i),
+				Tx:     tx,
+				Result: *(abciResponses.DeliverTx[i]),
+			}})
+		}
+	*/
 	eventBus.PublishEventNewBlock(types.EventDataNewBlock{block})
 	eventBus.PublishEventNewBlockHeader(types.EventDataNewBlockHeader{block.Header})
 	/*
-	err := txEventBuffer.Flush()
-	if err != nil {
-		logger.Error("Failed to flush event buffer", "err", err)
-	}
+		err := txEventBuffer.Flush()
+		if err != nil {
+			logger.Error("Failed to flush event buffer", "err", err)
+		}
 	*/
 }
 

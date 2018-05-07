@@ -111,9 +111,9 @@ func NewMetricWithConfig(tmc TrustMetricConfig) *TrustMetric {
 // OnStart implements Service
 func (tm *TrustMetric) Start() error {
 	/*
-	if err := tm.BaseService.OnStart(); err != nil {
-		return err
-	}
+		if err := tm.BaseService.OnStart(); err != nil {
+			return err
+		}
 	*/
 	go tm.processRequests()
 	return nil

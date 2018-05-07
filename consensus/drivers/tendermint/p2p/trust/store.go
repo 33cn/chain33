@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"fmt"
+
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
@@ -32,7 +33,6 @@ type TrustMetricStore struct {
 
 	// This configuration will be used when creating new TrustMetrics
 	config TrustMetricConfig
-
 }
 
 // NewTrustMetricStore returns a store that saves data to the DB
@@ -150,7 +150,10 @@ func (tms *TrustMetricStore) size() int {
 // cmn.Panics if file is corrupt
 func (tms *TrustMetricStore) loadFromDB() bool {
 	// Obtain the history data we have so far
-	bytes := tms.db.Get(trustMetricKey)
+	bytes, e := tms.db.Get(trustMetricKey)
+	if e != nil {
+		panic(fmt.Sprintf("Panicked on a Crisis: %v", fmt.Sprintf("Could not get Trust Metric Store DB data: %v", e)))
+	}
 	if bytes == nil {
 		return false
 	}
@@ -158,7 +161,7 @@ func (tms *TrustMetricStore) loadFromDB() bool {
 	peers := make(map[string]MetricHistoryJSON)
 	err := json.Unmarshal(bytes, &peers)
 	if err != nil {
-		panic(fmt.Sprintf("Panicked on a Crisis: %v",fmt.Sprintf("Could not unmarshal Trust Metric Store DB data: %v", err)))
+		panic(fmt.Sprintf("Panicked on a Crisis: %v", fmt.Sprintf("Could not unmarshal Trust Metric Store DB data: %v", err)))
 	}
 
 	// If history data exists in the file,
