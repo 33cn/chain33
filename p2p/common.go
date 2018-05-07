@@ -254,29 +254,24 @@ func (c Comm) Int32ToBytes(n int32) []byte {
 	return bytesBuffer.Bytes()
 }
 
-//func (c Comm) GrpcConfig() grpc.ServiceConfig {
+func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
-//	var ready = false
-//	var defaultRespSize = 1024 * 1024 * 60
-//	var defaultReqSize = 1024 * 1024 * 10
-//	var defaulttimeout = 40 * time.Second
-//	var getAddrtimeout = 5 * time.Second
-//	var getHeadertimeout = 5 * time.Second
-//	var getPeerinfotimeout = 5 * time.Second
-//	var sendVersiontimeout = 5 * time.Second
-//	var pingtimeout = 10 * time.Second
-//	var MethodConf = map[string]grpc.MethodConfig{
-//		"/types.p2pgservice/Ping":           {WaitForReady: &ready, Timeout: &pingtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//		"/types.p2pgservice/Version2":       {WaitForReady: &ready, Timeout: &sendVersiontimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//		"/types.p2pgservice/BroadCastTx":    {WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//		"/types.p2pgservice/GetMemPool":     {WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//		"/types.p2pgservice/GetBlocks":      {WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//		"/types.p2pgservice/GetPeerInfo":    {WaitForReady: &ready, Timeout: &getPeerinfotimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//		"/types.p2pgservice/BroadCastBlock": {WaitForReady: &ready, Timeout: &defaulttimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//		"/types.p2pgservice/GetAddr":        {WaitForReady: &ready, Timeout: &getAddrtimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//		"/types.p2pgservice/GetHeaders":     {WaitForReady: &ready, Timeout: &getHeadertimeout, MaxRespSize: &defaultRespSize, MaxReqSize: &defaultReqSize},
-//	}
+	var defaulttimeout = 10 * time.Second
 
-//	return grpc.ServiceConfig{Methods: MethodConf}
+	var MethodConf = map[string]grpc.MethodConfig{
+		"/types.p2pgservice/Ping":            {Timeout: &defaulttimeout},
+		"/types.p2pgservice/Version2":        {Timeout: &defaulttimeout},
+		"/types.p2pgservice/BroadCastTx":     {Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetMemPool":      {Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetBlocks":       {Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetPeerInfo":     {Timeout: &defaulttimeout},
+		"/types.p2pgservice/BroadCastBlock":  {Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetAddr":         {Timeout: &defaulttimeout},
+		"/types.p2pgservice/GetHeaders":      {Timeout: &defaulttimeout},
+		"/types.p2pgservice/RemotePeerAddr":  {Timeout: &defaulttimeout},
+		"/types.p2pgservice/RemotePeerNatOk": {Timeout: &defaulttimeout},
+	}
 
-//}
+	return grpc.ServiceConfig{Methods: MethodConf}
+
+}

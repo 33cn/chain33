@@ -122,12 +122,6 @@ func (ka *knownAddress) markAttempt() {
 
 }
 
-func (ka *knownAddress) GetLastOk() time.Time {
-	ka.kmtx.Lock()
-	defer ka.kmtx.Unlock()
-	return ka.LastSuccess
-}
-
 func (ka *knownAddress) GetAttempts() uint {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
