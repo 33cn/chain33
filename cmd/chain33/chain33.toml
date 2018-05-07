@@ -46,9 +46,9 @@ driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-version=118
+version=119
 verMix=118
-verMax=119
+verMax=129
 
 [rpc]
 jrpcBindAddr="localhost:8801"

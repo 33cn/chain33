@@ -135,7 +135,6 @@ func isCompressSupport(err error) bool {
 }
 
 func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
-	log.Debug("NetAddress", "DialTimeout", na.String())
 	ch := make(chan grpc.ServiceConfig, 1)
 	ch <- P2pComm.GrpcConfig()
 
@@ -145,11 +144,12 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
 	timeoutOp := grpc.WithTimeout(time.Second * 3)
+	log.Debug("NetAddress", "Dial", na.String())
 
 	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), grpc.WithServiceConfig(ch), keepaliveOp, timeoutOp)
 	if err != nil {
-		log.Error("grpc DialCon", "did not connect", err)
+		log.Debug("grpc DialCon", "did not connect", err, "addr", na.String())
 		return nil, err
 	}
 	//判断是否对方是否支持压缩
@@ -157,15 +157,16 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	_, err = cli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: version})
 	if err != nil && !isCompressSupport(err) {
 		//compress not support
-		log.Error("compress not supprot , rollback to uncompress version")
+		log.Error("compress not supprot , rollback to uncompress version", "addr", na.String())
 		conn.Close()
 		ch2 := make(chan grpc.ServiceConfig, 1)
 		ch2 <- P2pComm.GrpcConfig()
-
+		log.Debug("NetAddress", "Dial with unCompressor", na.String())
 		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch2), keepaliveOp, timeoutOp)
 	}
+
 	if err != nil {
-		log.Error("grpc DialCon Uncompressor", "did not connect", err)
+		log.Debug("grpc DialCon Uncompressor", "did not connect", err)
 		if conn != nil {
 			conn.Close()
 		}

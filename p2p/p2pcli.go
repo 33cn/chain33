@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"fmt"
 	"io"
 
 	"math/rand"
@@ -35,6 +36,7 @@ type NormalInterface interface {
 	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
 	GetExternIP(addr string) (string, bool, error)
 	CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error)
+	GetAddrList(peer *Peer) ([]string, error)
 }
 
 type Cli struct {
@@ -146,15 +148,50 @@ func (m *Cli) GetAddr(peer *Peer) ([]string, error) {
 	return resp.Addrlist, nil
 }
 
+func (m *Cli) GetAddrList(peer *Peer) ([]string, error) {
+
+	var addrlist []string
+	resp, err := peer.mconn.gcli.GetAddrList(context.Background(), &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))},
+		grpc.FailFast(true))
+
+	P2pComm.CollectPeerStat(err, peer)
+	if err != nil {
+		return addrlist, err
+	}
+	//获取本地高度
+	client := (*peer.nodeInfo).client
+	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
+	err = client.SendTimeout(msg, true, time.Second*10)
+	if err != nil {
+		log.Error("getLocalPeerInfo blockchain", "Error", err.Error())
+		return addrlist, err
+	}
+	var respmsg queue.Message
+	respmsg, err = client.WaitTimeout(msg, time.Second*30)
+	if err != nil {
+		return addrlist, err
+	}
+
+	localBlockHeight := respmsg.GetData().(*pb.Header).GetHeight()
+	peerinfos := resp.GetPeerinfo()
+
+	for _, peerinfo := range peerinfos {
+		if peerinfo.GetHeader().GetHeight() > localBlockHeight || localBlockHeight-peerinfo.GetHeader().GetHeight() > 1024 {
+			addrlist = append(addrlist, fmt.Sprintf("%v:%v", peerinfo.GetAddr(), peerinfo.GetPort()))
+		}
+	}
+	return addrlist, nil
+}
+
 func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	client := nodeinfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetBlockHeight, nil)
-	err := client.SendTimeout(msg, true, time.Minute)
+	err := client.SendTimeout(msg, true, time.Second*10)
 	if err != nil {
 		log.Error("SendVesion", "Error", err.Error())
 		return "", err
 	}
-	rsp, err := client.WaitTimeout(msg, time.Minute)
+	rsp, err := client.WaitTimeout(msg, time.Second*20)
 	if err != nil {
 		log.Error("GetHeight", "Error", err.Error())
 		return "", err
@@ -185,9 +222,10 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 		}
 		return "", err
 	}
-	P2pComm.CollectPeerStat(err, peer)
 
+	P2pComm.CollectPeerStat(err, peer)
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
+	peer.version.SetVersion(resp.GetVersion())
 
 	if !peer.IsPersistent() {
 		return resp.GetUserAgent(), nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
