@@ -20,18 +20,17 @@ var P2pComm Comm
 type Comm struct{}
 
 func (Comm) AddrRouteble(addrs []string) []string {
-	//log.Info("AddrRouteble", "addrs", addrs)
 	var enableAddrs []string
 
 	for _, addr := range addrs {
 		netaddr, err := NewNetAddressString(addr)
 		if err != nil {
-			log.Error("GetExternIp", "NewNetAddressString", err.Error())
+			log.Error("AddrRouteble", "NewNetAddressString", err.Error())
 			continue
 		}
 		conn, err := netaddr.DialTimeout(VERSION)
 		if err != nil {
-			log.Error("GetExternIp", "DialTimeout", err.Error())
+			//log.Error("AddrRouteble", "DialTimeout", err.Error())
 			continue
 		}
 
@@ -40,10 +39,9 @@ func (Comm) AddrRouteble(addrs []string) []string {
 			&pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: VERSION}, grpc.FailFast(true))
 		if err != nil {
 			conn.Close()
-			return enableAddrs
+			continue
 		}
 		enableAddrs = append(enableAddrs, addr)
-
 		conn.Close()
 	}
 

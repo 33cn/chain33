@@ -79,10 +79,20 @@ func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
 		addrlist = append(addrlist, peer.Addr())
+	}
+	return &pb.P2PAddr{Nonce: in.Nonce, Addrlist: addrlist}, nil
+}
 
+//获取地址列表，包含地址高度
+func (s *P2pServer) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddrList, error) {
+	_, infos := s.node.GetActivePeers()
+	var peerinfos []*pb.P2PPeerInfo
+	for _, info := range infos {
+		peerinfos = append(peerinfos, &pb.P2PPeerInfo{Addr: info.GetAddr(), Port: info.GetPort(), Name: info.GetName(), Header: info.GetHeader(),
+			MempoolSize: info.GetMempoolSize()})
 	}
 
-	return &pb.P2PAddr{Nonce: in.Nonce, Addrlist: addrlist}, nil
+	return &pb.P2PAddrList{Nonce: in.Nonce, Peerinfo: peerinfos}, nil
 }
 
 // 版本
@@ -90,6 +100,7 @@ func (s *P2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 
 	return &pb.P2PVerAck{Version: s.node.nodeInfo.cfg.GetVersion(), Service: 6, Nonce: in.Nonce}, nil
 }
+
 func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 	log.Debug("Version2")
 	getctx, ok := pr.FromContext(ctx)
@@ -105,9 +116,7 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 	if err == nil {
-
 		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
-
 	}
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
@@ -214,7 +223,7 @@ func (s *P2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 				log.Error("GetBlocks", "Error", err.Error())
 				return err //blockchain 模块关闭，直接返回，不需要continue
 			}
-			resp, err := client.Wait(msg)
+			resp, err := client.WaitTimeout(msg, time.Duration(time.Second*20))
 			if err != nil {
 				log.Error("GetBlocks Err", "Err", err.Error())
 				continue
@@ -224,7 +233,6 @@ func (s *P2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 			for _, item := range blocks.Items {
 				invdata.Ty = msgBlock
 				invdata.Value = &pb.InvData_Block{Block: item.Block}
-
 				p2pInvData = append(p2pInvData, &invdata)
 			}
 

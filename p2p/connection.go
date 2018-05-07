@@ -56,5 +56,5 @@ func NewMConnectionWithConfig(cfg *MConnConfig) *MConnection {
 
 func (c *MConnection) Close() {
 	c.gconn.Close()
-	log.Debug("Mconnection", "Close", "^_^!")
+	log.Info("Mconnection", "Close", "^_^!")
 }

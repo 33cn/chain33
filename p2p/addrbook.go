@@ -26,8 +26,7 @@ func (a *AddrBook) Close() {
 
 //peer address manager
 type AddrBook struct {
-	addrmtx  sync.Mutex
-	ourmtx   sync.Mutex
+	mtx      sync.Mutex
 	ourAddrs map[string]*NetAddress
 	addrPeer map[string]*knownAddress
 	cfg      *types.P2P
@@ -39,7 +38,6 @@ type AddrBook struct {
 }
 
 type knownAddress struct {
-	kmtx        sync.Mutex
 	Addr        *NetAddress `json:"addr"`
 	Attempts    uint        `json:"attempts"`
 	LastAttempt time.Time   `json:"lastattempt"`
@@ -47,8 +45,8 @@ type knownAddress struct {
 }
 
 func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
-	a.addrmtx.Lock()
-	defer a.addrmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
 		return peer
 	}
@@ -57,8 +55,8 @@ func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
 }
 
 func (a *AddrBook) setAddrStat(addr string, run bool) (*knownAddress, bool) {
-	a.addrmtx.Lock()
-	defer a.addrmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
 		if run {
 			peer.markGood()
@@ -72,10 +70,10 @@ func (a *AddrBook) setAddrStat(addr string, run bool) (*knownAddress, bool) {
 }
 
 func NewAddrBook(cfg *types.P2P) *AddrBook {
-	peers := make(map[string]*knownAddress)
 	a := &AddrBook{
+
 		ourAddrs: make(map[string]*NetAddress),
-		addrPeer: peers,
+		addrPeer: make(map[string]*knownAddress),
 		cfg:      cfg,
 		Quit:     make(chan struct{}, 1),
 	}
@@ -92,8 +90,7 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 }
 
 func (ka *knownAddress) markGood() {
-	ka.kmtx.Lock()
-	defer ka.kmtx.Unlock()
+
 	now := time.Now()
 	ka.LastAttempt = now
 	ka.Attempts = 0
@@ -101,21 +98,19 @@ func (ka *knownAddress) markGood() {
 }
 
 func (ka *knownAddress) Copy() *knownAddress {
-	ka.kmtx.Lock()
+
 	ret := knownAddress{
-		kmtx:        sync.Mutex{},
 		Addr:        ka.Addr.Copy(),
 		Attempts:    ka.Attempts,
 		LastAttempt: ka.LastAttempt,
 		LastSuccess: ka.LastSuccess,
 	}
-	ka.kmtx.Unlock()
+
 	return &ret
 }
 
 func (ka *knownAddress) markAttempt() {
-	ka.kmtx.Lock()
-	defer ka.kmtx.Unlock()
+
 	now := time.Now()
 	ka.LastAttempt = now
 	ka.Attempts++
@@ -123,14 +118,13 @@ func (ka *knownAddress) markAttempt() {
 }
 
 func (ka *knownAddress) GetAttempts() uint {
-	ka.kmtx.Lock()
-	defer ka.kmtx.Unlock()
 	return ka.Attempts
 }
 
 func (a *AddrBook) ISOurAddress(addr *NetAddress) bool {
-	a.ourmtx.Lock()
-	defer a.ourmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
 	if _, ok := a.ourAddrs[addr.String()]; ok {
 		return true
 	}
@@ -138,8 +132,8 @@ func (a *AddrBook) ISOurAddress(addr *NetAddress) bool {
 }
 
 func (a *AddrBook) IsOurStringAddress(addr string) bool {
-	a.ourmtx.Lock()
-	defer a.ourmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	if _, ok := a.ourAddrs[addr]; ok {
 		return true
 	}
@@ -147,15 +141,15 @@ func (a *AddrBook) IsOurStringAddress(addr string) bool {
 }
 
 func (a *AddrBook) AddOurAddress(addr *NetAddress) {
-	a.ourmtx.Lock()
-	defer a.ourmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	log.Debug("Add our address to book", "addr", addr)
 	a.ourAddrs[addr.String()] = addr
 }
 
 func (a *AddrBook) Size() int {
-	a.addrmtx.Lock()
-	defer a.addrmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	return len(a.addrPeer)
 }
 
@@ -164,12 +158,13 @@ type addrBookJSON struct {
 }
 
 func (a *AddrBook) saveToDb() {
-	a.addrmtx.Lock()
-	defer a.addrmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
 	addrs := []*knownAddress{}
 	for _, ka := range a.addrPeer {
-		log.Info("savaeToDb")
 		if len(P2pComm.AddrRouteble([]string{ka.Addr.String()})) == 0 {
+
 			continue
 		}
 		addrs = append(addrs, ka.Copy())
@@ -272,39 +267,41 @@ out:
 
 // NOTE: addr must not be nil
 func (a *AddrBook) AddAddress(addr *NetAddress, ka *knownAddress) {
-	a.addrmtx.Lock()
-	defer a.addrmtx.Unlock()
+
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	log.Debug("Add address to book", "addr", addr)
 	if addr == nil {
 		return
 	}
-	if a.IsOurStringAddress(addr.String()) {
+
+	if _, ok := a.ourAddrs[addr.String()]; ok {
+		// Ignore our own listener address.
 		return
 	}
-
 	//已经添加的不重复添加
 	if _, ok := a.addrPeer[addr.String()]; ok {
 		return
 	}
-
-	if ka == nil {
+	if nil == ka {
 		ka = newKnownAddress(addr)
 	}
 
 	a.addrPeer[ka.Addr.String()] = ka
+
 }
 
 func (a *AddrBook) RemoveAddr(peeraddr string) {
-	a.addrmtx.Lock()
-	defer a.addrmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	if _, ok := a.addrPeer[peeraddr]; ok {
 		delete(a.addrPeer, peeraddr)
 	}
 }
 
 func (a *AddrBook) GetPeers() []*NetAddress {
-	a.addrmtx.Lock()
-	defer a.addrmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	var peerlist []*NetAddress
 	for _, peer := range a.addrPeer {
 		peerlist = append(peerlist, peer.Addr)
@@ -313,8 +310,8 @@ func (a *AddrBook) GetPeers() []*NetAddress {
 }
 
 func (a *AddrBook) GetAddrs() []string {
-	a.addrmtx.Lock()
-	defer a.addrmtx.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	var addrlist []string
 	for _, peer := range a.addrPeer {
 

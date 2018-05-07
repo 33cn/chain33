@@ -10,7 +10,7 @@ import (
 )
 
 func (n *Node) destroyPeer(peer *Peer) {
-	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
+	log.Info("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
 		"version support", peer.version.IsSupport())
 
 	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
@@ -68,7 +68,6 @@ func (n *Node) getAddrFromGithub() {
 				continue
 			}
 
-			//fileContent := string(bf.Bytes())
 			fileContent := bf.String()
 			st := strings.TrimSpace(fileContent)
 			strs := strings.Split(st, "\n")
@@ -106,16 +105,22 @@ func (n *Node) getAddrFromOnline() {
 			peers, _ := n.GetActivePeers()
 			for _, peer := range peers { //向其他节点发起请求，获取地址列表
 				log.Debug("Getpeer", "addr", peer.Addr())
-				oklist, err := pcli.GetAddr(peer)
+				var addrlist []string
+				var err error
+				if peer.version.GetVersion() == VERSION {
+					addrlist, err = pcli.GetAddrList(peer)
+				} else {
+					addrlist, err = pcli.GetAddr(peer)
+				}
+
 				P2pComm.CollectPeerStat(err, peer)
 				if err != nil {
 					log.Error("getAddrFromOnline", "ERROR", err.Error())
 					continue
 				}
-
+				oklist := P2pComm.AddrRouteble(addrlist)
 				log.Debug("GetAddrFromOnline", "addrlist", oklist)
 				//过滤黑名单的地址
-				//oklist := P2pComm.AddrRouteble(addrlist)
 				for _, addr := range oklist {
 					if !n.nodeInfo.blacklist.Has(addr) {
 						pub.FIFOPub(addr, "addr")
@@ -165,11 +170,10 @@ func (n *Node) getAddrFromOffline() {
 					log.Debug("GetAddrFromOffline", "Add addr", addr)
 					pub.FIFOPub(addr, "addr")
 				}
-
 			}
 
 		} else {
-			log.Debug("getAddrFromOffline", "nodestable", n.needMore())
+			//
 			for _, seed := range n.nodeInfo.cfg.Seeds {
 				//如果达到稳定节点数量，则断开种子节点
 				if n.Has(seed) {
