@@ -1,194 +1,181 @@
 package tests
 
 import (
-	"encoding/hex"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"testing"
-	"encoding/binary"
-	"gitlab.33.cn/chain33/chain33/types"
-	"math/rand"
-	"time"
-	"gitlab.33.cn/chain33/chain33/wallet"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"math/big"
+	"encoding/hex"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
+	"path/filepath"
+	"os"
+	"io/ioutil"
+	"fmt"
+	"encoding/json"
 )
 
-// 正常创建合约逻辑
-func TestCreateContract1(t *testing.T) {
-	deployCode, _ := hex.DecodeString("608060405260358060116000396000f3006080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029")
-	execCode, _ := hex.DecodeString("6080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029")
+func TestVM(t *testing.T) {
 
-	privKey := getPrivKey()
+	basePath := "testdata/"
 
-	gas := uint64(210000)
-	gasLimit := gas * evm.TX_GAS_TIMES_FEE
-	tx := createTx(privKey, deployCode, gas, 10000000)
-	mdb := buildStateDB(getAddr(privKey).String(), 500000000)
-	ret, addr, leftGas, err, statedb := createContract(mdb, tx, 0)
+	//清空测试用例
+	//clearTestCase(basePath)
 
-	test := NewTester(t)
-	test.assertNil(err)
+	// 生成测试用例
+	genTestCase(basePath)
 
-	test.assertEqualsB(ret, execCode)
-	test.assertBigger(int(gasLimit), int(leftGas))
-	test.assertNotEqualsI(common.Address(addr), common.EmptyAddress())
+	t.Parallel()
 
-	// 检查返回数据是否正确
-	test.assertEqualsV(statedb.GetLastSnapshot(), 0)
-
-	kvset,_ := statedb.GetChangedData(statedb.GetLastSnapshot())
-	data := kv2map(kvset)
-	//acc := statedb.GetAccount(addr)
-
-	// 检查返回的数据是否正确，在合约创建过程中，改变的数据是固定的
-	// 应该生成2个变更，分别是：数据（代码、代码哈希）、状态（存储、存储哈希、nonce、是否自杀）
-	test.assertEqualsV(len(data), 4)
-
-	// 分别检查具体内容
-	//item := data[string(acc.GetCodeKey())]
-	//test.assertNotNil(item)
-	//test.assertEqualsB(item, execCode)
-	//
-	//item = data[string(acc.GetCodeHashKey())]
-	//test.assertNotNil(item)
-	//test.assertEqualsB(item, common.BytesToHash(crypto.Sha256(execCode)).Bytes())
-	//
-	//item = data[string(acc.GetNonceKey())]
-	//test.assertNotNil(item)
-	//test.assertEqualsV(int(acc.GetNonce()), int(core.Byte2Int(item)))
+	// 执行测试用例
+	runTestCase(t, basePath)
 }
 
-// 创建合约gas不足
-func TestCreateContract2(t *testing.T) {
-	deployCode, _ := hex.DecodeString("60606040523415600e57600080fd5b603580601b6000396000f3006060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
-	//execCode, _ := hex.DecodeString("6060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
-
-	privKey := getPrivKey()
-	// 以上合约代码部署逻辑需要消耗61个Gas，存储代码需要消耗10600个Gas
-	gas := uint64(30)
-	tx := createTx(privKey, deployCode, gas, 0)
-	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
-	ret, _, leftGas, err, _ := createContract(mdb, tx, 0)
-
-	test := NewTester(t)
-
-	// 创建时gas不足，应该返回空
-	test.assertNilB(ret)
-
-	test.assertEqualsE(err, model.ErrOutOfGas)
-
-	// gas不足时，应该是被扣光了
-	test.assertEqualsV(int(leftGas), 0)
-
-}
-
-// 存储合约gas不足
-func TestCreateContract3(t *testing.T) {
-	deployCode, _ := hex.DecodeString("60606040523415600e57600080fd5b603580601b6000396000f3006060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
-	execCode, _ := hex.DecodeString("6060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
-
-	privKey := getPrivKey()
-	// 以上合约代码部署逻辑需要消耗61个Gas，存储代码需要消耗10600个Gas
-	usedGas := uint64(61)
-	gas := uint64(100)
-	gasLimit := gas * evm.TX_GAS_TIMES_FEE
-	tx := createTx(privKey, deployCode, gas, 0)
-	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
-	ret, _, leftGas, err, _ := createContract(mdb, tx, 0)
-
-	test := NewTester(t)
-
-	// 这是合约代码已经生成了，但是没有存储到StateDb
-	test.assertEqualsB(ret, execCode)
-
-	//合约gas不足
-	test.assertEqualsE(err, model.ErrCodeStoreOutOfGas)
-
-	// 合约计算是否正确
-	// Gas消耗了部署的61个，还应该剩下
-	test.assertEqualsV(int(leftGas), int(gasLimit-usedGas))
-}
-
-// Gas充足，但是合约代码超大 （通过修改合约代码大小限制）
-func TestCreateContract4(t *testing.T) {
-	deployCode, _ := hex.DecodeString("60606040523415600e57600080fd5b603580601b6000396000f3006060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
-	execCode, _ := hex.DecodeString("6060604052600080fd00a165627a7a723058204bf1accefb2526a5077bcdfeaeb8020162814272245a9741cc2fddd89191af1c0029")
-
-	privKey := getPrivKey()
-	// 以上合约代码部署逻辑需要消耗61个Gas，存储代码需要消耗10600个Gas
-	gas := uint64(210000)
-	gasLimit := gas * evm.TX_GAS_TIMES_FEE
-	tx := createTx(privKey, deployCode, gas, 0)
-	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
-	ret, _, leftGas, err, _ := createContract(mdb, tx, 50)
-
-	test := NewTester(t)
-
-	// 合约代码正常返回
-	test.assertNotNil(ret)
-	test.assertEqualsB(ret, execCode)
-
-	test.assertBigger(int(gasLimit), int(leftGas))
-
-	// 返回指定错误
-	test.assertNotNil(err)
-	test.assertEqualsS(err.Error(), "evm: max code size exceeded")
-}
-
-// 下面测试合约调用时的合约代码
-// 对应二进制：608060405234801561001057600080fd5b506298967f60008190555060df806100296000396000f3006080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806360fe47b114604e5780636d4ce63c146078575b600080fd5b348015605957600080fd5b5060766004803603810190808035906020019092919050505060a0565b005b348015608357600080fd5b50608a60aa565b6040518082815260200191505060405180910390f35b8060008190555050565b600080549050905600a165627a7a72305820b3ccec4d8cbe393844da31834b7464f23d3b81b24f36ce7e18bb09601f2eb8660029
-//contract MyStore {
-//    uint value;
-//    constructor() public{
-//        value=9999999;
-//    }
-//    function set(uint x) public {
-//        value = x;
-//    }
-//
-//    function get() public constant returns (uint){
-//        return value;
-//    }
-//}
-
-func TestCreateTx(t *testing.T) {
-	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := ""
-	code := "608060405260358060116000396000f3006080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029"
-	deployCode, _ := hex.DecodeString(code)
-	fee := 50000
-	amount := 20000000
-
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b,uint64(amount))
-	tx := &types.Transaction{Execer: []byte("evm"), Payload: append(b, deployCode...), Fee: int64(fee), To:to}
-
-	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)
+func TestOneOp(t *testing.T) {
+	path := "testdata/mathTest/generated_sub0_1.json"
+	raw, err := ioutil.ReadFile(path)
 	if err != nil {
-		t.Error(err)
-		t.Fail()
-	}
-	tx.Fee += types.MinBalanceTransfer
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-	//tx.Sign(int32(wallet.SignType), privKey)
-	txHex := types.Encode(tx)
-	rawTx := hex.EncodeToString(txHex)
-
-	unsignedTx := &types.ReqSignRawTx{
-		Addr:caller,
-		PrivKey:"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
-		TxHex:rawTx,
-		Expire:"2h",
+		fmt.Println(err.Error())
+		t.FailNow()
 	}
 
-	wal := &wallet.Wallet{}
-	signedTx, err := procSignRawTx(wal, unsignedTx, tx.Payload)
-	if err != nil{
-		t.Error(err)
-		t.Fail()
+	var data interface{}
+	json.Unmarshal(raw, &data)
+
+	cases := parseData(data.(map[string]interface{}))
+	for _,c := range cases {
+		t.Logf("runing test case:%s in file:%s",c.name, path)
+		runCase(t, c)
+	}
+}
+
+
+func runTestCase(t *testing.T, basePath string)  {
+	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if path == basePath || !info.IsDir(){
+			return nil
+		}
+		runDir(t, path)
+		return nil
+	})
+}
+
+func runDir(tt *testing.T, basePath string) {
+	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir(){
+			return nil
+		}
+		baseName := info.Name()
+
+		if baseName[:5] == "data_" || baseName[:4] == "tpl_" || filepath.Ext(path) != ".json"{
+			return nil
+		}
+
+		raw, err := ioutil.ReadFile(path)
+		if err != nil {
+			fmt.Println(err.Error())
+			tt.FailNow()
+		}
+
+		var data interface{}
+		json.Unmarshal(raw, &data)
+
+		cases := parseData(data.(map[string]interface{}))
+		for _,c := range cases {
+			tt.Logf("runing test case:%s in file:%s",c.name, baseName)
+			runCase(tt, c)
+		}
+
+		return nil
+	})
+}
+
+func runCase(tt *testing.T, c VMCase)  {
+	// 1 构建预置环境 pre
+	inst := evm.NewEVMExecutor()
+	inst.SetEnv(c.env.currentNumber,c.env.currentTimestamp)
+	statedb := inst.GetMStateDB()
+	mdb := createStateDB(statedb, c)
+	statedb.StateDB=mdb
+	statedb.CoinsAccount = account.NewCoinsAccount()
+	statedb.CoinsAccount.SetDB(statedb.StateDB)
+
+	// 2 创建交易信息 create
+	vmcfg := inst.GetVMConfig()
+	msg := buildMsg(c)
+	context := evm.NewEVMContext(msg, c.env.currentNumber, c.env.currentTimestamp, common.StringToAddress(c.env.currentCoinbase), uint64(c.env.currentDifficulty))
+
+	// 3 调用执行逻辑 call
+	env := runtime.NewEVM(context, statedb, *vmcfg)
+	var (
+		ret []byte
+		//addr common.Address
+		//leftGas uint64
+		err error
+	)
+
+	if len(c.exec.address) > 0 {
+		ret,_,err = env.Call(runtime.AccountRef(msg.From()),common.StringToAddress(c.exec.address), msg.Data(), msg.GasLimit(), msg.Value())
 	}else{
-		t.Log(signedTx)
+		ret,_,_,err =  env.Create(runtime.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
 	}
+
+	if err != nil {
+		tt.Errorf("test case:%s, failed:%s",c.name, err)
+		return
+	}
+	// 4 检查执行结果 post (注意，这里不检查Gas具体扣费数额，因为计费规则不一样，值检查执行结果是否正确)
+	t := NewTester(tt)
+	// 4.1 返回结果
+	t.assertEqualsB(ret,getBin(c.out))
+
+	// 4.2 账户余额以及数据
+	for k,v := range c.post {
+		t.assertEqualsV(int(statedb.GetBalance(common.StringToAddress(k)).Int64()), int(v.balance))
+
+		t.assertEqualsB(statedb.GetCode(common.StringToAddress(k)), getBin(v.code))
+
+		for a,b := range v.storage {
+			if len(a) <1 || len(b) <1 {
+				continue
+			}
+			hashKey := common.BytesToHash(getBin(a))
+			hashVal := common.BytesToHash(getBin(b))
+			t.assertEqualsB(statedb.GetState(common.StringToAddress(k), hashKey).Bytes(), hashVal.Bytes())
+		}
+	}
+}
+
+
+// 使用预先设置的数据构建测试环境数据库
+func createStateDB(msdb *state.MemoryStateDB, c VMCase) *db.GoMemDB {
+	// 替换statedb中的数据库，获取测试需要的数据
+	mdb,_ := db.NewGoMemDB("test","",0)
+	// 构建预置的账户信息
+	for k,v := range c.pre {
+		// 写coins账户
+		ac := &types.Account{Addr:k, Balance:v.balance}
+		addAccount(mdb, ac)
+
+		// 写合约账户
+		addContractAccount(msdb,mdb,k,v)
+	}
+
+	// 清空MemoryStateDB中的日志
+	msdb.ResetDatas()
+
+	return mdb
+}
+
+// 使用测试输入信息构建交易
+func buildMsg(c VMCase) common.Message {
+	code,_:= hex.DecodeString(c.exec.code)
+	addr1 := common.StringToAddress(c.exec.caller)
+	addr2 := common.StringToAddress(c.exec.address)
+	gasLimit := uint64(210000000)
+	gasPrice := big.NewInt(c.exec.gasPrice)
+	return common.NewMessage(addr1, &addr2, uint64(1), big.NewInt(c.exec.value), gasLimit, gasPrice, code, false)
 }

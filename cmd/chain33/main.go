@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"time"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -32,10 +34,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
-	"google.golang.org/grpc/grpclog"
-	"time"
-
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (

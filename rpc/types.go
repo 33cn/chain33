@@ -282,4 +282,6 @@ type NodeNetinfo struct {
 	Externaladdr string `json:"externaladdr"`
 	Localaddr    string `json:"localaddr"`
 	Service      bool   `json:"service"`
+	Outbounds    int32  `json:"outbounds"`
+	Inbounds     int32  `json:"inbounds"`
 }

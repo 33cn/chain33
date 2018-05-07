@@ -1,0 +1,10 @@
+package: github.com/FactomProject/go-bip39
+import:
+- package: golang.org/x/crypto
+  subpackages:
+  - pbkdf2
+testImport:
+- package: github.com/stretchr/testify
+  version: ~1.1.4
+  subpackages:
+  - assert

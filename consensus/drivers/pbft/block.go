@@ -1,10 +1,11 @@
 package pbft
 
 import (
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
 	pb "gitlab.33.cn/chain33/chain33/types"
-	"time"
 	// pb "github.com/zballs/goPBFT/types"
 	//log "github.com/inconshreveable/log15"
 
@@ -26,8 +27,8 @@ func NewBlockstore(cfg *pb.Consensus, replyChan chan *pb.ClientReply, requestCha
 	c.SetChild(client)
 	return client
 }
-func (client *PbftClient) ProcEvent(msg queue.Message) {
-
+func (client *PbftClient) ProcEvent(msg queue.Message) bool {
+	return false
 }
 
 func (client *PbftClient) ExecBlock(prevHash []byte, block *pb.Block) (*pb.BlockDetail, []*pb.Transaction, error) {

@@ -52,6 +52,11 @@ message Consensus {
 	int64 NodeId = 7;
 	string PeersURL = 8;
 	string ClientAddr = 9;
+	int64 raftApiPort = 15;
+	bool isNewJoinNode = 16;
+	string readOnlyPeersURL = 17;
+	string addPeersURL = 18;
+	int64 defaultSnapCount = 19;
 }
 
 message Wallet {
@@ -61,6 +66,7 @@ message Wallet {
 	int32 dbCache = 4;
 	string signType =5;
 	bool forceMining = 6;
+	bool minerdisable = 7;
 }
 
 message Store {
@@ -97,6 +103,8 @@ message P2P {
 	int32 version = 11;
 	int32 verMix = 12;
 	int32 verMax = 13;
+	bool  innerSeedEnable=14;
+	int32 innerBounds=15;
 }
 
 message Rpc {

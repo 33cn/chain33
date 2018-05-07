@@ -12,10 +12,9 @@ import (
 
 	"github.com/inconshreveable/log15"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"math/rand"
 )
 
 const (
@@ -27,12 +26,10 @@ const (
 	//executorKey		= "execs"		// 交易执行器
 	walletKey     = "wallet"     // 钱包
 	blockchainKey = "blockchain" // 区块
-	//storeKey      = "store"
+	storeKey      = "store"
 )
 
 var log = log15.New("module", "client")
-
-var accountdb = account.NewCoinsAccount()
 
 type QueueProtocolOption struct {
 	// 发送请求超时时间
@@ -71,6 +68,9 @@ func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.M
 		return queue.Message{}, err
 	}
 	return client.WaitTimeout(msg, q.option.WaitTimeout)
+}
+func (q *QueueProtocol) Close() {
+	q.client.Close()
 }
 
 func (q *QueueProtocol) SetOption(option *QueueProtocolOption) {
@@ -135,7 +135,9 @@ func (q *QueueProtocol) GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, 
 	if reply, ok := msg.GetData().(*types.BlockDetails); ok {
 		return reply, nil
 	}
-	return nil, types.ErrTypeAsset
+	err = types.ErrTypeAsset
+	log.Error("GetBlocks", "Error", err.Error())
+	return nil, err
 }
 
 func (q *QueueProtocol) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
@@ -169,6 +171,8 @@ func (q *QueueProtocol) GetTransactionByAddr(param *types.ReqAddr) (*types.Reply
 	if reply, ok := msg.GetData().(*types.ReplyTxInfos); ok {
 		return reply, nil
 	}
+	err = types.ErrTypeAsset
+	log.Error("GetTransactionByAddr", "Error", err)
 	return nil, types.ErrTypeAsset
 }
 
@@ -402,13 +406,8 @@ func (q *QueueProtocol) GetHeaders(param *types.ReqBlocks) (*types.Headers, erro
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) GetLastMempool(param *types.ReqNil) (*types.ReplyTxList, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("GetLastMempool", "Error", err)
-		return nil, err
-	}
-	msg, err := q.query(mempoolKey, types.EventGetLastMempool, param)
+func (q *QueueProtocol) GetLastMempool() (*types.ReplyTxList, error) {
+	msg, err := q.query(mempoolKey, types.EventGetLastMempool, &types.ReqNil{})
 	if err != nil {
 		log.Error("GetLastMempool", "Error", err.Error())
 		return nil, err
@@ -448,16 +447,6 @@ func (q *QueueProtocol) GetAddrOverview(param *types.ReqAddr) (*types.AddrOvervi
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.AddrOverview); ok {
-		//获取地址账户的余额通过account模块
-		addrs := make([]string, 1)
-		addrs[0] = param.Addr
-		accounts, err := accountdb.LoadAccounts(q.client, addrs)
-		if err != nil {
-			return nil, err
-		}
-		if len(accounts) != 0 {
-			reply.Balance = accounts[0].Balance
-		}
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
@@ -601,34 +590,34 @@ func (q *QueueProtocol) CloseTickets() (*types.ReplyHashes, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) IsSync() (ret bool, err error) {
-	ret = false
+func (q *QueueProtocol) IsSync() (*types.Reply, error) {
 	msg, err := q.query(blockchainKey, types.EventIsSync, &types.ReqNil{})
 	if err != nil {
 		log.Error("IsSync", "Error", err.Error())
-		return
+		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.IsCaughtUp); ok {
-		ret = reply.GetIscaughtup()
+		return &types.Reply{IsOk: reply.Iscaughtup}, nil
 	} else {
 		err = types.ErrTypeAsset
 	}
-	return
+	log.Error("IsSync", "Error", err.Error())
+	return nil, err
 }
 
-func (q *QueueProtocol) IsNtpClockSync() (ret bool, err error) {
-	ret = false
+func (q *QueueProtocol) IsNtpClockSync() (*types.Reply, error) {
 	msg, err := q.query(blockchainKey, types.EventIsNtpClockSync, &types.ReqNil{})
 	if err != nil {
 		log.Error("IsNtpClockSync", "Error", err.Error())
-		return
+		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.IsNtpClockSync); ok {
-		ret = reply.GetIsntpclocksync()
+		return &types.Reply{IsOk: reply.GetIsntpclocksync()}, nil
 	} else {
 		err = types.ErrTypeAsset
 	}
-	return
+	log.Error("IsNtpClockSync", "Error", err.Error())
+	return nil, err
 }
 
 func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error) {
@@ -645,7 +634,7 @@ func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, 
 		return bytes.Join(s, sep)
 	}(param.Hash))
 
-	msg, err := q.query(walletKey, types.EventLocalGet, &types.LocalDBGet{keys})
+	msg, err := q.query(walletKey, types.EventLocalGet, &types.LocalDBGet{Keys: keys})
 	if err != nil {
 		log.Error("LocalGet", "Error", err.Error())
 		return nil, err
@@ -665,47 +654,105 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 	if reply, ok := msg.GetData().(*types.Header); ok {
 		return reply, nil
 	}
-	return nil, types.ErrTypeAsset
+	err = types.ErrTypeAsset
+	log.Error("GetLastHeader", "Error", err.Error())
+	return nil, err
 }
 
-func (q *QueueProtocol) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
+func (q *QueueProtocol) Query(param *types.Query) (*types.Message, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
-		log.Error("CreateRawTransaction", "Error", err)
+		log.Error("Query", "Error", err)
 		return nil, err
 	}
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: param.GetAmount(), Note: param.GetNote()}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 
-	//初始化随机数
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
-	data := types.Encode(tx)
-	return data, nil
+	msg, err := q.query(blockchainKey, types.EventQuery, param)
+	if err != nil {
+		log.Error("Query", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Message); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("Query", "Error", err.Error())
+	return nil, err
 }
 
-func (q *QueueProtocol) SendRawTransaction(param *types.SignedTx) (queue.Message, error) {
+func (q *QueueProtocol) Version() (*types.Reply, error) {
+	return &types.Reply{IsOk: true, Msg: []byte(version.GetVersion())}, nil
+}
+
+func (q *QueueProtocol) GetNetInfo() (*types.NodeNetInfo, error) {
+	msg, err := q.query(p2pKey, types.EventGetNetInfo, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetNetInfo", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.NodeNetInfo); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("GetNetInfo", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error) {
+	data := &types.ReqSignRawTx{
+		Addr:    param.GetAddr(),
+		PrivKey: param.GetPrivKey(),
+		TxHex:   param.GetTxHex(),
+		Expire:  param.GetExpire(),
+	}
+
+	msg, err := q.query(walletKey, types.EventSignRawTx, data)
+	if err != nil {
+		log.Error("SignRawTx", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplySignRawTx); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("SignRawTx", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) StoreGet(param *types.StoreGet) (*types.StoreReplyValue, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
-		log.Error("SendRawTransaction", "Error", err)
-		return queue.Message{}, err
+		log.Error("StoreGet", "Error", err)
+		return nil, err
 	}
-	var tx types.Transaction
-	err := types.Decode(param.GetUnsign(), &tx)
-	if err == nil {
-		tx.Signature = &types.Signature{param.GetTy(), param.GetPubkey(), param.GetSign()}
-		msg, err := q.query(mempoolKey, types.EventTx, &tx)
-		if err != nil {
-			log.Error("SendRawTransaction", "Error", err.Error())
-			return msg, err
-		}
-		if reply, ok := msg.GetData().(*types.Reply); ok {
-			if reply.GetIsOk() {
-				reply.Msg = tx.Hash()
-			}
-			return msg, nil
-		}
-		return queue.Message{}, types.ErrTypeAsset
+
+	msg, err := q.query(storeKey, types.EventStoreGet, param)
+	if err != nil {
+		log.Error("StoreGet", "Error", err.Error())
+		return nil, err
 	}
-	return queue.Message{}, err
+	if reply, ok := msg.GetData().(*types.StoreReplyValue); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreGet", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) StoreGetTotalCoins(param *types.IterateRangeByStateHash) (*types.ReplyGetTotalCoins, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreGetTotalCoins", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(storeKey, types.EventStoreGetTotalCoins, param)
+	if err != nil {
+		log.Error("StoreGetTotalCoins", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyGetTotalCoins); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreGetTotalCoins", "Error", err.Error())
+	return nil, err
 }

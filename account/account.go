@@ -12,10 +12,11 @@ package account
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -183,25 +184,18 @@ func (acc *DB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (acc *DB) LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, err error) {
-	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
+// TODO:使用API的方式访问,暂时与LoadAccounts()共存,后续将删除LoadAccounts()
+func (acc *DB) LoadAccounts(api client.QueueProtocolAPI, addrs []string) (accs []*types.Account, err error) {
+	header, err := api.GetLastHeader()
 	if err != nil {
 		return nil, err
 	}
-	get := types.StoreGet{}
-	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+	get := types.StoreGet{StateHash: header.GetStateHash()}
 	for i := 0; i < len(addrs); i++ {
 		get.Keys = append(get.Keys, acc.AccountKey(addrs[i]))
 	}
-	msg = client.NewMessage("store", types.EventStoreGet, &get)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	values := msg.GetData().(*types.StoreReplyValue)
+
+	values, err := api.StoreGet(&get)
 	for i := 0; i < len(values.Values); i++ {
 		value := values.Values[i]
 		if value == nil {
@@ -233,7 +227,7 @@ func (acc *DB) AccountKey(address string) (key []byte) {
 	return key
 }
 
-func (acc *DB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
+func (acc *DB) GetTotalCoins(api client.QueueProtocolAPI, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
 	req := types.IterateRangeByStateHash{}
 	req.StateHash = in.StateHash
 	req.Count = in.Count
@@ -252,13 +246,5 @@ func (acc *DB) GetTotalCoins(client queue.Client, in *types.ReqGetTotalCoins) (r
 		}
 		req.End = []byte(fmt.Sprintf("mavl-token-%s-exec", in.Symbol))
 	}
-
-	msg := client.NewMessage("store", types.EventStoreGetTotalCoins, &req)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	reply = msg.Data.(*types.ReplyGetTotalCoins)
-	return reply, nil
+	return api.StoreGetTotalCoins(&req)
 }
