@@ -6,8 +6,10 @@
 
 SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
 SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
+SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
 APP := build/chain33
 CLI := build/chain33-cli
+SIGNATORY := build/signatory-server
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
@@ -36,6 +38,11 @@ release: ## Build the binary file
 cli: ## Build cli binary
 	@go build -v -o $(CLI) $(SRC_CLI)
 
+signatory:
+	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
+	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
+	@cp cmd/signatory-server/signatory.toml build/
+
 build_ci: ## Build the binary file for CI
 	@go build -race -v -o $(CLI) $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
@@ -46,12 +53,13 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 	--enable=gofmt \
 	--enable=gosimple \
 	--enable=deadcode \
-	--enable=vet \
 	--enable=unconvert \
 	--enable=interfacer \
 	--enable=varcheck \
 	--enable=structcheck \
-	GS)
+	--enable=goimports \
+	--vendor ./...) \
+#	--enable=vet \
 #	--enable=staticcheck \
 #	--enable=gocyclo \
 #	--enable=staticcheck \
@@ -72,6 +80,7 @@ test: ## Run unittests
 
 fmt: ## go fmt
 	@go fmt ./...
+	@$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w)
 
 vet: ## go vet
 	@go vet ./...
@@ -107,14 +116,19 @@ help: ## Display this help screen
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	
 cleandata:
-	rm -rf datadir/addrbook
-	rm -rf datadir/blockchain.db
-	rm -rf datadir/mavltree
-	rm -rf chain33.log
+	rm -rf build/datadir/addrbook
+	rm -rf build/datadir/blockchain.db
+	rm -rf build/datadir/mavltree
+	rm -rf build/chain33.log
 
 .PHONY: checkgofmt
 checkgofmt: ## get all go files and run go fmt on them
 	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
+		  echo "Error: 'make fmt' needs to be run on:"; \
+		  echo "$${files}"; \
+		  exit 1; \
+		  fi;
+	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
 		  echo "$${files}"; \
 		  exit 1; \

@@ -66,7 +66,6 @@ message HeadersPid{
 // 	 head : 区块头信息
 //	 txCount :区块上交易个数
 // 	 txHashes : 区块上交易的哈希列表
-
 message BlockOverview {
 	Header head = 1;
 	int64 txCount = 2;

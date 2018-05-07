@@ -10,7 +10,7 @@ type MConnection struct {
 	gconn         *grpc.ClientConn
 	gcli          pb.P2PgserviceClient // source connection
 	remoteAddress *NetAddress          //peer 的地址
-	peer          *peer
+	peer          *Peer
 }
 
 // MConnConfig is a MConnection configuration.
@@ -32,8 +32,8 @@ func NewTemMConnConfig(gconn *grpc.ClientConn, gcli pb.P2PgserviceClient) *MConn
 }
 
 // NewMConnection wraps net.Conn and creates multiplex connection
-func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *peer) *MConnection {
-
+func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MConnection {
+	log.Info("NewMConnection grpc client", "addr", remote)
 	mconn := &MConnection{
 		gconn: conn,
 		gcli:  pb.NewP2PgserviceClient(conn),

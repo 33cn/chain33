@@ -1,15 +1,20 @@
 package p2p
 
 import (
+	"bytes"
+	"io"
+	"math/rand"
+	"net/http"
+	"strings"
 	"time"
 )
 
-func (n *Node) destroyPeer(peer *peer) {
+func (n *Node) destroyPeer(peer *Peer) {
 	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
 		"version support", peer.version.IsSupport())
 
 	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
-	n.Remove(peer.Addr())
+	n.remove(peer.Addr())
 
 }
 
@@ -39,19 +44,65 @@ func (n *Node) monitorErrPeer() {
 	}
 }
 
+func (n *Node) getAddrFromGithub() {
+	ticker := time.NewTicker(GetAddrFromGitHubInterval)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+		if n.isClose() {
+			log.Debug("getAddrFromGithub", "loop", "done")
+			return
+		}
+		if n.needMore() {
+			//从github 上下载种子节点文件
+			res, err := http.Get("https://raw.githubusercontent.com/chainseed/seeds/master/bty.txt")
+			if err != nil {
+				log.Error("getAddrFromGithub", "http.Get", err.Error())
+				continue
+			}
+
+			bf := new(bytes.Buffer)
+			_, err = io.Copy(bf, res.Body)
+			if err != nil {
+				log.Error("getAddrFromGithub", "io.Copy", err.Error())
+				continue
+			}
+
+			//fileContent := string(bf.Bytes())
+			fileContent := bf.String()
+			st := strings.TrimSpace(fileContent)
+			strs := strings.Split(st, "\n")
+			log.Info("getAddrFromGithub", "download file", fileContent)
+			for _, linestr := range strs {
+				pidaddr := strings.Split(linestr, "@")
+				if len(pidaddr) == 2 {
+
+					addr := pidaddr[1]
+					if n.Has(addr) || n.nodeInfo.blacklist.Has(addr) ||
+						len(P2pComm.AddrRouteble([]string{addr})) == 0 {
+						continue
+					}
+					pub.FIFOPub(addr, "addr")
+
+				}
+			}
+		}
+	}
+}
+
 func (n *Node) getAddrFromOnline() {
 	ticker := time.NewTicker(GetAddrFromOnlineInterval)
 	defer ticker.Stop()
-	pcli := NewCli(nil)
+	pcli := NewNormalP2PCli()
 
 	for {
 		<-ticker.C
-		if n.IsClose() {
+		if n.isClose() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
 			return
 		}
 		if n.needMore() {
-			peers, _ := n.getActivePeers()
+			peers, _ := n.GetActivePeers()
 			for _, peer := range peers { //向其他节点发起请求，获取地址列表
 				log.Debug("Getpeer", "addr", peer.Addr())
 				addrlist, err := pcli.GetAddr(peer)
@@ -83,20 +134,18 @@ func (n *Node) getAddrFromOffline() {
 
 	for {
 		<-ticker.C
-		if n.IsClose() {
+		if n.isClose() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
 			return
 		}
 		if n.needMore() {
 			var testlist []string
-			for _, seed := range n.nodeInfo.cfg.Seeds {
-				if !n.Has(seed) && !n.nodeInfo.blacklist.Has(seed) {
-					log.Debug("GetAddrFromOffline", "Add Seed", seed)
-					testlist = append(testlist, seed)
-
-				}
+			//随机选择种子进行连接
+			seeds := n.nodeInfo.cfg.GetSeeds()
+			index := rand.Intn(len(seeds))
+			if !n.Has(seeds[index]) && !n.nodeInfo.blacklist.Has(seeds[index]) {
+				testlist = append(testlist, seeds[index])
 			}
-
 			log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.nodeInfo.addrBook.GetPeers())
 			peeraddrs := n.nodeInfo.addrBook.GetPeers()
 
@@ -122,9 +171,33 @@ func (n *Node) getAddrFromOffline() {
 			for _, seed := range n.nodeInfo.cfg.Seeds {
 				//如果达到稳定节点数量，则断开种子节点
 				if n.Has(seed) {
-					n.Remove(seed)
+					if !n.needMore() && len(n.GetRegisterPeers()) > maxOutBoundNum {
+						n.remove(seed)
+					}
+
 				}
 			}
+			//如果删除种子节点后，依然有过多的节点连接，则继续删除其他非种子节点
+			if !n.needMore() && len(n.GetRegisterPeers()) > maxOutBoundNum {
+				peerinfos := n.nodeInfo.peerInfos.GetPeerInfos()
+				//把连接的高度最低的节点删掉
+				var lowest int64
+				var lowestPeer string
+				var index int
+				for peeraddr, pbpeer := range peerinfos {
+					if index == 0 {
+						lowest = pbpeer.GetHeader().GetHeight()
+					}
+					if lowest > pbpeer.GetHeader().GetHeight() {
+						lowest = pbpeer.GetHeader().GetHeight()
+						lowestPeer = peeraddr
+					}
+					index++
+				}
+
+				n.remove(lowestPeer)
+			}
+
 		}
 
 		log.Debug("Node Monitor process", "outbound num", n.Size())
@@ -139,7 +212,7 @@ func (n *Node) monitorPeerInfo() {
 		ticker := time.NewTicker(MonitorPeerInfoInterval)
 		defer ticker.Stop()
 		for {
-			if n.IsClose() {
+			if n.isClose() {
 				return
 			}
 
@@ -153,7 +226,7 @@ func (n *Node) monitorDialPeers() {
 
 	addrChan := pub.Sub("addr")
 	for addr := range addrChan {
-		if n.IsClose() {
+		if n.isClose() {
 			log.Info("monitorDialPeers", "loop", "done")
 			return
 		}
@@ -172,7 +245,7 @@ func (n *Node) monitorDialPeers() {
 			continue
 		}
 
-		if !n.needMore() {
+		if !n.needMore() || len(n.GetRegisterPeers()) > maxOutBoundNum { //注册的节点超过最大节点数暂不连接
 			time.Sleep(time.Second * 10)
 			continue
 		}
@@ -182,7 +255,7 @@ func (n *Node) monitorDialPeers() {
 			log.Error("ialPeers", "Err", err.Error())
 			continue
 		}
-		n.AddPeer(peer)
+		n.addPeer(peer)
 		n.nodeInfo.addrBook.AddAddress(netAddr)
 
 	}
@@ -193,7 +266,7 @@ func (n *Node) monitorBlackList() {
 	ticker := time.NewTicker(CheckBlackListInterVal)
 	defer ticker.Stop()
 	for {
-		if n.IsClose() {
+		if n.isClose() {
 			log.Info("monitorBlackList", "loop", "done")
 			return
 		}

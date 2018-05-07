@@ -1,14 +1,5 @@
 {
     "{{.Name}}" : {
-        "_info" : {
-            "comment" : "",
-            "filledwith" : "cpp-1.3.0+commit.6e0ce939.Linux.g++",
-            "lllcversion" : "Version: 0.4.18-develop.2017.9.25+commit.a72237f2.Linux.g++",
-            "source" : "src/VMTestsFiller/vmArithmeticTest/add0Filler.json",
-            "sourceHash" : "dcc7fc8aebdc2d7334440cfe6c63172941b4164c1ba8c32897318ca0cdfb7a1c"
-        },
-        "callcreates" : [
-        ],
         "env" : {
             "currentCoinbase" : "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentDifficulty" : "0x0100",

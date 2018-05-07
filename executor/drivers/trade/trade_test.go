@@ -1,8 +1,9 @@
 package trade
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"testing"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 //----------------------------- data for testing ---------------------------------

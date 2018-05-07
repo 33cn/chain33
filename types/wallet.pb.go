@@ -489,6 +489,7 @@ func (m *ReqWalletTransactionList) GetDirection() int32 {
 }
 
 type ReqWalletImportPrivKey struct {
+	// bitcoin 的私钥格式
 	Privkey string `protobuf:"bytes,1,opt,name=privkey" json:"privkey,omitempty"`
 	Label   string `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
 }

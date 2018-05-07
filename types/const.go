@@ -1,8 +1,22 @@
 package types
 
+// 注释掉系统中没有用到的枚举项
+// 与AllowUserExec中驱动名称的顺序一致
+const (
+	ExecTypeCoins    = 0
+	ExecTypeTicket   = 1
+	ExecTypeHashLock = 2
+	ExecTypeNorm     = 3
+	ExecTypeRetrieve = 4
+	ExecTypeNone     = 5
+	ExecTypeToken    = 6
+	ExecTypeTrade    = 7
+	ExecTypeManage   = 8
+)
+
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage", "evm"}
+	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm", "retrieve", "none", "token", "trade", "manage", "evm"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1514533394
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -34,20 +48,20 @@ func SetMinFee(fee int64) {
 
 // coin conversation
 const (
-	Coin                int64   = 1e8
-	MaxCoin             int64   = 1e17
-	MaxTxSize                   = 100000   //100K
-	MaxBlockSize                = 10000000 //10M
-	MaxTxsPerBlock              = 100000
-	TokenPrecision      int64   = 1e8
-	MaxTokenBalance     int64   = 900 * 1e8 * TokenPrecision //900亿
-	InputPrecision      float64 = 1e4
-	Multiple1E4         int64   = 1e4
-	TokenNameLenLimit           = 128
-	TokenSymbolLenLimit         = 16
-	TokenIntroLenLimit          = 1024
-	InvalidStartTime            = 0
-	InvalidStopTime             = 0
+	Coin                int64 = 1e8
+	MaxCoin             int64 = 1e17
+	MaxTxSize                 = 100000   //100K
+	MaxBlockSize              = 10000000 //10M
+	MaxTxsPerBlock            = 100000
+	TokenPrecision      int64 = 1e8
+	MaxTokenBalance           = 900 * 1e8 * TokenPrecision //900亿
+	InputPrecision            = 1e4
+	Multiple1E4         int64 = 1e4
+	TokenNameLenLimit         = 128
+	TokenSymbolLenLimit       = 16
+	TokenIntroLenLimit        = 1024
+	InvalidStartTime          = 0
+	InvalidStopTime           = 0
 )
 
 // event
@@ -380,6 +394,11 @@ const (
 	HashlockActionLock   = 1
 	HashlockActionSend   = 2
 	HashlockActionUnlock = 3
+)
+
+//norm
+const (
+	NormActionPut = 1
 )
 
 // retrieve op

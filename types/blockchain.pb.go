@@ -290,6 +290,10 @@ func (m *HeadersPid) GetHeaders() *Headers {
 	return nil
 }
 
+// 区块视图
+// 	 head : 区块头信息
+// 	 txCount :区块上交易个数
+// 	 txHashes : 区块上交易的哈希列表
 type BlockOverview struct {
 	Head     *Header  `protobuf:"bytes,1,opt,name=head" json:"head,omitempty"`
 	TxCount  int64    `protobuf:"varint,2,opt,name=txCount" json:"txCount,omitempty"`

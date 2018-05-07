@@ -17,6 +17,13 @@ stages:
     - build
     - test
 
+go_fmt:
+    stage: build
+    tags:
+        - 33cn
+    script:
+        - make checkgofmt
+
 go_lint:
     stage: build
     tags:
