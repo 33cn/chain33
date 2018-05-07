@@ -47,8 +47,8 @@ func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
-func (client *RaftClient) ProcEvent(msg queue.Message) {
-
+func (client *RaftClient) ProcEvent(msg queue.Message) bool {
+	return false
 }
 
 func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
