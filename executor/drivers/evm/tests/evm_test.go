@@ -42,7 +42,7 @@ func TestCreateContract1(t *testing.T) {
 
 	// 检查返回的数据是否正确，在合约创建过程中，改变的数据是固定的
 	// 应该生成2个变更，分别是：数据（代码、代码哈希）、状态（存储、存储哈希、nonce、是否自杀）
-	test.assertEqualsV(len(data), 2)
+	test.assertEqualsV(len(data), 4)
 
 	// 分别检查具体内容
 	//item := data[string(acc.GetCodeKey())]
@@ -137,19 +137,19 @@ func TestCreateContract4(t *testing.T) {
 
 // 下面测试合约调用时的合约代码
 // 对应二进制：608060405234801561001057600080fd5b506298967f60008190555060df806100296000396000f3006080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806360fe47b114604e5780636d4ce63c146078575b600080fd5b348015605957600080fd5b5060766004803603810190808035906020019092919050505060a0565b005b348015608357600080fd5b50608a60aa565b6040518082815260200191505060405180910390f35b8060008190555050565b600080549050905600a165627a7a72305820b3ccec4d8cbe393844da31834b7464f23d3b81b24f36ce7e18bb09601f2eb8660029
-// contract MyStore {
-//     uint value;
-//     constructor() public{
-//         value=9999999;
-//     }
-//     function set(uint x) public {
-//         value = x;
-//     }
+//contract MyStore {
+//    uint value;
+//    constructor() public{
+//        value=9999999;
+//    }
+//    function set(uint x) public {
+//        value = x;
+//    }
 //
-//     function get() public constant returns (uint){
-//         return value;
-//     }
-// }
+//    function get() public constant returns (uint){
+//        return value;
+//    }
+//}
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
@@ -191,84 +191,4 @@ func TestCreateTx(t *testing.T) {
 	}else{
 		t.Log(signedTx)
 	}
-}
-
-func TestCallContract1(t *testing.T) {
-	code := "608060405260358060116000396000f3006080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029"
-	deployCode, _ := hex.DecodeString(code)
-	execCode, _ := hex.DecodeString(code[82:])
-
-	privKey := getPrivKey()
-
-	gas := uint64(210000)
-	usedGas := 64707
-	gasLimit := gas * evm.TX_GAS_TIMES_FEE
-	tx := createTx(privKey, deployCode, gas, 0)
-	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
-	ret, addr, leftGas, err, statedb := createContract(mdb, tx, 0)
-
-	test := NewTester(t)
-	test.assertNil(err)
-
-	test.assertEqualsB(ret, execCode)
-
-	test.assertBigger(int(gasLimit), int(leftGas))
-	test.assertEqualsV(usedGas, int(gasLimit-leftGas))
-	test.assertNotEqualsI(common.Address(addr), common.EmptyAddress())
-
-	// 检查返回数据是否正确
-	test.assertEqualsV(statedb.GetLastSnapshot(), 0)
-
-	// 将创建合约得出来的变更数据写入statedb，给调用合约时使用
-	kvset, _ := statedb.GetChangedData(statedb.GetLastSnapshot())
-	for i := 0; i < len(kvset); i++ {
-		mdb.Set(kvset[i].Key, kvset[i].Value)
-	}
-
-	// 合约创建完成后，开始调用测试
-	// 首先调用get方法，检查初始值设置是否正确
-	gas = uint64(210000)
-	gasLimit = gas * evm.TX_GAS_TIMES_FEE
-	params := "6d4ce63c"
-	callCode, _ := hex.DecodeString(params)
-	tx = createTx(privKey, callCode, gas, 0)
-	ret, leftGas, err, statedb = callContract(mdb, tx, addr)
-
-	test.assertNil(err)
-	test.assertBigger(int(gasLimit), int(leftGas))
-	test.assertNotNil(ret)
-	test.assertEqualsV(int(9999999), int(binary.BigEndian.Uint64(ret[24:])))
-
-	// 调用合约的set(11)
-	gas = uint64(210000)
-	gasLimit = gas * evm.TX_GAS_TIMES_FEE
-	params = "60fe47b1000000000000000000000000000000000000000000000000000000000000000b"
-	callCode, _ = hex.DecodeString(params)
-	tx = createTx(privKey, callCode, gas, 0)
-
-	ret, leftGas, err, statedb = callContract(mdb, tx, addr)
-
-	test.assertNil(err)
-	test.assertBigger(int(gasLimit), int(leftGas))
-	test.assertNilB(ret)
-
-	// 再复制一次数据，确保set引起的变更被写入
-	kvset, _ = statedb.GetChangedData(statedb.GetLastSnapshot())
-	for i := 0; i < len(kvset); i++ {
-		mdb.Set(kvset[i].Key, kvset[i].Value)
-	}
-
-	// 再调用get方法，检查设置的值是否生效
-	gas = uint64(210000)
-	gasLimit = gas * evm.TX_GAS_TIMES_FEE
-	params = "6d4ce63c"
-	callCode, _ = hex.DecodeString(params)
-	tx = createTx(privKey, callCode, gas, 0)
-	ret, leftGas, err, statedb = callContract(mdb, tx, addr)
-
-	println(hex.EncodeToString(ret))
-	test.assertNil(err)
-	test.assertBigger(int(gasLimit), int(leftGas))
-	test.assertNotNil(ret)
-	test.assertEqualsV(int(11), int(binary.BigEndian.Uint64(ret[24:])))
 }

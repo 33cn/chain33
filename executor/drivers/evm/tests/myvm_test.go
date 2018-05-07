@@ -2,21 +2,180 @@ package tests
 
 import (
 	"testing"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
+	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"math/big"
+	"encoding/hex"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
+	"path/filepath"
+	"os"
 	"io/ioutil"
 	"fmt"
 	"encoding/json"
 )
 
 func TestVM(t *testing.T) {
-	raw,err := ioutil.ReadFile("testdata/VMTests/vmArithmeticTest/add0.json")
+
+	basePath := "testdata/"
+
+	//清空测试用例
+	//clearTestCase(basePath)
+
+	// 生成测试用例
+	genTestCase(basePath)
+
+	t.Parallel()
+
+	// 执行测试用例
+	runTestCase(t, basePath)
+}
+
+func TestOneOp(t *testing.T) {
+	path := "testdata/mathTest/generated_sub0_1.json"
+	raw, err := ioutil.ReadFile(path)
 	if err != nil {
 		fmt.Println(err.Error())
 		t.FailNow()
 	}
 
-	var data []VMJson
-
+	var data interface{}
 	json.Unmarshal(raw, &data)
 
-	fmt.Println(data)
+	cases := parseData(data.(map[string]interface{}))
+	for _,c := range cases {
+		t.Logf("runing test case:%s in file:%s",c.name, path)
+		runCase(t, c)
+	}
+}
+
+
+func runTestCase(t *testing.T, basePath string)  {
+	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if path == basePath || !info.IsDir(){
+			return nil
+		}
+		runDir(t, path)
+		return nil
+	})
+}
+
+func runDir(tt *testing.T, basePath string) {
+	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir(){
+			return nil
+		}
+		baseName := info.Name()
+
+		if baseName[:5] == "data_" || baseName[:4] == "tpl_" {
+			return nil
+		}
+
+		raw, err := ioutil.ReadFile(path)
+		if err != nil {
+			fmt.Println(err.Error())
+			tt.FailNow()
+		}
+
+		var data interface{}
+		json.Unmarshal(raw, &data)
+
+		cases := parseData(data.(map[string]interface{}))
+		for _,c := range cases {
+			tt.Logf("runing test case:%s in file:%s",c.name, baseName)
+			runCase(tt, c)
+		}
+
+		return nil
+	})
+}
+
+func runCase(tt *testing.T, c VMCase)  {
+	// 1 构建预置环境 pre
+	inst := evm.NewEVMExecutor()
+	inst.SetEnv(c.env.currentNumber,c.env.currentTimestamp)
+	statedb := inst.GetMStateDB()
+	mdb := createStateDB(statedb, c)
+	statedb.StateDB=mdb
+	statedb.CoinsAccount = account.NewCoinsAccount()
+	statedb.CoinsAccount.SetDB(statedb.StateDB)
+
+	// 2 创建交易信息 create
+	vmcfg := inst.GetVMConfig()
+	msg := buildMsg(c)
+	context := evm.NewEVMContext(msg, c.env.currentNumber, c.env.currentTimestamp, common.StringToAddress(c.env.currentCoinbase), uint64(c.env.currentDifficulty))
+
+	// 3 调用执行逻辑 call
+	env := runtime.NewEVM(context, statedb, *vmcfg)
+	var (
+		ret []byte
+		//addr common.Address
+		//leftGas uint64
+		err error
+	)
+
+	if len(c.exec.address) > 0 {
+		ret,_,err = env.Call(runtime.AccountRef(msg.From()),common.StringToAddress(c.exec.address), msg.Data(), msg.GasLimit(), msg.Value())
+	}else{
+		ret,_,_,err =  env.Create(runtime.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
+	}
+
+	if err != nil {
+		tt.Errorf("test case:%s, failed:%s",c.name, err)
+		return
+	}
+	// 4 检查执行结果 post (注意，这里不检查Gas具体扣费数额，因为计费规则不一样，值检查执行结果是否正确)
+	t := NewTester(tt)
+	// 4.1 返回结果
+	t.assertEqualsB(ret,getBin(c.out))
+
+	// 4.2 账户余额以及数据
+	for k,v := range c.post {
+		t.assertEqualsV(int(statedb.GetBalance(common.StringToAddress(k)).Int64()), int(v.balance))
+
+		t.assertEqualsB(statedb.GetCode(common.StringToAddress(k)), getBin(v.code))
+
+		for a,b := range v.storage {
+			if len(a) <1 || len(b) <1 {
+				continue
+			}
+			hashKey := common.BytesToHash(getBin(a))
+			hashVal := common.BytesToHash(getBin(b))
+			t.assertEqualsB(statedb.GetState(common.StringToAddress(k), hashKey).Bytes(), hashVal.Bytes())
+		}
+	}
+}
+
+
+// 使用预先设置的数据构建测试环境数据库
+func createStateDB(msdb *state.MemoryStateDB, c VMCase) *db.GoMemDB {
+	// 替换statedb中的数据库，获取测试需要的数据
+	mdb,_ := db.NewGoMemDB("test","",0)
+	// 构建预置的账户信息
+	for k,v := range c.pre {
+		// 写coins账户
+		ac := &types.Account{Addr:k, Balance:v.balance}
+		addAccount(mdb, ac)
+
+		// 写合约账户
+		addContractAccount(msdb,mdb,k,v)
+	}
+
+	// 清空MemoryStateDB中的日志
+	msdb.ResetDatas()
+
+	return mdb
+}
+
+// 使用测试输入信息构建交易
+func buildMsg(c VMCase) common.Message {
+	code,_:= hex.DecodeString(c.exec.code)
+	addr1 := common.StringToAddress(c.exec.caller)
+	addr2 := common.StringToAddress(c.exec.address)
+	gasLimit := uint64(210000000)
+	gasPrice := big.NewInt(c.exec.gasPrice)
+	return common.NewMessage(addr1, &addr2, uint64(1), big.NewInt(c.exec.value), gasLimit, gasPrice, code, false)
 }
