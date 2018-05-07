@@ -17,20 +17,14 @@ const (
 var (
 	AllowDepositExec       = []string{"ticket"}
 	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm", "retrieve", "none", "token", "trade", "manage"}
-	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	GenesisBlockTime int64 = 1514533394
+	GenesisAddr            = "1GuBvs9HzTLE2wE2NhXj29Tf7wJyhjDS5p"
+	GenesisBlockTime int64 = 1525708005
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+	FundKeyAddr            = "1QGdwwUr64CbvN48hhsAZSeh5WfieZbqEr"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager           = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	SuperManager           = []string{"14YRhYpYSrABHz7nUUTufWaQ2v36PZcKZS"}
 	ConfigPrefix           = "mavl-config-"
-	TokenApprs             = []string{
-		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
-		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
-		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
-		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
-		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
-	}
+	TokenApprs             = []string{}
 )
 
 var (
@@ -460,12 +454,12 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 
 //hard fork block height
 const (
-	ForkV1               = 75260
-	ForkV2AddToken       = 100899
-	ForkV3               = 110000
-	ForkV4AddManage      = 120000
-	ForkV5Retrive        = 180000
-	ForkV6TokenBlackList = 190000
-	ForkV7BadTokenSymbol = 184000
-	ForkBlockHash        = 208986 + 200
+	ForkV1               = 1
+	ForkV2AddToken       = 1
+	ForkV3               = 1
+	ForkV4AddManage      = 1
+	ForkV5Retrive        = 1
+	ForkV6TokenBlackList = 1
+	ForkV7BadTokenSymbol = 1
+	ForkBlockHash        = 1
 )
