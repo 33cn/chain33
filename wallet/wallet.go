@@ -1308,7 +1308,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 			//使用old Password解密存储的私钥
 			storekey, err := common.FromHex(AccStore.GetPrivkey())
 			if err != nil || len(storekey) == 0 {
-				walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
+				walletlog.Error("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
 				continue
 			}
 			Decrypter := CBCDecrypterPrivkey([]byte(Passwd.Oldpass), storekey)
@@ -1318,7 +1318,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 			AccStore.Privkey = common.ToHex(Encrypter)
 			err = wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
 			if err != nil {
-				walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "SetWalletAccount err", err)
+				walletlog.Error("ProcWalletSetPasswd", "addr", AccStore.Addr, "SetWalletAccount err", err)
 			}
 		}
 	}
@@ -1457,6 +1457,8 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				RpubKey = privateAction.GetPrivacy2Privacy().GetRpubKeytx()
 				OnetimePubKey = privateAction.GetPrivacy2Privacy().GetOnetimePubKey()
 				tokenname = privateAction.GetPrivacy2Privacy().GetTokenname()
+			} else {
+				continue
 			}
 
 			if privacyInfo, err := wallet.getPrivacyKeyPairsOfWallet(); err == nil {
@@ -2501,7 +2503,6 @@ func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivacyBalance) (*types.A
 		walletlog.Error("transPri2Pri", "Failed to GetRofPrivateTx")
 		return nil, err
 	}
-	walletlog.Info("transPri2Pri", "R of GetRofPrivateTx", R)
 	//x = Hs(aR) + b
 	priv, err := privacy.RecoverOnetimePriKey(R, privacyInfo.ViewPrivKey, privacyInfo.SpendPrivKey)
 	if err != nil {
@@ -2564,8 +2565,6 @@ func (wallet *Wallet) procPublic2Privacy(public2private *types.ReqPub2Pri) (*typ
 func (wallet *Wallet) procPrivacy2Privacy(privacy2privacy *types.ReqPri2Pri) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-
-	walletlog.Info("privacy2privacy begin to getPrivacykeyPair")
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
 		return nil, err
@@ -2580,8 +2579,6 @@ func (wallet *Wallet) procPrivacy2Privacy(privacy2privacy *types.ReqPri2Pri) (*t
 		walletlog.Error("privacy2privacy failed to getPrivacykeyPair")
 		return nil, err
 	}
-
-	walletlog.Info("privacy2privacy finish getPrivacykeyPair")
 
 	return wallet.transPri2Pri(privacyInfo, privacy2privacy)
 }
@@ -2621,18 +2618,13 @@ func (wallet *Wallet) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) {
 	infoPriRes := make([]addrAndprivacy, len(WalletAccStores))
 	for index, AccStore := range WalletAccStores {
 		if len(AccStore.Addr) != 0 {
-			walletlog.Info("getPrivacyKeyPairsOfWallet", "Going to getPrivacykeyPair for addr", AccStore.Addr)
 			if privacyInfo, err := wallet.getPrivacykeyPair(AccStore.Addr); err == nil {
-				walletlog.Info("getPrivacyKeyPairsOfWallet", "privacyInfo", privacyInfo)
 				var priInfo addrAndprivacy
 				priInfo.Addr = &AccStore.Addr
 				priInfo.PrivacyKeyPair = privacyInfo
-				walletlog.Info("getPrivacyKeyPairsOfWallet", "priInfo going to be appended", priInfo)
 				infoPriRes[index] = priInfo
 			}
 		}
 	}
-
-	walletlog.Info("getPrivacyKeyPairsOfWallet", "infoPriRes", infoPriRes)
 	return infoPriRes, nil
 }
