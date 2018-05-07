@@ -78,12 +78,7 @@ func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 	peers, _ := s.node.GetActivePeers()
 	log.Debug("GetAddr", "GetPeers", peers)
 	for _, peer := range peers {
-
-		if stat := s.node.nodeInfo.addrBook.GetPeerStat(peer.Addr()); stat != nil {
-			if stat.GetAttempts() == 0 {
-				addrlist = append(addrlist, peer.Addr())
-			}
-		}
+		addrlist = append(addrlist, peer.Addr())
 
 	}
 
@@ -98,10 +93,10 @@ func (s *P2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 	log.Info("Version2")
 	getctx, ok := pr.FromContext(ctx)
-	var peeraddr string
+	var peerip string
 	if ok {
-		peeraddr = strings.Split(getctx.Addr.String(), ":")[0]
-		log.Debug("Version2", "Addr", peeraddr)
+		peerip = strings.Split(getctx.Addr.String(), ":")[0]
+		log.Debug("Version2", "ip", peerip)
 	}
 
 	if !s.checkVersion(in.GetVersion()) {
@@ -110,21 +105,8 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 	if err == nil {
-		//if len(P2pComm.AddrRouteble([]string{remoteNetwork.String()})) == 1 {
-		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
-		//}
-		//broadcast again
-		//		go func() {
-		//			if time.Now().Unix()-in.GetTimestamp() > 5 || s.node.Has(in.AddrFrom) {
-		//				return
-		//			}
 
-		//			peers, _ := s.node.GetActivePeers()
-		//			for _, peer := range peers {
-		//				peer.mconn.gcli.Version2(context.Background(), in)
-		//			}
-		//		}()
-		//}
+		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
 
 	}
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
@@ -134,7 +116,7 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		port = strings.Split(in.AddrFrom, ":")[1]
 	}
 	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
-		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peeraddr, port), UserAgent: pub}, nil
+		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerip, port), UserAgent: pub}, nil
 
 }
 
@@ -352,9 +334,9 @@ func (s *P2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 
 func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_ServerStreamSendServer) error {
-	//	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
-	//		return fmt.Errorf("beyound max inbound num")
-	//	}
+	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
+		return fmt.Errorf("beyound max inbound num")
+	}
 	log.Info("ServerStreamSend")
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
 	dataChain := s.addStreamHandler(stream)
@@ -395,9 +377,9 @@ func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 }
 
 func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServer) error {
-	//	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
-	//		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.GetInnerBounds()))
-	//	}
+	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.GetInnerBounds()) {
+		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.GetInnerBounds()))
+	}
 	log.Info("StreamRead")
 	var hash [64]byte
 	var peeraddr, peername string
