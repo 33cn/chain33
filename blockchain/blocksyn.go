@@ -445,9 +445,7 @@ func (chain *BlockChain) GetPeers() PeerInfoList {
 	var peers PeerInfoList
 
 	if chain.peerList != nil {
-		for _, peer := range chain.peerList {
-			peers = append(peers, peer)
-		}
+		peers = append(peers, chain.peerList...)
 	}
 	return peers
 }
