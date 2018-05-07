@@ -466,3 +466,8 @@ func (self *MemoryStateDB) WritePreimages(number int64) {
 		log15.Debug("Contract preimages ", "key:", k.Str(), "value:", hex.EncodeToString(v), "block height:", number)
 	}
 }
+
+// 测试用，清空版本数据
+func (self *MemoryStateDB) ResetDatas()  {
+	self.journal = journal{}
+}

@@ -14,6 +14,7 @@ import (
 	"encoding/hex"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
+	"fmt"
 )
 
 
@@ -44,6 +45,26 @@ func createTx(privKey crypto.PrivKey, code []byte, fee uint64, amount uint64) ty
 func addAccount(mdb *db.GoMemDB, acc1 *types.Account) {
 	acc:=account.NewCoinsAccount()
 	set := acc.GetKVSet(acc1)
+	for i := 0; i < len(set); i++ {
+		mdb.Set(set[i].GetKey(), set[i].Value)
+	}
+}
+
+func addContractAccount(db *state.MemoryStateDB, mdb *db.GoMemDB, addr string, a AccountJson) {
+	acc:=state.NewContractAccount(addr, db)
+	code,err := hex.DecodeString(a.code)
+	if err != nil {
+		fmt.Println(err)
+	}
+	acc.SetCode(code)
+	acc.SetNonce(uint64(a.nonce))
+	for k,v := range a.storage {
+		key,_ := hex.DecodeString(k)
+		value,_ := hex.DecodeString(v)
+		acc.SetState(common.BytesToHash(key), common.BytesToHash(value))
+	}
+	set := acc.GetDataKV()
+	set = append(set, acc.GetStateKV()...)
 	for i := 0; i < len(set); i++ {
 		mdb.Set(set[i].GetKey(), set[i].Value)
 	}
