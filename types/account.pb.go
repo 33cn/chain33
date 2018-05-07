@@ -146,7 +146,7 @@ It has these top-level messages:
 	BuyLimitOrderReceipt
 	TradeForSellMarket
 	TradeForRevokeBuy
-	ReceiptBuyLimitBase
+	ReceiptBuyBase
 	ReceiptTradeBuyLimit
 	ReceiptTradeBuyRevoke
 	ReceiptTradeSellMarket
