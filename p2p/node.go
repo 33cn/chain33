@@ -107,7 +107,8 @@ func (n *Node) doNat() {
 		} else {
 			//检测映射成功后，能否对外提供服务
 			addrs := n.nodeInfo.cfg.GetSeeds()
-			addrs = append(addrs, n.nodeInfo.addrBook.GetAddrs()...)
+			bookaddrs := n.nodeInfo.addrBook.GetAddrs()
+			addrs = append(addrs, bookaddrs...)
 			addrNum := len(addrs)
 			var maxRetryCount = addrNum
 			log.Debug("doNat", "maxRetryCount", maxRetryCount)
@@ -146,7 +147,7 @@ func (n *Node) addPeer(pr *Peer) {
 		n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 		delete(n.outBound, pr.Addr())
 		peer.Close()
-		peer = nil
+
 	}
 	log.Debug("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
