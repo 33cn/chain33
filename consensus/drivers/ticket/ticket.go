@@ -108,7 +108,7 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	return ret
 }
 
-func (client *Client) ProcEvent(msg queue.Message) {
+func (client *Client) ProcEvent(msg queue.Message) bool {
 	if msg.Ty == types.EventFlushTicket {
 		client.flushTicketMsg(msg)
 	} else if msg.Ty == types.EventGetTicketCount {
@@ -116,6 +116,7 @@ func (client *Client) ProcEvent(msg queue.Message) {
 	} else {
 		msg.ReplyErr("Client", types.ErrActionNotSupport)
 	}
+	return true
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
