@@ -464,24 +464,26 @@ message TradeForRevokeBuy {
     string buyid = 1;
 }
 
-message ReceiptBuyLimitBase {
+message ReceiptBuyBase {
 	string tokenSymbol          = 1;
 	string owner                = 2;
     string amountPerBoardlot    = 3;
 	int64 minBoardlot           = 4;
     string pricePerBoardlot     = 5;
-	int64 totalboardlot         = 6;
-	int64 soldboardlot          = 7;
-	string  buyid              = 8;
+	int64 totalBoardlot         = 6;
+	int64 boughtBoardlot        = 7;
+	string  buyid               = 8;
     string  status              = 9;
+    string  sellid              = 10;
+    string  txhash              = 11;
 }
 
 message ReceiptTradeBuyLimit {
-	ReceiptBuyLimitBase base = 1;
+	ReceiptBuyBase base = 1;
 }
 
 message ReceiptTradeBuyRevoke {
-	ReceiptBuyLimitBase base = 1;
+	ReceiptBuyBase base = 1;
 }
 
 message ReceiptTradeSellMarket {
@@ -521,6 +523,9 @@ message ReceiptTradeBase {
 	//此处使用tx的hash来指定
 	string  sellid              = 11;  
     string  status              = 12;
+    // buyid
+    string  buyid               = 13;
+    string  txhash              = 14;
 }
 
 message ReceiptTradeSell {

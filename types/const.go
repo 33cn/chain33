@@ -425,6 +425,7 @@ const (
 	TracdOrderStatusExpired
 	TracdOrderStatusOnBuy
 	TracdOrderStatusBoughtOut
+	TracdOrderStatusBuyRevoked
 )
 
 var SellOrderStatus = map[int32]string{
@@ -435,6 +436,7 @@ var SellOrderStatus = map[int32]string{
 	TracdOrderStatusExpired:  "Expired",
 	TracdOrderStatusOnBuy:    "OnBuy",
 	TracdOrderStatusBoughtOut: "BoughtOut",
+	TracdOrderStatusBuyRevoked: "BuyRevoked",
 }
 
 // manager action
