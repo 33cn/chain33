@@ -486,16 +486,6 @@ message ReceiptTradeBuyRevoke {
 	ReceiptBuyBase base = 1;
 }
 
-message ReceiptTradeSellMarket {
-	string sellerAddr            = 1;
-	string buyid                 = 2;
-	string token                 = 3;
-	int64 boardlotCnt            = 4;
-	string amountPerBoardlot     = 5;
-	string pricePerBoardlot      = 6;
-    string sellTxhash            = 7;
-}
-
 message TradeSellMarketDone {
 	string token                 = 1;
 	int64  boardlotcnt           = 2;
