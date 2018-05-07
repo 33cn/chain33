@@ -20,8 +20,8 @@ var (
 )
 
 type Part struct {
-	Index int                `json:"index"`
-	Bytes data.Bytes         `json:"bytes"`
+	Index int             `json:"index"`
+	Bytes data.Bytes      `json:"bytes"`
 	Proof cmn.SimpleProof `json:"proof"`
 
 	// Cache

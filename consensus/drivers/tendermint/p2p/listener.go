@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p/upnp"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	log "github.com/inconshreveable/log15"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p/upnp"
 )
 
 type Listener interface {

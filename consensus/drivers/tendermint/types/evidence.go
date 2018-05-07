@@ -53,8 +53,8 @@ func (evl EvidenceList) Hash() []byte {
 	case 1:
 		return evl[0].Hash()
 	default:
-		left := EvidenceList(evl[:(len(evl)+1)/2]).Hash()
-		right := EvidenceList(evl[(len(evl)+1)/2:]).Hash()
+		left := evl[:(len(evl)+1)/2].Hash()
+		right := evl[(len(evl)+1)/2:].Hash()
 		return cmn.SimpleHashFromTwoHashes(left, right)
 	}
 }

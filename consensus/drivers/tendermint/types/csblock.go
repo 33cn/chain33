@@ -1,18 +1,23 @@
 package types
 
 import (
-	gtypes "gitlab.33.cn/chain33/chain33/types"
-	crypto "github.com/tendermint/go-crypto"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	"time"
-	log "github.com/inconshreveable/log15"
 	"math/rand"
-	gcrypto "gitlab.33.cn/chain33/chain33/common/crypto"
+	"time"
+
+	log "github.com/inconshreveable/log15"
+	crypto "github.com/tendermint/go-crypto"
 	"gitlab.33.cn/chain33/chain33/common"
+	gcrypto "gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers"
+	gtypes "gitlab.33.cn/chain33/chain33/types"
 )
+
 var bslog = log.New("module", "tendermint-blockstore")
+
 const fee = 1e6
+
 var r *rand.Rand
+
 //------------------------------------------------------------------------------
 type BlockStore struct {
 	client *drivers.BaseClient
@@ -26,13 +31,13 @@ type BlockStore struct {
 
 func NewBlockStore(client *drivers.BaseClient, pubkey string) *BlockStore {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-	return &BlockStore {
-		client : client,
-		pubkey:  pubkey,
+	return &BlockStore{
+		client: client,
+		pubkey: pubkey,
 	}
 }
 func GetCommitFromBlock(block *gtypes.Block) *gtypes.TendermintBlockInfo {
-	if len(block.Txs) == 0 || block.Height == 0{
+	if len(block.Txs) == 0 || block.Height == 0 {
 		return nil
 	}
 	baseTx := block.Txs[0]
@@ -66,14 +71,14 @@ func LoadVotes(des []*Vote, source []*gtypes.Vote) {
 	for i, item := range source {
 		des[i] = &Vote{}
 		des[i].BlockID = BlockID{
-			Hash:item.BlockID.Hash,
-			PartsHeader:PartSetHeader{
-				Total:int(item.BlockID.PartsHeader.Total), 
-				Hash:item.BlockID.PartsHeader.Hash},
+			Hash: item.BlockID.Hash,
+			PartsHeader: PartSetHeader{
+				Total: int(item.BlockID.PartsHeader.Total),
+				Hash:  item.BlockID.PartsHeader.Hash},
 		}
 		des[i].Height = item.Height
 		des[i].Round = int(item.Round)
-		sig ,err := crypto.SignatureFromBytes(item.Signature)
+		sig, err := crypto.SignatureFromBytes(item.Signature)
 		if err != nil {
 			bslog.Error("SignatureFromBytes failed", "err", err)
 		} else {
@@ -106,10 +111,10 @@ func (bs *BlockStore) LoadSeenCommit(height int64) *Commit {
 		if seenCommit.GetBlockID() != nil && seenCommit.GetBlockID().GetPartsHeader() != nil {
 			return &Commit{
 				BlockID: BlockID{
-					Hash:seenCommit.BlockID.Hash,
-					PartsHeader:PartSetHeader{
-						Total:int(seenCommit.BlockID.PartsHeader.Total),
-						Hash:seenCommit.BlockID.PartsHeader.Hash,
+					Hash: seenCommit.BlockID.Hash,
+					PartsHeader: PartSetHeader{
+						Total: int(seenCommit.BlockID.PartsHeader.Total),
+						Hash:  seenCommit.BlockID.PartsHeader.Hash,
 					},
 				},
 				Precommits: votesCopy,
@@ -135,13 +140,13 @@ func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 	if lastCommit != nil {
 		votesCopy := make([]*Vote, len(lastCommit.GetPrecommits()))
 		LoadVotes(votesCopy, lastCommit.GetPrecommits())
-		if lastCommit.GetBlockID() != nil && lastCommit.GetBlockID().GetPartsHeader() != nil{
+		if lastCommit.GetBlockID() != nil && lastCommit.GetBlockID().GetPartsHeader() != nil {
 			return &Commit{
 				BlockID: BlockID{
-					Hash:lastCommit.BlockID.Hash,
-					PartsHeader:PartSetHeader{
-						Total:int(lastCommit.BlockID.PartsHeader.Total),
-						Hash:lastCommit.BlockID.PartsHeader.Hash,
+					Hash: lastCommit.BlockID.Hash,
+					PartsHeader: PartSetHeader{
+						Total: int(lastCommit.BlockID.PartsHeader.Total),
+						Hash:  lastCommit.BlockID.PartsHeader.Hash,
 					},
 				},
 				Precommits: votesCopy,
@@ -167,7 +172,7 @@ func getprivkey(key string) gcrypto.PrivKey {
 	return priv
 }
 
-func (bs *BlockStore) CreateCommitTx(lastCommit *Commit, seenCommit *Commit ) *gtypes.Transaction {
+func (bs *BlockStore) CreateCommitTx(lastCommit *Commit, seenCommit *Commit) *gtypes.Transaction {
 	blockInfo := bs.SaveCommits(lastCommit, seenCommit)
 
 	nput := &gtypes.NormAction_Nput{&gtypes.NormPut{Key: "BlockInfo", Value: gtypes.Encode(blockInfo)}}
@@ -197,12 +202,12 @@ func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 		des[i].ValidatorAddress = item.ValidatorAddress
 		des[i].ValidatorIndex = int32(item.ValidatorIndex)
 		des[i].Timestamp = item.Timestamp.UnixNano()
-		bslog.Info("save votes", "i", i, "source",item, "des", des[i])
+		bslog.Info("save votes", "i", i, "source", item, "des", des[i])
 	}
 
 }
 
-func (bs *BlockStore) SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) *gtypes.TendermintBlockInfo{
+func (bs *BlockStore) SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) *gtypes.TendermintBlockInfo {
 	newLastCommitVotes := make([]*gtypes.Vote, len(lastCommitVotes.Precommits))
 	newSeenCommitVotes := make([]*gtypes.Vote, len(seenCommitVotes.Precommits))
 	if len(lastCommitVotes.Precommits) > 0 {
@@ -212,28 +217,28 @@ func (bs *BlockStore) SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Comm
 		SaveVotes(newSeenCommitVotes, seenCommitVotes.Precommits)
 	}
 	lastCommit := &gtypes.TendermintCommit{
-		BlockID:&gtypes.BlockID{
-			Hash:lastCommitVotes.BlockID.Hash,
-			PartsHeader:&gtypes.PartSetHeader{
-				Total:int32(lastCommitVotes.BlockID.PartsHeader.Total), 
-				Hash:lastCommitVotes.BlockID.PartsHeader.Hash,
-				},
+		BlockID: &gtypes.BlockID{
+			Hash: lastCommitVotes.BlockID.Hash,
+			PartsHeader: &gtypes.PartSetHeader{
+				Total: int32(lastCommitVotes.BlockID.PartsHeader.Total),
+				Hash:  lastCommitVotes.BlockID.PartsHeader.Hash,
+			},
 		},
-		Precommits:newLastCommitVotes,
+		Precommits: newLastCommitVotes,
 	}
 	seenCommit := &gtypes.TendermintCommit{
-		BlockID:&gtypes.BlockID{
-			Hash:seenCommitVotes.BlockID.Hash,
-			PartsHeader:&gtypes.PartSetHeader{
-				Total:int32(seenCommitVotes.BlockID.PartsHeader.Total), 
-				Hash:seenCommitVotes.BlockID.PartsHeader.Hash,
-				},
+		BlockID: &gtypes.BlockID{
+			Hash: seenCommitVotes.BlockID.Hash,
+			PartsHeader: &gtypes.PartSetHeader{
+				Total: int32(seenCommitVotes.BlockID.PartsHeader.Total),
+				Hash:  seenCommitVotes.BlockID.PartsHeader.Hash,
+			},
 		},
-		Precommits:newSeenCommitVotes,
+		Precommits: newSeenCommitVotes,
 	}
 	blockInfo := &gtypes.TendermintBlockInfo{
-		SeenCommit:seenCommit,
-		LastCommit:lastCommit,
+		SeenCommit: seenCommit,
+		LastCommit: lastCommit,
 	}
 	return blockInfo
 }

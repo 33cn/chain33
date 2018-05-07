@@ -15,7 +15,7 @@ func (s *SimpleEventQuery) Matches(tags map[string]interface{}) bool {
 		return false
 	}
 
-	v, ok:= tags[EventTypeKey]
+	v, ok := tags[EventTypeKey]
 	if !ok {
 		return false
 	}
@@ -24,7 +24,7 @@ func (s *SimpleEventQuery) Matches(tags map[string]interface{}) bool {
 	if queryValueIndex <= 0 {
 		return false
 	}
-	queryValue := s.Name[queryValueIndex + 1:]
+	queryValue := s.Name[queryValueIndex+1:]
 	value, ok := v.(string)
 	if !ok { // if value from tags is not string
 		return false

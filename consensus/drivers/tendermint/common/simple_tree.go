@@ -29,8 +29,8 @@ import (
 	"fmt"
 	"sort"
 
-	"golang.org/x/crypto/ripemd160"
 	"github.com/tendermint/go-wire"
+	"golang.org/x/crypto/ripemd160"
 )
 
 func SimpleHashFromTwoHashes(left []byte, right []byte) []byte {

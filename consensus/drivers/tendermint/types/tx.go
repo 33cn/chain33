@@ -38,8 +38,8 @@ func (txs Txs) Hash() []byte {
 	case 1:
 		return txs[0].Hash()
 	default:
-		left := Txs(txs[:(len(txs)+1)/2]).Hash()
-		right := Txs(txs[(len(txs)+1)/2:]).Hash()
+		left := txs[:(len(txs)+1)/2].Hash()
+		right := txs[(len(txs)+1)/2:].Hash()
 		return cmn.SimpleHashFromTwoHashes(left, right)
 	}
 }
@@ -132,8 +132,8 @@ type ResponseDeliverTx struct {
 //
 // One usage is indexing transaction results.
 type TxResult struct {
-	Height int64                  `json:"height"`
-	Index  uint32                 `json:"index"`
-	Tx     Tx                     `json:"tx"`
+	Height int64             `json:"height"`
+	Index  uint32            `json:"index"`
+	Tx     Tx                `json:"tx"`
 	Result ResponseDeliverTx `json:"result"`
 }

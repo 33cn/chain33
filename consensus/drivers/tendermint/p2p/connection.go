@@ -10,11 +10,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"errors"
+
+	log "github.com/inconshreveable/log15"
 	wire "github.com/tendermint/go-wire"
 	tmlegacy "github.com/tendermint/go-wire/nowriter/tmlegacy"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	log "github.com/inconshreveable/log15"
-	"errors"
 )
 
 var legacy = tmlegacy.TMEncoderLegacy{}
@@ -277,7 +278,6 @@ func (c *MConnection) TrySend(chID byte, msg interface{}) bool {
 		return false
 	}
 
-
 	c.Logger.Debug("TrySend", "channel", chID, "conn", c, "msg", msg)
 
 	// Send message to channel.
@@ -335,12 +335,12 @@ FOR_LOOP:
 		case <-c.pingTimer.Chan():
 			c.Logger.Debug("Send Ping")
 			legacy.WriteOctet(packetTypePing, c.bufWriter, &n, &err)
-			c.sendMonitor.Update(int(n))
+			c.sendMonitor.Update(n)
 			c.flush()
 		case <-c.pong:
 			c.Logger.Debug("Send Pong")
 			legacy.WriteOctet(packetTypePong, c.bufWriter, &n, &err)
-			c.sendMonitor.Update(int(n))
+			c.sendMonitor.Update(n)
 			c.flush()
 		case <-c.quit:
 			break FOR_LOOP
@@ -420,7 +420,7 @@ func (c *MConnection) sendMsgPacket() bool {
 		c.stopForError(err)
 		return true
 	}
-	c.sendMonitor.Update(int(n))
+	c.sendMonitor.Update(n)
 	c.flushTimer.Set()
 	return false
 }
@@ -455,7 +455,7 @@ FOR_LOOP:
 		var n int
 		var err error
 		pktType := wire.ReadByte(c.bufReader, &n, &err)
-		c.recvMonitor.Update(int(n))
+		c.recvMonitor.Update(n)
 		if err != nil {
 			if c.IsRunning() {
 				c.Logger.Error("Connection failed @ recvRoutine (reading byte)", "conn", c, "err", err)
@@ -476,7 +476,7 @@ FOR_LOOP:
 		case packetTypeMsg:
 			pkt, n, err := msgPacket{}, int(0), error(nil)
 			wire.ReadBinaryPtr(&pkt, c.bufReader, c.config.maxMsgPacketTotalSize(), &n, &err)
-			c.recvMonitor.Update(int(n))
+			c.recvMonitor.Update(n)
 			if err != nil {
 				if c.IsRunning() {
 					c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
@@ -665,7 +665,7 @@ func (ch *Channel) isSendPending() bool {
 // Not goroutine-safe
 func (ch *Channel) nextMsgPacket() msgPacket {
 	packet := msgPacket{}
-	packet.ChannelID = byte(ch.desc.ID)
+	packet.ChannelID = ch.desc.ID
 	maxSize := ch.maxMsgPacketPayloadSize
 	packet.Bytes = ch.sending[:cmn.MinInt(maxSize, len(ch.sending))]
 	if len(ch.sending) <= maxSize {

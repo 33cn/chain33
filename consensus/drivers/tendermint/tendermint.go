@@ -2,56 +2,50 @@ package tendermint
 
 import (
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
+	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"gitlab.33.cn/chain33/chain33/types"
 
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/core"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
-	crypto "github.com/tendermint/go-crypto"
 	"bytes"
-	"time"
 	"encoding/json"
-	"fmt"
 	"errors"
+	"fmt"
+	"math/rand"
 	"net"
 	"strings"
-	"math/rand"
+	"time"
+
+	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	"sync"
-	"gitlab.33.cn/chain33/chain33/util"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/core"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/evidence"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 var (
 	tendermintlog = log.New("module", "tendermint")
 	genesisDocKey = []byte("genesisDoc")
-
-	listSize     int = 10000
-	zeroHash     [32]byte
-	currentBlock *types.Block
-	mulock       sync.Mutex
-
 )
 
-type TendermintClient struct{
+type TendermintClient struct {
 	//config
 	*drivers.BaseClient
-	genesisDoc    *ttypes.GenesisDoc   // initial validator set
+	genesisDoc    *ttypes.GenesisDoc // initial validator set
 	privValidator ttypes.PrivValidator
 	//csState       *core.ConsensusState
-	eventBus      *ttypes.EventBus
-	privKey       crypto.PrivKeyEd25519   // local node's p2p key
-	sw            *p2p.Switch
-	state         sm.State
-	blockExec     *sm.BlockExecutor
-	fastSync      bool
-	evidencePool  *evidence.EvidencePool
-	csState       *core.ConsensusState
-	blockStore    *ttypes.BlockStore
+	eventBus     *ttypes.EventBus
+	privKey      crypto.PrivKeyEd25519 // local node's p2p key
+	sw           *p2p.Switch
+	state        sm.State
+	blockExec    *sm.BlockExecutor
+	fastSync     bool
+	evidencePool *evidence.EvidencePool
+	csState      *core.ConsensusState
+	blockStore   *ttypes.BlockStore
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -62,7 +56,7 @@ func DefaultDBProvider(ID string) (dbm.DB, error) {
 
 // panics if failed to unmarshal bytes
 func loadGenesisDoc(db dbm.DB) (*ttypes.GenesisDoc, error) {
-	bytes,e := db.Get(genesisDocKey)
+	bytes, e := db.Get(genesisDocKey)
 	if e != nil {
 		tendermintlog.Error(fmt.Sprintf(`loadGenesisDoc: db get key %v failed:%v\n`, genesisDocKey, e))
 		return nil, e
@@ -73,7 +67,7 @@ func loadGenesisDoc(db dbm.DB) (*ttypes.GenesisDoc, error) {
 		var genDoc *ttypes.GenesisDoc
 		err := json.Unmarshal(bytes, &genDoc)
 		if err != nil {
-			panic(fmt.Sprintf("Panicked on a Crisis: %v",fmt.Sprintf("Failed to load genesis doc due to unmarshaling error: %v (bytes: %X)", err, bytes)))
+			panic(fmt.Sprintf("Panicked on a Crisis: %v", fmt.Sprintf("Failed to load genesis doc due to unmarshaling error: %v (bytes: %X)", err, bytes)))
 		}
 		return genDoc, nil
 	}
@@ -83,7 +77,7 @@ func loadGenesisDoc(db dbm.DB) (*ttypes.GenesisDoc, error) {
 func saveGenesisDoc(db dbm.DB, genDoc *ttypes.GenesisDoc) {
 	bytes, err := json.Marshal(genDoc)
 	if err != nil {
-		panic(fmt.Sprintf("Panicked on a Crisis: %v",fmt.Sprintf("Failed to save genesis doc due to marshaling error: %v", err)))
+		panic(fmt.Sprintf("Panicked on a Crisis: %v", fmt.Sprintf("Failed to save genesis doc due to marshaling error: %v", err)))
 	}
 	db.SetSync(genesisDocKey, bytes)
 }
@@ -120,8 +114,8 @@ func New(cfg *types.Consensus) *TendermintClient {
 	privKey := crypto.GenPrivKeyEd25519()
 
 	privValidator := ttypes.LoadOrGenPrivValidatorFS("./priv_validator.json")
-	if privValidator == nil{
-		tendermintlog.Info("NewTendermintClient","msg", "priv_validator file missing, create new one")
+	if privValidator == nil {
+		tendermintlog.Info("NewTendermintClient", "msg", "priv_validator file missing, create new one")
 		var privVal *ttypes.PrivValidatorFS
 		privVal = ttypes.GenPrivValidatorFS(".")
 		privVal.Save()
@@ -175,17 +169,17 @@ func New(cfg *types.Consensus) *TendermintClient {
 	blockStore := ttypes.NewBlockStore(c, pubkey)
 
 	client := &TendermintClient{
-		BaseClient:       c,
-		genesisDoc :      genDoc,
-		privValidator :   privValidator,
-		privKey:          privKey,
-		state:            state,
-		blockExec:        blockExec,
-		fastSync:         fastSync,
-		sw:               sw,
-		eventBus:         eventBus,
-		evidencePool:     evidencePool,
-		blockStore:       blockStore,
+		BaseClient:    c,
+		genesisDoc:    genDoc,
+		privValidator: privValidator,
+		privKey:       privKey,
+		state:         state,
+		blockExec:     blockExec,
+		fastSync:      fastSync,
+		sw:            sw,
+		eventBus:      eventBus,
+		evidencePool:  evidencePool,
+		blockStore:    blockStore,
 	}
 
 	c.SetChild(client)
@@ -204,7 +198,7 @@ func (client *TendermintClient) GenesisDoc() *ttypes.GenesisDoc {
 }
 
 func (client *TendermintClient) Close() {
-	tendermintlog.Info("TendermintClientClose","consensus tendermint closed")
+	tendermintlog.Info("TendermintClientClose", "consensus tendermint closed")
 }
 
 func (client *TendermintClient) SetQueueClient(q queue.Client) {
@@ -344,7 +338,7 @@ func (client *TendermintClient) CreateBlock() {
 
 		lastBlock := client.GetCurrentBlock()
 		//tendermintlog.Info("get last block","height", lastBlock.Height, "time", lastBlock.BlockTime,"txhash",lastBlock.TxHash)
-		txs := client.RequestTx(int(types.GetP(lastBlock.Height + 1).MaxTxNumber)-1, nil)
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber)-1, nil)
 		//check dup
 		txs = client.CheckTxDup(txs)
 
@@ -353,22 +347,22 @@ func (client *TendermintClient) CreateBlock() {
 			continue
 		}
 		issleep = false
-/*
-		var newblock types.Block
-		newblock.ParentHash = lastBlock.Hash()
-		newblock.Height = lastBlock.Height + 1
-		newblock.Txs = txs
-		newblock.StateHash = lastBlock.StateHash
-		newblock.BlockTime = time.Now().Unix()
-		if lastBlock.BlockTime >= newblock.BlockTime {
-			newblock.BlockTime = lastBlock.BlockTime + 1
-		}
-*/
-		tendermintlog.Info("get mempool txs not empty","txslen", len(txs), "tx[0]", txs[0])
+		/*
+			var newblock types.Block
+			newblock.ParentHash = lastBlock.Hash()
+			newblock.Height = lastBlock.Height + 1
+			newblock.Txs = txs
+			newblock.StateHash = lastBlock.StateHash
+			newblock.BlockTime = time.Now().Unix()
+			if lastBlock.BlockTime >= newblock.BlockTime {
+				newblock.BlockTime = lastBlock.BlockTime + 1
+			}
+		*/
+		tendermintlog.Info("get mempool txs not empty", "txslen", len(txs), "tx[0]", txs[0])
 		client.csState.NewTxsAvailable(lastBlock.Height)
 		tendermintlog.Info("waiting NewTxsFinished")
 		select {
-		case finish := <- client.csState.NewTxsFinished :
+		case finish := <-client.csState.NewTxsFinished:
 			tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
 			continue
 		}
@@ -387,7 +381,7 @@ func (client *TendermintClient) MakeDefaultNodeInfo() *p2p.NodeInfo {
 
 	nodeInfo := &p2p.NodeInfo{
 		PubKey:  client.privKey.PubKey().Unwrap().(crypto.PubKeyEd25519),
-		Moniker: "test_"+fmt.Sprintf("%v",rand.Intn(100)),
+		Moniker: "test_" + fmt.Sprintf("%v", rand.Intn(100)),
 		Network: client.state.ChainID,
 		Version: "v0.1.0",
 		Other: []string{

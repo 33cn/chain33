@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	log "github.com/inconshreveable/log15"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"

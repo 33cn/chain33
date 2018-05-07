@@ -2,6 +2,7 @@ package core
 
 import (
 	"time"
+
 	log "github.com/inconshreveable/log15"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )

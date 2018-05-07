@@ -3,7 +3,6 @@ package types
 import (
 	"fmt"
 	"time"
-
 )
 
 //-----------------------------------------------------------------------------
@@ -70,7 +69,7 @@ type RoundState struct {
 	LockedBlock        *Block
 	LockedBlockParts   *PartSet
 	Votes              *HeightVoteSet
-	CommitRound        int            //
+	CommitRound        int      //
 	LastCommit         *VoteSet // Last precommits at Height-1
 	LastValidators     *ValidatorSet
 }

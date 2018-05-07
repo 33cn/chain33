@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	wire "github.com/tendermint/go-wire"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 /*
@@ -113,7 +113,7 @@ func (store *EvidenceStore) ListEvidence(prefixKey string) (evidence []types.Evi
 // GetEvidence fetches the evidence with the given height and hash.
 func (store *EvidenceStore) GetEvidence(height int64, hash []byte) *EvidenceInfo {
 	key := keyLookupFromHeightAndHash(height, hash)
-	val,e := store.db.Get(key)
+	val, e := store.db.Get(key)
 	if e != nil {
 		fmt.Printf(fmt.Sprintf(`GetEvidence: db get key %v failed:%v\n`, key, e))
 	}
@@ -183,7 +183,7 @@ func (store *EvidenceStore) MarkEvidenceAsCommitted(evidence types.Evidence) {
 func (store *EvidenceStore) getEvidenceInfo(evidence types.Evidence) EvidenceInfo {
 	key := keyLookup(evidence)
 	var ei EvidenceInfo
-	b ,e := store.db.Get(key)
+	b, e := store.db.Get(key)
 	if e != nil {
 		fmt.Printf(fmt.Sprintf(`getEvidenceInfo: db get key %v failed:%v\n`, key, e))
 	}

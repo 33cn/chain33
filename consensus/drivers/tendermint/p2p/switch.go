@@ -8,9 +8,11 @@ import (
 
 	"github.com/pkg/errors"
 
+	"math"
+
+	log "github.com/inconshreveable/log15"
 	crypto "github.com/tendermint/go-crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -59,6 +61,7 @@ func (_ *BaseReactor) GetChannels() []*ChannelDescriptor             { return ni
 func (_ *BaseReactor) AddPeer(peer Peer)                             {}
 func (_ *BaseReactor) RemovePeer(peer Peer, reason interface{})      {}
 func (_ *BaseReactor) Receive(chID byte, peer Peer, msgBytes []byte) {}
+
 //-----------------------------------------------------------------------------
 
 /*
@@ -68,7 +71,6 @@ or more `Channels`.  So while sending outgoing messages is typically performed o
 incoming messages are received on the reactor.
 */
 type Switch struct {
-
 	cmn.BaseService
 	config       *P2PConfig
 	peerConfig   *PeerConfig
@@ -298,7 +300,7 @@ func (sw *Switch) addPeer(peer *peer) error {
 		return err
 	}
 
-	if err := peer.HandshakeTimeout(sw.nodeInfo, time.Duration(sw.peerConfig.HandshakeTimeout*time.Second)); err != nil {
+	if err := peer.HandshakeTimeout(sw.nodeInfo, sw.peerConfig.HandshakeTimeout*time.Second); err != nil {
 		return err
 	}
 
@@ -322,7 +324,6 @@ func (sw *Switch) addPeer(peer *peer) error {
 	if sw.IsRunning() {
 		sw.startInitPeer(peer)
 	}
-
 
 	// Add the peer to .peers.
 	// We start it first so that a peer in the list is safe to Stop.
@@ -406,7 +407,6 @@ func (sw *Switch) DialSeeds(addrBook *AddrBook, seeds []string) error {
 	}
 	return nil
 }
-
 
 // sleep for interval plus some random amount of ms on [0, dialRandomizerIntervalMilliseconds]
 func (sw *Switch) randomSleep(interval time.Duration) {
@@ -507,8 +507,7 @@ func (sw *Switch) StopPeerForError(peer Peer, reason interface{}) {
 // If no success after all that, it stops trying, and leaves it
 // to the PEX/Addrbook to find the peer again
 func (sw *Switch) reconnectToPeer(peer Peer) {
-	return
-	/* not do it after start hg 20180302
+
 	addr, _ := NewNetAddressString(peer.NodeInfo().RemoteAddr)
 	start := time.Now()
 	sw.Logger.Info("Reconnecting to peer", "peer", peer)
@@ -550,7 +549,6 @@ func (sw *Switch) reconnectToPeer(peer Peer) {
 		}
 	}
 	sw.Logger.Error("Failed to reconnect to peer. Giving up", "peer", peer, "elapsed", time.Since(start))
-	*/
 }
 
 // StopPeerGracefully disconnects from a peer gracefully.
