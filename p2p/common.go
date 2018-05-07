@@ -37,7 +37,7 @@ func (Comm) AddrRouteble(addrs []string) []string {
 
 		gconn := pb.NewP2PgserviceClient(conn)
 		_, err = gconn.GetHeaders(context.Background(),
-			&pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: int32(VERSION)}, grpc.FailFast(true))
+			&pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: VERSION}, grpc.FailFast(true))
 		if err != nil {
 			conn.Close()
 			return enableAddrs

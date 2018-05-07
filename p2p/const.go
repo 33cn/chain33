@@ -30,11 +30,11 @@ var (
 )
 
 const (
-	defaultPort     = 13802
-	defalutNatPort  = 23802
-	maxOutBoundNum  = 25
-	stableBoundNum  = 15
-	maxAddrListNum  = 256
+	defaultPort    = 13802
+	defalutNatPort = 23802
+	maxOutBoundNum = 25
+	stableBoundNum = 15
+	//maxAddrListNum  = 256
 	maxAttemps      = 5
 	protocol        = "tcp"
 	externalPortTag = "externalport"
