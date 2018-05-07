@@ -5,13 +5,22 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 )
 
 var (
-	configPath = flag.String("f", "../../cmd/chain33/chain33.toml", "configfile")
+	configPath  = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
+	grpcAddress = "localhost:8802"
 )
+
+func init() {
+	cfg := config.InitCfg(*configPath)
+	cfg.GetRpc().GrpcBindAddr = grpcAddress
+	rpc.Init(cfg.Rpc)
+	log.SetFileLog(cfg.Log)
+}
 
 type MockLive interface {
 	OnStartup(m *mockSystem)
@@ -30,8 +39,6 @@ type mockSystem struct {
 }
 
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
-	cfg := config.InitCfg(*configPath)
-	rpc.Init(cfg.Rpc)
 
 	var q = queue.New("channel")
 	chain := &mockBlockChain{}
@@ -80,6 +87,7 @@ func (mock *mockSystem) getAPI() client.QueueProtocolAPI {
 
 type mockJRPCSystem struct {
 	japi *rpc.JSONRPCServer
+	ctx  *JsonRpcCtx
 }
 
 func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
@@ -92,12 +100,19 @@ func (mock *mockJRPCSystem) OnStop() {
 }
 
 func (mock *mockJRPCSystem) newRpcCtx(methed string, params, res interface{}) error {
-	ctx := NewJsonRpcCtx(methed, params, res)
-	return ctx.Run()
+	if mock.ctx == nil {
+		mock.ctx = NewJsonRpcCtx(methed, params, res)
+	} else {
+		mock.ctx.Method = methed
+		mock.ctx.Params = params
+		mock.ctx.Res = res
+	}
+	return mock.ctx.Run()
 }
 
 type mockGRPCSystem struct {
 	gapi *rpc.Grpcserver
+	ctx  *GrpcCtx
 }
 
 func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
@@ -110,6 +125,12 @@ func (mock *mockGRPCSystem) OnStop() {
 }
 
 func (mock *mockGRPCSystem) newRpcCtx(method string, param, res interface{}) error {
-	ctx := NewGRpcCtx(method, param, res)
-	return ctx.Run()
+	if mock.ctx == nil {
+		mock.ctx = NewGRpcCtx(method, param, res)
+	} else {
+		mock.ctx.Method = method
+		mock.ctx.Params = param
+		mock.ctx.Res = res
+	}
+	return mock.ctx.Run()
 }
