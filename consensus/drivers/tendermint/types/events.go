@@ -141,7 +141,6 @@ const (
 	TxHeightKey = "tx.height"
 )
 
-
 // BlockEventPublisher publishes all block related events
 type BlockEventPublisher interface {
 	PublishEventNewBlock(block EventDataNewBlock) error

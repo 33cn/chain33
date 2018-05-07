@@ -15,10 +15,11 @@ import (
 	"sync"
 	"time"
 
+	"crypto/sha256"
+
+	log "github.com/inconshreveable/log15"
 	crypto "github.com/tendermint/go-crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	"crypto/sha256"
-	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -97,9 +98,9 @@ type AddrBook struct {
 	nOld       int
 	nNew       int
 
-	wg sync.WaitGroup
-	Logger            log.Logger
-	Quit    chan struct{}
+	wg     sync.WaitGroup
+	Logger log.Logger
+	Quit   chan struct{}
 }
 
 // NewAddrBook creates a new address book.
@@ -138,9 +139,9 @@ func (a *AddrBook) init() {
 // OnStart implements Service.
 func (a *AddrBook) Start() error {
 	/*
-	if err := a.BaseService.OnStart(); err != nil {
-		return err
-	}
+		if err := a.BaseService.OnStart(); err != nil {
+			return err
+		}
 	*/
 	a.loadFromFile(a.filePath)
 
@@ -716,12 +717,12 @@ func (a *AddrBook) groupKey(na *NetAddress) string {
 	}
 	if na.RFC6145() || na.RFC6052() {
 		// last four bytes are the ip address
-		ip := net.IP(na.IP[12:16])
+		ip := na.IP[12:16]
 		return (&net.IPNet{IP: ip, Mask: net.CIDRMask(16, 32)}).String()
 	}
 
 	if na.RFC3964() {
-		ip := net.IP(na.IP[2:7])
+		ip := na.IP[2:7]
 		return (&net.IPNet{IP: ip, Mask: net.CIDRMask(16, 32)}).String()
 
 	}

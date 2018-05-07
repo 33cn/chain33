@@ -10,13 +10,13 @@ import (
 
 	"github.com/pkg/errors"
 
+	log "github.com/inconshreveable/log15"
 	wire "github.com/tendermint/go-wire"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	log "github.com/inconshreveable/log15"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
+	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	//"github.com/xkeyideal/glide/msg"
 )
 
@@ -352,21 +352,21 @@ func (conR *ConsensusReactor) startBroadcastRoutine() error {
 
 	// new round steps
 	stepsCh := make(chan interface{})
-	err := conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name:"tm.event=NewRoundStep"}, stepsCh)
+	err := conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name: "tm.event=NewRoundStep"}, stepsCh)
 	if err != nil {
 		return errors.Wrapf(err, "failed to subscribe %s to NewRoundgoStep", subscriber)
 	}
 
 	// votes
 	votesCh := make(chan interface{})
-	err = conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name:"tm.event=vote"}, votesCh)
+	err = conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name: "tm.event=vote"}, votesCh)
 	if err != nil {
 		return errors.Wrapf(err, "failed to subscribe %s to Vote", subscriber)
 	}
 
 	// proposal heartbeats
 	heartbeatsCh := make(chan interface{})
-	err = conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name:"tm.event=ProposalHeartbea"}, heartbeatsCh)
+	err = conR.eventBus.Subscribe(ctx, subscriber, &types.SimpleEventQuery{Name: "tm.event=ProposalHeartbea"}, heartbeatsCh)
 	if err != nil {
 		return errors.Wrapf(err, "failed to subscribe %s to ProposalHeartbeat", subscriber)
 	}
@@ -508,22 +508,22 @@ OUTER_LOOP:
 		if (0 < prs.Height) && (prs.Height < rs.Height) {
 			conR.Logger.Error("gossipDataRoutine", "PeerRoundState_height", prs.Height, "RoundState_height", rs.Height)
 			/*
-			heightLogger := logger.New("height", prs.Height)
+				heightLogger := logger.New("height", prs.Height)
 
-			// if we never received the commit message from the peer, the block parts wont be initialized
-			if prs.ProposalBlockParts == nil {
-				blockMeta := conR.conS.blockStore.LoadBlockMeta(prs.Height)
-				if blockMeta == nil {
-					cmn.PanicCrisis(cmn.Fmt("Failed to load block %d when blockStore is at %d",
-						prs.Height, conR.conS.blockStore.Height()))
+				// if we never received the commit message from the peer, the block parts wont be initialized
+				if prs.ProposalBlockParts == nil {
+					blockMeta := conR.conS.blockStore.LoadBlockMeta(prs.Height)
+					if blockMeta == nil {
+						cmn.PanicCrisis(cmn.Fmt("Failed to load block %d when blockStore is at %d",
+							prs.Height, conR.conS.blockStore.Height()))
+					}
+					ps.InitProposalBlockParts(blockMeta.BlockID.PartsHeader)
+					// continue the loop since prs is a copy and not effected by this initialization
+					continue OUTER_LOOP
 				}
-				ps.InitProposalBlockParts(blockMeta.BlockID.PartsHeader)
-				// continue the loop since prs is a copy and not effected by this initialization
+				conR.gossipDataForCatchup(heightLogger, rs, prs, ps, peer)
 				continue OUTER_LOOP
-			}
-			conR.gossipDataForCatchup(heightLogger, rs, prs, ps, peer)
-			continue OUTER_LOOP
-*/
+			*/
 		}
 
 		// If height and round don't match, sleep.
@@ -569,6 +569,7 @@ OUTER_LOOP:
 		continue OUTER_LOOP
 	}
 }
+
 /*
 func (conR *ConsensusReactor) gossipDataForCatchup(logger log.Logger, rs *types.RoundState,
 	prs *types.PeerRoundState, ps *PeerState, peer p2p.Peer) {
@@ -1080,7 +1081,7 @@ func (ps *PeerState) SetHasVote(vote *types.Vote) {
 
 func (ps *PeerState) setHasVote(height int64, round int, type_ byte, index int) {
 	logger := ps.logger
-	logger.Info("setHasVote","peerH/R", cmn.Fmt("%d/%d", ps.Height, ps.Round), "H/R", cmn.Fmt("%d/%d", height, round))
+	logger.Info("setHasVote", "peerH/R", cmn.Fmt("%d/%d", ps.Height, ps.Round), "H/R", cmn.Fmt("%d/%d", height, round))
 	logger.Debug("setHasVote", "type", type_, "index", index)
 
 	// NOTE: some may be nil BitArrays -> no side effects.

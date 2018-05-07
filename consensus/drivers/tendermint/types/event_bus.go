@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+
 	log "github.com/inconshreveable/log15"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
@@ -35,7 +36,6 @@ func NewEventBusWithBufferCapacity(cap int) *EventBus {
 	b.BaseService = *cmn.NewBaseService(nil, "EventBus", b)
 	return b
 }
-
 
 func (b *EventBus) SetLogger(l log.Logger) {
 	b.BaseService.SetLogger(l)
@@ -94,31 +94,31 @@ func (b *EventBus) PublishEventTx(event EventDataTx) error {
 
 	//20180226 hg do it later
 	/*
-	// validate and fill tags from tx result
-	for _, tag := range event.Result.Tags {
-		// basic validation
-		if tag.Key == "" {
-			b.Logger.Info("Got tag with an empty key (skipping)", "tag", tag, "tx", event.Tx)
-			continue
+		// validate and fill tags from tx result
+		for _, tag := range event.Result.Tags {
+			// basic validation
+			if tag.Key == "" {
+				b.Logger.Info("Got tag with an empty key (skipping)", "tag", tag, "tx", event.Tx)
+				continue
+			}
+
+			switch tag.ValueType {
+			case abci.KVPair_STRING:
+				tags[tag.Key] = tag.ValueString
+			case abci.KVPair_INT:
+				tags[tag.Key] = tag.ValueInt
+			}
 		}
 
-		switch tag.ValueType {
-		case abci.KVPair_STRING:
-			tags[tag.Key] = tag.ValueString
-		case abci.KVPair_INT:
-			tags[tag.Key] = tag.ValueInt
-		}
-	}
+		// add predefined tags
+		logIfTagExists(EventTypeKey, tags, b.Logger)
+		tags[EventTypeKey] = EventTx
 
-	// add predefined tags
-	logIfTagExists(EventTypeKey, tags, b.Logger)
-	tags[EventTypeKey] = EventTx
+		logIfTagExists(TxHashKey, tags, b.Logger)
+		tags[TxHashKey] = fmt.Sprintf("%X", event.Tx.Hash())
 
-	logIfTagExists(TxHashKey, tags, b.Logger)
-	tags[TxHashKey] = fmt.Sprintf("%X", event.Tx.Hash())
-
-	logIfTagExists(TxHeightKey, tags, b.Logger)
-	tags[TxHeightKey] = event.Height
+		logIfTagExists(TxHeightKey, tags, b.Logger)
+		tags[TxHeightKey] = event.Height
 	*/
 
 	b.pubsub.PublishWithTags(ctx, TMEventData{event}, tags)
@@ -167,8 +167,10 @@ func (b *EventBus) PublishEventLock(event EventDataRoundState) error {
 	return b.Publish(EventLock, TMEventData{event})
 }
 
+/*
 func logIfTagExists(tag string, tags map[string]interface{}, logger log.Logger) {
 	if value, ok := tags[tag]; ok {
 		logger.Error("Found predefined tag (value will be overwritten)", "tag", tag, "value", value)
 	}
 }
+*/

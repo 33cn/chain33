@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	log "github.com/inconshreveable/log15"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 type UPNPCapabilities struct {

@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	wire "github.com/tendermint/go-wire"
 	log "github.com/inconshreveable/log15"
+	wire "github.com/tendermint/go-wire"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -58,7 +58,7 @@ func (evR *EvidenceReactor) OnStart() error {
 // It returns the list of channels for this reactor.
 func (evR *EvidenceReactor) GetChannels() []*p2p.ChannelDescriptor {
 	return []*p2p.ChannelDescriptor{
-		&p2p.ChannelDescriptor{
+		{
 			ID:       EvidenceChannel,
 			Priority: 5,
 		},

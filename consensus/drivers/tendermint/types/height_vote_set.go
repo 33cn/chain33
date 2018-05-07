@@ -1,9 +1,9 @@
 package types
 
 import (
+	"fmt"
 	"strings"
 	"sync"
-	"fmt"
 )
 
 type RoundVoteSet struct {
@@ -74,7 +74,7 @@ func (hvs *HeightVoteSet) SetRound(round int) {
 	hvs.mtx.Lock()
 	defer hvs.mtx.Unlock()
 	if hvs.round != 0 && (round < hvs.round+1) {
-		panic(fmt.Sprintf("Panicked on a Sanity Check: %v","SetRound() must increment hvs.round"))
+		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", "SetRound() must increment hvs.round"))
 	}
 	for r := hvs.round + 1; r <= round; r++ {
 		if _, ok := hvs.roundVoteSets[r]; ok {
@@ -87,7 +87,7 @@ func (hvs *HeightVoteSet) SetRound(round int) {
 
 func (hvs *HeightVoteSet) addRound(round int) {
 	if _, ok := hvs.roundVoteSets[round]; ok {
-		panic(fmt.Sprintf("Panicked on a Sanity Check: %v","addRound() for an existing round"))
+		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", "addRound() for an existing round"))
 	}
 	// log.Debug("addRound(round)", "round", round)
 	prevotes := NewVoteSet(hvs.chainID, hvs.height, round, VoteTypePrevote, hvs.valSet)

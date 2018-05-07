@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"time"
 
+	log "github.com/inconshreveable/log15"
 	wire "github.com/tendermint/go-wire"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	log "github.com/inconshreveable/log15"
 )
 
 const (
@@ -52,8 +52,8 @@ type PEXReactor struct {
 	msgCountByPeer    *cmn.CMap
 	maxMsgCountByPeer uint16
 	Logger            log.Logger
-	Quit    chan struct{}
-	seeds              []string
+	Quit              chan struct{}
+	seeds             []string
 }
 
 // NewPEXReactor creates new PEX reactor.

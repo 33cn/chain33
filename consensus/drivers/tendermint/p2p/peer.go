@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"net"
 	"time"
+
 	"github.com/pkg/errors"
 
+	log "github.com/inconshreveable/log15"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	log "github.com/inconshreveable/log15"
 )
 
 // Peer is an interface representing a peer connected on a reactor.
@@ -56,7 +57,6 @@ type PeerConfig struct {
 	DialTimeout      time.Duration `mapstructure:"dial_timeout"`
 
 	MConfig *MConnConfig `mapstructure:"connection"`
-
 }
 
 // DefaultPeerConfig returns the default config.

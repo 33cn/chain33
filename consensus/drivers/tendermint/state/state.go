@@ -8,9 +8,10 @@ import (
 
 	wire "github.com/tendermint/go-wire"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"os"
+
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 // database keys
@@ -229,7 +230,7 @@ func LoadState(db dbm.DB) State {
 }
 
 func loadState(db dbm.DB, key []byte) (state State) {
-	buf,e := db.Get(key)
+	buf, e := db.Get(key)
 	if e != nil {
 		fmt.Printf(fmt.Sprintf(`LoadState: db get key %v failed:%v\n`, key, e))
 	}
@@ -354,7 +355,7 @@ func LoadValidators(db dbm.DB, height int64) (*types.ValidatorSet, error) {
 	if valInfo.ValidatorSet == nil {
 		valInfo = loadValidatorsInfo(db, valInfo.LastHeightChanged)
 		if valInfo == nil {
-			panic(fmt.Sprintf("Panicked on a Sanity Check: %v",fmt.Sprintf(`Couldn't find validators at height %d as
+			panic(fmt.Sprintf("Panicked on a Sanity Check: %v", fmt.Sprintf(`Couldn't find validators at height %d as
                         last changed from height %d`, valInfo.LastHeightChanged, height)))
 		}
 	}
