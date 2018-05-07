@@ -682,7 +682,7 @@ func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 		return err
 	}
 
-	*result = reply
+	*result = *(*WalletStatus)(reply)
 	return nil
 }
 
