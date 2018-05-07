@@ -81,7 +81,7 @@ type GrpcCtx struct {
 }
 
 func NewGRpcCtx(method string, params, res interface{}) *GrpcCtx {
-	time.Sleep(5 * time.Millisecond)
+	//time.Sleep(5 * time.Millisecond)
 	return &GrpcCtx{
 		Method: method,
 		Params: params,
@@ -90,7 +90,7 @@ func NewGRpcCtx(method string, params, res interface{}) *GrpcCtx {
 }
 
 func (c *GrpcCtx) Run() (err error) {
-	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
+	conn, err := grpc.Dial(grpcAddress, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
