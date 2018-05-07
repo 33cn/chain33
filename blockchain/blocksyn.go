@@ -142,15 +142,16 @@ P2P区块收到这个消息后，会向blockchain 模块回复， EventReply。
 其他节点如果有这个范围的区块，P2P模块收到其他节点发来的数据，
 会发送送EventAddBlocks(types.Blocks) 给 blockchain 模块，
 blockchain 模块回复 EventReply
-结构体：
+syncOrfork:true fork分叉处理，不需要处理请求block的个数
+          :fasle 区块同步处理，一次请求128个block
 */
-func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string) (err error) {
+func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOrfork bool) (err error) {
 	if chain.client == nil {
 		synlog.Error("FetchBlock chain client not bind message queue.")
 		return types.ErrClientNotBindQueue
 	}
 
-	synlog.Debug("FetchBlock input", "StartHeight", start, "EndHeight", end, "pid", pid[0])
+	synlog.Debug("FetchBlock input", "StartHeight", start, "EndHeight", end, "pid", pid)
 	blockcount := end - start
 	if blockcount < 0 {
 		return types.ErrStartBigThanEnd
@@ -160,7 +161,8 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string) (err e
 	requestblock.Isdetail = false
 	requestblock.Pid = pid
 
-	if blockcount >= MaxFetchBlockNum {
+	//同步block一次请求128个,fork分叉处理时请求block的个数不做限制
+	if blockcount >= MaxFetchBlockNum && !syncOrfork {
 		requestblock.End = start + MaxFetchBlockNum - 1
 	} else {
 		requestblock.End = end
@@ -414,6 +416,42 @@ func (chain *BlockChain) GetPeerInfo(pid string) *PeerInfo {
 	return nil
 }
 
+//获取peerlist中最高节点的peerinfo
+func (chain *BlockChain) GetMaxPeerInfo() *PeerInfo {
+	peerMaxBlklock.Lock()
+	defer peerMaxBlklock.Unlock()
+
+	//获取peerlist中高度最高的peer，peerlist是已经按照高度排序了的。
+	if chain.peerList != nil {
+		peerlen := len(chain.peerList)
+		for i := peerlen - 1; i >= 0; i-- {
+			if chain.peerList[i] != nil {
+				ok := chain.IsFaultPeer(chain.peerList[i].Name)
+				if !ok {
+					return chain.peerList[i]
+				}
+			}
+		}
+	}
+	return nil
+}
+
+//获取所有peers
+func (chain *BlockChain) GetPeers() PeerInfoList {
+	peerMaxBlklock.Lock()
+	defer peerMaxBlklock.Unlock()
+
+	//获取peerinfo
+	var peers PeerInfoList
+
+	if chain.peerList != nil {
+		for _, peer := range chain.peerList {
+			peers = append(peers, peer)
+		}
+	}
+	return peers
+}
+
 //判断指定pid是否在故障faultPeerList中
 func (chain *BlockChain) IsFaultPeer(pid string) bool {
 	faultpeerlock.Lock()
@@ -548,7 +586,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	//获取peers的最新高度.处理没有收到广播block的情况
 	if curheight+1 < peerMaxBlkHeight {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
-		chain.FetchBlock(curheight+1, peerMaxBlkHeight, chain.GetPeerPids())
+		chain.FetchBlock(curheight+1, peerMaxBlkHeight, chain.GetPeerPids(), false)
 	}
 }
 
@@ -577,8 +615,15 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 	}
 	//一个检测周期bestchain的tip高度没有变化。并且远远落后于peer的最新高度
 	//本节点可能在侧链上，需要从最新的peer上向后取BackBlockNum个headers
-	peermaxheight := chain.GetPeerMaxBlkHeight()
-	pid := chain.GetPeerMaxBlkPid()
+
+	maxpeer := chain.GetMaxPeerInfo()
+	if maxpeer == nil {
+		synlog.Error("CheckHeightNoIncrease GetMaxPeerInfo is nil")
+		return
+	}
+	peermaxheight := maxpeer.Height
+	pid := maxpeer.Name
+
 	if peermaxheight > tipheight && (peermaxheight-tipheight) > BackwardBlockNum {
 		//从指定peer 请求BackBlockNum个blockheaders
 		if tipheight > BackBlockNum {
@@ -641,7 +686,6 @@ func (chain *BlockChain) ProcBlockHeader(headers *types.Headers, peerid string) 
 		return err
 	}
 	//对应高度hash不相等就向后寻找分叉点
-	//pid := chain.GetPeerMaxBlkPid()
 	if !bytes.Equal(headers.Items[0].Hash, header.Hash) {
 		synlog.Info("ProcBlockHeader hash no equal", "height", height, "self hash", common.ToHex(header.Hash), "peer hash", common.ToHex(headers.Items[0].Hash))
 
@@ -659,6 +703,7 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	var ForkHeight int64 = -1
 	var forkhash []byte
 	count := len(headers.Items)
+	tipheight := chain.bestChain.Height()
 
 	//循环找到分叉点
 	for i := count - 1; i >= 0; i-- {
@@ -675,7 +720,6 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 		synlog.Error("ProcBlockHeaders end headerinfo", "height", headers.Items[count-1].Height, "hash", common.ToHex(headers.Items[count-1].Hash))
 
 		//回退5000个block之后不再回退了，直接返回错误
-		tipheight := chain.bestChain.Height()
 		startheight := headers.Items[0].Height
 		if tipheight > startheight && (tipheight-startheight) > MaxRollBlockNum {
 			synlog.Error("ProcBlockHeaders Not Roll Back!", "selfheight", tipheight, "RollBackedhieght", startheight)
@@ -683,27 +727,26 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 		}
 		//继续向后取指定数量的headers
 		height := headers.Items[0].Height
-		//pid := chain.GetPeerMaxBlkPid()
 		if height > BackBlockNum {
 			chain.FetchBlockHeaders(height-BackBlockNum, height, pid)
 		} else {
 			chain.FetchBlockHeaders(0, height, pid)
 		}
-
 		return types.ErrContinueBack
 	}
 	synlog.Info("ProcBlockHeaders find fork point", "height", ForkHeight, "hash", common.ToHex(forkhash))
 
 	//从分叉节点高度继续请求block，从pid
-	//pid := chain.GetPeerMaxBlkPid()
 	peermaxheight := chain.GetPeerMaxBlkHeight()
 
 	//此时停止同步的任务
 	chain.task.Cancel()
-	if peermaxheight > ForkHeight+MaxFetchBlockNum {
-		chain.FetchBlock(ForkHeight, ForkHeight+MaxFetchBlockNum, []string{pid})
+
+	//最高peer大于本节点tip高度时，至少取分叉节点到tipheight+1的block。用于总难度的比较
+	if peermaxheight > tipheight {
+		chain.FetchBlock(ForkHeight, tipheight+1, []string{pid}, true)
 	} else {
-		chain.FetchBlock(ForkHeight, peermaxheight, []string{pid})
+		chain.FetchBlock(ForkHeight, peermaxheight, []string{pid}, true)
 	}
 	return nil
 }
@@ -740,45 +783,43 @@ func (chain *BlockChain) CheckTipBlockHash() {
 		return
 	}
 
-	peermaxheight := chain.GetPeerMaxBlkHeight()
-	pid := chain.GetPeerMaxBlkPid()
-	peerhash := chain.GetPeerMaxBlkHash()
+	maxpeer := chain.GetMaxPeerInfo()
+	if maxpeer == nil {
+		synlog.Error("CheckTipBlockHash GetMaxPeerInfo is nil")
+		return
+	}
+	peermaxheight := maxpeer.Height
+	pid := maxpeer.Name
+	peerhash := maxpeer.Hash
+
+	//和最高的peer做tip block hash的校验
 	if peermaxheight > tipheight {
 		//从指定peer 请求BackBlockNum个blockheaders
-		synlog.Debug("CheckTipBlockHash >", "start", tipheight, "end", tipheight)
 		synlog.Debug("CheckTipBlockHash >", "peermaxheight", peermaxheight, "tipheight", tipheight)
-
 		chain.FetchBlockHeaders(tipheight, tipheight, pid)
 	} else if peermaxheight == tipheight {
 		// 直接tip block hash比较,如果不相等需要从peer向后去指定的headers，尝试寻找分叉点
 		if !bytes.Equal(tiphash, peerhash) {
 			if tipheight > BackBlockNum {
-				synlog.Debug("CheckTipBlockHash ==", "start", tipheight-BackBlockNum, "end", tipheight)
 				synlog.Debug("CheckTipBlockHash ==", "peermaxheight", peermaxheight, "tipheight", tipheight)
-
 				chain.FetchBlockHeaders(tipheight-BackBlockNum, tipheight, pid)
 			} else {
-				synlog.Debug("CheckTipBlockHash !=", "start", "1", "end", tipheight)
 				synlog.Debug("CheckTipBlockHash !=", "peermaxheight", peermaxheight, "tipheight", tipheight)
-
 				chain.FetchBlockHeaders(1, tipheight, pid)
 			}
 		}
 	} else {
+
 		header, err := chain.blockStore.GetBlockHeaderByHeight(peermaxheight)
 		if err != nil {
 			return
 		}
 		if !bytes.Equal(header.Hash, peerhash) {
 			if peermaxheight > BackBlockNum {
-				synlog.Debug("CheckTipBlockHash <!=", "start", peermaxheight-BackBlockNum, "end", tipheight)
 				synlog.Debug("CheckTipBlockHash<!=", "peermaxheight", peermaxheight, "tipheight", tipheight)
-
 				chain.FetchBlockHeaders(peermaxheight-BackBlockNum, peermaxheight, pid)
 			} else {
-				synlog.Debug("CheckTipBlockHash<!=", "start", "1", "end", tipheight)
 				synlog.Debug("CheckTipBlockHash<!=", "peermaxheight", peermaxheight, "tipheight", tipheight)
-
 				chain.FetchBlockHeaders(1, peermaxheight, pid)
 			}
 		}
@@ -790,18 +831,18 @@ func (chain *BlockChain) IsCaughtUp() bool {
 
 	height := chain.GetBlockHeight()
 
-	peerMaxBlklock.Lock()
-	defer peerMaxBlklock.Unlock()
-
+	//peerMaxBlklock.Lock()
+	//defer peerMaxBlklock.Unlock()
+	peers := chain.GetPeers()
 	// peer中只有自己节点，没有其他节点
-	if chain.peerList == nil {
+	if peers == nil {
 		synlog.Debug("IsCaughtUp has no peers")
 		return chain.cfg.SingleMode
 	}
 
 	var maxPeerHeight int64 = -1
 	peersNo := 0
-	for _, peer := range chain.peerList {
+	for _, peer := range peers {
 		if peer != nil && maxPeerHeight < peer.Height {
 			ok := chain.IsFaultPeer(peer.Name)
 			if !ok {
