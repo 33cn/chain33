@@ -671,12 +671,8 @@ func (q *QueueProtocol) Query(param *types.Query) (*types.Message, error) {
 		log.Error("Query", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.Message); ok {
-		return reply, nil
-	}
-	err = types.ErrTypeAsset
-	log.Error("Query", "Error", err.Error())
-	return nil, err
+	ret := msg.GetData().(types.Message)
+	return &ret, err
 }
 
 func (q *QueueProtocol) Version() (*types.Reply, error) {
