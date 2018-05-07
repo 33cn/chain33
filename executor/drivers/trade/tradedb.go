@@ -31,7 +31,7 @@ func (selldb *sellDB) save(db dbm.KV) []*types.KeyValue {
 	return set
 }
 
-func (selldb *sellDB) getSellLogs(tradeType int32) *types.ReceiptLog {
+func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = tradeType
 	base := &types.ReceiptTradeBase{
@@ -47,6 +47,8 @@ func (selldb *sellDB) getSellLogs(tradeType int32) *types.ReceiptLog {
 		selldb.Crowdfund,
 		selldb.Sellid,
 		types.SellOrderStatus[selldb.Status],
+		"",
+		txhash,
 	}
 	if types.TyLogTradeSell == tradeType {
 		receiptTrade := &types.ReceiptTradeSell{base}
@@ -60,16 +62,20 @@ func (selldb *sellDB) getSellLogs(tradeType int32) *types.ReceiptLog {
 	return log
 }
 
-func (selldb *sellDB) getBuyLogs(buyerAddr string, sellid string, boardlotcnt int64, sellOrder *types.SellOrder, txhash string) *types.ReceiptLog {
+func (selldb *sellDB) getBuyLogs(buyerAddr string, buyid string, boardlotcnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTradeBuy
-	receiptBuy := &types.ReceiptTradeBuy{
-		buyerAddr,
-		sellid,
+	receiptBuy := &types.ReceiptBuyBase{
 		selldb.Tokensymbol,
+		buyerAddr,
+		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
+		selldb.Minboardlot,
+		strconv.FormatFloat(float64(selldb.Priceperboardlot)/float64(types.Coin), 'f', 8, 64),
 		boardlotcnt,
-		strconv.FormatFloat(float64(sellOrder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
-		strconv.FormatFloat(float64(sellOrder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64),
+		boardlotcnt,
+		buyid,
+		types.SellOrderStatus[types.TracdOrderStatusBoughtOut],
+		selldb.Sellid,
 		txhash,
 	}
 	log.Log = types.Encode(receiptBuy)
@@ -90,6 +96,21 @@ func getSellOrderFromID(sellid []byte, db dbm.KV) (*types.SellOrder, error) {
 		return nil, err
 	}
 	return &sellOrder, nil
+}
+
+func getTx(txHash []byte, db dbm.KV) (*types.TransactionDetail, error) {
+	value, err := db.Get(txHash)
+	if err != nil {
+		tradelog.Error("getTx", "Failed to get value frim db wiht getTx", string(txHash))
+		return nil, err
+	}
+
+	var txDetail types.TransactionDetail
+	if err = types.Decode(value, &txDetail); err != nil {
+		tradelog.Error("getTx", "Failed to decode sell order", string(txHash))
+		return nil, err
+	}
+	return &txDetail, nil
 }
 
 func (selldb *sellDB) getKVSet() (kvset []*types.KeyValue) {
@@ -124,10 +145,10 @@ func (buydb *buyDB) getKVSet() (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func (buydb *buyDB) getBuyLogs(tradeType int32) *types.ReceiptLog {
+func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = tradeType
-	base := &types.ReceiptBuyLimitBase{
+	base := &types.ReceiptBuyBase{
 		buydb.TokenSymbol,
 		buydb.Address,
 		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
@@ -137,6 +158,8 @@ func (buydb *buyDB) getBuyLogs(tradeType int32) *types.ReceiptLog {
 		buydb.BoughtBoardlot,
 		buydb.Buyid,
 		types.SellOrderStatus[buydb.Status],
+		"",
+		txhash,
 	}
 	if types.TyLogTradeBuyLimit == tradeType {
 		receiptTrade := &types.ReceiptTradeBuyLimit{base}
@@ -165,16 +188,23 @@ func getBuyOrderFromID(buyid []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
 	return &sellOrder, nil
 }
 
-func (buydb *buyDB) getSellLogs(sellerAddr string, buyid string, boardlotCnt int64, buyOrder *types.BuyLimitOrder, txhash string) *types.ReceiptLog {
+func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTradeSellMarket
-	receiptSellMartet := &types.ReceiptTradeSellMarket{
-		sellerAddr,
-		buyid,
+	receiptSellMartet := &types.ReceiptTradeBase{
 		buydb.TokenSymbol,
+		sellerAddr,
+		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
+		buydb.MinBoardlot,
+		strconv.FormatFloat(float64(buydb.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64),
+		buydb.TotalBoardlot,
 		boardlotCnt,
-		strconv.FormatFloat(float64(buyOrder.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
-		strconv.FormatFloat(float64(buyOrder.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64),
+		0,
+		0,
+		false,
+		sellid,
+		types.SellOrderStatus[types.TracdOrderStatusSoldOut],
+		buydb.Buyid,
 		txhash,
 	}
 	log.Log = types.Encode(receiptSellMartet)
@@ -235,7 +265,7 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 	tokendb := newSellDB(sellOrder)
 	sellOrderKV := tokendb.save(action.db)
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeSell))
+	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeSell, action.txhash))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, sellOrderKV...)
 
@@ -300,8 +330,8 @@ func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt
 
 	logs = append(logs, receiptFromAcc.Logs...)
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, sellTokendb.getSellLogs(types.TyLogTradeSell))
-	logs = append(logs, sellTokendb.getBuyLogs(action.fromaddr, buyOrder.Sellid, buyOrder.Boardlotcnt, sellOrder, action.txhash))
+	logs = append(logs, sellTokendb.getSellLogs(types.TyLogTradeSell, action.txhash))
+	logs = append(logs, sellTokendb.getBuyLogs(action.fromaddr, action.txhash, buyOrder.Boardlotcnt, action.txhash))
 	kv = append(kv, receiptFromAcc.KV...)
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
@@ -342,7 +372,7 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 	sellOrderKV := tokendb.save(action.db)
 
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeRevoke))
+	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeRevoke, action.txhash))
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -383,7 +413,7 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 	tokendb := newBuyDB(buyOrder)
 	buyOrderKV := tokendb.save(action.db)
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyLimit))
+	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyLimit, action.txhash))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, buyOrderKV...)
 
@@ -448,8 +478,8 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 
 	logs = append(logs, receiptFromAcc.Logs...)
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, buyTokendb.getBuyLogs(types.TyLogTradeBuyLimit))
-	logs = append(logs, buyTokendb.getSellLogs(action.fromaddr, buyOrder.Buyid, sellOrder.BoardlotCnt, buyOrder, action.txhash))
+	logs = append(logs, buyTokendb.getBuyLogs(types.TyLogTradeBuyLimit, action.txhash))
+	logs = append(logs, buyTokendb.getSellLogs(action.fromaddr, action.txhash, sellOrder.BoardlotCnt, action.txhash))
 	kv = append(kv, receiptFromAcc.KV...)
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
@@ -465,7 +495,7 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) 
 
 	if buyOrder.Status == types.TracdOrderStatusBoughtOut {
 		return nil, types.ErrTBuyOrderSoldout
-	} else if buyOrder.Status == types.TracdOrderStatusRevoked {
+	} else if buyOrder.Status == types.TracdOrderStatusBuyRevoked {
 		return nil, types.ErrTBuyOrderRevoked
 	}
 
@@ -484,12 +514,12 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) 
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	buyOrder.Status = types.TracdOrderStatusRevoked
+	buyOrder.Status = types.TracdOrderStatusBuyRevoked
 	tokendb := newBuyDB(*buyOrder)
 	sellOrderKV := tokendb.save(action.db)
 
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyRevoke))
+	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyRevoke, action.txhash))
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
