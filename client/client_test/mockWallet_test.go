@@ -40,7 +40,7 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 			case types.EventGetSeed:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyGetSeed, &types.ReplySeed{}))
 			case types.EventGetWalletStatus:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{IsWalletLock: true, IsAutoMining: false, IsHasSeed: true, IsTicketLock: false}))
 			case types.EventWalletAutoMiner:
 				msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
 			case types.EventDumpPrivkey:
