@@ -3,16 +3,16 @@ package evm
 import (
 	"math/big"
 
+	"encoding/binary"
 	"encoding/hex"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"encoding/binary"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
@@ -53,13 +53,13 @@ func (evm *EVMExecutor) GetName() string {
 	return "evm"
 }
 
-func (evm *EVMExecutor) SetEnv(height, blocktime int64) {
+func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficulty uint64) {
 	// 需要从这里识别出当前执行的Transaction所在的区块高度
 	// 因为执行器框架在调用每一个Transaction时，都会先设置StateDB，在设置区块环境
 	// 因此，在这里判断当前设置的区块高度和上一次缓存的区块高度是否为同一高度，即可判断是否在同一个区块内执行的Transaction
-	if height != evm.DriverBase.GetHeight() || blocktime != evm.DriverBase.GetBlockTime() {
+	if height != evm.DriverBase.GetHeight() || blockTime != evm.DriverBase.GetBlockTime() || coinBase != evm.DriverBase.GetCoinBase() || difficulty != evm.DriverBase.GetDifficulty() {
 		// 这时说明区块发生了变化，需要集成原来的设置逻辑，并执行自定义操作
-		evm.DriverBase.SetEnv(height, blocktime)
+		evm.DriverBase.SetEnv(height, blockTime, coinBase, difficulty)
 
 		// 在生成新的区块状态DB之前，把先前区块中生成的合约日志集中打印出来
 		if evm.mStateDB != nil {
@@ -82,14 +82,11 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	// 先转换消息
 	msg := evm.GetMessage(tx)
 
-	// 获取当前区块的高度和时间
+	// 获取当前区块的上下文信息
 	height := evm.DriverBase.GetHeight()
 	time := evm.DriverBase.GetBlockTime()
-
-	//FIXME 需要获取coinbase，目前没有
-	//FIXME 还有难度值，也需要获取  这两个信息都需要在执行区块时传进来
-	coinbase := common.StringToAddress("1CNCzMdMNjYHkNUdfnEjat2i2bR9NdXrmR")
-	difficulty := uint64(10000)
+	coinbase := common.StringToAddress(evm.DriverBase.GetCoinBase())
+	difficulty := evm.DriverBase.GetDifficulty()
 
 	context := NewEVMContext(msg, height, time, coinbase, difficulty)
 
@@ -168,9 +165,10 @@ func (evm *EVMExecutor) GetMStateDB() *state.MemoryStateDB {
 	return evm.mStateDB
 }
 
-func (evm *EVMExecutor) GetVMConfig() *runtime.Config{
+func (evm *EVMExecutor) GetVMConfig() *runtime.Config {
 	return evm.vmCfg
 }
+
 // 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
 func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg common.Message) {
 

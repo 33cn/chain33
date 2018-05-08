@@ -111,7 +111,7 @@ func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, 
 }
 
 func (client *client) Wait(msg Message) (Message, error) {
-	msg, err := client.WaitTimeout(msg, 120*time.Second)
+	msg, err := client.WaitTimeout(msg, 3600*time.Second)
 	if err == types.ErrTimeout {
 		panic(err)
 	}
