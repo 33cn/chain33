@@ -8,7 +8,7 @@ import (
 
 var clog = log.New("module", "execs.norm")
 
-func init() {
+func Init() {
 	n := newNorm()
 	drivers.Register(n.GetName(), n, 0)
 }
@@ -57,13 +57,19 @@ func (n *Norm) GetActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
+func Key(str string) (key []byte) {
+	key = append(key, []byte("mavl-norm-")...)
+	key = append(key, str...)
+	return key
+}
+
 func (n *Norm) GetKVPair(tx *types.Transaction) *types.KeyValue {
 	action, err := n.GetActionValue(tx)
 	if err != nil {
 		return nil
 	}
 	if action.Ty == types.NormActionPut && action.GetNput() != nil {
-		return &types.KeyValue{[]byte(action.GetNput().Key), action.GetNput().Value}
+		return &types.KeyValue{Key(action.GetNput().Key), action.GetNput().Value}
 	}
 	return nil
 }
@@ -98,14 +104,15 @@ func (n *Norm) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 }
 
 func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
+	str := string(params)
 	if funcname == "NormGet" {
-		value, err := n.GetStateDB().Get(params)
+		value, err := n.GetStateDB().Get(Key(str))
 		if err != nil {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{string(value)}, nil
 	} else if funcname == "NormHas" {
-		_, err := n.GetStateDB().Get(params)
+		_, err := n.GetStateDB().Get(Key(str))
 		if err != nil {
 			return &types.ReplyString{"false"}, err
 		}
