@@ -223,7 +223,7 @@ func (s *P2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 				log.Error("GetBlocks", "Error", err.Error())
 				return err //blockchain 模块关闭，直接返回，不需要continue
 			}
-			resp, err := client.WaitTimeout(msg, time.Duration(time.Second*20))
+			resp, err := client.WaitTimeout(msg, time.Second*20)
 			if err != nil {
 				log.Error("GetBlocks Err", "Err", err.Error())
 				continue
