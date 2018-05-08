@@ -171,10 +171,6 @@ func (a *AddrBook) saveToDb() {
 
 	addrs := []*knownAddress{}
 	for _, ka := range a.addrPeer {
-		if len(P2pComm.AddrRouteble([]string{ka.Addr.String()})) == 0 {
-
-			continue
-		}
 		addrs = append(addrs, ka.Copy())
 	}
 	if len(addrs) == 0 {
@@ -238,7 +234,7 @@ func (a *AddrBook) loadDb() bool {
 			}
 
 			for _, ka := range aJSON.Addrs {
-				log.Debug("loadDb", "peer", ka)
+				log.Info("AddrBookloadDb", "peer", ka.Addr.String())
 				netaddr, err := NewNetAddressString(ka.Addr.String())
 				if err != nil {
 					continue
@@ -322,11 +318,9 @@ func (a *AddrBook) GetAddrs() []string {
 	defer a.mtx.Unlock()
 	var addrlist []string
 	for _, peer := range a.addrPeer {
-
 		if peer.GetAttempts() == 0 {
 			addrlist = append(addrlist, peer.Addr.String())
 		}
-
 	}
 	return addrlist
 }
