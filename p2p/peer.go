@@ -232,7 +232,7 @@ func (p *Peer) sendStream() {
 				if err != nil {
 					log.Error("sendStream", "send", err)
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-						(*p.nodeInfo).blacklist.Add(p.Addr())
+						(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
 					}
 					time.Sleep(time.Second) //have a rest
 					resp.CloseSend()
@@ -291,7 +291,7 @@ func (p *Peer) readStream() {
 				log.Error("readStream", "recv,err:", err)
 				resp.CloseSend()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-					(*p.nodeInfo).blacklist.Add(p.Addr())
+					(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
 				}
 				time.Sleep(time.Second) //have a rest
 				break

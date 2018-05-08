@@ -63,7 +63,6 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 	remoteNetwork, err := NewNetAddressString(peeraddr)
 	if err == nil {
 		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
-
 	}
 
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
@@ -449,6 +448,14 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				return pb.ErrStreamPing
 			}
 
+			getctx, ok := pr.FromContext(stream.Context())
+			if ok {
+				peerIp := strings.Split(getctx.Addr.String(), ":")[0]
+				if peerIp != LocalAddr && peerIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
+					s.node.nodeInfo.SetServiceTy(Service)
+				}
+			}
+
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
 			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: time.Now().Unix()})
@@ -467,9 +474,6 @@ func (s *P2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.
 	var remoteaddr string
 	var outside bool
 	getctx, ok := pr.FromContext(ctx)
-	peeraddr := strings.Split(getctx.Addr.String(), ":")[0]
-
-	log.Debug("RemotePeerAddr", "Addr", peeraddr)
 	if ok {
 		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
 		log.Debug("RemotePeerAddr")

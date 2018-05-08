@@ -209,7 +209,6 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	}
 	addrfrom := nodeinfo.GetExternalAddr().String()
 
-	nodeinfo.blacklist.Add(addrfrom)
 	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: int64(nodeinfo.ServiceTy()), Timestamp: time.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight}, grpc.FailFast(true))
@@ -227,13 +226,15 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
 	peer.version.SetVersion(resp.GetVersion())
 
-	if !peer.IsPersistent() {
-		return resp.GetUserAgent(), nil //如果不是种子节点，则直接返回，不用校验自身的外网地址
-	}
 	if len(strings.Split(resp.GetAddrRecv(), ":")) == 2 {
 		if strings.Split(resp.GetAddrRecv(), ":")[0] != nodeinfo.GetExternalAddr().IP.String() {
 			externalIP := strings.Split(resp.GetAddrRecv(), ":")[0]
 			log.Debug("sendVersion", "externalip", externalIP)
+			if peer.IsPersistent() {
+				//永久加入黑名单
+				nodeinfo.blacklist.Add(externalIP, 0)
+			}
+
 			if exaddr, err := NewNetAddressString(resp.GetAddrRecv()); err == nil {
 				nodeinfo.SetExternalAddr(exaddr)
 			}
@@ -349,6 +350,7 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 		}
 	}
 }
+
 func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
@@ -628,7 +630,13 @@ func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	localpeerinfo.Header = header
 	localpeerinfo.Name = pub
 	localpeerinfo.MempoolSize = int32(meminfo.GetSize())
-	localpeerinfo.Addr = m.network.node.nodeInfo.GetExternalAddr().IP.String()
-	localpeerinfo.Port = int32(m.network.node.nodeInfo.GetExternalAddr().Port)
+	if m.network.node.nodeInfo.GetExternalAddr().IP == nil {
+		localpeerinfo.Addr = LocalAddr
+		localpeerinfo.Port = defaultPort
+	} else {
+		localpeerinfo.Addr = m.network.node.nodeInfo.GetExternalAddr().IP.String()
+		localpeerinfo.Port = int32(m.network.node.nodeInfo.GetExternalAddr().Port)
+	}
+
 	return &localpeerinfo, nil
 }

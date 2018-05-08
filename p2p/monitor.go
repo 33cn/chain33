@@ -24,8 +24,8 @@ func (n *Node) monitorErrPeer() {
 		if !peer.version.IsSupport() { //如果版本不支持,直接删除节点
 			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
-			//加入黑名单
-			n.nodeInfo.blacklist.Add(peer.Addr())
+			//加入黑名单24小时
+			n.nodeInfo.blacklist.Add(peer.Addr(), int64(time.Duration(time.Hour*24)))
 			continue
 		}
 
@@ -118,10 +118,10 @@ func (n *Node) getAddrFromOnline() {
 					log.Error("getAddrFromOnline", "ERROR", err.Error())
 					continue
 				}
-				oklist := P2pComm.AddrRouteble(addrlist)
-				log.Debug("GetAddrFromOnline", "addrlist", oklist)
+
+				log.Debug("GetAddrFromOnline", "addrlist", addrlist)
 				//过滤黑名单的地址
-				for _, addr := range oklist {
+				for _, addr := range addrlist {
 					if !n.nodeInfo.blacklist.Has(addr) {
 						pub.FIFOPub(addr, "addr")
 					} else {
@@ -157,34 +157,33 @@ func (n *Node) getAddrFromOffline() {
 			peeraddrs := n.nodeInfo.addrBook.GetPeers()
 
 			if len(peeraddrs) != 0 {
-
 				for _, peer := range peeraddrs {
 					testlist = append(testlist, peer.String())
 				}
 			}
 			log.Info("getaddrfromoffline")
-			oklist := P2pComm.AddrRouteble(testlist)
-			for _, addr := range oklist {
+			for _, addr := range testlist {
 
 				if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
-					log.Debug("GetAddrFromOffline", "Add addr", addr)
+					log.Info("GetAddrFromOffline", "Add addr", addr)
 					pub.FIFOPub(addr, "addr")
 				}
 			}
 
 		} else {
-			//
+
 			for _, seed := range n.nodeInfo.cfg.Seeds {
 				//如果达到稳定节点数量，则断开种子节点
 				if n.Has(seed) {
-					if !n.needMore() && len(n.GetRegisterPeers()) > maxOutBoundNum {
+					if !n.needMore() && len(n.GetRegisterPeers()) > stableBoundNum {
 						n.remove(seed)
 					}
 
 				}
 			}
+
 			//如果删除种子节点后，依然有过多的节点连接，则继续删除其他非种子节点
-			if !n.needMore() && len(n.GetRegisterPeers()) > maxOutBoundNum {
+			if !n.needMore() && len(n.GetRegisterPeers()) > stableBoundNum {
 				peerinfos := n.nodeInfo.peerInfos.GetPeerInfos()
 				//把连接的高度最低的节点删掉
 				var lowest int64
@@ -207,6 +206,51 @@ func (n *Node) getAddrFromOffline() {
 		}
 
 		log.Debug("Node Monitor process", "outbound num", n.Size())
+	}
+
+}
+
+func (n *Node) monitorPeersHeight() {
+
+	p2pcli := NewNormalP2PCli()
+	ticker := time.NewTicker(time.Second * 30)
+	defer ticker.Stop()
+	_, pname := n.nodeInfo.addrBook.GetPrivPubKey()
+	for {
+
+		<-ticker.C
+		localBlockHeight, err := p2pcli.GetBlockHeight(n.nodeInfo)
+		if err != nil {
+			continue
+		}
+
+		peers, infos := n.GetActivePeers()
+		for paddr, pinfo := range infos {
+			peerheight := pinfo.GetHeader().GetHeight()
+			if pinfo.GetName() == pname { //发现连接到自己，立即删除
+				//删除节点数过低的节点
+				n.remove(paddr)
+				n.nodeInfo.blacklist.Add(paddr, 0)
+			}
+
+			if localBlockHeight-peerheight > 2048 { //比自己较低的节点删除
+				if addrlist, err := p2pcli.GetAddrList(peers[paddr]); err == nil {
+
+					for _, addr := range addrlist {
+						if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
+							pub.FIFOPub(addr, "addr")
+						}
+					}
+
+				}
+				//删除节点数过低的节点
+				n.remove(paddr)
+				//短暂加入黑名单20分钟
+				n.nodeInfo.blacklist.Add(paddr, int64(time.Duration(time.Minute*20)))
+
+			}
+
+		}
 	}
 
 }
@@ -259,6 +303,7 @@ func (n *Node) monitorDialPeers() {
 		peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
 		if err != nil {
 			log.Error("monitorDialPeers", "Err", err.Error())
+			n.nodeInfo.blacklist.Add(netAddr.String(), int64(time.Duration(time.Minute*10)))
 			continue
 		}
 		n.addPeer(peer)
@@ -284,7 +329,10 @@ func (n *Node) monitorBlackList() {
 			if n.nodeInfo.addrBook.IsOurStringAddress(badPeer) {
 				continue
 			}
-			if now-intime > 3600 { //one hour
+			if 0 == intime {
+				continue //0表示永久加入黑名单
+			}
+			if now-intime > 0 {
 				n.nodeInfo.blacklist.Delete(badPeer)
 			}
 		}
