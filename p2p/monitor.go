@@ -161,7 +161,7 @@ func (n *Node) getAddrFromOffline() {
 					testlist = append(testlist, peer.String())
 				}
 			}
-			log.Info("getaddrfromoffline")
+			//log.Info("getaddrfromoffline")
 			for _, addr := range testlist {
 
 				if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
