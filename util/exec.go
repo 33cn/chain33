@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
 )
 
 var ulog = log.New("module", "util")
@@ -141,7 +142,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 }
 
 func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
-	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height}
+	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height, account.PubKeyToAddress(block.Signature.Pubkey).String(), uint64(block.Difficulty)}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
