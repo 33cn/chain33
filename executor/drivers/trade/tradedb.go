@@ -98,19 +98,20 @@ func getSellOrderFromID(sellid []byte, db dbm.KV) (*types.SellOrder, error) {
 	return &sellOrder, nil
 }
 
-func getTx(txHash []byte, db dbm.KV) (*types.TransactionDetail, error) {
+func getTx(txHash []byte, db dbm.KV) (*types.TxResult, error) {
 	value, err := db.Get(txHash)
 	if err != nil {
 		tradelog.Error("getTx", "Failed to get value frim db wiht getTx", string(txHash))
 		return nil, err
 	}
+	var txResult types.TxResult
+	err = types.Decode(value, &txResult)
 
-	var txDetail types.TransactionDetail
-	if err = types.Decode(value, &txDetail); err != nil {
+	if err != nil {
 		tradelog.Error("getTx", "Failed to decode sell order", string(txHash))
 		return nil, err
 	}
-	return &txDetail, nil
+	return &txResult, nil
 }
 
 func (selldb *sellDB) getKVSet() (kvset []*types.KeyValue) {
