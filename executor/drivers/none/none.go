@@ -8,7 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 )
 
-func init() {
+func Init() {
 	n := newNone()
 	drivers.Register(n.GetName(), n, 0)
 }
