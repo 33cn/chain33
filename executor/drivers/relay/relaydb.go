@@ -212,6 +212,7 @@ func (action *relayAction) relayBuy(buy *types.RelayBuy) (*types.Receipt, error)
 
 	if order.Status == types.RelayOrderStatus_locking || order.Status == types.RelayOrderStatus_confirming || order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrTRelayOrderSoldout
+
 	}
 
 	if order.Status == types.RelayOrderStatus_canceled {

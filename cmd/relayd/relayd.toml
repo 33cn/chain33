@@ -6,6 +6,7 @@ trace = false
 Tick33 =10
 TickBTC = 10
 minHeightBTC = 1000
+PrivatePath = "./private.key"
 
 [chain33]
 id = "123"
