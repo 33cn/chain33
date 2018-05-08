@@ -196,7 +196,7 @@ func (t *trade) GetTokenBuyLimitOrderByStatus(req *types.ReqTokenBuyLimitOrder, 
 	if err != nil {
 		return nil, err
 	}
-	var reply types.ReplyBuyLimitOrders
+	var reply types.ReplyBuyOrders
 	for _, buyid := range values {
 		buy := t.replyReplyBuyOrderfromID([]byte(req.FromKey))
 		if buy != nil {
