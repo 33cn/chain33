@@ -17,6 +17,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/types"
 	"strconv"
+	"strings"
+	"fmt"
 )
 
 var tradelog = log.New("module", "execs.trade")
@@ -143,6 +145,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				panic(err) //数据错误了，已经被修改了
 			}
 			kv := t.saveSellMarket(&receipt)
+			tradelog.Info("saveSellMarket", "kv", kv)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -232,14 +235,27 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return t.GetTokenByStatus(&req, types.TracdOrderStatusOnSale)
+		if req.Status == 0 {
+			req.Status = types.TracdOrderStatusOnSale
+		}
+		return t.GetTokenByStatus(&req, req.Status)
 	case "GetTokenBuyLimitOrderByStatus": // 根据token 分页显示未完成成交买单
 		var req types.ReqTokenBuyLimitOrder
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
 		}
-		return t.GetTokenBuyLimitOrderByStatus(&req, types.TracdOrderStatusOnBuy)
+		if req.Status == 0 {
+			req.Status = types.TracdOrderStatusOnBuy
+		}
+		return t.GetTokenBuyLimitOrderByStatus(&req, req.Status)
+	case "GetAllBuyOrdersWithStatus":
+		var addrTokens types.ReqAddrTokens
+		err := types.Decode(params, &addrTokens)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetAllSellOrdersWithStatus(addrTokens.Status)
 
 	default:
 	}
@@ -277,11 +293,63 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 	for _, sellid := range sellids {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
-			if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
-				tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
-				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
+			tradelog.Info("trade Query", "id", string(sellid), "check-prefix", sellOrderPrefix)
+			if strings.HasPrefix(string(sellid), sellOrderPrefix) {
+				if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
+					tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
+					reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
+				}
+				sellidGotAlready[string(sellid)] = true
+			} else { // txhash as sellid for
+				sellid2 := fmt.Sprintf("0x%s", sellid)
+				selled2, err := common.FromHex(string(sellid))
+				if err != nil {
+					return nil, err
+				}
+				txResult, err := getTx(selled2, t.GetLocalDB())
+				tradelog.Info("GetOnesSellOrder ", "load txhash", sellid2)
+				if err != nil {
+					return nil, err
+				}
+
+				tradelog.Info("GetOnesSellOrder ", "load txhash", txResult)
+				// TODO make detail for sellOrder
+				tx := txResult.Tx
+				var trade types.Trade
+				err = types.Decode(tx.Payload, &trade)
+				if err != nil {
+					tradelog.Error("GetOnesSellOrder", "bad sellid", sellid)
+					continue
+				}
+				sellMarket := trade.GetTokensellmarket()
+				if sellMarket == nil {
+					tradelog.Error("GetOnesSellOrder", "bad sellid", sellid)
+					continue
+				}
+				tradelog.Info("GetOnesSellOrder", "show logs", sellMarket)
+				logs := txResult.Receiptdate.Logs
+				tradelog.Info("GetOnesSellOrder", "show logs", logs)
+				for _, log := range logs {
+					if log.Ty == types.TyLogTradeSellMarket {
+						var receipt types.ReceiptTradeBase
+						types.Decode(log.Log, &receipt)
+						if err != nil {
+							tradelog.Error("GetOnesSellOrder", "bad sellid 1", sellid)
+							continue
+						}
+						tradelog.Info("GetOnesSellOrder", "show logs", receipt)
+					} else if log.Ty == types.TyLogTradeBuyLimit {
+						var receipt types.ReceiptTradeBuyLimit
+						types.Decode(log.Log, &receipt)
+						if err != nil {
+							tradelog.Error("GetOnesSellOrder", "bad sellid", sellid)
+							continue
+						}
+						tradelog.Info("GetOnesSellOrder", "show logs 2", receipt)
+					}
+				}
+				continue
 			}
-			sellidGotAlready[string(sellid)] = true
 		}
 	}
 	return &reply, nil
@@ -487,16 +555,12 @@ func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 
 func (t *trade) saveBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusBoughtOut, t.GetHeight())
-
-	return kv
+	return saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusBoughtOut, t.GetHeight())
 }
 
 func (t *trade) deleteBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	deleteBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusBoughtOut, t.GetHeight())
-
-	return kv
+	return deleteBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusBoughtOut, t.GetHeight())
 }
 
 // BuyLimit Local
@@ -580,28 +644,26 @@ func (t *trade) deleteBuyLimit(buyid []byte, ty int32) []*types.KeyValue {
 
 func (t *trade) saveSellMarket(receiptTradeBuy *types.ReceiptTradeBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	saveSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusSoldOut, t.GetHeight())
-
-	return kv
+	return saveSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusSoldOut, t.GetHeight())
 }
 
 func (t *trade) deleteSellMarket(receiptTradeBuy *types.ReceiptTradeBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	deleteSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusSoldOut, t.GetHeight())
-	return kv
+	return deleteSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusSoldOut, t.GetHeight())
 }
 
 func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptTradeBase, status int32, height int64) []*types.KeyValue {
-	buyid := []byte(receipt.Buyid)
+	txhash := []byte(receipt.Txhash)
+	keyID := receipt.Txhash
 
-	newkey := calcTokenBuyLimitOrderKey(receipt.Tokensymbol, receipt.Owner, status, receipt.Buyid, height)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
+	newkey := calcTokenSellOrderKey(receipt.Tokensymbol, receipt.Owner, status, keyID, height)
+	kv = append(kv, &types.KeyValue{newkey, txhash})
 
-	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.Tokensymbol, receipt.Owner, status, receipt.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
+	newkey = calcOnesSellOrderKeyStatus(receipt.Tokensymbol, receipt.Owner, status, keyID)
+	kv = append(kv, &types.KeyValue{newkey, txhash})
 
-	newkey = calcOnesBuyLimitOrderKeyToken(receipt.Tokensymbol, receipt.Owner, status, receipt.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
+	newkey = calcOnesSellOrderKeyToken(receipt.Tokensymbol, receipt.Owner, status, keyID)
+	kv = append(kv, &types.KeyValue{newkey, txhash})
 
 	priceBoardlot, err := strconv.ParseFloat(receipt.Priceperboardlot, 64)
 	if err != nil {
@@ -615,21 +677,23 @@ func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptTra
 	AmountPerBoardlotInt64 := int64(AmountPerBoardlot * float64(types.Coin))
 	price := calcPriceOfToken(priceBoardlotInt64, AmountPerBoardlotInt64)
 
-	newkey = calcTokensBuyLimitOrderKeyStatus(receipt.Tokensymbol, status,
-		price, receipt.Owner, receipt.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
+	newkey = calcTokensSellOrderKeyStatus(receipt.Tokensymbol, status,
+		price, receipt.Owner, keyID)
+	kv = append(kv, &types.KeyValue{newkey, txhash})
 
 	return kv
 }
 
 func deleteSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptTradeBase, status int32, height int64) []*types.KeyValue {
-	newkey := calcTokenBuyLimitOrderKey(receipt.Tokensymbol, receipt.Owner, status, receipt.Buyid, height)
+	keyID := receipt.Txhash
+
+	newkey := calcTokenSellOrderKey(receipt.Tokensymbol, receipt.Owner, status, keyID, height)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
-	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.Tokensymbol, receipt.Owner, status, receipt.Buyid)
+	newkey = calcOnesSellOrderKeyStatus(receipt.Tokensymbol, receipt.Owner, status, keyID)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
-	newkey = calcOnesBuyLimitOrderKeyToken(receipt.Tokensymbol, receipt.Owner, status, receipt.Buyid)
+	newkey = calcOnesSellOrderKeyToken(receipt.Tokensymbol, receipt.Owner, status, keyID)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
 	priceBoardlot, err := strconv.ParseFloat(receipt.Priceperboardlot, 64)
@@ -644,24 +708,25 @@ func deleteSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptT
 	AmountPerBoardlotInt64 := int64(AmountPerBoardlot * float64(types.Coin))
 	price := calcPriceOfToken(priceBoardlotInt64, AmountPerBoardlotInt64)
 
-	newkey = calcTokensBuyLimitOrderKeyStatus(receipt.Tokensymbol, status,
-		price, receipt.Owner, receipt.Buyid)
+	newkey = calcTokensSellOrderKeyStatus(receipt.Tokensymbol, status,
+		price, receipt.Owner, keyID)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
 	return kv
 }
 
 func saveBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
-	buyid := []byte(receipt.Buyid)
+	txhash := []byte(receipt.Txhash)
+	keyId := receipt.Txhash
 
-	newkey := calcTokenBuyLimitOrderKey(receipt.TokenSymbol, receipt.Owner, status, receipt.Buyid, height)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
+	newkey := calcTokenBuyLimitOrderKey(receipt.TokenSymbol, receipt.Owner, status, keyId, height)
+	kv = append(kv, &types.KeyValue{newkey, txhash})
 
-	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, receipt.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
+	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, keyId)
+	kv = append(kv, &types.KeyValue{newkey, txhash})
 
-	newkey = calcOnesBuyLimitOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, receipt.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
+	newkey = calcOnesBuyLimitOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, keyId)
+	kv = append(kv, &types.KeyValue{newkey, txhash})
 
 	priceBoardlot, err := strconv.ParseFloat(receipt.PricePerBoardlot, 64)
 	if err != nil {
@@ -676,20 +741,22 @@ func saveBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyB
 	price := calcPriceOfToken(priceBoardlotInt64, AmountPerBoardlotInt64)
 
 	newkey = calcTokensBuyLimitOrderKeyStatus(receipt.TokenSymbol, status,
-		price, receipt.Owner, receipt.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
+		price, receipt.Owner, keyId)
+	kv = append(kv, &types.KeyValue{newkey, txhash})
 
 	return kv
 }
 
 func deleteBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
-	newkey := calcTokenBuyLimitOrderKey(receipt.TokenSymbol, receipt.Owner, status, receipt.Buyid, height)
+	keyId := receipt.Txhash
+
+	newkey := calcTokenBuyLimitOrderKey(receipt.TokenSymbol, receipt.Owner, status, keyId, height)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
-	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, receipt.Buyid)
+	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, keyId)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
-	newkey = calcOnesBuyLimitOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, receipt.Buyid)
+	newkey = calcOnesBuyLimitOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, keyId)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
 
@@ -706,7 +773,7 @@ func deleteBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBu
 	price := calcPriceOfToken(priceBoardlotInt64, AmountPerBoardlotInt64)
 
 	newkey = calcTokensBuyLimitOrderKeyStatus(receipt.TokenSymbol, status,
-		price, receipt.Owner, receipt.Buyid)
+		price, receipt.Owner, keyId)
 	kv = append(kv, &types.KeyValue{newkey, nil})
 
 	return kv
