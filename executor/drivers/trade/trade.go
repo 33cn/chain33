@@ -199,11 +199,44 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	return set, nil
 }
 
+// 目前设计trade 的query， 有两个部分的大分类
+// 1. 按token 分
+//    可以用于 token的挂单查询
+//    token 的历史行情
+// 2. 按 addr 分。 用于客户个人的钱包
+//    自己未完成的交易
+//    自己的历史交易
+//
+// 由于现价买/卖是没有orderID的， 用txhash 代替作为key
+// key 有两种 orderID， txhash
+
 func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 	tradelog.Info("trade Query", "name", funcName)
 	switch funcName {
-	//查询某个特定用户的一个或者多个token的卖单,包括所有状态的卖单
-	//TODO:后续可以考虑支持查询不同状态的卖单
+	// token part
+	case "GetTokenSellOrderByStatus": // 根据token 分页显示未完成成交卖单
+		var req types.ReqTokenSellOrder
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		if req.Status == 0 {
+			req.Status = types.TracdOrderStatusOnSale
+		}
+		return t.GetTokenByStatus(&req, req.Status)
+	case "GetTokenBuyLimitOrderByStatus": // 根据token 分页显示未完成成交买单
+		var req types.ReqTokenBuyLimitOrder
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		if req.Status == 0 {
+			req.Status = types.TracdOrderStatusOnBuy
+		}
+		return t.GetTokenBuyLimitOrderByStatus(&req, req.Status)
+
+
+	// addr part
 	case "GetOnesSellOrder":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
@@ -226,26 +259,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAllSellOrdersWithStatus(addrTokens.Status)
-	case "GetTokenSellOrderByStatus": // 根据token 分页显示未完成成交卖单
-		var req types.ReqTokenSellOrder
-		err := types.Decode(params, &req)
-		if err != nil {
-			return nil, err
-		}
-		if req.Status == 0 {
-			req.Status = types.TracdOrderStatusOnSale
-		}
-		return t.GetTokenByStatus(&req, req.Status)
-	case "GetTokenBuyLimitOrderByStatus": // 根据token 分页显示未完成成交买单
-		var req types.ReqTokenBuyLimitOrder
-		err := types.Decode(params, &req)
-		if err != nil {
-			return nil, err
-		}
-		if req.Status == 0 {
-			req.Status = types.TracdOrderStatusOnBuy
-		}
-		return t.GetTokenBuyLimitOrderByStatus(&req, req.Status)
+
 	case "GetAllBuyOrdersWithStatus":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
@@ -253,6 +267,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAllSellOrdersWithStatus(addrTokens.Status)
+
 
 	default:
 	}
