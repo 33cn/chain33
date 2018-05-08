@@ -47,8 +47,7 @@ func TestOneOp(t *testing.T) {
 
 	cases := parseData(data.(map[string]interface{}))
 	for _,c := range cases {
-		t.Logf("runing test case:%s in file:%s",c.name, path)
-		runCase(t, c)
+		runCase(t, c, path)
 	}
 }
 
@@ -85,15 +84,19 @@ func runDir(tt *testing.T, basePath string) {
 
 		cases := parseData(data.(map[string]interface{}))
 		for _,c := range cases {
-			tt.Logf("runing test case:%s in file:%s",c.name, baseName)
-			runCase(tt, c)
+			// 每个测试用例，单独起子任务测试
+			tt.Run(c.name, func(t *testing.T) {
+				runCase(t, c, baseName)
+			})
 		}
 
 		return nil
 	})
 }
 
-func runCase(tt *testing.T, c VMCase)  {
+func runCase(tt *testing.T, c VMCase, file string)  {
+	//tt.Logf("runing test case:%s in file:%s",c.name, file)
+
 	// 1 构建预置环境 pre
 	inst := evm.NewEVMExecutor()
 	inst.SetEnv(c.env.currentNumber,c.env.currentTimestamp)
