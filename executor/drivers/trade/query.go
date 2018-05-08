@@ -11,16 +11,15 @@ import (
 
 func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
-	var sellids [][]byte
+	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
-		//list := dbm.NewListHelper(t.GetLocalDB())
 		values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 		if err != nil {
 			return nil, err
 		}
 		if len(values) != 0 {
 			tradelog.Debug("trade Query", "get number of sellid", len(values))
-			sellids = append(sellids, values...)
+			keys = append(keys, values...)
 		}
 	} else {
 		for _, token := range addrTokens.Token {
@@ -30,22 +29,22 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 				return nil, err
 			}
 			if len(values) != 0 {
-				sellids = append(sellids, values...)
+				keys = append(keys, values...)
 			}
 		}
 	}
 
 	var replys types.ReplySellOrders1
-	for _, sellid := range sellids {
+	for _, key := range keys {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
-		if !sellidGotAlready[string(sellid)] {
-			reply := t.replyReplySellOrderfromID(sellid)
+		if !sellidGotAlready[string(key)] {
+			reply := t.replyReplySellOrderfromID(key)
 			if reply == nil {
 				continue
 			}
-			tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
+			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
 			replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
-			sellidGotAlready[string(sellid)] = true
+			sellidGotAlready[string(key)] = true
 		}
 	}
 	return &replys, nil
@@ -53,43 +52,49 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 
 func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
 	gotAlready := make(map[interface{}]bool)
-	var reply types.ReplyTradeBuyOrders
-	values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
-	if err != nil {
-		return nil, err
-	}
-	if len(values) != 0 {
-		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(values))
-		for _, value := range values {
-			//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
-			var tradeBuyDone types.TradeBuyDone
-			if err := types.Decode(value, &tradeBuyDone); err != nil {
-				tradelog.Error("GetOnesBuyOrder", "Failed to decode tradebuydoen", value)
+	var replys types.ReplyBuyOrders
+
+	var keys [][]byte
+	if 0 == len(addrTokens.Token) {
+		values, err := t.GetLocalDB().List(calcOnesBuyLimitOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+		if err != nil {
+			return nil, err
+		}
+		if len(values) != 0 {
+			tradelog.Debug("trade Query", "get number of buy keys", len(values))
+			keys = append(keys, values...)
+		}
+	} else {
+		for _, token := range addrTokens.Token {
+			values, err := t.GetLocalDB().List(calcOnesBuyLimitOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
+			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
+			if err != nil {
 				return nil, err
 			}
-			if !gotAlready[tradeBuyDone.Buytxhash] {
-				reply.Tradebuydones = append(reply.Tradebuydones, &tradeBuyDone)
-				gotAlready[tradeBuyDone.Buytxhash] = true
+			if len(values) != 0 {
+				keys = append(keys, values...)
 			}
 		}
 	}
 
-	if len(addrTokens.Token) != 0 {
-		var resultReply types.ReplyTradeBuyOrders
-		tokenMap := make(map[string]bool)
-		for _, token := range addrTokens.Token {
-			tokenMap[token] = true
-		}
+	if len(keys) != 0 {
+		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(keys))
+		for _, key := range keys {
+			//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
+			reply := t.replyReplyBuyOrderfromID(key)
+			if reply == nil {
+				continue
+			}
 
-		for _, Tradebuydone := range reply.Tradebuydones {
-			if tokenMap[Tradebuydone.Token] {
-				resultReply.Tradebuydones = append(resultReply.Tradebuydones, Tradebuydone)
+			if !gotAlready[key] {
+				// TODO 排序
+				replys.BuyOrders = append(replys.BuyOrders, reply)
+				gotAlready[key] = true
 			}
 		}
-		return &resultReply, nil
 	}
 
-	return &reply, nil
+	return &replys, nil
 }
 
 func (t *trade) GetAllSellOrdersWithStatus(status int32) (types.Message, error) {
