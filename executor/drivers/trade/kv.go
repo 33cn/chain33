@@ -224,3 +224,10 @@ func genSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptTrad
 
 	return kv
 }
+
+// make a number as token's price whether cheap or dear
+// support 1e8 bty pre token or 1/1e8 bty pre token, [1Coins, 1e16Coins]
+// the number in key is used to sort buy orders and pages
+func calcPriceOfToken(priceBoardlot, AmountPerBoardlot int64) int64 {
+	return 1e8 * priceBoardlot / AmountPerBoardlot
+}
