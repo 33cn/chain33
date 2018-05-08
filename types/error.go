@@ -86,6 +86,7 @@ var (
 	ErrTBuyOrderSoldout     = errors.New("ErrTradeBuyOrderSoldout")
 	ErrTBuyOrderRevoked     = errors.New("ErrTradeBuyOrderRevoked")
 	ErrTBuyOrderRevoke      = errors.New("ErrTradeBuyOrderRevokeNotAllowed")
+	ErrTCntLessThanMinBoardlot = errors.New("ErrTradeCountLessThanMinBoardlot")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
