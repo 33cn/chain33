@@ -169,6 +169,7 @@ func main() {
 }
 
 // 开启trace
+
 func startTrace() {
 	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
 		return true, true
