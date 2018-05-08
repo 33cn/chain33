@@ -13,6 +13,7 @@ message Config {
 	P2P p2p = 9;
 	Rpc rpc = 10;
 	Exec exec = 11;
+	bool testNet=12;
 }
 
 message Log {
