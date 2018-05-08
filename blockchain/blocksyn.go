@@ -2,7 +2,6 @@ package blockchain
 
 import (
 	"bytes"
-	"math"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -30,7 +29,6 @@ var (
 	MaxRollBlockNum         int64 = 5000   //最大回退block数量
 	//TODO
 	blockSynInterVal        = time.Duration(TimeoutSeconds)
-	checkBlockNum     int64 = 128
 	batchsyncblocknum int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
 
 	synlog = chainlog.New("submodule", "syn")
@@ -63,13 +61,6 @@ func (list PeerInfoList) Swap(i, j int) {
 	temp := list[i]
 	list[i] = list[j]
 	list[j] = temp
-}
-
-//把peer高度相近的组成一组，目前暂定相差5个高度为一组
-type PeerGroup struct {
-	PeerCount  int
-	StartIndex int
-	EndIndex   int
 }
 
 //可疑故障节点信息
@@ -246,7 +237,7 @@ func (chain *BlockChain) fetchPeerList() error {
 	//按照height给peer排序从小到大
 	sort.Sort(peerInfoList)
 
-	subInfoList := maxSubList(peerInfoList)
+	subInfoList := peerInfoList
 
 	//debug
 	debugflag++
@@ -261,37 +252,6 @@ func (chain *BlockChain) fetchPeerList() error {
 	peerMaxBlklock.Unlock()
 
 	return nil
-}
-
-func maxSubList(list PeerInfoList) (sub PeerInfoList) {
-	start := 0
-	end := 0
-	if len(list) == 0 {
-		return list
-	}
-	for i := 0; i < len(list); i++ {
-		var nextheight int64
-		if i+1 == len(list) {
-			nextheight = math.MaxInt64
-		} else {
-			nextheight = list[i+1].Height
-		}
-		if nextheight-list[i].Height > checkBlockNum {
-			end = i + 1
-			if len(sub) < (end - start) {
-				sub = list[start:end]
-			}
-			start = i + 1
-			end = i + 1
-		} else {
-			end = i + 1
-		}
-	}
-	//只有一个节点，那么取最高的节点
-	if len(sub) <= 1 {
-		return list[len(list)-1:]
-	}
-	return sub
 }
 
 //存储广播的block最新高度
