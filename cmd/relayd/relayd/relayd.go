@@ -3,7 +3,6 @@ package relayd
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"math/rand"
 	"net/http"
 	"os"
@@ -38,7 +37,7 @@ type Relayd struct {
 	latestHeight    uint64
 	knownBlockHash  *chainhash.Hash
 	knownHeight     uint64
-	btcClient       *BTCClient
+	btcClient       BtcClient
 	btcClientLock   sync.Mutex
 	client33        *Client33
 	ctx             context.Context
@@ -62,10 +61,10 @@ func NewRelayd(config *Config) *Relayd {
 	// TODO
 	if err != nil {
 		log.Info("NewRelayd", err)
-		// panic(err)
+		panic(err)
 	}
 	client33 := NewClient33(&config.Chain33)
-	btc, err := NewBTCClient(config.BitCoin.BitConnConfig(), int(config.BitCoin.ReconnectAttempts))
+	btc, err := NewBtcClient(config.BitCoin.BitConnConfig(), int(config.BitCoin.ReconnectAttempts))
 
 	pr, err := hex.DecodeString(config.Auth.PrivateKey)
 	if err != nil {
@@ -126,7 +125,7 @@ out:
 		case <-time.After(time.Second * time.Duration(r.config.TickBTC)):
 			// btc ticket
 			log.Info("sync SPV")
-			hash, height, err := r.btcClient.GetBestBlock()
+			hash, height, err := r.btcClient.GetLatestBlock()
 			if err == nil {
 				r.latestBlockHash = hash
 				r.latestHeight = uint64(height)
@@ -157,38 +156,35 @@ out:
 		} else {
 			add += SETUP
 		}
-		headers := make([][]byte, add)
+		headers := make([]*types.BtcHeader, add)
 		add += r.knownHeight
 		for j := r.knownHeight; j <= add; j++ {
-			hash, err := r.btcClient.GetBlockHash(int64(j))
+			header, err := r.btcClient.GetBlockHeader(j)
 			if err != nil {
-				log.Error("syncBlockHeaders", err)
 				break out
 			}
-			header, err := r.btcClient.GetBlockHeaderVerbose(hash)
-			if err != nil {
-				log.Error("syncBlockHeaders", err)
-				break out
-			}
-			data, err := json.Marshal(header)
-			if err != nil {
-				log.Error("syncBlockHeaders", err)
-				break out
-			}
+			data := types.Encode(header)
 			// save db
 			err = r.db.Set(makeHeightKey(r.knownHeight), data)
 			if err != nil {
 				break out
 			}
 			r.knownHeight++
-			headers = append(headers, data)
-			// TODO
-			ret, err := r.client33.SendTransaction(r.ctx, nil, nil)
-			if err != nil {
-				break out
-			}
-			log.Info("syncBlockHeaders", ret)
+			headers = append(headers, header)
 		}
+		// TODO
+		h := &types.BtcHeaders{BtcHeader: headers}
+		hh := &types.RelayAction_BtcHeaders{h}
+		action := &types.RelayAction{
+			Value: hh,
+			Ty:    8,
+		}
+		tx := r.transaction(types.Encode(action))
+		ret, err := r.client33.SendTransaction(r.ctx, tx, nil)
+		if err != nil {
+			panic(err)
+		}
+		log.Info("syncBlockHeaders", ret)
 	}
 }
 
@@ -208,28 +204,45 @@ func (r *Relayd) dealOrder() {
 		log.Info("dealOrder", err)
 	}
 
-	txs := make([][]byte, len(result.GetOrders()))
+	// txSpv := make([][]byte, len(result.GetOrders()))
 	for _, value := range result.GetOrders() {
-		hash, err := chainhash.NewHashFromStr(value.Exchgtxhash)
+		// TODO save db ???
+		tx, err := r.btcClient.GetTransaction(value.Exchgtxhash)
 		if err != nil {
 			log.Error("dealOrder", err)
 			continue
 		}
-		tx, err := r.btcClient.GetTransaction(hash)
-		if err != nil {
-			log.Error("dealOrder", err)
-			continue
-		}
-		data, err := json.Marshal(tx)
-		if err != nil {
-			log.Error("dealOrder json.Marshal", err)
-			continue
-		}
-		txs = append(txs, data)
-	}
 
+		spv, err := r.btcClient.GetSPV(tx.BlockHeight, tx.Hash)
+		if err != nil {
+			log.Error("spv error", err)
+			continue
+		}
+		// var data []byte
+		// err = types.Decode(data, tx)
+		// if err != nil {
+		// 	log.Error("dealOrder json.Marshal", err)
+		// }
+		verify := &types.RelayVerify{
+			Orderid: value.Orderid,
+			Tx:      tx,
+			Spv:     spv,
+		}
+		rr := &types.RelayAction_Rverify{
+			verify,
+		}
+		action := &types.RelayAction{
+			Value: rr,
+			Ty:    6,
+		}
+		t := r.transaction(types.Encode(action))
+		r.client33.SendTransaction(r.ctx, t, nil)
+		// TODO save db ???
+		// txSpv = append(txSpv, data)
+	}
 	// TODO
 	// r.client33.SendTransaction(r.ctx, r.transaction(txs))
+	// t := r.transaction(types.Encode(action))
 }
 
 func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.QueryRelayOrderResult, error) {
@@ -243,7 +256,6 @@ func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.Query
 	}
 	ret, err := r.client33.QueryChain(r.ctx, &query)
 	if err != nil {
-		// log.Info("requestRelayOrders", err)
 		return nil, err
 
 	}

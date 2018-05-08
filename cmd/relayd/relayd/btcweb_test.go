@@ -4,11 +4,11 @@ import (
 	"testing"
 )
 
-func TestNewBTCWeb(t *testing.T) {
-	btc := NewBTCWeb()
-	blockZero, err := btc.GetBlock(0)
+func TestNewBtcWeb(t *testing.T) {
+	btc := NewBtcWeb()
+	blockZero, err := btc.GetBlockHeader(0)
 	if err != nil {
-		t.Errorf("GetBlock error: %v", err)
+		t.Errorf("getBlock error: %v", err)
 	}
 	t.Log(blockZero)
 
@@ -18,11 +18,13 @@ func TestNewBTCWeb(t *testing.T) {
 	}
 	t.Log(blockZeroHeader)
 
-	latestBLock, err := btc.GetLatestBlock()
+	latestBLock, height, err := btc.GetLatestBlock()
 	if err != nil {
 		t.Errorf("GetLatestBlock error: %v", err)
 	}
+
 	t.Log(latestBLock)
+	t.Log(height)
 
 	spv, err := btc.GetSPV(100000, "8c14f0db3df150123e6f3dbbf30f8b955a8249b62ac1d1ff16284aefa3d06d87")
 	if err != nil {

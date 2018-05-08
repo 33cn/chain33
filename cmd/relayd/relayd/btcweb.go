@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/valyala/fasthttp"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -15,22 +16,30 @@ type BtcWeb struct {
 	httpClient *fasthttp.Client
 }
 
-func NewBtcWeb() *BtcWeb {
+func NewBtcWeb() BtcClient {
 	b := &BtcWeb{
 		httpClient: &fasthttp.Client{TLSConfig: &tls.Config{InsecureSkipVerify: true}},
 	}
 	return b
 }
 
+func (b *BtcWeb) Start() error {
+	return nil
+}
+
+func (b *BtcWeb) Stop() error {
+	return nil
+}
+
 func (b *BtcWeb) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
-	block, err := b.GetBlock(height)
+	block, err := b.getBlock(height)
 	if err != err {
 		return nil, err
 	}
-	return block.BtcHeader(), nil
+	return block.Header.BtcHeader(), nil
 }
 
-func (b *BtcWeb) GetBlock(height uint64) (*Block, error) {
+func (b *BtcWeb) getBlock(height uint64) (*Block, error) {
 	if height < 0 {
 		return nil, errors.New("height < 0")
 	}
@@ -48,18 +57,24 @@ func (b *BtcWeb) GetBlock(height uint64) (*Block, error) {
 	return &block, nil
 }
 
-func (b *BtcWeb) GetLatestBlock() (*LatestBlock, error) {
+func (b *BtcWeb) GetLatestBlock() (*chainhash.Hash, uint64, error) {
 	url := "https://blockchain.info/latestblock"
 	data, err := b.requestUrl(url)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	var blocks = LatestBlock{}
 	err = json.Unmarshal(data, &blocks)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return &blocks, nil
+
+	hash, err := chainhash.NewHashFromStr(blocks.Hash)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return hash, blocks.Height, nil
 }
 
 func (b *BtcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
@@ -77,7 +92,7 @@ func (b *BtcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
 }
 
 func (b *BtcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
-	block, err := b.GetBlock(height)
+	block, err := b.getBlock(height)
 	if err != err {
 		return nil, err
 	}

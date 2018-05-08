@@ -36,6 +36,7 @@ message RelayAction {
         RelayConfirmTx 		rconfirmtx 	= 5;
         RelayVerify 		rverify 	= 6;
         RelayVerifyBTC		rverifybtc 	= 7;
+        BtcHeaders          btcHeaders  = 8;
     }
     int32 ty = 10;
 }
@@ -125,24 +126,28 @@ message BtcHeader {
     string  nextHash      = 10;
 }
 
+message BtcHeaders {
+    repeated BtcHeader btcHeader = 1;
+}
+
 message BtcTransaction {
-    string hash = 1;
-    uint64 blockHeight = 2;
-    repeated Vin vin = 3;
-    repeated Vout vout = 4;
-    int64 time = 5;
-    uint64 confirmations = 6;
+    string   hash          = 1;
+    uint64   blockHeight   = 2;
+    repeated Vin vin       = 3;
+    repeated Vout vout     = 4;
+    int64    time          = 5;
+    uint64   confirmations = 6;
 }
 
 message Vin {
     string address = 1;
-    uint64 Value = 2;
+    uint64 Value   = 2;
 }
 
 message Vout {
-    bool coinbase = 1;
-    string address = 2;
-    uint64 Value = 3;
+    bool   coinbase  = 1;
+    string address   = 2;
+    uint64 Value     = 3;
 }
 
 message BtcSpv {
