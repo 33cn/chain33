@@ -8,6 +8,7 @@ type VMCase struct {
 	gas int64
 	logs string
 	out string
+	err string
 	pre map[string]AccountJson
 	post map[string]AccountJson
 }
