@@ -65,13 +65,6 @@ func (list PeerInfoList) Swap(i, j int) {
 	list[j] = temp
 }
 
-//把peer高度相近的组成一组，目前暂定相差5个高度为一组
-type PeerGroup struct {
-	PeerCount  int
-	StartIndex int
-	EndIndex   int
-}
-
 //可疑故障节点信息
 type FaultPeerInfo struct {
 	Peer        *PeerInfo
@@ -246,7 +239,7 @@ func (chain *BlockChain) fetchPeerList() error {
 	//按照height给peer排序从小到大
 	sort.Sort(peerInfoList)
 
-	subInfoList := maxSubList(peerInfoList)
+	subInfoList := peerInfoList
 
 	//debug
 	debugflag++
