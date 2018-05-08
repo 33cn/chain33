@@ -503,38 +503,12 @@ func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
 }
 
 func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
-	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, status,
-		calcPriceOfToken(sellorder.Priceperboardlot, sellorder.Amountperboardlot), sellorder.Address, sellorder.Sellid)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	return kv
+	return genSellOrderKeyValue(kv, sellorder, status, nil)
 }
 
 func saveSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
 	sellid := []byte(sellorder.Sellid)
-	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
-	kv = append(kv, &types.KeyValue{newkey, sellid})
-
-	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
-	kv = append(kv, &types.KeyValue{newkey, sellid})
-
-	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
-	kv = append(kv, &types.KeyValue{newkey, sellid})
-
-	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, status,
-		calcPriceOfToken(sellorder.Priceperboardlot, sellorder.Amountperboardlot), sellorder.Address, sellorder.Sellid)
-	kv = append(kv, &types.KeyValue{newkey, sellid})
-
-	return kv
+	return genSellOrderKeyValue(kv, sellorder, status, sellid)
 }
 
 func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
@@ -592,38 +566,11 @@ func (t *trade) saveBuyLimit(buyid []byte, ty int32) []*types.KeyValue {
 
 func saveBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32) []*types.KeyValue {
 	buyid := []byte(buyOrder.Buyid)
-	newkey := calcTokenBuyLimitOrderKey(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid, buyOrder.Height)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
-
-	newkey = calcOnesBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
-
-	newkey = calcOnesBuyLimitOrderKeyToken(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
-
-	newkey = calcTokensBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, status,
-		calcPriceOfToken(buyOrder.PricePerBoardlot, buyOrder.AmountPerBoardlot), buyOrder.Address, buyOrder.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, buyid})
-
-	return kv
+	return genBuyLimitOrderKeyValue(kv, buyOrder, status, buyid)
 }
 
-
 func deleteBuyLimitKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32) []*types.KeyValue {
-	newkey := calcTokenBuyLimitOrderKey(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid, buyOrder.Height)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcOnesBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcOnesBuyLimitOrderKeyToken(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcTokensBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, status,
-		buyOrder.PricePerBoardlot/buyOrder.AmountPerBoardlot, buyOrder.Address, buyOrder.Buyid)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	return kv
+	return genBuyLimitOrderKeyValue(kv, buyOrder, status, nil)
 }
 
 func genDeleteBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
@@ -669,8 +616,6 @@ func saveBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyB
 func deleteBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
 	return genBuyMarketOrderKeyValue(kv, receipt, status, height, nil)
 }
-
-
 
 func (t *trade) GetTokenBuyLimitOrderByStatus(req *types.ReqTokenBuyLimitOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
