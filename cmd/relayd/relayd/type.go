@@ -2,6 +2,7 @@ package relayd
 
 import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const SETUP = 1000
@@ -12,7 +13,6 @@ var (
 	zeroBlockHeader     = []byte("")
 )
 
-//
 // "hash":"000000000000000000223cbf6c473a4dedf6ebe19d17879eafc41f38ad1fdf1d",
 // "time":1525416364,
 // "block_index":1699623,
@@ -42,6 +42,18 @@ type Header struct {
 	Height       uint64  `json:"height"`
 	ReceivedTime int64   `json:"received_time"`
 	RelayedBy    string  `json:"relayed_by"`
+}
+
+func (h *Header) BtcHeader() *types.BtcHeader {
+	return &types.BtcHeader{
+		Hash:         h.Hash,
+		Height:       h.Height,
+		MerkleRoot:   h.MerkleRoot,
+		Time:         h.Time,
+		Nonce:        h.Nonce,
+		Bits:         h.Bits,
+		PreviousHash: h.PrevBlock,
+	}
 }
 
 type Block struct {
@@ -88,7 +100,7 @@ type TransactionResult struct {
 	Ver         uint     `json:"ver"`
 	Inputs      []Inputs `json:"inputs"`
 	Weight      int64    `json:"weight"`
-	BlockHeight int64    `json:"block_height"`
+	BlockHeight uint64   `json:"block_height"`
 	RelayedBy   string   `json:"relayed_by"`
 	Out         []TxOut  `json:"out"`
 	LockTime    int64    `json:"lock_time"`
@@ -108,11 +120,26 @@ type Inputs struct {
 	Script   string `json:"script"`
 }
 
-type SPVInfo struct {
-	Hash        string   `json:"hash"`
-	Time        int64    `json:"time"`
-	Height      uint64   `json:"height"`
-	BlockHash   string   `json:"blockHash"`
-	TxIndex     uint64   `json:"txIndex"`
-	BranchProof [][]byte `json:"branchProof"`
+func (t *TransactionResult) BtcTransaction() *types.BtcTransaction {
+	btcTx := &types.BtcTransaction{}
+	btcTx.Hash = t.Hash
+	btcTx.Time = t.Time
+	btcTx.BlockHeight = t.BlockHeight
+
+	vin := make([]*types.Vin, len(t.Inputs))
+	for index, in := range t.Inputs {
+		vin[index].Value = in.PrevOut.Value
+		vin[index].Address = in.PrevOut.Address
+	}
+	btcTx.Vin = vin
+
+	vout := make([]*types.Vout, len(t.Out))
+	for index, in := range t.Out {
+		vout[index].Value = in.Value
+		vout[index].Address = in.Address
+		// TODO
+		// vout[index].Coinbase
+	}
+	btcTx.Vout = vout
+	return btcTx
 }

@@ -8,28 +8,29 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type BTCWeb struct {
+type BtcWeb struct {
 	httpClient *fasthttp.Client
 }
 
-func NewBTCWeb() *BTCWeb {
-	b := &BTCWeb{
+func NewBtcWeb() *BtcWeb {
+	b := &BtcWeb{
 		httpClient: &fasthttp.Client{TLSConfig: &tls.Config{InsecureSkipVerify: true}},
 	}
 	return b
 }
 
-func (b *BTCWeb) GetBlockHeader(height uint64) (*Header, error) {
+func (b *BtcWeb) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 	block, err := b.GetBlock(height)
 	if err != err {
 		return nil, err
 	}
-	return &block.Header, nil
+	return block.BtcHeader(), nil
 }
 
-func (b *BTCWeb) GetBlock(height uint64) (*Block, error) {
+func (b *BtcWeb) GetBlock(height uint64) (*Block, error) {
 	if height < 0 {
 		return nil, errors.New("height < 0")
 	}
@@ -47,7 +48,7 @@ func (b *BTCWeb) GetBlock(height uint64) (*Block, error) {
 	return &block, nil
 }
 
-func (b *BTCWeb) GetLatestBlock() (*LatestBlock, error) {
+func (b *BtcWeb) GetLatestBlock() (*LatestBlock, error) {
 	url := "https://blockchain.info/latestblock"
 	data, err := b.requestUrl(url)
 	if err != nil {
@@ -61,7 +62,7 @@ func (b *BTCWeb) GetLatestBlock() (*LatestBlock, error) {
 	return &blocks, nil
 }
 
-func (b *BTCWeb) GetTransaction(hash string) (*TransactionResult, error) {
+func (b *BtcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
 	url := "https://blockchain.info/rawtx/" + hash
 	data, err := b.requestUrl(url)
 	if err != nil {
@@ -72,10 +73,10 @@ func (b *BTCWeb) GetTransaction(hash string) (*TransactionResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tx, nil
+	return tx.BtcTransaction(), nil
 }
 
-func (b *BTCWeb) GetSPV(height uint64, txHash string) (*SPVInfo, error) {
+func (b *BtcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
 	block, err := b.GetBlock(height)
 	if err != err {
 		return nil, err
@@ -93,7 +94,7 @@ func (b *BTCWeb) GetSPV(height uint64, txHash string) (*SPVInfo, error) {
 		txs = append(txs, hash.CloneBytes())
 	}
 	proof := merkle.GetMerkleBranch(txs, txIndex)
-	spv := &SPVInfo{
+	spv := &types.BtcSpv{
 		Hash:        txHash,
 		Time:        block.Time,
 		Height:      block.Height,
@@ -104,13 +105,13 @@ func (b *BTCWeb) GetSPV(height uint64, txHash string) (*SPVInfo, error) {
 	return spv, nil
 }
 
-func (b *BTCWeb) requestUrl(url string) ([]byte, error) {
+func (b *BtcWeb) requestUrl(url string) ([]byte, error) {
 	status, body, err := b.httpClient.Get(nil, url)
 	if err != nil {
 		return nil, err
 	}
 	if status != fasthttp.StatusOK {
-		return nil, errors.New(fmt.Sprintf("%d", status))
+		return nil, fmt.Errorf("%d", status)
 	}
 	return body, nil
 }

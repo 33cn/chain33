@@ -20,7 +20,7 @@ type Config struct {
 	MinHeightBTC uint64
 	BitCoin      BitCoin
 	Log          types.Log
-	PrivatePath  string
+	Auth         Auth
 }
 
 type BitCoin struct {
@@ -39,6 +39,12 @@ type BitCoin struct {
 	HTTPPostMode         bool
 	EnableBCInfoHacks    bool
 	ReconnectAttempts    int
+}
+
+type Auth struct {
+	PrivateKey string `json:"privateKey"`
+	PublicKey  string `json:"publicKey"`
+	Address    string `json:"address"`
 }
 
 func (b *BitCoin) BitConnConfig() *rpcclient.ConnConfig {
