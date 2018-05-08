@@ -173,7 +173,7 @@ func (t *trade) GetTokenByStatus(req *types.ReqTokenSellOrder, status int32) (ty
 	return &reply, nil
 }
 
-func (t *trade) GetTokenBuyLimitOrderByStatus(req *types.ReqTokenBuyLimitOrder, status int32) (types.Message, error) {
+func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyLimitOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
 		return nil, types.ErrInputPara
 	}
