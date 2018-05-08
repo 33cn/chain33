@@ -16,7 +16,7 @@ const (
 
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	AllowUserExec          = []string{"coins", "ticket", "norm", "hashlock", "retrieve", "none", "token", "trade", "manage"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1525708005
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -37,19 +37,32 @@ var (
 	ForkV6TokenBlackList int64 = 1
 	ForkV7BadTokenSymbol int64 = 1
 	ForkBlockHash        int64 = 1
+	ForkV9               int64 = 1
 )
 
 var (
 	MinFee             int64 = 1e5
 	MinBalanceTransfer int64 = 1e6
-	TestNet            bool
+	testNet            bool
+	title              string
 )
+
+func SetTitle(t string) {
+	title = t
+	if IsBityuan() {
+		AllowUserExec = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	}
+}
+
+func IsBityuan() bool {
+	return title == "bityuan"
+}
 
 func SetTestNet(isTestNet bool) {
 	if !isTestNet {
-		TestNet = false
+		testNet = false
 	}
-	TestNet = true
+	testNet = true
 	//const 初始化TestNet 的初始化参数
 	GenesisBlockTime = 1514533394
 	FundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
@@ -70,10 +83,11 @@ func SetTestNet(isTestNet bool) {
 	ForkV6TokenBlackList = 190000
 	ForkV7BadTokenSymbol = 184000
 	ForkBlockHash = 208986 + 200
+	ForkV9 = 350000
 }
 
 func IsTestNet() bool {
-	return TestNet
+	return testNet
 }
 
 func SetMinFee(fee int64) {
