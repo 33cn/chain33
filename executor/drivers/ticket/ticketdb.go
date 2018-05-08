@@ -262,6 +262,7 @@ func (action *Action) TicketMiner(miner *types.TicketMiner, index int) (*types.R
 	prevstatus := ticket.Status
 	ticket.Status = 2
 	ticket.MinerValue = miner.Reward
+	ticket.MinerTime = action.blocktime
 	t := &DB{*ticket, prevstatus}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
