@@ -3,6 +3,7 @@ package executor
 //store package store the world - state data
 import (
 	"bytes"
+	"sync"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -11,15 +12,15 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	// register drivers
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/coins"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/none"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/norm"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -40,7 +41,25 @@ type Executor struct {
 	client queue.Client
 }
 
+func execInit() {
+	coins.Init()
+	hashlock.Init()
+	manage.Init()
+	none.Init()
+	norm.Init()
+	retrieve.Init()
+	ticket.Init()
+	token.Init()
+	trade.Init()
+}
+
+var runonce sync.Once
+
 func New(cfg *types.Exec) *Executor {
+	// init executor
+	runonce.Do(func() {
+		execInit()
+	})
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
 	if cfg.MinExecFee == 0 && cfg.IsFree {
