@@ -116,9 +116,13 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 	if err == nil {
+		log.Debug("Version2", "before", "AddAddress")
 		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		log.Debug("Version2", "after", "AddAddress")
 	}
+	log.Debug("Version2", "before", "GetPrivPubKey")
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
+	log.Debug("Version2", "after", "GetPrivPubKey")
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
 	var port string
 	if len(strings.Split(in.AddrFrom, ":")) == 2 {
