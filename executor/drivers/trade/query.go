@@ -144,36 +144,37 @@ func insertSellOrderDescending(toBeInserted *types.ReplySellOrder, selloders []*
 	return selloders
 }
 
-func (t *trade) GetTokenByStatus(req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
+func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
 		return nil, types.ErrInputPara
 	}
 
 	fromKey := []byte("")
-	if len(req.FromSellId) != 0 {
-		sellorder, err := getSellOrderFromID([]byte(req.FromSellId), t.GetStateDB())
-		if err != nil {
-			tradelog.Error("GetTokenByStatus get sellorder err", err)
-			return nil, err
+	if len(req.FromKey) != 0 {
+		sell := t.replyReplySellOrderfromID([]byte(req.FromKey))
+		if sell == nil {
+			tradelog.Error("GetTokenSellOrderByStatus", "key not exist", req.FromKey)
+			return nil, types.ErrInputPara
 		}
-		fromKey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Status,
-			calcPriceOfToken(sellorder.Priceperboardlot, sellorder.Amountperboardlot), sellorder.Address, sellorder.Sellid)
+		fromKey = calcTokensSellOrderKeyStatus(sell.TokenSymbol, sell.Status,
+			calcPriceOfToken(sell.PricePerBoardlot, sell.AmountPerBoardlot), sell.Owner, sell.Key)
 	}
 	values, err := t.GetLocalDB().List(calcTokensSellOrderPrefixStatus(req.TokenSymbol, status), fromKey, req.Count, req.Direction)
 	if err != nil {
 		return nil, err
 	}
-	var reply types.ReplySellOrders
-	for _, sellid := range values {
-		if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
-			tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
-			reply.Selloders = append(reply.Selloders, sellorder)
+	var reply types.ReplySellOrders1
+	for _, key := range values {
+		sell := t.replyReplySellOrderfromID([]byte(key))
+		if sell != nil {
+			tradelog.Debug("trade Query", "GetTokenSellOrderByStatus", string(key))
+			reply.Selloders = append(reply.Selloders, sell)
 		}
 	}
 	return &reply, nil
 }
 
-func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyLimitOrder, status int32) (types.Message, error) {
+func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
 		return nil, types.ErrInputPara
 	}
@@ -197,10 +198,10 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyLimitOrder, statu
 		return nil, err
 	}
 	var reply types.ReplyBuyOrders
-	for _, buyid := range values {
-		buy := t.replyReplyBuyOrderfromID([]byte(req.FromKey))
+	for _, key := range values {
+		buy := t.replyReplyBuyOrderfromID([]byte(key))
 		if buy != nil {
-			tradelog.Debug("trade Query", "getBuyOrderFromID", string(buyid))
+			tradelog.Debug("trade Query", "GetTokenBuyLimitOrderByStatus", string(key))
 			reply.BuyOrders = append(reply.BuyOrders, buy)
 		}
 	}
