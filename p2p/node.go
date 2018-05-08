@@ -25,8 +25,9 @@ func (n *Node) Start() {
 		n.listener.Start()
 	}
 	n.detectNodeAddr()
-	n.doNat()
 	n.monitor()
+	go n.doNat()
+
 }
 
 func (n *Node) Close() {
@@ -42,7 +43,7 @@ func (n *Node) Close() {
 		Filter.Close()
 	}
 	n.deleteNatMapPort()
-	log.Debug("stop", "PeerRemoeAll", "closed")
+	log.Info("stop", "PeerRemoeAll", "closed")
 
 }
 
@@ -70,11 +71,11 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	if cfg.GetInnerSeedEnable() {
 		cfg.Seeds = append(cfg.Seeds, InnerSeeds...)
 	}
+
 	node.nodeInfo = NewNodeInfo(cfg)
 	if cfg.GetServerStart() {
 		node.listener = NewListener(protocol, node)
 	}
-
 	return node, nil
 }
 func (n *Node) flushNodePort(localport, export uint16) {
@@ -106,7 +107,8 @@ func (n *Node) doNat() {
 		} else {
 			//检测映射成功后，能否对外提供服务
 			addrs := n.nodeInfo.cfg.GetSeeds()
-			addrs = append(addrs, n.nodeInfo.addrBook.GetAddrs()...)
+			bookaddrs := n.nodeInfo.addrBook.GetAddrs()
+			addrs = append(addrs, bookaddrs...)
 			addrNum := len(addrs)
 			var maxRetryCount = addrNum
 			log.Debug("doNat", "maxRetryCount", maxRetryCount)
@@ -145,7 +147,7 @@ func (n *Node) addPeer(pr *Peer) {
 		n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
 		delete(n.outBound, pr.Addr())
 		peer.Close()
-		peer = nil
+
 	}
 	log.Debug("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
@@ -211,7 +213,6 @@ func (n *Node) remove(peerAddr string) {
 	if ok {
 		delete(n.outBound, peerAddr)
 		peer.Close()
-		peer = nil
 	}
 }
 
@@ -221,7 +222,6 @@ func (n *Node) removeAll() {
 	for addr, peer := range n.outBound {
 		delete(n.outBound, addr)
 		peer.Close()
-		peer = nil
 	}
 }
 
@@ -264,22 +264,22 @@ func (n *Node) detectNodeAddr() {
 
 		//检查是否在外网
 		addrs := n.nodeInfo.cfg.GetSeeds()
-		addrs = append(addrs, n.nodeInfo.addrBook.GetAddrs()...)
 		for _, addr := range addrs {
 			if strings.HasPrefix(addr, LocalAddr) {
 				continue
 			}
 			pcli := NewNormalP2PCli()
+			log.Info("detectNodeAddr")
 			selfexaddrs, outside, err := pcli.GetExternIP(addr)
 			if err == nil {
+				log.Info("GetExternIp ok")
 				n.nodeInfo.SetNetSide(outside)
 				externalIP = selfexaddrs
-				log.Info("DetectNodeAddr", " seed Exterip", externalIP)
 				break
 			}
-
+			log.Info("for in addrs")
 		}
-
+		log.Info("DetectNodeAddr", " seed Exterip", externalIP)
 		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
 		if len(externalIP) == 0 {
 			externalIP = LocalAddr
@@ -323,7 +323,7 @@ func (n *Node) natMapPort() {
 
 	n.natNotice()
 	var err error
-
+	log.Info("natMapPort")
 	_, nodename := n.nodeInfo.addrBook.GetPrivPubKey()
 	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")

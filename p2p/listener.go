@@ -56,14 +56,14 @@ func NewListener(protocol string, node *Node) Listener {
 	//区块最多10M
 	msgRecvOp := grpc.MaxMsgSize(11 * 1024 * 1024)     //设置最大接收数据大小位11M
 	msgSendOp := grpc.MaxSendMsgSize(11 * 1024 * 1024) //设置最大发送数据大小为11M
-
 	var keepparm keepalive.ServerParameters
-	keepparm.Time = 10 * time.Minute
-	keepparm.Timeout = 20 * time.Second
+	keepparm.Time = 5 * time.Minute
+	keepparm.Timeout = 50 * time.Second
 	keepparm.MaxConnectionIdle = 1 * time.Minute
+	maxStreams := grpc.MaxConcurrentStreams(200)
 	keepOp := grpc.KeepaliveParams(keepparm)
 
-	dl.server = grpc.NewServer(msgRecvOp, msgSendOp, keepOp)
+	dl.server = grpc.NewServer(msgRecvOp, msgSendOp, keepOp, maxStreams)
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	return dl

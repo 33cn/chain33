@@ -44,6 +44,7 @@ func main() {
 	}
 	if errCreate.String() != "" {
 		fmt.Println(errCreate.String())
+		return
 	}
 	//fmt.Println("unsignedTx", outCreate.String(), errCreate.String())
 
@@ -63,6 +64,7 @@ func main() {
 	}
 	if errSign.String() != "" {
 		fmt.Println(errSign.String())
+		return
 	}
 	//fmt.Println("signedTx", outSign.String(), errSign.String())
 
@@ -78,6 +80,7 @@ func main() {
 	}
 	if errSend.String() != "" {
 		fmt.Println(errSend.String())
+		return
 	}
 	bufSend := outSend.Bytes()
 	fmt.Println(string(bufSend[:len(bufSend)-1]))
