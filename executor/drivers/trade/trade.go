@@ -208,7 +208,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 //    自己的历史交易
 //
 // 由于现价买/卖是没有orderID的， 用txhash 代替作为key
-// key 有两种 orderID， txhash
+// key 有两种 orderID， txhash (0xAAAAAAAAAAAAAAA)
 
 func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 	tradelog.Info("trade Query", "name", funcName)

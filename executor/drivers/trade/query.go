@@ -180,14 +180,13 @@ func (t *trade) GetTokenBuyLimitOrderByStatus(req *types.ReqTokenBuyLimitOrder, 
 
 	fromKey := []byte("")
 	if len(req.FromKey) != 0 {
-		buyOrder, err := getBuyOrderFromID([]byte(req.FromKey), t.GetStateDB())
-		if err != nil {
-			tradelog.Error("GetTokenBuyLimitOrderByStatus get sellorder err", err)
-			return nil, err
+		buy := t.replyReplyBuyOrderfromID([]byte(req.FromKey))
+		if buy == nil {
+			tradelog.Error("GetTokenBuyLimitOrderByStatus", "key not exist", req.FromKey)
+			return nil, types.ErrInputPara
 		}
-		fromKey = calcTokensBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, buyOrder.Status,
-			calcPriceOfToken(buyOrder.PricePerBoardlot, buyOrder.AmountPerBoardlot), buyOrder.Address, buyOrder.Buyid)
-
+		fromKey = calcTokensBuyLimitOrderKeyStatus(buy.TokenSymbol, buy.Status,
+			calcPriceOfToken(buy.PricePerBoardlot, buy.AmountPerBoardlot), buy.Owner, buy.Key)
 	}
 	tradelog.Info("GetTokenBuyLimitOrderByStatus","fromKey ", fromKey)
 
@@ -199,9 +198,10 @@ func (t *trade) GetTokenBuyLimitOrderByStatus(req *types.ReqTokenBuyLimitOrder, 
 	}
 	var reply types.ReplyBuyLimitOrders
 	for _, buyid := range values {
-		if buyOrder, err := getBuyOrderFromID(buyid, t.GetStateDB()); err == nil {
+		buy := t.replyReplyBuyOrderfromID([]byte(req.FromKey))
+		if buy != nil {
 			tradelog.Debug("trade Query", "getBuyOrderFromID", string(buyid))
-			reply.BuyOrders = append(reply.BuyOrders, buyOrder)
+			reply.BuyOrders = append(reply.BuyOrders, buy)
 		}
 	}
 	return &reply, nil
