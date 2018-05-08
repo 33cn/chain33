@@ -21,7 +21,7 @@ func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
 	pub.Unsub(p.taskChan, "block", "tx")
-	log.Debug("Peer", "closed", p.Addr())
+	log.Info("Peer", "closed", p.Addr())
 
 }
 
@@ -54,6 +54,7 @@ func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Pe
 
 type Version struct {
 	mtx            sync.Mutex
+	version        int32
 	versionSupport bool
 }
 type Stat struct {
@@ -91,12 +92,23 @@ func (v *Version) IsSupport() bool {
 	return v.versionSupport
 }
 
+func (v *Version) SetVersion(ver int32) {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	v.version = ver
+}
+
+func (v *Version) GetVersion() int32 {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	return v.version
+}
+
 func (p *Peer) heartBeat() {
 	for {
 		if !p.GetRunning() {
 			return
 		}
-
 		if (*p.nodeInfo).IsNatDone() { //如果nat 没有结束，在nat 重试的过程中，exter port 是在随机变化，
 			//此时对连接的远程节点公布自己的外端端口将是不准确的,导致外网无法获取其nat结束后真正的端口。
 			break
@@ -138,7 +150,7 @@ func (p *Peer) heartBeat() {
 }
 
 func (p *Peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
-	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
+	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version}, grpc.FailFast(true))
 }
 
 func (p *Peer) sendStream() {
