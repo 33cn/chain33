@@ -324,6 +324,38 @@ func TestJsonRPC(t *testing.T) {
 	testIsNtpClockSyncJsonRPC(t, &jrpc)
 	testIsSyncJsonRPC(t, &jrpc)
 	testGetNetInfoJsonRPC(t, &jrpc)
+	testGetWalletStatusJsonRPC(t, &jrpc)
+	testDumpPrivkeyJsonRPC(t, &jrpc)
+	testGetAccountsJsonRPC(t, &jrpc)
+}
+
+func testGetAccountsJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res lt.WalletAccounts
+	err := rpc.newRpcCtx("Chain33.GetAccounts", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("testGetAccountsJsonRPC Failed.", err)
+	}
+}
+
+func testDumpPrivkeyJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res types.ReplyStr
+	err := rpc.newRpcCtx("Chain33.DumpPrivkey", &types.ReqStr{}, &res)
+	if nil != err {
+		t.Error("testDumpPrivkeyJsonRPC Failed.", err)
+	}
+}
+
+func testGetWalletStatusJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res lt.WalletStatus
+	err := rpc.newRpcCtx("Chain33.GetWalletStatus", &types.ReqNil{}, &res)
+	if nil != err {
+		t.Error("testGetWalletStatusJsonRPC Failed.", err)
+	} else {
+		if res.IsTicketLock || res.IsAutoMining || !res.IsHasSeed || !res.IsWalletLock {
+			t.Error("testGetWalletStatusJsonRPC return type error.")
+
+		}
+	}
 }
 
 func testGetNetInfoJsonRPC(t *testing.T, rpc *mockJRPCSystem) {

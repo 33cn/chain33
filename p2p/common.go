@@ -254,7 +254,7 @@ func (c Comm) Int32ToBytes(n int32) []byte {
 
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 
-	var defaulttimeout = 10 * time.Second
+	var defaulttimeout = 20 * time.Second
 
 	var MethodConf = map[string]grpc.MethodConfig{
 		"/types.p2pgservice/Ping":            {Timeout: &defaulttimeout},
