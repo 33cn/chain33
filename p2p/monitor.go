@@ -107,7 +107,7 @@ func (n *Node) getAddrFromOnline() {
 				log.Debug("Getpeer", "addr", peer.Addr())
 				var addrlist []string
 				var err error
-				if peer.version.GetVersion() == VERSION {
+				if peer.version.GetVersion() >= VERSION {
 					addrlist, err = pcli.GetAddrList(peer)
 				} else {
 					addrlist, err = pcli.GetAddr(peer)
