@@ -32,12 +32,6 @@ type MemoryStateDB struct {
 	// 缓存账户对象
 	accounts map[common.Address]*ContractAccount
 
-	// 缓存账户余额变更
-	accountsDirty map[common.Address]struct{}
-
-	// 缓存合约账户对象变更
-	contractsDirty map[common.Address]struct{}
-
 	// 合约执行过程中退回的资金
 	refund uint64
 
@@ -73,8 +67,6 @@ func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) 
 		LocalDB:        LocalDB,
 		CoinsAccount:   CoinsAccount,
 		accounts:       make(map[common.Address]*ContractAccount),
-		accountsDirty:  make(map[common.Address]struct{}),
-		contractsDirty: make(map[common.Address]struct{}),
 		logs:           make(map[common.Hash][]*model.ContractLog),
 		preimages:      make(map[common.Hash][]byte),
 		refund:         0,
@@ -98,9 +90,6 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 		acc := NewContractAccount(addr.Str(), self)
 		acc.LoadContract(self.StateDB)
 		self.accounts[addr] = acc
-
-		self.accountsDirty[addr] = struct{}{}
-		self.contractsDirty[addr] = struct{}{}
 
 		self.journal = append(self.journal, createAccountChange{baseChange: baseChange{}, account: &addr})
 	}
@@ -204,7 +193,6 @@ func (self *MemoryStateDB) SetCode(addr common.Address, code []byte) {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		acc.SetCode(code)
-		self.contractsDirty[addr] = struct{}{}
 	}
 }
 
