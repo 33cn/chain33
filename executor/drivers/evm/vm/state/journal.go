@@ -112,8 +112,6 @@ func (ch baseChange) getLog(s *MemoryStateDB) (logs []*types.ReceiptLog) {
 // 创建账户对象的回滚，需要删除缓存中的账户和变更标记
 func (ch createAccountChange) undo(s *MemoryStateDB) {
 	delete(s.accounts, *ch.account)
-	delete(s.accountsDirty, *ch.account)
-	delete(s.contractsDirty, *ch.account)
 }
 
 // 创建账户对象的数据集
