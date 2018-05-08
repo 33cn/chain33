@@ -201,11 +201,11 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 // 目前设计trade 的query， 有两个部分的大分类
 // 1. 按token 分
-//    可以用于 token的挂单查询
-//    token 的历史行情
+//    可以用于 token的挂单查询 (按价格排序)： OnBuy/OnSale
+//    token 的历史行情 （按价格排序）: SoldOut/BoughtOut--> TODO 是否需要按时间（区块高度排序更合理）
 // 2. 按 addr 分。 用于客户个人的钱包
-//    自己未完成的交易
-//    自己的历史交易
+//    自己未完成的交易 （按地址状态来）
+//    自己的历史交易 （addr 的所有订单）
 //
 // 由于现价买/卖是没有orderID的， 用txhash 代替作为key
 // key 有两种 orderID， txhash (0xAAAAAAAAAAAAAAA)
@@ -235,8 +235,8 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		}
 		return t.GetTokenBuyOrderByStatus(&req, req.Status)
 
-
 	// addr part
+	// addr(-token) 的所有订单， 不分页
 	case "GetOnesSellOrder":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
@@ -251,7 +251,9 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetOnesBuyOrder(&addrTokens)
-		//查寻所有的可以进行交易的卖单
+	//查寻所有的可以进行交易的卖单
+	// TODO
+	// 改造成， 按 用户状态来
 	case "GetAllSellOrdersWithStatus":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
