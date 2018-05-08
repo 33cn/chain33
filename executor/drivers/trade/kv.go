@@ -231,3 +231,37 @@ func genSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptTrad
 func calcPriceOfToken(priceBoardlot, AmountPerBoardlot int64) int64 {
 	return 1e8 * priceBoardlot / AmountPerBoardlot
 }
+
+func genBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32, value []byte) []*types.KeyValue {
+	newkey := calcTokenBuyLimitOrderKey(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid, buyOrder.Height)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	newkey = calcOnesBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	newkey = calcOnesBuyLimitOrderKeyToken(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	newkey = calcTokensBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, status,
+		calcPriceOfToken(buyOrder.PricePerBoardlot, buyOrder.AmountPerBoardlot), buyOrder.Address, buyOrder.Buyid)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	return kv
+}
+
+func genSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32, value []byte) []*types.KeyValue {
+	newkey := calcTokenSellOrderKey(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid, sellorder.Height)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	newkey = calcOnesSellOrderKeyStatus(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	newkey = calcOnesSellOrderKeyToken(sellorder.Tokensymbol, sellorder.Address, status, sellorder.Sellid)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	newkey = calcTokensSellOrderKeyStatus(sellorder.Tokensymbol, status,
+		calcPriceOfToken(sellorder.Priceperboardlot, sellorder.Amountperboardlot), sellorder.Address, sellorder.Sellid)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	return kv
+}
