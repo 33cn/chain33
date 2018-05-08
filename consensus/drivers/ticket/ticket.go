@@ -65,6 +65,9 @@ func (client *Client) Close() {
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	//给ticket 合约打 3亿 个币
 	//产生3w张初始化ticket
+	if types.IsTestNet() {
+		return client.CreateGenesisTxTestNet()
+	}
 	tx1 := createTicket("1PFdjUJ3SaXmN6rRwoFiJt7ugqkCnA5KK8", "1JoGYFCu3HpEp8yf96JftYzA2VqZzu5ANK", 10000, 0)
 	ret = append(ret, tx1...)
 
@@ -72,6 +75,20 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	ret = append(ret, tx2...)
 
 	tx3 := createTicket("1BSitbHQcv3PdBtR3dYJy1jAGPow9hk7QW", "1NnrhoUUBZNWBkhdvnWPu5PtErXc7vkykG", 11619, 0)
+	ret = append(ret, tx3...)
+	return
+}
+
+func (client *Client) CreateGenesisTxTestNet() (ret []*types.Transaction) {
+	//给ticket 合约打 3亿 个币
+	//产生3w张初始化ticket
+	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
+	ret = append(ret, tx1...)
+
+	tx2 := createTicket("1PUiGcbsccfxW3zuvHXZBJfznziph5miAo", "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 10000, 0)
+	ret = append(ret, tx2...)
+
+	tx3 := createTicket("1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX", "1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa", 10000, 0)
 	ret = append(ret, tx3...)
 	return
 }
