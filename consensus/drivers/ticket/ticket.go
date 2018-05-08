@@ -65,6 +65,23 @@ func (client *Client) Close() {
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	//给ticket 合约打 3亿 个币
 	//产生3w张初始化ticket
+	if types.IsTestNet() {
+		return client.CreateGenesisTxTestNet()
+	}
+	tx1 := createTicket("1PFdjUJ3SaXmN6rRwoFiJt7ugqkCnA5KK8", "1JoGYFCu3HpEp8yf96JftYzA2VqZzu5ANK", 10000, 0)
+	ret = append(ret, tx1...)
+
+	tx2 := createTicket("18sVaXyaiCtxvZNznaBNrUTU3DEBvqZszP", "148emypeB2osrkrKVC5zgeanbPefSi7trD", 10000, 0)
+	ret = append(ret, tx2...)
+
+	tx3 := createTicket("1BSitbHQcv3PdBtR3dYJy1jAGPow9hk7QW", "1NnrhoUUBZNWBkhdvnWPu5PtErXc7vkykG", 11619, 0)
+	ret = append(ret, tx3...)
+	return
+}
+
+func (client *Client) CreateGenesisTxTestNet() (ret []*types.Transaction) {
+	//给ticket 合约打 3亿 个币
+	//产生3w张初始化ticket
 	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
 	ret = append(ret, tx1...)
 
@@ -76,6 +93,7 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
+//316190000 coins
 func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret []*types.Transaction) {
 	tx1 := types.Transaction{}
 	tx1.Execer = []byte("coins")
