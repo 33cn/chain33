@@ -22,7 +22,7 @@ import (
 
 var clog = log.New("module", "execs.ticket")
 
-func init() {
+func Init() {
 	t := newTicket()
 	drivers.Register(t.GetName(), t, 0)
 }
