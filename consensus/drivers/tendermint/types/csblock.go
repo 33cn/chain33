@@ -69,6 +69,9 @@ func GetCommitFromBlock(block *gtypes.Block) *gtypes.TendermintBlockInfo {
 
 func LoadVotes(des []*Vote, source []*gtypes.Vote) {
 	for i, item := range source {
+		if item.Height == -1 {
+			continue
+		}
 		des[i] = &Vote{}
 		des[i].BlockID = BlockID{
 			Hash: item.BlockID.Hash,
@@ -186,8 +189,14 @@ func (bs *BlockStore) CreateCommitTx(lastCommit *Commit, seenCommit *Commit) *gt
 
 func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 	for i, item := range source {
-		vote := gtypes.Vote{}
-		des[i] = &vote
+
+		if item == nil {
+			des[i] = &gtypes.Vote{Height:-1, BlockID:&gtypes.BlockID{PartsHeader:&gtypes.PartSetHeader{}}}
+			bslog.Info("SaveVotes-item=nil")
+			continue
+		}
+
+		des[i] = &gtypes.Vote{}
 		partSetHeader := &gtypes.PartSetHeader{}
 		partSetHeader.Hash = item.BlockID.PartsHeader.Hash
 		partSetHeader.Total = int32(item.BlockID.PartsHeader.Total)
@@ -211,9 +220,11 @@ func (bs *BlockStore) SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Comm
 	newLastCommitVotes := make([]*gtypes.Vote, len(lastCommitVotes.Precommits))
 	newSeenCommitVotes := make([]*gtypes.Vote, len(seenCommitVotes.Precommits))
 	if len(lastCommitVotes.Precommits) > 0 {
+		bslog.Info("SaveCommits","lastCommitVotes",lastCommitVotes.StringIndented("last"))
 		SaveVotes(newLastCommitVotes, lastCommitVotes.Precommits)
 	}
 	if len(seenCommitVotes.Precommits) > 0 {
+		bslog.Info("SaveCommits","seenCommitVotes",seenCommitVotes.StringIndented("seen"))
 		SaveVotes(newSeenCommitVotes, seenCommitVotes.Precommits)
 	}
 	lastCommit := &gtypes.TendermintCommit{
