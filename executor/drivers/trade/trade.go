@@ -20,7 +20,7 @@ import (
 
 var tradelog = log.New("module", "execs.trade")
 
-func init() {
+func Init() {
 	t := newTrade()
 	drivers.Register(t.GetName(), t, types.ForkV2AddToken)
 }
