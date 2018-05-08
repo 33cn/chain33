@@ -62,7 +62,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 	return log
 }
 
-func (selldb *sellDB) getBuyLogs(buyerAddr string, buyid string, boardlotcnt int64, txhash string) *types.ReceiptLog {
+func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTradeBuy
 	receiptBuy := &types.ReceiptBuyBase{
@@ -73,7 +73,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, buyid string, boardlotcnt int
 		strconv.FormatFloat(float64(selldb.Priceperboardlot)/float64(types.Coin), 'f', 8, 64),
 		boardlotcnt,
 		boardlotcnt,
-		buyid,
+		"",
 		types.SellOrderStatus[types.TracdOrderStatusBoughtOut],
 		selldb.Sellid,
 		txhash,
@@ -197,12 +197,12 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt in
 		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
 		buydb.MinBoardlot,
 		strconv.FormatFloat(float64(buydb.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64),
-		buydb.TotalBoardlot,
+		boardlotCnt,
 		boardlotCnt,
 		0,
 		0,
 		false,
-		sellid,
+		"",
 		types.SellOrderStatus[types.TracdOrderStatusSoldOut],
 		buydb.Buyid,
 		txhash,
@@ -294,6 +294,8 @@ func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt
 		return nil, types.ErrTSellOrderRevoked
 	} else if sellOrder.Status == types.TracdOrderStatusExpired {
 		return nil, types.ErrTSellOrderExpired
+	} else if sellOrder.Status == types.TracdOrderStatusOnSale && buyOrder.Boardlotcnt < sellOrder.Minboardlot {
+		return nil, types.ErrTCntLessThanMinBoardlot
 	}
 
 	//首先购买费用的划转
@@ -331,7 +333,7 @@ func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt
 	logs = append(logs, receiptFromAcc.Logs...)
 	logs = append(logs, receiptFromExecAcc.Logs...)
 	logs = append(logs, sellTokendb.getSellLogs(types.TyLogTradeSell, action.txhash))
-	logs = append(logs, sellTokendb.getBuyLogs(action.fromaddr, action.txhash, buyOrder.Boardlotcnt, action.txhash))
+	logs = append(logs, sellTokendb.getBuyLogs(action.fromaddr, buyOrder.Boardlotcnt, action.txhash))
 	kv = append(kv, receiptFromAcc.KV...)
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
@@ -438,6 +440,8 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 		return nil, types.ErrTBuyOrderRevoked
 	} else if buyOrder.Status == types.TracdOrderStatusOnBuy && buyOrder.TotalBoardlot-buyOrder.BoughtBoardlot < sellOrder.BoardlotCnt {
 		return nil, types.ErrTBuyOrderNotEnough
+	} else if buyOrder.Status == types.TracdOrderStatusOnBuy && sellOrder.BoardlotCnt < buyOrder.MinBoardlot {
+		return nil, types.ErrTCntLessThanMinBoardlot
 	}
 
 	// 打token
