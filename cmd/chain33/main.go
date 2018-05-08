@@ -60,9 +60,7 @@ func main() {
 	cfg := config.InitCfg(*configPath)
 	//set test net flag
 	types.SetTestNet(cfg.TestNet)
-	if cfg.Exec.MinExecFee < 100000 {
-		panic("too low fee")
-	}
+
 	//compare minFee in wallet, mempool, exec
 	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
 		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
