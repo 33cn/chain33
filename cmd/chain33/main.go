@@ -32,6 +32,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
+	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
@@ -57,6 +58,11 @@ func main() {
 	flag.Parse()
 	//set config
 	cfg := config.InitCfg(*configPath)
+	//set test net flag
+	types.SetTestNet(cfg.TestNet)
+	if cfg.Exec.MinExecFee < 100000 {
+		panic("too low fee")
+	}
 	//compare minFee in wallet, mempool, exec
 	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
 		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
