@@ -11,6 +11,7 @@ It is generated from these files:
 	config.proto
 	db.proto
 	executor.proto
+	executorTrade.proto
 	p2p.proto
 	pbft.proto
 	rpc.proto
@@ -131,14 +132,22 @@ It has these top-level messages:
 	ReqTokens
 	ReplyTokens
 	ReceiptToken
+	TokenRecv
+	ReplyAddrRecvForTokens
+	ArrayConfig
+	StringConfig
+	Int32Config
+	ConfigItem
+	ModifyConfig
+	ManageAction
+	ReceiptConfig
+	ReplyConfig
 	Trade
 	TradeForSell
 	SellOrder
 	SellOrderReceipt
 	ReqAddrTokens
 	ReplySellOrders
-	TokenRecv
-	ReplyAddrRecvForTokens
 	TradeForBuy
 	TradeForRevokeSell
 	TradeForBuyLimit
@@ -156,16 +165,10 @@ It has these top-level messages:
 	TradeBuyDone
 	ReplyTradeBuyOrders
 	ReplyBuyLimitOrders
-	ArrayConfig
-	StringConfig
-	Int32Config
-	ConfigItem
-	ModifyConfig
-	ManageAction
-	ReceiptConfig
-	ReplyConfig
 	ReqTokenSellOrder
 	ReqTokenBuyLimitOrder
+	ReplyBuyOrder
+	ReplySellOrder
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
