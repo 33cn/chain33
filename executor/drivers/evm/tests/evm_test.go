@@ -22,9 +22,6 @@ func TestVM(t *testing.T) {
 
 	basePath := "testdata/"
 
-	//清空测试用例
-	//clearTestCase(basePath)
-
 	// 生成测试用例
 	genTestCase(basePath)
 
@@ -32,6 +29,9 @@ func TestVM(t *testing.T) {
 
 	// 执行测试用例
 	runTestCase(t, basePath)
+
+	//清空测试用例
+	defer  clearTestCase(basePath)
 }
 
 func TestOneOp(t *testing.T) {
