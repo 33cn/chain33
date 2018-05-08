@@ -38,6 +38,7 @@ type AddrBook struct {
 }
 
 type knownAddress struct {
+	kmtx        sync.Mutex
 	Addr        *NetAddress `json:"addr"`
 	Attempts    uint        `json:"attempts"`
 	LastAttempt time.Time   `json:"lastattempt"`
@@ -83,6 +84,7 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 
 func newKnownAddress(addr *NetAddress) *knownAddress {
 	return &knownAddress{
+		kmtx:        sync.Mutex{},
 		Addr:        addr,
 		Attempts:    0,
 		LastAttempt: time.Now(),
@@ -90,7 +92,8 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 }
 
 func (ka *knownAddress) markGood() {
-
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
 	now := time.Now()
 	ka.LastAttempt = now
 	ka.Attempts = 0
@@ -98,6 +101,7 @@ func (ka *knownAddress) markGood() {
 }
 
 func (ka *knownAddress) Copy() *knownAddress {
+	ka.kmtx.Lock()
 
 	ret := knownAddress{
 		Addr:        ka.Addr.Copy(),
@@ -105,11 +109,13 @@ func (ka *knownAddress) Copy() *knownAddress {
 		LastAttempt: ka.LastAttempt,
 		LastSuccess: ka.LastSuccess,
 	}
-
+	ka.kmtx.Unlock()
 	return &ret
 }
 
 func (ka *knownAddress) markAttempt() {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
 
 	now := time.Now()
 	ka.LastAttempt = now
@@ -118,6 +124,8 @@ func (ka *knownAddress) markAttempt() {
 }
 
 func (ka *knownAddress) GetAttempts() uint {
+	ka.kmtx.Lock()
+	defer ka.kmtx.Unlock()
 	return ka.Attempts
 }
 
