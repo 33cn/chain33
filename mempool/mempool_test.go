@@ -186,6 +186,28 @@ func genaddress() (string, crypto.PrivKey) {
 	return addrto.String(), privto
 }
 
+func TestAddEmptyTx(t *testing.T) {
+	q, chain, exec, store, cs, mem := initEnv(0)
+	defer q.Close()
+	defer chain.Close()
+	defer exec.Close()
+	defer store.Close()
+	defer cs.Close()
+	defer mem.Close()
+
+	msg := mem.client.NewMessage("mempool", types.EventTx, nil)
+	mem.client.Send(msg, true)
+	resp, err := mem.client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrEmptyTx.Error() {
+		t.Error("TestAddEmptyTx failed")
+	}
+}
+
 func TestAddTx(t *testing.T) {
 	q, chain, exec, store, cs, mem := initEnv(0)
 	defer q.Close()
@@ -415,6 +437,36 @@ OutsideLoop:
 				break OutsideLoop
 			}
 		}
+	}
+}
+
+func TestEventDelTxList(t *testing.T) {
+	q, chain, exec, store, cs, mem := initEnv(0)
+	defer q.Close()
+	defer chain.Close()
+	defer exec.Close()
+	defer store.Close()
+	defer cs.Close()
+	defer mem.Close()
+
+	// add tx
+	hashes, err := add4TxHash(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	hashBytes := [][]byte{[]byte(hashes[0]), []byte(hashes[1])}
+	msg := mem.client.NewMessage("mempool", types.EventDelTxList, &types.TxHashList{Count: 2, Hashes: hashBytes})
+	mem.client.Send(msg, true)
+	_, err = mem.client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if mem.Size() != 2 {
+		t.Error("TestEventDelTxList failed")
 	}
 }
 
@@ -675,6 +727,65 @@ func TestGetAddrTxs(t *testing.T) {
 	}
 	if same != len(txsExpect) {
 		t.Error("TestGetAddrTxs failed", same)
+	}
+}
+
+func TestDelBlock(t *testing.T) {
+	q, chain, exec, store, cs, mem := initEnv(0)
+	defer q.Close()
+	defer chain.Close()
+	defer exec.Close()
+	defer store.Close()
+	defer cs.Close()
+	defer mem.Close()
+
+	action := &types.TicketAction{Ty: types.TicketActionMiner}
+	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
+	action.Value = miner
+	minerTx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
+	delBlock := blk
+	delBlock.Txs = append(delBlock.Txs, minerTx)
+	var blockDetail = &types.BlockDetail{Block: delBlock}
+
+	mem.setHeader(&types.Header{Height: 1, BlockTime: 1e9 + 1})
+	msg1 := mem.client.NewMessage("mempool", types.EventDelBlock, blockDetail)
+	mem.client.Send(msg1, false)
+
+	msg2 := mem.client.NewMessage("mempool", types.EventGetMempoolSize, nil)
+	mem.client.Send(msg2, true)
+
+	reply, err := mem.client.Wait(msg2)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if reply.GetData().(*types.MempoolSize).Size != 2 {
+		t.Error("TestDelBlock failed")
+	}
+}
+
+func TestAddMinerTx(t *testing.T) {
+	q, chain, exec, store, cs, mem := initEnv(0)
+	defer q.Close()
+	defer chain.Close()
+	defer exec.Close()
+	defer store.Close()
+	defer cs.Close()
+	defer mem.Close()
+
+	action := &types.TicketAction{Ty: types.TicketActionMiner}
+	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
+	action.Value = miner
+
+	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrMinerTx.Error() {
+		t.Error("TestAddMinerTx failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
 }
 
