@@ -14,6 +14,7 @@ type TestData struct {
 	Name string
 	Code string
 	Out string
+	Err string
 }
 
 func clearTestCase(basePath string)  {
