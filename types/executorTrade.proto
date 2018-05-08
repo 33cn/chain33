@@ -192,8 +192,8 @@ message ReplyTradeBuyOrders {
 	repeated TradeBuyDone tradebuydones = 1;
 }
 
-message ReplyBuyLimitOrders {
-	repeated BuyLimitOrder buyOrders = 1;
+message ReplyBuyOrders {
+	repeated ReplyBuyOrder buyOrders = 1;
 }
 
 // 获取Token未完成卖单的交易列表
