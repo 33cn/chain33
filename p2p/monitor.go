@@ -10,7 +10,7 @@ import (
 )
 
 func (n *Node) destroyPeer(peer *Peer) {
-	log.Info("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
+	log.Debug("deleteErrPeer", "Delete peer", peer.Addr(), "running", peer.GetRunning(),
 		"version support", peer.version.IsSupport())
 
 	n.nodeInfo.addrBook.RemoveAddr(peer.Addr())
@@ -108,6 +108,7 @@ func (n *Node) getAddrFromOnline() {
 				var addrlist []string
 				var err error
 				if peer.version.GetVersion() >= VERSION {
+					log.Info("peer", "VERSION", peer.version.GetVersion())
 					addrlist, err = pcli.GetAddrList(peer)
 				} else {
 					addrlist, err = pcli.GetAddr(peer)
