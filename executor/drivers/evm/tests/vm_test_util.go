@@ -41,6 +41,11 @@ func parseVMCase(data interface{}, ut *VMCase) {
 			ut.logs = unpre(v.(string))
 		case "out":
 			ut.out = unpre(v.(string))
+		case "err":
+			ut.err = v.(string)
+			if ut.err == "{{.Err}}" {
+				ut.err = ""
+			}
 		default:
 			//fmt.Println(k, "is of a type I don't know how to handle")
 		}

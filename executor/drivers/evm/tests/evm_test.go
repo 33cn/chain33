@@ -124,8 +124,15 @@ func runCase(tt *testing.T, c VMCase)  {
 	}
 
 	if err != nil {
-		tt.Errorf("test case:%s, failed:%s",c.name, err)
-		return
+		// 合约执行出错的情况下，判断错误是否相同，如果相同，则返回，不判断post
+		if len(c.err) > 0 && c.err == err.Error() {
+			return
+		}else{
+			// 非意料情况下的出错，视为错误
+			tt.Errorf("test case:%s, failed:%s",c.name, err)
+			tt.Fail()
+			return
+		}
 	}
 	// 4 检查执行结果 post (注意，这里不检查Gas具体扣费数额，因为计费规则不一样，值检查执行结果是否正确)
 	t := NewTester(tt)
