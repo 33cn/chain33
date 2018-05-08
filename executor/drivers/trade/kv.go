@@ -1,6 +1,10 @@
 package trade
 
-import "fmt"
+import (
+	"fmt"
+	"gitlab.33.cn/chain33/chain33/types"
+	"strconv"
+)
 
 const (
 	sellOrderSHTAS       = "token-sellorder-shtas:"
@@ -17,6 +21,8 @@ const (
 	SellMarketOrderTAHSB = "token-sellmarketorder-tahsb:"
 	sellIDPrefix         = "mavl-trade-sell-"
 	buyIDPrefix          = "mavl-trade-buy-"
+	sellOrderPrefix      = "token-sellorder"
+	buyOrderPrefix       = "token-buyorder"
 )
 
 // sell order 4 key, 4prefix
@@ -150,4 +156,38 @@ func calcSellMarketOrderKey(addr string, height int64, token string, orderID str
 //特定账户下的买单
 func calcOnesSellMarketOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(SellMarketOrderAHTSB+"%s", addr))
+}
+
+func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase,
+	status int32, height int64, value []byte) []*types.KeyValue {
+
+	keyId := receipt.Txhash
+
+	newkey := calcTokenBuyLimitOrderKey(receipt.TokenSymbol, receipt.Owner, status, keyId, height)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, keyId)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	newkey = calcOnesBuyLimitOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, keyId)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+
+	priceBoardlot, err := strconv.ParseFloat(receipt.PricePerBoardlot, 64)
+	if err != nil {
+		panic(err)
+	}
+	priceBoardlotInt64 := int64(priceBoardlot * float64(types.TokenPrecision))
+	AmountPerBoardlot, err := strconv.ParseFloat(receipt.AmountPerBoardlot, 64)
+	if err != nil {
+		panic(err)
+	}
+	AmountPerBoardlotInt64 := int64(AmountPerBoardlot * float64(types.Coin))
+	price := calcPriceOfToken(priceBoardlotInt64, AmountPerBoardlotInt64)
+
+	newkey = calcTokensBuyLimitOrderKeyStatus(receipt.TokenSymbol, status,
+		price, receipt.Owner, keyId)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	return kv
 }
