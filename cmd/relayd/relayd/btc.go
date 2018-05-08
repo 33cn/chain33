@@ -10,6 +10,8 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/valyala/fasthttp"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type (
@@ -289,4 +291,107 @@ func (c *BTCClient) POSTClient() (*rpcclient.Client, error) {
 	configCopy := *c.connConfig
 	configCopy.HTTPPostMode = true
 	return rpcclient.New(&configCopy, nil)
+}
+
+func (b *BTCClient) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
+	hash, err := chainhash.NewHashFromStr(txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	ret, err := b.GetRawTransactionVerbose(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	blockHash, err := chainhash.NewHashFromStr(ret.BlockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := b.GetBlockVerbose(blockHash)
+	if err != nil {
+		return nil, err
+	}
+	var txIndex uint32
+	txs := make([][]byte, 0, len(block.Tx))
+	for index, tx := range block.Tx {
+		if txHash == tx {
+			txIndex = uint32(index)
+		}
+		hash, err := merkle.NewHashFromStr(tx)
+		if err != nil {
+			return nil, err
+		}
+		txs = append(txs, hash.CloneBytes())
+	}
+	proof := merkle.GetMerkleBranch(txs, txIndex)
+	spv := &types.BtcSpv{
+		Hash:        txHash,
+		Time:        block.Time,
+		Height:      uint64(block.Height),
+		BlockHash:   block.Hash,
+		TxIndex:     uint64(txIndex),
+		BranchProof: proof,
+	}
+	return spv, nil
+}
+
+func (b *BTCClient) GetTransaction(hash string) (*types.BtcTransaction, error) {
+	txHash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := b.GetRawTransactionVerbose(txHash)
+	if err != nil {
+		return nil, err
+	}
+	btxTx := &types.BtcTransaction{}
+	btxTx.Hash = hash
+	btxTx.Time = tx.Time
+	// TODO
+	// btxTx.BlockHeight = tx.BlockHash
+	// vin := make([]*types.Vin, len(tx.Vin))
+	// for index, in := range tx.Vin {
+	// 	vin[index].Value = in.Vout
+	// 	vin[index].Address = in.Address
+	// }
+	// btcTx.Vin = vin
+
+	vout := make([]*types.Vout, len(tx.Vout))
+	for index, in := range tx.Vout {
+		vout[index].Value = uint64(in.Value)
+		vout[index].Address = in.ScriptPubKey.Addresses[0]
+	}
+	btxTx.Vout = vout
+
+	return btxTx, nil
+}
+
+func (b *BTCClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
+	hash, err := b.GetBlockHash(int64(height))
+	if err != nil {
+		return nil, err
+	}
+	header, err := b.GetBlockHeaderVerbose(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	h := &types.BtcHeader{
+		Hash:          header.Hash,
+		Confirmations: header.Confirmations,
+		Height:        uint64(header.Height),
+		MerkleRoot:    header.MerkleRoot,
+		Time:          header.Time,
+		Nonce:         int64(header.Nonce),
+		// TODO
+		// Bits:header.Bits,
+		// Difficulty:header.Difficulty,
+		PreviousHash: header.PreviousHash,
+		NextHash:     header.NextHash,
+	}
+	return h, nil
+
 }

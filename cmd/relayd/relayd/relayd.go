@@ -2,8 +2,8 @@ package relayd
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -67,7 +67,7 @@ func NewRelayd(config *Config) *Relayd {
 	client33 := NewClient33(&config.Chain33)
 	btc, err := NewBTCClient(config.BitCoin.BitConnConfig(), int(config.BitCoin.ReconnectAttempts))
 
-	pr, err := ioutil.ReadFile(config.PrivatePath)
+	pr, err := hex.DecodeString(config.Auth.PrivateKey)
 	if err != nil {
 		panic(err)
 	}
@@ -77,7 +77,7 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 
-	privKey, err := secp.PrivKeyFromBytes(pr)
+	priKey, err := secp.PrivKeyFromBytes(pr)
 	if err != nil {
 		panic(err)
 	}
@@ -89,8 +89,8 @@ func NewRelayd(config *Config) *Relayd {
 		client33:       client33,
 		knownBlockHash: value,
 		btcClient:      btc,
-		privateKey:     privKey,
-		publicKey:      privKey.PubKey(),
+		privateKey:     priKey,
+		publicKey:      priKey.PubKey(),
 	}
 }
 
@@ -144,51 +144,50 @@ func (r *Relayd) syncBlockHeaders() {
 	// TODO
 	if r.knownHeight <= r.config.MinHeightBTC || r.latestHeight <= r.config.MinHeightBTC {
 		return
-	} else {
-		totalSetup := r.latestHeight - r.knownHeight
-		stage := totalSetup / SETUP
-		little := totalSetup % SETUP
-		var i uint64 = 0
-	out:
-		for ; i <= stage; i++ {
-			var add uint64 = 0
-			if i == stage {
-				add += little
-			} else {
-				add += SETUP
+	}
+	totalSetup := r.latestHeight - r.knownHeight
+	stage := totalSetup / SETUP
+	little := totalSetup % SETUP
+	var i uint64
+out:
+	for ; i <= stage; i++ {
+		var add uint64
+		if i == stage {
+			add += little
+		} else {
+			add += SETUP
+		}
+		headers := make([][]byte, add)
+		add += r.knownHeight
+		for j := r.knownHeight; j <= add; j++ {
+			hash, err := r.btcClient.GetBlockHash(int64(j))
+			if err != nil {
+				log.Error("syncBlockHeaders", err)
+				break out
 			}
-			headers := make([][]byte, add)
-			add += r.knownHeight
-			for j := r.knownHeight; j <= add; j++ {
-				hash, err := r.btcClient.GetBlockHash(int64(j))
-				if err != nil {
-					log.Error("syncBlockHeaders", err)
-					break out
-				}
-				header, err := r.btcClient.GetBlockHeaderVerbose(hash)
-				if err != nil {
-					log.Error("syncBlockHeaders", err)
-					break out
-				}
-				data, err := json.Marshal(header)
-				if err != nil {
-					log.Error("syncBlockHeaders", err)
-					break out
-				}
-				// save db
-				err = r.db.Set(makeHeightKey(r.knownHeight), data)
-				if err != nil {
-					break out
-				}
-				r.knownHeight++
-				headers = append(headers, data)
-				// TODO
-				ret, err := r.client33.SendTransaction(r.ctx, nil, nil)
-				if err != nil {
-					break out
-				}
-				log.Info("syncBlockHeaders", ret)
+			header, err := r.btcClient.GetBlockHeaderVerbose(hash)
+			if err != nil {
+				log.Error("syncBlockHeaders", err)
+				break out
 			}
+			data, err := json.Marshal(header)
+			if err != nil {
+				log.Error("syncBlockHeaders", err)
+				break out
+			}
+			// save db
+			err = r.db.Set(makeHeightKey(r.knownHeight), data)
+			if err != nil {
+				break out
+			}
+			r.knownHeight++
+			headers = append(headers, data)
+			// TODO
+			ret, err := r.client33.SendTransaction(r.ctx, nil, nil)
+			if err != nil {
+				break out
+			}
+			log.Info("syncBlockHeaders", ret)
 		}
 	}
 }
@@ -211,7 +210,7 @@ func (r *Relayd) dealOrder() {
 
 	txs := make([][]byte, len(result.GetOrders()))
 	for _, value := range result.GetOrders() {
-		hash, err := chainhash.NewHashFromStr(value.Orderid)
+		hash, err := chainhash.NewHashFromStr(value.Exchgtxhash)
 		if err != nil {
 			log.Error("dealOrder", err)
 			continue
