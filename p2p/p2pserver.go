@@ -112,6 +112,10 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
+	selfNetWork, err := NewNetAddressString(in.GetAddrRecv())
+	if err == nil {
+		s.node.nodeInfo.SetExternalAddr(selfNetWork)
+	}
 
 	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
 	if err == nil {
@@ -455,7 +459,6 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
 			}
-
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
 			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: time.Now().Unix()})

@@ -234,7 +234,7 @@ func (a *AddrBook) loadDb() bool {
 			}
 
 			for _, ka := range aJSON.Addrs {
-				log.Info("AddrBookloadDb", "peer", ka.Addr.String())
+				log.Debug("AddrBookloadDb", "peer", ka.Addr.String())
 				netaddr, err := NewNetAddressString(ka.Addr.String())
 				if err != nil {
 					continue

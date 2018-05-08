@@ -165,7 +165,7 @@ func (n *Node) getAddrFromOffline() {
 			for _, addr := range testlist {
 
 				if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
-					log.Info("GetAddrFromOffline", "Add addr", addr)
+					log.Debug("GetAddrFromOffline", "Add addr", addr)
 					pub.FIFOPub(addr, "addr")
 				}
 			}
