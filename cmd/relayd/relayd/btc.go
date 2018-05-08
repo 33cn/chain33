@@ -9,6 +9,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/valyala/fasthttp"
 )
 
 type (
@@ -41,26 +42,23 @@ var MainNetParams = Params{
 
 type BTCClient struct {
 	*rpcclient.Client
-	connConfig        *rpcclient.ConnConfig
-	chainParams       *chaincfg.Params
-	reconnectAttempts int
-
+	httpClient          *fasthttp.Client
+	connConfig          *rpcclient.ConnConfig
+	chainParams         *chaincfg.Params
+	reconnectAttempts   int
 	enqueueNotification chan interface{}
 	dequeueNotification chan interface{}
 	currentBlock        chan *BlockStamp
-
-	quit    chan struct{}
-	wg      sync.WaitGroup
-	started bool
-	quitMtx sync.Mutex
+	quit                chan struct{}
+	wg                  sync.WaitGroup
+	started             bool
+	quitMtx             sync.Mutex
 }
 
 func NewBTCClient(config *rpcclient.ConnConfig, reconnectAttempts int) (*BTCClient, error) {
-
 	if reconnectAttempts < 0 {
 		return nil, errors.New("ReconnectAttempts must be positive")
 	}
-
 	client := &BTCClient{
 		connConfig:          config,
 		chainParams:         MainNetParams.Params,
@@ -262,14 +260,14 @@ out:
 			select {
 			case resp := <-sessionResponse:
 				if resp.err != nil {
-					//log.Errorf("Failed to receive session "+"result: %v", resp.err)
+					// log.Errorf("Failed to receive session "+"result: %v", resp.err)
 					c.Stop()
 					break out
 				}
 				pingChan = time.After(time.Minute)
 
 			case <-time.After(time.Minute):
-				//log.Errorf("Timeout waiting for session RPC")
+				// log.Errorf("Timeout waiting for session RPC")
 				c.Stop()
 				break out
 			}

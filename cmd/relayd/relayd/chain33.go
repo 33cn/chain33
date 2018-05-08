@@ -63,20 +63,8 @@ out:
 }
 
 func (c *Client33) Start(ctx context.Context) error {
-	c.unLock(ctx)
 	go c.heartbeat(ctx)
 	return nil
-}
-
-func (c *Client33) unLock(ctx context.Context) {
-	unlock := types.WalletUnLock{
-		Passwd: c.config.Pass,
-	}
-	ret, err := c.GrpcserviceClient.UnLock(ctx, &unlock, nil)
-	if err != nil {
-		panic(err)
-	}
-	log.Info("Start", fmt.Sprintf("%#v", ret))
 }
 
 func (c *Client33) ping(ctx context.Context) error {

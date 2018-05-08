@@ -3,6 +3,8 @@ package relayd
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"sync"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -27,22 +30,21 @@ func confirms(txHeight, curHeight int32) int32 {
 }
 
 type Relayd struct {
-	config     *Config
-	httpServer http.Server
-	db         *relaydDB
-	mu         sync.Mutex
-
+	config          *Config
+	httpServer      http.Server
+	db              *relaydDB
+	mu              sync.Mutex
 	latestBlockHash *chainhash.Hash
 	latestHeight    uint64
-
-	knownBlockHash *chainhash.Hash
-	knownHeight    uint64
-
-	btcClient     *BTCClient
-	btcClientLock sync.Mutex
-	client33      *Client33
-	ctx           context.Context
-	cancel        context.CancelFunc
+	knownBlockHash  *chainhash.Hash
+	knownHeight     uint64
+	btcClient       *BTCClient
+	btcClientLock   sync.Mutex
+	client33        *Client33
+	ctx             context.Context
+	cancel          context.CancelFunc
+	privateKey      crypto.PrivKey
+	publicKey       crypto.PubKey
 }
 
 func NewRelayd(config *Config) *Relayd {
@@ -65,6 +67,21 @@ func NewRelayd(config *Config) *Relayd {
 	client33 := NewClient33(&config.Chain33)
 	btc, err := NewBTCClient(config.BitCoin.BitConnConfig(), int(config.BitCoin.ReconnectAttempts))
 
+	pr, err := ioutil.ReadFile(config.PrivatePath)
+	if err != nil {
+		panic(err)
+	}
+
+	secp, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+
+	privKey, err := secp.PrivKeyFromBytes(pr)
+	if err != nil {
+		panic(err)
+	}
+
 	return &Relayd{
 		config:         config,
 		ctx:            ctx,
@@ -72,6 +89,8 @@ func NewRelayd(config *Config) *Relayd {
 		client33:       client33,
 		knownBlockHash: value,
 		btcClient:      btc,
+		privateKey:     privKey,
+		publicKey:      privKey.PubKey(),
 	}
 }
 
@@ -157,14 +176,31 @@ func (r *Relayd) syncBlockHeaders() {
 					break out
 				}
 				// save db
-				// r.db.Set()
+				err = r.db.Set(makeHeightKey(r.knownHeight), data)
+				if err != nil {
+					break out
+				}
 				r.knownHeight++
 				headers = append(headers, data)
 				// TODO
-
+				ret, err := r.client33.SendTransaction(r.ctx, nil, nil)
+				if err != nil {
+					break out
+				}
+				log.Info("syncBlockHeaders", ret)
 			}
 		}
 	}
+}
+
+func (r *Relayd) transaction(payload []byte) *types.Transaction {
+	tx := &types.Transaction{
+		Execer:  executor,
+		Payload: payload,
+		Nonce:   rand.Int63(),
+	}
+	tx.Sign(types.SECP256K1, r.privateKey)
+	return tx
 }
 
 func (r *Relayd) dealOrder() {
@@ -194,8 +230,7 @@ func (r *Relayd) dealOrder() {
 	}
 
 	// TODO
-	// r.client33.SendTransaction()
-
+	// r.client33.SendTransaction(r.ctx, r.transaction(txs))
 }
 
 func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.QueryRelayOrderResult, error) {
