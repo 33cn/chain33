@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	// register drivers
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/coins"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/none"
@@ -20,7 +21,6 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -98,7 +98,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime)
+	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime, datas.CoinBase, datas.Difficulty)
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
@@ -115,7 +115,7 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime)
+	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime, datas.CoinBase, datas.Difficulty)
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
@@ -182,7 +182,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
+	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime, account.PubKeyToAddress(b.Signature.Pubkey).String(), uint64(b.Difficulty))
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
@@ -221,7 +221,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
+	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime, account.PubKeyToAddress(b.Signature.Pubkey).String(), uint64(b.Difficulty))
 	var kvset types.LocalDBSet
 	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
@@ -281,9 +281,13 @@ type executor struct {
 	execDriver   *drivers.ExecDrivers
 	height       int64
 	blocktime    int64
+
+	// 增加区块的coinbase和难度值，后面的执行器逻辑需要这些属性
+	coinBase   string
+	difficulty uint64
 }
 
-func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64) *executor {
+func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64, coinBase string, difficulty uint64) *executor {
 	e := &executor{
 		stateDB:      NewStateDB(client.Clone(), stateHash),
 		localDB:      NewLocalDB(client.Clone()),
@@ -291,6 +295,8 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 		execDriver:   drivers.CreateDrivers4CurrentHeight(height),
 		height:       height,
 		blocktime:    blocktime,
+		coinBase:     coinBase,
+		difficulty:   difficulty,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	runningHeight = height
@@ -326,6 +332,11 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
+func (e *executor) setEnv(exec drivers.Driver){
+	exec.SetStateDB(e.stateDB)
+	exec.SetEnv(e.height, e.blocktime, e.coinBase, e.difficulty)
+}
+
 func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//基本检查
 	err := e.checkTx(tx, index)
@@ -343,29 +354,25 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 	}
 
-	exec.SetStateDB(e.stateDB)
-	exec.SetEnv(e.height, e.blocktime)
+	e.setEnv(exec)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriverForExec(string(tx.Execer))
-	exec.SetStateDB(e.stateDB)
-	exec.SetEnv(e.height, e.blocktime)
+	e.setEnv(exec)
 	return exec.Exec(tx, index)
 }
 
 func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	exec := e.loadDriverForExec(string(tx.Execer))
-	exec.SetLocalDB(e.localDB)
-	exec.SetEnv(e.height, e.blocktime)
+	e.setEnv(exec)
 	return exec.ExecLocal(tx, r, index)
 }
 
 func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	exec := e.loadDriverForExec(string(tx.Execer))
-	exec.SetLocalDB(e.localDB)
-	exec.SetEnv(e.height, e.blocktime)
+	e.setEnv(exec)
 	return exec.ExecDelLocal(tx, r, index)
 }
 
