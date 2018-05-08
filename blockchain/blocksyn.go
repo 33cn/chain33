@@ -256,37 +256,6 @@ func (chain *BlockChain) fetchPeerList() error {
 	return nil
 }
 
-func maxSubList(list PeerInfoList) (sub PeerInfoList) {
-	start := 0
-	end := 0
-	if len(list) == 0 {
-		return list
-	}
-	for i := 0; i < len(list); i++ {
-		var nextheight int64
-		if i+1 == len(list) {
-			nextheight = math.MaxInt64
-		} else {
-			nextheight = list[i+1].Height
-		}
-		if nextheight-list[i].Height > checkBlockNum {
-			end = i + 1
-			if len(sub) < (end - start) {
-				sub = list[start:end]
-			}
-			start = i + 1
-			end = i + 1
-		} else {
-			end = i + 1
-		}
-	}
-	//只有一个节点，那么取最高的节点
-	if len(sub) <= 1 {
-		return list[len(list)-1:]
-	}
-	return sub
-}
-
 //存储广播的block最新高度
 func (chain *BlockChain) GetRcvLastCastBlkHeight() int64 {
 	castlock.Lock()
