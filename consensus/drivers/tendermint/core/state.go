@@ -780,7 +780,7 @@ func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
 func (cs *ConsensusState) enterPropose(height int64, round int) {
 	if cs.Height != height || round < cs.Round || (cs.Round == round && ttypes.RoundStepPropose <= cs.Step) {
-		cs.Logger.Debug(fmt.Sprintf("enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+		cs.Logger.Info(fmt.Sprintf("enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 		return
 	}
 	cs.Logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
@@ -1294,6 +1294,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		lastCommit := block.LastCommit
 		precommits := cs.Votes.Precommits(cs.CommitRound)
 		seenCommit := precommits.MakeCommit()
+		cs.Logger.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"))
 		tx0 := cs.blockStore.CreateCommitTx(lastCommit, seenCommit)
 		newblock.Txs = append([]*types.Transaction{tx0}, newblock.Txs...)
 		//fail.Fail() // XXX
