@@ -20,6 +20,7 @@ type Config struct {
 	MinHeightBTC uint64
 	BitCoin      BitCoin
 	Log          types.Log
+	PrivatePath  string
 }
 
 type BitCoin struct {

@@ -116,6 +116,26 @@ message RelayVerifyBTC {
     string blockhash	= 5;
 }
 
+//message BtcHeader {
+//    string  Hash          = 1;
+//    uint64  Confirmations = 2;
+//    int32   Height        = 3;
+//    string  MerkleRoot    = 4;
+//    int64   Time          = 5;
+//    uint64  Nonce         = 6;
+//    string  Bits          = 7;
+//    int64   Difficulty    = 8;
+//    string  PreviousHash  = 9;
+//    string  NextHash      = 10;
+//}
+
+message BtcHeader {
+    bytes data = 1;
+}
+
+message BtcSpv {
+    bytes data = 1;
+}
 
 message ReceiptRelayBase {
     string orderid				= 1;
@@ -175,8 +195,6 @@ message ReqRelayAddrCoins{
 message ReplyRelayOrders {
     repeated RelayOrder relayorders = 1;
 }
-
-
 
 message QueryRelayOrderParam{
     RelayOrderStatus status = 1;
