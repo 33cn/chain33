@@ -164,6 +164,7 @@ It has these top-level messages:
 	P2PPong
 	P2PGetAddr
 	P2PAddr
+	P2PAddrList
 	P2PExternalInfo
 	P2PGetBlocks
 	P2PGetMempool
