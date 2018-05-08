@@ -504,7 +504,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					&types.ReplyTxList{mem.RemoveExpiredAndDuplicateMempoolTxs()}))
 				mlog.Debug("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
-				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
+				// 消息类型EventTxList：获取Mempool中一定数量交易
 				hashList := msg.GetData().(*types.TxHashList)
 				if hashList.Count <= 0 {
 					msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, types.ErrSize))
@@ -515,7 +515,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					mlog.Debug("reply EventTxList ok", "msg", msg)
 				}
 			case types.EventDelTxList:
-				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
+				// 消息类型EventDelTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				hashList := msg.GetData().(*types.TxHashList)
 				if len(hashList.GetHashes()) == 0 {
 					msg.ReplyErr("EventDelTxList", types.ErrSize)
