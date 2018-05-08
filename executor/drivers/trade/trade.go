@@ -717,66 +717,11 @@ func deleteSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptT
 
 func saveBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
 	txhash := []byte(receipt.Txhash)
-	keyId := receipt.Txhash
-
-	newkey := calcTokenBuyLimitOrderKey(receipt.TokenSymbol, receipt.Owner, status, keyId, height)
-	kv = append(kv, &types.KeyValue{newkey, txhash})
-
-	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, keyId)
-	kv = append(kv, &types.KeyValue{newkey, txhash})
-
-	newkey = calcOnesBuyLimitOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, keyId)
-	kv = append(kv, &types.KeyValue{newkey, txhash})
-
-	priceBoardlot, err := strconv.ParseFloat(receipt.PricePerBoardlot, 64)
-	if err != nil {
-		panic(err)
-	}
-	priceBoardlotInt64 := int64(priceBoardlot * float64(types.TokenPrecision))
-	AmountPerBoardlot, err := strconv.ParseFloat(receipt.AmountPerBoardlot, 64)
-	if err != nil {
-		panic(err)
-	}
-	AmountPerBoardlotInt64 := int64(AmountPerBoardlot * float64(types.Coin))
-	price := calcPriceOfToken(priceBoardlotInt64, AmountPerBoardlotInt64)
-
-	newkey = calcTokensBuyLimitOrderKeyStatus(receipt.TokenSymbol, status,
-		price, receipt.Owner, keyId)
-	kv = append(kv, &types.KeyValue{newkey, txhash})
-
-	return kv
+	return genBuyMarketOrderKeyValue(kv, receipt, status, height, txhash)
 }
 
 func deleteBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
-	keyId := receipt.Txhash
-
-	newkey := calcTokenBuyLimitOrderKey(receipt.TokenSymbol, receipt.Owner, status, keyId, height)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, keyId)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	newkey = calcOnesBuyLimitOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, keyId)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-
-	priceBoardlot, err := strconv.ParseFloat(receipt.PricePerBoardlot, 64)
-	if err != nil {
-		panic(err)
-	}
-	priceBoardlotInt64 := int64(priceBoardlot * float64(types.TokenPrecision))
-	AmountPerBoardlot, err := strconv.ParseFloat(receipt.AmountPerBoardlot, 64)
-	if err != nil {
-		panic(err)
-	}
-	AmountPerBoardlotInt64 := int64(AmountPerBoardlot * float64(types.Coin))
-	price := calcPriceOfToken(priceBoardlotInt64, AmountPerBoardlotInt64)
-
-	newkey = calcTokensBuyLimitOrderKeyStatus(receipt.TokenSymbol, status,
-		price, receipt.Owner, keyId)
-	kv = append(kv, &types.KeyValue{newkey, nil})
-
-	return kv
+	return genBuyMarketOrderKeyValue(kv, receipt, status, height, nil)
 }
 
 // make a number as token's price whether cheap or dear
