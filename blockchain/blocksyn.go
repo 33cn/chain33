@@ -773,7 +773,7 @@ func (chain *BlockChain) CheckTipBlockHash() {
 
 	//获取当前主链的高度
 	tipheight := chain.bestChain.Height()
-	tiphash := chain.bestChain.tip().hash
+	tiphash := chain.bestChain.Tip().hash
 	laststorheight := chain.blockStore.Height()
 
 	if tipheight != laststorheight {

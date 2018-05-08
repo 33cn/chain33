@@ -61,6 +61,7 @@ func IsBityuan() bool {
 func SetTestNet(isTestNet bool) {
 	if !isTestNet {
 		testNet = false
+		return
 	}
 	testNet = true
 	//const 初始化TestNet 的初始化参数
