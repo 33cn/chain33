@@ -147,7 +147,6 @@ It has these top-level messages:
 	SellOrder
 	SellOrderReceipt
 	ReqAddrTokens
-	ReplySellOrders
 	TradeForBuy
 	TradeForRevokeSell
 	TradeForBuyLimit
@@ -169,6 +168,8 @@ It has these top-level messages:
 	ReqTokenBuyLimitOrder
 	ReplyBuyOrder
 	ReplySellOrder
+	ReplySellOrders
+	ReplySellOrders1
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion

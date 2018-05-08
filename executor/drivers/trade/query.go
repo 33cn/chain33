@@ -2,11 +2,11 @@ package trade
 
 import (
 	"strings"
-	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
 
+	"strconv"
 )
 
 func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
@@ -35,70 +35,20 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 		}
 	}
 
-	var reply types.ReplySellOrders
+	var replys types.ReplySellOrders1
 	for _, sellid := range sellids {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
-			tradelog.Info("trade Query", "id", string(sellid), "check-prefix", sellOrderPrefix)
-			if strings.HasPrefix(string(sellid), sellOrderPrefix) {
-				if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
-					tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
-					reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
-				}
-				sellidGotAlready[string(sellid)] = true
-			} else { // txhash as sellid for
-				sellid2 := fmt.Sprintf("0x%s", sellid)
-				selled2, err := common.FromHex(string(sellid))
-				if err != nil {
-					return nil, err
-				}
-				txResult, err := getTx(selled2, t.GetLocalDB())
-				tradelog.Info("GetOnesSellOrder ", "load txhash", sellid2)
-				if err != nil {
-					return nil, err
-				}
-
-				tradelog.Info("GetOnesSellOrder ", "load txhash", txResult)
-				// TODO make detail for sellOrder
-				tx := txResult.Tx
-				var trade types.Trade
-				err = types.Decode(tx.Payload, &trade)
-				if err != nil {
-					tradelog.Error("GetOnesSellOrder", "bad sellid", sellid)
-					continue
-				}
-				sellMarket := trade.GetTokensellmarket()
-				if sellMarket == nil {
-					tradelog.Error("GetOnesSellOrder", "bad sellid", sellid)
-					continue
-				}
-				tradelog.Info("GetOnesSellOrder", "show logs", sellMarket)
-				logs := txResult.Receiptdate.Logs
-				tradelog.Info("GetOnesSellOrder", "show logs", logs)
-				for _, log := range logs {
-					if log.Ty == types.TyLogTradeSellMarket {
-						var receipt types.ReceiptTradeBase
-						types.Decode(log.Log, &receipt)
-						if err != nil {
-							tradelog.Error("GetOnesSellOrder", "bad sellid 1", sellid)
-							continue
-						}
-						tradelog.Info("GetOnesSellOrder", "show logs", receipt)
-					} else if log.Ty == types.TyLogTradeBuyLimit {
-						var receipt types.ReceiptTradeBuyLimit
-						types.Decode(log.Log, &receipt)
-						if err != nil {
-							tradelog.Error("GetOnesSellOrder", "bad sellid", sellid)
-							continue
-						}
-						tradelog.Info("GetOnesSellOrder", "show logs 2", receipt)
-					}
-				}
+			reply := t.replyReplySellOrderfromID(sellid)
+			if reply == nil {
 				continue
 			}
+			tradelog.Debug("trade Query", "getSellOrderFromID", string(sellid))
+			replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
+			sellidGotAlready[string(sellid)] = true
 		}
 	}
-	return &reply, nil
+	return &replys, nil
 }
 
 func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
@@ -159,7 +109,8 @@ func (t *trade) GetAllSellOrdersWithStatus(status int32) (types.Message, error) 
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(sellid)] {
 			if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
-				reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
+				// TODO
+				//reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
 				tradelog.Debug("trade Query", "height of sellid", sellorder.Height,
 					"len of reply.Selloders", len(reply.Selloders))
 			}
@@ -170,7 +121,7 @@ func (t *trade) GetAllSellOrdersWithStatus(status int32) (types.Message, error) 
 }
 
 //根据height进行降序插入,TODO:使用标准的第三方库进行替换
-func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types.SellOrder) []*types.SellOrder {
+func insertSellOrderDescending(toBeInserted *types.ReplySellOrder, selloders []*types.ReplySellOrder) []*types.ReplySellOrder {
 	if 0 == len(selloders) {
 		selloders = append(selloders, toBeInserted)
 	} else {
@@ -185,7 +136,7 @@ func insertSellOrderDescending(toBeInserted *types.SellOrder, selloders []*types
 		if len(selloders) == index {
 			selloders = append(selloders, toBeInserted)
 		} else {
-			rear := append([]*types.SellOrder{}, selloders[index:]...)
+			rear := append([]*types.ReplySellOrder{}, selloders[index:]...)
 			selloders = append(selloders[0:index], toBeInserted)
 			selloders = append(selloders, rear...)
 		}
@@ -228,8 +179,8 @@ func (t *trade) GetTokenBuyLimitOrderByStatus(req *types.ReqTokenBuyLimitOrder, 
 	}
 
 	fromKey := []byte("")
-	if len(req.FromBuyId) != 0 {
-		buyOrder, err := getBuyOrderFromID([]byte(req.FromBuyId), t.GetStateDB())
+	if len(req.FromKey) != 0 {
+		buyOrder, err := getBuyOrderFromID([]byte(req.FromKey), t.GetStateDB())
 		if err != nil {
 			tradelog.Error("GetTokenBuyLimitOrderByStatus get sellorder err", err)
 			return nil, err
@@ -256,3 +207,168 @@ func (t *trade) GetTokenBuyLimitOrderByStatus(req *types.ReqTokenBuyLimitOrder, 
 	return &reply, nil
 }
 
+// query reply utils
+func (t *trade) replyReplySellOrderfromID(key []byte) *types.ReplySellOrder {
+	tradelog.Info("trade Query", "id", string(key), "check-prefix", sellOrderPrefix)
+	if strings.HasPrefix(string(key), sellOrderPrefix) {
+		if sellorder, err := getSellOrderFromID(key, t.GetStateDB()); err == nil {
+			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+			return sellOrder2reply(sellorder)
+		}
+	} else { // txhash as key
+		txResult, err := getTx(key, t.GetLocalDB())
+		tradelog.Info("GetOnesSellOrder ", "load txhash", string(key))
+		if err != nil {
+			return nil
+		}
+		return txResult2sellOrderReply(txResult)
+	}
+	return nil
+}
+
+func (t *trade) replyReplyBuyOrderfromID(key []byte) *types.ReplyBuyOrder {
+	tradelog.Info("trade Query", "id", string(key), "check-prefix", buyOrderPrefix)
+	if strings.HasPrefix(string(key), buyOrderPrefix) {
+		if buyOrder, err := getBuyOrderFromID(key, t.GetStateDB()); err == nil {
+			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+			return buyOrder2reply(buyOrder)
+		}
+	} else { // txhash as key
+		txResult, err := getTx(key, t.GetLocalDB())
+		tradelog.Info("replyReplyBuyOrderfromID ", "load txhash", string(key))
+		if err != nil {
+			return nil
+		}
+		return txResult2buyOrderReply(txResult)
+	}
+	return nil
+}
+
+func sellOrder2reply(sellOrder *types.SellOrder) *types.ReplySellOrder {
+	reply := &types.ReplySellOrder{
+		sellOrder.Tokensymbol,
+		sellOrder.Address,
+		sellOrder.Amountperboardlot,
+		sellOrder.Minboardlot,
+		sellOrder.Priceperboardlot,
+		sellOrder.Totalboardlot,
+		sellOrder.Soldboardlot,
+		"",
+		sellOrder.Status,
+		sellOrder.Sellid,
+		strings.Replace(sellOrder.Sellid, sellIDPrefix, "0x", 1),
+		sellOrder.Height,
+		sellOrder.Sellid,
+	}
+	return reply
+}
+
+func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
+	logs := txResult.Receiptdate.Logs
+	tradelog.Info("txResult2sellOrderReply", "show logs", logs)
+	for _, log := range logs {
+		if log.Ty == types.TyLogTradeSellMarket {
+			var receipt types.ReceiptTradeBase
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Info("txResult2sellOrderReply", "show logs 1 ", receipt)
+			amount, err := strconv.ParseFloat(receipt.Amountperboardlot, 64)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			price, err := strconv.ParseFloat(receipt.Priceperboardlot, 64)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+
+			txhash := common.ToHex(txResult.GetTx().Hash())
+			reply := &types.ReplySellOrder{
+				receipt.Tokensymbol,
+				receipt.Owner,
+				int64(amount * float64(types.TokenPrecision)),
+				receipt.Minboardlot,
+				int64(price * float64(types.Coin)),
+				receipt.Totalboardlot,
+				receipt.Soldboardlot,
+				receipt.Buyid,
+				types.SellOrderStatus2Int[receipt.Status],
+				"",
+				txhash,
+				receipt.Height,
+				txhash,
+			}
+			tradelog.Info("txResult2sellOrderReply", "show reply", reply)
+			return reply
+		}
+	}
+	return nil
+}
+
+func buyOrder2reply(buyOrder *types.BuyLimitOrder) *types.ReplyBuyOrder {
+	reply := &types.ReplyBuyOrder{
+		buyOrder.TokenSymbol,
+		buyOrder.Address,
+		buyOrder.AmountPerBoardlot,
+		buyOrder.MinBoardlot,
+		buyOrder.PricePerBoardlot,
+		buyOrder.TotalBoardlot,
+		buyOrder.BoughtBoardlot,
+		buyOrder.Buyid,
+		buyOrder.Status,
+		"",
+		strings.Replace(buyOrder.Buyid, buyIDPrefix, "0x", 1),
+		buyOrder.Height,
+		buyOrder.Buyid,
+	}
+	return reply
+}
+
+func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
+	logs := txResult.Receiptdate.Logs
+	tradelog.Info("txResult2sellOrderReply", "show logs", logs)
+	for _, log := range logs {
+		if log.Ty == types.TyLogTradeBuy {
+			var receipt types.ReceiptBuyBase
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Info("txResult2sellOrderReply", "show logs 1 ", receipt)
+			amount, err := strconv.ParseFloat(receipt.AmountPerBoardlot, 64)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			price, err := strconv.ParseFloat(receipt.PricePerBoardlot, 64)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			txhash := common.ToHex(txResult.GetTx().Hash())
+			reply := &types.ReplyBuyOrder{
+				receipt.TokenSymbol,
+				receipt.Owner,
+				int64(amount * float64(types.TokenPrecision)),
+				receipt.MinBoardlot,
+				int64(price * float64(types.Coin)),
+				receipt.TotalBoardlot,
+				receipt.BoughtBoardlot,
+				"",
+				types.SellOrderStatus2Int[receipt.Status],
+				receipt.Sellid,
+				txhash,
+				receipt.Height,
+				txhash,
+			}
+			tradelog.Info("txResult2sellOrderReply", "show reply", reply)
+			return reply
+		}
+	}
+	return nil
+}
