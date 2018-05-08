@@ -62,9 +62,7 @@ message ReqAddrTokens{
 	int32 pageSize        = 5;
 }
 
-message ReplySellOrders {
-	repeated SellOrder selloders = 1;
-}
+
 
 //购买者发起交易用来购买token持有者之前挂单出售的token
 //其中的hash为token出售者发起出售交易的hash
@@ -212,7 +210,7 @@ message ReqTokenSellOrder {
 
 message ReqTokenBuyLimitOrder {
 	string tokenSymbol = 1;
-	string fromBuyId   = 2;
+	string fromKey     = 2;
 	int32 count        = 3;
 	int32 direction    = 4;
 	int32 status       = 5;
@@ -221,13 +219,13 @@ message ReqTokenBuyLimitOrder {
 message ReplyBuyOrder {
 	string tokenSymbol          = 1;
 	string owner                = 2;
-    string amountPerBoardlot    = 3;
+    int64 amountPerBoardlot    = 3;
 	int64 minBoardlot           = 4;
-    string pricePerBoardlot     = 5;
+    int64 pricePerBoardlot     = 5;
 	int64 totalBoardlot         = 6;
 	int64 boughtBoardlot        = 7;
 	string  buyid               = 8;
-    string  status              = 9;
+    int32  status              = 9;
     string  sellid              = 10;
     string  txhash              = 11;
     int64 height                = 12;
@@ -237,16 +235,23 @@ message ReplyBuyOrder {
 message ReplySellOrder {
 	string tokenSymbol          = 1;
 	string owner                = 2;
-    string amountPerBoardlot    = 3;
+    int64 amountPerBoardlot     = 3;
 	int64 minBoardlot           = 4;
-    string pricePerBoardlot     = 5;
+    int64 pricePerBoardlot      = 5;
 	int64 totalBoardlot         = 6;
-	int64 boughtBoardlot        = 7;
+	int64 soldboardlot        = 7;
 	string  buyid               = 8;
-    string  status              = 9;
+    int32  status              = 9;
     string  sellid              = 10;
     string  txhash              = 11;
     int64 height                = 12;
     string key                  = 13;
 }
+// TODO remvoe
+message ReplySellOrders {
+	repeated SellOrder selloders = 1;
+}
 
+message ReplySellOrders1 {
+	repeated ReplySellOrder selloders = 1;
+}

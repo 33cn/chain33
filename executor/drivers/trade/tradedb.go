@@ -49,6 +49,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 		types.SellOrderStatus[selldb.Status],
 		"",
 		txhash,
+		selldb.Height,
 	}
 	if types.TyLogTradeSell == tradeType {
 		receiptTrade := &types.ReceiptTradeSell{base}
@@ -77,6 +78,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash str
 		types.SellOrderStatus[types.TracdOrderStatusBoughtOut],
 		selldb.Sellid,
 		txhash,
+		selldb.Height,
 	}
 	log.Log = types.Encode(receiptBuy)
 
@@ -99,7 +101,11 @@ func getSellOrderFromID(sellid []byte, db dbm.KV) (*types.SellOrder, error) {
 }
 
 func getTx(txHash []byte, db dbm.KV) (*types.TxResult, error) {
-	value, err := db.Get(txHash)
+	hash, err := common.FromHex(string(txHash))
+	if err != nil {
+		return nil, err
+	}
+	value, err := db.Get(hash)
 	if err != nil {
 		tradelog.Error("getTx", "Failed to get value frim db wiht getTx", string(txHash))
 		return nil, err
@@ -108,7 +114,7 @@ func getTx(txHash []byte, db dbm.KV) (*types.TxResult, error) {
 	err = types.Decode(value, &txResult)
 
 	if err != nil {
-		tradelog.Error("getTx", "Failed to decode sell order", string(txHash))
+		tradelog.Error("getTx", "Failed to decode TxResult", string(txHash))
 		return nil, err
 	}
 	return &txResult, nil
@@ -161,6 +167,7 @@ func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog
 		types.SellOrderStatus[buydb.Status],
 		"",
 		txhash,
+		buydb.Height,
 	}
 	if types.TyLogTradeBuyLimit == tradeType {
 		receiptTrade := &types.ReceiptTradeBuyLimit{base}
@@ -181,12 +188,12 @@ func getBuyOrderFromID(buyid []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
 		return nil, err
 	}
 
-	var sellOrder types.BuyLimitOrder
-	if err = types.Decode(value, &sellOrder); err != nil {
+	var buy types.BuyLimitOrder
+	if err = types.Decode(value, &buy); err != nil {
 		tradelog.Error("getBuyOrderFromID", "Failed to decode buy order", string(buyid))
 		return nil, err
 	}
-	return &sellOrder, nil
+	return &buy, nil
 }
 
 func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt int64, txhash string) *types.ReceiptLog {
@@ -207,6 +214,7 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt in
 		types.SellOrderStatus[types.TracdOrderStatusSoldOut],
 		buydb.Buyid,
 		txhash,
+		buydb.Height,
 	}
 	log.Log = types.Encode(receiptSellMartet)
 
