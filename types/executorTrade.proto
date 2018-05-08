@@ -197,18 +197,18 @@ message ReplyBuyOrders {
 }
 
 // 获取Token未完成卖单的交易列表
-// 	 fromSellId : 第一次传参为空，获取卖单单价最低的列表。 当要获得下一页时， 传当前页最后一个；当要获得上一页时， 传当前页第一个。
+// 	 fromKey : 第一次传参为空，获取卖单单价最低的列表。 当要获得下一页时， 传当前页最后一个；当要获得上一页时， 传当前页第一个。
 // 	 count :获取交易列表的个数。
 // 	 direction :查找方式；0，上一页；1，下一页。  越靠后的也单价越贵
 message ReqTokenSellOrder {
 	string tokenSymbol = 1;
-	string fromSellId  = 2;
+	string fromKey     = 2;
 	int32 count        = 3;
 	int32 direction    = 4;
 	int32 status       = 5;
 }
 
-message ReqTokenBuyLimitOrder {
+message ReqTokenBuyOrder {
 	string tokenSymbol = 1;
 	string fromKey     = 2;
 	int32 count        = 3;
