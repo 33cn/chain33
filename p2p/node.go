@@ -24,8 +24,9 @@ func (n *Node) Start() {
 	if n.listener != nil {
 		n.listener.Start()
 	}
-	n.detectNodeAddr()
+
 	n.monitor()
+	go n.detectNodeAddr()
 	go n.doNat()
 
 }
@@ -234,7 +235,7 @@ func (n *Node) monitor() {
 	go n.monitorDialPeers()
 	go n.monitorBlackList()
 	go n.monitorFilter()
-
+	go n.monitorPeersHeight()
 }
 
 func (n *Node) needMore() bool {
@@ -254,32 +255,19 @@ func (n *Node) detectNodeAddr() {
 			time.Sleep(time.Second * 5)
 			continue
 		}
+
+		log.Info("detectNodeAddr", "LocalAddr", LocalAddr)
+		if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, defalutNatPort)); err == nil {
+			n.nodeInfo.SetExternalAddr(exaddr)
+		}
+
 		if cfg.GetIsSeed() {
 			log.Info("DetectNodeAddr", "ExIp", LocalAddr)
 			externalIP = LocalAddr
 			n.nodeInfo.SetNetSide(true)
-
 			//goto SET_ADDR
 		}
 
-		//检查是否在外网
-		addrs := n.nodeInfo.cfg.GetSeeds()
-		for _, addr := range addrs {
-			if strings.HasPrefix(addr, LocalAddr) {
-				continue
-			}
-			pcli := NewNormalP2PCli()
-			log.Info("detectNodeAddr")
-			selfexaddrs, outside, err := pcli.GetExternIP(addr)
-			if err == nil {
-				log.Info("GetExternIp ok")
-				n.nodeInfo.SetNetSide(outside)
-				externalIP = selfexaddrs
-				break
-			}
-			log.Info("for in addrs")
-		}
-		log.Info("DetectNodeAddr", " seed Exterip", externalIP)
 		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
 		if len(externalIP) == 0 {
 			externalIP = LocalAddr
@@ -303,18 +291,47 @@ func (n *Node) detectNodeAddr() {
 		externaladdr = fmt.Sprintf("%v:%v", externalIP, externalPort)
 
 		log.Debug("DetectionNodeAddr", "AddBlackList", externaladdr)
-		n.nodeInfo.blacklist.Add(externaladdr) //把自己的外网地址加入到黑名单，以防连接self
+		n.nodeInfo.blacklist.Add(externaladdr, 0) //把自己的外网地址永久加入到黑名单，以防连接self
 		if exaddr, err := NewNetAddressString(externaladdr); err == nil {
 			n.nodeInfo.SetExternalAddr(exaddr)
 
 		} else {
 			log.Error("DetectionNodeAddr", "error", err.Error())
 		}
+
 		if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, defaultPort)); err == nil {
 			n.nodeInfo.SetListenAddr(listaddr)
 		}
 
-		log.Info("DetectionNodeAddr", " Finish ExternalIp", externalIP, "LocalAddr", LocalAddr, "IsOutSide", n.nodeInfo.OutSide())
+		log.Info("DetectionNodeAddr", "ExternalIp", externalIP, "LocalAddr", LocalAddr, "IsOutSide", n.nodeInfo.OutSide())
+		//TODO 定期获取网络状态
+		go func() {
+			pcli := NewNormalP2PCli()
+			addrs := n.nodeInfo.cfg.GetSeeds()
+			for {
+				//检查是否在外网
+				activPeers, _ := n.GetActivePeers()
+				for padr, _ := range activPeers {
+					addrs = append(addrs, padr)
+				}
+
+				randIndex := rand.Int31n(int32(len(addrs)))
+				if strings.HasPrefix(addrs[randIndex], LocalAddr) {
+					continue
+				}
+
+				_, outside, err := pcli.GetExternIP(addrs[randIndex])
+				if err != nil {
+					time.Sleep(time.Second)
+					continue
+				}
+				log.Info("GetExternIp ok")
+				n.nodeInfo.SetNetSide(outside)
+				break
+			}
+
+		}()
+
 		break
 	}
 }
@@ -345,7 +362,7 @@ func (n *Node) natMapPort() {
 				n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
 
 			}
-			log.Info("NatMapPort", "External Port", n.nodeInfo.GetExternalAddr())
+			log.Info("NatMapPort", "External Port", n.nodeInfo.GetExternalAddr().Port)
 			continue
 		}
 
@@ -354,7 +371,7 @@ func (n *Node) natMapPort() {
 
 	if err != nil {
 		//映射失败
-		log.Warn("NatMapPort", "Nat Faild", "Sevice=6")
+		log.Warn("NatMapPort", "Nat", "Faild")
 		n.nodeInfo.natResultChain <- false
 		return
 	}
