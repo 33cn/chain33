@@ -3,6 +3,7 @@ package executor
 //store package store the world - state data
 import (
 	"bytes"
+	"sync"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -40,8 +41,7 @@ type Executor struct {
 	client queue.Client
 }
 
-func New(cfg *types.Exec) *Executor {
-	// init exec
+func execInit() {
 	coins.Init()
 	hashlock.Init()
 	manage.Init()
@@ -51,6 +51,15 @@ func New(cfg *types.Exec) *Executor {
 	ticket.Init()
 	token.Init()
 	trade.Init()
+}
+
+var runonce sync.Once
+
+func New(cfg *types.Exec) *Executor {
+	// init executor
+	runonce.Do(func() {
+		execInit()
+	})
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
 	if cfg.MinExecFee == 0 && cfg.IsFree {
