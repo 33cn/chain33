@@ -253,22 +253,22 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		return t.GetOnesBuyOrder(&addrTokens)
 	//查寻所有的可以进行交易的卖单
 	// TODO
-	// 改造成， 按 用户状态来
-	case "GetAllSellOrdersWithStatus":
+	// 改造成， 按 用户状态来 addr-status
+	case "GetOnesSellOrdersWithStatus":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
 		}
-		return t.GetAllSellOrdersWithStatus(addrTokens.Status)
+		return t.GetOnesSellOrdersWithStatus(addrTokens.Status)
 
-	case "GetAllBuyOrdersWithStatus":
+	case "GetOnesBuyOrdersWithStatus":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
 		}
-		return t.GetAllSellOrdersWithStatus(addrTokens.Status)
+		return t.GetOnesSellOrdersWithStatus(addrTokens.Status)
 
 
 	default:
