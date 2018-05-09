@@ -11,10 +11,10 @@ const (
 	sellOrderASTS        = "token-sellorder-asts:"
 	sellOrderATSS        = "token-sellorder-atss:"
 	sellOrderTSPAS       = "token-sellorder-tspas:"
-	buyLimitOrderSHTAS   = "token-buyorder-shtas:"
-	buyLimitOrderASTS    = "token-buyorder-asts:"
-	buyLimitOrderATSS    = "token-buyorder-atss:"
-	buyLimitOrderTSPAS   = "token-buyorder-tspas:"
+	buyOrderSHTAS   = "token-buyorder-shtas:"
+	buyOrderASTS    = "token-buyorder-asts:"
+	buyOrderATSS    = "token-buyorder-atss:"
+	buyOrderTSPAS   = "token-buyorder-tspas:"
 	sellIDPrefix         = "mavl-trade-sell-"
 	buyIDPrefix          = "mavl-trade-buy-"
 	sellOrderPrefix      = "token-sellorder"
@@ -83,51 +83,51 @@ func calcTokenBuyID(hash string) string {
 // buy limit order 4 key, 4prefix
 // 特定状态下的买单
 func calcTokenBuyLimitOrderKey(token string, addr string, status int32, orderID string, height int64) []byte {
-	key := fmt.Sprintf(buyLimitOrderSHTAS+"%d:%d:%s:%s:%s", status, height, token, addr, orderID)
+	key := fmt.Sprintf(buyOrderSHTAS+"%d:%d:%s:%s:%s", status, height, token, addr, orderID)
 	return []byte(key)
 }
 
 // 特定账户下特定状态的买单
 func calcOnesBuyLimitOrderKeyStatus(token string, addr string, status int32, orderID string) []byte {
-	key := fmt.Sprintf(buyLimitOrderASTS+"%s:%d:%s:%s", addr, status, token, orderID)
+	key := fmt.Sprintf(buyOrderASTS+"%s:%d:%s:%s", addr, status, token, orderID)
 	return []byte(key)
 }
 
 // 特定账户下特定token的买单
 func calcOnesBuyLimitOrderKeyToken(token string, addr string, status int32, orderID string) []byte {
-	key := fmt.Sprintf(buyLimitOrderATSS+"%s:%s:%d:%s", addr, token, status, orderID)
+	key := fmt.Sprintf(buyOrderATSS+"%s:%s:%d:%s", addr, token, status, orderID)
 	return []byte(key)
 }
 
 // 指定token的卖单， 带上价格方便排序
 func calcTokensBuyLimitOrderKeyStatus(token string, status int32, price int64, addr string, orderID string) []byte {
-	key := fmt.Sprintf(buyLimitOrderTSPAS+"%s:%d:%016d:%s:%s", token, status, price, addr, orderID)
+	key := fmt.Sprintf(buyOrderTSPAS+"%s:%d:%016d:%s:%s", token, status, price, addr, orderID)
 	return []byte(key)
 }
 
 func calcTokensBuyLimitOrderPrefixStatus(token string, status int32) []byte {
-	prefix := fmt.Sprintf(buyLimitOrderTSPAS+"%s:%d:", token, status)
+	prefix := fmt.Sprintf(buyOrderTSPAS+"%s:%d:", token, status)
 	return []byte(prefix)
 }
 
 // 特定账户下指定token的买单
 func calcOnesBuyLimitOrderPrefixToken(token string, addr string) []byte {
-	key := fmt.Sprintf(buyLimitOrderATSS+"%s:%s", addr, token)
+	key := fmt.Sprintf(buyOrderATSS+"%s:%s", addr, token)
 	return []byte(key)
 }
 
 // 特定账户下的买单
 func calcOnesBuyLimitOrderPrefixAddr(addr string) []byte {
-	return []byte(fmt.Sprintf(buyLimitOrderASTS+"%s", addr))
+	return []byte(fmt.Sprintf(buyOrderASTS+"%s", addr))
 }
 
 func calcOnesBuyLimitOrderPrefixStatus(addr string, status int32) []byte {
-	return []byte(fmt.Sprintf(buyLimitOrderASTS+"%s:%d", addr, status))
+	return []byte(fmt.Sprintf(buyOrderASTS+"%s:%d", addr, status))
 }
 
 // 特定状态下的买单
 func calcTokenBuyLimitOrderPrefixStatus(status int32) []byte {
-	return []byte(fmt.Sprintf(buyLimitOrderSHTAS+"%d", status))
+	return []byte(fmt.Sprintf(buyOrderSHTAS+"%d", status))
 }
 
 func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase,
