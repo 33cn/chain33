@@ -715,7 +715,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 			logIns = logTmp
 		case TyLogTradeBuy:
 			lTy = "LogTradeBuy"
-			var logTmp ReceiptTradeBuy
+			var logTmp ReceiptBuyBase
 			err = Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
