@@ -36,7 +36,7 @@ type NormalInterface interface {
 	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
 	GetExternIP(addr string) (string, bool, error)
 	CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error)
-	GetAddrList(peer *Peer) ([]string, error)
+	GetAddrList(peer *Peer) (map[string]int64, error)
 }
 
 type Cli struct {
@@ -148,9 +148,12 @@ func (m *Cli) GetAddr(peer *Peer) ([]string, error) {
 	return resp.Addrlist, nil
 }
 
-func (m *Cli) GetAddrList(peer *Peer) ([]string, error) {
+func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 
-	var addrlist []string
+	var addrlist = make(map[string]int64)
+	if peer == nil {
+		return addrlist, fmt.Errorf("pointer is nil")
+	}
 	resp, err := peer.mconn.gcli.GetAddrList(context.Background(), &pb.P2PGetAddr{Nonce: int64(rand.Int31n(102040))},
 		grpc.FailFast(true))
 
@@ -176,8 +179,9 @@ func (m *Cli) GetAddrList(peer *Peer) ([]string, error) {
 	peerinfos := resp.GetPeerinfo()
 
 	for _, peerinfo := range peerinfos {
-		if peerinfo.GetHeader().GetHeight() > localBlockHeight || localBlockHeight-peerinfo.GetHeader().GetHeight() > 1024 {
-			addrlist = append(addrlist, fmt.Sprintf("%v:%v", peerinfo.GetAddr(), peerinfo.GetPort()))
+		if peerinfo.GetHeader().GetHeight() > localBlockHeight || localBlockHeight-peerinfo.GetHeader().GetHeight() > 2048 {
+			//addrlist = append(addrlist, fmt.Sprintf("%v:%v", peerinfo.GetAddr(), peerinfo.GetPort()))
+			addrlist[fmt.Sprintf("%v:%v", peerinfo.GetAddr(), peerinfo.GetPort())] = peerinfo.GetHeader().GetHeight()
 		}
 	}
 	return addrlist, nil
