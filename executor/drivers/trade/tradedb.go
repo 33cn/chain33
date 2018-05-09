@@ -37,7 +37,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 	base := &types.ReceiptSellBase{
 		selldb.Tokensymbol,
 		selldb.Address,
-		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 8, 64),
 		selldb.Minboardlot,
 		strconv.FormatFloat(float64(selldb.Priceperboardlot)/float64(types.Coin), 'f', 8, 64),
 		selldb.Totalboardlot,
@@ -69,7 +69,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash str
 	base := &types.ReceiptBuyBase{
 		selldb.Tokensymbol,
 		buyerAddr,
-		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 8, 64),
 		selldb.Minboardlot,
 		strconv.FormatFloat(float64(selldb.Priceperboardlot)/float64(types.Coin), 'f', 8, 64),
 		boardlotcnt,
@@ -159,7 +159,7 @@ func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog
 	base := &types.ReceiptBuyBase{
 		buydb.TokenSymbol,
 		buydb.Address,
-		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 8, 64),
 		buydb.MinBoardlot,
 		strconv.FormatFloat(float64(buydb.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64),
 		buydb.TotalBoardlot,
@@ -203,7 +203,7 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt in
 	base := &types.ReceiptSellBase{
 		buydb.TokenSymbol,
 		sellerAddr,
-		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
+		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 8, 64),
 		buydb.MinBoardlot,
 		strconv.FormatFloat(float64(buydb.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64),
 		boardlotCnt,
