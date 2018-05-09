@@ -24,9 +24,8 @@ func (n *Node) Start() {
 	if n.listener != nil {
 		n.listener.Start()
 	}
-
-	n.monitor()
 	n.detectNodeAddr()
+	n.monitor()
 	go n.doNat()
 
 }
