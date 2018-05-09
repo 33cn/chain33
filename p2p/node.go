@@ -248,7 +248,7 @@ func (n *Node) monitor() {
 
 func (n *Node) needMore() bool {
 	outBoundNum := n.Size()
-	return !(outBoundNum > maxOutBoundNum /*|| outBoundNum > stableBoundNum*/)
+	return !(outBoundNum > maxOutBoundNum)
 }
 
 func (n *Node) detectNodeAddr() {
