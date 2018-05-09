@@ -7,16 +7,11 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
-	"gitlab.33.cn/chain33/chain33/consensus"
-	"gitlab.33.cn/chain33/chain33/executor"
-	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -25,7 +20,7 @@ var (
 	amount   = int64(1e8)
 	v        = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 1}
+	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2}
 	tx2      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0}
 	tx3      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0}
 	tx4      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0}
@@ -54,7 +49,7 @@ var blk = &types.Block{
 	Version:    1,
 	ParentHash: []byte("parent hash"),
 	TxHash:     []byte("tx hash"),
-	Height:     1,
+	Height:     2,
 	BlockTime:  1,
 	Txs:        []*types.Transaction{tx3, tx5},
 }
@@ -93,49 +88,30 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv2(size int) (queue.Queue, *blockchain.BlockChain, *executor.Executor, queue.Module, queue.Module, *Mempool, *p2p.P2p) {
+func initEnv2(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
-	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueueClient(q.Client())
 
-	exec := executor.New(cfg.Exec)
-	exec.SetQueueClient(q.Client())
-
-	store := store.New(cfg.Store)
-	store.SetQueueClient(q.Client())
-
-	cs := consensus.New(cfg.Consensus)
-	cs.SetQueueClient(q.Client())
+	blockchainProcess(q)
+	execProcess(q)
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
 
-	network := p2p.New(cfg.P2P)
-	network.SetQueueClient(q.Client())
-
 	if size > 0 {
 		mem.Resize(size)
 	}
 	mem.SetMinFee(0)
-	return q, chain, exec, store, cs, mem, network
+	return q, mem
 }
 
-func initEnv(size int) (queue.Queue, *blockchain.BlockChain, *executor.Executor, queue.Module, queue.Module, *Mempool) {
+func initEnv(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
-	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueueClient(q.Client())
 
-	exec := executor.New(cfg.Exec)
-	exec.SetQueueClient(q.Client())
-
-	store := store.New(cfg.Store)
-	store.SetQueueClient(q.Client())
-
-	cs := consensus.New(cfg.Consensus)
-	cs.SetQueueClient(q.Client())
+	blockchainProcess(q)
+	execProcess(q)
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
@@ -161,7 +137,7 @@ func initEnv(size int) (queue.Queue, *blockchain.BlockChain, *executor.Executor,
 	tx12.Sign(types.SECP256K1, privKey)
 	tx13.Sign(types.SECP256K1, privKey)
 
-	return q, chain, exec, store, cs, mem
+	return q, mem
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
@@ -187,12 +163,8 @@ func genaddress() (string, crypto.PrivKey) {
 }
 
 func TestAddEmptyTx(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	msg := mem.client.NewMessage("mempool", types.EventTx, nil)
@@ -209,12 +181,8 @@ func TestAddEmptyTx(t *testing.T) {
 }
 
 func TestAddTx(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx2)
@@ -227,12 +195,8 @@ func TestAddTx(t *testing.T) {
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx2)
@@ -380,12 +344,8 @@ func add10Tx(client queue.Client) error {
 }
 
 func TestGetTxList(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	// add tx
@@ -441,12 +401,8 @@ OutsideLoop:
 }
 
 func TestEventDelTxList(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	// add tx
@@ -471,12 +427,8 @@ func TestEventDelTxList(t *testing.T) {
 }
 
 func TestAddMoreTxThanPoolSize(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(4)
+	q, mem := initEnv(4)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	err := add4Tx(mem.client)
@@ -490,17 +442,13 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 	mem.client.Wait(msg5)
 
 	if mem.Size() != 4 || mem.cache.Exists(tx5.Hash()) {
-		t.Error("TestAddMoreTxThanPoolSize failed")
+		t.Error("TestAddMoreTxThanPoolSize failed", mem.Size(), mem.cache.Exists(tx5.Hash()))
 	}
 }
 
 func TestRemoveTxOfBlock(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	err := add4Tx(mem.client)
@@ -529,12 +477,8 @@ func TestRemoveTxOfBlock(t *testing.T) {
 }
 
 func TestDuplicateMempool(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	// add 10 txs
@@ -560,12 +504,8 @@ func TestDuplicateMempool(t *testing.T) {
 }
 
 func TestGetLatestTx(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	// add 10 txs
@@ -595,12 +535,8 @@ func TestGetLatestTx(t *testing.T) {
 }
 
 func TestCheckLowFee(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	mem.SetMinFee(1000)
@@ -614,12 +550,8 @@ func TestCheckLowFee(t *testing.T) {
 }
 
 func TestCheckSignature(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	// make wrong signature
@@ -635,12 +567,8 @@ func TestCheckSignature(t *testing.T) {
 }
 
 func TestCheckExpire1(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
@@ -654,12 +582,8 @@ func TestCheckExpire1(t *testing.T) {
 }
 
 func TestCheckExpire2(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	// add tx
@@ -687,12 +611,8 @@ func TestCheckExpire2(t *testing.T) {
 }
 
 func TestGetAddrTxs(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	// add tx
@@ -731,12 +651,8 @@ func TestGetAddrTxs(t *testing.T) {
 }
 
 func TestDelBlock(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	action := &types.TicketAction{Ty: types.TicketActionMiner}
@@ -747,7 +663,7 @@ func TestDelBlock(t *testing.T) {
 	delBlock.Txs = append(delBlock.Txs, minerTx)
 	var blockDetail = &types.BlockDetail{Block: delBlock}
 
-	mem.setHeader(&types.Header{Height: 1, BlockTime: 1e9 + 1})
+	mem.setHeader(&types.Header{Height: 2, BlockTime: 1e9 + 1})
 	msg1 := mem.client.NewMessage("mempool", types.EventDelBlock, blockDetail)
 	mem.client.Send(msg1, false)
 
@@ -767,12 +683,8 @@ func TestDelBlock(t *testing.T) {
 }
 
 func TestAddMinerTx(t *testing.T) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	action := &types.TicketAction{Ty: types.TicketActionMiner}
@@ -790,12 +702,8 @@ func TestAddMinerTx(t *testing.T) {
 }
 
 func BenchmarkMempool(b *testing.B) {
-	q, chain, exec, store, cs, mem := initEnv(0)
+	q, mem := initEnv(0)
 	defer q.Close()
-	defer chain.Close()
-	defer exec.Close()
-	defer store.Close()
-	defer cs.Close()
 	defer mem.Close()
 
 	maxTxNumPerAccount = 100000
@@ -814,4 +722,35 @@ func BenchmarkMempool(b *testing.B) {
 	mem.client.Send(msg, true)
 	mem.client.Wait(msg)
 	println(mem.Size() == b.N+1)
+}
+
+func blockchainProcess(q queue.Queue) {
+	go func() {
+		client := q.Client()
+		client.Sub("blockchain")
+		for msg := range client.Recv() {
+			if msg.Ty == types.EventGetLastHeader {
+				msg.Reply(client.NewMessage("", types.EventHeader, &types.Header{Height: 1, BlockTime: 1}))
+			} else if msg.Ty == types.EventIsSync {
+				msg.Reply(client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
+			}
+		}
+	}()
+}
+
+func execProcess(q queue.Queue) {
+	go func() {
+		client := q.Client()
+		client.Sub("execs")
+		for msg := range client.Recv() {
+			if msg.Ty == types.EventCheckTx {
+				datas := msg.GetData().(*types.ExecTxList)
+				result := &types.ReceiptCheckTxList{}
+				for i := 0; i < len(datas.Txs); i++ {
+					result.Errs = append(result.Errs, "")
+				}
+				msg.Reply(client.NewMessage("", types.EventReceiptCheckTx, result))
+			}
+		}
+	}()
 }
