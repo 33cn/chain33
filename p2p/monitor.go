@@ -107,7 +107,7 @@ func (n *Node) getAddrFromOnline() {
 		if n.Size() == 0 && ticktimes > 2 {
 			//尝试与Seed 进行连接
 			var rangeCount int
-			for addr, _ := range seedsMap {
+			for addr := range seedsMap {
 				//先把seed 排除在外
 				rangeCount++
 				if rangeCount < maxOutBoundNum {
@@ -127,7 +127,7 @@ func (n *Node) getAddrFromOnline() {
 
 			if peer.version.GetVersion() >= VERSION {
 				addrlistMap, err = pcli.GetAddrList(peer)
-				for addr, _ := range addrlistMap {
+				for addr := range addrlistMap {
 					addrlist = append(addrlist, addr)
 				}
 			} else {
