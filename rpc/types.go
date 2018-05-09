@@ -288,14 +288,14 @@ type TradeBuyLimitTx struct {
 }
 
 type TradeSellMarketTx struct {
-	BuyId      string `json:"buy_id"`
+	BuyId       string `json:"buy_id"`
 	BoardlotCnt int64  `json:"boardlot_cnt"`
 	Fee         int64  `json:"fee"`
 }
 
 type TradeRevokeBuyTx struct {
 	BuyId string `json:"buy_id,"`
-	Fee    int64  `json:"fee"`
+	Fee   int64  `json:"fee"`
 }
 
 type NodeNetinfo struct {
@@ -305,5 +305,3 @@ type NodeNetinfo struct {
 	Outbounds    int32  `json:"outbounds"`
 	Inbounds     int32  `json:"inbounds"`
 }
-
-
