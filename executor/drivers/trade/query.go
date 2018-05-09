@@ -97,10 +97,9 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 	return &replys, nil
 }
 
-func (t *trade) GetOnesSellOrdersWithStatus(status int32) (types.Message, error) {
-	sellidGotAlready := make(map[string]bool)
+func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
 	var sellids [][]byte
-	values, err := t.GetLocalDB().List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
+	values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -109,20 +108,40 @@ func (t *trade) GetOnesSellOrdersWithStatus(status int32) (types.Message, error)
 		sellids = append(sellids, values...)
 	}
 
-	var reply types.ReplySellOrders
+	var replys types.ReplySellOrders1
 	for _, sellid := range sellids {
-		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
-		if !sellidGotAlready[string(sellid)] {
-			if sellorder, err := getSellOrderFromID(sellid, t.GetStateDB()); err == nil {
-				// TODO
-				//reply.Selloders = insertSellOrderDescending(sellorder, reply.Selloders)
-				tradelog.Debug("trade Query", "height of sellid", sellorder.Height,
-					"len of reply.Selloders", len(reply.Selloders))
-			}
-			sellidGotAlready[string(sellid)] = true
+		reply := t.replyReplySellOrderfromID(sellid)
+		if reply != nil {
+			replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
+			tradelog.Debug("trade Query", "height of sellid", reply.Height,
+					"len of reply.Selloders", len(replys.Selloders))
 		}
 	}
-	return &reply, nil
+	return &replys, nil
+}
+
+func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
+	var sellids [][]byte
+	values, err := t.GetLocalDB().List(calcOnesBuyLimitOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) != 0 {
+		tradelog.Debug("trade Query", "get number of buy keys", len(values))
+		sellids = append(sellids, values...)
+	}
+
+	var replys types.ReplyBuyOrders
+	for _, sellid := range sellids {
+		reply := t.replyReplyBuyOrderfromID(sellid)
+		if reply != nil {
+			//replys.Selloders = insertBuyOrderDescending(reply, replys.Selloders)
+			replys.BuyOrders = append(replys.BuyOrders, reply)
+			tradelog.Debug("trade Query", "height of key", reply.Height,
+				"len of reply.Selloders", len(replys.BuyOrders))
+		}
+	}
+	return &replys, nil
 }
 
 //根据height进行降序插入,TODO:使用标准的第三方库进行替换
