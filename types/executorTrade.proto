@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package types;
 
+// trade 交易部分
+//
 message Trade {
 	oneof value {
 		TradeForSell              tokensell            = 1;
@@ -17,32 +19,30 @@ message Trade {
 // 创建众筹交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
 message TradeForSell {
 	string tokensymbol          = 1;
-	//每一手出售的token的数量
+	// 每一手出售的token的数量
 	int64 amountperboardlot     = 2;
-	//起卖手数,必须达到这个门槛才允许进行交易
+	// 起卖手数,必须达到这个门槛才允许进行交易
 	int64 minboardlot           = 3;
-	//每一手token的价格
+	// 每一手token的价格
 	int64 priceperboardlot      = 4;
 	int64 totalboardlot         = 5;
-	//此次出售的起始时间，如果非众筹则可以忽略此时间
+	// 此次出售的起始时间，如果非众筹则可以忽略此时间
 	int64  starttime            = 6;
 	int64  stoptime             = 7;
 	bool   crowdfund            = 8;
 }
 
-//购买者发起交易用来购买token持有者之前挂单出售的token
-//其中的hash为token出售者发起出售交易的hash
+// 购买者发起交易用来购买token持有者之前挂单出售的token
+// 其中的hash为token出售者发起出售交易的hash
 message TradeForBuy {
 	string sellid      = 1;
 	int64 boardlotcnt  = 2;
 }
 
-//允许token的持有者撤销之前未成交出售token的挂单
+// 允许token的持有者撤销之前未成交出售token的挂单
 message TradeForRevokeSell {
 	string sellid      = 1;
 }
-
-
 
 // 限价买单构造请求
 message TradeForBuyLimit {
@@ -51,11 +51,6 @@ message TradeForBuyLimit {
 	int64 minBoardlot           = 3;
 	int64 pricePerBoardlot      = 4;
 	int64 totalBoardlot         = 5;
-}
-
-// 限价买单请求回执
-message BuyLimitOrderReceipt {
-	string buyid = 1;
 }
 
 // 现价卖单
