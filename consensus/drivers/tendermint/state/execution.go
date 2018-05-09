@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
@@ -16,7 +15,7 @@ import (
 // BlockExecutor provides the context and accessories for properly executing a block.
 type BlockExecutor struct {
 	// save state, validators, consensus params, abci responses here
-	db dbm.DB
+	db *CSStateDB
 
 	// execute the app against this
 	//proxyApp proxy.AppConnConsensus
@@ -33,7 +32,7 @@ type BlockExecutor struct {
 
 // NewBlockExecutor returns a new BlockExecutor with a NopEventBus.
 // Call SetEventBus to provide one.
-func NewBlockExecutor(db dbm.DB, logger log.Logger, evpool types.EvidencePool) *BlockExecutor {
+func NewBlockExecutor(db *CSStateDB, logger log.Logger, evpool types.EvidencePool) *BlockExecutor {
 	return &BlockExecutor{
 		db: db,
 		//proxyApp: proxyApp,
@@ -98,7 +97,7 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 
 	// update the app hash and save the state
 	//s.AppHash = appHash
-	SaveState(blockExec.db, s)
+	//SaveState(blockExec.db, s)
 
 	//fail.Fail() // XXX
 

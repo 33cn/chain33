@@ -8,7 +8,6 @@ import (
 
 	wire "github.com/tendermint/go-wire"
 
-	"os"
 
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -190,66 +189,6 @@ func MakeGenesisState(genDoc *types.GenesisDoc) (State, error) {
 	}, nil
 }
 
-// LoadStateFromDBOrGenesisFile loads the most recent state from the database,
-// or creates a new one from the given genesisFilePath and persists the result
-// to the database.
-func LoadStateFromDBOrGenesisFile(stateDB dbm.DB, genesisFilePath string) (State, error) {
-	state := LoadState(stateDB)
-	if state.IsEmpty() {
-		var err error
-		state, err = MakeGenesisStateFromFile(genesisFilePath)
-		if err != nil {
-			return state, err
-		}
-		SaveState(stateDB, state)
-	}
-
-	return state, nil
-}
-
-// LoadStateFromDBOrGenesisDoc loads the most recent state from the database,
-// or creates a new one from the given genesisDoc and persists the result
-// to the database.
-func LoadStateFromDBOrGenesisDoc(stateDB dbm.DB, genesisDoc *types.GenesisDoc) (State, error) {
-	state := LoadState(stateDB)
-	if state.IsEmpty() {
-		var err error
-		state, err = MakeGenesisState(genesisDoc)
-		if err != nil {
-			return state, err
-		}
-		SaveState(stateDB, state)
-	}
-
-	return state, nil
-}
-
-// LoadState loads the State from the database.
-func LoadState(db dbm.DB) State {
-	return loadState(db, stateKey)
-}
-
-func loadState(db dbm.DB, key []byte) (state State) {
-	buf, e := db.Get(key)
-	if e != nil {
-		fmt.Printf(fmt.Sprintf(`LoadState: db get key %v failed:%v\n`, key, e))
-	}
-	if len(buf) == 0 {
-		return state
-	}
-
-	r, n, err := bytes.NewReader(buf), new(int), new(error)
-	wire.ReadBinaryPtr(&state, r, 0, n, err)
-	if *err != nil {
-		// DATA HAS BEEN CORRUPTED OR THE SPEC HAS CHANGED
-		fmt.Printf(fmt.Sprintf(`LoadState: Data has been corrupted or its spec has changed:%v\n`, *err))
-		os.Exit(1)
-	}
-	// TODO: ensure that buf is completely read.
-
-	return state
-}
-
 // SaveState persists the State, the ValidatorsInfo, and the ConsensusParamsInfo to the database.
 func SaveState(db dbm.DB, s State) {
 	saveState(db, s, stateKey)
@@ -318,47 +257,4 @@ func saveConsensusParamsInfo(db dbm.DB, nextHeight, changeHeight int64, params t
 		paramsInfo.ConsensusParams = params
 	}
 	db.SetSync(calcConsensusParamsKey(nextHeight), paramsInfo.Bytes())
-}
-
-func loadValidatorsInfo(db dbm.DB, height int64) *ValidatorsInfo {
-	buf, e := db.Get(calcValidatorsKey(height))
-	if e != nil {
-		fmt.Printf(fmt.Sprintf(`LoadValidators: db get height key %v failed:
-                %v\n`, calcValidatorsKey(height), e))
-	}
-	if len(buf) == 0 {
-		return nil
-	}
-
-	v := new(ValidatorsInfo)
-	r, n, err := bytes.NewReader(buf), new(int), new(error)
-	wire.ReadBinaryPtr(v, r, 0, n, err)
-	if *err != nil {
-		// DATA HAS BEEN CORRUPTED OR THE SPEC HAS CHANGED
-		fmt.Printf(fmt.Sprintf(`LoadValidators: Data has been corrupted or its spec has changed:
-                %v\n`, *err))
-		os.Exit(1)
-	}
-	// TODO: ensure that buf is completely read.
-
-	return v
-}
-
-// LoadValidators loads the ValidatorSet for a given height.
-// Returns ErrNoValSetForHeight if the validator set can't be found for this height.
-func LoadValidators(db dbm.DB, height int64) (*types.ValidatorSet, error) {
-	valInfo := loadValidatorsInfo(db, height)
-	if valInfo == nil {
-		return nil, ErrNoValSetForHeight{height}
-	}
-
-	if valInfo.ValidatorSet == nil {
-		valInfo = loadValidatorsInfo(db, valInfo.LastHeightChanged)
-		if valInfo == nil {
-			panic(fmt.Sprintf("Panicked on a Sanity Check: %v", fmt.Sprintf(`Couldn't find validators at height %d as
-                        last changed from height %d`, valInfo.LastHeightChanged, height)))
-		}
-	}
-
-	return valInfo.ValidatorSet, nil
 }

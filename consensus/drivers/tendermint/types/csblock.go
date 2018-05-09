@@ -36,7 +36,7 @@ func NewBlockStore(client *drivers.BaseClient, pubkey string) *BlockStore {
 		pubkey: pubkey,
 	}
 }
-func GetCommitFromBlock(block *gtypes.Block) *gtypes.TendermintBlockInfo {
+func GetBlockInfo(block *gtypes.Block) *gtypes.TendermintBlockInfo {
 	if len(block.Txs) == 0 || block.Height == 0 {
 		return nil
 	}
@@ -102,7 +102,7 @@ func (bs *BlockStore) LoadSeenCommit(height int64) *Commit {
 		bslog.Error("LoadSeenCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
 		return nil
 	}
-	blockInfo := GetCommitFromBlock(oldBlock)
+	blockInfo := GetBlockInfo(oldBlock)
 	if blockInfo == nil {
 		bslog.Error("LoadSeenCommit get nil block info")
 		return nil
@@ -134,7 +134,7 @@ func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 		bslog.Error("LoadSeenCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
 		return nil
 	}
-	blockInfo := GetCommitFromBlock(oldBlock)
+	blockInfo := GetBlockInfo(oldBlock)
 	if blockInfo == nil {
 		bslog.Error("LoadSeenCommit get nil block info")
 		return nil

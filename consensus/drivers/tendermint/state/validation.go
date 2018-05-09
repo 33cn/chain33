@@ -5,14 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 //-----------------------------------------------------
 // Validate block
 
-func validateBlock(stateDB dbm.DB, s State, b *types.Block) error {
+func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
 	// validate internal consistency
 	if err := b.ValidateBasic(); err != nil {
 		return err
@@ -87,7 +86,7 @@ func validateBlock(stateDB dbm.DB, s State, b *types.Block) error {
 
 // VerifyEvidence verifies the evidence fully by checking it is internally
 // consistent and sufficiently recent.
-func VerifyEvidence(stateDB dbm.DB, s State, evidence types.Evidence) error {
+func VerifyEvidence(stateDB *CSStateDB, s State, evidence types.Evidence) error {
 	height := s.LastBlockHeight
 
 	evidenceAge := height - evidence.Height()
@@ -101,7 +100,7 @@ func VerifyEvidence(stateDB dbm.DB, s State, evidence types.Evidence) error {
 		return err
 	}
 
-	valset, err := LoadValidators(stateDB, evidence.Height())
+	valset, err := stateDB.LoadValidators(evidence.Height())
 	if err != nil {
 		// TODO: if err is just that we cant find it cuz we pruned, ignore.
 		// TODO: if its actually bad evidence, punish peer
