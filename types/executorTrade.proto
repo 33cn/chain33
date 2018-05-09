@@ -155,17 +155,6 @@ message ReceiptTradeRevoke {
 	ReceiptTradeBase base = 1;
 }
 
-message ReceiptTradeBuy {
-	string buyeraddr             = 1;
-	string sellid                = 2;
-	string token                 = 3;
-	int64 boardlotcnt            = 4;
-	string amountperboardlot     = 5;
-	string priceperboardlot      = 6;
-    string buytxhash             = 7;
-}
-
-
 // 查询部分
 
 message ReqAddrTokens{
