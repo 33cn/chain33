@@ -11,6 +11,10 @@ type CryptoSuiteConfig interface {
 	SecurityAlgorithm() string
 	SecurityLevel() int
 	SecurityProvider() string
+	SoftVerify() bool
+	SecurityProviderLibPath() string
+	SecurityProviderPin() string
+	SecurityProviderLabel() string
 	KeyStorePath() string
 }
 

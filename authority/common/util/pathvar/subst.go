@@ -70,8 +70,8 @@ func lookupVar(v string) (string, bool) {
 	switch v {
 	case "GOPATH":
 		return goPath(), true
-	case "CRYPTOCONFIG_FIXTURES_PATH":
-		return metadata.CryptoConfigPath, true
+	default:
+		return "", true
 	}
 	return os.LookupEnv(v)
 }
