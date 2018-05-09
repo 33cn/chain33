@@ -114,7 +114,7 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 		if reply != nil {
 			replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
 			tradelog.Debug("trade Query", "height of sellid", reply.Height,
-					"len of reply.Selloders", len(replys.Selloders))
+				"len of reply.Selloders", len(replys.Selloders))
 		}
 	}
 	return &replys, nil
@@ -213,7 +213,7 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 		fromKey = calcTokensBuyOrderKeyStatus(buy.TokenSymbol, buy.Status,
 			calcPriceOfToken(buy.PricePerBoardlot, buy.AmountPerBoardlot), buy.Owner, buy.Key)
 	}
-	tradelog.Info("GetTokenBuyLimitOrderByStatus","fromKey ", fromKey)
+	tradelog.Info("GetTokenBuyLimitOrderByStatus", "fromKey ", fromKey)
 
 	// List Direction 是升序， 买单是要降序， 把高价买的放前面， 在下一页操作时， 显示买价低的。
 	direction := 1 - req.Direction
