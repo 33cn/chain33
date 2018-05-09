@@ -325,7 +325,7 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 		} else {
 			// Warn about potential future problems
 			if !csp.softVerify {
-				logger.Debugf("opencryptoki workaround warning: Importing public EC Key does not store out to pkcs11 store,\n" +
+				logger.Debug("opencryptoki workaround warning: Importing public EC Key does not store out to pkcs11 store,\n" +
 					"so verify with this key will fail, unless key is already present in store. Enable 'softwareverify'\n" +
 					"in pkcs11 options, if suspect this issue.")
 			}
@@ -397,7 +397,7 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 		} else {
 			// Warn about potential future problems
 			if !csp.softVerify {
-				logger.Debugf("opencryptoki workaround warning: Importing public EC Key does not store out to pkcs11 store,\n" +
+				logger.Debug("opencryptoki workaround warning: Importing public EC Key does not store out to pkcs11 store,\n" +
 					"so verify with this key will fail, unless key is already present in store. Enable 'softwareverify'\n" +
 					"in pkcs11 options, if suspect this issue.")
 			}
