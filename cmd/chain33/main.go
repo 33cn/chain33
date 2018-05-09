@@ -36,6 +36,7 @@ import (
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
+	"gitlab.33.cn/chain33/chain33/authority"
 )
 
 var (
@@ -116,6 +117,10 @@ func main() {
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus)
 	cs.SetQueueClient(q.Client())
+
+	log.Info("loading consensus module")
+	auth := authority.New(cfg.Auth)
+	auth.SetQueueClient(q.Client())
 
 	var network *p2p.P2p
 	if cfg.P2P.Enable {
