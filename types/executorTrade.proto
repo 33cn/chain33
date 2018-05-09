@@ -225,11 +225,6 @@ message ReplySellOrder {
     int64 height                = 12;
     string key                  = 13;
 }
-// TODO remvoe
-// only used in client
-message ReplySellOrders1 {
-	repeated SellOrder selloders = 1;
-}
 
 message ReplySellOrders {
 	repeated ReplySellOrder selloders = 1;
