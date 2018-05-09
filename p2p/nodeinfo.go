@@ -184,7 +184,7 @@ func (nf *NodeInfo) IsNatDone() bool {
 
 func (nf *NodeInfo) IsOutService() bool {
 
-	if !nf.IsNatDone() || !nf.cfg.GetServerStart() {
+	if !nf.cfg.GetServerStart() {
 		return false
 	}
 

@@ -123,6 +123,7 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
 		log.Debug("Version2", "after", "AddAddress")
 	}
+
 	log.Debug("Version2", "before", "GetPrivPubKey")
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	log.Debug("Version2", "after", "GetPrivPubKey")
