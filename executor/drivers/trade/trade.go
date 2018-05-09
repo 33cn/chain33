@@ -251,16 +251,15 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetOnesBuyOrder(&addrTokens)
-	//查寻所有的可以进行交易的卖单
-	// TODO
-	// 改造成， 按 用户状态来 addr-status
+
+	// 按 用户状态来 addr-status
 	case "GetOnesSellOrdersWithStatus":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
 		}
-		return t.GetOnesSellOrdersWithStatus(addrTokens.Status)
+		return t.GetOnesSellOrdersWithStatus(&addrTokens)
 
 	case "GetOnesBuyOrdersWithStatus":
 		var addrTokens types.ReqAddrTokens
@@ -268,9 +267,8 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return t.GetOnesSellOrdersWithStatus(addrTokens.Status)
-
-
+		return t.GetOnesBuyOrdersWithStatus(&addrTokens)
+		
 	default:
 	}
 	tradelog.Error("trade Query", "Query type not supprt with func name", funcName)
