@@ -43,7 +43,6 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MCon
 	mconn.remoteAddress = remote
 
 	return mconn
-
 }
 
 func NewMConnectionWithConfig(cfg *MConnConfig) *MConnection {
