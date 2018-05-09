@@ -700,9 +700,14 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	//此时停止同步的任务
 	chain.task.Cancel()
 
-	//最高peer大于本节点tip高度时，至少取分叉节点到tipheight+1的block。用于总难度的比较
-	if peermaxheight > tipheight {
-		chain.FetchBlock(ForkHeight, tipheight+1, []string{pid}, true)
+	//分叉区块小于128个时向peer请求128个或者从分叉到peermaxheight指间的区块
+	//分叉区块大于128个时，至少取分叉节点到tipheight+1的block。用于总难度的比较
+	if peermaxheight > ForkHeight+MaxFetchBlockNum {
+		if tipheight > ForkHeight+MaxFetchBlockNum {
+			chain.FetchBlock(ForkHeight, tipheight+1, []string{pid}, true)
+		} else {
+			chain.FetchBlock(ForkHeight, ForkHeight+MaxFetchBlockNum, []string{pid}, true)
+		}
 	} else {
 		chain.FetchBlock(ForkHeight, peermaxheight, []string{pid}, true)
 	}
