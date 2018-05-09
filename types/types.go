@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -22,12 +21,14 @@ var tlog = log.New("module", "types")
 
 type Message proto.Message
 
-func isAllowExecName(name string) bool {
-	if strings.HasPrefix(name, "user.") {
+var userKey = []byte("user.")
+
+func isAllowExecName(name []byte) bool {
+	if bytes.HasPrefix(name, userKey) {
 		return true
 	}
 	for i := range AllowUserExec {
-		if AllowUserExec[i] == name {
+		if bytes.Equal(AllowUserExec[i], name) {
 			return true
 		}
 	}
@@ -103,7 +104,7 @@ func (tx *Transaction) CheckSign() bool {
 }
 
 func (tx *Transaction) Check(minfee int64) error {
-	if !isAllowExecName(string(tx.Execer)) {
+	if !isAllowExecName(tx.Execer) {
 		return ErrExecNameNotAllow
 	}
 	txSize := Size(tx)
@@ -519,6 +520,8 @@ func GetSignatureTypeName(signType int) string {
 		return "unknow"
 	}
 }
+
+var ConfigPrefix = "mavl-config-"
 
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
