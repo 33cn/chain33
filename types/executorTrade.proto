@@ -64,7 +64,7 @@ message TradeForRevokeBuy {
     string buyid = 1;
 }
 
-
+// 数据库部分
 message SellOrder {
 	string tokensymbol          = 1;
 	string address              = 2;
@@ -99,7 +99,7 @@ message BuyLimitOrder {
 	int64  height               = 10;
 }
 
-
+// 执行器日志部分
 message ReceiptBuyBase {
 	string tokenSymbol          = 1;
 	string owner                = 2;
@@ -150,6 +150,11 @@ message ReceiptTradeSell {
 	ReceiptTradeBase base = 1;
 }
 
+
+message ReceiptTradeRevoke {
+	ReceiptTradeBase base = 1;
+}
+
 message ReceiptTradeBuy {
 	string buyeraddr             = 1;
 	string sellid                = 2;
@@ -160,9 +165,6 @@ message ReceiptTradeBuy {
     string buytxhash             = 7;
 }
 
-message ReceiptTradeRevoke {
-	ReceiptTradeBase base = 1;
-}
 
 // 查询部分
 
