@@ -115,15 +115,7 @@ message ReceiptBuyBase {
     int64 height                = 12;
 }
 
-message ReceiptTradeBuyLimit {
-	ReceiptBuyBase base = 1;
-}
-
-message ReceiptTradeBuyRevoke {
-	ReceiptBuyBase base = 1;
-}
-
-message ReceiptTradeBase {
+message ReceiptSellBase {
 	string tokensymbol          = 1;
 	string owner                = 2;
 	//每一手出售的token的数量
@@ -146,13 +138,21 @@ message ReceiptTradeBase {
     int64 height                = 15;
 }
 
-message ReceiptTradeSell {
-	ReceiptTradeBase base = 1;
+
+message ReceiptTradeBuyLimit {
+	ReceiptBuyBase base = 1;
 }
 
+message ReceiptTradeBuyRevoke {
+	ReceiptBuyBase base = 1;
+}
+
+message ReceiptTradeSell {
+	ReceiptSellBase base = 1;
+}
 
 message ReceiptTradeRevoke {
-	ReceiptTradeBase base = 1;
+	ReceiptSellBase base = 1;
 }
 
 // 查询部分
