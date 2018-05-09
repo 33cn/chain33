@@ -82,51 +82,51 @@ func calcTokenBuyID(hash string) string {
 
 // buy limit order 4 key, 4prefix
 // 特定状态下的买单
-func calcTokenBuyLimitOrderKey(token string, addr string, status int32, orderID string, height int64) []byte {
+func calcTokenBuyOrderKey(token string, addr string, status int32, orderID string, height int64) []byte {
 	key := fmt.Sprintf(buyOrderSHTAS+"%d:%d:%s:%s:%s", status, height, token, addr, orderID)
 	return []byte(key)
 }
 
 // 特定账户下特定状态的买单
-func calcOnesBuyLimitOrderKeyStatus(token string, addr string, status int32, orderID string) []byte {
+func calcOnesBuyOrderKeyStatus(token string, addr string, status int32, orderID string) []byte {
 	key := fmt.Sprintf(buyOrderASTS+"%s:%d:%s:%s", addr, status, token, orderID)
 	return []byte(key)
 }
 
 // 特定账户下特定token的买单
-func calcOnesBuyLimitOrderKeyToken(token string, addr string, status int32, orderID string) []byte {
+func calcOnesBuyOrderKeyToken(token string, addr string, status int32, orderID string) []byte {
 	key := fmt.Sprintf(buyOrderATSS+"%s:%s:%d:%s", addr, token, status, orderID)
 	return []byte(key)
 }
 
 // 指定token的卖单， 带上价格方便排序
-func calcTokensBuyLimitOrderKeyStatus(token string, status int32, price int64, addr string, orderID string) []byte {
+func calcTokensBuyOrderKeyStatus(token string, status int32, price int64, addr string, orderID string) []byte {
 	key := fmt.Sprintf(buyOrderTSPAS+"%s:%d:%016d:%s:%s", token, status, price, addr, orderID)
 	return []byte(key)
 }
 
-func calcTokensBuyLimitOrderPrefixStatus(token string, status int32) []byte {
+func calcTokensBuyOrderPrefixStatus(token string, status int32) []byte {
 	prefix := fmt.Sprintf(buyOrderTSPAS+"%s:%d:", token, status)
 	return []byte(prefix)
 }
 
 // 特定账户下指定token的买单
-func calcOnesBuyLimitOrderPrefixToken(token string, addr string) []byte {
+func calcOnesBuyOrderPrefixToken(token string, addr string) []byte {
 	key := fmt.Sprintf(buyOrderATSS+"%s:%s", addr, token)
 	return []byte(key)
 }
 
 // 特定账户下的买单
-func calcOnesBuyLimitOrderPrefixAddr(addr string) []byte {
+func calcOnesBuyOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(buyOrderASTS+"%s", addr))
 }
 
-func calcOnesBuyLimitOrderPrefixStatus(addr string, status int32) []byte {
+func calcOnesBuyOrderPrefixStatus(addr string, status int32) []byte {
 	return []byte(fmt.Sprintf(buyOrderASTS+"%s:%d", addr, status))
 }
 
 // 特定状态下的买单
-func calcTokenBuyLimitOrderPrefixStatus(status int32) []byte {
+func calcTokenBuyOrderPrefixStatus(status int32) []byte {
 	return []byte(fmt.Sprintf(buyOrderSHTAS+"%d", status))
 }
 
@@ -135,13 +135,13 @@ func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBa
 
 	keyId := receipt.Txhash
 
-	newkey := calcTokenBuyLimitOrderKey(receipt.TokenSymbol, receipt.Owner, status, keyId, height)
+	newkey := calcTokenBuyOrderKey(receipt.TokenSymbol, receipt.Owner, status, keyId, height)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
-	newkey = calcOnesBuyLimitOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, keyId)
+	newkey = calcOnesBuyOrderKeyStatus(receipt.TokenSymbol, receipt.Owner, status, keyId)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
-	newkey = calcOnesBuyLimitOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, keyId)
+	newkey = calcOnesBuyOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, keyId)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
 
@@ -157,7 +157,7 @@ func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBa
 	AmountPerBoardlotInt64 := int64(AmountPerBoardlot * float64(types.Coin))
 	price := calcPriceOfToken(priceBoardlotInt64, AmountPerBoardlotInt64)
 
-	newkey = calcTokensBuyLimitOrderKeyStatus(receipt.TokenSymbol, status,
+	newkey = calcTokensBuyOrderKeyStatus(receipt.TokenSymbol, status,
 		price, receipt.Owner, keyId)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
@@ -205,16 +205,16 @@ func calcPriceOfToken(priceBoardlot, AmountPerBoardlot int64) int64 {
 }
 
 func genBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32, value []byte) []*types.KeyValue {
-	newkey := calcTokenBuyLimitOrderKey(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid, buyOrder.Height)
+	newkey := calcTokenBuyOrderKey(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid, buyOrder.Height)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
-	newkey = calcOnesBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
+	newkey = calcOnesBuyOrderKeyStatus(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
-	newkey = calcOnesBuyLimitOrderKeyToken(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
+	newkey = calcOnesBuyOrderKeyToken(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.Buyid)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
-	newkey = calcTokensBuyLimitOrderKeyStatus(buyOrder.TokenSymbol, status,
+	newkey = calcTokensBuyOrderKeyStatus(buyOrder.TokenSymbol, status,
 		calcPriceOfToken(buyOrder.PricePerBoardlot, buyOrder.AmountPerBoardlot), buyOrder.Address, buyOrder.Buyid)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
