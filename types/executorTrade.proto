@@ -14,7 +14,7 @@ message Trade {
 	int32 ty = 4;
 }
 
-//创建众筹交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
+// 创建众筹交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
 message TradeForSell {
 	string tokensymbol          = 1;
 	//每一手出售的token的数量
@@ -29,6 +29,50 @@ message TradeForSell {
 	int64  stoptime             = 7;
 	bool   crowdfund            = 8;
 }
+
+message SellOrderReceipt {
+	string sellid = 1;
+}
+
+//购买者发起交易用来购买token持有者之前挂单出售的token
+//其中的hash为token出售者发起出售交易的hash
+message TradeForBuy {
+	string sellid      = 1;
+	int64 boardlotcnt  = 2;
+}
+
+//允许token的持有者撤销之前未成交出售token的挂单
+message TradeForRevokeSell {
+	string sellid      = 1;
+}
+
+
+
+// 限价买单构造请求
+message TradeForBuyLimit {
+	string tokenSymbol          = 1;
+	int64 amountPerBoardlot     = 2;
+	int64 minBoardlot           = 3;
+	int64 pricePerBoardlot      = 4;
+	int64 totalBoardlot         = 5;
+}
+
+// 限价买单请求回执
+message BuyLimitOrderReceipt {
+	string buyid = 1;
+}
+
+// 现价卖单
+message TradeForSellMarket {
+    string buyid = 1;
+    int64 boardlotCnt = 2;
+}
+
+// 撤销买单
+message TradeForRevokeBuy {
+    string buyid = 1;
+}
+
 
 message SellOrder {
 	string tokensymbol          = 1;
@@ -50,41 +94,6 @@ message SellOrder {
 	int64  height               = 13;
 }
 
-message SellOrderReceipt {
-	string sellid = 1;
-}
-
-message ReqAddrTokens{
-	string addr           = 1;
-	int32  status         = 2;
-	repeated string token = 3;
-	int32 pageNumber      = 4;
-	int32 pageSize        = 5;
-}
-
-
-
-//购买者发起交易用来购买token持有者之前挂单出售的token
-//其中的hash为token出售者发起出售交易的hash
-message TradeForBuy {
-	string sellid      = 1;
-	int64 boardlotcnt  = 2;
-}
-
-//允许token的持有者撤销之前未成交出售token的挂单
-message TradeForRevokeSell {
-	string sellid      = 1;
-}
-
-// 限价买单构造请求
-message TradeForBuyLimit {
-	string tokenSymbol          = 1;
-	int64 amountPerBoardlot     = 2;
-	int64 minBoardlot           = 3;
-	int64 pricePerBoardlot      = 4;
-	int64 totalBoardlot         = 5;
-}
-
 // 限价买单数据库记录
 message BuyLimitOrder {
 	string tokenSymbol          = 1;
@@ -99,21 +108,6 @@ message BuyLimitOrder {
 	int64  height               = 10;
 }
 
-// 限价买单请求回执
-message BuyLimitOrderReceipt {
-	string buyid = 1;
-}
-
-// 现价卖单
-message TradeForSellMarket {
-    string buyid = 1;
-    int64 boardlotCnt = 2;
-}
-
-// 撤销买单
-message TradeForRevokeBuy {
-    string buyid = 1;
-}
 
 message ReceiptBuyBase {
 	string tokenSymbol          = 1;
@@ -179,8 +173,14 @@ message ReceiptTradeRevoke {
 	ReceiptTradeBase base = 1;
 }
 
-message ReplyBuyOrders {
-	repeated ReplyBuyOrder buyOrders = 1;
+// 查询部分
+
+message ReqAddrTokens{
+	string addr           = 1;
+	int32  status         = 2;
+	repeated string token = 3;
+	int32 pageNumber      = 4;
+	int32 pageSize        = 5;
 }
 
 // 获取Token未完成卖单的交易列表
@@ -242,4 +242,8 @@ message ReplySellOrders {
 
 message ReplySellOrders1 {
 	repeated ReplySellOrder selloders = 1;
+}
+
+message ReplyBuyOrders {
+	repeated ReplyBuyOrder buyOrders = 1;
 }
