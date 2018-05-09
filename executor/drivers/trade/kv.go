@@ -11,14 +11,10 @@ const (
 	sellOrderASTS        = "token-sellorder-asts:"
 	sellOrderATSS        = "token-sellorder-atss:"
 	sellOrderTSPAS       = "token-sellorder-tspas:"
-	buyOrderAHTSB        = "token-buyorder-ahtsb:"
-	buyOrderTAHSB        = "token-buyorder-tahsb:"
 	buyLimitOrderSHTAS   = "token-buyorder-shtas:"
 	buyLimitOrderASTS    = "token-buyorder-asts:"
 	buyLimitOrderATSS    = "token-buyorder-atss:"
 	buyLimitOrderTSPAS   = "token-buyorder-tspas:"
-	SellMarketOrderAHTSB = "token-sellmarketorder-ahtsb:"
-	SellMarketOrderTAHSB = "token-sellmarketorder-tahsb:"
 	sellIDPrefix         = "mavl-trade-sell-"
 	buyIDPrefix          = "mavl-trade-buy-"
 	sellOrderPrefix      = "token-sellorder"
@@ -66,25 +62,13 @@ func calcOnesSellOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(sellOrderASTS+"%s", addr))
 }
 
+func calcOnesSellOrderPrefixStatus(addr string, status int32) []byte {
+	return []byte(fmt.Sprintf(sellOrderASTS+"%s:%d", addr, status))
+}
+
 // 特定状态下的卖单
 func calcTokenSellOrderPrefixStatus(status int32) []byte {
 	return []byte(fmt.Sprintf(sellOrderSHTAS+"%d", status))
-}
-
-// buy order 2 key, 1 prefix
-// 考虑到购买者可能在同一个区块时间针对相同的卖单(sellorder)发起购买操作，所以使用sellid：buytxhash组合的方式生成key
-func calcOnesBuyOrderKey(addr string, height int64, token string, sellOrderID string, buyTxHash string) []byte {
-	return []byte(fmt.Sprintf(buyOrderAHTSB+"%s:%d:%s:%s:%s", addr, height, token, sellOrderID, buyTxHash))
-}
-
-// 用于快速查询某个token下的所有成交的买单
-func calcBuyOrderKey(addr string, height int64, token string, sellOrderID string, buyTxHash string) []byte {
-	return []byte(fmt.Sprintf(buyOrderTAHSB+"%s:%s:%d:%s:%s", token, addr, height, sellOrderID, buyTxHash))
-}
-
-// 特定账户下的买单
-func calcOnesBuyOrderPrefixAddr(addr string) []byte {
-	return []byte(fmt.Sprintf(buyOrderAHTSB+"%s", addr))
 }
 
 // ids
@@ -137,25 +121,13 @@ func calcOnesBuyLimitOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(buyLimitOrderASTS+"%s", addr))
 }
 
+func calcOnesBuyLimitOrderPrefixStatus(addr string, status int32) []byte {
+	return []byte(fmt.Sprintf(buyLimitOrderASTS+"%s:%d", addr, status))
+}
+
 // 特定状态下的买单
 func calcTokenBuyLimitOrderPrefixStatus(status int32) []byte {
 	return []byte(fmt.Sprintf(buyLimitOrderSHTAS+"%d", status))
-}
-
-// sell market order 2 key, 1 prefix
-// 考虑到购买者可能在同一个区块时间针对相同的buy limit order 发起操作，所以使用id：selltxhash组合的方式生成key
-func calcOnesSellMarketOrderKey(addr string, height int64, token string, orderID string, sellTxHash string) []byte {
-	return []byte(fmt.Sprintf(SellMarketOrderAHTSB+"%s:%d:%s:%s:%s", addr, height, token, orderID, sellTxHash))
-}
-
-// 用于快速查询某个token下的所有成交的卖单
-func calcSellMarketOrderKey(addr string, height int64, token string, orderID string, sellTxHash string) []byte {
-	return []byte(fmt.Sprintf(SellMarketOrderTAHSB+"%s:%s:%d:%s:%s", token, addr, height, orderID, sellTxHash))
-}
-
-//特定账户下的买单
-func calcOnesSellMarketOrderPrefixAddr(addr string) []byte {
-	return []byte(fmt.Sprintf(SellMarketOrderAHTSB+"%s", addr))
 }
 
 func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase,
