@@ -1070,7 +1070,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			logIns = logTmp
 		case types.TyLogTradeSellMarket:
 			lTy = "LogTradeSellMarket"
-			var logTmp types.ReceiptTradeBase
+			var logTmp types.ReceiptSellBase
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err

@@ -136,7 +136,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, kv...)
 			}
 		} else if item.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptTradeBase
+			var receipt types.ReceiptSellBase
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -187,7 +187,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			set.KV = append(set.KV, kv...)
 
 		} else if item.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptTradeBase
+			var receipt types.ReceiptSellBase
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -388,22 +388,22 @@ func (t *trade) deleteBuyLimit(buyid []byte, ty int32) []*types.KeyValue {
 	return genDeleteBuyLimitKv(buyOrder)
 }
 
-func (t *trade) saveSellMarket(receiptTradeBuy *types.ReceiptTradeBase) []*types.KeyValue {
+func (t *trade) saveSellMarket(receiptTradeBuy *types.ReceiptSellBase) []*types.KeyValue {
 	var kv []*types.KeyValue
 	return saveSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusSoldOut, t.GetHeight())
 }
 
-func (t *trade) deleteSellMarket(receiptTradeBuy *types.ReceiptTradeBase) []*types.KeyValue {
+func (t *trade) deleteSellMarket(receiptTradeBuy *types.ReceiptSellBase) []*types.KeyValue {
 	var kv []*types.KeyValue
 	return deleteSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusSoldOut, t.GetHeight())
 }
 
-func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptTradeBase, status int32, height int64) []*types.KeyValue {
+func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSellBase, status int32, height int64) []*types.KeyValue {
 	txhash := []byte(receipt.Txhash)
 	return genSellMarketOrderKeyValue(kv, receipt, status, height, txhash)
 }
 
-func deleteSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptTradeBase, status int32, height int64) []*types.KeyValue {
+func deleteSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSellBase, status int32, height int64) []*types.KeyValue {
 	return genSellMarketOrderKeyValue(kv, receipt, status, height, nil)
 }
 

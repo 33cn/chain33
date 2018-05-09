@@ -34,7 +34,7 @@ func (selldb *sellDB) save(db dbm.KV) []*types.KeyValue {
 func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = tradeType
-	base := &types.ReceiptTradeBase{
+	base := &types.ReceiptSellBase{
 		selldb.Tokensymbol,
 		selldb.Address,
 		strconv.FormatFloat(float64(selldb.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64),
@@ -199,7 +199,7 @@ func getBuyOrderFromID(buyid []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
 func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTradeSellMarket
-	receiptSellMartet := &types.ReceiptTradeBase{
+	receiptSellMartet := &types.ReceiptSellBase{
 		buydb.TokenSymbol,
 		sellerAddr,
 		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
