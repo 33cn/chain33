@@ -34,7 +34,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 		}
 	}
 
-	var replys types.ReplySellOrders1
+	var replys types.ReplySellOrders
 	for _, key := range keys {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !sellidGotAlready[string(key)] {
@@ -108,7 +108,7 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 		sellids = append(sellids, values...)
 	}
 
-	var replys types.ReplySellOrders1
+	var replys types.ReplySellOrders
 	for _, sellid := range sellids {
 		reply := t.replyReplySellOrderfromID(sellid)
 		if reply != nil {
@@ -187,7 +187,7 @@ func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status i
 	if err != nil {
 		return nil, err
 	}
-	var reply types.ReplySellOrders1
+	var reply types.ReplySellOrders
 	for _, key := range values {
 		sell := t.replyReplySellOrderfromID([]byte(key))
 		if sell != nil {
