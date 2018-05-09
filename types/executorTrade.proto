@@ -179,19 +179,6 @@ message ReceiptTradeRevoke {
 	ReceiptTradeBase base = 1;
 }
 
-message TradeBuyDone {
-	string token                 = 1;
-	int64  boardlotcnt           = 2;
-	string amountperboardlot     = 3;
-    string priceperboardlot      = 4;
-   	string buytxhash             = 5;
-   	int64  height                = 6;
-}
-
-message ReplyTradeBuyOrders {
-	repeated TradeBuyDone tradebuydones = 1;
-}
-
 message ReplyBuyOrders {
 	repeated ReplyBuyOrder buyOrders = 1;
 }
@@ -248,6 +235,7 @@ message ReplySellOrder {
     string key                  = 13;
 }
 // TODO remvoe
+// only used in client
 message ReplySellOrders {
 	repeated SellOrder selloders = 1;
 }
