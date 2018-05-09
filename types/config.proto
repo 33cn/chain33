@@ -106,6 +106,7 @@ message P2P {
 	int32 verMax = 13;
 	bool  innerSeedEnable=14;
 	int32 innerBounds=15;
+	bool  useGithub=16;
 }
 
 message Rpc {

@@ -3,7 +3,6 @@ package p2p
 import (
 	"bytes"
 	"io"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -45,177 +44,191 @@ func (n *Node) monitorErrPeer() {
 }
 
 func (n *Node) getAddrFromGithub() {
-	ticker := time.NewTicker(GetAddrFromGitHubInterval)
-	defer ticker.Stop()
-	for {
-		<-ticker.C
-		if n.isClose() {
-			log.Debug("getAddrFromGithub", "loop", "done")
-			return
+	if !n.nodeInfo.cfg.GetUseGithub() {
+		return
+	}
+	//从github 上下载种子节点文件
+	res, err := http.Get("https://raw.githubusercontent.com/chainseed/seeds/master/bty.txt")
+	if err != nil {
+		log.Error("getAddrFromGithub", "http.Get", err.Error())
+		return
+	}
+
+	bf := new(bytes.Buffer)
+	_, err = io.Copy(bf, res.Body)
+	if err != nil {
+		log.Error("getAddrFromGithub", "io.Copy", err.Error())
+		return
+	}
+
+	fileContent := bf.String()
+	st := strings.TrimSpace(fileContent)
+	strs := strings.Split(st, "\n")
+	log.Info("getAddrFromGithub", "download file", fileContent)
+	for _, linestr := range strs {
+		pidaddr := strings.Split(linestr, "@")
+		if len(pidaddr) == 2 {
+			addr := pidaddr[1]
+			if n.Has(addr) || n.nodeInfo.blacklist.Has(addr) ||
+				len(P2pComm.AddrRouteble([]string{addr})) == 0 {
+				return
+			}
+			pub.FIFOPub(addr, "addr")
+
 		}
-		if n.needMore() {
-			//从github 上下载种子节点文件
-			res, err := http.Get("https://raw.githubusercontent.com/chainseed/seeds/master/bty.txt")
-			if err != nil {
-				log.Error("getAddrFromGithub", "http.Get", err.Error())
-				continue
-			}
-
-			bf := new(bytes.Buffer)
-			_, err = io.Copy(bf, res.Body)
-			if err != nil {
-				log.Error("getAddrFromGithub", "io.Copy", err.Error())
-				continue
-			}
-
-			fileContent := bf.String()
-			st := strings.TrimSpace(fileContent)
-			strs := strings.Split(st, "\n")
-			log.Info("getAddrFromGithub", "download file", fileContent)
-			for _, linestr := range strs {
-				pidaddr := strings.Split(linestr, "@")
-				if len(pidaddr) == 2 {
-					addr := pidaddr[1]
-					if n.Has(addr) || n.nodeInfo.blacklist.Has(addr) ||
-						len(P2pComm.AddrRouteble([]string{addr})) == 0 {
-						continue
-					}
-					pub.FIFOPub(addr, "addr")
-
-				}
-			}
-		}
-
 	}
 }
 
+//从在线节点获取地址列表
 func (n *Node) getAddrFromOnline() {
 	ticker := time.NewTicker(GetAddrFromOnlineInterval)
 	defer ticker.Stop()
 	pcli := NewNormalP2PCli()
 
+	var ticktimes int
 	for {
+
 		<-ticker.C
+
+		seedsMap := make(map[string]bool) //每次循环seed的排序不同
+		seedArr := n.nodeInfo.cfg.GetSeeds()
+		for _, seed := range seedArr {
+			seedsMap[seed] = true
+		}
+
+		ticktimes++
 		if n.isClose() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
 			return
 		}
-		if n.needMore() {
-			peers, _ := n.GetActivePeers()
-			for _, peer := range peers { //向其他节点发起请求，获取地址列表
-				log.Debug("Getpeer", "addr", peer.Addr())
-				var addrlist []string
-				var err error
-				if peer.version.GetVersion() >= VERSION {
-					log.Info("peer", "VERSION", peer.version.GetVersion())
-					addrlist, err = pcli.GetAddrList(peer)
-				} else {
-					addrlist, err = pcli.GetAddr(peer)
-				}
 
-				P2pComm.CollectPeerStat(err, peer)
-				if err != nil {
-					log.Error("getAddrFromOnline", "ERROR", err.Error())
-					continue
-				}
-
-				log.Debug("GetAddrFromOnline", "addrlist", addrlist)
-				//过滤黑名单的地址
-				for _, addr := range addrlist {
-					if !n.nodeInfo.blacklist.Has(addr) {
-						pub.FIFOPub(addr, "addr")
-					} else {
-						log.Debug("Filter addr", "BlackList", addr)
-					}
+		if n.Size() == 0 && ticktimes > 2 {
+			//尝试与Seed 进行连接
+			var rangeCount int
+			for addr, _ := range seedsMap { //先把seed 排除在外
+				rangeCount++
+				if rangeCount < maxOutBoundNum {
+					pub.FIFOPub(addr, "addr")
 				}
 
 			}
+			continue
 		}
+
+		peers, _ := n.GetActivePeers()
+		for _, peer := range peers { //向其他节点发起请求，获取地址列表
+
+			var addrlist []string
+			var addrlistMap map[string]int64
+			var err error
+
+			if peer.version.GetVersion() >= VERSION {
+				addrlistMap, err = pcli.GetAddrList(peer)
+				for addr, _ := range addrlistMap {
+					addrlist = append(addrlist, addr)
+				}
+			} else { //老版本
+				addrlist, err = pcli.GetAddr(peer)
+			}
+
+			P2pComm.CollectPeerStat(err, peer)
+			if err != nil {
+				log.Error("getAddrFromOnline", "ERROR", err.Error())
+				continue
+			}
+
+			for _, addr := range addrlist {
+
+				if !n.needMore() { //如果已经达到25个节点，则优先删除种子节点
+
+					localBlockHeight, err := pcli.GetBlockHeight(n.nodeInfo)
+					if err != nil {
+						continue
+					}
+					//查询对方的高度，如果不小于自己的高度,或高度差在一定范围内，则剔除一个种子
+					if peerHeight, ok := addrlistMap[addr]; ok {
+						if peerHeight >= localBlockHeight || localBlockHeight-peerHeight > 1024 {
+							//随机删除连接的一个种子
+							for _, seed := range seedArr {
+								if n.Has(seed) {
+									n.remove(seed)
+									break
+								}
+							}
+							break
+						}
+					}
+
+				}
+				if !n.nodeInfo.blacklist.Has(addr) || !Filter.QueryRecvData(addr) {
+					if ticktimes < 10 { //如果连接了其他节点，优先不连接种子节点
+						if _, ok := seedsMap[addr]; !ok { //先把seed 排除在外
+							pub.FIFOPub(addr, "addr")
+
+						}
+					} else {
+						pub.FIFOPub(addr, "addr")
+					}
+
+				}
+			}
+
+		}
+
 	}
 }
 
-func (n *Node) getAddrFromOffline() {
-	ticker := time.NewTicker(GetAddrFromOfflineInterval)
+//从addrBook 中获取地址
+func (n *Node) getAddrFromAddrBook() {
+	ticker := time.NewTicker(GetAddrFromAddrBookInterval)
 	defer ticker.Stop()
+	var tickerTimes int64
+	seedsMap := make(map[string]bool) //每次循环seed的排序不同
+	seedArr := n.nodeInfo.cfg.GetSeeds()
+	for _, seed := range seedArr {
+		seedsMap[seed] = true
+	}
 
 	for {
 		<-ticker.C
+		tickerTimes++
 		if n.isClose() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
 			return
 		}
-		if n.needMore() {
-			var testlist []string
-			//随机选择种子进行连接
-			seeds := n.nodeInfo.cfg.GetSeeds()
-			index := rand.Intn(len(seeds))
-			if !n.Has(seeds[index]) && !n.nodeInfo.blacklist.Has(seeds[index]) {
 
-				testlist = append(testlist, seeds[index])
-			}
-			log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.nodeInfo.addrBook.GetPeers())
-			peeraddrs := n.nodeInfo.addrBook.GetPeers()
-
-			if len(peeraddrs) != 0 {
-				for _, peer := range peeraddrs {
-					testlist = append(testlist, peer.String())
-				}
-			}
-			//log.Info("getaddrfromoffline")
-			for _, addr := range testlist {
-
-				if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
-					log.Debug("GetAddrFromOffline", "Add addr", addr)
-					pub.FIFOPub(addr, "addr")
-				}
-			}
-
-		} else {
-
-			for _, seed := range n.nodeInfo.cfg.Seeds {
-				//如果达到稳定节点数量，则断开种子节点
-				if n.Has(seed) {
-					if !n.needMore() && len(n.GetRegisterPeers()) > stableBoundNum {
-						n.remove(seed)
-					}
-
-				}
-			}
-
-			//如果删除种子节点后，依然有过多的节点连接，则继续删除其他非种子节点
-			if !n.needMore() && len(n.GetRegisterPeers()) > stableBoundNum {
-				peerinfos := n.nodeInfo.peerInfos.GetPeerInfos()
-				//把连接的高度最低的节点删掉
-				var lowest int64
-				var lowestPeer string
-				var index int
-				for peeraddr, pbpeer := range peerinfos {
-					if index == 0 {
-						lowest = pbpeer.GetHeader().GetHeight()
-					}
-					if lowest > pbpeer.GetHeader().GetHeight() {
-						lowest = pbpeer.GetHeader().GetHeight()
-						lowestPeer = peeraddr
-					}
-					index++
-				}
-
-				n.remove(lowestPeer)
-			}
-
+		if tickerTimes > 5 && n.Size() == 0 { //5个循环后， 则去github下载
+			n.getAddrFromGithub()
+			tickerTimes = 0
 		}
 
+		log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.nodeInfo.addrBook.GetPeers())
+
+		addrNetArr := n.nodeInfo.addrBook.GetPeers()
+
+		for _, addr := range addrNetArr {
+			if !n.Has(addr.String()) && !n.nodeInfo.blacklist.Has(addr.String()) {
+				log.Debug("GetAddrFromOffline", "Add addr", addr.String())
+
+				if _, ok := seedsMap[addr.String()]; !ok {
+					if n.needMore() {
+						pub.FIFOPub(addr.String(), "addr")
+					}
+
+				}
+			}
+		}
 		log.Debug("Node Monitor process", "outbound num", n.Size())
 	}
 
 }
 
-func (n *Node) monitorPeersHeight() {
+func (n *Node) monitorPeers() {
 
 	p2pcli := NewNormalP2PCli()
 	ticker := time.NewTicker(time.Second * 30)
 	defer ticker.Stop()
-	_, pname := n.nodeInfo.addrBook.GetPrivPubKey()
+	_, selfName := n.nodeInfo.addrBook.GetPrivPubKey()
 	for {
 
 		<-ticker.C
@@ -227,16 +240,16 @@ func (n *Node) monitorPeersHeight() {
 		peers, infos := n.GetActivePeers()
 		for paddr, pinfo := range infos {
 			peerheight := pinfo.GetHeader().GetHeight()
-			if pinfo.GetName() == pname { //发现连接到自己，立即删除
+			if pinfo.GetName() == selfName { //发现连接到自己，立即删除
 				//删除节点数过低的节点
 				n.remove(paddr)
 				n.nodeInfo.blacklist.Add(paddr, 0)
 			}
 
 			if localBlockHeight-peerheight > 2048 { //比自己较低的节点删除
-				if addrlist, err := p2pcli.GetAddrList(peers[paddr]); err == nil {
+				if addrMap, err := p2pcli.GetAddrList(peers[paddr]); err == nil {
 
-					for _, addr := range addrlist {
+					for addr, _ := range addrMap {
 						if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
 							pub.FIFOPub(addr, "addr")
 						}
@@ -272,14 +285,22 @@ func (n *Node) monitorPeerInfo() {
 	}()
 }
 
+//并发连接节点地址
 func (n *Node) monitorDialPeers() {
 
 	addrChan := pub.Sub("addr")
 	for addr := range addrChan {
+
 		if n.isClose() {
 			log.Info("monitorDialPeers", "loop", "done")
 			return
 		}
+		if Filter.QueryRecvData(addr.(string)) { //先查询有没有注册进去，避免同时重复连接相同的地址
+			continue
+		}
+
+		Filter.RegRecvData(addr.(string)) //把待连接的节点增加到过滤容器中
+
 		netAddr, err := NewNetAddressString(addr.(string))
 		if err != nil {
 			continue
@@ -290,24 +311,32 @@ func (n *Node) monitorDialPeers() {
 		}
 
 		//不对已经连接上的地址重新发起连接
-		if n.Has(netAddr.String()) {
+		if n.Has(netAddr.String()) || n.nodeInfo.blacklist.Has(netAddr.String()) {
 			log.Debug("DialPeers", "find hash", netAddr.String())
 			continue
 		}
-
+		//预先注册进入ouBounds
 		if !n.needMore() || len(n.GetRegisterPeers()) > maxOutBoundNum { //注册的节点超过最大节点数暂不连接
 			time.Sleep(time.Second * 10)
 			continue
 		}
 		log.Info("DialPeers", "peer", netAddr.String())
-		peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
-		if err != nil {
-			log.Error("monitorDialPeers", "Err", err.Error())
-			n.nodeInfo.blacklist.Add(netAddr.String(), int64(time.Duration(time.Minute*10)))
-			continue
-		}
-		n.addPeer(peer)
-		n.nodeInfo.addrBook.AddAddress(netAddr, nil)
+		//并发连接节点，增加连接效率
+		go func(netAddr *NetAddress) {
+
+			defer Filter.RemoveRecvData(netAddr.String())
+			peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
+			if err != nil { //连接失败后
+				Filter.RemoveRecvData(netAddr.String())
+				log.Error("monitorDialPeers", "Err", err.Error())
+				n.nodeInfo.blacklist.Add(netAddr.String(), int64(time.Duration(time.Minute*10)))
+				return
+			}
+
+			n.addPeer(peer)
+			n.nodeInfo.addrBook.AddAddress(netAddr, nil)
+
+		}(netAddr)
 
 	}
 

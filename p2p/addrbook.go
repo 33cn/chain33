@@ -168,10 +168,19 @@ type addrBookJSON struct {
 func (a *AddrBook) saveToDb() {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-
 	addrs := []*knownAddress{}
+
+	seeds := a.cfg.GetSeeds()
+	seedsMap := make(map[string]int)
+	for index, seed := range seeds {
+		seedsMap[seed] = index
+	}
+
 	for _, ka := range a.addrPeer {
-		addrs = append(addrs, ka.Copy())
+		if _, ok := seedsMap[ka.Addr.String()]; ok {
+			addrs = append(addrs, ka.Copy())
+		}
+
 	}
 	if len(addrs) == 0 {
 		return
