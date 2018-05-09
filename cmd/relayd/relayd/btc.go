@@ -92,62 +92,62 @@ func NewBtcClient(config *rpcclient.ConnConfig, reconnectAttempts int) (BtcClien
 	return client, nil
 }
 
-func (c *btcClient) Start() error {
-	err := c.rpcClient.Connect(c.reconnectAttempts)
+func (b *btcClient) Start() error {
+	err := b.rpcClient.Connect(b.reconnectAttempts)
 	if err != nil {
 		return err
 	}
 
 	// Verify that the server is running on the expected network.
-	net, err := c.rpcClient.GetCurrentNet()
+	net, err := b.rpcClient.GetCurrentNet()
 	if err != nil {
-		c.rpcClient.Disconnect()
+		b.rpcClient.Disconnect()
 		return err
 	}
-	if net != c.chainParams.Net {
-		c.rpcClient.Disconnect()
+	if net != b.chainParams.Net {
+		b.rpcClient.Disconnect()
 		return errors.New("mismatched networks")
 	}
 
-	c.quitMtx.Lock()
-	c.started = true
-	c.quitMtx.Unlock()
+	b.quitMtx.Lock()
+	b.started = true
+	b.quitMtx.Unlock()
 
-	c.wg.Add(1)
-	go c.handler()
+	b.wg.Add(1)
+	go b.handler()
 	return nil
 }
 
-func (c *btcClient) Stop() error {
-	c.quitMtx.Lock()
+func (b *btcClient) Stop() error {
+	b.quitMtx.Lock()
 	select {
-	case <-c.quit:
+	case <-b.quit:
 	default:
-		close(c.quit)
-		c.rpcClient.Shutdown()
+		close(b.quit)
+		b.rpcClient.Shutdown()
 
-		if !c.started {
-			close(c.dequeueNotification)
+		if !b.started {
+			close(b.dequeueNotification)
 		}
 	}
-	c.quitMtx.Unlock()
+	b.quitMtx.Unlock()
 	return nil
 }
 
-func (c *btcClient) WaitForShutdown() {
-	c.rpcClient.WaitForShutdown()
-	c.wg.Wait()
+func (b *btcClient) WaitForShutdown() {
+	b.rpcClient.WaitForShutdown()
+	b.wg.Wait()
 }
 
-func (c *btcClient) Notifications() <-chan interface{} {
-	return c.dequeueNotification
+func (b *btcClient) Notifications() <-chan interface{} {
+	return b.dequeueNotification
 }
 
-func (c *btcClient) BlockStamp() (*BlockStamp, error) {
+func (b *btcClient) BlockStamp() (*BlockStamp, error) {
 	select {
-	case bs := <-c.currentBlock:
+	case bs := <-b.currentBlock:
 		return bs, nil
-	case <-c.quit:
+	case <-b.quit:
 		return nil, errors.New("disconnected")
 	}
 }
@@ -170,50 +170,50 @@ func parseBlock(block *btcjson.BlockDetails) (*BlockMeta, error) {
 	return blk, nil
 }
 
-func (c *btcClient) onClientConnect() {
+func (b *btcClient) onClientConnect() {
 	select {
-	case c.enqueueNotification <- ClientConnected{}:
-	case <-c.quit:
+	case b.enqueueNotification <- ClientConnected{}:
+	case <-b.quit:
 	}
 }
 
-func (c *btcClient) onBlockConnected(hash *chainhash.Hash, height int32, time time.Time) {
+func (b *btcClient) onBlockConnected(hash *chainhash.Hash, height int32, time time.Time) {
 	select {
-	case c.enqueueNotification <- BlockConnected{
+	case b.enqueueNotification <- BlockConnected{
 		BlockStamp: BlockStamp{
 			Hash:   *hash,
 			Height: height,
 		},
 		Time: time,
 	}:
-	case <-c.quit:
+	case <-b.quit:
 	}
 }
 
-func (c *btcClient) onBlockDisconnected(hash *chainhash.Hash, height int32, time time.Time) {
+func (b *btcClient) onBlockDisconnected(hash *chainhash.Hash, height int32, time time.Time) {
 	select {
-	case c.enqueueNotification <- BlockDisconnected{
+	case b.enqueueNotification <- BlockDisconnected{
 		BlockStamp: BlockStamp{
 			Hash:   *hash,
 			Height: height,
 		},
 		Time: time,
 	}:
-	case <-c.quit:
+	case <-b.quit:
 	}
 }
 
-func (c *btcClient) handler() {
-	hash, height, err := c.rpcClient.GetBestBlock()
+func (b *btcClient) handler() {
+	hash, height, err := b.rpcClient.GetBestBlock()
 	if err != nil {
-		c.Stop()
-		c.wg.Done()
+		b.Stop()
+		b.wg.Done()
 		return
 	}
 
 	bs := &BlockStamp{Hash: *hash, Height: height}
 	var notifications []interface{}
-	enqueue := c.enqueueNotification
+	enqueue := b.enqueueNotification
 	var dequeue chan interface{}
 	var next interface{}
 	pingChan := time.After(time.Minute)
@@ -233,7 +233,7 @@ out:
 			}
 			if len(notifications) == 0 {
 				next = n
-				dequeue = c.dequeueNotification
+				dequeue = b.dequeueNotification
 			}
 			notifications = append(notifications, n)
 			pingChan = time.After(time.Minute)
@@ -265,7 +265,7 @@ out:
 			}
 			sessionResponse := make(chan sessionResult, 1)
 			go func() {
-				_, err := c.rpcClient.Session()
+				_, err := b.rpcClient.Session()
 				sessionResponse <- sessionResult{err}
 			}()
 
@@ -273,32 +273,32 @@ out:
 			case resp := <-sessionResponse:
 				if resp.err != nil {
 					// log.Errorf("Failed to receive session "+"result: %v", resp.err)
-					c.Stop()
+					b.Stop()
 					break out
 				}
 				pingChan = time.After(time.Minute)
 
 			case <-time.After(time.Minute):
 				// log.Errorf("Timeout waiting for session RPC")
-				c.Stop()
+				b.Stop()
 				break out
 			}
 
-		case c.currentBlock <- bs:
+		case b.currentBlock <- bs:
 
-		case <-c.quit:
+		case <-b.quit:
 			break out
 		}
 	}
 
-	c.Stop()
-	close(c.dequeueNotification)
-	c.wg.Done()
+	b.Stop()
+	close(b.dequeueNotification)
+	b.wg.Done()
 }
 
 // POSTClient creates the equivalent HTTP POST rpcclient.Client.
-func (c *btcClient) POSTClient() (*rpcclient.Client, error) {
-	configCopy := *c.connConfig
+func (b *btcClient) POSTClient() (*rpcclient.Client, error) {
+	configCopy := *b.connConfig
 	configCopy.HTTPPostMode = true
 	return rpcclient.New(&configCopy, nil)
 }
