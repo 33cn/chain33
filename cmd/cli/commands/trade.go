@@ -74,7 +74,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplySellOrders1
+	var res types.ReplySellOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -133,7 +133,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplySellOrders1
+	var res types.ReplySellOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -180,7 +180,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplySellOrders1
+	var res types.ReplySellOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -190,21 +190,16 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	parseSellOrders(res)
 }
 
-// TODO
-func parseSellOrders(res types.ReplySellOrders1) {
+func parseSellOrders(res types.ReplySellOrders) {
 	for i, sellorder := range res.Selloders {
 		var sellOrders2show SellOrder2Show
-		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
-		sellOrders2show.Seller = sellorder.Address
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
-		sellOrders2show.Minboardlot = sellorder.Minboardlot
-		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
-		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
+		sellOrders2show.Tokensymbol = sellorder.TokenSymbol
+		sellOrders2show.Seller = sellorder.Owner
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64)
+		sellOrders2show.Minboardlot = sellorder.MinBoardlot
+		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64)
+		sellOrders2show.Totalboardlot = sellorder.TotalBoardlot
 		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
-		sellOrders2show.Starttime = sellorder.Starttime
-		sellOrders2show.Stoptime = sellorder.Stoptime
-		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
-		sellOrders2show.Crowdfund = sellorder.Crowdfund
 		sellOrders2show.SellID = sellorder.Sellid
 		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
 		sellOrders2show.Height = sellorder.Height
