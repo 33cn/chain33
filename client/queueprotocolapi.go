@@ -1,12 +1,14 @@
 package client
 
 import (
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // 消息通道交互API接口定义
 type QueueProtocolAPI interface {
+	Version() (*types.Reply, error)
+	Close()
+	// +++++++++++++++ mempool interfaces begin
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
 	SendTx(param *types.Transaction) (*types.Reply, error)
 	// types.EventTxList
@@ -14,33 +16,26 @@ type QueueProtocolAPI interface {
 	// types.EventGetMempool
 	GetMempool() (*types.ReplyTxList, error)
 	// types.EventGetLastMempool
-	GetLastMempool(param *types.ReqNil) (*types.ReplyTxList, error)
+	GetLastMempool() (*types.ReplyTxList, error)
+	// types.EventQuery
+	Query(param *types.Query) (*types.Message, error)
+	// --------------- mempool interfaces end
 
-	// types.EventGetBlocks
-	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
-	// types.EventQueryTx
-	QueryTx(param *types.ReqHash) (*types.TransactionDetail, error)
-	// types.EventGetTransactionByAddr
-	GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error)
-	// types.EventGetTransactionByHash
-	GetTransactionByHash(param *types.ReqHashes) (*types.TransactionDetails, error)
-	// types.EventGetHeaders
-	GetHeaders(param *types.ReqBlocks) (*types.Headers, error)
-	// types.EventGetBlockOverview
-	GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error)
-	// types.EventGetAddrOverview
-	GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error)
-	// types.EventGetBlockHash
-	GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error)
-	// types.EventIsSync
-	IsSync() (bool, error)
-	// types.EventIsNtpClockSync
-	IsNtpClockSync() (bool, error)
+	// +++++++++++++++ p2p interfaces begin
+	// types.EventPeerInfo
+	PeerInfo() (*types.PeerList, error)
+	// types.EventGetNetInfo
+	GetNetInfo() (*types.NodeNetInfo, error)
+	// --------------- p2p interfaces end
+
+	// +++++++++++++++ consensus interfaces begin
+	// types.EventGetTicketCount
+	GetTicketCount() (*types.Int64, error)
+	// --------------- consensus interfaces end
+
+	// +++++++++++++++ wallet interfaces begin
 	// types.EventLocalGet
 	LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error)
-	// types.EventGetLastHeader
-	GetLastHeader() (*types.Header, error)
-
 	// types.EventWalletGetAccountList
 	WalletGetAccountList() (*types.WalletAccounts, error)
 	// types.EventNewAccount
@@ -77,13 +72,40 @@ type QueueProtocolAPI interface {
 	DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error)
 	// types.EventCloseTickets
 	CloseTickets() (*types.ReplyHashes, error)
+	// types.EventSignRawTx
+	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
+	// --------------- wallet interfaces end
 
-	// types.EventPeerInfo
-	PeerInfo() (*types.PeerList, error)
+	// +++++++++++++++ blockchain interfaces begin
+	// types.EventGetBlocks
+	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
+	// types.EventQueryTx
+	QueryTx(param *types.ReqHash) (*types.TransactionDetail, error)
+	// types.EventGetTransactionByAddr
+	GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error)
+	// types.EventGetTransactionByHash
+	GetTransactionByHash(param *types.ReqHashes) (*types.TransactionDetails, error)
+	// types.EventGetHeaders
+	GetHeaders(param *types.ReqBlocks) (*types.Headers, error)
+	// types.EventGetBlockOverview
+	GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error)
+	// types.EventGetAddrOverview
+	GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error)
+	// types.EventGetBlockHash
+	GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error)
+	// types.EventIsSync
+	IsSync() (*types.Reply, error)
+	// types.EventIsNtpClockSync
+	IsNtpClockSync() (*types.Reply, error)
+	// types.EventGetLastHeader
+	GetLastHeader() (*types.Header, error)
+	// --------------- blockchain interfaces end
 
-	// types.EventGetTicketCount
-	GetTicketCount() (*types.Int64, error)
+	// +++++++++++++++ store interfaces begin
+	StoreGet(*types.StoreGet) (*types.StoreReplyValue, error)
+	StoreGetTotalCoins(*types.IterateRangeByStateHash) (*types.ReplyGetTotalCoins, error)
+	// --------------- store interfaces end
 
-	CreateRawTransaction(param *types.CreateTx) ([]byte, error)
-	SendRawTransaction(param *types.SignedTx) (queue.Message, error)
+	// +++++++++++++++ other interfaces begin
+	// --------------- other interfaces end
 }

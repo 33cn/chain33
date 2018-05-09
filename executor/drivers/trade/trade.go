@@ -23,7 +23,7 @@ import (
 
 var tradelog = log.New("module", "execs.trade")
 
-func init() {
+func Init() {
 	t := newTrade()
 	drivers.Register(t.GetName(), t, types.ForkV2AddToken)
 }
@@ -69,19 +69,19 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return action.tradeRevokeSell(trade.GetTokenrevokesell())
 
 	case types.TradeBuyLimit:
-		if t.GetHeight() < types.ForTradeBuyLimit {
+		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
 		return action.tradeBuyLimit(trade.GetTokenbuylimit())
 
 	case types.TradeSellMarket:
-		if t.GetHeight() < types.ForTradeBuyLimit {
+		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
 		return action.tradeSellMarket(trade.GetTokensellmarket())
 
 	case types.TradeRevokeBuy:
-		if t.GetHeight() < types.ForTradeBuyLimit {
+		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
 		return action.tradeRevokeBuyLimit(trade.GetTokenrevokebuy())
@@ -224,7 +224,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		if req.Status == 0 {
-			req.Status = types.TracdOrderStatusOnSale
+			req.Status = types.TradeOrderStatusOnSale
 		}
 		return t.GetTokenSellOrderByStatus(&req, req.Status)
 	case "GetTokenBuyLimitOrderByStatus": // 根据token 分页显示未完成成交买单
@@ -234,7 +234,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		if req.Status == 0 {
-			req.Status = types.TracdOrderStatusOnBuy
+			req.Status = types.TradeOrderStatusOnBuy
 		}
 		return t.GetTokenBuyOrderByStatus(&req, req.Status)
 
@@ -292,9 +292,9 @@ func genSaveSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = saveSellOrderKeyValue(kv, sellorder, status)
-	if types.TracdOrderStatusSoldOut == status || types.TracdOrderStatusRevoked == status {
+	if types.TradeOrderStatusSoldOut == status || types.TradeOrderStatusRevoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
-		kv = deleteSellOrderKeyValue(kv, sellorder, types.TracdOrderStatusOnSale)
+		kv = deleteSellOrderKeyValue(kv, sellorder, types.TradeOrderStatusOnSale)
 	}
 	return kv
 }
@@ -317,9 +317,9 @@ func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = deleteSellOrderKeyValue(kv, sellorder, status)
-	if types.TracdOrderStatusSoldOut == status || types.TracdOrderStatusRevoked == status {
+	if types.TradeOrderStatusSoldOut == status || types.TradeOrderStatusRevoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
-		kv = saveSellOrderKeyValue(kv, sellorder, types.TracdOrderStatusOnSale)
+		kv = saveSellOrderKeyValue(kv, sellorder, types.TradeOrderStatusOnSale)
 	}
 	return kv
 }
@@ -331,12 +331,12 @@ func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 
 func (t *trade) saveBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	return saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusBoughtOut, t.GetHeight())
+	return saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusBoughtOut, t.GetHeight())
 }
 
 func (t *trade) deleteBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	return deleteBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusBoughtOut, t.GetHeight())
+	return deleteBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusBoughtOut, t.GetHeight())
 }
 
 // BuyLimit Local
@@ -354,9 +354,9 @@ func genSaveBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
 	status := buyOrder.Status
 	var kv []*types.KeyValue
 	kv = saveBuyLimitOrderKeyValue(kv, buyOrder, status)
-	if types.TracdOrderStatusBoughtOut == status || types.TracdOrderStatusBuyRevoked == status {
+	if types.TradeOrderStatusBoughtOut == status || types.TradeOrderStatusBuyRevoked == status {
 		tradelog.Debug("trade saveBuyLimit ", "remove old status with Buyid", buyOrder.Buyid)
-		kv = deleteBuyLimitKeyValue(kv, buyOrder, types.TracdOrderStatusOnSale)
+		kv = deleteBuyLimitKeyValue(kv, buyOrder, types.TradeOrderStatusOnSale)
 	}
 	return kv
 }
@@ -379,9 +379,9 @@ func genDeleteBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
 	status := buyOrder.Status
 	var kv []*types.KeyValue
 	kv = deleteBuyLimitKeyValue(kv, buyOrder, status)
-	if types.TracdOrderStatusBoughtOut == status || types.TracdOrderStatusBuyRevoked == status {
+	if types.TradeOrderStatusBoughtOut == status || types.TradeOrderStatusBuyRevoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", buyOrder.Buyid)
-		kv = saveBuyLimitOrderKeyValue(kv, buyOrder, types.TracdOrderStatusOnBuy)
+		kv = saveBuyLimitOrderKeyValue(kv, buyOrder, types.TradeOrderStatusOnBuy)
 	}
 	return kv
 }
@@ -393,12 +393,12 @@ func (t *trade) deleteBuyLimit(buyid []byte, ty int32) []*types.KeyValue {
 
 func (t *trade) saveSellMarket(receiptTradeBuy *types.ReceiptSellBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	return saveSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusSoldOut, t.GetHeight())
+	return saveSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusSoldOut, t.GetHeight())
 }
 
 func (t *trade) deleteSellMarket(receiptTradeBuy *types.ReceiptSellBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	return deleteSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TracdOrderStatusSoldOut, t.GetHeight())
+	return deleteSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusSoldOut, t.GetHeight())
 }
 
 func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSellBase, status int32, height int64) []*types.KeyValue {

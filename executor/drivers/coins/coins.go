@@ -19,7 +19,7 @@ import (
 
 //var clog = log.New("module", "execs.coins")
 
-func init() {
+func Init() {
 	n := newCoins()
 	drivers.Register(n.GetName(), n, 0)
 }
