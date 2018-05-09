@@ -14,7 +14,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite/bccsp/wrapper"
 	"github.com/pkg/errors"
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var logger = log.New("auth", "cryptosuite_p11")
