@@ -13,7 +13,8 @@ message Config {
 	P2P p2p = 9;
 	Rpc rpc = 10;
 	Exec exec = 11;
-	Authority auth = 12;
+	bool testNet=12;
+	Authority auth = 13;
 }
 
 message Log {
