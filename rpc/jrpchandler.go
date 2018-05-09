@@ -1036,7 +1036,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeSell:
+		case types.TyLogTradeSellLimit:
 			lTy = "LogTradeSell"
 			var logTmp types.ReceiptTradeSell
 			err = types.Decode(lLog, &logTmp)
@@ -1044,7 +1044,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeBuy:
+		case types.TyLogTradeBuyMarket:
 			lTy = "LogTradeBuy"
 			var logTmp types.ReceiptTradeBuyMarket
 			err = types.Decode(lLog, &logTmp)
@@ -1052,7 +1052,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeRevoke:
+		case types.TyLogTradeSellRevoke:
 			lTy = "LogTradeRevoke"
 			var logTmp types.ReceiptTradeRevoke
 			err = types.Decode(lLog, &logTmp)

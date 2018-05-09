@@ -293,19 +293,19 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 	tradelog.Info("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
 		if log.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptSellBase
+			var receipt types.ReceiptSellMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
 			}
 			tradelog.Info("txResult2sellOrderReply", "show logs 1 ", receipt)
-			amount, err := strconv.ParseFloat(receipt.Amountperboardlot, 64)
+			amount, err := strconv.ParseFloat(receipt.Base.Amountperboardlot, 64)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
 			}
-			price, err := strconv.ParseFloat(receipt.Priceperboardlot, 64)
+			price, err := strconv.ParseFloat(receipt.Base.Priceperboardlot, 64)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
@@ -313,18 +313,18 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 
 			txhash := common.ToHex(txResult.GetTx().Hash())
 			reply := &types.ReplySellOrder{
-				receipt.Tokensymbol,
-				receipt.Owner,
+				receipt.Base.Tokensymbol,
+				receipt.Base.Owner,
 				int64(amount * float64(types.TokenPrecision)),
-				receipt.Minboardlot,
+				receipt.Base.Minboardlot,
 				int64(price * float64(types.Coin)),
-				receipt.Totalboardlot,
-				receipt.Soldboardlot,
-				receipt.Buyid,
-				types.SellOrderStatus2Int[receipt.Status],
+				receipt.Base.Totalboardlot,
+				receipt.Base.Soldboardlot,
+				receipt.Base.Buyid,
+				types.SellOrderStatus2Int[receipt.Base.Status],
 				"",
 				txhash,
-				receipt.Height,
+				receipt.Base.Height,
 				txhash,
 			}
 			tradelog.Info("txResult2sellOrderReply", "show reply", reply)
@@ -357,38 +357,38 @@ func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Info("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
-		if log.Ty == types.TyLogTradeBuy {
-			var receipt types.ReceiptBuyBase
+		if log.Ty == types.TyLogTradeBuyMarket {
+			var receipt types.ReceiptTradeBuyMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
 			}
 			tradelog.Info("txResult2sellOrderReply", "show logs 1 ", receipt)
-			amount, err := strconv.ParseFloat(receipt.AmountPerBoardlot, 64)
+			amount, err := strconv.ParseFloat(receipt.Base.AmountPerBoardlot, 64)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
 			}
-			price, err := strconv.ParseFloat(receipt.PricePerBoardlot, 64)
+			price, err := strconv.ParseFloat(receipt.Base.PricePerBoardlot, 64)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
 			}
 			txhash := common.ToHex(txResult.GetTx().Hash())
 			reply := &types.ReplyBuyOrder{
-				receipt.TokenSymbol,
-				receipt.Owner,
+				receipt.Base.TokenSymbol,
+				receipt.Base.Owner,
 				int64(amount * float64(types.TokenPrecision)),
-				receipt.MinBoardlot,
+				receipt.Base.MinBoardlot,
 				int64(price * float64(types.Coin)),
-				receipt.TotalBoardlot,
-				receipt.BoughtBoardlot,
+				receipt.Base.TotalBoardlot,
+				receipt.Base.BoughtBoardlot,
 				"",
-				types.SellOrderStatus2Int[receipt.Status],
-				receipt.Sellid,
+				types.SellOrderStatus2Int[receipt.Base.Status],
+				receipt.Base.Sellid,
 				txhash,
-				receipt.Height,
+				receipt.Base.Height,
 				txhash,
 			}
 			tradelog.Info("txResult2sellOrderReply", "show reply", reply)
