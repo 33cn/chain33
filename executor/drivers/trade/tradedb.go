@@ -51,11 +51,11 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 		txhash,
 		selldb.Height,
 	}
-	if types.TyLogTradeSell == tradeType {
+	if types.TyLogTradeSellLimit == tradeType {
 		receiptTrade := &types.ReceiptTradeSell{base}
 		log.Log = types.Encode(receiptTrade)
 
-	} else if types.TyLogTradeRevoke == tradeType {
+	} else if types.TyLogTradeSellRevoke == tradeType {
 		receiptTrade := &types.ReceiptTradeRevoke{base}
 		log.Log = types.Encode(receiptTrade)
 	}
@@ -65,7 +65,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 
 func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogTradeBuy
+	log.Ty = types.TyLogTradeBuyMarket
 	base := &types.ReceiptBuyBase{
 		selldb.Tokensymbol,
 		buyerAddr,
@@ -276,7 +276,7 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 	tokendb := newSellDB(sellOrder)
 	sellOrderKV := tokendb.save(action.db)
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeSell, action.txhash))
+	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeSellLimit, action.txhash))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, sellOrderKV...)
 
@@ -343,7 +343,7 @@ func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt
 
 	logs = append(logs, receiptFromAcc.Logs...)
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, sellTokendb.getSellLogs(types.TyLogTradeSell, action.txhash))
+	logs = append(logs, sellTokendb.getSellLogs(types.TyLogTradeSellLimit, action.txhash))
 	logs = append(logs, sellTokendb.getBuyLogs(action.fromaddr, buyOrder.Boardlotcnt, action.txhash))
 	kv = append(kv, receiptFromAcc.KV...)
 	kv = append(kv, receiptFromExecAcc.KV...)
@@ -385,7 +385,7 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 	sellOrderKV := tokendb.save(action.db)
 
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeRevoke, action.txhash))
+	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeSellRevoke, action.txhash))
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
