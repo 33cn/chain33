@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"flag"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -41,6 +42,7 @@ type mockSystem struct {
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 
 	var q = queue.New("channel")
+	queue.DisableLog()
 	chain := &mockBlockChain{}
 	chain.SetQueueClient(q)
 	mem := &mockMempool{}
@@ -92,7 +94,13 @@ type mockJRPCSystem struct {
 
 func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
 	mock.japi = rpc.NewJSONRPCServer(m.q.Client())
-	go mock.japi.Listen()
+	ch := make(chan struct{}, 1)
+	go func() {
+		ch <- struct{}{}
+		mock.japi.Listen()
+	}()
+	<-ch
+	time.Sleep(time.Millisecond)
 }
 
 func (mock *mockJRPCSystem) OnStop() {
@@ -117,7 +125,13 @@ type mockGRPCSystem struct {
 
 func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
 	mock.gapi = rpc.NewGRpcServer(m.q.Client())
-	go mock.gapi.Listen()
+	ch := make(chan struct{}, 1)
+	go func() {
+		ch <- struct{}{}
+		mock.gapi.Listen()
+	}()
+	<-ch
+	time.Sleep(time.Millisecond)
 }
 
 func (mock *mockGRPCSystem) OnStop() {
