@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAddress(t *testing.T) {
