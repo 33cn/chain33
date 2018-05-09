@@ -139,6 +139,10 @@ message ReceiptSellBase {
 }
 
 
+message ReceiptTradeBuyMarket {
+	ReceiptBuyBase base = 1;
+}
+
 message ReceiptTradeBuyLimit {
 	ReceiptBuyBase base = 1;
 }
@@ -148,6 +152,10 @@ message ReceiptTradeBuyRevoke {
 }
 
 message ReceiptTradeSell {
+	ReceiptSellBase base = 1;
+}
+
+message ReceiptSellMarket {
 	ReceiptSellBase base = 1;
 }
 
