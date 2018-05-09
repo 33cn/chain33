@@ -164,7 +164,6 @@ It has these top-level messages:
 	ReqTokenBuyOrder
 	ReplyBuyOrder
 	ReplySellOrder
-	ReplySellOrders1
 	ReplySellOrders
 	ReplyBuyOrders
 	P2PGetPeerInfo
