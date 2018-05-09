@@ -20,7 +20,8 @@ func (n *Node) destroyPeer(peer *Peer) {
 func (n *Node) monitorErrPeer() {
 	for {
 		peer := <-n.nodeInfo.monitorChan
-		if !peer.version.IsSupport() { //如果版本不支持,直接删除节点
+		if !peer.version.IsSupport() {
+			//如果版本不支持,直接删除节点
 			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
 			//加入黑名单12小时
@@ -90,7 +91,8 @@ func (n *Node) getAddrFromOnline() {
 
 		<-ticker.C
 
-		seedsMap := make(map[string]bool) //每次循环seed的排序不同
+		seedsMap := make(map[string]bool)
+		//每次循环seed的排序不同
 		seedArr := n.nodeInfo.cfg.GetSeeds()
 		for _, seed := range seedArr {
 			seedsMap[seed] = true
@@ -105,7 +107,8 @@ func (n *Node) getAddrFromOnline() {
 		if n.Size() == 0 && ticktimes > 2 {
 			//尝试与Seed 进行连接
 			var rangeCount int
-			for addr, _ := range seedsMap { //先把seed 排除在外
+			for addr, _ := range seedsMap {
+				//先把seed 排除在外
 				rangeCount++
 				if rangeCount < maxOutBoundNum {
 					pub.FIFOPub(addr, "addr")
@@ -127,7 +130,8 @@ func (n *Node) getAddrFromOnline() {
 				for addr, _ := range addrlistMap {
 					addrlist = append(addrlist, addr)
 				}
-			} else { //老版本
+			} else {
+				//老版本
 				addrlist, err = pcli.GetAddr(peer)
 			}
 
@@ -139,7 +143,8 @@ func (n *Node) getAddrFromOnline() {
 
 			for _, addr := range addrlist {
 
-				if !n.needMore() { //如果已经达到25个节点，则优先删除种子节点
+				if !n.needMore() {
+					//如果已经达到25个节点，则优先删除种子节点
 
 					localBlockHeight, err := pcli.GetBlockHeight(n.nodeInfo)
 					if err != nil {
@@ -155,14 +160,17 @@ func (n *Node) getAddrFromOnline() {
 									break
 								}
 							}
-							break
+
 						}
 					}
 
 				}
+
 				if !n.nodeInfo.blacklist.Has(addr) || !Filter.QueryRecvData(addr) {
-					if ticktimes < 10 { //如果连接了其他节点，优先不连接种子节点
-						if _, ok := seedsMap[addr]; !ok { //先把seed 排除在外
+					if ticktimes < 10 {
+						//如果连接了其他节点，优先不连接种子节点
+						if _, ok := seedsMap[addr]; !ok {
+							//先把seed 排除在外
 							pub.FIFOPub(addr, "addr")
 
 						}
@@ -196,8 +204,8 @@ func (n *Node) getAddrFromAddrBook() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
 			return
 		}
-
-		if tickerTimes > 5 && n.Size() == 0 { //5个循环后， 则去github下载
+		//5个循环后， 则去github下载
+		if tickerTimes > 5 && n.Size() == 0 {
 			n.getAddrFromGithub()
 			tickerTimes = 0
 		}
@@ -295,12 +303,13 @@ func (n *Node) monitorDialPeers() {
 			log.Info("monitorDialPeers", "loop", "done")
 			return
 		}
-		if Filter.QueryRecvData(addr.(string)) { //先查询有没有注册进去，避免同时重复连接相同的地址
+		if Filter.QueryRecvData(addr.(string)) {
+			//先查询有没有注册进去，避免同时重复连接相同的地址
 			continue
 		}
 
-		Filter.RegRecvData(addr.(string)) //把待连接的节点增加到过滤容器中
-
+		Filter.RegRecvData(addr.(string))
+		//把待连接的节点增加到过滤容器中
 		netAddr, err := NewNetAddressString(addr.(string))
 		if err != nil {
 			continue
@@ -315,8 +324,9 @@ func (n *Node) monitorDialPeers() {
 			log.Debug("DialPeers", "find hash", netAddr.String())
 			continue
 		}
-		//预先注册进入ouBounds
-		if !n.needMore() || len(n.GetRegisterPeers()) > maxOutBoundNum { //注册的节点超过最大节点数暂不连接
+
+		//注册的节点超过最大节点数暂不连接
+		if !n.needMore() || len(n.GetRegisterPeers()) > maxOutBoundNum {
 			time.Sleep(time.Second * 10)
 			continue
 		}
@@ -326,7 +336,8 @@ func (n *Node) monitorDialPeers() {
 
 			defer Filter.RemoveRecvData(netAddr.String())
 			peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
-			if err != nil { //连接失败后
+			if err != nil {
+				//连接失败后
 				Filter.RemoveRecvData(netAddr.String())
 				log.Error("monitorDialPeers", "Err", err.Error())
 				n.nodeInfo.blacklist.Add(netAddr.String(), int64(60*10))
@@ -358,8 +369,9 @@ func (n *Node) monitorBlackList() {
 			if n.nodeInfo.addrBook.IsOurStringAddress(badPeer) {
 				continue
 			}
+			//0表示永久加入黑名单
 			if 0 == intime {
-				continue //0表示永久加入黑名单
+				continue
 			}
 			if now-intime > 0 {
 				n.nodeInfo.blacklist.Delete(badPeer)
