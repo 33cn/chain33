@@ -98,7 +98,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	}
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogTradeSell || item.Ty == types.TyLogTradeRevoke {
+		if item.Ty == types.TyLogTradeSellLimit || item.Ty == types.TyLogTradeSellRevoke {
 			var receipt types.ReceiptTradeSell
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -106,7 +106,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 			kv := t.saveSell([]byte(receipt.Base.Sellid), item.Ty)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogTradeBuy {
+		} else if item.Ty == types.TyLogTradeBuyMarket {
 			var receipt types.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -161,7 +161,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogTradeSell || item.Ty == types.TyLogTradeRevoke {
+		if item.Ty == types.TyLogTradeSellLimit || item.Ty == types.TyLogTradeSellRevoke {
 			var receipt types.ReceiptTradeSell
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -169,7 +169,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			}
 			kv := t.deleteSell([]byte(receipt.Base.Sellid), item.Ty)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogTradeBuy {
+		} else if item.Ty == types.TyLogTradeBuyMarket {
 			var receipt types.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {

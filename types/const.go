@@ -323,9 +323,9 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSell            = 310
-	TyLogTradeBuy             = 311
-	TyLogTradeRevoke          = 312
+	TyLogTradeSellLimit       = 310
+	TyLogTradeBuyMarket       = 311
+	TyLogTradeSellRevoke      = 312
 	TyLogTokenTransfer        = 313
 	TyLogTokenGenesis         = 314
 	TyLogTokenDeposit         = 315
@@ -427,16 +427,26 @@ const (
 	TracdOrderStatusBoughtOut
 	TracdOrderStatusBuyRevoked
 )
-
 var SellOrderStatus = map[int32]string{
-	TracdOrderStatusNotStart: "NotStart",
-	TracdOrderStatusOnSale:   "OnSale",
-	TracdOrderStatusSoldOut:  "SoldOut",
-	TracdOrderStatusRevoked:  "Revoked",
-	TracdOrderStatusExpired:  "Expired",
-	TracdOrderStatusOnBuy:    "OnBuy",
-	TracdOrderStatusBoughtOut: "BoughtOut",
-	TracdOrderStatusBuyRevoked: "BuyRevoked",
+        TracdOrderStatusNotStart:   "NotStart",
+        TracdOrderStatusOnSale:     "OnSale",
+        TracdOrderStatusSoldOut:    "SoldOut",
+        TracdOrderStatusRevoked:    "Revoked",
+        TracdOrderStatusExpired:    "Expired",
+        TracdOrderStatusOnBuy:      "OnBuy",
+        TracdOrderStatusBoughtOut:  "BoughtOut",
+        TracdOrderStatusBuyRevoked: "BuyRevoked",
+}
+
+var SellOrderStatus2Int = map[string]int32{
+        "NotStart":   TracdOrderStatusNotStart,
+        "OnSale":     TracdOrderStatusOnSale,
+        "SoldOut":    TracdOrderStatusSoldOut,
+        "Revoked":    TracdOrderStatusRevoked,
+        "Expired":    TracdOrderStatusExpired,
+        "OnBuy":      TracdOrderStatusOnBuy,
+        "BoughtOut":  TracdOrderStatusBoughtOut,
+        "BuyRevoked": TracdOrderStatusBuyRevoked,
 }
 
 // manager action
