@@ -30,10 +30,6 @@ message TradeForSell {
 	bool   crowdfund            = 8;
 }
 
-message SellOrderReceipt {
-	string sellid = 1;
-}
-
 //购买者发起交易用来购买token持有者之前挂单出售的token
 //其中的hash为token出售者发起出售交易的hash
 message TradeForBuy {
