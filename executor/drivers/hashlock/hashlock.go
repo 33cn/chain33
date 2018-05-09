@@ -14,7 +14,7 @@ var clog = log.New("module", "execs.hashlock")
 
 const minLockTime = 60
 
-func init() {
+func Init() {
 	h := newHashlock()
 	drivers.Register(h.GetName(), h, 0)
 }

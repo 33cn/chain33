@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -10,6 +10,7 @@ type mockWallet struct {
 
 func (m *mockWallet) SetQueueClient(q queue.Queue) {
 	go func() {
+		walletKey := "wallet"
 		client := q.Client()
 		client.Sub(walletKey)
 		for msg := range client.Recv() {
@@ -39,7 +40,7 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 			case types.EventGetSeed:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyGetSeed, &types.ReplySeed{}))
 			case types.EventGetWalletStatus:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{}))
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{IsWalletLock: true, IsAutoMining: false, IsHasSeed: true, IsTicketLock: false}))
 			case types.EventWalletAutoMiner:
 				msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
 			case types.EventDumpPrivkey:
