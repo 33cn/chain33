@@ -22,6 +22,8 @@ service p2pgservice {
 	rpc GetAddr (P2PGetAddr) returns (P2PAddr) {
 	}
 	
+	rpc GetAddrList(P2PGetAddr)returns(P2PAddrList){
+	}
 	//版本
 	rpc Version (P2PVersion) returns (P2PVerAck) {
 	}
@@ -163,6 +165,15 @@ message P2PAddr {
 	///对方节点返回的其他节点信息
 	repeated string addrlist = 2; 
 	
+	
+}
+/**
+* 返回包括地址以及响应地址高度的列表信息
+**/
+
+message P2PAddrList{
+	int64 nonce=1;
+	repeated P2PPeerInfo peerinfo=2;
 }
 
 /**
@@ -301,4 +312,6 @@ message NodeNetInfo{
 	string externaladdr=1;
 	string localaddr=2;
 	bool service=3;
+	int32 outbounds=4;
+	int32 inbounds=5;
 }

@@ -42,8 +42,8 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
-func (client *Client) ProcEvent(msg queue.Message) {
-
+func (client *Client) ProcEvent(msg queue.Message) bool {
+	return false
 }
 
 //solo 不检查任何的交易

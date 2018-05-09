@@ -65,6 +65,23 @@ func (client *Client) Close() {
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	//给ticket 合约打 3亿 个币
 	//产生3w张初始化ticket
+	if types.IsTestNet() {
+		return client.CreateGenesisTxTestNet()
+	}
+	tx1 := createTicket("1PFdjUJ3SaXmN6rRwoFiJt7ugqkCnA5KK8", "1JoGYFCu3HpEp8yf96JftYzA2VqZzu5ANK", 10000, 0)
+	ret = append(ret, tx1...)
+
+	tx2 := createTicket("18sVaXyaiCtxvZNznaBNrUTU3DEBvqZszP", "148emypeB2osrkrKVC5zgeanbPefSi7trD", 10000, 0)
+	ret = append(ret, tx2...)
+
+	tx3 := createTicket("1BSitbHQcv3PdBtR3dYJy1jAGPow9hk7QW", "1NnrhoUUBZNWBkhdvnWPu5PtErXc7vkykG", 11619, 0)
+	ret = append(ret, tx3...)
+	return
+}
+
+func (client *Client) CreateGenesisTxTestNet() (ret []*types.Transaction) {
+	//给ticket 合约打 3亿 个币
+	//产生3w张初始化ticket
 	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
 	ret = append(ret, tx1...)
 
@@ -76,6 +93,7 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
+//316190000 coins
 func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret []*types.Transaction) {
 	tx1 := types.Transaction{}
 	tx1.Execer = []byte("coins")
@@ -108,7 +126,7 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	return ret
 }
 
-func (client *Client) ProcEvent(msg queue.Message) {
+func (client *Client) ProcEvent(msg queue.Message) bool {
 	if msg.Ty == types.EventFlushTicket {
 		client.flushTicketMsg(msg)
 	} else if msg.Ty == types.EventGetTicketCount {
@@ -116,6 +134,7 @@ func (client *Client) ProcEvent(msg queue.Message) {
 	} else {
 		msg.ReplyErr("Client", types.ErrActionNotSupport)
 	}
+	return true
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
@@ -396,8 +415,7 @@ func (client *Client) GetNextRequiredDifficulty(block *types.Block, bits uint32)
 	// result.
 	oldTarget := difficulty.CompactToBig(bits)
 	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
-	targetTimeSpan := int64(cfg.TargetTimespan / time.Second)
-	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
+	newTarget.Div(newTarget, big.NewInt(targetTimespan))
 
 	// Limit new value to the proof of work limit.
 	powLimit := difficulty.CompactToBig(cfg.PowLimitBits)
@@ -511,7 +529,9 @@ func calcTotalFee(block *types.Block) (total int64) {
 }
 
 func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) {
+	//return 0 always
 	fee := calcTotalFee(block)
+
 	var ticketAction types.TicketAction
 	miner := &types.TicketMiner{}
 	miner.TicketId = tid
@@ -524,7 +544,14 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	tx := client.createMinerTx(&ticketAction, priv)
 	//unshift
 	block.Difficulty = miner.Bits
-	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
+	//判断是替换还是append
+	_, err := client.getMinerTx(block)
+	if err != nil {
+		block.Txs = append([]*types.Transaction{tx}, block.Txs...)
+	} else {
+		//ticket miner 交易已经存在
+		block.Txs[0] = tx
+	}
 }
 
 func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.PrivKey) *types.Transaction {
@@ -592,8 +619,12 @@ func (client *Client) CreateBlock() {
 		block, lastBlock := client.createBlock()
 		hashlist := getTxHashes(block.Txs)
 		for !client.Miner(lastBlock, block) {
-			time.Sleep(time.Second)
 			//加入新的txs, 继续挖矿
+			lasttime := block.BlockTime
+			//只有时间增加了1s影响，影响难度计算了，才会去更新区块
+			for lasttime >= time.Now().Unix() {
+				time.Sleep(time.Second / 10)
+			}
 			lastBlock, hashlist = client.updateBlock(block, hashlist)
 		}
 	}
