@@ -200,7 +200,7 @@ func getBuyOrderFromID(buyid []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
 func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTradeSellMarket
-	receiptSellMartet := &types.ReceiptSellBase{
+	base := &types.ReceiptSellBase{
 		buydb.TokenSymbol,
 		sellerAddr,
 		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64),
@@ -217,6 +217,7 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt in
 		txhash,
 		buydb.Height,
 	}
+	receiptSellMartet := &types.ReceiptSellMarket{Base: base}
 	log.Log = types.Encode(receiptSellMartet)
 
 	return log
