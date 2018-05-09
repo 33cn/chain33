@@ -268,7 +268,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetOnesBuyOrdersWithStatus(&addrTokens)
-		
+
 	default:
 	}
 	tradelog.Error("trade Query", "Query type not supprt with func name", funcName)
