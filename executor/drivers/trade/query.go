@@ -97,7 +97,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 	return &replys, nil
 }
 
-func (t *trade) GetAllSellOrdersWithStatus(status int32) (types.Message, error) {
+func (t *trade) GetOnesSellOrdersWithStatus(status int32) (types.Message, error) {
 	sellidGotAlready := make(map[string]bool)
 	var sellids [][]byte
 	values, err := t.GetLocalDB().List(calcTokenSellOrderPrefixStatus(status), nil, 0, 0)
