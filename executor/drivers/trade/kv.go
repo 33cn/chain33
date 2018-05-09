@@ -164,7 +164,7 @@ func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBa
 	return kv
 }
 
-func genSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptTradeBase, status int32,
+func genSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSellBase, status int32,
 	height int64, value []byte) []*types.KeyValue {
 
 	keyID := receipt.Txhash

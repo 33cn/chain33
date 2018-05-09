@@ -293,7 +293,7 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 	tradelog.Info("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
 		if log.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptTradeBase
+			var receipt types.ReceiptSellBase
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
