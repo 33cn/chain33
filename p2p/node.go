@@ -78,6 +78,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	}
 	return node, nil
 }
+
 func (n *Node) flushNodePort(localport, export uint16) {
 
 	if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), export)); err == nil {
