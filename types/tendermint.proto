@@ -36,5 +36,56 @@ message TendermintCommit {
 message TendermintBlockInfo {
 	TendermintCommit SeenCommit = 1;
 	TendermintCommit LastCommit = 2;
+	State State = 3;
 }
 
+message BlockSize {
+    int32 MaxBytes = 1;
+    int32 MaxTxs = 2;
+    int64 MaxGas = 3;
+}
+
+message TxSize {
+    int32 MaxBytes = 1;
+    int64 MaxGas = 2;
+}
+
+message BlockGossip {
+    int32 BlockPartSizeBytes = 1;
+}
+
+message EvidenceParams {
+    int64 MaxAge = 1;
+}
+message ConsensusParams {
+    BlockSize BlockSize = 1;
+    TxSize TxSize = 2;
+    BlockGossip BlockGossip = 3;
+    EvidenceParams EvidenceParams = 4;
+}
+
+message Validator {
+    bytes Address = 1;
+    bytes PubKey = 2;
+    int64 VotingPower = 3;
+    int64 Accum = 4;
+}
+
+message ValidatorSet {
+    repeated Validator Validators = 1;
+    Validator Proposer = 2;
+}
+
+message State {
+    string ChainID = 1;
+    int64 LastBlockHeight = 2;
+    int64 LastBlockTotalTx = 3;
+    int64 LastBlockTime = 4;
+    ValidatorSet Validators = 5;
+    ValidatorSet LastValidators = 6;
+    int64 LastHeightValidatorsChanged = 7;
+    ConsensusParams ConsensusParams = 8;
+    int64 LastHeightConsensusParamsChanged = 9;
+    bytes LastResultsHash = 10;
+    bytes AppHash = 11;
+}

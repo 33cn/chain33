@@ -7,9 +7,6 @@ import (
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
 
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -36,16 +33,13 @@ type TendermintClient struct {
 	*drivers.BaseClient
 	genesisDoc    *ttypes.GenesisDoc // initial validator set
 	privValidator ttypes.PrivValidator
-	//csState       *core.ConsensusState
 	eventBus     *ttypes.EventBus
 	privKey      crypto.PrivKeyEd25519 // local node's p2p key
 	sw           *p2p.Switch
 	state        sm.State
-	blockExec    *sm.BlockExecutor
-	fastSync     bool
-	evidencePool *evidence.EvidencePool
 	csState      *core.ConsensusState
 	blockStore   *ttypes.BlockStore
+	evidenceDB   dbm.DB
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -54,59 +48,19 @@ func DefaultDBProvider(ID string) (dbm.DB, error) {
 	return dbm.NewDB(ID, "leveldb", "./datadir", 0), nil
 }
 
-// panics if failed to unmarshal bytes
-func loadGenesisDoc(db dbm.DB) (*ttypes.GenesisDoc, error) {
-	bytes, e := db.Get(genesisDocKey)
-	if e != nil {
-		tendermintlog.Error(fmt.Sprintf(`loadGenesisDoc: db get key %v failed:%v\n`, genesisDocKey, e))
-		return nil, e
-	}
-	if len(bytes) == 0 {
-		return nil, errors.New("Genesis doc not found")
-	} else {
-		var genDoc *ttypes.GenesisDoc
-		err := json.Unmarshal(bytes, &genDoc)
-		if err != nil {
-			panic(fmt.Sprintf("Panicked on a Crisis: %v", fmt.Sprintf("Failed to load genesis doc due to unmarshaling error: %v (bytes: %X)", err, bytes)))
-		}
-		return genDoc, nil
-	}
-}
-
-// panics if failed to marshal the given genesis document
-func saveGenesisDoc(db dbm.DB, genDoc *ttypes.GenesisDoc) {
-	bytes, err := json.Marshal(genDoc)
-	if err != nil {
-		panic(fmt.Sprintf("Panicked on a Crisis: %v", fmt.Sprintf("Failed to save genesis doc due to marshaling error: %v", err)))
-	}
-	db.SetSync(genesisDocKey, bytes)
-}
-
 func New(cfg *types.Consensus) *TendermintClient {
 	tendermintlog.Info("Start to create tendermint client")
 
-	//store State
-	stateDB, err := DefaultDBProvider("CSstate")
+	genDoc, err := ttypes.GenesisDocFromFile("./genesis.json")
 	if err != nil {
-		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider state failded", "error", err)
+		tendermintlog.Error("NewTendermintClient", "msg", "GenesisDocFromFile failded", "error", err)
 		return nil
 	}
 
-	genDoc, err := loadGenesisDoc(stateDB)
+	// Make Evidence Reactor
+	evidenceDB, err := DefaultDBProvider("CSevidence")
 	if err != nil {
-		genDoc, err = ttypes.GenesisDocFromFile("./genesis.json")
-		if err != nil {
-			tendermintlog.Error("NewTendermintClient", "msg", "GenesisDocFromFile failded", "error", err)
-			return nil
-		}
-		// save genesis doc to prevent a certain class of user errors (e.g. when it
-		// was changed, accidentally or not). Also good for audit trail.
-		saveGenesisDoc(stateDB, genDoc)
-	}
-
-	state, err := sm.LoadStateFromDBOrGenesisDoc(stateDB, genDoc)
-	if err != nil {
-		tendermintlog.Error("NewTendermintClient", "msg", "LoadStateFromDBOrGenesisDoc failded", "error", err)
+		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider evidenceDB failded", "error", err)
 		return nil
 	}
 
@@ -123,48 +77,17 @@ func New(cfg *types.Consensus) *TendermintClient {
 		//return nil
 	}
 
-	fastSync := true
-	if state.Validators.Size() == 1 {
-		addr, _ := state.Validators.GetByIndex(0)
-		if bytes.Equal(privValidator.GetAddress(), addr) {
-			fastSync = false
-		}
-	}
-
 	pubkey := privValidator.GetPubKey().KeyString()
-	// Log whether this node is a validator or an observer
-	if state.Validators.HasAddress(privValidator.GetAddress()) {
-		tendermintlog.Info("This node is a validator")
-	} else {
-		tendermintlog.Info("This node is not a validator")
-	}
-
-	// Make Evidence Reactor
-	evidenceDB, err := DefaultDBProvider("CSevidence")
-	if err != nil {
-		tendermintlog.Error("NewTendermintClient", "msg", "DefaultDBProvider evidenceDB failded", "error", err)
-		return nil
-	}
-
-	//make evidenceReactor
-	evidenceLogger := log.New("module", "tendermint-evidence")
-	evidenceStore := evidence.NewEvidenceStore(evidenceDB)
-	evidencePool := evidence.NewEvidencePool(stateDB, evidenceStore)
-	evidenceReactor := evidence.NewEvidenceReactor(evidencePool)
-	evidenceReactor.SetLogger(evidenceLogger)
-
-	blockExecLogger := log.New("module", "tendermint-state")
-	// make block executor for consensus and blockchain reactors to execute blocks
-	blockExec := sm.NewBlockExecutor(stateDB, blockExecLogger, evidencePool)
 
 	p2pLogger := log.New("module", "tendermint-p2p")
 	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
 	sw.SetLogger(p2pLogger)
-	sw.AddReactor("EVIDENCE", evidenceReactor)
 
 	eventBus := ttypes.NewEventBus()
 
 	c := drivers.NewBaseClient(cfg)
+
+
 
 	blockStore := ttypes.NewBlockStore(c, pubkey)
 
@@ -173,13 +96,10 @@ func New(cfg *types.Consensus) *TendermintClient {
 		genesisDoc:    genDoc,
 		privValidator: privValidator,
 		privKey:       privKey,
-		state:         state,
-		blockExec:     blockExec,
-		fastSync:      fastSync,
 		sw:            sw,
 		eventBus:      eventBus,
-		evidencePool:  evidencePool,
 		blockStore:    blockStore,
+		evidenceDB:    evidenceDB,
 	}
 
 	c.SetChild(client)
@@ -227,23 +147,46 @@ func (client *TendermintClient) StartConsensus() {
 		panic("StartConsensus failed for current block is nil")
 	}
 
-	state := client.state.Copy()
-	blockInfo := ttypes.GetCommitFromBlock(block)
-	if blockInfo != nil {
-		if seenCommit := blockInfo.SeenCommit; seenCommit != nil {
-			state.LastBlockID = ttypes.BlockID{
-				Hash: seenCommit.BlockID.GetHash(),
-				PartsHeader: ttypes.PartSetHeader{
-					Total: int(seenCommit.BlockID.GetPartsHeader().Total),
-					Hash:  seenCommit.BlockID.GetPartsHeader().Hash,
-				},
-			}
+	blockInfo := ttypes.GetBlockInfo(block)
+	var state sm.State
+	if blockInfo == nil {
+		statetmp, err := sm.MakeGenesisState(client.genesisDoc)
+		if err != nil {
+			tendermintlog.Error("StartConsensus", "msg", "MakeGenesisState failded", "error", err)
+			return
 		}
+		state = statetmp.Copy()
+	} else {
+		csState := blockInfo.GetState()
+		if csState == nil {
+			tendermintlog.Error("StartConsensus", "msg", "blockInfo.GetState is nil")
+			return
+		}
+		state = sm.LoadState(csState)
 	}
-	state.LastBlockHeight = block.Height
+
+	// Log whether this node is a validator or an observer
+	if state.Validators.HasAddress(client.privValidator.GetAddress()) {
+		tendermintlog.Info("This node is a validator")
+	} else {
+		tendermintlog.Info("This node is not a validator")
+	}
+
+	stateDB := sm.NewStateDB(client.BaseClient, state)
+
+	//make evidenceReactor
+	evidenceLogger := log.New("module", "tendermint-evidence")
+	evidenceStore := evidence.NewEvidenceStore(client.evidenceDB)
+	evidencePool := evidence.NewEvidencePool(stateDB, state, evidenceStore)
+	evidenceReactor := evidence.NewEvidenceReactor(evidencePool)
+	evidenceReactor.SetLogger(evidenceLogger)
+
+	blockExecLogger := log.New("module", "tendermint-state")
+	// make block executor for consensus and blockchain reactors to execute blocks
+	blockExec := sm.NewBlockExecutor(stateDB, blockExecLogger, evidencePool)
 
 	// Make ConsensusReactor
-	csState := core.NewConsensusState(client.BaseClient, client.blockStore, state, client.blockExec, client.evidencePool)
+	csState := core.NewConsensusState(client.BaseClient, client.blockStore, state, blockExec, evidencePool)
 	csState.SetPrivValidator(client.privValidator)
 
 	consensusReactor := core.NewConsensusReactor(csState, false)
@@ -251,6 +194,8 @@ func (client *TendermintClient) StartConsensus() {
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
 	consensusReactor.SetEventBus(client.eventBus)
+
+	client.sw.AddReactor("EVIDENCE", evidenceReactor)
 
 	client.sw.AddReactor("CONSENSUS", consensusReactor)
 

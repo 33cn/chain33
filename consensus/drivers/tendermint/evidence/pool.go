@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	log "github.com/inconshreveable/log15"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -19,7 +18,7 @@ type EvidencePool struct {
 	evidenceStore *EvidenceStore
 
 	// needed to load validators to verify evidence
-	stateDB dbm.DB
+	stateDB *sm.CSStateDB
 
 	// latest state
 	mtx   sync.Mutex
@@ -29,10 +28,10 @@ type EvidencePool struct {
 	evidenceChan chan types.Evidence
 }
 
-func NewEvidencePool(stateDB dbm.DB, evidenceStore *EvidenceStore) *EvidencePool {
+func NewEvidencePool(stateDB *sm.CSStateDB, state sm.State, evidenceStore *EvidenceStore) *EvidencePool {
 	evpool := &EvidencePool{
 		stateDB:       stateDB,
-		state:         sm.LoadState(stateDB),
+		state:         state,
 		logger:        nil,
 		evidenceStore: evidenceStore,
 		evidenceChan:  make(chan types.Evidence),
@@ -72,7 +71,7 @@ func (evpool *EvidencePool) Update(block *types.Block) {
 	evpool.mtx.Lock()
 	defer evpool.mtx.Unlock()
 
-	state := sm.LoadState(evpool.stateDB)
+	state := evpool.stateDB.LoadState()
 	if state.LastBlockHeight != block.Height {
 		panic(fmt.Sprintf("EvidencePool.Update: loaded state with height %d when block.Height=%d", state.LastBlockHeight, block.Height))
 	}
@@ -95,7 +94,7 @@ func (evpool *EvidencePool) AddEvidence(evidence types.Evidence) (err error) {
 
 	// fetch the validator and return its voting power as its priority
 	// TODO: something better ?
-	valset, _ := sm.LoadValidators(evpool.stateDB, evidence.Height())
+	valset, _ := evpool.stateDB.LoadValidators(evidence.Height())
 	_, val := valset.GetByAddress(evidence.Address())
 	priority := val.VotingPower
 
