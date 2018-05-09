@@ -74,7 +74,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplySellOrders
+	var res types.ReplySellOrders1
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -123,7 +123,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 	req.TokenSymbol = token
 	req.Count = count
 	req.Direction = dir
-	req.FromSellId = from
+	req.FromKey = from
 	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
@@ -133,7 +133,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplySellOrders
+	var res types.ReplySellOrders1
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -180,7 +180,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplySellOrders
+	var res types.ReplySellOrders1
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -190,7 +190,8 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	parseSellOrders(res)
 }
 
-func parseSellOrders(res types.ReplySellOrders) {
+// TODO
+func parseSellOrders(res types.ReplySellOrders1) {
 	for i, sellorder := range res.Selloders {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
@@ -270,14 +271,14 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplyTradeBuyOrders
+	var res types.ReplyBuyOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	for i, buy := range res.Tradebuydones {
+	for i, buy := range res.BuyOrders {
 		data, err := json.MarshalIndent(buy, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
