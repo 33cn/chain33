@@ -20,9 +20,9 @@ import (
 var logger = log.New("auth", "cryptosuite_p11")
 
 //GetSuiteByConfig returns cryptosuite adaptor for bccsp loaded according to given config
-func GetSuiteByConfig(config *types.Authority) (core.CryptoSuite, error) {
+func GetSuiteByConfig(config core.CryptoSuiteConfig) (core.CryptoSuite, error) {
 	// TODO: delete this check?
-	if config.DefaultProvider != "PKCS11" {
+	if config.SecurityProvider() != "PKCS11" {
 		return nil, errors.Errorf("Unsupported BCCSP Provider: %s", config.SecurityProvider())
 	}
 

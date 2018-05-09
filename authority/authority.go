@@ -8,7 +8,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
+	log "github.com/inconshreveable/log15"
 )
+
+var alog = log.New("module", "autority")
 
 type Authority struct {
 	cryptoPath string
@@ -27,23 +30,31 @@ func New(conf *types.Authority) *Authority{
 	return auth
 }
 
-func (c *Authority)initConfig(conf *types.Authority) error {
+func (auth *Authority)initConfig(conf *types.Authority) error {
 	config := &cryptosuite.CryptoConfig{conf}
 
 	cryptoSuite,err := sw.GetSuiteByConfig(config)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to initialize crypto suite")
 	}
-	c.cryptoSuite = cryptoSuite
+	auth.cryptoSuite = cryptoSuite
 
 
 	signer,err := signingmgr.New(cryptoSuite)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to initialize signing manage")
 	}
-	c.signer = signer
+	auth.signer = signer
 
 
 
 	return nil
+}
+
+func (auth *Authority) SetQueueClient(client queue.Client) {
+
+}
+
+func (auth *Authority) Close() {
+	alog.Info("authority module closed")
 }
