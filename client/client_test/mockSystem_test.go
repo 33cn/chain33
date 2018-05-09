@@ -20,7 +20,7 @@ func init() {
 	cfg := config.InitCfg(*configPath)
 	cfg.GetRpc().GrpcBindAddr = grpcAddress
 	rpc.Init(cfg.Rpc)
-	log.SetFileLog(cfg.Log)
+	log.SetLogLevel("crit")
 }
 
 type MockLive interface {
@@ -42,7 +42,6 @@ type mockSystem struct {
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 
 	var q = queue.New("channel")
-	queue.DisableLog()
 	chain := &mockBlockChain{}
 	chain.SetQueueClient(q)
 	mem := &mockMempool{}
