@@ -7,18 +7,18 @@ import (
 )
 
 const (
-	sellOrderSHTAS       = "token-sellorder-shtas:"
-	sellOrderASTS        = "token-sellorder-asts:"
-	sellOrderATSS        = "token-sellorder-atss:"
-	sellOrderTSPAS       = "token-sellorder-tspas:"
+	sellOrderSHTAS  = "token-sellorder-shtas:"
+	sellOrderASTS   = "token-sellorder-asts:"
+	sellOrderATSS   = "token-sellorder-atss:"
+	sellOrderTSPAS  = "token-sellorder-tspas:"
 	buyOrderSHTAS   = "token-buyorder-shtas:"
 	buyOrderASTS    = "token-buyorder-asts:"
 	buyOrderATSS    = "token-buyorder-atss:"
 	buyOrderTSPAS   = "token-buyorder-tspas:"
-	sellIDPrefix         = "mavl-trade-sell-"
-	buyIDPrefix          = "mavl-trade-buy-"
-	sellOrderPrefix      = "token-sellorder"
-	buyOrderPrefix       = "token-buyorder"
+	sellIDPrefix    = "mavl-trade-sell-"
+	buyIDPrefix     = "mavl-trade-buy-"
+	sellOrderPrefix = "token-sellorder"
+	buyOrderPrefix  = "token-buyorder"
 )
 
 // sell order 4 key, 4prefix
@@ -143,7 +143,6 @@ func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBa
 
 	newkey = calcOnesBuyOrderKeyToken(receipt.TokenSymbol, receipt.Owner, status, keyId)
 	kv = append(kv, &types.KeyValue{newkey, value})
-
 
 	priceBoardlot, err := strconv.ParseFloat(receipt.PricePerBoardlot, 64)
 	if err != nil {

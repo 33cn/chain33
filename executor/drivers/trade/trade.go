@@ -330,6 +330,8 @@ func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
 }
 
 func (t *trade) saveBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyValue {
+	tradelog.Info("save", "buy", receiptTradeBuy)
+
 	var kv []*types.KeyValue
 	return saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusBoughtOut, t.GetHeight())
 }
