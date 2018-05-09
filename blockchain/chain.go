@@ -78,6 +78,8 @@ type BlockChain struct {
 	//记录可疑故障节点peer信息
 	//在ExecBlock执行失败时记录对应的peerid以及故障区块的高度和hash
 	faultPeerList map[string]*FaultPeerInfo
+
+	bestChainPeerList map[string]*BestPeerInfo
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -100,6 +102,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		isbatchsync:        1,
 		cfgBatchSync:       cfg.Batchsync,
 		faultPeerList:      make(map[string]*FaultPeerInfo),
+		bestChainPeerList:  make(map[string]*BestPeerInfo),
 	}
 	return blockchain
 }
