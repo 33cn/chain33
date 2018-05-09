@@ -23,8 +23,8 @@ func (n *Node) monitorErrPeer() {
 		if !peer.version.IsSupport() { //如果版本不支持,直接删除节点
 			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
-			//加入黑名单24小时
-			n.nodeInfo.blacklist.Add(peer.Addr(), int64(time.Duration(time.Hour*24)))
+			//加入黑名单12小时
+			n.nodeInfo.blacklist.Add(peer.Addr(), int64(3600*12))
 			continue
 		}
 
@@ -259,7 +259,7 @@ func (n *Node) monitorPeers() {
 				//删除节点数过低的节点
 				n.remove(paddr)
 				//短暂加入黑名单20分钟
-				n.nodeInfo.blacklist.Add(paddr, int64(time.Duration(time.Minute*20)))
+				n.nodeInfo.blacklist.Add(paddr, int64(60*20))
 
 			}
 
@@ -329,7 +329,7 @@ func (n *Node) monitorDialPeers() {
 			if err != nil { //连接失败后
 				Filter.RemoveRecvData(netAddr.String())
 				log.Error("monitorDialPeers", "Err", err.Error())
-				n.nodeInfo.blacklist.Add(netAddr.String(), int64(time.Duration(time.Minute*10)))
+				n.nodeInfo.blacklist.Add(netAddr.String(), int64(60*10))
 				return
 			}
 
