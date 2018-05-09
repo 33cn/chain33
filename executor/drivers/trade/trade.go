@@ -107,16 +107,16 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			kv := t.saveSell([]byte(receipt.Base.Sellid), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTradeBuy {
-			var receipt types.ReceiptBuyBase
+			var receipt types.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.saveBuy(&receipt)
+			kv := t.saveBuy(receipt.Base)
 			set.KV = append(set.KV, kv...)
 
 			// 添加个人资产列表
-			kv = token.AddTokenToAssets(receipt.Owner, t.GetLocalDB(), receipt.TokenSymbol)
+			kv = token.AddTokenToAssets(receipt.Base.Owner, t.GetLocalDB(), receipt.Base.TokenSymbol)
 			if kv != nil {
 				set.KV = append(set.KV, kv...)
 			}
@@ -170,12 +170,12 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			kv := t.deleteSell([]byte(receipt.Base.Sellid), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTradeBuy {
-			var receipt types.ReceiptBuyBase
+			var receipt types.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.deleteBuy(&receipt)
+			kv := t.deleteBuy(receipt.Base)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTradeBuyRevoke || item.Ty == types.TyLogTradeBuyLimit {
 			var receipt types.ReceiptTradeBuyLimit
