@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -10,6 +10,7 @@ type mockBlockChain struct {
 
 func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 	go func() {
+		blockchainKey := "blockchain"
 		client := q.Client()
 		client.Sub(blockchainKey)
 		for msg := range client.Recv() {
@@ -36,6 +37,9 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{}))
 			case types.EventGetLastHeader:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventHeader, &types.Header{}))
+			case types.EventQuery:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Header{Version: 10, Height: 10}))
+
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}

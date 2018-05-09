@@ -32,6 +32,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
+	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
@@ -58,11 +59,13 @@ func main() {
 	flag.Parse()
 	//set config
 	cfg := config.InitCfg(*configPath)
+	//set test net flag
+	types.SetTestNet(cfg.TestNet)
+	types.SetTitle(cfg.Title)
 	//compare minFee in wallet, mempool, exec
 	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
 		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
 	}
-
 	//set file log
 	clog.SetFileLog(cfg.Log)
 	//set grpc log
@@ -74,7 +77,6 @@ func main() {
 		glogv2 := grpclog.NewLoggerV2WithVerbosity(f, f, f, 10)
 		grpclog.SetLoggerV2(glogv2)
 	}
-
 	//set watching
 	t := time.Tick(10 * time.Second)
 	go func() {
@@ -168,6 +170,7 @@ func main() {
 }
 
 // 开启trace
+
 func startTrace() {
 	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
 		return true, true

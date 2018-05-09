@@ -523,6 +523,10 @@ func TestGetLatestTx(t *testing.T) {
 		return
 	}
 
+	msg11 := mem.client.NewMessage("mempool", types.EventTx, tx11)
+	mem.client.Send(msg11, true)
+	mem.client.Wait(msg11)
+
 	msg := mem.client.NewMessage("mempool", types.EventGetLastMempool, nil)
 	mem.client.Send(msg, true)
 
@@ -533,7 +537,7 @@ func TestGetLatestTx(t *testing.T) {
 		return
 	}
 
-	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 10 {
+	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 11 {
 		t.Error("TestGetLatestTx failed", len(reply.GetData().(*types.ReplyTxList).GetTxs()), mem.Size())
 	}
 }
@@ -627,6 +631,50 @@ func TestCheckExpire2(t *testing.T) {
 
 	if len(txs) != 3 {
 		t.Error("TestCheckExpire failed", len(txs))
+	}
+}
+
+func TestGetAddrTxs(t *testing.T) {
+	q, chain, exec, store, cs, mem := initEnv(0)
+	defer q.Close()
+	defer chain.Close()
+	defer exec.Close()
+	defer store.Close()
+	defer cs.Close()
+	defer mem.Close()
+
+	// add tx
+	_, err := add4TxHash(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	ad := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	addrs := []string{ad}
+	msg := mem.client.NewMessage("mempool", types.EventGetAddrTxs, &types.ReqAddrs{Addrs: addrs})
+	mem.client.Send(msg, true)
+	data, err := mem.client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txsFact := data.GetData().(*types.TransactionDetails).Txs
+	txsExpect := mem.GetAccTxs(&types.ReqAddrs{Addrs: addrs}).Txs
+	if len(txsExpect) != len(txsFact) {
+		t.Error("TestGetAddrTxs failed", "length not match")
+	}
+	same := 0
+	for _, i := range txsExpect {
+		for _, j := range txsFact {
+			if j.Tx == i.Tx {
+				same += 1
+				continue
+			}
+		}
+	}
+	if same != len(txsExpect) {
+		t.Error("TestGetAddrTxs failed", same)
 	}
 }
 
