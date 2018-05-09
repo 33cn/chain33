@@ -226,11 +226,11 @@ message ReplySellOrder {
 }
 // TODO remvoe
 // only used in client
-message ReplySellOrders {
+message ReplySellOrders1 {
 	repeated SellOrder selloders = 1;
 }
 
-message ReplySellOrders1 {
+message ReplySellOrders {
 	repeated ReplySellOrder selloders = 1;
 }
 
