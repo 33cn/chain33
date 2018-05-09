@@ -257,7 +257,7 @@ func (n *Node) monitorPeers() {
 			if localBlockHeight-peerheight > 2048 { //比自己较低的节点删除
 				if addrMap, err := p2pcli.GetAddrList(peers[paddr]); err == nil {
 
-					for addr, _ := range addrMap {
+					for addr := range addrMap {
 						if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
 							pub.FIFOPub(addr, "addr")
 						}

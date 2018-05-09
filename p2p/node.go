@@ -115,7 +115,7 @@ func (n *Node) doNat() {
 
 			peerMaps, _ := n.GetActivePeers()
 			var addrs []string
-			for peeraddr, _ := range peerMaps {
+			for peeraddr := range peerMaps {
 				addrs = append(addrs, peeraddr)
 			}
 
