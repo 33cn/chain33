@@ -189,7 +189,7 @@ func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status i
 	}
 	var reply types.ReplySellOrders
 	for _, key := range values {
-		sell := t.replyReplySellOrderfromID([]byte(key))
+		sell := t.replyReplySellOrderfromID(key)
 		if sell != nil {
 			tradelog.Debug("trade Query", "GetTokenSellOrderByStatus", string(key))
 			reply.Selloders = append(reply.Selloders, sell)
@@ -223,7 +223,7 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 	}
 	var reply types.ReplyBuyOrders
 	for _, key := range values {
-		buy := t.replyReplyBuyOrderfromID([]byte(key))
+		buy := t.replyReplyBuyOrderfromID(key)
 		if buy != nil {
 			tradelog.Debug("trade Query", "GetTokenBuyLimitOrderByStatus", string(key))
 			reply.BuyOrders = append(reply.BuyOrders, buy)
