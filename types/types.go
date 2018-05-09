@@ -705,7 +705,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeSell:
+		case TyLogTradeSellLimit:
 			lTy = "LogTradeSell"
 			var logTmp ReceiptTradeSell
 			err = Decode(lLog, &logTmp)
@@ -713,7 +713,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeBuy:
+		case TyLogTradeBuyMarket:
 			lTy = "LogTradeBuy"
 			var logTmp ReceiptTradeBuyMarket
 			err = Decode(lLog, &logTmp)
@@ -721,7 +721,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeRevoke:
+		case TyLogTradeSellRevoke:
 			lTy = "LogTradeRevoke"
 			var logTmp ReceiptTradeRevoke
 			err = Decode(lLog, &logTmp)
