@@ -136,12 +136,12 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, kv...)
 			}
 		} else if item.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptSellBase
+			var receipt types.ReceiptSellMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.saveSellMarket(&receipt)
+			kv := t.saveSellMarket(receipt.Base)
 			tradelog.Info("saveSellMarket", "kv", kv)
 			set.KV = append(set.KV, kv...)
 		}
@@ -187,12 +187,12 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			set.KV = append(set.KV, kv...)
 
 		} else if item.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptSellBase
+			var receipt types.ReceiptSellMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.deleteSellMarket(&receipt)
+			kv := t.deleteSellMarket(receipt.Base)
 			set.KV = append(set.KV, kv...)
 		}
 	}
