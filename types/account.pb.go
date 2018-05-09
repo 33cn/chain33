@@ -144,32 +144,29 @@ It has these top-level messages:
 	ReplyConfig
 	Trade
 	TradeForSell
-	SellOrder
-	SellOrderReceipt
-	ReqAddrTokens
 	TradeForBuy
 	TradeForRevokeSell
 	TradeForBuyLimit
-	BuyLimitOrder
-	BuyLimitOrderReceipt
 	TradeForSellMarket
 	TradeForRevokeBuy
+	SellOrder
+	BuyLimitOrder
 	ReceiptBuyBase
+	ReceiptSellBase
+	ReceiptTradeBuyMarket
 	ReceiptTradeBuyLimit
 	ReceiptTradeBuyRevoke
-	ReceiptTradeBase
 	ReceiptTradeSell
-	ReceiptTradeBuy
+	ReceiptSellMarket
 	ReceiptTradeRevoke
-	TradeBuyDone
-	ReplyTradeBuyOrders
-	ReplyBuyLimitOrders
+	ReqAddrTokens
 	ReqTokenSellOrder
-	ReqTokenBuyLimitOrder
+	ReqTokenBuyOrder
 	ReplyBuyOrder
 	ReplySellOrder
-	ReplySellOrders
 	ReplySellOrders1
+	ReplySellOrders
+	ReplyBuyOrders
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
