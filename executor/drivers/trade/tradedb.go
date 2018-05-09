@@ -17,7 +17,7 @@ type sellDB struct {
 func newSellDB(sellOrder types.SellOrder) (selldb *sellDB) {
 	selldb = &sellDB{sellOrder}
 	if types.InvalidStartTime != selldb.Starttime {
-		selldb.Status = types.TracdOrderStatusNotStart
+		selldb.Status = types.TradeOrderStatusNotStart
 	}
 	return
 }
@@ -75,7 +75,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash str
 		boardlotcnt,
 		boardlotcnt,
 		"",
-		types.SellOrderStatus[types.TracdOrderStatusBoughtOut],
+		types.SellOrderStatus[types.TradeOrderStatusBoughtOut],
 		selldb.Sellid,
 		txhash,
 		selldb.Height,
@@ -212,7 +212,7 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt in
 		0,
 		false,
 		"",
-		types.SellOrderStatus[types.TracdOrderStatusSoldOut],
+		types.SellOrderStatus[types.TradeOrderStatusSoldOut],
 		buydb.Buyid,
 		txhash,
 		buydb.Height,
@@ -269,7 +269,7 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 		sell.GetStoptime(),
 		sell.GetCrowdfund(),
 		calcTokenSellID(action.txhash),
-		types.TracdOrderStatusOnSale,
+		types.TradeOrderStatusOnSale,
 		action.height,
 	}
 
@@ -295,17 +295,17 @@ func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt
 		return nil, types.ErrTSellOrderNotExist
 	}
 
-	if sellOrder.Status == types.TracdOrderStatusNotStart && sellOrder.Starttime > action.blocktime {
+	if sellOrder.Status == types.TradeOrderStatusNotStart && sellOrder.Starttime > action.blocktime {
 		return nil, types.ErrTSellOrderNotStart
-	} else if sellOrder.Status == types.TracdOrderStatusSoldOut {
+	} else if sellOrder.Status == types.TradeOrderStatusSoldOut {
 		return nil, types.ErrTSellOrderSoldout
-	} else if sellOrder.Status == types.TracdOrderStatusOnSale && sellOrder.Totalboardlot-sellOrder.Soldboardlot < buyOrder.Boardlotcnt {
+	} else if sellOrder.Status == types.TradeOrderStatusOnSale && sellOrder.Totalboardlot-sellOrder.Soldboardlot < buyOrder.Boardlotcnt {
 		return nil, types.ErrTSellOrderNotEnough
-	} else if sellOrder.Status == types.TracdOrderStatusRevoked {
+	} else if sellOrder.Status == types.TradeOrderStatusRevoked {
 		return nil, types.ErrTSellOrderRevoked
-	} else if sellOrder.Status == types.TracdOrderStatusExpired {
+	} else if sellOrder.Status == types.TradeOrderStatusExpired {
 		return nil, types.ErrTSellOrderExpired
-	} else if sellOrder.Status == types.TracdOrderStatusOnSale && buyOrder.Boardlotcnt < sellOrder.Minboardlot {
+	} else if sellOrder.Status == types.TradeOrderStatusOnSale && buyOrder.Boardlotcnt < sellOrder.Minboardlot {
 		return nil, types.ErrTCntLessThanMinBoardlot
 	}
 
@@ -336,7 +336,7 @@ func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt
 	sellOrder.Soldboardlot += buyOrder.Boardlotcnt
 	tradelog.Debug("tradeBuy", "Soldboardlot after this buy", sellOrder.Soldboardlot)
 	if sellOrder.Soldboardlot == sellOrder.Totalboardlot {
-		sellOrder.Status = types.TracdOrderStatusSoldOut
+		sellOrder.Status = types.TradeOrderStatusSoldOut
 	}
 	sellTokendb := newSellDB(*sellOrder)
 	sellOrderKV := sellTokendb.save(action.db)
@@ -358,11 +358,11 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 		return nil, types.ErrTSellOrderNotExist
 	}
 
-	if sellOrder.Status == types.TracdOrderStatusSoldOut {
+	if sellOrder.Status == types.TradeOrderStatusSoldOut {
 		return nil, types.ErrTSellOrderSoldout
-	} else if sellOrder.Status == types.TracdOrderStatusRevoked {
+	} else if sellOrder.Status == types.TradeOrderStatusRevoked {
 		return nil, types.ErrTSellOrderRevoked
-	} else if sellOrder.Status == types.TracdOrderStatusExpired {
+	} else if sellOrder.Status == types.TradeOrderStatusExpired {
 		return nil, types.ErrTSellOrderExpired
 	}
 
@@ -380,7 +380,7 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	sellOrder.Status = types.TracdOrderStatusRevoked
+	sellOrder.Status = types.TradeOrderStatusRevoked
 	tokendb := newSellDB(*sellOrder)
 	sellOrderKV := tokendb.save(action.db)
 
@@ -419,7 +419,7 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 		buy.GetTotalBoardlot(),
 		0,
 		calcTokenBuyID(action.txhash),
-		types.TracdOrderStatusOnBuy,
+		types.TradeOrderStatusOnBuy,
 		action.height,
 	}
 
@@ -445,13 +445,13 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 		return nil, types.ErrTBuyOrderNotExist
 	}
 
-	if buyOrder.Status == types.TracdOrderStatusBoughtOut {
+	if buyOrder.Status == types.TradeOrderStatusBoughtOut {
 		return nil, types.ErrTBuyOrderSoldout
-	} else if buyOrder.Status == types.TracdOrderStatusRevoked {
+	} else if buyOrder.Status == types.TradeOrderStatusRevoked {
 		return nil, types.ErrTBuyOrderRevoked
-	} else if buyOrder.Status == types.TracdOrderStatusOnBuy && buyOrder.TotalBoardlot-buyOrder.BoughtBoardlot < sellOrder.BoardlotCnt {
+	} else if buyOrder.Status == types.TradeOrderStatusOnBuy && buyOrder.TotalBoardlot-buyOrder.BoughtBoardlot < sellOrder.BoardlotCnt {
 		return nil, types.ErrTBuyOrderNotEnough
-	} else if buyOrder.Status == types.TracdOrderStatusOnBuy && sellOrder.BoardlotCnt < buyOrder.MinBoardlot {
+	} else if buyOrder.Status == types.TradeOrderStatusOnBuy && sellOrder.BoardlotCnt < buyOrder.MinBoardlot {
 		return nil, types.ErrTCntLessThanMinBoardlot
 	}
 
@@ -486,7 +486,7 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 	buyOrder.BoughtBoardlot += sellOrder.BoardlotCnt
 	tradelog.Debug("tradeBuy", "BoughtBoardlot after this buy", buyOrder.BoughtBoardlot)
 	if buyOrder.BoughtBoardlot == buyOrder.TotalBoardlot {
-		buyOrder.Status = types.TracdOrderStatusBoughtOut
+		buyOrder.Status = types.TradeOrderStatusBoughtOut
 	}
 	buyTokendb := newBuyDB(*buyOrder)
 	sellOrderKV := buyTokendb.save(action.db)
@@ -508,9 +508,9 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) 
 		return nil, types.ErrTBuyOrderNotExist
 	}
 
-	if buyOrder.Status == types.TracdOrderStatusBoughtOut {
+	if buyOrder.Status == types.TradeOrderStatusBoughtOut {
 		return nil, types.ErrTBuyOrderSoldout
-	} else if buyOrder.Status == types.TracdOrderStatusBuyRevoked {
+	} else if buyOrder.Status == types.TradeOrderStatusBuyRevoked {
 		return nil, types.ErrTBuyOrderRevoked
 	}
 
@@ -529,7 +529,7 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) 
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	buyOrder.Status = types.TracdOrderStatusBuyRevoked
+	buyOrder.Status = types.TradeOrderStatusBuyRevoked
 	tokendb := newBuyDB(*buyOrder)
 	sellOrderKV := tokendb.save(action.db)
 

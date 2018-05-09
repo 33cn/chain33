@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package signatory;
+
+message Config {
+	repeated string whitelist = 1;
+	string jrpcBindAddr = 2;
+	string privKey = 3;
+}

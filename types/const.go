@@ -1,28 +1,97 @@
 package types
 
+// 注释掉系统中没有用到的枚举项
+// 与AllowUserExec中驱动名称的顺序一致
+const (
+	ExecTypeCoins    = 0
+	ExecTypeTicket   = 1
+	ExecTypeHashLock = 2
+	ExecTypeNorm     = 3
+	ExecTypeRetrieve = 4
+	ExecTypeNone     = 5
+	ExecTypeToken    = 6
+	ExecTypeTrade    = 7
+	ExecTypeManage   = 8
+)
+
 var (
 	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "norm", "retrieve", "none", "token", "trade", "manage"}
+	AllowUserExec          = []string{"coins", "ticket", "norm", "hashlock", "retrieve", "none", "token", "trade", "manage"}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	GenesisBlockTime int64 = 1514533394
+	GenesisBlockTime int64 = 1525708005
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+	FundKeyAddr            = "1QGdwwUr64CbvN48hhsAZSeh5WfieZbqEr"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager           = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	SuperManager           = []string{"14YRhYpYSrABHz7nUUTufWaQ2v36PZcKZS"}
 	ConfigPrefix           = "mavl-config-"
-	TokenApprs             = []string{
+	TokenApprs             = []string{}
+)
+
+//hard fork block height
+var (
+	ForkV1               int64 = 1
+	ForkV2AddToken       int64 = 1
+	ForkV3               int64 = 1
+	ForkV4AddManage      int64 = 1
+	ForkV5Retrive        int64 = 1
+	ForkV6TokenBlackList int64 = 1
+	ForkV7BadTokenSymbol int64 = 1
+	ForkBlockHash        int64 = 1
+	ForkV9               int64 = 1
+	ForkV10TradeBuyLimit int64 = 1
+)
+
+var (
+	MinFee             int64 = 1e5
+	MinBalanceTransfer int64 = 1e6
+	testNet            bool
+	title              string
+)
+
+func SetTitle(t string) {
+	title = t
+	if IsBityuan() {
+		AllowUserExec = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	}
+}
+
+func IsBityuan() bool {
+	return title == "bityuan"
+}
+
+func SetTestNet(isTestNet bool) {
+	if !isTestNet {
+		testNet = false
+		return
+	}
+	testNet = true
+	//const 初始化TestNet 的初始化参数
+	GenesisBlockTime = 1514533394
+	FundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	TokenApprs = []string{
 		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
 		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
 		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
 		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
 		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
 	}
-)
+	//TestNet 的 fork
+	ForkV1 = 75260
+	ForkV2AddToken = 100899
+	ForkV3 = 110000
+	ForkV4AddManage = 120000
+	ForkV5Retrive = 180000
+	ForkV6TokenBlackList = 190000
+	ForkV7BadTokenSymbol = 184000
+	ForkBlockHash = 208986 + 200
+	ForkV9 = 350000
+	ForkV10TradeBuyLimit = 301000
+}
 
-var (
-	MinFee             int64 = 1e5
-	MinBalanceTransfer int64 = 1e6
-)
+func IsTestNet() bool {
+	return testNet
+}
 
 func SetMinFee(fee int64) {
 	if fee < 0 {
@@ -34,20 +103,20 @@ func SetMinFee(fee int64) {
 
 // coin conversation
 const (
-	Coin                int64   = 1e8
-	MaxCoin             int64   = 1e17
-	MaxTxSize                   = 100000   //100K
-	MaxBlockSize                = 10000000 //10M
-	MaxTxsPerBlock              = 100000
-	TokenPrecision      int64   = 1e8
-	MaxTokenBalance     int64   = 900 * 1e8 * TokenPrecision //900亿
-	InputPrecision      float64 = 1e4
-	Multiple1E4         int64   = 1e4
-	TokenNameLenLimit           = 128
-	TokenSymbolLenLimit         = 16
-	TokenIntroLenLimit          = 1024
-	InvalidStartTime            = 0
-	InvalidStopTime             = 0
+	Coin                int64 = 1e8
+	MaxCoin             int64 = 1e17
+	MaxTxSize                 = 100000   //100K
+	MaxBlockSize              = 10000000 //10M
+	MaxTxsPerBlock            = 100000
+	TokenPrecision      int64 = 1e8
+	MaxTokenBalance           = 900 * 1e8 * TokenPrecision //900亿
+	InputPrecision            = 1e4
+	Multiple1E4         int64 = 1e4
+	TokenNameLenLimit         = 128
+	TokenSymbolLenLimit       = 16
+	TokenIntroLenLimit        = 1024
+	InvalidStartTime          = 0
+	InvalidStopTime           = 0
 )
 
 // event
@@ -418,35 +487,35 @@ const (
 
 // 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
 const (
-	TracdOrderStatusNotStart = iota
-	TracdOrderStatusOnSale
-	TracdOrderStatusSoldOut
-	TracdOrderStatusRevoked
-	TracdOrderStatusExpired
-	TracdOrderStatusOnBuy
-	TracdOrderStatusBoughtOut
-	TracdOrderStatusBuyRevoked
+	TradeOrderStatusNotStart                        = iota
+	TradeOrderStatusOnSale
+	TradeOrderStatusSoldOut
+	TradeOrderStatusRevoked
+	TradeOrderStatusExpired
+	TradeOrderStatusOnBuy
+	TradeOrderStatusBoughtOut
+	TradeOrderStatusBuyRevoked
 )
 var SellOrderStatus = map[int32]string{
-        TracdOrderStatusNotStart:   "NotStart",
-        TracdOrderStatusOnSale:     "OnSale",
-        TracdOrderStatusSoldOut:    "SoldOut",
-        TracdOrderStatusRevoked:    "Revoked",
-        TracdOrderStatusExpired:    "Expired",
-        TracdOrderStatusOnBuy:      "OnBuy",
-        TracdOrderStatusBoughtOut:  "BoughtOut",
-        TracdOrderStatusBuyRevoked: "BuyRevoked",
+        TradeOrderStatusNotStart:   "NotStart",
+        TradeOrderStatusOnSale:     "OnSale",
+        TradeOrderStatusSoldOut:    "SoldOut",
+        TradeOrderStatusRevoked:    "Revoked",
+        TradeOrderStatusExpired:    "Expired",
+        TradeOrderStatusOnBuy:      "OnBuy",
+        TradeOrderStatusBoughtOut:  "BoughtOut",
+        TradeOrderStatusBuyRevoked: "BuyRevoked",
 }
 
 var SellOrderStatus2Int = map[string]int32{
-        "NotStart":   TracdOrderStatusNotStart,
-        "OnSale":     TracdOrderStatusOnSale,
-        "SoldOut":    TracdOrderStatusSoldOut,
-        "Revoked":    TracdOrderStatusRevoked,
-        "Expired":    TracdOrderStatusExpired,
-        "OnBuy":      TracdOrderStatusOnBuy,
-        "BoughtOut":  TracdOrderStatusBoughtOut,
-        "BuyRevoked": TracdOrderStatusBuyRevoked,
+        "NotStart":   TradeOrderStatusNotStart,
+        "OnSale":     TradeOrderStatusOnSale,
+        "SoldOut":    TradeOrderStatusSoldOut,
+        "Revoked":    TradeOrderStatusRevoked,
+        "Expired":    TradeOrderStatusExpired,
+        "OnBuy":      TradeOrderStatusOnBuy,
+        "BoughtOut":  TradeOrderStatusBoughtOut,
+        "BuyRevoked": TradeOrderStatusBuyRevoked,
 }
 
 // manager action
@@ -462,20 +531,7 @@ const (
 )
 
 var MapSellOrderStatusStr2Int = map[string]int32{
-	"onsale":  TracdOrderStatusOnSale,
-	"soldout": TracdOrderStatusSoldOut,
-	"revoked": TracdOrderStatusRevoked,
+	"onsale":  TradeOrderStatusOnSale,
+	"soldout": TradeOrderStatusSoldOut,
+	"revoked": TradeOrderStatusRevoked,
 }
-
-//hard fork block height
-const (
-	ForkV1               = 75260
-	ForkV2AddToken       = 100899
-	ForkV3               = 110000
-	ForkV4AddManage      = 120000
-	ForkV5Retrive        = 180000
-	ForkV6TokenBlackList = 190000
-	ForkV7BadTokenSymbol = 184000
-	ForkBlockHash        = 208986 + 200
-	ForTradeBuyLimit     = 301000
-)
