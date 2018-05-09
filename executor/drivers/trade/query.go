@@ -56,7 +56,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 
 	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
-		values, err := t.GetLocalDB().List(calcOnesBuyLimitOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
+		values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -66,7 +66,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 		}
 	} else {
 		for _, token := range addrTokens.Token {
-			values, err := t.GetLocalDB().List(calcOnesBuyLimitOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
+			values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
 			if err != nil {
 				return nil, err
@@ -122,7 +122,7 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 
 func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
 	var sellids [][]byte
-	values, err := t.GetLocalDB().List(calcOnesBuyLimitOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
+	values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -210,14 +210,14 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 			tradelog.Error("GetTokenBuyLimitOrderByStatus", "key not exist", req.FromKey)
 			return nil, types.ErrInputPara
 		}
-		fromKey = calcTokensBuyLimitOrderKeyStatus(buy.TokenSymbol, buy.Status,
+		fromKey = calcTokensBuyOrderKeyStatus(buy.TokenSymbol, buy.Status,
 			calcPriceOfToken(buy.PricePerBoardlot, buy.AmountPerBoardlot), buy.Owner, buy.Key)
 	}
 	tradelog.Info("GetTokenBuyLimitOrderByStatus","fromKey ", fromKey)
 
 	// List Direction 是升序， 买单是要降序， 把高价买的放前面， 在下一页操作时， 显示买价低的。
 	direction := 1 - req.Direction
-	values, err := t.GetLocalDB().List(calcTokensBuyLimitOrderPrefixStatus(req.TokenSymbol, status), fromKey, req.Count, direction)
+	values, err := t.GetLocalDB().List(calcTokensBuyOrderPrefixStatus(req.TokenSymbol, status), fromKey, req.Count, direction)
 	if err != nil {
 		return nil, err
 	}
