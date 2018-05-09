@@ -488,7 +488,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 			case types.EventTx:
 				if !mem.isSync() {
 					msg.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{false, []byte(types.ErrNotSync.Error())}))
-					// mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
+					mlog.Debug("wrong tx", "err", types.ErrNotSync.Error())
 					continue
 				}
 				checkedMsg := mem.CheckTx(msg)
