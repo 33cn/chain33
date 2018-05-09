@@ -13,6 +13,7 @@ message Config {
 	P2P p2p = 9;
 	Rpc rpc = 10;
 	Exec exec = 11;
+	Authority auth = 12;
 }
 
 message Log {
@@ -116,4 +117,12 @@ message Rpc {
 message Exec {
 	int64 minExecFee = 1;
 	bool  isFree = 2;
+}
+
+message Authority {
+    string cryptoPath = 1;
+    int32 securityLevel = 2;
+    string defaultProvider = 3;
+    string hashAlgorithm = 4;
+    string keyStorePath = 5;
 }
