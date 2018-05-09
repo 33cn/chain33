@@ -169,8 +169,9 @@ message ReqAddrTokens{
 	string addr           = 1;
 	int32  status         = 2;
 	repeated string token = 3;
-	int32 pageNumber      = 4;
-	int32 pageSize        = 5;
+	int32 direction       = 4;
+	int32 count           = 5;
+	string fromKey        = 6;
 }
 
 // 获取Token未完成卖单的交易列表
