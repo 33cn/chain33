@@ -8,14 +8,9 @@ package core
 
 //CryptoSuiteConfig contains sdk configuration items for cryptosuite.
 type CryptoSuiteConfig interface {
-	IsSecurityEnabled() bool
 	SecurityAlgorithm() string
 	SecurityLevel() int
 	SecurityProvider() string
-	SoftVerify() bool
-	SecurityProviderLibPath() string
-	SecurityProviderPin() string
-	SecurityProviderLabel() string
 	KeyStorePath() string
 }
 
