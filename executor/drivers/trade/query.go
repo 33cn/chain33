@@ -10,7 +10,6 @@ import (
 )
 
 func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
-	sellidGotAlready := make(map[string]bool)
 	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
 		values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
@@ -36,22 +35,17 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 
 	var replys types.ReplySellOrders
 	for _, key := range keys {
-		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
-		if !sellidGotAlready[string(key)] {
-			reply := t.replyReplySellOrderfromID(key)
-			if reply == nil {
-				continue
-			}
-			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
-			replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
-			sellidGotAlready[string(key)] = true
+		reply := t.replyReplySellOrderfromID(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
 	}
 	return &replys, nil
 }
 
 func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
-	gotAlready := make(map[interface{}]bool)
 	var replys types.ReplyBuyOrders
 
 	var keys [][]byte
@@ -86,11 +80,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 				continue
 			}
 
-			if !gotAlready[key] {
-				// TODO 排序
-				replys.BuyOrders = append(replys.BuyOrders, reply)
-				gotAlready[key] = true
-			}
+			replys.BuyOrders = append(replys.BuyOrders, reply)
 		}
 	}
 
