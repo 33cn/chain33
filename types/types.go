@@ -228,9 +228,9 @@ func (tx *Transaction) Amount() (int64, error) {
 			return 0, ErrDecode
 		}
 
-		if TradeSell == trade.Ty && trade.GetTokensell() != nil {
+		if TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
 			return 0, nil
-		} else if TradeBuy == trade.Ty && trade.GetTokenbuy() != nil {
+		} else if TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
 			return 0, nil
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
@@ -326,12 +326,18 @@ func (tx *Transaction) ActionName() string {
 			return "unknow-err"
 		}
 
-		if trade.Ty == TradeSell && trade.GetTokensell() != nil {
+		if trade.Ty == TradeSellLimit && trade.GetTokensell() != nil {
 			return "selltoken"
-		} else if trade.Ty == TradeBuy && trade.GetTokenbuy() != nil {
+		} else if trade.Ty == TradeBuyMarket && trade.GetTokenbuy() != nil {
 			return "buytoken"
 		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
 			return "revokeselltoken"
+		} else if trade.Ty == TradeBuyLimit && trade.GetTokenbuylimit() != nil {
+			return "buylimittoken"
+		} else if trade.Ty == TradeSellMarket && trade.GetTokensellmarket() != nil {
+			return "sellmarkettoken"
+		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
+			return "revokebuytoken"
 		}
 	}
 
@@ -703,7 +709,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeSell:
+		case TyLogTradeSellLimit:
 			lTy = "LogTradeSell"
 			var logTmp ReceiptTradeSell
 			err = Decode(lLog, &logTmp)
@@ -711,15 +717,15 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeBuy:
+		case TyLogTradeBuyMarket:
 			lTy = "LogTradeBuy"
-			var logTmp ReceiptTradeBuy
+			var logTmp ReceiptTradeBuyMarket
 			err = Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeRevoke:
+		case TyLogTradeSellRevoke:
 			lTy = "LogTradeRevoke"
 			var logTmp ReceiptTradeRevoke
 			err = Decode(lLog, &logTmp)
