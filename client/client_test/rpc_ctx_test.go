@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -26,7 +25,6 @@ type JsonRpcCtx struct {
 type Callback func(res interface{}) (interface{}, error)
 
 func NewJsonRpcCtx(methed string, params, res interface{}) *JsonRpcCtx {
-	time.Sleep(5 * time.Millisecond)
 	return &JsonRpcCtx{
 		Addr:   "http://localhost:8801",
 		Method: methed,
@@ -81,7 +79,6 @@ type GrpcCtx struct {
 }
 
 func NewGRpcCtx(method string, params, res interface{}) *GrpcCtx {
-	//time.Sleep(5 * time.Millisecond)
 	return &GrpcCtx{
 		Method: method,
 		Params: params,

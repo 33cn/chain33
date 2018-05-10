@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -22,12 +21,14 @@ var tlog = log.New("module", "types")
 
 type Message proto.Message
 
-func isAllowExecName(name string) bool {
-	if strings.HasPrefix(name, "user.") {
+var userKey = []byte("user.")
+
+func isAllowExecName(name []byte) bool {
+	if bytes.HasPrefix(name, userKey) {
 		return true
 	}
 	for i := range AllowUserExec {
-		if AllowUserExec[i] == name {
+		if bytes.Equal(AllowUserExec[i], name) {
 			return true
 		}
 	}
@@ -103,7 +104,7 @@ func (tx *Transaction) CheckSign() bool {
 }
 
 func (tx *Transaction) Check(minfee int64) error {
-	if !isAllowExecName(string(tx.Execer)) {
+	if !isAllowExecName(tx.Execer) {
 		return ErrExecNameNotAllow
 	}
 	txSize := Size(tx)
@@ -227,9 +228,9 @@ func (tx *Transaction) Amount() (int64, error) {
 			return 0, ErrDecode
 		}
 
-		if TradeSell == trade.Ty && trade.GetTokensell() != nil {
+		if TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
 			return 0, nil
-		} else if TradeBuy == trade.Ty && trade.GetTokenbuy() != nil {
+		} else if TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
 			return 0, nil
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
@@ -325,12 +326,18 @@ func (tx *Transaction) ActionName() string {
 			return "unknow-err"
 		}
 
-		if trade.Ty == TradeSell && trade.GetTokensell() != nil {
+		if trade.Ty == TradeSellLimit && trade.GetTokensell() != nil {
 			return "selltoken"
-		} else if trade.Ty == TradeBuy && trade.GetTokenbuy() != nil {
+		} else if trade.Ty == TradeBuyMarket && trade.GetTokenbuy() != nil {
 			return "buytoken"
 		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
 			return "revokeselltoken"
+		} else if trade.Ty == TradeBuyLimit && trade.GetTokenbuylimit() != nil {
+			return "buylimittoken"
+		} else if trade.Ty == TradeSellMarket && trade.GetTokensellmarket() != nil {
+			return "sellmarkettoken"
+		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
+			return "revokebuytoken"
 		}
 	}
 
@@ -520,6 +527,8 @@ func GetSignatureTypeName(signType int) string {
 	}
 }
 
+var ConfigPrefix = "mavl-config-"
+
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }
@@ -700,7 +709,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeSell:
+		case TyLogTradeSellLimit:
 			lTy = "LogTradeSell"
 			var logTmp ReceiptTradeSell
 			err = Decode(lLog, &logTmp)
@@ -708,15 +717,15 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeBuy:
+		case TyLogTradeBuyMarket:
 			lTy = "LogTradeBuy"
-			var logTmp ReceiptTradeBuy
+			var logTmp ReceiptTradeBuyMarket
 			err = Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTradeRevoke:
+		case TyLogTradeSellRevoke:
 			lTy = "LogTradeRevoke"
 			var logTmp ReceiptTradeRevoke
 			err = Decode(lLog, &logTmp)

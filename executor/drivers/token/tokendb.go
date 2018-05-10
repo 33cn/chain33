@@ -100,7 +100,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenSymbolUpper
 	}
 
-	if checkTokenExist(token.GetSymbol(), action.db) {
+	if CheckTokenExist(token.GetSymbol(), action.db) {
 		return nil, types.ErrTokenExist
 	}
 	if checkTokenHasPrecreate(token.GetSymbol(), token.GetOwner(), types.TokenStatusPreCreated, action.db) {
@@ -240,7 +240,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	return receipt, nil
 }
 
-func checkTokenExist(token string, db dbm.KV) bool {
+func CheckTokenExist(token string, db dbm.KV) bool {
 	_, err := db.Get(calcTokenKey(token))
 	return err == nil
 }

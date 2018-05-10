@@ -131,6 +131,8 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
+var commonPrefix = []byte("mavl-")
+
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime)
@@ -177,14 +179,26 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		//只有到pack级别的，才会增加index
 		receipt, err := execute.Exec(tx, index)
 		index++
+
 		if err != nil {
-			elog.Error("exec tx error = ", "err", err, "tx", tx)
+			elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
 			//add error log
 			errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
 			feelog.Logs = append(feelog.Logs, errlog)
 		} else {
 			//合并两个receipt，如果执行不返回错误，那么就认为成功
 			if receipt != nil {
+				for _, kv := range receipt.GetKV() {
+					k := kv.GetKey()
+					if !isAllowExec(k, tx.GetExecer()) {
+						elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
+							"tx.action", tx.ActionName())
+						if types.IsTestNet() {
+							//如果是测试网络，直接崩溃
+							panic("err receipt key")
+						}
+					}
+				}
 				feelog.KV = append(feelog.KV, receipt.KV...)
 				feelog.Logs = append(feelog.Logs, receipt.Logs...)
 				feelog.Ty = receipt.Ty
@@ -195,6 +209,77 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventReceipts,
 		&types.Receipts{receipts}))
+}
+
+func isAllowExec(key, txexecer []byte) bool {
+	//coins 和 token 可以修改所有的其他合约的值
+	keyexecer, err := findExecer(key)
+	if err != nil {
+		elog.Error("find execer ", "err", err)
+		return false
+	}
+	if bytes.Equal(txexecer, types.ExecerCoins) || bytes.Equal(txexecer, types.ExecerToken) {
+		return true
+	}
+	//其他合约可以修改自己合约内部
+	if bytes.Equal(keyexecer, txexecer) {
+		return true
+	}
+	//如果是运行运行deposit的执行器，可以修改coins 的值
+	for _, execer := range types.AllowDepositExec {
+		if bytes.Equal(txexecer, execer) && bytes.Equal(keyexecer, types.ExecerCoins) {
+			return true
+		}
+	}
+	//如果keyexecer 是 coins 和  token，那么只能修改mavl-coins-symbol-exec 下面的字段
+	if bytes.Equal(keyexecer, types.ExecerCoins) || bytes.Equal(keyexecer, types.ExecerToken) {
+		if isExecKey(key) {
+			return true
+		}
+	}
+	//manage 的key 是 config
+	if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
+		return true
+	}
+	return false
+}
+
+var bytesExec = []byte("exec")
+
+func isExecKey(key []byte) bool {
+	n := 0
+	start := 0
+	end := 0
+	for i := len(commonPrefix); i < len(key); i++ {
+		if key[i] == '-' {
+			n = n + 1
+			if n == 2 {
+				start = i + 1
+			}
+			if n == 3 {
+				end = i
+				break
+			}
+		}
+	}
+	if start > 0 && end > 0 {
+		if bytes.Equal(key[start:end], bytesExec) {
+			return true
+		}
+	}
+	return false
+}
+
+func findExecer(key []byte) (execer []byte, err error) {
+	if !bytes.HasPrefix(key, commonPrefix) {
+		return nil, types.ErrMavlKeyNotStartWithMavl
+	}
+	for i := len(commonPrefix); i < len(key); i++ {
+		if key[i] == '-' {
+			return key[len(commonPrefix):i], nil
+		}
+	}
+	return nil, types.ErrNoExecerInMavlKey
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
