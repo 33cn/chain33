@@ -443,8 +443,9 @@ func opCallDataCopy(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory,
 		dataOffset = stack.Pop()
 		length     = stack.Pop()
 	)
-	memory.Set(memOffset.Uint64(), length.Uint64(), common.GetDataBig(contract.Input, dataOffset, length))
-
+	if merr := memory.Set(memOffset.Uint64(), length.Uint64(), common.GetDataBig(contract.Input, dataOffset, length)); merr != nil {
+		return nil, merr
+	}
 	evm.Interpreter.IntPool.Put(memOffset, dataOffset, length)
 	return nil, nil
 }
@@ -468,7 +469,9 @@ func opReturnDataCopy(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memor
 	if end.BitLen() > 64 || uint64(len(evm.Interpreter.ReturnData)) < end.Uint64() {
 		return nil, model.ErrReturnDataOutOfBounds
 	}
-	memory.Set(memOffset.Uint64(), length.Uint64(), evm.Interpreter.ReturnData[dataOffset.Uint64():end.Uint64()])
+	if merr := memory.Set(memOffset.Uint64(), length.Uint64(), evm.Interpreter.ReturnData[dataOffset.Uint64():end.Uint64()]); merr != nil {
+		return nil, merr
+	}
 
 	return nil, nil
 }
@@ -499,8 +502,9 @@ func opCodeCopy(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, sta
 		length     = stack.Pop()
 	)
 	codeCopy := common.GetDataBig(contract.Code, codeOffset, length)
-	memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
-
+	if merr := memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy); merr != nil {
+		return nil, merr
+	}
 	evm.Interpreter.IntPool.Put(memOffset, codeOffset, length)
 	return nil, nil
 }
@@ -514,8 +518,9 @@ func opExtCodeCopy(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, 
 		length     = stack.Pop()
 	)
 	codeCopy := common.GetDataBig(evm.StateDB.GetCode(addr), codeOffset, length)
-	memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
-
+	if merr := memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy); merr != nil {
+		return nil, merr
+	}
 	evm.Interpreter.IntPool.Put(memOffset, codeOffset, length)
 	return nil, nil
 }
@@ -591,8 +596,9 @@ func opMload(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack 
 func opMstore(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	// 从栈中分别弹出内存偏移量和要设置的值
 	mStart, val := stack.Pop(), stack.Pop()
-	memory.Set(mStart.Uint64(), model.WordByteSize, common.PaddedBigBytes(val, model.WordByteSize))
-
+	if merr := memory.Set(mStart.Uint64(), model.WordByteSize, common.PaddedBigBytes(val, model.WordByteSize)); merr != nil {
+		return nil, merr
+	}
 	evm.Interpreter.IntPool.Put(mStart, val)
 	return nil, nil
 }
@@ -747,7 +753,9 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 
 	// 如果正确执行，将结果写内存
 	if err == nil || err == model.ErrExecutionReverted {
-		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
+		if merr := memory.Set(retOffset.Uint64(), retSize.Uint64(), ret); merr != nil {
+			return ret, merr
+		}
 	}
 
 	// 剩余的Gas再返还给合约对象
@@ -779,7 +787,9 @@ func opCallCode(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, sta
 		stack.Push(big.NewInt(1))
 	}
 	if err == nil || err == model.ErrExecutionReverted {
-		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
+		if merr := memory.Set(retOffset.Uint64(), retSize.Uint64(), ret); merr != nil {
+			return ret, merr
+		}
 	}
 	contract.Gas += returnGas
 
@@ -803,7 +813,9 @@ func opDelegateCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory,
 		stack.Push(big.NewInt(1))
 	}
 	if err == nil || err == model.ErrExecutionReverted {
-		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
+		if merr := memory.Set(retOffset.Uint64(), retSize.Uint64(), ret); merr != nil {
+			return ret, merr
+		}
 	}
 	contract.Gas += returnGas
 
@@ -827,7 +839,10 @@ func opStaticCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, s
 		stack.Push(big.NewInt(1))
 	}
 	if err == nil || err == model.ErrExecutionReverted {
-		memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
+		if merr := memory.Set(retOffset.Uint64(), retSize.Uint64(), ret); merr != nil {
+			return ret, merr
+		}
+
 	}
 	contract.Gas += returnGas
 

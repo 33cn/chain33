@@ -31,7 +31,7 @@ func GetDataBig(data []byte, start *big.Int, size *big.Int) []byte {
 
 // 将大整数转换为uint64，并判断是否溢出
 func BigUint64(v *big.Int) (uint64, bool) {
-	return v.Uint64(), false
+	return v.Uint64(), v.BitLen()>64
 }
 
 // 计算制定字节长度所对应的字长度（一个字，对应32个字节，也就是256位）

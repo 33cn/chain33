@@ -3,7 +3,6 @@ package state
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
@@ -47,9 +46,6 @@ func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
 	return ca
 }
 
-func byte2Hash(item []byte) common.Hash {
-	return common.BytesToHash(item)
-}
 
 func hash2String(item common.Hash) string {
 	return string(item.Bytes())
@@ -57,7 +53,7 @@ func hash2String(item common.Hash) string {
 
 // 获取状态数据
 func (self *ContractAccount) GetState(key common.Hash) common.Hash {
-	return byte2Hash(self.State.GetStorage()[string(key.Bytes())])
+	return common.BytesToHash(self.State.GetStorage()[string(key.Bytes())])
 }
 
 // 设置状态数据
@@ -131,7 +127,7 @@ func (self *ContractAccount) SetCode(code []byte) {
 	})
 
 	self.Data.Code = code
-	self.Data.CodeHash = crypto.Sha256(code)
+	self.Data.CodeHash = common.ToHash(code).Bytes()
 }
 
 // 合约固定数据，包含合约代码，以及代码哈希

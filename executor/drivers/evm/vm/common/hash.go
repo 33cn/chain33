@@ -37,3 +37,6 @@ func EmptyHash(h Hash) bool {
 	return h == Hash{}
 }
 
+func ToHash(data []byte) Hash {
+	return BytesToHash(common.Sha256(data))
+}
