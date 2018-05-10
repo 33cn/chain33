@@ -12,6 +12,25 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+////////////types.go//////////
+type RelayOrder2Show struct {
+	Orderid         string `json:"orderid"`
+	Status          int32  `json:"status"`
+	Seller          string `json:"address"`
+	Sellamount      uint64 `json:"sellamount"`
+	Exchgcoin       string `json:"exchangcoin"`
+	Exchgamount     uint64 `json:"exchangamount"`
+	Exchgaddr       string `json:"exchangaddr"`
+	Waitcoinblocks  int32  `json:"waitcoinblocks"`
+	Createtime      int64  `json:"createtime"`
+	Buyeraddr       string `json:"buyeraddr"`
+	Buyertime       int64  `json:"buyertime"`
+	Buyercoinheight int64  `json:"buyercoinheight"`
+	Finishtime      int64  `json:"finishtime"`
+	Height          int64  `json:"height"`
+}
+
+///////////////
 func RelayCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "relay",
@@ -245,9 +264,9 @@ func addExchangeFlags(cmd *cobra.Command) {
 
 func relaysell(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	amount, _ := cmd.Flags().GetInt64("sellamount")
+	amount, _ := cmd.Flags().GetUint64("sellamount")
 	coin, _ := cmd.Flags().GetString("coin")
-	coinamount, _ := cmd.Flags().GetInt64("coinamount")
+	coinamount, _ := cmd.Flags().GetUint64("coinamount")
 	coinaddr, _ := cmd.Flags().GetString("coinaddr")
 	coinwait, _ := cmd.Flags().GetInt32("coinwait")
 	fee, _ := cmd.Flags().GetFloat64("fee")
