@@ -27,6 +27,9 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 	if err != nil {
 		panic(err) //no happen for ever
 	}
+	if nil == resp.GetData().(*types.StoreReplyValue).Values {
+		return nil, types.ErrNotFound
+	}
 	value := resp.GetData().(*types.StoreReplyValue).Values[0]
 	if value == nil {
 		//panic(string(key))
