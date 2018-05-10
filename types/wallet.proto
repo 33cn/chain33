@@ -4,6 +4,7 @@ import "transaction.proto";
 import "blockchain.proto";
 import "account.proto";
 import "executor.proto";
+import "executorTrade.proto";
 
 package types;
 
