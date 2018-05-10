@@ -1,5 +1,5 @@
-
 Title="chain33"
+TestNet=false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -39,6 +39,8 @@ seeds=["127.0.0.1:13802"]
 enable=true
 isSeed=true
 serverStart=true
+innerSeedEnable=false
+innerBounds=300
 msgCacheSize=10240
 driver="leveldb"
 dbPath="datadir/addrbook"

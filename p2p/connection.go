@@ -33,7 +33,7 @@ func NewTemMConnConfig(gconn *grpc.ClientConn, gcli pb.P2PgserviceClient) *MConn
 
 // NewMConnection wraps net.Conn and creates multiplex connection
 func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MConnection {
-
+	log.Info("NewMConnection grpc client", "addr", remote)
 	mconn := &MConnection{
 		gconn: conn,
 		gcli:  pb.NewP2PgserviceClient(conn),
@@ -43,7 +43,6 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MCon
 	mconn.remoteAddress = remote
 
 	return mconn
-
 }
 
 func NewMConnectionWithConfig(cfg *MConnConfig) *MConnection {
@@ -51,12 +50,10 @@ func NewMConnectionWithConfig(cfg *MConnConfig) *MConnection {
 		gconn: cfg.gconn,
 		gcli:  cfg.gcli,
 	}
-
 	return mconn
 }
 
 func (c *MConnection) Close() {
-
 	c.gconn.Close()
 	log.Debug("Mconnection", "Close", "^_^!")
 }

@@ -186,7 +186,7 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	params.FuncName = "MinerSourceList"
 	params.Payload = reqaddr
 
-	var res types.Message
+	var res types.ReplyStrings
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }
