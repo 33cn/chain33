@@ -289,7 +289,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TradeForBuy{Sellid: parm.SellId, Boardlotcnt: parm.BoardlotCnt}
+	v := &types.TradeForBuy{Sellid: parm.SellID, Boardlotcnt: parm.BoardlotCnt}
 	buy := &types.Trade{
 		Ty:    types.TradeBuyMarket,
 		Value: &types.Trade_Tokenbuy{v},
@@ -311,7 +311,7 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, err
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.TradeForRevokeSell{Sellid: parm.SellId}
+	v := &types.TradeForRevokeSell{Sellid: parm.SellID}
 	buy := &types.Trade{
 		Ty:    types.TradeRevokeSell,
 		Value: &types.Trade_Tokenrevokesell{v},
@@ -359,7 +359,7 @@ func (c *channelClient) CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) ([]b
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TradeForSellMarket{Buyid: parm.BuyId, BoardlotCnt: parm.BoardlotCnt}
+	v := &types.TradeForSellMarket{Buyid: parm.BuyID, BoardlotCnt: parm.BoardlotCnt}
 	sellMarket := &types.Trade{
 		Ty:    types.TradeSellMarket,
 		Value: &types.Trade_Tokensellmarket{v},
@@ -381,7 +381,7 @@ func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byt
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.TradeForRevokeBuy{Buyid: parm.BuyId}
+	v := &types.TradeForRevokeBuy{Buyid: parm.BuyID}
 	buy := &types.Trade{
 		Ty:    types.TradeRevokeBuy,
 		Value: &types.Trade_Tokenrevokebuy{v},

@@ -259,42 +259,42 @@ type TokenRevokeTx struct {
 
 // Trade Transaction
 type TradeSellTx struct {
-	TokenSymbol       string `json:"token_symbol"`
-	AmountPerBoardlot int64  `json:"amount_per_boardlot"`
-	MinBoardlot       int64  `json:"min_boardlot"`
-	PricePerBoardlot  int64  `json:"price_per_boardlot"`
-	TotalBoardlot     int64  `json:"total_boardlot"`
+	TokenSymbol       string `json:"tokenSymbol"`
+	AmountPerBoardlot int64  `json:"amountPerBoardlot"`
+	MinBoardlot       int64  `json:"minBoardlot"`
+	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
+	TotalBoardlot     int64  `json:"totalBoardlot"`
 	Fee               int64  `json:"fee"`
 }
 
 type TradeBuyTx struct {
-	SellId      string `json:"sell_id"`
-	BoardlotCnt int64  `json:"boardlot_cnt"`
+	SellID      string `json:"sellID"`
+	BoardlotCnt int64  `json:"boardlotCnt"`
 	Fee         int64  `json:"fee"`
 }
 
 type TradeRevokeTx struct {
-	SellId string `json:"sell_id,"`
+	SellID string `json:"sellID,"`
 	Fee    int64  `json:"fee"`
 }
 
 type TradeBuyLimitTx struct {
-	TokenSymbol       string `json:"token_symbol"`
-	AmountPerBoardlot int64  `json:"amount_per_boardlot"`
-	MinBoardlot       int64  `json:"min_boardlot"`
-	PricePerBoardlot  int64  `json:"price_per_boardlot"`
-	TotalBoardlot     int64  `json:"total_boardlot"`
+	TokenSymbol       string `json:"tokenSymbol"`
+	AmountPerBoardlot int64  `json:"amountPerBoardlot"`
+	MinBoardlot       int64  `json:"minBoardlot"`
+	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
+	TotalBoardlot     int64  `json:"totalBoardlot"`
 	Fee               int64  `json:"fee"`
 }
 
 type TradeSellMarketTx struct {
-	BuyId       string `json:"buy_id"`
-	BoardlotCnt int64  `json:"boardlot_cnt"`
+	BuyID       string `json:"buyID"`
+	BoardlotCnt int64  `json:"boardlotCnt"`
 	Fee         int64  `json:"fee"`
 }
 
 type TradeRevokeBuyTx struct {
-	BuyId string `json:"buy_id,"`
+	BuyID string `json:"buyID,"`
 	Fee   int64  `json:"fee"`
 }
 

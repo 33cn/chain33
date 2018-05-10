@@ -366,7 +366,7 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 	params := &jsonrpc.TradeBuyTx{
-		SellId:      sellID,
+		SellID:      sellID,
 		BoardlotCnt: count,
 		Fee:         feeInt64 * 1e4,
 	}
@@ -401,7 +401,7 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 	params := &jsonrpc.TradeRevokeTx{
-		SellId: sellID,
+		SellID: sellID,
 		Fee:    feeInt64 * 1e4,
 	}
 	var res string
