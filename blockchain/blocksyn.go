@@ -567,7 +567,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 		pids := chain.GetBestChainPids()
 		if pids != nil {
-			chain.FetchBlock(curheight+1, peerMaxBlkHeight, chain.GetBestChainPids(), false)
+			chain.FetchBlock(curheight+1, peerMaxBlkHeight, pids, false)
 		} else {
 			synlog.Info("SynBlocksFromPeers GetBestChainPids is nil")
 		}
@@ -923,7 +923,10 @@ func (chain *BlockChain) GetBestChainPids() []string {
 
 	for key, value := range chain.bestChainPeerList {
 		if value.IsBestChain {
-			PeerPids = append(PeerPids, key)
+			ok := chain.IsFaultPeer(value.Peer.Name)
+			if !ok {
+				PeerPids = append(PeerPids, key)
+			}
 		}
 	}
 	synlog.Debug("GetBestChainPids ", "pids", PeerPids)
