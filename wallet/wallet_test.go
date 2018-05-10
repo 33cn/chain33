@@ -145,6 +145,10 @@ func TestWallet(t *testing.T) {
 	testProcWalletSetPasswd(t, wallet)
 
 	testProcWalletLock(t, wallet)
+
+	testProcWalletAddBlock(t, wallet)
+
+	testAutoMining(t, wallet)
 }
 
 //ProcWalletLock
@@ -264,7 +268,7 @@ func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
 	FromAddr = addr.String()
 	var acc types.Account
 	acc.Addr = addr.String()
-	acc.Balance = int64(1000000000)
+	acc.Balance = int64(1e16)
 	acc.Currency = int32(10)
 	acc.Frozen = int64(10)
 	accs[total] = &acc
@@ -583,16 +587,84 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msgGetSeed, true)
 	resp, _ = wallet.client.Wait(msgGetSeed)
 	println("seed:", resp.GetData().(*types.ReplySeed).Seed)
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 5)
 	wallet.client.Send(msgGetSeed, true)
 	resp, _ = wallet.client.Wait(msgGetSeed)
 	if resp.Err().Error() != types.ErrWalletIsLocked.Error() {
 		t.Error("testProcWalletLock failed")
 	}
 
+	msg = wallet.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
+	wallet.client.Send(msg, true)
+	resp, _ = wallet.client.Wait(msg)
+	status := resp.GetData().(*types.WalletStatus)
+	if !status.IsHasSeed || status.IsAutoMining || !status.IsWalletLock {
+		t.Error("testGetWalletStatus failed")
+	}
+
 	walletUnLock.Timeout = 0
+	walletUnLock.WalletOrTicket = true
 	err = wallet.ProcWalletUnLock(walletUnLock)
 	require.NoError(t, err)
+	wallet.client.Send(msg, true)
+	resp, _ = wallet.client.Wait(msg)
+	status = resp.GetData().(*types.WalletStatus)
+	if !status.IsHasSeed || status.IsAutoMining || !status.IsWalletLock || status.IsTicketLock {
+		t.Error("testGetWalletStatus failed")
+	}
+
+	walletUnLock.WalletOrTicket = false
+	err = wallet.ProcWalletUnLock(walletUnLock)
+	require.NoError(t, err)
+
 	println("TestProcWalletLock end")
+	println("--------------------------")
+}
+
+// ProcWalletAddBlock
+func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
+	println("TestProcWalletAddBlock & TestProcWalletDelBlock begin")
+	action := &types.TicketAction{Ty: types.TicketActionMiner}
+	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
+	action.Value = miner
+	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
+	blk := &types.Block{
+		Version:    1,
+		ParentHash: []byte("parent hash"),
+		TxHash:     []byte("tx hash"),
+		Height:     2,
+		BlockTime:  1,
+		Txs:        []*types.Transaction{tx},
+	}
+	blkDetail := &types.BlockDetail{
+		Block:    blk,
+		Receipts: []*types.ReceiptData{&types.ReceiptData{Ty: types.ExecOk}},
+	}
+	msgAdd := wallet.client.NewMessage("wallet", types.EventAddBlock, blkDetail)
+	err := wallet.client.Send(msgAdd, false)
+	require.NoError(t, err)
+	time.Sleep(time.Second * 10)
+	msgDel := wallet.client.NewMessage("wallet", types.EventDelBlock, blkDetail)
+	err = wallet.client.Send(msgDel, false)
+	require.NoError(t, err)
+	println("TestProcWalletAddBlock & TestProcWalletDelBlock end")
+	println("--------------------------")
+}
+
+func testAutoMining(t *testing.T, wallet *Wallet) {
+	println("TestAutoMining begin")
+	msg := wallet.client.NewMessage("wallet", types.EventWalletAutoMiner, &types.MinerFlag{Flag: 1})
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+
+	println("========================")
+
+	msg = wallet.client.NewMessage("wallet", types.EventWalletGetTickets, nil)
+	wallet.client.Send(msg, true)
+	resp, _ := wallet.client.Wait(msg)
+	println("========================", resp.GetData().(*types.ReplyWalletTickets).String())
+
+	println("TestAutoMining end")
 	println("--------------------------")
 }

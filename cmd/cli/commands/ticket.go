@@ -102,7 +102,7 @@ func countTicket(cmd *cobra.Command, args []string) {
 func CloseTicketCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "close",
-		Short: "Close ticket ",
+		Short: "Close tickets",
 		Run:   closeTicket,
 	}
 	return cmd
