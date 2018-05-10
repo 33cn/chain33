@@ -50,12 +50,13 @@ type BlockChain struct {
 	synBlockHeight int64
 
 	//记录peer的最新block高度,用于节点追赶active链
-	peerList    PeerInfoList
-	recvwg      *sync.WaitGroup
-	synblock    chan struct{}
-	quit        chan struct{}
-	isclosed    int32
-	isbatchsync int32
+	peerList            PeerInfoList
+	recvwg              *sync.WaitGroup
+	synblock            chan struct{}
+	quit                chan struct{}
+	isclosed            int32
+	isbatchsync         int32
+	firstcheckbestchain int32 //节点启动之后首次检测最优链的标志
 
 	// 孤儿链
 	orphanPool *OrphanPool
@@ -78,28 +79,32 @@ type BlockChain struct {
 	//记录可疑故障节点peer信息
 	//在ExecBlock执行失败时记录对应的peerid以及故障区块的高度和hash
 	faultPeerList map[string]*FaultPeerInfo
+
+	bestChainPeerList map[string]*BestPeerInfo
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
 	blockchain := &BlockChain{
-		cache:              make(map[int64]*list.Element),
-		cacheSize:          DefCacheSize,
-		cacheQueue:         list.New(),
-		rcvLastBlockHeight: -1,
-		synBlockHeight:     -1,
-		peerList:           nil,
-		cfg:                cfg,
-		recvwg:             &sync.WaitGroup{},
-		task:               newTask(160 * time.Second),
-		quit:               make(chan struct{}),
-		synblock:           make(chan struct{}, 1),
-		orphanPool:         NewOrphanPool(),
-		index:              newBlockIndex(),
-		isCaughtUp:         false,
-		isbatchsync:        1,
-		cfgBatchSync:       cfg.Batchsync,
-		faultPeerList:      make(map[string]*FaultPeerInfo),
+		cache:               make(map[int64]*list.Element),
+		cacheSize:           DefCacheSize,
+		cacheQueue:          list.New(),
+		rcvLastBlockHeight:  -1,
+		synBlockHeight:      -1,
+		peerList:            nil,
+		cfg:                 cfg,
+		recvwg:              &sync.WaitGroup{},
+		task:                newTask(160 * time.Second),
+		quit:                make(chan struct{}),
+		synblock:            make(chan struct{}, 1),
+		orphanPool:          NewOrphanPool(),
+		index:               newBlockIndex(),
+		isCaughtUp:          false,
+		isbatchsync:         1,
+		firstcheckbestchain: 0,
+		cfgBatchSync:        cfg.Batchsync,
+		faultPeerList:       make(map[string]*FaultPeerInfo),
+		bestChainPeerList:   make(map[string]*BestPeerInfo),
 	}
 	return blockchain
 }
