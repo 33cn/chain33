@@ -1,10 +1,10 @@
 package types
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -21,12 +21,14 @@ var tlog = log.New("module", "types")
 
 type Message proto.Message
 
-func isAllowExecName(name string) bool {
-	if strings.HasPrefix(name, "user.") {
+var userKey = []byte("user.")
+
+func isAllowExecName(name []byte) bool {
+	if bytes.HasPrefix(name, userKey) {
 		return true
 	}
 	for i := range AllowUserExec {
-		if AllowUserExec[i] == name {
+		if bytes.Equal(AllowUserExec[i], name) {
 			return true
 		}
 	}
@@ -102,7 +104,7 @@ func (tx *Transaction) CheckSign() bool {
 }
 
 func (tx *Transaction) Check(minfee int64) error {
-	if !isAllowExecName(string(tx.Execer)) {
+	if !isAllowExecName(tx.Execer) {
 		return ErrExecNameNotAllow
 	}
 	txSize := Size(tx)
@@ -239,7 +241,7 @@ func (tx *Transaction) Amount() (int64, error) {
 
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
-	if "coins" == string(tx.Execer) {
+	if bytes.Equal(tx.Execer, []byte("coins")) {
 		var action CoinsAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -252,7 +254,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
 		}
-	} else if "ticket" == string(tx.Execer) {
+	} else if bytes.Equal(tx.Execer, []byte("ticket")) {
 		var action TicketAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -269,9 +271,9 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
 			return "bindminer"
 		}
-	} else if "none" == string(tx.Execer) {
+	} else if bytes.Equal(tx.Execer, []byte("none")) {
 		return "none"
-	} else if "hashlock" == string(tx.Execer) {
+	} else if bytes.Equal(tx.Execer, []byte("hashlock")) {
 		var action HashlockAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -284,7 +286,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
 			return "send"
 		}
-	} else if "retrieve" == string(tx.Execer) {
+	} else if bytes.Equal(tx.Execer, []byte("retrieve")) {
 		var action RetrieveAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -299,7 +301,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
 			return "cancel"
 		}
-	} else if "token" == string(tx.Execer) {
+	} else if bytes.Equal(tx.Execer, []byte("token")) {
 		var action TokenAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {
@@ -317,7 +319,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
 			return "withdrawToken"
 		}
-	} else if "trade" == string(tx.Execer) {
+	} else if bytes.Equal(tx.Execer, []byte("trade")) {
 		var trade Trade
 		err := Decode(tx.Payload, &trade)
 		if err != nil {
@@ -518,6 +520,8 @@ func GetSignatureTypeName(signType int) string {
 		return "unknow"
 	}
 }
+
+var ConfigPrefix = "mavl-config-"
 
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)

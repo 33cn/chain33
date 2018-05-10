@@ -92,6 +92,12 @@ func ToHex(b []byte) string {
 	return "0x" + hex
 }
 
+func HashHex(d []byte) string {
+	var buf [64]byte
+	hex.Encode(buf[:], d)
+	return string(buf[:])
+}
+
 func FromHex(s string) ([]byte, error) {
 	if len(s) > 1 {
 		if s[0:2] == "0x" || s[0:2] == "0X" {

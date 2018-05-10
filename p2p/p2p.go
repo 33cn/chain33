@@ -29,6 +29,21 @@ type P2p struct {
 
 func New(cfg *types.P2P) *P2p {
 	pub = pubsub.NewPubSub(int(cfg.GetMsgCacheSize()))
+
+	if cfg.Version == 0 {
+		if types.IsTestNet() {
+			cfg.Version = 119
+			cfg.VerMix = 118
+			cfg.VerMax = 128
+		} else {
+			cfg.Version = 10000
+			cfg.VerMix = 10000
+			cfg.VerMax = 10010
+		}
+	}
+
+	VERSION = cfg.GetVersion()
+	log.Info("p2p", "Version", VERSION)
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
@@ -64,6 +79,7 @@ func (network *P2p) SetQueueClient(client queue.Client) {
 	network.client = client
 	network.node.SetQueueClient(client.Clone())
 	go func() {
+		log.Info("p2p", "setqueuecliet", "ok")
 		network.node.Start()
 		network.subP2pMsg()
 		network.loadP2PPrivKeyToWallet()
@@ -87,6 +103,9 @@ func (network *P2p) showTaskCapcity() {
 func (network *P2p) loadP2PPrivKeyToWallet() error {
 
 	for {
+		if network.isClose() {
+			return nil
+		}
 		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
 		err := network.client.SendTimeout(msg, true, time.Minute)
 		if err != nil {

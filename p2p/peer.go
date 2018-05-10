@@ -13,15 +13,15 @@ import (
 )
 
 func (p *Peer) Start() {
-
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
 }
+
 func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
 	pub.Unsub(p.taskChan, "block", "tx")
-	log.Debug("Peer", "closed", p.Addr())
+	log.Info("Peer", "closed", p.Addr())
 
 }
 
@@ -54,6 +54,7 @@ func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Pe
 
 type Version struct {
 	mtx            sync.Mutex
+	version        int32
 	versionSupport bool
 }
 type Stat struct {
@@ -91,18 +92,29 @@ func (v *Version) IsSupport() bool {
 	return v.versionSupport
 }
 
-func (p *Peer) heartBeat() {
-	for {
-		if !p.GetRunning() {
-			return
-		}
+func (v *Version) SetVersion(ver int32) {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	v.version = ver
+}
 
-		if (*p.nodeInfo).IsNatDone() { //如果nat 没有结束，在nat 重试的过程中，exter port 是在随机变化，
-			//此时对连接的远程节点公布自己的外端端口将是不准确的,导致外网无法获取其nat结束后真正的端口。
-			break
-		}
-		time.Sleep(time.Second) //wait for natwork done
-	}
+func (v *Version) GetVersion() int32 {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	return v.version
+}
+
+func (p *Peer) heartBeat() {
+	//	for {
+	//		if !p.GetRunning() {
+	//			return
+	//		}
+	//		if (*p.nodeInfo).IsNatDone() { //如果nat 没有结束，在nat 重试的过程中，exter port 是在随机变化，
+	//			//此时对连接的远程节点公布自己的外端端口将是不准确的,导致外网无法获取其nat结束后真正的端口。
+	//			break
+	//		}
+	//		time.Sleep(time.Second) //wait for natwork done
+	//	}
 
 	pcli := NewNormalP2PCli()
 	for {
@@ -138,7 +150,7 @@ func (p *Peer) heartBeat() {
 }
 
 func (p *Peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
-	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
+	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version}, grpc.FailFast(true))
 }
 
 func (p *Peer) sendStream() {
@@ -160,6 +172,8 @@ func (p *Peer) sendStream() {
 		//send ping package
 		ping, err := P2pComm.NewPingData(*p.nodeInfo)
 		if err != nil {
+			resp.CloseSend()
+			cancel()
 			time.Sleep(time.Second)
 			continue
 		}
@@ -218,7 +232,7 @@ func (p *Peer) sendStream() {
 				if err != nil {
 					log.Error("sendStream", "send", err)
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-						(*p.nodeInfo).blacklist.Add(p.Addr())
+						(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
 					}
 					time.Sleep(time.Second) //have a rest
 					resp.CloseSend()
@@ -268,6 +282,7 @@ func (p *Peer) readStream() {
 		var hash [64]byte
 		for {
 			if !p.GetRunning() {
+				resp.CloseSend()
 				return
 			}
 			data, err := resp.Recv()
@@ -276,7 +291,7 @@ func (p *Peer) readStream() {
 				log.Error("readStream", "recv,err:", err)
 				resp.CloseSend()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-					(*p.nodeInfo).blacklist.Add(p.Addr())
+					(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
 				}
 				time.Sleep(time.Second) //have a rest
 				break
@@ -299,8 +314,9 @@ func (p *Peer) readStream() {
 							continue
 						}
 					}
+
 					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr(),
-						"block size(KB)", len(pb.Encode(block))/1024, "block hash",
+						"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash",
 						blockhash)
 					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{p.GetPeerName(), block.GetBlock()})
 					err = (*p.nodeInfo).client.Send(msg, false)
