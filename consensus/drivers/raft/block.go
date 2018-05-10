@@ -128,6 +128,7 @@ func (client *RaftClient) InitBlock() {
 
 func (client *RaftClient) CreateBlock() {
 	issleep := true
+	count := 0
 	for {
 		//如果leader节点突然挂了，不是打包节点，需要退出
 		if !isLeader {
@@ -135,13 +136,32 @@ func (client *RaftClient) CreateBlock() {
 			break
 		}
 		infoflag++
-		if infoflag >= 10 {
+		if infoflag >= 2 {
 			rlog.Info("==================This is Leader node=====================")
 			infoflag = 0
 		}
 		if issleep {
-			time.Sleep(time.Second)
+			time.Sleep(10 * time.Second)
+			count++
 		}
+		if count >= 12 {
+			rlog.Info("Create an empty block")
+			block := client.GetCurrentBlock()
+			emptyBlock := &types.Block{}
+			emptyBlock.ParentHash = block.Hash()
+			emptyBlock.Height = block.Height + 1
+			emptyBlock.Txs = nil
+			emptyBlock.TxHash = zeroHash[:]
+			emptyBlock.BlockTime = time.Now().Unix()
+			er := client.WriteBlock(block.StateHash, emptyBlock)
+			if er != nil {
+				rlog.Error(fmt.Sprintf("********************err:%v", er.Error()))
+				continue
+			}
+			client.SetCurrentBlock(emptyBlock)
+			count = 0
+		}
+
 		lastBlock := client.GetCurrentBlock()
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
@@ -149,6 +169,7 @@ func (client *RaftClient) CreateBlock() {
 			continue
 		}
 		issleep = false
+		count = 0
 		rlog.Debug("==================start create new block!=====================")
 		//check dup
 		//txs = client.CheckTxDup(txs)
@@ -173,7 +194,7 @@ func (client *RaftClient) CreateBlock() {
 		blockEntry := newblock
 		blockEntry.Txs = nil
 		client.propose(&blockEntry)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(time.Second)
 	}
 }
 
