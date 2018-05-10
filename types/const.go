@@ -15,15 +15,20 @@ const (
 )
 
 var (
-	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "norm", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	ExecerCoins      = []byte("coins")
+	ExecerTicket     = []byte("ticket")
+	ExecerConfig     = []byte("config")
+	ExecerManage     = []byte("manage")
+	ExecerToken      = []byte("token")
+	AllowDepositExec = [][]byte{ExecerTicket}
+	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1525708005
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 	FundKeyAddr            = "1QGdwwUr64CbvN48hhsAZSeh5WfieZbqEr"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	SuperManager           = []string{"14YRhYpYSrABHz7nUUTufWaQ2v36PZcKZS"}
-	ConfigPrefix           = "mavl-config-"
 	TokenApprs             = []string{}
 )
 
@@ -51,7 +56,8 @@ var (
 func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
-		AllowUserExec = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, []byte("hashlock"),
+			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
 	}
 }
 
