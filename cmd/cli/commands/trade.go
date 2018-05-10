@@ -200,7 +200,7 @@ func parseSellOrders(res types.ReplySellOrders) {
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.TotalBoardlot
 		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
-		sellOrders2show.SellID = sellorder.Sellid
+		sellOrders2show.SellID = sellorder.SellID
 		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
 		sellOrders2show.Height = sellorder.Height
 
