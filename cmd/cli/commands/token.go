@@ -385,7 +385,7 @@ func tokenPrecreated(cmd *cobra.Command, args []string) {
 		Symbol:       symbol,
 		Introduction: introduction,
 		OwnerAddr:    ownerAddr,
-		Total:        total,
+		Total:        total * types.TokenPrecision,
 		Fee:          feeInt64 * 1e4,
 	}
 	var res string
