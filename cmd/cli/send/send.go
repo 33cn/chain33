@@ -69,7 +69,7 @@ func main() {
 	//fmt.Println("signedTx", outSign.String(), errSign.String())
 
 	bufSign := outSign.Bytes()
-	cmdSend := exec.Command("cli", "tx", "send", "-d", string(bufSign[1:len(bufSign)-2]))
+	cmdSend := exec.Command("cli", "tx", "send", "-d", string(bufSign[:len(bufSign)-1]))
 	var outSend bytes.Buffer
 	var errSend bytes.Buffer
 	cmdSend.Stdout = &outSend
