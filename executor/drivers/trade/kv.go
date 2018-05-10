@@ -66,9 +66,9 @@ func calcOnesSellOrderPrefixStatus(addr string, status int32) []byte {
 }
 
 // 特定状态下的卖单
-func calcTokenSellOrderPrefixStatus(status int32) []byte {
-	return []byte(fmt.Sprintf(sellOrderSHTAS+"%d", status))
-}
+//func calcTokenSellOrderPrefixStatus(status int32) []byte {
+//	return []byte(fmt.Sprintf(sellOrderSHTAS+"%d", status))
+//}
 
 // ids
 func calcTokenSellID(hash string) string {
@@ -125,9 +125,9 @@ func calcOnesBuyOrderPrefixStatus(addr string, status int32) []byte {
 }
 
 // 特定状态下的买单
-func calcTokenBuyOrderPrefixStatus(status int32) []byte {
-	return []byte(fmt.Sprintf(buyOrderSHTAS+"%d", status))
-}
+//func calcTokenBuyOrderPrefixStatus(status int32) []byte {
+//	return []byte(fmt.Sprintf(buyOrderSHTAS+"%d", status))
+//}
 
 func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase,
 	status int32, height int64, value []byte) []*types.KeyValue {
