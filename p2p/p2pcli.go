@@ -538,10 +538,8 @@ func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
 
 func (m *Cli) CheckPeerNatOk(addr string) bool {
 	//连接自己的地址信息做测试
-	if len(P2pComm.AddrRouteble([]string{addr})) == 0 {
-		return false
-	}
-	return true
+	return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
+
 }
 
 func (m *Cli) peerInfos() []*pb.Peer {
