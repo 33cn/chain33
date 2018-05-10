@@ -1,4 +1,4 @@
-package executor_test
+package executor
 
 import (
 	//"errors"
@@ -14,7 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/executor"
+	//"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -34,10 +34,10 @@ func init() {
 	log.SetLogLevel("error")
 }
 
-func initUnitEnv() (queue.Queue, *executor.Executor) {
+func initUnitEnv() (queue.Queue, *Executor) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
-	exec := executor.New(cfg.Exec)
+	exec := New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 	//types.SetMinFee(0)
 	return q, exec
