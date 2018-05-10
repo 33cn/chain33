@@ -234,8 +234,8 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 
 // query reply utils
 func (t *trade) replyReplySellOrderfromID(key []byte) *types.ReplySellOrder {
-	tradelog.Info("trade Query", "id", string(key), "check-prefix", sellOrderPrefix)
-	if strings.HasPrefix(string(key), sellOrderPrefix) {
+	tradelog.Info("trade Query", "id", string(key), "check-prefix", sellIDPrefix)
+	if strings.HasPrefix(string(key), sellIDPrefix) {
 		if sellorder, err := getSellOrderFromID(key, t.GetStateDB()); err == nil {
 			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
 			return sellOrder2reply(sellorder)
@@ -252,8 +252,8 @@ func (t *trade) replyReplySellOrderfromID(key []byte) *types.ReplySellOrder {
 }
 
 func (t *trade) replyReplyBuyOrderfromID(key []byte) *types.ReplyBuyOrder {
-	tradelog.Info("trade Query", "id", string(key), "check-prefix", buyOrderPrefix)
-	if strings.HasPrefix(string(key), buyOrderPrefix) {
+	tradelog.Info("trade Query", "id", string(key), "check-prefix", buyIDPrefix)
+	if strings.HasPrefix(string(key), buyIDPrefix) {
 		if buyOrder, err := getBuyOrderFromID(key, t.GetStateDB()); err == nil {
 			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
 			return buyOrder2reply(buyOrder)

@@ -18,8 +18,6 @@ const (
 	buyOrderTSPAS   = "token-buyorder-tspas:"
 	sellIDPrefix    = "mavl-trade-sell-"
 	buyIDPrefix     = "mavl-trade-buy-"
-	sellOrderPrefix = "token-sellorder"
-	buyOrderPrefix  = "token-buyorder"
 )
 
 // sell order 4 key, 4prefix
