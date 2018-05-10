@@ -5,6 +5,8 @@ import (
 )
 
 var (
+	ErrNoExecerInMavlKey       = errors.New("ErrNoExecerInMavlKey")
+	ErrMavlKeyNotStartWithMavl = errors.New("ErrMavlKeyNotStartWithMavl")
 	ErrNotFound                = errors.New("ErrNotFound")
 	ErrBlockExec               = errors.New("ErrBlockExec")
 	ErrCheckStateHash          = errors.New("ErrCheckStateHash")
