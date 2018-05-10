@@ -426,7 +426,6 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(),
 				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
 			if block.GetBlock() != nil {
-				//msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{peername, block.GetBlock()})
 				s.node.nodeInfo.client.Send(msg, false)
 			}
@@ -466,53 +465,6 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 		}
 	}
-
-}
-
-/**
-* 提供远程节点自身网络定位服务
- */
-func (s *P2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PExternalInfo, error) {
-	log.Debug("RemotePeerAddr")
-
-	var remoteaddr string
-	var outside bool
-	getctx, ok := pr.FromContext(ctx)
-	if ok {
-		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
-		log.Debug("RemotePeerAddr")
-		if len(P2pComm.AddrRouteble([]string{fmt.Sprintf("%v:%v", remoteaddr, defaultPort)})) == 0 {
-
-			outside = false
-		} else {
-			outside = true
-		}
-	}
-	return &pb.P2PExternalInfo{Addr: remoteaddr, Isoutside: outside}, nil
-}
-
-/**
-* 提供检验自身节点网络映射后服务是否开启的服务
- */
-func (s *P2pServer) RemotePeerNatOk(ctx context.Context, in *pb.P2PPing) (*pb.P2PExternalInfo, error) {
-	log.Debug("RemotePeerNatOk")
-	if !P2pComm.CheckSign(in) {
-		return nil, pb.ErrPing
-	}
-	var natok bool
-	remoteaddr := fmt.Sprintf("%v:%v", in.GetAddr(), in.GetPort())
-	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
-	if hex.EncodeToString(in.GetSign().GetPubkey()) == pub {
-		//发现是自己节点发来的验证消息
-		natok = false
-	} else {
-		log.Info("RemotePeerNatOk")
-		if len(P2pComm.AddrRouteble([]string{remoteaddr})) != 0 {
-			natok = true
-		}
-	}
-
-	return &pb.P2PExternalInfo{remoteaddr, natok}, nil
 
 }
 
