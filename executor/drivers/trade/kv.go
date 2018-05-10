@@ -2,8 +2,9 @@ package trade
 
 import (
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/types"
 	"strconv"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (

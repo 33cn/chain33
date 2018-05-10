@@ -396,7 +396,7 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 		return nil, types.ErrInputPara
 	}
 	// check token exist
-	if token.CheckTokenExist(buy.TokenSymbol, action.db) == false {
+	if !token.CheckTokenExist(buy.TokenSymbol, action.db) {
 		return nil, types.ErrTokenNotExist
 	}
 
