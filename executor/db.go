@@ -62,6 +62,9 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	if err != nil {
 		panic(err) //no happen for ever
 	}
+	if nil == resp.GetData().(*types.LocalReplyValue).Values {
+		return nil, types.ErrNotFound
+	}
 	value := resp.GetData().(*types.LocalReplyValue).Values[0]
 	if value == nil {
 		//panic(string(key))
