@@ -27,8 +27,8 @@ func NewBlockstore(cfg *pb.Consensus, replyChan chan *pb.ClientReply, requestCha
 	c.SetChild(client)
 	return client
 }
-func (client *PbftClient) ProcEvent(msg queue.Message) {
-
+func (client *PbftClient) ProcEvent(msg queue.Message) bool {
+	return false
 }
 
 func (client *PbftClient) ExecBlock(prevHash []byte, block *pb.Block) (*pb.BlockDetail, []*pb.Transaction, error) {

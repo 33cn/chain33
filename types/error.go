@@ -5,6 +5,8 @@ import (
 )
 
 var (
+	ErrNoExecerInMavlKey       = errors.New("ErrNoExecerInMavlKey")
+	ErrMavlKeyNotStartWithMavl = errors.New("ErrMavlKeyNotStartWithMavl")
 	ErrNotFound                = errors.New("ErrNotFound")
 	ErrBlockExec               = errors.New("ErrBlockExec")
 	ErrCheckStateHash          = errors.New("ErrCheckStateHash")
@@ -157,6 +159,9 @@ var (
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
 	ErrSeedWord             = errors.New("ErrSeedWord")
 	ErrNoPrivKeyOrAddr      = errors.New("ErrNoPrivKeyOrAddr")
+	ErrNewWalletFromSeed    = errors.New("ErrNewWalletFromSeed")
+	ErrNewKeyPair           = errors.New("ErrNewKeyPair")
+	ErrPrivkeyToPub         = errors.New("ErrPrivkeyToPub")
 
 	ErrOnlyTicketUnLocked = errors.New("ErrOnlyTicketUnLocked")
 	ErrNewCrypto          = errors.New("ErrNewCrypto")
