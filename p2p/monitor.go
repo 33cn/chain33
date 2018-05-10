@@ -253,7 +253,7 @@ func (n *Node) monitorPeers() {
 		peers, infos := n.GetActivePeers()
 		for paddr, pinfo := range infos {
 			peerheight := pinfo.GetHeader().GetHeight()
-			if pinfo.GetName() == selfName && pinfo.GetSelf() == false { //发现连接到自己，立即删除
+			if pinfo.GetName() == selfName && !pinfo.GetSelf() { //发现连接到自己，立即删除
 				//删除节点数过低的节点
 				n.remove(paddr)
 				n.nodeInfo.blacklist.Add(paddr, 0)
