@@ -114,28 +114,16 @@ func (n *Node) doNat() {
 				}
 			}
 
-			peerMaps, _ := n.GetActivePeers()
-			var addrs []string
-			for peeraddr := range peerMaps {
-				addrs = append(addrs, peeraddr)
-			}
-
-			addrNum := len(addrs)
-			var maxRetryCount = addrNum
-			log.Debug("doNat", "maxRetryCount", maxRetryCount)
 			p2pcli := NewNormalP2PCli()
-			for _, addr := range addrs {
-				if ok, err := p2pcli.CheckPeerNatOk(addr, n.nodeInfo); err == nil {
-					if ok {
-						n.nodeInfo.SetServiceTy(Service)
-						log.Info("doNat", "NatOk", "Support Service")
-					} else {
-						n.nodeInfo.SetServiceTy(Service - nodeNetwork)
-						log.Info("doNat", "NatOk", "No Support Service")
-					}
-					break
+			//测试映射后的端口能否连通或者外网+本地端口
+			if p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String()) ||
+				p2pcli.CheckPeerNatOk(fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), defaultPort)) {
 
-				}
+				n.nodeInfo.SetServiceTy(Service)
+				log.Info("doNat", "NatOk", "Support Service")
+			} else {
+				n.nodeInfo.SetServiceTy(Service - nodeNetwork)
+				log.Info("doNat", "NatOk", "No Support Service")
 			}
 
 		}
@@ -249,7 +237,7 @@ func (n *Node) monitor() {
 
 func (n *Node) needMore() bool {
 	outBoundNum := n.Size()
-	return !(outBoundNum > maxOutBoundNum)
+	return !(outBoundNum >= maxOutBoundNum)
 }
 
 func (n *Node) detectNodeAddr() {
@@ -277,7 +265,6 @@ func (n *Node) detectNodeAddr() {
 		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
 		if len(externalIP) == 0 {
 			externalIP = LocalAddr
-			log.Info("DetectNodeAddr", " SET_ADDR Exterip", externalIP)
 		}
 
 		var externaladdr string
@@ -323,8 +310,8 @@ func (n *Node) natMapPort() {
 	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")
 		p2pcli := NewNormalP2PCli() //检查要映射的IP地址是否已经被映射成功
-		ok, err := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
-		if err == nil && ok {
+		ok := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String())
+		if ok {
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
 			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
 		}
