@@ -105,16 +105,16 @@ func (v *Version) GetVersion() int32 {
 }
 
 func (p *Peer) heartBeat() {
-	for {
-		if !p.GetRunning() {
-			return
-		}
-		if (*p.nodeInfo).IsNatDone() { //如果nat 没有结束，在nat 重试的过程中，exter port 是在随机变化，
-			//此时对连接的远程节点公布自己的外端端口将是不准确的,导致外网无法获取其nat结束后真正的端口。
-			break
-		}
-		time.Sleep(time.Second) //wait for natwork done
-	}
+	//	for {
+	//		if !p.GetRunning() {
+	//			return
+	//		}
+	//		if (*p.nodeInfo).IsNatDone() { //如果nat 没有结束，在nat 重试的过程中，exter port 是在随机变化，
+	//			//此时对连接的远程节点公布自己的外端端口将是不准确的,导致外网无法获取其nat结束后真正的端口。
+	//			break
+	//		}
+	//		time.Sleep(time.Second) //wait for natwork done
+	//	}
 
 	pcli := NewNormalP2PCli()
 	for {
@@ -232,7 +232,7 @@ func (p *Peer) sendStream() {
 				if err != nil {
 					log.Error("sendStream", "send", err)
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-						(*p.nodeInfo).blacklist.Add(p.Addr())
+						(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
 					}
 					time.Sleep(time.Second) //have a rest
 					resp.CloseSend()
@@ -291,7 +291,7 @@ func (p *Peer) readStream() {
 				log.Error("readStream", "recv,err:", err)
 				resp.CloseSend()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-					(*p.nodeInfo).blacklist.Add(p.Addr())
+					(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
 				}
 				time.Sleep(time.Second) //have a rest
 				break
