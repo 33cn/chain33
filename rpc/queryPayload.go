@@ -84,7 +84,9 @@ func tradePayloadType(funcname string) (proto.Message, error) {
 		req = &types.ReqAddrTokens{}
 	case "GetOnesBuyOrder":
 		req = &types.ReqAddrTokens{}
-	case "GetAllSellOrdersWithStatus":
+	case "GetOnesSellOrderWithStatus":
+		req = &types.ReqAddrTokens{}
+	case "GetOnesBuyOrderWithStatus":
 		req = &types.ReqAddrTokens{}
 	case "GetTokenSellOrderByStatus":
 		req = &types.ReqTokenSellOrder{}
