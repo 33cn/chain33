@@ -168,14 +168,19 @@ type addrBookJSON struct {
 func (a *AddrBook) saveToDb() {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-
 	addrs := []*knownAddress{}
-	for _, ka := range a.addrPeer {
-		if len(P2pComm.AddrRouteble([]string{ka.Addr.String()})) == 0 {
 
-			continue
+	seeds := a.cfg.GetSeeds()
+	seedsMap := make(map[string]int)
+	for index, seed := range seeds {
+		seedsMap[seed] = index
+	}
+
+	for _, ka := range a.addrPeer {
+		if _, ok := seedsMap[ka.Addr.String()]; ok {
+			addrs = append(addrs, ka.Copy())
 		}
-		addrs = append(addrs, ka.Copy())
+
 	}
 	if len(addrs) == 0 {
 		return
@@ -238,7 +243,7 @@ func (a *AddrBook) loadDb() bool {
 			}
 
 			for _, ka := range aJSON.Addrs {
-				log.Debug("loadDb", "peer", ka)
+				log.Debug("AddrBookloadDb", "peer", ka.Addr.String())
 				netaddr, err := NewNetAddressString(ka.Addr.String())
 				if err != nil {
 					continue
@@ -322,11 +327,9 @@ func (a *AddrBook) GetAddrs() []string {
 	defer a.mtx.Unlock()
 	var addrlist []string
 	for _, peer := range a.addrPeer {
-
 		if peer.GetAttempts() == 0 {
 			addrlist = append(addrlist, peer.Addr.String())
 		}
-
 	}
 	return addrlist
 }
