@@ -8,16 +8,16 @@ import (
 )
 
 const (
-	sellOrderSHTAS  = "token-sellorder-shtas:"
-	sellOrderASTS   = "token-sellorder-asts:"
-	sellOrderATSS   = "token-sellorder-atss:"
-	sellOrderTSPAS  = "token-sellorder-tspas:"
-	buyOrderSHTAS   = "token-buyorder-shtas:"
-	buyOrderASTS    = "token-buyorder-asts:"
-	buyOrderATSS    = "token-buyorder-atss:"
-	buyOrderTSPAS   = "token-buyorder-tspas:"
-	sellIDPrefix    = "mavl-trade-sell-"
-	buyIDPrefix     = "mavl-trade-buy-"
+	sellOrderSHTAS = "token-sellorder-shtas:"
+	sellOrderASTS  = "token-sellorder-asts:"
+	sellOrderATSS  = "token-sellorder-atss:"
+	sellOrderTSPAS = "token-sellorder-tspas:"
+	buyOrderSHTAS  = "token-buyorder-shtas:"
+	buyOrderASTS   = "token-buyorder-asts:"
+	buyOrderATSS   = "token-buyorder-atss:"
+	buyOrderTSPAS  = "token-buyorder-tspas:"
+	sellIDPrefix   = "mavl-trade-sell-"
+	buyIDPrefix    = "mavl-trade-buy-"
 )
 
 // sell order 4 key, 4prefix
