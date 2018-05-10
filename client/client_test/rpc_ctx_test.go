@@ -21,6 +21,8 @@ type JsonRpcCtx struct {
 	Res    interface{}
 
 	cb Callback
+
+	jsonClient *jsonrpc.JSONClient
 }
 
 type Callback func(res interface{}) (interface{}, error)
@@ -39,16 +41,16 @@ func (c *JsonRpcCtx) SetResultCb(cb Callback) {
 }
 
 func (c *JsonRpcCtx) Run() (err error) {
-	rpc, err := jsonrpc.NewJSONClient(c.Addr)
+	if c.jsonClient == nil {
+		c.jsonClient, err = jsonrpc.NewJSONClient(c.Addr)
+		if err != nil {
+			return
+		}
+	}
+	err = c.jsonClient.Call(c.Method, c.Params, c.Res)
 	if err != nil {
 		return
 	}
-
-	err = rpc.Call(c.Method, c.Params, c.Res)
-	if err != nil {
-		return
-	}
-
 	// maybe format rpc result
 	var result interface{}
 	if c.cb != nil {
