@@ -227,7 +227,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			req.Status = types.TradeOrderStatusOnSale
 		}
 		return t.GetTokenSellOrderByStatus(&req, req.Status)
-	case "GetTokenBuyLimitOrderByStatus": // 根据token 分页显示未完成成交买单
+	case "GetTokenBuyOrderByStatus": // 根据token 分页显示未完成成交买单
 		var req types.ReqTokenBuyOrder
 		err := types.Decode(params, &req)
 		if err != nil {
