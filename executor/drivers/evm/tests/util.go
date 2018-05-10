@@ -86,7 +86,7 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 
 	msg := inst.GetMessage(&tx)
 
-	inst.SetEnv(10,0)
+	inst.SetEnv(10,0,common.EmptyAddress().Str(),uint64(10))
 	statedb = inst.GetMStateDB()
 
 	statedb.StateDB=mdb
@@ -96,14 +96,7 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 
 	vmcfg := inst.GetVMConfig()
 
-	// 获取当前区块的高度和时间
-	height := int64(10)
-	tm := time.Now().UnixNano() / int64(time.Millisecond)
-
-	coinbase := common.EmptyAddress()
-	difficulty := uint64(10)
-
-	context := evm.NewEVMContext(msg, height, tm, coinbase, difficulty)
+	context := inst.NewEVMContext(msg)
 
 	// 创建EVM运行时对象
 	env := runtime.NewEVM(context, statedb, *vmcfg)
@@ -123,7 +116,7 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 
 	msg := inst.GetMessage(&tx)
 
-	inst.SetEnv(10,0)
+	inst.SetEnv(10,0,common.EmptyAddress().Str(),uint64(10))
 
 	statedb = inst.GetMStateDB()
 
@@ -135,14 +128,8 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 
 	vmcfg := inst.GetVMConfig()
 
-	// 获取当前区块的高度和时间
-	height := int64(10)
-	tm := time.Now().UnixNano() / int64(time.Millisecond)
 
-	coinbase := common.EmptyAddress()
-	difficulty := uint64(10)
-
-	context := evm.NewEVMContext(msg, height, tm, coinbase, difficulty)
+	context := inst.NewEVMContext(msg)
 
 	// 创建EVM运行时对象
 	env := runtime.NewEVM(context, statedb, *vmcfg)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"math/big"
+	"github.com/inconshreveable/log15"
 )
 
 // 内存操作封装，在EVM中使用此对象模拟物理内存
@@ -19,15 +20,18 @@ func NewMemory() *Memory {
 }
 
 // 设置内存中的值， value => offset:offset + size
-func (m *Memory) Set(offset, size uint64, value []byte) {
+func (m *Memory) Set(offset, size uint64, value []byte) (err error){
 	// 偏移量+大小一定不会大于内存长度
 	if offset + size > uint64(len(m.Store)) {
-		panic("INVALID memory: Store empty")
+		err = fmt.Errorf("INVALID memory access, memory size:%v, offset:%v, size:%v",len(m.Store),offset,size)
+		log15.Crit(err.Error())
+		return err
 	}
 
 	if size > 0 {
 		copy(m.Store[offset:offset+size], value)
 	}
+	return nil
 }
 
 // 扩充内存到指定大小

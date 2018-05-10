@@ -159,7 +159,7 @@ func (evm *EVM) preCheck(caller ContractRef, gas uint64, value *big.Int) (pass b
 
 // 此方法提供合约外部调用入口
 // 根据合约地址调用已经存在的合约，input为合约调用参数
-// 合约调用逻辑支持在合约调用的同时进行向合约转账的操作（FIXME 待完善）
+// 合约调用逻辑支持在合约调用的同时进行向合约转账的操作
 func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
 	pass, ret, leftOverGas, err = evm.preCheck(caller, gas, value)
@@ -345,7 +345,7 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	// 创建新的合约对象，包含双方地址以及合约代码，可用Gas信息
 	contract := NewContract(caller, AccountRef(contractAddr), value, gas)
-	contract.SetCallCode(&contractAddr, common.BytesToHash(code), code)
+	contract.SetCallCode(&contractAddr, common.ToHash(code), code)
 
 	// 如果EVM配置中不允许递归调用，但是深度不为0（说明是通过递归调进来的），出错
 	if evm.VmConfig.NoRecursion && evm.depth > 0 {

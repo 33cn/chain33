@@ -99,7 +99,7 @@ func runCase(tt *testing.T, c VMCase, file string)  {
 
 	// 1 构建预置环境 pre
 	inst := evm.NewEVMExecutor()
-	inst.SetEnv(c.env.currentNumber,c.env.currentTimestamp)
+	inst.SetEnv(c.env.currentNumber,c.env.currentTimestamp, c.env.currentCoinbase, uint64(c.env.currentDifficulty))
 	statedb := inst.GetMStateDB()
 	mdb := createStateDB(statedb, c)
 	statedb.StateDB=mdb
@@ -109,7 +109,7 @@ func runCase(tt *testing.T, c VMCase, file string)  {
 	// 2 创建交易信息 create
 	vmcfg := inst.GetVMConfig()
 	msg := buildMsg(c)
-	context := evm.NewEVMContext(msg, c.env.currentNumber, c.env.currentTimestamp, common.StringToAddress(c.env.currentCoinbase), uint64(c.env.currentDifficulty))
+	context := inst.NewEVMContext(msg)
 
 	// 3 调用执行逻辑 call
 	env := runtime.NewEVM(context, statedb, *vmcfg)

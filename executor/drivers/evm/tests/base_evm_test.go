@@ -11,6 +11,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
+	"fmt"
 )
 
 // 正常创建合约逻辑
@@ -153,11 +157,11 @@ func TestCreateContract4(t *testing.T) {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := ""
-	code := "608060405260358060116000396000f3006080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029"
+	to := "1JFwfPaWx78y5P3viSJUbuWcdfZqnDPw2b"
+	code := "35a063b4"
 	deployCode, _ := hex.DecodeString(code)
-	fee := 50000
-	amount := 20000000
+	fee := 5000000000
+	amount := 0
 
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b,uint64(amount))
@@ -189,6 +193,16 @@ func TestCreateTx(t *testing.T) {
 		t.Error(err)
 		t.Fail()
 	}else{
+		t.Log("begin to call cli")
+		params := jsonrpc.RawParm{
+			Data: signedTx,
+		}
+		var res string
+		ctx := commands.NewRpcCtx("http://localhost:8801", "Chain33.SendTransaction", params, &res)
+		ctx.Run()
+
 		t.Log(signedTx)
 	}
+
+	fmt.Println(hex.EncodeToString(crypto.Keccak256([]byte("litian"))))
 }

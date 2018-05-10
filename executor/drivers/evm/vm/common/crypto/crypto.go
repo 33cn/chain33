@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -54,4 +55,14 @@ func RandomAddress() *common.Address {
 	acc := account.PubKeyToAddress(key.PubKey().Bytes())
 	addr := common.StringToAddress(acc.String())
 	return &addr
+}
+
+// Keccak256 计算并返回 Keccak256 哈希
+// 直接使用了sha3内置的方法逻辑
+func Keccak256(data ...[]byte) []byte {
+	d := sha3.New256()
+	for _, b := range data {
+		d.Write(b)
+	}
+	return d.Sum(nil)
 }

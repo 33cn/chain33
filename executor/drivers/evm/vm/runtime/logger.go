@@ -4,10 +4,11 @@ import (
 	"math/big"
 	"time"
 
+	"encoding/json"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
+	"io"
 )
-
 
 // Tracer接口用来在合约执行过程中收集跟踪数据。
 // CaptureState 会在EVM解释每条指令时调用。
@@ -17,4 +18,68 @@ type Tracer interface {
 	CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *mm.Memory, stack *mm.Stack, contract *Contract, depth int, err error) error
 	CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *mm.Memory, stack *mm.Stack, contract *Contract, depth int, err error) error
 	CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error
+}
+
+// 使用json格式打印日志
+type JSONLogger struct {
+	encoder *json.Encoder
+}
+
+// 指令执行状态信息
+type StructLog struct {
+	Pc         uint64                      `json:"pc"`
+	Op         string                      `json:"op"`
+	Gas        uint64                      `json:"gas"`
+	GasCost    uint64                      `json:"gasCost"`
+	Memory     []byte                      `json:"memory"`
+	MemorySize int                         `json:"memSize"`
+	Stack      []*big.Int                  `json:"stack"`
+	Storage    map[common.Hash]common.Hash `json:"-"`
+	Depth      int                         `json:"depth"`
+	Err        error                       `json:"-"`
+}
+
+func NewJSONLogger(writer io.Writer) *JSONLogger {
+	return &JSONLogger{json.NewEncoder(writer)}
+}
+
+func (logger *JSONLogger) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) error {
+	return nil
+}
+
+// CaptureState outputs state information on the logger.
+func (logger *JSONLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *mm.Memory, stack *mm.Stack, contract *Contract, depth int, err error) error {
+	log := StructLog{
+		Pc:         pc,
+		Op:         op.String(),
+		Gas:        gas,
+		GasCost:    cost,
+		MemorySize: memory.Len(),
+		Storage:    nil,
+		Depth:      depth,
+		Err:        err,
+	}
+	log.Memory = memory.Data()
+	log.Stack = stack.Data()
+	return logger.encoder.Encode(log)
+}
+
+// CaptureFault outputs state information on the logger.
+func (logger *JSONLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *mm.Memory, stack *mm.Stack, contract *Contract, depth int, err error) error {
+	return nil
+}
+
+// CaptureEnd is triggered at end of execution.
+func (logger *JSONLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error {
+	type endLog struct {
+		Output  string        `json:"output"`
+		GasUsed int64         `json:"gasUsed"`
+		Time    time.Duration `json:"time"`
+		Err     string        `json:"error,omitempty"`
+	}
+
+	if err != nil {
+		return logger.encoder.Encode(endLog{common.Bytes2Hex(output), int64(gasUsed), t, err.Error()})
+	}
+	return logger.encoder.Encode(endLog{common.Bytes2Hex(output), int64(gasUsed), t, ""})
 }
