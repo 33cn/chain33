@@ -305,7 +305,8 @@ func (self *MemoryStateDB) RevertToSnapshot(version int) {
 
 	// 如果版本号不对，回滚失败
 	if idx == len(self.validRevisions) || self.validRevisions[idx].id != version {
-		panic(fmt.Errorf("revision id %v cannot be reverted", version))
+		log15.Crit(fmt.Errorf("revision id %v cannot be reverted", version).Error())
+		return
 	}
 
 	// 获取快照版本
@@ -357,7 +358,8 @@ func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue,
 
 	// 如果版本号不对，操作失败
 	if idx == len(self.validRevisions) || self.validRevisions[idx].id != version {
-		panic(fmt.Errorf("revision id %v cannot be reverted", version))
+		log15.Crit(fmt.Errorf("revision id %v cannot be reverted", version).Error())
+		return nil,nil
 	}
 
 	// 获取快照版本

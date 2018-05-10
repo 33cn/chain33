@@ -7,12 +7,14 @@ import (
 	"encoding/hex"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"gitlab.33.cn/chain33/chain33/types"
+	"os"
 )
 
 const (
@@ -24,6 +26,8 @@ const (
 
 var (
 	GasPrice = big.NewInt(1)
+	//目前这里先用默认配置，后面在增加具体实现
+	VMConfig = &runtime.Config{}
 )
 
 // EVM执行器结构
@@ -43,8 +47,12 @@ func init() {
 func NewEVMExecutor() *EVMExecutor {
 	exec := &EVMExecutor{}
 
-	// TODO 目前这里先用默认配置，后面在增加具体实现
-	exec.vmCfg = &runtime.Config{}
+	exec.vmCfg = VMConfig
+	exec.vmCfg.Tracer = runtime.NewJSONLogger(os.Stdout)
+
+	// 打开EVM调试开关
+	exec.vmCfg.Debug = true
+
 	exec.SetChild(exec)
 	return exec
 }
@@ -82,13 +90,8 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	// 先转换消息
 	msg := evm.GetMessage(tx)
 
-	// 获取当前区块的上下文信息
-	height := evm.DriverBase.GetHeight()
-	time := evm.DriverBase.GetBlockTime()
-	coinbase := common.StringToAddress(evm.DriverBase.GetCoinBase())
-	difficulty := evm.DriverBase.GetDifficulty()
-
-	context := NewEVMContext(msg, height, time, coinbase, difficulty)
+	// 获取当前区块的上下文信息构造EVM上下文
+	context := evm.NewEVMContext(msg)
 
 	// 创建EVM运行时对象
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
@@ -138,11 +141,16 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	usedGas := msg.GasLimit() - refundGas
 
 	// 将消耗的费用奖励给区块作者
-	evm.mStateDB.AddBalance(coinbase, big.NewInt(1).Mul(big.NewInt(int64(usedGas)), msg.GasPrice()))
+	if context.Coinbase != common.EmptyAddress() {
+		evm.mStateDB.AddBalance(context.Coinbase, big.NewInt(1).Mul(big.NewInt(int64(usedGas)), msg.GasPrice()))
+	}
 
-	log.Info("usedGas ", usedGas)
-	log.Info("return data is " + hex.EncodeToString(ret))
-	log.Info("contract address is ", addr.Str())
+	logMsg := "call contract details:"
+	if isCreate {
+		logMsg = "create contract details:"
+	}
+
+	log.Info(logMsg, "caller address", msg.From().Str(), "contract address", addr.Str(), "usedGas", usedGas, "return data", hex.EncodeToString(ret))
 
 	// 打印合约中生成的日志
 	evm.mStateDB.PrintLogs()
@@ -155,10 +163,14 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 
 	// 从状态机中获取数据变更和变更日志
 	data, logs := evm.mStateDB.GetChangedData(evm.mStateDB.GetLastSnapshot())
-	logs = append(logs, evm.mStateDB.GetReceiptLogs(addr, isCreate)...)
-	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
-
-	return receipt, nil
+	if logs != nil {
+		logs = append(logs, evm.mStateDB.GetReceiptLogs(addr, isCreate)...)
+	}
+	if data != nil {
+		receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
+		return receipt, nil
+	}
+	return nil,nil
 }
 
 func (evm *EVMExecutor) GetMStateDB() *state.MemoryStateDB {
@@ -186,6 +198,22 @@ func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg common.Message) {
 	return msg
 }
 
+// 构造一个新的EVM上下文对象
+func (evm *EVMExecutor) NewEVMContext(msg common.Message) runtime.Context {
+	return runtime.Context{
+		CanTransfer: CanTransfer,
+		Transfer:    Transfer,
+		GetHash:     GetHashFn(evm.GetApi()),
+		Origin:      msg.From(),
+		Coinbase:    common.StringToAddress(evm.GetCoinBase()),
+		BlockNumber: new(big.Int).SetInt64(evm.GetHeight()),
+		Time:        new(big.Int).SetInt64(evm.GetBlockTime()),
+		Difficulty:  new(big.Int).SetUint64(evm.GetDifficulty()),
+		GasLimit:    msg.GasLimit(),
+		GasPrice:    new(big.Int).Set(msg.GasPrice()),
+	}
+}
+
 // 从交易信息中获取交易发起人地址
 func getCaller(tx *types.Transaction) common.Address {
 	return common.StringToAddress(account.From(tx).String())
@@ -198,22 +226,6 @@ func getReceiver(tx *types.Transaction) *common.Address {
 	}
 	addr := common.StringToAddress(tx.To)
 	return &addr
-}
-
-// 构造一个新的EVM上下文对象
-func NewEVMContext(msg common.Message, height int64, time int64, coinbase common.Address, difficulty uint64) runtime.Context {
-	return runtime.Context{
-		CanTransfer: CanTransfer,
-		Transfer:    Transfer,
-		GetHash:     getHashFn,
-		Origin:      msg.From(),
-		Coinbase:    coinbase,
-		BlockNumber: new(big.Int).SetInt64(height),
-		Time:        new(big.Int).SetInt64(time),
-		Difficulty:  new(big.Int).SetUint64(difficulty),
-		GasLimit:    msg.GasLimit(),
-		GasPrice:    new(big.Int).Set(msg.GasPrice()),
-	}
 }
 
 // 检查合约调用账户是否有充足的金额进行转账交易操作
@@ -233,7 +245,15 @@ func Transfer(db state.StateDB, sender, recipient common.Address, amount *big.In
 }
 
 // 获取制定高度区块的哈希
-func getHashFn(blockHeight uint64) common.Hash {
-	// TODO 此处逻辑需要补充，获取指定数字高度区块对应的哈希，可参考evm.go/GetHashFn
-	return common.Hash{}
+func GetHashFn(api client.QueueProtocolAPI) func(blockHeight uint64) common.Hash {
+	return func(blockHeight uint64) common.Hash {
+		if api != nil {
+			reply, err := api.GetBlockHash(&types.ReqInt{int64(blockHeight)})
+			if nil != err {
+				log.Error("Call GetBlockHash Failed.", err)
+			}
+			return common.BytesToHash(reply.Hash)
+		}
+		return common.Hash{}
+	}
 }
