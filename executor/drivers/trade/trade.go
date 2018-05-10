@@ -256,7 +256,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		return t.GetOnesBuyOrder(&addrTokens)
 
 	// 按 用户状态来 addr-status
-	case "GetOnesSellOrdersWithStatus":
+	case "GetOnesSellOrderWithStatus":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
@@ -264,7 +264,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		}
 		return t.GetOnesSellOrdersWithStatus(&addrTokens)
 
-	case "GetOnesBuyOrdersWithStatus":
+	case "GetOnesBuyOrderWithStatus":
 		var addrTokens types.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
