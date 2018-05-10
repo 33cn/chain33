@@ -266,9 +266,6 @@ func (n *Node) detectNodeAddr() {
 		}
 
 		log.Info("detectNodeAddr", "LocalAddr", LocalAddr)
-		if exaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, defalutNatPort)); err == nil {
-			n.nodeInfo.SetExternalAddr(exaddr)
-		}
 
 		if cfg.GetIsSeed() {
 			log.Info("DetectNodeAddr", "ExIp", LocalAddr)
@@ -323,7 +320,16 @@ func (n *Node) natMapPort() {
 
 	n.natNotice()
 	var err error
+	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
+		log.Info("natMapPort", "addr", "routeble")
+		p2pcli := NewNormalP2PCli() //检查要映射的IP地址是否已经被映射成功
+		ok, err := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
+		if err == nil && ok {
+			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
+			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
+		}
 
+	}
 	_, nodename := n.nodeInfo.addrBook.GetPrivPubKey()
 	log.Info("natMapPort", "netport", n.nodeInfo.GetExternalAddr().Port)
 	for i := 0; i < tryMapPortTimes; i++ {
