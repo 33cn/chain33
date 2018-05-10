@@ -43,11 +43,11 @@ message RelayAction {
 
 
 message RelaySell {
-    int64  sellamount			= 1;
+    uint64 sellamount			= 1;
     //string selladdr          	= 2；   //自身帐号，如果自己是外链账户，需要填
     //string  selltoken		   	= 3;    //卖的token  当前缺省是BTY
     string exchgcoin          	= 4;    //兑换币符号 比如BTC
-    int64  exchgamount          = 5;    //兑换数量
+    uint64 exchgamount          = 5;    //兑换数量
     string exchgaddr	       	= 6;    //兑换账户
     int32  waitcoinblocks       = 7;    //客户愿意等待的确认块数，默认是6个块，可以自己设置
 
@@ -56,11 +56,11 @@ message RelaySell {
 message RelayOrder {
     string orderid				= 1;    //此处使用buyer tx的hash来指定
     RelayOrderStatus  status    = 2;
-    int64  sellamount           = 3;
+    uint64 sellamount           = 3;
     //string selltoken          = 4;
     string selladdr             = 5;
     string exchgcoin            = 6;
-    int64  exchgamount          = 7;
+    uint64 exchgamount         = 7;
     string exchgaddr          	= 8;
     string exchgtxhash          = 9;     //buyer 提交coin的交易hash
     int32  waitcoinblocks       = 10;
@@ -131,7 +131,7 @@ message BtcHeaders {
 }
 
 message BtcTransaction {
-    string   hash          = 1;
+    string   hash          = 1; //txhash
     uint64   blockHeight   = 2;
     repeated Vin vin       = 3;
     repeated Vout vout     = 4;
@@ -151,11 +151,11 @@ message Vout {
 }
 
 message BtcSpv {
-   string hash = 1;
-   int64 time = 2;
-   uint64 height = 3;
+   string hash      = 1;  //txhash
+   int64  time      = 2;
+   uint64 height    = 3;
    string blockHash = 4;
-   uint64 txIndex = 5;
+   uint32 txIndex   = 5;
    repeated bytes branchProof = 6;
 }
 
@@ -163,10 +163,10 @@ message ReceiptRelayBase {
     string orderid				= 1;
     RelayOrderStatus status		= 2;
     string owner                = 3;
-    int64  sellamount			= 4;
+    uint64 sellamount			= 4;
     //string selltoken			= 5;
     string exchgcoin            = 6;
-    int64  exchgamount          = 7;
+    uint64 exchgamount          = 7;
     string exchgaddr            = 8;
     string exchgtxhash          = 9;
     int32  waitcoinblocks       = 10;
@@ -185,10 +185,10 @@ message ReceiptRelayBuy {
     string orderid             	= 1;
     RelayOrderStatus status		= 2;
     string buyeraddr			= 3;
-    int64  buyamount			= 4;
+    uint64 buyamount			= 4;
     string buytxhash            = 5;
     string exchgcoin			= 6;
-    int64  exchgamount			= 7;
+    uint64 exchgamount			= 7;
     string exchgaddr			= 8;
     string exchgtxhash          = 9;
 }
