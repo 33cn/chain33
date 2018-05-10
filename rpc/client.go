@@ -145,8 +145,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 		var queryAddrs []string
 		for _, addr := range addrs {
 			if err := account.CheckAddress(addr); err != nil {
-				addr = account.ExecAddress(addr).String()
-
+				addr = string(accountTokendb.AccountKey(addr))
 			}
 			queryAddrs = append(queryAddrs, addr)
 		}
@@ -271,7 +270,7 @@ func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) 
 		Crowdfund:         false,
 	}
 	sell := &types.Trade{
-		Ty:    types.TradeSell,
+		Ty:    types.TradeSellLimit,
 		Value: &types.Trade_Tokensell{v},
 	}
 	tx := &types.Transaction{
@@ -292,7 +291,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 	}
 	v := &types.TradeForBuy{Sellid: parm.SellId, Boardlotcnt: parm.BoardlotCnt}
 	buy := &types.Trade{
-		Ty:    types.TradeBuy,
+		Ty:    types.TradeBuyMarket,
 		Value: &types.Trade_Tokenbuy{v},
 	}
 	tx := &types.Transaction{
@@ -316,6 +315,76 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, err
 	buy := &types.Trade{
 		Ty:    types.TradeRevokeSell,
 		Value: &types.Trade_Tokenrevokesell{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(buy),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.TradeForBuyLimit{
+		TokenSymbol:       parm.TokenSymbol,
+		AmountPerBoardlot: parm.AmountPerBoardlot,
+		MinBoardlot:       parm.MinBoardlot,
+		PricePerBoardlot:  parm.PricePerBoardlot,
+		TotalBoardlot:     parm.TotalBoardlot,
+	}
+	buyLimit := &types.Trade{
+		Ty:    types.TradeBuyLimit,
+		Value: &types.Trade_Tokenbuylimit{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(buyLimit),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.TradeForSellMarket{Buyid: parm.BuyId, BoardlotCnt: parm.BoardlotCnt}
+	sellMarket := &types.Trade{
+		Ty:    types.TradeSellMarket,
+		Value: &types.Trade_Tokensellmarket{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("trade"),
+		Payload: types.Encode(sellMarket),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("trade").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &types.TradeForRevokeBuy{Buyid: parm.BuyId}
+	buy := &types.Trade{
+		Ty:    types.TradeRevokeBuy,
+		Value: &types.Trade_Tokenrevokebuy{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte("trade"),
