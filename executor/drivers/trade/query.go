@@ -261,19 +261,19 @@ func (t *trade) replyReplyBuyOrderfromID(key []byte) *types.ReplyBuyOrder {
 
 func sellOrder2reply(sellOrder *types.SellOrder) *types.ReplySellOrder {
 	reply := &types.ReplySellOrder{
-		sellOrder.Tokensymbol,
+		sellOrder.TokenSymbol,
 		sellOrder.Address,
-		sellOrder.Amountperboardlot,
-		sellOrder.Minboardlot,
-		sellOrder.Priceperboardlot,
-		sellOrder.Totalboardlot,
-		sellOrder.Soldboardlot,
+		sellOrder.AmountPerBoardlot,
+		sellOrder.MinBoardlot,
+		sellOrder.PricePerBoardlot,
+		sellOrder.TotalBoardlot,
+		sellOrder.SoldBoardlot,
 		"",
 		sellOrder.Status,
-		sellOrder.Sellid,
-		strings.Replace(sellOrder.Sellid, sellIDPrefix, "0x", 1),
+		sellOrder.SellID,
+		strings.Replace(sellOrder.SellID, sellIDPrefix, "0x", 1),
 		sellOrder.Height,
-		sellOrder.Sellid,
+		sellOrder.SellID,
 	}
 	return reply
 }
@@ -290,12 +290,12 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 				return nil
 			}
 			tradelog.Info("txResult2sellOrderReply", "show logs 1 ", receipt)
-			amount, err := strconv.ParseFloat(receipt.Base.Amountperboardlot, 64)
+			amount, err := strconv.ParseFloat(receipt.Base.AmountPerBoardlot, 64)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
 			}
-			price, err := strconv.ParseFloat(receipt.Base.Priceperboardlot, 64)
+			price, err := strconv.ParseFloat(receipt.Base.PricePerBoardlot, 64)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
@@ -303,14 +303,14 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 
 			txhash := common.ToHex(txResult.GetTx().Hash())
 			reply := &types.ReplySellOrder{
-				receipt.Base.Tokensymbol,
+				receipt.Base.TokenSymbol,
 				receipt.Base.Owner,
 				int64(amount * float64(types.TokenPrecision)),
-				receipt.Base.Minboardlot,
+				receipt.Base.MinBoardlot,
 				int64(price * float64(types.Coin)),
-				receipt.Base.Totalboardlot,
-				receipt.Base.Soldboardlot,
-				receipt.Base.Buyid,
+				receipt.Base.TotalBoardlot,
+				receipt.Base.SoldBoardlot,
+				receipt.Base.BuyID,
 				types.SellOrderStatus2Int[receipt.Base.Status],
 				"",
 				txhash,
@@ -333,12 +333,12 @@ func buyOrder2reply(buyOrder *types.BuyLimitOrder) *types.ReplyBuyOrder {
 		buyOrder.PricePerBoardlot,
 		buyOrder.TotalBoardlot,
 		buyOrder.BoughtBoardlot,
-		buyOrder.Buyid,
+		buyOrder.BuyID,
 		buyOrder.Status,
 		"",
-		strings.Replace(buyOrder.Buyid, buyIDPrefix, "0x", 1),
+		strings.Replace(buyOrder.BuyID, buyIDPrefix, "0x", 1),
 		buyOrder.Height,
-		buyOrder.Buyid,
+		buyOrder.BuyID,
 	}
 	return reply
 }
@@ -376,7 +376,7 @@ func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
 				receipt.Base.BoughtBoardlot,
 				"",
 				types.SellOrderStatus2Int[receipt.Base.Status],
-				receipt.Base.Sellid,
+				receipt.Base.SellID,
 				txhash,
 				receipt.Base.Height,
 				txhash,

@@ -260,11 +260,11 @@ func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) 
 		return nil, types.ErrInvalidParam
 	}
 	v := &types.TradeForSell{
-		Tokensymbol:       parm.TokenSymbol,
-		Amountperboardlot: parm.AmountPerBoardlot,
-		Minboardlot:       parm.MinBoardlot,
-		Priceperboardlot:  parm.PricePerBoardlot,
-		Totalboardlot:     parm.TotalBoardlot,
+		TokenSymbol:       parm.TokenSymbol,
+		AmountPerBoardlot: parm.AmountPerBoardlot,
+		MinBoardlot:       parm.MinBoardlot,
+		PricePerBoardlot:  parm.PricePerBoardlot,
+		TotalBoardlot:     parm.TotalBoardlot,
 		Starttime:         0,
 		Stoptime:          0,
 		Crowdfund:         false,
@@ -289,7 +289,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TradeForBuy{Sellid: parm.SellID, Boardlotcnt: parm.BoardlotCnt}
+	v := &types.TradeForBuy{SellID: parm.SellID, BoardlotCnt: parm.BoardlotCnt}
 	buy := &types.Trade{
 		Ty:    types.TradeBuyMarket,
 		Value: &types.Trade_Tokenbuy{v},
@@ -311,7 +311,7 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, err
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.TradeForRevokeSell{Sellid: parm.SellID}
+	v := &types.TradeForRevokeSell{SellID: parm.SellID}
 	buy := &types.Trade{
 		Ty:    types.TradeRevokeSell,
 		Value: &types.Trade_Tokenrevokesell{v},
@@ -359,7 +359,7 @@ func (c *channelClient) CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) ([]b
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TradeForSellMarket{Buyid: parm.BuyID, BoardlotCnt: parm.BoardlotCnt}
+	v := &types.TradeForSellMarket{BuyID: parm.BuyID, BoardlotCnt: parm.BoardlotCnt}
 	sellMarket := &types.Trade{
 		Ty:    types.TradeSellMarket,
 		Value: &types.Trade_Tokensellmarket{v},
@@ -381,7 +381,7 @@ func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byt
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.TradeForRevokeBuy{Buyid: parm.BuyID}
+	v := &types.TradeForRevokeBuy{BuyID: parm.BuyID}
 	buy := &types.Trade{
 		Ty:    types.TradeRevokeBuy,
 		Value: &types.Trade_Tokenrevokebuy{v},
