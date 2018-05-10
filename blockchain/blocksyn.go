@@ -107,10 +107,9 @@ func (chain *BlockChain) SynRoutine() {
 	//2分钟尝试检测一次故障peer是否已经恢复
 	recoveryFaultPeerTicker := time.NewTicker(120 * time.Second)
 
-	//5分钟尝试检测一次最优链，确保本节点在最优链
-	checkBestChainTicker := time.NewTicker(300 * time.Second)
-	chain.FetchPeerList()
-	chain.CheckBestChain()
+	//2分钟尝试检测一次最优链，确保本节点在最优链
+	checkBestChainTicker := time.NewTicker(120 * time.Second)
+
 	for {
 		select {
 		case <-chain.quit:
@@ -272,6 +271,11 @@ func (chain *BlockChain) fetchPeerList() error {
 	chain.peerList = subInfoList
 	peerMaxBlklock.Unlock()
 
+	//获取到peerlist之后，需要判断是否已经发起了最优链的检测。如果没有就触发一次最优链的检测
+	if atomic.LoadInt32(&chain.firstcheckbestchain) == 0 {
+		synlog.Info("fetchPeerList trigger first CheckBestChain")
+		chain.CheckBestChain()
+	}
 	return nil
 }
 
@@ -878,6 +882,9 @@ func (chain *BlockChain) CheckBestChain() {
 		return
 	}
 
+	//设置首次检测最优链的标志
+	atomic.CompareAndSwapInt32(&chain.firstcheckbestchain, 0, 1)
+
 	tipheight := chain.bestChain.Height()
 
 	bestpeerlock.Lock()
@@ -905,7 +912,7 @@ func (chain *BlockChain) CheckBestChain() {
 			chain.bestChainPeerList[peer.Name] = &newbestpeer
 		}
 		synlog.Debug("CheckBestChain FetchBlockHeaders", "height", tipheight, "pid", peer.Name)
-		go chain.FetchBlockHeaders(tipheight, tipheight, peer.Name)
+		chain.FetchBlockHeaders(tipheight, tipheight, peer.Name)
 	}
 }
 
