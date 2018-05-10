@@ -207,13 +207,13 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 	if len(req.FromKey) != 0 {
 		buy := t.replyReplyBuyOrderfromID([]byte(req.FromKey))
 		if buy == nil {
-			tradelog.Error("GetTokenBuyLimitOrderByStatus", "key not exist", req.FromKey)
+			tradelog.Error("GetTokenBuyOrderByStatus", "key not exist", req.FromKey)
 			return nil, types.ErrInputPara
 		}
 		fromKey = calcTokensBuyOrderKeyStatus(buy.TokenSymbol, buy.Status,
 			calcPriceOfToken(buy.PricePerBoardlot, buy.AmountPerBoardlot), buy.Owner, buy.Key)
 	}
-	tradelog.Info("GetTokenBuyLimitOrderByStatus", "fromKey ", fromKey)
+	tradelog.Info("GetTokenBuyOrderByStatus", "fromKey ", fromKey)
 
 	// List Direction 是升序， 买单是要降序， 把高价买的放前面， 在下一页操作时， 显示买价低的。
 	direction := 1 - req.Direction
@@ -225,7 +225,7 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 	for _, key := range values {
 		buy := t.replyReplyBuyOrderfromID(key)
 		if buy != nil {
-			tradelog.Debug("trade Query", "GetTokenBuyLimitOrderByStatus", string(key))
+			tradelog.Debug("trade Query", "GetTokenBuyOrderByStatus", string(key))
 			reply.BuyOrders = append(reply.BuyOrders, buy)
 		}
 	}
