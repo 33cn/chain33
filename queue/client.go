@@ -117,7 +117,7 @@ func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, 
 func (client *client) Wait(msg Message) (Message, error) {
 	timeout := 10 * time.Minute
 	if types.IsTestNet() {
-		timeout = 2 * time.Minute
+		timeout = 5 * time.Minute
 	}
 	msg, err := client.WaitTimeout(msg, timeout)
 	if err == types.ErrTimeout {
