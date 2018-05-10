@@ -78,8 +78,8 @@ func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addP
 		bootstrapPeers:   peers,
 		readOnlyPeers:    readOnlyPeers,
 		addPeers:         addPeers,
-		waldir:           fmt.Sprintf("chain33_raft-%d/wal", id),
-		snapdir:          fmt.Sprintf("chain33_raft-%d/snap", id),
+		waldir:           fmt.Sprintf("chain33_raft-%d%swal", id, string(os.PathSeparator)),
+		snapdir:          fmt.Sprintf("chain33_raft-%d%ssnap", id, string(os.PathSeparator)),
 		getSnapshot:      getSnapshot,
 		snapCount:        defaultSnapCount,
 		stopc:            make(chan struct{}),
@@ -363,12 +363,15 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 		return
 	}
 
-	rlog.Info(fmt.Sprintf("start snapshot [applied index: %d | last snapshot index: %d]", rc.appliedIndex, rc.snapshotIndex))
-	ents, err := rc.raftStorage.Entries(rc.appliedIndex, rc.appliedIndex+1, 2)
+	appliedIndex := rc.appliedIndex
+	snapshotIndex := rc.snapshotIndex
+	confState := rc.confState
+	rlog.Info(fmt.Sprintf("start snapshot [applied index: %d | last snapshot index: %d]", appliedIndex, snapshotIndex))
+	ents, err := rc.raftStorage.Entries(appliedIndex, appliedIndex+1, 2)
 	if err != nil {
 		rlog.Error(fmt.Sprintf("Err happened when get snapshot:%v", err.Error()))
 	}
-	snapShot, err := rc.raftStorage.CreateSnapshot(rc.appliedIndex, &rc.confState, ents[0].Data)
+	snapShot, err := rc.raftStorage.CreateSnapshot(appliedIndex, &confState, ents[0].Data)
 	if err != nil {
 		panic(err)
 	}
@@ -377,15 +380,15 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 	}
 
 	compactIndex := uint64(1)
-	if rc.appliedIndex > snapshotCatchUpEntriesN {
-		compactIndex = rc.appliedIndex - snapshotCatchUpEntriesN
+	if appliedIndex > snapshotCatchUpEntriesN {
+		compactIndex = appliedIndex - snapshotCatchUpEntriesN
 	}
 	if err := rc.raftStorage.Compact(compactIndex); err != nil {
 		panic(err)
 	}
 
 	rlog.Info(fmt.Sprintf("compacted log at index %d", compactIndex))
-	rc.snapshotIndex = rc.appliedIndex
+	rc.snapshotIndex = appliedIndex
 }
 
 func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
