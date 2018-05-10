@@ -1,4 +1,4 @@
-package executor_test
+package executor
 
 import (
 	//"errors"
@@ -14,7 +14,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
-	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -41,7 +40,7 @@ func initEnv() (queue.Queue, *blockchain.BlockChain, queue.Module, queue.Module,
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New(cfg.Exec)
+	exec := New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
@@ -136,7 +135,7 @@ func BenchmarkExecBlock(b *testing.B) {
 }
 
 func TestLoadDriver(t *testing.T) {
-	d, err := executor.LoadDriver("none")
+	d, err := LoadDriver("none")
 	if err != nil {
 		t.Error(err)
 	}
@@ -149,5 +148,13 @@ func TestLoadDriver(t *testing.T) {
 	driver := d.Clone()
 	if driver.GetName() != "none" {
 		t.Error(d.GetName())
+	}
+}
+
+func TestKeyAllow(t *testing.T) {
+	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
+	exec := []byte("retrieve")
+	if !isAllowExec(key, exec) {
+		t.Error("retrieve can modify exec")
 	}
 }
