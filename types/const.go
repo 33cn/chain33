@@ -65,6 +65,14 @@ func IsBityuan() bool {
 	return title == "bityuan"
 }
 
+func IsYcc() bool {
+	return title == "yuanchain"
+}
+
+func IsPublicChain() bool {
+	return IsBityuan() || IsYcc()
+}
+
 func SetTestNet(isTestNet bool) {
 	if !isTestNet {
 		testNet = false

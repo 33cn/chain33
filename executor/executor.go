@@ -168,7 +168,8 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 				panic(err)
 			}
 		}
-		if !e.IsFree() && types.MinFee > 0 {
+		//公链不允许手续费为0
+		if types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
 			feelog, err = execute.processFee(tx)
 			if err != nil {
 				receipt := types.NewErrReceipt(err)
