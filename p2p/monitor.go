@@ -70,8 +70,7 @@ func (n *Node) getAddrFromGithub() {
 		pidaddr := strings.Split(linestr, "@")
 		if len(pidaddr) == 2 {
 			addr := pidaddr[1]
-			if n.Has(addr) || n.nodeInfo.blacklist.Has(addr) ||
-				len(P2pComm.AddrRouteble([]string{addr})) == 0 {
+			if n.Has(addr) || n.nodeInfo.blacklist.Has(addr) {
 				return
 			}
 			pub.FIFOPub(addr, "addr")
@@ -144,25 +143,31 @@ func (n *Node) getAddrFromOnline() {
 			for _, addr := range addrlist {
 
 				if !n.needMore() {
-					//如果已经达到25个节点，则优先删除种子节点
 
+					//如果已经达到25个节点，则优先删除种子节点
 					localBlockHeight, err := pcli.GetBlockHeight(n.nodeInfo)
 					if err != nil {
 						continue
 					}
 					//查询对方的高度，如果不小于自己的高度,或高度差在一定范围内，则剔除一个种子
 					if peerHeight, ok := addrlistMap[addr]; ok {
+
 						if peerHeight >= localBlockHeight || localBlockHeight-peerHeight > 1024 {
+							if _, ok := seedsMap[addr]; ok {
+								continue
+							}
 							//随机删除连接的一个种子
 							for _, seed := range seedArr {
 								if n.Has(seed) {
 									n.remove(seed)
+									n.nodeInfo.addrBook.RemoveAddr(seed)
 									break
 								}
 							}
 
 						}
 					}
+					time.Sleep(MonitorPeerInfoInterval)
 
 				}
 
@@ -204,8 +209,8 @@ func (n *Node) getAddrFromAddrBook() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
 			return
 		}
-		//5个循环后， 则去github下载
-		if tickerTimes > 5 && n.Size() == 0 {
+		//12个循环后， 则去github下载
+		if tickerTimes > 12 && n.Size() == 0 {
 			n.getAddrFromGithub()
 			tickerTimes = 0
 		}
@@ -248,7 +253,7 @@ func (n *Node) monitorPeers() {
 		peers, infos := n.GetActivePeers()
 		for paddr, pinfo := range infos {
 			peerheight := pinfo.GetHeader().GetHeight()
-			if pinfo.GetName() == selfName { //发现连接到自己，立即删除
+			if pinfo.GetName() == selfName && pinfo.GetSelf() == false { //发现连接到自己，立即删除
 				//删除节点数过低的节点
 				n.remove(paddr)
 				n.nodeInfo.blacklist.Add(paddr, 0)
@@ -266,6 +271,7 @@ func (n *Node) monitorPeers() {
 				}
 				//删除节点数过低的节点
 				n.remove(paddr)
+				n.nodeInfo.addrBook.RemoveAddr(paddr)
 				//短暂加入黑名单20分钟
 				n.nodeInfo.blacklist.Add(paddr, int64(60*20))
 
@@ -295,7 +301,7 @@ func (n *Node) monitorPeerInfo() {
 
 //并发连接节点地址
 func (n *Node) monitorDialPeers() {
-
+	var dialCount int
 	addrChan := pub.Sub("addr")
 	for addr := range addrChan {
 
@@ -308,7 +314,6 @@ func (n *Node) monitorDialPeers() {
 			continue
 		}
 
-		Filter.RegRecvData(addr.(string))
 		//把待连接的节点增加到过滤容器中
 		netAddr, err := NewNetAddressString(addr.(string))
 		if err != nil {
@@ -327,11 +332,21 @@ func (n *Node) monitorDialPeers() {
 
 		//注册的节点超过最大节点数暂不连接
 		if !n.needMore() || len(n.GetRegisterPeers()) > maxOutBoundNum {
+			pub.FIFOPub(addr, "addr")
 			time.Sleep(time.Second * 10)
 			continue
 		}
 		log.Info("DialPeers", "peer", netAddr.String())
 		//并发连接节点，增加连接效率
+		if dialCount >= 25 {
+			pub.FIFOPub(addr, "addr")
+			time.Sleep(time.Second * 10)
+			dialCount = len(n.GetRegisterPeers())
+			continue
+		}
+
+		dialCount++
+		Filter.RegRecvData(addr.(string))
 		go func(netAddr *NetAddress) {
 
 			defer Filter.RemoveRecvData(netAddr.String())
