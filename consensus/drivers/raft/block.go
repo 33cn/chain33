@@ -171,6 +171,10 @@ func (client *RaftClient) CreateBlock() {
 			emptyBlock.Txs = nil
 			emptyBlock.TxHash = zeroHash[:]
 			emptyBlock.BlockTime = time.Now().Unix()
+
+			entry := emptyBlock
+			client.propose(entry)
+
 			er := client.WriteBlock(block.StateHash, emptyBlock)
 			if er != nil {
 				rlog.Error(fmt.Sprintf("********************err:%v", er.Error()))
