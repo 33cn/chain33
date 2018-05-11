@@ -54,12 +54,18 @@ func NewP2pServer() *P2pServer {
 
 func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 	log.Debug("ping")
-	peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
 	if !P2pComm.CheckSign(in) {
 		log.Error("Ping", "p2p server", "check sig err")
 		return nil, pb.ErrPing
 	}
 
+	getctx, ok := pr.FromContext(ctx)
+	var peerip string
+	if ok {
+		peerip = strings.Split(getctx.Addr.String(), ":")[0]
+	}
+
+	peeraddr := fmt.Sprintf("%s:%v", peerip, in.Port)
 	remoteNetwork, err := NewNetAddressString(peeraddr)
 	if err == nil {
 		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
@@ -112,17 +118,6 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
-	selfNetWork, err := NewNetAddressString(in.GetAddrRecv())
-	if err == nil {
-		s.node.nodeInfo.SetExternalAddr(selfNetWork)
-	}
-
-	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
-	if err == nil {
-		log.Debug("Version2", "before", "AddAddress")
-		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
-		log.Debug("Version2", "after", "AddAddress")
-	}
 
 	log.Debug("Version2", "before", "GetPrivPubKey")
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
@@ -132,6 +127,14 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if len(strings.Split(in.AddrFrom, ":")) == 2 {
 		port = strings.Split(in.AddrFrom, ":")[1]
 	}
+
+	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peerip, port))
+	if err == nil {
+		log.Debug("Version2", "before", "AddAddress")
+		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		log.Debug("Version2", "after", "AddAddress")
+	}
+
 	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerip, port), UserAgent: pub}, nil
 
@@ -426,7 +429,6 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(),
 				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
 			if block.GetBlock() != nil {
-				//msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, block.GetBlock())
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{peername, block.GetBlock()})
 				s.node.nodeInfo.client.Send(msg, false)
 			}
@@ -466,53 +468,6 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 		}
 	}
-
-}
-
-/**
-* 提供远程节点自身网络定位服务
- */
-func (s *P2pServer) RemotePeerAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PExternalInfo, error) {
-	log.Debug("RemotePeerAddr")
-
-	var remoteaddr string
-	var outside bool
-	getctx, ok := pr.FromContext(ctx)
-	if ok {
-		remoteaddr = strings.Split(getctx.Addr.String(), ":")[0]
-		log.Debug("RemotePeerAddr")
-		if len(P2pComm.AddrRouteble([]string{fmt.Sprintf("%v:%v", remoteaddr, defaultPort)})) == 0 {
-
-			outside = false
-		} else {
-			outside = true
-		}
-	}
-	return &pb.P2PExternalInfo{Addr: remoteaddr, Isoutside: outside}, nil
-}
-
-/**
-* 提供检验自身节点网络映射后服务是否开启的服务
- */
-func (s *P2pServer) RemotePeerNatOk(ctx context.Context, in *pb.P2PPing) (*pb.P2PExternalInfo, error) {
-	log.Debug("RemotePeerNatOk")
-	if !P2pComm.CheckSign(in) {
-		return nil, pb.ErrPing
-	}
-	var natok bool
-	remoteaddr := fmt.Sprintf("%v:%v", in.GetAddr(), in.GetPort())
-	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
-	if hex.EncodeToString(in.GetSign().GetPubkey()) == pub {
-		//发现是自己节点发来的验证消息
-		natok = false
-	} else {
-		log.Info("RemotePeerNatOk")
-		if len(P2pComm.AddrRouteble([]string{remoteaddr})) != 0 {
-			natok = true
-		}
-	}
-
-	return &pb.P2PExternalInfo{remoteaddr, natok}, nil
 
 }
 
