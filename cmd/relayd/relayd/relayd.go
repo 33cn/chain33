@@ -64,7 +64,7 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 	client33 := NewClient33(&config.Chain33)
-	btc, err := NewBtcClient(config.BitCoin.BitConnConfig(), int(config.BitCoin.ReconnectAttempts))
+	btc, err := NewBtcd(config.BitCoin.BitConnConfig(), int(config.BitCoin.ReconnectAttempts))
 
 	pr, err := hex.DecodeString(config.Auth.PrivateKey)
 	if err != nil {

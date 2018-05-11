@@ -51,7 +51,7 @@ var MainNetParams = Params{
 	RPCServerPort: "8332",
 }
 
-type btcClient struct {
+type btcdClient struct {
 	rpcClient           *rpcclient.Client
 	connConfig          *rpcclient.ConnConfig
 	chainParams         *chaincfg.Params
@@ -66,11 +66,11 @@ type btcClient struct {
 	httpClient          *fasthttp.Client
 }
 
-func NewBtcClient(config *rpcclient.ConnConfig, reconnectAttempts int) (BtcClient, error) {
+func NewBtcd(config *rpcclient.ConnConfig, reconnectAttempts int) (BtcClient, error) {
 	if reconnectAttempts < 0 {
 		return nil, errors.New("ReconnectAttempts must be positive")
 	}
-	client := &btcClient{
+	client := &btcdClient{
 		connConfig:          config,
 		chainParams:         MainNetParams.Params,
 		reconnectAttempts:   reconnectAttempts,
@@ -92,7 +92,7 @@ func NewBtcClient(config *rpcclient.ConnConfig, reconnectAttempts int) (BtcClien
 	return client, nil
 }
 
-func (b *btcClient) Start() error {
+func (b *btcdClient) Start() error {
 	err := b.rpcClient.Connect(b.reconnectAttempts)
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func (b *btcClient) Start() error {
 	return nil
 }
 
-func (b *btcClient) Stop() error {
+func (b *btcdClient) Stop() error {
 	b.quitMtx.Lock()
 	select {
 	case <-b.quit:
@@ -134,16 +134,16 @@ func (b *btcClient) Stop() error {
 	return nil
 }
 
-func (b *btcClient) WaitForShutdown() {
+func (b *btcdClient) WaitForShutdown() {
 	b.rpcClient.WaitForShutdown()
 	b.wg.Wait()
 }
 
-func (b *btcClient) Notifications() <-chan interface{} {
+func (b *btcdClient) Notifications() <-chan interface{} {
 	return b.dequeueNotification
 }
 
-func (b *btcClient) BlockStamp() (*BlockStamp, error) {
+func (b *btcdClient) BlockStamp() (*BlockStamp, error) {
 	select {
 	case bs := <-b.currentBlock:
 		return bs, nil
@@ -170,14 +170,14 @@ func parseBlock(block *btcjson.BlockDetails) (*BlockMeta, error) {
 	return blk, nil
 }
 
-func (b *btcClient) onClientConnect() {
+func (b *btcdClient) onClientConnect() {
 	select {
 	case b.enqueueNotification <- ClientConnected{}:
 	case <-b.quit:
 	}
 }
 
-func (b *btcClient) onBlockConnected(hash *chainhash.Hash, height int32, time time.Time) {
+func (b *btcdClient) onBlockConnected(hash *chainhash.Hash, height int32, time time.Time) {
 	select {
 	case b.enqueueNotification <- BlockConnected{
 		BlockStamp: BlockStamp{
@@ -190,7 +190,7 @@ func (b *btcClient) onBlockConnected(hash *chainhash.Hash, height int32, time ti
 	}
 }
 
-func (b *btcClient) onBlockDisconnected(hash *chainhash.Hash, height int32, time time.Time) {
+func (b *btcdClient) onBlockDisconnected(hash *chainhash.Hash, height int32, time time.Time) {
 	select {
 	case b.enqueueNotification <- BlockDisconnected{
 		BlockStamp: BlockStamp{
@@ -203,7 +203,7 @@ func (b *btcClient) onBlockDisconnected(hash *chainhash.Hash, height int32, time
 	}
 }
 
-func (b *btcClient) handler() {
+func (b *btcdClient) handler() {
 	hash, height, err := b.rpcClient.GetBestBlock()
 	if err != nil {
 		b.Stop()
@@ -297,13 +297,13 @@ out:
 }
 
 // POSTClient creates the equivalent HTTP POST rpcclient.Client.
-func (b *btcClient) POSTClient() (*rpcclient.Client, error) {
+func (b *btcdClient) POSTClient() (*rpcclient.Client, error) {
 	configCopy := *b.connConfig
 	configCopy.HTTPPostMode = true
 	return rpcclient.New(&configCopy, nil)
 }
 
-func (b *btcClient) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
+func (b *btcdClient) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
 	hash, err := chainhash.NewHashFromStr(txHash)
 	if err != nil {
 		return nil, err
@@ -341,13 +341,13 @@ func (b *btcClient) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) 
 		Time:        block.Time,
 		Height:      uint64(block.Height),
 		BlockHash:   block.Hash,
-		TxIndex:     uint64(txIndex),
+		TxIndex:     txIndex,
 		BranchProof: proof,
 	}
 	return spv, nil
 }
 
-func (b *btcClient) GetTransaction(hash string) (*types.BtcTransaction, error) {
+func (b *btcdClient) GetTransaction(hash string) (*types.BtcTransaction, error) {
 	txHash, err := chainhash.NewHashFromStr(hash)
 	if err != nil {
 		return nil, err
@@ -379,7 +379,7 @@ func (b *btcClient) GetTransaction(hash string) (*types.BtcTransaction, error) {
 	return btxTx, nil
 }
 
-func (b *btcClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
+func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 	hash, err := b.rpcClient.GetBlockHash(int64(height))
 	if err != nil {
 		return nil, err
@@ -406,7 +406,7 @@ func (b *btcClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 
 }
 
-func (b *btcClient) GetLatestBlock() (*chainhash.Hash, uint64, error) {
+func (b *btcdClient) GetLatestBlock() (*chainhash.Hash, uint64, error) {
 	hash, height, err := b.rpcClient.GetBestBlock()
 	return hash, uint64(height), err
 }
