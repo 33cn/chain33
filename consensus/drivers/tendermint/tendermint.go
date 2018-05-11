@@ -147,9 +147,18 @@ func (client *TendermintClient) StartConsensus() {
 		panic("StartConsensus failed for current block is nil")
 	}
 
-	blockInfo := ttypes.GetBlockInfo(block)
+	blockInfo, err := ttypes.GetBlockInfo(block)
+	if err != nil {
+		tendermintlog.Error("StartConsensus GetBlockInfo failed", "error", err)
+		panic(fmt.Sprintf("StartConsensus GetBlockInfo failed:%v",err))
+	}
+
 	var state sm.State
 	if blockInfo == nil {
+		if block.Height != 0 {
+			tendermintlog.Error("StartConsensus", "msg", "block height is not 0 but blockinfo is nil")
+			panic(fmt.Sprintf("StartConsensus block height is %v but block info is nil", block.Height))
+		}
 		statetmp, err := sm.MakeGenesisState(client.genesisDoc)
 		if err != nil {
 			tendermintlog.Error("StartConsensus", "msg", "MakeGenesisState failded", "error", err)
@@ -163,7 +172,16 @@ func (client *TendermintClient) StartConsensus() {
 			return
 		}
 		state = sm.LoadState(csState)
+		//new set
+		if pHeight := client.privValidator.GetLastHeight(); pHeight > state.LastBlockHeight {
+			state.LastBlockHeight = pHeight
+			validators := state.Validators
+			validators = validators.Copy()
+			validators.IncrementAccum(client.privValidator.GetLastRound())
+			state.Validators = validators
+		}
 	}
+
 
 	// Log whether this node is a validator or an observer
 	if state.Validators.HasAddress(client.privValidator.GetAddress()) {
@@ -202,7 +220,7 @@ func (client *TendermintClient) StartConsensus() {
 	client.csState = csState
 
 	//event start
-	err := client.eventBus.Start()
+	err = client.eventBus.Start()
 	if err != nil {
 		tendermintlog.Error("TendermintClientSetQueue", "msg", "EventBus start failed", "error", err)
 		return

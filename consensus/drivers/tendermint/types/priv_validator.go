@@ -44,6 +44,10 @@ type PrivValidator interface {
 	SignVote(chainID string, vote *Vote) error
 	SignProposal(chainID string, proposal *Proposal) error
 	SignHeartbeat(chainID string, heartbeat *Heartbeat) error
+
+	GetLastHeight() int64
+	GetLastRound() int
+	GetLastStep() int8
 }
 
 // PrivValidatorFS implements PrivValidator using data persisted to disk
@@ -309,6 +313,17 @@ func (privVal *PrivValidatorFS) String() string {
 	return fmt.Sprintf("PrivValidator{%v LH:%v, LR:%v, LS:%v}", privVal.GetAddress(), privVal.LastHeight, privVal.LastRound, privVal.LastStep)
 }
 
+func (privVal *PrivValidatorFS) GetLastHeight() int64 {
+	return privVal.LastHeight
+}
+
+func (privVal *PrivValidatorFS) GetLastRound() int {
+	return privVal.LastRound
+}
+
+func (privVal *PrivValidatorFS) GetLastStep() int8 {
+	return privVal.LastStep
+}
 //-------------------------------------
 
 type PrivValidatorsByAddress []*PrivValidatorFS
