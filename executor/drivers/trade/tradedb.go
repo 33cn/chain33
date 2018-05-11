@@ -182,16 +182,16 @@ func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog
 	return log
 }
 
-func getBuyOrderFromID(buyid []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
-	value, err := db.Get(buyid)
+func getBuyOrderFromID(buyID []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
+	value, err := db.Get(buyID)
 	if err != nil {
-		tradelog.Error("getBuyOrderFromID", "Failed to get value frim db wiht buyid", string(buyid))
+		tradelog.Error("getBuyOrderFromID", "Failed to get value frim db wiht buyID", string(buyID))
 		return nil, err
 	}
 
 	var buy types.BuyLimitOrder
 	if err = types.Decode(value, &buy); err != nil {
-		tradelog.Error("getBuyOrderFromID", "Failed to decode buy order", string(buyid))
+		tradelog.Error("getBuyOrderFromID", "Failed to decode buy order", string(buyID))
 		return nil, err
 	}
 	return &buy, nil
@@ -502,8 +502,8 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 }
 
 func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) (*types.Receipt, error) {
-	buyidByte := []byte(revoke.BuyID)
-	buyOrder, err := getBuyOrderFromID(buyidByte, action.db)
+	buyIDByte := []byte(revoke.BuyID)
+	buyOrder, err := getBuyOrderFromID(buyIDByte, action.db)
 	if err != nil {
 		return nil, types.ErrTBuyOrderNotExist
 	}

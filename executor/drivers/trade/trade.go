@@ -342,8 +342,8 @@ func (t *trade) deleteBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyVal
 }
 
 // BuyLimit Local
-func (t *trade) getBuyOrderFromDb(buyid []byte) *types.BuyLimitOrder {
-	value, err := t.GetStateDB().Get(buyid)
+func (t *trade) getBuyOrderFromDb(buyID []byte) *types.BuyLimitOrder {
+	value, err := t.GetStateDB().Get(buyID)
 	if err != nil {
 		panic(err)
 	}
@@ -363,14 +363,14 @@ func genSaveBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
 	return kv
 }
 
-func (t *trade) saveBuyLimit(buyid []byte, ty int32) []*types.KeyValue {
-	buyOrder := t.getBuyOrderFromDb(buyid)
+func (t *trade) saveBuyLimit(buyID []byte, ty int32) []*types.KeyValue {
+	buyOrder := t.getBuyOrderFromDb(buyID)
 	return genSaveBuyLimitKv(buyOrder)
 }
 
 func saveBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32) []*types.KeyValue {
-	buyid := []byte(buyOrder.BuyID)
-	return genBuyLimitOrderKeyValue(kv, buyOrder, status, buyid)
+	buyID := []byte(buyOrder.BuyID)
+	return genBuyLimitOrderKeyValue(kv, buyOrder, status, buyID)
 }
 
 func deleteBuyLimitKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32) []*types.KeyValue {
@@ -388,8 +388,8 @@ func genDeleteBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
 	return kv
 }
 
-func (t *trade) deleteBuyLimit(buyid []byte, ty int32) []*types.KeyValue {
-	buyOrder := t.getBuyOrderFromDb(buyid)
+func (t *trade) deleteBuyLimit(buyID []byte, ty int32) []*types.KeyValue {
+	buyOrder := t.getBuyOrderFromDb(buyID)
 	return genDeleteBuyLimitKv(buyOrder)
 }
 
