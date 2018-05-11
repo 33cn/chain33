@@ -5,11 +5,9 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
-	crypto "github.com/tendermint/go-crypto"
-	"gitlab.33.cn/chain33/chain33/common"
-	gcrypto "gitlab.33.cn/chain33/chain33/common/crypto"
+
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	gtypes "gitlab.33.cn/chain33/chain33/types"
+	"fmt"
 )
 
 var bslog = log.New("module", "tendermint-blockstore")
@@ -36,65 +34,6 @@ func NewBlockStore(client *drivers.BaseClient, pubkey string) *BlockStore {
 		pubkey: pubkey,
 	}
 }
-func GetBlockInfo(block *gtypes.Block) *gtypes.TendermintBlockInfo {
-	if len(block.Txs) == 0 || block.Height == 0 {
-		return nil
-	}
-	baseTx := block.Txs[0]
-	//判断交易类型和执行情况
-	var blockInfo gtypes.TendermintBlockInfo
-	nGet := &gtypes.NormPut{}
-	action := &gtypes.NormAction{}
-	err := gtypes.Decode(baseTx.GetPayload(), action)
-	if err != nil {
-		bslog.Error("GetCommitFromBlock get payload failed", "error", err)
-		return nil
-	}
-	if nGet = action.GetNput(); nGet == nil {
-		bslog.Error("GetCommitFromBlock get nput failed")
-		return nil
-	}
-	infobytes := nGet.GetValue()
-	if infobytes == nil {
-		bslog.Error("GetCommitFromBlock get blockinfo failed")
-		return nil
-	}
-	err = gtypes.Decode(infobytes, &blockInfo)
-	if err != nil {
-		bslog.Error("GetCommitFromBlock get payload failed", "error", err)
-		return nil
-	}
-	return &blockInfo
-}
-
-func LoadVotes(des []*Vote, source []*gtypes.Vote) {
-	for i, item := range source {
-		if item.Height == -1 {
-			continue
-		}
-		des[i] = &Vote{}
-		des[i].BlockID = BlockID{
-			Hash: item.BlockID.Hash,
-			PartsHeader: PartSetHeader{
-				Total: int(item.BlockID.PartsHeader.Total),
-				Hash:  item.BlockID.PartsHeader.Hash},
-		}
-		des[i].Height = item.Height
-		des[i].Round = int(item.Round)
-		sig, err := crypto.SignatureFromBytes(item.Signature)
-		if err != nil {
-			bslog.Error("SignatureFromBytes failed", "err", err)
-		} else {
-			des[i].Signature = sig.Wrap()
-		}
-
-		des[i].Type = uint8(item.Type)
-		des[i].ValidatorAddress = item.ValidatorAddress
-		des[i].ValidatorIndex = int(item.ValidatorIndex)
-		des[i].Timestamp = time.Unix(0, item.Timestamp)
-		bslog.Info("load votes", "i", i, "source", item, "des", des[i])
-	}
-}
 
 func (bs *BlockStore) LoadSeenCommit(height int64) *Commit {
 	oldBlock, err := bs.client.RequestBlock(height)
@@ -102,7 +41,10 @@ func (bs *BlockStore) LoadSeenCommit(height int64) *Commit {
 		bslog.Error("LoadSeenCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
 		return nil
 	}
-	blockInfo := GetBlockInfo(oldBlock)
+	blockInfo, err := GetBlockInfo(oldBlock)
+	if err != nil {
+		panic(fmt.Sprintf("LoadSeenCommit GetBlockInfo failed:%v",err))
+	}
 	if blockInfo == nil {
 		bslog.Error("LoadSeenCommit get nil block info")
 		return nil
@@ -131,12 +73,15 @@ func (bs *BlockStore) LoadSeenCommit(height int64) *Commit {
 func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 	oldBlock, err := bs.client.RequestBlock(height)
 	if err != nil {
-		bslog.Error("LoadSeenCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
+		bslog.Error("LoadBlockCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
 		return nil
 	}
-	blockInfo := GetBlockInfo(oldBlock)
+	blockInfo, err := GetBlockInfo(oldBlock)
+	if err != nil {
+		panic(fmt.Sprintf("LoadBlockCommit GetBlockInfo failed:%v",err))
+	}
 	if blockInfo == nil {
-		bslog.Error("LoadSeenCommit get nil block info")
+		bslog.Error("LoadBlockCommit get nil block info")
 		return nil
 	}
 	lastCommit := blockInfo.GetLastCommit()
@@ -159,101 +104,10 @@ func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 	return nil
 }
 
-func getprivkey(key string) gcrypto.PrivKey {
-	cr, err := gcrypto.New(gtypes.GetSignatureTypeName(gtypes.SECP256K1))
-	if err != nil {
-		panic(err)
-	}
-	bkey, err := common.FromHex(key)
-	if err != nil {
-		panic(err)
-	}
-	priv, err := cr.PrivKeyFromBytes(bkey)
-	if err != nil {
-		panic(err)
-	}
-	return priv
-}
-
-func (bs *BlockStore) CreateCommitTx(lastCommit *Commit, seenCommit *Commit) *gtypes.Transaction {
-	blockInfo := bs.SaveCommits(lastCommit, seenCommit)
-
-	nput := &gtypes.NormAction_Nput{&gtypes.NormPut{Key: "BlockInfo", Value: gtypes.Encode(blockInfo)}}
-	action := &gtypes.NormAction{Value: nput, Ty: gtypes.NormActionPut}
-	tx := &gtypes.Transaction{Execer: []byte("norm"), Payload: gtypes.Encode(action), Fee: fee}
-	tx.Nonce = r.Int63()
-	tx.Sign(gtypes.SECP256K1, getprivkey(bs.pubkey))
-
-	return tx
-}
-
-func SaveVotes(des []*gtypes.Vote, source []*Vote) {
-	for i, item := range source {
-
-		if item == nil {
-			des[i] = &gtypes.Vote{Height:-1, BlockID:&gtypes.BlockID{PartsHeader:&gtypes.PartSetHeader{}}}
-			bslog.Info("SaveVotes-item=nil")
-			continue
-		}
-
-		des[i] = &gtypes.Vote{}
-		partSetHeader := &gtypes.PartSetHeader{}
-		partSetHeader.Hash = item.BlockID.PartsHeader.Hash
-		partSetHeader.Total = int32(item.BlockID.PartsHeader.Total)
-		blockID := &gtypes.BlockID{}
-		blockID.Hash = item.BlockID.Hash
-		blockID.PartsHeader = partSetHeader
-		des[i].BlockID = blockID
-		des[i].Height = item.Height
-		des[i].Round = int32(item.Round)
-		des[i].Signature = item.Signature.Unwrap().Bytes()
-		des[i].Type = uint32(item.Type)
-		des[i].ValidatorAddress = item.ValidatorAddress
-		des[i].ValidatorIndex = int32(item.ValidatorIndex)
-		des[i].Timestamp = item.Timestamp.UnixNano()
-		bslog.Info("save votes", "i", i, "source", item, "des", des[i])
-	}
-
-}
-
-func (bs *BlockStore) SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) *gtypes.TendermintBlockInfo {
-	newLastCommitVotes := make([]*gtypes.Vote, len(lastCommitVotes.Precommits))
-	newSeenCommitVotes := make([]*gtypes.Vote, len(seenCommitVotes.Precommits))
-	if len(lastCommitVotes.Precommits) > 0 {
-		bslog.Info("SaveCommits","lastCommitVotes",lastCommitVotes.StringIndented("last"))
-		SaveVotes(newLastCommitVotes, lastCommitVotes.Precommits)
-	}
-	if len(seenCommitVotes.Precommits) > 0 {
-		bslog.Info("SaveCommits","seenCommitVotes",seenCommitVotes.StringIndented("seen"))
-		SaveVotes(newSeenCommitVotes, seenCommitVotes.Precommits)
-	}
-	lastCommit := &gtypes.TendermintCommit{
-		BlockID: &gtypes.BlockID{
-			Hash: lastCommitVotes.BlockID.Hash,
-			PartsHeader: &gtypes.PartSetHeader{
-				Total: int32(lastCommitVotes.BlockID.PartsHeader.Total),
-				Hash:  lastCommitVotes.BlockID.PartsHeader.Hash,
-			},
-		},
-		Precommits: newLastCommitVotes,
-	}
-	seenCommit := &gtypes.TendermintCommit{
-		BlockID: &gtypes.BlockID{
-			Hash: seenCommitVotes.BlockID.Hash,
-			PartsHeader: &gtypes.PartSetHeader{
-				Total: int32(seenCommitVotes.BlockID.PartsHeader.Total),
-				Hash:  seenCommitVotes.BlockID.PartsHeader.Hash,
-			},
-		},
-		Precommits: newSeenCommitVotes,
-	}
-	blockInfo := &gtypes.TendermintBlockInfo{
-		SeenCommit: seenCommit,
-		LastCommit: lastCommit,
-	}
-	return blockInfo
-}
-
 func (bs *BlockStore) Height() int64 {
 	return bs.client.GetCurrentHeight()
+}
+
+func (bs *BlockStore) GetPubkey() string {
+	return bs.pubkey
 }

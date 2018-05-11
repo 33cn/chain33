@@ -6,9 +6,9 @@ import (
 	gtypes "gitlab.33.cn/chain33/chain33/types"
 	"time"
 	log "github.com/inconshreveable/log15"
-	crypto "github.com/tendermint/go-crypto"
-	"errors"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"sync"
+	"errors"
 )
 
 var csStateLog = log.New("module", "tendermint-stateDB")
@@ -16,6 +16,7 @@ var csStateLog = log.New("module", "tendermint-stateDB")
 type CSStateDB struct {
 	client *drivers.BaseClient
 	state  State
+	mtx sync.Mutex
 }
 
 func NewStateDB(client *drivers.BaseClient, state State) *CSStateDB{
@@ -23,50 +24,6 @@ func NewStateDB(client *drivers.BaseClient, state State) *CSStateDB{
 		client:client,
 		state: state,
 	}
-}
-
-func LoadValidators(des []*types.Validator, source []*gtypes.Validator) {
-	for i, item := range source {
-		if item.GetAddress() == nil || len(item.GetAddress()) == 0 {
-			csStateLog.Warn("LoadValidators get address is nil or empty")
-			continue
-		} else if item.GetPubKey() == nil || len(item.GetPubKey()) == 0 {
-			csStateLog.Warn("LoadValidators get pubkey is nil or empty")
-			continue
-		}
-		des[i] = &types.Validator{}
-		des[i].Address = item.GetAddress()
-		pub, err := crypto.PubKeyFromBytes(item.GetPubKey())
-		if err != nil {
-			csStateLog.Error("LoadValidators get pubkey from byte failed", "err", err)
-		} else {
-			des[i].PubKey = pub.Wrap()
-		}
-		des[i].VotingPower = item.VotingPower
-		des[i].Accum = item.Accum
-	}
-}
-
-func LoadProposer(des *types.Validator, source *gtypes.Validator) error {
-	if source.GetAddress() == nil || len(source.GetAddress()) == 0 {
-		csStateLog.Warn("LoadProposer get address is nil or empty")
-		return errors.New("LoadProposer get address is nil or empty")
-	} else if source.GetPubKey() == nil || len(source.GetPubKey()) == 0 {
-		csStateLog.Warn("LoadProposer get pubkey is nil or empty")
-		return errors.New("LoadProposer get pubkey is nil or empty")
-	}
-	des = &types.Validator{}
-	des.Address = source.GetAddress()
-	pub, err := crypto.PubKeyFromBytes(source.GetPubKey())
-	if err != nil {
-		csStateLog.Error("LoadProposer get pubkey from byte failed", "err", err)
-		return errors.New(fmt.Sprintf("LoadProposer get pubkey from byte failed, err:%v", err))
-	} else {
-		des.PubKey = pub.Wrap()
-	}
-	des.VotingPower = source.VotingPower
-	des.Accum = source.Accum
-	return nil
 }
 
 func LoadState(state *gtypes.State) State {
@@ -87,7 +44,7 @@ func LoadState(state *gtypes.State) State {
 	if validators := state.GetValidators(); validators != nil {
 		if array := validators.GetValidators(); array != nil {
 			targetArray := make([]*types.Validator, len(array))
-			LoadValidators(targetArray, array)
+			types.LoadValidators(targetArray, array)
 			stateTmp.Validators = &types.ValidatorSet{Validators:targetArray, Proposer: nil}
 		}
 		if proposer := validators.GetProposer(); proposer != nil {
@@ -95,7 +52,7 @@ func LoadState(state *gtypes.State) State {
 				csStateLog.Error("LoadState validator is nil but proposer")
 			} else {
 				val := types.Validator{}
-				if err := LoadProposer(&val, proposer); err == nil {
+				if err := types.LoadProposer(&val, proposer); err == nil {
 					stateTmp.Validators.Proposer = &val
 				}
 			}
@@ -104,7 +61,7 @@ func LoadState(state *gtypes.State) State {
 	if lastValidators := state.GetLastValidators();lastValidators != nil {
 		if array := lastValidators.GetValidators(); array != nil {
 			targetArray := make([]*types.Validator, len(array))
-			LoadValidators(targetArray, array)
+			types.LoadValidators(targetArray, array)
 			stateTmp.LastValidators = &types.ValidatorSet{Validators:targetArray, Proposer: nil}
 		}
 		if proposer := lastValidators.GetProposer(); proposer != nil {
@@ -112,7 +69,7 @@ func LoadState(state *gtypes.State) State {
 				csStateLog.Error("LoadState last validator is nil but proposer")
 			} else {
 				val := types.Validator{}
-				if err := LoadProposer(&val, proposer); err == nil {
+				if err := types.LoadProposer(&val, proposer); err == nil {
 					stateTmp.LastValidators.Proposer = &val
 				}
 			}
@@ -139,32 +96,110 @@ func LoadState(state *gtypes.State) State {
 	return stateTmp
 }
 
+func (csdb *CSStateDB) SaveState(state State) {
+	csdb.mtx.Lock()
+	defer csdb.mtx.Unlock()
+	csdb.state = state.Copy()
+}
+
 func (csdb *CSStateDB) LoadState() State {
+	csdb.mtx.Lock()
+	defer csdb.mtx.Unlock()
 	return csdb.state
 }
 
-func (csdb *CSStateDB) loadValidatorsInfo(height int64) *ValidatorsInfo {
-	curHeight := csdb.client.GetCurrentHeight()
-	if curHeight != height {
-
+func (csdb *CSStateDB) LoadValidators(height int64) (*types.ValidatorSet, error) {
+	if height == 0 {
+		return nil, nil
 	}
-	return nil
+	if csdb.state.LastBlockHeight + 1 == height {
+		return csdb.state.Validators, nil
+	}
+	curHeight := csdb.client.GetCurrentHeight()
+	block, err := csdb.client.RequestBlock(height)
+	if err != nil {
+		csStateLog.Error(fmt.Sprintf("LoadValidators : Couldn't find block at height %d as current height %d",height, curHeight))
+		return nil, nil
+	}
+	blockInfo, err := types.GetBlockInfo(block)
+	if err != nil {
+		csStateLog.Error("LoadValidators GetBlockInfo failed", "error", err)
+		panic(fmt.Sprintf("LoadValidators GetBlockInfo failed:%v",err))
+	}
+
+	var state State
+	if blockInfo == nil {
+		csStateLog.Error("LoadValidators", "msg", "block height is not 0 but blockinfo is nil")
+		panic(fmt.Sprintf("LoadValidators block height is %v but block info is nil", block.Height))
+	} else {
+		csState := blockInfo.GetState()
+		if csState == nil {
+			csStateLog.Error("LoadValidators", "msg", "blockInfo.GetState is nil")
+			return nil, errors.New(fmt.Sprintf("LoadValidators get state from block info is nil"))
+		}
+		state = LoadState(csState)
+	}
+	return state.Validators.Copy(), nil
 }
 
-func (csdb *CSStateDB) LoadValidators(height int64) (*types.ValidatorSet, error) {
+func saveConsensusParams(dest *gtypes.ConsensusParams, source types.ConsensusParams) {
+	dest.BlockSize.MaxBytes = int32(source.BlockSize.MaxBytes)
+	dest.BlockSize.MaxTxs = int32(source.BlockSize.MaxTxs)
+	dest.BlockSize.MaxGas = source.BlockSize.MaxGas
+	dest.TxSize.MaxGas = source.TxSize.MaxGas
+	dest.TxSize.MaxBytes = int32(source.TxSize.MaxBytes)
+	dest.BlockGossip.BlockPartSizeBytes = int32(source.BlockGossip.BlockPartSizeBytes)
+	dest.EvidenceParams.MaxAge = source.EvidenceParams.MaxAge
+}
 
-	valInfo := csdb.loadValidatorsInfo(height)
-	if valInfo == nil {
-		return nil, ErrNoValSetForHeight{height}
-	}
-
-	if valInfo.ValidatorSet == nil {
-		valInfo = csdb.loadValidatorsInfo(valInfo.LastHeightChanged)
-		if valInfo == nil {
-			panic(fmt.Sprintf("Panicked on a Sanity Check: %v", fmt.Sprintf(`Couldn't find validators at height %d as
-                        last changed from height %d`, valInfo.LastHeightChanged, height)))
+func saveValidators(dest []*gtypes.Validator, source []*types.Validator) []*gtypes.Validator{
+	for _, item := range source {
+		if item == nil {
+			dest = append(dest, &gtypes.Validator{})
+		} else {
+			validator := &gtypes.Validator{
+				Address: item.Address,
+				PubKey: item.PubKey.Unwrap().Bytes(),
+				VotingPower: item.VotingPower,
+				Accum: item.Accum,
+			}
+			dest = append(dest, validator)
 		}
 	}
+	return dest
+}
 
-	return valInfo.ValidatorSet, nil
+func saveProposer(dest *gtypes.Validator, source *types.Validator){
+	if source != nil {
+		dest.Address = source.Address
+		dest.PubKey = source.PubKey.Unwrap().Bytes()
+		dest.VotingPower = source.VotingPower
+		dest.Accum = source.Accum
+		}
+}
+
+func SaveState(state State) *gtypes.State {
+	newState := gtypes.State {
+		ChainID: state.ChainID,
+		LastBlockHeight: state.LastBlockHeight,
+		LastBlockTotalTx: state.LastBlockTotalTx,
+		LastBlockTime: state.LastBlockTime.UnixNano(),
+		Validators: &gtypes.ValidatorSet{Validators:make([]*gtypes.Validator,0), Proposer:&gtypes.Validator{}},
+		LastValidators:&gtypes.ValidatorSet{Validators:make([]*gtypes.Validator,0), Proposer:&gtypes.Validator{}},
+		LastHeightValidatorsChanged: state.LastHeightValidatorsChanged,
+		ConsensusParams: &gtypes.ConsensusParams{BlockSize:&gtypes.BlockSize{}, TxSize:&gtypes.TxSize{}, BlockGossip:&gtypes.BlockGossip{}, EvidenceParams:&gtypes.EvidenceParams{}},
+		LastHeightConsensusParamsChanged: state.LastHeightConsensusParamsChanged,
+		LastResultsHash:state.LastResultsHash,
+		AppHash:state.AppHash,
+	}
+	if state.Validators != nil {
+		newState.Validators.Validators = saveValidators(newState.Validators.Validators, state.Validators.Validators)
+		saveProposer(newState.Validators.Proposer, state.Validators.Proposer)
+	}
+	if state.LastValidators != nil {
+		newState.LastValidators.Validators = saveValidators(newState.LastValidators.Validators, state.LastValidators.Validators)
+		saveProposer(newState.LastValidators.Proposer, state.LastValidators.Proposer)
+	}
+	saveConsensusParams(newState.ConsensusParams, state.ConsensusParams)
+	return &newState
 }

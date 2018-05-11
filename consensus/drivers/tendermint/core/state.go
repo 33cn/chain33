@@ -1246,6 +1246,7 @@ func (cs *ConsensusState) tryFinalizeCommit(height int64) {
 func (cs *ConsensusState) finalizeCommit(height int64) {
 	if cs.Height != height || cs.Step != ttypes.RoundStepCommit {
 		cs.Logger.Debug(fmt.Sprintf("finalizeCommit(%v): Invalid args. Current step: %v/%v/%v", height, cs.Height, cs.Round, cs.Step))
+		cs.NewTxsFinished <- false
 		return
 	}
 
@@ -1274,72 +1275,6 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	//no need do below when just sync from other node
 	//out p2p already synced
 
-	//hg 20180302
-	if cs.isProposer() {
-		cs.Logger.Info("i am proposer to commit block")
-		if len(block.Data.Txs) == 0 {
-			cs.Logger.Error("txs of block is empty")
-		}
-		var newblock gtypes.Block
-		var err error
-		newblock.ParentHash = block.LastParentHash
-		newblock.Height = block.Height
-		newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
-		if err != nil {
-			cs.Logger.Error("convert TXs to transaction failed", "err", err)
-			return
-		}
-
-		//add info to tx[0]
-		lastCommit := block.LastCommit
-		precommits := cs.Votes.Precommits(cs.CommitRound)
-		seenCommit := precommits.MakeCommit()
-		cs.Logger.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"))
-		tx0 := cs.blockStore.CreateCommitTx(lastCommit, seenCommit)
-		newblock.Txs = append([]*types.Transaction{tx0}, newblock.Txs...)
-		//fail.Fail() // XXX
-
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		if block.LastBlockTime == 0 {
-			newblock.BlockTime = time.Now().Unix()
-			if block.LastBlockTime >= newblock.BlockTime {
-				newblock.BlockTime = block.LastBlockTime + 1
-			}
-		} else {
-			newblock.BlockTime = block.LastBlockTime
-		}
-
-		err = cs.client.WriteBlock(block.LastStateHash, &newblock)
-		if err != nil {
-			cs.Logger.Info("NewTxsFinished set false")
-			cs.NewTxsFinished <- false
-			//err := cmn.Kill()
-			cs.Logger.Error("finalizeCommit:WriteBlock", "Error", err)
-			return
-		}
-
-	} else {
-		times := 0
-		for {
-			if cs.client.GetCurrentHeight() >= block.Height {
-				cs.Logger.Info("finalizeCommit:get current height equal or higher", "p2p-height", cs.client.GetCurrentHeight(), "consensus-height", block.Height)
-				break
-			} else {
-				cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
-				time.Sleep(10 * time.Millisecond)
-				times++
-				//wait 30s
-				if times >= 3000 {
-					cs.scheduleTimeout(cs.Precommit(cs.CommitRound), height, cs.CommitRound, ttypes.RoundStepPrecommitWait)
-					cs.updateRoundStep(cs.CommitRound, ttypes.RoundStepPrecommitWait)
-					cs.newStep()
-					return
-				}
-			}
-		}
-	}
-	cs.Logger.Info("NewTxsFinished set true")
-	cs.NewTxsFinished <- true
 	/*
 		// Save to blockStore.
 		if cs.client.Height() < block.Height {
@@ -1375,12 +1310,84 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	stateCopy, err = cs.blockExec.ApplyBlock(stateCopy, ttypes.BlockID{block.Hash(), blockParts.Header()}, block)
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
-		err := cmn.Kill()
+		//windows not support
+		//err := cmn.Kill()
 		if err != nil {
 			cs.Logger.Error("Failed to kill this process - please do so manually", "err", err)
 		}
+		cs.NewTxsFinished <- false
 		return
 	}
+
+	//hg 20180302
+	if cs.isProposer() {
+		cs.Logger.Info("i am proposer to commit block")
+		if len(block.Data.Txs) == 0 {
+			cs.Logger.Error("txs of block is empty")
+		}
+		var newblock gtypes.Block
+		var err error
+		newblock.ParentHash = block.LastParentHash
+		newblock.Height = block.Height
+		newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
+		if err != nil {
+			cs.Logger.Error("convert TXs to transaction failed", "err", err)
+			cs.NewTxsFinished <- false
+			return
+		}
+
+		//add info to tx[0]
+		lastCommit := block.LastCommit
+		precommits := cs.Votes.Precommits(cs.CommitRound)
+		seenCommit := precommits.MakeCommit()
+		cs.Logger.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"))
+		newSeenCommit, newLastCommit := ttypes.SaveCommits(lastCommit, seenCommit)
+		newState := sm.SaveState(stateCopy)
+		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
+		newblock.Txs = append([]*types.Transaction{tx0}, newblock.Txs...)
+		//fail.Fail() // XXX
+
+		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		if block.LastBlockTime == 0 {
+			newblock.BlockTime = time.Now().Unix()
+			if block.LastBlockTime >= newblock.BlockTime {
+				newblock.BlockTime = block.LastBlockTime + 1
+			}
+		} else {
+			newblock.BlockTime = block.LastBlockTime
+		}
+
+		err = cs.client.WriteBlock(block.LastStateHash, &newblock)
+		if err != nil {
+			cs.Logger.Info("finalizeCommit:WriteBlock failed, NewTxsFinished set false", "Error", err)
+			cs.NewTxsFinished <- false
+			//windows not support
+			//err := cmn.Kill()
+			return
+		}
+
+	} else {
+		times := 0
+		for {
+			if cs.client.GetCurrentHeight() >= block.Height {
+				cs.Logger.Info("finalizeCommit:get current height equal or higher", "p2p-height", cs.client.GetCurrentHeight(), "consensus-height", block.Height)
+				break
+			} else {
+				cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
+				time.Sleep(10 * time.Millisecond)
+				times++
+				//wait 30s
+				if times >= 3000 {
+					cs.scheduleTimeout(cs.Precommit(cs.CommitRound), height, cs.CommitRound, ttypes.RoundStepPrecommitWait)
+					cs.updateRoundStep(cs.CommitRound, ttypes.RoundStepPrecommitWait)
+					cs.newStep()
+					return
+				}
+			}
+		}
+	}
+	cs.Logger.Info("NewTxsFinished set true")
+	cs.NewTxsFinished <- true
 
 	//fail.Fail() // XXX
 
