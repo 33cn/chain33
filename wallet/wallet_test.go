@@ -37,11 +37,12 @@ func initEnv() (*Wallet, queue.Module, queue.Queue) {
 }
 
 var (
-	Statehash []byte
-	CutHeight int64
-	FromAddr  string
-	ToAddr1   string
-	ToAddr2   string
+	Statehash   []byte
+	CutHeight   int64
+	FromAddr    string
+	ToAddr1     string
+	ToAddr2     string
+	AddrPrivKey string
 )
 
 func blockchainModProc(q queue.Queue) {
@@ -87,7 +88,10 @@ func blockchainModProc(q queue.Queue) {
 				msg.Reply(client.NewMessage("rpc", types.EventTransactionDetails, &txDetails))
 			} else if msg.Ty == types.EventQuery {
 				msg.Reply(client.NewMessage("", types.EventReplyQuery, &types.ReplyTicketList{Tickets: []*types.Ticket{&types.Ticket{TicketId: "ticketID"}}}))
-			} /*else if msg.Ty == types.EventIsSync {
+			} else if msg.Ty == types.EventGetBlockHeight {
+				msg.Reply(client.NewMessage("", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 1}))
+			}
+			/*else if msg.Ty == types.EventIsSync {
 				msg.Reply(client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
 			}*/
 		}
@@ -319,7 +323,9 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	priv, err := cr.GenKey()
 	require.NoError(t, err)
 
-	privKey := &types.ReqWalletImportPrivKey{Privkey: common.ToHex(priv.Bytes())}
+	AddrPrivKey = common.ToHex(priv.Bytes())
+
+	privKey := &types.ReqWalletImportPrivKey{Privkey: AddrPrivKey}
 	privKey.Label = "account:0"
 
 	msgImport := wallet.client.NewMessage("wallet", types.EventWalletImportprivkey, privKey)
@@ -689,10 +695,8 @@ func testCloseTickets(t *testing.T, wallet *Wallet) {
 	println("TestCloseTickets begin")
 	msg := wallet.client.NewMessage("wallet", types.EventCloseTickets, nil)
 	wallet.client.Send(msg, true)
-	resp, _ := wallet.client.Wait(msg)
-	if resp.Err().Error() != "no ticket to be close" {
-		t.Error("testCloseTickets failed")
-	}
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
 	println("TestCloseTickets end")
 	println("--------------------------")
 }
@@ -708,6 +712,12 @@ func testSignRawTx(t *testing.T, wallet *Wallet) {
 	msg := wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
 	wallet.client.Send(msg, true)
 	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+
+	unsigned.PrivKey = AddrPrivKey
+	msg = wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
+	wallet.client.Send(msg, true)
+	_, err = wallet.client.Wait(msg)
 	require.NoError(t, err)
 	println("TestSignRawTx end")
 	println("--------------------------")
