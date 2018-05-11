@@ -30,6 +30,11 @@ type RelayOrder2Show struct {
 	Height          int64  `json:"height"`
 }
 
+type RelayBTCHeadHeightListShow struct {
+	Height  int64 	`json:Height`
+}
+
+
 ///////////////
 func RelayCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -42,6 +47,7 @@ func RelayCmd() *cobra.Command {
 		ShowOnesSellRelayOrdersCmd(),
 		ShowOnesBuyRelayOrdersCmd(),
 		ShowOnesStatusOrdersCmd(),
+		//ShowBTCHeadHeightListCmd(),
 		CreateRawRelaySellTxCmd(),
 		CreateRawRevokeSellTxCmd(),
 		CreateRawRelayBuyTxCmd(),
@@ -52,6 +58,26 @@ func RelayCmd() *cobra.Command {
 
 	return cmd
 }
+
+//func ShowBTCHeadHeightListCmd() *cobra.Command  {
+//	cmd := &cobra.Command{
+//		Use:	"btc_height_list",
+//		Short:  "Show chain stored BTC head's height list"
+//		Run: 	showBtcHeadHeightList,
+//	}
+//	addShowBtcHeadHeightListFlags(cmd)
+//	return cmd
+//
+//}
+//
+//func addShowBtcHeadHeightListFlags(cmd *cobra.Command)  {
+//	cmd.Flags().Int64P("height_base", "b", "", "height base")
+//	cmd.MarkFlagRequired("height_base")
+//
+//	cmd.Flags().Int64P("counts", "c", "", "height counts")
+//
+//
+//}
 
 func ShowOnesSellRelayOrdersCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -242,11 +268,10 @@ func CreateRawRelaySellTxCmd() *cobra.Command {
 }
 
 func addExchangeFlags(cmd *cobra.Command) {
-	cmd.Flags().Int64P("sellamount", "s", 0, "amount of BTY")
+	cmd.Flags().Int64P("sellamount", "s", 0, "sell amount of BTY")
 	cmd.MarkFlagRequired("amount")
 
-	cmd.Flags().StringP("coin", "c", "", "coin to exchange by BTY, separated by space")
-	cmd.MarkFlagRequired("coin")
+	cmd.Flags().StringP("coin", "c", "", "coin to exchange by BTY, separated by space,Default:BTC")
 
 	cmd.Flags().Int64P("coinamount", "m", 0, "coin amount to exchange")
 	cmd.MarkFlagRequired("coin_amount")
@@ -273,6 +298,10 @@ func relaysell(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 
+	if coin == "" {
+		coin = "BTC"
+	}
+
 	params := &jsonrpc.RelaySellTx{
 		SellAmount: amount,
 		Coin:       coin,
@@ -282,7 +311,7 @@ func relaysell(cmd *cobra.Command, args []string) {
 		Fee:        feeInt64 * 1e4,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelaySellTx", params, &res)
 	ctx.Run()
 }
 
