@@ -417,6 +417,12 @@ func (chain *BlockChain) GetMaxPeerInfo() *PeerInfo {
 				}
 			}
 		}
+		//没有合法的peer，此时本节点可能在侧链上，返回peerlist中最高的peer尝试矫正
+		maxpeer := chain.peerList[peerlen-1]
+		if maxpeer != nil {
+			synlog.Debug("GetMaxPeerInfo all peers are faultpeer maybe self on Side chain", "pid", maxpeer.Name, "Height", maxpeer.Height, "Hash", common.ToHex(maxpeer.Hash))
+			return maxpeer
+		}
 	}
 	return nil
 }
@@ -477,6 +483,17 @@ func (chain *BlockChain) RecoveryFaultPeer() {
 
 	//循环遍历故障peerlist，尝试检测故障peer是否已经恢复
 	for pid, faultpeer := range chain.faultPeerList {
+		//需要考虑回退的情况，可能本地节点已经回退，恢复以前的故障节点，获取故障高度的区块的hash是否在本地已经校验通过。校验通过就直接说明故障已经恢复
+		//获取本节点指定高度的blockhash做判断，hash相同就确认故障已经恢复
+		blockhash, err := chain.blockStore.GetBlockHashByHeight(faultpeer.FaultHeight)
+		if err == nil {
+			if bytes.Equal(faultpeer.FaultHash, blockhash) {
+				synlog.Debug("RecoveryFaultPeer ", "Height", faultpeer.FaultHeight, "FaultHash", common.ToHex(faultpeer.FaultHash), "pid", pid)
+				delete(chain.faultPeerList, pid)
+				continue
+			}
+		}
+
 		chain.FetchBlockHeaders(faultpeer.FaultHeight, faultpeer.FaultHeight, pid)
 		chain.faultPeerList[pid].ReqFlag = true
 		synlog.Debug("RecoveryFaultPeer", "pid", faultpeer.Peer.Name, "FaultHeight", faultpeer.FaultHeight, "FaultHash", common.ToHex(faultpeer.FaultHash), "Err", faultpeer.ErrInfo)
@@ -656,9 +673,9 @@ func (chain *BlockChain) ProcBlockHeader(headers *types.Headers, peerid string) 
 
 	//判断是否是用于检测故障peer而请求的block header
 	faultPeer := chain.GetFaultPeer(peerid)
-	if faultPeer != nil && faultPeer.ReqFlag {
+	if faultPeer != nil && faultPeer.ReqFlag && faultPeer.FaultHeight == headers.Items[0].Height {
 		//同一高度的block hash有更新，表示故障peer的故障已经恢复，将此peer从故障peerlist中移除
-		if faultPeer.FaultHeight == headers.Items[0].Height && !bytes.Equal(headers.Items[0].Hash, faultPeer.FaultHash) {
+		if !bytes.Equal(headers.Items[0].Hash, faultPeer.FaultHash) {
 			chain.RemoveFaultPeer(peerid)
 		} else {
 			chain.UpdateFaultPeer(peerid, false)
