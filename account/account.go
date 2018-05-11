@@ -196,6 +196,10 @@ func (acc *DB) LoadAccounts(api client.QueueProtocolAPI, addrs []string) (accs [
 	}
 
 	values, err := api.StoreGet(&get)
+	if err != nil {
+		return nil, err
+	}
+
 	for i := 0; i < len(values.Values); i++ {
 		value := values.Values[i]
 		if value == nil {
