@@ -85,7 +85,11 @@ func blockchainModProc(q queue.Queue) {
 					txDetails.Txs[index] = &txDetail
 				}
 				msg.Reply(client.NewMessage("rpc", types.EventTransactionDetails, &txDetails))
-			}
+			} else if msg.Ty == types.EventQuery {
+				msg.Reply(client.NewMessage("", types.EventReplyQuery, &types.ReplyTicketList{Tickets: []*types.Ticket{&types.Ticket{TicketId: "ticketID"}}}))
+			} /*else if msg.Ty == types.EventIsSync {
+				msg.Reply(client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
+			}*/
 		}
 	}()
 }
@@ -149,6 +153,12 @@ func TestWallet(t *testing.T) {
 	testProcWalletAddBlock(t, wallet)
 
 	testAutoMining(t, wallet)
+
+	testGetTickets(t, wallet)
+
+	testSignRawTx(t, wallet)
+
+	testCloseTickets(t, wallet)
 }
 
 //ProcWalletLock
@@ -651,20 +661,54 @@ func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
+// Automining
 func testAutoMining(t *testing.T, wallet *Wallet) {
 	println("TestAutoMining begin")
 	msg := wallet.client.NewMessage("wallet", types.EventWalletAutoMiner, &types.MinerFlag{Flag: 1})
 	wallet.client.Send(msg, true)
 	_, err := wallet.client.Wait(msg)
 	require.NoError(t, err)
+	time.Sleep(time.Second * 130)
+	println("TestAutoMining end")
+	println("--------------------------")
+}
 
-	println("========================")
+// GetTickets
+func testGetTickets(t *testing.T, wallet *Wallet) {
+	println("TestGetTickets begin")
+	msg := wallet.client.NewMessage("wallet", types.EventWalletGetTickets, nil)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	println("TestGetTickets end")
+	println("--------------------------")
+}
 
-	msg = wallet.client.NewMessage("wallet", types.EventWalletGetTickets, nil)
+// CloseTickets
+func testCloseTickets(t *testing.T, wallet *Wallet) {
+	println("TestCloseTickets begin")
+	msg := wallet.client.NewMessage("wallet", types.EventCloseTickets, nil)
 	wallet.client.Send(msg, true)
 	resp, _ := wallet.client.Wait(msg)
-	println("========================", resp.GetData().(*types.ReplyWalletTickets).String())
+	if resp.Err().Error() != "no ticket to be close" {
+		t.Error("testCloseTickets failed")
+	}
+	println("TestCloseTickets end")
+	println("--------------------------")
+}
 
-	println("TestAutoMining end")
+// SignRawTx
+func testSignRawTx(t *testing.T, wallet *Wallet) {
+	println("TestSignRawTx begin")
+	unsigned := &types.ReqSignRawTx{
+		Addr:   FromAddr,
+		TxHex:  "0a05636f696e73120c18010a081080c2d72f1a01312080897a30c0e2a4a789d684ad443a0131",
+		Expire: "0",
+	}
+	msg := wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	println("TestSignRawTx end")
 	println("--------------------------")
 }
