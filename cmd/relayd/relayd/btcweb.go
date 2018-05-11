@@ -114,7 +114,7 @@ func (b *BtcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
 		Time:        block.Time,
 		Height:      block.Height,
 		BlockHash:   block.Hash,
-		TxIndex:     uint64(txIndex),
+		TxIndex:     txIndex,
 		BranchProof: proof,
 	}
 	return spv, nil
