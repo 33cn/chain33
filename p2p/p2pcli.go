@@ -34,8 +34,7 @@ type NormalInterface interface {
 	SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error)
 	SendPing(peer *Peer, nodeinfo *NodeInfo) error
 	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
-	GetExternIP(addr string) (string, bool, error)
-	CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error)
+	CheckPeerNatOk(addr string) bool
 	GetAddrList(peer *Peer) (map[string]int64, error)
 }
 
@@ -239,12 +238,12 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 				nodeinfo.blacklist.Add(externalIP, 0)
 			}
 
-			if exaddr, err := NewNetAddressString(resp.GetAddrRecv()); err == nil {
-				nodeinfo.SetExternalAddr(exaddr)
-			}
 		}
 	}
 
+	if exaddr, err := NewNetAddressString(resp.GetAddrRecv()); err == nil {
+		nodeinfo.SetExternalAddr(exaddr)
+	}
 	return resp.GetUserAgent(), nil
 }
 
@@ -330,7 +329,6 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 	peers, infos := m.network.node.GetActivePeers()
 	for paddr, info := range infos {
 		if info.GetName() == pid[0] { //匹配成功
-			peer := m.network.node.GetRegisterPeer(paddr)
 			peer, ok := peers[paddr]
 			if ok && peer != nil {
 				var err error
@@ -342,7 +340,7 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 					log.Error("GetBlocks", "Err", err.Error())
 					if err == pb.ErrVersion {
 						peer.version.SetSupport(false)
-						P2pComm.CollectPeerStat(err, peer)
+						P2pComm.CollectPeerStat(err, peer) //把no support 消息传递过去
 					}
 					return
 				}
@@ -537,50 +535,10 @@ func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
 
 }
 
-func (m *Cli) GetExternIP(addr string) (string, bool, error) {
+func (m *Cli) CheckPeerNatOk(addr string) bool {
+	//连接自己的地址信息做测试
+	return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
 
-	netaddr, err := NewNetAddressString(addr)
-	if err != nil {
-		log.Error("GetExternIp", "NewNetAddressString", err.Error())
-		return "", false, err
-	}
-	conn, err := netaddr.DialTimeout(VERSION)
-	if err != nil {
-		log.Error("GetExternIp", "DialTimeout", err.Error())
-		return "", false, err
-	}
-	defer conn.Close()
-	gconn := pb.NewP2PgserviceClient(conn)
-	resp, err := gconn.RemotePeerAddr(context.Background(), &pb.P2PGetAddr{Nonce: 12}, grpc.FailFast(true))
-	if err != nil {
-		return "", false, err
-	}
-	return resp.Addr, resp.Isoutside, nil
-}
-
-func (m *Cli) CheckPeerNatOk(addr string, nodeinfo *NodeInfo) (bool, error) {
-	netaddr, err := NewNetAddressString(addr)
-	if err != nil {
-		log.Error("GetExternIp", "NewNetAddressString", err.Error())
-		return false, err
-	}
-	conn, err := netaddr.DialTimeout(nodeinfo.cfg.GetVersion())
-	if err != nil {
-		log.Error("GetExternIp", "DialTimeout", err.Error())
-		return false, err
-	}
-	defer conn.Close()
-
-	gconn := pb.NewP2PgserviceClient(conn)
-	ping, err := P2pComm.NewPingData(nodeinfo)
-	if err != nil {
-		return false, err
-	}
-	resp, err := gconn.RemotePeerNatOk(context.Background(), ping, grpc.FailFast(true))
-	if err != nil {
-		return false, err
-	}
-	return resp.Isoutside, nil
 }
 
 func (m *Cli) peerInfos() []*pb.Peer {

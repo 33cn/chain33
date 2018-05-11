@@ -11,7 +11,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	pb "gitlab.33.cn/chain33/chain33/types"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
@@ -33,16 +32,9 @@ func (Comm) AddrRouteble(addrs []string) []string {
 			//log.Error("AddrRouteble", "DialTimeout", err.Error())
 			continue
 		}
-
-		gconn := pb.NewP2PgserviceClient(conn)
-		_, err = gconn.GetHeaders(context.Background(),
-			&pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: VERSION}, grpc.FailFast(true))
-		if err != nil {
-			conn.Close()
-			continue
-		}
-		enableAddrs = append(enableAddrs, addr)
 		conn.Close()
+		enableAddrs = append(enableAddrs, addr)
+
 	}
 
 	return enableAddrs
