@@ -1,0 +1,40 @@
+/*
+Copyright SecureKey Technologies Inc. All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
+package filestore
+
+import (
+	"fmt"
+	"path"
+	"strings"
+
+	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
+	"gitlab.33.cn/chain33/chain33/authority/common/providers/msp"
+	"github.com/pkg/errors"
+)
+
+// NewFileCertStore ...
+func NewFileCertStore(cryptoConfigMSPPath string) (core.KVStore, error) {
+	_, orgName := path.Split(path.Dir(path.Dir(path.Dir(cryptoConfigMSPPath))))
+	opts := &FileKeyValueStoreOptions{
+		Path: cryptoConfigMSPPath,
+		KeySerializer: func(key interface{}) (string, error) {
+			ck, ok := key.(*msp.IdentityIdentifier)
+			if !ok {
+				return "", errors.New("converting key to CertKey failed")
+			}
+			if ck == nil || ck.ID == "" {
+				return "", errors.New("invalid key")
+			}
+
+			// TODO: refactor to case insensitive or remove eventually.
+			r := strings.NewReplacer("{userName}", ck.ID, "{username}", ck.ID)
+			certDir := path.Join(r.Replace(cryptoConfigMSPPath), "signcerts")
+			return path.Join(certDir, fmt.Sprintf("%s@%s-cert.pem", ck.ID, orgName)), nil
+		},
+	}
+	return New(opts)
+}
