@@ -86,16 +86,16 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash str
 	return log
 }
 
-func getSellOrderFromID(sellid []byte, db dbm.KV) (*types.SellOrder, error) {
-	value, err := db.Get(sellid)
+func getSellOrderFromID(sellID []byte, db dbm.KV) (*types.SellOrder, error) {
+	value, err := db.Get(sellID)
 	if err != nil {
-		tradelog.Error("getSellOrderFromID", "Failed to get value frim db wiht sellid", string(sellid))
+		tradelog.Error("getSellOrderFromID", "Failed to get value frim db wiht sellid", string(sellID))
 		return nil, err
 	}
 
 	var sellOrder types.SellOrder
 	if err = types.Decode(value, &sellOrder); err != nil {
-		tradelog.Error("getSellOrderFromID", "Failed to decode sell order", string(sellid))
+		tradelog.Error("getSellOrderFromID", "Failed to decode sell order", string(sellID))
 		return nil, err
 	}
 	return &sellOrder, nil
@@ -197,7 +197,7 @@ func getBuyOrderFromID(buyid []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
 	return &buy, nil
 }
 
-func (buydb *buyDB) getSellLogs(sellerAddr string, sellid string, boardlotCnt int64, txhash string) *types.ReceiptLog {
+func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTradeSellMarket
 	base := &types.ReceiptSellBase{

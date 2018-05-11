@@ -17,7 +17,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 			return nil, err
 		}
 		if len(values) != 0 {
-			tradelog.Debug("trade Query", "get number of sellid", len(values))
+			tradelog.Debug("trade Query", "get number of sellID", len(values))
 			keys = append(keys, values...)
 		}
 	} else {
@@ -88,22 +88,22 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 }
 
 func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
-	var sellids [][]byte
+	var sellIDs [][]byte
 	values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}
 	if len(values) != 0 {
-		tradelog.Debug("trade Query", "get number of sellid", len(values))
-		sellids = append(sellids, values...)
+		tradelog.Debug("trade Query", "get number of sellID", len(values))
+		sellIDs = append(sellIDs, values...)
 	}
 
 	var replys types.ReplySellOrders
-	for _, sellid := range sellids {
-		reply := t.replyReplySellOrderfromID(sellid)
+	for _, sellID := range sellIDs {
+		reply := t.replyReplySellOrderfromID(sellID)
 		if reply != nil {
 			replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
-			tradelog.Debug("trade Query", "height of sellid", reply.Height,
+			tradelog.Debug("trade Query", "height of sellID", reply.Height,
 				"len of reply.Selloders", len(replys.Selloders))
 		}
 	}
@@ -111,19 +111,19 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 }
 
 func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
-	var sellids [][]byte
+	var sellIDs [][]byte
 	values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}
 	if len(values) != 0 {
 		tradelog.Debug("trade Query", "get number of buy keys", len(values))
-		sellids = append(sellids, values...)
+		sellIDs = append(sellIDs, values...)
 	}
 
 	var replys types.ReplyBuyOrders
-	for _, sellid := range sellids {
-		reply := t.replyReplyBuyOrderfromID(sellid)
+	for _, sellID := range sellIDs {
+		reply := t.replyReplyBuyOrderfromID(sellID)
 		if reply != nil {
 			//replys.Selloders = insertBuyOrderDescending(reply, replys.Selloders)
 			replys.BuyOrders = append(replys.BuyOrders, reply)
