@@ -54,12 +54,18 @@ func NewP2pServer() *P2pServer {
 
 func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 	log.Debug("ping")
-	peeraddr := fmt.Sprintf("%s:%v", in.Addr, in.Port)
 	if !P2pComm.CheckSign(in) {
 		log.Error("Ping", "p2p server", "check sig err")
 		return nil, pb.ErrPing
 	}
 
+	getctx, ok := pr.FromContext(ctx)
+	var peerip string
+	if ok {
+		peerip = strings.Split(getctx.Addr.String(), ":")[0]
+	}
+
+	peeraddr := fmt.Sprintf("%s:%v", peerip, in.Port)
 	remoteNetwork, err := NewNetAddressString(peeraddr)
 	if err == nil {
 		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
@@ -112,17 +118,6 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
-	selfNetWork, err := NewNetAddressString(in.GetAddrRecv())
-	if err == nil {
-		s.node.nodeInfo.SetExternalAddr(selfNetWork)
-	}
-
-	remoteNetwork, err := NewNetAddressString(in.AddrFrom)
-	if err == nil {
-		log.Debug("Version2", "before", "AddAddress")
-		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
-		log.Debug("Version2", "after", "AddAddress")
-	}
 
 	log.Debug("Version2", "before", "GetPrivPubKey")
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
@@ -132,6 +127,14 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	if len(strings.Split(in.AddrFrom, ":")) == 2 {
 		port = strings.Split(in.AddrFrom, ":")[1]
 	}
+
+	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peerip, port))
+	if err == nil {
+		log.Debug("Version2", "before", "AddAddress")
+		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		log.Debug("Version2", "after", "AddAddress")
+	}
+
 	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerip, port), UserAgent: pub}, nil
 
