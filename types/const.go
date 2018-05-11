@@ -235,6 +235,9 @@ const (
 	EventGetNetInfo          = 110
 	EventReplyNetInfo        = 111
 
+	//Auth
+	EventAuthoritySignTx  = 112
+	EventAuthorityCheckTx = 113
 	// Token
 	EventBlockChainQuery = 212
 )

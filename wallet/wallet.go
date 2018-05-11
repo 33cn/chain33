@@ -537,7 +537,15 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventSignRawTx:
 			unsigned := msg.GetData().(*types.ReqSignRawTx)
-			txHex, err := wallet.ProcSignRawTx(unsigned)
+			//根据config，由wallet或者authority模块签名
+			var txHex string
+			var err error
+			if true {
+				txHex, err = wallet.ProcAuthSignRawTx(unsigned)
+			} else {
+				txHex, err = wallet.ProcSignRawTx(unsigned)
+			}
+
 			if err != nil {
 				walletlog.Error("EventSignRawTx", "err", err)
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySignRawTx, err))
@@ -551,6 +559,44 @@ func (wallet *Wallet) ProcRecvMsg() {
 		}
 		walletlog.Debug("end process", "msg.id", msg.Id)
 	}
+}
+
+func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
+	var tx types.Transaction
+	bytes, err := common.FromHex(unsigned.GetTxHex())
+	if err != nil {
+		return "", err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return "", err
+	}
+	expire, err := time.ParseDuration(unsigned.GetExpire())
+	if err != nil {
+		return "", err
+	}
+	tx.SetExpire(expire)
+	//tx.Sign(int32(SignType), key)
+	txHex := types.Encode(&tx)
+	//发送给mgr签名
+
+	data := &types.ReqAuthSignTx{
+		Tx: txHex,
+	}
+	client := wallet.client
+
+	msg := client.NewMessage("authority", types.EventAuthoritySignTx, data)
+	client.Send(msg, true)
+
+	resp, err := client.Wait(msg)
+	if err != nil {
+		panic(err)
+	}
+	sig := resp.GetData().(*types.ReplyAuthSignTx)
+	tx.Signature = &types.Signature{1, nil, sig.Signature}
+	txHex = types.Encode(&tx)
+	signedTx := hex.EncodeToString(txHex)
+	return signedTx, nil
 }
 
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
