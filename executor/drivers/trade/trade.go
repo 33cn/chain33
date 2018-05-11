@@ -278,8 +278,8 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 	return nil, types.ErrQueryNotSupport
 }
 
-func (t *trade) getSellOrderFromDb(sellid []byte) *types.SellOrder {
-	value, err := t.GetStateDB().Get(sellid)
+func (t *trade) getSellOrderFromDb(sellID []byte) *types.SellOrder {
+	value, err := t.GetStateDB().Get(sellID)
 	if err != nil {
 		panic(err)
 	}
@@ -299,8 +299,8 @@ func genSaveSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	return kv
 }
 
-func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
-	sellorder := t.getSellOrderFromDb(sellid)
+func (t *trade) saveSell(sellID []byte, ty int32) []*types.KeyValue {
+	sellorder := t.getSellOrderFromDb(sellID)
 	return genSaveSellKv(sellorder)
 }
 
@@ -309,8 +309,8 @@ func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, s
 }
 
 func saveSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
-	sellid := []byte(sellorder.SellID)
-	return genSellOrderKeyValue(kv, sellorder, status, sellid)
+	sellID := []byte(sellorder.SellID)
+	return genSellOrderKeyValue(kv, sellorder, status, sellID)
 }
 
 func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
@@ -318,14 +318,14 @@ func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	var kv []*types.KeyValue
 	kv = deleteSellOrderKeyValue(kv, sellorder, status)
 	if types.TradeOrderStatusSoldOut == status || types.TradeOrderStatusRevoked == status {
-		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.SellID)
+		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellID", sellorder.SellID)
 		kv = saveSellOrderKeyValue(kv, sellorder, types.TradeOrderStatusOnSale)
 	}
 	return kv
 }
 
-func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
-	sellorder := t.getSellOrderFromDb(sellid)
+func (t *trade) deleteSell(sellID []byte, ty int32) []*types.KeyValue {
+	sellorder := t.getSellOrderFromDb(sellID)
 	return genDeleteSellKv(sellorder)
 }
 
