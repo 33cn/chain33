@@ -153,7 +153,7 @@ message ReqWalletSendToAddress {
 	string to          = 2;
 	int64  amount      = 3;
 	string note        = 4;
-	bool   istoken     = 5;
+	bool   isToken     = 5;
 	string tokenSymbol = 6;
 }
 

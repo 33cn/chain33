@@ -32,7 +32,7 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	var tx *types.Transaction
 	amount := param.Amount
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	if !param.Istoken {
+	if !param.IsToken {
 		transfer := &types.CoinsAction{}
 		if amount > 0 {
 			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
