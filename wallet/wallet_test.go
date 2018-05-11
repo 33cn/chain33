@@ -87,7 +87,7 @@ func blockchainModProc(q queue.Queue) {
 				}
 				msg.Reply(client.NewMessage("rpc", types.EventTransactionDetails, &txDetails))
 			} else if msg.Ty == types.EventQuery {
-				msg.Reply(client.NewMessage("", types.EventReplyQuery, &types.ReplyTicketList{Tickets: []*types.Ticket{&types.Ticket{TicketId: "ticketID"}}}))
+				msg.Reply(client.NewMessage("", types.EventReplyQuery, &types.ReplyTicketList{Tickets: []*types.Ticket{{TicketId: "ticketID"}}}))
 			} else if msg.Ty == types.EventGetBlockHeight {
 				msg.Reply(client.NewMessage("", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 1}))
 			}
@@ -654,7 +654,7 @@ func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
 	}
 	blkDetail := &types.BlockDetail{
 		Block:    blk,
-		Receipts: []*types.ReceiptData{&types.ReceiptData{Ty: types.ExecOk}},
+		Receipts: []*types.ReceiptData{{Ty: types.ExecOk}},
 	}
 	msgAdd := wallet.client.NewMessage("wallet", types.EventAddBlock, blkDetail)
 	err := wallet.client.Send(msgAdd, false)
