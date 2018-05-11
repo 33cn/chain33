@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (n *Node) destroyPeer(peer *Peer) {
@@ -168,7 +170,7 @@ func (n *Node) getAddrFromOnline() {
 						}
 					}
 					time.Sleep(MonitorPeerInfoInterval)
-
+					continue
 				}
 
 				if !n.nodeInfo.blacklist.Has(addr) || !Filter.QueryRecvData(addr) {
@@ -256,6 +258,7 @@ func (n *Node) monitorPeers() {
 			if pinfo.GetName() == selfName && !pinfo.GetSelf() { //发现连接到自己，立即删除
 				//删除节点数过低的节点
 				n.remove(paddr)
+				n.nodeInfo.addrBook.RemoveAddr(paddr)
 				n.nodeInfo.blacklist.Add(paddr, 0)
 			}
 
@@ -314,7 +317,6 @@ func (n *Node) monitorDialPeers() {
 			continue
 		}
 
-		//把待连接的节点增加到过滤容器中
 		netAddr, err := NewNetAddressString(addr.(string))
 		if err != nil {
 			continue
@@ -324,7 +326,7 @@ func (n *Node) monitorDialPeers() {
 			continue
 		}
 
-		//不对已经连接上的地址重新发起连接
+		//不对已经连接上的地址或者黑名单地址发起连接
 		if n.Has(netAddr.String()) || n.nodeInfo.blacklist.Has(netAddr.String()) {
 			log.Debug("DialPeers", "find hash", netAddr.String())
 			continue
@@ -346,6 +348,8 @@ func (n *Node) monitorDialPeers() {
 		}
 
 		dialCount++
+
+		//把待连接的节点增加到过滤容器中
 		Filter.RegRecvData(addr.(string))
 		go func(netAddr *NetAddress) {
 
@@ -353,8 +357,12 @@ func (n *Node) monitorDialPeers() {
 			peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
 			if err != nil {
 				//连接失败后
-				Filter.RemoveRecvData(netAddr.String())
 				log.Error("monitorDialPeers", "Err", err.Error())
+				if err == types.ErrVersion { //版本不支持，加入黑名单12小时
+					n.nodeInfo.blacklist.Add(netAddr.String(), int64(3600*12))
+					return
+				}
+				//其他原因，黑名单10分钟
 				n.nodeInfo.blacklist.Add(netAddr.String(), int64(60*10))
 				return
 			}
@@ -388,7 +396,7 @@ func (n *Node) monitorBlackList() {
 			if 0 == intime {
 				continue
 			}
-			if now-intime > 0 {
+			if now > intime {
 				n.nodeInfo.blacklist.Delete(badPeer)
 			}
 		}
