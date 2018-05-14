@@ -498,7 +498,11 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	}
 	tx.SetExpire(time.Second * 120)
 	tx.Sign(int32(SignType), priv)
-	tx.Fee, err = tx.GetRealFee(wallet.getFee())
+	fee, err := tx.GetRealFee(wallet.getFee())
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee = fee
 
 	//发送交易信息给mempool模块
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
