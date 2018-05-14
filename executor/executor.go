@@ -12,6 +12,7 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	// register drivers
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
@@ -27,7 +28,6 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var runningHeight int64
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -38,7 +38,8 @@ func DisableLog() {
 }
 
 type Executor struct {
-	client queue.Client
+	client  queue.Client
+	qclient client.QueueProtocolAPI
 }
 
 func execInit() {
@@ -73,13 +74,17 @@ func New(cfg *types.Exec) *Executor {
 	return exec
 }
 
-func (exec *Executor) SetQueueClient(client queue.Client) {
-	exec.client = client
+func (exec *Executor) SetQueueClient(qcli queue.Client) {
+	exec.client = qcli
 	exec.client.Sub("execs")
-
+	var err error
+	exec.qclient, err = client.New(qcli, nil)
+	if err != nil {
+		panic(err)
+	}
 	//recv 消息的处理
 	go func() {
-		for msg := range client.Recv() {
+		for msg := range exec.client.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
 				go exec.procExecTxList(msg)
@@ -97,8 +102,13 @@ func (exec *Executor) SetQueueClient(client queue.Client) {
 }
 
 func (exec *Executor) procExecQuery(msg queue.Message) {
+	header, err := exec.qclient.GetLastHeader()
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
 	data := msg.GetData().(*types.BlockChainQuery)
-	driver, err := LoadDriver(data.Driver)
+	driver, err := LoadDriver(data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -161,9 +171,9 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		e, err := LoadDriver(string(tx.Execer))
+		e, err := LoadDriver(string(tx.Execer), execute.height)
 		if err != nil {
-			e, err = LoadDriver("none")
+			e, err = LoadDriver("none", execute.height)
 			if err != nil {
 				panic(err)
 			}
@@ -397,7 +407,6 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 		blocktime:    blocktime,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
-	runningHeight = height
 	return e
 }
 
@@ -486,7 +495,7 @@ func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 	return exec
 }
 
-func LoadDriver(name string) (c drivers.Driver, err error) {
+func LoadDriver(name string, runningHeight int64) (c drivers.Driver, err error) {
 	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
 	return execDrivers.LoadDriver(name)
 }
