@@ -272,7 +272,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		return nil, types.ErrEndLessThanStartHeight
 	}
 
-	chainlog.Debug("ProcGetBlockDetailsMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.Isdetail)
+	chainlog.Debug("ProcGetBlockDetailsMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.IsDetail)
 
 	end := requestblock.End
 	if requestblock.End > blockhight {
@@ -288,7 +288,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 	for i := start; i <= end; i++ {
 		block, err := chain.GetBlock(i)
 		if err == nil && block != nil {
-			if requestblock.Isdetail {
+			if requestblock.IsDetail {
 				blocks.Items[j] = block
 			} else {
 				var blockdetail types.BlockDetail
@@ -302,7 +302,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		j++
 	}
 	//print
-	if requestblock.Isdetail {
+	if requestblock.IsDetail {
 		for _, blockinfo := range blocks.Items {
 			chainlog.Debug("ProcGetBlocksMsg", "blockinfo", blockinfo.String())
 		}
