@@ -44,6 +44,7 @@ go_test:
     tags:
         - 33cn
     script:
+        - cd build && docker-compose down && cd ..
         - make test
 
 deploy:
@@ -53,3 +54,4 @@ deploy:
     script:
         - make build_ci
         - make docker-compose
+        - cd build && docker-compose down && cd ..
