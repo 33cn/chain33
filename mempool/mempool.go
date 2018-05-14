@@ -362,7 +362,13 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 		return false
 	}
 	tx := msg.GetData().(*types.Transaction)
-	return !tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime())
+	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+		return false
+	}
+	if tx.Expire > 1000000000 && tx.Expire < time.Now().Unix()+int64(time.Minute*1) {
+		return false
+	}
+	return true
 }
 
 // Mempool.Close关闭Mempool
