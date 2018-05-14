@@ -127,7 +127,9 @@ func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	txlist.Height = lastheader.Height
 	txlist.StateHash = lastheader.StateHash
 	// 增加这两个属性，在执行器中会使用到
-	txlist.CoinBase = account.PubKeyToAddress(lastheader.GetSignature().Pubkey).String()
+	if lastheader.GetSignature() != nil {
+		txlist.CoinBase = account.PubKeyToAddress(lastheader.GetSignature().GetPubkey()).String()
+	}
 	txlist.Difficulty = uint64(lastheader.Difficulty)
 
 	result, err := mem.checkTxListRemote(txlist)
