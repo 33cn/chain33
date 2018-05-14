@@ -343,7 +343,7 @@ message TokenRecv {
 }
 
 message ReplyAddrRecvForTokens {
-	repeated TokenRecv tokenrecv = 1;
+	repeated TokenRecv tokenRecvs = 1;
 }
 
 // 配置修改部分

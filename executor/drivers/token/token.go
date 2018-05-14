@@ -266,7 +266,7 @@ func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types
 		}
 
 		recv := &types.TokenRecv{token, reciver.Data}
-		reply.Tokenrecv = append(reply.Tokenrecv, recv)
+		reply.TokenRecvs = append(reply.TokenRecvs, recv)
 	}
 
 	return reply, nil
