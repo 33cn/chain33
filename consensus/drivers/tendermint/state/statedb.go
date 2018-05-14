@@ -51,9 +51,8 @@ func LoadState(state *gtypes.State) State {
 			if stateTmp.Validators == nil {
 				csStateLog.Error("LoadState validator is nil but proposer")
 			} else {
-				val := types.Validator{}
-				if err := types.LoadProposer(&val, proposer); err == nil {
-					stateTmp.Validators.Proposer = &val
+				if val, err := types.LoadProposer(proposer); err == nil {
+					stateTmp.Validators.Proposer = val
 				}
 			}
 		}
@@ -68,9 +67,8 @@ func LoadState(state *gtypes.State) State {
 			if stateTmp.LastValidators == nil {
 				csStateLog.Error("LoadState last validator is nil but proposer")
 			} else {
-				val := types.Validator{}
-				if err := types.LoadProposer(&val, proposer); err == nil {
-					stateTmp.LastValidators.Proposer = &val
+				if val, err := types.LoadProposer(proposer); err == nil {
+					stateTmp.LastValidators.Proposer = val
 				}
 			}
 		}

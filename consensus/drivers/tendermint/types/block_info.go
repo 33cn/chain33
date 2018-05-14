@@ -177,26 +177,27 @@ func LoadValidators(des []*Validator, source []*gtypes.Validator) {
 	}
 }
 
-func LoadProposer(des *Validator, source *gtypes.Validator) error {
+func LoadProposer(source *gtypes.Validator) (*Validator, error) {
 	if source.GetAddress() == nil || len(source.GetAddress()) == 0 {
 		bilog.Warn("LoadProposer get address is nil or empty")
-		return errors.New("LoadProposer get address is nil or empty")
+		return nil, errors.New("LoadProposer get address is nil or empty")
 	} else if source.GetPubKey() == nil || len(source.GetPubKey()) == 0 {
 		bilog.Warn("LoadProposer get pubkey is nil or empty")
-		return errors.New("LoadProposer get pubkey is nil or empty")
+		return nil, errors.New("LoadProposer get pubkey is nil or empty")
 	}
-	des = &Validator{}
+
+	des := &Validator{}
 	des.Address = source.GetAddress()
 	pub, err := crypto.PubKeyFromBytes(source.GetPubKey())
 	if err != nil {
 		bilog.Error("LoadProposer get pubkey from byte failed", "err", err)
-		return errors.New(fmt.Sprintf("LoadProposer get pubkey from byte failed, err:%v", err))
+		return nil, errors.New(fmt.Sprintf("LoadProposer get pubkey from byte failed, err:%v", err))
 	} else {
 		des.PubKey = pub.Wrap()
 	}
 	des.VotingPower = source.VotingPower
 	des.Accum = source.Accum
-	return nil
+	return des, nil
 }
 
 
@@ -206,6 +207,7 @@ func CreateBlockInfoTx(pubkey string, lastCommit *gtypes.TendermintCommit, seenC
 		LastCommit:lastCommit,
 		State:state,
 	}
+	bilog.Info("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators)
 
 	nput := &gtypes.NormAction_Nput{&gtypes.NormPut{Key: "BlockInfo", Value: gtypes.Encode(blockInfo)}}
 	action := &gtypes.NormAction{Value: nput, Ty: gtypes.NormActionPut}
