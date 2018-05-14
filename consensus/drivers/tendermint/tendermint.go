@@ -166,23 +166,25 @@ func (client *TendermintClient) StartConsensus() {
 		}
 		state = statetmp.Copy()
 	} else {
+		tendermintlog.Info("StartConsensus", "blockinfo", blockInfo)
 		csState := blockInfo.GetState()
 		if csState == nil {
 			tendermintlog.Error("StartConsensus", "msg", "blockInfo.GetState is nil")
 			return
 		}
 		state = sm.LoadState(csState)
-		//new set
-		if pHeight := client.privValidator.GetLastHeight(); pHeight > state.LastBlockHeight {
-			state.LastBlockHeight = pHeight
-			validators := state.Validators
-			validators = validators.Copy()
-			validators.IncrementAccum(client.privValidator.GetLastRound())
-			state.Validators = validators
+		if seenCommit := blockInfo.SeenCommit; seenCommit != nil {
+			state.LastBlockID = ttypes.BlockID{
+				Hash: seenCommit.BlockID.GetHash(),
+				PartsHeader: ttypes.PartSetHeader{
+					Total: int(seenCommit.BlockID.GetPartsHeader().Total),
+					Hash:  seenCommit.BlockID.GetPartsHeader().Hash,
+				},
+			}
 		}
 	}
 
-
+	tendermintlog.Info("load state finish", "state", state)
 	// Log whether this node is a validator or an observer
 	if state.Validators.HasAddress(client.privValidator.GetAddress()) {
 		tendermintlog.Info("This node is a validator")

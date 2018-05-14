@@ -696,8 +696,9 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	if cs.Round < round {
 		validators = validators.Copy()
 		validators.IncrementAccum(round - cs.Round)
+		cs.Logger.Info("enterNewRound validator changed", "csr", cs.Round, "round", round)
 	}
-
+	cs.Logger.Info("enterNewRound proposer ", "proposer", validators.Proposer, "validators", validators)
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
@@ -1305,6 +1306,8 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// and an event cache for txs
 	stateCopy := cs.state.Copy()
 
+	cs.Logger.Info("round state 0", "state", cs.RoundState)
+
 	// NOTE: the block.AppHash wont reflect these txs until the next block
 	var err error
 	stateCopy, err = cs.blockExec.ApplyBlock(stateCopy, ttypes.BlockID{block.Hash(), blockParts.Header()}, block)
@@ -1340,9 +1343,12 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		lastCommit := block.LastCommit
 		precommits := cs.Votes.Precommits(cs.CommitRound)
 		seenCommit := precommits.MakeCommit()
-		cs.Logger.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"))
+
 		newSeenCommit, newLastCommit := ttypes.SaveCommits(lastCommit, seenCommit)
 		newState := sm.SaveState(stateCopy)
+
+		cs.Logger.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"), "state", stateCopy)
+
 		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
 		newblock.Txs = append([]*types.Transaction{tx0}, newblock.Txs...)
 		//fail.Fail() // XXX
@@ -1398,7 +1404,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
-	cs.Logger.Info("round state", "state", cs.RoundState)
+	cs.Logger.Info("round state 1", "state", cs.RoundState)
 	cs.scheduleRound0(&cs.RoundState)
 
 	// By here,
