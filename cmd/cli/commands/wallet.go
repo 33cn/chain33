@@ -290,7 +290,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	expire, _ := cmd.Flags().GetString("expire")
 	params := types.ReqSignRawTx{
-		PrivKey: key,
+		Privkey: key,
 		Addr:    addr,
 		TxHex:   data,
 		Expire:  expire,
