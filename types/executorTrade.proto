@@ -217,7 +217,7 @@ message ReplySellOrder {
 	int64 minBoardlot           = 4;
     int64 pricePerBoardlot      = 5;
 	int64 totalBoardlot         = 6;
-	int64 soldboardlot        = 7;
+	int64 soldBoardlot        = 7;
 	string  buyID               = 8;
     int32  status              = 9;
     string  sellID              = 10;
