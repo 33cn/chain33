@@ -83,14 +83,14 @@ func (n *Node) getAddrFromGithub() {
 
 //从在线节点获取地址列表
 func (n *Node) getAddrFromOnline() {
-	timer := time.NewTimer(GetAddrFromOnlineInterval)
-	defer timer.Stop()
+	ticker := time.NewTicker(GetAddrFromOnlineInterval)
+	defer ticker.Stop()
 	pcli := NewNormalP2PCli()
 
 	var ticktimes int
 	for {
 
-		<-timer.C
+		<-ticker.C
 
 		seedsMap := make(map[string]bool)
 		//每次循环seed的排序不同
@@ -117,7 +117,6 @@ func (n *Node) getAddrFromOnline() {
 
 			}
 
-			timer.Reset(GetAddrFromOnlineInterval)
 			continue
 		}
 
@@ -192,14 +191,13 @@ func (n *Node) getAddrFromOnline() {
 
 		}
 
-		timer.Reset(GetAddrFromOnlineInterval)
 	}
 }
 
 //从addrBook 中获取地址
 func (n *Node) getAddrFromAddrBook() {
-	timer := time.NewTimer(GetAddrFromAddrBookInterval)
-	defer timer.Stop()
+	ticker := time.NewTicker(GetAddrFromAddrBookInterval)
+	defer ticker.Stop()
 	var tickerTimes int64
 	seedsMap := make(map[string]bool) //每次循环seed的排序不同
 	seedArr := n.nodeInfo.cfg.GetSeeds()
@@ -208,7 +206,7 @@ func (n *Node) getAddrFromAddrBook() {
 	}
 
 	for {
-		<-timer.C
+		<-ticker.C
 		tickerTimes++
 		if n.isClose() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
@@ -237,7 +235,6 @@ func (n *Node) getAddrFromAddrBook() {
 			}
 		}
 
-		timer.Reset(GetAddrFromAddrBookInterval)
 		log.Debug("Node Monitor process", "outbound num", n.Size())
 	}
 
@@ -247,15 +244,14 @@ func (n *Node) monitorPeers() {
 
 	p2pcli := NewNormalP2PCli()
 
-	timer := time.NewTimer(MonitorPeerNumInterval)
-	defer timer.Stop()
+	ticker := time.NewTicker(MonitorPeerNumInterval)
+	defer ticker.Stop()
 	_, selfName := n.nodeInfo.addrBook.GetPrivPubKey()
 	for {
 
-		<-timer.C
+		<-ticker.C
 		localBlockHeight, err := p2pcli.GetBlockHeight(n.nodeInfo)
 		if err != nil {
-			timer.Reset(MonitorPeerNumInterval)
 			continue
 		}
 
@@ -289,7 +285,6 @@ func (n *Node) monitorPeers() {
 
 		}
 
-		timer.Reset(MonitorPeerNumInterval)
 	}
 
 }
@@ -298,16 +293,15 @@ func (n *Node) monitorPeerInfo() {
 
 	go func() {
 		n.nodeInfo.FetchPeerInfo(n)
-		timer := time.NewTimer(MonitorPeerInfoInterval)
-		defer timer.Stop()
+		ticker := time.NewTicker(MonitorPeerInfoInterval)
+		defer ticker.Stop()
 		for {
 			if n.isClose() {
 				return
 			}
 
-			<-timer.C
+			<-ticker.C
 			n.nodeInfo.FetchPeerInfo(n)
-			timer.Reset(MonitorPeerInfoInterval)
 		}
 	}()
 }
@@ -387,15 +381,15 @@ func (n *Node) monitorDialPeers() {
 }
 
 func (n *Node) monitorBlackList() {
-	timer := time.NewTimer(CheckBlackListInterVal)
-	defer timer.Stop()
+	ticker := time.NewTicker(CheckBlackListInterVal)
+	defer ticker.Stop()
 	for {
 		if n.isClose() {
 			log.Info("monitorBlackList", "loop", "done")
 			return
 		}
 
-		<-timer.C
+		<-ticker.C
 		badPeers := n.nodeInfo.blacklist.GetBadPeers()
 		now := time.Now().Unix()
 		for badPeer, intime := range badPeers {
@@ -410,7 +404,6 @@ func (n *Node) monitorBlackList() {
 				n.nodeInfo.blacklist.Delete(badPeer)
 			}
 		}
-		timer.Reset(CheckBlackListInterVal)
 	}
 }
 
