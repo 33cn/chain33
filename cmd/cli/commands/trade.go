@@ -331,9 +331,9 @@ func tokenSell(cmd *cobra.Command, args []string) {
 		TotalBoardlot:     totalInt64,
 		Fee:               feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // create raw buy token transaction
@@ -370,9 +370,9 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 		BoardlotCnt: count,
 		Fee:         feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // create raw revoke token transaction
@@ -404,7 +404,7 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 		SellId: sellID,
 		Fee:    feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
