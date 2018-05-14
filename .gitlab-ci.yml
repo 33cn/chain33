@@ -51,4 +51,5 @@ deploy:
     tags:
         - 33cn
     script:
+        - make build_ci
         - make docker-compose
