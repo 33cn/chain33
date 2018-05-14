@@ -202,7 +202,7 @@ type WalletTxDetail struct {
 	Receipt    *ReceiptDataResult `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
 	Height     int64              `protobuf:"varint,3,opt,name=height" json:"height"`
 	Index      int64              `protobuf:"varint,4,opt,name=index" json:"index"`
-	Blocktime  int64              `json:"blockTime"`
+	BlockTime  int64              `json:"blockTime"`
 	Amount     int64              `json:"amount"`
 	Fromaddr   string             `json:"fromAddr"`
 	Txhash     string             `json:"txHash"`
