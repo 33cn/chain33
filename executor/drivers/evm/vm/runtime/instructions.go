@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
+	"github.com/inconshreveable/log15"
 )
 
 // 加法操作
@@ -700,6 +701,7 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack
 
 	// 出错时压栈0，否则压栈创建出来的合约对象的地址
 	if suberr != nil && suberr != model.ErrCodeStoreOutOfGas {
+		log15.Error("evm contract opCreate instruction error",suberr)
 		stack.Push(new(big.Int))
 	} else {
 		stack.Push(addr.Big())
@@ -747,6 +749,7 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 	// 注意，这里的处理比较特殊，出错情况下0压栈，正确情况下1压栈
 	if err != nil {
 		stack.Push(new(big.Int))
+		log15.Error("evm contract opCall instruction error",err)
 	} else {
 		stack.Push(big.NewInt(1))
 	}
@@ -783,6 +786,7 @@ func opCallCode(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, sta
 	ret, returnGas, err := evm.CallCode(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.Push(new(big.Int))
+		log15.Error("evm contract opCallCode instruction error",err)
 	} else {
 		stack.Push(big.NewInt(1))
 	}
@@ -808,6 +812,7 @@ func opDelegateCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory,
 
 	ret, returnGas, err := evm.DelegateCall(contract, toAddr, args, gas)
 	if err != nil {
+		log15.Error("evm contract opDelegateCall instruction error",err)
 		stack.Push(new(big.Int))
 	} else {
 		stack.Push(big.NewInt(1))
@@ -834,6 +839,7 @@ func opStaticCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, s
 
 	ret, returnGas, err := evm.StaticCall(contract, toAddr, args, gas)
 	if err != nil {
+		log15.Error("evm contract opDelegateCall instruction error",err)
 		stack.Push(new(big.Int))
 	} else {
 		stack.Push(big.NewInt(1))

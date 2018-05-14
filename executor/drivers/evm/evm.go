@@ -51,7 +51,7 @@ func NewEVMExecutor() *EVMExecutor {
 	exec.vmCfg.Tracer = runtime.NewJSONLogger(os.Stdout)
 
 	// 打开EVM调试开关
-	exec.vmCfg.Debug = true
+	//exec.vmCfg.Debug = true
 
 	exec.SetChild(exec)
 	return exec
@@ -85,7 +85,7 @@ func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficu
 // 在区块上的执行操作，同一个区块内的多个交易会循环调用此方法进行处理；
 // 返回的结果types.Receipt数据，将会被统一写入到本地状态数据库中；
 // 本操作返回的ReceiptLog数据，在后面调用ExecLocal时会被传入，同样ExecLocal返回的数据将会被写入blockchain.db；
-// FIXME 目前evm执行器暂时没有ExecLocal逻辑，后面根据需要再考虑增加；
+// FIXME 目前evm执行器暂时没有ExecLocal，执行默认逻辑，后面根据需要再考虑增加；
 func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	// 先转换消息
 	msg := evm.GetMessage(tx)
@@ -124,6 +124,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		// 只有在出现账户余额不足的时候，才认为是有效的的错误
 		// 其它错误情况目前不需要处理
 		if vmerr == model.ErrInsufficientBalance {
+			log.Error("evm contract error", vmerr)
 			return nil, vmerr
 		}
 	}
@@ -156,8 +157,9 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	evm.mStateDB.PrintLogs()
 
 	// 这里还需要再进行其它错误的判断（余额不足的错误，前面已经返回）
-	// 因为其它情况的错误，即使合约执行失败，也消耗了资源，调用者需要为此支付费用
+	// 因为其它情况的错误，即使合约执行失败，也消耗了资源，调用者需要为此支付费用(其实在本交易回滚时，不会扣除用户的任何费用)
 	if vmerr != nil {
+		log.Error("evm contract exec error", "error info",vmerr)
 		return nil, vmerr
 	}
 

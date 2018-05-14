@@ -3,7 +3,6 @@ package tests
 import (
 	"testing"
 	"encoding/hex"
-	"runtime/debug"
 )
 
 type Tester struct {
@@ -64,7 +63,6 @@ func (t *Tester) assertEqualsE(val1 , val2 error)  {
 
 func (t *Tester) assertEqualsB(val1 , val2 []byte)  {
 	if string(val1) != string(val2) {
-		debug.PrintStack()
 		t.t.Errorf("value {%s} is not equals to {%s}", hex.EncodeToString(val1), hex.EncodeToString(val2))
 		t.t.Fail()
 	}

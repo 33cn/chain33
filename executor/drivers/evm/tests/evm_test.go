@@ -35,7 +35,7 @@ func TestVM(t *testing.T) {
 }
 
 func TestOneOp(t *testing.T) {
-	path := "testdata/mathTest/generated_sub0_1.json"
+	path := "testdata/mathTest/test.json"
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -95,7 +95,7 @@ func runDir(tt *testing.T, basePath string) {
 }
 
 func runCase(tt *testing.T, c VMCase, file string)  {
-	//tt.Logf("runing test case:%s in file:%s",c.name, file)
+	tt.Logf("runing test case:%s in file:%s",c.name, file)
 
 	// 1 构建预置环境 pre
 	inst := evm.NewEVMExecutor()
