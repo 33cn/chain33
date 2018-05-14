@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -9,13 +10,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -24,55 +29,50 @@ var random *rand.Rand
 //测试时有两个地方需要使用桩函数，testExecBlock来代替具体的util.ExecBlock
 //poolRoutine函数中，以及ProcAddBlockMsg函数中
 func init() {
-	queue.DisableLog()
+	//queue.DisableLog()
 	log.SetLogLevel("info")
 }
 
-func initEnv() (*BlockChain, queue.Queue) {
-	var q = queue.New("channel")
-	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
+var q queue.Queue
+var api client.QueueProtocolAPI
+var priv = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func initEnv() (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Module) {
+	var q = queue.New("channel")
+
+	api, _ = client.New(q.Client(), nil)
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	blockchain := New(cfg.BlockChain)
 	blockchain.SetQueueClient(q.Client())
-	return blockchain, q
-}
 
-func ConstructionBlock(parentHash []byte, height int64, txcount int) (*types.Block, string, string) {
-	var block types.Block
+	exec := executor.New(cfg.Exec)
+	exec.SetQueueClient(q.Client())
 
-	block.BlockTime = height
-	block.Height = height
-	block.Version = 100
-	block.StateHash = common.Hash{}.Bytes()
-	block.ParentHash = parentHash
-	block.Difficulty = types.GetP(0).PowLimitBits
-	txs, fromaddr, toaddr := genTxs(int64(txcount))
-	block.Txs = txs
-	block.TxHash = merkle.CalcMerkleRoot(block.Txs)
-	return &block, fromaddr, toaddr
-}
+	s := store.New(cfg.Store)
+	s.SetQueueClient(q.Client())
 
-func ConstructionBlockDetail(parentHash []byte, height int64, txcount int) (*types.BlockDetail, string, string) {
-	var blockdetail types.BlockDetail
-	var block types.Block
+	cons := consensus.New(cfg.Consensus)
+	cons.SetQueueClient(q.Client())
 
-	blockdetail.Receipts = make([]*types.ReceiptData, txcount)
-
-	block.BlockTime = height
-	block.Height = height
-	block.Version = 100
-	block.StateHash = common.Hash{}.Bytes()
-	block.ParentHash = parentHash
-	txs, fromaddr, toaddr := genTxs(int64(txcount))
-	block.Txs = txs
-	block.TxHash = merkle.CalcMerkleRoot(block.Txs)
-
-	for j := 0; j < txcount; j++ {
-		ReceiptData := types.ReceiptData{Ty: 2}
-		blockdetail.Receipts[j] = &ReceiptData
-	}
-	blockdetail.Block = &block
-	return &blockdetail, fromaddr, toaddr
+	mem := mempool.New(cfg.MemPool)
+	mem.SetQueueClient(q.Client())
+	return blockchain, exec, cons, s, mem
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
@@ -103,7 +103,6 @@ func genaddress() (string, crypto.PrivKey) {
 }
 
 func genTxs(n int64) (txs []*types.Transaction, fromaddr string, to string) {
-	fromaddr, priv := genaddress()
 	to, _ = genaddress()
 	for i := 0; i < int(n); i++ {
 		txs = append(txs, createTx(priv, to, types.Coin*(n+1)))
@@ -141,18 +140,31 @@ func PrintBlockInfo(block *types.BlockDetail) {
 	}
 }
 
+func addTx() (string, error) {
+	txs, _, _ := genTxs(1)
+	hash := common.Bytes2Hex(txs[0].Hash())
+	reply, err := api.SendTx(txs[0])
+	if err != nil {
+		return hash, err
+	}
+	if !reply.GetIsOk() {
+		return hash, errors.New("sendtx unknow error")
+	}
+	return hash, nil
+}
+
 func TestBlockChain(t *testing.T) {
-	blockchain, client := initEnv()
-	defer blockchain.Close()
+	blockchain, exec, cons, s, mem := initEnv()
+	defer func() {
+		blockchain.Close()
+		exec.Close()
+		cons.Close()
+		s.Close()
+		mem.Close()
+	}()
 
-	execprocess(client)
-	consensusprocess(client)
-
-	//同步过来的block
+	//等待共识模块增长10个区块
 	testProcAddBlockMsg(t, blockchain)
-
-	//共识模块发过来的block
-	testProcAddBlockDetail(t, blockchain)
 
 	testGetBlock(t, blockchain)
 
@@ -170,69 +182,36 @@ func TestBlockChain(t *testing.T) {
 
 	testGetBlockByHash(t, blockchain)
 
-	testProcGetTransactionByHashes(t, blockchain)
+	//testProcGetTransactionByHashes(t, blockchain)
 
-	testProcGetTransactionByAddr(t, blockchain)
+	//testProcGetTransactionByAddr(t, blockchain)
 }
 
-//同步过来的block
 func testProcAddBlockMsg(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcAddBlockMsg begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
 	chainlog.Info("testProcAddBlockMsg", "curheight", curheight)
 	addblockheight := curheight + 10
-	var parentHash []byte
-	block, err := blockchain.GetBlock(curheight)
+
+	_, err := blockchain.GetBlock(curheight)
 	if err != nil {
-		parentHash = zeroHash[:]
-	} else {
-		parentHash = block.Block.Hash()
+		require.NoError(t, err)
 	}
 	chainlog.Info("testProcAddBlockMsg", "addblockheight", addblockheight)
-	for i := curheight + 1; i <= addblockheight; i++ {
-		block, _, _ := ConstructionBlock(parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil}, "")
-		parentHash = block.Hash()
+	for {
+		_, err = addTx()
+		require.NoError(t, err)
+		curheight = blockchain.GetBlockHeight()
+		chainlog.Info("testProcAddBlockMsg ", "curheight", curheight)
+		_, err = blockchain.GetBlock(curheight)
+		require.NoError(t, err)
+		if curheight >= addblockheight {
+			break
+		}
+		time.Sleep(time.Second)
 	}
-
-	curheight = blockchain.GetBlockHeight()
-	chainlog.Info("testProcAddBlockMsg ", "curheight", curheight)
-	block, err = blockchain.GetBlock(curheight)
-	require.NoError(t, err)
-	PrintBlockInfo(block)
-
 	chainlog.Info("testProcAddBlockMsg end --------------------")
-}
-
-//共识模块发过来的block
-func testProcAddBlockDetail(t *testing.T, blockchain *BlockChain) {
-	chainlog.Info("TestProcAddBlockDetail begin --------------------")
-
-	curheight := blockchain.GetBlockHeight()
-	addblockheight := curheight + 1
-	var parentHash []byte
-	block, err := blockchain.GetBlock(curheight)
-	if err != nil {
-		parentHash = zeroHash[:]
-	} else {
-		parentHash = block.Block.Hash()
-	}
-	chainlog.Info("TestProcAddBlockDetail", "addblockheight", addblockheight)
-	for i := curheight + 1; i <= addblockheight; i++ {
-		block, _, _ = ConstructionBlockDetail(parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(true, block, "")
-		parentHash = block.Block.Hash()
-	}
-
-	//print
-	curheight = blockchain.GetBlockHeight()
-	chainlog.Info("TestProcAddBlockDetail ", "curheight", curheight)
-	block, err = blockchain.GetBlock(curheight)
-	require.NoError(t, err)
-	PrintBlockInfo(block)
-
-	chainlog.Info("TestProcAddBlockDetail end --------------------")
 }
 
 func testGetBlock(t *testing.T, blockchain *BlockChain) {
@@ -252,7 +231,7 @@ func testGetTx(t *testing.T, blockchain *BlockChain) {
 	block, err := blockchain.GetBlock(curheight)
 	require.NoError(t, err)
 
-	chainlog.Info("testGetTx curheight:", curheight)
+	chainlog.Info("testGetTx :", "curheight", curheight)
 	txResult, err := blockchain.GetTxResultFromDb(block.Block.Txs[0].Hash())
 	if err == nil && txResult != nil {
 		fmt.Println("testGetTx info:.")
@@ -399,7 +378,6 @@ func testGetBlockByHash(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("TestGetBlockByHash begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	chainlog.Info("TestGetBlockByHash ", "curheight", curheight)
-
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
 
@@ -415,199 +393,4 @@ func testGetBlockByHash(t *testing.T, blockchain *BlockChain) {
 
 	PrintBlockInfo(block)
 	chainlog.Info("TestGetBlockByHash end --------------------")
-}
-func testProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
-	chainlog.Info("TestProcGetTransactionByHashes begin --------------------")
-	curheight := blockchain.GetBlockHeight()
-	block, _ := blockchain.GetBlock(curheight)
-	parentHash := block.Block.Hash()
-
-	chainlog.Info("TestProcGetTransactionByHashes ", "curheight", curheight)
-
-	addblockheight := curheight + 10
-	txhashs := make([][]byte, 10)
-	j := 0
-	for i := curheight + 1; i <= addblockheight; i++ {
-		block, _, _ := ConstructionBlock(parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil}, "")
-		parentHash = block.Hash()
-		txhashs[j] = block.Txs[0].Hash()
-		j++
-	}
-
-	txs, err := blockchain.ProcGetTransactionByHashes(txhashs)
-	require.NoError(t, err)
-
-	for _, txdetail := range txs.Txs {
-		if txdetail != nil {
-			fmt.Println("TestProcGetTransactionByHashes info:.")
-			fmt.Println("txresult.Tx:", txdetail.Tx.String())
-			fmt.Println("txresult.Receipt:", txdetail.Receipt.String())
-		}
-	}
-	chainlog.Info("TestProcGetTransactionByHashes end --------------------")
-}
-
-func testProcGetTransactionByAddr(t *testing.T, blockchain *BlockChain) {
-	chainlog.Info("TestProcGetTransactionByAddr begin --------------------")
-	curheight := blockchain.GetBlockHeight()
-	curblock, _ := blockchain.GetBlock(curheight)
-	parentHash := curblock.Block.Hash()
-
-	chainlog.Info("TestProcGetTransactionByAddr from -> to", "curheight", curheight)
-	addblockheight := curheight + 5
-	var fromaddr string
-	var toaddr string
-	var block *types.Block
-
-	for i := curheight + 1; i <= addblockheight; i++ {
-		block, fromaddr, toaddr = ConstructionBlock(parentHash, i, 5)
-		blockchain.ProcAddBlockMsg(false, &types.BlockDetail{block, nil}, "")
-		parentHash = block.Hash()
-	}
-
-	var reqAddr types.ReqAddr
-	reqAddr.Addr = fromaddr
-	reqAddr.Flag = 0
-	reqAddr.Count = 10
-	reqAddr.Direction = 0
-	reqAddr.Height = -1
-	reqAddr.Index = 0
-
-	//fromaddr
-	txs, _ := blockchain.ProcGetTransactionByAddr(&reqAddr)
-	fmt.Println("ProcGetTransactionByAddr info:", "fromaddr", fromaddr)
-	if txs != nil {
-		for _, txresult := range txs.TxInfos {
-			if txresult != nil {
-				fmt.Println("TxInfo.Index:", txresult.Index)
-				fmt.Println("TxInfo.Height:", txresult.Height)
-				fmt.Println("TxInfo.Hash:", txresult.GetHash())
-			}
-		}
-	}
-	//toaddr
-	reqAddr.Addr = toaddr
-	txs, _ = blockchain.ProcGetTransactionByAddr(&reqAddr)
-	fmt.Println("ProcGetTransactionByAddr info:", "toaddr", toaddr)
-	if txs != nil {
-		for _, txresult := range txs.TxInfos {
-			if txresult != nil {
-				fmt.Println("TxInfo.Index:", txresult.Index)
-				fmt.Println("TxInfo.Height:", txresult.Height)
-				fmt.Println("TxInfo.Hash:", txresult.GetHash())
-			}
-		}
-	}
-
-	//toaddr:1
-	reqAddr.Addr = toaddr
-	reqAddr.Flag = 1
-	txs, _ = blockchain.ProcGetTransactionByAddr(&reqAddr)
-	fmt.Println("ProcGetTransactionByAddr info:", "addr:1", toaddr)
-	if txs != nil {
-		for _, txresult := range txs.TxInfos {
-			if txresult != nil {
-				fmt.Println("TxInfo.Index:", txresult.Index)
-				fmt.Println("TxInfo.Height:", txresult.Height)
-				fmt.Println("TxInfo.Hash:", txresult.GetHash())
-			}
-		}
-	}
-
-	//toaddr:2
-	reqAddr.Addr = toaddr
-	reqAddr.Flag = 2
-	txs, _ = blockchain.ProcGetTransactionByAddr(&reqAddr)
-	fmt.Println("ProcGetTransactionByAddr info:", "toaddr:2", toaddr)
-	if txs != nil {
-		for _, txresult := range txs.TxInfos {
-			if txresult != nil {
-				fmt.Println("TxInfo.Index:", txresult.Index)
-				fmt.Println("TxInfo.Height:", txresult.Height)
-				fmt.Println("TxInfo.Hash:", txresult.GetHash())
-			}
-		}
-	}
-
-	chainlog.Info("TestProcGetTransactionByAddr end --------------------")
-}
-
-func execprocess(q queue.Queue) {
-	//execs
-	go func() {
-		client := q.Client()
-		client.Sub("execs")
-		for msg := range client.Recv() {
-			chainlog.Info("execprocess exec", "msg.Ty", msg.Ty)
-			if msg.Ty == types.EventExecTxList {
-				datas := msg.GetData().(*types.ExecTxList)
-				var receipts []*types.Receipt
-				for i := 0; i < len(datas.Txs); i++ {
-					var receipt types.Receipt
-					receipt.Ty = 2
-					receipt.KV = nil
-					receipt.Logs = nil
-					//receipt := execute.Exec(datas.Txs[i])
-					receipts = append(receipts, &receipt)
-				}
-				msg.Reply(client.NewMessage("", types.EventReceipts, &types.Receipts{receipts}))
-			} else if msg.Ty == types.EventAddBlock {
-				datas := msg.GetData().(*types.BlockDetail)
-				b := datas.Block
-				var kvset types.LocalDBSet
-
-				for i := 0; i < len(b.Txs); i++ {
-					tx := b.Txs[i]
-					var set types.LocalDBSet
-					txhash := tx.Hash()
-					//构造txresult 信息保存到db中
-					var txresult types.TxResult
-					txresult.Height = b.GetHeight()
-					txresult.Index = int32(i)
-					txresult.Tx = tx
-					txresult.Receiptdate = datas.Receipts[i]
-					txresult.Blocktime = b.GetBlockTime()
-					set.KV = append(set.KV, &types.KeyValue{txhash, types.Encode(&txresult)})
-					kvset.KV = append(kvset.KV, set.KV...)
-				}
-				msg.Reply(client.NewMessage("", types.EventAddBlock, &kvset))
-
-			} else if msg.Ty == types.EventBlockChainQuery {
-				data := msg.GetData().(*types.BlockChainQuery)
-				driver, err := executor.LoadDriver(data.Driver)
-				if err != nil {
-					msg.Reply(client.NewMessage("", types.EventBlockChainQuery, err))
-				} else {
-					driver.SetLocalDB(executor.NewLocalDB(client.Clone()))
-					driver.SetStateDB(executor.NewStateDB(client.Clone(), data.StateHash))
-
-					ret, err := driver.Query(data.FuncName, data.Param)
-					if err != nil {
-						msg.Reply(client.NewMessage("", types.EventBlockChainQuery, err))
-
-					} else {
-						msg.Reply(client.NewMessage("", types.EventBlockChainQuery, &ret))
-					}
-				}
-			}
-		}
-	}()
-}
-
-func consensusprocess(q queue.Queue) {
-	//execs
-	go func() {
-		client := q.Client()
-		client.Sub("consensus")
-		for msg := range client.Recv() {
-			chainlog.Info("consensusprocess consensus", "msg.Ty", msg.Ty)
-			if msg.Ty == types.EventCheckBlock {
-				msg.ReplyErr("EventCheckBlock", nil)
-			} else if msg.Ty == types.EventAddBlock {
-				//block := msg.GetData().(*types.BlockDetail).Block
-				//bc.SetCurrentBlock(block)
-			}
-		}
-	}()
 }
