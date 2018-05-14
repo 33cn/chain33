@@ -23,6 +23,7 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/client"
 )
 
 var elog = log.New("module", "execs")
@@ -39,6 +40,8 @@ func DisableLog() {
 
 type Executor struct {
 	client queue.Client
+	// 模块间通信的操作接口,建议用api代替client调用
+	api            client.QueueProtocolAPI
 }
 
 func New(cfg *types.Exec) *Executor {
@@ -55,13 +58,13 @@ func New(cfg *types.Exec) *Executor {
 	return exec
 }
 
-func (exec *Executor) SetQueueClient(client queue.Client) {
-	exec.client = client
+func (exec *Executor) SetQueueClient(cli queue.Client) {
+	exec.client = cli
 	exec.client.Sub("execs")
-
+	exec.api, _ = client.New(cli, nil)
 	//recv 消息的处理
 	go func() {
-		for msg := range client.Recv() {
+		for msg := range cli.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
 				go exec.procExecTxList(msg)
@@ -99,6 +102,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime, datas.CoinBase, datas.Difficulty)
+	execute.api = exec.api
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
@@ -116,6 +120,7 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime, datas.CoinBase, datas.Difficulty)
+	execute.api = exec.api
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
@@ -182,7 +187,11 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime, account.PubKeyToAddress(b.Signature.Pubkey).String(), uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime, "", uint64(b.Difficulty))
+	if b.GetSignature() != nil {
+		execute.coinBase = account.PubKeyToAddress(b.GetSignature().GetPubkey()).String()
+	}
+	execute.api = exec.api
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
@@ -221,7 +230,11 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime, account.PubKeyToAddress(b.Signature.Pubkey).String(), uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime, "", uint64(b.Difficulty))
+	if b.GetSignature() != nil {
+		execute.coinBase = account.PubKeyToAddress(b.GetSignature().GetPubkey()).String()
+	}
+	execute.api = exec.api
 	var kvset types.LocalDBSet
 	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
@@ -285,6 +298,8 @@ type executor struct {
 	// 增加区块的coinbase和难度值，后面的执行器逻辑需要这些属性
 	coinBase   string
 	difficulty uint64
+
+	api client.QueueProtocolAPI
 }
 
 func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64, coinBase string, difficulty uint64) *executor {
@@ -335,6 +350,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 func (e *executor) setEnv(exec drivers.Driver){
 	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime, e.coinBase, e.difficulty)
+	exec.SetApi(e.api)
 }
 
 func (e *executor) execCheckTx(tx *types.Transaction, index int) error {

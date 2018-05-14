@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/client"
 )
 
 var blog = log.New("module", "execs.base")
@@ -32,6 +33,7 @@ type Driver interface {
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
 	Clone() Driver
+	SetApi(client.QueueProtocolAPI)
 }
 
 type DriverBase struct {
@@ -45,6 +47,7 @@ type DriverBase struct {
 	isFree       bool
 	coinBase	 string
 	difficulty	 uint64
+	api 		 client.QueueProtocolAPI
 }
 
 func (d *DriverBase) Clone() Driver {
@@ -55,6 +58,14 @@ func (d *DriverBase) Clone() Driver {
 	dc.execDriver = d.execDriver
 	dc.isFree = d.isFree
 	return dc
+}
+
+func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
+	d.api = api
+}
+
+func (d *DriverBase) GetApi() client.QueueProtocolAPI {
+	return d.api
 }
 
 func (d *DriverBase) SetEnv(height, blocktime int64, coinBase string, difficulty uint64) {
