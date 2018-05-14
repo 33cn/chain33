@@ -295,9 +295,9 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		TxHex:   data,
 		Expire:  expire,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // set tx fee

@@ -56,9 +56,9 @@ func sendTx(cmd *cobra.Command, args []string) {
 	params := jsonrpc.RawParm{
 		Data: data,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // get tx by address
@@ -225,9 +225,9 @@ func getTxHexByHash(cmd *cobra.Command, args []string) {
 	params := jsonrpc.QueryParm{
 		Hash: txHash,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // decode raw hex to transaction
