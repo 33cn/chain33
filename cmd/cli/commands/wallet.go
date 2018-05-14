@@ -136,8 +136,8 @@ func setPwd(cmd *cobra.Command, args []string) {
 	oldPwd, _ := cmd.Flags().GetString("old")
 	newPwd, _ := cmd.Flags().GetString("new")
 	params := types.ReqWalletSetPasswd{
-		Oldpass: oldPwd,
-		Newpass: newPwd,
+		OldPass: oldPwd,
+		NewPass: newPwd,
 	}
 	var res jsonrpc.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
@@ -191,10 +191,10 @@ func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 			Receipt:    decodeLog(*(v.Receipt)),
 			Height:     v.Height,
 			Index:      v.Index,
-			Blocktime:  v.Blocktime,
+			Blocktime:  v.BlockTime,
 			Amount:     amountResult,
-			Fromaddr:   v.Fromaddr,
-			Txhash:     v.Txhash,
+			Fromaddr:   v.FromAddr,
+			Txhash:     v.TxHash,
 			ActionName: v.ActionName,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
@@ -301,7 +301,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		fmt.Println("expire time must longer than 2 minutes, changed expire time into 2 minutes")
 	}
 	params := types.ReqSignRawTx{
-		PrivKey: key,
+		Privkey: key,
 		Addr:    addr,
 		TxHex:   data,
 		Expire:  expire,

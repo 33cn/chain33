@@ -130,7 +130,7 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 }
 
 func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
-	reply, err := c.cli.GetBlocks(&types.ReqBlocks{Start: in.Start, End: in.End, Isdetail: in.Isdetail, Pid: []string{""}})
+	reply, err := c.cli.GetBlocks(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
 	if err != nil {
 		return err
 	}
@@ -385,10 +385,10 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				Receipt:    rd,
 				Height:     tx.GetHeight(),
 				Index:      tx.GetIndex(),
-				Blocktime:  tx.GetBlocktime(),
+				BlockTime:  tx.GetBlocktime(),
 				Amount:     tx.GetAmount(),
-				Fromaddr:   tx.GetFromaddr(),
-				Txhash:     common.ToHex(tx.GetTxhash()),
+				FromAddr:   tx.GetFromaddr(),
+				TxHash:     common.ToHex(tx.GetTxhash()),
 				ActionName: tx.GetActionName(),
 			})
 		}
@@ -626,7 +626,7 @@ func (c *Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error {
 	type AddrOverview struct {
 		Reciver int64 `json:"reciver"`
 		Balance int64 `json:"balance"`
-		TxCount int64 `json:"txcount"`
+		TxCount int64 `json:"txCount"`
 	}
 
 	*result = (*AddrOverview)(reply)

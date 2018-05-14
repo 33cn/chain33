@@ -141,7 +141,7 @@ func getPreCreatedTokens(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusPreCreated
-	reqtokens.Queryall = true
+	reqtokens.QueryAll = true
 	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
@@ -187,7 +187,7 @@ func getFinishCreatedTokens(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusCreated
-	reqtokens.Queryall = true
+	reqtokens.QueryAll = true
 	var params jsonrpc.Query4Cli
 	params.Execer = "token"
 	params.FuncName = "GetTokens"
