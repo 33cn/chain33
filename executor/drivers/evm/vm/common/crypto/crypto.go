@@ -1,45 +1,44 @@
 package crypto
 
 import (
-	"errors"
-	"github.com/btcsuite/btcd/btcec"
 	"math/big"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"golang.org/x/crypto/sha3"
+	"github.com/btcsuite/btcd/btcec"
+	"crypto/ecdsa"
 )
 
-var (
-	// FIXME 这个常量的定义目前还不清楚，待确认
-	secp256k1_N, _ = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
-)
-
-// ValidateSignatureValues verifies whether the signature values are valid with
-// the given chain rules. The v value is assumed to be either 0 or 1.
-func ValidateSignatureValues(v byte, r, s *big.Int) bool {
+// 校验签名信息是否正确
+func ValidateSignatureValues(r, s *big.Int) bool {
 	if r.Cmp(common.Big1) < 0 || s.Cmp(common.Big1) < 0 {
 		return false
 	}
-	// Frontier: allow s to be in full N range
-	return r.Cmp(secp256k1_N) < 0 && s.Cmp(secp256k1_N) < 0 && (v == 0 || v == 1)
+	return true
 }
 
-// Ecrecover returns the uncompressed public key that created the given signature.
+// 根据压缩消息和签名，返回未压缩的公钥信息
 func Ecrecover(hash, sig []byte) ([]byte, error) {
-	//return secp256k1.RecoverPubkey(hash, sig)
-	// TODO 实现方式待验证
-	publicKey, result, err := btcec.RecoverCompact(btcec.S256(), sig, hash)
+	pub, err := SigToPub(hash, sig)
 	if err != nil {
 		return nil, err
 	}
-	if !result {
-		return nil, errors.New("recover error!")
-	}
-
-	return publicKey.SerializeUncompressed(), nil
+	bytes := (*btcec.PublicKey)(pub).SerializeUncompressed()
+	return bytes, err
 }
+
+// 根据签名返回公钥信息
+func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
+	btcsig := make([]byte, 65)
+	btcsig[0] = sig[64] + 27
+	copy(btcsig[1:], sig)
+
+	pub, _, err := btcec.RecoverCompact(btcec.S256(), btcsig, hash)
+	return (*ecdsa.PublicKey)(pub), err
+}
+
 
 // 随机生成一个新的地址，给新创建的合约地址使用
 func RandomAddress() *common.Address {
@@ -58,7 +57,7 @@ func RandomAddress() *common.Address {
 }
 
 // Keccak256 计算并返回 Keccak256 哈希
-// 直接使用了sha3内置的方法逻辑
+// 直接使用了sha3内置的方法逻辑，和以太坊的逻辑不同 (FIXME 需要更新golang.org/x/crypto/sha3包，使用最新的方法NewLegacyKeccak256，以保证和以太坊逻辑相同)
 func Keccak256(data ...[]byte) []byte {
 	d := sha3.New256()
 	for _, b := range data {
