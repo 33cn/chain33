@@ -83,14 +83,14 @@ func (n *Node) getAddrFromGithub() {
 
 //从在线节点获取地址列表
 func (n *Node) getAddrFromOnline() {
-	ticker := time.NewTicker(GetAddrFromOnlineInterval)
-	defer ticker.Stop()
+	timer := time.NewTimer(GetAddrFromOnlineInterval)
+	defer timer.Stop()
 	pcli := NewNormalP2PCli()
 
 	var ticktimes int
 	for {
 
-		<-ticker.C
+		<-timer.C
 
 		seedsMap := make(map[string]bool)
 		//每次循环seed的排序不同
@@ -116,6 +116,8 @@ func (n *Node) getAddrFromOnline() {
 				}
 
 			}
+
+			timer.Reset(GetAddrFromOnlineInterval)
 			continue
 		}
 
@@ -190,13 +192,14 @@ func (n *Node) getAddrFromOnline() {
 
 		}
 
+		timer.Reset(GetAddrFromOnlineInterval)
 	}
 }
 
 //从addrBook 中获取地址
 func (n *Node) getAddrFromAddrBook() {
-	ticker := time.NewTicker(GetAddrFromAddrBookInterval)
-	defer ticker.Stop()
+	timer := time.NewTimer(GetAddrFromAddrBookInterval)
+	defer timer.Stop()
 	var tickerTimes int64
 	seedsMap := make(map[string]bool) //每次循环seed的排序不同
 	seedArr := n.nodeInfo.cfg.GetSeeds()
@@ -205,7 +208,7 @@ func (n *Node) getAddrFromAddrBook() {
 	}
 
 	for {
-		<-ticker.C
+		<-timer.C
 		tickerTimes++
 		if n.isClose() {
 			log.Debug("GetAddrFromOnLine", "loop", "done")
@@ -233,6 +236,8 @@ func (n *Node) getAddrFromAddrBook() {
 				}
 			}
 		}
+
+		timer.Reset(GetAddrFromAddrBookInterval)
 		log.Debug("Node Monitor process", "outbound num", n.Size())
 	}
 
@@ -241,14 +246,16 @@ func (n *Node) getAddrFromAddrBook() {
 func (n *Node) monitorPeers() {
 
 	p2pcli := NewNormalP2PCli()
-	ticker := time.NewTicker(time.Second * 30)
-	defer ticker.Stop()
+
+	timer := time.NewTimer(MonitorPeerNumInterval)
+	defer timer.Stop()
 	_, selfName := n.nodeInfo.addrBook.GetPrivPubKey()
 	for {
 
-		<-ticker.C
+		<-timer.C
 		localBlockHeight, err := p2pcli.GetBlockHeight(n.nodeInfo)
 		if err != nil {
+			timer.Reset(MonitorPeerNumInterval)
 			continue
 		}
 
@@ -281,6 +288,8 @@ func (n *Node) monitorPeers() {
 			}
 
 		}
+
+		timer.Reset(MonitorPeerNumInterval)
 	}
 
 }
@@ -289,15 +298,16 @@ func (n *Node) monitorPeerInfo() {
 
 	go func() {
 		n.nodeInfo.FetchPeerInfo(n)
-		ticker := time.NewTicker(MonitorPeerInfoInterval)
-		defer ticker.Stop()
+		timer := time.NewTimer(MonitorPeerInfoInterval)
+		defer timer.Stop()
 		for {
 			if n.isClose() {
 				return
 			}
 
-			<-ticker.C
+			<-timer.C
 			n.nodeInfo.FetchPeerInfo(n)
+			timer.Reset(MonitorPeerInfoInterval)
 		}
 	}()
 }
@@ -340,7 +350,7 @@ func (n *Node) monitorDialPeers() {
 		}
 		log.Info("DialPeers", "peer", netAddr.String())
 		//并发连接节点，增加连接效率
-		if dialCount >= 25 {
+		if dialCount >= maxOutBoundNum {
 			pub.FIFOPub(addr, "addr")
 			time.Sleep(time.Second * 10)
 			dialCount = len(n.GetRegisterPeers())
@@ -377,15 +387,15 @@ func (n *Node) monitorDialPeers() {
 }
 
 func (n *Node) monitorBlackList() {
-	ticker := time.NewTicker(CheckBlackListInterVal)
-	defer ticker.Stop()
+	timer := time.NewTimer(CheckBlackListInterVal)
+	defer timer.Stop()
 	for {
 		if n.isClose() {
 			log.Info("monitorBlackList", "loop", "done")
 			return
 		}
 
-		<-ticker.C
+		<-timer.C
 		badPeers := n.nodeInfo.blacklist.GetBadPeers()
 		now := time.Now().Unix()
 		for badPeer, intime := range badPeers {
@@ -400,7 +410,7 @@ func (n *Node) monitorBlackList() {
 				n.nodeInfo.blacklist.Delete(badPeer)
 			}
 		}
-
+		timer.Reset(CheckBlackListInterVal)
 	}
 }
 
