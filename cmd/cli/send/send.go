@@ -5,6 +5,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
+)
+
+var (
+	key  string
+	cli1 string
+	cli2 string
+	name string
 )
 
 func main() {
@@ -18,7 +26,6 @@ func main() {
 		return
 	}
 	hasKey := false
-	var key string
 	size := len(argsWithoutProg)
 	for i, v := range argsWithoutProg {
 		if v == "-k" {
@@ -33,12 +40,35 @@ func main() {
 		}
 	}
 
-	cmdCreate := exec.Command("cli", argsWithoutProg...)
+	if runtime.GOOS == "windows" {
+		cli1 = "cli.exe"
+		cli2 = "chain33-cli.exe"
+	} else {
+		cli1 = "cli"
+		cli2 = "chain33-cli"
+	}
+
+	_, err := os.Stat(cli1)
+	if err == nil {
+		name = "cli"
+	}
+	if os.IsNotExist(err) {
+		_, err = os.Stat(cli2)
+		if err == nil {
+			name = "chain33-cli"
+		}
+		if os.IsNotExist(err) {
+			fmt.Println("no compiled cli file found")
+			return
+		}
+	}
+
+	cmdCreate := exec.Command(name, argsWithoutProg...)
 	var outCreate bytes.Buffer
 	var errCreate bytes.Buffer
 	cmdCreate.Stdout = &outCreate
 	cmdCreate.Stderr = &errCreate
-	err := cmdCreate.Run()
+	err = cmdCreate.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
@@ -53,7 +83,7 @@ func main() {
 		return
 	}
 	bufCreate := outCreate.Bytes()
-	cmdSign := exec.Command("cli", "wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), "-k", key)
+	cmdSign := exec.Command(name, "wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), "-k", key)
 	var outSign bytes.Buffer
 	var errSign bytes.Buffer
 	cmdSign.Stdout = &outSign
@@ -69,7 +99,7 @@ func main() {
 	//fmt.Println("signedTx", outSign.String(), errSign.String())
 
 	bufSign := outSign.Bytes()
-	cmdSend := exec.Command("cli", "tx", "send", "-d", string(bufSign[1:len(bufSign)-2]))
+	cmdSend := exec.Command(name, "tx", "send", "-d", string(bufSign[:len(bufSign)-1]))
 	var outSend bytes.Buffer
 	var errSend bytes.Buffer
 	cmdSend.Stdout = &outSend

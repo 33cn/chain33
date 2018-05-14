@@ -116,6 +116,7 @@ func (n *Node) getAddrFromOnline() {
 				}
 
 			}
+
 			continue
 		}
 
@@ -233,6 +234,7 @@ func (n *Node) getAddrFromAddrBook() {
 				}
 			}
 		}
+
 		log.Debug("Node Monitor process", "outbound num", n.Size())
 	}
 
@@ -241,7 +243,8 @@ func (n *Node) getAddrFromAddrBook() {
 func (n *Node) monitorPeers() {
 
 	p2pcli := NewNormalP2PCli()
-	ticker := time.NewTicker(time.Second * 30)
+
+	ticker := time.NewTicker(MonitorPeerNumInterval)
 	defer ticker.Stop()
 	_, selfName := n.nodeInfo.addrBook.GetPrivPubKey()
 	for {
@@ -281,6 +284,7 @@ func (n *Node) monitorPeers() {
 			}
 
 		}
+
 	}
 
 }
@@ -340,7 +344,7 @@ func (n *Node) monitorDialPeers() {
 		}
 		log.Info("DialPeers", "peer", netAddr.String())
 		//并发连接节点，增加连接效率
-		if dialCount >= 25 {
+		if dialCount >= maxOutBoundNum {
 			pub.FIFOPub(addr, "addr")
 			time.Sleep(time.Second * 10)
 			dialCount = len(n.GetRegisterPeers())
@@ -400,7 +404,6 @@ func (n *Node) monitorBlackList() {
 				n.nodeInfo.blacklist.Delete(badPeer)
 			}
 		}
-
 	}
 }
 

@@ -1,9 +1,7 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -45,13 +43,7 @@ func getAddrByExec(cmd *cobra.Command, args []string) {
 	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
 		addrResult := account.ExecAddress(execer)
 		result := addrResult.String()
-		data, err := json.MarshalIndent(result, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		fmt.Println(string(data))
+		fmt.Println(result)
 
 	default:
 		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")

@@ -388,9 +388,9 @@ func tokenPrecreated(cmd *cobra.Command, args []string) {
 		Total:        total * types.TokenPrecision,
 		Fee:          feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenPreCreateTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenPreCreateTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // create raw token finish create transaction
@@ -427,9 +427,9 @@ func tokenFinish(cmd *cobra.Command, args []string) {
 		OwnerAddr: ownerAddr,
 		Fee:       feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenFinishTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenFinishTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // create raw token revoke transaction
@@ -466,7 +466,7 @@ func tokenRevoke(cmd *cobra.Command, args []string) {
 		OwnerAddr: ownerAddr,
 		Fee:       feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenRevokeTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenRevokeTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
