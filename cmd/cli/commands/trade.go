@@ -191,7 +191,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 }
 
 func parseSellOrders(res types.ReplySellOrders) {
-	for i, sellorder := range res.Selloders {
+	for i, sellorder := range res.SellOrders {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.TokenSymbol
 		sellOrders2show.Seller = sellorder.Owner
