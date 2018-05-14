@@ -1271,39 +1271,6 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		"height", block.Height, "hash", block.Hash(), "root", block.AppHash)
 	cs.Logger.Info(fmt.Sprintf("%v", block))
 
-	//fail.Fail() // XXX
-
-	//no need do below when just sync from other node
-	//out p2p already synced
-
-	/*
-		// Save to blockStore.
-		if cs.client.Height() < block.Height {
-			// NOTE: the seenCommit is local justification to commit this block,
-			// but may differ from the LastCommit included in the next block
-			precommits := cs.Votes.Precommits(cs.CommitRound)
-			seenCommit := precommits.MakeCommit()
-			cs.client.SaveBlock(block, blockParts, seenCommit)
-		} else {
-			// Happens during replay if we already saved the block but didn't commit
-			cs.Logger.Info("Calling finalizeCommit on already stored block", "height", block.Height)
-		}
-	*/
-	//fail.Fail() // XXX
-
-	// Finish writing to the WAL for this height.
-	// NOTE: If we fail before writing this, we'll never write it,
-	// and just recover by running ApplyBlock in the Handshake.
-	// If we moved it before persisting the block, we'd have to allow
-	// WAL replay for blocks with an #ENDHEIGHT
-	// As is, ConsensusState should not be started again
-	// until we successfully call ApplyBlock (ie. here or in Handshake after restart)
-	//cs.wal.Save(EndHeightMessage{height})
-
-	//fail.Fail() // XXX
-
-	// Create a copy of the state for staging
-	// and an event cache for txs
 	stateCopy := cs.state.Copy()
 
 	cs.Logger.Info("round state 0", "state", cs.RoundState)
