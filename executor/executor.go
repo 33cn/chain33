@@ -370,16 +370,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 }
 
 func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
-	if kvs == nil {
-		return nil
-	}
-	if bytes.HasPrefix(execer, []byte("user.")) {
-		for j := 0; j < len(kvs); j++ {
-			if !bytes.HasPrefix(kvs[j].Key, execer) {
-				return types.ErrLocalDBPerfix
-			}
-		}
-	}
 	return nil
 }
 
