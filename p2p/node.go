@@ -306,6 +306,12 @@ func (n *Node) detectNodeAddr() {
 func (n *Node) natMapPort() {
 
 	n.natNotice()
+	for {
+		if n.Size() > 0 {
+			break
+		}
+		time.Sleep(time.Second)
+	}
 	var err error
 	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")
