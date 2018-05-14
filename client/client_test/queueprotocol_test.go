@@ -435,7 +435,7 @@ func testGetHeadersCmdJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	params := types.ReqBlocks{
 		Start:    1,
 		End:      1,
-		Isdetail: true,
+		IsDetail: true,
 	}
 
 	var res lt.Headers

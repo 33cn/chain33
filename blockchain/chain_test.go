@@ -343,7 +343,7 @@ func testGetBlocksMsg(t *testing.T, blockchain *BlockChain) {
 		reqBlock.Start = curheight - 5
 	}
 	reqBlock.End = curheight
-	reqBlock.Isdetail = true
+	reqBlock.IsDetail = true
 
 	blocks, err := blockchain.ProcGetBlockDetailsMsg(&reqBlock)
 	if err == nil && blocks != nil {

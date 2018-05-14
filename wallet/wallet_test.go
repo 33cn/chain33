@@ -475,8 +475,8 @@ func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 	walletlog.Info("TestProcWalletSetPasswd begin --------------------")
 
 	var Passwd types.ReqWalletSetPasswd
-	Passwd.Oldpass = "heyubin"
-	Passwd.Newpass = "Newpass"
+	Passwd.OldPass = "heyubin"
+	Passwd.NewPass = "Newpass"
 
 	err := wallet.ProcWalletSetPasswd(&Passwd)
 	require.NoError(t, err)
