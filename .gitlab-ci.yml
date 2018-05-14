@@ -16,6 +16,7 @@ after_script:
 stages:
     - build
     - test
+    - deploy
 
 go_fmt:
     stage: build
@@ -44,3 +45,10 @@ go_test:
         - 33cn
     script:
         - make test
+
+deploy:
+    stage: deploy
+    tags:
+        - 33cn
+    script:
+        - make docker-compose
