@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"flag"
+	"sync/atomic"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/client"
@@ -14,6 +15,8 @@ import (
 var (
 	configPath  = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
 	grpcAddress = "localhost:8802"
+	grpcRun     int64
+	jrpcRun     int64
 )
 
 func init() {
@@ -29,7 +32,8 @@ type MockLive interface {
 }
 
 type mockSystem struct {
-	MockLive
+	grpcMock  MockLive
+	jrpcMock  MockLive
 	q         queue.Queue
 	chain     *mockBlockChain
 	mem       *mockMempool
@@ -62,15 +66,21 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	mock.p2p = p2p
 	mock.consensus = consensus
 	mock.store = store
-	if mock.MockLive != nil {
-		mock.MockLive.OnStartup(mock)
+	if mock.grpcMock != nil {
+		mock.grpcMock.OnStartup(mock)
+	}
+	if mock.jrpcMock != nil {
+		mock.jrpcMock.OnStartup(mock)
 	}
 	return mock.getAPI()
 }
 
 func (mock *mockSystem) stop() {
-	if mock.MockLive != nil {
-		mock.MockLive.OnStop()
+	if mock.jrpcMock != nil {
+		mock.jrpcMock.OnStop()
+	}
+	if mock.grpcMock != nil {
+		mock.grpcMock.OnStop()
 	}
 	mock.chain.Close()
 	mock.mem.Close()
@@ -92,6 +102,9 @@ type mockJRPCSystem struct {
 }
 
 func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
+	if !atomic.CompareAndSwapInt64(&jrpcRun, 0, 1) {
+		return
+	}
 	mock.japi = rpc.NewJSONRPCServer(m.q.Client())
 	ch := make(chan struct{}, 1)
 	go func() {
@@ -123,6 +136,9 @@ type mockGRPCSystem struct {
 }
 
 func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
+	if !atomic.CompareAndSwapInt64(&grpcRun, 0, 1) {
+		return
+	}
 	mock.gapi = rpc.NewGRpcServer(m.q.Client())
 	ch := make(chan struct{}, 1)
 	go func() {
