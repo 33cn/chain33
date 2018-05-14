@@ -238,12 +238,12 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 				nodeinfo.blacklist.Add(externalIP, 0)
 			}
 
-			if exaddr, err := NewNetAddressString(resp.GetAddrRecv()); err == nil {
-				nodeinfo.SetExternalAddr(exaddr)
-			}
 		}
 	}
 
+	if exaddr, err := NewNetAddressString(resp.GetAddrRecv()); err == nil {
+		nodeinfo.SetExternalAddr(exaddr)
+	}
 	return resp.GetUserAgent(), nil
 }
 
@@ -329,7 +329,6 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 	peers, infos := m.network.node.GetActivePeers()
 	for paddr, info := range infos {
 		if info.GetName() == pid[0] { //匹配成功
-			peer := m.network.node.GetRegisterPeer(paddr)
 			peer, ok := peers[paddr]
 			if ok && peer != nil {
 				var err error
@@ -341,7 +340,7 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 					log.Error("GetBlocks", "Err", err.Error())
 					if err == pb.ErrVersion {
 						peer.version.SetSupport(false)
-						P2pComm.CollectPeerStat(err, peer)
+						P2pComm.CollectPeerStat(err, peer) //把no support 消息传递过去
 					}
 					return
 				}
