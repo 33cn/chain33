@@ -38,7 +38,7 @@ type EVMExecutor struct {
 	mStateDB *state.MemoryStateDB
 }
 
-func init() {
+func Init() {
 	evm := NewEVMExecutor()
 	// TODO 注册的驱动高度需要更新为上线时的正确高度
 	drivers.Register(evm.GetName(), evm, 0)

@@ -3,13 +3,13 @@ package client_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
-	"time"
 
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 
+	"fmt"
+
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 
@@ -21,12 +21,13 @@ type JsonRpcCtx struct {
 	Res    interface{}
 
 	cb Callback
+
+	jsonClient *jsonrpc.JSONClient
 }
 
 type Callback func(res interface{}) (interface{}, error)
 
 func NewJsonRpcCtx(methed string, params, res interface{}) *JsonRpcCtx {
-	time.Sleep(5 * time.Millisecond)
 	return &JsonRpcCtx{
 		Addr:   "http://localhost:8801",
 		Method: methed,
@@ -40,37 +41,31 @@ func (c *JsonRpcCtx) SetResultCb(cb Callback) {
 }
 
 func (c *JsonRpcCtx) Run() (err error) {
-	rpc, err := jsonrpc.NewJSONClient(c.Addr)
+	if c.jsonClient == nil {
+		c.jsonClient, err = jsonrpc.NewJSONClient(c.Addr)
+		if err != nil {
+			return
+		}
+	}
+	err = c.jsonClient.Call(c.Method, c.Params, c.Res)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-
-	err = rpc.Call(c.Method, c.Params, c.Res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
 	// maybe format rpc result
 	var result interface{}
 	if c.cb != nil {
 		result, err = c.cb(c.Res)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
 			return
 		}
 	} else {
 		result = c.Res
 	}
 
-	data, err := json.MarshalIndent(result, "", "    ")
+	_, err = json.MarshalIndent(result, "", "    ")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-
-	fmt.Println(string(data))
 	return
 }
 
@@ -81,7 +76,6 @@ type GrpcCtx struct {
 }
 
 func NewGRpcCtx(method string, params, res interface{}) *GrpcCtx {
-	//time.Sleep(5 * time.Millisecond)
 	return &GrpcCtx{
 		Method: method,
 		Params: params,
@@ -295,7 +289,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 
 	default:
-		err = fmt.Errorf("Unsupport method %v", c.Method)
+		err = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}
 	return err
 }

@@ -69,7 +69,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		}
 	}
 	//check TxHash
-
 	calcHash := merkle.CalcMerkleRoot(block.Txs)
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
