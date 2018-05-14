@@ -111,8 +111,8 @@ message ReplySeed {
 }
 
 message ReqWalletSetPasswd {
-	string oldpass = 1;
-	string newpass = 2;
+	string oldPass = 1;
+	string newPass = 2;
 }
 
 message ReqNewAccount {

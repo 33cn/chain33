@@ -1213,20 +1213,20 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 
 	// 钱包已经加密需要验证oldpass的正确性
 	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
-		isok := wallet.walletStore.VerifyPasswordHash(Passwd.Oldpass)
+		isok := wallet.walletStore.VerifyPasswordHash(Passwd.OldPass)
 		if !isok {
 			walletlog.Error("ProcWalletSetPasswd Verify Oldpasswd fail!")
 			return types.ErrVerifyOldpasswdFail
 		}
 	}
 
-	if len(wallet.Password) != 0 && Passwd.Oldpass != wallet.Password {
+	if len(wallet.Password) != 0 && Passwd.OldPass != wallet.Password {
 		walletlog.Error("ProcWalletSetPasswd Oldpass err!")
 		return types.ErrVerifyOldpasswdFail
 	}
 
 	//使用新的密码生成passwdhash用于下次密码的验证
-	err = wallet.walletStore.SetPasswordHash(Passwd.Newpass)
+	err = wallet.walletStore.SetPasswordHash(Passwd.NewPass)
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "SetPasswordHash err", err)
 		return err
@@ -1238,12 +1238,12 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		return err
 	}
 	//使用old密码解密seed然后用新的钱包密码重新加密seed
-	seed, err := wallet.getSeed(Passwd.Oldpass)
+	seed, err := wallet.getSeed(Passwd.OldPass)
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "getSeed err", err)
 		return err
 	}
-	ok, err := SaveSeed(wallet.walletStore.db, seed, Passwd.Newpass)
+	ok, err := SaveSeed(wallet.walletStore.db, seed, Passwd.NewPass)
 	if !ok {
 		walletlog.Error("ProcWalletSetPasswd", "SaveSeed err", err)
 		return err
@@ -1262,10 +1262,10 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 			walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
 			continue
 		}
-		Decrypter := CBCDecrypterPrivkey([]byte(Passwd.Oldpass), storekey)
+		Decrypter := CBCDecrypterPrivkey([]byte(Passwd.OldPass), storekey)
 
 		//使用新的密码重新加密私钥
-		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.Newpass), Decrypter)
+		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.NewPass), Decrypter)
 		AccStore.Privkey = common.ToHex(Encrypter)
 		err = wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
 		if err != nil {
@@ -1273,7 +1273,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		}
 	}
 
-	wallet.Password = Passwd.Newpass
+	wallet.Password = Passwd.NewPass
 	return nil
 }
 
@@ -1696,8 +1696,8 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	//seed保存成功需要更新钱包密码
 	if ok {
 		var ReqWalletSetPasswd types.ReqWalletSetPasswd
-		ReqWalletSetPasswd.Oldpass = password
-		ReqWalletSetPasswd.Newpass = password
+		ReqWalletSetPasswd.OldPass = password
+		ReqWalletSetPasswd.NewPass = password
 		Err := wallet.ProcWalletSetPasswd(&ReqWalletSetPasswd)
 		if Err != nil {
 			walletlog.Error("saveSeed", "ProcWalletSetPasswd err", err)
