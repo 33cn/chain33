@@ -2,7 +2,6 @@ package client_test
 
 import (
 	"flag"
-	"sync/atomic"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/client"
@@ -13,15 +12,11 @@ import (
 )
 
 var (
-	configPath  = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
-	grpcAddress = "localhost:8802"
-	grpcRun     int64
-	jrpcRun     int64
+	configPath = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
 )
 
 func init() {
 	cfg := config.InitCfg(*configPath)
-	cfg.GetRpc().GrpcBindAddr = grpcAddress
 	rpc.Init(cfg.Rpc)
 	log.SetLogLevel("crit")
 }
@@ -102,9 +97,7 @@ type mockJRPCSystem struct {
 }
 
 func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
-	if !atomic.CompareAndSwapInt64(&jrpcRun, 0, 1) {
-		return
-	}
+	println("=============jrpc====")
 	mock.japi = rpc.NewJSONRPCServer(m.q.Client())
 	ch := make(chan struct{}, 1)
 	go func() {
@@ -136,9 +129,7 @@ type mockGRPCSystem struct {
 }
 
 func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
-	if !atomic.CompareAndSwapInt64(&grpcRun, 0, 1) {
-		return
-	}
+	println("=============grpc====")
 	mock.gapi = rpc.NewGRpcServer(m.q.Client())
 	ch := make(chan struct{}, 1)
 	go func() {
