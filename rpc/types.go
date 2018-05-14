@@ -204,8 +204,8 @@ type WalletTxDetail struct {
 	Index      int64              `protobuf:"varint,4,opt,name=index" json:"index"`
 	BlockTime  int64              `json:"blockTime"`
 	Amount     int64              `json:"amount"`
-	Fromaddr   string             `json:"fromAddr"`
-	Txhash     string             `json:"txHash"`
+	FromAddr   string             `json:"fromAddr"`
+	TxHash     string             `json:"txHash"`
 	ActionName string             `json:"actionName"`
 }
 
