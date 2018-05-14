@@ -445,7 +445,7 @@ func (self *MemoryStateDB) PrintLogs() {
 	items, _ := self.logs[self.txHash]
 	if items != nil {
 		for _, item := range items {
-			log15.Debug(item.String())
+			item.PrintLog()
 		}
 	}
 }

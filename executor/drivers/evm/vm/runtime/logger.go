@@ -31,7 +31,7 @@ type StructLog struct {
 	Op         string                      `json:"op"`
 	Gas        uint64                      `json:"gas"`
 	GasCost    uint64                      `json:"gasCost"`
-	Memory     []byte                      `json:"memory"`
+	Memory     []int16                      `json:"memory"`
 	MemorySize int                         `json:"memSize"`
 	Stack      []*big.Int                  `json:"stack"`
 	Storage    map[common.Hash]common.Hash `json:"-"`
@@ -59,9 +59,16 @@ func (logger *JSONLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost
 		Depth:      depth,
 		Err:        err,
 	}
-	log.Memory = memory.Data()
+	log.Memory = formatMemory(memory.Data())
 	log.Stack = stack.Data()
 	return logger.encoder.Encode(log)
+}
+
+func formatMemory(data []byte) ( res []int16) {
+	for _,v := range data {
+		res = append(res, int16(v))
+	}
+	return
 }
 
 // CaptureFault outputs state information on the logger.

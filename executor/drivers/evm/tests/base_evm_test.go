@@ -157,8 +157,9 @@ func TestCreateContract4(t *testing.T) {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "1JFwfPaWx78y5P3viSJUbuWcdfZqnDPw2b"
-	code := "35a063b4"
+	to := "1CHbUBvdDL1FBxjU4J9aB7E4EV64n52ryF"
+	//code := "d0a1703f0000000000000000000000000000000000000000000000000000000000000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd0000000000000000000000000000000000000000000000000000000000000003"
+	code := "d0a1703f0000000000000000000000000000000000000000000000000000000000000002fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc0000000000000000000000000000000000000000000000000000000000000003"
 	deployCode, _ := hex.DecodeString(code)
 	fee := 5000000000
 	amount := 0
