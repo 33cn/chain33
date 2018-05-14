@@ -8,6 +8,13 @@ import (
 	"runtime"
 )
 
+var (
+	key  string
+	cli1 string
+	cli2 string
+	name string
+)
+
 func main() {
 	if len(os.Args) <= 1 {
 		loadHelp()
@@ -19,7 +26,6 @@ func main() {
 		return
 	}
 	hasKey := false
-	var key string
 	size := len(argsWithoutProg)
 	for i, v := range argsWithoutProg {
 		if v == "-k" {
@@ -34,28 +40,22 @@ func main() {
 		}
 	}
 
-	var cli1 string
-	var cli2 string
-	switch runtime.GOOS {
-	case "windows":
-		cli1 = "../cli.exe"
-		cli2 = "../chain33-cli.exe"
-	case "darwin", "linux":
-		cli1 = "../cli"
-		cli2 = "../chain33-cli"
-	default:
-		fmt.Println("os not supported")
-		return
+	if runtime.GOOS == "windows" {
+		cli1 = "cli.exe"
+		cli2 = "chain33-cli.exe"
+	} else {
+		cli1 = "cli"
+		cli2 = "chain33-cli"
 	}
-	var name string
+
 	_, err := os.Stat(cli1)
 	if err == nil {
-		name = "../cli"
+		name = "cli"
 	}
 	if os.IsNotExist(err) {
 		_, err = os.Stat(cli2)
 		if err == nil {
-			name = "../chain33-cli"
+			name = "chain33-cli"
 		}
 		if os.IsNotExist(err) {
 			fmt.Println("no compiled cli file found")
