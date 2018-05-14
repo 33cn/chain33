@@ -135,7 +135,7 @@ func BenchmarkExecBlock(b *testing.B) {
 }
 
 func TestLoadDriver(t *testing.T) {
-	d, err := LoadDriver("none")
+	d, err := LoadDriver("none", 0)
 	if err != nil {
 		t.Error(err)
 	}
