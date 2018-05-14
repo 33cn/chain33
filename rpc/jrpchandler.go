@@ -682,7 +682,7 @@ func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 		return err
 	}
 
-	*result = reply
+	*result = *(*WalletStatus)(reply)
 	return nil
 }
 
@@ -1032,7 +1032,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeSell:
+		case types.TyLogTradeSellLimit:
 			lTy = "LogTradeSell"
 			var logTmp types.ReceiptTradeSell
 			err = types.Decode(lLog, &logTmp)
@@ -1040,17 +1040,41 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeBuy:
+		case types.TyLogTradeBuyMarket:
 			lTy = "LogTradeBuy"
-			var logTmp types.ReceiptTradeBuy
+			var logTmp types.ReceiptTradeBuyMarket
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeRevoke:
+		case types.TyLogTradeSellRevoke:
 			lTy = "LogTradeRevoke"
 			var logTmp types.ReceiptTradeRevoke
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeBuyLimit:
+			lTy = "LogTradeBuyLimit"
+			var logTmp types.ReceiptTradeBuyLimit
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeSellMarket:
+			lTy = "LogTradeSellMarket"
+			var logTmp types.ReceiptSellMarket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeBuyRevoke:
+			lTy = "LogTradeBuyRevoke"
+			var logTmp types.ReceiptTradeBuyRevoke
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
@@ -1214,6 +1238,36 @@ func (c *Chain33) CreateRawTradeBuyTx(in *TradeBuyTx, result *interface{}) error
 
 func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeBuyLimitTx(in *TradeBuyLimitTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeBuyLimitTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeSellMarketTx(in *TradeSellMarketTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeSellMarketTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeRevokeBuyTx(in *TradeRevokeBuyTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeRevokeBuyTx(in)
 	if err != nil {
 		return err
 	}
