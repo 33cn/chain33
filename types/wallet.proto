@@ -224,7 +224,7 @@ message ReqModifyConfig {
 
 message ReqSignRawTx {
     string addr = 1;
-    string privKey = 2;
+    string privkey = 2;
     string txHex = 3;
     string expire = 4;
 }

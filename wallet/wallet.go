@@ -555,8 +555,8 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
 	var key crypto.PrivKey
-	if unsigned.GetPrivKey() != "" {
-		keyByte, err := common.FromHex(unsigned.GetPrivKey())
+	if unsigned.GetPrivkey() != "" {
+		keyByte, err := common.FromHex(unsigned.GetPrivkey())
 		if err != nil || len(keyByte) == 0 {
 			return "", err
 		}
