@@ -17,7 +17,6 @@ var (
 )
 
 func TestMain(m *testing.M) {
-
 	mock.grpcMock = &grpcMock
 	mock.jrpcMock = &jrpc
 	api = mock.startup(0)
