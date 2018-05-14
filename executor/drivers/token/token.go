@@ -25,7 +25,7 @@ const (
 	blacklist         = "token-blacklist"
 )
 
-func init() {
+func Init() {
 	t := newToken()
 	drivers.Register(t.GetName(), t, types.ForkV2AddToken)
 }

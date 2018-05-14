@@ -240,7 +240,7 @@ func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	list := types.AllowDepositExec
 	allow := false
 	for _, exec := range list {
-		if acc.ExecAddress(exec).String() == execaddr {
+		if acc.ExecAddress(string(exec)).String() == execaddr {
 			allow = true
 			break
 		}
