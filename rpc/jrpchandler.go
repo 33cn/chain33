@@ -387,8 +387,8 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				Index:      tx.GetIndex(),
 				BlockTime:  tx.GetBlocktime(),
 				Amount:     tx.GetAmount(),
-				Fromaddr:   tx.GetFromaddr(),
-				Txhash:     common.ToHex(tx.GetTxhash()),
+				FromAddr:   tx.GetFromaddr(),
+				TxHash:     common.ToHex(tx.GetTxhash()),
 				ActionName: tx.GetActionName(),
 			})
 		}

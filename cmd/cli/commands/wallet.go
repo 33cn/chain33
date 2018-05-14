@@ -191,8 +191,8 @@ func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 			Index:      v.Index,
 			Blocktime:  v.BlockTime,
 			Amount:     amountResult,
-			Fromaddr:   v.Fromaddr,
-			Txhash:     v.Txhash,
+			Fromaddr:   v.FromAddr,
+			Txhash:     v.TxHash,
 			ActionName: v.ActionName,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
