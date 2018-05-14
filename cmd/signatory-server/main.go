@@ -60,7 +60,7 @@ func main() {
 	log.Debug("current dir:", "dir", d)
 	flag.Parse()
 	cfg := InitCfg(*configPath)
-	log.Debug("load config", "cfgPath", *configPath, "wl", cfg.Whitelist, "addr", cfg.JrpcBindAddr, "key", cfg.PrivKey)
+	log.Debug("load config", "cfgPath", *configPath, "wl", cfg.Whitelist, "addr", cfg.JrpcBindAddr, "key", cfg.Privkey)
 	whitelist := InitWhiteList(cfg)
 
 	listen, err := net.Listen("tcp", cfg.JrpcBindAddr)
@@ -68,7 +68,7 @@ func main() {
 		panic(err)
 	}
 
-	approver := signatory.Signatory{cfg.PrivKey}
+	approver := signatory.Signatory{cfg.Privkey}
 	server := rpc.NewServer()
 	server.Register(&approver)
 
