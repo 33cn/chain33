@@ -48,7 +48,7 @@ func dumpKey(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
 	params := types.ReqStr{
-		Reqstr: addr,
+		ReqStr: addr,
 	}
 	var res types.ReplyStr
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.DumpPrivkey", params, &res)
