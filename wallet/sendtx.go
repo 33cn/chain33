@@ -497,12 +497,12 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
 	}
 	tx.SetExpire(time.Second * 120)
-	tx.Sign(int32(SignType), priv)
 	fee, err := tx.GetRealFee(wallet.getFee())
 	if err != nil {
 		return nil, err
 	}
 	tx.Fee = fee
+	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
