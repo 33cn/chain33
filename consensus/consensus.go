@@ -9,7 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func New(cfg *types.Consensus) queue.Module {
+func New(cfg *types.Consensus) Consensus {
 	consensusType := cfg.Name
 	if consensusType == "solo" {
 		con := solo.New(cfg)
@@ -28,6 +28,6 @@ func New(cfg *types.Consensus) queue.Module {
 }
 
 type Consensus interface {
-	SetQueue(q *queue.Queue)
+	SetQueueClient(q queue.Client)
 	Close()
 }
