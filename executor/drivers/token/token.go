@@ -291,7 +291,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	db := t.GetStateDB()
 
 	replyTokens := &types.ReplyTokens{}
-	if reqTokens.Queryall {
+	if reqTokens.QueryAll {
 		//list := dbm.NewListHelper(querydb)
 		keys, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
 		if err != nil {
