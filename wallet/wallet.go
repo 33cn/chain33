@@ -510,7 +510,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventDumpPrivkey:
 			addr := msg.Data.(*types.ReqStr)
-			privkey, err := wallet.ProcDumpPrivkey(addr.Reqstr)
+			privkey, err := wallet.ProcDumpPrivkey(addr.ReqStr)
 			if err != nil {
 				walletlog.Error("ProcDumpPrivkey", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivkey, err))
