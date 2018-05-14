@@ -111,8 +111,8 @@ message ReplySeed {
 }
 
 message ReqWalletSetPasswd {
-	string oldpass = 1;
-	string newpass = 2;
+	string oldPass = 1;
+	string newPass = 2;
 }
 
 message ReqNewAccount {
@@ -153,7 +153,7 @@ message ReqWalletSendToAddress {
 	string to          = 2;
 	int64  amount      = 3;
 	string note        = 4;
-	bool   istoken     = 5;
+	bool   isToken     = 5;
 	string tokenSymbol = 6;
 }
 
@@ -171,7 +171,7 @@ message ReqWalletMergeBalance {
 }
 
 message ReqStr {
-	string reqstr = 1;
+	string reqStr = 1;
 }
 
 message ReplyStr {
@@ -224,7 +224,7 @@ message ReqModifyConfig {
 
 message ReqSignRawTx {
     string addr = 1;
-    string privKey = 2;
+    string privkey = 2;
     string txHex = 3;
     string expire = 4;
 }

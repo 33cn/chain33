@@ -5,5 +5,5 @@ package signatory;
 message Config {
 	repeated string whitelist = 1;
 	string jrpcBindAddr = 2;
-	string privKey = 3;
+	string privkey = 3;
 }

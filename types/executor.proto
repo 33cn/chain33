@@ -322,7 +322,7 @@ message Token {
 }
 
 message ReqTokens {
-	bool queryall          = 1;
+	bool queryAll          = 1;
 	int32 status           = 2;
 	repeated string tokens = 3;
 }
@@ -343,7 +343,7 @@ message TokenRecv {
 }
 
 message ReplyAddrRecvForTokens {
-	repeated TokenRecv tokenrecv = 1;
+	repeated TokenRecv tokenRecvs = 1;
 }
 
 // 配置修改部分

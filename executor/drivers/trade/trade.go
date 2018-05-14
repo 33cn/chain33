@@ -107,7 +107,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.saveSell([]byte(receipt.Base.Sellid), item.Ty)
+			kv := t.saveSell([]byte(receipt.Base.SellID), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTradeBuyMarket {
 			var receipt types.ReceiptTradeBuyMarket
@@ -130,7 +130,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				panic(err) //数据错误了，已经被修改了
 			}
 
-			kv := t.saveBuyLimit([]byte(receipt.Base.Buyid), item.Ty)
+			kv := t.saveBuyLimit([]byte(receipt.Base.BuyID), item.Ty)
 			set.KV = append(set.KV, kv...)
 
 			// 添加个人资产列表
@@ -170,7 +170,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.deleteSell([]byte(receipt.Base.Sellid), item.Ty)
+			kv := t.deleteSell([]byte(receipt.Base.SellID), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogTradeBuyMarket {
 			var receipt types.ReceiptTradeBuyMarket
@@ -186,7 +186,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := t.deleteBuyLimit([]byte(receipt.Base.Buyid), item.Ty)
+			kv := t.deleteBuyLimit([]byte(receipt.Base.BuyID), item.Ty)
 			set.KV = append(set.KV, kv...)
 
 		} else if item.Ty == types.TyLogTradeSellMarket {
@@ -278,8 +278,8 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 	return nil, types.ErrQueryNotSupport
 }
 
-func (t *trade) getSellOrderFromDb(sellid []byte) *types.SellOrder {
-	value, err := t.GetStateDB().Get(sellid)
+func (t *trade) getSellOrderFromDb(sellID []byte) *types.SellOrder {
+	value, err := t.GetStateDB().Get(sellID)
 	if err != nil {
 		panic(err)
 	}
@@ -293,14 +293,14 @@ func genSaveSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	var kv []*types.KeyValue
 	kv = saveSellOrderKeyValue(kv, sellorder, status)
 	if types.TradeOrderStatusSoldOut == status || types.TradeOrderStatusRevoked == status {
-		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
+		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.SellID)
 		kv = deleteSellOrderKeyValue(kv, sellorder, types.TradeOrderStatusOnSale)
 	}
 	return kv
 }
 
-func (t *trade) saveSell(sellid []byte, ty int32) []*types.KeyValue {
-	sellorder := t.getSellOrderFromDb(sellid)
+func (t *trade) saveSell(sellID []byte, ty int32) []*types.KeyValue {
+	sellorder := t.getSellOrderFromDb(sellID)
 	return genSaveSellKv(sellorder)
 }
 
@@ -309,8 +309,8 @@ func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, s
 }
 
 func saveSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
-	sellid := []byte(sellorder.Sellid)
-	return genSellOrderKeyValue(kv, sellorder, status, sellid)
+	sellID := []byte(sellorder.SellID)
+	return genSellOrderKeyValue(kv, sellorder, status, sellID)
 }
 
 func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
@@ -318,14 +318,14 @@ func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
 	var kv []*types.KeyValue
 	kv = deleteSellOrderKeyValue(kv, sellorder, status)
 	if types.TradeOrderStatusSoldOut == status || types.TradeOrderStatusRevoked == status {
-		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.Sellid)
+		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellID", sellorder.SellID)
 		kv = saveSellOrderKeyValue(kv, sellorder, types.TradeOrderStatusOnSale)
 	}
 	return kv
 }
 
-func (t *trade) deleteSell(sellid []byte, ty int32) []*types.KeyValue {
-	sellorder := t.getSellOrderFromDb(sellid)
+func (t *trade) deleteSell(sellID []byte, ty int32) []*types.KeyValue {
+	sellorder := t.getSellOrderFromDb(sellID)
 	return genDeleteSellKv(sellorder)
 }
 
@@ -342,8 +342,8 @@ func (t *trade) deleteBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyVal
 }
 
 // BuyLimit Local
-func (t *trade) getBuyOrderFromDb(buyid []byte) *types.BuyLimitOrder {
-	value, err := t.GetStateDB().Get(buyid)
+func (t *trade) getBuyOrderFromDb(buyID []byte) *types.BuyLimitOrder {
+	value, err := t.GetStateDB().Get(buyID)
 	if err != nil {
 		panic(err)
 	}
@@ -357,20 +357,20 @@ func genSaveBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
 	var kv []*types.KeyValue
 	kv = saveBuyLimitOrderKeyValue(kv, buyOrder, status)
 	if types.TradeOrderStatusBoughtOut == status || types.TradeOrderStatusBuyRevoked == status {
-		tradelog.Debug("trade saveBuyLimit ", "remove old status with Buyid", buyOrder.Buyid)
+		tradelog.Debug("trade saveBuyLimit ", "remove old status with Buyid", buyOrder.BuyID)
 		kv = deleteBuyLimitKeyValue(kv, buyOrder, types.TradeOrderStatusOnSale)
 	}
 	return kv
 }
 
-func (t *trade) saveBuyLimit(buyid []byte, ty int32) []*types.KeyValue {
-	buyOrder := t.getBuyOrderFromDb(buyid)
+func (t *trade) saveBuyLimit(buyID []byte, ty int32) []*types.KeyValue {
+	buyOrder := t.getBuyOrderFromDb(buyID)
 	return genSaveBuyLimitKv(buyOrder)
 }
 
 func saveBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32) []*types.KeyValue {
-	buyid := []byte(buyOrder.Buyid)
-	return genBuyLimitOrderKeyValue(kv, buyOrder, status, buyid)
+	buyID := []byte(buyOrder.BuyID)
+	return genBuyLimitOrderKeyValue(kv, buyOrder, status, buyID)
 }
 
 func deleteBuyLimitKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32) []*types.KeyValue {
@@ -382,14 +382,14 @@ func genDeleteBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
 	var kv []*types.KeyValue
 	kv = deleteBuyLimitKeyValue(kv, buyOrder, status)
 	if types.TradeOrderStatusBoughtOut == status || types.TradeOrderStatusBuyRevoked == status {
-		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", buyOrder.Buyid)
+		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", buyOrder.BuyID)
 		kv = saveBuyLimitOrderKeyValue(kv, buyOrder, types.TradeOrderStatusOnBuy)
 	}
 	return kv
 }
 
-func (t *trade) deleteBuyLimit(buyid []byte, ty int32) []*types.KeyValue {
-	buyOrder := t.getBuyOrderFromDb(buyid)
+func (t *trade) deleteBuyLimit(buyID []byte, ty int32) []*types.KeyValue {
+	buyOrder := t.getBuyOrderFromDb(buyID)
 	return genDeleteBuyLimitKv(buyOrder)
 }
 
@@ -404,7 +404,7 @@ func (t *trade) deleteSellMarket(receiptTradeBuy *types.ReceiptSellBase) []*type
 }
 
 func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSellBase, status int32, height int64) []*types.KeyValue {
-	txhash := []byte(receipt.Txhash)
+	txhash := []byte(receipt.TxHash)
 	return genSellMarketOrderKeyValue(kv, receipt, status, height, txhash)
 }
 
@@ -413,7 +413,7 @@ func deleteSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptS
 }
 
 func saveBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
-	txhash := []byte(receipt.Txhash)
+	txhash := []byte(receipt.TxHash)
 	return genBuyMarketOrderKeyValue(kv, receipt, status, height, txhash)
 }
 

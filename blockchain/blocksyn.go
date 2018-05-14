@@ -169,7 +169,7 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 	}
 	var requestblock types.ReqBlocks
 	requestblock.Start = start
-	requestblock.Isdetail = false
+	requestblock.IsDetail = false
 	requestblock.Pid = pid
 
 	//同步block一次请求128个,fork分叉处理时请求block的个数不做限制
@@ -651,7 +651,7 @@ func (chain *BlockChain) FetchBlockHeaders(start int64, end int64, pid string) (
 	var requestblock types.ReqBlocks
 	requestblock.Start = start
 	requestblock.End = end
-	requestblock.Isdetail = false
+	requestblock.IsDetail = false
 	requestblock.Pid = []string{pid}
 
 	msg := chain.client.NewMessage("p2p", types.EventFetchBlockHeaders, &requestblock)

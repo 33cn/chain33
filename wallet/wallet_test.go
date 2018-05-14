@@ -356,8 +356,8 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msgImport, true)
 	wallet.client.Wait(msgImport)
 
-	addr := &types.ReqStr{Reqstr: account.PubKeyToAddress(priv.PubKey().Bytes()).String()}
-	msgDump := wallet.client.NewMessage("wallet", types.EventDumpPrivkey, &types.ReqStr{Reqstr: "wrongaddr"})
+	addr := &types.ReqStr{ReqStr: account.PubKeyToAddress(priv.PubKey().Bytes()).String()}
+	msgDump := wallet.client.NewMessage("wallet", types.EventDumpPrivkey, &types.ReqStr{ReqStr: "wrongaddr"})
 	wallet.client.Send(msgDump, true)
 	resp, _ = wallet.client.Wait(msgDump)
 	if resp.Err().Error() != types.ErrAddrNotExist.Error() {
@@ -540,8 +540,8 @@ func testProcMergeBalance(t *testing.T, wallet *Wallet) {
 func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletSetPasswd begin")
 	passwd := &types.ReqWalletSetPasswd{
-		Oldpass: "wrongpassword",
-		Newpass: "Newpass",
+		OldPass: "wrongpassword",
+		NewPass: "Newpass",
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
 	wallet.client.Send(msg, true)
@@ -550,7 +550,7 @@ func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 		t.Error("testProcWalletSetPasswd failed")
 	}
 
-	passwd.Oldpass = "password"
+	passwd.OldPass = "password"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
 	wallet.client.Send(msg, true)
 	_, err := wallet.client.Wait(msg)
@@ -714,7 +714,7 @@ func testSignRawTx(t *testing.T, wallet *Wallet) {
 	_, err := wallet.client.Wait(msg)
 	require.NoError(t, err)
 
-	unsigned.PrivKey = AddrPrivKey
+	unsigned.Privkey = AddrPrivKey
 	msg = wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
 	wallet.client.Send(msg, true)
 	_, err = wallet.client.Wait(msg)
