@@ -157,7 +157,7 @@ func (s *P2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetHeaders, &pb.ReqBlocks{Start: in.StartHeight, End: in.EndHeight,
-		Isdetail: false})
+		IsDetail: false})
 	err := client.SendTimeout(msg, true, time.Minute)
 	if err != nil {
 		log.Error("GetBlocks", "Error", err.Error())
