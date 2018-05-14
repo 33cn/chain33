@@ -130,7 +130,7 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 }
 
 func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
-	reply, err := c.cli.GetBlocks(&types.ReqBlocks{Start: in.Start, End: in.End, Isdetail: in.Isdetail, Pid: []string{""}})
+	reply, err := c.cli.GetBlocks(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
 	if err != nil {
 		return err
 	}
