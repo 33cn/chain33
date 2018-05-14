@@ -1686,7 +1686,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	}
 
 	//校验seed是否能生成钱包结构类型，从而来校验seed的正确性
-	have, err := VerifySeed(seed)
+	have, err := VerifySeed(newseed)
 	if !have {
 		walletlog.Error("saveSeed VerifySeed", "err", err)
 		return false, types.ErrSeedWord
