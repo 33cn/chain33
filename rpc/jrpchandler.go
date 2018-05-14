@@ -385,7 +385,7 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				Receipt:    rd,
 				Height:     tx.GetHeight(),
 				Index:      tx.GetIndex(),
-				Blocktime:  tx.GetBlocktime(),
+				BlockTime:  tx.GetBlocktime(),
 				Amount:     tx.GetAmount(),
 				Fromaddr:   tx.GetFromaddr(),
 				Txhash:     common.ToHex(tx.GetTxhash()),

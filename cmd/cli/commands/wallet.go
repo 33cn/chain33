@@ -189,7 +189,7 @@ func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 			Receipt:    decodeLog(*(v.Receipt)),
 			Height:     v.Height,
 			Index:      v.Index,
-			Blocktime:  v.Blocktime,
+			Blocktime:  v.BlockTime,
 			Amount:     amountResult,
 			Fromaddr:   v.Fromaddr,
 			Txhash:     v.Txhash,
