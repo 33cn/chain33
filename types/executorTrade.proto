@@ -227,7 +227,7 @@ message ReplySellOrder {
 }
 
 message ReplySellOrders {
-	repeated ReplySellOrder selloders = 1;
+	repeated ReplySellOrder sellOrders = 1;
 }
 
 message ReplyBuyOrders {

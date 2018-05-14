@@ -40,7 +40,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 			continue
 		}
 		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
-		replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
+		replys.SellOrders = insertSellOrderDescending(reply, replys.SellOrders)
 	}
 	return &replys, nil
 }
@@ -102,9 +102,9 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 	for _, sellID := range sellIDs {
 		reply := t.replyReplySellOrderfromID(sellID)
 		if reply != nil {
-			replys.Selloders = insertSellOrderDescending(reply, replys.Selloders)
+			replys.SellOrders = insertSellOrderDescending(reply, replys.SellOrders)
 			tradelog.Debug("trade Query", "height of sellID", reply.Height,
-				"len of reply.Selloders", len(replys.Selloders))
+				"len of reply.Selloders", len(replys.SellOrders))
 		}
 	}
 	return &replys, nil
@@ -182,7 +182,7 @@ func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status i
 		sell := t.replyReplySellOrderfromID(key)
 		if sell != nil {
 			tradelog.Debug("trade Query", "GetTokenSellOrderByStatus", string(key))
-			reply.Selloders = append(reply.Selloders, sell)
+			reply.SellOrders = append(reply.SellOrders, sell)
 		}
 	}
 	return &reply, nil
