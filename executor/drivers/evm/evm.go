@@ -56,7 +56,7 @@ func NewEVMExecutor() *EVMExecutor {
 }
 
 func (evm *EVMExecutor) GetName() string {
-	return "user.evm"
+	return "evm"
 }
 
 func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficulty uint64) {
@@ -147,7 +147,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		logMsg = "create contract details:"
 	}
 
-	log.Debug(logMsg, "caller address", msg.From().Str(), "contract address", contractAddr.Str(), "usedGas", usedGas, "return data", hex.EncodeToString(ret))
+	log.Info(logMsg, "caller address", msg.From().Str(), "contract address", contractAddr.Str(), "usedGas", usedGas, "return data", hex.EncodeToString(ret))
 
 	if vmerr != nil {
 		log.Error("evm contract exec error", "error info", vmerr)
