@@ -66,9 +66,13 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 }
 
 func (auth *Authority) procSignTx(msg queue.Message) {
-
-	//msg.Reply(exec.client.NewMessage("", types.EventReceipts,
-	//	&types.Receipts{receipts}))
+	data := msg.GetData().(*types.ReqAuthSignTx)
+	var tempkey core.Key
+	signature, err := auth.signer.Sign(data.Tx, tempkey)
+	if err != nil {
+		panic(err)
+	}
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{signature}))
 }
 
 func (auth *Authority) procCheckTx(msg queue.Message) {
