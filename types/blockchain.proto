@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "transaction.proto";
+import "common.proto";
 
 package types;
 
@@ -73,6 +74,21 @@ message BlockDetail {
 
 message Receipts {
 	repeated Receipt receipts = 1;
+}
+
+message PrivacyKV {
+	repeated PrivacyKVToken privacyKVToken = 1;
+}
+
+message PrivacyKVToken {
+    int32 txIndex = 1;
+	string token = 2;
+	repeated KeyValue KV = 3;
+}
+
+message ReceiptsAndPrivacyKV {
+	Receipts receipts  = 1;
+    PrivacyKV privacyKV = 2;
 }
 
 message ReceiptCheckTxList {

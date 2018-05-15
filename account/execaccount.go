@@ -87,7 +87,7 @@ func (acc *AccountDB) TransferWithdraw(from, to string, amount int64) (*types.Re
 	if err := acc.CheckTransfer(to, from, amount); err != nil {
 		return nil, err
 	}
-	receipt, err := acc.execWithdraw(to, from, amount)
+	receipt, err := acc.ExecWithdraw(to, from, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func (acc *AccountDB) execDeposit(addr, execaddr string, amount int64) (*types.R
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *AccountDB) execWithdraw(execaddr, addr string, amount int64) (*types.Receipt, error) {
+func (acc *AccountDB) ExecWithdraw(execaddr, addr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}

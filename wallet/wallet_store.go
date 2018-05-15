@@ -45,8 +45,8 @@ func calcPrivacyAddrKey(addr string) []byte {
 	return []byte(fmt.Sprintf("Privacy4Addr:%s", addr))
 }
 
-func calcPrivacy1timeBalKey(addr string, txhash string) []byte {
-	return []byte(fmt.Sprintf("PrivacyBal4Addr:%s-%s", addr, txhash))
+func calcPrivacy1timeBalKey(token, addr, txhash string, index int) []byte {
+	return []byte(fmt.Sprintf("PrivacyBal4AddrToken:%s-%s-%s-%d", token, addr, txhash, index))
 }
 
 func calcPrivacy1timeBalKeyPrefix(addr string) []byte {
@@ -339,7 +339,7 @@ func (ws *WalletStore) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
 }
 
-func (ws *WalletStore) setWalletPrivacyAccountBalance(addr, txhash *string, dbStore *types.PrivacyDBStore, newbatch dbm.Batch) error {
+func (ws *WalletStore) setWalletPrivacyAccountBalance(addr, txhash *string, dbStore *types.PrivacyDBStore, newbatch dbm.Batch, index int) error {
 	if 0 == len(*addr) || 0 == len(*txhash) {
 		walletlog.Error("setWalletPrivacyAccountBalance addr or txhash is nil")
 		return types.ErrInputPara
@@ -357,7 +357,7 @@ func (ws *WalletStore) setWalletPrivacyAccountBalance(addr, txhash *string, dbSt
 
 	walletlog.Debug("setWalletPrivacyAccountBalance", "addr", *addr, "tx with hash", *txhash,
 		"PrivacyDBStore", *dbStore)
-	newbatch.Set(calcPrivacy1timeBalKey(*addr, *txhash), privacyStorebyte)
+	newbatch.Set(calcPrivacy1timeBalKey(dbStore.Tokenname, *addr, *txhash, index), privacyStorebyte)
 	return nil
 }
 

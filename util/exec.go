@@ -16,7 +16,7 @@ var ulog = log.New("module", "util")
 
 //block执行函数增加一个批量存储区块是否刷盘的标志位，提高区块的同步性能。
 //只有blockchain在同步阶段会设置不刷盘，其余模块处理时默认都是刷盘的
-func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
+func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, *types.PrivacyKV, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
@@ -26,7 +26,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}()
 	if errReturn && block.Height > 0 && block.CheckSign() == false {
 		//block的来源不是自己的mempool，而是别人的区块
-		return nil, nil, types.ErrSign
+		return nil, nil, nil, types.ErrSign
 	}
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
@@ -34,12 +34,12 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	cacheTxs = CheckTxDup(client, cacheTxs, block.Height)
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
-		return nil, nil, types.ErrTxDup
+		return nil, nil, nil, types.ErrTxDup
 	}
 	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
 
-	receipts := ExecTx(client, prevStateRoot, block)
+	receipts, privacykv := ExecTx(client, prevStateRoot, block)
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
@@ -48,12 +48,13 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		receipt := receipts.Receipts[i]
 		if receipt.Ty == types.ExecErr {
 			if errReturn { //认为这个是一个错误的区块
-				return nil, nil, types.ErrBlockExec
+				return nil, nil, nil, types.ErrBlockExec
 			}
 			//ulog.Error("exec tx err", "err", receipt)
 			deltxlist[i] = true
 			continue
 		}
+
 		rdata = append(rdata, &types.ReceiptData{receipt.Ty, receipt.Logs})
 		//处理KV
 		kvs := receipt.KV
@@ -70,7 +71,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 
 	calcHash := merkle.CalcMerkleRoot(block.Txs)
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
-		return nil, nil, types.ErrCheckTxHash
+		return nil, nil, nil, types.ErrCheckTxHash
 	}
 	block.TxHash = calcHash
 	//删除无效的交易
@@ -102,14 +103,14 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 				rd.OutputReceiptDetails(ulog)
 			}
 		}
-		return nil, nil, types.ErrCheckStateHash
+		return nil, nil, nil, types.ErrCheckStateHash
 	}
 	detail.Block = block
 	detail.Receipts = rdata
 	if detail.Block.Height > 0 {
 		err := CheckBlock(client, &detail)
 		if err != nil {
-			return nil, deltx, err
+			return nil, deltx, nil, err
 		}
 	}
 	//save to db
@@ -120,7 +121,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//get receipts
 	//save kvset and get state hash
 	//ulog.Debug("blockdetail-->", "detail=", detail)
-	return &detail, deltx, nil
+	return &detail, deltx, privacykv, nil
 }
 
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
@@ -138,7 +139,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	return errors.New(string(reply.GetMsg()))
 }
 
-func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
+func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*types.Receipts, *types.PrivacyKV) {
 	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
@@ -146,8 +147,11 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *type
 	if err != nil {
 		panic(err)
 	}
-	receipts := resp.GetData().(*types.Receipts)
-	return receipts
+	//receipts := resp.GetData().(*types.Receipts)
+	receiptsAndPrivacyKV := resp.GetData().(*types.ReceiptsAndPrivacyKV)
+	receipts := receiptsAndPrivacyKV.Receipts
+	privacyKV := receiptsAndPrivacyKV.PrivacyKV
+	return receipts, privacyKV
 }
 
 func ExecKVMemSet(client queue.Client, prevStateRoot []byte, kvset []*types.KeyValue, sync bool) []byte {

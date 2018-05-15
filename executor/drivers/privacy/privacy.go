@@ -20,6 +20,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 var privacylog = log.New("module", "execs.privacy")
@@ -61,7 +62,28 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		if types.BTY == public2Privacy.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
 			from := account.From(tx).String()
-			return coinsAccount.ExecTransfer(from, tx.To, p.GetAddr(), public2Privacy.Amount)
+			receipt, err := coinsAccount.ExecWithdraw(p.GetAddr(), from, public2Privacy.Amount)
+			if err != nil {
+				privacylog.Error("Privacy exec ActionPublic2Privacy", "ExecWithdraw failed due to ", err)
+				return nil, err
+			}
+
+			txhash := common.ToHex(tx.Hash())
+			output := public2Privacy.GetOutput().GetKeyoutput()
+			for index, keyOutput := range output {
+				key := calcprivacyOutputKey(keyOutput.Amount, txhash, index)
+				value := types.Encode(keyOutput)
+				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
+			}
+
+			log := &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(public2Privacy.GetOutput())}
+			receipt.Logs = append(receipt.Logs, log)
+
+			//////////////////debug code begin///////////////
+			privacylog.Debug("Privacy exec ActionPublic2Privacy", "receipt is", receipt)
+			//////////////////debug code end///////////////
+
+			return receipt, nil
 		} else {
 			//token 转账操作
 

@@ -95,6 +95,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime)
 	var receipts []*types.Receipt
 	index := 0
+	var privacyKV []*types.PrivacyKVToken
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
 		if execute.height == 0 { //genesis block 不检查手续费
@@ -147,13 +148,36 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 				feelog.KV = append(feelog.KV, receipt.KV...)
 				feelog.Logs = append(feelog.Logs, receipt.Logs...)
 				feelog.Ty = receipt.Ty
+
+				//如果是隐私交易,且目的方为隐私地址，则需要将其KV单独挑出来，以供blockchain使用
+				if types.PrivacyX == string(tx.GetExecer()) {
+					var action types.PrivacyAction
+					if nil == types.Decode(tx.Payload, &action) {
+						if action.Ty == types.ActionPublic2Privacy ||  action.Ty == types.ActionPrivacy2Privacy {
+							privacyKVToken := &types.PrivacyKVToken{
+								KV:receipt.KV,
+								TxIndex:int32(index),
+							}
+							if pub2priv := action.GetPublic2Privacy(); pub2priv != nil {
+								privacyKVToken.Token = pub2priv.Tokenname
+							} else if priv2priv := action.GetPrivacy2Privacy(); priv2priv != nil{
+								privacyKVToken.Token = priv2priv.Tokenname
+							}
+							privacyKV = append(privacyKV, privacyKVToken)
+						}
+					}
+				}
 			}
 		}
 		receipts = append(receipts, feelog)
 		elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer))
 	}
-	msg.Reply(exec.client.NewMessage("", types.EventReceipts,
-		&types.Receipts{receipts}))
+
+	receiptsAndPrivacyKV := &types.ReceiptsAndPrivacyKV{
+		Receipts: &types.Receipts{receipts},
+		PrivacyKV: &types.PrivacyKV{privacyKV},
+	}
+	msg.Reply(exec.client.NewMessage("", types.EventReceipts, receiptsAndPrivacyKV))
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
@@ -265,15 +289,26 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 			return e.cutFeeReceipt(accFrom, receiptBalance), nil
 		}
 	} else {
-		execaddr := drivers.ExecAddress(types.PrivacyX)
-		accFrom := e.coinsAccount.LoadExecAccount(from, execaddr)
-		if accFrom.GetBalance() - tx.Fee >= 0 {
-			copyacc := *accFrom
-			accFrom.Balance -= tx.Fee
-			receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, accFrom}
-			e.coinsAccount.SaveExecAccount(execaddr, accFrom)
-			return e.cutFeeReceipt4Privacy(execaddr, accFrom, receiptBalance), nil
+		var action types.PrivacyAction
+		err := types.Decode(tx.Payload, &action)
+		if err != nil {
+			return nil, err
 		}
+		if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+			execaddr := drivers.ExecAddress(types.PrivacyX)
+			accFrom := e.coinsAccount.LoadExecAccount(from, execaddr)
+			if accFrom.GetBalance() - tx.Fee >= 0 {
+				copyacc := *accFrom
+				accFrom.Balance -= tx.Fee
+				receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, accFrom}
+				e.coinsAccount.SaveExecAccount(execaddr, accFrom)
+				return e.cutFeeReceipt4Privacy(execaddr, accFrom, receiptBalance), nil
+			}
+		} else {
+			//如果是私到私 或者私到公，交易费扣除则需要
+
+		}
+
 	}
 	return nil, types.ErrNoBalance
 }

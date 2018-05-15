@@ -272,9 +272,12 @@ message ReplyPrivacyBalance {
 }
 
 message PrivacyDBStore {
-    string onetimeaddr   = 1;    //隐私账户一次性地址
-    string txhash        = 2;
-    string tokenname     = 3;
+    string txhash                    = 1;
+    string tokenname                 = 2;
+	int64 amount                     = 3;
+	int32 indexInTx                  = 4;
+    bytes txPublicKeyR      = 5;
+    bytes onetimePublicKey  = 6;
 }
 
 message PrivacyOnetimeAccInfo {
@@ -283,4 +286,26 @@ message PrivacyOnetimeAccInfo {
 	int64 frozen = 3;   //账户冻结余额
 	string addr = 4;    //账户的地址
 	string txhash = 5;
+}
+
+message ReqUTXOGlobalIndex {
+	string tokenname = 1;
+    int32 mixCount  = 2;
+	repeated int64 amount = 3;
+}
+
+message UTXO {
+    UTXOGlobalIndex utxoGlobalIndex = 1;
+    bytes onetimePubkey             = 2;
+}
+
+message UTXOIndex4Amount {
+    int64 amount        = 1;
+    repeated UTXO utxos = 2;
+}
+
+message ResUTXOGlobalIndex {
+    string tokenname = 1;
+    int32 mixCount   = 2;
+    repeated UTXOIndex4Amount utxoIndex4Amount = 3;
 }

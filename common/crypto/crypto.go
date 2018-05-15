@@ -45,6 +45,7 @@ const (
 	SignTypeED25519        = 2
 	SignTypeSM2            = 3
 	SignTypeOnetimeED25519 = 4
+	SignTypeRing           = 5
 )
 
 const (
@@ -52,6 +53,7 @@ const (
 	SignNameED25519        = "ed25519"
 	SignNameSM2            = "sm2"
 	SignNameOnetimeED25519 = "onetimeed25519"
+	SignNameRing           = "RingSignatue"
 )
 
 var MapSignType2name = map[int]string{
@@ -59,6 +61,7 @@ var MapSignType2name = map[int]string{
 	SignTypeED25519:        SignNameED25519,
 	SignTypeSM2:            SignNameSM2,
 	SignTypeOnetimeED25519: SignNameOnetimeED25519,
+	SignTypeRing:           SignNameRing,
 }
 
 var MapSignName2Type = map[string]int{
@@ -66,6 +69,7 @@ var MapSignName2Type = map[string]int{
 	SignNameED25519:        SignTypeED25519,
 	SignNameSM2:            SignTypeSM2,
 	SignNameOnetimeED25519: SignTypeOnetimeED25519,
+	SignNameRing:           SignTypeRing,
 }
 
 func Register(name string, driver Crypto) {
