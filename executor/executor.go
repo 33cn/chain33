@@ -30,7 +30,6 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var runningHeight int64
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -41,9 +40,8 @@ func DisableLog() {
 }
 
 type Executor struct {
-	client queue.Client
-	// 模块间通信的操作接口,建议用api代替client调用
-	api            client.QueueProtocolAPI
+	client  queue.Client
+	qclient client.QueueProtocolAPI
 }
 
 func execInit() {
@@ -79,13 +77,17 @@ func New(cfg *types.Exec) *Executor {
 	return exec
 }
 
-func (exec *Executor) SetQueueClient(cli queue.Client) {
-	exec.client = cli
+func (exec *Executor) SetQueueClient(qcli queue.Client) {
+	exec.client = qcli
 	exec.client.Sub("execs")
-	exec.api, _ = client.New(cli, nil)
+	var err error
+	exec.qclient, err = client.New(qcli, nil)
+	if err != nil {
+		panic(err)
+	}
 	//recv 消息的处理
 	go func() {
-		for msg := range cli.Recv() {
+		for msg := range exec.client.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
 				go exec.procExecTxList(msg)
@@ -103,8 +105,13 @@ func (exec *Executor) SetQueueClient(cli queue.Client) {
 }
 
 func (exec *Executor) procExecQuery(msg queue.Message) {
+	header, err := exec.qclient.GetLastHeader()
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
 	data := msg.GetData().(*types.BlockChainQuery)
-	driver, err := LoadDriver(data.Driver)
+	driver, err := LoadDriver(data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -123,7 +130,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime, datas.CoinBase, datas.Difficulty)
-	execute.api = exec.api
+	execute.api = exec.qclient
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
@@ -143,7 +150,7 @@ var commonPrefix = []byte("mavl-")
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime, datas.CoinBase, datas.Difficulty)
-	execute.api = exec.api
+	execute.api = exec.qclient
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
@@ -169,9 +176,9 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		e, err := LoadDriver(string(tx.Execer))
+		e, err := LoadDriver(string(tx.Execer), execute.height)
 		if err != nil {
-			e, err = LoadDriver("none")
+			e, err = LoadDriver("none", execute.height)
 			if err != nil {
 				panic(err)
 			}
@@ -298,7 +305,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	if b.GetSignature() != nil {
 		execute.coinBase = account.PubKeyToAddress(b.GetSignature().GetPubkey()).String()
 	}
-	execute.api = exec.api
+	execute.api = exec.qclient
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
@@ -341,7 +348,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	if b.GetSignature() != nil {
 		execute.coinBase = account.PubKeyToAddress(b.GetSignature().GetPubkey()).String()
 	}
-	execute.api = exec.api
+	execute.api = exec.qclient
 	var kvset types.LocalDBSet
 	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
@@ -376,16 +383,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 }
 
 func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
-	if kvs == nil {
-		return nil
-	}
-	if bytes.HasPrefix(execer, []byte("user.")) {
-		for j := 0; j < len(kvs); j++ {
-			if !bytes.HasPrefix(kvs[j].Key, execer) {
-				return types.ErrLocalDBPerfix
-			}
-		}
-	}
 	return nil
 }
 
@@ -421,7 +418,6 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64,
 		difficulty:   difficulty,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
-	runningHeight = height
 	return e
 }
 
@@ -512,7 +508,7 @@ func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 	return exec
 }
 
-func LoadDriver(name string) (c drivers.Driver, err error) {
+func LoadDriver(name string, runningHeight int64) (c drivers.Driver, err error) {
 	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
 	return execDrivers.LoadDriver(name)
 }

@@ -153,9 +153,9 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	}
 	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amt, Note: note}
 	if !isToken {
-		params.Istoken = false
+		params.IsToken = false
 	} else {
-		params.Istoken = true
+		params.IsToken = true
 		params.TokenSymbol = tokenSymbol
 	}
 

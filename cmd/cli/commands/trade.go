@@ -191,7 +191,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 }
 
 func parseSellOrders(res types.ReplySellOrders) {
-	for i, sellorder := range res.Selloders {
+	for i, sellorder := range res.SellOrders {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.TokenSymbol
 		sellOrders2show.Seller = sellorder.Owner
@@ -199,8 +199,8 @@ func parseSellOrders(res types.ReplySellOrders) {
 		sellOrders2show.Minboardlot = sellorder.MinBoardlot
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.TotalBoardlot
-		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
-		sellOrders2show.SellID = sellorder.Sellid
+		sellOrders2show.Soldboardlot = sellorder.SoldBoardlot
+		sellOrders2show.SellID = sellorder.SellID
 		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
 		sellOrders2show.Height = sellorder.Height
 
@@ -331,9 +331,9 @@ func tokenSell(cmd *cobra.Command, args []string) {
 		TotalBoardlot:     totalInt64,
 		Fee:               feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // create raw buy token transaction
@@ -366,13 +366,13 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 	params := &jsonrpc.TradeBuyTx{
-		SellId:      sellID,
+		SellID:      sellID,
 		BoardlotCnt: count,
 		Fee:         feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // create raw revoke token transaction
@@ -401,10 +401,10 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 	params := &jsonrpc.TradeRevokeTx{
-		SellId: sellID,
+		SellID: sellID,
 		Fee:    feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, nil)
+	ctx.RunWithoutMarshal()
 }

@@ -24,7 +24,7 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "RPC listen address")
+	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "http url")
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),

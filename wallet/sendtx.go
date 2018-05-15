@@ -482,7 +482,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
 	} else {
 		transfer := &types.TokenAction{}
 		if amount > 0 {
@@ -494,9 +494,14 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
 	}
 	tx.SetExpire(time.Second * 120)
+	fee, err := tx.GetRealFee(wallet.getFee())
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee = fee
 	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块
