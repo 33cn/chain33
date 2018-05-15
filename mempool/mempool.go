@@ -365,7 +365,7 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
-	if tx.Expire > 1000000000 && tx.Expire < time.Now().Unix()+int64(time.Minute*1/time.Second) {
+	if tx.Expire > 1000000000 && tx.Expire < time.Now().Unix()+int64(time.Minute/time.Second) {
 		return false
 	}
 	return true
