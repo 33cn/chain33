@@ -18,14 +18,14 @@ message Trade {
 
 // 创建众筹交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
 message TradeForSell {
-	string tokensymbol          = 1;
+	string tokenSymbol          = 1;
 	// 每一手出售的token的数量
-	int64 amountperboardlot     = 2;
+	int64 amountPerBoardlot     = 2;
 	// 起卖手数,必须达到这个门槛才允许进行交易
-	int64 minboardlot           = 3;
+	int64 minBoardlot           = 3;
 	// 每一手token的价格
-	int64 priceperboardlot      = 4;
-	int64 totalboardlot         = 5;
+	int64 pricePerBoardlot      = 4;
+	int64 totalBoardlot         = 5;
 	// 此次出售的起始时间，如果非众筹则可以忽略此时间
 	int64  starttime            = 6;
 	int64  stoptime             = 7;
@@ -35,13 +35,13 @@ message TradeForSell {
 // 购买者发起交易用来购买token持有者之前挂单出售的token
 // 其中的hash为token出售者发起出售交易的hash
 message TradeForBuy {
-	string sellid      = 1;
-	int64 boardlotcnt  = 2;
+	string sellID      = 1;
+	int64 boardlotCnt  = 2;
 }
 
 // 允许token的持有者撤销之前未成交出售token的挂单
 message TradeForRevokeSell {
-	string sellid      = 1;
+	string sellID      = 1;
 }
 
 // 限价买单构造请求
@@ -55,32 +55,32 @@ message TradeForBuyLimit {
 
 // 现价卖单
 message TradeForSellMarket {
-    string buyid = 1;
+    string buyID = 1;
     int64 boardlotCnt = 2;
 }
 
 // 撤销买单
 message TradeForRevokeBuy {
-    string buyid = 1;
+    string buyID = 1;
 }
 
 // 数据库部分
 message SellOrder {
-	string tokensymbol          = 1;
+	string tokenSymbol          = 1;
 	string address              = 2;
 	//每一手出售的token的数量
-	int64 amountperboardlot     = 3;
-    int64 minboardlot           = 4;
+	int64 amountPerBoardlot     = 3;
+    int64 minBoardlot           = 4;
 	//每一手token的价格
-	int64 priceperboardlot      = 5;
-	int64 totalboardlot         = 6;
-	int64 soldboardlot          = 7;
+	int64 pricePerBoardlot      = 5;
+	int64 totalBoardlot         = 6;
+	int64 soldBoardlot          = 7;
 	//此次出售的起始时间，如果非众筹则可以忽略此时间
 	int64  starttime            = 8;
 	int64  stoptime             = 9;
 	bool   crowdfund            = 10;
 	//此处使用tx的hash来指定
-	string  sellid              = 11;
+	string  sellID              = 11;
 	int32  status               = 12;
 	int64  height               = 13;
 }
@@ -93,8 +93,8 @@ message BuyLimitOrder {
     int64 minBoardlot           = 4;
 	int64 pricePerBoardlot      = 5;
 	int64 totalBoardlot         = 6;
-	int64 boughtBoardlot          = 7;
-	string  buyid               = 8;
+	int64 boughtBoardlot        = 7;
+	string  buyID               = 8;
 	int32  status               = 9;
 	int64  height               = 10;
 }
@@ -108,33 +108,33 @@ message ReceiptBuyBase {
     string pricePerBoardlot     = 5;
 	int64 totalBoardlot         = 6;
 	int64 boughtBoardlot        = 7;
-	string  buyid               = 8;
+	string  buyID               = 8;
     string  status              = 9;
-    string  sellid              = 10;
-    string  txhash              = 11;
+    string  sellID              = 10;
+    string  txHash              = 11;
     int64 height                = 12;
 }
 
 message ReceiptSellBase {
-	string tokensymbol          = 1;
+	string tokenSymbol          = 1;
 	string owner                = 2;
 	//每一手出售的token的数量
-    string amountperboardlot    = 3;
-	int64 minboardlot           = 4;
+    string amountPerBoardlot    = 3;
+	int64 minBoardlot           = 4;
 	//每一手token的价格
-    string priceperboardlot     = 5;
-	int64 totalboardlot         = 6;
-	int64 soldboardlot          = 7;
+    string pricePerBoardlot     = 5;
+	int64 totalBoardlot         = 6;
+	int64 soldBoardlot          = 7;
 	//此次出售的起始时间，如果非众筹则可以忽略此时间
 	int64  starttime            = 8;
 	int64  stoptime             = 9;
 	bool   crowdfund            = 10;
 	//此处使用tx的hash来指定
-	string  sellid              = 11;
+	string  sellID              = 11;
     string  status              = 12;
     // buyid
-    string  buyid               = 13;
-    string  txhash              = 14;
+    string  buyID               = 13;
+    string  txHash              = 14;
     int64 height                = 15;
 }
 
@@ -202,10 +202,10 @@ message ReplyBuyOrder {
     int64 pricePerBoardlot     = 5;
 	int64 totalBoardlot         = 6;
 	int64 boughtBoardlot        = 7;
-	string  buyid               = 8;
+	string  buyID               = 8;
     int32  status              = 9;
-    string  sellid              = 10;
-    string  txhash              = 11;
+    string  sellID              = 10;
+    string  txHash              = 11;
     int64 height                = 12;
     string key                  = 13;
 }
@@ -217,17 +217,17 @@ message ReplySellOrder {
 	int64 minBoardlot           = 4;
     int64 pricePerBoardlot      = 5;
 	int64 totalBoardlot         = 6;
-	int64 soldboardlot        = 7;
-	string  buyid               = 8;
+	int64 soldBoardlot        = 7;
+	string  buyID               = 8;
     int32  status              = 9;
-    string  sellid              = 10;
-    string  txhash              = 11;
+    string  sellID              = 10;
+    string  txHash              = 11;
     int64 height                = 12;
     string key                  = 13;
 }
 
 message ReplySellOrders {
-	repeated ReplySellOrder selloders = 1;
+	repeated ReplySellOrder sellOrders = 1;
 }
 
 message ReplyBuyOrders {

@@ -124,6 +124,9 @@ func (tx *Transaction) Check(minfee int64) error {
 
 func (tx *Transaction) SetExpire(expire time.Duration) {
 	if int64(expire) > expireBound {
+		if expire < time.Second*120 {
+			expire = time.Second * 120
+		}
 		//用秒数来表示的时间
 		tx.Expire = time.Now().Unix() + int64(expire/time.Second)
 	} else {

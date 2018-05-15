@@ -696,7 +696,7 @@ func (q *QueueProtocol) GetNetInfo() (*types.NodeNetInfo, error) {
 func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error) {
 	data := &types.ReqSignRawTx{
 		Addr:    param.GetAddr(),
-		PrivKey: param.GetPrivKey(),
+		Privkey: param.GetPrivkey(),
 		TxHex:   param.GetTxHex(),
 		Expire:  param.GetExpire(),
 	}

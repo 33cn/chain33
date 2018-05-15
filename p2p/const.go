@@ -12,6 +12,7 @@ var (
 	mapUpdateInterval           = 45 * time.Hour
 	StreamPingTimeout           = 20 * time.Second
 	MonitorPeerInfoInterval     = 10 * time.Second
+	MonitorPeerNumInterval      = 30 * time.Second
 	GetAddrFromAddrBookInterval = 5 * time.Second
 	GetAddrFromOnlineInterval   = 5 * time.Second
 	GetAddrFromGitHubInterval   = 5 * time.Minute
