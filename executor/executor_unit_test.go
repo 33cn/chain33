@@ -1,12 +1,13 @@
 package executor
 
 import (
-	//"errors"
 	"math/rand"
 	"testing"
 	"time"
 
 	"fmt"
+
+	"strconv"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -16,10 +17,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strconv"
+
+	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"strings"
 )
 
 var randomU *rand.Rand
@@ -46,7 +47,7 @@ func initUnitEnv() (queue.Queue, *Executor) {
 	return q, exec
 }
 
-func createTxEx(priv crypto.PrivKey, to string, amount int64 ,ty int32, execer string) *types.Transaction {
+func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer string) *types.Transaction {
 
 	var tx *types.Transaction
 	switch execer {
@@ -73,28 +74,28 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64 ,ty int32, execer s
 		}
 	case "ticket":
 		{
-		    transfer := &types.TicketAction{}
+			transfer := &types.TicketAction{}
 			if types.TicketActionGenesis == ty {
 				v := &types.TicketAction_Genesis{&types.TicketGenesis{}}
 				transfer.Value = v
 				transfer.Ty = ty
-			}else if  types.TicketActionOpen == ty{
+			} else if types.TicketActionOpen == ty {
 				v := &types.TicketAction_Topen{&types.TicketOpen{}}
 				transfer.Value = v
 				transfer.Ty = ty
-			}else if  types.TicketActionClose == ty{
+			} else if types.TicketActionClose == ty {
 				v := &types.TicketAction_Tclose{&types.TicketClose{}}
 				transfer.Value = v
 				transfer.Ty = ty
-			}else if  types.TicketActionMiner == ty{
+			} else if types.TicketActionMiner == ty {
 				v := &types.TicketAction_Miner{&types.TicketMiner{}}
 				transfer.Value = v
 				transfer.Ty = ty
-			}else if  types.TicketActionBind == ty{
+			} else if types.TicketActionBind == ty {
 				v := &types.TicketAction_Tbind{&types.TicketBind{}}
 				transfer.Value = v
 				transfer.Ty = ty
-			}else {
+			} else {
 				return nil
 			}
 			tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
@@ -102,15 +103,15 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64 ,ty int32, execer s
 	case "token":
 		{
 			transfer := &types.TokenAction{}
-			if  types.ActionTransfer == ty{
+			if types.ActionTransfer == ty {
 				v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: "GOOD", Amount: 1e6}}
 				transfer.Value = v
-				transfer.Ty    = ty
-			}else if types.ActionWithdraw == ty{
+				transfer.Ty = ty
+			} else if types.ActionWithdraw == ty {
 				v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: "GOOD", Amount: 1e6}}
 				transfer.Value = v
-				transfer.Ty    = ty
-			}else if  types.TokenActionPreCreate == ty{
+				transfer.Ty = ty
+			} else if types.TokenActionPreCreate == ty {
 				v := &types.TokenAction_Tokenprecreate{&types.TokenPreCreate{
 					"Yuan chain coin",
 					"GOOD",
@@ -119,16 +120,16 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64 ,ty int32, execer s
 					1 * 1e8,
 					"1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"}} //该处指针不能为空否则会有崩溃
 				transfer.Value = v
-				transfer.Ty    = ty
-			}else if  types.TokenActionFinishCreate == ty{
+				transfer.Ty = ty
+			} else if types.TokenActionFinishCreate == ty {
 				v := &types.TokenAction_Tokenfinishcreate{&types.TokenFinishCreate{}}
 				transfer.Value = v
-				transfer.Ty    = ty
-			}else if  types.TokenActionRevokeCreate == ty{
+				transfer.Ty = ty
+			} else if types.TokenActionRevokeCreate == ty {
 				v := &types.TokenAction_Tokenrevokecreate{&types.TokenRevokeCreate{}}
 				transfer.Value = v
-				transfer.Ty    = ty
-			}else{
+				transfer.Ty = ty
+			} else {
 				return nil
 			}
 			tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
@@ -142,7 +143,7 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64 ,ty int32, execer s
 	return tx
 }
 
-func genTxsEx(n int64,ty int32, execer string) (txs []*types.Transaction) {
+func genTxsEx(n int64, ty int32, execer string) (txs []*types.Transaction) {
 	_, priv := genaddress()
 	to, _ := genaddress()
 	for i := 0; i < int(n); i++ {
@@ -150,7 +151,7 @@ func genTxsEx(n int64,ty int32, execer string) (txs []*types.Transaction) {
 	}
 	return txs
 }
-func createBlockEx(n int64,ty int32, execer string) *types.Block {
+func createBlockEx(n int64, ty int32, execer string) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = -1
 	newblock.BlockTime = time.Now().Unix()
@@ -195,6 +196,7 @@ func genEventDelBlockMsg(client queue.Client, block *types.Block) queue.Message 
 	msg := client.NewMessage("execs", types.EventDelBlock, blockDetail)
 	return msg
 }
+
 //"coins", "GetTxsByAddr",
 func genEventBlockChainQueryMsg(client queue.Client, param []byte, strDriver string, strFunName string) queue.Message {
 	blockChainQue := &types.BlockChainQuery{strDriver, strFunName, zeroHash[:], param}
@@ -213,15 +215,15 @@ func storeProcess(q queue.Queue) {
 				fmt.Println("EventStoreGet Keys[0] = %s", string(datas.Keys[0]))
 
 				var value []byte
-				if  strings.Contains(string(datas.Keys[0]), "this type ***"){ //这种type结构体走该分支
+				if strings.Contains(string(datas.Keys[0]), "this type ***") { //这种type结构体走该分支
 					item := &types.ConfigItem{
-						Key:"111111111111111",
+						Key:  "111111111111111",
 						Addr: "2222222222222",
 						Value: &types.ConfigItem_Arr{
-							Arr:&types.ArrayConfig{}},
+							Arr: &types.ArrayConfig{}},
 					}
 					value = types.Encode(item)
-				}else{
+				} else {
 					account := &types.Account{
 						Balance: 1000 * 1e8,
 						Addr:    addr1,
@@ -250,7 +252,7 @@ func blockchainProcess(q queue.Queue) {
 		for msg := range client.Recv() {
 			switch msg.Ty {
 			case types.EventGetLastHeader:
-				header := &types.Header{StateHash: []byte("111111111111111111111"),Height:1}
+				header := &types.Header{StateHash: []byte("111111111111111111111"), Height: 1}
 				msg.Reply(client.NewMessage("", types.EventHeader, header))
 			case types.EventLocalGet:
 				fmt.Println("EventLocalGet rsp")
@@ -285,14 +287,14 @@ func createBlockChainQueryRq(execer string, funcName string) proto.Message {
 		}
 	case "manage":
 		{
-			if  funcName == "GetConfigItem" {
-				in := &types.ReqString{Data:"this type ***"}
+			if funcName == "GetConfigItem" {
+				in := &types.ReqString{Data: "this type ***"}
 				return in
 			}
 		}
 	case "norm":
 		{
-			in := &types.ReqString{Data:"this type ***"}
+			in := &types.ReqString{Data: "this type ***"}
 			return in
 		}
 	case "ticket":
@@ -319,7 +321,7 @@ func createBlockChainQueryRq(execer string, funcName string) proto.Message {
 				reqtokens := &types.ReqTokens{}
 				return reqtokens
 			case "GetTokenInfo":
-				symbol := &types.ReqString{Data:"this type ***"}
+				symbol := &types.ReqString{Data: "this type ***"}
 				return symbol
 			case "GetAddrReceiverforTokens":
 				addrTokens := &types.ReqAddrTokens{}
@@ -346,28 +348,26 @@ func TestQueueClient(t *testing.T) {
 	var msg queue.Message
 	var block *types.Block
 
-
 	execTy := [][]string{{"coins", strconv.Itoa(types.CoinsActionTransfer)},
-						 {"coins", strconv.Itoa(types.CoinsActionWithdraw)},
-		                 {"coins", strconv.Itoa(types.CoinsActionGenesis)},
-		                 {"manage", strconv.Itoa(types.ManageActionModifyConfig)},
-		                 {"none", strconv.Itoa(types.CoinsActionTransfer)},
-		                 {"ticket", strconv.Itoa(types.TicketActionGenesis)},
-		                 {"ticket", strconv.Itoa(types.TicketActionOpen)},
-		                 {"ticket", strconv.Itoa(types.TicketActionBind)},
-		                 {"ticket", strconv.Itoa(types.TicketActionClose)},
-		                 {"ticket", strconv.Itoa(types.TicketActionMiner)},
-		                 {"token", strconv.Itoa(types.TokenActionPreCreate)},
-		                 {"token", strconv.Itoa(types.TokenActionFinishCreate)},
-		                 {"token", strconv.Itoa(types.TokenActionRevokeCreate)},
-		                 {"token", strconv.Itoa(types.ActionTransfer)},
-		                 {"token", strconv.Itoa(types.ActionWithdraw)},
-		                 }
+		{"coins", strconv.Itoa(types.CoinsActionWithdraw)},
+		{"coins", strconv.Itoa(types.CoinsActionGenesis)},
+		{"manage", strconv.Itoa(types.ManageActionModifyConfig)},
+		{"none", strconv.Itoa(types.CoinsActionTransfer)},
+		{"ticket", strconv.Itoa(types.TicketActionGenesis)},
+		{"ticket", strconv.Itoa(types.TicketActionOpen)},
+		{"ticket", strconv.Itoa(types.TicketActionBind)},
+		{"ticket", strconv.Itoa(types.TicketActionClose)},
+		{"ticket", strconv.Itoa(types.TicketActionMiner)},
+		{"token", strconv.Itoa(types.TokenActionPreCreate)},
+		{"token", strconv.Itoa(types.TokenActionFinishCreate)},
+		{"token", strconv.Itoa(types.TokenActionRevokeCreate)},
+		{"token", strconv.Itoa(types.ActionTransfer)},
+		{"token", strconv.Itoa(types.ActionWithdraw)},
+	}
 
-
-	for _, str := range execTy{
-		ty,_ := strconv.Atoi(str[1])
-		block = createBlockEx(txNum,int32(ty) ,str[0])
+	for _, str := range execTy {
+		ty, _ := strconv.Atoi(str[1])
+		block = createBlockEx(txNum, int32(ty), str[0])
 		addr1 = account.PubKeyToAddress(block.Txs[0].GetSignature().GetPubkey()).String() //将获取随机生成交易地址
 
 		// 1、测试 EventExecTxList 消息
@@ -375,11 +375,11 @@ func TestQueueClient(t *testing.T) {
 		msgs = append(msgs, msg)
 
 		//2、测试 EventAddBlock 消息
-		msg = genEventAddBlockMsg(q.Client(),block)
+		msg = genEventAddBlockMsg(q.Client(), block)
 		msgs = append(msgs, msg)
 
 		// 3、测试 EventDelBlock 消息
-		msg = genEventDelBlockMsg(q.Client(),block)
+		msg = genEventDelBlockMsg(q.Client(), block)
 		msgs = append(msgs, msg)
 
 		// 4、测试 EventCheckTx 消息
@@ -409,10 +409,10 @@ func TestQueueClient(t *testing.T) {
 		{"token", "GetTokenInfo"},
 		{"token", "GetAddrReceiverforTokens"},
 		{"token", "GetAccountTokenAssets"},
-		}
+	}
 
 	for _, str := range execFunName {
-		t := createBlockChainQueryRq(str[0],str[1])
+		t := createBlockChainQueryRq(str[0], str[1])
 		if nil == t {
 			continue
 		}
@@ -424,7 +424,7 @@ func TestQueueClient(t *testing.T) {
 		for _, msga := range msgs {
 			q.Client().Send(msga, true)
 			_, err := q.Client().Wait(msga)
-			if err == nil || err == types.ErrNotFound || err == types.ErrEmpty{
+			if err == nil || err == types.ErrNotFound || err == types.ErrEmpty {
 				t.Logf("%v,%v", msga, err)
 			} else {
 				t.Error(err)
