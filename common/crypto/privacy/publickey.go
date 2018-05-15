@@ -8,12 +8,19 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	"unsafe"
 	"crypto/subtle"
+	"github.com/onsi/ginkgo"
 )
 
 type PubKeyPrivacy [PublicKeyLen]byte
 
 func (pubKey PubKeyPrivacy) Bytes() []byte {
 	return pubKey[:]
+}
+
+func Bytes2PubKeyPrivacy(in []byte) PubKeyPrivacy {
+	var temp PubKeyPrivacy
+	copy(temp[:], in)
+	return temp
 }
 
 func (pubKey PubKeyPrivacy) VerifyBytes(msg []byte, sig_ Signature) bool {

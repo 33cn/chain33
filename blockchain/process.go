@@ -11,7 +11,21 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/hashicorp/golang-lru/simplelru"
+	"fmt"
+	"strconv"
 )
+
+
+
+func calcPrivacyCacheKey(height int64, txindex int32, outputindex int32) *types.UTXOGlobalIndex {
+	return &types.UTXOGlobalIndex{
+		Height:height,
+		Txindex:txindex,
+		Outindex:outputindex,
+	}
+}
+
 
 // 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
 // 共识模块和peer广播过来的block需要广播出去
@@ -266,8 +280,9 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	prevStateHash := b.bestChain.Tip().statehash
 	//广播或者同步过来的blcok需要调用执行模块
 
+	var privacyKV *types.PrivacyKV
 	if !isStrongConsistency || blockdetail.Receipts == nil {
-		blockdetail, _, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true, sync)
+		blockdetail, _, privacyKV, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true, sync)
 		if err != nil {
 			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 			return err
@@ -314,6 +329,10 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	newbatch.Write()
 
 	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Now().Sub(beg))
+
+	//update privacy kv
+	//遍历每个隐私交易的kv，对应特定的token类型
+	b.updatePrivacyCache(privacyKV, block.Height)
 
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight()
@@ -480,4 +499,63 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		chainlog.Debug("REORGANIZE: New best chain head is hash", "hash", common.ToHex(lastAttachNode.hash), "height", lastAttachNode.parent.height)
 	}
 	return nil
+}
+
+func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64) {
+	b.privacylock.Lock()
+	defer b.privacylock.Unlock()
+	//update privacy kv
+	//遍历每个隐私交易的kv，对应特定的token类型
+	for _, privacyKVToken := range privacyKV.PrivacyKVToken {
+		mapPrivacy4token, ok := b.privacyCache[privacyKVToken.Token]
+		if ok {
+			//遍历一个隐私交易下特定token下的kv，而每个kv则对应一个UTXO
+			for i, kv := range privacyKVToken.KV {
+				var keyOutput types.KeyOutput
+				types.Decode(kv.Value, &keyOutput)
+				outputKeyInfo := &privacyOutputKeyInfo{
+					onetimePubKey:keyOutput.Ometimepubkey,
+				}
+				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
+				if ok {
+					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i))
+					privacyOutputIndexLru.Add(key, outputKeyInfo)
+				} else {
+					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
+					if err != nil {
+						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
+						break;
+					}
+					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i))
+					privacyOutputIndexLru.Add(key, outputKeyInfo)
+					mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
+				}
+			}
+		} else {
+			mapPrivacy4token := make(map[int64]*simplelru.LRU)
+			for i, kv := range privacyKVToken.KV {
+				var keyOutput types.KeyOutput
+				types.Decode(kv.Value, &keyOutput)
+				outputKeyInfo := &privacyOutputKeyInfo{
+					onetimePubKey:keyOutput.Ometimepubkey,
+				}
+
+				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
+				if ok {
+					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i))
+					privacyOutputIndexLru.Add(key, outputKeyInfo)
+				} else {
+					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
+					if err != nil {
+						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
+						break;
+					}
+					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i))
+					privacyOutputIndexLru.Add(key, outputKeyInfo)
+					mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
+				}
+			}
+			b.privacyCache[privacyKVToken.Token] = mapPrivacy4token
+		}
+	}
 }

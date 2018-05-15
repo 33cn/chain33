@@ -131,6 +131,9 @@ var (
 	ErrIsClosed               = errors.New("ErrIsClosed")
 	ErrDecode                 = errors.New("ErrDecode")
 	ErrNotRollBack            = errors.New("ErrNotRollBack")
+	ErrNoUTXORec4Token        = errors.New("ErrNoUTXORec4Token")
+	ErrNoUTXORec4Amount       = errors.New("ErrNoUTXORec4Amount")
+	ErrNotEnoughUTXOs         = errors.New("ErrNotEnoughUTXOs")
 	//wallet
 	ErrInputPara            = errors.New("ErrInputPara")
 	ErrWalletIsLocked       = errors.New("ErrWalletIsLocked")
@@ -171,4 +174,5 @@ var (
 	ErrVersion    = errors.New("ErrVersionNoSupport")
 	ErrStreamPing = errors.New("ErrStreamPing")
 	ErrPeerStop   = errors.New("ErrPeerStop")
+
 )

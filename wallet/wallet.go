@@ -19,6 +19,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"unsafe"
@@ -52,6 +53,25 @@ type Wallet struct {
 	walletStore    *WalletStore
 	random         *rand.Rand
 	done           chan struct{}
+	privacyActive  map[string]map[string]*walletOuts //不同token类型对应的公开地址拥有的隐私存款记录，map【token】map【addr】
+	//privacyActive  map[string]*walletOuts //公开地址对应的隐私存款记录
+	privacyFrozen map[string]*walletOuts //公开地址对应的被冻结的隐私存款记录，需要确认该笔隐私存款被花费
+}
+
+type walletOuts struct {
+	outs []*txOutputInfo
+}
+
+type txOutputInfo struct {
+	// output info
+	amount            int64
+	//globalOutputIndex int
+	//indexInTx         int
+	utxoGlobalIndex *types.UTXOGlobalIndex
+	// transaction info
+	txHash           common.Hash
+	txPublicKeyR     privacy.PubKeyPrivacy
+	onetimePublicKey privacy.PubKeyPrivacy
 }
 
 type addrAndprivacy struct {
@@ -1447,45 +1467,100 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				walletlog.Error("ProcWalletAddBlock failed to decode payload")
 			}
 			var RpubKey []byte
-			var OnetimePubKey []byte
+			var privacyOutput *types.PrivacyOutput
 			var tokenname string
 			if types.ActionPublic2Privacy == privateAction.Ty {
 				RpubKey = privateAction.GetPublic2Privacy().GetRpubKeytx()
-				OnetimePubKey = privateAction.GetPublic2Privacy().GetOnetimePubKey()
+				privacyOutput = privateAction.GetPublic2Privacy().GetOutput()
 				tokenname = privateAction.GetPublic2Privacy().GetTokenname()
 			} else if types.ActionPrivacy2Privacy == privateAction.Ty {
 				RpubKey = privateAction.GetPrivacy2Privacy().GetRpubKeytx()
-				OnetimePubKey = privateAction.GetPrivacy2Privacy().GetOnetimePubKey()
+				privacyOutput = privateAction.GetPrivacy2Privacy().GetOutput()
 				tokenname = privateAction.GetPrivacy2Privacy().GetTokenname()
 			} else {
 				continue
 			}
 
 			if privacyInfo, err := wallet.getPrivacyKeyPairsOfWallet(); err == nil {
+				matchedCount := 0
 				for _, info := range privacyInfo {
 					walletlog.Debug("ProcWalletAddBlock", "individual privacyInfo's addr", *info.Addr)
 					privacykeyParirs := info.PrivacyKeyPair
 					walletlog.Debug("ProcWalletAddBlock", "individual ViewPubkey", common.Bytes2Hex(privacykeyParirs.ViewPubkey.Bytes()),
 						"individual SpendPubkey", common.Bytes2Hex(privacykeyParirs.SpendPubkey.Bytes()))
-					priv, err := privacy.RecoverOnetimePriKey(RpubKey, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey)
-					if err == nil {
-						recoverPub := priv.PubKey().Bytes()[:]
-						if bytes.Equal(recoverPub, OnetimePubKey) {
-							txhash := common.ToHex(tx.Hash())
-							walletlog.Debug("ProcWalletAddBlock got privacy tx belong to current wallet",
-								"Address", *info.Addr, "tx with hash", txhash, "Amount", amount)
+					matched4addr := false
+					for indexoutput, output := range privacyOutput.Keyoutput {
+						priv, err := privacy.RecoverOnetimePriKey(RpubKey, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(indexoutput))
+						if err == nil {
+							recoverPub := priv.PubKey().Bytes()[:]
+							if bytes.Equal(recoverPub, output.Ometimepubkey) {
+								//为了避免匹配成功之后不必要的验证计算，需要统计匹配次数
+								//因为目前只会往一个隐私账户转账，
+								//一般情况下，只会匹配一次，如果是往其他钱包账户转账，
+								//但是如果是往本钱包的其他地址转账，因为可能存在的change，会匹配2次
+								matched4addr = true
+								txhash := common.ToHex(tx.Hash())
+								walletlog.Debug("ProcWalletAddBlock got privacy tx belong to current wallet",
+									"Address", *info.Addr, "tx with hash", txhash, "Amount", amount)
+								info2store := &types.PrivacyDBStore{
+									Txhash:           txhash,
+									Tokenname:        tokenname,
+									Amount:           output.Amount,
+									IndexInTx:        int32(indexoutput),
+									TxPublicKeyR:     RpubKey,
+									OnetimePublicKey: output.Ometimepubkey,
+								}
 
-							onetimeAddr := account.PubKeyToAddress(recoverPub).String()
-							info2store := &types.PrivacyDBStore{
-								Onetimeaddr: onetimeAddr,
-								Txhash:      txhash,
-								Tokenname:   tokenname,
+								txOutInfo := &txOutputInfo{
+									amount:            output.Amount,
+									globalOutputIndex: 0,
+									indexInTx:         indexoutput,
+									txHash:            common.BytesToHash(tx.Hash()),
+									txPublicKeyR:      privacy.Bytes2PubKeyPrivacy(RpubKey),
+									onetimePublicKey:  privacy.Bytes2PubKeyPrivacy(output.Ometimepubkey),
+								}
+
+								//首先判断是否存在token对应的walletout
+								walletOuts4token, ok := wallet.privacyActive[tokenname]
+								if ok {
+									walletOuts4addr, ok := walletOuts4token[*info.Addr]
+									if ok {
+										walletOuts4addr.outs = append(walletOuts4addr.outs, txOutInfo)
+									} else {
+										var txOutputInfoSlice []*txOutputInfo
+										txOutputInfoSlice = append(txOutputInfoSlice, txOutInfo)
+										walletOuts := &walletOuts{
+											outs: txOutputInfoSlice,
+										}
+										walletOuts4token[*info.Addr] = walletOuts
+									}
+								} else {
+									var txOutputInfoSlice []*txOutputInfo
+									txOutputInfoSlice = append(txOutputInfoSlice, txOutInfo)
+									walletOuts := &walletOuts{
+										outs: txOutputInfoSlice,
+									}
+
+									walletOuts4tokenTemp := make(map[string]*walletOuts, 1)
+									walletOuts4tokenTemp[*info.Addr] = walletOuts
+									wallet.privacyActive[tokenname] = walletOuts4tokenTemp
+								}
+
+								wallet.walletStore.setWalletPrivacyAccountBalance(info.Addr, &txhash, info2store, newbatch, indexoutput)
 							}
-
-							wallet.walletStore.setWalletPrivacyAccountBalance(info.Addr, &txhash, info2store, newbatch)
-							wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, true)
 						}
 					}
+					if true == matched4addr {
+						matchedCount++
+						if 2 == matchedCount {
+							walletlog.Debug("ProcWalletAddBlock", "Get matched privacy transfer for address", *info.Addr,
+								"matchedCount", matchedCount)
+							break
+						}
+					}
+				}
+				if matchedCount > 0 {
+					wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, true)
 				}
 			}
 		}
