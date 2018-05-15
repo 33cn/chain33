@@ -12,13 +12,11 @@ import (
 )
 
 var (
-	configPath  = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
-	grpcAddress = "localhost:8802"
+	configPath = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
 )
 
 func init() {
 	cfg := config.InitCfg(*configPath)
-	cfg.GetRpc().GrpcBindAddr = grpcAddress
 	rpc.Init(cfg.Rpc)
 	log.SetLogLevel("crit")
 }
@@ -29,7 +27,8 @@ type MockLive interface {
 }
 
 type mockSystem struct {
-	MockLive
+	grpcMock  MockLive
+	jrpcMock  MockLive
 	q         queue.Queue
 	chain     *mockBlockChain
 	mem       *mockMempool
@@ -62,15 +61,21 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	mock.p2p = p2p
 	mock.consensus = consensus
 	mock.store = store
-	if mock.MockLive != nil {
-		mock.MockLive.OnStartup(mock)
+	if mock.grpcMock != nil {
+		mock.grpcMock.OnStartup(mock)
+	}
+	if mock.jrpcMock != nil {
+		mock.jrpcMock.OnStartup(mock)
 	}
 	return mock.getAPI()
 }
 
 func (mock *mockSystem) stop() {
-	if mock.MockLive != nil {
-		mock.MockLive.OnStop()
+	if mock.jrpcMock != nil {
+		mock.jrpcMock.OnStop()
+	}
+	if mock.grpcMock != nil {
+		mock.grpcMock.OnStop()
 	}
 	mock.chain.Close()
 	mock.mem.Close()
@@ -92,6 +97,7 @@ type mockJRPCSystem struct {
 }
 
 func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
+	println("=============jrpc====")
 	mock.japi = rpc.NewJSONRPCServer(m.q.Client())
 	ch := make(chan struct{}, 1)
 	go func() {
@@ -123,6 +129,7 @@ type mockGRPCSystem struct {
 }
 
 func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
+	println("=============grpc====")
 	mock.gapi = rpc.NewGRpcServer(m.q.Client())
 	ch := make(chan struct{}, 1)
 	go func() {

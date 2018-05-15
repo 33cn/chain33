@@ -84,7 +84,7 @@ func NewGRpcCtx(method string, params, res interface{}) *GrpcCtx {
 }
 
 func (c *GrpcCtx) Run() (err error) {
-	conn, err := grpc.Dial(grpcAddress, grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
