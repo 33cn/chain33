@@ -334,6 +334,9 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 			"current", printBInt(currentdiff), "taget", printBInt(target))
 		return types.ErrCoinBaseTarget
 	}
+	if current.Block.Size() > int(types.MaxBlockSize) {
+		return types.ErrBlockSize
+	}
 	return nil
 }
 
