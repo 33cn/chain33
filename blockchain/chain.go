@@ -14,6 +14,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/hashicorp/golang-lru/simplelru"
+	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 var (
@@ -27,17 +29,23 @@ var (
 	chainlog = log.New("module", "blockchain")
 )
 
+type privacyOutputKeyInfo struct {
+	onetimePubKey []byte
+}
+
 type BlockChain struct {
 	client queue.Client
 	// 永久存储数据到db中
 	blockStore *BlockStore
 	//cache  缓存block方便快速查询
-	cache      map[int64]*list.Element
-	cacheSize  int64
-	cacheQueue *list.List
-	cfg        *types.BlockChain
-	task       *Task
-	query      *Query
+	cache        map[int64]*list.Element
+	cacheSize    int64
+	cacheQueue   *list.List
+	cfg          *types.BlockChain
+	task         *Task
+	query        *Query
+	privacyCache map[string]map[int64]*simplelru.LRU //map[token]map[amount]*privacyOutputIndex
+	privacylock        sync.RWMutex
 
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
@@ -82,6 +90,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		synBlockHeight:     -1,
 		peerList:           nil,
 		cfg:                cfg,
+		privacyCache:       make(map[string]map[int64]*simplelru.LRU),
 		recvwg:             &sync.WaitGroup{},
 		task:               newTask(160 * time.Second),
 		quit:               make(chan struct{}, 0),
@@ -598,6 +607,79 @@ func (chain *BlockChain) procgetPrivacyTransaction(reqPrivacy *types.ReqPrivacy)
 		return nil, err
 	}
 	return txinfos.(*types.ReplyTxInfos), nil
+}
+
+func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXOGlobalIndex) (*types.ResUTXOGlobalIndex, error) {
+	chain.privacylock.Lock()
+	defer chain.privacylock.Unlock()
+
+	if reqUTXOGlobalIndex.MixCount <= 0 || 0 == len(reqUTXOGlobalIndex.Amount) {
+		chainlog.Error("ProcGetGlobalIndexMsg count err", "MixCount", reqUTXOGlobalIndex.MixCount,
+			"len(reqUTXOGlobalIndex.Amount)", len(reqUTXOGlobalIndex.Amount))
+		return nil, types.ErrInputPara
+	}
+
+	privacyCache, ok := chain.privacyCache[reqUTXOGlobalIndex.Tokenname]
+	if !ok {
+		chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No UTXO existed for token", reqUTXOGlobalIndex.Tokenname)
+		return nil, types.ErrNoUTXORec4Token
+	}
+
+	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
+	resUTXOGlobalIndex.Tokenname = reqUTXOGlobalIndex.Tokenname
+	resUTXOGlobalIndex.MixCount  = reqUTXOGlobalIndex.MixCount
+	for _, amount := range reqUTXOGlobalIndex.Amount {
+		utxos, ok := privacyCache[amount]
+		if !ok {
+			chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No UTXO existed for token's amount", amount,
+				"Token is", reqUTXOGlobalIndex.Tokenname)
+			return nil, types.ErrNoUTXORec4Amount
+		}
+
+		keys := utxos.Keys()
+		if int32(len(keys)) < reqUTXOGlobalIndex.MixCount {
+			chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No enough UTXO existed for token's amount", amount,
+				"Token is", reqUTXOGlobalIndex.Tokenname, "minin count", reqUTXOGlobalIndex.MixCount,
+					"actually total keys", len(keys))
+			return nil, types.ErrNotEnoughUTXOs
+		}
+
+		index := len(keys) - 1
+		currentHeight := chain.GetBlockHeight()
+		for ; index >= 0; index-- {
+			key := keys[index]
+			//要求是经过了12个块确认的UTXO才能被使用
+			if key.(*types.UTXOGlobalIndex).Height + types.ConfirmedHeight <= currentHeight {
+				break;
+			}
+		}
+		if int32(index + 1) >=  reqUTXOGlobalIndex.MixCount {
+			utxoIndex4Amount := &types.UTXOIndex4Amount{
+				Amount: amount,
+			}
+
+			stopindex := int(index - int(reqUTXOGlobalIndex.MixCount))
+			for ; index > stopindex; index-- {
+				key := keys[index]
+				value, _ := utxos.Get(key)
+				utxo := &types.UTXO{
+					UtxoGlobalIndex:key.(*types.UTXOGlobalIndex),
+					OnetimePubkey:value.(privacyOutputKeyInfo).onetimePubKey,
+				}
+				utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
+
+			}
+			resUTXOGlobalIndex.UtxoIndex4Amount =  append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
+
+
+		} else {
+			chainlog.Error("ProcGetGlobalIndexMsg", "No enough same amout UTXO available for amout", amount,
+				"required mix count", reqUTXOGlobalIndex.MixCount, "Actually count within confirmed height is", index + 1)
+			return nil, types.ErrNotEnoughUTXOs
+		}
+	}
+
+	return resUTXOGlobalIndex, nil
 }
 
 //type TransactionDetails struct {

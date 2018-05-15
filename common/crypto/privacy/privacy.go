@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	"io"
 	"unsafe"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
@@ -34,6 +35,7 @@ type sigcomm struct {
 }
 //
 type sigcommArray [32 * 3]byte
+type KeyImage [32]byte
 
 var (
 	ErrViewPub       = errors.New("ErrViewPub")
@@ -48,8 +50,8 @@ var privacylog = log.New("module", "crypto.privacy")
 //////////////
 func NewPrivacy() *Privacy {
 	privacy := &Privacy{}
-	generateKeyPair(&privacy.SpendPrivKey, &privacy.SpendPubkey)
-	generateKeyPair(&privacy.ViewPrivKey, &privacy.ViewPubkey)
+	GenerateKeyPair(&privacy.SpendPrivKey, &privacy.SpendPubkey)
+	GenerateKeyPair(&privacy.ViewPrivKey, &privacy.ViewPubkey)
 
 	return privacy
 }
@@ -74,21 +76,18 @@ func NewPrivacyWithPrivKey(privKey *[KeyLen32]byte) (privacy *Privacy, err error
 }
 
 //(A, B) => Hs(rA)G + B, rG=>R
-func GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicKey *[32]byte, errInfo error) {
-	pk := &PubKeyPrivacy{}
-	sk := &PrivKeyPrivacy{}
-	generateKeyPair(sk, pk)
-	RtxPublicKey = (*[KeyLen32]byte)(unsafe.Pointer(pk))
+//func GenerateOneTimeAddr(viewPub, spendPub, skAddr32 *[32]byte, outputIndex int64) (pubkeyOnetime, RtxPublicKey *[32]byte, errInfo error) {
+func GenerateOneTimeAddr(viewPub, spendPub, skAddr32 *[32]byte, outputIndex int64) (pubkeyOnetime *[32]byte, errInfo error) {
 
 	//to calculate rA
 	var point edwards25519.ExtendedGroupElement
 	if res := point.FromBytes(viewPub); !res {
-		return nil, nil, ErrViewPub
+		return nil, ErrViewPub
 	}
-	skAddr32 := (*[KeyLen32]byte)(unsafe.Pointer(sk))
+	//skAddr32 := (*[KeyLen32]byte)(unsafe.Pointer(sk))
 	if !edwards25519.ScCheck(skAddr32) {
 		privacylog.Error("xxx GenerateOneTimeAddr Fail to do edwards25519.ScCheck with sk \n")
-		return nil, nil, ErrViewSecret
+		return nil, ErrViewSecret
 	}
 	var point2 edwards25519.ProjectiveGroupElement
 	zeroValue := &[32]byte{}
@@ -103,10 +102,10 @@ func GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicK
 	//to calculate Hs(rA)G + B
 	var B edwards25519.ExtendedGroupElement //A
 	if res := B.FromBytes(spendPub); !res {
-		return nil, nil, ErrSpendPub
+		return  nil, ErrSpendPub
 	}
 	//Hs(rA)
-	Hs_rA := derivation2scalar(rA, 0)
+	Hs_rA := derivation2scalar(rA, outputIndex)
 
 	var A edwards25519.ExtendedGroupElement
 	edwards25519.GeScalarMultBase(&A, Hs_rA)
@@ -127,7 +126,7 @@ func GenerateOneTimeAddr(viewPub, spendPub *[32]byte) (pubkeyOnetime, RtxPublicK
 }
 
 //calculate Hs(aR) + b
-func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (PrivKey, error) {
+func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey, outputIndex int64) (PrivKey, error) {
 	var viewSecAddr, spendSecAddr, RtxPubAddr *[32]byte
 	viewSecAddr = (*[32]byte)(unsafe.Pointer(&viewSecretKey.Bytes()[0]))
 	spendSecAddr = (*[32]byte)(unsafe.Pointer(&spendSecretKey.Bytes()[0]))
@@ -161,7 +160,7 @@ func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (Priv
 
 	//2rd to calculate Hs(aR) + b
 	//Hs(aR)
-	Hs_aR := derivation2scalar(aR, 0)
+	Hs_aR := derivation2scalar(aR, outputIndex)
 
 	//TODO:代码疑问
 	//var onetimePriKey PrivKeyEd25519
@@ -177,7 +176,19 @@ func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey) (Priv
 	return prikey, nil
 }
 
-func generateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) {
+func GenerateKeyImage(onetimeSk PrivKey, onetimePk PubKey) *KeyImage {
+	keyImage := &KeyImage{}
+
+	return keyImage
+
+}
+
+func GenerateRingSignature(utxos []*types.UTXO, realUtxoIndex int) Signature {
+
+	return
+}
+
+func GenerateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) {
 	copy(privKeyPrivacyPtr[:PrivateKeyLen], CRandBytes(PrivateKeyLen))
 
 	addr32 := (*[KeyLen32]byte)(unsafe.Pointer(privKeyPrivacyPtr))

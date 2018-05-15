@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"unsafe"
 	"gitlab.33.cn/chain33/chain33/common"
+	"fmt"
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
@@ -816,10 +817,10 @@ func (wallet *Wallet) transPub2Pri(priv crypto.PrivKey, reqPub2Pri *types.ReqPub
 		return nil, err
 	}
 	value := &types.Public2Privacy{
-		Tokenname:   reqPub2Pri.Tokenname,
-		Amount:      reqPub2Pri.Amount,
-		Note:        reqPub2Pri.Note,
-		RpubKeytx:   txPublicKey[:],
+		Tokenname:     reqPub2Pri.Tokenname,
+		Amount:        reqPub2Pri.Amount,
+		Note:          reqPub2Pri.Note,
+		RpubKeytx:     txPublicKey[:],
 		OnetimePubKey: pubkeyOnetime[:],
 	}
 	action := &types.PrivacyAction{
@@ -861,7 +862,7 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPublicSlice[0]))
 	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPublicSlice[0]))
 
-	walletlog.Info("transPri2Pri", "viewPublic", viewPublic, "spendPublic", spendPublic,)
+	walletlog.Info("transPri2Pri", "viewPublic", viewPublic, "spendPublic", spendPublic, )
 
 	pubkeyOnetime, txPublicKey, err := privacy.GenerateOneTimeAddr(viewPublic, spendPublic)
 	if err != nil {
@@ -869,10 +870,10 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 		return nil, err
 	}
 	value := &types.Privacy2Privacy{
-		Tokenname:   reqPri2Pri.Tokenname,
-		Amount:      reqPri2Pri.Amount,
-		Note:        reqPri2Pri.Note,
-		RpubKeytx:   txPublicKey[:],
+		Tokenname:     reqPri2Pri.Tokenname,
+		Amount:        reqPri2Pri.Amount,
+		Note:          reqPri2Pri.Note,
+		RpubKeytx:     txPublicKey[:],
 		OnetimePubKey: pubkeyOnetime[:],
 	}
 	action := &types.PrivacyAction{
@@ -921,9 +922,9 @@ func (wallet *Wallet) transPri2Pri(privacykeyParirs *privacy.Privacy, reqPri2Pri
 
 func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub *types.ReqPri2Pub) (*types.ReplyHash, error) {
 	value := &types.Privacy2Public{
-		Tokenname:   reqPri2Pub.Tokenname,
-		Amount:      reqPri2Pub.Amount,
-		Note:        reqPri2Pub.Note,
+		Tokenname: reqPri2Pub.Tokenname,
+		Amount:    reqPri2Pub.Amount,
+		Note:      reqPri2Pub.Note,
 	}
 	action := &types.PrivacyAction{
 		Ty:    types.ActionPrivacy2Public,
@@ -937,7 +938,7 @@ func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub
 		Nonce:   wallet.random.Int63(),
 		To:      reqPri2Pub.Receiver,
 	}
-    //获取隐私交易的tx public key
+	//获取隐私交易的tx public key
 	R, err := wallet.GetRofPrivateTx(&reqPri2Pub.Txhash)
 	if err != nil {
 		return nil, err
@@ -966,7 +967,7 @@ func (wallet *Wallet) transPri2Pub(privacykeyParirs *privacy.Privacy, reqPri2Pub
 	return &hash, nil
 }
 
-func (wallet *Wallet) GetRofPrivateTx(txhashptr *string)(R_txpubkey []byte, err error) {
+func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err error) {
 	txhash, err := common.FromHex(*txhashptr)
 	if err != nil {
 		walletlog.Error("GetRofPrivateTx common.FromHex", "err", err)
@@ -1026,5 +1027,3 @@ func convertPubPairstr2bytes(viewPub, spendPub *string) (viewPubSlice, spendPubS
 
 	return
 }
-
-

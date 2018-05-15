@@ -31,6 +31,9 @@ It has these top-level messages:
 	BlockOverview
 	BlockDetail
 	Receipts
+	PrivacyKV
+	PrivacyKVToken
+	ReceiptsAndPrivacyKV
 	ReceiptCheckTxList
 	ChainStatus
 	ReqBlocks
@@ -147,6 +150,11 @@ It has these top-level messages:
 	Public2Privacy
 	Privacy2Privacy
 	Privacy2Public
+	UTXOGlobalIndex
+	KeyInput
+	PrivacyInput
+	KeyOutput
+	PrivacyOutput
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -230,6 +238,10 @@ It has these top-level messages:
 	ReplyPrivacyBalance
 	PrivacyDBStore
 	PrivacyOnetimeAccInfo
+	ReqUTXOGlobalIndex
+	UTXO
+	UTXOIndex4Amount
+	ResUTXOGlobalIndex
 */
 package types
 
