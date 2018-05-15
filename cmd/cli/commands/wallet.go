@@ -308,7 +308,10 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
-	ctx.RunWithoutMarshal()
+	res, err := ctx.RunWithoutMarshal()
+	if err == nil {
+		fmt.Println(res)
+	}
 }
 
 // set tx fee

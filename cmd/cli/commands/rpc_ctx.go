@@ -67,19 +67,19 @@ func (c *RpcCtx) Run() {
 	fmt.Println(string(data))
 }
 
-func (c *RpcCtx) RunWithoutMarshal() {
+func (c *RpcCtx) RunWithoutMarshal() (string, error) {
 	var res string
 	rpc, err := jsonrpc.NewJSONClient(c.Addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		return "", err
 	}
 
 	err = rpc.Call(c.Method, c.Params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		return "", err
 	}
 
-	fmt.Println(res)
+	return res, nil
 }
