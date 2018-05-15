@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"os"
 	"testing"
 
 	"gitlab.33.cn/chain33/chain33/client"
@@ -8,11 +9,23 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func TestCoordinator(t *testing.T) {
-	var mock mockSystem
-	api := mock.startup(0)
-	defer mock.stop()
+var (
+	mock     mockSystem
+	api      client.QueueProtocolAPI
+	jrpc     mockJRPCSystem
+	grpcMock mockGRPCSystem
+)
 
+func TestMain(m *testing.M) {
+	mock.grpcMock = &grpcMock
+	mock.jrpcMock = &jrpc
+	api = mock.startup(0)
+	flag := m.Run()
+	mock.stop()
+	os.Exit(flag)
+}
+
+func TestCoordinator(t *testing.T) {
 	testSendTx(t, api)
 	testGetTxList(t, api)
 	testGetBlocks(t, api)
@@ -304,12 +317,6 @@ func testSendTx(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func TestJsonRPC(t *testing.T) {
-	var mock mockSystem
-	var jrpc mockJRPCSystem
-	mock.MockLive = &jrpc
-	mock.startup(0)
-	defer mock.stop()
-
 	testGetBlocksJsonRPC(t, &jrpc)
 	testGetBlockOverviewJsonRPC(t, &jrpc)
 	testGetBlockHashJsonRPC(t, &jrpc)
@@ -435,7 +442,7 @@ func testGetHeadersCmdJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	params := types.ReqBlocks{
 		Start:    1,
 		End:      1,
-		Isdetail: true,
+		IsDetail: true,
 	}
 
 	var res lt.Headers
@@ -487,53 +494,47 @@ func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func TestGRPC(t *testing.T) {
-	var mock mockSystem
-	var grpc mockGRPCSystem
-	mock.MockLive = &grpc
-	mock.startup(0)
 
-	defer mock.stop()
-
-	testSendTxGRPC(t, &grpc)
-	testGetBlocksGRPC(t, &grpc)
-	testGetLastHeaderGRPC(t, &grpc)
-	testCreateRawTransactionGRPC(t, &grpc)
-	testSendRawTransactionGRPC(t, &grpc)
-	testQueryTransactionGRPC(t, &grpc)
-	testSendTransactionGRPC(t, &grpc)
-	testGetTransactionByAddrGRPC(t, &grpc)
-	testGetTransactionByHashesGRPC(t, &grpc)
-	testGetMemPoolGRPC(t, &grpc)
-	testGetAccountsGRPC(t, &grpc)
-	testNewAccountGRPC(t, &grpc)
-	testWalletTransactionListGRPC(t, &grpc)
-	testImportPrivKeyGRPC(t, &grpc)
-	testSendToAddressGRPC(t, &grpc)
-	testSetTxFeeGRPC(t, &grpc)
-	testSetLablGRPC(t, &grpc)
-	testMergeBalanceGRPC(t, &grpc)
-	testSetPasswdGRPC(t, &grpc)
-	testLockGRPC(t, &grpc)
-	testUnLockGRPC(t, &grpc)
-	testGetPeerInfoGRPC(t, &grpc)
-	testGetLastMemPoolGRPC(t, &grpc)
-	testGetWalletStatusGRPC(t, &grpc)
-	testGetBlockOverviewGRPC(t, &grpc)
-	testGetAddrOverviewGRPC(t, &grpc)
-	testGetBlockHashGRPC(t, &grpc)
-	testGenSeedGRPC(t, &grpc)
-	testGetSeedGRPC(t, &grpc)
-	testSaveSeedGRPC(t, &grpc)
-	testGetBalanceGRPC(t, &grpc)
-	testQueryChainGRPC(t, &grpc)
-	testSetAutoMiningGRPC(t, &grpc)
-	testGetHexTxByHashGRPC(t, &grpc)
-	testGetTicketCountGRPC(t, &grpc)
-	testDumpPrivkeyGRPC(t, &grpc)
-	testVersionGRPC(t, &grpc)
-	testIsSyncGRPC(t, &grpc)
-	testIsNtpClockSyncGRPC(t, &grpc)
-	testNetInfoGRPC(t, &grpc)
+	testSendTxGRPC(t, &grpcMock)
+	testGetBlocksGRPC(t, &grpcMock)
+	testGetLastHeaderGRPC(t, &grpcMock)
+	testCreateRawTransactionGRPC(t, &grpcMock)
+	testSendRawTransactionGRPC(t, &grpcMock)
+	testQueryTransactionGRPC(t, &grpcMock)
+	testSendTransactionGRPC(t, &grpcMock)
+	testGetTransactionByAddrGRPC(t, &grpcMock)
+	testGetTransactionByHashesGRPC(t, &grpcMock)
+	testGetMemPoolGRPC(t, &grpcMock)
+	testGetAccountsGRPC(t, &grpcMock)
+	testNewAccountGRPC(t, &grpcMock)
+	testWalletTransactionListGRPC(t, &grpcMock)
+	testImportPrivKeyGRPC(t, &grpcMock)
+	testSendToAddressGRPC(t, &grpcMock)
+	testSetTxFeeGRPC(t, &grpcMock)
+	testSetLablGRPC(t, &grpcMock)
+	testMergeBalanceGRPC(t, &grpcMock)
+	testSetPasswdGRPC(t, &grpcMock)
+	testLockGRPC(t, &grpcMock)
+	testUnLockGRPC(t, &grpcMock)
+	testGetPeerInfoGRPC(t, &grpcMock)
+	testGetLastMemPoolGRPC(t, &grpcMock)
+	testGetWalletStatusGRPC(t, &grpcMock)
+	testGetBlockOverviewGRPC(t, &grpcMock)
+	testGetAddrOverviewGRPC(t, &grpcMock)
+	testGetBlockHashGRPC(t, &grpcMock)
+	testGenSeedGRPC(t, &grpcMock)
+	testGetSeedGRPC(t, &grpcMock)
+	testSaveSeedGRPC(t, &grpcMock)
+	testGetBalanceGRPC(t, &grpcMock)
+	testQueryChainGRPC(t, &grpcMock)
+	testSetAutoMiningGRPC(t, &grpcMock)
+	testGetHexTxByHashGRPC(t, &grpcMock)
+	testGetTicketCountGRPC(t, &grpcMock)
+	testDumpPrivkeyGRPC(t, &grpcMock)
+	testVersionGRPC(t, &grpcMock)
+	testIsSyncGRPC(t, &grpcMock)
+	testIsNtpClockSyncGRPC(t, &grpcMock)
+	testNetInfoGRPC(t, &grpcMock)
 }
 
 func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
