@@ -1,8 +1,6 @@
 package state
 
 import (
-	"math/big"
-
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 )
@@ -16,11 +14,11 @@ type StateDB interface {
 	CreateAccount(common.Address)
 
 	// 从从指定地址扣除金额
-	SubBalance(common.Address, *big.Int)
+	SubBalance(common.Address,common.Address,uint64)
 	// 向指定地址增加金额
-	AddBalance(common.Address, *big.Int)
+	AddBalance(common.Address,common.Address, uint64)
 	// 获取指定地址的余额
-	GetBalance(common.Address) *big.Int
+	GetBalance(common.Address) uint64
 
 	// 获取nonce值（只有合约对象有，外部对象为0）
 	GetNonce(common.Address) uint64
@@ -67,7 +65,7 @@ type StateDB interface {
 	AddPreimage(common.Hash, []byte)
 
 	// 当前账户余额是否足够转账
-	CanTransfer(addr common.Address, amount *big.Int) bool
+	CanTransfer(addr common.Address, amount uint64) bool
 	// 转账交易
-	Transfer(sender, recipient common.Address, amount *big.Int)
+	Transfer(sender, recipient common.Address, amount uint64)
 }

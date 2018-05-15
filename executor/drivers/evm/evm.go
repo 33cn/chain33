@@ -3,13 +3,14 @@ package evm
 import (
 	"math/big"
 
-	"encoding/binary"
 	"encoding/hex"
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
@@ -20,26 +21,23 @@ import (
 const (
 	// 交易payload中，前8个字节固定存储转账信息
 	BALANCE_SIZE = 8
-	// 在一个交易中，GasLimit设置为交易费用的倍数(整数)
-	TX_GAS_TIMES_FEE = 2
 )
 
 var (
-	GasPrice = big.NewInt(1)
-	//目前这里先用默认配置，后面在增加具体实现
+	//目前这里先用默认配置，后面在增加具体实现 TODO
 	VMConfig = &runtime.Config{}
 )
 
 // EVM执行器结构
 type EVMExecutor struct {
 	drivers.DriverBase
-	vmCfg *runtime.Config
-
+	vmCfg    *runtime.Config
 	mStateDB *state.MemoryStateDB
 }
 
 func Init() {
 	evm := NewEVMExecutor()
+
 	// TODO 注册的驱动高度需要更新为上线时的正确高度
 	drivers.Register(evm.GetName(), evm, 0)
 }
@@ -58,7 +56,7 @@ func NewEVMExecutor() *EVMExecutor {
 }
 
 func (evm *EVMExecutor) GetName() string {
-	return "evm"
+	return "user.evm"
 }
 
 func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficulty uint64) {
@@ -82,13 +80,28 @@ func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficu
 	// 两者都和上次的设置相同，不需要任何操作
 }
 
+// 生成一个新的合约对象地址
+func (evm *EVMExecutor) getNewAddr(env *runtime.EVM) *common.Address {
+	var addr *common.Address
+	for count := 0; count < 10; count++ {
+		addr = crypto.RandomContractAddress()
+		if env.StateDB.Empty(*addr) {
+			return addr
+		}
+	}
+	return nil
+}
+
 // 在区块上的执行操作，同一个区块内的多个交易会循环调用此方法进行处理；
 // 返回的结果types.Receipt数据，将会被统一写入到本地状态数据库中；
 // 本操作返回的ReceiptLog数据，在后面调用ExecLocal时会被传入，同样ExecLocal返回的数据将会被写入blockchain.db；
 // FIXME 目前evm执行器暂时没有ExecLocal，执行默认逻辑，后面根据需要再考虑增加；
 func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	// 先转换消息
-	msg := evm.GetMessage(tx)
+	msg, err := evm.GetMessage(tx)
+	if err != nil {
+		return nil, err
+	}
 
 	// 获取当前区块的上下文信息构造EVM上下文
 	context := evm.NewEVMContext(msg)
@@ -99,80 +112,91 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	isCreate := msg.To() == nil
 
 	var (
-		ret         = []byte("")
-		vmerr       error
-		leftOverGas = uint64(0)
-		addr        common.Address
+		ret          = []byte("")
+		vmerr        error
+		leftOverGas  = uint64(0)
+		contractAddr common.Address
+		snapshot     = -1
 	)
+
+	// 为了方便计费，即使合约为新生成，也将地址的初始化放到外面操作
+	if isCreate {
+		// 使用随机生成的地址作为合约地址（这个可以保证每次创建的合约地址不会重复，不存在冲突的情况）
+		newAddr := evm.getNewAddr(env)
+		if newAddr == nil {
+			return nil, model.ErrContractAddressCollision
+		}
+		contractAddr = *newAddr
+	} else {
+		contractAddr = *msg.To()
+	}
 
 	// 状态机中设置当前交易状态
 	evm.mStateDB.Prepare(common.BytesToHash(tx.Hash()), index)
 
-	// 合约执行之前，预先扣除GasLimit费用
-	evm.mStateDB.SubBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(msg.GasLimit())), msg.GasPrice()))
-
 	if isCreate {
-		ret, addr, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), msg.Data(), context.GasLimit, msg.Value())
+		ret, snapshot, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, msg.Value())
 	} else {
-		addr = *msg.To()
-		ret, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
+
+		ret, snapshot, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
 	}
 
-	if vmerr != nil {
-		log.Info("VM returned with error", "err", vmerr)
-
-		// 只有在出现账户余额不足的时候，才认为是有效的的错误
-		// 其它错误情况目前不需要处理
-		if vmerr == model.ErrInsufficientBalance {
-			log.Error("evm contract error", vmerr)
-			return nil, vmerr
-		}
-	}
-
-	// 根据真实使用的Gas，将多余的费用返还
-	// 此处将合约执行过程中给予的奖励也一并返还
-	refundGas := leftOverGas + evm.mStateDB.GetRefund()
-	evm.mStateDB.AddBalance(msg.From(), big.NewInt(1).Mul(big.NewInt(int64(refundGas)), msg.GasPrice()))
-
-	// 计算消耗了多少Gas
-	// 注意：这里和以太坊EVM计费有几处不同：
-	// 1. GasPrice 始终为1，不支持动态调整  TODO 后继版本考虑支持动态调整
-	// 2. 不计算IntrinsicGas，即合约代码的存储字节计费以及合约创建或调用动作本身的计费
-	// 3. 因为前面计费内容较少，不考虑单独的refund奖励（合约执行过程中给予的refund支持返还）
-	usedGas := msg.GasLimit() - refundGas
-
-	// 将消耗的费用奖励给区块作者
-	if context.Coinbase != common.EmptyAddress() {
-		evm.mStateDB.AddBalance(context.Coinbase, big.NewInt(1).Mul(big.NewInt(int64(usedGas)), msg.GasPrice()))
-	}
-
+	usedGas := msg.GasLimit() - leftOverGas
 	logMsg := "call contract details:"
 	if isCreate {
 		logMsg = "create contract details:"
 	}
 
-	log.Info(logMsg, "caller address", msg.From().Str(), "contract address", addr.Str(), "usedGas", usedGas, "return data", hex.EncodeToString(ret))
+	log.Debug(logMsg, "caller address", msg.From().Str(), "contract address", contractAddr.Str(), "usedGas", usedGas, "return data", hex.EncodeToString(ret))
+
+	if vmerr != nil {
+		log.Error("evm contract exec error", "error info", vmerr)
+		return nil, vmerr
+
+	} else {
+		// 计算消耗了多少费用（实际消耗的费用）
+		usedFee, overflow := common.SafeMul(usedGas, uint64(msg.GasPrice()))
+		if overflow || usedFee > uint64(tx.Fee) {
+			// 费用消耗溢出，执行失败
+			curVer := evm.mStateDB.GetLastSnapshot()
+
+			// 如果操作没有回滚，则在这里处理
+			if snapshot >= curVer && curVer > -1 {
+				evm.mStateDB.RevertToSnapshot(snapshot)
+			}
+
+			return nil, model.ErrOutOfGas
+		}
+	}
 
 	// 打印合约中生成的日志
 	evm.mStateDB.PrintLogs()
 
-	// 这里还需要再进行其它错误的判断（余额不足的错误，前面已经返回）
-	// 因为其它情况的错误，即使合约执行失败，也消耗了资源，调用者需要为此支付费用(其实在本交易回滚时，不会扣除用户的任何费用)
-	if vmerr != nil {
-		log.Error("evm contract exec error", "error info",vmerr)
-		return nil, vmerr
-	}
-
 	// 从状态机中获取数据变更和变更日志
 	data, logs := evm.mStateDB.GetChangedData(evm.mStateDB.GetLastSnapshot())
 	if logs != nil {
-		logs = append(logs, evm.mStateDB.GetReceiptLogs(addr, isCreate)...)
+		logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr, isCreate)...)
 	}
-	if data != nil {
-		receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
-		return receipt, nil
+	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
+	return receipt, nil
+}
+
+func (evm *EVMExecutor) processFee(tx *types.Transaction) (*types.Receipt, error) {
+	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	accFrom := evm.GetCoinsAccount().LoadAccount(from)
+	if accFrom.GetBalance()-tx.Fee >= 0 {
+		copyfrom := *accFrom
+		accFrom.Balance = accFrom.GetBalance() - tx.Fee
+		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
+		evm.GetCoinsAccount().SaveAccount(accFrom)
+		return evm.cutFeeReceipt(accFrom, receiptBalance), nil
 	}
-	return nil,nil
+	return nil, types.ErrNoBalance
+}
+
+func (evm *EVMExecutor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
+	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
+	return &types.Receipt{types.ExecPack, evm.GetCoinsAccount().GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
 func (evm *EVMExecutor) GetMStateDB() *state.MemoryStateDB {
@@ -184,7 +208,12 @@ func (evm *EVMExecutor) GetVMConfig() *runtime.Config {
 }
 
 // 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
-func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg common.Message) {
+func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg *common.Message, err error) {
+	var action model.ContractAction
+	err = types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
 
 	// 此处暂时不考虑消息发送签名的处理，chain33在mempool中对签名做了检查
 	from := getCaller(tx)
@@ -192,16 +221,25 @@ func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg common.Message) {
 
 	// 注意Transaction中的payload内容同时包含转账金额和合约代码
 	// payload[:8]为转账金额，payload[8:]为合约代码
-	amount := binary.BigEndian.Uint64(tx.Payload[:BALANCE_SIZE])
+	amount := action.Amount
+	gasLimit := action.GasLimit
+	gasPrice := action.GasPrice
+	code := action.Code
 
-	gasLimit := uint64(tx.Fee * TX_GAS_TIMES_FEE)
+	if gasLimit == 0 {
+		gasLimit = uint64(tx.Fee)
+	}
+	if gasPrice == 0 {
+		gasPrice = uint32(1)
+	}
+
 	// 合约的GasLimit即为调用者为本次合约调用准备支付的手续费
-	msg = common.NewMessage(from, to, uint64(tx.Nonce), big.NewInt(int64(amount)), gasLimit, GasPrice, tx.Payload[BALANCE_SIZE:], false)
-	return msg
+	msg = common.NewMessage(from, to, tx.Nonce, amount, gasLimit, gasPrice, code)
+	return msg, nil
 }
 
 // 构造一个新的EVM上下文对象
-func (evm *EVMExecutor) NewEVMContext(msg common.Message) runtime.Context {
+func (evm *EVMExecutor) NewEVMContext(msg *common.Message) runtime.Context {
 	return runtime.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
@@ -212,7 +250,7 @@ func (evm *EVMExecutor) NewEVMContext(msg common.Message) runtime.Context {
 		Time:        new(big.Int).SetInt64(evm.GetBlockTime()),
 		Difficulty:  new(big.Int).SetUint64(evm.GetDifficulty()),
 		GasLimit:    msg.GasLimit(),
-		GasPrice:    new(big.Int).Set(msg.GasPrice()),
+		GasPrice:    msg.GasPrice(),
 	}
 }
 
@@ -231,18 +269,13 @@ func getReceiver(tx *types.Transaction) *common.Address {
 }
 
 // 检查合约调用账户是否有充足的金额进行转账交易操作
-func CanTransfer(db state.StateDB, addr common.Address, amount *big.Int) bool {
-	if amount.Uint64() == 0 {
-		return true
-	}
+func CanTransfer(db state.StateDB, addr common.Address, amount uint64) bool {
 	return db.CanTransfer(addr, amount)
 }
 
 // 在内存数据库中执行转账操作（只修改内存中的金额）
-func Transfer(db state.StateDB, sender, recipient common.Address, amount *big.Int) {
-	if amount.Uint64() == 0 {
-		return
-	}
+// 从外部账户地址到合约账户地址
+func Transfer(db state.StateDB, sender, recipient common.Address, amount uint64) {
 	db.Transfer(sender, recipient, amount)
 }
 

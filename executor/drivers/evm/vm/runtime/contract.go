@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"math/big"
 )
 
 // 合约对象引用
@@ -46,7 +45,7 @@ type Contract struct {
 	Gas   uint64
 
 	// 合约调用的同时，如果包含转账逻辑，则此处为转账金额
-	value *big.Int
+	value uint64
 
 	// 委托调用时，此属性会被设置为true
 	DelegateCall bool
@@ -54,7 +53,7 @@ type Contract struct {
 
 // 创建一个新的合约调用对象
 // 不管合约是否存在，每次调用时都会新创建一个合约对象交给解释器执行，对象持有合约代码和合约地址
-func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
+func NewContract(caller ContractRef, object ContractRef, value uint64, gas uint64) *Contract {
 
 	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object}
 
@@ -126,7 +125,7 @@ func (c *Contract) Address() common.Address {
 }
 
 // 合约包含转账逻辑时，转账的金额
-func (c *Contract) Value() *big.Int {
+func (c *Contract) Value() uint64 {
 	return c.value
 }
 
