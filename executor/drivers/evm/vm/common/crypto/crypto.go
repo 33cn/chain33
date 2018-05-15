@@ -41,7 +41,7 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 
 
 // 随机生成一个新的地址，给新创建的合约地址使用
-func RandomAddress() *common.Address {
+func RandomContractAddress() *common.Address {
 	c, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
 		return nil
@@ -52,8 +52,8 @@ func RandomAddress() *common.Address {
 	}
 
 	acc := account.PubKeyToAddress(key.PubKey().Bytes())
-	addr := common.StringToAddress(acc.String())
-	return &addr
+	ret := common.StringToAddress(account.ExecAddress(acc.String()).String())
+	return &ret
 }
 
 // Keccak256 计算并返回 Keccak256 哈希

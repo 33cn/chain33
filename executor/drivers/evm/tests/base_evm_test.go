@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"time"
 	"gitlab.33.cn/chain33/chain33/wallet"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
@@ -25,7 +24,7 @@ func TestCreateContract1(t *testing.T) {
 	privKey := getPrivKey()
 
 	gas := uint64(210000)
-	gasLimit := gas * evm.TX_GAS_TIMES_FEE
+	gasLimit := gas
 	tx := createTx(privKey, deployCode, gas, 10000000)
 	mdb := buildStateDB(getAddr(privKey).String(), 500000000)
 	ret, addr, leftGas, err, statedb := createContract(mdb, tx, 0)
@@ -39,27 +38,6 @@ func TestCreateContract1(t *testing.T) {
 
 	// 检查返回数据是否正确
 	test.assertEqualsV(statedb.GetLastSnapshot(), 0)
-
-	kvset,_ := statedb.GetChangedData(statedb.GetLastSnapshot())
-	data := kv2map(kvset)
-	//acc := statedb.GetAccount(addr)
-
-	// 检查返回的数据是否正确，在合约创建过程中，改变的数据是固定的
-	// 应该生成2个变更，分别是：数据（代码、代码哈希）、状态（存储、存储哈希、nonce、是否自杀）
-	test.assertEqualsV(len(data), 4)
-
-	// 分别检查具体内容
-	//item := data[string(acc.GetCodeKey())]
-	//test.assertNotNil(item)
-	//test.assertEqualsB(item, execCode)
-	//
-	//item = data[string(acc.GetCodeHashKey())]
-	//test.assertNotNil(item)
-	//test.assertEqualsB(item, common.BytesToHash(crypto.Sha256(execCode)).Bytes())
-	//
-	//item = data[string(acc.GetNonceKey())]
-	//test.assertNotNil(item)
-	//test.assertEqualsV(int(acc.GetNonce()), int(core.Byte2Int(item)))
 }
 
 // 创建合约gas不足
@@ -95,7 +73,7 @@ func TestCreateContract3(t *testing.T) {
 	// 以上合约代码部署逻辑需要消耗61个Gas，存储代码需要消耗10600个Gas
 	usedGas := uint64(61)
 	gas := uint64(100)
-	gasLimit := gas * evm.TX_GAS_TIMES_FEE
+	gasLimit := gas
 	tx := createTx(privKey, deployCode, gas, 0)
 	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
 	ret, _, leftGas, err, _ := createContract(mdb, tx, 0)
@@ -121,7 +99,7 @@ func TestCreateContract4(t *testing.T) {
 	privKey := getPrivKey()
 	// 以上合约代码部署逻辑需要消耗61个Gas，存储代码需要消耗10600个Gas
 	gas := uint64(210000)
-	gasLimit := gas * evm.TX_GAS_TIMES_FEE
+	gasLimit := gas
 	tx := createTx(privKey, deployCode, gas, 0)
 	mdb := buildStateDB(getAddr(privKey).String(), 100000000)
 	ret, _, leftGas, err, _ := createContract(mdb, tx, 50)
@@ -157,16 +135,16 @@ func TestCreateContract4(t *testing.T) {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "1CHbUBvdDL1FBxjU4J9aB7E4EV64n52ryF"
+	to := ""
 	//code := "d0a1703f0000000000000000000000000000000000000000000000000000000000000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd0000000000000000000000000000000000000000000000000000000000000003"
-	code := "d0a1703f0000000000000000000000000000000000000000000000000000000000000002fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc0000000000000000000000000000000000000000000000000000000000000003"
+	code := "608060405234801561001057600080fd5b506102c5806100206000396000f300608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680631b9265b81461005c57806327e235e31461007e5780634e71d92d146100d5575b600080fd5b610064610104565b604051808215151515815260200191505060405180910390f35b34801561008a57600080fd5b506100bf600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610159565b6040518082815260200191505060405180910390f35b3480156100e157600080fd5b506100ea610171565b604051808215151515815260200191505060405180910390f35b6000346000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082825401925050819055506001905090565b60006020528060005260406000206000915090505481565b60008060008060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020541115610290576000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205490503373ffffffffffffffffffffffffffffffffffffffff166108fc829081150290604051600060405180830381858888f19350505050158015610242573d6000803e3d6000fd5b5060008060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000208190555060019150610295565b600091505b50905600a165627a7a72305820ac03e24b7c20d3e1ccbcfcdde29417b5c880994bedf692afaaff3fdfd733a0da0029"
 	deployCode, _ := hex.DecodeString(code)
 	fee := 5000000000
 	amount := 0
 
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b,uint64(amount))
-	tx := &types.Transaction{Execer: []byte("evm"), Payload: append(b, deployCode...), Fee: int64(fee), To:to}
+	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: append(b, deployCode...), Fee: int64(fee), To:to}
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)

@@ -5,20 +5,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
 )
 
 type (
 	// 检查制定账户是否有足够的金额进行转账
-	CanTransferFunc func(state.StateDB, common.Address, *big.Int) bool
+	CanTransferFunc func(state.StateDB, common.Address, uint64) bool
 
 	// 执行转账逻辑
-	TransferFunc func(state.StateDB, common.Address, common.Address, *big.Int)
+	TransferFunc func(state.StateDB, common.Address, common.Address, uint64)
 
 	// 获取制定高度区块的哈希
 	// 给 BLOCKHASH 指令使用
@@ -49,7 +48,7 @@ type Context struct {
 	// ORIGIN 指令返回数据， 合约调用者地址
 	Origin common.Address
 	// GASPRICE 指令返回数据
-	GasPrice *big.Int
+	GasPrice uint32
 
 	// COINBASE 指令， 区块打包者地址
 	Coinbase common.Address
@@ -110,7 +109,6 @@ func NewEVM(ctx Context, statedb state.StateDB, vmConfig Config) *EVM {
 	return evm
 }
 
-
 // 返回不同操作消耗的Gas定价表
 // 接收区块高度作为参数，方便以后在这里作分叉处理
 func (c *EVM) GasTable(num *big.Int) gas.GasTable {
@@ -135,49 +133,46 @@ func (evm *EVM) SetMaxCodeSize(maxCodeSize int) {
 }
 
 // 封装合约的各种调用逻辑中通用的预检查逻辑
-func (evm *EVM) preCheck(caller ContractRef, gas uint64, value *big.Int) (pass bool, ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) preCheck(caller ContractRef, value uint64) (pass bool, err error) {
 	// 检查调用深度是否合法
 	if evm.VmConfig.NoRecursion && evm.depth > 0 {
-		return false, nil, gas, nil
+		return false, nil
 	}
 
 	// 允许递归，但深度不合法
 	if evm.depth > int(params.CallCreateDepth) {
-		return false, nil, gas, model.ErrDepth
+		return false, model.ErrDepth
 	}
 
 	// 如有转账，检查余额是否充足
-	if value != nil {
+	if value > 0 {
 		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-			return false, nil, gas, model.ErrInsufficientBalance
+			return false, model.ErrInsufficientBalance
 		}
 	}
 
 	// 检查通过情况下，后面三个返回参数无意义
-	return true, nil, gas, nil
+	return true, nil
 }
 
 // 此方法提供合约外部调用入口
 // 根据合约地址调用已经存在的合约，input为合约调用参数
 // 合约调用逻辑支持在合约调用的同时进行向合约转账的操作
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value uint64) (ret []byte, snapshot int, leftOverGas uint64, err error) {
 	pass := false
-	pass, ret, leftOverGas, err = evm.preCheck(caller, gas, value)
+	pass, err = evm.preCheck(caller,  value)
 	if !pass {
-		return ret, leftOverGas, err
+		return nil, -1, gas, err
 	}
 
-	var (
-		to       = AccountRef(addr)
-		snapshot = evm.StateDB.Snapshot()
-	)
+	snapshot = evm.StateDB.Snapshot()
+	to := AccountRef(addr)
 
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
-
 		// 合约地址在自定义合约和预编译合约中都不存在，说明为无效调用
 		if precompiles[addr] == nil {
-			return nil, gas, nil
+			return nil, snapshot, gas, nil
 		}
 
 		// 否则，为预编译合约，创建一个新的账号
@@ -211,17 +206,17 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			contract.UseGas(contract.Gas)
 		}
 	}
-	return ret, contract.Gas, err
+	return ret, snapshot, contract.Gas, err
 }
 
 // 合约内部调用合约的入口
 // 执行逻辑同Call方法，但是有以下几点不同：
 // 在创建合约对象时，合约对象的上下文地址（合约对象的self属性）被设置为caller的地址
-func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, ret, leftOverGas, err = evm.preCheck(caller, gas, value)
+	pass, err = evm.preCheck(caller,  value)
 	if !pass {
-		return ret, leftOverGas, err
+		return nil, gas, err
 	}
 
 	var (
@@ -249,10 +244,11 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 // 和CallCode不同的是，它会把合约的外部调用地址设置成caller的caller
 func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, ret, leftOverGas, err = evm.preCheck(caller, gas, nil)
+	pass, err = evm.preCheck(caller,  0)
 	if !pass {
-		return ret, leftOverGas, err
+		return nil, gas, err
 	}
+
 
 	var (
 		snapshot = evm.StateDB.Snapshot()
@@ -261,7 +257,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	// 同外部合约的创建和修改逻辑，在每次调用时，需要创建并初始化一个新的合约内存对象
 	// 需要注意，这里不同的是，需要设置合约的委托调用模式（会进行一些属性设置）
-	contract := NewContract(caller, to, nil, gas).AsDelegate()
+	contract := NewContract(caller, to, 0, gas).AsDelegate()
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
 	// 其它逻辑同StaticCall
@@ -280,10 +276,11 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 // 在合约逻辑中，可以指定其它的合约地址以及输入参数进行合约调用，但是，这种情况下禁止修改MemoryStateDB中的任何数据，否则执行会出错
 func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, ret, leftOverGas, err = evm.preCheck(caller, gas, nil)
+	pass, err = evm.preCheck(caller,  0)
 	if !pass {
-		return ret, leftOverGas, err
+		return nil, gas, err
 	}
+
 
 	// 如果指令解释器没有设置成只读，需要在这里强制设置，并在本操作结束后恢复
 	// 在解释器执行涉及到数据修改指令时，会检查此属性，从而控制不允许修改数据
@@ -298,7 +295,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	)
 
 	// 同外部合约的创建和修改逻辑，在每次调用时，需要创建并初始化一个新的合约内存对象
-	contract := NewContract(caller, to, new(big.Int), gas)
+	contract := NewContract(caller, to, 0, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
 	// 执行合约指令时如果出错，需要进行回滚，并且扣除剩余的Gas
@@ -318,39 +315,22 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 
 // 此方法提供合约外部创建入口
 // 使用传入的部署代码创建新的合约
-func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
-
-	// 检查合约代码递归调用深度，防止无限递归的情况出现，即使Gas充足，也不允许
-	if evm.depth > int(params.CallCreateDepth) {
-		return nil, common.EmptyAddress(), gas, model.ErrDepth
+func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []byte, gas uint64, value uint64) (ret []byte, snapshot int, leftOverGas uint64, err error) {
+	pass := false
+	pass, err = evm.preCheck(caller,  value)
+	if !pass {
+		return nil, -1, gas, err
 	}
 
-	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, common.EmptyAddress(), gas, model.ErrInsufficientBalance
-	}
-
-	// 使用随机生成的地址作为合约地址（这个可以保证每次创建的合约地址不会重复，不存在冲突的情况）
-	contractAddr = *crypto.RandomAddress()
-
-	if !evm.StateDB.Empty(contractAddr) {
-		return nil, common.EmptyAddress(), 0, model.ErrContractAddressCollision
-	}
-
-	// 使用生成的地址创建一个新的账户对象（会同时创建coins账户和合约账户）
-	snapshot := evm.StateDB.Snapshot()
+	// 使用生成的地址创建一个新的账户对象（合约账户）
+	snapshot = evm.StateDB.Snapshot()
 	evm.StateDB.CreateAccount(contractAddr)
-
-	// 向从创建者向合约账户转账
-	evm.Transfer(evm.StateDB, caller.Address(), contractAddr, value)
-
 	// 创建新的合约对象，包含双方地址以及合约代码，可用Gas信息
 	contract := NewContract(caller, AccountRef(contractAddr), value, gas)
 	contract.SetCallCode(&contractAddr, common.ToHash(code), code)
 
-	// 如果EVM配置中不允许递归调用，但是深度不为0（说明是通过递归调进来的），出错
-	if evm.VmConfig.NoRecursion && evm.depth > 0 {
-		return nil, contractAddr, gas, nil
-	}
+	// 从创建者向合约账户转账
+	evm.Transfer(evm.StateDB, caller.Address(), contractAddr, value)
 
 	if evm.VmConfig.Debug && evm.depth == 0 {
 		evm.VmConfig.Tracer.CaptureStart(caller.Address(), contractAddr, true, code, gas, value)
@@ -394,5 +374,5 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 		evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 	}
 
-	return ret, contractAddr, contract.Gas, err
+	return ret, snapshot, contract.Gas, err
 }

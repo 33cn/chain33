@@ -66,10 +66,11 @@ type (
 	}
 
 	// 金额变更事件
-	balanceChange struct {
+	addBalanceChange struct {
 		baseChange
 		amount int64
-		addr string
+		from string
+		to string
 		data []*types.KeyValue
 		logs []*types.ReceiptLog
 	}
@@ -216,32 +217,21 @@ func (ch addPreimageChange) undo(mdb *MemoryStateDB) {
 	delete(mdb.preimages, ch.hash)
 }
 
-// 恢复成变化前的金额
-// 注意，这里需要重新加载coins账户，并增加金额，而不是直接设置金额
-// 避免中间其它交易修改coins账户金额引起的数据覆盖
-func (ch balanceChange) undo(mdb *MemoryStateDB) {
-	acc := mdb.CoinsAccount.LoadAccount(ch.addr)
-	acc.Balance -= ch.amount
-	mdb.CoinsAccount.SaveAccount(acc)
+// 从合约向外部账户的转账的反向动作，从外部账户取钱到合约账户
+func (ch addBalanceChange) undo(mdb *MemoryStateDB) {
+	mdb.CoinsAccount.TransferToExec(ch.to, ch.from, ch.amount)
 }
 
-func (ch balanceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
+func (ch addBalanceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return ch.data
 }
-func (ch balanceChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
+func (ch addBalanceChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
 	return ch.logs
 }
 
-// 恢复成变化前的金额
-// 注意，这里需要重新加载coins账户，并增加金额，而不是直接设置金额
-// 避免中间其它交易修改coins账户金额引起的数据覆盖
+// 向合约转账的反向动作，从合约取钱到外部账户
 func (ch transferChange) undo(mdb *MemoryStateDB) {
-	accFrom := mdb.CoinsAccount.LoadAccount(ch.from)
-	accTo := mdb.CoinsAccount.LoadAccount(ch.to)
-	accFrom.Balance += ch.amount
-	accTo.Balance -= ch.amount
-	mdb.CoinsAccount.SaveAccount(accFrom)
-	mdb.CoinsAccount.SaveAccount(accTo)
+	mdb.CoinsAccount.TransferWithdraw(ch.from, ch.to, ch.amount)
 }
 
 func (ch transferChange) getData(mdb *MemoryStateDB) []*types.KeyValue {

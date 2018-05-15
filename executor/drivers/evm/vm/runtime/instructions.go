@@ -402,7 +402,7 @@ func opBalance(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stac
 	addr := common.BigToAddress(stack.Pop())
 	balance := evm.StateDB.GetBalance(addr)
 
-	stack.Push(new(big.Int).Set(balance))
+	stack.Push(big.NewInt(int64(balance)))
 	return nil, nil
 }
 
@@ -421,7 +421,8 @@ func opCaller(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack
 
 // 获取调用合约的同时，进行转账操作的额度
 func opCallValue(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	stack.Push(evm.Interpreter.IntPool.Get().Set(contract.value))
+	amount := common.BigMax(big.NewInt(0), big.NewInt(int64(contract.value)))
+	stack.Push(evm.Interpreter.IntPool.Get().Set(amount))
 	return nil, nil
 }
 
@@ -528,7 +529,8 @@ func opExtCodeCopy(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, 
 
 // 获取当前区块的GasPrice
 func opGasprice(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	stack.Push(evm.Interpreter.IntPool.Get().Set(evm.GasPrice))
+	gasPrice := common.BigMax(big.NewInt(0), big.NewInt(int64(evm.GasPrice)))
+	stack.Push(evm.Interpreter.IntPool.Get().Set(gasPrice))
 	return nil, nil
 }
 
@@ -697,7 +699,8 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack
 	contract.UseGas(gas)
 
 	// 调用合约创建逻辑
-	res, addr, returnGas, suberr := evm.Create(contract, input, gas, value)
+	addr := crypto.RandomContractAddress()
+	res, _, returnGas, suberr := evm.Create(contract, *addr, input, gas, value.Uint64())
 
 	// 出错时压栈0，否则压栈创建出来的合约对象的地址
 	if suberr != nil && suberr != model.ErrCodeStoreOutOfGas {
@@ -743,7 +746,7 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 	}
 
 	// 调用合约执行逻辑
-	ret, returnGas, err := evm.Call(contract, toAddr, args, gas, value)
+	ret, _, returnGas, err := evm.Call(contract, toAddr, args, gas, value.Uint64())
 
 	// 调用结果压栈，
 	// 注意，这里的处理比较特殊，出错情况下0压栈，正确情况下1压栈
@@ -783,7 +786,7 @@ func opCallCode(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, sta
 		gas += params.CallStipend
 	}
 
-	ret, returnGas, err := evm.CallCode(contract, toAddr, args, gas, value)
+	ret, returnGas, err := evm.CallCode(contract, toAddr, args, gas, value.Uint64())
 	if err != nil {
 		stack.Push(new(big.Int))
 		log15.Error("evm contract opCallCode instruction error",err)
@@ -883,7 +886,7 @@ func opStop(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 func opSuicide(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	balance := evm.StateDB.GetBalance(contract.Address())
 	// 合约自毁后，将剩余金额返还给创建者
-	evm.StateDB.AddBalance(common.BigToAddress(stack.Pop()), balance)
+	evm.StateDB.AddBalance(common.BigToAddress(stack.Pop()), *contract.CodeAddr, balance)
 
 	evm.StateDB.Suicide(contract.Address())
 	return nil, nil
