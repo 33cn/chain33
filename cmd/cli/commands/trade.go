@@ -333,7 +333,10 @@ func tokenSell(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, nil)
-	ctx.RunWithoutMarshal()
+	res, err := ctx.RunWithoutMarshal()
+	if err == nil {
+		fmt.Println(res)
+	}
 }
 
 // create raw buy token transaction
@@ -372,7 +375,10 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, nil)
-	ctx.RunWithoutMarshal()
+	res, err := ctx.RunWithoutMarshal()
+	if err == nil {
+		fmt.Println(res)
+	}
 }
 
 // create raw revoke token transaction
@@ -406,5 +412,8 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, nil)
-	ctx.RunWithoutMarshal()
+	res, err := ctx.RunWithoutMarshal()
+	if err == nil {
+		fmt.Println(res)
+	}
 }
