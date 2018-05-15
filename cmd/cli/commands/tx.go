@@ -58,7 +58,10 @@ func sendTx(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
-	ctx.RunWithoutMarshal()
+	res, err := ctx.RunWithoutMarshal()
+	if err == nil {
+		fmt.Println(res)
+	}
 }
 
 // get tx by address
@@ -227,7 +230,10 @@ func getTxHexByHash(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, nil)
-	ctx.RunWithoutMarshal()
+	res, err := ctx.RunWithoutMarshal()
+	if err == nil {
+		fmt.Println(res)
+	}
 }
 
 // decode raw hex to transaction
