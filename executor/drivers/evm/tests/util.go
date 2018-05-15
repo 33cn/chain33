@@ -6,15 +6,16 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	crypto2 "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
 	c "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/account"
-	"encoding/binary"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"time"
 	"encoding/hex"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"fmt"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
 
@@ -35,9 +36,9 @@ func getAddr(privKey crypto.PrivKey) *account.Address {
 }
 
 func createTx(privKey crypto.PrivKey, code []byte, fee uint64, amount uint64) types.Transaction {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b,amount)
-	tx := types.Transaction{Execer: []byte("evm"), Payload: append(b, code...), Fee: int64(fee)}
+
+	action := model.ContractAction{Amount:amount, Code:code}
+	tx := types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(&action), Fee: int64(fee)}
 	tx.Sign(types.SECP256K1, privKey)
 	return tx
 }
@@ -84,7 +85,7 @@ func buildStateDB(addr string, balance int64) *db.GoMemDB {
 func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error, statedb *state.MemoryStateDB) {
 	inst := evm.NewEVMExecutor()
 
-	msg := inst.GetMessage(&tx)
+	msg,_ := inst.GetMessage(&tx)
 
 	inst.SetEnv(10,0,common.EmptyAddress().Str(),uint64(10))
 	statedb = inst.GetMStateDB()
@@ -104,7 +105,8 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 		env.SetMaxCodeSize(maxCodeSize)
 	}
 
-	ret,addr,leftGas,err :=  env.Create(runtime.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
+	addr := *crypto2.RandomContractAddress()
+	ret,_,leftGas,err :=  env.Create(runtime.AccountRef(msg.From()), addr, msg.Data(), msg.GasLimit(), msg.Value())
 
 	return ret,addr,leftGas,err,statedb
 }
@@ -114,7 +116,7 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 
 	inst := evm.NewEVMExecutor()
 
-	msg := inst.GetMessage(&tx)
+	msg,_ := inst.GetMessage(&tx)
 
 	inst.SetEnv(10,0,common.EmptyAddress().Str(),uint64(10))
 
@@ -136,7 +138,7 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 
 	//ret,addr,leftGas,err :=  runtime.Create(vm.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
 
-	ret,leftGas,err := env.Call(runtime.AccountRef(msg.From()),contractAdd, msg.Data(), msg.GasLimit(), msg.Value())
+	ret,_,leftGas,err := env.Call(runtime.AccountRef(msg.From()),contractAdd, msg.Data(), msg.GasLimit(), msg.Value())
 
 	return ret,leftGas,err,statedb
 }

@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/types"
-	"math/big"
 	"sort"
 )
 
@@ -63,14 +62,14 @@ type revision struct {
 // 开始执行下一个区块时（执行器框架调用setEnv设置的区块高度发生变更时），会重新创建此DB对象
 func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) *MemoryStateDB {
 	mdb := &MemoryStateDB{
-		StateDB:        StateDB,
-		LocalDB:        LocalDB,
-		CoinsAccount:   CoinsAccount,
-		accounts:       make(map[common.Address]*ContractAccount),
-		logs:           make(map[common.Hash][]*model.ContractLog),
-		preimages:      make(map[common.Hash][]byte),
-		refund:         0,
-		txIndex:        0,
+		StateDB:      StateDB,
+		LocalDB:      LocalDB,
+		CoinsAccount: CoinsAccount,
+		accounts:     make(map[common.Address]*ContractAccount),
+		logs:         make(map[common.Hash][]*model.ContractLog),
+		preimages:    make(map[common.Hash][]byte),
+		refund:       0,
+		txIndex:      0,
 	}
 	return mdb
 }
@@ -95,65 +94,51 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address) {
 	}
 }
 
-// 调用Coins执行器的逻辑操作外部账户中的金额
-func (self *MemoryStateDB) processBalance(addr common.Address, value *big.Int, withdraw bool) error {
+// 从外部账户地址扣钱（钱其实是打到合约账户中的）
+func (self *MemoryStateDB) SubBalance(addr common.Address, caddr common.Address, value uint64) {
+	if value == 0 {
+		return
+	}
+	self.Transfer(addr, caddr, value)
+}
+
+// 向外部账户地址打钱（钱其实是外部账户之前打到合约账户中的）
+func (self *MemoryStateDB) AddBalance(addr common.Address, caddr common.Address, value uint64) {
+	if value == 0 {
+		return
+	}
+
+	if self.CoinsAccount != nil {
+		amount := int64(value)
+		if amount < 0 {
+			return
+		}
+		ret, err := self.CoinsAccount.TransferWithdraw(addr.Str(), caddr.Str(), amount)
+		// 这种情况下转账失败并不进行处理，打印日志即可
+		if err != nil {
+			log15.Error("add balance error", err)
+		} else {
+			self.journal = append(self.journal, addBalanceChange{
+				baseChange: baseChange{},
+				from:       caddr.Str(),
+				to:         addr.Str(),
+				amount:     amount,
+				data:       ret.KV,
+				logs:       ret.Logs,
+			})
+		}
+	}
+}
+
+func (self *MemoryStateDB) GetBalance(addr common.Address) uint64 {
 	if self.CoinsAccount == nil {
-		return model.NoCoinsAccount
-	}
-
-	accFrom := self.CoinsAccount.LoadAccount(addr.Str())
-	amount := value.Int64()
-	// 如果是取钱，需要把金额设成负，下面直接加就可以了
-	if withdraw {
-		amount = 0 - amount
-	}
-	if accFrom.GetBalance()+amount >= 0 {
-		copyfrom := *accFrom
-		accFrom.Balance = accFrom.GetBalance() + amount
-		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
-		self.CoinsAccount.SaveAccount(accFrom)
-
-		feelog := &types.ReceiptLog{model.TyLogGasFee, types.Encode(receiptBalance)}
-		feedata := self.CoinsAccount.GetKVSet(accFrom)
-
-		self.journal = append(self.journal, balanceChange{
-			baseChange: baseChange{},
-			addr:       addr.Str(),
-			amount:     amount,
-			data:       feedata,
-			logs:       []*types.ReceiptLog{feelog},
-		})
-
-		return nil
-	}
-	return types.ErrNoBalance
-}
-
-func (self *MemoryStateDB) SubBalance(addr common.Address, value *big.Int) {
-	//借助coins执行器
-	self.processBalance(addr, value, true)
-}
-
-func (self *MemoryStateDB) AddBalance(addr common.Address, value *big.Int) {
-	//借助coins执行器
-	self.processBalance(addr, value, false)
-}
-
-// 此操作仅供测试使用，用于构造用户数据
-func (self *MemoryStateDB) SetBalance(addr common.Address, value *big.Int) {
-	//借助coins执行器
-	self.processBalance(addr, value, false)
-}
-
-func (self *MemoryStateDB) GetBalance(addr common.Address) *big.Int {
-	if self.CoinsAccount == nil {
-		return common.Big0
+		return 0
 	}
 	ac := self.CoinsAccount.LoadAccount(addr.Str())
 	if ac != nil {
-		return big.NewInt(ac.Balance)
+		return uint64(ac.Balance)
 	}
-	return common.Big0
+	return 0
 }
 
 // 目前chain33中没有保留账户的nonce信息，这里临时添加到合约账户中；
@@ -290,7 +275,7 @@ func (self *MemoryStateDB) Empty(addr common.Address) bool {
 	}
 
 	// 账户有余额，也不为空
-	if common.Big0.Cmp(self.GetBalance(addr)) != 0 {
+	if self.GetBalance(addr) != 0 {
 		return false
 	}
 	return true
@@ -359,7 +344,7 @@ func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue,
 	// 如果版本号不对，操作失败
 	if idx == len(self.validRevisions) || self.validRevisions[idx].id != version {
 		log15.Crit(fmt.Errorf("revision id %v cannot be reverted", version).Error())
-		return nil,nil
+		return nil, nil
 	}
 
 	// 获取快照版本
@@ -387,11 +372,18 @@ func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue,
 }
 
 // 借助coins执行器进行转账相关操作
-func (self *MemoryStateDB) CanTransfer(addr common.Address, amount *big.Int) bool {
+func (self *MemoryStateDB) CanTransfer(addr common.Address, amount uint64) bool {
+	if amount == 0 {
+		return true
+	}
 	if self.CoinsAccount == nil {
 		return false
 	}
-	err := self.CoinsAccount.CheckTransfer(addr.Str(), "", amount.Int64())
+	value := int64(amount)
+	if value < 0 {
+		return false
+	}
+	err := self.CoinsAccount.CheckTransfer(addr.Str(), "", value)
 	if err != nil {
 		return false
 	}
@@ -399,9 +391,17 @@ func (self *MemoryStateDB) CanTransfer(addr common.Address, amount *big.Int) boo
 }
 
 // 借助coins执行器进行转账相关操作
-func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount *big.Int) {
+// 只支持以下几种转账：从外部账户到合约账户、合约账户到合约账户、合约账户到外部账户
+func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount uint64) {
+	if amount == 0 {
+		return
+	}
 	if self.CoinsAccount != nil {
-		ret, err := self.CoinsAccount.Transfer(sender.Str(), recipient.Str(), amount.Int64())
+		value := int64(amount)
+		if value < 0 {
+			return
+		}
+		ret, err := self.CoinsAccount.TransferToExec(sender.Str(), recipient.Str(), value)
 		// 这种情况下转账失败并不进行处理，也不会从sender账户扣款，打印日志即可
 		if err != nil {
 			log15.Error("transfer error", err)
@@ -410,7 +410,7 @@ func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount *bi
 				baseChange: baseChange{},
 				from:       sender.Str(),
 				to:         recipient.Str(),
-				amount:     amount.Int64(),
+				amount:     value,
 				data:       ret.KV,
 				logs:       ret.Logs,
 			})
@@ -458,6 +458,6 @@ func (self *MemoryStateDB) WritePreimages(number int64) {
 }
 
 // 测试用，清空版本数据
-func (self *MemoryStateDB) ResetDatas()  {
+func (self *MemoryStateDB) ResetDatas() {
 	self.journal = journal{}
 }

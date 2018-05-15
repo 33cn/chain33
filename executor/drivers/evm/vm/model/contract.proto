@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package types;
+package model;
 
 //合约对象信息
 message ContractObject {
@@ -21,4 +21,16 @@ message ContractState {
     bool suicided = 2;
     bytes storageHash = 3;
     map<string,bytes> storage = 4;
+}
+
+// 创建/调用合约的请求结构
+message ContractAction {
+    // 转账金额
+    uint64 amount = 1;
+    // 消耗限制，默认为Transaction.Fee
+    uint64 gasLimit = 2;
+    // gas价格，默认为1
+    uint32 gasPrice = 3;
+    // 合约数据
+    bytes code = 4;
 }
