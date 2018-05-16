@@ -271,6 +271,13 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetOnesBuyOrdersWithStatus(&addrTokens)
+	case "GetOnesOrderWithStatus":
+		var addrTokens types.ReqAddrTokens
+		err := types.Decode(params, &addrTokens)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetOnesOrderWithStatus(&addrTokens)
 
 	default:
 	}

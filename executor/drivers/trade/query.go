@@ -387,3 +387,85 @@ func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
 	}
 	return nil
 }
+
+const (
+	orderStatusInvalid = iota
+	orderStatusOn
+	orderStatusDone
+	orderStatusRevoke
+)
+
+const (
+	orderTypeInvalid = iota
+	orderTypeSell
+	orderTypeBuy
+)
+
+func fromStatus(status int32) (st, ty int32) {
+	switch status {
+	case types.TradeOrderStatusOnSale:
+		return orderStatusOn, orderTypeSell
+	case types.TradeOrderStatusSoldOut:
+		return orderStatusDone, orderTypeSell
+	case types.TradeOrderStatusRevoked:
+		return orderStatusRevoke, orderTypeSell
+	case types.TradeOrderStatusOnBuy:
+		return orderStatusOn, orderTypeBuy
+	case types.TradeOrderStatusBoughtOut:
+		return orderStatusDone, orderTypeBuy
+	case types.TradeOrderStatusBuyRevoked:
+		return orderStatusRevoke, orderTypeBuy
+	}
+	return 	orderStatusInvalid, orderTypeInvalid
+}
+
+func (t *trade) GetOnesOrderWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
+	fromKey := []byte("")
+	if len(req.FromKey) != 0 {
+		// STEP 1
+		// check type buy
+		// sellID/buyID/txHash
+
+		typeBuy := false
+		if !typeBuy {
+			sell := t.replyReplySellOrderfromID([]byte(req.FromKey))
+			if sell == nil {
+				tradelog.Error("GetTokenSellOrderByStatus", "key not exist", req.FromKey)
+				return nil, types.ErrInputPara
+			}
+			fromKey = calcTokensSellOrderKeyStatus(sell.TokenSymbol, sell.Status,
+				calcPriceOfToken(sell.PricePerBoardlot, sell.AmountPerBoardlot), sell.Owner, sell.Key)
+		} else {
+			buy := t.replyReplyBuyOrderfromID([]byte(req.FromKey))
+			if buy == nil {
+				tradelog.Error("GetTokenBuyOrderByStatus", "key not exist", req.FromKey)
+				return nil, types.ErrInputPara
+			}
+			fromKey = calcTokensBuyOrderKeyStatus(buy.TokenSymbol, buy.Status,
+				calcPriceOfToken(buy.PricePerBoardlot, buy.AmountPerBoardlot), buy.Owner, buy.Key)
+		}
+	}
+
+	orderStatus, orderType := fromStatus(req.Status)
+	if orderStatus == orderStatusInvalid || orderType == orderTypeInvalid {
+		return nil, types.ErrInputPara
+	}
+
+	keys, err := t.GetLocalDB().List(calcOnesOrderPrefixStatus(req.Addr, orderStatus), fromKey, req.Count, req.Direction)
+	if err != nil {
+		return nil, err
+	}
+
+	var replys types.ReplyBuyOrders
+	for _, sellID := range keys {
+		// TODO txHash/BuyId/SellID
+		reply := t.replyReplyBuyOrderfromID(sellID)
+		if reply != nil {
+			//replys.Selloders = insertBuyOrderDescending(reply, replys.Selloders)
+			replys.BuyOrders = append(replys.BuyOrders, reply)
+			tradelog.Debug("trade Query", "height of key", reply.Height,
+				"len of reply.Selloders", len(replys.BuyOrders))
+		}
+	}
+	return &replys, nil
+}
