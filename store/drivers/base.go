@@ -60,7 +60,6 @@ func NewBaseStore(cfg *types.Store) *BaseStore {
 func (store *BaseStore) SetQueueClient(c queue.Client) {
 	store.qclient = c
 	store.qclient.Sub("store")
-
 	//recv 消息的处理
 	go func() {
 		for msg := range store.qclient.Recv() {

@@ -13,7 +13,7 @@ SIGNATORY := build/signatory-server
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
-.PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker protobuf clean help
+.PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
 
 default: build cli
 
@@ -99,6 +99,9 @@ coverhtml: ## Generate global code coverage report in HTML
 
 docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
+
+docker-compose: ## build docker-compose for chain33 run
+	@cd build && ./docker-compose.sh && cd ..
 
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")

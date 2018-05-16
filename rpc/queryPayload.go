@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -84,10 +83,14 @@ func tradePayloadType(funcname string) (proto.Message, error) {
 		req = &types.ReqAddrTokens{}
 	case "GetOnesBuyOrder":
 		req = &types.ReqAddrTokens{}
-	case "GetAllSellOrdersWithStatus":
+	case "GetOnesSellOrderWithStatus":
+		req = &types.ReqAddrTokens{}
+	case "GetOnesBuyOrderWithStatus":
 		req = &types.ReqAddrTokens{}
 	case "GetTokenSellOrderByStatus":
 		req = &types.ReqTokenSellOrder{}
+	case "GetTokenBuyOrderByStatus":
+		req = &types.ReqTokenBuyOrder{}
 	default:
 		return nil, types.ErrInputPara
 	}
@@ -121,7 +124,5 @@ func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, er
 	if err != nil {
 		return nil, types.ErrInputPara
 	}
-	fmt.Println("req: ", req)
-	fmt.Println("req: ", types.Encode(req))
 	return types.Encode(req), nil
 }

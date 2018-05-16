@@ -183,7 +183,7 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		tokenlog.Info("token Query", "function name", funcName, "query tokens", reqtokens)
+		//tokenlog.Info("token Query", "function name", funcName, "query tokens", reqtokens)
 		return t.GetTokens(&reqtokens)
 	case "GetTokenInfo":
 		var symbol types.ReqString
@@ -245,7 +245,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 			continue
 		}
 		tokenAsset := &types.TokenAsset{asset, acc1}
-		tokenlog.Info("GetAccountTokenAssets", "token-asset-symbol", asset, "info", acc1)
+		//tokenlog.Info("GetAccountTokenAssets", "token-asset-symbol", asset, "info", acc1)
 		reply.TokenAssets = append(reply.TokenAssets, tokenAsset)
 	}
 	return reply, nil
@@ -266,7 +266,7 @@ func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types
 		}
 
 		recv := &types.TokenRecv{token, reciver.Data}
-		reply.Tokenrecv = append(reply.Tokenrecv, recv)
+		reply.TokenRecvs = append(reply.TokenRecvs, recv)
 	}
 
 	return reply, nil
@@ -291,7 +291,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	db := t.GetStateDB()
 
 	replyTokens := &types.ReplyTokens{}
-	if reqTokens.Queryall {
+	if reqTokens.QueryAll {
 		//list := dbm.NewListHelper(querydb)
 		keys, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
 		if err != nil {
@@ -334,7 +334,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 		}
 	}
 
-	tokenlog.Info("token Query", "replyTokens", replyTokens)
+	//tokenlog.Info("token Query", "replyTokens", replyTokens)
 	return replyTokens, nil
 }
 

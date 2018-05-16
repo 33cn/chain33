@@ -362,7 +362,13 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 		return false
 	}
 	tx := msg.GetData().(*types.Transaction)
-	return !tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime())
+	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+		return false
+	}
+	if tx.Expire > 1000000000 && tx.Expire < time.Now().Unix()+int64(time.Minute/time.Second) {
+		return false
+	}
+	return true
 }
 
 // Mempool.Close关闭Mempool
@@ -488,7 +494,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 			case types.EventTx:
 				if !mem.isSync() {
 					msg.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{false, []byte(types.ErrNotSync.Error())}))
-					mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
+					mlog.Debug("wrong tx", "err", types.ErrNotSync.Error())
 					continue
 				}
 				checkedMsg := mem.CheckTx(msg)
@@ -504,7 +510,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					&types.ReplyTxList{mem.RemoveExpiredAndDuplicateMempoolTxs()}))
 				mlog.Debug("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
-				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
+				// 消息类型EventTxList：获取Mempool中一定数量交易
 				hashList := msg.GetData().(*types.TxHashList)
 				if hashList.Count <= 0 {
 					msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, types.ErrSize))
@@ -515,7 +521,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					mlog.Debug("reply EventTxList ok", "msg", msg)
 				}
 			case types.EventDelTxList:
-				// 消息类型EventTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
+				// 消息类型EventDelTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
 				hashList := msg.GetData().(*types.TxHashList)
 				if len(hashList.GetHashes()) == 0 {
 					msg.ReplyErr("EventDelTxList", types.ErrSize)
