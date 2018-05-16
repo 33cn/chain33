@@ -585,6 +585,8 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 	}
 	client := wallet.client
 
+	walletlog.Debug("try to get signature from authority")
+
 	msg := client.NewMessage("authority", types.EventAuthoritySignTx, data)
 	client.Send(msg, true)
 
@@ -592,11 +594,16 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 	if err != nil {
 		panic(err)
 	}
-	sig := resp.GetData().(*types.ReplyAuthSignTx)
-	tx.Signature = &types.Signature{1, nil, sig.Signature}
-	txHex = types.Encode(&tx)
-	signedTx := hex.EncodeToString(txHex)
-	return signedTx, nil
+	sig, ok := resp.GetData().(*types.ReplyAuthSignTx)
+	if ok {
+		walletlog.Debug("get signature success")
+		//ty and pubkey may be not used in this case
+		tx.Signature = &types.Signature{1, nil, sig.Signature}
+		txHex = types.Encode(&tx)
+		signedTx := hex.EncodeToString(txHex)
+		return signedTx, nil
+	}
+	return "", types.ErrGetSignFromAuth
 }
 
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
