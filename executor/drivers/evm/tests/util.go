@@ -87,7 +87,7 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 
 	msg,_ := inst.GetMessage(&tx)
 
-	inst.SetEnv(10,0,common.EmptyAddress().Str(),uint64(10))
+	inst.SetEnv(10,0,"",uint64(10))
 	statedb = inst.GetMStateDB()
 
 	statedb.StateDB=mdb
@@ -153,8 +153,8 @@ func kv2map(kvset []*types.KeyValue) map[string][]byte {
 
 func procSignRawTx(wal *wallet.Wallet, unsigned *types.ReqSignRawTx, payload []byte) (ret string, err error) {
 	var key crypto.PrivKey
-	if unsigned.GetPrivKey() != "" {
-		keyByte, err := c.FromHex(unsigned.GetPrivKey())
+	if unsigned.GetPrivkey() != "" {
+		keyByte, err := c.FromHex(unsigned.GetPrivkey())
 		if err != nil || len(keyByte) == 0 {
 			return "", err
 		}

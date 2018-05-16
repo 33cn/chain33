@@ -61,7 +61,7 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 	addr := common.StringToAddress(self.Addr)
 	self.mdb.journal = append(self.mdb.journal, storageChange{
 		baseChange: baseChange{},
-		account:    &addr,
+		account:    addr,
 		key:        key,
 		prevalue:   self.GetState(key),
 	})
@@ -121,7 +121,7 @@ func (self *ContractAccount) SetCode(code []byte) {
 	addr := common.StringToAddress(self.Addr)
 	self.mdb.journal = append(self.mdb.journal, codeChange{
 		baseChange: baseChange{},
-		account:    &addr,
+		account:    addr,
 		prevhash:   self.Data.GetCodeHash(),
 		prevcode:   []byte(prevcode),
 	})
@@ -198,7 +198,7 @@ func (self *ContractAccount) SetNonce(nonce uint64) {
 
 	self.mdb.journal = append(self.mdb.journal, nonceChange{
 		baseChange: baseChange{},
-		account:    &addr,
+		account:    addr,
 		prev:       self.State.GetNonce(),
 	})
 
