@@ -452,6 +452,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 
 func (e *executor) setEnv(exec drivers.Driver){
 	exec.SetStateDB(e.stateDB)
+	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime, e.coinBase, e.difficulty)
 	exec.SetApi(e.api)
 }
