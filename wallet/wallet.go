@@ -1750,7 +1750,8 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.ToUpper(common.ToHex(priv.Bytes())), nil
+	return common.ToHex(priv.Bytes()), nil
+	//return strings.ToUpper(common.ToHex(priv.Bytes())), nil
 }
 
 //检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
