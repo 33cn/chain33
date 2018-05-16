@@ -1,9 +1,15 @@
 package authority
 
 import (
+	"crypto/ecdsa"
+	"io/ioutil"
+
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
+	//"gitlab.33.cn/chain33/chain33/authority/common/util/cryptoutils"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite/bccsp/sw"
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
@@ -66,9 +72,20 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 }
 
 func (auth *Authority) procSignTx(msg queue.Message) {
-	data := msg.GetData().(*types.ReqAuthSignTx)
-	var tempkey core.Key
-	signature, err := auth.signer.Sign(data.Tx, tempkey)
+	var key core.Key
+	data, ok := msg.GetData().(*types.ReqAuthSignTx)
+	if !ok {
+		panic("")
+	}
+
+	keyBuff, err := ioutil.ReadFile("authdir/keystore/keystore/user.pem")
+	if err != nil {
+		panic(err)
+	}
+
+	key, err = importKeyFromPEMBytes(keyBuff, auth.cryptoSuite, true)
+
+	signature, err := auth.signer.Sign(data.Tx, key)
 	if err != nil {
 		panic(err)
 	}
@@ -81,4 +98,29 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 
 func (auth *Authority) Close() {
 	alog.Info("authority module closed")
+}
+
+//remove to other package later
+func importKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporary bool) (core.Key, error) {
+
+	key, err := utils.PEMtoPrivateKey(keyBuff, nil)
+	if err != nil {
+		return nil, err
+	}
+	switch key.(type) {
+	case *ecdsa.PrivateKey:
+		priv, err := utils.PrivateKeyToDER(key.(*ecdsa.PrivateKey))
+		if err != nil {
+			return nil, err
+		}
+		sk, err := myCSP.KeyImport(priv, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: temporary})
+		if err != nil {
+			return nil, err
+		}
+		return sk, nil
+	//case *rsa.PrivateKey:
+	//return nil, errors.Errorf("Failed to import RSA key from %s; RSA private key import is not supported", keyFile)
+	default:
+		return nil, nil
+	}
 }
