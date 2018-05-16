@@ -13,9 +13,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	// register crypto algorithms
+	"encoding/json"
+
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
-	"encoding/json"
 )
 
 var tlog = log.New("module", "types")
@@ -848,7 +849,6 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	return false
 }
 
-
 type RpcTypeInfo struct {
 	FuncName string
 	Util     interface{}
@@ -876,6 +876,6 @@ func InitRpcTypeUtil() {
 
 }
 
-var RpcTypeUtilMap = map[string]interface{} {
-	// "GetTokenSellOrderByStatus" : &TradeQueryTokenSellOrder{},
+var RpcTypeUtilMap = map[string]interface{}{
+// "GetTokenSellOrderByStatus" : &TradeQueryTokenSellOrder{},
 }
