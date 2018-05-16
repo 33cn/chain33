@@ -49,14 +49,14 @@ func NewEVMExecutor() *EVMExecutor {
 	exec.vmCfg.Tracer = runtime.NewJSONLogger(os.Stdout)
 
 	// 打开EVM调试开关
-	//exec.vmCfg.Debug = true
+	exec.vmCfg.Debug = true
 
 	exec.SetChild(exec)
 	return exec
 }
 
 func (evm *EVMExecutor) GetName() string {
-	return "evm"
+	return "user.evm"
 }
 
 func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficulty uint64) {
@@ -256,7 +256,7 @@ func (evm *EVMExecutor) NewEVMContext(msg *common.Message) runtime.Context {
 
 // 从交易信息中获取交易发起人地址
 func getCaller(tx *types.Transaction) common.Address {
-	return common.StringToAddress(account.From(tx).String())
+	return *common.StringToAddress(account.From(tx).String())
 }
 
 // 从交易信息中获取交易目标地址，在创建合约交易中，此地址为空
@@ -265,7 +265,7 @@ func getReceiver(tx *types.Transaction) *common.Address {
 		return nil
 	}
 	addr := common.StringToAddress(tx.To)
-	return &addr
+	return addr
 }
 
 // 检查合约调用账户是否有充足的金额进行转账交易操作
