@@ -18,6 +18,8 @@ const (
 	buyOrderTSPAS  = "token-buyorder-tspas:"
 	sellIDPrefix   = "mavl-trade-sell-"
 	buyIDPrefix    = "mavl-trade-buy-"
+	// Addr-Height-Status-Type-Key
+	orderAHSTK     = "token-order-ahstk:"
 )
 
 // sell order 4 key, 4prefix
@@ -124,6 +126,22 @@ func calcOnesBuyOrderPrefixStatus(addr string, status int32) []byte {
 	return []byte(fmt.Sprintf(buyOrderASTS+"%s:%d", addr, status))
 }
 
+// 特定帐号下的订单
+// 这里状态进行转化, 分成 状态和类型， 状态三种， 类型 两种
+//  on:  Onsale Onbuy
+//  done:  Soldout boughtOut
+//  revoke:  RevokeSell RevokeBuy
+// buy/sell 两种类型
+//  目前页面是按addr， 状态来
+//
+func calcOnesOrderKey(addr string, status int32, ty int32, height int64, key string) []byte {
+	return []byte(fmt.Sprintf(orderAHSTK+"%s:%d:%d:%010d:%s", addr, status, ty, height, key))
+}
+
+func calcOnesOrderPrefixStatus(addr string, status int32) []byte {
+	return []byte(fmt.Sprintf(orderAHSTK+"%s:%d:%d:%010d:%s", addr, status))
+}
+
 // 特定状态下的买单
 //func calcTokenBuyOrderPrefixStatus(status int32) []byte {
 //	return []byte(fmt.Sprintf(buyOrderSHTAS+"%d", status))
@@ -159,6 +177,10 @@ func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBa
 		price, receipt.Owner, keyId)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
+	st, ty := fromStatus(status)
+	newkey = calcOnesOrderKey(receipt.Owner, st, ty, height, keyId)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
 	return kv
 }
 
@@ -190,6 +212,10 @@ func genSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSell
 
 	newkey = calcTokensSellOrderKeyStatus(receipt.TokenSymbol, status,
 		price, receipt.Owner, keyID)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	st, ty := fromStatus(status)
+	newkey = calcOnesOrderKey(receipt.Owner, st, ty, height, keyID)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
 	return kv
