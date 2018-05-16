@@ -125,7 +125,5 @@ func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, er
 	if err != nil {
 		return nil, types.ErrInputPara
 	}
-	fmt.Println("req: ", req)
-	fmt.Println("req: ", types.Encode(req))
 	return types.Encode(req), nil
 }
