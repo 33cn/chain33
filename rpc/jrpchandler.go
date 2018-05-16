@@ -738,7 +738,7 @@ func (c *Chain33) QueryOld(in Query4Jrpc, result *interface{}) error {
 
 func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 	trans, ok := types.RpcTypeUtilMap[in.FuncName]
-	if ok != true {
+	if !ok {
 		// 不是所有的合约都需要做类型转化， 没有修改的合约走老的接口
 		// 另外给部分合约的代码修改的时间
 		//log.Info("EventQuery", "Old Query called", in.FuncName)
