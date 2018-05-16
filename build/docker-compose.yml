@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  btcd1:
+  chain33:
     build:
       context: "./"
     ports:
@@ -12,14 +12,14 @@ services:
       chain33_net:
         ipv4_address: 172.18.18.151
 
-  btcd2:
+  chain32:
     build:
       context: "./"
     networks: 
       chain33_net:
         ipv4_address: 172.18.18.97
 
-  btcd3:
+  chain31:
     build:
       context: "./"
     networks: 
@@ -32,5 +32,4 @@ networks:
     ipam:
       driver: default
       config:
-      - 
-        subnet: 172.18.18.0/24
+      - subnet: 172.18.18.0/24
