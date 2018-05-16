@@ -355,6 +355,10 @@ func (block *Block) Hash() []byte {
 	return common.Sha256(data)
 }
 
+func (block *Block) Size() int {
+	return Size(block)
+}
+
 func (block *Block) GetHeader() *Header {
 	head := &Header{}
 	head.Version = block.Version

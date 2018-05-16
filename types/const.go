@@ -120,7 +120,7 @@ const (
 	Coin                int64 = 1e8
 	MaxCoin             int64 = 1e17
 	MaxTxSize                 = 100000   //100K
-	MaxBlockSize              = 10000000 //10M
+	MaxBlockSize              = 20000000 //20M
 	MaxTxsPerBlock            = 100000
 	TokenPrecision      int64 = 1e8
 	MaxTokenBalance           = 900 * 1e8 * TokenPrecision //900亿

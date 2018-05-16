@@ -185,4 +185,6 @@ var (
 	ErrVersion    = errors.New("ErrVersionNoSupport")
 	ErrStreamPing = errors.New("ErrStreamPing")
 	ErrPeerStop   = errors.New("ErrPeerStop")
+
+	ErrBlockSize = errors.New("ErrBlockSize")
 )
