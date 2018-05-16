@@ -186,7 +186,8 @@ type ReqAddr struct {
 }
 
 type ReqHashes struct {
-	Hashes []string `json:"hashes"`
+	Hashes        []string `json:"hashes"`
+	DisableDetail bool     `json:"disableDetail"`
 }
 
 type ReqWalletTransactionList struct {
