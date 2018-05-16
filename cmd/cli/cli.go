@@ -23,8 +23,14 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+var sendCmd = &cobra.Command{
+	Use:   "send",
+	Short: "Send transaction in one move",
+	Run:   func(cmd *cobra.Command, args []string) {},
+}
+
 func init() {
-	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "RPC listen address")
+	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "http url")
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),
@@ -41,11 +47,19 @@ func init() {
 		commands.TradeCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
-		versionCmd)
+		versionCmd,
+		sendCmd)
 }
 
 func main() {
 	log.SetLogLevel("error")
+	if len(os.Args) > 1 {
+		argsWithoutProg := os.Args[1:]
+		if argsWithoutProg[0] == "send" {
+			commands.OneStepSend(argsWithoutProg[1:])
+			return
+		}
+	}
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -78,8 +78,8 @@ func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addP
 		bootstrapPeers:   peers,
 		readOnlyPeers:    readOnlyPeers,
 		addPeers:         addPeers,
-		waldir:           fmt.Sprintf("chain33_raft-%d", id),
-		snapdir:          fmt.Sprintf("chain33_raft-%d-snap", id),
+		waldir:           fmt.Sprintf("chain33_raft-%d%swal", id, string(os.PathSeparator)),
+		snapdir:          fmt.Sprintf("chain33_raft-%d%ssnap", id, string(os.PathSeparator)),
 		getSnapshot:      getSnapshot,
 		snapCount:        defaultSnapCount,
 		stopc:            make(chan struct{}),
@@ -98,7 +98,7 @@ func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addP
 func (rc *raftNode) startRaft() {
 	// 有snapshot就打开，没有则创建
 	if !fileutil.Exist(rc.snapdir) {
-		if err := os.Mkdir(rc.snapdir, 0750); err != nil {
+		if err := os.MkdirAll(rc.snapdir, 0750); err != nil {
 			rlog.Error(fmt.Sprintf("chain33_raft: cannot create dir for snapshot (%v)", err.Error()))
 			panic(err)
 		}
@@ -363,12 +363,15 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 		return
 	}
 
-	rlog.Info(fmt.Sprintf("start snapshot [applied index: %d | last snapshot index: %d]", rc.appliedIndex, rc.snapshotIndex))
-	data, err := rc.getSnapshot()
+	appliedIndex := rc.appliedIndex
+	snapshotIndex := rc.snapshotIndex
+	confState := rc.confState
+	rlog.Info(fmt.Sprintf("start snapshot [applied index: %d | last snapshot index: %d]", appliedIndex, snapshotIndex))
+	ents, err := rc.raftStorage.Entries(appliedIndex, appliedIndex+1, 2)
 	if err != nil {
 		rlog.Error(fmt.Sprintf("Err happened when get snapshot:%v", err.Error()))
 	}
-	snapShot, err := rc.raftStorage.CreateSnapshot(rc.appliedIndex, &rc.confState, data)
+	snapShot, err := rc.raftStorage.CreateSnapshot(appliedIndex, &confState, ents[0].Data)
 	if err != nil {
 		panic(err)
 	}
@@ -377,15 +380,15 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 	}
 
 	compactIndex := uint64(1)
-	if rc.appliedIndex > snapshotCatchUpEntriesN {
-		compactIndex = rc.appliedIndex - snapshotCatchUpEntriesN
+	if appliedIndex > snapshotCatchUpEntriesN {
+		compactIndex = appliedIndex - snapshotCatchUpEntriesN
 	}
 	if err := rc.raftStorage.Compact(compactIndex); err != nil {
 		panic(err)
 	}
 
 	rlog.Info(fmt.Sprintf("compacted log at index %d", compactIndex))
-	rc.snapshotIndex = rc.appliedIndex
+	rc.snapshotIndex = appliedIndex
 }
 
 func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
@@ -408,7 +411,7 @@ func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
 
 func (rc *raftNode) openWAL(snapshot *raftpb.Snapshot) *wal.WAL {
 	if !wal.Exist(rc.waldir) {
-		if err := os.Mkdir(rc.waldir, 0750); err != nil {
+		if err := os.MkdirAll(rc.waldir, 0750); err != nil {
 			rlog.Error(fmt.Sprintf("chain33_raft: cannot create dir for wal (%v)", err.Error()))
 		}
 

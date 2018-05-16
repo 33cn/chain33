@@ -51,14 +51,7 @@ service p2pgservice {
 	rpc GetPeerInfo (P2PGetPeerInfo) returns (P2PPeerInfo) {
 	}
 	
-	//获取本节点外网地址信息
-	rpc RemotePeerAddr (P2PGetAddr) returns (P2PExternalInfo) {
-	}
 	
-	//提供检验自身节点网络映射后服务是否开启的服务
-	rpc	RemotePeerNatOk(P2PPing) returns (P2PExternalInfo){
-		
-	}
 	//grpc server 读客户端发送来的数据
 	rpc ServerStreamRead(stream BroadCastData) returns (ReqNil){
 	}

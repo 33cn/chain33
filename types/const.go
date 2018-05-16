@@ -15,15 +15,20 @@ const (
 )
 
 var (
-	AllowDepositExec       = []string{"ticket"}
-	AllowUserExec          = []string{"coins", "ticket", "norm", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+	ExecerCoins      = []byte("coins")
+	ExecerTicket     = []byte("ticket")
+	ExecerConfig     = []byte("config")
+	ExecerManage     = []byte("manage")
+	ExecerToken      = []byte("token")
+	AllowDepositExec = [][]byte{ExecerTicket}
+	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	GenesisBlockTime int64 = 1525708005
+	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr            = "1QGdwwUr64CbvN48hhsAZSeh5WfieZbqEr"
+	FundKeyAddr            = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager           = []string{"14YRhYpYSrABHz7nUUTufWaQ2v36PZcKZS"}
-	ConfigPrefix           = "mavl-config-"
+	SuperManager           = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
 	TokenApprs             = []string{}
 )
 
@@ -38,6 +43,7 @@ var (
 	ForkV7BadTokenSymbol int64 = 1
 	ForkBlockHash        int64 = 1
 	ForkV9               int64 = 1
+	ForkV10TradeBuyLimit int64 = 1
 )
 
 var (
@@ -50,7 +56,8 @@ var (
 func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
-		AllowUserExec = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage"}
+		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, []byte("hashlock"),
+			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
 	}
 }
 
@@ -58,9 +65,18 @@ func IsBityuan() bool {
 	return title == "bityuan"
 }
 
+func IsYcc() bool {
+	return title == "yuanchain"
+}
+
+func IsPublicChain() bool {
+	return IsBityuan() || IsYcc()
+}
+
 func SetTestNet(isTestNet bool) {
 	if !isTestNet {
 		testNet = false
+		return
 	}
 	testNet = true
 	//const 初始化TestNet 的初始化参数
@@ -84,6 +100,7 @@ func SetTestNet(isTestNet bool) {
 	ForkV7BadTokenSymbol = 184000
 	ForkBlockHash = 208986 + 200
 	ForkV9 = 350000
+	ForkV10TradeBuyLimit = 301000
 }
 
 func IsTestNet() bool {
@@ -103,7 +120,7 @@ const (
 	Coin                int64 = 1e8
 	MaxCoin             int64 = 1e17
 	MaxTxSize                 = 100000   //100K
-	MaxBlockSize              = 10000000 //10M
+	MaxBlockSize              = 20000000 //20M
 	MaxTxsPerBlock            = 100000
 	TokenPrecision      int64 = 1e8
 	MaxTokenBalance           = 900 * 1e8 * TokenPrecision //900亿
@@ -389,9 +406,9 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSell            = 310
-	TyLogTradeBuy             = 311
-	TyLogTradeRevoke          = 312
+	TyLogTradeSellLimit       = 310
+	TyLogTradeBuyMarket       = 311
+	TyLogTradeSellRevoke      = 312
 	TyLogTokenTransfer        = 313
 	TyLogTokenGenesis         = 314
 	TyLogTokenDeposit         = 315
@@ -402,6 +419,9 @@ const (
 	TyLogTokenExecActive      = 320
 	TyLogTokenGenesisTransfer = 321
 	TyLogTokenGenesisDeposit  = 322
+	TyLogTradeSellMarket      = 330
+	TyLogTradeBuyLimit        = 331
+	TyLogTradeBuyRevoke       = 332
 
 	// log for config
 	TyLogModifyConfig = 410
@@ -470,26 +490,46 @@ const (
 
 // trade op
 const (
-	TradeSell = iota
-	TradeBuy
+	TradeSellLimit = iota
+	TradeBuyMarket
 	TradeRevokeSell
+	TradeSellMarket
+	TradeBuyLimit
+	TradeRevokeBuy
 )
 
 // 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
 const (
-	NotStart = iota
-	OnSale
-	SoldOut
-	Revoked
-	Expired
+	TradeOrderStatusNotStart = iota
+	TradeOrderStatusOnSale
+	TradeOrderStatusSoldOut
+	TradeOrderStatusRevoked
+	TradeOrderStatusExpired
+	TradeOrderStatusOnBuy
+	TradeOrderStatusBoughtOut
+	TradeOrderStatusBuyRevoked
 )
 
 var SellOrderStatus = map[int32]string{
-	NotStart: "NotStart",
-	OnSale:   "OnSale",
-	SoldOut:  "SoldOut",
-	Revoked:  "Revoked",
-	Expired:  "Expired",
+	TradeOrderStatusNotStart:   "NotStart",
+	TradeOrderStatusOnSale:     "OnSale",
+	TradeOrderStatusSoldOut:    "SoldOut",
+	TradeOrderStatusRevoked:    "Revoked",
+	TradeOrderStatusExpired:    "Expired",
+	TradeOrderStatusOnBuy:      "OnBuy",
+	TradeOrderStatusBoughtOut:  "BoughtOut",
+	TradeOrderStatusBuyRevoked: "BuyRevoked",
+}
+
+var SellOrderStatus2Int = map[string]int32{
+	"NotStart":   TradeOrderStatusNotStart,
+	"OnSale":     TradeOrderStatusOnSale,
+	"SoldOut":    TradeOrderStatusSoldOut,
+	"Revoked":    TradeOrderStatusRevoked,
+	"Expired":    TradeOrderStatusExpired,
+	"OnBuy":      TradeOrderStatusOnBuy,
+	"BoughtOut":  TradeOrderStatusBoughtOut,
+	"BuyRevoked": TradeOrderStatusBuyRevoked,
 }
 
 // manager action
@@ -505,7 +545,7 @@ const (
 )
 
 var MapSellOrderStatusStr2Int = map[string]int32{
-	"onsale":  OnSale,
-	"soldout": SoldOut,
-	"revoked": Revoked,
+	"onsale":  TradeOrderStatusOnSale,
+	"soldout": TradeOrderStatusSoldOut,
+	"revoked": TradeOrderStatusRevoked,
 }

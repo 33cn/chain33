@@ -12,6 +12,7 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	// register drivers
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
@@ -27,7 +28,6 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var runningHeight int64
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -38,7 +38,8 @@ func DisableLog() {
 }
 
 type Executor struct {
-	client queue.Client
+	client  queue.Client
+	qclient client.QueueProtocolAPI
 }
 
 func execInit() {
@@ -73,13 +74,17 @@ func New(cfg *types.Exec) *Executor {
 	return exec
 }
 
-func (exec *Executor) SetQueueClient(client queue.Client) {
-	exec.client = client
+func (exec *Executor) SetQueueClient(qcli queue.Client) {
+	exec.client = qcli
 	exec.client.Sub("execs")
-
+	var err error
+	exec.qclient, err = client.New(qcli, nil)
+	if err != nil {
+		panic(err)
+	}
 	//recv 消息的处理
 	go func() {
-		for msg := range client.Recv() {
+		for msg := range exec.client.Recv() {
 			elog.Debug("exec recv", "msg", msg)
 			if msg.Ty == types.EventExecTxList {
 				go exec.procExecTxList(msg)
@@ -97,8 +102,13 @@ func (exec *Executor) SetQueueClient(client queue.Client) {
 }
 
 func (exec *Executor) procExecQuery(msg queue.Message) {
+	header, err := exec.qclient.GetLastHeader()
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+		return
+	}
 	data := msg.GetData().(*types.BlockChainQuery)
-	driver, err := LoadDriver(data.Driver)
+	driver, err := LoadDriver(data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -131,6 +141,8 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
+var commonPrefix = []byte("mavl-")
+
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, exec.client.Clone(), datas.Height, datas.BlockTime)
@@ -159,14 +171,15 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		//如果收了手续费，表示receipt 至少是pack 级别
 		//收不了手续费的交易才是 error 级别
 		feelog := &types.Receipt{Ty: types.ExecPack}
-		e, err := LoadDriver(string(tx.Execer))
+		e, err := LoadDriver(string(tx.Execer), execute.height)
 		if err != nil {
-			e, err = LoadDriver("none")
+			e, err = LoadDriver("none", execute.height)
 			if err != nil {
 				panic(err)
 			}
 		}
-		if !e.IsFree() && types.MinFee > 0 {
+		//公链不允许手续费为0
+		if types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
 			feelog, err = execute.processFee(tx)
 			if err != nil {
 				receipt := types.NewErrReceipt(err)
@@ -177,14 +190,26 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		//只有到pack级别的，才会增加index
 		receipt, err := execute.Exec(tx, index)
 		index++
+
 		if err != nil {
-			elog.Error("exec tx error = ", "err", err, "tx", tx)
+			elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
 			//add error log
 			errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
 			feelog.Logs = append(feelog.Logs, errlog)
 		} else {
 			//合并两个receipt，如果执行不返回错误，那么就认为成功
 			if receipt != nil {
+				for _, kv := range receipt.GetKV() {
+					k := kv.GetKey()
+					if !isAllowExec(k, tx.GetExecer()) {
+						elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
+							"tx.action", tx.ActionName())
+						if types.IsTestNet() {
+							//如果是测试网络，直接崩溃
+							panic("err receipt key")
+						}
+					}
+				}
 				feelog.KV = append(feelog.KV, receipt.KV...)
 				feelog.Logs = append(feelog.Logs, receipt.Logs...)
 				feelog.Ty = receipt.Ty
@@ -195,6 +220,77 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventReceipts,
 		&types.Receipts{receipts}))
+}
+
+func isAllowExec(key, txexecer []byte) bool {
+	//coins 和 token 可以修改所有的其他合约的值
+	keyexecer, err := findExecer(key)
+	if err != nil {
+		elog.Error("find execer ", "err", err)
+		return false
+	}
+	if bytes.Equal(txexecer, types.ExecerCoins) || bytes.Equal(txexecer, types.ExecerToken) {
+		return true
+	}
+	//其他合约可以修改自己合约内部
+	if bytes.Equal(keyexecer, txexecer) {
+		return true
+	}
+	//如果是运行运行deposit的执行器，可以修改coins 的值
+	for _, execer := range types.AllowDepositExec {
+		if bytes.Equal(txexecer, execer) && bytes.Equal(keyexecer, types.ExecerCoins) {
+			return true
+		}
+	}
+	//如果keyexecer 是 coins 和  token，那么只能修改mavl-coins-symbol-exec 下面的字段
+	if bytes.Equal(keyexecer, types.ExecerCoins) || bytes.Equal(keyexecer, types.ExecerToken) {
+		if isExecKey(key) {
+			return true
+		}
+	}
+	//manage 的key 是 config
+	if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
+		return true
+	}
+	return false
+}
+
+var bytesExec = []byte("exec")
+
+func isExecKey(key []byte) bool {
+	n := 0
+	start := 0
+	end := 0
+	for i := len(commonPrefix); i < len(key); i++ {
+		if key[i] == '-' {
+			n = n + 1
+			if n == 2 {
+				start = i + 1
+			}
+			if n == 3 {
+				end = i
+				break
+			}
+		}
+	}
+	if start > 0 && end > 0 {
+		if bytes.Equal(key[start:end], bytesExec) {
+			return true
+		}
+	}
+	return false
+}
+
+func findExecer(key []byte) (execer []byte, err error) {
+	if !bytes.HasPrefix(key, commonPrefix) {
+		return nil, types.ErrMavlKeyNotStartWithMavl
+	}
+	for i := len(commonPrefix); i < len(key); i++ {
+		if key[i] == '-' {
+			return key[len(commonPrefix):i], nil
+		}
+	}
+	return nil, types.ErrNoExecerInMavlKey
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
@@ -274,16 +370,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 }
 
 func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
-	if kvs == nil {
-		return nil
-	}
-	if bytes.HasPrefix(execer, []byte("user.")) {
-		for j := 0; j < len(kvs); j++ {
-			if !bytes.HasPrefix(kvs[j].Key, execer) {
-				return types.ErrLocalDBPerfix
-			}
-		}
-	}
 	return nil
 }
 
@@ -311,7 +397,6 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 		blocktime:    blocktime,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
-	runningHeight = height
 	return e
 }
 
@@ -400,7 +485,7 @@ func (e *executor) loadDriverForExec(exector string) (c drivers.Driver) {
 	return exec
 }
 
-func LoadDriver(name string) (c drivers.Driver, err error) {
+func LoadDriver(name string, runningHeight int64) (c drivers.Driver, err error) {
 	execDrivers := drivers.CreateDrivers4CurrentHeight(runningHeight)
 	return execDrivers.LoadDriver(name)
 }
