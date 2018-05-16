@@ -137,8 +137,8 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 	kv = append(kv, tokendb.getKVSet(statuskey)...)
-	tokenlog.Info("func token preCreate", "token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
-		"key:", key, "key string", string(key), "value:", tokendb.getKVSet(key)[0].Value)
+	//tokenlog.Info("func token preCreate", "token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
+	//	"key:", key, "key string", string(key), "value:", tokendb.getKVSet(key)[0].Value)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
