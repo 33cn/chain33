@@ -2,7 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
@@ -134,8 +136,8 @@ func setPwd(cmd *cobra.Command, args []string) {
 	oldPwd, _ := cmd.Flags().GetString("old")
 	newPwd, _ := cmd.Flags().GetString("new")
 	params := types.ReqWalletSetPasswd{
-		Oldpass: oldPwd,
-		Newpass: newPwd,
+		OldPass: oldPwd,
+		NewPass: newPwd,
 	}
 	var res jsonrpc.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
@@ -189,10 +191,10 @@ func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 			Receipt:    decodeLog(*(v.Receipt)),
 			Height:     v.Height,
 			Index:      v.Index,
-			Blocktime:  v.Blocktime,
+			Blocktime:  v.BlockTime,
 			Amount:     amountResult,
-			Fromaddr:   v.Fromaddr,
-			Txhash:     v.Txhash,
+			Fromaddr:   v.FromAddr,
+			Txhash:     v.TxHash,
 			ActionName: v.ActionName,
 		}
 		result.TxDetails = append(result.TxDetails, wtxd)
@@ -289,15 +291,24 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	key, _ := cmd.Flags().GetString("key")
 	addr, _ := cmd.Flags().GetString("addr")
 	expire, _ := cmd.Flags().GetString("expire")
+	expireTime, err := time.ParseDuration(expire)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if expireTime < time.Minute*2 {
+		expire = "120s"
+		fmt.Println("expire time must longer than 2 minutes, changed expire time into 2 minutes")
+	}
 	params := types.ReqSignRawTx{
-		PrivKey: key,
+		Privkey: key,
 		Addr:    addr,
 		TxHex:   data,
 		Expire:  expire,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // set tx fee

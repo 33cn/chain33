@@ -1,5 +1,5 @@
-
 Title="chain33"
+TestNet=false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -37,8 +37,10 @@ batchsync=false
 [p2p]
 seeds=["127.0.0.1:13802"]
 enable=true
-isSeed=false
+isSeed=true
 serverStart=true
+innerSeedEnable=false
+innerBounds=300
 msgCacheSize=10240
 driver="leveldb"
 dbPath="datadir/addrbook"
@@ -92,6 +94,7 @@ driver="leveldb"
 dbPath="datadir/wallet"
 dbCache=16
 signType="secp256k1"
+minerdisable=true
 
 [exec]
 isFree=true

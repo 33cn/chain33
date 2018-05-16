@@ -2,7 +2,7 @@ package blockchain
 
 import (
 	"bytes"
-	"math"
+	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -18,7 +18,9 @@ var (
 	castlock         sync.Mutex
 	ntpClockSynclock sync.Mutex
 	faultpeerlock    sync.Mutex
-	isNtpClockSync   = true //ntp时间是否同步
+	bestpeerlock     sync.Mutex
+
+	isNtpClockSync = true //ntp时间是否同步
 
 	MaxFetchBlockNum        int64 = 128 * 6 //一次最多申请获取block个数
 	TimeoutSeconds          int64 = 2
@@ -30,7 +32,6 @@ var (
 	MaxRollBlockNum         int64 = 5000   //最大回退block数量
 	//TODO
 	blockSynInterVal        = time.Duration(TimeoutSeconds)
-	checkBlockNum     int64 = 128
 	batchsyncblocknum int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
 
 	synlog = chainlog.New("submodule", "syn")
@@ -65,13 +66,6 @@ func (list PeerInfoList) Swap(i, j int) {
 	list[j] = temp
 }
 
-//把peer高度相近的组成一组，目前暂定相差5个高度为一组
-type PeerGroup struct {
-	PeerCount  int
-	StartIndex int
-	EndIndex   int
-}
-
 //可疑故障节点信息
 type FaultPeerInfo struct {
 	Peer        *PeerInfo
@@ -79,6 +73,16 @@ type FaultPeerInfo struct {
 	FaultHash   []byte
 	ErrInfo     error
 	ReqFlag     bool
+}
+
+//用于记录最优链的信息
+type BestPeerInfo struct {
+	Peer        *PeerInfo
+	Height      int64
+	Hash        []byte
+	Td          *big.Int
+	ReqFlag     bool
+	IsBestChain bool
 }
 
 func (chain *BlockChain) SynRoutine() {
@@ -102,6 +106,9 @@ func (chain *BlockChain) SynRoutine() {
 
 	//2分钟尝试检测一次故障peer是否已经恢复
 	recoveryFaultPeerTicker := time.NewTicker(120 * time.Second)
+
+	//2分钟尝试检测一次最优链，确保本节点在最优链
+	checkBestChainTicker := time.NewTicker(120 * time.Second)
 
 	for {
 		select {
@@ -131,6 +138,10 @@ func (chain *BlockChain) SynRoutine() {
 			//定时检查故障peer，如果执行出错高度的blockhash值有变化，说明故障peer已经纠正
 		case <-recoveryFaultPeerTicker.C:
 			chain.RecoveryFaultPeer()
+
+			//定时检查peerlist中的节点是否在同一条链上，获取同一高度的blockhash来做对比
+		case <-checkBestChainTicker.C:
+			chain.CheckBestChain()
 		}
 	}
 }
@@ -158,7 +169,7 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 	}
 	var requestblock types.ReqBlocks
 	requestblock.Start = start
-	requestblock.Isdetail = false
+	requestblock.IsDetail = false
 	requestblock.Pid = pid
 
 	//同步block一次请求128个,fork分叉处理时请求block的个数不做限制
@@ -246,7 +257,7 @@ func (chain *BlockChain) fetchPeerList() error {
 	//按照height给peer排序从小到大
 	sort.Sort(peerInfoList)
 
-	subInfoList := maxSubList(peerInfoList)
+	subInfoList := peerInfoList
 
 	//debug
 	debugflag++
@@ -260,38 +271,12 @@ func (chain *BlockChain) fetchPeerList() error {
 	chain.peerList = subInfoList
 	peerMaxBlklock.Unlock()
 
+	//获取到peerlist之后，需要判断是否已经发起了最优链的检测。如果没有就触发一次最优链的检测
+	if atomic.LoadInt32(&chain.firstcheckbestchain) == 0 {
+		synlog.Info("fetchPeerList trigger first CheckBestChain")
+		chain.CheckBestChain()
+	}
 	return nil
-}
-
-func maxSubList(list PeerInfoList) (sub PeerInfoList) {
-	start := 0
-	end := 0
-	if len(list) == 0 {
-		return list
-	}
-	for i := 0; i < len(list); i++ {
-		var nextheight int64
-		if i+1 == len(list) {
-			nextheight = math.MaxInt64
-		} else {
-			nextheight = list[i+1].Height
-		}
-		if nextheight-list[i].Height > checkBlockNum {
-			end = i + 1
-			if len(sub) < (end - start) {
-				sub = list[start:end]
-			}
-			start = i + 1
-			end = i + 1
-		} else {
-			end = i + 1
-		}
-	}
-	//只有一个节点，那么取最高的节点
-	if len(sub) <= 1 {
-		return list[len(list)-1:]
-	}
-	return sub
 }
 
 //存储广播的block最新高度
@@ -432,6 +417,12 @@ func (chain *BlockChain) GetMaxPeerInfo() *PeerInfo {
 				}
 			}
 		}
+		//没有合法的peer，此时本节点可能在侧链上，返回peerlist中最高的peer尝试矫正
+		maxpeer := chain.peerList[peerlen-1]
+		if maxpeer != nil {
+			synlog.Debug("GetMaxPeerInfo all peers are faultpeer maybe self on Side chain", "pid", maxpeer.Name, "Height", maxpeer.Height, "Hash", common.ToHex(maxpeer.Hash))
+			return maxpeer
+		}
 	}
 	return nil
 }
@@ -492,6 +483,17 @@ func (chain *BlockChain) RecoveryFaultPeer() {
 
 	//循环遍历故障peerlist，尝试检测故障peer是否已经恢复
 	for pid, faultpeer := range chain.faultPeerList {
+		//需要考虑回退的情况，可能本地节点已经回退，恢复以前的故障节点，获取故障高度的区块的hash是否在本地已经校验通过。校验通过就直接说明故障已经恢复
+		//获取本节点指定高度的blockhash做判断，hash相同就确认故障已经恢复
+		blockhash, err := chain.blockStore.GetBlockHashByHeight(faultpeer.FaultHeight)
+		if err == nil {
+			if bytes.Equal(faultpeer.FaultHash, blockhash) {
+				synlog.Debug("RecoveryFaultPeer ", "Height", faultpeer.FaultHeight, "FaultHash", common.ToHex(faultpeer.FaultHash), "pid", pid)
+				delete(chain.faultPeerList, pid)
+				continue
+			}
+		}
+
 		chain.FetchBlockHeaders(faultpeer.FaultHeight, faultpeer.FaultHeight, pid)
 		chain.faultPeerList[pid].ReqFlag = true
 		synlog.Debug("RecoveryFaultPeer", "pid", faultpeer.Peer.Name, "FaultHeight", faultpeer.FaultHeight, "FaultHash", common.ToHex(faultpeer.FaultHash), "Err", faultpeer.ErrInfo)
@@ -584,7 +586,12 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	//获取peers的最新高度.处理没有收到广播block的情况
 	if curheight+1 < peerMaxBlkHeight {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
-		chain.FetchBlock(curheight+1, peerMaxBlkHeight, chain.GetPeerPids(), false)
+		pids := chain.GetBestChainPids()
+		if pids != nil {
+			chain.FetchBlock(curheight+1, peerMaxBlkHeight, pids, false)
+		} else {
+			synlog.Info("SynBlocksFromPeers GetBestChainPids is nil")
+		}
 	}
 }
 
@@ -644,7 +651,7 @@ func (chain *BlockChain) FetchBlockHeaders(start int64, end int64, pid string) (
 	var requestblock types.ReqBlocks
 	requestblock.Start = start
 	requestblock.End = end
-	requestblock.Isdetail = false
+	requestblock.IsDetail = false
 	requestblock.Pid = []string{pid}
 
 	msg := chain.client.NewMessage("p2p", types.EventFetchBlockHeaders, &requestblock)
@@ -666,13 +673,20 @@ func (chain *BlockChain) ProcBlockHeader(headers *types.Headers, peerid string) 
 
 	//判断是否是用于检测故障peer而请求的block header
 	faultPeer := chain.GetFaultPeer(peerid)
-	if faultPeer != nil && faultPeer.ReqFlag {
+	if faultPeer != nil && faultPeer.ReqFlag && faultPeer.FaultHeight == headers.Items[0].Height {
 		//同一高度的block hash有更新，表示故障peer的故障已经恢复，将此peer从故障peerlist中移除
-		if faultPeer.FaultHeight == headers.Items[0].Height && !bytes.Equal(headers.Items[0].Hash, faultPeer.FaultHash) {
+		if !bytes.Equal(headers.Items[0].Hash, faultPeer.FaultHash) {
 			chain.RemoveFaultPeer(peerid)
 		} else {
 			chain.UpdateFaultPeer(peerid, false)
 		}
+		return nil
+	}
+
+	//检测最优链的处理
+	bestchainPeer := chain.GetBestChainPeer(peerid)
+	if bestchainPeer != nil && bestchainPeer.ReqFlag && headers.Items[0].Height == bestchainPeer.Height {
+		chain.CheckBestChainProc(headers, peerid)
 		return nil
 	}
 
@@ -740,9 +754,14 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	//此时停止同步的任务
 	chain.task.Cancel()
 
-	//最高peer大于本节点tip高度时，至少取分叉节点到tipheight+1的block。用于总难度的比较
-	if peermaxheight > tipheight {
-		chain.FetchBlock(ForkHeight, tipheight+1, []string{pid}, true)
+	//分叉区块小于128个时向peer请求128个或者从分叉到peermaxheight指间的区块
+	//分叉区块大于128个时，至少取分叉节点到tipheight+1的block。用于总难度的比较
+	if peermaxheight > ForkHeight+MaxFetchBlockNum {
+		if tipheight > ForkHeight+MaxFetchBlockNum {
+			chain.FetchBlock(ForkHeight, tipheight+1, []string{pid}, true)
+		} else {
+			chain.FetchBlock(ForkHeight, ForkHeight+MaxFetchBlockNum, []string{pid}, true)
+		}
 	} else {
 		chain.FetchBlock(ForkHeight, peermaxheight, []string{pid}, true)
 	}
@@ -773,7 +792,7 @@ func (chain *BlockChain) CheckTipBlockHash() {
 
 	//获取当前主链的高度
 	tipheight := chain.bestChain.Height()
-	tiphash := chain.bestChain.tip().hash
+	tiphash := chain.bestChain.Tip().hash
 	laststorheight := chain.blockStore.Height()
 
 	if tipheight != laststorheight {
@@ -868,4 +887,103 @@ func UpdateNtpClockSyncStatus(Sync bool) {
 	ntpClockSynclock.Lock()
 	defer ntpClockSynclock.Unlock()
 	isNtpClockSync = Sync
+}
+
+//定时确保本节点在最优链上,定时向peer请求指定高度的header
+func (chain *BlockChain) CheckBestChain() {
+
+	peers := chain.GetPeers()
+	// peer中只有自己节点，没有其他节点
+	if peers == nil {
+		synlog.Debug("CheckBestChain has no peers")
+		return
+	}
+
+	//设置首次检测最优链的标志
+	atomic.CompareAndSwapInt32(&chain.firstcheckbestchain, 0, 1)
+
+	tipheight := chain.bestChain.Height()
+
+	bestpeerlock.Lock()
+	defer bestpeerlock.Unlock()
+
+	for _, peer := range peers {
+		bestpeer := chain.bestChainPeerList[peer.Name]
+		if bestpeer != nil {
+			bestpeer.Peer = peer
+			bestpeer.Height = tipheight
+			bestpeer.Hash = nil
+			bestpeer.Td = nil
+			bestpeer.ReqFlag = true
+		} else {
+			if peer.Height < tipheight {
+				continue
+			}
+			var newbestpeer BestPeerInfo
+			newbestpeer.Peer = peer
+			newbestpeer.Height = tipheight
+			newbestpeer.Hash = nil
+			newbestpeer.Td = nil
+			newbestpeer.ReqFlag = true
+			newbestpeer.IsBestChain = false
+			chain.bestChainPeerList[peer.Name] = &newbestpeer
+		}
+		synlog.Debug("CheckBestChain FetchBlockHeaders", "height", tipheight, "pid", peer.Name)
+		chain.FetchBlockHeaders(tipheight, tipheight, peer.Name)
+	}
+}
+
+func (chain *BlockChain) GetBestChainPeer(pid string) *BestPeerInfo {
+	bestpeerlock.Lock()
+	defer bestpeerlock.Unlock()
+	return chain.bestChainPeerList[pid]
+}
+
+//定时确保本节点在最优链上,定时向peer请求指定高度的header
+func (chain *BlockChain) GetBestChainPids() []string {
+	var PeerPids []string
+	bestpeerlock.Lock()
+	defer bestpeerlock.Unlock()
+
+	for key, value := range chain.bestChainPeerList {
+		if value.IsBestChain {
+			ok := chain.IsFaultPeer(value.Peer.Name)
+			if !ok {
+				PeerPids = append(PeerPids, key)
+			}
+		}
+	}
+	synlog.Debug("GetBestChainPids ", "pids", PeerPids)
+	return PeerPids
+}
+
+func (chain *BlockChain) CheckBestChainProc(headers *types.Headers, pid string) {
+
+	//获取本节点指定高度的blockhash
+	blockhash, err := chain.blockStore.GetBlockHashByHeight(headers.Items[0].Height)
+	if err != nil {
+		synlog.Debug("CheckBestChainProc GetBlockHashByHeight", "Height", headers.Items[0].Height, "err", err)
+		return
+	}
+
+	bestpeerlock.Lock()
+	defer bestpeerlock.Unlock()
+
+	bestchainpeer := chain.bestChainPeerList[pid]
+	if bestchainpeer == nil {
+		synlog.Debug("CheckBestChainProc bestChainPeerList is nil", "Height", headers.Items[0].Height, "pid", pid)
+		return
+	}
+	//
+	if bestchainpeer.Height == headers.Items[0].Height {
+		bestchainpeer.Hash = headers.Items[0].Hash
+		bestchainpeer.ReqFlag = false
+		if bytes.Equal(headers.Items[0].Hash, blockhash) {
+			bestchainpeer.IsBestChain = true
+			synlog.Debug("CheckBestChainProc IsBestChain ", "Height", headers.Items[0].Height, "pid", pid)
+		} else {
+			bestchainpeer.IsBestChain = false
+			synlog.Debug("CheckBestChainProc NotBestChain", "Height", headers.Items[0].Height, "pid", pid)
+		}
+	}
 }

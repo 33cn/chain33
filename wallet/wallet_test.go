@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"fmt"
+	//	"strings"
 	"testing"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/log"
+	// "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -19,7 +20,7 @@ import (
 
 func init() {
 	queue.DisableLog()
-	log.SetLogLevel("err")
+	SetLogLevel("err")
 }
 
 func initEnv() (*Wallet, queue.Module, queue.Queue) {
@@ -36,11 +37,12 @@ func initEnv() (*Wallet, queue.Module, queue.Queue) {
 }
 
 var (
-	Statehash []byte
-	CutHeight int64
-	FromAddr  string
-	ToAddr1   string
-	ToAddr2   string
+	Statehash   []byte
+	CutHeight   int64
+	FromAddr    string
+	ToAddr1     string
+	ToAddr2     string
+	AddrPrivKey string
 )
 
 func blockchainModProc(q queue.Queue) {
@@ -84,7 +86,14 @@ func blockchainModProc(q queue.Queue) {
 					txDetails.Txs[index] = &txDetail
 				}
 				msg.Reply(client.NewMessage("rpc", types.EventTransactionDetails, &txDetails))
+			} else if msg.Ty == types.EventQuery {
+				msg.Reply(client.NewMessage("", types.EventReplyQuery, &types.ReplyTicketList{Tickets: []*types.Ticket{{TicketId: "ticketID"}}}))
+			} else if msg.Ty == types.EventGetBlockHeight {
+				msg.Reply(client.NewMessage("", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 1}))
 			}
+			/*else if msg.Ty == types.EventIsSync {
+				msg.Reply(client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
+			}*/
 		}
 	}()
 }
@@ -125,7 +134,7 @@ func TestWallet(t *testing.T) {
 	blockchainModProc(q)
 	mempoolModProc(q)
 
-	testSaveSeed(t, wallet)
+	testSeed(t, wallet)
 
 	testProcCreatNewAccount(t, wallet)
 
@@ -144,55 +153,119 @@ func TestWallet(t *testing.T) {
 	testProcWalletSetPasswd(t, wallet)
 
 	testProcWalletLock(t, wallet)
+
+	testProcWalletAddBlock(t, wallet)
+
+	testAutoMining(t, wallet)
+
+	testGetTickets(t, wallet)
+	testSignRawTx(t, wallet)
+
+	testCloseTickets(t, wallet)
 }
 
 //ProcWalletLock
-func testSaveSeed(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestSaveSeed begin --------------------")
-	seed := "好 矩 一 否 买 左 丹 香 亚 共 舍 节 骂 殿 桥"
-	password := "heyubin"
-	ok, _ := wallet.saveSeed(password, seed)
-	if ok {
-		seedstr, err := GetSeed(wallet.walletStore.db, password)
-		require.NoError(t, err)
-		walletlog.Info("TestSaveSeed", "seed", seedstr)
+func testSeed(t *testing.T, wallet *Wallet) {
+	println("TestSeed begin")
+	msgGen := wallet.client.NewMessage("wallet", types.EventGenSeed, &types.GenSeedLang{Lang: 1})
+	wallet.client.Send(msgGen, true)
+	seedRes, _ := wallet.client.Wait(msgGen)
+	seed := seedRes.GetData().(*types.ReplySeed).Seed
+	println("seed: ", seed)
+
+	password := "password"
+	saveSeedByPw := &types.SaveSeedByPw{Seed: "", Passwd: ""}
+	msgSaveEmpty := wallet.client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
+	wallet.client.Send(msgSaveEmpty, true)
+	resp, _ := wallet.client.Wait(msgSaveEmpty)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrInputPara.Error() {
+		t.Error("test input empty seed failed")
 	}
-	walletlog.Info("TestSaveSeed end --------------------")
+
+	saveSeedByPw.Seed = "a b c d"
+	saveSeedByPw.Passwd = password
+	msgSaveShort := wallet.client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
+	wallet.client.Send(msgSaveShort, true)
+	resp, _ = wallet.client.Wait(msgSaveShort)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrSeedWordNum.Error() {
+		t.Error("test input not enough seed failed")
+	}
+
+	saveSeedByPw.Seed = "a b c d e f g h i j k l m n"
+	msgSaveInvalid := wallet.client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
+	wallet.client.Send(msgSaveInvalid, true)
+	resp, _ = wallet.client.Wait(msgSaveInvalid)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrSeedWord.Error() {
+		t.Error("test input invalid seed failed")
+	}
+
+	saveSeedByPw.Seed = seed
+	msgSave := wallet.client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
+	wallet.client.Send(msgSave, true)
+	wallet.client.Wait(msgSave)
+
+	seedstr, err := GetSeed(wallet.walletStore.db, password)
+	require.NoError(t, err)
+
+	if seed != seedstr {
+		t.Error("testSaveSeed failed")
+	}
+
+	wallet.client.Send(msgSave, true)
+	resp, _ = wallet.client.Wait(msgSave)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrSeedExist.Error() {
+		t.Error("test seedExists failed")
+	}
+
+	walletUnLock := &types.WalletUnLock{
+		Passwd:         password,
+		Timeout:        0,
+		WalletOrTicket: false,
+	}
+	msgUnlock := wallet.client.NewMessage("wallet", types.EventWalletUnLock, walletUnLock)
+	wallet.client.Send(msgUnlock, true)
+	_, err = wallet.client.Wait(msgUnlock)
+	require.NoError(t, err)
+
+	msgGet := wallet.client.NewMessage("wallet", types.EventGetSeed, &types.GetSeedByPw{Passwd: password})
+	wallet.client.Send(msgGet, true)
+	resp, err = wallet.client.Wait(msgGet)
+	require.NoError(t, err)
+
+	reply := resp.GetData().(*types.ReplySeed)
+	if reply.GetSeed() != seed {
+		t.Error("testGetSeed failed")
+	}
+
+	println("TestSeed end")
+	println("--------------------------")
 }
 
 func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcCreatNewAccount begin --------------------")
-
-	//先解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "heyubin" //wallet.Password
-	WalletUnLock.Timeout = 0
-	WalletUnLock.WalletOrTicket = false
-	wallet.ProcWalletUnLock(&WalletUnLock)
-
+	println("TestProcCreatNewAccount begin")
 	total := 10
 	addres := make([]string, total)
 	accs := make([]*types.Account, total+1)
 	for i := 0; i < total; i++ {
-		var ReqNewAccount types.ReqNewAccount
-		ReqNewAccount.Label = fmt.Sprintf("hybaccount:%d", i)
-		time.Sleep(time.Second * 1)
-		Walletacc, err := wallet.ProcCreatNewAccount(&ReqNewAccount)
+		reqNewAccount := &types.ReqNewAccount{Label: fmt.Sprintf("account:%d", i)}
+		msg := wallet.client.NewMessage("wallet", types.EventNewAccount, reqNewAccount)
+		wallet.client.Send(msg, true)
+		resp, err := wallet.client.Wait(msg)
 		require.NoError(t, err)
-		addres[i] = Walletacc.Acc.Addr
-
-		Walletacc.Acc.Balance = int64(i)
-		Walletacc.Acc.Currency = int32(i)
-		Walletacc.Acc.Frozen = int64(i)
-		accs[i] = Walletacc.Acc
+		time.Sleep(time.Microsecond * 100)
+		walletAcc := resp.GetData().(*types.WalletAccount)
+		addres[i] = walletAcc.Acc.Addr
+		walletAcc.Acc.Balance = int64(i)
+		walletAcc.Acc.Currency = int32(i)
+		walletAcc.Acc.Frozen = int64(i)
+		accs[i] = walletAcc.Acc
 		//FromAddr = Walletacc.Acc.Addr
 		if i == 0 {
-			ToAddr1 = Walletacc.Acc.Addr
+			ToAddr1 = walletAcc.Acc.Addr
 		}
 		if i == 1 {
-			ToAddr2 = Walletacc.Acc.Addr
+			ToAddr2 = walletAcc.Acc.Addr
 		}
-		walletlog.Info("ProcCreatNewAccount:", "Walletacc", Walletacc.String())
 	}
 
 	//通过privkey生成一个pubkey然后换算成对应的addr
@@ -208,58 +281,39 @@ func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
 	FromAddr = addr.String()
 	var acc types.Account
 	acc.Addr = addr.String()
-	acc.Balance = int64(1000000000)
+	acc.Balance = int64(1e16)
 	acc.Currency = int32(10)
 	acc.Frozen = int64(10)
-
 	accs[total] = &acc
 
-	// 存入账户信息到mavl树中
-	hash := SaveAccountTomavl(wallet.client, nil, accs)
-	walletlog.Info("TestProcCreatNewAccount", "hash", hash)
+	//存入账户信息到mavl树中
+	SaveAccountTomavl(wallet.client, nil, accs)
 
 	//测试ProcGetAccountList函数
-	Accounts, err := wallet.ProcGetAccountList()
-	if err == nil && Accounts != nil {
-		for _, Account := range Accounts.Wallets {
-			walletlog.Info("TestProcCreatNewAccount:", "Account", Account.String())
+	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, nil)
+	wallet.client.Send(msgGetAccList, true)
+	resp, _ := wallet.client.Wait(msgGetAccList)
+
+	accountlist := resp.GetData().(*types.WalletAccounts)
+	for _, acc1 := range accountlist.Wallets {
+		exist := false
+		for _, acc2 := range accs[:10] {
+			if *acc1.Acc == *acc2 {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			t.Error("account list not match")
+			return
 		}
 	}
-	//测试GetAccountByLabel函数
-	for i := 0; i < total; i++ {
-		label := fmt.Sprintf("hybaccount:%d", i)
-		Account, err := wallet.walletStore.GetAccountByLabel(label)
-		if err == nil && Account != nil {
-			walletlog.Info("TestProcCreatNewAccount:", "label", label, "label->Account", Account.String())
-			Privkeynyte, _ := common.FromHex(Account.GetPrivkey())
-			Decrypter := CBCDecrypterPrivkey([]byte(wallet.Password), Privkeynyte)
-			walletlog.Info("TestProcCreatNewAccount:", "privkey", common.ToHex(Decrypter))
-
-		}
-	}
-	//测试GetAccountByAddr函数
-	for i := 0; i < total; i++ {
-		Account, err := wallet.walletStore.GetAccountByAddr(addres[i])
-		if err == nil && Account != nil {
-			walletlog.Info("TestProcCreatNewAccount:", "addr", addres[i], "Addr->Account", Account.String())
-
-		}
-	}
-
-	walletlog.Info("TestProcCreatNewAccount end --------------------")
+	println("TestProcCreatNewAccount end")
+	println("--------------------------")
 }
 
 func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcImportPrivKey begin --------------------")
-
-	//先解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "heyubin" //wallet.Password
-	WalletUnLock.Timeout = 0
-	WalletUnLock.WalletOrTicket = false
-	wallet.ProcWalletUnLock(&WalletUnLock)
-
-	var PrivKey types.ReqWalletImportPrivKey
+	println("TestProcImportPrivKey begin")
 
 	//生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
@@ -268,277 +322,402 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	priv, err := cr.GenKey()
 	require.NoError(t, err)
 
-	PrivKey.Privkey = common.ToHex(priv.Bytes())
-	PrivKey.Label = "ImportPrivKey-Label"
-	walletlog.Info("TestProcImportPrivKey", "Privkey", PrivKey.Privkey, "Label", PrivKey.Label)
+	AddrPrivKey = common.ToHex(priv.Bytes())
 
-	time.Sleep(time.Second * 1)
-	WalletAccount, err := wallet.ProcImportPrivKey(&PrivKey)
-	require.NoError(t, err)
-	walletlog.Info("TestProcImportPrivKey", "WalletAccount", WalletAccount.String())
+	privKey := &types.ReqWalletImportPrivKey{Privkey: AddrPrivKey}
+	privKey.Label = "account:0"
 
-	//import privkey="0xb94ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
-	PrivKey.Privkey = "0xb94ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
-	PrivKey.Label = "ImportPrivKey-Label-hyb"
-	walletlog.Info("TestProcImportPrivKey", "Privkey", PrivKey.Privkey, "Label", PrivKey.Label)
+	msgImport := wallet.client.NewMessage("wallet", types.EventWalletImportprivkey, privKey)
+	wallet.client.Send(msgImport, true)
+	resp, err := wallet.client.Wait(msgImport)
 
-	time.Sleep(time.Second * 1)
-	WalletAccount, err = wallet.ProcImportPrivKey(&PrivKey)
-	require.NoError(t, err)
-	walletlog.Info("TestProcImportPrivKey", "WalletAccount", WalletAccount.String())
-
-	time.Sleep(time.Second * 5)
-
-	//测试ProcGetAccountList函数
-	Accounts, err := wallet.ProcGetAccountList()
-	if err == nil && Accounts != nil {
-		for _, Account := range Accounts.Wallets {
-			walletlog.Info("TestProcImportPrivKey:", "Account", Account.String())
-		}
+	if resp.Err().Error() != types.ErrLabelHasUsed.Error() {
+		t.Error("test used label failed")
+		return
 	}
 
-	walletlog.Info("TestProcImportPrivKey end --------------------")
+	privKey.Label = "ImportPrivKey-Label"
+	msgImport = wallet.client.NewMessage("wallet", types.EventWalletImportprivkey, privKey)
+	wallet.client.Send(msgImport, true)
+	resp, _ = wallet.client.Wait(msgImport)
+	importedAcc := resp.GetData().(*types.WalletAccount)
+	if importedAcc.Label != "ImportPrivKey-Label" || importedAcc.Acc.Addr != account.PubKeyToAddress(priv.PubKey().Bytes()).String() {
+		t.Error("testProcImportPrivKey failed")
+		return
+	}
+
+	//import privkey="0xb94ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
+	privKey.Privkey = "0xb94ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
+	privKey.Label = "ImportPrivKey-Label-hyb"
+	walletlog.Info("TestProcImportPrivKey", "Privkey", privKey.Privkey, "Label", privKey.Label)
+
+	msgImport = wallet.client.NewMessage("wallet", types.EventWalletImportprivkey, privKey)
+	wallet.client.Send(msgImport, true)
+	wallet.client.Wait(msgImport)
+
+	addr := &types.ReqStr{ReqStr: account.PubKeyToAddress(priv.PubKey().Bytes()).String()}
+	msgDump := wallet.client.NewMessage("wallet", types.EventDumpPrivkey, &types.ReqStr{ReqStr: "wrongaddr"})
+	wallet.client.Send(msgDump, true)
+	resp, _ = wallet.client.Wait(msgDump)
+	if resp.Err().Error() != types.ErrAddrNotExist.Error() {
+		t.Error("test input wrong addr failed")
+	}
+	msgDump = wallet.client.NewMessage("wallet", types.EventDumpPrivkey, addr)
+	wallet.client.Send(msgDump, true)
+	resp, _ = wallet.client.Wait(msgDump)
+	if resp.GetData().(*types.ReplyStr).Replystr != common.ToHex(priv.Bytes()) {
+		t.Error("testDumpPrivKey failed")
+	}
+
+	println("TestProcImportPrivKey end")
+	println("--------------------------")
 }
 
 func testProcWalletTxList(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcWalletTxList begin --------------------")
-	var TxList types.ReqWalletTransactionList
-	TxList.Count = 5
+	println("TestProcWalletTxList begin")
+	txList := &types.ReqWalletTransactionList{
+		Count:     3,
+		Direction: 1,
+		FromTx:    []byte(""),
+	}
+	msg := wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	walletTxDetails := resp.GetData().(*types.WalletTxDetails)
 
-	TxList.Direction = 1 //
-	TxList.FromTx = []byte("")
 	var FromTxstr string
-
-	walletlog.Info("TestProcWalletTxList dir last-------")
-	WalletTxDetails, err := wallet.ProcWalletTxList(&TxList)
-	require.NoError(t, err)
-	for _, WalletTxDetail := range WalletTxDetails.TxDetails {
-		walletlog.Info("TestProcWalletTxList", "Direction", TxList.Direction, "WalletTxDetail", WalletTxDetail.String())
-		FromTxstr = fmt.Sprintf("%018d", WalletTxDetail.GetHeight()*100000+WalletTxDetail.GetIndex())
+	if len(walletTxDetails.TxDetails) != 3 {
+		t.Error("testProcWalletTxList failed")
+	}
+	println("TestProcWalletTxList dir last-------")
+	for _, walletTxDetail := range walletTxDetails.TxDetails {
+		println("TestProcWalletTxList", "Direction", txList.Direction, "WalletTxDetail", walletTxDetail.String())
+		FromTxstr = fmt.Sprintf("%018d", walletTxDetail.GetHeight()*100000+walletTxDetail.GetIndex())
 	}
 
-	TxList.Direction = 1 //
-	TxList.FromTx = []byte(FromTxstr)
+	txList.Direction = 1
+	txList.Count = 2
+	txList.FromTx = []byte(FromTxstr)
 
-	walletlog.Info("TestProcWalletTxList dir next-------")
-	WalletTxDetails, err = wallet.ProcWalletTxList(&TxList)
+	println("TestProcWalletTxList dir next-------")
+	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
 	require.NoError(t, err)
-	for _, WalletTxDetail := range WalletTxDetails.TxDetails {
-		walletlog.Info("TestProcWalletTxList", "Direction", TxList.Direction, "WalletTxDetail", WalletTxDetail.String())
+	walletTxDetails = resp.GetData().(*types.WalletTxDetails)
+	if len(walletTxDetails.TxDetails) != 2 {
+		t.Error("testProcWalletTxList failed")
+	}
+	for _, walletTxDetail := range walletTxDetails.TxDetails {
+		println("TestProcWalletTxList", "Direction", txList.Direction, "WalletTxDetail", walletTxDetail.String())
 	}
 
-	walletlog.Info("TestProcWalletTxList dir prv------")
-	//TxList.Direction = 0
-	TxList.Direction = 0
-	WalletTxDetails, err = wallet.ProcWalletTxList(&TxList)
+	println("TestProcWalletTxList dir prv------")
+	txList.Direction = 0
+	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
 	require.NoError(t, err)
-	for _, WalletTxDetail := range WalletTxDetails.TxDetails {
-		walletlog.Info("TestProcWalletTxList", "Direction", TxList.Direction, "WalletTxDetail", WalletTxDetail.String())
+	walletTxDetails = resp.GetData().(*types.WalletTxDetails)
+	if len(walletTxDetails.TxDetails) != 2 {
+		t.Error("testProcWalletTxList failed")
 	}
-	walletlog.Info("TestProcWalletTxList end --------------------")
+	for _, walletTxDetail := range walletTxDetails.TxDetails {
+		println("TestProcWalletTxList", "Direction", txList.Direction, "WalletTxDetail", walletTxDetail.String())
+	}
+	println("TestProcWalletTxList end")
+	println("--------------------------")
 }
 
 //(SendToAddress *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
 func testProcSendToAddress(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcSendToAddress begin --------------------")
-
-	//先解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "heyubin" //wallet.Password
-	WalletUnLock.Timeout = 0
-	WalletUnLock.WalletOrTicket = false
-	wallet.ProcWalletUnLock(&WalletUnLock)
-
-	var SendToAddress types.ReqWalletSendToAddress
-	SendToAddress.Amount = 1000
-	SendToAddress.From = FromAddr
-	SendToAddress.Note = "test"
-	SendToAddress.To = "1L1zEgVcjqdM2KkQixENd7SZTaudKkcyDu"
-	walletlog.Info("TestProcSendToAddress", "FromAddr", FromAddr)
-
-	ReplyHash, err := wallet.ProcSendToAddress(&SendToAddress)
+	println("TestProcSendToAddress begin")
+	transfer := &types.ReqWalletSendToAddress{
+		Amount: 1000,
+		From:   FromAddr,
+		Note:   "test",
+		To:     "1L1zEgVcjqdM2KkQixENd7SZTaudKkcyDu",
+	}
+	msg := wallet.client.NewMessage("wallet", types.EventWalletSendToAddress, transfer)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	require.NoError(t, err)
-	walletlog.Info("TestProcSendToAddress", "ReplyHash", ReplyHash)
-	walletlog.Info("TestProcSendToAddress end --------------------")
+	replyHash := resp.GetData().(*types.ReplyHash)
+	println("transfer tx", "ReplyHash", common.ToHex(replyHash.Hash))
+	withdraw := &types.ReqWalletSendToAddress{
+		Amount: -1000,
+		From:   FromAddr,
+		Note:   "test",
+		To:     "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp",
+	}
+	msg = wallet.client.NewMessage("wallet", types.EventWalletSendToAddress, withdraw)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
+	require.NoError(t, err)
+	replyHash = resp.GetData().(*types.ReplyHash)
+	println("withdraw tx", "ReplyHash", common.ToHex(replyHash.Hash))
+	println("TestProcSendToAddress end")
+	println("--------------------------")
 }
 
 //ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
 func testProcWalletSetFee(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcWalletSetFee begin --------------------")
-
-	//先解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "heyubin" //wallet.Password
-	WalletUnLock.Timeout = 0
-	WalletUnLock.WalletOrTicket = false
-	wallet.ProcWalletUnLock(&WalletUnLock)
-
-	var WalletSetFee types.ReqWalletSetFee
-	WalletSetFee.Amount = 1000000
-	err := wallet.ProcWalletSetFee(&WalletSetFee)
-	require.NoError(t, err)
-	walletlog.Info("TestProcWalletSetFee success")
-	walletlog.Info("TestProcWalletSetFee!", "FeeAmount", wallet.FeeAmount)
-
-	walletlog.Info("TestProcWalletSetFee end --------------------")
+	println("TestProcWalletSetFee begin")
+	var fee int64 = 1000000
+	walletSetFee := &types.ReqWalletSetFee{Amount: fee}
+	msg := wallet.client.NewMessage("wallet", types.EventWalletSetFee, walletSetFee)
+	wallet.client.Send(msg, true)
+	wallet.client.Wait(msg)
+	if wallet.FeeAmount != fee {
+		t.Error("testProcWalletSetFee failed")
+	}
+	println("TestProcWalletSetFee end")
+	println("--------------------------")
 }
 
 //ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*types.WalletAccount, error)
 func testProcWalletSetLabel(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcWalletSetLabel begin --------------------")
-	//先解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "heyubin" //wallet.Password
-	WalletUnLock.Timeout = 0
-	WalletUnLock.WalletOrTicket = false
-	wallet.ProcWalletUnLock(&WalletUnLock)
-
-	var SetLabel types.ReqWalletSetLabel
-	SetLabel.Addr = FromAddr
-	SetLabel.Label = "hybaccount:000"
-
-	Acc, err := wallet.ProcWalletSetLabel(&SetLabel)
-	require.NoError(t, err)
-	if Acc != nil {
-		walletlog.Info("TestProcWalletSetLabel success", "account", Acc.String())
+	println("TestProcWalletSetLabel begin")
+	setLabel := &types.ReqWalletSetLabel{
+		Addr:  FromAddr,
+		Label: "account:000",
 	}
-	//测试ProcGetAccountList函数
-	Accounts, err := wallet.ProcGetAccountList()
+	msg := wallet.client.NewMessage("wallet", types.EventWalletSetLabel, setLabel)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
 	require.NoError(t, err)
-	if Accounts != nil {
-		for _, Account := range Accounts.Wallets {
-			walletlog.Info("TestProcWalletSetLabel:", "Account", Account.String())
-		}
+	walletAcc := resp.GetData().(*types.WalletAccount)
+	if walletAcc.Acc.Addr != FromAddr || walletAcc.Label != "account:000" {
+		t.Error("testProcWalletSetLabel failed")
 	}
 
 	//再次设置
-	SetLabel.Label = "hybaccount:001"
-	Acc, err = wallet.ProcWalletSetLabel(&SetLabel)
-	require.NoError(t, err)
-	if Acc != nil {
-		walletlog.Info("TestProcWalletSetLabel success", "account", Acc.String())
+	setLabel.Label = "account:000"
+	msg = wallet.client.NewMessage("wallet", types.EventWalletSetLabel, setLabel)
+	wallet.client.Send(msg, true)
+	resp, _ = wallet.client.Wait(msg)
+	if resp.Err().Error() != types.ErrLabelHasUsed.Error() {
+		t.Error("test used label failed")
 	}
 
-	//测试ProcGetAccountList函数
-	Accounts, err = wallet.ProcGetAccountList()
-	require.NoError(t, err)
-	if Accounts != nil {
-		for _, Account := range Accounts.Wallets {
-			walletlog.Info("TestProcWalletSetLabel:", "Account", Account.String())
-		}
+	setLabel.Label = "account:001"
+	msg = wallet.client.NewMessage("wallet", types.EventWalletSetLabel, setLabel)
+	wallet.client.Send(msg, true)
+	wallet.client.Wait(msg)
+	setLabel.Label = "account:000"
+	msg = wallet.client.NewMessage("wallet", types.EventWalletSetLabel, setLabel)
+	wallet.client.Send(msg, true)
+	resp, _ = wallet.client.Wait(msg)
+	walletAcc = resp.GetData().(*types.WalletAccount)
+	if walletAcc.Acc.Addr != FromAddr || walletAcc.Label != "account:000" {
+		t.Error("testProcWalletSetLabel failed")
 	}
 
-	//再次设置成
-	SetLabel.Label = "hybaccount:000"
-	Acc, err = wallet.ProcWalletSetLabel(&SetLabel)
-	require.NoError(t, err)
-	if Acc != nil {
-		walletlog.Info("TestProcWalletSetLabel success", "account", Acc.String())
-	}
-
-	//测试ProcGetAccountList函数
-	Accounts, err = wallet.ProcGetAccountList()
-	require.NoError(t, err)
-	if Accounts != nil {
-		for _, Account := range Accounts.Wallets {
-			walletlog.Info("TestProcWalletSetLabel:", "Account", Account.String())
-		}
-	}
-
-	walletlog.Info("TestProcWalletSetLabel end --------------------")
+	println("TestProcWalletSetLabel end")
+	println("--------------------------")
 }
 
 //ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
 func testProcMergeBalance(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcMergeBalance begin --------------------")
+	println("TestProcMergeBalance begin")
+	mergeBalance := &types.ReqWalletMergeBalance{To: ToAddr2}
+	msg := wallet.client.NewMessage("wallet", types.EventWalletMergeBalance, mergeBalance)
+	wallet.client.Send(msg, true)
+	resp, _ := wallet.client.Wait(msg)
+	replyHashes := resp.GetData().(*types.ReplyHashes)
 
-	//先解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "heyubin" //wallet.Password
-	WalletUnLock.Timeout = 0
-	WalletUnLock.WalletOrTicket = false
-	wallet.ProcWalletUnLock(&WalletUnLock)
-
-	var MergeBalance types.ReqWalletMergeBalance
-	MergeBalance.To = ToAddr2 //"14ZTV2wHG3uPHnA5cBJmNxAxxvbzS7Z5mE"
-
-	hashs, err := wallet.ProcMergeBalance(&MergeBalance)
-	require.NoError(t, err)
-	for _, hash := range hashs.Hashes {
-		walletlog.Info("TestProcMergeBalance", "hash", hash)
+	for _, hash := range replyHashes.Hashes {
+		println("hash:", common.ToHex(hash))
 	}
-	walletlog.Info("TestProcMergeBalance end --------------------")
+
+	println("TestProcMergeBalance end")
+	println("--------------------------")
 }
 
 //ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) error {
 func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcWalletSetPasswd begin --------------------")
-
-	var Passwd types.ReqWalletSetPasswd
-	Passwd.Oldpass = "heyubin"
-	Passwd.Newpass = "Newpass"
-
-	err := wallet.ProcWalletSetPasswd(&Passwd)
-	require.NoError(t, err)
-
-	walletlog.Info("TestProcWalletSetPasswd TestProcMergeBalance  --------------------")
-	//新密码先解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "Newpass" //wallet.Password
-	WalletUnLock.Timeout = 0
-	WalletUnLock.WalletOrTicket = false
-	wallet.ProcWalletUnLock(&WalletUnLock)
-
-	var MergeBalance types.ReqWalletMergeBalance
-	MergeBalance.To = ToAddr1 //"14ZTV2wHG3uPHnA5cBJmNxAxxvbzS7Z5mE"
-
-	hashs, err := wallet.ProcMergeBalance(&MergeBalance)
-	require.NoError(t, err)
-	for _, hash := range hashs.Hashes {
-		walletlog.Info("TestProcWalletSetPasswd TestProcMergeBalance", "hash", hash)
+	println("TestProcWalletSetPasswd begin")
+	passwd := &types.ReqWalletSetPasswd{
+		OldPass: "wrongpassword",
+		NewPass: "Newpass",
 	}
-	walletlog.Info("TestProcWalletSetPasswd end --------------------")
+	msg := wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
+	wallet.client.Send(msg, true)
+	resp, _ := wallet.client.Wait(msg)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrVerifyOldpasswdFail.Error() {
+		t.Error("testProcWalletSetPasswd failed")
+	}
+
+	passwd.OldPass = "password"
+	msg = wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	println("TestProcWalletSetPasswd end")
+	println("--------------------------")
 }
 
 //ProcWalletLock
 func testProcWalletLock(t *testing.T, wallet *Wallet) {
-	walletlog.Info("TestProcWalletLock begin --------------------")
+	println("TestProcWalletLock begin")
+	msg := wallet.client.NewMessage("wallet", types.EventWalletLock, nil)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
 
-	err := wallet.ProcWalletLock()
-	require.NoError(t, err)
-	_, err = wallet.ProcGetAccountList()
-	require.NoError(t, err)
+	transfer := &types.ReqWalletSendToAddress{
+		Amount: 1000,
+		From:   FromAddr,
+		Note:   "test",
+		To:     "1L1zEgVcjqdM2KkQixENd7SZTaudKkcyDu",
+	}
+	msg = wallet.client.NewMessage("wallet", types.EventWalletSendToAddress, transfer)
+	wallet.client.Send(msg, true)
+	resp, _ := wallet.client.Wait(msg)
+
+	if resp.Err().Error() != types.ErrWalletIsLocked.Error() {
+		t.Error("testProcWalletLock failed")
+	}
 
 	//解锁
-	var WalletUnLock types.WalletUnLock
-	WalletUnLock.Passwd = "Newpass" //wallet.Password
-	WalletUnLock.Timeout = 1
-	WalletUnLock.WalletOrTicket = false
-	err = wallet.ProcWalletUnLock(&WalletUnLock)
-	require.NoError(t, err)
-	walletlog.Info("ProcWalletUnLock ok")
-
-	begin := time.Now()
-	flag := 0
-	//测试timeout
-	for {
-		var WalletSetFee types.ReqWalletSetFee
-		WalletSetFee.Amount = 10000000
-		seed, err := wallet.getSeed("Newpass")
-		if err == nil {
-			if flag == 0 {
-				walletlog.Info("getSeed success", "seed", seed)
-				flag = 1
-			}
-			if time.Since(begin) > 3*time.Second {
-				t.Error("WalletUnLock.Timeout > 3")
-			}
-			//sleep 0.1 Second
-			time.Sleep(100 * time.Millisecond)
-		} else {
-			walletlog.Info("getSeed", "err", err)
-			break
-		}
+	walletUnLock := &types.WalletUnLock{
+		Passwd:         "",
+		Timeout:        3,
+		WalletOrTicket: false,
 	}
-	walletlog.Info("TestProcWalletLock end --------------------")
+	msg = wallet.client.NewMessage("wallet", types.EventWalletUnLock, walletUnLock)
+	wallet.client.Send(msg, true)
+	resp, _ = wallet.client.Wait(msg)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrInputPassword.Error() {
+		t.Error("test input wrong password failed")
+	}
+
+	walletUnLock.Passwd = "Newpass"
+	msg = wallet.client.NewMessage("wallet", types.EventWalletUnLock, walletUnLock)
+	wallet.client.Send(msg, true)
+	wallet.client.Wait(msg)
+
+	msgGetSeed := wallet.client.NewMessage("wallet", types.EventGetSeed, &types.GetSeedByPw{Passwd: "Newpass"})
+	wallet.client.Send(msgGetSeed, true)
+	resp, _ = wallet.client.Wait(msgGetSeed)
+	println("seed:", resp.GetData().(*types.ReplySeed).Seed)
+	time.Sleep(time.Second * 5)
+	wallet.client.Send(msgGetSeed, true)
+	resp, _ = wallet.client.Wait(msgGetSeed)
+	if resp.Err().Error() != types.ErrWalletIsLocked.Error() {
+		t.Error("testProcWalletLock failed")
+	}
+
+	msg = wallet.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
+	wallet.client.Send(msg, true)
+	resp, _ = wallet.client.Wait(msg)
+	status := resp.GetData().(*types.WalletStatus)
+	if !status.IsHasSeed || status.IsAutoMining || !status.IsWalletLock {
+		t.Error("testGetWalletStatus failed")
+	}
+
+	walletUnLock.Timeout = 0
+	walletUnLock.WalletOrTicket = true
+	err = wallet.ProcWalletUnLock(walletUnLock)
+	require.NoError(t, err)
+	wallet.client.Send(msg, true)
+	resp, _ = wallet.client.Wait(msg)
+	status = resp.GetData().(*types.WalletStatus)
+	if !status.IsHasSeed || status.IsAutoMining || !status.IsWalletLock || status.IsTicketLock {
+		t.Error("testGetWalletStatus failed")
+	}
+
+	walletUnLock.WalletOrTicket = false
+	err = wallet.ProcWalletUnLock(walletUnLock)
+	require.NoError(t, err)
+
+	println("TestProcWalletLock end")
+	println("--------------------------")
+}
+
+// ProcWalletAddBlock
+func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
+	println("TestProcWalletAddBlock & TestProcWalletDelBlock begin")
+	action := &types.TicketAction{Ty: types.TicketActionMiner}
+	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
+	action.Value = miner
+	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
+	blk := &types.Block{
+		Version:    1,
+		ParentHash: []byte("parent hash"),
+		TxHash:     []byte("tx hash"),
+		Height:     2,
+		BlockTime:  1,
+		Txs:        []*types.Transaction{tx},
+	}
+	blkDetail := &types.BlockDetail{
+		Block:    blk,
+		Receipts: []*types.ReceiptData{{Ty: types.ExecOk}},
+	}
+	msgAdd := wallet.client.NewMessage("wallet", types.EventAddBlock, blkDetail)
+	err := wallet.client.Send(msgAdd, false)
+	require.NoError(t, err)
+	time.Sleep(time.Second * 10)
+	msgDel := wallet.client.NewMessage("wallet", types.EventDelBlock, blkDetail)
+	err = wallet.client.Send(msgDel, false)
+	require.NoError(t, err)
+	println("TestProcWalletAddBlock & TestProcWalletDelBlock end")
+	println("--------------------------")
+}
+
+// Automining
+func testAutoMining(t *testing.T, wallet *Wallet) {
+	println("TestAutoMining begin")
+	msg := wallet.client.NewMessage("wallet", types.EventWalletAutoMiner, &types.MinerFlag{Flag: 1})
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	time.Sleep(time.Second * 130)
+	println("TestAutoMining end")
+	println("--------------------------")
+}
+
+// GetTickets
+func testGetTickets(t *testing.T, wallet *Wallet) {
+	println("TestGetTickets begin")
+	msg := wallet.client.NewMessage("wallet", types.EventWalletGetTickets, nil)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	println("TestGetTickets end")
+	println("--------------------------")
+}
+
+// CloseTickets
+func testCloseTickets(t *testing.T, wallet *Wallet) {
+	println("TestCloseTickets begin")
+	msg := wallet.client.NewMessage("wallet", types.EventCloseTickets, nil)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	println("TestCloseTickets end")
+	println("--------------------------")
+}
+
+// SignRawTx
+func testSignRawTx(t *testing.T, wallet *Wallet) {
+	println("TestSignRawTx begin")
+	unsigned := &types.ReqSignRawTx{
+		Addr:   FromAddr,
+		TxHex:  "0a05636f696e73120c18010a081080c2d72f1a01312080897a30c0e2a4a789d684ad443a0131",
+		Expire: "0",
+	}
+	msg := wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+
+	unsigned.Privkey = AddrPrivKey
+	msg = wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
+	wallet.client.Send(msg, true)
+	_, err = wallet.client.Wait(msg)
+	require.NoError(t, err)
+	println("TestSignRawTx end")
+	println("--------------------------")
 }
