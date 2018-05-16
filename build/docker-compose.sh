@@ -2,7 +2,7 @@
 
 set -e -o pipefail
 
-# install jq tool of json
+# first, you must install jq tool of json
 # sudo apt-get install jq
 
 # p2p
