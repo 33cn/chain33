@@ -1,5 +1,5 @@
 Title="chain33"
-TestNet=true
+TestNet=false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -32,15 +32,15 @@ driver="leveldb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=false
-singleMode=false
+singleMode=true
 batchsync=false
 
 [p2p]
 seeds=[]
 enable=true
-isSeed=false
+isSeed=true
 serverStart=true
-innerSeedEnable=true
+innerSeedEnable=false
 innerBounds=300
 msgCacheSize=10240
 driver="leveldb"
@@ -59,7 +59,7 @@ poolCacheSize=10240
 minTxFee=100000
 
 [consensus]
-name="ticket"
+name="solo"
 minerstart=true
 
 [store]
@@ -79,3 +79,10 @@ minerdisable=false
 [exec]
 isFree=false
 minExecFee=100000
+
+[auth]
+CryptoPath = "authdir/crypto"
+SecurityLevel = 256
+DefaultProvider = "SW"
+HashAlgorithm = "SHA2"
+KeyStorePath = "authdir/keystore"
