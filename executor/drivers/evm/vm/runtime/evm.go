@@ -51,7 +51,7 @@ type Context struct {
 	GasPrice uint32
 
 	// COINBASE 指令， 区块打包者地址
-	Coinbase common.Address
+	Coinbase *common.Address
 	// GASLIMIT 指令，当前交易的GasLimit
 	GasLimit uint64
 

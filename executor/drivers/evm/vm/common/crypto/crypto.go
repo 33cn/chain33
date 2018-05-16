@@ -53,7 +53,7 @@ func RandomContractAddress() *common.Address {
 
 	acc := account.PubKeyToAddress(key.PubKey().Bytes())
 	ret := common.StringToAddress(account.ExecAddress(acc.String()).String())
-	return &ret
+	return ret
 }
 
 // Keccak256 计算并返回 Keccak256 哈希

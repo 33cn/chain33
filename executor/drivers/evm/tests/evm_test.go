@@ -121,7 +121,7 @@ func runCase(tt *testing.T, c VMCase, file string)  {
 	)
 
 	if len(c.exec.address) > 0 {
-		ret,_,_,err = env.Call(runtime.AccountRef(msg.From()),common.StringToAddress(c.exec.address), msg.Data(), msg.GasLimit(), msg.Value())
+		ret,_,_,err = env.Call(runtime.AccountRef(msg.From()),*common.StringToAddress(c.exec.address), msg.Data(), msg.GasLimit(), msg.Value())
 	}else{
 		addr := crypto.RandomContractAddress()
 		ret,_,_,err =  env.Create(runtime.AccountRef(msg.From()),*addr, msg.Data(), msg.GasLimit(), msg.Value())
@@ -145,9 +145,9 @@ func runCase(tt *testing.T, c VMCase, file string)  {
 
 	// 4.2 账户余额以及数据
 	for k,v := range c.post {
-		t.assertEqualsV(int(statedb.GetBalance(common.StringToAddress(k))), int(v.balance))
+		t.assertEqualsV(int(statedb.GetBalance(*common.StringToAddress(k))), int(v.balance))
 
-		t.assertEqualsB(statedb.GetCode(common.StringToAddress(k)), getBin(v.code))
+		t.assertEqualsB(statedb.GetCode(*common.StringToAddress(k)), getBin(v.code))
 
 		for a,b := range v.storage {
 			if len(a) <1 || len(b) <1 {
@@ -155,7 +155,7 @@ func runCase(tt *testing.T, c VMCase, file string)  {
 			}
 			hashKey := common.BytesToHash(getBin(a))
 			hashVal := common.BytesToHash(getBin(b))
-			t.assertEqualsB(statedb.GetState(common.StringToAddress(k), hashKey).Bytes(), hashVal.Bytes())
+			t.assertEqualsB(statedb.GetState(*common.StringToAddress(k), hashKey).Bytes(), hashVal.Bytes())
 		}
 	}
 }
@@ -188,5 +188,5 @@ func buildMsg(c VMCase) *common.Message {
 	addr2 := common.StringToAddress(c.exec.address)
 	gasLimit := uint64(210000000)
 	gasPrice := c.exec.gasPrice
-	return common.NewMessage(addr1, &addr2, int64(1), uint64(c.exec.value), gasLimit, uint32(gasPrice), code)
+	return common.NewMessage(*addr1, addr2, int64(1), uint64(c.exec.value), gasLimit, uint32(gasPrice), code)
 }
