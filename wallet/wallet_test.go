@@ -2,7 +2,7 @@ package wallet
 
 import (
 	"fmt"
-	"strings"
+	//	"strings"
 	"testing"
 	"time"
 
@@ -159,7 +159,6 @@ func TestWallet(t *testing.T) {
 	testAutoMining(t, wallet)
 
 	testGetTickets(t, wallet)
-
 	testSignRawTx(t, wallet)
 
 	testCloseTickets(t, wallet)
@@ -366,7 +365,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	msgDump = wallet.client.NewMessage("wallet", types.EventDumpPrivkey, addr)
 	wallet.client.Send(msgDump, true)
 	resp, _ = wallet.client.Wait(msgDump)
-	if resp.GetData().(*types.ReplyStr).Replystr != strings.ToUpper(common.ToHex(priv.Bytes())) {
+	if resp.GetData().(*types.ReplyStr).Replystr != common.ToHex(priv.Bytes()) {
 		t.Error("testDumpPrivKey failed")
 	}
 
