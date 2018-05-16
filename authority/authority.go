@@ -1,23 +1,20 @@
 package authority
 
 import (
-	"crypto/ecdsa"
-	"io/ioutil"
-
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
-	//"gitlab.33.cn/chain33/chain33/authority/common/util/cryptoutils"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite/bccsp/sw"
+	"gitlab.33.cn/chain33/chain33/authority/identitymgr"
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var alog = log.New("module", "autority")
+var orgName = "org1"
+var userName = "User"
 
 type Authority struct {
 	cryptoPath  string
@@ -25,6 +22,7 @@ type Authority struct {
 	cfg         *types.Authority
 	cryptoSuite core.CryptoSuite
 	signer      *signingmgr.SigningManager
+	idmgr       *identitymgr.IdentityManager
 }
 
 func New(conf *types.Authority) *Authority {
@@ -51,6 +49,12 @@ func (auth *Authority) initConfig(conf *types.Authority) error {
 	}
 	auth.signer = signer
 
+	idmgr, err := identitymgr.NewIdentityManager(orgName, cryptoSuite, conf.CryptoPath)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to initialize identity manage")
+	}
+	auth.idmgr = idmgr
+
 	return nil
 }
 
@@ -72,23 +76,22 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 }
 
 func (auth *Authority) procSignTx(msg queue.Message) {
-	var key core.Key
+	//var key core.Key
 	data, ok := msg.GetData().(*types.ReqAuthSignTx)
 	if !ok {
 		panic("")
 	}
 
-	keyBuff, err := ioutil.ReadFile("authdir/keystore/keystore/user.pem")
+	user, err := auth.idmgr.GetUser(userName)
 	if err != nil {
 		panic(err)
 	}
 
-	key, err = importKeyFromPEMBytes(keyBuff, auth.cryptoSuite, true)
-
-	signature, err := auth.signer.Sign(data.Tx, key)
+	signature, err := auth.signer.Sign(data.Tx, user.PrivateKey())
 	if err != nil {
 		panic(err)
 	}
+
 	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{signature}))
 }
 
@@ -98,29 +101,4 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 
 func (auth *Authority) Close() {
 	alog.Info("authority module closed")
-}
-
-//remove to other package later
-func importKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporary bool) (core.Key, error) {
-
-	key, err := utils.PEMtoPrivateKey(keyBuff, nil)
-	if err != nil {
-		return nil, err
-	}
-	switch key.(type) {
-	case *ecdsa.PrivateKey:
-		priv, err := utils.PrivateKeyToDER(key.(*ecdsa.PrivateKey))
-		if err != nil {
-			return nil, err
-		}
-		sk, err := myCSP.KeyImport(priv, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: temporary})
-		if err != nil {
-			return nil, err
-		}
-		return sk, nil
-	//case *rsa.PrivateKey:
-	//return nil, errors.Errorf("Failed to import RSA key from %s; RSA private key import is not supported", keyFile)
-	default:
-		return nil, nil
-	}
 }
