@@ -329,7 +329,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
 
-	return nil
+	return err
 }
 
 //blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
@@ -493,6 +493,12 @@ func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, erro
 //}
 func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (respheaders *types.Headers, err error) {
 	blockhight := chain.GetBlockHeight()
+
+	if requestblock.GetStart() > requestblock.GetEnd() {
+		chainlog.Error("ProcGetHeadersMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
+		return nil, types.ErrEndLessThanStartHeight
+	}
+
 	if requestblock.Start > blockhight {
 		chainlog.Error("ProcGetHeadersMsg Startheight err", "startheight", requestblock.Start, "curheight", blockhight)
 		return nil, types.ErrStartHeight
@@ -504,7 +510,10 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 	start := requestblock.Start
 	count := end - start + 1
 	chainlog.Debug("ProcGetHeadersMsg", "headerscount", count)
-
+	if count < 1 {
+		chainlog.Error("ProcGetHeadersMsg count err", "startheight", requestblock.Start, "endheight", requestblock.End, "curheight", blockhight)
+		return nil, types.ErrEndLessThanStartHeight
+	}
 	var headers types.Headers
 	headers.Items = make([]*types.Header, count)
 	j := 0

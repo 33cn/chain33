@@ -334,6 +334,9 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 			"current", printBInt(currentdiff), "taget", printBInt(target))
 		return types.ErrCoinBaseTarget
 	}
+	if current.Block.Size() > int(types.MaxBlockSize) {
+		return types.ErrBlockSize
+	}
 	return nil
 }
 
@@ -570,12 +573,26 @@ func (client *Client) createBlock() (*types.Block, *types.Block) {
 	var newblock types.Block
 	newblock.ParentHash = lastBlock.Hash()
 	newblock.Height = lastBlock.Height + 1
-	newblock.Txs = client.RequestTx(int(types.GetP(newblock.Height).MaxTxNumber)-1, nil)
 	newblock.BlockTime = time.Now().Unix()
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
+	txs := client.RequestTx(int(types.GetP(newblock.Height).MaxTxNumber)-1, nil)
+	addTxsToBlock(&newblock, txs)
 	return &newblock, lastBlock
+}
+
+func addTxsToBlock(block *types.Block, txs []*types.Transaction) []*types.Transaction {
+	size := block.Size()
+	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
+	for i := 0; i < len(txs); i++ {
+		if size > max {
+			return txs[0:i]
+		}
+		block.Txs = append(block.Txs, txs[i])
+		size += txs[i].Size()
+	}
+	return txs
 }
 
 func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*types.Block, [][]byte) {
@@ -591,8 +608,11 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 	}
 	//tx 有更新
 	if len(txs) > 0 {
-		newblock.Txs = append(newblock.Txs, txs...)
-		txHashList = append(txHashList, getTxHashes(txs)...)
+		//防止区块过大
+		txs = addTxsToBlock(newblock, txs)
+		if len(txs) > 0 {
+			txHashList = append(txHashList, getTxHashes(txs)...)
+		}
 	}
 	if lastBlock.Height != newblock.Height-1 {
 		newblock.Txs = client.CheckTxDup(newblock.Txs)
