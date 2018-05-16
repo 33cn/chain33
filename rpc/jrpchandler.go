@@ -249,27 +249,30 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	if 0 != len(txs) {
 		for _, tx := range txs {
 			var recp ReceiptData
-			logs := tx.GetReceipt().GetLogs()
-			recp.Ty = tx.GetReceipt().GetTy()
-			for _, lg := range logs {
-				recp.Logs = append(recp.Logs,
-					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
-			}
-			recpResult, err := DecodeLog(&recp)
-			if err != nil {
-				continue
-			}
-
 			var proofs []string
-			txProofs := tx.GetProofs()
-			for _, proof := range txProofs {
-				proofs = append(proofs, common.ToHex(proof))
+			var recpResult *ReceiptDataResult
+			var err error
+			if !in.DisableDetail {
+				logs := tx.GetReceipt().GetLogs()
+				recp.Ty = tx.GetReceipt().GetTy()
+				for _, lg := range logs {
+					recp.Logs = append(recp.Logs,
+						&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+				}
+				recpResult, err = DecodeLog(&recp)
+				if err != nil {
+					continue
+				}
+
+				txProofs := tx.GetProofs()
+				for _, proof := range txProofs {
+					proofs = append(proofs, common.ToHex(proof))
+				}
 			}
 			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
 				continue
 			}
-
 			txdetails.Txs = append(txdetails.Txs,
 				&TransactionDetail{
 					Tx:         tran,
