@@ -124,6 +124,10 @@ func closeTicket(cmd *cobra.Command, args []string) {
 
 	var res types.ReplyHashes
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
