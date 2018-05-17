@@ -166,6 +166,8 @@ It has these top-level messages:
 	ReplySellOrder
 	ReplySellOrders
 	ReplyBuyOrders
+	ReplyTradeOrder
+	ReplyTradeOrders
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
