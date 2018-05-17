@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+
+	"gitlab.33.cn/chain33/chain33/account"
 )
 
 func OneStepSend(args []string) {
@@ -33,26 +35,44 @@ func OneStepSend(args []string) {
 			}
 		}
 	}
+	var isAddr bool
+	err := account.CheckAddress(key)
+	if err != nil {
+		isAddr = false
+	} else {
+		isAddr = true
+	}
 
 	var cli1 string
 	var cli2 string
+	var isWindows bool
 	if runtime.GOOS == "windows" {
 		cli1 = "cli.exe"
 		cli2 = "chain33-cli.exe"
+		isWindows = true
 	} else {
 		cli1 = "cli"
 		cli2 = "chain33-cli"
+		isWindows = false
 	}
 
 	var name string
-	_, err := os.Stat(cli1)
+	_, err = os.Stat(cli1)
 	if err == nil {
-		name = "cli"
+		if isWindows {
+			name = "cli"
+		} else {
+			name = "./cli"
+		}
 	}
 	if os.IsNotExist(err) {
 		_, err = os.Stat(cli2)
 		if err == nil {
-			name = "chain33-cli"
+			if isWindows {
+				name = "chain33-cli"
+			} else {
+				name = "./chain33-cli"
+			}
 		}
 		if os.IsNotExist(err) {
 			fmt.Println("no compiled cli file found")
@@ -80,7 +100,18 @@ func OneStepSend(args []string) {
 		return
 	}
 	bufCreate := outCreate.Bytes()
-	cmdSign := exec.Command(name, "wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), "-k", key)
+	var data string
+	if isWindows {
+		data = string(bufCreate[:len(bufCreate)-1])
+	} else {
+		data = string(bufCreate)
+	}
+
+	addrOrKey := "-k"
+	if isAddr {
+		addrOrKey = "-a"
+	}
+	cmdSign := exec.Command(name, "wallet", "sign", "-d", data, addrOrKey, key)
 	var outSign bytes.Buffer
 	var errSign bytes.Buffer
 	cmdSign.Stdout = &outSign
@@ -96,7 +127,12 @@ func OneStepSend(args []string) {
 	//fmt.Println("signedTx", outSign.String(), errSign.String())
 
 	bufSign := outSign.Bytes()
-	cmdSend := exec.Command(name, "tx", "send", "-d", string(bufSign[:len(bufSign)-1]))
+	if isWindows {
+		data = string(bufSign[:len(bufSign)-1])
+	} else {
+		data = string(bufSign)
+	}
+	cmdSend := exec.Command(name, "tx", "send", "-d", data)
 	var outSend bytes.Buffer
 	var errSend bytes.Buffer
 	cmdSend.Stdout = &outSend
@@ -110,7 +146,11 @@ func OneStepSend(args []string) {
 		return
 	}
 	bufSend := outSend.Bytes()
-	fmt.Println(string(bufSend[:len(bufSend)-1]))
+	if isWindows {
+		fmt.Println(string(bufSend[:len(bufSend)-1]))
+	} else {
+		fmt.Println(string(bufSend))
+	}
 }
 
 func loadHelp() {
