@@ -554,6 +554,14 @@ func (wallet *Wallet) ProcRecvMsg() {
 }
 
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
+	}
+
 	var key crypto.PrivKey
 	if unsigned.GetPrivkey() != "" {
 		keyByte, err := common.FromHex(unsigned.GetPrivkey())
