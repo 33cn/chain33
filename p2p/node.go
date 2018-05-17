@@ -107,6 +107,7 @@ func (n *Node) doNat() {
 		time.Sleep(time.Second)
 	}
 	testExaddr := fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), defaultPort)
+	log.Info("TestNetAddr", "testExaddr", testExaddr)
 	if len(P2pComm.AddrRouteble([]string{testExaddr})) != 0 {
 		log.Info("node outside")
 		n.nodeInfo.SetNetSide(true)
