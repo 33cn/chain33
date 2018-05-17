@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bytes"
@@ -8,31 +8,25 @@ import (
 	"runtime"
 )
 
-var (
-	key  string
-	cli1 string
-	cli2 string
-	name string
-)
-
-func main() {
-	if len(os.Args) <= 1 {
+func OneStepSend(args []string) {
+	if len(args) < 1 {
 		loadHelp()
 		return
 	}
-	argsWithoutProg := os.Args[1:]
-	if argsWithoutProg[0] == "help" || argsWithoutProg[0] == "-h" {
+
+	if args[0] == "help" || args[0] == "-h" {
 		loadHelp()
 		return
 	}
 	hasKey := false
-	size := len(argsWithoutProg)
-	for i, v := range argsWithoutProg {
+	var key string
+	size := len(args)
+	for i, v := range args {
 		if v == "-k" {
 			hasKey = true
 			if i < size-1 {
-				key = argsWithoutProg[i+1]
-				argsWithoutProg = append(argsWithoutProg[:i], argsWithoutProg[i+2:]...)
+				key = args[i+1]
+				args = append(args[:i], args[i+2:]...)
 			} else {
 				fmt.Fprintln(os.Stderr, "no private key found")
 				return
@@ -40,6 +34,8 @@ func main() {
 		}
 	}
 
+	var cli1 string
+	var cli2 string
 	if runtime.GOOS == "windows" {
 		cli1 = "cli.exe"
 		cli2 = "chain33-cli.exe"
@@ -48,6 +44,7 @@ func main() {
 		cli2 = "chain33-cli"
 	}
 
+	var name string
 	_, err := os.Stat(cli1)
 	if err == nil {
 		name = "cli"
@@ -63,7 +60,7 @@ func main() {
 		}
 	}
 
-	cmdCreate := exec.Command(name, argsWithoutProg...)
+	cmdCreate := exec.Command(name, args...)
 	var outCreate bytes.Buffer
 	var errCreate bytes.Buffer
 	cmdCreate.Stdout = &outCreate
