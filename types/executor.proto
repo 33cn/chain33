@@ -549,3 +549,22 @@ message keyOutput {
 message PrivacyOutput {
     repeated keyOutput keyoutput = 1;
 }
+
+message GroupUTXOGlobalIndex {
+    int64 amount = 1;
+    repeated UTXOGlobalIndex utxoGlobalIndex = 2;
+}
+
+message ReqUTXOPubKeys {
+    string tokenName = 1;
+    repeated GroupUTXOGlobalIndex groupUTXOGlobalIndex = 2;
+}
+
+message GroupUTXOPubKey {
+    int64 amount = 1;
+    repeated bytes pubkey = 2;
+}
+
+message ResUTXOPubKeys {
+    repeated GroupUTXOPubKey groupUTXOPubKeys = 1;
+}

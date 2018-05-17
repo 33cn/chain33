@@ -89,16 +89,18 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	data := Encode(tx)
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
-	tx.Signature = &Signature{ty, pub.Bytes(), sign.Bytes()}
+	tx.Signature = &Signature{Ty:ty, Pubkey:pub.Bytes(), Signature:sign.Bytes()}
 }
 
 func (tx *Transaction) CheckSign() bool {
+	sign := tx.GetSignature()
+	if sign == nil {
+		return false
+	}
+
 	copytx := *tx
 	copytx.Signature = nil
 	data := Encode(&copytx)
-	if tx.GetSignature() == nil {
-		return false
-	}
 	return CheckSign(data, tx.GetSignature())
 }
 
@@ -539,7 +541,7 @@ func GetEventName(event int) string {
 }
 
 func GetSignatureTypeName(signType int) string {
-	if name, exist := crypto.MapSignType2name[signType]; exist {
+	if name, exist := MapSignType2name[signType]; exist {
 		return name
 	}
 

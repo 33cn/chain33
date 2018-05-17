@@ -21,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/db"
 )
 
 var privacylog = log.New("module", "execs.privacy")
@@ -70,14 +71,17 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 
 			txhash := common.ToHex(tx.Hash())
 			output := public2Privacy.GetOutput().GetKeyoutput()
+			//因为只有包含当前交易的block被执行完成之后，同步到相应的钱包之后，
+			//才能将相应的utxo作为input，进行支付，所以此处不需要进行将KV设置到
+			//executor中的临时数据库中，只需要将kv返回给blockchain就行
 			for index, keyOutput := range output {
 				key := calcprivacyOutputKey(keyOutput.Amount, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
 
-			log := &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(public2Privacy.GetOutput())}
-			receipt.Logs = append(receipt.Logs, log)
+			execlog := &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(public2Privacy.GetOutput())}
+			receipt.Logs = append(receipt.Logs, execlog)
 
 			//////////////////debug code begin///////////////
 			privacylog.Debug("Privacy exec ActionPublic2Privacy", "receipt is", receipt)
@@ -92,9 +96,30 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		privacy2Privacy := action.GetPrivacy2Privacy()
 		if types.BTY == privacy2Privacy.Tokenname {
-			from := account.From(tx).String()
-			coinsAccount := p.GetCoinsAccount()
-			return coinsAccount.ExecTransfer(from, tx.To, p.GetAddr(), privacy2Privacy.Amount)
+			//from := account.From(tx).String()
+			//coinsAccount := p.GetCoinsAccount()
+			//return coinsAccount.ExecTransfer(from, tx.To, p.GetAddr(), privacy2Privacy.Amount)
+			var receipt *types.Receipt
+			privacyInput := privacy2Privacy.Input
+			for _, keyInput := range privacyInput.Keyinput {
+				value := []byte{1}
+				stateDB := p.GetDB()
+				stateDB.Set(keyInput.KeyImage, value)
+				receipt.KV = append(receipt.KV, &types.KeyValue{keyInput.KeyImage, value})
+			}
+
+			txhash := common.ToHex(tx.Hash())
+			output := privacy2Privacy.GetOutput().GetKeyoutput()
+			for index, keyOutput := range output {
+				key := calcprivacyOutputKey(keyOutput.Amount, txhash, index)
+				value := types.Encode(keyOutput)
+				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
+			}
+
+			execlog := &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(privacy2Privacy.GetOutput())}
+			receipt.Logs = append(receipt.Logs, execlog)
+			return receipt, nil
+
 		} else {			//token 转账操作
 
 		}
@@ -102,9 +127,25 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		privacy2public := action.GetPrivacy2Public()
 		if types.BTY == privacy2public.Tokenname {
-			from := account.From(tx).String()
 			coinsAccount := p.GetCoinsAccount()
-			return coinsAccount.ExecTransfer(from, tx.To, p.GetAddr(), privacy2public.Amount)
+			receipt, err :=  coinsAccount.ExecDeposit(tx.To, p.GetAddr(), privacy2public.Amount)
+			if err != nil {
+				privacylog.Error("Privacy exec ActionPrivacy2Public", "ExecDeposit failed due to ", err)
+				return nil, err
+			}
+
+			privacyInput := privacy2public.Input
+			for _, keyInput := range privacyInput.Keyinput {
+				value := []byte{1}
+				stateDB := p.GetDB()
+				stateDB.Set(keyInput.KeyImage, value)
+				receipt.KV = append(receipt.KV, &types.KeyValue{keyInput.KeyImage, value})
+			}
+
+			execlog := &types.ReceiptLog{types.TyLogPrivacyInput, types.Encode(privacy2public.GetInput())}
+			receipt.Logs = append(receipt.Logs, execlog)
+
+			return receipt, nil
 		} else {			//token 转账操作
 
 		}
