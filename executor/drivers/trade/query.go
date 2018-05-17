@@ -419,49 +419,6 @@ func fromStatus(status int32) (st, ty int32) {
 	return 	orderStatusInvalid, orderTypeInvalid
 }
 
-func sellOrder2Order(sellOrder *types.SellOrder) *types.ReplyTradeOrder {
-	reply := &types.ReplyTradeOrder{
-		sellOrder.TokenSymbol,
-		sellOrder.Address,
-		sellOrder.AmountPerBoardlot,
-		sellOrder.MinBoardlot,
-		sellOrder.PricePerBoardlot,
-		sellOrder.TotalBoardlot,
-		sellOrder.SoldBoardlot,
-		"",
-		sellOrder.Status,
-		sellOrder.SellID,
-		strings.Replace(sellOrder.SellID, sellIDPrefix, "0x", 1),
-		sellOrder.Height,
-		sellOrder.SellID,
-		1, // TODO
-		true,
-	}
-	return reply
-}
-
-
-func buyOrder2Order(buyOrder *types.BuyLimitOrder) *types.ReplyTradeOrder {
-	reply := &types.ReplyTradeOrder{
-		buyOrder.TokenSymbol,
-		buyOrder.Address,
-		buyOrder.AmountPerBoardlot,
-		buyOrder.MinBoardlot,
-		buyOrder.PricePerBoardlot,
-		buyOrder.TotalBoardlot,
-		buyOrder.BoughtBoardlot,
-		buyOrder.BuyID,
-		buyOrder.Status,
-		"",
-		strings.Replace(buyOrder.BuyID, buyIDPrefix, "0x", 1),
-		buyOrder.Height,
-		buyOrder.BuyID,
-		1,
-		false,
-	}
-	return reply
-}
-
 // SellMarkMarket BuyMarket 没有tradeOrder 需要调用这个函数进行转化
 // BuyRevoke, SellRevoke 也需要
 // SellLimit/BuyLimit 有order 但order 里面没有 bolcktime， 直接访问 order 还需要再次访问 block， 还不如直接访问交易
