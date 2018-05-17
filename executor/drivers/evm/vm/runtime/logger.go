@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
 	"io"
+	"encoding/hex"
 )
 
 // Tracer接口用来在合约执行过程中收集跟踪数据。
@@ -31,9 +32,9 @@ type StructLog struct {
 	Op         string                      `json:"op"`
 	Gas        uint64                      `json:"gas"`
 	GasCost    uint64                      `json:"gasCost"`
-	Memory     []int16                      `json:"memory"`
+	Memory     []string                      `json:"memory"`
 	MemorySize int                         `json:"memSize"`
-	Stack      []*big.Int                  `json:"stack"`
+	Stack      []string                  `json:"stack"`
 	Storage    map[common.Hash]common.Hash `json:"-"`
 	Depth      int                         `json:"depth"`
 	Err        error                       `json:"-"`
@@ -60,13 +61,21 @@ func (logger *JSONLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost
 		Err:        err,
 	}
 	log.Memory = formatMemory(memory.Data())
-	log.Stack = stack.Data()
+	log.Stack = formatStack(stack.Data())
 	return logger.encoder.Encode(log)
 }
 
-func formatMemory(data []byte) ( res []int16) {
+func formatStack(data []*big.Int) ( res []string) {
 	for _,v := range data {
-		res = append(res, int16(v))
+		res = append(res, v.Text(16))
+		v.String()
+	}
+	return
+}
+
+func formatMemory(data []byte) ( res []string) {
+	for idx:=0; idx <len(data) ;idx+=32{
+		res = append(res, hex.EncodeToString(data[idx:idx+32]))
 	}
 	return
 }

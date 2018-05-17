@@ -275,8 +275,8 @@ func CanTransfer(db state.StateDB, addr common.Address, amount uint64) bool {
 
 // 在内存数据库中执行转账操作（只修改内存中的金额）
 // 从外部账户地址到合约账户地址
-func Transfer(db state.StateDB, sender, recipient common.Address, amount uint64) {
-	db.Transfer(sender, recipient, amount)
+func Transfer(db state.StateDB, sender, recipient common.Address, amount uint64) bool {
+	return db.Transfer(sender, recipient, amount)
 }
 
 // 获取制定高度区块的哈希

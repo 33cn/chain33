@@ -132,13 +132,25 @@ func TestCreateContract4(t *testing.T) {
 //    }
 //}
 
+func decodeHex(data string)[]byte  {
+	str := data
+	if data[0:2] == "0x" {
+		str =data[2:]
+	}
+	deployCode, _ := hex.DecodeString(str)
+	return deployCode
+}
+
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "13c3Bf6zYzMwEk6vMxgGrhZWLrxyDDv99U"
-	//code := "d0a1703f0000000000000000000000000000000000000000000000000000000000000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd0000000000000000000000000000000000000000000000000000000000000003"
-	code := "4e71d92d"
-	deployCode, _ := hex.DecodeString(code)
-	fee := 5000000000
+	to := "1KwNnVuU1ZRCrWLXdUkmu6dWSjvij8x4K1"
+	code := "0x52efea6e"
+	//code := "4e71d92d"  // claim
+	//code := "1b9265b8"  // pay
+	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000021"  // put
+	//code := "9507d39a0000000000000000000000000000000000000000000000000000000000000003"  // get
+	deployCode := decodeHex(code)
+	fee := 50000000000
 
 	action := model.ContractAction{Amount:0, Code:deployCode}
 	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(&action), Fee: int64(fee), To:to}
