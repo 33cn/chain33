@@ -135,11 +135,11 @@ func calcOnesBuyOrderPrefixStatus(addr string, status int32) []byte {
 //  目前页面是按addr， 状态来
 //
 func calcOnesOrderKey(addr string, status int32, ty int32, height int64, key string) []byte {
-	return []byte(fmt.Sprintf(orderAHSTK+"%s:%d:%d:%010d:%s", addr, status, ty, height, key))
+	return []byte(fmt.Sprintf(orderASTHK+"%s:%d:%d:%010d:%s", addr, status, ty, height, key))
 }
 
 func calcOnesOrderPrefixStatus(addr string, status int32) []byte {
-	return []byte(fmt.Sprintf(orderAHSTK+"%s:%d:%d:%010d:%s", addr, status))
+	return []byte(fmt.Sprintf(orderASTHK+"%s:%d:%d:%010d:%s", addr, status))
 }
 
 // 特定状态下的买单
