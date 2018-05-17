@@ -74,7 +74,7 @@ func (acc *AccountDB) TransferToExec(from, to string, amount int64) (*types.Rece
 	if err != nil {
 		return nil, err
 	}
-	receipt2, err := acc.execDeposit(from, to, amount)
+	receipt2, err := acc.ExecDeposit(from, to, amount)
 	if err != nil {
 		//存款不应该出任何问题
 		panic(err)
@@ -252,7 +252,7 @@ func (acc *AccountDB) execDepositFrozen(addr, execaddr string, amount int64) (*t
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *AccountDB) execDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *AccountDB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}

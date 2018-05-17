@@ -182,10 +182,16 @@ func GenerateKeyImage(onetimeSk PrivKey, onetimePk PubKey) *KeyImage {
 	return keyImage
 
 }
-
-func GenerateRingSignature(utxos []*types.UTXO, realUtxoIndex int) Signature {
+//其中的realUtxoIndex，是真实的utxo输出在混淆组中的位置索引
+func GenerateRingSignature(data []byte, utxos []*types.UTXO, realUtxoIndex int, sk []byte, keyImage []byte) Signature {
 
 	return
+}
+
+func CheckRingSignature(data, ringSignature []byte, groupUTXOPubKeys [][]byte, keyImage []byte) bool {
+	checkRes := false
+
+	return checkRes
 }
 
 func GenerateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) {

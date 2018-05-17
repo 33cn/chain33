@@ -304,13 +304,75 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 				e.coinsAccount.SaveExecAccount(execaddr, accFrom)
 				return e.cutFeeReceipt4Privacy(execaddr, accFrom, receiptBalance), nil
 			}
-		} else {
-			//如果是私到私 或者私到公，交易费扣除则需要
+		} else {//如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
+			if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+				totalInput := int64(0)
+				keys := make([][]byte, len(action.GetPrivacy2Privacy().Input.Keyinput))
+				for i, input := range action.GetPrivacy2Privacy().Input.Keyinput {
+					totalInput += input.Amount
+					keys[i] = input.KeyImage
+				}
+				if !e.checkUTXOValid(keys) {
+					elog.Error("exec UTXO double spend check failed")
+					return nil, types.ErrDoubeSpendOccur
+				}
+				totalOutput := int64(0)
+				for _, output := range action.GetPrivacy2Privacy().Output.Keyoutput {
+					totalOutput += output.Amount
+				}
 
+				if totalInput - totalOutput >= tx.Fee {
+					receiptBalance := &types.ReceiptExecUTXOTrans4Privacy{
+						Type:types.PrivacyUTXOFee,
+						Amount:totalInput - totalOutput,
+					}
+					return e.cutFeeReceipt4PrivacyUTXO(receiptBalance), nil
+				}
+
+			} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+				totalInput := int64(0)
+				keys := make([][]byte, len(action.GetPrivacy2Public().Input.Keyinput))
+				for i, input := range action.GetPrivacy2Public().Input.Keyinput {
+					totalInput += input.Amount
+					keys[i] = input.KeyImage
+				}
+				if !e.checkUTXOValid(keys) {
+					elog.Error("exec UTXO double spend check failed")
+					return nil, types.ErrDoubeSpendOccur
+				}
+
+				if totalInput - action.GetPrivacy2Public().Amount >= tx.Fee {
+					receiptBalance := &types.ReceiptExecUTXOTrans4Privacy{
+						Type:types.PrivacyUTXOFee,
+						Amount:totalInput - action.GetPrivacy2Public().Amount,
+					}
+					return e.cutFeeReceipt4PrivacyUTXO(receiptBalance), nil
+				}
+			}
 		}
-
 	}
 	return nil, types.ErrNoBalance
+}
+//通过keyImage确认是否存在双花，有效即不存在双花，返回true，反之则返回false
+func (e *executor) checkUTXOValid(keyImages [][]byte) bool {
+	if values, err := e.stateDB.BatchGet(keyImages); err == nil {
+		if len(values) == len(keyImages) {
+			elog.Error("exec module", "checkUTXOValid return different count value with keys", )
+			return false
+		}
+		for _, value := range values {
+			if value != nil {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func (e *executor) cutFeeReceipt4PrivacyUTXO(receiptBalance *types.ReceiptExecUTXOTrans4Privacy) *types.Receipt {
+	feelog := &types.ReceiptLog{types.TyLogPrivacyFeeUTXO, types.Encode(receiptBalance)}
+	return &types.Receipt{Ty:types.ExecPack, Logs:[]*types.ReceiptLog{feelog}}
 }
 
 func (e *executor) cutFeeReceipt4Privacy(execaddr string, acc *types.Account, receiptBalance *types.ReceiptExecAccountTransfer) *types.Receipt {

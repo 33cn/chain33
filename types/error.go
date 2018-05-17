@@ -134,6 +134,9 @@ var (
 	ErrNoUTXORec4Token        = errors.New("ErrNoUTXORec4Token")
 	ErrNoUTXORec4Amount       = errors.New("ErrNoUTXORec4Amount")
 	ErrNotEnoughUTXOs         = errors.New("ErrNotEnoughUTXOs")
+	ErrNoSuchPrivacyTX        = errors.New("ErrNoSuchPrivacyTX")
+	ErrDoubeSpendOccur        = errors.New("ErrDoubeSpendOccur")
+
 	//wallet
 	ErrInputPara            = errors.New("ErrInputPara")
 	ErrWalletIsLocked       = errors.New("ErrWalletIsLocked")
