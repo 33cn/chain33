@@ -13,6 +13,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	// register crypto algorithms
+	"encoding/json"
+
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
 )
@@ -849,4 +851,35 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	t.Num++
 	t.Amount += acc.Balance
 	return false
+}
+
+type RpcTypeInfo struct {
+	FuncName string
+	Util     interface{}
+}
+
+type RpcTypeUtil interface {
+	Input(message json.RawMessage) ([]byte, error)
+	Output(interface{}) (interface{}, error)
+}
+
+func moreRpcTypeUtil(arr []RpcTypeInfo) {
+	for _, t := range arr {
+		if _, ok := t.Util.(RpcTypeUtil); ok {
+			RpcTypeUtilMap[t.FuncName] = t.Util
+		}
+	}
+}
+
+// call at rpc server start
+// add more type util
+func InitRpcTypeUtil() {
+	moreRpcTypeUtil(RpcTradeTypeTransList)
+	// TODO add more
+	//moreRpcTypeUtil(RpcOtherTypeTransList, RpcTypeUtilMap)
+
+}
+
+var RpcTypeUtilMap = map[string]interface{}{
+// "GetTokenSellOrderByStatus" : &TradeQueryTokenSellOrder{},
 }

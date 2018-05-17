@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -125,7 +124,5 @@ func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, er
 	if err != nil {
 		return nil, types.ErrInputPara
 	}
-	fmt.Println("req: ", req)
-	fmt.Println("req: ", types.Encode(req))
 	return types.Encode(req), nil
 }

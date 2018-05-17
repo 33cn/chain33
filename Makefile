@@ -6,11 +6,9 @@
 
 SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
 SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
-SRC_SEND := gitlab.33.cn/chain33/chain33/cmd/cli/send
 SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
 APP := build/chain33
 CLI := build/chain33-cli
-SEND := build/chain33-send
 SIGNATORY := build/signatory-server
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
@@ -40,16 +38,12 @@ release: ## Build the binary file
 cli: ## Build cli binary
 	@go build -v -o $(CLI) $(SRC_CLI)
 
-send: ## Build send binary
-	@go build -v -o $(SEND) $(SRC_SEND)
-
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
 	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
 	@cp cmd/signatory-server/signatory.toml build/
 
 build_ci: ## Build the binary file for CI
-	@go build -race -v -o $(SEND) $(SRC_SEND)
 	@go build -race -v -o $(CLI) $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
