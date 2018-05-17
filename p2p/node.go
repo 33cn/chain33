@@ -108,6 +108,7 @@ func (n *Node) doNat() {
 	}
 	testExaddr := fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), defaultPort)
 	if len(P2pComm.AddrRouteble([]string{testExaddr})) != 0 {
+		log.Info("node outside")
 		n.nodeInfo.SetNetSide(true)
 		if netexaddr, err := NewNetAddressString(testExaddr); err == nil {
 			n.nodeInfo.SetExternalAddr(netexaddr)
@@ -115,6 +116,7 @@ func (n *Node) doNat() {
 		}
 		return
 	}
+	log.Info("node inside")
 	//在内网，并且非种子节点，则进行端口映射
 	if !n.nodeInfo.OutSide() && !n.nodeInfo.cfg.GetIsSeed() && n.nodeInfo.cfg.GetServerStart() {
 
