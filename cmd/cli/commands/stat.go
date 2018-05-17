@@ -103,32 +103,34 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	}
 
 	if symbol == "bty" {
-		//查询高度blockhash
-		params := types.ReqInt{height}
-		var res1 jsonrpc.ReplyHash
-		err = rpc.Call("Chain33.GetBlockHash", params, &res1)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		blockHash, err := common.FromHex(res1.Hash)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		//查询手续费
-		params2 := types.ReqHash{Hash: blockHash}
 		var res2 types.TotalFee
-		err = rpc.Call("Chain33.QueryTotalFee", params2, &res2)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
+		if height > 0 {
+			//查询高度blockhash
+			params := types.ReqInt{height}
+			var res1 jsonrpc.ReplyHash
+			err = rpc.Call("Chain33.GetBlockHash", params, &res1)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+
+			blockHash, err := common.FromHex(res1.Hash)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+
+			//查询手续费
+			params2 := types.ReqHash{Hash: blockHash}
+			err = rpc.Call("Chain33.QueryTotalFee", params2, &res2)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
 		}
 
 		resp.TxCount = res2.TxCount
-		expectedAmount = (3e+8+30000+30*height)*types.Coin - res2.Fee
+		expectedAmount = (3e+8+17430000+30*height)*types.Coin - res2.Fee
 		resp.ExpectedAmount = strconv.FormatFloat(float64(expectedAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
 		resp.DifferenceAmount = strconv.FormatFloat(float64(expectedAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
