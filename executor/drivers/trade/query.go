@@ -462,9 +462,9 @@ func buyOrder2Order(buyOrder *types.BuyLimitOrder) *types.ReplyTradeOrder {
 	return reply
 }
 
-// SellMarkMarket BuyMarket 需要调用这个函数进行转化
+// SellMarkMarket BuyMarket 没有tradeOrder 需要调用这个函数进行转化
 // BuyRevoke, SellRevoke 也需要
-
+// SellLimit/BuyLimit 有order 但order 里面没有 bolcktime， 直接访问 order 还需要再次访问 block， 还不如直接访问交易
 func buyBase2Order(base *types.ReceiptBuyBase, txHash string, blockTime int64) *types.ReplyTradeOrder {
 	amount, err := strconv.ParseFloat(base.AmountPerBoardlot, 64)
 	if err != nil {
@@ -576,6 +576,33 @@ func txResult2OrderReply(txResult *types.TxResult) *types.ReplyTradeOrder {
 	return nil
 }
 
+func limitOrderTxResult2Order(txResult *types.TxResult) *types.ReplyTradeOrder {
+	logs := txResult.Receiptdate.Logs
+	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
+	for _, log := range logs {
+		if log.Ty == types.TyLogTradeSellLimit {
+			var receipt types.ReceiptTradeSell
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
+			return sellBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
+		} else if log.Ty == types.TyLogTradeBuyLimit {
+			var receipt types.ReceiptTradeBuyLimit
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
+			return buyBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
+		}
+	}
+	return nil
+}
+
 func (t *trade) loadOrderFromKey(key []byte) *types.ReplyTradeOrder {
 	tradelog.Debug("trade Query", "id", string(key), "check-prefix", sellIDPrefix)
 	if strings.HasPrefix(string(key), sellIDPrefix) {
@@ -585,17 +612,20 @@ func (t *trade) loadOrderFromKey(key []byte) *types.ReplyTradeOrder {
 		if err != nil {
 			return nil
 		}
-		return nil // TODO sellOrder2Order(txResult)
+		return limitOrderTxResult2Order(txResult)
 		// sellOrder 中没有 blocktime， 需要查询两次， 不如直接查询
 		//if sellorder, err := getSellOrderFromID(key, t.GetStateDB()); err == nil {
 		//	tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
 		//	return sellOrder2Order(sellorder)
 		//}
 	} else if strings.HasPrefix(string(key), buyIDPrefix) {
-		if buyOrder, err := getBuyOrderFromID(key, t.GetStateDB()); err == nil {
-			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
-			return buyOrder2Order(buyOrder)
+		txHash := strings.Replace(string(key), buyIDPrefix, "0x", 1)
+		txResult, err := getTx([]byte(txHash), t.GetLocalDB())
+		tradelog.Debug("loadOrderFromKey ", "load txhash", txResult)
+		if err != nil {
+			return nil
 		}
+		return limitOrderTxResult2Order(txResult)
 	} else { // txhash as key
 		txResult, err := getTx(key, t.GetLocalDB())
 		tradelog.Debug("loadOrderFromKey ", "load txhash", string(key))
