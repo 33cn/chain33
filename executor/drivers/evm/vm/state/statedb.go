@@ -29,7 +29,7 @@ type MemoryStateDB struct {
 	CoinsAccount *account.DB
 
 	// 缓存账户对象
-	accounts map[common.Address]*ContractAccount
+	accounts map[string]*ContractAccount
 
 	// 合约执行过程中退回的资金
 	refund uint64
@@ -65,7 +65,7 @@ func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) 
 		StateDB:      StateDB,
 		LocalDB:      LocalDB,
 		CoinsAccount: CoinsAccount,
-		accounts:     make(map[common.Address]*ContractAccount),
+		accounts:     make(map[string]*ContractAccount),
 		logs:         make(map[common.Hash][]*model.ContractLog),
 		preimages:    make(map[common.Hash][]byte),
 		refund:       0,
@@ -82,52 +82,27 @@ func (self *MemoryStateDB) Prepare(txHash common.Hash, txIndex int) {
 }
 
 // 创建一个新的合约账户对象
-func (self *MemoryStateDB) CreateAccount(addr common.Address) {
+func (self *MemoryStateDB) CreateAccount(addr common.Address, creator common.Address) {
 	acc := self.GetAccount(addr)
 	if acc == nil {
-		// 新增账户后，如果未发生给合约转账的操作，合约账户的地址在coins那边是不存在的
+		// 这种情况下为新增合约账户
 		acc := NewContractAccount(addr.Str(), self)
-		acc.LoadContract(self.StateDB)
-		self.accounts[addr] = acc
-
-		self.journal = append(self.journal, createAccountChange{baseChange: baseChange{}, account: &addr})
+		acc.SetCreator(creator.Str())
+		self.accounts[addr.Str()] = acc
+		self.journal = append(self.journal, createAccountChange{baseChange: baseChange{}, account: addr.Str()})
 	}
 }
 
 // 从外部账户地址扣钱（钱其实是打到合约账户中的）
 func (self *MemoryStateDB) SubBalance(addr common.Address, caddr common.Address, value uint64) {
-	if value == 0 {
-		return
-	}
-	self.Transfer(addr, caddr, value)
+	res := self.Transfer(addr, caddr, value)
+	log15.Debug("transfer result", "from", addr, "to", caddr, "amount", value, "result", res)
 }
 
 // 向外部账户地址打钱（钱其实是外部账户之前打到合约账户中的）
 func (self *MemoryStateDB) AddBalance(addr common.Address, caddr common.Address, value uint64) {
-	if value == 0 {
-		return
-	}
-
-	if self.CoinsAccount != nil {
-		amount := int64(value)
-		if amount < 0 {
-			return
-		}
-		ret, err := self.CoinsAccount.TransferWithdraw(addr.Str(), caddr.Str(), amount)
-		// 这种情况下转账失败并不进行处理，打印日志即可
-		if err != nil {
-			log15.Error("add balance error", err)
-		} else {
-			self.journal = append(self.journal, addBalanceChange{
-				baseChange: baseChange{},
-				from:       caddr.Str(),
-				to:         addr.Str(),
-				amount:     amount,
-				data:       ret.KV,
-				logs:       ret.Logs,
-			})
-		}
-	}
+	res := self.Transfer(caddr, addr, value)
+	log15.Debug("transfer result", "from", addr, "to", caddr, "amount", value, "result", res)
 }
 
 func (self *MemoryStateDB) GetBalance(addr common.Address) uint64 {
@@ -203,7 +178,7 @@ func (self *MemoryStateDB) GetRefund() uint64 {
 
 // 从缓存中获取或加载合约账户
 func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
-	if acc, ok := self.accounts[addr]; ok {
+	if acc, ok := self.accounts[addr.Str()]; ok {
 		return acc
 	} else {
 		// 需要加载合约对象，根据是否存在合约代码来判断是否有合约对象
@@ -212,7 +187,7 @@ func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
 		if contract.Empty() {
 			return nil
 		}
-		self.accounts[addr] = contract
+		self.accounts[addr.Str()] = contract
 		return contract
 	}
 }
@@ -242,7 +217,7 @@ func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 	if acc != nil {
 		self.journal = append(self.journal, suicideChange{
 			baseChange: baseChange{},
-			account:    &addr,
+			account:    addr.Str(),
 			prev:       acc.State.GetSuicided(),
 		})
 		return acc.Suicide()
@@ -383,39 +358,187 @@ func (self *MemoryStateDB) CanTransfer(addr common.Address, amount uint64) bool 
 	if value < 0 {
 		return false
 	}
-	err := self.CoinsAccount.CheckTransfer(addr.Str(), "", value)
-	if err != nil {
-		return false
+
+	// 需要判断要转账的地址是合约地址还是外部账户地址
+	isContract := self.Exist(addr)
+
+	var err error
+	defer func() {
+		if err != nil {
+			log15.Error("check transfer error", "error", err)
+		}
+	}()
+
+	if isContract {
+		// 如果是合约地址，则需要判断创建者在本合约中的余额是否充足
+		if !types.CheckAmount(value) {
+			err = types.ErrAmount
+			return false
+		}
+		contract := self.GetAccount(addr)
+		if contract == nil {
+			err = model.ErrAddrNotExists
+			return false
+		}
+		creator := contract.GetCreator()
+		if len(creator) == 0 {
+			err = model.ErrNoCreator
+			return false
+		}
+		accFrom := self.CoinsAccount.LoadExecAccount(contract.GetCreator(), addr.Str())
+		b := accFrom.GetBalance() - value
+		if b < 0 {
+			err = types.ErrNoBalance
+			return false
+		}
+		return true
+	} else {
+		// 如果是外部地址，直接判断即可
+		err = self.CoinsAccount.CheckTransfer(addr.Str(), "", value)
+		return err == nil
 	}
-	return true
 }
 
 // 借助coins执行器进行转账相关操作
-// 只支持以下几种转账：从外部账户到合约账户、合约账户到合约账户、合约账户到外部账户
-func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount uint64) {
+// 只支持以下几种转账：从外部账户到合约账户、合约账户到外部账户，其它情况不支持
+func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount uint64) bool {
 	if amount == 0 {
-		return
+		return false
 	}
+
 	if self.CoinsAccount != nil {
 		value := int64(amount)
 		if value < 0 {
-			return
+			return false
 		}
-		ret, err := self.CoinsAccount.TransferToExec(sender.Str(), recipient.Str(), value)
+
+		log15.Debug("transfer from contract to external", "sender", sender, "recipient", recipient, "amount", amount)
+
+		// 首先需要检查转账双方的信息，是属于合约账户还是外部账户
+		execSender := self.Exist(sender)
+		execRecipient := self.Exist(recipient)
+		var (
+			ret *types.Receipt
+			err error
+		)
+
+		if execRecipient && execSender {
+			// 双方均为合约账户，不支持
+			err = model.ErrTransferBetweenContracts
+		} else if execSender {
+			// 从合约账户到外部账户转账 （这里调用外部账户从合约账户取钱接口）
+			ret, err = self.transfer2External(sender, recipient, value)
+		} else if execRecipient {
+			// 从外部账户到合约账户转账
+			ret, err = self.transfer2Contract(sender, recipient, value)
+		} else {
+			// 双方都是外部账户，不支持
+			err = model.ErrTransferBetweenEOA
+		}
+
 		// 这种情况下转账失败并不进行处理，也不会从sender账户扣款，打印日志即可
 		if err != nil {
-			log15.Error("transfer error", err)
+			log15.Error("transfer error", "sender", sender.Str(), "recipient", recipient.Str(), "amount", amount, "err info", err)
+			return false
 		} else {
-			self.journal = append(self.journal, transferChange{
-				baseChange: baseChange{},
-				from:       sender.Str(),
-				to:         recipient.Str(),
-				amount:     value,
-				data:       ret.KV,
-				logs:       ret.Logs,
-			})
+			if ret != nil {
+				self.journal = append(self.journal, transferChange{
+					baseChange: baseChange{},
+					from:       sender.Str(),
+					to:         recipient.Str(),
+					amount:     value,
+					data:       ret.KV,
+					logs:       ret.Logs,
+				})
+			}
+			return true
+		}
+	} else {
+		log15.Error("no coinsaccount exists", "sender", sender.Str(), "recipient", recipient.Str(), "amount", amount)
+		return false
+	}
+}
+
+// 因为chain33的限制，在执行器中转账只能在以下几个方向进行：
+// 外部账户 <-> 外部账户自己的合约；
+// A账户的X合约 <-> B账户的X合约；
+// 其它情况不支持，所以要想实现EVM合约与账户之间的转账需要经过中转处理，比如A要向B创建的X合约转账，则执行以下流程：
+// A -> A:X -> B:X；
+// 本方法封装从外部账户到合约账户的转账逻辑;
+func (self *MemoryStateDB) transfer2Contract(sender, recipient common.Address, amount int64) (ret *types.Receipt, err error) {
+	// 首先获取合约的创建者信息
+	contract := self.GetAccount(recipient)
+	if contract == nil {
+		return nil, model.ErrAddrNotExists
+	}
+	creator := contract.GetCreator()
+	if len(creator) == 0 {
+		return nil, model.ErrNoCreator
+	}
+
+	// 第一步先将外部账户的金额转入自己的合约中
+	ret, err = self.CoinsAccount.TransferToExec(sender.Str(), recipient.Str(), amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// 第二步再从自己的合约账户到创建者的合约账户
+	// 有可能是外部账户调用自己创建的合约，这种情况下这一步可以省略
+	if sender.Str() != creator {
+		rs, err := self.CoinsAccount.ExecTransfer(sender.Str(), creator, recipient.Str(), amount)
+		if err != nil {
+			return nil, err
+		}
+
+		ret.KV = append(ret.KV, rs.KV...)
+		ret.Logs = append(ret.Logs, rs.Logs...)
+	}
+
+	return ret, nil
+}
+
+// chain33转账限制请参考方法 Transfer2Contract ；
+// 本方法封装从合约账户到外部账户的转账逻辑；
+func (self *MemoryStateDB) transfer2External(sender, recipient common.Address, amount int64) (ret *types.Receipt, err error) {
+	// 首先获取合约的创建者信息
+	contract := self.GetAccount(sender)
+	if contract == nil {
+		return nil, model.ErrAddrNotExists
+	}
+	creator := contract.GetCreator()
+	if len(creator) == 0 {
+		return nil, model.ErrNoCreator
+	}
+
+	// 第一步先从创建者的合约账户到接受者的合约账户
+	// 如果是自己调用自己创建的合约，这一步也可以省略
+	if creator != recipient.Str() {
+		ret, err = self.CoinsAccount.ExecTransfer(creator, recipient.Str(), sender.Str(), amount)
+		if err != nil {
+			return nil, err
 		}
 	}
+
+	// 第二步再从接收者的合约账户取款到接受者账户
+	rs, err := self.CoinsAccount.TransferWithdraw(recipient.Str(), sender.Str(), amount)
+	if err != nil {
+		return nil, err
+	}
+
+	ret = self.mergeResult(ret,rs)
+
+	return ret, nil
+}
+
+func (self *MemoryStateDB) mergeResult(one, two *types.Receipt) (ret *types.Receipt) {
+	ret = one
+	if ret == nil {
+		ret = two
+	} else if two != nil {
+		ret.KV = append(ret.KV, two.KV...)
+		ret.Logs = append(ret.Logs, two.Logs...)
+	}
+	return
 }
 
 // LOG0-4 指令对应的具体操作

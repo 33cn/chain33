@@ -11,8 +11,9 @@ message ContractObject {
 
 // 存放合约固定数据
 message ContractData {
-    bytes code = 1;
-    bytes codeHash = 2;
+    string creator = 1;
+    bytes code = 2;
+    bytes codeHash = 3;
 }
 
 // 存放合约变化数据

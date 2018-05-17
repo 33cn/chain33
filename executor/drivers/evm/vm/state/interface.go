@@ -11,7 +11,7 @@ import (
 // StateDB除了查询状态数据，还会保留在交易执行时对数据的变更信息，每个交易完成之后会返回变更影响的数据给执行器；
 type StateDB interface {
 	// 创建新的合约对象
-	CreateAccount(common.Address)
+	CreateAccount(common.Address, common.Address)
 
 	// 从从指定地址扣除金额
 	SubBalance(common.Address,common.Address,uint64)
@@ -67,5 +67,5 @@ type StateDB interface {
 	// 当前账户余额是否足够转账
 	CanTransfer(addr common.Address, amount uint64) bool
 	// 转账交易
-	Transfer(sender, recipient common.Address, amount uint64)
+	Transfer(sender, recipient common.Address, amount uint64) bool
 }

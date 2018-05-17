@@ -17,7 +17,7 @@ type (
 	CanTransferFunc func(state.StateDB, common.Address, uint64) bool
 
 	// 执行转账逻辑
-	TransferFunc func(state.StateDB, common.Address, common.Address, uint64)
+	TransferFunc func(state.StateDB, common.Address, common.Address, uint64) bool
 
 	// 获取制定高度区块的哈希
 	// 给 BLOCKHASH 指令使用
@@ -170,13 +170,17 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
-		// 合约地址在自定义合约和预编译合约中都不存在，说明为无效调用
+		// 合约地址在自定义合约和预编译合约中都不存在时，可能为外部账户
 		if precompiles[addr] == nil {
-			return nil, snapshot, gas, nil
+			// 只有一种情况会走到这里来，就是合约账户向外部账户转账的情况
+			if len(input) > 0 || value ==0 {
+				// 其它情况要求地址必须存在，所以需要报错
+				return nil, snapshot, gas, model.ErrAddrNotExists
+			}
+		}else{
+			// 否则，为预编译合约，创建一个新的账号
+			evm.StateDB.CreateAccount(addr, caller.Address())
 		}
-
-		// 否则，为预编译合约，创建一个新的账号
-		evm.StateDB.CreateAccount(addr)
 	}
 
 	// 向合约地址转账
@@ -322,12 +326,13 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 		return nil, -1, gas, err
 	}
 
-	// 使用生成的地址创建一个新的账户对象（合约账户）
-	snapshot = evm.StateDB.Snapshot()
-	evm.StateDB.CreateAccount(contractAddr)
 	// 创建新的合约对象，包含双方地址以及合约代码，可用Gas信息
 	contract := NewContract(caller, AccountRef(contractAddr), value, gas)
 	contract.SetCallCode(&contractAddr, common.ToHash(code), code)
+
+	// 创建一个新的账户对象（合约账户）
+	snapshot = evm.StateDB.Snapshot()
+	evm.StateDB.CreateAccount(contractAddr, contract.CallerAddress)
 
 	// 从创建者向合约账户转账
 	evm.Transfer(evm.StateDB, caller.Address(), contractAddr, value)
