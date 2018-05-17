@@ -160,3 +160,26 @@ func (t *TradeQueryOnesBuyOrder) Output(reply *ReplyBuyOrders) (*RpcReplyBuyOrde
 	json.Unmarshal(str, &rpcReply)
 	return &rpcReply, nil
 }
+
+// trade order
+type ReplyTradeOrder struct {
+	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	Owner             string `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
+	AmountPerBoardlot int64  `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
+	MinBoardlot       int64  `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
+	PricePerBoardlot  int64  `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
+	TotalBoardlot     int64  `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
+	TradedBoardlot    int64  `protobuf:"varint,7,opt,name=tradedBoardlot" json:"tradedBoardlot,omitempty"`
+	BuyID             string `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
+	Status            int32  `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
+	SellID            string `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
+	TxHash            string `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
+	Height            int64  `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
+	Key               string `protobuf:"bytes,13,opt,name=key" json:"key,omitempty"`
+	BlockTime         int64  `protobuf:"varint,14,opt,name=blockTime" json:"blockTime,omitempty"`
+	IsSellOrder       bool   `protobuf:"varint,15,opt,name=isSellOrder" json:"isSellOrder,omitempty"`
+}
+
+type ReplyTradeOrders struct {
+	Orders []*ReplyTradeOrder `protobuf:"bytes,1,rep,name=orders" json:"orders,omitempty"`
+}
