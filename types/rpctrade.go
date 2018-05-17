@@ -28,6 +28,10 @@ var RpcTradeTypeTransList = []RpcTypeInfo{
 		"GetOnesBuyOrder",
 		TradeQueryOnesBuyOrder{},
 	},
+	{
+	"GetOnesOrderWithStatus",
+		TradeQueryOnesOrder{},
+	},
 }
 
 // rpc query trade sell order part
@@ -182,4 +186,26 @@ type RpcReplyTradeOrder struct {
 
 type RpcReplyTradeOrders struct {
 	Orders []*RpcReplyTradeOrder `json:"orders"`
+}
+
+type TradeQueryOnesOrder struct {
+}
+
+func (t *TradeQueryOnesOrder) Input(message json.RawMessage) ([]byte, error) {
+	var req ReqAddrTokens
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return Encode(&req), nil
+}
+
+func (t *TradeQueryOnesOrder) Output(reply *ReplyTradeOrders) (*RpcReplyTradeOrders, error) {
+	str, err := json.Marshal(*reply)
+	if err != nil {
+		return nil, err
+	}
+	var rpcReply RpcReplyTradeOrders
+	json.Unmarshal(str, &rpcReply)
+	return &rpcReply, nil
 }
