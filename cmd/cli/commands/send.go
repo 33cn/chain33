@@ -100,18 +100,12 @@ func OneStepSend(args []string) {
 		return
 	}
 	bufCreate := outCreate.Bytes()
-	var data string
-	if isWindows {
-		data = string(bufCreate[:len(bufCreate)-1])
-	} else {
-		data = string(bufCreate)
-	}
 
 	addrOrKey := "-k"
 	if isAddr {
 		addrOrKey = "-a"
 	}
-	cmdSign := exec.Command(name, "wallet", "sign", "-d", data, addrOrKey, key)
+	cmdSign := exec.Command(name, "wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), addrOrKey, key)
 	var outSign bytes.Buffer
 	var errSign bytes.Buffer
 	cmdSign.Stdout = &outSign
@@ -127,12 +121,7 @@ func OneStepSend(args []string) {
 	//fmt.Println("signedTx", outSign.String(), errSign.String())
 
 	bufSign := outSign.Bytes()
-	if isWindows {
-		data = string(bufSign[:len(bufSign)-1])
-	} else {
-		data = string(bufSign)
-	}
-	cmdSend := exec.Command(name, "tx", "send", "-d", data)
+	cmdSend := exec.Command(name, "wallet", "send", "-d", string(bufSign[:len(bufSign)-1]))
 	var outSend bytes.Buffer
 	var errSend bytes.Buffer
 	cmdSend.Stdout = &outSend
@@ -146,11 +135,7 @@ func OneStepSend(args []string) {
 		return
 	}
 	bufSend := outSend.Bytes()
-	if isWindows {
-		fmt.Println(string(bufSend[:len(bufSend)-1]))
-	} else {
-		fmt.Println(string(bufSend))
-	}
+	fmt.Println(string(bufSend[:len(bufSend)-1]))
 }
 
 func loadHelp() {
