@@ -252,22 +252,22 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			var proofs []string
 			var recpResult *ReceiptDataResult
 			var err error
-			if !in.DisableDetail {
-				logs := tx.GetReceipt().GetLogs()
-				recp.Ty = tx.GetReceipt().GetTy()
-				for _, lg := range logs {
-					recp.Logs = append(recp.Logs,
-						&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
-				}
-				recpResult, err = DecodeLog(&recp)
-				if err != nil {
-					continue
-				}
-
-				txProofs := tx.GetProofs()
-				for _, proof := range txProofs {
-					proofs = append(proofs, common.ToHex(proof))
-				}
+			recp.Ty = tx.GetReceipt().GetTy()
+			logs := tx.GetReceipt().GetLogs()
+			if in.DisableDetail {
+				logs = nil
+			}
+			for _, lg := range logs {
+				recp.Logs = append(recp.Logs,
+					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+			}
+			recpResult, err = DecodeLog(&recp)
+			if err != nil {
+				continue
+			}
+			txProofs := tx.GetProofs()
+			for _, proof := range txProofs {
+				proofs = append(proofs, common.ToHex(proof))
 			}
 			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
