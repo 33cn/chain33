@@ -22,7 +22,7 @@ func NewMemory() *Memory {
 // 设置内存中的值， value => offset:offset + size
 func (m *Memory) Set(offset, size uint64, value []byte) (err error){
 	// 偏移量+大小一定不会大于内存长度
-	if offset + size > uint64(len(m.Store)) {
+	if size > uint64(len(m.Store)) {
 		err = fmt.Errorf("INVALID memory access, memory size:%v, offset:%v, size:%v",len(m.Store),offset,size)
 		log15.Crit(err.Error())
 		return err

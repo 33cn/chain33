@@ -28,34 +28,34 @@ type (
 	// 创建合约对象变更事件
 	createAccountChange struct {
 		baseChange
-		account *common.Address
+		account string
 	}
 
 	// 自杀事件
 	suicideChange struct {
 		baseChange
-		account     *common.Address
+		account     string
 		prev        bool // whether account had already suicided
 	}
 
 	// nonce变更事件
 	nonceChange struct {
 		baseChange
-		account *common.Address
+		account string
 		prev    uint64
 	}
 
 	// 存储状态变更事件
 	storageChange struct {
 		baseChange
-		account       *common.Address
+		account       string
 		key, prevalue common.Hash
 	}
 
 	// 合约代码状态变更事件
 	codeChange struct {
 		baseChange
-		account            *common.Address
+		account            string
 		prevcode, prevhash []byte
 	}
 
@@ -112,12 +112,12 @@ func (ch baseChange) getLog(s *MemoryStateDB) (logs []*types.ReceiptLog) {
 
 // 创建账户对象的回滚，需要删除缓存中的账户和变更标记
 func (ch createAccountChange) undo(s *MemoryStateDB) {
-	delete(s.accounts, *ch.account)
+	delete(s.accounts, ch.account)
 }
 
 // 创建账户对象的数据集
 func (ch createAccountChange) getData(s *MemoryStateDB) (kvset []*types.KeyValue) {
-	acc := s.accounts[*ch.account]
+	acc := s.accounts[ch.account]
 	if acc != nil {
 		kvset = append(kvset, acc.GetDataKV()...)
 		kvset = append(kvset, acc.GetStateKV()...)
@@ -132,7 +132,7 @@ func (ch suicideChange) undo(mdb *MemoryStateDB) {
 	if ch.prev {
 		return
 	}
-	acc := mdb.accounts[*ch.account]
+	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		acc.State.Suicided = ch.prev
 	}
@@ -143,7 +143,7 @@ func (ch suicideChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	if ch.prev {
 		return nil
 	}
-	acc := mdb.accounts[*ch.account]
+	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		return acc.GetStateKV()
 	}
@@ -151,14 +151,14 @@ func (ch suicideChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 }
 
 func (ch nonceChange) undo(mdb *MemoryStateDB) {
-	acc := mdb.accounts[*ch.account]
+	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		acc.State.Nonce = ch.prev
 	}
 }
 
 func (ch nonceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
-	acc := mdb.accounts[*ch.account]
+	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		return acc.GetStateKV()
 	}
@@ -167,7 +167,7 @@ func (ch nonceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 
 
 func (ch codeChange) undo(mdb *MemoryStateDB) {
-	acc := mdb.accounts[*ch.account]
+	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		acc.Data.Code = ch.prevcode
 		acc.Data.CodeHash = ch.prevhash
@@ -175,7 +175,7 @@ func (ch codeChange) undo(mdb *MemoryStateDB) {
 }
 
 func (ch codeChange) getData(mdb *MemoryStateDB) (kvset []*types.KeyValue) {
-	acc := mdb.accounts[*ch.account]
+	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		kvset = append(kvset, acc.GetDataKV()...)
 		kvset = append(kvset, acc.GetStateKV()...)
@@ -185,14 +185,14 @@ func (ch codeChange) getData(mdb *MemoryStateDB) (kvset []*types.KeyValue) {
 }
 
 func (ch storageChange) undo(mdb *MemoryStateDB) {
-	acc := mdb.accounts[*ch.account]
+	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		acc.SetState(ch.key, ch.prevalue)
 	}
 }
 
 func (ch storageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
-	acc := mdb.accounts[*ch.account]
+	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		return acc.GetStateKV()
 	}

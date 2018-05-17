@@ -26,7 +26,7 @@ var emptyCodeHash = common.Hash{}
 type ContractAccount struct {
 	mdb *MemoryStateDB
 
-	// 在外部账户基础上增加特性
+	// 合约代码地址
 	Addr string
 
 	// 合约固定数据
@@ -40,12 +40,14 @@ type ContractAccount struct {
 // 注意，此时合约对象有可能已经存在也有可能不存在
 // 需要通过LoadContract进行判断
 func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
-	ca := &ContractAccount{Addr: addr}
-	ca.mdb = db
+	if len(addr) == 0 || db == nil {
+		log15.Error("NewContractAccount error, something is missing", "contract addr", addr, "db", db)
+		return nil
+	}
+	ca := &ContractAccount{Addr: addr, mdb: db}
 	ca.State.Storage = make(map[string][]byte)
 	return ca
 }
-
 
 func hash2String(item common.Hash) string {
 	return string(item.Bytes())
@@ -58,10 +60,9 @@ func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 
 // 设置状态数据
 func (self *ContractAccount) SetState(key, value common.Hash) {
-	addr := common.StringToAddress(self.Addr)
 	self.mdb.journal = append(self.mdb.journal, storageChange{
 		baseChange: baseChange{},
-		account:    addr,
+		account:    self.Addr,
 		key:        key,
 		prevalue:   self.GetState(key),
 	})
@@ -118,10 +119,9 @@ func (self *ContractAccount) LoadContract(db db.KV) {
 // 会同步生成代码哈希
 func (self *ContractAccount) SetCode(code []byte) {
 	prevcode := self.Data.GetCode()
-	addr := common.StringToAddress(self.Addr)
 	self.mdb.journal = append(self.mdb.journal, codeChange{
 		baseChange: baseChange{},
-		account:    addr,
+		account:    self.Addr,
 		prevhash:   self.Data.GetCodeHash(),
 		prevcode:   []byte(prevcode),
 	})
@@ -130,6 +130,17 @@ func (self *ContractAccount) SetCode(code []byte) {
 	self.Data.CodeHash = common.ToHash(code).Bytes()
 }
 
+func (self *ContractAccount) SetCreator(creator string) {
+	if len(creator) == 0 {
+		log15.Error("SetCreator error", "creator", creator)
+		return
+	}
+	self.Data.Creator = creator
+}
+
+func (self *ContractAccount) GetCreator() string{
+	return self.Data.Creator
+}
 // 合约固定数据，包含合约代码，以及代码哈希
 func (self *ContractAccount) GetDataKV() (kvSet []*types.KeyValue) {
 	datas, err := proto.Marshal(&self.Data)
@@ -176,6 +187,7 @@ func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 func (self *ContractAccount) GetDataKey() []byte {
 	return []byte(ContractDataPrefix + self.Addr)
 }
+
 func (self *ContractAccount) GetStateKey() []byte {
 	return []byte(ContractStatePrefix + self.Addr)
 }
@@ -194,11 +206,9 @@ func (self *ContractAccount) Empty() bool {
 }
 
 func (self *ContractAccount) SetNonce(nonce uint64) {
-	addr := common.StringToAddress(self.Addr)
-
 	self.mdb.journal = append(self.mdb.journal, nonceChange{
 		baseChange: baseChange{},
-		account:    addr,
+		account:    self.Addr,
 		prev:       self.State.GetNonce(),
 	})
 
