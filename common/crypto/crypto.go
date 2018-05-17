@@ -39,39 +39,6 @@ var (
 
 var driverMutex sync.Mutex
 
-const (
-	SignTypeInvalid        = 0
-	SignTypeSecp256k1      = 1
-	SignTypeED25519        = 2
-	SignTypeSM2            = 3
-	SignTypeOnetimeED25519 = 4
-	SignTypeRing           = 5
-)
-
-const (
-	SignNameSecp256k1      = "secp256k1"
-	SignNameED25519        = "ed25519"
-	SignNameSM2            = "sm2"
-	SignNameOnetimeED25519 = "onetimeed25519"
-	SignNameRing           = "RingSignatue"
-)
-
-var MapSignType2name = map[int]string{
-	SignTypeSecp256k1:      SignNameSecp256k1,
-	SignTypeED25519:        SignNameED25519,
-	SignTypeSM2:            SignNameSM2,
-	SignTypeOnetimeED25519: SignNameOnetimeED25519,
-	SignTypeRing:           SignNameRing,
-}
-
-var MapSignName2Type = map[string]int{
-	SignNameSecp256k1:      SignTypeSecp256k1,
-	SignNameED25519:        SignTypeED25519,
-	SignNameSM2:            SignTypeSM2,
-	SignNameOnetimeED25519: SignTypeOnetimeED25519,
-	SignNameRing:           SignTypeRing,
-}
-
 func Register(name string, driver Crypto) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()

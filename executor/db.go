@@ -29,6 +29,30 @@ func (e *StateDB) Get(key []byte) (value []byte, err error) {
 	return value, nil
 }
 
+func (e *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	for _, key := range keys {
+		value, ok := e.cache[string(key)]
+		if !ok {
+			break
+		}
+		values = append(values, value)
+	}
+	if len(values) == len(keys) {
+		return values, nil
+	}
+
+	values, err = e.db.BatchGet(keys)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, value := range values {
+		e.cache[string(keys[i])] = value
+	}
+
+	return values, nil
+}
+
 func (e *StateDB) Set(key []byte, value []byte) error {
 	//elog.Error("setkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
@@ -61,6 +85,30 @@ func (e *LocalDB) Get(key []byte) (value []byte, err error) {
 	//elog.Error("getkey", "key", string(key), "value", string(value))
 	e.cache[string(key)] = value
 	return value, nil
+}
+
+func (e *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	for i, key := range keys {
+		value, ok := e.cache[string(key)]
+		if !ok {
+			break
+		}
+		values[i] = value
+	}
+	if len(values) == len(keys) {
+		return values, nil
+	}
+
+	values, err = e.db.BatchGet(keys)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, value := range values {
+		e.cache[string(keys[i])] = value
+	}
+
+	return values, nil
 }
 
 func (e *LocalDB) Set(key []byte, value []byte) error {
@@ -98,6 +146,21 @@ func (db *DataBase) Get(key []byte) (value []byte, err error) {
 	return value, nil
 }
 
+func (db *DataBase) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	query := &types.StoreGet{db.stateHash, keys}
+	msg := db.client.NewMessage("store", types.EventStoreGet, query)
+	db.client.Send(msg, true)
+	resp, err := db.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	value = resp.GetData().(*types.StoreReplyValue).Values
+	if value == nil {
+		return nil, types.ErrNotFound
+	}
+	return value, nil
+}
+
 type DataBaseLocal struct {
 	client queue.Client
 }
@@ -120,6 +183,22 @@ func (db *DataBaseLocal) Get(key []byte) (value []byte, err error) {
 		return nil, types.ErrNotFound
 	}
 	return value, nil
+}
+
+func (db *DataBaseLocal) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	query := &types.LocalDBGet{keys}
+	msg := db.client.NewMessage("blockchain", types.EventLocalGet, query)
+	db.client.Send(msg, true)
+	resp, err := db.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	values = resp.GetData().(*types.LocalReplyValue).Values
+	if values == nil {
+		//panic(string(key))
+		return nil, types.ErrNotFound
+	}
+	return values, nil
 }
 
 //从数据库中查询数据列表，set 中的cache 更新不会影响这个list

@@ -33,6 +33,7 @@ var (
 	//addr:1Cbo5u8V5F3ubWBv9L6qu9wWxKuD3qBVpi,这里只是作为测试用，后面需要修改为系统账户
 	ViewPubFee  = "0x0f7b661757fe8471c0b853b09bf526b19537a2f91254494d19874a04119415e8"
 	SpendPubFee = "0x64204db5a521771eeeddee59c25aaae6bebe796d564effb6ba11352418002ee3"
+	ViewPrivFee  = "0x0f7b661757fe8471c0b853b09bf526b19537a2f91254494d19874a04119415e8"
 )
 
 var (
@@ -240,6 +241,8 @@ const (
 	EventReplyGetPrivacyTransaction
 	EventGetGlobalIndex
 	EventReplyGetGlobalIndex
+	EventGetUTXOPubKey
+	EventReplyGetUTXOPubKey
 )
 
 var eventName = map[int]string{
@@ -378,16 +381,57 @@ var eventName = map[int]string{
 	EventReplyShowPrivacyAccount:    "EventReplyShowPrivacyAccount",
 	EventGetPrivacyTransaction:      "EventGetPrivacyTransaction",
 	EventReplyGetPrivacyTransaction: "EventReplyGetPrivacyTransaction",
+	EventGetGlobalIndex:             "EventGetGlobalIndex",
+	EventReplyGetGlobalIndex:        "EventReplyGetGlobalIndex",
+	EventGetUTXOPubKey:              "EventGetUTXOPubKey",
+	EventReplyGetUTXOPubKey:         "EventReplyGetUTXOPubKey",
+
 }
 
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
 //ty = 3 -> sm2
 const (
-	SECP256K1 = 1
-	ED25519   = 2
-	SM2       = 3
+	Invalid           = 0
+	SECP256K1         = 1
+	ED25519           = 2
+	SM2               = 3
+	OnetimeED25519    = 4
+	RingBaseonED25519 = 5
 )
+
+//const (
+//	SignTypeInvalid        = 0
+//	SignTypeSecp256k1      = 1
+//	SignTypeED25519        = 2
+//	SignTypeSM2            = 3
+//	SignTypeOnetimeED25519 = 4
+//	SignTypeRing           = 5
+//)
+
+const (
+	SignNameSecp256k1      = "secp256k1"
+	SignNameED25519        = "ed25519"
+	SignNameSM2            = "sm2"
+	SignNameOnetimeED25519 = "onetimeed25519"
+	SignNameRing           = "RingSignatue"
+)
+
+var MapSignType2name = map[int]string{
+	SECP256K1:         SignNameSecp256k1,
+	ED25519:           SignNameED25519,
+	SM2:               SignNameSM2,
+	OnetimeED25519:    SignNameOnetimeED25519,
+	RingBaseonED25519: SignNameRing,
+}
+
+var MapSignName2Type = map[string]int{
+	SignNameSecp256k1:      SECP256K1,
+	SignNameED25519:        ED25519,
+	SignNameSM2:            SM2,
+	SignNameOnetimeED25519: OnetimeED25519,
+	SignNameRing:           RingBaseonED25519,
+}
 
 //log type
 const (
@@ -437,6 +481,7 @@ const (
 
 	// log for privacy
 	TyLogPrivacyFee = iota + 500
+	TyLogPrivacyFeeUTXO
 	TyLogPrivacyInput
 	TyLogPrivacyOutput
 )
@@ -446,6 +491,12 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
+)
+
+const (
+	PrivacyUTXONormal = iota
+	PrivacyUTXOChange
+	PrivacyUTXOFee
 )
 
 const (
