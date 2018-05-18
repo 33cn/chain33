@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -879,6 +880,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			return nil, err
 		}
 		pl = &action
+	} else if "user.write" == string(tx.Execer) {
+		pl = decodeUserWrite(tx.GetPayload())
 	} else {
 		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 	}
@@ -897,6 +900,21 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		To:     tx.To,
 	}
 	return result, nil
+}
+
+func decodeUserWrite(payload []byte) *userWrite {
+	var article userWrite
+	if payload[0] == '#' {
+		data := bytes.SplitN(payload[1:], []byte("#"), 2)
+		if len(data) == 2 {
+			article.Topic = string(data[0])
+			article.Content = string(data[1])
+			return &article
+		}
+	}
+	article.Topic = ""
+	article.Content = string(payload)
+	return &article
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
