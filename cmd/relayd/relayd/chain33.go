@@ -1,7 +1,6 @@
 package relayd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -16,7 +15,7 @@ type Client33 struct {
 	config     *Chain33
 	isSyncing  bool
 	isClosed   bool
-	lastHeader int64
+	lastHeight int64
 	types.GrpcserviceClient
 	closer io.Closer
 }
@@ -38,17 +37,18 @@ func NewClient33(cfg *Chain33) *Client33 {
 }
 
 func (c *Client33) heartbeat(ctx context.Context) {
-	var reconnectAttempts int
+	reconnectAttempts := c.config.ReconnectAttempts
 out:
 	for {
+		log.Info("heartbeat.......")
 		select {
 		case <-ctx.Done():
 			break out
 
-		case <-time.After(time.Second * time.Duration(3)):
+		case <-time.After(time.Second * 3):
 			err := c.ping(ctx)
 			if err != nil {
-				log.Info("heartbeat chain33", err.Error())
+				log.Error("heartbeat chain33 error: ", err.Error())
 				c.AutoReconnect(ctx)
 				reconnectAttempts--
 			} else {
@@ -75,8 +75,8 @@ func (c *Client33) ping(ctx context.Context) error {
 	}
 
 	c.isClosed = true
-	c.lastHeader = lastHeader.Height
-	log.Info("Ping:", fmt.Sprintf("latest height: %#v", c.lastHeader))
+	c.lastHeight = lastHeader.Height
+	log.Info("ping", "lastHeight:", c.lastHeight)
 	isSync, err := c.IsSync(ctx, &types.ReqNil{})
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (c *Client33) ping(ctx context.Context) error {
 
 	if isSync.IsOk {
 		c.isSyncing = isSync.IsOk
-		return errors.New(isSync.String())
+		log.Warn(fmt.Sprintf("node is syncing： %s", isSync.String()))
 	}
 	c.isSyncing = false
 	return nil

@@ -7,19 +7,20 @@ import (
 	"path/filepath"
 
 	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcutil"
+	// "github.com/btcsuite/btcutil"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
 var (
-	certHomeDir = btcutil.AppDataDir("btcd", false)
-	// certHomeDir := "/home/suyanlong/.gvm/pkgsets/go1.9.4/global/src/github.com/btcsuite/btcd/cmd/gencerts"
-	certs, _ = ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
-	connCfg  = &rpcclient.ConnConfig{
-		Host:         "127.0.0.1:18556",
-		User:         "suyanlong",
-		Pass:         "1314",
-		HTTPPostMode: true,  // Bitcoin core only supports HTTP POST mode
+	// certHomeDir = btcutil.AppDataDir("btcd", false)
+	certHomeDir = "/home/suyanlong/.gvm/pkgsets/go1.9.4/global/src/gitlab.33.cn/chain33/chain33"
+	certs, _    = ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
+	connCfg     = &rpcclient.ConnConfig{
+		Host:     "192.168.3.36:18556",
+		User:     "suyanlong",
+		Endpoint: "ws",
+		Pass:     "1314",
+		// HTTPPostMode: true,  // Bitcoin core only supports HTTP POST mode
 		DisableTLS:   false, // Bitcoin core does not provide TLS by default
 		Certificates: certs,
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
+	log "github.com/inconshreveable/log15"
 	"github.com/valyala/fasthttp"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -21,6 +22,7 @@ type BtcClient interface {
 	GetBlockHeader(height uint64) (*types.BtcHeader, error)
 	GetSPV(height uint64, txHash string) (*types.BtcSpv, error)
 	GetTransaction(hash string) (*types.BtcTransaction, error)
+	Ping()
 }
 
 type (
@@ -409,4 +411,13 @@ func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 func (b *btcdClient) GetLatestBlock() (*chainhash.Hash, uint64, error) {
 	hash, height, err := b.rpcClient.GetBestBlock()
 	return hash, uint64(height), err
+}
+
+func (b *btcdClient) Ping() {
+	hash, height, err := b.rpcClient.GetBestBlock()
+	if err != nil {
+		log.Error("btcdClient ping", "error", err)
+	}
+
+	log.Info("btcdClient ping", "latest Hash: ", hash.String(), "latest height", height)
 }

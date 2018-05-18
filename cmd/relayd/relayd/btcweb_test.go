@@ -5,7 +5,7 @@ import (
 )
 
 func TestNewBtcWeb(t *testing.T) {
-	btc := NewBtcWeb()
+	btc, _ := NewBtcWeb()
 	blockZero, err := btc.GetBlockHeader(0)
 	if err != nil {
 		t.Errorf("getBlock error: %v", err)
