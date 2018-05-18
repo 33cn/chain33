@@ -79,3 +79,11 @@ minerdisable=false
 [exec]
 isFree=false
 minExecFee=100000
+
+[auth]
+cryptoPath="authdir/crypto"
+securityLevel=256
+defaultProvider="SW"
+hashAlgorithm="SHA2"
+keyStorePath="authdir/keystore"
+orgName="chain33"

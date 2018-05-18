@@ -8,7 +8,7 @@ package sw
 
 import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
-	bccspSw "gitlab.33.cn/chain33/chain33/authority/bccsp/factory/sw"
+	bccspSw "gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/sw"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite/bccsp/wrapper"
@@ -47,7 +47,7 @@ func GetSuiteWithDefaultEphemeral() (core.CryptoSuite, error) {
 func getBCCSPFromOpts(config *bccspSw.SwOpts) (bccsp.BCCSP, error) {
 	f := &bccspSw.SWFactory{}
 
-	csp, err := f.Get(config)
+	csp, err := f.Get(&bccspSw.FactoryOpts{"",config, nil})
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not initialize BCCSP %s", f.Name())
 	}

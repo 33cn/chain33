@@ -4,10 +4,9 @@ Copyright SecureKey Technologies Inc. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package msp
+package core
 
 import (
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
 	"github.com/pkg/errors"
 )
 
@@ -23,9 +22,6 @@ type IdentityManager interface {
 
 // Identity represents a Fabric client identity
 type Identity interface {
-
-	// Identifier returns the identifier of that identity
-	Identifier() *IdentityIdentifier
 
 	// Verify a signature over some message using this identity as reference
 	Verify(msg []byte, sig []byte) error
@@ -47,12 +43,7 @@ type SigningIdentity interface {
 	PublicVersion() Identity
 
 	// PrivateKey returns the crypto suite representation of the private key
-	PrivateKey() core.Key
+	PrivateKey() Key
 }
 
-// IdentityIdentifier is a holder for the identifier of a specific
-// identity, naturally namespaced, by its provider identifier.
-type IdentityIdentifier struct {
-	// The identifier for an identity within a provider
-	ID string
-}
+

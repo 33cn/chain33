@@ -8,7 +8,6 @@ package identitymgr
 
 import (
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/msp"
 	"github.com/pkg/errors"
 )
 
@@ -17,11 +16,6 @@ type User struct {
 	id                    string
 	enrollmentCertificate []byte
 	privateKey            core.Key
-}
-
-// Identifier returns user identifier
-func (u *User) Identifier() *msp.IdentityIdentifier {
-	return &msp.IdentityIdentifier{ID: u.id}
 }
 
 // Verify a signature over some message using this identity as reference
@@ -40,11 +34,15 @@ func (u *User) PrivateKey() core.Key {
 }
 
 // PublicVersion returns the public parts of this identity
-func (u *User) PublicVersion() msp.Identity {
+func (u *User) PublicVersion() core.Identity {
 	return u
 }
 
 // Sign the message
 func (u *User) Sign(msg []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
+}
+
+func (u *User) Validate(msg []byte) error {
+	return errors.New("not implemented")
 }

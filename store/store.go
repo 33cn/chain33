@@ -6,6 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/store/drivers/kvdb"
 	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
 	"gitlab.33.cn/chain33/chain33/types"
+	"fmt"
 )
 
 func New(cfg *types.Store) queue.Module {
@@ -20,5 +21,5 @@ func New(cfg *types.Store) queue.Module {
 		// TODO:
 		panic("empty")
 	}
-	panic("Unsupported store type")
+	panic(fmt.Sprintf("Unsupported store type:%s", storeType))
 }
