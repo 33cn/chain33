@@ -15,6 +15,10 @@ limitations under the License.
 */
 package factory
 
+type FactoryOpts struct {
+	ProviderName string             `mapstructure:"default" json:"default" yaml:"Default"`
+	SwOpts       *SwOpts            `mapstructure:"SW,omitempty" json:"SW,omitempty" yaml:"SwOpts"`
+}
 // GetDefaultOpts offers a default implementation for Opts
 // returns a new instance every time
 func GetDefaultOpts() *FactoryOpts {

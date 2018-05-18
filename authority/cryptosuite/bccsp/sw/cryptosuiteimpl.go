@@ -47,7 +47,7 @@ func GetSuiteWithDefaultEphemeral() (core.CryptoSuite, error) {
 func getBCCSPFromOpts(config *bccspSw.SwOpts) (bccsp.BCCSP, error) {
 	f := &bccspSw.SWFactory{}
 
-	csp, err := f.Get(&bccspSw.FactoryOpts{"",config, nil})
+	csp, err := f.Get(&bccspSw.FactoryOpts{"",config})
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not initialize BCCSP %s", f.Name())
 	}
