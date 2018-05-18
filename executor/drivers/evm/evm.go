@@ -149,22 +149,20 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 
 	log.Info(logMsg, "caller address", msg.From().Str(), "contract address", contractAddr.Str(), "usedGas", usedGas, "return data", hex.EncodeToString(ret))
 
+	curVer := evm.mStateDB.GetLastSnapshot()
+
 	if vmerr != nil {
 		log.Error("evm contract exec error", "error info", vmerr)
 		return nil, vmerr
-
 	} else {
 		// 计算消耗了多少费用（实际消耗的费用）
 		usedFee, overflow := common.SafeMul(usedGas, uint64(msg.GasPrice()))
+		// 费用消耗溢出，执行失败
 		if overflow || usedFee > uint64(tx.Fee) {
-			// 费用消耗溢出，执行失败
-			curVer := evm.mStateDB.GetLastSnapshot()
-
 			// 如果操作没有回滚，则在这里处理
-			if snapshot >= curVer && curVer > -1 {
+			if curVer != nil && snapshot >= curVer.GetId() && curVer.GetId() > -1 {
 				evm.mStateDB.RevertToSnapshot(snapshot)
 			}
-
 			return nil, model.ErrOutOfGas
 		}
 	}
@@ -172,8 +170,11 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	// 打印合约中生成的日志
 	evm.mStateDB.PrintLogs()
 
+	if curVer == nil {
+		return nil, nil
+	}
 	// 从状态机中获取数据变更和变更日志
-	data, logs := evm.mStateDB.GetChangedData(evm.mStateDB.GetLastSnapshot())
+	data, logs := evm.mStateDB.GetChangedData(curVer.GetId())
 	if logs != nil {
 		logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr, isCreate)...)
 	}

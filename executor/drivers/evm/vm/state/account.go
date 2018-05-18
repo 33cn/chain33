@@ -60,13 +60,12 @@ func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 
 // 设置状态数据
 func (self *ContractAccount) SetState(key, value common.Hash) {
-	self.mdb.journal = append(self.mdb.journal, storageChange{
+	self.mdb.addChange(storageChange{
 		baseChange: baseChange{},
 		account:    self.Addr,
 		key:        key,
 		prevalue:   self.GetState(key),
 	})
-
 	self.State.GetStorage()[hash2String(key)] = value.Bytes()
 }
 
@@ -119,13 +118,12 @@ func (self *ContractAccount) LoadContract(db db.KV) {
 // 会同步生成代码哈希
 func (self *ContractAccount) SetCode(code []byte) {
 	prevcode := self.Data.GetCode()
-	self.mdb.journal = append(self.mdb.journal, codeChange{
+	self.mdb.addChange(codeChange{
 		baseChange: baseChange{},
 		account:    self.Addr,
 		prevhash:   self.Data.GetCodeHash(),
 		prevcode:   []byte(prevcode),
 	})
-
 	self.Data.Code = code
 	self.Data.CodeHash = common.ToHash(code).Bytes()
 }
@@ -138,9 +136,10 @@ func (self *ContractAccount) SetCreator(creator string) {
 	self.Data.Creator = creator
 }
 
-func (self *ContractAccount) GetCreator() string{
+func (self *ContractAccount) GetCreator() string {
 	return self.Data.Creator
 }
+
 // 合约固定数据，包含合约代码，以及代码哈希
 func (self *ContractAccount) GetDataKV() (kvSet []*types.KeyValue) {
 	datas, err := proto.Marshal(&self.Data)
@@ -206,12 +205,11 @@ func (self *ContractAccount) Empty() bool {
 }
 
 func (self *ContractAccount) SetNonce(nonce uint64) {
-	self.mdb.journal = append(self.mdb.journal, nonceChange{
+	self.mdb.addChange(nonceChange{
 		baseChange: baseChange{},
 		account:    self.Addr,
 		prev:       self.State.GetNonce(),
 	})
-
 	self.State.Nonce = nonce
 }
 

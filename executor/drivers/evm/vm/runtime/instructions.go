@@ -4,31 +4,35 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
-	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 )
 
 // 加法操作
 func opAdd(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := stack.Pop(), stack.Pop()
-	stack.Push(common.U256(x.Add(x, y)))
+	x, y := stack.Pop(), stack.Peek()
+	common.U256(y.Add(x, y))
 
-	evm.Interpreter.IntPool.Put(y)
-
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
 // 减法操作
 func opSub(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := stack.Pop(), stack.Pop()
-	stack.Push(common.U256(x.Sub(x, y)))
+	//x, y := stack.Pop(), stack.Pop()
+	//stack.Push(common.U256(x.Sub(x, y)))
+	//
+	//evm.Interpreter.IntPool.Put(y)
+	//
+	//return nil, nil
+	x, y := stack.Pop(), stack.Peek()
+	common.U256(y.Sub(x, y))
 
-	evm.Interpreter.IntPool.Put(y)
-
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
@@ -44,38 +48,33 @@ func opMul(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *m
 
 // 除法操作
 func opDiv(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := stack.Pop(), stack.Pop()
+	x, y := stack.Pop(), stack.Peek()
 	if y.Sign() != 0 {
-		stack.Push(common.U256(x.Div(x, y)))
+		common.U256(y.Div(x, y))
 	} else {
-		stack.Push(new(big.Int))
+		y.SetUint64(0)
 	}
-
-	evm.Interpreter.IntPool.Put(y)
-
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
 // 除法操作（带符号）
 func opSdiv(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	x, y := common.S256(stack.Pop()), common.S256(stack.Pop())
-	if y.Sign() == 0 {
-		stack.Push(new(big.Int))
-		return nil, nil
+	res := evm.Interpreter.IntPool.GetZero()
+
+	if y.Sign() == 0 || x.Sign() == 0 {
+		stack.Push(res)
 	} else {
-		n := new(big.Int)
-		if evm.Interpreter.IntPool.Get().Mul(x, y).Sign() < 0 {
-			n.SetInt64(-1)
+		if x.Sign() != y.Sign() {
+			res.Div(x.Abs(x), y.Abs(y))
+			res.Neg(res)
 		} else {
-			n.SetInt64(1)
+			res.Div(x.Abs(x), y.Abs(y))
 		}
-
-		res := x.Div(x.Abs(x), y.Abs(y))
-		res.Mul(res, n)
-
 		stack.Push(common.U256(res))
 	}
-	evm.Interpreter.IntPool.Put(y)
+	evm.Interpreter.IntPool.Put(x, y)
 	return nil, nil
 }
 
@@ -83,7 +82,7 @@ func opSdiv(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 func opMod(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	x, y := stack.Pop(), stack.Pop()
 	if y.Sign() == 0 {
-		stack.Push(new(big.Int))
+		stack.Push(x.SetUint64(0))
 	} else {
 		stack.Push(common.U256(x.Mod(x, y)))
 	}
@@ -94,23 +93,20 @@ func opMod(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *m
 // 两数取模（带符号）
 func opSmod(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	x, y := common.S256(stack.Pop()), common.S256(stack.Pop())
+	res := evm.Interpreter.IntPool.GetZero()
 
 	if y.Sign() == 0 {
-		stack.Push(new(big.Int))
+		stack.Push(res)
 	} else {
-		n := new(big.Int)
 		if x.Sign() < 0 {
-			n.SetInt64(-1)
+			res.Mod(x.Abs(x), y.Abs(y))
+			res.Neg(res)
 		} else {
-			n.SetInt64(1)
+			res.Mod(x.Abs(x), y.Abs(y))
 		}
-
-		res := x.Mod(x.Abs(x), y.Abs(y))
-		res.Mul(res, n)
-
 		stack.Push(common.U256(res))
 	}
-	evm.Interpreter.IntPool.Put(y)
+	evm.Interpreter.IntPool.Put(x, y)
 	return nil, nil
 }
 
@@ -147,86 +143,105 @@ func opSignExtend(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, s
 
 // 取非
 func opNot(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x := stack.Pop()
-	stack.Push(common.U256(x.Not(x)))
+	x := stack.Peek()
+	common.U256(x.Not(x))
 	return nil, nil
 }
 
 // 小于判断
 func opLt(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := stack.Pop(), stack.Pop()
+	x, y := stack.Pop(), stack.Peek()
 	if x.Cmp(y) < 0 {
-		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
+		y.SetUint64(1)
 	} else {
-		stack.Push(new(big.Int))
+		y.SetUint64(0)
 	}
-
-	evm.Interpreter.IntPool.Put(x, y)
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
 // 大于判断
 func opGt(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := stack.Pop(), stack.Pop()
+	x, y := stack.Pop(), stack.Peek()
 	if x.Cmp(y) > 0 {
-		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
+		y.SetUint64(1)
 	} else {
-		stack.Push(new(big.Int))
+		y.SetUint64(0)
 	}
-
-	evm.Interpreter.IntPool.Put(x, y)
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
 // 小于判断（带符号）
 func opSlt(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := common.S256(stack.Pop()), common.S256(stack.Pop())
-	if x.Cmp(common.S256(y)) < 0 {
-		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
-	} else {
-		stack.Push(new(big.Int))
-	}
+	x, y := stack.Pop(), stack.Peek()
 
-	evm.Interpreter.IntPool.Put(x, y)
+	xSign := x.Cmp(common.TT255)
+	ySign := y.Cmp(common.TT255)
+
+	switch {
+	case xSign >= 0 && ySign < 0:
+		y.SetUint64(1)
+
+	case xSign < 0 && ySign >= 0:
+		y.SetUint64(0)
+
+	default:
+		if x.Cmp(y) < 0 {
+			y.SetUint64(1)
+		} else {
+			y.SetUint64(0)
+		}
+	}
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
 // 判断两数是否相等（带符号）
 func opSgt(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := common.S256(stack.Pop()), common.S256(stack.Pop())
-	if x.Cmp(y) > 0 {
-		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
-	} else {
-		stack.Push(new(big.Int))
-	}
+	x, y := stack.Pop(), stack.Peek()
 
-	evm.Interpreter.IntPool.Put(x, y)
+	xSign := x.Cmp(common.TT255)
+	ySign := y.Cmp(common.TT255)
+
+	switch {
+	case xSign >= 0 && ySign < 0:
+		y.SetUint64(0)
+
+	case xSign < 0 && ySign >= 0:
+		y.SetUint64(1)
+
+	default:
+		if x.Cmp(y) > 0 {
+			y.SetUint64(1)
+		} else {
+			y.SetUint64(0)
+		}
+	}
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
 // 判断两数是否相等
 func opEq(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := stack.Pop(), stack.Pop()
+	x, y := stack.Pop(), stack.Peek()
 	if x.Cmp(y) == 0 {
-		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
+		y.SetUint64(1)
 	} else {
-		stack.Push(new(big.Int))
+		y.SetUint64(0)
 	}
-
-	evm.Interpreter.IntPool.Put(x, y)
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
 // 判断指定数是否为0
 func opIszero(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x := stack.Pop()
+	x := stack.Peek()
 	if x.Sign() > 0 {
-		stack.Push(new(big.Int))
+		x.SetUint64(0)
 	} else {
-		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
+		x.SetUint64(1)
 	}
-
-	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
@@ -241,22 +256,21 @@ func opAnd(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *m
 
 // 或操作
 func opOr(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := stack.Pop(), stack.Pop()
-	stack.Push(x.Or(x, y))
+	x, y := stack.Pop(), stack.Peek()
+	y.Or(x, y)
 
-	evm.Interpreter.IntPool.Put(y)
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
 
 // 异或操作
 func opXor(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	x, y := stack.Pop(), stack.Pop()
-	stack.Push(x.Xor(x, y))
+	x, y := stack.Pop(), stack.Peek()
+	y.Xor(x, y)
 
-	evm.Interpreter.IntPool.Put(y)
+	evm.Interpreter.IntPool.Put(x)
 	return nil, nil
 }
-
 
 // 获取指定数据中指定位的byte值
 func opByte(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
@@ -277,13 +291,12 @@ func opByte(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 func opAddmod(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	x, y, z := stack.Pop(), stack.Pop(), stack.Pop()
 	if z.Cmp(common.Big0) > 0 {
-		add := x.Add(x, y)
-		add.Mod(add, z)
-		stack.Push(common.U256(add))
+		x.Add(x, y)
+		x.Mod(x, z)
+		stack.Push(common.U256(x))
 	} else {
-		stack.Push(new(big.Int))
+		stack.Push(x.SetUint64(0))
 	}
-
 	evm.Interpreter.IntPool.Put(y, z)
 	return nil, nil
 }
@@ -347,7 +360,6 @@ func opSHR(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *m
 	return nil, nil
 }
 
-
 // 右移位操作：
 // 操作弹出x和y，将y向右移x位，并将结果入栈 （左边的空位用左边第一位的符号位填充）
 func opSAR(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
@@ -385,7 +397,7 @@ func opSha3(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 		evm.StateDB.AddPreimage(common.BytesToHash(hash), data)
 	}
 
-	stack.Push(new(big.Int).SetBytes(hash))
+	stack.Push(evm.Interpreter.IntPool.Get().SetBytes(hash))
 
 	evm.Interpreter.IntPool.Put(offset, size)
 	return nil, nil
@@ -399,13 +411,10 @@ func opAddress(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stac
 
 // 获取指定地址的账户余额
 func opBalance(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	addr := common.BigToAddress(stack.Pop())
-	balance := evm.StateDB.GetBalance(addr)
-
-	stack.Push(big.NewInt(int64(balance)))
+	slot := stack.Peek()
+	slot.SetUint64(evm.StateDB.GetBalance(common.BigToAddress(slot)))
 	return nil, nil
 }
-
 
 // 获取合约调用者地址
 func opOrigin(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
@@ -428,7 +437,7 @@ func opCallValue(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, st
 
 // 从调用合约的入参中获取数据
 func opCallDataLoad(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	stack.Push(new(big.Int).SetBytes(common.GetDataBig(contract.Input, stack.Pop(), big32)))
+	stack.Push(evm.Interpreter.IntPool.Get().SetBytes(common.GetDataBig(contract.Input, stack.Pop(), big32)))
 	return nil, nil
 }
 
@@ -464,16 +473,15 @@ func opReturnDataCopy(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memor
 		memOffset  = stack.Pop()
 		dataOffset = stack.Pop()
 		length     = stack.Pop()
-	)
-	defer evm.Interpreter.IntPool.Put(memOffset, dataOffset, length)
 
-	end := new(big.Int).Add(dataOffset, length)
+		end = evm.Interpreter.IntPool.Get().Add(dataOffset, length)
+	)
+	defer evm.Interpreter.IntPool.Put(memOffset, dataOffset, length, end)
+
 	if end.BitLen() > 64 || uint64(len(evm.Interpreter.ReturnData)) < end.Uint64() {
 		return nil, model.ErrReturnDataOutOfBounds
 	}
-	if merr := memory.Set(memOffset.Uint64(), length.Uint64(), evm.Interpreter.ReturnData[dataOffset.Uint64():end.Uint64()]); merr != nil {
-		return nil, merr
-	}
+	memory.Set(memOffset.Uint64(), length.Uint64(), evm.Interpreter.ReturnData[dataOffset.Uint64():end.Uint64()])
 
 	return nil, nil
 }
@@ -542,9 +550,8 @@ func opBlockhash(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, st
 	if num.Cmp(n) > 0 && num.Cmp(evm.BlockNumber) < 0 {
 		stack.Push(evm.GetHash(num.Uint64()).Big())
 	} else {
-		stack.Push(new(big.Int))
+		stack.Push(evm.Interpreter.IntPool.GetZero())
 	}
-
 	evm.Interpreter.IntPool.Put(num, n)
 	return nil, nil
 }
@@ -557,25 +564,25 @@ func opCoinbase(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, sta
 
 // 获取区块打包时间
 func opTimestamp(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	stack.Push(common.U256(new(big.Int).Set(evm.Time)))
+	stack.Push(common.U256(evm.Interpreter.IntPool.Get().Set(evm.Time)))
 	return nil, nil
 }
 
 // 获取区块高度
 func opNumber(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	stack.Push(common.U256(new(big.Int).Set(evm.BlockNumber)))
+	stack.Push(common.U256(evm.Interpreter.IntPool.Get().Set(evm.BlockNumber)))
 	return nil, nil
 }
 
 // 获取区块难度
 func opDifficulty(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	stack.Push(common.U256(new(big.Int).Set(evm.Difficulty)))
+	stack.Push(common.U256(evm.Interpreter.IntPool.Get().Set(evm.Difficulty)))
 	return nil, nil
 }
 
 // 获取GasLimit
 func opGasLimit(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	stack.Push(common.U256(new(big.Int).SetUint64(evm.GasLimit)))
+	stack.Push(common.U256(evm.Interpreter.IntPool.Get().SetUint64(evm.GasLimit)))
 	return nil, nil
 }
 
@@ -588,7 +595,7 @@ func opPop(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *m
 // 加载内存中的数据
 func opMload(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	offset := stack.Pop()
-	val := new(big.Int).SetBytes(memory.Get(offset.Int64(), model.WordByteSize))
+	val := evm.Interpreter.IntPool.Get().SetBytes(memory.Get(offset.Int64(), 32))
 	stack.Push(val)
 
 	evm.Interpreter.IntPool.Put(offset)
@@ -673,7 +680,6 @@ func opPc(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm
 	return nil, nil
 }
 
-
 // 获取内存大小
 func opMsize(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	stack.Push(evm.Interpreter.IntPool.Get().SetInt64(int64(memory.Len())))
@@ -692,7 +698,7 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack
 	var (
 		value        = stack.Pop()
 		offset, size = stack.Pop(), stack.Pop()
-		input        = memory.Get(offset.Int64(), size.Int64())
+		inPut        = memory.Get(offset.Int64(), size.Int64())
 		gas          = contract.Gas
 	)
 
@@ -700,12 +706,12 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack
 
 	// 调用合约创建逻辑
 	addr := crypto.RandomContractAddress()
-	res, _, returnGas, suberr := evm.Create(contract, *addr, input, gas, value.Uint64())
+	res, _, returnGas, suberr := evm.Create(contract, *addr, inPut, gas, value.Uint64())
 
 	// 出错时压栈0，否则压栈创建出来的合约对象的地址
 	if suberr != nil && suberr != model.ErrCodeStoreOutOfGas {
-		log15.Error("evm contract opCreate instruction error",suberr)
-		stack.Push(new(big.Int))
+		log15.Error("evm contract opCreate instruction error", suberr)
+		stack.Push(evm.Interpreter.IntPool.GetZero())
 	} else {
 		stack.Push(addr.Big())
 	}
@@ -751,10 +757,10 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 	// 调用结果压栈，
 	// 注意，这里的处理比较特殊，出错情况下0压栈，正确情况下1压栈
 	if err != nil {
-		stack.Push(new(big.Int))
-		log15.Error("evm contract opCall instruction error",err)
+		stack.Push(evm.Interpreter.IntPool.GetZero())
+		log15.Error("evm contract opCall instruction error", err)
 	} else {
-		stack.Push(big.NewInt(1))
+		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
 	}
 
 	// 如果正确执行，将结果写内存
@@ -788,10 +794,10 @@ func opCallCode(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, sta
 
 	ret, returnGas, err := evm.CallCode(contract, toAddr, args, gas, value.Uint64())
 	if err != nil {
-		stack.Push(new(big.Int))
-		log15.Error("evm contract opCallCode instruction error",err)
+		stack.Push(evm.Interpreter.IntPool.GetZero())
+		log15.Error("evm contract opCallCode instruction error", err)
 	} else {
-		stack.Push(big.NewInt(1))
+		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
 	}
 	if err == nil || err == model.ErrExecutionReverted {
 		if merr := memory.Set(retOffset.Uint64(), retSize.Uint64(), ret); merr != nil {
@@ -815,10 +821,10 @@ func opDelegateCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory,
 
 	ret, returnGas, err := evm.DelegateCall(contract, toAddr, args, gas)
 	if err != nil {
-		log15.Error("evm contract opDelegateCall instruction error",err)
-		stack.Push(new(big.Int))
+		log15.Error("evm contract opDelegateCall instruction error", err)
+		stack.Push(evm.Interpreter.IntPool.GetZero())
 	} else {
-		stack.Push(big.NewInt(1))
+		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
 	}
 	if err == nil || err == model.ErrExecutionReverted {
 		if merr := memory.Set(retOffset.Uint64(), retSize.Uint64(), ret); merr != nil {
@@ -842,10 +848,10 @@ func opStaticCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, s
 
 	ret, returnGas, err := evm.StaticCall(contract, toAddr, args, gas)
 	if err != nil {
-		log15.Error("evm contract opDelegateCall instruction error",err)
-		stack.Push(new(big.Int))
+		log15.Error("evm contract opDelegateCall instruction error", err)
+		stack.Push(evm.Interpreter.IntPool.GetZero())
 	} else {
-		stack.Push(big.NewInt(1))
+		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
 	}
 	if err == nil || err == model.ErrExecutionReverted {
 		if merr := memory.Set(retOffset.Uint64(), retSize.Uint64(), ret); merr != nil {

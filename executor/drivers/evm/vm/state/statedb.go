@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/types"
-	"sort"
 )
 
 // 内存状态数据库，保存在区块操作时内部的数据变更操作
@@ -39,9 +38,9 @@ type MemoryStateDB struct {
 	logSize uint
 
 	// 版本号，用于标识数据变更版本
-	journal        journal
-	validRevisions []revision
-	reversionId    int
+	snapshots  []*Snapshot
+	currentVer *Snapshot
+	versionId  int
 
 	// 存储sha3指令对应的数据，仅用于debug日志
 	preimages map[common.Hash][]byte
@@ -49,12 +48,6 @@ type MemoryStateDB struct {
 	// 当前临时交易哈希和交易序号
 	txHash  common.Hash
 	txIndex int
-}
-
-// 版本结构，包含版本号以及当前版本包含的变更对象在变更序列中的开始序号
-type revision struct {
-	id           int
-	journalIndex int
 }
 
 // 基于执行器框架的三个DB构建内存状态机对象
@@ -89,7 +82,13 @@ func (self *MemoryStateDB) CreateAccount(addr common.Address, creator common.Add
 		acc := NewContractAccount(addr.Str(), self)
 		acc.SetCreator(creator.Str())
 		self.accounts[addr.Str()] = acc
-		self.journal = append(self.journal, createAccountChange{baseChange: baseChange{}, account: addr.Str()})
+		self.addChange(createAccountChange{baseChange: baseChange{}, account: addr.Str()})
+	}
+}
+
+func (self *MemoryStateDB) addChange(entry DataChange) {
+	if self.currentVer != nil {
+		self.currentVer.append(entry)
 	}
 }
 
@@ -168,7 +167,7 @@ func (self *MemoryStateDB) GetCodeSize(addr common.Address) int {
 
 // 合约自杀或SSTORE指令时，返还Gas
 func (self *MemoryStateDB) AddRefund(gas uint64) {
-	self.journal = append(self.journal, refundChange{baseChange: baseChange{}, prev: self.refund})
+	self.addChange(refundChange{baseChange: baseChange{}, prev: self.refund})
 	self.refund += gas
 }
 
@@ -215,7 +214,7 @@ func (self *MemoryStateDB) SetState(addr common.Address, key common.Hash, value 
 func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 	acc := self.GetAccount(addr)
 	if acc != nil {
-		self.journal = append(self.journal, suicideChange{
+		self.addChange(suicideChange{
 			baseChange: baseChange{},
 			account:    addr.Str(),
 			prev:       acc.State.GetSuicided(),
@@ -258,42 +257,45 @@ func (self *MemoryStateDB) Empty(addr common.Address) bool {
 
 // 将数据状态回滚到指定快照版本（中间的版本数据将会被删除）
 func (self *MemoryStateDB) RevertToSnapshot(version int) {
-	// 从一堆快照列表中找出本次制定版本的快照索引位置
-	idx := sort.Search(len(self.validRevisions), func(i int) bool {
-		return self.validRevisions[i].id >= version
-	})
+	ver := self.snapshots[version]
 
 	// 如果版本号不对，回滚失败
-	if idx == len(self.validRevisions) || self.validRevisions[idx].id != version {
-		log15.Crit(fmt.Errorf("revision id %v cannot be reverted", version).Error())
+	if ver == nil || ver.id != version {
+		log15.Crit(fmt.Errorf("Snapshot id %v cannot be reverted", version).Error())
 		return
 	}
 
-	// 获取快照版本
-	snapshot := self.validRevisions[idx].journalIndex
-
-	// 执行回滚动作
-	for i := len(self.journal) - 1; i >= snapshot; i-- {
-		self.journal[i].undo(self)
+	// 从最近版本开始回滚
+	for index := len(self.snapshots) - 1; index >= version; index-- {
+		self.snapshots[index].revert()
 	}
-	self.journal = self.journal[:snapshot]
 
 	// 只保留回滚版本之前的版本数据
-	self.validRevisions = self.validRevisions[:idx]
+	self.snapshots = self.snapshots[:version]
+	self.versionId = version
+	if version == 0 {
+		self.currentVer = nil
+	} else {
+		self.currentVer = self.snapshots[version-1]
+	}
 
 }
 
 // 对当前的数据状态打快照，并生成快照版本号，方便后面回滚数据
 func (self *MemoryStateDB) Snapshot() int {
-	id := self.reversionId
-	self.reversionId++
-	self.validRevisions = append(self.validRevisions, revision{id, len(self.journal)})
+	id := self.versionId
+	self.versionId++
+	self.currentVer = &Snapshot{id: id, statedb: self}
+	self.snapshots = append(self.snapshots, self.currentVer)
 	return id
 }
 
 // 获取最后一次成功的快照版本号
-func (self *MemoryStateDB) GetLastSnapshot() int {
-	return self.reversionId - 1
+func (self *MemoryStateDB) GetLastSnapshot() *Snapshot {
+	if self.versionId == 0 {
+		return nil
+	}
+	return self.snapshots[self.versionId-1]
 }
 
 // 获取合约对象的变更日志
@@ -311,39 +313,14 @@ func (self *MemoryStateDB) GetReceiptLogs(addr common.Address, created bool) (lo
 
 // 获取本次操作所引起的状态数据变更
 func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue, logs []*types.ReceiptLog) {
-	// 从一堆快照列表中找出本次制定版本的快照索引位置
-	idx := sort.Search(len(self.validRevisions), func(i int) bool {
-		return self.validRevisions[i].id >= version
-	})
+	snapshot := self.snapshots[version]
 
-	// 如果版本号不对，操作失败
-	if idx == len(self.validRevisions) || self.validRevisions[idx].id != version {
-		log15.Crit(fmt.Errorf("revision id %v cannot be reverted", version).Error())
-		return nil, nil
+	// 如果版本号不对，回滚失败
+	if snapshot == nil || snapshot.id != version {
+		log15.Crit(fmt.Errorf("Snapshot id %v cannot be reverted", version).Error())
+		return
 	}
-
-	// 获取快照版本
-	snapshot := self.validRevisions[idx].journalIndex
-
-	// 获取中间的数据变更
-	dataMap := make(map[string]*types.KeyValue)
-	//for i := len(self.journal) - 1; i >= snapshot; i-- {
-	for i := snapshot; i < len(self.journal); i++ {
-		items := self.journal[i].getData(self)
-		logs = append(logs, self.journal[i].getLog(self)...)
-
-		// 执行去重操作
-		if items != nil {
-			for _, kv := range items {
-				dataMap[string(kv.Key)] = kv
-			}
-		}
-	}
-	for _, value := range dataMap {
-		kvSet = append(kvSet, value)
-	}
-
-	return kvSet, logs
+	return snapshot.getData()
 }
 
 // 借助coins执行器进行转账相关操作
@@ -442,7 +419,7 @@ func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount uin
 			return false
 		} else {
 			if ret != nil {
-				self.journal = append(self.journal, transferChange{
+				self.addChange(transferChange{
 					baseChange: baseChange{},
 					from:       sender.Str(),
 					to:         recipient.Str(),
@@ -525,7 +502,7 @@ func (self *MemoryStateDB) transfer2External(sender, recipient common.Address, a
 		return nil, err
 	}
 
-	ret = self.mergeResult(ret,rs)
+	ret = self.mergeResult(ret, rs)
 
 	return ret, nil
 }
@@ -544,7 +521,7 @@ func (self *MemoryStateDB) mergeResult(one, two *types.Receipt) (ret *types.Rece
 // LOG0-4 指令对应的具体操作
 // 生成对应的日志信息，目前这些生成的日志信息会在合约执行后打印到日志文件中
 func (self *MemoryStateDB) AddLog(log *model.ContractLog) {
-	self.journal = append(self.journal, addLogChange{txhash: self.txHash})
+	self.addChange(addLogChange{txhash: self.txHash})
 	log.TxHash = self.txHash
 	log.Index = int(self.logSize)
 	self.logs[self.txHash] = append(self.logs[self.txHash], log)
@@ -555,7 +532,7 @@ func (self *MemoryStateDB) AddLog(log *model.ContractLog) {
 func (self *MemoryStateDB) AddPreimage(hash common.Hash, data []byte) {
 	// 目前只用于打印日志
 	if _, ok := self.preimages[hash]; !ok {
-		self.journal = append(self.journal, addPreimageChange{hash: hash})
+		self.addChange(addPreimageChange{hash: hash})
 		pi := make([]byte, len(data))
 		copy(pi, data)
 		self.preimages[hash] = pi
@@ -582,5 +559,6 @@ func (self *MemoryStateDB) WritePreimages(number int64) {
 
 // 测试用，清空版本数据
 func (self *MemoryStateDB) ResetDatas() {
-	self.journal = journal{}
+	self.currentVer = nil
+	self.snapshots = self.snapshots[:0]
 }

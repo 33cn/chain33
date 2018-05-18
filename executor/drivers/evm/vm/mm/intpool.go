@@ -32,3 +32,11 @@ func (p *IntPool) Put(is ...*big.Int) {
 		p.pool.Push(i)
 	}
 }
+
+// 返回一个零值的big.Int
+func (p *IntPool) GetZero() *big.Int {
+	if p.pool.Len() > 0 {
+		return p.pool.Pop().SetUint64(0)
+	}
+	return new(big.Int)
+}

@@ -10,14 +10,64 @@ import (
 // 在调用合约时（具体的Tx执行时），会根据操作生成对应的变更对象并缓存下来
 // 如果合约执行出错，会按生成顺序的倒序，依次调用变更对象的回滚接口进行数据回滚，并同步删除变更对象缓存
 // 如果合约执行成功，会按生成顺序的郑旭，依次调用变更对象的数据和日志变更记录，回传给区块链
-type journalEntry interface {
-	undo(mdb *MemoryStateDB)
+type DataChange interface {
+	revert(mdb *MemoryStateDB)
 	getData(mdb *MemoryStateDB) []*types.KeyValue
 	getLog(mdb *MemoryStateDB) []*types.ReceiptLog
 }
 
-// 定义变更对象序列
-type journal []journalEntry
+// 版本结构，包含版本号以及当前版本包含的变更对象在变更序列中的开始序号
+type Snapshot struct {
+	id      int
+	entries []DataChange
+	statedb *MemoryStateDB
+}
+func (ver *Snapshot) GetId() int {
+	return ver.id
+}
+
+// 回滚当前版本
+func (ver *Snapshot) revert() bool {
+	if ver.entries == nil {
+		return true
+	}
+	for _, entry := range ver.entries {
+		entry.revert(ver.statedb)
+	}
+	return true
+}
+
+// 添加变更数据
+func (ver *Snapshot) append(entry DataChange) {
+	ver.entries = append(ver.entries, entry)
+}
+
+// 获取当前版本变更数据
+func (ver *Snapshot) getData() (kvSet []*types.KeyValue, logs []*types.ReceiptLog) {
+	// 获取中间的数据变更
+	dataMap := make(map[string]*types.KeyValue)
+
+	for _, entry := range ver.entries {
+		items := entry.getData(ver.statedb)
+		logEntry := entry.getLog(ver.statedb)
+		if logEntry != nil {
+			logs = append(logs, entry.getLog(ver.statedb)...)
+		}
+
+		// 执行去重操作
+		if items != nil {
+			for _, kv := range items {
+				dataMap[string(kv.Key)] = kv
+			}
+		}
+	}
+
+	for _, value := range dataMap {
+		kvSet = append(kvSet, value)
+	}
+
+	return kvSet, logs
+}
 
 type (
 
@@ -34,8 +84,8 @@ type (
 	// 自杀事件
 	suicideChange struct {
 		baseChange
-		account     string
-		prev        bool // whether account had already suicided
+		account string
+		prev    bool // whether account had already suicided
 	}
 
 	// nonce变更事件
@@ -65,24 +115,15 @@ type (
 		prev uint64
 	}
 
-	// 金额变更事件
-	addBalanceChange struct {
-		baseChange
-		amount int64
-		from string
-		to string
-		data []*types.KeyValue
-		logs []*types.ReceiptLog
-	}
-
 	// 转账事件
+	// 合约转账动作不执行回滚，失败后数据不会写入区块
 	transferChange struct {
 		baseChange
 		amount int64
-		from string
-		to string
-		data []*types.KeyValue
-		logs []*types.ReceiptLog
+		from   string
+		to     string
+		data   []*types.KeyValue
+		logs   []*types.ReceiptLog
 	}
 
 	// 合约生成日志事件
@@ -99,7 +140,7 @@ type (
 )
 
 // 在baseChang中定义三个基本操作，子对象中只需要实现必要的操作
-func (ch baseChange) undo(s *MemoryStateDB) {
+func (ch baseChange) revert(s *MemoryStateDB) {
 }
 
 func (ch baseChange) getData(s *MemoryStateDB) (kvset []*types.KeyValue) {
@@ -111,7 +152,7 @@ func (ch baseChange) getLog(s *MemoryStateDB) (logs []*types.ReceiptLog) {
 }
 
 // 创建账户对象的回滚，需要删除缓存中的账户和变更标记
-func (ch createAccountChange) undo(s *MemoryStateDB) {
+func (ch createAccountChange) revert(s *MemoryStateDB) {
 	delete(s.accounts, ch.account)
 }
 
@@ -126,8 +167,7 @@ func (ch createAccountChange) getData(s *MemoryStateDB) (kvset []*types.KeyValue
 	return nil
 }
 
-
-func (ch suicideChange) undo(mdb *MemoryStateDB) {
+func (ch suicideChange) revert(mdb *MemoryStateDB) {
 	// 如果已经自杀过了，不处理
 	if ch.prev {
 		return
@@ -150,7 +190,7 @@ func (ch suicideChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return nil
 }
 
-func (ch nonceChange) undo(mdb *MemoryStateDB) {
+func (ch nonceChange) revert(mdb *MemoryStateDB) {
 	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		acc.State.Nonce = ch.prev
@@ -165,8 +205,7 @@ func (ch nonceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return nil
 }
 
-
-func (ch codeChange) undo(mdb *MemoryStateDB) {
+func (ch codeChange) revert(mdb *MemoryStateDB) {
 	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		acc.Data.Code = ch.prevcode
@@ -184,7 +223,7 @@ func (ch codeChange) getData(mdb *MemoryStateDB) (kvset []*types.KeyValue) {
 	return nil
 }
 
-func (ch storageChange) undo(mdb *MemoryStateDB) {
+func (ch storageChange) revert(mdb *MemoryStateDB) {
 	acc := mdb.accounts[ch.account]
 	if acc != nil {
 		acc.SetState(ch.key, ch.prevalue)
@@ -199,11 +238,11 @@ func (ch storageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return nil
 }
 
-func (ch refundChange) undo(mdb *MemoryStateDB) {
+func (ch refundChange) revert(mdb *MemoryStateDB) {
 	mdb.refund = ch.prev
 }
 
-func (ch addLogChange) undo(mdb *MemoryStateDB) {
+func (ch addLogChange) revert(mdb *MemoryStateDB) {
 	logs := mdb.logs[ch.txhash]
 	if len(logs) == 1 {
 		delete(mdb.logs, ch.txhash)
@@ -213,25 +252,8 @@ func (ch addLogChange) undo(mdb *MemoryStateDB) {
 	mdb.logSize--
 }
 
-func (ch addPreimageChange) undo(mdb *MemoryStateDB) {
+func (ch addPreimageChange) revert(mdb *MemoryStateDB) {
 	delete(mdb.preimages, ch.hash)
-}
-
-// 从合约向外部账户的转账的反向动作，从外部账户取钱到合约账户
-func (ch addBalanceChange) undo(mdb *MemoryStateDB) {
-	mdb.CoinsAccount.TransferToExec(ch.to, ch.from, ch.amount)
-}
-
-func (ch addBalanceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
-	return ch.data
-}
-func (ch addBalanceChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
-	return ch.logs
-}
-
-// 向合约转账的反向动作，从合约取钱到外部账户
-func (ch transferChange) undo(mdb *MemoryStateDB) {
-	mdb.CoinsAccount.TransferWithdraw(ch.from, ch.to, ch.amount)
 }
 
 func (ch transferChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
