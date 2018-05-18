@@ -510,7 +510,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventDumpPrivkey:
 			addr := msg.Data.(*types.ReqStr)
-			privkey, err := wallet.ProcDumpPrivkey(addr.Reqstr)
+			privkey, err := wallet.ProcDumpPrivkey(addr.ReqStr)
 			if err != nil {
 				walletlog.Error("ProcDumpPrivkey", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivkey, err))
@@ -607,9 +607,17 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 }
 
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
+	}
+
 	var key crypto.PrivKey
-	if unsigned.GetPrivKey() != "" {
-		keyByte, err := common.FromHex(unsigned.GetPrivKey())
+	if unsigned.GetPrivkey() != "" {
+		keyByte, err := common.FromHex(unsigned.GetPrivkey())
 		if err != nil || len(keyByte) == 0 {
 			return "", err
 		}
@@ -998,7 +1006,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	}
 	Balance := accounts[0].Balance
 	amount := SendToAddress.GetAmount()
-	if !SendToAddress.Istoken {
+	if !SendToAddress.IsToken {
 		if Balance < amount+wallet.FeeAmount {
 			return nil, types.ErrInsufficientBalance
 		}
@@ -1029,7 +1037,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	if err != nil {
 		return nil, err
 	}
-	return wallet.sendToAddress(priv, addrto, amount, note, SendToAddress.Istoken, SendToAddress.TokenSymbol)
+	return wallet.sendToAddress(priv, addrto, amount, note, SendToAddress.IsToken, SendToAddress.TokenSymbol)
 }
 
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
@@ -1266,20 +1274,20 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 
 	// 钱包已经加密需要验证oldpass的正确性
 	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
-		isok := wallet.walletStore.VerifyPasswordHash(Passwd.Oldpass)
+		isok := wallet.walletStore.VerifyPasswordHash(Passwd.OldPass)
 		if !isok {
 			walletlog.Error("ProcWalletSetPasswd Verify Oldpasswd fail!")
 			return types.ErrVerifyOldpasswdFail
 		}
 	}
 
-	if len(wallet.Password) != 0 && Passwd.Oldpass != wallet.Password {
+	if len(wallet.Password) != 0 && Passwd.OldPass != wallet.Password {
 		walletlog.Error("ProcWalletSetPasswd Oldpass err!")
 		return types.ErrVerifyOldpasswdFail
 	}
 
 	//使用新的密码生成passwdhash用于下次密码的验证
-	err = wallet.walletStore.SetPasswordHash(Passwd.Newpass)
+	err = wallet.walletStore.SetPasswordHash(Passwd.NewPass)
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "SetPasswordHash err", err)
 		return err
@@ -1291,12 +1299,12 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		return err
 	}
 	//使用old密码解密seed然后用新的钱包密码重新加密seed
-	seed, err := wallet.getSeed(Passwd.Oldpass)
+	seed, err := wallet.getSeed(Passwd.OldPass)
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "getSeed err", err)
 		return err
 	}
-	ok, err := SaveSeed(wallet.walletStore.db, seed, Passwd.Newpass)
+	ok, err := SaveSeed(wallet.walletStore.db, seed, Passwd.NewPass)
 	if !ok {
 		walletlog.Error("ProcWalletSetPasswd", "SaveSeed err", err)
 		return err
@@ -1315,10 +1323,10 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 			walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
 			continue
 		}
-		Decrypter := CBCDecrypterPrivkey([]byte(Passwd.Oldpass), storekey)
+		Decrypter := CBCDecrypterPrivkey([]byte(Passwd.OldPass), storekey)
 
 		//使用新的密码重新加密私钥
-		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.Newpass), Decrypter)
+		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.NewPass), Decrypter)
 		AccStore.Privkey = common.ToHex(Encrypter)
 		err = wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
 		if err != nil {
@@ -1326,7 +1334,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		}
 	}
 
-	wallet.Password = Passwd.Newpass
+	wallet.Password = Passwd.NewPass
 	return nil
 }
 
@@ -1739,7 +1747,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	}
 
 	//校验seed是否能生成钱包结构类型，从而来校验seed的正确性
-	have, err := VerifySeed(seed)
+	have, err := VerifySeed(newseed)
 	if !have {
 		walletlog.Error("saveSeed VerifySeed", "err", err)
 		return false, types.ErrSeedWord
@@ -1749,8 +1757,8 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	//seed保存成功需要更新钱包密码
 	if ok {
 		var ReqWalletSetPasswd types.ReqWalletSetPasswd
-		ReqWalletSetPasswd.Oldpass = password
-		ReqWalletSetPasswd.Newpass = password
+		ReqWalletSetPasswd.OldPass = password
+		ReqWalletSetPasswd.NewPass = password
 		Err := wallet.ProcWalletSetPasswd(&ReqWalletSetPasswd)
 		if Err != nil {
 			walletlog.Error("saveSeed", "ProcWalletSetPasswd err", err)
@@ -1803,7 +1811,8 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.ToUpper(common.ToHex(priv.Bytes())), nil
+	return common.ToHex(priv.Bytes()), nil
+	//return strings.ToUpper(common.ToHex(priv.Bytes())), nil
 }
 
 //检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁

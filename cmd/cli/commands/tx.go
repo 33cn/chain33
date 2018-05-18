@@ -22,7 +22,6 @@ func TxCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		SendTxCmd(),
 		QueryTxCmd(),
 		QueryTxByAddrCmd(),
 		QueryTxsByHashesCmd(),
@@ -32,33 +31,6 @@ func TxCmd() *cobra.Command {
 	)
 
 	return cmd
-}
-
-// send raw tx
-func SendTxCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "send",
-		Short: "Send a transaction",
-		Run:   sendTx,
-	}
-	addSendTxFlags(cmd)
-	return cmd
-}
-
-func addSendTxFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("data", "d", "", "transaction content")
-	cmd.MarkFlagRequired("data")
-}
-
-func sendTx(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	data, _ := cmd.Flags().GetString("data")
-	params := jsonrpc.RawParm{
-		Data: data,
-	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, &res)
-	ctx.Run()
 }
 
 // get tx by address
@@ -225,9 +197,9 @@ func getTxHexByHash(cmd *cobra.Command, args []string) {
 	params := jsonrpc.QueryParm{
 		Hash: txHash,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // decode raw hex to transaction

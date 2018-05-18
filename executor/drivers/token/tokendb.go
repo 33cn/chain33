@@ -57,7 +57,7 @@ func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Info("getTokenFromDB", "key string", string(key), "key", key, "value", value)
+	//tokenlog.Info("getTokenFromDB", "key string", string(key), "key", key, "value", value)
 	var token types.Token
 	if err = types.Decode(value, &token); err != nil {
 		tokenlog.Error("getTokenFromDB", "Fail to decode types.token for key", string(key), "err info is", err)
@@ -100,7 +100,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenSymbolUpper
 	}
 
-	if checkTokenExist(token.GetSymbol(), action.db) {
+	if CheckTokenExist(token.GetSymbol(), action.db) {
 		return nil, types.ErrTokenExist
 	}
 	if checkTokenHasPrecreate(token.GetSymbol(), token.GetOwner(), types.TokenStatusPreCreated, action.db) {
@@ -137,8 +137,8 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 	kv = append(kv, tokendb.getKVSet(statuskey)...)
-	tokenlog.Info("func token preCreate", "token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
-		"key:", key, "key string", string(key), "value:", tokendb.getKVSet(key)[0].Value)
+	//tokenlog.Info("func token preCreate", "token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
+	//	"key:", key, "key string", string(key), "value:", tokendb.getKVSet(key)[0].Value)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
@@ -240,7 +240,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	return receipt, nil
 }
 
-func checkTokenExist(token string, db dbm.KV) bool {
+func CheckTokenExist(token string, db dbm.KV) bool {
 	_, err := db.Get(calcTokenKey(token))
 	return err == nil
 }

@@ -50,12 +50,13 @@ type BlockChain struct {
 	synBlockHeight int64
 
 	//记录peer的最新block高度,用于节点追赶active链
-	peerList    PeerInfoList
-	recvwg      *sync.WaitGroup
-	synblock    chan struct{}
-	quit        chan struct{}
-	isclosed    int32
-	isbatchsync int32
+	peerList            PeerInfoList
+	recvwg              *sync.WaitGroup
+	synblock            chan struct{}
+	quit                chan struct{}
+	isclosed            int32
+	isbatchsync         int32
+	firstcheckbestchain int32 //节点启动之后首次检测最优链的标志
 
 	// 孤儿链
 	orphanPool *OrphanPool
@@ -78,28 +79,32 @@ type BlockChain struct {
 	//记录可疑故障节点peer信息
 	//在ExecBlock执行失败时记录对应的peerid以及故障区块的高度和hash
 	faultPeerList map[string]*FaultPeerInfo
+
+	bestChainPeerList map[string]*BestPeerInfo
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
 	blockchain := &BlockChain{
-		cache:              make(map[int64]*list.Element),
-		cacheSize:          DefCacheSize,
-		cacheQueue:         list.New(),
-		rcvLastBlockHeight: -1,
-		synBlockHeight:     -1,
-		peerList:           nil,
-		cfg:                cfg,
-		recvwg:             &sync.WaitGroup{},
-		task:               newTask(160 * time.Second),
-		quit:               make(chan struct{}),
-		synblock:           make(chan struct{}, 1),
-		orphanPool:         NewOrphanPool(),
-		index:              newBlockIndex(),
-		isCaughtUp:         false,
-		isbatchsync:        1,
-		cfgBatchSync:       cfg.Batchsync,
-		faultPeerList:      make(map[string]*FaultPeerInfo),
+		cache:               make(map[int64]*list.Element),
+		cacheSize:           DefCacheSize,
+		cacheQueue:          list.New(),
+		rcvLastBlockHeight:  -1,
+		synBlockHeight:      -1,
+		peerList:            nil,
+		cfg:                 cfg,
+		recvwg:              &sync.WaitGroup{},
+		task:                newTask(160 * time.Second),
+		quit:                make(chan struct{}),
+		synblock:            make(chan struct{}, 1),
+		orphanPool:          NewOrphanPool(),
+		index:               newBlockIndex(),
+		isCaughtUp:          false,
+		isbatchsync:         1,
+		firstcheckbestchain: 0,
+		cfgBatchSync:        cfg.Batchsync,
+		faultPeerList:       make(map[string]*FaultPeerInfo),
+		bestChainPeerList:   make(map[string]*BestPeerInfo),
 	}
 	return blockchain
 }
@@ -267,7 +272,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		return nil, types.ErrEndLessThanStartHeight
 	}
 
-	chainlog.Debug("ProcGetBlockDetailsMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.Isdetail)
+	chainlog.Debug("ProcGetBlockDetailsMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.IsDetail)
 
 	end := requestblock.End
 	if requestblock.End > blockhight {
@@ -283,7 +288,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 	for i := start; i <= end; i++ {
 		block, err := chain.GetBlock(i)
 		if err == nil && block != nil {
-			if requestblock.Isdetail {
+			if requestblock.IsDetail {
 				blocks.Items[j] = block
 			} else {
 				var blockdetail types.BlockDetail
@@ -297,7 +302,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		j++
 	}
 	//print
-	if requestblock.Isdetail {
+	if requestblock.IsDetail {
 		for _, blockinfo := range blocks.Items {
 			chainlog.Debug("ProcGetBlocksMsg", "blockinfo", blockinfo.String())
 		}
@@ -324,7 +329,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
 
-	return nil
+	return err
 }
 
 //blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
@@ -488,6 +493,12 @@ func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, erro
 //}
 func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (respheaders *types.Headers, err error) {
 	blockhight := chain.GetBlockHeight()
+
+	if requestblock.GetStart() > requestblock.GetEnd() {
+		chainlog.Error("ProcGetHeadersMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
+		return nil, types.ErrEndLessThanStartHeight
+	}
+
 	if requestblock.Start > blockhight {
 		chainlog.Error("ProcGetHeadersMsg Startheight err", "startheight", requestblock.Start, "curheight", blockhight)
 		return nil, types.ErrStartHeight
@@ -499,7 +510,10 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 	start := requestblock.Start
 	count := end - start + 1
 	chainlog.Debug("ProcGetHeadersMsg", "headerscount", count)
-
+	if count < 1 {
+		chainlog.Error("ProcGetHeadersMsg count err", "startheight", requestblock.Start, "endheight", requestblock.End, "curheight", blockhight)
+		return nil, types.ErrEndLessThanStartHeight
+	}
 	var headers types.Headers
 	headers.Items = make([]*types.Header, count)
 	j := 0

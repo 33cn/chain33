@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -130,7 +131,7 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 }
 
 func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
-	reply, err := c.cli.GetBlocks(&types.ReqBlocks{Start: in.Start, End: in.End, Isdetail: in.Isdetail, Pid: []string{""}})
+	reply, err := c.cli.GetBlocks(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
 	if err != nil {
 		return err
 	}
@@ -249,18 +250,22 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	if 0 != len(txs) {
 		for _, tx := range txs {
 			var recp ReceiptData
-			logs := tx.GetReceipt().GetLogs()
+			var proofs []string
+			var recpResult *ReceiptDataResult
+			var err error
 			recp.Ty = tx.GetReceipt().GetTy()
+			logs := tx.GetReceipt().GetLogs()
+			if in.DisableDetail {
+				logs = nil
+			}
 			for _, lg := range logs {
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			recpResult, err := DecodeLog(&recp)
+			recpResult, err = DecodeLog(&recp)
 			if err != nil {
 				continue
 			}
-
-			var proofs []string
 			txProofs := tx.GetProofs()
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
@@ -269,7 +274,6 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			if err != nil {
 				continue
 			}
-
 			txdetails.Txs = append(txdetails.Txs,
 				&TransactionDetail{
 					Tx:         tran,
@@ -385,10 +389,10 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				Receipt:    rd,
 				Height:     tx.GetHeight(),
 				Index:      tx.GetIndex(),
-				Blocktime:  tx.GetBlocktime(),
+				BlockTime:  tx.GetBlocktime(),
 				Amount:     tx.GetAmount(),
-				Fromaddr:   tx.GetFromaddr(),
-				Txhash:     common.ToHex(tx.GetTxhash()),
+				FromAddr:   tx.GetFromaddr(),
+				TxHash:     common.ToHex(tx.GetTxhash()),
 				ActionName: tx.GetActionName(),
 			})
 		}
@@ -626,7 +630,7 @@ func (c *Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error {
 	type AddrOverview struct {
 		Reciver int64 `json:"reciver"`
 		Balance int64 `json:"balance"`
-		TxCount int64 `json:"txcount"`
+		TxCount int64 `json:"txCount"`
 	}
 
 	*result = (*AddrOverview)(reply)
@@ -720,13 +724,43 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	return nil
 }
 
-func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
+func (c *Chain33) QueryOld(in Query4Jrpc, result *interface{}) error {
 	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
 		return err
 	}
 
 	resp, err := c.cli.Query(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
+	*result = resp
+	return nil
+}
+
+func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
+	trans, ok := types.RpcTypeUtilMap[in.FuncName]
+	if !ok {
+		// 不是所有的合约都需要做类型转化， 没有修改的合约走老的接口
+		// 另外给部分合约的代码修改的时间
+		//log.Info("EventQuery", "Old Query called", in.FuncName)
+		return c.QueryOld(in, result)
+	}
+	decodePayload, err := trans.(types.RpcTypeUtil).Input(in.Payload)
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
+	resp, err := c.cli.Query(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
+	*result, err = trans.(types.RpcTypeUtil).Output(resp)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -846,6 +880,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			return nil, err
 		}
 		pl = &action
+	} else if "user.write" == string(tx.Execer) {
+		pl = decodeUserWrite(tx.GetPayload())
 	} else {
 		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 	}
@@ -864,6 +900,21 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		To:     tx.To,
 	}
 	return result, nil
+}
+
+func decodeUserWrite(payload []byte) *userWrite {
+	var article userWrite
+	if payload[0] == '#' {
+		data := bytes.SplitN(payload[1:], []byte("#"), 2)
+		if len(data) == 2 {
+			article.Topic = string(data[0])
+			article.Content = string(data[1])
+			return &article
+		}
+	}
+	article.Topic = ""
+	article.Content = string(payload)
+	return &article
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
@@ -1032,7 +1083,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeSell:
+		case types.TyLogTradeSellLimit:
 			lTy = "LogTradeSell"
 			var logTmp types.ReceiptTradeSell
 			err = types.Decode(lLog, &logTmp)
@@ -1040,17 +1091,41 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeBuy:
+		case types.TyLogTradeBuyMarket:
 			lTy = "LogTradeBuy"
-			var logTmp types.ReceiptTradeBuy
+			var logTmp types.ReceiptTradeBuyMarket
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
 			}
 			logIns = logTmp
-		case types.TyLogTradeRevoke:
+		case types.TyLogTradeSellRevoke:
 			lTy = "LogTradeRevoke"
 			var logTmp types.ReceiptTradeRevoke
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeBuyLimit:
+			lTy = "LogTradeBuyLimit"
+			var logTmp types.ReceiptTradeBuyLimit
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeSellMarket:
+			lTy = "LogTradeSellMarket"
+			var logTmp types.ReceiptSellMarket
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogTradeBuyRevoke:
+			lTy = "LogTradeBuyRevoke"
+			var logTmp types.ReceiptTradeBuyRevoke
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
@@ -1214,6 +1289,36 @@ func (c *Chain33) CreateRawTradeBuyTx(in *TradeBuyTx, result *interface{}) error
 
 func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeBuyLimitTx(in *TradeBuyLimitTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeBuyLimitTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeSellMarketTx(in *TradeSellMarketTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeSellMarketTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawTradeRevokeBuyTx(in *TradeRevokeBuyTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawTradeRevokeBuyTx(in)
 	if err != nil {
 		return err
 	}

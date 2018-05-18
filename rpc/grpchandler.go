@@ -47,7 +47,7 @@ func (g *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, erro
 		return nil, fmt.Errorf("reject")
 	}
 
-	reply, err := g.cli.GetBlocks(&pb.ReqBlocks{in.Start, in.End, in.Isdetail, []string{""}})
+	reply, err := g.cli.GetBlocks(&pb.ReqBlocks{in.Start, in.End, in.IsDetail, []string{""}})
 	if err != nil {
 		return nil, err
 	}

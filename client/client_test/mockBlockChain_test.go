@@ -39,7 +39,8 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(blockchainKey, types.EventHeader, &types.Header{}))
 			case types.EventQuery:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Header{Version: 10, Height: 10}))
-
+			case types.EventLocalGet:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.LocalReplyValue{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
