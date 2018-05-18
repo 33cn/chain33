@@ -45,10 +45,12 @@ func (c *Manage) Clone() drivers.Driver {
 
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)
-	//_, err := c.DriverBase.Exec(tx, index)
-	//if err != nil {
-	//	return nil, err
-	//}
+	if c.GetHeight() > types.ForkV11ManageExec {
+		_, err := c.DriverBase.Exec(tx, index)
+		if err != nil{
+			return nil, err
+		}
+	}
 	//clog.Info("manage.Exec", "start index 2", index)
 	var manageAction types.ManageAction
 	err := types.Decode(tx.Payload, &manageAction)

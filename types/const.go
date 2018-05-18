@@ -44,6 +44,7 @@ var (
 	ForkBlockHash        int64 = 1
 	ForkV9               int64 = 1
 	ForkV10TradeBuyLimit int64 = 1
+	ForkV11ManageExec    int64 = 100000
 )
 
 var (
@@ -101,6 +102,7 @@ func SetTestNet(isTestNet bool) {
 	ForkBlockHash = 208986 + 200
 	ForkV9 = 350000
 	ForkV10TradeBuyLimit = 301000
+	ForkV11ManageExec = 400000
 }
 
 func IsTestNet() bool {
