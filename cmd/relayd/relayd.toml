@@ -4,31 +4,34 @@ watch = true
 pprof = true
 trace = false
 Tick33 =10
-TickBTC = 10
-minHeightBTC = 1000
+TickBTC = 20
+minHeightBTC = 0
+# 0：btcd ; 1:btcdweb
+btcdOrWeb = 1
 
 [auth]
-privateKey = ""
+# test private key
+privateKey = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 publicKey = ""
 address = ""
 
 [chain33]
-id = "123"
-host = "localhost"
-endpoint = "8802"
+id = "chain33"
+host = "192.168.3.10"
+endpoint = "8812"
 user = "123"
 pass = "123"
 disableAutoReconnect = true
 reconnectAttempts = 10
 
-[bitcoin]
-id = "123abc"
-host = "127.0.0.1"
-endpoint = "8834"
-user = ""
-pass = ""
+[btcd]
+id = "bitcoin"
+host = "192.168.3.36:18556"
+endpoint = "ws"
+user = "suyanlong"
+pass = "1314"
 disableTLS = false
-certPath = "/home/suyanlong/.btcd"
+certPath = "/home/suyanlong/.gvm/pkgsets/go1.9.4/global/src/gitlab.33.cn/chain33/chain33"
 proxy = ""
 proxyUser = ""
 proxyPass = ""
