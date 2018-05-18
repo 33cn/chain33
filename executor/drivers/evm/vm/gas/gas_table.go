@@ -1,10 +1,10 @@
 package gas
 
 import (
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 )
 
 // 本文件中定义各种操作中需要花费的Gas逻辑
@@ -33,13 +33,14 @@ type GasTable struct {
 var (
 	// 定义各种操作的Gas定价
 	GasTableHomestead = GasTable{
-		ExtcodeSize: 20,
-		ExtcodeCopy: 20,
-		Balance:     20,
-		SLoad:       50,
-		Calls:       40,
-		Suicide:     0,
-		ExpByte:     10,
+		ExtcodeSize:     20,
+		ExtcodeCopy:     20,
+		Balance:         20,
+		SLoad:           50,
+		Calls:           40,
+		Suicide:         0,
+		ExpByte:         10,
+		CreateBySuicide: 25000,
 	}
 )
 
@@ -107,7 +108,6 @@ func GasCallDataCopy(gt GasTable, evm *params.EVMParam, contractGas *params.GasP
 	}
 	return gas, nil
 }
-
 
 func GasReturnDataCopy(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, stack *mm.Stack, mem *mm.Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)

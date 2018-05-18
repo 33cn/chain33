@@ -143,14 +143,14 @@ func decodeHex(data string)[]byte  {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "1KwNnVuU1ZRCrWLXdUkmu6dWSjvij8x4K1"
-	code := "0x52efea6e"
+	to := "129jSt69pBZSuXc1hXQVAHgBWQbcggaP2r"
+	code := "0x26121ff0"
 	//code := "4e71d92d"  // claim
 	//code := "1b9265b8"  // pay
 	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000021"  // put
 	//code := "9507d39a0000000000000000000000000000000000000000000000000000000000000003"  // get
 	deployCode := decodeHex(code)
-	fee := 50000000000
+	fee := int64(3000000)
 
 	action := model.ContractAction{Amount:0, Code:deployCode}
 	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(&action), Fee: int64(fee), To:to}
@@ -162,6 +162,7 @@ func TestCreateTx(t *testing.T) {
 		t.Fail()
 	}
 	tx.Fee += types.MinBalanceTransfer
+	tx.Fee += fee
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	//tx.Sign(int32(wallet.SignType), privKey)
