@@ -126,4 +126,5 @@ message Authority {
     string defaultProvider = 3;
     string hashAlgorithm = 4;
     string keyStorePath = 5;
+    string orgName = 6;
 }

@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/msp"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +20,7 @@ func NewFileKeyStore(cryptoConfigMSPPath string) (core.KVStore, error) {
 	opts := &FileKeyValueStoreOptions{
 		Path: cryptoConfigMSPPath,
 		KeySerializer: func(key interface{}) (string, error) {
-			pkk, ok := key.(*msp.PrivKeyKey)
+			pkk, ok := key.(*core.PrivKeyKey)
 			if !ok {
 				return "", errors.New("converting key to PrivKeyKey failed")
 			}

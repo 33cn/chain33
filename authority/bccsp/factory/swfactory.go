@@ -13,16 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-/*
-Notice: This file has been modified for Hyperledger Fabric SDK Go usage.
-Please review third_party pinning scripts and patches for more details.
-*/
-package sw
+package factory
 
 import (
+	"errors"
+	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/sw"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -39,11 +37,13 @@ func (f *SWFactory) Name() string {
 }
 
 // Get returns an instance of BCCSP using Opts.
-func (f *SWFactory) Get(swOpts *SwOpts) (bccsp.BCCSP, error) {
+func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 	// Validate arguments
-	if swOpts == nil {
+	if config == nil || config.SwOpts == nil {
 		return nil, errors.New("Invalid config. It must not be nil.")
 	}
+
+	swOpts := config.SwOpts
 
 	var ks bccsp.KeyStore
 	if swOpts.Ephemeral == true {
@@ -51,7 +51,7 @@ func (f *SWFactory) Get(swOpts *SwOpts) (bccsp.BCCSP, error) {
 	} else if swOpts.FileKeystore != nil {
 		fks, err := sw.NewFileBasedKeyStore(nil, swOpts.FileKeystore.KeyStorePath, false)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to initialize software key store")
+			return nil, fmt.Errorf("Failed to initialize software key store: %s", err)
 		}
 		ks = fks
 	} else {

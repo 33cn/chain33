@@ -1,3 +1,5 @@
+// +build !nopkcs11
+
 /*
 Copyright IBM Corp. 2016 All Rights Reserved.
 
@@ -13,17 +15,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-/*
-Notice: This file has been modified for Hyperledger Fabric SDK Go usage.
-Please review third_party pinning scripts and patches for more details.
-*/
-package pkcs11
+package factory
 
 import (
+	"errors"
+	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/pkcs11"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/sw"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -40,11 +40,13 @@ func (f *PKCS11Factory) Name() string {
 }
 
 // Get returns an instance of BCCSP using Opts.
-func (f *PKCS11Factory) Get(p11Opts *pkcs11.PKCS11Opts) (bccsp.BCCSP, error) {
+func (f *PKCS11Factory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 	// Validate arguments
-	if p11Opts == nil {
+	if config == nil || config.Pkcs11Opts == nil {
 		return nil, errors.New("Invalid config. It must not be nil.")
 	}
+
+	p11Opts := config.Pkcs11Opts
 
 	//TODO: PKCS11 does not need a keystore, but we have not migrated all of PKCS11 BCCSP to PKCS11 yet
 	var ks bccsp.KeyStore
@@ -53,7 +55,7 @@ func (f *PKCS11Factory) Get(p11Opts *pkcs11.PKCS11Opts) (bccsp.BCCSP, error) {
 	} else if p11Opts.FileKeystore != nil {
 		fks, err := sw.NewFileBasedKeyStore(nil, p11Opts.FileKeystore.KeyStorePath, false)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to initialize software key store")
+			return nil, fmt.Errorf("Failed to initialize software key store: %s", err)
 		}
 		ks = fks
 	} else {

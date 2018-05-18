@@ -9,16 +9,19 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/authority/identitymgr"
+	"gitlab.33.cn/chain33/chain33/authority/mspmgr"
 )
 
 var alog = log.New("module", "autority")
 
 type Authority struct {
 	cryptoPath string
-	client     queue.Client
-	cfg        *types.Authority
+	client      queue.Client
+	cfg         *types.Authority
 	cryptoSuite core.CryptoSuite
-	signer   *signingmgr.SigningManager
+	signer      *signingmgr.SigningManager
+	identity    *identitymgr.IdentityManager
 }
 
 func New(conf *types.Authority) *Authority{
@@ -30,7 +33,7 @@ func New(conf *types.Authority) *Authority{
 	return auth
 }
 
-func (auth *Authority)initConfig(conf *types.Authority) error {
+func (auth *Authority) initConfig(conf *types.Authority) error {
 	config := &cryptosuite.CryptoConfig{conf}
 
 	cryptoSuite,err := sw.GetSuiteByConfig(config)
@@ -39,16 +42,28 @@ func (auth *Authority)initConfig(conf *types.Authority) error {
 	}
 	auth.cryptoSuite = cryptoSuite
 
-
 	signer,err := signingmgr.New(cryptoSuite)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to initialize signing manage")
 	}
 	auth.signer = signer
 
+	identity,err := identitymgr.NewIdentityManager(conf.OrgName, cryptoSuite, conf.CryptoPath)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to initialize identity manage")
+	}
+	auth.identity = identity
 
-
+	mspmgr.LoadLocalMsp(conf.CryptoPath, config)
 	return nil
+}
+
+func (auth *Authority) GetSigningMgr() *signingmgr.SigningManager {
+	return auth.signer
+}
+
+func (auth *Authority) GetIdentityMgr() *identitymgr.IdentityManager {
+	return auth.identity
 }
 
 func (auth *Authority) SetQueueClient(client queue.Client) {
