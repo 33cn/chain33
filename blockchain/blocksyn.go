@@ -209,8 +209,6 @@ func (chain *BlockChain) FetchPeerList() {
 	chain.fetchPeerList()
 }
 
-var debugflag = 60
-
 func (chain *BlockChain) fetchPeerList() error {
 	if chain.client == nil {
 		synlog.Error("fetchPeerList chain client not bind message queue.")
@@ -259,14 +257,6 @@ func (chain *BlockChain) fetchPeerList() error {
 
 	subInfoList := peerInfoList
 
-	//debug
-	debugflag++
-	if debugflag >= 60 {
-		for _, peerinfo := range subInfoList {
-			synlog.Debug("fetchPeerList subInfoList", "Name", peerinfo.Name, "Height", peerinfo.Height, "ParentHash", common.ToHex(peerinfo.ParentHash), "Hash", common.ToHex(peerinfo.Hash))
-		}
-		debugflag = 0
-	}
 	peerMaxBlklock.Lock()
 	chain.peerList = subInfoList
 	peerMaxBlklock.Unlock()
