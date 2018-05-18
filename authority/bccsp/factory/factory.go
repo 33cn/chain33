@@ -91,3 +91,67 @@ func initBCCSP(f BCCSPFactory, config *FactoryOpts) error {
 	bccspMap[f.Name()] = csp
 	return nil
 }
+
+// InitFactories must be called before using factory interfaces
+// It is acceptable to call with config = nil, in which case
+// some defaults will get used
+// Error is returned only if defaultBCCSP cannot be found
+func InitFactories(config *FactoryOpts) error {
+	factoriesInitOnce.Do(func() {
+		setFactories(config)
+	})
+
+	return factoriesInitError
+}
+
+func setFactories(config *FactoryOpts) error {
+	// Take some precautions on default opts
+	if config == nil {
+		config = GetDefaultOpts()
+	}
+
+	if config.ProviderName == "" {
+		config.ProviderName = "SW"
+	}
+
+	if config.SwOpts == nil {
+		config.SwOpts = GetDefaultOpts().SwOpts
+	}
+
+	// Initialize factories map
+	bccspMap = make(map[string]bccsp.BCCSP)
+
+	// Software-Based BCCSP
+	if config.SwOpts != nil {
+		f := &SWFactory{}
+		err := initBCCSP(f, config)
+		if err != nil {
+			factoriesInitError = fmt.Errorf("Failed initializing SW.BCCSP [%s]", err)
+		}
+	}
+
+	var ok bool
+	defaultBCCSP, ok = bccspMap[config.ProviderName]
+	if !ok {
+		factoriesInitError = fmt.Errorf("%s\nCould not find default `%s` BCCSP", factoriesInitError, config.ProviderName)
+	}
+
+	return factoriesInitError
+}
+
+// GetBCCSPFromOpts returns a BCCSP created according to the options passed in input.
+func GetBCCSPFromOpts(config *FactoryOpts) (bccsp.BCCSP, error) {
+	var f BCCSPFactory
+	switch config.ProviderName {
+	case "SW":
+		f = &SWFactory{}
+	default:
+		return nil, fmt.Errorf("Could not find BCCSP, no '%s' provider", config.ProviderName)
+	}
+
+	csp, err := f.Get(config)
+	if err != nil {
+		return nil, fmt.Errorf("Could not initialize BCCSP %s [%s]", f.Name(), err)
+	}
+	return csp, nil
+}
