@@ -8,6 +8,11 @@ import (
 
 var log = l.New("module", "rpc")
 
+type userWrite struct {
+	Topic   string `json:"execer"`
+	Content string `json:"content"`
+}
+
 type TransParm struct {
 	Execer    string     `json:"execer"`
 	Payload   string     `json:"payload"`
