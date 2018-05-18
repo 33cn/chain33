@@ -5,30 +5,31 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 
 	"gitlab.33.cn/chain33/chain33/account"
 )
 
 func OneStepSend(args []string) {
-	if len(args) < 1 {
+	name := args[0]
+	params := args[2:]
+	if len(params) < 1 {
 		loadHelp()
 		return
 	}
 
-	if args[0] == "help" || args[0] == "-h" {
+	if params[0] == "help" || params[0] == "--help" || params[0] == "-h" {
 		loadHelp()
 		return
 	}
 	hasKey := false
 	var key string
-	size := len(args)
-	for i, v := range args {
+	size := len(params)
+	for i, v := range params {
 		if v == "-k" {
 			hasKey = true
 			if i < size-1 {
-				key = args[i+1]
-				args = append(args[:i], args[i+2:]...)
+				key = params[i+1]
+				params = append(params[:i], params[i+2:]...)
 			} else {
 				fmt.Fprintln(os.Stderr, "no private key found")
 				return
@@ -43,44 +44,7 @@ func OneStepSend(args []string) {
 		isAddr = true
 	}
 
-	var cli1 string
-	var cli2 string
-	var isWindows bool
-	if runtime.GOOS == "windows" {
-		cli1 = "cli.exe"
-		cli2 = "chain33-cli.exe"
-		isWindows = true
-	} else {
-		cli1 = "cli"
-		cli2 = "chain33-cli"
-		isWindows = false
-	}
-
-	var name string
-	_, err = os.Stat(cli1)
-	if err == nil {
-		if isWindows {
-			name = "cli"
-		} else {
-			name = "./cli"
-		}
-	}
-	if os.IsNotExist(err) {
-		_, err = os.Stat(cli2)
-		if err == nil {
-			if isWindows {
-				name = "chain33-cli"
-			} else {
-				name = "./chain33-cli"
-			}
-		}
-		if os.IsNotExist(err) {
-			fmt.Println("no compiled cli file found")
-			return
-		}
-	}
-
-	cmdCreate := exec.Command(name, args...)
+	cmdCreate := exec.Command(name, params...)
 	var outCreate bytes.Buffer
 	var errCreate bytes.Buffer
 	cmdCreate.Stdout = &outCreate
@@ -139,5 +103,6 @@ func OneStepSend(args []string) {
 }
 
 func loadHelp() {
-	fmt.Println("Use similarly as bty/token/trade raw transaction creation, in addition to the parameter of private key input following \"-k\".")
+	fmt.Println("Use similarly as bty/token/trade/bind_miner raw transaction creation, in addition to the parameter of private key or from address input following \"-k\".")
+	fmt.Println("e.g.: cli send bty transfer -a 1 -n note -t toAddr -k privKey/fromAddr")
 }
