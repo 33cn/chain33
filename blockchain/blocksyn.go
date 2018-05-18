@@ -117,31 +117,31 @@ func (chain *BlockChain) SynRoutine() {
 			return
 		case <-blockSynTicker.C:
 			//synlog.Info("blockSynTicker")
-			chain.SynBlocksFromPeers()
+			go chain.SynBlocksFromPeers()
 
 		case <-fetchPeerListTicker.C:
 			//synlog.Info("blockUpdateTicker")
-			chain.FetchPeerList()
+			go chain.FetchPeerList()
 
 		case <-checkHeightNoIncreaseTicker.C:
 			//synlog.Info("CheckHeightNoIncrease")
-			chain.CheckHeightNoIncrease()
+			go chain.CheckHeightNoIncrease()
 
 		case <-checkBlockHashTicker.C:
 			//synlog.Info("checkBlockHashTicker")
-			chain.CheckTipBlockHash()
+			go chain.CheckTipBlockHash()
 
 			//定时检查系统时间，如果系统时间有问题，那么会有一个报警
 		case <-checkClockDriftTicker.C:
-			checkClockDrift()
+			go checkClockDrift()
 
 			//定时检查故障peer，如果执行出错高度的blockhash值有变化，说明故障peer已经纠正
 		case <-recoveryFaultPeerTicker.C:
-			chain.RecoveryFaultPeer()
+			go chain.RecoveryFaultPeer()
 
 			//定时检查peerlist中的节点是否在同一条链上，获取同一高度的blockhash来做对比
 		case <-checkBestChainTicker.C:
-			chain.CheckBestChain()
+			go chain.CheckBestChain()
 		}
 	}
 }
