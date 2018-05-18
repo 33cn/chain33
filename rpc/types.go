@@ -9,7 +9,7 @@ import (
 var log = l.New("module", "rpc")
 
 type userWrite struct {
-	Topic   string `json:"execer"`
+	Topic   string `json:"topic"`
 	Content string `json:"content"`
 }
 
