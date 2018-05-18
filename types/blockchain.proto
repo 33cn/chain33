@@ -106,7 +106,7 @@ message ChainStatus {
 message ReqBlocks {
 	int64 start = 1;
 	int64 end = 2;
-	bool Isdetail = 3;
+	bool isDetail = 3;
 	repeated string pid = 4;
 }
 
