@@ -27,7 +27,7 @@ func (*Signatory) Echo(in *string, out *interface{}) error {
 }
 
 type TokenFinish struct {
-	OwnerAddr string `json:"owner_addr"`
+	OwnerAddr string `json:"ownerAddr"`
 	Symbol    string `json:"symbol"`
 	//	Fee       int64  `json:"fee"`
 }

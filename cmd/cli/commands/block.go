@@ -184,7 +184,7 @@ func blockHeader(cmd *cobra.Command, args []string) {
 	params := types.ReqBlocks{
 		Start:    startH,
 		End:      endH,
-		Isdetail: detailBool,
+		IsDetail: detailBool,
 	}
 	var res jsonrpc.Headers
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)

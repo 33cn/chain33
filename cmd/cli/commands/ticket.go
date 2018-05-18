@@ -102,7 +102,7 @@ func countTicket(cmd *cobra.Command, args []string) {
 func CloseTicketCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "close",
-		Short: "Close ticket ",
+		Short: "Close tickets",
 		Run:   closeTicket,
 	}
 	return cmd
@@ -124,6 +124,10 @@ func closeTicket(cmd *cobra.Command, args []string) {
 
 	var res types.ReplyHashes
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	err = rpc.Call("Chain33.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -186,7 +190,7 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	params.FuncName = "MinerSourceList"
 	params.Payload = reqaddr
 
-	var res types.Message
+	var res types.ReplyStrings
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }

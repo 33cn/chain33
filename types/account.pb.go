@@ -11,6 +11,7 @@ It is generated from these files:
 	config.proto
 	db.proto
 	executor.proto
+	executorTrade.proto
 	p2p.proto
 	pbft.proto
 	rpc.proto
@@ -132,22 +133,8 @@ It has these top-level messages:
 	ReqTokens
 	ReplyTokens
 	ReceiptToken
-	Trade
-	TradeForSell
-	SellOrder
-	SellOrderReceipt
-	ReqAddrTokens
-	ReplySellOrders
 	TokenRecv
 	ReplyAddrRecvForTokens
-	TradeForBuy
-	TradeForRevokeSell
-	ReceiptTradeBase
-	ReceiptTradeSell
-	ReceiptTradeBuy
-	ReceiptTradeRevoke
-	TradeBuyDone
-	ReplyTradeBuyOrders
 	ArrayConfig
 	StringConfig
 	Int32Config
@@ -156,7 +143,30 @@ It has these top-level messages:
 	ManageAction
 	ReceiptConfig
 	ReplyConfig
+	Trade
+	TradeForSell
+	TradeForBuy
+	TradeForRevokeSell
+	TradeForBuyLimit
+	TradeForSellMarket
+	TradeForRevokeBuy
+	SellOrder
+	BuyLimitOrder
+	ReceiptBuyBase
+	ReceiptSellBase
+	ReceiptTradeBuyMarket
+	ReceiptTradeBuyLimit
+	ReceiptTradeBuyRevoke
+	ReceiptTradeSell
+	ReceiptSellMarket
+	ReceiptTradeRevoke
+	ReqAddrTokens
 	ReqTokenSellOrder
+	ReqTokenBuyOrder
+	ReplyBuyOrder
+	ReplySellOrder
+	ReplySellOrders
+	ReplyBuyOrders
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -250,6 +260,8 @@ It has these top-level messages:
 	ReqModifyConfig
 	ReqSignRawTx
 	ReplySignRawTx
+	ReqAuthSignTx
+	ReplyAuthSignTx
 */
 package types
 
