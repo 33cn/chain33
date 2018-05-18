@@ -362,6 +362,7 @@ func (n *Node) natMapPort() {
 	if err != nil {
 		//映射失败
 		log.Warn("NatMapPort", "Nat", "Faild")
+		n.flushNodePort(defaultPort, defaultPort)
 		n.nodeInfo.natResultChain <- false
 		return
 	}
