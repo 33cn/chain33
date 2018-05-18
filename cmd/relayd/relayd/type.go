@@ -1,16 +1,16 @@
 package relayd
 
 import (
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const SETUP = 1000
 
 var (
-	currentBlockHashKey chainhash.Hash
-	executor            = []byte("relay")
-	zeroBlockHeader     = []byte("")
+	currentBlockHashKey   = []byte("4062c3e6baa0ef4bc5917572c3b9aeaa5dc24f8ef008f38bcd401af6e80f257c")
+	currentBlockheightKey = []byte("000007bc077cc540821f06280c4c2f04e036931f21ea3b1bf509b972cbbef5ca")
+	executor              = []byte("relay")
+	zeroBlockHeader       = []byte("")
 )
 
 // "hash":"000000000000000000223cbf6c473a4dedf6ebe19d17879eafc41f38ad1fdf1d",

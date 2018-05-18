@@ -16,14 +16,15 @@ type Config struct {
 	Trace        bool
 	Tick33       int
 	TickBTC      int
+	BtcdOrWeb    int
 	Chain33      Chain33
 	MinHeightBTC uint64
-	BitCoin      BitCoin
+	Btcd         Btcd
 	Log          types.Log
 	Auth         Auth
 }
 
-type BitCoin struct {
+type Btcd struct {
 	Id                   string
 	Host                 string
 	Endpoint             string
@@ -47,7 +48,7 @@ type Auth struct {
 	Address    string `json:"address"`
 }
 
-func (b *BitCoin) BitConnConfig() *rpcclient.ConnConfig {
+func (b *Btcd) BitConnConfig() *rpcclient.ConnConfig {
 	conn := &rpcclient.ConnConfig{}
 	conn.Host = b.Host
 	conn.Endpoint = b.Endpoint

@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/hex"
 	"math/rand"
-	"net/http"
 	"os"
 	"sync"
 	"time"
 
+	"fmt"
+	"strconv"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	log "github.com/inconshreveable/log15"
+	"github.com/valyala/fasthttp"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -30,7 +33,7 @@ func confirms(txHeight, curHeight int32) int32 {
 
 type Relayd struct {
 	config          *Config
-	httpServer      http.Server
+	httpServer      fasthttp.Server
 	db              *relaydDB
 	mu              sync.Mutex
 	latestBlockHash *chainhash.Hash
@@ -53,18 +56,30 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 	db := NewRelayDB("relayd", dir, 256)
-	hash, err := db.Get(currentBlockHashKey[:])
-	if err != nil || hash == nil {
-		hash = zeroBlockHeader
-	}
-	value, err := chainhash.NewHash(hash)
+	currentHeight, err := db.Get(currentBlockheightKey[:])
+	// if err != nil || currentHeight == nil {
+	// 	currentHeight = 0
+	// }
+	// value, err := chainhash.NewHash(hash)
 	// TODO
+	height, err := strconv.Atoi(string(currentHeight))
 	if err != nil {
-		log.Info("NewRelayd", err)
+		log.Warn(fmt.Sprintf("NewRelayd %s", err.Error()))
+		height = 0
+	}
+	log.Info("NewRelayd", "current hegiht: ", height)
+
+	client33 := NewClient33(&config.Chain33)
+
+	var btc BtcClient
+	if config.BtcdOrWeb == 0 {
+		btc, err = NewBtcd(config.Btcd.BitConnConfig(), int(config.Btcd.ReconnectAttempts))
+	} else {
+		btc, err = NewBtcWeb()
+	}
+	if err != nil {
 		panic(err)
 	}
-	client33 := NewClient33(&config.Chain33)
-	btc, err := NewBtcd(config.BitCoin.BitConnConfig(), int(config.BitCoin.ReconnectAttempts))
 
 	pr, err := hex.DecodeString(config.Auth.PrivateKey)
 	if err != nil {
@@ -82,14 +97,14 @@ func NewRelayd(config *Config) *Relayd {
 	}
 
 	return &Relayd{
-		config:         config,
-		ctx:            ctx,
-		cancel:         cancel,
-		client33:       client33,
-		knownBlockHash: value,
-		btcClient:      btc,
-		privateKey:     priKey,
-		publicKey:      priKey.PubKey(),
+		config:      config,
+		ctx:         ctx,
+		cancel:      cancel,
+		client33:    client33,
+		knownHeight: uint64(height),
+		btcClient:   btc,
+		privateKey:  priKey,
+		publicKey:   priKey.PubKey(),
 	}
 }
 
@@ -102,27 +117,32 @@ func (r *Relayd) Start() {
 	r.btcClient.Start()
 	r.client33.Start(r.ctx)
 	r.tick(r.ctx)
-	r.httpServer.SetKeepAlivesEnabled(true)
-	go r.httpServer.ListenAndServe()
-
+	if err := fasthttp.ListenAndServe("0.0.0.0:8080", requestHandler); err != nil {
+		panic(fmt.Errorf("Error in ListenAndServe: %s", err))
+	}
 }
 
 func (r *Relayd) tick(ctx context.Context) {
+	tickDealTx := time.Tick(time.Second * time.Duration(r.config.Tick33))
+	tickQuery := time.Tick(time.Second * time.Duration(r.config.Tick33))
+	tickBtcd := time.Tick(time.Second * time.Duration(r.config.TickBTC))
+	ping := time.Tick(time.Second * 2 * time.Duration(r.config.TickBTC))
+
 out:
 	for {
 		select {
 		case <-ctx.Done():
 			break out
 
-		case <-time.After(time.Second * time.Duration(r.config.Tick33)):
+		case <-tickDealTx:
 			log.Info("deal transaction order")
 			// r.dealOrder()
 
-		case <-time.After(time.Second * 2 * time.Duration(r.config.Tick33)):
+		case <-tickQuery:
 			log.Info("check transaction order")
 			// 定时查询交易是否成功
 
-		case <-time.After(time.Second * time.Duration(r.config.TickBTC)):
+		case <-tickBtcd:
 			// btc ticket
 			log.Info("sync SPV")
 			hash, height, err := r.btcClient.GetLatestBlock()
@@ -135,6 +155,9 @@ out:
 			if r.latestHeight > r.knownHeight {
 				go r.syncBlockHeaders()
 			}
+
+		case <-ping:
+			r.btcClient.Ping()
 		}
 	}
 }
@@ -274,4 +297,32 @@ func (r *Relayd) triggerOrderStatus() {
 
 func (r *Relayd) isExist(id string) {
 	panic("unimplemented")
+}
+
+func requestHandler(ctx *fasthttp.RequestCtx) {
+	fmt.Fprintf(ctx, "Hello, world!\n\n")
+
+	fmt.Fprintf(ctx, "Request method is %q\n", ctx.Method())
+	fmt.Fprintf(ctx, "RequestURI is %q\n", ctx.RequestURI())
+	fmt.Fprintf(ctx, "Requested path is %q\n", ctx.Path())
+	fmt.Fprintf(ctx, "Host is %q\n", ctx.Host())
+	fmt.Fprintf(ctx, "Query string is %q\n", ctx.QueryArgs())
+	fmt.Fprintf(ctx, "User-Agent is %q\n", ctx.UserAgent())
+	fmt.Fprintf(ctx, "Connection has been established at %s\n", ctx.ConnTime())
+	fmt.Fprintf(ctx, "Request has been started at %s\n", ctx.Time())
+	fmt.Fprintf(ctx, "Serial request number for the current connection is %d\n", ctx.ConnRequestNum())
+	fmt.Fprintf(ctx, "Your ip is %q\n\n", ctx.RemoteIP())
+
+	fmt.Fprintf(ctx, "Raw request is:\n---CUT---\n%s\n---CUT---", &ctx.Request)
+
+	ctx.SetContentType("text/plain; charset=utf8")
+
+	// Set arbitrary headers
+	ctx.Response.Header.Set("X-My-Header", "my-header-value")
+
+	// Set cookies
+	var c fasthttp.Cookie
+	c.SetKey("cookie-name")
+	c.SetValue("cookie-value")
+	ctx.Response.Header.SetCookie(&c)
 }

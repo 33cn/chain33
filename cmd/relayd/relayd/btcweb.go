@@ -7,31 +7,32 @@ import (
 	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	log "github.com/inconshreveable/log15"
 	"github.com/valyala/fasthttp"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type BtcWeb struct {
+type btcWeb struct {
 	httpClient *fasthttp.Client
 }
 
-func NewBtcWeb() BtcClient {
-	b := &BtcWeb{
+func NewBtcWeb() (BtcClient, error) {
+	b := &btcWeb{
 		httpClient: &fasthttp.Client{TLSConfig: &tls.Config{InsecureSkipVerify: true}},
 	}
-	return b
+	return b, nil
 }
 
-func (b *BtcWeb) Start() error {
+func (b *btcWeb) Start() error {
 	return nil
 }
 
-func (b *BtcWeb) Stop() error {
+func (b *btcWeb) Stop() error {
 	return nil
 }
 
-func (b *BtcWeb) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
+func (b *btcWeb) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 	block, err := b.getBlock(height)
 	if err != err {
 		return nil, err
@@ -39,7 +40,7 @@ func (b *BtcWeb) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 	return block.Header.BtcHeader(), nil
 }
 
-func (b *BtcWeb) getBlock(height uint64) (*Block, error) {
+func (b *btcWeb) getBlock(height uint64) (*Block, error) {
 	if height < 0 {
 		return nil, errors.New("height < 0")
 	}
@@ -57,7 +58,7 @@ func (b *BtcWeb) getBlock(height uint64) (*Block, error) {
 	return &block, nil
 }
 
-func (b *BtcWeb) GetLatestBlock() (*chainhash.Hash, uint64, error) {
+func (b *btcWeb) GetLatestBlock() (*chainhash.Hash, uint64, error) {
 	url := "https://blockchain.info/latestblock"
 	data, err := b.requestUrl(url)
 	if err != nil {
@@ -77,7 +78,15 @@ func (b *BtcWeb) GetLatestBlock() (*chainhash.Hash, uint64, error) {
 	return hash, blocks.Height, nil
 }
 
-func (b *BtcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
+func (b *btcWeb) Ping() {
+	hash, height, err := b.GetLatestBlock()
+	if err != nil {
+		log.Error("btcWeb ping", "error", err)
+	}
+	log.Info("btcWeb ping", "latest Hash: ", hash.String(), "latest height", height)
+}
+
+func (b *btcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
 	url := "https://blockchain.info/rawtx/" + hash
 	data, err := b.requestUrl(url)
 	if err != nil {
@@ -91,7 +100,7 @@ func (b *BtcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
 	return tx.BtcTransaction(), nil
 }
 
-func (b *BtcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
+func (b *btcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
 	block, err := b.getBlock(height)
 	if err != err {
 		return nil, err
@@ -120,7 +129,7 @@ func (b *BtcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
 	return spv, nil
 }
 
-func (b *BtcWeb) requestUrl(url string) ([]byte, error) {
+func (b *btcWeb) requestUrl(url string) ([]byte, error) {
 	status, body, err := b.httpClient.Get(nil, url)
 	if err != nil {
 		return nil, err

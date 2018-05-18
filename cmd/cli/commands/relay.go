@@ -31,9 +31,8 @@ type RelayOrder2Show struct {
 }
 
 type RelayBTCHeadHeightListShow struct {
-	Height  int64 	`json:Height`
+	Height int64 `json:Height`
 }
-
 
 ///////////////
 func RelayCmd() *cobra.Command {
