@@ -175,6 +175,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			// 只有一种情况会走到这里来，就是合约账户向外部账户转账的情况
 			if len(input) > 0 || value ==0 {
 				// 其它情况要求地址必须存在，所以需要报错
+				if evm.VmConfig.Debug && evm.depth == 0 {
+					evm.VmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+					evm.VmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
+				}
 				return nil, snapshot, gas, model.ErrAddrNotExists
 			}
 		}else{

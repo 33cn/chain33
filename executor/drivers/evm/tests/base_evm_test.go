@@ -36,7 +36,7 @@ func TestCreateContract1(t *testing.T) {
 	test.assertNotEqualsI(common.Address(addr), common.EmptyAddress())
 
 	// 检查返回数据是否正确
-	test.assertEqualsV(statedb.GetLastSnapshot(), 0)
+	test.assertEqualsV(statedb.GetLastSnapshot().GetId(), 0)
 }
 
 // 创建合约gas不足
