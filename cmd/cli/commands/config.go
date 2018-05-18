@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
 )
 
 func ConfigCmd() *cobra.Command {
@@ -64,6 +65,8 @@ func configTx(cmd *cobra.Command, args []string) {
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
+
+	tx.To = account.ExecAddress("manage").String()
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
