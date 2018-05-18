@@ -47,7 +47,7 @@ func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 	clog.Info("manage.Exec", "start index", index)
 	if c.GetHeight() > types.ForkV11ManageExec {
 		_, err := c.DriverBase.Exec(tx, index)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 	}
