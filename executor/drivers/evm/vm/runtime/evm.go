@@ -112,9 +112,6 @@ func NewEVM(ctx Context, statedb state.StateDB, vmConfig Config) *EVM {
 // 返回不同操作消耗的Gas定价表
 // 接收区块高度作为参数，方便以后在这里作分叉处理
 func (c *EVM) GasTable(num *big.Int) gas.GasTable {
-	if num == nil {
-		return gas.GasTableHomestead
-	}
 	return gas.GasTableHomestead
 }
 
@@ -160,32 +157,39 @@ func (evm *EVM) preCheck(caller ContractRef, value uint64) (pass bool, err error
 // 合约调用逻辑支持在合约调用的同时进行向合约转账的操作
 func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value uint64) (ret []byte, snapshot int, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller,  value)
+	pass, err = evm.preCheck(caller, value)
 	if !pass {
 		return nil, -1, gas, err
 	}
-
-	snapshot = evm.StateDB.Snapshot()
-	to := AccountRef(addr)
 
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
 		// 合约地址在自定义合约和预编译合约中都不存在时，可能为外部账户
 		if precompiles[addr] == nil {
 			// 只有一种情况会走到这里来，就是合约账户向外部账户转账的情况
-			if len(input) > 0 || value ==0 {
+			if len(input) > 0 || value == 0 {
 				// 其它情况要求地址必须存在，所以需要报错
 				if evm.VmConfig.Debug && evm.depth == 0 {
 					evm.VmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 					evm.VmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 				}
-				return nil, snapshot, gas, model.ErrAddrNotExists
+				return nil, -1, gas, model.ErrAddrNotExists
 			}
-		}else{
+		} else {
 			// 否则，为预编译合约，创建一个新的账号
-			evm.StateDB.CreateAccount(addr, caller.Address())
+			// 此分支先屏蔽，不需要为预编译合约创建账号也可以调用合约逻辑，因为预编译合约只有逻辑没有存储状态，可以不对应具体的账号存储
+			// evm.StateDB.CreateAccount(addr, caller.Address())
 		}
 	}
+
+	// 如果是已经销毁状态的合约是不允许调用的
+	if evm.StateDB.HasSuicided(addr) {
+		return nil, -1, gas, model.ErrDestruct
+	}
+
+	// 打快照，开始处理逻辑
+	snapshot = evm.StateDB.Snapshot()
+	to := AccountRef(addr)
 
 	// 向合约地址转账
 	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
@@ -222,9 +226,14 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 // 在创建合约对象时，合约对象的上下文地址（合约对象的self属性）被设置为caller的地址
 func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller,  value)
+	pass, err = evm.preCheck(caller, value)
 	if !pass {
 		return nil, gas, err
+	}
+
+	// 如果是已经销毁状态的合约是不允许调用的
+	if evm.StateDB.HasSuicided(addr) {
+		return nil, gas, model.ErrDestruct
 	}
 
 	var (
@@ -252,11 +261,15 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 // 和CallCode不同的是，它会把合约的外部调用地址设置成caller的caller
 func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller,  0)
+	pass, err = evm.preCheck(caller, 0)
 	if !pass {
 		return nil, gas, err
 	}
 
+	// 如果是已经销毁状态的合约是不允许调用的
+	if evm.StateDB.HasSuicided(addr) {
+		return nil, gas, model.ErrDestruct
+	}
 
 	var (
 		snapshot = evm.StateDB.Snapshot()
@@ -284,11 +297,15 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 // 在合约逻辑中，可以指定其它的合约地址以及输入参数进行合约调用，但是，这种情况下禁止修改MemoryStateDB中的任何数据，否则执行会出错
 func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller,  0)
+	pass, err = evm.preCheck(caller, 0)
 	if !pass {
 		return nil, gas, err
 	}
 
+	// 如果是已经销毁状态的合约是不允许调用的
+	if evm.StateDB.HasSuicided(addr) {
+		return nil, gas, model.ErrDestruct
+	}
 
 	// 如果指令解释器没有设置成只读，需要在这里强制设置，并在本操作结束后恢复
 	// 在解释器执行涉及到数据修改指令时，会检查此属性，从而控制不允许修改数据
@@ -325,7 +342,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 // 使用传入的部署代码创建新的合约
 func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []byte, gas uint64, value uint64) (ret []byte, snapshot int, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller,  value)
+	pass, err = evm.preCheck(caller, value)
 	if !pass {
 		return nil, -1, gas, err
 	}

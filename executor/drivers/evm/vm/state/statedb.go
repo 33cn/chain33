@@ -257,6 +257,10 @@ func (self *MemoryStateDB) Empty(addr common.Address) bool {
 
 // 将数据状态回滚到指定快照版本（中间的版本数据将会被删除）
 func (self *MemoryStateDB) RevertToSnapshot(version int) {
+	if version >= len(self.snapshots) {
+		return
+	}
+
 	ver := self.snapshots[version]
 
 	// 如果版本号不对，回滚失败
