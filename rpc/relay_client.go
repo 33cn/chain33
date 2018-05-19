@@ -6,6 +6,7 @@ import (
 
 	"encoding/hex"
 
+	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -18,7 +19,7 @@ type RelaySellTx struct {
 	Coin       string `json:"symbol_to_exchange"`
 	CoinAmount uint64 `json:"amount_to_exchange"`
 	CoinAddr   string `json:"addr_of_coin"`
-	CoinWait   int32  `json:"blocks_to_wait_verify"`
+	CoinWait   uint32 `json:"blocks_to_wait_verify"`
 	Fee        int64  `json:"fee"`
 }
 
@@ -50,6 +51,21 @@ type RelayVerifyBTCTx struct {
 	MerklBranch string `json:"merkle_branch"`
 	BlockHash   string `json:"block_hash"`
 	Fee         int64  `json:"fee"`
+}
+
+type RelaySaveBTCHeadTx struct {
+	Hash          string `json:"hash"`
+	Confirmations uint64 `json:"confirmations"`
+	Height        uint64 `json:"height"`
+	Version       uint32 `json:"version"`
+	MerkleRoot    string `json:"merkleRoot"`
+	Time          int64  `json:"time"`
+	Nonce         int64  `json:"nonce"`
+	Bits          int64  `json:"bits"`
+	Difficulty    int64  `json:"difficulty"`
+	PreviousHash  string `json:"previousHash"`
+	NextHash      string `json:"nextHash"`
+	Fee           int64  `json:"fee"`
 }
 
 ///////////////cli.go/////
@@ -198,6 +214,36 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 	return data, nil
 }
 
+func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &types.BtcHeader{
+		Hash:       parm.Hash,
+		MerkleRoot: parm.MerkleRoot,
+		Height:     parm.Height,
+	}
+
+	v := &types.BtcHeaders{}
+	v.BtcHeader = append(v.BtcHeader, head)
+
+	val := &types.RelayAction{
+		Ty:    types.RelayActionRcvBTCHeaders,
+		Value: &types.RelayAction_BtcHeaders{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("relay"),
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      account.ExecAddress("relay").String(),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
 /////////////////////jrpchandler.go/////////////////////////////////
 
 func (c *Chain33) CreateRawRelaySellTx(in *RelaySellTx, result *interface{}) error {
@@ -255,4 +301,32 @@ func (c *Chain33) CreateRawRelayVerifyBTCTx(in *RelayVerifyBTCTx, result *interf
 
 	*result = hex.EncodeToString(reply)
 	return nil
+}
+
+func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelaySaveBTCHeadTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+//////////queryPayload//////////////
+func relayPayloadType(funcname string) (proto.Message, error) {
+	var req proto.Message
+	switch funcname {
+	case "GetRelayOrderByStatus":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetSellRelayOrder":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetBuyRelayOrder":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetBTCHeaderList":
+		req = &types.ReqRelayBtcHeaderHeightList{}
+	default:
+		return nil, types.ErrInputPara
+	}
+	return req, nil
 }

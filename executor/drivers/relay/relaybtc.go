@@ -5,11 +5,11 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -20,7 +20,8 @@ var (
 )
 
 type relayBTCStore struct {
-	db         dbm.KVDB
+	r *relay
+	//db         dbm.KVDB
 	height     int64
 	lastheader *types.BtcHeader
 }
@@ -32,9 +33,9 @@ type relayBTCStore struct {
 //	}
 //}
 
-func (b *relayBTCStore) setDb(db dbm.KVDB) {
-	b.db = db
-}
+//func (b *relayBTCStore) setDb(db dbm.KVDB) {
+//	b.db = db
+//}
 
 func (b *relayBTCStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
 	var kv []*types.KeyValue
@@ -72,21 +73,36 @@ func (b *relayBTCStore) curHeight() int64 {
 	return atomic.LoadInt64(&b.height)
 }
 
+func decodeHeight(heightbytes []byte) (int64, error) {
+	var height types.Int64
+	err := types.Decode(heightbytes, &height)
+	if err != nil {
+		//may be old database format json...
+		err = json.Unmarshal(heightbytes, &height.Data)
+		if err != nil {
+			relaylog.Error("decodeHeight Could not unmarshal height bytes", "error", err)
+			return -1, types.ErrUnmarshal
+		}
+	}
+	return height.Data, nil
+}
+
 func (b *relayBTCStore) getHeadHeigtList(req *types.ReqRelayBtcHeaderHeightList) (types.Message, error) {
 	prefix := getRelayBtcHeightListKey()
 	key := fmt.Sprintf(string(prefix)+"%d", req.HeightBase)
 
-	values, err := b.db.List(prefix, []byte(key), req.ReqCounts, 0)
+	values, err := b.r.GetLocalDB().List(prefix, []byte(key), req.Counts, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	var replay types.ReplyBtcHeaderHeightList
-	heightGot := make(map[string]bool)
-	for _, height := range values {
-		if !heightGot[string(height)] {
+	var replay types.ReplyRelayBtcHeadHeightList
+	heightGot := make(map[int64]bool)
+	for _, heightbyte := range values {
+		height, _ := decodeHeight(heightbyte)
+		if !heightGot[height] {
 			replay.Heights = append(replay.Heights, height)
-			heightGot[string(height)] = true
+			heightGot[height] = true
 		}
 	}
 
@@ -95,7 +111,7 @@ func (b *relayBTCStore) getHeadHeigtList(req *types.ReqRelayBtcHeaderHeightList)
 }
 
 func (b *relayBTCStore) GetMerkleRootFromHeader(blockhash string) (string, error) {
-	value, err := b.db.Get(getRelayBtcHeaderKeyHash(blockhash))
+	value, err := b.r.GetLocalDB().Get(getRelayBtcHeaderKeyHash(blockhash))
 	if err != nil {
 		relaylog.Error("GetMerkleRootFromHeader", "Failed to get value from db with blockhash", blockhash)
 		return "", err
@@ -130,11 +146,11 @@ func (b *relayBTCStore) verifyTx(verify *types.RelayVerify, order *types.RelayOr
 	sibs := verify.GetSpv().GetBranchProof()
 
 	verifymerkleroot := merkle.GetMerkleRootFromBranch(sibs, rawhash, verify.GetSpv().GetTxIndex())
-	val, err := b.GetMerkleRootFromHeader(verify.GetSpv().GetBlockHash())
+	str, err := b.GetMerkleRootFromHeader(verify.GetSpv().GetBlockHash())
 	if err != nil {
 		return false, err
 	}
-	realmerkleroot, _ := common.FromHex(val)
+	realmerkleroot := merkelStrRevers2Bytes(str)
 	return bytes.Equal(realmerkleroot, verifymerkleroot), nil
 
 }
@@ -148,13 +164,13 @@ func (b *relayBTCStore) verifyBTCTx(verify *types.RelayVerifyBTC) (bool, error) 
 	sibs := getSiblingHash(verify.Merkbranch)
 
 	verifymerkleroot := merkle.GetMerkleRootFromBranch(sibs, rawhash, verify.Txindex)
-	val, err := b.GetMerkleRootFromHeader(verify.Blockhash)
+	str, err := b.GetMerkleRootFromHeader(verify.Blockhash)
 	if err != nil {
 		return false, err
 	}
-	realmerkleroot, _ := common.FromHex(val)
-	return bytes.Equal(realmerkleroot, verifymerkleroot), nil
+	realmerkleroot := merkelStrRevers2Bytes(str)
 
+	return bytes.Equal(realmerkleroot, verifymerkleroot), nil
 }
 
 func getRawTxHash(rawtx string) []byte {
@@ -173,4 +189,27 @@ func getSiblingHash(sibling string) [][]byte {
 	}
 
 	return sibs[:][:]
+}
+
+func merkelStrRevers2Bytes(str string) []byte {
+	data, _ := common.FromHex(str)
+	merkle := common.BytesToHash(data).Revers().Bytes()
+	return merkle
+
+}
+
+func merkelStrRevers(str string) string {
+	data, _ := common.FromHex(str)
+	merkle := common.BytesToHash(data).Revers().String()
+	return merkle
+
+}
+
+func merkleBytes2Str(bts []byte) string {
+	return common.BytesToHash(bts).String()
+}
+
+func merkleStr2Byte(str string) []byte {
+	data, _ := common.FromHex(str)
+	return data
 }
