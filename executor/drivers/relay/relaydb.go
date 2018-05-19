@@ -120,7 +120,7 @@ func getRelayOrderFromID(orderid []byte, db dbm.KV) (*types.RelayOrder, error) {
 func (action *relayAction) relaySell(sell *types.RelaySell) (*types.Receipt, error) {
 
 	//冻结子账户资金
-	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, sell.Sellamount)
+	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, int64(sell.Sellamount))
 	if err != nil {
 		relaylog.Error("account.ExecFrozen relay ", "addrFrom", action.fromaddr, "execaddr", action.execaddr, "amount", sell.Sellamount)
 		return nil, err
@@ -184,7 +184,7 @@ func (action *relayAction) relayRevokeSell(revoke *types.RelayRevokeSell) (*type
 	}
 
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
-	receipt, err := action.coinsAccount.ExecActive(order.Selladdr, action.execaddr, order.Sellamount)
+	receipt, err := action.coinsAccount.ExecActive(order.Selladdr, action.execaddr, int64(order.Sellamount))
 	if err != nil {
 		relaylog.Error("account.ExecActive ", "addrFrom", order.Selladdr, "execaddr", action.execaddr, "amount", order.Sellamount)
 		return nil, err
@@ -319,7 +319,7 @@ func (action *relayAction) relayConfirmTx(confirm *types.RelayConfirmTx) (*types
 
 }
 
-func (action *relayAction) relayVerifyTx(verifydata *types.RelayVerify) (*types.Receipt, error) {
+func (action *relayAction) relayVerifyTx(verifydata *types.RelayVerify, r *relay) (*types.Receipt, error) {
 	orderid := []byte(verifydata.Orderid)
 	order, err := getRelayOrderFromID(orderid, action.db)
 	if err != nil {
@@ -336,14 +336,14 @@ func (action *relayAction) relayVerifyTx(verifydata *types.RelayVerify) (*types.
 
 	var receipt *types.Receipt
 
-	rst, err := VerifyTx(verifydata)
+	rst, err := r.btcstore.verifyTx(verifydata, order)
 	if err != nil || rst != true {
 
 		err = types.ErrTRelayVerify
 	}
 
 	if rst {
-		receipt, err = action.coinsAccount.ExecTransferFrozen(order.Selladdr, order.Buyeraddr, action.execaddr, order.Sellamount)
+		receipt, err = action.coinsAccount.ExecTransferFrozen(order.Selladdr, order.Buyeraddr, action.execaddr, int64(order.Sellamount))
 	}
 
 	order.Status = types.RelayOrderStatus_finished
@@ -367,7 +367,7 @@ func (action *relayAction) relayVerifyTx(verifydata *types.RelayVerify) (*types.
 
 }
 
-func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC) (*types.Receipt, error) {
+func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC, r *relay) (*types.Receipt, error) {
 	orderid := []byte(verifydata.Orderid)
 	order, err := getRelayOrderFromID(orderid, action.db)
 	if err != nil {
@@ -384,14 +384,14 @@ func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC) (*
 
 	var receipt *types.Receipt
 
-	rst, err := VerifyBTCTx(verifydata)
+	rst, err := r.btcstore.verifyBTCTx(verifydata)
 	if err != nil || rst != true {
 
 		err = types.ErrTRelayVerify
 	}
 
 	if rst {
-		receipt, err = action.coinsAccount.ExecTransferFrozen(order.Selladdr, order.Buyeraddr, action.execaddr, order.Sellamount)
+		receipt, err = action.coinsAccount.ExecTransferFrozen(order.Selladdr, order.Buyeraddr, action.execaddr, int64(order.Sellamount))
 	}
 
 	order.Status = types.RelayOrderStatus_finished
@@ -413,4 +413,27 @@ func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC) (*
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 
+}
+
+func getBTCHeaderLog(relayLogType int32, head *types.BtcHeader) *types.ReceiptLog {
+	log := &types.ReceiptLog{}
+	log.Ty = relayLogType
+	receipt := &types.ReceiptRelayRcvBTCHeaders{head}
+
+	log.Log = types.Encode(receipt)
+
+	return log
+
+}
+
+func (action *relayAction) relaySaveBTCHeader(headers *types.BtcHeaders) (*types.Receipt, error) {
+	var logs []*types.ReceiptLog
+	var kv []*types.KeyValue
+
+	//TODO make some simple check
+	for _, head := range headers.BtcHeader {
+		logs = append(logs, getBTCHeaderLog(types.TyLogRelayRcvBTCHead, head))
+	}
+
+	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }

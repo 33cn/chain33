@@ -40,7 +40,7 @@ build: ## Build the binary file
 	@cp cmd/chain33/chain33.toml build/
 
 release: ## Build the binary file
-	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
 	@cp cmd/chain33/chain33.toml build/
 
 cli: ## Build cli binary
