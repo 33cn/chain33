@@ -8,7 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
 	"io"
-	"encoding/hex"
 )
 
 // Tracer接口用来在合约执行过程中收集跟踪数据。
@@ -75,7 +74,7 @@ func formatStack(data []*big.Int) ( res []string) {
 
 func formatMemory(data []byte) ( res []string) {
 	for idx:=0; idx <len(data) ;idx+=32{
-		res = append(res, hex.EncodeToString(data[idx:idx+32]))
+		res = append(res, common.Bytes2Hex(data[idx:idx+32]))
 	}
 	return
 }

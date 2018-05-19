@@ -1,7 +1,6 @@
 package state
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -557,7 +556,7 @@ func (self *MemoryStateDB) PrintLogs() {
 // 打印本区块内生成的preimages日志
 func (self *MemoryStateDB) WritePreimages(number int64) {
 	for k, v := range self.preimages {
-		log15.Debug("Contract preimages ", "key:", k.Str(), "value:", hex.EncodeToString(v), "block height:", number)
+		log15.Debug("Contract preimages ", "key:", k.Str(), "value:", common.Bytes2Hex(v), "block height:", number)
 	}
 }
 

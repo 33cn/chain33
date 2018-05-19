@@ -14,7 +14,7 @@ type Hash common.Hash
 func (h Hash) Str() string   { return string(h[:]) }
 func (h Hash) Bytes() []byte { return h[:] }
 func (h Hash) Big() *big.Int { return new(big.Int).SetBytes(h[:]) }
-func (h Hash) Hex() string   { return ToHex(h[:]) }
+func (h Hash) Hex() string   { return Bytes2Hex(h[:]) }
 
 // 设置哈希中的字节值，如果字节数组长度超过哈希长度，则被截断，只保留后面的部分
 func (h *Hash) SetBytes(b []byte) {
