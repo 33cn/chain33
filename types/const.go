@@ -2,7 +2,6 @@ package types
 
 // 注释掉系统中没有用到的枚举项
 // 与AllowUserExec中驱动名称的顺序一致
-//TODO 后面会有专门执行器相关的目录
 const (
 	ExecTypeCoins    = 0
 	ExecTypeTicket   = 1
@@ -28,7 +27,7 @@ var (
 	ExecerEvm        = []byte(ExecerEvmString)
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"),  []byte("relay"), ExecerManage, ExecerEvm}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"

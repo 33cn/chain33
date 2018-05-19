@@ -49,7 +49,7 @@ message RelaySell {
     string exchgcoin          	= 4;    //兑换币符号 比如BTC
     uint64 exchgamount          = 5;    //兑换数量
     string exchgaddr	       	= 6;    //兑换账户
-    int32  waitcoinblocks       = 7;    //客户愿意等待的确认块数，默认是6个块，可以自己设置
+    uint32  waitcoinblocks      = 7;    //客户愿意等待的确认块数，默认是6个块，可以自己设置
 
 }
 
@@ -60,10 +60,10 @@ message RelayOrder {
     //string selltoken          = 4;
     string selladdr             = 5;
     string exchgcoin            = 6;
-    uint64 exchgamount         = 7;
+    uint64 exchgamount          = 7;
     string exchgaddr          	= 8;
     string exchgtxhash          = 9;     //buyer 提交coin的交易hash
-    int32  waitcoinblocks       = 10;
+    uint32  waitcoinblocks      = 10;
     int64  createtime           = 11;
     string buyeraddr          	= 12;
     //string buytxhash          = 13;
@@ -168,14 +168,14 @@ message ReceiptRelayRcvBTCHeaders{
 message ReceiptRelayBase {
     string orderid				= 1;
     RelayOrderStatus status		= 2;
-    string owner                = 3;
+    string selladdr             = 3;
     uint64 sellamount			= 4;
     //string selltoken			= 5;
     string exchgcoin            = 6;
     uint64 exchgamount          = 7;
     string exchgaddr            = 8;
     string exchgtxhash          = 9;
-    int32  waitcoinblocks       = 10;
+    uint32 waitcoinblocks       = 10;
     int64  createtime           = 11;
     string buyeraddr            = 12;
     int64  buyertime            = 13;
@@ -235,9 +235,10 @@ message QueryRelayOrderResult{
 
 message ReqRelayBtcHeaderHeightList{
     int64 heightBase    = 1;
-    int32 reqCounts     = 2;
+    int32 counts        = 2;
 }
 
-message ReplyBtcHeaderHeightList{
-    repeated bytes heights  = 1;
+message ReplyRelayBtcHeadHeightList{
+    repeated int64 heights  = 1;
 }
+
