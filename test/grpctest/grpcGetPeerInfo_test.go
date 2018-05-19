@@ -13,7 +13,7 @@ import (
 
 func TestGrpcGetPeerInfo(t *testing.T) {
 	var err error
-	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	if err != nil {
 		panic(err)
 	}
