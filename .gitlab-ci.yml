@@ -73,6 +73,6 @@ deploy:
         - make build_ci
         - make docker-compose
         - cd build && docker-compose down && cd ..
-    only:
-        - master
-        - develop
+#    only:
+#        - master
+#        - develop
