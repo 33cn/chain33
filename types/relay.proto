@@ -117,13 +117,14 @@ message BtcHeader {
     string  hash          = 1;
     uint64  confirmations = 2;
     uint64  height        = 3;
-    string  merkleRoot    = 4;
-    int64   time          = 5;
-    int64   nonce         = 6;
-    int64   bits          = 7;
-    int64   difficulty    = 8;
-    string  previousHash  = 9;
-    string  nextHash      = 10;
+    uint32  version       = 4;
+    string  merkleRoot    = 5;
+    int64   time          = 6;
+    int64   nonce         = 7;
+    int64   bits          = 8;
+    int64   difficulty    = 9;
+    string  previousHash  = 10;
+    string  nextHash      = 11;
 }
 
 message BtcHeaders {
@@ -158,6 +159,11 @@ message BtcSpv {
    uint32 txIndex   = 5;
    repeated bytes branchProof = 6;
 }
+
+message ReceiptRelayRcvBTCHeaders{
+    BtcHeader base      =1;
+}
+
 
 message ReceiptRelayBase {
     string orderid				= 1;
@@ -225,4 +231,13 @@ message QueryRelayOrderParam{
 
 message QueryRelayOrderResult{
     repeated RelayOrder orders = 1;
+}
+
+message ReqRelayBtcHeaderHeightList{
+    int64 heightBase    = 1;
+    int32 reqCounts     = 2;
+}
+
+message ReplyBtcHeaderHeightList{
+    repeated bytes heights  = 1;
 }

@@ -46,7 +46,7 @@ var RelayOrderStatus_value = map[string]int32{
 func (x RelayOrderStatus) String() string {
 	return proto.EnumName(RelayOrderStatus_name, int32(x))
 }
-func (RelayOrderStatus) EnumDescriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
+func (RelayOrderStatus) EnumDescriptor() ([]byte, []int) { return fileDescriptor9, []int{0} }
 
 type RelayAction struct {
 	// Types that are valid to be assigned to Value:
@@ -65,7 +65,7 @@ type RelayAction struct {
 func (m *RelayAction) Reset()                    { *m = RelayAction{} }
 func (m *RelayAction) String() string            { return proto.CompactTextString(m) }
 func (*RelayAction) ProtoMessage()               {}
-func (*RelayAction) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
+func (*RelayAction) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{0} }
 
 type isRelayAction_Value interface {
 	isRelayAction_Value()
@@ -376,7 +376,7 @@ type RelaySell struct {
 func (m *RelaySell) Reset()                    { *m = RelaySell{} }
 func (m *RelaySell) String() string            { return proto.CompactTextString(m) }
 func (*RelaySell) ProtoMessage()               {}
-func (*RelaySell) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
+func (*RelaySell) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{1} }
 
 func (m *RelaySell) GetSellamount() uint64 {
 	if m != nil {
@@ -440,7 +440,7 @@ type RelayOrder struct {
 func (m *RelayOrder) Reset()                    { *m = RelayOrder{} }
 func (m *RelayOrder) String() string            { return proto.CompactTextString(m) }
 func (*RelayOrder) ProtoMessage()               {}
-func (*RelayOrder) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{2} }
+func (*RelayOrder) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{2} }
 
 func (m *RelayOrder) GetOrderid() string {
 	if m != nil {
@@ -568,7 +568,7 @@ type RelayBuy struct {
 func (m *RelayBuy) Reset()                    { *m = RelayBuy{} }
 func (m *RelayBuy) String() string            { return proto.CompactTextString(m) }
 func (*RelayBuy) ProtoMessage()               {}
-func (*RelayBuy) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{3} }
+func (*RelayBuy) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{3} }
 
 func (m *RelayBuy) GetOrderid() string {
 	if m != nil {
@@ -585,7 +585,7 @@ type RelayRevokeSell struct {
 func (m *RelayRevokeSell) Reset()                    { *m = RelayRevokeSell{} }
 func (m *RelayRevokeSell) String() string            { return proto.CompactTextString(m) }
 func (*RelayRevokeSell) ProtoMessage()               {}
-func (*RelayRevokeSell) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{4} }
+func (*RelayRevokeSell) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{4} }
 
 func (m *RelayRevokeSell) GetOrderid() string {
 	if m != nil {
@@ -602,7 +602,7 @@ type RelayRevokeBuy struct {
 func (m *RelayRevokeBuy) Reset()                    { *m = RelayRevokeBuy{} }
 func (m *RelayRevokeBuy) String() string            { return proto.CompactTextString(m) }
 func (*RelayRevokeBuy) ProtoMessage()               {}
-func (*RelayRevokeBuy) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{5} }
+func (*RelayRevokeBuy) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{5} }
 
 func (m *RelayRevokeBuy) GetOrderid() string {
 	if m != nil {
@@ -620,7 +620,7 @@ type RelayConfirmTx struct {
 func (m *RelayConfirmTx) Reset()                    { *m = RelayConfirmTx{} }
 func (m *RelayConfirmTx) String() string            { return proto.CompactTextString(m) }
 func (*RelayConfirmTx) ProtoMessage()               {}
-func (*RelayConfirmTx) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{6} }
+func (*RelayConfirmTx) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{6} }
 
 func (m *RelayConfirmTx) GetOrderid() string {
 	if m != nil {
@@ -646,7 +646,7 @@ type RelayVerify struct {
 func (m *RelayVerify) Reset()                    { *m = RelayVerify{} }
 func (m *RelayVerify) String() string            { return proto.CompactTextString(m) }
 func (*RelayVerify) ProtoMessage()               {}
-func (*RelayVerify) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{7} }
+func (*RelayVerify) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{7} }
 
 func (m *RelayVerify) GetOrderid() string {
 	if m != nil {
@@ -681,7 +681,7 @@ type RelayVerifyBTC struct {
 func (m *RelayVerifyBTC) Reset()                    { *m = RelayVerifyBTC{} }
 func (m *RelayVerifyBTC) String() string            { return proto.CompactTextString(m) }
 func (*RelayVerifyBTC) ProtoMessage()               {}
-func (*RelayVerifyBTC) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{8} }
+func (*RelayVerifyBTC) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{8} }
 
 func (m *RelayVerifyBTC) GetOrderid() string {
 	if m != nil {
@@ -735,7 +735,7 @@ type BtcHeader struct {
 func (m *BtcHeader) Reset()                    { *m = BtcHeader{} }
 func (m *BtcHeader) String() string            { return proto.CompactTextString(m) }
 func (*BtcHeader) ProtoMessage()               {}
-func (*BtcHeader) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{9} }
+func (*BtcHeader) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{9} }
 
 func (m *BtcHeader) GetHash() string {
 	if m != nil {
@@ -821,7 +821,7 @@ type BtcHeaders struct {
 func (m *BtcHeaders) Reset()                    { *m = BtcHeaders{} }
 func (m *BtcHeaders) String() string            { return proto.CompactTextString(m) }
 func (*BtcHeaders) ProtoMessage()               {}
-func (*BtcHeaders) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{10} }
+func (*BtcHeaders) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{10} }
 
 func (m *BtcHeaders) GetBtcHeader() []*BtcHeader {
 	if m != nil {
@@ -842,7 +842,7 @@ type BtcTransaction struct {
 func (m *BtcTransaction) Reset()                    { *m = BtcTransaction{} }
 func (m *BtcTransaction) String() string            { return proto.CompactTextString(m) }
 func (*BtcTransaction) ProtoMessage()               {}
-func (*BtcTransaction) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{11} }
+func (*BtcTransaction) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{11} }
 
 func (m *BtcTransaction) GetHash() string {
 	if m != nil {
@@ -894,7 +894,7 @@ type Vin struct {
 func (m *Vin) Reset()                    { *m = Vin{} }
 func (m *Vin) String() string            { return proto.CompactTextString(m) }
 func (*Vin) ProtoMessage()               {}
-func (*Vin) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{12} }
+func (*Vin) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{12} }
 
 func (m *Vin) GetAddress() string {
 	if m != nil {
@@ -919,7 +919,7 @@ type Vout struct {
 func (m *Vout) Reset()                    { *m = Vout{} }
 func (m *Vout) String() string            { return proto.CompactTextString(m) }
 func (*Vout) ProtoMessage()               {}
-func (*Vout) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{13} }
+func (*Vout) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{13} }
 
 func (m *Vout) GetCoinbase() bool {
 	if m != nil {
@@ -954,7 +954,7 @@ type BtcSpv struct {
 func (m *BtcSpv) Reset()                    { *m = BtcSpv{} }
 func (m *BtcSpv) String() string            { return proto.CompactTextString(m) }
 func (*BtcSpv) ProtoMessage()               {}
-func (*BtcSpv) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{14} }
+func (*BtcSpv) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{14} }
 
 func (m *BtcSpv) GetHash() string {
 	if m != nil {
@@ -1005,7 +1005,7 @@ type ReceiptRelayRcvBTCHeaders struct {
 func (m *ReceiptRelayRcvBTCHeaders) Reset()                    { *m = ReceiptRelayRcvBTCHeaders{} }
 func (m *ReceiptRelayRcvBTCHeaders) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptRelayRcvBTCHeaders) ProtoMessage()               {}
-func (*ReceiptRelayRcvBTCHeaders) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{15} }
+func (*ReceiptRelayRcvBTCHeaders) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{15} }
 
 func (m *ReceiptRelayRcvBTCHeaders) GetBase() *BtcHeader {
 	if m != nil {
@@ -1035,7 +1035,7 @@ type ReceiptRelayBase struct {
 func (m *ReceiptRelayBase) Reset()                    { *m = ReceiptRelayBase{} }
 func (m *ReceiptRelayBase) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptRelayBase) ProtoMessage()               {}
-func (*ReceiptRelayBase) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{16} }
+func (*ReceiptRelayBase) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{16} }
 
 func (m *ReceiptRelayBase) GetOrderid() string {
 	if m != nil {
@@ -1142,7 +1142,7 @@ type ReceiptRelaySell struct {
 func (m *ReceiptRelaySell) Reset()                    { *m = ReceiptRelaySell{} }
 func (m *ReceiptRelaySell) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptRelaySell) ProtoMessage()               {}
-func (*ReceiptRelaySell) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{17} }
+func (*ReceiptRelaySell) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{17} }
 
 func (m *ReceiptRelaySell) GetBase() *ReceiptRelayBase {
 	if m != nil {
@@ -1166,7 +1166,7 @@ type ReceiptRelayBuy struct {
 func (m *ReceiptRelayBuy) Reset()                    { *m = ReceiptRelayBuy{} }
 func (m *ReceiptRelayBuy) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptRelayBuy) ProtoMessage()               {}
-func (*ReceiptRelayBuy) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{18} }
+func (*ReceiptRelayBuy) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{18} }
 
 func (m *ReceiptRelayBuy) GetOrderid() string {
 	if m != nil {
@@ -1238,7 +1238,7 @@ type ReceiptRelayRevoke struct {
 func (m *ReceiptRelayRevoke) Reset()                    { *m = ReceiptRelayRevoke{} }
 func (m *ReceiptRelayRevoke) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptRelayRevoke) ProtoMessage()               {}
-func (*ReceiptRelayRevoke) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{19} }
+func (*ReceiptRelayRevoke) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{19} }
 
 func (m *ReceiptRelayRevoke) GetBase() *ReceiptRelayBase {
 	if m != nil {
@@ -1254,7 +1254,7 @@ type ReceiptRelayConfirm struct {
 func (m *ReceiptRelayConfirm) Reset()                    { *m = ReceiptRelayConfirm{} }
 func (m *ReceiptRelayConfirm) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptRelayConfirm) ProtoMessage()               {}
-func (*ReceiptRelayConfirm) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{20} }
+func (*ReceiptRelayConfirm) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{20} }
 
 func (m *ReceiptRelayConfirm) GetBase() *ReceiptRelayBuy {
 	if m != nil {
@@ -1270,7 +1270,7 @@ type ReceiptRelayVerify struct {
 func (m *ReceiptRelayVerify) Reset()                    { *m = ReceiptRelayVerify{} }
 func (m *ReceiptRelayVerify) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptRelayVerify) ProtoMessage()               {}
-func (*ReceiptRelayVerify) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{21} }
+func (*ReceiptRelayVerify) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{21} }
 
 func (m *ReceiptRelayVerify) GetBase() *ReceiptRelayBase {
 	if m != nil {
@@ -1290,7 +1290,7 @@ type ReqRelayAddrCoins struct {
 func (m *ReqRelayAddrCoins) Reset()                    { *m = ReqRelayAddrCoins{} }
 func (m *ReqRelayAddrCoins) String() string            { return proto.CompactTextString(m) }
 func (*ReqRelayAddrCoins) ProtoMessage()               {}
-func (*ReqRelayAddrCoins) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{22} }
+func (*ReqRelayAddrCoins) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{22} }
 
 func (m *ReqRelayAddrCoins) GetAddr() string {
 	if m != nil {
@@ -1334,7 +1334,7 @@ type ReplyRelayOrders struct {
 func (m *ReplyRelayOrders) Reset()                    { *m = ReplyRelayOrders{} }
 func (m *ReplyRelayOrders) String() string            { return proto.CompactTextString(m) }
 func (*ReplyRelayOrders) ProtoMessage()               {}
-func (*ReplyRelayOrders) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{23} }
+func (*ReplyRelayOrders) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{23} }
 
 func (m *ReplyRelayOrders) GetRelayorders() []*RelayOrder {
 	if m != nil {
@@ -1351,7 +1351,7 @@ type QueryRelayOrderParam struct {
 func (m *QueryRelayOrderParam) Reset()                    { *m = QueryRelayOrderParam{} }
 func (m *QueryRelayOrderParam) String() string            { return proto.CompactTextString(m) }
 func (*QueryRelayOrderParam) ProtoMessage()               {}
-func (*QueryRelayOrderParam) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{24} }
+func (*QueryRelayOrderParam) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{24} }
 
 func (m *QueryRelayOrderParam) GetStatus() RelayOrderStatus {
 	if m != nil {
@@ -1374,7 +1374,7 @@ type QueryRelayOrderResult struct {
 func (m *QueryRelayOrderResult) Reset()                    { *m = QueryRelayOrderResult{} }
 func (m *QueryRelayOrderResult) String() string            { return proto.CompactTextString(m) }
 func (*QueryRelayOrderResult) ProtoMessage()               {}
-func (*QueryRelayOrderResult) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{25} }
+func (*QueryRelayOrderResult) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{25} }
 
 func (m *QueryRelayOrderResult) GetOrders() []*RelayOrder {
 	if m != nil {
@@ -1391,7 +1391,7 @@ type ReqRelayBtcHeaderHeightList struct {
 func (m *ReqRelayBtcHeaderHeightList) Reset()                    { *m = ReqRelayBtcHeaderHeightList{} }
 func (m *ReqRelayBtcHeaderHeightList) String() string            { return proto.CompactTextString(m) }
 func (*ReqRelayBtcHeaderHeightList) ProtoMessage()               {}
-func (*ReqRelayBtcHeaderHeightList) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{26} }
+func (*ReqRelayBtcHeaderHeightList) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{26} }
 
 func (m *ReqRelayBtcHeaderHeightList) GetHeightBase() int64 {
 	if m != nil {
@@ -1414,7 +1414,7 @@ type ReplyBtcHeaderHeightList struct {
 func (m *ReplyBtcHeaderHeightList) Reset()                    { *m = ReplyBtcHeaderHeightList{} }
 func (m *ReplyBtcHeaderHeightList) String() string            { return proto.CompactTextString(m) }
 func (*ReplyBtcHeaderHeightList) ProtoMessage()               {}
-func (*ReplyBtcHeaderHeightList) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{27} }
+func (*ReplyBtcHeaderHeightList) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{27} }
 
 func (m *ReplyBtcHeaderHeightList) GetHeights() [][]byte {
 	if m != nil {
@@ -1455,9 +1455,9 @@ func init() {
 	proto.RegisterEnum("types.RelayOrderStatus", RelayOrderStatus_name, RelayOrderStatus_value)
 }
 
-func init() { proto.RegisterFile("relay.proto", fileDescriptor8) }
+func init() { proto.RegisterFile("relay.proto", fileDescriptor9) }
 
-var fileDescriptor8 = []byte{
+var fileDescriptor9 = []byte{
 	// 1413 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x58, 0x4f, 0x6f, 0xe3, 0x44,
 	0x14, 0x6f, 0x62, 0x3b, 0x69, 0x5e, 0xda, 0x34, 0x3b, 0xdb, 0x16, 0x03, 0x2b, 0x36, 0xb2, 0x76,

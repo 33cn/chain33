@@ -1,5 +1,13 @@
 package relay
 
+import (
+	log "github.com/inconshreveable/log15"
+
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
+)
+
 /*
 relay执行器支持跨链token的创建和交易，
 
@@ -13,13 +21,8 @@ relay执行器支持跨链token的创建和交易，
 
 */
 
-import (
-	log "github.com/inconshreveable/log15"
-
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
-	"gitlab.33.cn/chain33/chain33/types"
-)
+///////executor.go////////
+//_ "gitlab.33.cn/chain33/chain33/executor/drivers/relay"
 
 var relaylog = log.New("module", "execs.relay")
 
@@ -30,6 +33,7 @@ func init() {
 
 type relay struct {
 	drivers.DriverBase
+	btcstore relayBTCStore
 }
 
 func newRelay() *relay {
@@ -70,12 +74,14 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	// orderid, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyTx:
-		return actiondb.relayVerifyTx(action.GetRverify())
+		return actiondb.relayVerifyTx(action.GetRverify(), r)
 
 	// orderid, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyBTCTx:
-		return actiondb.relayVerifyBTCTx(action.GetRverifybtc())
+		return actiondb.relayVerifyBTCTx(action.GetRverifybtc(), r)
 
+	case types.RelayActionRcvBTCHeaders:
+		return actiondb.relaySaveBTCHeader(action.GetBtcHeaders())
 	default:
 		return nil, types.ErrActionNotSupport
 	}
@@ -91,6 +97,8 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	if err != nil {
 		return nil, err
 	}
+
+	r.btcstore.setDb(r.GetLocalDB())
 
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
@@ -114,6 +122,16 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 
 			kv := r.saveBuy([]byte(receipt.Orderid), item.Ty)
+			set.KV = append(set.KV, kv...)
+		} else if item.Ty == types.TyLogRelayRcvBTCHead {
+
+			var receipt types.ReceiptRelayRcvBTCHeaders
+			err := types.Decode(item.Log, &receipt)
+			if err != nil {
+				panic(err)
+			}
+
+			kv := r.btcstore.saveBlockHead(receipt.Base)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -181,6 +199,13 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return r.GetBuyRelayOrder(&addrCoins)
+	case "GetBTCHeaderList":
+		var req types.ReqRelayBtcHeaderHeightList
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return r.btcstore.getHeadHeigtList(&req)
 
 	default:
 	}
@@ -303,6 +328,16 @@ func (r *relay) getSellOrderFromDb(orderid []byte) (*types.RelayOrder, error) {
 	var order types.RelayOrder
 	types.Decode(value, &order)
 	return &order, nil
+}
+
+func (r *relay) getBTCHeaderFromDb(hash []byte) (*types.BtcHeader, error) {
+	value, err := r.GetStateDB().Get(hash)
+	if err != nil {
+		return nil, err
+	}
+	var header types.BtcHeader
+	types.Decode(value, &header)
+	return &header, nil
 }
 
 func getSellOrderKv(order *types.RelayOrder) []*types.KeyValue {
