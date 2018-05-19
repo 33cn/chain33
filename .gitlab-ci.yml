@@ -50,12 +50,12 @@ go_test:
 memory_sanitizer:
     stage: test
     script:
-        - make msan
+        - export CC=clang-5.0 && make msan
 
 code_coverage:
     stage: test
     script:
-        - export CC=clang-5.0 && make coverage
+        - make coverage
 
 code_coverage_report:
     stage: test
