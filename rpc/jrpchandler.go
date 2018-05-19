@@ -1250,6 +1250,46 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogRelaySell:
+			lTy = "LogRelaySell"
+			var logTmp types.ReceiptRelaySell
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRevokeSell:
+			lTy = "LogRelayRevokeSell"
+			var logTmp types.ReceiptRelayRevoke
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayBuy:
+			lTy = "LogRelayBug"
+			var logTmp types.ReceiptRelayBuy
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRevokeBuy:
+			lTy = "LogRelayRevokeBuy"
+			var logTmp types.ReceiptRelayBuy
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRcvBTCHead:
+			lTy = "LogRelayRcvBTCHead"
+			var logTmp types.ReceiptRelayRcvBTCHeaders
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		default:
 			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"

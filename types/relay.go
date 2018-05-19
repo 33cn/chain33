@@ -13,11 +13,12 @@ const (
 	TyLogRelayBuy        = 352
 	TyLogRelayRevokeBuy  = 353
 	TyLogRelayRcvBTCHead = 354
+	TyLogRelayConfirmTx  = 355
 )
 
 //hard fork block height
 const (
-	ForkV7AddRelay = 440000
+	ForkV7AddRelay = 1
 )
 
 //relay action ty

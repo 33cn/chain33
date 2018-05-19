@@ -26,7 +26,7 @@ relay执行器支持跨链token的创建和交易，
 
 var relaylog = log.New("module", "execs.relay")
 
-func init() {
+func Init() {
 	r := newRelay()
 	drivers.Register(r.GetName(), r, types.ForkV7AddRelay) //TODO: ForkV7AddRelay
 }
@@ -39,11 +39,21 @@ type relay struct {
 func newRelay() *relay {
 	r := &relay{}
 	r.SetChild(r)
+	r.btcstore.r = r
 	return r
 }
 
 func (r *relay) GetName() string {
 	return "relay"
+}
+
+func (r *relay) Clone() drivers.Driver {
+	clone := &relay{}
+	clone.DriverBase = *(r.DriverBase.Clone().(*drivers.DriverBase))
+	clone.SetChild(clone)
+	clone.btcstore.r = clone
+
+	return clone
 }
 
 func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -97,8 +107,6 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	if err != nil {
 		return nil, err
 	}
-
-	r.btcstore.setDb(r.GetLocalDB())
 
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
@@ -179,6 +187,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 	//按状态查询卖单
 	case "GetRelayOrderByStatus":
 		var addrCoins types.ReqRelayAddrCoins
+
 		err := types.Decode(params, &addrCoins)
 		if err != nil {
 			return nil, err

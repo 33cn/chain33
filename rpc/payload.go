@@ -118,6 +118,8 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return tradePayloadType(funcname)
 	case "evm":
 		return evmPayloadType(funcname)
+	case "relay":
+		return relayPayloadType(funcname)
 	}
 	return nil, types.ErrInputPara
 }

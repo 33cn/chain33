@@ -66,7 +66,7 @@ func (r *relayDB) getSellLogs(relayLogType int32) *types.ReceiptLog {
 	base := &types.ReceiptRelayBase{
 		Orderid:        r.Orderid,
 		Status:         r.Status,
-		Owner:          r.Selladdr,
+		Selladdr:       r.Selladdr,
 		Sellamount:     r.Sellamount,
 		Exchgcoin:      r.Exchgcoin,
 		Exchgamount:    r.Exchgamount,
@@ -396,7 +396,11 @@ func (action *relayAction) relayVerifyBTCTx(verifydata *types.RelayVerifyBTC, r 
 
 	order.Status = types.RelayOrderStatus_finished
 	order.Finishtime = action.blocktime
-	order.Finishresult = err.Error()
+	if err != nil {
+		order.Finishresult = err.Error()
+	} else {
+		order.Finishresult = "tx success"
+	}
 	relaydb := newRelayDB(order)
 	orderKV := relaydb.save(action.db)
 
@@ -432,6 +436,7 @@ func (action *relayAction) relaySaveBTCHeader(headers *types.BtcHeaders) (*types
 
 	//TODO make some simple check
 	for _, head := range headers.BtcHeader {
+		relaylog.Info("relaySaveBTCHeader", "heigth", head.Height)
 		logs = append(logs, getBTCHeaderLog(types.TyLogRelayRcvBTCHead, head))
 	}
 
