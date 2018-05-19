@@ -2,7 +2,7 @@ package tests
 
 import (
 	"testing"
-	"encoding/hex"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 )
 
 type Tester struct {
@@ -22,7 +22,7 @@ func (t *Tester) assertNil(val interface{})  {
 
 func (t *Tester) assertNilB(val []byte)  {
 	if val != nil {
-		t.t.Errorf("value {%s} is not nil", hex.EncodeToString(val))
+		t.t.Errorf("value {%s} is not nil", common.Bytes2Hex(val))
 		t.t.Fail()
 	}
 }
@@ -63,7 +63,7 @@ func (t *Tester) assertEqualsE(val1 , val2 error)  {
 
 func (t *Tester) assertEqualsB(val1 , val2 []byte)  {
 	if string(val1) != string(val2) {
-		t.t.Errorf("value {%s} is not equals to {%s}", hex.EncodeToString(val1), hex.EncodeToString(val2))
+		t.t.Errorf("value {%s} is not equals to {%s}", common.Bytes2Hex(val1), common.Bytes2Hex(val2))
 		t.t.Fail()
 	}
 }

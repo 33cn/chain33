@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/hex"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 )
@@ -27,5 +26,5 @@ type ContractLog struct {
 
 // 合约日志打印格式
 func (log *ContractLog) PrintLog() {
-	log15.Debug("!Contract Log!", "Contract address", log.Address.Str(), "TxHash", log.TxHash.Hex(), "Log Index", log.Index, "Log Topics", log.Topics, "Log Data", hex.EncodeToString(log.Data))
+	log15.Debug("!Contract Log!", "Contract address", log.Address.Str(), "TxHash", log.TxHash.Hex(), "Log Index", log.Index, "Log Topics", log.Topics, "Log Data", common.Bytes2Hex(log.Data))
 }
