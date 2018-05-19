@@ -143,8 +143,8 @@ func decodeHex(data string)[]byte  {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "1EeLtb5ygpG2sZF27TF1Aj7q7fMBCnxkQd"
-	code := "0x41c0e1b5"
+	to := "1eqThPjHFVbE2Fn4AX7m9AMP415Nf32uK"
+	code := "0xb8077e28"
 	//code := "4e71d92d"  // claim
 	//code := "1b9265b8"  // pay
 	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000021"  // put
@@ -193,5 +193,18 @@ func TestCreateTx(t *testing.T) {
 		t.Log(signedTx)
 	}
 
-	fmt.Println(hex.EncodeToString(crypto.Keccak256([]byte("litian"))))
+	fmt.Println(common.Bytes2Hex(crypto.Keccak256([]byte("litian"))))
+}
+
+func TestBytes(t *testing.T) {
+	var ret [96]byte
+
+	ret[31] = 32
+	ret[63] = 4
+	ret[64] = 200
+	ret[65] = 231
+	ret[66] = 202
+	ret[67] = 46
+
+	fmt.Println(common.Bytes2Hex(ret[:]))
 }
