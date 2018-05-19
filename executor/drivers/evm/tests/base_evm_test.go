@@ -143,8 +143,8 @@ func decodeHex(data string)[]byte  {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "129jSt69pBZSuXc1hXQVAHgBWQbcggaP2r"
-	code := "0x26121ff0"
+	to := "1EeLtb5ygpG2sZF27TF1Aj7q7fMBCnxkQd"
+	code := "0x41c0e1b5"
 	//code := "4e71d92d"  // claim
 	//code := "1b9265b8"  // pay
 	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000021"  // put

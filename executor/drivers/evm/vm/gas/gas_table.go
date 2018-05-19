@@ -24,10 +24,6 @@ type GasTable struct {
 	Suicide     uint64
 
 	ExpByte uint64
-
-	// 奖励合约账户已经自杀的情况下，需要多少计费
-	// 此属性可以设置为0，不设置，此时不计费
-	CreateBySuicide uint64
 }
 
 var (
@@ -40,7 +36,6 @@ var (
 		Calls:           40,
 		Suicide:         0,
 		ExpByte:         10,
-		CreateBySuicide: 25000,
 	}
 )
 

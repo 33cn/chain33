@@ -15,6 +15,7 @@ var (
 	ErrTransferBetweenContracts        = errors.New("transferring between contracts not supports")
 	ErrTransferBetweenEOA        = errors.New("transferring between external accounts not supports")
 	ErrNoCreator        = errors.New("contract has no creator information")
+	ErrDestruct        = errors.New("contract has been destructed")
 
 	ErrWriteProtection       = errors.New("evm: write protection")
 	ErrReturnDataOutOfBounds = errors.New("evm: return data out of bounds")
