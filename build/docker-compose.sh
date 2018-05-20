@@ -5,7 +5,7 @@ set -e -o pipefail
 # first, you must install jq tool of json
 # sudo apt-get install jq
 
-sed -i 's/^TestNet=.*/TestNet=false/g' chain33.toml
+sed -i 's/^TestNet=.*/TestNet=true/g' chain33.toml
 
 # p2p
 sed -i 's/^seeds=.*/seeds=["172.18.18.151:13802","172.18.18.97:13802","172.18.18.177:13802"]/g' chain33.toml
