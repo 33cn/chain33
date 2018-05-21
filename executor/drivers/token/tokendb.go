@@ -51,13 +51,12 @@ func (t *tokenDB) getKVSet(key []byte) (kvset []*types.KeyValue) {
 }
 
 func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error) {
-	tokenlog.Info("getTokenFromDB", "symbol:", symbol, "owner:", owner)
 	key := calcTokenAddrKey(symbol, owner)
 	value, err := db.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	//tokenlog.Info("getTokenFromDB", "key string", string(key), "key", key, "value", value)
+
 	var token types.Token
 	if err = types.Decode(value, &token); err != nil {
 		tokenlog.Error("getTokenFromDB", "Fail to decode types.token for key", string(key), "err info is", err)
