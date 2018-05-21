@@ -1,6 +1,8 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 var RpcTradeTypeTransList = []RpcTypeInfo{
 	{
@@ -9,24 +11,24 @@ var RpcTradeTypeTransList = []RpcTypeInfo{
 	},
 	{
 		"GetOnesSellOrderWithStatus",
-		&TradeQueryOnesSellOrder{},
+		&TradeQueryOnesOrder{},
 	},
 	{
 		"GetOnesSellOrder",
-		&TradeQueryOnesSellOrder{},
+		&TradeQueryOnesOrder{},
 	},
 
 	{
 		"GetTokenBuyOrderByStatus",
-		&TradeQueryTokenBuyOrder{},
+		&TradeQueryTokenSellOrder{},
 	},
 	{
 		"GetOnesBuyOrderWithStatus",
-		&TradeQueryOnesBuyOrder{},
+		&TradeQueryOnesOrder{},
 	},
 	{
 		"GetOnesBuyOrder",
-		&TradeQueryOnesBuyOrder{},
+		&TradeQueryOnesOrder{},
 	},
 	{
 		"GetOnesOrderWithStatus",
@@ -72,7 +74,7 @@ func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error
 	if err != nil {
 		return nil, err
 	}
-	var rpcReply RpcReplySellOrders
+	var rpcReply RpcReplyTradeOrders
 	json.Unmarshal(str, &rpcReply)
 	return &rpcReply, nil
 }
