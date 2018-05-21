@@ -33,21 +33,19 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 		}
 	}
 
-	var replys types.ReplySellOrders
+	var replys types.ReplyTradeOrders
 	for _, key := range keys {
-		reply := t.replyReplySellOrderfromID(key)
+		reply := t.loadOrderFromKey(key)
 		if reply == nil {
 			continue
 		}
 		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
-		replys.SellOrders = insertSellOrderDescending(reply, replys.SellOrders)
+		replys.Orders = append(replys.Orders, reply)
 	}
 	return &replys, nil
 }
 
 func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
-	var replys types.ReplyBuyOrders
-
 	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
 		values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
@@ -71,17 +69,16 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 		}
 	}
 
-	if len(keys) != 0 {
-		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(keys))
-		for _, key := range keys {
-			//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
-			reply := t.replyReplyBuyOrderfromID(key)
-			if reply == nil {
-				continue
-			}
 
-			replys.BuyOrders = append(replys.BuyOrders, reply)
+
+	var replys types.ReplyTradeOrders
+	for _, key := range keys {
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
 
 	return &replys, nil
@@ -98,15 +95,16 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 		sellIDs = append(sellIDs, values...)
 	}
 
-	var replys types.ReplySellOrders
-	for _, sellID := range sellIDs {
-		reply := t.replyReplySellOrderfromID(sellID)
-		if reply != nil {
-			replys.SellOrders = insertSellOrderDescending(reply, replys.SellOrders)
-			tradelog.Debug("trade Query", "height of sellID", reply.Height,
-				"len of reply.Selloders", len(replys.SellOrders))
+	var replys types.ReplyTradeOrders
+	for _, key := range sellIDs {
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
+
 	return &replys, nil
 }
 
@@ -120,17 +118,16 @@ func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Mess
 		tradelog.Debug("trade Query", "get number of buy keys", len(values))
 		sellIDs = append(sellIDs, values...)
 	}
-
-	var replys types.ReplyBuyOrders
-	for _, sellID := range sellIDs {
-		reply := t.replyReplyBuyOrderfromID(sellID)
-		if reply != nil {
-			//replys.Selloders = insertBuyOrderDescending(reply, replys.Selloders)
-			replys.BuyOrders = append(replys.BuyOrders, reply)
-			tradelog.Debug("trade Query", "height of key", reply.Height,
-				"len of reply.Selloders", len(replys.BuyOrders))
+	var replys types.ReplyTradeOrders
+	for _, key := range sellIDs {
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
+
 	return &replys, nil
 }
 
@@ -177,15 +174,16 @@ func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status i
 	if err != nil {
 		return nil, err
 	}
-	var reply types.ReplySellOrders
+	var replys types.ReplyTradeOrders
 	for _, key := range values {
-		sell := t.replyReplySellOrderfromID(key)
-		if sell != nil {
-			tradelog.Debug("trade Query", "GetTokenSellOrderByStatus", string(key))
-			reply.SellOrders = append(reply.SellOrders, sell)
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Info("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
-	return &reply, nil
+	return &replys, nil
 }
 
 func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int32) (types.Message, error) {
@@ -211,15 +209,16 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 	if err != nil {
 		return nil, err
 	}
-	var reply types.ReplyBuyOrders
+	var replys types.ReplyTradeOrders
 	for _, key := range values {
-		buy := t.replyReplyBuyOrderfromID(key)
-		if buy != nil {
-			tradelog.Debug("trade Query", "GetTokenBuyOrderByStatus", string(key))
-			reply.BuyOrders = append(reply.BuyOrders, buy)
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
-	return &reply, nil
+	return &replys, nil
 }
 
 // query reply utils
