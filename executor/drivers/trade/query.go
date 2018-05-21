@@ -416,7 +416,7 @@ func fromStatus(status int32) (st, ty int32) {
 	case types.TradeOrderStatusBuyRevoked:
 		return orderStatusRevoke, orderTypeBuy
 	}
-	return 	orderStatusInvalid, orderTypeInvalid
+	return orderStatusInvalid, orderTypeInvalid
 }
 
 // SellMarkMarket BuyMarket 没有tradeOrder 需要调用这个函数进行转化

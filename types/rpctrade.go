@@ -29,7 +29,7 @@ var RpcTradeTypeTransList = []RpcTypeInfo{
 		&TradeQueryOnesBuyOrder{},
 	},
 	{
-	"GetOnesOrderWithStatus",
+		"GetOnesOrderWithStatus",
 		&TradeQueryOnesOrder{},
 	},
 }
@@ -66,7 +66,6 @@ func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error
 	}
 	return Encode(&req), nil
 }
-
 
 func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error) {
 	str, err := json.Marshal(*reply.(*Message))
