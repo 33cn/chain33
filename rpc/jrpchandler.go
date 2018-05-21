@@ -764,7 +764,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
-	
+
 	return nil
 }
 
