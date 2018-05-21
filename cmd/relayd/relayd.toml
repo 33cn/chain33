@@ -8,19 +8,23 @@ TickBTC = 20
 minHeightBTC = 0
 # 0：btcd ; 1:btcdweb
 btcdOrWeb = 1
+# fee
+fee = 100000
+syncSetup = 50
 
 [auth]
 # test private key
-privateKey = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+privateKey = "4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"
 publicKey = ""
 address = ""
 
 [chain33]
 id = "chain33"
 host = "192.168.3.10"
-endpoint = "8812"
-user = "123"
-pass = "123"
+#host = "127.0.0.1"
+endpoint = "8802"
+user = ""
+pass = ""
 disableAutoReconnect = true
 reconnectAttempts = 10
 
@@ -45,7 +49,7 @@ reconnectAttempts = 10
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 loglevel = "debug"
-logConsoleLevel = "info"
+logConsoleLevel = "debug"
 # 日志文件名，可带目录，所有生成的日志文件都放到此目录下
 logFile = "logs/relayd.log"
 # 单个日志文件的最大值（单位：兆）

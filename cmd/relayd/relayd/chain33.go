@@ -1,7 +1,6 @@
 package relayd
 
 import (
-	"fmt"
 	"io"
 	"time"
 
@@ -40,7 +39,7 @@ func (c *Client33) heartbeat(ctx context.Context) {
 	reconnectAttempts := c.config.ReconnectAttempts
 out:
 	for {
-		log.Info("heartbeat.......")
+		log.Info("chain33 heartbeat.......")
 		select {
 		case <-ctx.Done():
 			break out
@@ -48,7 +47,7 @@ out:
 		case <-time.After(time.Second * 3):
 			err := c.ping(ctx)
 			if err != nil {
-				log.Error("heartbeat chain33 error: ", err.Error())
+				log.Error("heartbeat chain33 ", "error: ", err.Error())
 				c.AutoReconnect(ctx)
 				reconnectAttempts--
 			} else {
@@ -76,7 +75,7 @@ func (c *Client33) ping(ctx context.Context) error {
 
 	c.isClosed = true
 	c.lastHeight = lastHeader.Height
-	log.Info("ping", "lastHeight:", c.lastHeight)
+	log.Info("chain33 ping", "lastHeight:", c.lastHeight)
 	isSync, err := c.IsSync(ctx, &types.ReqNil{})
 	if err != nil {
 		return err
@@ -84,7 +83,7 @@ func (c *Client33) ping(ctx context.Context) error {
 
 	if isSync.IsOk {
 		c.isSyncing = isSync.IsOk
-		log.Warn(fmt.Sprintf("node is syncing： %s", isSync.String()))
+		log.Warn("chain33 ping", "node is syncing", isSync)
 	}
 	c.isSyncing = false
 	return nil
