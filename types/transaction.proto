@@ -151,3 +151,11 @@ message AuthCert {
 	bytes certbytes = 1;
 	string username = 2;
 }
+
+message ReqAuthSignCheck {
+    Transaction tx = 1;
+}
+
+message RespAuthSignCheck {
+    bool result = 1;
+}
