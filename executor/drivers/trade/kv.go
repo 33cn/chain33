@@ -139,7 +139,7 @@ func calcOnesOrderKey(addr string, status int32, ty int32, height int64, key str
 }
 
 func calcOnesOrderPrefixStatus(addr string, status int32) []byte {
-	return []byte(fmt.Sprintf(orderASTHK+"%s:%d:%d:%010d:%s", addr, status))
+	return []byte(fmt.Sprintf(orderASTHK+"%s:%d:", addr, status))
 }
 
 // 特定状态下的买单
