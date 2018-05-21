@@ -17,6 +17,8 @@ type Config struct {
 	Tick33       int
 	TickBTC      int
 	BtcdOrWeb    int
+	Fee          int64
+	SyncSetup    uint64
 	Chain33      Chain33
 	MinHeightBTC uint64
 	Btcd         Btcd

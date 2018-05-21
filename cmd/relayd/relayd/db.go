@@ -17,14 +17,11 @@ var (
 )
 
 type relaydDB struct {
-	db *db.GoLevelDB
+	db db.DB
 }
 
-func NewRelayDB(name string, dir string, cache int) *relaydDB {
-	d, err := db.NewGoLevelDB(name, dir, cache)
-	if err != nil {
-		panic(err)
-	}
+func NewRelayDB(name string, dir string, cache int32) *relaydDB {
+	d := db.NewDB(name, "goleveldb", dir, cache)
 	return &relaydDB{d}
 }
 

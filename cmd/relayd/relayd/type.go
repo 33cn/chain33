@@ -4,7 +4,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const SETUP = 1000
+// const SETUP = 50
 
 var (
 	currentBlockHashKey   = []byte("4062c3e6baa0ef4bc5917572c3b9aeaa5dc24f8ef008f38bcd401af6e80f257c")
@@ -44,7 +44,7 @@ type Header struct {
 	RelayedBy    string  `json:"relayed_by"`
 }
 
-func (h *Header) BtcHeader() *types.BtcHeader {
+func (h Header) BtcHeader() *types.BtcHeader {
 	return &types.BtcHeader{
 		Hash:         h.Hash,
 		Height:       h.Height,
