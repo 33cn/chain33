@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/authority/mspmgr"
 )
 
 var alog = log.New("module", "autority")
@@ -54,6 +55,8 @@ func (auth *Authority) initConfig(conf *types.Authority) error {
 		return errors.WithMessage(err, "Failed to initialize identity manage")
 	}
 	auth.idmgr = idmgr
+
+	mspmgr.LoadLocalMsp(conf.CryptoPath, config)
 
 	return nil
 }

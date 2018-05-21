@@ -228,6 +228,7 @@ It has these top-level messages:
 	TransactionDetail
 	TransactionDetails
 	ReqAddrs
+	AuthCert
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
