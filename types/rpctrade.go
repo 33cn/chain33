@@ -5,32 +5,32 @@ import "encoding/json"
 var RpcTradeTypeTransList = []RpcTypeInfo{
 	{
 		"GetTokenSellOrderByStatus",
-		TradeQueryTokenSellOrder{},
+		&TradeQueryTokenSellOrder{},
 	},
 	{
 		"GetOnesSellOrderWithStatus",
-		TradeQueryOnesSellOrder{},
+		&TradeQueryOnesSellOrder{},
 	},
 	{
 		"GetOnesSellOrder",
-		TradeQueryOnesSellOrder{},
+		&TradeQueryOnesSellOrder{},
 	},
 
 	{
 		"GetTokenBuyOrderByStatus",
-		TradeQueryTokenBuyOrder{},
+		&TradeQueryTokenBuyOrder{},
 	},
 	{
 		"GetOnesBuyOrderWithStatus",
-		TradeQueryOnesBuyOrder{},
+		&TradeQueryOnesBuyOrder{},
 	},
 	{
 		"GetOnesBuyOrder",
-		TradeQueryOnesBuyOrder{},
+		&TradeQueryOnesBuyOrder{},
 	},
 	{
 	"GetOnesOrderWithStatus",
-		TradeQueryOnesOrder{},
+		&TradeQueryOnesOrder{},
 	},
 }
 
@@ -67,8 +67,9 @@ func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error
 	return Encode(&req), nil
 }
 
-func (t *TradeQueryTokenSellOrder) Output(reply *ReplySellOrders) (*RpcReplySellOrders, error) {
-	str, err := json.Marshal(*reply)
+
+func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error) {
+	str, err := json.Marshal(*reply.(*Message))
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +90,8 @@ func (t *TradeQueryOnesSellOrder) Input(message json.RawMessage) ([]byte, error)
 	return Encode(&req), nil
 }
 
-func (t *TradeQueryOnesSellOrder) Output(reply *ReplySellOrders) (*RpcReplySellOrders, error) {
-	str, err := json.Marshal(*reply)
+func (t *TradeQueryOnesSellOrder) Output(reply interface{}) (interface{}, error) {
+	str, err := json.Marshal(*reply.(*Message))
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +134,8 @@ func (t *TradeQueryTokenBuyOrder) Input(message json.RawMessage) ([]byte, error)
 	return Encode(&req), nil
 }
 
-func (t *TradeQueryTokenBuyOrder) Output(reply *ReplyBuyOrders) (*RpcReplyBuyOrders, error) {
-	str, err := json.Marshal(*reply)
+func (t *TradeQueryTokenBuyOrder) Output(reply interface{}) (interface{}, error) {
+	str, err := json.Marshal(*reply.(*Message))
 	if err != nil {
 		return nil, err
 	}
@@ -155,8 +156,8 @@ func (t *TradeQueryOnesBuyOrder) Input(message json.RawMessage) ([]byte, error) 
 	return Encode(&req), nil
 }
 
-func (t *TradeQueryOnesBuyOrder) Output(reply *ReplyBuyOrders) (*RpcReplyBuyOrders, error) {
-	str, err := json.Marshal(*reply)
+func (t *TradeQueryOnesBuyOrder) Output(reply interface{}) (interface{}, error) {
+	str, err := json.Marshal(*reply.(*Message))
 	if err != nil {
 		return nil, err
 	}
@@ -200,8 +201,8 @@ func (t *TradeQueryOnesOrder) Input(message json.RawMessage) ([]byte, error) {
 	return Encode(&req), nil
 }
 
-func (t *TradeQueryOnesOrder) Output(reply *ReplyTradeOrders) (*RpcReplyTradeOrders, error) {
-	str, err := json.Marshal(*reply)
+func (t *TradeQueryOnesOrder) Output(reply interface{}) (interface{}, error) {
+	str, err := json.Marshal(*reply.(*Message))
 	if err != nil {
 		return nil, err
 	}

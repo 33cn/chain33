@@ -865,9 +865,12 @@ type RpcTypeUtil interface {
 
 func moreRpcTypeUtil(arr []RpcTypeInfo) {
 	for _, t := range arr {
-		if _, ok := t.Util.(RpcTypeUtil); ok {
+		a, ok := t.Util.(RpcTypeUtil)
+		tlog.Debug("rpc", "t", t.FuncName, "t", a, "ok", ok)
+		if ok {
 			RpcTypeUtilMap[t.FuncName] = t.Util
 		}
+		tlog.Debug("rpc", "typeUtil", RpcTypeUtilMap, "input", RpcTradeTypeTransList)
 	}
 }
 
@@ -877,7 +880,7 @@ func InitRpcTypeUtil() {
 	moreRpcTypeUtil(RpcTradeTypeTransList)
 	// TODO add more
 	//moreRpcTypeUtil(RpcOtherTypeTransList, RpcTypeUtilMap)
-
+	tlog.Info("rpc", "typeUtil", RpcTypeUtilMap, "input", RpcTradeTypeTransList)
 }
 
 var RpcTypeUtilMap = map[string]interface{}{
