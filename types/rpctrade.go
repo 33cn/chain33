@@ -7,28 +7,27 @@ import (
 var RpcTradeTypeTransList = []RpcTypeInfo{
 	{
 		"GetTokenSellOrderByStatus",
-		&TradeQueryTokenOrder{},
+		&TradeQueryTokenSellOrder{},
 	},
 	{
 		"GetOnesSellOrderWithStatus",
-		&TradeQueryOnesOrder{},
+		&TradeQueryOnesSellOrder{},
 	},
 	{
 		"GetOnesSellOrder",
-		&TradeQueryOnesOrder{},
+		&TradeQueryOnesSellOrder{},
 	},
-
 	{
 		"GetTokenBuyOrderByStatus",
-		&TradeQueryTokenOrder{},
+		&TradeQueryTokenBuyOrder{},
 	},
 	{
 		"GetOnesBuyOrderWithStatus",
-		&TradeQueryOnesOrder{},
+		&TradeQueryOnesBuyOrder{},
 	},
 	{
 		"GetOnesBuyOrder",
-		&TradeQueryOnesOrder{},
+		&TradeQueryOnesBuyOrder{},
 	},
 	{
 		"GetOnesOrderWithStatus",
@@ -37,30 +36,14 @@ var RpcTradeTypeTransList = []RpcTypeInfo{
 }
 
 // rpc query trade sell order part
-
-type RpcReplySellOrder struct {
-	TokenSymbol       string `json:"tokenSymbol"`
-	Owner             string `json:"owner"`
-	AmountPerBoardlot int64  `json:"amountPerBoardlot"`
-	MinBoardlot       int64  `json:"minBoardlot"`
-	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
-	TotalBoardlot     int64  `json:"totalBoardlot"`
-	SoldBoardlot      int64  `json:"soldBoardlot"`
-	BuyID             string `json:"buyID"`
-	Status            int32  `json:"status"`
-	SellID            string `json:"sellID"`
-	TxHash            string `json:"txHash"`
-	Height            int64  `json:"height"`
-	Key               string `json:"key"`
-}
 type RpcReplySellOrders struct {
-	SellOrders []*RpcReplySellOrder `json:"sellOrders"`
+	SellOrders []*RpcReplyTradeOrder `json:"sellOrders"`
 }
 
-type TradeQueryTokenOrder struct {
+type TradeQueryTokenSellOrder struct {
 }
 
-func (t *TradeQueryTokenOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error) {
 	var req ReqTokenSellOrder
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -69,13 +52,17 @@ func (t *TradeQueryTokenOrder) Input(message json.RawMessage) ([]byte, error) {
 	return Encode(&req), nil
 }
 
-func (t *TradeQueryTokenOrder) Output(reply interface{}) (interface{}, error) {
+func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error) {
 	str, err := json.Marshal(*reply.(*Message))
 	if err != nil {
 		return nil, err
 	}
-	var rpcReply RpcReplyTradeOrders
-	json.Unmarshal(str, &rpcReply)
+
+	var rpcReplyTmp RpcReplyTradeOrders
+	json.Unmarshal(str, &rpcReplyTmp)
+
+	var rpcReply RpcReplySellOrders
+	rpcReply.SellOrders = rpcReplyTmp.Orders
 	return &rpcReply, nil
 }
 
@@ -96,31 +83,18 @@ func (t *TradeQueryOnesSellOrder) Output(reply interface{}) (interface{}, error)
 	if err != nil {
 		return nil, err
 	}
+
+	var rpcReplyTmp RpcReplyTradeOrders
+	json.Unmarshal(str, &rpcReplyTmp)
+
 	var rpcReply RpcReplySellOrders
-	json.Unmarshal(str, &rpcReply)
+	rpcReply.SellOrders = rpcReplyTmp.Orders
 	return &rpcReply, nil
 }
 
 // rpc query trade buy order
-
-type RpcReplyBuyOrder struct {
-	TokenSymbol       string `json:"tokenSymbol"`
-	Owner             string `json:"owner"`
-	AmountPerBoardlot int64  `json:"amountPerBoardlot"`
-	MinBoardlot       int64  `json:"minBoardlot"`
-	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
-	TotalBoardlot     int64  `json:"totalBoardlot"`
-	BoughtBoardlot    int64  `json:"boughtBoardlot"`
-	BuyID             string `json:"buyID"`
-	Status            int32  `json:"status"`
-	SellID            string `json:"sellID"`
-	TxHash            string `json:"txHash"`
-	Height            int64  `json:"height"`
-	Key               string `json:"key"`
-}
-
 type RpcReplyBuyOrders struct {
-	BuyOrders []*RpcReplyBuyOrder `json:"buyOrders"`
+	BuyOrders []*RpcReplyTradeOrder `json:"buyOrders"`
 }
 
 type TradeQueryTokenBuyOrder struct {
@@ -140,8 +114,11 @@ func (t *TradeQueryTokenBuyOrder) Output(reply interface{}) (interface{}, error)
 	if err != nil {
 		return nil, err
 	}
+	var rpcReplyTmp RpcReplyTradeOrders
+	json.Unmarshal(str, &rpcReplyTmp)
+
 	var rpcReply RpcReplyBuyOrders
-	json.Unmarshal(str, &rpcReply)
+	rpcReply.BuyOrders = rpcReplyTmp.Orders
 	return &rpcReply, nil
 }
 
@@ -162,8 +139,12 @@ func (t *TradeQueryOnesBuyOrder) Output(reply interface{}) (interface{}, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	var rpcReplyTmp RpcReplyTradeOrders
+	json.Unmarshal(str, &rpcReplyTmp)
+
 	var rpcReply RpcReplyBuyOrders
-	json.Unmarshal(str, &rpcReply)
+	rpcReply.BuyOrders = rpcReplyTmp.Orders
 	return &rpcReply, nil
 }
 
