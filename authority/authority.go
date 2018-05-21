@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite/bccsp/sw"
 	"gitlab.33.cn/chain33/chain33/authority/identitymgr"
+	"gitlab.33.cn/chain33/chain33/authority/mspmgr"
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -17,7 +18,7 @@ var orgName = "org1"
 var userName = "User"
 
 type Authority struct {
-	cryptoPath string
+	cryptoPath  string
 	client      queue.Client
 	cfg         *types.Authority
 	cryptoSuite core.CryptoSuite
@@ -55,6 +56,10 @@ func (auth *Authority) initConfig(conf *types.Authority) error {
 	}
 	auth.idmgr = idmgr
 
+	var cryconf cryptosuite.CryptoConfig
+	cryconf.Config = auth.cfg
+	mspmgr.LoadLocalMsp(auth.cryptoPath, &cryconf)
+
 	return nil
 }
 
@@ -83,24 +88,32 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 	}()
 }
 
+//签名与CERT独立发送，验证签名时，如有异常，可以先把这两个数据拷贝置空再验证
+//或者在此处重新构造TX数据
 func (auth *Authority) procSignTx(msg queue.Message) {
 	//var key core.Key
+	//var tx types.transaction
 	data, ok := msg.GetData().(*types.ReqAuthSignTx)
 	if !ok {
 		panic("")
 	}
+	//var action types.HashlockAction
+	//err := types.Decode(data.Tx, &tx)
 
 	user, err := auth.idmgr.GetUser(userName)
 	if err != nil {
 		panic(err)
 	}
 
+	//tx.Cert.Certbytes = user.enrollmentCertificate
+	//tx.Cert.Username = user.id
+
 	signature, err := auth.signer.Sign(data.Tx, user.PrivateKey())
 	if err != nil {
 		panic(err)
 	}
 
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{signature}))
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{signature, user.EnrollmentCertificate(), userName}))
 }
 
 func (auth *Authority) procCheckTx(msg queue.Message) {

@@ -239,4 +239,6 @@ message ReqAuthSignTx{
 
 message ReplyAuthSignTx{
 	bytes signature = 1;
+	bytes certbytes = 2;
+	string username = 3;
 }

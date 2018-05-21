@@ -34,7 +34,7 @@ message Transaction {
 	int64 nonce = 6; 
 	//对方地址，如果没有对方地址，可以为空
 	string to = 7; 
-	bytes cert = 8;
+	AuthCert cert = 8;
 }
 
 
