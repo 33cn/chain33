@@ -242,6 +242,10 @@ func genBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrde
 		calcPriceOfToken(buyOrder.PricePerBoardlot, buyOrder.AmountPerBoardlot), buyOrder.Address, buyOrder.BuyID)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
+	st, ty := fromStatus(status)
+	newkey = calcOnesOrderKey(buyOrder.Address, st, ty, buyOrder.Height, buyOrder.BuyID)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
 	return kv
 }
 
@@ -257,6 +261,10 @@ func genSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, stat
 
 	newkey = calcTokensSellOrderKeyStatus(sellorder.TokenSymbol, status,
 		calcPriceOfToken(sellorder.PricePerBoardlot, sellorder.AmountPerBoardlot), sellorder.Address, sellorder.SellID)
+	kv = append(kv, &types.KeyValue{newkey, value})
+
+	st, ty := fromStatus(status)
+	newkey = calcOnesOrderKey(sellorder.Address, st, ty, sellorder.Height, sellorder.SellID)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
 	return kv
