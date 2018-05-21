@@ -7,7 +7,7 @@ import (
 var RpcTradeTypeTransList = []RpcTypeInfo{
 	{
 		"GetTokenSellOrderByStatus",
-		&TradeQueryTokenSellOrder{},
+		&TradeQueryTokenOrder{},
 	},
 	{
 		"GetOnesSellOrderWithStatus",
@@ -20,7 +20,7 @@ var RpcTradeTypeTransList = []RpcTypeInfo{
 
 	{
 		"GetTokenBuyOrderByStatus",
-		&TradeQueryTokenSellOrder{},
+		&TradeQueryTokenOrder{},
 	},
 	{
 		"GetOnesBuyOrderWithStatus",
@@ -57,10 +57,10 @@ type RpcReplySellOrders struct {
 	SellOrders []*RpcReplySellOrder `json:"sellOrders"`
 }
 
-type TradeQueryTokenSellOrder struct {
+type TradeQueryTokenOrder struct {
 }
 
-func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *TradeQueryTokenOrder) Input(message json.RawMessage) ([]byte, error) {
 	var req ReqTokenSellOrder
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -69,7 +69,7 @@ func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error
 	return Encode(&req), nil
 }
 
-func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error) {
+func (t *TradeQueryTokenOrder) Output(reply interface{}) (interface{}, error) {
 	str, err := json.Marshal(*reply.(*Message))
 	if err != nil {
 		return nil, err
