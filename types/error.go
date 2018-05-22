@@ -187,5 +187,8 @@ var (
 	ErrStreamPing = errors.New("ErrStreamPing")
 	ErrPeerStop   = errors.New("ErrPeerStop")
 
+	//authority
+	ErrDeserializedIdentity = errors.New("ErrDeserializedIdentity")
+
 	ErrBlockSize = errors.New("ErrBlockSize")
 )

@@ -33,7 +33,8 @@ message Transaction {
 	//随机ID，可以防止payload 相同的时候，交易重复
 	int64 nonce = 6; 
 	//对方地址，如果没有对方地址，可以为空
-	string to = 7; 
+	string to = 7;
+	//证书信息，仅限联盟链使用，公链为空
 	AuthCert cert = 8;
 }
 
@@ -46,6 +47,7 @@ message Transaction {
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
 //ty = 3 -> sm2
+//ty = 4 -> authority
 message Signature {
 	int32 ty = 1;
 	bytes pubkey = 2;
@@ -148,4 +150,12 @@ message ReqAddrs  {
 message AuthCert {
 	bytes certbytes = 1;
 	string username = 2;
+}
+
+message ReqAuthSignCheck {
+    Transaction tx = 1;
+}
+
+message RespAuthSignCheck {
+    bool result = 1;
 }

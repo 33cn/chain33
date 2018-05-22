@@ -56,13 +56,41 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	return msg
 }
 
+func (mem *Mempool) CheckSignFromAuth(tx *types.Transaction) bool {
+	if mem.client == nil {
+		panic("client not bind message queue.")
+	}
+
+	req := &types.ReqAuthSignCheck{}
+	req.Tx = tx
+	msg := mem.client.NewMessage("authority", types.EventAuthorityCheckTx, req)
+	err := mem.client.Send(msg, true)
+	if err != nil {
+		mlog.Error("check signature from authority failed", "err", err.Error())
+		return false
+	}
+	msg, err = mem.client.Wait(msg)
+	if err != nil {
+		mlog.Error("check signature from authority failed", "err", err.Error())
+		return false
+	}
+
+	return msg.GetData().(*types.RespAuthSignCheck).Result
+}
+
 // Mempool.CheckSignList检查交易签名是否合法
 func (mem *Mempool) CheckSignList() {
+	var result bool = false;
 	for i := 0; i < processNum; i++ {
 		go func() {
 			for data := range mem.signChan {
-				ok := data.GetData().(*types.Transaction).CheckSign()
-				if ok {
+				transaction := data.GetData().(*types.Transaction)
+				if transaction.GetSignature().Ty == types.SIG_TYPE_AUTHORITY {
+					result = mem.CheckSignFromAuth(transaction)
+				}else {
+					result = transaction.CheckSign()
+				}
+				if result {
 					// 签名正确，传入balanChan，待检查余额
 					mem.balanChan <- data
 				} else {
