@@ -39,12 +39,12 @@ func main() {
 func ioHeightAndIndex() error {
 	if _, err := os.Stat(heightFile); os.IsNotExist(err) {
 		f, _ := os.Create(heightFile)
-		height := strconv.FormatInt(currentHeight,10)
-		index := strconv.FormatInt(currentIndex,10)
+		height := strconv.FormatInt(currentHeight, 10)
+		index := strconv.FormatInt(currentIndex, 10)
 		f.WriteString(height + " " + index)
 		f.Close()
 	}
-	f, _ := os.OpenFile(heightFile, os.O_RDWR,0666)
+	f, _ := os.OpenFile(heightFile, os.O_RDWR, 0666)
 	defer f.Close()
 	fileContent, err := ioutil.ReadFile(heightFile)
 	if err != nil {
@@ -57,8 +57,8 @@ func ioHeightAndIndex() error {
 		currentHeight, _ = strconv.ParseInt(heights[0], 10, 64)
 		currentIndex, _ = strconv.ParseInt(heights[1], 10, 64)
 	} else {
-		height := strconv.FormatInt(currentHeight,10)
-		index := strconv.FormatInt(currentIndex,10)
+		height := strconv.FormatInt(currentHeight, 10)
+		index := strconv.FormatInt(currentIndex, 10)
 		f.WriteString(height + " " + index)
 	}
 	return nil
@@ -163,9 +163,9 @@ func scanWrite() {
 			}
 			var sent string
 			err = rpc.Call("Chain33.SendTransaction", paramsRaw, &sent)
-			f, _ := os.OpenFile(heightFile, os.O_RDWR,0666)
-			height := strconv.FormatInt(currentHeight,10)
-			index := strconv.FormatInt(currentIndex,10)
+			f, _ := os.OpenFile(heightFile, os.O_RDWR, 0666)
+			height := strconv.FormatInt(currentHeight, 10)
+			index := strconv.FormatInt(currentIndex, 10)
 			f.WriteString(height + " " + index)
 			f.Close()
 			fmt.Println(sent)
