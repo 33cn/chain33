@@ -55,10 +55,7 @@ func (auth *Authority) initConfig(conf *types.Authority) error {
 		return errors.WithMessage(err, "Failed to initialize identity manage")
 	}
 	auth.idmgr = idmgr
-
-	var cryconf cryptosuite.CryptoConfig
-	cryconf.Config = auth.cfg
-	mspmgr.LoadLocalMsp(auth.cryptoPath, &cryconf)
+	mspmgr.LoadLocalMsp(conf.CryptoPath, config)
 
 	return nil
 }
@@ -117,7 +114,52 @@ func (auth *Authority) procSignTx(msg queue.Message) {
 }
 
 func (auth *Authority) procCheckTx(msg queue.Message) {
+	data := msg.GetData().(*types.ReqAuthSignCheck)
+	tx := data.GetTx()
+	if tx.GetSignature().Ty != types.SIG_TYPE_AUTHORITY {
+		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+		return
+	}
 
+	if tx.GetCert() == nil {
+		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+		return
+	}
+
+	falseResultMsg := auth.client.NewMessage("mempool", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false})
+	localMSP := mspmgr.GetLocalMSP()
+
+	identity,err := localMSP.DeserializeIdentity(tx.GetCert().Certbytes)
+	if err != nil {
+		alog.Error("Deserialize identity from cert bytes failed", err)
+		msg.Reply(falseResultMsg)
+		return
+	}
+
+	alog.Debug("transaction user name %s", tx.GetCert().Username)
+
+	err = identity.Validate()
+	if err != nil {
+		alog.Error("Validate certificates failed", err)
+		msg.Reply(falseResultMsg)
+		return
+	}
+
+	alog.Debug("Certificates is valid")
+
+	copytx := *tx
+	copytx.Signature = nil
+	bytes := types.Encode(&copytx)
+	err = identity.Verify(bytes,types.Encode(tx.GetSignature()))
+	if err != nil {
+		alog.Error("Verify signature failed", err)
+		msg.Reply(falseResultMsg)
+		return
+	}
+
+	alog.Debug("Verify signature success")
+
+	msg.Reply(auth.client.NewMessage("mempool", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{true}))
 }
 
 func (auth *Authority) Close() {
