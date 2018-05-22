@@ -57,7 +57,7 @@ func getOptsByConfig(c core.CryptoSuiteConfig) *bccspSw.SwOpts {
 			KeyStorePath: c.KeyStorePath(),
 		},
 	}
-	logger.Debug("Initialized SW cryptosuite")
+	logger.Debug("Initialized cryptosuite")
 
 	return opts
 }

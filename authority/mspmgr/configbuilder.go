@@ -175,7 +175,7 @@ func getMspConfig(dir string, signcert []byte, conf *cryptosuite.CryptoConfig) (
 	var hashFunction string
 	tmpValue:=conf.SecurityLevel()
 	switch tmpValue {
-	case 265:
+	case 256:
 		hashFunction = bccsp.SHA256
 	case 384:
 		hashFunction = bccsp.SHA384
