@@ -89,20 +89,24 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 //或者在此处重新构造TX数据
 func (auth *Authority) procSignTx(msg queue.Message) {
 	//var key core.Key
-	//var tx types.transaction
+
 	data, ok := msg.GetData().(*types.ReqAuthSignTx)
 	if !ok {
 		panic("")
 	}
-	//var action types.HashlockAction
-	//err := types.Decode(data.Tx, &tx)
+
+	var tx types.Transaction
+	err := types.Decode(data.Tx, &tx)
 
 	user, err := auth.idmgr.GetUser(userName)
 	if err != nil {
 		panic(err)
 	}
-
-	//tx.Cert.Certbytes = user.enrollmentCertificate
+	//tx数据当前仅便于调试观察
+	if tx.Cert != nil {
+		panic("")
+	}
+	//tx.Cert.Certbytes = user.EnrollmentCertificate()
 	//tx.Cert.Username = user.id
 
 	signature, err := auth.signer.Sign(data.Tx, user.PrivateKey())
@@ -129,7 +133,7 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 	falseResultMsg := auth.client.NewMessage("mempool", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false})
 	localMSP := mspmgr.GetLocalMSP()
 
-	identity,err := localMSP.DeserializeIdentity(tx.GetCert().Certbytes)
+	identity, err := localMSP.DeserializeIdentity(tx.GetCert().Certbytes)
 	if err != nil {
 		alog.Error("Deserialize identity from cert bytes failed", err)
 		msg.Reply(falseResultMsg)
@@ -149,8 +153,9 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 
 	copytx := *tx
 	copytx.Signature = nil
+	copytx.Cert = nil
 	bytes := types.Encode(&copytx)
-	err = identity.Verify(bytes,types.Encode(tx.GetSignature()))
+	err = identity.Verify(bytes, tx.GetSignature().GetSignature())
 	if err != nil {
 		alog.Error("Verify signature failed", err)
 		msg.Reply(falseResultMsg)
