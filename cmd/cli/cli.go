@@ -45,9 +45,8 @@ func init() {
 func main() {
 	log.SetLogLevel("error")
 	if len(os.Args) > 1 {
-		argsWithoutProg := os.Args[1:]
-		if argsWithoutProg[0] == "send" {
-			commands.OneStepSend(argsWithoutProg[1:])
+		if os.Args[1] == "send" {
+			commands.OneStepSend(os.Args)
 			return
 		}
 	}
