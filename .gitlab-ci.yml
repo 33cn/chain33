@@ -47,6 +47,24 @@ go_test:
         - cd build && docker-compose down && cd ..
         - make test
 
+memory_sanitizer:
+    stage: test
+    script:
+        - export CC=clang-5.0 && make msan
+
+code_coverage:
+    stage: test
+    script:
+        - make coverage
+
+code_coverage_report:
+    stage: test
+    script:
+        - make coverhtml
+    only:
+        - master
+        - develop
+
 deploy:
     stage: deploy
     tags:
@@ -55,3 +73,6 @@ deploy:
         - make build_ci
         - make docker-compose
         - cd build && docker-compose down && cd ..
+#    only:
+#        - master
+#        - develop
