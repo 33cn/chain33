@@ -17,16 +17,6 @@ import (
 	"os"
 )
 
-const (
-	// 交易payload中，前8个字节固定存储转账信息
-	BALANCE_SIZE = 8
-)
-
-var (
-	//目前这里先用默认配置，后面在增加具体实现 TODO
-	VMConfig = &runtime.Config{}
-)
-
 // EVM执行器结构
 type EVMExecutor struct {
 	drivers.DriverBase
@@ -34,8 +24,20 @@ type EVMExecutor struct {
 	mStateDB *state.MemoryStateDB
 }
 
+// 根据命令行启动隐藏的参数判断是否启动EVM执行指令跟踪能力
+func debugEVM() bool {
+	params := os.Args[1:]
+	for _,v := range params {
+		if "vmdebug" == v {
+			return true
+		}
+	}
+	return false
+}
+
 func Init() {
 	evm := NewEVMExecutor()
+	evm.vmCfg.Debug = debugEVM()
 
 	// TODO 注册的驱动高度需要更新为上线时的正确高度
 	drivers.Register(evm.GetName(), evm, 0)
@@ -44,11 +46,8 @@ func Init() {
 func NewEVMExecutor() *EVMExecutor {
 	exec := &EVMExecutor{}
 
-	exec.vmCfg = VMConfig
+	exec.vmCfg = &runtime.Config{}
 	exec.vmCfg.Tracer = runtime.NewJSONLogger(os.Stdout)
-
-	// 打开EVM调试开关
-	exec.vmCfg.Debug = true
 
 	exec.SetChild(exec)
 	return exec

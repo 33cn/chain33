@@ -15,10 +15,6 @@ import (
 type Config struct {
 	// 调试开关
 	Debug bool
-	// 是否启用JIT  FIXME 目前版本暂不支持
-	EnableJit bool
-	// 强制使用JIT  FIXME 目前版本暂不支持
-	ForceJit bool
 	// 记录操作日志
 	Tracer Tracer
 	// 不允许使用Call, CallCode, DelegateCall
