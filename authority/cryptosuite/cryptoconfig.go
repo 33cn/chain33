@@ -29,31 +29,10 @@ func (c *CryptoConfig) SecurityLevel() int {
 	return int(c.Config.SecurityLevel)
 }
 
-//SecurityProvider provider SW or PKCS11
-func (c *CryptoConfig) SecurityProvider() string {
-	return c.Config.DefaultProvider
-}
-
 //SoftVerify flag TODO
 func (c *CryptoConfig) SoftVerify() bool {
 	return true
 }
-
-//SecurityProviderLibPath will be set only if provider is PKCS11 TODO
-func (c *CryptoConfig) SecurityProviderLibPath() string {
-	return ""
-}
-
-//SecurityProviderPin will be set only if provider is PKCS11 TODO
-func (c *CryptoConfig) SecurityProviderPin() string {
-	return ""
-}
-
-//SecurityProviderLabel will be set only if provider is PKCS11 TODO
-func (c *CryptoConfig) SecurityProviderLabel() string {
-	return ""
-}
-
 // KeyStorePath returns the keystore path used by BCCSP
 func (c *CryptoConfig) KeyStorePath() string {
 	keystorePath := pathvar.Subst(c.Config.KeyStorePath)
