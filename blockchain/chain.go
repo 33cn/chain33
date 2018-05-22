@@ -704,10 +704,11 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	amount, err := chain.query.Query("coins", "GetAddrReciver", types.Encode(addr))
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
-		return nil, err
+		//return nil, err
+		addrOverview.Reciver = 0
+	} else {
+		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	addrOverview.Reciver = amount.(*types.Int64).GetData()
-
 	//获取地址对应的交易count
 	addr.Flag = 0
 	addr.Count = 0x7fffffff
@@ -716,11 +717,13 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
-		return nil, err
-	}
-	addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
-	chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+		//return nil, err
+		addrOverview.TxCount = 0
 
+	} else {
+		addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
+		chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+	}
 	return &addrOverview, nil
 }
 
