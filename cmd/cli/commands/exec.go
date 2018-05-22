@@ -1,10 +1,16 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/rand"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func ExecCmd() *cobra.Command {
@@ -16,6 +22,7 @@ func ExecCmd() *cobra.Command {
 
 	cmd.AddCommand(
 		GetExecAddrCmd(),
+		UserDataCmd(),
 	)
 
 	return cmd
@@ -32,9 +39,64 @@ func GetExecAddrCmd() *cobra.Command {
 	return cmd
 }
 
+func UserDataCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "userdata",
+		Short: "write data to user define executor",
+		Run:   addUserData,
+	}
+	addUserDataFlags(cmd)
+	return cmd
+}
+
 func addGetAddrFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("exec", "e", "", `executor name ("none", "coins", "hashlock", "retrieve", "ticket", "token" and "trade" supported)`)
 	cmd.MarkFlagRequired("exec")
+}
+
+func addUserDataFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("exec", "e", "", `executor name must has prefix user.`)
+	cmd.MarkFlagRequired("exec")
+	cmd.Flags().StringP("topic", "t", "", `add #topic# before data, if empty not add anything`)
+	cmd.Flags().StringP("data", "d", "", `payload data want to write.`)
+	cmd.MarkFlagRequired("data")
+}
+
+func addUserData(cmd *cobra.Command, args []string) {
+	execer, err := cmd.Flags().GetString("exec")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if !strings.HasPrefix(execer, "user.") {
+		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+		return
+	}
+	addrResult := account.ExecAddress(execer)
+	topic, _ := cmd.Flags().GetString("topic")
+	data, _ := cmd.Flags().GetString("data")
+	if topic != "" {
+		data = "#" + topic + "#" + data
+	}
+	if data == "" {
+		fmt.Println("write empty data")
+		return
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(execer),
+		Payload: []byte(data),
+		To:      addrResult.String(),
+	}
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	//tx.Sign(int32(wallet.SignType), privKey)
+	txHex := types.Encode(tx)
+	fmt.Println(hex.EncodeToString(txHex))
 }
 
 func getAddrByExec(cmd *cobra.Command, args []string) {
