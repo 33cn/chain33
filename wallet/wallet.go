@@ -598,9 +598,11 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 	if ok {
 		walletlog.Debug("get signature success")
 		//ty and pubkey may be not used in this case
+		var tempCert types.AuthCert
 		tx.Signature = &types.Signature{types.SIG_TYPE_AUTHORITY, nil, sig.Signature}
-		tx.Cert.Certbytes = sig.Certbytes
-		tx.Cert.Username = sig.Username
+		tempCert.Certbytes = append(tempCert.Certbytes, sig.Certbytes...)
+		tempCert.Username = tempCert.Username
+		tx.Cert = &tempCert
 		txHex = types.Encode(&tx)
 		signedTx := hex.EncodeToString(txHex)
 		return signedTx, nil
