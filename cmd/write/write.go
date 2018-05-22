@@ -3,8 +3,11 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
@@ -17,19 +20,53 @@ import (
 var (
 	receiveAddr         = "1KcdP2GJeeob69hjg5kzR2mSwXTkXF5Kgv"
 	rpcAddr             = "http://localhost:8801"
-	currentHeight int64 = -1
+	currentHeight int64 = 0
 	currentIndex  int64 = 0
+	heightFile          = "height.txt"
 )
 
 func main() {
 	log.SetLogLevel("error")
+	err := ioHeightAndIndex()
+	if err != nil {
+		fmt.Println("file err")
+		return
+	}
 	fmt.Println("starting scaning.............")
 	scanWrite()
 }
 
+func ioHeightAndIndex() error {
+	if _, err := os.Stat(heightFile); os.IsNotExist(err) {
+		f, _ := os.Create(heightFile)
+		height := strconv.FormatInt(currentHeight,10)
+		index := strconv.FormatInt(currentIndex,10)
+		f.WriteString(height + " " + index)
+		f.Close()
+	}
+	f, _ := os.OpenFile(heightFile, os.O_RDWR,0666)
+	defer f.Close()
+	fileContent, err := ioutil.ReadFile(heightFile)
+	if err != nil {
+		fmt.Print(err)
+		return err
+	}
+	str := string(fileContent)
+	heights := strings.Split(str, " ")
+	if len(heights) == 2 {
+		currentHeight, _ = strconv.ParseInt(heights[0], 10, 64)
+		currentIndex, _ = strconv.ParseInt(heights[1], 10, 64)
+	} else {
+		height := strconv.FormatInt(currentHeight,10)
+		index := strconv.FormatInt(currentIndex,10)
+		f.WriteString(height + " " + index)
+	}
+	return nil
+}
+
 func scanWrite() {
 	for {
-		time.Sleep(time.Second*5)
+		time.Sleep(time.Second * 5)
 		rpc, err := jsonrpc.NewJSONClient(rpcAddr)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -73,7 +110,6 @@ func scanWrite() {
 			}
 			pl, ok := transactionDetail.Tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
 			if !ok {
-				fmt.Println(transactionDetail.Tx.Payload)
 				fmt.Fprintln(os.Stderr, "not a coin action")
 				continue
 			}
@@ -86,7 +122,7 @@ func scanWrite() {
 			var noteTx types.Transaction
 			txBytes, err := common.FromHex(note)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(os.Stderr, "not a user data tx")
 				continue
 			}
 			err = types.Decode(txBytes, &noteTx)
@@ -99,11 +135,15 @@ func scanWrite() {
 				fmt.Fprintln(os.Stderr, "not enough fee")
 				continue
 			}
+			if !strings.HasPrefix(string(noteTx.Execer), "user.") {
+				fmt.Fprintln(os.Stderr, "not a user defined executor")
+				continue
+			}
 			userTx := &types.Transaction{
-				Execer:  []byte("user.write"),
+				Execer:  noteTx.Execer,
 				Payload: noteTx.Payload,
 			}
-			userTx.To = account.ExecAddress("user.write").String()
+			userTx.To = account.ExecAddress(string(noteTx.Execer)).String()
 			userTx.Fee, err = userTx.GetRealFee(types.MinFee)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -123,6 +163,11 @@ func scanWrite() {
 			}
 			var sent string
 			err = rpc.Call("Chain33.SendTransaction", paramsRaw, &sent)
+			f, _ := os.OpenFile(heightFile, os.O_RDWR,0666)
+			height := strconv.FormatInt(currentHeight,10)
+			index := strconv.FormatInt(currentIndex,10)
+			f.WriteString(height + " " + index)
+			f.Close()
 			fmt.Println(sent)
 		}
 	}
