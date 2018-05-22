@@ -74,7 +74,7 @@ func formatStack(data []*big.Int) ( res []string) {
 
 func formatMemory(data []byte) ( res []string) {
 	for idx:=0; idx <len(data) ;idx+=32{
-		res = append(res, common.Bytes2Hex(data[idx:idx+32]))
+		res = append(res, common.Bytes2HexTrim(data[idx:idx+32]))
 	}
 	return
 }

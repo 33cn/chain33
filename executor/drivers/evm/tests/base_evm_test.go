@@ -209,4 +209,7 @@ func TestBytes(t *testing.T) {
 	fmt.Println(common.Bytes2Hex(ret[:]))
 
 	fmt.Println(hex.EncodeToString(common.StringToAddress("1MpN45LRdPJXxHH5Exx8UvzuGrgGCJjitL").Bytes()))
+
+	fmt.Println(common.Bytes2Hex([]byte{0,0,0,0,0}))
+	fmt.Println(common.Bytes2HexTrim([]byte{0,0,0,0,0}))
 }
