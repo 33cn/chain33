@@ -105,18 +105,12 @@ const (
 )
 
 func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, conf *cryptosuite.CryptoConfig, keystoreDir string) *factory.FactoryOpts {
-		bccspConfig.ProviderName = conf.SecurityProvider()
-		if conf.SecurityProvider() == factory.SoftwareBasedFactoryName {
-			swOpts := &factory.SwOpts{}
-			swOpts.HashFamily = conf.SecurityAlgorithm()
-			swOpts.SecLevel = conf.SecurityLevel()
-			swOpts.Ephemeral = false
-			swOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: keystoreDir}
-			bccspConfig.SwOpts = swOpts
-		} else {
-			// TODO
-			fmt.Errorf("Only support sw")
-		}
+	swOpts := &factory.SwOpts{}
+	swOpts.HashFamily = conf.SecurityAlgorithm()
+	swOpts.SecLevel = conf.SecurityLevel()
+	swOpts.Ephemeral = false
+	swOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: keystoreDir}
+	bccspConfig.SwOpts = swOpts
 
 	return bccspConfig
 }
@@ -181,7 +175,7 @@ func getMspConfig(dir string, signcert []byte, conf *cryptosuite.CryptoConfig) (
 	var hashFunction string
 	tmpValue:=conf.SecurityLevel()
 	switch tmpValue {
-	case 265:
+	case 256:
 		hashFunction = bccsp.SHA256
 	case 384:
 		hashFunction = bccsp.SHA384

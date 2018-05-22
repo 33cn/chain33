@@ -120,7 +120,7 @@ func main() {
 	cs := consensus.New(cfg.Consensus)
 	cs.SetQueueClient(q.Client())
 
-	log.Info("loading consensus module")
+	log.Info("loading authority module")
 	auth := authority.New(cfg.Auth)
 	auth.SetQueueClient(q.Client())
 
