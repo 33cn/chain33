@@ -131,30 +131,6 @@ func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Mess
 	return &replys, nil
 }
 
-//根据height进行降序插入,TODO:使用标准的第三方库进行替换
-func insertSellOrderDescending(toBeInserted *types.ReplySellOrder, selloders []*types.ReplySellOrder) []*types.ReplySellOrder {
-	if 0 == len(selloders) {
-		selloders = append(selloders, toBeInserted)
-	} else {
-		index := len(selloders)
-		for i, element := range selloders {
-			if toBeInserted.Height >= element.Height {
-				index = i
-				break
-			}
-		}
-
-		if len(selloders) == index {
-			selloders = append(selloders, toBeInserted)
-		} else {
-			rear := append([]*types.ReplySellOrder{}, selloders[index:]...)
-			selloders = append(selloders[0:index], toBeInserted)
-			selloders = append(selloders, rear...)
-		}
-	}
-	return selloders
-}
-
 func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
 		return nil, types.ErrInputPara
