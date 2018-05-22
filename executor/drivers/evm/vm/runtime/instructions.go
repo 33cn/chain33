@@ -763,7 +763,7 @@ func opCall(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 	// 注意，这里的处理比较特殊，出错情况下0压栈，正确情况下1压栈
 	if err != nil {
 		stack.Push(evm.Interpreter.IntPool.GetZero())
-		log15.Error("evm contract opCall instruction error", err)
+		log15.Error("evm contract opCall instruction error", "error", err)
 	} else {
 		stack.Push(evm.Interpreter.IntPool.Get().SetUint64(1))
 	}

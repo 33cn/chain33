@@ -143,11 +143,11 @@ func decodeHex(data string)[]byte  {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "1eqThPjHFVbE2Fn4AX7m9AMP415Nf32uK"
-	code := "0xb8077e28"
+	to := "1PqkcjKW6RYBUwMTPFUTSz6zXk7ZZX4W3d"
+	code := "0xab5ed150"
 	//code := "4e71d92d"  // claim
 	//code := "1b9265b8"  // pay
-	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000021"  // put
+	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000021"  // put
 	//code := "9507d39a0000000000000000000000000000000000000000000000000000000000000003"  // get
 	deployCode := decodeHex(code)
 	fee := int64(3000000)
@@ -187,7 +187,7 @@ func TestCreateTx(t *testing.T) {
 			Data: signedTx,
 		}
 		var res string
-		ctx := commands.NewRpcCtx("http://localhost:8801", "Chain33.SendTransaction", params, &res)
+		ctx := commands.NewRpcCtx("http://localhost:8811", "Chain33.SendTransaction", params, &res)
 		ctx.Run()
 
 		t.Log(signedTx)
@@ -207,4 +207,6 @@ func TestBytes(t *testing.T) {
 	ret[67] = 46
 
 	fmt.Println(common.Bytes2Hex(ret[:]))
+
+	fmt.Println(hex.EncodeToString(common.StringToAddress("1MpN45LRdPJXxHH5Exx8UvzuGrgGCJjitL").Bytes()))
 }
