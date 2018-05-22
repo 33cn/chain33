@@ -69,8 +69,6 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 		}
 	}
 
-
-
 	var replys types.ReplyTradeOrders
 	for _, key := range keys {
 		reply := t.loadOrderFromKey(key)
