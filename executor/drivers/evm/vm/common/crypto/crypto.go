@@ -59,7 +59,7 @@ func RandomContractAddress() *common.Address {
 // Keccak256 计算并返回 Keccak256 哈希
 // 直接使用了sha3内置的方法逻辑，和以太坊的逻辑不同 (FIXME 需要更新golang.org/x/crypto/sha3包，使用最新的方法NewLegacyKeccak256，以保证和以太坊逻辑相同)
 func Keccak256(data ...[]byte) []byte {
-	d := sha3.New256()
+	d := sha3.NewLegacyKeccak256()
 	for _, b := range data {
 		d.Write(b)
 	}

@@ -181,19 +181,6 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	return receipt, nil
 }
 
-func (evm *EVMExecutor) processFee(tx *types.Transaction) (*types.Receipt, error) {
-	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	accFrom := evm.GetCoinsAccount().LoadAccount(from)
-	if accFrom.GetBalance()-tx.Fee >= 0 {
-		copyfrom := *accFrom
-		accFrom.Balance = accFrom.GetBalance() - tx.Fee
-		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
-		evm.GetCoinsAccount().SaveAccount(accFrom)
-		return evm.cutFeeReceipt(accFrom, receiptBalance), nil
-	}
-	return nil, types.ErrNoBalance
-}
-
 func (evm *EVMExecutor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
 	return &types.Receipt{types.ExecPack, evm.GetCoinsAccount().GetKVSet(acc), []*types.ReceiptLog{feelog}}

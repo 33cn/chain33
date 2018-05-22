@@ -345,7 +345,7 @@ func (self *MemoryStateDB) CanTransfer(addr common.Address, amount uint64) bool 
 	var err error
 	defer func() {
 		if err != nil {
-			log15.Error("check transfer error", "error", err)
+			log15.Error("check transfer error", "address", addr, "amount", amount, "error", err)
 		}
 	}()
 
