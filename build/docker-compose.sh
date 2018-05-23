@@ -90,6 +90,7 @@ fi
 sleep 2
 
 echo "=========== # transfer ============="
+sleep 10
 before=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins | jq ".balance")
 cbefore=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
 for((i=0;i<10;i++))
@@ -99,7 +100,7 @@ do
 done
 sleep 10
 after=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins | jq ".balance")
-dif=`expr ${{after}} - ${{before}}`
+dif=`expr ${after} - ${before}`
 echo ${dif}
 if [ $dif -ne 10 ]; then
     exit 1
