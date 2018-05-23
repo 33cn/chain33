@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	receiveAddr         = "1KcdP2GJeeob69hjg5kzR2mSwXTkXF5Kgv"
+	receiveAddr         = "1MHkgR4uUg1ksssR5NFzU6zkzyCqxqjg2Z"
 	rpcAddr             = "http://localhost:8801"
 	currentHeight int64 = 0
 	currentIndex  int64 = 0
