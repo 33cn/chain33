@@ -17,7 +17,7 @@ pipeline {
         timestamps()
         gitLabConnection 'gitlab33'
         // gitlabBuilds(builds: ['build', 'test', 'deploy'])
-        gitlabCommitStatus(name: 'jenkins')
+        gitlabCommitStatus(name: 'Jenkins')
         checkoutToSubdirectory 'src/gitlab.33.cn/chain33/chain33'
     }
 
@@ -72,6 +72,9 @@ pipeline {
 
         unstable {
             echo 'I am unstable'
+            mail to: "${gitlabUserEmail}",
+                 subject: "unstable Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "this is unstable with ${env.BUILD_URL}"
         }
 
         failure {
@@ -85,6 +88,9 @@ pipeline {
 
         changed {
             echo 'Things were different before...'
+            mail to: "${gitlabUserEmail}",
+                 subject: "changed Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "this is changed with ${env.BUILD_URL}"
         }
     }
 }
