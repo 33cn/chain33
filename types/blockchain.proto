@@ -81,9 +81,10 @@ message PrivacyKV {
 }
 
 message PrivacyKVToken {
-    int32 txIndex = 1;
-	string token = 2;
-	repeated KeyValue KV = 3;
+	string token  = 1;
+    int32 txIndex = 2;
+	bytes txhash  = 3;
+	repeated KeyValue KV = 4;
 }
 
 message ReceiptsAndPrivacyKV {

@@ -157,9 +157,16 @@ It has these top-level messages:
 	KeyOutput
 	PrivacyOutput
 	GroupUTXOGlobalIndex
+	LocalUTXOItem
 	ReqUTXOPubKeys
 	GroupUTXOPubKey
 	ResUTXOPubKeys
+	ReqPrivacyToken
+	ReplyPrivacyAmounts
+	ReplyUTXOsOfAmount
+	ReceiptPrivacyOutput
+	AmountsOfUTXO
+	TokenNamesOfUTXO
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion

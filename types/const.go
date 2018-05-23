@@ -515,7 +515,6 @@ const (
 	//action type for privacy
 	ActionPublic2Privacy = iota + 100
 	ActionPrivacy2Privacy
-	ActionMPrivacy2Privacy
 	ActionPrivacy2Public
 )
 
