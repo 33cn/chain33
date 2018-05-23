@@ -1,105 +1,96 @@
-node {
-    try{
-        notifyBuild('STARTED')
-        bitbucketStatusNotify(buildState: 'INPROGRESS')
-        
-        ws("${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_ID}/") {
-            withEnv(["GOPATH=${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_ID}"]) {
-                env.PATH="${GOPATH}/bin:$PATH"
-                
-                stage('Checkout'){
-                    echo 'Checking out SCM'
-                    checkout scm
-                    sh 'echo $GOPATH'
-                }
+// ci server: http://47.97.200.227:8080
+// user/pass: ci/ci
 
-                stage('dep'){
-                    echo 'install dep'
-                    make dep
-                }
-                
-                stage('Pre Test'){
-                    echo 'Pulling Dependencies'
-            
-                    sh 'go version'
-                    sh 'ls $GOPATH/src/'
-                    //or -update
-                    // sh 'cd ${GOPATH}/src/c
-                }
-        
-                stage('Test'){
+pipeline {
+    agent any
 
-                    //Print them with 'awk '$0="./src/"$0' projectPaths' in order to get full relative path to $GOPATH
-                    def paths = sh returnStdout: true, script: """awk '\$0="./src/"\$0' projectPaths"""
-                    
-                    echo 'Vetting'
-                }
-            
-                stage('Build'){
-                    echo 'Building Executable'
-                
-                    //Produced binary is $GOPATH/src/cmd/project/project
-                   // sh """cd $GOPATH/src/cmd/project/ && go build -ldflags '-s'"""
-                }
-                
-                stage('BitBucket Publish'){
-                
-                    //Find out commit hash
-                    sh 'git rev-parse HEAD > commit'
-                    def commit = readFile('commit').trim()
-                
-                    //Find out current branch
-                    sh 'git name-rev --name-only HEAD > GIT_BRANCH'
-                    def branch = readFile('GIT_BRANCH').trim()
-                    
-                    //strip off repo-name/origin/ (optional)
-                    branch = branch.substring(branch.lastIndexOf('/') + 1)
-                
-                    def archive = "${GOPATH}/project-${branch}-${commit}.tar.gz"
+    environment {
+        GOPATH = "${WORKSPACE}"
+        PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
+    }
 
-                    echo "Building Archive ${archive}"
+    options {
+        timeout(time: 1,unit: 'HOURS')
+        retry(1)
+        buildDiscarder(logRotator(numToKeepStr: '1'))
+        disableConcurrentBuilds()
+        timestamps()
+        gitLabConnection 'gitlab33'
+        // gitlabBuilds(builds: ['build', 'test', 'deploy'])
+        gitlabCommitStatus(name: 'Jenkins')
+        checkoutToSubdirectory 'src/gitlab.33.cn/chain33/chain33'
+    }
 
+    stages {
+        stage('build') {
+            steps { 
+                dir("${PROJ_DIR}"){
+                    sh 'make checkgofmt'
+                    sh 'make linter' 
+                    sh 'make build_ci' 
                 }
             }
         }
-    }catch (e) {
-        // If there was an exception thrown, the build failed
-        currentBuild.result = "FAILED"
-        
-        bitbucketStatusNotify(buildState: 'FAILED')
-    } finally {
-        // Success or failure, always send notifications
-        notifyBuild(currentBuild.result)
-        
-        def bs = currentBuild.result ?: 'SUCCESSFUL'
-        if(bs == 'SUCCESSFUL'){
-            bitbucketStatusNotify(buildState: 'SUCCESSFUL')
+
+        stage('test'){
+            steps {
+                dir("${PROJ_DIR}"){
+                    sh 'cd build && docker-compose down && cd ..'
+                    sh 'make test'
+                    sh 'export CC=clang-5.0 && make msan'
+                }
+            }
+        }
+
+        stage('deploy') {
+            steps {
+                dir("${PROJ_DIR}"){
+                    sh 'make build_ci'
+                    sh 'make docker-compose'
+                    sh 'cd build && docker-compose down && cd ..'
+                }
+            }
         }
     }
-}
 
-def notifyBuild(String buildStatus = 'STARTED') {
-  // build status of null means successful
-  buildStatus =  buildStatus ?: 'SUCCESSFUL'
+    post {
+        always {
+            echo 'One way or another, I have finished'
+            // clean up our workspace
+            // deleteDir()
+        }
 
-  // Default values
-  def colorName = 'RED'
-  def colorCode = '#FF0000'
-  def subject = "${buildStatus}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'"
-  def summary = "${subject} <${env.BUILD_URL}|Job URL> - <${env.BUILD_URL}/console|Console Output>"
+        success {
+            echo 'I succeeeded!'
+            updateGitlabCommitStatus name: 'build', state: 'success'
+            // deleteDir()
+            echo "email user: ${gitlabUserEmail}"
+            mail to: "${gitlabUserEmail}",
+                 subject: "Successed Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "this is success with ${env.BUILD_URL}"
+        }
 
-  // Override default values based on build status
-  if (buildStatus == 'STARTED') {
-    color = 'YELLOW'
-    colorCode = '#FFFF00'
-  } else if (buildStatus == 'SUCCESSFUL') {
-    color = 'GREEN'
-    colorCode = '#00FF00'
-  } else {
-    color = 'RED'
-    colorCode = '#FF0000'
-  }
+        unstable {
+            echo 'I am unstable'
+            mail to: "${gitlabUserEmail}",
+                 subject: "unstable Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "this is unstable with ${env.BUILD_URL}"
+        }
 
-  // Send notifications
-  slackSend (color: colorCode, message: summary)
+        failure {
+            echo 'I failed '
+            updateGitlabCommitStatus name: 'build', state: 'failed'
+            echo "email user: ${gitlabUserEmail}"
+            mail to: "${gitlabUserEmail}",
+                 subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "Something is wrong with ${env.BUILD_URL}/console|Console Output"
+        }
+
+        changed {
+            echo 'Things were different before...'
+            mail to: "${gitlabUserEmail}",
+                 subject: "changed Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "this is changed with ${env.BUILD_URL}"
+        }
+    }
 }
