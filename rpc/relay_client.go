@@ -65,6 +65,7 @@ type RelaySaveBTCHeadTx struct {
 	Difficulty    int64  `json:"difficulty"`
 	PreviousHash  string `json:"previousHash"`
 	NextHash      string `json:"nextHash"`
+	Flag          int32  `json:"flag"`
 	Fee           int64  `json:"fee"`
 }
 
@@ -220,9 +221,11 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 	}
 
 	head := &types.BtcHeader{
-		Hash:       parm.Hash,
-		MerkleRoot: parm.MerkleRoot,
-		Height:     parm.Height,
+		Hash:         parm.Hash,
+		PreviousHash: parm.PreviousHash,
+		MerkleRoot:   parm.MerkleRoot,
+		Height:       parm.Height,
+		Flag:         types.RelaySaveBTCHeadFlag(parm.Flag),
 	}
 
 	v := &types.BtcHeaders{}
@@ -325,6 +328,10 @@ func relayPayloadType(funcname string) (proto.Message, error) {
 		req = &types.ReqRelayAddrCoins{}
 	case "GetBTCHeaderList":
 		req = &types.ReqRelayBtcHeaderHeightList{}
+	case "GetBTCHeaderMissList":
+		req = &types.ReqRelayBtcHeaderHeightList{}
+	case "GetBTCHeaderCurHeight":
+		req = &types.ReqRelayQryBTCHeadHeight{}
 	default:
 		return nil, types.ErrInputPara
 	}
