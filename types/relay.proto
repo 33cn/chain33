@@ -113,6 +113,12 @@ message RelayVerifyBTC {
     string blockhash	= 5;
 }
 
+enum RelaySaveBTCHeadFlag {
+    normalSave = 0;
+    resetHead  = 1;
+
+}
+
 message BtcHeader {
     string  hash          = 1;
     uint64  confirmations = 2;
@@ -125,6 +131,7 @@ message BtcHeader {
     int64   difficulty    = 9;
     string  previousHash  = 10;
     string  nextHash      = 11;
+    RelaySaveBTCHeadFlag   flag  = 12; // 0: nomal btc headers sync (default), 1: set the base head (may not from 1)
 }
 
 message BtcHeaders {
@@ -234,11 +241,22 @@ message QueryRelayOrderResult{
 }
 
 message ReqRelayBtcHeaderHeightList{
-    int64 heightBase    = 1;
+    int64 reqHeight     = 1;
     int32 counts        = 2;
+    int32 direction     = 3; // 0: desc, 1: asc
 }
+
 
 message ReplyRelayBtcHeadHeightList{
     repeated int64 heights  = 1;
 }
 
+message ReqRelayQryBTCHeadHeight{
+    int64 baseHeight     = 1;  //from the baseHeight begin, if any
+
+}
+
+message ReplayRelayQryBTCHeadHeight{
+    int64 curHeight             = 1; //current height in chain
+    int64 baseHeight            = 2; //base height means the the 1st head record in chain db (base height can be change)
+}

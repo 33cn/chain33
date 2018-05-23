@@ -34,6 +34,11 @@ type RelayBTCHeadHeightListShow struct {
 	Height int64 `json:Height`
 }
 
+type RelayBTCHeadCurHeightShow struct {
+	CurHeight  int64 `json:curHeight`
+	BaseHeight int64 `json:baseHeight`
+}
+
 ///////////////
 func RelayCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -47,6 +52,8 @@ func RelayCmd() *cobra.Command {
 		ShowOnesBuyRelayOrdersCmd(),
 		ShowOnesStatusOrdersCmd(),
 		ShowBTCHeadHeightListCmd(),
+		ShowBTCHeadMissListCmd(),
+		ShowBTCHeadCurHeightCmd(),
 		CreateRawRelaySellTxCmd(),
 		CreateRawRevokeSellTxCmd(),
 		CreateRawRelayBuyTxCmd(),
@@ -74,7 +81,9 @@ func addShowBtcHeadHeightListFlags(cmd *cobra.Command) {
 	cmd.Flags().Int64P("height_base", "b", 0, "height base")
 	cmd.MarkFlagRequired("height_base")
 
-	cmd.Flags().Int32P("counts", "c", 1, "height counts, default:1")
+	cmd.Flags().Int32P("counts", "c", 0, "height counts, default:0, means all")
+
+	cmd.Flags().Int32P("direction", "d", 0, "0:desc,1:asc, default:0")
 
 }
 
@@ -82,10 +91,12 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	base, _ := cmd.Flags().GetInt64("height_base")
 	count, _ := cmd.Flags().GetInt32("counts")
+	direct, _ := cmd.Flags().GetInt32("direction")
 
 	var reqList types.ReqRelayBtcHeaderHeightList
-	reqList.HeightBase = base
+	reqList.ReqHeight = base
 	reqList.Counts = count
+	reqList.Direction = direct
 
 	params := jsonrpc.Query4Cli{
 		Execer:   "relay",
@@ -98,7 +109,6 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("enter showBtcHeadHeightList")
 	var res types.ReplyRelayBtcHeadHeightList
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
@@ -107,6 +117,92 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 	}
 
 	parseRelayBtcHeadHeightList(res)
+}
+
+func ShowBTCHeadMissListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "btc_miss_list",
+		Short: "Show chain stored BTC head's missed height list",
+		Run:   showBtcHeadHeightMissList,
+	}
+	addShowBtcHeadHeightListFlags(cmd)
+	return cmd
+
+}
+
+func showBtcHeadHeightMissList(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	base, _ := cmd.Flags().GetInt64("height_base")
+	count, _ := cmd.Flags().GetInt32("counts")
+	direct, _ := cmd.Flags().GetInt32("direction")
+
+	var reqList types.ReqRelayBtcHeaderHeightList
+	reqList.ReqHeight = base
+	reqList.Counts = count
+	reqList.Direction = direct
+
+	params := jsonrpc.Query4Cli{
+		Execer:   "relay",
+		FuncName: "GetBTCHeaderMissList",
+		Payload:  reqList,
+	}
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var res types.ReplyRelayBtcHeadHeightList
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	parseRelayBtcHeadHeightList(res)
+}
+
+func ShowBTCHeadCurHeightCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "btc_cur_height",
+		Short: "Show chain stored BTC head's current height",
+		Run:   showBtcHeadCurHeight,
+	}
+	addShowBtcHeadCurHeightFlags(cmd)
+	return cmd
+
+}
+
+func addShowBtcHeadCurHeightFlags(cmd *cobra.Command) {
+	cmd.Flags().Int64P("height_base", "b", 0, "height base")
+}
+
+func showBtcHeadCurHeight(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	base, _ := cmd.Flags().GetInt64("height_base")
+
+	var reqList types.ReqRelayQryBTCHeadHeight
+	reqList.BaseHeight = base
+
+	params := jsonrpc.Query4Cli{
+		Execer:   "relay",
+		FuncName: "GetBTCHeaderCurHeight",
+		Payload:  reqList,
+	}
+	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var res types.ReplayRelayQryBTCHeadHeight
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	parseRelayBtcCurHeight(res)
 }
 
 func ShowOnesSellRelayOrdersCmd() *cobra.Command {
@@ -239,7 +335,6 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 		spt := strings.Split(coin, " ")
 		coins = append(coins, spt...)
 	}
-	fmt.Println("relay status coins=", coins)
 	var reqAddrCoins types.ReqRelayAddrCoins
 	reqAddrCoins.Status = types.RelayOrderStatus(status)
 	if 0 != len(coins) {
@@ -309,6 +404,21 @@ func parseRelayBtcHeadHeightList(res types.ReplyRelayBtcHeadHeightList) {
 		fmt.Println(string(data))
 	}
 
+}
+
+func parseRelayBtcCurHeight(res types.ReplayRelayQryBTCHeadHeight) {
+	var show RelayBTCHeadCurHeightShow
+	show.CurHeight = res.CurHeight
+	show.BaseHeight = res.BaseHeight
+
+	data, err := json.MarshalIndent(show, "", "    ")
+	if err != nil {
+		fmt.Println(os.Stderr, err)
+		return
+	}
+
+	fmt.Println("---The BTC height info is below------")
+	fmt.Println(string(data))
 }
 
 //// create raw sell token transaction
@@ -530,11 +640,16 @@ func addSaveBtcHeadFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("block_hash", "b", "", "block hash")
 	cmd.MarkFlagRequired("block_hash")
 
+	cmd.Flags().StringP("pre_hash", "p", "", "previous block hash")
+	cmd.MarkFlagRequired("pre_hash")
+
 	cmd.Flags().StringP("merkleroot", "m", "", "merkle root")
 	cmd.MarkFlagRequired("merkleroot")
 
 	cmd.Flags().Uint64P("height", "t", 0, "block height")
 	cmd.MarkFlagRequired("height")
+
+	cmd.Flags().Int32P("flag", "g", 0, "block height")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
 	cmd.MarkFlagRequired("fee")
@@ -543,18 +658,22 @@ func addSaveBtcHeadFlags(cmd *cobra.Command) {
 func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	blockhash, _ := cmd.Flags().GetString("block_hash")
+	prehash, _ := cmd.Flags().GetString("pre_hash")
 	merkleroot, _ := cmd.Flags().GetString("merkleroot")
 	height, _ := cmd.Flags().GetUint64("height")
+	flag, _ := cmd.Flags().GetInt32("flag")
 
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
 
 	params := &jsonrpc.RelaySaveBTCHeadTx{
-		Hash:       blockhash,
-		MerkleRoot: merkleroot,
-		Height:     height,
-		Fee:        feeInt64 * 1e4,
+		Hash:         blockhash,
+		PreviousHash: prehash,
+		MerkleRoot:   merkleroot,
+		Height:       height,
+		Flag:         flag,
+		Fee:          feeInt64 * 1e4,
 	}
 
 	var res string

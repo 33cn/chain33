@@ -39,7 +39,8 @@ type relay struct {
 func newRelay() *relay {
 	r := &relay{}
 	r.SetChild(r)
-	r.btcstore.r = r
+	r.btcstore.new(r)
+
 	return r
 }
 
@@ -215,7 +216,20 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return r.btcstore.getHeadHeigtList(&req)
-
+	case "GetBTCHeaderMissList":
+		var req types.ReqRelayBtcHeaderHeightList
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return r.btcstore.getHeadMissedHeigtList(&req)
+	case "GetBTCHeaderCurHeight":
+		var req types.ReqRelayQryBTCHeadHeight
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return r.btcstore.getBTCHeadDbCurHeight(&req)
 	default:
 	}
 	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)

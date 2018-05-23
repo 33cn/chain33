@@ -14,12 +14,11 @@ const (
 	relayBuyOrderACSIH = "relay-buyorder-acsih:"
 	orderIDPrefix      = "mavl-relay-orderid-"
 
-	relayBTCHeaderTHP        = "relay-btcheader-thp"
-	relayBTCHeaderHT         = "relay-btcheader-ht"
 	relayBTCHeaderHash       = "relay-btcheader-hash"
 	relayBTCHeaderHeight     = "relay-btcheader-height"
 	relayBTCHeaderHeightList = "relay-btcheader-height-list"
 	relayBTCHeaderLastHeight = "relay-btcheader-last-height"
+	relayBTCHeaderBaseHeight = "relay-btcheader-base-height"
 	relayRcvBTCHighestHead   = "relay-rcv-btcheader-ht"
 )
 
@@ -29,17 +28,21 @@ func getRelayBtcHeaderKeyHash(hash string) []byte {
 }
 
 func getRelayBtcHeaderKeyHeight(height int64) []byte {
-	key := fmt.Sprintf(relayBTCHeaderHeight+"%d-", height)
+	key := fmt.Sprintf(relayBTCHeaderHeight+"%d", height)
 	return []byte(key)
 }
 
 func getRelayBtcHeaderKeyHeightList(height int64) []byte {
-	key := fmt.Sprintf(relayBTCHeaderHeightList+"%d-", height)
+	key := fmt.Sprintf(relayBTCHeaderHeightList+"%d", height)
 	return []byte(key)
 }
 
 func getRelayBtcHeaderKeyLastHeight() []byte {
-	return []byte(relayBTCHeaderHeightList)
+	return []byte(relayBTCHeaderLastHeight)
+}
+
+func getRelayBtcHeaderKeyBaseHeight() []byte {
+	return []byte(relayBTCHeaderBaseHeight)
 }
 
 func getRelayBtcHeightListKey() []byte {
