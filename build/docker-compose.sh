@@ -90,8 +90,8 @@ fi
 sleep 2
 
 echo "=========== # transfer ============="
-before=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins) | jq ".balance")
-cbefore=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins) | jq ".balance")
+before=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins | jq ".balance")
+cbefore=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
 for((i=0;i<10;i++))
 do
     ./chain33-cli send bty transfer -a 1 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k 56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138
@@ -110,7 +110,7 @@ sleep 2
 echo "=========== # withdraw ============="
 ./chain33-cli ticket close
 sleep 10
-cafter=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins) | jq ".balance")
+cafter=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
 dif=`expr ${{cafter}} - ${{cbefore}}`
 echo ${dif}
 if [ $dif -ne 9.989 ]; then
