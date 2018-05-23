@@ -36,6 +36,7 @@ type NormalInterface interface {
 	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
 	CheckPeerNatOk(addr string) bool
 	GetAddrList(peer *Peer) (map[string]int64, error)
+	GetInPeersNum(peer *Peer) (int, error)
 }
 
 type Cli struct {
@@ -146,7 +147,22 @@ func (m *Cli) GetAddr(peer *Peer) ([]string, error) {
 	log.Debug("GetAddr Resp", "Resp", resp, "addrlist", resp.Addrlist)
 	return resp.Addrlist, nil
 }
+func (m *Cli) GetInPeersNum(peer *Peer) (int, error) {
+	ping, err := P2pComm.NewPingData(*peer.nodeInfo)
+	if err != nil {
+		return 0, err
+	}
 
+	resp, err := peer.mconn.gcli.CollectInPeers(context.Background(), ping,
+		grpc.FailFast(true))
+
+	P2pComm.CollectPeerStat(err, peer)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(resp.GetPeers()), nil
+}
 func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 
 	var addrlist = make(map[string]int64)

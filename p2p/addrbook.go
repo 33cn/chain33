@@ -177,7 +177,7 @@ func (a *AddrBook) saveToDb() {
 	}
 
 	for _, ka := range a.addrPeer {
-		if _, ok := seedsMap[ka.Addr.String()]; ok {
+		if _, ok := seedsMap[ka.Addr.String()]; !ok {
 			addrs = append(addrs, ka.Copy())
 		}
 

@@ -90,9 +90,16 @@ func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 
 //获取地址列表，包含地址高度
 func (s *P2pServer) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddrList, error) {
-	_, infos := s.node.GetActivePeers()
+	peerlist, infos := s.node.GetActivePeers()
 	var peerinfos []*pb.P2PPeerInfo
+
 	for _, info := range infos {
+		if peer, ok := peerlist[fmt.Sprintf("%v:%v", info.GetAddr(), info.GetPort())]; ok {
+			if s.node.nodeInfo.cfg.GetInnerBounds()-peer.GetInBouns() < 30 { //连入的节点接近最大限制数量时，不返回这个IP节点
+				continue
+			}
+		}
+
 		peerinfos = append(peerinfos, &pb.P2PPeerInfo{Addr: info.GetAddr(), Port: info.GetPort(), Name: info.GetName(), Header: info.GetHeader(),
 			MempoolSize: info.GetMempoolSize()})
 	}
@@ -493,7 +500,6 @@ func (s *P2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 		}
 		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: addr, Port: int32(port)}) ///仅用name,addr,port字段，用于统计peer num.
 	}
-
 	return &pb.PeerList{Peers: p2pPeers}, nil
 }
 
