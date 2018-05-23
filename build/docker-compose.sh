@@ -100,9 +100,11 @@ do
 done
 sleep 10
 after=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins | jq ".balance")
-dif=$(echo "${after} - ${before}" | bc)
+after=$(echo $after | bc)
+before=$(echo $before | bc)
+dif=$(echo ${after} - ${before} | bc)
 echo ${dif}
-if [ $dif -ne 10 ]; then
+if [ ${dif} != 10 ]; then
     exit 1
 fi
 
@@ -112,9 +114,11 @@ echo "=========== # withdraw ============="
 ./chain33-cli ticket close
 sleep 10
 cafter=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
-dif=$(echo "${cafter} - ${cbefore}" | bc)
+cafter=$(echo $cafter | bc)
+cbefore=$(echo $cbefore | bc)
+dif=$(echo ${cafter} - ${cbefore} | bc)
 echo ${dif}
-if [ $dif -ne 9.989 ]; then
+if [ ${dif} != 9.989 ]; then
     exit 1
 fi
 
