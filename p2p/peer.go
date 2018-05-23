@@ -139,7 +139,10 @@ func (p *Peer) heartBeat() {
 		P2pComm.CollectPeerStat(err, p)
 		peernum, err := pcli.GetInPeersNum(p)
 		P2pComm.CollectPeerStat(err, p)
-		atomic.StoreInt32(&p.inBounds, int32(peernum))
+		if err == nil {
+			atomic.StoreInt32(&p.inBounds, int32(peernum))
+		}
+
 	}
 }
 
