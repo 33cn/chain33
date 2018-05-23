@@ -72,8 +72,8 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 		exit 1; \
 		fi;
 
-race: dep ## Run data race detector
-	@go test -race -short ./...
+race: ## Run data race detector
+	@go test -race -short $(PKG_LIST)
 
 test: ## Run unittests
 	@go test -parallel 1 -race $(PKG_LIST)
@@ -88,8 +88,8 @@ vet: ## go vet
 bench: ## Run benchmark of all
 	@go test ./... -v -bench=.
 
-msan: dep ## Run memory sanitizer
-	@go test -msan -short ./...
+msan: ## Run memory sanitizer
+	@go test -msan -short $(PKG_LIST)
 
 coverage: ## Generate global code coverage report
 	@./build/tools/coverage.sh;
