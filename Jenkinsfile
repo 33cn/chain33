@@ -12,7 +12,7 @@ pipeline {
     options {
         timeout(time: 1,unit: 'HOURS')
         retry(1)
-        buildDiscarder(logRotator(numToKeepStr: '1'))
+        // buildDiscarder(logRotator(numToKeepStr: '1'))
         disableConcurrentBuilds()
         timestamps()
         gitLabConnection 'gitlab33'
