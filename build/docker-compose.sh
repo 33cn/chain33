@@ -72,7 +72,7 @@ fi
 sleep 2
 
 echo "=========== # import private key transer ============="
-result=$(./chain33-cli account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l transer | jq ".label")
+result=$(./chain33-cli account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l transfer | jq ".label")
 echo ${result}
 if [ -z "${result}" ]; then
     exit 1
@@ -80,7 +80,7 @@ fi
 
 sleep 2
 
-echo "=========== # import private key minig ============="
+echo "=========== # import private key mining ============="
 result=$(./chain33-cli account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l mining | jq ".label")
 echo ${result}
 if [ -z "${result}" ]; then
@@ -88,6 +88,9 @@ if [ -z "${result}" ]; then
 fi
 
 sleep 2
+
+result=$(./chain33-cli account list)
+echo ${result}
 
 echo "=========== # set auto mining ============="
 result=$(./chain33-cli wallet auto_mine -f 1 | jq ".isok")
