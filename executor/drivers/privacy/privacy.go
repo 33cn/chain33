@@ -18,10 +18,10 @@ privacy执行器支持隐私交易的执行，
 import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/db"
 )
 
 var privacylog = log.New("module", "execs.privacy")
@@ -74,13 +74,18 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			//因为只有包含当前交易的block被执行完成之后，同步到相应的钱包之后，
 			//才能将相应的utxo作为input，进行支付，所以此处不需要进行将KV设置到
 			//executor中的临时数据库中，只需要将kv返回给blockchain就行
+			//即：一个块中产生的UTXO是不能够在同一个高度进行支付的
 			for index, keyOutput := range output {
-				key := calcprivacyOutputKey(keyOutput.Amount, txhash, index)
+				key := calcprivacyOutputKey(public2Privacy.Tokenname, keyOutput.Amount, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
 
-			execlog := &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(public2Privacy.GetOutput())}
+			receiptPrivacyOutput := &types.ReceiptPrivacyOutput{
+				Token:     public2Privacy.Tokenname,
+				Keyoutput: public2Privacy.GetOutput().Keyoutput,
+			}
+			execlog := &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
 			receipt.Logs = append(receipt.Logs, execlog)
 
 			//////////////////debug code begin///////////////
@@ -96,9 +101,6 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		privacy2Privacy := action.GetPrivacy2Privacy()
 		if types.BTY == privacy2Privacy.Tokenname {
-			//from := account.From(tx).String()
-			//coinsAccount := p.GetCoinsAccount()
-			//return coinsAccount.ExecTransfer(from, tx.To, p.GetAddr(), privacy2Privacy.Amount)
 			var receipt *types.Receipt
 			privacyInput := privacy2Privacy.Input
 			for _, keyInput := range privacyInput.Keyinput {
@@ -108,19 +110,27 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 				receipt.KV = append(receipt.KV, &types.KeyValue{keyInput.KeyImage, value})
 			}
 
+			execlog := &types.ReceiptLog{types.TyLogPrivacyInput, types.Encode(privacy2Privacy.GetInput())}
+			receipt.Logs = append(receipt.Logs, execlog)
+
 			txhash := common.ToHex(tx.Hash())
 			output := privacy2Privacy.GetOutput().GetKeyoutput()
 			for index, keyOutput := range output {
-				key := calcprivacyOutputKey(keyOutput.Amount, txhash, index)
+				key := calcprivacyOutputKey(privacy2Privacy.Tokenname, keyOutput.Amount, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
 
-			execlog := &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(privacy2Privacy.GetOutput())}
+			receiptPrivacyOutput := &types.ReceiptPrivacyOutput{
+				Token:     privacy2Privacy.Tokenname,
+				Keyoutput: privacy2Privacy.GetOutput().Keyoutput,
+			}
+			execlog = &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
 			receipt.Logs = append(receipt.Logs, execlog)
 			return receipt, nil
 
-		} else {			//token 转账操作
+		} else {
+			//token 转账操作
 
 		}
 
@@ -128,7 +138,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		privacy2public := action.GetPrivacy2Public()
 		if types.BTY == privacy2public.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
-			receipt, err :=  coinsAccount.ExecDeposit(tx.To, p.GetAddr(), privacy2public.Amount)
+			receipt, err := coinsAccount.ExecDeposit(tx.To, p.GetAddr(), privacy2public.Amount)
 			if err != nil {
 				privacylog.Error("Privacy exec ActionPrivacy2Public", "ExecDeposit failed due to ", err)
 				return nil, err
@@ -145,8 +155,23 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			execlog := &types.ReceiptLog{types.TyLogPrivacyInput, types.Encode(privacy2public.GetInput())}
 			receipt.Logs = append(receipt.Logs, execlog)
 
+			txhash := common.ToHex(tx.Hash())
+			output := privacy2public.GetOutput().GetKeyoutput()
+			for index, keyOutput := range output {
+				key := calcprivacyOutputKey(privacy2public.Tokenname, keyOutput.Amount, txhash, index)
+				value := types.Encode(keyOutput)
+				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
+			}
+			receiptPrivacyOutput := &types.ReceiptPrivacyOutput{
+				Token:     privacy2public.Tokenname,
+				Keyoutput: privacy2public.GetOutput().Keyoutput,
+			}
+			execlog = &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
+			receipt.Logs = append(receipt.Logs, execlog)
+
 			return receipt, nil
-		} else {			//token 转账操作
+		} else {
+			//token 转账操作
 
 		}
 
@@ -154,19 +179,168 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	return nil, types.ErrActionNotSupport
 }
 
-
 func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := p.DriverBase.ExecLocal(tx, receipt, index)
+	if err != nil {
+		return nil, err
+	}
+
+	if receipt.GetTy() != types.ExecOk {
+		return set, nil
+	}
+	queryDB := p.GetQueryDB()
+
+	for i := 0; i < len(receipt.Logs); i++ {
+		item := receipt.Logs[i]
+		if item.Ty == types.TyLogPrivacyOutput {
+			var receiptPrivacyOutput types.ReceiptPrivacyOutput
+			err := types.Decode(item.Log, &receiptPrivacyOutput)
+			if err != nil {
+				panic(err) //数据错误了，已经被修改了
+			}
+
+			token := receiptPrivacyOutput.Token
+			txhashInByte := tx.Hash()
+			txhash := common.ToHex(txhashInByte)
+			for i, keyOutput := range receiptPrivacyOutput.Keyoutput {
+				//kv1，添加一个具体的UTXO，方便我们可以查询相应token下特定额度下，不同高度时，不同txhash的UTXO
+				key := calcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i)
+				localUTXOItem := &types.LocalUTXOItem{
+					Height:        p.GetHeight(),
+					Txindex:       int32(index),
+					Outindex:      int32(i),
+					Txhash:        txhashInByte,
+					Ometimepubkey: keyOutput.Ometimepubkey,
+				}
+				value := types.Encode(localUTXOItem)
+				kv := &types.KeyValue{key, value}
+				set.KV = append(set.KV, kv)
+
+				//kv2，添加各种不同额度的kv记录，能让我们很方便的获知本系统存在的所有不同的额度的UTXO
+				var amountTypes types.AmountsOfUTXO
+				key2 := CalcprivacyKeyTokenAmountType(token)
+				value2 := queryDB.Get(key2)
+				//如果该种token不是第一次进行隐私操作
+				if value2 != nil {
+					err := types.Decode(value2, &amountTypes)
+					if err == nil {
+						//当本地数据库不存在这个额度时，则进行添加
+						if _, ok := amountTypes.AmountMap[keyOutput.Amount]; !ok {
+							amountTypes.AmountMap[keyOutput.Amount] = true
+							kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
+							set.KV = append(set.KV, kv)
+							//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
+							queryDB.Set(key2, types.Encode(&amountTypes))
+						}
+					}
+				} else {
+					//如果该种token第一次进行隐私操作
+					amountTypes.AmountMap = make(map[int64]bool)
+					amountTypes.AmountMap[keyOutput.Amount] = true
+					kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
+					set.KV = append(set.KV, kv)
+					queryDB.Set(key2, types.Encode(&amountTypes))
+				}
+
+				//kv3,添加存在隐私交易token的类型
+				var tokenNames types.TokenNamesOfUTXO
+				key3 := CalcprivacyKeyTokenTypes()
+				value3 := queryDB.Get(key3)
+				if value3 != nil {
+					err := types.Decode(value3, &tokenNames)
+					if err == nil {
+						if _, ok := tokenNames.TokensMap[token]; !ok {
+							tokenNames.TokensMap[token] = true
+							kv := &types.KeyValue{key3, types.Encode(&tokenNames)}
+							set.KV = append(set.KV, kv)
+							queryDB.Set(key3, types.Encode(&tokenNames))
+						}
+					}
+				} else {
+					tokenNames.TokensMap = make(map[string]bool)
+					tokenNames.TokensMap[token] = true
+					kv := &types.KeyValue{key3, types.Encode(&tokenNames)}
+					set.KV = append(set.KV, kv)
+					queryDB.Set(key3, types.Encode(&tokenNames))
+				}
+			}
+		}
+	}
+
+	return set, nil
+}
+
+func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := p.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
 	}
 	return set, nil
 }
 
-func (c *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.DriverBase.ExecDelLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
+func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
+	privacylog.Info("privacy Query", "name", funcName)
+	switch funcName {
+	case "ShowAmountsOfUTXO":
+		var reqtoken types.ReqPrivacyToken
+		err := types.Decode(params, &reqtoken)
+		if err != nil {
+			return nil, err
+		}
+		privacylog.Info("ShowAmountsOfUTXO", "query tokens", reqtoken)
+
+		return p.ShowAmountsOfUTXO(&reqtoken)
+	case "ShowUTXOs4SpecifiedAmount":
+		var reqtoken types.ReqPrivacyToken
+		err := types.Decode(params, &reqtoken)
+		if err != nil {
+			return nil, err
+		}
+		privacylog.Info("ShowUTXOs4SpecifiedAmount", "query tokens", reqtoken)
+
+		return p.ShowUTXOs4SpecifiedAmount(&reqtoken)
+
 	}
-	return set, nil
+	return nil, types.ErrActionNotSupport
+}
+
+//获取指定amount下的所有utxo，这样就可以查询当前系统不同amout下存在的UTXO,可以帮助查询用于混淆用的资源
+//也可以确认币种的碎片化问题
+//显示存在的各种不同的额度的UTXO,如1,3,5,10,20,30,100...
+func (p *privacy) ShowAmountsOfUTXO(reqtoken *types.ReqPrivacyToken) (types.Message, error) {
+	querydb := p.GetQueryDB()
+
+	key := CalcprivacyKeyTokenAmountType(reqtoken.Token)
+	replyAmounts := &types.ReplyPrivacyAmounts{}
+	if value := querydb.Get(key); value != nil {
+		var amountTypes types.AmountsOfUTXO
+		err := types.Decode(value, &amountTypes)
+		if err == nil {
+			for amount, _ := range amountTypes.AmountMap {
+				replyAmounts.Amount = append(replyAmounts.Amount, amount)
+			}
+		}
+
+	}
+	return replyAmounts, nil
+}
+
+//显示在指定额度下的UTXO的具体信息，如区块高度，交易hash，输出索引等具体信息
+func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *types.ReqPrivacyToken) (types.Message, error) {
+	querydb := p.GetQueryDB()
+
+	var replyUTXOsOfAmount types.ReplyUTXOsOfAmount
+	list := dbm.NewListHelper(querydb)
+	values := list.List(CalcPrivacyUTXOkeyHeightPrefix(reqtoken.Token, reqtoken.Amount), nil, 0, 0)
+	if len(values) != 0 {
+		for _, value := range values {
+			var utxoGlobalIndex types.UTXOGlobalIndex
+			err := types.Decode(value, &utxoGlobalIndex)
+			if err == nil {
+				replyUTXOsOfAmount.GlobalIndex = append(replyUTXOsOfAmount.GlobalIndex, &utxoGlobalIndex)
+			}
+		}
+	}
+
+	return &replyUTXOsOfAmount, nil
 }

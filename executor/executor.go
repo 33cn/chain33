@@ -157,6 +157,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 							privacyKVToken := &types.PrivacyKVToken{
 								KV:receipt.KV,
 								TxIndex:int32(index),
+								Txhash:tx.Hash(),
 							}
 							if pub2priv := action.GetPublic2Privacy(); pub2priv != nil {
 								privacyKVToken.Token = pub2priv.Tokenname
@@ -341,7 +342,12 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 					return nil, types.ErrDoubeSpendOccur
 				}
 
-				if totalInput - action.GetPrivacy2Public().Amount >= tx.Fee {
+				totalOutput := int64(0)
+				for _, output := range action.GetPrivacy2Privacy().Output.Keyoutput {
+					totalOutput += output.Amount
+				}
+
+				if totalInput - action.GetPrivacy2Public().Amount - totalOutput >= tx.Fee {
 					receiptBalance := &types.ReceiptExecUTXOTrans4Privacy{
 						Type:types.PrivacyUTXOFee,
 						Amount:totalInput - action.GetPrivacy2Public().Amount,
