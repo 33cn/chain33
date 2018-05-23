@@ -53,9 +53,15 @@ type Wallet struct {
 	walletStore    *WalletStore
 	random         *rand.Rand
 	done           chan struct{}
-	privacyActive  map[string]map[string]*walletOuts //不同token类型对应的公开地址拥有的隐私存款记录，map【token】map【addr】
-	//privacyActive  map[string]*walletOuts //公开地址对应的隐私存款记录
-	privacyFrozen map[string]*walletOuts //公开地址对应的被冻结的隐私存款记录，需要确认该笔隐私存款被花费
+	privacyActive  map[string]map[string]*walletOuts //不同token类型对应的公开地址拥有的隐私存款记录，map[token]map[addr]
+	//privacyFrozen  map[string]map[string]*walletOuts //公开地址对应的被冻结的隐私存款记录，需要确认该笔隐私存款被花费
+	privacyFrozen  map[string]*utxoSpendInTx //[交易hash]
+}
+
+type utxoSpendInTx struct {
+	spender string
+	token string
+	outs []*txOutputInfo
 }
 
 type walletOuts struct {
@@ -63,15 +69,10 @@ type walletOuts struct {
 }
 
 type txOutputInfo struct {
-	// output info
 	amount            int64
-	//globalOutputIndex int
-	//indexInTx         int
 	utxoGlobalIndex *types.UTXOGlobalIndex
-	// transaction info
-	txHash           common.Hash
-	txPublicKeyR     privacy.PubKeyPrivacy
-	onetimePublicKey privacy.PubKeyPrivacy
+	txPublicKeyR     []byte
+	onetimePublicKey []byte
 }
 
 type addrAndprivacy struct {
@@ -93,9 +94,9 @@ func New(cfg *types.Wallet) *Wallet {
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, 16)
 	walletStore := NewWalletStore(walletStoreDB)
 	minFee = cfg.MinFee
-	signType, exist := crypto.MapSignName2Type[cfg.SignType]
+	signType, exist := types.MapSignName2Type[cfg.SignType]
 	if !exist {
-		signType = crypto.SignTypeSecp256k1
+		signType = types.SECP256K1
 	}
 	SignType = signType
 
@@ -109,6 +110,8 @@ func New(cfg *types.Wallet) *Wallet {
 		EncryptFlag:    walletStore.GetEncryptionFlag(),
 		miningTicket:   time.NewTicker(2 * time.Minute),
 		done:           make(chan struct{}),
+		privacyActive:  make(map[string]map[string]*walletOuts),
+		privacyFrozen:  make(map[string]*utxoSpendInTx),
 	}
 	value := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
@@ -147,6 +150,7 @@ func (wallet *Wallet) SetQueueClient(client queue.Client) {
 	wallet.client = client
 	wallet.client.Sub("wallet")
 	wallet.wg.Add(2)
+	wallet.InitPrivacyCache()
 	go wallet.ProcRecvMsg()
 	go wallet.autoMining()
 }
@@ -298,6 +302,21 @@ func (wallet *Wallet) flushTicket() {
 	walletlog.Info("wallet FLUSH TICKET")
 	hashList := wallet.client.NewMessage("consensus", types.EventFlushTicket, nil)
 	wallet.client.Send(hashList, false)
+}
+
+func (wallet *Wallet) InitPrivacyCache() {
+	tokenNamesOfUTXO := wallet.walletStore.getWalletPrivacyTokenMap()
+	if 0 == len(tokenNamesOfUTXO.TokensMap) {
+		return
+	}
+
+	for token, _ := range tokenNamesOfUTXO.TokensMap {
+		walletOutsMap := wallet.walletStore.getWalletPrivacyTokenUTXOs(token)
+		if nil != walletOutsMap {
+			wallet.privacyActive[token] = walletOutsMap
+			walletlog.Info("InitPrivacyCache", "Succeed for token", token)
+		}
+	}
 }
 
 func (wallet *Wallet) ProcRecvMsg() {
@@ -633,7 +652,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 		case types.EventPublic2privacy:
 			reqPub2Pri := msg.Data.(*types.ReqPub2Pri)
-			replyHash, err := wallet.procPublic2Privacy(reqPub2Pri)
+			replyHash, err := wallet.procPublic2PrivacyV2(reqPub2Pri)
 			var reply types.Reply
 			if err != nil {
 				reply.IsOk = false
@@ -648,7 +667,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventPrivacy2privacy:
 			reqPri2Pri := msg.Data.(*types.ReqPri2Pri)
-			replyHash, err := wallet.procPrivacy2Privacy(reqPri2Pri)
+			replyHash, err := wallet.procPrivacy2PrivacyV2(reqPri2Pri)
 			var reply types.Reply
 			if err != nil {
 				reply.IsOk = false
@@ -662,7 +681,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 		case types.EventPrivacy2public:
 			reqPri2Pub := msg.Data.(*types.ReqPri2Pub)
-			replyHash, err := wallet.procPrivacy2Public(reqPri2Pub)
+			replyHash, err := wallet.procPrivacy2PublicV2(reqPri2Pub)
 			var reply types.Reply
 			if err != nil {
 				reply.IsOk = false
@@ -1433,7 +1452,6 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
 	for index := 0; index < txlen; index++ {
-
 		tx := block.Block.Txs[index]
 		//获取Amount
 		amount, err := tx.Amount()
@@ -1462,6 +1480,8 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		}
 		//check whether the privacy tx belong to current wallet
 		if types.PrivacyX == string(tx.Execer) {
+			txhashInbytes := tx.Hash()
+			txhash := common.Bytes2Hex(txhashInbytes)
 			var privateAction types.PrivacyAction
 			if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
 				walletlog.Error("ProcWalletAddBlock failed to decode payload")
@@ -1470,15 +1490,17 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 			var privacyOutput *types.PrivacyOutput
 			var tokenname string
 			if types.ActionPublic2Privacy == privateAction.Ty {
-				RpubKey = privateAction.GetPublic2Privacy().GetRpubKeytx()
+				RpubKey = privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx()
 				privacyOutput = privateAction.GetPublic2Privacy().GetOutput()
 				tokenname = privateAction.GetPublic2Privacy().GetTokenname()
 			} else if types.ActionPrivacy2Privacy == privateAction.Ty {
-				RpubKey = privateAction.GetPrivacy2Privacy().GetRpubKeytx()
+				RpubKey = privateAction.GetPrivacy2Privacy().GetOutput().GetRpubKeytx()
 				privacyOutput = privateAction.GetPrivacy2Privacy().GetOutput()
 				tokenname = privateAction.GetPrivacy2Privacy().GetTokenname()
-			} else {
-				continue
+			} else if types.ActionPrivacy2Public == privateAction.Ty {
+				RpubKey = privateAction.GetPrivacy2Public().GetOutput().GetRpubKeytx()
+				privacyOutput = privateAction.GetPrivacy2Public().GetOutput()
+				tokenname = privateAction.GetPrivacy2Public().GetTokenname()
 			}
 
 			if privacyInfo, err := wallet.getPrivacyKeyPairsOfWallet(); err == nil {
@@ -1499,25 +1521,32 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 								//一般情况下，只会匹配一次，如果是往其他钱包账户转账，
 								//但是如果是往本钱包的其他地址转账，因为可能存在的change，会匹配2次
 								matched4addr = true
-								txhash := common.ToHex(tx.Hash())
 								walletlog.Debug("ProcWalletAddBlock got privacy tx belong to current wallet",
 									"Address", *info.Addr, "tx with hash", txhash, "Amount", amount)
 								info2store := &types.PrivacyDBStore{
-									Txhash:           txhash,
+									Txhash:           txhashInbytes,
 									Tokenname:        tokenname,
 									Amount:           output.Amount,
-									IndexInTx:        int32(indexoutput),
+									OutIndex:        int32(indexoutput),
 									TxPublicKeyR:     RpubKey,
 									OnetimePublicKey: output.Ometimepubkey,
+									Owner:            *info.Addr,
+									Height:            block.Block.Height,
+									Txindex:           int32(index),
+								}
+
+								utxoGlobalIndex := &types.UTXOGlobalIndex{
+									Height: block.Block.Height,
+									Txindex: int32(index),
+									Outindex: int32(indexoutput),
+									Txhash: txhashInbytes,
 								}
 
 								txOutInfo := &txOutputInfo{
 									amount:            output.Amount,
-									globalOutputIndex: 0,
-									indexInTx:         indexoutput,
-									txHash:            common.BytesToHash(tx.Hash()),
-									txPublicKeyR:      privacy.Bytes2PubKeyPrivacy(RpubKey),
-									onetimePublicKey:  privacy.Bytes2PubKeyPrivacy(output.Ometimepubkey),
+									utxoGlobalIndex:   utxoGlobalIndex,
+									txPublicKeyR:      RpubKey,
+									onetimePublicKey:  output.Ometimepubkey,
 								}
 
 								//首先判断是否存在token对应的walletout
@@ -1541,12 +1570,18 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 										outs: txOutputInfoSlice,
 									}
 
-									walletOuts4tokenTemp := make(map[string]*walletOuts, 1)
+									walletOuts4tokenTemp := make(map[string]*walletOuts)
 									walletOuts4tokenTemp[*info.Addr] = walletOuts
 									wallet.privacyActive[tokenname] = walletOuts4tokenTemp
-								}
 
-								wallet.walletStore.setWalletPrivacyAccountBalance(info.Addr, &txhash, info2store, newbatch, indexoutput)
+									//将当前存在隐私余额的所有token写入数据库，方便钱包重启时的初始化操作
+									tokenNames := &types.TokenNamesOfUTXO{}
+									for token, _ := range wallet.privacyActive {
+										tokenNames.TokensMap[token] = true
+									}
+									wallet.walletStore.updateWalletPrivacyTokenMap(tokenNames, newbatch)
+								}
+								wallet.walletStore.setWalletPrivacyAccountBalance(info.Addr, &txhash, indexoutput, info2store, newbatch)
 							}
 						}
 					}
@@ -1562,6 +1597,10 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				if matchedCount > 0 {
 					wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, true)
 				}
+			}
+
+			if utxosSpendInTx, ok := wallet.privacyFrozen[txhash]; ok {
+				wallet.walletStore.deleteSpentUTXOs(utxosSpendInTx, newbatch)
 			}
 		}
 	}

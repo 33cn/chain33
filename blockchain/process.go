@@ -18,11 +18,12 @@ import (
 
 
 
-func calcPrivacyCacheKey(height int64, txindex int32, outputindex int32) *types.UTXOGlobalIndex {
+func calcPrivacyCacheKey(height int64, txindex int32, outputindex int32, txhash []byte) *types.UTXOGlobalIndex {
 	return &types.UTXOGlobalIndex{
 		Height:height,
 		Txindex:txindex,
 		Outindex:outputindex,
+		Txhash: txhash,
 	}
 }
 
@@ -518,7 +519,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 				}
 				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
 				if ok {
-					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i))
+					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
 					privacyOutputIndexLru.Add(key, outputKeyInfo)
 				} else {
 					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
@@ -526,7 +527,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
 						break;
 					}
-					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i))
+					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
 					privacyOutputIndexLru.Add(key, outputKeyInfo)
 					mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
 				}
@@ -542,7 +543,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 
 				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
 				if ok {
-					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i))
+					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
 					privacyOutputIndexLru.Add(key, outputKeyInfo)
 				} else {
 					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
@@ -550,7 +551,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
 						break;
 					}
-					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i))
+					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
 					privacyOutputIndexLru.Add(key, outputKeyInfo)
 					mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
 				}

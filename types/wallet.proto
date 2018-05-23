@@ -234,6 +234,7 @@ message ReqPub2Pri {
 	int64 amount       = 4;
 	string note        = 5;
 	string sender      = 6; //发送人地址
+	int32  mixin       = 7;
 }
 
 message ReqPri2Pri {
@@ -243,7 +244,8 @@ message ReqPri2Pri {
 	int64 amount       = 4;
 	string note        = 5;
     string sender      = 6;//隐私交易发起人地址
-	string txhash      = 7;
+	int32  mixin       = 7;
+//	string txhash      = 7;
 }
 
 message ReqPri2Pub {
@@ -252,7 +254,8 @@ message ReqPri2Pub {
 	int64 amount      = 3;
 	string note       = 4;
 	string sender     = 5;//隐私交易发起人地址
-	string txhash     = 6;
+	int32  mixin      = 6;
+//	string txhash     = 6;
 }
 
 message ReplyPrivacyPkPair {
@@ -272,12 +275,15 @@ message ReplyPrivacyBalance {
 }
 
 message PrivacyDBStore {
-    string txhash                    = 1;
+    bytes txhash                    = 1;
     string tokenname                 = 2;
 	int64 amount                     = 3;
-	int32 indexInTx                  = 4;
-    bytes txPublicKeyR      = 5;
-    bytes onetimePublicKey  = 6;
+	int32 outIndex                   = 4;
+    bytes txPublicKeyR               = 5;
+    bytes onetimePublicKey           = 6;
+	string owner                     = 7;
+    int64 height                     = 8;
+    int32 txindex                    = 9;
 }
 
 message PrivacyOnetimeAccInfo {

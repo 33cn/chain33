@@ -486,7 +486,7 @@ func main() {
 		}
 		ShowPrivacyAccount(argsWithoutProg[1])
 	case "pub2priv":
-		if len(argsWithoutProg) != 6 {
+		if len(argsWithoutProg) != 7 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
@@ -503,6 +503,18 @@ func main() {
 			return
 		}
 		TransferPriv2Pub(argsWithoutProg[1:])
+	case "showamountsofutxo":
+		if len(argsWithoutProg) != 1 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowAmountsOfUTXO()
+	case "showutxos4specifiedamount":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowUTXOs4SpecifiedAmount(argsWithoutProg[1:])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -577,12 +589,15 @@ func LoadHelp() {
 	fmt.Println("configtransaction [configKey, operate, value, privkey]         : 修改配置")
 	fmt.Println("queryconfig [Key]                                              : 查询配置")
 	fmt.Println("isntpclocksync []                                              : 获取网络时间同步状态")
+	//privacy
 	fmt.Println("showprivacykey addr                                            : 显示地址对应的隐私账户的view和spend的公钥")
 	fmt.Println("showprivacytransfer addr txhash                                : 显示地址对应的隐私转账")
 	fmt.Println("showprivacyaccount addr                                        : 显示地址对应的隐私账户信息")
-	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout note            : 公开账户向隐私账户转账")
-	fmt.Println("priv2priv from toviewpubkey tospendpubkey amout hash note      : 隐私账户向隐私账户转账")
-	fmt.Println("priv2pub from to amout hash note                               : 隐私账户向公开账户转账")
+	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout mixin note       : 公开账户向隐私账户转账")
+	fmt.Println("priv2priv from toviewpubkey tospendpubkey amout mixin note      : 隐私账户向隐私账户转账")
+	fmt.Println("priv2pub from to amout mixin note                               : 隐私账户向公开账户转账")
+	fmt.Println("showamountsofutxo                                               : 显示所有的utxo的币值")
+	fmt.Println("showutxos4specifiedamount amount                                : 显示当前token下指定amout的utxo")
 }
 
 type AccountsResult struct {
@@ -2808,21 +2823,28 @@ func ShowPrivacykey(addr string) {
 	fmt.Println(string(data))
 }
 
-//"from to_viewpubkey to_spendpubkey amout note          : 公开账户向隐私账户转账")
+//"from to_viewpubkey to_spendpubkey amout mixin note          : 公开账户向隐私账户转账")
 func TransferPub2priv(args []string) {
 	amountFloat64, err := strconv.ParseFloat(args[3], 64)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	mixin, err := strconv.ParseInt(args[4], 10, 32)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := &types.ReqPub2Pri{
 		args[1],
 		args[2],
 		types.BTY,
 		amountInt64,
-		args[4],
+		args[5],
 		args[0],
+		int32(mixin),
 	}
 
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
@@ -2846,9 +2868,14 @@ func TransferPub2priv(args []string) {
 	fmt.Println(string(data))
 }
 
-//"from to_viewpubkey to_spendpubkey amout hash note         : 隐私账户向隐私账户转账")
+//"from to_viewpubkey to_spendpubkey amout mixin note         : 隐私账户向隐私账户转账")
 func TransferPriv2Priv(args []string) {
 	amountFloat64, err := strconv.ParseFloat(args[3], 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	mixin, err := strconv.ParseInt(args[4], 10, 32)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -2861,7 +2888,7 @@ func TransferPriv2Priv(args []string) {
 		amountInt64,
 		args[5],
 		args[0],
-		args[4],
+		int32(mixin),
 	}
 
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
@@ -2885,9 +2912,14 @@ func TransferPriv2Priv(args []string) {
 	fmt.Println(string(data))
 }
 
-//"from receiver amout hash note: 隐私账户
+//"from receiver amout mixin note: 隐私账户
 func TransferPriv2Pub(args []string) {
 	amountFloat64, err := strconv.ParseFloat(args[2], 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	mixin, err := strconv.ParseInt(args[3], 10, 32)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -2899,7 +2931,7 @@ func TransferPriv2Pub(args []string) {
 		amountInt64,
 		args[4],
 		args[0],
-		args[3],
+		int32(mixin),
 	}
 
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
@@ -2921,4 +2953,69 @@ func TransferPriv2Pub(args []string) {
 	}
 
 	fmt.Println(string(data))
+}
+
+func ShowUTXOs4SpecifiedAmount(amount string) {
+	amountFloat64, err := strconv.ParseFloat(amount, 64)
+	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var reqPrivacyToken types.ReqPrivacyToken
+	reqPrivacyToken.Token = types.BTY
+	reqPrivacyToken.Amount = amountInt64
+
+	var params jsonrpc.Query
+	params.Execer = types.PrivacyX
+	params.FuncName = "ShowUTXOs4SpecifiedAmount"
+	params.Payload = hex.EncodeToString(types.Encode(&reqPrivacyToken))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyUTXOsOfAmount
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, globalIndex := range res.GlobalIndex {
+		data, err := json.MarshalIndent(globalIndex, "", "    ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		fmt.Printf("------The %dth privacy global index is as below\n", i)
+		fmt.Println(string(data))
+	}
+}
+
+func ShowAmountsOfUTXO() {
+	var reqPrivacyToken types.ReqPrivacyToken
+	reqPrivacyToken.Token = types.BTY
+
+	var params jsonrpc.Query
+	params.Execer = types.PrivacyX
+	params.FuncName = "ShowAmountsOfUTXO"
+	params.Payload = hex.EncodeToString(types.Encode(&reqPrivacyToken))
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res types.ReplyPrivacyAmounts
+	err = rpc.Call("Chain33.Query", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	for i, amount := range res.Amount {
+		amountInStr := strconv.FormatFloat(float64(amount)/float64(types.Coin), 'f', 4, 64)
+		fmt.Println("index and amout ", i, amountInStr)
+	}
 }

@@ -500,7 +500,7 @@ message PrivacyAction {
 message Public2Privacy {
 	string tokenname    = 1;
 	int64 amount        = 2;
-    bytes RpubKeytx     = 3; //txpubkey, rG => R
+//    bytes RpubKeytx     = 3; //txpubkey, rG => R
 //    bytes onetimePubKey = 4; //Hs(rA)G + B
 	string note         = 5;
     PrivacyOutput output = 7;
@@ -509,7 +509,7 @@ message Public2Privacy {
 message Privacy2Privacy {
 	string tokenname    = 1;
 	int64 amount        = 2;
-    bytes RpubKeytx     = 3; //txpubkey, rG
+//    bytes RpubKeytx     = 3; //txpubkey, rG
 //    bytes onetimePubKey = 4; //Hs(rA)G + B
 	string note         = 5;
     PrivacyInput input  = 6;
@@ -521,12 +521,14 @@ message Privacy2Public {
 	int64 amount        = 2;
 	string note         = 3;
     PrivacyInput input  = 4;
+	PrivacyOutput output = 5;
 }
 
 message UTXOGlobalIndex {
-	int64 height  = 1;
-	int32 txindex = 2;
+	int64 height   = 1;
+	int32 txindex  = 2;
 	int32 outindex = 3;
+    bytes txhash   = 4;
 }
 
 //privacy input
@@ -547,12 +549,21 @@ message keyOutput {
 }
 
 message PrivacyOutput {
-    repeated keyOutput keyoutput = 1;
+    bytes RpubKeytx     = 1; //txpubkey, rG => R
+    repeated keyOutput keyoutput = 2;
 }
 
 message GroupUTXOGlobalIndex {
     int64 amount = 1;
     repeated UTXOGlobalIndex utxoGlobalIndex = 2;
+}
+
+message LocalUTXOItem {
+    int64 height   = 1;
+    int32 txindex  = 2;
+    int32 outindex = 3;
+    bytes txhash   = 4;
+    bytes ometimepubkey = 5;
 }
 
 message ReqUTXOPubKeys {
@@ -567,4 +578,30 @@ message GroupUTXOPubKey {
 
 message ResUTXOPubKeys {
     repeated GroupUTXOPubKey groupUTXOPubKeys = 1;
+}
+
+message ReqPrivacyToken {
+    string token = 1;
+    int64 amount = 2;
+}
+
+message ReplyPrivacyAmounts {
+    repeated int64 amount = 1;
+}
+
+message replyUTXOsOfAmount {
+    repeated UTXOGlobalIndex globalIndex = 1;
+}
+
+message ReceiptPrivacyOutput {
+    string token = 1;
+    repeated keyOutput keyoutput = 2;
+}
+
+message AmountsOfUTXO {
+    map<int64, bool> amountMap = 1;
+}
+
+message TokenNamesOfUTXO {
+    map<string, bool> tokensMap = 1;
 }

@@ -136,6 +136,7 @@ var (
 	ErrNotEnoughUTXOs         = errors.New("ErrNotEnoughUTXOs")
 	ErrNoSuchPrivacyTX        = errors.New("ErrNoSuchPrivacyTX")
 	ErrDoubeSpendOccur        = errors.New("ErrDoubeSpendOccur")
+	ErrOutputIndex            = errors.New("ErrOutputIndex")
 
 	//wallet
 	ErrInputPara            = errors.New("ErrInputPara")
