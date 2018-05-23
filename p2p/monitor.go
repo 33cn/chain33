@@ -125,22 +125,19 @@ func (n *Node) getAddrFromOnline() {
 
 			var addrlist []string
 			var addrlistMap map[string]int64
+
 			var err error
 
-			if peer.version.GetVersion() >= VERSION {
-				addrlistMap, err = pcli.GetAddrList(peer)
-				for addr := range addrlistMap {
-					addrlist = append(addrlist, addr)
-				}
-			} else {
-				//老版本
-				addrlist, err = pcli.GetAddr(peer)
-			}
+			addrlistMap, err = pcli.GetAddrList(peer)
 
 			P2pComm.CollectPeerStat(err, peer)
 			if err != nil {
 				log.Error("getAddrFromOnline", "ERROR", err.Error())
 				continue
+			}
+
+			for addr := range addrlistMap {
+				addrlist = append(addrlist, addr)
 			}
 
 			for _, addr := range addrlist {
@@ -265,7 +262,8 @@ func (n *Node) monitorPeers() {
 				n.nodeInfo.blacklist.Add(paddr, 0)
 			}
 
-			if localBlockHeight-peerheight > 2048 { //比自己较低的节点删除
+			if localBlockHeight-peerheight > 2048 || n.nodeInfo.cfg.InnerBounds-peers[paddr].GetInBouns() < 10 {
+				//删除比自己较低的节点和负载较重的节点
 				if addrMap, err := p2pcli.GetAddrList(peers[paddr]); err == nil {
 
 					for addr := range addrMap {
