@@ -27,11 +27,10 @@ func main() {
 	// TODO this is daemon
 
 	runtime.GOMAXPROCS(cpuNum)
+	os.Chdir(pwd())
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
-	os.Chdir(pwd())
-	d, _ = os.Getwd()
-	log.Info("current dir:", "dir", d)
+
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -67,14 +66,13 @@ func main() {
 		go startTrace()
 	}
 
-	// fmt.Printf("%#v", *cfg)
 	r := relayd.NewRelayd(cfg)
 	go r.Start()
 
 	interrupt := make(chan os.Signal, 2)
 	signal.Notify(interrupt, os.Interrupt, os.Kill)
 	s := <-interrupt
-	log.Info("Got signal:", "signal", s)
+	log.Warn("Got signal:", "signal", s)
 
 	r.Close()
 }
