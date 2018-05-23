@@ -93,8 +93,8 @@ func (s *P2pServer) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2P
 	peerlist, infos := s.node.GetActivePeers()
 	var peerinfos []*pb.P2PPeerInfo
 
-	for _, info := range infos {
-		if peer, ok := peerlist[fmt.Sprintf("%v:%v", info.GetAddr(), info.GetPort())]; ok {
+	for addr, info := range infos {
+		if peer, ok := peerlist[addr]; ok {
 			if s.node.nodeInfo.cfg.GetInnerBounds()-peer.GetInBouns() < 30 { //连入的节点接近最大限制数量时，不返回这个IP节点
 				continue
 			}
