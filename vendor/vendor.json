@@ -537,6 +537,18 @@
 			"revisionTime": "2017-10-27T05:02:19Z"
 		},
 		{
+			"checksumSHA1": "LTOa3BADhwvT0wFCknPueQALm8I=",
+			"path": "github.com/valyala/bytebufferpool",
+			"revision": "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7",
+			"revisionTime": "2016-08-17T18:16:52Z"
+		},
+		{
+			"checksumSHA1": "eq08pJz4K+i3qiS39A7ENDBMoF0=",
+			"path": "github.com/valyala/fasthttp",
+			"revision": "e5f51c11919d4f66400334047b897ef0a94c6f3c",
+			"revisionTime": "2017-12-07T12:09:41Z"
+		},
+		{
 			"checksumSHA1": "D34ZqOW907kHAGTRU6lmxJs1ToU=",
 			"path": "go4.org/syncutil/singleflight",
 			"revision": "034d17a462f7b2dcd1a4a73553ec5357ff6e6c6e",
