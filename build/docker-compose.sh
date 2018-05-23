@@ -81,7 +81,7 @@ fi
 sleep 2
 
 echo "=========== # import private key mining ============="
-result=$(./chain33-cli account import_key -k B0BB75BC49A787A71F4834DA18614763B53A18291ECE6B5EDEC3AD19D150C3E7 -l mining | jq ".label")
+result=$(./chain33-cli account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l mining | jq ".label")
 echo ${result}
 if [ -z "${result}" ]; then
     exit 1
@@ -89,8 +89,33 @@ fi
 
 sleep 2
 
-result=$(./chain33-cli account list)
-echo ${result}
+echo "=========== # transfer ============="
+before=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins) | jq ".balance")
+cbefore=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins) | jq ".balance")
+for((i=0;i<10;i++))
+do
+    ./chain33-cli send bty transfer -a 1 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k 56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138
+    sleep 1
+done
+sleep 10
+after=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins | jq ".balance")
+dif=`expr ${{after}} - ${{before}}`
+echo ${dif}
+if [ $dif -ne 10 ]; then
+    exit 1
+fi
+
+sleep 2
+
+echo "=========== # withdraw ============="
+./chain33-cli ticket close
+sleep 10
+cafter=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins) | jq ".balance")
+dif=`expr ${{cafter}} - ${{cbefore}}`
+echo ${dif}
+if [ $dif -ne 9.989 ]; then
+    exit 1
+fi
 
 echo "=========== # set auto mining ============="
 result=$(./chain33-cli wallet auto_mine -f 1 | jq ".isok")
