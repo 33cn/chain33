@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // Store hash and blockHeader
@@ -60,17 +61,23 @@ func (r *relaydDB) queryOrderByStatus(status uint64) [][]byte {
 	return orders
 }
 
-func (r *relaydDB) BlockHeader(value interface{}) ([]byte, error) {
+func (r *relaydDB) BlockHeader(value interface{}) (*types.BtcHeader, error) {
+	var key []byte
 	switch val := value.(type) {
 	case uint64:
-		return r.db.Get(makeHeightKey(val))
-
+		key = makeHeightKey(val)
 	case []byte:
-		return r.db.Get(makeBlockHashKey(val))
-
+		key = makeBlockHashKey(val)
 	default:
 		panic(val)
 	}
+	var ret types.BtcHeader
+	data, err := r.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	err = types.Decode(data, &ret)
+	return &ret, err
 }
 
 func makeHeightKey(height uint64) []byte {
