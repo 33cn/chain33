@@ -91,20 +91,35 @@ sleep 2
 
 echo "=========== # transfer ============="
 sleep 60
-before=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
-#for((i=0;i<10;i++))
-#do
-./chain33-cli send bty transfer -a 1 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo
-#    sleep 1
-#done
+#before=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
+hashes=()
+for((i=0;i<10;i++))
+do
+    hash=$(./chain33-cli send bty transfer -a 1 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k 56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138)
+    hashes=(${hashes[*]} hash)
+    sleep 1
+done
+echo $hashes
+if [ ${#hashes[*]} != 10 ]; then
+    echo tx number wrong
+    exit 1
+fi
 sleep 30
-after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
-before=$(echo $before | bc)
-after=$(echo $after | bc)
-echo $before
-echo $after
-dif=$(echo ${before} - ${after} | bc)
-echo ${dif}
+for((i=0;i<${#hashes[*]};i++))
+do
+    txs=$(./chain33-cli tx query_hash -s ${hashes} | jq ".txs")
+    if [ $txs -e "null" ]; then
+        echo cannot find tx
+        exit 1
+done
+
+#after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
+#before=$(echo $before | bc)
+#after=$(echo $after | bc)
+#echo $before
+#echo $after
+#dif=$(echo ${before} - ${after} | bc)
+#echo ${dif}
 #if [ ${dif} != 10.01 ]; then
 #    exit 1
 #fi
@@ -120,7 +135,7 @@ dif=$(echo ${before} - ${after} | bc)
 echo ${dif}
 #if [ ${dif} != 0.011 ]; then
 #    exit 1
-#fi
+fi
 
 echo "=========== # set auto mining ============="
 result=$(./chain33-cli wallet auto_mine -f 1 | jq ".isok")
