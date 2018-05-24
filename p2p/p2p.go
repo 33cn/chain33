@@ -36,7 +36,7 @@ func New(cfg *types.P2P) *P2p {
 			cfg.VerMix = 118
 			cfg.VerMax = 128
 		} else {
-			cfg.Version = 10020
+			cfg.Version = 10021
 			cfg.VerMix = 10020
 			cfg.VerMax = 11000
 		}
@@ -44,6 +44,12 @@ func New(cfg *types.P2P) *P2p {
 
 	VERSION = cfg.GetVersion()
 	log.Info("p2p", "Version", VERSION)
+
+	if cfg.InnerBounds == 0 {
+		cfg.InnerBounds = 300
+	}
+	log.Info("p2p", "InnerBounds", cfg.InnerBounds)
+
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
