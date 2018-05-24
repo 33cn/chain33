@@ -3,13 +3,13 @@ package relayd
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"os"
-	"sync"
-	"time"
-
-	"fmt"
 	"strconv"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	log "github.com/inconshreveable/log15"
@@ -32,21 +32,24 @@ func confirms(txHeight, curHeight int32) int32 {
 }
 
 type Relayd struct {
-	config          *Config
-	httpServer      fasthttp.Server
-	db              *relaydDB
-	mu              sync.Mutex
-	latestBlockHash *chainhash.Hash
-	latestHeight    uint64
-	knownBlockHash  *chainhash.Hash
-	knownHeight     uint64
-	btcClient       BtcClient
-	btcClientLock   sync.Mutex
-	client33        *Client33
-	ctx             context.Context
-	cancel          context.CancelFunc
-	privateKey      crypto.PrivKey
-	publicKey       crypto.PubKey
+	config           *Config
+	httpServer       fasthttp.Server
+	db               *relaydDB
+	mu               sync.Mutex
+	latestBlockHash  *chainhash.Hash
+	latestBtcHeight  uint64
+	knownBlockHash   *chainhash.Hash
+	knownBtcHeight   uint64
+	btcClient        BtcClient
+	btcClientLock    sync.Mutex
+	client33         *Client33
+	ctx              context.Context
+	cancel           context.CancelFunc
+	privateKey       crypto.PrivKey
+	publicKey        crypto.PubKey
+	isPersist        int32
+	isSnyc           int32
+	isResetBtcHeight bool
 }
 
 func NewRelayd(config *Config) *Relayd {
@@ -56,21 +59,20 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 	db := NewRelayDB("relayd", dir, 256)
-	currentHeight, err := db.Get(currentBlockheightKey[:])
-	// if err != nil || currentHeight == nil {
-	// 	currentHeight = 0
-	// }
-	// value, err := chainhash.NewHash(hash)
-	// TODO
-	height, err := strconv.Atoi(string(currentHeight))
+	currentHeight, err := db.Get(currentBtcBlockheightKey[:])
+	h, err := strconv.Atoi(string(currentHeight))
 	if err != nil {
 		log.Warn("NewRelayd", "atoi height error: ", err)
-		height = 0
 	}
-	log.Info("NewRelayd", "current hegiht: ", height)
+	var isResetBtcHeight bool
+	height := uint64(h)
+	if height < config.FirstBtcHeight {
+		height = config.FirstBtcHeight
+		isResetBtcHeight = true
+	}
+	log.Info("NewRelayd", "current btc hegiht: ", height)
 
 	client33 := NewClient33(&config.Chain33)
-
 	var btc BtcClient
 	if config.BtcdOrWeb == 0 {
 		btc, err = NewBtcd(config.Btcd.BitConnConfig(), int(config.Btcd.ReconnectAttempts))
@@ -81,7 +83,7 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 
-	pr, err := hex.DecodeString(config.Auth.PrivateKey)
+	pk, err := hex.DecodeString(config.Auth.PrivateKey)
 	if err != nil {
 		panic(err)
 	}
@@ -91,20 +93,24 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 
-	priKey, err := secp.PrivKeyFromBytes(pr)
+	priKey, err := secp.PrivKeyFromBytes(pk)
 	if err != nil {
 		panic(err)
 	}
 
 	return &Relayd{
-		config:      config,
-		ctx:         ctx,
-		cancel:      cancel,
-		client33:    client33,
-		knownHeight: uint64(height),
-		btcClient:   btc,
-		privateKey:  priKey,
-		publicKey:   priKey.PubKey(),
+		config:           config,
+		db:               db,
+		ctx:              ctx,
+		cancel:           cancel,
+		client33:         client33,
+		knownBtcHeight:   uint64(height),
+		btcClient:        btc,
+		privateKey:       priKey,
+		publicKey:        priKey.PubKey(),
+		isPersist:        0,
+		isSnyc:           0,
+		isResetBtcHeight: isResetBtcHeight,
 	}
 }
 
@@ -118,13 +124,12 @@ func (r *Relayd) Start() {
 	r.client33.Start(r.ctx)
 	r.tick(r.ctx)
 	if err := fasthttp.ListenAndServe("0.0.0.0:8080", requestHandler); err != nil {
-		panic(fmt.Errorf("Error in ListenAndServe: %s", err))
+		panic(fmt.Errorf("ListenAndServe error: ", err))
 	}
 }
 
 func (r *Relayd) tick(ctx context.Context) {
 	tickDealTx := time.Tick(time.Second * time.Duration(r.config.Tick33))
-	tickQuery := time.Tick(time.Second * time.Duration(r.config.Tick33))
 	tickBtcd := time.Tick(time.Second * time.Duration(r.config.TickBTC))
 	ping := time.Tick(time.Second * 2 * time.Duration(r.config.TickBTC))
 
@@ -136,24 +141,27 @@ out:
 
 		case <-tickDealTx:
 			log.Info("deal transaction order")
-			// r.dealOrder()
-
-		case <-tickQuery:
-			log.Info("check transaction order")
-			// 定时查询交易是否成功
+			r.dealOrder()
 
 		case <-tickBtcd:
 			// btc ticket
-			log.Info("sync SPV")
+			log.Info("snyc btc information")
 			hash, height, err := r.btcClient.GetLatestBlock()
-			if err == nil {
-				r.latestBlockHash = hash
-				r.latestHeight = uint64(height)
-			} else {
+			if err != nil {
 				log.Error("tick GetBestBlock", "error ", err)
+			} else {
+				r.latestBlockHash = hash
+				atomic.StoreUint64(&r.latestBtcHeight, uint64(height))
 			}
-			if r.latestHeight > r.knownHeight {
-				go r.syncBlockHeaders()
+
+			if atomic.LoadUint64(&r.latestBtcHeight) > atomic.LoadUint64(&r.knownBtcHeight) {
+				if atomic.LoadInt32(&r.isPersist) == 0 {
+					go r.persistBlockHeaders()
+				}
+
+				if atomic.LoadInt32(&r.isSnyc) == 0 {
+					go r.syncBlockHeaders()
+				}
 			}
 
 		case <-ping:
@@ -162,53 +170,114 @@ out:
 	}
 }
 
-func (r *Relayd) syncBlockHeaders() {
-	// TODO
-	if r.knownHeight <= r.config.MinHeightBTC || r.latestHeight <= r.config.MinHeightBTC {
-		return
-	}
-	totalSetup := r.latestHeight - r.knownHeight
-	stage := totalSetup / SETUP
-	little := totalSetup % SETUP
-	var i uint64
-out:
-	for ; i <= stage; i++ {
-		var add uint64
-		if i == stage {
-			add += little
-		} else {
-			add += SETUP
-		}
-		headers := make([]*types.BtcHeader, add)
-		add += r.knownHeight
-		for j := r.knownHeight; j <= add; j++ {
-			header, err := r.btcClient.GetBlockHeader(j)
+func (r *Relayd) persistBlockHeaders() {
+	atomic.StoreInt32(&r.isPersist, 1)
+	if atomic.LoadUint64(&r.knownBtcHeight) < atomic.LoadUint64(&r.latestBtcHeight) {
+	out:
+		for i := atomic.LoadUint64(&r.knownBtcHeight); i < atomic.LoadUint64(&r.latestBtcHeight); i++ {
+			header, err := r.btcClient.GetBlockHeader(i)
 			if err != nil {
+				log.Error("syncBlockHeaders", "GetBlockHeader error", err)
 				break out
 			}
 			data := types.Encode(header)
-			// save db
-			err = r.db.Set(makeHeightKey(r.knownHeight), data)
-			if err != nil {
-				break out
-			}
-			r.knownHeight++
-			headers = append(headers, header)
+			r.db.Set(makeHeightKey(i), data)
+			r.db.Set(currentBtcBlockheightKey, []byte(fmt.Sprintf("%d", i)))
+			atomic.StoreUint64(&r.knownBtcHeight, i)
+			log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
 		}
-		// TODO
-		h := &types.BtcHeaders{BtcHeader: headers}
-		hh := &types.RelayAction_BtcHeaders{h}
-		action := &types.RelayAction{
-			Value: hh,
-			Ty:    8,
-		}
-		tx := r.transaction(types.Encode(action))
-		ret, err := r.client33.SendTransaction(r.ctx, tx, nil)
-		if err != nil {
-			panic(err)
-		}
-		log.Info("syncBlockHeaders", "sendTransaction result: ", ret)
 	}
+	atomic.StoreInt32(&r.isPersist, 0)
+}
+
+func (r *Relayd) queryChain33WithBtcHeight() (*types.ReplayRelayQryBTCHeadHeight, error) {
+	payLoad := types.Encode(&types.ReqRelayQryBTCHeadHeight{})
+	query := types.Query{
+		Execer:   executor,
+		FuncName: "GetBTCHeaderCurHeight",
+		Payload:  payLoad,
+	}
+	ret, err := r.client33.QueryChain(r.ctx, &query)
+	if err != nil {
+		return nil, err
+	}
+	if !ret.GetIsOk() {
+		log.Info("GetBTCHeaderCurHeight", "error", ret.GetMsg())
+	}
+	var result types.ReplayRelayQryBTCHeadHeight
+	types.Decode(ret.Msg, &result)
+	return &result, nil
+}
+
+func (r *Relayd) syncBlockHeaders() {
+	atomic.StoreInt32(&r.isSnyc, 1)
+	knownBtcHeight := atomic.LoadUint64(&r.knownBtcHeight)
+	if knownBtcHeight > r.config.FirstBtcHeight {
+		ret, err := r.queryChain33WithBtcHeight()
+		if err != nil {
+			log.Error("syncBlockHeaders", "queryChain33WithBtcHeight error: ", err)
+		} else {
+			log.Info("syncBlockHeaders", "queryChain33WithBtcHeight result: ", ret)
+			var initCurrentHeight uint64
+			if ret.CurHeight <= 0 || r.config.FirstBtcHeight != uint64(ret.BaseHeight) {
+				initCurrentHeight = r.config.FirstBtcHeight
+			} else {
+				initCurrentHeight = uint64(ret.CurHeight) + 1
+			}
+
+			lastHeight := knownBtcHeight
+			totalSetup := lastHeight - initCurrentHeight
+			totalConfig := r.config.SyncSetupCount * r.config.SyncSetup
+
+			if totalSetup > totalConfig {
+				totalSetup = totalConfig
+				lastHeight = totalSetup + initCurrentHeight
+			}
+
+			stage := totalSetup / r.config.SyncSetup
+			little := totalSetup % r.config.SyncSetup
+			var i uint64
+		out:
+			for i = 0; i <= stage; i++ {
+				var add uint64
+				if i == stage {
+					add = little
+				} else {
+					add = r.config.SyncSetup
+				}
+				headers := make([]*types.BtcHeader, 0, add)
+				breakHeight := add + initCurrentHeight
+				for j := initCurrentHeight; j < breakHeight; j++ {
+					// TODO betach request headers
+					header, err := r.db.BlockHeader(j)
+					if err != nil {
+						log.Error("syncBlockHeaders", "GetBlockHeader error", err)
+						break out
+					}
+
+					header.IsReset = r.isResetBtcHeight
+					r.isResetBtcHeight = false
+					headers = append(headers, header)
+				}
+				initCurrentHeight = breakHeight
+				log.Info("syncBlockHeaders", "len: ", len(headers))
+				btcHeaders := &types.BtcHeaders{BtcHeader: headers}
+				relayHeaders := &types.RelayAction_BtcHeaders{btcHeaders}
+				action := &types.RelayAction{
+					Value: relayHeaders,
+					Ty:    types.RelayActionRcvBTCHeaders,
+				}
+				tx := r.transaction(types.Encode(action))
+				ret, err := r.client33.SendTransaction(r.ctx, tx)
+				if err != nil {
+					log.Error("syncBlockHeaders", "SendTransaction error", err)
+					break out
+				}
+				log.Info("syncBlockHeaders end SendTransaction", "IsOk: ", ret.GetIsOk(), "msg: ", string(ret.GetMsg()))
+			}
+		}
+	}
+	atomic.StoreInt32(&r.isSnyc, 0)
 }
 
 func (r *Relayd) transaction(payload []byte) *types.Transaction {
@@ -216,6 +285,7 @@ func (r *Relayd) transaction(payload []byte) *types.Transaction {
 		Execer:  executor,
 		Payload: payload,
 		Nonce:   rand.Int63(),
+		Fee:     r.config.Fee,
 	}
 	tx.Sign(types.SECP256K1, r.privateKey)
 	return tx
@@ -224,28 +294,21 @@ func (r *Relayd) transaction(payload []byte) *types.Transaction {
 func (r *Relayd) dealOrder() {
 	result, err := r.requestRelayOrders(types.RelayOrderStatus_confirming)
 	if err != nil {
-		log.Info("dealOrder", err)
+		log.Error("dealOrder", "requestRelayOrders error: ", err)
 	}
 
-	// txSpv := make([][]byte, len(result.GetOrders()))
 	for _, value := range result.GetOrders() {
 		// TODO save db ???
 		tx, err := r.btcClient.GetTransaction(value.Exchgtxhash)
 		if err != nil {
-			log.Error("dealOrder", err)
+			log.Error("dealOrder", "dealOrder GetTransaction error: ", err)
 			continue
 		}
-
 		spv, err := r.btcClient.GetSPV(tx.BlockHeight, tx.Hash)
 		if err != nil {
-			log.Error("spv error", err)
+			log.Error("dealOrder", "GetSPV error: ", err)
 			continue
 		}
-		// var data []byte
-		// err = types.Decode(data, tx)
-		// if err != nil {
-		// 	log.Error("dealOrder json.Marshal", err)
-		// }
 		verify := &types.RelayVerify{
 			Orderid: value.Orderid,
 			Tx:      tx,
@@ -256,25 +319,25 @@ func (r *Relayd) dealOrder() {
 		}
 		action := &types.RelayAction{
 			Value: rr,
-			Ty:    6,
+			Ty:    types.RelayActionVerifyTx,
 		}
 		t := r.transaction(types.Encode(action))
-		r.client33.SendTransaction(r.ctx, t, nil)
-		// TODO save db ???
-		// txSpv = append(txSpv, data)
+		ret, err := r.client33.SendTransaction(r.ctx, t)
+		if err != nil {
+			log.Error("syncBlockHeaders", "SendTransaction error", err)
+			break
+		}
+		log.Info("syncBlockHeaders end SendTransaction", "IsOk: ", ret.GetIsOk(), "msg: ", string(ret.GetMsg()))
 	}
-	// TODO
-	// r.client33.SendTransaction(r.ctx, r.transaction(txs))
-	// t := r.transaction(types.Encode(action))
 }
 
 func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.QueryRelayOrderResult, error) {
-	payLoad := types.Encode(&types.QueryRelayOrderParam{
+	payLoad := types.Encode(&types.ReqRelayAddrCoins{
 		Status: status,
 	})
 	query := types.Query{
 		Execer:   executor,
-		FuncName: "queryRelayOrder",
+		FuncName: "GetRelayOrderByStatus",
 		Payload:  payLoad,
 	}
 	ret, err := r.client33.QueryChain(r.ctx, &query)

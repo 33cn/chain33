@@ -354,7 +354,6 @@ func (b *btcdClient) GetTransaction(hash string) (*types.BtcTransaction, error) 
 	if err != nil {
 		return nil, err
 	}
-
 	tx, err := b.rpcClient.GetRawTransactionVerbose(txHash)
 	if err != nil {
 		return nil, err
@@ -362,22 +361,22 @@ func (b *btcdClient) GetTransaction(hash string) (*types.BtcTransaction, error) 
 	btxTx := &types.BtcTransaction{}
 	btxTx.Hash = hash
 	btxTx.Time = tx.Time
-	// TODO
+	// TODO not exist blockheight
 	// btxTx.BlockHeight = tx.BlockHash
-	// vin := make([]*types.Vin, len(tx.Vin))
-	// for index, in := range tx.Vin {
-	// 	vin[index].Value = in.Vout
-	// 	vin[index].Address = in.Address
-	// }
-	// btcTx.Vin = vin
-
+	vin := make([]*types.Vin, len(tx.Vin))
+	for index, in := range tx.Vin {
+		var v types.Vin
+		// v.Address = in.
+		v.Value = uint64(in.Vout)
+		vin[index] = &v
+	}
+	btxTx.Vin = vin
 	vout := make([]*types.Vout, len(tx.Vout))
 	for index, in := range tx.Vout {
 		vout[index].Value = uint64(in.Value)
 		vout[index].Address = in.ScriptPubKey.Addresses[0]
 	}
 	btxTx.Vout = vout
-
 	return btxTx, nil
 }
 
