@@ -96,7 +96,7 @@ hashes=()
 for((i=0;i<10;i++))
 do
     hash=$(./chain33-cli send bty transfer -a 1 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k 56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138)
-    hashes=(${hashes[*]} hash)
+    hashes=(${hashes[*]} $hash)
     sleep 1
 done
 echo $hashes
