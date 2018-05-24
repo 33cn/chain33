@@ -11,11 +11,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"fmt"
 )
 
 var alog = log.New("module", "autority")
-var orgName = "org1"
-var userName = "User"
+var OrgName = "chain33"
+var userName = "User1"
 
 type Authority struct {
 	cryptoPath  string
@@ -31,6 +32,7 @@ func New(conf *types.Authority) *Authority {
 	auth.initConfig(conf)
 	auth.cryptoPath = conf.CryptoPath
 	auth.cfg = conf
+	OrgName = conf.GetOrgName()
 
 	return auth
 }
@@ -50,7 +52,7 @@ func (auth *Authority) initConfig(conf *types.Authority) error {
 	}
 	auth.signer = signer
 
-	idmgr, err := identitymgr.NewIdentityManager(orgName, cryptoSuite, conf.CryptoPath)
+	idmgr, err := identitymgr.NewIdentityManager(OrgName, cryptoSuite, conf.CryptoPath)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to initialize identity manage")
 	}
@@ -88,19 +90,16 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 //签名与CERT独立发送，验证签名时，如有异常，可以先把这两个数据拷贝置空再验证
 //或者在此处重新构造TX数据
 func (auth *Authority) procSignTx(msg queue.Message) {
-	//var key core.Key
-
-	data, ok := msg.GetData().(*types.ReqAuthSignTx)
-	if !ok {
-		panic("")
-	}
+	data, _ := msg.GetData().(*types.ReqAuthSignTx)
 
 	var tx types.Transaction
 	err := types.Decode(data.Tx, &tx)
 
 	user, err := auth.idmgr.GetUser(userName)
 	if err != nil {
-		panic(err)
+		alog.Error(fmt.Sprintf("Wrong username:%s", userName))
+		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+		return
 	}
 	//tx数据当前仅便于调试观察
 	if tx.Cert != nil {
@@ -121,12 +120,12 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 	data := msg.GetData().(*types.ReqAuthSignCheck)
 	tx := data.GetTx()
 	if tx.GetSignature().Ty != types.SIG_TYPE_AUTHORITY {
-		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
 		return
 	}
 
 	if tx.GetCert() == nil {
-		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
 		return
 	}
 
