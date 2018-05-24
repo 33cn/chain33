@@ -30,7 +30,7 @@ var (
 	bCoins                     = []byte("coins")
 	bToken                     = []byte("token")
 	withdraw                   = "withdraw"
-	FutureBlockDelayTime int64 = 5
+	FutureBlockDelayTime int64 = 1
 )
 
 const maxFutureBlocks = 256
@@ -833,8 +833,8 @@ func (chain *BlockChain) InitIndexAndBestView() {
 //定时延时广播futureblock
 func (chain *BlockChain) UpdateRoutine() {
 
-	//5秒尝试检测一次futureblock，futureblock的time小于当前系统时间就广播此block
-	futureblockTicker := time.NewTicker(5 * time.Second)
+	//1秒尝试检测一次futureblock，futureblock的time小于当前系统时间就广播此block
+	futureblockTicker := time.NewTicker(1 * time.Second)
 
 	for {
 		select {
