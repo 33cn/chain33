@@ -4,6 +4,11 @@ import (
 	"encoding/json"
 )
 
+func init() {
+	moreRpcTypeUtil(RpcTradeTypeTransList)
+	tlog.Info("rpc", "typeUtil", RpcTypeUtilMap, "input", RpcTradeTypeTransList)
+}
+
 var RpcTradeTypeTransList = []RpcTypeInfo{
 	{
 		"GetTokenSellOrderByStatus",

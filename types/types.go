@@ -865,24 +865,26 @@ type RpcTypeUtil interface {
 
 func moreRpcTypeUtil(arr []RpcTypeInfo) {
 	for _, t := range arr {
-		a, ok := t.Util.(RpcTypeUtil)
-		tlog.Debug("rpc", "t", t.FuncName, "t", a, "ok", ok)
-		if ok {
-			RpcTypeUtilMap[t.FuncName] = t.Util
-		}
-		tlog.Debug("rpc", "typeUtil", RpcTypeUtilMap, "input", RpcTradeTypeTransList)
+		registorRpcTypeUtil(t)
 	}
 }
 
-// call at rpc server start
-// add more type util
-func InitRpcTypeUtil() {
-	moreRpcTypeUtil(RpcTradeTypeTransList)
-	// TODO add more
-	//moreRpcTypeUtil(RpcOtherTypeTransList, RpcTypeUtilMap)
-	tlog.Info("rpc", "typeUtil", RpcTypeUtilMap, "input", RpcTradeTypeTransList)
+func registorRpcTypeUtil(util RpcTypeInfo) {
+	u, ok := util.Util.(RpcTypeUtil)
+	tlog.Debug("rpc", "t", util.FuncName, "t", u, "ok", ok)
+	if ok {
+		if _, exist := RpcTypeUtilMap[util.FuncName]; exist {
+			panic("DupRpcTypeUtil")
+		} else {
+			RpcTypeUtilMap[util.FuncName] = util.Util
+		}
+	}
 }
 
+func init() {
+	tlog.Info("rpc", "init", "types.go", "input", RpcTypeUtilMap)
+
+}
 var RpcTypeUtilMap = map[string]interface{}{
 // "GetTokenSellOrderByStatus" : &TradeQueryTokenSellOrder{},
 }
