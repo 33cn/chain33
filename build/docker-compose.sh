@@ -99,7 +99,7 @@ do
     hashes=(${hashes[*]} $hash)
     sleep 1
 done
-echo $hashes
+echo $hashes[@]
 if [ ${#hashes[*]} != 10 ]; then
     echo tx number wrong
     exit 1
@@ -108,7 +108,8 @@ sleep 30
 for((i=0;i<${#hashes[*]};i++))
 do
     txs=$(./chain33-cli tx query_hash -s ${hashes} | jq ".txs")
-    if [ $txs -e "null" ]; then
+    echo $txs
+    if [ $txs -eq "null" ]; then
         echo cannot find tx
         exit 1
     fi
