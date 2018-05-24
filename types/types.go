@@ -859,7 +859,7 @@ type RpcTypeUtil interface {
 }
 
 func registorRpcTypeUtil(funcName string, util RpcTypeUtil) {
-	tlog.Debug("rpc", "t", funcName, "t", util)
+	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := RpcTypeUtilMap[funcName]; exist {
 		panic("DupRpcTypeUtil")
 	} else {
@@ -868,8 +868,7 @@ func registorRpcTypeUtil(funcName string, util RpcTypeUtil) {
 }
 
 func init() {
-	tlog.Info("rpc", "init", "types.go", "input", RpcTypeUtilMap)
-
+	//tlog.Info("rpc", "init", "types.go", "input", RpcTypeUtilMap)
 }
 
 var RpcTypeUtilMap = map[string]interface{}{
