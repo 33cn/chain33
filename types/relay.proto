@@ -113,12 +113,6 @@ message RelayVerifyBTC {
     string blockhash	= 5;
 }
 
-enum RelaySaveBTCHeadFlag {
-    normalSave = 0;
-    resetHead  = 1;
-
-}
-
 message BtcHeader {
     string  hash          = 1;
     uint64  confirmations = 2;
@@ -131,7 +125,7 @@ message BtcHeader {
     int64   difficulty    = 9;
     string  previousHash  = 10;
     string  nextHash      = 11;
-    RelaySaveBTCHeadFlag   flag  = 12; // 0: nomal btc headers sync (default), 1: set the base head (may not from 1)
+    bool    isReset       = 12;   // 0: nomal btc headers sync (default), 1: set the base head (may not from 1)
 }
 
 message BtcHeaders {
