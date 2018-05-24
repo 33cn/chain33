@@ -108,7 +108,7 @@ sleep 30
 for((i=0;i<${#hashes[*]};i++))
 do
     txs=$(./chain33-cli tx query_hash -s ${hashes} | jq ".txs")
-    if [ $txs -eq "null" ]; then
+    if [ ${txs} == "null" ]; then
         echo cannot find tx
         exit 1
     fi
