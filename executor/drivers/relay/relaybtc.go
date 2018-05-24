@@ -49,7 +49,7 @@ func getBTCHeadHeightFromDb(r *relay, key []byte) (int64, error) {
 
 func (b *relayBTCStore) checkBlockHead(head *types.BtcHeader) bool {
 
-	if head.Flag == types.RelaySaveBTCHeadFlag_resetHead {
+	if head.IsReset {
 		relaylog.Info("relayBTCStore checkBlockHead head flag=reset", "reset height", head.Height)
 		return true
 	}
@@ -98,7 +98,7 @@ func (b *relayBTCStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
 	kv = append(kv, &types.KeyValue{key, heightbytes})
 
 	//for start with height =-1 case, the base not be set, just return -1
-	if head.Flag == types.RelaySaveBTCHeadFlag_resetHead {
+	if head.IsReset {
 		key = getRelayBtcHeaderKeyBaseHeight()
 		kv = append(kv, &types.KeyValue{key, heightbytes})
 	}
