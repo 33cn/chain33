@@ -853,20 +853,9 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	return false
 }
 
-type RpcTypeInfo struct {
-	FuncName string
-	Util     interface{}
-}
-
 type RpcTypeUtil interface {
 	Input(message json.RawMessage) ([]byte, error)
 	Output(interface{}) (interface{}, error)
-}
-
-func moreRpcTypeUtil(arr []RpcTypeInfo) {
-	for _, t := range arr {
-		registorRpcTypeUtil(t.FuncName, t.Util.(RpcTypeUtil))
-	}
 }
 
 func registorRpcTypeUtil(funcName string, util RpcTypeUtil) {
