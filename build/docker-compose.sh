@@ -111,6 +111,7 @@ do
     if [ $txs -e "null" ]; then
         echo cannot find tx
         exit 1
+    fi
 done
 
 #after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
