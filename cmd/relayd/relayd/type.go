@@ -7,10 +7,10 @@ import (
 // const SETUP = 50
 
 var (
-	currentBlockHashKey   = []byte("4062c3e6baa0ef4bc5917572c3b9aeaa5dc24f8ef008f38bcd401af6e80f257c")
-	currentBlockheightKey = []byte("000007bc077cc540821f06280c4c2f04e036931f21ea3b1bf509b972cbbef5ca")
-	executor              = []byte("relay")
-	zeroBlockHeader       = []byte("")
+	currentBlockHashKey      = []byte("4062c3e6baa0ef4bc5917572c3b9aeaa5dc24f8ef008f38bcd401af6e80f257c")
+	currentBtcBlockheightKey = []byte("000007bc077cc540821f06280c4c2f04e036931f21ea3b1bf509b972cbbef5ca")
+	executor                 = []byte("relay")
+	zeroBlockHeader          = []byte("")
 )
 
 // "hash":"000000000000000000223cbf6c473a4dedf6ebe19d17879eafc41f38ad1fdf1d",
@@ -128,15 +128,19 @@ func (t *TransactionResult) BtcTransaction() *types.BtcTransaction {
 
 	vin := make([]*types.Vin, len(t.Inputs))
 	for index, in := range t.Inputs {
-		vin[index].Value = in.PrevOut.Value
-		vin[index].Address = in.PrevOut.Address
+		var v types.Vin
+		v.Value = in.PrevOut.Value
+		v.Address = in.PrevOut.Address
+		vin[index] = &v
 	}
 	btcTx.Vin = vin
 
 	vout := make([]*types.Vout, len(t.Out))
 	for index, in := range t.Out {
-		vout[index].Value = in.Value
-		vout[index].Address = in.Address
+		var out types.Vout
+		out.Value = in.Value
+		out.Address = in.Address
+		vout[index] = &out
 		// TODO
 		// vout[index].Coinbase
 	}

@@ -26,6 +26,13 @@ func TestNewBtcWeb(t *testing.T) {
 	t.Log(latestBLock)
 	t.Log(height)
 
+	// 6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4
+	tx, err := btc.GetTransaction("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4")
+	if err != nil {
+		t.Errorf("GetTransaction error: %v", err)
+	}
+	t.Log(tx)
+
 	spv, err := btc.GetSPV(100000, "8c14f0db3df150123e6f3dbbf30f8b955a8249b62ac1d1ff16284aefa3d06d87")
 	if err != nil {
 		t.Errorf("GetLatestBlock error: %v", err)

@@ -10,20 +10,21 @@ import (
 )
 
 type Config struct {
-	Title        string
-	Watch        bool
-	Pprof        bool
-	Trace        bool
-	Tick33       int
-	TickBTC      int
-	BtcdOrWeb    int
-	Fee          int64
-	SyncSetup    uint64
-	Chain33      Chain33
-	MinHeightBTC uint64
-	Btcd         Btcd
-	Log          types.Log
-	Auth         Auth
+	Title          string
+	Watch          bool
+	Pprof          bool
+	Trace          bool
+	Tick33         int
+	TickBTC        int
+	BtcdOrWeb      int
+	Fee            int64
+	SyncSetup      uint64
+	SyncSetupCount uint64
+	Chain33        Chain33
+	FirstBtcHeight uint64
+	Btcd           Btcd
+	Log            types.Log
+	Auth           Auth
 }
 
 type Btcd struct {
