@@ -865,19 +865,16 @@ type RpcTypeUtil interface {
 
 func moreRpcTypeUtil(arr []RpcTypeInfo) {
 	for _, t := range arr {
-		registorRpcTypeUtil(t)
+		registorRpcTypeUtil(t.FuncName, t.Util.(RpcTypeUtil))
 	}
 }
 
-func registorRpcTypeUtil(util RpcTypeInfo) {
-	u, ok := util.Util.(RpcTypeUtil)
-	tlog.Debug("rpc", "t", util.FuncName, "t", u, "ok", ok)
-	if ok {
-		if _, exist := RpcTypeUtilMap[util.FuncName]; exist {
-			panic("DupRpcTypeUtil")
-		} else {
-			RpcTypeUtilMap[util.FuncName] = util.Util
-		}
+func registorRpcTypeUtil(funcName string, util RpcTypeUtil) {
+	tlog.Debug("rpc", "t", funcName, "t", util)
+	if _, exist := RpcTypeUtilMap[funcName]; exist {
+		panic("DupRpcTypeUtil")
+	} else {
+		RpcTypeUtilMap[funcName] = util
 	}
 }
 
@@ -885,6 +882,7 @@ func init() {
 	tlog.Info("rpc", "init", "types.go", "input", RpcTypeUtilMap)
 
 }
+
 var RpcTypeUtilMap = map[string]interface{}{
 // "GetTokenSellOrderByStatus" : &TradeQueryTokenSellOrder{},
 }
