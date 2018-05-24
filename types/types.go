@@ -853,12 +853,12 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	return false
 }
 
-type RpcTypeUtil interface {
+type RpcTypeQuery interface {
 	Input(message json.RawMessage) ([]byte, error)
 	Output(interface{}) (interface{}, error)
 }
 
-func registorRpcTypeUtil(funcName string, util RpcTypeUtil) {
+func registorRpcTypeUtil(funcName string, util RpcTypeQuery) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := RpcTypeUtilMap[funcName]; exist {
 		panic("DupRpcTypeUtil")
