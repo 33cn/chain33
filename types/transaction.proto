@@ -32,11 +32,16 @@ message Transaction {
 	string to = 7; //对方地址，如果没有对方地址，可以为空
 }
 
+// 一个签名的数据
+message SignatureData {
+	repeated bytes data = 1;
+}
 
 //对于一个交易组中的交易，要么全部成功，要么全部失败
 //这个要好好设计一下
 //最好交易构成一个链条[prevhash].独立的交易构成链条
 //只要这个组中有一个执行是出错的，那么就执行不成功
+
 
 //三种签名支持
 //ty = 1 -> secp256k1
@@ -46,7 +51,10 @@ message Signature {
 	int32 ty = 1;
 	bytes pubkey = 2;
 	bytes signature = 3;
-	repeated bytes ringSignature = 4;
+	//repeated bytes ringSignature = 4;
+
+	// 环签名中一个交易的所有utxo签名数组
+	repeated SignatureData ringSignature = 4;
 }
 
 
