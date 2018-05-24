@@ -106,7 +106,7 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 	}
 
 	addr := *crypto2.RandomContractAddress()
-	ret,_,leftGas,err :=  env.Create(runtime.AccountRef(msg.From()), addr, msg.Data(), msg.GasLimit(), msg.Value())
+	ret,_,leftGas,err :=  env.Create(runtime.AccountRef(msg.From()), addr, msg.Data(), msg.GasLimit())
 
 	return ret,addr,leftGas,err,statedb
 }
@@ -118,7 +118,7 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 
 	msg,_ := inst.GetMessage(&tx)
 
-	inst.SetEnv(10,0,common.EmptyAddress().Str(),uint64(10))
+	inst.SetEnv(10,0,common.EmptyAddress().NormalString(),uint64(10))
 
 	statedb = inst.GetMStateDB()
 

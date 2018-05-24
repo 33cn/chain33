@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
@@ -27,7 +26,7 @@ type EVMExecutor struct {
 // 根据命令行启动隐藏的参数判断是否启动EVM执行指令跟踪能力
 func debugEVM() bool {
 	params := os.Args[1:]
-	for _,v := range params {
+	for _, v := range params {
 		if "vmdebug" == v {
 			return true
 		}
@@ -79,15 +78,9 @@ func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficu
 }
 
 // 生成一个新的合约对象地址
-func (evm *EVMExecutor) getNewAddr(env *runtime.EVM) *common.Address {
-	var addr *common.Address
-	for count := 0; count < 10; count++ {
-		addr = crypto.RandomContractAddress()
-		if env.StateDB.Empty(*addr) {
-			return addr
-		}
-	}
-	return nil
+func (evm *EVMExecutor) getNewAddr(addr common.Address, nonce int64) common.Address {
+	// 使用调用者地址和交易nonce生成新的合约地址
+	return common.NewAddress(addr, nonce)
 }
 
 // 在区块上的执行操作，同一个区块内的多个交易会循环调用此方法进行处理；
@@ -120,11 +113,10 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	// 为了方便计费，即使合约为新生成，也将地址的初始化放到外面操作
 	if isCreate {
 		// 使用随机生成的地址作为合约地址（这个可以保证每次创建的合约地址不会重复，不存在冲突的情况）
-		newAddr := evm.getNewAddr(env)
-		if newAddr == nil {
+		contractAddr = evm.getNewAddr(msg.From(), tx.Nonce)
+		if !env.StateDB.Empty(contractAddr) {
 			return nil, model.ErrContractAddressCollision
 		}
-		contractAddr = *newAddr
 	} else {
 		contractAddr = *msg.To()
 	}
@@ -133,7 +125,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	evm.mStateDB.Prepare(common.BytesToHash(tx.Hash()), index)
 
 	if isCreate {
-		ret, snapshot, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, msg.Value())
+		ret, snapshot, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit)
 	} else {
 
 		ret, snapshot, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
@@ -145,7 +137,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		logMsg = "create contract details:"
 	}
 
-	log.Info(logMsg, "caller address", msg.From().Str(), "contract address", contractAddr.Str(), "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
+	log.Info(logMsg, "caller address", msg.From().NormalString(), "contract address", contractAddr.Str(), "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
 
 	curVer := evm.mStateDB.GetLastSnapshot()
 
@@ -173,9 +165,12 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	}
 	// 从状态机中获取数据变更和变更日志
 	data, logs := evm.mStateDB.GetChangedData(curVer.GetId())
-	if logs != nil {
-		logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr, isCreate)...)
-	}
+
+	contractReceipt := &model.ReceiptContract{msg.From().NormalString(), contractAddr.Str(),usedGas, ret}
+
+	logs = append(logs, &types.ReceiptLog{types.TyLogCallContract,types.Encode(contractReceipt)})
+	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr, isCreate)...)
+
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
 	return receipt, nil
 }
@@ -255,8 +250,8 @@ func getReceiver(tx *types.Transaction) *common.Address {
 }
 
 // 检查合约调用账户是否有充足的金额进行转账交易操作
-func CanTransfer(db state.StateDB, addr common.Address, amount uint64) bool {
-	return db.CanTransfer(addr, amount)
+func CanTransfer(db state.StateDB, sender, recipient common.Address, amount uint64) bool {
+	return db.CanTransfer(sender, recipient, amount)
 }
 
 // 在内存数据库中执行转账操作（只修改内存中的金额）
