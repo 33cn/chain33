@@ -154,7 +154,7 @@ func (n *Node) getAddrFromOnline() {
 					//查询对方的高度，如果不小于自己的高度,或高度差在一定范围内，则剔除一个种子
 					if peerHeight, ok := addrlistMap[addr]; ok {
 
-						if peerHeight >= localBlockHeight || localBlockHeight-peerHeight < 1024 {
+						if localBlockHeight-peerHeight < 1024 {
 							if _, ok := seedsMap[addr]; ok {
 								continue
 							}
