@@ -37,7 +37,7 @@ type NormalInterface interface {
 	CheckPeerNatOk(addr string) bool
 	GetAddrList(peer *Peer) (map[string]int64, error)
 	GetInPeersNum(peer *Peer) (int, error)
-	CheckPeerSelfNat(addr string, nodeinfo *NodeInfo) bool
+	CheckSelf(addr string, nodeinfo *NodeInfo) bool
 }
 
 type Cli struct {
