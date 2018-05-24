@@ -102,19 +102,31 @@ func (auth *Authority) procSignTx(msg queue.Message) {
 	if err != nil {
 		panic(err)
 	}
-	//tx数据当前仅便于调试观察
-	if tx.Cert != nil {
+
+	if tx.Signature != nil {
 		panic("")
 	}
-	//tx.Cert.Certbytes = user.EnrollmentCertificate()
-	//tx.Cert.Username = user.id
 
-	signature, err := auth.signer.Sign(data.Tx, user.PrivateKey())
+	//tx数据当前仅便于调试观察
+	//if tx.Cert != nil {
+	//	panic("")
+	//}
+	var tempCert types.AuthCert
+
+	tempCert.Certbytes = append(tempCert.Certbytes, user.EnrollmentCertificate()...)
+	tempCert.Username = userName
+	tx.Cert = &tempCert
+
+	signature, err := auth.signer.Sign(types.Encode(&tx), user.PrivateKey())
 	if err != nil {
 		panic(err)
 	}
 
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{signature, user.EnrollmentCertificate(), userName}))
+	tx.Signature = &types.Signature{types.SIG_TYPE_AUTHORITY, nil, signature}
+
+	txHex := types.Encode(&tx)
+
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{txHex}))
 }
 
 func (auth *Authority) procCheckTx(msg queue.Message) {
@@ -125,22 +137,22 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 		return
 	}
 
-	if tx.GetCert() == nil {
-		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
-		return
-	}
+	//if tx.GetCert() == nil {
+	//	msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+	//	return
+	//}
 
 	falseResultMsg := auth.client.NewMessage("mempool", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false})
 	localMSP := mspmgr.GetLocalMSP()
 
-	identity, err := localMSP.DeserializeIdentity(tx.GetCert().Certbytes)
+	identity, err := localMSP.DeserializeIdentity(tx.GetCert().GetCertbytes())
 	if err != nil {
 		alog.Error("Deserialize identity from cert bytes failed", err)
 		msg.Reply(falseResultMsg)
 		return
 	}
 
-	alog.Debug("transaction user name %s", tx.GetCert().Username)
+	alog.Debug("transaction user name %s", tx.GetCert().GetUsername())
 
 	err = identity.Validate()
 	if err != nil {
@@ -153,7 +165,7 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 
 	copytx := *tx
 	copytx.Signature = nil
-	copytx.Cert = nil
+	//copytx.Cert = nil
 	bytes := types.Encode(&copytx)
 	err = identity.Verify(bytes, tx.GetSignature().GetSignature())
 	if err != nil {
