@@ -425,6 +425,14 @@ const (
 
 	// log for config
 	TyLogModifyConfig = 410
+
+	// log for evm
+	// 合约代码变更日志
+	TyLogContractData = 601
+	// 合约状态数据变更日志
+	TyLogContractState = 602
+	// 合约状态数据变更日志
+	TyLogCallContract = 603
 )
 
 //exec type

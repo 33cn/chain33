@@ -66,7 +66,7 @@ func Bytes2HexTrim(b []byte) string {
 
 	// 如果全0，需要特殊处理，避免值返回0x
 	if idx == len(b) {
-		return "0x0"
+		return "0x00"
 	}
 	data := b[idx:]
 	enc := make([]byte, len(data)*2+2)

@@ -34,4 +34,40 @@ message ContractAction {
     uint32 gasPrice = 3;
     // 合约数据
     bytes code = 4;
+    // 交易备注
+    string note = 5;
+}
+
+
+// 合约创建/调用日志
+message ReceiptContract {
+    string caller = 1;
+    string contract = 2;
+    uint64 usedGas = 3;
+    // 创建合约返回的代码
+    bytes  ret = 4;
+}
+
+// 存放合约固定数据
+message ContractDataCmd {
+    string creator = 1;
+    string code = 2;
+    string codeHash = 3;
+}
+
+// 存放合约变化数据
+message ContractStateCmd {
+    uint64 nonce = 1;
+    bool suicided = 2;
+    string storageHash = 3;
+    map<string,string> storage = 4;
+}
+
+// 合约创建/调用日志
+message ReceiptContractCmd {
+    string caller = 1;
+    string contract = 2;
+    uint64 usedGas = 3;
+    // 创建合约返回的代码
+    string  ret = 4;
 }

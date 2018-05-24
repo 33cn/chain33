@@ -120,8 +120,6 @@ type (
 	transferChange struct {
 		baseChange
 		amount int64
-		from   string
-		to     string
 		data   []*types.KeyValue
 		logs   []*types.ReceiptLog
 	}

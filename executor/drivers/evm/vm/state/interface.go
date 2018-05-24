@@ -65,7 +65,7 @@ type StateDB interface {
 	AddPreimage(common.Hash, []byte)
 
 	// 当前账户余额是否足够转账
-	CanTransfer(addr common.Address, amount uint64) bool
+	CanTransfer(sender, recipient common.Address, amount uint64) bool
 	// 转账交易
 	Transfer(sender, recipient common.Address, amount uint64) bool
 }
