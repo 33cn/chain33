@@ -127,6 +127,7 @@ fi
 sleep 60
 after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e ticket | jq ".balance")
 after=$(echo $after | bc)
+echo $after
 if [ ${after} != 0 ]; then
     echo "wrong ticket balance, should be zero"
     exit 1
