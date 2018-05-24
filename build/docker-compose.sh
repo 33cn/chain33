@@ -99,7 +99,7 @@ do
     hashes=(${hashes[*]} $hash)
     sleep 1
 done
-echo $hashes[@]
+echo ${hashes[@]}
 if [ ${#hashes[*]} != 10 ]; then
     echo tx number wrong
     exit 1
@@ -108,35 +108,28 @@ sleep 30
 for((i=0;i<${#hashes[*]};i++))
 do
     txs=$(./chain33-cli tx query_hash -s ${hashes} | jq ".txs")
-    echo $txs
     if [ $txs -eq "null" ]; then
         echo cannot find tx
         exit 1
     fi
 done
 
-#after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
-#before=$(echo $before | bc)
-#after=$(echo $after | bc)
-#echo $before
-#echo $after
-#dif=$(echo ${before} - ${after} | bc)
-#echo ${dif}
-#if [ ${dif} != 10.01 ]; then
-#    exit 1
-#fi
-
 sleep 2
 
 echo "=========== # withdraw ============="
+before=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e ticket | jq ".balance")
+before=$(echo $before | bc)
+if [ ${before} == 0 ]; then
+    echo wrong ticket balance
+    exit 1
+fi
 ./chain33-cli ticket close
 sleep 30
-after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
+after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e ticket | jq ".balance")
 after=$(echo $after | bc)
-dif=$(echo ${before} - ${after} | bc)
-echo ${dif}
-#if [ ${dif} != 0.011 ]; then
-#    exit 1
+if [ ${after} != 0 ]; then
+    echo wrong ticket balance
+    exit 1
 fi
 
 echo "=========== # set auto mining ============="
