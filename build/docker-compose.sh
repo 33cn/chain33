@@ -120,15 +120,15 @@ echo "=========== # withdraw ============="
 before=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e ticket | jq ".balance")
 before=$(echo $before | bc)
 if [ ${before} == 0 ]; then
-    echo wrong ticket balance
+    echo "wrong ticket balance, should not be zero"
     exit 1
 fi
 ./chain33-cli ticket close
-sleep 30
+sleep 60
 after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e ticket | jq ".balance")
 after=$(echo $after | bc)
 if [ ${after} != 0 ]; then
-    echo wrong ticket balance
+    echo "wrong ticket balance, should be zero"
     exit 1
 fi
 
