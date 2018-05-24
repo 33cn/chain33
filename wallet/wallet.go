@@ -575,8 +575,8 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 	if err != nil {
 		return "", err
 	}
+
 	tx.SetExpire(expire)
-	//tx.Sign(int32(SignType), key)
 	txHex := types.Encode(&tx)
 	//发送给mgr签名
 
@@ -594,17 +594,12 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 	if err != nil {
 		panic(err)
 	}
-	sig, ok := resp.GetData().(*types.ReplyAuthSignTx)
+	signTxHex, ok := resp.GetData().(*types.ReplyAuthSignTx)
 	if ok {
 		walletlog.Debug("get signature success")
 		//ty and pubkey may be not used in this case
-		var tempCert types.AuthCert
-		tx.Signature = &types.Signature{types.SIG_TYPE_AUTHORITY, nil, sig.Signature}
-		tempCert.Certbytes = append(tempCert.Certbytes, sig.Certbytes...)
-		tempCert.Username = tempCert.Username
-		tx.Cert = &tempCert
-		txHex = types.Encode(&tx)
-		signedTx := hex.EncodeToString(txHex)
+
+		signedTx := hex.EncodeToString(signTxHex.Tx)
 		return signedTx, nil
 	}
 	return "", types.ErrGetSignFromAuth
