@@ -431,13 +431,13 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				continue
 			}
 
+			Filter.RegRecvData(blockhash) //注册已经收到的区块
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(),
 				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{peername, block.GetBlock()})
 				s.node.nodeInfo.client.Send(msg, false)
 			}
-			Filter.RegRecvData(blockhash) //注册已经收到的区块
 
 		} else if tx := in.GetTx(); tx != nil {
 			hex.Encode(hash[:], tx.GetTx().Hash())
