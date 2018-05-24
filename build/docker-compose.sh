@@ -102,6 +102,8 @@ sleep 10
 after=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins | jq ".balance")
 after=$(echo $after | bc)
 before=$(echo $before | bc)
+echo &before
+echo $after
 dif=$(echo ${after} - ${before} | bc)
 echo ${dif}
 if [ ${dif} != 10 ]; then
