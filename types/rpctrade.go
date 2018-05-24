@@ -179,3 +179,25 @@ func (t *TradeQueryOnesOrder) Output(reply interface{}) (interface{}, error) {
 	json.Unmarshal(str, &rpcReply)
 	return &rpcReply, nil
 }
+
+/*
+func order2rpcOrder(order *ReplyTradeOrder) *RpcReplyTradeOrder {
+	return &RpcReplyTradeOrder {
+		order.TokenSymbol,
+		order.Owner,
+		order.AmountPerBoardlot,
+		order.MinBoardlot,
+		order.PricePerBoardlot,
+		order.TotalBoardlot,
+		order.TradedBoardlot,
+		order.BuyID,
+		order.Status,
+		order.SellID,
+		order.TxHash,
+		order.Height,
+		order.Key,
+		order.BlockTime,
+		order.IsSellOrder,
+	}
+}
+*/
