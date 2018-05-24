@@ -68,7 +68,10 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 	peeraddr := fmt.Sprintf("%s:%v", peerip, in.Port)
 	remoteNetwork, err := NewNetAddressString(peeraddr)
 	if err == nil {
-		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		if !s.node.nodeInfo.blacklist.Has(peeraddr) {
+			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		}
+
 	}
 
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
@@ -90,15 +93,10 @@ func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 
 //获取地址列表，包含地址高度
 func (s *P2pServer) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddrList, error) {
-	peerlist, infos := s.node.GetActivePeers()
+	_, infos := s.node.GetActivePeers()
 	var peerinfos []*pb.P2PPeerInfo
 
-	for addr, info := range infos {
-		if peer, ok := peerlist[addr]; ok {
-			if s.node.nodeInfo.cfg.GetInnerBounds()-peer.GetInBouns() < 30 { //连入的节点接近最大限制数量时，不返回这个IP节点
-				continue
-			}
-		}
+	for _, info := range infos {
 
 		peerinfos = append(peerinfos, &pb.P2PPeerInfo{Addr: info.GetAddr(), Port: info.GetPort(), Name: info.GetName(), Header: info.GetHeader(),
 			MempoolSize: info.GetMempoolSize()})
@@ -137,9 +135,9 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peerip, port))
 	if err == nil {
-		log.Debug("Version2", "before", "AddAddress")
-		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
-		log.Debug("Version2", "after", "AddAddress")
+		if !s.node.nodeInfo.blacklist.Has(remoteNetwork.String()) {
+			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		}
 	}
 
 	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
