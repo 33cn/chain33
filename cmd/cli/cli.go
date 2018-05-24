@@ -41,6 +41,7 @@ func init() {
 		commands.TradeCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
+		commands.EvmCmd(),
 		versionCmd)
 }
 

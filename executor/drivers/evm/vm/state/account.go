@@ -169,18 +169,18 @@ func (self *ContractAccount) BuildDataLog() (log *types.ReceiptLog) {
 		log15.Error("marshal contract state error!", self.Addr)
 		return
 	}
-	return &types.ReceiptLog{model.TyLogContractData, datas}
+	return &types.ReceiptLog{types.TyLogContractData, datas}
 }
 
 // 构建变更日志
 func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 	datas, err := proto.Marshal(&self.State)
-	if err != nil {
-		log15.Error("marshal contract state error!", self.Addr)
+	if err != nil || len(datas) == 0 {
+		log15.Error("marshal contract state error!", "error", self.Addr)
 		return
 	}
 
-	return &types.ReceiptLog{model.TyLogContractState, datas}
+	return &types.ReceiptLog{types.TyLogContractState, datas}
 }
 
 func (self *ContractAccount) GetDataKey() []byte {

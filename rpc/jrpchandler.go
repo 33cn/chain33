@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -1147,6 +1148,30 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 		case types.TyLogTokenGenesisDeposit:
 			lTy = "LogTokenGenesisDeposit"
 			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogCallContract:
+			lTy = "LogCallContract"
+			var logTmp model.ReceiptContract
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogContractData:
+			lTy = "LogContractData"
+			var logTmp model.ContractData
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogContractState:
+			lTy = "LogContractState"
+			var logTmp model.ContractState
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err

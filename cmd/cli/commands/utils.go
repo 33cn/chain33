@@ -12,6 +12,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/gogo/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -137,6 +140,13 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
+			// EVM合约日志处理逻辑
+		case types.TyLogCallContract:
+			rl.Log = buildCallContractResult(l)
+		case types.TyLogContractData:
+			rl.Log = buildContractDataResult(l)
+		case types.TyLogContractState:
+			rl.Log = buildContractStateResult(l)
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
@@ -144,6 +154,40 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		rd.Logs = append(rd.Logs, rl)
 	}
 	return rd
+}
+
+func buildCallContractResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data,_ := common.FromHex(l.RawLog)
+	receipt := &model.ReceiptContract{}
+	proto.Unmarshal(data, receipt)
+	rlog := &model.ReceiptContractCmd{Caller:receipt.Caller, Contract:receipt.Contract, UsedGas:receipt.UsedGas}
+	rlog.Ret = common.ToHex(receipt.Ret)
+	return rlog
+}
+
+func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data,_ := common.FromHex(l.RawLog)
+	receipt := &model.ContractData{}
+	proto.Unmarshal(data, receipt)
+	rlog := &model.ContractDataCmd{Creator:receipt.Creator}
+	rlog.Code = common.ToHex(receipt.Code)
+	rlog.CodeHash = common.ToHex(receipt.CodeHash)
+	return rlog
+}
+
+func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data,_ := common.FromHex(l.RawLog)
+	receipt := &model.ContractState{}
+	proto.Unmarshal(data, receipt)
+	rlog := &model.ContractStateCmd{Nonce:receipt.Nonce, Suicided:receipt.Suicided}
+	rlog.StorageHash = common.ToHex(receipt.StorageHash)
+	if receipt.Storage != nil {
+		rlog.Storage = make(map[string]string)
+		for k,v := range receipt.Storage {
+			rlog.Storage[k] = common.ToHex(v)
+		}
+	}
+	return rlog
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {

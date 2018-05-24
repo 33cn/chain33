@@ -14,7 +14,7 @@ import (
 
 type (
 	// 检查制定账户是否有足够的金额进行转账
-	CanTransferFunc func(state.StateDB, common.Address, uint64) bool
+	CanTransferFunc func(state.StateDB, common.Address, common.Address, uint64) bool
 
 	// 执行转账逻辑
 	TransferFunc func(state.StateDB, common.Address, common.Address, uint64) bool
@@ -130,7 +130,7 @@ func (evm *EVM) SetMaxCodeSize(maxCodeSize int) {
 }
 
 // 封装合约的各种调用逻辑中通用的预检查逻辑
-func (evm *EVM) preCheck(caller ContractRef, value uint64) (pass bool, err error) {
+func (evm *EVM) preCheck(caller ContractRef, recipient common.Address, value uint64) (pass bool, err error) {
 	// 检查调用深度是否合法
 	if evm.VmConfig.NoRecursion && evm.depth > 0 {
 		return false, nil
@@ -143,7 +143,7 @@ func (evm *EVM) preCheck(caller ContractRef, value uint64) (pass bool, err error
 
 	// 如有转账，检查余额是否充足
 	if value > 0 {
-		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), recipient, value) {
 			return false, model.ErrInsufficientBalance
 		}
 	}
@@ -157,7 +157,7 @@ func (evm *EVM) preCheck(caller ContractRef, value uint64) (pass bool, err error
 // 合约调用逻辑支持在合约调用的同时进行向合约转账的操作
 func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value uint64) (ret []byte, snapshot int, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller, value)
+	pass, err = evm.preCheck(caller, addr, value)
 	if !pass {
 		return nil, -1, gas, err
 	}
@@ -226,7 +226,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 // 在创建合约对象时，合约对象的上下文地址（合约对象的self属性）被设置为caller的地址
 func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller, value)
+	pass, err = evm.preCheck(caller, addr, value)
 	if !pass {
 		return nil, gas, err
 	}
@@ -261,7 +261,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 // 和CallCode不同的是，它会把合约的外部调用地址设置成caller的caller
 func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller, 0)
+	pass, err = evm.preCheck(caller, addr, 0)
 	if !pass {
 		return nil, gas, err
 	}
@@ -297,7 +297,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 // 在合约逻辑中，可以指定其它的合约地址以及输入参数进行合约调用，但是，这种情况下禁止修改MemoryStateDB中的任何数据，否则执行会出错
 func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller, 0)
+	pass, err = evm.preCheck(caller, addr, 0)
 	if !pass {
 		return nil, gas, err
 	}
@@ -338,28 +338,27 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	return ret, contract.Gas, err
 }
 
-// 此方法提供合约外部创建入口
-// 使用传入的部署代码创建新的合约
-func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []byte, gas uint64, value uint64) (ret []byte, snapshot int, leftOverGas uint64, err error) {
+// 此方法提供合约外部创建入口；
+// 使用传入的部署代码创建新的合约；
+// 目前chain33为了保证账户安全，不允许合约中涉及到外部账户的转账操作，
+// 所以，本步骤不接收转账金额参数
+func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []byte, gas uint64,) (ret []byte, snapshot int, leftOverGas uint64, err error) {
 	pass := false
-	pass, err = evm.preCheck(caller, value)
+	pass, err = evm.preCheck(caller, contractAddr, 0)
 	if !pass {
 		return nil, -1, gas, err
 	}
 
 	// 创建新的合约对象，包含双方地址以及合约代码，可用Gas信息
-	contract := NewContract(caller, AccountRef(contractAddr), value, gas)
+	contract := NewContract(caller, AccountRef(contractAddr), 0, gas)
 	contract.SetCallCode(&contractAddr, common.ToHash(code), code)
 
 	// 创建一个新的账户对象（合约账户）
 	snapshot = evm.StateDB.Snapshot()
 	evm.StateDB.CreateAccount(contractAddr, contract.CallerAddress)
 
-	// 从创建者向合约账户转账
-	evm.Transfer(evm.StateDB, caller.Address(), contractAddr, value)
-
 	if evm.VmConfig.Debug && evm.depth == 0 {
-		evm.VmConfig.Tracer.CaptureStart(caller.Address(), contractAddr, true, code, gas, value)
+		evm.VmConfig.Tracer.CaptureStart(caller.Address(), contractAddr, true, code, gas, 0)
 	}
 	start := time.Now()
 

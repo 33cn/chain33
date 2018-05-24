@@ -10,7 +10,7 @@ func TestAddressBig(t *testing.T) {
 	addr := StringToAddress(saddr)
 	baddr := addr.Big()
 	naddr := BigToAddress(baddr)
-	if saddr != naddr.Str() {
+	if saddr != naddr.NormalString() {
 		t.Fail()
 	}
 }
