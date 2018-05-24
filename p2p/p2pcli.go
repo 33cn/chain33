@@ -34,9 +34,10 @@ type NormalInterface interface {
 	SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error)
 	SendPing(peer *Peer, nodeinfo *NodeInfo) error
 	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
-	CheckPeerNatOk(addr string, nodeinfo *NodeInfo) bool
+	CheckPeerNatOk(addr string) bool
 	GetAddrList(peer *Peer) (map[string]int64, error)
 	GetInPeersNum(peer *Peer) (int, error)
+	CheckPeerSelfNat(addr string, nodeinfo *NodeInfo) bool
 }
 
 type Cli struct {
@@ -551,9 +552,12 @@ func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
 
 }
 
-func (m *Cli) CheckPeerNatOk(addr string, nodeinfo *NodeInfo) bool {
+func (m *Cli) CheckPeerNatOk(addr string) bool {
 	//连接自己的地址信息做测试
-	//return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
+	return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
+
+}
+func (m *Cli) CheckPeerSelfNat(addr string, nodeinfo *NodeInfo) bool {
 	netaddr, err := NewNetAddressString(addr)
 	if err != nil {
 		log.Error("AddrRouteble", "NewNetAddressString", err.Error())
@@ -573,13 +577,11 @@ func (m *Cli) CheckPeerNatOk(addr string, nodeinfo *NodeInfo) bool {
 	_, selfName := nodeinfo.addrBook.GetPrivPubKey()
 
 	if resp.GetName() == selfName {
-		return false
+		return true
 	}
 
-	return true
-
+	return false
 }
-
 func (m *Cli) peerInfos() []*pb.Peer {
 	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*pb.Peer
