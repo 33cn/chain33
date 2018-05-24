@@ -65,7 +65,7 @@ type RelaySaveBTCHeadTx struct {
 	Difficulty    int64  `json:"difficulty"`
 	PreviousHash  string `json:"previousHash"`
 	NextHash      string `json:"nextHash"`
-	Flag          int32  `json:"flag"`
+	IsReset       bool   `json:"isReset"`
 	Fee           int64  `json:"fee"`
 }
 
@@ -225,7 +225,7 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		PreviousHash: parm.PreviousHash,
 		MerkleRoot:   parm.MerkleRoot,
 		Height:       parm.Height,
-		Flag:         types.RelaySaveBTCHeadFlag(parm.Flag),
+		IsReset:      parm.IsReset,
 	}
 
 	v := &types.BtcHeaders{}

@@ -672,7 +672,7 @@ func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 		PreviousHash: prehash,
 		MerkleRoot:   merkleroot,
 		Height:       height,
-		Flag:         flag,
+		IsReset:      flag == 1,
 		Fee:          feeInt64 * 1e4,
 	}
 
