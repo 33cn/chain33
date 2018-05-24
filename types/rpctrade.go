@@ -6,18 +6,12 @@ import (
 
 func init() {
 	registorRpcTypeUtil("GetTokenSellOrderByStatus", &TradeQueryTokenSellOrder{})
-	registorRpcTypeUtil("GetOnesSellOrderWithStatus",
-		&TradeQueryOnesSellOrder{})
-	registorRpcTypeUtil("GetOnesSellOrder",
-		&TradeQueryOnesSellOrder{})
-	registorRpcTypeUtil("GetTokenBuyOrderByStatus",
-		&TradeQueryTokenBuyOrder{})
-	registorRpcTypeUtil("GetOnesBuyOrderWithStatus",
-		&TradeQueryOnesBuyOrder{})
-	registorRpcTypeUtil("GetOnesBuyOrder",
-		&TradeQueryOnesBuyOrder{})
-	registorRpcTypeUtil("GetOnesOrderWithStatus",
-		&TradeQueryOnesOrder{})
+	registorRpcTypeUtil("GetOnesSellOrderWithStatus", &TradeQueryOnesSellOrder{})
+	registorRpcTypeUtil("GetOnesSellOrder", &TradeQueryOnesSellOrder{})
+	registorRpcTypeUtil("GetTokenBuyOrderByStatus", &TradeQueryTokenBuyOrder{})
+	registorRpcTypeUtil("GetOnesBuyOrderWithStatus", &TradeQueryOnesBuyOrder{})
+	registorRpcTypeUtil("GetOnesBuyOrder", &TradeQueryOnesBuyOrder{})
+	registorRpcTypeUtil("GetOnesOrderWithStatus", &TradeQueryOnesOrder{})
 
 	//tlog.Info("rpc", "typeUtil", RpcTypeUtilMap)
 }
