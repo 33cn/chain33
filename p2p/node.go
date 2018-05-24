@@ -99,7 +99,25 @@ func (n *Node) natOk() bool {
 }
 
 func (n *Node) doNat() {
-
+	//测试是否在外网，当连接节点数大于0的时候，测试13802端口
+	for {
+		if n.Size() > 0 {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	testExaddr := fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), defaultPort)
+	log.Info("TestNetAddr", "testExaddr", testExaddr)
+	if len(P2pComm.AddrRouteble([]string{testExaddr})) != 0 {
+		log.Info("node outside")
+		n.nodeInfo.SetNetSide(true)
+		if netexaddr, err := NewNetAddressString(testExaddr); err == nil {
+			n.nodeInfo.SetExternalAddr(netexaddr)
+			n.nodeInfo.addrBook.AddOurAddress(netexaddr)
+		}
+		return
+	}
+	log.Info("node inside")
 	//在内网，并且非种子节点，则进行端口映射
 	if !n.nodeInfo.OutSide() && !n.nodeInfo.cfg.GetIsSeed() && n.nodeInfo.cfg.GetServerStart() {
 
@@ -344,6 +362,7 @@ func (n *Node) natMapPort() {
 	if err != nil {
 		//映射失败
 		log.Warn("NatMapPort", "Nat", "Faild")
+		n.flushNodePort(defaultPort, defaultPort)
 		n.nodeInfo.natResultChain <- false
 		return
 	}
