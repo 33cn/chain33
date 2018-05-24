@@ -294,6 +294,7 @@ message TokenAction {
 		CoinsTransfer     transfer          = 4;
 		CoinsWithdraw     withdraw          = 5;
 		CoinsGenesis      genesis           = 6;
+		CoinsTransferToExec transferToExec  = 8;
 	}
 	int32 Ty = 7;
 }

@@ -451,6 +451,7 @@ const (
 	TokenActionFinishCreate   = 8
 	TokenActionRevokeCreate   = 9
 	CoinsActionTransferToExec = 10
+	TokenActionTransferToExec = 11
 )
 
 //ticket
