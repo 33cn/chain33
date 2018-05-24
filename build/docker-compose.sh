@@ -90,8 +90,7 @@ fi
 sleep 2
 
 echo "=========== # transfer ============="
-sleep 15
-#before=$(./chain33-cli account balance -a 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -e coins | jq ".balance")
+sleep 60
 before=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
 for((i=0;i<10;i++))
 do
