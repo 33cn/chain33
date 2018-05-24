@@ -16,8 +16,7 @@ import (
 )
 
 // NewFileCertStore ...
-func NewFileCertStore(cryptoConfigMSPPath string) (core.KVStore, error) {
-	_, orgName := path.Split(path.Dir(path.Dir(path.Dir(cryptoConfigMSPPath))))
+func NewFileCertStore(orgname string, cryptoConfigMSPPath string) (core.KVStore, error) {
 	opts := &FileKeyValueStoreOptions{
 		Path: cryptoConfigMSPPath,
 		KeySerializer: func(key interface{}) (string, error) {
@@ -32,7 +31,7 @@ func NewFileCertStore(cryptoConfigMSPPath string) (core.KVStore, error) {
 			// TODO: refactor to case insensitive or remove eventually.
 			r := strings.NewReplacer("{userName}", ck, "{username}", ck)
 			certDir := path.Join(r.Replace(cryptoConfigMSPPath), "signcerts")
-			return path.Join(certDir, fmt.Sprintf("%s@%s-cert.pem", ck, orgName)), nil
+			return path.Join(certDir, fmt.Sprintf("%s@%s-cert.pem", ck, orgname)), nil
 		},
 	}
 	return New(opts)
