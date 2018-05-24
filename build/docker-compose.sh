@@ -92,11 +92,11 @@ sleep 2
 echo "=========== # transfer ============="
 sleep 60
 before=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
-for((i=0;i<10;i++))
-do
-    ./chain33-cli send bty transfer -a 1 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k 56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138
-    sleep 1
-done
+#for((i=0;i<10;i++))
+#do
+./chain33-cli send bty transfer -a 1 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo
+#    sleep 1
+#done
 sleep 30
 after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
 before=$(echo $before | bc)
