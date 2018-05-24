@@ -1,13 +1,11 @@
 package relayd
 
 import (
-	"testing"
-
 	"io/ioutil"
 	"path/filepath"
+	"testing"
 
 	"github.com/btcsuite/btcd/rpcclient"
-	// "github.com/btcsuite/btcutil"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
@@ -47,11 +45,21 @@ func TestNewBtcd(t *testing.T) {
 	t.Log(latestBLock)
 	t.Log(height)
 
+	// 6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4
+	_, err = btc.GetTransaction("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4")
+	if err == nil {
+		t.Errorf("GetTransaction error: %v", err)
+	}
+	t.Log(err)
+
 	spv, err := btc.GetSPV(22448, "aad85f52da28f808822aadfee72b8df23e2591a22ea5ef3cbc6592681a4baa2e")
-	if err != nil {
+	if err == nil {
 		t.Errorf("GetSPV error: %v", err)
 	}
-	t.Logf("%+v", spv)
+	t.Logf("%+v", err)
+	if spv != nil {
+		t.Logf("%+v", spv)
+	}
 }
 
 func Test_oneTxMerkle(t *testing.T) {
@@ -66,8 +74,8 @@ func Test_oneTxMerkle(t *testing.T) {
 	leaves[0] = tx0byte
 	// leaves[1] = tx0byte
 	t.Log(leaves)
-	bitroothash := merkle.GetMerkleRoot(leaves)
-	t.Log(bitroothash)
+	bitHash := merkle.GetMerkleRoot(leaves)
+	t.Log(bitHash)
 	hash := merkle.GetMerkleBranch(leaves, 0)
 	t.Log(hash)
 }
