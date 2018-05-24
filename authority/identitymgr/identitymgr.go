@@ -33,7 +33,7 @@ func NewIdentityManager(orgName string, cryptoSuite core.CryptoSuite, CryptoPath
 		return nil, errors.Wrapf(err, "creating a private key store failed")
 	}
 
-	mspCertStore, err = filestore.NewFileCertStore(CryptoPath)
+	mspCertStore, err = filestore.NewFileCertStore(orgName, CryptoPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "creating a cert store failed")
 	}
