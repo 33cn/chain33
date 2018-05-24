@@ -5,39 +5,24 @@ import (
 )
 
 func init() {
-	moreRpcTypeUtil(RpcTradeTypeTransList)
+	registorRpcTypeUtil("GetTokenSellOrderByStatus", &TradeQueryTokenSellOrder{})
+	registorRpcTypeUtil("GetOnesSellOrderWithStatus",
+		&TradeQueryOnesSellOrder{})
+	registorRpcTypeUtil("GetOnesSellOrder",
+		&TradeQueryOnesSellOrder{})
+	registorRpcTypeUtil("GetTokenBuyOrderByStatus",
+		&TradeQueryTokenBuyOrder{})
+	registorRpcTypeUtil("GetOnesBuyOrderWithStatus",
+		&TradeQueryOnesBuyOrder{})
+	registorRpcTypeUtil("GetOnesBuyOrder",
+		&TradeQueryOnesBuyOrder{})
+	registorRpcTypeUtil("GetOnesOrderWithStatus",
+		&TradeQueryOnesOrder{})
+
 	tlog.Info("rpc", "typeUtil", RpcTypeUtilMap, "input", RpcTradeTypeTransList)
 }
 
 var RpcTradeTypeTransList = []RpcTypeInfo{
-	{
-		"GetTokenSellOrderByStatus",
-		&TradeQueryTokenSellOrder{},
-	},
-	{
-		"GetOnesSellOrderWithStatus",
-		&TradeQueryOnesSellOrder{},
-	},
-	{
-		"GetOnesSellOrder",
-		&TradeQueryOnesSellOrder{},
-	},
-	{
-		"GetTokenBuyOrderByStatus",
-		&TradeQueryTokenBuyOrder{},
-	},
-	{
-		"GetOnesBuyOrderWithStatus",
-		&TradeQueryOnesBuyOrder{},
-	},
-	{
-		"GetOnesBuyOrder",
-		&TradeQueryOnesBuyOrder{},
-	},
-	{
-		"GetOnesOrderWithStatus",
-		&TradeQueryOnesOrder{},
-	},
 }
 
 // rpc query trade sell order part
