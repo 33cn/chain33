@@ -13,6 +13,7 @@ var (
 	StreamPingTimeout           = 20 * time.Second
 	MonitorPeerInfoInterval     = 10 * time.Second
 	MonitorPeerNumInterval      = 30 * time.Second
+	MonitorReBalanceInterval    = 2 * time.Minute
 	GetAddrFromAddrBookInterval = 5 * time.Second
 	GetAddrFromOnlineInterval   = 5 * time.Second
 	GetAddrFromGitHubInterval   = 5 * time.Minute
@@ -31,10 +32,10 @@ var (
 )
 
 const (
-	defaultPort    = 13802
-	defalutNatPort = 23802
-	maxOutBoundNum = 25
-	//	stableBoundNum  = 15
+	defaultPort     = 13802
+	defalutNatPort  = 23802
+	maxOutBoundNum  = 25
+	stableBoundNum  = 15
 	maxAttemps      = 5
 	protocol        = "tcp"
 	externalPortTag = "externalport"
