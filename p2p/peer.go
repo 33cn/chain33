@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -26,18 +27,19 @@ func (p *Peer) Close() {
 }
 
 type Peer struct {
-	mutx       sync.Mutex
-	nodeInfo   **NodeInfo
-	conn       *grpc.ClientConn // source connection
-	persistent bool
-	isclose    int32
-	version    *Version
-	name       string //远程节点的name
-	mconn      *MConnection
-	peerAddr   *NetAddress
-	peerStat   *Stat
-	taskChan   chan interface{} //tx block
-	inBounds   int32            //连接此节点的客户端节点数量
+	mutx         sync.Mutex
+	nodeInfo     **NodeInfo
+	conn         *grpc.ClientConn // source connection
+	persistent   bool
+	isclose      int32
+	version      *Version
+	name         string //远程节点的name
+	mconn        *MConnection
+	peerAddr     *NetAddress
+	peerStat     *Stat
+	taskChan     chan interface{} //tx block
+	inBounds     int32            //连接此节点的客户端节点数量
+	IsMaxInbouds bool
 }
 
 func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Peer {
@@ -289,10 +291,16 @@ func (p *Peer) readStream() {
 			data, err := resp.Recv()
 			P2pComm.CollectPeerStat(err, p)
 			if err != nil {
-				log.Error("readStream", "recv,err:", err)
+				log.Error("readStream", "recv,err:", err.Error())
 				resp.CloseSend()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 					(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
+				}
+				//beyound max inbound num
+				if strings.Contains(err.Error(), "beyound max inbound num") {
+					log.Info("readStream", "peer inbounds num", p.GetInBouns())
+					p.IsMaxInbouds = true
+					P2pComm.CollectPeerStat(err, p)
 				}
 				time.Sleep(time.Second) //have a rest
 				break

@@ -34,7 +34,7 @@ type NormalInterface interface {
 	SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error)
 	SendPing(peer *Peer, nodeinfo *NodeInfo) error
 	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
-	CheckPeerNatOk(addr string) bool
+	CheckPeerNatOk(addr string, nodeinfo *NodeInfo) bool
 	GetAddrList(peer *Peer) (map[string]int64, error)
 	GetInPeersNum(peer *Peer) (int, error)
 }
@@ -551,9 +551,32 @@ func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
 
 }
 
-func (m *Cli) CheckPeerNatOk(addr string) bool {
+func (m *Cli) CheckPeerNatOk(addr string, nodeinfo *NodeInfo) bool {
 	//连接自己的地址信息做测试
-	return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
+	//return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
+	netaddr, err := NewNetAddressString(addr)
+	if err != nil {
+		log.Error("AddrRouteble", "NewNetAddressString", err.Error())
+		return false
+	}
+	conn, err := netaddr.DialTimeout(VERSION)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+
+	cli := pb.NewP2PgserviceClient(conn)
+	resp, err := cli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: VERSION}, grpc.FailFast(true))
+	if err != nil {
+		return false
+	}
+	_, selfName := nodeinfo.addrBook.GetPrivPubKey()
+
+	if resp.GetName() == selfName {
+		return false
+	}
+
+	return true
 
 }
 

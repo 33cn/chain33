@@ -296,6 +296,7 @@ func (a *AddrBook) AddAddress(addr *NetAddress, ka *knownAddress) {
 	if _, ok := a.addrPeer[addr.String()]; ok {
 		return
 	}
+
 	if nil == ka {
 		ka = newKnownAddress(addr)
 	}
