@@ -557,7 +557,7 @@ func (m *Cli) CheckPeerNatOk(addr string) bool {
 	return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
 
 }
-func (m *Cli) CheckPeerSelfNat(addr string, nodeinfo *NodeInfo) bool {
+func (m *Cli) CheckSelf(addr string, nodeinfo *NodeInfo) bool {
 	netaddr, err := NewNetAddressString(addr)
 	if err != nil {
 		log.Error("AddrRouteble", "NewNetAddressString", err.Error())
@@ -575,12 +575,8 @@ func (m *Cli) CheckPeerSelfNat(addr string, nodeinfo *NodeInfo) bool {
 		return false
 	}
 	_, selfName := nodeinfo.addrBook.GetPrivPubKey()
+	return resp.GetName() == selfName
 
-	if resp.GetName() == selfName {
-		return true
-	}
-
-	return false
 }
 func (m *Cli) peerInfos() []*pb.Peer {
 	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()

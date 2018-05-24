@@ -376,10 +376,8 @@ func (n *Node) natMapPort() {
 	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")
 		p2pcli := NewNormalP2PCli() //检查要映射的IP地址是否已经被映射成功
-		ok := p2pcli.CheckPeerSelfNat(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
+		ok := p2pcli.CheckSelf(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
 		if !ok {
-			//
-
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
 			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
 		}
