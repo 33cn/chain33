@@ -87,16 +87,24 @@ func (mem *Mempool) CheckSignList() {
 				transaction := data.GetData().(*types.Transaction)
 				if transaction.GetSignature().Ty == types.SIG_TYPE_AUTHORITY {
 					result = mem.CheckSignFromAuth(transaction)
+					if result {
+						// 签名正确，联盟链跳过余额检查
+						mem.goodChan <- data
+					} else {
+						mlog.Error("wrong tx", "err", types.ErrSign)
+						data.Data = types.ErrSign
+						mem.badChan <- data
+					}
 				}else {
 					result = transaction.CheckSign()
-				}
-				if result {
-					// 签名正确，传入balanChan，待检查余额
-					mem.balanChan <- data
-				} else {
-					mlog.Error("wrong tx", "err", types.ErrSign)
-					data.Data = types.ErrSign
-					mem.badChan <- data
+					if result {
+						// 签名正确，传入balanChan，待检查余额
+						mem.balanChan <- data
+					} else {
+						mlog.Error("wrong tx", "err", types.ErrSign)
+						data.Data = types.ErrSign
+						mem.badChan <- data
+					}
 				}
 			}
 		}()

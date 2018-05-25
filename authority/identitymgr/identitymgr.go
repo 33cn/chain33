@@ -20,6 +20,7 @@ type IdentityManager struct {
 	cryptoSuite     core.CryptoSuite
 	mspPrivKeyStore core.KVStore
 	mspCertStore    core.KVStore
+	userStore       map[string]User
 }
 
 // NewIdentityManager creates a new instance of IdentityManager
@@ -37,12 +38,14 @@ func NewIdentityManager(orgName string, cryptoSuite core.CryptoSuite, CryptoPath
 	if err != nil {
 		return nil, errors.Wrapf(err, "creating a cert store failed")
 	}
+	userStore := make(map[string]User)
 
 	mgr := &IdentityManager{
 		orgName:         orgName,
 		cryptoSuite:     cryptoSuite,
 		mspPrivKeyStore: mspPrivKeyStore,
 		mspCertStore:    mspCertStore,
+		userStore:		 userStore,
 	}
 	return mgr, nil
 }

@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -106,22 +105,7 @@ func (msp *bccspmsp) getIdentityFromConf(idBytes []byte) (MSPIdentity, bccsp.Key
 	// get the public key in the right format
 	certPubK, err := msp.bccsp.KeyImport(cert, &bccsp.X509PublicKeyImportOpts{Temporary: true})
 
-	// Use the hash of the identity's certificate as id in the IdentityIdentifier
-	hashOpt, err := bccsp.GetHashOpt(msp.cryptoConfig.IdentityIdentifierHashFunction)
-	if err != nil {
-		return nil, nil, fmt.Errorf("getIdentityFromConf failed getting hash function options [%s]", err)
-	}
-
-	digest, err := msp.bccsp.Hash(cert.Raw, hashOpt)
-	if err != nil {
-		return nil, nil, fmt.Errorf("getIdentityFromConf failed hashing raw certificate to compute the id of the IdentityIdentifier [%s]", err)
-	}
-
-	id := &IdentityIdentifier{
-		Mspid: msp.name,
-		Id:    hex.EncodeToString(digest)}
-
-	mspId, err := newIdentity(id, cert, certPubK, msp)
+	mspId, err := newIdentity(cert, certPubK, msp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -285,27 +269,12 @@ func (msp *bccspmsp) DeserializeIdentity(serializedID []byte) (MSPIdentity, erro
 	// We can't do it yet because there is no standardized way
 	// (yet) to encode the MSP ID into the x.509 body of a cert
 
-	// Use the hash of the identity's certificate as id in the IdentityIdentifier
-	hashOpt, err := bccsp.GetHashOpt(msp.cryptoConfig.IdentityIdentifierHashFunction)
-	if err != nil {
-		return nil, fmt.Errorf("Failed getting hash function options [%s]", err)
-	}
-
-	digest, err := msp.bccsp.Hash(cert.Raw, hashOpt)
-	if err != nil {
-		return nil, fmt.Errorf("Failed hashing raw certificate to compute the id of the IdentityIdentifier [%s]", err)
-	}
-
-	id := &IdentityIdentifier{
-		Mspid: msp.name,
-		Id:    hex.EncodeToString(digest)}
-
 	pub, err := msp.bccsp.KeyImport(cert, &bccsp.X509PublicKeyImportOpts{Temporary: true})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to import certitifacate's public key [%s]", err)
 	}
 
-	return newIdentity(id, cert, pub, msp)
+	return newIdentity(cert, pub, msp)
 }
 
 // getCertificationChain returns the certification chain of the passed identity within this msp

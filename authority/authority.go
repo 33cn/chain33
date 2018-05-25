@@ -16,7 +16,6 @@ import (
 
 var alog = log.New("module", "autority")
 var OrgName = "chain33"
-var userName = "User1"
 
 type Authority struct {
 	cryptoPath  string
@@ -95,6 +94,7 @@ func (auth *Authority) procSignTx(msg queue.Message) {
 	var tx types.Transaction
 	err := types.Decode(data.Tx, &tx)
 
+	userName := tx.GetCert().Username
 	user, err := auth.idmgr.GetUser(userName)
 	if err != nil {
 		alog.Error(fmt.Sprintf("Wrong username:%s", userName))
@@ -110,11 +110,7 @@ func (auth *Authority) procSignTx(msg queue.Message) {
 	//if tx.Cert != nil {
 	//	panic("")
 	//}
-	var tempCert types.AuthCert
-
-	tempCert.Certbytes = append(tempCert.Certbytes, user.EnrollmentCertificate()...)
-	tempCert.Username = userName
-	tx.Cert = &tempCert
+	tx.Cert.Certbytes = append(tx.Cert.Certbytes, user.EnrollmentCertificate()...)
 
 	signature, err := auth.signer.Sign(types.Encode(&tx), user.PrivateKey())
 	if err != nil {
@@ -159,7 +155,6 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 
 	copytx := *tx
 	copytx.Signature = nil
-	//copytx.Cert = nil
 	bytes := types.Encode(&copytx)
 	err = identity.Verify(bytes, tx.GetSignature().GetSignature())
 	if err != nil {
