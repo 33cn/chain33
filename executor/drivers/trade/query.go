@@ -154,7 +154,6 @@ func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status i
 		if reply == nil {
 			continue
 		}
-		tradelog.Info("trade Query", "getSellOrderFromID", string(key))
 		replys.Orders = append(replys.Orders, reply)
 	}
 	return &replys, nil
