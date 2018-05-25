@@ -880,6 +880,4 @@ func InitRpcTypeUtil() {
 
 }
 
-var RpcTypeUtilMap = map[string]interface{}{
-	// "GetTokenSellOrderByStatus" : &TradeQueryTokenSellOrder{},
-}
+var RpcTypeUtilMap = map[string]interface{}{}
