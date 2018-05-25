@@ -95,6 +95,10 @@ func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply,
 }
 
 func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
+	err := account.CheckAddress(parm.Addr)
+	if err != nil {
+		return nil, types.ErrInvalidAddress
+	}
 	reply, err := c.QueueProtocolAPI.GetAddrOverview(parm)
 	if err != nil {
 		log.Error("GetAddrOverview", "Error", err.Error())
