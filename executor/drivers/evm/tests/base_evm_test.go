@@ -143,8 +143,8 @@ func decodeHex(data string)[]byte  {
 
 func TestCreateTx(t *testing.T) {
 	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "1PqkcjKW6RYBUwMTPFUTSz6zXk7ZZX4W3d"
-	code := "0xab5ed150"
+	to := "1ApLV3FEZiCseuvn7fMM1GpVtpZyS1r1St"
+	code := "0x3bd5c209"
 	//code := "4e71d92d"  // claim
 	//code := "1b9265b8"  // pay
 	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000021"  // put
@@ -152,7 +152,7 @@ func TestCreateTx(t *testing.T) {
 	deployCode := decodeHex(code)
 	fee := int64(3000000)
 
-	action := model.ContractAction{Amount:0, Code:deployCode}
+	action := types.EVMContractAction{Amount:0, Code:deployCode}
 	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(&action), Fee: int64(fee), To:to}
 
 	var err error
