@@ -10,7 +10,7 @@ func TestAddressBig(t *testing.T) {
 	addr := StringToAddress(saddr)
 	baddr := addr.Big()
 	naddr := BigToAddress(baddr)
-	if saddr != naddr.NormalString() {
+	if saddr != naddr.String() {
 		t.Fail()
 	}
 }
@@ -19,5 +19,5 @@ func TestAddressBig(t *testing.T) {
 func TestAddressBytes(t *testing.T) {
 	addr := BytesToAddress([]byte{1})
 
-	fmt.Println(addr.Str())
+	fmt.Println(addr.String())
 }

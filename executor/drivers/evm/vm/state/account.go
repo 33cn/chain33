@@ -5,7 +5,6 @@ import (
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -30,10 +29,10 @@ type ContractAccount struct {
 	Addr string
 
 	// 合约固定数据
-	Data model.ContractData
+	Data types.EVMContractData
 
 	// 合约状态数据
-	State model.ContractState
+	State types.EVMContractState
 }
 
 // 创建一个新的合约对象
@@ -49,13 +48,9 @@ func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
 	return ca
 }
 
-func hash2String(item common.Hash) string {
-	return string(item.Bytes())
-}
-
 // 获取状态数据
 func (self *ContractAccount) GetState(key common.Hash) common.Hash {
-	return common.BytesToHash(self.State.GetStorage()[string(key.Bytes())])
+	return common.BytesToHash(self.State.GetStorage()[key.Hex()])
 }
 
 // 设置状态数据
@@ -66,12 +61,29 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 		key:        key,
 		prevalue:   self.GetState(key),
 	})
-	self.State.GetStorage()[hash2String(key)] = value.Bytes()
+	self.State.GetStorage()[key.Hex()] = value.Bytes()
+	self.updateStorageHash()
+}
+
+func (self *ContractAccount) updateStorageHash() {
+	var state = &types.EVMContractState{Suicided: self.State.Suicided, Nonce: self.State.Nonce}
+	state.Storage = make(map[string][]byte)
+	for k, v := range self.State.GetStorage() {
+		state.Storage[k] = v
+	}
+
+	ret, err := proto.Marshal(state)
+	if err != nil {
+		log15.Error("marshal contract state data error", "error", err)
+		return
+	}
+
+	self.State.StorageHash = common.ToHash(ret).Bytes()
 }
 
 // 从外部恢复合约数据
 func (self *ContractAccount) resotreData(data []byte) {
-	var content model.ContractData
+	var content types.EVMContractData
 	err := proto.Unmarshal(data, &content)
 	if err != nil {
 		log15.Error("read contract data error", self.Addr)
@@ -83,7 +95,7 @@ func (self *ContractAccount) resotreData(data []byte) {
 
 // 从外部恢复合约状态
 func (self *ContractAccount) resotreState(data []byte) {
-	var content model.ContractState
+	var content types.EVMContractState
 	err := proto.Unmarshal(data, &content)
 	if err != nil {
 		log15.Error("read contract state error", self.Addr)
@@ -136,12 +148,25 @@ func (self *ContractAccount) SetCreator(creator string) {
 	self.Data.Creator = creator
 }
 
+func (self *ContractAccount) SetExecName(execName string) {
+	if len(execName) == 0 {
+		log15.Error("SetExecName error", "execName", execName)
+		return
+	}
+	self.Data.Name = execName
+}
+
 func (self *ContractAccount) GetCreator() string {
 	return self.Data.Creator
 }
 
+func (self *ContractAccount) GetExecName() string {
+	return self.Data.Name
+}
+
 // 合约固定数据，包含合约代码，以及代码哈希
 func (self *ContractAccount) GetDataKV() (kvSet []*types.KeyValue) {
+	self.Data.Addr = self.Addr
 	datas, err := proto.Marshal(&self.Data)
 	if err != nil {
 		log15.Error("marshal contract data error!", self.Addr)

@@ -14,7 +14,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -158,18 +157,18 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 
 func buildCallContractResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	data,_ := common.FromHex(l.RawLog)
-	receipt := &model.ReceiptContract{}
+	receipt := &types.ReceiptEVMContract{}
 	proto.Unmarshal(data, receipt)
-	rlog := &model.ReceiptContractCmd{Caller:receipt.Caller, Contract:receipt.Contract, UsedGas:receipt.UsedGas}
+	rlog := &types.ReceiptEVMContractCmd{Caller:receipt.Caller, ContractAddr:receipt.ContractAddr, ContractName:receipt.ContractName, UsedGas:receipt.UsedGas}
 	rlog.Ret = common.ToHex(receipt.Ret)
 	return rlog
 }
 
 func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	data,_ := common.FromHex(l.RawLog)
-	receipt := &model.ContractData{}
+	receipt := &types.EVMContractData{}
 	proto.Unmarshal(data, receipt)
-	rlog := &model.ContractDataCmd{Creator:receipt.Creator}
+	rlog := &types.EVMContractDataCmd{Creator:receipt.Creator, Name:receipt.Name, Addr:receipt.Addr}
 	rlog.Code = common.ToHex(receipt.Code)
 	rlog.CodeHash = common.ToHex(receipt.CodeHash)
 	return rlog
@@ -177,9 +176,9 @@ func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
 
 func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	data,_ := common.FromHex(l.RawLog)
-	receipt := &model.ContractState{}
+	receipt := &types.EVMContractState{}
 	proto.Unmarshal(data, receipt)
-	rlog := &model.ContractStateCmd{Nonce:receipt.Nonce, Suicided:receipt.Suicided}
+	rlog := &types.EVMContractStateCmd{Nonce:receipt.Nonce, Suicided:receipt.Suicided}
 	rlog.StorageHash = common.ToHex(receipt.StorageHash)
 	if receipt.Storage != nil {
 		rlog.Storage = make(map[string]string)

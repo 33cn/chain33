@@ -37,7 +37,7 @@ func getAddr(privKey crypto.PrivKey) *account.Address {
 
 func createTx(privKey crypto.PrivKey, code []byte, fee uint64, amount uint64) types.Transaction {
 
-	action := model.ContractAction{Amount:amount, Code:code}
+	action := types.EVMContractAction{Amount:amount, Code:code}
 	tx := types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(&action), Fee: int64(fee)}
 	tx.Sign(types.SECP256K1, privKey)
 	return tx
@@ -106,7 +106,7 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 	}
 
 	addr := *crypto2.RandomContractAddress()
-	ret,_,leftGas,err :=  env.Create(runtime.AccountRef(msg.From()), addr, msg.Data(), msg.GasLimit())
+	ret,_,leftGas,err :=  env.Create(runtime.AccountRef(msg.From()), addr, msg.Data(), msg.GasLimit(), fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(tx.Hash()).Hex()))
 
 	return ret,addr,leftGas,err,statedb
 }
@@ -118,7 +118,7 @@ func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (
 
 	msg,_ := inst.GetMessage(&tx)
 
-	inst.SetEnv(10,0,common.EmptyAddress().NormalString(),uint64(10))
+	inst.SetEnv(10,0,common.EmptyAddress().String(),uint64(10))
 
 	statedb = inst.GetMStateDB()
 

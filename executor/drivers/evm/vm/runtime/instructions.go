@@ -711,7 +711,7 @@ func opCreate(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack
 
 	// 调用合约创建逻辑
 	addr := crypto.RandomContractAddress()
-	res, _, returnGas, suberr := evm.Create(contract, *addr, inPut, gas)
+	res, _, returnGas, suberr := evm.Create(contract, *addr, inPut, gas, "innerContract")
 
 	// 出错时压栈0，否则压栈创建出来的合约对象的地址
 	if suberr != nil && suberr != model.ErrCodeStoreOutOfGas {
