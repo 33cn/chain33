@@ -18,7 +18,7 @@ func init() {
 
 // rpc query trade sell order part
 type RpcReplySellOrders struct {
-	SellOrders []*RpcReplyTradeOrder `json:"sellOrders"`
+	SellOrders []*rpcReplyTradeOrder `json:"sellOrders"`
 }
 
 type TradeQueryTokenSellOrder struct {
@@ -34,16 +34,11 @@ func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error
 }
 
 func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error) {
-	str, err := json.Marshal(*reply.(*Message))
-	if err != nil {
-		return nil, err
-	}
-
-	var rpcReplyTmp RpcReplyTradeOrders
-	json.Unmarshal(str, &rpcReplyTmp)
-
+	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
-	rpcReply.SellOrders = rpcReplyTmp.Orders
+	for _, order := range orders.Orders {
+		rpcReply.SellOrders = append(rpcReply.SellOrders, (*rpcReplyTradeOrder) (order))
+	}
 	return &rpcReply, nil
 }
 
@@ -60,22 +55,17 @@ func (t *TradeQueryOnesSellOrder) Input(message json.RawMessage) ([]byte, error)
 }
 
 func (t *TradeQueryOnesSellOrder) Output(reply interface{}) (interface{}, error) {
-	str, err := json.Marshal(*reply.(*Message))
-	if err != nil {
-		return nil, err
-	}
-
-	var rpcReplyTmp RpcReplyTradeOrders
-	json.Unmarshal(str, &rpcReplyTmp)
-
+	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
-	rpcReply.SellOrders = rpcReplyTmp.Orders
+	for _, order := range orders.Orders {
+		rpcReply.SellOrders = append(rpcReply.SellOrders, (*rpcReplyTradeOrder) (order))
+	}
 	return &rpcReply, nil
 }
 
 // rpc query trade buy order
 type RpcReplyBuyOrders struct {
-	BuyOrders []*RpcReplyTradeOrder `json:"buyOrders"`
+	BuyOrders []*rpcReplyTradeOrder `json:"buyOrders"`
 }
 
 type TradeQueryTokenBuyOrder struct {
@@ -91,15 +81,11 @@ func (t *TradeQueryTokenBuyOrder) Input(message json.RawMessage) ([]byte, error)
 }
 
 func (t *TradeQueryTokenBuyOrder) Output(reply interface{}) (interface{}, error) {
-	str, err := json.Marshal(*reply.(*Message))
-	if err != nil {
-		return nil, err
-	}
-	var rpcReplyTmp RpcReplyTradeOrders
-	json.Unmarshal(str, &rpcReplyTmp)
-
+	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
-	rpcReply.BuyOrders = rpcReplyTmp.Orders
+	for _, order := range orders.Orders {
+		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*rpcReplyTradeOrder) (order))
+	}
 	return &rpcReply, nil
 }
 
@@ -116,40 +102,41 @@ func (t *TradeQueryOnesBuyOrder) Input(message json.RawMessage) ([]byte, error) 
 }
 
 func (t *TradeQueryOnesBuyOrder) Output(reply interface{}) (interface{}, error) {
-	str, err := json.Marshal(*reply.(*Message))
-	if err != nil {
-		return nil, err
-	}
-
-	var rpcReplyTmp RpcReplyTradeOrders
-	json.Unmarshal(str, &rpcReplyTmp)
-
+	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
-	rpcReply.BuyOrders = rpcReplyTmp.Orders
+	for _, order := range orders.Orders {
+		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*rpcReplyTradeOrder) (order))
+	}
 	return &rpcReply, nil
 }
 
 // trade order
-type RpcReplyTradeOrder struct {
-	TokenSymbol       string `json:"tokenSymbol"`
-	Owner             string `json:"owner"`
-	AmountPerBoardlot int64  `json:"amountPerBoardlot"`
-	MinBoardlot       int64  `json:"minBoardlot"`
-	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
-	TotalBoardlot     int64  `json:"totalBoardlot"`
-	TradedBoardlot    int64  `json:"tradedBoardlot"`
-	BuyID             string `json:"buyID"`
-	Status            int32  `json:"status"`
-	SellID            string `json:"sellID"`
-	TxHash            string `json:"txHash"`
-	Height            int64  `json:"height"`
-	Key               string `json:"key"`
-	BlockTime         int64  `json:"blockTime"`
-	IsSellOrder       bool   `json:"isSellOrder"`
+type rpcReplyTradeOrder struct {
+	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol"`
+	Owner             string `protobuf:"bytes,2,opt,name=owner" json:"owner"`
+	AmountPerBoardlot int64  `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot"`
+	MinBoardlot       int64  `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot"`
+	PricePerBoardlot  int64  `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot"`
+	TotalBoardlot     int64  `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot"`
+	TradedBoardlot    int64  `protobuf:"varint,7,opt,name=tradedBoardlot" json:"tradedBoardlot"`
+	BuyID             string `protobuf:"bytes,8,opt,name=buyID" json:"buyID"`
+	Status            int32  `protobuf:"varint,9,opt,name=status" json:"status"`
+	SellID            string `protobuf:"bytes,10,opt,name=sellID" json:"sellID"`
+	TxHash            string `protobuf:"bytes,11,opt,name=txHash" json:"txHash"`
+	Height            int64  `protobuf:"varint,12,opt,name=height" json:"height"`
+	Key               string `protobuf:"bytes,13,opt,name=key" json:"key"`
+	BlockTime         int64  `protobuf:"varint,14,opt,name=blockTime" json:"blockTime"`
+	IsSellOrder       bool   `protobuf:"varint,15,opt,name=isSellOrder" json:"isSellOrder"`
 }
 
+
 type RpcReplyTradeOrders struct {
-	Orders []*RpcReplyTradeOrder `json:"orders"`
+	Orders []*rpcReplyTradeOrder `protobuf:"bytes,1,rep,name=orders" json:"orders"`
+}
+
+func (reply *ReplyTradeOrder) MarshalJSON() ([]byte, error) {
+	r := (*rpcReplyTradeOrder)(reply)
+	return json.Marshal(r)
 }
 
 type TradeQueryOnesOrder struct {
@@ -165,33 +152,10 @@ func (t *TradeQueryOnesOrder) Input(message json.RawMessage) ([]byte, error) {
 }
 
 func (t *TradeQueryOnesOrder) Output(reply interface{}) (interface{}, error) {
-	str, err := json.Marshal(*reply.(*Message))
-	if err != nil {
-		return nil, err
-	}
+	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplyTradeOrders
-	json.Unmarshal(str, &rpcReply)
-	return &rpcReply, nil
-}
-
-/*
-func order2rpcOrder(order *ReplyTradeOrder) *RpcReplyTradeOrder {
-	return &RpcReplyTradeOrder {
-		order.TokenSymbol,
-		order.Owner,
-		order.AmountPerBoardlot,
-		order.MinBoardlot,
-		order.PricePerBoardlot,
-		order.TotalBoardlot,
-		order.TradedBoardlot,
-		order.BuyID,
-		order.Status,
-		order.SellID,
-		order.TxHash,
-		order.Height,
-		order.Key,
-		order.BlockTime,
-		order.IsSellOrder,
+	for _, order := range orders.Orders {
+		rpcReply.Orders = append(rpcReply.Orders, (*rpcReplyTradeOrder) (order))
 	}
+	return rpcReply, nil
 }
-*/
