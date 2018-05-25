@@ -29,6 +29,7 @@ func BigToHash(b *big.Int) Hash {
 	return Hash(common.BigToHash(b))
 }
 
+// 将[]byte直接当做哈希处理
 func BytesToHash(b []byte) Hash {
 	return Hash(common.BytesToHash(b))
 }
@@ -37,6 +38,7 @@ func EmptyHash(h Hash) bool {
 	return h == Hash{}
 }
 
+// 将[]byte经过哈希计算后转化为哈希对象
 func ToHash(data []byte) Hash {
 	return BytesToHash(common.Sha256(data))
 }

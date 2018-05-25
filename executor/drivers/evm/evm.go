@@ -3,7 +3,8 @@ package evm
 import (
 	"math/big"
 
-	"github.com/golang/protobuf/proto"
+	"bytes"
+	"fmt"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -14,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"gitlab.33.cn/chain33/chain33/types"
 	"os"
+	"strings"
 )
 
 // EVM执行器结构
@@ -27,7 +29,7 @@ type EVMExecutor struct {
 func debugEVM() bool {
 	params := os.Args[1:]
 	for _, v := range params {
-		if "vmdebug" == v {
+		if model.DebugFlag == v {
 			return true
 		}
 	}
@@ -53,7 +55,7 @@ func NewEVMExecutor() *EVMExecutor {
 }
 
 func (evm *EVMExecutor) GetName() string {
-	return "user.evm"
+	return model.ExecutorName
 }
 
 func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficulty uint64) {
@@ -78,9 +80,8 @@ func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficu
 }
 
 // 生成一个新的合约对象地址
-func (evm *EVMExecutor) getNewAddr(addr common.Address, nonce int64) common.Address {
-	// 使用调用者地址和交易nonce生成新的合约地址
-	return common.NewAddress(addr, nonce)
+func (evm *EVMExecutor) getNewAddr(txHash []byte) common.Address {
+	return common.NewAddress(txHash)
 }
 
 // 在区块上的执行操作，同一个区块内的多个交易会循环调用此方法进行处理；
@@ -108,15 +109,19 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		leftOverGas  = uint64(0)
 		contractAddr common.Address
 		snapshot     = -1
+		execName     = ""
 	)
 
 	// 为了方便计费，即使合约为新生成，也将地址的初始化放到外面操作
 	if isCreate {
 		// 使用随机生成的地址作为合约地址（这个可以保证每次创建的合约地址不会重复，不存在冲突的情况）
-		contractAddr = evm.getNewAddr(msg.From(), tx.Nonce)
+		contractAddr = evm.getNewAddr(tx.Hash())
 		if !env.StateDB.Empty(contractAddr) {
 			return nil, model.ErrContractAddressCollision
 		}
+
+		// 只有新创建的合约才能生成合约名称
+		execName = fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(tx.Hash()).Hex())
 	} else {
 		contractAddr = *msg.To()
 	}
@@ -125,7 +130,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	evm.mStateDB.Prepare(common.BytesToHash(tx.Hash()), index)
 
 	if isCreate {
-		ret, snapshot, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit)
+		ret, snapshot, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName)
 	} else {
 
 		ret, snapshot, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
@@ -137,7 +142,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		logMsg = "create contract details:"
 	}
 
-	log.Info(logMsg, "caller address", msg.From().NormalString(), "contract address", contractAddr.Str(), "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
+	log.Info(logMsg, "caller address", msg.From().String(), "contract address", contractAddr.String(), "exec name", execName, "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
 
 	curVer := evm.mStateDB.GetLastSnapshot()
 
@@ -166,18 +171,156 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	// 从状态机中获取数据变更和变更日志
 	data, logs := evm.mStateDB.GetChangedData(curVer.GetId())
 
-	contractReceipt := &model.ReceiptContract{msg.From().NormalString(), contractAddr.Str(),usedGas, ret}
+	contractReceipt := &types.ReceiptEVMContract{msg.From().String(), execName, contractAddr.String(), usedGas, ret}
 
-	logs = append(logs, &types.ReceiptLog{types.TyLogCallContract,types.Encode(contractReceipt)})
+	logs = append(logs, &types.ReceiptLog{types.TyLogCallContract, types.Encode(contractReceipt)})
 	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr, isCreate)...)
 
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
 	return receipt, nil
 }
 
-func (evm *EVMExecutor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
-	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
-	return &types.Receipt{types.ExecPack, evm.GetCoinsAccount().GetKVSet(acc), []*types.ReceiptLog{feelog}}
+//获取运行状态名
+func (evm *EVMExecutor) GetActionName(tx *types.Transaction) string {
+	if bytes.Compare(tx.Execer, []byte(model.ExecutorName)) == 0 {
+		return model.ExecutorName
+	}
+	return tx.ActionName()
+}
+
+func (evm *EVMExecutor) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := evm.DriverBase.ExecLocal(tx, receipt, index)
+	if err != nil {
+		return nil, err
+	}
+	if receipt.GetTy() != types.ExecOk {
+		return set, nil
+	}
+	return set, err
+}
+
+func (evm *EVMExecutor) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := evm.DriverBase.ExecDelLocal(tx, receipt, index)
+	if err != nil {
+		return nil, err
+	}
+	if receipt.GetTy() != types.ExecOk {
+		return set, nil
+	}
+	return set, err
+}
+
+// 支持命令行查询功能。
+// 目前支持两个命令：
+// CheckAddrExists: 判断制定的地址是否为有效的EVM合约
+// EstimateGas: 估计某一合约调用消耗的Gas数量
+func (evm *EVMExecutor) Query(funcName string, params []byte) (types.Message, error) {
+	if evm.mStateDB == nil {
+		// 之所以要在这里初始化，是因为基类在clone中没有生成数据库信息，是clone之后，调用query之前设置的
+		evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
+	}
+	if strings.EqualFold(model.CheckAddrExistsFunc, funcName) {
+		var in types.CheckEVMAddrReq
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return evm.CheckAddrExists(&in)
+	} else if strings.EqualFold(model.EstimateGasFunc, funcName) {
+		var in types.EstimateEVMGasReq
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return evm.EstimateGas(&in)
+	}
+
+	log.Error("invalid query funcName", "funcName", funcName)
+	return nil, types.ErrActionNotSupport
+}
+
+// 检查合约地址是否存在，此操作不会改变任何状态，所以可以直接从statedb查询
+func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Message, error) {
+	addrStr := req.Addr
+	if len(addrStr) == 0 {
+		return nil, model.ErrAddrNotExists
+	}
+
+	var addr common.Address
+	// 合约名称
+	if strings.HasPrefix(addrStr, model.EvmPrefix) {
+		addr = common.ExecAddress(addrStr)
+	} else {
+		// 合约地址
+		nAddr := common.StringToAddress(addrStr)
+		if nAddr == nil {
+			return nil, model.ErrAddrNotExists
+		}
+		addr = *nAddr
+	}
+
+	exists := evm.GetMStateDB().Exist(addr)
+	ret := &types.CheckEVMAddrResp{Contract: exists}
+	if exists {
+		account := evm.GetMStateDB().GetAccount(addr)
+		if account != nil {
+			ret.ContractAddr = account.Addr
+			ret.ContractName = account.GetExecName()
+		}
+	}
+	return ret, nil
+}
+
+func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message, error) {
+	var (
+		caller   common.Address
+		to       *common.Address
+		isCreate bool
+	)
+
+	// 估算Gas时直接使用一个虚拟的地址发起调用
+	caller = common.ExecAddress(model.ExecutorName)
+
+	isCreate = true
+	if len(req.To) > 0 {
+		to = common.StringToAddress(req.To)
+		return nil, model.ErrAddrNotExists
+	}
+
+	msg := common.NewMessage(caller, to, 0, 0, model.MaxGasLimit, 1, req.Code)
+	context := evm.NewEVMContext(msg)
+	// 创建EVM运行时对象
+	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
+	evm.mStateDB.Prepare(common.BigToHash(big.NewInt(model.MaxGasLimit)), 0)
+
+	var (
+		vmerr        error
+		leftOverGas  = uint64(0)
+		contractAddr common.Address
+		execName     = ""
+	)
+
+	if isCreate {
+		txHash := common.BigToHash(big.NewInt(model.MaxGasLimit)).Bytes()
+		contractAddr = evm.getNewAddr(txHash)
+		execName = fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(txHash).Hex())
+		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName)
+	} else {
+		_, _, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
+	}
+
+	result := &types.EstimateEVMGasResp{}
+	result.Gas = model.MaxGasLimit - leftOverGas
+	return result, vmerr
+}
+
+// 复制一个新的EVM执行器，可以执行查询、预估Gas等操作，不会印象正常交易的EVM执行器状态
+func (evm *EVMExecutor) Clone() drivers.Driver {
+	clone := &EVMExecutor{}
+	clone.DriverBase = *(evm.DriverBase.Clone().(*drivers.DriverBase))
+	clone.vmCfg = &runtime.Config{}
+	clone.SetChild(clone)
+	return clone
 }
 
 func (evm *EVMExecutor) GetMStateDB() *state.MemoryStateDB {
@@ -190,7 +333,7 @@ func (evm *EVMExecutor) GetVMConfig() *runtime.Config {
 
 // 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
 func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg *common.Message, err error) {
-	var action model.ContractAction
+	var action types.EVMContractAction
 	err = types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err

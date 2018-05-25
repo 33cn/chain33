@@ -342,7 +342,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 // 使用传入的部署代码创建新的合约；
 // 目前chain33为了保证账户安全，不允许合约中涉及到外部账户的转账操作，
 // 所以，本步骤不接收转账金额参数
-func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []byte, gas uint64,) (ret []byte, snapshot int, leftOverGas uint64, err error) {
+func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []byte, gas uint64, execName string) (ret []byte, snapshot int, leftOverGas uint64, err error) {
 	pass := false
 	pass, err = evm.preCheck(caller, contractAddr, 0)
 	if !pass {
@@ -355,7 +355,7 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 
 	// 创建一个新的账户对象（合约账户）
 	snapshot = evm.StateDB.Snapshot()
-	evm.StateDB.CreateAccount(contractAddr, contract.CallerAddress)
+	evm.StateDB.CreateAccount(contractAddr, contract.CallerAddress, execName)
 
 	if evm.VmConfig.Debug && evm.depth == 0 {
 		evm.VmConfig.Tracer.CaptureStart(caller.Address(), contractAddr, true, code, gas, 0)
