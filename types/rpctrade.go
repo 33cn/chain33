@@ -153,9 +153,5 @@ func (t *TradeQueryOnesOrder) Input(message json.RawMessage) ([]byte, error) {
 
 func (t *TradeQueryOnesOrder) Output(reply interface{}) (interface{}, error) {
 	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
-	var rpcReply RpcReplyTradeOrders
-	for _, order := range orders.Orders {
-		rpcReply.Orders = append(rpcReply.Orders, (*rpcReplyTradeOrder) (order))
-	}
-	return rpcReply, nil
+	return orders, nil
 }
