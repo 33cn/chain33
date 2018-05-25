@@ -1,4 +1,4 @@
-package client_test
+package client
 
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
