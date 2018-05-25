@@ -18,7 +18,7 @@ import (
 	"crypto/sha256"
 
 	log "github.com/inconshreveable/log15"
-	crypto "github.com/tendermint/go-crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 

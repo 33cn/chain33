@@ -25,5 +25,5 @@ func SignBytes(chainID string, o Signable) []byte {
 
 // HashSignBytes is a convenience method for getting the hash of the bytes of a signable
 func HashSignBytes(chainID string, o Signable) []byte {
-	return cmn.SimpleHashFromBinary(SignBytes(chainID, o))
+	return SimpleHashFromBinary(SignBytes(chainID, o))
 }

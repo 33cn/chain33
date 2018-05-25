@@ -5,14 +5,13 @@ import (
 	"net"
 	"strconv"
 	"strings"
-
-	crypto "github.com/tendermint/go-crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 const maxNodeInfoSize = 10240 // 10Kb
 
 type NodeInfo struct {
-	PubKey     crypto.PubKeyEd25519 `json:"pub_key"`
+	PubKey     crypto.PubKey `json:"pub_key"`
 	Moniker    string               `json:"moniker"`
 	Network    string               `json:"network"`
 	RemoteAddr string               `json:"remote_addr"`
@@ -21,6 +20,15 @@ type NodeInfo struct {
 	Other      []string             `json:"other"`   // other application specific data
 }
 
+type NodeInfoTrans struct {
+	PubKey     string               `json:"pub_key"`
+	Moniker    string               `json:"moniker"`
+	Network    string               `json:"network"`
+	RemoteAddr string               `json:"remote_addr"`
+	ListenAddr string               `json:"listen_addr"`
+	Version    string               `json:"version"` // major.minor.revision
+	Other      []string             `json:"other"`   // other application specific data
+}
 // CONTRACT: two nodes are compatible if the major/minor versions match and network match
 func (info *NodeInfo) CompatibleWith(other *NodeInfo) error {
 	iMajor, iMinor, _, iErr := splitVersion(info.Version)
@@ -69,7 +77,7 @@ func (info *NodeInfo) ListenPort() int {
 }
 
 func (info NodeInfo) String() string {
-	return fmt.Sprintf("NodeInfo{pk: %v, moniker: %v, network: %v [remote %v, listen %v], version: %v (%v)}", info.PubKey, info.Moniker, info.Network, info.RemoteAddr, info.ListenAddr, info.Version, info.Other)
+	return fmt.Sprintf("NodeInfo{pk: %v, moniker: %v, network: %v [remote %v, listen %v], version: %v (%v)}", info.PubKey.KeyString(), info.Moniker, info.Network, info.RemoteAddr, info.ListenAddr, info.Version, info.Other)
 }
 
 func splitVersion(version string) (string, string, string, error) {

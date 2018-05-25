@@ -8,6 +8,7 @@ import (
 
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"encoding/json"
 )
 
 // EvidencePool maintains a pool of valid evidence
@@ -112,8 +113,16 @@ func (evpool *EvidencePool) AddEvidence(evidence types.Evidence) (err error) {
 }
 
 // MarkEvidenceAsCommitted marks all the evidence as committed.
-func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence []types.Evidence) {
+func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence types.EvidenceEnvelopeList) {
 	for _, ev := range evidence {
-		evpool.evidenceStore.MarkEvidenceAsCommitted(ev)
+		if v, ok := types.EvidenceType2Obj[ev.Kind]; ok {
+			tmp := v.(types.Evidence).Copy()
+			err := json.Unmarshal(*ev.Data, &tmp)
+			if err != nil {
+				evpool.logger.Error("MarkEvidenceAsCommitted envelop unmarshal failed", "error", err)
+				return
+			}
+			evpool.evidenceStore.MarkEvidenceAsCommitted(tmp)
+		}
 	}
 }

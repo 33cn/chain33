@@ -8,9 +8,12 @@ import (
 	"github.com/pkg/errors"
 
 	log "github.com/inconshreveable/log15"
-	crypto "github.com/tendermint/go-crypto"
-	wire "github.com/tendermint/go-wire"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"io"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"encoding/json"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"encoding/binary"
 )
 
 // Peer is an interface representing a peer connected on a reactor.
@@ -70,7 +73,7 @@ func DefaultPeerConfig() *PeerConfig {
 }
 
 func newOutboundPeer(addr *NetAddress, reactorsByCh map[byte]Reactor, chDescs []*ChannelDescriptor,
-	onPeerError func(Peer, interface{}), ourNodePrivKey crypto.PrivKeyEd25519, config *PeerConfig) (*peer, error) {
+	onPeerError func(Peer, interface{}), ourNodePrivKey crypto.PrivKey, config *PeerConfig) (*peer, error) {
 
 	conn, err := dial(addr, config)
 	if err != nil {
@@ -88,13 +91,13 @@ func newOutboundPeer(addr *NetAddress, reactorsByCh map[byte]Reactor, chDescs []
 }
 
 func newInboundPeer(conn net.Conn, reactorsByCh map[byte]Reactor, chDescs []*ChannelDescriptor,
-	onPeerError func(Peer, interface{}), ourNodePrivKey crypto.PrivKeyEd25519, config *PeerConfig) (*peer, error) {
+	onPeerError func(Peer, interface{}), ourNodePrivKey crypto.PrivKey, config *PeerConfig) (*peer, error) {
 
 	return newPeerFromConnAndConfig(conn, false, reactorsByCh, chDescs, onPeerError, ourNodePrivKey, config)
 }
 
 func newPeerFromConnAndConfig(rawConn net.Conn, outbound bool, reactorsByCh map[byte]Reactor, chDescs []*ChannelDescriptor,
-	onPeerError func(Peer, interface{}), ourNodePrivKey crypto.PrivKeyEd25519, config *PeerConfig) (*peer, error) {
+	onPeerError func(Peer, interface{}), ourNodePrivKey crypto.PrivKey, config *PeerConfig) (*peer, error) {
 
 	conn := rawConn
 
@@ -159,16 +162,63 @@ func (p *peer) HandshakeTimeout(ourNodeInfo *NodeInfo, timeout time.Duration) er
 	}
 
 	var peerNodeInfo = new(NodeInfo)
+
+	var peerNodeInfoTrans = new(NodeInfoTrans)
+	var ourNodeInfoTrans = &NodeInfoTrans{
+		PubKey: ourNodeInfo.PubKey.KeyString(),
+		Moniker: ourNodeInfo.Moniker,
+		Network: ourNodeInfo.Network,
+		RemoteAddr: ourNodeInfo.RemoteAddr,
+		ListenAddr: ourNodeInfo.ListenAddr,
+		Version: ourNodeInfo.Version,
+		Other: ourNodeInfo.Other,
+	}
+
 	var err1 error
 	var err2 error
 	cmn.Parallel(
 		func() {
-			var n int
-			wire.WriteBinary(ourNodeInfo, p.conn, &n, &err1)
+			info, err1 := json.Marshal(ourNodeInfoTrans)
+			if err1 != nil {
+				p.Logger.Error("Peer handshake peerNodeInfo failed", "err", err1)
+				return
+			} else {
+				frame := make([]byte, 4)
+				binary.BigEndian.PutUint32(frame, uint32(len(info)))
+				_, err1 = p.conn.Write(frame)
+				_, err1 = p.conn.Write(info[:])
+			}
+			//var n int
+			//wire.WriteBinary(ourNodeInfo, p.conn, &n, &err1)
 		},
 		func() {
-			var n int
-			wire.ReadBinary(peerNodeInfo, p.conn, maxNodeInfoSize, &n, &err2)
+			readBuffer := make([]byte, 4)
+			_, err2 = io.ReadFull(p.conn, readBuffer[:])
+			if err2 != nil {
+				return
+			}
+			len := binary.BigEndian.Uint32(readBuffer)
+			readBuffer = make([]byte, len)
+			_, err2 = io.ReadFull(p.conn, readBuffer[:])
+			if err2 != nil {
+				return
+			}
+			err2 = json.Unmarshal(readBuffer, peerNodeInfoTrans)
+			if err2 != nil {
+				return
+			}
+			peerNodeInfo.PubKey, err2 = types.PubKeyFromString(peerNodeInfoTrans.PubKey)
+			if err2 != nil {
+				return
+			}
+			peerNodeInfo.Moniker = peerNodeInfoTrans.Moniker
+			peerNodeInfo.Network = peerNodeInfoTrans.Network
+			peerNodeInfo.RemoteAddr = peerNodeInfoTrans.RemoteAddr
+			peerNodeInfo.ListenAddr = peerNodeInfoTrans.ListenAddr
+			peerNodeInfo.Version = peerNodeInfoTrans.Version
+			peerNodeInfo.Other = peerNodeInfoTrans.Other
+			//var n int
+			//wire.ReadBinary(peerNodeInfo, p.conn, maxNodeInfoSize, &n, &err2)
 			p.Logger.Info("Peer handshake", "peerNodeInfo", peerNodeInfo)
 		})
 	if err1 != nil {
@@ -180,7 +230,7 @@ func (p *peer) HandshakeTimeout(ourNodeInfo *NodeInfo, timeout time.Duration) er
 
 	if p.config.AuthEnc {
 		// Check that the professed PubKey matches the sconn's.
-		if !peerNodeInfo.PubKey.Equals(p.PubKey().Wrap()) {
+		if !peerNodeInfo.PubKey.Equals(p.PubKey()) {
 			return fmt.Errorf("Ignoring connection with unmatching pubkey: %v vs %v",
 				peerNodeInfo.PubKey, p.PubKey())
 		}
@@ -203,7 +253,7 @@ func (p *peer) Addr() net.Addr {
 }
 
 // PubKey returns peer's public key.
-func (p *peer) PubKey() crypto.PubKeyEd25519 {
+func (p *peer) PubKey() crypto.PubKey {
 	if p.config.AuthEnc {
 		return p.conn.(*SecretConnection).RemotePubKey()
 	}

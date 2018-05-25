@@ -8,8 +8,7 @@ import (
 	"runtime/debug"
 	"sync"
 	"time"
-
-	wire "github.com/tendermint/go-wire"
+	"io"
 
 	"github.com/gogo/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -20,6 +19,8 @@ import (
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
+	"encoding/binary"
+	"encoding/json"
 )
 
 //-----------------------------------------------------------------------------
@@ -47,7 +48,7 @@ var (
 
 // msgs from the reactor which may update the state
 type msgInfo struct {
-	Msg     ConsensusMessage `json:"msg"`
+	Msg     ttypes.ReactorMsg `json:"msg"`
 	PeerKey string           `json:"peer_key"`
 }
 
@@ -106,7 +107,7 @@ type ConsensusState struct {
 	// some functions can be overwritten for testing
 	decideProposal func(height int64, round int)
 	doPrevote      func(height int64, round int)
-	setProposal    func(proposal *ttypes.Proposal) error
+	setProposal    func(proposal *ttypes.ProposalTrans) error
 
 	// closed when we finish shutting down
 	done chan struct{}
@@ -324,9 +325,9 @@ func (cs *ConsensusState) OpenWAL(walFile string) (WAL, error) {
 // AddVote inputs a vote.
 func (cs *ConsensusState) AddVote(vote *ttypes.Vote, peerKey string) (added bool, err error) {
 	if peerKey == "" {
-		cs.internalMsgQueue <- msgInfo{&VoteMessage{vote}, ""}
+		cs.internalMsgQueue <- msgInfo{&ttypes.VoteMessage{vote}, ""}
 	} else {
-		cs.peerMsgQueue <- msgInfo{&VoteMessage{vote}, peerKey}
+		cs.peerMsgQueue <- msgInfo{&ttypes.VoteMessage{vote}, peerKey}
 	}
 
 	// TODO: wait for event?!
@@ -335,11 +336,11 @@ func (cs *ConsensusState) AddVote(vote *ttypes.Vote, peerKey string) (added bool
 
 // SetProposal inputs a proposal.
 func (cs *ConsensusState) SetProposal(proposal *ttypes.Proposal, peerKey string) error {
-
+	proposalTrans := ttypes.ProposalToProposalTrans(proposal)
 	if peerKey == "" {
-		cs.internalMsgQueue <- msgInfo{&ProposalMessage{proposal}, ""}
+		cs.internalMsgQueue <- msgInfo{&ttypes.ProposalMessage{proposalTrans}, ""}
 	} else {
-		cs.peerMsgQueue <- msgInfo{&ProposalMessage{proposal}, peerKey}
+		cs.peerMsgQueue <- msgInfo{&ttypes.ProposalMessage{proposalTrans}, peerKey}
 	}
 
 	// TODO: wait for event?!
@@ -350,9 +351,9 @@ func (cs *ConsensusState) SetProposal(proposal *ttypes.Proposal, peerKey string)
 func (cs *ConsensusState) AddProposalBlockPart(height int64, round int, part *ttypes.Part, peerKey string) error {
 
 	if peerKey == "" {
-		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part}, ""}
+		cs.internalMsgQueue <- msgInfo{&ttypes.BlockPartMessage{height, round, part}, ""}
 	} else {
-		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part}, peerKey}
+		cs.peerMsgQueue <- msgInfo{&ttypes.BlockPartMessage{height, round, part}, peerKey}
 	}
 
 	// TODO: wait for event?!
@@ -593,17 +594,17 @@ func (cs *ConsensusState) handleMsg(mi msgInfo) {
 	var err error
 	msg, peerKey := mi.Msg, mi.PeerKey
 	switch msg := msg.(type) {
-	case *ProposalMessage:
+	case *ttypes.ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
 		err = cs.setProposal(msg.Proposal)
-	case *BlockPartMessage:
+	case *ttypes.BlockPartMessage:
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
 		_, err = cs.addProposalBlockPart(msg.Height, msg.Part, peerKey != "")
 		if err != nil && msg.Round != cs.Round {
 			err = nil
 		}
-	case *VoteMessage:
+	case *ttypes.VoteMessage:
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition
 		err := cs.tryAddVote(msg.Vote, peerKey)
@@ -858,10 +859,11 @@ func (cs *ConsensusState) defaultDecideProposal(height int64, round int) {
 		*/
 
 		// send proposal and block parts on internal msg queue
-		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
+		proposalTrans := ttypes.ProposalToProposalTrans(proposal)
+		cs.sendInternalMessage(msgInfo{&ttypes.ProposalMessage{proposalTrans}, ""})
 		for i := 0; i < blockParts.Total(); i++ {
 			part := blockParts.GetPart(i)
-			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
+			cs.sendInternalMessage(msgInfo{&ttypes.BlockPartMessage{cs.Height, cs.Round, part}, ""})
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
@@ -1384,14 +1386,20 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 //-----------------------------------------------------------------------------
 
-func (cs *ConsensusState) defaultSetProposal(proposal *ttypes.Proposal) error {
+func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans) error {
 	cs.Logger.Info("enter defaultSetProposal")
+	proposal, err := ttypes.ProposalTransToProposal(proposalTrans)
+	if err != nil {
+		cs.Logger.Info("defaultSetProposal:", "msg", "ProposalTransToProposal failed", "err", err)
+		return nil
+	}
 	// Already have one
 	// TODO: possibly catch double proposals
 	if cs.Proposal != nil {
 		cs.Logger.Info("defaultSetProposal:", "msg", "proposal is nil")
 		return nil
 	}
+
 
 	// Does not apply
 	if proposal.Height != cs.Height || proposal.Round != cs.Round {
@@ -1412,7 +1420,11 @@ func (cs *ConsensusState) defaultSetProposal(proposal *ttypes.Proposal) error {
 	}
 
 	// Verify signature
-	if !cs.Validators.GetProposer().PubKey.VerifyBytes(ttypes.SignBytes(cs.state.ChainID, proposal), proposal.Signature) {
+	pubkey, err := ttypes.ConsensusCrypto.PubKeyFromBytes(cs.Validators.GetProposer().PubKey)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error pubkey from bytes:%v", err))
+	}
+	if !pubkey.VerifyBytes(ttypes.SignBytes(cs.state.ChainID, proposal), proposal.Signature) {
 		return ErrInvalidProposalSignature
 	}
 
@@ -1444,10 +1456,29 @@ func (cs *ConsensusState) addProposalBlockPart(height int64, part *ttypes.Part, 
 	}
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// Added and completed!
-		var n int
-		var err error
-		cs.ProposalBlock = wire.ReadBinary(&ttypes.Block{}, cs.ProposalBlockParts.GetReader(),
-			cs.state.ConsensusParams.BlockSize.MaxBytes, &n, &err).(*ttypes.Block)
+		r := cs.ProposalBlockParts.GetReader()
+		var buf [4]byte
+		n, err := io.ReadFull(r, buf[:])
+		if err != nil {
+			cs.Logger.Error("addProposalBlockPart read size failed", "n", n, "error", err)
+			return true, err
+		}
+		len := binary.BigEndian.Uint32(buf[:])
+		dataBuf := make([]byte, len)
+		n, err = io.ReadFull(r, dataBuf)
+		if err != nil {
+			cs.Logger.Error("addProposalBlockPart read data failed", "n", n, "error", err)
+			return true, err
+		}
+		cs.Logger.Info("databuf","data", string(dataBuf))
+		var block ttypes.Block
+		err = json.Unmarshal(dataBuf, &block)
+		if err != nil {
+			cs.Logger.Error("addProposalBlockPart unmarshal failed", "error", err)
+			return true, err
+		}
+		cs.ProposalBlock = &block
+
 		// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
 		cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 		if cs.Step == ttypes.RoundStepPropose && cs.isProposalComplete() {
@@ -1623,7 +1654,7 @@ func (cs *ConsensusState) signAddVote(type_ byte, hash []byte, header ttypes.Par
 	}
 	vote, err := cs.signVote(type_, hash, header)
 	if err == nil {
-		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
+		cs.sendInternalMessage(msgInfo{&ttypes.VoteMessage{vote}, ""})
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
 	} else {

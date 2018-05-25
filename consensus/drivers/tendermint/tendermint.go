@@ -13,8 +13,7 @@ import (
 	"strings"
 	"time"
 
-	crypto "github.com/tendermint/go-crypto"
-	wire "github.com/tendermint/go-wire"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/core"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/evidence"
@@ -34,12 +33,13 @@ type TendermintClient struct {
 	genesisDoc    *ttypes.GenesisDoc // initial validator set
 	privValidator ttypes.PrivValidator
 	eventBus     *ttypes.EventBus
-	privKey      crypto.PrivKeyEd25519 // local node's p2p key
+	privKey      crypto.PrivKey // local node's p2p key
 	sw           *p2p.Switch
 	state        sm.State
 	csState      *core.ConsensusState
 	blockStore   *ttypes.BlockStore
 	evidenceDB   dbm.DB
+	crypto       crypto.Crypto
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -64,18 +64,27 @@ func New(cfg *types.Consensus) *TendermintClient {
 		return nil
 	}
 
-	// Generate node PrivKey
-	privKey := crypto.GenPrivKeyEd25519()
+	cr, err := crypto.New(types.GetSignatureTypeName(types.ED25519))
+	if err != nil {
+		tendermintlog.Error("NewTendermintClient", "err", err)
+		return nil
+	}
+
+	ttypes.ConsensusCrypto = cr
+
+	priv, err := cr.GenKey()
+	if err != nil {
+		tendermintlog.Error("NewTendermintClient", "GenKey err", err)
+		return nil
+	}
 
 	privValidator := ttypes.LoadOrGenPrivValidatorFS("./priv_validator.json")
 	if privValidator == nil {
-		tendermintlog.Info("NewTendermintClient", "msg", "priv_validator file missing, create new one")
-		var privVal *ttypes.PrivValidatorFS
-		privVal = ttypes.GenPrivValidatorFS(".")
-		privVal.Save()
-		privValidator = privVal
-		//return nil
+		tendermintlog.Error("NewTendermintClient create priv_validator file failed")
+		return nil
 	}
+
+	ttypes.InitMessageMap()
 
 	pubkey := privValidator.GetPubKey().KeyString()
 
@@ -87,19 +96,18 @@ func New(cfg *types.Consensus) *TendermintClient {
 
 	c := drivers.NewBaseClient(cfg)
 
-
-
 	blockStore := ttypes.NewBlockStore(c, pubkey)
 
 	client := &TendermintClient{
 		BaseClient:    c,
 		genesisDoc:    genDoc,
 		privValidator: privValidator,
-		privKey:       privKey,
+		privKey:       priv,
 		sw:            sw,
 		eventBus:      eventBus,
 		blockStore:    blockStore,
 		evidenceDB:    evidenceDB,
+		crypto:        cr,
 	}
 
 	c.SetChild(client)
@@ -343,14 +351,12 @@ func GetPulicIPInUse() string {
 }
 
 func (client *TendermintClient) MakeDefaultNodeInfo() *p2p.NodeInfo {
-
 	nodeInfo := &p2p.NodeInfo{
-		PubKey:  client.privKey.PubKey().Unwrap().(crypto.PubKeyEd25519),
+		PubKey:  client.privKey.PubKey(),
 		Moniker: "test_" + fmt.Sprintf("%v", rand.Intn(100)),
 		Network: client.state.ChainID,
 		Version: "v0.1.0",
 		Other: []string{
-			fmt.Sprintf("wire_version=%v", wire.Version),
 			fmt.Sprintf("p2p_version=%v", p2p.Version),
 		},
 	}

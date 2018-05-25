@@ -3,7 +3,8 @@ package types
 import (
 	"github.com/pkg/errors"
 
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"encoding/json"
 )
 
 const (
@@ -105,14 +106,12 @@ func (params *ConsensusParams) Validate() error {
 // Hash returns a merkle hash of the parameters to store
 // in the block header
 func (params *ConsensusParams) Hash() []byte {
-	return cmn.SimpleHashFromMap(map[string]interface{}{
-		"block_gossip_part_size_bytes": params.BlockGossip.BlockPartSizeBytes,
-		"block_size_max_bytes":         params.BlockSize.MaxBytes,
-		"block_size_max_gas":           params.BlockSize.MaxGas,
-		"block_size_max_txs":           params.BlockSize.MaxTxs,
-		"tx_size_max_bytes":            params.TxSize.MaxBytes,
-		"tx_size_max_gas":              params.TxSize.MaxGas,
-	})
+	bytes, err := json.Marshal(params)
+	if err != nil {
+		blocklog.Error("block header Hash() marshal failed", "error", err)
+		return nil
+	}
+	return crypto.Ripemd160(bytes)
 }
 
 /* modified 20180222 hg

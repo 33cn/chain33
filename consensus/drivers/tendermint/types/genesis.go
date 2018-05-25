@@ -6,10 +6,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
-	crypto "github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire/data"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"fmt"
 )
 
 //------------------------------------------------------------
@@ -17,7 +15,7 @@ import (
 
 // GenesisValidator is an initial validator.
 type GenesisValidator struct {
-	PubKey crypto.PubKey `json:"pub_key"`
+	PubKey KeyText `json:"pub_key"`
 	Power  int64         `json:"power"`
 	Name   string        `json:"name"`
 }
@@ -28,7 +26,7 @@ type GenesisDoc struct {
 	ChainID         string             `json:"chain_id"`
 	ConsensusParams *ConsensusParams   `json:"consensus_params,omitempty"`
 	Validators      []GenesisValidator `json:"validators"`
-	AppHash         data.Bytes         `json:"app_hash"`
+	AppHash         []byte         `json:"app_hash"`
 	AppOptions      interface{}        `json:"app_options,omitempty"`
 }
 
@@ -45,7 +43,14 @@ func (genDoc *GenesisDoc) SaveAs(file string) error {
 func (genDoc *GenesisDoc) ValidatorHash() []byte {
 	vals := make([]*Validator, len(genDoc.Validators))
 	for i, v := range genDoc.Validators {
-		vals[i] = NewValidator(v.PubKey, v.Power)
+		if len(v.PubKey.Data) == 0 {
+			panic(fmt.Sprintf("ValidatorHash pubkey of validator[%v] in gendoc is empty", i))
+		}
+		pubkey, err := PubKeyFromString(v.PubKey.Data)
+		if err != nil {
+			panic(fmt.Sprintf("ValidatorHash PubKeyFromBytes failed:%v", err))
+		}
+		vals[i] = NewValidator(pubkey, v.Power)
 	}
 	vset := NewValidatorSet(vals)
 	return vset.Hash()

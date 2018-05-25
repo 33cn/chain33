@@ -6,9 +6,8 @@ import (
 	"io/ioutil"
 	"time"
 
-	wire "github.com/tendermint/go-wire"
-
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"encoding/json"
 )
 
 // database keys
@@ -86,7 +85,12 @@ func (s State) Equals(s2 State) bool {
 
 // Bytes serializes the State using go-wire.
 func (s State) Bytes() []byte {
-	return wire.BinaryBytes(s)
+	sbytes, err := json.Marshal(s)
+	if err != nil {
+		fmt.Printf("Error reading GenesisDoc: %v", err)
+		return nil
+	}
+	return sbytes
 }
 
 // IsEmpty returns true if the State is equal to the empty State.
@@ -157,13 +161,15 @@ func MakeGenesisState(genDoc *types.GenesisDoc) (State, error) {
 	// Make validators slice
 	validators := make([]*types.Validator, len(genDoc.Validators))
 	for i, val := range genDoc.Validators {
-		pubKey := val.PubKey
-		address := pubKey.Address()
+		pubKey, err := types.PubKeyFromString(val.PubKey.Data)
+		if err != nil {
+			return State{}, fmt.Errorf("Error validate[i] in genesis file: %v", i, err)
+		}
 
 		// Make validator
 		validators[i] = &types.Validator{
-			Address:     address,
-			PubKey:      pubKey,
+			Address:     types.GenAddressByPubKey(pubKey),
+			PubKey:      pubKey.Bytes(),
 			VotingPower: val.Power,
 		}
 	}

@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
-	"github.com/tendermint/go-wire/data"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 // Tx is an arbitrary byte array.
@@ -17,7 +16,7 @@ type Tx []byte
 
 // Hash computes the RIPEMD160 hash of the go-wire encoded transaction.
 func (tx Tx) Hash() []byte {
-	return cmn.SimpleHashFromBinary(tx)
+	return crypto.Ripemd160(tx)
 }
 
 // String returns the hex-encoded transaction as a string.
@@ -40,7 +39,7 @@ func (txs Txs) Hash() []byte {
 	default:
 		left := txs[:(len(txs)+1)/2].Hash()
 		right := txs[(len(txs)+1)/2:].Hash()
-		return cmn.SimpleHashFromTwoHashes(left, right)
+		return SimpleHashFromTwoHashes(left, right)
 	}
 }
 
@@ -75,7 +74,7 @@ func (txs Txs) Proof(i int) TxProof {
 	for i := 0; i < l; i++ {
 		hashables[i] = txs[i]
 	}
-	root, proofs := cmn.SimpleProofsFromHashables(hashables)
+	root, proofs := SimpleProofsFromHashables(hashables)
 
 	return TxProof{
 		Index:    i,
@@ -89,9 +88,9 @@ func (txs Txs) Proof(i int) TxProof {
 // TxProof represents a Merkle proof of the presence of a transaction in the Merkle tree.
 type TxProof struct {
 	Index, Total int
-	RootHash     data.Bytes
+	RootHash     []byte
 	Data         Tx
-	Proof        cmn.SimpleProof
+	Proof        SimpleProof
 }
 
 // LeadHash returns the hash of the transaction this proof refers to.
@@ -123,7 +122,7 @@ type KVPair struct {
 
 type ResponseDeliverTx struct {
 	Code uint32
-	Data data.Bytes
+	Data []byte
 	Log  string
 	Tags []*KVPair
 }
