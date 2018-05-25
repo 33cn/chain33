@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"bytes"
+
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
