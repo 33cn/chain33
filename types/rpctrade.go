@@ -37,7 +37,7 @@ func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error
 	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
 	for _, order := range orders.Orders {
-		rpcReply.SellOrders = append(rpcReply.SellOrders, (*rpcReplyTradeOrder) (order))
+		rpcReply.SellOrders = append(rpcReply.SellOrders, (*rpcReplyTradeOrder)(order))
 	}
 	return &rpcReply, nil
 }
@@ -58,7 +58,7 @@ func (t *TradeQueryOnesSellOrder) Output(reply interface{}) (interface{}, error)
 	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
 	for _, order := range orders.Orders {
-		rpcReply.SellOrders = append(rpcReply.SellOrders, (*rpcReplyTradeOrder) (order))
+		rpcReply.SellOrders = append(rpcReply.SellOrders, (*rpcReplyTradeOrder)(order))
 	}
 	return &rpcReply, nil
 }
@@ -84,7 +84,7 @@ func (t *TradeQueryTokenBuyOrder) Output(reply interface{}) (interface{}, error)
 	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
 	for _, order := range orders.Orders {
-		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*rpcReplyTradeOrder) (order))
+		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*rpcReplyTradeOrder)(order))
 	}
 	return &rpcReply, nil
 }
@@ -105,7 +105,7 @@ func (t *TradeQueryOnesBuyOrder) Output(reply interface{}) (interface{}, error) 
 	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
 	for _, order := range orders.Orders {
-		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*rpcReplyTradeOrder) (order))
+		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*rpcReplyTradeOrder)(order))
 	}
 	return &rpcReply, nil
 }
@@ -128,7 +128,6 @@ type rpcReplyTradeOrder struct {
 	BlockTime         int64  `protobuf:"varint,14,opt,name=blockTime" json:"blockTime"`
 	IsSellOrder       bool   `protobuf:"varint,15,opt,name=isSellOrder" json:"isSellOrder"`
 }
-
 
 type RpcReplyTradeOrders struct {
 	Orders []*rpcReplyTradeOrder `protobuf:"bytes,1,rep,name=orders" json:"orders"`
