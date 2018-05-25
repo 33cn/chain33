@@ -36,9 +36,21 @@ func (mgr *IdentityManager) NewUser(userData *core.UserData) (*User, error) {
 	return newUser(userData, mgr.cryptoSuite)
 }
 
-func (mgr *IdentityManager) loadUserFromStore(username string) (*User, error) {
-	//TODO
-	return nil,nil
+func (mgr *IdentityManager) loadUserFromStore(username string) (*User) {
+	user,ok := mgr.userStore[username]
+	if(ok) {
+		return &user
+	}else{
+		return nil
+	}
+}
+
+func (mgr *IdentityManager) storeUserFromStore(username string, user *User) {
+	tmpUser := &User{}
+	tmpUser.id = user.id
+	tmpUser.enrollmentCertificate = append(tmpUser.enrollmentCertificate, user.EnrollmentCertificate()...)
+	tmpUser.privateKey = user.PrivateKey()
+	mgr.userStore[username] = *tmpUser
 }
 
 // GetSigningIdentity returns a signing identity for the given id
@@ -52,15 +64,7 @@ func (mgr *IdentityManager) GetSigningIdentity(id string) (core.SigningIdentity,
 
 // GetUser returns a user for the given user name
 func (mgr *IdentityManager) GetUser(username string) (*User, error) { //nolint
-
-	u, err := mgr.loadUserFromStore(username)
-	if err != nil {
-		if err != core.ErrUserNotFound {
-			return nil, errors.WithMessage(err, "loading user from store failed")
-		}
-		// Not found, continue
-	}
-
+	u := mgr.loadUserFromStore(username)
 	if u == nil {
 		certBytes, err := mgr.getCertBytesFromCertStore(username)
 		if err != nil && err != core.ErrUserNotFound {
@@ -81,6 +85,7 @@ func (mgr *IdentityManager) GetUser(username string) (*User, error) { //nolint
 			enrollmentCertificate: certBytes,
 			privateKey:            privateKey,
 		}
+		mgr.storeUserFromStore(username, u)
 	}
 	return u, nil
 }
