@@ -58,6 +58,7 @@ var (
 	ErrRetrieveNoBalance       = errors.New("ErrRetrieveNoBalance")
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParameters")
+	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
 	//err for token
 	ErrTokenNameLen         = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen       = errors.New("ErrTokenSymbolLength")
