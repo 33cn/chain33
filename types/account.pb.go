@@ -89,6 +89,7 @@ It has these top-level messages:
 	CoinsAction
 	CoinsGenesis
 	CoinsTransfer
+	CoinsTransferToExec
 	CoinsWithdraw
 	Hashlock
 	HashlockAction
