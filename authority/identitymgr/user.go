@@ -42,7 +42,3 @@ func (u *User) PublicVersion() core.Identity {
 func (u *User) Sign(msg []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
-
-func (u *User) Validate(msg []byte) error {
-	return errors.New("not implemented")
-}

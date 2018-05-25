@@ -38,15 +38,6 @@ type MSPCryptoConfig struct {
 	IdentityIdentifierHashFunction string
 }
 
-type IdentityIdentifier struct {
-
-	// The identifier of the associated membership service provider
-	Mspid string
-
-	// The identifier for an identity within a provider
-	Id string
-}
-
 // From this point on, there are interfaces that are shared within the peer and client API
 // of the membership service provider.
 
@@ -56,12 +47,6 @@ type IdentityIdentifier struct {
 // at the peer side when verifying certificates that transactions are signed
 // with, and verifying signatures that correspond to these certificates.///
 type MSPIdentity interface {
-	// GetIdentifier returns the identifier of that identity
-	GetIdentifier() *IdentityIdentifier
-
-	// GetMSPIdentifier returns the MSP Id for this instance
-	GetMSPIdentifier() string
-
 	// Validate uses the rules that govern this identity to validate it.
 	// E.g., if it is a fabric TCert implemented as identity, validate
 	// will check the TCert signature against the assumed root certificate

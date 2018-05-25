@@ -16,9 +16,6 @@ import (
 )
 
 type identity struct {
-	// id contains the identifier (MSPID and identity identifier) for this instance
-	id *IdentityIdentifier
-
 	// cert contains the x.509 certificate that signs the public key of this instance
 	cert *x509.Certificate
 
@@ -29,7 +26,7 @@ type identity struct {
 	msp *bccspmsp
 }
 
-func newIdentity(id *IdentityIdentifier, cert *x509.Certificate, pk bccsp.Key, msp *bccspmsp) (MSPIdentity, error) {
+func newIdentity(cert *x509.Certificate, pk bccsp.Key, msp *bccspmsp) (MSPIdentity, error) {
 	mspLogger.Debug("Creating identity instance for ID %s", certToPEM(cert))
 
 	// Sanitize first the certificate
@@ -37,17 +34,7 @@ func newIdentity(id *IdentityIdentifier, cert *x509.Certificate, pk bccsp.Key, m
 	if err != nil {
 		return nil, err
 	}
-	return &identity{id: id, cert: cert, pk: pk, msp: msp}, nil
-}
-
-// GetIdentifier returns the identifier (MSPID/IDID) for this instance
-func (id *identity) GetIdentifier() *IdentityIdentifier {
-	return id.id
-}
-
-// GetMSPIdentifier returns the MSP identifier for this instance
-func (id *identity) GetMSPIdentifier() string {
-	return id.id.Mspid
+	return &identity{cert: cert, pk: pk, msp: msp}, nil
 }
 
 // IsValid returns nil if this instance is a valid identity or an error otherwise
@@ -59,7 +46,7 @@ func (id *identity) Validate() error {
 // to determine whether this identity produced the
 // signature; it returns nil if so or an error otherwise
 func (id *identity) Verify(msg []byte, sig []byte) error {
-	// mspLogger.Infof("Verifying signature")
+	mspLogger.Info("Verifying signature")
 
 	// Compute Hash
 	hashOpt, err := id.getHashOpt(id.msp.cryptoConfig.SignatureHashFamily)
@@ -72,8 +59,8 @@ func (id *identity) Verify(msg []byte, sig []byte) error {
 		return fmt.Errorf("Failed computing digest [%s]", err)
 	}
 
-		mspLogger.Debug("Verify: digest = %s", hex.Dump(digest))
-		mspLogger.Debug("Verify: sig = %s", hex.Dump(sig))
+	mspLogger.Debug("Verify: digest = %s", hex.Dump(digest))
+	mspLogger.Debug("Verify: sig = %s", hex.Dump(sig))
 
 	valid, err := id.msp.bccsp.Verify(id.pk, sig, digest, nil)
 	if err != nil {
