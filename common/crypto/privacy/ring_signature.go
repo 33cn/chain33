@@ -3,7 +3,6 @@ package privacy
 import (
 	"unsafe"
 
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -157,17 +156,16 @@ func checkRingSignature(prefix_hash []byte, image *KeyImage, pubs []*PubKeyPriva
 	return edwards25519.ScIsNonZero(&h) == 0
 }
 
-func GenerateRingSignature(data []byte, utxos []*types.UTXO, sec *PrivKeyPrivacy, realUtxoIndex int, keyImage []byte, signs []*Sign) error {
+func GenerateRingSignature(datahash []byte, utxos []*types.UTXO, sec *PrivKeyPrivacy, realUtxoIndex int, keyImage []byte, signs []*Sign) error {
 	pubs := make([]*PubKeyPrivacy, len(utxos))
 	for i := 0; i < len(utxos); i++ {
 		pub := &PubKeyPrivacy{}
 		copy(pub[:], utxos[i].OnetimePubkey)
 		pubs[i] = pub
 	}
-	h := common.BytesToHash(data)
 	var image KeyImage
 	copy(image[:], keyImage)
-	return generateRingSignature(h.Bytes(), &image, pubs, sec, signs, realUtxoIndex)
+	return generateRingSignature(datahash, &image, pubs, sec, signs, realUtxoIndex)
 }
 
 func GenerateKeyImage(privkey crypto.PrivKey, pubkey []byte) (*KeyImage, error) {
@@ -183,7 +181,7 @@ func GenerateKeyImage(privkey crypto.PrivKey, pubkey []byte) (*KeyImage, error) 
 	return &image, nil
 }
 
-func CheckRingSignature(h []byte, signatures *types.SignatureData, publickeys [][]byte, keyimage []byte) bool {
+func CheckRingSignature(datahash []byte, signatures *types.SignatureData, publickeys [][]byte, keyimage []byte) bool {
 	var image KeyImage
 	var pubs []*PubKeyPrivacy
 	var signs []*Sign
@@ -205,5 +203,5 @@ func CheckRingSignature(h []byte, signatures *types.SignatureData, publickeys []
 		signs[i] = &sign
 	}
 
-	return checkRingSignature(h, &image, pubs, signs)
+	return checkRingSignature(datahash, &image, pubs, signs)
 }

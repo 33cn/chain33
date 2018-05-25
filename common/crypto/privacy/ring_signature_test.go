@@ -388,3 +388,12 @@ func Benchmark_RingSignature(b *testing.B) {
 	}
 	b.StopTimer()
 }
+
+// 最终版本的单元测试测试用例集合
+
+// 最终版本的压力测试测试用例集合
+func Benchmark_RingSignatureAllStep(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		
+	}
+}
