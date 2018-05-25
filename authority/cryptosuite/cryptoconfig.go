@@ -29,10 +29,6 @@ func (c *CryptoConfig) SecurityLevel() int {
 	return int(c.Config.SecurityLevel)
 }
 
-//SoftVerify flag TODO
-func (c *CryptoConfig) SoftVerify() bool {
-	return true
-}
 // KeyStorePath returns the keystore path used by BCCSP
 func (c *CryptoConfig) KeyStorePath() string {
 	keystorePath := pathvar.Subst(c.Config.KeyStorePath)

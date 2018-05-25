@@ -24,8 +24,6 @@ type dsaSignature struct {
 	R, S *big.Int
 }
 
-type ecdsaSignature dsaSignature
-
 type validity struct {
 	NotBefore, NotAfter time.Time
 }

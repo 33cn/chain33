@@ -34,50 +34,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/cloudflare/cfssl/csr"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
 	log "github.com/inconshreveable/log15"
 )
 
 var alog = log.New("module", "autority_cryptoutils")
-
-// getBCCSPKeyOpts generates a key as specified in the request.
-// This supports ECDSA and RSA.
-func getBCCSPKeyOpts(kr csr.KeyRequest, ephemeral bool) (opts core.KeyGenOpts, err error) {
-	if kr == nil {
-		return GetECDSAKeyGenOpts(ephemeral), nil
-	}
-	log.Debug("generate key from request: algo=%s, size=%d", kr.Algo(), kr.Size())
-	switch kr.Algo() {
-	case "rsa":
-		switch kr.Size() {
-		case 2048:
-			return GetRSA2048KeyGenOpts(ephemeral), nil
-		case 3072:
-			return GetRSA3072KeyGenOpts(ephemeral), nil
-		case 4096:
-			return GetRSA4096KeyGenOpts(ephemeral), nil
-		default:
-			// Need to add a way to specify arbitrary RSA key size to bccsp
-			return nil, errors.Errorf("Invalid RSA key size: %d", kr.Size())
-		}
-	case "ecdsa":
-		switch kr.Size() {
-		case 256:
-			return GetECDSAP256KeyGenOpts(ephemeral), nil
-		case 384:
-			return GetECDSAP384KeyGenOpts(ephemeral), nil
-		case 521:
-			// Need to add curve P521 to bccsp
-			// return &bccsp.ECDSAP512KeyGenOpts{Temporary: false}, nil
-			return nil, errors.New("Unsupported ECDSA key size: 521")
-		default:
-			return nil, errors.Errorf("Invalid ECDSA key size: %d", kr.Size())
-		}
-	default:
-		return nil, errors.Errorf("Invalid algorithm: %s", kr.Algo())
-	}
-}
 
 // GetSignerFromCert load private key represented by ski and return bccsp signer that conforms to crypto.Signer
 func GetSignerFromCert(cert *x509.Certificate, csp core.CryptoSuite) (core.Key, crypto.Signer, error) {
@@ -106,25 +67,6 @@ func GetSignerFromCert(cert *x509.Certificate, csp core.CryptoSuite) (core.Key, 
 		return nil, nil, errors.WithMessage(err, "Failed to load ski from bccsp")
 	}
 	return privateKey, signer, nil
-}
-
-// BCCSPKeyRequestGenerate generates keys through BCCSP
-// somewhat mirroring to cfssl/req.KeyRequest.Generate()
-func BCCSPKeyRequestGenerate(req *csr.CertificateRequest, myCSP core.CryptoSuite) (core.Key, crypto.Signer, error) {
-	log.Info("generating key: %+v", req.KeyRequest)
-	keyOpts, err := getBCCSPKeyOpts(req.KeyRequest, false)
-	if err != nil {
-		return nil, nil, err
-	}
-	key, err := myCSP.KeyGen(keyOpts)
-	if err != nil {
-		return nil, nil, err
-	}
-	cspSigner, err := NewCspSigner(myCSP, key)
-	if err != nil {
-		return nil, nil, errors.WithMessage(err, "Failed initializing CryptoSigner")
-	}
-	return key, cspSigner, nil
 }
 
 // ImportBCCSPKeyFromPEM attempts to create a private BCCSP key from a pem file keyFile

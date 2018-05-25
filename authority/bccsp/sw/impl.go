@@ -32,23 +32,6 @@ import (
 )
 
 
-// NewDefaultSecurityLevel returns a new instance of the software-based BCCSP
-// at security level 256, hash family SHA2 and using FolderBasedKeyStore as KeyStore.
-func NewDefaultSecurityLevel(keyStorePath string) (bccsp.BCCSP, error) {
-	ks := &fileBasedKeyStore{}
-	if err := ks.Init(nil, keyStorePath, false); err != nil {
-		return nil, errors.Wrapf(err, "Failed initializing key store at [%v]", keyStorePath)
-	}
-
-	return New(256, "SHA2", ks)
-}
-
-// NewDefaultSecurityLevel returns a new instance of the software-based BCCSP
-// at security level 256, hash family SHA2 and using the passed KeyStore.
-func NewDefaultSecurityLevelWithKeystore(keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
-	return New(256, "SHA2", keyStore)
-}
-
 // New returns a new instance of the software-based BCCSP
 // set at the passed security level, hash family and KeyStore.
 func New(securityLevel int, hashFamily string, keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
