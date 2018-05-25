@@ -443,18 +443,20 @@ const (
 
 //coinsaction
 const (
-	InvalidAction = iota
-	CoinsActionTransfer
-	CoinsActionGenesis
-	CoinsActionWithdraw
+	InvalidAction       = 0
+	CoinsActionTransfer = 1
+	CoinsActionGenesis  = 2
+	CoinsActionWithdraw = 3
 
 	//action for token
-	ActionTransfer
-	ActionGenesis
-	ActionWithdraw
-	TokenActionPreCreate
-	TokenActionFinishCreate
-	TokenActionRevokeCreate
+	ActionTransfer            = 4
+	ActionGenesis             = 5
+	ActionWithdraw            = 6
+	TokenActionPreCreate      = 7
+	TokenActionFinishCreate   = 8
+	TokenActionRevokeCreate   = 9
+	CoinsActionTransferToExec = 10
+	TokenActionTransferToExec = 11
 )
 
 //ticket

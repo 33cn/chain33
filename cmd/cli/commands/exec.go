@@ -39,26 +39,39 @@ func GetExecAddrCmd() *cobra.Command {
 	return cmd
 }
 
-func UserDataCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "userdata",
-		Short: "write data to user define executor",
-		Run:   addUserData,
-	}
-	addUserDataFlags(cmd)
-	return cmd
-}
-
 func addGetAddrFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("exec", "e", "", `executor name ("none", "coins", "hashlock", "retrieve", "ticket", "token" and "trade" supported)`)
 	cmd.MarkFlagRequired("exec")
 }
 
+func getAddrByExec(cmd *cobra.Command, args []string) {
+	execer, _ := cmd.Flags().GetString("exec")
+	switch execer {
+	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
+		addrResult := account.ExecAddress(execer)
+		result := addrResult.String()
+		fmt.Println(result)
+
+	default:
+		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+	}
+}
+
+// create user data
+func UserDataCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "userdata",
+		Short: "Write data to user defined executor",
+		Run:   addUserData,
+	}
+	addUserDataFlags(cmd)
+	return cmd
+}
 func addUserDataFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("exec", "e", "", `executor name must has prefix user.`)
+	cmd.Flags().StringP("exec", "e", "", `executor name must contain prefix "user"`)
 	cmd.MarkFlagRequired("exec")
-	cmd.Flags().StringP("topic", "t", "", `add #topic# before data, if empty not add anything`)
-	cmd.Flags().StringP("data", "d", "", `payload data want to write.`)
+	cmd.Flags().StringP("topic", "t", "", `add #topic# before data, if empty add nothing`)
+	cmd.Flags().StringP("data", "d", "", `payload data that users want to write`)
 	cmd.MarkFlagRequired("data")
 }
 
@@ -97,17 +110,4 @@ func addUserData(cmd *cobra.Command, args []string) {
 	//tx.Sign(int32(wallet.SignType), privKey)
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
-}
-
-func getAddrByExec(cmd *cobra.Command, args []string) {
-	execer, _ := cmd.Flags().GetString("exec")
-	switch execer {
-	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
-		addrResult := account.ExecAddress(execer)
-		result := addrResult.String()
-		fmt.Println(result)
-
-	default:
-		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
-	}
 }

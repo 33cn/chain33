@@ -65,6 +65,15 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		}
 
 		return coinsAccount.Transfer(from, tx.To, transfer.Amount)
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		transfer := action.GetTransferToExec()
+		from := account.From(tx).String()
+		//to 是 execs 合约地址
+		toaddr := account.ExecAddress(transfer.ExecName).String()
+		if toaddr != tx.To {
+			return nil, types.ErrToAddrNotSameToExecAddr
+		}
+		return coinsAccount.TransferToExec(from, toaddr, transfer.Amount)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
@@ -110,6 +119,9 @@ func (c *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, true)
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		transfer := action.GetTransferToExec()
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
@@ -144,6 +156,9 @@ func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	var kv *types.KeyValue
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, false)
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		transfer := action.GetTransferToExec()
 		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, false)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
