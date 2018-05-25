@@ -19,9 +19,9 @@ func (m *mockMempool) SetQueueClient(q queue.Queue) {
 			switch msg.Ty {
 			case types.EventTx:
 				if req, ok := msg.GetData().(*types.Transaction); ok {
-					if bytes.Compare([]byte("case1"), req.Execer) == 0 {
+					if bytes.Equal([]byte("case1"), req.Execer) {
 						msg.Reply(client.NewMessage(mempoolKey, types.EventReply, &types.Reply{IsOk: false, Msg: []byte("do not support abc")}))
-					} else if bytes.Compare([]byte("case2"), req.Execer) == 0 {
+					} else if bytes.Equal([]byte("case2"), req.Execer) {
 						msg.Reply(client.NewMessage(mempoolKey, types.EventReply, &types.Transaction{}))
 					} else {
 						msg.Reply(client.NewMessage(mempoolKey, types.EventReply, &types.Reply{IsOk: true, Msg: []byte("word")}))

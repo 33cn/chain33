@@ -39,7 +39,7 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventQueryTx:
 				if req, ok := msg.GetData().(*types.ReqHash); ok {
-					if bytes.Compare(req.Hash, []byte("case1")) == 0 {
+					if bytes.Equal(req.Hash, []byte("case1")) {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventTransactionDetail, &types.Transaction{}))
 					} else {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventTransactionDetail, &types.TransactionDetail{}))
@@ -49,7 +49,7 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventGetTransactionByHash:
 				if req, ok := msg.GetData().(*types.ReqHashes); ok {
-					if len(req.GetHashes()) > 0 && bytes.Compare(req.Hashes[0], []byte("case1")) == 0 {
+					if len(req.GetHashes()) > 0 && bytes.Equal(req.Hashes[0], []byte("case1")) {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventTransactionDetails, &types.Transaction{}))
 					} else {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventTransactionDetails, &types.TransactionDetails{}))
@@ -69,7 +69,7 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventGetBlockOverview:
 				if req, ok := msg.GetData().(*types.ReqHash); ok {
-					if bytes.Compare(req.Hash, []byte("case1")) == 0 {
+					if bytes.Equal(req.Hash, []byte("case1")) {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyBlockOverview, &types.Transaction{}))
 					} else {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyBlockOverview, &types.BlockOverview{}))
@@ -107,7 +107,7 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Header{Version: 10, Height: 10}))
 			case types.EventLocalGet:
 				if req, ok := msg.GetData().(*types.LocalDBGet); ok {
-					if len(req.Keys) > 0 && bytes.Compare(req.Keys[0], []byte("TotalFeeKey:case1")) == 0 {
+					if len(req.Keys) > 0 && bytes.Equal(req.Keys[0], []byte("TotalFeeKey:case1")) {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Transaction{}))
 					} else {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.LocalReplyValue{}))
