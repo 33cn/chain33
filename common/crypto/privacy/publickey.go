@@ -8,7 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	"unsafe"
 	"crypto/subtle"
-	"github.com/onsi/ginkgo"
 )
 
 type PubKeyPrivacy [PublicKeyLen]byte

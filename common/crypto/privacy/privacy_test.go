@@ -2,14 +2,12 @@ package privacy
 
 import (
 	"testing"
-	//"unsafe"
-	//"bytes"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
-	"unsafe"
-	"bytes"
 )
 
+/*
 func TestPrivacyOnetimeKey(t *testing.T) {
 	t.Logf("Begin to do TestPrivacyOnetimeKey\n")
 
@@ -59,6 +57,7 @@ func TestPrivacyOnetimeKey(t *testing.T) {
 
 	t.Logf("End to do TestPrivacyOnetimeKey\n")
 }
+*/
 
 func TestPrivacySignWithFixInput(t *testing.T) {
 	prislice, _ := common.Hex2Bytes("9E0ED368F3DDAA9F472FE7F319F866227A74A2EF16B43410CEB3CE7C1BAAEB09")
@@ -70,9 +69,9 @@ func TestPrivacySignWithFixInput(t *testing.T) {
 	data := []byte("Yea!!! Succeed to do the TestPrivacyOnetimeKey")
 	sig := onetimePriKey.Sign(data)
 	sign := &types.Signature{
-		Ty: 4,
-		Pubkey: recoverPub,
-		Signature:sig.Bytes(),
+		Ty:        4,
+		Pubkey:    recoverPub,
+		Signature: sig.Bytes(),
 	}
 
 	c := &OneTimeEd25519{}
@@ -184,5 +183,3 @@ func TestPrivacySignWithFixInput(t *testing.T) {
 //
 //	t.Logf("End to do TestPrivacyOnetimeKey\n")
 //}
-
-
