@@ -1,10 +1,9 @@
-package client_test
+package client
 
 import (
 	"flag"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -12,7 +11,7 @@ import (
 )
 
 var (
-	configPath = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
+	configPath = flag.String("f", "../cmd/chain33/chain33.test.toml", "configfile")
 )
 
 func init() {
