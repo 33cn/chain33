@@ -2,23 +2,23 @@ package types
 
 import (
 	"time"
-
-	wire "github.com/tendermint/go-wire"
-	"github.com/tendermint/go-wire/data"
 )
 
 // canonical json is go-wire's json for structs with fields in alphabetical order
 
 // timeFormat is used for generating the sigs
-const timeFormat = wire.RFC3339Millis
+const (
+	RFC3339Millis = "2006-01-02T15:04:05.000Z" // forced microseconds
+)
+const timeFormat = RFC3339Millis
 
 type CanonicalJSONBlockID struct {
-	Hash        data.Bytes                 `json:"hash,omitempty"`
+	Hash        []byte                 `json:"hash,omitempty"`
 	PartsHeader CanonicalJSONPartSetHeader `json:"parts,omitempty"`
 }
 
 type CanonicalJSONPartSetHeader struct {
-	Hash  data.Bytes `json:"hash"`
+	Hash  []byte `json:"hash"`
 	Total int        `json:"total"`
 }
 
@@ -43,7 +43,7 @@ type CanonicalJSONHeartbeat struct {
 	Height           int64      `json:"height"`
 	Round            int        `json:"round"`
 	Sequence         int        `json:"sequence"`
-	ValidatorAddress data.Bytes `json:"validator_address"`
+	ValidatorAddress []byte `json:"validator_address"`
 	ValidatorIndex   int        `json:"validator_index"`
 }
 

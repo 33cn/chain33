@@ -20,9 +20,10 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 // 2 + 1024 == 1026 total frame size
@@ -30,7 +31,9 @@ const dataLenSize = 2 // uint16 to describe the length, is <= dataMaxSize
 const dataMaxSize = 1024
 const totalFrameSize = dataMaxSize + dataLenSize
 const sealedFrameSize = totalFrameSize + secretbox.Overhead
-const authSigMsgSize = (32 + 1) + (64 + 1) // fixed size (length prefixed) byte arrays
+const authSigMsgSize = (32 ) + (64 ) // fixed size (length prefixed) byte arrays
+
+var secret = log.New("module", "secret_connection")
 
 // Implements net.Conn
 type SecretConnection struct {
@@ -38,7 +41,7 @@ type SecretConnection struct {
 	recvBuffer []byte
 	recvNonce  *[24]byte
 	sendNonce  *[24]byte
-	remPubKey  crypto.PubKeyEd25519
+	remPubKey  crypto.PubKey
 	shrSecret  *[32]byte // shared secret
 }
 
@@ -46,9 +49,10 @@ type SecretConnection struct {
 // Returns nil if error in handshake.
 // Caller should call conn.Close()
 // See docs/sts-final.pdf for more information.
-func MakeSecretConnection(conn io.ReadWriteCloser, locPrivKey crypto.PrivKeyEd25519) (*SecretConnection, error) {
+func MakeSecretConnection(conn io.ReadWriteCloser, locPrivKey crypto.PrivKey) (*SecretConnection, error) {
 
-	locPubKey := locPrivKey.PubKey().Unwrap().(crypto.PubKeyEd25519)
+	locPubKey := locPrivKey.PubKey()
+
 
 	// Generate ephemeral keys for perfect forward secrecy.
 	locEphPub, locEphPriv := genEphKeys()
@@ -100,12 +104,12 @@ func MakeSecretConnection(conn io.ReadWriteCloser, locPrivKey crypto.PrivKeyEd25
 	}
 
 	// We've authorized.
-	sc.remPubKey = remPubKey.Unwrap().(crypto.PubKeyEd25519)
+	sc.remPubKey = remPubKey
 	return sc, nil
 }
 
 // Returns authenticated remote pubkey
-func (sc *SecretConnection) RemotePubKey() crypto.PubKeyEd25519 {
+func (sc *SecretConnection) RemotePubKey() crypto.PubKey {
 	return sc.remPubKey
 }
 
@@ -258,8 +262,8 @@ func genChallenge(loPubKey, hiPubKey *[32]byte) (challenge *[32]byte) {
 	return hash32(append(loPubKey[:], hiPubKey[:]...))
 }
 
-func signChallenge(challenge *[32]byte, locPrivKey crypto.PrivKeyEd25519) (signature crypto.SignatureEd25519) {
-	signature = locPrivKey.Sign(challenge[:]).Unwrap().(crypto.SignatureEd25519)
+func signChallenge(challenge *[32]byte, locPrivKey crypto.PrivKey) (signature crypto.Signature) {
+	signature = locPrivKey.Sign(challenge[:])
 	return
 }
 
@@ -268,14 +272,18 @@ type authSigMessage struct {
 	Sig crypto.Signature
 }
 
-func shareAuthSignature(sc *SecretConnection, pubKey crypto.PubKeyEd25519, signature crypto.SignatureEd25519) (*authSigMessage, error) {
+func shareAuthSignature(sc *SecretConnection, pubKey crypto.PubKey, signature crypto.Signature) (*authSigMessage, error) {
 	var recvMsg authSigMessage
 	var err1, err2 error
 
 	cmn.Parallel(
 		func() {
-			msgBytes := wire.BinaryBytes(authSigMessage{pubKey.Wrap(), signature.Wrap()})
-			_, err1 = sc.Write(msgBytes)
+			//msgBytes := wire.BinaryBytes(authSigMessage{pubKey, signature})
+			msgByte := make([]byte, len(pubKey.Bytes())+len(signature.Bytes()))
+			copy(msgByte, pubKey.Bytes())
+			copy(msgByte[len(pubKey.Bytes()):], signature.Bytes())
+			//secret.Info("shareAuthSignature", "writemsg", msgByte)
+			_, err1 = sc.Write(msgByte)
 		},
 		func() {
 			readBuffer := make([]byte, authSigMsgSize)
@@ -283,8 +291,17 @@ func shareAuthSignature(sc *SecretConnection, pubKey crypto.PubKeyEd25519, signa
 			if err2 != nil {
 				return
 			}
-			n := int(0) // not used.
-			recvMsg = wire.ReadBinary(authSigMessage{}, bytes.NewBuffer(readBuffer), authSigMsgSize, &n, &err2).(authSigMessage)
+			//n := int(0) // not used.
+			//recvMsg = wire.ReadBinary(authSigMessage{}, bytes.NewBuffer(readBuffer), authSigMsgSize, &n, &err2).(authSigMessage)
+			//secret.Info("shareAuthSignature", "readBuffer", readBuffer)
+			recvMsg.Key, err2 = types.ConsensusCrypto.PubKeyFromBytes(readBuffer[:32])
+			if err2 != nil {
+				return
+			}
+			recvMsg.Sig, err2 = types.ConsensusCrypto.SignatureFromBytes(readBuffer[32:])
+			if err2 != nil {
+				return
+			}
 		})
 
 	if err1 != nil {

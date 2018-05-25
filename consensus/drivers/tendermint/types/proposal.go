@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"encoding/json"
 )
 
 var (
@@ -28,6 +28,48 @@ type Proposal struct {
 	POLRound         int              `json:"pol_round"`    // -1 if null.
 	POLBlockID       BlockID          `json:"pol_block_id"` // zero if null.
 	Signature        crypto.Signature `json:"signature"`
+}
+
+type ProposalTrans struct {
+	Height           int64            `json:"height"`
+	Round            int              `json:"round"`
+	Timestamp        time.Time        `json:"timestamp"`
+	BlockPartsHeader PartSetHeader    `json:"block_parts_header"`
+	POLRound         int              `json:"pol_round"`    // -1 if null.
+	POLBlockID       BlockID          `json:"pol_block_id"` // zero if null.
+	Signature        string           `json:"signature"`
+}
+
+func ProposalToProposalTrans(proposal *Proposal) *ProposalTrans {
+	sig := fmt.Sprintf("%X", proposal.Signature.Bytes())
+	proposalTrans := &ProposalTrans{
+		POLRound:         proposal.POLRound,
+		Height:           proposal.Height,
+		Round:            proposal.Round,
+		Timestamp:        proposal.Timestamp,
+		POLBlockID:       proposal.POLBlockID,
+		BlockPartsHeader: proposal.BlockPartsHeader,
+		Signature:        sig,
+
+	}
+	return proposalTrans
+}
+
+func ProposalTransToProposal(proposalTrans *ProposalTrans) (*Proposal,error) {
+	sig, err := SignatureFromString(proposalTrans.Signature)
+	if err != nil {
+		return nil, err
+	}
+	proposal := &Proposal{
+		POLRound:         proposalTrans.POLRound,
+		Height:           proposalTrans.Height,
+		Round:            proposalTrans.Round,
+		Timestamp:        proposalTrans.Timestamp,
+		POLBlockID:       proposalTrans.POLBlockID,
+		BlockPartsHeader: proposalTrans.BlockPartsHeader,
+		Signature:        sig,
+	}
+	return proposal, nil
 }
 
 // NewProposal returns a new Proposal.
@@ -52,8 +94,20 @@ func (p *Proposal) String() string {
 
 // WriteSignBytes writes the Proposal bytes for signing
 func (p *Proposal) WriteSignBytes(chainID string, w io.Writer, n *int, err *error) {
-	wire.WriteJSON(CanonicalJSONOnceProposal{
+	if *err != nil {
+		return
+	}
+	canonical := CanonicalJSONOnceProposal{
 		ChainID:  chainID,
 		Proposal: CanonicalProposal(p),
-	}, w, n, err)
+	}
+	byteOnceProposal,e := json.Marshal(&canonical)
+	if e != nil {
+		*err = e
+		return
+	}
+	n_, err_ := w.Write(byteOnceProposal)
+	*n = n_
+	*err = err_
+	return
 }

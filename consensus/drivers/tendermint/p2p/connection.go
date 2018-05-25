@@ -13,12 +13,11 @@ import (
 	"errors"
 
 	log "github.com/inconshreveable/log15"
-	wire "github.com/tendermint/go-wire"
-	tmlegacy "github.com/tendermint/go-wire/nowriter/tmlegacy"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"encoding/binary"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"encoding/json"
 )
-
-var legacy = tmlegacy.TMEncoderLegacy{}
 
 const (
 	numBatchMsgPackets = 10
@@ -241,6 +240,25 @@ func (c *MConnection) stopForError(r interface{}) {
 	}
 }
 
+func (c *MConnection) MsgToByte(msg types.ReactorMsg) ([]byte, error) {
+	tmp, err := json.Marshal(msg)
+	if err != nil {
+		c.Logger.Error(cmn.Fmt("send bytes, marshal msg [%v] failed:%v", msg.TypeName(), err))
+		return nil, err
+	}
+	context := json.RawMessage(tmp)
+	enve := types.MsgEnvelope{
+		Kind: msg.TypeName(),
+		Data: &context,
+	}
+	msgBytes, err := json.Marshal(&enve)
+	if err != nil {
+		c.Logger.Error(cmn.Fmt("send bytes, marshal envelope failed:%v", err))
+		return nil, err
+	}
+	return msgBytes, nil
+}
+
 // Queues a message to be sent to channel.
 func (c *MConnection) Send(chID byte, msg interface{}) bool {
 
@@ -257,17 +275,26 @@ func (c *MConnection) Send(chID byte, msg interface{}) bool {
 		return false
 	}
 
-	success := channel.sendBytes(wire.BinaryBytes(msg))
-	if success {
-		// Wake up sendRoutine if necessary
-		select {
-		case c.send <- struct{}{}:
-		default:
+	if v, ok := msg.(types.ReactorMsg); ok {  // checked type assertion
+		msgBytes, err := c.MsgToByte(v)
+		if err != nil {
+			c.Logger.Error(cmn.Fmt("send bytes, marshal envelope failed:%v", err))
+			return false
 		}
-	} else {
-		c.Logger.Error("Send failed", "channel", chID, "conn", c, "msg", msg)
+		success := channel.sendBytes(msgBytes)
+		if success {
+			// Wake up sendRoutine if necessary
+			select {
+			case c.send <- struct{}{}:
+			default:
+			}
+		} else {
+			c.Logger.Error("Send failed", "channel", chID, "conn", c, "msg", msg)
+		}
+		return success
+
 	}
-	return success
+	return false
 }
 
 // Queues a message to be sent to channel.
@@ -286,17 +313,24 @@ func (c *MConnection) TrySend(chID byte, msg interface{}) bool {
 		c.Logger.Error(cmn.Fmt("Cannot send bytes, unknown channel %X", chID))
 		return false
 	}
-
-	ok = channel.trySendBytes(wire.BinaryBytes(msg))
-	if ok {
-		// Wake up sendRoutine if necessary
-		select {
-		case c.send <- struct{}{}:
-		default:
+	if v, ok := msg.(types.ReactorMsg); ok { // checked type assertion
+		msgBytes, err := c.MsgToByte(v)
+		if err != nil {
+			c.Logger.Error(cmn.Fmt("send bytes, marshal envelope failed:%v", err))
+			return false
 		}
-	}
+		ok = channel.trySendBytes(msgBytes)
+		if ok {
+			// Wake up sendRoutine if necessary
+			select {
+			case c.send <- struct{}{}:
+			default:
+			}
+		}
 
-	return ok
+		return ok
+	}
+	return false
 }
 
 // CanSend returns true if you can send more data onto the chID, false
@@ -334,12 +368,12 @@ FOR_LOOP:
 			}
 		case <-c.pingTimer.Chan():
 			c.Logger.Debug("Send Ping")
-			legacy.WriteOctet(packetTypePing, c.bufWriter, &n, &err)
+			n, err = c.bufWriter.Write([]byte{packetTypePing})
 			c.sendMonitor.Update(n)
 			c.flush()
 		case <-c.pong:
 			c.Logger.Debug("Send Pong")
-			legacy.WriteOctet(packetTypePong, c.bufWriter, &n, &err)
+			n, err = c.bufWriter.Write([]byte{packetTypePong})
 			c.sendMonitor.Update(n)
 			c.flush()
 		case <-c.quit:
@@ -452,9 +486,9 @@ FOR_LOOP:
 		*/
 
 		// Read packet type
-		var n int
-		var err error
-		pktType := wire.ReadByte(c.bufReader, &n, &err)
+		var buf [1]byte
+		n, err := io.ReadFull(c.bufReader, buf[:])
+		pktType := buf[0]
 		c.recvMonitor.Update(n)
 		if err != nil {
 			if c.IsRunning() {
@@ -475,7 +509,29 @@ FOR_LOOP:
 			c.Logger.Debug("Receive Pong")
 		case packetTypeMsg:
 			pkt, n, err := msgPacket{}, int(0), error(nil)
-			wire.ReadBinaryPtr(&pkt, c.bufReader, c.config.maxMsgPacketTotalSize(), &n, &err)
+			//channelID+EOF+bytes_of_len+max_len_of_int(4)+len_of_byte=1+1+1+4+len(packet.Bytes)
+			buf := make([]byte, 6)
+			_, err = io.ReadFull(c.bufReader, buf)
+			if err != nil  {
+				c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
+				c.stopForError(err)
+				panic(fmt.Sprintf("MConnection recvRoutine packetTypeMsg failed 1:%v",err))
+			}
+			pkt.ChannelID = buf[0]
+			pkt.EOF = buf[1]
+			len := binary.BigEndian.Uint32(buf[2:])
+			if len > 0 {
+				buf2 := make([]byte, len)
+				_, err = io.ReadFull(c.bufReader, buf2)
+				if err != nil  {
+					c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
+					c.stopForError(err)
+					panic(fmt.Sprintf("MConnection recvRoutine packetTypeMsg failed 2:%v",err))
+				}
+				pkt.Bytes = buf2
+			}
+
+			//wire.ReadBinaryPtr(&pkt, c.bufReader, c.config.maxMsgPacketTotalSize(), &n, &err)
 			c.recvMonitor.Update(n)
 			if err != nil {
 				if c.IsRunning() {
@@ -692,8 +748,20 @@ func (ch *Channel) writeMsgPacketTo(w io.Writer) (n int, err error) {
 }
 
 func writeMsgPacketTo(packet msgPacket, w io.Writer, n *int, err *error) {
-	legacy.WriteOctet(packetTypeMsg, w, n, err)
-	wire.WriteBinary(packet, w, n, err)
+	*n, *err = w.Write([]byte{packetTypeMsg})
+	//channelID+EOF+lenNum(int)+len_of_byte=1+1+4+len(packet.Bytes)
+	buf := make([]byte, 6+len(packet.Bytes))
+	buf[0] = packet.ChannelID
+	buf[1] = packet.EOF
+	len := len(packet.Bytes)
+	if len > 0 {
+		frame := make([]byte, 4)
+		binary.BigEndian.PutUint32(frame, uint32(len))
+		copy(buf[2:], frame)
+		copy(buf[6:], packet.Bytes)
+	}
+	w.Write(buf)
+	//wire.WriteBinary(packet, w, n, err)
 }
 
 // Handles incoming msgPackets. Returns a msg bytes if msg is complete.
@@ -701,7 +769,7 @@ func writeMsgPacketTo(packet msgPacket, w io.Writer, n *int, err *error) {
 func (ch *Channel) recvMsgPacket(packet msgPacket) ([]byte, error) {
 	ch.Logger.Debug("Read Msg Packet", "conn", ch.conn, "packet", packet)
 	if ch.desc.RecvMessageCapacity < len(ch.recving)+len(packet.Bytes) {
-		return nil, wire.ErrBinaryReadOverflow
+		return nil, errors.New("Error: binary read overflow")
 	}
 	ch.recving = append(ch.recving, packet.Bytes...)
 	if packet.EOF == byte(0x01) {

@@ -3,10 +3,6 @@ package types
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/tendermint/go-crypto"
-	wire "github.com/tendermint/go-wire"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 // ErrEvidenceInvalid wraps a piece of evidence and the error denoting how or why it is invalid.
@@ -25,6 +21,13 @@ func (err *ErrEvidenceInvalid) Error() string {
 }
 
 //-------------------------------------------
+const (
+	DuplicateVote = "DuplicateVote"
+	MockGood = "MockGood"
+	MockBad = "MockBad"
+)
+
+var EvidenceType2Obj map[string]interface{}
 
 // Evidence represents any provable malicious activity by a validator
 type Evidence interface {
@@ -36,6 +39,9 @@ type Evidence interface {
 	Equal(Evidence) bool         // check equality of evidence
 
 	String() string
+
+	TypeName() string
+	Copy() Evidence
 }
 
 //-------------------------------------------
@@ -55,7 +61,7 @@ func (evl EvidenceList) Hash() []byte {
 	default:
 		left := evl[:(len(evl)+1)/2].Hash()
 		right := evl[(len(evl)+1)/2:].Hash()
-		return cmn.SimpleHashFromTwoHashes(left, right)
+		return SimpleHashFromTwoHashes(left, right)
 	}
 }
 
@@ -79,20 +85,9 @@ func (evl EvidenceList) Has(evidence Evidence) bool {
 
 //-------------------------------------------
 
-const (
-	evidenceTypeDuplicateVote = byte(0x01)
-)
-
-var _ = wire.RegisterInterface(
-	struct{ Evidence }{},
-	wire.ConcreteType{&DuplicateVoteEvidence{}, evidenceTypeDuplicateVote},
-)
-
-//-------------------------------------------
-
 // DuplicateVoteEvidence contains evidence a validator signed two conflicting votes.
 type DuplicateVoteEvidence struct {
-	PubKey crypto.PubKey
+	PubKey string
 	VoteA  *Vote
 	VoteB  *Vote
 }
@@ -110,7 +105,11 @@ func (dve *DuplicateVoteEvidence) Height() int64 {
 
 // Address returns the address of the validator.
 func (dve *DuplicateVoteEvidence) Address() []byte {
-	return dve.PubKey.Address()
+	pubkey, err := PubKeyFromString(dve.PubKey)
+	if err != nil {
+		return nil
+	}
+	return GenAddressByPubKey(pubkey)
 }
 
 // Index returns the index of the validator.
@@ -120,7 +119,7 @@ func (dve *DuplicateVoteEvidence) Index() int {
 
 // Hash returns the hash of the evidence.
 func (dve *DuplicateVoteEvidence) Hash() []byte {
-	return cmn.SimpleHashFromBinary(dve)
+	return SimpleHashFromBinary(dve)
 }
 
 // Verify returns an error if the two votes aren't conflicting.
@@ -148,10 +147,22 @@ func (dve *DuplicateVoteEvidence) Verify(chainID string) error {
 	}
 
 	// Signatures must be valid
-	if !dve.PubKey.VerifyBytes(SignBytes(chainID, dve.VoteA), dve.VoteA.Signature) {
+	pubkey, err := PubKeyFromString(dve.PubKey)
+	if err != nil {
+		return fmt.Errorf("DuplicateVoteEvidence Error: pubkey[%v] to PubKey failed:%v", dve.PubKey, err)
+	}
+	sigA, err := ConsensusCrypto.SignatureFromBytes(dve.VoteA.Signature)
+	if err != nil {
+		return fmt.Errorf("DuplicateVoteEvidence Error: SIGA[%v] to signature failed:%v", dve.VoteA.Signature, err)
+	}
+	sigB, err := ConsensusCrypto.SignatureFromBytes(dve.VoteB.Signature)
+	if err != nil {
+		return fmt.Errorf("DuplicateVoteEvidence Error: SIGB[%v] to signature failed:%v", dve.VoteB.Signature, err)
+	}
+	if !pubkey.VerifyBytes(SignBytes(chainID, dve.VoteA), sigA) {
 		return fmt.Errorf("DuplicateVoteEvidence Error verifying VoteA: %v", ErrVoteInvalidSignature)
 	}
-	if !dve.PubKey.VerifyBytes(SignBytes(chainID, dve.VoteB), dve.VoteB.Signature) {
+	if !pubkey.VerifyBytes(SignBytes(chainID, dve.VoteB), sigB) {
 		return fmt.Errorf("DuplicateVoteEvidence Error verifying VoteB: %v", ErrVoteInvalidSignature)
 	}
 
@@ -165,7 +176,15 @@ func (dve *DuplicateVoteEvidence) Equal(ev Evidence) bool {
 	}
 
 	// just check their hashes
-	return bytes.Equal(cmn.SimpleHashFromBinary(dve), cmn.SimpleHashFromBinary(ev))
+	return bytes.Equal(SimpleHashFromBinary(dve), SimpleHashFromBinary(ev))
+}
+
+func (dve *DuplicateVoteEvidence) TypeName() string {
+	return DuplicateVote
+}
+
+func (dve *DuplicateVoteEvidence) Copy() Evidence {
+	return &DuplicateVoteEvidence{}
 }
 
 //-----------------------------------------------------------------
@@ -198,6 +217,12 @@ func (e MockGoodEvidence) Equal(ev Evidence) bool {
 func (e MockGoodEvidence) String() string {
 	return fmt.Sprintf("GoodEvidence: %d/%s/%d", e.Height_, e.Address_, e.Index_)
 }
+func (e MockGoodEvidence) TypeName() string {
+	return MockGood
+}
+func (e MockGoodEvidence) Copy() Evidence {
+	return &MockGoodEvidence{}
+}
 
 // UNSTABLE
 type MockBadEvidence struct {
@@ -213,4 +238,10 @@ func (e MockBadEvidence) Equal(ev Evidence) bool {
 }
 func (e MockBadEvidence) String() string {
 	return fmt.Sprintf("BadEvidence: %d/%s/%d", e.Height_, e.Address_, e.Index_)
+}
+func (e MockBadEvidence) TypeName() string {
+	return MockBad
+}
+func (e MockBadEvidence) Copy() Evidence {
+	return &MockBadEvidence{}
 }

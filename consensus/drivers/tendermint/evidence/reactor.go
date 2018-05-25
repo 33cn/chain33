@@ -1,16 +1,14 @@
 package evidence
 
 import (
-	"bytes"
 	"fmt"
-	"reflect"
 	"time"
 
 	log "github.com/inconshreveable/log15"
-	wire "github.com/tendermint/go-wire"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"encoding/json"
 )
 
 const (
@@ -70,8 +68,8 @@ func (evR *EvidenceReactor) AddPeer(peer p2p.Peer) {
 	// send the peer our high-priority evidence.
 	// the rest will be sent by the broadcastRoutine
 	evidences := evR.evpool.PriorityEvidence()
-	msg := &EvidenceListMessage{evidences}
-	success := peer.Send(EvidenceChannel, struct{ EvidenceMessage }{msg})
+	msg := &types.EvidenceListMessage{evidences}
+	success := peer.Send(EvidenceChannel, msg)
 	if !success {
 		// TODO: remove peer ?
 	}
@@ -85,24 +83,35 @@ func (evR *EvidenceReactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 // Receive implements Reactor.
 // It adds any received evidence to the evpool.
 func (evR *EvidenceReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
-	_, msg, err := DecodeMessage(msgBytes)
+	envelope := types.MsgEnvelope{}
+	err := json.Unmarshal(msgBytes, &envelope)
 	if err != nil {
 		evR.Logger.Error("Error decoding message", "err", err)
 		return
 	}
-	evR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
+	evR.Logger.Debug("Receive", "src", src, "chId", chID)
 
-	switch msg := msg.(type) {
-	case *EvidenceListMessage:
-		for _, ev := range msg.Evidence {
-			err := evR.evpool.AddEvidence(ev)
-			if err != nil {
-				evR.Logger.Info("Evidence is not valid", "evidence", msg.Evidence, "err", err)
-				// TODO: punish peer
-			}
+	if v, ok := types.MsgMap[envelope.Kind]; ok {
+		msg := v.(types.ReactorMsg).Copy()
+		err = json.Unmarshal(*envelope.Data, &msg)
+		if err != nil {
+			evR.Logger.Error("EvidenceReactor Receive Unmarshal data failed:%v\n", err)
+			return
 		}
-	default:
-		evR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
+		switch msg := msg.(type) {
+		case *types.EvidenceListMessage:
+			for _, ev := range msg.Evidence {
+				err := evR.evpool.AddEvidence(ev)
+				if err != nil {
+					evR.Logger.Info("Evidence is not valid", "evidence", msg.Evidence, "err", err)
+					// TODO: punish peer
+				}
+			}
+		default:
+			evR.Logger.Error(fmt.Sprintf("Unknown message type %v", msg.TypeName()))
+		}
+	} else {
+		evR.Logger.Error("not find ReactorMsg kind", "kind", envelope.Kind)
 	}
 }
 
@@ -119,54 +128,18 @@ func (evR *EvidenceReactor) broadcastRoutine() {
 		select {
 		case evidence := <-evR.evpool.EvidenceChan():
 			// broadcast some new evidence
-			msg := &EvidenceListMessage{[]types.Evidence{evidence}}
-			evR.Switch.Broadcast(EvidenceChannel, struct{ EvidenceMessage }{msg})
+			msg := &types.EvidenceListMessage{[]types.Evidence{evidence}}
+			evR.Switch.Broadcast(EvidenceChannel, msg)
 
 			// TODO: Broadcast runs asynchronously, so this should wait on the successChan
 			// in another routine before marking to be proper.
 			evR.evpool.evidenceStore.MarkEvidenceAsBroadcasted(evidence)
 		case <-ticker.C:
 			// broadcast all pending evidence
-			msg := &EvidenceListMessage{evR.evpool.PendingEvidence()}
-			evR.Switch.Broadcast(EvidenceChannel, struct{ EvidenceMessage }{msg})
+			msg := &types.EvidenceListMessage{evR.evpool.PendingEvidence()}
+			evR.Switch.Broadcast(EvidenceChannel, msg)
 		case <-evR.Quit:
 			return
 		}
 	}
-}
-
-//-----------------------------------------------------------------------------
-// Messages
-
-const (
-	msgTypeEvidence = byte(0x01)
-)
-
-// EvidenceMessage is a message sent or received by the EvidenceReactor.
-type EvidenceMessage interface{}
-
-var _ = wire.RegisterInterface(
-	struct{ EvidenceMessage }{},
-	wire.ConcreteType{&EvidenceListMessage{}, msgTypeEvidence},
-)
-
-// DecodeMessage decodes a byte-array into a EvidenceMessage.
-func DecodeMessage(bz []byte) (msgType byte, msg EvidenceMessage, err error) {
-	msgType = bz[0]
-	n := new(int)
-	r := bytes.NewReader(bz)
-	msg = wire.ReadBinary(struct{ EvidenceMessage }{}, r, maxEvidenceMessageSize, n, &err).(struct{ EvidenceMessage }).EvidenceMessage
-	return
-}
-
-//-------------------------------------
-
-// EvidenceMessage contains a list of evidence.
-type EvidenceListMessage struct {
-	Evidence []types.Evidence
-}
-
-// String returns a string representation of the EvidenceListMessage.
-func (m *EvidenceListMessage) String() string {
-	return fmt.Sprintf("[EvidenceListMessage %v]", m.Evidence)
 }

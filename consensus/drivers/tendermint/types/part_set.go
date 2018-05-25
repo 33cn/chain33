@@ -9,9 +9,8 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/tendermint/go-wire"
-	"github.com/tendermint/go-wire/data"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"encoding/json"
 )
 
 var (
@@ -21,8 +20,8 @@ var (
 
 type Part struct {
 	Index int             `json:"index"`
-	Bytes data.Bytes      `json:"bytes"`
-	Proof cmn.SimpleProof `json:"proof"`
+	Bytes []byte      `json:"bytes"`
+	Proof SimpleProof `json:"proof"`
 
 	// Cache
 	hash []byte
@@ -58,7 +57,7 @@ func (part *Part) StringIndented(indent string) string {
 
 type PartSetHeader struct {
 	Total int        `json:"total"`
-	Hash  data.Bytes `json:"hash"`
+	Hash  []byte `json:"hash"`
 }
 
 func (psh PartSetHeader) String() string {
@@ -74,7 +73,19 @@ func (psh PartSetHeader) Equals(other PartSetHeader) bool {
 }
 
 func (psh PartSetHeader) WriteSignBytes(w io.Writer, n *int, err *error) {
-	wire.WriteJSON(CanonicalPartSetHeader(psh), w, n, err)
+	if *err != nil {
+		return
+	}
+	canonical := CanonicalPartSetHeader(psh)
+	byteHeartbeat,e := json.Marshal(&canonical)
+	if e != nil {
+		*err = e
+		return
+	}
+	n_, err_ := w.Write(byteHeartbeat)
+	*n = n_
+	*err = err_
+	return
 }
 
 //-------------------------------------
@@ -107,7 +118,7 @@ func NewPartSetFromData(data []byte, partSize int) *PartSet {
 		partsBitArray.SetIndex(i, true)
 	}
 	// Compute cmn proofs
-	root, proofs := cmn.SimpleProofsFromHashables(parts_)
+	root, proofs := SimpleProofsFromHashables(parts_)
 	for i := 0; i < total; i++ {
 		parts[i].Proof = *proofs[i]
 	}
