@@ -60,7 +60,6 @@ func NewGRpcServer(c queue.Client) *Grpcserver {
 }
 
 func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
-	types.InitRpcTypeUtil()
 	j := &JSONRPCServer{}
 	j.jrpc.cli.Init(c)
 	return j
