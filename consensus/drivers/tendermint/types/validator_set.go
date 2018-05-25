@@ -150,7 +150,7 @@ func (valSet *ValidatorSet) Hash() []byte {
 	for i, val := range valSet.Validators {
 		hashables[i] = val
 	}
-	return cmn.SimpleHashFromHashables(hashables)
+	return SimpleHashFromHashables(hashables)
 }
 
 func (valSet *ValidatorSet) Add(val *Validator) (added bool) {
@@ -250,7 +250,15 @@ func (valSet *ValidatorSet) VerifyCommit(chainID string, blockID BlockID, height
 		_, val := valSet.GetByIndex(idx)
 		// Validate signature
 		precommitSignBytes := SignBytes(chainID, precommit)
-		if !val.PubKey.VerifyBytes(precommitSignBytes, precommit.Signature) {
+		sig, err := ConsensusCrypto.SignatureFromBytes(precommit.Signature)
+		if err != nil {
+			return fmt.Errorf("VerifyCommit SignatureFromBytes [%X] failed:%v", precommit.Signature, err)
+		}
+		pubkey, err := ConsensusCrypto.PubKeyFromBytes(val.PubKey)
+		if err != nil {
+			return fmt.Errorf("VerifyCommit PubKeyFromBytes [%X] failed:%v", val.PubKey, err)
+		}
+		if !pubkey.VerifyBytes(precommitSignBytes, sig) {
 			return fmt.Errorf("Invalid commit -- invalid signature: %v", precommit)
 		}
 		if !blockID.Equals(precommit.BlockID) {
@@ -324,7 +332,15 @@ func (valSet *ValidatorSet) VerifyCommitAny(newSet *ValidatorSet, chainID string
 
 		// Validate signature old school
 		precommitSignBytes := SignBytes(chainID, precommit)
-		if !ov.PubKey.VerifyBytes(precommitSignBytes, precommit.Signature) {
+		sig, err := ConsensusCrypto.SignatureFromBytes(precommit.Signature)
+		if err != nil {
+			return fmt.Errorf("VerifyCommitAny SignatureFromBytes [%X] failed:%v", precommit.Signature, err)
+		}
+		pubkey, err := ConsensusCrypto.PubKeyFromBytes(ov.PubKey)
+		if err != nil {
+			return fmt.Errorf("VerifyCommitAny PubKeyFromBytes 1 [%X] failed:%v", ov.PubKey, err)
+		}
+		if !pubkey.VerifyBytes(precommitSignBytes, sig) {
 			return errors.Errorf("Invalid commit -- invalid signature: %v", precommit)
 		}
 		// Good precommit!
@@ -332,7 +348,11 @@ func (valSet *ValidatorSet) VerifyCommitAny(newSet *ValidatorSet, chainID string
 
 		// check new school
 		_, cv := newSet.GetByIndex(idx)
-		if cv.PubKey.Equals(ov.PubKey) {
+		cvPubKey, err := ConsensusCrypto.PubKeyFromBytes(cv.PubKey)
+		if err != nil {
+			return fmt.Errorf("VerifyCommitAny PubKeyFromBytes 2 [%X] failed:%v", cv.PubKey, err)
+		}
+		if cvPubKey.Equals(pubkey) {
 			// make sure this is properly set in the current block as well
 			newVotingPower += cv.VotingPower
 		}
@@ -412,9 +432,9 @@ func (ac accumComparable) Less(o interface{}) bool {
 // RandValidatorSet returns a randomized validator set, useful for testing.
 // NOTE: PrivValidator are in order.
 // UNSTABLE
-func RandValidatorSet(numValidators int, votingPower int64) (*ValidatorSet, []*PrivValidatorFS) {
+func RandValidatorSet(numValidators int, votingPower int64) (*ValidatorSet, []*PrivValidatorImp) {
 	vals := make([]*Validator, numValidators)
-	privValidators := make([]*PrivValidatorFS, numValidators)
+	privValidators := make([]*PrivValidatorImp, numValidators)
 	for i := 0; i < numValidators; i++ {
 		val, privValidator := RandValidator(false, votingPower)
 		vals[i] = val

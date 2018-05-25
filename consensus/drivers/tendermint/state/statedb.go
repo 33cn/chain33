@@ -157,7 +157,7 @@ func saveValidators(dest []*gtypes.Validator, source []*types.Validator) []*gtyp
 		} else {
 			validator := &gtypes.Validator{
 				Address: item.Address,
-				PubKey: item.PubKey.Unwrap().Bytes(),
+				PubKey: item.PubKey,
 				VotingPower: item.VotingPower,
 				Accum: item.Accum,
 			}
@@ -170,7 +170,7 @@ func saveValidators(dest []*gtypes.Validator, source []*types.Validator) []*gtyp
 func saveProposer(dest *gtypes.Validator, source *types.Validator){
 	if source != nil {
 		dest.Address = source.Address
-		dest.PubKey = source.PubKey.Unwrap().Bytes()
+		dest.PubKey = source.PubKey
 		dest.VotingPower = source.VotingPower
 		dest.Accum = source.Accum
 		}

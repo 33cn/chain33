@@ -4,15 +4,16 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
-	crypto "github.com/tendermint/go-crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
-	gcrypto "gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"fmt"
 	"errors"
 )
 
 var bilog = log.New("module", "tendermint-blockinfo")
+
+var ConsensusCrypto crypto.Crypto
 
 func GetBlockInfo(block *gtypes.Block) (*gtypes.TendermintBlockInfo, error) {
 	if len(block.Txs) == 0 || block.Height == 0 {
@@ -59,13 +60,7 @@ func LoadVotes(des []*Vote, source []*gtypes.Vote) {
 		}
 		des[i].Height = item.Height
 		des[i].Round = int(item.Round)
-		sig, err := crypto.SignatureFromBytes(item.Signature)
-		if err != nil {
-			bilog.Error("SignatureFromBytes failed", "err", err)
-		} else {
-			des[i].Signature = sig.Wrap()
-		}
-
+		des[i].Signature = item.Signature
 		des[i].Type = uint8(item.Type)
 		des[i].ValidatorAddress = item.ValidatorAddress
 		des[i].ValidatorIndex = int(item.ValidatorIndex)
@@ -93,7 +88,7 @@ func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 		des[i].BlockID = blockID
 		des[i].Height = item.Height
 		des[i].Round = int32(item.Round)
-		des[i].Signature = item.Signature.Unwrap().Bytes()
+		des[i].Signature = item.Signature
 		des[i].Type = uint32(item.Type)
 		des[i].ValidatorAddress = item.ValidatorAddress
 		des[i].ValidatorIndex = int32(item.ValidatorIndex)
@@ -138,8 +133,8 @@ func SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) (*gtypes.Tend
 	return seenCommit, lastCommit
 }
 
-func getprivkey(key string) gcrypto.PrivKey {
-	cr, err := gcrypto.New(gtypes.GetSignatureTypeName(gtypes.SECP256K1))
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(gtypes.GetSignatureTypeName(gtypes.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -166,11 +161,11 @@ func LoadValidators(des []*Validator, source []*gtypes.Validator) {
 		}
 		des[i] = &Validator{}
 		des[i].Address = item.GetAddress()
-		pub, err := crypto.PubKeyFromBytes(item.GetPubKey())
-		if err != nil {
-			bilog.Error("LoadValidators get pubkey from byte failed", "err", err)
+		pub := item.GetPubKey()
+		if pub == nil {
+			bilog.Error("LoadValidators get validator pubkey is nil", "item", i)
 		} else {
-			des[i].PubKey = pub.Wrap()
+			des[i].PubKey = pub
 		}
 		des[i].VotingPower = item.VotingPower
 		des[i].Accum = item.Accum
@@ -188,12 +183,11 @@ func LoadProposer(source *gtypes.Validator) (*Validator, error) {
 
 	des := &Validator{}
 	des.Address = source.GetAddress()
-	pub, err := crypto.PubKeyFromBytes(source.GetPubKey())
-	if err != nil {
-		bilog.Error("LoadProposer get pubkey from byte failed", "err", err)
-		return nil, errors.New(fmt.Sprintf("LoadProposer get pubkey from byte failed, err:%v", err))
+	pub := source.GetPubKey()
+	if pub == nil {
+		bilog.Error("LoadProposer get pubkey is nil")
 	} else {
-		des.PubKey = pub.Wrap()
+		des.PubKey = pub
 	}
 	des.VotingPower = source.VotingPower
 	des.Accum = source.Accum

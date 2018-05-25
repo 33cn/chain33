@@ -22,27 +22,30 @@ For larger datasets, use IAVLTree.
 
 */
 
-package merkle
+package types
 
 import (
 	"bytes"
 	"fmt"
-	"sort"
 
 	"golang.org/x/crypto/ripemd160"
-
-	"github.com/tendermint/go-wire"
-	. "github.com/tendermint/tmlibs/common"
+	"encoding/json"
+	log "github.com/inconshreveable/log15"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
+var commonlog = log.New("module", "tendermint-common")
+
 func SimpleHashFromTwoHashes(left []byte, right []byte) []byte {
-	var n int
-	var err error
+
 	var hasher = ripemd160.New()
-	wire.WriteByteSlice(left, hasher, &n, &err)
-	wire.WriteByteSlice(right, hasher, &n, &err)
+	_, err := hasher.Write(left)
 	if err != nil {
-		PanicCrisis(err)
+		cmn.PanicCrisis(err)
+	}
+	_, err = hasher.Write(right)
+	if err != nil {
+		cmn.PanicCrisis(err)
 	}
 	return hasher.Sum(nil)
 }
@@ -73,15 +76,26 @@ func SimpleHashFromBinaries(items []interface{}) []byte {
 // General Convenience
 func SimpleHashFromBinary(item interface{}) []byte {
 	hasher, n, err := ripemd160.New(), new(int), new(error)
-	wire.WriteBinary(item, hasher, n, err)
+	switch item := item.(type) {
+	case *DuplicateVoteEvidence:
+	case *Vote:
+		bytes, e := json.Marshal(item)
+		if e != nil {
+			commonlog.Error("SimpleHashFromBinary marshal failed", "type", item, "error", err)
+			panic(item)
+		}
+		*n, *err = hasher.Write(bytes)
+	default:
+		commonlog.Error("SimpleHashFromBinary type not support", "type", item)
+	}
 	if *err != nil {
-		PanicCrisis(err)
+		cmn.PanicCrisis(err)
 	}
 	return hasher.Sum(nil)
 }
 
 // Convenience for SimpleHashFromHashes.
-func SimpleHashFromHashables(items []Hashable) []byte {
+func SimpleHashFromHashables(items []cmn.Hashable) []byte {
 	hashes := make([][]byte, len(items))
 	for i, item := range items {
 		hash := item.Hash()
@@ -91,11 +105,12 @@ func SimpleHashFromHashables(items []Hashable) []byte {
 }
 
 // Convenience for SimpleHashFromHashes.
+/*
 func SimpleHashFromMap(m map[string]interface{}) []byte {
 	kpPairsH := MakeSortedKVPairs(m)
 	return SimpleHashFromHashables(kpPairsH)
 }
-
+*/
 //--------------------------------------------------------------------------------
 
 /* Convenience struct for key-value pairs.
@@ -103,6 +118,7 @@ A list of KVPairs is hashed via `SimpleHashFromHashables`.
 NOTE: Each `Value` is encoded for hashing without extra type information,
 so the user is presumed to be aware of the Value types.
 */
+/*
 type KVPair struct {
 	Key   string
 	Value interface{}
@@ -111,13 +127,13 @@ type KVPair struct {
 func (kv KVPair) Hash() []byte {
 	hasher, n, err := ripemd160.New(), new(int), new(error)
 	wire.WriteString(kv.Key, hasher, n, err)
-	if kvH, ok := kv.Value.(Hashable); ok {
+	if kvH, ok := kv.Value.(cmn.Hashable); ok {
 		wire.WriteByteSlice(kvH.Hash(), hasher, n, err)
 	} else {
 		wire.WriteBinary(kv.Value, hasher, n, err)
 	}
 	if *err != nil {
-		PanicSanity(*err)
+		cmn.PanicSanity(*err)
 	}
 	return hasher.Sum(nil)
 }
@@ -129,19 +145,19 @@ func (kvps KVPairs) Less(i, j int) bool { return kvps[i].Key < kvps[j].Key }
 func (kvps KVPairs) Swap(i, j int)      { kvps[i], kvps[j] = kvps[j], kvps[i] }
 func (kvps KVPairs) Sort()              { sort.Sort(kvps) }
 
-func MakeSortedKVPairs(m map[string]interface{}) []Hashable {
+func MakeSortedKVPairs(m map[string]interface{}) []cmn.Hashable {
 	kvPairs := []KVPair{}
 	for k, v := range m {
 		kvPairs = append(kvPairs, KVPair{k, v})
 	}
 	KVPairs(kvPairs).Sort()
-	kvPairsH := []Hashable{}
+	kvPairsH := []cmn.Hashable{}
 	for _, kvp := range kvPairs {
 		kvPairsH = append(kvPairsH, kvp)
 	}
 	return kvPairsH
 }
-
+*/
 //--------------------------------------------------------------------------------
 
 type SimpleProof struct {
@@ -149,7 +165,7 @@ type SimpleProof struct {
 }
 
 // proofs[0] is the proof for items[0].
-func SimpleProofsFromHashables(items []Hashable) (rootHash []byte, proofs []*SimpleProof) {
+func SimpleProofsFromHashables(items []cmn.Hashable) (rootHash []byte, proofs []*SimpleProof) {
 	trails, rootSPN := trailsFromHashables(items)
 	rootHash = rootSPN.Hash
 	proofs = make([]*SimpleProof, len(items))
@@ -195,7 +211,7 @@ func computeHashFromAunts(index int, total int, leafHash []byte, innerHashes [][
 	}
 	switch total {
 	case 0:
-		PanicSanity("Cannot call computeHashFromAunts() with 0 total")
+		cmn.PanicSanity("Cannot call computeHashFromAunts() with 0 total")
 		return nil
 	case 1:
 		if len(innerHashes) != 0 {
@@ -255,7 +271,7 @@ func (spn *SimpleProofNode) FlattenAunts() [][]byte {
 
 // trails[0].Hash is the leaf hash for items[0].
 // trails[i].Parent.Parent....Parent == root for all i.
-func trailsFromHashables(items []Hashable) (trails []*SimpleProofNode, root *SimpleProofNode) {
+func trailsFromHashables(items []cmn.Hashable) (trails []*SimpleProofNode, root *SimpleProofNode) {
 	// Recursive impl.
 	switch len(items) {
 	case 0:

@@ -11,8 +11,9 @@ import (
 	"math"
 
 	log "github.com/inconshreveable/log15"
-	crypto "github.com/tendermint/go-crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
@@ -81,10 +82,10 @@ type Switch struct {
 	peers        *PeerSet
 	dialing      *cmn.CMap
 	nodeInfo     *NodeInfo             // our node info
-	nodePrivKey  crypto.PrivKeyEd25519 // our node privkey
+	nodePrivKey  crypto.PrivKey // our node privkey
 
 	filterConnByAddr   func(net.Addr) error
-	filterConnByPubKey func(crypto.PubKeyEd25519) error
+	filterConnByPubKey func(crypto.PubKey) error
 
 	rng *rand.Rand // seed for randomizing dial times and orders
 }
@@ -243,10 +244,10 @@ func (sw *Switch) NodeInfo() *NodeInfo {
 // SetNodePrivKey sets the switch's private key for authenticated encryption.
 // NOTE: Overwrites sw.nodeInfo.PubKey.
 // NOTE: Not goroutine safe.
-func (sw *Switch) SetNodePrivKey(nodePrivKey crypto.PrivKeyEd25519) {
+func (sw *Switch) SetNodePrivKey(nodePrivKey crypto.PrivKey) {
 	sw.nodePrivKey = nodePrivKey
 	if sw.nodeInfo != nil {
-		sw.nodeInfo.PubKey = nodePrivKey.PubKey().Unwrap().(crypto.PubKeyEd25519)
+		sw.nodeInfo.PubKey = nodePrivKey.PubKey()
 	}
 }
 
@@ -305,7 +306,7 @@ func (sw *Switch) addPeer(peer *peer) error {
 	}
 
 	// Avoid self
-	if sw.nodeInfo.PubKey.Equals(peer.PubKey().Wrap()) {
+	if sw.nodeInfo.PubKey.Equals(peer.PubKey()) {
 		return errors.New("Ignoring connection from self")
 	}
 
@@ -345,7 +346,7 @@ func (sw *Switch) FilterConnByAddr(addr net.Addr) error {
 }
 
 // FilterConnByPubKey returns an error if connecting to the given public key is forbidden.
-func (sw *Switch) FilterConnByPubKey(pubkey crypto.PubKeyEd25519) error {
+func (sw *Switch) FilterConnByPubKey(pubkey crypto.PubKey) error {
 	if sw.filterConnByPubKey != nil {
 		return sw.filterConnByPubKey(pubkey)
 	}
@@ -359,7 +360,7 @@ func (sw *Switch) SetAddrFilter(f func(net.Addr) error) {
 }
 
 // SetPubKeyFilter sets the function for filtering connections by public key.
-func (sw *Switch) SetPubKeyFilter(f func(crypto.PubKeyEd25519) error) {
+func (sw *Switch) SetPubKeyFilter(f func(crypto.PubKey) error) {
 	sw.filterConnByPubKey = f
 }
 
@@ -660,12 +661,22 @@ func StartSwitches(switches []*Switch) error {
 }
 
 func makeSwitch(cfg *P2PConfig, i int, network, version string, initSwitch func(int, *Switch) *Switch) *Switch {
-	privKey := crypto.GenPrivKeyEd25519()
+	cr, err := crypto.New(types.GetSignatureTypeName(types.ED25519))
+	if err != nil {
+		fmt.Printf("makeSwitch new crypto failed:%v", err)
+		panic(fmt.Sprintf("makeSwitch new crypto failed:%v", err))
+	}
+	privKey, err := cr.GenKey()
+	if err != nil {
+		fmt.Printf("makeSwitch gen key failed:%v", err)
+		panic(fmt.Sprintf("makeSwitch gen key failed:%v", err))
+	}
+
 	// new switch, add reactors
 	// TODO: let the config be passed in?
 	s := initSwitch(i, NewSwitch(cfg))
 	s.SetNodeInfo(&NodeInfo{
-		PubKey:     privKey.PubKey().Unwrap().(crypto.PubKeyEd25519),
+		PubKey:     privKey.PubKey(),
 		Moniker:    cmn.Fmt("switch%d", i),
 		Network:    network,
 		Version:    version,

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"encoding/json"
 )
 
 //-----------------------------------------------------
@@ -73,8 +74,15 @@ func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
 	}
 
 	for _, ev := range b.Evidence.Evidence {
-		if err := VerifyEvidence(stateDB, s, ev); err != nil {
-			return types.NewEvidenceInvalidErr(ev, err)
+		if v, ok := types.EvidenceType2Obj[ev.Kind]; ok {
+			tmp := v.(types.Evidence).Copy()
+			err := json.Unmarshal(*ev.Data, &tmp)
+			if err != nil {
+				return fmt.Errorf("validateBlock envelop unmarshal failed:%v", err)
+			}
+			if err := VerifyEvidence(stateDB, s, tmp); err != nil {
+				return types.NewEvidenceInvalidErr(tmp, err)
+			}
 		}
 	}
 

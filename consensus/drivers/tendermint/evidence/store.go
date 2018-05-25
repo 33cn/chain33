@@ -3,9 +3,10 @@ package evidence
 import (
 	"fmt"
 
-	wire "github.com/tendermint/go-wire"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"encoding/json"
+	"github.com/pkg/errors"
 )
 
 /*
@@ -30,16 +31,22 @@ Schema for indexing evidence (note you need both height and hash to find a piece
 "evidence-pending"/<evidence-height>/<evidence-hash> -> EvidenceInfo
 */
 
+type envelope struct {
+	Kind string           `json:"type"`
+	Data *json.RawMessage `json:"data"`
+}
+
 type EvidenceInfo struct {
-	Committed bool
-	Priority  int64
-	Evidence  types.Evidence
+	Committed bool     `json:"committed"`
+	Priority  int64    `json:"priority"`
+	Evidence  envelope `json:"evidence"`
 }
 
 const (
 	baseKeyLookup   = "evidence-lookup"   // all evidence
 	baseKeyOutqueue = "evidence-outqueue" // not-yet broadcast
 	baseKeyPending  = "evidence-pending"  // broadcast but not committed
+
 )
 
 func keyLookup(evidence types.Evidence) []byte {
@@ -75,6 +82,13 @@ type EvidenceStore struct {
 }
 
 func NewEvidenceStore(db dbm.DB) *EvidenceStore {
+	if len(types.EvidenceType2Obj) == 0 {
+		types.EvidenceType2Obj = map[string]interface{}{
+			types.DuplicateVote:&types.DuplicateVoteEvidence{},
+			types.MockGood: &types.MockGoodEvidence{},
+			types.MockBad : &types.MockBadEvidence{},
+		}
+	}
 	return &EvidenceStore{
 		db: db,
 	}
@@ -103,9 +117,12 @@ func (store *EvidenceStore) ListEvidence(prefixKey string) (evidence []types.Evi
 	for iter.Next() {
 		val := iter.Value()
 
-		var ei EvidenceInfo
-		wire.ReadBinaryBytes(val, &ei)
-		evidence = append(evidence, ei.Evidence)
+		evi, err := store.EvidenceFromInfoBytes(val)
+		if err != nil {
+			fmt.Printf("ListEvidence evidence info unmarshal failed:%v", err)
+		} else {
+			evidence = append(evidence, evi)
+		}
 	}
 	return evidence
 }
@@ -122,7 +139,11 @@ func (store *EvidenceStore) GetEvidence(height int64, hash []byte) *EvidenceInfo
 		return nil
 	}
 	var ei EvidenceInfo
-	wire.ReadBinaryBytes(val, &ei)
+	err := json.Unmarshal(val, &ei)
+	if err != nil {
+		fmt.Printf(fmt.Sprintf(`GetEvidence: unmarshal failed:%v\n`, err))
+	}
+	//wire.ReadBinaryBytes(val, &ei)
 	return &ei
 }
 
@@ -131,16 +152,15 @@ func (store *EvidenceStore) GetEvidence(height int64, hash []byte) *EvidenceInfo
 func (store *EvidenceStore) AddNewEvidence(evidence types.Evidence, priority int64) bool {
 	// check if we already have seen it
 	ei_ := store.GetEvidence(evidence.Height(), evidence.Hash())
-	if ei_ != nil && ei_.Evidence != nil {
+	if ei_ != nil && len(ei_.Evidence.Kind) == 0 {
 		return false
 	}
 
-	ei := EvidenceInfo{
-		Committed: false,
-		Priority:  priority,
-		Evidence:  evidence,
+	eiBytes,err := EvidenceToInfoBytes(evidence, priority)
+	if err != nil {
+		fmt.Printf("AddNewEvidence failed:%v\n", err)
+		return false
 	}
-	eiBytes := wire.BinaryBytes(ei)
 
 	// add it to the store
 	key := keyOutqueue(evidence, priority)
@@ -174,7 +194,11 @@ func (store *EvidenceStore) MarkEvidenceAsCommitted(evidence types.Evidence) {
 	ei.Committed = true
 
 	lookupKey := keyLookup(evidence)
-	store.db.SetSync(lookupKey, wire.BinaryBytes(ei))
+	eiBytes, err := json.Marshal(ei)
+	if err != nil {
+		fmt.Printf("MarkEvidenceAsCommitted marshal failed:%v", err)
+	}
+	store.db.SetSync(lookupKey, eiBytes)
 }
 
 //---------------------------------------------------
@@ -187,6 +211,50 @@ func (store *EvidenceStore) getEvidenceInfo(evidence types.Evidence) EvidenceInf
 	if e != nil {
 		fmt.Printf(fmt.Sprintf(`getEvidenceInfo: db get key %v failed:%v\n`, key, e))
 	}
-	wire.ReadBinaryBytes(b, &ei)
+	err := json.Unmarshal(b, &ei)
+	if err != nil {
+		fmt.Printf(fmt.Sprintf(`getEvidenceInfo: Unmarshal failed:%v\n`, err))
+	}
 	return ei
+}
+
+func EvidenceToInfoBytes(evidence types.Evidence, priority int64) ([]byte, error) {
+	evi, err := json.Marshal(evidence)
+	if err != nil {
+		return nil, errors.Errorf("EvidenceToBytes marshal evidence failed:%v\n", err)
+	}
+	msg := json.RawMessage(evi)
+	env := envelope{
+		Kind: evidence.TypeName(),
+		Data: &msg,
+	}
+	ei := EvidenceInfo{
+		Committed: false,
+		Priority:  priority,
+		Evidence:  env,
+	}
+
+	eiBytes, err := json.Marshal(ei)
+	if err != nil {
+		return nil, errors.Errorf("EvidenceToBytes marshal evidence info failed:%v\n", err)
+	}
+	return eiBytes, nil
+}
+
+func (store *EvidenceStore)EvidenceFromInfoBytes(data []byte) (types.Evidence, error) {
+	vote2 := EvidenceInfo{}
+	err := json.Unmarshal(data, &vote2)
+	if err != nil {
+		return nil, errors.Errorf("BytesToEvidence Unmarshal evidence info failed:%v\n", err)
+	}
+	if v, ok := types.EvidenceType2Obj[vote2.Evidence.Kind]; ok {
+		tmp := v.(types.Evidence).Copy()
+		err = json.Unmarshal(*vote2.Evidence.Data, &tmp)
+		if err != nil {
+			return nil, errors.Errorf("BytesToEvidence Unmarshal evidence failed:%v\n", err)
+		}
+		return tmp, nil
+	}
+	return nil, errors.Errorf("BytesToEvidence not find evidence kind:%v\n", vote2.Evidence.Kind)
+
 }

@@ -7,10 +7,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire"
-	"github.com/tendermint/go-wire/data"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"encoding/json"
 )
 
 var (
@@ -28,13 +27,19 @@ type ErrVoteConflictingVotes struct {
 }
 
 func (err *ErrVoteConflictingVotes) Error() string {
-	return fmt.Sprintf("Conflicting votes from validator %v", err.PubKey.Address())
+	pubkey, error := PubKeyFromString(err.PubKey)
+	if error != nil {
+		return fmt.Sprintf("Conflicting votes from validator PubKey:%v,error:%v", err.PubKey, error)
+	}
+	addr := GenAddressByPubKey(pubkey)
+	return fmt.Sprintf("Conflicting votes from validator %v", addr)
 }
 
 func NewConflictingVoteError(val *Validator, voteA, voteB *Vote) *ErrVoteConflictingVotes {
+	keyString := fmt.Sprintf("%X",val.PubKey)
 	return &ErrVoteConflictingVotes{
 		&DuplicateVoteEvidence{
-			PubKey: val.PubKey,
+			PubKey: keyString,
 			VoteA:  voteA,
 			VoteB:  voteB,
 		},
@@ -61,21 +66,33 @@ func IsVoteTypeValid(type_ byte) bool {
 
 // Represents a prevote, precommit, or commit vote from validators for consensus.
 type Vote struct {
-	ValidatorAddress data.Bytes       `json:"validator_address"`
+	ValidatorAddress []byte       `json:"validator_address"`
 	ValidatorIndex   int              `json:"validator_index"`
 	Height           int64            `json:"height"`
 	Round            int              `json:"round"`
 	Timestamp        time.Time        `json:"timestamp"`
 	Type             byte             `json:"type"`
 	BlockID          BlockID          `json:"block_id"` // zero if vote is nil.
-	Signature        crypto.Signature `json:"signature"`
+	Signature        []byte           `json:"signature"`
 }
 
 func (vote *Vote) WriteSignBytes(chainID string, w io.Writer, n *int, err *error) {
-	wire.WriteJSON(CanonicalJSONOnceVote{
+	if *err != nil {
+		return
+	}
+	canonical := CanonicalJSONOnceVote{
 		chainID,
 		CanonicalVote(vote),
-	}, w, n, err)
+	}
+	byteVote,e := json.Marshal(&canonical)
+	if e != nil {
+		*err = e
+		return
+	}
+	n_, err_ := w.Write(byteVote)
+	*n = n_
+	*err = err_
+	return
 }
 
 func (vote *Vote) Copy() *Vote {
@@ -105,11 +122,17 @@ func (vote *Vote) String() string {
 }
 
 func (vote *Vote) Verify(chainID string, pubKey crypto.PubKey) error {
-	if !bytes.Equal(pubKey.Address(), vote.ValidatorAddress) {
+	addr := GenAddressByPubKey(pubKey)
+	if !bytes.Equal(addr, vote.ValidatorAddress) {
 		return ErrVoteInvalidValidatorAddress
 	}
 
-	if !pubKey.VerifyBytes(SignBytes(chainID, vote), vote.Signature) {
+	sig, err := ConsensusCrypto.SignatureFromBytes(vote.Signature)
+	if err != nil {
+		return err
+	}
+
+	if !pubKey.VerifyBytes(SignBytes(chainID, vote), sig) {
 		return ErrVoteInvalidSignature
 	}
 	return nil

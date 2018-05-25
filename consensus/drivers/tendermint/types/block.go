@@ -8,10 +8,14 @@ import (
 	"strings"
 	"time"
 
-	wire "github.com/tendermint/go-wire"
-	"github.com/tendermint/go-wire/data"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"encoding/json"
+	"encoding/binary"
+	log "github.com/inconshreveable/log15"
 )
+
+var blocklog = log.New("module", "tendermint-block")
 
 // Block defines the atomic unit of a Tendermint blockchain.
 // TODO: add Version byte
@@ -21,9 +25,9 @@ type Block struct {
 	Evidence   EvidenceData `json:"evidence"`
 	LastCommit *Commit      `json:"last_commit"`
 	//added hg20180302
-	LastParentHash []byte
-	LastBlockTime  int64
-	LastStateHash  []byte
+	LastParentHash []byte   `json:"last_parent_hash"`
+	LastBlockTime  int64    `json:"last_block_time"`
+	LastStateHash  []byte   `json:"last_state_hash"`
 }
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.
@@ -49,7 +53,19 @@ func MakeBlock(height int64, txs []Tx, commit *Commit, lastParentHash []byte, la
 
 // AddEvidence appends the given evidence to the block
 func (b *Block) AddEvidence(evidence []Evidence) {
-	b.Evidence.Evidence = append(b.Evidence.Evidence, evidence...)
+	for _, item := range evidence {
+		data, err := json.Marshal(item)
+		if err != nil {
+			blocklog.Error("AddEvidence marshal failed", "error", err)
+			return
+		}
+		msg := json.RawMessage(data)
+		enve := MsgEnvelope{
+			Kind: item.TypeName(),
+			Data: &msg,
+		}
+		b.Evidence.Evidence = append(b.Evidence.Evidence, enve)
+	}
 }
 
 // ValidateBasic performs basic validation that doesn't involve state data.
@@ -91,7 +107,7 @@ func (b *Block) FillHeader() {
 
 // Hash computes and returns the block hash.
 // If the block is incomplete, block hash is nil for safety.
-func (b *Block) Hash() data.Bytes {
+func (b *Block) Hash() []byte {
 	if b == nil || b.Header == nil || b.Data == nil || b.LastCommit == nil {
 		return nil
 	}
@@ -102,7 +118,16 @@ func (b *Block) Hash() data.Bytes {
 // MakePartSet returns a PartSet containing parts of a serialized block.
 // This is the form in which the block is gossipped to peers.
 func (b *Block) MakePartSet(partSize int) *PartSet {
-	return NewPartSetFromData(wire.BinaryBytes(b), partSize)
+	byteBlock, err := json.Marshal(b)
+	if err != nil {
+		blocklog.Error("marshal block failed", "error", err)
+		return nil
+	}
+	len := len(byteBlock)
+	lenByte := make([]byte, 4)
+	binary.BigEndian.PutUint32(lenByte, uint32(len))
+	lenByte = append(lenByte, byteBlock...)
+	return NewPartSetFromData(lenByte, partSize)
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.
@@ -166,40 +191,31 @@ type Header struct {
 	TotalTxs    int64   `json:"total_txs"`
 
 	// hashes of block data
-	LastCommitHash data.Bytes `json:"last_commit_hash"` // commit from validators from the last block
-	DataHash       data.Bytes `json:"data_hash"`        // transactions
+	LastCommitHash []byte `json:"last_commit_hash"` // commit from validators from the last block
+	DataHash       []byte `json:"data_hash"`        // transactions
 
 	// hashes from the app output from the prev block
-	ValidatorsHash  data.Bytes `json:"validators_hash"`   // validators for the current block
-	ConsensusHash   data.Bytes `json:"consensus_hash"`    // consensus params for current block
-	AppHash         data.Bytes `json:"app_hash"`          // state after txs from the previous block
-	LastResultsHash data.Bytes `json:"last_results_hash"` // root hash of all results from the txs from the previous block
+	ValidatorsHash  []byte `json:"validators_hash"`   // validators for the current block
+	ConsensusHash   []byte `json:"consensus_hash"`    // consensus params for current block
+	AppHash         []byte `json:"app_hash"`          // state after txs from the previous block
+	LastResultsHash []byte `json:"last_results_hash"` // root hash of all results from the txs from the previous block
 
 	// consensus info
-	EvidenceHash data.Bytes `json:"evidence_hash"` // evidence included in the block
+	EvidenceHash []byte `json:"evidence_hash"` // evidence included in the block
 }
 
 // Hash returns the hash of the header.
 // Returns nil if ValidatorHash is missing.
-func (h *Header) Hash() data.Bytes {
+func (h *Header) Hash() []byte {
 	if len(h.ValidatorsHash) == 0 {
 		return nil
 	}
-	return cmn.SimpleHashFromMap(map[string]interface{}{
-		"ChainID":     h.ChainID,
-		"Height":      h.Height,
-		"Time":        h.Time,
-		"NumTxs":      h.NumTxs,
-		"TotalTxs":    h.TotalTxs,
-		"LastBlockID": h.LastBlockID,
-		"LastCommit":  h.LastCommitHash,
-		"Data":        h.DataHash,
-		"Validators":  h.ValidatorsHash,
-		"App":         h.AppHash,
-		"Consensus":   h.ConsensusHash,
-		"Results":     h.LastResultsHash,
-		"Evidence":    h.EvidenceHash,
-	})
+	bytes, err := json.Marshal(h)
+	if err != nil {
+		blocklog.Error("block header Hash() marshal failed", "error", err)
+		return nil
+	}
+	return crypto.Ripemd160(bytes)
 }
 
 // StringIndented returns a string representation of the header
@@ -251,7 +267,7 @@ type Commit struct {
 
 	// Volatile
 	firstPrecommit *Vote
-	hash           data.Bytes
+	hash           []byte
 	bitArray       *cmn.BitArray
 }
 
@@ -360,13 +376,13 @@ func (commit *Commit) ValidateBasic() error {
 }
 
 // Hash returns the hash of the commit
-func (commit *Commit) Hash() data.Bytes {
+func (commit *Commit) Hash() []byte {
 	if commit.hash == nil {
 		bs := make([]interface{}, len(commit.Precommits))
 		for i, precommit := range commit.Precommits {
 			bs[i] = precommit
 		}
-		commit.hash = cmn.SimpleHashFromBinaries(bs)
+		commit.hash = SimpleHashFromBinaries(bs)
 	}
 	return commit.hash
 }
@@ -408,11 +424,11 @@ type Data struct {
 	Txs Txs `json:"txs"`
 
 	// Volatile
-	hash data.Bytes
+	hash []byte
 }
 
 // Hash returns the hash of the data
-func (data *Data) Hash() data.Bytes {
+func (data *Data) Hash() []byte {
 	if data.hash == nil {
 		data.hash = data.Txs.Hash() // NOTE: leaves of merkle tree are TxIDs
 	}
@@ -442,15 +458,90 @@ func (data *Data) StringIndented(indent string) string {
 //-----------------------------------------------------------------------------
 
 // EvidenceData contains any evidence of malicious wrong-doing by validators
+type EvidenceEnvelopeList []MsgEnvelope
+
+func (env MsgEnvelope) Hash() []byte {
+	if v, ok := EvidenceType2Obj[env.Kind]; ok {
+		tmp := v.(Evidence).Copy()
+		err := json.Unmarshal(*env.Data, &tmp)
+		if err != nil {
+			blocklog.Error("envelop hash unmarshal failed", "error", err)
+			return nil
+		}
+		return tmp.Hash()
+	}
+	blocklog.Error("envelop hash not find evidence kind", "kind", env.Kind)
+	return nil
+}
+
+func (env MsgEnvelope) String() string {
+	if v, ok := EvidenceType2Obj[env.Kind]; ok {
+		tmp := v.(Evidence).Copy()
+		err := json.Unmarshal(*env.Data, &tmp)
+		if err != nil {
+			blocklog.Error("envelop String unmarshal failed", "error", err)
+			return ""
+		}
+		return tmp.String()
+	}
+	blocklog.Error("envelop String not find evidence kind", "kind", env.Kind)
+	return ""
+}
+
+// Hash returns the simple merkle root hash of the EvidenceList.
+func (evl EvidenceEnvelopeList) Hash() []byte {
+	// Recursive impl.
+	// Copied from tmlibs/merkle to avoid allocations
+	switch len(evl) {
+	case 0:
+		return nil
+	case 1:
+		return evl[0].Hash()
+	default:
+		left := evl[:(len(evl)+1)/2].Hash()
+		right := evl[(len(evl)+1)/2:].Hash()
+		return SimpleHashFromTwoHashes(left, right)
+	}
+}
+
+func (evl EvidenceEnvelopeList) String() string {
+	s := ""
+	for _, e := range evl {
+		s += fmt.Sprintf("%s\t\t", e)
+	}
+	return s
+}
+
+// Has returns true if the evidence is in the EvidenceList.
+func (evl EvidenceEnvelopeList) Has(evidence Evidence) bool {
+	for _, ev := range evl {
+		if v, ok := EvidenceType2Obj[ev.Kind]; ok {
+			tmp := v.(Evidence).Copy()
+			err := json.Unmarshal(*ev.Data, &tmp)
+			if err != nil {
+				blocklog.Error("envelop has unmarshal failed", "error", err)
+				return false
+			}
+			if tmp.Equal(evidence) {
+				return true
+			}
+			return false
+		}
+		blocklog.Error("envelop has not find evidence kind", "kind", ev.Kind)
+		return false
+	}
+	return false
+}
+
 type EvidenceData struct {
-	Evidence EvidenceList `json:"evidence"`
+	Evidence EvidenceEnvelopeList `json:"evidence"`
 
 	// Volatile
-	hash data.Bytes
+	hash []byte
 }
 
 // Hash returns the hash of the data.
-func (data *EvidenceData) Hash() data.Bytes {
+func (data *EvidenceData) Hash() []byte {
 	if data.hash == nil {
 		data.hash = data.Evidence.Hash()
 	}
@@ -482,7 +573,7 @@ func (data *EvidenceData) StringIndented(indent string) string {
 
 // BlockID defines the unique ID of a block as its Hash and its PartSetHeader
 type BlockID struct {
-	Hash        data.Bytes    `json:"hash"`
+	Hash        []byte    `json:"hash"`
 	PartsHeader PartSetHeader `json:"parts"`
 }
 
@@ -499,17 +590,34 @@ func (blockID BlockID) Equals(other BlockID) bool {
 
 // Key returns a machine-readable string representation of the BlockID
 func (blockID BlockID) Key() string {
-	return string(blockID.Hash) + string(wire.BinaryBytes(blockID.PartsHeader))
+	header := make([]byte, 8)
+	binary.BigEndian.PutUint64(header, uint64(blockID.PartsHeader.Total))
+	header = append(header, blockID.Hash...)
+	return string(blockID.Hash) + string(header)
 }
 
 // WriteSignBytes writes the canonical bytes of the BlockID to the given writer for digital signing
 func (blockID BlockID) WriteSignBytes(w io.Writer, n *int, err *error) {
-	if blockID.IsZero() {
-		wire.WriteTo([]byte("null"), w, n, err)
-	} else {
-		wire.WriteJSON(CanonicalBlockID(blockID), w, n, err)
+	if *err != nil {
+		return
 	}
-
+	if blockID.IsZero() {
+		n_, err_ := w.Write([]byte("null"))
+		*n = n_
+		*err = err_
+		return
+	} else {
+		canonical := CanonicalBlockID(blockID)
+		byteBlockID,e := json.Marshal(&canonical)
+		if e != nil {
+			*err = e
+			return
+		}
+		n_, err_ := w.Write(byteBlockID)
+		*n = n_
+		*err = err_
+		return
+	}
 }
 
 // String returns a human readable string representation of the BlockID

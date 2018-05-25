@@ -177,7 +177,7 @@ func (voteSet *VoteSet) addVote(vote *Vote) (added bool, err error) {
 
 	// If we already know of this vote, return false.
 	if existing, ok := voteSet.getVote(valIndex, blockKey); ok {
-		if existing.Signature.Equals(vote.Signature) {
+		if bytes.Equal(existing.Signature[:], vote.Signature[:]) {
 			return false, nil // duplicate
 		} else {
 			return false, errors.Wrapf(ErrVoteNonDeterministicSignature, "Existing vote: %v; New vote: %v", existing, vote)
@@ -185,8 +185,12 @@ func (voteSet *VoteSet) addVote(vote *Vote) (added bool, err error) {
 	}
 
 	// Check signature.
-	if err := vote.Verify(voteSet.chainID, val.PubKey); err != nil {
-		return false, errors.Wrapf(err, "Failed to verify vote with ChainID %s and PubKey %s", voteSet.chainID, val.PubKey)
+	pubkey, err := ConsensusCrypto.PubKeyFromBytes(val.PubKey)
+	if err != nil {
+		return false, errors.Wrapf(err, "PubKeyFromBytes: %X failed", val.PubKey)
+	}
+	if err := vote.Verify(voteSet.chainID, pubkey); err != nil {
+		return false, errors.Wrapf(err, "Failed to verify vote with ChainID %s and PubKey %X", voteSet.chainID, val.PubKey)
 	}
 
 	// Add vote and get conflicting vote if any

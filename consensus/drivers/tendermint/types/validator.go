@@ -3,29 +3,27 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"io"
 
-	"github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire"
-	"github.com/tendermint/go-wire/data"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"encoding/binary"
 )
 
 // Volatile state for each Validator
 // NOTE: The Accum is not included in Validator.Hash();
 // make sure to update that method if changes are made here
 type Validator struct {
-	Address     data.Bytes    `json:"address"`
-	PubKey      crypto.PubKey `json:"pub_key"`
-	VotingPower int64         `json:"voting_power"`
+	Address     []byte    `json:"address"`
+	PubKey      []byte    `json:"pub_key"`
+	VotingPower int64     `json:"voting_power"`
 
 	Accum int64 `json:"accum"`
 }
 
 func NewValidator(pubKey crypto.PubKey, votingPower int64) *Validator {
 	return &Validator{
-		Address:     pubKey.Address(),
-		PubKey:      pubKey,
+		Address:     GenAddressByPubKey(pubKey),
+		PubKey:      pubKey.Bytes(),
 		VotingPower: votingPower,
 		Accum:       0,
 	}
@@ -73,34 +71,12 @@ func (v *Validator) String() string {
 // Hash computes the unique ID of a validator with a given voting power.
 // It excludes the Accum value, which changes with every round.
 func (v *Validator) Hash() []byte {
-	return wire.BinaryRipemd160(struct {
-		Address     data.Bytes
-		PubKey      crypto.PubKey
-		VotingPower int64
-	}{
-		v.Address,
-		v.PubKey,
-		v.VotingPower,
-	})
-}
-
-//-------------------------------------
-
-var ValidatorCodec = validatorCodec{}
-
-type validatorCodec struct{}
-
-func (vc validatorCodec) Encode(o interface{}, w io.Writer, n *int, err *error) {
-	wire.WriteBinary(o.(*Validator), w, n, err)
-}
-
-func (vc validatorCodec) Decode(r io.Reader, n *int, err *error) interface{} {
-	return wire.ReadBinary(&Validator{}, r, 0, n, err)
-}
-
-func (vc validatorCodec) Compare(o1 interface{}, o2 interface{}) int {
-	cmn.PanicSanity("ValidatorCodec.Compare not implemented")
-	return 0
+	hashBytes := v.Address
+	hashBytes = append(hashBytes, v.PubKey...)
+	bPowder := make([]byte,8)
+	binary.BigEndian.PutUint64(bPowder, uint64(v.VotingPower))
+	hashBytes = append(hashBytes, bPowder...)
+	return crypto.Ripemd160(hashBytes)
 }
 
 //--------------------------------------------------------------------------------
@@ -108,13 +84,13 @@ func (vc validatorCodec) Compare(o1 interface{}, o2 interface{}) int {
 
 // RandValidator returns a randomized validator, useful for testing.
 // UNSTABLE
-func RandValidator(randPower bool, minPower int64) (*Validator, *PrivValidatorFS) {
+func RandValidator(randPower bool, minPower int64) (*Validator, *PrivValidatorImp) {
 	_, tempFilePath := cmn.Tempfile("priv_validator_")
-	privVal := GenPrivValidatorFS(tempFilePath)
+	privVal := GenPrivValidatorImp(tempFilePath)
 	votePower := minPower
 	if randPower {
 		votePower += int64(cmn.RandUint32())
 	}
-	val := NewValidator(privVal.GetPubKey(), votePower)
+	val := NewValidator(privVal.PubKey, votePower)
 	return val, privVal
 }
