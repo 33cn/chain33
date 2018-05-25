@@ -79,6 +79,10 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	case types.ActionWithdraw:
 		token := tokenAction.GetWithdraw().GetCointoken()
 		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
+
+	case types.TokenActionTransferToExec:
+		token := tokenAction.GetTransferToExec().GetCointoken()
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
 	}
 
 	return nil, types.ErrActionNotSupport
