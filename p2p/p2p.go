@@ -36,7 +36,7 @@ func New(cfg *types.P2P) *P2p {
 			cfg.VerMix = 118
 			cfg.VerMax = 128
 		} else {
-			cfg.Version = 10021
+			cfg.Version = 10020
 			cfg.VerMix = 10020
 			cfg.VerMax = 11000
 		}
