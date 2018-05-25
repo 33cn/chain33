@@ -853,31 +853,22 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	return false
 }
 
-type RpcTypeInfo struct {
-	FuncName string
-	Util     interface{}
-}
-
-type RpcTypeUtil interface {
+type RpcTypeQuery interface {
 	Input(message json.RawMessage) ([]byte, error)
 	Output(interface{}) (interface{}, error)
 }
 
-func moreRpcTypeUtil(arr []RpcTypeInfo) {
-	for _, t := range arr {
-		if _, ok := t.Util.(RpcTypeUtil); ok {
-			RpcTypeUtilMap[t.FuncName] = t.Util
-		}
+func registorRpcType(funcName string, util RpcTypeQuery) {
+	//tlog.Debug("rpc", "t", funcName, "t", util)
+	if _, exist := RpcTypeUtilMap[funcName]; exist {
+		panic("DupRpcTypeUtil")
+	} else {
+		RpcTypeUtilMap[funcName] = util
 	}
 }
 
-// call at rpc server start
-// add more type util
-func InitRpcTypeUtil() {
-	moreRpcTypeUtil(RpcTradeTypeTransList)
-	// TODO add more
-	//moreRpcTypeUtil(RpcOtherTypeTransList, RpcTypeUtilMap)
-
+func init() {
+	//tlog.Info("rpc", "init", "types.go", "input", RpcTypeUtilMap)
 }
 
 var RpcTypeUtilMap = map[string]interface{}{
