@@ -35,6 +35,7 @@ func (s *JSONRPCServer) Close() {
 	s.jrpc.cli.Close()
 
 }
+
 func checkWhitlist(addr string) bool {
 
 	if _, ok := whitlist["0.0.0.0"]; ok {
