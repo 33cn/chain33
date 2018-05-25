@@ -22,32 +22,6 @@ import (
 
 var logger =log.New("module", "autority_cryptoutils")
 
-// GetPrivateKeyFromCert will return private key represented by SKI in cert's public key
-func GetPrivateKeyFromCert(cert []byte, cs core.CryptoSuite) (core.Key, error) {
-
-	// get the public key in the right format
-	certPubK, err := GetPublicKeyFromCert(cert, cs)
-	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to import certificate's public key")
-	}
-
-	if certPubK == nil || certPubK.SKI() == nil {
-		return nil, errors.New("Failed to get SKI")
-	}
-
-	// Get the key given the SKI value
-	key, err := cs.GetKey(certPubK.SKI())
-	if err != nil {
-		return nil, errors.WithMessage(err, "Could not find matching key for SKI")
-	}
-
-	if key != nil && !key.Private() {
-		return nil, errors.Errorf("Found key is not private, SKI: %s", certPubK.SKI())
-	}
-
-	return key, nil
-}
-
 // GetPublicKeyFromCert will return public key the from cert
 func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (core.Key, error) {
 

@@ -59,7 +59,6 @@ type CAConfig struct {
 type CryptoSuiteConfig interface {
 	SecurityAlgorithm() string
 	SecurityLevel() int
-	SoftVerify() bool
 	KeyStorePath() string
 }
 
