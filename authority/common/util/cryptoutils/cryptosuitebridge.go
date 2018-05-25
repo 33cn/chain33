@@ -77,34 +77,10 @@ func GetSHA256Opts() core.HashOpts {
 	return &bccsp.SHA256Opts{}
 }
 
-//GetRSA2048KeyGenOpts returns options for RSA key generation at 2048 security.
-func GetRSA2048KeyGenOpts(ephemeral bool) core.KeyGenOpts {
-	return &bccsp.RSA2048KeyGenOpts{Temporary: ephemeral}
-}
-
-//GetRSA3072KeyGenOpts returns options for RSA key generation at 3072 security.
-func GetRSA3072KeyGenOpts(ephemeral bool) core.KeyGenOpts {
-	return &bccsp.RSA3072KeyGenOpts{Temporary: ephemeral}
-}
-
-//GetRSA4096KeyGenOpts returns options for RSA key generation at 4096 security.
-func GetRSA4096KeyGenOpts(ephemeral bool) core.KeyGenOpts {
-	return &bccsp.RSA4096KeyGenOpts{Temporary: ephemeral}
-}
-
-// GetECDSAKeyGenOpts returns options for ECDSA key generation.
-func GetECDSAKeyGenOpts(ephemeral bool) core.KeyGenOpts {
-	return &bccsp.ECDSAKeyGenOpts{Temporary: ephemeral}
-}
 
 //GetECDSAP256KeyGenOpts returns options for ECDSA key generation with curve P-256.
 func GetECDSAP256KeyGenOpts(ephemeral bool) core.KeyGenOpts {
 	return &bccsp.ECDSAP256KeyGenOpts{Temporary: ephemeral}
-}
-
-//GetECDSAP384KeyGenOpts options for ECDSA key generation with curve P-384.
-func GetECDSAP384KeyGenOpts(ephemeral bool) core.KeyGenOpts {
-	return &bccsp.ECDSAP384KeyGenOpts{Temporary: ephemeral}
 }
 
 //GetX509PublicKeyImportOpts options for importing public keys from an x509 certificate

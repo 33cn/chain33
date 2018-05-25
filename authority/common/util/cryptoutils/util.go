@@ -22,23 +22,19 @@ package cryptoutils
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"math/big"
 	mrand "math/rand"
-	"net/http"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ocsp"
 )
@@ -95,123 +91,6 @@ func Marshal(from interface{}, what string) ([]byte, error) {
 	return buf, nil
 }
 
-// CreateToken creates a JWT-like token.
-// In a normal JWT token, the format of the token created is:
-//      <algorithm,claims,signature>
-// where each part is base64-encoded string separated by a period.
-// In this JWT-like token, there are two differences:
-// 1) the claims section is a certificate, so the format is:
-//      <certificate,signature>
-// 2) the signature uses the private key associated with the certificate,
-//    and the signature is across both the certificate and the "body" argument,
-//    which is the body of an HTTP request, though could be any arbitrary bytes.
-// @param cert The pem-encoded certificate
-// @param key The pem-encoded key
-// @param body The body of an HTTP request
-func CreateToken(csp core.CryptoSuite, cert []byte, key core.Key, body []byte) (string, error) {
-	x509Cert, err := GetX509CertificateFromPEM(cert)
-	if err != nil {
-		return "", err
-	}
-	publicKey := x509Cert.PublicKey
-
-	var token string
-
-	//The RSA Key Gen is commented right now as there is bccsp does
-	switch publicKey.(type) {
-	/*
-		case *rsa.PublicKey:
-			token, err = GenRSAToken(csp, cert, key, body)
-			if err != nil {
-				return "", err
-			}
-	*/
-	case *ecdsa.PublicKey:
-		token, err = GenECDSAToken(csp, cert, key, body)
-		if err != nil {
-			return "", err
-		}
-	}
-	return token, nil
-}
-
-//GenRSAToken signs the http body and cert with RSA using RSA private key
-// @csp : BCCSP instance
-/*
-func GenRSAToken(csp core.CryptoSuite, cert []byte, key []byte, body []byte) (string, error) {
-	privKey, err := GetRSAPrivateKey(key)
-	if err != nil {
-		return "", err
-	}
-	b64body := B64Encode(body)
-	b64cert := B64Encode(cert)
-	bodyAndcert := b64body + "." + b64cert
-	hash := sha512.New384()
-	hash.Write([]byte(bodyAndcert))
-	h := hash.Sum(nil)
-	RSAsignature, err := rsa.SignPKCS1v15(rand.Reader, privKey, crypto.SHA384, h[:])
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to rsa.SignPKCS1v15")
-	}
-	b64sig := B64Encode(RSAsignature)
-	token := b64cert + "." + b64sig
-
-	return  token, nil
-}
-*/
-
-//GenECDSAToken signs the http body and cert with ECDSA using EC private key
-func GenECDSAToken(csp core.CryptoSuite, cert []byte, key core.Key, body []byte) (string, error) {
-	b64body := B64Encode(body)
-	b64cert := B64Encode(cert)
-	bodyAndcert := b64body + "." + b64cert
-
-	digest, digestError := csp.Hash([]byte(bodyAndcert), GetSHAOpts())
-	if digestError != nil {
-		return "", errors.WithMessage(digestError, fmt.Sprintf("Hash failed on '%s'", bodyAndcert))
-	}
-
-	ecSignature, err := csp.Sign(key, digest, nil)
-	if err != nil {
-		return "", errors.WithMessage(err, "BCCSP signature generation failure")
-	}
-	if len(ecSignature) == 0 {
-		return "", errors.New("BCCSP signature creation failed. Signature must be different than nil")
-	}
-
-	b64sig := B64Encode(ecSignature)
-	token := b64cert + "." + b64sig
-
-	return token, nil
-
-}
-
-// B64Encode base64 encodes bytes
-func B64Encode(buf []byte) string {
-	return base64.StdEncoding.EncodeToString(buf)
-}
-
-// B64Decode base64 decodes a string
-func B64Decode(str string) (buf []byte, err error) {
-	return base64.StdEncoding.DecodeString(str)
-}
-
-// HTTPRequestToString returns a string for an HTTP request for debuggging
-func HTTPRequestToString(req *http.Request) string {
-	body, _ := ioutil.ReadAll(req.Body)
-	req.Body = ioutil.NopCloser(bytes.NewReader(body))
-	return fmt.Sprintf("%s %s\n%s",
-		req.Method, req.URL, string(body))
-}
-
-// HTTPResponseToString returns a string for an HTTP response for debuggging
-func HTTPResponseToString(resp *http.Response) string {
-	body, _ := ioutil.ReadAll(resp.Body)
-	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
-	return fmt.Sprintf("statusCode=%d (%s)\n%s",
-		resp.StatusCode, resp.Status, string(body))
-}
-
 // GetX509CertificateFromPEM get an X509 certificate from bytes in PEM format
 func GetX509CertificateFromPEM(cert []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(cert)
@@ -223,20 +102,6 @@ func GetX509CertificateFromPEM(cert []byte) (*x509.Certificate, error) {
 		return nil, errors.Wrap(err, "Error parsing certificate")
 	}
 	return x509Cert, nil
-}
-
-// GetEnrollmentIDFromPEM returns the EnrollmentID from a PEM buffer
-func GetEnrollmentIDFromPEM(cert []byte) (string, error) {
-	x509Cert, err := GetX509CertificateFromPEM(cert)
-	if err != nil {
-		return "", err
-	}
-	return GetEnrollmentIDFromX509Certificate(x509Cert), nil
-}
-
-// GetEnrollmentIDFromX509Certificate returns the EnrollmentID from the X509 certificate
-func GetEnrollmentIDFromX509Certificate(cert *x509.Certificate) string {
-	return cert.Subject.CommonName
 }
 
 // MakeFileAbs makes 'file' absolute relative to 'dir' if not already absolute
