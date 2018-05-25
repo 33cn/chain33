@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"context"
@@ -29,7 +29,7 @@ type Callback func(res interface{}) (interface{}, error)
 
 func NewJsonRpcCtx(methed string, params, res interface{}) *JsonRpcCtx {
 	return &JsonRpcCtx{
-		Addr:   "http://localhost:8801",
+		Addr:   "http://localhost:8811",
 		Method: methed,
 		Params: params,
 		Res:    res,
@@ -84,7 +84,7 @@ func NewGRpcCtx(method string, params, res interface{}) *GrpcCtx {
 }
 
 func (c *GrpcCtx) Run() (err error) {
-	conn, err := grpc.Dial("localhost:8802", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:8812", grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
