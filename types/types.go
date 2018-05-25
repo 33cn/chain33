@@ -858,7 +858,7 @@ type RpcTypeQuery interface {
 	Output(interface{}) (interface{}, error)
 }
 
-func registorRpcTypeUtil(funcName string, util RpcTypeQuery) {
+func registorRpcType(funcName string, util RpcTypeQuery) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := RpcTypeUtilMap[funcName]; exist {
 		panic("DupRpcTypeUtil")
