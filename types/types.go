@@ -195,6 +195,9 @@ func (tx *Transaction) Amount() (int64, error) {
 		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
 			transfer := action.GetWithdraw()
 			return transfer.Amount, nil
+		} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+			transfer := action.GetTransferToExec()
+			return transfer.Amount, nil
 		}
 	} else if "ticket" == string(tx.Execer) {
 		var action TicketAction
@@ -258,6 +261,8 @@ func (tx *Transaction) ActionName() string {
 			return "withdraw"
 		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
+		} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+			return "transfertoexec"
 		}
 	} else if bytes.Equal(tx.Execer, []byte("ticket")) {
 		var action TicketAction
