@@ -121,7 +121,8 @@ func SetMinFee(fee int64) {
 const (
 	Coin                int64 = 1e8
 	MaxCoin             int64 = 1e17
-	MaxTxSize                 = 100000   //100K
+	MaxTxSize                 = 100000 //100K
+	MaxTxGroupSize      int32 = 20
 	MaxBlockSize              = 20000000 //20M
 	MaxTxsPerBlock            = 100000
 	TokenPrecision      int64 = 1e8
