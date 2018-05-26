@@ -15,7 +15,7 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 		msg.Data = types.ErrEmptyTx
 		return msg
 	}
-	tx := msg.GetData().(*types.Transaction)
+	tx := msg.GetData().(types.TxGroup).Tx()
 	// 过滤掉挖矿交易
 	if "ticket" == string(tx.Execer) {
 		var action types.TicketAction
@@ -56,14 +56,49 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	return msg
 }
 
+// Mempool.CheckTxList初步检查并筛选交易消息
+func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
+	// 判断消息是否含有nil交易
+	if msg.GetData() == nil {
+		msg.Data = types.ErrEmptyTx
+		return msg
+	}
+	txmsg := msg.GetData().(*types.Transaction)
+	//普通的交易
+	tx := types.NewTransactionCache(txmsg)
+	msg.Data = tx
+	txs, err := tx.GetTxGroup()
+	if err != nil {
+		msg.Data = err
+		return msg
+	}
+	//普通的交易
+	if txs == nil {
+		return mem.CheckTx(msg)
+	}
+	//交易组：
+	err = txs.Check(mem.GetMinFee())
+	if err != nil {
+		msg.Data = err
+		return msg
+	}
+	for i := 0; i < len(txs.Txs); i++ {
+		msgitem := mem.CheckTx(queue.Message{Data: txs.Txs[i]})
+		if msgitem.Err() != nil {
+			msg.Data = msgitem.Err()
+			return msg
+		}
+	}
+	return msg
+}
+
 // Mempool.CheckSignList检查交易签名是否合法
 func (mem *Mempool) CheckSignList() {
 	for i := 0; i < processNum; i++ {
 		go func() {
 			for data := range mem.signChan {
-				ok := data.GetData().(*types.Transaction).CheckSign()
-				if ok {
-					// 签名正确，传入balanChan，待检查余额
+				tx, ok := data.GetData().(types.TxGroup)
+				if ok && tx.CheckSign() {
 					mem.balanChan <- data
 				} else {
 					mlog.Error("wrong tx", "err", types.ErrSign)
@@ -119,8 +154,8 @@ func readToChan(ch chan queue.Message, buf []queue.Message, max int) (n int, err
 func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	txlist := &types.ExecTxList{}
 	for i := range msgs {
-		tx := msgs[i].GetData().(*types.Transaction)
-		txlist.Txs = append(txlist.Txs, tx)
+		tx := msgs[i].GetData().(types.TxGroup)
+		txlist.Txs = append(txlist.Txs, tx.Tx())
 	}
 	lastheader := mem.GetHeader()
 	txlist.BlockTime = lastheader.BlockTime
@@ -139,7 +174,7 @@ func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	for i := 0; i < len(result.Errs); i++ {
 		err := result.Errs[i]
 		if err == "" {
-			err1 := mem.PushTx(msgs[i].GetData().(*types.Transaction))
+			err1 := mem.PushTx(txlist.Txs[i])
 			if err1 == nil {
 				// 推入Mempool成功，传入goodChan，待回复消息
 				mem.goodChan <- msgs[i]
