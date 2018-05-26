@@ -60,7 +60,7 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
 	// 判断消息是否含有nil交易
 	if msg.GetData() == nil {
-		msg.Data = types.ErrTxGroupEmpty
+		msg.Data = types.ErrEmptyTx
 		return msg
 	}
 	txmsg := msg.GetData().(*types.Transaction)
