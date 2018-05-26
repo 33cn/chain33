@@ -8,6 +8,11 @@ import (
 
 var log = l.New("module", "rpc")
 
+type userWrite struct {
+	Topic   string `json:"topic"`
+	Content string `json:"content"`
+}
+
 type TransParm struct {
 	Execer    string     `json:"execer"`
 	Payload   string     `json:"payload"`
@@ -186,7 +191,8 @@ type ReqAddr struct {
 }
 
 type ReqHashes struct {
-	Hashes []string `json:"hashes"`
+	Hashes        []string `json:"hashes"`
+	DisableDetail bool     `json:"disableDetail"`
 }
 
 type ReqWalletTransactionList struct {

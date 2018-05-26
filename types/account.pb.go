@@ -10,6 +10,7 @@ It is generated from these files:
 	common.proto
 	config.proto
 	db.proto
+	dbt.proto
 	executor.proto
 	executorTrade.proto
 	p2p.proto
@@ -85,10 +86,12 @@ It has these top-level messages:
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
+	TestNode
 	Genesis
 	CoinsAction
 	CoinsGenesis
 	CoinsTransfer
+	CoinsTransferToExec
 	CoinsWithdraw
 	Hashlock
 	HashlockAction
@@ -166,6 +169,8 @@ It has these top-level messages:
 	ReplySellOrder
 	ReplySellOrders
 	ReplyBuyOrders
+	ReplyTradeOrder
+	ReplyTradeOrders
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion

@@ -2,7 +2,7 @@ package wallet
 
 import (
 	"fmt"
-	"strings"
+	//	"strings"
 	"testing"
 	"time"
 
@@ -90,10 +90,9 @@ func blockchainModProc(q queue.Queue) {
 				msg.Reply(client.NewMessage("", types.EventReplyQuery, &types.ReplyTicketList{Tickets: []*types.Ticket{{TicketId: "ticketID"}}}))
 			} else if msg.Ty == types.EventGetBlockHeight {
 				msg.Reply(client.NewMessage("", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 1}))
-			}
-			/*else if msg.Ty == types.EventIsSync {
+			} else if msg.Ty == types.EventIsSync {
 				msg.Reply(client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
-			}*/
+			}
 		}
 	}()
 }
@@ -366,7 +365,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	msgDump = wallet.client.NewMessage("wallet", types.EventDumpPrivkey, addr)
 	wallet.client.Send(msgDump, true)
 	resp, _ = wallet.client.Wait(msgDump)
-	if resp.GetData().(*types.ReplyStr).Replystr != strings.ToUpper(common.ToHex(priv.Bytes())) {
+	if resp.GetData().(*types.ReplyStr).Replystr != common.ToHex(priv.Bytes()) {
 		t.Error("testDumpPrivKey failed")
 	}
 
@@ -675,6 +674,10 @@ func testAutoMining(t *testing.T, wallet *Wallet) {
 	_, err := wallet.client.Wait(msg)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 130)
+	msg = wallet.client.NewMessage("wallet", types.EventWalletAutoMiner, &types.MinerFlag{Flag: 0})
+	wallet.client.Send(msg, true)
+	_, err = wallet.client.Wait(msg)
+	require.NoError(t, err)
 	println("TestAutoMining end")
 	println("--------------------------")
 }

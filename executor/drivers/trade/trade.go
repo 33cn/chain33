@@ -145,7 +145,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				panic(err) //数据错误了，已经被修改了
 			}
 			kv := t.saveSellMarket(receipt.Base)
-			tradelog.Info("saveSellMarket", "kv", kv)
+			//tradelog.Info("saveSellMarket", "kv", kv)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -271,6 +271,13 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetOnesBuyOrdersWithStatus(&addrTokens)
+	case "GetOnesOrderWithStatus":
+		var addrTokens types.ReqAddrTokens
+		err := types.Decode(params, &addrTokens)
+		if err != nil {
+			return nil, err
+		}
+		return t.GetOnesOrderWithStatus(&addrTokens)
 
 	default:
 	}
@@ -330,7 +337,7 @@ func (t *trade) deleteSell(sellID []byte, ty int32) []*types.KeyValue {
 }
 
 func (t *trade) saveBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyValue {
-	tradelog.Info("save", "buy", receiptTradeBuy)
+	//tradelog.Info("save", "buy", receiptTradeBuy)
 
 	var kv []*types.KeyValue
 	return saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusBoughtOut, t.GetHeight())

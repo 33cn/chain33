@@ -79,6 +79,10 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	case types.ActionWithdraw:
 		token := tokenAction.GetWithdraw().GetCointoken()
 		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
+
+	case types.TokenActionTransferToExec:
+		token := tokenAction.GetTransferToExec().GetCointoken()
+		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
 	}
 
 	return nil, types.ErrActionNotSupport
@@ -98,7 +102,7 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 		if action.Ty == types.ActionTransfer {
 			transfer := action.GetTransfer()
 			// 添加个人资产列表
-			tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
+			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
 			kv := AddTokenToAssets(tx.To, t.GetLocalDB(), transfer.Cointoken)
 			if kv != nil {
 				set.KV = append(set.KV, kv...)
@@ -183,7 +187,7 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		tokenlog.Info("token Query", "function name", funcName, "query tokens", reqtokens)
+		//tokenlog.Info("token Query", "function name", funcName, "query tokens", reqtokens)
 		return t.GetTokens(&reqtokens)
 	case "GetTokenInfo":
 		var symbol types.ReqString
@@ -245,7 +249,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 			continue
 		}
 		tokenAsset := &types.TokenAsset{asset, acc1}
-		tokenlog.Info("GetAccountTokenAssets", "token-asset-symbol", asset, "info", acc1)
+		//tokenlog.Info("GetAccountTokenAssets", "token-asset-symbol", asset, "info", acc1)
 		reply.TokenAssets = append(reply.TokenAssets, tokenAsset)
 	}
 	return reply, nil
@@ -334,7 +338,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 		}
 	}
 
-	tokenlog.Info("token Query", "replyTokens", replyTokens)
+	//tokenlog.Info("token Query", "replyTokens", replyTokens)
 	return replyTokens, nil
 }
 

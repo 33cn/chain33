@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -249,18 +250,22 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	if 0 != len(txs) {
 		for _, tx := range txs {
 			var recp ReceiptData
-			logs := tx.GetReceipt().GetLogs()
+			var proofs []string
+			var recpResult *ReceiptDataResult
+			var err error
 			recp.Ty = tx.GetReceipt().GetTy()
+			logs := tx.GetReceipt().GetLogs()
+			if in.DisableDetail {
+				logs = nil
+			}
 			for _, lg := range logs {
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			recpResult, err := DecodeLog(&recp)
+			recpResult, err = DecodeLog(&recp)
 			if err != nil {
 				continue
 			}
-
-			var proofs []string
 			txProofs := tx.GetProofs()
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
@@ -269,7 +274,6 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			if err != nil {
 				continue
 			}
-
 			txdetails.Txs = append(txdetails.Txs,
 				&TransactionDetail{
 					Tx:         tran,
@@ -720,7 +724,7 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	return nil
 }
 
-func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
+func (c *Chain33) QueryOld(in Query4Jrpc, result *interface{}) error {
 	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
 		return err
@@ -733,6 +737,35 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 	}
 
 	*result = resp
+	return nil
+}
+
+func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
+	trans, ok := types.RpcTypeUtilMap[in.FuncName]
+	if !ok {
+		// 不是所有的合约都需要做类型转化， 没有修改的合约走老的接口
+		// 另外给部分合约的代码修改的时间
+		//log.Info("EventQuery", "Old Query called", in.FuncName)
+		return c.QueryOld(in, result)
+	}
+	decodePayload, err := trans.(types.RpcTypeQuery).Input(in.Payload)
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
+	resp, err := c.cli.Query(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
+	*result, err = trans.(types.RpcTypeQuery).Output(resp)
+	if err != nil {
+		log.Error("EventQuery", "err", err.Error())
+		return err
+	}
+
 	return nil
 }
 
@@ -846,6 +879,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			return nil, err
 		}
 		pl = &action
+	} else if "user.write" == string(tx.Execer) {
+		pl = decodeUserWrite(tx.GetPayload())
 	} else {
 		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 	}
@@ -864,6 +899,21 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		To:     tx.To,
 	}
 	return result, nil
+}
+
+func decodeUserWrite(payload []byte) *userWrite {
+	var article userWrite
+	if payload[0] == '#' {
+		data := bytes.SplitN(payload[1:], []byte("#"), 2)
+		if len(data) == 2 {
+			article.Topic = string(data[0])
+			article.Content = string(data[1])
+			return &article
+		}
+	}
+	article.Topic = ""
+	article.Content = string(payload)
+	return &article
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
@@ -1171,6 +1221,14 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 		case types.TyLogContractState:
 			lTy = "LogContractState"
 			var logTmp types.EVMContractState
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogModifyConfig:
+			lTy = "LogModifyConfig"
+			var logTmp types.ReceiptConfig
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
