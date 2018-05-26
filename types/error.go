@@ -58,6 +58,7 @@ var (
 	ErrRetrieveNoBalance       = errors.New("ErrRetrieveNoBalance")
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParameters")
+	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
 	//err for token
 	ErrTokenNameLen         = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen       = errors.New("ErrTokenSymbolLength")
@@ -185,4 +186,6 @@ var (
 	ErrVersion    = errors.New("ErrVersionNoSupport")
 	ErrStreamPing = errors.New("ErrStreamPing")
 	ErrPeerStop   = errors.New("ErrPeerStop")
+
+	ErrBlockSize = errors.New("ErrBlockSize")
 )
