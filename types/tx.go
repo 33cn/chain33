@@ -77,7 +77,7 @@ func (txgroup *Transactions) Check(minfee int64) error {
 	for i := 1; i < len(txs); i++ {
 		totalfee += txs[i].GetFee()
 	}
-	txSize := int64(Size(txs[0]))
+	txSize := Size(txs[0])
 	realFee := int64(txSize/1000+1) * minfee
 	if txs[0].Fee < realFee+totalfee {
 		return ErrTxFeeTooLow
