@@ -1,5 +1,5 @@
 Title="chain33"
-TestNet=true
+TestNet=false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -37,6 +37,7 @@ batchsync=false
 
 [p2p]
 seeds=[]
+seedPort=13803
 enable=true
 isSeed=true
 serverStart=true
@@ -50,8 +51,8 @@ dbCache=4
 grpcLogFile="grpc33.log"
 
 [rpc]
-jrpcBindAddr="localhost:8801"
-grpcBindAddr="localhost:8802"
+jrpcBindAddr="localhost:8811"
+grpcBindAddr="localhost:8812"
 whitlist=["127.0.0.1"]
 
 [mempool]
