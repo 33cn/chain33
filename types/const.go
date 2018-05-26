@@ -24,11 +24,11 @@ var (
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
 		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	GenesisBlockTime int64 = 1525708005
+	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr            = "1QGdwwUr64CbvN48hhsAZSeh5WfieZbqEr"
+	FundKeyAddr            = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager           = []string{"14YRhYpYSrABHz7nUUTufWaQ2v36PZcKZS"}
+	SuperManager           = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
 	TokenApprs             = []string{}
 )
 
@@ -44,6 +44,7 @@ var (
 	ForkBlockHash        int64 = 1
 	ForkV9               int64 = 1
 	ForkV10TradeBuyLimit int64 = 1
+	ForkV11ManageExec    int64 = 100000
 )
 
 var (
@@ -101,6 +102,7 @@ func SetTestNet(isTestNet bool) {
 	ForkBlockHash = 208986 + 200
 	ForkV9 = 350000
 	ForkV10TradeBuyLimit = 301000
+	ForkV11ManageExec = 400000
 }
 
 func IsTestNet() bool {
@@ -120,7 +122,7 @@ const (
 	Coin                int64 = 1e8
 	MaxCoin             int64 = 1e17
 	MaxTxSize                 = 100000   //100K
-	MaxBlockSize              = 10000000 //10M
+	MaxBlockSize              = 20000000 //20M
 	MaxTxsPerBlock            = 100000
 	TokenPrecision      int64 = 1e8
 	MaxTokenBalance           = 900 * 1e8 * TokenPrecision //900亿
@@ -444,18 +446,20 @@ const (
 
 //coinsaction
 const (
-	InvalidAction = iota
-	CoinsActionTransfer
-	CoinsActionGenesis
-	CoinsActionWithdraw
+	InvalidAction       = 0
+	CoinsActionTransfer = 1
+	CoinsActionGenesis  = 2
+	CoinsActionWithdraw = 3
 
 	//action for token
-	ActionTransfer
-	ActionGenesis
-	ActionWithdraw
-	TokenActionPreCreate
-	TokenActionFinishCreate
-	TokenActionRevokeCreate
+	ActionTransfer            = 4
+	ActionGenesis             = 5
+	ActionWithdraw            = 6
+	TokenActionPreCreate      = 7
+	TokenActionFinishCreate   = 8
+	TokenActionRevokeCreate   = 9
+	CoinsActionTransferToExec = 10
+	TokenActionTransferToExec = 11
 )
 
 //ticket

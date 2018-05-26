@@ -24,22 +24,29 @@ var (
 
 //存储block hash对应的blockbody信息
 func calcHashToBlockBodyKey(hash []byte) []byte {
-	return []byte(fmt.Sprintf("Body:%v", hash))
+	bodyPerfix := []byte("Body:")
+	return append(bodyPerfix, hash...)
+	//return []byte(fmt.Sprintf("Body:%v", hash))
 }
 
 //存储block hash对应的header信息
 func calcHashToBlockHeaderKey(hash []byte) []byte {
-	return []byte(fmt.Sprintf("Header:%v", hash))
+	headerPerfix := []byte("Header:")
+	return append(headerPerfix, hash...)
+	//return []byte(fmt.Sprintf("Header:%v", hash))
 }
 
 //存储block hash对应的block height
 func calcHashToHeightKey(hash []byte) []byte {
-	return []byte(fmt.Sprintf("Hash:%v", hash))
+	hashPerfix := []byte("Hash:")
+	return append(hashPerfix, hash...)
+	//return []byte(fmt.Sprintf("Hash:%v", hash))
 }
 
 //存储block hash对应的block总难度TD
 func calcHashToTdKey(hash []byte) []byte {
-	return []byte(fmt.Sprintf("TD:%v", hash))
+	tdPerfix := []byte("TD:")
+	return append(tdPerfix, hash...)
 }
 
 //存储block height 对应的block  hash

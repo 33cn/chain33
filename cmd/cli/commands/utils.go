@@ -253,12 +253,11 @@ func CreateRawTx(to string, amount float64, note string, withdraw bool, isToken 
 	}
 
 	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return "", err
 	}
-	tx.Fee += types.MinBalanceTransfer
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	//tx.Sign(int32(wallet.SignType), privKey)
