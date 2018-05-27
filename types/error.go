@@ -194,4 +194,6 @@ var (
 	ErrTxGroupCountBigThanMaxSize = errors.New("ErrTxGroupCountBigThanMaxSize")
 	ErrTxGroupEmpty               = errors.New("ErrTxGroupEmpty")
 	ErrTxGroupCount               = errors.New("ErrTxGroupCount")
+	ErrTxGroupFeeNotZero          = errors.New("ErrTxGroupFeeNotZero")
+	ErrNomalTx                    = errors.New("ErrNomalTx")
 )
