@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -135,18 +136,12 @@ func BenchmarkExecBlock(b *testing.B) {
 }
 
 func TestLoadDriver(t *testing.T) {
-	d, err := LoadDriver("none", 0)
+	d, err := drivers.LoadDriver("none", 0)
 	if err != nil {
 		t.Error(err)
 	}
 
 	if d.GetName() != "none" {
-		t.Error(d.GetName())
-	}
-
-	// if no, happen panic!
-	driver := d.Clone()
-	if driver.GetName() != "none" {
 		t.Error(d.GetName())
 	}
 }
