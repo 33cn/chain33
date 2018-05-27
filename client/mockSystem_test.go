@@ -83,7 +83,7 @@ func (mock *mockClient) NewMessage(topic string, ty int64, data interface{}) que
 
 func (mock *mockClient) Clone() queue.Client {
 	clone := mockClient{}
-	clone.c = mock.c.Clone()
+	clone.c = mock.c
 	return &clone
 }
 
