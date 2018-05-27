@@ -197,4 +197,5 @@ var (
 	ErrTxGroupFeeNotZero          = errors.New("ErrTxGroupFeeNotZero")
 	ErrNomalTx                    = errors.New("ErrNomalTx")
 	ErrUnknowDriver               = errors.New("ErrUnknowDriver")
+	ErrSymbolNameNotAllow         = errors.New("ErrSymbolNameNotAllow")
 )

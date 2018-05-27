@@ -964,7 +964,10 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		}
 
 		if nil == accTokenMap[SendToAddress.TokenSymbol] {
-			tokenAccDB := account.NewTokenAccountWithoutDB(SendToAddress.TokenSymbol)
+			tokenAccDB, err := account.NewAccountDB("token", SendToAddress.TokenSymbol, nil)
+			if err != nil {
+				return nil, err
+			}
 			accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
 		}
 		tokenAccDB := accTokenMap[SendToAddress.TokenSymbol]
