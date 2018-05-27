@@ -9,14 +9,18 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	configPath = flag.String("f", "../../cmd/chain33/chain33.test.toml", "configfile")
+	configPath = flag.String("f", "../cmd/chain33/chain33.test.toml", "configfile")
 )
 
 func init() {
 	cfg := config.InitCfg(*configPath)
+	// change rpc bind address
+	cfg.Rpc.JrpcBindAddr = "localhost:8811"
+	cfg.Rpc.GrpcBindAddr = "localhost:8812"
 	rpc.Init(cfg.Rpc)
 	log.SetLogLevel("crit")
 }
@@ -29,7 +33,7 @@ type MockLive interface {
 type mockSystem struct {
 	grpcMock  MockLive
 	jrpcMock  MockLive
-	q         queue.Queue
+	q         *mockQueue
 	chain     *mockBlockChain
 	mem       *mockMempool
 	wallet    *mockWallet
@@ -38,9 +42,77 @@ type mockSystem struct {
 	store     *mockStore
 }
 
+type mockClient struct {
+	c queue.Client
+}
+
+func (mock *mockClient) Send(msg queue.Message, waitReply bool) error {
+	if msg.Topic == "error" {
+		return types.ErrInvalidParam
+	}
+	return mock.c.Send(msg, waitReply)
+}
+
+func (mock *mockClient) SendTimeout(msg queue.Message, waitReply bool, timeout time.Duration) error {
+	return mock.c.SendTimeout(msg, waitReply, timeout)
+}
+
+func (mock *mockClient) Wait(msg queue.Message) (queue.Message, error) {
+	return mock.c.Wait(msg)
+}
+
+func (mock *mockClient) WaitTimeout(msg queue.Message, timeout time.Duration) (queue.Message, error) {
+	return mock.c.WaitTimeout(msg, timeout)
+}
+
+func (mock *mockClient) Recv() chan queue.Message {
+	return mock.c.Recv()
+}
+
+func (mock *mockClient) Sub(topic string) {
+	mock.c.Sub(topic)
+}
+
+func (mock *mockClient) Close() {
+	mock.c.Close()
+}
+
+func (mock *mockClient) NewMessage(topic string, ty int64, data interface{}) queue.Message {
+	return mock.c.NewMessage(topic, ty, data)
+}
+
+func (mock *mockClient) Clone() queue.Client {
+	clone := mockClient{}
+	clone.c = mock.c.Clone()
+	return &clone
+}
+
+type mockQueue struct {
+	q queue.Queue
+}
+
+func (mock *mockQueue) Close() {
+	mock.q.Close()
+}
+
+func (mock *mockQueue) Start() {
+	mock.q.Start()
+}
+
+func (mock *mockQueue) Client() queue.Client {
+	client := mockClient{}
+	client.c = mock.q.Client()
+	return &client
+}
+
+func (mock *mockQueue) Name() string {
+	return mock.q.Name()
+}
+
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 
 	var q = queue.New("channel")
+	queue := &mockQueue{q: q}
 	chain := &mockBlockChain{}
 	chain.SetQueueClient(q)
 	mem := &mockMempool{}
@@ -54,7 +126,7 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	store := &mockStore{}
 	store.SetQueueClient(q)
 
-	mock.q = q
+	mock.q = queue
 	mock.chain = chain
 	mock.mem = mem
 	mock.wallet = wallet

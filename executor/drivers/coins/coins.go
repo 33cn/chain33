@@ -58,6 +58,9 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 		return coinsAccount.Transfer(from, tx.To, transfer.Amount)
 	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		if c.GetHeight() < types.ForkV12TransferExec {
+			return nil, types.ErrActionNotSupport
+		}
 		transfer := action.GetTransferToExec()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址

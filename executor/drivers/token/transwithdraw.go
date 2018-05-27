@@ -42,6 +42,9 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 			return nil, types.ErrReRunGenesis
 		}
 	} else if action.Ty == types.TokenActionTransferToExec && action.GetTransferToExec() != nil {
+		if t.GetHeight() < types.ForkV12TransferExec {
+			return nil, types.ErrActionNotSupport
+		}
 		transfer := action.GetTransferToExec()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
