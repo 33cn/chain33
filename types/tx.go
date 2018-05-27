@@ -29,10 +29,22 @@ func CreateTxs(txs []*Transaction) (*Transactions, error) {
 	}
 	//修改txs[0] 的手续费
 	totalfee := int64(0)
-	for i := 1; i < len(txs); i++ {
+	minfee := int64(0)
+	for i := 0; i < len(txs); i++ {
 		totalfee += txs[i].GetFee()
+		realfee, err := txs[i].GetRealFee(MinFee)
+		if err != nil {
+			return nil, err
+		}
+		minfee += realfee
+		txs[i].Fee = 0
 	}
-	txs[0].Fee += totalfee
+	if totalfee < minfee {
+		totalfee = minfee
+	}
+	//总的手续费 = 所有交易的手续费之和
+	//除了txs[0], 其他交易手续费设置为0
+	txs[0].Fee = totalfee
 	return txgroup, nil
 }
 
@@ -55,35 +67,53 @@ func (txgroup *Transactions) GetTxGroup() *Transactions {
 func (txgroup *Transactions) CheckSign() bool {
 	txs := txgroup.Txs
 	for i := 0; i < len(txs); i++ {
-		if !txs[i].CheckSign() {
+		if !txs[i].checkSign() {
 			return false
 		}
 	}
 	return true
 }
 
+func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
+	txs := txgroup.Txs
+	for i := 0; i < len(txs); i++ {
+		if txs[i].isExpire(height, blocktime) {
+			return true
+		}
+	}
+	return false
+}
+
 func (txgroup *Transactions) Check(minfee int64) error {
 	txs := txgroup.Txs
+	if len(txs) < 2 {
+		return ErrTxGroupCountLessThanTwo
+	}
 	for i := 0; i < len(txs); i++ {
 		if txs[i] == nil {
 			return ErrTxGroupEmpty
 		}
-		err := txs[i].Check(minfee)
+		err := txs[i].check(0)
 		if err != nil {
 			return err
 		}
 	}
-	totalfee := int64(0)
 	for i := 1; i < len(txs); i++ {
-		totalfee += txs[i].GetFee()
+		if txs[i].Fee != 0 {
+			return ErrTxGroupFeeNotZero
+		}
 	}
-	txSize := Size(txs[0])
-	realFee := int64(txSize/1000+1) * minfee
-	if txs[0].Fee < realFee+totalfee {
+	//检查txs[0] 的费用是否满足要求
+	totalfee := int64(0)
+	for i := 0; i < len(txs); i++ {
+		fee, err := txs[i].GetRealFee(minfee)
+		if err != nil {
+			return err
+		}
+		totalfee += fee
+	}
+	if txs[0].Fee < totalfee {
 		return ErrTxFeeTooLow
-	}
-	if len(txs) < 2 {
-		return ErrTxGroupCountLessThanTwo
 	}
 	//检查hash是否符合要求
 	for i := 0; i < len(txs); i++ {
@@ -123,7 +153,9 @@ type TransactionCache struct {
 	txGroup *Transactions
 	hash    []byte
 	size    int
-	signok  int //init 0, ok 1, err 2
+	signok  int   //init 0, ok 1, err 2
+	checkok error //init 0, ok 1, err 2
+	checked bool
 }
 
 func NewTransactionCache(tx *Transaction) *TransactionCache {
@@ -146,6 +178,23 @@ func (tx *TransactionCache) Size() int {
 
 func (tx *TransactionCache) Tx() *Transaction {
 	return tx.Transaction
+}
+
+func (tx *TransactionCache) Check(minfee int64) error {
+	if !tx.checked {
+		tx.checked = true
+		txs, err := tx.GetTxGroup()
+		if err != nil {
+			tx.checkok = err
+			return err
+		}
+		if txs == nil {
+			tx.checkok = tx.check(minfee)
+		} else {
+			tx.checkok = txs.Check(minfee)
+		}
+	}
+	return tx.checkok
 }
 
 func (tx *TransactionCache) GetTxGroup() (*Transactions, error) {
@@ -209,6 +258,9 @@ func (tx *Transaction) Tx() *Transaction {
 }
 
 func (tx *Transaction) GetTxGroup() (*Transactions, error) {
+	if tx.GroupCount < 0 || tx.GroupCount == 1 || tx.GroupCount > 20 {
+		return nil, ErrTxGroupCount
+	}
 	if tx.GroupCount > 0 {
 		var txs Transactions
 		err := Decode(tx.Header, &txs)
@@ -216,6 +268,10 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 			return nil, err
 		}
 		return &txs, nil
+	} else {
+		if tx.Next != nil || tx.Header != nil {
+			return nil, ErrNomalTx
+		}
 	}
 	return nil, nil
 }
@@ -265,6 +321,17 @@ func (tx *Transaction) checkSign() bool {
 }
 
 func (tx *Transaction) Check(minfee int64) error {
+	group, err := tx.GetTxGroup()
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return tx.check(minfee)
+	}
+	return group.Check(minfee)
+}
+
+func (tx *Transaction) check(minfee int64) error {
 	if !isAllowExecName(tx.Execer) {
 		return ErrExecNameNotAllow
 	}
@@ -311,8 +378,19 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
-//检查交易是否过期，过期返回true，未过期返回false
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
+	group, err := tx.GetTxGroup()
+	if err != nil {
+		return true
+	}
+	if group == nil {
+		return tx.isExpire(height, blocktime)
+	}
+	return group.IsExpire(height, blocktime)
+}
+
+//检查交易是否过期，过期返回true，未过期返回false
+func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	valid := tx.Expire
 	// Expire为0，返回false
 	if valid == 0 {
