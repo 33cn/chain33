@@ -384,7 +384,6 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 			}
 			addedTx = append(addedTx, txs[i])
 			block.Txs = append(block.Txs, txs[i])
-
 		} else {
 			if currentcount+int64(len(txgroup.Txs)) > maxTx {
 				return addedTx

@@ -9,7 +9,7 @@ import (
 )
 
 // Mempool.CheckTxList初步检查并筛选交易消息
-func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
+func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 	// 判断消息是否含有nil交易
 	if msg.GetData() == nil {
 		msg.Data = types.ErrEmptyTx
@@ -35,12 +35,7 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 		return msg
 	}
 	mem.addedTxs.Add(string(tx.Hash()), nil)
-	// 检查交易费是否小于最低值
-	err := tx.Check(mem.minFee)
-	if err != nil {
-		msg.Data = err
-		return msg
-	}
+
 	// 检查交易账户在Mempool中是否存在过多交易
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
@@ -66,24 +61,25 @@ func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
 	txmsg := msg.GetData().(*types.Transaction)
 	//普通的交易
 	tx := types.NewTransactionCache(txmsg)
-	msg.Data = tx
+	err := tx.Check(mem.minFee)
+	if err != nil {
+		msg.Data = err
+		return msg
+	}
+	//检查txgroup 中的每个交易
 	txs, err := tx.GetTxGroup()
 	if err != nil {
 		msg.Data = err
 		return msg
 	}
-	//普通的交易
+	msg.Data = tx
+	//普通交易
 	if txs == nil {
-		return mem.CheckTx(msg)
+		return mem.checkTx(msg)
 	}
-	//交易组：
-	err = txs.Check(mem.GetMinFee())
-	if err != nil {
-		msg.Data = err
-		return msg
-	}
+	//txgroup 的交易
 	for i := 0; i < len(txs.Txs); i++ {
-		msgitem := mem.CheckTx(queue.Message{Data: txs.Txs[i]})
+		msgitem := mem.checkTx(queue.Message{Data: txs.Txs[i]})
 		if msgitem.Err() != nil {
 			msg.Data = msgitem.Err()
 			return msg
