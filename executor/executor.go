@@ -435,6 +435,7 @@ func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	exec := e.loadDriverForExec(string(tx.Execer), e.height)
 	exec.SetLocalDB(e.localDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecLocal(tx, r, index)
 }
@@ -442,6 +443,7 @@ func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index 
 func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	exec := e.loadDriverForExec(string(tx.Execer), e.height)
 	exec.SetLocalDB(e.localDB)
+	exec.SetStateDB(e.stateDB)
 	exec.SetEnv(e.height, e.blocktime)
 	return exec.ExecDelLocal(tx, r, index)
 }
