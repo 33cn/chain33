@@ -187,31 +187,27 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{receipts}))
 }
 
-func isAllowExec(key, txexecer []byte) bool {
-	//coins 和 token 可以修改所有的其他合约的值
+func isAllowExec(key, txexecer []byte, toaddr string) bool {
 	keyexecer, err := findExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
 		return false
 	}
-	if bytes.Equal(txexecer, types.ExecerCoins) || bytes.Equal(txexecer, types.ExecerToken) {
-		return true
-	}
 	//其他合约可以修改自己合约内部
 	if bytes.Equal(keyexecer, txexecer) {
 		return true
 	}
-	//如果是运行运行deposit的执行器，可以修改coins 的值
+	//如果是运行运行deposit的执行器，可以修改coins 的值（只有挖矿合约运行这样做）
 	for _, execer := range types.AllowDepositExec {
 		if bytes.Equal(txexecer, execer) && bytes.Equal(keyexecer, types.ExecerCoins) {
 			return true
 		}
 	}
-	//如果keyexecer 是 coins 和  token，那么只能修改mavl-coins-symbol-exec 下面的字段
-	if bytes.Equal(keyexecer, types.ExecerCoins) || bytes.Equal(keyexecer, types.ExecerToken) {
-		if isExecKey(key) {
-			return true
-		}
+	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
+	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
+	execaddr, ok := getExecKey(key)
+	if ok && toaddr == execaddr {
+		return true
 	}
 	//manage 的key 是 config
 	if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
@@ -220,9 +216,9 @@ func isAllowExec(key, txexecer []byte) bool {
 	return false
 }
 
-var bytesExec = []byte("exec")
+var bytesExec = []byte("exec-")
 
-func isExecKey(key []byte) bool {
+func getExecKey(key []byte) (string, bool) {
 	n := 0
 	start := 0
 	end := 0
@@ -239,11 +235,18 @@ func isExecKey(key []byte) bool {
 		}
 	}
 	if start > 0 && end > 0 {
-		if bytes.Equal(key[start:end], bytesExec) {
-			return true
+		if bytes.Equal(key[start:end+1], bytesExec) {
+			//find addr
+			start = end + 1
+			for k := end; k < len(key); k++ {
+				if key[k] == ':' { //end+1
+					end = k
+					return string(key[start:end]), true
+				}
+			}
 		}
 	}
-	return false
+	return "", false
 }
 
 func findExecer(key []byte) (execer []byte, err error) {
@@ -529,7 +532,7 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 	if receipt != nil {
 		for _, kv := range receipt.GetKV() {
 			k := kv.GetKey()
-			if !isAllowExec(k, tx.GetExecer()) {
+			if !isAllowExec(k, tx.GetExecer(), tx.To) {
 				elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
 					"tx.action", tx.ActionName())
 				if types.IsTestNet() {
