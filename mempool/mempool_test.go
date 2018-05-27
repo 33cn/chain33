@@ -691,7 +691,7 @@ func TestAddMinerTx(t *testing.T) {
 	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
 	action.Value = miner
 
-	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
+	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100000, Expire: 0}
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)

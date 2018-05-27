@@ -83,7 +83,7 @@ func (network *P2p) Close() {
 
 func (network *P2p) SetQueueClient(client queue.Client) {
 	network.client = client
-	network.node.SetQueueClient(client.Clone())
+	network.node.SetQueueClient(client)
 	go func() {
 		log.Info("p2p", "setqueuecliet", "ok")
 		network.node.Start()

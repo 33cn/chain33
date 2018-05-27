@@ -20,8 +20,6 @@ type Driver interface {
 	SetStateDB(dbm.KV)
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
-	SetExecDriver(execDriver *ExecDrivers)
-	GetExecDriver() *ExecDrivers
 	GetName() string
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64)
@@ -31,28 +29,16 @@ type Driver interface {
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
-	Clone() Driver
 }
 
 type DriverBase struct {
 	statedb      dbm.KV
 	localdb      dbm.KVDB
+	coinsaccount *account.DB
 	height       int64
 	blocktime    int64
 	child        Driver
-	coinsaccount *account.DB
-	execDriver   *ExecDrivers
 	isFree       bool
-}
-
-func (d *DriverBase) Clone() Driver {
-	dc := new(DriverBase)
-	dc.height = d.height
-	dc.blocktime = d.blocktime
-	dc.coinsaccount = d.coinsaccount
-	dc.execDriver = d.execDriver
-	dc.isFree = d.isFree
-	return dc
 }
 
 func (d *DriverBase) SetEnv(height, blocktime int64) {
@@ -70,14 +56,6 @@ func (d *DriverBase) IsFree() bool {
 
 func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
-}
-
-func (d *DriverBase) SetExecDriver(execDriver *ExecDrivers) {
-	d.execDriver = execDriver
-}
-
-func (d *DriverBase) GetExecDriver() *ExecDrivers {
-	return d.execDriver
 }
 
 func (d *DriverBase) GetAddr() string {
@@ -168,14 +146,13 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 }
 
 func (d *DriverBase) checkAddress(addr string) error {
-	if _, ok := d.execDriver.ExecAddr2Name[addr]; ok {
+	if IsDriverAddress(addr, d.height) {
 		return nil
 	}
 	return account.CheckAddress(addr)
 }
 
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	//检查ToAddr
 	if err := d.checkAddress(tx.To); err != nil {
 		return nil, err
 	}
