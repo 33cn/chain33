@@ -18,15 +18,14 @@ import (
 var clog = log.New("module", "execs.manage")
 
 func Init() {
-	n := newManage()
-	drivers.Register(n.GetName(), n, types.ForkV4AddManage)
+	drivers.Register(newManage().GetName(), newManage, types.ForkV4AddManage)
 }
 
 type Manage struct {
 	drivers.DriverBase
 }
 
-func newManage() *Manage {
+func newManage() drivers.Driver {
 	c := &Manage{}
 	c.SetChild(c)
 	return c
@@ -34,13 +33,6 @@ func newManage() *Manage {
 
 func (c *Manage) GetName() string {
 	return "manage"
-}
-
-func (c *Manage) Clone() drivers.Driver {
-	clone := &Manage{}
-	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
 }
 
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
