@@ -26,15 +26,14 @@ const (
 )
 
 func Init() {
-	t := newToken()
-	drivers.Register(t.GetName(), t, types.ForkV2AddToken)
+	drivers.Register(newToken().GetName(), newToken, types.ForkV2AddToken)
 }
 
 type token struct {
 	drivers.DriverBase
 }
 
-func newToken() *token {
+func newToken() drivers.Driver {
 	t := &token{}
 	t.SetChild(t)
 	return t
@@ -42,13 +41,6 @@ func newToken() *token {
 
 func (t *token) GetName() string {
 	return "token"
-}
-
-func (t *token) Clone() drivers.Driver {
-	clone := &token{}
-	clone.DriverBase = *(t.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
 }
 
 func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

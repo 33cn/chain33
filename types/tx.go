@@ -29,13 +29,22 @@ func CreateTxs(txs []*Transaction) (*Transactions, error) {
 	}
 	//修改txs[0] 的手续费
 	totalfee := int64(0)
+	minfee := int64(0)
 	for i := 0; i < len(txs); i++ {
 		totalfee += txs[i].GetFee()
+		realfee, err := txs[i].GetRealFee(MinFee)
+		if err != nil {
+			return nil, err
+		}
+		minfee += realfee
 		txs[i].Fee = 0
+	}
+	if totalfee < minfee {
+		totalfee = minfee
 	}
 	//总的手续费 = 所有交易的手续费之和
 	//除了txs[0], 其他交易手续费设置为0
-	txs[0].Fee += totalfee
+	txs[0].Fee = totalfee
 	return txgroup, nil
 }
 
@@ -58,11 +67,21 @@ func (txgroup *Transactions) GetTxGroup() *Transactions {
 func (txgroup *Transactions) CheckSign() bool {
 	txs := txgroup.Txs
 	for i := 0; i < len(txs); i++ {
-		if !txs[i].CheckSign() {
+		if !txs[i].checkSign() {
 			return false
 		}
 	}
 	return true
+}
+
+func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
+	txs := txgroup.Txs
+	for i := 0; i < len(txs); i++ {
+		if txs[i].isExpire(height, blocktime) {
+			return true
+		}
+	}
+	return false
 }
 
 func (txgroup *Transactions) Check(minfee int64) error {
@@ -239,6 +258,9 @@ func (tx *Transaction) Tx() *Transaction {
 }
 
 func (tx *Transaction) GetTxGroup() (*Transactions, error) {
+	if tx.GroupCount < 0 || tx.GroupCount == 1 || tx.GroupCount > 20 {
+		return nil, ErrTxGroupCount
+	}
 	if tx.GroupCount > 0 {
 		var txs Transactions
 		err := Decode(tx.Header, &txs)
@@ -364,10 +386,7 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	if group == nil {
 		return tx.isExpire(height, blocktime)
 	}
-	for i := 0; i < len(group.Txs); i++ {
-		return group.Txs[i].isExpire(height, blocktime)
-	}
-	return false
+	return group.IsExpire(height, blocktime)
 }
 
 //检查交易是否过期，过期返回true，未过期返回false
