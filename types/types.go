@@ -20,6 +20,7 @@ var tlog = log.New("module", "types")
 type Message proto.Message
 
 var userKey = []byte("user.")
+var slash = []byte("-")
 
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
@@ -29,6 +30,10 @@ type TxGroup interface {
 }
 
 func isAllowExecName(name []byte) bool {
+	//name中不允许有 "-"
+	if bytes.Contains(name, slash) {
+		return false
+	}
 	if bytes.HasPrefix(name, userKey) {
 		return true
 	}

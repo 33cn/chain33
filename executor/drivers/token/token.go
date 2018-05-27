@@ -63,15 +63,27 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	case types.ActionTransfer:
 		token := tokenAction.GetTransfer().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
+		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
+		if err != nil {
+			return nil, err
+		}
+		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 
 	case types.ActionWithdraw:
 		token := tokenAction.GetWithdraw().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
+		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
+		if err != nil {
+			return nil, err
+		}
+		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 
 	case types.TokenActionTransferToExec:
 		token := tokenAction.GetTransferToExec().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
+		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
+		if err != nil {
+			return nil, err
+		}
+		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 	}
 
 	return nil, types.ErrActionNotSupport
@@ -225,7 +237,10 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		return nil, err
 	}
 	for _, asset := range assets.Datas {
-		acc := account.NewTokenAccount(asset, t.GetStateDB())
+		acc, err := account.NewAccountDB(t.GetName(), asset, t.GetStateDB())
+		if err != nil {
+			return nil, err
+		}
 		var acc1 *types.Account
 		if req.Execer == "trade" {
 			execaddress := account.ExecAddress(req.Execer)
