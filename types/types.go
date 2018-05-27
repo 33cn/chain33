@@ -440,6 +440,4 @@ func init() {
 	//tlog.Info("rpc", "init", "types.go", "input", RpcTypeUtilMap)
 }
 
-var RpcTypeUtilMap = map[string]interface{}{
-// "GetTokenSellOrderByStatus" : &TradeQueryTokenSellOrder{},
-}
+var RpcTypeUtilMap = map[string]interface{}{}
