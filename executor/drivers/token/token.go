@@ -49,8 +49,6 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Info("exec token action", "txhash", common.Bytes2Hex(tx.Hash()), "tokenAction.GetTy()", tokenAction.GetTy())
-
 	switch tokenAction.GetTy() {
 	case types.TokenActionPreCreate:
 		action := newTokenAction(t, "", tx)
@@ -86,7 +84,6 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	if err != nil {
 		panic(err)
 	}
-	tokenlog.Info("exec token ExecLocal tx=", "tx=", action)
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecLocalTransWithdraw(tx, receipt, index)
