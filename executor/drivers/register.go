@@ -52,7 +52,7 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	if !ok {
 		return nil, types.ErrUnknowDriver
 	}
-	if height >= c.height {
+	if height >= c.height || height == -1 {
 		return c.create(), nil
 	}
 	return nil, types.ErrUnknowDriver
@@ -63,7 +63,7 @@ func IsDriverAddress(addr string, height int64) bool {
 	if !ok {
 		return false
 	}
-	if height >= c.height {
+	if height >= c.height || height == -1 {
 		return true
 	}
 	return false
