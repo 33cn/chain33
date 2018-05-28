@@ -21,7 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-var randomU *rand.Rand
+//var randomU *rand.Rand
 
 var (
 	addr1 string
