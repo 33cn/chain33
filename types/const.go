@@ -105,8 +105,8 @@ func SetTestNet(isTestNet bool) {
 	ForkV9 = 350000
 	ForkV10TradeBuyLimit = 301000
 	ForkV11ManageExec = 400000
-	ForkV12TransferExec = 400000
-	ForkV13ExecKey = 420000
+	ForkV12TransferExec = 408400
+	ForkV13ExecKey = 408400
 }
 
 func IsTestNet() bool {
