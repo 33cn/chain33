@@ -32,7 +32,7 @@ func init() {
 		panic(err)
 	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	log.SetLogLevel("error")
+	log.SetLogLevel("info")
 }
 
 func initEnv() (queue.Queue, *blockchain.BlockChain, queue.Module, queue.Module, *p2p.P2p, *mempool.Mempool) {
@@ -149,7 +149,7 @@ func TestLoadDriver(t *testing.T) {
 func TestKeyAllow(t *testing.T) {
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
-	if !isAllowExec(key, exec, account.ExecAddress("retrieve")) {
+	if !isAllowExec(key, exec, account.ExecAddress("retrieve"), int64(1)) {
 		t.Error("retrieve can modify exec")
 	}
 }
