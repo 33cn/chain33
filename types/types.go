@@ -95,13 +95,6 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	tx.Signature = &Signature{ty, pub.Bytes(), sign.Bytes()}
 }
 
-const (
-	SIG_TYPE_SECP256K1 int32 = 1
-	SIG_TYPE_ED25519   int32 = 2
-	SIG_TYPE_SM2       int32 = 3
-	SIG_TYPE_AUTHORITY int32 = 4
-)
-
 func (tx *Transaction) CheckSign() bool {
 	copytx := *tx
 	copytx.Signature = nil
