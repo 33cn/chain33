@@ -194,21 +194,19 @@ func (client *RaftClient) CreateBlock() {
 		count = 0
 		rlog.Debug("==================start create new block!=====================")
 		//check dup
-		//txs = client.CheckTxDup(txs)
+		txs = client.CheckTxDup(txs)
 		rlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
-		newblock.Txs = txs
+		client.AddTxsToBlock(&newblock, txs)
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		newblock.BlockTime = time.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
-
 		blockEntry := newblock
 		client.propose(&blockEntry)
-
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			issleep = true
