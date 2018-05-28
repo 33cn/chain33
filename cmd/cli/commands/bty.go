@@ -45,7 +45,6 @@ func addCreateTransferFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info")
-	cmd.MarkFlagRequired("note")
 }
 
 func createTransfer(cmd *cobra.Command, args []string) {
@@ -75,7 +74,6 @@ func addCreateWithdrawFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info")
-	cmd.MarkFlagRequired("note")
 }
 
 func createWithdraw(cmd *cobra.Command, args []string) {
@@ -110,7 +108,6 @@ func addCreateRawSendToExecFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info")
-	cmd.MarkFlagRequired("note")
 }
 
 func sendToExec(cmd *cobra.Command, args []string) {
