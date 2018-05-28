@@ -89,14 +89,13 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 
 	var detail types.BlockDetail
-	currentHash := block.StateHash
 	if kvset == nil {
-		block.StateHash = prevStateRoot
+		calcHash = prevStateRoot
 	} else {
-		block.StateHash = ExecKVMemSet(client, prevStateRoot, kvset, sync)
+		calcHash = ExecKVMemSet(client, prevStateRoot, kvset, sync)
 	}
-	if errReturn && !bytes.Equal(currentHash, block.StateHash) {
-		ExecKVSetRollback(client, block.StateHash)
+	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
+		ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
 			for _, rd := range rdata {
 				rd.OutputReceiptDetails(ulog)
@@ -104,6 +103,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		}
 		return nil, nil, types.ErrCheckStateHash
 	}
+	block.StateHash = calcHash
 	detail.Block = block
 	detail.Receipts = rdata
 	if detail.Block.Height > 0 {
