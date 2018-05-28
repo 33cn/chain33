@@ -82,7 +82,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = random.Int63()
-	tx.To = account.ExecAddress("none").String()
+	tx.To = account.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }

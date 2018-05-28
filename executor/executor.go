@@ -206,12 +206,19 @@ func isAllowExec(key, txexecer []byte, toaddr string) bool {
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
 	execaddr, ok := getExecKey(key)
-	if ok && toaddr == execaddr {
+	if ok && execaddr == account.ExecAddress(string(txexecer)) {
 		return true
 	}
+	//特殊化处理一下
+	//TODO 加上fork
 	//manage 的key 是 config
 	if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
 		return true
+	}
+	if bytes.Equal(txexecer, types.ExecerToken) {
+		if bytes.HasPrefix(key, []byte("mavl-create-token-")) {
+			return true
+		}
 	}
 	return false
 }
