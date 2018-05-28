@@ -20,15 +20,14 @@ import (
 //var clog = log.New("module", "execs.coins")
 
 func Init() {
-	n := newCoins()
-	drivers.Register(n.GetName(), n, 0)
+	drivers.Register(newCoins().GetName(), newCoins, 0)
 }
 
 type Coins struct {
 	drivers.DriverBase
 }
 
-func newCoins() *Coins {
+func newCoins() drivers.Driver {
 	c := &Coins{}
 	c.SetChild(c)
 	return c
@@ -36,13 +35,6 @@ func newCoins() *Coins {
 
 func (c *Coins) GetName() string {
 	return "coins"
-}
-
-func (c *Coins) Clone() drivers.Driver {
-	clone := &Coins{}
-	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
 }
 
 func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -60,12 +52,15 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if c.GetExecDriver().IsDriverAddress(tx.To) {
+		if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
 			return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
 		}
 
 		return coinsAccount.Transfer(from, tx.To, transfer.Amount)
 	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		if c.GetHeight() < types.ForkV12TransferExec {
+			return nil, types.ErrActionNotSupport
+		}
 		transfer := action.GetTransferToExec()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
@@ -78,14 +73,14 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if c.GetExecDriver().IsDriverAddress(tx.To) {
+		if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
 			return coinsAccount.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if c.GetHeight() == 0 {
-			if c.GetExecDriver().IsDriverAddress(tx.To) {
+			if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
 				return coinsAccount.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
 			return coinsAccount.GenesisInit(tx.To, genesis.Amount)
