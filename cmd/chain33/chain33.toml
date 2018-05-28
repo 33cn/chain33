@@ -34,7 +34,7 @@ singleMode=false
 batchsync=false
 
 [p2p]
-seeds=["192.168.3.13:13802","192.168.3.48:13802"]
+seeds=["192.168.3.13:13802","192.168.3.48:13802","192.168.3.29:13802","192.168.3.30:13802"]
 enable=true
 isSeed=true
 serverStart=true
@@ -71,7 +71,7 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["192.168.3.48:46656","192.168.3.13:46656"]
+seeds=["192.168.3.48:46656","192.168.3.13:46656","192.168.3.29:46656","192.168.3.30:46656"]
 
 [store]
 name="mavl"
