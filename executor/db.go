@@ -8,16 +8,46 @@ import (
 
 type StateDB struct {
 	cache     map[string][]byte
+	txcache   map[string][]byte
+	intx      bool
 	client    queue.Client
 	stateHash []byte
 }
 
 func NewStateDB(client queue.Client, stateHash []byte) db.KV {
-	return &StateDB{make(map[string][]byte), client, stateHash}
+	return &StateDB{
+		cache:     make(map[string][]byte),
+		txcache:   make(map[string][]byte),
+		intx:      false,
+		client:    client,
+		stateHash: stateHash,
+	}
+}
+
+func (s *StateDB) Begin() {
+	s.intx = true
+}
+
+func (s *StateDB) Rollback() {
+	s.intx = false
+	s.txcache = make(map[string][]byte)
+}
+
+func (s *StateDB) Commit() {
+	s.intx = false
+	for k, v := range s.txcache {
+		s.cache[k] = v
+	}
 }
 
 func (s *StateDB) Get(key []byte) ([]byte, error) {
-	if value, ok := s.cache[string(key)]; ok {
+	skey := string(key)
+	if s.intx {
+		if value, ok := s.txcache[skey]; ok {
+			return value, nil
+		}
+	}
+	if value, ok := s.cache[skey]; ok {
 		return value, nil
 	}
 	query := &types.StoreGet{s.stateHash, [][]byte{key}}
@@ -35,22 +65,29 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 		//panic(string(key))
 		return nil, types.ErrNotFound
 	}
-	s.cache[string(key)] = value
+	//get 的值可以写入cache，因为没有对系统的值做修改
+	s.cache[skey] = value
 	return value, nil
 }
 
 func (s *StateDB) Set(key []byte, value []byte) error {
-	s.cache[string(key)] = value
+	skey := string(key)
+	if s.intx {
+		s.txcache[skey] = value
+	} else {
+		s.cache[skey] = value
+	}
 	return nil
 }
 
 type LocalDB struct {
+	db.TransactionDB
 	cache  map[string][]byte
 	client queue.Client
 }
 
 func NewLocalDB(client queue.Client) db.KVDB {
-	return &LocalDB{make(map[string][]byte), client}
+	return &LocalDB{cache: make(map[string][]byte), client: client}
 }
 
 func (l *LocalDB) Get(key []byte) ([]byte, error) {

@@ -18,6 +18,18 @@ import (
 	"strings"
 )
 
+func Init() {
+	// TODO 注册的驱动高度需要更新为上线时的正确高度
+	drivers.Register(model.ExecutorName, newEVMDriver, 0)
+}
+
+
+func newEVMDriver() drivers.Driver {
+	evm := NewEVMExecutor()
+	evm.vmCfg.Debug = debugEVM()
+	return evm
+}
+
 // EVM执行器结构
 type EVMExecutor struct {
 	drivers.DriverBase
@@ -34,14 +46,6 @@ func debugEVM() bool {
 		}
 	}
 	return false
-}
-
-func Init() {
-	evm := NewEVMExecutor()
-	evm.vmCfg.Debug = debugEVM()
-
-	// TODO 注册的驱动高度需要更新为上线时的正确高度
-	drivers.Register(evm.GetName(), evm, 0)
 }
 
 func NewEVMExecutor() *EVMExecutor {
@@ -271,6 +275,7 @@ func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Messa
 	return ret, nil
 }
 
+// 此方法用来估算合约消耗的Gas，不能修改原有执行器的状态数据
 func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message, error) {
 	var (
 		caller   common.Address
@@ -290,6 +295,7 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 	msg := common.NewMessage(caller, to, 0, 0, model.MaxGasLimit, 1, req.Code)
 	context := evm.NewEVMContext(msg)
 	// 创建EVM运行时对象
+	evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 	evm.mStateDB.Prepare(common.BigToHash(big.NewInt(model.MaxGasLimit)), 0)
 
@@ -312,15 +318,6 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 	result := &types.EstimateEVMGasResp{}
 	result.Gas = model.MaxGasLimit - leftOverGas
 	return result, vmerr
-}
-
-// 复制一个新的EVM执行器，可以执行查询、预估Gas等操作，不会印象正常交易的EVM执行器状态
-func (evm *EVMExecutor) Clone() drivers.Driver {
-	clone := &EVMExecutor{}
-	clone.DriverBase = *(evm.DriverBase.Clone().(*drivers.DriverBase))
-	clone.vmCfg = &runtime.Config{}
-	clone.SetChild(clone)
-	return clone
 }
 
 func (evm *EVMExecutor) GetMStateDB() *state.MemoryStateDB {
