@@ -30,7 +30,9 @@ func (n *Node) monitorErrPeer() {
 			n.nodeInfo.blacklist.Add(peer.Addr(), int64(3600*12))
 			continue
 		}
-
+		if peer.IsMaxInbouds {
+			n.destroyPeer(peer)
+		}
 		if !peer.GetRunning() {
 			n.destroyPeer(peer)
 			continue
@@ -125,22 +127,19 @@ func (n *Node) getAddrFromOnline() {
 
 			var addrlist []string
 			var addrlistMap map[string]int64
+
 			var err error
 
-			if peer.version.GetVersion() >= VERSION {
-				addrlistMap, err = pcli.GetAddrList(peer)
-				for addr := range addrlistMap {
-					addrlist = append(addrlist, addr)
-				}
-			} else {
-				//老版本
-				addrlist, err = pcli.GetAddr(peer)
-			}
+			addrlistMap, err = pcli.GetAddrList(peer)
 
 			P2pComm.CollectPeerStat(err, peer)
 			if err != nil {
 				log.Error("getAddrFromOnline", "ERROR", err.Error())
 				continue
+			}
+
+			for addr := range addrlistMap {
+				addrlist = append(addrlist, addr)
 			}
 
 			for _, addr := range addrlist {
@@ -155,7 +154,7 @@ func (n *Node) getAddrFromOnline() {
 					//查询对方的高度，如果不小于自己的高度,或高度差在一定范围内，则剔除一个种子
 					if peerHeight, ok := addrlistMap[addr]; ok {
 
-						if peerHeight >= localBlockHeight || localBlockHeight-peerHeight > 1024 {
+						if localBlockHeight-peerHeight < 1024 {
 							if _, ok := seedsMap[addr]; ok {
 								continue
 							}
@@ -227,7 +226,7 @@ func (n *Node) getAddrFromAddrBook() {
 				log.Debug("GetAddrFromOffline", "Add addr", addr.String())
 
 				if _, ok := seedsMap[addr.String()]; !ok {
-					if n.needMore() {
+					if n.needMore() || n.CacheBoundsSize() < maxOutBoundNum {
 						pub.FIFOPub(addr.String(), "addr")
 					}
 
@@ -238,6 +237,104 @@ func (n *Node) getAddrFromAddrBook() {
 		log.Debug("Node Monitor process", "outbound num", n.Size())
 	}
 
+}
+
+func (n *Node) nodeReBalance() {
+	p2pcli := NewNormalP2PCli()
+	ticker := time.NewTicker(MonitorReBalanceInterval)
+	defer ticker.Stop()
+
+	for {
+
+		<-ticker.C
+		log.Info("nodeReBalance", "cacheSize", n.CacheBoundsSize())
+		if n.CacheBoundsSize() == 0 {
+			continue
+		}
+		peers, _ := n.GetActivePeers()
+		//选出当前连接的节点中，负载最大的节点
+		var MaxInBounds int32
+		var MaxInBoundPeer *Peer
+		for _, peer := range peers {
+			if peer.GetInBouns() > MaxInBounds {
+				MaxInBounds = peer.GetInBouns()
+				MaxInBoundPeer = peer
+			}
+		}
+		if MaxInBoundPeer == nil {
+			continue
+		}
+
+		//筛选缓存备选节点负载最大和最小的节点
+		cachePeers := n.GetCacheBounds()
+		var MixCacheInBounds int32 = 1000
+		var MixCacheInBoundPeer *Peer
+		var MaxCacheInbounds int32
+		var MaxCacheInBoundPeer *Peer
+		for _, peer := range cachePeers {
+			inbounds, err := p2pcli.GetInPeersNum(peer)
+			if err != nil {
+				n.RemoveCachePeer(peer.Addr())
+				peer.Close()
+				continue
+			}
+			//选出最小负载
+			if int32(inbounds) < MixCacheInBounds {
+				MixCacheInBounds = int32(inbounds)
+				MixCacheInBoundPeer = peer
+			}
+
+			//选出负载最大
+			if int32(inbounds) > MaxCacheInbounds {
+				MixCacheInBounds = int32(inbounds)
+				MaxCacheInBoundPeer = peer
+			}
+		}
+
+		if MixCacheInBoundPeer == nil || MaxCacheInBoundPeer == nil {
+			continue
+		}
+
+		//如果连接的节点最大负载量小于当前缓存节点的最大负载量
+		if MaxInBounds < MaxCacheInbounds {
+			n.RemoveCachePeer(MaxCacheInBoundPeer.Addr())
+			MaxCacheInBoundPeer.Close()
+		}
+		//如果最大的负载量比缓存中负载最小的小，则删除缓存中所有的节点
+		if MaxInBounds < MixCacheInBounds {
+			cachePeers := n.GetCacheBounds()
+			for _, peer := range cachePeers {
+				n.RemoveCachePeer(peer.Addr())
+				peer.Close()
+			}
+
+			continue
+		}
+		log.Info("nodeReBalance", "MaxInBounds", MaxInBounds, "MixCacheInBounds", MixCacheInBounds)
+		if MaxInBounds-MixCacheInBounds < 50 {
+			continue
+		}
+
+		if MixCacheInBoundPeer != nil {
+			info, err := MixCacheInBoundPeer.GetPeerInfo(VERSION)
+			if err != nil {
+				n.RemoveCachePeer(MixCacheInBoundPeer.Addr())
+				MixCacheInBoundPeer.Close()
+				continue
+			}
+			localBlockHeight, err := p2pcli.GetBlockHeight(n.nodeInfo)
+			if err != nil {
+				continue
+			}
+			peerBlockHeight := info.GetHeader().GetHeight()
+			if localBlockHeight-peerBlockHeight < 2048 {
+				log.Info("noReBalance", "Repalce node new node", MixCacheInBoundPeer.Addr(), "old node", MaxCacheInBoundPeer.Addr())
+				n.addPeer(MixCacheInBoundPeer)
+				n.remove(MaxInBoundPeer.Addr())
+				n.RemoveCachePeer(MixCacheInBoundPeer.Addr())
+			}
+		}
+	}
 }
 
 func (n *Node) monitorPeers() {
@@ -265,7 +362,8 @@ func (n *Node) monitorPeers() {
 				n.nodeInfo.blacklist.Add(paddr, 0)
 			}
 
-			if localBlockHeight-peerheight > 2048 { //比自己较低的节点删除
+			if localBlockHeight-peerheight > 2048 {
+				//删除比自己较低的节点
 				if addrMap, err := p2pcli.GetAddrList(peers[paddr]); err == nil {
 
 					for addr := range addrMap {
@@ -275,12 +373,15 @@ func (n *Node) monitorPeers() {
 					}
 
 				}
+
+				if n.Size() <= stableBoundNum {
+					continue
+				}
 				//删除节点数过低的节点
 				n.remove(paddr)
 				n.nodeInfo.addrBook.RemoveAddr(paddr)
-				//短暂加入黑名单20分钟
-				n.nodeInfo.blacklist.Add(paddr, int64(60*20))
-
+				//短暂加入黑名单5分钟
+				//n.nodeInfo.blacklist.Add(paddr, int64(60*5))
 			}
 
 		}
@@ -310,6 +411,7 @@ func (n *Node) monitorPeerInfo() {
 func (n *Node) monitorDialPeers() {
 	var dialCount int
 	addrChan := pub.Sub("addr")
+	p2pcli := NewNormalP2PCli()
 	for addr := range addrChan {
 
 		if n.isClose() {
@@ -331,43 +433,67 @@ func (n *Node) monitorDialPeers() {
 		}
 
 		//不对已经连接上的地址或者黑名单地址发起连接
-		if n.Has(netAddr.String()) || n.nodeInfo.blacklist.Has(netAddr.String()) {
+		if n.Has(netAddr.String()) || n.nodeInfo.blacklist.Has(netAddr.String()) || n.HasCacheBound(netAddr.String()) {
 			log.Debug("DialPeers", "find hash", netAddr.String())
 			continue
 		}
 
 		//注册的节点超过最大节点数暂不连接
-		if !n.needMore() || len(n.GetRegisterPeers()) > maxOutBoundNum {
+		if !n.needMore() && n.CacheBoundsSize() >= maxOutBoundNum {
 			pub.FIFOPub(addr, "addr")
 			time.Sleep(time.Second * 10)
 			continue
 		}
+
 		log.Info("DialPeers", "peer", netAddr.String())
 		//并发连接节点，增加连接效率
-		if dialCount >= maxOutBoundNum {
+		if dialCount >= maxOutBoundNum*2 {
 			pub.FIFOPub(addr, "addr")
 			time.Sleep(time.Second * 10)
-			dialCount = len(n.GetRegisterPeers())
+			dialCount = len(n.GetRegisterPeers()) + n.CacheBoundsSize()
 			continue
 		}
-
 		dialCount++
-
 		//把待连接的节点增加到过滤容器中
 		Filter.RegRecvData(addr.(string))
+		log.Info("monitorDialPeer", "dialCount", dialCount)
 		go func(netAddr *NetAddress) {
-
 			defer Filter.RemoveRecvData(netAddr.String())
 			peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
 			if err != nil {
 				//连接失败后
+				n.nodeInfo.addrBook.RemoveAddr(netAddr.String())
 				log.Error("monitorDialPeers", "Err", err.Error())
 				if err == types.ErrVersion { //版本不支持，加入黑名单12小时
-					n.nodeInfo.blacklist.Add(netAddr.String(), int64(3600*12))
+					peer.version.SetSupport(false)
+					P2pComm.CollectPeerStat(err, peer)
 					return
 				}
 				//其他原因，黑名单10分钟
+				if peer != nil {
+					peer.Close()
+				}
 				n.nodeInfo.blacklist.Add(netAddr.String(), int64(60*10))
+				return
+			}
+			//查询远程节点的负载
+			inbounds, err := p2pcli.GetInPeersNum(peer)
+			if err != nil {
+				peer.Close()
+				return
+			}
+			//判断负载情况,负载达到额定90%，负载过大，就删除节点
+			if int32(inbounds*100)/n.nodeInfo.cfg.InnerBounds > 90 {
+				peer.Close()
+				return
+			}
+			//注册的节点超过最大节点数暂不连接
+			if len(n.GetRegisterPeers()) >= maxOutBoundNum {
+				if n.CacheBoundsSize() < maxOutBoundNum {
+					n.AddCachePeer(peer)
+				} else {
+					peer.Close()
+				}
 				return
 			}
 
