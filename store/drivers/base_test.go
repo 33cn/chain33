@@ -13,9 +13,6 @@ import (
 
 var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100}
 var store_cfg1 = &types.Store{"base_test", "leveldb", "/tmp/base_test1", 100}
-var store_cfg2 = &types.Store{"base_test", "leveldb", "/tmp/base_test2", 100}
-var store_cfg3 = &types.Store{"base_test", "leveldb", "/tmp/base_test3", 100}
-var store_cfg4 = &types.Store{"base_test", "leveldb", "/tmp/base_test4", 100}
 
 type storeChild struct {
 }
