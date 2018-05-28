@@ -209,9 +209,16 @@ func isAllowExec(key, txexecer []byte, toaddr string) bool {
 	if ok && execaddr == account.ExecAddress(string(txexecer)) {
 		return true
 	}
+	//特殊化处理一下
+	//TODO 加上fork
 	//manage 的key 是 config
 	if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
 		return true
+	}
+	if bytes.Equal(txexecer, types.ExecerToken) {
+		if bytes.HasPrefix(key, []byte("mavl-create-token-")) {
+			return true
+		}
 	}
 	return false
 }

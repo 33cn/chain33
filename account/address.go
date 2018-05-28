@@ -65,6 +65,9 @@ func From(tx *types.Transaction) *Address {
 
 func CheckAddress(addr string) (e error) {
 	if value, ok := checkAddressCache.Get(addr); ok {
+		if value == nil {
+			return nil
+		}
 		return value.(error)
 	}
 	dec := base58.Decode(addr)
