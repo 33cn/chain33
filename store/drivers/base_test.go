@@ -3,22 +3,20 @@ package drivers
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"os"
-	"github.com/stretchr/testify/assert"
 )
 
-var store_cfg0 = &types.Store{ "base_test", "leveldb", "/tmp/base_test0", 100,}
-var store_cfg1 = &types.Store{ "base_test", "leveldb", "/tmp/base_test1", 100,}
-var store_cfg2 = &types.Store{ "base_test", "leveldb", "/tmp/base_test2", 100,}
-var store_cfg3 = &types.Store{ "base_test", "leveldb", "/tmp/base_test3", 100,}
-var store_cfg4 = &types.Store{ "base_test", "leveldb", "/tmp/base_test4", 100,}
-
+var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100}
+var store_cfg1 = &types.Store{"base_test", "leveldb", "/tmp/base_test1", 100}
+var store_cfg2 = &types.Store{"base_test", "leveldb", "/tmp/base_test2", 100}
+var store_cfg3 = &types.Store{"base_test", "leveldb", "/tmp/base_test3", 100}
+var store_cfg4 = &types.Store{"base_test", "leveldb", "/tmp/base_test4", 100}
 
 type storeChild struct {
-
 }
 
 func (s *storeChild) Set(datas *types.StoreSet, sync bool) []byte {
@@ -37,7 +35,7 @@ func (s *storeChild) Commit(hash *types.ReqHash) []byte {
 	return []byte("")
 }
 
-func (s *storeChild) Rollback(req *types.ReqHash) []byte  {
+func (s *storeChild) Rollback(req *types.ReqHash) []byte {
 	return []byte("")
 }
 
@@ -97,7 +95,6 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreGetReply), resp.Ty)
-
 
 	memset := set
 	msg = queueClinet.NewMessage("store", types.EventStoreMemSet, memset)

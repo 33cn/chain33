@@ -1,17 +1,16 @@
 package kvdb
 
 import (
-
-	"testing"
-	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/types"
 	"os"
+	"testing"
 )
 
-var store_cfg0 = &types.Store{ "kvdb_test", "leveldb", "/tmp/kvdb_test0", 100,}
-var store_cfg1 = &types.Store{ "kvdb_test", "leveldb", "/tmp/kvdb_test1", 100,}
-var store_cfg2 = &types.Store{ "kvdb_test", "leveldb", "/tmp/kvdb_test2", 100,}
-var store_cfg3 = &types.Store{ "kvdb_test", "leveldb", "/tmp/kvdb_test3", 100,}
+var store_cfg0 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test0", 100}
+var store_cfg1 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test1", 100}
+var store_cfg2 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test2", 100}
+var store_cfg3 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test3", 100}
 
 func TestKvdbNewClose(t *testing.T) {
 	os.RemoveAll(store_cfg0.DbPath)
@@ -34,7 +33,6 @@ func TestKvddbSetGet(t *testing.T) {
 	assert.Len(t, values0, 2)
 	assert.Equal(t, []byte(nil), values0[0])
 	assert.Equal(t, []byte(nil), values0[1])
-
 
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{[]byte("k1"), []byte("v1")})
@@ -68,7 +66,6 @@ func TestKvdbMemSet(t *testing.T) {
 	os.RemoveAll(store_cfg2.DbPath)
 	store := New(store_cfg2)
 	assert.NotNil(t, store)
-
 
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
