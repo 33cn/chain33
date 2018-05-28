@@ -3,10 +3,10 @@ package token
 import "fmt"
 
 const (
-	tokenCreated       = "mavl-token-"
-	tokenPreCreatedOT  = "mavl-create-token-ot-"
-	tokenPreCreatedSTO = "mavl-create-token-sto-"
-	tokenPreCreatedOTNew = "mavl-token-create-ot-"
+	tokenCreated          = "mavl-token-"
+	tokenPreCreatedOT     = "mavl-create-token-ot-"
+	tokenPreCreatedSTO    = "mavl-create-token-sto-"
+	tokenPreCreatedOTNew  = "mavl-token-create-ot-"
 	tokenPreCreatedSTONew = "mavl-token-create-sto-"
 )
 
@@ -45,4 +45,3 @@ func calcTokenStatusKeyNewPrefix(status int32) []byte {
 func calcTokenStatusSymbolNewPrefix(status int32, token string) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d-%s-", status, token))
 }
-
