@@ -4,12 +4,14 @@ import (
 	"math/big"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	"sort"
 	"bytes"
+	"sort"
+
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 type ByteSlice []byte
+
 func (p ByteSlice) Len() int           { return len(p) }
 func (p ByteSlice) Less(i, j int) bool { return p[i] < p[j] }
 func (p ByteSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
@@ -106,6 +108,7 @@ func TestCompactToBigBigNegative(t *testing.T) {
 		t.Error("Different big int ")
 	}
 }
+
 /////////////////////////////////////////////////////////////////
 func TestBigToCompactBigNegative(t *testing.T) {
 	bn := big.NewInt(int64(0xff0000))
@@ -152,13 +155,12 @@ func TestCalcWorkNegative(t *testing.T) {
 
 func TestCalcWork(t *testing.T) {
 	bigint := CalcWork(uint32(0x0400ff00))
-    byteInfo := bigint.Bytes()
+	byteInfo := bigint.Bytes()
 	len := len(byteInfo)
-	expectres := []byte{0x01, 0x01,0x00,0xff,0xfe,0xfd,0xfd,0xff,0x01,0x03,
-	0x04,0x02,0xff,0xfb,0xf8,0xf8,0xfd,0x04,0x0b,0x0e,0x09,0xfe,0xf0,0xe6,0xe7,0xf7,0x10,0x28,0x31,0x20}
+	expectres := []byte{0x01, 0x01, 0x00, 0xff, 0xfe, 0xfd, 0xfd, 0xff, 0x01, 0x03,
+		0x04, 0x02, 0xff, 0xfb, 0xf8, 0xf8, 0xfd, 0x04, 0x0b, 0x0e, 0x09, 0xfe, 0xf0, 0xe6, 0xe7, 0xf7, 0x10, 0x28, 0x31, 0x20}
 
 	if len != 30 || !bytes.Equal(expectres, byteInfo) {
 		t.Errorf("Failed to do CalcWork for uint32:0x%x", 0x0400ff00)
 	}
 }
-
