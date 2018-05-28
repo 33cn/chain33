@@ -185,7 +185,7 @@ func GetExecAddr(exec string) (string, error) {
 	switch exec {
 	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
 		addrResult := account.ExecAddress(exec)
-		result := addrResult.String()
+		result := addrResult
 		return result, nil
 	default:
 		return "", errors.New("only none, coins, hashlock, retrieve, ticket, token, trade supported")
