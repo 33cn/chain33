@@ -185,7 +185,6 @@ func (rc *raftNode) serveRaft() {
 	err = (&http.Server{Handler: rc.transport.Handler()}).Serve(ln)
 	if err != nil {
 		rlog.Error(fmt.Sprintf("raft: Failed to serve rafthttp (%v)", err.Error()))
-		panic(err)
 	}
 	select {
 	case <-rc.httpstopc:
