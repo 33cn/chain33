@@ -66,7 +66,7 @@ func configTx(cmd *cobra.Command, args []string) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 
-	tx.To = account.ExecAddress("manage").String()
+	tx.To = account.ExecAddress("manage")
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)

@@ -305,7 +305,7 @@ func getMinerSourceList(addr string) ([]string, error) {
 
 func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
 	if to == "" {
-		to = account.ExecAddress(string(execer)).String()
+		to = account.ExecAddress(string(execer))
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
 	tx.Nonce = random.Int63()

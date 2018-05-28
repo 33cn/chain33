@@ -179,7 +179,6 @@ func main() {
 				Lo: &pb.Point{Latitude: 400000000, Longitude: -750000000},
 				Hi: &pb.Point{Latitude: 420000000, Longitude: -730000000},
 			})
-
 			time.Sleep(100 * time.Second)
 		}
 	}()
