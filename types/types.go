@@ -116,6 +116,20 @@ func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }
 
+var ManagePrefix = "mavl-manage"
+
+func ManageKey(key string) string {
+	return fmt.Sprintf("%s-%s", ManagePrefix, key)
+}
+
+func ManaeKeyWithHeigh(key string, height int64) string {
+	if height >= ForkV13ExecKey {
+		return ManageKey(key)
+	} else {
+		return ConfigKey(key)
+	}
+}
+
 type ReceiptDataResult struct {
 	Ty     int32               `json:"ty"`
 	TyName string              `json:"tyname"`
