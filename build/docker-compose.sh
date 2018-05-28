@@ -74,7 +74,7 @@ fi
 sleep 2
 
 echo "=========== # import private key transfer ============="
-result=$(./chain33-cli account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l transfer | jq ".label")
+result=$(./chain33-cli account import_key -k 56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138 -l transfer | jq ".label")
 echo ${result}
 if [ -z "${result}" ]; then
     exit 1
@@ -90,6 +90,49 @@ if [ -z "${result}" ]; then
 fi
 
 sleep 2
+
+echo "=========== # transfer ============="
+sleep 60
+#before=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e coins | jq ".balance")
+hashes=()
+for((i=0;i<10;i++))
+do
+    hash=$(./chain33-cli send bty transfer -a 1 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k 56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138)
+    hashes=(${hashes[*]} $hash)
+    sleep 1
+done
+echo ${hashes[@]}
+if [ ${#hashes[*]} != 10 ]; then
+    echo tx number wrong
+    exit 1
+fi
+sleep 30
+for((i=0;i<${#hashes[*]};i++))
+do
+    txs=$(./chain33-cli tx query_hash -s ${hashes} | jq ".txs")
+    if [ -z "${txs}" ]; then
+        echo cannot find tx
+        exit 1
+    fi
+done
+
+sleep 2
+
+echo "=========== # withdraw ============="
+before=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e ticket | jq ".balance")
+before=$(echo $before | bc)
+if [ ${before} == 0.0000 ]; then
+    echo "wrong ticket balance, should not be zero"
+    exit 1
+fi
+./chain33-cli ticket close
+sleep 60
+after=$(./chain33-cli account balance -a 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -e ticket | jq ".balance")
+after=$(echo $after | bc)
+if [ ${after} != 0.0000 ]; then
+    echo "wrong ticket balance, should be zero"
+    exit 1
+fi
 
 echo "=========== # set auto mining ============="
 result=$(./chain33-cli wallet auto_mine -f 1 | jq ".isok")
@@ -120,48 +163,8 @@ fi
 ./chain33-cli mempool list
 #./chain33-cli mempool last_txs
 
-sleep 2
 
-echo "=========== # transfer ============="
-sleep 60
-hashes=()
-for((i=0;i<10;i++))
-do
-    hash=$(./chain33-cli send bty transfer -a 1 -n test -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
-    hashes=(${hashes[*]} $hash)
-    sleep 1
-done
-echo ${hashes[@]}
-if [ ${#hashes[*]} != 10 ]; then
-    echo tx number wrong
-    exit 1
-fi
-sleep 30
-for((i=0;i<${#hashes[*]};i++))
-do
-    txs=$(./chain33-cli tx query_hash -s ${hashes} | jq ".txs")
-    if [ -z "${txs}" ]; then
-        echo cannot find tx
-        exit 1
-    fi
-done
 
-sleep 2
 
-echo "=========== # withdraw ============="
-./chain33-cli send bty transfer -a 2 -n test -t 16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944
-sleep 30
-before=$(./chain33-cli account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e ticket | jq ".balance")
-before=$(echo $before | bc)
-if [ ${before} == 0.0000 ]; then
-    echo "wrong ticket balance, should not be zero"
-    exit 1
-fi
-./chain33-cli send bty withdraw -a 1 -n withdraw -e ticket -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944
-sleep 30
-after=$(./chain33-cli account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e ticket | jq ".balance")
-after=$(echo $after | bc)
-if [ ${after} != 0.0000 ]; then
-    echo "wrong ticket balance, should be zero"
-    exit 1
-fi
+
+
