@@ -1,5 +1,5 @@
 // ci server: http://47.97.200.227:8080
-// user/pass: ci/ci
+// user/pass: jenkins/33fuzamei123
 
 pipeline {
     agent any

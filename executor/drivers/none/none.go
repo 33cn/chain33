@@ -9,15 +9,14 @@ import (
 )
 
 func Init() {
-	n := newNone()
-	drivers.Register(n.GetName(), n, 0)
+	drivers.Register(newNone().GetName(), newNone, 0)
 }
 
 type None struct {
 	drivers.DriverBase
 }
 
-func newNone() *None {
+func newNone() drivers.Driver {
 	n := &None{}
 	n.SetChild(n)
 	return n
@@ -25,11 +24,4 @@ func newNone() *None {
 
 func (n *None) GetName() string {
 	return "none"
-}
-
-func (n *None) Clone() drivers.Driver {
-	clone := &None{}
-	clone.DriverBase = *(n.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
 }

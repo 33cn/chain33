@@ -16,6 +16,16 @@ func (m *mockStore) SetQueueClient(q queue.Queue) {
 			switch msg.Ty {
 			case types.EventStoreGet:
 				msg.Reply(client.NewMessage("store", types.EventStoreGetReply, &types.StoreReplyValue{}))
+			case types.EventStoreGetTotalCoins:
+				if req, ok := msg.GetData().(*types.IterateRangeByStateHash); ok {
+					if req.Count == 10 {
+						msg.Reply(client.NewMessage("store", types.EventStoreGetReply, &types.Transaction{}))
+					} else {
+						msg.Reply(client.NewMessage("store", types.EventStoreGetReply, &types.ReplyGetTotalCoins{}))
+					}
+				} else {
+					msg.ReplyErr("Do not support", types.ErrInvalidParam)
+				}
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
