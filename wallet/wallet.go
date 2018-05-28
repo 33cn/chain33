@@ -1778,7 +1778,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
 	if !wallet.IsTicketLocked() {
-		if addr == account.ExecAddress("ticket").String() {
+		if addr == account.ExecAddress("ticket") {
 			return true, nil
 		}
 	}
