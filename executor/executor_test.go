@@ -64,7 +64,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = random.Int63()
-	tx.To = account.ExecAddress("none").String()
+	tx.To = account.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -149,7 +149,7 @@ func TestLoadDriver(t *testing.T) {
 func TestKeyAllow(t *testing.T) {
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
-	if !isAllowExec(key, exec, account.ExecAddress("retrieve").String()) {
+	if !isAllowExec(key, exec, account.ExecAddress("retrieve")) {
 		t.Error("retrieve can modify exec")
 	}
 }

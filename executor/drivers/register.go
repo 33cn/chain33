@@ -81,5 +81,5 @@ func ExecAddress(name string) string {
 	if addr, ok := execAddressNameMap[name]; ok {
 		return addr
 	}
-	return account.ExecAddress(name).String()
+	return account.ExecAddress(name)
 }
