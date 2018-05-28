@@ -47,8 +47,8 @@ func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
-func (client *RaftClient) ProcEvent(msg queue.Message) {
-
+func (client *RaftClient) ProcEvent(msg queue.Message) bool {
+	return false
 }
 
 func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
@@ -60,9 +60,9 @@ func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 	if err != nil { //never happen
 		return nil, deltx, err
 	}
-	if len(blockdetail.Block.Txs) == 0 {
-		return nil, deltx, types.ErrNoTx
-	}
+	//if len(blockdetail.Block.Txs) == 0 {
+	//return nil, deltx, types.ErrNoTx
+	//}
 	return blockdetail, deltx, nil
 }
 func (client *RaftClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
@@ -127,16 +127,63 @@ func (client *RaftClient) InitBlock() {
 
 func (client *RaftClient) CreateBlock() {
 	issleep := true
+	retry := 0
+	infoflag := 0
+	count := 0
+
+	//打包区块前先同步到最大高度
+	time.Sleep(5 * time.Second)
+	for {
+		if client.IsCaughtUp() {
+			rlog.Info("Leader has caught up the max height")
+			break
+		}
+		retry++
+		time.Sleep(time.Second)
+		if retry >= 600 {
+			panic("This node encounter problem, exit.")
+		}
+	}
+
 	for {
 		//如果leader节点突然挂了，不是打包节点，需要退出
 		if !isLeader {
-			rlog.Warn("I'm not the validator node anymore,exit.=============================")
+			rlog.Warn("I'm not the validator node anymore, exit.=============================")
 			break
 		}
-		rlog.Info("==================This is Leader node=====================")
+		infoflag++
+		if infoflag >= 3 {
+			rlog.Info("==================This is Leader node=====================")
+			infoflag = 0
+		}
 		if issleep {
 			time.Sleep(10 * time.Second)
+			count++
 		}
+
+		if count >= 12 {
+			rlog.Info("Create an empty block")
+			block := client.GetCurrentBlock()
+			emptyBlock := &types.Block{}
+			emptyBlock.StateHash = block.StateHash
+			emptyBlock.ParentHash = block.Hash()
+			emptyBlock.Height = block.Height + 1
+			emptyBlock.Txs = nil
+			emptyBlock.TxHash = zeroHash[:]
+			emptyBlock.BlockTime = time.Now().Unix()
+
+			entry := emptyBlock
+			client.propose(entry)
+
+			er := client.WriteBlock(block.StateHash, emptyBlock)
+			if er != nil {
+				rlog.Error(fmt.Sprintf("********************err:%v", er.Error()))
+				continue
+			}
+			client.SetCurrentBlock(emptyBlock)
+			count = 0
+		}
+
 		lastBlock := client.GetCurrentBlock()
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
@@ -144,6 +191,7 @@ func (client *RaftClient) CreateBlock() {
 			continue
 		}
 		issleep = false
+		count = 0
 		rlog.Debug("==================start create new block!=====================")
 		//check dup
 		//txs = client.CheckTxDup(txs)
@@ -158,16 +206,16 @@ func (client *RaftClient) CreateBlock() {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 
+		blockEntry := newblock
+		client.propose(&blockEntry)
+
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			issleep = true
 			rlog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 			continue
 		}
-
-		client.propose(&newblock)
-		time.Sleep(100 * time.Millisecond)
-
+		time.Sleep(time.Second)
 	}
 }
 

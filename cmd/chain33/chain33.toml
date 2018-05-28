@@ -1,4 +1,5 @@
 Title="chain33"
+TestNet=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -34,18 +35,19 @@ singleMode=false
 batchsync=false
 
 [p2p]
-seeds=["192.168.3.13:13802","192.168.3.48:13802","192.168.3.29:13802","192.168.3.30:13802"]
+seeds=[]
 enable=true
 isSeed=true
 serverStart=true
+innerSeedEnable=true
+useGithub=true
+innerBounds=300
 msgCacheSize=10240
 driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-version=199
-verMix=199
-verMax=199
+
 
 [rpc]
 jrpcBindAddr="localhost:8801"

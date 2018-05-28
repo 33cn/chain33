@@ -134,34 +134,41 @@ func isCompressSupport(err error) bool {
 	return true
 }
 
-func (na *NetAddress) DialTimeout(cfg grpc.ServiceConfig, version int32) (*grpc.ClientConn, error) {
+func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	ch := make(chan grpc.ServiceConfig, 1)
-	ch <- cfg
+	ch <- P2pComm.GrpcConfig()
+
 	var cliparm keepalive.ClientParameters
 	cliparm.Time = 10 * time.Second    //10秒Ping 一次
 	cliparm.Timeout = 10 * time.Second //等待10秒，如果Ping 没有响应，则超时
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
-
-	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch),
-		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), keepaliveOp)
+	timeoutOp := grpc.WithTimeout(time.Second * 3)
+	log.Debug("NetAddress", "Dial", na.String())
+	conn, err := grpc.Dial(na.String(), grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")), grpc.WithServiceConfig(ch), keepaliveOp, timeoutOp)
 	if err != nil {
-		log.Error("grpc DialCon", "did not connect", err)
+		log.Debug("grpc DialCon", "did not connect", err, "addr", na.String())
 		return nil, err
 	}
 	//判断是否对方是否支持压缩
 	cli := pb.NewP2PgserviceClient(conn)
-	_, err = cli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: version})
+	_, err = cli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: version}, grpc.FailFast(true))
 	if err != nil && !isCompressSupport(err) {
 		//compress not support
-		log.Error("compress not supprot , rollback to uncompress version")
+		log.Error("compress not supprot , rollback to uncompress version", "addr", na.String())
 		conn.Close()
 		ch2 := make(chan grpc.ServiceConfig, 1)
-		ch2 <- cfg
-		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch2), keepaliveOp)
+		ch2 <- P2pComm.GrpcConfig()
+		log.Debug("NetAddress", "Dial with unCompressor", na.String())
+		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch2), keepaliveOp, timeoutOp)
 	}
+
 	if err != nil {
-		log.Error("grpc DialCon", "did not connect", err)
+		log.Debug("grpc DialCon Uncompressor", "did not connect", err)
+		if conn != nil {
+			conn.Close()
+		}
 		return nil, err
 	}
 	return conn, nil

@@ -22,16 +22,15 @@ import (
 
 var clog = log.New("module", "execs.ticket")
 
-func init() {
-	t := newTicket()
-	drivers.Register(t.GetName(), t, 0)
+func Init() {
+	drivers.Register(newTicket().GetName(), newTicket, 0)
 }
 
 type Ticket struct {
 	drivers.DriverBase
 }
 
-func newTicket() *Ticket {
+func newTicket() drivers.Driver {
 	t := &Ticket{}
 	t.SetChild(t)
 	return t
@@ -39,13 +38,6 @@ func newTicket() *Ticket {
 
 func (t *Ticket) GetName() string {
 	return "ticket"
-}
-
-func (t *Ticket) Clone() drivers.Driver {
-	clone := &Ticket{}
-	clone.DriverBase = *(t.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
 }
 
 func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

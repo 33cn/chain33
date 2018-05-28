@@ -13,6 +13,7 @@ message Config {
 	P2P p2p = 9;
 	Rpc rpc = 10;
 	Exec exec = 11;
+	bool testNet=12;
 }
 
 message Log {
@@ -114,6 +115,9 @@ message P2P {
 	int32 version = 11;
 	int32 verMix = 12;
 	int32 verMax = 13;
+	bool  innerSeedEnable=14;
+	int32 innerBounds=15;
+	bool  useGithub=16;
 }
 
 message Rpc {

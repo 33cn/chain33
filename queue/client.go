@@ -32,7 +32,6 @@ type Client interface {
 	Sub(topic string) //订阅消息
 	Close()
 	NewMessage(topic string, ty int64, data interface{}) (msg Message)
-	Clone() Client
 }
 
 /// Module be used for module interface
@@ -59,15 +58,14 @@ func newClient(q *queue) Client {
 	return client
 }
 
-/// Clone clone new client for queue
-func (client *client) Clone() Client {
-	return newClient(client.q)
-}
-
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃
 //2. 系统保证每个消息都有对应的 response 消息
 func (client *client) Send(msg Message, waitReply bool) (err error) {
-	err = client.SendTimeout(msg, waitReply, time.Second*60)
+	timeout := 10 * time.Minute
+	if types.IsTestNet() {
+		timeout = time.Minute
+	}
+	err = client.SendTimeout(msg, waitReply, timeout)
 	if err == types.ErrTimeout {
 		panic(err)
 	}
@@ -111,7 +109,11 @@ func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, 
 }
 
 func (client *client) Wait(msg Message) (Message, error) {
-	msg, err := client.WaitTimeout(msg, 120*time.Second)
+	timeout := 10 * time.Minute
+	if types.IsTestNet() {
+		timeout = 5 * time.Minute
+	}
+	msg, err := client.WaitTimeout(msg, timeout)
 	if err == types.ErrTimeout {
 		panic(err)
 	}

@@ -9,10 +9,10 @@ import (
 	"net/rpc/jsonrpc"
 	"strings"
 
+	"google.golang.org/grpc"
+
 	"github.com/rs/cors"
 	pb "gitlab.33.cn/chain33/chain33/types"
-
-	"google.golang.org/grpc"
 )
 
 // adapt HTTP connection to ReadWriteCloser
@@ -57,6 +57,7 @@ func (j *JSONRPCServer) Listen() {
 
 		if r.URL.Path == "/" {
 			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w, r: r})
+			w.Header().Set("Content-type", "application/json")
 			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 				w.Header().Set("Content-Encoding", "gzip")
 			}

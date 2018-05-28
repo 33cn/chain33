@@ -66,8 +66,8 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 	//循环遍历所有的账户-->保证钱包已经解锁
 	var tickets []*types.Ticket
 	var privs [][]byte
-	for _, account := range accounts.Wallets {
-		t, err := wallet.getTickets(account.Acc.Addr, status)
+	for _, acc := range accounts.Wallets {
+		t, err := wallet.getTickets(acc.Acc.Addr, status)
 		if err == types.ErrNotFound {
 			continue
 		}
@@ -75,7 +75,7 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 			return nil, nil, err
 		}
 		if t != nil {
-			priv, err := wallet.getPrivKeyByAddr(account.Acc.Addr)
+			priv, err := wallet.getPrivKeyByAddr(acc.Acc.Addr)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -101,8 +101,8 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 		return nil, err
 	}
 	var privs []crypto.PrivKey
-	for _, account := range accounts.Wallets {
-		priv, err := wallet.getPrivKeyByAddr(account.Acc.Addr)
+	for _, acc := range accounts.Wallets {
+		priv, err := wallet.getPrivKeyByAddr(acc.Acc.Addr)
 		if err != nil {
 			return nil, err
 		}
@@ -482,7 +482,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
 	} else {
 		transfer := &types.TokenAction{}
 		if amount > 0 {
@@ -494,9 +494,14 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: wallet.getFee(), To: addrto, Nonce: wallet.random.Int63()}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
 	}
 	tx.SetExpire(time.Second * 120)
+	fee, err := tx.GetRealFee(wallet.getFee())
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee = fee
 	tx.Sign(int32(SignType), priv)
 
 	//发送交易信息给mempool模块
@@ -528,7 +533,7 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := accountdb.LoadAccounts(wallet.client, exaddrs)
+		accounts, err := accountdb.LoadAccounts(wallet.api, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -539,12 +544,12 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			account, err := accountdb.LoadExecAccountQueue(wallet.client, addr, execaddress.String())
+			acc, err := accountdb.LoadExecAccountQueue(wallet.api, addr, execaddress.String())
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
 			}
-			accounts = append(accounts, account)
+			accounts = append(accounts, acc)
 		}
 		return accounts, nil
 	}

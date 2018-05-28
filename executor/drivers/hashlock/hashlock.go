@@ -14,16 +14,15 @@ var clog = log.New("module", "execs.hashlock")
 
 const minLockTime = 60
 
-func init() {
-	h := newHashlock()
-	drivers.Register(h.GetName(), h, 0)
+func Init() {
+	drivers.Register(newHashlock().GetName(), newHashlock, 0)
 }
 
 type Hashlock struct {
 	drivers.DriverBase
 }
 
-func newHashlock() *Hashlock {
+func newHashlock() drivers.Driver {
 	h := &Hashlock{}
 	h.SetChild(h)
 	return h
@@ -31,13 +30,6 @@ func newHashlock() *Hashlock {
 
 func (h *Hashlock) GetName() string {
 	return "hashlock"
-}
-
-func (h *Hashlock) Clone() drivers.Driver {
-	clone := &Hashlock{}
-	clone.DriverBase = *(h.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
 }
 
 func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
