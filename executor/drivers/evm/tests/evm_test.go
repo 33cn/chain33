@@ -1,21 +1,21 @@
 package tests
 
 import (
-	"testing"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"encoding/hex"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
-	"path/filepath"
-	"os"
-	"io/ioutil"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	"gitlab.33.cn/chain33/chain33/types"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
 func TestVM(t *testing.T) {
@@ -31,30 +31,12 @@ func TestVM(t *testing.T) {
 	runTestCase(t, basePath)
 
 	//清空测试用例
-	defer  clearTestCase(basePath)
+	defer clearTestCase(basePath)
 }
 
-func TestOneOp(t *testing.T) {
-	path := "testdata/mathTest/test.json"
-	raw, err := ioutil.ReadFile(path)
-	if err != nil {
-		fmt.Println(err.Error())
-		t.FailNow()
-	}
-
-	var data interface{}
-	json.Unmarshal(raw, &data)
-
-	cases := parseData(data.(map[string]interface{}))
-	for _,c := range cases {
-		runCase(t, c, path)
-	}
-}
-
-
-func runTestCase(t *testing.T, basePath string)  {
+func runTestCase(t *testing.T, basePath string) {
 	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
-		if path == basePath || !info.IsDir(){
+		if path == basePath || !info.IsDir() {
 			return nil
 		}
 		runDir(t, path)
@@ -64,12 +46,12 @@ func runTestCase(t *testing.T, basePath string)  {
 
 func runDir(tt *testing.T, basePath string) {
 	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir(){
+		if info.IsDir() {
 			return nil
 		}
 		baseName := info.Name()
 
-		if baseName[:5] == "data_" || baseName[:4] == "tpl_" || filepath.Ext(path) != ".json"{
+		if baseName[:5] == "data_" || baseName[:4] == "tpl_" || filepath.Ext(path) != ".json" {
 			return nil
 		}
 
@@ -83,7 +65,7 @@ func runDir(tt *testing.T, basePath string) {
 		json.Unmarshal(raw, &data)
 
 		cases := parseData(data.(map[string]interface{}))
-		for _,c := range cases {
+		for _, c := range cases {
 			// 每个测试用例，单独起子任务测试
 			tt.Run(c.name, func(t *testing.T) {
 				runCase(t, c, baseName)
@@ -94,15 +76,15 @@ func runDir(tt *testing.T, basePath string) {
 	})
 }
 
-func runCase(tt *testing.T, c VMCase, file string)  {
-	tt.Logf("runing test case:%s in file:%s",c.name, file)
+func runCase(tt *testing.T, c VMCase, file string) {
+	tt.Logf("runing test case:%s in file:%s", c.name, file)
 
 	// 1 构建预置环境 pre
 	inst := evm.NewEVMExecutor()
-	inst.SetEnv(c.env.currentNumber,c.env.currentTimestamp, c.env.currentCoinbase, uint64(c.env.currentDifficulty))
+	inst.SetEnv(c.env.currentNumber, c.env.currentTimestamp, c.env.currentCoinbase, uint64(c.env.currentDifficulty))
 	statedb := inst.GetMStateDB()
 	mdb := createStateDB(statedb, c)
-	statedb.StateDB=mdb
+	statedb.StateDB = mdb
 	statedb.CoinsAccount = account.NewCoinsAccount()
 	statedb.CoinsAccount.SetDB(statedb.StateDB)
 
@@ -121,19 +103,19 @@ func runCase(tt *testing.T, c VMCase, file string)  {
 	)
 
 	if len(c.exec.address) > 0 {
-		ret,_,_,err = env.Call(runtime.AccountRef(msg.From()),*common.StringToAddress(c.exec.address), msg.Data(), msg.GasLimit(), msg.Value())
-	}else{
+		ret, _, _, err = env.Call(runtime.AccountRef(msg.From()), *common.StringToAddress(c.exec.address), msg.Data(), msg.GasLimit(), msg.Value())
+	} else {
 		addr := crypto.RandomContractAddress()
-		ret,_,_,err =  env.Create(runtime.AccountRef(msg.From()),*addr, msg.Data(), msg.GasLimit(), "testExecName")
+		ret, _, _, err = env.Create(runtime.AccountRef(msg.From()), *addr, msg.Data(), msg.GasLimit(), "testExecName")
 	}
 
 	if err != nil {
 		// 合约执行出错的情况下，判断错误是否相同，如果相同，则返回，不判断post
 		if len(c.err) > 0 && c.err == err.Error() {
 			return
-		}else{
+		} else {
 			// 非意料情况下的出错，视为错误
-			tt.Errorf("test case:%s, failed:%s",c.name, err)
+			tt.Errorf("test case:%s, failed:%s", c.name, err)
 			tt.Fail()
 			return
 		}
@@ -141,16 +123,16 @@ func runCase(tt *testing.T, c VMCase, file string)  {
 	// 4 检查执行结果 post (注意，这里不检查Gas具体扣费数额，因为计费规则不一样，值检查执行结果是否正确)
 	t := NewTester(tt)
 	// 4.1 返回结果
-	t.assertEqualsB(ret,getBin(c.out))
+	t.assertEqualsB(ret, getBin(c.out))
 
 	// 4.2 账户余额以及数据
-	for k,v := range c.post {
+	for k, v := range c.post {
 		t.assertEqualsV(int(statedb.GetBalance(*common.StringToAddress(k))), int(v.balance))
 
 		t.assertEqualsB(statedb.GetCode(*common.StringToAddress(k)), getBin(v.code))
 
-		for a,b := range v.storage {
-			if len(a) <1 || len(b) <1 {
+		for a, b := range v.storage {
+			if len(a) < 1 || len(b) < 1 {
 				continue
 			}
 			hashKey := common.BytesToHash(getBin(a))
@@ -160,19 +142,18 @@ func runCase(tt *testing.T, c VMCase, file string)  {
 	}
 }
 
-
 // 使用预先设置的数据构建测试环境数据库
 func createStateDB(msdb *state.MemoryStateDB, c VMCase) *db.GoMemDB {
 	// 替换statedb中的数据库，获取测试需要的数据
-	mdb,_ := db.NewGoMemDB("test","",0)
+	mdb, _ := db.NewGoMemDB("test", "", 0)
 	// 构建预置的账户信息
-	for k,v := range c.pre {
+	for k, v := range c.pre {
 		// 写coins账户
-		ac := &types.Account{Addr:k, Balance:v.balance}
+		ac := &types.Account{Addr: k, Balance: v.balance}
 		addAccount(mdb, ac)
 
 		// 写合约账户
-		addContractAccount(msdb,mdb,k,v)
+		addContractAccount(msdb, mdb, k, v)
 	}
 
 	// 清空MemoryStateDB中的日志
@@ -183,7 +164,7 @@ func createStateDB(msdb *state.MemoryStateDB, c VMCase) *db.GoMemDB {
 
 // 使用测试输入信息构建交易
 func buildMsg(c VMCase) *common.Message {
-	code,_:= hex.DecodeString(c.exec.code)
+	code, _ := hex.DecodeString(c.exec.code)
 	addr1 := common.StringToAddress(c.exec.caller)
 	addr2 := common.StringToAddress(c.exec.address)
 	gasLimit := uint64(210000000)

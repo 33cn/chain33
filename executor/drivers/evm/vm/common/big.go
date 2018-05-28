@@ -174,7 +174,7 @@ func SafeMul(x, y uint64) (uint64, bool) {
 }
 
 func Zero(value *big.Int) bool {
-	if value == nil || value.Sign() ==0 {
+	if value == nil || value.Sign() == 0 {
 		return true
 	}
 	return false

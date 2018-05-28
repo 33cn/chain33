@@ -3,16 +3,15 @@ package commands
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet"
 	"math/rand"
 	"os"
 	"time"
-	"github.com/golang/protobuf/proto"
 )
 
 func EvmCmd() *cobra.Command {
@@ -53,6 +52,8 @@ func createContract(cmd *cobra.Command, args []string) {
 	expire, _ := cmd.Flags().GetString("expire")
 	note, _ := cmd.Flags().GetString("note")
 	fee, _ := cmd.Flags().GetFloat64("fee")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+
 	feeInt64 := uint64(fee*1e4) * 1e4
 
 	bCode, err := common.FromHex(code)
@@ -62,14 +63,13 @@ func createContract(cmd *cobra.Command, args []string) {
 	}
 	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
 
-	data, err := createEvmTx(&action, key, "", expire, feeInt64)
+	data, err := createEvmTx(&action, key, "", expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract error:", err)
 		return
 	}
 
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	params := rpc.RawParm{
 		Data: data,
 	}
@@ -78,11 +78,12 @@ func createContract(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-func createEvmTx(action *types.EVMContractAction, key, addr, expire string, fee uint64) (string, error) {
+func createEvmTx(action *types.EVMContractAction, key, addr, expire, rpcLaddr string, fee uint64) (string, error) {
 	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(action), Fee: 0, To: addr}
 
 	tx.Fee, _ = tx.GetRealFee(types.MinBalanceTransfer)
 	tx.Fee += types.MinBalanceTransfer
+	tx.Fee += int64(fee)
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -97,8 +98,19 @@ func createEvmTx(action *types.EVMContractAction, key, addr, expire string, fee 
 		Expire:  expire,
 	}
 
-	wal := &wallet.Wallet{}
-	return wal.ProcSignRawTx(unsignedTx)
+	var res string
+	client, err := rpc.NewJSONClient(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return "", err
+	}
+	err = client.Call("Chain33.SignRawTx", unsignedTx, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return "", err
+	}
+
+	return res, nil
 }
 
 // 调用EVM合约
@@ -121,6 +133,7 @@ func callContract(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	to, _ := cmd.Flags().GetString("to")
 	name, _ := cmd.Flags().GetString("name")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 
 	amountInt64 := uint64(amount*1e4) * 1e4
 	feeInt64 := uint64(fee*1e4) * 1e4
@@ -141,14 +154,13 @@ func callContract(cmd *cobra.Command, args []string) {
 
 	action := types.EVMContractAction{Amount: amountInt64, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
 
-	data, err := createEvmTx(&action, key, toAddr, expire, feeInt64)
+	data, err := createEvmTx(&action, key, toAddr, expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "call contract error:%v", err)
 		return
 	}
 
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	params := rpc.RawParm{
 		Data: data,
 	}
@@ -266,8 +278,8 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 
 	if query {
 		proto.MarshalText(os.Stdout, &checkAddrResp)
-	}else{
-		fmt.Fprintln(os.Stderr,"error")
+	} else {
+		fmt.Fprintln(os.Stderr, "error")
 	}
 }
 

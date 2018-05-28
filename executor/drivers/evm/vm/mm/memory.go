@@ -2,9 +2,9 @@ package mm
 
 import (
 	"fmt"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"math/big"
-	"github.com/inconshreveable/log15"
 )
 
 // 内存操作封装，在EVM中使用此对象模拟物理内存
@@ -20,10 +20,10 @@ func NewMemory() *Memory {
 }
 
 // 设置内存中的值， value => offset:offset + size
-func (m *Memory) Set(offset, size uint64, value []byte) (err error){
+func (m *Memory) Set(offset, size uint64, value []byte) (err error) {
 	// 偏移量+大小一定不会大于内存长度
 	if size > uint64(len(m.Store)) {
-		err = fmt.Errorf("INVALID memory access, memory size:%v, offset:%v, size:%v",len(m.Store),offset,size)
+		err = fmt.Errorf("INVALID memory access, memory size:%v, offset:%v, size:%v", len(m.Store), offset, size)
 		log15.Crit(err.Error())
 		return err
 	}
@@ -57,7 +57,6 @@ func (m *Memory) Get(offset, size int64) (cpy []byte) {
 	return
 }
 
-
 // 同Get操作，不过这里返回的是数据引用
 func (m *Memory) GetPtr(offset, size int64) []byte {
 	if size == 0 {
@@ -80,7 +79,6 @@ func (m *Memory) Len() int {
 func (m *Memory) Data() []byte {
 	return m.Store
 }
-
 
 // 打印内存中的数据（调试用）
 func (m *Memory) Print() {

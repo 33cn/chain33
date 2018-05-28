@@ -29,13 +29,13 @@ type GasTable struct {
 var (
 	// 定义各种操作的Gas定价
 	GasTableHomestead = GasTable{
-		ExtcodeSize:     20,
-		ExtcodeCopy:     20,
-		Balance:         20,
-		SLoad:           50,
-		Calls:           40,
-		Suicide:         0,
-		ExpByte:         10,
+		ExtcodeSize: 20,
+		ExtcodeCopy: 20,
+		Balance:     20,
+		SLoad:       50,
+		Calls:       40,
+		Suicide:     0,
+		ExpByte:     10,
 	}
 )
 

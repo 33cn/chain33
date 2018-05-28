@@ -1,8 +1,8 @@
 package tests
 
 import (
-	"testing"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"testing"
 )
 
 type Tester struct {
@@ -10,86 +10,85 @@ type Tester struct {
 }
 
 func NewTester(t *testing.T) *Tester {
-	return &Tester{t:t}
+	return &Tester{t: t}
 }
 
-func (t *Tester) assertNil(val interface{})  {
+func (t *Tester) assertNil(val interface{}) {
 	if val != nil {
 		t.t.Errorf("value {%s} is not nil", val)
 		t.t.Fail()
 	}
 }
 
-func (t *Tester) assertNilB(val []byte)  {
+func (t *Tester) assertNilB(val []byte) {
 	if val != nil {
 		t.t.Errorf("value {%s} is not nil", common.Bytes2Hex(val))
 		t.t.Fail()
 	}
 }
 
-func (t *Tester) assertNotNil(val interface{})  {
+func (t *Tester) assertNotNil(val interface{}) {
 	if val == nil {
 		t.t.Errorf("value {%s} is nil", val)
 		t.t.Fail()
 	}
 }
 
-func (t *Tester) assertEquals(val1 , val2 struct{})  {
+func (t *Tester) assertEquals(val1, val2 struct{}) {
 	if val1 != val2 {
 		t.t.Errorf("value {%s} is not equals to {%s}", val1, val2)
 		t.t.Fail()
 	}
 }
 
-func (t *Tester) assertEqualsS(val1 , val2 string)  {
+func (t *Tester) assertEqualsS(val1, val2 string) {
 	if val1 != val2 {
 		t.t.Errorf("value {%s} is not equals to {%s}", val1, val2)
 		t.t.Fail()
 	}
 }
 
-func (t *Tester) assertEqualsV(val1 , val2 int)  {
+func (t *Tester) assertEqualsV(val1, val2 int) {
 	if val1 != val2 {
 		t.t.Errorf("value {%s} is not equals to {%s}", val1, val2)
 		t.t.Fail()
 	}
 }
-func (t *Tester) assertEqualsE(val1 , val2 error)  {
+func (t *Tester) assertEqualsE(val1, val2 error) {
 	if val1 != val2 {
 		t.t.Errorf("value {%s} is not equals to {%s}", val1, val2)
 		t.t.Fail()
 	}
 }
 
-func (t *Tester) assertEqualsB(val1 , val2 []byte)  {
+func (t *Tester) assertEqualsB(val1, val2 []byte) {
 	if string(val1) != string(val2) {
 		t.t.Errorf("value {%s} is not equals to {%s}", common.Bytes2Hex(val1), common.Bytes2Hex(val2))
 		t.t.Fail()
 	}
 }
 
-func (t *Tester) assertBigger(val1 , val2 int)  {
+func (t *Tester) assertBigger(val1, val2 int) {
 	if val1 < val2 {
 		t.t.Errorf("value {%s} is less than {%s}", val1, val2)
 		t.t.Fail()
 	}
 }
 
-
-func (t *Tester) assertNotEquals(val1 , val2 struct{})  {
+func (t *Tester) assertNotEquals(val1, val2 struct{}) {
 	if val1 == val2 {
 		t.t.Errorf("value {%s} is equals to {%s}", val1, val2)
 		t.t.Fail()
 	}
 }
 
-func (t *Tester) assertNotEqualsI(val1 , val2 interface{})  {
+func (t *Tester) assertNotEqualsI(val1, val2 interface{}) {
 	if val1 == val2 {
 		t.t.Errorf("value {%s} is equals to {%s}", val1, val2)
 		t.t.Fail()
 	}
 }
-func (t *Tester) assertNotEqualsV(val1 , val2 int)  {
+func (t *Tester) assertNotEqualsV(val1, val2 int) {
 	if val1 == val2 {
 		t.t.Errorf("value {%s} is equals to {%s}", val1, val2)
 		t.t.Fail()

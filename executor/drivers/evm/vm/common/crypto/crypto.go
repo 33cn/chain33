@@ -1,14 +1,14 @@
 package crypto
 
 import (
-	"math/big"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"golang.org/x/crypto/sha3"
-	"github.com/btcsuite/btcd/btcec"
 	"crypto/ecdsa"
+	"github.com/btcsuite/btcd/btcec"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"gitlab.33.cn/chain33/chain33/types"
+	"golang.org/x/crypto/sha3"
+	"math/big"
 )
 
 // 校验签名信息是否正确
@@ -38,7 +38,6 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 	pub, _, err := btcec.RecoverCompact(btcec.S256(), btcsig, hash)
 	return (*ecdsa.PublicKey)(pub), err
 }
-
 
 // 随机生成一个新的地址，给新创建的合约地址使用
 func RandomContractAddress() *common.Address {

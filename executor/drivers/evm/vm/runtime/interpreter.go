@@ -82,13 +82,13 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 
 	var (
 		// 当前操作指令码
-		op    OpCode
+		op OpCode
 		// 内存空间
-		mem   = mm.NewMemory()
+		mem = mm.NewMemory()
 		// 本地栈空间
 		stack = mm.NewStack()
 		// 指令计数器
-		pc   = uint64(0)
+		pc = uint64(0)
 		// 操作消耗的Gas
 		cost uint64
 		// 在使用tracer打印调试日志时，复制一份下面的数据进行操作

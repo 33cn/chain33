@@ -1,14 +1,14 @@
 package tests
 
 import (
-	"strconv"
-	"fmt"
 	"encoding/hex"
+	"fmt"
+	"strconv"
 )
 
 func getBin(data string) (ret []byte) {
-	ret,err := hex.DecodeString(data)
-	if err != nil{
+	ret, err := hex.DecodeString(data)
+	if err != nil {
 		fmt.Println(err)
 	}
 	return
@@ -94,7 +94,7 @@ func parseExec(data interface{}) ExecJson {
 		case "origin":
 			ut.origin = unpre(v.(string))
 		case "value":
-			ut.value = toint64(unpre(v.(string)))/100000000
+			ut.value = toint64(unpre(v.(string))) / 100000000
 		default:
 			fmt.Println(k, "is of a type I don't know how to handle")
 		}
@@ -117,7 +117,7 @@ func parseAccount2(data interface{}) AccountJson {
 	for k, v := range m {
 		switch k {
 		case "balance":
-			ut.balance = toint64(unpre(v.(string)))/100000000
+			ut.balance = toint64(unpre(v.(string))) / 100000000
 		case "code":
 			ut.code = unpre(v.(string))
 		case "nonce":
