@@ -295,8 +295,8 @@ func getManageKey(key string, db dbm.KV) ([]byte, error) {
 }
 
 func getConfigKey(key string, db dbm.KV) ([]byte, error) {
-	manageKey := types.ManageKey(key)
-	value, err := db.Get([]byte(manageKey))
+	configKey := types.ConfigKey(key)
+	value, err := db.Get([]byte(configKey))
 	if err != nil {
 		tokenlog.Info("tokendb", "get db key", "not found")
 		return nil, err
