@@ -137,7 +137,7 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 
 	identity, err := localMSP.DeserializeIdentity(tx.GetCert().GetCertbytes())
 	if err != nil {
-		alog.Error("Deserialize identity from cert bytes failed", err)
+		alog.Error("Deserialize identity from cert bytes failed", err.Error())
 		msg.Reply(falseResultMsg)
 		return
 	}
@@ -146,7 +146,7 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 
 	err = identity.Validate()
 	if err != nil {
-		alog.Error("Validate certificates failed", err)
+		alog.Error("Validate certificates failed", err.Error())
 		msg.Reply(falseResultMsg)
 		return
 	}
@@ -158,7 +158,7 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 	bytes := types.Encode(&copytx)
 	err = identity.Verify(bytes, tx.GetSignature().GetSignature())
 	if err != nil {
-		alog.Error("Verify signature failed", err)
+		alog.Error("Verify signature failed", err.Error())
 		msg.Reply(falseResultMsg)
 		return
 	}

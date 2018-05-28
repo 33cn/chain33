@@ -14,6 +14,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/common/util/cryptoutils"
 )
 
+var (
+	// ErrUserNotFound indicates the user was not found
+	ErrUserNotFound = errors.New("user not found")
+)
+
 func newUser(userData *core.UserData, cryptoSuite core.CryptoSuite) (*User, error) {
 	pubKey, err := cryptoutils.GetPublicKeyFromCert(userData.EnrollmentCertificate, cryptoSuite)
 	if err != nil {
@@ -54,7 +59,7 @@ func (mgr *IdentityManager) storeUserFromStore(username string, user *User) {
 }
 
 // GetSigningIdentity returns a signing identity for the given id
-func (mgr *IdentityManager) GetSigningIdentity(id string) (core.SigningIdentity, error) {
+func (mgr *IdentityManager) GetSigningIdentity(id string) (*User, error) {
 	user, err := mgr.GetUser(id)
 	if err != nil {
 		return nil, err
@@ -67,11 +72,11 @@ func (mgr *IdentityManager) GetUser(username string) (*User, error) { //nolint
 	u := mgr.loadUserFromStore(username)
 	if u == nil {
 		certBytes, err := mgr.getCertBytesFromCertStore(username)
-		if err != nil && err != core.ErrUserNotFound {
+		if err != nil && err != ErrUserNotFound {
 			return nil, errors.WithMessage(err, "fetching cert from store failed")
 		}
 		if certBytes == nil {
-			return nil, core.ErrUserNotFound
+			return nil, ErrUserNotFound
 		}
 		privateKey, err := mgr.getPrivateKeyFromCert(username, certBytes)
 		if err != nil {
@@ -111,12 +116,12 @@ func (mgr *IdentityManager) getPrivateKeyPemFromKeyStore(username string, ski []
 
 func (mgr *IdentityManager) getCertBytesFromCertStore(username string) ([]byte, error) {
 	if mgr.mspCertStore == nil {
-		return nil, core.ErrUserNotFound
+		return nil, ErrUserNotFound
 	}
 	cert, err := mgr.mspCertStore.Load(username)
 	if err != nil {
 		if err == core.ErrKeyValueNotFound {
-			return nil, core.ErrUserNotFound
+			return nil, ErrUserNotFound
 		}
 		return nil, err
 	}

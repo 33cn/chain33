@@ -11,14 +11,11 @@ Please review third_party pinning scripts and patches for more details.
 package cryptoutils
 
 import (
-	"crypto"
 	"crypto/ecdsa"
 
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
-	cspsigner "gitlab.33.cn/chain33/chain33/authority/bccsp/signer"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
-	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 )
 
 const (
@@ -47,11 +44,6 @@ const (
 	X509Certificate  = bccsp.X509Certificate
 )
 
-// NewCspSigner is a bridge for bccsp signer.New call
-func NewCspSigner(csp core.CryptoSuite, key core.Key) (crypto.Signer, error) {
-	return cspsigner.New(csp, key)
-}
-
 // PEMtoPrivateKey is a bridge for bccsp utils.PEMtoPrivateKey()
 func PEMtoPrivateKey(raw []byte, pwd []byte) (interface{}, error) {
 	return utils.PEMtoPrivateKey(raw, pwd)
@@ -60,27 +52,6 @@ func PEMtoPrivateKey(raw []byte, pwd []byte) (interface{}, error) {
 // PrivateKeyToDER marshals is bridge for utils.PrivateKeyToDER
 func PrivateKeyToDER(privateKey *ecdsa.PrivateKey) ([]byte, error) {
 	return utils.PrivateKeyToDER(privateKey)
-}
-
-//GetDefault returns default cryptosuite from bccsp factory default
-func GetDefault() core.CryptoSuite {
-	return cryptosuite.GetDefault()
-}
-
-//GetSHAOpts returns options for computing SHA.
-func GetSHAOpts() core.HashOpts {
-	return &bccsp.SHAOpts{}
-}
-
-//GetSHA256Opts returns options relating to SHA-256.
-func GetSHA256Opts() core.HashOpts {
-	return &bccsp.SHA256Opts{}
-}
-
-
-//GetECDSAP256KeyGenOpts returns options for ECDSA key generation with curve P-256.
-func GetECDSAP256KeyGenOpts(ephemeral bool) core.KeyGenOpts {
-	return &bccsp.ECDSAP256KeyGenOpts{Temporary: ephemeral}
 }
 
 //GetX509PublicKeyImportOpts options for importing public keys from an x509 certificate
