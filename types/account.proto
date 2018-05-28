@@ -61,8 +61,9 @@ message TotalFee {
 message ReqGetTotalCoins {
 	string symbol = 1;
 	bytes stateHash = 2;
-        bytes startKey = 3;
-        int64 count = 4;
+    bytes startKey = 3;
+    int64 count = 4;
+	string execer = 5;
 }
 
 //查询symbol代币总额应答
@@ -77,8 +78,8 @@ message ReplyGetTotalCoins{
 message IterateRangeByStateHash {
 	bytes stateHash = 1;
 	bytes start = 2;
-        bytes end = 3;
-        int64 count = 4;
+    bytes end = 3;
+    int64 count = 4;
 }
 
 message ReqAccountTokenAssets {
