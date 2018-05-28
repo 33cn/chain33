@@ -513,7 +513,7 @@ OUTER_LOOP:
 
 		// If the peer is on a previous height, help catch up.
 		if (0 < prs.Height) && (prs.Height < rs.Height) {
-			conR.Logger.Error("gossipDataRoutine", "PeerRoundState_height", prs.Height, "RoundState_height", rs.Height)
+			conR.Logger.Error("gossipDataRoutine", "peer", peer.NodeInfo() ,"PeerRoundState_height", prs.Height, "RoundState_height", rs.Height)
 			/*
 				heightLogger := logger.New("height", prs.Height)
 
@@ -529,8 +529,9 @@ OUTER_LOOP:
 					continue OUTER_LOOP
 				}
 				conR.gossipDataForCatchup(heightLogger, rs, prs, ps, peer)
-				continue OUTER_LOOP
+			    continue OUTER_LOOP
 			*/
+
 		}
 
 		// If height and round don't match, sleep.
