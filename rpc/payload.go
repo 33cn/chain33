@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -28,9 +27,7 @@ func tokenPayloadType(funcname string) (proto.Message, error) {
 func coinsPayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {
-	case "GetAddrReciver":
-		req = &types.ReqAddr{}
-	case "GetTxsByAddr":
+	case "GetAddrReciver", "GetTxsByAddr":
 		req = &types.ReqAddr{}
 	default:
 		return nil, types.ErrInputPara
@@ -67,9 +64,7 @@ func ticketPayloadType(funcname string) (proto.Message, error) {
 		req = &types.TicketInfos{}
 	case "TicketList":
 		req = &types.TicketList{}
-	case "MinerAddress":
-		req = &types.ReqString{}
-	case "MinerSourceList":
+	case "MinerAddress", "MinerSourceList":
 		req = &types.ReqString{}
 	default:
 		return nil, types.ErrInputPara
@@ -80,14 +75,12 @@ func ticketPayloadType(funcname string) (proto.Message, error) {
 func tradePayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {
-	case "GetOnesSellOrder":
-		req = &types.ReqAddrTokens{}
-	case "GetOnesBuyOrder":
-		req = &types.ReqAddrTokens{}
-	case "GetAllSellOrdersWithStatus":
+	case "GetOnesSellOrder", "GetOnesBuyOrder", "GetOnesSellOrderWithStatus", "GetOnesBuyOrderWithStatus":
 		req = &types.ReqAddrTokens{}
 	case "GetTokenSellOrderByStatus":
 		req = &types.ReqTokenSellOrder{}
+	case "GetTokenBuyOrderByStatus":
+		req = &types.ReqTokenBuyOrder{}
 	default:
 		return nil, types.ErrInputPara
 	}
@@ -113,6 +106,10 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 }
 
 func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, error) {
+	if payload == nil {
+		return nil, types.ErrInputPara
+	}
+
 	req, err := payloadType(execer, funcname)
 	if err != nil {
 		return nil, err
@@ -121,7 +118,5 @@ func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, er
 	if err != nil {
 		return nil, types.ErrInputPara
 	}
-	fmt.Println("req: ", req)
-	fmt.Println("req: ", types.Encode(req))
 	return types.Encode(req), nil
 }

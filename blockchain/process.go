@@ -271,7 +271,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	//广播或者同步过来的blcok需要调用执行模块
 
 	if !isStrongConsistency || blockdetail.Receipts == nil {
-		blockdetail, _, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true, sync)
+		blockdetail, _, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
 		if err != nil {
 			//记录执行出错的block信息
 			b.RecordFaultPeer(node.pid, block.Height, block.Hash(), err)
@@ -341,7 +341,13 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	//广播此block到全网络
 	if node.broadcast {
-		b.SendBlockBroadcast(blockdetail)
+		if blockdetail.Block.BlockTime-time.Now().Unix() > FutureBlockDelayTime {
+			//将此block添加到futureblocks中延时广播
+			b.futureBlocks.Add(string(blockdetail.Block.Hash()), blockdetail)
+			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+		} else {
+			b.SendBlockBroadcast(blockdetail)
+		}
 	}
 	return nil
 }

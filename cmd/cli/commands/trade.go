@@ -58,7 +58,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 	token, _ := cmd.Flags().GetString("token")
 	tokens := strings.Split(token, " ")
 	var reqAddrtokens types.ReqAddrTokens
-	reqAddrtokens.Status = types.OnSale
+	reqAddrtokens.Status = types.TradeOrderStatusOnSale
 	reqAddrtokens.Addr = seller
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
@@ -74,7 +74,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplySellOrders
+	var res types.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -123,7 +123,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 	req.TokenSymbol = token
 	req.Count = count
 	req.Direction = dir
-	req.FromSellId = from
+	req.FromKey = from
 	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
@@ -133,7 +133,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplySellOrders
+	var res types.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -180,7 +180,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplySellOrders
+	var res types.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -190,21 +190,17 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	parseSellOrders(res)
 }
 
-func parseSellOrders(res types.ReplySellOrders) {
-	for i, sellorder := range res.Selloders {
+func parseSellOrders(res types.RpcReplyTradeOrders) {
+	for i, sellorder := range res.Orders {
 		var sellOrders2show SellOrder2Show
-		sellOrders2show.Tokensymbol = sellorder.Tokensymbol
-		sellOrders2show.Seller = sellorder.Address
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.Amountperboardlot)/float64(types.TokenPrecision), 'f', 4, 64)
-		sellOrders2show.Minboardlot = sellorder.Minboardlot
-		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.Priceperboardlot)/float64(types.Coin), 'f', 8, 64)
-		sellOrders2show.Totalboardlot = sellorder.Totalboardlot
-		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
-		sellOrders2show.Starttime = sellorder.Starttime
-		sellOrders2show.Stoptime = sellorder.Stoptime
-		sellOrders2show.Soldboardlot = sellorder.Soldboardlot
-		sellOrders2show.Crowdfund = sellorder.Crowdfund
-		sellOrders2show.SellID = sellorder.Sellid
+		sellOrders2show.Tokensymbol = sellorder.TokenSymbol
+		sellOrders2show.Seller = sellorder.Owner
+		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64)
+		sellOrders2show.Minboardlot = sellorder.MinBoardlot
+		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64)
+		sellOrders2show.Totalboardlot = sellorder.TotalBoardlot
+		sellOrders2show.Soldboardlot = sellorder.TradedBoardlot
+		sellOrders2show.SellID = sellorder.SellID
 		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
 		sellOrders2show.Height = sellorder.Height
 
@@ -270,14 +266,14 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplyTradeBuyOrders
+	var res types.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	for i, buy := range res.Tradebuydones {
+	for i, buy := range res.Orders {
 		data, err := json.MarshalIndent(buy, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -303,44 +299,41 @@ func addTokenSellFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("symbol", "s", "", "token symbol")
 	cmd.MarkFlagRequired("symbol")
 
-	cmd.Flags().Int64P("amount", "a", 0, "amount per boardlot")
-	cmd.MarkFlagRequired("amount")
-
 	cmd.Flags().Int64P("min", "m", 0, "min boardlot")
 	cmd.MarkFlagRequired("min")
 
 	cmd.Flags().Float64P("price", "p", 0, "price per boardlot")
 	cmd.MarkFlagRequired("price")
 
-	cmd.Flags().Int64P("total", "t", 0, "total boardlot")
-	cmd.MarkFlagRequired("total")
-
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
 	cmd.MarkFlagRequired("fee")
+
+	cmd.Flags().Float64P("total", "t", 0, "total tokens to be sold")
+	cmd.MarkFlagRequired("total")
 }
 
 func tokenSell(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	symbol, _ := cmd.Flags().GetString("symbol")
-	amount, _ := cmd.Flags().GetInt64("amount")
 	min, _ := cmd.Flags().GetInt64("min")
 	price, _ := cmd.Flags().GetFloat64("price")
 	fee, _ := cmd.Flags().GetFloat64("fee")
-	total, _ := cmd.Flags().GetInt64("total")
+	total, _ := cmd.Flags().GetFloat64("total")
 
 	priceInt64 := int64(price * 1e4)
 	feeInt64 := int64(fee * 1e4)
+	totalInt64 := int64(total * 1e8 / 1e6)
 	params := &jsonrpc.TradeSellTx{
 		TokenSymbol:       symbol,
-		AmountPerBoardlot: amount,
+		AmountPerBoardlot: 1e6,
 		MinBoardlot:       min,
 		PricePerBoardlot:  priceInt64 * 1e4,
-		TotalBoardlot:     total,
+		TotalBoardlot:     totalInt64,
 		Fee:               feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // create raw buy token transaction
@@ -373,13 +366,13 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 	params := &jsonrpc.TradeBuyTx{
-		SellId:      sellID,
+		SellID:      sellID,
 		BoardlotCnt: count,
 		Fee:         feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // create raw revoke token transaction
@@ -408,10 +401,10 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 	params := &jsonrpc.TradeRevokeTx{
-		SellId: sellID,
+		SellID: sellID,
 		Fee:    feeInt64 * 1e4,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, &res)
-	ctx.Run()
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, nil)
+	ctx.RunWithoutMarshal()
 }

@@ -42,8 +42,8 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
-func (client *Client) ProcEvent(msg queue.Message) {
-
+func (client *Client) ProcEvent(msg queue.Message) bool {
+	return false
 }
 
 //solo 不检查任何的交易
@@ -88,7 +88,7 @@ func (client *Client) CreateBlock() {
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
-		newblock.Txs = txs
+		client.AddTxsToBlock(&newblock, txs)
 		//solo 挖矿固定难度
 		newblock.Difficulty = types.GetP(0).PowLimitBits
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)

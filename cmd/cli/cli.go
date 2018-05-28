@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/common/version"
 )
 
 var rootCmd = &cobra.Command{
@@ -15,16 +14,14 @@ var rootCmd = &cobra.Command{
 	Short: "chain33 client tools",
 }
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show version info",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(version.GetVersion())
-	},
+var sendCmd = &cobra.Command{
+	Use:   "send",
+	Short: "Send transaction in one move",
+	Run:   func(cmd *cobra.Command, args []string) {},
 }
 
 func init() {
-	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "RPC listen address")
+	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "http url")
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),
@@ -41,11 +38,18 @@ func init() {
 		commands.TradeCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
-		versionCmd)
+		commands.VersionCmd(),
+		sendCmd)
 }
 
 func main() {
 	log.SetLogLevel("error")
+	if len(os.Args) > 1 {
+		if os.Args[1] == "send" {
+			commands.OneStepSend(os.Args)
+			return
+		}
+	}
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

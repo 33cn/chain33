@@ -66,3 +66,20 @@ func (c *RpcCtx) Run() {
 
 	fmt.Println(string(data))
 }
+
+func (c *RpcCtx) RunWithoutMarshal() {
+	var res string
+	rpc, err := jsonrpc.NewJSONClient(c.Addr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	err = rpc.Call(c.Method, c.Params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(res)
+}

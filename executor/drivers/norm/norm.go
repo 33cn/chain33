@@ -8,16 +8,15 @@ import (
 
 var clog = log.New("module", "execs.norm")
 
-func init() {
-	n := newNorm()
-	drivers.Register(n.GetName(), n, 0)
+func Init() {
+	drivers.Register(newNorm().GetName(), newNorm, 0)
 }
 
 type Norm struct {
 	drivers.DriverBase
 }
 
-func newNorm() *Norm {
+func newNorm() drivers.Driver {
 	n := &Norm{}
 	n.SetChild(n)
 	n.SetIsFree(true)
@@ -26,14 +25,6 @@ func newNorm() *Norm {
 
 func (n *Norm) GetName() string {
 	return "norm"
-}
-
-func (n *Norm) Clone() drivers.Driver {
-	clone := &Norm{}
-	clone.DriverBase = *(n.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	clone.SetIsFree(true)
-	return clone
 }
 
 func (n *Norm) GetActionValue(tx *types.Transaction) (*types.NormAction, error) {
@@ -57,13 +48,19 @@ func (n *Norm) GetActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
+func Key(str string) (key []byte) {
+	key = append(key, []byte("mavl-norm-")...)
+	key = append(key, str...)
+	return key
+}
+
 func (n *Norm) GetKVPair(tx *types.Transaction) *types.KeyValue {
 	action, err := n.GetActionValue(tx)
 	if err != nil {
 		return nil
 	}
 	if action.Ty == types.NormActionPut && action.GetNput() != nil {
-		return &types.KeyValue{[]byte(action.GetNput().Key), action.GetNput().Value}
+		return &types.KeyValue{Key(action.GetNput().Key), action.GetNput().Value}
 	}
 	return nil
 }
@@ -98,14 +95,15 @@ func (n *Norm) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 }
 
 func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
+	str := string(params)
 	if funcname == "NormGet" {
-		value, err := n.GetStateDB().Get(params)
+		value, err := n.GetStateDB().Get(Key(str))
 		if err != nil {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{string(value)}, nil
 	} else if funcname == "NormHas" {
-		_, err := n.GetStateDB().Get(params)
+		_, err := n.GetStateDB().Get(Key(str))
 		if err != nil {
 			return &types.ReplyString{"false"}, err
 		}

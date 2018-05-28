@@ -65,6 +65,44 @@ func (client *Client) Close() {
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	//给ticket 合约打 3亿 个币
 	//产生3w张初始化ticket
+	if types.IsTestNet() {
+		return client.CreateGenesisTxTestNet()
+	}
+	tx1 := createTicket("184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2", "1FB8L3DykVF7Y78bRfUrRcMZwesKue7CyR", 3000, 0)
+	ret = append(ret, tx1...)
+
+	tx2 := createTicket("1M4ns1eGHdHak3SNc2UTQB75vnXyJQd91s", "1Lw6QLShKVbKM6QvMaCQwTh5Uhmy4644CG", 3000, 0)
+	ret = append(ret, tx2...)
+
+	tx3 := createTicket("19ozyoUGPAQ9spsFiz9CJfnUCFeszpaFuF", "1PSYYfCbtSeT1vJTvSKmQvhz8y6VhtddWi", 3000, 0)
+	ret = append(ret, tx3...)
+
+	tx4 := createTicket("1MoEnCDhXZ6Qv5fNDGYoW6MVEBTBK62HP2", "1BG9ZoKtgU5bhKLpcsrncZ6xdzFCgjrZud", 3000, 0)
+	ret = append(ret, tx4...)
+
+	tx5 := createTicket("1FjKcxY7vpmMH6iB5kxNYLvJkdkQXddfrp", "1G7s64AgX1ySDcUdSW5vDa8jTYQMnZktCd", 3000, 0)
+	ret = append(ret, tx5...)
+
+	tx6 := createTicket("12T8QfKbCRBhQdRfnAfFbUwdnH7TDTm4vx", "1FiDC6XWHLe7fDMhof8wJ3dty24f6aKKjK", 3000, 0)
+	ret = append(ret, tx6...)
+
+	tx7 := createTicket("1bgg6HwQretMiVcSWvayPRvVtwjyKfz1J", "1AMvuuQ7V7FPQ4hkvHQdgNWy8wVL4d4hmp", 3000, 0)
+	ret = append(ret, tx7...)
+
+	tx8 := createTicket("1EwkKd9iU1pL2ZwmRAC5RrBoqFD1aMrQ2", "1ExRRLoJXa8LzXdNxnJvBkVNZpVw3QWMi4", 3000, 0)
+	ret = append(ret, tx8...)
+
+	tx9 := createTicket("1HFUhgxarjC7JLru1FLEY6aJbQvCSL58CB", "1KNGHukhbBnbWWnMYxu1C7YMoCj45Z3amm", 3000, 0)
+	ret = append(ret, tx9...)
+
+	tx10 := createTicket("1C9M1RCv2e9b4GThN9ddBgyxAphqMgh5zq", "1AH9HRd4WBJ824h9PP1jYpvRZ4BSA4oN6Y", 4733, 0)
+	ret = append(ret, tx10...)
+	return
+}
+
+func (client *Client) CreateGenesisTxTestNet() (ret []*types.Transaction) {
+	//给ticket 合约打 3亿 个币
+	//产生3w张初始化ticket
 	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
 	ret = append(ret, tx1...)
 
@@ -76,6 +114,7 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	return
 }
 
+//316190000 coins
 func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret []*types.Transaction) {
 	tx1 := types.Transaction{}
 	tx1.Execer = []byte("coins")
@@ -108,7 +147,7 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	return ret
 }
 
-func (client *Client) ProcEvent(msg queue.Message) {
+func (client *Client) ProcEvent(msg queue.Message) bool {
 	if msg.Ty == types.EventFlushTicket {
 		client.flushTicketMsg(msg)
 	} else if msg.Ty == types.EventGetTicketCount {
@@ -116,6 +155,7 @@ func (client *Client) ProcEvent(msg queue.Message) {
 	} else {
 		msg.ReplyErr("Client", types.ErrActionNotSupport)
 	}
+	return true
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
@@ -315,6 +355,9 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 			"current", printBInt(currentdiff), "taget", printBInt(target))
 		return types.ErrCoinBaseTarget
 	}
+	if current.Block.Size() > int(types.MaxBlockSize) {
+		return types.ErrBlockSize
+	}
 	return nil
 }
 
@@ -396,8 +439,7 @@ func (client *Client) GetNextRequiredDifficulty(block *types.Block, bits uint32)
 	// result.
 	oldTarget := difficulty.CompactToBig(bits)
 	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
-	targetTimeSpan := int64(cfg.TargetTimespan / time.Second)
-	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
+	newTarget.Div(newTarget, big.NewInt(targetTimespan))
 
 	// Limit new value to the proof of work limit.
 	powLimit := difficulty.CompactToBig(cfg.PowLimitBits)
@@ -552,11 +594,12 @@ func (client *Client) createBlock() (*types.Block, *types.Block) {
 	var newblock types.Block
 	newblock.ParentHash = lastBlock.Hash()
 	newblock.Height = lastBlock.Height + 1
-	newblock.Txs = client.RequestTx(int(types.GetP(newblock.Height).MaxTxNumber)-1, nil)
 	newblock.BlockTime = time.Now().Unix()
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
+	txs := client.RequestTx(int(types.GetP(newblock.Height).MaxTxNumber)-1, nil)
+	client.AddTxsToBlock(&newblock, txs)
 	return &newblock, lastBlock
 }
 
@@ -573,8 +616,11 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 	}
 	//tx 有更新
 	if len(txs) > 0 {
-		newblock.Txs = append(newblock.Txs, txs...)
-		txHashList = append(txHashList, getTxHashes(txs)...)
+		//防止区块过大
+		txs = client.AddTxsToBlock(newblock, txs)
+		if len(txs) > 0 {
+			txHashList = append(txHashList, getTxHashes(txs)...)
+		}
 	}
 	if lastBlock.Height != newblock.Height-1 {
 		newblock.Txs = client.CheckTxDup(newblock.Txs)
