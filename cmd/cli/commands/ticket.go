@@ -65,7 +65,7 @@ func bindMiner(cmd *cobra.Command, args []string) {
 	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
 	ta.Ty = types.TicketActionBind
 	execer := []byte("ticket")
-	to := account.ExecAddress(string(execer)).String()
+	to := account.ExecAddress(string(execer))
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()

@@ -19,7 +19,7 @@ func TestGenesisInit(t *testing.T) {
 
 func TestGenesisInitExec(t *testing.T) {
 	accCoin, _ := GenerAccDb()
-	execaddr := ExecAddress("coins").String()
+	execaddr := ExecAddress("coins")
 	_, err := accCoin.GenesisInitExec(addr1, 10*1e8, execaddr)
 	require.NoError(t, err)
 	//t.Logf("GenesisInitExec Receipt is %v", Receipt)
