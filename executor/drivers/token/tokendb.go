@@ -281,11 +281,31 @@ func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KV) bool {
 }
 
 func validFinisher(addr string, db dbm.KV) (bool, error) {
-	return validOperator(addr, types.ConfigKey(finisherKey), db)
+	return validOperator(addr, finisherKey, db)
+}
+
+func getManageKey(key string, db dbm.KV) ([]byte, error) {
+	manageKey := types.ManageKey(key)
+	value, err := db.Get([]byte(manageKey))
+	if err != nil {
+		tokenlog.Info("tokendb", "get db key", "not found")
+		return getConfigKey(key, db)
+	}
+	return value, nil
+}
+
+func getConfigKey(key string, db dbm.KV) ([]byte, error) {
+	manageKey := types.ManageKey(key)
+	value, err := db.Get([]byte(manageKey))
+	if err != nil {
+		tokenlog.Info("tokendb", "get db key", "not found")
+		return nil, err
+	}
+	return value, nil
 }
 
 func validOperator(addr, key string, db dbm.KV) (bool, error) {
-	value, err := db.Get([]byte(key))
+	value, err := getManageKey(key, db)
 	if err != nil {
 		tokenlog.Info("tokendb", "get db key", "not found")
 		return false, err
@@ -359,7 +379,7 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 }
 
 func inBlacklist(symbol, key string, db dbm.KV) (bool, error) {
-	found, err := validOperator(symbol, types.ConfigKey(key), db)
+	found, err := validOperator(symbol, key, db)
 	return found, err
 }
 
