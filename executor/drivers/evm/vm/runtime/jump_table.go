@@ -1,9 +1,9 @@
 package runtime
 
 import (
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 )
 
 type (

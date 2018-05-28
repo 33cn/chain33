@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/gogo/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/common"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -156,33 +156,33 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 }
 
 func buildCallContractResult(l *jsonrpc.ReceiptLogResult) interface{} {
-	data,_ := common.FromHex(l.RawLog)
+	data, _ := common.FromHex(l.RawLog)
 	receipt := &types.ReceiptEVMContract{}
 	proto.Unmarshal(data, receipt)
-	rlog := &types.ReceiptEVMContractCmd{Caller:receipt.Caller, ContractAddr:receipt.ContractAddr, ContractName:receipt.ContractName, UsedGas:receipt.UsedGas}
+	rlog := &types.ReceiptEVMContractCmd{Caller: receipt.Caller, ContractAddr: receipt.ContractAddr, ContractName: receipt.ContractName, UsedGas: receipt.UsedGas}
 	rlog.Ret = common.ToHex(receipt.Ret)
 	return rlog
 }
 
 func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
-	data,_ := common.FromHex(l.RawLog)
+	data, _ := common.FromHex(l.RawLog)
 	receipt := &types.EVMContractData{}
 	proto.Unmarshal(data, receipt)
-	rlog := &types.EVMContractDataCmd{Creator:receipt.Creator, Name:receipt.Name, Addr:receipt.Addr}
+	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr}
 	rlog.Code = common.ToHex(receipt.Code)
 	rlog.CodeHash = common.ToHex(receipt.CodeHash)
 	return rlog
 }
 
 func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
-	data,_ := common.FromHex(l.RawLog)
+	data, _ := common.FromHex(l.RawLog)
 	receipt := &types.EVMContractState{}
 	proto.Unmarshal(data, receipt)
-	rlog := &types.EVMContractStateCmd{Nonce:receipt.Nonce, Suicided:receipt.Suicided}
+	rlog := &types.EVMContractStateCmd{Nonce: receipt.Nonce, Suicided: receipt.Suicided}
 	rlog.StorageHash = common.ToHex(receipt.StorageHash)
 	if receipt.Storage != nil {
 		rlog.Storage = make(map[string]string)
-		for k,v := range receipt.Storage {
+		for k, v := range receipt.Storage {
 			rlog.Storage[k] = common.ToHex(v)
 		}
 	}

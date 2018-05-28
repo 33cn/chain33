@@ -1,8 +1,8 @@
 package common
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestAddressBig(t *testing.T) {
@@ -14,7 +14,6 @@ func TestAddressBig(t *testing.T) {
 		t.Fail()
 	}
 }
-
 
 func TestAddressBytes(t *testing.T) {
 	addr := BytesToAddress([]byte{1})

@@ -3,16 +3,8 @@ package tests
 import (
 	"encoding/hex"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"testing"
-	"gitlab.33.cn/chain33/chain33/types"
-	"math/rand"
-	"time"
-	"gitlab.33.cn/chain33/chain33/wallet"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
-	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
-	"fmt"
+	"testing"
 )
 
 // 正常创建合约逻辑
@@ -132,84 +124,66 @@ func TestCreateContract4(t *testing.T) {
 //    }
 //}
 
-func decodeHex(data string)[]byte  {
+func decodeHex(data string) []byte {
 	str := data
 	if data[0:2] == "0x" {
-		str =data[2:]
+		str = data[2:]
 	}
 	deployCode, _ := hex.DecodeString(str)
 	return deployCode
 }
 
-func TestCreateTx(t *testing.T) {
-	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	to := "1ApLV3FEZiCseuvn7fMM1GpVtpZyS1r1St"
-	code := "0x3bd5c209"
-	//code := "4e71d92d"  // claim
-	//code := "1b9265b8"  // pay
-	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000021"  // put
-	//code := "9507d39a0000000000000000000000000000000000000000000000000000000000000003"  // get
-	deployCode := decodeHex(code)
-	fee := int64(3000000)
-
-	action := types.EVMContractAction{Amount:0, Code:deployCode}
-	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(&action), Fee: int64(fee), To:to}
-
-	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)
-	if err != nil {
-		t.Error(err)
-		t.Fail()
-	}
-	tx.Fee += types.MinBalanceTransfer
-	tx.Fee += fee
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-	//tx.Sign(int32(wallet.SignType), privKey)
-	txHex := types.Encode(tx)
-	rawTx := hex.EncodeToString(txHex)
-
-	unsignedTx := &types.ReqSignRawTx{
-		Addr:caller,
-		Privkey:"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
-		TxHex:rawTx,
-		Expire:"2h",
-	}
-
-	wal := &wallet.Wallet{}
-	signedTx, err := procSignRawTx(wal, unsignedTx, tx.Payload)
-	if err != nil{
-		t.Error(err)
-		t.Fail()
-	}else{
-		t.Log("begin to call cli")
-		params := jsonrpc.RawParm{
-			Data: signedTx,
-		}
-		var res string
-		ctx := commands.NewRpcCtx("http://localhost:8811", "Chain33.SendTransaction", params, &res)
-		ctx.Run()
-
-		t.Log(signedTx)
-	}
-
-	fmt.Println(common.Bytes2Hex(crypto.Keccak256([]byte("litian"))))
-}
-
-func TestBytes(t *testing.T) {
-	var ret [96]byte
-
-	ret[31] = 32
-	ret[63] = 4
-	ret[64] = 200
-	ret[65] = 231
-	ret[66] = 202
-	ret[67] = 46
-
-	fmt.Println(common.Bytes2Hex(ret[:]))
-
-	fmt.Println(hex.EncodeToString(common.StringToAddress("1MpN45LRdPJXxHH5Exx8UvzuGrgGCJjitL").Bytes()))
-
-	fmt.Println(common.Bytes2Hex([]byte{0,0,0,0,0}))
-	fmt.Println(common.Bytes2HexTrim([]byte{0,0,0,0,0}))
-}
+//func TestCreateTx(t *testing.T) {
+//	caller := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+//	to := "1ApLV3FEZiCseuvn7fMM1GpVtpZyS1r1St"
+//	code := "0x3bd5c209"
+//	//code := "4e71d92d"  // claim
+//	//code := "1b9265b8"  // pay
+//	//code := "541aea0f00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000021"  // put
+//	//code := "9507d39a0000000000000000000000000000000000000000000000000000000000000003"  // get
+//	deployCode := decodeHex(code)
+//	fee := int64(3000000)
+//
+//	action := types.EVMContractAction{Amount:0, Code:deployCode}
+//	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(&action), Fee: int64(fee), To:to}
+//
+//	var err error
+//	tx.Fee, err = tx.GetRealFee(types.MinBalanceTransfer)
+//	if err != nil {
+//		t.Error(err)
+//		t.Fail()
+//	}
+//	tx.Fee += types.MinBalanceTransfer
+//	tx.Fee += fee
+//	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+//	tx.Nonce = random.Int63()
+//	//tx.Sign(int32(wallet.SignType), privKey)
+//	txHex := types.Encode(tx)
+//	rawTx := hex.EncodeToString(txHex)
+//
+//	unsignedTx := &types.ReqSignRawTx{
+//		Addr:caller,
+//		Privkey:"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
+//		TxHex:rawTx,
+//		Expire:"2h",
+//	}
+//
+//	wal := &wallet.Wallet{}
+//	signedTx, err := procSignRawTx(wal, unsignedTx, tx.Payload)
+//	if err != nil{
+//		t.Error(err)
+//		t.Fail()
+//	}else{
+//		t.Log("begin to call cli")
+//		params := jsonrpc.RawParm{
+//			Data: signedTx,
+//		}
+//		var res string
+//		ctx := commands.NewRpcCtx("http://localhost:8801", "Chain33.SendTransaction", params, &res)
+//		ctx.Run()
+//
+//		t.Log(signedTx)
+//	}
+//
+//	fmt.Println(common.Bytes2Hex(crypto.Keccak256([]byte("litian"))))
+//}

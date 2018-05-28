@@ -22,6 +22,7 @@ type Snapshot struct {
 	entries []DataChange
 	statedb *MemoryStateDB
 }
+
 func (ver *Snapshot) GetId() int {
 	return ver.id
 }

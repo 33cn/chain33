@@ -6,11 +6,11 @@ import (
 	"math/big"
 
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 
-	"golang.org/x/crypto/ripemd160"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"golang.org/x/crypto/ripemd160"
 )
 
 // 系统内置合约实现的接口，只包含两个操作：
@@ -23,7 +23,6 @@ type PrecompiledContract interface {
 	// 执行预编译的合约固定逻辑，input为入参
 	Run(input []byte) ([]byte, error)
 }
-
 
 // chain33平台支持君士坦丁堡版本支持的所有预编译合约指令，并从此版本开始同步支持EVM黄皮书中的新增指令；
 // 保存拜占庭版本支持的所有预编译合约（包括之前版本的合约）；

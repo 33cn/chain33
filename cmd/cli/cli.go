@@ -40,7 +40,7 @@ func init() {
 		commands.WalletCmd(),
 		commands.VersionCmd(),
 		sendCmd,
-		commands.EvmCmd(),)
+		commands.EvmCmd())
 }
 
 func main() {
