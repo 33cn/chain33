@@ -228,7 +228,7 @@ func (acc *DB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*typ
 	return acc.execReceipt2(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
 }
 
-func (acc *DB) ExecAddress(name string) *Address {
+func (acc *DB) ExecAddress(name string) string {
 	return ExecAddress(name)
 }
 
@@ -240,7 +240,7 @@ func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	list := types.AllowDepositExec
 	allow := false
 	for _, exec := range list {
-		if acc.ExecAddress(string(exec)).String() == execaddr {
+		if acc.ExecAddress(string(exec)) == execaddr {
 			allow = true
 			break
 		}
