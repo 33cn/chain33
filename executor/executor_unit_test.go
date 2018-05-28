@@ -1,24 +1,20 @@
 package executor
 
 import (
+	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	"fmt"
-
-	"strconv"
-
+	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"strings"
-
-	"github.com/golang/protobuf/proto"
 )
 
 var (
