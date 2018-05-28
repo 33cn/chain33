@@ -29,6 +29,10 @@ type TxGroup interface {
 	CheckSign() bool
 }
 
+func IsAllowExecName(name string) bool {
+	return isAllowExecName([]byte(name))
+}
+
 func isAllowExecName(name []byte) bool {
 	//name中不允许有 "-"
 	if bytes.Contains(name, slash) {
