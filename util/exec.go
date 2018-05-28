@@ -22,7 +22,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	defer func() {
-		ulog.Debug("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
 	}()
 	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
