@@ -3,11 +3,12 @@ package drivers
 import (
 	"testing"
 
+	"os"
+
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"os"
 )
 
 var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100}
