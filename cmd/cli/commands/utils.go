@@ -168,13 +168,13 @@ func CreateRawTx(rpcAddr string, to string, amount float64, note string, isWithd
 	}
 	amountInt64 := int64(amount*1e4) * 1e4
 	params := &types.CreateTx{
-		To: to,
-		Amount: amountInt64,
-		Note: note,
-		IsWithdraw: isWithdraw,
-		IsToken: isToken,
+		To:          to,
+		Amount:      amountInt64,
+		Note:        note,
+		IsWithdraw:  isWithdraw,
+		IsToken:     isToken,
 		TokenSymbol: tokenSymbol,
-		ExecName: execName,
+		ExecName:    execName,
 	}
 
 	ctx := NewRpcCtx(rpcAddr, "Chain33.CreateRawTransaction", params, nil)
