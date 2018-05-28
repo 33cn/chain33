@@ -1,18 +1,17 @@
 package mavl
 
 import (
-
-	"testing"
-	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/types"
 	"os"
+	"testing"
 )
 
-var store_cfg0 = &types.Store{ "mavl_test", "leveldb", "/tmp/mavl_test0", 100,}
-var store_cfg1 = &types.Store{ "mavl_test", "leveldb", "/tmp/mavl_test1", 100,}
-var store_cfg2 = &types.Store{ "mavl_test", "leveldb", "/tmp/mavl_test2", 100,}
-var store_cfg3 = &types.Store{ "mavl_test", "leveldb", "/tmp/mavl_test3", 100,}
-var store_cfg4 = &types.Store{ "mavl_test", "leveldb", "/tmp/mavl_test4", 100,}
+var store_cfg0 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test0", 100}
+var store_cfg1 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test1", 100}
+var store_cfg2 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test2", 100}
+var store_cfg3 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test3", 100}
+var store_cfg4 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test4", 100}
 
 func TestKvdbNewClose(t *testing.T) {
 	os.RemoveAll(store_cfg0.DbPath)
@@ -35,7 +34,6 @@ func TestKvddbSetGet(t *testing.T) {
 	assert.Len(t, values0, 2)
 	assert.Equal(t, []byte(nil), values0[0])
 	assert.Equal(t, []byte(nil), values0[1])
-
 
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{[]byte("k1"), []byte("v1")})
@@ -70,7 +68,6 @@ func TestKvdbMemSet(t *testing.T) {
 	os.RemoveAll(store_cfg2.DbPath)
 	store := New(store_cfg2)
 	assert.NotNil(t, store)
-
 
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
@@ -120,8 +117,8 @@ func TestKvdbRollback(t *testing.T) {
 	assert.Nil(t, notExistHash)
 }
 
-
 var checkKVResult []*types.KeyValue
+
 func checkKV(k, v []byte) bool {
 	checkKVResult = append(checkKVResult,
 		&types.KeyValue{k, v})
@@ -141,7 +138,6 @@ func TestKvdbIterate(t *testing.T) {
 		kv,
 	}
 	hash := store.Set(datas, true)
-
 
 	store.IterateRangeByStateHash(hash, []byte("mk1"), []byte("mk3"), true, checkKV)
 	assert.Len(t, checkKVResult, 2)
