@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	"os"
+
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"os"
 )
 
 func init() {
