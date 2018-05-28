@@ -34,7 +34,7 @@ singleMode=false
 batchsync=false
 
 [p2p]
-seeds=["192.168.3.29:13802","192.168.3.30:13802","192.168.3.13:13802","192.168.3.4:13802"]
+seeds=["192.168.3.71:13802","192.168.3.40:13802","192.168.3.41:13802","192.168.3.61:13802"]
 enable=true
 isSeed=true
 serverStart=true
@@ -43,9 +43,9 @@ driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-version=199
-verMix=199
-verMax=199
+version=200
+verMix=200
+verMax=200
 
 [rpc]
 jrpcBindAddr="localhost:8801"
@@ -56,11 +56,13 @@ poolCacheSize=10240
 minTxFee=100000
 
 [consensus]
+# 共识驱动名,支持solo/raft/ticket/tendermint/pbft
 name="tendermint"
 minerstart=false
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
 hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+# =============== tendermint共识配置参数 ===========================
 timeoutPropose=3000
 timeoutProposeDelta=500
 timeoutPrevote=1000
@@ -71,12 +73,13 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["192.168.3.4:46656","192.168.3.13:46656","192.168.3.29:46656","192.168.3.30:46656"]
+seeds=["192.168.3.71:46656","192.168.3.40:46656","192.168.3.41:46656","192.168.3.61:46656"]
+# =============== tendermint共识配置参数 ===========================
 
 [store]
-name="mavl"
+name="kvdb"
 driver="leveldb"
-dbPath="datadir/mavltree"
+dbPath="datadir/kvdb"
 dbCache=128
 
 [wallet]
