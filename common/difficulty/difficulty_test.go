@@ -29,8 +29,7 @@ func TestHashToBig(t *testing.T) {
 }
 
 func TestCompactToBigSmallPositive(t *testing.T) {
-	var compact uint32
-	compact = 0x030000ff
+	var compact uint32 = 0x030000ff
 	bigint := CompactToBig(compact)
 	if 1 != bigint.Sign() {
 		t.Error("Bad sign for compact", compact)
@@ -47,8 +46,7 @@ func TestCompactToBigSmallPositive(t *testing.T) {
 }
 
 func TestCompactToBigBigPositive(t *testing.T) {
-	var compact uint32
-	compact = 0x050000ff
+	var compact uint32 = 0x050000ff
 	bigint := CompactToBig(compact)
 	if 1 != bigint.Sign() {
 		t.Error("Bad sign for compact", compact)
@@ -67,8 +65,7 @@ func TestCompactToBigBigPositive(t *testing.T) {
 }
 
 func TestCompactToBigSmallNegative(t *testing.T) {
-	var compact uint32
-	compact = 0x038000ff
+	var compact uint32 = 0x038000ff
 	bigint := CompactToBig(compact)
 	if -1 != bigint.Sign() {
 		t.Error("Bad sign for compact", compact)
@@ -85,8 +82,7 @@ func TestCompactToBigSmallNegative(t *testing.T) {
 }
 
 func TestCompactToBigBigNegative(t *testing.T) {
-	var compact uint32
-	compact = 0x058000ff
+	var compact uint32 = 0x058000ff
 	bigint := CompactToBig(compact)
 	if -1 != bigint.Sign() {
 		t.Error("Bad sign for compact", compact)
