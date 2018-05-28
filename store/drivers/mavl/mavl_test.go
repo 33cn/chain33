@@ -1,10 +1,11 @@
 package mavl
 
 import (
-	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/types"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var store_cfg0 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test0", 100}
