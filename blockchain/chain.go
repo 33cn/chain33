@@ -1,12 +1,14 @@
 package blockchain
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -24,8 +26,14 @@ var (
 	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
 	isStrongConsistency       = false
 
-	chainlog = log.New("module", "blockchain")
+	chainlog                   = log.New("module", "blockchain")
+	bCoins                     = []byte("coins")
+	bToken                     = []byte("token")
+	withdraw                   = "withdraw"
+	FutureBlockDelayTime int64 = 1
 )
+
+const maxFutureBlocks = 256
 
 type BlockChain struct {
 	client queue.Client
@@ -46,12 +54,13 @@ type BlockChain struct {
 	synBlockHeight int64
 
 	//记录peer的最新block高度,用于节点追赶active链
-	peerList    PeerInfoList
-	recvwg      *sync.WaitGroup
-	synblock    chan struct{}
-	quit        chan struct{}
-	isclosed    int32
-	isbatchsync int32
+	peerList            PeerInfoList
+	recvwg              *sync.WaitGroup
+	synblock            chan struct{}
+	quit                chan struct{}
+	isclosed            int32
+	isbatchsync         int32
+	firstcheckbestchain int32 //节点启动之后首次检测最优链的标志
 
 	// 孤儿链
 	orphanPool *OrphanPool
@@ -74,28 +83,39 @@ type BlockChain struct {
 	//记录可疑故障节点peer信息
 	//在ExecBlock执行失败时记录对应的peerid以及故障区块的高度和hash
 	faultPeerList map[string]*FaultPeerInfo
+
+	bestChainPeerList map[string]*BestPeerInfo
+
+	//记录futureblocks
+	futureBlocks *lru.Cache // future blocks are broadcast later processing
+
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
+	futureBlocks, _ := lru.New(maxFutureBlocks)
+
 	blockchain := &BlockChain{
-		cache:              make(map[int64]*list.Element),
-		cacheSize:          DefCacheSize,
-		cacheQueue:         list.New(),
-		rcvLastBlockHeight: -1,
-		synBlockHeight:     -1,
-		peerList:           nil,
-		cfg:                cfg,
-		recvwg:             &sync.WaitGroup{},
-		task:               newTask(160 * time.Second),
-		quit:               make(chan struct{}),
-		synblock:           make(chan struct{}, 1),
-		orphanPool:         NewOrphanPool(),
-		index:              newBlockIndex(),
-		isCaughtUp:         false,
-		isbatchsync:        1,
-		cfgBatchSync:       cfg.Batchsync,
-		faultPeerList:      make(map[string]*FaultPeerInfo),
+		cache:               make(map[int64]*list.Element),
+		cacheSize:           DefCacheSize,
+		cacheQueue:          list.New(),
+		rcvLastBlockHeight:  -1,
+		synBlockHeight:      -1,
+		peerList:            nil,
+		cfg:                 cfg,
+		recvwg:              &sync.WaitGroup{},
+		task:                newTask(160 * time.Second),
+		quit:                make(chan struct{}),
+		synblock:            make(chan struct{}, 1),
+		orphanPool:          NewOrphanPool(),
+		index:               newBlockIndex(),
+		isCaughtUp:          false,
+		isbatchsync:         1,
+		firstcheckbestchain: 0,
+		cfgBatchSync:        cfg.Batchsync,
+		faultPeerList:       make(map[string]*FaultPeerInfo),
+		bestChainPeerList:   make(map[string]*BestPeerInfo),
+		futureBlocks:        futureBlocks,
 	}
 	return blockchain
 }
@@ -139,10 +159,10 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client.Sub("blockchain")
 
 	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, chain.cfg.DbCache)
-	blockStore := NewBlockStore(blockStoreDB, client.Clone())
+	blockStore := NewBlockStore(blockStoreDB, client)
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
-	chain.query = NewQuery(blockStoreDB, chain.client.Clone(), stateHash)
+	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
 
 	//获取lastblock从数据库,创建bestviewtip节点
 	chain.InitIndexAndBestView()
@@ -155,6 +175,9 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 
 	// 定时检测/同步block
 	go chain.SynRoutine()
+
+	// 定时处理futureblock
+	go chain.UpdateRoutine()
 }
 
 func (chain *BlockChain) getStateHash() []byte {
@@ -213,13 +236,22 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	pubkey := txresult.GetTx().Signature.GetPubkey()
 	addr := account.PubKeyToAddress(pubkey)
 	TransactionDetail.Fromaddr = addr.String()
-	if string(TransactionDetail.Tx.GetExecer()) == "coins" && TransactionDetail.GetActionName() == "withdraw" {
+	if isWithdraw(TransactionDetail.Tx.GetExecer(), TransactionDetail.ActionName) {
 		//swap from and to
 		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
 	}
 	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
 
 	return &TransactionDetail, nil
+}
+
+func isWithdraw(execer []byte, actionName string) bool {
+	if bytes.Equal(execer, bCoins) || bytes.Equal(execer, bToken) {
+		if actionName == withdraw {
+			return true
+		}
+	}
+	return false
 }
 
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList) {
@@ -230,8 +262,6 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			dupTxHashList.Hashes = append(dupTxHashList.Hashes, txhash)
-			//chainlog.Debug("GetDuplicateTxHashList txresult", "height", txresult.Height, "index", txresult.Index)
-			//chainlog.Debug("GetDuplicateTxHashList txresult  tx", "txinfo", txresult.Tx.String())
 		}
 	}
 	return &dupTxHashList
@@ -256,7 +286,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		return nil, types.ErrEndLessThanStartHeight
 	}
 
-	chainlog.Debug("ProcGetBlockDetailsMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.Isdetail)
+	chainlog.Debug("ProcGetBlockDetailsMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.IsDetail)
 
 	end := requestblock.End
 	if requestblock.End > blockhight {
@@ -272,7 +302,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 	for i := start; i <= end; i++ {
 		block, err := chain.GetBlock(i)
 		if err == nil && block != nil {
-			if requestblock.Isdetail {
+			if requestblock.IsDetail {
 				blocks.Items[j] = block
 			} else {
 				var blockdetail types.BlockDetail
@@ -286,7 +316,7 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		j++
 	}
 	//print
-	if requestblock.Isdetail {
+	if requestblock.IsDetail {
 		for _, blockinfo := range blocks.Items {
 			chainlog.Debug("ProcGetBlocksMsg", "blockinfo", blockinfo.String())
 		}
@@ -313,7 +343,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
 
-	return nil
+	return err
 }
 
 //blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
@@ -477,6 +507,12 @@ func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, erro
 //}
 func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (respheaders *types.Headers, err error) {
 	blockhight := chain.GetBlockHeight()
+
+	if requestblock.GetStart() > requestblock.GetEnd() {
+		chainlog.Error("ProcGetHeadersMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
+		return nil, types.ErrEndLessThanStartHeight
+	}
+
 	if requestblock.Start > blockhight {
 		chainlog.Error("ProcGetHeadersMsg Startheight err", "startheight", requestblock.Start, "curheight", blockhight)
 		return nil, types.ErrStartHeight
@@ -488,7 +524,10 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 	start := requestblock.Start
 	count := end - start + 1
 	chainlog.Debug("ProcGetHeadersMsg", "headerscount", count)
-
+	if count < 1 {
+		chainlog.Error("ProcGetHeadersMsg count err", "startheight", requestblock.Start, "endheight", requestblock.End, "curheight", blockhight)
+		return nil, types.ErrEndLessThanStartHeight
+	}
 	var headers types.Headers
 	headers.Items = make([]*types.Header, count)
 	j := 0
@@ -603,7 +642,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			pubkey := txresult.GetTx().Signature.GetPubkey()
 			addr := account.PubKeyToAddress(pubkey)
 			txDetail.Fromaddr = addr.String()
-			if (string(txDetail.Tx.GetExecer()) == "coins" || "token" == string(txDetail.Tx.GetExecer())) && txDetail.GetActionName() == "withdraw" {
+			if isWithdraw(txDetail.Tx.GetExecer(), txDetail.ActionName) {
 				//swap from and to
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
 			}
@@ -679,10 +718,11 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	amount, err := chain.query.Query("coins", "GetAddrReciver", types.Encode(addr))
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
-		return nil, err
+		//return nil, err
+		addrOverview.Reciver = 0
+	} else {
+		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	addrOverview.Reciver = amount.(*types.Int64).GetData()
-
 	//获取地址对应的交易count
 	addr.Flag = 0
 	addr.Count = 0x7fffffff
@@ -691,11 +731,13 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
-		return nil, err
-	}
-	addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
-	chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+		//return nil, err
+		addrOverview.TxCount = 0
 
+	} else {
+		addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
+		chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+	}
 	return &addrOverview, nil
 }
 
@@ -783,7 +825,41 @@ func (chain *BlockChain) InitIndexAndBestView() {
 				chain.bestChain.SetTip(newNode)
 
 			}
-			chainlog.Debug("InitIndexAndBestView", "height", newNode.height, "hash", common.ToHex(newNode.hash))
+
+		}
+	}
+}
+
+//定时延时广播futureblock
+func (chain *BlockChain) UpdateRoutine() {
+
+	//1秒尝试检测一次futureblock，futureblock的time小于当前系统时间就广播此block
+	futureblockTicker := time.NewTicker(1 * time.Second)
+
+	for {
+		select {
+		case <-chain.quit:
+			//chainlog.Info("UpdateRoutine quit")
+			return
+		case <-futureblockTicker.C:
+			chain.ProcFutureBlocks()
+		}
+	}
+}
+
+//循环遍历所有futureblocks，当futureblock的block生成time小于当前系统时间就将此block广播出去
+func (chain *BlockChain) ProcFutureBlocks() {
+	for _, hash := range chain.futureBlocks.Keys() {
+		if block, exist := chain.futureBlocks.Peek(hash); exist {
+			if block != nil {
+				blockdetail := block.(*types.BlockDetail)
+				//block产生的时间小于当前时间，广播此block，然后将此block从futureblocks中移除
+				if time.Now().Unix() > blockdetail.Block.BlockTime {
+					chain.SendBlockBroadcast(blockdetail)
+					chain.futureBlocks.Remove(hash)
+					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+				}
+			}
 		}
 	}
 }

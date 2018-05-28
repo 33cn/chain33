@@ -1,7 +1,7 @@
 package account
 
 import (
-	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -18,23 +18,21 @@ func (acc *DB) LoadExecAccount(addr, execaddr string) *types.Account {
 	return &acc1
 }
 
-func (acc *DB) LoadExecAccountQueue(client queue.Client, addr, execaddr string) (*types.Account, error) {
-	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+func (acc *DB) LoadExecAccountQueue(api client.QueueProtocolAPI, addr, execaddr string) (*types.Account, error) {
+	header, err := api.GetLastHeader()
 	if err != nil {
 		return nil, err
 	}
-	get := types.StoreGet{}
-	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+
+	get := types.StoreGet{StateHash: header.GetStateHash()}
 	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
-	msg = client.NewMessage("store", types.EventStoreGet, &get)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
+	values, err := api.StoreGet(&get)
 	if err != nil {
 		return nil, err
 	}
-	values := msg.GetData().(*types.StoreReplyValue)
+	if len(values.Values) <= 0 {
+		return nil, types.ErrNotFound
+	}
 	value := values.Values[0]
 	if value == nil {
 		return &types.Account{Addr: addr}, nil
@@ -126,7 +124,7 @@ func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, 
 	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecFrozen)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecFrozen)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
@@ -153,7 +151,7 @@ func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, 
 	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecActive)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecActive)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
@@ -242,7 +240,7 @@ func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	list := types.AllowDepositExec
 	allow := false
 	for _, exec := range list {
-		if acc.ExecAddress(exec).String() == execaddr {
+		if acc.ExecAddress(string(exec)).String() == execaddr {
 			allow = true
 			break
 		}
@@ -278,7 +276,7 @@ func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecDeposit)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecDeposit)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
@@ -302,7 +300,7 @@ func (acc *DB) execDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecDeposit)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecDeposit)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
@@ -328,7 +326,7 @@ func (acc *DB) execWithdraw(execaddr, addr string, amount int64) (*types.Receipt
 	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecWithdraw)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecWithdraw)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
@@ -349,7 +347,7 @@ func (acc *DB) execReceipt(ty int32, acc1 *types.Account, r *types.ReceiptExecAc
 
 func (acc *DB) execReceipt2(acc1, acc2 *types.Account, r1, r2 *types.ReceiptExecAccountTransfer) *types.Receipt {
 	ty := int32(types.TyLogExecTransfer)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecTransfer)
 	}
 	log1 := &types.ReceiptLog{

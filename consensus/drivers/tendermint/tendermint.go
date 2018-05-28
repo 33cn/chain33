@@ -276,8 +276,8 @@ func (client *TendermintClient) CheckBlock(parent *types.Block, current *types.B
 	return nil
 }
 
-func (client *TendermintClient) ProcEvent(msg queue.Message) {
-
+func (client *TendermintClient) ProcEvent(msg queue.Message) bool {
+	return false
 }
 
 func (client *TendermintClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {

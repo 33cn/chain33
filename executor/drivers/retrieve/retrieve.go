@@ -21,26 +21,18 @@ var (
 )
 
 //const maxTimeWeight = 2
-func init() {
-	h := newRetrieve()
-	drivers.Register(h.GetName(), h, 0)
+func Init() {
+	drivers.Register(newRetrieve().GetName(), newRetrieve, 0)
 }
 
 type Retrieve struct {
 	drivers.DriverBase
 }
 
-func newRetrieve() *Retrieve {
+func newRetrieve() drivers.Driver {
 	r := &Retrieve{}
 	r.SetChild(r)
 	return r
-}
-
-func (r *Retrieve) Clone() drivers.Driver {
-	clone := &Retrieve{}
-	clone.DriverBase = *(r.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
 }
 
 func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

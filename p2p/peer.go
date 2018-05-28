@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,30 +14,32 @@ import (
 )
 
 func (p *Peer) Start() {
-
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
 }
+
 func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
 	pub.Unsub(p.taskChan, "block", "tx")
-	log.Debug("Peer", "closed", p.Addr())
+	log.Info("Peer", "closed", p.Addr())
 
 }
 
 type Peer struct {
-	mutx       sync.Mutex
-	nodeInfo   **NodeInfo
-	conn       *grpc.ClientConn // source connection
-	persistent bool
-	isclose    int32
-	version    *Version
-	name       string //远程节点的name
-	mconn      *MConnection
-	peerAddr   *NetAddress
-	peerStat   *Stat
-	taskChan   chan interface{} //tx block
+	mutx         sync.Mutex
+	nodeInfo     **NodeInfo
+	conn         *grpc.ClientConn // source connection
+	persistent   bool
+	isclose      int32
+	version      *Version
+	name         string //远程节点的name
+	mconn        *MConnection
+	peerAddr     *NetAddress
+	peerStat     *Stat
+	taskChan     chan interface{} //tx block
+	inBounds     int32            //连接此节点的客户端节点数量
+	IsMaxInbouds bool
 }
 
 func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Peer {
@@ -54,6 +57,7 @@ func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Pe
 
 type Version struct {
 	mtx            sync.Mutex
+	version        int32
 	versionSupport bool
 }
 type Stat struct {
@@ -91,18 +95,19 @@ func (v *Version) IsSupport() bool {
 	return v.versionSupport
 }
 
-func (p *Peer) heartBeat() {
-	for {
-		if !p.GetRunning() {
-			return
-		}
+func (v *Version) SetVersion(ver int32) {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	v.version = ver
+}
 
-		if (*p.nodeInfo).IsNatDone() { //如果nat 没有结束，在nat 重试的过程中，exter port 是在随机变化，
-			//此时对连接的远程节点公布自己的外端端口将是不准确的,导致外网无法获取其nat结束后真正的端口。
-			break
-		}
-		time.Sleep(time.Second) //wait for natwork done
-	}
+func (v *Version) GetVersion() int32 {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	return v.version
+}
+
+func (p *Peer) heartBeat() {
 
 	pcli := NewNormalP2PCli()
 	for {
@@ -134,11 +139,21 @@ func (p *Peer) heartBeat() {
 		<-ticker.C
 		err := pcli.SendPing(p, *p.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
+		peernum, err := pcli.GetInPeersNum(p)
+		P2pComm.CollectPeerStat(err, p)
+		if err == nil {
+			atomic.StoreInt32(&p.inBounds, int32(peernum))
+		}
+
 	}
 }
 
+func (p *Peer) GetInBouns() int32 {
+	return atomic.LoadInt32(&p.inBounds)
+}
+
 func (p *Peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
-	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version})
+	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version}, grpc.FailFast(true))
 }
 
 func (p *Peer) sendStream() {
@@ -160,6 +175,8 @@ func (p *Peer) sendStream() {
 		//send ping package
 		ping, err := P2pComm.NewPingData(*p.nodeInfo)
 		if err != nil {
+			resp.CloseSend()
+			cancel()
 			time.Sleep(time.Second)
 			continue
 		}
@@ -218,7 +235,7 @@ func (p *Peer) sendStream() {
 				if err != nil {
 					log.Error("sendStream", "send", err)
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-						(*p.nodeInfo).blacklist.Add(p.Addr())
+						(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
 					}
 					time.Sleep(time.Second) //have a rest
 					resp.CloseSend()
@@ -268,15 +285,22 @@ func (p *Peer) readStream() {
 		var hash [64]byte
 		for {
 			if !p.GetRunning() {
+				resp.CloseSend()
 				return
 			}
 			data, err := resp.Recv()
 			P2pComm.CollectPeerStat(err, p)
 			if err != nil {
-				log.Error("readStream", "recv,err:", err)
+				log.Error("readStream", "recv,err:", err.Error())
 				resp.CloseSend()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-					(*p.nodeInfo).blacklist.Add(p.Addr())
+					(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
+				}
+				//beyound max inbound num
+				if strings.Contains(err.Error(), "beyound max inbound num") {
+					log.Info("readStream", "peer inbounds num", p.GetInBouns())
+					p.IsMaxInbouds = true
+					P2pComm.CollectPeerStat(err, p)
 				}
 				time.Sleep(time.Second) //have a rest
 				break

@@ -38,9 +38,7 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
-
 	nodeInfo.addrBook = NewAddrBook(cfg)
-
 	return nodeInfo
 }
 
@@ -185,9 +183,11 @@ func (nf *NodeInfo) IsNatDone() bool {
 }
 
 func (nf *NodeInfo) IsOutService() bool {
-	if !nf.IsNatDone() {
+
+	if !nf.cfg.GetServerStart() {
 		return false
 	}
+
 	if nf.OutSide() || nf.ServiceTy() == Service {
 		return true
 	}
@@ -197,9 +197,11 @@ func (nf *NodeInfo) IsOutService() bool {
 func (nf *NodeInfo) SetServiceTy(ty int32) {
 	atomic.StoreInt32(&nf.ServiceType, ty)
 }
+
 func (nf *NodeInfo) ServiceTy() int32 {
 	return atomic.LoadInt32(&nf.ServiceType)
 }
+
 func (nf *NodeInfo) SetNetSide(ok bool) {
 	var isoutside int32 = 0
 	if ok {
@@ -213,10 +215,11 @@ func (nf *NodeInfo) OutSide() bool {
 	return atomic.LoadInt32(&nf.outSide) == 1
 }
 
-func (bl *BlackList) Add(addr string) {
+func (bl *BlackList) Add(addr string, deadline int64) {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
-	bl.badPeers[addr] = time.Now().Unix()
+	bl.badPeers[addr] = time.Now().Unix() + deadline
+
 }
 
 func (bl *BlackList) Delete(addr string) {
