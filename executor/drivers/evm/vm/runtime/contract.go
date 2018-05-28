@@ -24,11 +24,11 @@ type Contract struct {
 	CallerAddress common.Address
 
 	// 调用此合约的地址，有可能是外部地址（直接调用时），也有可能是合约地址（委托调用时）
-	caller        ContractRef
+	caller ContractRef
 
 	// 一般情况下为合约自身地址
 	// 但是，二般情况下（外部账户通过CallCode直接调用合约代码时，此地址会设置为外部账户的地址，就是和caller一样）
-	self          ContractRef
+	self ContractRef
 
 	// 存储跳转信息，供JUMP和JUMPI指令使用
 	Jumpdests Destinations
@@ -42,7 +42,7 @@ type Contract struct {
 	Input    []byte
 
 	// 此合约对象的可用Gas（合约执行过程中会修改此值）
-	Gas   uint64
+	Gas uint64
 
 	// 合约调用的同时，如果包含转账逻辑，则此处为转账金额
 	value uint64

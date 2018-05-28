@@ -1,8 +1,8 @@
 package state
 
 import (
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
 // 状态数据库封装，面向EVM业务执行逻辑；
@@ -14,9 +14,9 @@ type StateDB interface {
 	CreateAccount(common.Address, common.Address, string)
 
 	// 从从指定地址扣除金额
-	SubBalance(common.Address,common.Address,uint64)
+	SubBalance(common.Address, common.Address, uint64)
 	// 向指定地址增加金额
-	AddBalance(common.Address,common.Address, uint64)
+	AddBalance(common.Address, common.Address, uint64)
 	// 获取指定地址的余额
 	GetBalance(common.Address) uint64
 

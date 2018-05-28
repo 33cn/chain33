@@ -18,7 +18,6 @@ func (op OpCode) IsStaticJump() bool {
 
 var opmap map[OpCode]string
 
-
 // 是否为跳转操作
 func (op OpCode) String() string {
 	if opmap == nil {

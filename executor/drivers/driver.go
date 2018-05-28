@@ -10,9 +10,9 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/client"
 )
 
 var blog = log.New("module", "execs.base")
@@ -41,9 +41,9 @@ type DriverBase struct {
 	blocktime    int64
 	child        Driver
 	isFree       bool
-	coinBase	 string
-	difficulty	 uint64
-	api 		 client.QueueProtocolAPI
+	coinBase     string
+	difficulty   uint64
+	api          client.QueueProtocolAPI
 }
 
 func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {

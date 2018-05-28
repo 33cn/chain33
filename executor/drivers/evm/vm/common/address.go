@@ -26,13 +26,13 @@ func (a Address) Big() *big.Int {
 
 // txHash生成EVM合约地址
 func NewAddress(txHash []byte) Address {
-	execAddr := account.ExecAddress("user.evm."+BytesToHash(txHash).Hex())
-	return Address{addr:execAddr}
+	execAddr := account.ExecAddress("user.evm." + BytesToHash(txHash).Hex())
+	return Address{addr: execAddr}
 }
 
 func ExecAddress(execName string) Address {
 	execAddr := account.ExecAddress(execName)
-	return Address{addr:execAddr}
+	return Address{addr: execAddr}
 }
 
 func (a Address) Hash() Hash { return ToHash(a.Bytes()) }

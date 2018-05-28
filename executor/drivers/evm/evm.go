@@ -23,7 +23,6 @@ func Init() {
 	drivers.Register(model.ExecutorName, newEVMDriver, 0)
 }
 
-
 func newEVMDriver() drivers.Driver {
 	evm := NewEVMExecutor()
 	evm.vmCfg.Debug = debugEVM()
