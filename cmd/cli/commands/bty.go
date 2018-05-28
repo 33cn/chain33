@@ -20,6 +20,7 @@ func BTYCmd() *cobra.Command {
 		//WithdrawFromExecCmd(),
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
+		CreateRawSendToExecCmd(),
 	)
 
 	return cmd
@@ -37,9 +38,6 @@ func CreateRawTransferCmd() *cobra.Command {
 }
 
 func addCreateTransferFlags(cmd *cobra.Command) {
-	//cmd.Flags().StringP("key", "k", "", "private key of sender")
-	//cmd.MarkFlagRequired("key")
-
 	cmd.Flags().StringP("to", "t", "", "receiver account address")
 	cmd.MarkFlagRequired("to")
 
@@ -51,16 +49,11 @@ func addCreateTransferFlags(cmd *cobra.Command) {
 }
 
 func createTransfer(cmd *cobra.Command, args []string) {
-	//key, _ := cmd.Flags().GetString("key")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := CreateRawTx(toAddr, amount, note, false, false, "")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	fmt.Println(txHex)
+	CreateRawTx(rpcLaddr, toAddr, amount, note, false, false, "", "")
 }
 
 // create raw withdraw tx
@@ -75,9 +68,6 @@ func CreateRawWithdrawCmd() *cobra.Command {
 }
 
 func addCreateWithdrawFlags(cmd *cobra.Command) {
-	//cmd.Flags().StringP("key", "k", "", "private key of user")
-	//cmd.MarkFlagRequired("key")
-
 	cmd.Flags().StringP("exec", "e", "", "execer withdrawn from")
 	cmd.MarkFlagRequired("exec")
 
@@ -89,7 +79,7 @@ func addCreateWithdrawFlags(cmd *cobra.Command) {
 }
 
 func createWithdraw(cmd *cobra.Command, args []string) {
-	//key, _ := cmd.Flags().GetString("key")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
@@ -98,12 +88,42 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "")
+	CreateRawTx(rpcLaddr, execAddr, amount, note, true, false, "", "")
+}
+
+// create send to exec
+func CreateRawSendToExecCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "send_exec",
+		Short: "Create a send to executor transaction",
+		Run:   sendToExec,
+	}
+	addCreateRawSendToExecFlags(cmd)
+	return cmd
+}
+
+func addCreateRawSendToExecFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("exec", "e", "", "executor to be sent to")
+	cmd.MarkFlagRequired("exec")
+
+	cmd.Flags().Float64P("amount", "a", 0, "send amount")
+	cmd.MarkFlagRequired("amount")
+
+	cmd.Flags().StringP("note", "n", "", "transaction note info")
+	cmd.MarkFlagRequired("note")
+}
+
+func sendToExec(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	exec, _ := cmd.Flags().GetString("exec")
+	amount, _ := cmd.Flags().GetFloat64("amount")
+	note, _ := cmd.Flags().GetString("note")
+	execAddr, err := GetExecAddr(exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	fmt.Println(txHex)
+	CreateRawTx(rpcLaddr, execAddr, amount, note, false, false, "", exec)
 }
 
 // send to address
