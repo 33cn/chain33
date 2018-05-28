@@ -510,30 +510,7 @@ OUTER_LOOP:
 				continue OUTER_LOOP
 			}
 		}
-
-		// If the peer is on a previous height, help catch up.
-		if (0 < prs.Height) && (prs.Height < rs.Height) {
-			conR.Logger.Error("gossipDataRoutine", "peer", peer.NodeInfo() ,"PeerRoundState_height", prs.Height, "RoundState_height", rs.Height)
-			/*
-				heightLogger := logger.New("height", prs.Height)
-
-				// if we never received the commit message from the peer, the block parts wont be initialized
-				if prs.ProposalBlockParts == nil {
-					blockMeta := conR.conS.blockStore.LoadBlockMeta(prs.Height)
-					if blockMeta == nil {
-						cmn.PanicCrisis(cmn.Fmt("Failed to load block %d when blockStore is at %d",
-							prs.Height, conR.conS.blockStore.Height()))
-					}
-					ps.InitProposalBlockParts(blockMeta.BlockID.PartsHeader)
-					// continue the loop since prs is a copy and not effected by this initialization
-					continue OUTER_LOOP
-				}
-				conR.gossipDataForCatchup(heightLogger, rs, prs, ps, peer)
-			    continue OUTER_LOOP
-			*/
-
-		}
-
+		
 		// If height and round don't match, sleep.
 		if (rs.Height != prs.Height) || (rs.Round != prs.Round) {
 			//logger.Info("Peer Height|Round mismatch, sleeping", "peerHeight", prs.Height, "peerRound", prs.Round, "peer", peer)
