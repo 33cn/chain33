@@ -51,7 +51,7 @@ func RandomContractAddress() *common.Address {
 	}
 
 	acc := account.PubKeyToAddress(key.PubKey().Bytes())
-	ret := common.StringToAddress(account.ExecAddress(acc.String()).String())
+	ret := common.StringToAddress(account.ExecAddress(acc.String()))
 	return ret
 }
 
