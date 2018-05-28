@@ -12,7 +12,6 @@ token执行器支持token的创建，
 import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -26,15 +25,14 @@ const (
 )
 
 func Init() {
-	t := newToken()
-	drivers.Register(t.GetName(), t, types.ForkV2AddToken)
+	drivers.Register(newToken().GetName(), newToken, types.ForkV2AddToken)
 }
 
 type token struct {
 	drivers.DriverBase
 }
 
-func newToken() *token {
+func newToken() drivers.Driver {
 	t := &token{}
 	t.SetChild(t)
 	return t
@@ -44,21 +42,12 @@ func (t *token) GetName() string {
 	return "token"
 }
 
-func (t *token) Clone() drivers.Driver {
-	clone := &token{}
-	clone.DriverBase = *(t.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
-}
-
 func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var tokenAction types.TokenAction
 	err := types.Decode(tx.Payload, &tokenAction)
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Info("exec token action", "txhash", common.Bytes2Hex(tx.Hash()), "tokenAction.GetTy()", tokenAction.GetTy())
-
 	switch tokenAction.GetTy() {
 	case types.TokenActionPreCreate:
 		action := newTokenAction(t, "", tx)
@@ -74,15 +63,27 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	case types.ActionTransfer:
 		token := tokenAction.GetTransfer().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
+		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
+		if err != nil {
+			return nil, err
+		}
+		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 
 	case types.ActionWithdraw:
 		token := tokenAction.GetWithdraw().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
+		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
+		if err != nil {
+			return nil, err
+		}
+		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 
 	case types.TokenActionTransferToExec:
 		token := tokenAction.GetTransferToExec().GetCointoken()
-		return t.ExecTransWithdraw(account.NewTokenAccount(token, t.GetStateDB()), tx, &tokenAction, index)
+		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
+		if err != nil {
+			return nil, err
+		}
+		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 	}
 
 	return nil, types.ErrActionNotSupport
@@ -94,7 +95,6 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	if err != nil {
 		panic(err)
 	}
-	tokenlog.Info("exec token ExecLocal tx=", "tx=", action)
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecLocalTransWithdraw(tx, receipt, index)
@@ -102,7 +102,7 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 		if action.Ty == types.ActionTransfer {
 			transfer := action.GetTransfer()
 			// 添加个人资产列表
-			tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
+			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
 			kv := AddTokenToAssets(tx.To, t.GetLocalDB(), transfer.Cointoken)
 			if kv != nil {
 				set.KV = append(set.KV, kv...)
@@ -237,7 +237,10 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		return nil, err
 	}
 	for _, asset := range assets.Datas {
-		acc := account.NewTokenAccount(asset, t.GetStateDB())
+		acc, err := account.NewAccountDB(t.GetName(), asset, t.GetStateDB())
+		if err != nil {
+			return nil, err
+		}
 		var acc1 *types.Account
 		if req.Execer == "trade" {
 			execaddress := account.ExecAddress(req.Execer)

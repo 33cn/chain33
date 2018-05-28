@@ -188,8 +188,18 @@ var (
 	ErrStreamPing = errors.New("ErrStreamPing")
 	ErrPeerStop   = errors.New("ErrPeerStop")
 
+	ErrBlockSize                  = errors.New("ErrBlockSize")
+	ErrTxGroupCountLessThanTwo    = errors.New("ErrTxGroupCountLessThanTwo")
+	ErrTxGroupHeader              = errors.New("ErrTxGroupHeader")
+	ErrTxGroupNext                = errors.New("ErrTxGroupNext")
+	ErrTxGroupCountBigThanMaxSize = errors.New("ErrTxGroupCountBigThanMaxSize")
+	ErrTxGroupEmpty               = errors.New("ErrTxGroupEmpty")
+	ErrTxGroupCount               = errors.New("ErrTxGroupCount")
+	ErrTxGroupFeeNotZero          = errors.New("ErrTxGroupFeeNotZero")
+	ErrNomalTx                    = errors.New("ErrNomalTx")
+	ErrUnknowDriver               = errors.New("ErrUnknowDriver")
+	ErrSymbolNameNotAllow         = errors.New("ErrSymbolNameNotAllow")
+
 	//authority
 	ErrDeserializedIdentity = errors.New("ErrDeserializedIdentity")
-
-	ErrBlockSize = errors.New("ErrBlockSize")
 )
