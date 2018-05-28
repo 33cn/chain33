@@ -2,7 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
