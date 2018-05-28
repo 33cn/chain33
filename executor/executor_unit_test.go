@@ -12,8 +12,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/limits"
-	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -28,15 +26,6 @@ var randomU *rand.Rand
 var (
 	addr1 string
 )
-
-func init() {
-	err := limits.SetLimits()
-	if err != nil {
-		panic(err)
-	}
-	randomU = rand.New(rand.NewSource(time.Now().UnixNano()))
-	log.SetLogLevel("error")
-}
 
 func initUnitEnv() (queue.Queue, *Executor) {
 	var q = queue.New("channel")
