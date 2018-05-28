@@ -583,7 +583,7 @@ func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.Priv
 	tx.Execer = []byte("ticket")
 	tx.Fee = types.MinFee
 	tx.Nonce = client.RandInt64()
-	tx.To = account.ExecAddress("ticket").String()
+	tx.To = account.ExecAddress("ticket")
 	tx.Payload = types.Encode(ticketAction)
 	tx.Sign(types.SECP256K1, priv)
 	return tx
