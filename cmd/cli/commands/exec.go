@@ -49,7 +49,7 @@ func getAddrByExec(cmd *cobra.Command, args []string) {
 	switch execer {
 	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
 		addrResult := account.ExecAddress(execer)
-		result := addrResult.String()
+		result := addrResult
 		fmt.Println(result)
 
 	default:
@@ -98,7 +98,7 @@ func addUserData(cmd *cobra.Command, args []string) {
 	tx := &types.Transaction{
 		Execer:  []byte(execer),
 		Payload: []byte(data),
-		To:      addrResult.String(),
+		To:      addrResult,
 	}
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
 	if err != nil {
