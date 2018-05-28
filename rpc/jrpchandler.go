@@ -748,7 +748,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		//log.Info("EventQuery", "Old Query called", in.FuncName)
 		return c.QueryOld(in, result)
 	}
-	decodePayload, err := trans.(types.RpcTypeUtil).Input(in.Payload)
+	decodePayload, err := trans.(types.RpcTypeQuery).Input(in.Payload)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -760,13 +760,12 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		return err
 	}
 
-	*result, err = trans.(types.RpcTypeUtil).Output(resp)
+	*result, err = trans.(types.RpcTypeQuery).Output(resp)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
 
-	*result = resp
 	return nil
 }
 

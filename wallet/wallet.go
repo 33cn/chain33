@@ -1024,7 +1024,10 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		}
 
 		if nil == accTokenMap[SendToAddress.TokenSymbol] {
-			tokenAccDB := account.NewTokenAccountWithoutDB(SendToAddress.TokenSymbol)
+			tokenAccDB, err := account.NewAccountDB("token", SendToAddress.TokenSymbol, nil)
+			if err != nil {
+				return nil, err
+			}
 			accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
 		}
 		tokenAccDB := accTokenMap[SendToAddress.TokenSymbol]
@@ -1206,22 +1209,20 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 	note := "MergeBalance"
 
 	var ReplyHashes types.ReplyHashes
-	//ReplyHashes.Hashes = make([][]byte, len(accounts))
 
 	for index, Account := range accounts {
 		Privkey := WalletAccStores[index].Privkey
 		//解密存储的私钥
 		prikeybyte, err := common.FromHex(Privkey)
 		if err != nil || len(prikeybyte) == 0 {
-			walletlog.Error("ProcMergeBalance", "FromHex err", err)
-			return nil, err
+			walletlog.Error("ProcMergeBalance", "FromHex err", err, "index", index)
+			continue
 		}
 
 		privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 		priv, err := cr.PrivKeyFromBytes(privkey)
 		if err != nil {
 			walletlog.Error("ProcMergeBalance", "PrivKeyFromBytes err", err, "index", index)
-			//ReplyHashes.Hashes[index] = common.Hash{}.Bytes()
 			continue
 		}
 		//过滤掉to地址
@@ -1237,20 +1238,25 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 		//初始化随机数
-		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: r.Int63()}
+		//r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
+		tx.SetExpire(time.Second * 120)
 		tx.Sign(int32(SignType), priv)
 
 		//发送交易信息给mempool模块
 		msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 		wallet.client.Send(msg, true)
-		_, err = wallet.client.Wait(msg)
+		resp, err := wallet.client.Wait(msg)
 		if err != nil {
 			walletlog.Error("ProcMergeBalance", "Send tx err", err, "index", index)
-			//ReplyHashes.Hashes[index] = common.Hash{}.Bytes()
 			continue
 		}
-
+		//如果交易在mempool校验失败，不记录此交易
+		reply := resp.GetData().(*types.Reply)
+		if !reply.GetIsOk() {
+			walletlog.Error("ProcMergeBalance", "Send tx err", string(reply.GetMsg()), "index", index)
+			continue
+		}
 		ReplyHashes.Hashes = append(ReplyHashes.Hashes, tx.Hash())
 	}
 	return &ReplyHashes, nil

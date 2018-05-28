@@ -52,11 +52,13 @@ func (n *Node) isClose() bool {
 }
 
 type Node struct {
-	omtx     sync.Mutex
-	nodeInfo *NodeInfo
-	outBound map[string]*Peer
-	listener Listener
-	closed   int32
+	omtx       sync.Mutex
+	nodeInfo   *NodeInfo
+	cmtx       sync.Mutex
+	cacheBound map[string]*Peer
+	outBound   map[string]*Peer
+	listener   Listener
+	closed     int32
 }
 
 func (n *Node) SetQueueClient(client queue.Client) {
@@ -66,7 +68,8 @@ func (n *Node) SetQueueClient(client queue.Client) {
 func NewNode(cfg *types.P2P) (*Node, error) {
 
 	node := &Node{
-		outBound: make(map[string]*Peer),
+		outBound:   make(map[string]*Peer),
+		cacheBound: make(map[string]*Peer),
 	}
 	if cfg.GetInnerSeedEnable() {
 		cfg.Seeds = append(cfg.Seeds, InnerSeeds...)
@@ -171,6 +174,44 @@ func (n *Node) addPeer(pr *Peer) {
 	pr.Start()
 }
 
+func (n *Node) AddCachePeer(pr *Peer) {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	n.cacheBound[pr.Addr()] = pr
+}
+
+func (n *Node) RemoveCachePeer(addr string) {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	delete(n.cacheBound, addr)
+}
+
+func (n *Node) HasCacheBound(addr string) bool {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	_, ok := n.cacheBound[addr]
+	return ok
+
+}
+func (n *Node) CacheBoundsSize() int {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	return len(n.cacheBound)
+}
+func (n *Node) GetCacheBounds() []*Peer {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	var peers []*Peer
+	if len(n.cacheBound) == 0 {
+		return peers
+	}
+	for _, peer := range n.cacheBound {
+		peers = append(peers, peer)
+
+	}
+	return peers
+}
+
 func (n *Node) Size() int {
 
 	return n.nodeInfo.peerInfos.PeerSize()
@@ -251,6 +292,7 @@ func (n *Node) monitor() {
 	go n.monitorBlackList()
 	go n.monitorFilter()
 	go n.monitorPeers()
+	go n.nodeReBalance()
 }
 
 func (n *Node) needMore() bool {
@@ -334,8 +376,8 @@ func (n *Node) natMapPort() {
 	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")
 		p2pcli := NewNormalP2PCli() //检查要映射的IP地址是否已经被映射成功
-		ok := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String())
-		if ok {
+		ok := p2pcli.CheckSelf(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
+		if !ok {
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
 			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
 		}

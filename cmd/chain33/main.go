@@ -96,7 +96,7 @@ func main() {
 
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info(cfg.Title + version.GetVersion())
+	log.Info(cfg.Title + " " + version.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
