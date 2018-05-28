@@ -29,37 +29,59 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		return nil, err
 	}
 
+	if !types.IsAllowExecName(param.ExecName) {
+		log.Error("CreateRawTransaction", "Error", types.ErrExecNameNotMath)
+		return nil, types.ErrExecNameNotMath
+	}
+
 	var tx *types.Transaction
 	amount := param.Amount
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	if amount < 0 {
+		return nil, types.ErrAmount
+	}
 	if !param.IsToken {
 		transfer := &types.CoinsAction{}
-		if amount > 0 {
-			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransfer
+		if !param.IsWithdraw {
+			if param.ExecName != "" {
+				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransferToExec
+			} else {
+				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransfer
+			}
 		} else {
-			v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: param.GetNote()}}
+			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amount, Note: param.GetNote()}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
 	} else {
 		transfer := &types.TokenAction{}
-		if amount > 0 {
-			v := &types.TokenAction_Transfer{&types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
+		if !param.IsWithdraw {
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		} else {
-			v := &types.TokenAction_Withdraw{&types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: -amount, Note: param.GetNote()}}
+			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: param.GetTo()}
 	}
 
-	data := types.Encode(tx)
-	return data, nil
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	txHex := types.Encode(tx)
+
+	return txHex, nil
 }
 
 func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
