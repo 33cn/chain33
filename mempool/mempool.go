@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"encoding/hex"
 	"sync"
 	"time"
 
@@ -526,9 +525,6 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				if len(hashList.GetHashes()) == 0 {
 					msg.ReplyErr("EventDelTxList", types.ErrSize)
 				} else {
-					for i := 0; i < len(hashList.Hashes); i++ {
-						println(hex.EncodeToString(hashList.Hashes[i]))
-					}
 					err := mem.RemoveTxs(hashList)
 					msg.ReplyErr("EventDelTxList", err)
 				}
