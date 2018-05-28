@@ -30,12 +30,6 @@ type CryptoSuite struct {
 	BCCSP bccsp.BCCSP
 }
 
-// KeyGen is a wrapper of BCCSP.KeyGen
-func (c *CryptoSuite) KeyGen(opts core.KeyGenOpts) (k core.Key, err error) {
-	key, err := c.BCCSP.KeyGen(opts)
-	return GetKey(key), err
-}
-
 // KeyImport is a wrapper of BCCSP.KeyImport
 func (c *CryptoSuite) KeyImport(raw interface{}, opts core.KeyImportOpts) (k core.Key, err error) {
 	key, err := c.BCCSP.KeyImport(raw, opts)
@@ -61,11 +55,6 @@ func (c *CryptoSuite) GetHash(opts core.HashOpts) (h hash.Hash, err error) {
 // Sign is a wrapper of BCCSP.Sign
 func (c *CryptoSuite) Sign(k core.Key, digest []byte, opts core.SignerOpts) (signature []byte, err error) {
 	return c.BCCSP.Sign(k.(*key).key, digest, opts)
-}
-
-// Verify is a wrapper of BCCSP.Verify
-func (c *CryptoSuite) Verify(k core.Key, signature, digest []byte, opts core.SignerOpts) (valid bool, err error) {
-	return c.BCCSP.Verify(k.(*key).key, signature, digest, opts)
 }
 
 type key struct {

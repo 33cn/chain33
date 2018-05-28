@@ -31,9 +31,6 @@ import (
 //CryptoSuite adaptor for all bccsp functionalities used by SDK
 type CryptoSuite interface {
 
-	// KeyGen generates a key using opts.
-	KeyGen(opts KeyGenOpts) (k Key, err error)
-
 	// KeyImport imports a key from its raw representation using opts.
 	// The opts argument should be appropriate for the primitive used.
 	KeyImport(raw interface{}, opts KeyImportOpts) (k Key, err error)
@@ -57,10 +54,6 @@ type CryptoSuite interface {
 	// the caller is responsible for hashing the larger message and passing
 	// the hash (as digest).
 	Sign(k Key, digest []byte, opts SignerOpts) (signature []byte, err error)
-
-	// Verify verifies signature against key k and digest
-	// The opts argument should be appropriate for the algorithm used.
-	Verify(k Key, signature, digest []byte, opts SignerOpts) (valid bool, err error)
 }
 
 // Key represents a cryptographic key
@@ -118,4 +111,11 @@ type KeyGenOpts interface {
 	// Ephemeral returns true if the key to generate has to be ephemeral,
 	// false otherwise.
 	Ephemeral() bool
+}
+
+//CryptoSuiteConfig contains sdk configuration items for cryptosuite.
+type CryptoSuiteConfig interface {
+	SecurityAlgorithm() string
+	SecurityLevel() int
+	KeyStorePath() string
 }
