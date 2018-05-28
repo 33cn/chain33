@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -135,7 +136,7 @@ func BenchmarkExecBlock(b *testing.B) {
 }
 
 func TestLoadDriver(t *testing.T) {
-	d, err := LoadDriver("none", 0)
+	d, err := drivers.LoadDriver("none", 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -143,18 +144,12 @@ func TestLoadDriver(t *testing.T) {
 	if d.GetName() != "none" {
 		t.Error(d.GetName())
 	}
-
-	// if no, happen panic!
-	driver := d.Clone()
-	if driver.GetName() != "none" {
-		t.Error(d.GetName())
-	}
 }
 
 func TestKeyAllow(t *testing.T) {
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
-	if !isAllowExec(key, exec) {
+	if !isAllowExec(key, exec, account.ExecAddress("retrieve").String()) {
 		t.Error("retrieve can modify exec")
 	}
 }
