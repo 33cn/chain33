@@ -17,9 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var (
-	addr1 string
-)
+var addr1 string
 
 func initUnitEnv() (queue.Queue, *Executor) {
 	var q = queue.New("channel")
