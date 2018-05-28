@@ -558,3 +558,10 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"soldout": TradeOrderStatusSoldOut,
 	"revoked": TradeOrderStatusRevoked,
 }
+
+const (
+	SIG_TYPE_SECP256K1 int32 = 1
+	SIG_TYPE_ED25519   int32 = 2
+	SIG_TYPE_SM2       int32 = 3
+	SIG_TYPE_AUTHORITY int32 = 4
+)
