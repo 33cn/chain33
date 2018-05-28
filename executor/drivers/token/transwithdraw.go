@@ -48,7 +48,7 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		transfer := action.GetTransferToExec()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		toaddr := account.ExecAddress(transfer.ExecName).String()
+		toaddr := account.ExecAddress(transfer.ExecName)
 		if toaddr != tx.To {
 			return nil, types.ErrToAddrNotSameToExecAddr
 		}
