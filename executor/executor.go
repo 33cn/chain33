@@ -165,7 +165,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			continue
 		}
 		//所有tx.GroupCount > 0 的交易都是错误的交易
-		if datas.Height < types.ForkV13TxGroup {
+		if datas.Height < types.ForkV14TxGroup {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupNotSupport))
 			continue
 		}
@@ -192,7 +192,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{receipts}))
 }
 
-func isAllowExec(key, txexecer []byte, toaddr string) bool {
+func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 	keyexecer, err := findExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
@@ -214,15 +214,19 @@ func isAllowExec(key, txexecer []byte, toaddr string) bool {
 	if ok && execaddr == account.ExecAddress(string(txexecer)) {
 		return true
 	}
-	//特殊化处理一下
-	//TODO 加上fork
-	//manage 的key 是 config
-	if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
-		return true
-	}
-	if bytes.Equal(txexecer, types.ExecerToken) {
-		if bytes.HasPrefix(key, []byte("mavl-create-token-")) {
+
+	// 特殊化处理一下
+	// manage 的key 是 config
+	// token 的部分key 是 mavl-create-token-
+	if height < types.ForkV13ExecKey {
+		elog.Info("mavl key", "execer", keyexecer, "keyexecer", keyexecer)
+		if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
 			return true
+		}
+		if bytes.Equal(txexecer, types.ExecerToken) {
+			if bytes.HasPrefix(key, []byte("mavl-create-token-")) {
+				return true
+			}
 		}
 	}
 	return false
@@ -544,7 +548,7 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 	if receipt != nil {
 		for _, kv := range receipt.GetKV() {
 			k := kv.GetKey()
-			if !isAllowExec(k, tx.GetExecer(), tx.To) {
+			if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
 				elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
 					"tx.action", tx.ActionName())
 				if types.IsTestNet() {
