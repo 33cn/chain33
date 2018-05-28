@@ -164,6 +164,11 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			index++
 			continue
 		}
+		//所有tx.GroupCount > 0 的交易都是错误的交易
+		if datas.Height < types.ForkV13TxGroup {
+			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupNotSupport))
+			continue
+		}
 		//判断GroupCount 是否会产生越界
 		if i+int(tx.GroupCount) > len(datas.Txs) {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupCount))
