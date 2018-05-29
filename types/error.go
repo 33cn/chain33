@@ -179,6 +179,6 @@ var (
 	ErrStreamPing = errors.New("ErrStreamPing")
 	ErrPeerStop   = errors.New("ErrPeerStop")
 	// ring signature
-	ErrGeFromBytesVartime		= errors.New("ErrGeFromBytesVartime")
-	ErrInvalidParams			= errors.New("ErrInvalidParams")
+	ErrGeFromBytesVartime = errors.New("ErrGeFromBytesVartime")
+	ErrInvalidParams      = errors.New("ErrInvalidParams")
 )

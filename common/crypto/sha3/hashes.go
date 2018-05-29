@@ -85,5 +85,3 @@ func KeccakSum512(data []byte) (digest [32]byte) {
 	h.Sum(digest[:0])
 	return
 }
-
-

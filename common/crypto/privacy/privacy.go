@@ -277,7 +277,7 @@ func hash2scalar(buf []byte, out *[32]byte) {
 
 func (image *KeyImage) String() string {
 	var s string
-	for _, d := range image{
+	for _, d := range image {
 		s += fmt.Sprintf("%02x", d)
 	}
 	return s
