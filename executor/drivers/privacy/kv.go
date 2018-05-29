@@ -8,7 +8,7 @@ const (
 	PrivacyOutputKeyPrefix  = "mavl-privacy-UTXO-tahi"
 	PrivacyUTXOKEYPrefix    = "local-privacy-UTXO-tahhi"
 	PrivacyAmountTypePrefix = "local-privacy-UTXO-atype"
-	PrivacyTokenTypesPrefix  = "local-privacy-UTXO-token"
+	PrivacyTokenTypesPrefix = "local-privacy-UTXO-token"
 )
 
 //该key对应的是types.KeyOutput
@@ -34,5 +34,3 @@ func CalcprivacyKeyTokenAmountType(token string) (key []byte) {
 func CalcprivacyKeyTokenTypes() (key []byte) {
 	return []byte(PrivacyTokenTypesPrefix)
 }
-
-

@@ -13,11 +13,11 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/none"
+	_ "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -153,15 +153,15 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 				if types.PrivacyX == string(tx.GetExecer()) {
 					var action types.PrivacyAction
 					if nil == types.Decode(tx.Payload, &action) {
-						if action.Ty == types.ActionPublic2Privacy ||  action.Ty == types.ActionPrivacy2Privacy {
+						if action.Ty == types.ActionPublic2Privacy || action.Ty == types.ActionPrivacy2Privacy {
 							privacyKVToken := &types.PrivacyKVToken{
-								KV:receipt.KV,
-								TxIndex:int32(index),
-								Txhash:tx.Hash(),
+								KV:      receipt.KV,
+								TxIndex: int32(index),
+								Txhash:  tx.Hash(),
 							}
 							if pub2priv := action.GetPublic2Privacy(); pub2priv != nil {
 								privacyKVToken.Token = pub2priv.Tokenname
-							} else if priv2priv := action.GetPrivacy2Privacy(); priv2priv != nil{
+							} else if priv2priv := action.GetPrivacy2Privacy(); priv2priv != nil {
 								privacyKVToken.Token = priv2priv.Tokenname
 							}
 							privacyKV = append(privacyKV, privacyKVToken)
@@ -175,7 +175,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 	}
 
 	receiptsAndPrivacyKV := &types.ReceiptsAndPrivacyKV{
-		Receipts: &types.Receipts{receipts},
+		Receipts:  &types.Receipts{receipts},
 		PrivacyKV: &types.PrivacyKV{privacyKV},
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventReceipts, receiptsAndPrivacyKV))
@@ -298,14 +298,14 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 		if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 			execaddr := drivers.ExecAddress(types.PrivacyX)
 			accFrom := e.coinsAccount.LoadExecAccount(from, execaddr)
-			if accFrom.GetBalance() - tx.Fee >= 0 {
+			if accFrom.GetBalance()-tx.Fee >= 0 {
 				copyacc := *accFrom
 				accFrom.Balance -= tx.Fee
 				receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, accFrom}
 				e.coinsAccount.SaveExecAccount(execaddr, accFrom)
 				return e.cutFeeReceipt4Privacy(execaddr, accFrom, receiptBalance), nil
 			}
-		} else {//如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
+		} else { //如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
 			if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 				totalInput := int64(0)
 				keys := make([][]byte, len(action.GetPrivacy2Privacy().Input.Keyinput))
@@ -322,10 +322,10 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 					totalOutput += output.Amount
 				}
 
-				if totalInput - totalOutput >= tx.Fee {
+				if totalInput-totalOutput >= tx.Fee {
 					receiptBalance := &types.ReceiptExecUTXOTrans4Privacy{
-						Type:types.PrivacyUTXOFee,
-						Amount:totalInput - totalOutput,
+						Type:   types.PrivacyUTXOFee,
+						Amount: totalInput - totalOutput,
 					}
 					return e.cutFeeReceipt4PrivacyUTXO(receiptBalance), nil
 				}
@@ -347,10 +347,10 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 					totalOutput += output.Amount
 				}
 
-				if totalInput - action.GetPrivacy2Public().Amount - totalOutput >= tx.Fee {
+				if totalInput-action.GetPrivacy2Public().Amount-totalOutput >= tx.Fee {
 					receiptBalance := &types.ReceiptExecUTXOTrans4Privacy{
-						Type:types.PrivacyUTXOFee,
-						Amount:totalInput - action.GetPrivacy2Public().Amount,
+						Type:   types.PrivacyUTXOFee,
+						Amount: totalInput - action.GetPrivacy2Public().Amount,
 					}
 					return e.cutFeeReceipt4PrivacyUTXO(receiptBalance), nil
 				}
@@ -359,11 +359,12 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	}
 	return nil, types.ErrNoBalance
 }
+
 //通过keyImage确认是否存在双花，有效即不存在双花，返回true，反之则返回false
 func (e *executor) checkUTXOValid(keyImages [][]byte) bool {
 	if values, err := e.stateDB.BatchGet(keyImages); err == nil {
 		if len(values) == len(keyImages) {
-			elog.Error("exec module", "checkUTXOValid return different count value with keys", )
+			elog.Error("exec module", "checkUTXOValid return different count value with keys")
 			return false
 		}
 		for _, value := range values {
@@ -378,7 +379,7 @@ func (e *executor) checkUTXOValid(keyImages [][]byte) bool {
 
 func (e *executor) cutFeeReceipt4PrivacyUTXO(receiptBalance *types.ReceiptExecUTXOTrans4Privacy) *types.Receipt {
 	feelog := &types.ReceiptLog{types.TyLogPrivacyFeeUTXO, types.Encode(receiptBalance)}
-	return &types.Receipt{Ty:types.ExecPack, Logs:[]*types.ReceiptLog{feelog}}
+	return &types.Receipt{Ty: types.ExecPack, Logs: []*types.ReceiptLog{feelog}}
 }
 
 func (e *executor) cutFeeReceipt4Privacy(execaddr string, acc *types.Account, receiptBalance *types.ReceiptExecAccountTransfer) *types.Receipt {
