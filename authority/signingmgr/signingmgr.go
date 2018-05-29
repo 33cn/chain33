@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package signingmgr
 
 import (
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
+	"gitlab.33.cn/chain33/chain33/authority/common/core"
 
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"github.com/pkg/errors"

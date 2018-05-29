@@ -9,7 +9,7 @@ package cryptosuite
 import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
+	"gitlab.33.cn/chain33/chain33/authority/common/core"
 	"github.com/pkg/errors"
 	log "github.com/inconshreveable/log15"
 )
