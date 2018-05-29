@@ -144,7 +144,8 @@ message ReqWalletTransactionList {
 }
 
 message ReqWalletImportPrivKey {
-	string privkey = 1; //bitcoin 的私钥格式
+	//bitcoin 的私钥格式
+	string privkey = 1;
 	string label = 2;
 }
 
@@ -228,22 +229,28 @@ message ReqModifyConfig {
 }
 
 message ReqPub2Pri {
-	string viewPublic  = 1; //接收人可见公钥A
-	string spendPublic = 2; //接收人花费公钥B
+	//接收人可见公钥A
+	string viewPublic  = 1;
+	//接收人花费公钥B
+	string spendPublic = 2;
 	string tokenname   = 3;
 	int64 amount       = 4;
 	string note        = 5;
-	string sender      = 6; //发送人地址
+	//发送人地址
+	string sender      = 6;
 	int32  mixin       = 7;
 }
 
 message ReqPri2Pri {
+	//接收人可见公钥A
 	string viewPublic  = 1; //A
+	//接收人花费公钥B
 	string spendPublic = 2; //B
 	string tokenname   = 3;
 	int64 amount       = 4;
 	string note        = 5;
-    string sender      = 6;//隐私交易发起人地址
+	//隐私交易发起人地址
+    string sender      = 6;
 	int32  mixin       = 7;
 //	string txhash      = 7;
 }
@@ -253,7 +260,8 @@ message ReqPri2Pub {
 	string tokenname  = 2;
 	int64 amount      = 3;
 	string note       = 4;
-	string sender     = 5;//隐私交易发起人地址
+	//隐私交易发起人地址
+	string sender     = 5;
 	int32  mixin      = 6;
 //	string txhash     = 6;
 }
@@ -266,7 +274,8 @@ message ReplyPrivacyPkPair {
 
 message ReqPrivacyBalance {
 	string addr   =  1;
-	string txhash =  2; //隐私交易hash
+	//隐私交易hash
+	string txhash =  2;
 }
 
 message ReplyPrivacyBalance {
@@ -288,9 +297,12 @@ message PrivacyDBStore {
 
 message PrivacyOnetimeAccInfo {
 	string tokenname = 1;
-	int64 balance = 2;  //账户可用余额
-	int64 frozen = 3;   //账户冻结余额
-	string addr = 4;    //账户的地址
+	//账户可用余额
+	int64 balance = 2;
+	//账户冻结余额
+	int64 frozen = 3;
+	//账户的地址
+	string addr = 4;
 	string txhash = 5;
 }
 

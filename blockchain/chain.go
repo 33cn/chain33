@@ -16,7 +16,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"os/exec"
 )
 
 var (
@@ -751,7 +750,7 @@ func (chain *BlockChain) ProcGetUTXOPubkey(reqUTXOPubKeys *types.ReqUTXOPubKeys)
 					return nil, types.ErrOutputIndex
 				}
 
-				groupUTXOPubKey.Pubkey = append(groupUTXOPubKey.Pubkey, output.Keyoutput[utxoGlobalIndex.Outindex].Ometimepubkey)
+				groupUTXOPubKey.Pubkey = append(groupUTXOPubKey.Pubkey, output.Keyoutput[utxoGlobalIndex.Outindex].Onetimepubkey)
 				chainlog.Info("ProcGetUTXOPubkey", "Can't find utxo in privacy cache but fetched from block's tx for utxoGlobalIndex",
 					utxoGlobalIndex, "Current block height", chain.GetBlockHeight())
 			}
@@ -1016,7 +1015,7 @@ func (chain *BlockChain) InitPrivacyCache() {
 								localUTXOItem := localUTXOItemSlice[i]
 								keyCache := calcPrivacyCacheKey(localUTXOItem.Height, localUTXOItem.Txindex, localUTXOItem.Outindex, localUTXOItem.Txhash)
 								outputKeyInfo := &privacyOutputKeyInfo{
-									onetimePubKey: localUTXOItem.Ometimepubkey,
+									onetimePubKey: localUTXOItem.Onetimepubkey,
 								}
 								privacyOutputIndexLru.Add(keyCache, outputKeyInfo)
 							}
