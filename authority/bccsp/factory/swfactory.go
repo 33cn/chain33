@@ -69,5 +69,3 @@ type SwOpts struct {
 type FileKeystoreOpts struct {
 	KeyStorePath string `mapstructure:"keystore" yaml:"KeyStore"`
 }
-
-type DummyKeystoreOpts struct{}
