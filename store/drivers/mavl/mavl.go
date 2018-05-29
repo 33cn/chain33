@@ -3,6 +3,7 @@ package mavl
 import (
 	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/mavl"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -59,7 +60,7 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 		if err == nil {
 			mavls.cache.Add(search, tree)
 		}
-		mlog.Debug("store mavl get tree", "err", err)
+		mlog.Debug("store mavl get tree", "err", err, "StateHash", common.ToHex(datas.StateHash))
 	}
 	if err == nil {
 		for i := 0; i < len(datas.Keys); i++ {
