@@ -8,9 +8,8 @@ package identitymgr
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
+	"gitlab.33.cn/chain33/chain33/authority/common/core"
 	"gitlab.33.cn/chain33/chain33/authority/identitymgr/filestore"
-	"gitlab.33.cn/chain33/chain33/authority/common/util/cryptoutils"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"fmt"
 )
@@ -151,7 +150,7 @@ func (mgr *IdentityManager) getPrivateKeyFromCert(username string, cert []byte) 
 	if cert == nil {
 		return nil, errors.New("cert is nil")
 	}
-	pubKey, err := cryptoutils.GetPublicKeyFromCert(cert, mgr.cryptoSuite)
+	pubKey, err := GetPublicKeyFromCert(cert, mgr.cryptoSuite)
 	if err != nil {
 		return nil, errors.WithMessage(err, "fetching public key from cert failed")
 	}
@@ -169,7 +168,7 @@ func (mgr *IdentityManager) getPrivateKeyFromKeyStore(username string, ski []byt
 		return nil, err
 	}
 	if pemBytes != nil {
-		return cryptoutils.ImportBCCSPKeyFromPEMBytes(pemBytes, mgr.cryptoSuite)
+		return ImportBCCSPKeyFromPEMBytes(pemBytes, mgr.cryptoSuite)
 	}
 	return nil, core.ErrKeyValueNotFound
 }

@@ -4,7 +4,7 @@ Copyright SecureKey Technologies Inc. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package cryptoutils
+package identitymgr
 
 import (
 	"crypto/ecdsa"
@@ -12,7 +12,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
+	"gitlab.33.cn/chain33/chain33/authority/common/core"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 
