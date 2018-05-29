@@ -80,7 +80,7 @@ func addUserData(cmd *cobra.Command, args []string) {
 		return
 	}
 	if !strings.HasPrefix(execer, "user.") {
-		fmt.Println(`"user defined executor should start with "user."`)
+		fmt.Println(`user defined executor should start with "user."`)
 		return
 	}
 	addrResult := account.ExecAddress(execer)
