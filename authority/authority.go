@@ -3,7 +3,7 @@ package authority
 import (
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
+	"gitlab.33.cn/chain33/chain33/authority/common/core"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"gitlab.33.cn/chain33/chain33/authority/identitymgr"
 	"gitlab.33.cn/chain33/chain33/authority/mspmgr"
