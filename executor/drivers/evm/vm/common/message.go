@@ -5,6 +5,7 @@ package common
 type Message struct {
 	to       *Address
 	from     Address
+	alias    string
 	nonce    int64
 	amount   uint64
 	gasLimit uint64
@@ -12,7 +13,7 @@ type Message struct {
 	data     []byte
 }
 
-func NewMessage(from Address, to *Address, nonce int64, amount uint64, gasLimit uint64, gasPrice uint32, data []byte) *Message {
+func NewMessage(from Address, to *Address, nonce int64, amount uint64, gasLimit uint64, gasPrice uint32, data []byte, alias string) *Message {
 	return &Message{
 		from:     from,
 		to:       to,
@@ -21,6 +22,7 @@ func NewMessage(from Address, to *Address, nonce int64, amount uint64, gasLimit 
 		gasLimit: gasLimit,
 		gasPrice: gasPrice,
 		data:     data,
+		alias:    alias,
 	}
 }
 
@@ -31,3 +33,4 @@ func (m Message) Value() uint64    { return m.amount }
 func (m Message) Nonce() int64     { return m.nonce }
 func (m Message) Data() []byte     { return m.data }
 func (m Message) GasLimit() uint64 { return m.gasLimit }
+func (m Message) Alias() string    { return m.alias }

@@ -2,9 +2,11 @@ package tests
 
 import (
 	"encoding/hex"
+	"fmt"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"testing"
+	"time"
 )
 
 // 正常创建合约逻辑
@@ -187,3 +189,14 @@ func decodeHex(data string) []byte {
 //
 //	fmt.Println(common.Bytes2Hex(crypto.Keccak256([]byte("litian"))))
 //}
+
+func TestTmp(t *testing.T) {
+
+	xx := time.Now().UnixNano()
+	yy := time.Now().UTC().UnixNano()
+
+	fmt.Println(xx)
+	fmt.Println(yy)
+	fmt.Println(time.Unix(0, xx).String())
+	fmt.Println(time.Unix(0, yy).String())
+}
