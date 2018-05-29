@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
@@ -182,12 +183,24 @@ func CreateRawTx(rpcAddr string, to string, amount float64, note string, isWithd
 }
 
 func GetExecAddr(exec string) (string, error) {
+	if ok, err := isAllowExecName(exec); !ok {
+		return "", err
+	}
+
+	addrResult := account.ExecAddress(exec)
+	result := addrResult
+	return result, nil
+}
+
+func isAllowExecName(exec string) (bool, error) {
 	switch exec {
 	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
-		addrResult := account.ExecAddress(exec)
-		result := addrResult
-		return result, nil
+		return true, nil
 	default:
-		return "", errors.New("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+
 	}
+	if strings.HasPrefix(exec, "user.") {
+		return true, nil
+	}
+	return false, errors.New("only none, coins, hashlock, retrieve, ticket, token, trade supported")
 }
