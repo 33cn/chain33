@@ -44,6 +44,8 @@ func CreateContractCmd() *cobra.Command {
 
 func addCreateContractFlags(cmd *cobra.Command) {
 	addCommonFlags(cmd)
+
+	cmd.Flags().StringP("alias", "s", "", "human readable contract alias name")
 }
 
 func createContract(cmd *cobra.Command, args []string) {
@@ -51,6 +53,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	key, _ := cmd.Flags().GetString("key")
 	expire, _ := cmd.Flags().GetString("expire")
 	note, _ := cmd.Flags().GetString("note")
+	alias, _ := cmd.Flags().GetString("alias")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 
@@ -61,7 +64,7 @@ func createContract(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "parse evm code error", err)
 		return
 	}
-	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
+	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
 	data, err := createEvmTx(&action, key, "", expire, rpcLaddr, feeInt64)
 
@@ -139,7 +142,7 @@ func callContract(cmd *cobra.Command, args []string) {
 	feeInt64 := uint64(fee*1e4) * 1e4
 	toAddr := to
 	if len(toAddr) == 0 && len(name) > 0 {
-		toAddr = account.ExecAddress(name).String()
+		toAddr = account.ExecAddress(name)
 	}
 	if len(toAddr) == 0 {
 		fmt.Fprintln(os.Stderr, "one of the 'to (contract address)' and 'name (contract name)' must be set")
@@ -201,7 +204,7 @@ func estimateContract(cmd *cobra.Command, args []string) {
 
 	toAddr := to
 	if len(toAddr) == 0 && len(name) > 0 {
-		toAddr = account.ExecAddress(name).String()
+		toAddr = account.ExecAddress(name)
 	}
 
 	bCode, err := common.FromHex(code)
@@ -263,7 +266,7 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 	name, _ := cmd.Flags().GetString("name")
 	toAddr := to
 	if len(toAddr) == 0 && len(name) > 0 {
-		toAddr = account.ExecAddress(name).String()
+		toAddr = account.ExecAddress(name)
 	}
 	if len(toAddr) == 0 {
 		fmt.Fprintln(os.Stderr, "one of the 'to (contract address)' and 'name (contract name)' must be set")

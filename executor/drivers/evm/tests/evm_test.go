@@ -106,7 +106,7 @@ func runCase(tt *testing.T, c VMCase, file string) {
 		ret, _, _, err = env.Call(runtime.AccountRef(msg.From()), *common.StringToAddress(c.exec.address), msg.Data(), msg.GasLimit(), msg.Value())
 	} else {
 		addr := crypto.RandomContractAddress()
-		ret, _, _, err = env.Create(runtime.AccountRef(msg.From()), *addr, msg.Data(), msg.GasLimit(), "testExecName")
+		ret, _, _, err = env.Create(runtime.AccountRef(msg.From()), *addr, msg.Data(), msg.GasLimit(), "testExecName", "")
 	}
 
 	if err != nil {
@@ -169,5 +169,5 @@ func buildMsg(c VMCase) *common.Message {
 	addr2 := common.StringToAddress(c.exec.address)
 	gasLimit := uint64(210000000)
 	gasPrice := c.exec.gasPrice
-	return common.NewMessage(*addr1, addr2, int64(1), uint64(c.exec.value), gasLimit, uint32(gasPrice), code)
+	return common.NewMessage(*addr1, addr2, int64(1), uint64(c.exec.value), gasLimit, uint32(gasPrice), code, "")
 }

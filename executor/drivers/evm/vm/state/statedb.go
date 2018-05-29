@@ -75,13 +75,14 @@ func (self *MemoryStateDB) Prepare(txHash common.Hash, txIndex int) {
 }
 
 // 创建一个新的合约账户对象
-func (self *MemoryStateDB) CreateAccount(addr common.Address, creator common.Address, execName string) {
+func (self *MemoryStateDB) CreateAccount(addr common.Address, creator common.Address, execName, alias string) {
 	acc := self.GetAccount(addr)
 	if acc == nil {
 		// 这种情况下为新增合约账户
 		acc := NewContractAccount(addr.String(), self)
 		acc.SetCreator(creator.String())
 		acc.SetExecName(execName)
+		acc.SetAliasName(alias)
 		self.accounts[addr.String()] = acc
 		self.addChange(createAccountChange{baseChange: baseChange{}, account: addr.String()})
 	}

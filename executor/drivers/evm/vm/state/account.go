@@ -6,6 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
+	"time"
 )
 
 var (
@@ -45,6 +46,7 @@ func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
 	}
 	ca := &ContractAccount{Addr: addr, mdb: db}
 	ca.State.Storage = make(map[string][]byte)
+	ca.Data.CreateTime = time.Now().UTC().UnixNano()
 	return ca
 }
 
@@ -154,6 +156,21 @@ func (self *ContractAccount) SetExecName(execName string) {
 		return
 	}
 	self.Data.Name = execName
+}
+
+func (self *ContractAccount) SetAliasName(alias string) {
+	if len(alias) == 0 {
+		log15.Error("SetExecName error", "execName", alias)
+		return
+	}
+	self.Data.Alias = alias
+}
+
+func (self *ContractAccount) GetAliasName() string {
+	return self.Data.Alias
+}
+func (self *ContractAccount) GetCreateTime() string {
+	return time.Unix(0, self.Data.CreateTime).String()
 }
 
 func (self *ContractAccount) GetCreator() string {
