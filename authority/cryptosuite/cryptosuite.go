@@ -7,69 +7,64 @@ SPDX-License-Identifier: Apache-2.0
 package cryptosuite
 
 import (
-	"sync/atomic"
-
-	"errors"
-
-	"sync"
-
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
-	"gitlab.33.cn/chain33/chain33/authority/cryptosuite/bccsp/sw"
-	log "github.com/inconshreveable/log15"
+	"hash"
 )
 
-var logger = log.New("auth", "cryptosuite")
-
-var initOnce sync.Once
-var defaultCryptoSuite core.CryptoSuite
-var initialized int32
-
-func initSuite(defaultSuite core.CryptoSuite) error {
-	if defaultSuite == nil {
-		return errors.New("attempting to set invalid default suite")
-	}
-	initOnce.Do(func() {
-		defaultCryptoSuite = defaultSuite
-		atomic.StoreInt32(&initialized, 1)
-	})
-	return nil
+// CryptoSuite provides a wrapper of BCCSP
+type CryptoSuite struct {
+	BCCSP bccsp.BCCSP
 }
 
-//GetDefault returns default core
-func GetDefault() core.CryptoSuite {
-	if atomic.LoadInt32(&initialized) > 0 {
-		return defaultCryptoSuite
-	}
-	//Set default suite
-	logger.Info("No default cryptosuite found, using default SW implementation")
-
-	// Use SW as the default cryptosuite when not initialized properly - should be for testing only
-	s, err := sw.GetSuiteWithDefaultEphemeral()
-	if err != nil {
-		//TODO logger.Panicf->logger.Crit
-		logger.Crit("Could not initialize default cryptosuite: %v", err)
-	}
-	err = initSuite(s)
-	if err != nil {
-		//TODO logger.Panicf->logger.Crit
-		logger.Crit("Could not set default cryptosuite: %v", err)
-	}
-
-	return defaultCryptoSuite
+// KeyImport is a wrapper of BCCSP.KeyImport
+func (c *CryptoSuite) KeyImport(raw interface{}, opts core.KeyImportOpts) (k core.Key, err error) {
+	key, err := c.BCCSP.KeyImport(raw, opts)
+	return GetKey(key), err
 }
 
-//SetDefault sets default suite if one is not already set or created
-//Make sure you set default suite before very first call to GetDefault(),
-//otherwise this function will return an error
-func SetDefault(newDefaultSuite core.CryptoSuite) error {
-	if atomic.LoadInt32(&initialized) > 0 {
-		return errors.New("default crypto suite is already set")
-	}
-	return initSuite(newDefaultSuite)
+// GetKey is a wrapper of BCCSP.GetKey
+func (c *CryptoSuite) GetKey(ski []byte) (k core.Key, err error) {
+	key, err := c.BCCSP.GetKey(ski)
+	return GetKey(key), err
 }
 
-//GetSHAOpts returns options for computing SHA.
-func GetSHAOpts() core.HashOpts {
-	return &bccsp.SHAOpts{}
+// Hash is a wrapper of BCCSP.Hash
+func (c *CryptoSuite) Hash(msg []byte, opts core.HashOpts) (hash []byte, err error) {
+	return c.BCCSP.Hash(msg, opts)
+}
+
+// GetHash is a wrapper of BCCSP.GetHash
+func (c *CryptoSuite) GetHash(opts core.HashOpts) (h hash.Hash, err error) {
+	return c.BCCSP.GetHash(opts)
+}
+
+// Sign is a wrapper of BCCSP.Sign
+func (c *CryptoSuite) Sign(k core.Key, digest []byte, opts core.SignerOpts) (signature []byte, err error) {
+	return c.BCCSP.Sign(k.(*key).key, digest, opts)
+}
+
+type key struct {
+	key bccsp.Key
+}
+
+func (k *key) Bytes() ([]byte, error) {
+	return k.key.Bytes()
+}
+
+func (k *key) SKI() []byte {
+	return k.key.SKI()
+}
+
+func (k *key) Symmetric() bool {
+	return k.key.Symmetric()
+}
+
+func (k *key) Private() bool {
+	return k.key.Private()
+}
+
+func (k *key) PublicKey() (core.Key, error) {
+	key, err := k.key.PublicKey()
+	return GetKey(key), err
 }

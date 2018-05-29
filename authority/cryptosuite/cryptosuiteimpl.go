@@ -4,18 +4,17 @@ Copyright SecureKey Technologies Inc. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package sw
+package cryptosuite
 
 import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	bccspSw "gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
-	"gitlab.33.cn/chain33/chain33/authority/cryptosuite/bccsp/wrapper"
 	"github.com/pkg/errors"
 	log "github.com/inconshreveable/log15"
 )
 
-var logger = log.New("auth", "cryptosuite_sw")
+var logger = log.New("auth", "cryptosuite")
 
 //GetSuiteByConfig returns cryptosuite adaptor for bccsp loaded according to given config
 func GetSuiteByConfig(config core.CryptoSuiteConfig) (core.CryptoSuite, error) {
@@ -24,18 +23,7 @@ func GetSuiteByConfig(config core.CryptoSuiteConfig) (core.CryptoSuite, error) {
 	if err != nil {
 		return nil, err
 	}
-	return wrapper.NewCryptoSuite(bccsp), nil
-}
-
-//GetSuiteWithDefaultEphemeral returns cryptosuite adaptor for bccsp with default ephemeral options (intended to aid testing)
-func GetSuiteWithDefaultEphemeral() (core.CryptoSuite, error) {
-	opts := getEphemeralOpts()
-
-	bccsp, err := getBCCSPFromOpts(opts)
-	if err != nil {
-		return nil, err
-	}
-	return wrapper.NewCryptoSuite(bccsp), nil
+	return NewCryptoSuite(bccsp), nil
 }
 
 func getBCCSPFromOpts(config *bccspSw.SwOpts) (bccsp.BCCSP, error) {
@@ -62,13 +50,19 @@ func getOptsByConfig(c core.CryptoSuiteConfig) *bccspSw.SwOpts {
 	return opts
 }
 
-func getEphemeralOpts() *bccspSw.SwOpts {
-	opts := &bccspSw.SwOpts{
-		HashFamily: "SHA2",
-		SecLevel:   256,
-		Ephemeral:  false,
-	}
-	logger.Debug("Initialized ephemeral SW cryptosuite with default opts")
+//GetSHAOpts returns options for computing SHA.
+func GetSHAOpts() core.HashOpts {
+	return &bccsp.SHAOpts{}
+}
 
-	return opts
+//NewCryptoSuite returns cryptosuite adaptor for given bccsp.BCCSP implementation
+func NewCryptoSuite(bccsp bccsp.BCCSP) core.CryptoSuite {
+	return &CryptoSuite{
+		BCCSP: bccsp,
+	}
+}
+
+//GetKey returns implementation of of cryptosuite.Key
+func GetKey(newkey bccsp.Key) core.Key {
+	return &key{newkey}
 }
