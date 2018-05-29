@@ -155,11 +155,11 @@ func (ki *x509PublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 	case *ecdsa.PublicKey:
 		return ki.bccsp.keyImporters[reflect.TypeOf(&bccsp.ECDSAGoPublicKeyImportOpts{})].KeyImport(
 			pk,
-			&bccsp.ECDSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
+			&bccsp.ECDSAGoPublicKeyImportOpts{})
 	case *rsa.PublicKey:
 		return ki.bccsp.keyImporters[reflect.TypeOf(&bccsp.RSAGoPublicKeyImportOpts{})].KeyImport(
 			pk,
-			&bccsp.RSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
+			&bccsp.RSAGoPublicKeyImportOpts{})
 	default:
 		return nil, errors.New("Certificate's public key type not recognized. Supported keys: [ECDSA, RSA]")
 	}

@@ -27,13 +27,6 @@ func GetDefaultOpts() *FactoryOpts {
 		SwOpts: &SwOpts{
 			HashFamily: "SHA2",
 			SecLevel:   256,
-
-			Ephemeral: true,
 		},
 	}
-}
-
-// FactoryName returns the name of the provider
-func (o *FactoryOpts) FactoryName() string {
-	return o.ProviderName
 }
