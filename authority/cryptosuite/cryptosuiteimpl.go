@@ -41,9 +41,6 @@ func getOptsByConfig(c core.CryptoSuiteConfig) *factory.SwOpts {
 	opts := &factory.SwOpts{
 		HashFamily: c.SecurityAlgorithm(),
 		SecLevel:   c.SecurityLevel(),
-		FileKeystore: &factory.FileKeystoreOpts{
-			KeyStorePath: c.KeyStorePath(),
-		},
 	}
 	logger.Debug("Initialized cryptosuite")
 
