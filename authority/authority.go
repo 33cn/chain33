@@ -5,7 +5,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
-	"gitlab.33.cn/chain33/chain33/authority/cryptosuite/bccsp/sw"
 	"gitlab.33.cn/chain33/chain33/authority/identitymgr"
 	"gitlab.33.cn/chain33/chain33/authority/mspmgr"
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
@@ -39,7 +38,7 @@ func New(conf *types.Authority) *Authority {
 func (auth *Authority) initConfig(conf *types.Authority) error {
 	config := &cryptosuite.CryptoConfig{conf}
 
-	cryptoSuite, err := sw.GetSuiteByConfig(config)
+	cryptoSuite, err := cryptosuite.GetSuiteByConfig(config)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to initialize crypto suite")
 	}
