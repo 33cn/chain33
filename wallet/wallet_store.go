@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -414,25 +414,25 @@ func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*wall
 			err := types.Decode(value, &privacyDBStore)
 			if err == nil {
 				utxoGlobalIndex := &types.UTXOGlobalIndex{
-					Height:privacyDBStore.Height,
-					Txindex:privacyDBStore.Txindex,
-					Outindex:privacyDBStore.OutIndex,
-					Txhash: privacyDBStore.Txhash,
+					Height:   privacyDBStore.Height,
+					Txindex:  privacyDBStore.Txindex,
+					Outindex: privacyDBStore.OutIndex,
+					Txhash:   privacyDBStore.Txhash,
 				}
 				txOutputInfo := &txOutputInfo{
-					amount:       privacyDBStore.Amount,
-					utxoGlobalIndex: utxoGlobalIndex,
-					txPublicKeyR: privacyDBStore.TxPublicKeyR,
-					onetimePublicKey:privacyDBStore.OnetimePublicKey,
+					amount:           privacyDBStore.Amount,
+					utxoGlobalIndex:  utxoGlobalIndex,
+					txPublicKeyR:     privacyDBStore.TxPublicKeyR,
+					onetimePublicKey: privacyDBStore.OnetimePublicKey,
 				}
 
-				walletOuts, ok := outs4token[privacyDBStore.Owner]
+				wos, ok := outs4token[privacyDBStore.Owner]
 				if !ok {
-					walletOuts := &walletOuts{}
-					walletOuts.outs = append(walletOuts.outs, txOutputInfo)
-					outs4token[privacyDBStore.Owner] = walletOuts
+					wos := &walletOuts{}
+					wos.outs = append(wos.outs, txOutputInfo)
+					outs4token[privacyDBStore.Owner] = wos
 				} else {
-					walletOuts.outs = append(walletOuts.outs, txOutputInfo)
+					wos.outs = append(wos.outs, txOutputInfo)
 				}
 
 			} else {
@@ -444,25 +444,6 @@ func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*wall
 
 	return nil
 
-}
-
-func (ws *WalletStore) getWalletPrivacyAccountBalance(addr, txhash string) (*types.PrivacyDBStore, error) {
-	if 0 == len(addr) || 0 == len(txhash) {
-		walletlog.Error("getWalletPrivacyAccountBalance addr or txhash is nil")
-		return nil, types.ErrInputPara
-	}
-
-	privacyByte := ws.db.Get(calcPrivacy1timeBalKey(addr, txhash))
-	if nil == privacyByte {
-		return nil, types.ErrPrivacyNotExist
-	}
-	var accPrivacy types.PrivacyDBStore
-	err := proto.Unmarshal(privacyByte, &accPrivacy)
-	if err != nil {
-		walletlog.Error("GetWalletAccountPrivacy", "proto.Unmarshal err:", err)
-		return nil, types.ErrUnmarshal
-	}
-	return &accPrivacy, nil
 }
 
 func (ws *WalletStore) listWalletPrivacyAccount(addr string) ([]*types.PrivacyDBStore, error) {

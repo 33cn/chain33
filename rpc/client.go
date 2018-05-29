@@ -38,7 +38,7 @@ func (c *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
 	err := types.Decode(parm.GetUnsign(), &tx)
 
 	if err == nil {
-		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
+		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign(), nil}
 		msg := c.NewMessage("mempool", types.EventTx, &tx)
 		err := c.Send(msg, true)
 		if err != nil {
@@ -856,7 +856,7 @@ func (c *channelClient) MakeTxPublic2privacy(parm *types.ReqPub2Pri) (*types.Rep
 }
 
 func (c *channelClient) MakeTxPrivacy2privacy(parm *types.ReqPri2Pri) (*types.Reply, error) {
-	log.Info("MakeTxPrivacy2privacy is called","sender", parm.Sender)
+	log.Info("MakeTxPrivacy2privacy is called", "sender", parm.Sender)
 	msg := c.NewMessage("wallet", types.EventPrivacy2privacy, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -886,6 +886,6 @@ func (c *channelClient) MakeTxPrivacy2public(parm *types.ReqPri2Pub) (*types.Rep
 		return nil, err
 	}
 	log.Info("MakeTxPrivacy2public", "result", "send tx successful",
-		    "sender", parm.Sender, "receiver", parm.Receiver, "note", parm.Note)
+		"sender", parm.Sender, "receiver", parm.Receiver, "note", parm.Note)
 	return resp.Data.(*types.Reply), nil
 }

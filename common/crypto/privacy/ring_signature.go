@@ -156,16 +156,32 @@ func checkRingSignature(prefix_hash []byte, image *KeyImage, pubs []*PubKeyPriva
 	return edwards25519.ScIsNonZero(&h) == 0
 }
 
-func GenerateRingSignature(datahash []byte, utxos []*types.UTXO, sec *PrivKeyPrivacy, realUtxoIndex int, keyImage []byte, signs []*Sign) error {
-	pubs := make([]*PubKeyPrivacy, len(utxos))
-	for i := 0; i < len(utxos); i++ {
+func GenerateRingSignature(datahash []byte, utxos []*types.UTXO, privKey []byte, realUtxoIndex int, keyImage []byte) (*types.SignatureData, error) {
+	count := len(utxos)
+	signs := make([]*Sign, count)
+	pubs := make([]*PubKeyPrivacy, count)
+
+	for i := 0; i < count; i++ {
 		pub := &PubKeyPrivacy{}
 		copy(pub[:], utxos[i].OnetimePubkey)
 		pubs[i] = pub
+		signs[i] = &Sign{}
 	}
 	var image KeyImage
 	copy(image[:], keyImage)
-	return generateRingSignature(datahash, &image, pubs, sec, signs, realUtxoIndex)
+	var sec PrivKeyPrivacy
+	copy(sec[:], privKey)
+	err := generateRingSignature(datahash, &image, pubs, &sec, signs, realUtxoIndex)
+	if err != nil {
+		return nil, err
+	}
+	data := types.SignatureData{}
+	data.Data = make([][]byte, count)
+	for i, v := range signs {
+		data.Data[i] = make([]byte, 0)
+		data.Data[i] = append(data.Data[i], v[:]...)
+	}
+	return &data, nil
 }
 
 func GenerateKeyImage(privkey crypto.PrivKey, pubkey []byte) (*KeyImage, error) {

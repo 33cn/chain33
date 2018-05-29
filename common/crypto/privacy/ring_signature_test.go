@@ -7,6 +7,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
+	"math/rand"
+	"time"
 )
 
 var (
@@ -84,7 +86,7 @@ func TestGenerateKeyImage2(t *testing.T) {
 	}
 	pubKey := privkey.PubKey().Bytes()
 	_, err = GenerateKeyImage(privkey, pubKey[:])
-	if err != nil{
+	if err != nil {
 		t.Errorf("Generate private key failed. %v\n", err)
 	}
 }
@@ -162,8 +164,7 @@ func TestCheckRingSignatureAPI1(t *testing.T) {
 
 	tmp, err := common.FromHex("15e3cc7cdb904d62f7c20d7fa51923fa2839f9e0a92ff0eddf8c12bd09089c15")
 	for i := 0; i < maxCount; i++ {
-		publickeys[i] = make([]byte, 0)
-		publickeys[i] = tmp
+		publickeys[i] = append(publickeys[i], tmp...)
 	}
 
 	tmp, err = common.FromHex("a142d0180a6047cf883125a83617c7dd56e9d8153ec04a96b3c5d9a5e03cd70cfd6827b200d6c2f4b41fb5b0162117a5447e327c29482c358a0a3c82db88fb0f")
@@ -294,7 +295,7 @@ func TestRingSignatere1(t *testing.T) {
 	}
 }
 
-func testRingSignatureOncetime(maxCount int, t *testing.T)  {
+func testRingSignatureOncetime(maxCount int, t *testing.T) {
 	var image KeyImage
 	var sec PrivKeyPrivacy
 	index := 0
@@ -346,8 +347,63 @@ func TestRingSignatere2(t *testing.T) {
 	testRingSignatureOncetime(100, t)
 }
 
+func TestGenerateRingSignatureAPI(t *testing.T) {
+	const maxCount = 10
+	var utxos []*types.UTXO
+	var keyImage []byte
+	var sec [64]byte
 
-func benchRingSignatureOncetime(maxCount int)  {
+	rand.Seed(time.Now().Unix())
+	// step1. init params
+	c, err := crypto.New(types.GetSignatureTypeName(types.OnetimeED25519))
+	if err != nil {
+		t.Errorf("create Crypto failed. %v\n", err)
+	}
+	privkey, err := c.GenKey()
+	if err != nil {
+		t.Error("Generate private key failed.")
+	}
+
+	realUtxoIndex := rand.Int() % maxCount
+	prefix_hash, _ := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
+	utxos = make([]*types.UTXO, maxCount)
+	for i := 0; i < maxCount; i++ {
+		utxo := types.UTXO{}
+		utxos[i] = &utxo
+
+		utxo.OnetimePubkey = append(utxo.OnetimePubkey[:], pubs_byte[i]...)
+		if i == realUtxoIndex {
+			pubKey := privkey.PubKey().Bytes()
+			// 增加指定的密钥对
+			copy(utxo.OnetimePubkey[:], pubKey)
+			copy(sec[:], privkey.Bytes())
+
+			// 创建 KeyImage
+			image, err := GenerateKeyImage(privkey, pubKey[:])
+			if err != nil {
+				t.Errorf("Generate private key failed. %v\n", err)
+			}
+			keyImage = append(keyImage, image[:]...)
+		}
+	}
+
+	var signaturedata *types.SignatureData
+	// step2. generate ring signature
+	if signaturedata, err = GenerateRingSignature(prefix_hash, utxos, sec[:], realUtxoIndex, keyImage); err != nil {
+		t.Errorf("GenerateRingSignature() failed. ", err)
+	}
+
+	publickeys := make([][]byte, maxCount)
+	for i := 0; i < maxCount; i++ {
+		publickeys[i] = append(publickeys[i], utxos[i].OnetimePubkey...)
+	}
+	// step3. checksignature
+	if !CheckRingSignature(prefix_hash, signaturedata, publickeys, keyImage) {
+		t.Error("CheckRingSignature() failed.")
+	}
+}
+
+func benchRingSignatureOncetime(maxCount int) {
 	var image KeyImage
 	var sec PrivKeyPrivacy
 	index := 0
@@ -394,6 +450,6 @@ func Benchmark_RingSignature(b *testing.B) {
 // 最终版本的压力测试测试用例集合
 func Benchmark_RingSignatureAllStep(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		
+
 	}
 }

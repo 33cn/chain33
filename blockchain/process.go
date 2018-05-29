@@ -7,26 +7,21 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-	"github.com/hashicorp/golang-lru/simplelru"
-	"fmt"
-	"strconv"
 )
-
-
 
 func calcPrivacyCacheKey(height int64, txindex int32, outputindex int32, txhash []byte) *types.UTXOGlobalIndex {
 	return &types.UTXOGlobalIndex{
-		Height:height,
-		Txindex:txindex,
-		Outindex:outputindex,
-		Txhash: txhash,
+		Height:   height,
+		Txindex:  txindex,
+		Outindex: outputindex,
+		Txhash:   txhash,
 	}
 }
-
 
 // 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
 // 共识模块和peer广播过来的block需要广播出去
@@ -515,7 +510,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 				var keyOutput types.KeyOutput
 				types.Decode(kv.Value, &keyOutput)
 				outputKeyInfo := &privacyOutputKeyInfo{
-					onetimePubKey:keyOutput.Ometimepubkey,
+					onetimePubKey: keyOutput.Onetimepubkey,
 				}
 				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
 				if ok {
@@ -525,7 +520,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
 					if err != nil {
 						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
-						break;
+						break
 					}
 					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
 					privacyOutputIndexLru.Add(key, outputKeyInfo)
@@ -538,7 +533,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 				var keyOutput types.KeyOutput
 				types.Decode(kv.Value, &keyOutput)
 				outputKeyInfo := &privacyOutputKeyInfo{
-					onetimePubKey:keyOutput.Ometimepubkey,
+					onetimePubKey: keyOutput.Onetimepubkey,
 				}
 
 				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
@@ -549,7 +544,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
 					if err != nil {
 						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
-						break;
+						break
 					}
 					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
 					privacyOutputIndexLru.Add(key, outputKeyInfo)
