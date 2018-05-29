@@ -95,7 +95,7 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 		set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
 	}
-    //保存隐私交易
+	//保存隐私交易
 	if types.PrivacyX == string(tx.Execer) {
 		privacykey := CalcPrivacyTxHashKey(TxIndexPrivacy, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{privacykey, txinfobyte})

@@ -89,7 +89,7 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	data := Encode(tx)
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
-	tx.Signature = &Signature{Ty:ty, Pubkey:pub.Bytes(), Signature:sign.Bytes()}
+	tx.Signature = &Signature{Ty: ty, Pubkey: pub.Bytes(), Signature: sign.Bytes()}
 }
 
 func (tx *Transaction) CheckSign() bool {
@@ -116,7 +116,7 @@ func (tx *Transaction) Check(minfee int64) error {
 		return nil
 	}
 	// 检查交易费是否小于最低值
-	realFee := int64((txSize + 1023) >> Size_1K_shiftlen ) * minfee
+	realFee := int64((txSize+1023)>>Size_1K_shiftlen) * minfee
 	if tx.Fee < realFee {
 		return ErrTxFeeTooLow
 	}
@@ -142,7 +142,7 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 		return 0, ErrTxMsgSizeTooBig
 	}
 	// 检查交易费是否小于最低值
-	realFee := int64((txSize + 1023) >> Size_1K_shiftlen) * minFee
+	realFee := int64((txSize+1023)>>Size_1K_shiftlen) * minFee
 	return realFee, nil
 }
 
