@@ -7,15 +7,18 @@ SPDX-License-Identifier: Apache-2.0
 package cryptoutils
 
 import (
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
-	"github.com/pkg/errors"
-	log "github.com/inconshreveable/log15"
-)
+	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 
-var logger =log.New("module", "autority_cryptoutils")
+	"github.com/pkg/errors"
+	"fmt"
+)
 
 // GetPublicKeyFromCert will return public key the from cert
 func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (core.Key, error) {
@@ -37,4 +40,51 @@ func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (core.Key, error) {
 	}
 
 	return key, nil
+}
+
+// ImportBCCSPKeyFromPEMBytes attempts to create a private BCCSP key from a pem byte slice
+func ImportBCCSPKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporary bool) (core.Key, error) {
+	keyFile := "pem bytes"
+
+	key, err := PEMtoPrivateKey(keyBuff, nil)
+	if err != nil {
+		return nil, errors.WithMessage(err, fmt.Sprintf("Failed parsing private key from %s", keyFile))
+	}
+	switch key.(type) {
+	case *ecdsa.PrivateKey:
+		priv, err := PrivateKeyToDER(key.(*ecdsa.PrivateKey))
+		if err != nil {
+			return nil, errors.WithMessage(err, fmt.Sprintf("Failed to convert ECDSA private key for '%s'", keyFile))
+		}
+		sk, err := myCSP.KeyImport(priv, GetECDSAPrivateKeyImportOpts(temporary))
+		if err != nil {
+			return nil, errors.WithMessage(err, fmt.Sprintf("Failed to import ECDSA private key for '%s'", keyFile))
+		}
+		return sk, nil
+	case *rsa.PrivateKey:
+		return nil, errors.Errorf("Failed to import RSA key from %s; RSA private key import is not supported", keyFile)
+	default:
+		return nil, errors.Errorf("Failed to import key from %s: invalid secret key type", keyFile)
+	}
+}
+
+// PEMtoPrivateKey is a bridge for bccsp utils.PEMtoPrivateKey()
+func PEMtoPrivateKey(raw []byte, pwd []byte) (interface{}, error) {
+	return utils.PEMtoPrivateKey(raw, pwd)
+}
+
+// PrivateKeyToDER marshals is bridge for utils.PrivateKeyToDER
+func PrivateKeyToDER(privateKey *ecdsa.PrivateKey) ([]byte, error) {
+	return utils.PrivateKeyToDER(privateKey)
+}
+
+//GetX509PublicKeyImportOpts options for importing public keys from an x509 certificate
+func GetX509PublicKeyImportOpts(ephemeral bool) core.KeyImportOpts {
+	return &bccsp.X509PublicKeyImportOpts{Temporary: ephemeral}
+}
+
+//GetECDSAPrivateKeyImportOpts options for ECDSA secret key importation in DER format
+// or PKCS#8 format.
+func GetECDSAPrivateKeyImportOpts(ephemeral bool) core.KeyImportOpts {
+	return &bccsp.ECDSAPrivateKeyImportOpts{Temporary: ephemeral}
 }
