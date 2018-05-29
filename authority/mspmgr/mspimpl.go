@@ -103,7 +103,7 @@ func (msp *bccspmsp) getIdentityFromConf(idBytes []byte) (MSPIdentity, bccsp.Key
 	}
 
 	// get the public key in the right format
-	certPubK, err := msp.bccsp.KeyImport(cert, &bccsp.X509PublicKeyImportOpts{Temporary: true})
+	certPubK, err := msp.bccsp.KeyImport(cert, &bccsp.X509PublicKeyImportOpts{})
 
 	mspId, err := newIdentity(cert, certPubK, msp)
 	if err != nil {
@@ -269,7 +269,7 @@ func (msp *bccspmsp) DeserializeIdentity(serializedID []byte) (MSPIdentity, erro
 	// We can't do it yet because there is no standardized way
 	// (yet) to encode the MSP ID into the x.509 body of a cert
 
-	pub, err := msp.bccsp.KeyImport(cert, &bccsp.X509PublicKeyImportOpts{Temporary: true})
+	pub, err := msp.bccsp.KeyImport(cert, &bccsp.X509PublicKeyImportOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to import certitifacate's public key [%s]", err)
 	}

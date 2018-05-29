@@ -34,7 +34,7 @@ func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (bccsp.Key, error) {
 	}
 
 	// get the public key in the right format
-	key, err := cs.KeyImport(x509Cert, GetX509PublicKeyImportOpts(true))
+	key, err := cs.KeyImport(x509Cert, GetX509PublicKeyImportOpts())
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to import certificate's public key")
 	}
@@ -43,7 +43,7 @@ func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (bccsp.Key, error) {
 }
 
 // ImportBCCSPKeyFromPEMBytes attempts to create a private BCCSP key from a pem byte slice
-func ImportBCCSPKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporary bool) (bccsp.Key, error) {
+func ImportBCCSPKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite) (bccsp.Key, error) {
 	keyFile := "pem bytes"
 
 	key, err := PEMtoPrivateKey(keyBuff, nil)
@@ -56,7 +56,7 @@ func ImportBCCSPKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporar
 		if err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("Failed to convert ECDSA private key for '%s'", keyFile))
 		}
-		sk, err := myCSP.KeyImport(priv, GetECDSAPrivateKeyImportOpts(temporary))
+		sk, err := myCSP.KeyImport(priv, GetECDSAPrivateKeyImportOpts())
 		if err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("Failed to import ECDSA private key for '%s'", keyFile))
 		}
@@ -79,12 +79,12 @@ func PrivateKeyToDER(privateKey *ecdsa.PrivateKey) ([]byte, error) {
 }
 
 //GetX509PublicKeyImportOpts options for importing public keys from an x509 certificate
-func GetX509PublicKeyImportOpts(ephemeral bool) bccsp.KeyImportOpts {
-	return &bccsp.X509PublicKeyImportOpts{Temporary: ephemeral}
+func GetX509PublicKeyImportOpts() bccsp.KeyImportOpts {
+	return &bccsp.X509PublicKeyImportOpts{}
 }
 
 //GetECDSAPrivateKeyImportOpts options for ECDSA secret key importation in DER format
 // or PKCS#8 format.
-func GetECDSAPrivateKeyImportOpts(ephemeral bool) bccsp.KeyImportOpts {
-	return &bccsp.ECDSAPrivateKeyImportOpts{Temporary: ephemeral}
+func GetECDSAPrivateKeyImportOpts() bccsp.KeyImportOpts {
+	return &bccsp.ECDSAPrivateKeyImportOpts{}
 }

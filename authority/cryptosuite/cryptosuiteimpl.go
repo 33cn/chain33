@@ -8,7 +8,7 @@ package cryptosuite
 
 import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
-	bccspSw "gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
 	"github.com/pkg/errors"
 	log "github.com/inconshreveable/log15"
@@ -26,10 +26,10 @@ func GetSuiteByConfig(config core.CryptoSuiteConfig) (core.CryptoSuite, error) {
 	return NewCryptoSuite(bccsp), nil
 }
 
-func getBCCSPFromOpts(config *bccspSw.SwOpts) (bccsp.BCCSP, error) {
-	f := &bccspSw.SWFactory{}
+func getBCCSPFromOpts(config *factory.SwOpts) (bccsp.BCCSP, error) {
+	f := &factory.SWFactory{}
 
-	csp, err := f.Get(&bccspSw.FactoryOpts{"",config})
+	csp, err := f.Get(&factory.FactoryOpts{"",config})
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not initialize BCCSP %s", f.Name())
 	}
@@ -37,11 +37,11 @@ func getBCCSPFromOpts(config *bccspSw.SwOpts) (bccsp.BCCSP, error) {
 }
 
 //GetOptsByConfig Returns Factory opts for given SDK config
-func getOptsByConfig(c core.CryptoSuiteConfig) *bccspSw.SwOpts {
-	opts := &bccspSw.SwOpts{
+func getOptsByConfig(c core.CryptoSuiteConfig) *factory.SwOpts {
+	opts := &factory.SwOpts{
 		HashFamily: c.SecurityAlgorithm(),
 		SecLevel:   c.SecurityLevel(),
-		FileKeystore: &bccspSw.FileKeystoreOpts{
+		FileKeystore: &factory.FileKeystoreOpts{
 			KeyStorePath: c.KeyStorePath(),
 		},
 	}
