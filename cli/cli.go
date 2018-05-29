@@ -514,7 +514,7 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		ShowUTXOs4SpecifiedAmount(argsWithoutProg[1:])
+		ShowUTXOs4SpecifiedAmount(argsWithoutProg[1])
 	default:
 		fmt.Print("指令错误")
 	}
