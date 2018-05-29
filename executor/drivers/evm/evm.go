@@ -133,7 +133,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	evm.mStateDB.Prepare(common.BytesToHash(tx.Hash()), index)
 
 	if isCreate {
-		ret, snapshot, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName)
+		ret, snapshot, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, msg.Alias())
 	} else {
 
 		ret, snapshot, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
@@ -269,6 +269,8 @@ func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Messa
 		if account != nil {
 			ret.ContractAddr = account.Addr
 			ret.ContractName = account.GetExecName()
+			ret.AliasName = account.GetAliasName()
+			ret.CreateTime = account.GetCreateTime()
 		}
 	}
 	return ret, nil
@@ -291,7 +293,7 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 		return nil, model.ErrAddrNotExists
 	}
 
-	msg := common.NewMessage(caller, to, 0, 0, model.MaxGasLimit, 1, req.Code)
+	msg := common.NewMessage(caller, to, 0, 0, model.MaxGasLimit, 1, req.Code, "")
 	context := evm.NewEVMContext(msg)
 	// 创建EVM运行时对象
 	evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
@@ -309,7 +311,7 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 		txHash := common.BigToHash(big.NewInt(model.MaxGasLimit)).Bytes()
 		contractAddr = evm.getNewAddr(txHash)
 		execName = fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(txHash).Hex())
-		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName)
+		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, "")
 	} else {
 		_, _, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
 	}
@@ -354,7 +356,7 @@ func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg *common.Message, 
 	}
 
 	// 合约的GasLimit即为调用者为本次合约调用准备支付的手续费
-	msg = common.NewMessage(from, to, tx.Nonce, amount, gasLimit, gasPrice, code)
+	msg = common.NewMessage(from, to, tx.Nonce, amount, gasLimit, gasPrice, code, action.GetAlias())
 	return msg, nil
 }
 

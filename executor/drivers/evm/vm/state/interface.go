@@ -11,7 +11,7 @@ import (
 // StateDB除了查询状态数据，还会保留在交易执行时对数据的变更信息，每个交易完成之后会返回变更影响的数据给执行器；
 type StateDB interface {
 	// 创建新的合约对象
-	CreateAccount(common.Address, common.Address, string)
+	CreateAccount(common.Address, common.Address, string, string)
 
 	// 从从指定地址扣除金额
 	SubBalance(common.Address, common.Address, uint64)
