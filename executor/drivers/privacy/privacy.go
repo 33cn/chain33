@@ -210,7 +210,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					Txindex:       int32(index),
 					Outindex:      int32(i),
 					Txhash:        txhashInByte,
-					Ometimepubkey: keyOutput.Ometimepubkey,
+					Onetimepubkey: keyOutput.Onetimepubkey,
 				}
 				value := types.Encode(localUTXOItem)
 				kv := &types.KeyValue{key, value}

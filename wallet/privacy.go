@@ -3,13 +3,13 @@ package wallet
 import (
 	"bytes"
 	"errors"
-	"gitlab.33.cn/chain33/chain33/account"
+	"sort"
+	"unsafe"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
-	"sort"
-	"unsafe"
 )
 
 type realkeyInput struct {
@@ -18,9 +18,9 @@ type realkeyInput struct {
 }
 
 type buildInputInfo struct {
-	tokenname      *string
-	sender         *string
-	amount         int64
+	tokenname *string
+	sender    *string
+	amount    int64
 }
 
 func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*types.ReplyHash, error) {
@@ -34,6 +34,9 @@ func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*t
 	if public2private == nil {
 		walletlog.Error("public2private input para is nil")
 		return nil, types.ErrInputPara
+	}
+	if public2private.GetAmount() <= 0 || len(public2private.GetTokenname()) <= 0 {
+		return nil, types.ErrInvalidParams
 	}
 
 	priv, err := wallet.getPrivKeyByAddr(public2private.GetSender())
@@ -83,7 +86,7 @@ func (wallet *Wallet) procPrivacy2PublicV2(privacy2Pub *types.ReqPri2Pub) (*type
 		return nil, err
 	}
 
-	return wallet.transPri2Pub(privacyInfo, privacy2Pub)
+	return wallet.transPri2PubV2(privacyInfo, privacy2Pub)
 }
 
 //公开向隐私账户转账
@@ -158,7 +161,7 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 	if 0 != changeAmount {
 		decomChange = decomposeAmount2digits(changeAmount, types.BTYDustThreshold)
 	}
-	walletlog.Info("generateOuts", "decompose digit for amount", selectedAmount - fee, "decomDigit", decomDigit)
+	walletlog.Info("generateOuts", "decompose digit for amount", selectedAmount-fee, "decomDigit", decomDigit)
 
 	pk := &privacy.PubKeyPrivacy{}
 	sk := &privacy.PrivKeyPrivacy{}
@@ -172,27 +175,27 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 
 	//添加本次转账的目的接收信息（UTXO），包括一次性公钥和额度
 	for index, digit := range decomDigit {
-		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubTo, spendpubto, sktx, int64(index))
+		pubkeyOnetime, _, err := privacy.GenerateOneTimeAddr(viewpubTo, spendpubto, sktx, int64(index))
 		if err != nil {
 			walletlog.Error("generateOuts", "Fail to GenerateOneTimeAddr due to cause", err)
 			return nil, err
 		}
 		keyOutput := &types.KeyOutput{
 			Amount:        digit,
-			Ometimepubkey: pubkeyOnetime[:],
+			Onetimepubkey: pubkeyOnetime[:],
 		}
 		privacyOutput.Keyoutput[index] = keyOutput
 	}
 	//添加本次转账选择的UTXO后的找零后的UTXO
 	for index, digit := range decomChange {
-		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubChangeto, spendpubChangeto, sktx, int64(index+len(decomDigit)))
+		pubkeyOnetime, _, err := privacy.GenerateOneTimeAddr(viewpubChangeto, spendpubChangeto, sktx, int64(index+len(decomDigit)))
 		if err != nil {
 			walletlog.Error("generateOuts", "Fail to GenerateOneTimeAddr for change due to cause", err)
 			return nil, err
 		}
 		keyOutput := &types.KeyOutput{
 			Amount:        digit,
-			Ometimepubkey: pubkeyOnetime[:],
+			Onetimepubkey: pubkeyOnetime[:],
 		}
 		privacyOutput.Keyoutput[index+len(decomDigit)] = keyOutput
 	}
@@ -220,9 +223,9 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 
 func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
 	buildInfo := &buildInputInfo{
-		tokenname:&reqPri2Pri.Tokenname,
-		sender:&reqPri2Pri.Sender,
-		amount:reqPri2Pri.Amount + wallet.FeeAmount,
+		tokenname: &reqPri2Pri.Tokenname,
+		sender:    &reqPri2Pri.Sender,
+		amount:    reqPri2Pri.Amount + wallet.FeeAmount,
 	}
 
 	//step 1,buildInput
@@ -276,15 +279,18 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	//这时候就需要进行交易的签名了
 	tx.Signature = nil
 	data := types.Encode(tx)
-	var ringSigns [][]byte
+	ringSigns := make([]*types.SignatureData, len(privacyInput.Keyinput))
 	for i, input := range privacyInput.Keyinput {
 		utxos := utxosInKeyInput[i]
-		ringSignature := privacy.GenerateRingSignature(data,
+		ringSigns[i], err = privacy.GenerateRingSignature(data,
 			utxos,
-			realkeyInputSlice[i].realInputIndex,
 			realkeyInputSlice[i].onetimePrivKey,
+			realkeyInputSlice[i].realInputIndex,
 			input.KeyImage)
-		ringSigns = append(ringSigns, ringSignature.Bytes())
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	signature := &types.Signature{
@@ -313,9 +319,9 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 
 func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2Pub *types.ReqPri2Pub) (*types.ReplyHash, error) {
 	buildInfo := &buildInputInfo{
-		tokenname:&reqPri2Pub.Tokenname,
-		sender:&reqPri2Pub.Sender,
-		amount:reqPri2Pub.Amount + wallet.FeeAmount,
+		tokenname: &reqPri2Pub.Tokenname,
+		sender:    &reqPri2Pub.Sender,
+		amount:    reqPri2Pub.Amount + wallet.FeeAmount,
 	}
 	//step 1,buildInput
 	privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, err := wallet.buildInput(privacykeyParirs, buildInfo)
@@ -329,6 +335,9 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 
 	selectedAmounTotal := int64(0)
 	for _, input := range privacyInput.Keyinput {
+		if input.Amount <= 0 {
+			return nil, errors.New("")
+		}
 		selectedAmounTotal += input.Amount
 	}
 	changeAmount := selectedAmounTotal - reqPri2Pub.Amount
@@ -361,20 +370,23 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	//step 3,generate ring signature
 	tx.Signature = nil
 	data := types.Encode(tx)
-	var ringSigns [][]byte
+	var ringSignatures []*types.SignatureData
+	ringSignatures = make([]*types.SignatureData, len(privacyInput.Keyinput))
 	for i, input := range privacyInput.Keyinput {
 		utxos := utxosInKeyInput[i]
-		ringSignature := privacy.GenerateRingSignature(data,
+		ringSignatures[i], err = privacy.GenerateRingSignature(data,
 			utxos,
-			realkeyInputSlice[i].realInputIndex,
 			realkeyInputSlice[i].onetimePrivKey,
+			realkeyInputSlice[i].realInputIndex,
 			input.KeyImage)
-		ringSigns = append(ringSigns, ringSignature.Bytes())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	signature := &types.Signature{
 		Ty:            types.RingBaseonED25519,
-		RingSignature: ringSigns,
+		RingSignature: ringSignatures,
 	}
 	tx.Signature = signature
 
@@ -400,9 +412,9 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 func (wallet *Wallet) frozenUtxos(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	//将已经作为本次交易输入的utxo进行冻结，防止产生双花交易
 	utxoSpendInTx := &utxoSpendInTx{
-		spender:sender,
-		token:token,
-		outs:selectedUtxos,
+		spender: sender,
+		token:   token,
+		outs:    selectedUtxos,
 	}
 	wallet.privacyFrozen[txhash] = utxoSpendInTx
 	//tokenPrivacy, ok := wallet.privacyFrozen[token]
@@ -480,7 +492,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	for i, utxo2pay := range selectedUtxo {
 		utxoIndex4Amount := mapAmount2utxo[utxo2pay.amount]
 		for j, utxo := range utxoIndex4Amount.Utxos {
-			if bytes.Equal(utxo.OnetimePubkey, utxo2pay.onetimePublicKey.Bytes()) {
+			if bytes.Equal(utxo.OnetimePubkey, utxo2pay.onetimePublicKey) {
 				utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos[:j], utxoIndex4Amount.Utxos[j+1:]...)
 				break
 			}
@@ -488,7 +500,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 
 		utxo := &types.UTXO{
 			UtxoGlobalIndex: utxo2pay.utxoGlobalIndex,
-			OnetimePubkey:   utxo2pay.onetimePublicKey.Bytes(),
+			OnetimePubkey:   utxo2pay.onetimePublicKey,
 		}
 		//将真实的utxo添加到最后一个
 		utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
@@ -500,7 +512,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		utxosInKeyInput[i] = utxos
 
 		//x = Hs(aR) + b
-		onetimePriv, err := privacy.RecoverOnetimePriKey(utxo2pay.txPublicKeyR.Bytes(), privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(utxo2pay.utxoGlobalIndex.Outindex))
+		onetimePriv, err := privacy.RecoverOnetimePriKey(utxo2pay.txPublicKeyR, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(utxo2pay.utxoGlobalIndex.Outindex))
 		if err != nil {
 			walletlog.Error("transPri2Pri", "Failed to RecoverOnetimePriKey", err)
 			return nil, nil, nil, nil, err
@@ -512,7 +524,10 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		}
 		realkeyInputSlice[i] = realkeyInput
 
-		keyImage := privacy.GenerateKeyImage(onetimePriv, utxo2pay.onetimePublicKey)
+		keyImage, err := privacy.GenerateKeyImage(onetimePriv, utxo2pay.onetimePublicKey)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
 
 		keyInput := &types.KeyInput{
 			Amount:   utxo2pay.amount,

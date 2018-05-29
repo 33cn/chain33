@@ -537,6 +537,7 @@ func (m *ReqWalletTransactionList) GetIsprivacy() bool {
 }
 
 type ReqWalletImportPrivKey struct {
+	// bitcoin 的私钥格式
 	Privkey string `protobuf:"bytes,1,opt,name=privkey" json:"privkey,omitempty"`
 	Label   string `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
 }
@@ -950,13 +951,16 @@ func (m *ReqModifyConfig) GetModifier() string {
 }
 
 type ReqPub2Pri struct {
-	ViewPublic  string `protobuf:"bytes,1,opt,name=viewPublic" json:"viewPublic,omitempty"`
+	// 接收人可见公钥A
+	ViewPublic string `protobuf:"bytes,1,opt,name=viewPublic" json:"viewPublic,omitempty"`
+	// 接收人花费公钥B
 	SpendPublic string `protobuf:"bytes,2,opt,name=spendPublic" json:"spendPublic,omitempty"`
 	Tokenname   string `protobuf:"bytes,3,opt,name=tokenname" json:"tokenname,omitempty"`
 	Amount      int64  `protobuf:"varint,4,opt,name=amount" json:"amount,omitempty"`
 	Note        string `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
-	Sender      string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
-	Mixin       int32  `protobuf:"varint,7,opt,name=mixin" json:"mixin,omitempty"`
+	// 发送人地址
+	Sender string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
+	Mixin  int32  `protobuf:"varint,7,opt,name=mixin" json:"mixin,omitempty"`
 }
 
 func (m *ReqPub2Pri) Reset()                    { *m = ReqPub2Pri{} }
@@ -1014,13 +1018,16 @@ func (m *ReqPub2Pri) GetMixin() int32 {
 }
 
 type ReqPri2Pri struct {
-	ViewPublic  string `protobuf:"bytes,1,opt,name=viewPublic" json:"viewPublic,omitempty"`
+	// 接收人可见公钥A
+	ViewPublic string `protobuf:"bytes,1,opt,name=viewPublic" json:"viewPublic,omitempty"`
+	// 接收人花费公钥B
 	SpendPublic string `protobuf:"bytes,2,opt,name=spendPublic" json:"spendPublic,omitempty"`
 	Tokenname   string `protobuf:"bytes,3,opt,name=tokenname" json:"tokenname,omitempty"`
 	Amount      int64  `protobuf:"varint,4,opt,name=amount" json:"amount,omitempty"`
 	Note        string `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
-	Sender      string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
-	Mixin       int32  `protobuf:"varint,7,opt,name=mixin" json:"mixin,omitempty"`
+	// 隐私交易发起人地址
+	Sender string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
+	Mixin  int32  `protobuf:"varint,7,opt,name=mixin" json:"mixin,omitempty"`
 }
 
 func (m *ReqPri2Pri) Reset()                    { *m = ReqPri2Pri{} }
@@ -1082,8 +1089,9 @@ type ReqPri2Pub struct {
 	Tokenname string `protobuf:"bytes,2,opt,name=tokenname" json:"tokenname,omitempty"`
 	Amount    int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
 	Note      string `protobuf:"bytes,4,opt,name=note" json:"note,omitempty"`
-	Sender    string `protobuf:"bytes,5,opt,name=sender" json:"sender,omitempty"`
-	Mixin     int32  `protobuf:"varint,6,opt,name=mixin" json:"mixin,omitempty"`
+	// 隐私交易发起人地址
+	Sender string `protobuf:"bytes,5,opt,name=sender" json:"sender,omitempty"`
+	Mixin  int32  `protobuf:"varint,6,opt,name=mixin" json:"mixin,omitempty"`
 }
 
 func (m *ReqPri2Pub) Reset()                    { *m = ReqPri2Pub{} }
@@ -1166,7 +1174,8 @@ func (m *ReplyPrivacyPkPair) GetSpendPub() string {
 }
 
 type ReqPrivacyBalance struct {
-	Addr   string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	// 隐私交易hash
 	Txhash string `protobuf:"bytes,2,opt,name=txhash" json:"txhash,omitempty"`
 }
 
@@ -1295,10 +1304,13 @@ func (m *PrivacyDBStore) GetTxindex() int32 {
 
 type PrivacyOnetimeAccInfo struct {
 	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	Balance   int64  `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
-	Frozen    int64  `protobuf:"varint,3,opt,name=frozen" json:"frozen,omitempty"`
-	Addr      string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
-	Txhash    string `protobuf:"bytes,5,opt,name=txhash" json:"txhash,omitempty"`
+	// 账户可用余额
+	Balance int64 `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
+	// 账户冻结余额
+	Frozen int64 `protobuf:"varint,3,opt,name=frozen" json:"frozen,omitempty"`
+	// 账户的地址
+	Addr   string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
+	Txhash string `protobuf:"bytes,5,opt,name=txhash" json:"txhash,omitempty"`
 }
 
 func (m *PrivacyOnetimeAccInfo) Reset()                    { *m = PrivacyOnetimeAccInfo{} }
