@@ -11,13 +11,14 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 )
 
 // SigningManager is used for signing objects with private key
 type SigningManager struct {
 	cryptoProvider core.CryptoSuite
-	hashOpts       core.HashOpts
-	signerOpts     core.SignerOpts
+	hashOpts       bccsp.HashOpts
+	signerOpts     bccsp.SignerOpts
 }
 
 // New Constructor for a signing manager.
@@ -29,7 +30,7 @@ func New(cryptoProvider core.CryptoSuite) (*SigningManager, error) {
 }
 
 // Sign will sign the given object using provided key
-func (mgr *SigningManager) Sign(object []byte, key core.Key) ([]byte, error) {
+func (mgr *SigningManager) Sign(object []byte, key bccsp.Key) ([]byte, error) {
 
 	if len(object) == 0 {
 		return nil, errors.New("object (to sign) required")

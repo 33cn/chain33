@@ -70,23 +70,6 @@ func UnmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
 	return sig.R, sig.S, nil
 }
 
-func SignatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
-	r, s, err := UnmarshalECDSASignature(signature)
-	if err != nil {
-		return nil, err
-	}
-
-	s, modified, err := ToLowS(k, s)
-	if err != nil {
-		return nil, err
-	}
-
-	if modified {
-		return MarshalECDSASignature(r, s)
-	}
-
-	return signature, nil
-}
 
 // IsLow checks that s is a low-S
 func IsLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {

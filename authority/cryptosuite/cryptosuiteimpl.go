@@ -51,7 +51,7 @@ func getOptsByConfig(c core.CryptoSuiteConfig) *bccspSw.SwOpts {
 }
 
 //GetSHAOpts returns options for computing SHA.
-func GetSHAOpts() core.HashOpts {
+func GetSHAOpts() bccsp.HashOpts {
 	return &bccsp.SHAOpts{}
 }
 
@@ -63,6 +63,6 @@ func NewCryptoSuite(bccsp bccsp.BCCSP) core.CryptoSuite {
 }
 
 //GetKey returns implementation of of cryptosuite.Key
-func GetKey(newkey bccsp.Key) core.Key {
+func GetKey(newkey bccsp.Key) bccsp.Key {
 	return &key{newkey}
 }

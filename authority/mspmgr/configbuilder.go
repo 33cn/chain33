@@ -108,7 +108,6 @@ func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, conf *cryptosuit
 	swOpts := &factory.SwOpts{}
 	swOpts.HashFamily = conf.SecurityAlgorithm()
 	swOpts.SecLevel = conf.SecurityLevel()
-	swOpts.Ephemeral = false
 	swOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: keystoreDir}
 	bccspConfig.SwOpts = swOpts
 

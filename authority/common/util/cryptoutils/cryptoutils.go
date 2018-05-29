@@ -21,7 +21,7 @@ import (
 )
 
 // GetPublicKeyFromCert will return public key the from cert
-func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (core.Key, error) {
+func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (bccsp.Key, error) {
 
 	dcert, _ := pem.Decode(cert)
 	if dcert == nil {
@@ -43,7 +43,7 @@ func GetPublicKeyFromCert(cert []byte, cs core.CryptoSuite) (core.Key, error) {
 }
 
 // ImportBCCSPKeyFromPEMBytes attempts to create a private BCCSP key from a pem byte slice
-func ImportBCCSPKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporary bool) (core.Key, error) {
+func ImportBCCSPKeyFromPEMBytes(keyBuff []byte, myCSP core.CryptoSuite, temporary bool) (bccsp.Key, error) {
 	keyFile := "pem bytes"
 
 	key, err := PEMtoPrivateKey(keyBuff, nil)
@@ -79,12 +79,12 @@ func PrivateKeyToDER(privateKey *ecdsa.PrivateKey) ([]byte, error) {
 }
 
 //GetX509PublicKeyImportOpts options for importing public keys from an x509 certificate
-func GetX509PublicKeyImportOpts(ephemeral bool) core.KeyImportOpts {
+func GetX509PublicKeyImportOpts(ephemeral bool) bccsp.KeyImportOpts {
 	return &bccsp.X509PublicKeyImportOpts{Temporary: ephemeral}
 }
 
 //GetECDSAPrivateKeyImportOpts options for ECDSA secret key importation in DER format
 // or PKCS#8 format.
-func GetECDSAPrivateKeyImportOpts(ephemeral bool) core.KeyImportOpts {
+func GetECDSAPrivateKeyImportOpts(ephemeral bool) bccsp.KeyImportOpts {
 	return &bccsp.ECDSAPrivateKeyImportOpts{Temporary: ephemeral}
 }

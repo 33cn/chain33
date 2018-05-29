@@ -53,21 +53,6 @@ type KeyGenOpts interface {
 
 	// Algorithm returns the key generation algorithm identifier (to be used).
 	Algorithm() string
-
-	// Ephemeral returns true if the key to generate has to be ephemeral,
-	// false otherwise.
-	Ephemeral() bool
-}
-
-// KeyDerivOpts contains options for key-derivation with a CSP.
-type KeyDerivOpts interface {
-
-	// Algorithm returns the key derivation algorithm identifier (to be used).
-	Algorithm() string
-
-	// Ephemeral returns true if the key to derived has to be ephemeral,
-	// false otherwise.
-	Ephemeral() bool
 }
 
 // KeyImportOpts contains options for importing the raw material of a key with a CSP.
@@ -75,10 +60,6 @@ type KeyImportOpts interface {
 
 	// Algorithm returns the key importation algorithm identifier (to be used).
 	Algorithm() string
-
-	// Ephemeral returns true if the key generated has to be ephemeral,
-	// false otherwise.
-	Ephemeral() bool
 }
 
 // HashOpts contains options for hashing with a CSP.
@@ -93,22 +74,9 @@ type SignerOpts interface {
 	crypto.SignerOpts
 }
 
-// EncrypterOpts contains options for encrypting with a CSP.
-type EncrypterOpts interface{}
-
-// DecrypterOpts contains options for decrypting with a CSP.
-type DecrypterOpts interface{}
-
 // BCCSP is the blockchain cryptographic service provider that offers
 // the implementation of cryptographic standards and algorithms.
 type BCCSP interface {
-
-	// KeyGen generates a key using opts.
-	KeyGen(opts KeyGenOpts) (k Key, err error)
-
-	// KeyDeriv derives a key from k using opts.
-	// The opts argument should be appropriate for the primitive used.
-	KeyDeriv(k Key, opts KeyDerivOpts) (dk Key, err error)
 
 	// KeyImport imports a key from its raw representation using opts.
 	// The opts argument should be appropriate for the primitive used.
@@ -137,12 +105,4 @@ type BCCSP interface {
 	// Verify verifies signature against key k and digest
 	// The opts argument should be appropriate for the algorithm used.
 	Verify(k Key, signature, digest []byte, opts SignerOpts) (valid bool, err error)
-
-	// Encrypt encrypts plaintext using key k.
-	// The opts argument should be appropriate for the algorithm used.
-	Encrypt(k Key, plaintext []byte, opts EncrypterOpts) (ciphertext []byte, err error)
-
-	// Decrypt decrypts ciphertext using key k.
-	// The opts argument should be appropriate for the algorithm used.
-	Decrypt(k Key, ciphertext []byte, opts DecrypterOpts) (plaintext []byte, err error)
 }
