@@ -33,17 +33,12 @@ import (
 
 // New returns a new instance of the software-based BCCSP
 // set at the passed security level, hash family and KeyStore.
-func New(securityLevel int, hashFamily string, keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
+func New(securityLevel int, hashFamily string) (bccsp.BCCSP, error) {
 	// Init config
 	conf := &config{}
 	err := conf.setSecurityLevel(securityLevel, hashFamily)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed initializing configuration at [%v,%v]", securityLevel, hashFamily)
-	}
-
-	// Check KeyStore
-	if keyStore == nil {
-		return nil, errors.Errorf("Invalid bccsp.KeyStore instance. It must be different from nil.")
 	}
 
 	// Set the signers
@@ -68,7 +63,6 @@ func New(securityLevel int, hashFamily string, keyStore bccsp.KeyStore) (bccsp.B
 
 	impl := &impl{
 		conf:       conf,
-		ks:         keyStore,
 		signers:    signers,
 		verifiers:  verifiers,
 		hashers:    hashers}
@@ -91,7 +85,6 @@ func New(securityLevel int, hashFamily string, keyStore bccsp.KeyStore) (bccsp.B
 // SoftwareBasedBCCSP is the software-based implementation of the BCCSP.
 type impl struct {
 	conf *config
-	ks   bccsp.KeyStore
 
 	keyImporters  map[reflect.Type]KeyImporter
 	signers       map[reflect.Type]Signer
@@ -118,17 +111,6 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 	k, err = keyImporter.KeyImport(raw, opts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed importing key with opts [%v]", opts)
-	}
-
-	return
-}
-
-// GetKey returns the key this CSP associates to
-// the Subject Key Identifier ski.
-func (csp *impl) GetKey(ski []byte) (k bccsp.Key, err error) {
-	k, err = csp.ks.GetKey(ski)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed getting key for SKI [%v]", ski)
 	}
 
 	return

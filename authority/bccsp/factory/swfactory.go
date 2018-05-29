@@ -17,7 +17,6 @@ package factory
 
 import (
 	"errors"
-	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/sw"
@@ -45,14 +44,7 @@ func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 
 	swOpts := config.SwOpts
 
-	var ks bccsp.KeyStore
-	fks, err := sw.NewFileBasedKeyStore(nil, swOpts.FileKeystore.KeyStorePath, false)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize software key store: %s", err)
-	}
-	ks = fks
-
-	return sw.New(swOpts.SecLevel, swOpts.HashFamily, ks)
+	return sw.New(swOpts.SecLevel, swOpts.HashFamily)
 }
 
 // SwOpts contains options for the SWFactory
@@ -60,12 +52,4 @@ type SwOpts struct {
 	// Default algorithms when not specified (Deprecated?)
 	SecLevel   int    `mapstructure:"security" json:"security" yaml:"Security"`
 	HashFamily string `mapstructure:"hash" json:"hash" yaml:"Hash"`
-
-	// Keystore Options
-	FileKeystore  *FileKeystoreOpts  `mapstructure:"filekeystore,omitempty" json:"filekeystore,omitempty" yaml:"FileKeyStore"`
-}
-
-// Pluggable Keystores, could add JKS, P12, etc..
-type FileKeystoreOpts struct {
-	KeyStorePath string `mapstructure:"keystore" yaml:"KeyStore"`
 }

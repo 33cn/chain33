@@ -22,12 +22,6 @@ func (c *CryptoSuite) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bc
 	return GetKey(key), err
 }
 
-// GetKey is a wrapper of BCCSP.GetKey
-func (c *CryptoSuite) GetKey(ski []byte) (k bccsp.Key, err error) {
-	key, err := c.BCCSP.GetKey(ski)
-	return GetKey(key), err
-}
-
 // Hash is a wrapper of BCCSP.Hash
 func (c *CryptoSuite) Hash(msg []byte, opts bccsp.HashOpts) (hash []byte, err error) {
 	return c.BCCSP.Hash(msg, opts)

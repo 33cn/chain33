@@ -124,8 +124,6 @@ message Exec {
 message Authority {
     string cryptoPath = 1;
     int32 securityLevel = 2;
-    string defaultProvider = 3;
-    string hashAlgorithm = 4;
-    string keyStorePath = 5;
-    string orgName = 6;
+    string hashAlgorithm = 3;
+    string orgName = 4;
 }
