@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
 	"gitlab.33.cn/chain33/chain33/authority/identitymgr/filestore"
 	"gitlab.33.cn/chain33/chain33/authority/common/util/cryptoutils"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"fmt"
 )
 
@@ -168,7 +169,7 @@ func (mgr *IdentityManager) getCertBytesFromCertStore(username string) ([]byte, 
 	return certBytes, nil
 }
 
-func (mgr *IdentityManager) getPrivateKeyFromCert(username string, cert []byte) (core.Key, error) {
+func (mgr *IdentityManager) getPrivateKeyFromCert(username string, cert []byte) (bccsp.Key, error) {
 	if cert == nil {
 		return nil, errors.New("cert is nil")
 	}
@@ -186,7 +187,7 @@ func (mgr *IdentityManager) getPrivateKeyFromCert(username string, cert []byte) 
 	return mgr.cryptoSuite.GetKey(pubKey.SKI())
 }
 
-func (mgr *IdentityManager) getPrivateKeyFromKeyStore(username string, ski []byte) (core.Key, error) {
+func (mgr *IdentityManager) getPrivateKeyFromKeyStore(username string, ski []byte) (bccsp.Key, error) {
 	pemBytes, err := mgr.getPrivateKeyPemFromKeyStore(username, ski)
 	if err != nil {
 		return nil, err

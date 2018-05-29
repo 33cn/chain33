@@ -20,7 +20,6 @@ Please review third_party pinning scripts and patches for more details.
 package sw
 
 import (
-	"crypto/elliptic"
 	"crypto/sha256"
 	"crypto/sha512"
 	"hash"
@@ -47,14 +46,6 @@ func New(securityLevel int, hashFamily string, keyStore bccsp.KeyStore) (bccsp.B
 		return nil, errors.Errorf("Invalid bccsp.KeyStore instance. It must be different from nil.")
 	}
 
-	// Set the encryptors
-	encryptors := make(map[reflect.Type]Encryptor)
-	encryptors[reflect.TypeOf(&aesPrivateKey{})] = &aescbcpkcs7Encryptor{}
-
-	// Set the decryptors
-	decryptors := make(map[reflect.Type]Decryptor)
-	decryptors[reflect.TypeOf(&aesPrivateKey{})] = &aescbcpkcs7Decryptor{}
-
 	// Set the signers
 	signers := make(map[reflect.Type]Signer)
 	signers[reflect.TypeOf(&ecdsaPrivateKey{})] = &ecdsaSigner{}
@@ -78,34 +69,9 @@ func New(securityLevel int, hashFamily string, keyStore bccsp.KeyStore) (bccsp.B
 	impl := &impl{
 		conf:       conf,
 		ks:         keyStore,
-		encryptors: encryptors,
-		decryptors: decryptors,
 		signers:    signers,
 		verifiers:  verifiers,
 		hashers:    hashers}
-
-	// Set the key generators
-	keyGenerators := make(map[reflect.Type]KeyGenerator)
-	keyGenerators[reflect.TypeOf(&bccsp.ECDSAKeyGenOpts{})] = &ecdsaKeyGenerator{curve: conf.ellipticCurve}
-	keyGenerators[reflect.TypeOf(&bccsp.ECDSAP256KeyGenOpts{})] = &ecdsaKeyGenerator{curve: elliptic.P256()}
-	keyGenerators[reflect.TypeOf(&bccsp.ECDSAP384KeyGenOpts{})] = &ecdsaKeyGenerator{curve: elliptic.P384()}
-	keyGenerators[reflect.TypeOf(&bccsp.AESKeyGenOpts{})] = &aesKeyGenerator{length: conf.aesBitLength}
-	keyGenerators[reflect.TypeOf(&bccsp.AES256KeyGenOpts{})] = &aesKeyGenerator{length: 32}
-	keyGenerators[reflect.TypeOf(&bccsp.AES192KeyGenOpts{})] = &aesKeyGenerator{length: 24}
-	keyGenerators[reflect.TypeOf(&bccsp.AES128KeyGenOpts{})] = &aesKeyGenerator{length: 16}
-	keyGenerators[reflect.TypeOf(&bccsp.RSAKeyGenOpts{})] = &rsaKeyGenerator{length: conf.rsaBitLength}
-	keyGenerators[reflect.TypeOf(&bccsp.RSA1024KeyGenOpts{})] = &rsaKeyGenerator{length: 1024}
-	keyGenerators[reflect.TypeOf(&bccsp.RSA2048KeyGenOpts{})] = &rsaKeyGenerator{length: 2048}
-	keyGenerators[reflect.TypeOf(&bccsp.RSA3072KeyGenOpts{})] = &rsaKeyGenerator{length: 3072}
-	keyGenerators[reflect.TypeOf(&bccsp.RSA4096KeyGenOpts{})] = &rsaKeyGenerator{length: 4096}
-	impl.keyGenerators = keyGenerators
-
-	// Set the key generators
-	keyDerivers := make(map[reflect.Type]KeyDeriver)
-	keyDerivers[reflect.TypeOf(&ecdsaPrivateKey{})] = &ecdsaPrivateKeyKeyDeriver{}
-	keyDerivers[reflect.TypeOf(&ecdsaPublicKey{})] = &ecdsaPublicKeyKeyDeriver{}
-	keyDerivers[reflect.TypeOf(&aesPrivateKey{})] = &aesPrivateKeyKeyDeriver{bccsp: impl}
-	impl.keyDerivers = keyDerivers
 
 	// Set the key importers
 	keyImporters := make(map[reflect.Type]KeyImporter)
@@ -127,76 +93,10 @@ type impl struct {
 	conf *config
 	ks   bccsp.KeyStore
 
-	keyGenerators map[reflect.Type]KeyGenerator
-	keyDerivers   map[reflect.Type]KeyDeriver
 	keyImporters  map[reflect.Type]KeyImporter
-	encryptors    map[reflect.Type]Encryptor
-	decryptors    map[reflect.Type]Decryptor
 	signers       map[reflect.Type]Signer
 	verifiers     map[reflect.Type]Verifier
 	hashers       map[reflect.Type]Hasher
-}
-
-// KeyGen generates a key using opts.
-func (csp *impl) KeyGen(opts bccsp.KeyGenOpts) (k bccsp.Key, err error) {
-	// Validate arguments
-	if opts == nil {
-		return nil, errors.New("Invalid Opts parameter. It must not be nil.")
-	}
-
-	keyGenerator, found := csp.keyGenerators[reflect.TypeOf(opts)]
-	if !found {
-		return nil, errors.Errorf("Unsupported 'KeyGenOpts' provided [%v]", opts)
-	}
-
-	k, err = keyGenerator.KeyGen(opts)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed generating key with opts [%v]", opts)
-	}
-
-	// If the key is not Ephemeral, store it.
-	if !opts.Ephemeral() {
-		// Store the key
-		err = csp.ks.StoreKey(k)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Failed storing key [%s]", opts.Algorithm())
-		}
-	}
-
-	return k, nil
-}
-
-// KeyDeriv derives a key from k using opts.
-// The opts argument should be appropriate for the primitive used.
-func (csp *impl) KeyDeriv(k bccsp.Key, opts bccsp.KeyDerivOpts) (dk bccsp.Key, err error) {
-	// Validate arguments
-	if k == nil {
-		return nil, errors.New("Invalid Key. It must not be nil.")
-	}
-	if opts == nil {
-		return nil, errors.New("Invalid opts. It must not be nil.")
-	}
-
-	keyDeriver, found := csp.keyDerivers[reflect.TypeOf(k)]
-	if !found {
-		return nil, errors.Errorf("Unsupported 'Key' provided [%v]", k)
-	}
-
-	k, err = keyDeriver.KeyDeriv(k, opts)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed deriving key with opts [%v]", opts)
-	}
-
-	// If the key is not Ephemeral, store it.
-	if !opts.Ephemeral() {
-		// Store the key
-		err = csp.ks.StoreKey(k)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Failed storing key [%s]", opts.Algorithm())
-		}
-	}
-
-	return k, nil
 }
 
 // KeyImport imports a key from its raw representation using opts.
@@ -218,15 +118,6 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 	k, err = keyImporter.KeyImport(raw, opts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed importing key with opts [%v]", opts)
-	}
-
-	// If the key is not Ephemeral, store it.
-	if !opts.Ephemeral() {
-		// Store the key
-		err = csp.ks.StoreKey(k)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Failed storing imported key with opts [%v]", opts)
-		}
 	}
 
 	return
@@ -334,43 +225,6 @@ func (csp *impl) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.Signer
 	valid, err = verifier.Verify(k, signature, digest, opts)
 	if err != nil {
 		return false, errors.Wrapf(err, "Failed verifing with opts [%v]", opts)
-	}
-
-	return
-}
-
-// Encrypt encrypts plaintext using key k.
-// The opts argument should be appropriate for the primitive used.
-func (csp *impl) Encrypt(k bccsp.Key, plaintext []byte, opts bccsp.EncrypterOpts) (ciphertext []byte, err error) {
-	// Validate arguments
-	if k == nil {
-		return nil, errors.New("Invalid Key. It must not be nil.")
-	}
-
-	encryptor, found := csp.encryptors[reflect.TypeOf(k)]
-	if !found {
-		return nil, errors.Errorf("Unsupported 'EncryptKey' provided [%v]", k)
-	}
-
-	return encryptor.Encrypt(k, plaintext, opts)
-}
-
-// Decrypt decrypts ciphertext using key k.
-// The opts argument should be appropriate for the primitive used.
-func (csp *impl) Decrypt(k bccsp.Key, ciphertext []byte, opts bccsp.DecrypterOpts) (plaintext []byte, err error) {
-	// Validate arguments
-	if k == nil {
-		return nil, errors.New("Invalid Key. It must not be nil.")
-	}
-
-	decryptor, found := csp.decryptors[reflect.TypeOf(k)]
-	if !found {
-		return nil, errors.Errorf("Unsupported 'DecryptKey' provided [%v]", k)
-	}
-
-	plaintext, err = decryptor.Decrypt(k, ciphertext, opts)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed decrypting with opts [%v]", opts)
 	}
 
 	return

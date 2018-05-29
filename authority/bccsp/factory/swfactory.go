@@ -46,18 +46,11 @@ func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 	swOpts := config.SwOpts
 
 	var ks bccsp.KeyStore
-	if swOpts.Ephemeral == true {
-		ks = sw.NewDummyKeyStore()
-	} else if swOpts.FileKeystore != nil {
-		fks, err := sw.NewFileBasedKeyStore(nil, swOpts.FileKeystore.KeyStorePath, false)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to initialize software key store: %s", err)
-		}
-		ks = fks
-	} else {
-		// Default to DummyKeystore
-		ks = sw.NewDummyKeyStore()
+	fks, err := sw.NewFileBasedKeyStore(nil, swOpts.FileKeystore.KeyStorePath, false)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize software key store: %s", err)
 	}
+	ks = fks
 
 	return sw.New(swOpts.SecLevel, swOpts.HashFamily, ks)
 }
@@ -69,9 +62,7 @@ type SwOpts struct {
 	HashFamily string `mapstructure:"hash" json:"hash" yaml:"Hash"`
 
 	// Keystore Options
-	Ephemeral     bool               `mapstructure:"tempkeys,omitempty" json:"tempkeys,omitempty"`
 	FileKeystore  *FileKeystoreOpts  `mapstructure:"filekeystore,omitempty" json:"filekeystore,omitempty" yaml:"FileKeyStore"`
-	DummyKeystore *DummyKeystoreOpts `mapstructure:"dummykeystore,omitempty" json:"dummykeystore,omitempty"`
 }
 
 // Pluggable Keystores, could add JKS, P12, etc..
