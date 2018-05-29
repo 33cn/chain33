@@ -56,28 +56,6 @@ func NewIdentityManager(orgName string, cryptoSuite core.CryptoSuite, CryptoPath
 	return mgr, nil
 }
 
-func newUser(userData *core.UserData, cryptoSuite core.CryptoSuite) (*User, error) {
-	pubKey, err := cryptoutils.GetPublicKeyFromCert(userData.EnrollmentCertificate, cryptoSuite)
-	if err != nil {
-		return nil, errors.WithMessage(err, "fetching public key from cert failed")
-	}
-	pk, err := cryptoSuite.GetKey(pubKey.SKI())
-	if err != nil {
-		return nil, errors.WithMessage(err, "cryptoSuite GetKey failed")
-	}
-	u := &User{
-		id:    userData.ID,
-		enrollmentCertificate: userData.EnrollmentCertificate,
-		privateKey:            pk,
-	}
-	return u, nil
-}
-
-// NewUser creates a User instance
-func (mgr *IdentityManager) NewUser(userData *core.UserData) (*User, error) {
-	return newUser(userData, mgr.cryptoSuite)
-}
-
 func (mgr *IdentityManager) loadUserFromStore(username string) (*User) {
 	user,ok := mgr.userStore[username]
 	if(ok) {
@@ -193,7 +171,7 @@ func (mgr *IdentityManager) getPrivateKeyFromKeyStore(username string, ski []byt
 		return nil, err
 	}
 	if pemBytes != nil {
-		return cryptoutils.ImportBCCSPKeyFromPEMBytes(pemBytes, mgr.cryptoSuite, true)
+		return cryptoutils.ImportBCCSPKeyFromPEMBytes(pemBytes, mgr.cryptoSuite)
 	}
 	return nil, core.ErrKeyValueNotFound
 }

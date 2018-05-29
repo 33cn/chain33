@@ -76,7 +76,6 @@ func (opts *ECDSAPKIXPublicKeyImportOpts) Algorithm() string {
 // ECDSAPrivateKeyImportOpts contains options for ECDSA secret key importation in DER format
 // or PKCS#8 format.
 type ECDSAPrivateKeyImportOpts struct {
-	Temporary bool
 }
 
 // Algorithm returns the key importation algorithm identifier (to be used).
@@ -95,7 +94,6 @@ func (opts *ECDSAGoPublicKeyImportOpts) Algorithm() string {
 
 // AES256ImportKeyOpts contains options for importing AES 256 keys.
 type AES256ImportKeyOpts struct {
-	Temporary bool
 }
 
 // Algorithm returns the key importation algorithm identifier (to be used).
@@ -133,7 +131,6 @@ func (opts *RSAGoPublicKeyImportOpts) Algorithm() string {
 
 // X509PublicKeyImportOpts contains options for importing public keys from an x509 certificate
 type X509PublicKeyImportOpts struct {
-	Temporary bool
 }
 
 // Algorithm returns the key importation algorithm identifier (to be used).
