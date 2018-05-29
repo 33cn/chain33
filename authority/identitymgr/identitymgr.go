@@ -159,10 +159,8 @@ func (mgr *IdentityManager) getPrivateKeyFromCert(username string, cert []byte) 
 	if err == nil {
 		return privKey, nil
 	}
-	if err != core.ErrKeyValueNotFound {
-		return nil, errors.WithMessage(err, "fetching private key from key store failed")
-	}
-	return mgr.cryptoSuite.GetKey(pubKey.SKI())
+
+	return nil, errors.WithMessage(err, "fetching private key from key store failed")
 }
 
 func (mgr *IdentityManager) getPrivateKeyFromKeyStore(username string, ski []byte) (bccsp.Key, error) {

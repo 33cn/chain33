@@ -35,10 +35,6 @@ type CryptoSuite interface {
 	// The opts argument should be appropriate for the primitive used.
 	KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error)
 
-	// GetKey returns the key this CSP associates to
-	// the Subject Key Identifier ski.
-	GetKey(ski []byte) (k bccsp.Key, err error)
-
 	// Hash hashes messages msg using options opts.
 	// If opts is nil, the default hash function will be used.
 	Hash(msg []byte, opts bccsp.HashOpts) (hash []byte, err error)
@@ -60,5 +56,4 @@ type CryptoSuite interface {
 type CryptoSuiteConfig interface {
 	SecurityAlgorithm() string
 	SecurityLevel() int
-	KeyStorePath() string
 }

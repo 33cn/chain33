@@ -7,10 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package cryptosuite
 
 import (
-	"path"
-
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/authority/common/util/pathvar"
 )
 
 
@@ -27,10 +24,4 @@ func (c *CryptoConfig) SecurityAlgorithm() string {
 // SecurityLevel returns cryptSuite config security level
 func (c *CryptoConfig) SecurityLevel() int {
 	return int(c.Config.SecurityLevel)
-}
-
-// KeyStorePath returns the keystore path used by BCCSP
-func (c *CryptoConfig) KeyStorePath() string {
-	keystorePath := pathvar.Subst(c.Config.KeyStorePath)
-	return path.Join(keystorePath, "keystore")
 }

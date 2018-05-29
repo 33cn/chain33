@@ -99,16 +99,14 @@ const (
 	cacerts              = "cacerts"
 	admincerts           = "admincerts"
 	signcerts            = "signcerts"
-	keystore             = "keystore"
 	intermediatecerts    = "intermediatecerts"
 	crlsfolder           = "crls"
 )
 
-func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, conf *cryptosuite.CryptoConfig, keystoreDir string) *factory.FactoryOpts {
+func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, conf *cryptosuite.CryptoConfig) *factory.FactoryOpts {
 	swOpts := &factory.SwOpts{}
 	swOpts.HashFamily = conf.SecurityAlgorithm()
 	swOpts.SecLevel = conf.SecurityLevel()
-	swOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: keystoreDir}
 	bccspConfig.SwOpts = swOpts
 
 	return bccspConfig
@@ -116,10 +114,9 @@ func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, conf *cryptosuit
 
 func GetLocalMspConfig(dir string, conf *cryptosuite.CryptoConfig) (*MSPConfig, error) {
 	signcertDir := filepath.Join(dir, signcerts)
-	keystoreDir := filepath.Join(dir, keystore)
 
 	bccspConfig := &factory.FactoryOpts{}
-	bccspConfig = SetupBCCSPKeystoreConfig(bccspConfig, conf, keystoreDir)
+	bccspConfig = SetupBCCSPKeystoreConfig(bccspConfig, conf)
 
 	err := factory.InitFactories(bccspConfig)
 	if err != nil {
