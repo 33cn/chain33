@@ -195,11 +195,11 @@ func GetExecAddr(exec string) (string, error) {
 func isAllowExecName(exec string) (bool, error) {
 	// exec name长度不能超过50
 	if len(exec) > 50 {
-		return false, errors.New("executor name too long")
+		return false, types.ErrExecNameNotAllow
 	}
 	// exec name中不允许有 "-"
 	if strings.Contains(exec, "-") {
-		return false, errors.New("executor name should not contain slash")
+		return false, types.ErrExecNameNotAllow
 	}
 	if strings.HasPrefix(exec, "user.") {
 		return true, nil
@@ -209,5 +209,5 @@ func isAllowExecName(exec string) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, errors.New("only none, coins, hashlock, retrieve, ticket, token, trade or user defined executor supported")
+	return false, types.ErrExecNameNotAllow
 }
