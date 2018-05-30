@@ -34,7 +34,11 @@ func IsAllowExecName(name string) bool {
 }
 
 func isAllowExecName(name []byte) bool {
-	//name中不允许有 "-"
+	// name长度不能超过50
+	if len(name) > 50 {
+		return false
+	}
+	// name中不允许有 "-"
 	if bytes.Contains(name, slash) {
 		return false
 	}
