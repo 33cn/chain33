@@ -2688,32 +2688,6 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 	return rd
 }
 
-func decodePrivacyOutputToken(l *jsonrpc.ReceiptLogResult, key string) string {
-	var token string
-	if tmp, ok := l.Log.(map[string]interface{})[key].(string); ok {
-		token = tmp
-	}
-	return token
-}
-
-func decodePrivacyKeyOutput(l *jsonrpc.ReceiptLogResult, key string) []*KeyOutput {
-	ret := make([]*KeyOutput, 0)
-	keyoutput := l.Log.(map[string]interface{})[key].([]interface{})
-	for _, tmp2 := range keyoutput {
-		output := &KeyOutput{}
-		ret = append(ret, output)
-
-		if value, ok := tmp2.(map[string]interface{})["amount"]; ok {
-			output.Amount = strconv.FormatFloat(value.(float64)/float64(types.TokenPrecision), 'f', 4, 64)
-		}
-		if value, ok := tmp2.(map[string]interface{})["onetimepubkey"].(string); ok {
-			output.Onetimepubkey = []byte(value)
-		}
-	}
-	return ret
-
-}
-
 func IsNtpClockSync() {
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
 	if err != nil {
@@ -3062,4 +3036,31 @@ func ShowAmountsOfUTXO() {
 		amountInStr := strconv.FormatFloat(float64(amount)/float64(types.Coin), 'f', 4, 64)
 		fmt.Println("index and amout ", i, amountInStr)
 	}
+}
+
+
+func decodePrivacyOutputToken(l *jsonrpc.ReceiptLogResult, key string) string {
+	var token string
+	if tmp, ok := l.Log.(map[string]interface{})[key].(string); ok {
+		token = tmp
+	}
+	return token
+}
+
+func decodePrivacyKeyOutput(l *jsonrpc.ReceiptLogResult, key string) []*KeyOutput {
+	ret := make([]*KeyOutput, 0)
+	keyoutput := l.Log.(map[string]interface{})[key].([]interface{})
+	for _, tmp2 := range keyoutput {
+		output := &KeyOutput{}
+		ret = append(ret, output)
+
+		if value, ok := tmp2.(map[string]interface{})["amount"]; ok {
+			output.Amount = strconv.FormatFloat(value.(float64)/float64(types.TokenPrecision), 'f', 4, 64)
+		}
+		if value, ok := tmp2.(map[string]interface{})["onetimepubkey"].(string); ok {
+			output.Onetimepubkey = []byte(value)
+		}
+	}
+	return ret
+
 }
