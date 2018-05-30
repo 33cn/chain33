@@ -1,9 +1,9 @@
 package rpc
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/go-siris/siris/core/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
