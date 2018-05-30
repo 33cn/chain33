@@ -38,7 +38,7 @@ func OneStepSend(args []string) {
 	}
 	hasAddr := false
 	var rpcAddr string
-	size := len(params)
+	size = len(params)
 	for i, v := range params {
 		if v == "--rpc_laddr" {
 			hasAddr = true
@@ -81,7 +81,7 @@ func OneStepSend(args []string) {
 		addrOrKey = "-a"
 	}
 	cParams := []string{"wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), addrOrKey, key}
-	if hasRpc {
+	if hasAddr {
 		cParams = append(cParams, "--rpc_laddr", rpcAddr)
 	}
 	cmdSign := exec.Command(name, cParams...)
@@ -101,7 +101,7 @@ func OneStepSend(args []string) {
 
 	bufSign := outSign.Bytes()
 	cParams = []string{"wallet", "send", "-d", string(bufSign[:len(bufSign)-1])}
-	if hasRpc {
+	if hasAddr {
 		cParams = append(cParams, "--rpc_laddr", rpcAddr)
 	}
 	cmdSend := exec.Command(name, cParams...)
