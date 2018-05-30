@@ -6,11 +6,11 @@ import (
 	"sort"
 	"unsafe"
 
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/account"
 )
 
 type realkeyInput struct {
@@ -58,6 +58,10 @@ func (wallet *Wallet) procPrivacy2PrivacyV2(privacy2privacy *types.ReqPri2Pri) (
 	if privacy2privacy == nil {
 		walletlog.Error("privacy2privacy input para is nil")
 		return nil, types.ErrInputPara
+	}
+	if privacy2privacy.GetAmount() <= 0 {
+		walletlog.Error("privacy2privacy Amount must be greate than 0")
+		return nil, types.ErrInvalidParams
 	}
 
 	privacyInfo, err := wallet.getPrivacykeyPair(privacy2privacy.GetSender())
@@ -133,7 +137,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
-		To:		account.ExecAddress(types.PrivacyX).String(),
+		To: account.ExecAddress(types.PrivacyX).String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
