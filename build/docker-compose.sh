@@ -158,7 +158,7 @@ function transfer(){
     echo "=========== # withdraw ============="
     hash=$(chain33-cli send bty send_exec -a 2 -n test -e hashlock -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
     echo "${hash}"
-	sleep 20
+    sleep 20
     before=$(chain33-cli account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e hashlock | jq ".balance")
     before=$(echo "$before" | bc)
     if [ "${before}" == 0.0000 ]; then
@@ -168,7 +168,7 @@ function transfer(){
 
     hash=$(chain33-cli send bty withdraw -a 1 -n withdraw -e hashlock -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
     echo "${hash}"
-	sleep 20
+    sleep 20
     txs=$(chain33-cli tx query_hash -s "${hash}" | jq ".txs")
     if [ "${txs}" == "null" ]; then
         echo "withdraw cannot find tx"
