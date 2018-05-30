@@ -27,7 +27,7 @@ pipeline {
                 dir("${PROJ_DIR}"){
                     sh 'make checkgofmt'
                     sh 'make linter' 
-                    sh 'make build_ci' 
+                    // sh 'make build_ci'
                 }
             }
         }
@@ -37,7 +37,7 @@ pipeline {
                 dir("${PROJ_DIR}"){
                     sh 'cd build && docker-compose down && cd ..'
                     sh 'make test'
-                    sh 'export CC=clang-5.0 && make msan'
+                    // sh 'export CC=clang-5.0 && make msan'
                 }
             }
         }
@@ -83,7 +83,7 @@ pipeline {
             echo "email user: ${gitlabUserEmail}"
             mail to: "${gitlabUserEmail}",
                  subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
-                 body: "Something is wrong with ${env.BUILD_URL}/console|Console Output"
+                 body: "Something is wrong with ${env.BUILD_URL}"
         }
 
         changed {
