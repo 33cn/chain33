@@ -62,7 +62,7 @@ type raftNode struct {
 }
 
 func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
-	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan bool) {
+	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan bool,*raftNode) {
 
 	rlog.Info("Enter consensus raft")
 	// commit channel
@@ -91,7 +91,7 @@ func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addP
 	}
 	go rc.startRaft()
 
-	return commitC, errorC, rc.snapshotterReady, rc.validatorC
+	return commitC, errorC, rc.snapshotterReady, rc.validatorC,rc
 }
 
 //  启动raft节点
@@ -185,6 +185,7 @@ func (rc *raftNode) serveRaft() {
 	err = (&http.Server{Handler: rc.transport.Handler()}).Serve(ln)
 	if err != nil {
 		rlog.Error(fmt.Sprintf("raft: Failed to serve rafthttp (%v)", err.Error()))
+		panic(err)
 	}
 	select {
 	case <-rc.httpstopc:
@@ -556,4 +557,7 @@ func (rc *raftNode) addReadOnlyPeers() {
 			}
 		}
 	}
+}
+func (rc *raftNode)Close(){
+	rc.wal.Close()
 }
