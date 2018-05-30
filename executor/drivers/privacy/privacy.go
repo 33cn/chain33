@@ -233,6 +233,8 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 							//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
 							queryDB.Set(key2, types.Encode(&amountTypes))
 						}
+					} else {
+						panic(err)
 					}
 				} else {
 					//如果该种token第一次进行隐私操作

@@ -813,6 +813,10 @@ func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err
 		walletlog.Error("GetRofPrivateTx TransactionDetails is nil")
 		return nil, errors.New("ErrTxDetail")
 	}
+	if len(TxDetails.Txs) <= 0 {
+		walletlog.Error("GetRofPrivateTx TransactionDetails is empty")
+		return nil, errors.New("ErrTxDetail")
+	}
 
 	if "privacy" != string(TxDetails.Txs[0].Tx.Execer) {
 		walletlog.Error("GetRofPrivateTx get tx but not privacy")
