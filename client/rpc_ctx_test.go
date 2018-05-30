@@ -29,7 +29,7 @@ type Callback func(res interface{}) (interface{}, error)
 
 func NewJsonRpcCtx(methed string, params, res interface{}) *JsonRpcCtx {
 	return &JsonRpcCtx{
-		Addr:   "http://localhost:8811",
+		Addr:   jrpcsite,
 		Method: methed,
 		Params: params,
 		Res:    res,
@@ -84,7 +84,7 @@ func NewGRpcCtx(method string, params, res interface{}) *GrpcCtx {
 }
 
 func (c *GrpcCtx) Run() (err error) {
-	conn, err := grpc.Dial("localhost:8812", grpc.WithInsecure())
+	conn, err := grpc.Dial(grpcsite, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
