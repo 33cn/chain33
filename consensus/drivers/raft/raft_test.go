@@ -1,15 +1,14 @@
 package raft
 
 import (
+	"encoding/binary"
 	"flag"
+	"fmt"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
-	"encoding/binary"
-	"os"
-
-	"fmt"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
