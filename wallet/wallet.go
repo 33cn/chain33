@@ -617,11 +617,6 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return "", err
-	}
-
 	var key crypto.PrivKey
 	if unsigned.GetPrivkey() != "" {
 		keyByte, err := common.FromHex(unsigned.GetPrivkey())
@@ -637,7 +632,10 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 			return "", err
 		}
 	} else if unsigned.GetAddr() != "" {
-		var err error
+		ok, err := wallet.CheckWalletStatus()
+		if !ok {
+			return "", err
+		}
 		key, err = wallet.getPrivKeyByAddr(unsigned.GetAddr())
 		if err != nil {
 			return "", err
@@ -1838,7 +1836,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
 	if !wallet.IsTicketLocked() {
-		if addr == account.ExecAddress("ticket").String() {
+		if addr == account.ExecAddress("ticket") {
 			return true, nil
 		}
 	}
