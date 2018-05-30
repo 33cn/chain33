@@ -29,9 +29,9 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		return nil, err
 	}
 
-	if !types.IsAllowExecName(param.ExecName) {
-		log.Error("CreateRawTransaction", "Error", types.ErrExecNameNotMath)
-		return nil, types.ErrExecNameNotMath
+	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
+		log.Error("CreateRawTransaction", "Error", types.ErrExecNameNotMatch)
+		return nil, types.ErrExecNameNotMatch
 	}
 
 	var tx *types.Transaction
