@@ -83,6 +83,10 @@ func addUserData(cmd *cobra.Command, args []string) {
 		fmt.Println(`user defined executor should start with "user."`)
 		return
 	}
+	if len(execer) > 50 {
+		fmt.Println("executor name too long")
+		return
+	}
 	addrResult := account.ExecAddress(execer)
 	topic, _ := cmd.Flags().GetString("topic")
 	data, _ := cmd.Flags().GetString("data")
