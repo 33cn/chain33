@@ -195,7 +195,7 @@ func GetExecAddr(exec string) (string, error) {
 func isAllowExecName(exec string) (bool, error) {
 	// exec name长度不能超过50
 	if len(exec) > 50 {
-		return false, types.ErrExecNameNotMatch
+		return false, types.ErrExecNameNotAllow
 	}
 	// exec name中不允许有 "-"
 	if strings.Contains(exec, "-") {
