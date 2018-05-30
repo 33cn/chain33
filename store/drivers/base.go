@@ -34,7 +34,7 @@ type SubStore interface {
 	Set(datas *types.StoreSet, sync bool) []byte
 	Get(datas *types.StoreGet) [][]byte
 	MemSet(datas *types.StoreSet, sync bool) []byte
-	Commit(hash *types.ReqHash) []byte
+	Commit(hash *types.ReqHash) ([]byte, error)
 	Rollback(req *types.ReqHash) []byte
 	IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool)
 	ProcEvent(msg queue.Message)
@@ -87,9 +87,12 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
 		req := msg.GetData().(*types.ReqHash)
-		hash := store.child.Commit(req)
+		hash, err := store.child.Commit(req)
 		if hash == nil {
 			msg.Reply(client.NewMessage("", types.EventStoreCommit, types.ErrHashNotFound))
+			if err == types.ErrDataBaseDamage { //如果是数据库写失败，需要上报给用户
+				go queue.ReportErrEventToFront(slog, client, "store", "wallet", err)
+			}
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreCommit, &types.ReplyHash{hash}))
 		}
