@@ -117,8 +117,10 @@ func (store *BaseStore) SetChild(sub SubStore) {
 }
 
 func (store *BaseStore) Close() {
-	store.qclient.Close()
-	<-store.done
+	if store.qclient != nil {
+		store.qclient.Close()
+		<-store.done
+	}
 	store.db.Close()
 }
 

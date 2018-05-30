@@ -42,9 +42,9 @@ func TestExecHashlock(t *testing.T) {
 	targetReceipt.Ty = 2
 	tx := ConstructLockTx()
 
-	acc1 := hashlock.GetCoinsAccount().LoadExecAccount(returnAddr, addrexec.String())
+	acc1 := hashlock.GetCoinsAccount().LoadExecAccount(returnAddr, addrexec)
 	acc1.Balance = 100
-	hashlock.GetCoinsAccount().SaveExecAccount(addrexec.String(), acc1)
+	hashlock.GetCoinsAccount().SaveExecAccount(addrexec, acc1)
 
 	receipt, err = hashlock.Exec(tx, 0)
 
