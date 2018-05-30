@@ -17,6 +17,7 @@ func NetCmd() *cobra.Command {
 		IsClockSyncCmd(),
 		IsSyncCmd(),
 		GetNetInfoCmd(),
+		GetFatalFailureCmd(),
 	)
 
 	return cmd
@@ -87,5 +88,22 @@ func netInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.NodeNetinfo
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
+	ctx.Run()
+}
+
+// get FatalFailure
+func GetFatalFailureCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "fault",
+		Short: "Get system fault",
+		Run:   fatalFailure,
+	}
+	return cmd
+}
+
+func fatalFailure(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res int64
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetFatalFailure", nil, &res)
 	ctx.Run()
 }

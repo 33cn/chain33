@@ -232,3 +232,13 @@ message ReqSignRawTx {
 message ReplySignRawTx {
     string txHex = 1;
 }
+
+message ReportErrEvent {
+    string frommodule = 1;
+    string tomodule = 2;
+    string error = 3;
+}
+
+message Int32 {
+	int32 data = 1;
+}

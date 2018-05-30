@@ -81,15 +81,15 @@ func (kvs *KVStore) MemSet(datas *types.StoreSet, sync bool) []byte {
 	return hash
 }
 
-func (kvs *KVStore) Commit(req *types.ReqHash) []byte {
+func (kvs *KVStore) Commit(req *types.ReqHash) ([]byte, error) {
 	kvmap, ok := kvs.cache[string(req.Hash)]
 	if !ok {
 		klog.Error("store kvdb commit", "err", types.ErrHashNotFound)
-		return nil
+		return nil, types.ErrHashNotFound
 	}
 	kvs.save(kvmap)
 	delete(kvs.cache, string(req.Hash))
-	return req.Hash
+	return req.Hash, nil
 }
 
 func (kvs *KVStore) Rollback(req *types.ReqHash) []byte {

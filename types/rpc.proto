@@ -152,8 +152,11 @@ service grpcservice {
     rpc IsNtpClockSync (ReqNil) returns (Reply) {
     }
 	
-	//获取当前节点的网络信息
-	rpc NetInfo(ReqNil)returns(NodeNetInfo){
-		
-	}
+    //获取当前节点的网络信息
+    rpc NetInfo(ReqNil)returns(NodeNetInfo){	
+    }
+
+    //获取系统致命故障信息
+    rpc GetFatalFailure (types.ReqNil) returns (Int32) {
+    }
 }

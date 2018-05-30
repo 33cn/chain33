@@ -111,7 +111,10 @@ func (t *Tree) Save() []byte {
 	if t.ndb != nil {
 		saveNodeNo := t.root.save(t)
 		treelog.Debug("Tree.Save", "saveNodeNo", saveNodeNo)
-		t.ndb.Commit()
+		err := t.ndb.Commit()
+		if err != nil {
+			return nil
+		}
 	}
 	return t.root.hash
 }
@@ -337,22 +340,20 @@ func (ndb *nodeDB) RemoveNode(t *Tree, node *Node) {
 }
 
 //提交状态tree，批量写入db中
-func (ndb *nodeDB) Commit() {
+func (ndb *nodeDB) Commit() error {
 
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
-
-	//treelog.Debug("Commit batch.Write begin")
 
 	// Write saves
 	err := ndb.batch.Write()
 	if err != nil {
 		treelog.Error("Commit batch.Write err", "err", err)
 	}
-	//treelog.Debug("Commit batch.Write end")
 
 	ndb.batch = nil
 	ndb.orphans = make(map[string]struct{})
+	return err
 }
 
 //对外接口
