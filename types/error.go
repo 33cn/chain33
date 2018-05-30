@@ -25,7 +25,7 @@ var (
 	ErrHashlockHash            = errors.New("ErrHashlockHash")
 	ErrHashlockStatus          = errors.New("ErrHashlockStatus")
 	ErrNoPeer                  = errors.New("ErrNoPeer")
-	ErrExecNameNotMath         = errors.New("ErrExecNameNotMath")
+	ErrExecNameNotMatch        = errors.New("ErrExecNameNotMatch")
 	ErrChannelClosed           = errors.New("ErrChannelClosed")
 	ErrNotMinered              = errors.New("ErrNotMinered")
 	ErrTime                    = errors.New("ErrTime")
