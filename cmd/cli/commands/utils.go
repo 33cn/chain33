@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -193,14 +192,21 @@ func GetExecAddr(exec string) (string, error) {
 }
 
 func isAllowExecName(exec string) (bool, error) {
-	switch exec {
-	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
-		return true, nil
-	default:
-
+	// exec name长度不能超过50
+	if len(exec) > 50 {
+		return false, types.ErrExecNameNotAllow
+	}
+	// exec name中不允许有 "-"
+	if strings.Contains(exec, "-") {
+		return false, types.ErrExecNameNotAllow
 	}
 	if strings.HasPrefix(exec, "user.") {
 		return true, nil
 	}
-	return false, errors.New("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+		if exec == e {
+			return true, nil
+		}
+	}
+	return false, types.ErrExecNameNotAllow
 }
