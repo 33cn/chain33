@@ -76,12 +76,10 @@ func OneStepSend(args []string) {
 		return
 	}
 	bufCreate := outCreate.Bytes()
-
 	addrOrKey := "-k"
 	if isAddr {
 		addrOrKey = "-a"
 	}
-
 	cParams := []string{"wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), addrOrKey, key}
 	if hasRpc {
 		cParams = append(cParams, "--rpc_laddr", rpcAddr)
