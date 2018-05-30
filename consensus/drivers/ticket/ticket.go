@@ -64,13 +64,13 @@ func (client *TicketClient) Close() {
 func (client *TicketClient) CreateGenesisTx() (ret []*types.Transaction) {
 	//给ticket 合约打 3亿 个币
 	//产生3w张初始化ticket
-	tx1 := createTicket("1Loqc4upLm1i827q4hrr2exYJAjftThhEq", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
+	tx1 := createTicket("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt", 10000, 0)
 	ret = append(ret, tx1...)
 
-	tx2 := createTicket("19PDhFxW4VXyVJS7UbJwjj5VpchwVnt9kF", "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 10000, 0)
+	tx2 := createTicket("1PUiGcbsccfxW3zuvHXZBJfznziph5miAo", "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 10000, 0)
 	ret = append(ret, tx2...)
 
-	tx3 := createTicket("1K172rANK4krhacydeNBwLCexxBN7cuDW5", "1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa", 10000, 0)
+	tx3 := createTicket("1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX", "1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa", 10000, 0)
 	ret = append(ret, tx3...)
 	return
 }
