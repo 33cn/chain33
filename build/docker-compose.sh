@@ -169,8 +169,7 @@ function transfer(){
     hash=$(chain33-cli send bty withdraw -a 1 -n withdraw -e hashlock -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
     echo "${hash}"
 	sleep 20
-    txs=$(chain33-cli tx query_hash -s aaa | jq ".txs")
-    echo "${txs}"
+    txs=$(chain33-cli tx query_hash -s "${hash}" | jq ".txs")
     if [ "${txs}" == "null" ]; then
         echo "withdraw cannot find tx"
         exit 1
