@@ -164,6 +164,11 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			index++
 			continue
 		}
+		//所有tx.GroupCount > 0 的交易都是错误的交易
+		if datas.Height < types.ForkV14TxGroup {
+			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupNotSupport))
+			continue
+		}
 		//判断GroupCount 是否会产生越界
 		if i+int(tx.GroupCount) > len(datas.Txs) {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupCount))
@@ -187,7 +192,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{receipts}))
 }
 
-func isAllowExec(key, txexecer []byte, toaddr string) bool {
+func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 	keyexecer, err := findExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
@@ -206,12 +211,23 @@ func isAllowExec(key, txexecer []byte, toaddr string) bool {
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
 	execaddr, ok := getExecKey(key)
-	if ok && toaddr == execaddr {
+	if ok && execaddr == account.ExecAddress(string(txexecer)) {
 		return true
 	}
-	//manage 的key 是 config
-	if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
-		return true
+
+	// 特殊化处理一下
+	// manage 的key 是 config
+	// token 的部分key 是 mavl-create-token-
+	if height < types.ForkV13ExecKey {
+		elog.Info("mavl key", "execer", keyexecer, "keyexecer", keyexecer)
+		if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
+			return true
+		}
+		if bytes.Equal(txexecer, types.ExecerToken) {
+			if bytes.HasPrefix(key, []byte("mavl-create-token-")) {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -532,7 +548,7 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 	if receipt != nil {
 		for _, kv := range receipt.GetKV() {
 			k := kv.GetKey()
-			if !isAllowExec(k, tx.GetExecer(), tx.To) {
+			if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
 				elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
 					"tx.action", tx.ActionName())
 				if types.IsTestNet() {

@@ -29,8 +29,16 @@ type TxGroup interface {
 	CheckSign() bool
 }
 
+func IsAllowExecName(name string) bool {
+	return isAllowExecName([]byte(name))
+}
+
 func isAllowExecName(name []byte) bool {
-	//name中不允许有 "-"
+	// name长度不能超过50
+	if len(name) > 50 {
+		return false
+	}
+	// name中不允许有 "-"
 	if bytes.Contains(name, slash) {
 		return false
 	}
@@ -114,6 +122,20 @@ var ConfigPrefix = "mavl-config-"
 
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
+}
+
+var ManagePrefix = "mavl-manage"
+
+func ManageKey(key string) string {
+	return fmt.Sprintf("%s-%s", ManagePrefix, key)
+}
+
+func ManaeKeyWithHeigh(key string, height int64) string {
+	if height >= ForkV13ExecKey {
+		return ManageKey(key)
+	} else {
+		return ConfigKey(key)
+	}
 }
 
 type ReceiptDataResult struct {

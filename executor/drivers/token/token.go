@@ -244,7 +244,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		var acc1 *types.Account
 		if req.Execer == "trade" {
 			execaddress := account.ExecAddress(req.Execer)
-			acc1 = acc.LoadExecAccount(req.Address, execaddress.String())
+			acc1 = acc.LoadExecAccount(req.Address, execaddress)
 		} else if req.Execer == "token" {
 			acc1 = acc.LoadAccount(req.Address)
 		}
@@ -300,10 +300,15 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	replyTokens := &types.ReplyTokens{}
 	if reqTokens.QueryAll {
 		//list := dbm.NewListHelper(querydb)
-		keys, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		keys, err := querydb.List(calcTokenStatusKeyNewPrefix(reqTokens.Status), nil, 0, 0)
 		if err != nil {
 			return nil, err
 		}
+		keys2, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, keys2...)
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		if len(keys) != 0 {
 			for _, key := range keys {
@@ -321,10 +326,15 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	} else {
 		for _, token := range reqTokens.Tokens {
 			//list := dbm.NewListHelper(querydb)
-			keys, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
+			keys, err := querydb.List(calcTokenStatusSymbolNewPrefix(reqTokens.Status, token), nil, 0, 0)
 			if err != nil {
 				return nil, err
 			}
+			keys2, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
+			if err != nil {
+				return nil, err
+			}
+			keys = append(keys, keys2...)
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 			if len(keys) != 0 {
 				for _, key := range keys {
@@ -345,15 +355,21 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	return replyTokens, nil
 }
 
+// value 对应 statedb 的key
 func (t *token) saveLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcTokenStatusKey(receipt.Symbol, receipt.Owner, receipt.Status)
-	value := calcTokenAddrKey(receipt.Symbol, receipt.Owner)
+	key := calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, receipt.Status)
+	var value []byte
+	if t.GetHeight() >= types.ForkV13ExecKey {
+		value = calcTokenAddrNewKey(receipt.Symbol, receipt.Owner)
+	} else {
+		value = calcTokenAddrKey(receipt.Symbol, receipt.Owner)
+	}
 	kv = append(kv, &types.KeyValue{key, value})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被删除
 	if receipt.Status != types.TokenStatusPreCreated {
-		key = calcTokenStatusKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
+		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
 		kv = append(kv, &types.KeyValue{key, nil})
 	}
 	return kv
@@ -362,12 +378,17 @@ func (t *token) saveLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcTokenStatusKey(receipt.Symbol, receipt.Owner, receipt.Status)
+	key := calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, receipt.Status)
 	kv = append(kv, &types.KeyValue{key, nil})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被恢复
 	if receipt.Status != types.TokenStatusPreCreated {
-		key = calcTokenStatusKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
-		value := calcTokenAddrKey(receipt.Symbol, receipt.Owner)
+		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
+		var value []byte
+		if t.GetHeight() >= types.ForkV13ExecKey {
+			value = calcTokenAddrNewKey(receipt.Symbol, receipt.Owner)
+		} else {
+			value = calcTokenAddrKey(receipt.Symbol, receipt.Owner)
+		}
 		kv = append(kv, &types.KeyValue{key, value})
 	}
 	return kv
