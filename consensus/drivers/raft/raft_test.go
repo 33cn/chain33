@@ -20,6 +20,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+	"fmt"
 )
 
 var (
@@ -36,10 +37,13 @@ func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	log.SetLogLevel("info")
 }
-
 func TestRaftPerf(t *testing.T) {
+	RaftPerf()
+    time.Sleep(3*time.Second)
+	//clearTestData()
+}
+func RaftPerf() {
 	q, chain, s, mem, exec, cs := initEnvRaft()
-
 	defer chain.Close()
 	defer mem.Close()
 	defer exec.Close()
@@ -49,6 +53,22 @@ func TestRaftPerf(t *testing.T) {
 
 	sendReplyList(q)
 }
+func TestClearData(t *testing.T){
+	fmt.Println("start clear test data!")
+	clearTestData()
+}
+//func TestRaftPerf(t *testing.T) {
+//	q, chain, s, mem, exec, cs := initEnvRaft()
+//
+//	defer chain.Close()
+//	defer mem.Close()
+//	defer exec.Close()
+//	defer s.Close()
+//	defer cs.Close()
+//	defer q.Close()
+//
+//	sendReplyList(q)
+//}
 
 func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, *RaftClient) {
 	var q = queue.New("channel")
@@ -147,4 +167,15 @@ func getReplyList(n int) (txs []*types.Transaction) {
 		txs = append(txs, prepareTxList())
 	}
 	return txs
+}
+
+func clearTestData(){
+     err:=os.RemoveAll("datadir")
+	if err != nil {
+		fmt.Println("delete datadir have a err:",err.Error())
+	}
+	err=os.RemoveAll("chain33_raft-1")
+	if err != nil {
+		fmt.Println("delete chain33_raft dir have a err:",err.Error())
+	}
 }

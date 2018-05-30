@@ -25,12 +25,13 @@ type RaftClient struct {
 	errorC      <-chan error
 	snapshotter *snap.Snapshotter
 	validatorC  <-chan bool
+	raftNode    *raftNode
 	once        sync.Once
 }
 
-func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan bool) *RaftClient {
+func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan bool,node *raftNode) *RaftClient {
 	c := drivers.NewBaseClient(cfg)
-	client := &RaftClient{BaseClient: c, proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, commitC: commitC, errorC: errorC}
+	client := &RaftClient{BaseClient: c, proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, commitC: commitC, errorC: errorC,raftNode:node}
 	c.SetChild(client)
 	return client
 }
@@ -93,6 +94,7 @@ func (client *RaftClient) SetQueueClient(c queue.Client) {
 }
 
 func (client *RaftClient) Close() {
+	client.raftNode.Close()
 	rlog.Info("consensus raft closed")
 }
 
