@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
 )
 
 type realkeyInput struct {
@@ -93,10 +94,12 @@ func (wallet *Wallet) procPrivacy2PublicV2(privacy2Pub *types.ReqPri2Pub) (*type
 func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.ReplyHash, error) {
 	viewPubSlice, err := common.FromHex(reqPub2Pri.ViewPublic)
 	if err != nil {
+		walletlog.Error("transPub2Pri", "common.FromHex error ", err)
 		return nil, err
 	}
 	spendPubSlice, err := common.FromHex(reqPub2Pri.SpendPublic)
 	if err != nil {
+		walletlog.Error("transPub2Pri", "common.FromHex error ", err)
 		return nil, err
 	}
 
@@ -124,12 +127,13 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 		Ty:    types.ActionPublic2Privacy,
 		Value: &types.PrivacyAction_Public2Privacy{value},
 	}
-
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
+		To:		account.ExecAddress(types.PrivacyX).String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
@@ -158,7 +162,7 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 	//计算找零
 	changeAmount := selectedAmount - transAmount - fee
 	var decomChange []int64
-	if 0 != changeAmount {
+	if 0 < changeAmount {
 		decomChange = decomposeAmount2digits(changeAmount, types.BTYDustThreshold)
 	}
 	walletlog.Info("generateOuts", "decompose digit for amount", selectedAmount-fee, "decomDigit", decomDigit)
@@ -580,7 +584,7 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 //res:[455827, 7000000, 80000000, 300000000, 2000000000, 60000000000]
 func decomposeAmount2digits(amount, dust_threshold int64) []int64 {
 	res := make([]int64, 0)
-	if 0 == amount {
+	if 0 >= amount {
 		return res
 	}
 

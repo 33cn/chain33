@@ -1202,6 +1202,14 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 				return nil, types.TyLogPrivacyFee, err
 			}
 			logIns = logTmp
+		case types.TyLogPrivacyOutput:
+			lTy = "LogPrivacyOutput"
+			var logTmp types.ReceiptPrivacyOutput
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, types.TyLogPrivacyFee, err
+			}
+			logIns = logTmp
 		default:
 			log.Error("DecodeLog", "Fail to decodeLog with type value:%d", l.Ty)
 			lTy = "unkownType"
