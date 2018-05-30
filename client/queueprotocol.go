@@ -762,3 +762,15 @@ func (q *QueueProtocol) StoreGetTotalCoins(param *types.IterateRangeByStateHash)
 	log.Error("StoreGetTotalCoins", "Error", err.Error())
 	return nil, err
 }
+
+func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
+	msg, err := q.query(walletKey, types.EventFatalFailure, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetFatalFailure", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int32); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
