@@ -6,6 +6,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -141,7 +142,11 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		if len(in.StateHash) == 0 {
 			accounts, err = c.accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
 		} else {
-			accounts, err = c.accountdb.LoadAccountsHistory(c.QueueProtocolAPI, exaddrs, []byte(in.StateHash))
+			hash, err := common.FromHex(in.StateHash)
+			if err != nil {
+				return nil, err
+			}
+			accounts, err = c.accountdb.LoadAccountsHistory(c.QueueProtocolAPI, exaddrs, hash)
 		}
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
@@ -159,7 +164,11 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 			if len(in.StateHash) == 0 {
 				acc, err = c.accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
 			} else {
-				acc, err = c.accountdb.LoadExecAccountHistoryQueue(c.QueueProtocolAPI, addr, execaddress, []byte(in.StateHash))
+				hash, err := common.FromHex(in.StateHash)
+				if err != nil {
+					return nil, err
+				}
+				acc, err = c.accountdb.LoadExecAccountHistoryQueue(c.QueueProtocolAPI, addr, execaddress, hash)
 			}
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
