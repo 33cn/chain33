@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/account"
 )
 
 func newTestChannelClient() *channelClient {
@@ -255,7 +255,7 @@ func testChannelClientGetAddrOverviewErr(t *testing.T) {
 
 	api.On("GetAddrOverview", mock.Anything).Return(nil, fmt.Errorf("error"))
 	_, err := client.GetAddrOverview(parm)
-	assert.EqualError(t,err,"error")
+	assert.EqualError(t, err, "error")
 
 }
 
@@ -264,7 +264,7 @@ func testChannelClientGetAddrOverviewOK(t *testing.T) {
 	db := new(account.DB)
 	client := &channelClient{
 		QueueProtocolAPI: api,
-		accountdb:db,
+		accountdb:        db,
 	}
 
 	addr := &types.AddrOverview{}
@@ -273,10 +273,10 @@ func testChannelClientGetAddrOverviewOK(t *testing.T) {
 	head := &types.Header{StateHash: []byte("sdfadasds")}
 	api.On("GetLastHeader").Return(head, nil)
 
-	var acc = &types.Account{Addr:"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt",Balance:100}
+	var acc = &types.Account{Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt", Balance: 100}
 	accv := types.Encode(acc)
 	storevalue := &types.StoreReplyValue{}
-	storevalue.Values = append(storevalue.Values,accv)
+	storevalue.Values = append(storevalue.Values, accv)
 	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
 
 	//reply := types.AddrOverview{}
@@ -284,11 +284,10 @@ func testChannelClientGetAddrOverviewOK(t *testing.T) {
 		Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt",
 	}
 	data, err := client.GetAddrOverview(parm)
-	assert.Nil(t,err,"error")
-	assert.Equal(t,acc.Balance, data.Balance)
+	assert.Nil(t, err, "error")
+	assert.Equal(t, acc.Balance, data.Balance)
 
 }
-
 
 func TestChannelClient_GetAddrOverview(t *testing.T) {
 	testChannelClientGetAddrOverviewNil(t)
@@ -296,12 +295,12 @@ func TestChannelClient_GetAddrOverview(t *testing.T) {
 	testChannelClientGetAddrOverviewErr(t)
 }
 
-func testChannelClient_GetBalanceCoin(t *testing.T)  {
+func testChannelClient_GetBalanceCoin(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	db := new(account.DB)
 	client := &channelClient{
 		QueueProtocolAPI: api,
-		accountdb:db,
+		accountdb:        db,
 	}
 
 	//addr := &types.AddrOverview{}
@@ -310,31 +309,30 @@ func testChannelClient_GetBalanceCoin(t *testing.T)  {
 	head := &types.Header{StateHash: []byte("sdfadasds")}
 	api.On("GetLastHeader").Return(head, nil)
 
-	var acc = &types.Account{Addr:"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt",Balance:100}
+	var acc = &types.Account{Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt", Balance: 100}
 	accv := types.Encode(acc)
 	storevalue := &types.StoreReplyValue{}
-	storevalue.Values = append(storevalue.Values,accv)
+	storevalue.Values = append(storevalue.Values, accv)
 	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
 
-
 	var addrs = make([]string, 1)
-	addrs = append(addrs,"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
+	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqBalance{
-		Execer:"coins",
-		Addresses:addrs,
-			}
-	data,err := client.GetBalance(in)
+		Execer:    "coins",
+		Addresses: addrs,
+	}
+	data, err := client.GetBalance(in)
 	assert.Nil(t, err)
 	assert.Equal(t, acc.Addr, data[0].Addr)
 
 }
 
-func testChannelClient_GetBalanceOther(t *testing.T)  {
+func testChannelClient_GetBalanceOther(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	db := new(account.DB)
 	client := &channelClient{
 		QueueProtocolAPI: api,
-		accountdb:db,
+		accountdb:        db,
 	}
 
 	//addr := &types.AddrOverview{}
@@ -343,26 +341,23 @@ func testChannelClient_GetBalanceOther(t *testing.T)  {
 	head := &types.Header{StateHash: []byte("sdfadasds")}
 	api.On("GetLastHeader").Return(head, nil)
 
-	var acc = &types.Account{Addr:"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt",Balance:100}
+	var acc = &types.Account{Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt", Balance: 100}
 	accv := types.Encode(acc)
 	storevalue := &types.StoreReplyValue{}
-	storevalue.Values = append(storevalue.Values,accv)
+	storevalue.Values = append(storevalue.Values, accv)
 	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
 
-
 	var addrs = make([]string, 1)
-	addrs = append(addrs,"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
+	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqBalance{
-		Execer:"ticket",
-		Addresses:addrs,
+		Execer:    "ticket",
+		Addresses: addrs,
 	}
-	data,err := client.GetBalance(in)
+	data, err := client.GetBalance(in)
 	assert.Nil(t, err)
 	assert.Equal(t, acc.Addr, data[0].Addr)
 
 }
-
-
 
 func TestChannelClient_GetBalance(t *testing.T) {
 	testChannelClient_GetBalanceCoin(t)
@@ -370,79 +365,71 @@ func TestChannelClient_GetBalance(t *testing.T) {
 
 }
 
-
-
-func testChannelClient_GetTokenBalanceToken(t *testing.T)  {
+func testChannelClient_GetTokenBalanceToken(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	db := new(account.DB)
 	client := &channelClient{
 		QueueProtocolAPI: api,
-		accountdb:db,
+		accountdb:        db,
 	}
 
 	head := &types.Header{StateHash: []byte("sdfadasds")}
 	api.On("GetLastHeader").Return(head, nil)
 
-	var acc = &types.Account{Addr:"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt",Balance:100}
+	var acc = &types.Account{Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt", Balance: 100}
 	accv := types.Encode(acc)
 	storevalue := &types.StoreReplyValue{}
-	storevalue.Values = append(storevalue.Values,accv)
+	storevalue.Values = append(storevalue.Values, accv)
 	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
 
-
 	var addrs = make([]string, 1)
-	addrs = append(addrs,"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
+	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqTokenBalance{
-		Execer:"token",
-		Addresses:addrs,
+		Execer:      "token",
+		Addresses:   addrs,
 		TokenSymbol: "xxx",
 	}
-	data,err := client.GetTokenBalance(in)
+	data, err := client.GetTokenBalance(in)
 	assert.Nil(t, err)
 	assert.Equal(t, acc.Addr, data[0].Addr)
 
 }
 
-
-func testChannelClient_GetTokenBalanceOther(t *testing.T)  {
+func testChannelClient_GetTokenBalanceOther(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	db := new(account.DB)
 	client := &channelClient{
 		QueueProtocolAPI: api,
-		accountdb:db,
+		accountdb:        db,
 	}
 
 	head := &types.Header{StateHash: []byte("sdfadasds")}
 	api.On("GetLastHeader").Return(head, nil)
 
-	var acc = &types.Account{Addr:"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt",Balance:100}
+	var acc = &types.Account{Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt", Balance: 100}
 	accv := types.Encode(acc)
 	storevalue := &types.StoreReplyValue{}
-	storevalue.Values = append(storevalue.Values,accv)
+	storevalue.Values = append(storevalue.Values, accv)
 	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
 
-
 	var addrs = make([]string, 1)
-	addrs = append(addrs,"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
+	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqTokenBalance{
-		Execer:"trade",
-		Addresses:addrs,
+		Execer:      "trade",
+		Addresses:   addrs,
 		TokenSymbol: "xxx",
 	}
-	data,err := client.GetTokenBalance(in)
+	data, err := client.GetTokenBalance(in)
 	assert.Nil(t, err)
 	assert.Equal(t, acc.Addr, data[0].Addr)
 
 }
-
 
 func TestChannelClient_GetTokenBalance(t *testing.T) {
 	testChannelClient_GetTokenBalanceToken(t)
 	testChannelClient_GetTokenBalanceOther(t)
 
 }
-
-
 
 func TestChannelClient_CreateRawTokenPreCreateTx(t *testing.T) {
 	client := newTestChannelClient()
