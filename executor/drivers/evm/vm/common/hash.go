@@ -1,8 +1,9 @@
 package common
 
 import (
-	"gitlab.33.cn/chain33/chain33/common"
 	"math/big"
+
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 const (

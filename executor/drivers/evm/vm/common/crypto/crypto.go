@@ -2,13 +2,14 @@ package crypto
 
 import (
 	"crypto/ecdsa"
+	"math/big"
+
 	"github.com/btcsuite/btcd/btcec"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/crypto/sha3"
-	"math/big"
 )
 
 // 校验签名信息是否正确

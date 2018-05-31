@@ -6,12 +6,13 @@ import (
 	"strconv"
 	"strings"
 
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"time"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {

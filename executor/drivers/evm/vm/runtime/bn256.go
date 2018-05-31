@@ -2,10 +2,11 @@ package runtime
 
 import (
 	"errors"
+	"math/big"
+
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto/bn256"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
-	"math/big"
 )
 
 // newCurvePoint unmarshals a binary blob into a bn256 elliptic curve point,

@@ -5,6 +5,9 @@ import (
 
 	"bytes"
 	"fmt"
+	"os"
+	"strings"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -14,8 +17,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"gitlab.33.cn/chain33/chain33/types"
-	"os"
-	"strings"
 )
 
 func Init() {

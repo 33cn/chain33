@@ -1,9 +1,10 @@
 package params
 
 import (
+	"math/big"
+
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
-	"math/big"
 )
 
 // 解释器中调用Gas计算时所传递的合约中和Gas相关的参数结构

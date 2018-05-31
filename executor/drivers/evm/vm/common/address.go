@@ -1,9 +1,10 @@
 package common
 
 import (
+	"math/big"
+
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
-	"math/big"
 )
 
 // 封装地址结构体，并提供各种常用操作封装

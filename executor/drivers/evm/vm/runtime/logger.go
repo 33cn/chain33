@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"encoding/json"
+	"io"
+
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/mm"
-	"io"
 )
 
 // Tracer接口用来在合约执行过程中收集跟踪数据。
