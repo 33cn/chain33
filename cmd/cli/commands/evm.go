@@ -170,8 +170,6 @@ func callContract(cmd *cobra.Command, args []string) {
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
 	ctx.RunWithoutMarshal()
-
-	fmt.Println("do nothing")
 }
 
 func addCallContractFlags(cmd *cobra.Command) {
