@@ -1,0 +1,10 @@
+$ wget 127.0.0.1:8801 --post-data='{ "id":111,  "method":"Chain33.GetBalance", "params":[{"addresses":["1FB8L3DykVF7Y78bRfUrRcMZwesKue7CyR"],"execer":"ticket", "stateHash" : "0xc408aae71495e36cc0e9195fd2dec7dceb1d76179af65f6718fc93d1361559c2"}] }'
+$ cat index.html.220
+{"id":111,"result":[{"currency":0,"balance":1801600000000,"frozen":3011343800000000,"addr":"1FB8L3DykVF7Y78bRfUrRcMZwesKue7CyR"}],"error":null}
+
+$ wget 127.0.0.1:8801 --post-file=GetBalance.json  
+$ cat index.html.219
+{"id":111,"result":[{"currency":0,"balance":808200000000,"frozen":3000007200000000,"addr":"1FB8L3DykVF7Y78bRfUrRcMZwesKue7CyR"}],"error":null}
+
+$ wget 127.0.0.1:8866 --post-data='{ "id":111,  "method":"ShowMinerAccount.Get", "params":[{ "timeAt" : "2018-05-31-08" } ] }'
+{"id":111,"result":{"minerAccounts":[{"addr":"1FB8L3DykVF7Y78bRfUrRcMZwesKue7CyR","total":"30132840.0000","increase":"828.0000"}],"seconds":3603},"error":null}
