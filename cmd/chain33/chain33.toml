@@ -82,7 +82,7 @@ isFree=false
 minExecFee=100000
 
 [auth]
-cryptoPath="authdir/crypto"
+cryptoPath="authdir/crypto/User"
 securityLevel=256
 defaultProvider="SW"
 hashAlgorithm="SHA2"
