@@ -29,8 +29,8 @@ func (s *storeChild) MemSet(datas *types.StoreSet, sync bool) []byte {
 	return []byte("")
 }
 
-func (s *storeChild) Commit(hash *types.ReqHash) []byte {
-	return []byte("")
+func (s *storeChild) Commit(hash *types.ReqHash) ([]byte, error) {
+	return []byte(""), nil
 }
 
 func (s *storeChild) Rollback(req *types.ReqHash) []byte {

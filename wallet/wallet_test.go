@@ -162,6 +162,8 @@ func TestWallet(t *testing.T) {
 	testSignRawTx(t, wallet)
 
 	testCloseTickets(t, wallet)
+	testsetFatalFailure(t, wallet)
+	testgetFatalFailure(t, wallet)
 }
 
 //ProcWalletLock
@@ -723,5 +725,30 @@ func testSignRawTx(t *testing.T, wallet *Wallet) {
 	_, err = wallet.client.Wait(msg)
 	require.NoError(t, err)
 	println("TestSignRawTx end")
+	println("--------------------------")
+}
+
+// setFatalFailure
+func testsetFatalFailure(t *testing.T, wallet *Wallet) {
+	println("testsetFatalFailure begin")
+	var reportErrEvent types.ReportErrEvent
+	reportErrEvent.Frommodule = "wallet"
+	reportErrEvent.Tomodule = "wallet"
+	reportErrEvent.Error = "ErrDataBaseDamage"
+
+	msg := wallet.client.NewMessage("wallet", types.EventErrToFront, &reportErrEvent)
+	wallet.client.Send(msg, false)
+	println("testsetFatalFailure end")
+	println("--------------------------")
+}
+
+// getFatalFailure
+func testgetFatalFailure(t *testing.T, wallet *Wallet) {
+	println("testgetFatalFailure begin")
+	msg := wallet.client.NewMessage("wallet", types.EventFatalFailure, nil)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	println("testgetFatalFailure end")
 	println("--------------------------")
 }

@@ -1803,7 +1803,6 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 func (wallet *Wallet) setFatalFailure(reportErrEvent *types.ReportErrEvent) {
 
 	walletlog.Error("setFatalFailure", "reportErrEvent", reportErrEvent.String())
-	atomic.CompareAndSwapInt32(&wallet.fatalFailureFlag, 0, 1)
 	if reportErrEvent.Error == "ErrDataBaseDamage" {
 		atomic.StoreInt32(&wallet.fatalFailureFlag, 1)
 	}
