@@ -133,11 +133,18 @@ func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 
-		// Load config from store
-		value, err := c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
+		// Load config from state db
+		value, err := c.GetStateDB().Get([]byte(types.ManageKey(in.Data)))
 		if err != nil {
 			clog.Info("modifyConfig", "get db key", "not found")
 			value = nil
+		}
+		if value == nil {
+			value, err = c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
+			if err != nil {
+				clog.Info("modifyConfig", "get db key", "not found")
+				value = nil
+			}
 		}
 
 		var reply types.ReplyConfig

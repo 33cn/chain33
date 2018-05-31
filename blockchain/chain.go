@@ -686,6 +686,9 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 	header.StateHash = block.Block.StateHash
 	header.BlockTime = block.Block.BlockTime
 	header.Height = block.Block.Height
+	header.Hash = block.Block.Hash()
+	header.TxCount = int64(len(block.Block.GetTxs()))
+
 	blockOverview.Head = &header
 
 	blockOverview.TxCount = int64(len(block.Block.GetTxs()))

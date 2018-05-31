@@ -534,6 +534,8 @@ func (c *Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
 				StateHash:  common.ToHex(peer.GetHeader().GetStateHash()),
 				TxHash:     common.ToHex(peer.GetHeader().GetTxHash()),
 				Version:    peer.GetHeader().GetVersion(),
+				Hash:       common.ToHex(peer.GetHeader().GetHash()),
+				TxCount:    peer.GetHeader().GetTxCount(),
 			}
 			peerlist.Peers = append(peerlist.Peers, &pr)
 		}
@@ -610,6 +612,8 @@ func (c *Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
 	header.StateHash = common.ToHex(reply.GetHead().GetStateHash())
 	header.TxHash = common.ToHex(reply.GetHead().GetTxHash())
 	header.Version = reply.GetHead().GetVersion()
+	header.Hash = common.ToHex(reply.GetHead().GetHash())
+	header.TxCount = reply.GetHead().GetTxCount()
 	blockOverview.Head = &header
 
 	//获取blocktxhashs信息

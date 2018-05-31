@@ -1,13 +1,10 @@
 package commands
 
 import (
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"strconv"
-	"time"
+	"strings"
 
 	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -207,71 +204,52 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func CreateRawTx(to string, amount float64, note string, withdraw bool, isToken bool, tokenSymbol string) (string, error) {
+func CreateRawTx(rpcAddr string, to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string) {
+	if amount < 0 {
+		fmt.Fprintln(os.Stderr, types.ErrAmount)
+		return
+	}
 	amountInt64 := int64(amount*1e4) * 1e4
-	//c, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//	return "", err
-	//}
-	//a, err := common.FromHex(priv)
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//	return "", err
-	//}
-	//privKey, err := c.PrivKeyFromBytes(a)
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//	return "", err
-	//}
-	// addrFrom := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
-	var tx *types.Transaction
-	if !isToken {
-		transfer := &types.CoinsAction{}
-		if !withdraw {
-			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amountInt64, Note: note}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransfer
-		} else {
-			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionWithdraw
-		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
-	} else {
-		transfer := &types.TokenAction{}
-		if !withdraw {
-			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
-			transfer.Value = v
-			transfer.Ty = types.ActionTransfer
-		} else {
-			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
-			transfer.Value = v
-			transfer.Ty = types.ActionWithdraw
-		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: to}
+	params := &types.CreateTx{
+		To:          to,
+		Amount:      amountInt64,
+		Note:        note,
+		IsWithdraw:  isWithdraw,
+		IsToken:     isToken,
+		TokenSymbol: tokenSymbol,
+		ExecName:    execName,
 	}
 
-	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return "", err
-	}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-	//tx.Sign(int32(wallet.SignType), privKey)
-	txHex := types.Encode(tx)
-	return hex.EncodeToString(txHex), nil
+	ctx := NewRpcCtx(rpcAddr, "Chain33.CreateRawTransaction", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 func GetExecAddr(exec string) (string, error) {
-	switch exec {
-	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
-		addrResult := account.ExecAddress(exec)
-		result := addrResult
-		return result, nil
-	default:
-		return "", errors.New("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+	if ok, err := isAllowExecName(exec); !ok {
+		return "", err
 	}
+
+	addrResult := account.ExecAddress(exec)
+	result := addrResult
+	return result, nil
+}
+
+func isAllowExecName(exec string) (bool, error) {
+	// exec name长度不能超过50
+	if len(exec) > 50 {
+		return false, types.ErrExecNameNotAllow
+	}
+	// exec name中不允许有 "-"
+	if strings.Contains(exec, "-") {
+		return false, types.ErrExecNameNotAllow
+	}
+	if strings.HasPrefix(exec, "user.") {
+		return true, nil
+	}
+	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+		if exec == e {
+			return true, nil
+		}
+	}
+	return false, types.ErrExecNameNotAllow
 }
