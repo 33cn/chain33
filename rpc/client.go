@@ -136,8 +136,13 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-
-		accounts, err := c.accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
+		var accounts []*types.Account
+		var err error
+		if len(in.StateHash) == 0 {
+			accounts, err = c.accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
+		} else {
+			accounts, err = c.accountdb.LoadAccountsHistory(c.QueueProtocolAPI, exaddrs, []byte(in.StateHash))
+		}
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -149,7 +154,13 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		var accounts []*types.Account
 		for _, addr := range addrs {
 
-			acc, err := c.accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
+			var acc *types.Account
+			var err error
+			if len(in.StateHash) == 0 {
+				acc, err = c.accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
+			} else {
+				acc, err = c.accountdb.LoadExecAccountHistoryQueue(c.QueueProtocolAPI, addr, execaddress, []byte(in.StateHash))
+			}
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
