@@ -671,7 +671,7 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 				value, _ := utxos.Get(key)
 				utxo := &types.UTXO{
 					UtxoGlobalIndex: key.(*types.UTXOGlobalIndex),
-					OnetimePubkey:   value.(privacyOutputKeyInfo).onetimePubKey,
+					OnetimePubkey:   value.(*privacyOutputKeyInfo).onetimePubKey,
 				}
 				utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
 

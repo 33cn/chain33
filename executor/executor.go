@@ -403,6 +403,62 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
+func (e *executor) checkTxFee(tx *types.Transaction) error {
+	var action types.PrivacyAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return err
+	}
+	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		// 公开对隐私,只需要直接计算隐私合约中的余额即可
+		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+		execaddr := drivers.ExecAddress(types.PrivacyX)
+		accFrom := e.coinsAccount.LoadExecAccount(from, execaddr)
+		if accFrom.GetBalance()-tx.Fee < 0 {
+			return types.ErrBalanceLessThanTenTimesFee
+		}
+
+	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		// 隐私对隐私,需要检查输入和输出值,条件 输入-输入>=手续费
+		var totalInput, totalOutput int64
+		for _, value := range action.GetPrivacy2Privacy().GetInput().GetKeyinput() {
+			if value.GetAmount()<=0 {
+				return types.ErrAmount
+			}
+			totalInput += value.GetAmount()
+		}
+		for _, value := range action.GetPrivacy2Privacy().GetOutput().GetKeyoutput() {
+			if value.GetAmount() <= 0 {
+				return types.ErrAmount
+			}
+			totalOutput += value.GetAmount()
+		}
+		if totalInput-totalOutput < tx.Fee {
+			return types.ErrBalanceLessThanTenTimesFee
+		}
+
+	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		var totalInput, totalOutput int64
+		for _, value := range action.GetPrivacy2Public().GetInput().GetKeyinput() {
+			if value.GetAmount()<=0 {
+				return types.ErrAmount
+			}
+			totalInput += value.GetAmount()
+		}
+		for _, value := range action.GetPrivacy2Public().GetOutput().GetKeyoutput() {
+			if value.GetAmount() <= 0 {
+				return types.ErrAmount
+			}
+			totalOutput += value.GetAmount()
+		}
+		if totalInput-totalOutput-action.GetPrivacy2Public().GetAmount() < tx.Fee {
+			return types.ErrBalanceLessThanTenTimesFee
+		}
+	}
+
+	return nil
+}
+
 func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//基本检查
 	err := e.checkTx(tx, index)
@@ -413,19 +469,17 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	exec := e.loadDriverForExec(string(tx.Execer))
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {
-		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-		var accFrom *types.Account
-		if types.PrivacyX != string(tx.Execer) {
-			accFrom = e.coinsAccount.LoadAccount(from)
-
+		if types.PrivacyX == string(tx.Execer) {
+			err = e.checkTxFee(tx)
+			if err != nil {
+				return err
+			}
 		} else {
-			//in case of private transaction, fee is paid from exector account of privacy
-			exectorAddr := drivers.ExecAddress(types.PrivacyX)
-			accFrom = e.coinsAccount.LoadExecAccount(from, exectorAddr)
-		}
-
-		if accFrom.GetBalance() < types.MinBalanceTransfer {
-			return types.ErrBalanceLessThanTenTimesFee
+			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+			accFrom := e.coinsAccount.LoadAccount(from)
+			if accFrom.GetBalance() < types.MinBalanceTransfer {
+				return types.ErrBalanceLessThanTenTimesFee
+			}
 		}
 	}
 
