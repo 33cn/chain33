@@ -83,10 +83,10 @@ func TestKvdbMemSet(t *testing.T) {
 	values := store.Get(get1)
 	assert.Len(t, values, 2)
 
-	actHash := store.Commit(&types.ReqHash{hash})
+	actHash, _ := store.Commit(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash := store.Commit(&types.ReqHash{[]byte("1st")})
+	notExistHash, _ := store.Commit(&types.ReqHash{[]byte("1st")})
 	assert.Nil(t, notExistHash)
 }
 
