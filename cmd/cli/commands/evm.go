@@ -3,15 +3,16 @@ package commands
 import (
 	"encoding/hex"
 	"fmt"
+	"math/rand"
+	"os"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"math/rand"
-	"os"
-	"time"
 )
 
 func EvmCmd() *cobra.Command {

@@ -1,8 +1,9 @@
 package gas
 
 import (
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"math/big"
+
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
 const (

@@ -1,8 +1,9 @@
 package runtime
 
 import (
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"math/big"
+
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 )
 
 // Destinations 存储合约以及代码对应的位向量对象

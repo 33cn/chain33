@@ -2,13 +2,14 @@ package state
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
 )
 
 // 内存状态数据库，保存在区块操作时内部的数据变更操作

@@ -2,9 +2,10 @@ package tests
 
 import (
 	"encoding/hex"
+	"testing"
+
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
-	"testing"
 )
 
 // 正常创建合约逻辑

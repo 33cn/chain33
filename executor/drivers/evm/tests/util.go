@@ -3,6 +3,8 @@ package tests
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	c "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -15,7 +17,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/wallet"
-	"time"
 )
 
 func getPrivKey() crypto.PrivKey {
