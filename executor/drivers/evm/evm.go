@@ -145,7 +145,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		logMsg = "create contract details:"
 	}
 
-	log.Info(logMsg, "caller address", msg.From().String(), "contract address", contractAddr.String(), "exec name", execName, "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
+	log.Info(logMsg, "caller address", msg.From().String(), "contract address", contractAddr.String(), "exec name", execName, "alias name", msg.Alias(), "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
 
 	curVer := evm.mStateDB.GetLastSnapshot()
 
