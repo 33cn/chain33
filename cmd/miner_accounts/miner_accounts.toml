@@ -1,0 +1,3 @@
+whitelist=["127.0.0.1", "192.168.0.114", "localhost"]
+jrpcBindAddr="localhost:8866"
+dataDir="/var/www/html/miner_accounts/"
