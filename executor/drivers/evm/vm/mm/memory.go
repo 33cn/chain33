@@ -2,9 +2,10 @@ package mm
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"math/big"
 )
 
 // 内存操作封装，在EVM中使用此对象模拟物理内存

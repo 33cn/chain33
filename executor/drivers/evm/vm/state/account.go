@@ -1,12 +1,13 @@
 package state
 
 import (
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
-	"time"
 )
 
 var (

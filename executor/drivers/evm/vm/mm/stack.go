@@ -2,8 +2,9 @@ package mm
 
 import (
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"math/big"
+
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 )
 
 // 栈对象封装，提供常用的栈操作
