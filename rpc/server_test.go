@@ -10,6 +10,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	qmocks "gitlab.33.cn/chain33/chain33/queue/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 func TestCheckWhitlist(t *testing.T) {
@@ -69,6 +71,42 @@ func TestJSONClient_Call(t *testing.T) {
 	err = jsonClient.Call("Chain33.IsSync", &types.ReqNil{}, &isSnyc)
 	assert.Nil(t, err)
 	assert.Equal(t, ret.GetIsOk(), isSnyc)
+
+	server.Close()
+	mock.AssertExpectationsForObjects(t, api)
+}
+
+func TestGrpc_Call(t *testing.T) {
+	rpcCfg = new(types.Rpc)
+	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
+	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
+	rpcCfg.Whitlist = []string{"127.0.0.1", "0.0.0.0"}
+	Init(rpcCfg)
+	server := NewGRpcServer(&qmocks.Client{})
+	assert.NotNil(t, server)
+
+	api := new(mocks.QueueProtocolAPI)
+	server.grpc.cli.QueueProtocolAPI = api
+	go server.Listen()
+
+	ret := &types.Reply{
+		IsOk: true,
+		Msg:  []byte("123"),
+	}
+	api.On("IsSync").Return(ret, nil)
+	api.On("Close").Return()
+
+	time.Sleep(100)
+	ctx := context.Background()
+	c, err := grpc.DialContext(ctx, rpcCfg.GrpcBindAddr, grpc.WithInsecure())
+	assert.Nil(t, err)
+	assert.NotNil(t, c)
+
+	client := types.NewGrpcserviceClient(c)
+	result, err := client.IsSync(ctx, &types.ReqNil{})
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, result)
 
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
