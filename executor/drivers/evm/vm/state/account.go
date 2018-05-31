@@ -21,8 +21,6 @@ var (
 	// 注意，合约账户本身也可能有余额信息，这部分在CoinsAccount处理
 )
 
-var emptyCodeHash = common.Hash{}
-
 // 合约账户对象
 type ContractAccount struct {
 	mdb *MemoryStateDB
