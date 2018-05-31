@@ -40,6 +40,7 @@ enable=true
 isSeed=true
 serverStart=true
 innerSeedEnable=false
+useGithub=false
 innerBounds=300
 msgCacheSize=10240
 driver="leveldb"
@@ -98,4 +99,4 @@ minerdisable=true
 
 [exec]
 isFree=true
-minExecFee=100000
+minExecFee=0
