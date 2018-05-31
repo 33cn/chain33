@@ -280,5 +280,4 @@ func ReportErrEventToFront(logger log.Logger, client Client, frommodule string, 
 	reportErrEvent.Error = err.Error()
 	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
 	client.Send(msg, false)
-	return
 }
