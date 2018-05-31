@@ -2072,6 +2072,16 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
 			}
 		}
+		if _, ok := payloadValue["Public2Privacy"]; ok {
+			output := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Public2Privacy"].(map[string]interface{})["output"]
+			keyoutput := output.(map[string]interface{})["keyoutput"].([]interface{})
+			for _, value := range keyoutput {
+				amt := value.(map[string]interface{})["amount"].(float64) / float64(types.Coin)
+				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+				value.(map[string]interface{})["amount"] = amtResult
+			}
+			fmt.Println(output, keyoutput)
+		}
 	}
 	if tx.Amount != 0 {
 		result.Amount = amountResult
@@ -3062,5 +3072,4 @@ func decodePrivacyKeyOutput(l *jsonrpc.ReceiptLogResult, key string) []*KeyOutpu
 		}
 	}
 	return ret
-
 }
