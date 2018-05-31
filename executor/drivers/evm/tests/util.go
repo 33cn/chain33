@@ -3,10 +3,8 @@ package tests
 import (
 	"encoding/hex"
 	"fmt"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
-	c "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
@@ -16,7 +14,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
 func getPrivKey() crypto.PrivKey {
@@ -109,85 +106,4 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 	ret, _, leftGas, err := env.Create(runtime.AccountRef(msg.From()), addr, msg.Data(), msg.GasLimit(), fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(tx.Hash()).Hex()), "")
 
 	return ret, addr, leftGas, err, statedb
-}
-
-// 合约调用（从DB中加载之前创建的合约）
-func callContract(mdb db.KV, tx types.Transaction, contractAdd common.Address) (ret []byte, leftOverGas uint64, err error, statedb *state.MemoryStateDB) {
-
-	inst := evm.NewEVMExecutor()
-
-	msg, _ := inst.GetMessage(&tx)
-
-	inst.SetEnv(10, 0, common.EmptyAddress().String(), uint64(10))
-
-	statedb = inst.GetMStateDB()
-
-	// 替换statedb中的数据库，获取测试需要的数据
-	statedb.StateDB = mdb
-
-	statedb.CoinsAccount = account.NewCoinsAccount()
-	statedb.CoinsAccount.SetDB(statedb.StateDB)
-
-	vmcfg := inst.GetVMConfig()
-
-	context := inst.NewEVMContext(msg)
-
-	// 创建EVM运行时对象
-	env := runtime.NewEVM(context, statedb, *vmcfg)
-
-	//ret,addr,leftGas,err :=  runtime.Create(vm.AccountRef(msg.From()), msg.Data(), msg.GasLimit(), msg.Value())
-
-	ret, _, leftGas, err := env.Call(runtime.AccountRef(msg.From()), contractAdd, msg.Data(), msg.GasLimit(), msg.Value())
-
-	return ret, leftGas, err, statedb
-}
-
-func kv2map(kvset []*types.KeyValue) map[string][]byte {
-	data := make(map[string][]byte)
-	for i := 0; i < len(kvset); i++ {
-		data[string(kvset[i].Key)] = kvset[i].Value
-	}
-	return data
-}
-
-func procSignRawTx(wal *wallet.Wallet, unsigned *types.ReqSignRawTx, payload []byte) (ret string, err error) {
-	var key crypto.PrivKey
-	if unsigned.GetPrivkey() != "" {
-		keyByte, err := c.FromHex(unsigned.GetPrivkey())
-		if err != nil || len(keyByte) == 0 {
-			return "", err
-		}
-		cr, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
-		if err != nil {
-			return "", err
-		}
-		key, err = cr.PrivKeyFromBytes(keyByte)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		return "", types.ErrNoPrivKeyOrAddr
-	}
-	var tx types.Transaction
-	bytes, err := c.FromHex(unsigned.GetTxHex())
-	if err != nil {
-		return "", err
-	}
-	err = types.Decode(bytes, &tx)
-	if err != nil {
-		return "", err
-	}
-	expire, err := time.ParseDuration(unsigned.GetExpire())
-	if err != nil {
-		return "", err
-	}
-	tx.SetExpire(expire)
-	// 因为反序列化存在问题，重新设置payload
-	tx.Payload = payload
-
-	tx.Sign(int32(wallet.SignType), key)
-
-	txHex := types.Encode(&tx)
-	signedTx := hex.EncodeToString(txHex)
-	return signedTx, nil
 }
