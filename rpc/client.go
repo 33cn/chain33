@@ -12,14 +12,14 @@ import (
 
 //提供系统rpc接口
 
-var accountdb = account.NewCoinsAccount()
-
 type channelClient struct {
 	client.QueueProtocolAPI
+	accountdb *account.DB
 }
 
 func (c *channelClient) Init(q queue.Client) {
 	c.QueueProtocolAPI, _ = client.New(q, nil)
+	c.accountdb = account.NewCoinsAccount()
 }
 
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
@@ -29,37 +29,59 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		return nil, err
 	}
 
+	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
+		log.Error("CreateRawTransaction", "Error", types.ErrExecNameNotMatch)
+		return nil, types.ErrExecNameNotMatch
+	}
+
 	var tx *types.Transaction
 	amount := param.Amount
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	if amount < 0 {
+		return nil, types.ErrAmount
+	}
 	if !param.IsToken {
 		transfer := &types.CoinsAction{}
-		if amount > 0 {
-			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransfer
+		if !param.IsWithdraw {
+			if param.ExecName != "" {
+				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransferToExec
+			} else {
+				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransfer
+			}
 		} else {
-			v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount, Note: param.GetNote()}}
+			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amount, Note: param.GetNote()}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
 	} else {
 		transfer := &types.TokenAction{}
-		if amount > 0 {
-			v := &types.TokenAction_Transfer{&types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
+		if !param.IsWithdraw {
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		} else {
-			v := &types.TokenAction_Withdraw{&types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: -amount, Note: param.GetNote()}}
+			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), Fee: param.GetFee(), To: param.GetTo(), Nonce: r.Int63()}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: param.GetTo()}
 	}
 
-	data := types.Encode(tx)
-	return data, nil
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	txHex := types.Encode(tx)
+
+	return txHex, nil
 }
 
 func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
@@ -90,7 +112,7 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 	//获取地址账户的余额通过account模块
 	addrs := make([]string, 1)
 	addrs[0] = parm.Addr
-	accounts, err := accountdb.LoadAccounts(c.QueueProtocolAPI, addrs)
+	accounts, err := c.accountdb.LoadAccounts(c.QueueProtocolAPI, addrs)
 	if err != nil {
 		log.Error("GetAddrOverview", "Error", err.Error())
 		return nil, err
@@ -115,7 +137,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 			exaddrs = append(exaddrs, addr)
 		}
 
-		accounts, err := accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
+		accounts, err := c.accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -127,7 +149,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		var accounts []*types.Account
 		for _, addr := range addrs {
 
-			acc, err := accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
+			acc, err := c.accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
@@ -183,7 +205,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 
 func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
 	//获取地址账户的余额通过account模块
-	resp, err := accountdb.GetTotalCoins(c.QueueProtocolAPI, in)
+	resp, err := c.accountdb.GetTotalCoins(c.QueueProtocolAPI, in)
 	if err != nil {
 		return nil, err
 	}

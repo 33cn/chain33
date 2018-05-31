@@ -14,13 +14,18 @@ import (
 
 var (
 	configPath = flag.String("f", "../cmd/chain33/chain33.test.toml", "configfile")
+
+	jrpcaddr = "localhost:8801"
+	jrpcsite = "http://localhost:8801"
+	grpcaddr = "localhost:8802"
+	grpcsite = "localhost:8802"
 )
 
 func init() {
 	cfg := config.InitCfg(*configPath)
 	// change rpc bind address
-	cfg.Rpc.JrpcBindAddr = "localhost:8811"
-	cfg.Rpc.GrpcBindAddr = "localhost:8812"
+	cfg.Rpc.JrpcBindAddr = jrpcaddr
+	cfg.Rpc.GrpcBindAddr = grpcaddr
 	rpc.Init(cfg.Rpc)
 	log.SetLogLevel("crit")
 }

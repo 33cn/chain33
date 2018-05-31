@@ -137,6 +137,9 @@ func (cache *txCache) AccountTxNumDecrease(addr string, hash []byte) {
 		for i, t := range value {
 			if string(t.Hash()) == string(hash) {
 				cache.accMap[addr] = append(cache.accMap[addr][:i], cache.accMap[addr][i+1:]...)
+				if len(cache.accMap[addr]) == 0 {
+					delete(cache.accMap, addr)
+				}
 				return
 			}
 		}

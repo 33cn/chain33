@@ -23,7 +23,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := time.Now()
 	defer func() {
-		ulog.Debug("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
 	}()
 	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
@@ -49,10 +49,10 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	for i := 0; i < len(receipts.Receipts); i++ {
 		receipt := receipts.Receipts[i]
 		if receipt.Ty == types.ExecErr {
+			ulog.Error("exec tx err", "err", receipt)
 			if errReturn { //认为这个是一个错误的区块
 				return nil, nil, types.ErrBlockExec
 			}
-			ulog.Error("exec tx err", "err", receipt)
 			deltxlist[i] = true
 			continue
 		}

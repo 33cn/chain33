@@ -46,15 +46,13 @@ func addGetAddrFlags(cmd *cobra.Command) {
 
 func getAddrByExec(cmd *cobra.Command, args []string) {
 	execer, _ := cmd.Flags().GetString("exec")
-	switch execer {
-	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
-		addrResult := account.ExecAddress(execer)
-		result := addrResult
-		fmt.Println(result)
-
-	default:
-		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+	if ok, err := isAllowExecName(execer); !ok {
+		fmt.Println(err.Error())
+		return
 	}
+	addrResult := account.ExecAddress(execer)
+	result := addrResult
+	fmt.Println(result)
 }
 
 // create user data
@@ -82,7 +80,11 @@ func addUserData(cmd *cobra.Command, args []string) {
 		return
 	}
 	if !strings.HasPrefix(execer, "user.") {
-		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+		fmt.Println(`user defined executor should start with "user."`)
+		return
+	}
+	if len(execer) > 50 {
+		fmt.Println("executor name too long")
 		return
 	}
 	addrResult := account.ExecAddress(execer)
