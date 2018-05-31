@@ -615,7 +615,7 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 	chain.privacylock.RLock()
 	defer chain.privacylock.RUnlock()
 
-	if reqUTXOGlobalIndex.MixCount <= 0 || 0 == len(reqUTXOGlobalIndex.Amount) {
+	if reqUTXOGlobalIndex.MixCount < 0 || 0 == len(reqUTXOGlobalIndex.Amount) {
 		chainlog.Error("ProcGetGlobalIndexMsg count err", "MixCount", reqUTXOGlobalIndex.MixCount,
 			"len(reqUTXOGlobalIndex.Amount)", len(reqUTXOGlobalIndex.Amount))
 		return nil, types.ErrInputPara
@@ -630,7 +630,11 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
 	resUTXOGlobalIndex.Tokenname = reqUTXOGlobalIndex.Tokenname
 	resUTXOGlobalIndex.MixCount = reqUTXOGlobalIndex.MixCount
+	mixcount := reqUTXOGlobalIndex.MixCount
 	for _, amount := range reqUTXOGlobalIndex.Amount {
+		if mixcount <= 0 {
+			break
+		}
 		utxos, ok := privacyCache[amount]
 		if !ok {
 			chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No UTXO existed for token's amount", amount,
@@ -673,7 +677,7 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 
 			}
 			resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
-
+			mixcount -= 1
 		} else {
 			chainlog.Error("ProcGetGlobalIndexMsg", "No enough same amout UTXO available for amout", amount,
 				"required mix count", reqUTXOGlobalIndex.MixCount, "Actually count within confirmed height is", index+1)

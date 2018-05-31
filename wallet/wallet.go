@@ -22,6 +22,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"unsafe"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -1457,26 +1458,10 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		if err != nil {
 			continue
 		}
-
 		//获取from地址
 		pubkey := block.Block.Txs[index].Signature.GetPubkey()
 		addr := account.PubKeyToAddress(pubkey)
 
-		//from addr
-		fromaddress := addr.String()
-		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-			wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, false)
-			walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress)
-			continue
-		}
-
-		//toaddr
-		toaddr := tx.GetTo()
-		if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-			wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, false)
-			walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr)
-			continue
-		}
 		//check whether the privacy tx belong to current wallet
 		if types.PrivacyX == string(tx.Execer) {
 			txhashInbytes := tx.Hash()
@@ -1575,6 +1560,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 
 									//将当前存在隐私余额的所有token写入数据库，方便钱包重启时的初始化操作
 									tokenNames := &types.TokenNamesOfUTXO{}
+									tokenNames.TokensMap = make(map[string]bool, 0)
 									for token, _ := range wallet.privacyActive {
 										tokenNames.TokensMap[token] = true
 									}
@@ -1594,13 +1580,30 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 					}
 				}
 				if matchedCount > 0 {
-					wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, true)
+					wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, addr.String(), true)
 				}
 			}
 
 			if utxosSpendInTx, ok := wallet.privacyFrozen[txhash]; ok {
 				wallet.walletStore.deleteSpentUTXOs(utxosSpendInTx, newbatch)
 			}
+		}
+
+
+		//from addr
+		fromaddress := addr.String()
+		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
+			wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, false)
+			walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress)
+			continue
+		}
+
+		//toaddr
+		toaddr := tx.GetTo()
+		if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
+			wallet.buildAndStoreWalletTxDetail(tx, block, index, newbatch, fromaddress, false)
+			walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr)
+			continue
 		}
 	}
 	newbatch.Write()
@@ -2553,3 +2556,49 @@ func (wallet *Wallet) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) {
 	}
 	return infoPriRes, nil
 }
+
+func (w *Wallet) getActionMainInfo(action *types.PrivacyAction) (rpubkey []byte, privOutput *types.PrivacyOutput, tokenname string, err error) {
+	if types.ActionPublic2Privacy == action.Ty {
+		rpubkey = action.GetPublic2Privacy().GetOutput().GetRpubKeytx()
+		privOutput = action.GetPublic2Privacy().GetOutput()
+		tokenname = action.GetPublic2Privacy().GetTokenname()
+	} else if types.ActionPrivacy2Privacy == action.Ty {
+		rpubkey = action.GetPrivacy2Privacy().GetOutput().GetRpubKeytx()
+		privOutput = action.GetPrivacy2Privacy().GetOutput()
+		tokenname = action.GetPrivacy2Privacy().GetTokenname()
+	} else if types.ActionPrivacy2Public == action.Ty {
+		rpubkey = action.GetPrivacy2Public().GetOutput().GetRpubKeytx()
+		privOutput = action.GetPrivacy2Public().GetOutput()
+		tokenname = action.GetPrivacy2Public().GetTokenname()
+	} else {
+		err = errors.New("Do not support action type.")
+	}
+	return
+}
+/*
+func (w *Wallet) updatePrivacyActiveUTXO(tx *types.Transaction, addmode bool) (bool, error) {
+	if string(tx.Execer) != types.PrivacyX {
+		return false, nil
+	}
+	var privAction types.PrivacyAction
+	if err := types.Decode(tx.GetPayload(), &privAction); err!=nil {
+		walletlog.Error("updatePrivacyActiveUTXO failed to decode payload.")
+		return false, err
+	}
+	privacyInfos, err := w.getPrivacyKeyPairsOfWallet()
+	if err != nil {
+		walletlog.Error("updatePrivacyActiveUTXO getPrivacyKeyPairsOfWallet() failed. ", err)
+		return false, err
+	}
+	rpubkey, privOutput, tokenname, err := w.getActionMainInfo(&privAction)
+	if err != nil {
+		return false, err
+	}
+	for key, value := range privOutput {
+
+
+	}
+
+	return true, nil
+}
+*/

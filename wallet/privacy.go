@@ -22,6 +22,7 @@ type buildInputInfo struct {
 	tokenname *string
 	sender    *string
 	amount    int64
+	mixcount  int32
 }
 
 func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*types.ReplyHash, error) {
@@ -230,10 +231,13 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 }
 
 func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
+	factorNum := int64(100)
 	buildInfo := &buildInputInfo{
 		tokenname: &reqPri2Pri.Tokenname,
 		sender:    &reqPri2Pri.Sender,
-		amount:    reqPri2Pri.Amount + wallet.FeeAmount,
+		// TODO: 这里存在手续费不足的情况,需要考虑扣除手续费以后的拆分问题,所以这里先简单的放大,让调试通过
+		amount:    reqPri2Pri.Amount + wallet.FeeAmount*factorNum,
+		mixcount:  reqPri2Pri.Mixin,
 	}
 
 	//step 1,buildInput
@@ -259,7 +263,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		selectedAmounTotal += input.Amount
 	}
 	//构造输出UTXO
-	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, wallet.FeeAmount)
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, wallet.FeeAmount*factorNum)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +283,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	tx := &types.Transaction{
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
-		Fee:     wallet.FeeAmount,
+		Fee:     wallet.FeeAmount*factorNum,
 		Nonce:   wallet.random.Int63(),
 	}
 
@@ -290,7 +294,8 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	ringSigns := make([]*types.SignatureData, len(privacyInput.Keyinput))
 	for i, input := range privacyInput.Keyinput {
 		utxos := utxosInKeyInput[i]
-		ringSigns[i], err = privacy.GenerateRingSignature(data,
+		h := common.BytesToHash(data)
+		ringSigns[i], err = privacy.GenerateRingSignature(h.Bytes(),
 			utxos,
 			realkeyInputSlice[i].onetimePrivKey,
 			realkeyInputSlice[i].realInputIndex,
@@ -382,7 +387,8 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	ringSignatures = make([]*types.SignatureData, len(privacyInput.Keyinput))
 	for i, input := range privacyInput.Keyinput {
 		utxos := utxosInKeyInput[i]
-		ringSignatures[i], err = privacy.GenerateRingSignature(data,
+		h := common.BytesToHash(data)
+		ringSignatures[i], err = privacy.GenerateRingSignature(h.Bytes(),
 			utxos,
 			realkeyInputSlice[i].onetimePrivKey,
 			realkeyInputSlice[i].realInputIndex,
@@ -464,6 +470,9 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		Tokenname: *buildInfo.tokenname,
 		MixCount:  20,
 	}
+	if buildInfo.mixcount >= 0 {
+		reqGetGlobalIndex.MixCount = buildInfo.mixcount
+	}
 	for amout, _ := range amountKind {
 		reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, amout)
 	}
@@ -475,7 +484,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	walletlog.Debug("transPri2Pri", "After sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
 
 	//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-	msg := wallet.client.NewMessage("blockchain", types.EventGetGlobalIndex, reqGetGlobalIndex)
+	msg := wallet.client.NewMessage("blockchain", types.EventGetGlobalIndex, &reqGetGlobalIndex)
 	wallet.client.Send(msg, true)
 	resp, err := wallet.client.Wait(msg)
 	if err != nil {
@@ -498,12 +507,20 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	utxosInKeyInput := make([][]*types.UTXO, len(selectedUtxo))
 	realkeyInputSlice := make([]*realkeyInput, len(selectedUtxo))
 	for i, utxo2pay := range selectedUtxo {
-		utxoIndex4Amount := mapAmount2utxo[utxo2pay.amount]
-		for j, utxo := range utxoIndex4Amount.Utxos {
-			if bytes.Equal(utxo.OnetimePubkey, utxo2pay.onetimePublicKey) {
-				utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos[:j], utxoIndex4Amount.Utxos[j+1:]...)
-				break
+		utxoIndex4Amount, ok := mapAmount2utxo[utxo2pay.amount]
+		if ok {
+			for j, utxo := range utxoIndex4Amount.Utxos {
+				if bytes.Equal(utxo.OnetimePubkey, utxo2pay.onetimePublicKey) {
+					utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos[:j], utxoIndex4Amount.Utxos[j+1:]...)
+					break
+				}
 			}
+		}
+		if utxoIndex4Amount == nil{
+			utxoIndex4Amount = &types.UTXOIndex4Amount{}
+		}
+		if utxoIndex4Amount.Utxos == nil {
+			utxoIndex4Amount.Utxos = make([]*types.UTXO, 0)
 		}
 
 		utxo := &types.UTXO{
@@ -576,7 +593,7 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 				//remove from the origin slice
 				outs = append(outs[:index], outs[index+1:]...)
 			}
-			return outs, nil
+			return selectedOuts, nil
 		} else {
 			return nil, types.ErrInsufficientBalance
 		}
