@@ -4,16 +4,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
-	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/types"
+
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	crypto2 "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func getBin(data string) (ret []byte) {
@@ -170,7 +171,6 @@ func unpre(data string) string {
 	}
 	return data
 }
-
 
 func getPrivKey() crypto.PrivKey {
 	c, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
