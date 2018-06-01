@@ -10,11 +10,6 @@ import (
 
 // Mempool.CheckTxList初步检查并筛选交易消息
 func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
-	// 判断消息是否含有nil交易
-	if msg.GetData() == nil {
-		msg.Data = types.ErrEmptyTx
-		return msg
-	}
 	tx := msg.GetData().(types.TxGroup).Tx()
 	// 过滤掉挖矿交易
 	if "ticket" == string(tx.Execer) {
@@ -28,6 +23,17 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 			msg.Data = types.ErrMinerTx
 			return msg
 		}
+	}
+	// 检查接收地址是否合法
+	if err := account.CheckAddress(tx.To); err != nil {
+		msg.Data = types.ErrInvalidAddress
+		return msg
+	}
+	// 非coins或token模块的ToAddr指向合约
+	exec := string(tx.Execer)
+	if exec != "coins" && exec != "token" && account.ExecAddress(exec) != tx.To {
+		msg.Data = types.ErrToAddrNotSameToExecAddr
+		return msg
 	}
 	// 检查交易是否为重复交易
 	if mem.addedTxs.Contains(string(tx.Hash())) {
