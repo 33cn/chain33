@@ -10,11 +10,6 @@ import (
 
 // Mempool.CheckTxList初步检查并筛选交易消息
 func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
-	// 判断消息是否含有nil交易
-	if msg.GetData() == nil {
-		msg.Data = types.ErrEmptyTx
-		return msg
-	}
 	tx := msg.GetData().(types.TxGroup).Tx()
 	// 过滤掉挖矿交易
 	if "ticket" == string(tx.Execer) {
