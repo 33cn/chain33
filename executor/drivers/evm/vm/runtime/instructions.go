@@ -412,7 +412,7 @@ func opAddress(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stac
 // 获取指定地址的账户余额
 func opBalance(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	slot := stack.Peek()
-	slot.SetUint64(evm.StateDB.GetBalance(common.BigToAddress(slot)))
+	slot.SetUint64(evm.StateDB.GetBalance(common.BigToAddress(slot).String()))
 	return nil, nil
 }
 
@@ -491,7 +491,7 @@ func opExtCodeSize(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, 
 	a := stack.Pop()
 
 	addr := common.BigToAddress(a)
-	a.SetInt64(int64(evm.StateDB.GetCodeSize(addr)))
+	a.SetInt64(int64(evm.StateDB.GetCodeSize(addr.String())))
 	stack.Push(a)
 
 	return nil, nil
@@ -527,7 +527,7 @@ func opExtCodeCopy(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, 
 		codeOffset = stack.Pop()
 		length     = stack.Pop()
 	)
-	codeCopy := common.GetDataBig(evm.StateDB.GetCode(addr), codeOffset, length)
+	codeCopy := common.GetDataBig(evm.StateDB.GetCode(addr.String()), codeOffset, length)
 	if merr := memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy); merr != nil {
 		return nil, merr
 	}
@@ -629,7 +629,7 @@ func opMstore8(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stac
 // 加载合约状态数据
 func opSload(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	loc := common.BigToHash(stack.Pop())
-	val := evm.StateDB.GetState(contract.Address(), loc).Big()
+	val := evm.StateDB.GetState(contract.Address().String(), loc).Big()
 	stack.Push(val)
 	return nil, nil
 }
@@ -638,7 +638,7 @@ func opSload(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack 
 func opSstore(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	loc := common.BigToHash(stack.Pop())
 	val := stack.Pop()
-	evm.StateDB.SetState(contract.Address(), loc, common.BigToHash(val))
+	evm.StateDB.SetState(contract.Address().String(), loc, common.BigToHash(val))
 
 	evm.Interpreter.IntPool.Put(val)
 	return nil, nil
@@ -895,11 +895,11 @@ func opStop(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *
 
 // 自毁操作
 func opSuicide(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	balance := evm.StateDB.GetBalance(contract.Address())
+	balance := evm.StateDB.GetBalance(contract.Address().String())
 	// 合约自毁后，将剩余金额返还给创建者
-	evm.StateDB.AddBalance(common.BigToAddress(stack.Pop()), *contract.CodeAddr, balance)
+	evm.StateDB.AddBalance(common.BigToAddress(stack.Pop()).String(), (*contract.CodeAddr).String(), balance)
 
-	evm.StateDB.Suicide(contract.Address())
+	evm.StateDB.Suicide(contract.Address().String())
 	return nil, nil
 }
 

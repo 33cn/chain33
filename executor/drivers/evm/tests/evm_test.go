@@ -128,9 +128,10 @@ func runCase(tt *testing.T, c VMCase, file string) {
 
 	// 4.2 账户余额以及数据
 	for k, v := range c.post {
-		t.assertEqualsV(int(statedb.GetBalance(*common.StringToAddress(k))), int(v.balance))
+		addrStr := (*common.StringToAddress(k)).String()
+		t.assertEqualsV(int(statedb.GetBalance(addrStr)), int(v.balance))
 
-		t.assertEqualsB(statedb.GetCode(*common.StringToAddress(k)), getBin(v.code))
+		t.assertEqualsB(statedb.GetCode(addrStr), getBin(v.code))
 
 		for a, b := range v.storage {
 			if len(a) < 1 || len(b) < 1 {
@@ -138,7 +139,7 @@ func runCase(tt *testing.T, c VMCase, file string) {
 			}
 			hashKey := common.BytesToHash(getBin(a))
 			hashVal := common.BytesToHash(getBin(b))
-			t.assertEqualsB(statedb.GetState(*common.StringToAddress(k), hashKey).Bytes(), hashVal.Bytes())
+			t.assertEqualsB(statedb.GetState(addrStr, hashKey).Bytes(), hashVal.Bytes())
 		}
 	}
 }

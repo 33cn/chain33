@@ -27,6 +27,7 @@ func EvmCmd() *cobra.Command {
 		CallContractCmd(),
 		EstimateContractCmd(),
 		CheckContractAddrCmd(),
+		EvmDebugCmd(),
 	)
 
 	return cmd
@@ -82,7 +83,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-func createEvmTx(action *types.EVMContractAction, key, addr, expire, rpcLaddr string, fee uint64) (string, error) {
+func createEvmTx(action proto.Message, key, addr, expire, rpcLaddr string, fee uint64) (string, error) {
 	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(action), Fee: 0, To: addr}
 
 	tx.Fee, _ = tx.GetRealFee(types.MinBalanceTransfer)
@@ -161,7 +162,7 @@ func callContract(cmd *cobra.Command, args []string) {
 	data, err := createEvmTx(&action, key, toAddr, expire, rpcLaddr, feeInt64)
 
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "call contract error:%v", err)
+		fmt.Fprintln(os.Stderr, "call contract error", err)
 		return
 	}
 
@@ -280,6 +281,36 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 
 	if query {
 		proto.MarshalText(os.Stdout, &checkAddrResp)
+	} else {
+		fmt.Fprintln(os.Stderr, "error")
+	}
+}
+
+// 查询或设置EVM调试开关
+func EvmDebugCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "debug",
+		Short: "Query current debug status (default) or set debug flag ( -s flag)",
+		Run:   evmDebug,
+	}
+	addEvmDebugFlags(cmd)
+	return cmd
+}
+
+func addEvmDebugFlags(cmd *cobra.Command) {
+	cmd.Flags().IntP("set", "s", 0, "set debug flag (>0 to true, <0 to false optional)")
+}
+
+func evmDebug(cmd *cobra.Command, args []string) {
+	debug, _ := cmd.Flags().GetInt("set")
+
+	var debugReq = types.EvmDebugReq{Optype: int32(debug)}
+	var debugResp types.EvmDebugResp
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	query := sendQuery(rpcLaddr, "EvmDebug", debugReq, &debugResp)
+
+	if query {
+		proto.MarshalText(os.Stdout, &debugResp)
 	} else {
 		fmt.Fprintln(os.Stderr, "error")
 	}

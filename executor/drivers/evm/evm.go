@@ -19,6 +19,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+var (
+	evmDebug = false
+)
+
 func Init() {
 	// TODO 注册的驱动高度需要更新为上线时的正确高度
 	drivers.Register(model.ExecutorName, newEVMDriver, 0)
@@ -26,7 +30,7 @@ func Init() {
 
 func newEVMDriver() drivers.Driver {
 	evm := NewEVMExecutor()
-	evm.vmCfg.Debug = debugEVM()
+	evm.vmCfg.Debug = evmDebug
 	return evm
 }
 
@@ -35,17 +39,6 @@ type EVMExecutor struct {
 	drivers.DriverBase
 	vmCfg    *runtime.Config
 	mStateDB *state.MemoryStateDB
-}
-
-// 根据命令行启动隐藏的参数判断是否启动EVM执行指令跟踪能力
-func debugEVM() bool {
-	params := os.Args[1:]
-	for _, v := range params {
-		if model.DebugFlag == v {
-			return true
-		}
-	}
-	return false
 }
 
 func NewEVMExecutor() *EVMExecutor {
@@ -70,14 +63,9 @@ func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficu
 		// 这时说明区块发生了变化，需要集成原来的设置逻辑，并执行自定义操作
 		evm.DriverBase.SetEnv(height, blockTime, coinBase, difficulty)
 
-		// 在生成新的区块状态DB之前，把先前区块中生成的合约日志集中打印出来
-		if evm.mStateDB != nil {
-			evm.mStateDB.WritePreimages(height)
-		}
-
 		// 重新初始化MemoryStateDB
 		// 需要注意的时，在执行器中只执行单个Transaction，但是并没有提交区块的动作
-		// 所以，这个mStateDB只用来缓存一个区块内执行的Transaction引起的状态数据变更
+		// 所以，这个mStateDB只用来缓存一个区块内执行的Transaction引起的状态数据变更（目前因为每次执行都是一个新的执行器，所以只保存当前的状态）
 		evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
 	}
 	// 两者都和上次的设置相同，不需要任何操作
@@ -120,7 +108,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	if isCreate {
 		// 使用随机生成的地址作为合约地址（这个可以保证每次创建的合约地址不会重复，不存在冲突的情况）
 		contractAddr = evm.getNewAddr(tx.Hash())
-		if !env.StateDB.Empty(contractAddr) {
+		if !env.StateDB.Empty(contractAddr.String()) {
 			return nil, model.ErrContractAddressCollision
 		}
 
@@ -178,15 +166,21 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	contractReceipt := &types.ReceiptEVMContract{msg.From().String(), execName, contractAddr.String(), usedGas, ret}
 
 	logs = append(logs, &types.ReceiptLog{types.TyLogCallContract, types.Encode(contractReceipt)})
-	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr, isCreate)...)
+	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr.String(), isCreate)...)
 
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
+
+	// 返回之前，把本次交易在区块中生成的合约日志集中打印出来
+	if evm.mStateDB != nil {
+		evm.mStateDB.WritePreimages(evm.DriverBase.GetHeight())
+	}
+
 	return receipt, nil
 }
 
 //获取运行状态名
 func (evm *EVMExecutor) GetActionName(tx *types.Transaction) string {
-	if bytes.Compare(tx.Execer, []byte(model.ExecutorName)) == 0 {
+	if bytes.Equal(tx.Execer, []byte(model.ExecutorName)) {
 		return model.ExecutorName
 	}
 	return tx.ActionName()
@@ -237,6 +231,13 @@ func (evm *EVMExecutor) Query(funcName string, params []byte) (types.Message, er
 			return nil, err
 		}
 		return evm.EstimateGas(&in)
+	} else if strings.EqualFold(model.EvmDebug, funcName) {
+		var in types.EvmDebugReq
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return EvmDebug(&in)
 	}
 
 	log.Error("invalid query funcName", "funcName", funcName)
@@ -263,10 +264,10 @@ func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Messa
 		addr = *nAddr
 	}
 
-	exists := evm.GetMStateDB().Exist(addr)
+	exists := evm.GetMStateDB().Exist(addr.String())
 	ret := &types.CheckEVMAddrResp{Contract: exists}
 	if exists {
-		account := evm.GetMStateDB().GetAccount(addr)
+		account := evm.GetMStateDB().GetAccount(addr.String())
 		if account != nil {
 			ret.ContractAddr = account.Addr
 			ret.ContractName = account.GetExecName()
@@ -320,6 +321,19 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 	result := &types.EstimateEVMGasResp{}
 	result.Gas = model.MaxGasLimit - leftOverGas
 	return result, vmerr
+}
+
+// 此方法用来估算合约消耗的Gas，不能修改原有执行器的状态数据
+func EvmDebug(req *types.EvmDebugReq) (types.Message, error) {
+	optype := req.Optype
+
+	if optype < 0 {
+		evmDebug = false
+	} else if optype > 0 {
+		evmDebug = true
+	}
+	ret := &types.EvmDebugResp{DebugStatus: fmt.Sprintf("%v", evmDebug)}
+	return ret, nil
 }
 
 func (evm *EVMExecutor) GetMStateDB() *state.MemoryStateDB {
@@ -393,13 +407,13 @@ func getReceiver(tx *types.Transaction) *common.Address {
 
 // 检查合约调用账户是否有充足的金额进行转账交易操作
 func CanTransfer(db state.StateDB, sender, recipient common.Address, amount uint64) bool {
-	return db.CanTransfer(sender, recipient, amount)
+	return db.CanTransfer(sender.String(), recipient.String(), amount)
 }
 
 // 在内存数据库中执行转账操作（只修改内存中的金额）
 // 从外部账户地址到合约账户地址
 func Transfer(db state.StateDB, sender, recipient common.Address, amount uint64) bool {
-	return db.Transfer(sender, recipient, amount)
+	return db.Transfer(sender.String(), recipient.String(), amount)
 }
 
 // 获取制定高度区块的哈希

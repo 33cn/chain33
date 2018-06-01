@@ -133,7 +133,7 @@ func GasReturnDataCopy(gt GasTable, evm *params.EVMParam, contractGas *params.Ga
 func GasSStore(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, stack *mm.Stack, mem *mm.Memory, memorySize uint64) (uint64, error) {
 	var (
 		y, x = stack.Back(1), stack.Back(0)
-		val  = evm.StateDB.GetState(contractGas.Address, common.BigToHash(x))
+		val  = evm.StateDB.GetState(contractGas.Address.String(), common.BigToHash(x))
 	)
 
 	// 三种场景消耗的Gas是不一样的
@@ -336,7 +336,7 @@ func GasCall(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, st
 		transfersValue = stack.Back(2).Sign() != 0
 		address        = common.BigToAddress(stack.Back(1))
 	)
-	if !evm.StateDB.Exist(address) {
+	if !evm.StateDB.Exist(address.String()) {
 		gas += params.CallNewAccountGas
 	}
 	if transfersValue {
@@ -395,7 +395,7 @@ func GasRevert(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, 
 
 func GasSuicide(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, stack *mm.Stack, mem *mm.Memory, memorySize uint64) (uint64, error) {
 	var gas uint64
-	if !evm.StateDB.HasSuicided(contractGas.Address) {
+	if !evm.StateDB.HasSuicided(contractGas.Address.String()) {
 		evm.StateDB.AddRefund(params.SuicideRefundGas)
 	}
 	return gas, nil

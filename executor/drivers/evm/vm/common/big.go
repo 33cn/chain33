@@ -1,31 +1,14 @@
 package common
 
 import (
+	"math"
 	"math/big"
-)
-
-const (
-	// 各种整数类型的最大值定义
-	MaxInt8   = 1<<7 - 1
-	MinInt8   = -1 << 7
-	MaxInt16  = 1<<15 - 1
-	MinInt16  = -1 << 15
-	MaxInt32  = 1<<31 - 1
-	MinInt32  = -1 << 31
-	MaxInt64  = 1<<63 - 1
-	MinInt64  = -1 << 63
-	MaxUint8  = 1<<8 - 1
-	MaxUint16 = 1<<16 - 1
-	MaxUint32 = 1<<32 - 1
-	MaxUint64 = 1<<64 - 1
 )
 
 // 常用的大整数常量定义
 var (
 	Big0   = big.NewInt(0)
 	Big1   = big.NewInt(1)
-	Big2   = big.NewInt(2)
-	Big3   = big.NewInt(3)
 	Big32  = big.NewInt(32)
 	Big256 = big.NewInt(256)
 	Big257 = big.NewInt(257)
@@ -33,12 +16,9 @@ var (
 
 // 2的各种常用取幂结果
 var (
-	TT255     = BigPow(2, 255)
-	tt256     = BigPow(2, 256)
-	tt256m1   = new(big.Int).Sub(tt256, big.NewInt(1))
-	MaxBig256 = new(big.Int).Set(tt256m1)
-	tt63      = BigPow(2, 63)
-	MaxBig63  = new(big.Int).Sub(tt63, big.NewInt(1))
+	TT255   = BigPow(2, 255)
+	tt256   = BigPow(2, 256)
+	tt256m1 = new(big.Int).Sub(tt256, big.NewInt(1))
 )
 
 const (
@@ -162,7 +142,7 @@ func SafeSub(x, y uint64) (uint64, bool) {
 
 // 加法运算，返回是否溢出
 func SafeAdd(x, y uint64) (uint64, bool) {
-	return x + y, y > MaxUint64-x
+	return x + y, y > math.MaxUint64-x
 }
 
 // 乘法运算，返回是否溢出
@@ -170,7 +150,7 @@ func SafeMul(x, y uint64) (uint64, bool) {
 	if x == 0 || y == 0 {
 		return 0, false
 	}
-	return x * y, y > MaxUint64/x
+	return x * y, y > math.MaxUint64/x
 }
 
 func Zero(value *big.Int) bool {
