@@ -116,7 +116,9 @@ func (m *CoinsAction) String() string            { return proto.CompactTextStrin
 func (*CoinsAction) ProtoMessage()               {}
 func (*CoinsAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{1} }
 
-type isCoinsAction_Value interface{ isCoinsAction_Value() }
+type isCoinsAction_Value interface {
+	isCoinsAction_Value()
+}
 
 type CoinsAction_Transfer struct {
 	Transfer *CoinsTransfer `protobuf:"bytes,1,opt,name=transfer,oneof"`
@@ -499,7 +501,9 @@ func (m *HashlockAction) String() string            { return proto.CompactTextSt
 func (*HashlockAction) ProtoMessage()               {}
 func (*HashlockAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{7} }
 
-type isHashlockAction_Value interface{ isHashlockAction_Value() }
+type isHashlockAction_Value interface {
+	isHashlockAction_Value()
+}
 
 type HashlockAction_Hlock struct {
 	Hlock *HashlockLock `protobuf:"bytes,1,opt,name=hlock,oneof"`
@@ -890,7 +894,9 @@ func (m *TicketAction) String() string            { return proto.CompactTextStri
 func (*TicketAction) ProtoMessage()               {}
 func (*TicketAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{14} }
 
-type isTicketAction_Value interface{ isTicketAction_Value() }
+type isTicketAction_Value interface {
+	isTicketAction_Value()
+}
 
 type TicketAction_Tbind struct {
 	Tbind *TicketBind `protobuf:"bytes,5,opt,name=tbind,oneof"`
@@ -1525,7 +1531,9 @@ func (m *NormAction) String() string            { return proto.CompactTextString
 func (*NormAction) ProtoMessage()               {}
 func (*NormAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{29} }
 
-type isNormAction_Value interface{ isNormAction_Value() }
+type isNormAction_Value interface {
+	isNormAction_Value()
+}
 
 type NormAction_Nput struct {
 	Nput *NormPut `protobuf:"bytes,1,opt,name=nput,oneof"`
@@ -1722,7 +1730,9 @@ func (m *RetrieveAction) String() string            { return proto.CompactTextSt
 func (*RetrieveAction) ProtoMessage()               {}
 func (*RetrieveAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{33} }
 
-type isRetrieveAction_Value interface{ isRetrieveAction_Value() }
+type isRetrieveAction_Value interface {
+	isRetrieveAction_Value()
+}
 
 type RetrieveAction_PreRet struct {
 	PreRet *PreRetrieve `protobuf:"bytes,1,opt,name=preRet,oneof"`
@@ -2101,7 +2111,9 @@ func (m *TokenAction) String() string            { return proto.CompactTextStrin
 func (*TokenAction) ProtoMessage()               {}
 func (*TokenAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{40} }
 
-type isTokenAction_Value interface{ isTokenAction_Value() }
+type isTokenAction_Value interface {
+	isTokenAction_Value()
+}
 
 type TokenAction_Tokenprecreate struct {
 	Tokenprecreate *TokenPreCreate `protobuf:"bytes,1,opt,name=tokenprecreate,oneof"`
@@ -2727,7 +2739,9 @@ func (m *ConfigItem) String() string            { return proto.CompactTextString
 func (*ConfigItem) ProtoMessage()               {}
 func (*ConfigItem) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{53} }
 
-type isConfigItem_Value interface{ isConfigItem_Value() }
+type isConfigItem_Value interface {
+	isConfigItem_Value()
+}
 
 type ConfigItem_Arr struct {
 	Arr *ArrayConfig `protobuf:"bytes,3,opt,name=arr,oneof"`
@@ -2937,7 +2951,9 @@ func (m *ManageAction) String() string            { return proto.CompactTextStri
 func (*ManageAction) ProtoMessage()               {}
 func (*ManageAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{55} }
 
-type isManageAction_Value interface{ isManageAction_Value() }
+type isManageAction_Value interface {
+	isManageAction_Value()
+}
 
 type ManageAction_Modify struct {
 	Modify *ModifyConfig `protobuf:"bytes,1,opt,name=modify,oneof"`
