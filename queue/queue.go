@@ -263,21 +263,3 @@ func (msg Message) ReplyErr(title string, err error) {
 	id := atomic.AddInt64(&gid, 1)
 	msg.Reply(NewMessage(id, "", types.EventReply, &reply))
 }
-
-//上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，
-//然后由钱包模块前端定时调用显示给客户
-func ReportErrEventToFront(logger log.Logger, client Client, frommodule string, tomodule string, err error) {
-	if client == nil || len(tomodule) == 0 || len(frommodule) == 0 || err == nil {
-		logger.Error("SendErrEventToFront  input para err .")
-		return
-	}
-
-	logger.Debug("SendErrEventToFront", "frommodule", frommodule, "tomodule", tomodule, "err", err)
-
-	var reportErrEvent types.ReportErrEvent
-	reportErrEvent.Frommodule = frommodule
-	reportErrEvent.Tomodule = tomodule
-	reportErrEvent.Error = err.Error()
-	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
-	client.Send(msg, false)
-}

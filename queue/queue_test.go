@@ -206,9 +206,3 @@ func TestPrintMessage(t *testing.T) {
 	msg := client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")})
 	t.Log(msg)
 }
-
-func TestReportErrEventToFront(t *testing.T) {
-	q := New("channel")
-	client := q.Client()
-	ReportErrEventToFront(qlog, client, "queue", "wallet", types.ErrDataBaseDamage)
-}
