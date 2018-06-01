@@ -260,7 +260,9 @@ const (
 	EventSyncBlock           = 109
 	EventGetNetInfo          = 110
 	EventReplyNetInfo        = 111
-
+	EventErrToFront          = 112
+	EventFatalFailure        = 113
+	EventReplyFatalFailure   = 114
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -375,6 +377,12 @@ var eventName = map[int]string{
 	107: "EventSignRawTx",
 	108: "EventReplySignRawTx",
 	109: "EventSyncBlock",
+	110: "EventGetNetInfo",
+	111: "EventReplyNetInfo",
+	112: "EventErrToFront",
+	113: "EventFatalFailure",
+	114: "EventReplyFatalFailure",
+
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
