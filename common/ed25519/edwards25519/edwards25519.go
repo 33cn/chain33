@@ -6,6 +6,7 @@
 // Edwards curve that is isomorphic to curve25519. See
 // http://ed25519.cr.yp.to/.
 package edwards25519
+
 // This code is a port of the public domain, "ref10" implementation of ed25519
 // from SUPERCOP.
 
@@ -508,51 +509,51 @@ func FeInvert(out, z *FieldElement) {
 	var t0, t1, t2, t3 FieldElement
 	var i int
 
-	FeSquare(&t0, z)   // 2^1
-	FeSquare(&t1, &t0) // 2^2
+	FeSquare(&t0, z)        // 2^1
+	FeSquare(&t1, &t0)      // 2^2
 	for i = 1; i < 2; i++ { // 2^3
 		FeSquare(&t1, &t1)
 	}
-	FeMul(&t1, z, &t1)   // 2^3 + 2^0
-	FeMul(&t0, &t0, &t1) // 2^3 + 2^1 + 2^0
-	FeSquare(&t2, &t0)   // 2^4 + 2^2 + 2^1
-	FeMul(&t1, &t1, &t2) // 2^4 + 2^3 + 2^2 + 2^1 + 2^0
-	FeSquare(&t2, &t1)   // 5,4,3,2,1
+	FeMul(&t1, z, &t1)      // 2^3 + 2^0
+	FeMul(&t0, &t0, &t1)    // 2^3 + 2^1 + 2^0
+	FeSquare(&t2, &t0)      // 2^4 + 2^2 + 2^1
+	FeMul(&t1, &t1, &t2)    // 2^4 + 2^3 + 2^2 + 2^1 + 2^0
+	FeSquare(&t2, &t1)      // 5,4,3,2,1
 	for i = 1; i < 5; i++ { // 9,8,7,6,5
 		FeSquare(&t2, &t2)
 	}
-	FeMul(&t1, &t2, &t1) // 9,8,7,6,5,4,3,2,1,0
-	FeSquare(&t2, &t1)   // 10..1
+	FeMul(&t1, &t2, &t1)     // 9,8,7,6,5,4,3,2,1,0
+	FeSquare(&t2, &t1)       // 10..1
 	for i = 1; i < 10; i++ { // 19..10
 		FeSquare(&t2, &t2)
 	}
-	FeMul(&t2, &t2, &t1) // 19..0
-	FeSquare(&t3, &t2)   // 20..1
+	FeMul(&t2, &t2, &t1)     // 19..0
+	FeSquare(&t3, &t2)       // 20..1
 	for i = 1; i < 20; i++ { // 39..20
 		FeSquare(&t3, &t3)
 	}
-	FeMul(&t2, &t3, &t2) // 39..0
-	FeSquare(&t2, &t2)   // 40..1
+	FeMul(&t2, &t3, &t2)     // 39..0
+	FeSquare(&t2, &t2)       // 40..1
 	for i = 1; i < 10; i++ { // 49..10
 		FeSquare(&t2, &t2)
 	}
-	FeMul(&t1, &t2, &t1) // 49..0
-	FeSquare(&t2, &t1)   // 50..1
+	FeMul(&t1, &t2, &t1)     // 49..0
+	FeSquare(&t2, &t1)       // 50..1
 	for i = 1; i < 50; i++ { // 99..50
 		FeSquare(&t2, &t2)
 	}
-	FeMul(&t2, &t2, &t1) // 99..0
-	FeSquare(&t3, &t2)   // 100..1
+	FeMul(&t2, &t2, &t1)      // 99..0
+	FeSquare(&t3, &t2)        // 100..1
 	for i = 1; i < 100; i++ { // 199..100
 		FeSquare(&t3, &t3)
 	}
-	FeMul(&t2, &t3, &t2) // 199..0
-	FeSquare(&t2, &t2)   // 200..1
+	FeMul(&t2, &t3, &t2)     // 199..0
+	FeSquare(&t2, &t2)       // 200..1
 	for i = 1; i < 50; i++ { // 249..50
 		FeSquare(&t2, &t2)
 	}
-	FeMul(&t1, &t2, &t1) // 249..0
-	FeSquare(&t1, &t1)   // 250..1
+	FeMul(&t1, &t2, &t1)    // 249..0
+	FeSquare(&t1, &t1)      // 250..1
 	for i = 1; i < 5; i++ { // 254..5
 		FeSquare(&t1, &t1)
 	}
@@ -2217,246 +2218,6 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 //   s[0]+256*s[1]+...+256^31*s[31] = a+b mod l
 //   where l = 2^252 + 27742317777372353535851937790883648493.
 func ScAdd(out *[32]byte, a, b *[32]byte) {
-    a0 := 2097151 & load3(a[:])
-    a1 := 2097151 & (load4(a[2:]) >> 5)
-    a2 := 2097151 & (load3(a[5:]) >> 2)
-    a3 := 2097151 & (load4(a[7:]) >> 7)
-    a4 := 2097151 & (load4(a[10:]) >> 4)
-    a5 := 2097151 & (load3(a[13:]) >> 1)
-    a6 := 2097151 & (load4(a[15:]) >> 6)
-    a7 := 2097151 & (load3(a[18:]) >> 3)
-    a8 := 2097151 & load3(a[21:])
-    a9 := 2097151 & (load4(a[23:]) >> 5)
-    a10 := 2097151 & (load3(a[26:]) >> 2)
-    a11 := (load4(a[28:]) >> 7)
-    b0 := 2097151 & load3(b[:])
-    b1 := 2097151 & (load4(b[2:]) >> 5)
-    b2 := 2097151 & (load3(b[5:]) >> 2)
-    b3 := 2097151 & (load4(b[7:]) >> 7)
-    b4 := 2097151 & (load4(b[10:]) >> 4)
-    b5 := 2097151 & (load3(b[13:]) >> 1)
-    b6 := 2097151 & (load4(b[15:]) >> 6)
-    b7 := 2097151 & (load3(b[18:]) >> 3)
-    b8 := 2097151 & load3(b[21:])
-    b9 := 2097151 & (load4(b[23:]) >> 5)
-    b10 := 2097151 & (load3(b[26:]) >> 2)
-    b11 := (load4(b[28:]) >> 7)
-    s0 := a0 + b0
-    s1 := a1 + b1
-    s2 := a2 + b2
-    s3 := a3 + b3
-    s4 := a4 + b4
-    s5 := a5 + b5
-    s6 := a6 + b6
-    s7 := a7 + b7
-    s8 := a8 + b8
-    s9 := a9 + b9
-    s10 := a10 + b10
-    s11 := a11 + b11
-    s12 := int64(0)
-    var carry [12]int64
-
-    carry[0] = (s0 + (1<<20)) >> 21
-    s1 += carry[0]
-    s0 -= carry[0] << 21
-
-    carry[2] = (s2 + (1<<20)) >> 21
-    s3 += carry[2]
-    s2 -= carry[2] << 21
-
-    carry[4] = (s4 + (1<<20)) >> 21
-    s5 += carry[4]
-    s4 -= carry[4] << 21
-
-    carry[6] = (s6 + (1<<20)) >> 21
-    s7 += carry[6]
-    s6 -= carry[6] << 21
-
-    carry[8] = (s8 + (1<<20)) >> 21
-    s9 += carry[8]
-    s8 -= carry[8] << 21
-
-    carry[10] = (s10 + (1<<20)) >> 21
-    s11 += carry[10]
-    s10 -= carry[10] << 21
-
-    carry[1] = (s1 + (1<<20)) >> 21
-    s2 += carry[1]
-    s1 -= carry[1] << 21
-
-    carry[3] = (s3 + (1<<20)) >> 21
-    s4 += carry[3]
-    s3 -= carry[3] << 21
-
-    carry[5] = (s5 + (1<<20)) >> 21
-    s6 += carry[5]
-    s5 -= carry[5] << 21
-
-    carry[7] = (s7 + (1<<20)) >> 21
-    s8 += carry[7]
-    s7 -= carry[7] << 21
-
-    carry[9] = (s9 + (1<<20)) >> 21
-    s10 += carry[9]
-    s9 -= carry[9] << 21
-
-    carry[11] = (s11 + (1<<20)) >> 21
-    s12 += carry[11]
-    s11 -= carry[11] << 21
-
-    s0 += s12 * 666643
-    s1 += s12 * 470296
-    s2 += s12 * 654183
-    s3 -= s12 * 997805
-    s4 += s12 * 136657
-    s5 -= s12 * 683901
-    s12 = 0
-
-    carry[0] = s0 >> 21
-    s1 += carry[0]
-    s0 -= carry[0] << 21
-
-    carry[1] = s1 >> 21
-    s2 += carry[1]
-    s1 -= carry[1] << 21
-
-    carry[2] = s2 >> 21
-    s3 += carry[2]
-    s2 -= carry[2] << 21
-
-    carry[3] = s3 >> 21
-    s4 += carry[3]
-    s3 -= carry[3] << 21
-
-    carry[4] = s4 >> 21
-    s5 += carry[4]
-    s4 -= carry[4] << 21
-
-    carry[5] = s5 >> 21
-    s6 += carry[5]
-    s5 -= carry[5] << 21
-
-    carry[6] = s6 >> 21
-    s7 += carry[6]
-    s6 -= carry[6] << 21
-
-    carry[7] = s7 >> 21
-    s8 += carry[7]
-    s7 -= carry[7] << 21
-
-    carry[8] = s8 >> 21
-    s9 += carry[8]
-    s8 -= carry[8] << 21
-
-    carry[9] = s9 >> 21
-    s10 += carry[9]
-    s9 -= carry[9] << 21
-
-    carry[10] = s10 >> 21
-    s11 += carry[10]
-    s10 -= carry[10] << 21
-
-    carry[11] = s11 >> 21
-    s12 += carry[11]
-    s11 -= carry[11] << 21
-
-
-    s0 += s12 * 666643
-    s1 += s12 * 470296
-    s2 += s12 * 654183
-    s3 -= s12 * 997805
-    s4 += s12 * 136657
-    s5 -= s12 * 683901
-
-    carry[0] = s0 >> 21
-    s1 += carry[0]
-    s0 -= carry[0] << 21
-
-    carry[1] = s1 >> 21
-    s2 += carry[1]
-    s1 -= carry[1] << 21
-
-    carry[2] = s2 >> 21
-    s3 += carry[2]
-    s2 -= carry[2] << 21
-
-    carry[2] = s2 >> 21
-    s3 += carry[2]
-    s2 -= carry[2] << 21
-
-    carry[3] = s3 >> 21
-    s4 += carry[3]
-    s3 -= carry[3] << 21
-
-    carry[4] = s4 >> 21
-    s5 += carry[4]
-    s4 -= carry[4] << 21
-
-    carry[5] = s5 >> 21
-    s6 += carry[5]
-    s5 -= carry[5] << 21
-
-    carry[6] = s6 >> 21
-    s7 += carry[6]
-    s6 -= carry[6] << 21
-
-    carry[7] = s7 >> 21
-    s8 += carry[7]
-    s7 -= carry[7] << 21
-
-    carry[8] = s8 >> 21
-    s9 += carry[8]
-    s8 -= carry[8] << 21
-
-    carry[9] = s9 >> 21
-    s10 += carry[9]
-    s9 -= carry[9] << 21
-
-    carry[10] = s10 >> 21
-    s11 += carry[10]
-    s10 -= carry[10] << 21
-
-    out[0] = byte((s0 >> 0))
-    out[1] = byte((s0 >> 8))
-    out[2] = byte(((s0 >> 16) | (s1 << 5)))
-    out[3] = byte((s1 >> 3))
-    out[4] = byte((s1 >> 11))
-    out[5] = byte(((s1 >> 19) | (s2 << 2)))
-    out[6] = byte((s2 >> 6))
-    out[7] = byte(((s2 >> 14) | (s3 << 7)))
-    out[8] = byte((s3 >> 1))
-    out[9] = byte((s3 >> 9))
-    out[10] = byte(((s3 >> 17) | (s4 << 4)))
-    out[11] = byte((s4 >> 4))
-    out[12] = byte((s4 >> 12))
-    out[13] = byte(((s4 >> 20) | (s5 << 1)))
-    out[14] = byte((s5 >> 7))
-    out[15] = byte(((s5 >> 15) | (s6 << 6)))
-    out[16] = byte((s6 >> 2))
-    out[17] = byte((s6 >> 10))
-    out[18] = byte(((s6 >> 18) | (s7 << 3)))
-    out[19] = byte((s7 >> 5))
-    out[20] = byte((s7 >> 13))
-    out[21] = byte((s8 >> 0))
-    out[22] = byte((s8 >> 8))
-    out[23] = byte(((s8 >> 16) | (s9 << 5)))
-    out[24] = byte((s9 >> 3))
-    out[25] = byte((s9 >> 11))
-    out[26] = byte(((s9 >> 19) | (s10 << 2)))
-    out[27] = byte((s10 >> 6))
-    out[28] = byte(((s10 >> 14) | (s11 << 7)))
-    out[29] = byte((s11 >> 1))
-    out[30] = byte((s11 >> 9))
-    out[31] = byte((s11 >> 17))
-}
-
-// Input:
-//   s[0]+256*s[1]+...+256^31*s[31] = a
-//   s[0]+256*s[1]+...+256^31*s[31] = b
-// Output:
-//   s[0]+256*s[1]+...+256^31*s[31] = a-b mod l
-//   where l = 2^252 + 27742317777372353535851937790883648493.
-func ScSub(out *[32]byte, a, b *[32]byte) {
 	a0 := 2097151 & load3(a[:])
 	a1 := 2097151 & (load4(a[2:]) >> 5)
 	a2 := 2097151 & (load3(a[5:]) >> 2)
@@ -2481,66 +2242,66 @@ func ScSub(out *[32]byte, a, b *[32]byte) {
 	b9 := 2097151 & (load4(b[23:]) >> 5)
 	b10 := 2097151 & (load3(b[26:]) >> 2)
 	b11 := (load4(b[28:]) >> 7)
-	s0 := a0 - b0
-	s1 := a1 - b1
-	s2 := a2 - b2
-	s3 := a3 - b3
-	s4 := a4 - b4
-	s5 := a5 - b5
-	s6 := a6 - b6
-	s7 := a7 - b7
-	s8 := a8 - b8
-	s9 := a9 - b9
-	s10 := a10 - b10
-	s11 := a11 - b11
+	s0 := a0 + b0
+	s1 := a1 + b1
+	s2 := a2 + b2
+	s3 := a3 + b3
+	s4 := a4 + b4
+	s5 := a5 + b5
+	s6 := a6 + b6
+	s7 := a7 + b7
+	s8 := a8 + b8
+	s9 := a9 + b9
+	s10 := a10 + b10
+	s11 := a11 + b11
 	s12 := int64(0)
 	var carry [12]int64
 
-	carry[0] = (s0 + (1<<20)) >> 21
+	carry[0] = (s0 + (1 << 20)) >> 21
 	s1 += carry[0]
 	s0 -= carry[0] << 21
 
-	carry[2] = (s2 + (1<<20)) >> 21
+	carry[2] = (s2 + (1 << 20)) >> 21
 	s3 += carry[2]
 	s2 -= carry[2] << 21
 
-	carry[4] = (s4 + (1<<20)) >> 21
+	carry[4] = (s4 + (1 << 20)) >> 21
 	s5 += carry[4]
 	s4 -= carry[4] << 21
 
-	carry[6] = (s6 + (1<<20)) >> 21
+	carry[6] = (s6 + (1 << 20)) >> 21
 	s7 += carry[6]
 	s6 -= carry[6] << 21
 
-	carry[8] = (s8 + (1<<20)) >> 21
+	carry[8] = (s8 + (1 << 20)) >> 21
 	s9 += carry[8]
 	s8 -= carry[8] << 21
 
-	carry[10] = (s10 + (1<<20)) >> 21
+	carry[10] = (s10 + (1 << 20)) >> 21
 	s11 += carry[10]
 	s10 -= carry[10] << 21
 
-	carry[1] = (s1 + (1<<20)) >> 21
+	carry[1] = (s1 + (1 << 20)) >> 21
 	s2 += carry[1]
 	s1 -= carry[1] << 21
 
-	carry[3] = (s3 + (1<<20)) >> 21
+	carry[3] = (s3 + (1 << 20)) >> 21
 	s4 += carry[3]
 	s3 -= carry[3] << 21
 
-	carry[5] = (s5 + (1<<20)) >> 21
+	carry[5] = (s5 + (1 << 20)) >> 21
 	s6 += carry[5]
 	s5 -= carry[5] << 21
 
-	carry[7] = (s7 + (1<<20)) >> 21
+	carry[7] = (s7 + (1 << 20)) >> 21
 	s8 += carry[7]
 	s7 -= carry[7] << 21
 
-	carry[9] = (s9 + (1<<20)) >> 21
+	carry[9] = (s9 + (1 << 20)) >> 21
 	s10 += carry[9]
 	s9 -= carry[9] << 21
 
-	carry[11] = (s11 + (1<<20)) >> 21
+	carry[11] = (s11 + (1 << 20)) >> 21
 	s12 += carry[11]
 	s11 -= carry[11] << 21
 
@@ -2600,6 +2361,244 @@ func ScSub(out *[32]byte, a, b *[32]byte) {
 	s12 += carry[11]
 	s11 -= carry[11] << 21
 
+	s0 += s12 * 666643
+	s1 += s12 * 470296
+	s2 += s12 * 654183
+	s3 -= s12 * 997805
+	s4 += s12 * 136657
+	s5 -= s12 * 683901
+
+	carry[0] = s0 >> 21
+	s1 += carry[0]
+	s0 -= carry[0] << 21
+
+	carry[1] = s1 >> 21
+	s2 += carry[1]
+	s1 -= carry[1] << 21
+
+	carry[2] = s2 >> 21
+	s3 += carry[2]
+	s2 -= carry[2] << 21
+
+	carry[2] = s2 >> 21
+	s3 += carry[2]
+	s2 -= carry[2] << 21
+
+	carry[3] = s3 >> 21
+	s4 += carry[3]
+	s3 -= carry[3] << 21
+
+	carry[4] = s4 >> 21
+	s5 += carry[4]
+	s4 -= carry[4] << 21
+
+	carry[5] = s5 >> 21
+	s6 += carry[5]
+	s5 -= carry[5] << 21
+
+	carry[6] = s6 >> 21
+	s7 += carry[6]
+	s6 -= carry[6] << 21
+
+	carry[7] = s7 >> 21
+	s8 += carry[7]
+	s7 -= carry[7] << 21
+
+	carry[8] = s8 >> 21
+	s9 += carry[8]
+	s8 -= carry[8] << 21
+
+	carry[9] = s9 >> 21
+	s10 += carry[9]
+	s9 -= carry[9] << 21
+
+	carry[10] = s10 >> 21
+	s11 += carry[10]
+	s10 -= carry[10] << 21
+
+	out[0] = byte((s0 >> 0))
+	out[1] = byte((s0 >> 8))
+	out[2] = byte(((s0 >> 16) | (s1 << 5)))
+	out[3] = byte((s1 >> 3))
+	out[4] = byte((s1 >> 11))
+	out[5] = byte(((s1 >> 19) | (s2 << 2)))
+	out[6] = byte((s2 >> 6))
+	out[7] = byte(((s2 >> 14) | (s3 << 7)))
+	out[8] = byte((s3 >> 1))
+	out[9] = byte((s3 >> 9))
+	out[10] = byte(((s3 >> 17) | (s4 << 4)))
+	out[11] = byte((s4 >> 4))
+	out[12] = byte((s4 >> 12))
+	out[13] = byte(((s4 >> 20) | (s5 << 1)))
+	out[14] = byte((s5 >> 7))
+	out[15] = byte(((s5 >> 15) | (s6 << 6)))
+	out[16] = byte((s6 >> 2))
+	out[17] = byte((s6 >> 10))
+	out[18] = byte(((s6 >> 18) | (s7 << 3)))
+	out[19] = byte((s7 >> 5))
+	out[20] = byte((s7 >> 13))
+	out[21] = byte((s8 >> 0))
+	out[22] = byte((s8 >> 8))
+	out[23] = byte(((s8 >> 16) | (s9 << 5)))
+	out[24] = byte((s9 >> 3))
+	out[25] = byte((s9 >> 11))
+	out[26] = byte(((s9 >> 19) | (s10 << 2)))
+	out[27] = byte((s10 >> 6))
+	out[28] = byte(((s10 >> 14) | (s11 << 7)))
+	out[29] = byte((s11 >> 1))
+	out[30] = byte((s11 >> 9))
+	out[31] = byte((s11 >> 17))
+}
+
+// Input:
+//   s[0]+256*s[1]+...+256^31*s[31] = a
+//   s[0]+256*s[1]+...+256^31*s[31] = b
+// Output:
+//   s[0]+256*s[1]+...+256^31*s[31] = a-b mod l
+//   where l = 2^252 + 27742317777372353535851937790883648493.
+func ScSub(out *[32]byte, a, b *[32]byte) {
+	a0 := 2097151 & load3(a[:])
+	a1 := 2097151 & (load4(a[2:]) >> 5)
+	a2 := 2097151 & (load3(a[5:]) >> 2)
+	a3 := 2097151 & (load4(a[7:]) >> 7)
+	a4 := 2097151 & (load4(a[10:]) >> 4)
+	a5 := 2097151 & (load3(a[13:]) >> 1)
+	a6 := 2097151 & (load4(a[15:]) >> 6)
+	a7 := 2097151 & (load3(a[18:]) >> 3)
+	a8 := 2097151 & load3(a[21:])
+	a9 := 2097151 & (load4(a[23:]) >> 5)
+	a10 := 2097151 & (load3(a[26:]) >> 2)
+	a11 := (load4(a[28:]) >> 7)
+	b0 := 2097151 & load3(b[:])
+	b1 := 2097151 & (load4(b[2:]) >> 5)
+	b2 := 2097151 & (load3(b[5:]) >> 2)
+	b3 := 2097151 & (load4(b[7:]) >> 7)
+	b4 := 2097151 & (load4(b[10:]) >> 4)
+	b5 := 2097151 & (load3(b[13:]) >> 1)
+	b6 := 2097151 & (load4(b[15:]) >> 6)
+	b7 := 2097151 & (load3(b[18:]) >> 3)
+	b8 := 2097151 & load3(b[21:])
+	b9 := 2097151 & (load4(b[23:]) >> 5)
+	b10 := 2097151 & (load3(b[26:]) >> 2)
+	b11 := (load4(b[28:]) >> 7)
+	s0 := a0 - b0
+	s1 := a1 - b1
+	s2 := a2 - b2
+	s3 := a3 - b3
+	s4 := a4 - b4
+	s5 := a5 - b5
+	s6 := a6 - b6
+	s7 := a7 - b7
+	s8 := a8 - b8
+	s9 := a9 - b9
+	s10 := a10 - b10
+	s11 := a11 - b11
+	s12 := int64(0)
+	var carry [12]int64
+
+	carry[0] = (s0 + (1 << 20)) >> 21
+	s1 += carry[0]
+	s0 -= carry[0] << 21
+
+	carry[2] = (s2 + (1 << 20)) >> 21
+	s3 += carry[2]
+	s2 -= carry[2] << 21
+
+	carry[4] = (s4 + (1 << 20)) >> 21
+	s5 += carry[4]
+	s4 -= carry[4] << 21
+
+	carry[6] = (s6 + (1 << 20)) >> 21
+	s7 += carry[6]
+	s6 -= carry[6] << 21
+
+	carry[8] = (s8 + (1 << 20)) >> 21
+	s9 += carry[8]
+	s8 -= carry[8] << 21
+
+	carry[10] = (s10 + (1 << 20)) >> 21
+	s11 += carry[10]
+	s10 -= carry[10] << 21
+
+	carry[1] = (s1 + (1 << 20)) >> 21
+	s2 += carry[1]
+	s1 -= carry[1] << 21
+
+	carry[3] = (s3 + (1 << 20)) >> 21
+	s4 += carry[3]
+	s3 -= carry[3] << 21
+
+	carry[5] = (s5 + (1 << 20)) >> 21
+	s6 += carry[5]
+	s5 -= carry[5] << 21
+
+	carry[7] = (s7 + (1 << 20)) >> 21
+	s8 += carry[7]
+	s7 -= carry[7] << 21
+
+	carry[9] = (s9 + (1 << 20)) >> 21
+	s10 += carry[9]
+	s9 -= carry[9] << 21
+
+	carry[11] = (s11 + (1 << 20)) >> 21
+	s12 += carry[11]
+	s11 -= carry[11] << 21
+
+	s0 += s12 * 666643
+	s1 += s12 * 470296
+	s2 += s12 * 654183
+	s3 -= s12 * 997805
+	s4 += s12 * 136657
+	s5 -= s12 * 683901
+	s12 = 0
+
+	carry[0] = s0 >> 21
+	s1 += carry[0]
+	s0 -= carry[0] << 21
+
+	carry[1] = s1 >> 21
+	s2 += carry[1]
+	s1 -= carry[1] << 21
+
+	carry[2] = s2 >> 21
+	s3 += carry[2]
+	s2 -= carry[2] << 21
+
+	carry[3] = s3 >> 21
+	s4 += carry[3]
+	s3 -= carry[3] << 21
+
+	carry[4] = s4 >> 21
+	s5 += carry[4]
+	s4 -= carry[4] << 21
+
+	carry[5] = s5 >> 21
+	s6 += carry[5]
+	s5 -= carry[5] << 21
+
+	carry[6] = s6 >> 21
+	s7 += carry[6]
+	s6 -= carry[6] << 21
+
+	carry[7] = s7 >> 21
+	s8 += carry[7]
+	s7 -= carry[7] << 21
+
+	carry[8] = s8 >> 21
+	s9 += carry[8]
+	s8 -= carry[8] << 21
+
+	carry[9] = s9 >> 21
+	s10 += carry[9]
+	s9 -= carry[9] << 21
+
+	carry[10] = s10 >> 21
+	s11 += carry[10]
+	s10 -= carry[10] << 21
+
+	carry[11] = s11 >> 21
+	s12 += carry[11]
+	s11 -= carry[11] << 21
 
 	s0 += s12 * 666643
 	s1 += s12 * 470296
@@ -2691,16 +2690,16 @@ func ScSub(out *[32]byte, a, b *[32]byte) {
 }
 
 func signum(a int64) int64 {
-    return (a >> 63) - ((-a) >> 63)
+	return (a >> 63) - ((-a) >> 63)
 }
 func ScCheck(s *[32]byte) bool {
-    s0 := load4(s[:])
-    s1 := load4(s[4:])
-    s2 := load4(s[8:])
-    s3 := load4(s[12:])
-    s4 := load4(s[16:])
-    s5 := load4(s[20:])
-    s6 := load4(s[24:])
-    s7 := load4(s[28:])
-    return 0 == (int) ((signum(1559614444 - s0) + (signum(1477600026 - s1) << 1) + (signum(2734136534 - s2) << 2) + (signum(350157278 - s3) << 3) + (signum(-s4) << 4) + (signum(-s5) << 5) + (signum(-s6) << 6) + (signum(268435456 - s7) << 7)) >> 8)
+	s0 := load4(s[:])
+	s1 := load4(s[4:])
+	s2 := load4(s[8:])
+	s3 := load4(s[12:])
+	s4 := load4(s[16:])
+	s5 := load4(s[20:])
+	s6 := load4(s[24:])
+	s7 := load4(s[28:])
+	return 0 == (int)((signum(1559614444-s0)+(signum(1477600026-s1)<<1)+(signum(2734136534-s2)<<2)+(signum(350157278-s3)<<3)+(signum(-s4)<<4)+(signum(-s5)<<5)+(signum(-s6)<<6)+(signum(268435456-s7)<<7))>>8)
 }

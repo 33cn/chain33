@@ -95,7 +95,7 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 		set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
 	}
-    //保存隐私交易
+	//保存隐私交易
 	if types.PrivacyX == string(tx.Execer) {
 		privacykey := CalcPrivacyTxHashKey(TxIndexPrivacy, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{privacykey, txinfobyte})
@@ -179,7 +179,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	}
 	//非coins 或token 模块的 ToAddr 指向合约
 	exec := string(tx.Execer)
-	if exec != "coins" && exec != "token" && exec != "privacy" && ExecAddress(exec) != tx.To {
+	if exec != "coins" && exec != "token" && exec != types.PrivacyX && ExecAddress(exec) != tx.To {
 		return nil, types.ErrToAddrNotSameToExecAddr
 	}
 	return nil, nil

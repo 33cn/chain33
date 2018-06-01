@@ -17,7 +17,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/version"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/piotrnar/gocoin/lib/utxo"
 )
 
 func main() {
@@ -680,6 +679,16 @@ type ReceiptExecAccountTransfer struct {
 	ExecAddr string         `protobuf:"bytes,1,opt,name=execAddr" json:"execAddr,omitempty"`
 	Prev     *AccountResult `protobuf:"bytes,2,opt,name=prev" json:"prev,omitempty"`
 	Current  *AccountResult `protobuf:"bytes,3,opt,name=current" json:"current,omitempty"`
+}
+
+type KeyOutput struct {
+	Amount        string `json:"amount,omitempty"`
+	Onetimepubkey []byte `json:"onetimepubkey,omitempty"`
+}
+
+type ReceiptPrivacyOutput struct {
+	Token     string       `json:"token,omitempty"`
+	Keyoutput []*KeyOutput `json:"keyoutput,omitempty"`
 }
 
 type TxDetailResult struct {
@@ -2071,6 +2080,16 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
 			}
 		}
+		if _, ok := payloadValue["Public2Privacy"]; ok {
+			output := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Public2Privacy"].(map[string]interface{})["output"]
+			keyoutput := output.(map[string]interface{})["keyoutput"].([]interface{})
+			for _, value := range keyoutput {
+				amt := value.(map[string]interface{})["amount"].(float64) / float64(types.Coin)
+				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+				value.(map[string]interface{})["amount"] = amtResult
+			}
+			fmt.Println(output, keyoutput)
+		}
 	}
 	if tx.Amount != 0 {
 		result.Amount = amountResult
@@ -2670,6 +2689,14 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
+		case types.TyLogPrivacyOutput:
+			{
+				receiptOutput := &ReceiptPrivacyOutput{
+					Token:     decodePrivacyOutputToken(l, "token"),
+					Keyoutput: decodePrivacyKeyOutput(l, "keyoutput"),
+				}
+				rl.Log = receiptOutput
+			}
 		default:
 			// fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			rl.Log = nil
@@ -3078,4 +3105,29 @@ func CreateUTXOs(args []string) {
 	}
 
 	fmt.Println(string(data))
+}
+
+func decodePrivacyOutputToken(l *jsonrpc.ReceiptLogResult, key string) string {
+	var token string
+	if tmp, ok := l.Log.(map[string]interface{})[key].(string); ok {
+		token = tmp
+	}
+	return token
+}
+
+func decodePrivacyKeyOutput(l *jsonrpc.ReceiptLogResult, key string) []*KeyOutput {
+	ret := make([]*KeyOutput, 0)
+	keyoutput := l.Log.(map[string]interface{})[key].([]interface{})
+	for _, tmp2 := range keyoutput {
+		output := &KeyOutput{}
+		ret = append(ret, output)
+
+		if value, ok := tmp2.(map[string]interface{})["amount"]; ok {
+			output.Amount = strconv.FormatFloat(value.(float64)/float64(types.TokenPrecision), 'f', 4, 64)
+		}
+		if value, ok := tmp2.(map[string]interface{})["onetimepubkey"].(string); ok {
+			output.Onetimepubkey = []byte(value)
+		}
+	}
+	return ret
 }

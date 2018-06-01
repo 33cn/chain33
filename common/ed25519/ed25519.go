@@ -12,8 +12,8 @@ package ed25519
 import (
 	"crypto/sha512"
 	"crypto/subtle"
-	"io"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
+	"io"
 )
 
 const (

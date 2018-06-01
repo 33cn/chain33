@@ -2,12 +2,11 @@ package privacy
 
 import (
 	"bytes"
-	"unsafe"
-	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
+	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
+	"unsafe"
 )
-
 
 type PrivKeyPrivacy [PrivateKeyLen]byte
 
@@ -19,7 +18,7 @@ func (privKey PrivKeyPrivacy) Sign(msg []byte) Signature {
 
 	temp := new([64]byte)
 	randomScalar := new([32]byte)
-    copy(temp[:], CRandBytes(64))
+	copy(temp[:], CRandBytes(64))
 	edwards25519.ScReduce(randomScalar, temp)
 
 	var sigcommdata sigcommArray
@@ -40,7 +39,7 @@ func (privKey PrivKeyPrivacy) Sign(msg []byte) Signature {
 	addr32Priv := (*[KeyLen32]byte)(unsafe.Pointer(&privKey))
 	edwards25519.ScMulSub(addr32Latter, addr32, addr32Priv, randomScalar)
 
-    return sigOnetime
+	return sigOnetime
 }
 
 func (privKey PrivKeyPrivacy) PubKey() PubKey {
@@ -66,4 +65,3 @@ func (privKey PrivKeyPrivacy) Equals(other PrivKey) bool {
 		return false
 	}
 }
-

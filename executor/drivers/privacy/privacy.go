@@ -188,7 +188,8 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
-	queryDB := p.GetQueryDB()
+
+	queryDB := p.GetLocalDB()
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
@@ -210,7 +211,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					Txindex:       int32(index),
 					Outindex:      int32(i),
 					Txhash:        txhashInByte,
-					Ometimepubkey: keyOutput.Ometimepubkey,
+					Onetimepubkey: keyOutput.Onetimepubkey,
 				}
 				value := types.Encode(localUTXOItem)
 				kv := &types.KeyValue{key, value}
@@ -219,9 +220,9 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 				//kv2，添加各种不同额度的kv记录，能让我们很方便的获知本系统存在的所有不同的额度的UTXO
 				var amountTypes types.AmountsOfUTXO
 				key2 := CalcprivacyKeyTokenAmountType(token)
-				value2 := queryDB.Get(key2)
+				value2, err := queryDB.Get(key2)
 				//如果该种token不是第一次进行隐私操作
-				if value2 != nil {
+				if err==nil && value2!=nil {
 					err := types.Decode(value2, &amountTypes)
 					if err == nil {
 						//当本地数据库不存在这个额度时，则进行添加
@@ -232,6 +233,8 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 							//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
 							queryDB.Set(key2, types.Encode(&amountTypes))
 						}
+					} else {
+						panic(err)
 					}
 				} else {
 					//如果该种token第一次进行隐私操作
@@ -245,8 +248,8 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 				//kv3,添加存在隐私交易token的类型
 				var tokenNames types.TokenNamesOfUTXO
 				key3 := CalcprivacyKeyTokenTypes()
-				value3 := queryDB.Get(key3)
-				if value3 != nil {
+				value3, err := queryDB.Get(key3)
+				if err == nil && value3!=nil{
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
 						if _, ok := tokenNames.TokensMap[token]; !ok {
