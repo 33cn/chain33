@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 func TestDecodeUserWrite(t *testing.T) {
@@ -55,6 +56,10 @@ func TestDecodeTx(t *testing.T) {
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 }
+
+
+
+
 
 func TestDecodeLogErr(t *testing.T) {
 	enc := "0001020304050607"
@@ -1077,6 +1082,127 @@ func TestChain33_QueryTransaction(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 
+
+
+
+func TestChain33_QueryTransactionOk(t *testing.T) {
+	data := QueryParm{
+		Hash: "",
+	}
+
+	var act = &types.TicketAction{
+		Ty:1,
+	}
+	payload := types.Encode(act)
+	var tx = &types.Transaction{
+		Execer:[]byte("ticket"),
+		Payload:payload,
+	}
+
+	var logTmp = &types.ReceiptAccountTransfer{}
+
+	dec := types.Encode(logTmp)
+
+	strdec := hex.EncodeToString(dec)
+	strdec = "0x"+strdec
+
+	rlog := &types.ReceiptLog{
+		Ty:  types.TyLogTransfer,
+		Log: []byte(strdec),
+	}
+
+	logs := []*types.ReceiptLog{}
+	logs = append(logs, rlog)
+
+	var rdata = &types.ReceiptData{
+		Ty:   5,
+		Logs: logs,
+	}
+	reply := types.TransactionDetail{
+		Tx:tx,
+		Receipt:rdata,
+		Height:10,
+	}
+
+	api := new(mocks.QueueProtocolAPI)
+	api.On("QueryTx", &types.ReqHash{}).Return(&reply, nil)
+	testChain33 := newTestChain33(api)
+	var testResult interface{}
+
+	err := testChain33.QueryTransaction(data, &testResult)
+	t.Log(err)
+	assert.Nil(t, err)
+	assert.Equal(t, testResult.(*TransactionDetail).Height, reply.Height)
+	assert.Equal(t, testResult.(*TransactionDetail).Tx.Execer, string(tx.Execer))
+
+
+	mock.AssertExpectationsForObjects(t, api)
+}
+
+func TestChain33_GetTxByHashesOk(t *testing.T) {
+	var act = &types.TokenAction{
+		Ty:1,
+	}
+	payload := types.Encode(act)
+	var tx = &types.Transaction{
+		Execer:[]byte("token"),
+		Payload:payload,
+	}
+
+	var logTmp = &types.ReceiptAccountTransfer{}
+
+	dec := types.Encode(logTmp)
+
+	strdec := hex.EncodeToString(dec)
+	strdec = "0x"+strdec
+
+	rlog := &types.ReceiptLog{
+		Ty:  types.TyLogTransfer,
+		Log: []byte(strdec),
+	}
+
+	logs := []*types.ReceiptLog{}
+	logs = append(logs, rlog)
+
+	var rdata = &types.ReceiptData{
+		Ty:   5,
+		Logs: logs,
+	}
+	detail := &types.TransactionDetail{
+		Tx:tx,
+		Receipt:rdata,
+		Height:10,
+	}
+
+	reply := &types.TransactionDetails{}
+	reply.Txs = append(reply.Txs, detail)
+
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+
+	var parm types.ReqHashes
+	parm.Hashes = make([][]byte, 0)
+	hashs := make([]string,0)
+	hashs = append(hashs,"")
+	data := ReqHashes{Hashes: hashs}
+	hb, _ := common.FromHex(data.Hashes[0])
+	parm.Hashes = append(parm.Hashes, hb)
+
+	api.On("GetTransactionByHash", &parm).Return(reply, nil)
+	var testResult interface{}
+
+	err := testChain33.GetTxByHashes(data, &testResult)
+	t.Log(err)
+	assert.Nil(t, err)
+	assert.Equal(t, testResult.(*TransactionDetails).Txs[0].Height, reply.Txs[0].Height)
+	assert.Equal(t, testResult.(*TransactionDetails).Txs[0].Tx.Execer, string(tx.Execer))
+
+
+	mock.AssertExpectationsForObjects(t, api)
+}
+
+
+
 func TestChain33_GetBlocks(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(nil, errors.New("error value"))
@@ -1090,6 +1216,61 @@ func TestChain33_GetBlocks(t *testing.T) {
 
 	mock.AssertExpectationsForObjects(t, api)
 }
+
+func TestChain33_GetBlocksOk(t *testing.T) {
+	var act = &types.TokenAction{
+		Ty:1,
+	}
+	payload := types.Encode(act)
+	var tx = &types.Transaction{
+		Execer:[]byte("token"),
+		Payload:payload,
+	}
+
+	var logTmp = &types.ReceiptAccountTransfer{}
+	dec := types.Encode(logTmp)
+	strdec := hex.EncodeToString(dec)
+	strdec = "0x"+strdec
+	rlog := &types.ReceiptLog{
+		Ty:  types.TyLogTransfer,
+		Log: []byte(strdec),
+	}
+	logs := []*types.ReceiptLog{}
+	logs = append(logs, rlog)
+
+	var rdata = &types.ReceiptData{
+		Ty:   5,
+		Logs: logs,
+	}
+
+
+	var block = &types.Block{
+		TxHash:[]byte(""),
+		Txs: []*types.Transaction{tx},
+	}
+	var blockdetail = &types.BlockDetail{
+		Block:block,
+		Receipts:[]*types.ReceiptData{rdata},
+	}
+	var blockdetails = &types.BlockDetails{
+		Items:[]*types.BlockDetail{blockdetail},
+	}
+
+
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(blockdetails, nil)
+	testChain33 := newTestChain33(api)
+	var testResult interface{}
+	data := BlockParam{}
+	err := testChain33.GetBlocks(data, &testResult)
+	t.Log(err)
+	assert.Nil(t, err)
+	assert.Equal(t, testResult.(*BlockDetails).Items[0].Block.Txs[0].Execer, string(tx.Execer))
+
+	mock.AssertExpectationsForObjects(t, api)
+}
+
+
 
 func TestChain33_GetLastHeader(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
@@ -1351,6 +1532,26 @@ func TestChain33_GetPeerInfo(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 
+func TestChain33_GetPeerInfoOk(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+
+	var peerlist types.PeerList
+	var pr = &types.Peer{
+		Addr:"abcdsd",
+	}
+	peerlist.Peers = append(peerlist.Peers, pr)
+
+
+	api.On("PeerInfo").Return(&peerlist, nil)
+	var testResult interface{}
+	var in types.ReqNil
+	_ = testChain33.GetPeerInfo(in, &testResult)
+	assert.Equal(t, testResult.(*PeerList).Peers[0].Addr, peerlist.Peers[0].Addr)
+}
+
+
+
 func TestChain33_GetHeaders(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
@@ -1367,6 +1568,28 @@ func TestChain33_GetHeaders(t *testing.T) {
 
 	mock.AssertExpectationsForObjects(t, api)
 }
+
+func TestChain33_GetHeadersOk(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+
+	var headers types.Headers
+	var header= &types.Header{
+		TxCount:10,
+	}
+	headers.Items = append(headers.Items, header)
+
+	expected := &types.ReqBlocks{}
+	api.On("GetHeaders", expected).Return(&headers, nil)
+
+	var testResult interface{}
+	actual := types.ReqBlocks{}
+	err := testChain33.GetHeaders(actual, &testResult)
+	assert.Nil(t, err)
+	assert.Equal(t, testResult.(*Headers).Items[0].TxCount, header.TxCount)
+
+}
+
 
 func TestChain33_GetLastMemPool(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
@@ -1385,6 +1608,35 @@ func TestChain33_GetLastMemPool(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 
+func TestChain33_GetLastMemPoolOk(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+
+	var txlist types.ReplyTxList
+	var action types.Trade
+	act := types.Encode(&action)
+	var tx = &types.Transaction{
+		Execer: []byte("trade"),
+		Payload:act,
+		To:"to",
+	}
+	txlist.Txs = append(txlist.Txs, tx)
+
+	// expected := &types.ReqBlocks{}
+	api.On("GetLastMempool").Return(&txlist, nil)
+
+	var testResult interface{}
+	actual := types.ReqNil{}
+	err := testChain33.GetLastMemPool(actual, &testResult)
+	assert.Nil(t, err)
+	assert.Equal(t, testResult.(*ReplyTxList).Txs[0].Execer, string(tx.Execer))
+
+	mock.AssertExpectationsForObjects(t, api)
+}
+
+
+
+
 func TestChain33_GetBlockOverview(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
@@ -1402,6 +1654,33 @@ func TestChain33_GetBlockOverview(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 
+func TestChain33_GetBlockOverviewOk(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+	var head = &types.Header{
+		Hash:[]byte("123456"),
+	}
+	var replyblock = &types.BlockOverview{
+		Head:head,
+		TxCount:1,
+	}
+
+	expected := &types.ReqHash{Hash:[]byte{0x12,0x34,0x56}}
+	api.On("GetBlockOverview", expected).Return(replyblock, nil)
+
+
+	var testResult interface{}
+	actual := QueryParm{Hash:"123456"}
+
+	err := testChain33.GetBlockOverview(actual, &testResult)
+	t.Log(err)
+	assert.Nil(t, err)
+	assert.Equal(t, testResult.(*BlockOverview).TxCount, replyblock.TxCount)
+	assert.Equal(t, testResult.(*BlockOverview).Head.Hash, common.ToHex(replyblock.Head.Hash))
+	mock.AssertExpectationsForObjects(t, api)
+}
+
+
 func TestChain33_GetAddrOverview(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
@@ -1418,6 +1697,9 @@ func TestChain33_GetAddrOverview(t *testing.T) {
 
 	// mock.AssertExpectationsForObjects(t, api)
 }
+
+
+
 
 func TestChain33_GetBlockHash(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
@@ -1520,6 +1802,9 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 //
 // 	mock.AssertExpectationsForObjects(t, api)
 // }
+
+
+
 
 // ----------------------------
 
