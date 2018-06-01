@@ -17,7 +17,7 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
-	_ "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
+	privExec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -213,14 +213,16 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	b := datas.Block
 	execute := newExecutor(b.StateHash, exec.client.Clone(), b.Height, b.BlockTime)
 	var kvset types.LocalDBSet
-	for i := 0; i < len(b.Txs); i++ {
+	privacyKV := &types.PrivacyKV{}
+	i := len(b.Txs) - 1
+	for ; i >= 0; i-- {
 		tx := b.Txs[i]
 		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
 		if err == types.ErrActionNotSupport {
 			continue
 		}
 		if err != nil {
-			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 			return
 		}
 
@@ -232,8 +234,38 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
+
+		//如果是隐私交易,且目的方为隐私地址，则需要将其KV单独挑出来，以供blockchain使用
+		if types.PrivacyX == string(tx.GetExecer()) {
+			var action types.PrivacyAction
+			if nil == types.Decode(tx.Payload, &action) {
+				if action.Ty == types.ActionPublic2Privacy ||  action.Ty == types.ActionPrivacy2Privacy {
+					privacyKVToken := &types.PrivacyKVToken{
+						TxIndex:int32(i),
+						Txhash:tx.Hash(),
+					}
+					for _, ele_kv := range kv.KV {
+						if bytes.Contains(ele_kv.Key, []byte(privExec.PrivacyUTXOKEYPrefix)){
+							privacyKVToken.KV = append(privacyKVToken.KV, ele_kv)
+						}
+					}
+
+					if pub2priv := action.GetPublic2Privacy(); pub2priv != nil {
+						privacyKVToken.Token = pub2priv.Tokenname
+					} else if priv2priv := action.GetPrivacy2Privacy(); priv2priv != nil{
+						privacyKVToken.Token = priv2priv.Tokenname
+					}
+					privacyKV.PrivacyKVToken = append(privacyKV.PrivacyKVToken, privacyKVToken)
+				}
+			}
+		}
 	}
-	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
+
+	localDBSetWithPrivacy := &types.LocalDBSetWithPrivacy {
+		LocalDBSet:&kvset,
+		PrivacyLocalDBSet:privacyKV,
+	}
+	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, localDBSetWithPrivacy))
 }
 
 func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {

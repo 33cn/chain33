@@ -599,9 +599,9 @@ message ReceiptPrivacyOutput {
 }
 
 message AmountsOfUTXO {
-    map<int64, bool> amountMap = 1;
+    map<int64, string> amountMap = 1;
 }
 
 message TokenNamesOfUTXO {
-    map<string, bool> tokensMap = 1;
+    map<string, string> tokensMap = 1;
 }
