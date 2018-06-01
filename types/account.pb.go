@@ -250,7 +250,6 @@ It has these top-level messages:
 	ReqPri2Pub
 	ReqCreateUTXOs
 	ReplyPrivacyPkPair
-	ReqPrivacyBalance
 	ReqPrivBal4AddrToken
 	ReplyPrivacyBalance
 	PrivacyDBStore

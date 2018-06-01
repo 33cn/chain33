@@ -636,15 +636,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccount, UTXOs))
 			}
-		case types.EventShowPrivacyTransfer:
-			reqAddrAndHash := msg.Data.(*types.ReqPrivacyBalance)
-			account, err := wallet.showPrivacyBalance(reqAddrAndHash)
-			if err != nil {
-				walletlog.Error("showPrivacyTransfer", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyTransfer, err))
-			} else {
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyTransfer, account))
-			}
 		case types.EventShowPrivacyPK:
 			reqAddr := msg.Data.(*types.ReqStr)
 			replyPrivacyPair, err := wallet.showPrivacyPkPair(reqAddr)
@@ -2536,40 +2527,6 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) ([]*t
 	}
 
 	return accRes, nil
-}
-
-func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivacyBalance) (*types.Account, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	privacyInfo, err := wallet.getPrivacykeyPair(req.GetAddr())
-	if err != nil {
-		return nil, err
-	}
-
-	R, err := wallet.GetRofPrivateTx(&req.Txhash)
-	if err != nil {
-		walletlog.Error("transPri2Pri", "Failed to GetRofPrivateTx")
-		return nil, err
-	}
-	//x = Hs(aR) + b
-	priv, err := privacy.RecoverOnetimePriKey(R, privacyInfo.ViewPrivKey, privacyInfo.SpendPrivKey, 0)
-	if err != nil {
-		walletlog.Error("transPri2Pri", "Failed to RecoverOnetimePriKey", err)
-		return nil, err
-	}
-	pub := priv.PubKey()
-
-	addrOneTime := account.PubKeyToAddress(pub.Bytes()[:]).String()
-
-	execaddress := account.ExecAddress(types.PrivacyX)
-	account, err := accountdb.LoadExecAccountQueue(wallet.client, addrOneTime, execaddress.String())
-	if err != nil {
-		walletlog.Error("showPrivacyBalance", "err", err.Error())
-		return nil, err
-	}
-
-	return account, nil
 }
 
 func (wallet *Wallet) showPrivacyPkPair(reqAddr *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
