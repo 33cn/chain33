@@ -1236,15 +1236,6 @@ func (c *Chain33) ShowPrivacyAccount(in types.ReqPrivBal4AddrToken, result *inte
 	return nil
 }
 
-func (c *Chain33) ShowPrivacyTransfer(in types.ReqPrivacyBalance, result *interface{}) error {
-	account, err := c.cli.ShowPrivacyTransfer(&in)
-	if err != nil {
-		return err
-	}
-	*result = account
-	return nil
-}
-
 func (c *Chain33) ShowPrivacykey(in types.ReqStr, result *interface{}) error {
 	reply, err := c.cli.ShowPrivacykey(&in)
 	if err != nil {
