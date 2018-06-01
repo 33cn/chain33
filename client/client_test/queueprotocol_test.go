@@ -61,6 +61,7 @@ func TestCoordinator(t *testing.T) {
 	testIsSync(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
+	testLocalList(t, api)
 	testGetLastHeader(t, api)
 }
 
@@ -72,9 +73,16 @@ func testGetLastHeader(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testLocalGet(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.LocalGet(&types.ReqHash{})
+	_, err := api.LocalGet(&types.LocalDBGet{})
 	if nil != err {
 		t.Error("Call LocalGet Failed.", err)
+	}
+}
+
+func testLocalList(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.LocalList(&types.LocalDBList{})
+	if nil != err {
+		t.Error("Call LocalList Failed.", err)
 	}
 }
 
@@ -856,3 +864,4 @@ func testSendTxGRPC(t *testing.T, rpc *mockGRPCSystem) {
 		t.Error("Call SendTransaction Failed.", err)
 	}
 }
+

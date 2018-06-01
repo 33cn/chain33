@@ -49,6 +49,8 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHashes{}))
 			case types.EventLocalGet:
 				msg.Reply(client.NewMessage(walletKey, types.EventLocalReplyValue, &types.LocalReplyValue{}))
+			case types.EventLocalList:
+				msg.Reply(client.NewMessage(walletKey, types.EventLocalReplyValue, &types.LocalReplyValue{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -58,3 +60,4 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 
 func (m *mockWallet) Close() {
 }
+

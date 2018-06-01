@@ -35,7 +35,9 @@ type QueueProtocolAPI interface {
 
 	// +++++++++++++++ wallet interfaces begin
 	// types.EventLocalGet
-	LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error)
+	LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error)
+	// types.EventLocalList
+	LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error)
 	// types.EventWalletGetAccountList
 	WalletGetAccountList() (*types.WalletAccounts, error)
 	// types.EventNewAccount
@@ -109,3 +111,4 @@ type QueueProtocolAPI interface {
 	// +++++++++++++++ other interfaces begin
 	// --------------- other interfaces end
 }
+
