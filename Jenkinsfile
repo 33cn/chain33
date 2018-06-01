@@ -25,8 +25,9 @@ pipeline {
         stage('build') {
             steps { 
                 dir("${PROJ_DIR}"){
+                    sh 'make auto_ci_before > /dev/null 2>&1'
                     sh 'make checkgofmt'
-                    sh 'make linter' 
+                    sh 'make linter'
                     // sh 'make build_ci'
                 }
             }
@@ -68,6 +69,7 @@ pipeline {
             mail to: "${gitlabUserEmail}",
                  subject: "Successed Pipeline: ${currentBuild.fullDisplayName}",
                  body: "this is success with ${env.BUILD_URL}"
+            make auto_ci_after
         }
 
         unstable {
