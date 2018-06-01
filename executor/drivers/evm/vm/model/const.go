@@ -9,7 +9,7 @@ const (
 	// 本执行器前缀
 	EvmPrefix = "user.evm."
 	// 本执行器名称
-	ExecutorName = "user.evm"
+	ExecutorName = "evm"
 
 	// 最大Gas消耗上限
 	MaxGasLimit = 10000000
