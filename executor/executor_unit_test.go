@@ -150,13 +150,13 @@ func constructionBlockDetail(block *types.Block, height int64, txcount int) *typ
 }
 
 func genExecTxListMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	return msg
 }
 
 func genExecCheckTxMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
 	msg := client.NewMessage("execs", types.EventCheckTx, list)
 	return msg
 }

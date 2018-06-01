@@ -883,6 +883,13 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			return nil, err
 		}
 		pl = &action
+	} else if "evm" == string(tx.Execer) {
+		var action types.EVMContractAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
@@ -1201,6 +1208,30 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 		case types.TyLogTokenGenesisDeposit:
 			lTy = "LogTokenGenesisDeposit"
 			var logTmp types.ReceiptExecAccountTransfer
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogCallContract:
+			lTy = "LogCallContract"
+			var logTmp types.ReceiptEVMContract
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogContractData:
+			lTy = "LogContractData"
+			var logTmp types.EVMContractData
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogContractState:
+			lTy = "LogContractState"
+			var logTmp types.EVMContractState
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
