@@ -159,7 +159,7 @@ func (self *ContractAccount) SetExecName(execName string) {
 
 func (self *ContractAccount) SetAliasName(alias string) {
 	if len(alias) == 0 {
-		log15.Error("SetExecName error", "execName", alias)
+		log15.Error("SetAliasName error", "aliasName", alias)
 		return
 	}
 	self.Data.Alias = alias

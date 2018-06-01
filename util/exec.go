@@ -6,7 +6,6 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -141,10 +140,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 }
 
 func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
-	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height, "", uint64(block.Difficulty)}
-	if block.GetSignature() != nil {
-		list.CoinBase = account.PubKeyToAddress(block.GetSignature().GetPubkey()).String()
-	}
+	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height, uint64(block.Difficulty)}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
