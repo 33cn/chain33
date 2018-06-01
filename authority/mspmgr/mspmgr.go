@@ -17,10 +17,11 @@ limitations under the License.
 package mspmgr
 
 import (
-	"sync"
-
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
+	"errors"
 )
+
+var localMsp MSP
 
 // LoadLocalMsp loads the local MSP from the specified directory
 func LoadLocalMsp(dir string, cryptoConf *cryptosuite.CryptoConfig) error {
@@ -29,42 +30,15 @@ func LoadLocalMsp(dir string, cryptoConf *cryptosuite.CryptoConfig) error {
 		return err
 	}
 
-	return GetLocalMSP().Setup(conf)
+	lclMsp, err := NewBccspMsp()
+	if err != nil {
+		mspLogger.Error("Failed to initialize local MSP, received err %s", err)
+		return errors.New("Failed to initialize local MSP")
+	}
+	localMsp = lclMsp
+	return localMsp.Setup(conf)
 }
 
-// FIXME: AS SOON AS THE CHAIN MANAGEMENT CODE IS COMPLETE,
-// THESE MAPS AND HELPSER FUNCTIONS SHOULD DISAPPEAR BECAUSE
-// OWNERSHIP OF PER-CHAIN MSP MANAGERS WILL BE HANDLED BY IT;
-// HOWEVER IN THE INTERIM, THESE HELPER FUNCTIONS ARE REQUIRED
-
-var m sync.Mutex
-var localMsp MSP
-
-// GetLocalMSP returns the local msp (and creates it if it doesn't exist)
 func GetLocalMSP() MSP {
-	var lclMsp MSP
-	var created bool = false
-	{
-		m.Lock()
-		defer m.Unlock()
-
-		lclMsp = localMsp
-		if lclMsp == nil {
-			var err error
-			created = true
-			lclMsp, err = NewBccspMsp()
-			if err != nil {
-				mspLogger.Crit("Failed to initialize local MSP, received err %s", err)
-			}
-			localMsp = lclMsp
-		}
-	}
-
-	if created {
-		mspLogger.Debug("Created new local MSP")
-	} else {
-		mspLogger.Debug("Returning existing local MSP")
-	}
-
-	return lclMsp
+	return localMsp
 }

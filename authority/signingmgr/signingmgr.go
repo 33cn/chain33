@@ -8,10 +8,9 @@ package signingmgr
 
 import (
 	"gitlab.33.cn/chain33/chain33/authority/common/core"
-
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 )
 
 // SigningManager is used for signing objects with private key
@@ -31,7 +30,6 @@ func New(cryptoProvider core.CryptoSuite) (*SigningManager, error) {
 
 // Sign will sign the given object using provided key
 func (mgr *SigningManager) Sign(object []byte, key bccsp.Key) ([]byte, error) {
-
 	if len(object) == 0 {
 		return nil, errors.New("object (to sign) required")
 	}

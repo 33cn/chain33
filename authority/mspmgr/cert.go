@@ -12,17 +12,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"encoding/pem"
 	"errors"
-	"fmt"
 	"math/big"
 	"time"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/sw"
 )
-
-type dsaSignature struct {
-	R, S *big.Int
-}
 
 type validity struct {
 	NotBefore, NotAfter time.Time
@@ -115,29 +109,4 @@ func certFromX509Cert(cert *x509.Certificate) (certificate, error) {
 		return certificate{}, err
 	}
 	return newCert, nil
-}
-
-// String returns a PEM representation of a certificate
-func (c certificate) String() string {
-	b, err := asn1.Marshal(c)
-	if err != nil {
-		return fmt.Sprintf("Failed marshaling cert: %v", err)
-	}
-	block := &pem.Block{
-		Bytes: b,
-		Type:  "CERTIFICATE",
-	}
-	b = pem.EncodeToMemory(block)
-	return string(b)
-}
-
-// certToPEM converts the given x509.Certificate to a PEM
-// encoded string
-func certToPEM(certificate *x509.Certificate) string {
-	cert, err := certFromX509Cert(certificate)
-	if err != nil {
-		mspLogger.Warn("Failed converting certificate to asn1", err)
-		return ""
-	}
-	return cert.String()
 }
