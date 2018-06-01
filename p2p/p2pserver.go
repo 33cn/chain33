@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/common/version"
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	pr "google.golang.org/grpc/peer"
@@ -142,6 +143,17 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerip, port), UserAgent: pub}, nil
+
+}
+
+func (s *P2pServer) SoftVersion(ctx context.Context, in *pb.P2PPing) (*pb.Reply, error) {
+
+	if !P2pComm.CheckSign(in) {
+		log.Error("Ping", "p2p server", "check sig err")
+		return nil, pb.ErrPing
+	}
+	ver := version.GetVersion()
+	return &pb.Reply{IsOk: true, Msg: []byte(ver)}, nil
 
 }
 

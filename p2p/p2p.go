@@ -46,7 +46,7 @@ func New(cfg *types.P2P) *P2p {
 	log.Info("p2p", "Version", VERSION)
 
 	if cfg.InnerBounds == 0 {
-		cfg.InnerBounds = 300
+		cfg.InnerBounds = 500
 	}
 	log.Info("p2p", "InnerBounds", cfg.InnerBounds)
 
