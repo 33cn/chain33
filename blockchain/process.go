@@ -9,7 +9,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -168,7 +167,7 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, 
 	if err != nil {
 		if err == types.ErrDataBaseDamage {
 			chainlog.Error("dbMaybeStoreBlock newbatch.Write", "err", err)
-			go queue.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
+			go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		}
 		return false, err
 	}
@@ -329,7 +328,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	err = newbatch.Write()
 	if err != nil {
 		chainlog.Error("connectBlock newbatch.Write", "err", err)
-		go queue.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
+		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		return err
 	}
 	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Since(beg))
@@ -388,7 +387,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	err = newbatch.Write()
 	if err != nil {
 		chainlog.Error("disconnectBlock newbatch.Write", "err", err)
-		go queue.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
+		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		return err
 	}
 

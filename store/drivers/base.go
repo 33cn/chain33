@@ -7,6 +7,7 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 /*
@@ -91,7 +92,7 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		if hash == nil {
 			msg.Reply(client.NewMessage("", types.EventStoreCommit, types.ErrHashNotFound))
 			if err == types.ErrDataBaseDamage { //如果是数据库写失败，需要上报给用户
-				go queue.ReportErrEventToFront(slog, client, "store", "wallet", err)
+				go util.ReportErrEventToFront(slog, client, "store", "wallet", err)
 			}
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreCommit, &types.ReplyHash{hash}))
