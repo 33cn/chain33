@@ -22,7 +22,11 @@ func calcprivacyOutputKey(token string, amount int64, txhash string, index int) 
 
 //在本地数据库中设置一条可以找到对应amount的对应的utxo的global index
 func CalcPrivacyUTXOkeyHeight(token string, amount, height int64, txhash string, index int) (key []byte) {
-	return []byte(fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-%d-%010d-%s-%d", token, amount, height, txhash, index))
+	return []byte(CalcPrivacyUTXOkeyHeightStr(token, amount, height, txhash, index))
+}
+
+func CalcPrivacyUTXOkeyHeightStr(token string, amount, height int64, txhash string, index int) (key string) {
+	return fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-%d-%010d-%s-%d", token, amount, height, txhash, index)
 }
 
 func DecodeAmountFromKey(key []byte, token string) (int64, error) {

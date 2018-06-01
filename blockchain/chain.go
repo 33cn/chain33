@@ -1018,7 +1018,7 @@ func (chain *BlockChain) InitPrivacyCache() {
 							//所以在此处就需要进行反序添加
 							for ; i > 0; i-- {
 								localUTXOItem := localUTXOItemSlice[i]
-								keyCache := privacy.CalcPrivacyUTXOkeyHeight(token, amount, localUTXOItem.Height, common.ToHex(localUTXOItem.Txhash), int(localUTXOItem.Outindex))
+								keyCache := privacy.CalcPrivacyUTXOkeyHeightStr(token, amount, localUTXOItem.Height, common.ToHex(localUTXOItem.Txhash), int(localUTXOItem.Outindex))
 								outputKeyInfo := privacyOutputKeyInfo{
 									onetimePubKey: localUTXOItem.Onetimepubkey,
 
