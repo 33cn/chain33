@@ -233,8 +233,6 @@ const (
 	EventReplyPrivacy2public
 	EventShowPrivacyPK
 	EventReplyShowPrivacyPK
-	EventShowPrivacyTransfer
-	EventReplyShowPrivacyTransfer
 	EventShowPrivacyAccount
 	EventReplyShowPrivacyAccount
 	EventGetPrivacyTransaction
@@ -378,8 +376,6 @@ var eventName = map[int]string{
 	EventReplyPrivacy2public:        "EventReplyPrivacy2public",
 	EventShowPrivacyPK:              "EventShowPrivacyPK",
 	EventReplyShowPrivacyPK:         "EventReplyShowPrivacyPK",
-	EventShowPrivacyTransfer:        "EventShowPrivacyTransfer",
-	EventReplyShowPrivacyTransfer:   "EventReplyShowPrivacyTransfer",
 	EventShowPrivacyAccount:         "EventShowPrivacyAccount",
 	EventReplyShowPrivacyAccount:    "EventReplyShowPrivacyAccount",
 	EventGetPrivacyTransaction:      "EventGetPrivacyTransaction",
@@ -388,6 +384,8 @@ var eventName = map[int]string{
 	EventReplyGetGlobalIndex:        "EventReplyGetGlobalIndex",
 	EventGetUTXOPubKey:              "EventGetUTXOPubKey",
 	EventReplyGetUTXOPubKey:         "EventReplyGetUTXOPubKey",
+	EventCreateUTXOs:                "EventCreateUTXOs",
+	EventReplyCreateUTXOs:           "EventReplyCreateUTXOs",
 }
 
 //ty = 1 -> secp256k1
