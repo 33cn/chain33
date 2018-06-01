@@ -11,7 +11,7 @@ APP := build/chain33
 CLI := build/chain33-cli
 SIGNATORY := build/signatory-server
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 .PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
 
@@ -136,3 +136,7 @@ checkgofmt: ## get all go files and run go fmt on them
 		  echo "$${files}"; \
 		  exit 1; \
 		  fi;
+
+.PHONY: mock
+mock:
+	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
