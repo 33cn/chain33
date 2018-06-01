@@ -167,3 +167,11 @@ message ReqAuthSignCheck {
 message RespAuthSignCheck {
     bool result = 1;
 }
+
+message ReqAuthSignCheckTxs {
+    repeated Transaction txs = 1;
+}
+
+message RespAuthSignCheckTxs {
+    bool result = 1;
+}
