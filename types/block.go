@@ -36,14 +36,21 @@ func (block *Block) GetHeader() *Header {
 	return head
 }
 
-func (block *Block) CheckSign() bool {
-	//检查区块的签名
+func (block *Block) CheckBlockSign() bool {
 	if block.Signature != nil {
 		hash := block.Hash()
 		sign := block.GetSignature()
-		if !CheckSign(hash, sign) {
-			return false
+		if CheckSign(hash, sign) {
+			return true
 		}
+	}
+	return false
+}
+
+func (block *Block) CheckSign() bool {
+	//检查区块的签名
+	if !block.CheckBlockSign() {
+		return false
 	}
 	//检查交易的签名
 	cpu := runtime.NumCPU()
