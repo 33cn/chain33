@@ -583,7 +583,7 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 	tx.SetExpire(expire)
 
 	var cert types.AuthCert
-	cert.Username = "User1"
+	cert.Username = "User"
 	tx.Cert = &cert
 	txHex := types.Encode(&tx)
 	//发送给mgr签名

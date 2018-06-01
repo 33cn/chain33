@@ -24,9 +24,10 @@ import (
 	"path/filepath"
 
 	"os"
-	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
+
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
+	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 )
 
 func readFile(file string) ([]byte, error) {
@@ -140,9 +141,9 @@ func getMspConfig(dir string, signcert []byte, conf *cryptosuite.CryptoConfig) (
 	}
 
 	admincert, err := getPemMaterialFromDir(admincertDir)
-	if err != nil || len(admincert) == 0 {
-		return nil, fmt.Errorf("Could not load a valid admin certificate from directory %s, err %s", admincertDir, err)
-	}
+	//if err != nil || len(admincert) == 0 {
+	//	return nil, fmt.Errorf("Could not load a valid admin certificate from directory %s, err %s", admincertDir, err)
+	//}
 
 	intermediatecerts, err := getPemMaterialFromDir(intermediatecertsDir)
 	if os.IsNotExist(err) {
@@ -160,14 +161,14 @@ func getMspConfig(dir string, signcert []byte, conf *cryptosuite.CryptoConfig) (
 
 	// Set MspCryptoConfig
 	var hashFunction string
-	tmpValue:=conf.SecurityLevel()
+	tmpValue := conf.SecurityLevel()
 	switch tmpValue {
 	case 256:
 		hashFunction = bccsp.SHA256
 	case 384:
 		hashFunction = bccsp.SHA384
 	default:
-		mspLogger.Error(fmt.Sprintf("Invalid security level value:%d",tmpValue))
+		mspLogger.Error(fmt.Sprintf("Invalid security level value:%d", tmpValue))
 	}
 
 	crypto := &MSPCryptoConfig{
@@ -180,9 +181,9 @@ func getMspConfig(dir string, signcert []byte, conf *cryptosuite.CryptoConfig) (
 		Admins:            admincert,
 		RootCerts:         cacerts,
 		IntermediateCerts: intermediatecerts,
-		SigningCert:   signcert,
-		RevocationList:                crls,
-		CryptoConfig:                  crypto,
+		SigningCert:       signcert,
+		RevocationList:    crls,
+		CryptoConfig:      crypto,
 	}
 
 	return mspconf, nil
