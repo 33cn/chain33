@@ -282,12 +282,6 @@ message ReplyPrivacyPkPair {
 	string spendPub      = 3;
 }
 
-message ReqPrivacyBalance {
-	string addr   =  1;
-	//隐私交易hash
-	string txhash =  2;
-}
-
 message ReqPrivBal4AddrToken {
     string addr   =  1;
     string token  =  2;

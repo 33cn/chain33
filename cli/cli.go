@@ -473,12 +473,6 @@ func main() {
 			return
 		}
 		ShowPrivacykey(argsWithoutProg[1])
-	case "showprivacytransfer":
-		if len(argsWithoutProg) != 3 {
-			fmt.Print(errors.New("参数错误").Error())
-			return
-		}
-		ShowPrivacyTransfer(argsWithoutProg[1], argsWithoutProg[2])
 	case "showprivacyaccount":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -597,7 +591,6 @@ func LoadHelp() {
 	fmt.Println("isntpclocksync []                                              : 获取网络时间同步状态")
 	//privacy
 	fmt.Println("showprivacykey addr                                            : 显示地址对应的隐私账户的view和spend的公钥")
-	fmt.Println("showprivacytransfer addr txhash                                : 显示地址对应的隐私转账")
 	fmt.Println("showprivacyaccount addr                                        : 显示地址对应的隐私账户信息")
 	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout mixin note       : 公开账户向隐私账户转账")
 	fmt.Println("priv2priv from toviewpubkey tospendpubkey amout mixin note      : 隐私账户向隐私账户转账")
@@ -2801,42 +2794,6 @@ func ShowPrivacyAccount(addr string) {
 		fmt.Printf("------The %dth privacy UTXO info is as below\n", index)
 		fmt.Println(string(data))
 	}
-}
-
-func ShowPrivacyTransfer(addr string, txhash string) {
-	params := &types.ReqPrivacyBalance{
-		addr,
-		txhash,
-	}
-
-	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	var res *jsonrpc.Account
-	err = rpc.Call("Chain33.ShowPrivacyTransfer", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	balanceResult := strconv.FormatFloat(float64(res.Balance)/float64(types.Coin), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res.Frozen)/float64(types.Coin), 'f', 4, 64)
-	result := &AccountResult{
-		Addr:     res.Addr,
-		Currency: res.Currency,
-		Balance:  balanceResult,
-		Frozen:   frozenResult,
-	}
-
-	data, err := json.MarshalIndent(result, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
 }
 
 func ShowPrivacykey(addr string) {
