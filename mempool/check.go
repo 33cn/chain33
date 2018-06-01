@@ -31,7 +31,7 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 	}
 	// 检查接收地址是否合法
 	if err := account.CheckAddress(tx.To); err != nil {
-		msg.Data = types.ErrAddrNotExist
+		msg.Data = types.ErrInvalidAddress
 		return msg
 	}
 	// 非coins或token模块的ToAddr指向合约

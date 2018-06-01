@@ -33,6 +33,8 @@ var (
 	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
 	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0}
 	tx13     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0}
+	tx14     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
+	tx15     = &types.Transaction{Execer: []byte("notexec"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
 
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
@@ -136,6 +138,8 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	tx11.Sign(types.SECP256K1, privKey)
 	tx12.Sign(types.SECP256K1, privKey)
 	tx13.Sign(types.SECP256K1, privKey)
+	tx14.Sign(types.SECP256K1, privKey)
+	tx15.Sign(types.SECP256K1, privKey)
 
 	return q, mem
 }
@@ -607,6 +611,34 @@ func TestCheckExpire2(t *testing.T) {
 
 	if len(txs) != 3 {
 		t.Error("TestCheckExpire failed", len(txs))
+	}
+}
+
+func TestWrongToAddr(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx14)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrInvalidAddress.Error() {
+		t.Error("TestWrongToAddr failed")
+	}
+}
+
+func TestExecToAddrNotMatch(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx15)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrToAddrNotSameToExecAddr.Error() {
+		t.Error("TestExecToAddrNotMatch failed")
 	}
 }
 
