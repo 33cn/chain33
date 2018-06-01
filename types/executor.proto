@@ -14,6 +14,7 @@ message CoinsAction {
 		CoinsTransfer transfer = 1;
 		CoinsWithdraw withdraw = 4;
 		CoinsGenesis genesis = 2;
+		CoinsTransferToExec transferToExec = 5;
 	}
 	int32 ty = 3;
 }
@@ -29,6 +30,13 @@ message CoinsTransfer {
 	string cointoken = 1;
 	int64 amount     = 2;
 	string note      = 3;
+}
+
+message CoinsTransferToExec {
+	string cointoken = 1;
+	int64 amount     = 2;
+	string note      = 3;
+	string execName  = 4;
 }
 
 message CoinsWithdraw {
@@ -184,6 +192,7 @@ message ExecTxList {
 	repeated Transaction txs = 2;
 	int64 blockTime = 3;
 	int64 height = 4;
+	uint64 difficulty = 5;
 }
 
 message Query {
@@ -286,6 +295,7 @@ message TokenAction {
 		CoinsTransfer     transfer          = 4;
 		CoinsWithdraw     withdraw          = 5;
 		CoinsGenesis      genesis           = 6;
+		CoinsTransferToExec transferToExec  = 8;
 	}
 	int32 Ty = 7;
 }

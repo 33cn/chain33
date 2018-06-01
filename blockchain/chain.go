@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -25,11 +26,14 @@ var (
 	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
 	isStrongConsistency       = false
 
-	chainlog = log.New("module", "blockchain")
-	bCoins   = []byte("coins")
-	bToken   = []byte("token")
-	withdraw = "withdraw"
+	chainlog                   = log.New("module", "blockchain")
+	bCoins                     = []byte("coins")
+	bToken                     = []byte("token")
+	withdraw                   = "withdraw"
+	FutureBlockDelayTime int64 = 1
 )
+
+const maxFutureBlocks = 256
 
 type BlockChain struct {
 	client queue.Client
@@ -81,10 +85,16 @@ type BlockChain struct {
 	faultPeerList map[string]*FaultPeerInfo
 
 	bestChainPeerList map[string]*BestPeerInfo
+
+	//记录futureblocks
+	futureBlocks *lru.Cache // future blocks are broadcast later processing
+
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
+	futureBlocks, _ := lru.New(maxFutureBlocks)
+
 	blockchain := &BlockChain{
 		cache:               make(map[int64]*list.Element),
 		cacheSize:           DefCacheSize,
@@ -105,6 +115,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		cfgBatchSync:        cfg.Batchsync,
 		faultPeerList:       make(map[string]*FaultPeerInfo),
 		bestChainPeerList:   make(map[string]*BestPeerInfo),
+		futureBlocks:        futureBlocks,
 	}
 	return blockchain
 }
@@ -148,10 +159,10 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client.Sub("blockchain")
 
 	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, chain.cfg.DbCache)
-	blockStore := NewBlockStore(blockStoreDB, client.Clone())
+	blockStore := NewBlockStore(blockStoreDB, client)
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
-	chain.query = NewQuery(blockStoreDB, chain.client.Clone(), stateHash)
+	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
 
 	//获取lastblock从数据库,创建bestviewtip节点
 	chain.InitIndexAndBestView()
@@ -164,6 +175,9 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 
 	// 定时检测/同步block
 	go chain.SynRoutine()
+
+	// 定时处理futureblock
+	go chain.UpdateRoutine()
 }
 
 func (chain *BlockChain) getStateHash() []byte {
@@ -672,6 +686,9 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 	header.StateHash = block.Block.StateHash
 	header.BlockTime = block.Block.BlockTime
 	header.Height = block.Block.Height
+	header.Hash = block.Block.Hash()
+	header.TxCount = int64(len(block.Block.GetTxs()))
+
 	blockOverview.Head = &header
 
 	blockOverview.TxCount = int64(len(block.Block.GetTxs()))
@@ -704,10 +721,11 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	amount, err := chain.query.Query("coins", "GetAddrReciver", types.Encode(addr))
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
-		return nil, err
+		//return nil, err
+		addrOverview.Reciver = 0
+	} else {
+		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	addrOverview.Reciver = amount.(*types.Int64).GetData()
-
 	//获取地址对应的交易count
 	addr.Flag = 0
 	addr.Count = 0x7fffffff
@@ -716,11 +734,13 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
 	if err != nil {
 		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
-		return nil, err
-	}
-	addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
-	chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+		//return nil, err
+		addrOverview.TxCount = 0
 
+	} else {
+		addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
+		chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+	}
 	return &addrOverview, nil
 }
 
@@ -808,7 +828,41 @@ func (chain *BlockChain) InitIndexAndBestView() {
 				chain.bestChain.SetTip(newNode)
 
 			}
-			chainlog.Debug("InitIndexAndBestView", "height", newNode.height, "hash", common.ToHex(newNode.hash))
+
+		}
+	}
+}
+
+//定时延时广播futureblock
+func (chain *BlockChain) UpdateRoutine() {
+
+	//1秒尝试检测一次futureblock，futureblock的time小于当前系统时间就广播此block
+	futureblockTicker := time.NewTicker(1 * time.Second)
+
+	for {
+		select {
+		case <-chain.quit:
+			//chainlog.Info("UpdateRoutine quit")
+			return
+		case <-futureblockTicker.C:
+			chain.ProcFutureBlocks()
+		}
+	}
+}
+
+//循环遍历所有futureblocks，当futureblock的block生成time小于当前系统时间就将此block广播出去
+func (chain *BlockChain) ProcFutureBlocks() {
+	for _, hash := range chain.futureBlocks.Keys() {
+		if block, exist := chain.futureBlocks.Peek(hash); exist {
+			if block != nil {
+				blockdetail := block.(*types.BlockDetail)
+				//block产生的时间小于当前时间，广播此block，然后将此block从futureblocks中移除
+				if time.Now().Unix() > blockdetail.Block.BlockTime {
+					chain.SendBlockBroadcast(blockdetail)
+					chain.futureBlocks.Remove(hash)
+					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+				}
+			}
 		}
 	}
 }

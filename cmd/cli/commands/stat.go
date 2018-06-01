@@ -389,3 +389,4 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 
 	fmt.Println(string(data))
 }
+

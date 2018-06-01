@@ -24,6 +24,10 @@ go_fmt:
         - 33cn
     script:
         - make checkgofmt
+    only:
+        - master
+        - develop
+        - bty_develop
 
 go_lint:
     stage: build
@@ -31,6 +35,10 @@ go_lint:
         - 33cn
     script:
         - make linter
+    only:
+        - master
+        - develop
+        - bty_develop
 
 go_build:
     stage: build
@@ -38,6 +46,10 @@ go_build:
         - 33cn
     script:
         - make build_ci
+    only:
+        - master
+        - develop
+        - bty_develop
 
 go_test:
     stage: test
@@ -46,6 +58,37 @@ go_test:
     script:
         - cd build && docker-compose down && cd ..
         - make test
+    only:
+        - master
+        - develop
+        - bty_develop
+
+memory_sanitizer:
+    stage: test
+    script:
+        - export CC=clang-5.0 && make msan
+    only:
+        - master
+        - develop
+        - bty_develop
+
+code_coverage:
+    stage: test
+    script:
+        - make coverage
+    only:
+        - master
+        - develop
+        - bty_develop
+
+code_coverage_report:
+    stage: test
+    script:
+        - make coverhtml
+    only:
+        - master
+        - develop
+        - bty_develop
 
 deploy:
     stage: deploy
@@ -55,3 +98,8 @@ deploy:
         - make build_ci
         - make docker-compose
         - cd build && docker-compose down && cd ..
+    only:
+        - master
+        - develop
+        - bty_develop
+

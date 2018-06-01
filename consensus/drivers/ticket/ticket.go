@@ -583,7 +583,7 @@ func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.Priv
 	tx.Execer = []byte("ticket")
 	tx.Fee = types.MinFee
 	tx.Nonce = client.RandInt64()
-	tx.To = account.ExecAddress("ticket").String()
+	tx.To = account.ExecAddress("ticket")
 	tx.Payload = types.Encode(ticketAction)
 	tx.Sign(types.SECP256K1, priv)
 	return tx
@@ -599,21 +599,8 @@ func (client *Client) createBlock() (*types.Block, *types.Block) {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
 	txs := client.RequestTx(int(types.GetP(newblock.Height).MaxTxNumber)-1, nil)
-	addTxsToBlock(&newblock, txs)
+	client.AddTxsToBlock(&newblock, txs)
 	return &newblock, lastBlock
-}
-
-func addTxsToBlock(block *types.Block, txs []*types.Transaction) []*types.Transaction {
-	size := block.Size()
-	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
-	for i := 0; i < len(txs); i++ {
-		if size > max {
-			return txs[0:i]
-		}
-		block.Txs = append(block.Txs, txs[i])
-		size += txs[i].Size()
-	}
-	return txs
 }
 
 func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*types.Block, [][]byte) {
@@ -630,7 +617,7 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 	//tx 有更新
 	if len(txs) > 0 {
 		//防止区块过大
-		txs = addTxsToBlock(newblock, txs)
+		txs = client.AddTxsToBlock(newblock, txs)
 		if len(txs) > 0 {
 			txHashList = append(txHashList, getTxHashes(txs)...)
 		}

@@ -52,11 +52,13 @@ func (n *Node) isClose() bool {
 }
 
 type Node struct {
-	omtx     sync.Mutex
-	nodeInfo *NodeInfo
-	outBound map[string]*Peer
-	listener Listener
-	closed   int32
+	omtx       sync.Mutex
+	nodeInfo   *NodeInfo
+	cmtx       sync.Mutex
+	cacheBound map[string]*Peer
+	outBound   map[string]*Peer
+	listener   Listener
+	closed     int32
 }
 
 func (n *Node) SetQueueClient(client queue.Client) {
@@ -66,7 +68,8 @@ func (n *Node) SetQueueClient(client queue.Client) {
 func NewNode(cfg *types.P2P) (*Node, error) {
 
 	node := &Node{
-		outBound: make(map[string]*Peer),
+		outBound:   make(map[string]*Peer),
+		cacheBound: make(map[string]*Peer),
 	}
 	if cfg.GetInnerSeedEnable() {
 		cfg.Seeds = append(cfg.Seeds, InnerSeeds...)
@@ -99,7 +102,25 @@ func (n *Node) natOk() bool {
 }
 
 func (n *Node) doNat() {
-
+	//测试是否在外网，当连接节点数大于0的时候，测试13802端口
+	for {
+		if n.Size() > 0 {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	testExaddr := fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), defaultPort)
+	log.Info("TestNetAddr", "testExaddr", testExaddr)
+	if len(P2pComm.AddrRouteble([]string{testExaddr})) != 0 {
+		log.Info("node outside")
+		n.nodeInfo.SetNetSide(true)
+		if netexaddr, err := NewNetAddressString(testExaddr); err == nil {
+			n.nodeInfo.SetExternalAddr(netexaddr)
+			n.nodeInfo.addrBook.AddOurAddress(netexaddr)
+		}
+		return
+	}
+	log.Info("node inside")
 	//在内网，并且非种子节点，则进行端口映射
 	if !n.nodeInfo.OutSide() && !n.nodeInfo.cfg.GetIsSeed() && n.nodeInfo.cfg.GetServerStart() {
 
@@ -151,6 +172,44 @@ func (n *Node) addPeer(pr *Peer) {
 	log.Debug("AddPeer", "peer", pr.Addr())
 	n.outBound[pr.Addr()] = pr
 	pr.Start()
+}
+
+func (n *Node) AddCachePeer(pr *Peer) {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	n.cacheBound[pr.Addr()] = pr
+}
+
+func (n *Node) RemoveCachePeer(addr string) {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	delete(n.cacheBound, addr)
+}
+
+func (n *Node) HasCacheBound(addr string) bool {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	_, ok := n.cacheBound[addr]
+	return ok
+
+}
+func (n *Node) CacheBoundsSize() int {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	return len(n.cacheBound)
+}
+func (n *Node) GetCacheBounds() []*Peer {
+	n.cmtx.Lock()
+	defer n.cmtx.Unlock()
+	var peers []*Peer
+	if len(n.cacheBound) == 0 {
+		return peers
+	}
+	for _, peer := range n.cacheBound {
+		peers = append(peers, peer)
+
+	}
+	return peers
 }
 
 func (n *Node) Size() int {
@@ -233,6 +292,7 @@ func (n *Node) monitor() {
 	go n.monitorBlackList()
 	go n.monitorFilter()
 	go n.monitorPeers()
+	go n.nodeReBalance()
 }
 
 func (n *Node) needMore() bool {
@@ -316,8 +376,8 @@ func (n *Node) natMapPort() {
 	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")
 		p2pcli := NewNormalP2PCli() //检查要映射的IP地址是否已经被映射成功
-		ok := p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String())
-		if ok {
+		ok := p2pcli.CheckSelf(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
+		if !ok {
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
 			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
 		}
@@ -344,6 +404,7 @@ func (n *Node) natMapPort() {
 	if err != nil {
 		//映射失败
 		log.Warn("NatMapPort", "Nat", "Faild")
+		n.flushNodePort(defaultPort, defaultPort)
 		n.nodeInfo.natResultChain <- false
 		return
 	}

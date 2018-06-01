@@ -24,7 +24,7 @@ func GenerAccDb() (*DB, *DB) {
 	stroedb, _ := db.NewGoMemDB("gomemdb", "test", 128)
 	accCoin.SetDB(stroedb)
 
-	accToken := NewTokenAccount("test", nil)
+	accToken, _ := NewAccountDB("token", "test", nil)
 	stroedb2, _ := db.NewGoMemDB("gomemdb", "test", 128)
 	accToken.SetDB(stroedb2)
 

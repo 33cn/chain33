@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -26,17 +27,19 @@ func (p *Peer) Close() {
 }
 
 type Peer struct {
-	mutx       sync.Mutex
-	nodeInfo   **NodeInfo
-	conn       *grpc.ClientConn // source connection
-	persistent bool
-	isclose    int32
-	version    *Version
-	name       string //远程节点的name
-	mconn      *MConnection
-	peerAddr   *NetAddress
-	peerStat   *Stat
-	taskChan   chan interface{} //tx block
+	mutx         sync.Mutex
+	nodeInfo     **NodeInfo
+	conn         *grpc.ClientConn // source connection
+	persistent   bool
+	isclose      int32
+	version      *Version
+	name         string //远程节点的name
+	mconn        *MConnection
+	peerAddr     *NetAddress
+	peerStat     *Stat
+	taskChan     chan interface{} //tx block
+	inBounds     int32            //连接此节点的客户端节点数量
+	IsMaxInbouds bool
 }
 
 func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Peer {
@@ -105,16 +108,6 @@ func (v *Version) GetVersion() int32 {
 }
 
 func (p *Peer) heartBeat() {
-	//	for {
-	//		if !p.GetRunning() {
-	//			return
-	//		}
-	//		if (*p.nodeInfo).IsNatDone() { //如果nat 没有结束，在nat 重试的过程中，exter port 是在随机变化，
-	//			//此时对连接的远程节点公布自己的外端端口将是不准确的,导致外网无法获取其nat结束后真正的端口。
-	//			break
-	//		}
-	//		time.Sleep(time.Second) //wait for natwork done
-	//	}
 
 	pcli := NewNormalP2PCli()
 	for {
@@ -146,7 +139,17 @@ func (p *Peer) heartBeat() {
 		<-ticker.C
 		err := pcli.SendPing(p, *p.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
+		peernum, err := pcli.GetInPeersNum(p)
+		P2pComm.CollectPeerStat(err, p)
+		if err == nil {
+			atomic.StoreInt32(&p.inBounds, int32(peernum))
+		}
+
 	}
+}
+
+func (p *Peer) GetInBouns() int32 {
+	return atomic.LoadInt32(&p.inBounds)
 }
 
 func (p *Peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
@@ -288,10 +291,16 @@ func (p *Peer) readStream() {
 			data, err := resp.Recv()
 			P2pComm.CollectPeerStat(err, p)
 			if err != nil {
-				log.Error("readStream", "recv,err:", err)
+				log.Error("readStream", "recv,err:", err.Error())
 				resp.CloseSend()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 					(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
+				}
+				//beyound max inbound num
+				if strings.Contains(err.Error(), "beyound max inbound num") {
+					log.Info("readStream", "peer inbounds num", p.GetInBouns())
+					p.IsMaxInbouds = true
+					P2pComm.CollectPeerStat(err, p)
 				}
 				time.Sleep(time.Second) //have a rest
 				break

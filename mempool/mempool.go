@@ -348,7 +348,6 @@ func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 	if mem.client == nil {
 		panic("client not bind message queue.")
 	}
-
 	msg := mem.client.NewMessage("p2p", types.EventTxBroadcast, tx)
 	mem.client.Send(msg, false)
 	mlog.Debug("tx sent to p2p", "tx.Hash", tx.Hash())
@@ -361,7 +360,7 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 	if mem.header == nil {
 		return false
 	}
-	tx := msg.GetData().(*types.Transaction)
+	tx := msg.GetData().(types.TxGroup).Tx()
 	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
@@ -477,7 +476,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 	// 从goodChan读取好消息，并回复正确信息
 	go func() {
 		for m := range mem.goodChan {
-			mem.SendTxToP2P(m.GetData().(*types.Transaction))
+			mem.SendTxToP2P(m.GetData().(types.TxGroup).Tx())
 			m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
 		}
 	}()
@@ -493,11 +492,11 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 			switch msg.Ty {
 			case types.EventTx:
 				if !mem.isSync() {
-					msg.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{false, []byte(types.ErrNotSync.Error())}))
+					msg.Reply(mem.client.NewMessage("", types.EventReply, &types.Reply{false, []byte(types.ErrNotSync.Error())}))
 					mlog.Debug("wrong tx", "err", types.ErrNotSync.Error())
 					continue
 				}
-				checkedMsg := mem.CheckTx(msg)
+				checkedMsg := mem.CheckTxs(msg)
 				if checkedMsg.Err() != nil {
 					mlog.Error("wrong tx", "err", checkedMsg.Err())
 					mem.badChan <- checkedMsg

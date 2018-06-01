@@ -189,8 +189,7 @@ func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error)
 		return nil, err
 	}
 	if acc.Balance > 0 {
-		hash, err := wallet.sendToAddress(priv, account.ExecAddress("ticket").String(), -acc.Balance, "autominer->withdraw", false, "")
-
+		hash, err := wallet.sendToAddress(priv, account.ExecAddress("ticket"), -acc.Balance, "autominer->withdraw", false, "")
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +214,7 @@ func (wallet *Wallet) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, i
 	fee := types.Coin
 	if acc1.Balance+acc2.Balance-2*fee >= types.GetP(height).TicketPrice {
 		//第一步。转移币到 ticket
-		toaddr := account.ExecAddress("ticket").String()
+		toaddr := account.ExecAddress("ticket")
 		amount := acc1.Balance - 2*fee
 		//必须大于0，才需要转移币
 		var hash *types.ReplyHash
@@ -281,7 +280,7 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	if err != nil {
 		return err
 	}
-	toaddr := account.ExecAddress("ticket").String()
+	toaddr := account.ExecAddress("ticket")
 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
 	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
 		_, err := wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins", false, "")
@@ -388,7 +387,7 @@ func (wallet *Wallet) sendTransactionWait(payload types.Message, execer []byte, 
 
 func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
 	if to == "" {
-		to = account.ExecAddress(string(execer)).String()
+		to = account.ExecAddress(string(execer))
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: minFee, To: to}
 	tx.Nonce = wallet.random.Int63()
@@ -529,7 +528,7 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		var exaddrs []string
 		for _, addr := range addrs {
 			if err := account.CheckAddress(addr); err != nil {
-				addr = account.ExecAddress(addr).String()
+				addr = account.ExecAddress(addr)
 			}
 			exaddrs = append(exaddrs, addr)
 		}
@@ -544,7 +543,7 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			acc, err := accountdb.LoadExecAccountQueue(wallet.api, addr, execaddress.String())
+			acc, err := accountdb.LoadExecAccountQueue(wallet.api, addr, execaddress)
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err

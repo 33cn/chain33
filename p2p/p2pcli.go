@@ -36,6 +36,8 @@ type NormalInterface interface {
 	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
 	CheckPeerNatOk(addr string) bool
 	GetAddrList(peer *Peer) (map[string]int64, error)
+	GetInPeersNum(peer *Peer) (int, error)
+	CheckSelf(addr string, nodeinfo *NodeInfo) bool
 }
 
 type Cli struct {
@@ -146,7 +148,22 @@ func (m *Cli) GetAddr(peer *Peer) ([]string, error) {
 	log.Debug("GetAddr Resp", "Resp", resp, "addrlist", resp.Addrlist)
 	return resp.Addrlist, nil
 }
+func (m *Cli) GetInPeersNum(peer *Peer) (int, error) {
+	ping, err := P2pComm.NewPingData(*peer.nodeInfo)
+	if err != nil {
+		return 0, err
+	}
 
+	resp, err := peer.mconn.gcli.CollectInPeers(context.Background(), ping,
+		grpc.FailFast(true))
+
+	P2pComm.CollectPeerStat(err, peer)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(resp.GetPeers()), nil
+}
 func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 
 	var addrlist = make(map[string]int64)
@@ -540,7 +557,27 @@ func (m *Cli) CheckPeerNatOk(addr string) bool {
 	return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
 
 }
+func (m *Cli) CheckSelf(addr string, nodeinfo *NodeInfo) bool {
+	netaddr, err := NewNetAddressString(addr)
+	if err != nil {
+		log.Error("AddrRouteble", "NewNetAddressString", err.Error())
+		return false
+	}
+	conn, err := netaddr.DialTimeout(VERSION)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
 
+	cli := pb.NewP2PgserviceClient(conn)
+	resp, err := cli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: VERSION}, grpc.FailFast(true))
+	if err != nil {
+		return false
+	}
+	_, selfName := nodeinfo.addrBook.GetPrivPubKey()
+	return resp.GetName() == selfName
+
+}
 func (m *Cli) peerInfos() []*pb.Peer {
 	peerinfos := m.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var peers []*pb.Peer
