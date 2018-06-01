@@ -163,6 +163,8 @@ func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	txlist.BlockTime = lastheader.BlockTime
 	txlist.Height = lastheader.Height
 	txlist.StateHash = lastheader.StateHash
+	// 增加这个属性，在执行器中会使用到
+	txlist.Difficulty = uint64(lastheader.Difficulty)
 
 	result, err := mem.checkTxListRemote(txlist)
 	if err != nil {

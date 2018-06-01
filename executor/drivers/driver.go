@@ -10,6 +10,7 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -22,13 +23,14 @@ type Driver interface {
 	SetLocalDB(dbm.KVDB)
 	GetName() string
 	GetActionName(tx *types.Transaction) string
-	SetEnv(height, blocktime int64)
+	SetEnv(height, blocktime int64, difficulty uint64)
 	CheckTx(tx *types.Transaction, index int) error
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
+	SetApi(client.QueueProtocolAPI)
 }
 
 type DriverBase struct {
@@ -39,11 +41,22 @@ type DriverBase struct {
 	blocktime    int64
 	child        Driver
 	isFree       bool
+	difficulty   uint64
+	api          client.QueueProtocolAPI
 }
 
-func (d *DriverBase) SetEnv(height, blocktime int64) {
+func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
+	d.api = api
+}
+
+func (d *DriverBase) GetApi() client.QueueProtocolAPI {
+	return d.api
+}
+
+func (d *DriverBase) SetEnv(height, blocktime int64, difficulty uint64) {
 	d.height = height
 	d.blocktime = blocktime
+	d.difficulty = difficulty
 }
 
 func (d *DriverBase) SetIsFree(isFree bool) {
@@ -206,6 +219,10 @@ func (d *DriverBase) GetHeight() int64 {
 
 func (d *DriverBase) GetBlockTime() int64 {
 	return d.blocktime
+}
+
+func (d *DriverBase) GetDifficulty() uint64 {
+	return d.difficulty
 }
 
 func (d *DriverBase) GetName() string {
