@@ -24,7 +24,7 @@ type CreateTx struct {
 func (m *CreateTx) Reset()                    { *m = CreateTx{} }
 func (m *CreateTx) String() string            { return proto.CompactTextString(m) }
 func (*CreateTx) ProtoMessage()               {}
-func (*CreateTx) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{0} }
+func (*CreateTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{0} }
 
 func (m *CreateTx) GetTo() string {
 	if m != nil {
@@ -75,7 +75,7 @@ type UnsignTx struct {
 func (m *UnsignTx) Reset()                    { *m = UnsignTx{} }
 func (m *UnsignTx) String() string            { return proto.CompactTextString(m) }
 func (*UnsignTx) ProtoMessage()               {}
-func (*UnsignTx) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{1} }
+func (*UnsignTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{1} }
 
 func (m *UnsignTx) GetData() []byte {
 	if m != nil {
@@ -94,7 +94,7 @@ type SignedTx struct {
 func (m *SignedTx) Reset()                    { *m = SignedTx{} }
 func (m *SignedTx) String() string            { return proto.CompactTextString(m) }
 func (*SignedTx) ProtoMessage()               {}
-func (*SignedTx) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{2} }
+func (*SignedTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{2} }
 
 func (m *SignedTx) GetUnsign() []byte {
 	if m != nil {
@@ -139,7 +139,7 @@ type Transaction struct {
 func (m *Transaction) Reset()                    { *m = Transaction{} }
 func (m *Transaction) String() string            { return proto.CompactTextString(m) }
 func (*Transaction) ProtoMessage()               {}
-func (*Transaction) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{3} }
+func (*Transaction) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{3} }
 
 func (m *Transaction) GetExecer() []byte {
 	if m != nil {
@@ -207,7 +207,7 @@ type Signature struct {
 func (m *Signature) Reset()                    { *m = Signature{} }
 func (m *Signature) String() string            { return proto.CompactTextString(m) }
 func (*Signature) ProtoMessage()               {}
-func (*Signature) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{4} }
+func (*Signature) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{4} }
 
 func (m *Signature) GetTy() int32 {
 	if m != nil {
@@ -239,7 +239,7 @@ type AddrOverview struct {
 func (m *AddrOverview) Reset()                    { *m = AddrOverview{} }
 func (m *AddrOverview) String() string            { return proto.CompactTextString(m) }
 func (*AddrOverview) ProtoMessage()               {}
-func (*AddrOverview) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{5} }
+func (*AddrOverview) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{5} }
 
 func (m *AddrOverview) GetReciver() int64 {
 	if m != nil {
@@ -275,7 +275,7 @@ type ReqAddr struct {
 func (m *ReqAddr) Reset()                    { *m = ReqAddr{} }
 func (m *ReqAddr) String() string            { return proto.CompactTextString(m) }
 func (*ReqAddr) ProtoMessage()               {}
-func (*ReqAddr) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{6} }
+func (*ReqAddr) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{6} }
 
 func (m *ReqAddr) GetAddr() string {
 	if m != nil {
@@ -326,7 +326,7 @@ type HexTx struct {
 func (m *HexTx) Reset()                    { *m = HexTx{} }
 func (m *HexTx) String() string            { return proto.CompactTextString(m) }
 func (*HexTx) ProtoMessage()               {}
-func (*HexTx) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{7} }
+func (*HexTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{7} }
 
 func (m *HexTx) GetTx() string {
 	if m != nil {
@@ -344,7 +344,7 @@ type ReplyTxInfo struct {
 func (m *ReplyTxInfo) Reset()                    { *m = ReplyTxInfo{} }
 func (m *ReplyTxInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReplyTxInfo) ProtoMessage()               {}
-func (*ReplyTxInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{8} }
+func (*ReplyTxInfo) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{8} }
 
 func (m *ReplyTxInfo) GetHash() []byte {
 	if m != nil {
@@ -374,7 +374,7 @@ type ReqTxList struct {
 func (m *ReqTxList) Reset()                    { *m = ReqTxList{} }
 func (m *ReqTxList) String() string            { return proto.CompactTextString(m) }
 func (*ReqTxList) ProtoMessage()               {}
-func (*ReqTxList) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{9} }
+func (*ReqTxList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{9} }
 
 func (m *ReqTxList) GetCount() int64 {
 	if m != nil {
@@ -390,7 +390,7 @@ type ReplyTxList struct {
 func (m *ReplyTxList) Reset()                    { *m = ReplyTxList{} }
 func (m *ReplyTxList) String() string            { return proto.CompactTextString(m) }
 func (*ReplyTxList) ProtoMessage()               {}
-func (*ReplyTxList) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{10} }
+func (*ReplyTxList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{10} }
 
 func (m *ReplyTxList) GetTxs() []*Transaction {
 	if m != nil {
@@ -407,7 +407,7 @@ type TxHashList struct {
 func (m *TxHashList) Reset()                    { *m = TxHashList{} }
 func (m *TxHashList) String() string            { return proto.CompactTextString(m) }
 func (*TxHashList) ProtoMessage()               {}
-func (*TxHashList) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{11} }
+func (*TxHashList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{11} }
 
 func (m *TxHashList) GetHashes() [][]byte {
 	if m != nil {
@@ -430,7 +430,7 @@ type ReplyTxInfos struct {
 func (m *ReplyTxInfos) Reset()                    { *m = ReplyTxInfos{} }
 func (m *ReplyTxInfos) String() string            { return proto.CompactTextString(m) }
 func (*ReplyTxInfos) ProtoMessage()               {}
-func (*ReplyTxInfos) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{12} }
+func (*ReplyTxInfos) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{12} }
 
 func (m *ReplyTxInfos) GetTxInfos() []*ReplyTxInfo {
 	if m != nil {
@@ -447,7 +447,7 @@ type ReceiptLog struct {
 func (m *ReceiptLog) Reset()                    { *m = ReceiptLog{} }
 func (m *ReceiptLog) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptLog) ProtoMessage()               {}
-func (*ReceiptLog) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{13} }
+func (*ReceiptLog) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{13} }
 
 func (m *ReceiptLog) GetTy() int32 {
 	if m != nil {
@@ -475,7 +475,7 @@ type Receipt struct {
 func (m *Receipt) Reset()                    { *m = Receipt{} }
 func (m *Receipt) String() string            { return proto.CompactTextString(m) }
 func (*Receipt) ProtoMessage()               {}
-func (*Receipt) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{14} }
+func (*Receipt) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{14} }
 
 func (m *Receipt) GetTy() int32 {
 	if m != nil {
@@ -506,7 +506,7 @@ type ReceiptData struct {
 func (m *ReceiptData) Reset()                    { *m = ReceiptData{} }
 func (m *ReceiptData) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptData) ProtoMessage()               {}
-func (*ReceiptData) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{15} }
+func (*ReceiptData) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{15} }
 
 func (m *ReceiptData) GetTy() int32 {
 	if m != nil {
@@ -534,7 +534,7 @@ type TxResult struct {
 func (m *TxResult) Reset()                    { *m = TxResult{} }
 func (m *TxResult) String() string            { return proto.CompactTextString(m) }
 func (*TxResult) ProtoMessage()               {}
-func (*TxResult) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{16} }
+func (*TxResult) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{16} }
 
 func (m *TxResult) GetHeight() int64 {
 	if m != nil {
@@ -593,7 +593,7 @@ type TransactionDetail struct {
 func (m *TransactionDetail) Reset()                    { *m = TransactionDetail{} }
 func (m *TransactionDetail) String() string            { return proto.CompactTextString(m) }
 func (*TransactionDetail) ProtoMessage()               {}
-func (*TransactionDetail) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{17} }
+func (*TransactionDetail) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{17} }
 
 func (m *TransactionDetail) GetTx() *Transaction {
 	if m != nil {
@@ -665,7 +665,7 @@ type TransactionDetails struct {
 func (m *TransactionDetails) Reset()                    { *m = TransactionDetails{} }
 func (m *TransactionDetails) String() string            { return proto.CompactTextString(m) }
 func (*TransactionDetails) ProtoMessage()               {}
-func (*TransactionDetails) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{18} }
+func (*TransactionDetails) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{18} }
 
 func (m *TransactionDetails) GetTxs() []*TransactionDetail {
 	if m != nil {
@@ -681,7 +681,7 @@ type ReqAddrs struct {
 func (m *ReqAddrs) Reset()                    { *m = ReqAddrs{} }
 func (m *ReqAddrs) String() string            { return proto.CompactTextString(m) }
 func (*ReqAddrs) ProtoMessage()               {}
-func (*ReqAddrs) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{19} }
+func (*ReqAddrs) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{19} }
 
 func (m *ReqAddrs) GetAddrs() []string {
 	if m != nil {
@@ -713,9 +713,9 @@ func init() {
 	proto.RegisterType((*ReqAddrs)(nil), "types.ReqAddrs")
 }
 
-func init() { proto.RegisterFile("transaction.proto", fileDescriptor10) }
+func init() { proto.RegisterFile("transaction.proto", fileDescriptor11) }
 
-var fileDescriptor10 = []byte{
+var fileDescriptor11 = []byte{
 	// 842 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x55, 0x51, 0x8f, 0xe3, 0x34,
 	0x10, 0x56, 0x92, 0xb6, 0xdb, 0x4e, 0x2b, 0xd8, 0xb5, 0xd0, 0x11, 0x9d, 0xd0, 0x51, 0x2c, 0x90,
