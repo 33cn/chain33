@@ -1,4 +1,6 @@
 [![pipeline status](https://gitlab.33.cn/chain33/chain33/badges/develop/pipeline.svg)](https://gitlab.33.cn/chain33/chain33/commits/develop)
+[![coverage report](https://gitlab.33.cn/chain33/chain33/badges/develop/coverage.svg)](https://gitlab.33.cn/chain33/chain33/commits/develop)
+[![Go Report Card](https://goreportcard.com/badge/gitlab.33.cn/chain33/chain33)](https://goreportcard.com/report/gitlab.33.cn/chain33/chain33)
 
 # Chain33 Core Developer Edition
 

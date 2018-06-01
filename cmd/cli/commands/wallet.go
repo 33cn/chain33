@@ -28,6 +28,7 @@ func WalletCmd() *cobra.Command {
 		AutoMineCmd(),
 		SignRawTxCmd(),
 		SetFeeCmd(),
+		SendTxCmd(),
 	)
 
 	return cmd
@@ -337,4 +338,31 @@ func setFee(cmd *cobra.Command, args []string) {
 	var res jsonrpc.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
 	ctx.Run()
+}
+
+// send raw tx
+func SendTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "send",
+		Short: "Send a transaction",
+		Run:   sendTx,
+	}
+	addSendTxFlags(cmd)
+	return cmd
+}
+
+func addSendTxFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("data", "d", "", "transaction content")
+	cmd.MarkFlagRequired("data")
+}
+
+func sendTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	data, _ := cmd.Flags().GetString("data")
+	params := jsonrpc.RawParm{
+		Data: data,
+	}
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx.RunWithoutMarshal()
 }

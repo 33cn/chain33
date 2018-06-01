@@ -10,6 +10,7 @@ It is generated from these files:
 	common.proto
 	config.proto
 	db.proto
+	evmcontract.proto
 	executor.proto
 	executorTrade.proto
 	p2p.proto
@@ -82,10 +83,25 @@ It has these top-level messages:
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
+	EVMContractObject
+	EVMContractData
+	EVMContractState
+	EVMContractAction
+	ReceiptEVMContract
+	EVMContractDataCmd
+	EVMContractStateCmd
+	ReceiptEVMContractCmd
+	CheckEVMAddrReq
+	CheckEVMAddrResp
+	EstimateEVMGasReq
+	EstimateEVMGasResp
+	EvmDebugReq
+	EvmDebugResp
 	Genesis
 	CoinsAction
 	CoinsGenesis
 	CoinsTransfer
+	CoinsTransferToExec
 	CoinsWithdraw
 	Hashlock
 	HashlockAction
@@ -163,6 +179,8 @@ It has these top-level messages:
 	ReplySellOrder
 	ReplySellOrders
 	ReplyBuyOrders
+	ReplyTradeOrder
+	ReplyTradeOrders
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -214,6 +232,7 @@ It has these top-level messages:
 	UnsignTx
 	SignedTx
 	Transaction
+	Transactions
 	Signature
 	AddrOverview
 	ReqAddr
@@ -262,6 +281,8 @@ It has these top-level messages:
 	ReqModifyConfig
 	ReqSignRawTx
 	ReplySignRawTx
+	ReportErrEvent
+	Int32
 */
 package types
 

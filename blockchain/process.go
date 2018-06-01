@@ -165,6 +165,10 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, 
 
 	err := b.blockStore.dbMaybeStoreBlock(block, sync)
 	if err != nil {
+		if err == types.ErrDataBaseDamage {
+			chainlog.Error("dbMaybeStoreBlock newbatch.Write", "err", err)
+			go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
+		}
 		return false, err
 	}
 	// 创建一个node并添加到内存中index
@@ -271,7 +275,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	//广播或者同步过来的blcok需要调用执行模块
 
 	if !isStrongConsistency || blockdetail.Receipts == nil {
-		blockdetail, _, err = util.ExecBlock(b.client.Clone(), prevStateHash, block, true, sync)
+		blockdetail, _, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
 		if err != nil {
 			//记录执行出错的block信息
 			b.RecordFaultPeer(node.pid, block.Height, block.Hash(), err)
@@ -321,8 +325,12 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Error("connectBlock SaveTdByBlockHash:", "height", block.Height, "err", err)
 		return err
 	}
-	newbatch.Write()
-
+	err = newbatch.Write()
+	if err != nil {
+		chainlog.Error("connectBlock newbatch.Write", "err", err)
+		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
+		return err
+	}
 	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Since(beg))
 
 	// 更新最新的高度和header
@@ -341,7 +349,13 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	//广播此block到全网络
 	if node.broadcast {
-		b.SendBlockBroadcast(blockdetail)
+		if blockdetail.Block.BlockTime-time.Now().Unix() > FutureBlockDelayTime {
+			//将此block添加到futureblocks中延时广播
+			b.futureBlocks.Add(string(blockdetail.Block.Hash()), blockdetail)
+			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+		} else {
+			b.SendBlockBroadcast(blockdetail)
+		}
 	}
 	return nil
 }
@@ -370,7 +384,12 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 		chainlog.Error("disconnectBlock DelBlock:", "height", blockdetail.Block.Height, "err", err)
 		return err
 	}
-	newbatch.Write()
+	err = newbatch.Write()
+	if err != nil {
+		chainlog.Error("disconnectBlock newbatch.Write", "err", err)
+		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
+		return err
+	}
 
 	//更新最新的高度和header为上一个块
 	b.blockStore.UpdateHeight()

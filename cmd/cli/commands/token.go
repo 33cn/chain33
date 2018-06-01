@@ -50,9 +50,6 @@ func CreateTokenTransferCmd() *cobra.Command {
 }
 
 func addCreateTokenTransferFlags(cmd *cobra.Command) {
-	//cmd.Flags().StringP("key", "k", "", "private key of sender")
-	//cmd.MarkFlagRequired("key")
-
 	cmd.Flags().StringP("to", "t", "", "receiver account address")
 	cmd.MarkFlagRequired("to")
 
@@ -60,24 +57,18 @@ func addCreateTokenTransferFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info")
-	cmd.MarkFlagRequired("note")
 
 	cmd.Flags().StringP("symbol", "s", "", "token symbol")
 	cmd.MarkFlagRequired("symbol")
 }
 
 func createTokenTransfer(cmd *cobra.Command, args []string) {
-	//key, _ := cmd.Flags().GetString("key")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
-	txHex, err := CreateRawTx(toAddr, amount, note, false, true, symbol)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	fmt.Println(txHex)
+	CreateRawTx(rpcLaddr, toAddr, amount, note, false, true, symbol, "")
 }
 
 // create raw withdraw tx
@@ -92,9 +83,6 @@ func CreateTokenWithdrawCmd() *cobra.Command {
 }
 
 func addCreateTokenWithdrawFlags(cmd *cobra.Command) {
-	//cmd.Flags().StringP("key", "k", "", "private key of user")
-	//cmd.MarkFlagRequired("key")
-
 	cmd.Flags().StringP("exec", "e", "", "execer withdrawn from")
 	cmd.MarkFlagRequired("exec")
 
@@ -102,14 +90,13 @@ func addCreateTokenWithdrawFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info")
-	cmd.MarkFlagRequired("note")
 
 	cmd.Flags().StringP("symbol", "s", "", "token symbol")
 	cmd.MarkFlagRequired("symbol")
 }
 
 func createTokenWithdraw(cmd *cobra.Command, args []string) {
-	//key, _ := cmd.Flags().GetString("key")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
@@ -119,12 +106,7 @@ func createTokenWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, true, symbol)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	fmt.Println(txHex)
+	CreateRawTx(rpcLaddr, execAddr, amount, note, true, true, symbol, "")
 }
 
 // get precreated tokens

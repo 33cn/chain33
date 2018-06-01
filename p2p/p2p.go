@@ -44,6 +44,12 @@ func New(cfg *types.P2P) *P2p {
 
 	VERSION = cfg.GetVersion()
 	log.Info("p2p", "Version", VERSION)
+
+	if cfg.InnerBounds == 0 {
+		cfg.InnerBounds = 300
+	}
+	log.Info("p2p", "InnerBounds", cfg.InnerBounds)
+
 	node, err := NewNode(cfg)
 	if err != nil {
 		log.Error(err.Error())
@@ -77,7 +83,7 @@ func (network *P2p) Close() {
 
 func (network *P2p) SetQueueClient(client queue.Client) {
 	network.client = client
-	network.node.SetQueueClient(client.Clone())
+	network.node.SetQueueClient(client)
 	go func() {
 		log.Info("p2p", "setqueuecliet", "ok")
 		network.node.Start()

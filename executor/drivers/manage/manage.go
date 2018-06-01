@@ -18,15 +18,14 @@ import (
 var clog = log.New("module", "execs.manage")
 
 func Init() {
-	n := newManage()
-	drivers.Register(n.GetName(), n, types.ForkV4AddManage)
+	drivers.Register(newManage().GetName(), newManage, types.ForkV4AddManage)
 }
 
 type Manage struct {
 	drivers.DriverBase
 }
 
-func newManage() *Manage {
+func newManage() drivers.Driver {
 	c := &Manage{}
 	c.SetChild(c)
 	return c
@@ -36,19 +35,14 @@ func (c *Manage) GetName() string {
 	return "manage"
 }
 
-func (c *Manage) Clone() drivers.Driver {
-	clone := &Manage{}
-	clone.DriverBase = *(c.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
-}
-
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)
-	//_, err := c.DriverBase.Exec(tx, index)
-	//if err != nil {
-	//	return nil, err
-	//}
+	if c.GetHeight() > types.ForkV11ManageExec {
+		_, err := c.DriverBase.Exec(tx, index)
+		if err != nil {
+			return nil, err
+		}
+	}
 	//clog.Info("manage.Exec", "start index 2", index)
 	var manageAction types.ManageAction
 	err := types.Decode(tx.Payload, &manageAction)
@@ -139,11 +133,18 @@ func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 
-		// Load config from store
-		value, err := c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
+		// Load config from state db
+		value, err := c.GetStateDB().Get([]byte(types.ManageKey(in.Data)))
 		if err != nil {
 			clog.Info("modifyConfig", "get db key", "not found")
 			value = nil
+		}
+		if value == nil {
+			value, err = c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
+			if err != nil {
+				clog.Info("modifyConfig", "get db key", "not found")
+				value = nil
+			}
 		}
 
 		var reply types.ReplyConfig

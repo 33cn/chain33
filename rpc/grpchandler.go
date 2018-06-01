@@ -351,3 +351,10 @@ func (g *Grpc) checkWhitlist(ctx context.Context) bool {
 	}
 	return false
 }
+
+func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, error) {
+	if !g.checkWhitlist(ctx) {
+		return nil, fmt.Errorf("reject")
+	}
+	return g.cli.GetFatalFailure()
+}
