@@ -265,6 +265,9 @@ const (
 	EventAuthorityCheckTx = 113
 	EventReplyAuthSignTx  = 114
 	EventReplyAuthCheckTx = 115
+	EventAuthorityCheckTxs = 116
+	EventReplyAuthCheckTxs = 117
+
 	// Token
 	EventBlockChainQuery = 212
 )

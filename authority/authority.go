@@ -89,6 +89,8 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 				go auth.procSignTx(msg)
 			} else if msg.Ty == types.EventAuthorityCheckTx {
 				go auth.procCheckTx(msg)
+			} else if msg.Ty == types.EventAuthorityCheckTxs {
+
 			}
 		}
 	}()
@@ -175,6 +177,19 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 	alog.Debug("Verify signature success")
 
 	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{true}))
+}
+
+func (auth *Authority) procCheckTxs(msg queue.Message) {
+	data := msg.GetData().(*types.ReqAuthSignCheckTxs)
+	txs := data.GetTxs()
+	if len(txs) == 0 {
+		alog.Error("Empty transactions")
+		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
+		return
+	}
+
+	//TODO
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTxs, &types.RespAuthSignCheckTxs{true}))
 }
 
 func (auth *Authority) Close() {
