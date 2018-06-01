@@ -29,6 +29,17 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 			return msg
 		}
 	}
+	// 检查接收地址是否合法
+	if err := account.CheckAddress(tx.To); err != nil {
+		msg.Data = types.ErrAddrNotExist
+		return msg
+	}
+	// 非coins或token模块的ToAddr指向合约
+	exec := string(tx.Execer)
+	if exec != "coins" && exec != "token" && account.ExecAddress(exec) != tx.To {
+		msg.Data = types.ErrToAddrNotSameToExecAddr
+		return msg
+	}
 	// 检查交易是否为重复交易
 	if mem.addedTxs.Contains(string(tx.Hash())) {
 		msg.Data = types.ErrDupTx
