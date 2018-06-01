@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package types;
+
+//手续费
+message TotalFee {
+        int64 fee = 1; 
+	int64 txCount = 2;
+}
+
+//查询symbol代币总额
+message ReqGetTotalCoins {
+	string symbol = 1;
+	bytes stateHash = 2;
+        bytes startKey = 3;
+        int64 count = 4;
+}
+
+//查询symbol代币总额应答
+message ReplyGetTotalCoins{
+        int64 count = 1;
+        int64 num   = 2;
+        int64 amount = 3;
+        bytes nextKey  = 4;
+}
+
+//迭代查询symbol代币总额
+message IterateRangeByStateHash {
+	bytes stateHash = 1;
+	bytes start = 2;
+        bytes end = 3;
+        int64 count = 4;
+}
+
+message TicketStatistic {
+	//当前在挖的ticket
+	int64 currentOpenCount = 1;
+	//一共挖到的ticket
+	int64 totalMinerCount = 2;
+	//一共取消的ticket
+	int64 totalCancleCount = 3;
+}
+
+message TicketMinerInfo {
+	string ticketId = 1;
+	//1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
+	int32 status = 2; 
+	int32 prevStatus = 3; 
+	//genesis 创建的私钥比较特殊
+	bool isGenesis = 4; 
+	 //创建ticket时间
+	int64 createTime = 5;
+	//ticket挖矿时间
+	int64 minerTime = 6; 
+	//关闭ticket时间
+	int64 closeTime = 7; 
+	//挖到的币的数目
+	int64 minerValue = 8; 
+	string minerAddress = 9;
+}
+

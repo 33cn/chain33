@@ -249,22 +249,18 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 	if 0 != len(txs) {
 		for _, tx := range txs {
 			var recp ReceiptData
-			var proofs []string
-			var recpResult *ReceiptDataResult
-			var err error
-			recp.Ty = tx.GetReceipt().GetTy()
 			logs := tx.GetReceipt().GetLogs()
-			if in.DisableDetail {
-				logs = nil
-			}
+			recp.Ty = tx.GetReceipt().GetTy()
 			for _, lg := range logs {
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			recpResult, err = DecodeLog(&recp)
+			recpResult, err := DecodeLog(&recp)
 			if err != nil {
 				continue
 			}
+
+			var proofs []string
 			txProofs := tx.GetProofs()
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
@@ -273,6 +269,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			if err != nil {
 				continue
 			}
+
 			txdetails.Txs = append(txdetails.Txs,
 				&TransactionDetail{
 					Tx:         tran,
@@ -723,43 +720,13 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	return nil
 }
 
-func (c *Chain33) QueryOld(in Query4Jrpc, result *interface{}) error {
+func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
 		return err
 	}
 
 	resp, err := c.cli.Query(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
-	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
-		return err
-	}
-
-	*result = resp
-	return nil
-}
-
-func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
-	trans, ok := types.RpcTypeUtilMap[in.FuncName]
-	if !ok {
-		// 不是所有的合约都需要做类型转化， 没有修改的合约走老的接口
-		// 另外给部分合约的代码修改的时间
-		//log.Info("EventQuery", "Old Query called", in.FuncName)
-		return c.QueryOld(in, result)
-	}
-	decodePayload, err := trans.(types.RpcTypeUtil).Input(in.Payload)
-	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
-		return err
-	}
-
-	resp, err := c.cli.Query(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
-	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
-		return err
-	}
-
-	*result, err = trans.(types.RpcTypeUtil).Output(resp)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -1328,51 +1295,17 @@ func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) QueryTicketStat(in *types.LocalDBGet, result *interface{}) error {
-	reply, err := c.cli.LocalGet(in)
-	if err != nil {
-		return err
-	}
-
-	var ticketStat types.TicketStatistic
-	err = types.Decode(reply.Values[0], &ticketStat)
-	if err != nil {
-		return err
-	}
-	*result = ticketStat
-	return nil
-}
-
 func (c *Chain33) QueryTicketInfo(in *types.LocalDBGet, result *interface{}) error {
 	reply, err := c.cli.LocalGet(in)
 	if err != nil {
 		return err
 	}
 
-	var ticketInfo types.TicketMinerInfo
+	var ticketInfo types.TicketInfo
 	err = types.Decode(reply.Values[0], &ticketInfo)
 	if err != nil {
 		return err
 	}
 	*result = ticketInfo
-	return nil
-}
-
-func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}) error {
-	reply, err := c.cli.LocalList(in)
-	if err != nil {
-		return err
-	}
-
-	var ticketInfo types.TicketMinerInfo
-	var ticketList []types.TicketMinerInfo
-	for _, v := range reply.Values {
-	err = types.Decode(v, &ticketInfo)
-	if err != nil {
-		return err
-	}
-	ticketList = append(ticketList, ticketInfo)
-	}
-	*result = ticketList
 	return nil
 }
