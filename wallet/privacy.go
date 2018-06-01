@@ -3,7 +3,6 @@ package wallet
 import (
 	"bytes"
 	"errors"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
@@ -83,7 +82,87 @@ func (wallet *Wallet) procPrivacy2PublicV2(privacy2Pub *types.ReqPri2Pub) (*type
 		return nil, err
 	}
 
-	return wallet.transPri2Pub(privacyInfo, privacy2Pub)
+	return wallet.transPri2PubV2(privacyInfo, privacy2Pub)
+}
+
+func (wallet *Wallet) procCreateUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types.ReplyHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return nil, err
+	}
+	if createUTXOs == nil {
+		walletlog.Error("privacy2privacy input para is nil")
+		return nil, types.ErrInputPara
+	}
+	priv, err := wallet.getPrivKeyByAddr(createUTXOs.GetSender())
+	if err != nil {
+		return nil, err
+	}
+
+	return wallet.createUTXOsByPub2Priv(priv, createUTXOs)
+}
+//批量创建通过public2Privacy实现
+func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs *types.ReqCreateUTXOs) (*types.ReplyHash, error) {
+	viewPubSlice, err := common.FromHex(reqCreateUTXOs.ViewPublic)
+	if err != nil {
+		return nil, err
+	}
+	spendPubSlice, err := common.FromHex(reqCreateUTXOs.SpendPublic)
+	if err != nil {
+		return nil, err
+	}
+
+	if 32 != len(viewPubSlice) || 32 != len(spendPubSlice) {
+		walletlog.Error("transPub2Pri", "viewPubSlice with len", len(viewPubSlice), "viewPubSlice", viewPubSlice)
+		walletlog.Error("transPub2Pri", "spendPubSlice with len", len(spendPubSlice), "spendPubSlice", spendPubSlice)
+		return nil, types.ErrPubKeyLen
+	}
+
+	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
+	//因为此时是pub2priv的交易，此时不需要构造找零的输出，同时设置fee为0，也是为了简化计算
+	privacyOutput, err := genCustomOuts(viewPublic, spendPublic, reqCreateUTXOs.Amount, reqCreateUTXOs.Count)
+	if err != nil {
+		return nil, err
+	}
+
+	value := &types.Public2Privacy{
+		Tokenname: reqCreateUTXOs.Tokenname,
+		Amount:    reqCreateUTXOs.Amount * int64(reqCreateUTXOs.Count),
+		Note:      reqCreateUTXOs.Note,
+		Output:    privacyOutput,
+	}
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPublic2Privacy,
+		Value: &types.PrivacyAction_Public2Privacy{value},
+	}
+
+	tx := &types.Transaction{
+		Execer:  []byte("privacy"),
+		Payload: types.Encode(action),
+		Fee:     wallet.FeeAmount,
+		Nonce:   wallet.random.Int63(),
+	}
+	tx.Sign(int32(SignType), priv)
+
+	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("transPub2PriV2", "Send err", err)
+		return nil, err
+	}
+
+	reply := resp.GetData().(*types.Reply)
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	var hash types.ReplyHash
+	hash.Hash = tx.Hash()
+	return &hash, nil
 }
 
 //公开向隐私账户转账
@@ -145,6 +224,39 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
 	return &hash, nil
+}
+
+func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int32) (*types.PrivacyOutput, error) {
+	decomDigit := make([]int64, count)
+	for i, _ := range decomDigit {
+		decomDigit[i] = transAmount
+	}
+
+	pk := &privacy.PubKeyPrivacy{}
+	sk := &privacy.PrivKeyPrivacy{}
+	privacy.GenerateKeyPair(sk, pk)
+	RtxPublicKey := pk.Bytes()
+
+	sktx := (*[32]byte)(unsafe.Pointer(&sk[0]))
+	var privacyOutput types.PrivacyOutput
+	privacyOutput.RpubKeytx = RtxPublicKey
+	privacyOutput.Keyoutput = make([]*types.KeyOutput, len(decomDigit))
+
+	//添加本次转账的目的接收信息（UTXO），包括一次性公钥和额度
+	for index, digit := range decomDigit {
+		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubTo, spendpubto, sktx, int64(index))
+		if err != nil {
+			walletlog.Error("genCustomOuts", "Fail to GenerateOneTimeAddr due to cause", err)
+			return nil, err
+		}
+		keyOutput := &types.KeyOutput{
+			Amount:        digit,
+			Ometimepubkey: pubkeyOnetime[:],
+		}
+		privacyOutput.Keyoutput[index] = keyOutput
+	}
+
+	return &privacyOutput, nil
 }
 
 //最后构造完成的utxo依次是2种类型，不构造交易费utxo，使其直接燃烧消失
@@ -307,7 +419,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
-	wallet.frozenUtxos(reqPri2Pri.Tokenname, reqPri2Pri.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
+	wallet.saveFTXOInfo(reqPri2Pri.Tokenname, reqPri2Pri.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
 	return &hash, nil
 }
 
@@ -393,29 +505,14 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
 
-	wallet.frozenUtxos(reqPri2Pub.Tokenname, reqPri2Pub.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
+	wallet.saveFTXOInfo(reqPri2Pub.Tokenname, reqPri2Pub.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
 	return &hash, nil
 }
 
-func (wallet *Wallet) frozenUtxos(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
+func (wallet *Wallet) saveFTXOInfo(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	//将已经作为本次交易输入的utxo进行冻结，防止产生双花交易
-	utxoSpendInTx := &utxoSpendInTx{
-		spender:sender,
-		token:token,
-		outs:selectedUtxos,
-	}
-	wallet.privacyFrozen[txhash] = utxoSpendInTx
-	//tokenPrivacy, ok := wallet.privacyFrozen[token]
-	//if !ok{
-	//	temp := make(map[string]*walletOuts)
-	//	wallet.privacyFrozen[token] = temp
-	//	tokenPrivacy = temp
-	//
-	//}
-	//frozen := tokenPrivacy[sender]
-	//for _, utxo := range selectedUtxo {
-	//	frozen.outs = append(frozen.outs, utxo)
-	//}
+	wallet.privacyFrozen[txhash] = struct{}{}
+	wallet.walletStore.moveUTXO2FTXO(token, sender, txhash, selectedUtxos)
 }
 
 func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, [][]*types.UTXO, []*realkeyInput, []*txOutputInfo, error) {

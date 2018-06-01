@@ -78,6 +78,8 @@ var (
 	ErrTSellOrderExpired     = errors.New("ErrTradeSellOrderExpired")
 	ErrTSellOrderRevoke      = errors.New("ErrTradeSellOrderRevokeNotAllowed")
 	ErrTSellNoSuchOrder      = errors.New("ErrTradeSellNoSuchOrder")
+	//err for privacy
+	ErrWrongKey              = errors.New("ErrWrongKey")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")

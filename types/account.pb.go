@@ -34,6 +34,7 @@ It has these top-level messages:
 	Receipts
 	PrivacyKV
 	PrivacyKVToken
+	LocalDBSetWithPrivacy
 	ReceiptsAndPrivacyKV
 	ReceiptCheckTxList
 	ChainStatus
@@ -245,15 +246,18 @@ It has these top-level messages:
 	ReqPub2Pri
 	ReqPri2Pri
 	ReqPri2Pub
+	ReqCreateUTXOs
 	ReplyPrivacyPkPair
 	ReqPrivacyBalance
+	ReqPrivBal4AddrToken
 	ReplyPrivacyBalance
 	PrivacyDBStore
-	PrivacyOnetimeAccInfo
-	ReqUTXOGlobalIndex
 	UTXO
+	ReqUTXOGlobalIndex
+	UTXOBasic
 	UTXOIndex4Amount
 	ResUTXOGlobalIndex
+	FTXOsSTXOsInOneTx
 */
 package types
 

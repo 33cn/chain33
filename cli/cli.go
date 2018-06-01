@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/version"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/piotrnar/gocoin/lib/utxo"
 )
 
 func main() {
@@ -514,7 +515,13 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		ShowUTXOs4SpecifiedAmount(argsWithoutProg[1:])
+		ShowUTXOs4SpecifiedAmount(argsWithoutProg[1])
+	case "createutxo":
+		if len(argsWithoutProg) != 7 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		CreateUTXOs(argsWithoutProg[1:])
 	default:
 		fmt.Print("指令错误")
 	}
@@ -598,6 +605,7 @@ func LoadHelp() {
 	fmt.Println("priv2pub from to amout mixin note                               : 隐私账户向公开账户转账")
 	fmt.Println("showamountsofutxo                                               : 显示所有的utxo的币值")
 	fmt.Println("showutxos4specifiedamount amount                                : 显示当前token下指定amout的utxo")
+	fmt.Println("createutxos from toviewpubkey tospendpubkey amout count note    : 创建count个额度为amout的utxo")
 }
 
 type AccountsResult struct {
@@ -625,11 +633,12 @@ type TokenAccountResult struct {
 }
 
 type PrivacyAccountResult struct {
-	TokenName string `json:"Token,omitempty"`
-	Balance   string `json:"balance,omitempty"`
-	Frozen    string `json:"frozen,omitempty"`
-	Addr      string `json:"addr,omitempty"`
-	Txhash    string `json:"txhash,omitempty"`
+	Token     string `json:"Token,omitempty"`
+	Height    int64  `json:"Height,omitempty"`
+	TxIndex   int32  `json:"TxIndex,omitempty"`
+	Txhash    string `json:"Txhash,omitempty"`
+	OutIndex  int32  `json:"OutIndex,omitempty"`
+	Amount    string `json:"Amount,omitempty"`
 }
 
 type TxListResult struct {
@@ -2717,8 +2726,9 @@ func ManageConfigTransactioin(key, op, opAddr, priv string) {
 
 ////////////////privacy////////////////////////////
 func ShowPrivacyAccount(addr string) {
-	params := &types.ReqStr{
+	params := &types.ReqPrivBal4AddrToken{
 		addr,
+		"BTY",
 	}
 
 	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
@@ -2726,7 +2736,7 @@ func ShowPrivacyAccount(addr string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res []*types.PrivacyOnetimeAccInfo
+	var res []*types.UTXO
 	err = rpc.Call("Chain33.ShowPrivacyAccount", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -2738,16 +2748,22 @@ func ShowPrivacyAccount(addr string) {
 		return
 	}
 
-	fmt.Printf("------Privacy account for address:%s\n", addr)
-	for index, account := range res {
-		balanceResult := strconv.FormatFloat(float64(account.Balance)/float64(types.Coin), 'f', 4, 64)
-		frozenResult := strconv.FormatFloat(float64(account.Frozen)/float64(types.Coin), 'f', 4, 64)
+	fmt.Printf("------Privacy account Info for address:%s\n", addr)
+	total := float64(0)
+	for _, utxo := range res {
+		total += float64(utxo.Amount)/float64(types.Coin)
+	}
+	totalStr := strconv.FormatFloat(total, 'f', 4, 64)
+	fmt.Printf("------Total Privacy available amount is:%s \n", totalStr)
+
+	for index, utxo := range res {
+		amount := strconv.FormatFloat(float64(utxo.Amount)/float64(types.Coin), 'f', 4, 64)
 		result := &PrivacyAccountResult{
-			Addr:      account.Addr,
-			TokenName: account.Tokenname,
-			Balance:   balanceResult,
-			Frozen:    frozenResult,
-			Txhash:    account.Txhash,
+			Height:utxo.UtxoBasic.UtxoGlobalIndex.Height,
+			TxIndex:utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+			Txhash:common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+			OutIndex:utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+			Amount:amount,
 		}
 
 		data, err := json.MarshalIndent(result, "", "    ")
@@ -2755,10 +2771,9 @@ func ShowPrivacyAccount(addr string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		fmt.Printf("------The %dth privacy account info with onetime address:%s is as below\n", index, account.Addr)
+		fmt.Printf("------The %dth privacy UTXO info is as below\n", index)
 		fmt.Println(string(data))
 	}
-
 }
 
 func ShowPrivacyTransfer(addr string, txhash string) {
@@ -3018,4 +3033,49 @@ func ShowAmountsOfUTXO() {
 		amountInStr := strconv.FormatFloat(float64(amount)/float64(types.Coin), 'f', 4, 64)
 		fmt.Println("index and amout ", i, amountInStr)
 	}
+}
+
+//from toviewpubkey tospendpubkey amout count note
+func CreateUTXOs(args []string) {
+	amountFloat64, err := strconv.ParseFloat(args[3], 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	count, err := strconv.ParseInt(args[4], 10, 32)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	amountInt64 := int64(amountFloat64*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
+	params := &types.ReqCreateUTXOs{
+		args[1],
+		args[2],
+		types.BTY,
+		amountInt64,
+		args[5],
+		args[0],
+		int32(count),
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res jsonrpc.ReplyHash
+	err = rpc.Call("Chain33.CreateUTXOs", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	data, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }

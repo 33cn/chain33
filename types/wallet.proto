@@ -258,6 +258,16 @@ message ReqPri2Pub {
 //	string txhash     = 6;
 }
 
+message ReqCreateUTXOs {
+    string viewPublic  = 1; //接收人可见公钥A
+    string spendPublic = 2; //接收人花费公钥B
+    string tokenname   = 3;
+    int64 amount       = 4;
+    string note        = 5;
+    string sender      = 6; //发送人地址
+    int32  count       = 7;
+}
+
 message ReplyPrivacyPkPair {
 	bool showSuccessful  = 1;
 	string viewPub       = 2;
@@ -267,6 +277,11 @@ message ReplyPrivacyPkPair {
 message ReqPrivacyBalance {
 	string addr   =  1;
 	string txhash =  2; //隐私交易hash
+}
+
+message ReqPrivBal4AddrToken {
+    string addr   =  1;
+    string token  =  2;
 }
 
 message ReplyPrivacyBalance {
@@ -284,14 +299,12 @@ message PrivacyDBStore {
 	string owner                     = 7;
     int64 height                     = 8;
     int32 txindex                    = 9;
+    bytes blockhash                  = 10;
 }
 
-message PrivacyOnetimeAccInfo {
-	string tokenname = 1;
-	int64 balance = 2;  //账户可用余额
-	int64 frozen = 3;   //账户冻结余额
-	string addr = 4;    //账户的地址
-	string txhash = 5;
+message UTXO {
+    int64 amount     = 1;
+    UTXOBasic utxoBasic   = 2;
 }
 
 message ReqUTXOGlobalIndex {
@@ -300,18 +313,22 @@ message ReqUTXOGlobalIndex {
 	repeated int64 amount = 3;
 }
 
-message UTXO {
+message UTXOBasic {
     UTXOGlobalIndex utxoGlobalIndex = 1;
     bytes onetimePubkey             = 2;
 }
 
 message UTXOIndex4Amount {
     int64 amount        = 1;
-    repeated UTXO utxos = 2;
+    repeated UTXOBasic utxos = 2;
 }
 
 message ResUTXOGlobalIndex {
     string tokenname = 1;
     int32 mixCount   = 2;
     repeated UTXOIndex4Amount utxoIndex4Amount = 3;
+}
+
+message FTXOsSTXOsInOneTx {
+    repeated UTXOGlobalIndex utxoGlobalIndex = 1;
 }

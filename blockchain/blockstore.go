@@ -15,7 +15,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"golang.org/x/tools/go/gcimporter15/testdata"
+	"github.com/hashicorp/golang-lru/simplelru"
+	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -333,15 +334,16 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 }
 
 //通过批量删除tx信息从db中
-func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail) error {
+func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail, privacyCache map[string]map[int64]*simplelru.LRU, lock sync.RWMutex) error {
 	//存储key:addr:flag:height ,value:txhash
 	//flag :0-->from,1--> to
 	//height=height*10000+index 存储账户地址相关的交易
-	kv, err := bs.getDelLocalKV(blockDetail)
+	localDBSetWithPrivacy, err := bs.getDelLocalKV(blockDetail)
 	if err != nil {
 		storeLog.Error("indexTxs getLocalKV err", "Height", blockDetail.Block.Height, "err", err)
 		return err
 	}
+	kv := localDBSetWithPrivacy.LocalDBSet
 	for i := 0; i < len(kv.KV); i++ {
 		if kv.KV[i].Value == nil {
 			storeBatch.Delete(kv.KV[i].Key)
@@ -349,6 +351,24 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 			storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
 		}
 	}
+
+	lock.Lock()
+	privacykv := localDBSetWithPrivacy.PrivacyLocalDBSet.PrivacyKVToken
+	for _, kv4Token := range privacykv {
+		if tokenLru, ok := privacyCache[kv4Token.Token]; ok {
+			for _, kv := range kv4Token.KV {
+				amount, err := privacy.DecodeAmountFromKey(kv.Key, kv4Token.Token)
+				if err != nil {
+					panic("DecodeAmountFromKey")
+				}
+				if lru4Amount, ok := tokenLru[amount]; ok {
+					lru4Amount.Remove(kv.Key)
+				}
+			}
+		}
+	}
+	lock.Unlock()
+
 	return nil
 }
 
@@ -437,7 +457,7 @@ func (bs *BlockStore) getLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, 
 	return kv, nil
 }
 
-func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, error) {
+func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSetWithPrivacy, error) {
 	if bs.client == nil {
 		panic("client not bind message queue.")
 	}
@@ -447,8 +467,8 @@ func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSe
 	if err != nil {
 		return nil, err
 	}
-	kv := resp.GetData().(*types.LocalDBSet)
-	return kv, nil
+	localDBSetWithPrivacy := resp.GetData().(*types.LocalDBSetWithPrivacy)
+	return localDBSetWithPrivacy, nil
 }
 
 //从db数据库中获取指定blockhash对应的block总难度td

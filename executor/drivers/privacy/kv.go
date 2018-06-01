@@ -2,6 +2,9 @@ package privacy
 
 import (
 	"fmt"
+	"gitlab.33.cn/chain33/chain33/types"
+	"strings"
+	"strconv"
 )
 
 const (
@@ -18,8 +21,20 @@ func calcprivacyOutputKey(token string, amount int64, txhash string, index int) 
 }
 
 //在本地数据库中设置一条可以找到对应amount的对应的utxo的global index
-func calcPrivacyUTXOkeyHeight(token string, amount, height int64, txhash string, index int) (key []byte) {
+func CalcPrivacyUTXOkeyHeight(token string, amount, height int64, txhash string, index int) (key []byte) {
 	return []byte(fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-%d-%010d-%s-%d", token, amount, height, txhash, index))
+}
+
+func DecodeAmountFromKey(key []byte, token string) (int64, error) {
+	Prefix := fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-", token)
+	if len(key) <= len(Prefix) {
+		return 0, types.ErrWrongKey
+	}
+
+	Amountstr := string(key[len(Prefix):])
+	index := strings.Index(Amountstr,"-")
+	Amountstr = string(key[len(Prefix):index])
+	return strconv.ParseInt(Amountstr, 10, 64)
 }
 
 func CalcPrivacyUTXOkeyHeightPrefix(token string, amount int64) (key []byte) {
