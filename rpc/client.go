@@ -794,7 +794,7 @@ func (c *channelClient) IsNtpClockSync() bool {
 
 //////////privacy tx//////////////////////////////
 
-func (c *channelClient) ShowPrivacyAccount(parm *types.ReqStr) ([]*types.PrivacyOnetimeAccInfo, error) {
+func (c *channelClient) ShowPrivacyAccount(parm *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error) {
 	msg := c.NewMessage("wallet", types.EventShowPrivacyAccount, parm)
 	err := c.Send(msg, true)
 	if err != nil {
@@ -806,7 +806,7 @@ func (c *channelClient) ShowPrivacyAccount(parm *types.ReqStr) ([]*types.Privacy
 		log.Error("ShowPrivacyAccount", "Error", err.Error())
 		return nil, err
 	}
-	return resp.Data.([]*types.PrivacyOnetimeAccInfo), nil
+	return resp.Data.([]*types.UTXO), nil
 }
 
 func (c *channelClient) ShowPrivacyTransfer(parm *types.ReqPrivacyBalance) (*types.Account, error) {
@@ -889,3 +889,21 @@ func (c *channelClient) MakeTxPrivacy2public(parm *types.ReqPri2Pub) (*types.Rep
 		    "sender", parm.Sender, "receiver", parm.Receiver, "note", parm.Note)
 	return resp.Data.(*types.Reply), nil
 }
+
+func (c *channelClient) CreateUTXOs(parm *types.ReqCreateUTXOs) (*types.Reply, error) {
+	msg := c.NewMessage("wallet", types.EventCreateUTXOs, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("CreateUTXOs", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("CreateUTXOs", "Error", err.Error())
+		return nil, err
+	}
+	log.Info("CreateUTXOs", "result", "send tx successful",
+		"sender", parm.Sender, "note", parm.Note)
+	return resp.Data.(*types.Reply), nil
+}
+

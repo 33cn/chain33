@@ -1218,7 +1218,7 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 }
 
 /////////////////privacy///////////////
-func (c *Chain33) ShowPrivacyAccount(in types.ReqStr, result *interface{}) error {
+func (c *Chain33) ShowPrivacyAccount(in types.ReqPrivBal4AddrToken, result *interface{}) error {
 	account, err := c.cli.ShowPrivacyAccount(&in)
 	if err != nil {
 		log.Info("ShowPrivacyAccount", "return err info", err)
@@ -1280,3 +1280,16 @@ func (c *Chain33) MakeTxPrivacy2public(in types.ReqPri2Pub, result *interface{})
 
 	return nil
 }
+
+func (c *Chain33) CreateUTXOs(in types.ReqCreateUTXOs, result *interface{}) error {
+
+	reply, err := c.cli.CreateUTXOs(&in)
+	if err != nil {
+		return err
+	}
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+
+	return nil
+}
+
+

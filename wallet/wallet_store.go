@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/piotrnar/gocoin/client/wallet"
 )
 
 var (
@@ -20,6 +21,15 @@ var (
 	EncryptionFlag  = []byte("Encryption")
 	PasswordHash    = []byte("PasswordHash")
 	storelog        = walletlog.New("submodule", "store")
+)
+
+const (
+	Privacy4Addr = "Privacy4Addr-"
+	PrivacyTokenAddrUTXO = "token-addr-UTXO-"
+	PrivacyUTXO = "UTXO-"
+	PrivacyFTXO = "FTXO-"//Frozen TXO
+	PrivacySTXO = "STXO-"
+	PrivacyTokenMap = "PrivacyTokenMap"
 )
 
 type WalletStore struct {
@@ -42,24 +52,63 @@ func calcLabelKey(label string) []byte {
 	return []byte(fmt.Sprintf("Label:%s", label))
 }
 
+//key and prefix for privacy
+//types.PrivacyDBStore的数据存储由calcUTXOKey生成key，
+//1.当该utxo的目的地址是钱包管理的其中一个隐私地址时，该key作为value，保存在calcUTXOKey4TokenAddr由生成的key对应的kv中；
+//2.当进行支付时，calcUTXOKey4TokenAddr对应的kv被删除，进而由calcPrivacyFUTXOKey生成的key对应kv中，其中平移的只是key，
+// 本身的具体数据并不进行重新存储，即将utxo变化为futxo；
+//3.当包含该交易的块得到确认时，如果发现输入包含在futxo中，则通过类似的方法，将其key设置到stxo中，
+//4.当发生区块链分叉回退时，即发生del block的情况时，同时
+// 4.a 当确认其中的输入存在于stxo时，则将其从stxo中转移至ftxo中，
+// 4.b 当确认其中的输出存在于utxo或ftxo中时，则将其从utxo或ftxo中同时进行删除，同时删除types.PrivacyDBStore在数据库中的值
+// 4.c 当确认其中的输出存在于stxo中时，则发生了异常，正常情况下，花费该笔utxo的交易需要被先回退，进而回退该笔交易，观察此种情况的发生
+func calcUTXOKey(txhash string, index int) []byte {
+	return []byte(fmt.Sprintf(PrivacyUTXO + "%s-%d", txhash, index))
+}
+
 func calcPrivacyAddrKey(addr string) []byte {
-	return []byte(fmt.Sprintf("Privacy4Addr:%s", addr))
+	return []byte(fmt.Sprintf(Privacy4Addr + "%s", addr))
 }
 
-func calcPrivacy1timeBalKey(token, addr, txhash string, index int) []byte {
-	return []byte(fmt.Sprintf("PrivacyBal4AddrToken:%s-%s-%s-%d", token, addr, txhash, index))
+func calcUTXOKey4TokenAddr(token, addr, txhash string, index int) []byte {
+	return []byte(fmt.Sprintf(PrivacyTokenAddrUTXO + "%s-%s-%s-%d", token, addr, txhash, index))
 }
 
-func calcPrivacyTokenAddrPrefix(token string) []byte {
-	return []byte(fmt.Sprintf("PrivacyBal4AddrToken:%s", token))
+func calcPrivacyUTXOPrefix(token string) []byte {
+	return []byte(fmt.Sprintf(PrivacyUTXO + "%s", token))
 }
 
-func calcPrivacy1timeBalKeyPrefix(addr string) []byte {
-	return []byte(fmt.Sprintf("PrivacyBal4Addr:%s", addr))
+func calcPrivacyUTXOPrefix4Addr(token, addr string) []byte {
+	return []byte(fmt.Sprintf(PrivacyUTXO + "%s-%s", token, addr))
 }
 
 func calcPrivacy4TokenMap() []byte {
-	return []byte("PrivacyTokenMap")
+	return []byte(PrivacyTokenMap)
+}
+
+//TODO:整理一下，通过类型确定不同类型的key
+func calcSTXOKey(token, addr, txhash string, index int) []byte {
+	return []byte(fmt.Sprintf(PrivacySTXO + "%s-%s-%s-%d", token, addr, txhash, index))
+}
+
+func calcSTXOPrefix(token string) []byte {
+	return []byte(fmt.Sprintf(PrivacySTXO + "%s", token))
+}
+
+func calcSTXOPrefix4Addr(token, addr string) []byte {
+	return []byte(fmt.Sprintf(PrivacySTXO + "%s-%s", token, addr))
+}
+
+func calcFTXOKey(token, addr, txhash string, index int) []byte {
+	return []byte(fmt.Sprintf(PrivacyFTXO + "%s-%s-%s-%d", token, addr, txhash, index))
+}
+
+func calcFTXOPrefix(token string) []byte {
+	return []byte(fmt.Sprintf(PrivacyFTXO + "%s", token))
+}
+
+func calcFTXOPrefix4Addr(token, addr string) []byte {
+	return []byte(fmt.Sprintf(PrivacyFTXO + "%s-%s", token, addr))
 }
 
 //通过height*100000+index 查询Tx交易信息
@@ -72,8 +121,16 @@ func calcRecvPrivacyTxKey(key string) []byte {
 	return []byte(fmt.Sprintf("RecvPrivacyTx:%s", key))
 }
 
-func calcSendPrivacyTxKey(key string) []byte {
-	return []byte(fmt.Sprintf("SendPrivacyTx:%s", key))
+func calcKey4FTXOsInTx(key string) []byte {
+	return []byte(fmt.Sprintf("FTXOs4Tx:%s", key))
+}
+
+func calcKey4STXOsInTx(key string) []byte {
+	return []byte(fmt.Sprintf("STXOs4Tx:%s", key))
+}
+
+func calcKey4UTXOsSpentInTx(key string) []byte {
+	return []byte(fmt.Sprintf("UTXOsSpentInTx:%s", key))
 }
 
 func NewWalletStore(db dbm.DB) *WalletStore {
@@ -362,17 +419,40 @@ func (ws *WalletStore) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	return &tokenNamesOfUTXO
 }
 
-func (ws *WalletStore) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO, newbatch dbm.Batch) error {
-	privacyTokenNames, err := proto.Marshal(tokenNames)
-	if err != nil {
-		walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
-		return types.ErrMarshal
+func (ws *WalletStore) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO, newbatch dbm.Batch, token, txhash string, addDelType int32) error {
+	if AddPrivacyTx == addDelType {
+		privacyTokenNames, err := proto.Marshal(tokenNames)
+		if err != nil {
+			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
+			return types.ErrMarshal
+		}
+		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
+	} else {
+		value := ws.db.Get(calcPrivacy4TokenMap())
+		var tokenNamesMap types.TokenNamesOfUTXO
+		if err := proto.Unmarshal(value, &tokenNamesMap); err != nil {
+			walletlog.Error("updateWalletPrivacyTokenMap proto.Unmarshal err!", "err", err)
+			return types.ErrUnmarshal
+		}
+
+		if txhashSaved, _ := tokenNamesMap.TokensMap[token]; txhashSaved == txhash {
+			delete(tokenNamesMap.TokensMap, token)
+		}
+
+		privacyTokenNames, err := proto.Marshal(&tokenNamesMap)
+		if err != nil {
+			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
+			return types.ErrMarshal
+		}
+		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
 	}
-	newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
+
 	return nil
 }
-
-func (ws *WalletStore) setWalletPrivacyAccountBalance(addr, txhash *string, outindex int, dbStore *types.PrivacyDBStore, newbatch dbm.Batch) error {
+//UTXO---->moveUTXO2FTXO---->FTXO---->moveFTXO2STXO---->STXO
+//1.calcUTXOKey------------>types.PrivacyDBStore 该kv值在db中的存储一旦写入就不再改变，除非产生该UTXO的交易被撤销
+//2.calcUTXOKey4TokenAddr-->calcUTXOKey，创建kv，方便查询现在某个地址下某种token的可用utxo
+func (ws *WalletStore) setUTXO(addr, txhash *string, outindex int, dbStore *types.PrivacyDBStore, newbatch dbm.Batch) error {
 	if 0 == len(*addr) || 0 == len(*txhash) {
 		walletlog.Error("setWalletPrivacyAccountBalance addr or txhash is nil")
 		return types.ErrInputPara
@@ -388,23 +468,104 @@ func (ws *WalletStore) setWalletPrivacyAccountBalance(addr, txhash *string, outi
 		return types.ErrMarshal
 	}
 
+	utxoKey := calcUTXOKey(*txhash, outindex)
 	walletlog.Debug("setWalletPrivacyAccountBalance", "addr", *addr, "tx with hash", *txhash,
 		"PrivacyDBStore", *dbStore)
-	newbatch.Set(calcPrivacy1timeBalKey(dbStore.Tokenname, *addr, *txhash, outindex), privacyStorebyte)
+	newbatch.Set(calcUTXOKey4TokenAddr(dbStore.Tokenname, *addr, *txhash, outindex), utxoKey)
+	newbatch.Set(utxoKey, privacyStorebyte)
 	return nil
 }
 
-func (ws *WalletStore) deleteSpentUTXOs(UTXOsSpent *utxoSpendInTx, newbatch dbm.Batch) error {
-	for _, out := range UTXOsSpent.outs {
-		newbatch.Delete(calcPrivacy1timeBalKey(UTXOsSpent.token, UTXOsSpent.spender, common.Bytes2Hex(out.utxoGlobalIndex.Txhash), int(out.utxoGlobalIndex.Outindex)))
+func (ws *WalletStore) unsetUTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
+	if 0 == len(*addr) || 0 == len(*txhash) {
+		walletlog.Error("unsetUTXO addr or txhash is nil")
+		return types.ErrInputPara
 	}
+
+	k1 := calcUTXOKey(*txhash, outindex)
+	k2 := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
+	if nil == ws.db.Get(k1) {
+		walletlog.Error("unsetUTXO get value for keys are nil",
+			"calcUTXOKey", string(k1), "calcUTXOKey4TokenAddr", string(k2))
+		return types.ErrNotFound
+	}
+	newbatch.Delete(k1)
+	if nil != ws.db.Get(k2) {
+		newbatch.Delete(k2)
+	}
+
+	return nil
+}
+//calcUTXOKey4TokenAddr---X--->calcUTXOKey 被删除,该地址下某种token的这个utxo变为不可用
+//calcKey4UTXOsSpentInTx------>types.FTXOsSTXOsInOneTx,将当前交易的所有花费的utxo进行打包，设置为ftxo，同时通过支付交易hash索引
+//calcKey4FTXOsInTx----------->calcKey4UTXOsSpentInTx,创建该交易冻结的所有的utxo的信息
+//状态转移，将utxo转移至ftxo，同时记录该生成tx的花费的utxo，这样在确认执行成功之后就可以快速将相应的FTXO转换成STXO
+func (ws *WalletStore) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
+	FTXOsInOneTx := &types.FTXOsSTXOsInOneTx{}
+	newbatch := ws.NewBatch(true)
+	for _, txOutputInfo := range selectedUtxos {
+		newbatch.Delete(calcUTXOKey4TokenAddr(token, sender, txhash, int(txOutputInfo.utxoGlobalIndex.Outindex)))
+		//key := calcFTXOKey(token, sender, txhash, int(txOutputInfo.utxoGlobalIndex.Outindex))
+		//value := calcUTXOKey(txhash, int(txOutputInfo.utxoGlobalIndex.Outindex))
+		//newbatch.Set(key, value)
+		FTXOsInOneTx.UtxoGlobalIndex = append(FTXOsInOneTx.UtxoGlobalIndex, txOutputInfo.utxoGlobalIndex)
+	}
+    //设置在该交易中花费的UTXO
+	key1 := calcKey4UTXOsSpentInTx(txhash)
+	value1 := types.Encode(FTXOsInOneTx)
+	newbatch.Set(key1, value1)
+
+	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
+	key2 := calcKey4FTXOsInTx(txhash)
+	value2 := key1
+	newbatch.Set(key2, value2)
+	newbatch.Write()
+}
+//calcKey4FTXOsInTx-----x------>calcKey4UTXOsSpentInTx,被删除，
+//calcKey4STXOsInTx------------>calcKey4UTXOsSpentInTx
+//切换types.FTXOsSTXOsInOneTx的状态
+func (ws *WalletStore) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
+	//设置在该交易中花费的UTXO
+	key1 := calcKey4FTXOsInTx(txhash)
+	value1 := ws.db.Get(key1)
+	if value1 == nil {
+		walletlog.Debug("moveFTXO2STXO", "Get nil value for txhash", txhash)
+		return types.ErrNotFound
+	}
+	newbatch.Delete(key1)
+
+	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
+	key2 := calcKey4STXOsInTx(txhash)
+	value2 := value1
+	newbatch.Set(key2, value2)
+	newbatch.Write()
+
+	return nil
+}
+
+func (ws *WalletStore) unmoveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
+	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
+	key2 := calcKey4STXOsInTx(txhash)
+	value2 := ws.db.Get(key2)
+	if value2 == nil {
+		walletlog.Debug("unmoveFTXO2STXO", "Get nil value for txhash", txhash)
+		return types.ErrNotFound
+	}
+	newbatch.Delete(key2)
+
+	//设置在该交易中花费的UTXO
+	key1 := calcKey4FTXOsInTx(txhash)
+	value1 := value2
+	newbatch.Set(key1, value1)
+
+	newbatch.Write()
 
 	return nil
 }
 
 func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*walletOuts {
 
-	prefix := calcPrivacyTokenAddrPrefix(token)
+	prefix := calcPrivacyUTXOPrefix(token)
 	list := dbm.NewListHelper(ws.db)
 	values := list.List(prefix, nil, 0, 0)
 	if len(values) != 0 {
@@ -443,7 +604,6 @@ func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*wall
 	}
 
 	return nil
-
 }
 
 func (ws *WalletStore) getWalletPrivacyAccountBalance(addr, txhash string) (*types.PrivacyDBStore, error) {
@@ -452,7 +612,7 @@ func (ws *WalletStore) getWalletPrivacyAccountBalance(addr, txhash string) (*typ
 		return nil, types.ErrInputPara
 	}
 
-	privacyByte := ws.db.Get(calcPrivacy1timeBalKey(addr, txhash))
+	privacyByte := ws.db.Get(calcUTXOKey4TokenAddr(addr, txhash))
 	if nil == privacyByte {
 		return nil, types.ErrPrivacyNotExist
 	}
@@ -465,14 +625,14 @@ func (ws *WalletStore) getWalletPrivacyAccountBalance(addr, txhash string) (*typ
 	return &accPrivacy, nil
 }
 
-func (ws *WalletStore) listWalletPrivacyAccount(addr string) ([]*types.PrivacyDBStore, error) {
+func (ws *WalletStore) listAvailableUTXOs(token, addr string) ([]*types.PrivacyDBStore, error) {
 	if 0 == len(addr) {
 		walletlog.Error("listWalletPrivacyAccount addr is nil")
 		return nil, types.ErrInputPara
 	}
 
 	list := dbm.NewListHelper(ws.db)
-	onetimeAccbytes := list.PrefixScan(calcPrivacy1timeBalKeyPrefix(addr))
+	onetimeAccbytes := list.PrefixScan(calcPrivacyUTXOPrefix4Addr(token, addr))
 	if len(onetimeAccbytes) == 0 {
 		walletlog.Error("listWalletPrivacyAccount ", "addr not exist", addr)
 		return nil, nil

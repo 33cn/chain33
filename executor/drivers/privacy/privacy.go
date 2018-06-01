@@ -204,7 +204,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 			txhash := common.ToHex(txhashInByte)
 			for i, keyOutput := range receiptPrivacyOutput.Keyoutput {
 				//kv1，添加一个具体的UTXO，方便我们可以查询相应token下特定额度下，不同高度时，不同txhash的UTXO
-				key := calcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i)
+				key := CalcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i)
 				localUTXOItem := &types.LocalUTXOItem{
 					Height:        p.GetHeight(),
 					Txindex:       int32(index),
@@ -226,7 +226,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					if err == nil {
 						//当本地数据库不存在这个额度时，则进行添加
 						if _, ok := amountTypes.AmountMap[keyOutput.Amount]; !ok {
-							amountTypes.AmountMap[keyOutput.Amount] = true
+							amountTypes.AmountMap[keyOutput.Amount] = txhash
 							kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
 							set.KV = append(set.KV, kv)
 							//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
@@ -235,8 +235,8 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					}
 				} else {
 					//如果该种token第一次进行隐私操作
-					amountTypes.AmountMap = make(map[int64]bool)
-					amountTypes.AmountMap[keyOutput.Amount] = true
+					amountTypes.AmountMap = make(map[int64]string)
+					amountTypes.AmountMap[keyOutput.Amount] = txhash
 					kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
 					set.KV = append(set.KV, kv)
 					queryDB.Set(key2, types.Encode(&amountTypes))
@@ -250,15 +250,15 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
 						if _, ok := tokenNames.TokensMap[token]; !ok {
-							tokenNames.TokensMap[token] = true
+							tokenNames.TokensMap[token] = txhash
 							kv := &types.KeyValue{key3, types.Encode(&tokenNames)}
 							set.KV = append(set.KV, kv)
 							queryDB.Set(key3, types.Encode(&tokenNames))
 						}
 					}
 				} else {
-					tokenNames.TokensMap = make(map[string]bool)
-					tokenNames.TokensMap[token] = true
+					tokenNames.TokensMap = make(map[string]string)
+					tokenNames.TokensMap[token] = txhash
 					kv := &types.KeyValue{key3, types.Encode(&tokenNames)}
 					set.KV = append(set.KV, kv)
 					queryDB.Set(key3, types.Encode(&tokenNames))
@@ -275,6 +275,70 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 	if err != nil {
 		return nil, err
 	}
+
+	if receipt.GetTy() != types.ExecOk {
+		return set, nil
+	}
+	queryDB := p.GetQueryDB()
+
+	for i := 0; i < len(receipt.Logs); i++ {
+		item := receipt.Logs[i]
+		if item.Ty == types.TyLogPrivacyOutput {
+			var receiptPrivacyOutput types.ReceiptPrivacyOutput
+			err := types.Decode(item.Log, &receiptPrivacyOutput)
+			if err != nil {
+				panic(err)
+			}
+
+			token := receiptPrivacyOutput.Token
+			txhashInByte := tx.Hash()
+			txhash := common.ToHex(txhashInByte)
+			for i, keyOutput := range receiptPrivacyOutput.Keyoutput {
+				//kv1，添加一个具体的UTXO，方便我们可以查询相应token下特定额度下，不同高度时，不同txhash的UTXO
+				key := CalcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i)
+				kv := &types.KeyValue{key, nil}
+				set.KV = append(set.KV, kv)
+
+				//kv2，添加各种不同额度的kv记录，能让我们很方便的获知本系统存在的所有不同的额度的UTXO
+				var amountTypes types.AmountsOfUTXO
+				key2 := CalcprivacyKeyTokenAmountType(token)
+				value2 := queryDB.Get(key2)
+				//如果该种token不是第一次进行隐私操作
+				if value2 != nil {
+					err := types.Decode(value2, &amountTypes)
+					if err == nil {
+						//当本地数据库不存在这个额度时，则进行添加
+						if settxhash, ok := amountTypes.AmountMap[keyOutput.Amount]; ok {
+							if settxhash == txhash {
+								kv := &types.KeyValue{key2, nil}
+								set.KV = append(set.KV, kv)
+								//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
+								queryDB.Set(key2, nil)
+							}
+						}
+					}
+				}
+
+				//kv3,添加存在隐私交易token的类型
+				var tokenNames types.TokenNamesOfUTXO
+				key3 := CalcprivacyKeyTokenTypes()
+				value3 := queryDB.Get(key3)
+				if value3 != nil {
+					err := types.Decode(value3, &tokenNames)
+					if err == nil {
+						if settxhash, ok := tokenNames.TokensMap[token]; ok {
+							if settxhash == txhash {
+								kv := &types.KeyValue{key3, nil}
+								set.KV = append(set.KV, kv)
+								queryDB.Set(key3, nil)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return set, nil
 }
 

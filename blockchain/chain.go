@@ -151,6 +151,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	//获取lastblock从数据库,创建bestviewtip节点
 	chain.InitIndexAndBestView()
 
+	//获取用于隐私交易进行utxo混淆的数据
 	chain.InitPrivacyCache()
 
 	//startTime
@@ -1014,8 +1015,8 @@ func (chain *BlockChain) InitPrivacyCache() {
 							//所以在此处就需要进行反序添加
 							for ; i > 0; i-- {
 								localUTXOItem := localUTXOItemSlice[i]
-								keyCache := calcPrivacyCacheKey(localUTXOItem.Height, localUTXOItem.Txindex, localUTXOItem.Outindex, localUTXOItem.Txhash)
-								outputKeyInfo := &privacyOutputKeyInfo{
+								keyCache := privacy.CalcPrivacyUTXOkeyHeight(token, amount, localUTXOItem.Height, common.ToHex(localUTXOItem.Txhash), int(localUTXOItem.Outindex))
+								outputKeyInfo := privacyOutputKeyInfo{
 									onetimePubKey: localUTXOItem.Ometimepubkey,
 								}
 								privacyOutputIndexLru.Add(keyCache, outputKeyInfo)

@@ -11,22 +11,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
+	priexec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"github.com/hashicorp/golang-lru/simplelru"
-	"fmt"
-	"strconv"
 )
-
-
-
-func calcPrivacyCacheKey(height int64, txindex int32, outputindex int32, txhash []byte) *types.UTXOGlobalIndex {
-	return &types.UTXOGlobalIndex{
-		Height:height,
-		Txindex:txindex,
-		Outindex:outputindex,
-		Txhash: txhash,
-	}
-}
-
 
 // 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
 // 共识模块和peer广播过来的block需要广播出去
@@ -368,7 +355,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newbatch := b.blockStore.NewBatch(true)
 
 	//从db中删除tx相关的信息
-	err := b.blockStore.DelTxs(newbatch, blockdetail)
+	err := b.blockStore.DelTxs(newbatch, blockdetail, b.privacyCache, b.privacylock)
 	if err != nil {
 		chainlog.Error("disconnectBlock DelTxs:", "height", blockdetail.Block.Height, "err", err)
 		return err
@@ -511,49 +498,59 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 		mapPrivacy4token, ok := b.privacyCache[privacyKVToken.Token]
 		if ok {
 			//遍历一个隐私交易下特定token下的kv，而每个kv则对应一个UTXO
-			for i, kv := range privacyKVToken.KV {
-				var keyOutput types.KeyOutput
-				types.Decode(kv.Value, &keyOutput)
-				outputKeyInfo := &privacyOutputKeyInfo{
-					onetimePubKey:keyOutput.Ometimepubkey,
-				}
-				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
-				if ok {
-					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
-					privacyOutputIndexLru.Add(key, outputKeyInfo)
-				} else {
-					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
-					if err != nil {
-						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
-						break;
+			outindex := 0
+			for _, kv := range privacyKVToken.KV {
+				keyPrefix := []byte(priexec.PrivacyOutputKeyPrefix)
+				if bytes.Contains(kv.Key, keyPrefix) {
+					var keyOutput types.KeyOutput
+					types.Decode(kv.Value, &keyOutput)
+					outputKeyInfo := privacyOutputKeyInfo{
+						onetimePubKey:keyOutput.Ometimepubkey,
 					}
-					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
-					privacyOutputIndexLru.Add(key, outputKeyInfo)
-					mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
+					privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
+					if ok {
+						key := priexec.CalcPrivacyUTXOkeyHeight(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), outindex)
+						privacyOutputIndexLru.Add(key, outputKeyInfo)
+					} else {
+						privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
+						if err != nil {
+							chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
+							break;
+						}
+						key := priexec.CalcPrivacyUTXOkeyHeight(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), outindex)
+						privacyOutputIndexLru.Add(key, outputKeyInfo)
+						mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
+					}
+					outindex++
 				}
 			}
 		} else {
 			mapPrivacy4token := make(map[int64]*simplelru.LRU)
-			for i, kv := range privacyKVToken.KV {
-				var keyOutput types.KeyOutput
-				types.Decode(kv.Value, &keyOutput)
-				outputKeyInfo := &privacyOutputKeyInfo{
-					onetimePubKey:keyOutput.Ometimepubkey,
-				}
-
-				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
-				if ok {
-					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
-					privacyOutputIndexLru.Add(key, outputKeyInfo)
-				} else {
-					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
-					if err != nil {
-						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
-						break;
+			outindex := 0
+			for _, kv := range privacyKVToken.KV {
+				keyPrefix := []byte(priexec.PrivacyOutputKeyPrefix)
+				if bytes.Contains(kv.Key, keyPrefix) {
+					var keyOutput types.KeyOutput
+					types.Decode(kv.Value, &keyOutput)
+					outputKeyInfo := &privacyOutputKeyInfo{
+						onetimePubKey:keyOutput.Ometimepubkey,
 					}
-					key := calcPrivacyCacheKey(height, privacyKVToken.TxIndex, int32(i), privacyKVToken.Txhash)
-					privacyOutputIndexLru.Add(key, outputKeyInfo)
-					mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
+
+					privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
+					if ok {
+						key := priexec.CalcPrivacyUTXOkeyHeight(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), outindex)
+						privacyOutputIndexLru.Add(key, outputKeyInfo)
+					} else {
+						privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
+						if err != nil {
+							chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
+							break;
+						}
+						key := priexec.CalcPrivacyUTXOkeyHeight(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), outindex)
+						privacyOutputIndexLru.Add(key, outputKeyInfo)
+						mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
+					}
+					outindex++
 				}
 			}
 			b.privacyCache[privacyKVToken.Token] = mapPrivacy4token

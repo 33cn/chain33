@@ -243,6 +243,9 @@ const (
 	EventReplyGetGlobalIndex
 	EventGetUTXOPubKey
 	EventReplyGetUTXOPubKey
+	EventCreateUTXOs
+	EventReplyCreateUTXOs
+
 )
 
 var eventName = map[int]string{
