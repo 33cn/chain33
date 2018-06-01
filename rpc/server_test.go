@@ -1,8 +1,8 @@
 package rpc
 
 import (
+	"errors"
 	"testing"
-
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -71,6 +71,42 @@ func TestJSONClient_Call(t *testing.T) {
 	err = jsonClient.Call("Chain33.IsSync", &types.ReqNil{}, &isSnyc)
 	assert.Nil(t, err)
 	assert.Equal(t, ret.GetIsOk(), isSnyc)
+
+	var mingResult Reply
+	api.On("WalletAutoMiner", mock.Anything).Return(&types.Reply{IsOk: true, Msg: []byte("yes")}, nil)
+	err = jsonClient.Call("Chain33.SetAutoMining", types.MinerFlag{}, &mingResult)
+	assert.Nil(t, err)
+	assert.True(t, mingResult.IsOk, "SetAutoMining")
+
+	var ticketResult int64
+	var expectRet = &types.Int64{Data: 100}
+	api.On("GetTicketCount", mock.Anything).Return(expectRet, nil)
+	err = jsonClient.Call("Chain33.GetTicketCount", &types.ReqNil{}, &ticketResult)
+	assert.Nil(t, err)
+	assert.Equal(t, expectRet.GetData(), ticketResult, "GetTicketCount")
+
+	var nodeInfo NodeNetinfo
+	api.On("GetNetInfo", mock.Anything).Return(&types.NodeNetInfo{Externaladdr: "123"}, nil)
+	err = jsonClient.Call("Chain33.GetNetInfo", &types.ReqNil{}, &nodeInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, "123", nodeInfo.Externaladdr)
+
+	var singRet = ""
+	api.On("SignRawTx", mock.Anything).Return(&types.ReplySignRawTx{TxHex: "123"}, nil)
+	err = jsonClient.Call("Chain33.SignRawTx", &types.ReqSignRawTx{}, &singRet)
+	assert.Nil(t, err)
+	assert.Equal(t, "123", singRet)
+
+	var fee types.TotalFee
+	api.On("LocalGet", mock.Anything).Return(nil, errors.New("error value"))
+	err = jsonClient.Call("Chain33.QueryTotalFee", &types.ReqSignRawTx{}, &fee)
+	assert.NotNil(t, err)
+
+	var retNtp bool
+	api.On("IsNtpClockSync", mock.Anything).Return(&types.Reply{IsOk: true, Msg: []byte("yes")}, nil)
+	err = jsonClient.Call("Chain33.IsNtpClockSync", &types.ReqNil{}, &retNtp)
+	assert.Nil(t, err)
+	assert.True(t, retNtp)
 
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
