@@ -33,7 +33,7 @@ var (
 	//addr:1Cbo5u8V5F3ubWBv9L6qu9wWxKuD3qBVpi,这里只是作为测试用，后面需要修改为系统账户
 	ViewPubFee  = "0x0f7b661757fe8471c0b853b09bf526b19537a2f91254494d19874a04119415e8"
 	SpendPubFee = "0x64204db5a521771eeeddee59c25aaae6bebe796d564effb6ba11352418002ee3"
-	ViewPrivFee  = "0x0f7b661757fe8471c0b853b09bf526b19537a2f91254494d19874a04119415e8"
+	ViewPrivFee = "0x0f7b661757fe8471c0b853b09bf526b19537a2f91254494d19874a04119415e8"
 )
 
 var (
@@ -388,7 +388,6 @@ var eventName = map[int]string{
 	EventReplyGetGlobalIndex:        "EventReplyGetGlobalIndex",
 	EventGetUTXOPubKey:              "EventGetUTXOPubKey",
 	EventReplyGetUTXOPubKey:         "EventReplyGetUTXOPubKey",
-
 }
 
 //ty = 1 -> secp256k1

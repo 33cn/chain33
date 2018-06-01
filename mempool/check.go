@@ -4,9 +4,10 @@ import (
 	"errors"
 
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 )
 
 // Mempool.CheckTxList初步检查并筛选交易消息
@@ -94,7 +95,7 @@ func (mem *Mempool) CheckRingSign(tx *types.Transaction) bool {
 	}
 	for _, keyInput := range privacyInput.Keyinput {
 		groupUTXOGlobalIndex := &types.GroupUTXOGlobalIndex{
-			Amount:keyInput.Amount,
+			Amount:          keyInput.Amount,
 			UtxoGlobalIndex: keyInput.UtxoGlobalIndex,
 		}
 		ReqUTXOPubKeys.GroupUTXOGlobalIndex = append(ReqUTXOPubKeys.GroupUTXOGlobalIndex, groupUTXOGlobalIndex)
@@ -115,9 +116,10 @@ func (mem *Mempool) CheckRingSign(tx *types.Transaction) bool {
 	copytx := *tx
 	copytx.Signature = nil
 	data := types.Encode(&copytx)
-	for i, ringSignature := range ringSign{
-		if !privacy.CheckRingSignature(data, ringSignature, resUTXOPubKeys.GroupUTXOPubKeys[i].Pubkey, privacyInput.Keyinput[i].KeyImage){
-			mlog.Error("CheckRingSign", "Failed to CheckRingSignature for index", i)
+	for i, ringSignature := range ringSign {
+		h := common.BytesToHash(data)
+		if !privacy.CheckRingSignature(h.Bytes(), ringSignature, resUTXOPubKeys.GroupUTXOPubKeys[i].Pubkey, privacyInput.Keyinput[i].KeyImage) {
+			mlog.Error("CheckRingSignature", "Failed to CheckRingSignature for index", i)
 			return false
 		}
 	}

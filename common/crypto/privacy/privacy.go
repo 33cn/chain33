@@ -11,13 +11,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	"io"
 	"unsafe"
-	"gitlab.33.cn/chain33/chain33/types"
+	//"gitlab.33.cn/chain33/chain33/types"
+	"fmt"
 )
 
 const (
-	PublicKeyLen       = 32
-	PrivateKeyLen      = 64
-	KeyLen32           = 32
+	PublicKeyLen  = 32
+	PrivateKeyLen = 64
+	KeyLen32      = 32
 )
 
 type Privacy struct {
@@ -33,6 +34,7 @@ type sigcomm struct {
 	pubkey EllipticCurvePoint
 	comm   EllipticCurvePoint
 }
+
 //
 type sigcommArray [32 * 3]byte
 type KeyImage [32]byte
@@ -102,7 +104,7 @@ func GenerateOneTimeAddr(viewPub, spendPub, skAddr32 *[32]byte, outputIndex int6
 	//to calculate Hs(rA)G + B
 	var B edwards25519.ExtendedGroupElement //A
 	if res := B.FromBytes(spendPub); !res {
-		return  nil, ErrSpendPub
+		return nil, ErrSpendPub
 	}
 	//Hs(rA)
 	Hs_rA := derivation2scalar(rA, outputIndex)
@@ -176,23 +178,23 @@ func RecoverOnetimePriKey(R []byte, viewSecretKey, spendSecretKey PrivKey, outpu
 	return prikey, nil
 }
 
-func GenerateKeyImage(onetimeSk PrivKey, onetimePk PubKey) *KeyImage {
-	keyImage := &KeyImage{}
-
-	return keyImage
-
-}
+//func GenerateKeyImage(onetimeSk PrivKey, onetimePk PubKey) *KeyImage {
+//	keyImage := &KeyImage{}
+//
+//	return keyImage
+//
+//}
 //其中的realUtxoIndex，是真实的utxo输出在混淆组中的位置索引
-func GenerateRingSignature(data []byte, utxos []*types.UTXO, realUtxoIndex int, sk []byte, keyImage []byte) Signature {
+//func GenerateRingSignature(data []byte, utxos []*types.UTXO, realUtxoIndex int, sk []byte, keyImage []byte) Signature {
+//
+//	return nil
+//}
 
-	return
-}
-
-func CheckRingSignature(data, ringSignature []byte, groupUTXOPubKeys [][]byte, keyImage []byte) bool {
-	checkRes := false
-
-	return checkRes
-}
+//func CheckRingSignature(data, ringSignature []byte, groupUTXOPubKeys [][]byte, keyImage []byte) bool {
+//	checkRes := false
+//
+//	return checkRes
+//}
 
 func GenerateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) {
 	copy(privKeyPrivacyPtr[:PrivateKeyLen], CRandBytes(PrivateKeyLen))
@@ -271,4 +273,12 @@ func hash2scalar(buf []byte, out *[32]byte) {
 	digest := new([64]byte)
 	copy(digest[:], hash[:])
 	edwards25519.ScReduce(out, digest)
+}
+
+func (image *KeyImage) String() string {
+	var s string
+	for _, d := range image {
+		s += fmt.Sprintf("%02x", d)
+	}
+	return s
 }

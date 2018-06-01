@@ -16,7 +16,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"os/exec"
 )
 
 var (
@@ -617,7 +616,7 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 	chain.privacylock.RLock()
 	defer chain.privacylock.RUnlock()
 
-	if reqUTXOGlobalIndex.MixCount <= 0 || 0 == len(reqUTXOGlobalIndex.Amount) {
+	if reqUTXOGlobalIndex.MixCount < 0 || 0 == len(reqUTXOGlobalIndex.Amount) {
 		chainlog.Error("ProcGetGlobalIndexMsg count err", "MixCount", reqUTXOGlobalIndex.MixCount,
 			"len(reqUTXOGlobalIndex.Amount)", len(reqUTXOGlobalIndex.Amount))
 		return nil, types.ErrInputPara
@@ -632,7 +631,11 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
 	resUTXOGlobalIndex.Tokenname = reqUTXOGlobalIndex.Tokenname
 	resUTXOGlobalIndex.MixCount = reqUTXOGlobalIndex.MixCount
+	mixcount := reqUTXOGlobalIndex.MixCount
 	for _, amount := range reqUTXOGlobalIndex.Amount {
+		if mixcount <= 0 {
+			break
+		}
 		utxos, ok := privacyCache[amount]
 		if !ok {
 			chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No UTXO existed for token's amount", amount,
@@ -667,15 +670,15 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 			for ; index > stopindex; index-- {
 				key := keys[index]
 				value, _ := utxos.Get(key)
-				utxo := &types.UTXO{
+				utxo := &types.UTXOBasic{
 					UtxoGlobalIndex: key.(*types.UTXOGlobalIndex),
-					OnetimePubkey:   value.(privacyOutputKeyInfo).onetimePubKey,
+					OnetimePubkey:   value.(*privacyOutputKeyInfo).onetimePubKey,
 				}
 				utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
 
 			}
 			resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
-
+			mixcount -= 1
 		} else {
 			chainlog.Error("ProcGetGlobalIndexMsg", "No enough same amout UTXO available for amout", amount,
 				"required mix count", reqUTXOGlobalIndex.MixCount, "Actually count within confirmed height is", index+1)
@@ -752,7 +755,7 @@ func (chain *BlockChain) ProcGetUTXOPubkey(reqUTXOPubKeys *types.ReqUTXOPubKeys)
 					return nil, types.ErrOutputIndex
 				}
 
-				groupUTXOPubKey.Pubkey = append(groupUTXOPubKey.Pubkey, output.Keyoutput[utxoGlobalIndex.Outindex].Ometimepubkey)
+				groupUTXOPubKey.Pubkey = append(groupUTXOPubKey.Pubkey, output.Keyoutput[utxoGlobalIndex.Outindex].Onetimepubkey)
 				chainlog.Info("ProcGetUTXOPubkey", "Can't find utxo in privacy cache but fetched from block's tx for utxoGlobalIndex",
 					utxoGlobalIndex, "Current block height", chain.GetBlockHeight())
 			}
@@ -1017,7 +1020,8 @@ func (chain *BlockChain) InitPrivacyCache() {
 								localUTXOItem := localUTXOItemSlice[i]
 								keyCache := privacy.CalcPrivacyUTXOkeyHeight(token, amount, localUTXOItem.Height, common.ToHex(localUTXOItem.Txhash), int(localUTXOItem.Outindex))
 								outputKeyInfo := privacyOutputKeyInfo{
-									onetimePubKey: localUTXOItem.Ometimepubkey,
+									onetimePubKey: localUTXOItem.Onetimepubkey,
+
 								}
 								privacyOutputIndexLru.Add(keyCache, outputKeyInfo)
 							}

@@ -1,18 +1,16 @@
 package wallet
 
 import (
-	"encoding/hex"
 	"errors"
-	"sync/atomic"
 	"time"
 
+	"encoding/hex"
+	"sync/atomic"
+
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
-	"unsafe"
-	"gitlab.33.cn/chain33/chain33/common"
-	"fmt"
 )
 
 func (wallet *Wallet) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
@@ -815,6 +813,10 @@ func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err
 		walletlog.Error("GetRofPrivateTx TransactionDetails is nil")
 		return nil, errors.New("ErrTxDetail")
 	}
+	if len(TxDetails.Txs) <= 0 {
+		walletlog.Error("GetRofPrivateTx TransactionDetails is empty")
+		return nil, errors.New("ErrTxDetail")
+	}
 
 	if "privacy" != string(TxDetails.Txs[0].Tx.Execer) {
 		walletlog.Error("GetRofPrivateTx get tx but not privacy")
@@ -828,9 +830,9 @@ func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err
 	}
 
 	if types.ActionPublic2Privacy == privateAction.Ty {
-		return privateAction.GetPublic2Privacy().GetRpubKeytx(), nil
+		return privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx(), nil
 	} else if types.ActionPrivacy2Privacy == privateAction.Ty {
-		return privateAction.GetPrivacy2Privacy().GetRpubKeytx(), nil
+		return privateAction.GetPrivacy2Privacy().GetOutput().GetRpubKeytx(), nil
 	} else {
 		walletlog.Info("GetPrivateTxByHashes failed to get value required", "privacy type is", privateAction.Ty)
 		return nil, errors.New("ErrPrivacyType")

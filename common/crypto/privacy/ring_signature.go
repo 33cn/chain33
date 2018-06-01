@@ -6,49 +6,32 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/common"
 )
 
-type PublicKey [32]byte
-type SecreKey [32]byte
-
-//type KeyImage [32]byte
 type Sign [64]byte
-
-type rs_comm_ab struct {
-	a [32]byte
-	b [32]byte
-}
-
-type rs_comm struct {
-	ab []rs_comm_ab
-}
 
 func randomScalar(res *[32]byte) {
 	var tmp [64]byte
 	copy(tmp[:], crypto.CRandBytes(64))
 	edwards25519.ScReduce(res, &tmp)
-	/*
-		for i := 0; i < 32; i++ {
-			res[i] = byte(i+7)
-		}
-	*/
 }
 
-func generateKeyImage(pub *PublicKey, sec *SecreKey, image *KeyImage) {
+func generateKeyImage(pub *PubKeyPrivacy, sec *PrivKeyPrivacy, image *KeyImage) error {
 	var point edwards25519.ExtendedGroupElement
 	var point2 edwards25519.ProjectiveGroupElement
+	if pub == nil || sec == nil || image == nil {
+		return types.ErrInvalidParams
+	}
 	p := (*[32]byte)(unsafe.Pointer(sec))
 	// Hp(P)
 	edwards25519.HashToEc(pub[:], &point)
 	//x * Hp(P)
 	edwards25519.GeScalarMult(&point2, p, &point)
 	point2.ToBytes((*[32]byte)(unsafe.Pointer(image)))
+	return nil
 }
 
-func generateRingSignature(data []byte, image *KeyImage, pubs []*PublicKey, sec *SecreKey, signs []*Sign, index int) error {
+func generateRingSignature(data []byte, image *KeyImage, pubs []*PubKeyPrivacy, sec *PrivKeyPrivacy, signs []*Sign, index int) error {
 	var sum, k, h, tmp [32]byte
 	var image_pre edwards25519.DsmPreCompGroupElement
 	var image_unp edwards25519.ExtendedGroupElement
@@ -56,7 +39,8 @@ func generateRingSignature(data []byte, image *KeyImage, pubs []*PublicKey, sec 
 	buf = append(buf, data...)
 
 	if !edwards25519.GeFromBytesVartime(&image_unp, (*[32]byte)(unsafe.Pointer(image))) {
-		return errors.New("geFrombytesVartime failed.")
+		privacylog.Error("generateRingSignature", "from image failed.")
+		return types.ErrGeFromBytesVartime
 	}
 	edwards25519.GeDsmPrecomp(&image_pre, &image_unp)
 	for i := 0; i < len(pubs); i++ {
@@ -87,7 +71,7 @@ func generateRingSignature(data []byte, image *KeyImage, pubs []*PublicKey, sec 
 			randomScalar(pa)
 			randomScalar(pb)
 			if !edwards25519.GeFromBytesVartime(&tmp3, (*[32]byte)(unsafe.Pointer(pubkey))) {
-				return errors.New("geFrombytesVartime failed.")
+				return types.ErrGeFromBytesVartime
 			}
 			// (r, a, A, b)
 			// r = a  * A   + b   * G
@@ -126,7 +110,7 @@ func generateRingSignature(data []byte, image *KeyImage, pubs []*PublicKey, sec 
 	return nil
 }
 
-func checkRingSignature(prefix_hash []byte, image *KeyImage, pubs []*PublicKey, signs []*Sign) bool {
+func checkRingSignature(prefix_hash []byte, image *KeyImage, pubs []*PubKeyPrivacy, signs []*Sign) bool {
 	var sum, h, tmp [32]byte
 	var image_unp edwards25519.ExtendedGroupElement
 	var image_pre edwards25519.DsmPreCompGroupElement
@@ -172,30 +156,68 @@ func checkRingSignature(prefix_hash []byte, image *KeyImage, pubs []*PublicKey, 
 	return edwards25519.ScIsNonZero(&h) == 0
 }
 
-// 创建一个环签名
-// data 交易哈希值
-// utxos 交易的入参
-// realUtxoIndex 交易中真正需要签名的交易索引
-// sec 私钥
-// keyImage 密钥金象
-func GenerateRingSignature(data []byte, utxos []*types.UTXO, sec *SecreKey, realUtxoIndex int, keyImage []byte, signs []*Sign) error {
-	pubs := make([]*PublicKey, len(utxos))
-	for i := 0; i < len(utxos); i++ {
-		pub := &PublicKey{}
+func GenerateRingSignature(datahash []byte, utxos []*types.UTXOBasic, privKey []byte, realUtxoIndex int, keyImage []byte) (*types.SignatureData, error) {
+	count := len(utxos)
+	signs := make([]*Sign, count)
+	pubs := make([]*PubKeyPrivacy, count)
+
+	for i := 0; i < count; i++ {
+		pub := &PubKeyPrivacy{}
 		copy(pub[:], utxos[i].OnetimePubkey)
 		pubs[i] = pub
+		signs[i] = &Sign{}
 	}
-	h := common.BytesToHash(data)
 	var image KeyImage
 	copy(image[:], keyImage)
-	return generateRingSignature(h.Bytes(), &image, pubs, sec, signs, realUtxoIndex)
+	var sec PrivKeyPrivacy
+	copy(sec[:], privKey)
+	err := generateRingSignature(datahash, &image, pubs, &sec, signs, realUtxoIndex)
+	if err != nil {
+		return nil, err
+	}
+	data := types.SignatureData{}
+	data.Data = make([][]byte, count)
+	for i, v := range signs {
+		data.Data[i] = make([]byte, 0)
+		data.Data[i] = append(data.Data[i], v[:]...)
+	}
+	return &data, nil
 }
 
-func GenerateKeyImage(pub *PublicKey, sec *SecreKey, image *KeyImage) {
-	generateKeyImage(pub, sec, image)
+func GenerateKeyImage(privkey crypto.PrivKey, pubkey []byte) (*KeyImage, error) {
+	var image KeyImage
+	var pub PubKeyPrivacy
+	var sec PrivKeyPrivacy
+	copy(pub[:], pubkey)
+	copy(sec[:], privkey.Bytes())
+	err := generateKeyImage(&pub, &sec, &image)
+	if err != nil {
+		return nil, err
+	}
+	return &image, nil
 }
 
-func CheckRingSignature(data []byte, image *KeyImage, pubs []*PublicKey, signs []*Sign) bool {
-	h := common.BytesToHash(data)
-	return checkRingSignature(h.Bytes(), image, pubs, signs)
+func CheckRingSignature(datahash []byte, signatures *types.SignatureData, publickeys [][]byte, keyimage []byte) bool {
+	var image KeyImage
+	var pubs []*PubKeyPrivacy
+	var signs []*Sign
+
+	if signatures == nil || len(signatures.GetData()) != len(publickeys) {
+		return false
+	}
+	// 转换协议
+	copy(image[:], keyimage)
+	count := len(publickeys)
+	pubs = make([]*PubKeyPrivacy, count)
+	signs = make([]*Sign, count)
+	for i := 0; i < len(publickeys); i++ {
+		pub := PubKeyPrivacy{}
+		sign := Sign{}
+		copy(pub[:], publickeys[i])
+		copy(sign[:], signatures.GetData()[i])
+		pubs[i] = &pub
+		signs[i] = &sign
+	}
+
+	return checkRingSignature(datahash, &image, pubs, signs)
 }

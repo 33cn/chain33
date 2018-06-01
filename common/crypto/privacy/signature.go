@@ -1,8 +1,8 @@
 package privacy
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
 )
 

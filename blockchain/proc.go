@@ -62,7 +62,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventIsNtpClockSync:
 			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
 		case types.EventGetPrivacyTransaction:
-		    go chain.processMsg(msg, reqnum, chain.getPrivacyTransaction)
+			go chain.processMsg(msg, reqnum, chain.getPrivacyTransaction)
 		case types.EventGetGlobalIndex:
 			go chain.processMsg(msg, reqnum, chain.getGlobalIndex)
 		case types.EventGetUTXOPubKey:
