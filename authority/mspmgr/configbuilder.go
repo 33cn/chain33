@@ -29,15 +29,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 )
 
-type OrganizationalUnitIdentifiersConfiguration struct {
-	Certificate                  string `yaml:"Certificate,omitempty"`
-	OrganizationalUnitIdentifier string `yaml:"OrganizationalUnitIdentifier,omitempty"`
-}
-
-type Configuration struct {
-	OrganizationalUnitIdentifiers []*OrganizationalUnitIdentifiersConfiguration `yaml:"OrganizationalUnitIdentifiers,omitempty"`
-}
-
 func readFile(file string) ([]byte, error) {
 	fileCont, err := ioutil.ReadFile(file)
 	if err != nil {

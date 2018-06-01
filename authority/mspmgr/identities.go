@@ -27,8 +27,6 @@ type identity struct {
 }
 
 func newIdentity(cert *x509.Certificate, pk bccsp.Key, msp *bccspmsp) (MSPIdentity, error) {
-	mspLogger.Debug("Creating identity instance for ID %s", certToPEM(cert))
-
 	// Sanitize first the certificate
 	cert, err := msp.sanitizeCert(cert)
 	if err != nil {
@@ -46,8 +44,6 @@ func (id *identity) Validate() error {
 // to determine whether this identity produced the
 // signature; it returns nil if so or an error otherwise
 func (id *identity) Verify(msg []byte, sig []byte) error {
-	mspLogger.Info("Verifying signature")
-
 	// Compute Hash
 	hashOpt, err := id.getHashOpt(id.msp.cryptoConfig.SignatureHashFamily)
 	if err != nil {
@@ -59,8 +55,8 @@ func (id *identity) Verify(msg []byte, sig []byte) error {
 		return fmt.Errorf("Failed computing digest [%s]", err)
 	}
 
-	mspLogger.Debug("Verify: digest = %s", hex.Dump(digest))
-	mspLogger.Debug("Verify: sig = %s", hex.Dump(sig))
+	mspLogger.Debug(fmt.Sprintf("Verify: digest = %s", hex.Dump(digest)))
+	mspLogger.Debug(fmt.Sprintf("Verify: sig = %s", hex.Dump(sig)))
 
 	valid, err := id.msp.bccsp.Verify(id.pk, sig, digest, nil)
 	if err != nil {

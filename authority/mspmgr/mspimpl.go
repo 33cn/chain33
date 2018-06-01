@@ -65,8 +65,6 @@ type bccspmsp struct {
 // generate identities and signing identities backed by
 // certificates and keypairs
 func NewBccspMsp() (MSP, error) {
-	mspLogger.Debug("Creating BCCSP-based MSP instance")
-
 	bccsp := factory.GetDefault()
 	theMsp := &bccspmsp{}
 	theMsp.bccsp = bccsp
@@ -235,7 +233,7 @@ func (msp *bccspmsp) GetIdentifier() (string, error) {
 // nil in case the identity is valid or an
 // error otherwise
 func (msp *bccspmsp) Validate(id MSPIdentity) error {
-	mspLogger.Debug("MSP %s validating identity", msp.name)
+	mspLogger.Debug("validating identity")
 
 	switch id := id.(type) {
 	// If this identity is of this specific type,
@@ -251,7 +249,7 @@ func (msp *bccspmsp) Validate(id MSPIdentity) error {
 // DeserializeIdentity returns an Identity given the byte-level
 // representation of a SerializedIdentity struct
 func (msp *bccspmsp) DeserializeIdentity(serializedID []byte) (MSPIdentity, error) {
-	mspLogger.Info("Obtaining identity")
+	mspLogger.Debug("Deserialize identity")
 
 	bl, _ := pem.Decode(serializedID)
 	if bl == nil {
